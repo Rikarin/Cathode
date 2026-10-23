@@ -144,23 +144,4 @@ static class AudioCommands {
             );
         }
     }
-
-    sealed class ForwardingProcessor : IAudioProcessor {
-        IAudioProcessor? target;
-
-        public IAudioProcessor? Target {
-            get => Volatile.Read(ref this.target);
-            set => Volatile.Write(ref this.target, value);
-        }
-
-        public void Process(in AudioIO io) {
-            var target = Target;
-            if (target is null) {
-                io.OutputLeft.Clear();
-                io.OutputRight.Clear();
-            } else {
-                target.Process(io);
-            }
-        }
-    }
 }

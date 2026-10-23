@@ -3,8 +3,8 @@ using Cathode.Engine;
 using Cathode.Engine.Graph;
 using Cathode.Host;
 
-// Cathode engine host: a NativeAOT executable. The IPC endpoint for Cathode.Server arrives in Phase 3
-// (docs/04-implementation-plan.md); for now it offers diagnostics for the Phase 0 spikes.
+// Cathode engine host: a NativeAOT executable. --serve runs the engine for Cathode.Server over a Unix domain
+// socket (docs/adr/0004-state-ownership.md); the other commands are diagnostics.
 
 var version = typeof(CathodeEngine).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
         ?.InformationalVersion
@@ -19,6 +19,7 @@ try {
         "audio-test" => AudioCommands.AudioTest(options),
         "latency-test" => AudioCommands.LatencyTest(options),
         "bench-nam" => NamBenchmark.Run(options),
+        "serve" => ServeCommand.Run(options),
         _ => Usage()
     };
 } catch (Exception e) when (e is InvalidOperationException
@@ -39,6 +40,9 @@ int Usage() {
         $"""
          cathode-host {version}
 
+           --serve --socket <path> [options]
+                                           run the engine for Cathode.Server until SIGINT or SIGTERM
+                 --device <uid>  --rate 48000  --buffer 64  --null-audio
            --self-test                     offline real-time path check (no device)
            --devices                       list audio devices
            --audio-test [options]          run the engine on a device and report timing and dropouts

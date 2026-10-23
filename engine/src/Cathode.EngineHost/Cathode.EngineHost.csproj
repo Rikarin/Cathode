@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Host side of the engine link: the IPC message handler, the Unix-socket listener and an in-process link for tests.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Cathode.Ipc/Cathode.Ipc.csproj"/>
+    <ProjectReference Include="../Cathode.Audio/Cathode.Audio.csproj"/>
+    <ProjectReference Include="../Cathode.Dsp.Native/Cathode.Dsp.Native.csproj"/>
+  </ItemGroup>
+</Project>

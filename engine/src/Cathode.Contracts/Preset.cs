@@ -1,0 +1,120 @@
+namespace Cathode.Contracts;
+
+/// <summary>
+/// A complete rig: grid, blocks with up to four channels each, cables and eight scenes. Parameter values are stored
+/// sparsely; anything not listed takes the block type's default, so new parameters need no migration.
+/// </summary>
+public sealed class Preset {
+    public const int CurrentSchemaVersion = 1;
+    public const int SceneCount = 8;
+
+    public static readonly string[] ChannelNames = ["A", "B", "C", "D"];
+
+    public int SchemaVersion { get; set; } = CurrentSchemaVersion;
+
+    public string Id { get; set; } = NewId();
+
+    public string Name { get; set; } = "New Preset";
+
+    public string? Author { get; set; }
+
+    public List<string> Tags { get; set; } = [];
+
+    public double Tempo { get; set; } = 120;
+
+    public int Rows { get; set; } = 6;
+
+    public int Columns { get; set; } = 14;
+
+    public List<PresetBlock> Blocks { get; set; } = [];
+
+    public List<PresetCable> Cables { get; set; } = [];
+
+    public List<Scene> Scenes { get; set; } = [.. Enumerable.Range(1, SceneCount).Select(static n => new Scene { Name = $"Scene {n}" })];
+
+    public static string NewId() => Guid.NewGuid().ToString("n");
+
+    /// <summary>The smallest working rig: Input 1 straight to Output 1 across the first row.</summary>
+    public static Preset CreateDefault() => new Preset {
+        Blocks =
+        [
+            new() { Id = "in1", Type = BuiltInTypes.Input, Row = 0, Column = 0 },
+            new() { Id = "out1", Type = BuiltInTypes.Output, Row = 0, Column = 13 },
+        ],
+        Cables = [],
+    }.WithShuntRow(0, from: "in1", to: "out1");
+
+    /// <summary>Fills the cells between two blocks on one row with shunts and cables.</summary>
+    public Preset WithShuntRow(int row, string from, string to) {
+        var start = Blocks.Single(b => b.Id == from).Column;
+        var end = Blocks.Single(b => b.Id == to).Column;
+        var previous = from;
+        for (var column = start + 1; column < end; column++) {
+            var id = $"shunt-r{row}c{column}";
+            Blocks.Add(new PresetBlock { Id = id, Type = BuiltInTypes.Shunt, Row = row, Column = column });
+            Cables.Add(new PresetCable { From = previous, To = id });
+            previous = id;
+        }
+
+        Cables.Add(new PresetCable { From = previous, To = to });
+        return this;
+    }
+}
+
+public static class BuiltInTypes {
+    public const string Input = "input";
+    public const string Output = "output";
+    public const string Shunt = "shunt";
+
+    public static bool IsBuiltIn(string type) => type is Input or Output or Shunt;
+}
+
+public sealed class PresetBlock {
+    /// <summary>Stable instance id such as <c>amp1</c>; never an index.</summary>
+    public string Id { get; set; } = "";
+
+    public string Type { get; set; } = "";
+
+    public int Row { get; set; }
+
+    public int Column { get; set; }
+
+    /// <summary>Channel name (A-D) to parameter id to value. Only values that differ from the default need to be present.</summary>
+    public Dictionary<string, Dictionary<string, float>> Channels { get; set; } = [];
+
+    /// <summary>Asset slot to asset reference (<c>sha256:&lt;hex&gt;</c>), e.g. <c>"model"</c> or <c>"ir1"</c>.</summary>
+    public Dictionary<string, string> Assets { get; set; } = [];
+
+    /// <summary>Parameter values of <paramref name="channel"/>, creating the map if needed.</summary>
+    public Dictionary<string, float> Channel(string channel) {
+        if (!Channels.TryGetValue(channel, out var values)) {
+            values = [];
+            Channels[channel] = values;
+        }
+
+        return values;
+    }
+}
+
+public sealed class PresetCable {
+    public string From { get; set; } = "";
+
+    public string To { get; set; } = "";
+}
+
+/// <summary>Which channel each block uses and whether it is bypassed. Blocks not listed use channel A, engaged.</summary>
+public sealed class Scene {
+    public string Name { get; set; } = "";
+
+    /// <summary>Scene output level in dB.</summary>
+    public float Level { get; set; }
+
+    public Dictionary<string, SceneBlockState> Blocks { get; set; } = [];
+
+    public SceneBlockState StateOf(string blockId) =>
+        Blocks.TryGetValue(blockId, out var state) ? state : SceneBlockState.Default;
+}
+
+public sealed record SceneBlockState(bool Bypassed = false, string Channel = "A") {
+    public static SceneBlockState Default { get; } = new();
+}

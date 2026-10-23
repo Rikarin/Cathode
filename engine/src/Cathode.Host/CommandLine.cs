@@ -8,7 +8,7 @@ namespace Cathode.Host;
 /// </summary>
 sealed class CommandLine {
     static readonly HashSet<string> Commands =
-        ["version", "self-test", "devices", "audio-test", "latency-test", "bench-nam", "help"];
+        ["version", "self-test", "devices", "audio-test", "latency-test", "bench-nam", "serve", "help"];
 
     readonly Dictionary<string, string?> options = new(StringComparer.Ordinal);
 

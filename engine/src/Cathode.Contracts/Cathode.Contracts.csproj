@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Preset schema and API/IPC data contracts. No engine or DSP dependencies.</Description>
+  </PropertyGroup>
+</Project>
