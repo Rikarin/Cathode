@@ -215,11 +215,16 @@ Close the gap with the Axe-Fx III block list in [01](01-axe-fx-iii-audit.md), in
 6. [x] **IR Player** (`irplayer`): IRs up to 680 ms at the file's gain, with mix and cuts. It shares the Cab's IR cache.
    - **Tone Match** (`tonematch` plus `POST /api/v1/live/blocks/{id}/tonematch`): the Server averages the output's spectrum while you play, compares it with a reference recording, smooths the ratio (1/3 octave by default), limits it to ±18 dB and makes it level-neutral. It then designs a 2048-tap minimum-phase filter and stores it as the block's `match` asset. Matching again through an existing match replaces it instead of stacking.
    - **RTA** (`PUT /api/v1/rta`): sixth-octave bands of the output at 15 Hz, shown in the Analyser dialog by the new `cth-rta` canvas. The telemetry scope ring grew to 16k samples for its 4096-point window (layout v3).
-7. Drive catalogue expansion (20+ circuits) on the WDF framework
+7. [x] **Drive catalogue: 23 circuits on a WDF framework** (`Cathode.Dsp.Wdf`). The framework is struct-based with generic adaptors, so there is no virtual dispatch per sample. It has resistors, capacitors, inductors, sources, and a diode-pair root solved by Wright omega plus Newton. The root has first-order antiderivative antialiasing.
+   - The new types are appended to Drive's Type list (indices 3–25), so Overdrive, Distortion and Fuzz keep their indices and their sound.
+   - Circuits after: TS808, TS9, modded TS, SD-1, Zendrive, Klon, Timmy, Bluesbreaker, Guv'nor, OCD, RAT, Turbo RAT, DS-1, Distortion+, Big Muff, Fuzz Face (Ge and Si), Tone Bender, Rangemaster, FET boost, Octavia, a modern high-gain drive and an RC Booster. `DriveCircuits.All` names each one's model.
+   - Every type keeps 60 dB or more signal-to-aliasing at full drive. Symmetric circuits produce no even harmonics; asymmetric ones do.
+   - Cost: 1.8–3.3 % of one core for most types, and up to about 5 % for the cascaded ones (Big Muff, high-gain, Tone Bender).
+   - *Not modelled:* real tone stacks (one first-order filter on the Tone knob), op-amp slew, transistor fuzz cleanup and gating.
 8. [x] **Cab library tooling:**
    - **IR mixer** (`POST /api/v1/assets/mix`, and the IRs page): blends up to 8 IRs with level, delay, polarity and peak alignment into a new IR asset.
    - **IR capture** (`cathode-host --ir-capture`, and the IRs page in the desktop app): an exponential sweep on outputs 1–2, recorded on input 1, deconvolved with Farina's inverse filter and trimmed 1 ms before the peak. A wire measures flat to ±0.25 dB from 200 Hz up.
-9. [ ] **Parallel DSP**: rows on worker threads joined to the audio workgroup or MMCSS, when CPU telemetry shows a need. *Not needed yet:* the measured costs (`BlockCosts`, served as `cpuCost` in the catalog and summed into the editor's estimate) put the most expensive single blocks at 7 % (IR Player with a full-length IR) and 4 % (Cab), and the Phase 2 "everything" rig at 15 % of one core.
+9. [ ] **Parallel DSP**: rows on worker threads joined to the audio workgroup or MMCSS, when CPU telemetry shows a need. *Not needed yet:* the measured costs (`BlockCosts`, served as `cpuCost` in the catalog and summed into the editor's estimate) put the most expensive single blocks at 7 % (IR Player with a full-length IR), 5 % (Drive's cascaded circuits) and 4 % (Cab), and the Phase 2 "everything" rig at 15 % of one core.
 
 **Definition-of-done tooling added in this phase:**
 - `tools/Cathode.Bench` measures every block (the worst of its types, with the longest IRs) and writes `BlockCosts.cs`. The conformance suite fails for a block without a cost.
