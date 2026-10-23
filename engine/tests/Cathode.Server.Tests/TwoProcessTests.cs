@@ -9,6 +9,7 @@ namespace Cathode.Server.Tests;
 ///     it over a Unix domain socket.
 /// </summary>
 public sealed class TwoProcessTests : IAsyncDisposable {
+    readonly System.Text.StringBuilder hostOutput = new();
     readonly string socketPath = Path.Combine(Path.GetTempPath(), $"cth-{Guid.NewGuid().ToString("n")[..8]}.sock"); // Unix socket paths are limited to ~104 bytes on macOS
     Process? host;
 
@@ -17,6 +18,9 @@ public sealed class TwoProcessTests : IAsyncDisposable {
     public async ValueTask DisposeAsync() {
         await StopHostAsync();
         File.Delete(socketPath);
+        lock (hostOutput) {
+            TestContext.Current.TestOutputHelper?.WriteLine("cathode-host output:\n" + hostOutput);
+        }
     }
 
     [Fact]
@@ -36,7 +40,8 @@ public sealed class TwoProcessTests : IAsyncDisposable {
         await StopHostAsync();
         await ServerFixture.Eventually(async () => !(await System(client)).Engine.Connected);
         StartHost();
-        await ServerFixture.Eventually(async () => (await System(client)).Engine.Connected);
+        // Generous: the server retries every second, and slower CI machines take a while to start a host process.
+        await ServerFixture.Eventually(async () => (await System(client)).Engine.Connected, 90);
 
         // The new host knows nothing; the Server must have resent the whole rig. Otherwise these would fail with
         // "stale graph generation" or "no block 'delay1'".
@@ -49,10 +54,25 @@ public sealed class TwoProcessTests : IAsyncDisposable {
     void StartHost() {
         var dll = Path.Combine(AppContext.BaseDirectory.Replace(Path.Combine("tests", "Cathode.Server.Tests"), Path.Combine("src", "Cathode.Host"), StringComparison.Ordinal), "cathode-host.dll");
         Assert.True(File.Exists(dll), $"cathode-host not built at {dll}");
-        host = Process.Start(new ProcessStartInfo("dotnet", ["exec", dll, "--serve", "--null-audio", "--socket", socketPath]) {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        })!;
+        host = new Process {
+            StartInfo = new("dotnet", ["exec", dll, "--serve", "--null-audio", "--socket", socketPath]) {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            }
+        };
+        host.OutputDataReceived += (_, e) => Capture(e.Data);
+        host.ErrorDataReceived += (_, e) => Capture(e.Data);
+        host.Start();
+        host.BeginOutputReadLine();
+        host.BeginErrorReadLine();
+    }
+
+    void Capture(string? line) {
+        if (line is not null) {
+            lock (hostOutput) {
+                hostOutput.AppendLine(line);
+            }
+        }
     }
 
     async Task StopHostAsync() {

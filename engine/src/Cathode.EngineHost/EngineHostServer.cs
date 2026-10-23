@@ -7,7 +7,7 @@ namespace Cathode.EngineHost;
 ///     Listens on a Unix domain socket for the Server (one client at a time), answers requests through
 ///     <see cref="EngineHostService" /> and pushes telemetry about 30 times a second.
 /// </summary>
-public sealed class EngineHostServer(EngineHostService service, string socketPath) {
+public sealed class EngineHostServer(EngineHostService service, string socketPath, Action<string>? log = null) {
     static readonly TimeSpan TelemetryInterval = TimeSpan.FromMilliseconds(33);
 
     public async Task RunAsync(CancellationToken cancellationToken) {
@@ -21,7 +21,9 @@ public sealed class EngineHostServer(EngineHostService service, string socketPat
         try {
             while (!cancellationToken.IsCancellationRequested) {
                 using var client = await listener.AcceptAsync(cancellationToken).ConfigureAwait(false);
+                log?.Invoke("client connected");
                 await ServeAsync(client, cancellationToken).ConfigureAwait(false);
+                log?.Invoke("client disconnected");
             }
         } catch (OperationCanceledException) {
         } finally {
@@ -47,6 +49,7 @@ public sealed class EngineHostServer(EngineHostService service, string socketPat
                 }
             }
         } catch (Exception e) when (e is IOException or SocketException or OperationCanceledException or InvalidDataException) {
+            log?.Invoke($"connection ended: {e.GetType().Name}: {e.Message}");
         } finally {
             await connection.CancelAsync().ConfigureAwait(false);
             try {

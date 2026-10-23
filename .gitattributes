@@ -1,0 +1,10 @@
+# One line ending everywhere: Windows checkouts would otherwise turn LF into CRLF, which leaks into generated
+# artefacts such as the OpenAPI document (XML doc comments become description strings).
+* text=auto eol=lf
+
+*.wav binary
+*.nam binary
+*.png binary
+*.dylib binary
+*.so binary
+*.dll binary

@@ -87,6 +87,10 @@ CATHODE_UPDATE_OPENAPI=1 dotnet test --project tests/Cathode.Server.Tests
 The production layout runs under editor-and-gig load: the NativeAOT host on a device (muted), the Release server, knob drags, scene changes, preset loads, uploads and a WebSocket client. The runner publishes everything first and writes `soak.jsonl` and `summary.txt`. It passes with zero driver overloads and zero API errors, and reports the host's GC count and native callback timing.
 
 ```bash
-tools/Cathode.Soak/run-soak.sh "<device uid>" 60 ./soak-results
+tools/Cathode.Soak/run-soak.sh "<device uid>" 60 ./soak-results 0
 ```
+
+The last argument is the most host GCs allowed (`-1` disables that gate). Use `null` as the device to run without an audio interface.
+
+`.github/workflows/soak.yml` runs it nightly on GitHub's hosted Linux runners with the null backend. It can also be started manually with a chosen length. Real-hardware soaks run on a self-hosted macOS runner labelled `audio` when the repository variable `SOAK_DEVICE` holds the device uid.
 

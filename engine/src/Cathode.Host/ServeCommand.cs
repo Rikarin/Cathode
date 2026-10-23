@@ -69,7 +69,8 @@ static class ServeCommand {
 
         var info = service.Info;
         Console.WriteLine($"cathode-host {info.Version} serving on {socketPath} ({info.Backend}, {info.SampleRate / 1000:0.#} kHz, {info.BufferFrames} frames)");
-        new EngineHostServer(service, socketPath).RunAsync(cancellationToken).GetAwaiter().GetResult();
+        new EngineHostServer(service, socketPath, static message => Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} {message}"))
+            .RunAsync(cancellationToken).GetAwaiter().GetResult();
         Console.WriteLine("cathode-host stopped");
         return 0;
     }

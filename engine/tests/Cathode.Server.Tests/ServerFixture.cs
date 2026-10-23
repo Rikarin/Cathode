@@ -45,9 +45,10 @@ public sealed class ServerFixture(string? socketPath = null) : WebApplicationFac
 
     public bool IsBypassed(string block) => Graph!.IsBypassed(Graph.SlotOf(block));
 
-    /// <summary>Engine commands are asynchronous; waits up to 5 s for <paramref name="condition" />.</summary>
-    public static async Task Eventually(Func<Task<bool>> condition) {
-        for (var i = 0; i < 250; i++) {
+    /// <summary>Engine commands are asynchronous; waits up to <paramref name="seconds" /> for <paramref name="condition" />.</summary>
+    public static async Task Eventually(Func<Task<bool>> condition, int seconds = 5) {
+        var deadline = DateTime.UtcNow.AddSeconds(seconds);
+        while (DateTime.UtcNow < deadline) {
             if (await condition()) {
                 return;
             }
@@ -55,7 +56,7 @@ public sealed class ServerFixture(string? socketPath = null) : WebApplicationFac
             await Task.Delay(20);
         }
 
-        Assert.Fail("Condition not met within 5 s.");
+        Assert.Fail($"Condition not met within {seconds} s.");
     }
 
     public static Task Eventually(Func<bool> condition) => Eventually(() => Task.FromResult(condition()));

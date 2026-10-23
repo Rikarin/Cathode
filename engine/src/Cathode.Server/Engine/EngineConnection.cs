@@ -86,7 +86,10 @@ public sealed partial class EngineConnection(IOptions<ServerOptions> options, Ev
                 await RunOnceAsync(stoppingToken);
             } catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) {
                 break;
-            } catch (Exception e) when (e is IOException or System.Net.Sockets.SocketException or IpcException or InvalidOperationException) {
+            } catch (Exception e) {
+                // Whatever went wrong with this link (a timeout, a protocol error, a host that died mid-request), drop it
+                // and reconnect. An exception escaping here would stop the background service and, with the default
+                // host options, the whole server.
                 lastError = e.Message;
                 LinkLost(logger, e.Message);
             }

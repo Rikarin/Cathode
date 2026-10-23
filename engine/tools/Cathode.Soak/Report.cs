@@ -5,9 +5,12 @@ using Cathode.Contracts;
 namespace Cathode.Soak;
 
 sealed record Report(bool Passed, string Text) {
-    public static Report Build(EngineStatus first, EngineStatus last, Api api, TimeSpan elapsed) {
+    /// <summary>Summarises a run. <c>maxHostGcs</c> is the highest acceptable number of host collections (any generation); negative disables that gate.</summary>
+    public static Report Build(EngineStatus first, EngineStatus last, Api api, TimeSpan elapsed, int maxHostGcs) {
         var overloads = last.DriverOverloads - first.DriverOverloads;
-        var passed = overloads == 0 && api.Errors == 0 && last.Connected;
+        var hostGcs = last.HostGen0 - first.HostGen0; // every collection counts as gen0 too
+        var gcGate = maxHostGcs < 0 || hostGcs <= maxHostGcs;
+        var passed = overloads == 0 && api.Errors == 0 && last.Connected && gcGate;
         var text = new StringBuilder();
         var c = CultureInfo.InvariantCulture;
         text.AppendLine();
@@ -20,6 +23,10 @@ sealed record Report(bool Passed, string Text) {
         text.AppendLine(c, $"  API:                  {api.Requests} requests, {api.Errors} errors; {api.TelemetryMessages} WebSocket messages");
         foreach (var message in api.ErrorMessages) {
             text.AppendLine(c, $"    error: {message}");
+        }
+
+        if (maxHostGcs >= 0) {
+            text.AppendLine(c, $"  host GC gate:         {hostGcs} collection(s), at most {maxHostGcs} allowed: {(gcGate ? "ok" : "FAILED")}");
         }
 
         text.AppendLine(passed ? "soak: PASS" : "soak: FAIL");

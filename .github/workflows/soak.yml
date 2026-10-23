@@ -1,0 +1,98 @@
+name: soak
+
+# Long-running two-process soak in the production layout (docs/adr/0001-process-model.md): the NativeAOT engine host,
+# the Release server and cathode-soak driving the API like an editor and a gig would (knob drags, scene changes,
+# preset loads every 30 s, uploads, a telemetry client). Fails on any API error, any driver overload, or more host
+# garbage collections than allowed (default 0).
+#
+# GitHub-hosted runners have no audio interface, so the nightly job runs the host on the null backend: it covers the
+# API, IPC and the host's GC behaviour, not driver timing. To soak real hardware too, register a self-hosted macOS
+# runner with the label "audio" and set the repository variable SOAK_DEVICE to the device uid (cathode-host --devices).
+
+on:
+  schedule:
+    - cron: "17 2 * * *" # nightly, 02:17 UTC
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: Soak length in minutes
+        default: "60"
+        required: true
+      max_host_gcs:
+        description: Most host garbage collections allowed (-1 disables the gate)
+        default: "0"
+        required: true
+
+concurrency:
+  group: soak
+  cancel-in-progress: false
+
+env:
+  MINUTES: ${{ inputs.minutes || '60' }}
+  MAX_HOST_GCS: ${{ inputs.max_host_gcs || '0' }}
+
+jobs:
+  null-audio:
+    name: soak (null audio)
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: engine/global.json
+      - name: Install NativeAOT prerequisites
+        run: sudo apt-get update -q && sudo apt-get install -y -q clang zlib1g-dev
+      - name: Build native libraries
+        run: ./native/build.sh
+      - name: Soak
+        run: tools/Cathode.Soak/run-soak.sh null "$MINUTES" "$RUNNER_TEMP/soak-results" "$MAX_HOST_GCS"
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo '### Soak (null audio)'
+            echo '```'
+            cat "$RUNNER_TEMP/soak-results/summary.txt" 2>/dev/null || echo "no summary (the soak did not start)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: soak-null-audio
+          path: ${{ runner.temp }}/soak-results
+
+  device:
+    name: soak (audio device)
+    if: vars.SOAK_DEVICE != ''
+    runs-on: [self-hosted, macOS, audio]
+    timeout-minutes: 150
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: engine/global.json
+      - name: Build native libraries
+        run: ./native/build.sh
+      - name: Soak
+        run: tools/Cathode.Soak/run-soak.sh "${{ vars.SOAK_DEVICE }}" "$MINUTES" "$RUNNER_TEMP/soak-results" "$MAX_HOST_GCS"
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo '### Soak (audio device)'
+            echo '```'
+            cat "$RUNNER_TEMP/soak-results/summary.txt" 2>/dev/null || echo "no summary (the soak did not start)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: soak-audio-device
+          path: ${{ runner.temp }}/soak-results
