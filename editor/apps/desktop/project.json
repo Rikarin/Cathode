@@ -19,6 +19,17 @@
         "parallel": false
       }
     },
+    "engine": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/dist/engine"],
+      "options": { "command": "node apps/desktop/scripts/publish-engine.mjs" }
+    },
+    "package": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build", "engine"],
+      "outputs": ["{workspaceRoot}/dist/release"],
+      "options": { "command": "node apps/desktop/scripts/package.mjs" }
+    },
     "serve": {
       "executor": "nx:run-commands",
       "dependsOn": ["build"],

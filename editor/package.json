@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "license": "GPL-3.0-or-later",
-  "scripts": {},
+  "scripts": {
+    "dist": "nx run desktop:package"
+  },
   "dependencies": {
     "@angular/cdk": "~22.2.4",
     "@angular/common": "~22.2.0",
@@ -95,6 +97,7 @@
     "@vitest/ui": "^4.0.0",
     "chromatic": "^18.13.2",
     "electron": "^45.0.0",
+    "electron-builder": "^26.15.3",
     "esbuild": "^0.28.2",
     "jsdom": "^27.1.0",
     "nx": "24.0.0",
