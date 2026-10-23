@@ -42,7 +42,7 @@ int Usage() {
 
            --serve --socket <path> [options]
                                            run the engine for Cathode.Server until SIGINT or SIGTERM
-                 --device <uid>  --rate 48000  --buffer 64  --null-audio
+                 --device <uid>  --rate 48000  --buffer 64  --null-audio  --mute
            --self-test                     offline real-time path check (no device)
            --devices                       list audio devices
            --audio-test [options]          run the engine on a device and report timing and dropouts

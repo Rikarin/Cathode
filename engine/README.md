@@ -81,3 +81,12 @@ dotnet run -c Release --project src/Cathode.Server -- --Cathode:Engine:SocketPat
 ```bash
 CATHODE_UPDATE_OPENAPI=1 dotnet test --project tests/Cathode.Server.Tests
 ```
+
+## Soak test
+
+The production layout runs under editor-and-gig load: the NativeAOT host on a device (muted), the Release server, knob drags, scene changes, preset loads, uploads and a WebSocket client. The runner publishes everything first and writes `soak.jsonl` and `summary.txt`. It passes with zero driver overloads and zero API errors, and reports the host's GC count and native callback timing.
+
+```bash
+tools/Cathode.Soak/run-soak.sh "<device uid>" 60 ./soak-results
+```
+

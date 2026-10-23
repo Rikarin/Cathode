@@ -72,20 +72,27 @@ Ordered by value to a guitarist:
 
 ---
 
-## Phase 3: REST API and preset system (4–5 weeks, in parallel with late P2) — *mostly done*
+## Phase 3: REST API and preset system (4–5 weeks, in parallel with late P2) — *done except the 1-hour soak*
 
 - [x] `Cathode.Contracts`: preset schema v1 (A–D channels stored sparsely, 8 scenes), block catalogue DTOs, problem+json errors, `revision`/ETag with `If-Match`
 - [x] `Cathode.Server`: endpoints per [02 §6](02-architecture.md#6-rest-api-cathodeserver); OpenAPI committed (`engine/src/Cathode.Server/openapi.json`) with a drift test; `cathode.http` walk-through
 - [x] IPC transport per [ADR-0001](adr/0001-process-model.md) and [ADR-0004](adr/0004-state-ownership.md): Unix domain socket, `cathode-host --serve`; two-process test including a host restart. *Partly done:* the full API suite runs in-process; only the two-process test runs over IPC
-- [ ] Preset library: JSON per preset ✅ (atomic writes, safe ids). *Still to do:* banks and setlists, and `.cthpreset` import/export (zip of JSON plus referenced assets)
+- [x] Preset library:
+  - JSON per preset (atomic writes, safe ids)
+  - **banks** (128 slots, for MIDI program change) and **setlists** (preset plus starting scene), with referential integrity
+  - **`.cthpreset`** import/export: a zip of the preset and its assets, with hardened import (strict names, hash-verified assets, size limits enforced while reading, no overwrites)
 - [x] Undo/redo (snapshots of the working copy; knob drags coalesce into one step)
 - [x] `/ws` events and telemetry as JSON text, with a `connected` handshake so clients never miss a change. *Changed:* binary frames and per-channel subscriptions are deferred (ADR-0004)
 - [x] Asset store for IRs and models: content-addressed (SHA-256), deduplicated, size-limited
-- [ ] Load generator and 1-hour soak with the real two-process setup ([03 §6](03-testing-strategy.md#6-real-time-safety)); the S2 harness has a load generator to build on
+- [ ] 1-hour soak with the real two-process setup ([03 §6](03-testing-strategy.md#6-real-time-safety)):
+  - The harness is ready: `engine/tools/Cathode.Soak` plus `run-soak.sh`, with telemetry for driver overloads, native callback timing and host GC counts.
+  - A 2-minute dry run passed: 0 overloads, 0 errors.
+  - It also found **host gen2 GCs on preset loads stalling the callback for 56–69 % of the budget** (ADR-0001 follow-up).
+  - **The 1-hour run is deferred**, and should come after DSP state moves to native memory.
 
 **Exit:**
 - ✅ `cathode.http` builds and plays a preset through the API alone.
-- [ ] The 1-hour API soak with 0 xruns has not been run yet.
+- [ ] The 1-hour API soak is deferred. The 2-minute dry run had 0 overloads, but host GCs must be removed first (ADR-0001 follow-up).
 
 ---
 

@@ -53,6 +53,11 @@ public sealed record ParamValue(string Block, string Param, float Value);
 
 public sealed record HostInfo(string Version, string Backend, double SampleRate, int BufferFrames);
 
+/// <summary>
+///     Host health. CPU figures cover the current 5 s window; overloads and GC counts are cumulative. Native timing is
+///     measured in the audio shim around the whole callback, so it includes any wait to enter the runtime (GC
+///     suspension); it covers the previous complete window and is 0 without a device.
+/// </summary>
 public sealed record HostTelemetry(
     float InputPeak,
     float OutputPeakLeft,
@@ -60,7 +65,14 @@ public sealed record HostTelemetry(
     double CpuP999,
     double CpuMax,
     long Overloads,
-    HostTunerReading? Tuner);
+    HostTunerReading? Tuner,
+    long DriverOverloads = 0,
+    double NativeP999 = 0,
+    double NativeMax = 0,
+    int Gen0 = 0,
+    int Gen1 = 0,
+    int Gen2 = 0,
+    double GcPauseMs = 0);
 
 public sealed record HostTunerReading(double Frequency, string Note, int Octave, double Cents);
 

@@ -7,6 +7,10 @@ public sealed record PresetSummary(string Id, string Name, string? Author, IRead
 
 public sealed record AssetInfo(string Ref, string Name, string Kind, long Size, DateTimeOffset Added);
 
+/// <summary>
+///     Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole
+///     driver callback); overloads and the host's GC counts are cumulative since the host started.
+/// </summary>
 public sealed record EngineStatus(
     bool Connected,
     string Mode,
@@ -16,7 +20,14 @@ public sealed record EngineStatus(
     double CpuP999,
     double CpuMax,
     long Overloads,
-    string? LastError);
+    string? LastError,
+    long DriverOverloads = 0,
+    double NativeP999 = 0,
+    double NativeMax = 0,
+    int HostGen0 = 0,
+    int HostGen1 = 0,
+    int HostGen2 = 0,
+    double HostGcPauseMs = 0);
 
 public sealed record SystemInfo(string Version, EngineStatus Engine);
 

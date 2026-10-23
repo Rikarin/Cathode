@@ -43,8 +43,11 @@ static class ServeCommand {
 
         var forwarder = new ForwardingProcessor();
         using var session = NativeAudioSession.Open(forwarder, options.Text("device"), rate, buffer, 1);
-        using var deviceService = new EngineHostService(new(session.SampleRate, session.BufferFrames), NativeAudio.Backend);
+        using var deviceService = new EngineHostService(new(session.SampleRate, session.BufferFrames), NativeAudio.Backend, device: new NativeDeviceMonitor(session));
         forwarder.Target = deviceService.Engine;
+        if (options.Flag("mute")) {
+            session.OutputGain = 0f; // unattended runs (soak tests): timing is identical, nothing is heard
+        }
         session.Start();
         try {
             return Serve(deviceService, socketPath, stop.Token);

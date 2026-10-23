@@ -15,24 +15,27 @@ namespace Cathode.EngineHost;
 ///     from control threads only; one lock serialises requests and telemetry.
 /// </summary>
 public sealed class EngineHostService : IDisposable {
-    readonly GraphCompiler compiler;
-    readonly Tuner tuner;
-    readonly float[] tap = new float[4_096];
     /// <summary>CPU figures describe the last few seconds, not the process lifetime (which would keep start-up spikes forever).</summary>
     static readonly TimeSpan StatsWindow = TimeSpan.FromSeconds(5);
 
+    readonly GraphCompiler compiler;
+    readonly Tuner tuner;
+    readonly float[] tap = new float[4_096];
+    readonly IDeviceMonitor? device;
     readonly Lock gate = new();
     CompiledGraph? latest;
     TunerReading? reading;
     long windowStarted = Stopwatch.GetTimestamp();
     long overloads; // cumulative across windows
     long overrunsSeen; // overruns already counted in the current window
+    DeviceWindow deviceWindow = new(0, 0, 0);
 
     public CathodeEngine Engine { get; }
 
     public HostInfo Info { get; }
 
-    public EngineHostService(ProcessSpec spec, string backend, BlockRegistry? registry = null) {
+    public EngineHostService(ProcessSpec spec, string backend, BlockRegistry? registry = null, IDeviceMonitor? device = null) {
+        this.device = device;
         Engine = new(spec);
         compiler = new(registry ?? BlockRegistry.CreateDefault().AddNativeBlocks());
         tuner = new(spec.SampleRate);
@@ -145,11 +148,30 @@ public sealed class EngineHostService : IDisposable {
         var stats = Engine.Stats;
         overloads += stats.Overruns - overrunsSeen;
         overrunsSeen = stats.Overruns;
-        var result = new HostTelemetry(input, left, right, stats.Percentile(0.999), stats.MaxPercent, overloads, tunerReading);
+        var result = new HostTelemetry(
+            input,
+            left,
+            right,
+            stats.Percentile(0.999),
+            stats.MaxPercent,
+            overloads,
+            tunerReading,
+            deviceWindow.Overloads,
+            deviceWindow.P999,
+            deviceWindow.Max,
+            GC.CollectionCount(0),
+            GC.CollectionCount(1),
+            GC.CollectionCount(2),
+            GC.GetTotalPauseDuration().TotalMilliseconds
+        );
         if (Stopwatch.GetElapsedTime(windowStarted) >= StatsWindow) {
             stats.RequestReset();
             overrunsSeen = 0;
             windowStarted = Stopwatch.GetTimestamp();
+            if (device is not null) {
+                // Read the device once per window: its histogram snapshot allocates, and this process must stay quiet.
+                deviceWindow = device.CloseWindow();
+            }
         }
 
         return result;

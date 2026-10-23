@@ -91,3 +91,23 @@ Callback duration is shown as a percentage of the buffer period (1.33 ms at 64 f
 - The data comes from one machine and macOS only. The mechanism, GC thread suspension blocking reverse P/Invoke, is platform-independent, so the decision does not wait for Windows and Linux numbers. Those come with their backends.
 - In-process runs show load-generator failures in the last seconds because the audio process stopped its server first. That is a harness artefact, not a server failure. Out-of-process runs had none.
 - Tiered JIT build: NativeAOT changes JIT warm-up but not GC suspension, so the conclusion holds for the AOT Host.
+
+## Follow-up: Host GCs during preset loads (soak dry run, 2026-10-23)
+
+A 2-minute dry run of the two-process soak (`engine/tools/Cathode.Soak/run-soak.sh`) used the production layout: the NativeAOT host on a Mackie ProFX at 64 frames (muted), the Release server, knob drags at 30 Hz, scene changes every 2 s and preset loads every 30 s. It passed: **0 driver overloads, 0 API errors, 3,738 requests**. It also showed the risk this ADR predicted:
+
+| Minute | Host GCs (gen0/1/2) | Native worst callback | Managed worst callback |
+|---|---|---|---|
+| 0.50 | 2/2/2 | 11.5 % | 7.8 % |
+| **0.58** | **3/3/3** | **56.0 %** | 6.9 % |
+| 1.67 | 3/3/3 | 10.6 % | 9.7 % |
+| **1.83** | **4/4/4** | **68.8 %** | 7.4 % |
+
+- **Every host collection is a full gen2**, and each one stalls the driver thread for about 0.75–0.9 ms, which is 56–69 % of the 1.33 ms budget.
+- **Only the native timing sees the stall.** The managed callback time is unaffected, because the thread waits *before* entering managed code.
+- **The cause is preset loads.** Compiling a graph allocates large arrays on the large object heap (delay lines, reverb lines, convolver partitions), and the large object heap budget triggers the gen2 collections.
+
+No dropout occurred, but a rig already using about 30 % of the budget would cross 100 % on such a collection.
+
+**Next step (not yet done):** allocate DSP state with `NativeMemory` (aligned, freed when a retired graph is disposed) instead of on the managed heap, so preset loads do not touch the GC heap. Then make "zero host GCs during the 1-hour soak" a gate.
+

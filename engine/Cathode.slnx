@@ -22,5 +22,6 @@
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/Cathode.Render/Cathode.Render.csproj" />
+    <Project Path="tools/Cathode.Soak/Cathode.Soak.csproj" />
   </Folder>
 </Solution>

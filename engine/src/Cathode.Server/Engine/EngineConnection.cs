@@ -31,7 +31,24 @@ public sealed partial class EngineConnection(IOptions<ServerOptions> options, Ev
     public EngineStatus Status() {
         var t = telemetry;
         var i = info;
-        return new(IsConnected, options.Value.Engine.Mode, i?.Backend, i?.SampleRate ?? 0, i?.BufferFrames ?? 0, t?.CpuP999 ?? 0, t?.CpuMax ?? 0, t?.Overloads ?? 0, lastError);
+        return new(
+            IsConnected,
+            options.Value.Engine.Mode,
+            i?.Backend,
+            i?.SampleRate ?? 0,
+            i?.BufferFrames ?? 0,
+            t?.CpuP999 ?? 0,
+            t?.CpuMax ?? 0,
+            t?.Overloads ?? 0,
+            lastError,
+            t?.DriverOverloads ?? 0,
+            t?.NativeP999 ?? 0,
+            t?.NativeMax ?? 0,
+            t?.Gen0 ?? 0,
+            t?.Gen1 ?? 0,
+            t?.Gen2 ?? 0,
+            t?.GcPauseMs ?? 0
+        );
     }
 
     public Task LoadGraphAsync(GraphDefinition graph, int generation) {

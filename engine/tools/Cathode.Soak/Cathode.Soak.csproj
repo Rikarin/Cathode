@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>cathode-soak</AssemblyName>
+    <Description>Long-running two-process soak: drives cathode-server like an editor and a gig would, records engine health.</Description>
+    <IsAotCompatible>false</IsAotCompatible>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Cathode.Contracts/Cathode.Contracts.csproj"/>
+    <ProjectReference Include="../../src/Cathode.Dsp/Cathode.Dsp.csproj"/>
+  </ItemGroup>
+</Project>
