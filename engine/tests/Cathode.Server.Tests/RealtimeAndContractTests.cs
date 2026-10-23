@@ -60,6 +60,27 @@ public sealed class RealtimeAndContractTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Scope_frames_flow_only_while_the_scope_is_on() {
+        using var socket = await server.Server.CreateWebSocketClient()
+            .ConnectAsync(new(server.Server.BaseAddress, "ws"), Token);
+        var buffer = new byte[256 * 1024];
+        (await client.PutAsJsonAsync("/api/v1/scope", new ScopeRequest(true), Token)).EnsureSuccessStatusCode();
+
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        deadline.CancelAfter(TimeSpan.FromSeconds(10));
+        JsonNode frame;
+        do {
+            var result = await socket.ReceiveAsync(buffer, deadline.Token);
+            frame = JsonNode.Parse(Encoding.UTF8.GetString(buffer, 0, result.Count))!;
+        } while (frame["type"]!.GetValue<string>() != "scope");
+
+        Assert.Equal(512, frame["samples"]!.AsArray().Count);
+        Assert.Equal(12_000, frame["sampleRate"]!.GetValue<double>());
+        (await client.PutAsJsonAsync("/api/v1/scope", new ScopeRequest(false), Token)).EnsureSuccessStatusCode();
+        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", Token);
+    }
+
+    [Fact]
     public async Task OpenApi_document_matches_the_committed_copy() {
         var current = Normalise(await client.GetStringAsync("/openapi/v1.json", Token));
 

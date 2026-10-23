@@ -278,6 +278,16 @@ public static class CathodeApi {
             .WithName("SetTuner")
             .WithSummary("Turns the tuner on (bypassed = false) or off.");
 
+        api.MapPut(
+                "/scope",
+                (ScopeRequest request, EngineConnection engine) => {
+                    engine.ScopeEnabled = request.Enabled;
+                    return TypedResults.NoContent();
+                }
+            )
+            .WithName("SetScope")
+            .WithSummary("Starts or stops scope frames (the engine's output waveform) on the WebSocket.");
+
         app.Map(
                 "/ws",
                 async (HttpContext http, EventHub hub) => {

@@ -145,6 +145,22 @@ public class TelemetryRegionTests {
     }
 
     [Fact]
+    public void The_scope_ring_returns_the_latest_output_in_order() {
+        using var region = TelemetryRegion.CreateInMemory(48_000);
+        var window = new float[1_000];
+        Assert.False(region.ReadScope(window)); // not enough written yet
+
+        var samples = Enumerable.Range(0, 5_000).Select(static i => (float)i).ToArray();
+        for (var i = 0; i < samples.Length; i += 64) {
+            region.WriteScope(samples.AsSpan(i, Math.Min(64, samples.Length - i)));
+        }
+
+        Assert.True(region.ReadScope(window));
+        Assert.Equal(4_000f, window[0]);
+        Assert.Equal(4_999f, window[^1]);
+    }
+
+    [Fact]
     public void Processing_with_telemetry_does_not_allocate() {
         using var region = TelemetryRegion.CreateInMemory(Spec.SampleRate);
         var engine = new CathodeEngine(Spec) { Telemetry = region };

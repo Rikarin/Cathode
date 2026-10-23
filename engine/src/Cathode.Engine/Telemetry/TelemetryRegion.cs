@@ -21,6 +21,10 @@ namespace Cathode.Engine.Telemetry;
 ///         the history length (64 x 256 frames, 340 ms at 48 kHz).
 ///     </para>
 ///     <para>
+///         A scope ring holds the last <see cref="TelemetryLayout.ScopeLength" /> output samples (left) for the editor's
+///         oscilloscope.
+///     </para>
+///     <para>
 ///         Across processes the region is a memory-mapped file: the host creates it next to its IPC socket and names
 ///         it in the <c>hello</c> reply; the server maps it read-only.
 ///     </para>
@@ -153,6 +157,49 @@ public sealed unsafe class TelemetryRegion : IDisposable {
         Volatile.Write(ref l->Sequence, l->Sequence + 1); // even again; release orders the data before it
     }
 
+    /// <summary>
+    ///     Audio thread: append output samples to the scope ring. The ring is outside the seqlock: the reader copies the
+    ///     samples behind the published write count and drops any the writer overwrote meanwhile.
+    /// </summary>
+    public void WriteScope(ReadOnlySpan<float> samples) {
+        var l = layout;
+        var written = l->ScopeWritten;
+        var ring = new Span<float>(l->Scope, TelemetryLayout.ScopeLength);
+        foreach (var sample in samples) {
+            ring[(int)(written++ % TelemetryLayout.ScopeLength)] = sample;
+        }
+
+        Volatile.Write(ref l->ScopeWritten, written);
+    }
+
+    /// <summary>
+    ///     Copies the most recent <paramref name="destination" />.Length output samples (at most
+    ///     <see cref="TelemetryLayout.ScopeLength" /> / 2). Returns false until that many have been written, or if the
+    ///     writer kept overwriting them.
+    /// </summary>
+    public bool ReadScope(Span<float> destination) {
+        var l = layout;
+        var count = Math.Min(destination.Length, TelemetryLayout.ScopeLength / 2);
+        for (var attempt = 0; attempt < 8; attempt++) {
+            var end = Volatile.Read(ref l->ScopeWritten);
+            if (end < count) {
+                return false;
+            }
+
+            for (var i = 0; i < count; i++) {
+                destination[i] = l->Scope[(end - count + i) % TelemetryLayout.ScopeLength];
+            }
+
+            Interlocked.MemoryBarrier();
+            // Valid if the writer has not wrapped round onto the oldest sample copied.
+            if (Volatile.Read(ref l->ScopeWritten) - end <= TelemetryLayout.ScopeLength - count) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>Host control thread: publish the driver's cumulative overload (xrun) count.</summary>
     public void SetDriverOverloads(long count) => Volatile.Write(ref layout->DriverOverloads, count);
 
@@ -236,10 +283,11 @@ public sealed unsafe class TelemetryRegion : IDisposable {
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct TelemetryLayout {
     public const uint MagicValue = 0x54485443; // "CTHT"
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
     public const int Bins = 201;
     public const int MeterSlots = 64;
     public const int FramesPerSlot = 256;
+    public const int ScopeLength = 4096;
 
     public uint Magic;
     public int Version;
@@ -258,4 +306,6 @@ public unsafe struct TelemetryLayout {
     public fixed float InputPeak[MeterSlots];
     public fixed float OutputLeftPeak[MeterSlots];
     public fixed float OutputRightPeak[MeterSlots];
+    public long ScopeWritten;
+    public fixed float Scope[ScopeLength];
 }

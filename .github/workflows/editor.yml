@@ -28,6 +28,15 @@ jobs:
         run: pnpm exec nx run api-client:check-generated
       - run: pnpm exec nx run-many -t test
       - run: pnpm exec nx build desktop
+      - name: Stories render and pass their accessibility checks
+        run: |
+          pnpm exec playwright install --with-deps chromium
+          pnpm exec nx test-storybook audio-ui
+      - name: Chromatic (visual review), when the project token is configured
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+        run: pnpm exec nx chromatic audio-ui
 
   # The golden paths through the real desktop app: Electron, the production editor build and the engine sidecars
   # (null audio, so no interface is needed).

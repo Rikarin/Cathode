@@ -96,6 +96,14 @@ public sealed record Telemetry(
     long Overloads,
     TunerInfo? Tuner);
 
+/// <summary>
+///     Pushed about 30 times a second while the scope is on (<c>PUT /api/v1/scope</c>): the most recent output samples
+///     (left), decimated to <c>SampleRate</c>, oldest first.
+/// </summary>
+public sealed record ScopeFrame(string Type, double SampleRate, float[] Samples);
+
+public sealed record ScopeRequest(bool Enabled);
+
 public sealed record TunerInfo(double Frequency, string Note, int Octave, double Cents);
 
 /// <summary><c>manifest.json</c> of a .cthpreset package.</summary>

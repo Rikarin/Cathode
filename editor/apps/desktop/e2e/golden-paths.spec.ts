@@ -81,6 +81,15 @@ test('undo, redo and scenes change the rig', async () => {
     await expect(delay).not.toHaveAccessibleName(/bypassed/);
 });
 
+test('the scope and tuner open and stream from the engine', async () => {
+    await window.getByRole('button', { name: 'Scope' }).click();
+    await expect(window.getByRole('dialog', { name: 'Scope' })).toBeVisible();
+    await expect(window.getByRole('img', { name: 'Output waveform' })).toBeVisible();
+    await window.keyboard.press('Escape');
+    await window.getByRole('button', { name: 'Tuner' }).click();
+    await expect(window.getByText('Play a string')).toBeVisible();
+});
+
 test('the setup page shows the engine the desktop app started', async () => {
     await window.getByRole('link', { name: 'Setup' }).click();
     await expect(window.getByText('Backend')).toBeVisible();

@@ -9,6 +9,8 @@ namespace Cathode.Contracts;
     AllowTrailingCommas = true
 )]
 [JsonSerializable(typeof(Preset))]
+[JsonSerializable(typeof(ScopeFrame))]
+[JsonSerializable(typeof(ScopeRequest))]
 [JsonSerializable(typeof(Setlist))]
 [JsonSerializable(typeof(PackageManifest))]
 [JsonSerializable(typeof(ImportResult))]

@@ -1,5 +1,5 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
-import { eventsUrl, type RigEvent, type ServerMessage, type Telemetry } from '@cathode/api-client';
+import { eventsUrl, type RigEvent, type ScopeFrame, type ServerMessage, type Telemetry } from '@cathode/api-client';
 import { Subject } from 'rxjs';
 import { ConnectionService } from './connection';
 
@@ -26,6 +26,9 @@ export class EventStream {
     /** The most recent telemetry frame (null until the first arrives). Not a signal, on purpose. */
     latest: Telemetry | null = null;
     latestAt = 0;
+
+    /** The most recent scope frame, while the scope is on. Not a signal either. */
+    scope: ScopeFrame | null = null;
 
     constructor() {
         inject(DestroyRef).onDestroy(() => this.stop());
@@ -80,6 +83,8 @@ export class EventStream {
             this.attempts = 0;
             this.status.set('open');
             this.connected$.next();
+        } else if (message.type === 'scope') {
+            this.scope = message as ScopeFrame;
         } else if (message.type === 'telemetry') {
             this.latest = message as Telemetry;
             this.latestAt = performance.now();

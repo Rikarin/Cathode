@@ -53,4 +53,11 @@ export interface Telemetry {
     tuner?: TunerInfo;
 }
 
-export type ServerMessage = { type: 'connected' } | Telemetry | RigEvent;
+/** Pushed about 30 times a second while the scope is on: recent output samples, oldest first. */
+export interface ScopeFrame {
+    type: 'scope';
+    sampleRate: number;
+    samples: number[];
+}
+
+export type ServerMessage = { type: 'connected' } | Telemetry | ScopeFrame | RigEvent;

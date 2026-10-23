@@ -37,6 +37,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    '/api/v1/scope': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Starts or stops scope frames (the engine's output waveform) on the WebSocket. */
+        put: operations['SetScope'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     '/api/v1/catalog/blocks': {
         parameters: {
             query?: never;
@@ -784,6 +801,9 @@ export interface components {
             /** Format: float */
             level?: null | number;
         };
+        ScopeRequest: {
+            enabled: boolean;
+        };
         /** @description Presets in performance order. Each entry is a song part: a preset and the scene to start on. */
         Setlist: {
             id: string;
@@ -844,6 +864,28 @@ export interface operations {
         requestBody: {
             content: {
                 'application/json': components['schemas']['BypassRequest'];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SetScope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['ScopeRequest'];
             };
         };
         responses: {

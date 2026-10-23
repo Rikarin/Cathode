@@ -138,7 +138,10 @@ public sealed class CathodeEngine : IAudioProcessor {
         var right = Peak(io.OutputRight);
         UpdateMeters(input, left, right);
         var percent = Stats.Record(start, io.Frames, Spec.SampleRate);
-        Volatile.Read(ref telemetry)?.RecordCallback(io.Frames, percent, input, left, right);
+        if (Volatile.Read(ref telemetry) is { } region) {
+            region.WriteScope(io.OutputLeft);
+            region.RecordCallback(io.Frames, percent, input, left, right);
+        }
     }
 
     void UpdateMeters(float input, float left, float right) {

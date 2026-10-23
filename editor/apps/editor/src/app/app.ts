@@ -1,7 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { provideIcons } from '@ng-icons/core';
-import { matAddRound, matRedoRound, matSaveRound, matTuneRound, matUndoRound } from '@ng-icons/material-icons/round';
+import {
+    matAddRound,
+    matRedoRound,
+    matSaveRound,
+    matShowChartRound,
+    matTuneRound,
+    matUndoRound
+} from '@ng-icons/material-icons/round';
 import { XuiButtonImports } from '@xui/button';
 import { XuiDialogImports } from '@xui/dialog';
 import { XuiFormFieldImports } from '@xui/form-field';
@@ -15,6 +22,7 @@ import { XuiSpinnerImports } from '@xui/spinner';
 import { XuiTooltipImports } from '@xui/tooltip';
 import { Startup } from './core/startup';
 import { EngineMeters } from './shell/engine-meters';
+import { ScopeDialog } from './shell/scope-dialog';
 import { TunerDialog } from './shell/tuner-dialog';
 import { CompareStore } from './state/compare.store';
 import { LiveStore } from './state/live.store';
@@ -27,6 +35,7 @@ import { LiveStore } from './state/live.store';
         RouterLink,
         RouterLinkActive,
         RouterOutlet,
+        ScopeDialog,
         TunerDialog,
         XuiButtonImports,
         XuiDialogImports,
@@ -40,7 +49,9 @@ import { LiveStore } from './state/live.store';
         XuiSpinnerImports,
         XuiTooltipImports
     ],
-    providers: [provideIcons({ matAddRound, matRedoRound, matSaveRound, matTuneRound, matUndoRound })],
+    providers: [
+        provideIcons({ matAddRound, matRedoRound, matSaveRound, matShowChartRound, matTuneRound, matUndoRound })
+    ],
     host: {
         class: 'flex h-full flex-col',
         '(document:keydown)': 'shortcut($event)'
@@ -162,6 +173,16 @@ import { LiveStore } from './state/live.store';
                         >
                             <ng-icon xui name="matTuneRound" size="sm" />
                         </button>
+                        <button
+                            xuiButton
+                            variant="ghost"
+                            size="sm"
+                            aria-label="Scope"
+                            [xuiTooltip]="'Scope'"
+                            (click)="scopeOpen.set(true)"
+                        >
+                            <ng-icon xui name="matShowChartRound" size="sm" />
+                        </button>
                         <cth-engine-meters />
                     </div>
                 </nav>
@@ -169,6 +190,7 @@ import { LiveStore } from './state/live.store';
                     <router-outlet />
                 </main>
                 <cth-tuner-dialog [(open)]="tunerOpen" />
+                <cth-scope-dialog [(open)]="scopeOpen" />
                 <xui-dialog title="Save preset as" icon="matSaveRound" [(open)]="saveAsOpen">
                     <xui-dialog-body>
                         <xui-form-field label="Name">
@@ -204,6 +226,7 @@ export class App {
     protected readonly compare = inject(CompareStore);
 
     protected readonly tunerOpen = signal(false);
+    protected readonly scopeOpen = signal(false);
     protected readonly saveAsOpen = signal(false);
     protected readonly saveAsName = signal('');
     protected readonly abOptions = [

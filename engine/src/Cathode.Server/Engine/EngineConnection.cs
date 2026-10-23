@@ -24,17 +24,29 @@ public sealed partial class EngineConnection(
     : BackgroundService, IEngineSync {
     static readonly TimeSpan MeterInterval = TimeSpan.FromMilliseconds(33);
 
+    /// <summary>Scope window: 2048 samples (43 ms at 48 kHz), sent as 512 points.</summary>
+    const int ScopeSamples = 2048;
+
+    const int ScopeDecimation = 4;
+
     readonly Channel<Work> queue = Channel.CreateUnbounded<Work>(new() { SingleReader = true });
     IEngineLink? link;
     HostInfo? info;
     HostTelemetry? telemetry;
     TelemetryMonitor? monitor;
     string? lastError;
+    volatile bool scopeEnabled;
 
     /// <summary>The live link, for diagnostics and tests (an <see cref="InProcessEngineLink" /> in in-process mode).</summary>
     public IEngineLink? Link => link;
 
     public bool IsConnected => info is not null && link?.IsConnected == true;
+
+    /// <summary>Whether WebSocket clients get scope frames. Off by default: they are the largest messages by far.</summary>
+    public bool ScopeEnabled {
+        get => scopeEnabled;
+        set => scopeEnabled = value;
+    }
 
     /// <summary>True while meters come from the host's shared-memory region rather than IPC telemetry.</summary>
     public bool HasSharedTelemetry => monitor is not null;
@@ -203,7 +215,20 @@ public sealed partial class EngineConnection(
 
     async Task PublishMetersAsync(TelemetryMonitor source, CancellationToken cancellationToken) {
         using var timer = new PeriodicTimer(MeterInterval);
+        var window = new float[ScopeSamples];
         while (await timer.WaitForNextTickAsync(cancellationToken)) {
+            if (scopeEnabled && source.Region.ReadScope(window)) {
+                var points = new float[ScopeSamples / ScopeDecimation];
+                for (var i = 0; i < points.Length; i++) {
+                    points[i] = window[i * ScopeDecimation];
+                }
+
+                hub.Publish(
+                    new ScopeFrame("scope", source.Region.SampleRate / ScopeDecimation, points),
+                    ContractsJsonContext.Default.ScopeFrame
+                );
+            }
+
             if (source.Poll() is not { } reading) {
                 continue;
             }

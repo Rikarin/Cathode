@@ -3,8 +3,49 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/audio-ui/src",
   "prefix": "cth",
-  "tags": ["type:ui"],
+  "tags": [
+    "type:ui"
+  ],
   "projectType": "library",
   "// targets": "to see all targets run: nx show project audio-ui --web",
-  "targets": {}
+  "targets": {
+    "storybook": {
+      "executor": "@storybook/angular-vite:start-storybook",
+      "options": {
+        "port": 4400,
+        "configDir": "libs/audio-ui/.storybook",
+        "tsConfig": "libs/audio-ui/.storybook/tsconfig.json",
+        "compodoc": false
+      }
+    },
+    "build-storybook": {
+      "executor": "@storybook/angular-vite:build-storybook",
+      "outputs": [
+        "{options.outputDir}"
+      ],
+      "options": {
+        "outputDir": "dist/storybook/audio-ui",
+        "configDir": "libs/audio-ui/.storybook",
+        "tsConfig": "libs/audio-ui/.storybook/tsconfig.json",
+        "compodoc": false
+      }
+    },
+    "test-storybook": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run --config libs/audio-ui/vitest.storybook.config.ts",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "chromatic": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "build-storybook"
+      ],
+      "options": {
+        "command": "chromatic --storybook-build-dir dist/storybook/audio-ui --exit-zero-on-changes --only-changed",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
 }

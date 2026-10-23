@@ -54,6 +54,30 @@
         }
       }
     },
+    "/api/v1/scope": {
+      "put": {
+        "tags": [
+          "cathode-server"
+        ],
+        "summary": "Starts or stops scope frames (the engine\u0027s output waveform) on the WebSocket.",
+        "operationId": "SetScope",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScopeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
     "/api/v1/catalog/blocks": {
       "get": {
         "tags": [
@@ -1945,6 +1969,17 @@
               "number"
             ],
             "format": "float"
+          }
+        }
+      },
+      "ScopeRequest": {
+        "required": [
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
           }
         }
       },
