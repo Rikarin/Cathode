@@ -56,8 +56,8 @@ public sealed class ChorusBlock() : DspBlock(Info) {
 
     protected override void Dispose(bool disposing) {
         if (disposing) {
-            this.left.Dispose();
-            this.right.Dispose();
+            left.Dispose();
+            right.Dispose();
         }
 
         base.Dispose(disposing);

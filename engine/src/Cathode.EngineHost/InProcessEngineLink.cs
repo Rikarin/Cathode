@@ -23,7 +23,12 @@ public sealed class InProcessEngineLink : IEngineLink {
         service = new(processSpec, "in-process (null)", registry);
         backend = new((int)processSpec.SampleRate, processSpec.MaxBlockSize);
         backend.Start(service.Engine);
-        telemetry = new(_ => TelemetryReceived?.Invoke(service.Telemetry()), null, TimeSpan.FromMilliseconds(33), TimeSpan.FromMilliseconds(33));
+        telemetry = new(
+            _ => TelemetryReceived?.Invoke(service.Telemetry()),
+            null,
+            TimeSpan.FromMilliseconds(33),
+            TimeSpan.FromMilliseconds(33)
+        );
     }
 
     public event Action<HostTelemetry>? TelemetryReceived;

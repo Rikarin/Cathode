@@ -30,11 +30,11 @@ public sealed class CompiledGraph : IDisposable {
     /// <summary>Latency of the longest input-to-output path, in samples.</summary>
     public int LatencySamples { get; }
 
-    public int BufferCount => this.left.Length;
+    public int BufferCount => left.Length;
 
-    public IReadOnlyList<GraphOp> Ops => this.ops;
+    public IReadOnlyList<GraphOp> Ops => ops;
 
-    public IReadOnlyList<string> SlotIds => this.slotIds;
+    public IReadOnlyList<string> SlotIds => slotIds;
 
     internal CompiledGraph(
         int generation,
@@ -61,32 +61,31 @@ public sealed class CompiledGraph : IDisposable {
 
         // Work buffers in native memory: pinned managed arrays would live on the pinned object heap, which only gen2
         // collections clean up, so every preset load would push the host towards a blocking gen2.
-        this.left = new NativeBuffer[bufferCount];
-        this.right = new NativeBuffer[bufferCount];
+        left = new NativeBuffer[bufferCount];
+        right = new NativeBuffer[bufferCount];
         for (var i = 0; i < bufferCount; i++) {
-            this.left[i] = new(spec.MaxBlockSize);
-            this.right[i] = new(spec.MaxBlockSize);
+            left[i] = new(spec.MaxBlockSize);
+            right[i] = new(spec.MaxBlockSize);
         }
 
-        this.dryLeft = new(spec.MaxBlockSize);
-        this.dryRight = new(spec.MaxBlockSize);
+        dryLeft = new(spec.MaxBlockSize);
+        dryRight = new(spec.MaxBlockSize);
         fadeStep = (float)(1.0 / Math.Max(1.0, BypassFadeMs * 0.001 * spec.SampleRate));
-        this.bypass = new BypassState[blocks.Length];
+        bypass = new BypassState[blocks.Length];
         for (var i = 0; i < blocks.Length; i++) {
-            this.bypass[i] = new(bypassed[i]);
+            bypass[i] = new(bypassed[i]);
         }
     }
 
     /// <summary>Slot index of block instance <paramref name="instanceId" />, or -1.</summary>
     public int SlotOf(string instanceId) => slotById.TryGetValue(instanceId, out var slot) ? slot : -1;
 
-    public IDspBlock Block(int slot) => this.blocks[slot];
+    public IDspBlock Block(int slot) => blocks[slot];
 
     /// <summary>Any thread: set a parameter target. Continuous values need no command queue.</summary>
-    public void SetParameter(int slot, int paramIndex, float value) =>
-        this.blocks[slot].Params.SetTarget(paramIndex, value);
+    public void SetParameter(int slot, int paramIndex, float value) => blocks[slot].Params.SetTarget(paramIndex, value);
 
-    public bool IsBypassed(int slot) => this.bypass[slot].Target;
+    public bool IsBypassed(int slot) => bypass[slot].Target;
 
     /// <summary>Audio thread: runs the plan for one block of at most <see cref="ProcessSpec.MaxBlockSize" /> frames.</summary>
     public void Process(in AudioIO io, in BlockContext context) {
@@ -94,7 +93,7 @@ public sealed class CompiledGraph : IDisposable {
         io.OutputLeft.Clear();
         io.OutputRight.Clear();
 
-        foreach (ref readonly var op in this.ops.AsSpan()) {
+        foreach (ref readonly var op in ops.AsSpan()) {
             var left = this.left[op.Buffer].Span[..frames];
             var right = this.right[op.Buffer].Span[..frames];
             switch (op.Kind) {
@@ -111,7 +110,7 @@ public sealed class CompiledGraph : IDisposable {
                     Accumulate(this.right[op.Source].Span[..frames], right);
                     break;
                 case GraphOpKind.Delay:
-                    this.delays[op.Index].Process(left, right);
+                    delays[op.Index].Process(left, right);
                     break;
                 case GraphOpKind.Process:
                     RunBlock(op.Index, new(left, right), context);
@@ -125,16 +124,16 @@ public sealed class CompiledGraph : IDisposable {
     }
 
     public void Dispose() {
-        foreach (var block in this.blocks) {
+        foreach (var block in blocks) {
             block.Dispose();
         }
 
-        foreach (var buffer in this.left.Concat(this.right)) {
+        foreach (var buffer in left.Concat(right)) {
             buffer.Dispose();
         }
 
-        this.dryLeft.Dispose();
-        this.dryRight.Dispose();
+        dryLeft.Dispose();
+        dryRight.Dispose();
     }
 
     void RunBlock(int slot, in StereoBuffer io, in BlockContext context) {
@@ -142,7 +141,7 @@ public sealed class CompiledGraph : IDisposable {
         var target = bypass.Target ? 0f : 1f;
         if (bypass.Mix == target) {
             if (target == 1f) {
-                this.blocks[slot].Process(io, context);
+                blocks[slot].Process(io, context);
             }
 
             return; // fully bypassed: THRU
@@ -153,7 +152,7 @@ public sealed class CompiledGraph : IDisposable {
         var dryRight = this.dryRight.Span[..io.Length];
         io.Left.CopyTo(dryLeft);
         io.Right.CopyTo(dryRight);
-        this.blocks[slot].Process(io, context);
+        blocks[slot].Process(io, context);
 
         var mix = bypass.Mix;
         var step = target > mix ? fadeStep : -fadeStep;
@@ -174,8 +173,8 @@ public sealed class CompiledGraph : IDisposable {
 
     /// <summary>Audio thread only (the engine applies queued <see cref="EngineCommandKind.SetBypass" /> commands here).</summary>
     internal void SetBypass(int slot, bool bypassed) {
-        if ((uint)slot < (uint)this.bypass.Length) {
-            this.bypass[slot].Target = bypassed;
+        if ((uint)slot < (uint)bypass.Length) {
+            bypass[slot].Target = bypassed;
         }
     }
 

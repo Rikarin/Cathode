@@ -79,7 +79,8 @@ public sealed class CathodeEngine : IAudioProcessor {
     ///     starts a new measurement period at its next callback.
     /// </summary>
     public (float Input, float OutputLeft, float OutputRight) ReadMeters() {
-        var result = (Volatile.Read(ref inputPeak), Volatile.Read(ref outputPeakLeft), Volatile.Read(ref outputPeakRight));
+        var result = (Volatile.Read(ref inputPeak), Volatile.Read(ref outputPeakLeft),
+            Volatile.Read(ref outputPeakRight));
         Volatile.Write(ref meterReset, 1);
         return result;
     }

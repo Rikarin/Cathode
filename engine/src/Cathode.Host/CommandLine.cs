@@ -34,15 +34,15 @@ sealed class CommandLine {
         return result;
     }
 
-    public bool Flag(string name) => this.options.ContainsKey(name);
+    public bool Flag(string name) => options.ContainsKey(name);
 
-    public string? Text(string name) => this.options.GetValueOrDefault(name);
+    public string? Text(string name) => options.GetValueOrDefault(name);
 
     public int Int(string name, int fallback) =>
-        this.options.TryGetValue(name, out var v) && v is not null ? int.Parse(v, CultureInfo.InvariantCulture) : fallback;
+        options.TryGetValue(name, out var v) && v is not null ? int.Parse(v, CultureInfo.InvariantCulture) : fallback;
 
     public double Double(string name, double fallback) =>
-        this.options.TryGetValue(name, out var v) && v is not null
+        options.TryGetValue(name, out var v) && v is not null
             ? double.Parse(v, CultureInfo.InvariantCulture)
             : fallback;
 }

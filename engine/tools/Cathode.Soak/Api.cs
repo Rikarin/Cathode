@@ -20,7 +20,7 @@ sealed class Api(HttpClient http) {
     public IReadOnlyList<string> ErrorMessages {
         get {
             lock (errorMessages) {
-                return [.. errorMessages];
+                return [..errorMessages];
             }
         }
     }
@@ -43,8 +43,7 @@ sealed class Api(HttpClient http) {
                 if ((await SystemAsync()).Engine.Connected) {
                     return;
                 }
-            } catch (HttpRequestException) {
-            }
+            } catch (HttpRequestException) { }
 
             await Task.Delay(500);
         }
@@ -55,10 +54,17 @@ sealed class Api(HttpClient http) {
     public async Task<SystemInfo> SystemAsync() => (await http.GetFromJsonAsync<SystemInfo>("/api/v1/system"))!;
 
     public async Task<AssetInfo> UploadAsync(string path, string name) =>
-        string.IsNullOrEmpty(path) ? throw new ArgumentException($"--{(name.EndsWith(".nam", StringComparison.Ordinal) ? "nam" : "ir")} is required.") : await UploadBytesAsync(await File.ReadAllBytesAsync(path), name);
+        string.IsNullOrEmpty(path)
+            ? throw new ArgumentException(
+                $"--{(name.EndsWith(".nam", StringComparison.Ordinal) ? "nam" : "ir")} is required."
+            )
+            : await UploadBytesAsync(await File.ReadAllBytesAsync(path), name);
 
     public async Task<AssetInfo> UploadBytesAsync(byte[] content, string name) {
-        using var response = await http.PostAsync($"/api/v1/assets?name={Uri.EscapeDataString(name)}", new ByteArrayContent(content));
+        using var response = await http.PostAsync(
+            $"/api/v1/assets?name={Uri.EscapeDataString(name)}",
+            new ByteArrayContent(content)
+        );
         await Check(response);
         return (await response.Content.ReadFromJsonAsync<AssetInfo>())!;
     }
@@ -98,7 +104,10 @@ sealed class Api(HttpClient http) {
 
     public Task GetAsync(string url) => Send(() => http.GetAsync(url));
 
-    /// <summary>Runs <paramref name="action" /> every <paramref name="interval" /> until cancelled; failures are counted, not thrown.</summary>
+    /// <summary>
+    ///     Runs <paramref name="action" /> every <paramref name="interval" /> until cancelled; failures are counted, not
+    ///     thrown.
+    /// </summary>
     public async Task Every(TimeSpan interval, Func<long, Task> action, CancellationToken cancellationToken) {
         using var timer = new PeriodicTimer(interval);
         long i = 0;
@@ -106,17 +115,20 @@ sealed class Api(HttpClient http) {
             while (await timer.WaitForNextTickAsync(cancellationToken)) {
                 try {
                     await action(i++);
-                } catch (Exception e) when (e is HttpRequestException or InvalidOperationException or TaskCanceledException) {
+                } catch (Exception e) when (e is HttpRequestException
+                                                or InvalidOperationException
+                                                or TaskCanceledException) {
                     Fail(e.Message);
                 }
             }
-        } catch (OperationCanceledException) {
-        }
+        } catch (OperationCanceledException) { }
     }
 
     public async Task WatchTelemetryAsync(CancellationToken cancellationToken) {
         using var socket = new ClientWebSocket();
-        var uri = new UriBuilder(http.BaseAddress!) { Scheme = http.BaseAddress!.Scheme == "https" ? "wss" : "ws", Path = "/ws" }.Uri;
+        var uri = new UriBuilder(http.BaseAddress!) {
+            Scheme = http.BaseAddress!.Scheme == "https" ? "wss" : "ws", Path = "/ws"
+        }.Uri;
         await socket.ConnectAsync(uri, cancellationToken);
         var buffer = new byte[64 * 1024];
         try {
@@ -129,8 +141,7 @@ sealed class Api(HttpClient http) {
 
                 Interlocked.Increment(ref telemetryMessages);
             }
-        } catch (OperationCanceledException) {
-        } catch (WebSocketException e) {
+        } catch (OperationCanceledException) { } catch (WebSocketException e) {
             Fail("WebSocket: " + e.Message);
         }
     }
@@ -143,7 +154,9 @@ sealed class Api(HttpClient http) {
 
     async Task Check(HttpResponseMessage response) {
         if (!response.IsSuccessStatusCode) {
-            Fail($"{response.RequestMessage?.Method} {response.RequestMessage?.RequestUri?.PathAndQuery}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync()}");
+            Fail(
+                $"{response.RequestMessage?.Method} {response.RequestMessage?.RequestUri?.PathAndQuery}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync()}"
+            );
         }
     }
 

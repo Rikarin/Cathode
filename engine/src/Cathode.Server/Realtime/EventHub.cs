@@ -17,7 +17,7 @@ namespace Cathode.Server.Realtime;
 ///     its snapshot and the event stream.
 /// </remarks>
 public sealed class EventHub {
-    const string ConnectedMessage = "{\"type\":\"connected\"}";
+    const string ConnectedMessage = """{"type":"connected"}""";
 
     readonly ConcurrentDictionary<Guid, Channel<string>> clients = new();
 
@@ -37,7 +37,9 @@ public sealed class EventHub {
     /// <summary>Serves one WebSocket until either side closes it.</summary>
     public async Task ServeAsync(WebSocket socket, CancellationToken cancellationToken) {
         var id = Guid.NewGuid();
-        var outbox = Channel.CreateBounded<string>(new BoundedChannelOptions(256) { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true });
+        var outbox = Channel.CreateBounded<string>(
+            new BoundedChannelOptions(256) { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true }
+        );
         clients[id] = outbox;
         outbox.Writer.TryWrite(ConnectedMessage);
         using var closed = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -46,8 +48,7 @@ public sealed class EventHub {
             await foreach (var json in outbox.Reader.ReadAllAsync(closed.Token)) {
                 await socket.SendAsync(Encoding.UTF8.GetBytes(json), WebSocketMessageType.Text, true, closed.Token);
             }
-        } catch (Exception e) when (e is OperationCanceledException or WebSocketException) {
-        } finally {
+        } catch (Exception e) when (e is OperationCanceledException or WebSocketException) { } finally {
             clients.TryRemove(id, out _);
             await receive;
             try {
@@ -73,8 +74,7 @@ public sealed class EventHub {
                     break;
                 }
             }
-        } catch (Exception e) when (e is OperationCanceledException or WebSocketException) {
-        } finally {
+        } catch (Exception e) when (e is OperationCanceledException or WebSocketException) { } finally {
             await closed.CancelAsync();
         }
     }

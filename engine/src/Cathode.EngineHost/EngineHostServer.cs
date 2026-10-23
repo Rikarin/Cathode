@@ -25,8 +25,7 @@ public sealed class EngineHostServer(EngineHostService service, string socketPat
                 await ServeAsync(client, cancellationToken).ConfigureAwait(false);
                 log?.Invoke("client disconnected");
             }
-        } catch (OperationCanceledException) {
-        } finally {
+        } catch (OperationCanceledException) { } finally {
             File.Delete(socketPath);
         }
     }
@@ -48,18 +47,25 @@ public sealed class EngineHostServer(EngineHostService service, string socketPat
                     writeLock.Release();
                 }
             }
-        } catch (Exception e) when (e is IOException or SocketException or OperationCanceledException or InvalidDataException) {
+        } catch (Exception e) when (e is IOException
+                                        or SocketException
+                                        or OperationCanceledException
+                                        or InvalidDataException) {
             log?.Invoke($"connection ended: {e.GetType().Name}: {e.Message}");
         } finally {
             await connection.CancelAsync().ConfigureAwait(false);
             try {
                 await telemetry.ConfigureAwait(false);
-            } catch (Exception e) when (e is IOException or SocketException or OperationCanceledException) {
-            }
+            } catch (Exception e) when (e is IOException or SocketException or OperationCanceledException) { }
         }
     }
 
-    async Task PushTelemetryAsync(Stream stream, IpcFrameWriter writer, SemaphoreSlim writeLock, CancellationToken cancellationToken) {
+    async Task PushTelemetryAsync(
+        Stream stream,
+        IpcFrameWriter writer,
+        SemaphoreSlim writeLock,
+        CancellationToken cancellationToken
+    ) {
         using var timer = new PeriodicTimer(TelemetryInterval);
         while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false)) {
             var message = new IpcMessage { Type = IpcTypes.Telemetry, Telemetry = service.Telemetry() };

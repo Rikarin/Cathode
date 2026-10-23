@@ -1,7 +1,6 @@
 using System.Net.Http.Json;
 using System.Net.WebSockets;
 using System.Text;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cathode.Contracts;
 
@@ -28,13 +27,25 @@ public sealed class RealtimeAndContractTests : IAsyncLifetime {
 
     [Fact]
     public async Task WebSocket_clients_get_change_events_and_telemetry() {
-        using var socket = await server.Server.CreateWebSocketClient().ConnectAsync(new Uri(server.Server.BaseAddress, "ws"), Token);
+        using var socket = await server.Server.CreateWebSocketClient()
+            .ConnectAsync(new(server.Server.BaseAddress, "ws"), Token);
         var buffer = new byte[64 * 1024];
         var first = await socket.ReceiveAsync(buffer, Token);
-        Assert.Equal("connected", JsonNode.Parse(Encoding.UTF8.GetString(buffer, 0, first.Count))!["type"]!.GetValue<string>());
+        Assert.Equal(
+            "connected",
+            JsonNode.Parse(Encoding.UTF8.GetString(buffer, 0, first.Count))!["type"]!.GetValue<string>()
+        );
 
-        (await client.PostAsJsonAsync("/api/v1/live/blocks", new AddBlockRequest("volpan", 0, 1), Token)).EnsureSuccessStatusCode();
-        (await client.PatchAsJsonAsync("/api/v1/live/blocks/volpan1/params", new Dictionary<string, float> { ["level"] = -6 }, Token)).EnsureSuccessStatusCode();
+        (await client.PostAsJsonAsync(
+            "/api/v1/live/blocks",
+            new AddBlockRequest("volpan", 0, 1),
+            Token
+        )).EnsureSuccessStatusCode();
+        (await client.PatchAsJsonAsync(
+            "/api/v1/live/blocks/volpan1/params",
+            new Dictionary<string, float> { ["level"] = -6 },
+            Token
+        )).EnsureSuccessStatusCode();
 
         var seen = new HashSet<string>();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Token);
@@ -64,8 +75,7 @@ public sealed class RealtimeAndContractTests : IAsyncLifetime {
         Assert.Contains("\"/api/v1/live/blocks/{id}/params\"", current, StringComparison.Ordinal);
     }
 
-    static string Normalise(string json) =>
-        JsonNode.Parse(json)!.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
+    static string Normalise(string json) => JsonNode.Parse(json)!.ToJsonString(new() { WriteIndented = true }) + "\n";
 
     static string EngineRoot() {
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent) {

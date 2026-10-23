@@ -23,15 +23,34 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
 
     /// <summary>Writes <paramref name="preset" /> and every asset it references to <paramref name="output" />.</summary>
     public async Task ExportAsync(Preset preset, Stream output, CancellationToken cancellationToken) {
-        var references = preset.Blocks.SelectMany(static b => b.Assets.Values).Distinct(StringComparer.Ordinal).ToList();
-        var included = references.Select(r => assets.Get(r) ?? throw new RigException(409, $"The preset uses asset {r}, which is not in the asset store.")).ToList();
+        var references = preset.Blocks.SelectMany(static b => b.Assets.Values)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        var included = references.Select(r =>
+                assets.Get(r)
+                ?? throw new RigException(409, $"The preset uses asset {r}, which is not in the asset store.")
+            )
+            .ToList();
 
         await using var zip = new ZipArchive(output, ZipArchiveMode.Create, true);
         var manifest = new PackageManifest(Format, Version, preset.Id, preset.Name, included);
-        await WriteJsonAsync(zip, "manifest.json", JsonSerializer.SerializeToUtf8Bytes(manifest, ContractsJsonContext.Default.PackageManifest), cancellationToken);
-        await WriteJsonAsync(zip, "preset.json", JsonSerializer.SerializeToUtf8Bytes(preset, ContractsJsonContext.Default.Preset), cancellationToken);
+        await WriteJsonAsync(
+            zip,
+            "manifest.json",
+            JsonSerializer.SerializeToUtf8Bytes(manifest, ContractsJsonContext.Default.PackageManifest),
+            cancellationToken
+        );
+        await WriteJsonAsync(
+            zip,
+            "preset.json",
+            JsonSerializer.SerializeToUtf8Bytes(preset, ContractsJsonContext.Default.Preset),
+            cancellationToken
+        );
         foreach (var asset in included) {
-            var entry = zip.CreateEntry($"assets/{asset.Ref[7..]}{(asset.Kind == "nam" ? ".nam" : ".wav")}", CompressionLevel.Optimal);
+            var entry = zip.CreateEntry(
+                $"assets/{asset.Ref[7..]}{(asset.Kind == "nam" ? ".nam" : ".wav")}",
+                CompressionLevel.Optimal
+            );
             await using var target = await entry.OpenAsync(cancellationToken);
             await using var source = File.OpenRead(assets.PathOf(asset.Ref)!);
             await source.CopyToAsync(target, cancellationToken);
@@ -67,24 +86,34 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
             throw new RigException(400, $"A package holds at most {MaxEntries} files.");
         }
 
-        var unexpected = zip.Entries.Where(e => !AllowedName().IsMatch(e.FullName)).Select(static e => e.FullName).ToList();
+        var unexpected = zip.Entries.Where(e => !AllowedName().IsMatch(e.FullName))
+            .Select(static e => e.FullName)
+            .ToList();
         if (unexpected.Count > 0) {
             throw new RigException(400, "The package contains unexpected files.", unexpected);
         }
 
-        var manifest = await ReadJsonAsync(zip, "manifest.json", ContractsJsonContext.Default.PackageManifest, cancellationToken);
+        var manifest = await ReadJsonAsync(
+            zip,
+            "manifest.json",
+            ContractsJsonContext.Default.PackageManifest,
+            cancellationToken
+        );
         if (manifest.Format != Format || manifest.Version > Version) {
             throw new RigException(400, $"Unsupported package format '{manifest.Format}' version {manifest.Version}.");
         }
 
         var preset = await ReadJsonAsync(zip, "preset.json", ContractsJsonContext.Default.Preset, cancellationToken);
         if (preset.SchemaVersion > Preset.CurrentSchemaVersion) {
-            throw RigException.Conflict($"Preset '{preset.Name}' was saved by a newer version of Cathode (schema {preset.SchemaVersion}).");
+            throw RigException.Conflict(
+                $"Preset '{preset.Name}' was saved by a newer version of Cathode (schema {preset.SchemaVersion})."
+            );
         }
 
         // Verify every asset hashes to its name before anything enters the store.
         var packaged = new Dictionary<string, ZipArchiveEntry>(StringComparer.Ordinal);
-        foreach (var entry in zip.Entries.Where(static e => e.FullName.StartsWith("assets/", StringComparison.Ordinal))) {
+        foreach (var entry in zip.Entries.Where(static e => e.FullName.StartsWith("assets/", StringComparison.Ordinal)
+                 )) {
             var reference = "sha256:" + Path.GetFileNameWithoutExtension(entry.Name);
             await using var content = await entry.OpenAsync(cancellationToken);
             using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -101,7 +130,11 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
             .Where(r => !packaged.ContainsKey(r) && assets.Get(r) is null)
             .ToList();
         if (missing.Count > 0) {
-            throw new RigException(400, "The preset uses assets that are neither in the package nor in this library.", missing);
+            throw new RigException(
+                400,
+                "The preset uses assets that are neither in the package nor in this library.",
+                missing
+            );
         }
 
         var added = 0;
@@ -133,7 +166,12 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
         await stream.WriteAsync(json, cancellationToken);
     }
 
-    static async Task<T> ReadJsonAsync<T>(ZipArchive zip, string name, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo, CancellationToken cancellationToken) {
+    static async Task<T> ReadJsonAsync<T>(
+        ZipArchive zip,
+        string name,
+        System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo,
+        CancellationToken cancellationToken
+    ) {
         var entry = zip.GetEntry(name) ?? throw new RigException(400, $"The package has no {name}.");
         await using var content = await entry.OpenAsync(cancellationToken);
         using var buffer = new MemoryStream();
@@ -147,7 +185,13 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
     }
 
     /// <summary>Copies at most <paramref name="limit" /> bytes, counting what is actually read (headers can lie).</summary>
-    static async Task CopyLimitedAsync(Stream source, Stream target, long limit, string what, CancellationToken cancellationToken) {
+    static async Task CopyLimitedAsync(
+        Stream source,
+        Stream target,
+        long limit,
+        string what,
+        CancellationToken cancellationToken
+    ) {
         var buffer = new byte[81_920];
         long total = 0;
         int read;
@@ -161,7 +205,7 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
         }
     }
 
-    [GeneratedRegex("^(manifest\\.json|preset\\.json|assets/[0-9a-f]{64}\\.(wav|nam))$")]
+    [GeneratedRegex("""^(manifest\.json|preset\.json|assets/[0-9a-f]{64}\.(wav|nam))$""")]
     private static partial Regex AllowedName();
 
     /// <summary>A write-only stream that feeds a hash, so an asset can be verified without storing it.</summary>
@@ -170,11 +214,18 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
         public override bool CanSeek => false;
         public override bool CanWrite => true;
         public override long Length => throw new NotSupportedException();
-        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
 
         public override void Write(byte[] buffer, int offset, int count) => hash.AppendData(buffer, offset, count);
 
-        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) {
+        public override ValueTask WriteAsync(
+            ReadOnlyMemory<byte> buffer,
+            CancellationToken cancellationToken = default
+        ) {
             hash.AppendData(buffer.Span);
             return ValueTask.CompletedTask;
         }

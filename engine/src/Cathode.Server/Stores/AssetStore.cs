@@ -25,14 +25,15 @@ public sealed class AssetStore {
         Directory.CreateDirectory(folder);
         indexPath = Path.Combine(folder, "index.json");
         index = File.Exists(indexPath)
-            ? (JsonSerializer.Deserialize(File.ReadAllText(indexPath), ContractsJsonContext.Default.AssetInfoArray) ?? [])
+            ? (JsonSerializer.Deserialize(File.ReadAllText(indexPath), ContractsJsonContext.Default.AssetInfoArray)
+                ?? [])
             .ToDictionary(static a => a.Ref, StringComparer.Ordinal)
             : new(StringComparer.Ordinal);
     }
 
     public IReadOnlyList<AssetInfo> List() {
         lock (gate) {
-            return [.. index.Values.OrderBy(static a => a.Name, StringComparer.OrdinalIgnoreCase)];
+            return [..index.Values.OrderBy(static a => a.Name, StringComparer.OrdinalIgnoreCase)];
         }
     }
 
@@ -53,7 +54,10 @@ public sealed class AssetStore {
         var kind = Path.GetExtension(name).ToLowerInvariant() switch {
             ".nam" => "nam",
             ".wav" => "ir",
-            _ => throw new RigException(415, $"Unsupported asset '{name}': upload a .nam model or a .wav impulse response.")
+            _ => throw new RigException(
+                415,
+                $"Unsupported asset '{name}': upload a .nam model or a .wav impulse response."
+            )
         };
 
         var temporary = Path.Combine(folder, $"upload-{Guid.NewGuid():n}.tmp");
@@ -107,8 +111,12 @@ public sealed class AssetStore {
         }
     }
 
-    string FilePath(string reference, string kind) => Path.Combine(folder, reference[Prefix.Length..] + (kind == "nam" ? ".nam" : ".wav"));
+    string FilePath(string reference, string kind) =>
+        Path.Combine(folder, reference[Prefix.Length..] + (kind == "nam" ? ".nam" : ".wav"));
 
     void SaveIndex() =>
-        File.WriteAllText(indexPath, JsonSerializer.Serialize(index.Values.ToArray(), ContractsJsonContext.Default.AssetInfoArray));
+        File.WriteAllText(
+            indexPath,
+            JsonSerializer.Serialize(index.Values.ToArray(), ContractsJsonContext.Default.AssetInfoArray)
+        );
 }

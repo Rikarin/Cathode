@@ -1,8 +1,8 @@
 namespace Cathode.Contracts;
 
 /// <summary>
-/// A complete rig: grid, blocks with up to four channels each, cables and eight scenes. Parameter values are stored
-/// sparsely; anything not listed takes the block type's default, so new parameters need no migration.
+///     A complete rig: grid, blocks with up to four channels each, cables and eight scenes. Parameter values are stored
+///     sparsely; anything not listed takes the block type's default, so new parameters need no migration.
 /// </summary>
 public sealed class Preset {
     public const int CurrentSchemaVersion = 1;
@@ -30,19 +30,20 @@ public sealed class Preset {
 
     public List<PresetCable> Cables { get; set; } = [];
 
-    public List<Scene> Scenes { get; set; } = [.. Enumerable.Range(1, SceneCount).Select(static n => new Scene { Name = $"Scene {n}" })];
+    public List<Scene> Scenes { get; set; } =
+        [..Enumerable.Range(1, SceneCount).Select(static n => new Scene { Name = $"Scene {n}" })];
 
     public static string NewId() => Guid.NewGuid().ToString("n");
 
     /// <summary>The smallest working rig: Input 1 straight to Output 1 across the first row.</summary>
-    public static Preset CreateDefault() => new Preset {
-        Blocks =
-        [
-            new() { Id = "in1", Type = BuiltInTypes.Input, Row = 0, Column = 0 },
-            new() { Id = "out1", Type = BuiltInTypes.Output, Row = 0, Column = 13 },
-        ],
-        Cables = [],
-    }.WithShuntRow(0, from: "in1", to: "out1");
+    public static Preset CreateDefault() =>
+        new Preset {
+            Blocks = [
+                new() { Id = "in1", Type = BuiltInTypes.Input, Row = 0, Column = 0 },
+                new() { Id = "out1", Type = BuiltInTypes.Output, Row = 0, Column = 13 }
+            ],
+            Cables = []
+        }.WithShuntRow(0, "in1", "out1");
 
     /// <summary>Fills the cells between two blocks on one row with shunts and cables.</summary>
     public Preset WithShuntRow(int row, string from, string to) {
@@ -51,12 +52,12 @@ public sealed class Preset {
         var previous = from;
         for (var column = start + 1; column < end; column++) {
             var id = $"shunt-r{row}c{column}";
-            Blocks.Add(new PresetBlock { Id = id, Type = BuiltInTypes.Shunt, Row = row, Column = column });
-            Cables.Add(new PresetCable { From = previous, To = id });
+            Blocks.Add(new() { Id = id, Type = BuiltInTypes.Shunt, Row = row, Column = column });
+            Cables.Add(new() { From = previous, To = id });
             previous = id;
         }
 
-        Cables.Add(new PresetCable { From = previous, To = to });
+        Cables.Add(new() { From = previous, To = to });
         return this;
     }
 }
@@ -71,9 +72,9 @@ public static class BuiltInTypes {
 
 public sealed class PresetBlock {
     /// <summary>Stable instance id such as <c>amp1</c>; never an index.</summary>
-    public string Id { get; set; } = "";
+    public string Id { get; set; } = string.Empty;
 
-    public string Type { get; set; } = "";
+    public string Type { get; set; } = string.Empty;
 
     public int Row { get; set; }
 
@@ -85,7 +86,7 @@ public sealed class PresetBlock {
     /// <summary>Asset slot to asset reference (<c>sha256:&lt;hex&gt;</c>), e.g. <c>"model"</c> or <c>"ir1"</c>.</summary>
     public Dictionary<string, string> Assets { get; set; } = [];
 
-    /// <summary>Parameter values of <paramref name="channel"/>, creating the map if needed.</summary>
+    /// <summary>Parameter values of <paramref name="channel" />, creating the map if needed.</summary>
     public Dictionary<string, float> Channel(string channel) {
         if (!Channels.TryGetValue(channel, out var values)) {
             values = [];
@@ -97,14 +98,14 @@ public sealed class PresetBlock {
 }
 
 public sealed class PresetCable {
-    public string From { get; set; } = "";
+    public string From { get; set; } = string.Empty;
 
-    public string To { get; set; } = "";
+    public string To { get; set; } = string.Empty;
 }
 
 /// <summary>Which channel each block uses and whether it is bypassed. Blocks not listed use channel A, engaged.</summary>
 public sealed class Scene {
-    public string Name { get; set; } = "";
+    public string Name { get; set; } = string.Empty;
 
     /// <summary>Scene output level in dB.</summary>
     public float Level { get; set; }

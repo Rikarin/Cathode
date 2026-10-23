@@ -38,16 +38,23 @@ static class ServeCommand {
         }
 
         if (!NativeAudio.IsAvailable) {
-            throw new InvalidOperationException($"No native audio backend on this platform yet (backend: {NativeAudio.Backend}). Use --null-audio.");
+            throw new InvalidOperationException(
+                $"No native audio backend on this platform yet (backend: {NativeAudio.Backend}). Use --null-audio."
+            );
         }
 
         var forwarder = new ForwardingProcessor();
         using var session = NativeAudioSession.Open(forwarder, options.Text("device"), rate, buffer, 1);
-        using var deviceService = new EngineHostService(new(session.SampleRate, session.BufferFrames), NativeAudio.Backend, device: new NativeDeviceMonitor(session));
+        using var deviceService = new EngineHostService(
+            new(session.SampleRate, session.BufferFrames),
+            NativeAudio.Backend,
+            device: new NativeDeviceMonitor(session)
+        );
         forwarder.Target = deviceService.Engine;
         if (options.Flag("mute")) {
             session.OutputGain = 0f; // unattended runs (soak tests): timing is identical, nothing is heard
         }
+
         session.Start();
         try {
             return Serve(deviceService, socketPath, stop.Token);
@@ -64,13 +71,23 @@ static class ServeCommand {
 
     static int Serve(EngineHostService service, string socketPath, CancellationToken cancellationToken) {
         if (Environment.GetEnvironmentVariable("DOTNET_GCgen0size") is null) {
-            Console.Error.WriteLine($"warning: DOTNET_GCgen0size is not set; start the host with DOTNET_GCgen0size={Gen0Budget} so garbage collections cannot interrupt playing");
+            Console.Error.WriteLine(
+                $"warning: DOTNET_GCgen0size is not set; start the host with DOTNET_GCgen0size={Gen0Budget} so garbage collections cannot interrupt playing"
+            );
         }
 
         var info = service.Info;
-        Console.WriteLine($"cathode-host {info.Version} serving on {socketPath} ({info.Backend}, {info.SampleRate / 1000:0.#} kHz, {info.BufferFrames} frames)");
-        new EngineHostServer(service, socketPath, static message => Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} {message}"))
-            .RunAsync(cancellationToken).GetAwaiter().GetResult();
+        Console.WriteLine(
+            $"cathode-host {info.Version} serving on {socketPath} ({info.Backend}, {info.SampleRate / 1000:0.#} kHz, {info.BufferFrames} frames)"
+        );
+        new EngineHostServer(
+                service,
+                socketPath,
+                static message => Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} {message}")
+            )
+            .RunAsync(cancellationToken)
+            .GetAwaiter()
+            .GetResult();
         Console.WriteLine("cathode-host stopped");
         return 0;
     }

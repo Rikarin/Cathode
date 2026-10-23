@@ -44,7 +44,7 @@ public sealed class FilterBlock : DspBlock {
         : base(Info) { }
 
     void UpdateCoefficients() =>
-        this.coefficients = SvfCoefficients.Design(
+        coefficients = SvfCoefficients.Design(
             (BiquadType)(int)Params.Current(Type),
             Spec.SampleRate,
             Params.Current(Frequency),
@@ -56,7 +56,7 @@ public sealed class FilterBlock : DspBlock {
         left.Reset();
         right.Reset();
         UpdateCoefficients();
-        this.gain = Decibels.ToGain(Params.Current(Level));
+        gain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -68,18 +68,18 @@ public sealed class FilterBlock : DspBlock {
                 Params.Advance(Gain, length);
                 UpdateCoefficients();
                 var chunk = io.Slice(start, length);
-                left.Process(this.coefficients, chunk.Left);
-                right.Process(this.coefficients, chunk.Right);
+                left.Process(coefficients, chunk.Left);
+                right.Process(coefficients, chunk.Right);
             }
         } else {
             UpdateCoefficients();
-            left.Process(this.coefficients, io.Left);
-            right.Process(this.coefficients, io.Right);
+            left.Process(coefficients, io.Left);
+            right.Process(coefficients, io.Right);
         }
 
         var targetGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.gain, targetGain);
-        GainRamp.Apply(io.Right, this.gain, targetGain);
-        this.gain = targetGain;
+        GainRamp.Apply(io.Left, gain, targetGain);
+        GainRamp.Apply(io.Right, gain, targetGain);
+        gain = targetGain;
     }
 }

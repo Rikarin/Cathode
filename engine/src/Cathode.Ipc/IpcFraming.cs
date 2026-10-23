@@ -7,7 +7,11 @@ namespace Cathode.Ipc;
 public static class IpcFraming {
     public const int MaxFrameBytes = 16 * 1024 * 1024;
 
-    public static async Task WriteAsync(Stream stream, IpcMessage message, CancellationToken cancellationToken = default) {
+    public static async Task WriteAsync(
+        Stream stream,
+        IpcMessage message,
+        CancellationToken cancellationToken = default
+    ) {
         var payload = JsonSerializer.SerializeToUtf8Bytes(message, IpcJsonContext.Default.IpcMessage);
         var frame = new byte[4 + payload.Length];
         BinaryPrimitives.WriteInt32LittleEndian(frame, payload.Length);
@@ -38,12 +42,20 @@ public static class IpcFraming {
     }
 
     /// <summary>Fills the first <paramref name="count" /> bytes; false if the stream ended before the first byte.</summary>
-    internal static async Task<bool> ReadExactlyOrEndAsync(Stream stream, byte[] buffer, int count, CancellationToken cancellationToken) {
+    internal static async Task<bool> ReadExactlyOrEndAsync(
+        Stream stream,
+        byte[] buffer,
+        int count,
+        CancellationToken cancellationToken
+    ) {
         var read = 0;
         while (read < count) {
-            var n = await stream.ReadAsync(buffer.AsMemory(read, count - read), cancellationToken).ConfigureAwait(false);
+            var n = await stream.ReadAsync(buffer.AsMemory(read, count - read), cancellationToken)
+                .ConfigureAwait(false);
             if (n == 0) {
-                return read == 0 ? false : throw new EndOfStreamException("IPC connection closed in the middle of a frame.");
+                return read == 0
+                    ? false
+                    : throw new EndOfStreamException("IPC connection closed in the middle of a frame.");
             }
 
             read += n;

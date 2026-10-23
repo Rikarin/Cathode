@@ -25,11 +25,13 @@ public sealed class Library(IOptions<ServerOptions> options, PresetStore presets
         static b => b.Id
     );
 
-    public Setlist[] Setlists() => [.. setlists.All().Select(static e => e.Item).OrderBy(static s => s.Name, StringComparer.OrdinalIgnoreCase)];
+    public Setlist[] Setlists() =>
+        [..setlists.All().Select(static e => e.Item).OrderBy(static s => s.Name, StringComparer.OrdinalIgnoreCase)];
 
     public Setlist? Setlist(string id) => setlists.Get(id);
 
-    public Bank[] Banks() => [.. banks.All().Select(static e => e.Item).OrderBy(static b => b.Name, StringComparer.OrdinalIgnoreCase)];
+    public Bank[] Banks() =>
+        [..banks.All().Select(static e => e.Item).OrderBy(static b => b.Name, StringComparer.OrdinalIgnoreCase)];
 
     public Bank? Bank(string id) => banks.Get(id);
 
@@ -77,7 +79,9 @@ public sealed class Library(IOptions<ServerOptions> options, PresetStore presets
     /// <summary>Deletes a preset unless a setlist or bank still uses it (409, naming them).</summary>
     public bool DeletePreset(string id) {
         lock (gate) {
-            var users = Setlists().Where(s => s.Entries.Any(e => e.PresetId == id)).Select(static s => $"setlist '{s.Name}'")
+            var users = Setlists()
+                .Where(s => s.Entries.Any(e => e.PresetId == id))
+                .Select(static s => $"setlist '{s.Name}'")
                 .Concat(Banks().Where(b => b.Slots.Contains(id)).Select(static b => $"bank '{b.Name}'"))
                 .ToList();
             if (users.Count > 0) {
@@ -93,7 +97,9 @@ public sealed class Library(IOptions<ServerOptions> options, PresetStore presets
         var setlist = Setlist(setlistId) ?? throw RigException.NotFound($"No setlist '{setlistId}'.");
         return index >= 0 && index < setlist.Entries.Count
             ? setlist.Entries[index]
-            : throw RigException.NotFound($"Setlist '{setlist.Name}' has {setlist.Entries.Count} entries; there is no entry {index}.");
+            : throw RigException.NotFound(
+                $"Setlist '{setlist.Name}' has {setlist.Entries.Count} entries; there is no entry {index}."
+            );
     }
 
     /// <summary>The preset in a bank slot.</summary>

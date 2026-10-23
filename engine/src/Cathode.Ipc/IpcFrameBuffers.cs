@@ -41,7 +41,8 @@ public sealed class IpcFrameReader {
 
     /// <summary>Returns null when the peer closed the connection cleanly.</summary>
     public async Task<IpcMessage?> ReadAsync(Stream stream, CancellationToken cancellationToken = default) {
-        if (!await IpcFraming.ReadExactlyOrEndAsync(stream, header, header.Length, cancellationToken).ConfigureAwait(false)) {
+        if (!await IpcFraming.ReadExactlyOrEndAsync(stream, header, header.Length, cancellationToken)
+                .ConfigureAwait(false)) {
             return null;
         }
 

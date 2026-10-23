@@ -28,7 +28,8 @@ public sealed class IpcEngineClient(string socketPath) : IEngineLink {
         while (true) {
             var candidate = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
             try {
-                await candidate.ConnectAsync(new UnixDomainSocketEndPoint(socketPath), cancellationToken).ConfigureAwait(false);
+                await candidate.ConnectAsync(new UnixDomainSocketEndPoint(socketPath), cancellationToken)
+                    .ConfigureAwait(false);
                 socket = candidate;
                 var connected = new NetworkStream(candidate, false);
                 stream = connected;
@@ -69,8 +70,7 @@ public sealed class IpcEngineClient(string socketPath) : IEngineLink {
         if (readLoop is not null) {
             try {
                 await readLoop.ConfigureAwait(false);
-            } catch (OperationCanceledException) {
-            }
+            } catch (OperationCanceledException) { }
         }
 
         stream?.Dispose();
@@ -87,8 +87,10 @@ public sealed class IpcEngineClient(string socketPath) : IEngineLink {
                     reply.TrySetResult(message);
                 }
             }
-        } catch (Exception e) when (e is IOException or SocketException or ObjectDisposedException or OperationCanceledException) {
-        } finally {
+        } catch (Exception e) when (e is IOException
+                                        or SocketException
+                                        or ObjectDisposedException
+                                        or OperationCanceledException) { } finally {
             stream = null;
             foreach (var reply in pending.Values) {
                 reply.TrySetException(new IOException("Engine host disconnected."));

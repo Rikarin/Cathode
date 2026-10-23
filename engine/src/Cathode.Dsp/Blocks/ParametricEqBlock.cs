@@ -56,11 +56,11 @@ public sealed class ParametricEqBlock : DspBlock {
     public static int Q(int band) => (band - 1) * 3 + 2;
 
     protected override void OnReset() {
-        foreach (var band in this.bands) {
+        foreach (var band in bands) {
             band.Reset();
         }
 
-        this.outputGain = Decibels.ToGain(Params.Current(Level));
+        outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -77,7 +77,7 @@ public sealed class ParametricEqBlock : DspBlock {
                     Bands when Params.Current(HighType) == 0 => BiquadType.HighShelf,
                     _ => BiquadType.Peak
                 };
-                this.bands[b - 1].Process(chunk, type, Spec.SampleRate, frequency, q, gain, moving);
+                bands[b - 1].Process(chunk, type, Spec.SampleRate, frequency, q, gain, moving);
             }
         }
 

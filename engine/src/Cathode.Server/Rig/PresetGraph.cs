@@ -17,7 +17,10 @@ public static class PresetGraph {
                 node.Parameters = new(block.Channels.GetValueOrDefault(state.Channel) ?? []);
                 foreach (var (slot, reference) in block.Assets) {
                     node.Assets[slot] = assets.PathOf(reference)
-                        ?? throw new RigException(409, $"Block '{block.Id}' uses asset {reference}, which is not in the asset store.");
+                        ?? throw new RigException(
+                            409,
+                            $"Block '{block.Id}' uses asset {reference}, which is not in the asset store."
+                        );
                 }
             }
 

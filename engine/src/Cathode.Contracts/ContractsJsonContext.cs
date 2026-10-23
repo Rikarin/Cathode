@@ -6,7 +6,8 @@ namespace Cathode.Contracts;
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,
-    AllowTrailingCommas = true)]
+    AllowTrailingCommas = true
+)]
 [JsonSerializable(typeof(Preset))]
 [JsonSerializable(typeof(Setlist))]
 [JsonSerializable(typeof(PackageManifest))]

@@ -13,7 +13,12 @@ namespace Cathode.Server.Rig;
 ///     rejects them; knobs, scenes and channels only send parameter and bypass commands. Every change raises an
 ///     event for WebSocket clients. All operations are serialised.
 /// </summary>
-public sealed class LiveRig(BlockCatalog catalog, AssetStore assets, PresetStore presets, IEngineSync engine, EventHub hub) : IDisposable {
+public sealed class LiveRig(
+    BlockCatalog catalog,
+    AssetStore assets,
+    PresetStore presets,
+    IEngineSync engine,
+    EventHub hub) : IDisposable {
     const int UndoLimit = 100;
 
     readonly SemaphoreSlim gate = new(1, 1);
@@ -31,265 +36,333 @@ public sealed class LiveRig(BlockCatalog catalog, AssetStore assets, PresetStore
     public Task<LiveState> StateAsync() => Locked(() => Task.FromResult(State()));
 
     /// <summary>Sends the whole rig to the engine again (after the host (re)connects).</summary>
-    public Task ResyncAsync() => Locked(async () => {
-        await SyncGraphAsync();
-        return State();
-    });
+    public Task ResyncAsync() =>
+        Locked(async () => {
+                await SyncGraphAsync();
+                return State();
+            }
+        );
 
-    public Task<LiveState> NewAsync() => Locked(async () => {
-        await ReplaceAsync(Preset.CreateDefault());
-        return Changed("presetLoaded");
-    });
+    public Task<LiveState> NewAsync() =>
+        Locked(async () => {
+                await ReplaceAsync(Preset.CreateDefault());
+                return Changed("presetLoaded");
+            }
+        );
 
     /// <summary>Loads a preset from the library and starts on <paramref name="scene" /> (a setlist entry's scene).</summary>
-    public Task<LiveState> LoadAsync(string id, int scene = 0) => Locked(async () => {
-        var loaded = presets.Get(id) ?? throw RigException.NotFound($"No preset '{id}'.");
-        if (loaded.SchemaVersion > Preset.CurrentSchemaVersion) {
-            throw RigException.Conflict($"Preset '{loaded.Name}' was saved by a newer version of Cathode (schema {loaded.SchemaVersion}).");
-        }
+    public Task<LiveState> LoadAsync(string id, int scene = 0) =>
+        Locked(async () => {
+                var loaded = presets.Get(id) ?? throw RigException.NotFound($"No preset '{id}'.");
+                if (loaded.SchemaVersion > Preset.CurrentSchemaVersion) {
+                    throw RigException.Conflict(
+                        $"Preset '{loaded.Name}' was saved by a newer version of Cathode (schema {loaded.SchemaVersion})."
+                    );
+                }
 
-        CheckScene(scene);
-        await ReplaceAsync(loaded, scene);
-        return Changed("presetLoaded", scene: scene);
-    });
+                CheckScene(scene);
+                await ReplaceAsync(loaded, scene);
+                return Changed("presetLoaded", scene: scene);
+            }
+        );
 
-    public Task<LiveState> SaveAsync(SaveRequest request, long? expected) => Locked(() => {
-        Check(expected);
-        if (request.AsNew) {
-            preset.Id = Preset.NewId();
-        }
+    public Task<LiveState> SaveAsync(SaveRequest request, long? expected) =>
+        Locked(() => {
+                Check(expected);
+                if (request.AsNew) {
+                    preset.Id = Preset.NewId();
+                }
 
-        if (!string.IsNullOrWhiteSpace(request.Name)) {
-            preset.Name = request.Name.Trim();
-        }
+                if (!string.IsNullOrWhiteSpace(request.Name)) {
+                    preset.Name = request.Name.Trim();
+                }
 
-        presets.Save(preset);
-        dirty = false;
-        return Task.FromResult(Changed("presetSaved", markDirty: false));
-    });
+                presets.Save(preset);
+                dirty = false;
+                return Task.FromResult(Changed("presetSaved", markDirty: false));
+            }
+        );
 
     public Task<LiveState> UndoAsync() => Locked(() => StepAsync(undo, redo, "undo"));
 
     public Task<LiveState> RedoAsync() => Locked(() => StepAsync(redo, undo, "redo"));
 
-    public Task<LiveState> AddBlockAsync(AddBlockRequest request, long? expected) => Locked(async () => {
-        Check(expected);
-        var info = catalog.Info(request.Type) ?? throw new RigException(400, $"Unknown block type '{request.Type}'.");
-        CheckCell(request.Row, request.Column);
-        if (preset.Blocks.Count(b => b.Type == request.Type) >= info.MaxInstances) {
-            throw RigException.Conflict($"A preset can hold at most {info.MaxInstances} {info.Name} block(s).");
-        }
-
-        var id = request.Id ?? NextId(request.Type);
-        if (preset.Blocks.Any(b => b.Id == id)) {
-            throw RigException.Conflict($"Block id '{id}' is taken.");
-        }
-
-        await StructuralAsync(p => {
-            // Dropping a block onto a shunt replaces it and keeps its cables, as on the Axe-Fx.
-            var occupant = p.Blocks.FirstOrDefault(b => b.Row == request.Row && b.Column == request.Column);
-            if (occupant is not null && occupant.Type != BuiltInTypes.Shunt) {
-                throw RigException.Conflict($"Cell ({request.Row},{request.Column}) holds '{occupant.Id}'.");
-            }
-
-            if (occupant is not null) {
-                p.Blocks.Remove(occupant);
-                foreach (var cable in p.Cables) {
-                    cable.From = cable.From == occupant.Id ? id : cable.From;
-                    cable.To = cable.To == occupant.Id ? id : cable.To;
+    public Task<LiveState> AddBlockAsync(AddBlockRequest request, long? expected) =>
+        Locked(async () => {
+                Check(expected);
+                var info = catalog.Info(request.Type)
+                    ?? throw new RigException(400, $"Unknown block type '{request.Type}'.");
+                CheckCell(request.Row, request.Column);
+                if (preset.Blocks.Count(b => b.Type == request.Type) >= info.MaxInstances) {
+                    throw RigException.Conflict($"A preset can hold at most {info.MaxInstances} {info.Name} block(s).");
                 }
+
+                var id = request.Id ?? NextId(request.Type);
+                if (preset.Blocks.Any(b => b.Id == id)) {
+                    throw RigException.Conflict($"Block id '{id}' is taken.");
+                }
+
+                await StructuralAsync(p => {
+                        // Dropping a block onto a shunt replaces it and keeps its cables, as on the Axe-Fx.
+                        var occupant = p.Blocks.FirstOrDefault(b => b.Row == request.Row && b.Column == request.Column);
+                        if (occupant is not null && occupant.Type != BuiltInTypes.Shunt) {
+                            throw RigException.Conflict(
+                                $"Cell ({request.Row},{request.Column}) holds '{occupant.Id}'."
+                            );
+                        }
+
+                        if (occupant is not null) {
+                            p.Blocks.Remove(occupant);
+                            foreach (var cable in p.Cables) {
+                                cable.From = cable.From == occupant.Id ? id : cable.From;
+                                cable.To = cable.To == occupant.Id ? id : cable.To;
+                            }
+                        }
+
+                        p.Blocks.Add(
+                            new() { Id = id, Type = request.Type, Row = request.Row, Column = request.Column }
+                        );
+                    }
+                );
+                return Changed("blockAdded", id);
             }
+        );
 
-            p.Blocks.Add(new() { Id = id, Type = request.Type, Row = request.Row, Column = request.Column });
-        });
-        return Changed("blockAdded", id);
-    });
-
-    public Task<LiveState> RemoveBlockAsync(string id, long? expected) => Locked(async () => {
-        Check(expected);
-        Find(id);
-        await StructuralAsync(p => {
-            p.Blocks.RemoveAll(b => b.Id == id);
-            p.Cables.RemoveAll(c => c.From == id || c.To == id);
-            foreach (var scene in p.Scenes) {
-                scene.Blocks.Remove(id);
+    public Task<LiveState> RemoveBlockAsync(string id, long? expected) =>
+        Locked(async () => {
+                Check(expected);
+                Find(id);
+                await StructuralAsync(p => {
+                        p.Blocks.RemoveAll(b => b.Id == id);
+                        p.Cables.RemoveAll(c => c.From == id || c.To == id);
+                        foreach (var scene in p.Scenes) {
+                            scene.Blocks.Remove(id);
+                        }
+                    }
+                );
+                return Changed("blockRemoved", id);
             }
-        });
-        return Changed("blockRemoved", id);
-    });
+        );
 
-    public Task<LiveState> MoveBlockAsync(string id, MoveBlockRequest request, long? expected) => Locked(async () => {
-        Check(expected);
-        Find(id);
-        CheckCell(request.Row, request.Column);
-        if (preset.Blocks.Any(b => b.Id != id && b.Row == request.Row && b.Column == request.Column)) {
-            throw RigException.Conflict($"Cell ({request.Row},{request.Column}) is occupied.");
-        }
+    public Task<LiveState> MoveBlockAsync(string id, MoveBlockRequest request, long? expected) =>
+        Locked(async () => {
+                Check(expected);
+                Find(id);
+                CheckCell(request.Row, request.Column);
+                if (preset.Blocks.Any(b => b.Id != id && b.Row == request.Row && b.Column == request.Column)) {
+                    throw RigException.Conflict($"Cell ({request.Row},{request.Column}) is occupied.");
+                }
 
-        await StructuralAsync(p => {
-            var block = p.Blocks.Single(b => b.Id == id);
-            block.Row = request.Row;
-            block.Column = request.Column;
-            // Cables only join adjacent columns; any the move broke are removed.
-            p.Cables.RemoveAll(c => (c.From == id || c.To == id) && !Adjacent(p, c));
-        });
-        return Changed("blockMoved", id);
-    });
+                await StructuralAsync(p => {
+                        var block = p.Blocks.Single(b => b.Id == id);
+                        block.Row = request.Row;
+                        block.Column = request.Column;
+                        // Cables only join adjacent columns; any the move broke are removed.
+                        p.Cables.RemoveAll(c => (c.From == id || c.To == id) && !Adjacent(p, c));
+                    }
+                );
+                return Changed("blockMoved", id);
+            }
+        );
 
-    public Task<LiveState> AddCableAsync(CableRequest request, long? expected) => Locked(async () => {
-        Check(expected);
-        var from = Find(request.From);
-        var to = Find(request.To);
-        if (to.Column != from.Column + 1) {
-            throw new RigException(400, "Cables connect a block to one in the next column.");
-        }
+    public Task<LiveState> AddCableAsync(CableRequest request, long? expected) =>
+        Locked(async () => {
+                Check(expected);
+                var from = Find(request.From);
+                var to = Find(request.To);
+                if (to.Column != from.Column + 1) {
+                    throw new RigException(400, "Cables connect a block to one in the next column.");
+                }
 
-        if (from.Type == BuiltInTypes.Output || to.Type == BuiltInTypes.Input) {
-            throw new RigException(400, "Cables run from an output side to an input side: nothing leaves an Output block or enters an Input block.");
-        }
+                if (from.Type == BuiltInTypes.Output || to.Type == BuiltInTypes.Input) {
+                    throw new RigException(
+                        400,
+                        "Cables run from an output side to an input side: nothing leaves an Output block or enters an Input block."
+                    );
+                }
 
-        if (preset.Cables.Any(c => c.From == request.From && c.To == request.To)) {
-            throw RigException.Conflict("That cable already exists.");
-        }
+                if (preset.Cables.Any(c => c.From == request.From && c.To == request.To)) {
+                    throw RigException.Conflict("That cable already exists.");
+                }
 
-        await StructuralAsync(p => p.Cables.Add(new() { From = request.From, To = request.To }));
-        return Changed("cableAdded", request.From);
-    });
+                await StructuralAsync(p => p.Cables.Add(new() { From = request.From, To = request.To }));
+                return Changed("cableAdded", request.From);
+            }
+        );
 
-    public Task<LiveState> RemoveCableAsync(CableRequest request, long? expected) => Locked(async () => {
-        Check(expected);
-        if (!preset.Cables.Any(c => c.From == request.From && c.To == request.To)) {
-            throw RigException.NotFound("No such cable.");
-        }
+    public Task<LiveState> RemoveCableAsync(CableRequest request, long? expected) =>
+        Locked(async () => {
+                Check(expected);
+                if (!preset.Cables.Any(c => c.From == request.From && c.To == request.To)) {
+                    throw RigException.NotFound("No such cable.");
+                }
 
-        await StructuralAsync(p => p.Cables.RemoveAll(c => c.From == request.From && c.To == request.To));
-        return Changed("cableRemoved", request.From);
-    });
+                await StructuralAsync(p => p.Cables.RemoveAll(c => c.From == request.From && c.To == request.To));
+                return Changed("cableRemoved", request.From);
+            }
+        );
 
-    public Task<LiveState> SetAssetAsync(string id, string slot, AssetRequest request, long? expected) => Locked(async () => {
-        Check(expected);
-        var block = Find(id);
-        var info = catalog.Info(block.Type)!;
-        if (!info.AssetSlots.Contains(slot)) {
-            throw new RigException(400, $"{info.Name} has no asset slot '{slot}'.");
-        }
+    public Task<LiveState> SetAssetAsync(string id, string slot, AssetRequest request, long? expected) =>
+        Locked(async () => {
+                Check(expected);
+                var block = Find(id);
+                var info = catalog.Info(block.Type)!;
+                if (!info.AssetSlots.Contains(slot)) {
+                    throw new RigException(400, $"{info.Name} has no asset slot '{slot}'.");
+                }
 
-        var asset = assets.Get(request.Asset) ?? throw RigException.NotFound($"No asset {request.Asset}.");
-        if ((slot == "model") != (asset.Kind == "nam")) {
-            throw new RigException(400, $"Slot '{slot}' cannot take a {asset.Kind} asset.");
-        }
+                var asset = assets.Get(request.Asset) ?? throw RigException.NotFound($"No asset {request.Asset}.");
+                if (slot == "model" != (asset.Kind == "nam")) {
+                    throw new RigException(400, $"Slot '{slot}' cannot take a {asset.Kind} asset.");
+                }
 
-        await StructuralAsync(p => p.Blocks.Single(b => b.Id == id).Assets[slot] = request.Asset);
-        return Changed("assetChanged", id);
-    });
+                await StructuralAsync(p => p.Blocks.Single(b => b.Id == id).Assets[slot] = request.Asset);
+                return Changed("assetChanged", id);
+            }
+        );
 
     /// <summary>Sets parameters on <paramref name="channel" /> (default: the channel the active scene uses).</summary>
-    public Task<LiveState> SetParamsAsync(string id, string? channel, IReadOnlyDictionary<string, float> values, long? expected) => Locked(() => {
-        Check(expected);
-        var block = Find(id);
-        var descriptor = catalog.Descriptor(block.Type) ?? throw new RigException(400, $"'{id}' has no parameters.");
-        var state = preset.Scenes[activeScene].StateOf(id);
-        var target = channel ?? state.Channel;
-        CheckChannel(target, descriptor.Channels);
+    public Task<LiveState> SetParamsAsync(
+        string id,
+        string? channel,
+        IReadOnlyDictionary<string, float> values,
+        long? expected
+    ) =>
+        Locked(() => {
+                Check(expected);
+                var block = Find(id);
+                var descriptor = catalog.Descriptor(block.Type)
+                    ?? throw new RigException(400, $"'{id}' has no parameters.");
+                var state = preset.Scenes[activeScene].StateOf(id);
+                var target = channel ?? state.Channel;
+                CheckChannel(target, descriptor.Channels);
 
-        var unknown = values.Keys.Where(k => descriptor.IndexOf(k) < 0).ToList();
-        if (unknown.Count > 0) {
-            throw new RigException(400, $"{descriptor.Name} has no parameter(s) {string.Join(", ", unknown)}.", unknown);
-        }
+                var unknown = values.Keys.Where(k => descriptor.IndexOf(k) < 0).ToList();
+                if (unknown.Count > 0) {
+                    throw new RigException(
+                        400,
+                        $"{descriptor.Name} has no parameter(s) {string.Join(", ", unknown)}.",
+                        unknown
+                    );
+                }
 
-        PushUndo($"params:{id}:{target}:{string.Join(',', values.Keys.Order())}");
-        var stored = block.Channel(target);
-        var sent = new List<ParamValue>();
-        foreach (var (param, raw) in values) {
-            var value = descriptor.Params[descriptor.IndexOf(param)].Sanitize(raw);
-            stored[param] = value;
-            sent.Add(new(id, param, value));
-        }
+                PushUndo($"params:{id}:{target}:{string.Join(',', values.Keys.Order())}");
+                var stored = block.Channel(target);
+                var sent = new List<ParamValue>();
+                foreach (var (param, raw) in values) {
+                    var value = descriptor.Params[descriptor.IndexOf(param)].Sanitize(raw);
+                    stored[param] = value;
+                    sent.Add(new(id, param, value));
+                }
 
-        if (target == state.Channel) {
-            engine.SetParams(generation, sent);
-        }
+                if (target == state.Channel) {
+                    engine.SetParams(generation, sent);
+                }
 
-        revision++;
-        dirty = true;
-        foreach (var value in sent) {
-            hub.Publish(new RigEvent("paramChanged", revision, id, target, value.Param, value.Value), ContractsJsonContext.Default.RigEvent);
-        }
+                revision++;
+                dirty = true;
+                foreach (var value in sent) {
+                    hub.Publish(
+                        new("paramChanged", revision, id, target, value.Param, value.Value),
+                        ContractsJsonContext.Default.RigEvent
+                    );
+                }
 
-        return Task.FromResult(State());
-    });
+                return Task.FromResult(State());
+            }
+        );
 
-    public Task<LiveState> SetBypassAsync(string id, bool bypassed, long? expected) => Locked(() => {
-        Check(expected);
-        var block = Find(id);
-        if (BuiltInTypes.IsBuiltIn(block.Type)) {
-            throw new RigException(400, $"'{id}' cannot be bypassed.");
-        }
+    public Task<LiveState> SetBypassAsync(string id, bool bypassed, long? expected) =>
+        Locked(() => {
+                Check(expected);
+                var block = Find(id);
+                if (BuiltInTypes.IsBuiltIn(block.Type)) {
+                    throw new RigException(400, $"'{id}' cannot be bypassed.");
+                }
 
-        PushUndo(null);
-        var scene = preset.Scenes[activeScene];
-        scene.Blocks[id] = scene.StateOf(id) with { Bypassed = bypassed };
-        engine.SetBypass(generation, id, bypassed);
-        return Task.FromResult(Changed("bypassChanged", id));
-    });
+                PushUndo(null);
+                var scene = preset.Scenes[activeScene];
+                scene.Blocks[id] = scene.StateOf(id) with { Bypassed = bypassed };
+                engine.SetBypass(generation, id, bypassed);
+                return Task.FromResult(Changed("bypassChanged", id));
+            }
+        );
 
-    public Task<LiveState> SetChannelAsync(string id, string channel, long? expected) => Locked(() => {
-        Check(expected);
-        var block = Find(id);
-        var descriptor = catalog.Descriptor(block.Type) ?? throw new RigException(400, $"'{id}' has no channels.");
-        CheckChannel(channel, descriptor.Channels);
+    public Task<LiveState> SetChannelAsync(string id, string channel, long? expected) =>
+        Locked(() => {
+                Check(expected);
+                var block = Find(id);
+                var descriptor = catalog.Descriptor(block.Type)
+                    ?? throw new RigException(400, $"'{id}' has no channels.");
+                CheckChannel(channel, descriptor.Channels);
 
-        PushUndo(null);
-        var scene = preset.Scenes[activeScene];
-        scene.Blocks[id] = scene.StateOf(id) with { Channel = channel };
-        engine.SetParams(generation, ChannelValues(block, channel));
-        return Task.FromResult(Changed("channelChanged", id, channel));
-    });
+                PushUndo(null);
+                var scene = preset.Scenes[activeScene];
+                scene.Blocks[id] = scene.StateOf(id) with { Channel = channel };
+                engine.SetParams(generation, ChannelValues(block, channel));
+                return Task.FromResult(Changed("channelChanged", id, channel));
+            }
+        );
 
     /// <summary>Switches scene: only the blocks whose bypass or channel differ are touched; nothing recompiles.</summary>
-    public Task<LiveState> SelectSceneAsync(int scene) => Locked(() => {
-        CheckScene(scene);
-        var from = preset.Scenes[activeScene];
-        var to = preset.Scenes[scene];
-        foreach (var block in preset.Blocks.Where(static b => !BuiltInTypes.IsBuiltIn(b.Type))) {
-            var before = from.StateOf(block.Id);
-            var after = to.StateOf(block.Id);
-            if (before.Channel != after.Channel) {
-                engine.SetParams(generation, ChannelValues(block, after.Channel));
+    public Task<LiveState> SelectSceneAsync(int scene) =>
+        Locked(() => {
+                CheckScene(scene);
+                var from = preset.Scenes[activeScene];
+                var to = preset.Scenes[scene];
+                foreach (var block in preset.Blocks.Where(static b => !BuiltInTypes.IsBuiltIn(b.Type))) {
+                    var before = from.StateOf(block.Id);
+                    var after = to.StateOf(block.Id);
+                    if (before.Channel != after.Channel) {
+                        engine.SetParams(generation, ChannelValues(block, after.Channel));
+                    }
+
+                    if (before.Bypassed != after.Bypassed) {
+                        engine.SetBypass(generation, block.Id, after.Bypassed);
+                    }
+                }
+
+                activeScene = scene;
+                revision++;
+                hub.Publish(new("sceneChanged", revision, Scene: scene), ContractsJsonContext.Default.RigEvent);
+                return Task.FromResult(State());
             }
+        );
 
-            if (before.Bypassed != after.Bypassed) {
-                engine.SetBypass(generation, block.Id, after.Bypassed);
+    public Task<LiveState> UpdateSceneAsync(int scene, SceneUpdateRequest request, long? expected) =>
+        Locked(() => {
+                Check(expected);
+                CheckScene(scene);
+                PushUndo(null);
+                var target = preset.Scenes[scene];
+                if (request.Name is { } name) {
+                    target.Name = name.Trim();
+                }
+
+                if (request.Level is { } level) {
+                    target.Level = Math.Clamp(
+                        level,
+                        -80f,
+                        20f
+                    ); // applied to the output once the Output block has a level (Phase 5)
+                }
+
+                return Task.FromResult(Changed("sceneUpdated", scene: scene));
             }
-        }
-
-        activeScene = scene;
-        revision++;
-        hub.Publish(new RigEvent("sceneChanged", revision, Scene: scene), ContractsJsonContext.Default.RigEvent);
-        return Task.FromResult(State());
-    });
-
-    public Task<LiveState> UpdateSceneAsync(int scene, SceneUpdateRequest request, long? expected) => Locked(() => {
-        Check(expected);
-        CheckScene(scene);
-        PushUndo(null);
-        var target = preset.Scenes[scene];
-        if (request.Name is { } name) {
-            target.Name = name.Trim();
-        }
-
-        if (request.Level is { } level) {
-            target.Level = Math.Clamp(level, -80f, 20f); // applied to the output once the Output block has a level (Phase 5)
-        }
-
-        return Task.FromResult(Changed("sceneUpdated", scene: scene));
-    });
+        );
 
     /// <summary>Every parameter of the block type with <paramref name="channel" />'s value or the default.</summary>
     List<ParamValue> ChannelValues(PresetBlock block, string channel) {
         var descriptor = catalog.Descriptor(block.Type)!;
         var stored = block.Channels.GetValueOrDefault(channel);
-        return [.. descriptor.Params.Select(p => new ParamValue(block.Id, p.Id, stored?.GetValueOrDefault(p.Id, p.Default) ?? p.Default))];
+        return [
+            ..descriptor.Params.Select(p => new ParamValue(
+                    block.Id,
+                    p.Id,
+                    stored?.GetValueOrDefault(p.Id, p.Default) ?? p.Default
+                )
+            )
+        ];
     }
 
     async Task StructuralAsync(Action<Preset> edit) {
@@ -320,7 +393,9 @@ public sealed class LiveRig(BlockCatalog catalog, AssetStore assets, PresetStore
         } catch (Exception e) when (e is IpcException or RigException) {
             Restore(before);
             await SyncGraphAsync();
-            throw e is IpcException ipc ? new RigException(422, "The engine could not load this preset: " + ipc.Message, ipc.Errors) : e;
+            throw e is IpcException ipc
+                ? new RigException(422, "The engine could not load this preset: " + ipc.Message, ipc.Errors)
+                : e;
         }
 
         undo.Clear();
@@ -371,22 +446,32 @@ public sealed class LiveRig(BlockCatalog catalog, AssetStore assets, PresetStore
         activeScene = snapshot.ActiveScene;
     }
 
-    LiveState Changed(string eventType, string? block = null, string? channel = null, int? scene = null, bool markDirty = true) {
+    LiveState Changed(
+        string eventType,
+        string? block = null,
+        string? channel = null,
+        int? scene = null,
+        bool markDirty = true
+    ) {
         revision++;
         dirty |= markDirty;
-        hub.Publish(new RigEvent(eventType, revision, block, channel, Scene: scene), ContractsJsonContext.Default.RigEvent);
+        hub.Publish(new(eventType, revision, block, channel, Scene: scene), ContractsJsonContext.Default.RigEvent);
         return State();
     }
 
     LiveState State() {
-        var copy = JsonSerializer.Deserialize(JsonSerializer.Serialize(preset, ContractsJsonContext.Default.Preset), ContractsJsonContext.Default.Preset)!;
+        var copy = JsonSerializer.Deserialize(
+            JsonSerializer.Serialize(preset, ContractsJsonContext.Default.Preset),
+            ContractsJsonContext.Default.Preset
+        )!;
         return new(copy, activeScene, revision, dirty, undo.Count > 0, redo.Count > 0);
     }
 
-    PresetBlock Find(string id) => preset.Blocks.FirstOrDefault(b => b.Id == id) ?? throw RigException.NotFound($"No block '{id}'.");
+    PresetBlock Find(string id) =>
+        preset.Blocks.FirstOrDefault(b => b.Id == id) ?? throw RigException.NotFound($"No block '{id}'.");
 
     string NextId(string type) {
-        for (var n = 1; ; n++) {
+        for (var n = 1;; n++) {
             var id = $"{type}{n}";
             if (preset.Blocks.All(b => b.Id != id)) {
                 return id;
@@ -396,7 +481,10 @@ public sealed class LiveRig(BlockCatalog catalog, AssetStore assets, PresetStore
 
     void Check(long? expected) {
         if (expected is { } value && value != revision) {
-            throw new RigException(412, $"The rig changed (revision {revision}, expected {value}). Reload and try again.");
+            throw new RigException(
+                412,
+                $"The rig changed (revision {revision}, expected {value}). Reload and try again."
+            );
         }
     }
 
@@ -409,7 +497,10 @@ public sealed class LiveRig(BlockCatalog catalog, AssetStore assets, PresetStore
     static void CheckChannel(string channel, int channels) {
         var index = Array.IndexOf(Preset.ChannelNames, channel);
         if (index < 0 || index >= channels) {
-            throw new RigException(400, $"Channel '{channel}' does not exist; this block has {string.Join(", ", Preset.ChannelNames[..channels])}.");
+            throw new RigException(
+                400,
+                $"Channel '{channel}' does not exist; this block has {string.Join(", ", Preset.ChannelNames[..channels])}."
+            );
         }
     }
 

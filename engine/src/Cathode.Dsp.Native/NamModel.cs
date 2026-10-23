@@ -39,7 +39,7 @@ public sealed unsafe class NamModel : IDisposable {
         }
     }
 
-    nint Handle => this.handle != 0 ? this.handle : throw new ObjectDisposedException(nameof(NamModel));
+    nint Handle => handle != 0 ? handle : throw new ObjectDisposedException(nameof(NamModel));
 
     NamModel(nint handle, NamModelInfo info) {
         this.handle = handle;
@@ -89,15 +89,15 @@ public sealed unsafe class NamModel : IDisposable {
     public void Process(ReadOnlySpan<float> input, Span<float> output) {
         fixed (float* i = input) {
             fixed (float* o = output) {
-                NamNative.Process(this.handle, i, o, output.Length);
+                NamNative.Process(handle, i, o, output.Length);
             }
         }
     }
 
     public void Dispose() {
-        if (this.handle != 0) {
-            NamNative.Free(this.handle);
-            this.handle = 0;
+        if (handle != 0) {
+            NamNative.Free(handle);
+            handle = 0;
         }
     }
 }

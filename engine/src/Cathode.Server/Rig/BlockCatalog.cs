@@ -12,7 +12,7 @@ public sealed class BlockCatalog {
     readonly Dictionary<string, BlockDescriptor> descriptors = new(StringComparer.Ordinal);
     readonly Dictionary<string, BlockTypeInfo> infos = new(StringComparer.Ordinal);
 
-    public IReadOnlyList<BlockTypeInfo> All => [.. infos.Values];
+    public IReadOnlyList<BlockTypeInfo> All => [..infos.Values];
 
     public BlockCatalog(BlockRegistry registry) {
         foreach (var builtIn in new[] {
@@ -33,8 +33,8 @@ public sealed class BlockCatalog {
                 descriptor.Category,
                 descriptor.MaxInstances,
                 descriptor.Channels,
-                [.. slots],
-                [.. descriptor.Params.Select(ToInfo)]
+                [..slots],
+                [..descriptor.Params.Select(ToInfo)]
             );
         }
     }
@@ -44,15 +44,16 @@ public sealed class BlockCatalog {
     /// <summary>The DSP descriptor, or null for built-in cells and unknown types.</summary>
     public BlockDescriptor? Descriptor(string typeId) => descriptors.GetValueOrDefault(typeId);
 
-    static ParameterInfo ToInfo(ParamDescriptor p) => new(
-        p.Id,
-        p.Name,
-        p.Kind.ToString().ToLowerInvariant(),
-        p.Min,
-        p.Max,
-        p.Default,
-        p.Unit,
-        p.Taper.ToString().ToLowerInvariant(),
-        p.Options
-    );
+    static ParameterInfo ToInfo(ParamDescriptor p) =>
+        new(
+            p.Id,
+            p.Name,
+            p.Kind.ToString().ToLowerInvariant(),
+            p.Min,
+            p.Max,
+            p.Default,
+            p.Unit,
+            p.Taper.ToString().ToLowerInvariant(),
+            p.Options
+        );
 }

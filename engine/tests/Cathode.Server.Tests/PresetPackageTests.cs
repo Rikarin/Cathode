@@ -58,7 +58,11 @@ public sealed class PresetPackageTests : IAsyncLifetime {
     [Fact]
     public async Task Tampered_assets_are_rejected_before_they_reach_the_store() {
         var id = await SaveRigWithCab(from, "Tampered");
-        var package = Rewrite(await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token), entry => entry.StartsWith("assets/", StringComparison.Ordinal), [1, 2, 3, 4]);
+        var package = Rewrite(
+            await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token),
+            entry => entry.StartsWith("assets/", StringComparison.Ordinal),
+            [1, 2, 3, 4]
+        );
 
         var (status, body) = await TryImport(to, package);
 
@@ -74,7 +78,11 @@ public sealed class PresetPackageTests : IAsyncLifetime {
     [InlineData("readme.txt")]
     public async Task Unexpected_entry_names_are_rejected(string name) {
         var id = await SaveRigWithCab(from, "Sneaky");
-        var package = AddEntry(await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token), name, "x"u8.ToArray());
+        var package = AddEntry(
+            await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token),
+            name,
+            "x"u8.ToArray()
+        );
 
         var (status, body) = await TryImport(to, package);
 
@@ -86,7 +94,11 @@ public sealed class PresetPackageTests : IAsyncLifetime {
     public async Task Oversized_entries_are_stopped_while_reading() {
         var id = await SaveRigWithCab(from, "Bomb");
         // 100 MB of zeros compresses to about 100 KB: the classic zip bomb shape.
-        var package = Rewrite(await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token), static e => e == "preset.json", new byte[100 * 1024 * 1024]);
+        var package = Rewrite(
+            await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token),
+            static e => e == "preset.json",
+            new byte[100 * 1024 * 1024]
+        );
 
         var (status, _) = await TryImport(to, package);
 
@@ -96,7 +108,10 @@ public sealed class PresetPackageTests : IAsyncLifetime {
     [Fact]
     public async Task Missing_assets_and_non_zips_are_rejected() {
         var id = await SaveRigWithCab(from, "Incomplete");
-        var withoutAssets = Remove(await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token), static e => e.StartsWith("assets/", StringComparison.Ordinal));
+        var withoutAssets = Remove(
+            await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token),
+            static e => e.StartsWith("assets/", StringComparison.Ordinal)
+        );
 
         var (missingStatus, missingBody) = await TryImport(to, withoutAssets);
         var (garbageStatus, _) = await TryImport(to, "definitely not a zip"u8.ToArray());
@@ -109,7 +124,11 @@ public sealed class PresetPackageTests : IAsyncLifetime {
     async Task<string> SaveRigWithCab(HttpClient client, string name) {
         using var ir = new MemoryStream();
         WavFile.Write(ir, new(48_000, [Signals.Noise(400, 3).Select((v, i) => v * MathF.Exp(-i / 60f)).ToArray()]));
-        using var upload = await client.PostAsync("/api/v1/assets?name=room.wav", new ByteArrayContent(ir.ToArray()), Token);
+        using var upload = await client.PostAsync(
+            "/api/v1/assets?name=room.wav",
+            new ByteArrayContent(ir.ToArray()),
+            Token
+        );
         var asset = (await upload.Content.ReadFromJsonAsync<AssetInfo>(Token))!;
         await Ensure(client.PostAsJsonAsync("/api/v1/live/new", new { }, Token));
         await Ensure(client.PostAsJsonAsync("/api/v1/live/blocks", new AddBlockRequest("cab", 0, 2), Token));
@@ -134,10 +153,15 @@ public sealed class PresetPackageTests : IAsyncLifetime {
         Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync(Token));
     }
 
-    static byte[] Rewrite(byte[] package, Func<string, bool> which, byte[] content) => Transform(package, which, (zip, name) => {
-        using var stream = zip.CreateEntry(name).Open();
-        stream.Write(content);
-    });
+    static byte[] Rewrite(byte[] package, Func<string, bool> which, byte[] content) =>
+        Transform(
+            package,
+            which,
+            (zip, name) => {
+                using var stream = zip.CreateEntry(name).Open();
+                stream.Write(content);
+            }
+        );
 
     static byte[] Remove(byte[] package, Func<string, bool> which) => Transform(package, which, static (_, _) => { });
 
@@ -155,17 +179,18 @@ public sealed class PresetPackageTests : IAsyncLifetime {
     /// <summary>Copies the package, handing entries matching <paramref name="which" /> to <paramref name="replace" />.</summary>
     static byte[] Transform(byte[] package, Func<string, bool> which, Action<ZipArchive, string> replace) {
         using var output = new MemoryStream();
-        using (var original = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read))
-        using (var copy = new ZipArchive(output, ZipArchiveMode.Create, true)) {
-            foreach (var entry in original.Entries) {
-                if (which(entry.FullName)) {
-                    replace(copy, entry.FullName);
-                    continue;
-                }
+        using (var original = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read)) {
+            using (var copy = new ZipArchive(output, ZipArchiveMode.Create, true)) {
+                foreach (var entry in original.Entries) {
+                    if (which(entry.FullName)) {
+                        replace(copy, entry.FullName);
+                        continue;
+                    }
 
-                using var source = entry.Open();
-                using var target = copy.CreateEntry(entry.FullName).Open();
-                source.CopyTo(target);
+                    using var source = entry.Open();
+                    using var target = copy.CreateEntry(entry.FullName).Open();
+                    source.CopyTo(target);
+                }
             }
         }
 

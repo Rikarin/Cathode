@@ -15,7 +15,10 @@ namespace Cathode.EngineHost;
 ///     from control threads only; one lock serialises requests and telemetry.
 /// </summary>
 public sealed class EngineHostService : IDisposable {
-    /// <summary>CPU figures describe the last few seconds, not the process lifetime (which would keep start-up spikes forever).</summary>
+    /// <summary>
+    ///     CPU figures describe the last few seconds, not the process lifetime (which would keep start-up spikes
+    ///     forever).
+    /// </summary>
     static readonly TimeSpan StatsWindow = TimeSpan.FromSeconds(5);
 
     readonly GraphCompiler compiler;
@@ -34,12 +37,19 @@ public sealed class EngineHostService : IDisposable {
 
     public HostInfo Info { get; }
 
-    public EngineHostService(ProcessSpec spec, string backend, BlockRegistry? registry = null, IDeviceMonitor? device = null) {
+    public EngineHostService(
+        ProcessSpec spec,
+        string backend,
+        BlockRegistry? registry = null,
+        IDeviceMonitor? device = null
+    ) {
         this.device = device;
         Engine = new(spec);
         compiler = new(registry ?? BlockRegistry.CreateDefault().AddNativeBlocks());
         tuner = new(spec.SampleRate);
-        var version = typeof(EngineHostService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "dev";
+        var version = typeof(EngineHostService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+                ?.InformationalVersion
+            ?? "dev";
         Info = new(version, backend, spec.SampleRate, spec.MaxBlockSize);
     }
 
@@ -83,7 +93,7 @@ public sealed class EngineHostService : IDisposable {
             latest = graph;
             return IpcMessage.Ok(request.Id);
         } catch (GraphValidationException e) {
-            return IpcMessage.Fail(request.Id, "The graph is invalid.", [.. e.Errors]);
+            return IpcMessage.Fail(request.Id, "The graph is invalid.", [..e.Errors]);
         }
     }
 
@@ -104,7 +114,9 @@ public sealed class EngineHostService : IDisposable {
             latest.SetParameter(slot, index, value.Value);
         }
 
-        return errors.Count == 0 ? IpcMessage.Ok(request.Id) : IpcMessage.Fail(request.Id, "Some parameters were not set.", errors);
+        return errors.Count == 0
+            ? IpcMessage.Ok(request.Id)
+            : IpcMessage.Fail(request.Id, "Some parameters were not set.", errors);
     }
 
     IpcMessage SetBypass(IpcMessage request) {

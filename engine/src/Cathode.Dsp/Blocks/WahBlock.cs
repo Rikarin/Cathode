@@ -78,8 +78,8 @@ public sealed class WahBlock : DspBlock {
         bandRight.Reset();
         lowLeft.Reset();
         lowRight.Reset();
-        this.mix = Params.Current(Mix) / 100f;
-        this.outputGain = Decibels.ToGain(Params.Current(Level));
+        mix = Params.Current(Mix) / 100f;
+        outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {

@@ -16,15 +16,15 @@ public struct Lfo {
 
     /// <summary>Advances by one sample at <paramref name="rateHz" />.</summary>
     public void Advance(double rateHz, double sampleRate) {
-        this.phase += rateHz / sampleRate;
-        if (this.phase >= 1) {
-            this.phase -= Math.Floor(this.phase);
+        phase += rateHz / sampleRate;
+        if (phase >= 1) {
+            phase -= Math.Floor(phase);
         }
     }
 
     /// <summary>Bipolar value in [-1, 1] at the current phase plus <paramref name="offset" /> (in cycles, e.g. 0.25 = 90°).</summary>
     public readonly float Value(LfoShape shape, double offset = 0) {
-        var p = this.phase + offset;
+        var p = phase + offset;
         p -= Math.Floor(p);
         return shape switch {
             LfoShape.Triangle => (float)(p < 0.5 ? 4 * p - 1 : 3 - 4 * p),

@@ -1,7 +1,7 @@
 using System.Threading.Channels;
 using Cathode.Contracts;
-using Cathode.EngineHost;
 using Cathode.Engine.Graph;
+using Cathode.EngineHost;
 using Cathode.Ipc;
 using Cathode.Server.Realtime;
 using Microsoft.Extensions.Options;
@@ -12,7 +12,10 @@ namespace Cathode.Server.Engine;
 ///     Keeps a link to the engine host: connects (and reconnects), sends work through one ordered queue, raises
 ///     <see cref="Connected" /> so the rig can resync, and forwards telemetry to WebSocket clients.
 /// </summary>
-public sealed partial class EngineConnection(IOptions<ServerOptions> options, EventHub hub, ILogger<EngineConnection> logger)
+public sealed partial class EngineConnection(
+    IOptions<ServerOptions> options,
+    EventHub hub,
+    ILogger<EngineConnection> logger)
     : BackgroundService, IEngineSync {
     readonly Channel<Work> queue = Channel.CreateUnbounded<Work>(new() { SingleReader = true });
     IEngineLink? link;
@@ -64,13 +67,20 @@ public sealed partial class EngineConnection(IOptions<ServerOptions> options, Ev
 
     public void SetParams(int generation, IReadOnlyList<ParamValue> values) {
         if (IsConnected && values.Count > 0) {
-            queue.Writer.TryWrite(new(new() { Type = IpcTypes.SetParams, Generation = generation, Params = [.. values] }, null));
+            queue.Writer.TryWrite(
+                new(new() { Type = IpcTypes.SetParams, Generation = generation, Params = [..values] }, null)
+            );
         }
     }
 
     public void SetBypass(int generation, string block, bool bypassed) {
         if (IsConnected) {
-            queue.Writer.TryWrite(new(new() { Type = IpcTypes.SetBypass, Generation = generation, Block = block, Bypassed = bypassed }, null));
+            queue.Writer.TryWrite(
+                new(
+                    new() { Type = IpcTypes.SetBypass, Generation = generation, Block = block, Bypassed = bypassed },
+                    null
+                )
+            );
         }
     }
 
@@ -127,6 +137,7 @@ public sealed partial class EngineConnection(IOptions<ServerOptions> options, Ev
             if (info is not null) {
                 EngineConnected(logger, info.Backend, info.SampleRate, info.BufferFrames);
             }
+
             // The pump must run before the handlers: a resync enqueues a loadGraph and waits for its reply.
             var pump = PumpAsync(current, lost.Token);
             if (Connected is { } handlers) {
@@ -179,7 +190,10 @@ public sealed partial class EngineConnection(IOptions<ServerOptions> options, Ev
     void OnTelemetry(HostTelemetry t) {
         telemetry = t;
         var tuner = t.Tuner is { } r ? new TunerInfo(r.Frequency, r.Note, r.Octave, r.Cents) : null;
-        hub.Publish(new Telemetry("telemetry", t.InputPeak, t.OutputPeakLeft, t.OutputPeakRight, t.CpuP999, t.Overloads, tuner), ContractsJsonContext.Default.Telemetry);
+        hub.Publish(
+            new("telemetry", t.InputPeak, t.OutputPeakLeft, t.OutputPeakRight, t.CpuP999, t.Overloads, tuner),
+            ContractsJsonContext.Default.Telemetry
+        );
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Engine connected: {Backend}, {Rate} Hz, {Frames} frames")]

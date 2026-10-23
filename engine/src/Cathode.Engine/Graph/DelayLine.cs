@@ -10,8 +10,8 @@ sealed class DelayLine {
 
     public DelayLine(int samples) {
         Samples = samples;
-        this.left = new float[samples];
-        this.right = new float[samples];
+        left = new float[samples];
+        right = new float[samples];
     }
 
     public void Process(Span<float> left, Span<float> right) {
@@ -28,8 +28,8 @@ sealed class DelayLine {
     }
 
     public void Reset() {
-        Array.Clear(this.left);
-        Array.Clear(this.right);
-        this.position = 0;
+        Array.Clear(left);
+        Array.Clear(right);
+        position = 0;
     }
 }

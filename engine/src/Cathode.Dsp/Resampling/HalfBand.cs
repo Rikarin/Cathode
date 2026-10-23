@@ -84,9 +84,9 @@ sealed class AllpassChain(float[] coefficients) {
 
     public float Process(float input) {
         for (var i = 0; i < coefficients.Length; i++) {
-            var output = coefficients[i] * (input - this.y[i]) + this.x[i];
-            this.x[i] = input;
-            this.y[i] = output;
+            var output = coefficients[i] * (input - y[i]) + x[i];
+            x[i] = input;
+            y[i] = output;
             input = output;
         }
 
@@ -94,18 +94,18 @@ sealed class AllpassChain(float[] coefficients) {
     }
 
     public void Reset() {
-        Array.Clear(this.x);
-        Array.Clear(this.y);
+        Array.Clear(x);
+        Array.Clear(y);
     }
 
     public void FlushDenormals() {
-        for (var i = 0; i < this.x.Length; i++) {
-            if (MathF.Abs(this.x[i]) < 1e-20f) {
-                this.x[i] = 0;
+        for (var i = 0; i < x.Length; i++) {
+            if (MathF.Abs(x[i]) < 1e-20f) {
+                x[i] = 0;
             }
 
-            if (MathF.Abs(this.y[i]) < 1e-20f) {
-                this.y[i] = 0;
+            if (MathF.Abs(y[i]) < 1e-20f) {
+                y[i] = 0;
             }
         }
     }
@@ -178,33 +178,33 @@ public sealed class Oversampler4x {
     public static int CoefficientCount => FirstStage.Length + SecondStage.Length;
 
     public Oversampler4x(int maxBlockSize) {
-        this.twice = new float[maxBlockSize * 2];
-        this.four = new float[maxBlockSize * 4];
+        twice = new float[maxBlockSize * 2];
+        four = new float[maxBlockSize * 4];
     }
 
     /// <summary>Upsamples <paramref name="input" /> and returns the 4x buffer to process in place.</summary>
     public Span<float> Up(ReadOnlySpan<float> input) {
         var twice = this.twice.AsSpan(0, input.Length * 2);
         var four = this.four.AsSpan(0, input.Length * 4);
-        this.first.Up(input, twice);
-        this.second.Up(twice, four);
+        first.Up(input, twice);
+        second.Up(twice, four);
         return four;
     }
 
     /// <summary>Downsamples the 4x buffer returned by <see cref="Up" /> into <paramref name="output" />.</summary>
     public void Down(Span<float> output) {
         var twice = this.twice.AsSpan(0, output.Length * 2);
-        this.second.Down(this.four.AsSpan(0, output.Length * 4), twice);
-        this.first.Down(twice, output);
+        second.Down(four.AsSpan(0, output.Length * 4), twice);
+        first.Down(twice, output);
     }
 
     public void Reset() {
-        this.first.Reset();
-        this.second.Reset();
+        first.Reset();
+        second.Reset();
     }
 
     public void FlushDenormals() {
-        this.first.FlushDenormals();
-        this.second.FlushDenormals();
+        first.FlushDenormals();
+        second.FlushDenormals();
     }
 }

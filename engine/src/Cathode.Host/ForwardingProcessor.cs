@@ -10,8 +10,8 @@ sealed class ForwardingProcessor : IAudioProcessor {
     IAudioProcessor? target;
 
     public IAudioProcessor? Target {
-        get => Volatile.Read(ref this.target);
-        set => Volatile.Write(ref this.target, value);
+        get => Volatile.Read(ref target);
+        set => Volatile.Write(ref target, value);
     }
 
     public void Process(in AudioIO io) {

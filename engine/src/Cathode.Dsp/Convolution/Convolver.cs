@@ -55,11 +55,11 @@ public sealed class Convolver {
         impulseResponse[..Math.Min(B, Length)].CopyTo(head);
         history = new float[2 * B];
 
-        this.partitions = Math.Max(0, (Length - B + B - 1) / B);
-        irRe = new float[this.partitions][];
-        irIm = new float[this.partitions][];
-        inRe = new float[this.partitions][];
-        inIm = new float[this.partitions][];
+        partitions = Math.Max(0, (Length - B + B - 1) / B);
+        irRe = new float[partitions][];
+        irIm = new float[partitions][];
+        inRe = new float[partitions][];
+        inIm = new float[partitions][];
         for (var p = 0; p < partitions; p++) {
             Array.Clear(re);
             Array.Clear(im);
@@ -100,7 +100,7 @@ public sealed class Convolver {
             history[historyPosition + B] = x;
             var y = Dot(head, history.AsSpan(historyPosition, B));
 
-            if (this.partitions > 0) {
+            if (partitions > 0) {
                 y += tailOut[position];
                 frame[B + position] = x;
             }
@@ -108,7 +108,7 @@ public sealed class Convolver {
             samples[i] = y;
             if (++position == B) {
                 position = 0;
-                if (this.partitions > 0) {
+                if (partitions > 0) {
                     RunTail();
                 }
             }
@@ -120,7 +120,7 @@ public sealed class Convolver {
         frame.CopyTo(re, 0);
         Array.Clear(im);
         fft.Forward(re, im);
-        fdlPosition = fdlPosition == 0 ? this.partitions - 1 : fdlPosition - 1;
+        fdlPosition = fdlPosition == 0 ? partitions - 1 : fdlPosition - 1;
         re.AsSpan(0, Bins).CopyTo(inRe[fdlPosition]);
         im.AsSpan(0, Bins).CopyTo(inIm[fdlPosition]);
 
@@ -128,8 +128,8 @@ public sealed class Convolver {
         Array.Clear(accIm);
         for (var p = 0; p < partitions; p++) {
             var slot = fdlPosition + p;
-            if (slot >= this.partitions) {
-                slot -= this.partitions;
+            if (slot >= partitions) {
+                slot -= partitions;
             }
 
             var xr = inRe[slot];

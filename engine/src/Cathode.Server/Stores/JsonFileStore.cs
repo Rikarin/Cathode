@@ -53,7 +53,9 @@ public sealed class JsonFileStore<T>
     }
 
     string PathOf(string id) =>
-        StoreIds.IsValid(id) ? Path.Combine(folder, id + ".json") : throw new RigException(400, $"Invalid {kind} id '{id}'.");
+        StoreIds.IsValid(id)
+            ? Path.Combine(folder, id + ".json")
+            : throw new RigException(400, $"Invalid {kind} id '{id}'.");
 
     T? TryRead(string path) {
         try {

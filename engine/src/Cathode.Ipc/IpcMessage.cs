@@ -3,7 +3,7 @@ using Cathode.Engine.Graph;
 
 namespace Cathode.Ipc;
 
-/// <summary>Message types. Requests get a reply with the same <see cref="IpcMessage.Id"/>; events have id 0.</summary>
+/// <summary>Message types. Requests get a reply with the same <see cref="IpcMessage.Id" />; events have id 0.</summary>
 public static class IpcTypes {
     public const string Hello = "hello";
     public const string LoadGraph = "loadGraph";
@@ -19,7 +19,7 @@ public static class IpcTypes {
 
 /// <summary>One envelope for every message, so the protocol stays a single source-generated type.</summary>
 public sealed class IpcMessage {
-    public string Type { get; set; } = "";
+    public string Type { get; set; } = string.Empty;
 
     public long Id { get; set; }
 
@@ -77,6 +77,9 @@ public sealed record HostTelemetry(
 
 public sealed record HostTunerReading(double Frequency, string Note, int Octave, double Cents);
 
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+)]
 [JsonSerializable(typeof(IpcMessage))]
 public sealed partial class IpcJsonContext : JsonSerializerContext;

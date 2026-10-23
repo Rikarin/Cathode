@@ -12,12 +12,11 @@ public sealed class PresetStore(IOptions<ServerOptions> options) {
         static p => p.Id
     );
 
-    public IReadOnlyList<PresetSummary> List() =>
-        [
-            .. files.All()
-                .Select(static e => new PresetSummary(e.Item.Id, e.Item.Name, e.Item.Author, e.Item.Tags, e.Modified))
-                .OrderBy(static p => p.Name, StringComparer.OrdinalIgnoreCase)
-        ];
+    public IReadOnlyList<PresetSummary> List() => [
+        ..files.All()
+            .Select(static e => new PresetSummary(e.Item.Id, e.Item.Name, e.Item.Author, e.Item.Tags, e.Modified))
+            .OrderBy(static p => p.Name, StringComparer.OrdinalIgnoreCase)
+    ];
 
     public Preset? Get(string id) => files.Get(id);
 

@@ -43,7 +43,7 @@ public sealed class GateBlock : DspBlock {
     );
 
     /// <summary>Current gain applied by the gate (1 = open). For meters and tests.</summary>
-    public float CurrentGain => MathF.Pow(10f, this.gainDb / 20f);
+    public float CurrentGain => MathF.Pow(10f, gainDb / 20f);
 
     public GateBlock()
         : base(Info) { }
@@ -56,9 +56,9 @@ public sealed class GateBlock : DspBlock {
         detectorRelease = Coefficient(DetectorReleaseMs, spec.SampleRate);
 
     protected override void OnReset() {
-        this.envelope = 0;
-        this.gainDb = 0;
-        this.holdRemaining = (int)(Params.Current(Hold) * 0.001 * Spec.SampleRate);
+        envelope = 0;
+        gainDb = 0;
+        holdRemaining = (int)(Params.Current(Hold) * 0.001 * Spec.SampleRate);
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {

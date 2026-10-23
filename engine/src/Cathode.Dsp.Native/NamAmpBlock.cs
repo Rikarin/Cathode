@@ -32,7 +32,7 @@ public sealed class NamAmpBlock : DspBlock, IAssetConsumer {
         maxInstances: 2
     );
 
-    public NamModelInfo? Model => this.model?.Info;
+    public NamModelInfo? Model => model?.Info;
 
     public IReadOnlyList<string> AssetSlots { get; } = [ModelSlot];
 
@@ -51,17 +51,17 @@ public sealed class NamAmpBlock : DspBlock, IAssetConsumer {
     }
 
     /// <summary>Control thread, before the block is published: resize a slimmable model (0 = Lite, 1 = Full).</summary>
-    public void SetModelSize(double size) => this.model?.SetSize(size);
+    public void SetModelSize(double size) => model?.SetSize(size);
 
     (float Input, float Output) TargetGains() {
-        var normalisation = Params.Current(Normalize) >= 0.5f && this.model?.Info.Loudness is double loudness
+        var normalisation = Params.Current(Normalize) >= 0.5f && model?.Info.Loudness is double loudness
             ? TargetLoudnessDb - loudness
             : 0;
         return (Decibels.ToGain(Params.Current(Input)),
             (float)(Decibels.ToGain(Params.Current(Output)) * Decibels.ToGain(normalisation)));
     }
 
-    protected override void OnPrepare(in ProcessSpec spec) => this.model?.Reset(spec.SampleRate, spec.MaxBlockSize);
+    protected override void OnPrepare(in ProcessSpec spec) => model?.Reset(spec.SampleRate, spec.MaxBlockSize);
 
     protected override void OnReset() => (inputGain, outputGain) = TargetGains();
 
@@ -70,9 +70,9 @@ public sealed class NamAmpBlock : DspBlock, IAssetConsumer {
         Params.Advance(Output, io.Length);
         var (input, output) = TargetGains();
 
-        if (this.model is not null) {
+        if (model is not null) {
             GainRamp.Apply(io.Left, inputGain, input);
-            this.model.Process(io.Left, io.Left);
+            model.Process(io.Left, io.Left);
             GainRamp.Apply(io.Left, outputGain, output);
         }
 
@@ -83,8 +83,8 @@ public sealed class NamAmpBlock : DspBlock, IAssetConsumer {
 
     protected override void Dispose(bool disposing) {
         if (disposing) {
-            this.model?.Dispose();
-            this.model = null;
+            model?.Dispose();
+            model = null;
         }
 
         base.Dispose(disposing);

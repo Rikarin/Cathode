@@ -47,22 +47,22 @@ public sealed class FlangerBlock : DspBlock {
 
     protected override void OnPrepare(in ProcessSpec spec) {
         var capacity = (int)((MaxDelayMs + MaxSweepMs) * 0.001 * spec.SampleRate) + 8;
-        this.left.Allocate(capacity);
-        this.right.Allocate(capacity);
+        left.Allocate(capacity);
+        right.Allocate(capacity);
     }
 
     protected override void OnReset() {
-        this.left.Reset();
-        this.right.Reset();
+        left.Reset();
+        right.Reset();
         lfo.Reset();
-        this.mix = Params.Current(Mix) / 100f;
-        this.outputGain = Decibels.ToGain(Params.Current(Level));
+        mix = Params.Current(Mix) / 100f;
+        outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void Dispose(bool disposing) {
         if (disposing) {
-            this.left.Dispose();
-            this.right.Dispose();
+            left.Dispose();
+            right.Dispose();
         }
 
         base.Dispose(disposing);

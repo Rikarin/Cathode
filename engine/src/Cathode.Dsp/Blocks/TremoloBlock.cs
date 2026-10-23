@@ -35,8 +35,8 @@ public sealed class TremoloBlock : DspBlock {
         : base(Info) { }
 
     protected override void OnReset() {
-        this.lfo.Reset();
-        this.outputGain = Decibels.ToGain(Params.Current(Level));
+        lfo.Reset();
+        outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {

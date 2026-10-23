@@ -146,8 +146,8 @@ static class AudioMode {
         IAudioProcessor? target;
 
         public IAudioProcessor? Target {
-            get => Volatile.Read(ref this.target);
-            set => Volatile.Write(ref this.target, value);
+            get => Volatile.Read(ref target);
+            set => Volatile.Write(ref target, value);
         }
 
         public void Process(in AudioIO io) {
@@ -281,14 +281,14 @@ sealed class AllocationStorm : IDisposable {
     readonly Thread thread;
 
     public AllocationStorm(double megabytesPerSecond) {
-        thread = new(() => Run(megabytesPerSecond, this.stop.Token)) { IsBackground = true, Name = "alloc-storm" };
+        thread = new(() => Run(megabytesPerSecond, stop.Token)) { IsBackground = true, Name = "alloc-storm" };
         thread.Start();
     }
 
     public void Dispose() {
-        this.stop.Cancel();
+        stop.Cancel();
         thread.Join();
-        this.stop.Dispose();
+        stop.Dispose();
     }
 
     static void Run(double megabytesPerSecond, CancellationToken stop) {
@@ -432,10 +432,10 @@ sealed class Options {
         return options;
     }
 
-    public bool Flag(string name) => this.values.ContainsKey(name);
+    public bool Flag(string name) => values.ContainsKey(name);
 
-    public string? Text(string name) => this.values.GetValueOrDefault(name);
+    public string? Text(string name) => values.GetValueOrDefault(name);
 
     public int Int(string name, int fallback) =>
-        this.values.TryGetValue(name, out var v) && v is not null ? int.Parse(v, CultureInfo.InvariantCulture) : fallback;
+        values.TryGetValue(name, out var v) && v is not null ? int.Parse(v, CultureInfo.InvariantCulture) : fallback;
 }

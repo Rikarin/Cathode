@@ -1,7 +1,5 @@
 using System.Diagnostics;
 using System.Globalization;
-using System.Net.Http.Json;
-using System.Net.WebSockets;
 using System.Text.Json;
 using Cathode.Contracts;
 using Cathode.Dsp.IO;
@@ -22,10 +20,20 @@ var api = new Api(http);
 
 await api.WaitForEngineAsync();
 Console.WriteLine($"engine: {(await api.SystemAsync()).Engine}");
-var model = await api.UploadAsync(options.Text("nam", ""), "amp.nam");
-var ir = await api.UploadAsync(options.Text("ir", ""), "cab.wav");
-var rigA = await api.BuildRigAsync("Soak A: high gain", model.Ref, ir.Ref, [("gate", 1), ("drive", 2), ("nam", 3), ("cab", 4), ("delay", 5), ("reverb", 6)]);
-var rigB = await api.BuildRigAsync("Soak B: clean modulation", model.Ref, ir.Ref, [("compressor", 1), ("nam", 2), ("cab", 3), ("chorus", 4), ("phaser", 5), ("delay", 6)]);
+var model = await api.UploadAsync(options.Text("nam", string.Empty), "amp.nam");
+var ir = await api.UploadAsync(options.Text("ir", string.Empty), "cab.wav");
+var rigA = await api.BuildRigAsync(
+    "Soak A: high gain",
+    model.Ref,
+    ir.Ref,
+    [("gate", 1), ("drive", 2), ("nam", 3), ("cab", 4), ("delay", 5), ("reverb", 6)]
+);
+var rigB = await api.BuildRigAsync(
+    "Soak B: clean modulation",
+    model.Ref,
+    ir.Ref,
+    [("compressor", 1), ("nam", 2), ("cab", 3), ("chorus", 4), ("phaser", 5), ("delay", 6)]
+);
 Console.WriteLine($"rigs: {rigA}, {rigB}; running {duration.TotalMinutes:0} min, sampling to {output}");
 
 using var stop = new CancellationTokenSource(duration);
@@ -35,19 +43,32 @@ var first = (await api.SystemAsync()).Engine;
 await using var log = File.CreateText(output);
 
 var activities = new[] {
-    api.Every(TimeSpan.FromMilliseconds(33), i => api.PatchAsync("/api/v1/live/blocks/amp1/params", new Dictionary<string, float> { ["input"] = (float)(3 * Math.Sin(i / 30.0)) }), token),
-    api.Every(TimeSpan.FromSeconds(2), i => api.PutAsync("/api/v1/live/scenes/active", new SceneSelectRequest((int)(i % 3))), token),
-    api.Every(TimeSpan.FromSeconds(30), i => api.PutAsync($"/api/v1/live/preset/{(i % 2 == 0 ? rigB : rigA)}", new { }), token),
+    api.Every(
+        TimeSpan.FromMilliseconds(33),
+        i => api.PatchAsync(
+            "/api/v1/live/blocks/amp1/params",
+            new Dictionary<string, float> { ["input"] = (float)(3 * Math.Sin(i / 30.0)) }
+        ),
+        token
+    ),
+    api.Every(
+        TimeSpan.FromSeconds(2),
+        i => api.PutAsync("/api/v1/live/scenes/active", new SceneSelectRequest((int)(i % 3))),
+        token
+    ),
+    api.Every(
+        TimeSpan.FromSeconds(30),
+        i => api.PutAsync($"/api/v1/live/preset/{(i % 2 == 0 ? rigB : rigA)}", new { }),
+        token
+    ),
     api.Every(TimeSpan.FromMinutes(5), i => api.UploadBytesAsync(SyntheticIr((int)i), $"upload-{i}.wav"), token),
-    api.Every(TimeSpan.FromSeconds(10), _ => api.GetAsync("/api/v1/presets"), token),
-    api.WatchTelemetryAsync(token),
+    api.Every(TimeSpan.FromSeconds(10), _ => api.GetAsync("/api/v1/presets"), token), api.WatchTelemetryAsync(token),
     Sample()
 };
 
 try {
     await Task.WhenAll(activities);
-} catch (OperationCanceledException) {
-}
+} catch (OperationCanceledException) { }
 
 var last = (await api.SystemAsync()).Engine;
 var report = Report.Build(first, last, api, Stopwatch.GetElapsedTime(started), (int)options.Double("max-host-gcs", -1));
@@ -64,12 +85,15 @@ async Task Sample() {
             await log.WriteLineAsync(JsonSerializer.Serialize(new Sample(minute, engine, api.Requests, api.Errors)));
             await log.FlushAsync(token);
             if ((int)(minute * 12) % 12 == 0) {
-                Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                    $"{minute,5:0.0} min  native p99.9 {engine.NativeP999,3:0}% max {engine.NativeMax,5:0.0}%  driver overloads {engine.DriverOverloads - first.DriverOverloads}  host GCs {engine.HostGen0 - first.HostGen0}/{engine.HostGen1 - first.HostGen1}/{engine.HostGen2 - first.HostGen2}  requests {api.Requests}  errors {api.Errors}"));
+                Console.WriteLine(
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{minute,5:0.0} min  native p99.9 {engine.NativeP999,3:0}% max {engine.NativeMax,5:0.0}%  driver overloads {engine.DriverOverloads - first.DriverOverloads}  host GCs {engine.HostGen0 - first.HostGen0}/{engine.HostGen1 - first.HostGen1}/{engine.HostGen2 - first.HostGen2}  requests {api.Requests}  errors {api.Errors}"
+                    )
+                );
             }
         }
-    } catch (OperationCanceledException) {
-    }
+    } catch (OperationCanceledException) { }
 }
 
 static byte[] SyntheticIr(int seed) {

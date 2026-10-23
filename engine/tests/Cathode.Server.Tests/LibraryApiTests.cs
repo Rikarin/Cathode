@@ -7,8 +7,8 @@ namespace Cathode.Server.Tests;
 public sealed class LibraryApiTests : IAsyncLifetime {
     readonly ServerFixture server = new();
     HttpClient client = null!;
-    string verse = "";
-    string chorus = "";
+    string verse = string.Empty;
+    string chorus = string.Empty;
 
     CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -51,7 +51,7 @@ public sealed class LibraryApiTests : IAsyncLifetime {
     public async Task References_must_exist_and_used_presets_cannot_be_deleted() {
         var broken = new Setlist { Entries = [new("does-not-exist"), new(verse, 9)] };
         using var rejected = await client.PutAsJsonAsync($"/api/v1/setlists/{broken.Id}", broken, Token);
-        var tooBig = new Bank { Slots = [.. Enumerable.Repeat<string?>(null, 129)] };
+        var tooBig = new Bank { Slots = [..Enumerable.Repeat<string?>(null, 129)] };
         using var rejectedBank = await client.PutAsJsonAsync($"/api/v1/banks/{tooBig.Id}", tooBig, Token);
         var setlist = new Setlist { Name = "Saturday", Entries = [new(verse)] };
         await Ok(client.PutAsJsonAsync($"/api/v1/setlists/{setlist.Id}", setlist, Token));
@@ -86,12 +86,18 @@ public sealed class LibraryApiTests : IAsyncLifetime {
 
     async Task<LiveState> Read(Task<HttpResponseMessage> request) {
         using var response = await request;
-        Assert.True(response.IsSuccessStatusCode, $"{(int)response.StatusCode}: {await response.Content.ReadAsStringAsync(Token)}");
+        Assert.True(
+            response.IsSuccessStatusCode,
+            $"{(int)response.StatusCode}: {await response.Content.ReadAsStringAsync(Token)}"
+        );
         return (await response.Content.ReadFromJsonAsync<LiveState>(Token))!;
     }
 
     async Task Ok(Task<HttpResponseMessage> request) {
         using var response = await request;
-        Assert.True(response.IsSuccessStatusCode, $"{(int)response.StatusCode}: {await response.Content.ReadAsStringAsync(Token)}");
+        Assert.True(
+            response.IsSuccessStatusCode,
+            $"{(int)response.StatusCode}: {await response.Content.ReadAsStringAsync(Token)}"
+        );
     }
 }

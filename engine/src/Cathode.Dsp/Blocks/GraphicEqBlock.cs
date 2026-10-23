@@ -30,18 +30,18 @@ public sealed class GraphicEqBlock : DspBlock {
         : base(Info) { }
 
     protected override void OnReset() {
-        foreach (var band in this.bands) {
+        foreach (var band in bands) {
             band.Reset();
         }
 
-        this.outputGain = Decibels.ToGain(Params.Current(Level));
+        outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         for (var b = 0; b < Bands; b++) {
             var moving = Params.IsRamping(b);
             var gain = Params.Advance(b, io.Length);
-            this.bands[b].Process(io, BiquadType.Peak, Spec.SampleRate, Centers[b], BandQ, gain, moving);
+            bands[b].Process(io, BiquadType.Peak, Spec.SampleRate, Centers[b], BandQ, gain, moving);
         }
 
         var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));

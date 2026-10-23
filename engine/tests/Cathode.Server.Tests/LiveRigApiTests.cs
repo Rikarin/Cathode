@@ -110,7 +110,10 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
         var undone = await Post("/api/v1/live/undo");
 
-        Assert.Equal(before.Preset.Blocks.Single(b => b.Id == "volpan1").Channels.Count, undone.Preset.Blocks.Single(b => b.Id == "volpan1").Channels.Count);
+        Assert.Equal(
+            before.Preset.Blocks.Single(b => b.Id == "volpan1").Channels.Count,
+            undone.Preset.Blocks.Single(b => b.Id == "volpan1").Channels.Count
+        );
         Assert.True(undone.CanUndo); // the add-block step is still there
     }
 
@@ -119,7 +122,9 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         var state = await Live();
         await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 0, 1));
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/live/blocks") { Content = JsonContent.Create(new AddBlockRequest("delay", 0, 2)) };
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/live/blocks") {
+            Content = JsonContent.Create(new AddBlockRequest("delay", 0, 2))
+        };
         request.Headers.IfMatch.Add(new($"\"{state.Revision}\""));
         using var response = await client.SendAsync(request, Token);
 
@@ -129,7 +134,11 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     [Fact]
     public async Task Invalid_edits_return_problem_details() {
         var badCable = await client.PostAsJsonAsync("/api/v1/live/cables", new CableRequest("in1", "out1"), Token);
-        var unknownParam = await client.PatchAsJsonAsync("/api/v1/live/blocks/shunt-r0c1/params", new Dictionary<string, float> { ["x"] = 1 }, Token);
+        var unknownParam = await client.PatchAsJsonAsync(
+            "/api/v1/live/blocks/shunt-r0c1/params",
+            new Dictionary<string, float> { ["x"] = 1 },
+            Token
+        );
         var badChannel = await client.PutAsJsonAsync("/api/v1/live/blocks/in1/channel", new ChannelRequest("E"), Token);
 
         Assert.Equal(HttpStatusCode.BadRequest, badCable.StatusCode);
@@ -142,7 +151,10 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     [Fact]
     public async Task Assets_upload_by_content_and_a_broken_model_is_rolled_back() {
         var ir = new MemoryStream();
-        Cathode.Dsp.IO.WavFile.Write(ir, new(48_000, [Signals.Noise(512, 1).Select((v, i) => v * MathF.Exp(-i / 80f)).ToArray()]));
+        Cathode.Dsp.IO.WavFile.Write(
+            ir,
+            new(48_000, [Signals.Noise(512, 1).Select((v, i) => v * MathF.Exp(-i / 80f)).ToArray()])
+        );
         var irAsset = await Upload("cab.wav", ir.ToArray());
         var again = await Upload("same-cab.wav", ir.ToArray());
         var badModel = await Upload("broken.nam", "{ \"not\": \"a model\" }"u8.ToArray());
@@ -150,7 +162,11 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         await Post("/api/v1/live/blocks", new AddBlockRequest("nam", 0, 3));
 
         var withIr = await Put("/api/v1/live/blocks/cab1/assets/ir1", new AssetRequest(irAsset.Ref));
-        using var rejected = await client.PutAsJsonAsync("/api/v1/live/blocks/nam1/assets/model", new AssetRequest(badModel.Ref), Token);
+        using var rejected = await client.PutAsJsonAsync(
+            "/api/v1/live/blocks/nam1/assets/model",
+            new AssetRequest(badModel.Ref),
+            Token
+        );
 
         Assert.Equal(irAsset.Ref, again.Ref); // stored once
         Assert.StartsWith("sha256:", irAsset.Ref, StringComparison.Ordinal);
@@ -176,14 +192,16 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
     async Task<LiveState> Live() => (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!;
 
-    async Task<LiveState> Post(string url, object? body = null) => await Read(await client.PostAsJsonAsync(url, body ?? new { }, Token));
+    async Task<LiveState> Post(string url, object? body = null) =>
+        await Read(await client.PostAsJsonAsync(url, body ?? new { }, Token));
 
     async Task<LiveState> Put(string url, object body) => await Read(await client.PutAsJsonAsync(url, body, Token));
 
     async Task<LiveState> Patch(string url, object body) => await Read(await client.PatchAsJsonAsync(url, body, Token));
 
     async Task<AssetInfo> Upload(string name, byte[] content) {
-        using var response = await client.PostAsync($"/api/v1/assets?name={name}", new ByteArrayContent(content), Token);
+        using var response =
+            await client.PostAsync($"/api/v1/assets?name={name}", new ByteArrayContent(content), Token);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<AssetInfo>(Token))!;
     }
@@ -191,7 +209,9 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     async Task<LiveState> Read(HttpResponseMessage response) {
         using (response) {
             if (!response.IsSuccessStatusCode) {
-                Assert.Fail($"{response.RequestMessage?.Method} {response.RequestMessage?.RequestUri}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync(Token)}");
+                Assert.Fail(
+                    $"{response.RequestMessage?.Method} {response.RequestMessage?.RequestUri}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync(Token)}"
+                );
             }
 
             return (await response.Content.ReadFromJsonAsync<LiveState>(Token))!;

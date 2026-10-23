@@ -22,32 +22,32 @@ public sealed class NullBackend : IDisposable {
     }
 
     public void Start(IAudioProcessor processor) {
-        if (this.running) {
+        if (running) {
             throw new InvalidOperationException("Already running.");
         }
 
-        this.running = true;
-        this.thread = new(() => Run(processor)) {
+        running = true;
+        thread = new(() => Run(processor)) {
             IsBackground = true, Name = "cathode-null-audio", Priority = ThreadPriority.Highest
         };
-        this.thread.Start();
+        thread.Start();
     }
 
     public void Stop() {
-        this.running = false;
-        this.thread?.Join();
-        this.thread = null;
+        running = false;
+        thread?.Join();
+        thread = null;
     }
 
     public void Dispose() => Stop();
 
     void Run(IAudioProcessor processor) {
-        var input = new float[this.blockSize];
-        var outLeft = new float[this.blockSize];
-        var outRight = new float[this.blockSize];
-        var period = Stopwatch.Frequency * this.blockSize / this.sampleRate;
+        var input = new float[blockSize];
+        var outLeft = new float[blockSize];
+        var outRight = new float[blockSize];
+        var period = Stopwatch.Frequency * blockSize / sampleRate;
         var deadline = Stopwatch.GetTimestamp() + period;
-        while (this.running) {
+        while (running) {
             processor.Process(new(input, input, outLeft, outRight));
             var now = Stopwatch.GetTimestamp();
             if (now > deadline) {

@@ -3,7 +3,12 @@ namespace Cathode.Contracts;
 /// <summary>The rig as it is running: the working copy, which scene is active, and whether it differs from the library.</summary>
 public sealed record LiveState(Preset Preset, int ActiveScene, long Revision, bool Dirty, bool CanUndo, bool CanRedo);
 
-public sealed record PresetSummary(string Id, string Name, string? Author, IReadOnlyList<string> Tags, DateTimeOffset Modified);
+public sealed record PresetSummary(
+    string Id,
+    string Name,
+    string? Author,
+    IReadOnlyList<string> Tags,
+    DateTimeOffset Modified);
 
 public sealed record AssetInfo(string Ref, string Name, string Kind, long Size, DateTimeOffset Added);
 
@@ -72,7 +77,14 @@ public sealed record SceneUpdateRequest(string? Name = null, float? Level = null
 public sealed record SaveRequest(string? Name = null, bool AsNew = false);
 
 /// <summary>Pushed over the WebSocket after every change, whatever its source (REST, MIDI later, another editor).</summary>
-public sealed record RigEvent(string Type, long Revision, string? Block = null, string? Channel = null, string? Param = null, float? Value = null, int? Scene = null);
+public sealed record RigEvent(
+    string Type,
+    long Revision,
+    string? Block = null,
+    string? Channel = null,
+    string? Param = null,
+    float? Value = null,
+    int? Scene = null);
 
 /// <summary>Pushed over the WebSocket about 30 times a second.</summary>
 public sealed record Telemetry(
@@ -87,7 +99,11 @@ public sealed record Telemetry(
 public sealed record TunerInfo(double Frequency, string Note, int Octave, double Cents);
 
 /// <summary><c>manifest.json</c> of a .cthpreset package.</summary>
-public sealed record PackageManifest(string Format, int Version, string PresetId, string PresetName, IReadOnlyList<AssetInfo> Assets);
+public sealed record PackageManifest(
+    string Format,
+    int Version,
+    string PresetId,
+    string PresetName,
+    IReadOnlyList<AssetInfo> Assets);
 
 public sealed record ImportResult(PresetSummary Preset, int AssetsAdded, bool Renamed);
-

@@ -35,7 +35,7 @@ public sealed class LatencyProbe : IAudioProcessor {
         float threshold = 0.01f,
         int maxMeasurements = 64
     ) {
-        this.period = (int)(sampleRate * periodSeconds);
+        period = (int)(sampleRate * periodSeconds);
         this.amplitude = amplitude;
         this.threshold = threshold;
         skipPeriods = 2; // let the device settle
@@ -43,22 +43,22 @@ public sealed class LatencyProbe : IAudioProcessor {
     }
 
     /// <summary>Snapshot of the measured lags in samples.</summary>
-    public int[] Measurements() => this.lags.AsSpan(0, Count).ToArray();
+    public int[] Measurements() => lags.AsSpan(0, Count).ToArray();
 
     public void Process(in AudioIO io) {
         for (var i = 0; i < io.Frames; i++) {
-            var phase = (int)(position % this.period);
+            var phase = (int)(position % period);
             if (phase == 0) {
                 Complete();
             }
 
             var x = Math.Abs(io.InputLeft[i]);
-            if (x > this.peak) {
-                this.peak = x;
+            if (x > peak) {
+                peak = x;
                 peakIndex = phase;
             }
 
-            var click = phase == 0 ? this.amplitude : 0f;
+            var click = phase == 0 ? amplitude : 0f;
             io.OutputLeft[i] = click;
             io.OutputRight[i] = click;
             position++;
@@ -76,17 +76,17 @@ public sealed class LatencyProbe : IAudioProcessor {
     }
 
     void Complete() {
-        var periodIndex = position / this.period;
+        var periodIndex = position / period;
         if (periodIndex > skipPeriods) {
-            if (this.peak >= this.threshold && count < this.lags.Length) {
-                this.lags[count] = peakIndex;
+            if (peak >= threshold && count < lags.Length) {
+                lags[count] = peakIndex;
                 Volatile.Write(ref count, count + 1);
-            } else if (this.peak < this.threshold) {
+            } else if (peak < threshold) {
                 Missed++;
             }
         }
 
-        this.peak = 0;
+        peak = 0;
         peakIndex = 0;
     }
 }

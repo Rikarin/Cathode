@@ -46,7 +46,9 @@ public sealed unsafe class NativeBuffer : IDisposable {
         GC.SuppressFinalize(this);
     }
 
-    ~NativeBuffer() => Free();
+    ~NativeBuffer() {
+        Free();
+    }
 
     void Free() {
         var pointer = Interlocked.Exchange(ref memory, 0);

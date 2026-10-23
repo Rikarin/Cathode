@@ -81,8 +81,8 @@ public sealed class PhaserBlock : DspBlock {
         lfo.Reset();
         lastLeft = 0;
         lastRight = 0;
-        this.mix = Params.Current(Mix) / 100f;
-        this.outputGain = Decibels.ToGain(Params.Current(Level));
+        mix = Params.Current(Mix) / 100f;
+        outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {

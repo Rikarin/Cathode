@@ -14,7 +14,11 @@ using Cathode.Server.Stores;
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.WebHost.UseUrls(builder.Configuration["urls"] ?? "http://127.0.0.1:5180");
 builder.Services.Configure<ServerOptions>(builder.Configuration.GetSection("Cathode"));
-builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.TypeInfoResolverChain.Insert(0, ContractsJsonContext.Default));
+builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.TypeInfoResolverChain.Insert(
+        0,
+        ContractsJsonContext.Default
+    )
+);
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton(new BlockCatalog(BlockRegistry.CreateDefault().AddNativeBlocks()));

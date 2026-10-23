@@ -25,7 +25,8 @@ public sealed class ServerFixture(string? socketPath = null) : WebApplicationFac
         }
     }
 
-    public CompiledGraph? Graph => (Services.GetRequiredService<EngineConnection>().Link as InProcessEngineLink)?.Service.Engine.Current;
+    public CompiledGraph? Graph =>
+        (Services.GetRequiredService<EngineConnection>().Link as InProcessEngineLink)?.Service.Engine.Current;
 
     public async Task<HttpClient> ConnectedClientAsync() {
         var client = CreateClient();

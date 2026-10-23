@@ -59,9 +59,9 @@ public sealed class Tuner {
             }
 
             pendingCount = 0;
-            decimator.Down(pending, this.decimated);
-            Array.Copy(this.window, 1, this.window, 0, Window - 1);
-            this.window[^1] = this.decimated[0];
+            decimator.Down(pending, decimated);
+            Array.Copy(window, 1, window, 0, Window - 1);
+            window[^1] = decimated[0];
             filled = Math.Min(Window, filled + 1);
         }
     }
@@ -131,7 +131,7 @@ public sealed class Tuner {
 
     double Rms() {
         double sum = 0;
-        foreach (var x in this.window) {
+        foreach (var x in window) {
             sum += (double)x * x;
         }
 
@@ -141,7 +141,7 @@ public sealed class Tuner {
     void ComputeNsdf() {
         Array.Clear(re);
         Array.Clear(im);
-        this.window.CopyTo(re, 0);
+        window.CopyTo(re, 0);
         fft.Forward(re, im);
         for (var k = 0; k < FftSize; k++) {
             re[k] = re[k] * re[k] + im[k] * im[k];
@@ -151,14 +151,14 @@ public sealed class Tuner {
         fft.Inverse(re, im); // re[lag] = sum over j of x[j] * x[j + lag]
 
         double m = 0;
-        foreach (var x in this.window) {
+        foreach (var x in window) {
             m += 2.0 * x * x;
         }
 
         for (var lag = 0; lag < Window; lag++) {
             nsdf[lag] = m > 0 ? 2 * re[lag] / m : 0;
-            var a = this.window[lag];
-            var b = this.window[Window - 1 - lag];
+            var a = window[lag];
+            var b = window[Window - 1 - lag];
             m -= (double)a * a + (double)b * b;
         }
     }
