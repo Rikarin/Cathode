@@ -22,12 +22,19 @@ body {
     'Segoe UI',
     sans-serif;
   overscroll-behavior: none;
+  /* An app, not a document: labels, readouts and the grid's + are not text to select. Fields still are (below). */
+  @apply select-none;
+}
+
+input,
+textarea,
+[contenteditable]:not([contenteditable='false']) {
+  @apply select-text;
 }
 
 /* The navbar as a macOS title bar (app.ts): dragging it moves the window, while its controls stay clickable. */
 .window-drag {
   -webkit-app-region: drag;
-  user-select: none;
 }
 
 .window-drag :is(a, button, input, select, textarea, [role='radio'], [tabindex], cth-meter) {
