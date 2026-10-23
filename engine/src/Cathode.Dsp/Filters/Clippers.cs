@@ -10,7 +10,7 @@ public enum ClipperShape {
     Hard,
 
     /// <summary>Biased tanh: asymmetric, so it adds even harmonics (fuzz).</summary>
-    Asymmetric,
+    Asymmetric
 }
 
 /// <summary>
@@ -19,12 +19,12 @@ public enum ClipperShape {
 ///     the clipping function. Adds half a sample of delay.
 /// </summary>
 public struct AdaaClipper {
-    private const double Bias = 0.3;
-    private const double Epsilon = 1e-4;
-    private static readonly double TanhBias = Math.Tanh(Bias);
+    const double Bias = 0.3;
+    const double Epsilon = 1e-4;
+    static readonly double TanhBias = Math.Tanh(Bias);
 
-    private double _previous;
-    private double _previousAntiderivative;
+    double _previous;
+    double _previousAntiderivative;
 
     public void Reset() {
         _previous = 0;
@@ -55,7 +55,7 @@ public struct AdaaClipper {
             _ => Math.Tanh(x + Bias) - TanhBias,
         };
 
-    private static double Antiderivative(ClipperShape shape, double x) =>
+    static double Antiderivative(ClipperShape shape, double x) =>
         shape switch {
             ClipperShape.Soft => LogCosh(x),
             ClipperShape.Hard => Math.Abs(x) <= 1 ? 0.5 * x * x : Math.Abs(x) - 0.5,
@@ -63,7 +63,7 @@ public struct AdaaClipper {
         };
 
     /// <summary>log(cosh(x)) without overflow for large |x|.</summary>
-    private static double LogCosh(double x) {
+    static double LogCosh(double x) {
         var a = Math.Abs(x);
         return a + Math.Log(1 + Math.Exp(-2 * a)) - Math.Log(2);
     }

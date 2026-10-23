@@ -28,7 +28,7 @@ internal static class AudioCommands {
         using var session = OpenSession(
             options,
             spec => {
-                engine = new CathodeEngine(spec);
+                engine = new(spec);
                 var graphPath = options.Text("graph");
                 var definition = graphPath is not null
                     ? System.Text.Json.JsonSerializer.Deserialize(
@@ -43,7 +43,7 @@ internal static class AudioCommands {
                     new GraphCompiler(BlockRegistry.CreateDefault().AddNativeBlocks(), assetRoot).Compile(
                         definition,
                         spec,
-                        generation: 1
+                        1
                     )
                 );
                 return engine;
@@ -77,7 +77,7 @@ internal static class AudioCommands {
     public static int LatencyTest(CommandLine options) {
         RequireBackend();
         var probe = default(LatencyProbe);
-        using var session = OpenSession(options, spec => probe = new LatencyProbe(spec.SampleRate), inputChannels: 1);
+        using var session = OpenSession(options, spec => probe = new(spec.SampleRate), 1);
         if (session.InputChannels == 0) {
             throw new InvalidOperationException(
                 "The device has no inputs. Pick a duplex interface with --device and cable output 1 to input 1."
@@ -104,7 +104,7 @@ internal static class AudioCommands {
         return 0;
     }
 
-    private static NativeAudioSession OpenSession(
+    static NativeAudioSession OpenSession(
         CommandLine options,
         Func<ProcessSpec, IAudioProcessor> createProcessor,
         int inputChannels
@@ -116,21 +116,21 @@ internal static class AudioCommands {
         // created lazily on first use behind a forwarding wrapper.
         var forwarder = new ForwardingProcessor();
         var session = NativeAudioSession.Open(forwarder, options.Text("device"), rate, buffer, inputChannels);
-        forwarder.Target = createProcessor(new ProcessSpec(session.SampleRate, Math.Max(session.BufferFrames, 1)));
+        forwarder.Target = createProcessor(new(session.SampleRate, Math.Max(session.BufferFrames, 1)));
         Console.WriteLine(
             $"device: {options.Text("device") ?? "(default output)"}  {session.SampleRate / 1000:0.#} kHz  buffer {session.BufferFrames}  in {session.InputChannels}  out {session.OutputChannels}"
         );
         return session;
     }
 
-    private static void PrintReportedLatency(NativeAudioSession session, AudioSessionStats stats) {
+    static void PrintReportedLatency(NativeAudioSession session, AudioSessionStats stats) {
         var total = stats.InputLatencyFrames + stats.OutputLatencyFrames;
         Console.WriteLine(
             $"driver-reported latency: in {stats.InputLatencyFrames} + out {stats.OutputLatencyFrames} = {total} frames = {total * 1000.0 / session.SampleRate:0.00} ms"
         );
     }
 
-    private static void RequireBackend() {
+    static void RequireBackend() {
         if (!NativeAudio.IsLibraryPresent) {
             throw new InvalidOperationException(
                 "Native audio library not found. Build it with engine/native/build.sh."
@@ -145,7 +145,7 @@ internal static class AudioCommands {
     }
 
     private sealed class ForwardingProcessor : IAudioProcessor {
-        private IAudioProcessor? _target;
+        IAudioProcessor? _target;
 
         public IAudioProcessor? Target {
             get => Volatile.Read(ref _target);

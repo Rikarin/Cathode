@@ -27,7 +27,7 @@ public sealed class CompressorBlock : DspBlock {
     public const int Mix = 7;
     public const int Level = 8;
 
-    private const double RmsWindowMs = 5;
+    const double RmsWindowMs = 5;
 
     public static BlockDescriptor Info { get; } = new(
         "compressor",
@@ -42,15 +42,15 @@ public sealed class CompressorBlock : DspBlock {
             ParamDescriptor.Float("knee", "Knee", 0f, 24f, 6f, "dB"),
             ParamDescriptor.Float("makeup", "Makeup", 0f, 30f, 0f, "dB"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
         ],
         maxInstances: 4
     );
 
-    private float _gainReductionDb;
-    private double _meanSquare;
-    private float _mix = 1f;
-    private float _outputGain = 1f;
+    float _gainReductionDb;
+    double _meanSquare;
+    float _mix = 1f;
+    float _outputGain = 1f;
 
     public CompressorBlock()
         : base(Info) { }
@@ -137,6 +137,6 @@ public sealed class CompressorBlock : DspBlock {
         _outputGain = outputGain;
     }
 
-    private static float Coefficient(double milliseconds, double sampleRate) =>
+    static float Coefficient(double milliseconds, double sampleRate) =>
         (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
 }

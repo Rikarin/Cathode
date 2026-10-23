@@ -1,6 +1,6 @@
 using Cathode.Audio;
-using Cathode.Dsp.IO;
 using Cathode.Dsp;
+using Cathode.Dsp.IO;
 using Cathode.Dsp.Native;
 using Cathode.Engine.Graph;
 using Cathode.Testing;
@@ -13,8 +13,8 @@ public sealed class NamSerialGroup;
 
 [Collection(nameof(NamSerialGroup))]
 public class NamAmpBlockTests {
-    private const int Block = 64;
-    private static readonly ProcessSpec Spec = new(48_000, Block);
+    const int Block = 64;
+    static readonly ProcessSpec Spec = new(48_000, Block);
 
     /// <summary>Model file, reference render, slimmable size (null = model default).</summary>
     public static TheoryData<string, string, double?> GoldenModels =>
@@ -22,7 +22,7 @@ public class NamAmpBlockTests {
             { "wavenet_a1_standard", "wavenet_a1_standard", null },
             { "A2", "A2", null },
             { "A2", "A2-lite", 0.0 },
-            { "lstm", "lstm", null },
+            { "lstm", "lstm", null }
         };
 
     [Theory]
@@ -33,7 +33,7 @@ public class NamAmpBlockTests {
         var input = WavFile.Read(NamAssets.Golden("input.wav")).Channels[0];
         var reference = WavFile.Read(NamAssets.Golden($"{referenceName}.ref.wav")).Channels[0];
 
-        using var block = CreateBlock(model, normalize: false, size);
+        using var block = CreateBlock(model, false, size);
         var output = Render(block, input, _ => Block);
 
         var relativeDb = Analysis.NullResidualDb(output, reference) - Analysis.ToDb(Analysis.Rms(reference));
@@ -48,7 +48,7 @@ public class NamAmpBlockTests {
         var input = WavFile.Read(NamAssets.Golden("input.wav")).Channels[0];
         var reference = WavFile.Read(NamAssets.Golden("wavenet_a1_standard.ref.wav")).Channels[0];
 
-        using var block = CreateBlock("wavenet_a1_standard", normalize: false);
+        using var block = CreateBlock("wavenet_a1_standard", false);
         block.Params.SetTarget(NamAmpBlock.Input, 0.1f);
         block.Reset();
         var output = Render(block, input, _ => Block);
@@ -64,7 +64,7 @@ public class NamAmpBlockTests {
         var reference = WavFile.Read(NamAssets.Golden("wavenet_a1_standard.ref.wav")).Channels[0];
         try {
             NamModel.SetFastTanh(true);
-            using var block = CreateBlock("wavenet_a1_standard", normalize: false);
+            using var block = CreateBlock("wavenet_a1_standard", false);
             var output = Render(block, input, _ => Block);
 
             Assert.True(Analysis.Esr(reference, output) < 1e-3, $"ESR {Analysis.Esr(reference, output):E2}");
@@ -78,8 +78,8 @@ public class NamAmpBlockTests {
         RequireNative();
         var input = WavFile.Read(NamAssets.Golden("input.wav")).Channels[0];
         var random = new Random(9);
-        using var fixedSize = CreateBlock("wavenet_a1_standard", normalize: false);
-        using var variableSize = CreateBlock("wavenet_a1_standard", normalize: false);
+        using var fixedSize = CreateBlock("wavenet_a1_standard", false);
+        using var variableSize = CreateBlock("wavenet_a1_standard", false);
 
         var a = Render(fixedSize, input, _ => Block);
         var b = Render(variableSize, input, _ => random.Next(1, Block + 1));
@@ -90,14 +90,14 @@ public class NamAmpBlockTests {
     [Fact]
     public void Process_does_not_allocate() {
         RequireNative();
-        using var block = CreateBlock("A2", normalize: true);
-        var left = Signals.Noise(Block, seed: 1, amplitude: 0.3f);
+        using var block = CreateBlock("A2", true);
+        var left = Signals.Noise(Block, 1, 0.3f);
         var right = new float[Block];
         var context = new BlockContext(Spec.SampleRate, 120, 0);
 
         var allocated = AllocationProbe.Measure(() => {
                 for (var i = 0; i < 500; i++) {
-                    block.Process(new StereoBuffer(left, right), context);
+                    block.Process(new(left, right), context);
                 }
             }
         );
@@ -108,9 +108,9 @@ public class NamAmpBlockTests {
     [Fact]
     public void Normalize_brings_the_model_to_the_target_loudness() {
         RequireNative();
-        var input = Signals.Noise(4_800, seed: 2, amplitude: 0.2f);
-        using var plain = CreateBlock("A2", normalize: false);
-        using var normalized = CreateBlock("A2", normalize: true);
+        var input = Signals.Noise(4_800, 2, 0.2f);
+        using var plain = CreateBlock("A2", false);
+        using var normalized = CreateBlock("A2", true);
 
         var gain = Analysis.Rms(Render(normalized, input, _ => Block)) / Analysis.Rms(Render(plain, input, _ => Block));
 
@@ -133,16 +133,16 @@ public class NamAmpBlockTests {
                     Parameters = { ["normalize"] = 0 },
                     Assets = { ["model"] = "lstm.nam" }
                 },
-                new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 },
+                new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 }
             ],
-            Cables = [new() { From = "in", To = "amp1" }, new() { From = "amp1", To = "out" }],
+            Cables = [new() { From = "in", To = "amp1" }, new() { From = "amp1", To = "out" }]
         };
         var engine = new CathodeEngine(Spec);
         engine.Publish(
             new GraphCompiler(BlockRegistry.CreateDefault().AddNativeBlocks(), NamAssets.ModelsDirectory).Compile(
                 definition,
                 Spec,
-                generation: 1
+                1
             )
         );
         var input = WavFile.Read(NamAssets.Golden("input.wav")).Channels[0];
@@ -179,8 +179,8 @@ public class NamAmpBlockTests {
                     Row = 2,
                     Column = 0,
                     Assets = { ["model"] = "lstm.nam" }
-                },
-            ],
+                }
+            ]
         };
 
         var error = Assert.Throws<GraphValidationException>(() =>
@@ -195,13 +195,13 @@ public class NamAmpBlockTests {
         Assert.Contains(error.Errors, static e => e.Contains("no asset slot", StringComparison.Ordinal));
     }
 
-    private static void RequireNative() =>
+    static void RequireNative() =>
         Assert.SkipUnless(
             NamModel.IsLibraryPresent && Directory.Exists(NamAssets.ModelsDirectory),
             "cth_nam not built (run native/build.sh)"
         );
 
-    private static NamAmpBlock CreateBlock(string model, bool normalize, double? size = null) {
+    static NamAmpBlock CreateBlock(string model, bool normalize, double? size = null) {
         var block = new NamAmpBlock();
         block.LoadAsset(NamAmpBlock.ModelSlot, Path.Combine(NamAssets.ModelsDirectory, model + ".nam"));
         if (size is double s) {
@@ -213,15 +213,15 @@ public class NamAmpBlockTests {
         return block;
     }
 
-    private static float[] Render(IDspBlock block, float[] input, Func<int, int> blockSize) {
+    static float[] Render(IDspBlock block, float[] input, Func<int, int> blockSize) {
         var left = (float[])input.Clone();
         var right = new float[input.Length];
         var callback = 0;
         for (var offset = 0; offset < input.Length;) {
             var frames = Math.Min(blockSize(callback++), input.Length - offset);
             block.Process(
-                new StereoBuffer(left.AsSpan(offset, frames), right.AsSpan(offset, frames)),
-                new BlockContext(Spec.SampleRate, 120, offset)
+                new(left.AsSpan(offset, frames), right.AsSpan(offset, frames)),
+                new(Spec.SampleRate, 120, offset)
             );
             offset += frames;
         }
@@ -232,13 +232,13 @@ public class NamAmpBlockTests {
 
 /// <summary>Locates the NAM golden files (committed) and the upstream example models (fetched by the native build).</summary>
 internal static class NamAssets {
-    private static readonly string EngineRoot = FindEngineRoot();
+    static readonly string EngineRoot = FindEngineRoot();
 
     public static string ModelsDirectory => Path.Combine(EngineRoot, "artifacts", "native", "nam-models");
 
     public static string Golden(string file) => Path.Combine(EngineRoot, "tests", "assets", "nam", file);
 
-    private static string FindEngineRoot() {
+    static string FindEngineRoot() {
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent) {
             if (File.Exists(Path.Combine(dir.FullName, "Cathode.slnx"))) {
                 return dir.FullName;

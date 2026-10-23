@@ -10,17 +10,17 @@ public sealed class CompiledGraph : IDisposable {
     /// <summary>Length of the bypass crossfade.</summary>
     public const double BypassFadeMs = 10;
 
-    private readonly GraphOp[] _ops;
-    private readonly IDspBlock[] _blocks;
-    private readonly string[] _slotIds;
-    private readonly Dictionary<string, int> _slotById;
-    private readonly DelayLine[] _delays;
-    private readonly float[][] _left;
-    private readonly float[][] _right;
-    private readonly float[] _dryLeft;
-    private readonly float[] _dryRight;
-    private readonly BypassState[] _bypass;
-    private readonly float _fadeStep;
+    readonly GraphOp[] _ops;
+    readonly IDspBlock[] _blocks;
+    readonly string[] _slotIds;
+    readonly Dictionary<string, int> _slotById;
+    readonly DelayLine[] _delays;
+    readonly float[][] _left;
+    readonly float[][] _right;
+    readonly float[] _dryLeft;
+    readonly float[] _dryRight;
+    readonly BypassState[] _bypass;
+    readonly float _fadeStep;
 
     internal CompiledGraph(
         int generation,
@@ -40,7 +40,7 @@ public sealed class CompiledGraph : IDisposable {
         _slotIds = slotIds;
         _delays = delays;
         LatencySamples = latencySamples;
-        _slotById = new Dictionary<string, int>(StringComparer.Ordinal);
+        _slotById = new(StringComparer.Ordinal);
         for (var i = 0; i < slotIds.Length; i++) {
             _slotById.Add(slotIds[i], i);
         }
@@ -48,16 +48,16 @@ public sealed class CompiledGraph : IDisposable {
         _left = new float[bufferCount][];
         _right = new float[bufferCount][];
         for (var i = 0; i < bufferCount; i++) {
-            _left[i] = GC.AllocateArray<float>(spec.MaxBlockSize, pinned: true);
-            _right[i] = GC.AllocateArray<float>(spec.MaxBlockSize, pinned: true);
+            _left[i] = GC.AllocateArray<float>(spec.MaxBlockSize, true);
+            _right[i] = GC.AllocateArray<float>(spec.MaxBlockSize, true);
         }
 
-        _dryLeft = GC.AllocateArray<float>(spec.MaxBlockSize, pinned: true);
-        _dryRight = GC.AllocateArray<float>(spec.MaxBlockSize, pinned: true);
+        _dryLeft = GC.AllocateArray<float>(spec.MaxBlockSize, true);
+        _dryRight = GC.AllocateArray<float>(spec.MaxBlockSize, true);
         _fadeStep = (float)(1.0 / Math.Max(1.0, BypassFadeMs * 0.001 * spec.SampleRate));
         _bypass = new BypassState[blocks.Length];
         for (var i = 0; i < blocks.Length; i++) {
-            _bypass[i] = new BypassState(bypassed[i]);
+            _bypass[i] = new(bypassed[i]);
         }
     }
 
@@ -119,7 +119,7 @@ public sealed class CompiledGraph : IDisposable {
                     _delays[op.Index].Process(left, right);
                     break;
                 case GraphOpKind.Process:
-                    RunBlock(op.Index, new StereoBuffer(left, right), context);
+                    RunBlock(op.Index, new(left, right), context);
                     break;
                 case GraphOpKind.WriteOutput:
                     Accumulate(left, io.OutputLeft);
@@ -135,7 +135,7 @@ public sealed class CompiledGraph : IDisposable {
         }
     }
 
-    private void RunBlock(int slot, in StereoBuffer io, in BlockContext context) {
+    void RunBlock(int slot, in StereoBuffer io, in BlockContext context) {
         ref var bypass = ref _bypass[slot];
         var target = bypass.Target ? 0f : 1f;
         if (bypass.Mix == target) {
@@ -164,7 +164,7 @@ public sealed class CompiledGraph : IDisposable {
         bypass.Mix = mix;
     }
 
-    private static void Accumulate(ReadOnlySpan<float> source, Span<float> destination) {
+    static void Accumulate(ReadOnlySpan<float> source, Span<float> destination) {
         for (var i = 0; i < source.Length; i++) {
             destination[i] += source[i];
         }

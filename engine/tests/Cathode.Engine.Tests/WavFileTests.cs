@@ -1,4 +1,3 @@
-using Cathode.Audio;
 using Cathode.Dsp.IO;
 using Cathode.Testing;
 
@@ -11,7 +10,7 @@ public class WavFileTests {
     [InlineData(WavSampleFormat.Pcm16, -95)]
     public void Round_trips_within_format_precision(WavSampleFormat format, double maxResidualDb) {
         var left = Signals.Sine(440, 48_000, 4_800, 0.8f);
-        var right = Signals.Noise(4_800, seed: 4, amplitude: 0.5f);
+        var right = Signals.Noise(4_800, 4, 0.5f);
         using var stream = new MemoryStream();
 
         WavFile.Write(stream, new AudioData(48_000, [left, right]), format);

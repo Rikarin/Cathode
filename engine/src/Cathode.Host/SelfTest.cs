@@ -13,7 +13,7 @@ internal static class SelfTest {
         var graph = new GraphCompiler(BlockRegistry.CreateDefault()).Compile(
             GraphTemplates.Basic(),
             spec,
-            generation: 1
+            1
         );
         var engine = new CathodeEngine(spec);
         engine.Publish(graph);
@@ -33,7 +33,7 @@ internal static class SelfTest {
                 var offset = c * spec.MaxBlockSize;
                 var block = input.AsSpan(offset, spec.MaxBlockSize);
                 engine.Process(
-                    new AudioIO(
+                    new(
                         block,
                         block,
                         outLeft.AsSpan(offset, spec.MaxBlockSize),

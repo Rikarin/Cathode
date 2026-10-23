@@ -23,13 +23,13 @@ public sealed class TremoloBlock : DspBlock {
             ParamDescriptor.Float("rate", "Rate", 0.1f, 20f, 4f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("depth", "Depth", 0f, 100f, 50f, "%"),
             ParamDescriptor.Choice("shape", "Shape", ["Sine", "Triangle", "Square"]),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
         ],
         maxInstances: 2
     );
 
-    private Lfo _lfo;
-    private float _outputGain = 1f;
+    Lfo _lfo;
+    float _outputGain = 1f;
 
     public TremoloBlock()
         : base(Info) { }

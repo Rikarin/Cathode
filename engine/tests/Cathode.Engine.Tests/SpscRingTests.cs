@@ -1,5 +1,3 @@
-using Cathode.Engine;
-
 namespace Cathode.Engine.Tests;
 
 public class SpscRingTests {

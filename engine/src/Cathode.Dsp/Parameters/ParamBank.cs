@@ -9,13 +9,13 @@ namespace Cathode.Dsp.Parameters;
 ///     callback to pick up new targets and then advances the smoothers.
 /// </remarks>
 public sealed class ParamBank {
-    private readonly IReadOnlyList<ParamDescriptor> _descriptors;
-    private readonly float[] _target;
-    private readonly float[] _seenTarget;
-    private readonly float[] _current;
-    private readonly float[] _step;
-    private readonly int[] _remaining;
-    private readonly int[] _rampSamples;
+    readonly IReadOnlyList<ParamDescriptor> _descriptors;
+    readonly float[] _target;
+    readonly float[] _seenTarget;
+    readonly float[] _current;
+    readonly float[] _step;
+    readonly int[] _remaining;
+    readonly int[] _rampSamples;
 
     public ParamBank(IReadOnlyList<ParamDescriptor> descriptors) {
         _descriptors = descriptors;

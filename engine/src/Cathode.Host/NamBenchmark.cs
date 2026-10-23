@@ -34,7 +34,7 @@ internal static class NamBenchmark {
                         GraphJsonContext.Default.GraphDefinition
                     )!,
                     spec,
-                    generation: 1
+                    1
                 )
             : Compile(Graphs.Nam(Path.GetFullPath(path!)), spec);
         var amp = graph.SlotOf("amp1") is >= 0 and var ampSlot ? graph.Block(ampSlot) as NamAmpBlock : null;
@@ -68,7 +68,7 @@ internal static class NamBenchmark {
                 var offset = c * spec.MaxBlockSize;
                 var block = input.AsSpan(offset, spec.MaxBlockSize);
                 engine.Process(
-                    new AudioIO(
+                    new(
                         block,
                         block,
                         outLeft.AsSpan(offset, spec.MaxBlockSize),
@@ -105,8 +105,8 @@ internal static class NamBenchmark {
         return allocated == 0 && outLeft.All(float.IsFinite) ? 0 : 1;
     }
 
-    private static CompiledGraph Compile(GraphDefinition definition, ProcessSpec spec) =>
-        new GraphCompiler(BlockRegistry.CreateDefault().AddNativeBlocks()).Compile(definition, spec, generation: 1);
+    static CompiledGraph Compile(GraphDefinition definition, ProcessSpec spec) =>
+        new GraphCompiler(BlockRegistry.CreateDefault().AddNativeBlocks()).Compile(definition, spec, 1);
 }
 
 /// <summary>Graphs used by the host's diagnostics.</summary>
@@ -123,8 +123,8 @@ internal static class Graphs {
                     Column = 1,
                     Assets = { ["model"] = modelPath }
                 },
-                new() { Id = "out1", Type = NodeTypes.Output, Row = 0, Column = 2 },
+                new() { Id = "out1", Type = NodeTypes.Output, Row = 0, Column = 2 }
             ],
-            Cables = [new() { From = "in1", To = "amp1" }, new() { From = "amp1", To = "out1" }],
+            Cables = [new() { From = "in1", To = "amp1" }, new() { From = "amp1", To = "out1" }]
         };
 }

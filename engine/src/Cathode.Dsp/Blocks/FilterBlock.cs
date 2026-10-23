@@ -15,7 +15,7 @@ public sealed class FilterBlock : DspBlock {
     public const int Gain = 3;
     public const int Level = 4;
 
-    private const int SubBlock = 32;
+    const int SubBlock = 32;
 
     public static BlockDescriptor Info { get; } = new(
         "filter",
@@ -28,17 +28,17 @@ public sealed class FilterBlock : DspBlock {
                 ["Low Pass", "High Pass", "Band Pass", "Notch", "Peaking", "Low Shelf", "High Shelf"]
             ),
             ParamDescriptor.Float("freq", "Frequency", 20f, 20_000f, 1_000f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("q", "Q", 0.1f, 18f, 0.7071f, "", ParamTaper.Log),
+            ParamDescriptor.Float("q", "Q", 0.1f, 18f, 0.7071f, string.Empty, ParamTaper.Log),
             ParamDescriptor.Float("gain", "Gain", -24f, 24f, 0f, "dB"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
         ],
         maxInstances: 4
     );
 
-    private SvfCoefficients _coefficients;
-    private SvfState _left;
-    private SvfState _right;
-    private float _gain = 1f;
+    SvfCoefficients _coefficients;
+    SvfState _left;
+    SvfState _right;
+    float _gain = 1f;
 
     public FilterBlock()
         : base(Info) { }
@@ -74,7 +74,7 @@ public sealed class FilterBlock : DspBlock {
         _gain = targetGain;
     }
 
-    private void UpdateCoefficients() =>
+    void UpdateCoefficients() =>
         _coefficients = SvfCoefficients.Design(
             (BiquadType)(int)Params.Current(Type),
             Spec.SampleRate,

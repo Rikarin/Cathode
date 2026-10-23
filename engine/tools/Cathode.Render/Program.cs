@@ -1,7 +1,7 @@
 using System.Text.Json;
-using Cathode.Dsp.IO;
 using Cathode.Audio;
 using Cathode.Dsp;
+using Cathode.Dsp.IO;
 using Cathode.Dsp.Native;
 using Cathode.Engine;
 using Cathode.Engine.Graph;
@@ -22,7 +22,7 @@ var blockSize = options.TryGetValue("block", out var b)
     ? int.Parse(b, System.Globalization.CultureInfo.InvariantCulture)
     : 64;
 var format = options.TryGetValue("format", out var f)
-    ? Enum.Parse<WavSampleFormat>(f, ignoreCase: true)
+    ? Enum.Parse<WavSampleFormat>(f, true)
     : WavSampleFormat.Float32;
 
 try {
@@ -35,7 +35,7 @@ try {
         new GraphCompiler(
             BlockRegistry.CreateDefault().AddNativeBlocks(),
             Path.GetDirectoryName(Path.GetFullPath(graphPath))
-        ).Compile(definition, spec, generation: 1)
+        ).Compile(definition, spec, 1)
     );
     var output = OfflineRenderer.Render(engine, input, blockSize);
     WavFile.Write(outputPath, output, format);

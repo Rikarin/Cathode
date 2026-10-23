@@ -5,12 +5,12 @@ public enum LfoShape {
     Triangle,
 
     /// <summary>A square with softened edges (tanh of a sine), so gain and delay modulation never click.</summary>
-    Square,
+    Square
 }
 
 /// <summary>Low-frequency oscillator with a phase in [0, 1). Allocation-free; one instance drives both channels.</summary>
 public struct Lfo {
-    private double _phase;
+    double _phase;
 
     public void Reset(double phase = 0) => _phase = phase;
 

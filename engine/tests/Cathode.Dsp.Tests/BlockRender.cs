@@ -15,7 +15,7 @@ internal static class BlockRender {
         for (var offset = 0; offset < left.Length;) {
             var frames = Math.Clamp(blockSize(callback++), 1, left.Length - offset);
             var io = new StereoBuffer(outLeft.AsSpan(offset, frames), outRight.AsSpan(offset, frames));
-            block.Process(io, new BlockContext(48_000, 120, startSample + offset));
+            block.Process(io, new(48_000, 120, startSample + offset));
             offset += frames;
         }
 

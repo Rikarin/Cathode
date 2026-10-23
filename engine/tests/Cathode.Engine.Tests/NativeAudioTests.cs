@@ -20,5 +20,5 @@ public class NativeAudioTests {
     }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static float Product(float a, float b) => a * b;
+    static float Product(float a, float b) => a * b;
 }

@@ -13,8 +13,8 @@ public sealed class ParametricEqBlock : DspBlock {
     public const int HighType = 16;
     public const int Level = 17;
 
-    private const int SubBlock = 32;
-    private static readonly float[] DefaultFrequencies = [100f, 300f, 1_000f, 3_000f, 8_000f];
+    const int SubBlock = 32;
+    static readonly float[] DefaultFrequencies = [100f, 300f, 1_000f, 3_000f, 8_000f];
 
     public static BlockDescriptor Info { get; } = new(
         "peq",
@@ -33,18 +33,18 @@ public sealed class ParametricEqBlock : DspBlock {
                             ParamTaper.Log
                         ),
                         ParamDescriptor.Float($"gain{b}", $"Gain {b}", -24f, 24f, 0f, "dB"),
-                        ParamDescriptor.Float($"q{b}", $"Q {b}", 0.1f, 10f, 0.7071f, "", ParamTaper.Log),
+                        ParamDescriptor.Float($"q{b}", $"Q {b}", 0.1f, 10f, 0.7071f, string.Empty, ParamTaper.Log)
                     }
                 ),
             ParamDescriptor.Choice("lowtype", "Band 1 Type", ["Low Shelf", "Peak"]),
             ParamDescriptor.Choice("hightype", "Band 5 Type", ["High Shelf", "Peak"]),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
         ],
         maxInstances: 4
     );
 
-    private readonly EqBand[] _bands = [new(), new(), new(), new(), new()];
-    private float _outputGain = 1f;
+    readonly EqBand[] _bands = [new(), new(), new(), new(), new()];
+    float _outputGain = 1f;
 
     public ParametricEqBlock()
         : base(Info) { }

@@ -5,7 +5,7 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 public class EqBlockTests {
-    private const double Rate = 48_000;
+    const double Rate = 48_000;
 
     [Fact]
     public void Parametric_response_is_the_product_of_its_bands() {
@@ -19,7 +19,7 @@ public class EqBlockTests {
             peq.Params.SetTarget(ParametricEqBlock.Q(band), q);
         }
 
-        peq.Prepare(new ProcessSpec(Rate, 64));
+        peq.Prepare(new(Rate, 64));
         var response = BlockRender.Mono(peq, Signals.Impulse(16_384), 64);
 
         for (var f = 30.0; f < 20_000; f *= 1.3) {
@@ -43,9 +43,9 @@ public class EqBlockTests {
     public void Flat_equalisers_are_bit_transparent() {
         using var peq = new ParametricEqBlock();
         using var geq = new GraphicEqBlock();
-        peq.Prepare(new ProcessSpec(Rate, 64));
-        geq.Prepare(new ProcessSpec(Rate, 64));
-        var input = Signals.Noise(4_800, seed: 1);
+        peq.Prepare(new(Rate, 64));
+        geq.Prepare(new(Rate, 64));
+        var input = Signals.Noise(4_800, 1);
 
         Assert.Equal(input, BlockRender.Mono(peq, input, 64));
         Assert.Equal(input, BlockRender.Mono(geq, input, 64));
@@ -58,7 +58,7 @@ public class EqBlockTests {
     public void Graphic_band_hits_its_gain_at_its_centre(int band) {
         using var geq = new GraphicEqBlock();
         geq.Params.SetTarget(band, 12f);
-        geq.Prepare(new ProcessSpec(Rate, 64));
+        geq.Prepare(new(Rate, 64));
 
         var response = BlockRender.Mono(geq, Signals.Impulse(48_000), 64);
 

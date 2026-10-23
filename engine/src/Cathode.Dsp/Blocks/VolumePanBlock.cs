@@ -13,12 +13,12 @@ public sealed class VolumePanBlock : DspBlock {
         "Utility",
         [
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ]
     );
 
-    private float _gainLeft;
-    private float _gainRight;
+    float _gainLeft;
+    float _gainRight;
 
     public VolumePanBlock()
         : base(Info) { }
@@ -35,7 +35,7 @@ public sealed class VolumePanBlock : DspBlock {
         _gainRight = endRight;
     }
 
-    private (float Left, float Right) TargetGains() {
+    (float Left, float Right) TargetGains() {
         var gain = Decibels.ToGain(Params.Current(Level));
         var balance = Params.Current(Balance) / 100f;
         return (gain * Math.Min(1f, 1f - balance), gain * Math.Min(1f, 1f + balance));

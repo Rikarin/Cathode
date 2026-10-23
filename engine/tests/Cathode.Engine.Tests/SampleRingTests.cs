@@ -24,10 +24,8 @@ public class SampleRingTests {
     public void Engine_feeds_the_input_tap_only_when_enabled() {
         var spec = new ProcessSpec(48_000, 64);
         var engine = new CathodeEngine(spec);
-        engine.Publish(
-            new GraphCompiler(BlockRegistry.CreateDefault()).Compile(GraphTemplates.Basic(), spec, generation: 1)
-        );
-        var input = Signals.Noise(256, seed: 1);
+        engine.Publish(new GraphCompiler(BlockRegistry.CreateDefault()).Compile(GraphTemplates.Basic(), spec, 1));
+        var input = Signals.Noise(256, 1);
         var destination = new float[1_024];
 
         OfflineRenderer.Render(engine, input, input, 64);

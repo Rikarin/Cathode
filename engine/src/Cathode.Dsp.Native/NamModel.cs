@@ -19,9 +19,9 @@ public sealed record NamModelInfo(
 ///     real-time safe.
 /// </summary>
 public sealed unsafe class NamModel : IDisposable {
-    private nint _handle;
+    nint _handle;
 
-    private NamModel(nint handle, NamModelInfo info) {
+    NamModel(nint handle, NamModelInfo info) {
         _handle = handle;
         Info = info;
     }
@@ -56,8 +56,8 @@ public sealed unsafe class NamModel : IDisposable {
 
         NamNative.GetInfo(handle, out var raw);
         var info = new NamModelInfo(
-            Marshal.PtrToStringUTF8((nint)raw.Architecture) ?? "",
-            Marshal.PtrToStringUTF8((nint)raw.Version) ?? "",
+            Marshal.PtrToStringUTF8((nint)raw.Architecture) ?? string.Empty,
+            Marshal.PtrToStringUTF8((nint)raw.Version) ?? string.Empty,
             raw.ExpectedSampleRate,
             raw.HasLoudness != 0 ? raw.Loudness : null,
             raw.HasInputLevel != 0 ? raw.InputLevel : null,
@@ -65,7 +65,7 @@ public sealed unsafe class NamModel : IDisposable {
             raw.PrewarmSamples,
             raw.Slimmable != 0
         );
-        return new NamModel(handle, info);
+        return new(handle, info);
     }
 
     /// <summary>Control thread: allocate for blocks of up to <paramref name="maxFrames" /> and pre-warm.</summary>
@@ -98,5 +98,5 @@ public sealed unsafe class NamModel : IDisposable {
         }
     }
 
-    private nint Handle => _handle != 0 ? _handle : throw new ObjectDisposedException(nameof(NamModel));
+    nint Handle => _handle != 0 ? _handle : throw new ObjectDisposedException(nameof(NamModel));
 }

@@ -7,15 +7,15 @@ namespace Cathode.Audio;
 ///     period and records how many samples later its peak arrives on the input. Allocation-free on the audio thread.
 /// </summary>
 public sealed class LatencyProbe : IAudioProcessor {
-    private readonly int _period;
-    private readonly float _amplitude;
-    private readonly float _threshold;
-    private readonly int _skipPeriods;
-    private readonly int[] _lags;
-    private long _position;
-    private int _count;
-    private float _peak;
-    private int _peakIndex;
+    readonly int _period;
+    readonly float _amplitude;
+    readonly float _threshold;
+    readonly int _skipPeriods;
+    readonly int[] _lags;
+    long _position;
+    int _count;
+    float _peak;
+    int _peakIndex;
 
     /// <param name="sampleRate">Stream sample rate.</param>
     /// <param name="periodSeconds">Click spacing; must exceed the latency being measured.</param>
@@ -75,7 +75,7 @@ public sealed class LatencyProbe : IAudioProcessor {
         return sorted[sorted.Length / 2];
     }
 
-    private void Complete() {
+    void Complete() {
         var periodIndex = _position / _period;
         if (periodIndex > _skipPeriods) {
             if (_peak >= _threshold && _count < _lags.Length) {

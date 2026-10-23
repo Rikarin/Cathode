@@ -17,8 +17,8 @@ public sealed class FlangerBlock : DspBlock {
     public const int Spread = 5;
     public const int Level = 6;
 
-    private const float MaxSweepMs = 7f;
-    private const float MaxDelayMs = 10f;
+    const float MaxSweepMs = 7f;
+    const float MaxDelayMs = 10f;
 
     public static BlockDescriptor Info { get; } = new(
         "flanger",
@@ -31,16 +31,16 @@ public sealed class FlangerBlock : DspBlock {
             ParamDescriptor.Float("feedback", "Feedback", -95f, 95f, 50f, "%"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 50f, "%"),
             ParamDescriptor.Float("spread", "Spread", 0f, 180f, 90f, "°"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
         ],
         maxInstances: 2
     );
 
-    private readonly FractionalDelayLine _left = new();
-    private readonly FractionalDelayLine _right = new();
-    private Lfo _lfo;
-    private float _mix;
-    private float _outputGain = 1f;
+    readonly FractionalDelayLine _left = new();
+    readonly FractionalDelayLine _right = new();
+    Lfo _lfo;
+    float _mix;
+    float _outputGain = 1f;
 
     public FlangerBlock()
         : base(Info) { }

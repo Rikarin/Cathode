@@ -7,10 +7,10 @@ namespace Cathode.Host;
 ///     options.
 /// </summary>
 internal sealed class CommandLine {
-    private static readonly HashSet<string> Commands =
+    static readonly HashSet<string> Commands =
         ["version", "self-test", "devices", "audio-test", "latency-test", "bench-nam", "help"];
 
-    private readonly Dictionary<string, string?> _options = new(StringComparer.Ordinal);
+    readonly Dictionary<string, string?> _options = new(StringComparer.Ordinal);
 
     public string? Command { get; private set; }
 

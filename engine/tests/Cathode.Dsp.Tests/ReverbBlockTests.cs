@@ -4,13 +4,13 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 public class ReverbBlockTests {
-    private static ReverbBlock Create(params (int Index, float Value)[] settings) {
+    static ReverbBlock Create(params (int Index, float Value)[] settings) {
         var reverb = new ReverbBlock();
         foreach (var (index, value) in settings) {
             reverb.Params.SetTarget(index, value);
         }
 
-        reverb.Prepare(new ProcessSpec(48_000, 64));
+        reverb.Prepare(new(48_000, 64));
         return reverb;
     }
 
@@ -71,7 +71,7 @@ public class ReverbBlockTests {
     public void Pre_delay_holds_back_the_wet_signal_and_zero_mix_is_dry() {
         using var delayed = Create((ReverbBlock.PreDelay, 50f), (ReverbBlock.Mix, 100f));
         using var dry = Create((ReverbBlock.Mix, 0f));
-        var input = Signals.Noise(9_600, seed: 1);
+        var input = Signals.Noise(9_600, 1);
 
         var wet = BlockRender.Mono(delayed, Signals.Impulse(9_600), 64);
         var unchanged = BlockRender.Mono(dry, input, 64);
@@ -82,7 +82,7 @@ public class ReverbBlockTests {
     }
 
     /// <summary>T60 from the Schroeder backward-integrated energy decay, fitted between -5 and -25 dB (T20 x 3).</summary>
-    private static double SchroederT60(float[] response, double sampleRate) {
+    static double SchroederT60(float[] response, double sampleRate) {
         var energy = new double[response.Length];
         double running = 0;
         for (var i = response.Length - 1; i >= 0; i--) {

@@ -1,5 +1,4 @@
 using Cathode.Audio;
-using Cathode.Engine;
 
 namespace Cathode.Engine.Tests;
 
@@ -25,7 +24,7 @@ public class LatencyProbeTests {
                     + (float)(random.NextDouble() - 0.5) * 0.002f;
             }
 
-            probe.Process(new AudioIO(input, input, outLeft, outRight));
+            probe.Process(new(input, input, outLeft, outRight));
             for (var i = 0; i < blockSize; i++) {
                 loopback[(written + i) % loopback.Length] = outLeft[i];
             }
@@ -47,7 +46,7 @@ public class LatencyProbeTests {
         var outRight = new float[64];
 
         for (var callback = 0; callback < 48_000 * 2 / 64; callback++) {
-            probe.Process(new AudioIO(silence, silence, outLeft, outRight));
+            probe.Process(new(silence, silence, outLeft, outRight));
         }
 
         Assert.Equal(0, probe.Count);

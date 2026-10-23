@@ -18,10 +18,10 @@ public sealed class GateBlock : DspBlock {
     public const int Release = 4;
 
     /// <summary>Release of the level detector itself; short, so the gate reacts to the playing, not to its own tail.</summary>
-    private const double DetectorReleaseMs = 10;
+    const double DetectorReleaseMs = 10;
 
     /// <summary>Deepest attenuation the gate applies, in dB.</summary>
-    private const float FloorDb = -100f;
+    const float FloorDb = -100f;
 
     public static BlockDescriptor Info { get; } = new(
         "gate",
@@ -32,15 +32,15 @@ public sealed class GateBlock : DspBlock {
             ParamDescriptor.Float("ratio", "Ratio", 1f, 20f, 4f, ":1", ParamTaper.Log),
             ParamDescriptor.Float("attack", "Attack", 0.05f, 50f, 0.5f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("hold", "Hold", 0f, 500f, 20f, "ms"),
-            ParamDescriptor.Float("release", "Release", 5f, 2_000f, 100f, "ms", ParamTaper.Log),
+            ParamDescriptor.Float("release", "Release", 5f, 2_000f, 100f, "ms", ParamTaper.Log)
         ],
         maxInstances: 4
     );
 
-    private float _envelope;
-    private float _gainDb;
-    private int _holdRemaining;
-    private float _detectorRelease;
+    float _envelope;
+    float _gainDb;
+    int _holdRemaining;
+    float _detectorRelease;
 
     public GateBlock()
         : base(Info) { }
@@ -102,6 +102,6 @@ public sealed class GateBlock : DspBlock {
     }
 
     /// <summary>One-pole coefficient reaching about 63 % of a step in <paramref name="milliseconds" />.</summary>
-    private static float Coefficient(double milliseconds, double sampleRate) =>
+    static float Coefficient(double milliseconds, double sampleRate) =>
         (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
 }

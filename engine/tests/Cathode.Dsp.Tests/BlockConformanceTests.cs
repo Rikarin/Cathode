@@ -9,17 +9,17 @@ namespace Cathode.Dsp.Tests;
 ///     automatically by being registered in <see cref="BlockRegistry.CreateDefault" />.
 /// </summary>
 public class BlockConformanceTests {
-    private const int MaxBlock = 64;
+    const int MaxBlock = 64;
 
     /// <summary>
     ///     Blow-up ceiling. Legitimate gain can be very large (five PEQ bands stacked at +24 dB plus +20 dB level is
     ///     +140 dB), while a genuinely unstable filter grows exponentially and passes any fixed level within a render, or
     ///     goes non-finite. Marginal instabilities are covered by the decay-to-silence test.
     /// </summary>
-    private const double PeakBoundDb = 160;
+    const double PeakBoundDb = 160;
 
-    private static readonly ProcessSpec Spec = new(48_000, MaxBlock);
-    private static readonly BlockRegistry Registry = BlockRegistry.CreateDefault();
+    static readonly ProcessSpec Spec = new(48_000, MaxBlock);
+    static readonly BlockRegistry Registry = BlockRegistry.CreateDefault();
 
     public static TheoryData<string> BlockTypes => [..Registry.Descriptors.Select(static d => d.TypeId)];
 
@@ -73,7 +73,7 @@ public class BlockConformanceTests {
     [Theory]
     [MemberData(nameof(BlockTypes))]
     public void Rendering_is_deterministic_and_reset_restores_a_fresh_state(string typeId) {
-        var input = Signals.Noise(4_800, seed: 7);
+        var input = Signals.Noise(4_800, 7);
         using var first = Create(typeId, null);
         using var second = Create(typeId, null);
 
@@ -89,7 +89,7 @@ public class BlockConformanceTests {
     [Theory]
     [MemberData(nameof(BlockTypes))]
     public void Output_does_not_depend_on_block_size(string typeId) {
-        var input = Signals.Noise(9_600, seed: 11);
+        var input = Signals.Noise(9_600, 11);
         using var fixedSize = Create(typeId, null);
         using var variableSize = Create(typeId, null);
         var random = new Random(5);
@@ -104,8 +104,8 @@ public class BlockConformanceTests {
     [MemberData(nameof(BlockTypes))]
     public void Process_does_not_allocate(string typeId) {
         using var block = Create(typeId, null);
-        var left = Signals.Noise(MaxBlock, seed: 1);
-        var right = Signals.Noise(MaxBlock, seed: 2);
+        var left = Signals.Noise(MaxBlock, 1);
+        var right = Signals.Noise(MaxBlock, 2);
         var context = new BlockContext(Spec.SampleRate, 120, 0);
         var low = Enumerable.Repeat(0.1f, block.Params.Count).ToArray();
         var high = Enumerable.Repeat(0.9f, block.Params.Count).ToArray();
@@ -119,7 +119,7 @@ public class BlockConformanceTests {
                         ApplyNormalised(block, flip ? high : low);
                     }
 
-                    block.Process(new StereoBuffer(left, right), context);
+                    block.Process(new(left, right), context);
                 }
             }
         );
@@ -131,7 +131,7 @@ public class BlockConformanceTests {
     [MemberData(nameof(BlockTypes))]
     public void Silence_after_a_burst_decays_without_subnormals(string typeId) {
         using var block = Create(typeId, null);
-        var input = Signals.Concat(Signals.Noise(4_800, seed: 3), new float[48_000 * 5]);
+        var input = Signals.Concat(Signals.Noise(4_800, 3), new float[48_000 * 5]);
 
         var output = BlockRender.Mono(block, input, MaxBlock);
         var tail = output.AsSpan(output.Length - 4_800);
@@ -140,7 +140,7 @@ public class BlockConformanceTests {
         Assert.True(Analysis.ToDb(Analysis.Peak(tail)) < -120, "tail did not decay");
     }
 
-    private static IDspBlock Create(string typeId, float[]? normalised) {
+    static IDspBlock Create(string typeId, float[]? normalised) {
         var block = Registry.Create(typeId);
         if (normalised is not null) {
             ApplyNormalised(block, normalised);
@@ -151,14 +151,14 @@ public class BlockConformanceTests {
     }
 
     /// <summary>Maps values in [0, 1] onto each parameter's range.</summary>
-    private static void ApplyNormalised(IDspBlock block, float[] normalised) {
+    static void ApplyNormalised(IDspBlock block, float[] normalised) {
         for (var i = 0; i < block.Params.Count; i++) {
             var d = block.Params.Descriptor(i);
             block.Params.SetTarget(i, d.Min + normalised[i] * (d.Max - d.Min));
         }
     }
 
-    private static float[] Stimulus(int kind, int seed, int length) =>
+    static float[] Stimulus(int kind, int seed, int length) =>
         kind switch {
             0 => Signals.Noise(length, seed),
             1 => Signals.Sine(997, 48_000, length).Select(static s => s >= 0 ? 1f : -1f).ToArray(), // full-scale square

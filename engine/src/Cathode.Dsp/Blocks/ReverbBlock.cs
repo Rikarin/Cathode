@@ -23,54 +23,54 @@ public sealed class ReverbBlock : DspBlock {
     public const int Level = 7;
 
     public const float LowCutOff = 20f;
-    private const int Lines = 8;
-    private const float MaxPreDelayMs = 250f;
-    private const float MaxSizeScale = 1.5f;
-    private const float ModulationMs = 0.35f;
+    const int Lines = 8;
+    const float MaxPreDelayMs = 250f;
+    const float MaxSizeScale = 1.5f;
+    const float ModulationMs = 0.35f;
 
     /// <summary>Line lengths in ms at size 50 % (scale 1), per type. Mutually prime-ish to spread the modes.</summary>
-    private static readonly float[][] LineMs = [
+    static readonly float[][] LineMs = [
         [9.1f, 11.3f, 13.7f, 15.9f, 18.1f, 21.7f, 24.3f, 27.1f], // Room
         [29.7f, 37.1f, 41.1f, 43.7f, 53.3f, 59.9f, 67.1f, 71.3f], // Hall
-        [17.3f, 19.1f, 23.3f, 27.7f, 31.1f, 35.9f, 39.7f, 43.1f], // Plate
+        [17.3f, 19.1f, 23.3f, 27.7f, 31.1f, 35.9f, 39.7f, 43.1f] // Plate
     ];
 
     /// <summary>Input diffuser lengths in ms (after Dattorro's plate) and gains per type.</summary>
-    private static readonly float[] DiffuserMs = [4.77f, 3.59f, 12.73f, 9.30f];
+    static readonly float[] DiffuserMs = [4.77f, 3.59f, 12.73f, 9.30f];
 
-    private static readonly float[] DiffusionGain = [0.6f, 0.65f, 0.75f];
+    static readonly float[] DiffusionGain = [0.6f, 0.65f, 0.75f];
 
-    private static readonly float[] LeftSigns = [1, -1, 1, -1, 1, -1, 1, -1];
-    private static readonly float[] RightSigns = [1, 1, -1, -1, 1, 1, -1, -1];
+    static readonly float[] LeftSigns = [1, -1, 1, -1, 1, -1, 1, -1];
+    static readonly float[] RightSigns = [1, 1, -1, -1, 1, 1, -1, -1];
 
     public static BlockDescriptor Info { get; } = new(
         "reverb",
         "Reverb",
         "Reverb",
         [
-            ParamDescriptor.Choice("type", "Type", ["Room", "Hall", "Plate"], defaultIndex: 1),
+            ParamDescriptor.Choice("type", "Type", ["Room", "Hall", "Plate"], 1),
             ParamDescriptor.Float("decay", "Decay Time", 0.1f, 20f, 2f, "s", ParamTaper.Log),
             new("size", "Size", ParamKind.Float, 0f, 100f, 50f, "%", Smoothing: ParamSmoothing.Step),
             ParamDescriptor.Float("predelay", "Pre-Delay", 0f, MaxPreDelayMs, 0f, "ms"),
             ParamDescriptor.Float("damping", "High Cut", 1_000f, 20_000f, 6_000f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("lowcut", "Low Cut", LowCutOff, 1_000f, 80f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 20f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
         ],
         maxInstances: 2
     );
 
-    private readonly DelayBuffer _preDelay = new();
-    private readonly Allpass[] _diffusers = [new(), new(), new(), new()];
-    private readonly DelayBuffer[] _lines = [..Enumerable.Range(0, Lines).Select(static _ => new DelayBuffer())];
-    private readonly float[] _lengths = new float[Lines];
-    private readonly float[] _gains = new float[Lines];
-    private readonly float[] _damping = new float[Lines];
-    private readonly float[] _outputs = new float[Lines];
-    private SvfState _lowCutLeft, _lowCutRight;
-    private double _modPhase;
-    private float _mix;
-    private float _outputGain = 1f;
+    readonly DelayBuffer _preDelay = new();
+    readonly Allpass[] _diffusers = [new(), new(), new(), new()];
+    readonly DelayBuffer[] _lines = [..Enumerable.Range(0, Lines).Select(static _ => new DelayBuffer())];
+    readonly float[] _lengths = new float[Lines];
+    readonly float[] _gains = new float[Lines];
+    readonly float[] _damping = new float[Lines];
+    readonly float[] _outputs = new float[Lines];
+    SvfState _lowCutLeft, _lowCutRight;
+    double _modPhase;
+    float _mix;
+    float _outputGain = 1f;
 
     public ReverbBlock()
         : base(Info) { }
@@ -197,8 +197,8 @@ public sealed class ReverbBlock : DspBlock {
 
     /// <summary>Circular buffer with a fractional (linear) read behind the most recent write.</summary>
     private sealed class DelayBuffer {
-        private float[] _buffer = [];
-        private int _write;
+        float[] _buffer = [];
+        int _write;
 
         public void Allocate(int length) => _buffer = new float[length];
 
@@ -228,7 +228,7 @@ public sealed class ReverbBlock : DspBlock {
             return Read(delay);
         }
 
-        private float At(int index) {
+        float At(int index) {
             index %= _buffer.Length;
             return _buffer[index < 0 ? index + _buffer.Length : index];
         }
@@ -236,8 +236,8 @@ public sealed class ReverbBlock : DspBlock {
 
     /// <summary>Schroeder allpass with a fixed length.</summary>
     private sealed class Allpass {
-        private float[] _buffer = [];
-        private int _position;
+        float[] _buffer = [];
+        int _position;
 
         public void Allocate(int length) => _buffer = new float[length];
 

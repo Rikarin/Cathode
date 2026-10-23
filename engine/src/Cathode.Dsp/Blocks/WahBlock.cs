@@ -14,15 +14,15 @@ public sealed class WahBlock : DspBlock {
     public const int Mix = 2;
     public const int Level = 3;
 
-    private const int SubBlock = 16;
-    private const float PeakGain = 2f;
-    private const float Body = 0.15f;
+    const int SubBlock = 16;
+    const float PeakGain = 2f;
+    const float Body = 0.15f;
 
     /// <summary>Heel-down frequency, toe-down frequency and Q per voicing.</summary>
-    private static readonly (float Low, float High, float Q)[] Voicings = [
+    static readonly (float Low, float High, float Q)[] Voicings = [
         (350f, 2_200f, 5f), // Classic (Cry Baby style)
         (450f, 2_000f, 4.5f), // Vox style
-        (300f, 3_000f, 6f), // Wide
+        (300f, 3_000f, 6f) // Wide
     ];
 
     public static BlockDescriptor Info { get; } = new(
@@ -43,14 +43,14 @@ public sealed class WahBlock : DspBlock {
                 SmoothingMs: 10f
             ),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
         ],
         maxInstances: 2
     );
 
-    private SvfState _bandLeft, _bandRight, _lowLeft, _lowRight;
-    private float _mix = 1f;
-    private float _outputGain = 1f;
+    SvfState _bandLeft, _bandRight, _lowLeft, _lowRight;
+    float _mix = 1f;
+    float _outputGain = 1f;
 
     public WahBlock()
         : base(Info) { }
@@ -101,7 +101,7 @@ public sealed class WahBlock : DspBlock {
         _outputGain = outputGain;
     }
 
-    private static float Voice(
+    static float Voice(
         float x,
         in SvfCoefficients band,
         in SvfCoefficients low,

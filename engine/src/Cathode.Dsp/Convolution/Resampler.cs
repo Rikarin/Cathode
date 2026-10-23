@@ -4,7 +4,7 @@ namespace Cathode.Dsp.Convolution;
 ///     Offline windowed-sinc resampling for assets such as impulse responses. Control thread only; it allocates.
 /// </summary>
 public static class Resampler {
-    private const int HalfWidth = 32; // zero crossings each side at the narrowest cutoff
+    const int HalfWidth = 32; // zero crossings each side at the narrowest cutoff
 
     /// <summary>Resamples <paramref name="input" /> from <paramref name="fromRate" /> to <paramref name="toRate" />.</summary>
     public static float[] Resample(ReadOnlySpan<float> input, double fromRate, double toRate) {
@@ -36,10 +36,10 @@ public static class Resampler {
         return output;
     }
 
-    private static double Sinc(double x) => x == 0 ? 1 : Math.Sin(Math.PI * x) / (Math.PI * x);
+    static double Sinc(double x) => x == 0 ? 1 : Math.Sin(Math.PI * x) / (Math.PI * x);
 
     /// <summary>Blackman window over [-1, 1].</summary>
-    private static double Blackman(double x) {
+    static double Blackman(double x) {
         if (Math.Abs(x) >= 1) {
             return 0;
         }

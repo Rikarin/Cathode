@@ -5,8 +5,8 @@ namespace Cathode.Dsp.Filters;
 ///     EQ is bit-transparent and costs nothing.
 /// </summary>
 internal sealed class EqBand {
-    private SvfState _left;
-    private SvfState _right;
+    SvfState _left;
+    SvfState _right;
 
     public void Reset() {
         _left.Reset();

@@ -5,11 +5,11 @@ namespace Cathode.Engine;
 ///     (tuner, analysers). When the consumer falls behind, new samples are dropped rather than blocking the producer.
 /// </summary>
 public sealed class SampleRing {
-    private readonly float[] _buffer;
-    private readonly long _mask;
-    private long _head; // consumer
-    private long _tail; // producer
-    private long _dropped;
+    readonly float[] _buffer;
+    readonly long _mask;
+    long _head; // consumer
+    long _tail; // producer
+    long _dropped;
 
     public SampleRing(int capacity) {
         if (capacity < 2 || (capacity & (capacity - 1)) != 0) {

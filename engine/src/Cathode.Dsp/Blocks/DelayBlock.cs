@@ -26,7 +26,7 @@ public sealed class DelayBlock : DspBlock {
     public const float HighCutOff = 20_000f;
 
     /// <summary>Tempo divisions in beats (quarter notes).</summary>
-    private static readonly float[] Divisions = [0f, 4f, 2f, 1f, 1.5f, 2f / 3f, 0.5f, 0.75f, 1f / 3f, 0.25f];
+    static readonly float[] Divisions = [0f, 4f, 2f, 1f, 1.5f, 2f / 3f, 0.5f, 0.75f, 1f / 3f, 0.25f];
 
     public static BlockDescriptor Info { get; } = new(
         "delay",
@@ -46,19 +46,19 @@ public sealed class DelayBlock : DspBlock {
             ParamDescriptor.Float("highcut", "High Cut", 500f, HighCutOff, HighCutOff, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("modrate", "Mod Rate", 0.05f, 10f, 0.5f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("moddepth", "Mod Depth", 0f, 10f, 0f, "ms"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
         ],
         maxInstances: 4
     );
 
-    private readonly Line _left = new();
-    private readonly Line _right = new();
-    private double _lfoPhase;
-    private double _wowPhase;
-    private double _flutterPhase;
-    private float _delaySamples;
-    private float _mix;
-    private float _outputGain = 1f;
+    readonly Line _left = new();
+    readonly Line _right = new();
+    double _lfoPhase;
+    double _wowPhase;
+    double _flutterPhase;
+    float _delaySamples;
+    float _mix;
+    float _outputGain = 1f;
 
     public DelayBlock()
         : base(Info) { }
@@ -167,18 +167,18 @@ public sealed class DelayBlock : DspBlock {
         _outputGain = outputGain;
     }
 
-    private float TargetDelaySamples(float timeMs, double tempo) {
+    float TargetDelaySamples(float timeMs, double tempo) {
         var division = Divisions[(int)Params.Current(Tempo)];
         var ms = division > 0 && tempo > 0 ? Math.Min(MaxTimeMs, (float)(60_000.0 / tempo * division)) : timeMs;
         return (float)(ms * 0.001 * Spec.SampleRate);
     }
 
-    private static double Wrap(double phase) => phase >= 2 * Math.PI ? phase - 2 * Math.PI : phase;
+    static double Wrap(double phase) => phase >= 2 * Math.PI ? phase - 2 * Math.PI : phase;
 
     private sealed class Line {
-        private readonly FractionalDelayLine _delay = new();
-        private SvfState _lowCut;
-        private SvfState _highCut;
+        readonly FractionalDelayLine _delay = new();
+        SvfState _lowCut;
+        SvfState _highCut;
 
         public void Allocate(int capacity) => _delay.Allocate(capacity);
 

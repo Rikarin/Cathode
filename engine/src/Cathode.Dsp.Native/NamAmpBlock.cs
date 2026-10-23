@@ -23,14 +23,14 @@ public sealed class NamAmpBlock : DspBlock, IAssetConsumer {
         [
             ParamDescriptor.Float("input", "Input", -24f, 24f, 0f, "dB"),
             ParamDescriptor.Float("output", "Output", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Switch("normalize", "Normalize", defaultValue: true),
+            ParamDescriptor.Switch("normalize", "Normalize", true)
         ],
         maxInstances: 2
     );
 
-    private NamModel? _model;
-    private float _inputGain = 1f;
-    private float _outputGain = 1f;
+    NamModel? _model;
+    float _inputGain = 1f;
+    float _outputGain = 1f;
 
     public NamAmpBlock()
         : base(Info) { }
@@ -82,7 +82,7 @@ public sealed class NamAmpBlock : DspBlock, IAssetConsumer {
         base.Dispose(disposing);
     }
 
-    private (float Input, float Output) TargetGains() {
+    (float Input, float Output) TargetGains() {
         var normalisation = Params.Current(Normalize) >= 0.5f && _model?.Info.Loudness is double loudness
             ? TargetLoudnessDb - loudness
             : 0;

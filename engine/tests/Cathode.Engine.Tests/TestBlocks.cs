@@ -8,9 +8,9 @@ internal sealed class LatencyBlock(int samples) : DspBlock(Info) {
     public static BlockDescriptor Info { get; } =
         new("test-latency", "Latency", "Test", [ParamDescriptor.Float("unused", "Unused", 0, 1, 0)]);
 
-    private readonly float[] _left = new float[samples];
-    private readonly float[] _right = new float[samples];
-    private int _position;
+    readonly float[] _left = new float[samples];
+    readonly float[] _right = new float[samples];
+    int _position;
 
     public override int LatencySamples => samples;
 

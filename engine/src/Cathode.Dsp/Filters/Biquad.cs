@@ -9,7 +9,7 @@ public enum BiquadType {
     Notch,
     Peak,
     LowShelf,
-    HighShelf,
+    HighShelf
 }
 
 /// <summary>Normalised biquad coefficients (a0 = 1). Double precision keeps low-frequency, high-Q sections stable.</summary>
@@ -81,23 +81,23 @@ public readonly record struct BiquadCoefficients(double B0, double B1, double B2
                 break;
             case BiquadType.LowShelf: {
                 var s = 2 * Math.Sqrt(a) * alpha;
-                b0 = a * ((a + 1) - (a - 1) * cos + s);
-                b1 = 2 * a * ((a - 1) - (a + 1) * cos);
-                b2 = a * ((a + 1) - (a - 1) * cos - s);
-                a0 = (a + 1) + (a - 1) * cos + s;
-                a1 = -2 * ((a - 1) + (a + 1) * cos);
-                a2 = (a + 1) + (a - 1) * cos - s;
+                b0 = a * (a + 1 - (a - 1) * cos + s);
+                b1 = 2 * a * (a - 1 - (a + 1) * cos);
+                b2 = a * (a + 1 - (a - 1) * cos - s);
+                a0 = a + 1 + (a - 1) * cos + s;
+                a1 = -2 * (a - 1 + (a + 1) * cos);
+                a2 = a + 1 + (a - 1) * cos - s;
                 break;
             }
 
             case BiquadType.HighShelf: {
                 var s = 2 * Math.Sqrt(a) * alpha;
-                b0 = a * ((a + 1) + (a - 1) * cos + s);
-                b1 = -2 * a * ((a - 1) + (a + 1) * cos);
-                b2 = a * ((a + 1) + (a - 1) * cos - s);
-                a0 = (a + 1) - (a - 1) * cos + s;
-                a1 = 2 * ((a - 1) - (a + 1) * cos);
-                a2 = (a + 1) - (a - 1) * cos - s;
+                b0 = a * (a + 1 + (a - 1) * cos + s);
+                b1 = -2 * a * (a - 1 + (a + 1) * cos);
+                b2 = a * (a + 1 + (a - 1) * cos - s);
+                a0 = a + 1 - (a - 1) * cos + s;
+                a1 = 2 * (a - 1 - (a + 1) * cos);
+                a2 = a + 1 - (a - 1) * cos - s;
                 break;
             }
 
@@ -105,7 +105,7 @@ public readonly record struct BiquadCoefficients(double B0, double B1, double B2
                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
 
-        return new BiquadCoefficients(b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0);
+        return new(b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0);
     }
 
     /// <summary>|H(e^jω)| at <paramref name="frequency" />, evaluated from the coefficients.</summary>
@@ -122,10 +122,10 @@ public readonly record struct BiquadCoefficients(double B0, double B1, double B2
 
 /// <summary>Transposed direct form II biquad state for one channel.</summary>
 public struct BiquadState {
-    private const double DenormalThreshold = 1e-30;
+    const double DenormalThreshold = 1e-30;
 
-    private double _z1;
-    private double _z2;
+    double _z1;
+    double _z2;
 
     public void Reset() {
         _z1 = 0;

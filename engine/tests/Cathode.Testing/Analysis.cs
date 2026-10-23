@@ -107,7 +107,7 @@ public static class Analysis {
             energy += t * t;
         }
 
-        return energy == 0 ? (error == 0 ? 0 : double.PositiveInfinity) : error / energy;
+        return energy == 0 ? error == 0 ? 0 : double.PositiveInfinity : error / energy;
     }
 
     public static bool AllFinite(ReadOnlySpan<float> signal) {

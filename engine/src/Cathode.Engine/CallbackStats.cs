@@ -7,13 +7,13 @@ namespace Cathode.Engine;
 ///     the real-time budget (1 % bins, last bin catches everything at or above 200 %).
 /// </summary>
 public sealed class CallbackStats {
-    private const int Bins = 201;
+    const int Bins = 201;
 
-    private readonly long[] _histogram = new long[Bins];
-    private long _count;
-    private long _overruns;
-    private double _maxPercent;
-    private double _lastPercent;
+    readonly long[] _histogram = new long[Bins];
+    long _count;
+    long _overruns;
+    double _maxPercent;
+    double _lastPercent;
 
     public long Count => Volatile.Read(ref _count);
 

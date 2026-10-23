@@ -4,13 +4,13 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 public class DelayBlockTests {
-    private static DelayBlock Create(params (int Index, float Value)[] settings) {
+    static DelayBlock Create(params (int Index, float Value)[] settings) {
         var delay = new DelayBlock();
         foreach (var (index, value) in settings) {
             delay.Params.SetTarget(index, value);
         }
 
-        delay.Prepare(new ProcessSpec(48_000, 64));
+        delay.Prepare(new(48_000, 64));
         return delay;
     }
 
@@ -54,8 +54,8 @@ public class DelayBlockTests {
 
         for (var offset = 0; offset < output.Length; offset += 64) {
             delay.Process(
-                new StereoBuffer(output.AsSpan(offset, 64), right.AsSpan(offset, 64)),
-                new BlockContext(48_000, 120, offset)
+                new(output.AsSpan(offset, 64), right.AsSpan(offset, 64)),
+                new(48_000, 120, offset)
             );
         }
 
@@ -87,7 +87,7 @@ public class DelayBlockTests {
             (DelayBlock.Mix, 100f)
         );
 
-        var output = BlockRender.Mono(delay, Signals.Noise(48_000 * 3, seed: 1, amplitude: 0.9f), 64);
+        var output = BlockRender.Mono(delay, Signals.Noise(48_000 * 3, 1, 0.9f), 64);
 
         Assert.True(Analysis.Peak(output) < 3f, $"peak {Analysis.Peak(output)}");
     }

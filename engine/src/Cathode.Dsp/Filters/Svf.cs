@@ -59,16 +59,16 @@ public readonly record struct SvfCoefficients(double A1, double A2, double A3, d
 
         var a1 = 1.0 / (1.0 + g * (g + k));
         var a2 = g * a1;
-        return new SvfCoefficients(a1, a2, g * a2, m0, m1, m2);
+        return new(a1, a2, g * a2, m0, m1, m2);
     }
 }
 
 /// <summary>State of one <see cref="SvfCoefficients" /> filter channel (two trapezoidal integrators).</summary>
 public struct SvfState {
-    private const double DenormalThreshold = 1e-30;
+    const double DenormalThreshold = 1e-30;
 
-    private double _ic1;
-    private double _ic2;
+    double _ic1;
+    double _ic2;
 
     public void Reset() {
         _ic1 = 0;

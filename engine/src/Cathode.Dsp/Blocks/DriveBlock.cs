@@ -34,25 +34,25 @@ public sealed class DriveBlock : DspBlock {
             ParamDescriptor.Float("drive", "Drive", 0f, 10f, 5f),
             ParamDescriptor.Float("tone", "Tone", 0f, 10f, 5f),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
+            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%")
         ],
         maxInstances: 4
     );
 
-    private readonly Channel _left = new();
-    private readonly Channel _right = new();
-    private float _gain = 1f;
-    private float _outputGain = 1f;
-    private float _mix = 1f;
-    private float[] _dry = [];
+    readonly Channel _left = new();
+    readonly Channel _right = new();
+    float _gain = 1f;
+    float _outputGain = 1f;
+    float _mix = 1f;
+    float[] _dry = [];
 
     public DriveBlock()
         : base(Info) { }
 
-    private const int Factor = 4;
+    const int Factor = 4;
 
-    private Oversampler4x _dryLeft = new(1);
-    private Oversampler4x _dryRight = new(1);
+    Oversampler4x _dryLeft = new(1);
+    Oversampler4x _dryRight = new(1);
 
     /// <summary>Disables antiderivative anti-aliasing, for measuring what it buys.</summary>
     public bool Antialias { get; set; } = true;
@@ -64,8 +64,8 @@ public sealed class DriveBlock : DspBlock {
         _dry = new float[spec.MaxBlockSize];
         _left.Allocate(spec.MaxBlockSize);
         _right.Allocate(spec.MaxBlockSize);
-        _dryLeft = new Oversampler4x(spec.MaxBlockSize);
-        _dryRight = new Oversampler4x(spec.MaxBlockSize);
+        _dryLeft = new(spec.MaxBlockSize);
+        _dryRight = new(spec.MaxBlockSize);
     }
 
     protected override void OnReset() {
@@ -111,7 +111,7 @@ public sealed class DriveBlock : DspBlock {
         _outputGain = outputGain;
     }
 
-    private void ProcessChannel(
+    void ProcessChannel(
         Channel channel,
         Oversampler4x dryOversampler,
         Span<float> samples,
@@ -140,7 +140,7 @@ public sealed class DriveBlock : DspBlock {
     }
 
     /// <summary>Drive 0..10 mapped to a gain range per type, in dB.</summary>
-    private static float InputGain(int type, float drive) {
+    static float InputGain(int type, float drive) {
         var (minDb, maxDb) = type switch {
             0 => (0f, 40f),
             1 => (6f, 60f),
@@ -150,13 +150,13 @@ public sealed class DriveBlock : DspBlock {
     }
 
     private sealed class Channel {
-        private Oversampler4x _oversampler = new(1);
-        private SvfState _pre;
-        private SvfState _tone;
-        private SvfState _dc;
-        private AdaaClipper _clipper;
+        Oversampler4x _oversampler = new(1);
+        SvfState _pre;
+        SvfState _tone;
+        SvfState _dc;
+        AdaaClipper _clipper;
 
-        public void Allocate(int maxBlockSize) => _oversampler = new Oversampler4x(maxBlockSize);
+        public void Allocate(int maxBlockSize) => _oversampler = new(maxBlockSize);
 
         public void Reset() {
             _oversampler.Reset();

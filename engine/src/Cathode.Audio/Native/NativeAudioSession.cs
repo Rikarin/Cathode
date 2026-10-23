@@ -54,17 +54,19 @@ public sealed record AudioSessionStats(
 ///     Input channel 1 feeds both engine channels (a guitar DI is mono); engine L/R go to output channels 1 and 2.
 /// </summary>
 public sealed unsafe class NativeAudioSession : IDisposable {
-    private const int MaxFrames = 4096; // CTH_MAX_FRAMES
+    const int MaxFrames = 4096; // CTH_MAX_FRAMES
 
-    private readonly IAudioProcessor _processor;
-    private readonly float[] _silence = GC.AllocateArray<float>(MaxFrames, pinned: true);
-    private readonly float[] _scratchLeft = GC.AllocateArray<float>(MaxFrames, pinned: true);
-    private readonly float[] _scratchRight = GC.AllocateArray<float>(MaxFrames, pinned: true);
-    private GCHandle _self;
-    private nint _stream;
-    private long _exceptions;
+    readonly IAudioProcessor _processor;
+    readonly float[] _silence = GC.AllocateArray<float>(MaxFrames, true);
+    readonly float[] _scratchLeft = GC.AllocateArray<float>(MaxFrames, true);
+    readonly float[] _scratchRight = GC.AllocateArray<float>(MaxFrames, true);
+    GCHandle _self;
+    nint _stream;
+    long _exceptions;
 
-    private NativeAudioSession(IAudioProcessor processor) => _processor = processor;
+    NativeAudioSession(IAudioProcessor processor) {
+        _processor = processor;
+    }
 
     public double SampleRate { get; private set; }
 
@@ -123,7 +125,7 @@ public sealed unsafe class NativeAudioSession : IDisposable {
 
     public AudioSessionStats Stats() {
         NativeMethods.Stats(_stream, out var s);
-        return new AudioSessionStats(
+        return new(
             s.Callbacks,
             s.Overloads,
             s.InputLatencyFrames,
@@ -141,7 +143,7 @@ public sealed unsafe class NativeAudioSession : IDisposable {
             bins[i] = raw.Bins[i];
         }
 
-        return new CallbackTiming(bins, raw.OverBudget, raw.MaxPercent);
+        return new(bins, raw.OverBudget, raw.MaxPercent);
     }
 
     /// <summary>Clears the timing histogram (applied by the audio thread at its next callback).</summary>
@@ -159,7 +161,7 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     }
 
     [UnmanagedCallersOnly]
-    private static void Callback(
+    static void Callback(
         void* user,
         float** inputs,
         int inputChannels,
@@ -179,13 +181,13 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         }
     }
 
-    private void Process(float** inputs, int inputChannels, float** outputs, int outputChannels, int frames) {
-        ReadOnlySpan<float> input =
+    void Process(float** inputs, int inputChannels, float** outputs, int outputChannels, int frames) {
+        var input =
             inputChannels > 0 ? new ReadOnlySpan<float>(inputs[0], frames) : _silence.AsSpan(0, frames);
         var left = outputChannels > 0 ? new Span<float>(outputs[0], frames) : _scratchLeft.AsSpan(0, frames);
         var right = outputChannels > 1 ? new Span<float>(outputs[1], frames) : _scratchRight.AsSpan(0, frames);
 
-        _processor.Process(new AudioIO(input, input, left, right));
+        _processor.Process(new(input, input, left, right));
 
         var gain = OutputGain;
         if (gain != 1f) {

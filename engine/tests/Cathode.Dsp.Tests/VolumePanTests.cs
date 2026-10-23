@@ -4,25 +4,25 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 public class VolumePanTests {
-    private static VolumePanBlock Create(float levelDb = 0, float balance = 0) {
+    static VolumePanBlock Create(float levelDb = 0, float balance = 0) {
         var block = new VolumePanBlock();
         block.Params.SetTarget(VolumePanBlock.Level, levelDb);
         block.Params.SetTarget(VolumePanBlock.Balance, balance);
-        block.Prepare(new ProcessSpec(48_000, 64));
+        block.Prepare(new(48_000, 64));
         return block;
     }
 
     [Fact]
     public void Unity_settings_are_bit_transparent() {
         using var block = Create();
-        var input = Signals.Noise(4_800, seed: 1);
+        var input = Signals.Noise(4_800, 1);
 
         Assert.Equal(input, BlockRender.Mono(block, input, 64));
     }
 
     [Fact]
     public void Level_and_balance_set_the_channel_gains() {
-        using var block = Create(levelDb: -6.0206f, balance: -100);
+        using var block = Create(-6.0206f, -100);
         var input = Signals.Step(256);
 
         var (left, right) = BlockRender.Stereo(block, input, input, _ => 64);
@@ -33,7 +33,7 @@ public class VolumePanTests {
 
     [Fact]
     public void Level_changes_ramp_without_steps() {
-        using var block = Create(levelDb: Dsp.Decibels.SilenceDb);
+        using var block = Create(Decibels.SilenceDb);
         var input = Signals.Step(48_000);
         block.Params.SetTarget(VolumePanBlock.Level, 20);
 

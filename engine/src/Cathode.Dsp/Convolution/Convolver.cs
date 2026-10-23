@@ -19,28 +19,28 @@ public sealed class Convolver {
     /// <summary>Partition length B. The FFT size is 2B.</summary>
     public const int PartitionSize = 64;
 
-    private const int B = PartitionSize;
-    private const int N = 2 * B;
-    private const int Bins = B + 1; // a real signal's spectrum is Hermitian: bins 0..N/2 are enough
+    const int B = PartitionSize;
+    const int N = 2 * B;
+    const int Bins = B + 1; // a real signal's spectrum is Hermitian: bins 0..N/2 are enough
 
-    private readonly Fft _fft = new(N);
-    private readonly float[] _head; // taps 0..B-1, direct form
-    private readonly float[] _history; // last B inputs, stored twice so a window is always contiguous
-    private int _historyPosition;
+    readonly Fft _fft = new(N);
+    readonly float[] _head; // taps 0..B-1, direct form
+    readonly float[] _history; // last B inputs, stored twice so a window is always contiguous
+    int _historyPosition;
 
-    private readonly int _partitions; // partitions of taps B..L-1
-    private readonly float[][] _irRe; // spectra of the tail partitions
-    private readonly float[][] _irIm;
-    private readonly float[][] _inRe; // frequency-domain delay line of input spectra
-    private readonly float[][] _inIm;
-    private int _fdlPosition;
-    private readonly float[] _frame = new float[N]; // [previous block | current block]
-    private readonly float[] _tailOut = new float[B];
-    private readonly float[] _re = new float[N];
-    private readonly float[] _im = new float[N];
-    private readonly float[] _accRe = new float[Bins];
-    private readonly float[] _accIm = new float[Bins];
-    private int _position;
+    readonly int _partitions; // partitions of taps B..L-1
+    readonly float[][] _irRe; // spectra of the tail partitions
+    readonly float[][] _irIm;
+    readonly float[][] _inRe; // frequency-domain delay line of input spectra
+    readonly float[][] _inIm;
+    int _fdlPosition;
+    readonly float[] _frame = new float[N]; // [previous block | current block]
+    readonly float[] _tailOut = new float[B];
+    readonly float[] _re = new float[N];
+    readonly float[] _im = new float[N];
+    readonly float[] _accRe = new float[Bins];
+    readonly float[] _accIm = new float[Bins];
+    int _position;
 
     public Convolver(ReadOnlySpan<float> impulseResponse) {
         if (impulseResponse.IsEmpty) {
@@ -116,7 +116,7 @@ public sealed class Convolver {
     }
 
     /// <summary>One overlap-save step over the tail partitions, producing the next block's tail output.</summary>
-    private void RunTail() {
+    void RunTail() {
         _frame.CopyTo(_re, 0);
         Array.Clear(_im);
         _fft.Forward(_re, _im);
@@ -157,7 +157,7 @@ public sealed class Convolver {
         _frame.AsSpan(B, B).CopyTo(_frame); // the current block becomes the previous one
     }
 
-    private static float Dot(ReadOnlySpan<float> a, ReadOnlySpan<float> b) {
+    static float Dot(ReadOnlySpan<float> a, ReadOnlySpan<float> b) {
         var sum = Vector<float>.Zero;
         var i = 0;
         var va = MemoryMarshal.Cast<float, Vector<float>>(a);

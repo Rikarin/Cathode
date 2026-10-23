@@ -5,15 +5,15 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 public class DriveBlockTests(ITestOutputHelper output) {
-    private const int Length = 65_536;
-    private const int FundamentalBin = 3_413; // prime, about 2.5 kHz at 48 kHz
+    const int Length = 65_536;
+    const int FundamentalBin = 3_413; // prime, about 2.5 kHz at 48 kHz
 
-    private static DriveBlock Create(float type, float drive, bool antialias = true, bool oversample = true) {
+    static DriveBlock Create(float type, float drive, bool antialias = true, bool oversample = true) {
         var block = new DriveBlock { Antialias = antialias, Oversample = oversample };
         block.Params.SetTarget(DriveBlock.Type, type);
         block.Params.SetTarget(DriveBlock.Drive, drive);
         block.Params.SetTarget(DriveBlock.Tone, 10f);
-        block.Prepare(new ProcessSpec(48_000, 64));
+        block.Prepare(new(48_000, 64));
         return block;
     }
 
@@ -44,9 +44,9 @@ public class DriveBlockTests(ITestOutputHelper output) {
             return Analysis.SignalToAliasingDb(BlockRender.Mono(block, input, 64).AsSpan(Length), FundamentalBin);
         }
 
-        var naive = Measure(antialias: false, oversample: false);
-        var adaa = Measure(antialias: true, oversample: false);
-        var both = Measure(antialias: true, oversample: true);
+        var naive = Measure(false, false);
+        var adaa = Measure(true, false);
+        var both = Measure(true, true);
 
         output.WriteLine(
             $"type {type}: signal-to-aliasing {naive:0.0} dB naive, {adaa:0.0} dB ADAA, {both:0.0} dB ADAA + 4x"
@@ -77,7 +77,7 @@ public class DriveBlockTests(ITestOutputHelper output) {
 
     [Fact]
     public void More_drive_means_more_distortion() {
-        var input = Signals.CoherentSine(cycles: 64, length: 8_192, amplitude: 0.3f);
+        var input = Signals.CoherentSine(64, 8_192, 0.3f);
 
         double Thd(float drive) {
             using var block = Create(1f, drive);
@@ -92,7 +92,7 @@ public class DriveBlockTests(ITestOutputHelper output) {
     [Fact]
     public void Fuzz_adds_even_harmonics_and_no_dc() {
         using var fuzz = Create(2f, 6f);
-        var input = Signals.CoherentSine(cycles: 32, length: 8_192, amplitude: 0.3f);
+        var input = Signals.CoherentSine(32, 8_192, 0.3f);
 
         var rendered = BlockRender.Mono(fuzz, Signals.Concat(input, input, input), 64).AsSpan(16_384);
         var magnitudes = Fft.Magnitudes(rendered);

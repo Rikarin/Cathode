@@ -14,17 +14,17 @@ namespace Cathode.Engine;
 ///     audio thread. (Crossfaded preset changes and spillover tails arrive in Phase 5.)
 /// </remarks>
 public sealed class CathodeEngine : IAudioProcessor {
-    private readonly SpscRing<EngineCommand> _commands;
-    private readonly Lock _postLock = new();
-    private CompiledGraph? _pending;
-    private CompiledGraph? _current;
-    private CompiledGraph? _retired;
-    private long _sampleTime;
-    private bool _inputTapEnabled;
+    readonly SpscRing<EngineCommand> _commands;
+    readonly Lock _postLock = new();
+    CompiledGraph? _pending;
+    CompiledGraph? _current;
+    CompiledGraph? _retired;
+    long _sampleTime;
+    bool _inputTapEnabled;
 
     public CathodeEngine(ProcessSpec spec, int commandCapacity = 1024) {
         Spec = spec;
-        _commands = new SpscRing<EngineCommand>(commandCapacity);
+        _commands = new(commandCapacity);
     }
 
     public ProcessSpec Spec { get; }
@@ -102,7 +102,7 @@ public sealed class CathodeEngine : IAudioProcessor {
             var maxBlock = Spec.MaxBlockSize;
             for (var offset = 0; offset < io.Frames; offset += maxBlock) {
                 var length = Math.Min(maxBlock, io.Frames - offset);
-                graph.Process(io.Slice(offset, length), new BlockContext(Spec.SampleRate, Tempo, _sampleTime));
+                graph.Process(io.Slice(offset, length), new(Spec.SampleRate, Tempo, _sampleTime));
                 Volatile.Write(ref _sampleTime, _sampleTime + length);
             }
         }
@@ -110,7 +110,7 @@ public sealed class CathodeEngine : IAudioProcessor {
         Stats.Record(start, io.Frames, Spec.SampleRate);
     }
 
-    private static void Apply(CompiledGraph graph, in EngineCommand command) {
+    static void Apply(CompiledGraph graph, in EngineCommand command) {
         switch (command.Kind) {
             case EngineCommandKind.SetBypass:
                 graph.SetBypass(command.Slot, command.Value != 0f);

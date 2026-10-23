@@ -5,7 +5,7 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 public class BiquadTests {
-    private const double SampleRate = 48_000;
+    const double SampleRate = 48_000;
 
     public static TheoryData<BiquadType, double, double, double> Designs =>
         new() {
@@ -16,7 +16,7 @@ public class BiquadTests {
             { BiquadType.Peak, 800, 1.5, 6 },
             { BiquadType.LowShelf, 200, 0.7071, -9 },
             { BiquadType.HighShelf, 5000, 0.7071, 4 },
-            { BiquadType.LowPass, 20, 0.7071, 0 }, // low frequency: needs double-precision state
+            { BiquadType.LowPass, 20, 0.7071, 0 } // low frequency: needs double-precision state
         };
 
     [Theory]
@@ -28,7 +28,7 @@ public class BiquadTests {
         double gainDb
     ) {
         var c = BiquadCoefficients.Design(type, SampleRate, frequency, q, gainDb);
-        var impulseResponse = ImpulseResponse(c, length: frequency < 100 ? 48_000 : 8192);
+        var impulseResponse = ImpulseResponse(c, frequency < 100 ? 48_000 : 8192);
 
         foreach (var f in LogFrequencies()) {
             var measured = Analysis.ToDb(Analysis.MagnitudeAt(impulseResponse, f, SampleRate));
@@ -103,7 +103,7 @@ public class BiquadTests {
         double gainDb
     ) {
         // Regression: the bounded-output property found a 20 Hz high shelf at Q 15.5 ringing at +65 dBFS.
-        var c = BiquadCoefficients.Design(type, SampleRate, 200, q: 18, gainDb);
+        var c = BiquadCoefficients.Design(type, SampleRate, 200, 18, gainDb);
         var limit = Math.Max(0, gainDb) + 1.5; // Q = 1 allows a deliberate ~1.1 dB bump
 
         Assert.All(
@@ -117,7 +117,7 @@ public class BiquadTests {
         using var block = new FilterBlock();
         block.Params.SetTarget(FilterBlock.Type, (float)BiquadType.HighPass);
         block.Params.SetTarget(FilterBlock.Frequency, 80);
-        block.Prepare(new ProcessSpec(SampleRate, 64));
+        block.Prepare(new(SampleRate, 64));
         var impulseResponse = BlockRender.Mono(block, Signals.Impulse(16_384), 64);
 
         var expected = BiquadCoefficients.Design(
@@ -135,14 +135,14 @@ public class BiquadTests {
         }
     }
 
-    private static float[] ImpulseResponse(BiquadCoefficients c, int length) {
+    static float[] ImpulseResponse(BiquadCoefficients c, int length) {
         var samples = Signals.Impulse(length);
         var state = default(BiquadState);
         state.Process(c, samples);
         return samples;
     }
 
-    private static IEnumerable<double> LogFrequencies() {
+    static IEnumerable<double> LogFrequencies() {
         for (var f = 20.0; f < 22_000; f *= 1.25) {
             yield return f;
         }

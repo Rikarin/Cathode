@@ -5,15 +5,15 @@ namespace Cathode.Dsp.Tests;
 
 public class GateBlockTests {
     /// <summary>Exact dB to gain (Decibels.ToGain treats -80 dB and below as "off").</summary>
-    private static float Db(double db) => (float)Math.Pow(10, db / 20);
+    static float Db(double db) => (float)Math.Pow(10, db / 20);
 
-    private static GateBlock Create(float threshold = -60, float ratio = 4, float holdMs = 20, float releaseMs = 100) {
+    static GateBlock Create(float threshold = -60, float ratio = 4, float holdMs = 20, float releaseMs = 100) {
         var gate = new GateBlock();
         gate.Params.SetTarget(GateBlock.Threshold, threshold);
         gate.Params.SetTarget(GateBlock.Ratio, ratio);
         gate.Params.SetTarget(GateBlock.Hold, holdMs);
         gate.Params.SetTarget(GateBlock.Release, releaseMs);
-        gate.Prepare(new ProcessSpec(48_000, 64));
+        gate.Prepare(new(48_000, 64));
         return gate;
     }
 
@@ -29,7 +29,7 @@ public class GateBlockTests {
 
     [Fact]
     public void Signals_below_the_threshold_are_expanded_by_the_ratio() {
-        using var gate = Create(threshold: -60, ratio: 4);
+        using var gate = Create(-60, 4);
         var input = Signals.Sine(220, 48_000, 48_000, Db(-80));
 
         var output = BlockRender.Mono(gate, input, 64);
@@ -54,7 +54,7 @@ public class GateBlockTests {
 
     [Fact]
     public void Closing_and_opening_do_not_click() {
-        using var gate = Create(threshold: -30, releaseMs: 20);
+        using var gate = Create(-30, releaseMs: 20);
         var loud = Signals.Step(4_800, 0.5f);
         var quiet = Signals.Step(9_600, Db(-50));
         var input = Signals.Concat(loud, quiet, loud);

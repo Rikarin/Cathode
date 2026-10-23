@@ -11,14 +11,14 @@ public sealed record AudioData(int SampleRate, float[][] Channels) {
 public enum WavSampleFormat {
     Pcm16,
     Pcm24,
-    Float32,
+    Float32
 }
 
 /// <summary>Minimal RIFF/WAVE reader and writer: PCM 16/24/32-bit, IEEE float 32/64, including WAVE_FORMAT_EXTENSIBLE.</summary>
 public static class WavFile {
-    private const ushort FormatPcm = 1;
-    private const ushort FormatFloat = 3;
-    private const ushort FormatExtensible = 0xFFFE;
+    const ushort FormatPcm = 1;
+    const ushort FormatFloat = 3;
+    const ushort FormatExtensible = 0xFFFE;
 
     public static AudioData Read(string path) {
         using var stream = File.OpenRead(path);
@@ -26,7 +26,7 @@ public static class WavFile {
     }
 
     public static AudioData Read(Stream stream) {
-        using var reader = new BinaryReader(stream, Encoding.ASCII, leaveOpen: true);
+        using var reader = new BinaryReader(stream, Encoding.ASCII, true);
         if (ReadTag(reader) != "RIFF") {
             throw new InvalidDataException("Not a RIFF file.");
         }
@@ -61,7 +61,7 @@ public static class WavFile {
                 }
 
                 var bytes = reader.ReadBytes((int)size);
-                return new AudioData(sampleRate, Decode(bytes, format, channels, bits));
+                return new(sampleRate, Decode(bytes, format, channels, bits));
             }
 
             stream.Position = next;
@@ -84,7 +84,7 @@ public static class WavFile {
         };
         var dataSize = audio.Frames * channels * bytesPerSample;
 
-        using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
+        using var writer = new BinaryWriter(stream, Encoding.ASCII, true);
         writer.Write("RIFF"u8);
         writer.Write(36 + dataSize);
         writer.Write("WAVE"u8);
@@ -122,12 +122,12 @@ public static class WavFile {
     }
 
     /// <summary>Scales by 2^(bits-1), matching the reader, and clamps to the representable range.</summary>
-    private static int Quantize(float value, int bits) {
+    static int Quantize(float value, int bits) {
         var scale = 1L << (bits - 1);
         return (int)Math.Clamp((long)Math.Round((double)value * scale), -scale, scale - 1);
     }
 
-    private static float[][] Decode(byte[] bytes, ushort format, int channels, int bits) {
+    static float[][] Decode(byte[] bytes, ushort format, int channels, int bits) {
         var bytesPerSample = bits / 8;
         var frames = bytes.Length / (bytesPerSample * channels);
         var result = new float[channels][];
@@ -153,5 +153,5 @@ public static class WavFile {
         return result;
     }
 
-    private static string ReadTag(BinaryReader reader) => Encoding.ASCII.GetString(reader.ReadBytes(4));
+    static string ReadTag(BinaryReader reader) => Encoding.ASCII.GetString(reader.ReadBytes(4));
 }

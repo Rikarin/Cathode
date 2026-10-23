@@ -4,16 +4,16 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 public class ModulationBlockTests {
-    private const double Rate = 48_000;
+    const double Rate = 48_000;
 
-    private static T Create<T>(params (int Index, float Value)[] settings)
+    static T Create<T>(params (int Index, float Value)[] settings)
         where T : IDspBlock, new() {
         var block = new T();
         foreach (var (index, value) in settings) {
             block.Params.SetTarget(index, value);
         }
 
-        block.Prepare(new ProcessSpec(Rate, 64));
+        block.Prepare(new(Rate, 64));
         return block;
     }
 
@@ -57,7 +57,7 @@ public class ModulationBlockTests {
     public void Chorus_at_zero_mix_is_dry_and_otherwise_widens_the_image() {
         using var dry = Create<ChorusBlock>((ChorusBlock.Mix, 0f));
         using var wide = Create<ChorusBlock>();
-        var input = Signals.Noise(9_600, seed: 1);
+        var input = Signals.Noise(9_600, 1);
 
         Assert.Equal(input, BlockRender.Mono(dry, input, 64));
         var (left, right) = BlockRender.Stereo(wide, input, input, _ => 64);

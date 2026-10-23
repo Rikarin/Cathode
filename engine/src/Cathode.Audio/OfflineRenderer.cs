@@ -1,5 +1,5 @@
-using Cathode.Engine;
 using Cathode.Dsp.IO;
+using Cathode.Engine;
 
 namespace Cathode.Audio;
 
@@ -37,7 +37,7 @@ public static class OfflineRenderer {
         for (var offset = 0; offset < left.Length;) {
             var frames = Math.Clamp(blockSize(callback++), 1, left.Length - offset);
             processor.Process(
-                new AudioIO(
+                new(
                     left.AsSpan(offset, frames),
                     right.AsSpan(offset, frames),
                     outLeft.AsSpan(offset, frames),

@@ -6,14 +6,14 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 public sealed class CabBlockTests : IDisposable {
-    private static readonly ProcessSpec Spec = new(48_000, 64);
-    private readonly string _folder = Directory.CreateTempSubdirectory("cathode-cab-").FullName;
+    static readonly ProcessSpec Spec = new(48_000, 64);
+    readonly string _folder = Directory.CreateTempSubdirectory("cathode-cab-").FullName;
 
-    public void Dispose() => Directory.Delete(_folder, recursive: true);
+    public void Dispose() => Directory.Delete(_folder, true);
 
     [Fact]
     public void Impulse_response_is_the_normalised_ir_with_zero_latency() {
-        var ir = CabLikeIr(1_500, seed: 1);
+        var ir = CabLikeIr(1_500, 1);
         using var cab = Create(("ir1", WriteIr("a.wav", ir, 48_000)));
 
         var output = BlockRender.Mono(cab, Signals.Impulse(2_000), 64);
@@ -28,8 +28,8 @@ public sealed class CabBlockTests : IDisposable {
 
     [Fact]
     public void Two_irs_are_blended_by_their_levels() {
-        var a = CabLikeIr(800, seed: 2);
-        var b = CabLikeIr(1_200, seed: 3);
+        var a = CabLikeIr(800, 2);
+        var b = CabLikeIr(1_200, 3);
         using var cab = Create(("ir1", WriteIr("a.wav", a, 48_000)), ("ir2", WriteIr("b.wav", b, 48_000)));
         cab.Params.SetTarget(CabBlock.Level2, -6.0206f);
         cab.Reset();
@@ -46,7 +46,7 @@ public sealed class CabBlockTests : IDisposable {
 
     [Fact]
     public void Irs_at_other_sample_rates_are_resampled() {
-        var ir = CabLikeIr(1_000, seed: 4);
+        var ir = CabLikeIr(1_000, 4);
         using var cab = Create(("ir1", WriteIr("a.wav", ir, 44_100)));
 
         var prepared = cab.PreparedImpulseResponse(0)!;
@@ -59,7 +59,7 @@ public sealed class CabBlockTests : IDisposable {
 
     [Fact]
     public void Long_irs_are_truncated_with_a_fade() {
-        using var cab = Create(("ir1", WriteIr("long.wav", Signals.Noise(20_000, seed: 5), 48_000)));
+        using var cab = Create(("ir1", WriteIr("long.wav", Signals.Noise(20_000, 5), 48_000)));
 
         var prepared = cab.PreparedImpulseResponse(0)!;
 
@@ -69,8 +69,8 @@ public sealed class CabBlockTests : IDisposable {
 
     [Fact]
     public void Stereo_irs_process_each_channel_separately() {
-        var left = CabLikeIr(400, seed: 6);
-        var right = CabLikeIr(400, seed: 7);
+        var left = CabLikeIr(400, 6);
+        var right = CabLikeIr(400, 7);
         var path = Path.Combine(_folder, "stereo.wav");
         WavFile.Write(path, new AudioData(48_000, [left, right]));
         using var cab = Create(("ir1", path));
@@ -83,23 +83,23 @@ public sealed class CabBlockTests : IDisposable {
 
     [Fact]
     public void Output_does_not_depend_on_block_size_and_does_not_allocate() {
-        var ir = CabLikeIr(3_000, seed: 8);
+        var ir = CabLikeIr(3_000, 8);
         using var a = Create(("ir1", WriteIr("a.wav", ir, 48_000)));
         using var b = Create(("ir1", WriteIr("b.wav", ir, 48_000)));
         a.Params.SetTarget(CabBlock.LowCut, 80);
         b.Params.SetTarget(CabBlock.LowCut, 80);
         a.Reset();
         b.Reset();
-        var input = Signals.Noise(9_600, seed: 9);
+        var input = Signals.Noise(9_600, 9);
         var random = new Random(1);
 
         var fixedSize = BlockRender.Mono(a, input, 64);
         var varied = BlockRender.Stereo(b, input, input, _ => random.Next(1, 65)).Left;
-        var left = Signals.Noise(64, seed: 1);
-        var right = Signals.Noise(64, seed: 2);
+        var left = Signals.Noise(64, 1);
+        var right = Signals.Noise(64, 2);
         var allocated = AllocationProbe.Measure(() => {
                 for (var i = 0; i < 1_000; i++) {
-                    a.Process(new StereoBuffer(left, right), default);
+                    a.Process(new(left, right), default);
                 }
             }
         );
@@ -119,7 +119,7 @@ public sealed class CabBlockTests : IDisposable {
         Assert.Throws<FileNotFoundException>(() => cab.LoadAsset("ir1", Path.Combine(_folder, "missing.wav")));
     }
 
-    private CabBlock Create(params (string Slot, string Path)[] irs) {
+    CabBlock Create(params (string Slot, string Path)[] irs) {
         var cab = new CabBlock();
         foreach (var (slot, path) in irs) {
             cab.LoadAsset(slot, path);
@@ -129,14 +129,14 @@ public sealed class CabBlockTests : IDisposable {
         return cab;
     }
 
-    private string WriteIr(string name, float[] ir, int sampleRate) {
+    string WriteIr(string name, float[] ir, int sampleRate) {
         var path = Path.Combine(_folder, name);
         WavFile.Write(path, new AudioData(sampleRate, [ir]));
         return path;
     }
 
     /// <summary>A decaying, low-passed noise burst: roughly the shape of a close-miked cabinet IR.</summary>
-    private static float[] CabLikeIr(int length, int seed) {
+    static float[] CabLikeIr(int length, int seed) {
         var noise = Signals.Noise(length, seed);
         var ir = new float[length];
         float state = 0;

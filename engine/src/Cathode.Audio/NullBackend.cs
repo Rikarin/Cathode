@@ -8,10 +8,10 @@ namespace Cathode.Audio;
 ///     Used for soak tests and API tests on CI runners, which have no sound card.
 /// </summary>
 public sealed class NullBackend : IDisposable {
-    private readonly int _sampleRate;
-    private readonly int _blockSize;
-    private Thread? _thread;
-    private volatile bool _running;
+    readonly int _sampleRate;
+    readonly int _blockSize;
+    Thread? _thread;
+    volatile bool _running;
 
     public NullBackend(int sampleRate, int blockSize) {
         _sampleRate = sampleRate;
@@ -41,14 +41,14 @@ public sealed class NullBackend : IDisposable {
 
     public void Dispose() => Stop();
 
-    private void Run(IAudioProcessor processor) {
+    void Run(IAudioProcessor processor) {
         var input = new float[_blockSize];
         var outLeft = new float[_blockSize];
         var outRight = new float[_blockSize];
         var period = Stopwatch.Frequency * _blockSize / _sampleRate;
         var deadline = Stopwatch.GetTimestamp() + period;
         while (_running) {
-            processor.Process(new AudioIO(input, input, outLeft, outRight));
+            processor.Process(new(input, input, outLeft, outRight));
             var now = Stopwatch.GetTimestamp();
             if (now > deadline) {
                 LateCallbacks++;

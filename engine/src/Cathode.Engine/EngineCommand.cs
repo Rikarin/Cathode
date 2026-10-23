@@ -1,7 +1,7 @@
 namespace Cathode.Engine;
 
 public enum EngineCommandKind {
-    SetBypass,
+    SetBypass
 }
 
 /// <summary>

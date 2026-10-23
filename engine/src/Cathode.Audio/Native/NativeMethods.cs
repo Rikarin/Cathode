@@ -4,7 +4,7 @@ namespace Cathode.Audio.Native;
 
 /// <summary>P/Invoke surface of <c>cth_audio</c> (engine/native/cth_audio/include/cth_audio.h).</summary>
 internal static unsafe partial class NativeMethods {
-    private const string Library = "cth_audio";
+    const string Library = "cth_audio";
 
     [LibraryImport(Library, EntryPoint = "cth_audio_device_count")]
     internal static partial int DeviceCount();

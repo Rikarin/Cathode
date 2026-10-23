@@ -3,9 +3,9 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp.Tests;
 
 public class ParamBankTests {
-    private static readonly ParamDescriptor[] Descriptors = [
+    static readonly ParamDescriptor[] Descriptors = [
         ParamDescriptor.Float("gain", "Gain", -10, 10, 0, smoothingMs: 1),
-        ParamDescriptor.Choice("mode", "Mode", ["A", "B", "C"]),
+        ParamDescriptor.Choice("mode", "Mode", ["A", "B", "C"])
     ];
 
     [Fact]
@@ -23,7 +23,7 @@ public class ParamBankTests {
     [Fact]
     public void Linear_ramp_reaches_target_after_exactly_the_smoothing_time() {
         var bank = new ParamBank(Descriptors);
-        bank.Prepare(sampleRate: 48_000); // 1 ms = 48 samples
+        bank.Prepare(48_000); // 1 ms = 48 samples
         bank.SetTarget(0, 4.8f);
         bank.BeginBlock();
 

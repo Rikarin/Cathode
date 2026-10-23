@@ -32,9 +32,9 @@ public static unsafe class NativeAudio {
             DeviceInfoNative info;
             if (DeviceInfo(i, &info) == 0) {
                 devices.Add(
-                    new AudioDeviceInfo(
-                        Marshal.PtrToStringUTF8((nint)info.Uid) ?? "",
-                        Marshal.PtrToStringUTF8((nint)info.Name) ?? "",
+                    new(
+                        Marshal.PtrToStringUTF8((nint)info.Uid) ?? string.Empty,
+                        Marshal.PtrToStringUTF8((nint)info.Name) ?? string.Empty,
                         info.InputChannels,
                         info.OutputChannels,
                         info.SampleRate

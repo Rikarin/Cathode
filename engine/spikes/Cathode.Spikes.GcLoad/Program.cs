@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Globalization;
-using System.Net.Http.Json;
 using System.Runtime;
 using System.Text.Json;
 using Cathode.Audio.Native;
@@ -41,7 +40,7 @@ internal static class AudioMode {
             o.Text("device"),
             48_000,
             o.Int("buffer", 64),
-            inputChannels: 0
+            0
         );
         session.OutputGain = 0f; // silent: this measures timing, nobody needs to hear it
         var spec = new ProcessSpec(session.SampleRate, session.BufferFrames);
@@ -49,7 +48,7 @@ internal static class AudioMode {
         var graph = new GraphCompiler(BlockRegistry.CreateDefault().AddNativeBlocks()).Compile(
             NamGraph(Path.GetFullPath(o.Text("nam")!)),
             spec,
-            generation: 1
+            1
         );
         engine.Publish(graph);
         forwarder.Target = engine;
@@ -121,12 +120,12 @@ internal static class AudioMode {
     }
 
     /// <summary>DOTNET_gcConcurrent overrides the runtimeconfig value (System.GC.Concurrent, default on).</summary>
-    private static bool ConcurrentGc() =>
+    static bool ConcurrentGc() =>
         Environment.GetEnvironmentVariable("DOTNET_gcConcurrent") is { } env
             ? env != "0"
             : AppContext.GetData("System.GC.Concurrent") is not bool configured || configured;
 
-    private static GraphDefinition NamGraph(string model) =>
+    static GraphDefinition NamGraph(string model) =>
         new() {
             Nodes = [
                 new() { Id = "in1", Type = NodeTypes.Input, Row = 0, Column = 0 },
@@ -137,13 +136,13 @@ internal static class AudioMode {
                     Column = 1,
                     Assets = { ["model"] = model }
                 },
-                new() { Id = "out1", Type = NodeTypes.Output, Row = 0, Column = 2 },
+                new() { Id = "out1", Type = NodeTypes.Output, Row = 0, Column = 2 }
             ],
-            Cables = [new() { From = "in1", To = "amp1" }, new() { From = "amp1", To = "out1" }],
+            Cables = [new() { From = "in1", To = "amp1" }, new() { From = "amp1", To = "out1" }]
         };
 
     private sealed class Forwarder : IAudioProcessor {
-        private IAudioProcessor? _target;
+        IAudioProcessor? _target;
 
         public IAudioProcessor? Target {
             get => Volatile.Read(ref _target);
@@ -191,7 +190,7 @@ internal sealed record RunResult(
 
 /// <summary>A realistic slice of the planned REST API (docs/02-architecture.md §6), allocation profile included.</summary>
 internal static class Api {
-    private static long s_requests;
+    static long s_requests;
 
     public static long Requests => Interlocked.Read(ref s_requests);
 
@@ -253,7 +252,7 @@ internal static class Preset {
                         .ToDictionary(
                             c => ((char)('A' + c)).ToString(),
                             _ => Enumerable.Range(0, 30).ToDictionary(p => $"param{p}", _ => random.NextSingle())
-                        ),
+                        )
                 }
             )
             .ToList();
@@ -276,8 +275,8 @@ internal static class Preset {
 
 /// <summary>Background garbage at a target rate, with some survivors so gen1/gen2 collections happen too.</summary>
 internal sealed class AllocationStorm : IDisposable {
-    private readonly CancellationTokenSource _stop = new();
-    private readonly Thread _thread;
+    readonly CancellationTokenSource _stop = new();
+    readonly Thread _thread;
 
     public AllocationStorm(double megabytesPerSecond) {
         _thread = new Thread(() => Run(megabytesPerSecond, _stop.Token)) { IsBackground = true, Name = "alloc-storm" };
@@ -290,7 +289,7 @@ internal sealed class AllocationStorm : IDisposable {
         _stop.Dispose();
     }
 
-    private static void Run(double megabytesPerSecond, CancellationToken stop) {
+    static void Run(double megabytesPerSecond, CancellationToken stop) {
         var random = new Random(3);
         var survivors = new object[2_048];
         var bytesPerTick = megabytesPerSecond * 1e6 / 1000; // 1 ms ticks
@@ -337,7 +336,7 @@ internal static class LoadMode {
         var rate = o.Int("rate", 0);
         var seconds = o.Int("seconds", 25);
         using var client = new HttpClient(new SocketsHttpHandler { MaxConnectionsPerServer = concurrency }) {
-            BaseAddress = new Uri(url)
+            BaseAddress = new(url)
         };
         var upload = new byte[2 * 1024 * 1024];
         new Random(5).NextBytes(upload);
@@ -415,7 +414,7 @@ internal static class LoadMode {
 }
 
 internal sealed class Options {
-    private readonly Dictionary<string, string?> _values = new(StringComparer.Ordinal);
+    readonly Dictionary<string, string?> _values = new(StringComparer.Ordinal);
 
     public static Options Parse(IEnumerable<string> args) {
         var options = new Options();

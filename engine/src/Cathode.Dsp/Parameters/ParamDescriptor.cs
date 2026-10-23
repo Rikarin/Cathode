@@ -3,13 +3,13 @@ namespace Cathode.Dsp.Parameters;
 public enum ParamKind {
     Float,
     Enum,
-    Bool,
+    Bool
 }
 
 /// <summary>How the editor maps a knob position to a value. The engine always works in value space.</summary>
 public enum ParamTaper {
     Linear,
-    Log,
+    Log
 }
 
 /// <summary>How the audio thread moves from the current value to a new target.</summary>
@@ -18,7 +18,7 @@ public enum ParamSmoothing {
     Step,
 
     /// <summary>Linear ramp over <see cref="ParamDescriptor.SmoothingMs" />.</summary>
-    Linear,
+    Linear
 }
 
 /// <summary>Describes one parameter of a block type. <see cref="Id" /> is a stable identifier used by presets and the API.</summary>

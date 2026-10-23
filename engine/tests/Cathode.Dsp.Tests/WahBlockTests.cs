@@ -13,7 +13,7 @@ public class WahBlockTests {
         using var wah = new WahBlock();
         wah.Params.SetTarget(WahBlock.Type, type);
         wah.Params.SetTarget(WahBlock.Position, position);
-        wah.Prepare(new ProcessSpec(48_000, 64));
+        wah.Prepare(new(48_000, 64));
 
         var response = BlockRender.Mono(wah, Signals.Impulse(16_384), 64);
 
@@ -35,7 +35,7 @@ public class WahBlockTests {
     [Fact]
     public void Sweeping_the_pedal_does_not_click() {
         using var wah = new WahBlock();
-        wah.Prepare(new ProcessSpec(48_000, 64));
+        wah.Prepare(new(48_000, 64));
         var input = Signals.Sine(440, 48_000, 48_000, 0.3f);
         var output = new float[input.Length];
         var right = new float[input.Length];
@@ -46,7 +46,7 @@ public class WahBlockTests {
                 50f + 50f * MathF.Sin(offset / 48_000f * 2 * MathF.PI * 2)
             ); // 2 Hz rock
             input.AsSpan(offset, 64).CopyTo(output.AsSpan(offset, 64));
-            wah.Process(new StereoBuffer(output.AsSpan(offset, 64), right.AsSpan(offset, 64)), default);
+            wah.Process(new(output.AsSpan(offset, 64), right.AsSpan(offset, 64)), default);
         }
 
         var maxStep = output.Zip(output.Skip(1), static (a, b) => Math.Abs(b - a)).Max();

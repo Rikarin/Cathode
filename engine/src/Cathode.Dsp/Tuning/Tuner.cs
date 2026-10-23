@@ -22,23 +22,23 @@ public sealed class Tuner {
     public const double MinFrequency = 25;
     public const double MaxFrequency = 1_600;
 
-    private const int FftSize = 2 * Window;
-    private const double KeyMaximumThreshold = 0.93;
-    private const double MinClarity = 0.8;
-    private const double MinRms = 1e-3; // -60 dBFS
+    const int FftSize = 2 * Window;
+    const double KeyMaximumThreshold = 0.93;
+    const double MinClarity = 0.8;
+    const double MinRms = 1e-3; // -60 dBFS
 
-    private static readonly string[] Notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    static readonly string[] Notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-    private readonly HalfBandStage _decimator = new(HalfBand.Design(80, 0.1));
-    private readonly Fft _fft = new(FftSize);
-    private readonly float[] _window = new float[Window];
-    private readonly float[] _pending = new float[2];
-    private readonly float[] _re = new float[FftSize];
-    private readonly float[] _im = new float[FftSize];
-    private readonly double[] _nsdf = new double[Window];
-    private readonly float[] _decimated = new float[1];
-    private int _pendingCount;
-    private int _filled;
+    readonly HalfBandStage _decimator = new(HalfBand.Design(80, 0.1));
+    readonly Fft _fft = new(FftSize);
+    readonly float[] _window = new float[Window];
+    readonly float[] _pending = new float[2];
+    readonly float[] _re = new float[FftSize];
+    readonly float[] _im = new float[FftSize];
+    readonly double[] _nsdf = new double[Window];
+    readonly float[] _decimated = new float[1];
+    int _pendingCount;
+    int _filled;
 
     public Tuner(double sampleRate) {
         SampleRate = sampleRate / 2;
@@ -125,11 +125,11 @@ public sealed class Tuner {
     public TunerReading Reading(double frequency, double clarity) {
         var midi = 69 + 12 * Math.Log2(frequency / Reference);
         var nearest = (int)Math.Round(midi);
-        var name = Notes[((nearest % 12) + 12) % 12];
-        return new TunerReading(frequency, name, (nearest / 12) - 1, (midi - nearest) * 100, clarity);
+        var name = Notes[(nearest % 12 + 12) % 12];
+        return new(frequency, name, nearest / 12 - 1, (midi - nearest) * 100, clarity);
     }
 
-    private double Rms() {
+    double Rms() {
         double sum = 0;
         foreach (var x in _window) {
             sum += (double)x * x;
@@ -138,7 +138,7 @@ public sealed class Tuner {
         return Math.Sqrt(sum / Window);
     }
 
-    private void ComputeNsdf() {
+    void ComputeNsdf() {
         Array.Clear(_re);
         Array.Clear(_im);
         _window.CopyTo(_re, 0);
@@ -163,7 +163,7 @@ public sealed class Tuner {
         }
     }
 
-    private (double Period, double Clarity) Parabola(int lag) {
+    (double Period, double Clarity) Parabola(int lag) {
         var a = _nsdf[lag - 1];
         var b = _nsdf[lag];
         var c = _nsdf[lag + 1];

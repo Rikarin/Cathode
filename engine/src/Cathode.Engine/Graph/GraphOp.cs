@@ -17,7 +17,7 @@ public enum GraphOpKind {
     Process,
 
     /// <summary>Add <c>Buffer</c> into the engine output.</summary>
-    WriteOutput,
+    WriteOutput
 }
 
 /// <summary>One step of a compiled execution plan. A plan is a flat array walked once per callback.</summary>

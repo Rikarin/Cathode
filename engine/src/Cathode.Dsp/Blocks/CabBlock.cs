@@ -26,7 +26,7 @@ public sealed class CabBlock : DspBlock, IAssetConsumer {
     /// <summary>High cut at or above this is off.</summary>
     public const float HighCutOff = 20_000f;
 
-    private const int FadeLength = 64;
+    const int FadeLength = 64;
 
     public static BlockDescriptor Info { get; } = new(
         "cab",
@@ -37,16 +37,16 @@ public sealed class CabBlock : DspBlock, IAssetConsumer {
             ParamDescriptor.Float("level2", "IR 2 Level", Decibels.SilenceDb, 12f, 0f, "dB"),
             ParamDescriptor.Float("lowcut", "Low Cut", LowCutOff, 500f, LowCutOff, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("highcut", "High Cut", 1_000f, HighCutOff, HighCutOff, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
         ],
         maxInstances: 2
     );
 
-    private readonly Slot[] _slots = [new(), new()];
-    private SvfState _lowCutLeft, _lowCutRight, _highCutLeft, _highCutRight;
-    private float[] _scratchLeft = [];
-    private float[] _scratchRight = [];
-    private float _gain1 = 1f, _gain2 = 1f, _outputGain = 1f;
+    readonly Slot[] _slots = [new(), new()];
+    SvfState _lowCutLeft, _lowCutRight, _highCutLeft, _highCutRight;
+    float[] _scratchLeft = [];
+    float[] _scratchRight = [];
+    float _gain1 = 1f, _gain2 = 1f, _outputGain = 1f;
 
     public CabBlock()
         : base(Info) { }
@@ -149,15 +149,15 @@ public sealed class CabBlock : DspBlock, IAssetConsumer {
     /// <summary>The IR as it will be convolved (resampled, truncated, normalised), for tests and the editor's plot.</summary>
     public float[]? PreparedImpulseResponse(int slot, int channel = 0) => _slots[slot].Prepared?[channel];
 
-    private static void Accumulate(ReadOnlySpan<float> source, Span<float> destination) {
+    static void Accumulate(ReadOnlySpan<float> source, Span<float> destination) {
         for (var i = 0; i < source.Length; i++) {
             destination[i] += source[i];
         }
     }
 
     private sealed class Slot {
-        private Convolver? _left;
-        private Convolver? _right;
+        Convolver? _left;
+        Convolver? _right;
 
         public AudioData? Source { get; set; }
 
@@ -181,8 +181,8 @@ public sealed class CabBlock : DspBlock, IAssetConsumer {
             }
 
             Prepared = channels;
-            _left = new Convolver(channels[0]);
-            _right = new Convolver(channels[^1]);
+            _left = new(channels[0]);
+            _right = new(channels[^1]);
         }
 
         public void Reset() {
@@ -196,7 +196,7 @@ public sealed class CabBlock : DspBlock, IAssetConsumer {
         }
 
         /// <summary>Truncates to <see cref="MaxIrLength" /> with a short raised-cosine fade so the cut does not click.</summary>
-        private static float[] Shape(float[] ir) {
+        static float[] Shape(float[] ir) {
             if (ir.Length <= MaxIrLength) {
                 return ir;
             }

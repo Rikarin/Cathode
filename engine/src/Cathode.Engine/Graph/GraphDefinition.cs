@@ -29,10 +29,10 @@ public sealed class GraphDefinition {
 
 public sealed class NodeDefinition {
     /// <summary>Stable instance id such as <c>amp1</c> or <c>delay2</c>. Never an index.</summary>
-    public string Id { get; set; } = "";
+    public string Id { get; set; } = string.Empty;
 
     /// <summary>A block type id from the registry, or one of <see cref="NodeTypes" />.</summary>
-    public string Type { get; set; } = "";
+    public string Type { get; set; } = string.Empty;
 
     public int Row { get; set; }
 
@@ -50,9 +50,9 @@ public sealed class NodeDefinition {
 
 /// <summary>A cable from a node in column <c>c</c> to a node in column <c>c + 1</c>.</summary>
 public sealed class CableDefinition {
-    public string From { get; set; } = "";
+    public string From { get; set; } = string.Empty;
 
-    public string To { get; set; } = "";
+    public string To { get; set; } = string.Empty;
 }
 
 [JsonSourceGenerationOptions(

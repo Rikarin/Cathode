@@ -29,7 +29,7 @@ public static class HalfBand {
         return coefficients;
     }
 
-    private static (double K, double Q) TransitionParameters(double transition) {
+    static (double K, double Q) TransitionParameters(double transition) {
         var k = Math.Pow(Math.Tan((1 - transition * 2) * Math.PI / 4), 2);
         var root = Math.Pow(1 - k * k, 0.25);
         var e = 0.5 * (1 - root) / (1 + root);
@@ -38,7 +38,7 @@ public static class HalfBand {
         return (k, q);
     }
 
-    private static double Coefficient(int index, double k, double q, int order) {
+    static double Coefficient(int index, double k, double q, int order) {
         var c = index + 1;
         var numerator = SeriesNumerator(q, order, c) * Math.Pow(q, 0.25);
         var denominator = SeriesDenominator(q, order, c) + 0.5;
@@ -48,7 +48,7 @@ public static class HalfBand {
         return (1 - x) / (1 + x);
     }
 
-    private static double SeriesNumerator(double q, int order, int c) {
+    static double SeriesNumerator(double q, int order, int c) {
         double sum = 0, term;
         var sign = 1;
         var i = 0;
@@ -62,7 +62,7 @@ public static class HalfBand {
         return sum;
     }
 
-    private static double SeriesDenominator(double q, int order, int c) {
+    static double SeriesDenominator(double q, int order, int c) {
         double sum = 0, term;
         var sign = -1;
         var i = 1;
@@ -79,8 +79,8 @@ public static class HalfBand {
 
 /// <summary>One allpass chain state: y[n] = a (x[n] - y[n-1]) + x[n-1] per section.</summary>
 internal sealed class AllpassChain(float[] coefficients) {
-    private readonly float[] _x = new float[coefficients.Length];
-    private readonly float[] _y = new float[coefficients.Length];
+    readonly float[] _x = new float[coefficients.Length];
+    readonly float[] _y = new float[coefficients.Length];
 
     public float Process(float input) {
         for (var i = 0; i < coefficients.Length; i++) {
@@ -113,18 +113,18 @@ internal sealed class AllpassChain(float[] coefficients) {
 
 /// <summary>2x upsampler and downsampler pair built from one half-band design.</summary>
 public sealed class HalfBandStage {
-    private readonly AllpassChain _upEven;
-    private readonly AllpassChain _upOdd;
-    private readonly AllpassChain _downEven;
-    private readonly AllpassChain _downOdd;
+    readonly AllpassChain _upEven;
+    readonly AllpassChain _upOdd;
+    readonly AllpassChain _downEven;
+    readonly AllpassChain _downOdd;
 
     public HalfBandStage(double[] coefficients) {
         var even = coefficients.Where((_, i) => i % 2 == 0).Select(static c => (float)c).ToArray();
         var odd = coefficients.Where((_, i) => i % 2 == 1).Select(static c => (float)c).ToArray();
-        _upEven = new AllpassChain(even);
-        _upOdd = new AllpassChain(odd);
-        _downEven = new AllpassChain(even);
-        _downOdd = new AllpassChain(odd);
+        _upEven = new(even);
+        _upOdd = new(odd);
+        _downEven = new(even);
+        _downOdd = new(odd);
     }
 
     /// <summary>Writes 2 x <paramref name="input" />.Length samples to <paramref name="output" />.</summary>
@@ -167,13 +167,13 @@ public sealed class Oversampler4x {
 
     // The first stage must keep the full audio band (transition starts near 20 kHz at 48 kHz); the second stage
     // only has to reject images of an already band-limited signal, so it can be much shorter.
-    private static readonly double[] FirstStage = HalfBand.Design(AttenuationDb, 0.04);
-    private static readonly double[] SecondStage = HalfBand.Design(AttenuationDb, 0.26);
+    static readonly double[] FirstStage = HalfBand.Design(AttenuationDb, 0.04);
+    static readonly double[] SecondStage = HalfBand.Design(AttenuationDb, 0.26);
 
-    private readonly HalfBandStage _first = new(FirstStage);
-    private readonly HalfBandStage _second = new(SecondStage);
-    private readonly float[] _twice;
-    private readonly float[] _four;
+    readonly HalfBandStage _first = new(FirstStage);
+    readonly HalfBandStage _second = new(SecondStage);
+    readonly float[] _twice;
+    readonly float[] _four;
 
     public Oversampler4x(int maxBlockSize) {
         _twice = new float[maxBlockSize * 2];

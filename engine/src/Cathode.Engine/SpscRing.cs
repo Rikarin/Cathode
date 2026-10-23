@@ -8,10 +8,10 @@ namespace Cathode.Engine;
 /// <remarks>Exactly one thread may enqueue and exactly one (other) thread may dequeue.</remarks>
 public sealed class SpscRing<T>
     where T : unmanaged {
-    private readonly T[] _items;
-    private readonly long _mask;
-    private PaddedLong _head; // next slot to read, owned by the consumer
-    private PaddedLong _tail; // next slot to write, owned by the producer
+    readonly T[] _items;
+    readonly long _mask;
+    PaddedLong _head; // next slot to read, owned by the consumer
+    PaddedLong _tail; // next slot to write, owned by the producer
 
     public SpscRing(int capacity) {
         if (capacity < 2 || (capacity & (capacity - 1)) != 0) {

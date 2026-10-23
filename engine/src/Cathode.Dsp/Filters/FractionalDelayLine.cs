@@ -8,8 +8,8 @@ namespace Cathode.Dsp.Filters;
 public sealed class FractionalDelayLine {
     public const float MinDelay = 3f;
 
-    private float[] _buffer = [];
-    private int _write;
+    float[] _buffer = [];
+    int _write;
 
     /// <summary>Control thread: room for delays up to <paramref name="capacity" /> - 3 samples.</summary>
     public void Allocate(int capacity) => _buffer = new float[capacity];
@@ -40,7 +40,7 @@ public sealed class FractionalDelayLine {
         return ((c3 * frac + c2) * frac + c1) * frac + y1;
     }
 
-    private float At(int index) {
+    float At(int index) {
         index %= _buffer.Length;
         return _buffer[index < 0 ? index + _buffer.Length : index];
     }

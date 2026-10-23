@@ -6,10 +6,10 @@ using Cathode.Testing;
 namespace Cathode.Engine.Tests;
 
 public class GraphCompilerTests {
-    private static readonly ProcessSpec Spec = new(48_000, 64);
-    private static readonly GraphCompiler Compiler = new(TestRegistry.Create());
+    static readonly ProcessSpec Spec = new(48_000, 64);
+    static readonly GraphCompiler Compiler = new(TestRegistry.Create());
 
-    private static NodeDefinition Node(
+    static NodeDefinition Node(
         string id,
         string type,
         int row,
@@ -24,14 +24,14 @@ public class GraphCompilerTests {
         return node;
     }
 
-    private static GraphDefinition Graph(NodeDefinition[] nodes, params (string From, string To)[] cables) =>
+    static GraphDefinition Graph(NodeDefinition[] nodes, params (string From, string To)[] cables) =>
         new() {
-            Nodes = [..nodes], Cables = [..cables.Select(static c => new CableDefinition { From = c.From, To = c.To })],
+            Nodes = [..nodes], Cables = [..cables.Select(static c => new CableDefinition { From = c.From, To = c.To })]
         };
 
-    private static float[] Run(GraphDefinition definition, float[] input) {
+    static float[] Run(GraphDefinition definition, float[] input) {
         var engine = new CathodeEngine(Spec);
-        engine.Publish(Compiler.Compile(definition, Spec, generation: 1));
+        engine.Publish(Compiler.Compile(definition, Spec, 1));
         return OfflineRenderer.Render(engine, input, input, Spec.MaxBlockSize).Left;
     }
 
@@ -61,7 +61,7 @@ public class GraphCompilerTests {
                 Node("in", NodeTypes.Input, 0, 0),
                 Node("a", "volpan", 0, 1, ("level", -6.0206f)),
                 Node("b", "volpan", 1, 1, ("level", -12.0412f)),
-                Node("out", NodeTypes.Output, 0, 2),
+                Node("out", NodeTypes.Output, 0, 2)
             ],
             ("in", "a"),
             ("in", "b"),
@@ -105,7 +105,7 @@ public class GraphCompilerTests {
                 Node("in", NodeTypes.Input, 0, 0),
                 Node("slow", "test-latency", 0, 1),
                 Node("fast", "volpan", 1, 1),
-                Node("out", NodeTypes.Output, 0, 2),
+                Node("out", NodeTypes.Output, 0, 2)
             ],
             ("in", "slow"),
             ("in", "fast"),
@@ -148,7 +148,7 @@ public class GraphCompilerTests {
                 Node("x", "volpan", 0, 0),
                 Node("y", "no-such-block", 1, 3),
                 Node("z", "volpan", 9, 1, ("nope", 1)),
-                Node("out", NodeTypes.Output, 0, 5),
+                Node("out", NodeTypes.Output, 0, 5)
             ],
             ("in", "out"),
             ("in", "ghost")

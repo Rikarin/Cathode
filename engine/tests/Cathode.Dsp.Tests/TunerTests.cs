@@ -4,9 +4,9 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 public class TunerTests(ITestOutputHelper output) {
-    private const double Rate = 48_000;
+    const double Rate = 48_000;
 
-    private static TunerReading? Detect(float[] signal, double reference = 440) {
+    static TunerReading? Detect(float[] signal, double reference = 440) {
         var tuner = new Tuner(Rate) { Reference = reference };
         for (var offset = 0; offset < signal.Length; offset += 64) {
             tuner.Push(signal.AsSpan(offset, Math.Min(64, signal.Length - offset)));
@@ -78,13 +78,13 @@ public class TunerTests(ITestOutputHelper output) {
 
     [Fact]
     public void Noise_and_silence_give_no_reading() {
-        Assert.Null(Detect(Signals.Noise(24_000, seed: 1, amplitude: 0.3f)));
+        Assert.Null(Detect(Signals.Noise(24_000, 1, 0.3f)));
         Assert.Null(Detect(new float[24_000]));
     }
 
     [Fact]
     public void Calibration_moves_the_reference() {
-        var reading = Detect(Signals.Sine(432, Rate, 24_000, 0.3f), reference: 432);
+        var reading = Detect(Signals.Sine(432, Rate, 24_000, 0.3f), 432);
 
         Assert.Equal("A", reading!.Value.Note);
         Assert.Equal(0, reading.Value.Cents, 0.5);

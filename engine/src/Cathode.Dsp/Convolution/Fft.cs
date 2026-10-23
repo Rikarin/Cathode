@@ -5,9 +5,9 @@ namespace Cathode.Dsp.Convolution;
 ///     bit-reversal. Allocation-free after construction.
 /// </summary>
 public sealed class Fft {
-    private readonly float[] _cos;
-    private readonly float[] _sin;
-    private readonly int[] _reverse;
+    readonly float[] _cos;
+    readonly float[] _sin;
+    readonly int[] _reverse;
 
     public Fft(int size) {
         if (size < 2 || (size & (size - 1)) != 0) {
@@ -41,11 +41,11 @@ public sealed class Fft {
 
     public int Size { get; }
 
-    public void Forward(Span<float> re, Span<float> im) => Transform(re, im, inverse: false);
+    public void Forward(Span<float> re, Span<float> im) => Transform(re, im, false);
 
     /// <summary>Inverse transform, scaled by 1/N so that Inverse(Forward(x)) == x.</summary>
     public void Inverse(Span<float> re, Span<float> im) {
-        Transform(re, im, inverse: true);
+        Transform(re, im, true);
         var scale = 1f / Size;
         for (var i = 0; i < Size; i++) {
             re[i] *= scale;
@@ -53,7 +53,7 @@ public sealed class Fft {
         }
     }
 
-    private void Transform(Span<float> re, Span<float> im, bool inverse) {
+    void Transform(Span<float> re, Span<float> im, bool inverse) {
         var n = Size;
         if (re.Length < n || im.Length < n) {
             throw new ArgumentException("Buffers are shorter than the FFT size.");

@@ -5,7 +5,7 @@ namespace Cathode.Dsp;
 
 /// <summary>Maps block type ids to their descriptor and a factory.</summary>
 public sealed class BlockRegistry {
-    private readonly Dictionary<string, (BlockDescriptor Descriptor, Func<IDspBlock> Factory)> _types =
+    readonly Dictionary<string, (BlockDescriptor Descriptor, Func<IDspBlock> Factory)> _types =
         new(StringComparer.Ordinal);
 
     /// <summary>A registry pre-populated with every built-in block.</summary>
@@ -43,7 +43,7 @@ public sealed class BlockRegistry {
 
     public IDspBlock Create(string typeId) => Lookup(typeId).Factory();
 
-    private (BlockDescriptor Descriptor, Func<IDspBlock> Factory) Lookup(string typeId) =>
+    (BlockDescriptor Descriptor, Func<IDspBlock> Factory) Lookup(string typeId) =>
         _types.TryGetValue(typeId, out var entry)
             ? entry
             : throw new KeyNotFoundException($"Unknown block type '{typeId}'.");

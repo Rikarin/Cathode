@@ -16,8 +16,8 @@ public sealed class ChorusBlock : DspBlock {
     public const int Spread = 4;
     public const int Level = 5;
 
-    private const float MaxDepthMs = 5f;
-    private const float MaxDelayMs = 30f;
+    const float MaxDepthMs = 5f;
+    const float MaxDelayMs = 30f;
 
     public static BlockDescriptor Info { get; } = new(
         "chorus",
@@ -29,16 +29,16 @@ public sealed class ChorusBlock : DspBlock {
             ParamDescriptor.Float("delay", "Delay", 1f, MaxDelayMs, 8f, "ms"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 50f, "%"),
             ParamDescriptor.Float("spread", "Spread", 0f, 180f, 90f, "°"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
         ],
         maxInstances: 2
     );
 
-    private readonly FractionalDelayLine _left = new();
-    private readonly FractionalDelayLine _right = new();
-    private Lfo _lfo;
-    private float _mix;
-    private float _outputGain = 1f;
+    readonly FractionalDelayLine _left = new();
+    readonly FractionalDelayLine _right = new();
+    Lfo _lfo;
+    float _mix;
+    float _outputGain = 1f;
 
     public ChorusBlock()
         : base(Info) { }

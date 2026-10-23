@@ -6,7 +6,7 @@ namespace Cathode.Dsp;
 public abstract class DspBlock : IDspBlock {
     protected DspBlock(BlockDescriptor descriptor) {
         Descriptor = descriptor;
-        Params = new ParamBank(descriptor.Params);
+        Params = new(descriptor.Params);
     }
 
     public BlockDescriptor Descriptor { get; }

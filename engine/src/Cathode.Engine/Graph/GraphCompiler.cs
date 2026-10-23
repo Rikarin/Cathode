@@ -89,7 +89,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
 
             if (node.Type == NodeTypes.Input) {
                 buffer = emitter.Allocate();
-                emitter.Emit(new GraphOp(GraphOpKind.ReadInput, buffer));
+                emitter.Emit(new(GraphOpKind.ReadInput, buffer));
             } else if (liveInputs.Length == 1 && readersLeft[liveInputs[0]] == 1) {
                 // Sole remaining reader: take over the upstream buffer and process in place.
                 var source = liveInputs[0];
@@ -102,15 +102,15 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                     var source = liveInputs[k];
                     var delay = arrival - latency[source];
                     if (k == 0) {
-                        emitter.Emit(new GraphOp(GraphOpKind.Copy, buffer, bufferOf[source]));
+                        emitter.Emit(new(GraphOpKind.Copy, buffer, bufferOf[source]));
                         emitter.EmitDelay(buffer, delay);
                     } else if (delay == 0) {
-                        emitter.Emit(new GraphOp(GraphOpKind.Add, buffer, bufferOf[source]));
+                        emitter.Emit(new(GraphOpKind.Add, buffer, bufferOf[source]));
                     } else {
                         var temp = emitter.Allocate();
-                        emitter.Emit(new GraphOp(GraphOpKind.Copy, temp, bufferOf[source]));
+                        emitter.Emit(new(GraphOpKind.Copy, temp, bufferOf[source]));
                         emitter.EmitDelay(temp, delay);
-                        emitter.Emit(new GraphOp(GraphOpKind.Add, buffer, temp));
+                        emitter.Emit(new(GraphOpKind.Add, buffer, temp));
                         emitter.Free(temp);
                     }
 
@@ -122,10 +122,10 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
 
             bufferOf[n] = buffer;
             if (slotOfNode[n] >= 0) {
-                emitter.Emit(new GraphOp(GraphOpKind.Process, buffer, Index: slotOfNode[n]));
+                emitter.Emit(new(GraphOpKind.Process, buffer, Index: slotOfNode[n]));
             } else if (node.Type == NodeTypes.Output) {
                 emitter.EmitDelay(buffer, graphLatency - latency[n]);
-                emitter.Emit(new GraphOp(GraphOpKind.WriteOutput, buffer));
+                emitter.Emit(new(GraphOpKind.WriteOutput, buffer));
             }
 
             if (readersLeft[n] == 0) {
@@ -146,7 +146,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         );
     }
 
-    private void LoadAssets(NodeDefinition node, IDspBlock block, List<string> errors) {
+    void LoadAssets(NodeDefinition node, IDspBlock block, List<string> errors) {
         foreach (var (slot, path) in node.Assets) {
             if (block is not IAssetConsumer consumer || !consumer.AssetSlots.Contains(slot)) {
                 errors.Add($"Node '{node.Id}': block type '{node.Type}' has no asset slot '{slot}'.");
@@ -165,7 +165,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         }
     }
 
-    private Dictionary<string, int> IndexNodes(GraphDefinition definition, List<string> errors) {
+    Dictionary<string, int> IndexNodes(GraphDefinition definition, List<string> errors) {
         var indexById = new Dictionary<string, int>(StringComparer.Ordinal);
         var occupied = new Dictionary<(int, int), string>();
         for (var n = 0; n < definition.Nodes.Count; n++) {
@@ -197,7 +197,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         return indexById;
     }
 
-    private static (List<int>[] Inputs, List<int>[] Consumers) ResolveCables(
+    static (List<int>[] Inputs, List<int>[] Consumers) ResolveCables(
         GraphDefinition definition,
         Dictionary<string, int> indexById,
         List<string> errors
@@ -234,7 +234,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
     }
 
     /// <summary>A node is live when it is reachable from an input and can reach an output.</summary>
-    private static bool[] FindLiveNodes(GraphDefinition definition, List<int>[] inputs, List<int>[] consumers) {
+    static bool[] FindLiveNodes(GraphDefinition definition, List<int>[] inputs, List<int>[] consumers) {
         var count = definition.Nodes.Count;
         var fromInput = Flood(
             Enumerable.Range(0, count).Where(n => definition.Nodes[n].Type == NodeTypes.Input),
@@ -249,7 +249,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         return Enumerable.Range(0, count).Select(n => fromInput[n] && toOutput[n]).ToArray();
     }
 
-    private static bool[] Flood(IEnumerable<int> seeds, List<int>[] edges, int count) {
+    static bool[] Flood(IEnumerable<int> seeds, List<int>[] edges, int count) {
         var visited = new bool[count];
         var stack = new Stack<int>(seeds);
         while (stack.TryPop(out var n)) {
@@ -267,7 +267,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
     }
 
     private sealed class PlanEmitter {
-        private readonly Stack<int> _free = new();
+        readonly Stack<int> _free = new();
 
         public List<GraphOp> Ops { get; } = [];
 
@@ -286,8 +286,8 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 return;
             }
 
-            Delays.Add(new DelayLine(samples));
-            Emit(new GraphOp(GraphOpKind.Delay, buffer, Index: Delays.Count - 1));
+            Delays.Add(new(samples));
+            Emit(new(GraphOpKind.Delay, buffer, Index: Delays.Count - 1));
         }
     }
 }

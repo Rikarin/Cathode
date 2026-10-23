@@ -5,7 +5,7 @@ namespace Cathode.Dsp.Parameters;
 ///     the editor's generated UI and the generated test suites.
 /// </summary>
 public sealed class BlockDescriptor {
-    private readonly Dictionary<string, int> _indexById;
+    readonly Dictionary<string, int> _indexById;
 
     public BlockDescriptor(
         string typeId,
@@ -23,7 +23,7 @@ public sealed class BlockDescriptor {
         TypeVersion = typeVersion;
         MaxInstances = maxInstances;
         Channels = channels;
-        _indexById = new Dictionary<string, int>(StringComparer.Ordinal);
+        _indexById = new(StringComparer.Ordinal);
         for (var i = 0; i < parameters.Count; i++) {
             if (!_indexById.TryAdd(parameters[i].Id, i)) {
                 throw new ArgumentException(
