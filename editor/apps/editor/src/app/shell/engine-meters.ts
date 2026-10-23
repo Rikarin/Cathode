@@ -16,8 +16,16 @@ import { LiveStore } from '../state/live.store';
   imports: [CthMeter, XuiStatusImports, XuiTooltipImports],
   host: { class: 'flex h-8 items-center gap-3' },
   template: `
-    <cth-meter class="h-8" label="Input level" [sources]="input" />
-    <cth-meter class="h-8" label="Output level" [sources]="output" />
+    <div class="flex flex-col justify-center gap-1">
+      @for (meter of meters; track meter.label) {
+        <div class="flex items-center gap-2">
+          <span class="text-foreground-muted w-6 text-[10px] font-semibold tracking-wide" aria-hidden="true">
+            {{ meter.caption }}
+          </span>
+          <cth-meter class="w-28" orientation="horizontal" [label]="meter.label" [sources]="meter.sources" />
+        </div>
+      }
+    </div>
     <span
       class="text-foreground-muted w-20 text-xs whitespace-nowrap tabular-nums"
       [xuiTooltip]="'Engine CPU, 99.9th percentile of callbacks'"
@@ -42,10 +50,13 @@ export class EngineMeters {
   private readonly live = inject(LiveStore);
   private readonly catalog = inject(CatalogStore);
 
-  protected readonly input = [() => this.events.latest?.inputPeak ?? 0];
-  protected readonly output = [
-    () => this.events.latest?.outputPeakLeft ?? 0,
-    () => this.events.latest?.outputPeakRight ?? 0
+  protected readonly meters = [
+    { caption: 'IN', label: 'Input level', sources: [() => this.events.latest?.inputPeak ?? 0] },
+    {
+      caption: 'OUT',
+      label: 'Output level',
+      sources: [() => this.events.latest?.outputPeakLeft ?? 0, () => this.events.latest?.outputPeakRight ?? 0]
+    }
   ];
   protected readonly cpu = signal(0);
   protected readonly estimate = computed(() => {

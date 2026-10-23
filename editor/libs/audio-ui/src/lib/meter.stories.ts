@@ -30,3 +30,12 @@ export const Mono: Story = { args: { label: 'Input level', sources: [guitar(0)] 
 export const Stereo: Story = { args: { label: 'Output level', sources: [guitar(0), guitar(1)] } };
 
 export const Silence: Story = { args: { label: 'Input level', sources: [() => 0] } };
+
+/** As the top bar shows them: horizontal, filling the host's width. */
+export const Horizontal: Story = {
+  args: { label: 'Output level', sources: [guitar(0), guitar(1)] },
+  render: args => ({
+    props: args,
+    template: `<cth-meter class="w-28" orientation="horizontal" [sources]="sources" [label]="label" />`
+  })
+};
