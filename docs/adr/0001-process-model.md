@@ -133,7 +133,7 @@ At 3 MB/min, the 256 MB budget lasts about 85 minutes, even with a preset change
 
 **Still open:**
 - **Isolated spikes not caused by GC.** One run showed a single 69.5 % window with zero GCs, while the managed callback time stayed at about 12 %. So the stall was outside .NET: OS scheduling or the USB driver. It did not recur in the final run, and it caused no overload. Track it in the 1-hour soak.
-- **Remaining allocation** comes mostly from graph compiles on preset loads and from command deserialization. Removing it would make the host GC-free indefinitely.
+- ~~**Remaining allocation** comes mostly from graph compiles on preset loads and from command deserialization.~~ Removed; see "Host allocation removed" below.
 - ~~**The 1-hour soak itself** is still to run.~~ It ran; see below.
 
 ### 1-hour soak (2026-10-23, GitHub-hosted Linux, null audio)
@@ -151,4 +151,36 @@ The run took 60 minutes on the production layout: AOT host, Release server, and 
 The collection came after about 130 MB of allocation. On that runner the effective gen0 budget was about half the configured 256 MB (the runtime is free to start gen0 earlier). A 1.8 ms gen0 pause is larger than a 64-frame buffer (1.33 ms), so on a device it would risk one dropout.
 
 The soak's pace (120 preset loads an hour) is far busier than a gig. Still, the lesson is that a budget only postpones the problem. The fix is to **remove the host's steady allocation**, which comes from graph compiles on preset loads and from IPC command deserialisation. Allocation-free command parsing and pooled compile scratch should get the host to effectively zero per hour.
+
+### Host allocation removed (2026-10-23)
+
+Measured per source first, with the host's own read → handle → write path in a test (`HostAllocationTests`) and the soak's high-gain rig:
+
+| Source (soak rate) | Before | After |
+|---|---|---|
+| `setParams`, one value (knob drag, 30 Hz) | 1,088 B | **0 B** |
+| `setParams`, eight values (scene change) | 2,520 B | **0 B** |
+| `setBypass` | 344 B | **0 B** |
+| Telemetry push (10 Hz) | 208 B | **0 B** |
+| Preset load (`loadGraph`, every 30 s) | ~160–190 KB | **~34 KB** |
+
+Knob drags alone were about 2 MB/min, two thirds of the total. The changes:
+
+1. **Commands are read straight from the frame.** `EngineHostService.TryHandle` reads `setParams` and `setBypass` with a `Utf8JsonReader` over `IpcFrameReader`'s reused buffer, copies ids into stack buffers and looks them up through span-keyed dictionary lookups (`CompiledGraph.SlotOf`, `BlockDescriptor.IndexOf`). The `ok` reply is one reused message. Any other request, or a frame it cannot read, goes through the deserializing `Handle` as before; error replies still allocate, which is fine.
+2. **The async plumbing is pooled.** `IpcFrameReader.ReadFrameAsync`, `IpcFrameWriter.WriteAsync` and the framing helper return `ValueTask` with `PoolingAsyncValueTaskMethodBuilder`, so a read that waits on the socket reuses its state machine.
+3. **Telemetry is refilled in place.** `HostTelemetry` and `HostTunerReading` are mutable classes now. The server pushes one instance, refilled by `EngineHostService.Telemetry(target)`.
+4. **Cab IRs are cached and convolved from native memory.** `CabBlock` keeps the last 16 IR files decoded and prepared, keyed by path, size and write time, so a preset change back to a cab already heard reads nothing. `Convolver` keeps its spectra and state in `NativeBuffer`s and shares one FFT. A cab was 113 KB of a load; it is about 2 KB now. A long IR, whose decoded samples used to land on the large object heap at every load, is now read once.
+5. **Smaller compile scratch.** The drive's oversamplers share their split filter coefficients and resize in place instead of being built twice, and `GraphCompiler` uses plain loops instead of per-node LINQ.
+
+What is left per preset load is the graph's JSON (about 6 KB), block objects and parameter banks, and the compiled plan. At the soak's pace that is about 4 MB an hour, so the 256 MB gen0 budget (about 130 MB effective on the CI runner) would last more than a day of preset changes every 30 seconds.
+
+A 10-minute local soak (macOS, null audio, production layout, same load as above) confirmed it:
+
+| | Before (3 min) | After (10 min) |
+|---|---|---|
+| Host allocation | 2.94 MB/min | **0.08 MB/min** |
+| Host GCs | 0 (budget not yet reached) | **0** |
+| API | 5,600 requests | 18,593 requests, 0 errors; 36,682 WebSocket messages |
+
+Between preset loads, host allocation is flat at zero. The remaining 0.08 MB/min is the preset loads (about 34–42 KB each, 2 a minute). `HostAllocationTests` keeps commands and telemetry at 0 bytes and a preset reload under 48 KB.
 

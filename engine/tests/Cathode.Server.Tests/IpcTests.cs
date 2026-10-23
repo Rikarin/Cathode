@@ -66,7 +66,7 @@ public sealed class IpcTests : IDisposable {
         var token = TestContext.Current.CancellationToken;
         using var writer = new IpcFrameWriter();
         var stream = new MemoryStream(1 << 22);
-        var message = new IpcMessage { Type = IpcTypes.Telemetry, Telemetry = new(0.1f, 0.2f, 0.3f, 4, 5, 0, null) };
+        var message = new IpcMessage { Type = IpcTypes.Telemetry, Telemetry = new() { InputPeak = 0.1f, OutputPeakLeft = 0.2f, OutputPeakRight = 0.3f, CpuP999 = 4, CpuMax = 5 } };
 
         async Task<double> PerFrame(Func<Task> write) {
             for (var i = 0; i < 100; i++) {
@@ -83,7 +83,7 @@ public sealed class IpcTests : IDisposable {
         }
 
         var plain = await PerFrame(() => IpcFraming.WriteAsync(stream, message, token));
-        var reused = await PerFrame(() => writer.WriteAsync(stream, message, token));
+        var reused = await PerFrame(() => writer.WriteAsync(stream, message, token).AsTask());
 
         Assert.True(reused < plain / 3, $"reusable writer {reused:0} bytes per frame vs plain {plain:0}");
     }

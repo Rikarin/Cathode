@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Text.Json;
 using Cathode.Dsp;
 using Cathode.Dsp.Native;
 using Cathode.Dsp.Tuning;
@@ -25,11 +27,15 @@ public sealed class EngineHostService : IDisposable {
     /// </summary>
     static readonly TimeSpan StatsWindow = TimeSpan.FromSeconds(5);
 
+    /// <summary>Longest block or parameter id the allocation-free path reads; longer ones take the slow path.</summary>
+    const int MaxIdLength = 64;
+
     readonly GraphCompiler compiler;
     readonly Tuner tuner;
     readonly float[] tap = new float[4_096];
     readonly IDeviceMonitor? device;
     readonly Lock gate = new();
+    readonly IpcMessage ok = new() { Type = IpcTypes.Ok };
     CompiledGraph? latest;
     MidiInput? midi;
     TunerReading? reading;
@@ -95,7 +101,7 @@ public sealed class EngineHostService : IDisposable {
                 IpcTypes.SetParams => SetParams(request),
                 IpcTypes.SetBypass => SetBypass(request),
                 IpcTypes.SetTuner => SetTuner(request),
-                IpcTypes.Status => new() { Type = IpcTypes.Ok, Id = request.Id, Telemetry = CollectTelemetry() },
+                IpcTypes.Status => new() { Type = IpcTypes.Ok, Id = request.Id, Telemetry = CollectTelemetry(new()) },
                 IpcTypes.Tap => Tap(request),
                 IpcTypes.Looper => Looper(request),
                 IpcTypes.ExportLooper => ExportLooper(request),
@@ -106,10 +112,95 @@ public sealed class EngineHostService : IDisposable {
         }
     }
 
+    /// <summary>
+    ///     Handles <c>setParams</c> and <c>setBypass</c> straight from a frame's UTF-8 JSON, without deserializing it: a
+    ///     knob drag sends one per UI frame, and deserializing them was most of the host's steady allocation
+    ///     (docs/adr/0001-process-model.md). Returns false for every other request, and for any frame it cannot read,
+    ///     so the caller deserializes it and calls <see cref="Handle" />. A success reply is one reused message, valid
+    ///     until the next call; failures allocate.
+    /// </summary>
+    public bool TryHandle(ReadOnlySpan<byte> frame, [NotNullWhen(true)] out IpcMessage? reply) {
+        reply = null;
+        try {
+            var reader = new Utf8JsonReader(frame);
+            if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject) {
+                return false;
+            }
+
+            string? type = null;
+            long id = 0;
+            var generation = 0;
+            var bypassed = false;
+            Span<char> block = stackalloc char[MaxIdLength];
+            var blockLength = -1;
+            var parameters = default(Utf8JsonReader);
+            while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName) {
+                if (reader.ValueTextEquals("type"u8)) {
+                    reader.Read();
+                    type = reader.ValueTextEquals(IpcTypes.SetParams) ? IpcTypes.SetParams
+                        : reader.ValueTextEquals(IpcTypes.SetBypass) ? IpcTypes.SetBypass
+                        : null;
+                    if (type is null) {
+                        return false;
+                    }
+                } else if (reader.ValueTextEquals("id"u8)) {
+                    reader.Read();
+                    id = reader.GetInt64();
+                } else if (reader.ValueTextEquals("generation"u8)) {
+                    reader.Read();
+                    generation = reader.GetInt32();
+                } else if (reader.ValueTextEquals("block"u8)) {
+                    reader.Read();
+                    blockLength = ReadId(ref reader, block);
+                    if (blockLength < 0 && reader.TokenType != JsonTokenType.Null) {
+                        return false;
+                    }
+                } else if (reader.ValueTextEquals("bypassed"u8)) {
+                    reader.Read();
+                    bypassed = reader.TokenType == JsonTokenType.True;
+                } else if (reader.ValueTextEquals("params"u8)) {
+                    parameters = reader; // a checkpoint: the array is applied once the whole frame has been read
+                    reader.Read();
+                    reader.Skip();
+                } else {
+                    reader.Read();
+                    reader.Skip();
+                }
+            }
+
+            if (type is null) {
+                return false;
+            }
+
+            lock (gate) {
+                if (type == IpcTypes.SetParams) {
+                    reply = SetParams(id, generation, ref parameters);
+                } else if (latest is null || generation != latest.Generation) {
+                    reply = IpcMessage.Fail(id, $"Stale graph generation {generation}.");
+                } else {
+                    var slot = blockLength < 0 ? -1 : latest.SlotOf(block[..blockLength]);
+                    reply = slot < 0 ? IpcMessage.Fail(id, $"No block '{block[..Math.Max(blockLength, 0)]}'.")
+                        : Engine.Post(EngineCommand.SetBypass(latest.Generation, slot, bypassed)) ? Ok(id)
+                        : IpcMessage.Fail(id, "The engine command queue is full.");
+                }
+            }
+
+            return true;
+        } catch (Exception e) when (e is JsonException or InvalidOperationException or FormatException) {
+            return false;
+        }
+    }
+
     /// <summary>Meters, CPU, overloads and the latest tuner reading; also disposes graphs the audio thread retired.</summary>
-    public HostTelemetry Telemetry() {
+    public HostTelemetry Telemetry() => Telemetry(new());
+
+    /// <summary>
+    ///     <see cref="Telemetry()" /> into an existing instance (and its tuner reading), so a periodic push allocates
+    ///     nothing.
+    /// </summary>
+    public HostTelemetry Telemetry(HostTelemetry target) {
         lock (gate) {
-            return CollectTelemetry();
+            return CollectTelemetry(target);
         }
     }
 
@@ -149,34 +240,16 @@ public sealed class EngineHostService : IDisposable {
             return IpcMessage.Fail(request.Id, $"Stale graph generation {request.Generation}.");
         }
 
-        var errors = new List<string>();
+        List<string>? errors = null;
         foreach (var value in values) {
-            var (bank, index) = value.Block switch {
-                IpcBlocks.Rig => (Engine.Rig, RigControls.Descriptor.IndexOf(value.Param)),
-                IpcBlocks.Global => (Engine.GlobalEq.Params, Engine.GlobalEq.Descriptor.IndexOf(value.Param)),
-                _ => Graph(value)
-            };
-            if (bank is null || index < 0) {
-                errors.Add($"No parameter '{value.Param}' on block '{value.Block}'.");
-                continue;
+            if (!SetParameter(value.Block, value.Param, value.Value)) {
+                (errors ??= []).Add(NoParameter(value.Param, value.Block));
             }
-
-            bank.SetTarget(index, value.Value);
         }
 
-        return errors.Count == 0
+        return errors is null
             ? IpcMessage.Ok(request.Id)
             : IpcMessage.Fail(request.Id, "Some parameters were not set.", errors);
-    }
-
-    (ParamBank? Bank, int Index) Graph(ParamValue value) {
-        var slot = latest!.SlotOf(value.Block);
-        if (slot < 0) {
-            return (null, -1);
-        }
-
-        var block = latest.Block(slot);
-        return (block.Params, block.Descriptor.IndexOf(value.Param));
     }
 
     IpcMessage Tap(IpcMessage request) {
@@ -218,6 +291,107 @@ public sealed class EngineHostService : IDisposable {
             : IpcMessage.Fail(request.Id, "MIDI output is not available.");
     }
 
+    /// <summary>
+    ///     Applies the <c>params</c> array of a frame, positioned on its property name. Like
+    ///     <see cref="SetParams(IpcMessage)" />, a stale generation rejects the whole update unless every value is a rig
+    ///     or global parameter.
+    /// </summary>
+    IpcMessage SetParams(long id, int generation, ref Utf8JsonReader reader) {
+        if ((latest is null || generation != latest.Generation) && TargetsGraph(reader)) {
+            return IpcMessage.Fail(id, $"Stale graph generation {generation}.");
+        }
+
+        List<string>? errors = null;
+        Span<char> block = stackalloc char[MaxIdLength];
+        Span<char> param = stackalloc char[MaxIdLength];
+        if (reader.Read() && reader.TokenType == JsonTokenType.StartArray) {
+            while (reader.Read() && reader.TokenType == JsonTokenType.StartObject) {
+                var blockLength = -1;
+                var paramLength = -1;
+                var value = 0f;
+                while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName) {
+                    if (reader.ValueTextEquals("block"u8)) {
+                        reader.Read();
+                        blockLength = ReadId(ref reader, block);
+                    } else if (reader.ValueTextEquals("param"u8)) {
+                        reader.Read();
+                        paramLength = ReadId(ref reader, param);
+                    } else if (reader.ValueTextEquals("value"u8)) {
+                        reader.Read();
+                        value = reader.GetSingle();
+                    } else {
+                        reader.Read();
+                        reader.Skip();
+                    }
+                }
+
+                if (blockLength < 0 || paramLength < 0 || !SetParameter(block[..blockLength], param[..paramLength], value)) {
+                    (errors ??= []).Add(NoParameter(param[..Math.Max(paramLength, 0)], block[..Math.Max(blockLength, 0)]));
+                }
+            }
+        }
+
+        return errors is null ? Ok(id) : IpcMessage.Fail(id, "Some parameters were not set.", errors);
+    }
+
+    /// <summary>Whether a <c>params</c> array (reader on its property name) is empty or names a graph block.</summary>
+    static bool TargetsGraph(Utf8JsonReader reader) {
+        var empty = true;
+        if (reader.Read() && reader.TokenType == JsonTokenType.StartArray) {
+            while (reader.Read() && reader.TokenType == JsonTokenType.StartObject) {
+                empty = false;
+                while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName) {
+                    var isBlock = reader.ValueTextEquals("block"u8);
+                    reader.Read();
+                    if (isBlock
+                        && !reader.ValueTextEquals(IpcBlocks.Rig)
+                        && !reader.ValueTextEquals(IpcBlocks.Global)) {
+                        return true;
+                    }
+
+                    reader.Skip();
+                }
+            }
+        }
+
+        return empty;
+    }
+
+    /// <summary>Sets one target on the rig, the global EQ or a block of the current graph.</summary>
+    bool SetParameter(ReadOnlySpan<char> block, ReadOnlySpan<char> param, float value) {
+        ParamBank? bank;
+        int index;
+        if (block.SequenceEqual(IpcBlocks.Rig)) {
+            (bank, index) = (Engine.Rig, RigControls.Descriptor.IndexOf(param));
+        } else if (block.SequenceEqual(IpcBlocks.Global)) {
+            (bank, index) = (Engine.GlobalEq.Params, Engine.GlobalEq.Descriptor.IndexOf(param));
+        } else {
+            var slot = latest?.SlotOf(block) ?? -1;
+            (bank, index) = slot < 0 ? (null, -1) : (latest!.Block(slot).Params, latest.Block(slot).Descriptor.IndexOf(param));
+        }
+
+        if (bank is null || index < 0) {
+            return false;
+        }
+
+        bank.SetTarget(index, value);
+        return true;
+    }
+
+    static string NoParameter(ReadOnlySpan<char> param, ReadOnlySpan<char> block) =>
+        $"No parameter '{param}' on block '{block}'.";
+
+    /// <summary>Copies a string token into <paramref name="destination" />; -1 if it is not a string or too long.</summary>
+    static int ReadId(ref Utf8JsonReader reader, scoped Span<char> destination) =>
+        reader.TokenType == JsonTokenType.String && !reader.HasValueSequence && reader.ValueSpan.Length <= destination.Length
+            ? reader.CopyString(destination)
+            : -1;
+
+    IpcMessage Ok(long id) {
+        ok.Id = id;
+        return ok;
+    }
+
     IpcMessage SetBypass(IpcMessage request) {
         if (latest is null || request.Generation != latest.Generation) {
             return IpcMessage.Fail(request.Id, $"Stale graph generation {request.Generation}.");
@@ -243,7 +417,7 @@ public sealed class EngineHostService : IDisposable {
         return IpcMessage.Ok(request.Id);
     }
 
-    HostTelemetry CollectTelemetry() {
+    HostTelemetry CollectTelemetry(HostTelemetry target) {
         while (Engine.CollectRetired() is { } retired) {
             retired.Dispose();
         }
@@ -272,37 +446,50 @@ public sealed class EngineHostService : IDisposable {
         }
 
         var (input, left, right) = Engine.ReadMeters();
-        var tunerReading = reading is { } r ? new HostTunerReading(r.Frequency, r.Note, r.Octave, r.Cents) : null;
         var stats = Engine.Stats;
         overloads += stats.Overruns - overrunsSeen;
         overrunsSeen = stats.Overruns;
-        var result = new HostTelemetry(
-            input,
-            left,
-            right,
-            stats.Percentile(0.999),
-            stats.MaxPercent,
-            overloads,
-            tunerReading,
-            deviceWindow.Overloads,
-            deviceWindow.P999,
-            deviceWindow.Max,
-            GC.CollectionCount(0),
-            GC.CollectionCount(1),
-            GC.CollectionCount(2),
-            GC.GetTotalPauseDuration().TotalMilliseconds,
-            GC.GetTotalAllocatedBytes(),
-            Engine.Tempo,
-            Engine.Looper is { } looper
-                ? new(
-                    looper.State.ToString().ToLowerInvariant(),
-                    looper.Length / Engine.Spec.SampleRate,
-                    looper.Position / Engine.Spec.SampleRate,
-                    looper.IsReversed,
-                    looper.IsHalfSpeed
-                )
-                : null
-        );
+        target.InputPeak = input;
+        target.OutputPeakLeft = left;
+        target.OutputPeakRight = right;
+        target.CpuP999 = stats.Percentile(0.999);
+        target.CpuMax = stats.MaxPercent;
+        target.Overloads = overloads;
+        if (reading is { } r) {
+            var tunerReading = target.Tuner ??= new();
+            tunerReading.Frequency = r.Frequency;
+            tunerReading.Note = r.Note;
+            tunerReading.Octave = r.Octave;
+            tunerReading.Cents = r.Cents;
+        } else {
+            target.Tuner = null;
+        }
+
+        target.DriverOverloads = deviceWindow.Overloads;
+        target.NativeP999 = deviceWindow.P999;
+        target.NativeMax = deviceWindow.Max;
+        target.Gen0 = GC.CollectionCount(0);
+        target.Gen1 = GC.CollectionCount(1);
+        target.Gen2 = GC.CollectionCount(2);
+        target.GcPauseMs = GC.GetTotalPauseDuration().TotalMilliseconds;
+        target.AllocatedBytes = GC.GetTotalAllocatedBytes();
+        target.Tempo = Engine.Tempo;
+        if (Engine.Looper is { } looper) {
+            var status = target.Looper ??= new();
+            status.State = looper.State switch {
+                LooperState.Recording => "recording",
+                LooperState.Playing => "playing",
+                LooperState.Overdubbing => "overdubbing",
+                LooperState.Stopped => "stopped",
+                _ => "empty"
+            };
+            status.LengthSeconds = looper.Length / Engine.Spec.SampleRate;
+            status.PositionSeconds = looper.Position / Engine.Spec.SampleRate;
+            status.Reversed = looper.IsReversed;
+            status.HalfSpeed = looper.IsHalfSpeed;
+        } else {
+            target.Looper = null;
+        }
         if (Stopwatch.GetElapsedTime(windowStarted) >= StatsWindow) {
             stats.RequestReset();
             overrunsSeen = 0;
@@ -313,6 +500,6 @@ public sealed class EngineHostService : IDisposable {
             }
         }
 
-        return result;
+        return target;
     }
 }

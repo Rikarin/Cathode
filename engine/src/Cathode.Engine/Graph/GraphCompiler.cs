@@ -99,42 +99,62 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             throw new GraphValidationException(errors);
         }
 
+        // Plain loops from here on: this runs on every preset load in a process that must not collect.
         var live = FindLiveNodes(definition, inputs, consumers);
-        var order = Enumerable.Range(0, nodes.Count)
-            .Where(n => live[n])
-            .OrderBy(n => nodes[n].Column)
-            .ThenBy(n => nodes[n].Row)
-            .ToArray();
+        var liveCount = 0;
+        var order = new int[nodes.Count];
+        for (var n = 0; n < nodes.Count; n++) {
+            if (live[n]) {
+                order[liveCount++] = n;
+            }
+        }
+
+        Array.Resize(ref order, liveCount);
+        Array.Sort(
+            order,
+            (a, b) => nodes[a].Column != nodes[b].Column
+                ? nodes[a].Column.CompareTo(nodes[b].Column)
+                : nodes[a].Row.CompareTo(nodes[b].Row)
+        );
 
         // Path latency: the latest-arriving input defines each node's start time.
         var latency = new int[nodes.Count];
+        var graphLatency = 0;
         foreach (var n in order) {
-            var arrival = inputs[n].Where(i => live[i]).Select(i => latency[i]).DefaultIfEmpty(0).Max();
-            latency[n] = arrival + (slotOfNode[n] >= 0 ? blocks[slotOfNode[n]].LatencySamples : 0);
+            latency[n] = Arrival(inputs[n], live, latency)
+                + (slotOfNode[n] >= 0 ? blocks[slotOfNode[n]].LatencySamples : 0);
+            if (nodes[n].Type == NodeTypes.Output) {
+                graphLatency = Math.Max(graphLatency, latency[n]);
+            }
         }
-
-        var graphLatency = order.Where(n => nodes[n].Type == NodeTypes.Output)
-            .Select(n => latency[n])
-            .DefaultIfEmpty(0)
-            .Max();
 
         var emitter = new PlanEmitter();
         var bufferOf = new int[nodes.Count];
         var readersLeft = new int[nodes.Count];
         foreach (var n in order) {
-            readersLeft[n] = consumers[n].Count(c => live[c]);
+            foreach (var c in consumers[n]) {
+                readersLeft[n] += live[c] ? 1 : 0;
+            }
         }
+
+        var liveInputs = new List<int>();
 
         foreach (var n in order) {
             var node = nodes[n];
-            var liveInputs = inputs[n].Where(i => live[i]).ToArray();
-            var arrival = liveInputs.Select(i => latency[i]).DefaultIfEmpty(0).Max();
+            liveInputs.Clear();
+            foreach (var i in inputs[n]) {
+                if (live[i]) {
+                    liveInputs.Add(i);
+                }
+            }
+
+            var arrival = Arrival(inputs[n], live, latency);
             int buffer;
 
             if (node.Type == NodeTypes.Input) {
                 buffer = emitter.Allocate();
                 emitter.Emit(new(GraphOpKind.ReadInput, buffer));
-            } else if (liveInputs.Length == 1 && readersLeft[liveInputs[0]] == 1) {
+            } else if (liveInputs.Count == 1 && readersLeft[liveInputs[0]] == 1) {
                 // Sole remaining reader: take over the upstream buffer and process in place.
                 var source = liveInputs[0];
                 buffer = bufferOf[source];
@@ -142,7 +162,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 emitter.EmitDelay(buffer, arrival - latency[source]);
             } else {
                 buffer = emitter.Allocate();
-                for (var k = 0; k < liveInputs.Length; k++) {
+                for (var k = 0; k < liveInputs.Count; k++) {
                     var source = liveInputs[k];
                     var delay = arrival - latency[source];
                     if (k == 0) {
@@ -190,6 +210,18 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             graphLatency,
             [..modifiers]
         );
+    }
+
+    /// <summary>When the latest live input arrives, in samples of path latency (0 without live inputs).</summary>
+    static int Arrival(List<int> inputs, bool[] live, int[] latency) {
+        var arrival = 0;
+        foreach (var i in inputs) {
+            if (live[i]) {
+                arrival = Math.Max(arrival, latency[i]);
+            }
+        }
+
+        return arrival;
     }
 
     void LoadAssets(NodeDefinition node, IDspBlock block, List<string> errors) {

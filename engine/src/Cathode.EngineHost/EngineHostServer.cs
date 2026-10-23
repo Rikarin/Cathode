@@ -7,7 +7,8 @@ namespace Cathode.EngineHost;
 ///     Listens on a Unix domain socket for the Server (one client at a time), answers requests through
 ///     <see cref="EngineHostService" /> and pushes telemetry ten times a second. Meters and CPU at display rate come
 ///     from the shared-memory region instead (<see cref="EngineHostService.TelemetryRegion" />); the pushed messages
-///     carry the tuner, GC counts and device windows, and each one allocates, so they stay infrequent.
+///     carry the tuner, GC counts and device windows. Parameter and bypass commands, replies and telemetry pushes
+///     allocate nothing, so the process stays collection-free (docs/adr/0001-process-model.md).
 /// </summary>
 public sealed class EngineHostServer(EngineHostService service, string socketPath, Action<string>? log = null) {
     static readonly TimeSpan TelemetryInterval = TimeSpan.FromMilliseconds(100);
@@ -50,8 +51,11 @@ public sealed class EngineHostServer(EngineHostService service, string socketPat
         var telemetry = PushTelemetryAsync(stream, writer, writeLock, connection.Token);
         var midiPush = PushMidiAsync(stream, writer, writeLock, connection.Token);
         try {
-            while (await reader.ReadAsync(stream, connection.Token).ConfigureAwait(false) is { } request) {
-                var reply = service.Handle(request);
+            while (await reader.ReadFrameAsync(stream, connection.Token).ConfigureAwait(false)) {
+                if (!service.TryHandle(reader.Frame, out var reply)) {
+                    reply = service.Handle(reader.Deserialize());
+                }
+
                 await writeLock.WaitAsync(connection.Token).ConfigureAwait(false);
                 try {
                     await writer.WriteAsync(stream, reply, connection.Token).ConfigureAwait(false);
@@ -94,8 +98,10 @@ public sealed class EngineHostServer(EngineHostService service, string socketPat
         CancellationToken cancellationToken
     ) {
         using var timer = new PeriodicTimer(TelemetryInterval);
+        var telemetry = new HostTelemetry();
+        var message = new IpcMessage { Type = IpcTypes.Telemetry, Telemetry = telemetry };
         while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false)) {
-            var message = new IpcMessage { Type = IpcTypes.Telemetry, Telemetry = service.Telemetry() };
+            service.Telemetry(telemetry);
             await writeLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try {
                 await writer.WriteAsync(stream, message, cancellationToken).ConfigureAwait(false);

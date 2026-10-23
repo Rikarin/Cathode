@@ -6,6 +6,7 @@ namespace Cathode.Dsp.Parameters;
 /// </summary>
 public sealed class BlockDescriptor {
     readonly Dictionary<string, int> indexById;
+    readonly Dictionary<string, int>.AlternateLookup<ReadOnlySpan<char>> indexByName;
 
     public string TypeId { get; }
 
@@ -48,8 +49,13 @@ public sealed class BlockDescriptor {
                 );
             }
         }
+
+        indexByName = indexById.GetAlternateLookup<ReadOnlySpan<char>>();
     }
 
     /// <summary>Returns the parameter index for <paramref name="id" />, or -1.</summary>
     public int IndexOf(string id) => indexById.TryGetValue(id, out var index) ? index : -1;
+
+    /// <summary>Allocation-free <see cref="IndexOf(string)" />, for ids parsed straight out of an IPC frame.</summary>
+    public int IndexOf(ReadOnlySpan<char> id) => indexByName.TryGetValue(id, out var index) ? index : -1;
 }

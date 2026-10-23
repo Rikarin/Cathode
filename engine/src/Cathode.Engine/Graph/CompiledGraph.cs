@@ -23,6 +23,7 @@ public sealed class CompiledGraph : IDisposable {
     readonly IDspBlock[] blocks;
     readonly string[] slotIds;
     readonly Dictionary<string, int> slotById;
+    readonly Dictionary<string, int>.AlternateLookup<ReadOnlySpan<char>> slotByName;
     readonly DelayLine[] delays;
     readonly NativeBuffer[] left;
     readonly NativeBuffer[] right;
@@ -72,6 +73,8 @@ public sealed class CompiledGraph : IDisposable {
             slotById.Add(slotIds[i], i);
         }
 
+        slotByName = slotById.GetAlternateLookup<ReadOnlySpan<char>>();
+
         // Work buffers in native memory: pinned managed arrays would live on the pinned object heap, which only gen2
         // collections clean up, so every preset load would push the host towards a blocking gen2.
         left = new NativeBuffer[bufferCount];
@@ -119,6 +122,9 @@ public sealed class CompiledGraph : IDisposable {
 
     /// <summary>Slot index of block instance <paramref name="instanceId" />, or -1.</summary>
     public int SlotOf(string instanceId) => slotById.TryGetValue(instanceId, out var slot) ? slot : -1;
+
+    /// <summary>Allocation-free <see cref="SlotOf(string)" />, for ids parsed straight out of an IPC frame.</summary>
+    public int SlotOf(ReadOnlySpan<char> instanceId) => slotByName.TryGetValue(instanceId, out var slot) ? slot : -1;
 
     public IDspBlock Block(int slot) => blocks[slot];
 

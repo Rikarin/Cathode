@@ -103,34 +103,71 @@ public sealed record HostInfo(
 /// <summary>
 ///     Host health. CPU figures cover the current 5 s window; overloads and GC counts are cumulative. Native timing is
 ///     measured in the audio shim around the whole callback, so it includes any wait to enter the runtime (GC
-///     suspension); it covers the previous complete window and is 0 without a device.
+///     suspension); it covers the previous complete window and is 0 without a device. Mutable so the host can refill
+///     one instance for every push instead of allocating ten a second.
 /// </summary>
-public sealed record HostTelemetry(
-    float InputPeak,
-    float OutputPeakLeft,
-    float OutputPeakRight,
-    double CpuP999,
-    double CpuMax,
-    long Overloads,
-    HostTunerReading? Tuner,
-    long DriverOverloads = 0,
-    double NativeP999 = 0,
-    double NativeMax = 0,
-    int Gen0 = 0,
-    int Gen1 = 0,
-    int Gen2 = 0,
-    double GcPauseMs = 0,
-    long AllocatedBytes = 0,
-    double Tempo = 120,
-    LooperStatus? Looper = null);
+public sealed class HostTelemetry {
+    public float InputPeak { get; set; }
+
+    public float OutputPeakLeft { get; set; }
+
+    public float OutputPeakRight { get; set; }
+
+    public double CpuP999 { get; set; }
+
+    public double CpuMax { get; set; }
+
+    public long Overloads { get; set; }
+
+    public HostTunerReading? Tuner { get; set; }
+
+    public long DriverOverloads { get; set; }
+
+    public double NativeP999 { get; set; }
+
+    public double NativeMax { get; set; }
+
+    public int Gen0 { get; set; }
+
+    public int Gen1 { get; set; }
+
+    public int Gen2 { get; set; }
+
+    public double GcPauseMs { get; set; }
+
+    public long AllocatedBytes { get; set; }
+
+    public double Tempo { get; set; } = 120;
+
+    public LooperStatus? Looper { get; set; }
+}
 
 /// <summary>A MIDI message as the host forwards it, timed on the engine's sample clock.</summary>
 public sealed record MidiEventMessage(int Status, int Data1, int Data2, long SampleTime, string? Port = null);
 
-/// <summary>The looper's transport, for the editor.</summary>
-public sealed record LooperStatus(string State, double LengthSeconds, double PositionSeconds, bool Reversed, bool HalfSpeed);
+/// <summary>The looper's transport, for the editor; mutable for the same reason as <see cref="HostTelemetry" />.</summary>
+public sealed class LooperStatus {
+    public string State { get; set; } = string.Empty;
 
-public sealed record HostTunerReading(double Frequency, string Note, int Octave, double Cents);
+    public double LengthSeconds { get; set; }
+
+    public double PositionSeconds { get; set; }
+
+    public bool Reversed { get; set; }
+
+    public bool HalfSpeed { get; set; }
+}
+
+/// <summary>The tuner's latest reading; mutable for the same reason as <see cref="HostTelemetry" />.</summary>
+public sealed class HostTunerReading {
+    public double Frequency { get; set; }
+
+    public string Note { get; set; } = string.Empty;
+
+    public int Octave { get; set; }
+
+    public double Cents { get; set; }
+}
 
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,

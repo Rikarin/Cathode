@@ -34,8 +34,8 @@ public sealed class DriveBlock() : DspBlock(Info) {
     float mix = 1f;
     float[] dry = [];
 
-    Oversampler4x dryLeft = new(1);
-    Oversampler4x dryRight = new(1);
+    readonly Oversampler4x dryLeft = new(1);
+    readonly Oversampler4x dryRight = new(1);
 
     public static BlockDescriptor Info { get; } = new(
         "drive",
@@ -96,11 +96,14 @@ public sealed class DriveBlock() : DspBlock(Info) {
     }
 
     protected override void OnPrepare(in ProcessSpec spec) {
-        dry = new float[spec.MaxBlockSize];
+        if (dry.Length != spec.MaxBlockSize) {
+            dry = new float[spec.MaxBlockSize];
+        }
+
         left.Allocate(spec.MaxBlockSize);
         right.Allocate(spec.MaxBlockSize);
-        dryLeft = new(spec.MaxBlockSize);
-        dryRight = new(spec.MaxBlockSize);
+        dryLeft.Resize(spec.MaxBlockSize);
+        dryRight.Resize(spec.MaxBlockSize);
     }
 
     protected override void OnReset() {
@@ -147,13 +150,13 @@ public sealed class DriveBlock() : DspBlock(Info) {
     }
 
     sealed class Channel {
-        Oversampler4x oversampler = new(1);
+        readonly Oversampler4x oversampler = new(1);
         SvfState pre;
         SvfState tone;
         SvfState dc;
         AdaaClipper clipper;
 
-        public void Allocate(int maxBlockSize) => oversampler = new(maxBlockSize);
+        public void Allocate(int maxBlockSize) => oversampler.Resize(maxBlockSize);
 
         public void Reset() {
             oversampler.Reset();
