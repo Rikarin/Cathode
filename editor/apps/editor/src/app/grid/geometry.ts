@@ -55,3 +55,13 @@ export function cellAt(point: Point, rows: number, columns: number): { row: numb
     point.x - column * (Cell.width + Cell.gap) <= Cell.width && point.y - row * (Cell.height + Cell.gap) <= Cell.height;
   return inside && row >= 0 && column >= 0 && row < rows && column < columns ? { row, column } : null;
 }
+
+/**
+ * The cell nearest a point, with each gap split between its neighbours: where a cable dropped just outside a block still
+ * lands. Null only outside the grid.
+ */
+export function nearestCell(point: Point, rows: number, columns: number): { row: number; column: number } | null {
+  const column = Math.floor((point.x + Cell.gap / 2) / (Cell.width + Cell.gap));
+  const row = Math.floor((point.y + Cell.gap / 2) / (Cell.height + Cell.gap));
+  return row >= 0 && column >= 0 && row < rows && column < columns ? { row, column } : null;
+}

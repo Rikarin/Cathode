@@ -32,7 +32,7 @@ import { XuiMenuImports } from '@xui/menu';
 import { CatalogStore } from '../state/catalog.store';
 import { LiveStore } from '../state/live.store';
 import { BlockPicker } from './block-picker';
-import { Cell, type Point, cablePath, canConnect, cellAt, cellOrigin, gridSize, inlet, outlet } from './geometry';
+import { Cell, type Point, cablePath, canConnect, cellOrigin, gridSize, inlet, nearestCell, outlet } from './geometry';
 
 interface GridCell {
   key: string;
@@ -101,12 +101,13 @@ const MaxScale = 2;
       @for (cell of cells(); track cell.key) {
         <div
           role="gridcell"
-          class="outline-focus absolute rounded-lg outline-offset-4 data-focused:group-focus-visible/grid:outline-2"
+          class="outline-focus data-[wire=candidate]:outline-primary data-[wire=target]:outline-primary absolute rounded-lg outline-offset-4 data-focused:group-focus-visible/grid:outline-2 data-[wire=candidate]:outline-2 data-[wire=candidate]:outline-dashed data-[wire=target]:outline-2"
           [id]="'cell-' + cell.row + '-' + cell.column"
           [attr.data-testid]="'cell-' + cell.row + '-' + cell.column"
           [attr.aria-label]="describe(cell)"
           [attr.aria-selected]="cell.block !== null && cell.block.id === live.selectedId()"
           [attr.data-focused]="isFocused(cell) ? '' : null"
+          [attr.data-wire]="wireState(cell)"
           [style.left.px]="cell.x"
           [style.top.px]="cell.y"
           [style.width.px]="width"
@@ -182,15 +183,22 @@ const MaxScale = 2;
           />
         }
         @for (block of outlets(); track block.id) {
-          <circle
-            [attr.cx]="outletOf(block).x"
-            [attr.cy]="outletOf(block).y"
-            r="5"
+          <!-- A generous grab area around the small dot, so a cable starts instead of the block moving. -->
+          <g
+            class="group/outlet pointer-events-auto cursor-crosshair"
             [attr.data-testid]="'outlet-' + block.id"
-            class="fill-surface stroke-foreground-muted hover:stroke-primary pointer-events-auto cursor-crosshair"
-            stroke-width="2"
             (pointerdown)="startWire($event, block)"
-          />
+          >
+            <circle [attr.cx]="outletOf(block).x" [attr.cy]="outletOf(block).y" r="13" class="fill-transparent" />
+            <circle
+              [attr.cx]="outletOf(block).x"
+              [attr.cy]="outletOf(block).y"
+              r="5"
+              class="fill-surface stroke-foreground-muted group-hover/outlet:stroke-primary transition-[r] group-hover/outlet:[r:7]"
+              [class.stroke-primary]="block.id === wiring()?.id"
+              stroke-width="2"
+            />
+          </g>
         }
         @if (wire(); as w) {
           <path [attr.d]="w" class="stroke-primary fill-none" stroke-width="2" stroke-dasharray="6 4" />
@@ -262,7 +270,20 @@ export class GridEditor {
   protected readonly selectedCable = signal<string | null>(null);
   protected readonly clipboard = signal<CopiedBlock | null>(null);
   protected readonly wire = signal<string | null>(null);
-  private wireFrom: PresetBlock | null = null;
+  /** The block a cable is being dragged from, the blocks it can reach, and the one under the pointer. */
+  protected readonly wiring = signal<PresetBlock | null>(null);
+  private readonly wireTargets = computed(() => {
+    const from = this.wiring();
+    const cables = this.live.preset()?.cables ?? [];
+    return new Set(
+      from
+        ? this.blocks()
+            .filter(b => canConnect(from, b, cables))
+            .map(b => b.id)
+        : []
+    );
+  });
+  private readonly wireHover = signal<string | null>(null);
 
   protected readonly rows = computed(() => this.live.preset()?.rows ?? 6);
   protected readonly columns = computed(() => this.live.preset()?.columns ?? 14);
@@ -480,33 +501,53 @@ export class GridEditor {
     this.surface().nativeElement.focus();
   }
 
+  /** How a cell shows during a cable drag: a block it can connect to, or the one it would connect to now. */
+  protected wireState(cell: GridCell): 'candidate' | 'target' | null {
+    const id = cell.block?.id;
+    if (!id || !this.wireTargets().has(id)) {
+      return null;
+    }
+
+    return id === this.wireHover() ? 'target' : 'candidate';
+  }
+
   protected startWire(event: PointerEvent, block: PresetBlock): void {
     event.stopPropagation();
     event.preventDefault();
-    this.wireFrom = block;
+    this.wiring.set(block);
     this.surface().nativeElement.setPointerCapture(event.pointerId);
     this.moveWire(event);
   }
 
   protected moveWire(event: PointerEvent): void {
-    if (this.wireFrom) {
-      this.wire.set(cablePath(outlet(this.wireFrom), this.local(event)));
+    const from = this.wiring();
+    if (from) {
+      const point = this.local(event);
+      this.wire.set(cablePath(outlet(from), point));
+      this.wireHover.set(this.wireTarget(point)?.id ?? null);
     }
   }
 
   protected endWire(event: PointerEvent): void {
-    const from = this.wireFrom;
+    const from = this.wiring();
     if (!from) {
       return;
     }
 
-    this.wireFrom = null;
+    const to = this.wireTarget(this.local(event));
+    this.wiring.set(null);
     this.wire.set(null);
-    const target = cellAt(this.local(event), this.rows(), this.columns());
-    const to = target ? this.cellBlock(target.row, target.column) : null;
-    if (to && canConnect(from, to, this.live.preset()?.cables ?? [])) {
+    this.wireHover.set(null);
+    if (to) {
       void this.live.addCable(from.id, to.id);
     }
+  }
+
+  /** The block a cable dropped at this point would connect to, if the connection is allowed. */
+  private wireTarget(point: Point): PresetBlock | null {
+    const cell = nearestCell(point, this.rows(), this.columns());
+    const block = cell ? this.cellBlock(cell.row, cell.column) : null;
+    return block && this.wireTargets().has(block.id) ? block : null;
   }
 
   /** A pointer position in grid coordinates (unscaled pixels, as the geometry works in). */

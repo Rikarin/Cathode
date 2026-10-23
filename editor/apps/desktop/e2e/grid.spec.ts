@@ -112,3 +112,49 @@ test('the picker stops offering a block type at its instance limit', async ({ wi
   await window.keyboard.press('Escape');
   await expect(editor.cell(1, 4)).toHaveAccessibleName(/^Empty/);
 });
+
+test('a cable starts from the edge of a block and lands when dropped just short of the next one', async ({
+  window,
+  editor
+}) => {
+  await editor.addBlock(1, 2, 'Drive');
+  await editor.addBlock(1, 3, 'Delay');
+  const tile = await editor.cell(1, 2).boundingBox();
+  const next = await editor.cell(1, 3).boundingBox();
+  if (!tile || !next) {
+    throw new Error('The blocks are not on screen');
+  }
+
+  // Grab inside the drive's right edge, not on the dot, and let go in the gap before the delay.
+  const y = tile.y + tile.height / 2;
+  await window.mouse.move(tile.x + tile.width - 6, y);
+  await window.mouse.down();
+  await window.mouse.move(next.x - 3, y, { steps: 6 });
+  await expect(editor.cell(1, 3)).toHaveAttribute('data-wire', 'target');
+  await window.mouse.up();
+
+  await expect(window.getByTestId('cable-drive1>delay1')).toHaveCount(1);
+  await expect(editor.block('Drive', 'drive1')).toHaveAccessibleName(/row 2, column 3$/);
+  await expect(editor.cell(1, 3)).not.toHaveAttribute('data-wire');
+});
+
+test('removing a block from the signal path leaves a shunt, so the path stays connected', async ({
+  window,
+  editor
+}) => {
+  // The drive takes over a shunt on the main row, and its cables.
+  await editor.addBlock(0, 2, 'Drive');
+  await expect(window.getByTestId('cable-shunt-r0c1>drive1')).toHaveCount(1);
+  await expect(window.getByTestId('cable-drive1>shunt-r0c3')).toHaveCount(1);
+
+  await editor.block('Drive', 'drive1').click();
+  await editor.grid.press('Delete');
+  await expect(editor.cell(0, 2)).toHaveAccessibleName(/^Shunt/);
+  await expect(window.getByTestId('cable-shunt-r0c1>shunt-r0c2')).toHaveCount(1);
+  await expect(window.getByTestId('cable-shunt-r0c2>shunt-r0c3')).toHaveCount(1);
+  // Only the output's shunt has no cable out, as with an untouched preset: nothing is left dangling.
+  await expect(window.locator('[data-testid^="outlet-shunt"]')).toHaveCount(0);
+
+  await window.getByRole('button', { name: 'Undo' }).click();
+  await expect(editor.block('Drive', 'drive1')).toHaveAccessibleName(/row 1, column 3$/);
+});

@@ -191,10 +191,32 @@ public sealed partial class LiveRig(
                 Check(expected);
                 Find(id);
                 await StructuralAsync(p => {
-                        p.Blocks.RemoveAll(b => b.Id == id);
-                        p.Cables.RemoveAll(c => c.From == id || c.To == id);
+                        var block = p.Blocks.Single(b => b.Id == id);
+                        p.Blocks.Remove(block);
                         foreach (var scene in p.Scenes) {
                             scene.Blocks.Remove(id);
+                        }
+
+                        // A block in a signal path leaves a shunt that keeps its cables, so the path stays whole: the
+                        // reverse of dropping a block onto a shunt. A shunt, or a block at the end of a branch, just goes.
+                        var inPath = block.Type != BuiltInTypes.Shunt
+                            && p.Cables.Any(c => c.To == id)
+                            && p.Cables.Any(c => c.From == id);
+                        if (inPath) {
+                            var shunt = $"shunt-r{block.Row}c{block.Column}";
+                            if (p.Blocks.Any(b => b.Id == shunt)) {
+                                shunt = NextId(BuiltInTypes.Shunt);
+                            }
+
+                            p.Blocks.Add(
+                                new() { Id = shunt, Type = BuiltInTypes.Shunt, Row = block.Row, Column = block.Column }
+                            );
+                            foreach (var cable in p.Cables) {
+                                cable.From = cable.From == id ? shunt : cable.From;
+                                cable.To = cable.To == id ? shunt : cable.To;
+                            }
+                        } else {
+                            p.Cables.RemoveAll(c => c.From == id || c.To == id);
                         }
                     }
                 );

@@ -233,6 +233,44 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         Assert.True(changed.Dirty);
     }
 
+    [Fact]
+    public async Task Removing_a_block_in_the_signal_path_leaves_a_shunt_that_keeps_it_whole() {
+        // Dropping a drive onto the main row takes over shunt-r0c2 and its cables.
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 0, 2));
+
+        var removed = await Delete("/api/v1/live/blocks/drive1");
+
+        var shunt = Assert.Single(removed.Preset.Blocks, b => b.Row == 0 && b.Column == 2);
+        Assert.Equal(BuiltInTypes.Shunt, shunt.Type);
+        Assert.Contains(removed.Preset.Cables, c => c.From == "shunt-r0c1" && c.To == shunt.Id);
+        Assert.Contains(removed.Preset.Cables, c => c.From == shunt.Id && c.To == "shunt-r0c3");
+        Assert.DoesNotContain(removed.Preset.Cables, c => c.From == "drive1" || c.To == "drive1");
+        Assert.Equal(13, removed.Preset.Cables.Count); // in to out, unbroken
+
+        var undone = await Post("/api/v1/live/undo");
+        Assert.Contains(undone.Preset.Blocks, b => b.Id == "drive1" && b.Row == 0 && b.Column == 2);
+        Assert.DoesNotContain(undone.Preset.Blocks, b => b.Row == 0 && b.Column == 2 && b.Type == BuiltInTypes.Shunt);
+    }
+
+    [Fact]
+    public async Task Removing_a_branch_end_or_a_shunt_takes_its_cables_with_it() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 1, 2));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 1, 3));
+        await Post("/api/v1/live/cables", new CableRequest("drive1", "delay1"));
+
+        // The delay only takes signal in: it goes, and nothing takes its place.
+        var withoutDelay = await Delete("/api/v1/live/blocks/delay1");
+        Assert.DoesNotContain(withoutDelay.Preset.Blocks, b => b.Row == 1 && b.Column == 3);
+        Assert.DoesNotContain(withoutDelay.Preset.Cables, c => c.To == "delay1");
+
+        // Deleting a shunt on purpose breaks the path there.
+        var withoutShunt = await Delete("/api/v1/live/blocks/shunt-r0c5");
+        Assert.DoesNotContain(withoutShunt.Preset.Blocks, b => b.Row == 0 && b.Column == 5);
+        Assert.DoesNotContain(withoutShunt.Preset.Cables, c => c.From == "shunt-r0c5" || c.To == "shunt-r0c5");
+    }
+
+    async Task<LiveState> Delete(string url) => await Read(await client.DeleteAsync(url, Token));
+
     async Task<LiveState> Live() => (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!;
 
     async Task<LiveState> Post(string url, object? body = null) =>

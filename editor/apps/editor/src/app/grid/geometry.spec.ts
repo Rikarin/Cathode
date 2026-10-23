@@ -1,5 +1,5 @@
 import type { PresetBlock } from '@cathode/api-client';
-import { Cell, canConnect, cellAt, cellOrigin, inlet, outlet } from './geometry';
+import { Cell, canConnect, cellAt, cellOrigin, inlet, nearestCell, outlet } from './geometry';
 
 const block = (id: string, row: number, column: number, type = 'delay'): PresetBlock => ({
   id,
@@ -32,5 +32,14 @@ describe('grid geometry', () => {
     expect(canConnect(a, block('b', 0, 1), [])).toBe(false);
     expect(canConnect(a, block('in', 0, 3, 'input'), [])).toBe(false);
     expect(canConnect(a, block('b', 0, 3), [{ from: 'a', to: 'b' }])).toBe(false);
+  });
+
+  it('finds the nearest cell for a point in a gap, splitting the gap between neighbours', () => {
+    const origin = cellOrigin(1, 4);
+    expect(nearestCell({ x: origin.x + 10, y: origin.y + 10 }, 6, 14)).toEqual({ row: 1, column: 4 });
+    expect(nearestCell({ x: origin.x - Cell.gap / 2 + 1, y: origin.y }, 6, 14)).toEqual({ row: 1, column: 4 });
+    expect(nearestCell({ x: origin.x - Cell.gap / 2 - 1, y: origin.y }, 6, 14)).toEqual({ row: 1, column: 3 });
+    expect(nearestCell({ x: origin.x, y: origin.y + Cell.height + 2 }, 6, 14)).toEqual({ row: 1, column: 4 });
+    expect(nearestCell({ x: -Cell.gap, y: 0 }, 6, 14)).toBeNull();
   });
 });
