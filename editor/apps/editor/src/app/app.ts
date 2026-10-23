@@ -297,6 +297,9 @@ export class App {
         } else if (key === 'z') {
             event.preventDefault();
             void (event.shiftKey ? this.live.redo() : this.live.undo());
+        } else if (key === 'a') {
+            // An editor, not a document: select-all would only paint every label blue.
+            event.preventDefault();
         }
     }
 }

@@ -56,29 +56,3 @@ export function cellAt(point: Point, rows: number, columns: number): { row: numb
         point.y - row * (Cell.height + Cell.gap) <= Cell.height;
     return inside && row >= 0 && column >= 0 && row < rows && column < columns ? { row, column } : null;
 }
-
-/** Category to one of the eight categorical chart tokens, so a block's colour follows the theme. */
-export function categorySlot(category: string): number {
-    const fixed: Record<string, number> = {
-        Amp: 1,
-        Cab: 2,
-        Drive: 3,
-        Delay: 4,
-        Reverb: 5,
-        Modulation: 6,
-        EQ: 7,
-        Dynamics: 8,
-        Filter: 7,
-        Utility: 8
-    };
-    if (category in fixed) {
-        return fixed[category];
-    }
-
-    let hash = 0;
-    for (const c of category) {
-        hash = (hash * 31 + c.charCodeAt(0)) | 0;
-    }
-
-    return (Math.abs(hash) % 8) + 1;
-}

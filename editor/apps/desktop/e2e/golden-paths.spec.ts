@@ -32,7 +32,7 @@ test.afterEach(async () => {
 test('a guitarist builds a preset from scratch and saves it', async () => {
     // Drop a drive onto the shunt row, from the block palette.
     await window.getByTestId('cell-0-2').dblclick();
-    await window.getByRole('combobox', { name: 'Add a block…' }).fill('Drive');
+    await window.getByRole('combobox', { name: 'Search blocks' }).fill('Drive');
     await window.keyboard.press('Enter');
     const drive = window.getByRole('gridcell', { name: /^Drive drive1/ });
     await expect(drive).toBeVisible();
@@ -57,12 +57,12 @@ test('a guitarist builds a preset from scratch and saves it', async () => {
     await window.getByTestId('save-as-confirm').click();
     await expect(window.getByTestId('preset-name')).toHaveText('First Rig');
     await window.getByRole('link', { name: 'Library' }).click();
-    await expect(window.getByText('First Rig')).toBeVisible();
+    await expect(window.getByRole('grid').getByText('First Rig')).toBeVisible();
 });
 
 test('undo, redo and scenes change the rig', async () => {
     await window.getByTestId('cell-0-3').dblclick();
-    await window.getByRole('combobox', { name: 'Add a block…' }).fill('Delay');
+    await window.getByRole('combobox', { name: 'Search blocks' }).fill('Delay');
     await window.keyboard.press('Enter');
     const delay = window.getByRole('gridcell', { name: /^Delay delay1/ });
     await expect(delay).toBeVisible();
@@ -102,7 +102,7 @@ test('the IRs page mixes impulse responses', async () => {
 
 test('a knob gets a modifier, taps set the tempo, and the looper records', async () => {
     await window.getByTestId('cell-0-2').dblclick();
-    await window.getByRole('combobox', { name: 'Add a block…' }).fill('Delay');
+    await window.getByRole('combobox', { name: 'Search blocks' }).fill('Delay');
     await window.keyboard.press('Enter');
     await expect(window.getByRole('gridcell', { name: /^Delay delay1/ })).toBeVisible();
 

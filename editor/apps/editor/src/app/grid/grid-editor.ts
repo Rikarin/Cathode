@@ -18,21 +18,11 @@ import {
 } from '@ng-icons/material-icons/round';
 import { XuiContextMenuImports } from '@xui/context-menu';
 import { XuiMenuImports } from '@xui/menu';
-import { XuiOmnibarImports } from '@xui/omnibar';
+import { CthBlockTile } from '@cathode/audio-ui';
 import { CatalogStore } from '../state/catalog.store';
 import { LiveStore } from '../state/live.store';
-import {
-    Cell,
-    type Point,
-    cablePath,
-    canConnect,
-    categorySlot,
-    cellAt,
-    cellOrigin,
-    gridSize,
-    inlet,
-    outlet
-} from './geometry';
+import { BlockPicker } from './block-picker';
+import { Cell, type Point, cablePath, canConnect, cellAt, cellOrigin, gridSize, inlet, outlet } from './geometry';
 
 interface GridCell {
     key: string;
@@ -67,7 +57,7 @@ const BlockMime = 'application/x-cathode-block';
 @Component({
     selector: 'cth-grid-editor',
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [XuiContextMenuImports, XuiMenuImports, XuiOmnibarImports],
+    imports: [BlockPicker, CthBlockTile, XuiContextMenuImports, XuiMenuImports],
     providers: [
         provideIcons({
             matAddRound,
@@ -82,7 +72,7 @@ const BlockMime = 'application/x-cathode-block';
     template: `
         <div
             #surface
-            class="focus-visible:outline-focus relative rounded-lg outline-offset-8 focus-visible:outline-2"
+            class="group/grid relative rounded-lg outline-none"
             role="grid"
             tabindex="0"
             aria-label="Signal grid"
@@ -98,13 +88,12 @@ const BlockMime = 'application/x-cathode-block';
             @for (cell of cells(); track cell.key) {
                 <div
                     role="gridcell"
-                    class="absolute rounded-lg"
+                    class="outline-focus absolute rounded-lg outline-offset-4 data-focused:group-focus-visible/grid:outline-2"
                     [id]="'cell-' + cell.row + '-' + cell.column"
                     [attr.data-testid]="'cell-' + cell.row + '-' + cell.column"
                     [attr.aria-label]="describe(cell)"
                     [attr.aria-selected]="cell.block !== null && cell.block.id === live.selectedId()"
-                    [class.outline-2]="isFocused(cell)"
-                    [class.outline-focus]="isFocused(cell)"
+                    [attr.data-focused]="isFocused(cell) ? '' : null"
                     [style.left.px]="cell.x"
                     [style.top.px]="cell.y"
                     [style.width.px]="width"
@@ -129,28 +118,30 @@ const BlockMime = 'application/x-cathode-block';
                                 ></div>
                             </div>
                         } @else {
-                            <div
-                                class="bg-surface-raised border-border shadow-elevation-1 duration-fast relative flex size-full cursor-grab flex-col justify-center overflow-hidden rounded-lg border pr-2 pl-3 transition-opacity"
+                            <cth-block-tile
+                                class="outline-foreground size-full cursor-grab outline-offset-1"
                                 draggable="true"
-                                [class.ring-2]="block.id === live.selectedId()"
-                                [class.ring-primary]="block.id === live.selectedId()"
-                                [class.opacity-40]="live.isBypassed(block.id)"
+                                [class.outline-2]="block.id === live.selectedId()"
+                                [attr.title]="title(block) + ' (' + block.id + ')'"
+                                [name]="title(block)"
+                                [category]="category(block)"
+                                [typeId]="block.type"
+                                [bypassed]="live.isBypassed(block.id)"
                                 (dragstart)="dragStart($event, block)"
                             >
-                                <span
-                                    class="absolute inset-y-0 left-0 w-1.5"
-                                    [class]="'bg-chart-' + slot(block)"
-                                ></span>
-                                <span class="text-foreground truncate text-xs font-semibold">{{ title(block) }}</span>
-                                <span class="text-foreground-muted truncate text-[11px]">{{ block.id }}</span>
+                                @if (instance(block); as n) {
+                                    <span class="absolute top-1 left-1.5 text-[10px] font-semibold opacity-80">{{
+                                        n
+                                    }}</span>
+                                }
                                 @if (hasChannels(block)) {
                                     <span
-                                        class="bg-surface-sunken text-foreground-muted absolute top-1 right-1 rounded px-1 text-[10px]"
+                                        class="absolute top-1 right-1 rounded bg-black/35 px-1 text-[10px] font-semibold"
                                     >
                                         {{ live.channelOf(block.id) }}
                                     </span>
                                 }
-                            </div>
+                            </cth-block-tile>
                         }
                     } @else {
                         <div
@@ -246,16 +237,11 @@ const BlockMime = 'application/x-cathode-block';
             </xui-menu>
         </ng-template>
 
-        <xui-omnibar
-            aria-label="Add a block"
-            placeholder="Add a block…"
-            [items]="catalog.placeable()"
-            [itemText]="blockName"
-            [itemGroup]="blockCategory"
-            [itemDisabled]="atLimit"
-            [hotkey]="null"
+        <cth-block-picker
+            [types]="catalog.placeable()"
+            [isFull]="atLimit"
             [(open)]="paletteOpen"
-            (itemSelected)="place($event)"
+            (picked)="place($event)"
         />
     `
 })
@@ -312,8 +298,6 @@ export class GridEditor {
     });
     protected readonly focusedBlock = computed(() => this.cellBlock(this.focus().row, this.focus().column));
 
-    protected readonly blockName = (type: BlockTypeInfo) => type.name;
-    protected readonly blockCategory = (type: BlockTypeInfo) => type.category;
     protected readonly atLimit = (type: BlockTypeInfo) =>
         this.blocks().filter(b => b.type === type.typeId).length >= type.maxInstances;
 
@@ -321,10 +305,14 @@ export class GridEditor {
         return this.catalog.info(block.type)?.name ?? block.type;
     }
 
-    protected slot(block: PresetBlock): number {
-        return block.type === BuiltInTypes.input || block.type === BuiltInTypes.output
-            ? 8
-            : categorySlot(this.catalog.info(block.type)?.category ?? block.type);
+    protected category(block: PresetBlock): string {
+        return this.catalog.info(block.type)?.category ?? block.type;
+    }
+
+    /** The instance number when there is more than one of a type (drive2), so tiles of one type tell apart. */
+    protected instance(block: PresetBlock): string | null {
+        const n = /\d+$/.exec(block.id)?.[0] ?? null;
+        return n !== null && n !== '1' ? n : null;
     }
 
     protected hasChannels(block: PresetBlock): boolean {
