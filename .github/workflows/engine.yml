@@ -22,6 +22,11 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: engine/global.json
+      - name: Cache native dependencies
+        uses: actions/cache@v6
+        with:
+          path: engine/artifacts/deps
+          key: native-deps-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
       - name: Build native shim
         shell: bash
         run: ./native/build.sh
@@ -43,6 +48,11 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: engine/global.json
+      - name: Cache native dependencies
+        uses: actions/cache@v6
+        with:
+          path: engine/artifacts/deps
+          key: native-deps-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
       - name: Build native shim
         shell: bash
         run: ./native/build.sh

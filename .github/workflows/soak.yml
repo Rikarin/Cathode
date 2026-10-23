@@ -46,6 +46,11 @@ jobs:
           global-json-file: engine/global.json
       - name: Install NativeAOT prerequisites
         run: sudo apt-get update -q && sudo apt-get install -y -q clang zlib1g-dev
+      - name: Cache native dependencies
+        uses: actions/cache@v6
+        with:
+          path: engine/artifacts/deps
+          key: native-deps-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
       - name: Build native libraries
         run: ./native/build.sh
       - name: Soak
@@ -78,6 +83,11 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: engine/global.json
+      - name: Cache native dependencies
+        uses: actions/cache@v6
+        with:
+          path: engine/artifacts/deps
+          key: native-deps-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
       - name: Build native libraries
         run: ./native/build.sh
       - name: Soak
