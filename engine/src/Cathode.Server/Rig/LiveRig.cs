@@ -68,7 +68,8 @@ public sealed partial class LiveRig(
     public Task<LiveState> NewAsync() =>
         Locked(async () => {
                 await ReplaceAsync(Preset.CreateDefault());
-                return Changed("presetLoaded");
+                // A fresh preset has nothing to lose: it is not an unsaved change.
+                return Changed("presetLoaded", markDirty: false);
             }
         );
 
@@ -85,7 +86,8 @@ public sealed partial class LiveRig(
                 CheckScene(scene);
                 ApplyGlobals(loaded);
                 await ReplaceAsync(loaded, scene);
-                return Changed("presetLoaded", scene: scene);
+                // Just loaded, so it matches what is saved.
+                return Changed("presetLoaded", scene: scene, markDirty: false);
             }
         );
 

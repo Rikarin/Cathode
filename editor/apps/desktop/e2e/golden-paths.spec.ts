@@ -1,35 +1,6 @@
-import { type ElectronApplication, type Page, _electron as electron, expect, test } from '@playwright/test';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { expect, test } from './fixtures';
 
-const main = resolve(__dirname, '../../../dist/apps/desktop/main.js');
-
-let app: ElectronApplication;
-let window: Page;
-let scratch: string;
-
-test.beforeEach(async () => {
-  scratch = mkdtempSync(join(tmpdir(), 'cathode-e2e-'));
-  app = await electron.launch({
-    args: [main],
-    env: {
-      ...process.env,
-      CATHODE_USER_DATA: join(scratch, 'user-data'),
-      CATHODE_DATA_DIR: join(scratch, 'server-data')
-    }
-  });
-  window = await app.firstWindow();
-  // First start: the sidecars have to come up and the editor has to connect.
-  await expect(window.getByRole('gridcell', { name: /^Input in1/ })).toBeVisible({ timeout: 90_000 });
-});
-
-test.afterEach(async () => {
-  await app?.close();
-  rmSync(scratch, { recursive: true, force: true });
-});
-
-test('a guitarist builds a preset from scratch and saves it', async () => {
+test('a guitarist builds a preset from scratch and saves it', async ({ window }) => {
   // Drop a drive onto the shunt row, from the block palette.
   await window.getByTestId('cell-0-2').dblclick();
   await window.getByRole('combobox', { name: 'Search blocks' }).fill('Drive');
@@ -60,7 +31,7 @@ test('a guitarist builds a preset from scratch and saves it', async () => {
   await expect(window.getByRole('grid').getByText('First Rig')).toBeVisible();
 });
 
-test('undo, redo and scenes change the rig', async () => {
+test('undo, redo and scenes change the rig', async ({ window }) => {
   await window.getByTestId('cell-0-3').dblclick();
   await window.getByRole('combobox', { name: 'Search blocks' }).fill('Delay');
   await window.keyboard.press('Enter');
@@ -81,7 +52,7 @@ test('undo, redo and scenes change the rig', async () => {
   await expect(delay).not.toHaveAccessibleName(/bypassed/);
 });
 
-test('the analyser, its RTA and the tuner open and stream from the engine', async () => {
+test('the analyser, its RTA and the tuner open and stream from the engine', async ({ window }) => {
   await window.getByRole('button', { name: 'Analyser' }).click();
   await expect(window.getByRole('dialog', { name: 'Analyser' })).toBeVisible();
   await expect(window.getByRole('img', { name: 'Output waveform' })).toBeVisible();
@@ -92,7 +63,7 @@ test('the analyser, its RTA and the tuner open and stream from the engine', asyn
   await expect(window.getByText('Play a string')).toBeVisible();
 });
 
-test('the IRs page mixes impulse responses', async () => {
+test('the IRs page mixes impulse responses', async ({ window }) => {
   await window.getByRole('link', { name: 'IRs' }).click();
   await expect(window.getByRole('heading', { name: 'IR mixer' })).toBeVisible();
   await expect(window.getByTestId('mix-irs')).toBeDisabled(); // nothing picked yet
@@ -100,7 +71,7 @@ test('the IRs page mixes impulse responses', async () => {
   await window.getByRole('link', { name: 'Editor' }).click();
 });
 
-test('a knob gets a modifier, taps set the tempo, and the looper records', async () => {
+test('a knob gets a modifier, taps set the tempo, and the looper records', async ({ window }) => {
   await window.getByTestId('cell-0-2').dblclick();
   await window.getByRole('combobox', { name: 'Search blocks' }).fill('Delay');
   await window.keyboard.press('Enter');
@@ -127,7 +98,7 @@ test('a knob gets a modifier, taps set the tempo, and the looper records', async
   await expect(window.getByRole('dialog', { name: 'Looper' }).getByText('playing')).toBeVisible();
 });
 
-test('the global page holds tempo, EQ, MIDI and footswitches', async () => {
+test('the global page holds tempo, EQ, MIDI and footswitches', async ({ window }) => {
   await window.getByRole('link', { name: 'Global' }).click();
   await expect(window.getByRole('heading', { name: 'Global output EQ' })).toBeVisible();
   await window.getByRole('button', { name: 'New layout' }).click();
@@ -135,7 +106,7 @@ test('the global page holds tempo, EQ, MIDI and footswitches', async () => {
   await expect(window.getByLabel('Switch 1 tap action')).toHaveValue('scene 0');
 });
 
-test('the setup page shows the engine the desktop app started', async () => {
+test('the setup page shows the engine the desktop app started', async ({ window }) => {
   await window.getByRole('link', { name: 'Setup' }).click();
   await expect(window.getByText('Backend')).toBeVisible();
   await expect(window.getByText('null', { exact: true })).toBeVisible();
