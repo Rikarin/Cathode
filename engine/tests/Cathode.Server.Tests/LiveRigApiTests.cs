@@ -212,6 +212,25 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         Assert.False(saved.Dirty);
         Assert.Contains(loaded.Preset.Blocks, b => b.Id == "chorus1");
         Assert.False(loaded.CanUndo);
+        Assert.False(loaded.Dirty);
+        Assert.False((await Live()).Dirty);
+    }
+
+    [Fact]
+    public async Task A_new_or_loaded_preset_is_clean_until_it_is_edited() {
+        Assert.False((await Live()).Dirty);
+
+        var edited = await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 0, 2));
+        Assert.True(edited.Dirty);
+
+        var saved = await Post("/api/v1/live/save", new SaveRequest("Crunch"));
+        var renewed = await Post("/api/v1/live/new");
+        Assert.False(renewed.Dirty);
+
+        var loaded = await Put($"/api/v1/live/preset/{saved.Preset.Id}", new { });
+        Assert.False(loaded.Dirty);
+        var changed = await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 0, 3));
+        Assert.True(changed.Dirty);
     }
 
     async Task<LiveState> Live() => (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!;

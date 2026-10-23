@@ -23,7 +23,8 @@ test('a saved preset reloads with its blocks, channels and values', async ({ win
   await window.getByRole('grid').getByText('Round Trip').click();
   await window.getByTestId('load-preset').click();
   await window.getByRole('link', { name: 'Editor' }).click();
-  await expect(window.getByTestId('preset-name')).toContainText('Round Trip');
+  // Just loaded, so nothing is unsaved: no marker after the name.
+  await expect(window.getByTestId('preset-name')).toHaveText('Round Trip');
 
   const drive = editor.block('Drive', 'drive1');
   await expect(drive).toHaveAccessibleName(/channel B/);
