@@ -7,13 +7,16 @@ namespace Cathode.EngineHost;
 /// <summary>
 ///     Reads MIDI input on its own thread (docs/02-architecture.md §5.10): every message gets the engine sample time
 ///     it arrived at (from the OS timestamp), and batches go to the Server, which owns the mappings. MIDI clock is
-///     handled here, when following it is on: the tempo comes from the average tick interval, sample-accurately.
+///     handled here, when following it is on: the tempo comes from the average tick interval, sample-accurately. Notes
+///     are also posted to the engine, which keeps the held chord for the blocks (<see cref="CathodeEngine.HeldNotes" />).
 ///     Devices plugged in later are picked up within a couple of seconds.
 /// </summary>
 public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage>> forward) : IDisposable {
     const int TicksPerBeat = 24;
     const byte Clock = 0xF8;
     const byte ActiveSensing = 0xFE;
+    const int AllSoundOff = 120;
+    const int AllNotesOff = 123;
 
     readonly List<MidiMessage> received = [];
     readonly Queue<ulong> ticks = new();
@@ -85,11 +88,30 @@ public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage
                 continue;
             }
 
+            Notes(message);
             var age = now > message.TimeNs ? (now - message.TimeNs) * rate / 1e9 : 0;
             batch.Add(new(message.Status, message.Data1, message.Data2, engineNow - (long)age));
         }
 
         return batch;
+    }
+
+    /// <summary>
+    ///     Note on and off (and All Notes Off / All Sound Off) go straight to the engine, any channel, so blocks that
+    ///     follow a keyboard (the Pitch block's MIDI key source) see the held chord without a trip through the Server.
+    /// </summary>
+    void Notes(MidiMessage message) {
+        switch (message.Status & 0xF0) {
+            case 0x90:
+                engine.Post(EngineCommand.Note(message.Data1, message.Data2 > 0));
+                break;
+            case 0x80:
+                engine.Post(EngineCommand.Note(message.Data1, false));
+                break;
+            case 0xB0 when message.Data1 is AllSoundOff or AllNotesOff:
+                engine.Post(EngineCommand.AllNotesOff());
+                break;
+        }
     }
 
     void Tick(ulong timeNs) {

@@ -22,8 +22,10 @@ import { GlobalStore } from '../state/global.store';
 import { LiveStore } from '../state/live.store';
 import { AmpPanel } from './panels/amp-panel';
 import { CabPanel } from './panels/cab-panel';
+import { isCustomTableParam } from './panels/custom-shifter';
 import { IrPlayerPanel } from './panels/ir-player-panel';
 import { PeqPanel } from './panels/peq-panel';
+import { PitchPanel } from './panels/pitch-panel';
 import { ToneMatchPanel } from './panels/tone-match-panel';
 import { ParamControl } from './param-control';
 
@@ -40,6 +42,7 @@ import { ParamControl } from './param-control';
     IrPlayerPanel,
     ParamControl,
     PeqPanel,
+    PitchPanel,
     ToneMatchPanel,
     XuiNonIdealStateImports,
     XuiSegmentedControlImports,
@@ -159,6 +162,9 @@ import { ParamControl } from './param-control';
           @case ('tonematch') {
             <cth-tone-match-panel [block]="block" />
           }
+          @case ('pitch') {
+            <cth-pitch-panel [block]="block" />
+          }
         }
 
         <div class="flex flex-wrap items-start gap-x-6 gap-y-4">
@@ -200,5 +206,10 @@ export class BlockEditor {
   protected readonly info = computed(() => (this.block() ? this.catalog.info(this.block()!.type) : undefined));
   protected readonly title = computed(() => this.info()?.name ?? this.block()?.type ?? '');
   protected readonly typeParam = computed(() => this.info()?.params.find(p => p.id === 'type') ?? null);
-  protected readonly otherParams = computed(() => this.info()?.params.filter(p => p.id !== 'type') ?? []);
+  protected readonly otherParams = computed(
+    () =>
+      this.info()?.params.filter(
+        p => p.id !== 'type' && !(this.block()?.type === 'pitch' && isCustomTableParam(p.id))
+      ) ?? []
+  );
 }

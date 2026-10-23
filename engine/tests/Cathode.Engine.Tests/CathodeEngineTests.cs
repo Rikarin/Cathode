@@ -51,6 +51,23 @@ public class CathodeEngineTests {
     }
 
     [Fact]
+    public void Midi_notes_are_held_until_released() {
+        var engine = new CathodeEngine(Spec);
+        engine.Publish(Compiler.Compile(VolumeGraph(0), Spec, 1));
+
+        engine.Post(EngineCommand.Note(57, true));
+        engine.Post(EngineCommand.Note(60, true));
+        engine.Post(EngineCommand.Note(64, true));
+        engine.Post(EngineCommand.Note(60, false));
+        OfflineRenderer.Render(engine, new float[64], new float[64], 64);
+        Assert.Equal(HeldNotes.Of(57, 64), engine.HeldNotes);
+
+        engine.Post(EngineCommand.AllNotesOff());
+        OfflineRenderer.Render(engine, new float[64], new float[64], 64);
+        Assert.True(engine.HeldNotes.IsEmpty);
+    }
+
+    [Fact]
     public void Commands_for_a_replaced_graph_are_ignored() {
         var engine = new CathodeEngine(Spec);
         var first = Compiler.Compile(VolumeGraph(0), Spec, 1);

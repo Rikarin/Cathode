@@ -37,6 +37,41 @@ public static class Scales {
         [0, 3, 5, 6, 7, 10]
     ];
 
+    /// <summary>Each scale's pitch classes above its root as a 12-bit mask, bit 0 = the root.</summary>
+    static readonly int[] Masks = [..Intervals.Select(static degrees => degrees.Aggregate(0, static (mask, d) => mask | 1 << d))];
+
+    /// <summary>Whether <paramref name="scale" /> is a minor one: a minor third above its root and no major third.</summary>
+    public static bool IsMinor(int scale) {
+        var mask = Masks[Math.Clamp(scale, 0, Masks.Length - 1)];
+        return (mask & 1 << 3) != 0 && (mask & 1 << 4) == 0;
+    }
+
+    /// <summary>Pitch class (0 = C .. 11 = B) of a MIDI note.</summary>
+    public static int PitchClass(int note) => (note % 12 + 12) % 12;
+
+    /// <summary>
+    ///     The scale to harmonise in over a chord: <paramref name="preferred" /> when it contains every tone of
+    ///     <paramref name="chord" /> (a 12-bit pitch-class mask, bit 0 = C) from <paramref name="root" />, else the first
+    ///     scale in <see cref="Names" /> that does (chord-scale theory: Am picks Minor, G7 Mixolydian), else
+    ///     <paramref name="preferred" />.
+    /// </summary>
+    public static int ChordScale(int root, int chord, int preferred) {
+        root = PitchClass(root);
+        var relative = (chord >> root | chord << (12 - root)) & 0xFFF;
+        preferred = Math.Clamp(preferred, 0, Masks.Length - 1);
+        if ((relative & ~Masks[preferred]) == 0) {
+            return preferred;
+        }
+
+        for (var scale = 0; scale < Masks.Length; scale++) {
+            if ((relative & ~Masks[scale]) == 0) {
+                return scale;
+            }
+        }
+
+        return preferred;
+    }
+
     /// <summary>MIDI note number (A4 = 69) of <paramref name="frequency" />, fractional.</summary>
     public static double MidiNote(double frequency) => 69 + 12 * Math.Log2(frequency / 440);
 
@@ -59,5 +94,35 @@ public static class Scales {
         var targetOctave = (int)Math.Floor(target / (double)degrees.Length);
         var targetDegree = target - targetOctave * degrees.Length;
         return 12 * targetOctave + degrees[targetDegree] - degrees[degree];
+    }
+
+    /// <summary>
+    ///     <see cref="HarmonySemitones(int, int, int, int)" /> snapped to the tones of a chord: when the diatonic note
+    ///     is not in <paramref name="chord" /> (a 12-bit pitch-class mask, bit 0 = C; 0 means no chord), the nearest
+    ///     chord tone on the same side of <paramref name="note" /> replaces it, the one nearer the played note on a tie.
+    ///     Unison and octaves stay as they are, and the snapped voice keeps at least a minor third from the played note
+    ///     (or the diatonic interval's own size, if smaller), so it never rubs a semitone against the melody.
+    /// </summary>
+    public static int HarmonySemitones(int note, int key, int scale, int steps, int chord) {
+        var semitones = HarmonySemitones(note, key, scale, steps);
+        var length = Intervals[Math.Clamp(scale, 0, Intervals.Length - 1)].Length;
+        var target = note + semitones;
+        if (chord == 0 || steps % length == 0 || (chord >> PitchClass(target) & 1) != 0) {
+            return semitones;
+        }
+
+        var direction = Math.Sign(semitones);
+        var minimum = Math.Min(3, Math.Abs(semitones));
+        for (var distance = 1; distance < 12; distance++) {
+            foreach (var candidate in (ReadOnlySpan<int>)[target - direction * distance, target + direction * distance]) {
+                var interval = candidate - note;
+                if ((chord >> PitchClass(candidate) & 1) != 0 && Math.Sign(interval) == direction
+                    && Math.Abs(interval) >= minimum) {
+                    return interval;
+                }
+            }
+        }
+
+        return semitones;
     }
 }
