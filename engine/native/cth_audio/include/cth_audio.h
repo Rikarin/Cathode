@@ -43,6 +43,17 @@ typedef struct cth_stream_stats {
     int32_t output_latency_frames;
 } cth_stream_stats;
 
+/* Wall-clock time of each callback measured around the whole process call, including any wait to enter the
+ * managed runtime (for example while a GC is suspending managed threads). 1 % bins of the buffer period;
+ * the last bin collects everything at or above 200 %. */
+#define CTH_TIMING_BINS 201
+
+typedef struct cth_stream_timing {
+    uint64_t bins[CTH_TIMING_BINS];
+    uint64_t over_budget; /* callbacks that took longer than their buffer period */
+    double max_percent;
+} cth_stream_timing;
+
 typedef struct cth_device_info {
     char uid[256];
     char name[256];
@@ -60,6 +71,8 @@ CTH_API int32_t cth_audio_start(cth_stream *stream);
 CTH_API int32_t cth_audio_stop(cth_stream *stream);
 CTH_API void cth_audio_close(cth_stream *stream);
 CTH_API void cth_audio_stats(const cth_stream *stream, cth_stream_stats *stats);
+CTH_API void cth_audio_timing(const cth_stream *stream, cth_stream_timing *timing);
+CTH_API void cth_audio_reset_timing(cth_stream *stream);
 CTH_API const char *cth_audio_backend(void);
 CTH_API const char *cth_audio_last_error(void);
 

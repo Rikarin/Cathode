@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include <CoreAudio/CoreAudio.h>
+#include <mach/mach_time.h>
 #include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +28,10 @@ struct cth_stream {
     _Atomic uint64_t callbacks;
     _Atomic uint64_t overloads;
     int running;
+    double sample_rate;
+    double ticks_to_ns;
+    _Atomic int reset_timing; /* set by the control thread, applied by the audio thread */
+    cth_stream_timing timing;  /* written only by the audio thread */
     float *planar; /* (inputs + outputs) * CTH_MAX_FRAMES */
     const float *in_ptrs[MAX_CHANNELS];
     float *out_ptrs[MAX_CHANNELS];
@@ -210,6 +215,9 @@ static OSStatus io_proc(AudioObjectID device, const AudioTimeStamp *now, const A
         fpu_configured = 1;
     }
 
+    if (atomic_exchange_explicit(&s->reset_timing, 0, memory_order_acquire)) memset(&s->timing, 0, sizeof s->timing);
+    uint64_t started = mach_absolute_time();
+
     UInt32 total = 0;
     if (output && output->mNumberBuffers > 0 && output->mBuffers[0].mNumberChannels > 0) {
         total = output->mBuffers[0].mDataByteSize / (output->mBuffers[0].mNumberChannels * sizeof(float));
@@ -221,6 +229,15 @@ static OSStatus io_proc(AudioObjectID device, const AudioTimeStamp *now, const A
         for (int32_t c = 0; c < s->output_channels; c++) memset(s->out_ptrs[c], 0, frames * sizeof(float));
         s->process(s->user, s->in_ptrs, s->input_channels, s->out_ptrs, s->output_channels, (int32_t)frames);
         interleave(output, s->out_ptrs, s->output_channels, offset, frames);
+    }
+
+    if (total > 0 && s->sample_rate > 0) {
+        double elapsed_ns = (double)(mach_absolute_time() - started) * s->ticks_to_ns;
+        double percent = elapsed_ns / (total / s->sample_rate * 1e9) * 100.0;
+        int bin = percent >= CTH_TIMING_BINS - 1 ? CTH_TIMING_BINS - 1 : (int)percent;
+        s->timing.bins[bin]++;
+        if (percent > s->timing.max_percent) s->timing.max_percent = percent;
+        if (percent >= 100.0) s->timing.over_budget++;
     }
 
     atomic_fetch_add_explicit(&s->callbacks, 1, memory_order_relaxed);
@@ -306,6 +323,10 @@ int32_t cth_audio_open(const char *device_uid, cth_stream_config *config, cth_pr
     AudioObjectAddPropertyListener(device, &overload, overload_listener, s);
 
     config->sample_rate = nominal_rate(device);
+    s->sample_rate = config->sample_rate;
+    mach_timebase_info_data_t timebase;
+    mach_timebase_info(&timebase);
+    s->ticks_to_ns = (double)timebase.numer / (double)timebase.denom;
     config->buffer_frames = s->buffer_frames;
     config->input_channels = inputs;
     config->output_channels = outputs;
@@ -350,4 +371,19 @@ void cth_audio_stats(const cth_stream *s, cth_stream_stats *stats)
     stats->overloads = atomic_load_explicit(&((cth_stream *)s)->overloads, memory_order_relaxed);
     stats->input_latency_frames = s->input_latency;
     stats->output_latency_frames = s->output_latency;
+}
+
+void cth_audio_timing(const cth_stream *s, cth_stream_timing *timing)
+{
+    if (!timing) return;
+    if (!s) {
+        memset(timing, 0, sizeof *timing);
+        return;
+    }
+    memcpy(timing, &s->timing, sizeof *timing); /* racy snapshot of counters; fine for statistics */
+}
+
+void cth_audio_reset_timing(cth_stream *s)
+{
+    if (s) atomic_store_explicit(&s->reset_timing, 1, memory_order_release);
 }

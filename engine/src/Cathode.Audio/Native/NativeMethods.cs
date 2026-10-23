@@ -33,6 +33,12 @@ internal static unsafe partial class NativeMethods
     [LibraryImport(Library, EntryPoint = "cth_audio_stats")]
     internal static partial void Stats(nint stream, out StreamStatsNative stats);
 
+    [LibraryImport(Library, EntryPoint = "cth_audio_timing")]
+    internal static partial void Timing(nint stream, TimingNative* timing);
+
+    [LibraryImport(Library, EntryPoint = "cth_audio_reset_timing")]
+    internal static partial void ResetTiming(nint stream);
+
     [LibraryImport(Library, EntryPoint = "cth_audio_backend")]
     internal static partial byte* Backend();
 
@@ -60,6 +66,16 @@ internal static unsafe partial class NativeMethods
         public ulong Overloads;
         public int InputLatencyFrames;
         public int OutputLatencyFrames;
+    }
+
+    internal const int TimingBins = 201; // CTH_TIMING_BINS
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct TimingNative
+    {
+        public fixed ulong Bins[TimingBins];
+        public ulong OverBudget;
+        public double MaxPercent;
     }
 
     [StructLayout(LayoutKind.Sequential)]

@@ -22,14 +22,14 @@ Each spike is a throwaway prototype with a written result in `docs/adr/`.
 | # | Spike | Pass criterion | If it fails |
 |---|---|---|---|
 | S1 | ◐ macOS done except the 30 min soak and a physical loopback ([ADR-0002](adr/0002-native-audio-backend.md)). **Native audio shim** (`cth_audio`): ASIO (Windows), CoreAudio HAL IOProc (macOS) and JACK (Linux) calling a managed `delegate* unmanaged` passthrough | 64 samples at 48 kHz, < 6 ms measured loopback round trip, 0 xruns in 30 min on each OS | Use 128-sample buffers as the minimum supported, or use RtAudio as is |
-| S2 | **GC under load**: a passthrough plus a 2 ms synthetic DSP load, with the REST server **in the same process** vs **a separate process**, under a load generator | p99.9 callback < 70 % of budget and 0 xruns over 1 h. Pick the process model (ADR-001) | Out-of-process becomes mandatory; tune `GCgen0size` |
+| S2 | ✅ Out-of-process ([ADR-0001](adr/0001-process-model.md)): in-process dropped out even at 100 req/s; out-of-process stayed at baseline at 14 k req/s. **GC under load**: a passthrough plus a 2 ms synthetic DSP load, with the REST server **in the same process** vs **a separate process**, under a load generator | p99.9 callback < 70 % of budget and 0 xruns over 1 h. Pick the process model (ADR-001) | Out-of-process becomes mandatory; tune `GCgen0size` |
 | S3 | ◐ macOS verified, Windows/Linux pending CI ([ADR-0003](adr/0003-nam-hosting.md)): A1 at 4.2 %, A2 Full at 4.0 %, A2 Lite at 0.57 % of one core, golden-matched to upstream. **NativeAOT Host**: a P/Invoke round trip into NAM core via `cth_nam`, loading an A1 and an A2 model | Builds on all 3 operating systems. A standard A1 WaveNet uses < 15 % of one core at 48k/64 | Fall back to LSTM models, or a C# port of the WaveNet for A1 only |
 | S4 | **C# DSP throughput**: biquad cascade, 4× IIR polyphase oversampler + tanh ADAA, 4096-tap uniform partitioned convolution, all `Vector128` | Within 1.5× of an equivalent C++ (chowdsp/FFTConvolver) build | Move hot kernels to native `cth_dsp` |
 | S5 | ◐ FTZ verified by test; tail benchmark pending ([ADR-0002](adr/0002-native-audio-backend.md)). **FTZ/DAZ** from managed code via a native helper; check denormal handling on x64 and ARM64 | No subnormal slowdown in the IIR tail benchmark | Inject ε in all feedback paths |
 | S6 | **Electron sidecar**: package Host + Server per OS, spawn them, health check, codesign/notarise on macOS | Signed `.dmg`/`.exe`/`.AppImage` launches and connects | Adjust packaging: electron-builder `extraResources` |
 | S7 | **Licensing**: GPL-3.0-or-later chosen; write a licence inventory (ASIO SDK under GPLv3, NAM core MIT, RTNeural BSD-3, FFTConvolver MIT) | Done | — |
 
-**Exit:** ADRs for the process model, audio backend, native/managed split, and minimum buffer size.
+**Exit:** ADRs for the process model (ADR-0001 ✅), audio backend (ADR-0002, macOS), native/managed split (ADR-0003 ✅), and minimum buffer size.
 
 ---
 

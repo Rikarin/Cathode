@@ -5,6 +5,44 @@ using static Cathode.Audio.Native.NativeMethods;
 
 namespace Cathode.Audio.Native;
 
+/// <summary>
+/// Driver-thread callback durations measured natively around the managed call, as a percentage of the buffer
+/// period. Unlike <see cref="CallbackStats"/>, this includes time spent waiting to enter the runtime (GC suspension).
+/// </summary>
+public sealed class CallbackTiming(ulong[] bins, ulong overBudget, double maxPercent)
+{
+    public ulong Count { get; } = bins.Aggregate(0UL, static (a, b) => a + b);
+
+    public ulong OverBudget { get; } = overBudget;
+
+    public double MaxPercent { get; } = maxPercent;
+
+    /// <summary>Upper bound (1 % resolution) of the budget percentage that <paramref name="quantile"/> of callbacks stayed under.</summary>
+    public double Percentile(double quantile)
+    {
+        if (Count == 0)
+        {
+            return 0;
+        }
+
+        var threshold = (ulong)Math.Ceiling(quantile * Count);
+        ulong running = 0;
+        for (var i = 0; i < bins.Length; i++)
+        {
+            running += bins[i];
+            if (running >= threshold)
+            {
+                return i + 1;
+            }
+        }
+
+        return bins.Length;
+    }
+
+    /// <summary>Callbacks that took at least <paramref name="percent"/> of their budget.</summary>
+    public ulong AtLeast(int percent) => bins.Skip(Math.Clamp(percent, 0, bins.Length - 1)).Aggregate(0UL, static (a, b) => a + b);
+}
+
 public sealed record AudioSessionStats(ulong Callbacks, ulong Overloads, int InputLatencyFrames, int OutputLatencyFrames, long CallbackExceptions);
 
 /// <summary>
@@ -76,6 +114,23 @@ public sealed unsafe class NativeAudioSession : IDisposable
         NativeMethods.Stats(_stream, out var s);
         return new AudioSessionStats(s.Callbacks, s.Overloads, s.InputLatencyFrames, s.OutputLatencyFrames, Interlocked.Read(ref _exceptions));
     }
+
+    /// <summary>Snapshot of the native callback timing histogram.</summary>
+    public CallbackTiming Timing()
+    {
+        TimingNative raw;
+        NativeMethods.Timing(_stream, &raw);
+        var bins = new ulong[TimingBins];
+        for (var i = 0; i < TimingBins; i++)
+        {
+            bins[i] = raw.Bins[i];
+        }
+
+        return new CallbackTiming(bins, raw.OverBudget, raw.MaxPercent);
+    }
+
+    /// <summary>Clears the timing histogram (applied by the audio thread at its next callback).</summary>
+    public void ResetTiming() => NativeMethods.ResetTiming(_stream);
 
     public void Dispose()
     {

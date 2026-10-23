@@ -25,5 +25,13 @@ void cth_audio_stats(const cth_stream *stream, cth_stream_stats *stats)
     if (stats) { stats->callbacks = 0; stats->overloads = 0; stats->input_latency_frames = 0; stats->output_latency_frames = 0; }
 }
 
+void cth_audio_timing(const cth_stream *stream, cth_stream_timing *timing)
+{
+    (void)stream;
+    if (timing) { for (int i = 0; i < CTH_TIMING_BINS; i++) timing->bins[i] = 0; timing->over_budget = 0; timing->max_percent = 0; }
+}
+
+void cth_audio_reset_timing(cth_stream *stream) { (void)stream; }
+
 const char *cth_audio_backend(void) { return "none"; }
 const char *cth_audio_last_error(void) { return not_supported; }

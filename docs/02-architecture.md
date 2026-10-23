@@ -51,13 +51,18 @@ This document turns the feature audit ([01](01-axe-fx-iii-audit.md)) and the DSP
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-### Why the engine and the REST server are separate processes ⚠
+### Why the engine and the REST server are separate processes
 
 A .NET GC **suspends every thread that is running managed code**, including the audio callback, even when that thread never allocates. NativeAOT uses the same GC. Kestrel, routing and System.Text.Json allocate on every request. A 64-sample buffer at 48 kHz is 1.33 ms, so one gen0 pause at the wrong moment causes a dropout.
 
 - **Cathode.Host** is a minimal NativeAOT process. In steady state it allocates nothing: DSP memory is native or pinned, commands are unmanaged structs, and telemetry goes to shared memory. GC settings: workstation, non-concurrent, `SustainedLowLatency`, and a large gen0 budget (`GCgen0size`) so the rare allocations at preset load almost never trigger a collection.
 - **Cathode.Server** may allocate freely. Its GCs cannot touch the audio thread.
-- Both processes implement the same `IEngineControl` interface. Tests and early development can use **in-process mode** (`InProcEngineControl`), and production uses **out-of-process mode** (`IpcEngineControl`). The Phase 0 spike measures both under REST load and confirms the split is worth its cost.
+- Both processes implement the same `IEngineControl` interface. Functional tests can use **in-process mode** (`InProcEngineControl`), and production uses **out-of-process mode** (`IpcEngineControl`).
+- **Confirmed by spike S2 ([ADR-0001](adr/0001-process-model.md)):**
+  - In-process, even 100 req/s caused dropouts, and a 50 MB/s allocation storm with no HTTP caused 7 in 20 s.
+  - Out-of-process, the audio callback stayed at baseline at 14,000 req/s.
+  - No GC mode made in-process acceptable.
+  - The Host must therefore stay **GC-free** during a performance, not merely low-allocation.
 
 A user who runs no editor (a "headless rig on a mini-PC") starts only Host + Server, the way a hardware unit boots without Axe-Edit.
 
