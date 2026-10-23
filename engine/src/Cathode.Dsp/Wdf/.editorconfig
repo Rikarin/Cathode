@@ -1,0 +1,4 @@
+# WDF trees are nested mutable structs: elements, sources and subtrees must be public fields rather than properties,
+# so a source or a component deep inside a tree is set in place instead of on a copy.
+[*.cs]
+dotnet_diagnostic.CA1051.severity = none
