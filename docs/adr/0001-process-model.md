@@ -134,5 +134,21 @@ At 3 MB/min, the 256 MB budget lasts about 85 minutes, even with a preset change
 **Still open:**
 - **Isolated spikes not caused by GC.** One run showed a single 69.5 % window with zero GCs, while the managed callback time stayed at about 12 %. So the stall was outside .NET: OS scheduling or the USB driver. It did not recur in the final run, and it caused no overload. Track it in the 1-hour soak.
 - **Remaining allocation** comes mostly from graph compiles on preset loads and from command deserialization. Removing it would make the host GC-free indefinitely.
-- **The 1-hour soak itself** is still to run.
+- ~~**The 1-hour soak itself** is still to run.~~ It ran; see below.
+
+### 1-hour soak (2026-10-23, GitHub-hosted Linux, null audio)
+
+The run took 60 minutes on the production layout: AOT host, Release server, and a preset load every 30 s, knob drags at 30 Hz and scene changes every 2 s.
+
+| | Result |
+|---|---|
+| API | 111,402 requests, **0 errors**; 220,099 WebSocket messages |
+| Driver overloads | 0 (null backend: no driver) |
+| Worst managed callback | 88.7 % of budget (null backend; its timing is not meaningful) |
+| Host allocation | 3.06 MB/min |
+| **Host GCs** | **1 gen0 at minute 43, 1.8 ms pause**, so the zero-GC gate **failed** |
+
+The collection came after about 130 MB of allocation. On that runner the effective gen0 budget was about half the configured 256 MB (the runtime is free to start gen0 earlier). A 1.8 ms gen0 pause is larger than a 64-frame buffer (1.33 ms), so on a device it would risk one dropout.
+
+The soak's pace (120 preset loads an hour) is far busier than a gig. Still, the lesson is that a budget only postpones the problem. The fix is to **remove the host's steady allocation**, which comes from graph compiles on preset loads and from IPC command deserialisation. Allocation-free command parsing and pooled compile scratch should get the host to effectively zero per hour.
 

@@ -10,8 +10,29 @@ namespace Cathode.Host;
 
 /// <summary>Device diagnostics for Phase 0 spike S1 (native audio shim).</summary>
 static class AudioCommands {
-    public static int ListDevices() {
+    public static int ListDevices(CommandLine options) {
         RequireBackend();
+        if (options.Flag("json")) {
+            // For the desktop app's audio setup page; hand-written so the AOT host needs no serializer metadata.
+            using var json = new Utf8JsonWriter(Console.OpenStandardOutput(), new() { Indented = true });
+            json.WriteStartObject();
+            json.WriteString("backend", NativeAudio.Backend);
+            json.WriteStartArray("devices");
+            foreach (var d in NativeAudio.Devices()) {
+                json.WriteStartObject();
+                json.WriteString("uid", d.Uid);
+                json.WriteString("name", d.Name);
+                json.WriteNumber("inputChannels", d.InputChannels);
+                json.WriteNumber("outputChannels", d.OutputChannels);
+                json.WriteNumber("sampleRate", d.SampleRate);
+                json.WriteEndObject();
+            }
+
+            json.WriteEndArray();
+            json.WriteEndObject();
+            return 0;
+        }
+
         Console.WriteLine($"backend: {NativeAudio.Backend}");
         foreach (var d in NativeAudio.Devices()) {
             Console.WriteLine(

@@ -168,6 +168,8 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
             Token
         );
 
+        var content = await client.GetByteArrayAsync($"/api/v1/assets/{irAsset.Ref}/content", Token);
+        Assert.Equal(ir.ToArray(), content);
         Assert.Equal(irAsset.Ref, again.Ref); // stored once
         Assert.StartsWith("sha256:", irAsset.Ref, StringComparison.Ordinal);
         Assert.Equal(irAsset.Ref, withIr.Preset.Blocks.Single(b => b.Id == "cab1").Assets["ir1"]);

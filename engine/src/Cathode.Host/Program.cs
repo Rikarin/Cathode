@@ -15,7 +15,7 @@ try {
     return options.Command switch {
         "version" => PrintVersion(),
         "self-test" => SelfTest.Run(),
-        "devices" => AudioCommands.ListDevices(),
+        "devices" => AudioCommands.ListDevices(options),
         "audio-test" => AudioCommands.AudioTest(options),
         "latency-test" => AudioCommands.LatencyTest(options),
         "bench-nam" => NamBenchmark.Run(options),
@@ -45,7 +45,7 @@ int Usage() {
                  --device <uid>  --rate 48000  --buffer 64  --null-audio  --mute
                  --telemetry <path>  (shared-memory telemetry; default <socket>.<pid>.telemetry)
            --self-test                     offline real-time path check (no device)
-           --devices                       list audio devices
+           --devices [--json]              list audio devices
            --audio-test [options]          run the engine on a device and report timing and dropouts
                  --device <uid>  --rate 48000  --buffer 64  --seconds 10  --input  --monitor  --nam <file.nam> | --graph <graph.json>
                  (output is muted unless --monitor; with --input, input 1 is processed)

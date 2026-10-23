@@ -6,6 +6,12 @@ public sealed class ServerOptions {
     public string DataDirectory { get; set; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Cathode");
 
+    /// <summary>
+    ///     Access token every request must present (<c>Authorization: Bearer</c>). Required when listening beyond
+    ///     localhost; the desktop app generates one per run.
+    /// </summary>
+    public string? Token { get; set; }
+
     public EngineOptions Engine { get; set; } = new();
 }
 

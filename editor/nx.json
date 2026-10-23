@@ -1,0 +1,47 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "production": [
+      "default",
+      "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
+      "!{projectRoot}/tsconfig.spec.json"
+    ],
+    "sharedGlobals": []
+  },
+  "plugins": [
+    {
+      "plugin": "@nx/vitest",
+      "options": {
+        "testTargetName": "test",
+        "ciTargetName": "test-ci",
+        "testMode": "watch"
+      }
+    }
+  ],
+  "analytics": false,
+  "targetDefaults": {
+    "@angular/build:application": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"]
+    },
+    "@angular/build:unit-test": {
+      "cache": true,
+      "inputs": ["default", "^production"]
+    }
+  },
+  "generators": {
+    "@nx/angular:application": {
+      "e2eTestRunner": "none",
+      "style": "css",
+      "unitTestRunner": "vitest-angular"
+    },
+    "@nx/angular:library": {
+      "unitTestRunner": "vitest-analog"
+    },
+    "@nx/angular:component": {
+      "style": "css"
+    }
+  }
+}

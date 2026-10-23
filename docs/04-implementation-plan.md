@@ -111,26 +111,62 @@ Ordered by value to a guitarist:
   - A 2-minute dry run passed: 0 overloads, 0 errors.
   - It also found **host gen2 GCs on preset loads stalling the callback for 56–69 % of the budget** (ADR-0001 follow-up).
   - **Fixed:** DSP state moved to native memory, IPC framing reuses its buffers, and the host gets a 256 MB gen0 budget. A 3-minute dry run then had 0 host GCs and a worst callback of 14 %.
-  - **The 1-hour run is deferred** at your request. It is ready to run with `run-soak.sh`.
+  - **1-hour run on GitHub** (nightly `soak.yml`, null audio, 2026-10-23): 111,402 requests and 220,099 WebSocket messages with 0 errors and 0 overloads. **But it had 1 host gen0 GC (1.8 ms pause) at minute 43**, so the zero-GC gate failed. See ADR-0001.
 
 **Exit:**
 - ✅ `cathode.http` builds and plays a preset through the API alone.
-- [ ] The 1-hour API soak is deferred. Host GCs are fixed (ADR-0001 resolution): a 3-minute dry run had 0 GCs, 0 overloads and a worst callback of 14 %.
+- [ ] The 1-hour API soak: everything passes except the zero-GC gate (one gen0 collection at minute 43). The fix is to cut the host's remaining allocations (ADR-0001, "1-hour soak").
 
 ---
 
-## Phase 4: editor MVP (6–8 weeks, in parallel with P3)
+## Phase 4: editor MVP (6–8 weeks, in parallel with P3) — *MVP built; Storybook, the scope and a usability check remain*
 
-- [ ] Nx workspace: `apps/desktop` (Electron) and `apps/editor` (Angular 22, zoneless, Tailwind 4, xUI); `ng add @xui/core`
-- [ ] Generated `api-client` and signal stores (`LiveStore`, `CatalogStore`, `LibraryStore`); WS client with resync
-- [ ] Electron main: sidecar spawn and supervise; remote connect (URL + token); secure preload
-- [ ] **`audio-ui` library**: `cth-knob`, `cth-meter`, `cth-tuner`, `cth-scope`, each with Storybook and Chromatic stories and a11y
-- [ ] **Grid editor**: 6×14 CSS grid, block palette (omnibar ⌘K), drag/move/copy, cables (SVG), shunts, context menu
-- [ ] **Block editor**: generic descriptor-driven pages; channel tabs A–D; Type selector; bypass
-- [ ] Custom panels: Amp (capture picker plus tone controls), Cab (IR slots plus frequency-response plot via `@xui/echarts`), PEQ (interactive curve via `@xui/konva`)
-- [ ] Preset library (`@xui/data-table`, tags, search), save/save-as, A/B compare, undo/redo
-- [ ] Audio setup page (device, sample rate, buffer, channel routing, latency test, CPU/xrun stats)
-- [ ] Playwright `_electron` E2E for the golden paths
+- [x] Nx workspace (`editor/`, pnpm, Nx 24):
+  - `apps/desktop` (Electron 45) and `apps/editor` (Angular 22.2, zoneless, signals, Tailwind 4, xUI 3).
+  - xUI is consumed as published packages, following its own skill: barrels, variant inputs, semantic tokens only.
+- [x] **Generated `api-client`** (`openapi-typescript` + `openapi-fetch`, from the committed `openapi.json`; CI fails on drift).
+  - The Server now marks non-nullable properties required and serialises numbers strictly, so the generated types are exact.
+  - Signal stores: `LiveStore`, `CatalogStore`, `LibraryStore`, `CompareStore`.
+  - WebSocket client with backoff, which resyncs on every reconnect and on any revision gap.
+  - Knob drags are coalesced, with one PATCH in flight per block.
+- [x] **Electron main:**
+  - Spawns cathode-host and cathode-server as supervised sidecars, with restart backoff and a clean stop on quit.
+  - Each run gets a random access token, a free loopback port, and the host's GC budget.
+  - Remote connect takes a URL plus a token.
+  - The window is sandboxed with context isolation. The editor is served from an `app://` scheme with a strict CSP.
+  - Navigation and permissions are blocked, and the preload bridge is narrow and validated.
+- [x] **Server additions for the editor:**
+  - Bearer-token auth: required beyond loopback, with `?access_token=` on `/ws`.
+  - CORS: loopback-only without a token, and a WebSocket origin check.
+  - `PUT /live`, an undoable whole-preset replace for A/B.
+  - `GET /assets/{ref}/content`.
+  - `cathode-host --devices --json`.
+- [ ] **`audio-ui` library:**
+  - `cth-knob` is an ARIA slider: drag (⇧ fine), wheel, keys, double-click to type with units, ⌥-click to reset.
+  - `cth-meter` is a canvas peak meter with hold and a clip light. `cth-tuner` is a needle tuner.
+  - Telemetry reaches all three on animation frames, never through change detection. Unit-tested.
+  - *Still to do:* `cth-scope` (needs the scope/RTA ring from the telemetry region), and Storybook/Chromatic stories.
+- [x] **Grid editor** (6×14, absolutely positioned cells plus an SVG cable layer):
+  - The ⌘K block palette (`@xui/omnibar`) opens on an empty cell or onto a shunt.
+  - Drag to move, ⌥-drag to copy. Drag from an outlet to the next column to cable.
+  - Context menu: bypass, channel, copy/paste, remove. Keyboard: arrows, Enter, Delete, B, ⌘C/⌘V.
+  - It is an ARIA grid with descriptive cell names.
+- [x] **Block editor:** pages generated from the descriptors (knob, choice, switch), channel tabs A–D, the Type selector first, and bypass.
+- [x] **Custom panels:**
+  - Amp: capture picker and upload (NAM/AIDA-X).
+  - Cab: IR slots and a frequency-response plot via `@xui/echarts`. The IR is measured in the browser, with level and cuts applied.
+  - PEQ: an interactive curve via `@xui/konva`. Drag sets frequency and gain; the wheel sets Q.
+- [x] **Preset library** (`@xui/data-table`, search across name, author and tags): load, export, import, delete. Plus save, save-as, A/B compare, and undo/redo (⌘Z / ⇧⌘Z).
+- [x] **Audio setup page:**
+  - Device, sample rate, buffer, then apply, which restarts the host.
+  - Loopback latency test.
+  - CPU and xrun statistics.
+  - Server choice: this computer or remote.
+  - Channel routing waits for multi-channel I/O in the shim.
+- [x] **Playwright `_electron` E2E** (`nx e2e desktop`; CI under xvfb) drives the real app and its sidecars on null audio:
+  - Build a preset from scratch: palette, knob, bypass and engage, save as, then library.
+  - Undo, redo, and per-scene bypass.
+  - The setup page shows the engine that was started.
 
 **Exit:** a non-developer guitarist can install it, pick an interface, build a preset from scratch, and save it, with no docs.
 

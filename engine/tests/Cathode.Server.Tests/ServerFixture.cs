@@ -12,14 +12,18 @@ namespace Cathode.Server.Tests;
 
 /// <summary>
 ///     A Server with a throwaway data folder and, by default, an in-process engine (null audio). Pass a socket path
-///     to talk to a separate cathode-host over IPC instead.
+///     to talk to a separate cathode-host over IPC instead, and a token to require one on every request.
 /// </summary>
-public sealed class ServerFixture(string? socketPath = null) : WebApplicationFactory<Program> {
+public sealed class ServerFixture(string? socketPath = null, string? token = null) : WebApplicationFactory<Program> {
     readonly string dataDirectory = Directory.CreateTempSubdirectory("cathode-server-").FullName;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder) {
         builder.UseSetting("Cathode:DataDirectory", dataDirectory);
         builder.UseSetting("Cathode:Engine:Mode", socketPath is null ? "inprocess" : "ipc");
+        if (token is not null) {
+            builder.UseSetting("Cathode:Token", token);
+        }
+
         if (socketPath is not null) {
             builder.UseSetting("Cathode:Engine:SocketPath", socketPath);
         }

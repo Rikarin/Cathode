@@ -78,6 +78,8 @@ dotnet run -c Release --project src/Cathode.Server -- --Cathode:Engine:SocketPat
 
 The host writes meters, the CPU histogram and xrun counts to a memory-mapped file next to its socket (`<socket>.<pid>.telemetry`, or `--telemetry <path>`) and names it in its `hello` reply. The Server maps it read-only and sends meters to WebSocket clients at about 30 Hz. IPC telemetry (tuner, GC counts, device timing) is sent at 10 Hz.
 
+Set `Cathode:Token` (or the `CATHODE__TOKEN` environment variable) to require `Authorization: Bearer <token>` on every request, and `?access_token=` on `/ws`. The Server will not listen beyond localhost without a token. Without one, only loopback origins pass CORS. The desktop app (`editor/`) starts both processes itself, with a token per run.
+
 `src/Cathode.Server/cathode.http` walks through building a rig with channels and scenes. If an API change is intended, regenerate the committed OpenAPI document:
 
 ```bash

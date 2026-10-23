@@ -1,0 +1,61 @@
+name: editor
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths: ["editor/**", "engine/src/Cathode.Server/openapi.json", ".github/workflows/editor.yml"]
+
+defaults:
+  run:
+    working-directory: editor
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: editor/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: editor/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Generated API client matches the Server's OpenAPI document
+        run: pnpm exec nx run api-client:check-generated
+      - run: pnpm exec nx run-many -t test
+      - run: pnpm exec nx build desktop
+
+  # The golden paths through the real desktop app: Electron, the production editor build and the engine sidecars
+  # (null audio, so no interface is needed).
+  e2e:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: engine/global.json
+      - name: Build the engine
+        working-directory: engine
+        run: dotnet build src/Cathode.Host src/Cathode.Server -c Release
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: editor/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: editor/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec nx build desktop
+      - name: Playwright (Electron)
+        run: xvfb-run --auto-servernum pnpm exec playwright test --config apps/desktop/e2e/playwright.config.ts
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-results
+          path: editor/dist/e2e-*

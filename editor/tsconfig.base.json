@@ -1,0 +1,28 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "importHelpers": true,
+    "target": "es2022",
+    "module": "esnext",
+    "lib": ["es2022", "dom"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "baseUrl": ".",
+    "strict": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": false,
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@cathode/api-client": ["libs/api-client/src/index.ts"],
+      "@cathode/audio-ui": ["./libs/audio-ui/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}

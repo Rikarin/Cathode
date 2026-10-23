@@ -34,6 +34,13 @@ public static class CathodeApi {
         var live = api.MapGroup("/live").WithTags("Live");
         live.MapGet("/", async (LiveRig rig, HttpContext http) => Respond(http, await rig.StateAsync()))
             .WithName("GetLive");
+        live.MapPut(
+                "/",
+                async (Preset preset, LiveRig rig, HttpContext http) =>
+                    Respond(http, await rig.PutAsync(preset, Expected(http)))
+            )
+            .WithName("PutLive")
+            .WithSummary("Replaces the working copy's content (undoable; the preset keeps its id). Used for A/B compare.");
         live.MapPost("/new", async (LiveRig rig, HttpContext http) => Respond(http, await rig.NewAsync()))
             .WithName("NewPreset");
         live.MapPut(
@@ -247,6 +254,19 @@ public static class CathodeApi {
                     store.Delete(reference) ? TypedResults.NoContent() : TypedResults.NotFound()
             )
             .WithName("DeleteAsset");
+        assets.MapGet(
+                "/{reference}/content",
+                Results<FileStreamHttpResult, NotFound>(string reference, AssetStore store) =>
+                    store.Get(reference) is { } info && store.PathOf(reference) is { } path
+                        ? TypedResults.File(
+                            File.OpenRead(path),
+                            info.Kind == "ir" ? "audio/wav" : "application/json",
+                            info.Name
+                        )
+                        : TypedResults.NotFound()
+            )
+            .WithName("GetAssetContent")
+            .WithSummary("The asset's file, e.g. an impulse response for the editor's frequency-response plot.");
 
         api.MapPut(
                 "/tuner",

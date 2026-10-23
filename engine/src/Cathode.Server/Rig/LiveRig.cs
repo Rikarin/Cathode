@@ -83,6 +83,39 @@ public sealed class LiveRig(
             }
         );
 
+    /// <summary>
+    ///     Replaces the working copy's content with <paramref name="next" />, keeping its identity, as one undoable
+    ///     edit. Editors use it to switch between A/B compare snapshots.
+    /// </summary>
+    public Task<LiveState> PutAsync(Preset next, long? expected) =>
+        Locked(async () => {
+                Check(expected);
+                if (next.SchemaVersion > Preset.CurrentSchemaVersion) {
+                    throw RigException.Conflict(
+                        $"Preset '{next.Name}' was saved by a newer version of Cathode (schema {next.SchemaVersion})."
+                    );
+                }
+
+                if (next.Scenes.Count != Preset.SceneCount) {
+                    throw new RigException(400, $"A preset has exactly {Preset.SceneCount} scenes.");
+                }
+
+                await StructuralAsync(p => {
+                        p.Name = next.Name;
+                        p.Author = next.Author;
+                        p.Tags = next.Tags;
+                        p.Tempo = next.Tempo;
+                        p.Rows = next.Rows;
+                        p.Columns = next.Columns;
+                        p.Blocks = next.Blocks;
+                        p.Cables = next.Cables;
+                        p.Scenes = next.Scenes;
+                    }
+                );
+                return Changed("presetReplaced");
+            }
+        );
+
     public Task<LiveState> UndoAsync() => Locked(() => StepAsync(undo, redo, "undo"));
 
     public Task<LiveState> RedoAsync() => Locked(() => StepAsync(redo, undo, "redo"));

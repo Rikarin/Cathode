@@ -128,6 +128,35 @@
             }
           }
         }
+      },
+      "put": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Replaces the working copy\u0027s content (undoable; the preset keeps its id). Used for A/B compare.",
+        "operationId": "PutLive",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Preset"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/live/new": {
@@ -200,7 +229,6 @@
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -240,7 +268,6 @@
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -472,11 +499,7 @@
               "schema": {
                 "type": "object",
                 "additionalProperties": {
-                  "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d\u002B)?(?:[eE][\u002B-]?\\d\u002B)?$",
-                  "type": [
-                    "number",
-                    "string"
-                  ],
+                  "type": "number",
                   "format": "float"
                 }
               }
@@ -734,7 +757,6 @@
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
               "type": "integer",
               "format": "int32"
             }
@@ -1250,6 +1272,30 @@
           }
         }
       }
+    },
+    "/api/v1/assets/{reference}/content": {
+      "get": {
+        "tags": [
+          "Assets"
+        ],
+        "summary": "The asset\u0027s file, e.g. an impulse response for the editor\u0027s frequency-response plot.",
+        "operationId": "GetAssetContent",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1266,19 +1312,11 @@
             "type": "string"
           },
           "row": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "column": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "id": {
@@ -1309,11 +1347,7 @@
             "type": "string"
           },
           "size": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int64"
           },
           "added": {
@@ -1334,6 +1368,11 @@
         }
       },
       "Bank": {
+        "required": [
+          "id",
+          "name",
+          "slots"
+        ],
         "type": "object",
         "properties": {
           "id": {
@@ -1374,19 +1413,11 @@
             "type": "string"
           },
           "maxInstances": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "channels": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "assetSlots": {
@@ -1444,13 +1475,19 @@
         "required": [
           "connected",
           "mode",
-          "backend",
+          "nativeP999",
           "sampleRate",
           "bufferFrames",
           "cpuP999",
           "cpuMax",
           "overloads",
-          "lastError"
+          "driverOverloads",
+          "nativeMax",
+          "hostGen0",
+          "hostGen1",
+          "hostGen2",
+          "hostGcPauseMs",
+          "hostAllocatedBytes"
         ],
         "type": "object",
         "properties": {
@@ -1467,43 +1504,23 @@
             ]
           },
           "sampleRate": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d\u002B)?(?:[eE][\u002B-]?\\d\u002B)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "bufferFrames": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "cpuP999": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d\u002B)?(?:[eE][\u002B-]?\\d\u002B)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "cpuMax": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d\u002B)?(?:[eE][\u002B-]?\\d\u002B)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "overloads": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int64"
           },
           "lastError": {
@@ -1513,74 +1530,42 @@
             ]
           },
           "driverOverloads": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int64",
             "default": 0
           },
           "nativeP999": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d\u002B)?(?:[eE][\u002B-]?\\d\u002B)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double",
             "default": 0
           },
           "nativeMax": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d\u002B)?(?:[eE][\u002B-]?\\d\u002B)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double",
             "default": 0
           },
           "hostGen0": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32",
             "default": 0
           },
           "hostGen1": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32",
             "default": 0
           },
           "hostGen2": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32",
             "default": 0
           },
           "hostGcPauseMs": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d\u002B)?(?:[eE][\u002B-]?\\d\u002B)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double",
             "default": 0
           },
           "hostAllocatedBytes": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int64",
             "default": 0
           }
@@ -1599,11 +1584,7 @@
             "$ref": "#/components/schemas/PresetSummary"
           },
           "assetsAdded": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "renamed": {
@@ -1626,19 +1607,11 @@
             "$ref": "#/components/schemas/Preset"
           },
           "activeScene": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "revision": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int64"
           },
           "dirty": {
@@ -1661,19 +1634,11 @@
         "type": "object",
         "properties": {
           "row": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "column": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           }
         }
@@ -1687,8 +1652,7 @@
           "max",
           "default",
           "unit",
-          "taper",
-          "options"
+          "taper"
         ],
         "type": "object",
         "properties": {
@@ -1702,27 +1666,15 @@
             "type": "string"
           },
           "min": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d\u002B)?(?:[eE][\u002B-]?\\d\u002B)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "float"
           },
           "max": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d\u002B)?(?:[eE][\u002B-]?\\d\u002B)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "float"
           },
           "default": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d\u002B)?(?:[eE][\u002B-]?\\d\u002B)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "float"
           },
           "unit": {
@@ -1743,14 +1695,22 @@
         }
       },
       "Preset": {
+        "required": [
+          "schemaVersion",
+          "id",
+          "name",
+          "tags",
+          "tempo",
+          "rows",
+          "columns",
+          "blocks",
+          "cables",
+          "scenes"
+        ],
         "type": "object",
         "properties": {
           "schemaVersion": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "id": {
@@ -1772,27 +1732,15 @@
             }
           },
           "tempo": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d\u002B)?(?:[eE][\u002B-]?\\d\u002B)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "rows": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "columns": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "blocks": {
@@ -1817,6 +1765,14 @@
         "description": "A complete rig: grid, blocks with up to four channels each, cables and eight scenes. Parameter values are stored\nsparsely; anything not listed takes the block type\u0027s default, so new parameters need no migration."
       },
       "PresetBlock": {
+        "required": [
+          "id",
+          "type",
+          "row",
+          "column",
+          "channels",
+          "assets"
+        ],
         "type": "object",
         "properties": {
           "id": {
@@ -1827,19 +1783,11 @@
             "type": "string"
           },
           "row": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "column": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "channels": {
@@ -1847,11 +1795,7 @@
             "additionalProperties": {
               "type": "object",
               "additionalProperties": {
-                "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d\u002B)?(?:[eE][\u002B-]?\\d\u002B)?$",
-                "type": [
-                  "number",
-                  "string"
-                ],
+                "type": "number",
                 "format": "float"
               }
             },
@@ -1867,6 +1811,10 @@
         }
       },
       "PresetCable": {
+        "required": [
+          "from",
+          "to"
+        ],
         "type": "object",
         "properties": {
           "from": {
@@ -1881,7 +1829,6 @@
         "required": [
           "id",
           "name",
-          "author",
           "tags",
           "modified"
         ],
@@ -1912,6 +1859,9 @@
         }
       },
       "SaveRequest": {
+        "required": [
+          "asNew"
+        ],
         "type": "object",
         "properties": {
           "name": {
@@ -1927,17 +1877,18 @@
         }
       },
       "Scene": {
+        "required": [
+          "name",
+          "level",
+          "blocks"
+        ],
         "type": "object",
         "properties": {
           "name": {
             "type": "string"
           },
           "level": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d\u002B)?(?:[eE][\u002B-]?\\d\u002B)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "description": "Scene output level in dB.",
             "format": "float"
           },
@@ -1951,6 +1902,10 @@
         "description": "Which channel each block uses and whether it is bypassed. Blocks not listed use channel A, engaged."
       },
       "SceneBlockState": {
+        "required": [
+          "bypassed",
+          "channel"
+        ],
         "type": "object",
         "properties": {
           "bypassed": {
@@ -1970,11 +1925,7 @@
         "type": "object",
         "properties": {
           "scene": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           }
         }
@@ -1989,17 +1940,20 @@
             ]
           },
           "level": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d\u002B)?(?:[eE][\u002B-]?\\d\u002B)?$",
             "type": [
               "null",
-              "number",
-              "string"
+              "number"
             ],
             "format": "float"
           }
         }
       },
       "Setlist": {
+        "required": [
+          "id",
+          "name",
+          "entries"
+        ],
         "type": "object",
         "properties": {
           "id": {
@@ -2019,7 +1973,8 @@
       },
       "SetlistEntry": {
         "required": [
-          "presetId"
+          "presetId",
+          "scene"
         ],
         "type": "object",
         "properties": {
@@ -2027,11 +1982,7 @@
             "type": "string"
           },
           "scene": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32",
             "default": 0
           },

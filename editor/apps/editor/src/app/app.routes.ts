@@ -1,0 +1,16 @@
+import type { Route } from '@angular/router';
+
+export const appRoutes: Route[] = [
+    { path: '', loadComponent: () => import('./pages/editor-page').then(m => m.EditorPage), title: 'Cathode' },
+    {
+        path: 'library',
+        loadComponent: () => import('./pages/library-page').then(m => m.LibraryPage),
+        title: 'Library · Cathode'
+    },
+    {
+        path: 'setup',
+        loadComponent: () => import('./pages/setup-page').then(m => m.SetupPage),
+        title: 'Setup · Cathode'
+    },
+    { path: '**', redirectTo: '' }
+];

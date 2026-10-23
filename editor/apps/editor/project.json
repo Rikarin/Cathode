@@ -1,0 +1,92 @@
+{
+  "name": "editor",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "prefix": "cth",
+  "sourceRoot": "apps/editor/src",
+  "tags": ["type:app"],
+  "targets": {
+    "build": {
+      "executor": "@angular/build:application",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "outputPath": "dist/apps/editor",
+        "browser": "apps/editor/src/main.ts",
+        "tsConfig": "apps/editor/tsconfig.app.json",
+        "assets": [
+          {
+            "glob": "**/*",
+            "input": "apps/editor/public"
+          }
+        ],
+        "styles": ["apps/editor/src/styles.css"]
+      },
+      "configurations": {
+        "production": {
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "1mb",
+              "maximumError": "2mb"
+            },
+            {
+              "type": "anyComponentStyle",
+              "maximumWarning": "4kb",
+              "maximumError": "8kb"
+            }
+          ],
+          "outputHashing": "all",
+          "optimization": {
+            "scripts": true,
+            "styles": {
+              "minify": true,
+              "inlineCritical": false
+            },
+            "fonts": true
+          }
+        },
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true
+        }
+      }
+    },
+    "serve": {
+      "continuous": true,
+      "readyWhen": {
+        "signal": true
+      },
+      "executor": "@angular/build:dev-server",
+      "defaultConfiguration": "development",
+      "configurations": {
+        "production": {
+          "buildTarget": "editor:build:production"
+        },
+        "development": {
+          "buildTarget": "editor:build:development"
+        }
+      }
+    },
+    "test": {
+      "executor": "@angular/build:unit-test",
+      "options": {
+        "watch": false
+      }
+    },
+    "serve-static": {
+      "continuous": true,
+      "readyWhen": {
+        "signal": true
+      },
+      "dependsOn": ["build"],
+      "executor": "@nx/web:file-server",
+      "options": {
+        "buildTarget": "editor:build",
+        "staticFilePath": "dist/apps/editor/browser",
+        "spa": true
+      }
+    }
+  }
+}
