@@ -43,17 +43,17 @@ public sealed class ReverbBlock : DspBlock {
     static readonly float[] LeftSigns = [1, -1, 1, -1, 1, -1, 1, -1];
     static readonly float[] RightSigns = [1, 1, -1, -1, 1, 1, -1, -1];
 
-    readonly DelayBuffer _preDelay = new();
-    readonly Allpass[] _diffusers = [new(), new(), new(), new()];
-    readonly DelayBuffer[] _lines = [..Enumerable.Range(0, Lines).Select(static _ => new DelayBuffer())];
-    readonly float[] _lengths = new float[Lines];
-    readonly float[] _gains = new float[Lines];
-    readonly float[] _damping = new float[Lines];
-    readonly float[] _outputs = new float[Lines];
-    SvfState _lowCutLeft, _lowCutRight;
-    double _modPhase;
-    float _mix;
-    float _outputGain = 1f;
+    readonly DelayBuffer preDelay = new();
+    readonly Allpass[] diffusers = [new(), new(), new(), new()];
+    readonly DelayBuffer[] lines = [..Enumerable.Range(0, Lines).Select(static _ => new DelayBuffer())];
+    readonly float[] lengths = new float[Lines];
+    readonly float[] gains = new float[Lines];
+    readonly float[] damping = new float[Lines];
+    readonly float[] outputs = new float[Lines];
+    SvfState lowCutLeft, lowCutRight;
+    double modPhase;
+    float mix;
+    float outputGain = 1f;
 
     public static BlockDescriptor Info { get; } = new(
         "reverb",
@@ -77,33 +77,33 @@ public sealed class ReverbBlock : DspBlock {
 
     protected override void OnPrepare(in ProcessSpec spec) {
         var rate = spec.SampleRate;
-        _preDelay.Allocate((int)(MaxPreDelayMs * 0.001 * rate) + 4);
-        for (var i = 0; i < _diffusers.Length; i++) {
-            _diffusers[i].Allocate((int)(DiffuserMs[i] * 0.001 * rate) + 1);
+        this.preDelay.Allocate((int)(MaxPreDelayMs * 0.001 * rate) + 4);
+        for (var i = 0; i < this.diffusers.Length; i++) {
+            this.diffusers[i].Allocate((int)(DiffuserMs[i] * 0.001 * rate) + 1);
         }
 
         var longest = LineMs.Max(static l => l.Max());
-        foreach (var line in _lines) {
+        foreach (var line in this.lines) {
             line.Allocate((int)((longest * MaxSizeScale + ModulationMs * 2) * 0.001 * rate) + 4);
         }
     }
 
     protected override void OnReset() {
-        _preDelay.Clear();
-        foreach (var diffuser in _diffusers) {
+        this.preDelay.Clear();
+        foreach (var diffuser in this.diffusers) {
             diffuser.Clear();
         }
 
-        foreach (var line in _lines) {
+        foreach (var line in this.lines) {
             line.Clear();
         }
 
-        Array.Clear(_damping);
-        _lowCutLeft.Reset();
-        _lowCutRight.Reset();
-        _modPhase = 0;
-        _mix = Params.Current(Mix) / 100f;
-        _outputGain = Decibels.ToGain(Params.Current(Level));
+        Array.Clear(this.damping);
+        lowCutLeft.Reset();
+        lowCutRight.Reset();
+        modPhase = 0;
+        this.mix = Params.Current(Mix) / 100f;
+        this.outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -116,8 +116,8 @@ public sealed class ReverbBlock : DspBlock {
         var diffusion = DiffusionGain[type];
 
         for (var i = 0; i < Lines; i++) {
-            _lengths[i] = LineMs[type][i] * scale * 0.001f * rate;
-            _gains[i] = MathF.Pow(10f, -3f * _lengths[i] / (decay * rate)); // -60 dB after `decay` seconds
+            this.lengths[i] = LineMs[type][i] * scale * 0.001f * rate;
+            this.gains[i] = MathF.Pow(10f, -3f * this.lengths[i] / (decay * rate)); // -60 dB after `decay` seconds
         }
 
         // One-pole damping in each line: the coefficient that puts its -3 dB point near the chosen frequency.
@@ -131,47 +131,47 @@ public sealed class ReverbBlock : DspBlock {
 
         var modDepth = ModulationMs * 0.001f * rate;
         var modStep = 2 * Math.PI * 0.7 / rate;
-        var mixStep = (mix - _mix) / io.Length;
-        var currentMix = _mix;
+        var mixStep = (mix - this.mix) / io.Length;
+        var currentMix = this.mix;
 
         for (var n = 0; n < io.Length; n++) {
             var dryLeft = io.Left[n];
             var dryRight = io.Right[n];
-            var x = _preDelay.ReadWrite(0.5f * (dryLeft + dryRight), preDelay);
-            foreach (var diffuser in _diffusers) {
+            var x = this.preDelay.ReadWrite(0.5f * (dryLeft + dryRight), preDelay);
+            foreach (var diffuser in this.diffusers) {
                 x = diffuser.Process(x, diffusion);
             }
 
-            var modulation = modDepth * (float)Math.Sin(_modPhase);
-            _modPhase += modStep;
-            if (_modPhase >= 2 * Math.PI) {
-                _modPhase -= 2 * Math.PI;
+            var modulation = modDepth * (float)Math.Sin(modPhase);
+            modPhase += modStep;
+            if (modPhase >= 2 * Math.PI) {
+                modPhase -= 2 * Math.PI;
             }
 
             // Read every line (two of them modulated), damp, and apply the decay gain.
             float sum = 0;
             for (var i = 0; i < Lines; i++) {
-                var length = _lengths[i] + (i == 1 ? modulation + modDepth : i == 6 ? modDepth - modulation : 0f);
-                var y = _lines[i].Read(length);
-                _damping[i] = y + (_damping[i] - y) * damp;
-                _outputs[i] = _damping[i] * _gains[i];
-                sum += _outputs[i];
+                var length = this.lengths[i] + (i == 1 ? modulation + modDepth : i == 6 ? modDepth - modulation : 0f);
+                var y = this.lines[i].Read(length);
+                this.damping[i] = y + (this.damping[i] - y) * damp;
+                outputs[i] = this.damping[i] * this.gains[i];
+                sum += outputs[i];
             }
 
             // Householder feedback (I - 2/N * 11^T) plus the diffused input, written back into the lines.
             var reflection = sum * (2f / Lines);
             float wetLeft = 0, wetRight = 0;
             for (var i = 0; i < Lines; i++) {
-                _lines[i].Write(_outputs[i] - reflection + x * 0.35f);
-                wetLeft += _outputs[i] * LeftSigns[i];
-                wetRight += _outputs[i] * RightSigns[i];
+                this.lines[i].Write(outputs[i] - reflection + x * 0.35f);
+                wetLeft += outputs[i] * LeftSigns[i];
+                wetRight += outputs[i] * RightSigns[i];
             }
 
             wetLeft *= 0.5f;
             wetRight *= 0.5f;
             if (useLowCut) {
-                wetLeft = (float)_lowCutLeft.Tick(lowCutCoefficients, wetLeft);
-                wetRight = (float)_lowCutRight.Tick(lowCutCoefficients, wetRight);
+                wetLeft = (float)lowCutLeft.Tick(lowCutCoefficients, wetLeft);
+                wetRight = (float)lowCutRight.Tick(lowCutCoefficients, wetRight);
             }
 
             currentMix += mixStep;
@@ -179,36 +179,36 @@ public sealed class ReverbBlock : DspBlock {
             io.Right[n] = dryRight * (1f - currentMix) + wetRight * currentMix;
         }
 
-        _mix = mix;
+        this.mix = mix;
         for (var i = 0; i < Lines; i++) {
-            if (MathF.Abs(_damping[i]) < 1e-20f) {
-                _damping[i] = 0;
+            if (MathF.Abs(this.damping[i]) < 1e-20f) {
+                this.damping[i] = 0;
             }
         }
 
-        _lowCutLeft.FlushDenormals();
-        _lowCutRight.FlushDenormals();
+        lowCutLeft.FlushDenormals();
+        lowCutRight.FlushDenormals();
 
         var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, _outputGain, outputGain);
-        GainRamp.Apply(io.Right, _outputGain, outputGain);
-        _outputGain = outputGain;
+        GainRamp.Apply(io.Left, this.outputGain, outputGain);
+        GainRamp.Apply(io.Right, this.outputGain, outputGain);
+        this.outputGain = outputGain;
     }
 
     /// <summary>Circular buffer with a fractional (linear) read behind the most recent write.</summary>
     sealed class DelayBuffer {
-        float[] _buffer = [];
-        int _write;
+        float[] buffer = [];
+        int write;
 
-        public void Allocate(int length) => _buffer = new float[length];
+        public void Allocate(int length) => this.buffer = new float[length];
 
         public void Clear() {
-            Array.Clear(_buffer);
-            _write = 0;
+            Array.Clear(this.buffer);
+            this.write = 0;
         }
 
         public float Read(float delay) {
-            var position = _write - delay;
+            var position = this.write - delay;
             var index = (int)MathF.Floor(position);
             var frac = position - index;
             var a = At(index);
@@ -217,9 +217,9 @@ public sealed class ReverbBlock : DspBlock {
         }
 
         public void Write(float value) {
-            _buffer[_write] = MathF.Abs(value) < 1e-20f ? 0f : value;
-            if (++_write == _buffer.Length) {
-                _write = 0;
+            this.buffer[this.write] = MathF.Abs(value) < 1e-20f ? 0f : value;
+            if (++this.write == this.buffer.Length) {
+                this.write = 0;
             }
         }
 
@@ -229,29 +229,29 @@ public sealed class ReverbBlock : DspBlock {
         }
 
         float At(int index) {
-            index %= _buffer.Length;
-            return _buffer[index < 0 ? index + _buffer.Length : index];
+            index %= this.buffer.Length;
+            return this.buffer[index < 0 ? index + this.buffer.Length : index];
         }
     }
 
     /// <summary>Schroeder allpass with a fixed length.</summary>
     sealed class Allpass {
-        float[] _buffer = [];
-        int _position;
+        float[] buffer = [];
+        int position;
 
-        public void Allocate(int length) => _buffer = new float[length];
+        public void Allocate(int length) => this.buffer = new float[length];
 
         public void Clear() {
-            Array.Clear(_buffer);
-            _position = 0;
+            Array.Clear(this.buffer);
+            this.position = 0;
         }
 
         public float Process(float x, float gain) {
-            var delayed = _buffer[_position];
+            var delayed = this.buffer[this.position];
             var v = x + gain * delayed;
-            _buffer[_position] = MathF.Abs(v) < 1e-20f ? 0f : v;
-            if (++_position == _buffer.Length) {
-                _position = 0;
+            this.buffer[this.position] = MathF.Abs(v) < 1e-20f ? 0f : v;
+            if (++this.position == this.buffer.Length) {
+                this.position = 0;
             }
 
             return delayed - gain * v;

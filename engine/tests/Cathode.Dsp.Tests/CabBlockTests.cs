@@ -7,9 +7,9 @@ namespace Cathode.Dsp.Tests;
 
 public sealed class CabBlockTests : IDisposable {
     static readonly ProcessSpec Spec = new(48_000, 64);
-    readonly string _folder = Directory.CreateTempSubdirectory("cathode-cab-").FullName;
+    readonly string folder = Directory.CreateTempSubdirectory("cathode-cab-").FullName;
 
-    public void Dispose() => Directory.Delete(_folder, true);
+    public void Dispose() => Directory.Delete(folder, true);
 
     [Fact]
     public void Impulse_response_is_the_normalised_ir_with_zero_latency() {
@@ -71,7 +71,7 @@ public sealed class CabBlockTests : IDisposable {
     public void Stereo_irs_process_each_channel_separately() {
         var left = CabLikeIr(400, 6);
         var right = CabLikeIr(400, 7);
-        var path = Path.Combine(_folder, "stereo.wav");
+        var path = Path.Combine(folder, "stereo.wav");
         WavFile.Write(path, new(48_000, [left, right]));
         using var cab = Create(("ir1", path));
 
@@ -111,12 +111,12 @@ public sealed class CabBlockTests : IDisposable {
     [Fact]
     public void Unknown_slots_and_unreadable_files_throw() {
         using var cab = new CabBlock();
-        var garbage = Path.Combine(_folder, "garbage.wav");
+        var garbage = Path.Combine(folder, "garbage.wav");
         File.WriteAllText(garbage, "not a wav file");
 
         Assert.Throws<ArgumentException>(() => cab.LoadAsset("ir3", garbage));
         Assert.Throws<InvalidDataException>(() => cab.LoadAsset("ir1", garbage));
-        Assert.Throws<FileNotFoundException>(() => cab.LoadAsset("ir1", Path.Combine(_folder, "missing.wav")));
+        Assert.Throws<FileNotFoundException>(() => cab.LoadAsset("ir1", Path.Combine(folder, "missing.wav")));
     }
 
     CabBlock Create(params (string Slot, string Path)[] irs) {
@@ -130,7 +130,7 @@ public sealed class CabBlockTests : IDisposable {
     }
 
     string WriteIr(string name, float[] ir, int sampleRate) {
-        var path = Path.Combine(_folder, name);
+        var path = Path.Combine(folder, name);
         WavFile.Write(path, new(sampleRate, [ir]));
         return path;
     }

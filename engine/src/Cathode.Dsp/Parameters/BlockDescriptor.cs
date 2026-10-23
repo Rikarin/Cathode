@@ -5,7 +5,7 @@ namespace Cathode.Dsp.Parameters;
 ///     the editor's generated UI and the generated test suites.
 /// </summary>
 public sealed class BlockDescriptor {
-    readonly Dictionary<string, int> _indexById;
+    readonly Dictionary<string, int> indexById;
 
     public string TypeId { get; }
 
@@ -39,9 +39,9 @@ public sealed class BlockDescriptor {
         TypeVersion = typeVersion;
         MaxInstances = maxInstances;
         Channels = channels;
-        _indexById = new(StringComparer.Ordinal);
+        indexById = new(StringComparer.Ordinal);
         for (var i = 0; i < parameters.Count; i++) {
-            if (!_indexById.TryAdd(parameters[i].Id, i)) {
+            if (!indexById.TryAdd(parameters[i].Id, i)) {
                 throw new ArgumentException(
                     $"Duplicate parameter id '{parameters[i].Id}' in block '{typeId}'.",
                     nameof(parameters)
@@ -51,5 +51,5 @@ public sealed class BlockDescriptor {
     }
 
     /// <summary>Returns the parameter index for <paramref name="id" />, or -1.</summary>
-    public int IndexOf(string id) => _indexById.TryGetValue(id, out var index) ? index : -1;
+    public int IndexOf(string id) => indexById.TryGetValue(id, out var index) ? index : -1;
 }

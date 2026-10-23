@@ -20,7 +20,7 @@ public sealed record NamModelInfo(
 ///     real-time safe.
 /// </summary>
 public sealed unsafe class NamModel : IDisposable {
-    nint _handle;
+    nint handle;
 
     public NamModelInfo Info { get; }
 
@@ -39,10 +39,10 @@ public sealed unsafe class NamModel : IDisposable {
         }
     }
 
-    nint Handle => _handle != 0 ? _handle : throw new ObjectDisposedException(nameof(NamModel));
+    nint Handle => this.handle != 0 ? this.handle : throw new ObjectDisposedException(nameof(NamModel));
 
     NamModel(nint handle, NamModelInfo info) {
-        _handle = handle;
+        this.handle = handle;
         Info = info;
     }
 
@@ -89,15 +89,15 @@ public sealed unsafe class NamModel : IDisposable {
     public void Process(ReadOnlySpan<float> input, Span<float> output) {
         fixed (float* i = input) {
             fixed (float* o = output) {
-                NamNative.Process(_handle, i, o, output.Length);
+                NamNative.Process(this.handle, i, o, output.Length);
             }
         }
     }
 
     public void Dispose() {
-        if (_handle != 0) {
-            NamNative.Free(_handle);
-            _handle = 0;
+        if (this.handle != 0) {
+            NamNative.Free(this.handle);
+            this.handle = 0;
         }
     }
 }

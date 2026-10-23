@@ -23,24 +23,24 @@ public sealed class Convolver {
     const int N = 2 * B;
     const int Bins = B + 1; // a real signal's spectrum is Hermitian: bins 0..N/2 are enough
 
-    readonly Fft _fft = new(N);
-    readonly float[] _head; // taps 0..B-1, direct form
-    readonly float[] _history; // last B inputs, stored twice so a window is always contiguous
-    int _historyPosition;
+    readonly Fft fft = new(N);
+    readonly float[] head; // taps 0..B-1, direct form
+    readonly float[] history; // last B inputs, stored twice so a window is always contiguous
+    int historyPosition;
 
-    readonly int _partitions; // partitions of taps B..L-1
-    readonly float[][] _irRe; // spectra of the tail partitions
-    readonly float[][] _irIm;
-    readonly float[][] _inRe; // frequency-domain delay line of input spectra
-    readonly float[][] _inIm;
-    int _fdlPosition;
-    readonly float[] _frame = new float[N]; // [previous block | current block]
-    readonly float[] _tailOut = new float[B];
-    readonly float[] _re = new float[N];
-    readonly float[] _im = new float[N];
-    readonly float[] _accRe = new float[Bins];
-    readonly float[] _accIm = new float[Bins];
-    int _position;
+    readonly int partitions; // partitions of taps B..L-1
+    readonly float[][] irRe; // spectra of the tail partitions
+    readonly float[][] irIm;
+    readonly float[][] inRe; // frequency-domain delay line of input spectra
+    readonly float[][] inIm;
+    int fdlPosition;
+    readonly float[] frame = new float[N]; // [previous block | current block]
+    readonly float[] tailOut = new float[B];
+    readonly float[] re = new float[N];
+    readonly float[] im = new float[N];
+    readonly float[] accRe = new float[Bins];
+    readonly float[] accIm = new float[Bins];
+    int position;
 
     /// <summary>Impulse response length in samples.</summary>
     public int Length { get; }
@@ -51,43 +51,43 @@ public sealed class Convolver {
         }
 
         Length = impulseResponse.Length;
-        _head = new float[B];
-        impulseResponse[..Math.Min(B, Length)].CopyTo(_head);
-        _history = new float[2 * B];
+        head = new float[B];
+        impulseResponse[..Math.Min(B, Length)].CopyTo(head);
+        history = new float[2 * B];
 
-        _partitions = Math.Max(0, (Length - B + B - 1) / B);
-        _irRe = new float[_partitions][];
-        _irIm = new float[_partitions][];
-        _inRe = new float[_partitions][];
-        _inIm = new float[_partitions][];
-        for (var p = 0; p < _partitions; p++) {
-            Array.Clear(_re);
-            Array.Clear(_im);
+        this.partitions = Math.Max(0, (Length - B + B - 1) / B);
+        irRe = new float[this.partitions][];
+        irIm = new float[this.partitions][];
+        inRe = new float[this.partitions][];
+        inIm = new float[this.partitions][];
+        for (var p = 0; p < partitions; p++) {
+            Array.Clear(re);
+            Array.Clear(im);
             var start = B + p * B;
-            impulseResponse.Slice(start, Math.Min(B, Length - start)).CopyTo(_re);
-            _fft.Forward(_re, _im);
-            _irRe[p] = _re[..Bins];
-            _irIm[p] = _im[..Bins];
-            _inRe[p] = new float[Bins];
-            _inIm[p] = new float[Bins];
+            impulseResponse.Slice(start, Math.Min(B, Length - start)).CopyTo(re);
+            fft.Forward(re, im);
+            irRe[p] = re[..Bins];
+            irIm[p] = im[..Bins];
+            inRe[p] = new float[Bins];
+            inIm[p] = new float[Bins];
         }
     }
 
     public void Reset() {
-        Array.Clear(_history);
-        Array.Clear(_frame);
-        Array.Clear(_tailOut);
-        foreach (var spectrum in _inRe) {
+        Array.Clear(history);
+        Array.Clear(frame);
+        Array.Clear(tailOut);
+        foreach (var spectrum in inRe) {
             Array.Clear(spectrum);
         }
 
-        foreach (var spectrum in _inIm) {
+        foreach (var spectrum in inIm) {
             Array.Clear(spectrum);
         }
 
-        _historyPosition = 0;
-        _fdlPosition = 0;
-        _position = 0;
+        historyPosition = 0;
+        fdlPosition = 0;
+        position = 0;
     }
 
     /// <summary>Convolves <paramref name="samples" /> in place.</summary>
@@ -95,20 +95,20 @@ public sealed class Convolver {
         for (var i = 0; i < samples.Length; i++) {
             var x = samples[i];
 
-            _historyPosition = _historyPosition == 0 ? B - 1 : _historyPosition - 1;
-            _history[_historyPosition] = x;
-            _history[_historyPosition + B] = x;
-            var y = Dot(_head, _history.AsSpan(_historyPosition, B));
+            historyPosition = historyPosition == 0 ? B - 1 : historyPosition - 1;
+            history[historyPosition] = x;
+            history[historyPosition + B] = x;
+            var y = Dot(head, history.AsSpan(historyPosition, B));
 
-            if (_partitions > 0) {
-                y += _tailOut[_position];
-                _frame[B + _position] = x;
+            if (this.partitions > 0) {
+                y += tailOut[position];
+                frame[B + position] = x;
             }
 
             samples[i] = y;
-            if (++_position == B) {
-                _position = 0;
-                if (_partitions > 0) {
+            if (++position == B) {
+                position = 0;
+                if (this.partitions > 0) {
                     RunTail();
                 }
             }
@@ -117,44 +117,44 @@ public sealed class Convolver {
 
     /// <summary>One overlap-save step over the tail partitions, producing the next block's tail output.</summary>
     void RunTail() {
-        _frame.CopyTo(_re, 0);
-        Array.Clear(_im);
-        _fft.Forward(_re, _im);
-        _fdlPosition = _fdlPosition == 0 ? _partitions - 1 : _fdlPosition - 1;
-        _re.AsSpan(0, Bins).CopyTo(_inRe[_fdlPosition]);
-        _im.AsSpan(0, Bins).CopyTo(_inIm[_fdlPosition]);
+        frame.CopyTo(re, 0);
+        Array.Clear(im);
+        fft.Forward(re, im);
+        fdlPosition = fdlPosition == 0 ? this.partitions - 1 : fdlPosition - 1;
+        re.AsSpan(0, Bins).CopyTo(inRe[fdlPosition]);
+        im.AsSpan(0, Bins).CopyTo(inIm[fdlPosition]);
 
-        Array.Clear(_accRe);
-        Array.Clear(_accIm);
-        for (var p = 0; p < _partitions; p++) {
-            var slot = _fdlPosition + p;
-            if (slot >= _partitions) {
-                slot -= _partitions;
+        Array.Clear(accRe);
+        Array.Clear(accIm);
+        for (var p = 0; p < partitions; p++) {
+            var slot = fdlPosition + p;
+            if (slot >= this.partitions) {
+                slot -= this.partitions;
             }
 
-            var xr = _inRe[slot];
-            var xi = _inIm[slot];
-            var hr = _irRe[p];
-            var hi = _irIm[p];
+            var xr = inRe[slot];
+            var xi = inIm[slot];
+            var hr = irRe[p];
+            var hi = irIm[p];
             for (var k = 0; k < Bins; k++) {
-                _accRe[k] += xr[k] * hr[k] - xi[k] * hi[k];
-                _accIm[k] += xr[k] * hi[k] + xi[k] * hr[k];
+                accRe[k] += xr[k] * hr[k] - xi[k] * hi[k];
+                accIm[k] += xr[k] * hi[k] + xi[k] * hr[k];
             }
         }
 
         for (var k = 0; k < Bins; k++) {
-            _re[k] = _accRe[k];
-            _im[k] = _accIm[k];
+            re[k] = accRe[k];
+            im[k] = accIm[k];
         }
 
         for (var k = Bins; k < N; k++) {
-            _re[k] = _accRe[N - k];
-            _im[k] = -_accIm[N - k];
+            re[k] = accRe[N - k];
+            im[k] = -accIm[N - k];
         }
 
-        _fft.Inverse(_re, _im);
-        _re.AsSpan(B, B).CopyTo(_tailOut);
-        _frame.AsSpan(B, B).CopyTo(_frame); // the current block becomes the previous one
+        fft.Inverse(re, im);
+        re.AsSpan(B, B).CopyTo(tailOut);
+        frame.AsSpan(B, B).CopyTo(frame); // the current block becomes the previous one
     }
 
     static float Dot(ReadOnlySpan<float> a, ReadOnlySpan<float> b) {

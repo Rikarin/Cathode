@@ -267,7 +267,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
     }
 
     sealed class PlanEmitter {
-        readonly Stack<int> _free = new();
+        readonly Stack<int> free = new();
 
         public List<GraphOp> Ops { get; } = [];
 
@@ -275,9 +275,9 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
 
         public int BufferCount { get; private set; }
 
-        public int Allocate() => _free.TryPop(out var buffer) ? buffer : BufferCount++;
+        public int Allocate() => free.TryPop(out var buffer) ? buffer : BufferCount++;
 
-        public void Free(int buffer) => _free.Push(buffer);
+        public void Free(int buffer) => free.Push(buffer);
 
         public void Emit(GraphOp op) => Ops.Add(op);
 

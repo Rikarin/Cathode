@@ -5,12 +5,12 @@ namespace Cathode.Dsp.Filters;
 ///     EQ is bit-transparent and costs nothing.
 /// </summary>
 sealed class EqBand {
-    SvfState _left;
-    SvfState _right;
+    SvfState left;
+    SvfState right;
 
     public void Reset() {
-        _left.Reset();
-        _right.Reset();
+        left.Reset();
+        right.Reset();
     }
 
     public void Process(
@@ -28,7 +28,7 @@ sealed class EqBand {
         }
 
         var c = SvfCoefficients.Design(type, sampleRate, frequency, q, gainDb);
-        _left.Process(c, io.Left);
-        _right.Process(c, io.Right);
+        left.Process(c, io.Left);
+        right.Process(c, io.Right);
     }
 }

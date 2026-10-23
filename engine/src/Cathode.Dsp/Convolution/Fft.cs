@@ -5,9 +5,9 @@ namespace Cathode.Dsp.Convolution;
 ///     bit-reversal. Allocation-free after construction.
 /// </summary>
 public sealed class Fft {
-    readonly float[] _cos;
-    readonly float[] _sin;
-    readonly int[] _reverse;
+    readonly float[] cos;
+    readonly float[] sin;
+    readonly int[] reverse;
 
     public int Size { get; }
 
@@ -17,15 +17,15 @@ public sealed class Fft {
         }
 
         Size = size;
-        _cos = new float[size / 2];
-        _sin = new float[size / 2];
+        cos = new float[size / 2];
+        sin = new float[size / 2];
         for (var i = 0; i < size / 2; i++) {
             var angle = -2.0 * Math.PI * i / size;
-            _cos[i] = (float)Math.Cos(angle);
-            _sin[i] = (float)Math.Sin(angle);
+            cos[i] = (float)Math.Cos(angle);
+            sin[i] = (float)Math.Sin(angle);
         }
 
-        _reverse = new int[size];
+        reverse = new int[size];
         var bits = 0;
         while (1 << bits < size) {
             bits++;
@@ -37,7 +37,7 @@ public sealed class Fft {
                 r |= ((i >> b) & 1) << (bits - 1 - b);
             }
 
-            _reverse[i] = r;
+            reverse[i] = r;
         }
     }
 
@@ -60,7 +60,7 @@ public sealed class Fft {
         }
 
         for (var i = 0; i < n; i++) {
-            var j = _reverse[i];
+            var j = reverse[i];
             if (i < j) {
                 (re[i], re[j]) = (re[j], re[i]);
                 (im[i], im[j]) = (im[j], im[i]);
@@ -73,8 +73,8 @@ public sealed class Fft {
             var stride = n / length;
             for (var start = 0; start < n; start += length) {
                 for (var k = 0; k < half; k++) {
-                    var wr = _cos[k * stride];
-                    var wi = sign * _sin[k * stride];
+                    var wr = cos[k * stride];
+                    var wi = sign * sin[k * stride];
                     var a = start + k;
                     var b = a + half;
                     var tr = re[b] * wr - im[b] * wi;

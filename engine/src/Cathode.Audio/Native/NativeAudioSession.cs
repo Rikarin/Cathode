@@ -61,9 +61,9 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     readonly float[] silence = GC.AllocateArray<float>(MaxFrames, true);
     readonly float[] scratchLeft = GC.AllocateArray<float>(MaxFrames, true);
     readonly float[] scratchRight = GC.AllocateArray<float>(MaxFrames, true);
-    GCHandle _self;
-    nint _stream;
-    long _exceptions;
+    GCHandle self;
+    nint stream;
+    long exceptions;
 
     public double SampleRate { get; private set; }
 
@@ -89,7 +89,7 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         int inputChannels
     ) {
         var stream = new NativeAudioSession(processor);
-        stream._self = GCHandle.Alloc(stream);
+        stream.self = GCHandle.Alloc(stream);
         var config = new StreamConfigNative {
             SampleRate = sampleRate, BufferFrames = bufferFrames, InputChannels = inputChannels
         };
@@ -97,11 +97,11 @@ public sealed unsafe class NativeAudioSession : IDisposable {
                 deviceUid,
                 ref config,
                 &Callback,
-                (void*)GCHandle.ToIntPtr(stream._self),
-                out stream._stream
+                (void*)GCHandle.ToIntPtr(stream.self),
+                out stream.stream
             )
             != 0) {
-            stream._self.Free();
+            stream.self.Free();
             throw new InvalidOperationException($"Could not open audio device: {LastErrorMessage()}");
         }
 
@@ -113,32 +113,32 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     }
 
     public void Start() {
-        if (NativeMethods.Start(_stream) != 0) {
+        if (NativeMethods.Start(this.stream) != 0) {
             throw new InvalidOperationException($"Could not start audio device: {LastErrorMessage()}");
         }
     }
 
     public void Stop() {
-        if (NativeMethods.Stop(_stream) != 0) {
+        if (NativeMethods.Stop(this.stream) != 0) {
             throw new InvalidOperationException($"Could not stop audio device: {LastErrorMessage()}");
         }
     }
 
     public AudioSessionStats Stats() {
-        NativeMethods.Stats(_stream, out var s);
+        NativeMethods.Stats(this.stream, out var s);
         return new(
             s.Callbacks,
             s.Overloads,
             s.InputLatencyFrames,
             s.OutputLatencyFrames,
-            Interlocked.Read(ref _exceptions)
+            Interlocked.Read(ref exceptions)
         );
     }
 
     /// <summary>Snapshot of the native callback timing histogram.</summary>
     public CallbackTiming Timing() {
         TimingNative raw;
-        NativeMethods.Timing(_stream, &raw);
+        NativeMethods.Timing(this.stream, &raw);
         var bins = new ulong[TimingBins];
         for (var i = 0; i < TimingBins; i++) {
             bins[i] = raw.Bins[i];
@@ -148,16 +148,16 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     }
 
     /// <summary>Clears the timing histogram (applied by the audio thread at its next callback).</summary>
-    public void ResetTiming() => NativeMethods.ResetTiming(_stream);
+    public void ResetTiming() => NativeMethods.ResetTiming(this.stream);
 
     public void Dispose() {
-        if (_stream != 0) {
-            Close(_stream);
-            _stream = 0;
+        if (this.stream != 0) {
+            Close(this.stream);
+            this.stream = 0;
         }
 
-        if (_self.IsAllocated) {
-            _self.Free();
+        if (this.self.IsAllocated) {
+            this.self.Free();
         }
     }
 
@@ -178,7 +178,7 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         catch (Exception)
 #pragma warning restore CA1031
         {
-            Interlocked.Increment(ref self._exceptions);
+            Interlocked.Increment(ref self.exceptions);
         }
     }
 

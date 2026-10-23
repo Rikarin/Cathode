@@ -14,8 +14,8 @@ public sealed class TremoloBlock : DspBlock {
     public const int Shape = 3;
     public const int Level = 4;
 
-    Lfo _lfo;
-    float _outputGain = 1f;
+    Lfo lfo;
+    float outputGain = 1f;
 
     public static BlockDescriptor Info { get; } = new(
         "tremolo",
@@ -35,8 +35,8 @@ public sealed class TremoloBlock : DspBlock {
         : base(Info) { }
 
     protected override void OnReset() {
-        _lfo.Reset();
-        _outputGain = Decibels.ToGain(Params.Current(Level));
+        this.lfo.Reset();
+        this.outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -47,8 +47,8 @@ public sealed class TremoloBlock : DspBlock {
         var depth = Params.Advance(Depth, io.Length) / 100f;
 
         for (var i = 0; i < io.Length; i++) {
-            var lfo = _lfo.Value(shape);
-            _lfo.Advance(lfoRate, rate);
+            var lfo = this.lfo.Value(shape);
+            this.lfo.Advance(lfoRate, rate);
             if (panner) {
                 var angle = (depth * lfo + 1) * MathF.PI / 4; // 0 = hard left, pi/2 = hard right
                 var mono = 0.5f * (io.Left[i] + io.Right[i]);
@@ -62,8 +62,8 @@ public sealed class TremoloBlock : DspBlock {
         }
 
         var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, _outputGain, outputGain);
-        GainRamp.Apply(io.Right, _outputGain, outputGain);
-        _outputGain = outputGain;
+        GainRamp.Apply(io.Left, this.outputGain, outputGain);
+        GainRamp.Apply(io.Right, this.outputGain, outputGain);
+        this.outputGain = outputGain;
     }
 }

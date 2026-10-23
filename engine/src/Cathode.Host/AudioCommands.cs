@@ -146,11 +146,11 @@ static class AudioCommands {
     }
 
     sealed class ForwardingProcessor : IAudioProcessor {
-        IAudioProcessor? _target;
+        IAudioProcessor? target;
 
         public IAudioProcessor? Target {
-            get => Volatile.Read(ref _target);
-            set => Volatile.Write(ref _target, value);
+            get => Volatile.Read(ref this.target);
+            set => Volatile.Write(ref this.target, value);
         }
 
         public void Process(in AudioIO io) {

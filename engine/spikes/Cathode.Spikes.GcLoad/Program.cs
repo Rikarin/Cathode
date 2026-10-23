@@ -143,11 +143,11 @@ static class AudioMode {
         };
 
     sealed class Forwarder : IAudioProcessor {
-        IAudioProcessor? _target;
+        IAudioProcessor? target;
 
         public IAudioProcessor? Target {
-            get => Volatile.Read(ref _target);
-            set => Volatile.Write(ref _target, value);
+            get => Volatile.Read(ref this.target);
+            set => Volatile.Write(ref this.target, value);
         }
 
         public void Process(in AudioIO io) {
@@ -192,9 +192,9 @@ sealed record RunResult(
 
 /// <summary>A realistic slice of the planned REST API (docs/02-architecture.md §6), allocation profile included.</summary>
 static class Api {
-    static long s_requests;
+    static long requestCount;
 
-    public static long Requests => Interlocked.Read(ref s_requests);
+    public static long Requests => Interlocked.Read(ref requestCount);
 
     public static WebApplication Build(int port, Action<int, float>? onParameter) {
         var builder = WebApplication.CreateSlimBuilder();
@@ -206,7 +206,7 @@ static class Api {
         app.MapGet(
             "/api/v1/live",
             () => {
-                Interlocked.Increment(ref s_requests);
+                Interlocked.Increment(ref requestCount);
                 return Results.Text(JsonSerializer.Serialize(preset), "application/json");
             }
         );
@@ -214,7 +214,7 @@ static class Api {
         app.MapPatch(
             "/api/v1/live/blocks/{id}/params",
             async (string id, HttpRequest request) => {
-                Interlocked.Increment(ref s_requests);
+                Interlocked.Increment(ref requestCount);
                 var values = await JsonSerializer.DeserializeAsync<Dictionary<string, float>>(request.Body);
                 if (values is not null && values.TryGetValue("input", out var input)) {
                     onParameter?.Invoke(0, input);
@@ -227,7 +227,7 @@ static class Api {
         app.MapPost(
             "/api/v1/irs",
             async (HttpRequest request) => {
-                Interlocked.Increment(ref s_requests);
+                Interlocked.Increment(ref requestCount);
                 using var buffer = new MemoryStream();
                 await request.Body.CopyToAsync(buffer);
                 var bytes = buffer.ToArray(); // large object heap, like a real IR or capture upload
@@ -277,18 +277,18 @@ static class Preset {
 
 /// <summary>Background garbage at a target rate, with some survivors so gen1/gen2 collections happen too.</summary>
 sealed class AllocationStorm : IDisposable {
-    readonly CancellationTokenSource _stop = new();
-    readonly Thread _thread;
+    readonly CancellationTokenSource stop = new();
+    readonly Thread thread;
 
     public AllocationStorm(double megabytesPerSecond) {
-        _thread = new(() => Run(megabytesPerSecond, _stop.Token)) { IsBackground = true, Name = "alloc-storm" };
-        _thread.Start();
+        thread = new(() => Run(megabytesPerSecond, this.stop.Token)) { IsBackground = true, Name = "alloc-storm" };
+        thread.Start();
     }
 
     public void Dispose() {
-        _stop.Cancel();
-        _thread.Join();
-        _stop.Dispose();
+        this.stop.Cancel();
+        thread.Join();
+        this.stop.Dispose();
     }
 
     static void Run(double megabytesPerSecond, CancellationToken stop) {
@@ -415,7 +415,7 @@ static class LoadMode {
 }
 
 sealed class Options {
-    readonly Dictionary<string, string?> _values = new(StringComparer.Ordinal);
+    readonly Dictionary<string, string?> values = new(StringComparer.Ordinal);
 
     public static Options Parse(IEnumerable<string> args) {
         var options = new Options();
@@ -426,16 +426,16 @@ sealed class Options {
             }
 
             var hasValue = i + 1 < list.Count && !list[i + 1].StartsWith("--", StringComparison.Ordinal);
-            options._values[list[i][2..]] = hasValue ? list[++i] : null;
+            options.values[list[i][2..]] = hasValue ? list[++i] : null;
         }
 
         return options;
     }
 
-    public bool Flag(string name) => _values.ContainsKey(name);
+    public bool Flag(string name) => this.values.ContainsKey(name);
 
-    public string? Text(string name) => _values.GetValueOrDefault(name);
+    public string? Text(string name) => this.values.GetValueOrDefault(name);
 
     public int Int(string name, int fallback) =>
-        _values.TryGetValue(name, out var v) && v is not null ? int.Parse(v, CultureInfo.InvariantCulture) : fallback;
+        this.values.TryGetValue(name, out var v) && v is not null ? int.Parse(v, CultureInfo.InvariantCulture) : fallback;
 }

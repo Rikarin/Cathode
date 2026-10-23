@@ -16,8 +16,8 @@ public sealed class ParametricEqBlock : DspBlock {
     const int SubBlock = 32;
     static readonly float[] DefaultFrequencies = [100f, 300f, 1_000f, 3_000f, 8_000f];
 
-    readonly EqBand[] _bands = [new(), new(), new(), new(), new()];
-    float _outputGain = 1f;
+    readonly EqBand[] bands = [new(), new(), new(), new(), new()];
+    float outputGain = 1f;
 
     public static BlockDescriptor Info { get; } = new(
         "peq",
@@ -56,11 +56,11 @@ public sealed class ParametricEqBlock : DspBlock {
     public static int Q(int band) => (band - 1) * 3 + 2;
 
     protected override void OnReset() {
-        foreach (var band in _bands) {
+        foreach (var band in this.bands) {
             band.Reset();
         }
 
-        _outputGain = Decibels.ToGain(Params.Current(Level));
+        this.outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -77,13 +77,13 @@ public sealed class ParametricEqBlock : DspBlock {
                     Bands when Params.Current(HighType) == 0 => BiquadType.HighShelf,
                     _ => BiquadType.Peak
                 };
-                _bands[b - 1].Process(chunk, type, Spec.SampleRate, frequency, q, gain, moving);
+                this.bands[b - 1].Process(chunk, type, Spec.SampleRate, frequency, q, gain, moving);
             }
         }
 
         var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, _outputGain, outputGain);
-        GainRamp.Apply(io.Right, _outputGain, outputGain);
-        _outputGain = outputGain;
+        GainRamp.Apply(io.Left, this.outputGain, outputGain);
+        GainRamp.Apply(io.Right, this.outputGain, outputGain);
+        this.outputGain = outputGain;
     }
 }

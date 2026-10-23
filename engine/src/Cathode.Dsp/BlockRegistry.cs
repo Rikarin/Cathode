@@ -5,10 +5,10 @@ namespace Cathode.Dsp;
 
 /// <summary>Maps block type ids to their descriptor and a factory.</summary>
 public sealed class BlockRegistry {
-    readonly Dictionary<string, (BlockDescriptor Descriptor, Func<IDspBlock> Factory)> _types =
+    readonly Dictionary<string, (BlockDescriptor Descriptor, Func<IDspBlock> Factory)> types =
         new(StringComparer.Ordinal);
 
-    public IEnumerable<BlockDescriptor> Descriptors => _types.Values.Select(static t => t.Descriptor);
+    public IEnumerable<BlockDescriptor> Descriptors => types.Values.Select(static t => t.Descriptor);
 
     /// <summary>A registry pre-populated with every built-in block.</summary>
     public static BlockRegistry CreateDefault() {
@@ -32,19 +32,19 @@ public sealed class BlockRegistry {
     }
 
     public void Register(BlockDescriptor descriptor, Func<IDspBlock> factory) {
-        if (!_types.TryAdd(descriptor.TypeId, (descriptor, factory))) {
+        if (!types.TryAdd(descriptor.TypeId, (descriptor, factory))) {
             throw new ArgumentException($"Block type '{descriptor.TypeId}' is already registered.", nameof(descriptor));
         }
     }
 
-    public bool Contains(string typeId) => _types.ContainsKey(typeId);
+    public bool Contains(string typeId) => types.ContainsKey(typeId);
 
     public BlockDescriptor GetDescriptor(string typeId) => Lookup(typeId).Descriptor;
 
     public IDspBlock Create(string typeId) => Lookup(typeId).Factory();
 
     (BlockDescriptor Descriptor, Func<IDspBlock> Factory) Lookup(string typeId) =>
-        _types.TryGetValue(typeId, out var entry)
+        types.TryGetValue(typeId, out var entry)
             ? entry
             : throw new KeyNotFoundException($"Unknown block type '{typeId}'.");
 }

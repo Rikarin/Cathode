@@ -25,9 +25,9 @@ public sealed class WahBlock : DspBlock {
         (300f, 3_000f, 6f) // Wide
     ];
 
-    SvfState _bandLeft, _bandRight, _lowLeft, _lowRight;
-    float _mix = 1f;
-    float _outputGain = 1f;
+    SvfState bandLeft, bandRight, lowLeft, lowRight;
+    float mix = 1f;
+    float outputGain = 1f;
 
     public static BlockDescriptor Info { get; } = new(
         "wah",
@@ -74,20 +74,20 @@ public sealed class WahBlock : DspBlock {
     }
 
     protected override void OnReset() {
-        _bandLeft.Reset();
-        _bandRight.Reset();
-        _lowLeft.Reset();
-        _lowRight.Reset();
-        _mix = Params.Current(Mix) / 100f;
-        _outputGain = Decibels.ToGain(Params.Current(Level));
+        bandLeft.Reset();
+        bandRight.Reset();
+        lowLeft.Reset();
+        lowRight.Reset();
+        this.mix = Params.Current(Mix) / 100f;
+        this.outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var type = (int)Params.Current(Type);
         var q = Voicings[type].Q;
         var mix = Params.Advance(Mix, io.Length) / 100f;
-        var mixStep = (mix - _mix) / io.Length;
-        var currentMix = _mix;
+        var mixStep = (mix - this.mix) / io.Length;
+        var currentMix = this.mix;
 
         for (var start = 0; start < io.Length; start += SubBlock) {
             var length = Math.Min(SubBlock, io.Length - start);
@@ -96,20 +96,20 @@ public sealed class WahBlock : DspBlock {
             var low = SvfCoefficients.Design(BiquadType.LowPass, Spec.SampleRate, frequency, 0.7071);
             for (var i = start; i < start + length; i++) {
                 currentMix += mixStep;
-                io.Left[i] = Voice(io.Left[i], band, low, ref _bandLeft, ref _lowLeft, currentMix);
-                io.Right[i] = Voice(io.Right[i], band, low, ref _bandRight, ref _lowRight, currentMix);
+                io.Left[i] = Voice(io.Left[i], band, low, ref bandLeft, ref lowLeft, currentMix);
+                io.Right[i] = Voice(io.Right[i], band, low, ref bandRight, ref lowRight, currentMix);
             }
         }
 
-        _bandLeft.FlushDenormals();
-        _bandRight.FlushDenormals();
-        _lowLeft.FlushDenormals();
-        _lowRight.FlushDenormals();
-        _mix = mix;
+        bandLeft.FlushDenormals();
+        bandRight.FlushDenormals();
+        lowLeft.FlushDenormals();
+        lowRight.FlushDenormals();
+        this.mix = mix;
 
         var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, _outputGain, outputGain);
-        GainRamp.Apply(io.Right, _outputGain, outputGain);
-        _outputGain = outputGain;
+        GainRamp.Apply(io.Left, this.outputGain, outputGain);
+        GainRamp.Apply(io.Right, this.outputGain, outputGain);
+        this.outputGain = outputGain;
     }
 }

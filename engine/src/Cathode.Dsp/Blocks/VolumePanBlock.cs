@@ -7,8 +7,8 @@ public sealed class VolumePanBlock : DspBlock {
     public const int Level = 0;
     public const int Balance = 1;
 
-    float _gainLeft;
-    float _gainRight;
+    float gainLeft;
+    float gainRight;
 
     public static BlockDescriptor Info { get; } = new(
         "volpan",
@@ -29,15 +29,15 @@ public sealed class VolumePanBlock : DspBlock {
         return (gain * Math.Min(1f, 1f - balance), gain * Math.Min(1f, 1f + balance));
     }
 
-    protected override void OnReset() => (_gainLeft, _gainRight) = TargetGains();
+    protected override void OnReset() => (gainLeft, gainRight) = TargetGains();
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         Params.Advance(Level, io.Length);
         Params.Advance(Balance, io.Length);
         var (endLeft, endRight) = TargetGains();
-        GainRamp.Apply(io.Left, _gainLeft, endLeft);
-        GainRamp.Apply(io.Right, _gainRight, endRight);
-        _gainLeft = endLeft;
-        _gainRight = endRight;
+        GainRamp.Apply(io.Left, gainLeft, endLeft);
+        GainRamp.Apply(io.Right, gainRight, endRight);
+        gainLeft = endLeft;
+        gainRight = endRight;
     }
 }

@@ -7,18 +7,18 @@ namespace Cathode.Audio;
 ///     period and records how many samples later its peak arrives on the input. Allocation-free on the audio thread.
 /// </summary>
 public sealed class LatencyProbe : IAudioProcessor {
-    readonly int _period;
-    readonly float _amplitude;
-    readonly float _threshold;
-    readonly int _skipPeriods;
-    readonly int[] _lags;
-    long _position;
-    int _count;
-    float _peak;
-    int _peakIndex;
+    readonly int period;
+    readonly float amplitude;
+    readonly float threshold;
+    readonly int skipPeriods;
+    readonly int[] lags;
+    long position;
+    int count;
+    float peak;
+    int peakIndex;
 
     /// <summary>Clicks detected so far (excluding the settling periods).</summary>
-    public int Count => Volatile.Read(ref _count);
+    public int Count => Volatile.Read(ref count);
 
     /// <summary>Periods that ended without a detectable click.</summary>
     public int Missed { get; private set; }
@@ -35,33 +35,33 @@ public sealed class LatencyProbe : IAudioProcessor {
         float threshold = 0.01f,
         int maxMeasurements = 64
     ) {
-        _period = (int)(sampleRate * periodSeconds);
-        _amplitude = amplitude;
-        _threshold = threshold;
-        _skipPeriods = 2; // let the device settle
-        _lags = new int[maxMeasurements];
+        this.period = (int)(sampleRate * periodSeconds);
+        this.amplitude = amplitude;
+        this.threshold = threshold;
+        skipPeriods = 2; // let the device settle
+        lags = new int[maxMeasurements];
     }
 
     /// <summary>Snapshot of the measured lags in samples.</summary>
-    public int[] Measurements() => _lags.AsSpan(0, Count).ToArray();
+    public int[] Measurements() => this.lags.AsSpan(0, Count).ToArray();
 
     public void Process(in AudioIO io) {
         for (var i = 0; i < io.Frames; i++) {
-            var phase = (int)(_position % _period);
+            var phase = (int)(position % this.period);
             if (phase == 0) {
                 Complete();
             }
 
             var x = Math.Abs(io.InputLeft[i]);
-            if (x > _peak) {
-                _peak = x;
-                _peakIndex = phase;
+            if (x > this.peak) {
+                this.peak = x;
+                peakIndex = phase;
             }
 
-            var click = phase == 0 ? _amplitude : 0f;
+            var click = phase == 0 ? this.amplitude : 0f;
             io.OutputLeft[i] = click;
             io.OutputRight[i] = click;
-            _position++;
+            position++;
         }
     }
 
@@ -76,17 +76,17 @@ public sealed class LatencyProbe : IAudioProcessor {
     }
 
     void Complete() {
-        var periodIndex = _position / _period;
-        if (periodIndex > _skipPeriods) {
-            if (_peak >= _threshold && _count < _lags.Length) {
-                _lags[_count] = _peakIndex;
-                Volatile.Write(ref _count, _count + 1);
-            } else if (_peak < _threshold) {
+        var periodIndex = position / this.period;
+        if (periodIndex > skipPeriods) {
+            if (this.peak >= this.threshold && count < this.lags.Length) {
+                this.lags[count] = peakIndex;
+                Volatile.Write(ref count, count + 1);
+            } else if (this.peak < this.threshold) {
                 Missed++;
             }
         }
 
-        _peak = 0;
-        _peakIndex = 0;
+        this.peak = 0;
+        peakIndex = 0;
     }
 }

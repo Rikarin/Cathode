@@ -124,19 +124,19 @@ public readonly record struct BiquadCoefficients(double B0, double B1, double B2
 public struct BiquadState {
     const double DenormalThreshold = 1e-30;
 
-    double _z1;
-    double _z2;
+    double z1;
+    double z2;
 
     public void Reset() {
-        _z1 = 0;
-        _z2 = 0;
+        z1 = 0;
+        z2 = 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Tick(in BiquadCoefficients c, double x) {
-        var y = c.B0 * x + _z1;
-        _z1 = c.B1 * x - c.A1 * y + _z2;
-        _z2 = c.B2 * x - c.A2 * y;
+        var y = c.B0 * x + z1;
+        z1 = c.B1 * x - c.A1 * y + z2;
+        z2 = c.B2 * x - c.A2 * y;
         return y;
     }
 
@@ -150,12 +150,12 @@ public struct BiquadState {
 
     /// <summary>Zeroes state that has decayed into the subnormal range, where arithmetic gets very slow.</summary>
     public void FlushDenormals() {
-        if (Math.Abs(_z1) < DenormalThreshold) {
-            _z1 = 0;
+        if (Math.Abs(z1) < DenormalThreshold) {
+            z1 = 0;
         }
 
-        if (Math.Abs(_z2) < DenormalThreshold) {
-            _z2 = 0;
+        if (Math.Abs(z2) < DenormalThreshold) {
+            z2 = 0;
         }
     }
 }

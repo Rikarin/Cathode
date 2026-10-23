@@ -23,12 +23,12 @@ public struct AdaaClipper {
     const double Epsilon = 1e-4;
     static readonly double TanhBias = Math.Tanh(Bias);
 
-    double _previous;
-    double _previousAntiderivative;
+    double previous;
+    double previousAntiderivative;
 
     public void Reset() {
-        _previous = 0;
-        _previousAntiderivative = 0;
+        previous = 0;
+        previousAntiderivative = 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -39,12 +39,12 @@ public struct AdaaClipper {
         }
 
         var antiderivative = Antiderivative(shape, x);
-        var delta = x - _previous;
+        var delta = x - previous;
         var y = Math.Abs(delta) < Epsilon
-            ? Function(shape, 0.5 * (x + _previous)) // ill-conditioned: fall back to the midpoint
-            : (antiderivative - _previousAntiderivative) / delta;
-        _previous = x;
-        _previousAntiderivative = antiderivative;
+            ? Function(shape, 0.5 * (x + previous)) // ill-conditioned: fall back to the midpoint
+            : (antiderivative - previousAntiderivative) / delta;
+        previous = x;
+        previousAntiderivative = antiderivative;
         return (float)y;
     }
 

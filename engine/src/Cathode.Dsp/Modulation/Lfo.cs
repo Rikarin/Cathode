@@ -10,21 +10,21 @@ public enum LfoShape {
 
 /// <summary>Low-frequency oscillator with a phase in [0, 1). Allocation-free; one instance drives both channels.</summary>
 public struct Lfo {
-    double _phase;
+    double phase;
 
-    public void Reset(double phase = 0) => _phase = phase;
+    public void Reset(double phase = 0) => this.phase = phase;
 
     /// <summary>Advances by one sample at <paramref name="rateHz" />.</summary>
     public void Advance(double rateHz, double sampleRate) {
-        _phase += rateHz / sampleRate;
-        if (_phase >= 1) {
-            _phase -= Math.Floor(_phase);
+        this.phase += rateHz / sampleRate;
+        if (this.phase >= 1) {
+            this.phase -= Math.Floor(this.phase);
         }
     }
 
     /// <summary>Bipolar value in [-1, 1] at the current phase plus <paramref name="offset" /> (in cycles, e.g. 0.25 = 90°).</summary>
     public readonly float Value(LfoShape shape, double offset = 0) {
-        var p = _phase + offset;
+        var p = this.phase + offset;
         p -= Math.Floor(p);
         return shape switch {
             LfoShape.Triangle => (float)(p < 0.5 ? 4 * p - 1 : 3 - 4 * p),

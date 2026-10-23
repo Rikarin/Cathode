@@ -29,16 +29,16 @@ public sealed class Tuner {
 
     static readonly string[] Notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-    readonly HalfBandStage _decimator = new(HalfBand.Design(80, 0.1));
-    readonly Fft _fft = new(FftSize);
-    readonly float[] _window = new float[Window];
-    readonly float[] _pending = new float[2];
-    readonly float[] _re = new float[FftSize];
-    readonly float[] _im = new float[FftSize];
-    readonly double[] _nsdf = new double[Window];
-    readonly float[] _decimated = new float[1];
-    int _pendingCount;
-    int _filled;
+    readonly HalfBandStage decimator = new(HalfBand.Design(80, 0.1));
+    readonly Fft fft = new(FftSize);
+    readonly float[] window = new float[Window];
+    readonly float[] pending = new float[2];
+    readonly float[] re = new float[FftSize];
+    readonly float[] im = new float[FftSize];
+    readonly double[] nsdf = new double[Window];
+    readonly float[] decimated = new float[1];
+    int pendingCount;
+    int filled;
 
     /// <summary>Frequency of A4, normally 440 Hz (430..450 allowed).</summary>
     public double Reference { get; set; } = 440;
@@ -53,22 +53,22 @@ public sealed class Tuner {
     /// <summary>Feeds input samples at the full rate.</summary>
     public void Push(ReadOnlySpan<float> samples) {
         foreach (var sample in samples) {
-            _pending[_pendingCount++] = sample;
-            if (_pendingCount < 2) {
+            pending[pendingCount++] = sample;
+            if (pendingCount < 2) {
                 continue;
             }
 
-            _pendingCount = 0;
-            _decimator.Down(_pending, _decimated);
-            Array.Copy(_window, 1, _window, 0, Window - 1);
-            _window[^1] = _decimated[0];
-            _filled = Math.Min(Window, _filled + 1);
+            pendingCount = 0;
+            decimator.Down(pending, this.decimated);
+            Array.Copy(this.window, 1, this.window, 0, Window - 1);
+            this.window[^1] = this.decimated[0];
+            filled = Math.Min(Window, filled + 1);
         }
     }
 
     /// <summary>Analyses the most recent window. Returns null for silence, noise or chords without a clear period.</summary>
     public TunerReading? Detect() {
-        if (_filled < Window || Rms() < MinRms) {
+        if (filled < Window || Rms() < MinRms) {
             return null;
         }
 
@@ -80,19 +80,19 @@ public sealed class Tuner {
         Span<int> keys = stackalloc int[64];
         var keyCount = 0;
         var lag = 1;
-        while (lag < maxLag && _nsdf[lag] > 0) {
+        while (lag < maxLag && nsdf[lag] > 0) {
             lag++; // skip the lobe around lag 0 (starting at minLag would skip a short period's first lobe instead)
         }
 
         var highest = 0.0;
         while (lag < maxLag && keyCount < keys.Length) {
-            while (lag < maxLag && _nsdf[lag] <= 0) {
+            while (lag < maxLag && nsdf[lag] <= 0) {
                 lag++;
             }
 
             var best = -1;
-            while (lag < maxLag && _nsdf[lag] > 0) {
-                if (best < 0 || _nsdf[lag] > _nsdf[best]) {
+            while (lag < maxLag && nsdf[lag] > 0) {
+                if (best < 0 || nsdf[lag] > nsdf[best]) {
                     best = lag;
                 }
 
@@ -101,16 +101,16 @@ public sealed class Tuner {
 
             if (best >= minLag) {
                 keys[keyCount++] = best;
-                highest = Math.Max(highest, _nsdf[best]);
+                highest = Math.Max(highest, nsdf[best]);
             }
         }
 
         foreach (var key in keys[..keyCount]) {
-            if (_nsdf[key] < KeyMaximumThreshold * highest) {
+            if (nsdf[key] < KeyMaximumThreshold * highest) {
                 continue;
             }
 
-            if (_nsdf[key] < MinClarity) {
+            if (nsdf[key] < MinClarity) {
                 return null;
             }
 
@@ -131,7 +131,7 @@ public sealed class Tuner {
 
     double Rms() {
         double sum = 0;
-        foreach (var x in _window) {
+        foreach (var x in this.window) {
             sum += (double)x * x;
         }
 
@@ -139,34 +139,34 @@ public sealed class Tuner {
     }
 
     void ComputeNsdf() {
-        Array.Clear(_re);
-        Array.Clear(_im);
-        _window.CopyTo(_re, 0);
-        _fft.Forward(_re, _im);
+        Array.Clear(re);
+        Array.Clear(im);
+        this.window.CopyTo(re, 0);
+        fft.Forward(re, im);
         for (var k = 0; k < FftSize; k++) {
-            _re[k] = _re[k] * _re[k] + _im[k] * _im[k];
-            _im[k] = 0;
+            re[k] = re[k] * re[k] + im[k] * im[k];
+            im[k] = 0;
         }
 
-        _fft.Inverse(_re, _im); // _re[lag] = sum over j of x[j] * x[j + lag]
+        fft.Inverse(re, im); // re[lag] = sum over j of x[j] * x[j + lag]
 
         double m = 0;
-        foreach (var x in _window) {
+        foreach (var x in this.window) {
             m += 2.0 * x * x;
         }
 
         for (var lag = 0; lag < Window; lag++) {
-            _nsdf[lag] = m > 0 ? 2 * _re[lag] / m : 0;
-            var a = _window[lag];
-            var b = _window[Window - 1 - lag];
+            nsdf[lag] = m > 0 ? 2 * re[lag] / m : 0;
+            var a = this.window[lag];
+            var b = this.window[Window - 1 - lag];
             m -= (double)a * a + (double)b * b;
         }
     }
 
     (double Period, double Clarity) Parabola(int lag) {
-        var a = _nsdf[lag - 1];
-        var b = _nsdf[lag];
-        var c = _nsdf[lag + 1];
+        var a = nsdf[lag - 1];
+        var b = nsdf[lag];
+        var c = nsdf[lag + 1];
         var denominator = a - 2 * b + c;
         if (denominator == 0) {
             return (lag, b);

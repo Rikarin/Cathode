@@ -67,21 +67,21 @@ public readonly record struct SvfCoefficients(double A1, double A2, double A3, d
 public struct SvfState {
     const double DenormalThreshold = 1e-30;
 
-    double _ic1;
-    double _ic2;
+    double ic1;
+    double ic2;
 
     public void Reset() {
-        _ic1 = 0;
-        _ic2 = 0;
+        ic1 = 0;
+        ic2 = 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Tick(in SvfCoefficients c, double v0) {
-        var v3 = v0 - _ic2;
-        var v1 = c.A1 * _ic1 + c.A2 * v3;
-        var v2 = _ic2 + c.A2 * _ic1 + c.A3 * v3;
-        _ic1 = 2 * v1 - _ic1;
-        _ic2 = 2 * v2 - _ic2;
+        var v3 = v0 - ic2;
+        var v1 = c.A1 * ic1 + c.A2 * v3;
+        var v2 = ic2 + c.A2 * ic1 + c.A3 * v3;
+        ic1 = 2 * v1 - ic1;
+        ic2 = 2 * v2 - ic2;
         return c.M0 * v0 + c.M1 * v1 + c.M2 * v2;
     }
 
@@ -95,12 +95,12 @@ public struct SvfState {
 
     /// <summary>Zeroes state that has decayed into the subnormal range, where arithmetic gets very slow.</summary>
     public void FlushDenormals() {
-        if (Math.Abs(_ic1) < DenormalThreshold) {
-            _ic1 = 0;
+        if (Math.Abs(ic1) < DenormalThreshold) {
+            ic1 = 0;
         }
 
-        if (Math.Abs(_ic2) < DenormalThreshold) {
-            _ic2 = 0;
+        if (Math.Abs(ic2) < DenormalThreshold) {
+            ic2 = 0;
         }
     }
 }

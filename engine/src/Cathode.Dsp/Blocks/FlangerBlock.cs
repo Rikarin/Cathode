@@ -20,11 +20,11 @@ public sealed class FlangerBlock : DspBlock {
     const float MaxSweepMs = 7f;
     const float MaxDelayMs = 10f;
 
-    readonly FractionalDelayLine _left = new();
-    readonly FractionalDelayLine _right = new();
-    Lfo _lfo;
-    float _mix;
-    float _outputGain = 1f;
+    readonly FractionalDelayLine left = new();
+    readonly FractionalDelayLine right = new();
+    Lfo lfo;
+    float mix;
+    float outputGain = 1f;
 
     public static BlockDescriptor Info { get; } = new(
         "flanger",
@@ -47,16 +47,16 @@ public sealed class FlangerBlock : DspBlock {
 
     protected override void OnPrepare(in ProcessSpec spec) {
         var capacity = (int)((MaxDelayMs + MaxSweepMs) * 0.001 * spec.SampleRate) + 8;
-        _left.Allocate(capacity);
-        _right.Allocate(capacity);
+        this.left.Allocate(capacity);
+        this.right.Allocate(capacity);
     }
 
     protected override void OnReset() {
-        _left.Reset();
-        _right.Reset();
-        _lfo.Reset();
-        _mix = Params.Current(Mix) / 100f;
-        _outputGain = Decibels.ToGain(Params.Current(Level));
+        this.left.Reset();
+        this.right.Reset();
+        lfo.Reset();
+        this.mix = Params.Current(Mix) / 100f;
+        this.outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -67,29 +67,29 @@ public sealed class FlangerBlock : DspBlock {
         var feedback = Params.Advance(Feedback, io.Length) / 100f;
         var spread = Params.Advance(Spread, io.Length) / 360.0;
         var mix = Params.Advance(Mix, io.Length) / 100f;
-        var mixStep = (mix - _mix) / io.Length;
-        var currentMix = _mix;
+        var mixStep = (mix - this.mix) / io.Length;
+        var currentMix = this.mix;
 
         for (var i = 0; i < io.Length; i++) {
-            var dl = baseDelay + sweep * 0.5f * (1 + _lfo.Value(LfoShape.Triangle));
-            var dr = baseDelay + sweep * 0.5f * (1 + _lfo.Value(LfoShape.Triangle, spread));
-            _lfo.Advance(lfoRate, rate);
+            var dl = baseDelay + sweep * 0.5f * (1 + lfo.Value(LfoShape.Triangle));
+            var dr = baseDelay + sweep * 0.5f * (1 + lfo.Value(LfoShape.Triangle, spread));
+            lfo.Advance(lfoRate, rate);
             currentMix += mixStep;
 
             var left = io.Left[i];
             var right = io.Right[i];
-            var wetLeft = _left.Read(dl); // read before writing, so a delay of N is exactly N samples
-            var wetRight = _right.Read(dr);
-            _left.Write(left + wetLeft * feedback);
-            _right.Write(right + wetRight * feedback);
+            var wetLeft = this.left.Read(dl); // read before writing, so a delay of N is exactly N samples
+            var wetRight = this.right.Read(dr);
+            this.left.Write(left + wetLeft * feedback);
+            this.right.Write(right + wetRight * feedback);
             io.Left[i] = left * (1 - currentMix) + wetLeft * currentMix;
             io.Right[i] = right * (1 - currentMix) + wetRight * currentMix;
         }
 
-        _mix = mix;
+        this.mix = mix;
         var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, _outputGain, outputGain);
-        GainRamp.Apply(io.Right, _outputGain, outputGain);
-        _outputGain = outputGain;
+        GainRamp.Apply(io.Left, this.outputGain, outputGain);
+        GainRamp.Apply(io.Right, this.outputGain, outputGain);
+        this.outputGain = outputGain;
     }
 }

@@ -17,10 +17,10 @@ public sealed class FilterBlock : DspBlock {
 
     const int SubBlock = 32;
 
-    SvfCoefficients _coefficients;
-    SvfState _left;
-    SvfState _right;
-    float _gain = 1f;
+    SvfCoefficients coefficients;
+    SvfState left;
+    SvfState right;
+    float gain = 1f;
 
     public static BlockDescriptor Info { get; } = new(
         "filter",
@@ -44,7 +44,7 @@ public sealed class FilterBlock : DspBlock {
         : base(Info) { }
 
     void UpdateCoefficients() =>
-        _coefficients = SvfCoefficients.Design(
+        this.coefficients = SvfCoefficients.Design(
             (BiquadType)(int)Params.Current(Type),
             Spec.SampleRate,
             Params.Current(Frequency),
@@ -53,10 +53,10 @@ public sealed class FilterBlock : DspBlock {
         );
 
     protected override void OnReset() {
-        _left.Reset();
-        _right.Reset();
+        left.Reset();
+        right.Reset();
         UpdateCoefficients();
-        _gain = Decibels.ToGain(Params.Current(Level));
+        this.gain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -68,18 +68,18 @@ public sealed class FilterBlock : DspBlock {
                 Params.Advance(Gain, length);
                 UpdateCoefficients();
                 var chunk = io.Slice(start, length);
-                _left.Process(_coefficients, chunk.Left);
-                _right.Process(_coefficients, chunk.Right);
+                left.Process(this.coefficients, chunk.Left);
+                right.Process(this.coefficients, chunk.Right);
             }
         } else {
             UpdateCoefficients();
-            _left.Process(_coefficients, io.Left);
-            _right.Process(_coefficients, io.Right);
+            left.Process(this.coefficients, io.Left);
+            right.Process(this.coefficients, io.Right);
         }
 
         var targetGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, _gain, targetGain);
-        GainRamp.Apply(io.Right, _gain, targetGain);
-        _gain = targetGain;
+        GainRamp.Apply(io.Left, this.gain, targetGain);
+        GainRamp.Apply(io.Right, this.gain, targetGain);
+        this.gain = targetGain;
     }
 }

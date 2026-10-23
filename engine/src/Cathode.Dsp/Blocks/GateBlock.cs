@@ -23,10 +23,10 @@ public sealed class GateBlock : DspBlock {
     /// <summary>Deepest attenuation the gate applies, in dB.</summary>
     const float FloorDb = -100f;
 
-    float _envelope;
-    float _gainDb;
-    int _holdRemaining;
-    float _detectorRelease;
+    float envelope;
+    float gainDb;
+    int holdRemaining;
+    float detectorRelease;
 
     public static BlockDescriptor Info { get; } = new(
         "gate",
@@ -43,7 +43,7 @@ public sealed class GateBlock : DspBlock {
     );
 
     /// <summary>Current gain applied by the gate (1 = open). For meters and tests.</summary>
-    public float CurrentGain => MathF.Pow(10f, _gainDb / 20f);
+    public float CurrentGain => MathF.Pow(10f, this.gainDb / 20f);
 
     public GateBlock()
         : base(Info) { }
@@ -53,12 +53,12 @@ public sealed class GateBlock : DspBlock {
         (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
 
     protected override void OnPrepare(in ProcessSpec spec) =>
-        _detectorRelease = Coefficient(DetectorReleaseMs, spec.SampleRate);
+        detectorRelease = Coefficient(DetectorReleaseMs, spec.SampleRate);
 
     protected override void OnReset() {
-        _envelope = 0;
-        _gainDb = 0;
-        _holdRemaining = (int)(Params.Current(Hold) * 0.001 * Spec.SampleRate);
+        this.envelope = 0;
+        this.gainDb = 0;
+        this.holdRemaining = (int)(Params.Current(Hold) * 0.001 * Spec.SampleRate);
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -70,12 +70,12 @@ public sealed class GateBlock : DspBlock {
         var release = Coefficient(Params.Advance(Release, io.Length), sampleRate);
         var holdSamples = (int)(Params.Advance(Hold, io.Length) * 0.001 * sampleRate);
 
-        var envelope = _envelope;
-        var gainDb = _gainDb;
-        var holdRemaining = _holdRemaining;
+        var envelope = this.envelope;
+        var gainDb = this.gainDb;
+        var holdRemaining = this.holdRemaining;
         for (var i = 0; i < io.Length; i++) {
             var level = Math.Max(Math.Abs(io.Left[i]), Math.Abs(io.Right[i]));
-            envelope = level > envelope ? level : envelope * _detectorRelease;
+            envelope = level > envelope ? level : envelope * detectorRelease;
 
             float targetDb;
             if (envelope >= threshold) {
@@ -100,8 +100,8 @@ public sealed class GateBlock : DspBlock {
             io.Right[i] *= gain;
         }
 
-        _envelope = envelope < 1e-20f ? 0 : envelope;
-        _gainDb = gainDb;
-        _holdRemaining = holdRemaining;
+        this.envelope = envelope < 1e-20f ? 0 : envelope;
+        this.gainDb = gainDb;
+        this.holdRemaining = holdRemaining;
     }
 }

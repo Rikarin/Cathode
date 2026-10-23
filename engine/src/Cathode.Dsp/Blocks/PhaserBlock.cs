@@ -21,13 +21,13 @@ public sealed class PhaserBlock : DspBlock {
     const float MaxSweepOctaves = 2f;
     static readonly int[] StageCounts = [2, 4, 6, 8, 10, 12];
 
-    readonly float[] _stateLeft = new float[MaxStages];
-    readonly float[] _stateRight = new float[MaxStages];
-    Lfo _lfo;
-    float _lastLeft;
-    float _lastRight;
-    float _mix;
-    float _outputGain = 1f;
+    readonly float[] stateLeft = new float[MaxStages];
+    readonly float[] stateRight = new float[MaxStages];
+    Lfo lfo;
+    float lastLeft;
+    float lastRight;
+    float mix;
+    float outputGain = 1f;
 
     public static BlockDescriptor Info { get; } = new(
         "phaser",
@@ -76,13 +76,13 @@ public sealed class PhaserBlock : DspBlock {
     }
 
     protected override void OnReset() {
-        Array.Clear(_stateLeft);
-        Array.Clear(_stateRight);
-        _lfo.Reset();
-        _lastLeft = 0;
-        _lastRight = 0;
-        _mix = Params.Current(Mix) / 100f;
-        _outputGain = Decibels.ToGain(Params.Current(Level));
+        Array.Clear(stateLeft);
+        Array.Clear(stateRight);
+        lfo.Reset();
+        lastLeft = 0;
+        lastRight = 0;
+        this.mix = Params.Current(Mix) / 100f;
+        this.outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -94,30 +94,30 @@ public sealed class PhaserBlock : DspBlock {
         var feedback = Params.Advance(Feedback, io.Length) / 100f;
         var spread = Params.Advance(Spread, io.Length) / 360.0;
         var mix = Params.Advance(Mix, io.Length) / 100f;
-        var mixStep = (mix - _mix) / io.Length;
-        var currentMix = _mix;
+        var mixStep = (mix - this.mix) / io.Length;
+        var currentMix = this.mix;
         var nyquistGuard = (float)(rate * 0.45);
 
         for (var i = 0; i < io.Length; i++) {
-            var fl = Math.Min(nyquistGuard, center * MathF.Pow(2f, octaves * _lfo.Value(LfoShape.Sine)));
-            var fr = Math.Min(nyquistGuard, center * MathF.Pow(2f, octaves * _lfo.Value(LfoShape.Sine, spread)));
-            _lfo.Advance(lfoRate, rate);
+            var fl = Math.Min(nyquistGuard, center * MathF.Pow(2f, octaves * lfo.Value(LfoShape.Sine)));
+            var fr = Math.Min(nyquistGuard, center * MathF.Pow(2f, octaves * lfo.Value(LfoShape.Sine, spread)));
+            lfo.Advance(lfoRate, rate);
             currentMix += mixStep;
 
             var left = io.Left[i];
             var right = io.Right[i];
-            _lastLeft = Chain(_stateLeft, stages, left + feedback * _lastLeft, Gain(fl, rate));
-            _lastRight = Chain(_stateRight, stages, right + feedback * _lastRight, Gain(fr, rate));
-            io.Left[i] = left * (1 - currentMix) + _lastLeft * currentMix;
-            io.Right[i] = right * (1 - currentMix) + _lastRight * currentMix;
+            lastLeft = Chain(stateLeft, stages, left + feedback * lastLeft, Gain(fl, rate));
+            lastRight = Chain(stateRight, stages, right + feedback * lastRight, Gain(fr, rate));
+            io.Left[i] = left * (1 - currentMix) + lastLeft * currentMix;
+            io.Right[i] = right * (1 - currentMix) + lastRight * currentMix;
         }
 
-        Flush(_stateLeft);
-        Flush(_stateRight);
-        _mix = mix;
+        Flush(stateLeft);
+        Flush(stateRight);
+        this.mix = mix;
         var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, _outputGain, outputGain);
-        GainRamp.Apply(io.Right, _outputGain, outputGain);
-        _outputGain = outputGain;
+        GainRamp.Apply(io.Left, this.outputGain, outputGain);
+        GainRamp.Apply(io.Right, this.outputGain, outputGain);
+        this.outputGain = outputGain;
     }
 }

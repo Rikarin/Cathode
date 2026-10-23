@@ -79,14 +79,14 @@ public static class HalfBand {
 
 /// <summary>One allpass chain state: y[n] = a (x[n] - y[n-1]) + x[n-1] per section.</summary>
 sealed class AllpassChain(float[] coefficients) {
-    readonly float[] _x = new float[coefficients.Length];
-    readonly float[] _y = new float[coefficients.Length];
+    readonly float[] x = new float[coefficients.Length];
+    readonly float[] y = new float[coefficients.Length];
 
     public float Process(float input) {
         for (var i = 0; i < coefficients.Length; i++) {
-            var output = coefficients[i] * (input - _y[i]) + _x[i];
-            _x[i] = input;
-            _y[i] = output;
+            var output = coefficients[i] * (input - this.y[i]) + this.x[i];
+            this.x[i] = input;
+            this.y[i] = output;
             input = output;
         }
 
@@ -94,18 +94,18 @@ sealed class AllpassChain(float[] coefficients) {
     }
 
     public void Reset() {
-        Array.Clear(_x);
-        Array.Clear(_y);
+        Array.Clear(this.x);
+        Array.Clear(this.y);
     }
 
     public void FlushDenormals() {
-        for (var i = 0; i < _x.Length; i++) {
-            if (MathF.Abs(_x[i]) < 1e-20f) {
-                _x[i] = 0;
+        for (var i = 0; i < this.x.Length; i++) {
+            if (MathF.Abs(this.x[i]) < 1e-20f) {
+                this.x[i] = 0;
             }
 
-            if (MathF.Abs(_y[i]) < 1e-20f) {
-                _y[i] = 0;
+            if (MathF.Abs(this.y[i]) < 1e-20f) {
+                this.y[i] = 0;
             }
         }
     }
@@ -113,47 +113,47 @@ sealed class AllpassChain(float[] coefficients) {
 
 /// <summary>2x upsampler and downsampler pair built from one half-band design.</summary>
 public sealed class HalfBandStage {
-    readonly AllpassChain _upEven;
-    readonly AllpassChain _upOdd;
-    readonly AllpassChain _downEven;
-    readonly AllpassChain _downOdd;
+    readonly AllpassChain upEven;
+    readonly AllpassChain upOdd;
+    readonly AllpassChain downEven;
+    readonly AllpassChain downOdd;
 
     public HalfBandStage(double[] coefficients) {
         var even = coefficients.Where((_, i) => i % 2 == 0).Select(static c => (float)c).ToArray();
         var odd = coefficients.Where((_, i) => i % 2 == 1).Select(static c => (float)c).ToArray();
-        _upEven = new(even);
-        _upOdd = new(odd);
-        _downEven = new(even);
-        _downOdd = new(odd);
+        upEven = new(even);
+        upOdd = new(odd);
+        downEven = new(even);
+        downOdd = new(odd);
     }
 
     /// <summary>Writes 2 x <paramref name="input" />.Length samples to <paramref name="output" />.</summary>
     public void Up(ReadOnlySpan<float> input, Span<float> output) {
         for (var i = 0; i < input.Length; i++) {
-            output[2 * i] = _upEven.Process(input[i]);
-            output[2 * i + 1] = _upOdd.Process(input[i]);
+            output[2 * i] = upEven.Process(input[i]);
+            output[2 * i + 1] = upOdd.Process(input[i]);
         }
     }
 
     /// <summary>Reads 2 x <paramref name="output" />.Length samples from <paramref name="input" />.</summary>
     public void Down(ReadOnlySpan<float> input, Span<float> output) {
         for (var i = 0; i < output.Length; i++) {
-            output[i] = 0.5f * (_downEven.Process(input[2 * i + 1]) + _downOdd.Process(input[2 * i]));
+            output[i] = 0.5f * (downEven.Process(input[2 * i + 1]) + downOdd.Process(input[2 * i]));
         }
     }
 
     public void Reset() {
-        _upEven.Reset();
-        _upOdd.Reset();
-        _downEven.Reset();
-        _downOdd.Reset();
+        upEven.Reset();
+        upOdd.Reset();
+        downEven.Reset();
+        downOdd.Reset();
     }
 
     public void FlushDenormals() {
-        _upEven.FlushDenormals();
-        _upOdd.FlushDenormals();
-        _downEven.FlushDenormals();
-        _downOdd.FlushDenormals();
+        upEven.FlushDenormals();
+        upOdd.FlushDenormals();
+        downEven.FlushDenormals();
+        downOdd.FlushDenormals();
     }
 }
 
@@ -170,41 +170,41 @@ public sealed class Oversampler4x {
     static readonly double[] FirstStage = HalfBand.Design(AttenuationDb, 0.04);
     static readonly double[] SecondStage = HalfBand.Design(AttenuationDb, 0.26);
 
-    readonly HalfBandStage _first = new(FirstStage);
-    readonly HalfBandStage _second = new(SecondStage);
-    readonly float[] _twice;
-    readonly float[] _four;
+    readonly HalfBandStage first = new(FirstStage);
+    readonly HalfBandStage second = new(SecondStage);
+    readonly float[] twice;
+    readonly float[] four;
 
     public static int CoefficientCount => FirstStage.Length + SecondStage.Length;
 
     public Oversampler4x(int maxBlockSize) {
-        _twice = new float[maxBlockSize * 2];
-        _four = new float[maxBlockSize * 4];
+        this.twice = new float[maxBlockSize * 2];
+        this.four = new float[maxBlockSize * 4];
     }
 
     /// <summary>Upsamples <paramref name="input" /> and returns the 4x buffer to process in place.</summary>
     public Span<float> Up(ReadOnlySpan<float> input) {
-        var twice = _twice.AsSpan(0, input.Length * 2);
-        var four = _four.AsSpan(0, input.Length * 4);
-        _first.Up(input, twice);
-        _second.Up(twice, four);
+        var twice = this.twice.AsSpan(0, input.Length * 2);
+        var four = this.four.AsSpan(0, input.Length * 4);
+        this.first.Up(input, twice);
+        this.second.Up(twice, four);
         return four;
     }
 
     /// <summary>Downsamples the 4x buffer returned by <see cref="Up" /> into <paramref name="output" />.</summary>
     public void Down(Span<float> output) {
-        var twice = _twice.AsSpan(0, output.Length * 2);
-        _second.Down(_four.AsSpan(0, output.Length * 4), twice);
-        _first.Down(twice, output);
+        var twice = this.twice.AsSpan(0, output.Length * 2);
+        this.second.Down(this.four.AsSpan(0, output.Length * 4), twice);
+        this.first.Down(twice, output);
     }
 
     public void Reset() {
-        _first.Reset();
-        _second.Reset();
+        this.first.Reset();
+        this.second.Reset();
     }
 
     public void FlushDenormals() {
-        _first.FlushDenormals();
-        _second.FlushDenormals();
+        this.first.FlushDenormals();
+        this.second.FlushDenormals();
     }
 }
