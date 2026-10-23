@@ -22,6 +22,11 @@ public enum ParamSmoothing {
 }
 
 /// <summary>Describes one parameter of a block type. <see cref="Id" /> is a stable identifier used by presets and the API.</summary>
+/// <remarks>
+///     <see cref="TypeLabels" />, for a block whose models differ in their front panels (the Circuit Amp): the
+///     parameter's name per value of the block's <c>type</c> parameter, or empty where that type has no such control
+///     (the editor hides it there). Null for a parameter that is the same on every type.
+/// </remarks>
 public sealed record ParamDescriptor(
     string Id,
     string Name,
@@ -33,7 +38,8 @@ public sealed record ParamDescriptor(
     ParamTaper Taper = ParamTaper.Linear,
     ParamSmoothing Smoothing = ParamSmoothing.Linear,
     float SmoothingMs = 20f,
-    IReadOnlyList<string>? Options = null
+    IReadOnlyList<string>? Options = null,
+    IReadOnlyList<string>? TypeLabels = null
 ) {
     public static ParamDescriptor Float(
         string id,

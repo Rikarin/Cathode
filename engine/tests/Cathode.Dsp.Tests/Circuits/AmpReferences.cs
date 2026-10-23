@@ -151,17 +151,102 @@ static class AmpReferences {
     }
 
     /// <summary>
-    ///     A complete push-pull power amp as the circuit it models: a real long-tail pair (two exact triodes, the grid
-    ///     leaks returning to the tail, the second grid AC-coupled to the feedback node), coupling caps, grid leaks to the
-    ///     bias supply, grid stoppers, two exact pentodes (with Dempwolf grid current) with screen resistors, an ideal
-    ///     centre-tapped transformer with the magnetising inductance, primary capacitance and core loss across the
-    ///     primary and the leakage inductance and copper on the secondary, the speaker, and the feedback network from a
-    ///     tap (a VCVS of the speaker voltage) with the presence control, and the cut control across the inverter's
-    ///     plates. Supplies are stiff at the given voltages; a
-    ///     cathode-biased amp's shared cathode resistor is <paramref name="cathodeResistor" />.
-    ///     Returns the circuit and the speaker node.
+    ///     A cathodyne with an ideal source on its grid; returns the plate and the junction (the cathode output).
     /// </summary>
-    public static (ReferenceCircuit Circuit, int Speaker) PowerAmp(
+    public static (ReferenceCircuit Circuit, int Plate, int Junction) Cathodyne(CathodyneDesign d, double grid) {
+        var c = new ReferenceCircuit();
+        var (supply, plate, cathode, junction, g) = (c.Node(), c.Node(), c.Node(), c.Node(), c.Node());
+        c.Source(supply, 0, _ => d.Supply);
+        c.Source(g, 0, _ => grid);
+        c.Resistor(supply, plate, d.PlateResistor);
+        c.Resistor(cathode, junction, d.BiasResistor);
+        c.Resistor(junction, 0, d.CathodeResistor);
+        c.Device(new Wdf.Triode(d.Tube), (g, cathode), (plate, cathode));
+        return (c, plate, junction);
+    }
+
+    /// <summary>
+    ///     A <see cref="NetworkStageDesign" />'s netlist as a reference circuit, at the given knobs and settings, driven
+    ///     through <paramref name="sourceResistance" /> (plus the design's input resistance). The netlist's nodes keep
+    ///     their numbers; returns the circuit and the output node.
+    /// </summary>
+    public static (ReferenceCircuit Circuit, int Output) Network(
+        NetworkStageDesign d,
+        AmpControls controls,
+        PreampSettings settings,
+        double sourceResistance,
+        Func<double, double> input
+    ) {
+        var net = d.Netlist;
+        var c = new ReferenceCircuit();
+        for (var n = 0; n < net.Nodes; n++) {
+            c.Node();
+        }
+
+        var source = c.Node();
+        c.Source(source, 0, input);
+        c.Resistor(source, net.Input, Math.Max(sourceResistance + d.InputResistance, 1));
+        foreach (var e in net.Elements) {
+            var on = e.Switch is not { } role || controls.IsOn(role);
+            switch (e.Kind) {
+                case ElementKind.Resistor: {
+                    var ohms = on ? e.Value : e.OffValue > 0 ? e.OffValue : 1e12;
+                    if (e.Part != PotPart.None) {
+                        var fraction = e.Pot.Fraction(controls.Rotation(e.Role));
+                        ohms = (e.Part == PotPart.Upper ? 1 - fraction : fraction) * e.Pot.Ohms;
+                    }
+
+                    c.Resistor(e.A, e.B, Math.Max(e.Cathode ? ohms * settings.CathodeResistor : ohms, Floor));
+                    break;
+                }
+                case ElementKind.Capacitor: {
+                    var farads = on ? e.Value : e.OffValue;
+                    if (farads > 0) {
+                        c.Capacitor(e.A, e.B, e.CapacitorRole switch {
+                            CapacitorRole.Bright => farads * settings.BrightCap,
+                            CapacitorRole.Stack => farads / settings.StackFrequency,
+                            _ => farads
+                        });
+                    }
+
+                    break;
+                }
+                case ElementKind.Inductor:
+                    c.Inductor(e.A, e.B, e.Value);
+                    break;
+                case ElementKind.Supply:
+                    c.Source(e.A, 0, _ => e.Value);
+                    break;
+                case ElementKind.Triode:
+                    c.Device(new Wdf.Triode(settings.TubeFor(e.Triode)), (e.B, e.C), (e.A, e.C));
+                    break;
+                case ElementKind.Pentode:
+                    c.Device(new Pentode(e.Pentode), (e.C, e.D), (e.B, e.D), (e.A, e.D));
+                    break;
+                case ElementKind.Diodes:
+                    c.Device(new DiodeClipper(e.Diode, e.Forward, e.Diode, e.Reverse), (e.A, e.B));
+                    break;
+            }
+        }
+
+        return (c, net.Output);
+    }
+
+    /// <summary>
+    ///     A complete power amp as the circuit it models: the phase inverter (a real long-tail pair, two exact triodes
+    ///     with the grid leaks returning to the tail and the second grid AC-coupled to the feedback node; or a
+    ///     cathodyne; or, single-ended, none), its input network (with an <see cref="InverterInputDesign" />: the
+    ///     source behind <paramref name="sourceResistance" /> and the coupling cap, else a large cap), coupling caps,
+    ///     grid leaks to the bias supply, grid stoppers, exact pentodes (with Dempwolf grid current) with screen
+    ///     resistors from the screen supply, or on ultralinear taps of the primary, or strapped as triodes (the design's
+    ///     triode-strapped tubes besides), an ideal transformer (centre-tapped, or a single primary from B+) with the
+    ///     magnetising inductance, primary capacitance and core loss across the primary and the leakage inductance and
+    ///     copper on the secondary, the speaker, and the feedback network from a tap (a VCVS of the speaker voltage)
+    ///     with the presence control, and the cut control across the inverter's outputs. Supplies are stiff at the
+    ///     given voltages; a cathode-biased amp's cathode resistor (all tubes') is <paramref name="cathodeResistor" />,
+    ///     per side twice that with separate cathodes. Returns the circuit and the speaker node.
+    /// </summary>
+    public static (ReferenceCircuit Circuit, int Speaker, int Grid) PowerAmp(
         PowerAmpDesign d,
         double plateSupply,
         double screenSupply,
@@ -169,70 +254,138 @@ static class AmpReferences {
         double cathodeResistor,
         double presence,
         double cut,
-        Func<double, double> input
+        Func<double, double> input,
+        double sourceResistance = 0,
+        bool triode = false
     ) {
         var c = new ReferenceCircuit();
-        var pi = d.PhaseInverter;
-
-        // Phase inverter.
-        var (source, piSupply, piA, piB, cathode, junction, ga, gb, feedback) =
-            (c.Node(), c.Node(), c.Node(), c.Node(), c.Node(), c.Node(), c.Node(), c.Node(), c.Node());
+        var singleEnded = d.Topology == PowerTopology.SingleEnded;
+        var (source, piSupply, feedback) = (c.Node(), c.Node(), c.Node());
         c.Source(source, 0, input);
-        c.Source(piSupply, 0, _ => pi.Supply);
-        c.Resistor(piSupply, piA, pi.PlateResistorA);
-        c.Resistor(piSupply, piB, pi.PlateResistorB);
-        c.Resistor(cathode, junction, pi.BiasResistor);
-        c.Resistor(junction, 0, pi.TailResistor);
-        c.Capacitor(source, ga, 10e-6);
-        c.Resistor(ga, junction, 1e6);
-        c.Resistor(gb, junction, 1e6);
-        c.Capacitor(gb, feedback, 10e-6);
-        c.Device(new Wdf.Triode(pi.Tube), (ga, cathode), (piA, cathode));
-        c.Device(new Wdf.Triode(pi.Tube), (gb, cathode), (piB, cathode));
+        c.Source(piSupply, 0, _ => d.PhaseInverter.Supply);
 
-        // The cut control: a pot and a cap between the plates.
-        if (d.CutCap > 0) {
+        // The input network: the inverter's own (with grid current) or a large cap.
+        int ga;
+        var driven = c.Node();
+        var (inputCap, inputLeak) = d.InverterInput is { } network ? (network.CouplingCap, network.GridLeak) : (10e-6, 1e6);
+        c.Resistor(source, driven, Math.Max(sourceResistance, 1e-3));
+        ga = c.Node();
+        c.Capacitor(driven, ga, inputCap);
+
+        // Phase inverter: outputs a and b.
+        int a, b;
+        if (singleEnded) {
+            (a, b) = (ga, 0);
+            c.Resistor(ga, 0, 1e9);
+        } else if (d.PhaseInverter is CathodyneDesign cathodyne) {
+            var (plate, cathode, junction) = (c.Node(), c.Node(), c.Node());
+            c.Resistor(piSupply, plate, cathodyne.PlateResistor);
+            c.Resistor(cathode, junction, cathodyne.BiasResistor);
+            c.Resistor(junction, 0, cathodyne.CathodeResistor);
+            c.Resistor(ga, junction, inputLeak);
+            c.Device(new Wdf.Triode(cathodyne.Tube), (ga, cathode), (plate, cathode));
+            (a, b) = (plate, junction);
+        } else {
+            var pi = (LongTailPairDesign)d.PhaseInverter;
+            var (piA, piB, cathode, junction, gb) = (c.Node(), c.Node(), c.Node(), c.Node(), c.Node());
+            c.Resistor(piSupply, piA, pi.PlateResistorA);
+            c.Resistor(piSupply, piB, pi.PlateResistorB);
+            c.Resistor(cathode, junction, pi.BiasResistor);
+            c.Resistor(junction, 0, pi.TailResistor);
+            c.Resistor(ga, junction, inputLeak);
+            c.Resistor(gb, junction, 1e6);
+            c.Capacitor(gb, feedback, 10e-6);
+            c.Device(new Wdf.Triode(pi.Tube), (ga, cathode), (piA, cathode));
+            c.Device(new Wdf.Triode(pi.Tube), (gb, cathode), (piB, cathode));
+            (a, b) = (piA, piB);
+        }
+
+        // The cut control: a pot and a cap between the outputs.
+        if (d.CutCap > 0 && !singleEnded) {
             var middle = c.Node();
-            c.Resistor(piA, middle, Math.Max(d.CutPot.Ohms * (1 - d.CutPot.Fraction(cut)), Floor));
-            c.Capacitor(middle, piB, d.CutCap);
+            c.Resistor(a, middle, Math.Max(d.CutPot.Ohms * (1 - d.CutPot.Fraction(cut)), Floor));
+            c.Capacitor(middle, b, d.CutCap);
         }
 
-        // Grid networks and output tubes (cathode bias: a shared, bypassed cathode resistor).
-        var (bias, screen, centre) = (c.Node(), c.Node(), c.Node());
-        c.Source(bias, 0, _ => gridBias);
-        var tubeCathode = 0;
-        if (d.CathodeBias) {
-            tubeCathode = c.Node();
-            c.Resistor(tubeCathode, 0, cathodeResistor);
-            c.Capacitor(tubeCathode, 0, d.CathodeBypass);
-        }
-
-        c.Source(screen, 0, _ => screenSupply);
-        c.Source(centre, 0, _ => plateSupply);
-        var plates = new int[2];
-        foreach (var (side, piPlate) in new[] { (0, piA), (1, piB) }) {
-            var (leak, grid, plate) = (c.Node(), c.Node(), c.Node());
-            c.Capacitor(piPlate, leak, d.CouplingCap);
-            c.Resistor(leak, bias, d.GridLeak);
-            c.Resistor(leak, grid, d.GridStopper / d.TubesPerSide); // paralleled tubes, each with its own stopper
-            for (var t = 0; t < d.TubesPerSide; t++) {
-                var screenPin = c.Node();
-                c.Resistor(screen, screenPin, d.ScreenResistor);
-                c.Device(new Pentode(d.Tube), (grid, tubeCathode), (screenPin, tubeCathode), (plate, tubeCathode));
-            }
-
-            plates[side] = plate;
-        }
-
-        // Transformer and speaker.
+        // The transformer's primary: centre-tapped (with ultralinear taps), or single from B+ to the plate.
         var ot = d.Transformer;
         var n = ot.TurnsRatio;
         var n2 = n * n;
+        var (bias, screen, centre) = (c.Node(), c.Node(), c.Node());
+        c.Source(bias, 0, _ => gridBias);
+        c.Source(screen, 0, _ => screenSupply);
+        c.Source(centre, 0, _ => plateSupply);
+        var tap = triode && d.TriodeSwitch is not null ? 1 : d.UltralinearTap;
+        var sides = singleEnded ? 1 : 2;
+        var plates = new int[sides];
+        var taps = new int[sides];
+        for (var side = 0; side < sides; side++) {
+            plates[side] = c.Node();
+            taps[side] = tap is > 0 and < 1 ? c.Node() : tap >= 1 ? plates[side] : screen;
+        }
+
         var (secondary, winding, speaker, coil, motional) = (c.Node(), c.Node(), c.Node(), c.Node(), c.Node());
-        c.Transformer((plates[0], centre, n / 2), (centre, plates[1], n / 2), (secondary, 0, 1));
-        c.Inductor(plates[0], plates[1], ot.PrimaryInductance);
-        c.Capacitor(plates[0], plates[1], ot.PrimaryCapacitance);
-        c.Resistor(plates[0], plates[1], ot.CoreLoss);
+        if (singleEnded) {
+            c.Transformer((plates[0], centre, n), (secondary, 0, 1));
+            c.Inductor(plates[0], centre, ot.PrimaryInductance);
+            c.Capacitor(plates[0], centre, ot.PrimaryCapacitance);
+            c.Resistor(plates[0], centre, ot.CoreLoss);
+        } else {
+            if (tap is > 0 and < 1) {
+                c.Transformer(
+                    (plates[0], taps[0], n / 2 * (1 - tap)),
+                    (taps[0], centre, n / 2 * tap),
+                    (centre, taps[1], n / 2 * tap),
+                    (taps[1], plates[1], n / 2 * (1 - tap)),
+                    (secondary, 0, 1)
+                );
+            } else {
+                c.Transformer((plates[0], centre, n / 2), (centre, plates[1], n / 2), (secondary, 0, 1));
+            }
+
+            c.Inductor(plates[0], plates[1], ot.PrimaryInductance);
+            c.Capacitor(plates[0], plates[1], ot.PrimaryCapacitance);
+            c.Resistor(plates[0], plates[1], ot.CoreLoss);
+        }
+
+        // Grid networks and output tubes.
+        var outputs = new[] { a, b };
+        var shared = 0;
+        if (d.CathodeBias && !d.SeparateCathodes) {
+            shared = c.Node();
+            c.Resistor(shared, 0, cathodeResistor);
+            c.Capacitor(shared, 0, d.CathodeBypass);
+        }
+
+        var count = d.TubesPerSide + (d.Strapped is not null ? d.StrappedPerSide : 0);
+        for (var side = 0; side < sides; side++) {
+            var tubeCathode = shared;
+            if (d.CathodeBias && d.SeparateCathodes) {
+                tubeCathode = c.Node();
+                c.Resistor(tubeCathode, 0, 2 * cathodeResistor);
+                c.Capacitor(tubeCathode, 0, d.CathodeBypass);
+            }
+
+            var (leak, grid) = (c.Node(), c.Node());
+            c.Capacitor(outputs[side], leak, d.CouplingCap);
+            c.Resistor(leak, bias, d.GridLeak);
+            c.Resistor(leak, grid, d.GridStopper / count); // paralleled tubes, each with its own stopper
+            for (var t = 0; t < d.TubesPerSide; t++) {
+                var screenPin = c.Node();
+                c.Resistor(taps[side], screenPin, tap > 0 ? 1 : d.ScreenResistor);
+                c.Device(new Pentode(d.Tube), (grid, tubeCathode), (screenPin, tubeCathode), (plates[side], tubeCathode));
+            }
+
+            if (d.Strapped is { } strapped) {
+                for (var t = 0; t < d.StrappedPerSide; t++) {
+                    var screenPin = c.Node();
+                    c.Resistor(plates[side], screenPin, 1);
+                    c.Device(new Pentode(strapped), (grid, tubeCathode), (screenPin, tubeCathode), (plates[side], tubeCathode));
+                }
+            }
+        }
+
+        // Transformer secondary and speaker.
         c.Inductor(secondary, winding, ot.LeakageInductance / n2);
         c.Resistor(winding, speaker, ot.WindingResistance / n2);
         var s = d.Speaker;
@@ -245,11 +398,11 @@ static class AmpReferences {
         c.Resistor(motional, 0, rm);
 
         // Feedback from the tap into the second grid's AC ground.
-        if (d.HasFeedback) {
+        if (d.HasFeedback && !singleEnded && d.PhaseInverter is LongTailPairDesign) {
             var f = d.Feedback;
-            var (tap, presenceNode) = (c.Node(), c.Node());
-            c.Vcvs(tap, 0, speaker, 0, f.TapGain);
-            c.Resistor(tap, feedback, f.FeedbackResistor);
+            var (tapNode, presenceNode) = (c.Node(), c.Node());
+            c.Vcvs(tapNode, 0, speaker, 0, f.TapGain);
+            c.Resistor(tapNode, feedback, f.FeedbackResistor);
             c.Resistor(feedback, 0, f.ShuntResistor);
             c.Resistor(feedback, presenceNode, Math.Max(f.Presence.Ohms * (1 - f.Presence.Fraction(presence)), Floor));
             c.Capacitor(presenceNode, 0, f.PresenceCap);
@@ -257,6 +410,7 @@ static class AmpReferences {
             c.Resistor(feedback, 0, 1);
         }
 
-        return (c, speaker);
+        return (c, speaker, ga);
     }
+
 }

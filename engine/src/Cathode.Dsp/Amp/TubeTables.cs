@@ -339,4 +339,50 @@ public sealed class PentodeTables {
             ? screen.Evaluate(w, out _)
             : Math.Pow(w, Model.Exponent) / Model.Kg2;
     }
+
+    /// <summary>
+    ///     Screen current at (<paramref name="vg1" />, <paramref name="vg2" />) and its slope with respect to the
+    ///     control grid (with respect to the screen it is that over μ).
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public double ScreenCurrent(double vg1, double vg2, out double gridSlope) {
+        var w = vg2 / Model.Mu + vg1;
+        if (!(w > 0)) {
+            gridSlope = 0;
+            return 0;
+        }
+
+        if (w is >= LowestScreenArgument and < HighestScreenArgument) {
+            return screen.Evaluate(w, out gridSlope);
+        }
+
+        var value = Math.Pow(w, Model.Exponent) / Model.Kg2;
+        gridSlope = Model.Exponent * value / w;
+        return value;
+    }
+
+    /// <summary>
+    ///     Plate current for a screen that moves with the plate (ultralinear taps, triode strapping): the screen factor
+    ///     is computed here, and the slopes with respect to control grid, screen and plate are all returned.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public double PlateCurrent(
+        double vg1,
+        double vg2,
+        double vp,
+        out double gridSlope,
+        out double screenSlope,
+        out double plateSlope
+    ) {
+        var factor = ScreenFactor(vg2);
+        var current = PlateCurrent(factor, vg1, vg2, vp, out gridSlope, out plateSlope);
+        if (!(current > 0)) {
+            screenSlope = 0;
+            return current;
+        }
+
+        // ∂/∂V_g2 of factor G(u) k: the factor's power law, and u = K_p (1/μ + V_g1k / V_g2k) falling with V_g2k.
+        screenSlope = Model.Exponent * current / vg2 - gridSlope * vg1 / vg2;
+        return current;
+    }
 }

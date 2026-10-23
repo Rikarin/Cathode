@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Cathode.Dsp.Wdf;
 
@@ -117,21 +118,36 @@ public struct RTypeRoot<TPorts, TDevice>
         Ports.Reflect(u);
         var waves = outputs.AsSpan();
         var k = Device.Ports;
+
+        // The rows are read in place (the same products in the same order as RTypeScattering.Dot, without its bounds
+        // checks: the matrix has Rows × Columns entries and every row starts with the inputs, then the devices).
+        var columns = scattering.Columns;
+        var count = u.Length;
+        ref var matrix = ref MemoryMarshal.GetReference(scattering.Matrix);
+        ref var input = ref MemoryMarshal.GetArrayDataReference(inputs);
         if (k == 0) {
             for (var j = 0; j < waves.Length; j++) {
-                waves[j] = RTypeScattering.Dot(scattering.Row(j), u);
+                waves[j] = Dot(ref Unsafe.Add(ref matrix, j * columns), ref input, count);
             }
         } else {
-            var p = newton.prediction.AsSpan(0, k);
-            for (var d = 0; d < k; d++) {
-                p[d] = RTypeScattering.Dot(scattering.Row(scattering.DeviceRow + d), u);
+            var p = newton.prediction;
+            if (newton.Linearise) {
+                Array.Copy(p, newton.previousPrediction, k);
             }
 
-            Solve(k);
-            var r = newton.currents.AsSpan(0, k);
+            var deviceRow = scattering.DeviceRow;
+            for (var d = 0; d < k; d++) {
+                p[d] = Dot(ref Unsafe.Add(ref matrix, (deviceRow + d) * columns), ref input, count);
+            }
+
+            if (!(k == 1 ? SolveOne() : k == 2 && SolveTwo())) {
+                Solve(k);
+            }
+
+            ref var r = ref MemoryMarshal.GetArrayDataReference(newton.currents);
             for (var j = 0; j < waves.Length; j++) {
-                var row = scattering.Row(j);
-                waves[j] = RTypeScattering.Dot(row, u) + RTypeScattering.Dot(row[u.Length..], r);
+                ref var row = ref Unsafe.Add(ref matrix, j * columns);
+                waves[j] = Dot(ref row, ref input, count) + Dot(ref Unsafe.Add(ref row, count), ref r, k);
             }
 
             Device.Commit(newton.voltages.AsSpan(0, k));
@@ -143,9 +159,24 @@ public struct RTypeRoot<TPorts, TDevice>
 
     /// <summary>Probed voltage <paramref name="index" /> at the last sample.</summary>
     public readonly double Probe(int index) {
-        var row = scattering.Row(scattering.ProbeRow + index);
-        var u = inputs.AsSpan();
-        return RTypeScattering.Dot(row, u) + RTypeScattering.Dot(row[u.Length..], newton.currents.AsSpan(0, Device.Ports));
+        var count = inputs.Length;
+        ref var row = ref Unsafe.Add(
+            ref MemoryMarshal.GetReference(scattering.Matrix),
+            (scattering.ProbeRow + index) * scattering.Columns
+        );
+        return Dot(ref row, ref MemoryMarshal.GetArrayDataReference(inputs), count)
+            + Dot(ref Unsafe.Add(ref row, count), ref MemoryMarshal.GetArrayDataReference(newton.currents), Device.Ports);
+    }
+
+    /// <summary><see cref="RTypeScattering.Dot" /> on references: the same sum, in the same order.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static double Dot(ref double row, ref double u, int count) {
+        var sum = 0.0;
+        for (var j = 0; j < count; j++) {
+            sum += Unsafe.Add(ref row, j) * Unsafe.Add(ref u, j);
+        }
+
+        return sum;
     }
 
     /// <summary>Voltage across device port <paramref name="port" /> at the last sample.</summary>
@@ -162,15 +193,227 @@ public struct RTypeRoot<TPorts, TDevice>
     public readonly void SetInitialVoltages(ReadOnlySpan<double> voltages) {
         voltages.CopyTo(newton.voltages);
         voltages.CopyTo(newton.history);
+        newton.primed = false;
     }
 
     public void Reset() {
+        newton.primed = false;
         Ports.Reset();
         Device.Reset();
         newton.voltages.AsSpan().Clear();
         newton.history.AsSpan().Clear();
         newton.currents.AsSpan().Clear();
         inputs.AsSpan(0, scattering.VoltageSourceColumn).Clear(); // keep the source values
+    }
+
+    /// <summary>
+    ///     <see cref="Solve" /> for one device port, written out: the same arithmetic in the same order (so the same
+    ///     result to the last bit) without the general case's loops and spans. It covers the common case, plain limited
+    ///     Newton steps converging within <see cref="NewtonSolver.LineSearchAfter" /> iterations; anything else (a
+    ///     singular step, a non-finite residual, a slow sample) puts the sample back as it was and returns false, and
+    ///     the general solver takes it from the start.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    bool SolveOne() {
+        var s = newton;
+        var f = scattering.Matrix[scattering.DeviceRow * scattering.Columns + scattering.Inputs];
+        var (v, h, p, current, jacobian) = (s.voltages, s.history, s.prediction, s.deviceCurrents, s.jacobian);
+        var (gc, absolute, relative) = (s.conductances[0], s.AbsoluteTolerance, s.RelativeTolerance);
+        var (entry, previous) = (v[0], h[0]);
+        var x = entry;
+        if (s.Linearise && s.primed) {
+            // One Newton step on the last sample's Jacobian for the change in p: x = v + M⁻¹ Δp.
+            var m = 1.0;
+            m -= f * (jacobian[0] - gc);
+            s.start[0] = entry;
+            s.proposed[0] = Math.Abs(m) > 1e-300 ? entry + (p[0] - s.previousPrediction[0]) / m : entry;
+            Device.Limit(s.start.AsSpan(0, 1), s.proposed.AsSpan(0, 1));
+            x = s.proposed[0];
+        } else if (s.Extrapolate) {
+            s.start[0] = entry;
+            s.proposed[0] = 2 * entry - previous;
+            Device.Limit(s.start.AsSpan(0, 1), s.proposed.AsSpan(0, 1));
+            x = s.proposed[0];
+        }
+
+        h[0] = entry;
+        var iterations = 1;
+
+        // The residual at x: the device's current and slope, r = i - G_c v, g = v - p - F r.
+        v[0] = x;
+        jacobian[0] = 0;
+        Device.Evaluate(v.AsSpan(0, 1), current.AsSpan(0, 1), jacobian.AsSpan(0, 1), 1);
+        var trial = current[0] - gc * x;
+        var g = x - p[0];
+        g -= f * trial;
+        var scaled = g / (absolute + relative * Math.Abs(x));
+        var norm = 0.0;
+        norm += scaled * scaled;
+        while (double.IsFinite(norm)) {
+            var j = jacobian[0];
+            var a = 1.0;
+            a -= f * (j - gc);
+            if (!(Math.Abs(a) > 1e-300)) {
+                break;
+            }
+
+            var proposed = x + -g / a;
+            s.proposed[0] = proposed;
+            Device.Limit(v.AsSpan(0, 1), s.proposed.AsSpan(0, 1));
+            proposed = s.proposed[0];
+            var step = proposed - x;
+            if (Math.Abs(step) <= absolute + relative * Math.Abs(x)) {
+                var r = trial;
+                r += (j - gc) * step;
+                s.currents[0] = r;
+                v[0] = proposed;
+                s.Record(iterations, converged: true, finite: true);
+                return true;
+            }
+
+            iterations++;
+            if (iterations > s.LineSearchAfter || iterations > s.MaxIterations) {
+                break;
+            }
+
+            x += 1.0 * step;
+            v[0] = x;
+            jacobian[0] = 0;
+            Device.Evaluate(v.AsSpan(0, 1), current.AsSpan(0, 1), jacobian.AsSpan(0, 1), 1);
+            trial = current[0] - gc * x;
+            g = x - p[0];
+            g -= f * trial;
+            scaled = g / (absolute + relative * Math.Abs(x));
+            norm = 0.0;
+            norm += scaled * scaled;
+        }
+
+        v[0] = entry;
+        h[0] = previous;
+        return false;
+    }
+
+    /// <summary><see cref="SolveOne" /> for two device ports (a triode).</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    bool SolveTwo() {
+        var s = newton;
+        var matrix = scattering.Matrix;
+        var row = scattering.DeviceRow * scattering.Columns + scattering.Inputs;
+        var (f00, f01) = (matrix[row], matrix[row + 1]);
+        row += scattering.Columns;
+        var (f10, f11) = (matrix[row], matrix[row + 1]);
+        var (v, h, p, current, jacobian) = (s.voltages, s.history, s.prediction, s.deviceCurrents, s.jacobian);
+        var (gc0, gc1) = (s.conductances[0], s.conductances[1]);
+        var (absolute, relative) = (s.AbsoluteTolerance, s.RelativeTolerance);
+        var (entry0, entry1, previous0, previous1) = (v[0], v[1], h[0], h[1]);
+        var (x0, x1) = (entry0, entry1);
+        if (s.Linearise && s.primed) {
+            // One Newton step on the last sample's Jacobian for the change in p: x = v + M⁻¹ Δp.
+            var (j00, j01, j10, j11) = (jacobian[0], jacobian[1], jacobian[2], jacobian[3]);
+            var m00 = 1 - f00 * (j00 - gc0) - f01 * j10;
+            var m01 = -f00 * j01 - f01 * (j11 - gc1);
+            var m10 = -f10 * (j00 - gc0) - f11 * j10;
+            var m11 = 1 - f10 * j01 - f11 * (j11 - gc1);
+            var (d0, d1) = (p[0] - s.previousPrediction[0], p[1] - s.previousPrediction[1]);
+            var determinant = m00 * m11 - m01 * m10;
+            (s.start[0], s.start[1]) = (entry0, entry1);
+            (s.proposed[0], s.proposed[1]) = Math.Abs(determinant) > 1e-300
+                ? (entry0 + (d0 * m11 - d1 * m01) / determinant, entry1 + (m00 * d1 - m10 * d0) / determinant)
+                : (entry0, entry1);
+            Device.Limit(s.start.AsSpan(0, 2), s.proposed.AsSpan(0, 2));
+            (x0, x1) = (s.proposed[0], s.proposed[1]);
+        } else if (s.Extrapolate) {
+            (s.start[0], s.start[1]) = (entry0, entry1);
+            (s.proposed[0], s.proposed[1]) = (2 * entry0 - previous0, 2 * entry1 - previous1);
+            Device.Limit(s.start.AsSpan(0, 2), s.proposed.AsSpan(0, 2));
+            (x0, x1) = (s.proposed[0], s.proposed[1]);
+        }
+
+        (h[0], h[1]) = (entry0, entry1);
+        var iterations = 1;
+        while (true) {
+            // The residual at (x0, x1): the device's currents and Jacobian, r = i - G_c v, g = v - p - F r.
+            (v[0], v[1]) = (x0, x1);
+            (jacobian[0], jacobian[1], jacobian[2], jacobian[3]) = (0.0, 0.0, 0.0, 0.0);
+            Device.Evaluate(v.AsSpan(0, 2), current.AsSpan(0, 2), jacobian.AsSpan(0, 4), 2);
+            var trial0 = current[0] - gc0 * x0;
+            var trial1 = current[1] - gc1 * x1;
+            var g0 = x0 - p[0];
+            g0 -= f00 * trial0;
+            g0 -= f01 * trial1;
+            var g1 = x1 - p[1];
+            g1 -= f10 * trial0;
+            g1 -= f11 * trial1;
+            var scaled0 = g0 / (absolute + relative * Math.Abs(x0));
+            var scaled1 = g1 / (absolute + relative * Math.Abs(x1));
+            var norm = 0.0;
+            norm += scaled0 * scaled0;
+            norm += scaled1 * scaled1;
+            if (!double.IsFinite(norm)) {
+                break;
+            }
+
+            var (j00, j01, j10, j11) = (jacobian[0], jacobian[1], jacobian[2], jacobian[3]);
+            var a00 = 1.0;
+            a00 -= f00 * (j00 - gc0);
+            a00 -= f01 * (j10 - 0.0);
+            var a01 = 0.0;
+            a01 -= f00 * (j01 - 0.0);
+            a01 -= f01 * (j11 - gc1);
+            var a10 = 0.0;
+            a10 -= f10 * (j00 - gc0);
+            a10 -= f11 * (j10 - 0.0);
+            var a11 = 1.0;
+            a11 -= f10 * (j01 - 0.0);
+            a11 -= f11 * (j11 - gc1);
+            var (b0, b1) = (-g0, -g1);
+            var determinant = a00 * a11 - a01 * a10;
+            if (!(Math.Abs(determinant) > 1e-300)) {
+                break;
+            }
+
+            var u0 = (b0 * a11 - b1 * a01) / determinant;
+            var u1 = (a00 * b1 - a10 * b0) / determinant;
+            var (proposed0, proposed1) = (x0 + u0, x1 + u1);
+            (s.proposed[0], s.proposed[1]) = (proposed0, proposed1);
+            Device.Limit(v.AsSpan(0, 2), s.proposed.AsSpan(0, 2));
+            if (s.proposed[0] != proposed0 || s.proposed[1] != proposed1) {
+                // A port was limited: re-solve the other with it held, as the general solver does.
+                (s.systemCopy[0], s.systemCopy[1], s.systemCopy[2], s.systemCopy[3]) = (a00, a01, a10, a11);
+                (s.rhsCopy[0], s.rhsCopy[1]) = (b0, b1);
+                (s.step[0], s.step[1]) = (u0, u1);
+                Constrain(2, v.AsSpan(0, 2), s.step.AsSpan(0, 2), s.proposed.AsSpan(0, 2));
+            }
+
+            (proposed0, proposed1) = (s.proposed[0], s.proposed[1]);
+            var (step0, step1) = (proposed0 - x0, proposed1 - x1);
+            var converged = true;
+            converged &= Math.Abs(step0) <= absolute + relative * Math.Abs(x0);
+            converged &= Math.Abs(step1) <= absolute + relative * Math.Abs(x1);
+            if (converged) {
+                var r0 = trial0;
+                r0 += (j00 - gc0) * step0;
+                r0 += (j01 - 0.0) * step1;
+                var r1 = trial1;
+                r1 += (j10 - 0.0) * step0;
+                r1 += (j11 - gc1) * step1;
+                (s.currents[0], s.currents[1]) = (r0, r1);
+                (v[0], v[1]) = (proposed0, proposed1);
+                s.Record(iterations, converged: true, finite: true);
+                return true;
+            }
+
+            iterations++;
+            if (iterations > s.LineSearchAfter || iterations > s.MaxIterations) {
+                break;
+            }
+
+            x0 += 1.0 * step0;
+            x1 += 1.0 * step1;
+        }
+
+        (v[0], v[1], h[0], h[1]) = (entry0, entry1, previous0, previous1);
+        return false;
     }
 
     /// <summary>
@@ -201,7 +444,30 @@ public struct RTypeRoot<TPorts, TDevice>
         }
 
         v.CopyTo(start);
-        if (s.Extrapolate) {
+        if (s.Linearise && s.primed) {
+            // One Newton step on the last sample's Jacobian for the change in p: v + M⁻¹ Δp, limited.
+            for (var d = 0; d < k; d++) {
+                for (var l = 0; l < k; l++) {
+                    var sum = d == l ? 1.0 : 0.0;
+                    for (var e = 0; e < k; e++) {
+                        sum -= f[d * k + e] * (jacobian[e * k + l] - (e == l ? gc[e] : 0));
+                    }
+
+                    system[d * k + l] = sum;
+                }
+
+                step[d] = s.prediction[d] - s.previousPrediction[d];
+            }
+
+            if (SolveSmall(system, k, step, s.pivots)) {
+                for (var d = 0; d < k; d++) {
+                    proposed[d] = start[d] + step[d];
+                }
+
+                Device.Limit(start, proposed);
+                proposed.CopyTo(v);
+            }
+        } else if (s.Extrapolate) {
             // The devices limit the extrapolated start like any Newton step, so an edge cannot fling a junction far
             // into conduction.
             for (var d = 0; d < k; d++) {
@@ -509,6 +775,8 @@ public sealed class NewtonSolver {
     internal readonly double[] systemCopy;
     internal readonly double[] rhsCopy;
     internal readonly double[] history; // the solution before last, for the extrapolated start
+    internal readonly double[] previousPrediction; // the last sample's p, for the linearised start
+    internal bool primed; // whether the last sample's solution, Jacobian and p are there to start from
     internal readonly double[] impedance; // F, copied out of the scattering matrix per sample
     internal readonly int[] pivots;
     long samples;
@@ -535,6 +803,14 @@ public sealed class NewtonSolver {
     ///     one: on oversampled audio this saves about one iteration per sample.
     /// </summary>
     public bool Extrapolate { get; set; } = true;
+
+    /// <summary>
+    ///     Start Newton from the last solution moved by the linearised circuit's response to this sample's change of
+    ///     inputs (one Newton step on the last Jacobian, without a device evaluation) instead of extrapolating: on rough
+    ///     signals (a cranked preamp, noise) it saves one or two iterations a sample, where extrapolating from the last two
+    ///     samples guesses wrong. It takes precedence over <see cref="Extrapolate" />.
+    /// </summary>
+    public bool Linearise { get; set; }
 
     /// <summary>
     ///     Iterations of plain (limited) Newton before a step must also reduce |g| (a backtracking line search). Junctions
@@ -580,6 +856,7 @@ public sealed class NewtonSolver {
         systemCopy = new double[k * k];
         rhsCopy = new double[k];
         history = new double[k];
+        previousPrediction = new double[k];
         impedance = new double[k * k];
         pivots = new int[k];
     }
@@ -594,6 +871,7 @@ public sealed class NewtonSolver {
     }
 
     internal void Record(int count, bool converged, bool finite) {
+        primed = finite;
         samples++;
         iterations += count;
         lastIterations = count;

@@ -37,6 +37,18 @@ public readonly record struct TriodeModel(
 
     /// <summary>ECC82 / 12AU7: μ 21.5, low gain and low plate resistance (cathode followers, phase inverters).</summary>
     public static TriodeModel Ecc82 { get; } = new(21.5, 1.3, 1_180, 84, 300);
+
+    /// <summary>
+    ///     12AY7 / 6072: μ 44, the tweed Fenders' first stage. Fitted here (K_g1, K_p, with Koren's 12AX7 exponent and
+    ///     K_vb) to the datasheet point 250 V, -4 V: 3.0 mA, 1.75 mS (r_p 25k).
+    /// </summary>
+    public static TriodeModel TwelveAY7 { get; } = new(44, 1.4, 1_684, 214, 300);
+
+    /// <summary>
+    ///     5751: μ 70, a lower-gain 12AX7 (a common "smoother" substitute). Fitted like <see cref="TwelveAY7" /> to
+    ///     250 V, -3 V: 1.0 mA, 1.2 mS (r_p 58k).
+    /// </summary>
+    public static TriodeModel FiveSevenFiveOne { get; } = new(70, 1.4, 1_508, 370.5, 300);
 }
 
 /// <summary>
@@ -77,6 +89,31 @@ public readonly record struct PentodeModel(
 
     /// <summary>EL84 / 6BQ5 power pentode (Vox AC30, small combos).</summary>
     public static PentodeModel EL84 { get; } = new(19, 1.35, 677.4, 1_977, 200, 20);
+
+    /// <summary>
+    ///     6V6GT beam tetrode (Deluxe, Princeton, tweeds). Fitted like <see cref="EL84" />: μ 9.8, Ex 1.35, K_vb 12, and
+    ///     K_g1, K_p, K_g2 from 250 V plate and screen, -12.5 V: 45 mA, 4.1 mS, 4.5 mA screen.
+    /// </summary>
+    public static PentodeModel SixV6GT { get; } = new(9.8, 1.35, 2_276, 7_097, 45, 12);
+
+    /// <summary>
+    ///     KT66 beam tetrode (JTM45). Fitted with μ 8, K_vb 16 to 250 V, -15 V: 85 mA, 7 mS, 6 mA screen (approximate
+    ///     GEC figures).
+    /// </summary>
+    public static PentodeModel KT66 { get; } = new(8, 1.35, 1_532, 7_186, 75.7, 16);
+
+    /// <summary>KT88 beam tetrode, Koren's fit (Engl, Bogner, some Marshalls).</summary>
+    public static PentodeModel KT88 { get; } = new(8.8, 1.35, 730, 4_200, 32, 16);
+
+    /// <summary>6550 beam tetrode, Koren's fit (US-market Marshalls, Ampeg SVT).</summary>
+    public static PentodeModel SixtyFiveFifty { get; } = new(7.9, 1.35, 890, 4_800, 60, 24);
+
+    /// <summary>
+    ///     EF86 / 6267 small-signal pentode, as a preamp stage (Vox AC15, Matchless). Fitted with μ 38, K_vb 5 to 250 V
+    ///     plate, 140 V screen, -2 V: 3.0 mA, 2.0 mS, 0.6 mA screen. Use the exact <see cref="Pentode" /> device: its
+    ///     screen argument is below the power-tube tables' range.
+    /// </summary>
+    public static PentodeModel EF86 { get; } = new(38, 1.35, 2_265, 3_369, 168, 5);
 }
 
 /// <summary>

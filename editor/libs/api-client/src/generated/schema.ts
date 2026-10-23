@@ -1173,6 +1173,10 @@ export interface components {
       /** Format: int32 */
       column: number;
     };
+    /**
+     * @description A block parameter. `TypeLabels`, where present, names the parameter per value of the block's `type`
+     *     parameter (an amp model's own name for a generic control), empty where that type lacks the control: hide it there.
+     */
     ParameterInfo: {
       id: string;
       name: string;
@@ -1186,6 +1190,7 @@ export interface components {
       unit: string;
       taper: string;
       options?: null | string[];
+      typeLabels?: null | string[];
     };
     /**
      * @description A complete rig: grid, blocks with up to four channels each, cables and eight scenes. Parameter values are stored

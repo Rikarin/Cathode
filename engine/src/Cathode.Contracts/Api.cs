@@ -37,6 +37,10 @@ public sealed record EngineStatus(
 
 public sealed record SystemInfo(string Version, EngineStatus Engine);
 
+/// <summary>
+///     A block parameter. <c>TypeLabels</c>, where present, names the parameter per value of the block's <c>type</c>
+///     parameter (an amp model's own name for a generic control), empty where that type lacks the control: hide it there.
+/// </summary>
 public sealed record ParameterInfo(
     string Id,
     string Name,
@@ -46,7 +50,8 @@ public sealed record ParameterInfo(
     float Default,
     string Unit,
     string Taper,
-    IReadOnlyList<string>? Options);
+    IReadOnlyList<string>? Options,
+    IReadOnlyList<string>? TypeLabels = null);
 
 /// <summary>
 ///     A block type the editor can place. <c>CpuCost</c> is its measured cost in percent of one core at 48 kHz

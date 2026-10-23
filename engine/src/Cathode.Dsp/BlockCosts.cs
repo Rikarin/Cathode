@@ -10,7 +10,7 @@ public static class BlockCosts {
     static readonly Dictionary<string, double> Percent = new(StringComparer.Ordinal) {
         ["cab"] = 4.23,
         ["chorus"] = 0.29,
-        ["circuitamp"] = 19.25,
+        ["circuitamp"] = 14.05,
         ["compressor"] = 0.34,
         ["crossover"] = 0.53,
         ["delay"] = 0.38,

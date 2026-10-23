@@ -8,7 +8,37 @@ public enum PotRole {
     Gain,
 
     /// <summary>The master volume, just ahead of the phase inverter.</summary>
-    Master
+    Master,
+
+    /// <summary>The bass knob (a <see cref="NetworkStageDesign" /> pot; the TMB stacks wire their own).</summary>
+    Bass,
+
+    /// <summary>The middle knob.</summary>
+    Middle,
+
+    /// <summary>The treble knob.</summary>
+    Treble,
+
+    /// <summary>The model's first extra pot (<see cref="AmpPanel.Control1" />): a lead drive, a second volume.</summary>
+    Control1,
+
+    /// <summary>The model's second extra pot (<see cref="AmpPanel.Control2" />).</summary>
+    Control2
+}
+
+/// <summary>Which front-panel switch engages a switched element of a stage.</summary>
+public enum SwitchRole {
+    /// <summary>The bright switch.</summary>
+    Bright,
+
+    /// <summary>The model's first extra switch (<see cref="AmpPanel.Switch1" />).</summary>
+    Switch1,
+
+    /// <summary>The model's second extra switch.</summary>
+    Switch2,
+
+    /// <summary>The model's third extra switch.</summary>
+    Switch3
 }
 
 /// <summary>The design of one preamp stage; <see cref="Create" /> builds it.</summary>
@@ -17,16 +47,79 @@ public abstract record AmpStageDesign(string Name) {
     public abstract AmpStage Create(double sampleRate);
 }
 
-/// <summary>The preamp knobs, as rotations 0..1, and the bright switch.</summary>
+/// <summary>The gains of a graphic equaliser's five bands, in decibels.</summary>
+public readonly record struct EqualizerGains(double Band1, double Band2, double Band3, double Band4, double Band5) {
+    /// <summary>Band <paramref name="index" /> (0..4).</summary>
+    public double this[int index] => index switch {
+        0 => Band1,
+        1 => Band2,
+        2 => Band3,
+        3 => Band4,
+        _ => Band5
+    };
+}
+
+/// <summary>
+///     The preamp knobs, as rotations 0..1, and the switches: the bright switch, the model's extra pots
+///     (<paramref name="Control1" />, <paramref name="Control2" />) and switches (<paramref name="Switch1" /> to
+///     <paramref name="Switch3" />), and a graphic equaliser's band gains.
+/// </summary>
 public readonly record struct AmpControls(
     double Gain,
     double Bass,
     double Middle,
     double Treble,
     double Master,
-    bool Bright
+    bool Bright,
+    double Control1 = 0.5,
+    double Control2 = 0.5,
+    bool Switch1 = false,
+    bool Switch2 = false,
+    bool Switch3 = false,
+    EqualizerGains Equalizer = default
 ) {
-    public double Rotation(PotRole role) => role == PotRole.Gain ? Gain : Master;
+    public double Rotation(PotRole role) => role switch {
+        PotRole.Gain => Gain,
+        PotRole.Master => Master,
+        PotRole.Bass => Bass,
+        PotRole.Middle => Middle,
+        PotRole.Treble => Treble,
+        PotRole.Control1 => Control1,
+        _ => Control2
+    };
+
+    public bool IsOn(SwitchRole role) => role switch {
+        SwitchRole.Bright => Bright,
+        SwitchRole.Switch1 => Switch1,
+        SwitchRole.Switch2 => Switch2,
+        _ => Switch3
+    };
+}
+
+/// <summary>The preamp's expert settings, as the Circuit Amp's expert parameters set them; the defaults are stock.</summary>
+/// <param name="Tube">
+///     A triode type replacing every preamp triode of the stock 12AX7 type (<see cref="TriodeModel.Ecc83" />), or null
+///     for the stock tubes.
+/// </param>
+/// <param name="BrightCap">The bright caps' values as a multiple of stock.</param>
+/// <param name="StackFrequency">The tone stacks' frequencies as a multiple of stock (their capacitors divided by it).</param>
+/// <param name="CathodeResistor">
+///     The cathode resistor as a multiple of stock: the channel applies it to its last gain stage only (the Axe-Fx's
+///     Preamp Bias), 1 elsewhere.
+/// </param>
+public readonly record struct PreampSettings(
+    TriodeModel? Tube = null,
+    double BrightCap = 1,
+    double StackFrequency = 1,
+    double CathodeResistor = 1
+) {
+    public static PreampSettings Stock => new(Tube: null);
+
+    /// <summary>
+    ///     The triode a stage built with <paramref name="stock" /> runs: <see cref="Tube" /> in place of a 12AX7, the
+    ///     stock tube otherwise (a 12AT7 or a 12AU7 stays what it is).
+    /// </summary>
+    public TriodeModel TubeFor(TriodeModel stock) => Tube is { } tube && stock == TriodeModel.Ecc83 ? tube : stock;
 }
 
 /// <summary>
@@ -56,6 +149,15 @@ public abstract class AmpStage {
 
     /// <summary>Applies the knobs; recomputes the circuit only when a pot this stage owns has moved.</summary>
     public abstract void Update(in AmpControls controls);
+
+    /// <summary>
+    ///     Applies the expert settings (component values; allocation-free). A new tube or cathode resistor moves the
+    ///     operating point, so the channel resets afterwards (<see cref="Reset" />).
+    /// </summary>
+    public virtual void Apply(in PreampSettings settings) { }
+
+    /// <summary>Whether this is a common-cathode gain stage, which <see cref="PreampSettings.CathodeResistor" /> may bias.</summary>
+    public virtual bool IsGainStage => false;
 
     /// <summary>
     ///     Puts the stage at its DC operating point for a source resting at <paramref name="restInput" /> volts:

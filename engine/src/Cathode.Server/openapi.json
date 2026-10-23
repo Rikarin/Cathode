@@ -2746,8 +2746,18 @@
             "items": {
               "type": "string"
             }
+          },
+          "typeLabels": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
-        }
+        },
+        "description": "A block parameter. \u0060TypeLabels\u0060, where present, names the parameter per value of the block\u0027s \u0060type\u0060\nparameter (an amp model\u0027s own name for a generic control), empty where that type lacks the control: hide it there."
       },
       "Preset": {
         "required": [

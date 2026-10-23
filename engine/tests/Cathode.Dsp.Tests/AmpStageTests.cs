@@ -11,7 +11,7 @@ namespace Cathode.Dsp.Tests;
 ///     its AC analysis, operating points against its DC solve and datasheet values, triode and power stages in the time
 ///     domain at moderate drive against its trapezoidal transient run 16 times faster with exact (untabulated) tubes.
 /// </summary>
-public class AmpStageTests(ITestOutputHelper output) {
+public partial class AmpStageTests(ITestOutputHelper output) {
     const double Rate = 96_000; // the circuit amp's rate at 48 kHz
     const int Oversampling = 16;
 
@@ -232,7 +232,7 @@ public class AmpStageTests(ITestOutputHelper output) {
     [InlineData(1)]
     [InlineData(2)]
     public void Long_tail_pair_table_matches_the_reference_dc_sweep(int index) {
-        var design = AmpDesign.All[index].Power.PhaseInverter;
+        var design = (LongTailPairDesign)AmpDesign.All[index].Power.PhaseInverter;
         var pair = LongTailPair.For(design);
         output.WriteLine(
             $"{AmpDesign.All[index].Name} inverter: grids {pair.RestGrid:0.00} V, cathode {pair.RestCathode:0.00} V, plates " +
@@ -285,7 +285,7 @@ public class AmpStageTests(ITestOutputHelper output) {
         var power = new PowerAmp(design, Rate);
         power.Configure(new(presence, 0, 0, 0.5, 0.5, 0.5));
         power.Reset();
-        var (circuit, speaker) = AmpReferences.PowerAmp(
+        var (circuit, speaker, _) = AmpReferences.PowerAmp(
             design,
             power.Supply,
             power.ScreenSupply,

@@ -60,6 +60,9 @@ public readonly record struct DiodeModel(double SaturationCurrent, double Ideali
     /// <summary>BAT41-style Schottky: about 0.3 V at 1 mA, sharper than germanium.</summary>
     public static DiodeModel Schottky { get; } = new(1e-8, 1.04);
 
+    /// <summary>1N4007-style rectifier (the usual SPICE fit, Is 7.03 nA, n 1.81): about 0.6 V at 1 mA.</summary>
+    public static DiodeModel Rectifier { get; } = new(7.03e-9, 1.81);
+
     /// <summary>Red LED: about 1.7 V at 1 mA.</summary>
     public static DiodeModel Led { get; } = new(1e-18, 1.9);
 

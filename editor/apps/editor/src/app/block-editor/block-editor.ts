@@ -29,6 +29,7 @@ import { PeqPanel } from './panels/peq-panel';
 import { PitchPanel } from './panels/pitch-panel';
 import { ToneMatchPanel } from './panels/tone-match-panel';
 import { ParamControl } from './param-control';
+import { labelledParams } from './type-labels';
 
 const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
 
@@ -277,11 +278,19 @@ export class BlockEditor {
   protected readonly info = computed(() => (this.block() ? this.catalog.info(this.block()!.type) : undefined));
   protected readonly title = computed(() => this.info()?.name ?? this.block()?.type ?? '');
   protected readonly typeParam = computed(() => this.info()?.params.find(p => p.id === 'type') ?? null);
-  private readonly otherParams = computed(
-    () =>
+  /** The selected type (model) of the block, which names and hides per-model controls. */
+  private readonly typeValue = computed(() => {
+    const block = this.block();
+    const type = this.typeParam();
+    return block && type ? (this.live.valueOf(block, this.live.channelOf(block.id), 'type') ?? type.default) : 0;
+  });
+  private readonly otherParams = computed(() =>
+    labelledParams(
       this.info()?.params.filter(
         p => p.id !== 'type' && !(this.block()?.type === 'pitch' && isCustomTableParam(p.id))
-      ) ?? []
+      ) ?? [],
+      this.typeValue()
+    )
   );
   /** The block's own controls, and its output stage (level, mix, balance, pan) set apart on the right. */
   protected readonly mainParams = computed(() => this.otherParams().filter(p => !OutputParams.has(p.id)));
