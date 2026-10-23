@@ -303,7 +303,14 @@ Version 1 holds:
 
 Every reader takes the maximum over the slots since its own previous poll. Nothing is ever reset, so any number of readers see every peak once.
 
-The Server publishes meters at 30 Hz, still as JSON. IPC telemetry, which carries the tuner, GC counts and device timing windows, dropped to 10 Hz. Still to come: RMS, per-block CPU, scene state, the tuner, scope and RTA rings, and binary frames.
+The Server publishes meters at 30 Hz, still as JSON. IPC telemetry, which carries the tuner, GC counts and device timing windows, dropped to 10 Hz.
+
+Version 3 adds an output scope ring of 16,384 samples, outside the seqlock (the reader checks that the writer did not lap it). The Server reads it for three things:
+- scope frames, while the scope is on
+- RTA frames: sixth-octave bands of a 4096-point Hann window at 15 Hz, while the RTA is on
+- Tone Match's long-term average spectrum
+
+Still to come: RMS, per-block CPU, scene state, and binary frames.
 
 ### 5.10 MIDI and controllers
 

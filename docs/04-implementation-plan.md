@@ -198,19 +198,32 @@ Ordered by value to a guitarist:
 
 ---
 
-## Phase 6: catalogue breadth (10–14 weeks, then ongoing)
+## Phase 6: catalogue breadth (10–14 weeks, then ongoing) — *first pass built; parallel DSP not yet needed*
 
-Close the gap with the Axe-Fx III block list in [01](01-axe-fx-iii-audit.md), in roughly this order, each block meeting the [Definition of done](03-testing-strategy.md#12-definition-of-done-any-block-or-feature):
+Close the gap with the Axe-Fx III block list in [01](01-axe-fx-iii-audit.md), in roughly this order, each block meeting the [Definition of done](03-testing-strategy.md#12-definition-of-done-any-block-or-feature). Every block below has analytic tests, passes the conformance suite (bounded, deterministic, block-size independent, allocation-free, decays to silence), has a golden render and a measured CPU cost, and works in the generated editor.
 
-1. Multi-delay (Quad tap, Ten-tap, Plex/diffusion, Ducking, Reverse, Sweep), Megatap
-2. Pitch: octaver, whammy (low-latency time-domain), harmonizer (PSOLA), crystals/arpeggiator; virtual capo
-3. Filter, Formant, Ring modulator, Enhancer, Crossover, Multiband compressor, Dynamic distortion
-4. Rotary (Leslie), Uni-Vibe-style phaser, Synth, Vocoder, Resonator
-5. Multiplexer, Feedback send/return, Send/Return to hardware I/O (an external pedal loop with latency compensation)
-6. **IR Player**, **Tone Match**, **RTA**
+1. [x] **Multi-delay** (`multidelay`): Quad Tap, Ten Tap (shuffle, taper, spread), Plex (four lines through a Hadamard matrix with allpass diffusion in each loop), Ducking (ping-pong with a ducker on the wet), Reverse (two cross-faded backward heads) and Sweep (a resonant band-pass swept by an LFO). **Megatap** (`megatap`): up to 40 taps with time, level and pan shapes.
+   - *Not modelled:* Plex pitch shifters and detune, per-tap filters and feedback, Megatap jitter.
+2. [x] **Pitch** (`pitch`): Detune, Chromatic and Diatonic (real-time PSOLA, two voices, key and scale), Whammy (pedal 0–100 % for a modifier), Octave Divider, Crystals, Arpeggiator and Virtual Capo. They share a YIN tracker (70 Hz–1.4 kHz, within 1 cent, about 29 ms to lock). All types report zero latency; each type's wet delay is part of its sound.
+   - *Not modelled:* polyphonic tracking and capo, formant correction, custom scales, a third voice.
+3. [x] **Formant** (3-formant vowel morph), **Ring modulator** (tempo-syncable carrier), **Enhancer** (Modern, Classic and Haas; the mono sum is exact for the first two), **Crossover** (Linkwitz–Riley 4th order, sums flat to ±0.1 dB), **Multiband compressor** (3 bands, phase-aligned LR4 splits), **Dynamic distortion** (drive follows the envelope, ADAA clipping at 4×).
+4. [x] **Rotary** (horn and drum with Doppler, AM, mic spread and accelerating speed switch), **Uni-Vibe** (`vibe`: four unequal allpass stages driven by a lamp/LDR model; chorus and vibrato), **Synth** (tracker-driven, two PolyBLEP oscillators, filter with envelope; silent on silence), **Vocoder** (20 bands, internal or right-input carrier), **Resonator** (4 damped combs tuned by chord or frequency, decay set as T60).
+5. [x] **Routing** (category "Routing"):
+   - **Multiplexer** (`mux`): passes the row chosen by its Input parameter (or all), with a 10 ms crossfade. The compiler routes each input through it rather than summing.
+   - **Feedback Send/Return** (`fbsend`, `fbreturn`): the return plays what the send got one maximum block earlier, so a later column can feed an earlier one without the result depending on the callback size. The return soft-limits at +18 dBFS, so a loop gain above one saturates instead of running away.
+   - **FX Loop** (`fxloop`): send and return through spare interface channels (`--loop-in`/`--loop-out` on the host, set on the Setup page). Its Loop Latency parameter (measured with the latency test) delays the dry path and is reported to the compiler, which compensates parallel paths.
+6. [x] **IR Player** (`irplayer`): IRs up to 680 ms at the file's gain, with mix and cuts. It shares the Cab's IR cache.
+   - **Tone Match** (`tonematch` plus `POST /api/v1/live/blocks/{id}/tonematch`): the Server averages the output's spectrum while you play, compares it with a reference recording, smooths the ratio (1/3 octave by default), limits it to ±18 dB and makes it level-neutral. It then designs a 2048-tap minimum-phase filter and stores it as the block's `match` asset. Matching again through an existing match replaces it instead of stacking.
+   - **RTA** (`PUT /api/v1/rta`): sixth-octave bands of the output at 15 Hz, shown in the Analyser dialog by the new `cth-rta` canvas. The telemetry scope ring grew to 16k samples for its 4096-point window (layout v3).
 7. Drive catalogue expansion (20+ circuits) on the WDF framework
-8. Cab library tooling: IR mixer/export (Cab-Lab-like), and an **IR capture** utility (sweep, deconvolve, trim)
-9. **Parallel DSP**: rows on worker threads joined to the audio workgroup or MMCSS, when CPU telemetry shows a need
+8. [x] **Cab library tooling:**
+   - **IR mixer** (`POST /api/v1/assets/mix`, and the IRs page): blends up to 8 IRs with level, delay, polarity and peak alignment into a new IR asset.
+   - **IR capture** (`cathode-host --ir-capture`, and the IRs page in the desktop app): an exponential sweep on outputs 1–2, recorded on input 1, deconvolved with Farina's inverse filter and trimmed 1 ms before the peak. A wire measures flat to ±0.25 dB from 200 Hz up.
+9. [ ] **Parallel DSP**: rows on worker threads joined to the audio workgroup or MMCSS, when CPU telemetry shows a need. *Not needed yet:* the measured costs (`BlockCosts`, served as `cpuCost` in the catalog and summed into the editor's estimate) put the most expensive single blocks at 7 % (IR Player with a full-length IR) and 4 % (Cab), and the Phase 2 "everything" rig at 15 % of one core.
+
+**Definition-of-done tooling added in this phase:**
+- `tools/Cathode.Bench` measures every block (the worst of its types, with the longest IRs) and writes `BlockCosts.cs`. The conformance suite fails for a block without a cost.
+- `GoldenRenderTests` compares each block's default render with `tests/assets/golden/<type>.wav` (null residual below −90 dB). Regenerate with `CATHODE_UPDATE_GOLDEN=1`.
 
 ---
 

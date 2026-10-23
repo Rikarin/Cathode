@@ -54,6 +54,18 @@ dotnet run -c Release --project src/Cathode.Host -- --bench-nam --graph examples
 dotnet publish src/Cathode.Host -c Release -r osx-arm64 -o out && ./out/cathode-host --self-test
 ```
 
+Measure an impulse response: a sine sweep plays on outputs 1 and 2, input 1 records, and the trimmed IR is written as a WAV. The desktop app's IRs page runs the same command:
+
+```bash
+dotnet run -c Release --project src/Cathode.Host -- --ir-capture --device "<uid>" --level -18 --out cab.wav
+```
+
+The FX Loop block sends to and returns from spare interface channels. Name them when serving:
+
+```bash
+dotnet run -c Release --project src/Cathode.Host -- --serve --socket /tmp/cathode-host.sock --device "<uid>" --loop-out 3,4 --loop-in 3,4
+```
+
 Every block registered in `BlockRegistry.CreateDefault()` automatically runs the conformance suite:
 - descriptor consistency
 - finite, bounded output under random parameters, stimuli and parameter jumps
@@ -61,6 +73,19 @@ Every block registered in `BlockRegistry.CreateDefault()` automatically runs the
 - block-size independence
 - zero allocation
 - decay to silence with no subnormals
+- a recorded CPU cost
+
+Each block also has a golden render in `tests/assets/golden`. After an intended change to a block's sound, regenerate them and review the diff:
+
+```bash
+CATHODE_UPDATE_GOLDEN=1 dotnet test --project tests/Cathode.Dsp.Tests
+```
+
+After adding or changing a block, measure the costs again. The catalog serves them to the editor's CPU estimate:
+
+```bash
+dotnet run -c Release --project tools/Cathode.Bench -- --write
+```
 
 ## Running the API
 
