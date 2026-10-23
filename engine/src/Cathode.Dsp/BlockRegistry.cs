@@ -20,6 +20,8 @@ public sealed class BlockRegistry
         registry.Register(ReverbBlock.Info, static () => new ReverbBlock());
         registry.Register(DriveBlock.Info, static () => new DriveBlock());
         registry.Register(CompressorBlock.Info, static () => new CompressorBlock());
+        registry.Register(ParametricEqBlock.Info, static () => new ParametricEqBlock());
+        registry.Register(GraphicEqBlock.Info, static () => new GraphicEqBlock());
         return registry;
     }
 
