@@ -7,14 +7,16 @@ The .NET 10 audio engine. The design is described in [docs/02-architecture.md](.
 | `src/Cathode.Dsp` | Pure DSP: block contract, parameter bank and smoothing, biquad and TPT state-variable filters, built-in blocks, block registry |
 | `src/Cathode.Engine` | Grid model (JSON), graph compiler (pruning, ordering, buffer reuse, latency compensation), SPSC command ring, real-time loop with RCU graph swap, callback stats |
 | `src/Cathode.Audio` | WAV I/O, offline renderer, null (device-less, real-time paced) backend, native device sessions, latency probe |
+| `src/Cathode.Dsp.Native` | Blocks backed by native code: `NamAmpBlock` (Neural Amp Modeler, [ADR-0003](../docs/adr/0003-nam-hosting.md)) |
 | `native/cth_audio` | C shim: CoreAudio HAL IOProc backend (Windows and Linux are stubs for now), FTZ/DAZ helper |
+| `native/cth_nam` | C ABI over NeuralAmpModelerCore v0.6.0 (pinned and fetched by CMake) |
 | `src/Cathode.Host` | NativeAOT engine executable (`cathode-host --self-test`) |
 | `tools/Cathode.Render` | `cathode-render --graph g.json --in di.wav --out out.wav` |
 | `tests/Cathode.Testing` | Stimuli and analysers: FFT, DTFT magnitude, THD, null residual, ESR, allocation probe |
 | `tests/*.Tests` | xUnit v3 + CsCheck suites, including the per-block conformance suite |
 
-Build the native audio shim first (CMake and a C compiler). Without it, everything except the device
-commands still works:
+Build the native libraries first (CMake, plus a C and C++20 compiler). The first run downloads
+NeuralAmpModelerCore and Eigen. Without them, the device and NAM tests skip and everything else still works:
 
 ```bash
 native/build.sh
@@ -32,6 +34,12 @@ dotnet run --project src/Cathode.Host -- --devices
 
 ```bash
 dotnet run --project src/Cathode.Host -- --audio-test --buffer 64 --seconds 10
+```
+
+NAM CPU cost through the engine:
+
+```bash
+dotnet run -c Release --project src/Cathode.Host -- --bench-nam --model artifacts/native/nam-models/A2.nam
 ```
 
 ```bash

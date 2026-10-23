@@ -7,7 +7,7 @@
     <CathodeNativeDir>$(MSBuildThisFileDirectory)artifacts/native/</CathodeNativeDir>
   </PropertyGroup>
   <ItemGroup Condition="'$(OutputType)' == 'Exe'">
-    <None Include="$(CathodeNativeDir)*cth_audio.*"
+    <None Include="$(CathodeNativeDir)*cth_*.*"
           Exclude="$(CathodeNativeDir)*.exp;$(CathodeNativeDir)*.lib;$(CathodeNativeDir)*.pdb"
           Visible="false"
           CopyToOutputDirectory="PreserveNewest"

@@ -6,5 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Cathode.Audio/Cathode.Audio.csproj" />
+    <ProjectReference Include="../../src/Cathode.Dsp.Native/Cathode.Dsp.Native.csproj" />
   </ItemGroup>
 </Project>

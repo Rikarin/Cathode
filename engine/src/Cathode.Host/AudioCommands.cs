@@ -1,6 +1,7 @@
 using Cathode.Audio;
 using Cathode.Audio.Native;
 using Cathode.Dsp;
+using Cathode.Dsp.Native;
 using Cathode.Engine;
 using Cathode.Engine.Graph;
 
@@ -29,7 +30,8 @@ internal static class AudioCommands
         using var session = OpenSession(options, spec =>
         {
             engine = new CathodeEngine(spec);
-            engine.Publish(new GraphCompiler(BlockRegistry.CreateDefault()).Compile(GraphTemplates.Basic(), spec, generation: 1));
+            var definition = options.Text("nam") is { } model ? Graphs.Nam(Path.GetFullPath(model)) : GraphTemplates.Basic();
+            engine.Publish(new GraphCompiler(BlockRegistry.CreateDefault().AddNativeBlocks()).Compile(definition, spec, generation: 1));
             return engine;
         }, options.Flag("input") ? 1 : 0);
         session.OutputGain = options.Flag("monitor") ? 1f : 0f;

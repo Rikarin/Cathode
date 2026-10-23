@@ -5,7 +5,7 @@ namespace Cathode.Host;
 /// <summary>Minimal parser: the first <c>--name</c> is the command; later <c>--key value</c> pairs and bare flags are options.</summary>
 internal sealed class CommandLine
 {
-    private static readonly HashSet<string> Commands = ["version", "self-test", "devices", "audio-test", "latency-test", "help"];
+    private static readonly HashSet<string> Commands = ["version", "self-test", "devices", "audio-test", "latency-test", "bench-nam", "help"];
 
     private readonly Dictionary<string, string?> _options = new(StringComparer.Ordinal);
 

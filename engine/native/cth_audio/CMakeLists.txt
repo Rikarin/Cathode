@@ -1,10 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
-project(cth_audio C)
-
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_VISIBILITY_PRESET hidden)
-
+# Audio I/O shim (C). See include/cth_audio.h.
 if(APPLE)
   set(CTH_BACKEND src/cth_audio_coreaudio.c)
 else()
@@ -25,9 +19,4 @@ else()
   target_compile_options(cth_audio PRIVATE -Wall -Wextra -Werror -O2)
 endif()
 
-# Single output folder that the .NET build picks the library up from (see engine/Directory.Build.targets).
-set_target_properties(cth_audio PROPERTIES
-  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../../artifacts/native
-  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../../artifacts/native
-  LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/../../artifacts/native
-  RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/../../artifacts/native)
+cth_output_to_artifacts(cth_audio)

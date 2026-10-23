@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Cathode.Audio;
 using Cathode.Dsp;
+using Cathode.Dsp.Native;
 using Cathode.Engine;
 using Cathode.Engine.Graph;
 
@@ -25,7 +26,7 @@ try
     var input = WavFile.Read(inputPath);
     var spec = new ProcessSpec(input.SampleRate, blockSize);
     var engine = new CathodeEngine(spec);
-    engine.Publish(new GraphCompiler(BlockRegistry.CreateDefault()).Compile(definition, spec, generation: 1));
+    engine.Publish(new GraphCompiler(BlockRegistry.CreateDefault().AddNativeBlocks(), Path.GetDirectoryName(Path.GetFullPath(graphPath))).Compile(definition, spec, generation: 1));
     var output = OfflineRenderer.Render(engine, input, blockSize);
     WavFile.Write(outputPath, output, format);
     Console.WriteLine($"Rendered {input.Frames} frames at {input.SampleRate} Hz -> {outputPath}");

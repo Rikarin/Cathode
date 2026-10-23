@@ -46,6 +46,9 @@ public sealed class NodeDefinition
     /// <summary>Parameter values by parameter id. Missing parameters take their default.</summary>
     [JsonPropertyName("params")]
     public Dictionary<string, float> Parameters { get; set; } = [];
+
+    /// <summary>Files the block needs, by asset slot (e.g. <c>"model": "captures/plexi.nam"</c>).</summary>
+    public Dictionary<string, string> Assets { get; set; } = [];
 }
 
 /// <summary>A cable from a node in column <c>c</c> to a node in column <c>c + 1</c>.</summary>

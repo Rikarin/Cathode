@@ -7,7 +7,9 @@ namespace Cathode.Engine.Graph;
 /// that cannot reach both an input and an output, orders the rest, compensates latency between parallel
 /// paths and assigns work buffers by lifetime so they are reused.
 /// </summary>
-public sealed class GraphCompiler(BlockRegistry registry)
+/// <param name="registry">Block types available to graphs.</param>
+/// <param name="assetRoot">Folder that relative asset paths resolve against (default: the current directory).</param>
+public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = null)
 {
     public CompiledGraph Compile(GraphDefinition definition, ProcessSpec spec, int generation = 0)
     {
@@ -47,6 +49,7 @@ public sealed class GraphCompiler(BlockRegistry registry)
                 block.Params.SetTarget(index, value);
             }
 
+            LoadAssets(node, block, errors);
             block.Prepare(spec);
             slotOfNode[n] = blocks.Count;
             blocks.Add(block);
@@ -164,6 +167,27 @@ public sealed class GraphCompiler(BlockRegistry registry)
             [.. bypassed],
             [.. emitter.Delays],
             graphLatency);
+    }
+
+    private void LoadAssets(NodeDefinition node, IDspBlock block, List<string> errors)
+    {
+        foreach (var (slot, path) in node.Assets)
+        {
+            if (block is not IAssetConsumer consumer || !consumer.AssetSlots.Contains(slot))
+            {
+                errors.Add($"Node '{node.Id}': block type '{node.Type}' has no asset slot '{slot}'.");
+                continue;
+            }
+
+            try
+            {
+                consumer.LoadAsset(slot, Path.GetFullPath(path, assetRoot ?? Environment.CurrentDirectory));
+            }
+            catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or DllNotFoundException or ArgumentException)
+            {
+                errors.Add($"Node '{node.Id}': could not load asset '{slot}' from '{path}': {e.Message}");
+            }
+        }
     }
 
     private Dictionary<string, int> IndexNodes(GraphDefinition definition, List<string> errors)
