@@ -262,6 +262,7 @@ public sealed partial class EngineConnection(
                 );
             }
 
+            PublishRta(source.Region);
             if (source.Poll() is not { } reading) {
                 continue;
             }

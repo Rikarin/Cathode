@@ -85,7 +85,7 @@ public sealed class EngineHostService : IDisposable {
         if (looperSeconds > 0) {
             Engine.EnableLooper(looperSeconds);
         }
-        compiler = new(registry ?? BlockRegistry.CreateDefault().AddNativeBlocks());
+        compiler = new(registry ?? BlockRegistry.CreateDefault().AddNativeBlocks()) { HardwareLoop = Engine.HardwareLoop };
         tuner = new(spec.SampleRate);
         var version = typeof(EngineHostService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
                 ?.InformationalVersion

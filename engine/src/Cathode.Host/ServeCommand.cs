@@ -46,7 +46,14 @@ static class ServeCommand {
         }
 
         var forwarder = new ForwardingProcessor();
-        using var session = NativeAudioSession.Open(forwarder, options.Text("device"), rate, buffer, 1);
+        using var session = NativeAudioSession.Open(
+            forwarder,
+            options.Text("device"),
+            rate,
+            buffer,
+            1,
+            LoopChannels.Parse(options.Text("loop-in"), options.Text("loop-out"))
+        );
         using var deviceService = new EngineHostService(
             new(session.SampleRate, session.BufferFrames),
             NativeAudio.Backend,

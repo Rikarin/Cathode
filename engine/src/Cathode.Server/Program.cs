@@ -41,6 +41,7 @@ builder.Services.AddSingleton<IEngineSync>(static s => s.GetRequiredService<Engi
 builder.Services.AddHostedService(static s => s.GetRequiredService<EngineConnection>());
 builder.Services.AddSingleton<GlobalStore>();
 builder.Services.AddSingleton<LiveRig>();
+builder.Services.AddSingleton<IrTools>();
 builder.Services.AddSingleton<MidiRouter>();
 
 var app = builder.Build();

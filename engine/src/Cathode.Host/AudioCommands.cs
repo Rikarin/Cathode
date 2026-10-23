@@ -2,6 +2,8 @@ using System.Text.Json;
 using Cathode.Audio;
 using Cathode.Audio.Native;
 using Cathode.Dsp;
+using Cathode.Dsp.Convolution;
+using Cathode.Dsp.IO;
 using Cathode.Dsp.Native;
 using Cathode.Engine;
 using Cathode.Engine.Graph;
@@ -141,6 +143,54 @@ static class AudioCommands {
         return 0;
     }
 
+    /// <summary>
+    ///     Measures an impulse response (a cab and mic, a room, an amp's power section into a load): plays an exponential
+    ///     sweep on outputs 1 and 2, records input 1 and writes the trimmed IR as a WAV (docs/04 Phase 6 item 8).
+    /// </summary>
+    public static int IrCapture(CommandLine options) {
+        RequireBackend();
+        var path = options.Text("out") ?? throw new InvalidOperationException("--out <file.wav> is required.");
+        var seconds = options.Double("seconds", 5);
+        var level = (float)Math.Pow(10, options.Double("level", -18) / 20);
+        var tail = options.Double("tail", 1.5);
+        var recorder = default(SweepRecorder);
+        using var session = OpenSession(
+            options,
+            spec => recorder = new(new(spec.SampleRate, seconds), level, tail),
+            1
+        );
+        if (session.InputChannels == 0) {
+            throw new InvalidOperationException("The device has no inputs. Pick a duplex interface with --device.");
+        }
+
+        Console.WriteLine(
+            $"Playing a {seconds:0.#} s sweep at {20 * Math.Log10(level):0} dBFS on outputs 1-2 and recording input 1..."
+        );
+        session.Start();
+        while (!recorder!.Done) {
+            Thread.Sleep(50);
+        }
+
+        session.Stop();
+        var peak = recorder.Recorded.Max(static v => MathF.Abs(v));
+        if (peak < 1e-4f) {
+            Console.WriteLine("Nothing came back on input 1. Check the cabling and the input gain.");
+            return 1;
+        }
+
+        if (peak > 0.99f) {
+            Console.WriteLine("warning: the recording clipped; lower --level or the input gain and capture again.");
+        }
+
+        var measurement = recorder.Measurement;
+        var ir = measurement.Trim(measurement.Deconvolve(recorder.Recorded), options.Double("length", 500));
+        WavFile.Write(path, new((int)session.SampleRate, [ir]));
+        Console.WriteLine(
+            $"recorded peak {20 * Math.Log10(peak):0.0} dBFS; wrote {ir.Length} samples ({ir.Length * 1000.0 / session.SampleRate:0} ms) to {path}"
+        );
+        return 0;
+    }
+
     static NativeAudioSession OpenSession(
         CommandLine options,
         Func<ProcessSpec, IAudioProcessor> createProcessor,
@@ -178,6 +228,33 @@ static class AudioCommands {
             throw new InvalidOperationException(
                 $"No native audio backend on this platform yet (backend: {NativeAudio.Backend})."
             );
+        }
+    }
+
+    /// <summary>Audio thread: plays the sweep then silence for the tail, recording input 1 into a preallocated buffer.</summary>
+    sealed class SweepRecorder(SweepMeasurement measurement, float level, double tailSeconds) : IAudioProcessor {
+        readonly float[] sweep = measurement.Sweep;
+        int position;
+
+        public SweepMeasurement Measurement => measurement;
+
+        public float[] Recorded { get; } =
+            new float[measurement.Sweep.Length + (int)(tailSeconds * measurement.SampleRate)];
+
+        public bool Done => Volatile.Read(ref position) >= Recorded.Length;
+
+        public void Process(in AudioIO io) {
+            for (var i = 0; i < io.Frames; i++) {
+                var n = position + i;
+                var output = n < sweep.Length ? sweep[n] * level : 0f;
+                io.OutputLeft[i] = output;
+                io.OutputRight[i] = output;
+                if (n < Recorded.Length) {
+                    Recorded[n] = io.InputLeft[i];
+                }
+            }
+
+            Volatile.Write(ref position, position + io.Frames);
         }
     }
 }

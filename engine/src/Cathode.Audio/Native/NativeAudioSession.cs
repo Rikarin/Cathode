@@ -51,8 +51,26 @@ public sealed record AudioSessionStats(
 );
 
 /// <summary>
+///     Device channels (0-based) for an external effects loop: what the FX Loop blocks send out of and hear back on.
+///     A single channel is used for both sides of a stereo pair.
+/// </summary>
+public sealed record LoopChannels(int[] Returns, int[] Sends) {
+    /// <summary>Parses 1-based lists such as <c>3,4</c>; null or empty means none.</summary>
+    public static LoopChannels Parse(string? returns, string? sends) => new(List(returns), List(sends));
+
+    static int[] List(string? text) =>
+        string.IsNullOrWhiteSpace(text)
+            ? []
+            : text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(static c => int.Parse(c, System.Globalization.CultureInfo.InvariantCulture) - 1)
+                .Take(2)
+                .ToArray();
+}
+
+/// <summary>
 ///     A running device stream that calls an <see cref="IAudioProcessor" /> on the driver's real-time thread.
 ///     Input channel 1 feeds both engine channels (a guitar DI is mono); engine L/R go to output channels 1 and 2.
+///     Optional <see cref="LoopChannels" /> carry an external effects loop.
 /// </summary>
 public sealed unsafe class NativeAudioSession : IDisposable {
     const int MaxFrames = 4096; // CTH_MAX_FRAMES
@@ -61,6 +79,7 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     readonly float[] silence = GC.AllocateArray<float>(MaxFrames, true);
     readonly float[] scratchLeft = GC.AllocateArray<float>(MaxFrames, true);
     readonly float[] scratchRight = GC.AllocateArray<float>(MaxFrames, true);
+    readonly LoopChannels loop;
     GCHandle self;
     nint stream;
     long exceptions;
@@ -76,8 +95,9 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     /// <summary>Linear gain on the device output. 0 mutes it (the default for unattended tests).</summary>
     public float OutputGain { get; set; } = 1f;
 
-    NativeAudioSession(IAudioProcessor processor) {
+    NativeAudioSession(IAudioProcessor processor, LoopChannels? loop) {
         this.processor = processor;
+        this.loop = loop ?? new([], []);
     }
 
     /// <summary>Opens <paramref name="deviceUid" /> (null for the default output device) without starting it.</summary>
@@ -86,9 +106,14 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         string? deviceUid,
         double sampleRate,
         int bufferFrames,
-        int inputChannels
+        int inputChannels,
+        LoopChannels? loop = null
     ) {
-        var stream = new NativeAudioSession(processor);
+        var stream = new NativeAudioSession(processor, loop);
+        if (loop is { Returns.Length: > 0 }) {
+            inputChannels = Math.Max(inputChannels, loop.Returns.Max() + 1);
+        }
+
         stream.self = GCHandle.Alloc(stream);
         var config = new StreamConfigNative {
             SampleRate = sampleRate, BufferFrames = bufferFrames, InputChannels = inputChannels
@@ -196,14 +221,32 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         var left = outputChannels > 0 ? new(outputs[0], frames) : scratchLeft.AsSpan(0, frames);
         var right = outputChannels > 1 ? new(outputs[1], frames) : scratchRight.AsSpan(0, frames);
 
-        processor.Process(new(input, input, left, right));
+        if (loop.Returns.Length == 0 && loop.Sends.Length == 0) {
+            processor.Process(new(input, input, left, right));
+        } else {
+            var returnLeft = Channel(inputs, inputChannels, loop.Returns, 0, frames);
+            var returnRight = Channel(inputs, inputChannels, loop.Returns, 1, frames);
+            var sendLeft = Channel(outputs, outputChannels, loop.Sends, 0, frames);
+            var sendRight = Channel(outputs, outputChannels, loop.Sends, 1, frames);
+            processor.Process(new(input, input, left, right, returnLeft, returnRight, sendLeft, sendRight));
+        }
 
         var gain = OutputGain;
-        if (gain != 1f) {
+        if (gain != 1f) { // the loop's send channels stay live: muting is for the speakers
             for (var i = 0; i < frames; i++) {
                 left[i] *= gain;
                 right[i] *= gain;
             }
         }
+    }
+
+    /// <summary>Loop channel <paramref name="index" /> of <paramref name="map" />, the first one again for a mono loop.</summary>
+    static Span<float> Channel(float** channels, int count, int[] map, int index, int frames) {
+        if (map.Length == 0) {
+            return [];
+        }
+
+        var channel = map[Math.Min(index, map.Length - 1)];
+        return channel < count ? new(channels[channel], frames) : [];
     }
 }

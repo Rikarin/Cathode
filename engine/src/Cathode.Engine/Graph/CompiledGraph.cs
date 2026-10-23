@@ -1,4 +1,5 @@
 using Cathode.Dsp;
+using Cathode.Dsp.Blocks;
 using Cathode.Engine.Rig;
 
 namespace Cathode.Engine.Graph;
@@ -166,6 +167,17 @@ public sealed class CompiledGraph : IDisposable {
                 case GraphOpKind.WriteOutput:
                     Accumulate(left, io.OutputLeft);
                     Accumulate(right, io.OutputRight);
+                    break;
+                case GraphOpKind.Clear:
+                    left.Clear();
+                    right.Clear();
+                    break;
+                case GraphOpKind.MuxInput:
+                    ((MultiplexerBlock)blocks[op.Index]).MixInput(
+                        op.Row,
+                        new(this.left[op.Source].Span[..frames], this.right[op.Source].Span[..frames]),
+                        new(left, right)
+                    );
                     break;
             }
         }

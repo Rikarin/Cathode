@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Parameters;
+using Cathode.Dsp.Routing;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.Engine.Telemetry;
@@ -108,6 +109,12 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     ///     Input samples (left channel) for analysis on another thread, e.g. the tuner. Written by the audio thread only
     ///     while <see cref="InputTapEnabled" /> is set.
     /// </summary>
+    /// <summary>
+    ///     The device's effects-loop channels. Pass it to the <see cref="Graph.GraphCompiler" /> so FX Loop blocks reach
+    ///     them.
+    /// </summary>
+    public HardwareLoop HardwareLoop { get; } = new();
+
     public SampleRing InputTap { get; } = new(16_384);
 
     /// <summary>Any thread: start or stop feeding <see cref="InputTap" />.</summary>
@@ -185,6 +192,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         Interlocked.Exchange(ref tail, null)?.Dispose();
         looper?.Dispose();
         GlobalEq.Dispose();
+        HardwareLoop.Dispose();
         tailInLeft.Dispose();
         tailInRight.Dispose();
         tailOutLeft.Dispose();
@@ -231,6 +239,8 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
             InputTap.Write(io.InputLeft);
         }
 
+        HardwareLoop.BeginCallback(io.ReturnLeft, io.ReturnRight, io.Frames);
+
         var graph = current;
         while (commands.TryDequeue(out var command)) {
             Apply(graph, command);
@@ -244,6 +254,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
             for (var offset = 0; offset < io.Frames; offset += maxBlock) {
                 var length = Math.Min(maxBlock, io.Frames - offset);
                 var slice = io.Slice(offset, length);
+                HardwareLoop.Offset = offset;
                 modulation.Advance(slice.InputLeft, sampleTime);
                 var context = new BlockContext(Spec.SampleRate, modulation.Tempo, sampleTime);
                 graph.ApplyModifiers(modulation, length);
@@ -266,6 +277,10 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
 
                 Volatile.Write(ref sampleTime, sampleTime + length);
             }
+        }
+
+        if (!io.SendLeft.IsEmpty) {
+            HardwareLoop.EndCallback(io.SendLeft, io.SendRight.IsEmpty ? io.SendLeft : io.SendRight);
         }
 
         var input = Peak(io.InputLeft);

@@ -128,6 +128,15 @@ public static class CathodeApi {
                     Respond(http, await rig.SetAssetAsync(id, slot, request, Expected(http)))
             )
             .WithName("SetAsset");
+        live.MapPost(
+                "/blocks/{id}/tonematch",
+                async (string id, ToneMatchRequest request, IrTools tools, HttpContext http) =>
+                    Respond(http, await tools.ToneMatchAsync(id, request, http.RequestAborted))
+            )
+            .WithName("LearnToneMatch")
+            .WithSummary(
+                "Listens to the rig while you play, then sets a Tone Match block's correction towards a reference .wav."
+            );
 
         live.MapPost(
                 "/cables",
@@ -256,6 +265,13 @@ public static class CathodeApi {
             )
             .Accepts<Stream>("application/octet-stream")
             .WithName("UploadAsset");
+        assets.MapPost(
+                "/mix",
+                async (IrMixRequest request, IrTools tools, CancellationToken cancellationToken) =>
+                    TypedResults.Ok(await tools.MixAsync(request, cancellationToken))
+            )
+            .WithName("MixImpulseResponses")
+            .WithSummary("Blends impulse responses (levels, delays, polarity, peak alignment) into a new IR asset.");
         assets.MapDelete(
                 "/{reference}",
                 Results<NoContent, NotFound>(string reference, AssetStore store) =>
@@ -295,6 +311,16 @@ public static class CathodeApi {
             )
             .WithName("SetScope")
             .WithSummary("Starts or stops scope frames (the engine's output waveform) on the WebSocket.");
+
+        api.MapPut(
+                "/rta",
+                (RtaRequest request, EngineConnection engine) => {
+                    engine.RtaEnabled = request.Enabled;
+                    return TypedResults.NoContent();
+                }
+            )
+            .WithName("SetRta")
+            .WithSummary("Starts or stops RTA frames (the output's sixth-octave spectrum) on the WebSocket.");
 
         app.Map(
                 "/ws",

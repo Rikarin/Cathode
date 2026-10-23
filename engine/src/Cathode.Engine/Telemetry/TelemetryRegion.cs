@@ -22,7 +22,7 @@ namespace Cathode.Engine.Telemetry;
 ///     </para>
 ///     <para>
 ///         A scope ring holds the last <see cref="TelemetryLayout.ScopeLength" /> output samples (left) for the editor's
-///         oscilloscope.
+///         oscilloscope and the RTA / Tone Match analysers.
 ///     </para>
 ///     <para>
 ///         Across processes the region is a memory-mapped file: the host creates it next to its IPC socket and names
@@ -283,11 +283,11 @@ public sealed unsafe class TelemetryRegion : IDisposable {
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct TelemetryLayout {
     public const uint MagicValue = 0x54485443; // "CTHT"
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
     public const int Bins = 201;
     public const int MeterSlots = 64;
     public const int FramesPerSlot = 256;
-    public const int ScopeLength = 4096;
+    public const int ScopeLength = 16_384; // a 4096-point RTA window fits with room for the writer
 
     public uint Magic;
     public int Version;

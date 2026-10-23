@@ -1,5 +1,7 @@
 using Cathode.Dsp;
+using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Parameters;
+using Cathode.Dsp.Routing;
 using Cathode.Engine.Rig;
 
 namespace Cathode.Engine.Graph;
@@ -12,6 +14,9 @@ namespace Cathode.Engine.Graph;
 /// <param name="registry">Block types available to graphs.</param>
 /// <param name="assetRoot">Folder that relative asset paths resolve against (default: the current directory).</param>
 public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = null) {
+    /// <summary>The audio interface's effects-loop channels, handed to FX Loop blocks (the engine's own).</summary>
+    public HardwareLoop? HardwareLoop { get; init; }
+
     public CompiledGraph Compile(GraphDefinition definition, ProcessSpec spec, int generation = 0) {
         var errors = new List<string>();
         var nodes = definition.Nodes;
@@ -50,6 +55,10 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             }
 
             LoadAssets(node, block, errors);
+            if (block is FxLoopBlock loop) {
+                loop.Port = HardwareLoop;
+            }
+
             block.Prepare(spec);
             slotOfNode[n] = blocks.Count;
             blocks.Add(block);
@@ -63,6 +72,8 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 }
             );
         }
+
+        var (send, ret) = PairFeedback(nodes, slotOfNode, blocks, spec, errors);
 
         var modifiers = new List<ModifierBinding>();
         foreach (var modifier in definition.Modifiers) {
@@ -100,7 +111,18 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         }
 
         // Plain loops from here on: this runs on every preset load in a process that must not collect.
+        // A send feeds its return without a cable: link them for liveness only, not for ordering or latency.
+        if (send >= 0 && ret >= 0) {
+            consumers[send].Add(ret);
+            inputs[ret].Add(send);
+        }
+
         var live = FindLiveNodes(definition, inputs, consumers);
+        if (send >= 0 && ret >= 0) {
+            consumers[send].Remove(ret);
+            inputs[ret].Remove(send);
+        }
+
         var liveCount = 0;
         var order = new int[nodes.Count];
         for (var n = 0; n < nodes.Count; n++) {
@@ -151,9 +173,37 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             var arrival = Arrival(inputs[n], live, latency);
             int buffer;
 
+            var mux = slotOfNode[n] >= 0 && blocks[slotOfNode[n]] is MultiplexerBlock;
             if (node.Type == NodeTypes.Input) {
                 buffer = emitter.Allocate();
                 emitter.Emit(new(GraphOpKind.ReadInput, buffer));
+            } else if (liveInputs.Count == 0) {
+                buffer = emitter.Allocate(); // a Feedback Return fed only by its send
+                emitter.Emit(new(GraphOpKind.Clear, buffer));
+            } else if (mux) {
+                // Each input goes through the multiplexer's selection fade instead of a plain sum.
+                buffer = emitter.Allocate();
+                emitter.Emit(new(GraphOpKind.Clear, buffer));
+                foreach (var source in liveInputs) {
+                    var delay = arrival - latency[source];
+                    var from = bufferOf[source];
+                    var temp = -1;
+                    if (delay > 0) {
+                        temp = emitter.Allocate();
+                        emitter.Emit(new(GraphOpKind.Copy, temp, from));
+                        emitter.EmitDelay(temp, delay);
+                        from = temp;
+                    }
+
+                    emitter.Emit(new(GraphOpKind.MuxInput, buffer, from, slotOfNode[n], nodes[source].Row));
+                    if (temp >= 0) {
+                        emitter.Free(temp);
+                    }
+
+                    if (--readersLeft[source] == 0) {
+                        emitter.Free(bufferOf[source]);
+                    }
+                }
             } else if (liveInputs.Count == 1 && readersLeft[liveInputs[0]] == 1) {
                 // Sole remaining reader: take over the upstream buffer and process in place.
                 var source = liveInputs[0];
@@ -210,6 +260,44 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             graphLatency,
             [..modifiers]
         );
+    }
+
+    /// <summary>
+    ///     Connects the preset's Feedback Send to its Feedback Return through a shared <see cref="FeedbackBus" />.
+    ///     Returns their node indices (-1 when absent).
+    /// </summary>
+    static (int Send, int Return) PairFeedback(
+        List<NodeDefinition> nodes,
+        int[] slotOfNode,
+        List<IDspBlock> blocks,
+        ProcessSpec spec,
+        List<string> errors
+    ) {
+        int send = -1, ret = -1;
+        for (var n = 0; n < nodes.Count; n++) {
+            var block = slotOfNode[n] >= 0 ? blocks[slotOfNode[n]] : null;
+            if (block is FeedbackSendBlock) {
+                if (send >= 0) {
+                    errors.Add($"Node '{nodes[n].Id}': a preset has at most one Feedback Send.");
+                }
+
+                send = n;
+            } else if (block is FeedbackReturnBlock) {
+                if (ret >= 0) {
+                    errors.Add($"Node '{nodes[n].Id}': a preset has at most one Feedback Return.");
+                }
+
+                ret = n;
+            }
+        }
+
+        if (send >= 0 && ret >= 0) {
+            var bus = new FeedbackBus(spec.MaxBlockSize);
+            ((FeedbackSendBlock)blocks[slotOfNode[send]]).Bus = bus;
+            ((FeedbackReturnBlock)blocks[slotOfNode[ret]]).Bus = bus;
+        }
+
+        return (send, ret);
     }
 
     /// <summary>When the latest live input arrives, in samples of path latency (0 without live inputs).</summary>

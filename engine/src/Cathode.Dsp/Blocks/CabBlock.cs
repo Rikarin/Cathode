@@ -1,6 +1,5 @@
 using Cathode.Dsp.Convolution;
 using Cathode.Dsp.Filters;
-using Cathode.Dsp.IO;
 using Cathode.Dsp.Parameters;
 
 namespace Cathode.Dsp.Blocks;
@@ -28,14 +27,9 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer {
     /// <summary>High cut at or above this is off.</summary>
     public const float HighCutOff = 20_000f;
 
-    const int FadeLength = 64;
+    static readonly IrShape Shape = new(MaxIrLength);
 
-    /// <summary>IR files kept prepared, most recently used first.</summary>
-    const int CachedIrs = 16;
-
-    static readonly List<CachedIr> Cache = [];
-
-    readonly Slot[] slots = [new(), new()];
+    readonly StereoConvolver[] slots = [new(Shape), new(Shape)];
     SvfState lowCutLeft, lowCutRight, highCutLeft, highCutRight;
     NativeBuffer scratchLeft = NativeBuffer.Empty;
     NativeBuffer scratchRight = NativeBuffer.Empty;
@@ -65,7 +59,7 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer {
             _ => throw new ArgumentException($"Unknown asset slot '{slot}'.", nameof(slot))
         };
 
-        slots[index].Source = Load(path);
+        slots[index].Source = ImpulseResponses.Load(path);
     }
 
     /// <summary>The IR as it will be convolved (resampled, truncated, normalised), for tests and the editor's plot.</summary>
@@ -82,41 +76,6 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer {
         }
 
         base.Dispose(disposing);
-    }
-
-    /// <summary>The cached IR for <paramref name="path" />, read again only when the file's size or time changed.</summary>
-    static CachedIr Load(string path) {
-        var file = new FileInfo(path);
-        if (!file.Exists) {
-            throw new FileNotFoundException($"Impulse response '{path}' was not found.", path);
-        }
-
-        lock (Cache) {
-            var index = Cache.FindIndex(c => c.Path == file.FullName
-                && c.Length == file.Length
-                && c.Written == file.LastWriteTimeUtc);
-            if (index >= 0) {
-                var hit = Cache[index];
-                Cache.RemoveAt(index);
-                Cache.Insert(0, hit);
-                return hit;
-            }
-        }
-
-        var audio = WavFile.Read(path);
-        if (audio.Frames == 0 || audio.Channels.Length == 0) {
-            throw new InvalidDataException($"Impulse response '{path}' is empty.");
-        }
-
-        var entry = new CachedIr(file.FullName, file.Length, file.LastWriteTimeUtc, audio);
-        lock (Cache) {
-            Cache.Insert(0, entry);
-            if (Cache.Count > CachedIrs) {
-                Cache.RemoveAt(Cache.Count - 1);
-            }
-        }
-
-        return entry;
     }
 
     static void Accumulate(ReadOnlySpan<float> source, Span<float> destination) {
@@ -202,87 +161,5 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer {
         GainRamp.Apply(io.Left, this.outputGain, outputGain);
         GainRamp.Apply(io.Right, this.outputGain, outputGain);
         this.outputGain = outputGain;
-    }
-
-    /// <summary>A decoded IR file and its prepared form at the last sample rate asked for.</summary>
-    sealed class CachedIr(string path, long length, DateTime written, AudioData source) {
-        (double Rate, float[][] Channels)? prepared;
-
-        public string Path { get; } = path;
-        public long Length { get; } = length;
-        public DateTime Written { get; } = written;
-
-        /// <summary>Resampled, truncated and normalised for <paramref name="sampleRate" />. Shared: read only.</summary>
-        public float[][] Prepare(double sampleRate) {
-            lock (this) {
-                if (prepared is { } p && p.Rate == sampleRate) {
-                    return p.Channels;
-                }
-
-                var channels = source.Channels.Take(2)
-                    .Select(c => Shape(Resampler.Resample(c, source.SampleRate, sampleRate)))
-                    .ToArray();
-                var norm = 1f / MathF.Sqrt(channels.Average(static c => c.Sum(static v => v * v)));
-                foreach (var channel in channels) {
-                    for (var i = 0; i < channel.Length; i++) {
-                        channel[i] *= norm;
-                    }
-                }
-
-                prepared = (sampleRate, channels);
-                return channels;
-            }
-        }
-
-        /// <summary>Truncates to <see cref="MaxIrLength" /> with a short raised-cosine fade so the cut does not click.</summary>
-        static float[] Shape(float[] ir) {
-            if (ir.Length <= MaxIrLength) {
-                return ir;
-            }
-
-            var shaped = ir[..MaxIrLength];
-            for (var i = 0; i < FadeLength; i++) {
-                shaped[MaxIrLength - FadeLength + i] *= 0.5f * (1f + MathF.Cos(MathF.PI * (i + 1) / FadeLength));
-            }
-
-            return shaped;
-        }
-    }
-
-    sealed class Slot : IDisposable {
-        Convolver? left;
-        Convolver? right;
-
-        public CachedIr? Source { get; set; }
-        public float[][]? Prepared { get; private set; }
-        public bool IsLoaded => left is not null;
-
-        public void Build(double sampleRate) {
-            if (Source is null) {
-                return;
-            }
-
-            Dispose();
-            Prepared = Source.Prepare(sampleRate);
-            left = new(Prepared[0]);
-            right = new(Prepared[^1]);
-        }
-
-        public void Reset() {
-            left?.Reset();
-            right?.Reset();
-        }
-
-        public void Process(Span<float> left, Span<float> right) {
-            this.left!.Process(left);
-            this.right!.Process(right);
-        }
-
-        public void Dispose() {
-            left?.Dispose();
-            right?.Dispose();
-            left = null;
-            right = null;
-        }
     }
 }
