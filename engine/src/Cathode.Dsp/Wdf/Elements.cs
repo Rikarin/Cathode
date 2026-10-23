@@ -48,6 +48,15 @@ public struct Capacitor(double capacitance, double sampleRate) : IWdfPort {
     /// <summary>Changes the capacitance or sample rate, keeping the stored wave. <see cref="IWdfPort.Propagate" /> after.</summary>
     public void Configure(double capacitance, double sampleRate) => resistance = 0.5 / (capacitance * sampleRate);
 
+    /// <summary>
+    ///     Charges the capacitor to <paramref name="volts" /> at rest (no current), e.g. to start a circuit at its DC
+    ///     operating point instead of letting the coupling and bypass capacitors charge up from zero.
+    /// </summary>
+    public void Precharge(double volts) {
+        a = volts;
+        state = volts;
+    }
+
     public readonly double Propagate() => resistance;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

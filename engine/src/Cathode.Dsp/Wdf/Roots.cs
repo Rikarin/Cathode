@@ -210,114 +210,33 @@ public struct DiodePair : IWdfRoot {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     readonly bool UsesForward(double a) => forwardIs > 0 && (a >= 0 || reverseIs == 0);
 
-    /// <summary>Port voltage from the conducting stack's closed form.</summary>
+    /// <summary>
+    ///     Port voltage from the conducting stack's closed form. Both directions share one Wright omega call: the reverse
+    ///     stack is the forward formula with a, R Is and n Vt negated, which is exact in floating point.
+    /// </summary>
     readonly double Closed(double a) {
-        if (UsesForward(a)) {
-            return a + forwardRIs - forwardVt * WrightOmega.Fast(forwardBase + a * forwardInverse);
+        var forward = UsesForward(a);
+        if (!forward && reverseIs == 0) {
+            return a;
         }
 
-        return reverseIs > 0
-            ? a - reverseRIs + reverseVt * WrightOmega.Fast(reverseBase - a * reverseInverse)
-            : a;
+        var sign = forward ? 1.0 : -1.0;
+        var w = WrightOmega.Fast((forward ? forwardBase : reverseBase) + sign * a * (forward ? forwardInverse : reverseInverse));
+        return a + sign * (forward ? forwardRIs : reverseRIs) - sign * (forward ? forwardVt : reverseVt) * w;
     }
 
     /// <summary>B(a), the antiderivative of the closed-form b(a) = 2 v(a) - a, with B(0) = 0.</summary>
     readonly double Integral(double a) {
-        if (UsesForward(a)) {
-            var w = WrightOmega.Fast(forwardBase + a * forwardInverse);
-            return a * (0.5 * a + 2 * forwardRIs) - forwardVt * forwardVt * w * (w + 2) + forwardOffset;
+        var forward = UsesForward(a);
+        if (!forward && reverseIs == 0) {
+            return 0.5 * a * a;
         }
 
-        if (reverseIs > 0) {
-            var w = WrightOmega.Fast(reverseBase - a * reverseInverse);
-            return a * (0.5 * a - 2 * reverseRIs) - reverseVt * reverseVt * w * (w + 2) + reverseOffset;
-        }
-
-        return 0.5 * a * a;
+        var sign = forward ? 1.0 : -1.0;
+        var vt = forward ? forwardVt : reverseVt;
+        var w = WrightOmega.Fast((forward ? forwardBase : reverseBase) + sign * a * (forward ? forwardInverse : reverseInverse));
+        var offset = forward ? forwardOffset : reverseOffset;
+        return a * (0.5 * a + 2 * (sign * (forward ? forwardRIs : reverseRIs))) - vt * vt * w * (w + 2) + offset;
     }
 }
 
-/// <summary>
-///     The Wright omega function ω(x), the solution of ω + ln ω = x (equivalently W(e^x) with Lambert's W). It turns the
-///     implicit equation of a diode behind a resistor into a closed form.
-/// </summary>
-public static class WrightOmega {
-    // Initial estimate: the cubic of D'Angelo, Gabrielli and Turchet, "Fast approximation of the Lambert W function
-    // for virtual analog modelling" (DAFx-19), the series e^x - e^2x below it and x - ln x above it, the last two with
-    // rough (2e-4) exponential and logarithm. One step of Fritsch's third-order iteration (Lawrence, Corless and
-    // Jeffrey, ACM TOMS 38(3), 2012) then lands within 1e-5, for a single accurate logarithm.
-    const double Low = -2.0;
-    const double High = 8.0;
-    const double C3 = -1.314293149877800e-3;
-    const double C2 = 4.775931364975583e-2;
-    const double C1 = 3.631952663804445e-1;
-    const double C0 = 6.313183464296682e-1;
-
-    /// <summary>ω(x) to a relative error below 1e-5.</summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static double Fast(double x) {
-        double y;
-        if (x < Low) {
-            var e = RoughExp(x);
-            y = e * (1 - e);
-        } else if (x < High) {
-            y = C0 + x * (C1 + x * (C2 + x * C3));
-        } else {
-            y = x - RoughLog(x);
-        }
-
-        return Fritsch(x, y);
-    }
-
-    /// <summary>Iterates to double precision. Reference use only.</summary>
-    public static double Precise(double x) {
-        var y = Fast(x);
-        for (var i = 0; i < 20; i++) {
-            var next = Fritsch(x, y);
-            if (Math.Abs(next - y) <= 1e-15 * y) {
-                return next;
-            }
-
-            y = next;
-        }
-
-        return y;
-    }
-
-    /// <summary>e^x for x below zero, within 2e-4 relative: two polynomials instead of a library call.</summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static double RoughExp(double x) {
-        var t = x * 1.4426950408889634; // log2(e)
-        if (t < -1_000) {
-            return 0;
-        }
-
-        var whole = Math.Floor(t);
-        var f = t - whole;
-        var fraction = 0.9998124566870177 + f * (0.6968362422187562 + f * (0.2241283726980907 + f * 0.0790204128174744));
-        return fraction * BitConverter.Int64BitsToDouble((long)(whole + 1_023) << 52);
-    }
-
-    /// <summary>ln x for x of at least 1, within 2e-4 absolute.</summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static double RoughLog(double x) {
-        var bits = BitConverter.DoubleToInt64Bits(x);
-        var exponent = (bits >> 52) - 1_023;
-        var t = BitConverter.Int64BitsToDouble((bits & 0x000F_FFFF_FFFF_FFFF) | 0x3FF0_0000_0000_0000) - 1;
-        var log2 = 2.0317972985635672e-4 +
-                   t * (1.4361078271459524 + t * (-0.6695422759217478 + t * (0.3122409720346481 + t * -0.0791581614460981)));
-        return (exponent + log2) * 0.6931471805599453;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static double Fritsch(double x, double y) {
-        if (y <= 0) {
-            return 0; // e^x underflowed: ω is below the smallest double too
-        }
-
-        var r = x - y - Math.Log(y);
-        var z = 1 + y;
-        var q = z * (z + 2.0 / 3.0 * r);
-        return y * (1 + r * (q - 0.5 * r) / (z * (q - r)));
-    }
-}
