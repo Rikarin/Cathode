@@ -109,6 +109,19 @@ public sealed class CabBlockTests : IDisposable {
     }
 
     [Fact]
+    public void Irs_are_read_once_per_file_version() {
+        var path = WriteIr("cached.wav", CabLikeIr(500, 10), 48_000);
+        using var first = Create(("ir1", path));
+        using var second = Create(("ir1", path));
+        Assert.Same(first.PreparedImpulseResponse(0), second.PreparedImpulseResponse(0)); // a preset reload: cached
+
+        WriteIr("cached.wav", CabLikeIr(700, 11), 48_000);
+        using var third = Create(("ir1", path));
+
+        Assert.Equal(700, third.PreparedImpulseResponse(0)!.Length); // the file changed: read again
+    }
+
+    [Fact]
     public void Unknown_slots_and_unreadable_files_throw() {
         using var cab = new CabBlock();
         var garbage = Path.Combine(folder, "garbage.wav");

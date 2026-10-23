@@ -118,14 +118,25 @@ public sealed class HalfBandStage {
     readonly AllpassChain downEven;
     readonly AllpassChain downOdd;
 
-    public HalfBandStage(double[] coefficients) {
-        var even = coefficients.Where((_, i) => i % 2 == 0).Select(static c => (float)c).ToArray();
-        var odd = coefficients.Where((_, i) => i % 2 == 1).Select(static c => (float)c).ToArray();
+    public HalfBandStage(double[] coefficients) : this(Split(coefficients)) { }
+
+    /// <summary>
+    ///     From coefficients already split by <see cref="Split" />: the arrays are only read, so stages built from one
+    ///     design can share them.
+    /// </summary>
+    public HalfBandStage((float[] Even, float[] Odd) coefficients) {
+        var (even, odd) = coefficients;
         upEven = new(even);
         upOdd = new(odd);
         downEven = new(even);
         downOdd = new(odd);
     }
+
+    /// <summary>The even- and odd-indexed coefficients, which run the two allpass branches.</summary>
+    public static (float[] Even, float[] Odd) Split(double[] coefficients) => (
+        coefficients.Where((_, i) => i % 2 == 0).Select(static c => (float)c).ToArray(),
+        coefficients.Where((_, i) => i % 2 == 1).Select(static c => (float)c).ToArray()
+    );
 
     /// <summary>Writes 2 x <paramref name="input" />.Length samples to <paramref name="output" />.</summary>
     public void Up(ReadOnlySpan<float> input, Span<float> output) {
@@ -169,17 +180,30 @@ public sealed class Oversampler4x {
     // only has to reject images of an already band-limited signal, so it can be much shorter.
     static readonly double[] FirstStage = HalfBand.Design(AttenuationDb, 0.04);
     static readonly double[] SecondStage = HalfBand.Design(AttenuationDb, 0.26);
+    static readonly (float[], float[]) FirstBranches = HalfBandStage.Split(FirstStage);
+    static readonly (float[], float[]) SecondBranches = HalfBandStage.Split(SecondStage);
 
-    readonly HalfBandStage first = new(FirstStage);
-    readonly HalfBandStage second = new(SecondStage);
-    readonly float[] twice;
-    readonly float[] four;
+    readonly HalfBandStage first = new(FirstBranches);
+    readonly HalfBandStage second = new(SecondBranches);
+    float[] twice;
+    float[] four;
 
     public static int CoefficientCount => FirstStage.Length + SecondStage.Length;
 
     public Oversampler4x(int maxBlockSize) {
         twice = new float[maxBlockSize * 2];
         four = new float[maxBlockSize * 4];
+    }
+
+    /// <summary>
+    ///     Makes room for blocks of <paramref name="maxBlockSize" />, keeping the filters: cheaper than a new instance
+    ///     when a block is prepared. Control thread only.
+    /// </summary>
+    public void Resize(int maxBlockSize) {
+        if (four.Length != maxBlockSize * 4) {
+            twice = new float[maxBlockSize * 2];
+            four = new float[maxBlockSize * 4];
+        }
     }
 
     /// <summary>Upsamples <paramref name="input" /> and returns the 4x buffer to process in place.</summary>

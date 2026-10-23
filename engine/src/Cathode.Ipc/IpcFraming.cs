@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 namespace Cathode.Ipc;
@@ -42,7 +43,8 @@ public static class IpcFraming {
     }
 
     /// <summary>Fills the first <paramref name="count" /> bytes; false if the stream ended before the first byte.</summary>
-    internal static async Task<bool> ReadExactlyOrEndAsync(
+    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
+    internal static async ValueTask<bool> ReadExactlyOrEndAsync(
         Stream stream,
         byte[] buffer,
         int count,
