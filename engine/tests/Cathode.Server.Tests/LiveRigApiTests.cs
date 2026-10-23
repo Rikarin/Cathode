@@ -269,6 +269,45 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         Assert.DoesNotContain(withoutShunt.Preset.Cables, c => c.From == "shunt-r0c5" || c.To == "shunt-r0c5");
     }
 
+    [Fact]
+    public async Task Moving_a_block_onto_a_shunt_inserts_it_and_moving_it_out_leaves_the_path_whole() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 1, 3));
+
+        // Onto the main row's shunt: the drive takes its place and its cables.
+        var inserted = await Put("/api/v1/live/blocks/drive1/position", new MoveBlockRequest(0, 3));
+        Assert.DoesNotContain(inserted.Preset.Blocks, b => b.Id == "shunt-r0c3");
+        Assert.Contains(inserted.Preset.Cables, c => c.From == "shunt-r0c2" && c.To == "drive1");
+        Assert.Contains(inserted.Preset.Cables, c => c.From == "drive1" && c.To == "shunt-r0c4");
+        Assert.Equal(13, inserted.Preset.Cables.Count);
+
+        // Along the row: a shunt fills the cell it left, and it takes over the next one.
+        var along = await Put("/api/v1/live/blocks/drive1/position", new MoveBlockRequest(0, 5));
+        Assert.Contains(along.Preset.Cables, c => c.From == "shunt-r0c4" && c.To == "drive1");
+        Assert.Contains(along.Preset.Cables, c => c.From == "drive1" && c.To == "shunt-r0c6");
+        Assert.Equal(BuiltInTypes.Shunt, along.Preset.Blocks.Single(b => b.Row == 0 && b.Column == 3).Type);
+        Assert.Equal(13, along.Preset.Cables.Count);
+
+        // Out of the path: the row stays connected, and the drive keeps no cables.
+        var outside = await Put("/api/v1/live/blocks/drive1/position", new MoveBlockRequest(2, 5));
+        Assert.Equal(BuiltInTypes.Shunt, outside.Preset.Blocks.Single(b => b.Row == 0 && b.Column == 5).Type);
+        Assert.DoesNotContain(outside.Preset.Cables, c => c.From == "drive1" || c.To == "drive1");
+        Assert.Equal(13, outside.Preset.Cables.Count);
+    }
+
+    [Fact]
+    public async Task A_block_cannot_be_moved_onto_another_block() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 1, 3));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 1, 4));
+
+        using var response = await client.PutAsJsonAsync(
+            "/api/v1/live/blocks/drive1/position",
+            new MoveBlockRequest(1, 4),
+            Token
+        );
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
     async Task<LiveState> Delete(string url) => await Read(await client.DeleteAsync(url, Token));
 
     async Task<LiveState> Live() => (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!;

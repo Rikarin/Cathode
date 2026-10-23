@@ -158,3 +158,25 @@ test('removing a block from the signal path leaves a shunt, so the path stays co
   await window.getByRole('button', { name: 'Undo' }).click();
   await expect(editor.block('Drive', 'drive1')).toHaveAccessibleName(/row 1, column 3$/);
 });
+
+test('a block dragged onto the cable through a shunt joins the signal path, and dragged off leaves it whole', async ({
+  window,
+  editor
+}) => {
+  await editor.addBlock(1, 3, 'Drive');
+  const drive = editor.block('Drive', 'drive1');
+
+  // Onto the main row: it takes the shunt's place and its cables.
+  await drive.dragTo(editor.cell(0, 3));
+  await expect(drive).toHaveAccessibleName(/row 1, column 4$/);
+  await expect(window.getByTestId('cable-shunt-r0c2>drive1')).toHaveCount(1);
+  await expect(window.getByTestId('cable-drive1>shunt-r0c4')).toHaveCount(1);
+
+  // Back off it: a shunt fills the gap, so input still reaches output.
+  await drive.dragTo(editor.cell(2, 3));
+  await expect(drive).toHaveAccessibleName(/row 3, column 4$/);
+  await expect(editor.cell(0, 3)).toHaveAccessibleName(/^Shunt/);
+  await expect(window.getByTestId('cable-shunt-r0c2>shunt-r0c3')).toHaveCount(1);
+  await expect(window.getByTestId('cable-shunt-r0c3>shunt-r0c4')).toHaveCount(1);
+  await expect(window.locator('[data-testid^="cable-drive1"], [data-testid$=">drive1"]')).toHaveCount(0);
+});

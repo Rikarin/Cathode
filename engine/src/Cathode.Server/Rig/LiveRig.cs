@@ -171,10 +171,7 @@ public sealed partial class LiveRig(
 
                         if (occupant is not null) {
                             p.Blocks.Remove(occupant);
-                            foreach (var cable in p.Cables) {
-                                cable.From = cable.From == occupant.Id ? id : cable.From;
-                                cable.To = cable.To == occupant.Id ? id : cable.To;
-                            }
+                            Repoint(p, occupant.Id, id);
                         }
 
                         p.Blocks.Add(
@@ -199,23 +196,7 @@ public sealed partial class LiveRig(
 
                         // A block in a signal path leaves a shunt that keeps its cables, so the path stays whole: the
                         // reverse of dropping a block onto a shunt. A shunt, or a block at the end of a branch, just goes.
-                        var inPath = block.Type != BuiltInTypes.Shunt
-                            && p.Cables.Any(c => c.To == id)
-                            && p.Cables.Any(c => c.From == id);
-                        if (inPath) {
-                            var shunt = $"shunt-r{block.Row}c{block.Column}";
-                            if (p.Blocks.Any(b => b.Id == shunt)) {
-                                shunt = NextId(BuiltInTypes.Shunt);
-                            }
-
-                            p.Blocks.Add(
-                                new() { Id = shunt, Type = BuiltInTypes.Shunt, Row = block.Row, Column = block.Column }
-                            );
-                            foreach (var cable in p.Cables) {
-                                cable.From = cable.From == id ? shunt : cable.From;
-                                cable.To = cable.To == id ? shunt : cable.To;
-                            }
-                        } else {
+                        if (!LeaveShunt(p, block, block.Row, block.Column)) {
                             p.Cables.RemoveAll(c => c.From == id || c.To == id);
                         }
                     }
@@ -229,14 +210,29 @@ public sealed partial class LiveRig(
                 Check(expected);
                 Find(id);
                 CheckCell(request.Row, request.Column);
-                if (preset.Blocks.Any(b => b.Id != id && b.Row == request.Row && b.Column == request.Column)) {
+                var occupant = preset.Blocks.FirstOrDefault(
+                    b => b.Id != id && b.Row == request.Row && b.Column == request.Column
+                );
+                if (occupant is not null && occupant.Type != BuiltInTypes.Shunt) {
                     throw RigException.Conflict($"Cell ({request.Row},{request.Column}) is occupied.");
                 }
 
                 await StructuralAsync(p => {
                         var block = p.Blocks.Single(b => b.Id == id);
+                        var (fromRow, fromColumn) = (block.Row, block.Column);
+                        // Moving out of a signal path leaves a shunt behind, as removing does.
+                        LeaveShunt(p, block, fromRow, fromColumn);
                         block.Row = request.Row;
                         block.Column = request.Column;
+                        // Dropped onto a shunt, the block takes its place and its cables, as adding one does.
+                        var shunt = p.Blocks.FirstOrDefault(
+                            b => b.Id != id && b.Row == request.Row && b.Column == request.Column
+                        );
+                        if (shunt is not null) {
+                            p.Blocks.Remove(shunt);
+                            Repoint(p, shunt.Id, id);
+                        }
+
                         // Cables only join adjacent columns; any the move broke are removed.
                         p.Cables.RemoveAll(c => (c.From == id || c.To == id) && !Adjacent(p, c));
                     }
@@ -619,6 +615,36 @@ public sealed partial class LiveRig(
 
     PresetBlock Find(string id) =>
         preset.Blocks.FirstOrDefault(b => b.Id == id) ?? throw RigException.NotFound($"No block '{id}'.");
+
+    /// <summary>
+    ///     Puts a shunt in a block's cell and hands it the block's cables, when the block sits in a signal path (cables
+    ///     both in and out); a shunt or a branch end leaves nothing. Returns whether a shunt was left.
+    /// </summary>
+    bool LeaveShunt(Preset p, PresetBlock block, int row, int column) {
+        var inPath = block.Type != BuiltInTypes.Shunt
+            && p.Cables.Any(c => c.To == block.Id)
+            && p.Cables.Any(c => c.From == block.Id);
+        if (!inPath) {
+            return false;
+        }
+
+        var shunt = $"shunt-r{row}c{column}";
+        if (p.Blocks.Any(b => b.Id == shunt)) {
+            shunt = NextId(BuiltInTypes.Shunt);
+        }
+
+        p.Blocks.Add(new() { Id = shunt, Type = BuiltInTypes.Shunt, Row = row, Column = column });
+        Repoint(p, block.Id, shunt);
+        return true;
+    }
+
+    /// <summary>Moves every cable end at <paramref name="from" /> to <paramref name="to" />.</summary>
+    static void Repoint(Preset p, string from, string to) {
+        foreach (var cable in p.Cables) {
+            cable.From = cable.From == from ? to : cable.From;
+            cable.To = cable.To == from ? to : cable.To;
+        }
+    }
 
     string NextId(string type) {
         for (var n = 1;; n++) {
