@@ -65,9 +65,10 @@ Ordered by value to a guitarist:
 10. [x] **Tuner** (MPM via FFT NSDF on the analysis thread, fed by `CathodeEngine.InputTap`; within 0.01 cent from 41 to 440 Hz) and **CPU meter** (callback stats). *Still to do:* strobe display and mute modes belong to the editor and API
 
 **Exit:**
-- a "Plexi crunch → cab → delay → plate" and a "high-gain NAM → gate → cab → stereo delay → hall" preset each run under 25 % of one core
-- they pass the golden and aliasing tests
-- they are blind-tested by two guitarists for playability (feel/latency)
+- ✅ A "high-gain NAM → gate → cab → stereo delay → hall" preset (`engine/examples/high-gain.json`) runs at **7.7 %** of one core. A rig using every Phase 2 block, with two amps (`everything.json`), runs at **15.4 %**.
+- ✅ Live on a Mackie ProFX at 32 frames for 20 s: worst callback 16.5 % and 31 % of budget, with no driver overloads.
+- ✅ The blocks pass their golden, analytic and aliasing tests.
+- [ ] Blind playability tests by two guitarists (feel and latency). These need people, not CI.
 
 ---
 

@@ -36,10 +36,14 @@ dotnet run --project src/Cathode.Host -- --devices
 dotnet run --project src/Cathode.Host -- --audio-test --buffer 64 --seconds 10
 ```
 
-NAM CPU cost through the engine:
+CPU cost of a NAM model, or of a whole rig, through the engine. `examples/` holds two rigs and a synthetic cab IR:
 
 ```bash
 dotnet run -c Release --project src/Cathode.Host -- --bench-nam --model artifacts/native/nam-models/A2.nam
+```
+
+```bash
+dotnet run -c Release --project src/Cathode.Host -- --bench-nam --graph examples/high-gain.json
 ```
 
 ```bash

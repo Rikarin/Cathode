@@ -1,0 +1,30 @@
+{
+  // Worst-case-ish chain: every Phase 2 block once, with two amps in parallel rows.
+  "nodes": [
+    { "id": "in1", "type": "input", "row": 0, "column": 0 },
+    { "id": "wah1", "type": "wah", "row": 0, "column": 1 },
+    { "id": "comp1", "type": "compressor", "row": 0, "column": 2 },
+    { "id": "drive1", "type": "drive", "row": 0, "column": 3, "params": { "drive": 8 } },
+    { "id": "amp1", "type": "nam", "row": 0, "column": 4, "assets": { "model": "../artifacts/native/nam-models/A2.nam" } },
+    { "id": "amp2", "type": "nam", "row": 1, "column": 4, "assets": { "model": "../artifacts/native/nam-models/wavenet_a1_standard.nam" } },
+    { "id": "cab1", "type": "cab", "row": 0, "column": 5, "assets": { "ir1": "synthetic-cab.wav", "ir2": "synthetic-cab.wav" } },
+    { "id": "cab2", "type": "cab", "row": 1, "column": 5, "assets": { "ir1": "synthetic-cab.wav" } },
+    { "id": "peq1", "type": "peq", "row": 0, "column": 6, "params": { "gain2": -3, "gain4": 2 } },
+    { "id": "geq1", "type": "geq", "row": 0, "column": 7, "params": { "g500": -2, "g4k": 1.5 } },
+    { "id": "chorus1", "type": "chorus", "row": 0, "column": 8 },
+    { "id": "phaser1", "type": "phaser", "row": 0, "column": 9, "params": { "stages": 5 } },
+    { "id": "flanger1", "type": "flanger", "row": 0, "column": 10 },
+    { "id": "delay1", "type": "delay", "row": 0, "column": 11, "params": { "type": 2 } },
+    { "id": "reverb1", "type": "reverb", "row": 0, "column": 12, "params": { "type": 1 } },
+    { "id": "out1", "type": "output", "row": 0, "column": 13 }
+  ],
+  "cables": [
+    { "from": "in1", "to": "wah1" }, { "from": "wah1", "to": "comp1" }, { "from": "comp1", "to": "drive1" },
+    { "from": "drive1", "to": "amp1" }, { "from": "drive1", "to": "amp2" },
+    { "from": "amp1", "to": "cab1" }, { "from": "amp2", "to": "cab2" },
+    { "from": "cab1", "to": "peq1" }, { "from": "cab2", "to": "peq1" },
+    { "from": "peq1", "to": "geq1" }, { "from": "geq1", "to": "chorus1" }, { "from": "chorus1", "to": "phaser1" },
+    { "from": "phaser1", "to": "flanger1" }, { "from": "flanger1", "to": "delay1" }, { "from": "delay1", "to": "reverb1" },
+    { "from": "reverb1", "to": "out1" }
+  ]
+}

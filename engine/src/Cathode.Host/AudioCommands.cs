@@ -30,8 +30,12 @@ internal static class AudioCommands
         using var session = OpenSession(options, spec =>
         {
             engine = new CathodeEngine(spec);
-            var definition = options.Text("nam") is { } model ? Graphs.Nam(Path.GetFullPath(model)) : GraphTemplates.Basic();
-            engine.Publish(new GraphCompiler(BlockRegistry.CreateDefault().AddNativeBlocks()).Compile(definition, spec, generation: 1));
+            var graphPath = options.Text("graph");
+            var definition = graphPath is not null
+                ? System.Text.Json.JsonSerializer.Deserialize(File.ReadAllText(graphPath), GraphJsonContext.Default.GraphDefinition)!
+                : options.Text("nam") is { } model ? Graphs.Nam(Path.GetFullPath(model)) : GraphTemplates.Basic();
+            var assetRoot = graphPath is not null ? Path.GetDirectoryName(Path.GetFullPath(graphPath)) : null;
+            engine.Publish(new GraphCompiler(BlockRegistry.CreateDefault().AddNativeBlocks(), assetRoot).Compile(definition, spec, generation: 1));
             return engine;
         }, options.Flag("input") ? 1 : 0);
         session.OutputGain = options.Flag("monitor") ? 1f : 0f;

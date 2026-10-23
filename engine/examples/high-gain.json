@@ -1,0 +1,19 @@
+{
+  // Phase 2 exit check: high-gain capture -> gate -> drive -> cab -> stereo delay -> hall.
+  // The model path is the upstream example fetched by native/build.sh; the IR is a synthetic one in this folder.
+  "nodes": [
+    { "id": "in1", "type": "input", "row": 0, "column": 0 },
+    { "id": "gate1", "type": "gate", "row": 0, "column": 1, "params": { "threshold": -55 } },
+    { "id": "drive1", "type": "drive", "row": 0, "column": 2, "params": { "drive": 2, "tone": 6 } },
+    { "id": "amp1", "type": "nam", "row": 0, "column": 3, "assets": { "model": "../artifacts/native/nam-models/A2.nam" } },
+    { "id": "cab1", "type": "cab", "row": 0, "column": 4, "assets": { "ir1": "synthetic-cab.wav" }, "params": { "lowcut": 80, "highcut": 9000 } },
+    { "id": "delay1", "type": "delay", "row": 0, "column": 5, "params": { "type": 1, "time": 420, "feedback": 35, "mix": 20, "moddepth": 1 } },
+    { "id": "reverb1", "type": "reverb", "row": 0, "column": 6, "params": { "type": 1, "decay": 3.5, "mix": 18 } },
+    { "id": "out1", "type": "output", "row": 0, "column": 7 }
+  ],
+  "cables": [
+    { "from": "in1", "to": "gate1" }, { "from": "gate1", "to": "drive1" }, { "from": "drive1", "to": "amp1" },
+    { "from": "amp1", "to": "cab1" }, { "from": "cab1", "to": "delay1" }, { "from": "delay1", "to": "reverb1" },
+    { "from": "reverb1", "to": "out1" }
+  ]
+}

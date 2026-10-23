@@ -14,15 +14,23 @@ internal static class NamBenchmark
 {
     public static int Run(CommandLine options)
     {
-        var path = options.Text("model") ?? throw new InvalidOperationException("--model <file.nam> is required.");
+        var graphPath = options.Text("graph");
+        var path = options.Text("model");
+        if (graphPath is null && path is null)
+        {
+            throw new InvalidOperationException("--model <file.nam> or --graph <graph.json> is required.");
+        }
         var spec = new ProcessSpec(48_000, options.Int("buffer", 64));
         var seconds = options.Int("seconds", 10);
         var fastTanh = !options.Flag("exact-tanh");
         NamModel.SetFastTanh(fastTanh);
 
-        var graph = Compile(Graphs.Nam(Path.GetFullPath(path)), spec);
-        var amp = (NamAmpBlock)graph.Block(graph.SlotOf("amp1"));
-        if (options.Text("size") is { } size)
+        var graph = graphPath is not null
+            ? new GraphCompiler(BlockRegistry.CreateDefault().AddNativeBlocks(), Path.GetDirectoryName(Path.GetFullPath(graphPath)))
+                .Compile(System.Text.Json.JsonSerializer.Deserialize(File.ReadAllText(graphPath), GraphJsonContext.Default.GraphDefinition)!, spec, generation: 1)
+            : Compile(Graphs.Nam(Path.GetFullPath(path!)), spec);
+        var amp = graph.SlotOf("amp1") is >= 0 and var ampSlot ? graph.Block(ampSlot) as NamAmpBlock : null;
+        if (options.Text("size") is { } size && amp is not null)
         {
             amp.SetModelSize(double.Parse(size, System.Globalization.CultureInfo.InvariantCulture));
         }
@@ -68,8 +76,9 @@ internal static class NamBenchmark
         var elapsed = Stopwatch.GetElapsedTime(started);
         var allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
 
-        var info = amp.Model!;
-        Console.WriteLine($"model:        {Path.GetFileName(path)}  {info.Architecture} (file {info.FileVersion})  NAM core {NamModel.CoreVersion}  size {options.Text("size") ?? "default"}  tanh {(fastTanh ? "fast" : "exact")}  input {(options.Flag("silent-input") ? "silence" : "noise")}  ftz {options.Flag("ftz")}");
+        Console.WriteLine(graphPath is not null
+            ? $"graph:        {Path.GetFileName(graphPath)}  {graph.SlotIds.Count} blocks ({string.Join(", ", graph.SlotIds)})  tanh {(fastTanh ? "fast" : "exact")}"
+            : $"model:        {Path.GetFileName(path)}  {amp?.Model?.Architecture} (file {amp?.Model?.FileVersion})  NAM core {NamModel.CoreVersion}  size {options.Text("size") ?? "default"}  tanh {(fastTanh ? "fast" : "exact")}  input {(options.Flag("silent-input") ? "silence" : "noise")}  ftz {options.Flag("ftz")}");
         Console.WriteLine($"rendered:     {seconds} s at {spec.SampleRate / 1000:0.#} kHz / {spec.MaxBlockSize} frames in {elapsed.TotalMilliseconds:0.0} ms");
         Console.WriteLine($"cpu:          {elapsed.TotalSeconds / seconds * 100:0.00}% of one core  ({seconds / elapsed.TotalSeconds:0}x real time)");
         Console.WriteLine($"callback:     p50 <= {engine.Stats.Percentile(0.5):0}%  p99.9 <= {engine.Stats.Percentile(0.999):0}%  max {engine.Stats.MaxPercent:0.0}% of budget");
