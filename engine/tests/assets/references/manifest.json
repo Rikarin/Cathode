@@ -1,0 +1,1458 @@
+{
+  "version": 1,
+  "references": [
+    {
+      "id": "tl-princeton-clean",
+      "amp": "Fender Princeton (model year not stated)",
+      "family": "fender",
+      "format": "guitarml-lstm",
+      "url": "https://raw.githubusercontent.com/GuitarML/ToneLibrary/main/Proteus/PrincetonAmp_Clean.json",
+      "author": "GuitarML ToneLibrary (community; contributor not named)",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Proteus/PrincetonAmp_Clean.json",
+      "settings": {
+        "description": "clean settings"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "Page gives no mic or direct-out information. GuitarML gives no interface calibration; the matcher fits it."
+      },
+      "sha256": "c80e0fb7ca8da4148b0d35f3027b456bafcf8f4c4bc4782c87252b997bbdcaf7",
+      "size": 159521,
+      "circuit": {
+        "type": "Blackface",
+        "params": {
+          "gain": 3
+        }
+      },
+      "targets": {
+        "esr": 2.25,
+        "mrstft": 2.85
+      },
+      "notes": "Blackface is a Super Reverb-style channel; a Princeton has 2 x 6V6 and a cathodyne PI, so expect a different power amp."
+    },
+    {
+      "id": "tl-princeton-recording-clean",
+      "amp": "Fender Princeton Recording Amp (solid state)",
+      "family": "fender",
+      "format": "guitarml-lstm",
+      "url": "https://raw.githubusercontent.com/GuitarML/ToneLibrary/main/NeuralPi/FenderPrinceton_clean.json",
+      "author": "GuitarML ToneLibrary (community; contributor not named)",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "NeuralPi/FenderPrinceton_clean.json",
+      "settings": {
+        "description": "clean settings"
+      },
+      "rig": {
+        "output": "direct",
+        "load": "amp line out",
+        "notes": "GuitarML gives no interface calibration; the matcher fits it."
+      },
+      "sha256": "7f08be25de3a9cd83ae9bc74bc42d61f200728334bd3866caa80ca89ace333e0",
+      "size": 40799,
+      "notes": "The Princeton Recording Amp is a solid-state amp, not a tube Princeton: kept for reference only, not compared."
+    },
+    {
+      "id": "tl-princeton-recording-high",
+      "amp": "Fender Princeton Recording Amp (solid state)",
+      "family": "fender",
+      "format": "guitarml-lstm",
+      "url": "https://raw.githubusercontent.com/GuitarML/ToneLibrary/main/NeuralPi/FenderPrinceton_highLevel.json",
+      "author": "GuitarML ToneLibrary (community; contributor not named)",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "NeuralPi/FenderPrinceton_highLevel.json",
+      "settings": {
+        "description": "high level settings"
+      },
+      "rig": {
+        "output": "direct",
+        "load": "amp line out",
+        "notes": "GuitarML gives no interface calibration; the matcher fits it."
+      },
+      "sha256": "9df5f8c1396f77800fd73eb33281685d22396d7b09c6907021a21df022b58d56",
+      "size": 40562,
+      "notes": "Solid-state amp: reference only, not compared."
+    },
+    {
+      "id": "tl-matchless-sc30-ch1",
+      "amp": "Matchless SC30, channel 1",
+      "family": "class-a",
+      "format": "guitarml-lstm",
+      "url": "https://raw.githubusercontent.com/GuitarML/ToneLibrary/main/Proteus/MatchlessSC30_Ch1_DirectOut.json",
+      "author": "GuitarML ToneLibrary (community; contributor not named)",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Proteus/MatchlessSC30_Ch1_DirectOut.json",
+      "settings": {
+        "channel": "1"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "Knob settings not stated. GuitarML gives no interface calibration; the matcher fits it."
+      },
+      "sha256": "8fd19774613b1a569c337df3fe5bd05a18dc3d63240081f01e1de7fd5ca2dee7",
+      "size": 152252,
+      "circuit": {
+        "type": "AC30"
+      },
+      "targets": {
+        "esr": 1.5,
+        "mrstft": 3.45
+      },
+      "notes": "SC30 is the single-channel sibling of the DC-30 (EL84 x 4 class A, no NFB); closest existing type AC30."
+    },
+    {
+      "id": "tl-mesa-iicplus-drive-knob",
+      "amp": "Mesa/Boogie Mark IIC+, lead (Drive knob conditioned)",
+      "family": "high-gain",
+      "format": "guitarml-lstm",
+      "url": "https://raw.githubusercontent.com/GuitarML/ToneLibrary/main/Proteus/Mesa_IICplus_DriveKnob_DirectOut.json",
+      "author": "GuitarML ToneLibrary (community; contributor not named)",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Proteus/Mesa_IICplus_DriveKnob_DirectOut.json",
+      "settings": {
+        "drive": "conditioned 0-1 (full sweep)"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "GuitarML gives no interface calibration; the matcher fits it."
+      },
+      "sha256": "40d79137ce18cb2b0d75c12abe27adcb21e167ded465a465fb44f319a5749a3a",
+      "size": 153598,
+      "conditioning": [
+        0.5
+      ],
+      "notes": "Conditioned model: the second input is the Drive knob (0-1); conditioning 0.5 = Drive 5. No IIC+ type yet (stream F4)."
+    },
+    {
+      "id": "tl-mesa-iicplus-drive8",
+      "amp": "Mesa/Boogie Mark IIC+, lead",
+      "family": "high-gain",
+      "format": "guitarml-lstm",
+      "url": "https://raw.githubusercontent.com/GuitarML/ToneLibrary/main/Proteus/MesaIICplus_Drive8_5EQoff.json",
+      "author": "GuitarML ToneLibrary (community; contributor not named)",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Proteus/MesaIICplus_Drive8_5EQoff.json",
+      "settings": {
+        "bass": "7",
+        "middle": "5",
+        "treble": "9",
+        "volume": "5",
+        "presence": "4",
+        "drive": "8",
+        "graphicEq": "off"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "GuitarML gives no interface calibration; the matcher fits it."
+      },
+      "sha256": "df6fa24ef4c9b5a30bccc6ed21e07eec53ec286df61baa725a199e5250ed86f9",
+      "size": 151725,
+      "notes": "No IIC+ type yet (stream F4)."
+    },
+    {
+      "id": "tl-6505plus-red",
+      "amp": "Peavey 6505+, red (lead) channel",
+      "family": "high-gain",
+      "format": "guitarml-lstm",
+      "url": "https://raw.githubusercontent.com/GuitarML/ToneLibrary/main/Proteus/6505Plus_Red_DirectOut.json",
+      "author": "GuitarML ToneLibrary (community; contributor not named)",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Proteus/6505Plus_Red_DirectOut.json",
+      "settings": {
+        "description": "high gain"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "GuitarML gives no interface calibration; the matcher fits it."
+      },
+      "sha256": "29b203caa824d209603b4e47bc25cb0e2736f94cb3d2165c4275980c2be200e3",
+      "size": 150170,
+      "notes": "No 5150/6505 type yet (stream F4)."
+    },
+    {
+      "id": "tl-dumble-kit-low",
+      "amp": "Dumble ODS-style kit amp",
+      "family": "class-a",
+      "format": "guitarml-lstm",
+      "url": "https://raw.githubusercontent.com/GuitarML/ToneLibrary/main/Proteus/DumbleKit_LowG_DirectOut.json",
+      "author": "GuitarML ToneLibrary (community; contributor not named)",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Proteus/DumbleKit_LowG_DirectOut.json",
+      "settings": {
+        "description": "low gain"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "GuitarML gives no interface calibration; the matcher fits it."
+      },
+      "sha256": "3326fe5644411271c4c38353eb495096b9bbe4312258d81010964179eaf38b00",
+      "size": 151695,
+      "notes": "A kit build, not an original Dumble (stream F3)."
+    },
+    {
+      "id": "tl-dumble-kit-high",
+      "amp": "Dumble ODS-style kit amp",
+      "family": "class-a",
+      "format": "guitarml-lstm",
+      "url": "https://raw.githubusercontent.com/GuitarML/ToneLibrary/main/Proteus/DumbleKit_HighG_DirectOut.json",
+      "author": "GuitarML ToneLibrary (community; contributor not named)",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Proteus/DumbleKit_HighG_DirectOut.json",
+      "settings": {
+        "description": "high gain"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "GuitarML gives no interface calibration; the matcher fits it."
+      },
+      "sha256": "a56d344eabe68b3946c3070b7fd5882c97e0bfb2958abbfd88aa5691baaab94c",
+      "size": 151233,
+      "notes": "A kit build, not an original Dumble (stream F3)."
+    },
+    {
+      "id": "tl-dumble-clone-clean",
+      "amp": "Dumble ODS clone",
+      "family": "class-a",
+      "format": "guitarml-lstm",
+      "url": "https://raw.githubusercontent.com/GuitarML/ToneLibrary/main/NeuralPi/DumbleClone_clean.json",
+      "author": "GuitarML ToneLibrary (community; contributor not named)",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "NeuralPi/DumbleClone_clean.json",
+      "settings": {
+        "description": "clean"
+      },
+      "rig": {
+        "output": "direct",
+        "load": "load box",
+        "notes": "GuitarML gives no interface calibration; the matcher fits it."
+      },
+      "sha256": "32c03f091263f9cfe729b45d432fcd38a9892128dc82fc0c715591cac2af4a19",
+      "size": 40261,
+      "notes": "Clone (stream F3)."
+    },
+    {
+      "id": "tl-dumble-clone-medium",
+      "amp": "Dumble ODS clone",
+      "family": "class-a",
+      "format": "guitarml-lstm",
+      "url": "https://raw.githubusercontent.com/GuitarML/ToneLibrary/main/NeuralPi/DumbleClone_medGain.json",
+      "author": "GuitarML ToneLibrary (community; contributor not named)",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "NeuralPi/DumbleClone_medGain.json",
+      "settings": {
+        "description": "medium gain"
+      },
+      "rig": {
+        "output": "direct",
+        "load": "load box",
+        "notes": "GuitarML gives no interface calibration; the matcher fits it."
+      },
+      "sha256": "5dbe594b1c0d43853354b54927040fb9319443192ac287db8e713b2bf3caa6a4",
+      "size": 40515,
+      "notes": "Clone (stream F3)."
+    },
+    {
+      "id": "tl-dumble-clone-high",
+      "amp": "Dumble ODS clone",
+      "family": "class-a",
+      "format": "guitarml-lstm",
+      "url": "https://raw.githubusercontent.com/GuitarML/ToneLibrary/main/NeuralPi/DumbleClone_highGain.json",
+      "author": "GuitarML ToneLibrary (community; contributor not named)",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "NeuralPi/DumbleClone_highGain.json",
+      "settings": {
+        "description": "high gain"
+      },
+      "rig": {
+        "output": "direct",
+        "load": "load box",
+        "notes": "GuitarML gives no interface calibration; the matcher fits it."
+      },
+      "sha256": "c0811ec44ff3876a740c28c850a2507f790ef1fc10faf3fdf962892f94e86d03",
+      "size": 40352,
+      "notes": "Clone (stream F3)."
+    },
+    {
+      "id": "tl-mesa-mini-rectifier-high",
+      "amp": "Mesa/Boogie Mini Rectifier",
+      "family": "high-gain",
+      "format": "guitarml-lstm",
+      "url": "https://raw.githubusercontent.com/GuitarML/ToneLibrary/main/Proteus/MesaMiniRec_HighGain_DirectOut.json",
+      "author": "GuitarML ToneLibrary (community; contributor not named)",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Proteus/MesaMiniRec_HighGain_DirectOut.json",
+      "settings": {
+        "description": "high gain"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "GuitarML gives no interface calibration; the matcher fits it."
+      },
+      "sha256": "83f6b792b57e335d98580c7eefe15660389b90fbc5e3e45b8212f0d1c1e4ee8f",
+      "size": 153135,
+      "notes": "Rectifier family, 2 x 6V6 Mini (stream F4)."
+    },
+    {
+      "id": "tl-soldano-crunch",
+      "amp": "Soldano (model not stated)",
+      "family": "high-gain",
+      "format": "guitarml-lstm",
+      "url": "https://raw.githubusercontent.com/GuitarML/ToneLibrary/main/NeuralPi/Soldano_crunch.json",
+      "author": "GuitarML ToneLibrary (community; contributor not named)",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "NeuralPi/Soldano_crunch.json",
+      "settings": {
+        "description": "crunch (medium gain)"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "GuitarML gives no interface calibration; the matcher fits it."
+      },
+      "sha256": "41d0f47483fa98a135795b418211dbacd811dd79c3ee70f1c95a7f87d9adb4b5",
+      "size": 40460,
+      "notes": "Stream F4; rig not stated."
+    },
+    {
+      "id": "tl-soldano-high",
+      "amp": "Soldano (model not stated)",
+      "family": "high-gain",
+      "format": "guitarml-lstm",
+      "url": "https://raw.githubusercontent.com/GuitarML/ToneLibrary/main/NeuralPi/Soldano_highGain.json",
+      "author": "GuitarML ToneLibrary (community; contributor not named)",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "NeuralPi/Soldano_highGain.json",
+      "settings": {
+        "description": "high gain"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "GuitarML gives no interface calibration; the matcher fits it."
+      },
+      "sha256": "3aee97be3300e8e8d05177388e7ebe2bdcf006f85140950d8551e1215ba41fbc",
+      "size": 40152,
+      "notes": "Stream F4; rig not stated."
+    },
+    {
+      "id": "pel-twin-normal-bright",
+      "amp": "Fender Twin Reverb (year not stated), Normal channel",
+      "family": "fender",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Tim%20R%20Fender%20TwinVerb%20Norm%20Bright.nam",
+      "author": "Tim R",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Tim R Fender TwinVerb Norm Bright.nam",
+      "settings": {
+        "channel": "Normal",
+        "bright": "on",
+        "knobs": "not stated"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "6146d1758ddab94c529dba77f1feda8b804051f0e19117086a58db6b73b2e46b",
+      "size": 408866,
+      "circuit": {
+        "type": "Blackface",
+        "params": {
+          "bright": 1
+        }
+      },
+      "targets": {
+        "esr": 0.9,
+        "mrstft": 1.35
+      },
+      "notes": "Knobs not stated: compared at Blackface defaults with bright on. Twin: 4 x 6L6, SS rectifier, 2k:4 ohm OT."
+    },
+    {
+      "id": "pel-twin-vibrato-bright",
+      "amp": "Fender Twin Reverb (year not stated), Vibrato channel",
+      "family": "fender",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Tim%20R%20Fender%20TwinVerb%20Vibrato%20Bright.nam",
+      "author": "Tim R",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Tim R Fender TwinVerb Vibrato Bright.nam",
+      "settings": {
+        "channel": "Vibrato",
+        "bright": "on",
+        "knobs": "not stated"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "7dc174fec96300eeab21158bd66d40236074ad94fbd9a2449fa9b90c183c3c49",
+      "size": 408913,
+      "circuit": {
+        "type": "Blackface",
+        "params": {
+          "bright": 1
+        }
+      },
+      "targets": {
+        "esr": 0.75,
+        "mrstft": 1.2
+      },
+      "notes": "Knobs not stated; vibrato channel has a third gain stage (reverb recovery and mixer) the Blackface type lacks."
+    },
+    {
+      "id": "pel-jcm900-a-g4",
+      "amp": "Marshall JCM900 4502 50 W Dual Reverb, channel A",
+      "family": "marshall",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Tim%20R%20JCM90050WDualVerbChAG4.nam",
+      "author": "Tim R",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Tim R JCM90050WDualVerbChAG4.nam",
+      "settings": {
+        "channel": "A",
+        "gain": "4",
+        "other knobs": "not stated"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "bc4672fa2825a79090112e1fb22ab2e46da98b9401fbb157454c0fdfa79622a9",
+      "size": 408517,
+      "circuit": {
+        "type": "Plexi",
+        "params": {
+          "gain": 4
+        }
+      },
+      "targets": {
+        "esr": 1.05,
+        "mrstft": 1.55
+      },
+      "notes": "Tier 2 JCM900 (op-amp/diode front end); compared with Plexi, the closest Marshall type, gain mapped 1:1."
+    },
+    {
+      "id": "pel-jcm900-a-g6",
+      "amp": "Marshall JCM900 4502 50 W Dual Reverb, channel A",
+      "family": "marshall",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Tim%20R%20JCM90050WDualVerbCHAG6.nam",
+      "author": "Tim R",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Tim R JCM90050WDualVerbCHAG6.nam",
+      "settings": {
+        "channel": "A",
+        "gain": "6",
+        "other knobs": "not stated"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "84b3da4a17487975d9837bb8f747e6884e3cc797be133a47a1de152d019aa533",
+      "size": 408449,
+      "circuit": {
+        "type": "Plexi",
+        "params": {
+          "gain": 6
+        }
+      },
+      "targets": {
+        "esr": 1.05,
+        "mrstft": 1.6
+      },
+      "notes": "Tier 2 JCM900 (op-amp/diode front end); compared with Plexi, the closest Marshall type, gain mapped 1:1."
+    },
+    {
+      "id": "pel-jcm900-a-g8",
+      "amp": "Marshall JCM900 4502 50 W Dual Reverb, channel A",
+      "family": "marshall",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Tim%20R%20JCM90050WDualVerbChAG8.nam",
+      "author": "Tim R",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Tim R JCM90050WDualVerbChAG8.nam",
+      "settings": {
+        "channel": "A",
+        "gain": "8",
+        "other knobs": "not stated"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "e2281b8bd7403946b58612581b6d782588c88999c36a6d5193b95da2aa9115c7",
+      "size": 408543,
+      "circuit": {
+        "type": "Plexi",
+        "params": {
+          "gain": 8
+        }
+      },
+      "targets": {
+        "esr": 0.9,
+        "mrstft": 1.8
+      },
+      "notes": "Tier 2 JCM900 (op-amp/diode front end); compared with Plexi, the closest Marshall type, gain mapped 1:1."
+    },
+    {
+      "id": "pel-jcm900-a-g10",
+      "amp": "Marshall JCM900 4502 50 W Dual Reverb, channel A",
+      "family": "marshall",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Tim%20R%20JCM90050WDualVerbchAG10.nam",
+      "author": "Tim R",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Tim R JCM90050WDualVerbchAG10.nam",
+      "settings": {
+        "channel": "A",
+        "gain": "10",
+        "other knobs": "not stated"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "9c94aff2d395a64aec1309686431e7d129a5da51cc35f7a4cf3673f6c503c8f1",
+      "size": 408396,
+      "circuit": {
+        "type": "Plexi",
+        "params": {
+          "gain": 10
+        }
+      },
+      "targets": {
+        "esr": 1.65,
+        "mrstft": 1.85
+      },
+      "notes": "Tier 2 JCM900 (op-amp/diode front end); compared with Plexi, the closest Marshall type, gain mapped 1:1."
+    },
+    {
+      "id": "pel-jcm900-b-g8",
+      "amp": "Marshall JCM900 4502 50 W Dual Reverb, channel B",
+      "family": "marshall",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Tim%20R%20JCM90050WDualVerbChBG8.nam",
+      "author": "Tim R",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Tim R JCM90050WDualVerbChBG8.nam",
+      "settings": {
+        "channel": "B",
+        "gain": "8",
+        "other knobs": "not stated"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "23a89b7c1c79d70f8798bf534870692b55917d4660d045fedb4ad90ca14c1bbf",
+      "size": 408130,
+      "circuit": {
+        "type": "Plexi",
+        "params": {
+          "gain": 4.0
+        }
+      },
+      "targets": {
+        "esr": 1.35,
+        "mrstft": 1.8
+      },
+      "notes": "Channel B gain as named (0-20 per the file names); mapped to Plexi gain/2. Channel B has diode clipping Plexi lacks."
+    },
+    {
+      "id": "pel-jcm900-b-g12",
+      "amp": "Marshall JCM900 4502 50 W Dual Reverb, channel B",
+      "family": "marshall",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Tim%20R%20JCM90050WDualVerbChBG12.nam",
+      "author": "Tim R",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Tim R JCM90050WDualVerbChBG12.nam",
+      "settings": {
+        "channel": "B",
+        "gain": "12",
+        "other knobs": "not stated"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "7cfcda985d14a9b0fe11bd93ad2903c619ca568d8edc7cbf3fc718bd50202dfb",
+      "size": 408189,
+      "circuit": {
+        "type": "Plexi",
+        "params": {
+          "gain": 6.0
+        }
+      },
+      "targets": {
+        "esr": 1.7,
+        "mrstft": 2.05
+      },
+      "notes": "Channel B gain as named (0-20 per the file names); mapped to Plexi gain/2. Channel B has diode clipping Plexi lacks."
+    },
+    {
+      "id": "pel-jcm900-b-g16",
+      "amp": "Marshall JCM900 4502 50 W Dual Reverb, channel B",
+      "family": "marshall",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Tim%20R%20JCM90050WDualVerbChBG16.nam",
+      "author": "Tim R",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Tim R JCM90050WDualVerbChBG16.nam",
+      "settings": {
+        "channel": "B",
+        "gain": "16",
+        "other knobs": "not stated"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "ef867ea19fbf0d49ee576f761f82531e849b622bff01beb9593593eae3909f27",
+      "size": 408069,
+      "circuit": {
+        "type": "Plexi",
+        "params": {
+          "gain": 8.0
+        }
+      },
+      "targets": {
+        "esr": 1.7,
+        "mrstft": 2.25
+      },
+      "notes": "Channel B gain as named (0-20 per the file names); mapped to Plexi gain/2. Channel B has diode clipping Plexi lacks."
+    },
+    {
+      "id": "pel-jcm900-b-g20",
+      "amp": "Marshall JCM900 4502 50 W Dual Reverb, channel B",
+      "family": "marshall",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Tim%20R%20JCM90050WDualVerbChBG20.nam",
+      "author": "Tim R",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Tim R JCM90050WDualVerbChBG20.nam",
+      "settings": {
+        "channel": "B",
+        "gain": "20",
+        "other knobs": "not stated"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "3e5d632c18b4c45a7d71ca53c3b87ac0996abc3606b7d846497a7ae1d4725092",
+      "size": 408005,
+      "circuit": {
+        "type": "Plexi",
+        "params": {
+          "gain": 10.0
+        }
+      },
+      "targets": {
+        "esr": 1.8,
+        "mrstft": 2.1
+      },
+      "notes": "Channel B gain as named (0-20 per the file names); mapped to Plexi gain/2. Channel B has diode clipping Plexi lacks."
+    },
+    {
+      "id": "pel-ac15-topboost",
+      "amp": "Vox AC15 (version not stated), Top Boost channel",
+      "family": "class-a",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Phillipe%20P%20VOXAC15-TopBoost.nam",
+      "author": "Phillipe P",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Phillipe P VOXAC15-TopBoost.nam",
+      "settings": {
+        "channel": "Top Boost",
+        "knobs": "not stated"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "382d0bb88d1b6ee59aa9413ec5a419df857abe8c3b9f7d269221463d9daa6e14",
+      "size": 421130,
+      "circuit": {
+        "type": "AC30"
+      },
+      "targets": {
+        "esr": 1.7,
+        "mrstft": 2.7
+      },
+      "notes": "AC15 Top Boost (2 x EL84); closest type AC30 (4 x EL84). Phillipe P's other AC15 files (JonAr1-4) have no stated settings and are left out."
+    },
+    {
+      "id": "pel-laney-lo-afterbreakup",
+      "amp": "Laney GH100S (as named), Lo input/channel, just past break-up",
+      "family": "marshall",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Phillipe%20P%20LaneyGH100S-Lo-AfterBreakUp-ESR0%2C001.nam",
+      "author": "Phillipe P",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Phillipe P LaneyGH100S-Lo-AfterBreakUp-ESR0,001.nam",
+      "settings": {
+        "channel": "Lo",
+        "description": "after break-up"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "89da869a6590c89dba1c0af01d46ab4fd07228f48b4925ff99cfcdff3c04bd9b",
+      "size": 824865,
+      "circuit": {
+        "type": "Plexi",
+        "params": {
+          "gain": 4
+        }
+      },
+      "targets": {
+        "esr": 1.0,
+        "mrstft": 1.6
+      },
+      "notes": "Laney GH series is JCM800-like with a cold clipper; gain guessed from the description."
+    },
+    {
+      "id": "pel-laney-lo-crunch",
+      "amp": "Laney GH100S (as named), Lo, crunch",
+      "family": "marshall",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Phillipe%20P%20LaneyGH100S-Lo-CrunchGain-ESR0%2C024.nam",
+      "author": "Phillipe P",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Phillipe P LaneyGH100S-Lo-CrunchGain-ESR0,024.nam",
+      "settings": {
+        "channel": "Lo",
+        "description": "crunch gain"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "c7fdadeeea3ee6bd785c2ca8b0373532940122188c5e0db4b8a7c569223bc21e",
+      "size": 824253,
+      "circuit": {
+        "type": "Plexi",
+        "params": {
+          "gain": 7
+        }
+      },
+      "targets": {
+        "esr": 1.85,
+        "mrstft": 2.0
+      },
+      "notes": "Gain guessed from the description."
+    },
+    {
+      "id": "pel-laney-hi-mid",
+      "amp": "Laney GH100S (as named), Hi, medium gain",
+      "family": "marshall",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Phillipe%20P%20LaneyGH100S-Hi-MidGain-ESR0%2C003.nam",
+      "author": "Phillipe P",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Phillipe P LaneyGH100S-Hi-MidGain-ESR0,003.nam",
+      "settings": {
+        "channel": "Hi",
+        "description": "mid gain"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "d632665bbd4f5b951b44cc1ce21ec1d7474abcc7fafcbde5507f7965e4025400",
+      "size": 821916,
+      "circuit": {
+        "type": "Plexi",
+        "params": {
+          "gain": 6
+        }
+      },
+      "targets": {
+        "esr": 1.35,
+        "mrstft": 1.75
+      },
+      "notes": "Gain guessed from the description."
+    },
+    {
+      "id": "pel-5150-blockletter",
+      "amp": "Peavey 5150 (block letter), lead, no boost",
+      "family": "high-gain",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Helga%20B%205150%20BlockLetter%20-%20NoBoost.nam",
+      "author": "Helga B",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Helga B 5150 BlockLetter - NoBoost.nam",
+      "settings": {
+        "boost": "none"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "eb5074a3288d214bc446d526c1e636271aec587b0c64009538be037b62e7ab9e",
+      "size": 407066,
+      "notes": "Stream F4."
+    },
+    {
+      "id": "pel-6505plus-red",
+      "amp": "Peavey 6505+, red channel, no boost",
+      "family": "high-gain",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Helga%20B%206505%2B%20Red%20ch%20-%20NoBoost.nam",
+      "author": "Helga B",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Helga B 6505+ Red ch - NoBoost.nam",
+      "settings": {
+        "channel": "Red",
+        "boost": "none"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "f389f5fcd4675cb7d8ec5134bea4d080fe12cac57839545a8f226f8f8797379b",
+      "size": 407335,
+      "notes": "Stream F4."
+    },
+    {
+      "id": "pel-mesa-mark-iv",
+      "amp": "Mesa/Boogie Mark IV",
+      "family": "high-gain",
+      "format": "nam",
+      "url": "https://raw.githubusercontent.com/pelennor2170/NAM_models/main/Roman%20A%20LT_MESA_MARKIV_1.nam",
+      "author": "Roman A",
+      "licence": "GPL-3.0",
+      "redistributable": true,
+      "sourceName": "Roman A LT_MESA_MARKIV_1.nam",
+      "settings": {
+        "knobs": "not stated"
+      },
+      "rig": {
+        "output": "unknown",
+        "notes": "pelennor2170/NAM_models: no rig or calibration stated; the matcher fits the calibration."
+      },
+      "sha256": "f4c06c5f01f1af7a6243c4fc2a1480bbed9036295735b99e9d20842b7dd23431",
+      "size": 407625,
+      "notes": "Tier 2, stream F4."
+    },
+    {
+      "id": "t3k-ac15c1-normal-v9-cmin",
+      "amp": "Vox AC15C1, Normal channel",
+      "family": "class-a",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/vox-ac15c1-normal-channel-115dbu-6153",
+      "author": "OutmodedElectronics",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "Vox AC15C1 Nrm V-9_00 C-Min",
+      "settings": {
+        "channel": "Normal",
+        "volume": "9:00",
+        "cut": "Min",
+        "master": "max"
+      },
+      "rig": {
+        "output": "direct",
+        "load": "Suhr Reactive Load",
+        "inputDbu": 11.5,
+        "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
+      },
+      "circuit": {
+        "type": "AC30",
+        "params": {
+          "gain": 2,
+          "cut": 0
+        }
+      },
+      "targets": {
+        "esr": 2.0,
+        "mrstft": 8.0
+      },
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86); AC30 is the closest type."
+    },
+    {
+      "id": "t3k-ac15c1-normal-v12-cmin",
+      "amp": "Vox AC15C1, Normal channel",
+      "family": "class-a",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/vox-ac15c1-normal-channel-115dbu-6153",
+      "author": "OutmodedElectronics",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "Vox AC15C1 Nrm V-12_00 C-Min",
+      "settings": {
+        "channel": "Normal",
+        "volume": "12:00",
+        "cut": "Min",
+        "master": "max"
+      },
+      "rig": {
+        "output": "direct",
+        "load": "Suhr Reactive Load",
+        "inputDbu": 11.5,
+        "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
+      },
+      "circuit": {
+        "type": "AC30",
+        "params": {
+          "gain": 5,
+          "cut": 0
+        }
+      },
+      "targets": {
+        "esr": 2.0,
+        "mrstft": 8.0
+      },
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86); AC30 is the closest type."
+    },
+    {
+      "id": "t3k-ac15c1-normal-v3-cmin",
+      "amp": "Vox AC15C1, Normal channel",
+      "family": "class-a",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/vox-ac15c1-normal-channel-115dbu-6153",
+      "author": "OutmodedElectronics",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "Vox AC15C1 Nrm V-3_00 C-Min",
+      "settings": {
+        "channel": "Normal",
+        "volume": "3:00",
+        "cut": "Min",
+        "master": "max"
+      },
+      "rig": {
+        "output": "direct",
+        "load": "Suhr Reactive Load",
+        "inputDbu": 11.5,
+        "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
+      },
+      "circuit": {
+        "type": "AC30",
+        "params": {
+          "gain": 8,
+          "cut": 0
+        }
+      },
+      "targets": {
+        "esr": 2.0,
+        "mrstft": 8.0
+      },
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86); AC30 is the closest type."
+    },
+    {
+      "id": "t3k-ac15c1-normal-vmax-cmin",
+      "amp": "Vox AC15C1, Normal channel",
+      "family": "class-a",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/vox-ac15c1-normal-channel-115dbu-6153",
+      "author": "OutmodedElectronics",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "Vox AC15C1 Nrm V-Max C-Min",
+      "settings": {
+        "channel": "Normal",
+        "volume": "Max",
+        "cut": "Min",
+        "master": "max"
+      },
+      "rig": {
+        "output": "direct",
+        "load": "Suhr Reactive Load",
+        "inputDbu": 11.5,
+        "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
+      },
+      "circuit": {
+        "type": "AC30",
+        "params": {
+          "gain": 10,
+          "cut": 0
+        }
+      },
+      "targets": {
+        "esr": 2.0,
+        "mrstft": 8.0
+      },
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86); AC30 is the closest type."
+    },
+    {
+      "id": "t3k-ac15c1-normal-v12-c12",
+      "amp": "Vox AC15C1, Normal channel",
+      "family": "class-a",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/vox-ac15c1-normal-channel-115dbu-6153",
+      "author": "OutmodedElectronics",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "Vox AC15C1 Nrm V-12_00 C-12_00",
+      "settings": {
+        "channel": "Normal",
+        "volume": "12:00",
+        "cut": "12:00",
+        "master": "max"
+      },
+      "rig": {
+        "output": "direct",
+        "load": "Suhr Reactive Load",
+        "inputDbu": 11.5,
+        "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
+      },
+      "circuit": {
+        "type": "AC30",
+        "params": {
+          "gain": 5,
+          "cut": 5
+        }
+      },
+      "targets": {
+        "esr": 2.0,
+        "mrstft": 8.0
+      },
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86); AC30 is the closest type."
+    },
+    {
+      "id": "t3k-ac15c1-normal-vmax-c3",
+      "amp": "Vox AC15C1, Normal channel",
+      "family": "class-a",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/vox-ac15c1-normal-channel-115dbu-6153",
+      "author": "OutmodedElectronics",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "Vox AC15C1 Nrm V-Max C-3_00",
+      "settings": {
+        "channel": "Normal",
+        "volume": "Max",
+        "cut": "3:00",
+        "master": "max"
+      },
+      "rig": {
+        "output": "direct",
+        "load": "Suhr Reactive Load",
+        "inputDbu": 11.5,
+        "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
+      },
+      "circuit": {
+        "type": "AC30",
+        "params": {
+          "gain": 10,
+          "cut": 8
+        }
+      },
+      "targets": {
+        "esr": 2.0,
+        "mrstft": 8.0
+      },
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86); AC30 is the closest type."
+    },
+    {
+      "id": "t3k-ac15c1-topboost",
+      "amp": "Vox AC15C1, Top Boost channel",
+      "family": "class-a",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/vox-ac15c1-top-boost-channel-115dbu-6154",
+      "author": "OutmodedElectronics",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": null,
+      "settings": {
+        "channel": "Top Boost",
+        "volume": "pick one model and record its setting here"
+      },
+      "rig": {
+        "output": "direct",
+        "load": "Suhr Reactive Load",
+        "inputDbu": 11.5,
+        "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
+      },
+      "circuit": {
+        "type": "AC30"
+      },
+      "targets": {
+        "esr": 2.0,
+        "mrstft": 8.0
+      },
+      "notes": "Same rig as the Normal channel pack."
+    },
+    {
+      "id": "t3k-super-reverb-1964-norm-v5-t5-b5",
+      "amp": "Fender Super Reverb AB763 (1964, all original)",
+      "family": "fender",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/1964-fender-super-reverb-all-original-57914",
+      "author": "MaestrodiMusica",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "1964 Fender Super Reverb - Norm, V5 T5 B5",
+      "settings": {
+        "channel": "Normal",
+        "knobs": "V5 T5 B5"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "Amp head capture; load and calibration not stated"
+      },
+      "circuit": {
+        "type": "Blackface",
+        "params": {
+          "gain": 5,
+          "treble": 5,
+          "bass": 5
+        }
+      },
+      "targets": {
+        "esr": 2.0,
+        "mrstft": 8.0
+      },
+      "notes": "True AB763; the Blackface type is a Super-style channel. Knob letters read as Volume/Treble/Middle/Bass. The normal channel has no mid control: middle left at the type's default."
+    },
+    {
+      "id": "t3k-super-reverb-1964-norm-bright-v5-t5-b5",
+      "amp": "Fender Super Reverb AB763 (1964, all original)",
+      "family": "fender",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/1964-fender-super-reverb-all-original-57914",
+      "author": "MaestrodiMusica",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "1964 Fender Super Reverb - Norm Bright, V5 T5 B5",
+      "settings": {
+        "channel": "Normal Bright",
+        "knobs": "V5 T5 B5"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "Amp head capture; load and calibration not stated"
+      },
+      "circuit": {
+        "type": "Blackface",
+        "params": {
+          "gain": 5,
+          "treble": 5,
+          "bass": 5,
+          "bright": 1
+        }
+      },
+      "targets": {
+        "esr": 2.0,
+        "mrstft": 8.0
+      },
+      "notes": "True AB763; the Blackface type is a Super-style channel. Knob letters read as Volume/Treble/Middle/Bass. The normal channel has no mid control: middle left at the type's default."
+    },
+    {
+      "id": "t3k-super-reverb-1964-norm-v3-t6-b5",
+      "amp": "Fender Super Reverb AB763 (1964, all original)",
+      "family": "fender",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/1964-fender-super-reverb-all-original-57914",
+      "author": "MaestrodiMusica",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "1964 Fender Super Reverb - Norm, V3 T6 B5",
+      "settings": {
+        "channel": "Normal",
+        "knobs": "V3 T6 B5"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "Amp head capture; load and calibration not stated"
+      },
+      "circuit": {
+        "type": "Blackface",
+        "params": {
+          "gain": 3,
+          "treble": 6,
+          "bass": 5
+        }
+      },
+      "targets": {
+        "esr": 2.0,
+        "mrstft": 8.0
+      },
+      "notes": "True AB763; the Blackface type is a Super-style channel. Knob letters read as Volume/Treble/Middle/Bass. The normal channel has no mid control: middle left at the type's default."
+    },
+    {
+      "id": "t3k-super-reverb-1964-norm-v6-t6-b4",
+      "amp": "Fender Super Reverb AB763 (1964, all original)",
+      "family": "fender",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/1964-fender-super-reverb-all-original-57914",
+      "author": "MaestrodiMusica",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "1964 Fender Super Reverb - Norm, V6 T6 B4",
+      "settings": {
+        "channel": "Normal",
+        "knobs": "V6 T6 B4"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "Amp head capture; load and calibration not stated"
+      },
+      "circuit": {
+        "type": "Blackface",
+        "params": {
+          "gain": 6,
+          "treble": 6,
+          "bass": 4
+        }
+      },
+      "targets": {
+        "esr": 2.0,
+        "mrstft": 8.0
+      },
+      "notes": "True AB763; the Blackface type is a Super-style channel. Knob letters read as Volume/Treble/Middle/Bass. The normal channel has no mid control: middle left at the type's default."
+    },
+    {
+      "id": "t3k-super-reverb-1964-vib-v5-t5-m5-b5",
+      "amp": "Fender Super Reverb AB763 (1964, all original)",
+      "family": "fender",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/1964-fender-super-reverb-all-original-57914",
+      "author": "MaestrodiMusica",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "1964 Fender Super Reverb - Vib, V5 T5 M5 B5",
+      "settings": {
+        "channel": "Vibrato",
+        "knobs": "V5 T5 M5 B5"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "Amp head capture; load and calibration not stated"
+      },
+      "circuit": {
+        "type": "Blackface",
+        "params": {
+          "gain": 5,
+          "treble": 5,
+          "middle": 5,
+          "bass": 5
+        }
+      },
+      "targets": {
+        "esr": 2.0,
+        "mrstft": 8.0
+      },
+      "notes": "True AB763; the Blackface type is a Super-style channel. Knob letters read as Volume/Treble/Middle/Bass. The normal channel has no mid control: middle left at the type's default."
+    },
+    {
+      "id": "t3k-68-custom-deluxe-c5",
+      "amp": "Fender '68 Custom Deluxe Reverb, Custom channel",
+      "family": "fender",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/fender-68-custom-deluxe-reverb-61037",
+      "author": "tannerc",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "C Ch 5 7.5 2.5",
+      "settings": {
+        "channel": "Custom",
+        "volume": "5",
+        "treble": "7.5",
+        "bass": "2.5"
+      },
+      "rig": {
+        "output": "unknown",
+        "load": "Weber Mini-Mass / real speaker (unclear)",
+        "notes": "Page mentions both an amp DI and a miked V-Type: check before use"
+      },
+      "circuit": {
+        "type": "Blackface",
+        "params": {
+          "gain": 5,
+          "treble": 7.5,
+          "bass": 2.5
+        }
+      },
+      "targets": {
+        "esr": 2.0,
+        "mrstft": 8.0
+      },
+      "notes": "Modified AB763 voicing: use for power-amp break-up, not the exact preamp."
+    },
+    {
+      "id": "t3k-68-custom-princeton",
+      "amp": "Fender '68 Custom Princeton Reverb",
+      "family": "fender",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/fender-68-custom-princeton-reverb-81456",
+      "author": "mayer763",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": null,
+      "settings": {
+        "settings": "record the chosen model's settings here"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "Amp only per docs/06 section 4.2; verify"
+      },
+      "notes": "7 settings, Fryette PS-2A; record the chosen model's settings."
+    },
+    {
+      "id": "t3k-ac30s1",
+      "amp": "Vox AC30S1 (gain sweep)",
+      "family": "class-a",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/ac30s1-head-only-10-pack-eq-neutral-55221",
+      "author": "jtmulcahey",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": null,
+      "settings": {
+        "settings": "record the chosen model's settings here"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "Amp only per docs/06 section 4.2; verify"
+      },
+      "notes": "Budget single-channel AC30, not the JMI circuit; line out across the real speaker."
+    },
+    {
+      "id": "t3k-tweed-deluxe-5e3",
+      "amp": "Tweed Deluxe 5E3 (kit clone)",
+      "family": "fender",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/tweed-deluxe-5e3-75305",
+      "author": "madhatteramplab",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": null,
+      "settings": {
+        "settings": "record the chosen model's settings here"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "Amp only per docs/06 section 4.2; verify"
+      },
+      "notes": "Settings not listed."
+    },
+    {
+      "id": "t3k-plexi-1959",
+      "amp": "Marshall 1959 Plexi Super Lead",
+      "family": "marshall",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/-marshall-1959-plexi-super-lead--80875",
+      "author": "tonecast",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": null,
+      "settings": {
+        "settings": "record the chosen model's settings here"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "Amp only per docs/06 section 4.2; verify"
+      },
+      "notes": "Knobs not listed; set circuit once known."
+    },
+    {
+      "id": "t3k-jcm800-2203-mod",
+      "amp": "Marshall JCM800 2203 (modified)",
+      "family": "marshall",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/marshall-jcm800-2203-modified-el34-community-pack-44209",
+      "author": "2dor",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": null,
+      "settings": {
+        "settings": "record the chosen model's settings here"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "Amp only per docs/06 section 4.2; verify"
+      },
+      "notes": "Modified amp; real 4x12 as load."
+    },
+    {
+      "id": "t3k-slo100",
+      "amp": "Soldano SLO-100 (6L6)",
+      "family": "high-gain",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/soldano-slo-100-6l6-community-pack-amp-head-64436",
+      "author": "2dor",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": null,
+      "settings": {
+        "settings": "record the chosen model's settings here"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "Amp only per docs/06 section 4.2; verify"
+      },
+      "notes": "Check settings."
+    },
+    {
+      "id": "t3k-mark-iicplus",
+      "amp": "Mesa/Boogie Mark IIC+",
+      "family": "high-gain",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/mesa-boogie-mark-iic-36384",
+      "author": "not stated",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": null,
+      "settings": {
+        "settings": "record the chosen model's settings here"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "Amp only per docs/06 section 4.2; verify"
+      },
+      "notes": "Check rig and settings."
+    },
+    {
+      "id": "t3k-5150iii-ob1",
+      "amp": "EVH 5150III (OB1 v2)",
+      "family": "high-gain",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/ob1-version-2-5150-iii-amp-only-nam-v2-capture-pack-72300",
+      "author": "Obijuan",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": null,
+      "settings": {
+        "settings": "record the chosen model's settings here"
+      },
+      "rig": {
+        "output": "direct",
+        "notes": "Amp only per docs/06 section 4.2; verify"
+      },
+      "notes": "Each model has a pedal in front: usable only with that pedal modelled."
+    }
+  ]
+}

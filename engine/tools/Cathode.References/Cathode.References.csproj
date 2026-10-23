@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>cathode-references</AssemblyName>
+    <Description>Amp reference harness: fetches redistributable captures into the local cache and matches circuit amps against them.</Description>
+    <!-- The harness lives in Cathode.Testing, which is not trimmed or AOT-compiled. -->
+    <IsAotCompatible>false</IsAotCompatible>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../tests/Cathode.Testing/Cathode.Testing.csproj"/>
+  </ItemGroup>
+</Project>
