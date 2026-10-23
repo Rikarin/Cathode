@@ -81,13 +81,23 @@ test('undo, redo and scenes change the rig', async () => {
     await expect(delay).not.toHaveAccessibleName(/bypassed/);
 });
 
-test('the scope and tuner open and stream from the engine', async () => {
-    await window.getByRole('button', { name: 'Scope' }).click();
-    await expect(window.getByRole('dialog', { name: 'Scope' })).toBeVisible();
+test('the analyser, its RTA and the tuner open and stream from the engine', async () => {
+    await window.getByRole('button', { name: 'Analyser' }).click();
+    await expect(window.getByRole('dialog', { name: 'Analyser' })).toBeVisible();
     await expect(window.getByRole('img', { name: 'Output waveform' })).toBeVisible();
+    await window.getByRole('radio', { name: 'RTA' }).click();
+    await expect(window.getByRole('img', { name: 'Output spectrum' })).toBeVisible();
     await window.keyboard.press('Escape');
     await window.getByRole('button', { name: 'Tuner' }).click();
     await expect(window.getByText('Play a string')).toBeVisible();
+});
+
+test('the IRs page mixes impulse responses', async () => {
+    await window.getByRole('link', { name: 'IRs' }).click();
+    await expect(window.getByRole('heading', { name: 'IR mixer' })).toBeVisible();
+    await expect(window.getByTestId('mix-irs')).toBeDisabled(); // nothing picked yet
+    await expect(window.getByRole('heading', { name: 'Capture an IR' })).toBeVisible(); // desktop only
+    await window.getByRole('link', { name: 'Editor' }).click();
 });
 
 test('a knob gets a modifier, taps set the tempo, and the looper records', async () => {
