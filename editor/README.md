@@ -7,7 +7,7 @@ The desktop editor (docs/02-architecture.md §7): an Angular 22 renderer styled 
 | `apps/editor` | The renderer: grid editor, block pages and panels, preset library, audio setup |
 | `apps/desktop` | Electron main (sidecar supervision, `app://` scheme with CSP) and the preload bridge; Playwright E2E in `e2e/` |
 | `libs/api-client` | Types generated from `engine/src/Cathode.Server/openapi.json`, plus a typed `fetch` client |
-| `libs/audio-ui` | `cth-knob`, `cth-meter` and `cth-tuner`: the controls xUI does not have |
+| `libs/audio-ui` | `cth-knob`, `cth-meter`, `cth-tuner` and `cth-scope`: the controls xUI does not have, with Storybook stories (`nx storybook audio-ui`) that must pass axe |
 
 ## Develop
 
@@ -39,6 +39,10 @@ pnpm exec nx run-many -t test
 
 ```bash
 pnpm exec nx e2e desktop
+```
+
+```bash
+pnpm exec nx test-storybook audio-ui
 ```
 
 After an API change, regenerate the client. CI fails while it is stale:

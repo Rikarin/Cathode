@@ -1,6 +1,21 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { BuiltInTypes, type ChannelName, ChannelNames } from '@cathode/api-client';
+import { BypassModes } from '@cathode/api-client';
+import { provideIcons } from '@ng-icons/core';
+import {
+    matContentCopyRound,
+    matLinkOffRound,
+    matLinkRound,
+    matMoreHorizRound,
+    matPublicRound
+} from '@ng-icons/material-icons/round';
+import { XuiButtonImports } from '@xui/button';
+import { XuiIconImports } from '@xui/icon';
+import { XuiMenuImports } from '@xui/menu';
 import { XuiNonIdealStateImports } from '@xui/non-ideal-state';
+import { XuiSelectImports } from '@xui/select';
+import { XuiTagImports } from '@xui/tag';
+import { GlobalStore } from '../state/global.store';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import { XuiSwitchImports } from '@xui/switch';
 import { XuiTextImports } from '@xui/text';
@@ -26,7 +41,15 @@ import { ParamControl } from './param-control';
         XuiNonIdealStateImports,
         XuiSegmentedControlImports,
         XuiSwitchImports,
-        XuiTextImports
+        XuiTextImports,
+        XuiButtonImports,
+        XuiIconImports,
+        XuiMenuImports,
+        XuiSelectImports,
+        XuiTagImports
+    ],
+    providers: [
+        provideIcons({ matContentCopyRound, matLinkOffRound, matLinkRound, matMoreHorizRound, matPublicRound })
     ],
     host: { class: 'block h-full overflow-auto p-4' },
     template: `
@@ -55,6 +78,74 @@ import { ParamControl } from './param-control';
                             (valueChange)="$event && live.setChannel(block.id, $event)"
                         />
                     }
+
+                    <label class="flex items-center gap-2 text-sm">
+                        <span class="text-foreground-muted text-xs">Bypass</span>
+                        <xui-select
+                            class="w-36"
+                            aria-label="Bypass mode"
+                            [filterable]="false"
+                            [items]="bypassModes"
+                            [itemText]="bypassModeName"
+                            [value]="block.bypassMode"
+                            (valueChange)="$event && live.setBypassMode(block.id, $event)"
+                        />
+                    </label>
+                    @if (globalBlock(); as shared) {
+                        <xui-tag minimal color="primary" icon="matPublicRound">Global: {{ shared.name }}</xui-tag>
+                    }
+                    <button
+                        xuiButton
+                        variant="ghost"
+                        size="sm"
+                        aria-label="Block actions"
+                        [xuiMenuTriggerFor]="blockMenu"
+                    >
+                        <ng-icon xui name="matMoreHorizRound" size="sm" />
+                    </button>
+                    <ng-template #blockMenu>
+                        <xui-menu>
+                            @if ((info()?.channels ?? 0) > 1) {
+                                <xui-menu-divider [title]="'Copy channel ' + live.channelOf(block.id) + ' to'" />
+                                @for (channel of channels; track channel.value) {
+                                    @if (channel.value !== live.channelOf(block.id)) {
+                                        <button
+                                            xuiMenuItem
+                                            icon="matContentCopyRound"
+                                            (click)="
+                                                live.copyChannel(block.id, live.channelOf(block.id), channel.value)
+                                            "
+                                        >
+                                            Channel {{ channel.label }}
+                                        </button>
+                                    }
+                                }
+                                <xui-menu-divider />
+                            }
+                            @if (block.global) {
+                                <button xuiMenuItem icon="matLinkOffRound" (click)="live.unlinkGlobal(block.id)">
+                                    Unlink from global
+                                </button>
+                            } @else {
+                                <button
+                                    xuiMenuItem
+                                    icon="matPublicRound"
+                                    (click)="live.makeGlobal(block.id, title() + ' (' + block.id + ')')"
+                                >
+                                    Make global
+                                </button>
+                                @for (shared of sameTypeGlobals(); track shared.id) {
+                                    <button
+                                        xuiMenuItem
+                                        icon="matLinkRound"
+                                        (click)="live.useGlobal(block.id, shared.id)"
+                                    >
+                                        Use “{{ shared.name }}”
+                                    </button>
+                                }
+                            }
+                        </xui-menu>
+                    </ng-template>
                 </header>
 
                 @if (typeParam(); as type) {
@@ -94,7 +185,19 @@ export class BlockEditor {
     protected readonly live = inject(LiveStore);
     private readonly catalog = inject(CatalogStore);
 
+    private readonly globals = inject(GlobalStore);
+
     protected readonly channels = ChannelNames.map(c => ({ label: c, value: c as ChannelName }));
+    protected readonly bypassModes = [...BypassModes];
+    protected readonly bypassModeName = (mode: string) =>
+        ({ thru: 'Thru', mute: 'Mute', muteIn: 'Mute In', muteFxIn: 'Mute FX In (spillover)' })[mode] ?? mode;
+    protected readonly globalBlock = computed(() => {
+        const id = this.block()?.global;
+        return id ? this.globals.settings()?.blocks.find(b => b.id === id) : undefined;
+    });
+    protected readonly sameTypeGlobals = computed(() =>
+        (this.globals.settings()?.blocks ?? []).filter(b => b.type === this.block()?.type)
+    );
     protected readonly block = computed(() => {
         const block = this.live.selected();
         return block && !BuiltInTypes[block.type as keyof typeof BuiltInTypes] ? block : null;

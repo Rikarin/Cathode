@@ -226,6 +226,19 @@ Processing is **in place**: the compiler hands each block one buffer that holds 
 
 Budget for **two graphs alive at once** during a preset change.
 
+**As built (Phase 5).**
+- **The rig layer** (`Cathode.Engine.Rig`) wraps the compiled graph and outlives preset changes. Per sub-block it runs, in order:
+  1. the controllers
+  2. the graph's modifiers
+  3. the graph, plus the spilling tail graph
+  4. the scene level
+  5. the looper
+  6. the global EQ
+  7. the metronome
+- **Rig settings** live in one parameter bank (`rig`) that IPC reaches without a graph generation, so scene and tempo changes never recompile.
+- **Spillover:** the old graph retires after 4.1 s of silence (longer than any delay repeat), or 12 s.
+- **MIDI** is read by the host (CoreMIDI), stamped with engine sample time, and routed by the Server's `MidiRouter`. The router owns learn, mappings and footswitches, and drives LEDs.
+
 ### 5.6 Audio I/O ⚠
 
 `IAudioBackend` delivers `float**` planar buffers in a callback that the native driver thread owns. There is no intermediate queue, because a queue would add a buffer of latency.

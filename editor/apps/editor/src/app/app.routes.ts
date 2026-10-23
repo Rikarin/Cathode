@@ -12,5 +12,15 @@ export const appRoutes: Route[] = [
         loadComponent: () => import('./pages/setup-page').then(m => m.SetupPage),
         title: 'Setup · Cathode'
     },
+    {
+        path: 'controllers',
+        loadComponent: () => import('./pages/controllers-page').then(m => m.ControllersPage),
+        title: 'Controllers · Cathode'
+    },
+    {
+        path: 'global',
+        loadComponent: () => import('./pages/global-page').then(m => m.GlobalPage),
+        title: 'Global · Cathode'
+    },
     { path: '**', redirectTo: '' }
 ];

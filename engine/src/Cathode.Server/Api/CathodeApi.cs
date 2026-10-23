@@ -33,6 +33,10 @@ public static class CathodeApi {
             )
             .WithName("GetBlockType");
 
+        catalog.MapGet("/rig", (BlockCatalog blocks) => TypedResults.Ok(blocks.Rig))
+            .WithName("GetRigControls")
+            .WithSummary("The rig parameters: controller settings, scene level, tempo and modifier sources.");
+
         var live = api.MapGroup("/live").WithTags("Live");
         live.MapGet("/", async (LiveRig rig, HttpContext http) => Respond(http, await rig.StateAsync()))
             .WithName("GetLive");

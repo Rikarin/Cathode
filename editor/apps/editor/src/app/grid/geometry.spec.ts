@@ -7,7 +7,8 @@ const block = (id: string, row: number, column: number, type = 'delay'): PresetB
     row,
     column,
     channels: {},
-    assets: {}
+    assets: {},
+    bypassMode: 'thru'
 });
 
 describe('grid geometry', () => {

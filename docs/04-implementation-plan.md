@@ -119,7 +119,7 @@ Ordered by value to a guitarist:
 
 ---
 
-## Phase 4: editor MVP (6–8 weeks, in parallel with P3) — *MVP built; Storybook, the scope and a usability check remain*
+## Phase 4: editor MVP (6–8 weeks, in parallel with P3) — *done except the usability check with a guitarist*
 
 - [x] Nx workspace (`editor/`, pnpm, Nx 24):
   - `apps/desktop` (Electron 45) and `apps/editor` (Angular 22.2, zoneless, signals, Tailwind 4, xUI 3).
@@ -141,11 +141,11 @@ Ordered by value to a guitarist:
   - `PUT /live`, an undoable whole-preset replace for A/B.
   - `GET /assets/{ref}/content`.
   - `cathode-host --devices --json`.
-- [ ] **`audio-ui` library:**
+- [x] **`audio-ui` library:**
   - `cth-knob` is an ARIA slider: drag (⇧ fine), wheel, keys, double-click to type with units, ⌥-click to reset.
-  - `cth-meter` is a canvas peak meter with hold and a clip light. `cth-tuner` is a needle tuner.
-  - Telemetry reaches all three on animation frames, never through change detection. Unit-tested.
-  - *Still to do:* `cth-scope` (needs the scope/RTA ring from the telemetry region), and Storybook/Chromatic stories.
+  - `cth-meter` is a canvas peak meter with hold and a clip light. `cth-tuner` is a needle tuner. `cth-scope` is an oscilloscope with a rising-edge trigger, fed by a 4096-sample output ring in the telemetry region (v2) and streamed only while open.
+  - Telemetry reaches all four on animation frames, never through change detection.
+  - Storybook is set up the way xUI's is. Every story renders in Chromium and must pass axe in CI. Chromatic uploads when `CHROMATIC_PROJECT_TOKEN` is set.
 - [x] **Grid editor** (6×14, absolutely positioned cells plus an SVG cable layer):
   - The ⌘K block palette (`@xui/omnibar`) opens on an empty cell or onto a shunt.
   - Drag to move, ⌥-drag to copy. Drag from an outlet to the next column to cable.
@@ -172,17 +172,27 @@ Ordered by value to a guitarist:
 
 ---
 
-## Phase 5: scenes, channels, modifiers, MIDI, utilities (5–6 weeks)
+## Phase 5: scenes, channels, modifiers, MIDI, utilities (5–6 weeks) — *built; the hardware exit check remains*
 
-- [ ] Scenes (8): block bypass/channel per scene, scene level, scene controllers 1–4; gapless switching
-- [ ] Channel switching with crossfade; copy and paste of channels and blocks
-- [ ] **Preset spillover** (RCU swap + tail retirement) and scene spillover
-- [ ] Controllers: LFO ×2, ADSR ×2, sequencer, envelope follower, pitch follower, Manual A–D, external pedals/CC; a modifier editor UI (right-click any knob, curve preview)
-- [ ] Tempo: global, preset and MIDI clock; tap tempo with sample accuracy
-- [ ] MIDI: input in the native shim; mappings for preset/scene change, bypass, channel, CC→modifier, tap; MIDI-learn in the editor
-- [ ] Footswitch layout model plus an editor for generic MIDI foot controllers (tap/hold functions, LED feedback where supported)
-- [ ] **Looper** (stereo, overdub, undo, half speed, reverse, export), **metronome**
-- [ ] Global blocks (shared across presets) and global EQ/output
+- [x] **Scenes (8):** per-scene bypass and channel. Scene level now reaches the engine. Scene controllers 1–4 are modifier sources. Switching scenes never recompiles.
+- [x] **Gapless preset changes with spillover:**
+  - The replaced graph keeps running on a fading input while the new one fades in over 20 ms.
+  - It retires after 4.1 s below −90 dB (longer than any delay repeat) or 12 s.
+  - **Bypass modes:** Thru, Mute, Mute In and Mute FX In. The "in" modes give scene spillover.
+- [x] **Channels:** continuous parameters glide through their smoothers on a channel switch, and copy channel is in the API and the block menu.
+  - *Not done:* a dual-state crossfade for discrete parameter jumps (a Type change still switches at once).
+- [x] **Controllers:** LFO ×2 (6 shapes, free or synced), ADSR ×2 (input-gated), a 16-stage sequencer, an envelope follower, a pitch follower (host MPM at 10 Hz), Manual A–D (global), External 1–8 (CC/pedals), and scene controllers 1–4.
+  - They are evaluated per sub-block on the audio thread, and synced ones lock to the sample clock.
+  - Modifiers map a source through a curve (linear, exp, log, S) into a log-aware min..max, with attack and release damping.
+  - Editor: right-click any knob to open the modifier dialog with a curve preview. A Controllers page holds every setting.
+- [x] **Tempo:** preset, global or MIDI clock (24 ppqn, averaged in the host). Tap tempo is sample-accurate (MIDI timestamps become engine sample times), and a tapped tempo is taken back into the preset.
+- [x] **MIDI:**
+  - The native shim reads CoreMIDI on macOS. Windows and Linux are stubs, like their audio backends.
+  - Mappings (CC, note or PC) cover scene, preset slot or next/previous, bypass, channel, External, Manual, tap, tuner, metronome and the looper. Actions run strictly in arrival order.
+  - MIDI learn works from the Global page or from any knob ("Learn MIDI controller" binds a free External source). There is a live monitor.
+- [x] **Footswitch layouts:** tap and hold (500 ms) actions per switch, LED feedback (CC or note, 127/0, sent only on change), and an editor on the Global page.
+- [x] **Looper:** stereo, 60 s, at the end of the rig so it survives preset changes. Overdub has a one-pass undo layer, plus reverse, half speed and WAV export. **Metronome** (accented, never recorded). Both are in the toolbar.
+- [x] **Global blocks:** a block can be made global, use a global or be unlinked. Linked blocks take the library's settings on load, and editing one updates the library. There is also a **global output EQ** (10 bands plus level).
 
 **Exit:** a live set of 10 presets × 8 scenes runs with a MIDI foot controller, with no gaps or clicks, verified by HIL soak with scene storms.
 

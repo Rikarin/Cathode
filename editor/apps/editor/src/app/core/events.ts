@@ -1,5 +1,12 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
-import { eventsUrl, type RigEvent, type ScopeFrame, type ServerMessage, type Telemetry } from '@cathode/api-client';
+import {
+    eventsUrl,
+    type MidiActivity,
+    type RigEvent,
+    type ScopeFrame,
+    type ServerMessage,
+    type Telemetry
+} from '@cathode/api-client';
 import { Subject } from 'rxjs';
 import { ConnectionService } from './connection';
 
@@ -22,6 +29,7 @@ export class EventStream {
     readonly status = signal<'connecting' | 'open' | 'closed'>('closed');
     readonly events$ = new Subject<RigEvent>();
     readonly connected$ = new Subject<void>();
+    readonly midi$ = new Subject<MidiActivity>();
 
     /** The most recent telemetry frame (null until the first arrives). Not a signal, on purpose. */
     latest: Telemetry | null = null;
@@ -83,6 +91,8 @@ export class EventStream {
             this.attempts = 0;
             this.status.set('open');
             this.connected$.next();
+        } else if (message.type === 'midi' || message.type === 'midiLearned') {
+            this.midi$.next(message as MidiActivity);
         } else if (message.type === 'scope') {
             this.scope = message as ScopeFrame;
         } else if (message.type === 'telemetry') {

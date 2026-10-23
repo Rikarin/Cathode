@@ -1,6 +1,7 @@
 using Cathode.Contracts;
 using Cathode.Dsp;
 using Cathode.Dsp.Parameters;
+using Cathode.Engine.Rig;
 
 namespace Cathode.Server.Rig;
 
@@ -40,6 +41,17 @@ public sealed class BlockCatalog {
     }
 
     public BlockTypeInfo? Info(string typeId) => infos.GetValueOrDefault(typeId);
+
+    /// <summary>The rig parameters (controllers, scene level, tempo, sources), for the editor's controller pages.</summary>
+    public BlockTypeInfo Rig { get; } = new(
+        RigControls.BlockId,
+        RigControls.Descriptor.Name,
+        RigControls.Descriptor.Category,
+        1,
+        1,
+        [],
+        [..RigControls.Descriptor.Params.Select(ToInfo)]
+    );
 
     /// <summary>The DSP descriptor, or null for built-in cells and unknown types.</summary>
     public BlockDescriptor? Descriptor(string typeId) => descriptors.GetValueOrDefault(typeId);

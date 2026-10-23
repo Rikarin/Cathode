@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { CatalogStore } from '../state/catalog.store';
+import { GlobalStore } from '../state/global.store';
 import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { ConnectionService } from './connection';
@@ -13,6 +14,7 @@ export class Startup {
     private readonly catalog = inject(CatalogStore);
     private readonly live = inject(LiveStore);
     private readonly library = inject(LibraryStore);
+    private readonly globals = inject(GlobalStore);
 
     readonly state = signal<'starting' | 'ready' | 'failed'>('starting');
     readonly error = signal<string | null>(null);
@@ -26,7 +28,7 @@ export class Startup {
                 throw new Error(`No answer from ${this.connection.connection()?.baseUrl}. Is cathode-server running?`);
             }
 
-            await Promise.all([this.live.refresh(), this.library.refresh()]);
+            await Promise.all([this.live.refresh(), this.library.refresh(), this.globals.refresh()]);
             this.events.start();
             this.state.set('ready');
         } catch (error) {

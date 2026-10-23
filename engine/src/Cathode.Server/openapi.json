@@ -134,6 +134,27 @@
         }
       }
     },
+    "/api/v1/catalog/rig": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "The rig parameters: controller settings, scene level, tempo and modifier sources.",
+        "operationId": "GetRigControls",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockTypeInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/live": {
       "get": {
         "tags": [

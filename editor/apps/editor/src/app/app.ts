@@ -23,6 +23,7 @@ import { XuiTooltipImports } from '@xui/tooltip';
 import { Startup } from './core/startup';
 import { EngineMeters } from './shell/engine-meters';
 import { ScopeDialog } from './shell/scope-dialog';
+import { Transport } from './shell/transport';
 import { TunerDialog } from './shell/tuner-dialog';
 import { CompareStore } from './state/compare.store';
 import { LiveStore } from './state/live.store';
@@ -36,6 +37,7 @@ import { LiveStore } from './state/live.store';
         RouterLinkActive,
         RouterOutlet,
         ScopeDialog,
+        Transport,
         TunerDialog,
         XuiButtonImports,
         XuiDialogImports,
@@ -91,6 +93,17 @@ import { LiveStore } from './state/live.store';
                             routerLink="/library"
                             routerLinkActive="bg-active-overlay"
                             >Library</a
+                        >
+                        <a
+                            xuiButton
+                            variant="ghost"
+                            size="sm"
+                            routerLink="/controllers"
+                            routerLinkActive="bg-active-overlay"
+                            >Controllers</a
+                        >
+                        <a xuiButton variant="ghost" size="sm" routerLink="/global" routerLinkActive="bg-active-overlay"
+                            >Global</a
                         >
                         <a xuiButton variant="ghost" size="sm" routerLink="/setup" routerLinkActive="bg-active-overlay"
                             >Setup</a
@@ -148,6 +161,7 @@ import { LiveStore } from './state/live.store';
                         </button>
                     </div>
                     <div xuiNavbarGroup align="end" class="gap-3">
+                        <cth-transport />
                         <xui-segmented-control
                             size="sm"
                             aria-label="A/B compare"

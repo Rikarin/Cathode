@@ -45,6 +45,7 @@
     "@xui/statistic": "^3.0.1",
     "@xui/status": "^3.0.1",
     "@xui/switch": "^3.0.1",
+    "@xui/table": "^3.0.1",
     "@xui/tabs": "^3.0.1",
     "@xui/tag": "^3.0.1",
     "@xui/text": "^3.0.1",

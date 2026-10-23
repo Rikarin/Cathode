@@ -90,6 +90,41 @@ test('the scope and tuner open and stream from the engine', async () => {
     await expect(window.getByText('Play a string')).toBeVisible();
 });
 
+test('a knob gets a modifier, taps set the tempo, and the looper records', async () => {
+    await window.getByTestId('cell-0-2').dblclick();
+    await window.getByRole('combobox', { name: 'Add a block…' }).fill('Delay');
+    await window.keyboard.press('Enter');
+    await expect(window.getByRole('gridcell', { name: /^Delay delay1/ })).toBeVisible();
+
+    // Right-click a knob: give it an LFO modifier.
+    await window.getByRole('slider', { name: /^Mix/ }).click({ button: 'right' });
+    await window.getByRole('menuitem', { name: 'Add modifier…' }).click();
+    await window.getByTestId('modifier-save').click();
+    await expect(window.getByLabel('Modified by lfo1')).toBeVisible();
+
+    // Four taps half a second apart: about 120 BPM (HTTP and click timing add a little).
+    for (let i = 0; i < 4; i++) {
+        await window.getByTestId('tap').click();
+        await window.waitForTimeout(500);
+    }
+
+    await expect(window.getByTestId('tempo')).toHaveText(/1[01]\d(\.\d)? BPM/);
+
+    await window.getByRole('button', { name: 'Looper' }).click();
+    await window.getByTestId('looper-record').click();
+    await window.waitForTimeout(600);
+    await window.getByTestId('looper-play').click();
+    await expect(window.getByRole('dialog', { name: 'Looper' }).getByText('playing')).toBeVisible();
+});
+
+test('the global page holds tempo, EQ, MIDI and footswitches', async () => {
+    await window.getByRole('link', { name: 'Global' }).click();
+    await expect(window.getByRole('heading', { name: 'Global output EQ' })).toBeVisible();
+    await window.getByRole('button', { name: 'New layout' }).click();
+    await window.getByRole('button', { name: 'Add switch' }).click();
+    await expect(window.getByLabel('Switch 1 tap action')).toHaveValue('scene 0');
+});
+
 test('the setup page shows the engine the desktop app started', async () => {
     await window.getByRole('link', { name: 'Setup' }).click();
     await expect(window.getByText('Backend')).toBeVisible();

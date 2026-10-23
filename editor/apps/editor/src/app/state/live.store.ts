@@ -4,6 +4,7 @@ import {
     type LiveState,
     type Preset,
     type PresetBlock,
+    type PresetModifier,
     type RigEvent,
     unwrap
 } from '@cathode/api-client';
@@ -116,9 +117,52 @@ export class LiveStore {
     removeCable = (from: string, to: string) =>
         this.mutate(c => c.DELETE('/api/v1/live/cables', { params: { query: { from, to } } }));
     selectScene = (scene: number) => this.mutate(c => c.PUT('/api/v1/live/scenes/active', { body: { scene } }));
+    setBypassMode = (id: string, mode: string) =>
+        this.mutate(c => c.PUT('/api/v1/live/blocks/{id}/bypass-mode', { params: { path: { id } }, body: { mode } }));
+    setModifiers = (modifiers: PresetModifier[]) =>
+        this.mutate(c => c.PUT('/api/v1/live/modifiers', { body: modifiers }));
+    setControllers = (values: Record<string, number>) =>
+        this.mutate(c => c.PATCH('/api/v1/live/controllers', { body: values }));
+    setTempo = (bpm: number) => this.mutate(c => c.PUT('/api/v1/live/tempo', { body: { bpm } }));
+    updateScene = (scene: number, change: { level?: number; controllers?: number[] }) =>
+        this.mutate(c =>
+            c.PATCH('/api/v1/live/scenes/{scene}', {
+                params: { path: { scene } },
+                body: { name: null, level: change.level ?? null, controllers: change.controllers ?? null }
+            })
+        );
+    copyChannel = (id: string, from: ChannelName, to: ChannelName) =>
+        this.mutate(c =>
+            c.POST('/api/v1/live/blocks/{id}/channels/copy', { params: { path: { id } }, body: { from, to } })
+        );
+    makeGlobal = (id: string, name: string) =>
+        this.mutate(c => c.POST('/api/v1/live/blocks/{id}/global', { params: { path: { id } }, body: { name } }));
+    useGlobal = (id: string, globalId: string) =>
+        this.mutate(c => c.PUT('/api/v1/live/blocks/{id}/global/{globalId}', { params: { path: { id, globalId } } }));
+    unlinkGlobal = (id: string) =>
+        this.mutate(c => c.DELETE('/api/v1/live/blocks/{id}/global', { params: { path: { id } } }));
+
+    /** The modifier on a parameter, if any. */
+    modifierOf(block: string, param: string): PresetModifier | undefined {
+        return this.preset()?.modifiers.find(m => m.block === block && m.param === param);
+    }
+
+    /** Adds, replaces (same parameter) or, with null, removes one modifier. */
+    putModifier(block: string, param: string, modifier: PresetModifier | null): Promise<boolean> {
+        const others = (this.preset()?.modifiers ?? []).filter(m => !(m.block === block && m.param === param));
+        return this.setModifiers(modifier ? [...others, modifier] : others);
+    }
+
+    async tap(): Promise<void> {
+        await this.connection.client.POST('/api/v1/live/tap');
+    }
+
     renameScene = (scene: number, name: string) =>
         this.mutate(c =>
-            c.PATCH('/api/v1/live/scenes/{scene}', { params: { path: { scene } }, body: { name, level: null } })
+            c.PATCH('/api/v1/live/scenes/{scene}', {
+                params: { path: { scene } },
+                body: { name, level: null, controllers: null }
+            })
         );
 
     /** Runs a mutation, adopts the state it answers with, and reports a failure. Resolves to whether it worked. */
