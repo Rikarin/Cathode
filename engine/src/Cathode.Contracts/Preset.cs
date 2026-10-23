@@ -33,6 +33,15 @@ public sealed class Preset {
     public List<Scene> Scenes { get; set; } =
         [..Enumerable.Range(1, SceneCount).Select(static n => new Scene { Name = $"Scene {n}" })];
 
+    /// <summary>Parameters driven by controllers (docs/02-architecture.md §5.4).</summary>
+    public List<PresetModifier> Modifiers { get; set; } = [];
+
+    /// <summary>
+    ///     Controller settings (LFO rates and shapes, ADSR times, envelope and sequencer settings) by rig parameter id,
+    ///     e.g. <c>lfo1Rate</c>. Sparse: missing ones take their default.
+    /// </summary>
+    public Dictionary<string, float> Controllers { get; set; } = [];
+
     public static string NewId() => Guid.NewGuid().ToString("n");
 
     /// <summary>The smallest working rig: Input 1 straight to Output 1 across the first row.</summary>
@@ -86,6 +95,15 @@ public sealed class PresetBlock {
     /// <summary>Asset slot to asset reference (<c>sha256:&lt;hex&gt;</c>), e.g. <c>"model"</c> or <c>"ir1"</c>.</summary>
     public Dictionary<string, string> Assets { get; set; } = [];
 
+    /// <summary>What bypassing does: thru, mute, muteIn or muteFxIn (the last two let tails spill over).</summary>
+    public string BypassMode { get; set; } = "thru";
+
+    /// <summary>
+    ///     The global block this block is linked to, if any: its channels and assets come from the global library and
+    ///     editing them edits every linked preset.
+    /// </summary>
+    public string? Global { get; set; }
+
     /// <summary>Parameter values of <paramref name="channel" />, creating the map if needed.</summary>
     public Dictionary<string, float> Channel(string channel) {
         if (!Channels.TryGetValue(channel, out var values)) {
@@ -111,6 +129,9 @@ public sealed class Scene {
     public float Level { get; set; }
 
     public Dictionary<string, SceneBlockState> Blocks { get; set; } = [];
+
+    /// <summary>Scene controllers 1-4 (0..1), modifier sources that change with the scene.</summary>
+    public List<float> Controllers { get; set; } = [0, 0, 0, 0];
 
     public SceneBlockState StateOf(string blockId) =>
         Blocks.TryGetValue(blockId, out var state) ? state : SceneBlockState.Default;
@@ -141,4 +162,25 @@ public sealed class Bank {
 
     /// <summary>Preset id per slot; null or missing slots are empty.</summary>
     public List<string?> Slots { get; set; } = [];
+}
+
+/// <summary>One modified parameter; see Cathode.Engine.Graph.ModifierDefinition for the semantics.</summary>
+public sealed class PresetModifier {
+    public string Block { get; set; } = string.Empty;
+
+    public string Param { get; set; } = string.Empty;
+
+    /// <summary>lfo1, lfo2, adsr1, adsr2, seq, env, pitch, manualA-D, scene1-4 or ext1-8.</summary>
+    public string Source { get; set; } = "lfo1";
+
+    public float Min { get; set; }
+
+    public float Max { get; set; } = 1f;
+
+    /// <summary>linear, exp, log or scurve.</summary>
+    public string Curve { get; set; } = "linear";
+
+    public float AttackMs { get; set; }
+
+    public float ReleaseMs { get; set; }
 }

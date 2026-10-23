@@ -5,6 +5,7 @@ using Cathode.Dsp.Native;
 using Cathode.Server;
 using Cathode.Server.Api;
 using Cathode.Server.Engine;
+using Cathode.Server.Midi;
 using Cathode.Server.Realtime;
 using Cathode.Server.Rig;
 using Cathode.Server.Stores;
@@ -38,7 +39,9 @@ builder.Services.AddSingleton<EventHub>();
 builder.Services.AddSingleton<EngineConnection>();
 builder.Services.AddSingleton<IEngineSync>(static s => s.GetRequiredService<EngineConnection>());
 builder.Services.AddHostedService(static s => s.GetRequiredService<EngineConnection>());
+builder.Services.AddSingleton<GlobalStore>();
 builder.Services.AddSingleton<LiveRig>();
+builder.Services.AddSingleton<MidiRouter>();
 
 var app = builder.Build();
 app.UseCathodeAccess(token);
@@ -47,7 +50,11 @@ app.MapOpenApi();
 app.MapCathodeApi();
 
 var rig = app.Services.GetRequiredService<LiveRig>();
-app.Services.GetRequiredService<EngineConnection>().Connected += () => rig.ResyncAsync();
+var engine = app.Services.GetRequiredService<EngineConnection>();
+engine.Connected += () => rig.ResyncAsync();
+engine.TelemetryUpdated += t => _ = rig.FollowEngineTempoAsync(t.Tempo);
+app.Services.GetRequiredService<GlobalStore>().Changed += rig.ApplyGlobalSettings;
+app.Services.GetRequiredService<MidiRouter>(); // listens from the start
 
 app.Run();
 

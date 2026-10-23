@@ -107,6 +107,37 @@ public sealed partial class EngineConnection(
         }
     }
 
+    public void Tap(long? sampleTime = null) => Enqueue(new() { Type = IpcTypes.Tap, Time = sampleTime });
+
+    public void Looper(string action) => Enqueue(new() { Type = IpcTypes.Looper, Action = action });
+
+    public Task ExportLooperAsync(string path) {
+        if (!IsConnected) {
+            return Task.FromException(new IOException("The engine is not connected."));
+        }
+
+        var reply = new TaskCompletionSource<IpcMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        queue.Writer.TryWrite(new(new() { Type = IpcTypes.ExportLooper, Path = path }, reply));
+        return reply.Task;
+    }
+
+    public void SetMidi(bool followClock) => Enqueue(new() { Type = IpcTypes.SetMidi, FollowClock = followClock });
+
+    public void MidiOut(string? destination, IReadOnlyList<byte> bytes) =>
+        Enqueue(new() { Type = IpcTypes.MidiOut, Destination = destination, Bytes = [..bytes.Select(static b => (int)b)] });
+
+    /// <summary>MIDI from the host's devices (or injected in process).</summary>
+    public event Action<IReadOnlyList<MidiEventMessage>>? MidiReceived;
+
+    /// <summary>The engine's tempo and looper as of the last IPC telemetry.</summary>
+    public HostTelemetry? LastTelemetry => telemetry;
+
+    void Enqueue(IpcMessage message) {
+        if (IsConnected) {
+            queue.Writer.TryWrite(new(message, null));
+        }
+    }
+
     public void SetTuner(bool enabled) {
         if (IsConnected) {
             queue.Writer.TryWrite(new(new() { Type = IpcTypes.SetTuner, Enabled = enabled }, null));
@@ -152,6 +183,7 @@ public sealed partial class EngineConnection(
         using var lost = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         current.Disconnected += () => lost.Cancel();
         current.TelemetryReceived += OnTelemetry;
+        current.MidiReceived += OnMidi;
         TelemetryRegion? mapped = null;
         Task meters = Task.CompletedTask;
         try {
@@ -189,6 +221,7 @@ public sealed partial class EngineConnection(
             // the link dropped; the outer loop reconnects
         } finally {
             current.TelemetryReceived -= OnTelemetry;
+            current.MidiReceived -= OnMidi;
             monitor = null;
             await lost.CancelAsync();
             await meters.ContinueWith(static _ => { }, TaskScheduler.Default);
@@ -241,12 +274,17 @@ public sealed partial class EngineConnection(
                     reading.OutputPeakRight,
                     reading.CpuP999,
                     reading.Overruns,
-                    Tuner(telemetry)
+                    Tuner(telemetry),
+                    telemetry?.Tempo ?? 120,
+                    Looper(telemetry)
                 ),
                 ContractsJsonContext.Default.Telemetry
             );
         }
     }
+
+    static LooperInfo? Looper(HostTelemetry? t) =>
+        t?.Looper is { } l ? new(l.State, l.LengthSeconds, l.PositionSeconds, l.Reversed, l.HalfSpeed) : null;
 
     static TunerInfo? Tuner(HostTelemetry? t) =>
         t?.Tuner is { } r ? new TunerInfo(r.Frequency, r.Note, r.Octave, r.Cents) : null;
@@ -277,11 +315,27 @@ public sealed partial class EngineConnection(
         }
     }
 
+    void OnMidi(IReadOnlyList<MidiEventMessage> messages) => MidiReceived?.Invoke(messages);
+
+    /// <summary>Raised for every IPC telemetry frame (about ten a second).</summary>
+    public event Action<HostTelemetry>? TelemetryUpdated;
+
     void OnTelemetry(HostTelemetry t) {
         telemetry = t;
+        TelemetryUpdated?.Invoke(t);
         if (monitor is null) {
             hub.Publish(
-                new("telemetry", t.InputPeak, t.OutputPeakLeft, t.OutputPeakRight, t.CpuP999, t.Overloads, Tuner(t)),
+                new(
+                    "telemetry",
+                    t.InputPeak,
+                    t.OutputPeakLeft,
+                    t.OutputPeakRight,
+                    t.CpuP999,
+                    t.Overloads,
+                    Tuner(t),
+                    t.Tempo,
+                    Looper(t)
+                ),
                 ContractsJsonContext.Default.Telemetry
             );
         }

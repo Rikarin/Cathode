@@ -391,6 +391,172 @@ export interface paths {
         patch: operations['UpdateScene'];
         trace?: never;
     };
+    '/api/v1/live/blocks/{id}/bypass-mode': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** thru, mute, muteIn or muteFxIn; the 'in' modes let delay and reverb tails spill over. */
+        put: operations['SetBypassMode'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/v1/live/modifiers': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replaces every modifier of the working copy. */
+        put: operations['SetModifiers'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/v1/live/controllers': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Controller settings by rig parameter id (lfo1Rate, adsr2Attack, envGain, seq3, ...). */
+        patch: operations['SetControllers'];
+        trace?: never;
+    };
+    '/api/v1/live/tempo': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations['SetTempo'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/v1/live/tap': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations['TapTempo'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/v1/live/blocks/{id}/channels/copy': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations['CopyChannel'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/v1/live/blocks/{id}/global': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Moves the block's settings to a new global block and links the block to it. */
+        post: operations['MakeGlobal'];
+        delete: operations['UnlinkGlobal'];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/v1/live/blocks/{id}/global/{globalId}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations['UseGlobal'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/v1/live/manual/{index}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Manual A-D (index 0-3), 0..1. */
+        put: operations['SetManual'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/v1/live/external/{index}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** External 1-8 (index 0-7), 0..1: what a pedal or CC would set. */
+        put: operations['SetExternal'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     '/api/v1/presets': {
         parameters: {
             query?: never;
@@ -519,6 +685,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    '/api/v1/global': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['GetGlobal'];
+        /** Replaces the global settings: tempo mode, metronome, EQ, Manual A-D, MIDI, footswitches, global blocks. */
+        put: operations['PutGlobal'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/v1/looper/{action}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** record, play, stop, overdub, undo, reverse, halfSpeed or clear. */
+        post: operations['LooperAction'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/v1/looper/export': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['ExportLoop'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/v1/midi/learn': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations['GetMidiLearn'];
+        /** The next CC, note or program change received is mapped to this action ('midiLearned' event). */
+        put: operations['StartMidiLearn'];
+        post?: never;
+        delete: operations['CancelMidiLearn'];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     '/api/v1/assets': {
         parameters: {
             query?: never;
@@ -610,6 +843,9 @@ export interface components {
             assetSlots: string[];
             params: components['schemas']['ParameterInfo'][];
         };
+        BypassModeRequest: {
+            mode: string;
+        };
         BypassRequest: {
             bypassed: boolean;
         };
@@ -619,6 +855,10 @@ export interface components {
         };
         ChannelRequest: {
             channel: string;
+        };
+        CopyChannelRequest: {
+            from: string;
+            to: string;
         };
         /**
          * @description Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole
@@ -680,11 +920,87 @@ export interface components {
              */
             hostAllocatedBytes: number;
         };
+        /**
+         * @description One switch: the message it sends (a CC or note; value 64 or more is "down"), what a tap does, what holding it for
+         *     half a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is
+         *     active, 0 when not).
+         */
+        Footswitch: {
+            /** Format: int32 */
+            index: number;
+            label: string;
+            message: string;
+            /** Format: int32 */
+            channel: number;
+            /** Format: int32 */
+            number: number;
+            tap: components['schemas']['SwitchAction'];
+            hold: null | components['schemas']['SwitchAction'];
+            /** @default true */
+            led: boolean;
+        };
+        /** @description A set of footswitches on a generic MIDI foot controller. */
+        FootswitchLayout: {
+            id: string;
+            name: string;
+            switches: components['schemas']['Footswitch'][];
+        };
+        /** @description A block shared by presets: linking a preset block to it makes its settings global. */
+        GlobalBlock: {
+            id: string;
+            name: string;
+            type: string;
+            channels: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
+            assets: {
+                [key: string]: string;
+            };
+        };
+        /**
+         * @description Settings that belong to the rig rather than to any preset: tempo source, metronome, the global output EQ,
+         *     Manual A-D, MIDI mappings, footswitch layouts and the global block library. Stored as one document.
+         */
+        GlobalSettings: {
+            /** Format: int32 */
+            schemaVersion: number;
+            /** @description preset (each preset's tempo), global (one tempo for everything) or midiClock (follow MIDI clock). */
+            tempoMode: string;
+            /**
+             * Format: double
+             * @description The tempo in global mode.
+             */
+            tempo: number;
+            metronome: boolean;
+            /** Format: float */
+            metronomeLevel: number;
+            /** @description The global output EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse. */
+            eq: {
+                [key: string]: number;
+            };
+            /** @description Manual A-D (0..1): modifier sources a person or pedal sets, shared by every preset. */
+            manual: number[];
+            /**
+             * Format: int32
+             * @description MIDI channel the rig listens on (1-16), or 0 for all.
+             */
+            midiChannel: number;
+            midiMappings: components['schemas']['MidiMapping'][];
+            footswitches: components['schemas']['FootswitchLayout'][];
+            /** @description The layout in use, by id. */
+            activeLayout?: null | string;
+            blocks: components['schemas']['GlobalBlock'][];
+        };
         ImportResult: {
             preset: components['schemas']['PresetSummary'];
             /** Format: int32 */
             assetsAdded: number;
             renamed: boolean;
+        };
+        LinkGlobalRequest: {
+            name?: null | string;
         };
         /** @description The rig as it is running: the working copy, which scene is active, and whether it differs from the library. */
         LiveState: {
@@ -696,6 +1012,32 @@ export interface components {
             dirty: boolean;
             canUndo: boolean;
             canRedo: boolean;
+        };
+        /** @description Arms MIDI learn: the next CC, note or program change received is bound to this action. */
+        MidiLearnRequest: {
+            action: string;
+            target?: null | string;
+            /** Format: int32 */
+            value?: null | number;
+        };
+        /**
+         * @description A MIDI message bound to an action. `Message` is cc, note or pc; `Channel` 0 means any. Actions:
+         *     scene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank
+         *     id, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,
+         *     Value = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,
+         *     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear).
+         */
+        MidiMapping: {
+            id: string;
+            message: string;
+            /** Format: int32 */
+            channel: number;
+            /** Format: int32 */
+            number: number;
+            action: string;
+            target?: null | string;
+            /** Format: int32 */
+            value?: null | number;
         };
         MoveBlockRequest: {
             /** Format: int32 */
@@ -737,6 +1079,15 @@ export interface components {
             blocks: components['schemas']['PresetBlock'][];
             cables: components['schemas']['PresetCable'][];
             scenes: components['schemas']['Scene'][];
+            /** @description Parameters driven by controllers (docs/02-architecture.md §5.4). */
+            modifiers: components['schemas']['PresetModifier'][];
+            /**
+             * @description Controller settings (LFO rates and shapes, ADSR times, envelope and sequencer settings) by rig parameter id,
+             *     e.g. `lfo1Rate`. Sparse: missing ones take their default.
+             */
+            controllers: {
+                [key: string]: number;
+            };
         };
         PresetBlock: {
             /** @description Stable instance id such as `amp1`; never an index. */
@@ -756,10 +1107,34 @@ export interface components {
             assets: {
                 [key: string]: string;
             };
+            /** @description What bypassing does: thru, mute, muteIn or muteFxIn (the last two let tails spill over). */
+            bypassMode: string;
+            /**
+             * @description The global block this block is linked to, if any: its channels and assets come from the global library and
+             *     editing them edits every linked preset.
+             */
+            global?: null | string;
         };
         PresetCable: {
             from: string;
             to: string;
+        };
+        /** @description One modified parameter; see Cathode.Engine.Graph.ModifierDefinition for the semantics. */
+        PresetModifier: {
+            block: string;
+            param: string;
+            /** @description lfo1, lfo2, adsr1, adsr2, seq, env, pitch, manualA-D, scene1-4 or ext1-8. */
+            source: string;
+            /** Format: float */
+            min: number;
+            /** Format: float */
+            max: number;
+            /** @description linear, exp, log or scurve. */
+            curve: string;
+            /** Format: float */
+            attackMs: number;
+            /** Format: float */
+            releaseMs: number;
         };
         PresetSummary: {
             id: string;
@@ -785,6 +1160,8 @@ export interface components {
             blocks: {
                 [key: string]: components['schemas']['SceneBlockState'];
             };
+            /** @description Scene controllers 1-4 (0..1), modifier sources that change with the scene. */
+            controllers: number[];
         };
         SceneBlockState: {
             /** @default false */
@@ -800,6 +1177,7 @@ export interface components {
             name?: null | string;
             /** Format: float */
             level?: null | number;
+            controllers?: null | number[];
         };
         ScopeRequest: {
             enabled: boolean;
@@ -821,9 +1199,24 @@ export interface components {
         };
         /** Format: binary */
         Stream: string;
+        /** @description An action, with the same vocabulary as MidiMapping. */
+        SwitchAction: {
+            action: string;
+            target?: null | string;
+            /** Format: int32 */
+            value?: null | number;
+        };
         SystemInfo: {
             version: string;
             engine: components['schemas']['EngineStatus'];
+        };
+        TempoRequest: {
+            /** Format: double */
+            bpm: number;
+        };
+        ValueRequest: {
+            /** Format: float */
+            value: number;
         };
     };
     responses: never;
@@ -1439,6 +1832,283 @@ export interface operations {
             };
         };
     };
+    SetBypassMode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['BypassModeRequest'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['LiveState'];
+                };
+            };
+        };
+    };
+    SetModifiers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['PresetModifier'][];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['LiveState'];
+                };
+            };
+        };
+    };
+    SetControllers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': {
+                    [key: string]: number;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['LiveState'];
+                };
+            };
+        };
+    };
+    SetTempo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['TempoRequest'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['LiveState'];
+                };
+            };
+        };
+    };
+    TapTempo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CopyChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['CopyChannelRequest'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['LiveState'];
+                };
+            };
+        };
+    };
+    MakeGlobal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['LinkGlobalRequest'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['LiveState'];
+                };
+            };
+        };
+    };
+    UnlinkGlobal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['LiveState'];
+                };
+            };
+        };
+    };
+    UseGlobal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                globalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['LiveState'];
+                };
+            };
+        };
+    };
+    SetManual: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['ValueRequest'];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SetExternal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['ValueRequest'];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ListPresets: {
         parameters: {
             query?: never;
@@ -1780,6 +2450,157 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetGlobal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['GlobalSettings'];
+                };
+            };
+        };
+    };
+    PutGlobal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['GlobalSettings'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['GlobalSettings'];
+                };
+            };
+        };
+    };
+    LooperAction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': string;
+                };
+            };
+        };
+    };
+    ExportLoop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetMidiLearn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['MidiLearnRequest'];
+                };
+            };
+        };
+    };
+    StartMidiLearn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['MidiLearnRequest'];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CancelMidiLearn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -1,5 +1,7 @@
 using System.Text.Json;
 using Cathode.Contracts;
+using Cathode.Dsp.Blocks;
+using Cathode.Engine.Rig;
 using Cathode.Ipc;
 using Cathode.Server.Engine;
 using Cathode.Server.Realtime;
@@ -13,12 +15,13 @@ namespace Cathode.Server.Rig;
 ///     rejects them; knobs, scenes and channels only send parameter and bypass commands. Every change raises an
 ///     event for WebSocket clients. All operations are serialised.
 /// </summary>
-public sealed class LiveRig(
+public sealed partial class LiveRig(
     BlockCatalog catalog,
     AssetStore assets,
     PresetStore presets,
     IEngineSync engine,
-    EventHub hub) : IDisposable {
+    EventHub hub,
+    GlobalStore globals) : IDisposable {
     const int UndoLimit = 100;
 
     readonly SemaphoreSlim gate = new(1, 1);
@@ -31,7 +34,26 @@ public sealed class LiveRig(
     int generation;
     string? coalesceKey;
 
+    /// <summary>Controller settings a preset may store; the rest of the rig bank is scene, global or live state.</summary>
+    static readonly HashSet<string> ControllerParams = [
+        ..RigControls.Descriptor.Params.Select(static p => p.Id)
+            .Where(static id => id.StartsWith("lfo", StringComparison.Ordinal)
+                || id.StartsWith("adsr", StringComparison.Ordinal)
+                || id.StartsWith("env", StringComparison.Ordinal)
+                || id.StartsWith("seq", StringComparison.Ordinal)
+                || id is "pitchLow" or "pitchHigh")
+    ];
+
+    /// <summary>Raised (inside the rig's lock) for every change, like the WebSocket events: for in-process listeners.</summary>
+    public event Action<RigEvent>? Changes;
+
     public void Dispose() => gate.Dispose();
+
+    /// <summary>The active scene, for listeners that must not wait for the lock (footswitch LEDs).</summary>
+    public int ActiveScene => Volatile.Read(ref activeScene);
+
+    /// <summary>Whether a block is bypassed in the active scene (unlocked read for LED feedback).</summary>
+    public bool IsBypassed(string block) => preset.Scenes[ActiveScene].StateOf(block).Bypassed;
 
     public Task<LiveState> StateAsync() => Locked(() => Task.FromResult(State()));
 
@@ -61,6 +83,7 @@ public sealed class LiveRig(
                 }
 
                 CheckScene(scene);
+                ApplyGlobals(loaded);
                 await ReplaceAsync(loaded, scene);
                 return Changed("presetLoaded", scene: scene);
             }
@@ -292,13 +315,19 @@ public sealed class LiveRig(
                     engine.SetParams(generation, sent);
                 }
 
+                if (block.Global is { } link) {
+                    globals.Update(g => {
+                            if (g.Blocks.FirstOrDefault(b => b.Id == link) is { } shared) {
+                                shared.Channels[target] = new(stored);
+                            }
+                        }
+                    );
+                }
+
                 revision++;
                 dirty = true;
                 foreach (var value in sent) {
-                    hub.Publish(
-                        new("paramChanged", revision, id, target, value.Param, value.Value),
-                        ContractsJsonContext.Default.RigEvent
-                    );
+                    Publish(new("paramChanged", revision, id, target, value.Param, value.Value));
                 }
 
                 return Task.FromResult(State());
@@ -356,8 +385,9 @@ public sealed class LiveRig(
                 }
 
                 activeScene = scene;
+                engine.SetParams(generation, SceneValues());
                 revision++;
-                hub.Publish(new("sceneChanged", revision, Scene: scene), ContractsJsonContext.Default.RigEvent);
+                Publish(new("sceneChanged", revision, Scene: scene));
                 return Task.FromResult(State());
             }
         );
@@ -373,11 +403,15 @@ public sealed class LiveRig(
                 }
 
                 if (request.Level is { } level) {
-                    target.Level = Math.Clamp(
-                        level,
-                        -80f,
-                        20f
-                    ); // applied to the output once the Output block has a level (Phase 5)
+                    target.Level = Math.Clamp(level, -60f, 12f);
+                }
+
+                if (request.Controllers is { Count: 4 } controllers) {
+                    target.Controllers = [..controllers.Select(static c => Math.Clamp(c, 0f, 1f))];
+                }
+
+                if (scene == activeScene) {
+                    engine.SetParams(generation, SceneValues());
                 }
 
                 return Task.FromResult(Changed("sceneUpdated", scene: scene));
@@ -450,9 +484,68 @@ public sealed class LiveRig(
         return Changed(eventType);
     }
 
-    Task SyncGraphAsync() {
+    async Task SyncGraphAsync() {
         generation++;
-        return engine.LoadGraphAsync(PresetGraph.Build(preset, activeScene, assets), generation);
+        await engine.LoadGraphAsync(PresetGraph.Build(preset, activeScene, assets), generation);
+        engine.SetParams(generation, [..RigValues(), ..GlobalValues(globals.Get())]);
+    }
+
+    /// <summary>The rig bank as this preset and scene set it: controllers, tempo, scene level and controllers.</summary>
+    List<ParamValue> RigValues() {
+        var values = new List<ParamValue>(SceneValues());
+        foreach (var id in ControllerParams) {
+            var param = RigControls.Descriptor.Params[RigControls.Descriptor.IndexOf(id)];
+            values.Add(new(IpcBlocks.Rig, id, preset.Controllers.GetValueOrDefault(id, param.Default)));
+        }
+
+        var global = globals.Get();
+        if (global.TempoMode == "preset") {
+            values.Add(new(IpcBlocks.Rig, "tempo", (float)preset.Tempo));
+        }
+
+        return values;
+    }
+
+    List<ParamValue> SceneValues() {
+        var scene = preset.Scenes[activeScene];
+        return [
+            new(IpcBlocks.Rig, "level", scene.Level),
+            ..scene.Controllers.Take(4).Select(static (v, i) => new ParamValue(IpcBlocks.Rig, $"scene{i + 1}", v))
+        ];
+    }
+
+    /// <summary>Everything the global settings put into the engine: tempo (global mode), metronome, Manual A-D, EQ.</summary>
+    public static List<ParamValue> GlobalValues(GlobalSettings global) {
+        var values = new List<ParamValue> {
+            new(IpcBlocks.Rig, "metronome", global.Metronome ? 1 : 0),
+            new(IpcBlocks.Rig, "metroLevel", global.MetronomeLevel)
+        };
+        if (global.TempoMode == "global") {
+            values.Add(new(IpcBlocks.Rig, "tempo", (float)global.Tempo));
+        }
+
+        values.AddRange(global.Manual.Take(4).Select(static (v, i) => new ParamValue(IpcBlocks.Rig, $"manual{(char)('A' + i)}", v)));
+        foreach (var param in GraphicEqBlock.Info.Params) {
+            values.Add(new(IpcBlocks.Global, param.Id, global.Eq.GetValueOrDefault(param.Id, param.Default)));
+        }
+
+        return values;
+    }
+
+    /// <summary>Linked blocks take their settings from the global library (when it still has them).</summary>
+    void ApplyGlobals(Preset target) {
+        var library = globals.Get().Blocks;
+        foreach (var block in target.Blocks.Where(static b => b.Global is not null)) {
+            if (library.FirstOrDefault(g => g.Id == block.Global && g.Type == block.Type) is { } shared) {
+                block.Channels = shared.Channels.ToDictionary(static c => c.Key, static c => new Dictionary<string, float>(c.Value));
+                block.Assets = new(shared.Assets);
+            }
+        }
+    }
+
+    void Publish(RigEvent change) {
+        hub.Publish(change, ContractsJsonContext.Default.RigEvent);
+        Changes?.Invoke(change);
     }
 
     /// <summary>Records an undo point unless this edit continues the previous one (e.g. a knob being dragged).</summary>
@@ -488,7 +581,7 @@ public sealed class LiveRig(
     ) {
         revision++;
         dirty |= markDirty;
-        hub.Publish(new(eventType, revision, block, channel, Scene: scene), ContractsJsonContext.Default.RigEvent);
+        Publish(new(eventType, revision, block, channel, Scene: scene));
         return State();
     }
 

@@ -20,4 +20,16 @@ public interface IEngineSync {
     void SetBypass(int generation, string block, bool bypassed);
 
     void SetTuner(bool enabled);
+
+    /// <summary>A tap; <paramref name="sampleTime" /> places it exactly (from a MIDI timestamp), null means now.</summary>
+    void Tap(long? sampleTime = null);
+
+    void Looper(string action);
+
+    /// <summary>Writes the current loop to <paramref name="path" /> as a WAV file.</summary>
+    Task ExportLooperAsync(string path);
+
+    void SetMidi(bool followClock);
+
+    void MidiOut(string? destination, IReadOnlyList<byte> bytes);
 }

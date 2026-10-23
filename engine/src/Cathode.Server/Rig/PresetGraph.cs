@@ -10,7 +10,13 @@ public static class PresetGraph {
         var scene = preset.Scenes[sceneIndex];
         var graph = new GraphDefinition { Rows = preset.Rows, Columns = preset.Columns };
         foreach (var block in preset.Blocks) {
-            var node = new NodeDefinition { Id = block.Id, Type = block.Type, Row = block.Row, Column = block.Column };
+            var node = new NodeDefinition {
+                Id = block.Id,
+                Type = block.Type,
+                Row = block.Row,
+                Column = block.Column,
+                BypassMode = block.BypassMode
+            };
             if (!BuiltInTypes.IsBuiltIn(block.Type)) {
                 var state = scene.StateOf(block.Id);
                 node.Bypassed = state.Bypassed;
@@ -28,6 +34,20 @@ public static class PresetGraph {
         }
 
         graph.Cables.AddRange(preset.Cables.Select(static c => new CableDefinition { From = c.From, To = c.To }));
+        graph.Modifiers.AddRange(
+            preset.Modifiers.Where(m => preset.Blocks.Any(b => b.Id == m.Block))
+                .Select(static m => new ModifierDefinition {
+                        Block = m.Block,
+                        Param = m.Param,
+                        Source = m.Source,
+                        Min = m.Min,
+                        Max = m.Max,
+                        Curve = m.Curve,
+                        AttackMs = m.AttackMs,
+                        ReleaseMs = m.ReleaseMs
+                    }
+                )
+        );
         return graph;
     }
 }

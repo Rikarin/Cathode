@@ -72,7 +72,7 @@ public sealed record AssetRequest(string Asset);
 
 public sealed record SceneSelectRequest(int Scene);
 
-public sealed record SceneUpdateRequest(string? Name = null, float? Level = null);
+public sealed record SceneUpdateRequest(string? Name = null, float? Level = null, List<float>? Controllers = null);
 
 public sealed record SaveRequest(string? Name = null, bool AsNew = false);
 
@@ -94,7 +94,9 @@ public sealed record Telemetry(
     float OutputPeakRight,
     double CpuP999,
     long Overloads,
-    TunerInfo? Tuner);
+    TunerInfo? Tuner,
+    double Tempo = 120,
+    LooperInfo? Looper = null);
 
 /// <summary>
 ///     Pushed about 30 times a second while the scope is on (<c>PUT /api/v1/scope</c>): the most recent output samples

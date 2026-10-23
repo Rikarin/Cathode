@@ -30,6 +30,10 @@ public sealed class ServerFixture(string? socketPath = null, string? token = nul
         }
     }
 
+    /// <summary>The in-process engine host (in-process mode only).</summary>
+    public EngineHostService Host =>
+        ((InProcessEngineLink)Services.GetRequiredService<EngineConnection>().Link!).Service;
+
     public CompiledGraph? Graph =>
         (Services.GetRequiredService<EngineConnection>().Link as InProcessEngineLink)?.Service.Engine.Current;
 

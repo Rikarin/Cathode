@@ -810,6 +810,382 @@
         }
       }
     },
+    "/api/v1/live/blocks/{id}/bypass-mode": {
+      "put": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "thru, mute, muteIn or muteFxIn; the \u0027in\u0027 modes let delay and reverb tails spill over.",
+        "operationId": "SetBypassMode",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BypassModeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/modifiers": {
+      "put": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Replaces every modifier of the working copy.",
+        "operationId": "SetModifiers",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PresetModifier"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/controllers": {
+      "patch": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Controller settings by rig parameter id (lfo1Rate, adsr2Attack, envGain, seq3, ...).",
+        "operationId": "SetControllers",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "number",
+                  "format": "float"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/tempo": {
+      "put": {
+        "tags": [
+          "Live"
+        ],
+        "operationId": "SetTempo",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TempoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/tap": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "operationId": "TapTempo",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/live/blocks/{id}/channels/copy": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "operationId": "CopyChannel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CopyChannelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/blocks/{id}/global": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Moves the block\u0027s settings to a new global block and links the block to it.",
+        "operationId": "MakeGlobal",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkGlobalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Live"
+        ],
+        "operationId": "UnlinkGlobal",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/blocks/{id}/global/{globalId}": {
+      "put": {
+        "tags": [
+          "Live"
+        ],
+        "operationId": "UseGlobal",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "globalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/manual/{index}": {
+      "put": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Manual A-D (index 0-3), 0..1.",
+        "operationId": "SetManual",
+        "parameters": [
+          {
+            "name": "index",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/v1/live/external/{index}": {
+      "put": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "External 1-8 (index 0-7), 0..1: what a pedal or CC would set.",
+        "operationId": "SetExternal",
+        "parameters": [
+          {
+            "name": "index",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
     "/api/v1/presets": {
       "get": {
         "tags": [
@@ -1210,6 +1586,155 @@
         }
       }
     },
+    "/api/v1/global": {
+      "get": {
+        "tags": [
+          "Global"
+        ],
+        "operationId": "GetGlobal",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Global"
+        ],
+        "summary": "Replaces the global settings: tempo mode, metronome, EQ, Manual A-D, MIDI, footswitches, global blocks.",
+        "operationId": "PutGlobal",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GlobalSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalSettings"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/looper/{action}": {
+      "post": {
+        "tags": [
+          "Looper"
+        ],
+        "summary": "record, play, stop, overdub, undo, reverse, halfSpeed or clear.",
+        "operationId": "LooperAction",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/looper/export": {
+      "get": {
+        "tags": [
+          "Looper"
+        ],
+        "operationId": "ExportLoop",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/midi/learn": {
+      "get": {
+        "tags": [
+          "MIDI"
+        ],
+        "operationId": "GetMidiLearn",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MidiLearnRequest"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "MIDI"
+        ],
+        "summary": "The next CC, note or program change received is mapped to this action (\u0027midiLearned\u0027 event).",
+        "operationId": "StartMidiLearn",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MidiLearnRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "MIDI"
+        ],
+        "operationId": "CancelMidiLearn",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
     "/api/v1/assets": {
       "get": {
         "tags": [
@@ -1458,6 +1983,17 @@
           }
         }
       },
+      "BypassModeRequest": {
+        "required": [
+          "mode"
+        ],
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string"
+          }
+        }
+      },
       "BypassRequest": {
         "required": [
           "bypassed"
@@ -1491,6 +2027,21 @@
         "type": "object",
         "properties": {
           "channel": {
+            "type": "string"
+          }
+        }
+      },
+      "CopyChannelRequest": {
+        "required": [
+          "from",
+          "to"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
             "type": "string"
           }
         }
@@ -1596,6 +2147,203 @@
         },
         "description": "Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole\ndriver callback); overloads and the host\u0027s GC counts are cumulative since the host started."
       },
+      "Footswitch": {
+        "required": [
+          "index",
+          "label",
+          "message",
+          "channel",
+          "number",
+          "tap",
+          "hold",
+          "led"
+        ],
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "label": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tap": {
+            "$ref": "#/components/schemas/SwitchAction"
+          },
+          "hold": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SwitchAction"
+              }
+            ]
+          },
+          "led": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "description": "One switch: the message it sends (a CC or note; value 64 or more is \u0022down\u0022), what a tap does, what holding it for\nhalf a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is\nactive, 0 when not)."
+      },
+      "FootswitchLayout": {
+        "required": [
+          "id",
+          "name",
+          "switches"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "switches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Footswitch"
+            }
+          }
+        },
+        "description": "A set of footswitches on a generic MIDI foot controller."
+      },
+      "GlobalBlock": {
+        "required": [
+          "id",
+          "name",
+          "type",
+          "channels",
+          "assets"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "channels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "number",
+                "format": "float"
+              }
+            }
+          },
+          "assets": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "A block shared by presets: linking a preset block to it makes its settings global."
+      },
+      "GlobalSettings": {
+        "required": [
+          "schemaVersion",
+          "tempoMode",
+          "tempo",
+          "metronome",
+          "metronomeLevel",
+          "eq",
+          "manual",
+          "midiChannel",
+          "midiMappings",
+          "footswitches",
+          "blocks"
+        ],
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tempoMode": {
+            "type": "string",
+            "description": "preset (each preset\u0027s tempo), global (one tempo for everything) or midiClock (follow MIDI clock)."
+          },
+          "tempo": {
+            "type": "number",
+            "description": "The tempo in global mode.",
+            "format": "double"
+          },
+          "metronome": {
+            "type": "boolean"
+          },
+          "metronomeLevel": {
+            "type": "number",
+            "format": "float"
+          },
+          "eq": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number",
+              "format": "float"
+            },
+            "description": "The global output EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse."
+          },
+          "manual": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "float"
+            },
+            "description": "Manual A-D (0..1): modifier sources a person or pedal sets, shared by every preset."
+          },
+          "midiChannel": {
+            "type": "integer",
+            "description": "MIDI channel the rig listens on (1-16), or 0 for all.",
+            "format": "int32"
+          },
+          "midiMappings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MidiMapping"
+            }
+          },
+          "footswitches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FootswitchLayout"
+            }
+          },
+          "activeLayout": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The layout in use, by id."
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GlobalBlock"
+            }
+          }
+        },
+        "description": "Settings that belong to the rig rather than to any preset: tempo source, metronome, the global output EQ,\nManual A-D, MIDI mappings, footswitch layouts and the global block library. Stored as one document."
+      },
       "ImportResult": {
         "required": [
           "preset",
@@ -1613,6 +2361,17 @@
           },
           "renamed": {
             "type": "boolean"
+          }
+        }
+      },
+      "LinkGlobalRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -1649,6 +2408,74 @@
           }
         },
         "description": "The rig as it is running: the working copy, which scene is active, and whether it differs from the library."
+      },
+      "MidiLearnRequest": {
+        "required": [
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "target": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "value": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Arms MIDI learn: the next CC, note or program change received is bound to this action."
+      },
+      "MidiMapping": {
+        "required": [
+          "id",
+          "message",
+          "channel",
+          "number",
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "action": {
+            "type": "string"
+          },
+          "target": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "value": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "A MIDI message bound to an action. \u0060Message\u0060 is cc, note or pc; \u0060Channel\u0060 0 means any. Actions:\nscene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank\nid, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,\nValue = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,\nmetronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear)."
       },
       "MoveBlockRequest": {
         "required": [
@@ -1729,7 +2556,9 @@
           "columns",
           "blocks",
           "cables",
-          "scenes"
+          "scenes",
+          "modifiers",
+          "controllers"
         ],
         "type": "object",
         "properties": {
@@ -1784,6 +2613,21 @@
             "items": {
               "$ref": "#/components/schemas/Scene"
             }
+          },
+          "modifiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PresetModifier"
+            },
+            "description": "Parameters driven by controllers (docs/02-architecture.md \u00A75.4)."
+          },
+          "controllers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number",
+              "format": "float"
+            },
+            "description": "Controller settings (LFO rates and shapes, ADSR times, envelope and sequencer settings) by rig parameter id,\ne.g. \u0060lfo1Rate\u0060. Sparse: missing ones take their default."
           }
         },
         "description": "A complete rig: grid, blocks with up to four channels each, cables and eight scenes. Parameter values are stored\nsparsely; anything not listed takes the block type\u0027s default, so new parameters need no migration."
@@ -1795,7 +2639,8 @@
           "row",
           "column",
           "channels",
-          "assets"
+          "assets",
+          "bypassMode"
         ],
         "type": "object",
         "properties": {
@@ -1831,6 +2676,17 @@
               "type": "string"
             },
             "description": "Asset slot to asset reference (\u0060sha256:\u0026lt;hex\u0026gt;\u0060), e.g. \u0060\u0022model\u0022\u0060 or \u0060\u0022ir1\u0022\u0060."
+          },
+          "bypassMode": {
+            "type": "string",
+            "description": "What bypassing does: thru, mute, muteIn or muteFxIn (the last two let tails spill over)."
+          },
+          "global": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The global block this block is linked to, if any: its channels and assets come from the global library and\nediting them edits every linked preset."
           }
         }
       },
@@ -1848,6 +2704,52 @@
             "type": "string"
           }
         }
+      },
+      "PresetModifier": {
+        "required": [
+          "block",
+          "param",
+          "source",
+          "min",
+          "max",
+          "curve",
+          "attackMs",
+          "releaseMs"
+        ],
+        "type": "object",
+        "properties": {
+          "block": {
+            "type": "string"
+          },
+          "param": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "description": "lfo1, lfo2, adsr1, adsr2, seq, env, pitch, manualA-D, scene1-4 or ext1-8."
+          },
+          "min": {
+            "type": "number",
+            "format": "float"
+          },
+          "max": {
+            "type": "number",
+            "format": "float"
+          },
+          "curve": {
+            "type": "string",
+            "description": "linear, exp, log or scurve."
+          },
+          "attackMs": {
+            "type": "number",
+            "format": "float"
+          },
+          "releaseMs": {
+            "type": "number",
+            "format": "float"
+          }
+        },
+        "description": "One modified parameter; see Cathode.Engine.Graph.ModifierDefinition for the semantics."
       },
       "PresetSummary": {
         "required": [
@@ -1904,7 +2806,8 @@
         "required": [
           "name",
           "level",
-          "blocks"
+          "blocks",
+          "controllers"
         ],
         "type": "object",
         "properties": {
@@ -1921,6 +2824,14 @@
             "additionalProperties": {
               "$ref": "#/components/schemas/SceneBlockState"
             }
+          },
+          "controllers": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "float"
+            },
+            "description": "Scene controllers 1-4 (0..1), modifier sources that change with the scene."
           }
         },
         "description": "Which channel each block uses and whether it is bypassed. Blocks not listed use channel A, engaged."
@@ -1969,6 +2880,16 @@
               "number"
             ],
             "format": "float"
+          },
+          "controllers": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "number",
+              "format": "float"
+            }
           }
         }
       },
@@ -2033,6 +2954,31 @@
         "type": "string",
         "format": "binary"
       },
+      "SwitchAction": {
+        "required": [
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "target": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "value": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "An action, with the same vocabulary as MidiMapping."
+      },
       "SystemInfo": {
         "required": [
           "version",
@@ -2045,6 +2991,30 @@
           },
           "engine": {
             "$ref": "#/components/schemas/EngineStatus"
+          }
+        }
+      },
+      "TempoRequest": {
+        "required": [
+          "bpm"
+        ],
+        "type": "object",
+        "properties": {
+          "bpm": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ValueRequest": {
+        "required": [
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "format": "float"
           }
         }
       }
@@ -2068,6 +3038,15 @@
     },
     {
       "name": "Banks"
+    },
+    {
+      "name": "Global"
+    },
+    {
+      "name": "Looper"
+    },
+    {
+      "name": "MIDI"
     },
     {
       "name": "Assets"
