@@ -59,10 +59,10 @@ Ordered by value to a guitarist:
 4. [x] **Drive**: Overdrive / Distortion / Fuzz voicings, ADAA clippers inside 4× IIR half-band oversampling (signal-to-aliasing 63–73 dB at full drive, 2.5 kHz). *Still to do:* WDF circuit models (TS, Rat, Klon)
 5. [x] **Delay**: digital, analog (dark, saturating repeats), tape (wow/flutter, saturation); tempo sync; Hermite interpolation; spillover-ready
 6. [ ] **Reverb**: 8-line FDN Room / Hall / Plate ✅ (T60 within 20 % of the setting). *Still to do:* a Dattorro plate and a spring (dispersion allpass chain)
-7. [ ] **Compressor** (feed-forward VCA and opto-style), **PEQ** (5-band TPT), **GEQ** (10-band)
-8. [ ] **Chorus**, **Flanger**, **Phaser**, **Tremolo/Panner** (shared modulated-delay and LFO core)
-9. [ ] **Wah** (inductor-wah model, expression-driven)
-10. [ ] **Tuner** (MPM, analysis thread) and **CPU meter**
+7. [x] **Compressor** (Pedal/Studio/Opto, soft knee, parallel mix), **PEQ** (5-band SVF), **GEQ** (10-band octave)
+8. [x] **Chorus**, **Flanger**, **Phaser**, **Tremolo/Panner** (shared LFO and Hermite delay line)
+9. [x] **Wah** (Classic/Vox/Wide resonant sweep). *Still to do:* a component-level inductor model; driving it from an expression pedal comes with modifiers in Phase 5
+10. [x] **Tuner** (MPM via FFT NSDF on the analysis thread, fed by `CathodeEngine.InputTap`; within 0.01 cent from 41 to 440 Hz) and **CPU meter** (callback stats). *Still to do:* strobe display and mute modes belong to the editor and API
 
 **Exit:**
 - a "Plexi crunch → cab → delay → plate" and a "high-gain NAM → gate → cab → stereo delay → hall" preset each run under 25 % of one core

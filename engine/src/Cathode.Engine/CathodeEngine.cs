@@ -21,6 +21,7 @@ public sealed class CathodeEngine : IAudioProcessor
     private CompiledGraph? _current;
     private CompiledGraph? _retired;
     private long _sampleTime;
+    private bool _inputTapEnabled;
 
     public CathodeEngine(ProcessSpec spec, int commandCapacity = 1024)
     {
@@ -38,6 +39,19 @@ public sealed class CathodeEngine : IAudioProcessor
     public CompiledGraph? Current => Volatile.Read(ref _current);
 
     public long SampleTime => Volatile.Read(ref _sampleTime);
+
+    /// <summary>
+    /// Input samples (left channel) for analysis on another thread, e.g. the tuner. Written by the audio thread only
+    /// while <see cref="InputTapEnabled"/> is set.
+    /// </summary>
+    public SampleRing InputTap { get; } = new(16_384);
+
+    /// <summary>Any thread: start or stop feeding <see cref="InputTap"/>.</summary>
+    public bool InputTapEnabled
+    {
+        get => Volatile.Read(ref _inputTapEnabled);
+        set => Volatile.Write(ref _inputTapEnabled, value);
+    }
 
     /// <summary>Control side: hand a prepared graph to the audio thread.</summary>
     public void Publish(CompiledGraph graph)
@@ -78,6 +92,11 @@ public sealed class CathodeEngine : IAudioProcessor
                 // If the control side has not collected the last retired graph it is simply dropped to the GC.
                 Interlocked.Exchange(ref _retired, previous);
             }
+        }
+
+        if (_inputTapEnabled)
+        {
+            InputTap.Write(io.InputLeft);
         }
 
         var graph = _current;
