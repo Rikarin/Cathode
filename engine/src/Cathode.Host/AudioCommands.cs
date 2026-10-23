@@ -29,6 +29,16 @@ static class AudioCommands {
             }
 
             json.WriteEndArray();
+            json.WriteStartArray("midiPorts");
+            foreach (var port in NativeMidi.Ports()) {
+                json.WriteStartObject();
+                json.WriteString("uid", port.Uid);
+                json.WriteString("name", port.Name);
+                json.WriteBoolean("isInput", port.IsInput);
+                json.WriteEndObject();
+            }
+
+            json.WriteEndArray();
             json.WriteEndObject();
             return 0;
         }
@@ -38,6 +48,11 @@ static class AudioCommands {
             Console.WriteLine(
                 $"  {d.Name,-40} in {d.InputChannels,2}  out {d.OutputChannels,2}  {d.SampleRate / 1000:0.#} kHz  uid: {d.Uid}"
             );
+        }
+
+        Console.WriteLine("midi:");
+        foreach (var port in NativeMidi.Ports()) {
+            Console.WriteLine($"  {port.Name,-40} {(port.IsInput ? "in " : "out")}  uid: {port.Uid}");
         }
 
         return 0;

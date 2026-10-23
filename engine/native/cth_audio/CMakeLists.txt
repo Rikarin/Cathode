@@ -1,16 +1,16 @@
 # Audio I/O shim (C). See include/cth_audio.h.
 if(APPLE)
-  set(CTH_BACKEND src/cth_audio_coreaudio.c)
+  set(CTH_BACKEND src/cth_audio_coreaudio.c src/cth_midi_coremidi.c)
 else()
-  # ASIO/WASAPI (Windows) and JACK (Linux) backends are still to come.
-  set(CTH_BACKEND src/cth_audio_stub.c)
+  # ASIO/WASAPI (Windows) and JACK (Linux) backends, and their MIDI, are still to come.
+  set(CTH_BACKEND src/cth_audio_stub.c src/cth_midi_stub.c)
 endif()
 
 add_library(cth_audio SHARED src/cth_fpu.c ${CTH_BACKEND})
 target_include_directories(cth_audio PUBLIC include)
 
 if(APPLE)
-  target_link_libraries(cth_audio PRIVATE "-framework CoreAudio" "-framework CoreFoundation")
+  target_link_libraries(cth_audio PRIVATE "-framework CoreAudio" "-framework CoreFoundation" "-framework CoreMIDI")
 endif()
 
 if(MSVC)

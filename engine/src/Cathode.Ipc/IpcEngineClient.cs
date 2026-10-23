@@ -20,6 +20,8 @@ public sealed class IpcEngineClient(string socketPath) : IEngineLink {
 
     public event Action<HostTelemetry>? TelemetryReceived;
 
+    public event Action<IReadOnlyList<MidiEventMessage>>? MidiReceived;
+
     public event Action? Disconnected;
 
     /// <summary>Connects, retrying every 100 ms until <paramref name="timeout" />.</summary>
@@ -83,6 +85,8 @@ public sealed class IpcEngineClient(string socketPath) : IEngineLink {
             while (await IpcFraming.ReadAsync(connected, cancellationToken).ConfigureAwait(false) is { } message) {
                 if (message.Type == IpcTypes.Telemetry && message.Telemetry is { } telemetry) {
                     TelemetryReceived?.Invoke(telemetry);
+                } else if (message.Type == IpcTypes.Midi && message.Midi is { } midi) {
+                    MidiReceived?.Invoke(midi);
                 } else if (pending.TryRemove(message.Id, out var reply)) {
                     reply.TrySetResult(message);
                 }

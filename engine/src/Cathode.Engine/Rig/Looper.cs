@@ -58,8 +58,8 @@ public sealed unsafe class Looper : IDisposable {
 
     public double Position => position;
 
-    public Looper(double sampleRate) {
-        capacity = (int)(MaxSeconds * sampleRate);
+    public Looper(double sampleRate, double seconds = MaxSeconds) {
+        capacity = (int)(Math.Clamp(seconds, 1, MaxSeconds) * sampleRate);
         baseLeft = new(capacity);
         baseRight = new(capacity);
         layerLeft = new(capacity);

@@ -143,8 +143,11 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         GlobalEq.Prepare(spec);
     }
 
-    /// <summary>Control thread, before audio starts: allocate the looper (60 s of stereo, about 46 MB at 48 kHz).</summary>
-    public void EnableLooper() => Volatile.Write(ref looper, looper ?? new Looper(Spec.SampleRate));
+    /// <summary>
+    ///     Control thread, before audio starts: allocate the looper (60 s of stereo is about 46 MB at 48 kHz).
+    /// </summary>
+    public void EnableLooper(double seconds = Looper.MaxSeconds) =>
+        Volatile.Write(ref looper, looper ?? new Looper(Spec.SampleRate, seconds));
 
     /// <summary>True while a replaced graph is still ringing out under the current one.</summary>
     public bool IsSpilling => Volatile.Read(ref tail) is not null;

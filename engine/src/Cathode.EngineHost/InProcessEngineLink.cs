@@ -20,7 +20,8 @@ public sealed class InProcessEngineLink : IEngineLink {
 
     public InProcessEngineLink(ProcessSpec? spec = null, BlockRegistry? registry = null) {
         var processSpec = spec ?? ProcessSpec.Default;
-        service = new(processSpec, "in-process (null)", registry);
+        // A short looper: tests and development need it to work, not to hold a minute of audio.
+        service = new(processSpec, "in-process (null)", registry, looperSeconds: 5);
         backend = new((int)processSpec.SampleRate, processSpec.MaxBlockSize);
         backend.Start(service.Engine);
         telemetry = new(
@@ -32,6 +33,11 @@ public sealed class InProcessEngineLink : IEngineLink {
     }
 
     public event Action<HostTelemetry>? TelemetryReceived;
+
+    public event Action<IReadOnlyList<MidiEventMessage>>? MidiReceived;
+
+    /// <summary>Tests and development: deliver MIDI as if a device had sent it (there is no device in process).</summary>
+    public void InjectMidi(IReadOnlyList<MidiEventMessage> messages) => MidiReceived?.Invoke(messages);
 
     public event Action? Disconnected;
 

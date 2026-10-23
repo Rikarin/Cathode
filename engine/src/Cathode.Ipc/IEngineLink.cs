@@ -12,5 +12,8 @@ public interface IEngineLink : IAsyncDisposable {
 
     event Action<HostTelemetry>? TelemetryReceived;
 
+    /// <summary>MIDI input from the host's devices, timed on the engine's sample clock.</summary>
+    event Action<IReadOnlyList<MidiEventMessage>>? MidiReceived;
+
     event Action? Disconnected;
 }
