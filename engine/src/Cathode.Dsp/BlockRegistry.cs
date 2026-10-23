@@ -43,6 +43,10 @@ public sealed class BlockRegistry {
         registry.Register(CrossoverBlock.Info, static () => new CrossoverBlock());
         registry.Register(MultibandCompressorBlock.Info, static () => new MultibandCompressorBlock());
         registry.Register(DynamicDistortionBlock.Info, static () => new DynamicDistortionBlock());
+        registry.Register(RotaryBlock.Info, static () => new RotaryBlock());
+        registry.Register(VibeBlock.Info, static () => new VibeBlock());
+        registry.Register(VocoderBlock.Info, static () => new VocoderBlock());
+        registry.Register(ResonatorBlock.Info, static () => new ResonatorBlock());
         return registry;
     }
 
