@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  afterNextRender,
+  computed,
+  inject,
+  signal,
+  viewChild
+} from '@angular/core';
 import {
   type BlockTypeInfo,
   BuiltInTypes,
@@ -47,6 +57,8 @@ interface CopiedBlock {
 }
 
 const BlockMime = 'application/x-cathode-block';
+const MinScale = 0.6;
+const MaxScale = 2;
 
 /**
  * The 6 x 14 grid (docs/02-architecture.md §7.3): CSS-positioned cells with an SVG cable layer. Keyboard: arrows move
@@ -81,6 +93,7 @@ const BlockMime = 'application/x-cathode-block';
       [attr.aria-activedescendant]="'cell-' + focus().row + '-' + focus().column"
       [style.width.px]="size().width"
       [style.height.px]="size().height"
+      [style.zoom]="scale()"
       (keydown)="key($event)"
       (pointermove)="moveWire($event)"
       (pointerup)="endWire($event)"
@@ -254,6 +267,16 @@ export class GridEditor {
   protected readonly rows = computed(() => this.live.preset()?.rows ?? 6);
   protected readonly columns = computed(() => this.live.preset()?.columns ?? 14);
   protected readonly size = computed(() => gridSize(this.rows(), this.columns()));
+  /** The panel's width, so the grid can scale to fill it. */
+  private readonly available = signal(0);
+  /**
+   * How much the grid is scaled (CSS zoom, so text and icons stay sharp): it fills the panel's width, up to twice its
+   * natural size, and below 60 % it scrolls instead.
+   */
+  protected readonly scale = computed(() => {
+    const available = this.available();
+    return available > 0 ? Math.min(MaxScale, Math.max(MinScale, available / this.size().width)) : 1;
+  });
   protected readonly blocks = computed(() => this.live.preset()?.blocks ?? []);
 
   protected readonly cells = computed<GridCell[]>(() => {
@@ -289,6 +312,13 @@ export class GridEditor {
 
   protected readonly atLimit = (type: BlockTypeInfo) =>
     this.blocks().filter(b => b.type === type.typeId).length >= type.maxInstances;
+
+  constructor() {
+    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+    const observer = new ResizeObserver(([entry]) => this.available.set(entry.contentRect.width));
+    afterNextRender(() => observer.observe(host));
+    inject(DestroyRef).onDestroy(() => observer.disconnect());
+  }
 
   protected title(block: PresetBlock): string {
     return this.catalog.info(block.type)?.name ?? block.type;
@@ -479,9 +509,11 @@ export class GridEditor {
     }
   }
 
+  /** A pointer position in grid coordinates (unscaled pixels, as the geometry works in). */
   private local(event: PointerEvent): Point {
     const rect = this.surface().nativeElement.getBoundingClientRect();
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    const scale = rect.width / this.size().width || 1;
+    return { x: (event.clientX - rect.left) / scale, y: (event.clientY - rect.top) / scale };
   }
 
   private cellBlock(row: number, column: number): PresetBlock | null {

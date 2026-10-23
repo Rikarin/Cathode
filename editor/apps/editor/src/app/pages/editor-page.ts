@@ -12,7 +12,7 @@ import { GridEditor } from '../grid/grid-editor';
   template: `
     <xui-splitter orientation="vertical" class="h-full">
       <xui-splitter-panel [defaultSize]="52" [min]="25">
-        <div class="h-full overflow-auto p-6">
+        <div class="h-full [scrollbar-gutter:stable] overflow-auto p-6">
           <cth-grid-editor />
         </div>
       </xui-splitter-panel>
