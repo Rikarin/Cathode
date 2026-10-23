@@ -6,7 +6,7 @@ using Cathode.Ipc;
 namespace Cathode.Server.Tests;
 
 public sealed class IpcTests : IDisposable {
-    readonly string socketPath = Path.Combine(Path.GetTempPath(), $"cathode-{Guid.NewGuid():n}.sock");
+    readonly string socketPath = Path.Combine(Path.GetTempPath(), $"cth-{Guid.NewGuid().ToString("n")[..8]}.sock"); // Unix socket paths are limited to ~104 bytes on macOS
 
     public void Dispose() {
         File.Delete(socketPath);

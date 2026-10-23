@@ -1,6 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing"/>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../Cathode.Testing/Cathode.Testing.csproj"/>
     <ProjectReference Include="../../src/Cathode.EngineHost/Cathode.EngineHost.csproj"/>
+    <ProjectReference Include="../../src/Cathode.Server/Cathode.Server.csproj"/>
+    <!-- Built, not referenced: the two-process test runs it as a separate cathode-host process. -->
+    <ProjectReference Include="../../src/Cathode.Host/Cathode.Host.csproj" ReferenceOutputAssembly="false" Private="false"/>
   </ItemGroup>
 </Project>

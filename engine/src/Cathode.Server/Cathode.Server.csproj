@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <Description>REST and WebSocket API for Cathode: presets, scenes, channels, assets; drives the engine host over IPC.</Description>
+    <AssemblyName>cathode-server</AssemblyName>
+    <RootNamespace>Cathode.Server</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <IsAotCompatible>false</IsAotCompatible>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi"/>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Cathode.Contracts/Cathode.Contracts.csproj"/>
+    <ProjectReference Include="../Cathode.EngineHost/Cathode.EngineHost.csproj"/>
+  </ItemGroup>
+</Project>

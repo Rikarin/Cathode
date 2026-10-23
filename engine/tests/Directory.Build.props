@@ -2,6 +2,8 @@
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))"/>
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+    <!-- The root props enable AOT analysis before IsTestProject is known; tests may use reflection-based JSON. -->
+    <IsAotCompatible>false</IsAotCompatible>
     <IsTestProject Condition="'$(MSBuildProjectName)' != 'Cathode.Testing'">true</IsTestProject>
     <OutputType Condition="'$(IsTestProject)' == 'true'">Exe</OutputType>
     <!-- Test code favours readability over analyzer strictness. -->

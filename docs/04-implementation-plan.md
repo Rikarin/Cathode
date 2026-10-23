@@ -72,18 +72,20 @@ Ordered by value to a guitarist:
 
 ---
 
-## Phase 3: REST API and preset system (4–5 weeks, in parallel with late P2)
+## Phase 3: REST API and preset system (4–5 weeks, in parallel with late P2) — *mostly done*
 
-- [ ] `Cathode.Contracts`: preset schema v1, block catalogue DTOs, problem+json errors, `revision`/ETag
-- [ ] `Cathode.Server`: endpoints per [02 §6](02-architecture.md#6-rest-api-cathodeserver); OpenAPI generation committed with a drift test
-- [ ] IPC transport (`IpcEngineControl`) per the ADR-001 decision; shared contract test suite for in-process and IPC
-- [ ] Preset library on disk (JSON per preset plus an index), banks and setlists, import/export (`.cthpreset` = zip of JSON plus referenced IR/NAM hashes)
-- [ ] Undo/redo journal (command pattern on live-state mutations)
-- [ ] `/ws` telemetry (binary frames) and events (JSON), with subscriptions
-- [ ] Asset store for IRs and models: content-addressed (SHA-256) and deduplicated, so presets reference assets by hash
-- [ ] Load generator for the soak test in [03 §6](03-testing-strategy.md#6-real-time-safety)
+- [x] `Cathode.Contracts`: preset schema v1 (A–D channels stored sparsely, 8 scenes), block catalogue DTOs, problem+json errors, `revision`/ETag with `If-Match`
+- [x] `Cathode.Server`: endpoints per [02 §6](02-architecture.md#6-rest-api-cathodeserver); OpenAPI committed (`engine/src/Cathode.Server/openapi.json`) with a drift test; `cathode.http` walk-through
+- [x] IPC transport per [ADR-0001](adr/0001-process-model.md) and [ADR-0004](adr/0004-state-ownership.md): Unix domain socket, `cathode-host --serve`; two-process test including a host restart. *Partly done:* the full API suite runs in-process; only the two-process test runs over IPC
+- [ ] Preset library: JSON per preset ✅ (atomic writes, safe ids). *Still to do:* banks and setlists, and `.cthpreset` import/export (zip of JSON plus referenced assets)
+- [x] Undo/redo (snapshots of the working copy; knob drags coalesce into one step)
+- [x] `/ws` events and telemetry as JSON text, with a `connected` handshake so clients never miss a change. *Changed:* binary frames and per-channel subscriptions are deferred (ADR-0004)
+- [x] Asset store for IRs and models: content-addressed (SHA-256), deduplicated, size-limited
+- [ ] Load generator and 1-hour soak with the real two-process setup ([03 §6](03-testing-strategy.md#6-real-time-safety)); the S2 harness has a load generator to build on
 
-**Exit:** Postman/HTTP-file and Bruno collections build and play a full preset through the API alone, and the 1-hour API soak passes with 0 xruns.
+**Exit:**
+- ✅ `cathode.http` builds and plays a preset through the API alone.
+- [ ] The 1-hour API soak with 0 xruns has not been run yet.
 
 ---
 

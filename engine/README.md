@@ -10,7 +10,11 @@ The .NET 10 audio engine. The design is described in [docs/02-architecture.md](.
 | `src/Cathode.Dsp.Native` | Blocks backed by native code: `NamAmpBlock` (Neural Amp Modeler, [ADR-0003](../docs/adr/0003-nam-hosting.md)) |
 | `native/cth_audio` | C shim: CoreAudio HAL IOProc backend (Windows and Linux are stubs for now), FTZ/DAZ helper |
 | `native/cth_nam` | C ABI over NeuralAmpModelerCore v0.6.0 (pinned and fetched by CMake) |
-| `src/Cathode.Host` | NativeAOT engine executable (`cathode-host --self-test`) |
+| `src/Cathode.Host` | NativeAOT engine executable: `--serve` for the Server, plus diagnostics (`--self-test`, `--audio-test`, …) |
+| `src/Cathode.Contracts` | Preset schema and API DTOs (no engine dependencies) |
+| `src/Cathode.Ipc` | Server↔Host protocol: length-prefixed JSON over a Unix domain socket |
+| `src/Cathode.EngineHost` | Host-side request handler, socket server, in-process link for tests |
+| `src/Cathode.Server` | ASP.NET Core REST + WebSocket API: presets, scenes, channels, undo, assets ([ADR-0004](../docs/adr/0004-state-ownership.md)) |
 | `tools/Cathode.Render` | `cathode-render --graph g.json --in di.wav --out out.wav` |
 | `tests/Cathode.Testing` | Stimuli and analysers: FFT, DTFT magnitude, THD, null residual, ESR, allocation probe |
 | `tests/*.Tests` | xUnit v3 + CsCheck suites, including the per-block conformance suite |
@@ -57,3 +61,23 @@ Every block registered in `BlockRegistry.CreateDefault()` automatically runs the
 - block-size independence
 - zero allocation
 - decay to silence with no subnormals
+
+## Running the API
+
+Two processes ([ADR-0001](../docs/adr/0001-process-model.md)). Start the engine host on a device, or with `--null-audio`:
+
+```bash
+dotnet run -c Release --project src/Cathode.Host -- --serve --socket /tmp/cathode-host.sock --null-audio
+```
+
+Then start the Server, which listens on `http://127.0.0.1:5180` with OpenAPI at `/openapi/v1.json`:
+
+```bash
+dotnet run -c Release --project src/Cathode.Server -- --Cathode:Engine:SocketPath=/tmp/cathode-host.sock
+```
+
+`src/Cathode.Server/cathode.http` walks through building a rig with channels and scenes. If an API change is intended, regenerate the committed OpenAPI document:
+
+```bash
+CATHODE_UPDATE_OPENAPI=1 dotnet test --project tests/Cathode.Server.Tests
+```

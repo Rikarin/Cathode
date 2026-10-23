@@ -11,6 +11,7 @@
     <Project Path="src/Cathode.EngineHost/Cathode.EngineHost.csproj" />
     <Project Path="src/Cathode.Host/Cathode.Host.csproj" />
     <Project Path="src/Cathode.Ipc/Cathode.Ipc.csproj" />
+    <Project Path="src/Cathode.Server/Cathode.Server.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Cathode.Dsp.Tests/Cathode.Dsp.Tests.csproj" />
