@@ -118,3 +118,26 @@ public sealed class Scene {
 public sealed record SceneBlockState(bool Bypassed = false, string Channel = "A") {
     public static SceneBlockState Default { get; } = new();
 }
+
+/// <summary>Presets in performance order. Each entry is a song part: a preset and the scene to start on.</summary>
+public sealed class Setlist {
+    public string Id { get; set; } = Preset.NewId();
+
+    public string Name { get; set; } = "New Setlist";
+
+    public List<SetlistEntry> Entries { get; set; } = [];
+}
+
+public sealed record SetlistEntry(string PresetId, int Scene = 0, string? Label = null);
+
+/// <summary>Numbered preset slots, as a MIDI program change addresses them (0-127).</summary>
+public sealed class Bank {
+    public const int SlotCount = 128;
+
+    public string Id { get; set; } = Preset.NewId();
+
+    public string Name { get; set; } = "New Bank";
+
+    /// <summary>Preset id per slot; null or missing slots are empty.</summary>
+    public List<string?> Slots { get; set; } = [];
+}

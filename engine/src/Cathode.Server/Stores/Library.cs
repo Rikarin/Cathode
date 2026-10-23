@@ -1,0 +1,112 @@
+using Cathode.Contracts;
+using Cathode.Server.Rig;
+using Microsoft.Extensions.Options;
+
+namespace Cathode.Server.Stores;
+
+/// <summary>
+///     Setlists and banks on top of the preset store, keeping references intact: setlists and banks may only point
+///     at presets that exist, and a preset cannot be deleted while something still uses it.
+/// </summary>
+public sealed class Library(IOptions<ServerOptions> options, PresetStore presets) {
+    readonly Lock gate = new();
+
+    readonly JsonFileStore<Setlist> setlists = new(
+        Path.Combine(options.Value.DataDirectory, "setlists"),
+        "setlist",
+        ContractsJsonContext.Default.Setlist,
+        static s => s.Id
+    );
+
+    readonly JsonFileStore<Bank> banks = new(
+        Path.Combine(options.Value.DataDirectory, "banks"),
+        "bank",
+        ContractsJsonContext.Default.Bank,
+        static b => b.Id
+    );
+
+    public Setlist[] Setlists() => [.. setlists.All().Select(static e => e.Item).OrderBy(static s => s.Name, StringComparer.OrdinalIgnoreCase)];
+
+    public Setlist? Setlist(string id) => setlists.Get(id);
+
+    public Bank[] Banks() => [.. banks.All().Select(static e => e.Item).OrderBy(static b => b.Name, StringComparer.OrdinalIgnoreCase)];
+
+    public Bank? Bank(string id) => banks.Get(id);
+
+    public void Save(Setlist setlist) {
+        lock (gate) {
+            var problems = new List<string>();
+            for (var i = 0; i < setlist.Entries.Count; i++) {
+                var entry = setlist.Entries[i];
+                if (!presets.Exists(entry.PresetId)) {
+                    problems.Add($"Entry {i + 1}: no preset '{entry.PresetId}'.");
+                }
+
+                if (entry.Scene is < 0 or >= Preset.SceneCount) {
+                    problems.Add($"Entry {i + 1}: scenes are numbered 0 to {Preset.SceneCount - 1}.");
+                }
+            }
+
+            Reject(problems, "setlist");
+            setlists.Save(setlist);
+        }
+    }
+
+    public void Save(Bank bank) {
+        lock (gate) {
+            var problems = new List<string>();
+            if (bank.Slots.Count > Contracts.Bank.SlotCount) {
+                problems.Add($"A bank has {Contracts.Bank.SlotCount} slots; this one has {bank.Slots.Count}.");
+            }
+
+            for (var slot = 0; slot < bank.Slots.Count; slot++) {
+                if (bank.Slots[slot] is { } id && !presets.Exists(id)) {
+                    problems.Add($"Slot {slot}: no preset '{id}'.");
+                }
+            }
+
+            Reject(problems, "bank");
+            banks.Save(bank);
+        }
+    }
+
+    public bool DeleteSetlist(string id) => setlists.Delete(id);
+
+    public bool DeleteBank(string id) => banks.Delete(id);
+
+    /// <summary>Deletes a preset unless a setlist or bank still uses it (409, naming them).</summary>
+    public bool DeletePreset(string id) {
+        lock (gate) {
+            var users = Setlists().Where(s => s.Entries.Any(e => e.PresetId == id)).Select(static s => $"setlist '{s.Name}'")
+                .Concat(Banks().Where(b => b.Slots.Contains(id)).Select(static b => $"bank '{b.Name}'"))
+                .ToList();
+            if (users.Count > 0) {
+                throw new RigException(409, $"The preset is still used by {string.Join(", ", users)}.", users);
+            }
+
+            return presets.Delete(id);
+        }
+    }
+
+    /// <summary>The preset and scene a setlist entry points at.</summary>
+    public SetlistEntry Entry(string setlistId, int index) {
+        var setlist = Setlist(setlistId) ?? throw RigException.NotFound($"No setlist '{setlistId}'.");
+        return index >= 0 && index < setlist.Entries.Count
+            ? setlist.Entries[index]
+            : throw RigException.NotFound($"Setlist '{setlist.Name}' has {setlist.Entries.Count} entries; there is no entry {index}.");
+    }
+
+    /// <summary>The preset in a bank slot.</summary>
+    public string Slot(string bankId, int slot) {
+        var bank = Bank(bankId) ?? throw RigException.NotFound($"No bank '{bankId}'.");
+        return slot >= 0 && slot < bank.Slots.Count && bank.Slots[slot] is { } id
+            ? id
+            : throw RigException.NotFound($"Slot {slot} of bank '{bank.Name}' is empty.");
+    }
+
+    static void Reject(List<string> problems, string kind) {
+        if (problems.Count > 0) {
+            throw new RigException(400, $"The {kind} refers to things that do not exist.", problems);
+        }
+    }
+}

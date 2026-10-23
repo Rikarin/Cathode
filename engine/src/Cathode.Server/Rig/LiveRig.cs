@@ -41,14 +41,16 @@ public sealed class LiveRig(BlockCatalog catalog, AssetStore assets, PresetStore
         return Changed("presetLoaded");
     });
 
-    public Task<LiveState> LoadAsync(string id) => Locked(async () => {
+    /// <summary>Loads a preset from the library and starts on <paramref name="scene" /> (a setlist entry's scene).</summary>
+    public Task<LiveState> LoadAsync(string id, int scene = 0) => Locked(async () => {
         var loaded = presets.Get(id) ?? throw RigException.NotFound($"No preset '{id}'.");
         if (loaded.SchemaVersion > Preset.CurrentSchemaVersion) {
             throw RigException.Conflict($"Preset '{loaded.Name}' was saved by a newer version of Cathode (schema {loaded.SchemaVersion}).");
         }
 
-        await ReplaceAsync(loaded);
-        return Changed("presetLoaded");
+        CheckScene(scene);
+        await ReplaceAsync(loaded, scene);
+        return Changed("presetLoaded", scene: scene);
     });
 
     public Task<LiveState> SaveAsync(SaveRequest request, long? expected) => Locked(() => {
@@ -309,10 +311,10 @@ public sealed class LiveRig(BlockCatalog catalog, AssetStore assets, PresetStore
         redo.Clear();
     }
 
-    async Task ReplaceAsync(Preset next) {
+    async Task ReplaceAsync(Preset next, int scene = 0) {
         var before = Capture();
         preset = next;
-        activeScene = 0;
+        activeScene = scene;
         try {
             await SyncGraphAsync();
         } catch (Exception e) when (e is IpcException or RigException) {

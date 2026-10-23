@@ -19,6 +19,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton(new BlockCatalog(BlockRegistry.CreateDefault().AddNativeBlocks()));
 builder.Services.AddSingleton<PresetStore>();
+builder.Services.AddSingleton<Library>();
 builder.Services.AddSingleton<AssetStore>();
 builder.Services.AddSingleton<EventHub>();
 builder.Services.AddSingleton<EngineConnection>();

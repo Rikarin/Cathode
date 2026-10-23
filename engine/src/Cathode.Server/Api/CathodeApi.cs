@@ -32,6 +32,12 @@ public static class CathodeApi {
         live.MapPost("/new", async (LiveRig rig, HttpContext http) => Respond(http, await rig.NewAsync())).WithName("NewPreset");
         live.MapPut("/preset/{id}", async (string id, LiveRig rig, HttpContext http) => Respond(http, await rig.LoadAsync(id)))
             .WithName("LoadPreset");
+        live.MapPut("/setlists/{id}/entries/{index:int}", async (string id, int index, Library books, LiveRig rig, HttpContext http) => {
+            var entry = books.Entry(id, index);
+            return Respond(http, await rig.LoadAsync(entry.PresetId, entry.Scene));
+        }).WithName("LoadSetlistEntry");
+        live.MapPut("/banks/{id}/slots/{slot:int}", async (string id, int slot, Library books, LiveRig rig, HttpContext http) =>
+            Respond(http, await rig.LoadAsync(books.Slot(id, slot)))).WithName("LoadBankSlot");
         live.MapPost("/save", async (SaveRequest request, LiveRig rig, HttpContext http) =>
             Respond(http, await rig.SaveAsync(request, Expected(http)))).WithName("SavePreset");
         live.MapPost("/undo", async (LiveRig rig, HttpContext http) => Respond(http, await rig.UndoAsync())).WithName("Undo");
@@ -71,8 +77,32 @@ public static class CathodeApi {
             store.Save(preset);
             return TypedResults.NoContent();
         }).WithName("PutPreset");
-        library.MapDelete("/{id}", Results<NoContent, NotFound> (string id, PresetStore store) =>
-            store.Delete(id) ? TypedResults.NoContent() : TypedResults.NotFound()).WithName("DeletePreset");
+        library.MapDelete("/{id}", Results<NoContent, NotFound> (string id, Library books) =>
+            books.DeletePreset(id) ? TypedResults.NoContent() : TypedResults.NotFound()).WithName("DeletePreset");
+
+        var setlists = api.MapGroup("/setlists").WithTags("Setlists");
+        setlists.MapGet("/", (Library books) => TypedResults.Ok(books.Setlists())).WithName("ListSetlists");
+        setlists.MapGet("/{id}", Results<Ok<Setlist>, NotFound> (string id, Library books) =>
+            books.Setlist(id) is { } setlist ? TypedResults.Ok(setlist) : TypedResults.NotFound()).WithName("GetSetlist");
+        setlists.MapPut("/{id}", (string id, Setlist setlist, Library books) => {
+            setlist.Id = id;
+            books.Save(setlist);
+            return TypedResults.Ok(setlist);
+        }).WithName("PutSetlist");
+        setlists.MapDelete("/{id}", Results<NoContent, NotFound> (string id, Library books) =>
+            books.DeleteSetlist(id) ? TypedResults.NoContent() : TypedResults.NotFound()).WithName("DeleteSetlist");
+
+        var banks = api.MapGroup("/banks").WithTags("Banks");
+        banks.MapGet("/", (Library books) => TypedResults.Ok(books.Banks())).WithName("ListBanks");
+        banks.MapGet("/{id}", Results<Ok<Bank>, NotFound> (string id, Library books) =>
+            books.Bank(id) is { } bank ? TypedResults.Ok(bank) : TypedResults.NotFound()).WithName("GetBank");
+        banks.MapPut("/{id}", (string id, Bank bank, Library books) => {
+            bank.Id = id;
+            books.Save(bank);
+            return TypedResults.Ok(bank);
+        }).WithName("PutBank");
+        banks.MapDelete("/{id}", Results<NoContent, NotFound> (string id, Library books) =>
+            books.DeleteBank(id) ? TypedResults.NoContent() : TypedResults.NotFound()).WithName("DeleteBank");
 
         var assets = api.MapGroup("/assets").WithTags("Assets");
         assets.MapGet("/", (AssetStore store) => TypedResults.Ok(store.List().ToArray())).WithName("ListAssets");

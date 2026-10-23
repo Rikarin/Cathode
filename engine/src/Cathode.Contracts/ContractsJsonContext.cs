@@ -8,6 +8,10 @@ namespace Cathode.Contracts;
     ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,
     AllowTrailingCommas = true)]
 [JsonSerializable(typeof(Preset))]
+[JsonSerializable(typeof(Setlist))]
+[JsonSerializable(typeof(Setlist[]))]
+[JsonSerializable(typeof(Bank))]
+[JsonSerializable(typeof(Bank[]))]
 [JsonSerializable(typeof(LiveState))]
 [JsonSerializable(typeof(PresetSummary[]))]
 [JsonSerializable(typeof(AssetInfo))]
