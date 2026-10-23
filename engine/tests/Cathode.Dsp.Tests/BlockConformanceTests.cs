@@ -38,6 +38,15 @@ public class BlockConformanceTests {
         }
     }
 
+    /// <summary>docs/03 §12: every block's cost is measured for the editor's CPU estimate.</summary>
+    [Theory]
+    [MemberData(nameof(BlockTypes))]
+    public void Cpu_cost_is_recorded(string typeId) =>
+        Assert.True(
+            BlockCosts.Of(typeId) > 0,
+            $"{typeId} has no measured cost: run dotnet run -c Release --project tools/Cathode.Bench -- --write"
+        );
+
     [Theory]
     [MemberData(nameof(BlockTypes))]
     public void Output_is_finite_and_bounded_for_any_parameters_and_stimulus(string typeId) {

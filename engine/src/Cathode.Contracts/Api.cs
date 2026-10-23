@@ -48,6 +48,10 @@ public sealed record ParameterInfo(
     string Taper,
     IReadOnlyList<string>? Options);
 
+/// <summary>
+///     A block type the editor can place. <c>CpuCost</c> is its measured cost in percent of one core at 48 kHz
+///     (64-frame blocks, its most expensive type), for the editor's CPU estimate; 0 for built-in cells.
+/// </summary>
 public sealed record BlockTypeInfo(
     string TypeId,
     string Name,
@@ -55,7 +59,8 @@ public sealed record BlockTypeInfo(
     int MaxInstances,
     int Channels,
     IReadOnlyList<string> AssetSlots,
-    IReadOnlyList<ParameterInfo> Params);
+    IReadOnlyList<ParameterInfo> Params,
+    double CpuCost = 0);
 
 // Request bodies.
 public sealed record AddBlockRequest(string Type, int Row, int Column, string? Id = null);

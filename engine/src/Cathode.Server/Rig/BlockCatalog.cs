@@ -35,7 +35,8 @@ public sealed class BlockCatalog {
                 descriptor.MaxInstances,
                 descriptor.Channels,
                 [..slots],
-                [..descriptor.Params.Select(ToInfo)]
+                [..descriptor.Params.Select(ToInfo)],
+                BlockCosts.Of(descriptor.TypeId) ?? 0
             );
         }
     }

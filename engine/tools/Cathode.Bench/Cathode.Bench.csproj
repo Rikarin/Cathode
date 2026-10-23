@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>cathode-bench</AssemblyName>
+    <Description>Measures every block's CPU cost and writes the catalog's cost table.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Cathode.Dsp/Cathode.Dsp.csproj"/>
+  </ItemGroup>
+</Project>

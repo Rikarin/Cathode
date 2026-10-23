@@ -21,6 +21,7 @@
     <Project Path="tests/Cathode.Testing/Cathode.Testing.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/Cathode.Bench/Cathode.Bench.csproj" />
     <Project Path="tools/Cathode.Render/Cathode.Render.csproj" />
     <Project Path="tools/Cathode.Soak/Cathode.Soak.csproj" />
   </Folder>
