@@ -12,6 +12,7 @@ public sealed class CallbackStats {
     readonly long[] histogram = new long[Bins];
     long count;
     long overruns;
+    int resetRequested;
 
     public long Count => Volatile.Read(ref count);
 
@@ -23,6 +24,11 @@ public sealed class CallbackStats {
 
     /// <summary>Audio thread: record one callback that started at <paramref name="startTimestamp" />.</summary>
     public void Record(long startTimestamp, int frames, double sampleRate) {
+        if (Volatile.Read(ref resetRequested) != 0) {
+            Reset();
+            Volatile.Write(ref resetRequested, 0);
+        }
+
         var elapsed = Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds;
         var percent = elapsed / (frames / sampleRate) * 100.0;
         LastPercent = percent;
@@ -57,6 +63,13 @@ public sealed class CallbackStats {
         return Bins;
     }
 
+    /// <summary>
+    ///     Any thread: start a new measurement window. The audio thread clears the statistics before its next record,
+    ///     so the reset never races a callback in progress.
+    /// </summary>
+    public void RequestReset() => Volatile.Write(ref resetRequested, 1);
+
+    /// <summary>Clears the statistics. Only safe when no callback is recording (offline use, or the audio thread).</summary>
     public void Reset() {
         Array.Clear(histogram);
         count = 0;

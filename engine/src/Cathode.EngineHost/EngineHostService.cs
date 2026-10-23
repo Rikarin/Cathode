@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 using Cathode.Dsp;
 using Cathode.Dsp.Native;
@@ -17,9 +18,15 @@ public sealed class EngineHostService : IDisposable {
     readonly GraphCompiler compiler;
     readonly Tuner tuner;
     readonly float[] tap = new float[4_096];
+    /// <summary>CPU figures describe the last few seconds, not the process lifetime (which would keep start-up spikes forever).</summary>
+    static readonly TimeSpan StatsWindow = TimeSpan.FromSeconds(5);
+
     readonly Lock gate = new();
     CompiledGraph? latest;
     TunerReading? reading;
+    long windowStarted = Stopwatch.GetTimestamp();
+    long overloads; // cumulative across windows
+    long overrunsSeen; // overruns already counted in the current window
 
     public CathodeEngine Engine { get; }
 
@@ -135,6 +142,16 @@ public sealed class EngineHostService : IDisposable {
 
         var (input, left, right) = Engine.ReadMeters();
         var tunerReading = reading is { } r ? new HostTunerReading(r.Frequency, r.Note, r.Octave, r.Cents) : null;
-        return new(input, left, right, Engine.Stats.Percentile(0.999), Engine.Stats.MaxPercent, Engine.Stats.Overruns, tunerReading);
+        var stats = Engine.Stats;
+        overloads += stats.Overruns - overrunsSeen;
+        overrunsSeen = stats.Overruns;
+        var result = new HostTelemetry(input, left, right, stats.Percentile(0.999), stats.MaxPercent, overloads, tunerReading);
+        if (Stopwatch.GetElapsedTime(windowStarted) >= StatsWindow) {
+            stats.RequestReset();
+            overrunsSeen = 0;
+            windowStarted = Stopwatch.GetTimestamp();
+        }
+
+        return result;
     }
 }
