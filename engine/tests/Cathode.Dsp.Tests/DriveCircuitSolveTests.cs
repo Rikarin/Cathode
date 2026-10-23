@@ -5,10 +5,11 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 /// <summary>
-///     The drive catalogue against renders committed before the diode solve was made faster
-///     (<c>tests/assets/golden/drive-circuits.wav</c>, one channel per circuit type, antialiased then exact): the faster
-///     Wright omega may change the last bits, never the sound. Regenerate with <c>CATHODE_UPDATE_GOLDEN=1</c> only for an
-///     intended change to the catalogue.
+///     The drive catalogue against committed renders (<c>tests/assets/golden/drive-circuits.wav</c>, one channel per
+///     circuit type, antialiased then exact), a guard on the solvers: a faster closed form, a different Newton start or a
+///     changed tolerance may move the last bits, never the sound. Regenerate with <c>CATHODE_UPDATE_GOLDEN=1</c> only for
+///     an intended change to the catalogue (last: the component-level tone networks, op-amp stages and transistor
+///     fuzzes, and the guitar source).
 /// </summary>
 public class DriveCircuitSolveTests(ITestOutputHelper output) {
     const int Frames = 2_048;
@@ -17,7 +18,7 @@ public class DriveCircuitSolveTests(ITestOutputHelper output) {
     static readonly string Path = System.IO.Path.Combine(FindEngineRoot(), "tests", "assets", "golden", "drive-circuits.wav");
 
     [Fact]
-    public void Circuit_types_null_against_the_renders_from_before_the_faster_solve() {
+    public void Circuit_types_null_against_their_committed_renders() {
         var renders = new List<float[]>();
         foreach (var antialias in new[] { true, false }) {
             for (var i = 0; i < DriveCircuits.All.Count; i++) {
