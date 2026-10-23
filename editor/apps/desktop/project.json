@@ -13,7 +13,8 @@
       "options": {
         "commands": [
           "tsc -p apps/desktop/tsconfig.json --noEmit",
-          "esbuild apps/desktop/src/main.ts apps/desktop/src/preload.ts --bundle --platform=node --format=cjs --target=node22 --external:electron --sourcemap --outdir=dist/apps/desktop"
+          "esbuild apps/desktop/src/main.ts apps/desktop/src/preload.ts --bundle --platform=node --format=cjs --target=node22 --external:electron --sourcemap --outdir=dist/apps/desktop",
+          "node -e \"require('node:fs').copyFileSync('apps/desktop/assets/icon.png', 'dist/apps/desktop/icon.png')\""
         ],
         "parallel": false
       }
