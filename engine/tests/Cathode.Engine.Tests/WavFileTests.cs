@@ -1,4 +1,5 @@
 using Cathode.Audio;
+using Cathode.Dsp.IO;
 using Cathode.Testing;
 
 namespace Cathode.Engine.Tests;

@@ -73,8 +73,8 @@ public sealed class FilterBlock : DspBlock
         }
 
         var targetGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        ApplyGain(io.Left, _gain, targetGain);
-        ApplyGain(io.Right, _gain, targetGain);
+        GainRamp.Apply(io.Left, _gain, targetGain);
+        GainRamp.Apply(io.Right, _gain, targetGain);
         _gain = targetGain;
     }
 
@@ -85,18 +85,4 @@ public sealed class FilterBlock : DspBlock
             Params.Current(Frequency),
             Params.Current(Q),
             Params.Current(Gain));
-
-    private static void ApplyGain(Span<float> samples, float from, float to)
-    {
-        if (from == 1f && to == 1f)
-        {
-            return;
-        }
-
-        var step = (to - from) / samples.Length;
-        for (var i = 0; i < samples.Length; i++)
-        {
-            samples[i] *= from + step * (i + 1);
-        }
-    }
 }

@@ -69,9 +69,9 @@ public sealed class NamAmpBlock : DspBlock, IAssetConsumer
 
         if (_model is not null)
         {
-            Ramp(io.Left, _inputGain, input);
+            GainRamp.Apply(io.Left, _inputGain, input);
             _model.Process(io.Left, io.Left);
-            Ramp(io.Left, _outputGain, output);
+            GainRamp.Apply(io.Left, _outputGain, output);
         }
 
         io.Left.CopyTo(io.Right);
@@ -96,19 +96,5 @@ public sealed class NamAmpBlock : DspBlock, IAssetConsumer
             ? TargetLoudnessDb - loudness
             : 0;
         return (Decibels.ToGain(Params.Current(Input)), (float)(Decibels.ToGain(Params.Current(Output)) * Decibels.ToGain(normalisation)));
-    }
-
-    private static void Ramp(Span<float> samples, float from, float to)
-    {
-        if (from == 1f && to == 1f)
-        {
-            return;
-        }
-
-        var step = (to - from) / samples.Length;
-        for (var i = 0; i < samples.Length; i++)
-        {
-            samples[i] *= from + step * (i + 1);
-        }
     }
 }

@@ -14,6 +14,7 @@ public sealed class BlockRegistry
         var registry = new BlockRegistry();
         registry.Register(VolumePanBlock.Info, static () => new VolumePanBlock());
         registry.Register(FilterBlock.Info, static () => new FilterBlock());
+        registry.Register(CabBlock.Info, static () => new CabBlock());
         return registry;
     }
 

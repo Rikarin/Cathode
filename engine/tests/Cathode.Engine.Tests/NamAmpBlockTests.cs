@@ -1,4 +1,5 @@
 using Cathode.Audio;
+using Cathode.Dsp.IO;
 using Cathode.Dsp;
 using Cathode.Dsp.Native;
 using Cathode.Engine.Graph;

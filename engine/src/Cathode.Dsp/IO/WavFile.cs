@@ -1,7 +1,7 @@
 using System.Buffers.Binary;
 using System.Text;
 
-namespace Cathode.Audio;
+namespace Cathode.Dsp.IO;
 
 /// <summary>Audio data as one float array per channel, nominally in [-1, 1].</summary>
 public sealed record AudioData(int SampleRate, float[][] Channels)

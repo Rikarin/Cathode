@@ -32,8 +32,8 @@ public sealed class VolumePanBlock : DspBlock
         Params.Advance(Level, io.Length);
         Params.Advance(Balance, io.Length);
         var (endLeft, endRight) = TargetGains();
-        Ramp(io.Left, _gainLeft, endLeft);
-        Ramp(io.Right, _gainRight, endRight);
+        GainRamp.Apply(io.Left, _gainLeft, endLeft);
+        GainRamp.Apply(io.Right, _gainRight, endRight);
         _gainLeft = endLeft;
         _gainRight = endRight;
     }
@@ -43,27 +43,5 @@ public sealed class VolumePanBlock : DspBlock
         var gain = Decibels.ToGain(Params.Current(Level));
         var balance = Params.Current(Balance) / 100f;
         return (gain * Math.Min(1f, 1f - balance), gain * Math.Min(1f, 1f + balance));
-    }
-
-    private static void Ramp(Span<float> samples, float from, float to)
-    {
-        if (from == to)
-        {
-            if (from != 1f)
-            {
-                for (var i = 0; i < samples.Length; i++)
-                {
-                    samples[i] *= from;
-                }
-            }
-
-            return;
-        }
-
-        var step = (to - from) / samples.Length;
-        for (var i = 0; i < samples.Length; i++)
-        {
-            samples[i] *= from + step * (i + 1);
-        }
     }
 }
