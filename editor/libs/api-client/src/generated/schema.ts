@@ -4,2950 +4,2950 @@
  */
 
 export interface paths {
-    '/api/v1/system': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations['GetSystem'];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+  '/api/v1/system': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/tuner': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Turns the tuner on (bypassed = false) or off. */
-        put: operations['SetTuner'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['GetSystem'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tuner': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/scope': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Starts or stops scope frames (the engine's output waveform) on the WebSocket. */
-        put: operations['SetScope'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    /** Turns the tuner on (bypassed = false) or off. */
+    put: operations['SetTuner'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/scope': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/rta': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Starts or stops RTA frames (the output's sixth-octave spectrum) on the WebSocket. */
-        put: operations['SetRta'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    /** Starts or stops scope frames (the engine's output waveform) on the WebSocket. */
+    put: operations['SetScope'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/rta': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/catalog/blocks': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations['ListBlockTypes'];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    /** Starts or stops RTA frames (the output's sixth-octave spectrum) on the WebSocket. */
+    put: operations['SetRta'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/catalog/blocks': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/catalog/blocks/{typeId}': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations['GetBlockType'];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['ListBlockTypes'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/catalog/blocks/{typeId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/catalog/rig': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The rig parameters: controller settings, scene level, tempo and modifier sources. */
-        get: operations['GetRigControls'];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['GetBlockType'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/catalog/rig': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations['GetLive'];
-        /** Replaces the working copy's content (undoable; the preset keeps its id). Used for A/B compare. */
-        put: operations['PutLive'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** The rig parameters: controller settings, scene level, tempo and modifier sources. */
+    get: operations['GetRigControls'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/new': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations['NewPreset'];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['GetLive'];
+    /** Replaces the working copy's content (undoable; the preset keeps its id). Used for A/B compare. */
+    put: operations['PutLive'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/new': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/preset/{id}': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations['LoadPreset'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations['NewPreset'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/preset/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/setlists/{id}/entries/{index}': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations['LoadSetlistEntry'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put: operations['LoadPreset'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/setlists/{id}/entries/{index}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/banks/{id}/slots/{slot}': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations['LoadBankSlot'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put: operations['LoadSetlistEntry'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/banks/{id}/slots/{slot}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/export': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations['ExportLive'];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put: operations['LoadBankSlot'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/export': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/save': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations['SavePreset'];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['ExportLive'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/save': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/undo': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations['Undo'];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations['SavePreset'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/undo': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/redo': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations['Redo'];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations['Undo'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/redo': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/blocks': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations['AddBlock'];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations['Redo'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/blocks/{id}': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations['RemoveBlock'];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations['AddBlock'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/blocks/{id}/position': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations['MoveBlock'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations['RemoveBlock'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/position': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/blocks/{id}/params': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations['SetParams'];
-        trace?: never;
+    get?: never;
+    put: operations['MoveBlock'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/params': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/blocks/{id}/bypass': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations['SetBypass'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch: operations['SetParams'];
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/bypass': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/blocks/{id}/channel': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations['SetChannel'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put: operations['SetBypass'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/channel': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/blocks/{id}/assets/{slot}': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations['SetAsset'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put: operations['SetChannel'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/assets/{slot}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/blocks/{id}/tonematch': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Listens to the rig while you play, then sets a Tone Match block's correction towards a reference .wav. */
-        post: operations['LearnToneMatch'];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put: operations['SetAsset'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/tonematch': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/cables': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations['AddCable'];
-        delete: operations['RemoveCable'];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Listens to the rig while you play, then sets a Tone Match block's correction towards a reference .wav. */
+    post: operations['LearnToneMatch'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/cables': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/scenes/active': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations['SelectScene'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations['AddCable'];
+    delete: operations['RemoveCable'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/scenes/active': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/scenes/{scene}': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations['UpdateScene'];
-        trace?: never;
+    get?: never;
+    put: operations['SelectScene'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/scenes/{scene}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/blocks/{id}/bypass-mode': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** thru, mute, muteIn or muteFxIn; the 'in' modes let delay and reverb tails spill over. */
-        put: operations['SetBypassMode'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch: operations['UpdateScene'];
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/bypass-mode': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/modifiers': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Replaces every modifier of the working copy. */
-        put: operations['SetModifiers'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    /** thru, mute, muteIn or muteFxIn; the 'in' modes let delay and reverb tails spill over. */
+    put: operations['SetBypassMode'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/modifiers': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/controllers': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Controller settings by rig parameter id (lfo1Rate, adsr2Attack, envGain, seq3, ...). */
-        patch: operations['SetControllers'];
-        trace?: never;
+    get?: never;
+    /** Replaces every modifier of the working copy. */
+    put: operations['SetModifiers'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/controllers': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/tempo': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations['SetTempo'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Controller settings by rig parameter id (lfo1Rate, adsr2Attack, envGain, seq3, ...). */
+    patch: operations['SetControllers'];
+    trace?: never;
+  };
+  '/api/v1/live/tempo': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/tap': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations['TapTempo'];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put: operations['SetTempo'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/tap': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/blocks/{id}/channels/copy': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations['CopyChannel'];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations['TapTempo'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/channels/copy': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/blocks/{id}/global': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Moves the block's settings to a new global block and links the block to it. */
-        post: operations['MakeGlobal'];
-        delete: operations['UnlinkGlobal'];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations['CopyChannel'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/global': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/blocks/{id}/global/{globalId}': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations['UseGlobal'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Moves the block's settings to a new global block and links the block to it. */
+    post: operations['MakeGlobal'];
+    delete: operations['UnlinkGlobal'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/global/{globalId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/manual/{index}': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Manual A-D (index 0-3), 0..1. */
-        put: operations['SetManual'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put: operations['UseGlobal'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/manual/{index}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/live/external/{index}': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** External 1-8 (index 0-7), 0..1: what a pedal or CC would set. */
-        put: operations['SetExternal'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    /** Manual A-D (index 0-3), 0..1. */
+    put: operations['SetManual'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/external/{index}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/presets': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations['ListPresets'];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    /** External 1-8 (index 0-7), 0..1: what a pedal or CC would set. */
+    put: operations['SetExternal'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/presets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/presets/{id}': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations['GetPreset'];
-        put: operations['PutPreset'];
-        post?: never;
-        delete: operations['DeletePreset'];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['ListPresets'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/presets/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/presets/{id}/export': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations['ExportPreset'];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['GetPreset'];
+    put: operations['PutPreset'];
+    post?: never;
+    delete: operations['DeletePreset'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/presets/{id}/export': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/presets/import': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations['ImportPreset'];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['ExportPreset'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/presets/import': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/setlists': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations['ListSetlists'];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations['ImportPreset'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/setlists': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/setlists/{id}': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations['GetSetlist'];
-        put: operations['PutSetlist'];
-        post?: never;
-        delete: operations['DeleteSetlist'];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['ListSetlists'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/setlists/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/banks': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations['ListBanks'];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['GetSetlist'];
+    put: operations['PutSetlist'];
+    post?: never;
+    delete: operations['DeleteSetlist'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/banks': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/banks/{id}': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations['GetBank'];
-        put: operations['PutBank'];
-        post?: never;
-        delete: operations['DeleteBank'];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['ListBanks'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/banks/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/global': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations['GetGlobal'];
-        /** Replaces the global settings: tempo mode, metronome, EQ, Manual A-D, MIDI, footswitches, global blocks. */
-        put: operations['PutGlobal'];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['GetBank'];
+    put: operations['PutBank'];
+    post?: never;
+    delete: operations['DeleteBank'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/global': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/looper/{action}': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** record, play, stop, overdub, undo, reverse, halfSpeed or clear. */
-        post: operations['LooperAction'];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['GetGlobal'];
+    /** Replaces the global settings: tempo mode, metronome, EQ, Manual A-D, MIDI, footswitches, global blocks. */
+    put: operations['PutGlobal'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/looper/{action}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/looper/export': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations['ExportLoop'];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** record, play, stop, overdub, undo, reverse, halfSpeed or clear. */
+    post: operations['LooperAction'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/looper/export': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/midi/learn': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations['GetMidiLearn'];
-        /** The next CC, note or program change received is mapped to this action ('midiLearned' event). */
-        put: operations['StartMidiLearn'];
-        post?: never;
-        delete: operations['CancelMidiLearn'];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['ExportLoop'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/midi/learn': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/assets': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations['ListAssets'];
-        put?: never;
-        post: operations['UploadAsset'];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['GetMidiLearn'];
+    /** The next CC, note or program change received is mapped to this action ('midiLearned' event). */
+    put: operations['StartMidiLearn'];
+    post?: never;
+    delete: operations['CancelMidiLearn'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/assets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/assets/mix': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Blends impulse responses (levels, delays, polarity, peak alignment) into a new IR asset. */
-        post: operations['MixImpulseResponses'];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['ListAssets'];
+    put?: never;
+    post: operations['UploadAsset'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/assets/mix': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/assets/{reference}': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations['DeleteAsset'];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Blends impulse responses (levels, delays, polarity, peak alignment) into a new IR asset. */
+    post: operations['MixImpulseResponses'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/assets/{reference}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    '/api/v1/assets/{reference}/content': {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The asset's file, e.g. an impulse response for the editor's frequency-response plot. */
-        get: operations['GetAssetContent'];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations['DeleteAsset'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/assets/{reference}/content': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    /** The asset's file, e.g. an impulse response for the editor's frequency-response plot. */
+    get: operations['GetAssetContent'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        AddBlockRequest: {
-            type: string;
-            /** Format: int32 */
-            row: number;
-            /** Format: int32 */
-            column: number;
-            id?: null | string;
-        };
-        AssetInfo: {
-            ref: string;
-            name: string;
-            kind: string;
-            /** Format: int64 */
-            size: number;
-            /** Format: date-time */
-            added: string;
-        };
-        AssetRequest: {
-            asset: string;
-        };
-        /** @description Numbered preset slots, as a MIDI program change addresses them (0-127). */
-        Bank: {
-            id: string;
-            name: string;
-            /** @description Preset id per slot; null or missing slots are empty. */
-            slots: string[];
-        };
-        /**
-         * @description A block type the editor can place. `CpuCost` is its measured cost in percent of one core at 48 kHz
-         *     (64-frame blocks, its most expensive type), for the editor's CPU estimate; 0 for built-in cells.
-         */
-        BlockTypeInfo: {
-            typeId: string;
-            name: string;
-            category: string;
-            /** Format: int32 */
-            maxInstances: number;
-            /** Format: int32 */
-            channels: number;
-            assetSlots: string[];
-            params: components['schemas']['ParameterInfo'][];
-            /**
-             * Format: double
-             * @default 0
-             */
-            cpuCost: number;
-        };
-        BypassModeRequest: {
-            mode: string;
-        };
-        BypassRequest: {
-            bypassed: boolean;
-        };
-        CableRequest: {
-            from: string;
-            to: string;
-        };
-        ChannelRequest: {
-            channel: string;
-        };
-        CopyChannelRequest: {
-            from: string;
-            to: string;
-        };
-        /**
-         * @description Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole
-         *     driver callback); overloads and the host's GC counts are cumulative since the host started.
-         */
-        EngineStatus: {
-            connected: boolean;
-            mode: string;
-            backend?: null | string;
-            /** Format: double */
-            sampleRate: number;
-            /** Format: int32 */
-            bufferFrames: number;
-            /** Format: double */
-            cpuP999: number;
-            /** Format: double */
-            cpuMax: number;
-            /** Format: int64 */
-            overloads: number;
-            lastError?: null | string;
-            /**
-             * Format: int64
-             * @default 0
-             */
-            driverOverloads: number;
-            /**
-             * Format: double
-             * @default 0
-             */
-            nativeP999: number;
-            /**
-             * Format: double
-             * @default 0
-             */
-            nativeMax: number;
-            /**
-             * Format: int32
-             * @default 0
-             */
-            hostGen0: number;
-            /**
-             * Format: int32
-             * @default 0
-             */
-            hostGen1: number;
-            /**
-             * Format: int32
-             * @default 0
-             */
-            hostGen2: number;
-            /**
-             * Format: double
-             * @default 0
-             */
-            hostGcPauseMs: number;
-            /**
-             * Format: int64
-             * @default 0
-             */
-            hostAllocatedBytes: number;
-        };
-        /**
-         * @description One switch: the message it sends (a CC or note; value 64 or more is "down"), what a tap does, what holding it for
-         *     half a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is
-         *     active, 0 when not).
-         */
-        Footswitch: {
-            /** Format: int32 */
-            index: number;
-            label: string;
-            message: string;
-            /** Format: int32 */
-            channel: number;
-            /** Format: int32 */
-            number: number;
-            tap: components['schemas']['SwitchAction'];
-            hold: null | components['schemas']['SwitchAction'];
-            /** @default true */
-            led: boolean;
-        };
-        /** @description A set of footswitches on a generic MIDI foot controller. */
-        FootswitchLayout: {
-            id: string;
-            name: string;
-            switches: components['schemas']['Footswitch'][];
-        };
-        /** @description A block shared by presets: linking a preset block to it makes its settings global. */
-        GlobalBlock: {
-            id: string;
-            name: string;
-            type: string;
-            channels: {
-                [key: string]: {
-                    [key: string]: number;
-                };
-            };
-            assets: {
-                [key: string]: string;
-            };
-        };
-        /**
-         * @description Settings that belong to the rig rather than to any preset: tempo source, metronome, the global output EQ,
-         *     Manual A-D, MIDI mappings, footswitch layouts and the global block library. Stored as one document.
-         */
-        GlobalSettings: {
-            /** Format: int32 */
-            schemaVersion: number;
-            /** @description preset (each preset's tempo), global (one tempo for everything) or midiClock (follow MIDI clock). */
-            tempoMode: string;
-            /**
-             * Format: double
-             * @description The tempo in global mode.
-             */
-            tempo: number;
-            metronome: boolean;
-            /** Format: float */
-            metronomeLevel: number;
-            /** @description The global output EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse. */
-            eq: {
-                [key: string]: number;
-            };
-            /** @description Manual A-D (0..1): modifier sources a person or pedal sets, shared by every preset. */
-            manual: number[];
-            /**
-             * Format: int32
-             * @description MIDI channel the rig listens on (1-16), or 0 for all.
-             */
-            midiChannel: number;
-            midiMappings: components['schemas']['MidiMapping'][];
-            footswitches: components['schemas']['FootswitchLayout'][];
-            /** @description The layout in use, by id. */
-            activeLayout?: null | string;
-            blocks: components['schemas']['GlobalBlock'][];
-        };
-        ImportResult: {
-            preset: components['schemas']['PresetSummary'];
-            /** Format: int32 */
-            assetsAdded: number;
-            renamed: boolean;
-        };
-        /** @description Mixes impulse responses into a new one (a Cab-Lab-style blend of mics or cabs), stored as a new asset. */
-        IrMixRequest: {
-            /** @description File name for the result (".wav" is added). */
-            name: string;
-            /** @description Two or more IRs. */
-            sources: components['schemas']['IrMixSource'][];
-            /**
-             * @description Shift each IR so its peak lands at the same sample before the delays apply.
-             * @default true
-             */
-            align: boolean;
-            /**
-             * Format: double
-             * @description Length of the result.
-             * @default 170
-             */
-            lengthMs: number;
-            /**
-             * Format: int32
-             * @description Rate of the result.
-             * @default 48000
-             */
-            sampleRate: number;
-            /**
-             * @description Scale the result to unit energy, like the Cab block does.
-             * @default true
-             */
-            normalize: boolean;
-        };
-        /** @description One impulse response in an IR mix. */
-        IrMixSource: {
-            /** @description An asset reference of a .wav IR. */
-            asset: string;
-            /**
-             * Format: double
-             * @description Gain applied before summing.
-             * @default 0
-             */
-            levelDb: number;
-            /**
-             * Format: double
-             * @description Delay added before summing (after alignment).
-             * @default 0
-             */
-            delayMs: number;
-            /**
-             * @description Flip the polarity.
-             * @default false
-             */
-            invert: boolean;
-        };
-        LinkGlobalRequest: {
-            name?: null | string;
-        };
-        /** @description The rig as it is running: the working copy, which scene is active, and whether it differs from the library. */
-        LiveState: {
-            preset: components['schemas']['Preset'];
-            /** Format: int32 */
-            activeScene: number;
-            /** Format: int64 */
-            revision: number;
-            dirty: boolean;
-            canUndo: boolean;
-            canRedo: boolean;
-        };
-        /** @description Arms MIDI learn: the next CC, note or program change received is bound to this action. */
-        MidiLearnRequest: {
-            action: string;
-            target?: null | string;
-            /** Format: int32 */
-            value?: null | number;
-        };
-        /**
-         * @description A MIDI message bound to an action. `Message` is cc, note or pc; `Channel` 0 means any. Actions:
-         *     scene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank
-         *     id, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,
-         *     Value = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,
-         *     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear).
-         */
-        MidiMapping: {
-            id: string;
-            message: string;
-            /** Format: int32 */
-            channel: number;
-            /** Format: int32 */
-            number: number;
-            action: string;
-            target?: null | string;
-            /** Format: int32 */
-            value?: null | number;
-        };
-        MoveBlockRequest: {
-            /** Format: int32 */
-            row: number;
-            /** Format: int32 */
-            column: number;
-        };
-        ParameterInfo: {
-            id: string;
-            name: string;
-            kind: string;
-            /** Format: float */
-            min: number;
-            /** Format: float */
-            max: number;
-            /** Format: float */
-            default: number;
-            unit: string;
-            taper: string;
-            options?: null | string[];
-        };
-        /**
-         * @description A complete rig: grid, blocks with up to four channels each, cables and eight scenes. Parameter values are stored
-         *     sparsely; anything not listed takes the block type's default, so new parameters need no migration.
-         */
-        Preset: {
-            /** Format: int32 */
-            schemaVersion: number;
-            id: string;
-            name: string;
-            author?: null | string;
-            tags: string[];
-            /** Format: double */
-            tempo: number;
-            /** Format: int32 */
-            rows: number;
-            /** Format: int32 */
-            columns: number;
-            blocks: components['schemas']['PresetBlock'][];
-            cables: components['schemas']['PresetCable'][];
-            scenes: components['schemas']['Scene'][];
-            /** @description Parameters driven by controllers (docs/02-architecture.md §5.4). */
-            modifiers: components['schemas']['PresetModifier'][];
-            /**
-             * @description Controller settings (LFO rates and shapes, ADSR times, envelope and sequencer settings) by rig parameter id,
-             *     e.g. `lfo1Rate`. Sparse: missing ones take their default.
-             */
-            controllers: {
-                [key: string]: number;
-            };
-        };
-        PresetBlock: {
-            /** @description Stable instance id such as `amp1`; never an index. */
-            id: string;
-            type: string;
-            /** Format: int32 */
-            row: number;
-            /** Format: int32 */
-            column: number;
-            /** @description Channel name (A-D) to parameter id to value. Only values that differ from the default need to be present. */
-            channels: {
-                [key: string]: {
-                    [key: string]: number;
-                };
-            };
-            /** @description Asset slot to asset reference (`sha256:&lt;hex&gt;`), e.g. `"model"` or `"ir1"`. */
-            assets: {
-                [key: string]: string;
-            };
-            /** @description What bypassing does: thru, mute, muteIn or muteFxIn (the last two let tails spill over). */
-            bypassMode: string;
-            /**
-             * @description The global block this block is linked to, if any: its channels and assets come from the global library and
-             *     editing them edits every linked preset.
-             */
-            global?: null | string;
-        };
-        PresetCable: {
-            from: string;
-            to: string;
-        };
-        /** @description One modified parameter; see Cathode.Engine.Graph.ModifierDefinition for the semantics. */
-        PresetModifier: {
-            block: string;
-            param: string;
-            /** @description lfo1, lfo2, adsr1, adsr2, seq, env, pitch, manualA-D, scene1-4 or ext1-8. */
-            source: string;
-            /** Format: float */
-            min: number;
-            /** Format: float */
-            max: number;
-            /** @description linear, exp, log or scurve. */
-            curve: string;
-            /** Format: float */
-            attackMs: number;
-            /** Format: float */
-            releaseMs: number;
-        };
-        PresetSummary: {
-            id: string;
-            name: string;
-            author?: null | string;
-            tags: string[];
-            /** Format: date-time */
-            modified: string;
-        };
-        RtaRequest: {
-            enabled: boolean;
-        };
-        SaveRequest: {
-            name?: null | string;
-            /** @default false */
-            asNew: boolean;
-        };
-        /** @description Which channel each block uses and whether it is bypassed. Blocks not listed use channel A, engaged. */
-        Scene: {
-            name: string;
-            /**
-             * Format: float
-             * @description Scene output level in dB.
-             */
-            level: number;
-            blocks: {
-                [key: string]: components['schemas']['SceneBlockState'];
-            };
-            /** @description Scene controllers 1-4 (0..1), modifier sources that change with the scene. */
-            controllers: number[];
-        };
-        SceneBlockState: {
-            /** @default false */
-            bypassed: boolean;
-            /** @default A */
-            channel: string;
-        };
-        SceneSelectRequest: {
-            /** Format: int32 */
-            scene: number;
-        };
-        SceneUpdateRequest: {
-            name?: null | string;
-            /** Format: float */
-            level?: null | number;
-            controllers?: null | number[];
-        };
-        ScopeRequest: {
-            enabled: boolean;
-        };
-        /** @description Presets in performance order. Each entry is a song part: a preset and the scene to start on. */
-        Setlist: {
-            id: string;
-            name: string;
-            entries: components['schemas']['SetlistEntry'][];
-        };
-        SetlistEntry: {
-            presetId: string;
-            /**
-             * Format: int32
-             * @default 0
-             */
-            scene: number;
-            label?: null | string;
-        };
-        /** Format: binary */
-        Stream: string;
-        /** @description An action, with the same vocabulary as MidiMapping. */
-        SwitchAction: {
-            action: string;
-            target?: null | string;
-            /** Format: int32 */
-            value?: null | number;
-        };
-        SystemInfo: {
-            version: string;
-            engine: components['schemas']['EngineStatus'];
-        };
-        TempoRequest: {
-            /** Format: double */
-            bpm: number;
-        };
-        /**
-         * @description Learn a Tone Match: the Server listens to the rig's output for `Seconds` while you play, compares it with the
-         *     `Reference` recording (a .wav asset) and stores the correction as the block's `match` asset.
-         */
-        ToneMatchRequest: {
-            /** @description An asset reference (`sha256:…`) of a .wav file of the tone to match. */
-            reference: string;
-            /**
-             * Format: double
-             * @description How long to listen to the rig, 3 to 60 seconds.
-             * @default 10
-             */
-            seconds: number;
-            /**
-             * Format: double
-             * @description How much of the correction to apply, 0 to 100 %.
-             * @default 100
-             */
-            amount: number;
-            /**
-             * Format: double
-             * @description Smoothing width in octaves, 0.1 to 1.
-             * @default 0.33333334
-             */
-            smoothing: number;
-        };
-        ValueRequest: {
-            /** Format: float */
-            value: number;
-        };
+  schemas: {
+    AddBlockRequest: {
+      type: string;
+      /** Format: int32 */
+      row: number;
+      /** Format: int32 */
+      column: number;
+      id?: null | string;
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    AssetInfo: {
+      ref: string;
+      name: string;
+      kind: string;
+      /** Format: int64 */
+      size: number;
+      /** Format: date-time */
+      added: string;
+    };
+    AssetRequest: {
+      asset: string;
+    };
+    /** @description Numbered preset slots, as a MIDI program change addresses them (0-127). */
+    Bank: {
+      id: string;
+      name: string;
+      /** @description Preset id per slot; null or missing slots are empty. */
+      slots: string[];
+    };
+    /**
+     * @description A block type the editor can place. `CpuCost` is its measured cost in percent of one core at 48 kHz
+     *     (64-frame blocks, its most expensive type), for the editor's CPU estimate; 0 for built-in cells.
+     */
+    BlockTypeInfo: {
+      typeId: string;
+      name: string;
+      category: string;
+      /** Format: int32 */
+      maxInstances: number;
+      /** Format: int32 */
+      channels: number;
+      assetSlots: string[];
+      params: components['schemas']['ParameterInfo'][];
+      /**
+       * Format: double
+       * @default 0
+       */
+      cpuCost: number;
+    };
+    BypassModeRequest: {
+      mode: string;
+    };
+    BypassRequest: {
+      bypassed: boolean;
+    };
+    CableRequest: {
+      from: string;
+      to: string;
+    };
+    ChannelRequest: {
+      channel: string;
+    };
+    CopyChannelRequest: {
+      from: string;
+      to: string;
+    };
+    /**
+     * @description Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole
+     *     driver callback); overloads and the host's GC counts are cumulative since the host started.
+     */
+    EngineStatus: {
+      connected: boolean;
+      mode: string;
+      backend?: null | string;
+      /** Format: double */
+      sampleRate: number;
+      /** Format: int32 */
+      bufferFrames: number;
+      /** Format: double */
+      cpuP999: number;
+      /** Format: double */
+      cpuMax: number;
+      /** Format: int64 */
+      overloads: number;
+      lastError?: null | string;
+      /**
+       * Format: int64
+       * @default 0
+       */
+      driverOverloads: number;
+      /**
+       * Format: double
+       * @default 0
+       */
+      nativeP999: number;
+      /**
+       * Format: double
+       * @default 0
+       */
+      nativeMax: number;
+      /**
+       * Format: int32
+       * @default 0
+       */
+      hostGen0: number;
+      /**
+       * Format: int32
+       * @default 0
+       */
+      hostGen1: number;
+      /**
+       * Format: int32
+       * @default 0
+       */
+      hostGen2: number;
+      /**
+       * Format: double
+       * @default 0
+       */
+      hostGcPauseMs: number;
+      /**
+       * Format: int64
+       * @default 0
+       */
+      hostAllocatedBytes: number;
+    };
+    /**
+     * @description One switch: the message it sends (a CC or note; value 64 or more is "down"), what a tap does, what holding it for
+     *     half a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is
+     *     active, 0 when not).
+     */
+    Footswitch: {
+      /** Format: int32 */
+      index: number;
+      label: string;
+      message: string;
+      /** Format: int32 */
+      channel: number;
+      /** Format: int32 */
+      number: number;
+      tap: components['schemas']['SwitchAction'];
+      hold: null | components['schemas']['SwitchAction'];
+      /** @default true */
+      led: boolean;
+    };
+    /** @description A set of footswitches on a generic MIDI foot controller. */
+    FootswitchLayout: {
+      id: string;
+      name: string;
+      switches: components['schemas']['Footswitch'][];
+    };
+    /** @description A block shared by presets: linking a preset block to it makes its settings global. */
+    GlobalBlock: {
+      id: string;
+      name: string;
+      type: string;
+      channels: {
+        [key: string]: {
+          [key: string]: number;
+        };
+      };
+      assets: {
+        [key: string]: string;
+      };
+    };
+    /**
+     * @description Settings that belong to the rig rather than to any preset: tempo source, metronome, the global output EQ,
+     *     Manual A-D, MIDI mappings, footswitch layouts and the global block library. Stored as one document.
+     */
+    GlobalSettings: {
+      /** Format: int32 */
+      schemaVersion: number;
+      /** @description preset (each preset's tempo), global (one tempo for everything) or midiClock (follow MIDI clock). */
+      tempoMode: string;
+      /**
+       * Format: double
+       * @description The tempo in global mode.
+       */
+      tempo: number;
+      metronome: boolean;
+      /** Format: float */
+      metronomeLevel: number;
+      /** @description The global output EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse. */
+      eq: {
+        [key: string]: number;
+      };
+      /** @description Manual A-D (0..1): modifier sources a person or pedal sets, shared by every preset. */
+      manual: number[];
+      /**
+       * Format: int32
+       * @description MIDI channel the rig listens on (1-16), or 0 for all.
+       */
+      midiChannel: number;
+      midiMappings: components['schemas']['MidiMapping'][];
+      footswitches: components['schemas']['FootswitchLayout'][];
+      /** @description The layout in use, by id. */
+      activeLayout?: null | string;
+      blocks: components['schemas']['GlobalBlock'][];
+    };
+    ImportResult: {
+      preset: components['schemas']['PresetSummary'];
+      /** Format: int32 */
+      assetsAdded: number;
+      renamed: boolean;
+    };
+    /** @description Mixes impulse responses into a new one (a Cab-Lab-style blend of mics or cabs), stored as a new asset. */
+    IrMixRequest: {
+      /** @description File name for the result (".wav" is added). */
+      name: string;
+      /** @description Two or more IRs. */
+      sources: components['schemas']['IrMixSource'][];
+      /**
+       * @description Shift each IR so its peak lands at the same sample before the delays apply.
+       * @default true
+       */
+      align: boolean;
+      /**
+       * Format: double
+       * @description Length of the result.
+       * @default 170
+       */
+      lengthMs: number;
+      /**
+       * Format: int32
+       * @description Rate of the result.
+       * @default 48000
+       */
+      sampleRate: number;
+      /**
+       * @description Scale the result to unit energy, like the Cab block does.
+       * @default true
+       */
+      normalize: boolean;
+    };
+    /** @description One impulse response in an IR mix. */
+    IrMixSource: {
+      /** @description An asset reference of a .wav IR. */
+      asset: string;
+      /**
+       * Format: double
+       * @description Gain applied before summing.
+       * @default 0
+       */
+      levelDb: number;
+      /**
+       * Format: double
+       * @description Delay added before summing (after alignment).
+       * @default 0
+       */
+      delayMs: number;
+      /**
+       * @description Flip the polarity.
+       * @default false
+       */
+      invert: boolean;
+    };
+    LinkGlobalRequest: {
+      name?: null | string;
+    };
+    /** @description The rig as it is running: the working copy, which scene is active, and whether it differs from the library. */
+    LiveState: {
+      preset: components['schemas']['Preset'];
+      /** Format: int32 */
+      activeScene: number;
+      /** Format: int64 */
+      revision: number;
+      dirty: boolean;
+      canUndo: boolean;
+      canRedo: boolean;
+    };
+    /** @description Arms MIDI learn: the next CC, note or program change received is bound to this action. */
+    MidiLearnRequest: {
+      action: string;
+      target?: null | string;
+      /** Format: int32 */
+      value?: null | number;
+    };
+    /**
+     * @description A MIDI message bound to an action. `Message` is cc, note or pc; `Channel` 0 means any. Actions:
+     *     scene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank
+     *     id, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,
+     *     Value = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,
+     *     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear).
+     */
+    MidiMapping: {
+      id: string;
+      message: string;
+      /** Format: int32 */
+      channel: number;
+      /** Format: int32 */
+      number: number;
+      action: string;
+      target?: null | string;
+      /** Format: int32 */
+      value?: null | number;
+    };
+    MoveBlockRequest: {
+      /** Format: int32 */
+      row: number;
+      /** Format: int32 */
+      column: number;
+    };
+    ParameterInfo: {
+      id: string;
+      name: string;
+      kind: string;
+      /** Format: float */
+      min: number;
+      /** Format: float */
+      max: number;
+      /** Format: float */
+      default: number;
+      unit: string;
+      taper: string;
+      options?: null | string[];
+    };
+    /**
+     * @description A complete rig: grid, blocks with up to four channels each, cables and eight scenes. Parameter values are stored
+     *     sparsely; anything not listed takes the block type's default, so new parameters need no migration.
+     */
+    Preset: {
+      /** Format: int32 */
+      schemaVersion: number;
+      id: string;
+      name: string;
+      author?: null | string;
+      tags: string[];
+      /** Format: double */
+      tempo: number;
+      /** Format: int32 */
+      rows: number;
+      /** Format: int32 */
+      columns: number;
+      blocks: components['schemas']['PresetBlock'][];
+      cables: components['schemas']['PresetCable'][];
+      scenes: components['schemas']['Scene'][];
+      /** @description Parameters driven by controllers (docs/02-architecture.md §5.4). */
+      modifiers: components['schemas']['PresetModifier'][];
+      /**
+       * @description Controller settings (LFO rates and shapes, ADSR times, envelope and sequencer settings) by rig parameter id,
+       *     e.g. `lfo1Rate`. Sparse: missing ones take their default.
+       */
+      controllers: {
+        [key: string]: number;
+      };
+    };
+    PresetBlock: {
+      /** @description Stable instance id such as `amp1`; never an index. */
+      id: string;
+      type: string;
+      /** Format: int32 */
+      row: number;
+      /** Format: int32 */
+      column: number;
+      /** @description Channel name (A-D) to parameter id to value. Only values that differ from the default need to be present. */
+      channels: {
+        [key: string]: {
+          [key: string]: number;
+        };
+      };
+      /** @description Asset slot to asset reference (`sha256:&lt;hex&gt;`), e.g. `"model"` or `"ir1"`. */
+      assets: {
+        [key: string]: string;
+      };
+      /** @description What bypassing does: thru, mute, muteIn or muteFxIn (the last two let tails spill over). */
+      bypassMode: string;
+      /**
+       * @description The global block this block is linked to, if any: its channels and assets come from the global library and
+       *     editing them edits every linked preset.
+       */
+      global?: null | string;
+    };
+    PresetCable: {
+      from: string;
+      to: string;
+    };
+    /** @description One modified parameter; see Cathode.Engine.Graph.ModifierDefinition for the semantics. */
+    PresetModifier: {
+      block: string;
+      param: string;
+      /** @description lfo1, lfo2, adsr1, adsr2, seq, env, pitch, manualA-D, scene1-4 or ext1-8. */
+      source: string;
+      /** Format: float */
+      min: number;
+      /** Format: float */
+      max: number;
+      /** @description linear, exp, log or scurve. */
+      curve: string;
+      /** Format: float */
+      attackMs: number;
+      /** Format: float */
+      releaseMs: number;
+    };
+    PresetSummary: {
+      id: string;
+      name: string;
+      author?: null | string;
+      tags: string[];
+      /** Format: date-time */
+      modified: string;
+    };
+    RtaRequest: {
+      enabled: boolean;
+    };
+    SaveRequest: {
+      name?: null | string;
+      /** @default false */
+      asNew: boolean;
+    };
+    /** @description Which channel each block uses and whether it is bypassed. Blocks not listed use channel A, engaged. */
+    Scene: {
+      name: string;
+      /**
+       * Format: float
+       * @description Scene output level in dB.
+       */
+      level: number;
+      blocks: {
+        [key: string]: components['schemas']['SceneBlockState'];
+      };
+      /** @description Scene controllers 1-4 (0..1), modifier sources that change with the scene. */
+      controllers: number[];
+    };
+    SceneBlockState: {
+      /** @default false */
+      bypassed: boolean;
+      /** @default A */
+      channel: string;
+    };
+    SceneSelectRequest: {
+      /** Format: int32 */
+      scene: number;
+    };
+    SceneUpdateRequest: {
+      name?: null | string;
+      /** Format: float */
+      level?: null | number;
+      controllers?: null | number[];
+    };
+    ScopeRequest: {
+      enabled: boolean;
+    };
+    /** @description Presets in performance order. Each entry is a song part: a preset and the scene to start on. */
+    Setlist: {
+      id: string;
+      name: string;
+      entries: components['schemas']['SetlistEntry'][];
+    };
+    SetlistEntry: {
+      presetId: string;
+      /**
+       * Format: int32
+       * @default 0
+       */
+      scene: number;
+      label?: null | string;
+    };
+    /** Format: binary */
+    Stream: string;
+    /** @description An action, with the same vocabulary as MidiMapping. */
+    SwitchAction: {
+      action: string;
+      target?: null | string;
+      /** Format: int32 */
+      value?: null | number;
+    };
+    SystemInfo: {
+      version: string;
+      engine: components['schemas']['EngineStatus'];
+    };
+    TempoRequest: {
+      /** Format: double */
+      bpm: number;
+    };
+    /**
+     * @description Learn a Tone Match: the Server listens to the rig's output for `Seconds` while you play, compares it with the
+     *     `Reference` recording (a .wav asset) and stores the correction as the block's `match` asset.
+     */
+    ToneMatchRequest: {
+      /** @description An asset reference (`sha256:…`) of a .wav file of the tone to match. */
+      reference: string;
+      /**
+       * Format: double
+       * @description How long to listen to the rig, 3 to 60 seconds.
+       * @default 10
+       */
+      seconds: number;
+      /**
+       * Format: double
+       * @description How much of the correction to apply, 0 to 100 %.
+       * @default 100
+       */
+      amount: number;
+      /**
+       * Format: double
+       * @description Smoothing width in octaves, 0.1 to 1.
+       * @default 0.33333334
+       */
+      smoothing: number;
+    };
+    ValueRequest: {
+      /** Format: float */
+      value: number;
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    GetSystem: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['SystemInfo'];
-                };
-            };
-        };
-    };
-    SetTuner: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['BypassRequest'];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    SetScope: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['ScopeRequest'];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    SetRta: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['RtaRequest'];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ListBlockTypes: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['BlockTypeInfo'][];
-                };
-            };
-        };
-    };
-    GetBlockType: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                typeId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['BlockTypeInfo'];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    GetRigControls: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['BlockTypeInfo'];
-                };
-            };
-        };
-    };
-    GetLive: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    PutLive: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['Preset'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    NewPreset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    LoadPreset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    LoadSetlistEntry: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                index: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    LoadBankSlot: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                slot: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    ExportLive: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    SavePreset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['SaveRequest'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    Undo: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    Redo: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    AddBlock: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['AddBlockRequest'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    RemoveBlock: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    MoveBlock: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['MoveBlockRequest'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    SetParams: {
-        parameters: {
-            query?: {
-                channel?: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': {
-                    [key: string]: number;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    SetBypass: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['BypassRequest'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    SetChannel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['ChannelRequest'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    SetAsset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                slot: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['AssetRequest'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    LearnToneMatch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['ToneMatchRequest'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    AddCable: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['CableRequest'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    RemoveCable: {
-        parameters: {
-            query: {
-                from: string;
-                to: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    SelectScene: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['SceneSelectRequest'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    UpdateScene: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                scene: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['SceneUpdateRequest'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    SetBypassMode: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['BypassModeRequest'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    SetModifiers: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['PresetModifier'][];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    SetControllers: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': {
-                    [key: string]: number;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    SetTempo: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['TempoRequest'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    TapTempo: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    CopyChannel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['CopyChannelRequest'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    MakeGlobal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['LinkGlobalRequest'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    UnlinkGlobal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    UseGlobal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                globalId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['LiveState'];
-                };
-            };
-        };
-    };
-    SetManual: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                index: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['ValueRequest'];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    SetExternal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                index: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['ValueRequest'];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ListPresets: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['PresetSummary'][];
-                };
-            };
-        };
-    };
-    GetPreset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['Preset'];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PutPreset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['Preset'];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    DeletePreset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ExportPreset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ImportPreset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/zip': components['schemas']['Stream'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['ImportResult'];
-                };
-            };
-        };
-    };
-    ListSetlists: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['Setlist'][];
-                };
-            };
-        };
-    };
-    GetSetlist: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['Setlist'];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PutSetlist: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['Setlist'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['Setlist'];
-                };
-            };
-        };
-    };
-    DeleteSetlist: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ListBanks: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['Bank'][];
-                };
-            };
-        };
-    };
-    GetBank: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['Bank'];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PutBank: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['Bank'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['Bank'];
-                };
-            };
-        };
-    };
-    DeleteBank: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    GetGlobal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['GlobalSettings'];
-                };
-            };
-        };
-    };
-    PutGlobal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['GlobalSettings'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['GlobalSettings'];
-                };
-            };
-        };
-    };
-    LooperAction: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                action: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': string;
-                };
-            };
-        };
-    };
-    ExportLoop: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    GetMidiLearn: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['MidiLearnRequest'];
-                };
-            };
-        };
-    };
-    StartMidiLearn: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['MidiLearnRequest'];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    CancelMidiLearn: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ListAssets: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['AssetInfo'][];
-                };
-            };
-        };
-    };
-    UploadAsset: {
-        parameters: {
-            query: {
-                name: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/octet-stream': components['schemas']['Stream'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['AssetInfo'];
-                };
-            };
-        };
-    };
-    MixImpulseResponses: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                'application/json': components['schemas']['IrMixRequest'];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    'application/json': components['schemas']['AssetInfo'];
-                };
-            };
-        };
-    };
-    DeleteAsset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                reference: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    GetAssetContent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                reference: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
+  GetSystem: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SystemInfo'];
+        };
+      };
+    };
+  };
+  SetTuner: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BypassRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  SetScope: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ScopeRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  SetRta: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RtaRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ListBlockTypes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BlockTypeInfo'][];
+        };
+      };
+    };
+  };
+  GetBlockType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        typeId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BlockTypeInfo'];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  GetRigControls: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BlockTypeInfo'];
+        };
+      };
+    };
+  };
+  GetLive: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  PutLive: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Preset'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  NewPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  LoadPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  LoadSetlistEntry: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        index: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  LoadBankSlot: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        slot: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  ExportLive: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  SavePreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SaveRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  Undo: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  Redo: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  AddBlock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AddBlockRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  RemoveBlock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  MoveBlock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MoveBlockRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetParams: {
+    parameters: {
+      query?: {
+        channel?: string;
+      };
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: number;
+        };
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetBypass: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BypassRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetChannel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChannelRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetAsset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        slot: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AssetRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  LearnToneMatch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ToneMatchRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  AddCable: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CableRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  RemoveCable: {
+    parameters: {
+      query: {
+        from: string;
+        to: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SelectScene: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SceneSelectRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  UpdateScene: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scene: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SceneUpdateRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetBypassMode: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BypassModeRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetModifiers: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PresetModifier'][];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetControllers: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: number;
+        };
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetTempo: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TempoRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  TapTempo: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  CopyChannel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CopyChannelRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  MakeGlobal: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LinkGlobalRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  UnlinkGlobal: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  UseGlobal: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        globalId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetManual: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        index: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ValueRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  SetExternal: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        index: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ValueRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ListPresets: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PresetSummary'][];
+        };
+      };
+    };
+  };
+  GetPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Preset'];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  PutPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Preset'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  DeletePreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ExportPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ImportPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/zip': components['schemas']['Stream'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ImportResult'];
+        };
+      };
+    };
+  };
+  ListSetlists: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Setlist'][];
+        };
+      };
+    };
+  };
+  GetSetlist: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Setlist'];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  PutSetlist: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Setlist'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Setlist'];
+        };
+      };
+    };
+  };
+  DeleteSetlist: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ListBanks: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Bank'][];
+        };
+      };
+    };
+  };
+  GetBank: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Bank'];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  PutBank: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Bank'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Bank'];
+        };
+      };
+    };
+  };
+  DeleteBank: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  GetGlobal: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GlobalSettings'];
+        };
+      };
+    };
+  };
+  PutGlobal: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GlobalSettings'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GlobalSettings'];
+        };
+      };
+    };
+  };
+  LooperAction: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        action: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': string;
+        };
+      };
+    };
+  };
+  ExportLoop: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  GetMidiLearn: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MidiLearnRequest'];
+        };
+      };
+    };
+  };
+  StartMidiLearn: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MidiLearnRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  CancelMidiLearn: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ListAssets: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AssetInfo'][];
+        };
+      };
+    };
+  };
+  UploadAsset: {
+    parameters: {
+      query: {
+        name: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/octet-stream': components['schemas']['Stream'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AssetInfo'];
+        };
+      };
+    };
+  };
+  MixImpulseResponses: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['IrMixRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AssetInfo'];
+        };
+      };
+    };
+  };
+  DeleteAsset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        reference: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  GetAssetContent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        reference: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
 }

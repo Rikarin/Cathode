@@ -3,9 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/audio-ui/src",
   "prefix": "cth",
-  "tags": [
-    "type:ui"
-  ],
+  "tags": ["type:ui"],
   "projectType": "library",
   "// targets": "to see all targets run: nx show project audio-ui --web",
   "targets": {
@@ -20,9 +18,7 @@
     },
     "build-storybook": {
       "executor": "@storybook/angular-vite:build-storybook",
-      "outputs": [
-        "{options.outputDir}"
-      ],
+      "outputs": ["{options.outputDir}"],
       "options": {
         "outputDir": "dist/storybook/audio-ui",
         "configDir": "libs/audio-ui/.storybook",
@@ -39,9 +35,7 @@
     },
     "chromatic": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "build-storybook"
-      ],
+      "dependsOn": ["build-storybook"],
       "options": {
         "command": "chromatic --storybook-build-dir dist/storybook/audio-ui --exit-zero-on-changes --only-changed",
         "cwd": "{workspaceRoot}"

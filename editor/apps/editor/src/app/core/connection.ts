@@ -10,31 +10,31 @@ const DefaultServer = 'http://127.0.0.1:5180';
  */
 @Injectable({ providedIn: 'root' })
 export class ConnectionService {
-    readonly desktop: CathodeDesktop | null = typeof window !== 'undefined' ? (window.cathode ?? null) : null;
-    readonly connection = signal<Connection | null>(null);
-    private api: CathodeClient | null = null;
+  readonly desktop: CathodeDesktop | null = typeof window !== 'undefined' ? (window.cathode ?? null) : null;
+  readonly connection = signal<Connection | null>(null);
+  private api: CathodeClient | null = null;
 
-    /** The REST client; valid once {@link connect} has resolved. */
-    get client(): CathodeClient {
-        if (!this.api) {
-            throw new Error('Not connected to a Cathode server yet.');
-        }
-
-        return this.api;
+  /** The REST client; valid once {@link connect} has resolved. */
+  get client(): CathodeClient {
+    if (!this.api) {
+      throw new Error('Not connected to a Cathode server yet.');
     }
 
-    async connect(): Promise<Connection> {
-        const connection = this.desktop ? await this.desktop.connection() : fromLocation(window.location);
-        this.api = createCathodeClient(connection);
-        this.connection.set(connection);
-        return connection;
-    }
+    return this.api;
+  }
+
+  async connect(): Promise<Connection> {
+    const connection = this.desktop ? await this.desktop.connection() : fromLocation(window.location);
+    this.api = createCathodeClient(connection);
+    this.connection.set(connection);
+    return connection;
+  }
 }
 
 export function fromLocation(location: Pick<Location, 'search'>): Connection {
-    const query = new URLSearchParams(location.search);
-    return {
-        baseUrl: (query.get('server') ?? DefaultServer).replace(/\/+$/, ''),
-        token: query.get('token')
-    };
+  const query = new URLSearchParams(location.search);
+  return {
+    baseUrl: (query.get('server') ?? DefaultServer).replace(/\/+$/, ''),
+    token: query.get('token')
+  };
 }

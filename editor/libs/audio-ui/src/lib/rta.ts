@@ -3,8 +3,8 @@ import { onAnimationFrame, themeColor } from './animation';
 
 /** Band levels in dB at their centre frequencies (RtaFrame in Cathode.Contracts). */
 export interface RtaSpectrum {
-    frequencies: ArrayLike<number>;
-    levels: ArrayLike<number>;
+  frequencies: ArrayLike<number>;
+  levels: ArrayLike<number>;
 }
 
 /** Lowest level drawn; the scale runs from here to 0 dB. */
@@ -15,98 +15,98 @@ export const RtaFloorDb = -96;
  * on animation frames, like the scope. Grid lines every 12 dB and at 100 Hz, 1 kHz and 10 kHz.
  */
 @Component({
-    selector: 'cth-rta',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    host: { class: 'block' },
-    template: `<canvas #canvas class="size-full" role="img" [attr.aria-label]="label()"></canvas>`
+  selector: 'cth-rta',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
+  template: `<canvas #canvas class="size-full" role="img" [attr.aria-label]="label()"></canvas>`
 })
 export class CthRta {
-    private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
-    private peaks: number[] = [];
-    private lastTime = 0;
+  private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
+  private peaks: number[] = [];
+  private lastTime = 0;
 
-    readonly source = input.required<() => RtaSpectrum | null | undefined>();
-    readonly label = input('Output spectrum');
+  readonly source = input.required<() => RtaSpectrum | null | undefined>();
+  readonly label = input('Output spectrum');
 
-    /** How fast the peak markers fall, in dB per second. */
-    readonly peakFall = input(12);
+  /** How fast the peak markers fall, in dB per second. */
+  readonly peakFall = input(12);
 
-    constructor() {
-        onAnimationFrame(time => this.draw(time));
+  constructor() {
+    onAnimationFrame(time => this.draw(time));
+  }
+
+  private draw(time: number): void {
+    const canvas = this.canvas().nativeElement;
+    const ratio = window.devicePixelRatio || 1;
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    if (canvas.width !== width * ratio || canvas.height !== height * ratio) {
+      canvas.width = width * ratio;
+      canvas.height = height * ratio;
     }
 
-    private draw(time: number): void {
-        const canvas = this.canvas().nativeElement;
-        const ratio = window.devicePixelRatio || 1;
-        const width = canvas.clientWidth;
-        const height = canvas.clientHeight;
-        if (canvas.width !== width * ratio || canvas.height !== height * ratio) {
-            canvas.width = width * ratio;
-            canvas.height = height * ratio;
-        }
-
-        const context = canvas.getContext('2d');
-        if (!context || width === 0 || height === 0) {
-            return;
-        }
-
-        context.setTransform(ratio, 0, 0, ratio, 0, 0);
-        context.clearRect(0, 0, width, height);
-        context.strokeStyle = themeColor(canvas, '--color-border-muted');
-        context.lineWidth = 1;
-        for (let db = 0; db > RtaFloorDb; db -= 12) {
-            const y = Math.round(levelToY(db, height)) + 0.5;
-            line(context, 0, y, width, y);
-        }
-
-        for (const hz of [100, 1_000, 10_000]) {
-            const x = Math.round(frequencyToX(hz, width)) + 0.5;
-            line(context, x, 0, x, height);
-        }
-
-        const spectrum = this.source()();
-        if (!spectrum || spectrum.levels.length === 0) {
-            this.peaks = [];
-            return;
-        }
-
-        const count = spectrum.levels.length;
-        const elapsed = this.lastTime ? (time - this.lastTime) / 1000 : 0;
-        this.lastTime = time;
-        if (this.peaks.length !== count) {
-            this.peaks = Array.from({ length: count }, () => RtaFloorDb);
-        }
-
-        const barWidth = Math.max(1, width / count - 1);
-        context.fillStyle = themeColor(canvas, '--color-primary');
-        for (let i = 0; i < count; i++) {
-            const x = frequencyToX(spectrum.frequencies[i], width) - barWidth / 2;
-            const y = levelToY(spectrum.levels[i], height);
-            context.fillRect(x, y, barWidth, height - y);
-            this.peaks[i] = Math.max(spectrum.levels[i], this.peaks[i] - this.peakFall() * elapsed);
-        }
-
-        context.fillStyle = themeColor(canvas, '--color-warning');
-        for (let i = 0; i < count; i++) {
-            const x = frequencyToX(spectrum.frequencies[i], width) - barWidth / 2;
-            context.fillRect(x, levelToY(this.peaks[i], height) - 1, barWidth, 2);
-        }
+    const context = canvas.getContext('2d');
+    if (!context || width === 0 || height === 0) {
+      return;
     }
+
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    context.clearRect(0, 0, width, height);
+    context.strokeStyle = themeColor(canvas, '--color-border-muted');
+    context.lineWidth = 1;
+    for (let db = 0; db > RtaFloorDb; db -= 12) {
+      const y = Math.round(levelToY(db, height)) + 0.5;
+      line(context, 0, y, width, y);
+    }
+
+    for (const hz of [100, 1_000, 10_000]) {
+      const x = Math.round(frequencyToX(hz, width)) + 0.5;
+      line(context, x, 0, x, height);
+    }
+
+    const spectrum = this.source()();
+    if (!spectrum || spectrum.levels.length === 0) {
+      this.peaks = [];
+      return;
+    }
+
+    const count = spectrum.levels.length;
+    const elapsed = this.lastTime ? (time - this.lastTime) / 1000 : 0;
+    this.lastTime = time;
+    if (this.peaks.length !== count) {
+      this.peaks = Array.from({ length: count }, () => RtaFloorDb);
+    }
+
+    const barWidth = Math.max(1, width / count - 1);
+    context.fillStyle = themeColor(canvas, '--color-primary');
+    for (let i = 0; i < count; i++) {
+      const x = frequencyToX(spectrum.frequencies[i], width) - barWidth / 2;
+      const y = levelToY(spectrum.levels[i], height);
+      context.fillRect(x, y, barWidth, height - y);
+      this.peaks[i] = Math.max(spectrum.levels[i], this.peaks[i] - this.peakFall() * elapsed);
+    }
+
+    context.fillStyle = themeColor(canvas, '--color-warning');
+    for (let i = 0; i < count; i++) {
+      const x = frequencyToX(spectrum.frequencies[i], width) - barWidth / 2;
+      context.fillRect(x, levelToY(this.peaks[i], height) - 1, barWidth, 2);
+    }
+  }
 }
 
 /** x position of `hz` on a 20 Hz - 20 kHz log axis. */
 export function frequencyToX(hz: number, width: number): number {
-    return (Math.log10(Math.max(20, Math.min(20_000, hz)) / 20) / 3) * width;
+  return (Math.log10(Math.max(20, Math.min(20_000, hz)) / 20) / 3) * width;
 }
 
 /** y position of `db` between 0 dB (top) and {@link RtaFloorDb} (bottom). */
 export function levelToY(db: number, height: number): number {
-    return (Math.min(0, Math.max(RtaFloorDb, db)) / RtaFloorDb) * height;
+  return (Math.min(0, Math.max(RtaFloorDb, db)) / RtaFloorDb) * height;
 }
 
 function line(context: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number): void {
-    context.beginPath();
-    context.moveTo(x0, y0);
-    context.lineTo(x1, y1);
-    context.stroke();
+  context.beginPath();
+  context.moveTo(x0, y0);
+  context.lineTo(x1, y1);
+  context.stroke();
 }

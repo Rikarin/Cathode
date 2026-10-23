@@ -6,9 +6,9 @@ import { CthKnob } from './knob';
  * with its unit, ⌥-click to reset to the default.
  */
 const meta: Meta<CthKnob> = {
-    title: 'Audio UI/Knob',
-    component: CthKnob,
-    args: { label: 'Drive', unit: '', min: 0, max: 10, value: 5, defaultValue: 5, size: 'md' }
+  title: 'Audio UI/Knob',
+  component: CthKnob,
+  args: { label: 'Drive', unit: '', min: 0, max: 10, value: 5, defaultValue: 5, size: 'md' }
 };
 
 export default meta;
@@ -21,20 +21,20 @@ export const Bipolar: Story = { args: { label: 'Bass', unit: 'dB', min: -12, max
 
 /** Frequency on a log taper: the middle of the travel is the geometric mean (632 Hz for 20 Hz–20 kHz). */
 export const LogFrequency: Story = {
-    args: { label: 'Frequency', unit: 'Hz', min: 20, max: 20_000, value: 632, defaultValue: 1_000, taper: 'log' }
+  args: { label: 'Frequency', unit: 'Hz', min: 20, max: 20_000, value: 632, defaultValue: 1_000, taper: 'log' }
 };
 
 export const Sizes: Story = {
-    render: args => ({
-        props: args,
-        template: `
+  render: args => ({
+    props: args,
+    template: `
       <div class="flex items-end gap-6">
         <cth-knob label="Small" size="sm" [value]="3" [min]="0" [max]="10" />
         <cth-knob label="Medium" size="md" [value]="5" [min]="0" [max]="10" />
         <cth-knob label="Large" size="lg" [value]="7" [min]="0" [max]="10" />
       </div>
     `
-    })
+  })
 };
 
 export const Disabled: Story = { args: { disabled: true } };
