@@ -26,6 +26,7 @@ public sealed class BlockRegistry
         registry.Register(FlangerBlock.Info, static () => new FlangerBlock());
         registry.Register(PhaserBlock.Info, static () => new PhaserBlock());
         registry.Register(TremoloBlock.Info, static () => new TremoloBlock());
+        registry.Register(WahBlock.Info, static () => new WahBlock());
         return registry;
     }
 
