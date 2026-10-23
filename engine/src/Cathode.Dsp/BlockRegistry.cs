@@ -35,6 +35,8 @@ public sealed class BlockRegistry {
         registry.Register(FeedbackSendBlock.Info, static () => new FeedbackSendBlock());
         registry.Register(FeedbackReturnBlock.Info, static () => new FeedbackReturnBlock());
         registry.Register(FxLoopBlock.Info, static () => new FxLoopBlock());
+        registry.Register(MultiDelayBlock.Info, static () => new MultiDelayBlock());
+        registry.Register(MegatapBlock.Info, static () => new MegatapBlock());
         return registry;
     }
 
