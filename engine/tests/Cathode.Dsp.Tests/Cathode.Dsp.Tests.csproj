@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="../Cathode.Testing/Cathode.Testing.csproj" />
-    <ProjectReference Include="../../src/Cathode.Audio/Cathode.Audio.csproj" />
+    <ProjectReference Include="../Cathode.Testing/Cathode.Testing.csproj"/>
+    <ProjectReference Include="../../src/Cathode.Audio/Cathode.Audio.csproj"/>
   </ItemGroup>
 </Project>

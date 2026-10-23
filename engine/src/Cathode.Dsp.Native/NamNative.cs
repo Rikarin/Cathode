@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 namespace Cathode.Dsp.Native;
 
 /// <summary>P/Invoke surface of <c>cth_nam</c> (engine/native/cth_nam/include/cth_nam.h).</summary>
-internal static unsafe partial class NamNative {
+static unsafe partial class NamNative {
     const string Library = "cth_nam";
 
     [LibraryImport(Library, EntryPoint = "cth_nam_load", StringMarshalling = StringMarshalling.Utf8)]

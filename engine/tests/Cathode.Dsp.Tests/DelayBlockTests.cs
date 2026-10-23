@@ -4,16 +4,6 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 public class DelayBlockTests {
-    static DelayBlock Create(params (int Index, float Value)[] settings) {
-        var delay = new DelayBlock();
-        foreach (var (index, value) in settings) {
-            delay.Params.SetTarget(index, value);
-        }
-
-        delay.Prepare(new(48_000, 64));
-        return delay;
-    }
-
     [Fact]
     public void Integer_delay_times_are_exact() {
         using var delay = Create((DelayBlock.Time, 10f), (DelayBlock.Feedback, 0f), (DelayBlock.Mix, 100f));
@@ -90,5 +80,15 @@ public class DelayBlockTests {
         var output = BlockRender.Mono(delay, Signals.Noise(48_000 * 3, 1, 0.9f), 64);
 
         Assert.True(Analysis.Peak(output) < 3f, $"peak {Analysis.Peak(output)}");
+    }
+
+    static DelayBlock Create(params (int Index, float Value)[] settings) {
+        var delay = new DelayBlock();
+        foreach (var (index, value) in settings) {
+            delay.Params.SetTarget(index, value);
+        }
+
+        delay.Prepare(new(48_000, 64));
+        return delay;
     }
 }

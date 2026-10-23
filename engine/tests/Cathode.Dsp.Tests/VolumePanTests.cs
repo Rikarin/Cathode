@@ -4,14 +4,6 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 public class VolumePanTests {
-    static VolumePanBlock Create(float levelDb = 0, float balance = 0) {
-        var block = new VolumePanBlock();
-        block.Params.SetTarget(VolumePanBlock.Level, levelDb);
-        block.Params.SetTarget(VolumePanBlock.Balance, balance);
-        block.Prepare(new(48_000, 64));
-        return block;
-    }
-
     [Fact]
     public void Unity_settings_are_bit_transparent() {
         using var block = Create();
@@ -43,5 +35,13 @@ public class VolumePanTests {
         var maxStep = output.Zip(output.Skip(1), static (a, b) => Math.Abs(b - a)).Max();
         Assert.True(maxStep < 0.5f, $"max step {maxStep}");
         Assert.Equal(10f, output[^1], 1e-3f);
+    }
+
+    static VolumePanBlock Create(float levelDb = 0, float balance = 0) {
+        var block = new VolumePanBlock();
+        block.Params.SetTarget(VolumePanBlock.Level, levelDb);
+        block.Params.SetTarget(VolumePanBlock.Balance, balance);
+        block.Prepare(new(48_000, 64));
+        return block;
     }
 }

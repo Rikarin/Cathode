@@ -4,16 +4,6 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 public class ReverbBlockTests {
-    static ReverbBlock Create(params (int Index, float Value)[] settings) {
-        var reverb = new ReverbBlock();
-        foreach (var (index, value) in settings) {
-            reverb.Params.SetTarget(index, value);
-        }
-
-        reverb.Prepare(new(48_000, 64));
-        return reverb;
-    }
-
     [Theory]
     [InlineData(0f, 0.8f)]
     [InlineData(1f, 2f)]
@@ -79,6 +69,16 @@ public class ReverbBlockTests {
         Assert.True(Analysis.Peak(wet.AsSpan(0, 2_400)) < 1e-6, "nothing before the 50 ms pre-delay");
         Assert.True(Analysis.Peak(wet.AsSpan(2_400)) > 1e-4, "reverb after the pre-delay");
         Assert.Equal(input, unchanged);
+    }
+
+    static ReverbBlock Create(params (int Index, float Value)[] settings) {
+        var reverb = new ReverbBlock();
+        foreach (var (index, value) in settings) {
+            reverb.Params.SetTarget(index, value);
+        }
+
+        reverb.Prepare(new(48_000, 64));
+        return reverb;
     }
 
     /// <summary>T60 from the Schroeder backward-integrated energy decay, fitted between -5 and -25 dB (T20 x 3).</summary>

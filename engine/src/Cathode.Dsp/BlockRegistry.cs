@@ -8,6 +8,8 @@ public sealed class BlockRegistry {
     readonly Dictionary<string, (BlockDescriptor Descriptor, Func<IDspBlock> Factory)> _types =
         new(StringComparer.Ordinal);
 
+    public IEnumerable<BlockDescriptor> Descriptors => _types.Values.Select(static t => t.Descriptor);
+
     /// <summary>A registry pre-populated with every built-in block.</summary>
     public static BlockRegistry CreateDefault() {
         var registry = new BlockRegistry();
@@ -28,8 +30,6 @@ public sealed class BlockRegistry {
         registry.Register(WahBlock.Info, static () => new WahBlock());
         return registry;
     }
-
-    public IEnumerable<BlockDescriptor> Descriptors => _types.Values.Select(static t => t.Descriptor);
 
     public void Register(BlockDescriptor descriptor, Func<IDspBlock> factory) {
         if (!_types.TryAdd(descriptor.TypeId, (descriptor, factory))) {

@@ -80,7 +80,7 @@ public static class WavFile {
         var bytesPerSample = format switch {
             WavSampleFormat.Pcm16 => 2,
             WavSampleFormat.Pcm24 => 3,
-            _ => 4,
+            _ => 4
         };
         var dataSize = audio.Frames * channels * bytesPerSample;
 
@@ -145,7 +145,7 @@ public static class WavFile {
                     (FormatPcm, 32) => BinaryPrimitives.ReadInt32LittleEndian(s) / 2147483648f,
                     (FormatFloat, 32) => BinaryPrimitives.ReadSingleLittleEndian(s),
                     (FormatFloat, 64) => (float)BinaryPrimitives.ReadDoubleLittleEndian(s),
-                    _ => throw new NotSupportedException($"Unsupported WAV format {format} with {bits} bits."),
+                    _ => throw new NotSupportedException($"Unsupported WAV format {format} with {bits} bits.")
                 };
             }
         }

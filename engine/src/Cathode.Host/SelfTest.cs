@@ -6,7 +6,7 @@ using Cathode.Engine.Graph;
 namespace Cathode.Host;
 
 /// <summary>Offline check of the real-time path: zero allocation and callback headroom, no device needed.</summary>
-internal static class SelfTest {
+static class SelfTest {
     public static int Run() {
         const int seconds = 10;
         var spec = new ProcessSpec(48_000, 64);

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Cathode.Engine.Graph;
@@ -58,7 +59,7 @@ public sealed class CableDefinition {
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     WriteIndented = true,
-    ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,
+    ReadCommentHandling = JsonCommentHandling.Skip,
     AllowTrailingCommas = true
 )]
 [JsonSerializable(typeof(GraphDefinition))]

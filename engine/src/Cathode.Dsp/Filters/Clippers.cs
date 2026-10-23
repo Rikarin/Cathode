@@ -52,14 +52,14 @@ public struct AdaaClipper {
         shape switch {
             ClipperShape.Soft => Math.Tanh(x),
             ClipperShape.Hard => Math.Clamp(x, -1.0, 1.0),
-            _ => Math.Tanh(x + Bias) - TanhBias,
+            _ => Math.Tanh(x + Bias) - TanhBias
         };
 
     static double Antiderivative(ClipperShape shape, double x) =>
         shape switch {
             ClipperShape.Soft => LogCosh(x),
             ClipperShape.Hard => Math.Abs(x) <= 1 ? 0.5 * x * x : Math.Abs(x) - 0.5,
-            _ => LogCosh(x + Bias) - TanhBias * x,
+            _ => LogCosh(x + Bias) - TanhBias * x
         };
 
     /// <summary>log(cosh(x)) without overflow for large |x|.</summary>

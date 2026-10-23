@@ -2,6 +2,16 @@ namespace Cathode.Engine;
 
 /// <summary>One callback's worth of stereo input and output. All spans have the same length.</summary>
 public readonly ref struct AudioIO {
+    public ReadOnlySpan<float> InputLeft { get; }
+
+    public ReadOnlySpan<float> InputRight { get; }
+
+    public Span<float> OutputLeft { get; }
+
+    public Span<float> OutputRight { get; }
+
+    public int Frames => OutputLeft.Length;
+
     public AudioIO(
         ReadOnlySpan<float> inputLeft,
         ReadOnlySpan<float> inputRight,
@@ -18,16 +28,6 @@ public readonly ref struct AudioIO {
         OutputLeft = outputLeft;
         OutputRight = outputRight;
     }
-
-    public ReadOnlySpan<float> InputLeft { get; }
-
-    public ReadOnlySpan<float> InputRight { get; }
-
-    public Span<float> OutputLeft { get; }
-
-    public Span<float> OutputRight { get; }
-
-    public int Frames => OutputLeft.Length;
 
     public AudioIO Slice(int start, int length) =>
         new(

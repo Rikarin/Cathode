@@ -47,7 +47,8 @@ public sealed record AudioSessionStats(
     ulong Overloads,
     int InputLatencyFrames,
     int OutputLatencyFrames,
-    long CallbackExceptions);
+    long CallbackExceptions
+);
 
 /// <summary>
 ///     A running device stream that calls an <see cref="IAudioProcessor" /> on the driver's real-time thread.
@@ -64,10 +65,6 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     nint _stream;
     long _exceptions;
 
-    NativeAudioSession(IAudioProcessor processor) {
-        _processor = processor;
-    }
-
     public double SampleRate { get; private set; }
 
     public int BufferFrames { get; private set; }
@@ -78,6 +75,10 @@ public sealed unsafe class NativeAudioSession : IDisposable {
 
     /// <summary>Linear gain on the device output. 0 mutes it (the default for unattended tests).</summary>
     public float OutputGain { get; set; } = 1f;
+
+    NativeAudioSession(IAudioProcessor processor) {
+        _processor = processor;
+    }
 
     /// <summary>Opens <paramref name="deviceUid" /> (null for the default output device) without starting it.</summary>
     public static NativeAudioSession Open(
@@ -184,8 +185,8 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     void Process(float** inputs, int inputChannels, float** outputs, int outputChannels, int frames) {
         var input =
             inputChannels > 0 ? new ReadOnlySpan<float>(inputs[0], frames) : _silence.AsSpan(0, frames);
-        var left = outputChannels > 0 ? new Span<float>(outputs[0], frames) : _scratchLeft.AsSpan(0, frames);
-        var right = outputChannels > 1 ? new Span<float>(outputs[1], frames) : _scratchRight.AsSpan(0, frames);
+        var left = outputChannels > 0 ? new(outputs[0], frames) : _scratchLeft.AsSpan(0, frames);
+        var right = outputChannels > 1 ? new(outputs[1], frames) : _scratchRight.AsSpan(0, frames);
 
         _processor.Process(new(input, input, left, right));
 

@@ -13,13 +13,13 @@ public sealed class NullBackend : IDisposable {
     Thread? _thread;
     volatile bool _running;
 
+    /// <summary>Callbacks that started later than their deadline.</summary>
+    public long LateCallbacks { get; private set; }
+
     public NullBackend(int sampleRate, int blockSize) {
         _sampleRate = sampleRate;
         _blockSize = blockSize;
     }
-
-    /// <summary>Callbacks that started later than their deadline.</summary>
-    public long LateCallbacks { get; private set; }
 
     public void Start(IAudioProcessor processor) {
         if (_running) {
@@ -27,7 +27,7 @@ public sealed class NullBackend : IDisposable {
         }
 
         _running = true;
-        _thread = new Thread(() => Run(processor)) {
+        _thread = new(() => Run(processor)) {
             IsBackground = true, Name = "cathode-null-audio", Priority = ThreadPriority.Highest
         };
         _thread.Start();

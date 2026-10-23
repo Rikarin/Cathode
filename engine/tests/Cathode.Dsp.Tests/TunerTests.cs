@@ -6,15 +6,6 @@ namespace Cathode.Dsp.Tests;
 public class TunerTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
-    static TunerReading? Detect(float[] signal, double reference = 440) {
-        var tuner = new Tuner(Rate) { Reference = reference };
-        for (var offset = 0; offset < signal.Length; offset += 64) {
-            tuner.Push(signal.AsSpan(offset, Math.Min(64, signal.Length - offset)));
-        }
-
-        return tuner.Detect();
-    }
-
     [Theory]
     [InlineData(41.20, "E", 1)] // bass low E
     [InlineData(46.25, "F#", 1)] // 8-string low F#
@@ -88,5 +79,14 @@ public class TunerTests(ITestOutputHelper output) {
 
         Assert.Equal("A", reading!.Value.Note);
         Assert.Equal(0, reading.Value.Cents, 0.5);
+    }
+
+    static TunerReading? Detect(float[] signal, double reference = 440) {
+        var tuner = new Tuner(Rate) { Reference = reference };
+        for (var offset = 0; offset < signal.Length; offset += 64) {
+            tuner.Push(signal.AsSpan(offset, Math.Min(64, signal.Length - offset)));
+        }
+
+        return tuner.Detect();
     }
 }

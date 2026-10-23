@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Cathode.Audio;
 using Cathode.Audio.Native;
 using Cathode.Dsp;
@@ -8,7 +9,7 @@ using Cathode.Engine.Graph;
 namespace Cathode.Host;
 
 /// <summary>Device diagnostics for Phase 0 spike S1 (native audio shim).</summary>
-internal static class AudioCommands {
+static class AudioCommands {
     public static int ListDevices() {
         RequireBackend();
         Console.WriteLine($"backend: {NativeAudio.Backend}");
@@ -31,7 +32,7 @@ internal static class AudioCommands {
                 engine = new(spec);
                 var graphPath = options.Text("graph");
                 var definition = graphPath is not null
-                    ? System.Text.Json.JsonSerializer.Deserialize(
+                    ? JsonSerializer.Deserialize(
                         File.ReadAllText(graphPath),
                         GraphJsonContext.Default.GraphDefinition
                     )!
@@ -144,7 +145,7 @@ internal static class AudioCommands {
         }
     }
 
-    private sealed class ForwardingProcessor : IAudioProcessor {
+    sealed class ForwardingProcessor : IAudioProcessor {
         IAudioProcessor? _target;
 
         public IAudioProcessor? Target {

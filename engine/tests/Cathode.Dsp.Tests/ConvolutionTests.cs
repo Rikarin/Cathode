@@ -1,13 +1,14 @@
 using Cathode.Dsp.Convolution;
 using Cathode.Testing;
 using CsCheck;
+using Fft = Cathode.Dsp.Convolution.Fft;
 
 namespace Cathode.Dsp.Tests;
 
 public class ConvolutionTests {
     [Fact]
     public void Fft_round_trips_and_matches_a_known_spectrum() {
-        var fft = new Cathode.Dsp.Convolution.Fft(16);
+        var fft = new Fft(16);
         var re = Signals.Noise(16, 3);
         var im = new float[16];
         var original = (float[])re.Clone();

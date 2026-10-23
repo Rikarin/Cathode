@@ -72,7 +72,7 @@ public sealed class CabBlockTests : IDisposable {
         var left = CabLikeIr(400, 6);
         var right = CabLikeIr(400, 7);
         var path = Path.Combine(_folder, "stereo.wav");
-        WavFile.Write(path, new AudioData(48_000, [left, right]));
+        WavFile.Write(path, new(48_000, [left, right]));
         using var cab = Create(("ir1", path));
 
         var (outLeft, outRight) = BlockRender.Stereo(cab, Signals.Impulse(500), Signals.Impulse(500), _ => 64);
@@ -131,7 +131,7 @@ public sealed class CabBlockTests : IDisposable {
 
     string WriteIr(string name, float[] ir, int sampleRate) {
         var path = Path.Combine(_folder, name);
-        WavFile.Write(path, new AudioData(sampleRate, [ir]));
+        WavFile.Write(path, new(sampleRate, [ir]));
         return path;
     }
 

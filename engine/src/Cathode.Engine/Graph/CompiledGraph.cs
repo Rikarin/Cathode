@@ -22,6 +22,20 @@ public sealed class CompiledGraph : IDisposable {
     readonly BypassState[] _bypass;
     readonly float _fadeStep;
 
+    /// <summary>Identifies this graph; commands addressed to another generation are ignored.</summary>
+    public int Generation { get; }
+
+    public ProcessSpec Spec { get; }
+
+    /// <summary>Latency of the longest input-to-output path, in samples.</summary>
+    public int LatencySamples { get; }
+
+    public int BufferCount => _left.Length;
+
+    public IReadOnlyList<GraphOp> Ops => _ops;
+
+    public IReadOnlyList<string> SlotIds => _slotIds;
+
     internal CompiledGraph(
         int generation,
         ProcessSpec spec,
@@ -61,20 +75,6 @@ public sealed class CompiledGraph : IDisposable {
         }
     }
 
-    /// <summary>Identifies this graph; commands addressed to another generation are ignored.</summary>
-    public int Generation { get; }
-
-    public ProcessSpec Spec { get; }
-
-    /// <summary>Latency of the longest input-to-output path, in samples.</summary>
-    public int LatencySamples { get; }
-
-    public int BufferCount => _left.Length;
-
-    public IReadOnlyList<GraphOp> Ops => _ops;
-
-    public IReadOnlyList<string> SlotIds => _slotIds;
-
     /// <summary>Slot index of block instance <paramref name="instanceId" />, or -1.</summary>
     public int SlotOf(string instanceId) => _slotById.TryGetValue(instanceId, out var slot) ? slot : -1;
 
@@ -85,13 +85,6 @@ public sealed class CompiledGraph : IDisposable {
         _blocks[slot].Params.SetTarget(paramIndex, value);
 
     public bool IsBypassed(int slot) => _bypass[slot].Target;
-
-    /// <summary>Audio thread only (the engine applies queued <see cref="EngineCommandKind.SetBypass" /> commands here).</summary>
-    internal void SetBypass(int slot, bool bypassed) {
-        if ((uint)slot < (uint)_bypass.Length) {
-            _bypass[slot].Target = bypassed;
-        }
-    }
 
     /// <summary>Audio thread: runs the plan for one block of at most <see cref="ProcessSpec.MaxBlockSize" /> frames.</summary>
     public void Process(in AudioIO io, in BlockContext context) {
@@ -170,7 +163,14 @@ public sealed class CompiledGraph : IDisposable {
         }
     }
 
-    private struct BypassState(bool bypassed) {
+    /// <summary>Audio thread only (the engine applies queued <see cref="EngineCommandKind.SetBypass" /> commands here).</summary>
+    internal void SetBypass(int slot, bool bypassed) {
+        if ((uint)slot < (uint)_bypass.Length) {
+            _bypass[slot].Target = bypassed;
+        }
+    }
+
+    struct BypassState(bool bypassed) {
         public bool Target = bypassed;
 
         /// <summary>1 = fully active, 0 = fully bypassed.</summary>

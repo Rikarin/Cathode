@@ -7,6 +7,9 @@ public sealed class VolumePanBlock : DspBlock {
     public const int Level = 0;
     public const int Balance = 1;
 
+    float _gainLeft;
+    float _gainRight;
+
     public static BlockDescriptor Info { get; } = new(
         "volpan",
         "Volume/Pan",
@@ -17,11 +20,14 @@ public sealed class VolumePanBlock : DspBlock {
         ]
     );
 
-    float _gainLeft;
-    float _gainRight;
-
     public VolumePanBlock()
         : base(Info) { }
+
+    (float Left, float Right) TargetGains() {
+        var gain = Decibels.ToGain(Params.Current(Level));
+        var balance = Params.Current(Balance) / 100f;
+        return (gain * Math.Min(1f, 1f - balance), gain * Math.Min(1f, 1f + balance));
+    }
 
     protected override void OnReset() => (_gainLeft, _gainRight) = TargetGains();
 
@@ -33,11 +39,5 @@ public sealed class VolumePanBlock : DspBlock {
         GainRamp.Apply(io.Right, _gainRight, endRight);
         _gainLeft = endLeft;
         _gainRight = endRight;
-    }
-
-    (float Left, float Right) TargetGains() {
-        var gain = Decibels.ToGain(Params.Current(Level));
-        var balance = Params.Current(Balance) / 100f;
-        return (gain * Math.Min(1f, 1f - balance), gain * Math.Min(1f, 1f + balance));
     }
 }

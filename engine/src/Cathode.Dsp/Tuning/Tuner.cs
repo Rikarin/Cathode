@@ -40,15 +40,15 @@ public sealed class Tuner {
     int _pendingCount;
     int _filled;
 
-    public Tuner(double sampleRate) {
-        SampleRate = sampleRate / 2;
-    }
-
     /// <summary>Frequency of A4, normally 440 Hz (430..450 allowed).</summary>
     public double Reference { get; set; } = 440;
 
     /// <summary>Rate of the decimated analysis signal.</summary>
     public double SampleRate { get; }
+
+    public Tuner(double sampleRate) {
+        SampleRate = sampleRate / 2;
+    }
 
     /// <summary>Feeds input samples at the full rate.</summary>
     public void Push(ReadOnlySpan<float> samples) {

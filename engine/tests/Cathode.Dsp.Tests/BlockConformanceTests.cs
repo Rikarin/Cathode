@@ -42,8 +42,9 @@ public class BlockConformanceTests {
     [MemberData(nameof(BlockTypes))]
     public void Output_is_finite_and_bounded_for_any_parameters_and_stimulus(string typeId) {
         var descriptor = Registry.GetDescriptor(typeId);
-        Gen.Select(
-                Gen.Float[0f, 1f].Array[descriptor.Params.Count],
+        Gen.Float[0f, 1f]
+            .Array[descriptor.Params.Count]
+            .Select(
                 Gen.Float[0f, 1f].Array[descriptor.Params.Count],
                 Gen.Int[0, 3],
                 Gen.Int
@@ -163,6 +164,6 @@ public class BlockConformanceTests {
             0 => Signals.Noise(length, seed),
             1 => Signals.Sine(997, 48_000, length).Select(static s => s >= 0 ? 1f : -1f).ToArray(), // full-scale square
             2 => Signals.Step(length), // DC
-            _ => new float[length],
+            _ => new float[length]
         };
 }

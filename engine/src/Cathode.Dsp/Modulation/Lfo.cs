@@ -29,7 +29,7 @@ public struct Lfo {
         return shape switch {
             LfoShape.Triangle => (float)(p < 0.5 ? 4 * p - 1 : 3 - 4 * p),
             LfoShape.Square => (float)(Math.Tanh(4 * Math.Sin(2 * Math.PI * p)) / Math.Tanh(4)),
-            _ => (float)Math.Sin(2 * Math.PI * p),
+            _ => (float)Math.Sin(2 * Math.PI * p)
         };
     }
 }

@@ -13,7 +13,7 @@ public class WavFileTests {
         var right = Signals.Noise(4_800, 4, 0.5f);
         using var stream = new MemoryStream();
 
-        WavFile.Write(stream, new AudioData(48_000, [left, right]), format);
+        WavFile.Write(stream, new(48_000, [left, right]), format);
         stream.Position = 0;
         var read = WavFile.Read(stream);
 

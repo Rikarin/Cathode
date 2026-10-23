@@ -11,6 +11,11 @@ public sealed class SampleRing {
     long _tail; // producer
     long _dropped;
 
+    public int Capacity => _buffer.Length;
+
+    /// <summary>Samples dropped because the ring was full.</summary>
+    public long Dropped => Interlocked.Read(ref _dropped);
+
     public SampleRing(int capacity) {
         if (capacity < 2 || (capacity & (capacity - 1)) != 0) {
             throw new ArgumentOutOfRangeException(nameof(capacity), capacity, "Capacity must be a power of two >= 2.");
@@ -19,11 +24,6 @@ public sealed class SampleRing {
         _buffer = new float[capacity];
         _mask = capacity - 1;
     }
-
-    public int Capacity => _buffer.Length;
-
-    /// <summary>Samples dropped because the ring was full.</summary>
-    public long Dropped => Interlocked.Read(ref _dropped);
 
     /// <summary>Producer: writes as many samples as fit.</summary>
     public void Write(ReadOnlySpan<float> samples) {

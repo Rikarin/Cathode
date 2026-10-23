@@ -22,11 +22,6 @@ public sealed class CathodeEngine : IAudioProcessor {
     long _sampleTime;
     bool _inputTapEnabled;
 
-    public CathodeEngine(ProcessSpec spec, int commandCapacity = 1024) {
-        Spec = spec;
-        _commands = new(commandCapacity);
-    }
-
     public ProcessSpec Spec { get; }
 
     public CallbackStats Stats { get; } = new();
@@ -48,6 +43,11 @@ public sealed class CathodeEngine : IAudioProcessor {
     public bool InputTapEnabled {
         get => Volatile.Read(ref _inputTapEnabled);
         set => Volatile.Write(ref _inputTapEnabled, value);
+    }
+
+    public CathodeEngine(ProcessSpec spec, int commandCapacity = 1024) {
+        Spec = spec;
+        _commands = new(commandCapacity);
     }
 
     /// <summary>Control side: hand a prepared graph to the audio thread.</summary>

@@ -12,6 +12,9 @@ public sealed class GraphicEqBlock : DspBlock {
     public static readonly float[] Centers = [31.25f, 62.5f, 125f, 250f, 500f, 1_000f, 2_000f, 4_000f, 8_000f, 16_000f];
     static readonly string[] Labels = ["31", "63", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"];
 
+    readonly EqBand[] _bands = [..Enumerable.Range(0, Bands).Select(static _ => new EqBand())];
+    float _outputGain = 1f;
+
     public static BlockDescriptor Info { get; } = new(
         "geq",
         "Graphic EQ",
@@ -22,9 +25,6 @@ public sealed class GraphicEqBlock : DspBlock {
         ],
         maxInstances: 4
     );
-
-    readonly EqBand[] _bands = [..Enumerable.Range(0, Bands).Select(static _ => new EqBand())];
-    float _outputGain = 1f;
 
     public GraphicEqBlock()
         : base(Info) { }

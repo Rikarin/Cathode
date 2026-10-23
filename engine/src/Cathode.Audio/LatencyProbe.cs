@@ -17,6 +17,12 @@ public sealed class LatencyProbe : IAudioProcessor {
     float _peak;
     int _peakIndex;
 
+    /// <summary>Clicks detected so far (excluding the settling periods).</summary>
+    public int Count => Volatile.Read(ref _count);
+
+    /// <summary>Periods that ended without a detectable click.</summary>
+    public int Missed { get; private set; }
+
     /// <param name="sampleRate">Stream sample rate.</param>
     /// <param name="periodSeconds">Click spacing; must exceed the latency being measured.</param>
     /// <param name="amplitude">Click level (keep it modest: it is audible).</param>
@@ -35,12 +41,6 @@ public sealed class LatencyProbe : IAudioProcessor {
         _skipPeriods = 2; // let the device settle
         _lags = new int[maxMeasurements];
     }
-
-    /// <summary>Clicks detected so far (excluding the settling periods).</summary>
-    public int Count => Volatile.Read(ref _count);
-
-    /// <summary>Periods that ended without a detectable click.</summary>
-    public int Missed { get; private set; }
 
     /// <summary>Snapshot of the measured lags in samples.</summary>
     public int[] Measurements() => _lags.AsSpan(0, Count).ToArray();

@@ -43,6 +43,18 @@ public sealed class ReverbBlock : DspBlock {
     static readonly float[] LeftSigns = [1, -1, 1, -1, 1, -1, 1, -1];
     static readonly float[] RightSigns = [1, 1, -1, -1, 1, 1, -1, -1];
 
+    readonly DelayBuffer _preDelay = new();
+    readonly Allpass[] _diffusers = [new(), new(), new(), new()];
+    readonly DelayBuffer[] _lines = [..Enumerable.Range(0, Lines).Select(static _ => new DelayBuffer())];
+    readonly float[] _lengths = new float[Lines];
+    readonly float[] _gains = new float[Lines];
+    readonly float[] _damping = new float[Lines];
+    readonly float[] _outputs = new float[Lines];
+    SvfState _lowCutLeft, _lowCutRight;
+    double _modPhase;
+    float _mix;
+    float _outputGain = 1f;
+
     public static BlockDescriptor Info { get; } = new(
         "reverb",
         "Reverb",
@@ -59,18 +71,6 @@ public sealed class ReverbBlock : DspBlock {
         ],
         maxInstances: 2
     );
-
-    readonly DelayBuffer _preDelay = new();
-    readonly Allpass[] _diffusers = [new(), new(), new(), new()];
-    readonly DelayBuffer[] _lines = [..Enumerable.Range(0, Lines).Select(static _ => new DelayBuffer())];
-    readonly float[] _lengths = new float[Lines];
-    readonly float[] _gains = new float[Lines];
-    readonly float[] _damping = new float[Lines];
-    readonly float[] _outputs = new float[Lines];
-    SvfState _lowCutLeft, _lowCutRight;
-    double _modPhase;
-    float _mix;
-    float _outputGain = 1f;
 
     public ReverbBlock()
         : base(Info) { }
@@ -196,7 +196,7 @@ public sealed class ReverbBlock : DspBlock {
     }
 
     /// <summary>Circular buffer with a fractional (linear) read behind the most recent write.</summary>
-    private sealed class DelayBuffer {
+    sealed class DelayBuffer {
         float[] _buffer = [];
         int _write;
 
@@ -235,7 +235,7 @@ public sealed class ReverbBlock : DspBlock {
     }
 
     /// <summary>Schroeder allpass with a fixed length.</summary>
-    private sealed class Allpass {
+    sealed class Allpass {
         float[] _buffer = [];
         int _position;
 

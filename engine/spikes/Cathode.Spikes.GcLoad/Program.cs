@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Cathode.Audio.Native;
 using Cathode.Dsp;
@@ -19,7 +20,7 @@ return args.FirstOrDefault() switch {
     "audio" => await AudioMode.Run(options),
     "server" => await ServerMode.Run(options),
     "load" => await LoadMode.Run(options),
-    _ => Usage(),
+    _ => Usage()
 };
 
 static int Usage() {
@@ -27,7 +28,7 @@ static int Usage() {
     return 2;
 }
 
-internal static class AudioMode {
+static class AudioMode {
     public static async Task<int> Run(Options o) {
         if (o.Flag("sustained-low-latency")) {
             GCSettings.LatencyMode = GCLatencyMode.SustainedLowLatency;
@@ -141,7 +142,7 @@ internal static class AudioMode {
             Cables = [new() { From = "in1", To = "amp1" }, new() { From = "amp1", To = "out1" }]
         };
 
-    private sealed class Forwarder : IAudioProcessor {
+    sealed class Forwarder : IAudioProcessor {
         IAudioProcessor? _target;
 
         public IAudioProcessor? Target {
@@ -160,7 +161,7 @@ internal static class AudioMode {
     }
 }
 
-internal sealed record RunResult(
+sealed record RunResult(
     string Label,
     int Buffer,
     string Gc,
@@ -181,7 +182,8 @@ internal sealed record RunResult(
     int Gen2,
     double GcPauseMs,
     double AllocMBps,
-    long RequestsInProcess) {
+    long RequestsInProcess
+) {
     public string ToConsole() =>
         $"{Label,-32} buf {Buffer,3}  gc {Gc}/{(Concurrent ? "conc" : "nonconc")}/{LatencyMode}  callbacks {Callbacks}  "
         + $"p50 {P50:0}%  p99.9 {P999:0}%  p99.99 {P9999:0}%  max {Max:0.0}%  >=50% {Over50}  over budget {OverBudget}  "
@@ -189,7 +191,7 @@ internal sealed record RunResult(
 }
 
 /// <summary>A realistic slice of the planned REST API (docs/02-architecture.md §6), allocation profile included.</summary>
-internal static class Api {
+static class Api {
     static long s_requests;
 
     public static long Requests => Interlocked.Read(ref s_requests);
@@ -229,7 +231,7 @@ internal static class Api {
                 using var buffer = new MemoryStream();
                 await request.Body.CopyToAsync(buffer);
                 var bytes = buffer.ToArray(); // large object heap, like a real IR or capture upload
-                var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes));
+                var hash = Convert.ToHexString(SHA256.HashData(bytes));
                 return Results.Json(new { hash, length = bytes.Length });
             }
         );
@@ -238,7 +240,7 @@ internal static class Api {
     }
 }
 
-internal static class Preset {
+static class Preset {
     /// <summary>About 20 blocks x 4 channels x 30 parameters plus 8 scenes, roughly the size of a full Axe-Fx-style preset.</summary>
     public static object Create() {
         var random = new Random(1);
@@ -274,12 +276,12 @@ internal static class Preset {
 }
 
 /// <summary>Background garbage at a target rate, with some survivors so gen1/gen2 collections happen too.</summary>
-internal sealed class AllocationStorm : IDisposable {
+sealed class AllocationStorm : IDisposable {
     readonly CancellationTokenSource _stop = new();
     readonly Thread _thread;
 
     public AllocationStorm(double megabytesPerSecond) {
-        _thread = new Thread(() => Run(megabytesPerSecond, _stop.Token)) { IsBackground = true, Name = "alloc-storm" };
+        _thread = new(() => Run(megabytesPerSecond, _stop.Token)) { IsBackground = true, Name = "alloc-storm" };
         _thread.Start();
     }
 
@@ -316,7 +318,7 @@ internal sealed class AllocationStorm : IDisposable {
     }
 }
 
-internal static class ServerMode {
+static class ServerMode {
     public static async Task<int> Run(Options o) {
         var app = Api.Build(o.Int("port", 5199), null);
         await app.StartAsync();
@@ -329,15 +331,14 @@ internal static class ServerMode {
     }
 }
 
-internal static class LoadMode {
+static class LoadMode {
     public static async Task<int> Run(Options o) {
         var url = o.Text("url") ?? "http://127.0.0.1:5199";
         var concurrency = o.Int("concurrency", 8);
         var rate = o.Int("rate", 0);
         var seconds = o.Int("seconds", 25);
-        using var client = new HttpClient(new SocketsHttpHandler { MaxConnectionsPerServer = concurrency }) {
-            BaseAddress = new(url)
-        };
+        using var client =
+            new HttpClient(new SocketsHttpHandler { MaxConnectionsPerServer = concurrency }) { BaseAddress = new(url) };
         var upload = new byte[2 * 1024 * 1024];
         new Random(5).NextBytes(upload);
         long ok = 0, failed = 0;
@@ -373,7 +374,7 @@ internal static class LoadMode {
                                         "/api/v1/irs",
                                         new ByteArrayContent(upload),
                                         stop.Token
-                                    ),
+                                    )
                                 };
                                 await response.Content.ReadAsByteArrayAsync(stop.Token);
                                 if (response.IsSuccessStatusCode) {
@@ -413,7 +414,7 @@ internal static class LoadMode {
     }
 }
 
-internal sealed class Options {
+sealed class Options {
     readonly Dictionary<string, string?> _values = new(StringComparer.Ordinal);
 
     public static Options Parse(IEnumerable<string> args) {

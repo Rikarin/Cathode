@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Cathode.Audio;
 using Cathode.Dsp;
 using Cathode.Engine.Graph;
@@ -8,32 +9,6 @@ namespace Cathode.Engine.Tests;
 public class GraphCompilerTests {
     static readonly ProcessSpec Spec = new(48_000, 64);
     static readonly GraphCompiler Compiler = new(TestRegistry.Create());
-
-    static NodeDefinition Node(
-        string id,
-        string type,
-        int row,
-        int column,
-        params (string Id, float Value)[] parameters
-    ) {
-        var node = new NodeDefinition { Id = id, Type = type, Row = row, Column = column };
-        foreach (var (paramId, value) in parameters) {
-            node.Parameters[paramId] = value;
-        }
-
-        return node;
-    }
-
-    static GraphDefinition Graph(NodeDefinition[] nodes, params (string From, string To)[] cables) =>
-        new() {
-            Nodes = [..nodes], Cables = [..cables.Select(static c => new CableDefinition { From = c.From, To = c.To })]
-        };
-
-    static float[] Run(GraphDefinition definition, float[] input) {
-        var engine = new CathodeEngine(Spec);
-        engine.Publish(Compiler.Compile(definition, Spec, 1));
-        return OfflineRenderer.Render(engine, input, input, Spec.MaxBlockSize).Left;
-    }
 
     [Fact]
     public void Series_chain_processes_in_place_with_a_single_buffer() {
@@ -174,16 +149,42 @@ public class GraphCompilerTests {
 
     [Fact]
     public void Graph_json_round_trips() {
-        var json = System.Text.Json.JsonSerializer.Serialize(
+        var json = JsonSerializer.Serialize(
             GraphTemplates.Basic(),
             GraphJsonContext.Default.GraphDefinition
         );
-        var restored = System.Text.Json.JsonSerializer.Deserialize(json, GraphJsonContext.Default.GraphDefinition)!;
+        var restored = JsonSerializer.Deserialize(json, GraphJsonContext.Default.GraphDefinition)!;
 
         Assert.Equal(
             json,
-            System.Text.Json.JsonSerializer.Serialize(restored, GraphJsonContext.Default.GraphDefinition)
+            JsonSerializer.Serialize(restored, GraphJsonContext.Default.GraphDefinition)
         );
         Assert.Contains("\"params\"", json, StringComparison.Ordinal);
+    }
+
+    static NodeDefinition Node(
+        string id,
+        string type,
+        int row,
+        int column,
+        params (string Id, float Value)[] parameters
+    ) {
+        var node = new NodeDefinition { Id = id, Type = type, Row = row, Column = column };
+        foreach (var (paramId, value) in parameters) {
+            node.Parameters[paramId] = value;
+        }
+
+        return node;
+    }
+
+    static GraphDefinition Graph(NodeDefinition[] nodes, params (string From, string To)[] cables) =>
+        new() {
+            Nodes = [..nodes], Cables = [..cables.Select(static c => new CableDefinition { From = c.From, To = c.To })]
+        };
+
+    static float[] Run(GraphDefinition definition, float[] input) {
+        var engine = new CathodeEngine(Spec);
+        engine.Publish(Compiler.Compile(definition, Spec, 1));
+        return OfflineRenderer.Render(engine, input, input, Spec.MaxBlockSize).Left;
     }
 }

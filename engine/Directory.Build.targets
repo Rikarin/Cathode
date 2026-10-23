@@ -1,16 +1,16 @@
 <Project>
-  <!--
-    Copies the native shim built by native/build.sh (artifacts/native) next to every executable and test
-    project. When it hasn't been built, managed code reports the backend as unavailable instead of failing.
-  -->
-  <PropertyGroup>
-    <CathodeNativeDir>$(MSBuildThisFileDirectory)artifacts/native/</CathodeNativeDir>
-  </PropertyGroup>
-  <ItemGroup Condition="'$(OutputType)' == 'Exe'">
-    <None Include="$(CathodeNativeDir)*cth_*.*"
-          Exclude="$(CathodeNativeDir)*.exp;$(CathodeNativeDir)*.lib;$(CathodeNativeDir)*.pdb"
-          Visible="false"
-          CopyToOutputDirectory="PreserveNewest"
-          CopyToPublishDirectory="PreserveNewest" />
-  </ItemGroup>
+    <!--
+      Copies the native shim built by native/build.sh (artifacts/native) next to every executable and test
+      project. When it hasn't been built, managed code reports the backend as unavailable instead of failing.
+    -->
+    <PropertyGroup>
+        <CathodeNativeDir>$(MSBuildThisFileDirectory)artifacts/native/</CathodeNativeDir>
+    </PropertyGroup>
+    <ItemGroup Condition="'$(OutputType)' == 'Exe'">
+        <None Include="$(CathodeNativeDir)*cth_*.*"
+              Exclude="$(CathodeNativeDir)*.exp;$(CathodeNativeDir)*.lib;$(CathodeNativeDir)*.pdb"
+              Visible="false"
+              CopyToOutputDirectory="PreserveNewest"
+              CopyToPublishDirectory="PreserveNewest"/>
+    </ItemGroup>
 </Project>

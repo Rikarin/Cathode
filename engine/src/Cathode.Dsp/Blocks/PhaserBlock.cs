@@ -21,6 +21,14 @@ public sealed class PhaserBlock : DspBlock {
     const float MaxSweepOctaves = 2f;
     static readonly int[] StageCounts = [2, 4, 6, 8, 10, 12];
 
+    readonly float[] _stateLeft = new float[MaxStages];
+    readonly float[] _stateRight = new float[MaxStages];
+    Lfo _lfo;
+    float _lastLeft;
+    float _lastRight;
+    float _mix;
+    float _outputGain = 1f;
+
     public static BlockDescriptor Info { get; } = new(
         "phaser",
         "Phaser",
@@ -38,16 +46,34 @@ public sealed class PhaserBlock : DspBlock {
         maxInstances: 2
     );
 
-    readonly float[] _stateLeft = new float[MaxStages];
-    readonly float[] _stateRight = new float[MaxStages];
-    Lfo _lfo;
-    float _lastLeft;
-    float _lastRight;
-    float _mix;
-    float _outputGain = 1f;
-
     public PhaserBlock()
         : base(Info) { }
+
+    /// <summary>TPT one-pole gain G = g / (1 + g) with g = tan(pi f / fs).</summary>
+    static float Gain(float frequency, double sampleRate) {
+        var g = MathF.Tan(MathF.PI * frequency / (float)sampleRate);
+        return g / (1 + g);
+    }
+
+    /// <summary>First-order allpasses: low-pass via TPT, then allpass = 2 * lowpass - input.</summary>
+    static float Chain(float[] state, int stages, float x, float gain) {
+        for (var s = 0; s < stages; s++) {
+            var v = (x - state[s]) * gain;
+            var lowpass = v + state[s];
+            state[s] = lowpass + v;
+            x = 2 * lowpass - x;
+        }
+
+        return x;
+    }
+
+    static void Flush(float[] state) {
+        for (var s = 0; s < state.Length; s++) {
+            if (MathF.Abs(state[s]) < 1e-20f) {
+                state[s] = 0;
+            }
+        }
+    }
 
     protected override void OnReset() {
         Array.Clear(_stateLeft);
@@ -93,31 +119,5 @@ public sealed class PhaserBlock : DspBlock {
         GainRamp.Apply(io.Left, _outputGain, outputGain);
         GainRamp.Apply(io.Right, _outputGain, outputGain);
         _outputGain = outputGain;
-    }
-
-    /// <summary>TPT one-pole gain G = g / (1 + g) with g = tan(pi f / fs).</summary>
-    static float Gain(float frequency, double sampleRate) {
-        var g = MathF.Tan(MathF.PI * frequency / (float)sampleRate);
-        return g / (1 + g);
-    }
-
-    /// <summary>First-order allpasses: low-pass via TPT, then allpass = 2 * lowpass - input.</summary>
-    static float Chain(float[] state, int stages, float x, float gain) {
-        for (var s = 0; s < stages; s++) {
-            var v = (x - state[s]) * gain;
-            var lowpass = v + state[s];
-            state[s] = lowpass + v;
-            x = 2 * lowpass - x;
-        }
-
-        return x;
-    }
-
-    static void Flush(float[] state) {
-        for (var s = 0; s < state.Length; s++) {
-            if (MathF.Abs(state[s]) < 1e-20f) {
-                state[s] = 0;
-            }
-        }
     }
 }

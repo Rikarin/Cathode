@@ -7,6 +7,22 @@ namespace Cathode.Dsp.Parameters;
 public sealed class BlockDescriptor {
     readonly Dictionary<string, int> _indexById;
 
+    public string TypeId { get; }
+
+    public string Name { get; }
+
+    public string Category { get; }
+
+    public int TypeVersion { get; }
+
+    /// <summary>Soft per-preset instance limit (the Axe-Fx III values are the defaults).</summary>
+    public int MaxInstances { get; }
+
+    /// <summary>Number of channels (A–D) the block offers.</summary>
+    public int Channels { get; }
+
+    public IReadOnlyList<ParamDescriptor> Params { get; }
+
     public BlockDescriptor(
         string typeId,
         string name,
@@ -33,22 +49,6 @@ public sealed class BlockDescriptor {
             }
         }
     }
-
-    public string TypeId { get; }
-
-    public string Name { get; }
-
-    public string Category { get; }
-
-    public int TypeVersion { get; }
-
-    /// <summary>Soft per-preset instance limit (the Axe-Fx III values are the defaults).</summary>
-    public int MaxInstances { get; }
-
-    /// <summary>Number of channels (A–D) the block offers.</summary>
-    public int Channels { get; }
-
-    public IReadOnlyList<ParamDescriptor> Params { get; }
 
     /// <summary>Returns the parameter index for <paramref name="id" />, or -1.</summary>
     public int IndexOf(string id) => _indexById.TryGetValue(id, out var index) ? index : -1;

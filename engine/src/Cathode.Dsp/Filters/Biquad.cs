@@ -14,10 +14,10 @@ public enum BiquadType {
 
 /// <summary>Normalised biquad coefficients (a0 = 1). Double precision keeps low-frequency, high-Q sections stable.</summary>
 public readonly record struct BiquadCoefficients(double B0, double B1, double B2, double A1, double A2) {
-    public static BiquadCoefficients Identity { get; } = new(1, 0, 0, 0, 0);
-
     /// <summary>Shelves above this Q develop a large resonant bump at the corner, so their Q is limited.</summary>
     public const double MaxShelfQ = 1.0;
+
+    public static BiquadCoefficients Identity { get; } = new(1, 0, 0, 0, 0);
 
     /// <summary>
     ///     RBJ "Audio EQ Cookbook" designs. <paramref name="frequency" /> is clamped below Nyquist, and shelf Q is

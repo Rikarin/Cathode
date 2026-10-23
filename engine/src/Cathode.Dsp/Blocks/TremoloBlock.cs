@@ -14,6 +14,9 @@ public sealed class TremoloBlock : DspBlock {
     public const int Shape = 3;
     public const int Level = 4;
 
+    Lfo _lfo;
+    float _outputGain = 1f;
+
     public static BlockDescriptor Info { get; } = new(
         "tremolo",
         "Tremolo/Panner",
@@ -27,9 +30,6 @@ public sealed class TremoloBlock : DspBlock {
         ],
         maxInstances: 2
     );
-
-    Lfo _lfo;
-    float _outputGain = 1f;
 
     public TremoloBlock()
         : base(Info) { }

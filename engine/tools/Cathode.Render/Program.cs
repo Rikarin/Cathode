@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Cathode.Audio;
 using Cathode.Dsp;
@@ -19,7 +20,7 @@ if (!options.TryGetValue("graph", out var graphPath)
 }
 
 var blockSize = options.TryGetValue("block", out var b)
-    ? int.Parse(b, System.Globalization.CultureInfo.InvariantCulture)
+    ? int.Parse(b, CultureInfo.InvariantCulture)
     : 64;
 var format = options.TryGetValue("format", out var f)
     ? Enum.Parse<WavSampleFormat>(f, true)

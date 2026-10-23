@@ -29,6 +29,10 @@ public sealed class CompressorBlock : DspBlock {
 
     const double RmsWindowMs = 5;
 
+    double _meanSquare;
+    float _mix = 1f;
+    float _outputGain = 1f;
+
     public static BlockDescriptor Info { get; } = new(
         "compressor",
         "Compressor",
@@ -47,23 +51,11 @@ public sealed class CompressorBlock : DspBlock {
         maxInstances: 4
     );
 
-    float _gainReductionDb;
-    double _meanSquare;
-    float _mix = 1f;
-    float _outputGain = 1f;
+    /// <summary>Current gain reduction in dB (0 or negative). For meters and tests.</summary>
+    public float GainReductionDb { get; private set; }
 
     public CompressorBlock()
         : base(Info) { }
-
-    /// <summary>Current gain reduction in dB (0 or negative). For meters and tests.</summary>
-    public float GainReductionDb => _gainReductionDb;
-
-    protected override void OnReset() {
-        _gainReductionDb = 0;
-        _meanSquare = 0;
-        _mix = Params.Current(Mix) / 100f;
-        _outputGain = Decibels.ToGain(Params.Current(Level));
-    }
 
     /// <summary>The static curve: output level for input level <paramref name="x" />, all in dB.</summary>
     public static float StaticCurve(float x, float threshold, float ratio, float knee) {
@@ -80,6 +72,16 @@ public sealed class CompressorBlock : DspBlock {
         return threshold + over / ratio;
     }
 
+    static float Coefficient(double milliseconds, double sampleRate) =>
+        (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
+
+    protected override void OnReset() {
+        GainReductionDb = 0;
+        _meanSquare = 0;
+        _mix = Params.Current(Mix) / 100f;
+        _outputGain = Decibels.ToGain(Params.Current(Level));
+    }
+
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var rate = Spec.SampleRate;
         var type = (int)Params.Current(Type);
@@ -93,7 +95,7 @@ public sealed class CompressorBlock : DspBlock {
         var mix = Params.Advance(Mix, io.Length) / 100f;
         var rmsCoefficient = Coefficient(RmsWindowMs, rate);
 
-        var reduction = _gainReductionDb;
+        var reduction = GainReductionDb;
         var meanSquare = _meanSquare;
         var mixStep = (mix - _mix) / io.Length;
         var currentMix = _mix;
@@ -127,7 +129,7 @@ public sealed class CompressorBlock : DspBlock {
             io.Right[i] = right * (1 - currentMix) + right * gain * currentMix;
         }
 
-        _gainReductionDb = reduction > -1e-6f ? 0 : reduction;
+        GainReductionDb = reduction > -1e-6f ? 0 : reduction;
         _meanSquare = meanSquare < 1e-30 ? 0 : meanSquare;
         _mix = mix;
 
@@ -136,7 +138,4 @@ public sealed class CompressorBlock : DspBlock {
         GainRamp.Apply(io.Right, _outputGain, outputGain);
         _outputGain = outputGain;
     }
-
-    static float Coefficient(double milliseconds, double sampleRate) =>
-        (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
 }

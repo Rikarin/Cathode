@@ -5,7 +5,7 @@
     <Description>Offline renderer: graph JSON x WAV in -> WAV out.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/Cathode.Audio/Cathode.Audio.csproj" />
-    <ProjectReference Include="../../src/Cathode.Dsp.Native/Cathode.Dsp.Native.csproj" />
+    <ProjectReference Include="../../src/Cathode.Audio/Cathode.Audio.csproj"/>
+    <ProjectReference Include="../../src/Cathode.Dsp.Native/Cathode.Dsp.Native.csproj"/>
   </ItemGroup>
 </Project>

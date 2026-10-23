@@ -20,6 +20,12 @@ public sealed class FlangerBlock : DspBlock {
     const float MaxSweepMs = 7f;
     const float MaxDelayMs = 10f;
 
+    readonly FractionalDelayLine _left = new();
+    readonly FractionalDelayLine _right = new();
+    Lfo _lfo;
+    float _mix;
+    float _outputGain = 1f;
+
     public static BlockDescriptor Info { get; } = new(
         "flanger",
         "Flanger",
@@ -35,12 +41,6 @@ public sealed class FlangerBlock : DspBlock {
         ],
         maxInstances: 2
     );
-
-    readonly FractionalDelayLine _left = new();
-    readonly FractionalDelayLine _right = new();
-    Lfo _lfo;
-    float _mix;
-    float _outputGain = 1f;
 
     public FlangerBlock()
         : base(Info) { }

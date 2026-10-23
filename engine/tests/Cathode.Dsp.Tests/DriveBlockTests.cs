@@ -8,15 +8,6 @@ public class DriveBlockTests(ITestOutputHelper output) {
     const int Length = 65_536;
     const int FundamentalBin = 3_413; // prime, about 2.5 kHz at 48 kHz
 
-    static DriveBlock Create(float type, float drive, bool antialias = true, bool oversample = true) {
-        var block = new DriveBlock { Antialias = antialias, Oversample = oversample };
-        block.Params.SetTarget(DriveBlock.Type, type);
-        block.Params.SetTarget(DriveBlock.Drive, drive);
-        block.Params.SetTarget(DriveBlock.Tone, 10f);
-        block.Prepare(new(48_000, 64));
-        return block;
-    }
-
     [Fact]
     public void Adaa_matches_the_clipping_function_for_slow_signals() {
         foreach (var shape in Enum.GetValues<ClipperShape>()) {
@@ -99,5 +90,14 @@ public class DriveBlockTests(ITestOutputHelper output) {
 
         Assert.True(magnitudes[64] > magnitudes[32] * 0.01, "second harmonic present");
         Assert.True(Math.Abs(rendered.ToArray().Average()) < 1e-3, "no DC offset");
+    }
+
+    static DriveBlock Create(float type, float drive, bool antialias = true, bool oversample = true) {
+        var block = new DriveBlock { Antialias = antialias, Oversample = oversample };
+        block.Params.SetTarget(DriveBlock.Type, type);
+        block.Params.SetTarget(DriveBlock.Drive, drive);
+        block.Params.SetTarget(DriveBlock.Tone, 10f);
+        block.Prepare(new(48_000, 64));
+        return block;
     }
 }

@@ -11,7 +11,7 @@ public static unsafe class NativeAudio {
     public static bool IsLibraryPresent {
         get {
             try {
-                _ = NativeMethods.Backend();
+                _ = Backend();
                 return true;
             } catch (DllNotFoundException) {
                 return false;
@@ -23,7 +23,7 @@ public static unsafe class NativeAudio {
     public static bool IsAvailable => IsLibraryPresent && Backend != "none";
 
     /// <summary>"coreaudio", or "none" on platforms whose backend isn't written yet.</summary>
-    public static string Backend => Marshal.PtrToStringUTF8((nint)NativeMethods.Backend()) ?? "none";
+    public static string Backend => Marshal.PtrToStringUTF8((nint)Backend()) ?? "none";
 
     public static IReadOnlyList<AudioDeviceInfo> Devices() {
         var count = DeviceCount();

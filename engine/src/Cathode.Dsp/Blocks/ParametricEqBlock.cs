@@ -16,6 +16,9 @@ public sealed class ParametricEqBlock : DspBlock {
     const int SubBlock = 32;
     static readonly float[] DefaultFrequencies = [100f, 300f, 1_000f, 3_000f, 8_000f];
 
+    readonly EqBand[] _bands = [new(), new(), new(), new(), new()];
+    float _outputGain = 1f;
+
     public static BlockDescriptor Info { get; } = new(
         "peq",
         "Parametric EQ",
@@ -42,9 +45,6 @@ public sealed class ParametricEqBlock : DspBlock {
         ],
         maxInstances: 4
     );
-
-    readonly EqBand[] _bands = [new(), new(), new(), new(), new()];
-    float _outputGain = 1f;
 
     public ParametricEqBlock()
         : base(Info) { }
@@ -75,7 +75,7 @@ public sealed class ParametricEqBlock : DspBlock {
                 var type = b switch {
                     1 when Params.Current(LowType) == 0 => BiquadType.LowShelf,
                     Bands when Params.Current(HighType) == 0 => BiquadType.HighShelf,
-                    _ => BiquadType.Peak,
+                    _ => BiquadType.Peak
                 };
                 _bands[b - 1].Process(chunk, type, Spec.SampleRate, frequency, q, gain, moving);
             }

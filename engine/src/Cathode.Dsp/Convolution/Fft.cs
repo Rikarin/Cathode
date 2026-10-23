@@ -9,6 +9,8 @@ public sealed class Fft {
     readonly float[] _sin;
     readonly int[] _reverse;
 
+    public int Size { get; }
+
     public Fft(int size) {
         if (size < 2 || (size & (size - 1)) != 0) {
             throw new ArgumentOutOfRangeException(nameof(size), size, "FFT size must be a power of two >= 2.");
@@ -25,7 +27,7 @@ public sealed class Fft {
 
         _reverse = new int[size];
         var bits = 0;
-        while ((1 << bits) < size) {
+        while (1 << bits < size) {
             bits++;
         }
 
@@ -38,8 +40,6 @@ public sealed class Fft {
             _reverse[i] = r;
         }
     }
-
-    public int Size { get; }
 
     public void Forward(Span<float> re, Span<float> im) => Transform(re, im, false);
 

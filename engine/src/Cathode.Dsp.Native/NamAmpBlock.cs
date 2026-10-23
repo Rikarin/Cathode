@@ -16,6 +16,10 @@ public sealed class NamAmpBlock : DspBlock, IAssetConsumer {
 
     public const string ModelSlot = "model";
 
+    NamModel? _model;
+    float _inputGain = 1f;
+    float _outputGain = 1f;
+
     public static BlockDescriptor Info { get; } = new(
         "nam",
         "Amp (NAM capture)",
@@ -28,16 +32,12 @@ public sealed class NamAmpBlock : DspBlock, IAssetConsumer {
         maxInstances: 2
     );
 
-    NamModel? _model;
-    float _inputGain = 1f;
-    float _outputGain = 1f;
-
-    public NamAmpBlock()
-        : base(Info) { }
-
     public NamModelInfo? Model => _model?.Info;
 
     public IReadOnlyList<string> AssetSlots { get; } = [ModelSlot];
+
+    public NamAmpBlock()
+        : base(Info) { }
 
     /// <summary>Control thread, before <see cref="IDspBlock.Prepare" />.</summary>
     public void LoadAsset(string slot, string path) {
@@ -52,6 +52,14 @@ public sealed class NamAmpBlock : DspBlock, IAssetConsumer {
 
     /// <summary>Control thread, before the block is published: resize a slimmable model (0 = Lite, 1 = Full).</summary>
     public void SetModelSize(double size) => _model?.SetSize(size);
+
+    (float Input, float Output) TargetGains() {
+        var normalisation = Params.Current(Normalize) >= 0.5f && _model?.Info.Loudness is double loudness
+            ? TargetLoudnessDb - loudness
+            : 0;
+        return (Decibels.ToGain(Params.Current(Input)),
+            (float)(Decibels.ToGain(Params.Current(Output)) * Decibels.ToGain(normalisation)));
+    }
 
     protected override void OnPrepare(in ProcessSpec spec) => _model?.Reset(spec.SampleRate, spec.MaxBlockSize);
 
@@ -80,13 +88,5 @@ public sealed class NamAmpBlock : DspBlock, IAssetConsumer {
         }
 
         base.Dispose(disposing);
-    }
-
-    (float Input, float Output) TargetGains() {
-        var normalisation = Params.Current(Normalize) >= 0.5f && _model?.Info.Loudness is double loudness
-            ? TargetLoudnessDb - loudness
-            : 0;
-        return (Decibels.ToGain(Params.Current(Input)),
-            (float)(Decibels.ToGain(Params.Current(Output)) * Decibels.ToGain(normalisation)));
     }
 }

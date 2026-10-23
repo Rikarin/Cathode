@@ -12,25 +12,23 @@ public sealed class CallbackStats {
     readonly long[] _histogram = new long[Bins];
     long _count;
     long _overruns;
-    double _maxPercent;
-    double _lastPercent;
 
     public long Count => Volatile.Read(ref _count);
 
     /// <summary>Callbacks that took longer than their real-time budget (a dropout on real hardware).</summary>
     public long Overruns => Volatile.Read(ref _overruns);
 
-    public double MaxPercent => _maxPercent;
+    public double MaxPercent { get; private set; }
 
-    public double LastPercent => _lastPercent;
+    public double LastPercent { get; private set; }
 
     /// <summary>Audio thread: record one callback that started at <paramref name="startTimestamp" />.</summary>
     public void Record(long startTimestamp, int frames, double sampleRate) {
         var elapsed = Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds;
         var percent = elapsed / (frames / sampleRate) * 100.0;
-        _lastPercent = percent;
-        if (percent > _maxPercent) {
-            _maxPercent = percent;
+        LastPercent = percent;
+        if (percent > MaxPercent) {
+            MaxPercent = percent;
         }
 
         if (percent >= 100.0) {
@@ -64,7 +62,7 @@ public sealed class CallbackStats {
         Array.Clear(_histogram);
         _count = 0;
         _overruns = 0;
-        _maxPercent = 0;
-        _lastPercent = 0;
+        MaxPercent = 0;
+        LastPercent = 0;
     }
 }

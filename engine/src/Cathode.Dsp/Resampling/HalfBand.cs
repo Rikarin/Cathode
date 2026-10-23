@@ -78,7 +78,7 @@ public static class HalfBand {
 }
 
 /// <summary>One allpass chain state: y[n] = a (x[n] - y[n-1]) + x[n-1] per section.</summary>
-internal sealed class AllpassChain(float[] coefficients) {
+sealed class AllpassChain(float[] coefficients) {
     readonly float[] _x = new float[coefficients.Length];
     readonly float[] _y = new float[coefficients.Length];
 
@@ -175,12 +175,12 @@ public sealed class Oversampler4x {
     readonly float[] _twice;
     readonly float[] _four;
 
+    public static int CoefficientCount => FirstStage.Length + SecondStage.Length;
+
     public Oversampler4x(int maxBlockSize) {
         _twice = new float[maxBlockSize * 2];
         _four = new float[maxBlockSize * 4];
     }
-
-    public static int CoefficientCount => FirstStage.Length + SecondStage.Length;
 
     /// <summary>Upsamples <paramref name="input" /> and returns the 4x buffer to process in place.</summary>
     public Span<float> Up(ReadOnlySpan<float> input) {

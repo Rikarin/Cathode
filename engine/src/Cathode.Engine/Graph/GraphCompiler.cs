@@ -133,7 +133,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             }
         }
 
-        return new CompiledGraph(
+        return new(
             generation,
             spec,
             [..emitter.Ops],
@@ -266,7 +266,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         return visited;
     }
 
-    private sealed class PlanEmitter {
+    sealed class PlanEmitter {
         readonly Stack<int> _free = new();
 
         public List<GraphOp> Ops { get; } = [];

@@ -4,7 +4,7 @@ namespace Cathode.Dsp.Filters;
 ///     One stereo EQ band on a state-variable filter. A band at 0 dB that isn't moving is skipped entirely, so a flat
 ///     EQ is bit-transparent and costs nothing.
 /// </summary>
-internal sealed class EqBand {
+sealed class EqBand {
     SvfState _left;
     SvfState _right;
 

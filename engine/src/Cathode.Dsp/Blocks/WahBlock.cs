@@ -25,6 +25,10 @@ public sealed class WahBlock : DspBlock {
         (300f, 3_000f, 6f) // Wide
     ];
 
+    SvfState _bandLeft, _bandRight, _lowLeft, _lowRight;
+    float _mix = 1f;
+    float _outputGain = 1f;
+
     public static BlockDescriptor Info { get; } = new(
         "wah",
         "Wah",
@@ -48,10 +52,6 @@ public sealed class WahBlock : DspBlock {
         maxInstances: 2
     );
 
-    SvfState _bandLeft, _bandRight, _lowLeft, _lowRight;
-    float _mix = 1f;
-    float _outputGain = 1f;
-
     public WahBlock()
         : base(Info) { }
 
@@ -59,6 +59,18 @@ public sealed class WahBlock : DspBlock {
     public static float Frequency(int type, float position) {
         var (low, high, _) = Voicings[type];
         return low * MathF.Pow(high / low, Math.Clamp(position, 0f, 100f) / 100f);
+    }
+
+    static float Voice(
+        float x,
+        in SvfCoefficients band,
+        in SvfCoefficients low,
+        ref SvfState bandState,
+        ref SvfState lowState,
+        float mix
+    ) {
+        var wet = (float)(PeakGain * bandState.Tick(band, x) + Body * lowState.Tick(low, x));
+        return x * (1 - mix) + wet * mix;
     }
 
     protected override void OnReset() {
@@ -99,17 +111,5 @@ public sealed class WahBlock : DspBlock {
         GainRamp.Apply(io.Left, _outputGain, outputGain);
         GainRamp.Apply(io.Right, _outputGain, outputGain);
         _outputGain = outputGain;
-    }
-
-    static float Voice(
-        float x,
-        in SvfCoefficients band,
-        in SvfCoefficients low,
-        ref SvfState bandState,
-        ref SvfState lowState,
-        float mix
-    ) {
-        var wet = (float)(PeakGain * bandState.Tick(band, x) + Body * lowState.Tick(low, x));
-        return x * (1 - mix) + wet * mix;
     }
 }

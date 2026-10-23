@@ -4,19 +4,6 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 public class GateBlockTests {
-    /// <summary>Exact dB to gain (Decibels.ToGain treats -80 dB and below as "off").</summary>
-    static float Db(double db) => (float)Math.Pow(10, db / 20);
-
-    static GateBlock Create(float threshold = -60, float ratio = 4, float holdMs = 20, float releaseMs = 100) {
-        var gate = new GateBlock();
-        gate.Params.SetTarget(GateBlock.Threshold, threshold);
-        gate.Params.SetTarget(GateBlock.Ratio, ratio);
-        gate.Params.SetTarget(GateBlock.Hold, holdMs);
-        gate.Params.SetTarget(GateBlock.Release, releaseMs);
-        gate.Prepare(new(48_000, 64));
-        return gate;
-    }
-
     [Fact]
     public void Signals_above_the_threshold_pass_untouched() {
         using var gate = Create();
@@ -29,7 +16,7 @@ public class GateBlockTests {
 
     [Fact]
     public void Signals_below_the_threshold_are_expanded_by_the_ratio() {
-        using var gate = Create(-60, 4);
+        using var gate = Create();
         var input = Signals.Sine(220, 48_000, 48_000, Db(-80));
 
         var output = BlockRender.Mono(gate, input, 64);
@@ -65,5 +52,18 @@ public class GateBlockTests {
         var steps = output.Zip(output.Skip(1), static (a, b) => Math.Abs(b - a)).ToArray();
         var worstExceptInputEdges = steps.Where((_, i) => i != 4_799 && i != 14_399).Max();
         Assert.True(worstExceptInputEdges < 0.02f, $"largest step {worstExceptInputEdges}");
+    }
+
+    /// <summary>Exact dB to gain (Decibels.ToGain treats -80 dB and below as "off").</summary>
+    static float Db(double db) => (float)Math.Pow(10, db / 20);
+
+    static GateBlock Create(float threshold = -60, float ratio = 4, float holdMs = 20, float releaseMs = 100) {
+        var gate = new GateBlock();
+        gate.Params.SetTarget(GateBlock.Threshold, threshold);
+        gate.Params.SetTarget(GateBlock.Ratio, ratio);
+        gate.Params.SetTarget(GateBlock.Hold, holdMs);
+        gate.Params.SetTarget(GateBlock.Release, releaseMs);
+        gate.Prepare(new(48_000, 64));
+        return gate;
     }
 }

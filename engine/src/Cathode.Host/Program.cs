@@ -1,5 +1,6 @@
 using System.Reflection;
 using Cathode.Engine;
+using Cathode.Engine.Graph;
 using Cathode.Host;
 
 // Cathode engine host: a NativeAOT executable. The IPC endpoint for Cathode.Server arrives in Phase 3
@@ -18,12 +19,12 @@ try {
         "audio-test" => AudioCommands.AudioTest(options),
         "latency-test" => AudioCommands.LatencyTest(options),
         "bench-nam" => NamBenchmark.Run(options),
-        _ => Usage(),
+        _ => Usage()
     };
 } catch (Exception e) when (e is InvalidOperationException
                                 or DllNotFoundException
                                 or FormatException
-                                or Cathode.Engine.Graph.GraphValidationException) {
+                                or GraphValidationException) {
     Console.Error.WriteLine($"error: {e.Message}");
     return 1;
 }

@@ -13,7 +13,7 @@
     <NoWarn>$(NoWarn);CA1303;CA2007;CA1031;CA5394;CA1812;CA1852;CA1515;CA1307;CA1305;CA2000;CA1849;CA1848;CA1861</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/Cathode.Audio/Cathode.Audio.csproj" />
-    <ProjectReference Include="../../src/Cathode.Dsp.Native/Cathode.Dsp.Native.csproj" />
+    <ProjectReference Include="../../src/Cathode.Audio/Cathode.Audio.csproj"/>
+    <ProjectReference Include="../../src/Cathode.Dsp.Native/Cathode.Dsp.Native.csproj"/>
   </ItemGroup>
 </Project>

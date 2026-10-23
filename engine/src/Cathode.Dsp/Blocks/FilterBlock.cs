@@ -17,6 +17,11 @@ public sealed class FilterBlock : DspBlock {
 
     const int SubBlock = 32;
 
+    SvfCoefficients _coefficients;
+    SvfState _left;
+    SvfState _right;
+    float _gain = 1f;
+
     public static BlockDescriptor Info { get; } = new(
         "filter",
         "Filter",
@@ -35,13 +40,17 @@ public sealed class FilterBlock : DspBlock {
         maxInstances: 4
     );
 
-    SvfCoefficients _coefficients;
-    SvfState _left;
-    SvfState _right;
-    float _gain = 1f;
-
     public FilterBlock()
         : base(Info) { }
+
+    void UpdateCoefficients() =>
+        _coefficients = SvfCoefficients.Design(
+            (BiquadType)(int)Params.Current(Type),
+            Spec.SampleRate,
+            Params.Current(Frequency),
+            Params.Current(Q),
+            Params.Current(Gain)
+        );
 
     protected override void OnReset() {
         _left.Reset();
@@ -73,13 +82,4 @@ public sealed class FilterBlock : DspBlock {
         GainRamp.Apply(io.Right, _gain, targetGain);
         _gain = targetGain;
     }
-
-    void UpdateCoefficients() =>
-        _coefficients = SvfCoefficients.Design(
-            (BiquadType)(int)Params.Current(Type),
-            Spec.SampleRate,
-            Params.Current(Frequency),
-            Params.Current(Q),
-            Params.Current(Gain)
-        );
 }

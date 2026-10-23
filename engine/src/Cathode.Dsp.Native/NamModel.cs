@@ -11,7 +11,8 @@ public sealed record NamModelInfo(
     double? InputLevel,
     double? OutputLevel,
     int PrewarmSamples,
-    bool Slimmable);
+    bool Slimmable
+);
 
 /// <summary>
 ///     A Neural Amp Modeler model hosted by the reference C++ core (NeuralAmpModelerCore) through <c>cth_nam</c>.
@@ -20,11 +21,6 @@ public sealed record NamModelInfo(
 /// </summary>
 public sealed unsafe class NamModel : IDisposable {
     nint _handle;
-
-    NamModel(nint handle, NamModelInfo info) {
-        _handle = handle;
-        Info = info;
-    }
 
     public NamModelInfo Info { get; }
 
@@ -41,6 +37,13 @@ public sealed unsafe class NamModel : IDisposable {
                 return false;
             }
         }
+    }
+
+    nint Handle => _handle != 0 ? _handle : throw new ObjectDisposedException(nameof(NamModel));
+
+    NamModel(nint handle, NamModelInfo info) {
+        _handle = handle;
+        Info = info;
     }
 
     /// <summary>
@@ -97,6 +100,4 @@ public sealed unsafe class NamModel : IDisposable {
             _handle = 0;
         }
     }
-
-    nint Handle => _handle != 0 ? _handle : throw new ObjectDisposedException(nameof(NamModel));
 }

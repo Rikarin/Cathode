@@ -25,6 +25,18 @@ public sealed class DriveBlock : DspBlock {
     public const int Level = 3;
     public const int Mix = 4;
 
+    const int Factor = 4;
+
+    readonly Channel _left = new();
+    readonly Channel _right = new();
+    float _gain = 1f;
+    float _outputGain = 1f;
+    float _mix = 1f;
+    float[] _dry = [];
+
+    Oversampler4x _dryLeft = new(1);
+    Oversampler4x _dryRight = new(1);
+
     public static BlockDescriptor Info { get; } = new(
         "drive",
         "Drive",
@@ -39,77 +51,14 @@ public sealed class DriveBlock : DspBlock {
         maxInstances: 4
     );
 
-    readonly Channel _left = new();
-    readonly Channel _right = new();
-    float _gain = 1f;
-    float _outputGain = 1f;
-    float _mix = 1f;
-    float[] _dry = [];
-
-    public DriveBlock()
-        : base(Info) { }
-
-    const int Factor = 4;
-
-    Oversampler4x _dryLeft = new(1);
-    Oversampler4x _dryRight = new(1);
-
     /// <summary>Disables antiderivative anti-aliasing, for measuring what it buys.</summary>
     public bool Antialias { get; set; } = true;
 
     /// <summary>Disables oversampling, for measuring what it buys. Set before <see cref="IDspBlock.Prepare" />.</summary>
     public bool Oversample { get; set; } = true;
 
-    protected override void OnPrepare(in ProcessSpec spec) {
-        _dry = new float[spec.MaxBlockSize];
-        _left.Allocate(spec.MaxBlockSize);
-        _right.Allocate(spec.MaxBlockSize);
-        _dryLeft = new(spec.MaxBlockSize);
-        _dryRight = new(spec.MaxBlockSize);
-    }
-
-    protected override void OnReset() {
-        _left.Reset();
-        _right.Reset();
-        _dryLeft.Reset();
-        _dryRight.Reset();
-        _gain = InputGain((int)Params.Current(Type), Params.Current(Drive));
-        _outputGain = Decibels.ToGain(Params.Current(Level));
-        _mix = Params.Current(Mix) / 100f;
-    }
-
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
-        var rate = Spec.SampleRate;
-        var innerRate = Oversample ? rate * Factor : rate;
-        var type = (int)Params.Current(Type);
-        var shape = type switch {
-            0 => ClipperShape.Soft,
-            1 => ClipperShape.Hard,
-            _ => ClipperShape.Asymmetric
-        };
-        var gain = InputGain(type, Params.Advance(Drive, io.Length));
-        var toneHz = 600f * MathF.Pow(8_000f / 600f, Params.Advance(Tone, io.Length) / 10f);
-        var tone = SvfCoefficients.Design(BiquadType.LowPass, rate, toneHz, 0.7071);
-        var pre = type switch {
-            0 => SvfCoefficients.Design(BiquadType.HighPass, innerRate, 720, 0.7071),
-            1 => SvfCoefficients.Design(BiquadType.HighPass, innerRate, 60, 0.7071),
-            _ => SvfCoefficients.Design(BiquadType.HighPass, innerRate, 30, 0.7071),
-        };
-        var dcBlock = SvfCoefficients.Design(BiquadType.HighPass, innerRate, 10, 0.7071);
-        var mix = Params.Advance(Mix, io.Length) / 100f;
-
-        var dry = _dry.AsSpan(0, io.Length);
-        var blend = _mix < 1f || mix < 1f;
-        ProcessChannel(_left, _dryLeft, io.Left, dry, blend, type, shape, gain, pre, tone, dcBlock, mix);
-        ProcessChannel(_right, _dryRight, io.Right, dry, blend, type, shape, gain, pre, tone, dcBlock, mix);
-        _gain = gain;
-        _mix = mix;
-
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, _outputGain, outputGain);
-        GainRamp.Apply(io.Right, _outputGain, outputGain);
-        _outputGain = outputGain;
-    }
+    public DriveBlock()
+        : base(Info) { }
 
     void ProcessChannel(
         Channel channel,
@@ -149,7 +98,58 @@ public sealed class DriveBlock : DspBlock {
         return Decibels.ToGain(minDb + (maxDb - minDb) * drive / 10f);
     }
 
-    private sealed class Channel {
+    protected override void OnPrepare(in ProcessSpec spec) {
+        _dry = new float[spec.MaxBlockSize];
+        _left.Allocate(spec.MaxBlockSize);
+        _right.Allocate(spec.MaxBlockSize);
+        _dryLeft = new(spec.MaxBlockSize);
+        _dryRight = new(spec.MaxBlockSize);
+    }
+
+    protected override void OnReset() {
+        _left.Reset();
+        _right.Reset();
+        _dryLeft.Reset();
+        _dryRight.Reset();
+        _gain = InputGain((int)Params.Current(Type), Params.Current(Drive));
+        _outputGain = Decibels.ToGain(Params.Current(Level));
+        _mix = Params.Current(Mix) / 100f;
+    }
+
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        var rate = Spec.SampleRate;
+        var innerRate = Oversample ? rate * Factor : rate;
+        var type = (int)Params.Current(Type);
+        var shape = type switch {
+            0 => ClipperShape.Soft,
+            1 => ClipperShape.Hard,
+            _ => ClipperShape.Asymmetric
+        };
+        var gain = InputGain(type, Params.Advance(Drive, io.Length));
+        var toneHz = 600f * MathF.Pow(8_000f / 600f, Params.Advance(Tone, io.Length) / 10f);
+        var tone = SvfCoefficients.Design(BiquadType.LowPass, rate, toneHz, 0.7071);
+        var pre = type switch {
+            0 => SvfCoefficients.Design(BiquadType.HighPass, innerRate, 720, 0.7071),
+            1 => SvfCoefficients.Design(BiquadType.HighPass, innerRate, 60, 0.7071),
+            _ => SvfCoefficients.Design(BiquadType.HighPass, innerRate, 30, 0.7071)
+        };
+        var dcBlock = SvfCoefficients.Design(BiquadType.HighPass, innerRate, 10, 0.7071);
+        var mix = Params.Advance(Mix, io.Length) / 100f;
+
+        var dry = _dry.AsSpan(0, io.Length);
+        var blend = _mix < 1f || mix < 1f;
+        ProcessChannel(_left, _dryLeft, io.Left, dry, blend, type, shape, gain, pre, tone, dcBlock, mix);
+        ProcessChannel(_right, _dryRight, io.Right, dry, blend, type, shape, gain, pre, tone, dcBlock, mix);
+        _gain = gain;
+        _mix = mix;
+
+        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
+        GainRamp.Apply(io.Left, _outputGain, outputGain);
+        GainRamp.Apply(io.Right, _outputGain, outputGain);
+        _outputGain = outputGain;
+    }
+
+    sealed class Channel {
         Oversampler4x _oversampler = new(1);
         SvfState _pre;
         SvfState _tone;
@@ -188,7 +188,7 @@ public sealed class DriveBlock : DspBlock {
                 inner[i] = type switch {
                     0 => 0.5f * (y + x), // TS: clipped mids plus the clean path
                     2 => (float)_dc.Tick(dcBlock, y), // fuzz: remove the bias offset
-                    _ => y,
+                    _ => y
                 };
             }
 

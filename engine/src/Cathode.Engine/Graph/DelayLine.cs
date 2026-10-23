@@ -1,18 +1,18 @@
 namespace Cathode.Engine.Graph;
 
 /// <summary>Fixed integer stereo delay used for latency compensation between parallel paths.</summary>
-internal sealed class DelayLine {
+sealed class DelayLine {
     readonly float[] _left;
     readonly float[] _right;
     int _position;
+
+    public int Samples { get; }
 
     public DelayLine(int samples) {
         Samples = samples;
         _left = new float[samples];
         _right = new float[samples];
     }
-
-    public int Samples { get; }
 
     public void Process(Span<float> left, Span<float> right) {
         var position = _position;

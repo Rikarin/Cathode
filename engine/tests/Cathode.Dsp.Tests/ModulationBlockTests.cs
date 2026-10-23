@@ -6,17 +6,6 @@ namespace Cathode.Dsp.Tests;
 public class ModulationBlockTests {
     const double Rate = 48_000;
 
-    static T Create<T>(params (int Index, float Value)[] settings)
-        where T : IDspBlock, new() {
-        var block = new T();
-        foreach (var (index, value) in settings) {
-            block.Params.SetTarget(index, value);
-        }
-
-        block.Prepare(new(Rate, 64));
-        return block;
-    }
-
     [Fact]
     public void Static_flanger_is_a_comb_with_notches_at_odd_multiples_of_half_the_inverse_delay() {
         // 1 ms delay, no sweep, no feedback, 50 % mix: H = (1 + z^-48) / 2, notches at 500, 1500, 2500 Hz.
@@ -91,5 +80,16 @@ public class ModulationBlockTests {
         }
 
         Assert.True(left.Min() < 0.01f && right.Min() < 0.01f, "full depth reaches each side");
+    }
+
+    static T Create<T>(params (int Index, float Value)[] settings)
+        where T : IDspBlock, new() {
+        var block = new T();
+        foreach (var (index, value) in settings) {
+            block.Params.SetTarget(index, value);
+        }
+
+        block.Prepare(new(Rate, 64));
+        return block;
     }
 }

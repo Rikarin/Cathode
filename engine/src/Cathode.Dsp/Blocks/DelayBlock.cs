@@ -28,6 +28,15 @@ public sealed class DelayBlock : DspBlock {
     /// <summary>Tempo divisions in beats (quarter notes).</summary>
     static readonly float[] Divisions = [0f, 4f, 2f, 1f, 1.5f, 2f / 3f, 0.5f, 0.75f, 1f / 3f, 0.25f];
 
+    readonly Line _left = new();
+    readonly Line _right = new();
+    double _lfoPhase;
+    double _wowPhase;
+    double _flutterPhase;
+    float _delaySamples;
+    float _mix;
+    float _outputGain = 1f;
+
     public static BlockDescriptor Info { get; } = new(
         "delay",
         "Delay",
@@ -51,17 +60,16 @@ public sealed class DelayBlock : DspBlock {
         maxInstances: 4
     );
 
-    readonly Line _left = new();
-    readonly Line _right = new();
-    double _lfoPhase;
-    double _wowPhase;
-    double _flutterPhase;
-    float _delaySamples;
-    float _mix;
-    float _outputGain = 1f;
-
     public DelayBlock()
         : base(Info) { }
+
+    float TargetDelaySamples(float timeMs, double tempo) {
+        var division = Divisions[(int)Params.Current(Tempo)];
+        var ms = division > 0 && tempo > 0 ? Math.Min(MaxTimeMs, (float)(60_000.0 / tempo * division)) : timeMs;
+        return (float)(ms * 0.001 * Spec.SampleRate);
+    }
+
+    static double Wrap(double phase) => phase >= 2 * Math.PI ? phase - 2 * Math.PI : phase;
 
     protected override void OnPrepare(in ProcessSpec spec) {
         // Room for the longest time plus modulation and tape wow.
@@ -167,15 +175,7 @@ public sealed class DelayBlock : DspBlock {
         _outputGain = outputGain;
     }
 
-    float TargetDelaySamples(float timeMs, double tempo) {
-        var division = Divisions[(int)Params.Current(Tempo)];
-        var ms = division > 0 && tempo > 0 ? Math.Min(MaxTimeMs, (float)(60_000.0 / tempo * division)) : timeMs;
-        return (float)(ms * 0.001 * Spec.SampleRate);
-    }
-
-    static double Wrap(double phase) => phase >= 2 * Math.PI ? phase - 2 * Math.PI : phase;
-
-    private sealed class Line {
+    sealed class Line {
         readonly FractionalDelayLine _delay = new();
         SvfState _lowCut;
         SvfState _highCut;

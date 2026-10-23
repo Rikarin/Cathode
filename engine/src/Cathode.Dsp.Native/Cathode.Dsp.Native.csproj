@@ -3,6 +3,6 @@
     <Description>Blocks backed by native DSP: Neural Amp Modeler (cth_nam).</Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../Cathode.Dsp/Cathode.Dsp.csproj" />
+    <ProjectReference Include="../Cathode.Dsp/Cathode.Dsp.csproj"/>
   </ItemGroup>
 </Project>

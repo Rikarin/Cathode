@@ -42,6 +42,9 @@ public sealed class Convolver {
     readonly float[] _accIm = new float[Bins];
     int _position;
 
+    /// <summary>Impulse response length in samples.</summary>
+    public int Length { get; }
+
     public Convolver(ReadOnlySpan<float> impulseResponse) {
         if (impulseResponse.IsEmpty) {
             throw new ArgumentException("The impulse response is empty.", nameof(impulseResponse));
@@ -69,9 +72,6 @@ public sealed class Convolver {
             _inIm[p] = new float[Bins];
         }
     }
-
-    /// <summary>Impulse response length in samples.</summary>
-    public int Length { get; }
 
     public void Reset() {
         Array.Clear(_history);

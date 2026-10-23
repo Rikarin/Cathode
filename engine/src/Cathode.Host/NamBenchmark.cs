@@ -1,4 +1,7 @@
 using System.Diagnostics;
+using System.Globalization;
+using System.Text.Json;
+using Cathode.Audio.Native;
 using Cathode.Dsp;
 using Cathode.Dsp.Native;
 using Cathode.Engine;
@@ -10,7 +13,7 @@ namespace Cathode.Host;
 ///     Spike S3: CPU cost of a NAM model measured through the whole engine (Input -> NAM -> Output), offline at
 ///     full speed, with the same callback statistics the device path reports.
 /// </summary>
-internal static class NamBenchmark {
+static class NamBenchmark {
     public static int Run(CommandLine options) {
         var graphPath = options.Text("graph");
         var path = options.Text("model");
@@ -29,7 +32,7 @@ internal static class NamBenchmark {
                 Path.GetDirectoryName(Path.GetFullPath(graphPath))
             )
                 .Compile(
-                    System.Text.Json.JsonSerializer.Deserialize(
+                    JsonSerializer.Deserialize(
                         File.ReadAllText(graphPath),
                         GraphJsonContext.Default.GraphDefinition
                     )!,
@@ -39,7 +42,7 @@ internal static class NamBenchmark {
             : Compile(Graphs.Nam(Path.GetFullPath(path!)), spec);
         var amp = graph.SlotOf("amp1") is >= 0 and var ampSlot ? graph.Block(ampSlot) as NamAmpBlock : null;
         if (options.Text("size") is { } size && amp is not null) {
-            amp.SetModelSize(double.Parse(size, System.Globalization.CultureInfo.InvariantCulture));
+            amp.SetModelSize(double.Parse(size, CultureInfo.InvariantCulture));
         }
 
         var engine = new CathodeEngine(spec);
@@ -47,7 +50,7 @@ internal static class NamBenchmark {
 
         // The device path enables flush-to-zero on the audio thread; --ftz does the same here.
         if (options.Flag("ftz")) {
-            Cathode.Audio.Native.NativeAudio.FlushDenormalsOnCurrentThread();
+            NativeAudio.FlushDenormalsOnCurrentThread();
         }
 
         var random = new Random(1);
@@ -110,7 +113,7 @@ internal static class NamBenchmark {
 }
 
 /// <summary>Graphs used by the host's diagnostics.</summary>
-internal static class Graphs {
+static class Graphs {
     /// <summary>Input -> NAM amp (normalised) -> Output.</summary>
     public static GraphDefinition Nam(string modelPath) =>
         new() {

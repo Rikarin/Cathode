@@ -5,6 +5,8 @@ namespace Cathode.Engine.Graph;
 ///     found.
 /// </summary>
 public sealed class GraphValidationException : Exception {
+    public IReadOnlyList<string> Errors { get; }
+
     public GraphValidationException()
         : this([]) { }
 
@@ -20,6 +22,4 @@ public sealed class GraphValidationException : Exception {
         : base(errors.Count == 0 ? "Invalid graph." : "Invalid graph: " + string.Join("; ", errors)) {
         Errors = errors;
     }
-
-    public IReadOnlyList<string> Errors { get; }
 }

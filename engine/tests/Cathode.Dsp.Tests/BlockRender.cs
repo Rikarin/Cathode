@@ -1,7 +1,7 @@
 namespace Cathode.Dsp.Tests;
 
 /// <summary>Drives a single block directly, without the engine.</summary>
-internal static class BlockRender {
+static class BlockRender {
     public static (float[] Left, float[] Right) Stereo(
         IDspBlock block,
         float[] left,

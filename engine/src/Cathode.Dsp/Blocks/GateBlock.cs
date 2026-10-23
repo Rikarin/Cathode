@@ -23,6 +23,11 @@ public sealed class GateBlock : DspBlock {
     /// <summary>Deepest attenuation the gate applies, in dB.</summary>
     const float FloorDb = -100f;
 
+    float _envelope;
+    float _gainDb;
+    int _holdRemaining;
+    float _detectorRelease;
+
     public static BlockDescriptor Info { get; } = new(
         "gate",
         "Gate/Expander",
@@ -37,16 +42,15 @@ public sealed class GateBlock : DspBlock {
         maxInstances: 4
     );
 
-    float _envelope;
-    float _gainDb;
-    int _holdRemaining;
-    float _detectorRelease;
+    /// <summary>Current gain applied by the gate (1 = open). For meters and tests.</summary>
+    public float CurrentGain => MathF.Pow(10f, _gainDb / 20f);
 
     public GateBlock()
         : base(Info) { }
 
-    /// <summary>Current gain applied by the gate (1 = open). For meters and tests.</summary>
-    public float CurrentGain => MathF.Pow(10f, _gainDb / 20f);
+    /// <summary>One-pole coefficient reaching about 63 % of a step in <paramref name="milliseconds" />.</summary>
+    static float Coefficient(double milliseconds, double sampleRate) =>
+        (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
 
     protected override void OnPrepare(in ProcessSpec spec) =>
         _detectorRelease = Coefficient(DetectorReleaseMs, spec.SampleRate);
@@ -100,8 +104,4 @@ public sealed class GateBlock : DspBlock {
         _gainDb = gainDb;
         _holdRemaining = holdRemaining;
     }
-
-    /// <summary>One-pole coefficient reaching about 63 % of a step in <paramref name="milliseconds" />.</summary>
-    static float Coefficient(double milliseconds, double sampleRate) =>
-        (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
 }

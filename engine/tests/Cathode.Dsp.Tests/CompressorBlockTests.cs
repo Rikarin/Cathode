@@ -4,25 +4,6 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 public class CompressorBlockTests {
-    static float Db(double db) => (float)Math.Pow(10, db / 20);
-
-    static CompressorBlock Create(
-        float type,
-        float threshold = -20,
-        float ratio = 4,
-        float knee = 0,
-        float release = 150
-    ) {
-        var block = new CompressorBlock();
-        block.Params.SetTarget(CompressorBlock.Type, type);
-        block.Params.SetTarget(CompressorBlock.Threshold, threshold);
-        block.Params.SetTarget(CompressorBlock.Ratio, ratio);
-        block.Params.SetTarget(CompressorBlock.Knee, knee);
-        block.Params.SetTarget(CompressorBlock.Release, release);
-        block.Prepare(new(48_000, 64));
-        return block;
-    }
-
     [Theory]
     [InlineData(-30f, 0f, 4f, 0f, -30f)] // below threshold: unchanged
     [InlineData(0f, -20f, 4f, 0f, -15f)] // 20 dB over at 4:1 -> 5 dB over
@@ -40,8 +21,8 @@ public class CompressorBlockTests {
 
     [Fact]
     public void Pedal_compresses_a_steady_tone_to_the_static_curve() {
-        using var block = Create(0, -20, 4);
-        var input = Signals.Sine(1_000, 48_000, 48_000, 1f); // 0 dBFS peak
+        using var block = Create(0);
+        var input = Signals.Sine(1_000, 48_000, 48_000); // 0 dBFS peak
 
         var output = BlockRender.Mono(block, input, 64);
 
@@ -51,8 +32,8 @@ public class CompressorBlockTests {
 
     [Fact]
     public void Studio_detects_rms() {
-        using var block = Create(1, -20, 4);
-        var input = Signals.Sine(1_000, 48_000, 48_000, 1f); // -3.01 dBFS RMS
+        using var block = Create(1);
+        var input = Signals.Sine(1_000, 48_000, 48_000); // -3.01 dBFS RMS
 
         var output = BlockRender.Mono(block, input, 64);
 
@@ -62,7 +43,7 @@ public class CompressorBlockTests {
 
     [Fact]
     public void Quiet_signals_pass_untouched() {
-        using var block = Create(0, -20, 4);
+        using var block = Create(0);
         var input = Signals.Sine(1_000, 48_000, 9_600, Db(-30));
 
         Assert.Equal(input, BlockRender.Mono(block, input, 64));
@@ -72,7 +53,7 @@ public class CompressorBlockTests {
     public void Opto_recovers_more_slowly_after_heavy_compression() {
         float RecoveryDb(float type) {
             using var block = Create(type, -30, 10, release: 100);
-            BlockRender.Mono(block, Signals.Sine(1_000, 48_000, 24_000, 1f), 64);
+            BlockRender.Mono(block, Signals.Sine(1_000, 48_000, 24_000), 64);
             BlockRender.Mono(block, new float[4_800], 64); // 100 ms of silence
             return block.GainReductionDb;
         }
@@ -81,5 +62,24 @@ public class CompressorBlockTests {
             RecoveryDb(2) < RecoveryDb(0) - 3,
             $"opto {RecoveryDb(2):0.0} dB vs pedal {RecoveryDb(0):0.0} dB still reduced after 100 ms"
         );
+    }
+
+    static float Db(double db) => (float)Math.Pow(10, db / 20);
+
+    static CompressorBlock Create(
+        float type,
+        float threshold = -20,
+        float ratio = 4,
+        float knee = 0,
+        float release = 150
+    ) {
+        var block = new CompressorBlock();
+        block.Params.SetTarget(CompressorBlock.Type, type);
+        block.Params.SetTarget(CompressorBlock.Threshold, threshold);
+        block.Params.SetTarget(CompressorBlock.Ratio, ratio);
+        block.Params.SetTarget(CompressorBlock.Knee, knee);
+        block.Params.SetTarget(CompressorBlock.Release, release);
+        block.Prepare(new(48_000, 64));
+        return block;
     }
 }

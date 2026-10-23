@@ -33,7 +33,8 @@ public sealed record ParamDescriptor(
     ParamTaper Taper = ParamTaper.Linear,
     ParamSmoothing Smoothing = ParamSmoothing.Linear,
     float SmoothingMs = 20f,
-    IReadOnlyList<string>? Options = null) {
+    IReadOnlyList<string>? Options = null
+) {
     public static ParamDescriptor Float(
         string id,
         string name,

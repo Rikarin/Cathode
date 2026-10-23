@@ -10,22 +10,6 @@ public class CathodeEngineTests {
     static readonly ProcessSpec Spec = new(48_000, 64);
     static readonly GraphCompiler Compiler = new(BlockRegistry.CreateDefault());
 
-    static GraphDefinition VolumeGraph(float levelDb) =>
-        new() {
-            Nodes = [
-                new() { Id = "in", Type = NodeTypes.Input, Row = 0, Column = 0 },
-                new() {
-                    Id = "vol",
-                    Type = "volpan",
-                    Row = 0,
-                    Column = 1,
-                    Parameters = { ["level"] = levelDb }
-                },
-                new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 }
-            ],
-            Cables = [new() { From = "in", To = "vol" }, new() { From = "vol", To = "out" }]
-        };
-
     [Fact]
     public void Outputs_silence_until_a_graph_is_published() {
         var engine = new CathodeEngine(Spec);
@@ -137,4 +121,20 @@ public class CathodeEngineTests {
         Assert.Equal(0, allocated);
         Assert.Equal(10_000, engine.Stats.Count);
     }
+
+    static GraphDefinition VolumeGraph(float levelDb) =>
+        new() {
+            Nodes = [
+                new() { Id = "in", Type = NodeTypes.Input, Row = 0, Column = 0 },
+                new() {
+                    Id = "vol",
+                    Type = "volpan",
+                    Row = 0,
+                    Column = 1,
+                    Parameters = { ["level"] = levelDb }
+                },
+                new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 }
+            ],
+            Cables = [new() { From = "in", To = "vol" }, new() { From = "vol", To = "out" }]
+        };
 }

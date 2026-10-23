@@ -6,7 +6,7 @@ namespace Cathode.Host;
 ///     Minimal parser: the first <c>--name</c> is the command; later <c>--key value</c> pairs and bare flags are
 ///     options.
 /// </summary>
-internal sealed class CommandLine {
+sealed class CommandLine {
     static readonly HashSet<string> Commands =
         ["version", "self-test", "devices", "audio-test", "latency-test", "bench-nam", "help"];
 

@@ -9,7 +9,7 @@
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../Cathode.Audio/Cathode.Audio.csproj" />
-    <ProjectReference Include="../Cathode.Dsp.Native/Cathode.Dsp.Native.csproj" />
+    <ProjectReference Include="../Cathode.Audio/Cathode.Audio.csproj"/>
+    <ProjectReference Include="../Cathode.Dsp.Native/Cathode.Dsp.Native.csproj"/>
   </ItemGroup>
 </Project>

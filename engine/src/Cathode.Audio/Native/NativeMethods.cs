@@ -3,7 +3,8 @@ using System.Runtime.InteropServices;
 namespace Cathode.Audio.Native;
 
 /// <summary>P/Invoke surface of <c>cth_audio</c> (engine/native/cth_audio/include/cth_audio.h).</summary>
-internal static unsafe partial class NativeMethods {
+static unsafe partial class NativeMethods {
+    internal const int TimingBins = 201; // CTH_TIMING_BINS
     const string Library = "cth_audio";
 
     [LibraryImport(Library, EntryPoint = "cth_audio_device_count")]
@@ -65,8 +66,6 @@ internal static unsafe partial class NativeMethods {
         public int InputLatencyFrames;
         public int OutputLatencyFrames;
     }
-
-    internal const int TimingBins = 201; // CTH_TIMING_BINS
 
     [StructLayout(LayoutKind.Sequential)]
     internal struct TimingNative {

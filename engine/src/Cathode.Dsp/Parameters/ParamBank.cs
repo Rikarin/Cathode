@@ -17,6 +17,8 @@ public sealed class ParamBank {
     readonly int[] _remaining;
     readonly int[] _rampSamples;
 
+    public int Count => _descriptors.Count;
+
     public ParamBank(IReadOnlyList<ParamDescriptor> descriptors) {
         _descriptors = descriptors;
         var count = descriptors.Count;
@@ -32,8 +34,6 @@ public sealed class ParamBank {
 
         SnapToTargets();
     }
-
-    public int Count => _descriptors.Count;
 
     public ParamDescriptor Descriptor(int index) => _descriptors[index];
 

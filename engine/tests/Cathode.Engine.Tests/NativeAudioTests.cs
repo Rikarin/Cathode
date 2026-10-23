@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Cathode.Audio.Native;
 
 namespace Cathode.Engine.Tests;
@@ -19,6 +20,6 @@ public class NativeAudioTests {
         Assert.Equal(0f, result);
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     static float Product(float a, float b) => a * b;
 }

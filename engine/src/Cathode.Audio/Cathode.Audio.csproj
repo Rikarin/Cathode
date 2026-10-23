@@ -3,6 +3,6 @@
     <Description>Audio backends (offline, null, native) and WAV I/O.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../Cathode.Engine/Cathode.Engine.csproj" />
+    <ProjectReference Include="../Cathode.Engine/Cathode.Engine.csproj"/>
   </ItemGroup>
 </Project>

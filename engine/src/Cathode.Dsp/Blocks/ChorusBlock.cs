@@ -19,6 +19,12 @@ public sealed class ChorusBlock : DspBlock {
     const float MaxDepthMs = 5f;
     const float MaxDelayMs = 30f;
 
+    readonly FractionalDelayLine _left = new();
+    readonly FractionalDelayLine _right = new();
+    Lfo _lfo;
+    float _mix;
+    float _outputGain = 1f;
+
     public static BlockDescriptor Info { get; } = new(
         "chorus",
         "Chorus",
@@ -33,12 +39,6 @@ public sealed class ChorusBlock : DspBlock {
         ],
         maxInstances: 2
     );
-
-    readonly FractionalDelayLine _left = new();
-    readonly FractionalDelayLine _right = new();
-    Lfo _lfo;
-    float _mix;
-    float _outputGain = 1f;
 
     public ChorusBlock()
         : base(Info) { }

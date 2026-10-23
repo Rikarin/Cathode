@@ -28,6 +28,12 @@ public sealed class CabBlock : DspBlock, IAssetConsumer {
 
     const int FadeLength = 64;
 
+    readonly Slot[] _slots = [new(), new()];
+    SvfState _lowCutLeft, _lowCutRight, _highCutLeft, _highCutRight;
+    float[] _scratchLeft = [];
+    float[] _scratchRight = [];
+    float _gain1 = 1f, _gain2 = 1f, _outputGain = 1f;
+
     public static BlockDescriptor Info { get; } = new(
         "cab",
         "Cab",
@@ -42,23 +48,17 @@ public sealed class CabBlock : DspBlock, IAssetConsumer {
         maxInstances: 2
     );
 
-    readonly Slot[] _slots = [new(), new()];
-    SvfState _lowCutLeft, _lowCutRight, _highCutLeft, _highCutRight;
-    float[] _scratchLeft = [];
-    float[] _scratchRight = [];
-    float _gain1 = 1f, _gain2 = 1f, _outputGain = 1f;
+    public IReadOnlyList<string> AssetSlots { get; } = ["ir1", "ir2"];
 
     public CabBlock()
         : base(Info) { }
-
-    public IReadOnlyList<string> AssetSlots { get; } = ["ir1", "ir2"];
 
     /// <summary>Control thread: load a WAV impulse response into <c>ir1</c> or <c>ir2</c>.</summary>
     public void LoadAsset(string slot, string path) {
         var index = slot switch {
             "ir1" => 0,
             "ir2" => 1,
-            _ => throw new ArgumentException($"Unknown asset slot '{slot}'.", nameof(slot)),
+            _ => throw new ArgumentException($"Unknown asset slot '{slot}'.", nameof(slot))
         };
 
         var audio = WavFile.Read(path);
@@ -67,6 +67,15 @@ public sealed class CabBlock : DspBlock, IAssetConsumer {
         }
 
         _slots[index].Source = audio;
+    }
+
+    /// <summary>The IR as it will be convolved (resampled, truncated, normalised), for tests and the editor's plot.</summary>
+    public float[]? PreparedImpulseResponse(int slot, int channel = 0) => _slots[slot].Prepared?[channel];
+
+    static void Accumulate(ReadOnlySpan<float> source, Span<float> destination) {
+        for (var i = 0; i < source.Length; i++) {
+            destination[i] += source[i];
+        }
     }
 
     protected override void OnPrepare(in ProcessSpec spec) {
@@ -146,16 +155,7 @@ public sealed class CabBlock : DspBlock, IAssetConsumer {
         _outputGain = outputGain;
     }
 
-    /// <summary>The IR as it will be convolved (resampled, truncated, normalised), for tests and the editor's plot.</summary>
-    public float[]? PreparedImpulseResponse(int slot, int channel = 0) => _slots[slot].Prepared?[channel];
-
-    static void Accumulate(ReadOnlySpan<float> source, Span<float> destination) {
-        for (var i = 0; i < source.Length; i++) {
-            destination[i] += source[i];
-        }
-    }
-
-    private sealed class Slot {
+    sealed class Slot {
         Convolver? _left;
         Convolver? _right;
 

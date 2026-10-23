@@ -13,6 +13,11 @@ public sealed class SpscRing<T>
     PaddedLong _head; // next slot to read, owned by the consumer
     PaddedLong _tail; // next slot to write, owned by the producer
 
+    public int Capacity => _items.Length;
+
+    /// <summary>Approximate number of queued items (exact when called from either endpoint while the other is idle).</summary>
+    public int Count => (int)(Volatile.Read(ref _tail.Value) - Volatile.Read(ref _head.Value));
+
     public SpscRing(int capacity) {
         if (capacity < 2 || (capacity & (capacity - 1)) != 0) {
             throw new ArgumentOutOfRangeException(nameof(capacity), capacity, "Capacity must be a power of two >= 2.");
@@ -21,11 +26,6 @@ public sealed class SpscRing<T>
         _items = new T[capacity];
         _mask = capacity - 1;
     }
-
-    public int Capacity => _items.Length;
-
-    /// <summary>Approximate number of queued items (exact when called from either endpoint while the other is idle).</summary>
-    public int Count => (int)(Volatile.Read(ref _tail.Value) - Volatile.Read(ref _head.Value));
 
     public bool TryEnqueue(in T item) {
         var tail = _tail.Value;
@@ -56,7 +56,7 @@ public sealed class SpscRing<T>
 ///     (Top level because a struct nested in a generic type is generic, and generic types can't use explicit layout.)
 /// </summary>
 [StructLayout(LayoutKind.Explicit, Size = 128)]
-internal struct PaddedLong {
+struct PaddedLong {
     [FieldOffset(64)]
     public long Value;
 }

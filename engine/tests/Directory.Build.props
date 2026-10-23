@@ -1,5 +1,5 @@
 <Project>
-  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))"/>
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject Condition="'$(MSBuildProjectName)' != 'Cathode.Testing'">true</IsTestProject>
@@ -8,8 +8,8 @@
     <NoWarn>$(NoWarn);CA1707;CA1515;CA1861;CA2007;CA1822;CA1859;CA5394</NoWarn>
   </PropertyGroup>
   <ItemGroup Condition="'$(IsTestProject)' == 'true'">
-    <PackageReference Include="xunit.v3" />
-    <PackageReference Include="CsCheck" />
-    <Using Include="Xunit" />
+    <PackageReference Include="xunit.v3"/>
+    <PackageReference Include="CsCheck"/>
+    <Using Include="Xunit"/>
   </ItemGroup>
 </Project>
