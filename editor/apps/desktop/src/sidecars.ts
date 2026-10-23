@@ -1,5 +1,6 @@
 import { type ChildProcess, execFile, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
+import { readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,6 +11,19 @@ export interface SidecarStatus {
     name: 'host' | 'server';
     state: 'starting' | 'running' | 'restarting' | 'stopped' | 'failed';
     detail: string | null;
+}
+
+export interface IrCaptureOptions {
+    seconds: number;
+    levelDb: number;
+    lengthMs: number;
+}
+
+export interface IrCaptureResult {
+    ok: boolean;
+    output: string;
+    /** The captured IR as a WAV file, for the renderer to upload as an asset. */
+    wav: Uint8Array | null;
 }
 
 export interface Connection {
@@ -212,9 +226,58 @@ export class Sidecars {
         }
     }
 
+    /**
+     * Measures an IR with the engine stopped (the device cannot be shared): a sweep out of outputs 1-2, recorded on
+     * input 1, then restarts the engine.
+     */
+    async irCapture(options: IrCaptureOptions): Promise<IrCaptureResult> {
+        if (!this.audio.device) {
+            return { ok: false, output: 'Pick an audio interface first: capturing needs a real device.', wav: null };
+        }
+
+        const file = join(tmpdir(), `cathode-ir-${process.pid}-${Date.now()}.wav`);
+        await this.host.stop();
+        try {
+            const host = engine.host();
+            const args = [
+                ...host.args,
+                '--ir-capture',
+                '--device',
+                this.audio.device,
+                '--rate',
+                String(this.audio.sampleRate),
+                '--buffer',
+                String(this.audio.bufferFrames),
+                '--seconds',
+                String(options.seconds),
+                '--level',
+                String(options.levelDb),
+                '--length',
+                String(options.lengthMs),
+                '--out',
+                file
+            ];
+            const { output, ok } = await new Promise<{ output: string; ok: boolean }>(done =>
+                execFile(host.command, args, { timeout: (options.seconds + 20) * 1_000 }, (error, stdout, stderr) =>
+                    done({ output: `${stdout}${stderr}${error && !stdout ? error.message : ''}`.trim(), ok: !error })
+                )
+            );
+            const wav = ok ? new Uint8Array(await readFile(file)) : null;
+            return { ok: ok && wav !== null, output, wav };
+        } finally {
+            await rm(file, { force: true });
+            this.host.start();
+            this.host.healthy();
+        }
+    }
+
     private hostCommand(): Command & { env: NodeJS.ProcessEnv } {
         const host = engine.host();
         const audio = this.audio.device ? ['--device', this.audio.device] : ['--null-audio'];
+        const loop = [
+            ...(this.audio.loopIn.length ? ['--loop-in', this.audio.loopIn.join(',')] : []),
+            ...(this.audio.loopOut.length ? ['--loop-out', this.audio.loopOut.join(',')] : [])
+        ];
         return {
             command: host.command,
             args: [
@@ -223,6 +286,7 @@ export class Sidecars {
                 '--socket',
                 this.socket,
                 ...audio,
+                ...(this.audio.device ? loop : []),
                 '--rate',
                 String(this.audio.sampleRate),
                 '--buffer',

@@ -95,6 +95,28 @@ const BufferSizes = [32, 64, 128, 256, 512];
                                 (valueChange)="patch({ bufferFrames: $event ?? 64 })"
                             />
                         </div>
+                        <label class="flex flex-col gap-1 text-sm">
+                            <span class="text-foreground-muted text-xs">FX loop send</span>
+                            <input
+                                xuiInput
+                                class="w-28"
+                                placeholder="e.g. 3,4"
+                                aria-label="FX loop send channels"
+                                [value]="channels(settings()?.loopOut)"
+                                (change)="patch({ loopOut: parseChannels($any($event.target).value) })"
+                            />
+                        </label>
+                        <label class="flex flex-col gap-1 text-sm">
+                            <span class="text-foreground-muted text-xs">FX loop return</span>
+                            <input
+                                xuiInput
+                                class="w-28"
+                                placeholder="e.g. 3,4"
+                                aria-label="FX loop return channels"
+                                [value]="channels(settings()?.loopIn)"
+                                (change)="patch({ loopIn: parseChannels($any($event.target).value) })"
+                            />
+                        </label>
                         <button xuiButton type="button" [loading]="applying()" [disabled]="!dirty()" (click)="apply()">
                             Apply and restart engine
                         </button>
@@ -224,6 +246,17 @@ export class SetupPage {
             device: device?.uid ?? null,
             sampleRate: device?.sampleRate ?? this.settings()?.sampleRate ?? 48_000
         });
+    }
+
+    /** Device channels for the FX Loop block, shown 1-based as on the interface ("3,4"; one channel is mono). */
+    protected readonly channels = (list: number[] | undefined) => (list ?? []).join(',');
+
+    protected parseChannels(text: string): number[] {
+        return text
+            .split(',')
+            .map(c => Number.parseInt(c.trim(), 10))
+            .filter(c => Number.isInteger(c) && c >= 1 && c <= 64)
+            .slice(0, 2);
     }
 
     protected patch(change: Partial<AudioSettings>): void {

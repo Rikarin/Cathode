@@ -14,6 +14,10 @@ export interface AudioSettings {
     device: string | null;
     sampleRate: number;
     bufferFrames: number;
+    /** Device input channels (1-based, up to two) an external effects loop returns on; empty for none. */
+    loopIn: number[];
+    /** Device output channels (1-based, up to two) that feed an external effects loop; empty for none. */
+    loopOut: number[];
 }
 
 export interface LatencyResult {
@@ -21,6 +25,13 @@ export interface LatencyResult {
     /** The host's report, as printed. */
     output: string;
     roundTripMs: number | null;
+}
+
+export interface IrCaptureResult {
+    ok: boolean;
+    output: string;
+    /** The captured IR as a WAV file. */
+    wav: Uint8Array | null;
 }
 
 /** Which Server the desktop app talks to: its own sidecars, or a remote one. */
@@ -50,6 +61,8 @@ export interface CathodeDesktop {
         apply(settings: AudioSettings): Promise<void>;
         /** Stops the host, measures round-trip latency through a loopback cable, and restarts it. */
         latencyTest(): Promise<LatencyResult>;
+        /** Stops the host, plays a sweep on outputs 1-2, records input 1 and returns the IR; restarts the host. */
+        irCapture(options: { seconds: number; levelDb: number; lengthMs: number }): Promise<IrCaptureResult>;
     };
 }
 

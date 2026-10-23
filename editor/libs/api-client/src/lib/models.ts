@@ -22,6 +22,9 @@ export type FootswitchLayout = Schemas['FootswitchLayout'];
 export type Footswitch = Schemas['Footswitch'];
 export type SwitchAction = Schemas['SwitchAction'];
 export type GlobalBlock = Schemas['GlobalBlock'];
+export type IrMixRequest = Schemas['IrMixRequest'];
+export type IrMixSource = Schemas['IrMixSource'];
+export type ToneMatchRequest = Schemas['ToneMatchRequest'];
 
 /** Modifier sources (Cathode.Engine.Rig.ModNames). */
 export const ModifierSources = [
@@ -137,4 +140,11 @@ export interface ScopeFrame {
     samples: number[];
 }
 
-export type ServerMessage = { type: 'connected' } | Telemetry | ScopeFrame | MidiActivity | RigEvent;
+/** Pushed about 15 times a second while the RTA is on: the output in sixth-octave bands, 0 dB = a full-scale sine. */
+export interface RtaFrame {
+    type: 'rta';
+    frequencies: number[];
+    levels: number[];
+}
+
+export type ServerMessage = { type: 'connected' } | Telemetry | ScopeFrame | RtaFrame | MidiActivity | RigEvent;

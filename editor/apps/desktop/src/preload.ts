@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('cathode', {
         devices: () => ipcRenderer.invoke('cathode:audio:devices'),
         settings: () => ipcRenderer.invoke('cathode:audio:settings'),
         apply: (settings: unknown) => ipcRenderer.invoke('cathode:audio:apply', settings),
-        latencyTest: () => ipcRenderer.invoke('cathode:audio:latencyTest')
+        latencyTest: () => ipcRenderer.invoke('cathode:audio:latencyTest'),
+        irCapture: (options: unknown) => ipcRenderer.invoke('cathode:audio:irCapture', options)
     }
 });

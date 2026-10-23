@@ -7,6 +7,10 @@ export interface AudioSettings {
     device: string | null;
     sampleRate: number;
     bufferFrames: number;
+    /** Device input channels (1-based, up to two) an external effects loop returns on; empty for none. */
+    loopIn: number[];
+    /** Device output channels (1-based, up to two) that feed an external effects loop; empty for none. */
+    loopOut: number[];
 }
 
 export type ServerTarget = { mode: 'local' } | { mode: 'remote'; baseUrl: string; token: string };
@@ -17,7 +21,7 @@ export interface Settings {
 }
 
 const Defaults: Settings = {
-    audio: { device: null, sampleRate: 48_000, bufferFrames: 64 },
+    audio: { device: null, sampleRate: 48_000, bufferFrames: 64, loopIn: [], loopOut: [] },
     target: { mode: 'local' }
 };
 

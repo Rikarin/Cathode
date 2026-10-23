@@ -78,6 +78,30 @@
         }
       }
     },
+    "/api/v1/rta": {
+      "put": {
+        "tags": [
+          "cathode-server"
+        ],
+        "summary": "Starts or stops RTA frames (the output\u0027s sixth-octave spectrum) on the WebSocket.",
+        "operationId": "SetRta",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RtaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
     "/api/v1/catalog/blocks": {
       "get": {
         "tags": [
@@ -675,6 +699,47 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AssetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/blocks/{id}/tonematch": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Listens to the rig while you play, then sets a Tone Match block\u0027s correction towards a reference .wav.",
+        "operationId": "LearnToneMatch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToneMatchRequest"
               }
             }
           },
@@ -1817,6 +1882,37 @@
         }
       }
     },
+    "/api/v1/assets/mix": {
+      "post": {
+        "tags": [
+          "Assets"
+        ],
+        "summary": "Blends impulse responses (levels, delays, polarity, peak alignment) into a new IR asset.",
+        "operationId": "MixImpulseResponses",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IrMixRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/assets/{reference}": {
       "delete": {
         "tags": [
@@ -1969,7 +2065,8 @@
           "maxInstances",
           "channels",
           "assetSlots",
-          "params"
+          "params",
+          "cpuCost"
         ],
         "type": "object",
         "properties": {
@@ -2001,8 +2098,14 @@
             "items": {
               "$ref": "#/components/schemas/ParameterInfo"
             }
+          },
+          "cpuCost": {
+            "type": "number",
+            "format": "double",
+            "default": 0
           }
-        }
+        },
+        "description": "A block type the editor can place. \u0060CpuCost\u0060 is its measured cost in percent of one core at 48 kHz\n(64-frame blocks, its most expensive type), for the editor\u0027s CPU estimate; 0 for built-in cells."
       },
       "BypassModeRequest": {
         "required": [
@@ -2384,6 +2487,86 @@
             "type": "boolean"
           }
         }
+      },
+      "IrMixRequest": {
+        "required": [
+          "name",
+          "sources",
+          "align",
+          "lengthMs",
+          "sampleRate",
+          "normalize"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "File name for the result (\u0022.wav\u0022 is added)."
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IrMixSource"
+            },
+            "description": "Two or more IRs."
+          },
+          "align": {
+            "type": "boolean",
+            "description": "Shift each IR so its peak lands at the same sample before the delays apply.",
+            "default": true
+          },
+          "lengthMs": {
+            "type": "number",
+            "description": "Length of the result.",
+            "format": "double",
+            "default": 170
+          },
+          "sampleRate": {
+            "type": "integer",
+            "description": "Rate of the result.",
+            "format": "int32",
+            "default": 48000
+          },
+          "normalize": {
+            "type": "boolean",
+            "description": "Scale the result to unit energy, like the Cab block does.",
+            "default": true
+          }
+        },
+        "description": "Mixes impulse responses into a new one (a Cab-Lab-style blend of mics or cabs), stored as a new asset."
+      },
+      "IrMixSource": {
+        "required": [
+          "asset",
+          "levelDb",
+          "delayMs",
+          "invert"
+        ],
+        "type": "object",
+        "properties": {
+          "asset": {
+            "type": "string",
+            "description": "An asset reference of a .wav IR."
+          },
+          "levelDb": {
+            "type": "number",
+            "description": "Gain applied before summing.",
+            "format": "double",
+            "default": 0
+          },
+          "delayMs": {
+            "type": "number",
+            "description": "Delay added before summing (after alignment).",
+            "format": "double",
+            "default": 0
+          },
+          "invert": {
+            "type": "boolean",
+            "description": "Flip the polarity.",
+            "default": false
+          }
+        },
+        "description": "One impulse response in an IR mix."
       },
       "LinkGlobalRequest": {
         "type": "object",
@@ -2805,6 +2988,17 @@
           }
         }
       },
+      "RtaRequest": {
+        "required": [
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
       "SaveRequest": {
         "required": [
           "asNew"
@@ -3026,6 +3220,40 @@
             "format": "double"
           }
         }
+      },
+      "ToneMatchRequest": {
+        "required": [
+          "reference",
+          "seconds",
+          "amount",
+          "smoothing"
+        ],
+        "type": "object",
+        "properties": {
+          "reference": {
+            "type": "string",
+            "description": "An asset reference (\u0060sha256:\u2026\u0060) of a .wav file of the tone to match."
+          },
+          "seconds": {
+            "type": "number",
+            "description": "How long to listen to the rig, 3 to 60 seconds.",
+            "format": "double",
+            "default": 10
+          },
+          "amount": {
+            "type": "number",
+            "description": "How much of the correction to apply, 0 to 100 %.",
+            "format": "double",
+            "default": 100
+          },
+          "smoothing": {
+            "type": "number",
+            "description": "Smoothing width in octaves, 0.1 to 1.",
+            "format": "double",
+            "default": 0.33333334
+          }
+        },
+        "description": "Learn a Tone Match: the Server listens to the rig\u0027s output for \u0060Seconds\u0060 while you play, compares it with the\n\u0060Reference\u0060 recording (a .wav asset) and stores the correction as the block\u0027s \u0060match\u0060 asset."
       },
       "ValueRequest": {
         "required": [

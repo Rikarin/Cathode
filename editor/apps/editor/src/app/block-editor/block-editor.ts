@@ -23,7 +23,9 @@ import { CatalogStore } from '../state/catalog.store';
 import { LiveStore } from '../state/live.store';
 import { AmpPanel } from './panels/amp-panel';
 import { CabPanel } from './panels/cab-panel';
+import { IrPlayerPanel } from './panels/ir-player-panel';
 import { PeqPanel } from './panels/peq-panel';
+import { ToneMatchPanel } from './panels/tone-match-panel';
 import { ParamControl } from './param-control';
 
 /**
@@ -36,8 +38,10 @@ import { ParamControl } from './param-control';
     imports: [
         AmpPanel,
         CabPanel,
+        IrPlayerPanel,
         ParamControl,
         PeqPanel,
+        ToneMatchPanel,
         XuiNonIdealStateImports,
         XuiSegmentedControlImports,
         XuiSwitchImports,
@@ -163,6 +167,12 @@ import { ParamControl } from './param-control';
                     }
                     @case ('peq') {
                         <cth-peq-panel [block]="block" />
+                    }
+                    @case ('irplayer') {
+                        <cth-ir-player-panel [block]="block" />
+                    }
+                    @case ('tonematch') {
+                        <cth-tone-match-panel [block]="block" />
                     }
                 }
 

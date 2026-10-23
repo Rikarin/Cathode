@@ -8,6 +8,11 @@ export const appRoutes: Route[] = [
         title: 'Library · Cathode'
     },
     {
+        path: 'irs',
+        loadComponent: () => import('./pages/irs-page').then(m => m.IrsPage),
+        title: 'Impulse responses · Cathode'
+    },
+    {
         path: 'setup',
         loadComponent: () => import('./pages/setup-page').then(m => m.SetupPage),
         title: 'Setup · Cathode'

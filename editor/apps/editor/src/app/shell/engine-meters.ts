@@ -3,8 +3,13 @@ import { CthMeter, onAnimationFrame } from '@cathode/audio-ui';
 import { XuiStatusImports } from '@xui/status';
 import { XuiTooltipImports } from '@xui/tooltip';
 import { EventStream } from '../core/events';
+import { CatalogStore } from '../state/catalog.store';
+import { LiveStore } from '../state/live.store';
 
-/** Input and output meters, CPU and the connection light, all fed straight from telemetry frames. */
+/**
+ * Input and output meters, CPU and the connection light, all fed straight from telemetry frames, plus the preset's
+ * estimated DSP load from the catalog's measured block costs.
+ */
 @Component({
     selector: 'cth-engine-meters',
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -19,6 +24,13 @@ import { EventStream } from '../core/events';
         >
             CPU {{ cpu() }} %
         </span>
+        <span
+            class="text-foreground-muted text-xs whitespace-nowrap tabular-nums"
+            data-testid="cpu-estimate"
+            [xuiTooltip]="'Estimated DSP load of this preset, from its blocks’ measured costs at 48 kHz'"
+        >
+            Est. {{ estimate() }} %
+        </span>
         <span class="flex items-center gap-1.5 text-xs" [xuiTooltip]="statusText()">
             <xui-status [presence]="presence()" size="sm" />
             <span class="sr-only">{{ statusText() }}</span>
@@ -27,6 +39,8 @@ import { EventStream } from '../core/events';
 })
 export class EngineMeters {
     private readonly events = inject(EventStream);
+    private readonly live = inject(LiveStore);
+    private readonly catalog = inject(CatalogStore);
 
     protected readonly input = [() => this.events.latest?.inputPeak ?? 0];
     protected readonly output = [
@@ -34,6 +48,13 @@ export class EngineMeters {
         () => this.events.latest?.outputPeakRight ?? 0
     ];
     protected readonly cpu = signal(0);
+    protected readonly estimate = computed(() => {
+        const total = (this.live.preset()?.blocks ?? []).reduce(
+            (sum, block) => sum + (this.catalog.info(block.type)?.cpuCost ?? 0),
+            0
+        );
+        return total < 10 ? total.toFixed(1) : Math.round(total).toString();
+    });
     protected readonly presence = computed(() =>
         this.events.status() === 'open' ? 'online' : this.events.status() === 'connecting' ? 'idle' : 'dnd'
     );

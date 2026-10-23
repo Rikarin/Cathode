@@ -54,6 +54,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    '/api/v1/rta': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Starts or stops RTA frames (the output's sixth-octave spectrum) on the WebSocket. */
+        put: operations['SetRta'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     '/api/v1/catalog/blocks': {
         parameters: {
             query?: never;
@@ -354,6 +371,23 @@ export interface paths {
         get?: never;
         put: operations['SetAsset'];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/api/v1/live/blocks/{id}/tonematch': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Listens to the rig while you play, then sets a Tone Match block's correction towards a reference .wav. */
+        post: operations['LearnToneMatch'];
         delete?: never;
         options?: never;
         head?: never;
@@ -785,6 +819,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    '/api/v1/assets/mix': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Blends impulse responses (levels, delays, polarity, peak alignment) into a new IR asset. */
+        post: operations['MixImpulseResponses'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     '/api/v1/assets/{reference}': {
         parameters: {
             query?: never;
@@ -849,6 +900,10 @@ export interface components {
             /** @description Preset id per slot; null or missing slots are empty. */
             slots: string[];
         };
+        /**
+         * @description A block type the editor can place. `CpuCost` is its measured cost in percent of one core at 48 kHz
+         *     (64-frame blocks, its most expensive type), for the editor's CPU estimate; 0 for built-in cells.
+         */
         BlockTypeInfo: {
             typeId: string;
             name: string;
@@ -859,6 +914,11 @@ export interface components {
             channels: number;
             assetSlots: string[];
             params: components['schemas']['ParameterInfo'][];
+            /**
+             * Format: double
+             * @default 0
+             */
+            cpuCost: number;
         };
         BypassModeRequest: {
             mode: string;
@@ -1016,6 +1076,57 @@ export interface components {
             assetsAdded: number;
             renamed: boolean;
         };
+        /** @description Mixes impulse responses into a new one (a Cab-Lab-style blend of mics or cabs), stored as a new asset. */
+        IrMixRequest: {
+            /** @description File name for the result (".wav" is added). */
+            name: string;
+            /** @description Two or more IRs. */
+            sources: components['schemas']['IrMixSource'][];
+            /**
+             * @description Shift each IR so its peak lands at the same sample before the delays apply.
+             * @default true
+             */
+            align: boolean;
+            /**
+             * Format: double
+             * @description Length of the result.
+             * @default 170
+             */
+            lengthMs: number;
+            /**
+             * Format: int32
+             * @description Rate of the result.
+             * @default 48000
+             */
+            sampleRate: number;
+            /**
+             * @description Scale the result to unit energy, like the Cab block does.
+             * @default true
+             */
+            normalize: boolean;
+        };
+        /** @description One impulse response in an IR mix. */
+        IrMixSource: {
+            /** @description An asset reference of a .wav IR. */
+            asset: string;
+            /**
+             * Format: double
+             * @description Gain applied before summing.
+             * @default 0
+             */
+            levelDb: number;
+            /**
+             * Format: double
+             * @description Delay added before summing (after alignment).
+             * @default 0
+             */
+            delayMs: number;
+            /**
+             * @description Flip the polarity.
+             * @default false
+             */
+            invert: boolean;
+        };
         LinkGlobalRequest: {
             name?: null | string;
         };
@@ -1161,6 +1272,9 @@ export interface components {
             /** Format: date-time */
             modified: string;
         };
+        RtaRequest: {
+            enabled: boolean;
+        };
         SaveRequest: {
             name?: null | string;
             /** @default false */
@@ -1231,6 +1345,32 @@ export interface components {
             /** Format: double */
             bpm: number;
         };
+        /**
+         * @description Learn a Tone Match: the Server listens to the rig's output for `Seconds` while you play, compares it with the
+         *     `Reference` recording (a .wav asset) and stores the correction as the block's `match` asset.
+         */
+        ToneMatchRequest: {
+            /** @description An asset reference (`sha256:…`) of a .wav file of the tone to match. */
+            reference: string;
+            /**
+             * Format: double
+             * @description How long to listen to the rig, 3 to 60 seconds.
+             * @default 10
+             */
+            seconds: number;
+            /**
+             * Format: double
+             * @description How much of the correction to apply, 0 to 100 %.
+             * @default 100
+             */
+            amount: number;
+            /**
+             * Format: double
+             * @description Smoothing width in octaves, 0.1 to 1.
+             * @default 0.33333334
+             */
+            smoothing: number;
+        };
         ValueRequest: {
             /** Format: float */
             value: number;
@@ -1296,6 +1436,28 @@ export interface operations {
         requestBody: {
             content: {
                 'application/json': components['schemas']['ScopeRequest'];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SetRta: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['RtaRequest'];
             };
         };
         responses: {
@@ -1758,6 +1920,32 @@ export interface operations {
         requestBody: {
             content: {
                 'application/json': components['schemas']['AssetRequest'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['LiveState'];
+                };
+            };
+        };
+    };
+    LearnToneMatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['ToneMatchRequest'];
             };
         };
         responses: {
@@ -2677,6 +2865,30 @@ export interface operations {
         requestBody: {
             content: {
                 'application/octet-stream': components['schemas']['Stream'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['AssetInfo'];
+                };
+            };
+        };
+    };
+    MixImpulseResponses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['IrMixRequest'];
             };
         };
         responses: {

@@ -102,6 +102,9 @@ import { LiveStore } from './state/live.store';
                             routerLinkActive="bg-active-overlay"
                             >Controllers</a
                         >
+                        <a xuiButton variant="ghost" size="sm" routerLink="/irs" routerLinkActive="bg-active-overlay"
+                            >IRs</a
+                        >
                         <a xuiButton variant="ghost" size="sm" routerLink="/global" routerLinkActive="bg-active-overlay"
                             >Global</a
                         >
@@ -191,8 +194,8 @@ import { LiveStore } from './state/live.store';
                             xuiButton
                             variant="ghost"
                             size="sm"
-                            aria-label="Scope"
-                            [xuiTooltip]="'Scope'"
+                            aria-label="Analyser"
+                            [xuiTooltip]="'Scope and RTA'"
                             (click)="scopeOpen.set(true)"
                         >
                             <ng-icon xui name="matShowChartRound" size="sm" />

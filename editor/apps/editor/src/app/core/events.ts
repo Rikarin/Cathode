@@ -3,6 +3,7 @@ import {
     eventsUrl,
     type MidiActivity,
     type RigEvent,
+    type RtaFrame,
     type ScopeFrame,
     type ServerMessage,
     type Telemetry
@@ -37,6 +38,9 @@ export class EventStream {
 
     /** The most recent scope frame, while the scope is on. Not a signal either. */
     scope: ScopeFrame | null = null;
+
+    /** The most recent RTA frame, while the RTA is on. Not a signal either. */
+    rta: RtaFrame | null = null;
 
     constructor() {
         inject(DestroyRef).onDestroy(() => this.stop());
@@ -95,6 +99,8 @@ export class EventStream {
             this.midi$.next(message as MidiActivity);
         } else if (message.type === 'scope') {
             this.scope = message as ScopeFrame;
+        } else if (message.type === 'rta') {
+            this.rta = message as RtaFrame;
         } else if (message.type === 'telemetry') {
             this.latest = message as Telemetry;
             this.latestAt = performance.now();

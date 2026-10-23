@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { type AudioSettings, type ServerTarget, loadSettings, saveSettings } from './settings';
-import { type Connection, Sidecars, listDevices, waitForServer } from './sidecars';
+import { type Connection, type IrCaptureOptions, Sidecars, listDevices, waitForServer } from './sidecars';
 
 // Cathode desktop: the editor in a sandboxed window, and the engine (cathode-host + cathode-server) as supervised
 // sidecars on loopback, or a remote Server (docs/02-architecture.md §7).
@@ -134,6 +134,11 @@ function handleIpc(): void {
     ipcMain.handle('cathode:audio:latencyTest', () =>
         sidecars ? sidecars.latencyTest() : { ok: false, output: 'Not running a local engine.', roundTripMs: null }
     );
+    ipcMain.handle('cathode:audio:irCapture', (_event, options: IrCaptureOptions) =>
+        sidecars
+            ? sidecars.irCapture(validCapture(options))
+            : { ok: false, output: 'Not running a local engine.', wav: null }
+    );
 }
 
 /** The renderer is trusted less than main: everything it sends is checked. */
@@ -141,7 +146,19 @@ function validAudio(audio: AudioSettings): AudioSettings {
     const device = typeof audio?.device === 'string' && audio.device.length < 512 ? audio.device : null;
     const sampleRate = [44_100, 48_000, 88_200, 96_000].includes(audio?.sampleRate) ? audio.sampleRate : 48_000;
     const bufferFrames = [32, 64, 128, 256, 512].includes(audio?.bufferFrames) ? audio.bufferFrames : 64;
-    return { device, sampleRate, bufferFrames };
+    const channels = (list: unknown) =>
+        Array.isArray(list) ? list.filter(c => Number.isInteger(c) && c >= 1 && c <= 64).slice(0, 2) : [];
+    return { device, sampleRate, bufferFrames, loopIn: channels(audio?.loopIn), loopOut: channels(audio?.loopOut) };
+}
+
+function validCapture(options: IrCaptureOptions): IrCaptureOptions {
+    const clamp = (value: unknown, min: number, max: number, fallback: number) =>
+        typeof value === 'number' && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
+    return {
+        seconds: clamp(options?.seconds, 1, 30, 5),
+        levelDb: clamp(options?.levelDb, -60, 0, -18),
+        lengthMs: clamp(options?.lengthMs, 20, 2_000, 500)
+    };
 }
 
 function validTarget(target: ServerTarget): ServerTarget {
