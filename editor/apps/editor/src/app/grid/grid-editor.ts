@@ -120,7 +120,7 @@ const MaxScale = 2;
           @if (cell.block; as block) {
             @if (block.type === 'shunt') {
               <div
-                class="group flex size-full items-center"
+                class="group border-border-muted hover:border-border flex size-full items-center rounded-lg border border-dashed"
                 draggable="true"
                 [attr.title]="'Shunt (' + block.id + ')'"
                 (dragstart)="dragStart($event, block)"
