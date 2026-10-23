@@ -47,6 +47,8 @@ public sealed class BlockRegistry {
         registry.Register(VibeBlock.Info, static () => new VibeBlock());
         registry.Register(VocoderBlock.Info, static () => new VocoderBlock());
         registry.Register(ResonatorBlock.Info, static () => new ResonatorBlock());
+        registry.Register(PitchBlock.Info, static () => new PitchBlock());
+        registry.Register(SynthBlock.Info, static () => new SynthBlock());
         return registry;
     }
 
