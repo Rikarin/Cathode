@@ -11,4 +11,5 @@ public readonly record struct ProcessSpec(double SampleRate, int MaxBlockSize) {
 /// <param name="SampleRate">Current sample rate in Hz.</param>
 /// <param name="Tempo">Current tempo in BPM.</param>
 /// <param name="SampleTime">Absolute sample position of the first frame in this block.</param>
-public readonly record struct BlockContext(double SampleRate, double Tempo, long SampleTime);
+/// <param name="Notes">The MIDI notes held down on the rig's MIDI input (any channel).</param>
+public readonly record struct BlockContext(double SampleRate, double Tempo, long SampleTime, HeldNotes Notes = default);

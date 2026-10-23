@@ -63,6 +63,9 @@ public sealed class PsolaShifter(int voiceCount) : IDisposable {
         }
     }
 
+    /// <summary>Silences voice <paramref name="index" /> and forgets its marks, for a voice that resumes after being skipped.</summary>
+    public void ResetVoice(int index) => voices[index].Reset();
+
     /// <summary>Writes the next input sample. Call once per sample, before reading the voices.</summary>
     public void Write(float sample) {
         now++;

@@ -106,6 +106,12 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     public long SampleTime => Volatile.Read(ref sampleTime);
 
     /// <summary>
+    ///     Audio thread: the MIDI notes held down, from posted <see cref="EngineCommand.Note" /> commands. Every block
+    ///     sees them in <see cref="BlockContext.Notes" />.
+    /// </summary>
+    public HeldNotes HeldNotes { get; private set; }
+
+    /// <summary>
     ///     Input samples (left channel) for analysis on another thread, e.g. the tuner. Written by the audio thread only
     ///     while <see cref="InputTapEnabled" /> is set.
     /// </summary>
@@ -256,7 +262,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                 var slice = io.Slice(offset, length);
                 HardwareLoop.Offset = offset;
                 modulation.Advance(slice.InputLeft, sampleTime);
-                var context = new BlockContext(Spec.SampleRate, modulation.Tempo, sampleTime);
+                var context = new BlockContext(Spec.SampleRate, modulation.Tempo, sampleTime, HeldNotes);
                 graph.ApplyModifiers(modulation, length);
                 graph.Process(slice, context);
                 if (swapGain < 1f) {
@@ -381,6 +387,12 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                 break;
             case EngineCommandKind.Looper:
                 looper?.Apply((LooperAction)command.Slot);
+                break;
+            case EngineCommandKind.Note:
+                HeldNotes = HeldNotes.With(command.Slot, command.Value != 0f);
+                break;
+            case EngineCommandKind.AllNotesOff:
+                HeldNotes = default;
                 break;
         }
     }

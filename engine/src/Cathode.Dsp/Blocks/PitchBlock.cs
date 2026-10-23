@@ -13,7 +13,20 @@ public enum PitchType {
     OctaveDivider,
     Crystals,
     Arpeggiator,
-    VirtualCapo
+    VirtualCapo,
+    CustomShifter
+}
+
+/// <summary>Where the harmony types take their key from, in the order of <see cref="PitchBlock" />'s Key Source parameter.</summary>
+public enum PitchKeySource {
+    /// <summary>The Key and Scale parameters.</summary>
+    Fixed,
+
+    /// <summary>The chord held on the MIDI input: its lowest note is the root, its notes the chord tones.</summary>
+    Midi,
+
+    /// <summary>Estimated from the notes played (<see cref="KeyEstimator" />).</summary>
+    Auto
 }
 
 /// <summary>
@@ -22,14 +35,26 @@ public enum PitchType {
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Detune: two voices at +/- the detune amount through <see cref="SpliceShifter" />s. Chromatic and Diatonic:
-///         two PSOLA voices (<see cref="PsolaShifter" />), at fixed semitone shifts or at diatonic intervals in a key and
-///         scale chosen from the tracked note; each voice has level, pan and delay. Whammy: one splice-shifted voice
-///         between a start and an end shift, positioned by the Pedal parameter (0-100 %, the one to drive with a
-///         modifier). Octave Divider: the OC-2 style analog divider (<see cref="OctaveDivider" />). Crystals: reversed,
-///         pitch-shifted grains (<see cref="GrainShifter" />) on the output of a feedback delay, so every repeat climbs
-///         again. Arpeggiator: a tempo-synced sequence of up to eight semitone steps. Virtual Capo: a single shifted
-///         voice of up to +/- 12 semitones.
+///         Detune: two voices at +/- the detune amount through <see cref="SpliceShifter" />s. Chromatic, Diatonic and
+///         Custom Shifter: up to four PSOLA voices (<see cref="PsolaShifter" />), at fixed semitone shifts, at diatonic
+///         intervals in a key and scale chosen from the tracked note, or at the shift a per-voice table gives each of
+///         the twelve notes of the key (the Axe-Fx Custom Shifter: any mapping, diatonic or not); each voice has level,
+///         pan and delay, and a voice at silence costs nothing. Whammy: one splice-shifted voice between a start and an
+///         end shift, positioned by the Pedal parameter (0-100 %, the one to drive with a modifier). Octave Divider: the
+///         OC-2 style analog divider (<see cref="OctaveDivider" />). Crystals: reversed, pitch-shifted grains
+///         (<see cref="GrainShifter" />) on the output of a feedback delay, so every repeat climbs again. Arpeggiator: a
+///         tempo-synced sequence of up to eight semitone steps. Virtual Capo: a single shifted voice of up to +/- 12
+///         semitones.
+///     </para>
+///     <para>
+///         Key Source sets where Diatonic and Custom Shifter take their key. Fixed: Key and Scale. MIDI: the chord held on
+///         the rig's MIDI input (<see cref="BlockContext.Notes" />, any channel); its lowest note is the root, the scale is
+///         Scale when that holds every chord tone and otherwise the first scale that does
+///         (<see cref="Scales.ChordScale" />: Am gives Minor, G7 Mixolydian), and diatonic voices snap to the nearest
+///         chord tone (<see cref="Scales.HarmonySemitones(int, int, int, int, int)" />). Releasing the keys keeps the
+///         last chord. Auto: the key estimated from the notes played (<see cref="KeyEstimator" />, Krumhansl-Schmuckler),
+///         with Scale when it is major or minor like the estimate, else Major or Minor. Until they have a key, both use
+///         Key and Scale.
 ///     </para>
 ///     <para>
 ///         Whammy and Virtual Capo are always 100 % wet (the shifter's few milliseconds of delay would comb against the
@@ -40,13 +65,13 @@ public enum PitchType {
 ///         <see cref="IDspBlock.LatencySamples" /> is 0 for every type, so the graph compiler's compensation never
 ///         changes with Type: the dry path is undelayed and each type's wet delay is part of its sound. Wet path delays
 ///         at 48 kHz: Octave Divider none; Detune, Whammy, Arpeggiator and Virtual Capo 5-15 ms on average (a few to 50 ms,
-///         see <see cref="SpliceShifter" />); Chromatic and Diatonic a fixed ~29 ms plus the voice delay; Crystals up to 100 ms of
-///         grain plus the delay time.
+///         see <see cref="SpliceShifter" />); Chromatic, Diatonic and Custom Shifter a fixed ~29 ms plus the voice delay;
+///         Crystals up to 100 ms of grain plus the delay time.
 ///     </para>
 ///     <para>
 ///         Not modelled: polyphonic tracking (the Axe's polyphonic capo; here chords fall back to unsynchronised
-///         splices), formant correction and shift, custom scales, more than two harmony voices, per-step arpeggiator
-///         levels and the Kill Dry flag (Mix 100 % does the same).
+///         splices), formant correction and shift, per-step arpeggiator levels and the Kill Dry flag (Mix 100 % does
+///         the same).
 ///     </para>
 /// </remarks>
 public sealed class PitchBlock() : DspBlock(Info) {
@@ -78,7 +103,22 @@ public sealed class PitchBlock() : DspBlock(Info) {
     public const int ArpSteps = 25;
     public const int ArpStep1 = 26;
     public const int Capo = ArpStep1 + MaxArpSteps;
+    public const int Voice3Shift = Capo + 1;
+    public const int Voice4Shift = Voice3Shift + 1;
+    public const int Voice3Harmony = Voice4Shift + 1;
+    public const int Voice4Harmony = Voice3Harmony + 1;
+    public const int Voice3Level = Voice4Harmony + 1;
+    public const int Voice4Level = Voice3Level + 1;
+    public const int Voice3Pan = Voice4Level + 1;
+    public const int Voice4Pan = Voice3Pan + 1;
+    public const int Voice3Delay = Voice4Pan + 1;
+    public const int Voice4Delay = Voice3Delay + 1;
+    public const int KeySource = Voice4Delay + 1;
 
+    /// <summary>The Custom Shifter tables: voice v's (0-3) shift for note n of the key is at CustomTable + 12 v + n.</summary>
+    public const int CustomTable = KeySource + 1;
+
+    public const int VoiceCount = 4;
     public const int MaxArpSteps = 8;
     public const float MaxVoiceDelayMs = 1_000f;
     public const float MaxCrystalsTimeMs = 2_000f;
@@ -89,21 +129,43 @@ public sealed class PitchBlock() : DspBlock(Info) {
     const double CrystalsGrainSeconds = 0.1;
     const double VoicedHoldSeconds = 0.1;
     const double NoteHysteresis = 0.15;
+    const int MajorScale = 0;
+    const int MinorScale = 1;
 
     /// <summary>Arpeggiator step lengths in beats (quarter notes).</summary>
     static readonly double[] ArpDivisions = [1, 0.5, 1 / 3.0, 0.25, 1 / 6.0, 0.125];
 
     static readonly float[] DefaultArpSteps = [0, 7, 12, 7, 0, 5, 12, 5];
 
+    /// <summary>The Custom Shifter's default tables, in steps of the major scale: a third, a fifth, an octave up and down.</summary>
+    static readonly int[] DefaultCustomSteps = [2, 4, 7, -7];
+
+    static readonly int[] ShiftParams = [Voice1Shift, Voice2Shift, Voice3Shift, Voice4Shift];
+    static readonly int[] HarmonyParams = [Voice1Harmony, Voice2Harmony, Voice3Harmony, Voice4Harmony];
+    static readonly int[] LevelParams = [Voice1Level, Voice2Level, Voice3Level, Voice4Level];
+    static readonly int[] PanParams = [Voice1Pan, Voice2Pan, Voice3Pan, Voice4Pan];
+    static readonly int[] DelayParams = [Voice1Delay, Voice2Delay, Voice3Delay, Voice4Delay];
+
     readonly PitchTracker tracker = new();
+    readonly KeyEstimator keys = new();
     readonly SpliceShifter shifterOne = new();
     readonly SpliceShifter shifterTwo = new();
-    readonly PsolaShifter psola = new(2);
+    readonly PsolaShifter psola = new(VoiceCount);
     readonly GrainShifter grains = new();
-    readonly FractionalDelayLine delayOne = new();
-    readonly FractionalDelayLine delayTwo = new();
+    readonly FractionalDelayLine[] delays = [new(), new(), new(), new()];
     readonly FractionalDelayLine crystalsLine = new();
     readonly double[] arpSpeeds = new double[MaxArpSteps];
+    readonly double[] shifts = new double[VoiceCount];
+    readonly double[] harmonies = new double[VoiceCount];
+    readonly float[] delayTargets = new float[VoiceCount];
+    readonly float[] gainsLeft = new float[VoiceCount];
+    readonly float[] gainsRight = new float[VoiceCount];
+    readonly float[] targetsLeft = new float[VoiceCount];
+    readonly float[] targetsRight = new float[VoiceCount];
+    readonly float[] stepsLeft = new float[VoiceCount];
+    readonly float[] stepsRight = new float[VoiceCount];
+    readonly bool[] active = new bool[VoiceCount];
+    readonly bool[] skipped = new bool[VoiceCount];
     OctaveDivider divider;
     SvfCoefficients crystalsLowPass;
     SvfCoefficients crystalsHighPass;
@@ -113,18 +175,15 @@ public sealed class PitchBlock() : DspBlock(Info) {
     int voicedHold;
     int sinceVoiced;
     double lastPeriod;
+    double hopSeconds;
     int harmonyNote;
-    double harmonyOne;
-    double harmonyTwo;
+    int chordRoot;
+    int chordTones;
     double arpPhase;
     int arpStep;
     float whammySemitones;
     float crystalsDelay;
     float mix;
-    float gainOneLeft;
-    float gainOneRight;
-    float gainTwoLeft;
-    float gainTwoRight;
     float outputGain = 1f;
 
     public static BlockDescriptor Info { get; } = new(
@@ -143,7 +202,8 @@ public sealed class PitchBlock() : DspBlock(Info) {
                     "Octave Divider",
                     "Crystals",
                     "Arpeggiator",
-                    "Virtual Capo"
+                    "Virtual Capo",
+                    "Custom Shifter"
                 ]
             ),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 50f, "%"),
@@ -158,30 +218,8 @@ public sealed class PitchBlock() : DspBlock(Info) {
             ParamDescriptor.Float("voice2Level", "Voice 2 Level", Decibels.SilenceDb, 6f, 0f, "dB"),
             ParamDescriptor.Float("voice1Pan", "Voice 1 Pan", -100f, 100f, -50f, "%"),
             ParamDescriptor.Float("voice2Pan", "Voice 2 Pan", -100f, 100f, 50f, "%"),
-            new(
-                "voice1Delay",
-                "Voice 1 Delay",
-                ParamKind.Float,
-                0f,
-                MaxVoiceDelayMs,
-                0f,
-                "ms",
-                ParamTaper.Log,
-                ParamSmoothing.Linear,
-                60f
-            ),
-            new(
-                "voice2Delay",
-                "Voice 2 Delay",
-                ParamKind.Float,
-                0f,
-                MaxVoiceDelayMs,
-                0f,
-                "ms",
-                ParamTaper.Log,
-                ParamSmoothing.Linear,
-                60f
-            ),
+            VoiceDelay(1),
+            VoiceDelay(2),
             ParamDescriptor.Float("detune", "Detune", 0f, 50f, 10f, "cents"),
             ParamDescriptor.Float("whammyStart", "Whammy Start", -24f, 24f, 0f, "st"),
             ParamDescriptor.Float("whammyEnd", "Whammy End", -24f, 24f, 12f, "st"),
@@ -212,10 +250,29 @@ public sealed class PitchBlock() : DspBlock(Info) {
             ArpStep(6),
             ArpStep(7),
             ArpStep(8),
-            ParamDescriptor.Choice("capo", "Capo", CapoNames(), 12)
+            ParamDescriptor.Choice("capo", "Capo", CapoNames(), 12),
+            // Added later, so appended: presets store parameters by index. Voices 3 and 4 start silent.
+            ParamDescriptor.Float("voice3Shift", "Voice 3 Shift", -24f, 24f, 7f, "st"),
+            ParamDescriptor.Float("voice4Shift", "Voice 4 Shift", -24f, 24f, -5f, "st"),
+            ParamDescriptor.Choice("voice3Harmony", "Voice 3 Harmony", HarmonyNames(), MaxHarmonySteps + 7),
+            ParamDescriptor.Choice("voice4Harmony", "Voice 4 Harmony", HarmonyNames(), MaxHarmonySteps - 7),
+            ParamDescriptor.Float("voice3Level", "Voice 3 Level", Decibels.SilenceDb, 6f, Decibels.SilenceDb, "dB"),
+            ParamDescriptor.Float("voice4Level", "Voice 4 Level", Decibels.SilenceDb, 6f, Decibels.SilenceDb, "dB"),
+            ParamDescriptor.Float("voice3Pan", "Voice 3 Pan", -100f, 100f, -25f, "%"),
+            ParamDescriptor.Float("voice4Pan", "Voice 4 Pan", -100f, 100f, 25f, "%"),
+            VoiceDelay(3),
+            VoiceDelay(4),
+            ParamDescriptor.Choice("keySource", "Key Source", ["Fixed", "MIDI", "Auto"]),
+            ..CustomTableParams()
         ],
         maxInstances: 2
     );
+
+    /// <summary>The key (pitch class, 0 = C) the harmony voices currently use: Key, or the one from the Key Source.</summary>
+    public int HarmonyKey { get; private set; }
+
+    /// <summary>The scale (index into <see cref="Scales.Names" />) the harmony voices currently use.</summary>
+    public int HarmonyScale { get; private set; }
 
     static ParamDescriptor ArpStep(int step) =>
         new(
@@ -228,6 +285,41 @@ public sealed class PitchBlock() : DspBlock(Info) {
             "st",
             Smoothing: ParamSmoothing.Step
         );
+
+    static ParamDescriptor VoiceDelay(int voice) =>
+        new(
+            $"voice{voice}Delay",
+            $"Voice {voice} Delay",
+            ParamKind.Float,
+            0f,
+            MaxVoiceDelayMs,
+            0f,
+            "ms",
+            ParamTaper.Log,
+            ParamSmoothing.Linear,
+            60f
+        );
+
+    /// <summary>
+    ///     "custom1C" .. "custom4B": voice V's shift for each note of the key, named as in C (C = the key's root, C# a
+    ///     semitone above it, ...), so one table serves every key.
+    /// </summary>
+    static IEnumerable<ParamDescriptor> CustomTableParams() =>
+        Enumerable.Range(0, VoiceCount * 12)
+            .Select(static i => {
+                    var (voice, note) = (i / 12, i % 12);
+                    return new ParamDescriptor(
+                        $"custom{voice + 1}{Scales.Keys[note].Replace('#', 's')}",
+                        $"V{voice + 1} {Scales.Keys[note]}",
+                        ParamKind.Float,
+                        -24f,
+                        24f,
+                        Scales.HarmonySemitones(note, 0, MajorScale, DefaultCustomSteps[voice]),
+                        "st",
+                        Smoothing: ParamSmoothing.Step
+                    );
+                }
+            );
 
     /// <summary>"-2 Oct" .. "Unison" .. "+2 Oct": index - <see cref="MaxHarmonySteps" /> is the step count.</summary>
     static string[] HarmonyNames() {
@@ -268,6 +360,8 @@ public sealed class PitchBlock() : DspBlock(Info) {
         return (gain * MathF.Sqrt(2) * MathF.Cos(angle), gain * MathF.Sqrt(2) * MathF.Sin(angle));
     }
 
+    static bool IsHarmony(PitchType type) => type is PitchType.Chromatic or PitchType.Diatonic or PitchType.CustomShifter;
+
     protected override void OnPrepare(in ProcessSpec spec) {
         var rate = spec.SampleRate;
         tracker.Prepare(rate);
@@ -276,28 +370,35 @@ public sealed class PitchBlock() : DspBlock(Info) {
         psola.Prepare(rate);
         grains.Prepare(rate, CrystalsGrainSeconds);
         var voiceCapacity = (int)(MaxVoiceDelayMs * 0.001 * rate) + 8;
-        delayOne.Allocate(voiceCapacity);
-        delayTwo.Allocate(voiceCapacity);
+        foreach (var delay in delays) {
+            delay.Allocate(voiceCapacity);
+        }
+
         crystalsLine.Allocate((int)(MaxCrystalsTimeMs * 0.001 * rate) + 8);
         divider.Prepare(rate);
         crystalsLowPass = SvfCoefficients.Design(BiquadType.LowPass, rate, 6_000, 0.7071);
         crystalsHighPass = SvfCoefficients.Design(BiquadType.HighPass, rate, 80, 0.7071);
         voicedHold = (int)(VoicedHoldSeconds * rate);
+        hopSeconds = tracker.HopSamples / rate;
     }
 
     protected override void OnReset() {
         tracker.Reset();
+        keys.Reset();
         ResetEngines();
         activeType = (PitchType)(int)Params.Current(Type);
         sinceVoiced = int.MaxValue;
         lastPeriod = 0;
         harmonyNote = int.MinValue;
-        harmonyOne = 0;
-        harmonyTwo = 0;
+        chordRoot = -1;
+        chordTones = 0;
+        Array.Clear(harmonies);
         whammySemitones = WhammySemitones();
         crystalsDelay = CrystalsDelaySamples();
         mix = MixFor(activeType, Params.Current(Mix));
-        (gainOneLeft, gainOneRight, gainTwoLeft, gainTwoRight) = VoiceGains(activeType);
+        VoiceGains(activeType);
+        targetsLeft.CopyTo(gainsLeft, 0);
+        targetsRight.CopyTo(gainsRight, 0);
         outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
@@ -308,8 +409,10 @@ public sealed class PitchBlock() : DspBlock(Info) {
             shifterTwo.Dispose();
             psola.Dispose();
             grains.Dispose();
-            delayOne.Dispose();
-            delayTwo.Dispose();
+            foreach (var delay in delays) {
+                delay.Dispose();
+            }
+
             crystalsLine.Dispose();
         }
 
@@ -328,8 +431,12 @@ public sealed class PitchBlock() : DspBlock(Info) {
         foreach (var index in (ReadOnlySpan<int>)[
                      Voice1Level,
                      Voice2Level,
+                     Voice3Level,
+                     Voice4Level,
                      Voice1Pan,
                      Voice2Pan,
+                     Voice3Pan,
+                     Voice4Pan,
                      WhammyStart,
                      WhammyEnd,
                      Pedal,
@@ -340,15 +447,30 @@ public sealed class PitchBlock() : DspBlock(Info) {
 
         var rate = Spec.SampleRate;
         var mix = MixFor(type, Params.Advance(Mix, frames));
-        var (oneLeft, oneRight, twoLeft, twoRight) = VoiceGains(type);
-        var delayOneTarget = Params.Advance(Voice1Delay, frames) * 0.001f * (float)rate;
-        var delayTwoTarget = Params.Advance(Voice2Delay, frames) * 0.001f * (float)rate;
+        VoiceGains(type);
+        var harmony = IsHarmony(type);
+        for (var v = 0; v < VoiceCount; v++) {
+            delayTargets[v] = Params.Advance(DelayParams[v], frames) * 0.001f * (float)rate;
+            shifts[v] = Ratio(Params.Advance(ShiftParams[v], frames));
+            stepsLeft[v] = (targetsLeft[v] - gainsLeft[v]) / frames;
+            stepsRight[v] = (targetsRight[v] - gainsRight[v]) / frames;
+
+            // A harmony voice that stays silent through the block is skipped; it restarts from a clean state.
+            var audible = gainsLeft[v] != 0 || gainsRight[v] != 0 || targetsLeft[v] != 0 || targetsRight[v] != 0;
+            active[v] = harmony && audible;
+            if (active[v] && skipped[v]) {
+                psola.ResetVoice(v);
+                delays[v].Reset();
+            }
+
+            skipped[v] |= harmony && !audible;
+            skipped[v] &= !active[v];
+        }
 
         var detune = Params.Advance(Detune, frames) / 1_200.0;
         var detuneUp = Math.Pow(2, detune);
         var detuneDown = 1 / detuneUp;
-        var shiftOne = Ratio(Params.Advance(Voice1Shift, frames));
-        var shiftTwo = Ratio(Params.Advance(Voice2Shift, frames));
+        FollowNotes(context.Notes);
         UpdateHarmony();
         var whammy = WhammySemitones();
         var whammyStep = (whammy - whammySemitones) / frames;
@@ -367,32 +489,38 @@ public sealed class PitchBlock() : DspBlock(Info) {
             arpSpeeds[s] = Ratio(Params.Current(ArpStep1 + s));
         }
 
+        var ratios = type == PitchType.Chromatic ? shifts : harmonies;
         var mixStep = (mix - this.mix) / frames;
-        var oneLeftStep = (oneLeft - gainOneLeft) / frames;
-        var oneRightStep = (oneRight - gainOneRight) / frames;
-        var twoLeftStep = (twoLeft - gainTwoLeft) / frames;
-        var twoRightStep = (twoRight - gainTwoRight) / frames;
         for (var i = 0; i < frames; i++) {
             var dryLeft = io.Left[i];
             var dryRight = io.Right[i];
             var mono = 0.5f * (dryLeft + dryRight);
             Track(mono);
             var period = sinceVoiced < voicedHold ? lastPeriod : 0;
+            for (var v = 0; v < VoiceCount; v++) {
+                gainsLeft[v] += stepsLeft[v];
+                gainsRight[v] += stepsRight[v];
+            }
 
-            float one, two = 0f;
+            float one, two = 0f, wetLeft = 0f, wetRight = 0f;
             switch (type) {
                 case PitchType.Detune:
-                    one = Delayed(delayOne, shifterOne.Process(mono, detuneUp, period), delayOneTarget);
-                    two = Delayed(delayTwo, shifterTwo.Process(mono, detuneDown, period), delayTwoTarget);
+                    one = Delayed(delays[0], shifterOne.Process(mono, detuneUp, period), delayTargets[0]);
+                    two = Delayed(delays[1], shifterTwo.Process(mono, detuneDown, period), delayTargets[1]);
                     break;
                 case PitchType.Chromatic:
                 case PitchType.Diatonic:
+                case PitchType.CustomShifter:
                     psola.Write(mono);
-                    var diatonic = type == PitchType.Diatonic;
-                    one = psola.Read(0, diatonic ? harmonyOne : shiftOne, period);
-                    two = psola.Read(1, diatonic ? harmonyTwo : shiftTwo, period);
-                    one = Delayed(delayOne, one, delayOneTarget);
-                    two = Delayed(delayTwo, two, delayTwoTarget);
+                    one = 0f;
+                    for (var v = 0; v < VoiceCount; v++) {
+                        if (active[v]) {
+                            var voice = Delayed(delays[v], psola.Read(v, ratios[v], period), delayTargets[v]);
+                            wetLeft += voice * gainsLeft[v];
+                            wetRight += voice * gainsRight[v];
+                        }
+                    }
+
                     break;
                 case PitchType.Whammy:
                     whammySemitones += whammyStep;
@@ -424,18 +552,20 @@ public sealed class PitchBlock() : DspBlock(Info) {
                     break;
             }
 
+            if (!harmony) {
+                wetLeft = one * gainsLeft[0] + two * gainsLeft[1];
+                wetRight = one * gainsRight[0] + two * gainsRight[1];
+            }
+
             this.mix += mixStep;
-            gainOneLeft += oneLeftStep;
-            gainOneRight += oneRightStep;
-            gainTwoLeft += twoLeftStep;
-            gainTwoRight += twoRightStep;
-            io.Left[i] = dryLeft + (one * gainOneLeft + two * gainTwoLeft - dryLeft) * this.mix;
-            io.Right[i] = dryRight + (one * gainOneRight + two * gainTwoRight - dryRight) * this.mix;
+            io.Left[i] = dryLeft + (wetLeft - dryLeft) * this.mix;
+            io.Right[i] = dryRight + (wetRight - dryRight) * this.mix;
         }
 
         // Land exactly on the targets, so rounding in the ramps never accumulates across blocks.
         this.mix = mix;
-        (gainOneLeft, gainOneRight, gainTwoLeft, gainTwoRight) = (oneLeft, oneRight, twoLeft, twoRight);
+        targetsLeft.CopyTo(gainsLeft, 0);
+        targetsRight.CopyTo(gainsRight, 0);
         whammySemitones = whammy;
         crystalsDelay = crystalsTarget;
         divider.FlushDenormals();
@@ -468,27 +598,59 @@ public sealed class PitchBlock() : DspBlock(Info) {
 
         sinceVoiced = 0;
         lastPeriod = tracker.Period;
+
+        // The note changes only past a small hysteresis, so a bend or vibrato does not flip the harmony.
+        var midi = Scales.MidiNote(tracker.Frequency);
+        if (Math.Abs(midi - harmonyNote) > 0.5 + NoteHysteresis) {
+            harmonyNote = (int)Math.Round(midi);
+        }
+
+        keys.Add(Scales.PitchClass(harmonyNote), hopSeconds);
         UpdateHarmony();
     }
 
-    /// <summary>Picks the diatonic intervals for the tracked note; the note changes only past a small hysteresis.</summary>
+    /// <summary>Latches the chord held on the MIDI input; with every key released the last chord stays.</summary>
+    void FollowNotes(in HeldNotes notes) {
+        if (notes.IsEmpty) {
+            return;
+        }
+
+        chordRoot = Scales.PitchClass(notes.Lowest);
+        chordTones = notes.PitchClasses;
+    }
+
+    /// <summary>Picks the key and scale from the Key Source, then each harmony voice's ratio for the tracked note.</summary>
     void UpdateHarmony() {
-        if (tracker.Frequency > 0) {
-            var midi = Scales.MidiNote(tracker.Frequency);
-            if (Math.Abs(midi - harmonyNote) > 0.5 + NoteHysteresis) {
-                harmonyNote = (int)Math.Round(midi);
-            }
+        var key = (int)Params.Current(Key);
+        var scale = (int)Params.Current(Scale);
+        var chord = 0;
+        switch ((PitchKeySource)(int)Params.Current(KeySource)) {
+            case PitchKeySource.Midi when chordRoot >= 0:
+                (key, chord) = (chordRoot, chordTones);
+                scale = Scales.ChordScale(key, chord, scale);
+                break;
+            case PitchKeySource.Auto when keys.Key >= 0:
+                key = keys.Key;
+                if (Scales.IsMinor(scale) != keys.Minor) {
+                    scale = keys.Minor ? MinorScale : MajorScale;
+                }
+
+                break;
+        }
+
+        (HarmonyKey, HarmonyScale) = (key, scale);
+        if (activeType is not (PitchType.Diatonic or PitchType.CustomShifter)) {
+            return;
         }
 
         var note = harmonyNote == int.MinValue ? 60 : harmonyNote;
-        var key = (int)Params.Current(Key);
-        var scale = (int)Params.Current(Scale);
-        harmonyOne = Ratio(
-            Scales.HarmonySemitones(note, key, scale, (int)Params.Current(Voice1Harmony) - MaxHarmonySteps)
-        );
-        harmonyTwo = Ratio(
-            Scales.HarmonySemitones(note, key, scale, (int)Params.Current(Voice2Harmony) - MaxHarmonySteps)
-        );
+        var degree = Scales.PitchClass(note - key);
+        for (var v = 0; v < VoiceCount; v++) {
+            var semitones = activeType == PitchType.CustomShifter
+                ? Params.Current(CustomTable + 12 * v + degree)
+                : Scales.HarmonySemitones(note, key, scale, (int)Params.Current(HarmonyParams[v]) - MaxHarmonySteps, chord);
+            harmonies[v] = Ratio(semitones);
+        }
     }
 
     float WhammySemitones() {
@@ -498,14 +660,18 @@ public sealed class PitchBlock() : DspBlock(Info) {
 
     float CrystalsDelaySamples() => Params.Current(CrystalsTime) * 0.001f * (float)Spec.SampleRate;
 
-    (float, float, float, float) VoiceGains(PitchType type) {
-        if (type is not (PitchType.Detune or PitchType.Chromatic or PitchType.Diatonic)) {
-            return (1f, 1f, 0f, 0f); // single centred voice
+    /// <summary>Sets each voice's target gains: four harmony voices, Detune's two, or one centred voice.</summary>
+    void VoiceGains(PitchType type) {
+        var voices = IsHarmony(type) ? VoiceCount : type == PitchType.Detune ? 2 : 0;
+        for (var v = 0; v < VoiceCount; v++) {
+            (targetsLeft[v], targetsRight[v]) = v < voices
+                ? Pan(Decibels.ToGain(Params.Current(LevelParams[v])), Params.Current(PanParams[v]))
+                : (0f, 0f);
         }
 
-        var (oneLeft, oneRight) = Pan(Decibels.ToGain(Params.Current(Voice1Level)), Params.Current(Voice1Pan));
-        var (twoLeft, twoRight) = Pan(Decibels.ToGain(Params.Current(Voice2Level)), Params.Current(Voice2Pan));
-        return (oneLeft, oneRight, twoLeft, twoRight);
+        if (voices == 0) {
+            (targetsLeft[0], targetsRight[0]) = (1f, 1f);
+        }
     }
 
     void ResetEngines() {
@@ -513,12 +679,15 @@ public sealed class PitchBlock() : DspBlock(Info) {
         shifterTwo.Reset();
         psola.Reset();
         grains.Reset();
-        delayOne.Reset();
-        delayTwo.Reset();
+        foreach (var delay in delays) {
+            delay.Reset();
+        }
+
         crystalsLine.Reset();
         divider.Reset();
         crystalsLow.Reset();
         crystalsHigh.Reset();
+        Array.Clear(skipped);
         arpPhase = 0;
         arpStep = 0;
     }

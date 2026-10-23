@@ -61,6 +61,9 @@ public sealed class PitchTracker : IDisposable {
     /// <summary>1 minus the aperiodicity of the most recent analysis: near 1 for a clean tone, 0 for silence.</summary>
     public float Clarity { get; private set; }
 
+    /// <summary>Input samples between analyses: <see cref="Hop" /> decimated samples.</summary>
+    public int HopSamples => Hop * factor;
+
     /// <summary>Period of <see cref="Frequency" /> in input samples, or 0 before the first voiced analysis.</summary>
     public double Period => Frequency > 0 ? sampleRate / Frequency : 0;
 

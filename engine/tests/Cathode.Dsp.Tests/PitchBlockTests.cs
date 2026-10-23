@@ -222,6 +222,260 @@ public class PitchBlockTests(ITestOutputHelper output) {
         Assert.Equal(semitones, Scales.HarmonySemitones(note, key, scale, steps));
     }
 
+    [Fact]
+    public void Parameters_added_later_are_appended_so_stored_presets_keep_their_indices() {
+        var info = PitchBlock.Info;
+        Assert.Equal(PitchBlock.Capo, info.IndexOf("capo"));
+        Assert.Equal(34, PitchBlock.Capo);
+        Assert.Equal(PitchBlock.Voice3Shift, info.IndexOf("voice3Shift"));
+        Assert.Equal(PitchBlock.Voice4Delay, info.IndexOf("voice4Delay"));
+        Assert.Equal(PitchBlock.KeySource, info.IndexOf("keySource"));
+        Assert.Equal(PitchBlock.CustomTable, info.IndexOf("custom1C"));
+        Assert.Equal(PitchBlock.CustomTable + 13, info.IndexOf("custom2Cs"));
+        Assert.Equal(PitchBlock.CustomTable + 47, info.IndexOf("custom4B"));
+        Assert.Equal(PitchBlock.CustomTable + 48, info.Params.Count);
+        Assert.Equal("Virtual Capo", info.Params[PitchBlock.Type].Options![(int)PitchType.VirtualCapo]);
+        Assert.Equal("Custom Shifter", info.Params[PitchBlock.Type].Options![(int)PitchType.CustomShifter]);
+
+        // New voices start silent, so a preset saved before them sounds the same.
+        Assert.Equal(Decibels.SilenceDb, info.Params[PitchBlock.Voice3Level].Default);
+        Assert.Equal(Decibels.SilenceDb, info.Params[PitchBlock.Voice4Level].Default);
+        Assert.Equal((float)PitchKeySource.Fixed, info.Params[PitchBlock.KeySource].Default);
+    }
+
+    [Fact]
+    public void Custom_tables_default_to_major_key_harmony() {
+        var table = Enumerable.Range(0, 48).Select(i => PitchBlock.Info.Params[PitchBlock.CustomTable + i].Default).ToArray();
+
+        Assert.Equal((float[])[4, 4, 3, 3, 3, 4, 4, 4, 4, 3, 3, 3], table[..12]); // a third: C-E, D-F, E-G, ...
+        Assert.Equal((float[])[7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 6], table[12..24]); // a fifth, B-F diminished
+        Assert.All(table[24..36], static s => Assert.Equal(12f, s));
+        Assert.All(table[36..], static s => Assert.Equal(-12f, s));
+    }
+
+    [Fact]
+    public void Four_diatonic_voices_sound_their_intervals() {
+        using var harmonizer = Create(
+            (PitchBlock.Type, (float)PitchType.Diatonic),
+            (PitchBlock.Key, 0f),
+            (PitchBlock.Scale, 0f),
+            (PitchBlock.Voice1Harmony, PitchBlock.MaxHarmonySteps + 2f), // a third up: C
+            (PitchBlock.Voice2Harmony, PitchBlock.MaxHarmonySteps + 4f), // a fifth up: E
+            (PitchBlock.Voice3Harmony, PitchBlock.MaxHarmonySteps + 7f), // an octave up: A
+            (PitchBlock.Voice4Harmony, PitchBlock.MaxHarmonySteps - 2f), // a third down: F
+            (PitchBlock.Voice3Level, 0f),
+            (PitchBlock.Voice4Level, 0f),
+            (PitchBlock.Voice1Pan, 0f),
+            (PitchBlock.Voice2Pan, 0f),
+            (PitchBlock.Voice3Pan, 0f),
+            (PitchBlock.Voice4Pan, 0f),
+            (PitchBlock.Mix, 100f)
+        );
+
+        var harmony = BlockRender.Mono(harmonizer, PitchTrackerTests.HarmonicTone(220, 96_000), 64)[24_000..];
+
+        double[] expected = [261.63, 329.63, 440.0, 174.61];
+        foreach (var frequency in expected) {
+            output.WriteLine($"{frequency} Hz: {Level(harmony, frequency):0.0000}");
+            Assert.True(Level(harmony, frequency) > 0.03, $"no voice at {frequency} Hz");
+        }
+
+        output.WriteLine($"input pitch: {Level(harmony, 220):0.0000}");
+        Assert.True(Level(harmony, 220) < 0.1 * expected.Min(f => Level(harmony, f)), "the input pitch is still there");
+    }
+
+    [Fact]
+    public void A_silent_voice_is_skipped_and_comes_back_clean_when_raised() {
+        using var harmonizer = Create(
+            (PitchBlock.Type, (float)PitchType.Chromatic),
+            (PitchBlock.Voice1Level, Decibels.SilenceDb),
+            (PitchBlock.Voice2Level, Decibels.SilenceDb),
+            (PitchBlock.Voice3Shift, 7f),
+            (PitchBlock.Voice3Pan, 0f),
+            (PitchBlock.Mix, 100f)
+        );
+        var input = PitchTrackerTests.HarmonicTone(196, 48_000);
+
+        var silent = BlockRender.Mono(harmonizer, input, 64);
+        harmonizer.Params.SetTarget(PitchBlock.Voice3Level, 0f);
+        var raised = BlockRender.Mono(harmonizer, input, 64)[12_000..];
+
+        Assert.Equal(0, Analysis.Peak(silent));
+        var shifted = 196 * Math.Pow(2, 7 / 12.0);
+        var onSeries = Level(raised, shifted) + Level(raised, 2 * shifted) + Level(raised, 3 * shifted);
+        var original = Level(raised, 196) + Level(raised, 5 * 196);
+        output.WriteLine($"shifted series {onSeries:0.0000}, original series {original:0.0000}");
+        Assert.True(onSeries > 0.1, "voice 3 did not come in");
+        Assert.True(onSeries > 10 * original, "voice 3 is not a fifth up");
+    }
+
+    [Theory]
+    [InlineData(9, 7, 1f, 349.23)] // key A: E is the key's fifth (the "G" entry), set to +1: F
+    [InlineData(0, 4, -4f, 261.63)] // key C: E is the key's third (the "E" entry), set to -4: C
+    public void Custom_shifter_maps_each_note_of_the_key_through_the_table(
+        int key,
+        int degree,
+        float shift,
+        double expected
+    ) {
+        using var shifter = Create(
+            (PitchBlock.Type, (float)PitchType.CustomShifter),
+            (PitchBlock.Key, key),
+            (PitchBlock.CustomTable + degree, shift),
+            (PitchBlock.Voice2Level, Decibels.SilenceDb),
+            (PitchBlock.Voice1Pan, 0f),
+            (PitchBlock.Mix, 100f)
+        );
+
+        var harmony = BlockRender.Mono(shifter, PitchTrackerTests.HarmonicTone(329.63, 96_000), 64)[24_000..];
+
+        // The default for this note (a diatonic third up) would be G, 392 Hz.
+        output.WriteLine($"expected {Level(harmony, expected):0.0000}, default {Level(harmony, 392):0.0000}");
+        Assert.True(Level(harmony, expected) > 0.05, "no shifted voice");
+        Assert.True(Level(harmony, expected) > 10 * Level(harmony, 392), "the table entry was not used");
+        Assert.True(Level(harmony, expected) > 10 * Level(harmony, 329.63), "the voice still sounds the input pitch");
+    }
+
+    [Theory]
+    [InlineData(new[] { 52, 56, 59 }, 415.30, 392.0)] // E major held: a third above E is G#, not C major's G
+    [InlineData(new[] { 57, 60, 64 }, 440.0, 392.0)] // A minor: G is no chord tone, so the voice snaps to A
+    public void Midi_key_source_follows_the_held_chord(int[] chord, double expected, double wrong) {
+        using var harmonizer = Create(
+            (PitchBlock.Type, (float)PitchType.Diatonic),
+            (PitchBlock.Key, 0f),
+            (PitchBlock.Scale, 0f),
+            (PitchBlock.KeySource, (float)PitchKeySource.Midi),
+            (PitchBlock.Voice1Harmony, PitchBlock.MaxHarmonySteps + 2f),
+            (PitchBlock.Voice2Level, Decibels.SilenceDb),
+            (PitchBlock.Voice1Pan, 0f),
+            (PitchBlock.Mix, 100f)
+        );
+        var input = PitchTrackerTests.HarmonicTone(329.63, 96_000);
+
+        var held = BlockRender.Mono(harmonizer, input, 64, HeldNotes.Of(chord))[24_000..];
+        var released = BlockRender.Mono(harmonizer, input, 64)[24_000..]; // the last chord stays
+
+        Assert.Equal(chord[0] % 12, harmonizer.HarmonyKey);
+        foreach (var harmony in new[] { held, released }) {
+            output.WriteLine($"expected {Level(harmony, expected):0.0000}, wrong {Level(harmony, wrong):0.0000}");
+            Assert.True(Level(harmony, expected) > 0.05, "no harmony voice");
+            Assert.True(Level(harmony, expected) > 10 * Level(harmony, wrong), "the voice ignores the chord");
+        }
+    }
+
+    [Fact]
+    public void Auto_key_source_finds_the_key_of_a_melody_and_harmonises_in_it() {
+        using var harmonizer = Create(
+            (PitchBlock.Type, (float)PitchType.Diatonic),
+            (PitchBlock.Key, 0f), // C major, which the melody is not in
+            (PitchBlock.Scale, 0f),
+            (PitchBlock.KeySource, (float)PitchKeySource.Auto),
+            (PitchBlock.Voice1Harmony, PitchBlock.MaxHarmonySteps + 2f),
+            (PitchBlock.Voice2Level, Decibels.SilenceDb),
+            (PitchBlock.Voice1Pan, 0f),
+            (PitchBlock.Mix, 100f)
+        );
+
+        // A melody in A major, a quarter of a second per note.
+        int[] notes = [69, 71, 73, 74, 76, 78, 80, 81, 76, 73, 69, 74, 73, 71, 69, 76, 73, 69];
+        var melody = Signals.Concat([..notes.Select(static n => PitchTrackerTests.HarmonicTone(Frequency(n), 12_000))]);
+        BlockRender.Mono(harmonizer, melody, 64);
+
+        output.WriteLine($"key {Scales.Keys[harmonizer.HarmonyKey]} {Scales.Names[harmonizer.HarmonyScale]}");
+        Assert.Equal(9, harmonizer.HarmonyKey);
+        Assert.False(Scales.IsMinor(harmonizer.HarmonyScale));
+
+        // C# in A major: a third up is E. Fixed to C major it would harmonise as C, a major third up: F.
+        var harmony = BlockRender.Mono(harmonizer, PitchTrackerTests.HarmonicTone(277.18, 48_000), 64)[12_000..];
+        output.WriteLine($"E {Level(harmony, 329.63):0.0000}, F {Level(harmony, 349.23):0.0000}");
+        Assert.True(Level(harmony, 329.63) > 10 * Level(harmony, 349.23), "the voice is not in A major");
+    }
+
+    [Theory]
+    [InlineData((int)PitchKeySource.Midi)]
+    [InlineData((int)PitchKeySource.Auto)]
+    public void Key_sources_are_block_size_independent_and_deterministic(int source) {
+        int[] melody = [57, 59, 61, 62, 64, 57, 61, 64];
+        var input = Signals.Concat([..melody.Select(static n => PitchTrackerTests.HarmonicTone(Frequency(n), 9_600))]);
+        var notes = HeldNotes.Of(57, 61, 64);
+        (int, float)[] settings = [
+            (PitchBlock.Type, (float)PitchType.Diatonic),
+            (PitchBlock.KeySource, source),
+            (PitchBlock.Voice3Level, 0f),
+            (PitchBlock.Voice4Level, -6f)
+        ];
+        using var fixedSize = Create(settings);
+        using var variableSize = Create(settings);
+        var random = new Random(3);
+
+        var reference = BlockRender.Mono(fixedSize, input, 64, notes);
+        var varied = BlockRender.Stereo(variableSize, input, input, _ => random.Next(1, 65), notes: notes).Left;
+        Assert.True(Analysis.NullResidualDb(reference, varied) < -140, "output depends on the block size");
+
+        fixedSize.Reset();
+        Assert.Equal(reference, BlockRender.Mono(fixedSize, input, 64, notes));
+    }
+
+    [Theory]
+    [InlineData(9, new[] { 9, 0, 4 }, 0, 1)] // A minor over Major: Minor
+    [InlineData(7, new[] { 7, 11, 2, 5 }, 0, 5)] // G7: Mixolydian
+    [InlineData(0, new[] { 0, 4, 7 }, 4, 4)] // C major in Lydian: Lydian holds it
+    [InlineData(0, new[] { 0, 1, 2, 3 }, 0, 0)] // a cluster no scale holds: the preferred scale
+    public void Chord_scale_is_the_first_that_holds_every_chord_tone(int root, int[] tones, int preferred, int scale) {
+        var chord = tones.Aggregate(0, static (mask, t) => mask | 1 << t);
+        Assert.Equal(scale, Scales.ChordScale(root, chord, preferred));
+    }
+
+    [Theory]
+    [InlineData(64, 2, 3)] // E, a third up: G is a chord tone
+    [InlineData(62, 2, 5)] // D, a third up: F is not; E would rub a tone against D, so G
+    [InlineData(64, -2, -4)] // E, a third down: C
+    [InlineData(65, -2, -5)] // F, a third down: D is not a chord tone, E too close, so C
+    [InlineData(62, 7, 12)] // octaves never snap
+    public void Harmony_snaps_to_chord_tones(int note, int steps, int semitones) {
+        var cMajor = 1 << 0 | 1 << 4 | 1 << 7;
+        Assert.Equal(semitones, Scales.HarmonySemitones(note, 0, 0, steps, cMajor));
+    }
+
+    [Fact]
+    public void Key_estimate_needs_a_clear_change_to_move() {
+        var keys = new KeyEstimator();
+        int[] cMajor = [0, 2, 4, 5, 7, 9, 11, 0, 4, 7];
+        int[] gMajor = [7, 9, 11, 0, 2, 4, 6, 7, 11, 2];
+        int[] aMinor = [9, 11, 0, 2, 4, 5, 8, 9, 0, 4];
+
+        keys.Add(0, 0.1);
+        Assert.Equal(-1, keys.Key); // not enough heard yet
+        for (var bar = 0; bar < 4; bar++) {
+            foreach (var pc in cMajor) {
+                keys.Add(pc, 0.1);
+            }
+        }
+
+        Assert.Equal((0, false), (keys.Key, keys.Minor));
+        keys.Add(6, 0.3); // a passing F#
+        Assert.Equal((0, false), (keys.Key, keys.Minor));
+
+        for (var bar = 0; bar < 12; bar++) {
+            foreach (var pc in gMajor) {
+                keys.Add(pc, 0.1);
+            }
+        }
+
+        Assert.Equal((7, false), (keys.Key, keys.Minor));
+
+        keys.Reset();
+        for (var bar = 0; bar < 4; bar++) {
+            foreach (var pc in aMinor) {
+                keys.Add(pc, 0.1);
+            }
+        }
+
+        Assert.Equal((9, true), (keys.Key, keys.Minor));
+    }
+
+    static double Frequency(int note) => 440 * Math.Pow(2, (note - 69) / 12.0);
+
     /// <summary>Amplitude of the component at <paramref name="frequency" /> (Hann-windowed DTFT).</summary>
     internal static double Level(ReadOnlySpan<float> signal, double frequency) {
         double re = 0, im = 0, windowSum = 0;
