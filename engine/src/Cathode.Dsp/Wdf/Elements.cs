@@ -91,6 +91,15 @@ public struct Inductor(double inductance, double sampleRate) : IWdfPort {
     /// <summary>Changes the inductance or sample rate, keeping the stored wave. <see cref="IWdfPort.Propagate" /> after.</summary>
     public void Configure(double inductance, double sampleRate) => resistance = 2 * inductance * sampleRate;
 
+    /// <summary>
+    ///     Starts the inductor carrying <paramref name="amps" /> at rest (no voltage across it), e.g. a bias current at
+    ///     its DC operating point. Call after <see cref="Configure" />: the stored wave depends on the port resistance.
+    /// </summary>
+    public void Precharge(double amps) {
+        a = amps * resistance;
+        state = a;
+    }
+
     public readonly double Propagate() => resistance;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

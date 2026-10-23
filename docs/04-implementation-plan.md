@@ -83,7 +83,7 @@ Ordered by value to a guitarist:
    Every type's measured T60 is within 20 % of the setting. Switching type starts the new tank empty. *Not modelled:* the spring's separate high-chirp branch, and a spring drive/tension control.
 7. [x] **Compressor** (Pedal/Studio/Opto, soft knee, parallel mix), **PEQ** (5-band SVF), **GEQ** (10-band octave)
 8. [x] **Chorus**, **Flanger**, **Phaser**, **Tremolo/Panner** (shared LFO and Hermite delay line)
-9. [x] **Wah** (Classic/Vox/Wide resonant sweep). *Still to do:* a component-level inductor model; driving it from an expression pedal comes with modifiers in Phase 5
+9. [x] **Wah** (Classic/Vox/Wide resonant sweep, plus component-level Cry Baby and V846: the inductor circuit as a WDF with both BJTs at an R-type root, the pot inside the adaptor). *Still to do:* driving it from an expression pedal comes with modifiers in Phase 5
 10. [x] **Tuner** (MPM via FFT NSDF on the analysis thread, fed by `CathodeEngine.InputTap`; within 0.01 cent from 41 to 440 Hz) and **CPU meter** (callback stats). *Still to do:* strobe display and mute modes belong to the editor and API
 
 **Exit:**

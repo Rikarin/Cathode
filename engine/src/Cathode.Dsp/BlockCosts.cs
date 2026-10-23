@@ -43,7 +43,7 @@ public static class BlockCosts {
         ["vibe"] = 0.40,
         ["vocoder"] = 1.16,
         ["volpan"] = 0.03,
-        ["wah"] = 0.20
+        ["wah"] = 1.68
     };
 
     /// <summary>The cost of <paramref name="typeId" />, or null for a block that has not been measured.</summary>

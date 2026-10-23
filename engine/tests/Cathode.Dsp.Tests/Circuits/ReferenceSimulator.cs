@@ -18,6 +18,8 @@ sealed class ReferenceCircuit {
 
     public List<(int A, int B, double Farads)> Capacitors { get; } = [];
 
+    public List<(int A, int B, double Henries)> Inductors { get; } = [];
+
     public List<(int Plus, int Minus, Func<double, double> Volts)> Sources { get; } = [];
 
     public List<(int Plus, int Minus, int ControlPlus, int ControlMinus, double Gain)> Controlled { get; } = [];
@@ -29,6 +31,9 @@ sealed class ReferenceCircuit {
     public void Resistor(int a, int b, double ohms) => Resistors.Add((a, b, ohms));
 
     public void Capacitor(int a, int b, double farads) => Capacitors.Add((a, b, farads));
+
+    /// <summary>An inductor, current flowing from <paramref name="a" /> to <paramref name="b" />: an MNA branch of its own.</summary>
+    public void Inductor(int a, int b, double henries) => Inductors.Add((a, b, henries));
 
     public void Source(int plus, int minus, Func<double, double> volts) => Sources.Add((plus, minus, volts));
 
@@ -57,6 +62,8 @@ sealed class ReferenceSimulator {
     readonly int size;
     readonly double[] x;
     readonly double[] capacitorCurrents;
+    readonly double[] inductorCurrents;
+    readonly double[] inductorVoltages;
     readonly double[][] evaluation; // per device: the (limited) port voltages its next evaluation uses
     int newtonFailures;
     int mostIterations;
@@ -67,14 +74,19 @@ sealed class ReferenceSimulator {
 
     public ReferenceSimulator(ReferenceCircuit circuit) {
         this.circuit = circuit;
-        size = circuit.Nodes + circuit.Sources.Count + circuit.Controlled.Count;
+        size = circuit.Nodes + circuit.Sources.Count + circuit.Controlled.Count + circuit.Inductors.Count;
         x = new double[size];
         capacitorCurrents = new double[circuit.Capacitors.Count];
+        inductorCurrents = new double[circuit.Inductors.Count];
+        inductorVoltages = new double[circuit.Inductors.Count];
         evaluation = [..circuit.Devices.Select(static d => new double[d.Ports.Length])];
     }
 
     /// <summary>Node voltage (ground is 0).</summary>
     public double Voltage(int node) => node == 0 ? 0 : x[node - 1];
+
+    /// <summary>Current through inductor <paramref name="index" />, from its first node to its second.</summary>
+    public double InductorCurrent(int index) => x[InductorRow(index)];
 
     /// <summary>Solves the DC operating point at time 0 (capacitors open) and makes it the transient's initial state.</summary>
     public void OperatingPoint(int steps = 20) {
@@ -85,6 +97,7 @@ sealed class ReferenceSimulator {
         }
 
         SyncDevices();
+        SyncInductors();
     }
 
     /// <summary>Starts the transient from all-zero state (every capacitor discharged).</summary>
@@ -92,6 +105,7 @@ sealed class ReferenceSimulator {
         Array.Clear(x);
         Array.Clear(capacitorCurrents);
         SyncDevices();
+        SyncInductors();
     }
 
     /// <summary>Advances from <paramref name="time" /> - <paramref name="step" /> to <paramref name="time" />.</summary>
@@ -113,10 +127,16 @@ sealed class ReferenceSimulator {
             var (device, ports) = circuit.Devices[d];
             device.Commit(PortVoltages(ports));
         }
+
+        SyncInductors();
     }
 
-    /// <summary>The response V(outPlus) - V(outMinus) to a unit amplitude on source <paramref name="input" />.</summary>
-    public Complex Ac(Complex s, int input, int outPlus, int outMinus = 0) {
+    /// <summary>
+    ///     The response V(outPlus) - V(outMinus) to a unit amplitude on source <paramref name="input" />. With
+    ///     <paramref name="linearised" />, the devices take part as their small-signal conductances at the last solution
+    ///     (an operating point, say); otherwise they are left out.
+    /// </summary>
+    public Complex Ac(Complex s, int input, int outPlus, int outMinus = 0, bool linearised = false) {
         var a = new Complex[size, size];
         var rhs = new Complex[size];
         for (var n = 0; n < circuit.Nodes; n++) {
@@ -148,6 +168,28 @@ sealed class ReferenceSimulator {
 
             if (cm > 0) {
                 a[row, cm - 1] += gain;
+            }
+        }
+
+        for (var j = 0; j < circuit.Inductors.Count; j++) {
+            var (p, m, l) = circuit.Inductors[j];
+            var row = InductorRow(j);
+            Branch(a, p, m, row);
+            a[row, row] -= s * l;
+        }
+
+        if (linearised) {
+            for (var d = 0; d < circuit.Devices.Count; d++) {
+                var (device, ports) = circuit.Devices[d];
+                var k = ports.Length;
+                var currents = new double[k];
+                var jacobian = new double[k * k];
+                device.Evaluate(PortVoltages(ports), currents, jacobian, k);
+                for (var r = 0; r < k; r++) {
+                    for (var c = 0; c < k; c++) {
+                        StampTransconductance(a, ports[r], ports[c], jacobian[r * k + c]);
+                    }
+                }
             }
         }
 
@@ -197,6 +239,18 @@ sealed class ReferenceSimulator {
 
                 if (cm > 0) {
                     a[row, cm - 1] += gain;
+                }
+            }
+
+            // Inductors: a short at DC; trapezoidal in the transient, v + v_prev = (2L / h)(i - i_prev).
+            for (var j = 0; j < circuit.Inductors.Count; j++) {
+                var (p, m, l) = circuit.Inductors[j];
+                var row = InductorRow(j);
+                Branch(a, p, m, row);
+                if (transient) {
+                    var r = 2 * l / step;
+                    a[row, row] -= r;
+                    rhs[row] = -inductorVoltages[j] - r * inductorCurrents[j];
                 }
             }
 
@@ -256,6 +310,16 @@ sealed class ReferenceSimulator {
         return v;
     }
 
+    int InductorRow(int index) => circuit.Nodes + circuit.Sources.Count + circuit.Controlled.Count + index;
+
+    void SyncInductors() {
+        for (var j = 0; j < circuit.Inductors.Count; j++) {
+            var (p, m, _) = circuit.Inductors[j];
+            inductorCurrents[j] = x[InductorRow(j)];
+            inductorVoltages[j] = Voltage(p) - Voltage(m);
+        }
+    }
+
     void SyncDevices() {
         for (var d = 0; d < circuit.Devices.Count; d++) {
             PortVoltages(circuit.Devices[d].Ports).CopyTo(evaluation[d], 0);
@@ -275,6 +339,19 @@ sealed class ReferenceSimulator {
             a[p - 1, m - 1] -= g;
             a[m - 1, p - 1] -= g;
         }
+    }
+
+    static void StampTransconductance(Complex[,] a, (int Plus, int Minus) row, (int Plus, int Minus) column, double g) {
+        void Add(int r, int c, double value) {
+            if (r > 0 && c > 0) {
+                a[r - 1, c - 1] += value;
+            }
+        }
+
+        Add(row.Plus, column.Plus, g);
+        Add(row.Plus, column.Minus, -g);
+        Add(row.Minus, column.Plus, -g);
+        Add(row.Minus, column.Minus, g);
     }
 
     static void Stamp(Complex[,] a, int p, int m, Complex g) {
