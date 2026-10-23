@@ -56,7 +56,17 @@ static class ServeCommand {
         }
     }
 
+    /// <summary>
+    ///     The GC budget that keeps the host collection-free for hours (docs/adr/0001-process-model.md). NativeAOT reads
+    ///     it from the environment only, as bare hex, so whoever launches the host must set it.
+    /// </summary>
+    public const string Gen0Budget = "10000000"; // 256 MB
+
     static int Serve(EngineHostService service, string socketPath, CancellationToken cancellationToken) {
+        if (Environment.GetEnvironmentVariable("DOTNET_GCgen0size") is null) {
+            Console.Error.WriteLine($"warning: DOTNET_GCgen0size is not set; start the host with DOTNET_GCgen0size={Gen0Budget} so garbage collections cannot interrupt playing");
+        }
+
         var info = service.Info;
         Console.WriteLine($"cathode-host {info.Version} serving on {socketPath} ({info.Backend}, {info.SampleRate / 1000:0.#} kHz, {info.BufferFrames} frames)");
         new EngineHostServer(service, socketPath).RunAsync(cancellationToken).GetAwaiter().GetResult();

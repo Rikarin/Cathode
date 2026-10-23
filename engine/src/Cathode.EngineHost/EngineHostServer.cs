@@ -32,14 +32,16 @@ public sealed class EngineHostServer(EngineHostService service, string socketPat
     async Task ServeAsync(Socket client, CancellationToken cancellationToken) {
         await using var stream = new NetworkStream(client, false);
         using var writeLock = new SemaphoreSlim(1, 1);
+        using var writer = new IpcFrameWriter(); // shared by replies and telemetry, always under writeLock
+        var reader = new IpcFrameReader();
         using var connection = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var telemetry = PushTelemetryAsync(stream, writeLock, connection.Token);
+        var telemetry = PushTelemetryAsync(stream, writer, writeLock, connection.Token);
         try {
-            while (await IpcFraming.ReadAsync(stream, connection.Token).ConfigureAwait(false) is { } request) {
+            while (await reader.ReadAsync(stream, connection.Token).ConfigureAwait(false) is { } request) {
                 var reply = service.Handle(request);
                 await writeLock.WaitAsync(connection.Token).ConfigureAwait(false);
                 try {
-                    await IpcFraming.WriteAsync(stream, reply, connection.Token).ConfigureAwait(false);
+                    await writer.WriteAsync(stream, reply, connection.Token).ConfigureAwait(false);
                 } finally {
                     writeLock.Release();
                 }
@@ -54,13 +56,13 @@ public sealed class EngineHostServer(EngineHostService service, string socketPat
         }
     }
 
-    async Task PushTelemetryAsync(Stream stream, SemaphoreSlim writeLock, CancellationToken cancellationToken) {
+    async Task PushTelemetryAsync(Stream stream, IpcFrameWriter writer, SemaphoreSlim writeLock, CancellationToken cancellationToken) {
         using var timer = new PeriodicTimer(TelemetryInterval);
         while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false)) {
             var message = new IpcMessage { Type = IpcTypes.Telemetry, Telemetry = service.Telemetry() };
             await writeLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try {
-                await IpcFraming.WriteAsync(stream, message, cancellationToken).ConfigureAwait(false);
+                await writer.WriteAsync(stream, message, cancellationToken).ConfigureAwait(false);
             } finally {
                 writeLock.Release();
             }

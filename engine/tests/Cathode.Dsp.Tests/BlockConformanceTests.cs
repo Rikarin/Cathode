@@ -128,6 +128,25 @@ public class BlockConformanceTests {
         Assert.Equal(0, allocated);
     }
 
+    /// <summary>
+    ///     Preparing a block (on the control thread, during a preset load) must keep its managed allocations below the
+    ///     large object heap threshold: LOH allocations trigger blocking gen2 collections, which stall the audio thread
+    ///     even in a separate process (docs/adr/0001-process-model.md, soak follow-up). Big state belongs in native
+    ///     memory.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(BlockTypes))]
+    public void Prepare_stays_off_the_large_object_heap(string typeId) {
+        const long LargeObjectThreshold = 85_000;
+        var block = Registry.Create(typeId);
+        var spec = new ProcessSpec(96_000, 512); // the largest buffers a block will ask for
+
+        var allocated = AllocationProbe.Measure(() => block.Prepare(spec), static () => { });
+        block.Dispose();
+
+        Assert.True(allocated < LargeObjectThreshold, $"{typeId}: Prepare allocated {allocated:N0} managed bytes");
+    }
+
     [Theory]
     [MemberData(nameof(BlockTypes))]
     public void Silence_after_a_burst_decays_without_subnormals(string typeId) {

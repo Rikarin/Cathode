@@ -27,7 +27,8 @@ public sealed record EngineStatus(
     int HostGen0 = 0,
     int HostGen1 = 0,
     int HostGen2 = 0,
-    double HostGcPauseMs = 0);
+    double HostGcPauseMs = 0,
+    long HostAllocatedBytes = 0);
 
 public sealed record SystemInfo(string Version, EngineStatus Engine);
 

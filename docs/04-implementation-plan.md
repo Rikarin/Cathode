@@ -88,11 +88,12 @@ Ordered by value to a guitarist:
   - The harness is ready: `engine/tools/Cathode.Soak` plus `run-soak.sh`, with telemetry for driver overloads, native callback timing and host GC counts.
   - A 2-minute dry run passed: 0 overloads, 0 errors.
   - It also found **host gen2 GCs on preset loads stalling the callback for 56–69 % of the budget** (ADR-0001 follow-up).
-  - **The 1-hour run is deferred**, and should come after DSP state moves to native memory.
+  - **Fixed:** DSP state moved to native memory, IPC framing reuses its buffers, and the host gets a 256 MB gen0 budget. A 3-minute dry run then had 0 host GCs and a worst callback of 14 %.
+  - **The 1-hour run is deferred** at your request. It is ready to run with `run-soak.sh`.
 
 **Exit:**
 - ✅ `cathode.http` builds and plays a preset through the API alone.
-- [ ] The 1-hour API soak is deferred. The 2-minute dry run had 0 overloads, but host GCs must be removed first (ADR-0001 follow-up).
+- [ ] The 1-hour API soak is deferred. Host GCs are fixed (ADR-0001 resolution): a 3-minute dry run had 0 GCs, 0 overloads and a worst callback of 14 %.
 
 ---
 

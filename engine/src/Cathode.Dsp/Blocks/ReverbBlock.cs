@@ -106,6 +106,21 @@ public sealed class ReverbBlock : DspBlock {
         this.outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
+    protected override void Dispose(bool disposing) {
+        if (disposing) {
+            this.preDelay.Dispose();
+            foreach (var diffuser in this.diffusers) {
+                diffuser.Dispose();
+            }
+
+            foreach (var line in this.lines) {
+                line.Dispose();
+            }
+        }
+
+        base.Dispose(disposing);
+    }
+
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var rate = (float)Spec.SampleRate;
         var type = (int)Params.Current(Type);
@@ -196,16 +211,22 @@ public sealed class ReverbBlock : DspBlock {
     }
 
     /// <summary>Circular buffer with a fractional (linear) read behind the most recent write.</summary>
-    sealed class DelayBuffer {
-        float[] buffer = [];
+    sealed class DelayBuffer : IDisposable {
+        NativeBuffer buffer = NativeBuffer.Empty;
         int write;
 
-        public void Allocate(int length) => this.buffer = new float[length];
-
-        public void Clear() {
-            Array.Clear(this.buffer);
+        public void Allocate(int length) {
+            this.buffer.Dispose();
+            this.buffer = new(length);
             this.write = 0;
         }
+
+        public void Clear() {
+            this.buffer.Clear();
+            this.write = 0;
+        }
+
+        public void Dispose() => this.buffer.Dispose();
 
         public float Read(float delay) {
             var position = this.write - delay;
@@ -235,14 +256,20 @@ public sealed class ReverbBlock : DspBlock {
     }
 
     /// <summary>Schroeder allpass with a fixed length.</summary>
-    sealed class Allpass {
-        float[] buffer = [];
+    sealed class Allpass : IDisposable {
+        NativeBuffer buffer = NativeBuffer.Empty;
         int position;
 
-        public void Allocate(int length) => this.buffer = new float[length];
+        public void Allocate(int length) {
+            this.buffer.Dispose();
+            this.buffer = new(length);
+            this.position = 0;
+        }
+
+        public void Dispose() => this.buffer.Dispose();
 
         public void Clear() {
-            Array.Clear(this.buffer);
+            this.buffer.Clear();
             this.position = 0;
         }
 

@@ -72,7 +72,8 @@ public sealed record HostTelemetry(
     int Gen0 = 0,
     int Gen1 = 0,
     int Gen2 = 0,
-    double GcPauseMs = 0);
+    double GcPauseMs = 0,
+    long AllocatedBytes = 0);
 
 public sealed record HostTunerReading(double Frequency, string Note, int Octave, double Cents);
 

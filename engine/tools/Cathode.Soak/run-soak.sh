@@ -18,7 +18,8 @@ dotnet publish "$engine/src/Cathode.Host" -c Release -r "$rid" -o "$build/host" 
 dotnet publish "$engine/src/Cathode.Server" -c Release -o "$build/server" -v quiet -nologo
 dotnet publish "$engine/tools/Cathode.Soak" -c Release -o "$build/soak" -v quiet -nologo
 
-"$build/host/cathode-host" --serve --socket "$socket" --device "$device" --buffer 64 --mute > "$results/host.log" 2>&1 &
+# Bare hex: the NativeAOT runtime ignores a 0x prefix. 256 MB of gen0 keeps the host collection-free for hours.
+DOTNET_GCgen0size="${DOTNET_GCgen0size:-10000000}" "$build/host/cathode-host" --serve --socket "$socket" --device "$device" --buffer 64 --mute > "$results/host.log" 2>&1 &
 host=$!
 "$build/server/cathode-server" --Cathode:Engine:SocketPath="$socket" --Cathode:DataDirectory="$data" > "$results/server.log" 2>&1 &
 server=$!

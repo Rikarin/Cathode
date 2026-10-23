@@ -19,7 +19,7 @@ public static class IpcFraming {
     /// <summary>Returns null when the peer closed the connection cleanly.</summary>
     public static async Task<IpcMessage?> ReadAsync(Stream stream, CancellationToken cancellationToken = default) {
         var header = new byte[4];
-        if (!await ReadExactlyOrEndAsync(stream, header, cancellationToken).ConfigureAwait(false)) {
+        if (!await ReadExactlyOrEndAsync(stream, header, header.Length, cancellationToken).ConfigureAwait(false)) {
             return null;
         }
 
@@ -29,7 +29,7 @@ public static class IpcFraming {
         }
 
         var payload = new byte[length];
-        if (!await ReadExactlyOrEndAsync(stream, payload, cancellationToken).ConfigureAwait(false)) {
+        if (!await ReadExactlyOrEndAsync(stream, payload, payload.Length, cancellationToken).ConfigureAwait(false)) {
             throw new EndOfStreamException("IPC connection closed in the middle of a frame.");
         }
 
@@ -37,15 +37,16 @@ public static class IpcFraming {
             ?? throw new InvalidDataException("Empty IPC message.");
     }
 
-    static async Task<bool> ReadExactlyOrEndAsync(Stream stream, byte[] buffer, CancellationToken cancellationToken) {
+    /// <summary>Fills the first <paramref name="count" /> bytes; false if the stream ended before the first byte.</summary>
+    internal static async Task<bool> ReadExactlyOrEndAsync(Stream stream, byte[] buffer, int count, CancellationToken cancellationToken) {
         var read = 0;
-        while (read < buffer.Length) {
-            var count = await stream.ReadAsync(buffer.AsMemory(read), cancellationToken).ConfigureAwait(false);
-            if (count == 0) {
+        while (read < count) {
+            var n = await stream.ReadAsync(buffer.AsMemory(read, count - read), cancellationToken).ConfigureAwait(false);
+            if (n == 0) {
                 return read == 0 ? false : throw new EndOfStreamException("IPC connection closed in the middle of a frame.");
             }
 
-            read += count;
+            read += n;
         }
 
         return true;

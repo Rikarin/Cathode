@@ -86,6 +86,15 @@ public sealed class DelayBlock() : DspBlock(Info) {
         outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
+    protected override void Dispose(bool disposing) {
+        if (disposing) {
+            left.Dispose();
+            right.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
+
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var sampleRate = (float)Spec.SampleRate;
         var type = (int)Params.Current(Type);
@@ -172,12 +181,14 @@ public sealed class DelayBlock() : DspBlock(Info) {
         this.outputGain = outputGain;
     }
 
-    sealed class Line {
+    sealed class Line : IDisposable {
         readonly FractionalDelayLine delay = new();
         SvfState lowCut;
         SvfState highCut;
 
         public void Allocate(int capacity) => delay.Allocate(capacity);
+
+        public void Dispose() => delay.Dispose();
 
         public void Reset() {
             delay.Reset();

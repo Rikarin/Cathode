@@ -47,7 +47,8 @@ public sealed partial class EngineConnection(IOptions<ServerOptions> options, Ev
             t?.Gen0 ?? 0,
             t?.Gen1 ?? 0,
             t?.Gen2 ?? 0,
-            t?.GcPauseMs ?? 0
+            t?.GcPauseMs ?? 0,
+            t?.AllocatedBytes ?? 0
         );
     }
 

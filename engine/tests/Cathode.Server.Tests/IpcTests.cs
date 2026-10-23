@@ -35,6 +35,54 @@ public sealed class IpcTests : IDisposable {
     }
 
     [Fact]
+    public async Task Reusable_frame_buffers_match_the_wire_format_both_ways() {
+        var token = TestContext.Current.CancellationToken;
+        using var writer = new IpcFrameWriter();
+        var reader = new IpcFrameReader();
+        using var stream = new MemoryStream();
+        var big = new IpcMessage { Type = IpcTypes.LoadGraph, Id = 1, Graph = GraphTemplates.Basic() };
+        var small = new IpcMessage { Type = IpcTypes.SetParams, Id = 2, Params = [new("a", "b", 1)] };
+
+        await writer.WriteAsync(stream, big, token);
+        await writer.WriteAsync(stream, small, token); // a shorter frame after a longer one reuses the buffer
+        await IpcFraming.WriteAsync(stream, big, token);
+        stream.Position = 0;
+
+        Assert.Equal(GraphTemplates.Basic().Nodes.Count, (await IpcFraming.ReadAsync(stream, token))!.Graph!.Nodes.Count);
+        Assert.Equal(new ParamValue("a", "b", 1), (await reader.ReadAsync(stream, token))!.Params![0]);
+        Assert.Equal(1, (await reader.ReadAsync(stream, token))!.Id);
+        Assert.Null(await reader.ReadAsync(stream, token));
+    }
+
+    [Fact]
+    public async Task Reusable_writer_allocates_a_fraction_of_plain_framing() {
+        // The host pushes telemetry 30 times a second; its allocations decide how long the GC budget lasts.
+        var token = TestContext.Current.CancellationToken;
+        using var writer = new IpcFrameWriter();
+        var stream = new MemoryStream(1 << 22);
+        var message = new IpcMessage { Type = IpcTypes.Telemetry, Telemetry = new(0.1f, 0.2f, 0.3f, 4, 5, 0, null) };
+
+        async Task<double> PerFrame(Func<Task> write) {
+            for (var i = 0; i < 100; i++) {
+                await write(); // warm up
+            }
+
+            stream.Position = 0;
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < 1_000; i++) {
+                await write();
+            }
+
+            return (GC.GetAllocatedBytesForCurrentThread() - before) / 1_000.0;
+        }
+
+        var plain = await PerFrame(() => IpcFraming.WriteAsync(stream, message, token));
+        var reused = await PerFrame(() => writer.WriteAsync(stream, message, token));
+
+        Assert.True(reused < plain / 3, $"reusable writer {reused:0} bytes per frame vs plain {plain:0}");
+    }
+
+    [Fact]
     public void Service_loads_graphs_and_applies_parameters() {
         using var service = new EngineHostService(ProcessSpec.Default, "test");
 

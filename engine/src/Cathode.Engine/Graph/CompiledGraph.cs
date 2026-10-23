@@ -15,10 +15,10 @@ public sealed class CompiledGraph : IDisposable {
     readonly string[] slotIds;
     readonly Dictionary<string, int> slotById;
     readonly DelayLine[] delays;
-    readonly float[][] left;
-    readonly float[][] right;
-    readonly float[] dryLeft;
-    readonly float[] dryRight;
+    readonly NativeBuffer[] left;
+    readonly NativeBuffer[] right;
+    readonly NativeBuffer dryLeft;
+    readonly NativeBuffer dryRight;
     readonly BypassState[] bypass;
     readonly float fadeStep;
 
@@ -59,15 +59,17 @@ public sealed class CompiledGraph : IDisposable {
             slotById.Add(slotIds[i], i);
         }
 
-        this.left = new float[bufferCount][];
-        this.right = new float[bufferCount][];
+        // Work buffers in native memory: pinned managed arrays would live on the pinned object heap, which only gen2
+        // collections clean up, so every preset load would push the host towards a blocking gen2.
+        this.left = new NativeBuffer[bufferCount];
+        this.right = new NativeBuffer[bufferCount];
         for (var i = 0; i < bufferCount; i++) {
-            this.left[i] = GC.AllocateArray<float>(spec.MaxBlockSize, true);
-            this.right[i] = GC.AllocateArray<float>(spec.MaxBlockSize, true);
+            this.left[i] = new(spec.MaxBlockSize);
+            this.right[i] = new(spec.MaxBlockSize);
         }
 
-        this.dryLeft = GC.AllocateArray<float>(spec.MaxBlockSize, true);
-        this.dryRight = GC.AllocateArray<float>(spec.MaxBlockSize, true);
+        this.dryLeft = new(spec.MaxBlockSize);
+        this.dryRight = new(spec.MaxBlockSize);
         fadeStep = (float)(1.0 / Math.Max(1.0, BypassFadeMs * 0.001 * spec.SampleRate));
         this.bypass = new BypassState[blocks.Length];
         for (var i = 0; i < blocks.Length; i++) {
@@ -93,20 +95,20 @@ public sealed class CompiledGraph : IDisposable {
         io.OutputRight.Clear();
 
         foreach (ref readonly var op in this.ops.AsSpan()) {
-            var left = this.left[op.Buffer].AsSpan(0, frames);
-            var right = this.right[op.Buffer].AsSpan(0, frames);
+            var left = this.left[op.Buffer].Span[..frames];
+            var right = this.right[op.Buffer].Span[..frames];
             switch (op.Kind) {
                 case GraphOpKind.ReadInput:
                     io.InputLeft.CopyTo(left);
                     io.InputRight.CopyTo(right);
                     break;
                 case GraphOpKind.Copy:
-                    this.left[op.Source].AsSpan(0, frames).CopyTo(left);
-                    this.right[op.Source].AsSpan(0, frames).CopyTo(right);
+                    this.left[op.Source].Span[..frames].CopyTo(left);
+                    this.right[op.Source].Span[..frames].CopyTo(right);
                     break;
                 case GraphOpKind.Add:
-                    Accumulate(this.left[op.Source].AsSpan(0, frames), left);
-                    Accumulate(this.right[op.Source].AsSpan(0, frames), right);
+                    Accumulate(this.left[op.Source].Span[..frames], left);
+                    Accumulate(this.right[op.Source].Span[..frames], right);
                     break;
                 case GraphOpKind.Delay:
                     this.delays[op.Index].Process(left, right);
@@ -126,6 +128,13 @@ public sealed class CompiledGraph : IDisposable {
         foreach (var block in this.blocks) {
             block.Dispose();
         }
+
+        foreach (var buffer in this.left.Concat(this.right)) {
+            buffer.Dispose();
+        }
+
+        this.dryLeft.Dispose();
+        this.dryRight.Dispose();
     }
 
     void RunBlock(int slot, in StereoBuffer io, in BlockContext context) {
@@ -140,8 +149,8 @@ public sealed class CompiledGraph : IDisposable {
         }
 
         // Crossfade between the dry input and the processed signal.
-        var dryLeft = this.dryLeft.AsSpan(0, io.Length);
-        var dryRight = this.dryRight.AsSpan(0, io.Length);
+        var dryLeft = this.dryLeft.Span[..io.Length];
+        var dryRight = this.dryRight.Span[..io.Length];
         io.Left.CopyTo(dryLeft);
         io.Right.CopyTo(dryRight);
         this.blocks[slot].Process(io, context);

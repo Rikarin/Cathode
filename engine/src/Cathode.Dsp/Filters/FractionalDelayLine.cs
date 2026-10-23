@@ -4,30 +4,35 @@ namespace Cathode.Dsp.Filters;
 ///     Circular delay line with cubic Hermite fractional reads. <see cref="Read" /> returns the signal
 ///     <c>delay</c> samples before the next write, so a delay of 1 is the most recently written sample and
 ///     integer delays are exact. Delays below 3 samples are clamped (the interpolator looks one sample ahead).
+///     The buffer lives in native memory (<see cref="NativeBuffer" />).
 /// </summary>
-public sealed class FractionalDelayLine {
+public sealed class FractionalDelayLine : IDisposable {
     public const float MinDelay = 3f;
 
-    float[] buffer = [];
+    NativeBuffer buffer = NativeBuffer.Empty;
     int write;
 
     /// <summary>Control thread: room for delays up to <paramref name="capacity" /> - 3 samples.</summary>
-    public void Allocate(int capacity) => buffer = new float[capacity];
+    public void Allocate(int capacity) {
+        buffer.Dispose();
+        buffer = new(capacity);
+        write = 0;
+    }
 
     public void Reset() {
-        Array.Clear(buffer);
-        this.write = 0;
+        buffer.Clear();
+        write = 0;
     }
 
     public void Write(float value) {
-        buffer[this.write] = MathF.Abs(value) < 1e-20f ? 0f : value;
-        if (++this.write == buffer.Length) {
-            this.write = 0;
+        buffer[write] = MathF.Abs(value) < 1e-20f ? 0f : value;
+        if (++write == buffer.Length) {
+            write = 0;
         }
     }
 
     public float Read(float delay) {
-        var position = this.write - Math.Max(MinDelay, delay);
+        var position = write - Math.Max(MinDelay, delay);
         var index = (int)MathF.Floor(position);
         var frac = position - index;
         var y0 = At(index - 1);
@@ -38,6 +43,11 @@ public sealed class FractionalDelayLine {
         var c2 = y0 - 2.5f * y1 + 2f * y2 - 0.5f * y3;
         var c3 = 0.5f * (y3 - y0) + 1.5f * (y1 - y2);
         return ((c3 * frac + c2) * frac + c1) * frac + y1;
+    }
+
+    public void Dispose() {
+        buffer.Dispose();
+        buffer = NativeBuffer.Empty;
     }
 
     float At(int index) {

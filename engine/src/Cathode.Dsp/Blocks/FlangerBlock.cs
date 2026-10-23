@@ -59,6 +59,15 @@ public sealed class FlangerBlock : DspBlock {
         this.outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
+    protected override void Dispose(bool disposing) {
+        if (disposing) {
+            this.left.Dispose();
+            this.right.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
+
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var rate = Spec.SampleRate;
         var lfoRate = Params.Advance(Rate, io.Length);

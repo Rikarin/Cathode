@@ -109,5 +109,30 @@ A 2-minute dry run of the two-process soak (`engine/tools/Cathode.Soak/run-soak.
 
 No dropout occurred, but a rig already using about 30 % of the budget would cross 100 % on such a collection.
 
-**Next step (not yet done):** allocate DSP state with `NativeMemory` (aligned, freed when a retired graph is disposed) instead of on the managed heap, so preset loads do not touch the GC heap. Then make "zero host GCs during the 1-hour soak" a gate.
+### Resolution (2026-10-23)
+
+1. **DSP state moved to native memory.**
+   - `NativeBuffer` provides 64-byte-aligned, zeroed native memory, freed with the graph, with a finalizer as a safety net.
+   - It now holds the delay lines (Delay, Chorus, Flanger), the reverb's lines, pre-delay and diffusers, and the compiled graph's work buffers. Those were pinned arrays, which also count toward gen2.
+   - A conformance test keeps every block's `Prepare` below the 85 KB large-object threshold. Before the change, Delay allocated 3.1 MB there and Reverb 439 KB.
+2. **The host's gen0 budget is set to 256 MB** with `DOTNET_GCgen0size=10000000`.
+   - NativeAOT reads this only from the environment, and only as **bare hex**: a `0x` prefix is silently ignored, which was verified.
+   - `run-soak.sh` sets it, `cathode-host --serve` warns when it is missing, and the Electron launcher must set it (Phase 4).
+3. **IPC framing on the host reuses its buffers** (`IpcFrameWriter` and `IpcFrameReader`). This cut host allocation from 4.85 to 3.02 MB/min under soak load.
+
+The same 2–3-minute dry run, before and after (ProFX, 64 frames, a preset load every 30 s, knob drags at 30 Hz, scene changes every 2 s):
+
+| | Host GCs | Worst native callback | Host allocation |
+|---|---|---|---|
+| Before | 2/2/2 in 2 min (all gen2) | 68.8 % | — |
+| Native DSP state only | 2/1/0 in 3 min | 49.8 % | — |
+| Native state + 256 MB gen0 | 0/0/0 in 2 min | 69.5 % (one isolated window, see below) | 4.85 MB/min |
+| **All three** | **0/0/0 in 3 min** | **14.2 %** | **3.02 MB/min** |
+
+At 3 MB/min, the 256 MB budget lasts about 85 minutes, even with a preset change every 30 seconds. At a gig's real pace it lasts several hours.
+
+**Still open:**
+- **Isolated spikes not caused by GC.** One run showed a single 69.5 % window with zero GCs, while the managed callback time stayed at about 12 %. So the stall was outside .NET: OS scheduling or the USB driver. It did not recur in the final run, and it caused no overload. Track it in the 1-hour soak.
+- **Remaining allocation** comes mostly from graph compiles on preset loads and from command deserialization. Removing it would make the host GC-free indefinitely.
+- **The 1-hour soak itself** is still to run.
 

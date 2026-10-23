@@ -162,7 +162,8 @@ public sealed class EngineHostService : IDisposable {
             GC.CollectionCount(0),
             GC.CollectionCount(1),
             GC.CollectionCount(2),
-            GC.GetTotalPauseDuration().TotalMilliseconds
+            GC.GetTotalPauseDuration().TotalMilliseconds,
+            GC.GetTotalAllocatedBytes()
         );
         if (Stopwatch.GetElapsedTime(windowStarted) >= StatsWindow) {
             stats.RequestReset();
