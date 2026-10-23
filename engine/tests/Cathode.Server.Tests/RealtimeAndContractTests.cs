@@ -71,8 +71,23 @@ public sealed class RealtimeAndContractTests : IAsyncLifetime {
         Assert.True(
             committed == current,
             "The API changed. Review the difference, then update the committed document with CATHODE_UPDATE_OPENAPI=1 dotnet test."
+            + FirstDifference(committed, current)
         );
         Assert.Contains("\"/api/v1/live/blocks/{id}/params\"", current, StringComparison.Ordinal);
+    }
+
+    static string FirstDifference(string committed, string current) {
+        var a = committed.Split('\n');
+        var b = current.Split('\n');
+        for (var i = 0; i < Math.Max(a.Length, b.Length); i++) {
+            var left = i < a.Length ? a[i] : "(end)";
+            var right = i < b.Length ? b[i] : "(end)";
+            if (left != right) {
+                return $"\nFirst difference at line {i + 1}:\n  committed: {left}\n  current:   {right}";
+            }
+        }
+
+        return string.Empty;
     }
 
     static string Normalise(string json) => JsonNode.Parse(json)!.ToJsonString(new() { WriteIndented = true }) + "\n";

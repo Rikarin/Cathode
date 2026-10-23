@@ -7,6 +7,7 @@ using Cathode.Server.Engine;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit.Sdk;
 
 namespace Cathode.Server.Tests;
 
@@ -44,7 +45,10 @@ public sealed class ServerFixture(string? socketPath = null, string? token = nul
 
     public IDspBlock Block(string id) {
         var graph = Graph ?? throw new InvalidOperationException("No graph.");
-        return graph.Block(graph.SlotOf(id));
+        var slot = graph.SlotOf(id);
+        return slot >= 0
+            ? graph.Block(slot)
+            : throw new InvalidOperationException($"No block '{id}' in the running graph (yet).");
     }
 
     public float Target(string block, string param) {
@@ -54,18 +58,26 @@ public sealed class ServerFixture(string? socketPath = null, string? token = nul
 
     public bool IsBypassed(string block) => Graph!.IsBypassed(Graph.SlotOf(block));
 
-    /// <summary>Engine commands are asynchronous; waits up to <paramref name="seconds" /> for <paramref name="condition" />.</summary>
+    /// <summary>
+    ///     Engine commands are asynchronous; waits up to <paramref name="seconds" /> for <paramref name="condition" />.
+    ///     An exception counts as "not yet" (the graph may not have swapped in) until the deadline, then it is reported.
+    /// </summary>
     public static async Task Eventually(Func<Task<bool>> condition, int seconds = 5) {
         var deadline = DateTime.UtcNow.AddSeconds(seconds);
+        Exception? last = null;
         while (DateTime.UtcNow < deadline) {
-            if (await condition()) {
-                return;
+            try {
+                if (await condition()) {
+                    return;
+                }
+            } catch (Exception e) when (e is not XunitException) {
+                last = e;
             }
 
             await Task.Delay(20);
         }
 
-        Assert.Fail($"Condition not met within {seconds} s.");
+        Assert.Fail($"Condition not met within {seconds} s.{(last is null ? "" : $" Last error: {last}")}");
     }
 
     public static Task Eventually(Func<bool> condition) => Eventually(() => Task.FromResult(condition()));
