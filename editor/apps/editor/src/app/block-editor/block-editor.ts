@@ -24,6 +24,8 @@ import { LiveStore } from '../state/live.store';
 import { AmpPanel } from './panels/amp-panel';
 import { CabPanel } from './panels/cab-panel';
 import { isCustomTableParam } from './panels/custom-shifter';
+import { isDynaCabSlotParam } from './panels/dynacab';
+import { DynaCabPanel } from './panels/dynacab-panel';
 import { IrPlayerPanel } from './panels/ir-player-panel';
 import { PeqPanel } from './panels/peq-panel';
 import { PitchPanel } from './panels/pitch-panel';
@@ -45,6 +47,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
     AmpPanel,
     CthBlockTile,
     CabPanel,
+    DynaCabPanel,
     IrPlayerPanel,
     ParamControl,
     PeqPanel,
@@ -193,6 +196,9 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             @case ('cab') {
               <cth-cab-panel [block]="block" />
             }
+            @case ('dynacab') {
+              <cth-dynacab-panel [block]="block" />
+            }
             @case ('peq') {
               <cth-peq-panel [block]="block" />
             }
@@ -280,7 +286,10 @@ export class BlockEditor {
   private readonly otherParams = computed(
     () =>
       this.info()?.params.filter(
-        p => p.id !== 'type' && !(this.block()?.type === 'pitch' && isCustomTableParam(p.id))
+        p =>
+          p.id !== 'type' &&
+          !(this.block()?.type === 'pitch' && isCustomTableParam(p.id)) &&
+          !(this.block()?.type === 'dynacab' && isDynaCabSlotParam(p.id))
       ) ?? []
   );
   /** The block's own controls, and its output stage (level, mix, balance, pan) set apart on the right. */

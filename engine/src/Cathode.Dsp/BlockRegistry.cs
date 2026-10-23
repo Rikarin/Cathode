@@ -16,6 +16,7 @@ public sealed class BlockRegistry {
         registry.Register(VolumePanBlock.Info, static () => new VolumePanBlock());
         registry.Register(FilterBlock.Info, static () => new FilterBlock());
         registry.Register(CabBlock.Info, static () => new CabBlock());
+        registry.Register(DynaCabBlock.Info, static () => new DynaCabBlock());
         registry.Register(GateBlock.Info, static () => new GateBlock());
         registry.Register(DelayBlock.Info, static () => new DelayBlock());
         registry.Register(ReverbBlock.Info, static () => new ReverbBlock());

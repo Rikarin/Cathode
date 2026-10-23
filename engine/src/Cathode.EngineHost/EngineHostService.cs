@@ -247,6 +247,7 @@ public sealed class EngineHostService : IDisposable {
             }
         }
 
+        RefreshBlocks();
         return errors is null
             ? IpcMessage.Ok(request.Id)
             : IpcMessage.Fail(request.Id, "Some parameters were not set.", errors);
@@ -331,6 +332,7 @@ public sealed class EngineHostService : IDisposable {
             }
         }
 
+        RefreshBlocks();
         return errors is null ? Ok(id) : IpcMessage.Fail(id, "Some parameters were not set.", errors);
     }
 
@@ -378,6 +380,22 @@ public sealed class EngineHostService : IDisposable {
         return true;
     }
 
+    /// <summary>
+    ///     Lets blocks with derived state (DynaCab's synthesised IRs) rebuild it for their new targets, here on the
+    ///     control thread rather than on the audio thread.
+    /// </summary>
+    void RefreshBlocks() {
+        if (latest is not { } graph) {
+            return;
+        }
+
+        for (var slot = 0; slot < graph.SlotIds.Count; slot++) {
+            if (graph.Block(slot) is IControlRefresh refresh) {
+                refresh.Refresh();
+            }
+        }
+    }
+
     static string NoParameter(ReadOnlySpan<char> param, ReadOnlySpan<char> block) =>
         $"No parameter '{param}' on block '{block}'.";
 
@@ -421,6 +439,8 @@ public sealed class EngineHostService : IDisposable {
         while (Engine.CollectRetired() is { } retired) {
             retired.Dispose();
         }
+
+        RefreshBlocks(); // picks up targets that modifiers moved on the audio thread
 
         if (device is not null) {
             TelemetryRegion.SetDriverOverloads(device.Overloads);
