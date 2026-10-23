@@ -37,6 +37,12 @@ public sealed class BlockRegistry {
         registry.Register(FxLoopBlock.Info, static () => new FxLoopBlock());
         registry.Register(MultiDelayBlock.Info, static () => new MultiDelayBlock());
         registry.Register(MegatapBlock.Info, static () => new MegatapBlock());
+        registry.Register(FormantBlock.Info, static () => new FormantBlock());
+        registry.Register(RingModulatorBlock.Info, static () => new RingModulatorBlock());
+        registry.Register(EnhancerBlock.Info, static () => new EnhancerBlock());
+        registry.Register(CrossoverBlock.Info, static () => new CrossoverBlock());
+        registry.Register(MultibandCompressorBlock.Info, static () => new MultibandCompressorBlock());
+        registry.Register(DynamicDistortionBlock.Info, static () => new DynamicDistortionBlock());
         return registry;
     }
 
