@@ -1,0 +1,128 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Cathode.Engine;
+using static Cathode.Audio.Native.NativeMethods;
+
+namespace Cathode.Audio.Native;
+
+public sealed record AudioSessionStats(ulong Callbacks, ulong Overloads, int InputLatencyFrames, int OutputLatencyFrames, long CallbackExceptions);
+
+/// <summary>
+/// A running device stream that calls an <see cref="IAudioProcessor"/> on the driver's real-time thread.
+/// Input channel 1 feeds both engine channels (a guitar DI is mono); engine L/R go to output channels 1 and 2.
+/// </summary>
+public sealed unsafe class NativeAudioSession : IDisposable
+{
+    private const int MaxFrames = 4096; // CTH_MAX_FRAMES
+
+    private readonly IAudioProcessor _processor;
+    private readonly float[] _silence = GC.AllocateArray<float>(MaxFrames, pinned: true);
+    private readonly float[] _scratchLeft = GC.AllocateArray<float>(MaxFrames, pinned: true);
+    private readonly float[] _scratchRight = GC.AllocateArray<float>(MaxFrames, pinned: true);
+    private GCHandle _self;
+    private nint _stream;
+    private long _exceptions;
+
+    private NativeAudioSession(IAudioProcessor processor) => _processor = processor;
+
+    public double SampleRate { get; private set; }
+
+    public int BufferFrames { get; private set; }
+
+    public int InputChannels { get; private set; }
+
+    public int OutputChannels { get; private set; }
+
+    /// <summary>Linear gain on the device output. 0 mutes it (the default for unattended tests).</summary>
+    public float OutputGain { get; set; } = 1f;
+
+    /// <summary>Opens <paramref name="deviceUid"/> (null for the default output device) without starting it.</summary>
+    public static NativeAudioSession Open(IAudioProcessor processor, string? deviceUid, double sampleRate, int bufferFrames, int inputChannels)
+    {
+        var stream = new NativeAudioSession(processor);
+        stream._self = GCHandle.Alloc(stream);
+        var config = new StreamConfigNative { SampleRate = sampleRate, BufferFrames = bufferFrames, InputChannels = inputChannels };
+        if (NativeMethods.Open(deviceUid, ref config, &Callback, (void*)GCHandle.ToIntPtr(stream._self), out stream._stream) != 0)
+        {
+            stream._self.Free();
+            throw new InvalidOperationException($"Could not open audio device: {LastErrorMessage()}");
+        }
+
+        stream.SampleRate = config.SampleRate;
+        stream.BufferFrames = config.BufferFrames;
+        stream.InputChannels = config.InputChannels;
+        stream.OutputChannels = config.OutputChannels;
+        return stream;
+    }
+
+    public void Start()
+    {
+        if (NativeMethods.Start(_stream) != 0)
+        {
+            throw new InvalidOperationException($"Could not start audio device: {LastErrorMessage()}");
+        }
+    }
+
+    public void Stop()
+    {
+        if (NativeMethods.Stop(_stream) != 0)
+        {
+            throw new InvalidOperationException($"Could not stop audio device: {LastErrorMessage()}");
+        }
+    }
+
+    public AudioSessionStats Stats()
+    {
+        NativeMethods.Stats(_stream, out var s);
+        return new AudioSessionStats(s.Callbacks, s.Overloads, s.InputLatencyFrames, s.OutputLatencyFrames, Interlocked.Read(ref _exceptions));
+    }
+
+    public void Dispose()
+    {
+        if (_stream != 0)
+        {
+            Close(_stream);
+            _stream = 0;
+        }
+
+        if (_self.IsAllocated)
+        {
+            _self.Free();
+        }
+    }
+
+    [UnmanagedCallersOnly]
+    private static void Callback(void* user, float** inputs, int inputChannels, float** outputs, int outputChannels, int frames)
+    {
+        var self = Unsafe.As<NativeAudioSession>(GCHandle.FromIntPtr((nint)user).Target!);
+        try
+        {
+            self.Process(inputs, inputChannels, outputs, outputChannels, frames);
+        }
+#pragma warning disable CA1031 // An exception must never unwind into the driver's thread.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            Interlocked.Increment(ref self._exceptions);
+        }
+    }
+
+    private void Process(float** inputs, int inputChannels, float** outputs, int outputChannels, int frames)
+    {
+        ReadOnlySpan<float> input = inputChannels > 0 ? new ReadOnlySpan<float>(inputs[0], frames) : _silence.AsSpan(0, frames);
+        var left = outputChannels > 0 ? new Span<float>(outputs[0], frames) : _scratchLeft.AsSpan(0, frames);
+        var right = outputChannels > 1 ? new Span<float>(outputs[1], frames) : _scratchRight.AsSpan(0, frames);
+
+        _processor.Process(new AudioIO(input, input, left, right));
+
+        var gain = OutputGain;
+        if (gain != 1f)
+        {
+            for (var i = 0; i < frames; i++)
+            {
+                left[i] *= gain;
+                right[i] *= gain;
+            }
+        }
+    }
+}
