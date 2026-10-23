@@ -7,12 +7,17 @@ public readonly record struct DeviceWindow(long Overloads, double P999, double M
 
 /// <summary>Driver-side health of the audio device, read by the host once per telemetry window.</summary>
 public interface IDeviceMonitor {
+    /// <summary>Cumulative driver overloads, read without allocating (polled at the telemetry rate).</summary>
+    long Overloads { get; }
+
     /// <summary>Returns the window that just ended (overloads are cumulative) and starts a new one.</summary>
     DeviceWindow CloseWindow();
 }
 
 /// <summary>Reads a <see cref="NativeAudioSession" />'s overload counter and native timing histogram.</summary>
 public sealed class NativeDeviceMonitor(NativeAudioSession session) : IDeviceMonitor {
+    public long Overloads => session.Overloads;
+
     public DeviceWindow CloseWindow() {
         var timing = session.Timing();
         session.ResetTiming();

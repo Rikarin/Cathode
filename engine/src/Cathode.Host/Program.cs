@@ -43,6 +43,7 @@ int Usage() {
            --serve --socket <path> [options]
                                            run the engine for Cathode.Server until SIGINT or SIGTERM
                  --device <uid>  --rate 48000  --buffer 64  --null-audio  --mute
+                 --telemetry <path>  (shared-memory telemetry; default <socket>.<pid>.telemetry)
            --self-test                     offline real-time path check (no device)
            --devices                       list audio devices
            --audio-test [options]          run the engine on a device and report timing and dropouts
@@ -50,8 +51,8 @@ int Usage() {
                  (output is muted unless --monitor; with --input, input 1 is processed)
            --latency-test [options]        round-trip latency through a loopback cable (output 1 -> input 1)
                  --device <uid>  --rate 48000  --buffer 64  --seconds 5   (plays audible clicks)
-           --bench-nam --model <file.nam> | --graph <graph.json> [options]
-                                           CPU cost of a NAM model or a whole graph through the engine (offline)
+           --bench-nam --model <file.nam|file.aidax> | --graph <graph.json> [options]
+                                           CPU cost of a capture model or a whole graph through the engine (offline)
                  --buffer 64  --seconds 10  --size <0..1 for slimmable models>  --exact-tanh  --ftz  --silent-input
            --version
          """

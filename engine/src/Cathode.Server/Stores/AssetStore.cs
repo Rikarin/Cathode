@@ -7,7 +7,8 @@ using Microsoft.Extensions.Options;
 namespace Cathode.Server.Stores;
 
 /// <summary>
-///     Content-addressed store for impulse responses (.wav) and NAM models (.nam) in <c>&lt;data&gt;/assets</c>.
+///     Content-addressed store for impulse responses (.wav) and amp captures (NAM .nam, AIDA-X .aidax/.json) in
+///     <c>&lt;data&gt;/assets</c>.
 ///     Presets reference assets as <c>sha256:&lt;hex&gt;</c>, so the same file uploaded twice is stored once and a
 ///     preset always gets exactly the file it was made with.
 /// </summary>
@@ -53,10 +54,11 @@ public sealed class AssetStore {
     public async Task<AssetInfo> AddAsync(Stream content, string name, CancellationToken cancellationToken) {
         var kind = Path.GetExtension(name).ToLowerInvariant() switch {
             ".nam" => "nam",
+            ".aidax" or ".json" => "aidax",
             ".wav" => "ir",
             _ => throw new RigException(
                 415,
-                $"Unsupported asset '{name}': upload a .nam model or a .wav impulse response."
+                $"Unsupported asset '{name}': upload a .nam or .aidax model or a .wav impulse response."
             )
         };
 
@@ -111,8 +113,20 @@ public sealed class AssetStore {
         }
     }
 
-    string FilePath(string reference, string kind) =>
-        Path.Combine(folder, reference[Prefix.Length..] + (kind == "nam" ? ".nam" : ".wav"));
+    /// <summary>True for asset kinds that go into an amp's model slot.</summary>
+    public static bool IsModel(string kind) => kind is "nam" or "aidax";
+
+    /// <summary>
+    ///     The extension a stored asset of <paramref name="kind" /> gets. The amp picks the model runtime by extension.
+    /// </summary>
+    public static string Extension(string kind) =>
+        kind switch {
+            "nam" => ".nam",
+            "aidax" => ".aidax",
+            _ => ".wav"
+        };
+
+    string FilePath(string reference, string kind) => Path.Combine(folder, reference[Prefix.Length..] + Extension(kind));
 
     void SaveIndex() =>
         File.WriteAllText(

@@ -30,7 +30,11 @@ public sealed class ServerFixture(string? socketPath = null) : WebApplicationFac
 
     public async Task<HttpClient> ConnectedClientAsync() {
         var client = CreateClient();
-        await Eventually(async () => (await client.GetFromJsonAsync<SystemInfo>("/api/v1/system"))!.Engine.Connected);
+        // Generous: a loaded CI runner can take a while to start a separate host process and connect to it.
+        await Eventually(
+            async () => (await client.GetFromJsonAsync<SystemInfo>("/api/v1/system"))!.Engine.Connected,
+            30
+        );
         return client;
     }
 

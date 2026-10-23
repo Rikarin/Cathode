@@ -26,8 +26,8 @@ public sealed class InProcessEngineLink : IEngineLink {
         telemetry = new(
             _ => TelemetryReceived?.Invoke(service.Telemetry()),
             null,
-            TimeSpan.FromMilliseconds(33),
-            TimeSpan.FromMilliseconds(33)
+            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromMilliseconds(100)
         );
     }
 

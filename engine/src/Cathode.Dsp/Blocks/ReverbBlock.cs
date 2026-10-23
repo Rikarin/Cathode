@@ -1,10 +1,13 @@
 using Cathode.Dsp.Filters;
 using Cathode.Dsp.Parameters;
+using Cathode.Dsp.Reverb;
 
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     Algorithmic reverb: an 8-line feedback delay network (Jot and Chaigne 1991) with a Householder feedback matrix.
+///     Algorithmic reverb. Room, Hall and Plate are an 8-line feedback delay network (Jot and Chaigne 1991) with a
+///     Householder feedback matrix; Dattorro is Dattorro's plate (<see cref="DattorroPlate" />) and Spring a dispersive
+///     two-spring tank (<see cref="SpringTank" />). Pre-delay, low cut, mix and level are shared.
 /// </summary>
 /// <remarks>
 ///     Pre-delay and four Schroeder allpass diffusers feed the network. Each line's gain is set from the decay time so
@@ -21,6 +24,9 @@ public sealed class ReverbBlock : DspBlock {
     public const int LowCut = 5;
     public const int Mix = 6;
     public const int Level = 7;
+
+    public const int Dattorro = 3;
+    public const int Spring = 4;
 
     public const float LowCutOff = 20f;
     const int Lines = 8;
@@ -50,6 +56,13 @@ public sealed class ReverbBlock : DspBlock {
     readonly float[] gains = new float[Lines];
     readonly float[] damping = new float[Lines];
     readonly float[] outputs = new float[Lines];
+    readonly DattorroPlate plate = new();
+    readonly SpringTank spring = new();
+    int activeType = -1;
+    float diffusion;
+    float damp;
+    float modDepth;
+    double modStep;
     SvfState lowCutLeft, lowCutRight;
     double modPhase;
     float mix;
@@ -60,7 +73,7 @@ public sealed class ReverbBlock : DspBlock {
         "Reverb",
         "Reverb",
         [
-            ParamDescriptor.Choice("type", "Type", ["Room", "Hall", "Plate"], 1),
+            ParamDescriptor.Choice("type", "Type", ["Room", "Hall", "Plate", "Dattorro Plate", "Spring"], 1),
             ParamDescriptor.Float("decay", "Decay Time", 0.1f, 20f, 2f, "s", ParamTaper.Log),
             new("size", "Size", ParamKind.Float, 0f, 100f, 50f, "%", Smoothing: ParamSmoothing.Step),
             ParamDescriptor.Float("predelay", "Pre-Delay", 0f, MaxPreDelayMs, 0f, "ms"),
@@ -86,6 +99,9 @@ public sealed class ReverbBlock : DspBlock {
         foreach (var line in lines) {
             line.Allocate((int)((longest * MaxSizeScale + ModulationMs * 2) * 0.001 * rate) + 4);
         }
+
+        plate.Allocate(rate, MaxSizeScale);
+        spring.Allocate(rate);
     }
 
     protected override void OnReset() {
@@ -99,6 +115,8 @@ public sealed class ReverbBlock : DspBlock {
         }
 
         Array.Clear(damping);
+        plate.Clear();
+        spring.Clear();
         lowCutLeft.Reset();
         lowCutRight.Reset();
         modPhase = 0;
@@ -116,6 +134,9 @@ public sealed class ReverbBlock : DspBlock {
             foreach (var line in lines) {
                 line.Dispose();
             }
+
+            plate.Dispose();
+            spring.Dispose();
         }
 
         base.Dispose(disposing);
@@ -128,24 +149,34 @@ public sealed class ReverbBlock : DspBlock {
         var decay = Params.Advance(Decay, io.Length);
         var preDelay = Math.Max(1f, Params.Advance(PreDelay, io.Length) * 0.001f * rate);
         var mix = Params.Advance(Mix, io.Length) / 100f;
-        var diffusion = DiffusionGain[type];
+        var dampingHz = Params.Advance(Damping, io.Length);
 
-        for (var i = 0; i < Lines; i++) {
-            lengths[i] = LineMs[type][i] * scale * 0.001f * rate;
-            gains[i] = MathF.Pow(10f, -3f * lengths[i] / (decay * rate)); // -60 dB after `decay` seconds
+        if (type != activeType) {
+            // The tank that takes over starts empty rather than replaying whatever it held when last used.
+            if (activeType >= 0) {
+                ClearTank(type);
+            }
+
+            activeType = type;
         }
 
-        // One-pole damping in each line: the coefficient that puts its -3 dB point near the chosen frequency.
-        var dampingHz = Params.Advance(Damping, io.Length);
-        var damp = MathF.Exp(-2f * MathF.PI * dampingHz / rate);
+        switch (type) {
+            case Dattorro:
+                plate.Configure(decay, scale, dampingHz);
+                break;
+            case Spring:
+                spring.Configure(decay, scale);
+                break;
+            default:
+                ConfigureNetwork(type, decay, scale, dampingHz, rate);
+                break;
+        }
 
         var lowCut = Params.Advance(LowCut, io.Length);
         var useLowCut = lowCut > LowCutOff;
         var lowCutCoefficients =
             useLowCut ? SvfCoefficients.Design(BiquadType.HighPass, rate, lowCut, 0.7071) : default;
 
-        var modDepth = ModulationMs * 0.001f * rate;
-        var modStep = 2 * Math.PI * 0.7 / rate;
         var mixStep = (mix - this.mix) / io.Length;
         var currentMix = this.mix;
 
@@ -153,37 +184,12 @@ public sealed class ReverbBlock : DspBlock {
             var dryLeft = io.Left[n];
             var dryRight = io.Right[n];
             var x = this.preDelay.ReadWrite(0.5f * (dryLeft + dryRight), preDelay);
-            foreach (var diffuser in diffusers) {
-                x = diffuser.Process(x, diffusion);
-            }
+            var (wetLeft, wetRight) = type switch {
+                Dattorro => plate.Tick(x),
+                Spring => spring.Tick(x),
+                _ => TickNetwork(x)
+            };
 
-            var modulation = modDepth * (float)Math.Sin(modPhase);
-            modPhase += modStep;
-            if (modPhase >= 2 * Math.PI) {
-                modPhase -= 2 * Math.PI;
-            }
-
-            // Read every line (two of them modulated), damp, and apply the decay gain.
-            float sum = 0;
-            for (var i = 0; i < Lines; i++) {
-                var length = lengths[i] + (i == 1 ? modulation + modDepth : i == 6 ? modDepth - modulation : 0f);
-                var y = lines[i].Read(length);
-                damping[i] = y + (damping[i] - y) * damp;
-                outputs[i] = damping[i] * gains[i];
-                sum += outputs[i];
-            }
-
-            // Householder feedback (I - 2/N * 11^T) plus the diffused input, written back into the lines.
-            var reflection = sum * (2f / Lines);
-            float wetLeft = 0, wetRight = 0;
-            for (var i = 0; i < Lines; i++) {
-                lines[i].Write(outputs[i] - reflection + x * 0.35f);
-                wetLeft += outputs[i] * LeftSigns[i];
-                wetRight += outputs[i] * RightSigns[i];
-            }
-
-            wetLeft *= 0.5f;
-            wetRight *= 0.5f;
             if (useLowCut) {
                 wetLeft = (float)lowCutLeft.Tick(lowCutCoefficients, wetLeft);
                 wetRight = (float)lowCutRight.Tick(lowCutCoefficients, wetRight);
@@ -208,6 +214,74 @@ public sealed class ReverbBlock : DspBlock {
         GainRamp.Apply(io.Left, this.outputGain, outputGain);
         GainRamp.Apply(io.Right, this.outputGain, outputGain);
         this.outputGain = outputGain;
+    }
+
+    void ClearTank(int type) {
+        switch (type) {
+            case Dattorro:
+                plate.Clear();
+                break;
+            case Spring:
+                spring.Clear();
+                break;
+            default:
+                foreach (var diffuser in diffusers) {
+                    diffuser.Clear();
+                }
+
+                foreach (var line in lines) {
+                    line.Clear();
+                }
+
+                Array.Clear(damping);
+                break;
+        }
+    }
+
+    void ConfigureNetwork(int type, float decay, float scale, float dampingHz, float rate) {
+        diffusion = DiffusionGain[type];
+        for (var i = 0; i < Lines; i++) {
+            lengths[i] = LineMs[type][i] * scale * 0.001f * rate;
+            gains[i] = MathF.Pow(10f, -3f * lengths[i] / (decay * rate)); // -60 dB after `decay` seconds
+        }
+
+        // One-pole damping in each line: the coefficient that puts its -3 dB point near the chosen frequency.
+        damp = MathF.Exp(-2f * MathF.PI * dampingHz / rate);
+        modDepth = ModulationMs * 0.001f * rate;
+        modStep = 2 * Math.PI * 0.7 / rate;
+    }
+
+    (float Left, float Right) TickNetwork(float x) {
+        foreach (var diffuser in diffusers) {
+            x = diffuser.Process(x, diffusion);
+        }
+
+        var modulation = modDepth * (float)Math.Sin(modPhase);
+        modPhase += modStep;
+        if (modPhase >= 2 * Math.PI) {
+            modPhase -= 2 * Math.PI;
+        }
+
+        // Read every line (two of them modulated), damp, and apply the decay gain.
+        float sum = 0;
+        for (var i = 0; i < Lines; i++) {
+            var length = lengths[i] + (i == 1 ? modulation + modDepth : i == 6 ? modDepth - modulation : 0f);
+            var y = lines[i].Read(length);
+            damping[i] = y + (damping[i] - y) * damp;
+            outputs[i] = damping[i] * gains[i];
+            sum += outputs[i];
+        }
+
+        // Householder feedback (I - 2/N * 11^T) plus the diffused input, written back into the lines.
+        var reflection = sum * (2f / Lines);
+        float wetLeft = 0, wetRight = 0;
+        for (var i = 0; i < Lines; i++) {
+            lines[i].Write(outputs[i] - reflection + x * 0.35f);
+            wetLeft += outputs[i] * LeftSigns[i];
+            wetRight += outputs[i] * RightSigns[i];
+        }
+
+        return (wetLeft * 0.5f, wetRight * 0.5f);
     }
 
     /// <summary>Circular buffer with a fractional (linear) read behind the most recent write.</summary>

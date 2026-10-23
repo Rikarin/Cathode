@@ -7,13 +7,21 @@ namespace Cathode.Audio;
 ///     A device-less backend that calls the processor on a dedicated thread at real-time pace with silent input.
 ///     Used for soak tests and API tests on CI runners, which have no sound card.
 /// </summary>
+/// <remarks>
+///     The pace is real time on average, not per callback: the thread sleeps while it is ahead and then catches up in
+///     a burst, like a driver with a larger buffer. Spinning until each deadline would burn a core per instance and
+///     starve small CI runners that host several test servers at once.
+/// </remarks>
 public sealed class NullBackend : IDisposable {
     readonly int sampleRate;
     readonly int blockSize;
     Thread? thread;
     volatile bool running;
 
-    /// <summary>Callbacks that started later than their deadline.</summary>
+    /// <summary>How far behind the thread may fall (catching up in a burst) before it gives up and resynchronises.</summary>
+    static readonly long MaxLag = Stopwatch.Frequency / 10;
+
+    /// <summary>Times the thread fell more than 100 ms behind (and skipped ahead).</summary>
     public long LateCallbacks { get; private set; }
 
     public NullBackend(int sampleRate, int blockSize) {
@@ -50,13 +58,13 @@ public sealed class NullBackend : IDisposable {
         while (running) {
             processor.Process(new(input, input, outLeft, outRight));
             var now = Stopwatch.GetTimestamp();
-            if (now > deadline) {
+            if (now - deadline > MaxLag) {
                 LateCallbacks++;
                 deadline = now;
             }
 
-            while (Stopwatch.GetTimestamp() < deadline) {
-                Thread.SpinWait(64);
+            while (deadline - Stopwatch.GetTimestamp() > 0) {
+                Thread.Sleep(1);
             }
 
             deadline += period;

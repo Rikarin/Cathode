@@ -1,0 +1,261 @@
+using System.IO.MemoryMappedFiles;
+using System.Runtime.InteropServices;
+
+namespace Cathode.Engine.Telemetry;
+
+/// <summary>
+///     Shared-memory telemetry (docs/02-architecture.md, telemetry plane): a fixed-layout region the audio thread writes
+///     once per callback and any number of readers poll, in this process or another, without a lock and without
+///     resetting anything. It holds the callback count, a frame clock, the CPU histogram (cumulative, so readers diff
+///     two snapshots for a window), engine overruns, driver overloads and per-slot meter peaks.
+/// </summary>
+/// <remarks>
+///     <para>
+///         Consistency is a seqlock: the writer makes <see cref="TelemetryLayout.Sequence" /> odd, writes, then makes
+///         it even; a reader copies the region and retries if the sequence was odd or changed. The writer never waits.
+///     </para>
+///     <para>
+///         Meters live in <see cref="TelemetryLayout.MeterSlots" /> slots of <see cref="TelemetryLayout.FramesPerSlot" />
+///         frames each, tagged with their absolute slot number (frame / FramesPerSlot). A reader takes the maximum over
+///         the slots since its previous read, so every peak is seen once by every reader, at any polling rate up to
+///         the history length (64 x 256 frames, 340 ms at 48 kHz).
+///     </para>
+///     <para>
+///         Across processes the region is a memory-mapped file: the host creates it next to its IPC socket and names
+///         it in the <c>hello</c> reply; the server maps it read-only.
+///     </para>
+/// </remarks>
+public sealed unsafe class TelemetryRegion : IDisposable {
+    readonly MemoryMappedFile? file;
+    readonly MemoryMappedViewAccessor? view;
+    readonly bool owner;
+    TelemetryLayout* layout;
+
+    /// <summary>The backing file, or null for an in-memory region.</summary>
+    public string? Path { get; }
+
+    public double SampleRate => layout->SampleRate;
+
+    TelemetryRegion(
+        TelemetryLayout* layout,
+        string? path,
+        MemoryMappedFile? file,
+        MemoryMappedViewAccessor? view,
+        bool owner
+    ) {
+        this.layout = layout;
+        this.file = file;
+        this.view = view;
+        this.owner = owner;
+        Path = path;
+    }
+
+    /// <summary>A region in native memory, for an engine and readers in the same process.</summary>
+    public static TelemetryRegion CreateInMemory(double sampleRate) {
+        var memory = (TelemetryLayout*)NativeMemory.AlignedAlloc((nuint)sizeof(TelemetryLayout), 64);
+        Initialise(memory, sampleRate);
+        return new(memory, null, null, null, true);
+    }
+
+    /// <summary>Creates (or truncates) <paramref name="path" /> and maps it for writing.</summary>
+    public static TelemetryRegion CreateFile(string path, double sampleRate) {
+        var size = sizeof(TelemetryLayout);
+        var stream = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete);
+        stream.SetLength(size);
+        var file = MemoryMappedFile.CreateFromFile(
+            stream,
+            null,
+            size,
+            MemoryMappedFileAccess.ReadWrite,
+            HandleInheritability.None,
+            false
+        );
+        var view = file.CreateViewAccessor(0, size, MemoryMappedFileAccess.ReadWrite);
+        var mapped = Acquire(view);
+        var memory = (TelemetryLayout*)(mapped + view.PointerOffset);
+        Initialise(memory, sampleRate);
+        return new(memory, path, file, view, true);
+    }
+
+    /// <summary>Maps an existing region read-only. Throws <see cref="InvalidDataException" /> if it is not one.</summary>
+    public static TelemetryRegion OpenFile(string path) {
+        var size = sizeof(TelemetryLayout);
+        var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        if (stream.Length < size) {
+            stream.Dispose();
+            throw new InvalidDataException($"'{path}' is too small to be a telemetry region.");
+        }
+
+        var file = MemoryMappedFile.CreateFromFile(
+            stream,
+            null,
+            0,
+            MemoryMappedFileAccess.Read,
+            HandleInheritability.None,
+            false
+        );
+        var view = file.CreateViewAccessor(0, size, MemoryMappedFileAccess.Read);
+        var mapped = Acquire(view);
+        var memory = (TelemetryLayout*)(mapped + view.PointerOffset);
+        var region = new TelemetryRegion(memory, path, file, view, false);
+        if (memory->Magic != TelemetryLayout.MagicValue
+            || memory->Version != TelemetryLayout.CurrentVersion
+            || memory->Size != size) {
+            region.Dispose();
+            throw new InvalidDataException($"'{path}' is not a compatible telemetry region.");
+        }
+
+        return region;
+    }
+
+    /// <summary>
+    ///     Audio thread: account one callback of <paramref name="frames" /> that took <paramref name="percent" /> of its
+    ///     budget, with the peaks it saw. Lock-free and allocation-free.
+    /// </summary>
+    public void RecordCallback(int frames, double percent, float input, float outputLeft, float outputRight) {
+        var l = layout;
+        Interlocked.Increment(ref l->Sequence); // odd: a write is in progress (and a full fence before the data)
+
+        var start = l->Frames;
+        l->Callbacks++;
+        l->Frames = start + frames;
+        l->LastPercent = percent;
+        if (percent > l->MaxPercent) {
+            l->MaxPercent = percent;
+        }
+
+        if (percent >= 100.0) {
+            l->Overruns++;
+        }
+
+        l->Histogram[Math.Clamp((int)percent, 0, TelemetryLayout.Bins - 1)]++;
+
+        var first = start / TelemetryLayout.FramesPerSlot;
+        var last = (start + Math.Max(frames, 1) - 1) / TelemetryLayout.FramesPerSlot;
+        if (last - first >= TelemetryLayout.MeterSlots) {
+            first = last - TelemetryLayout.MeterSlots + 1;
+        }
+
+        for (var slot = first; slot <= last; slot++) {
+            var i = (int)(slot % TelemetryLayout.MeterSlots);
+            if (l->SlotNumber[i] != slot) {
+                l->SlotNumber[i] = slot;
+                l->InputPeak[i] = input;
+                l->OutputLeftPeak[i] = outputLeft;
+                l->OutputRightPeak[i] = outputRight;
+            } else {
+                l->InputPeak[i] = Math.Max(l->InputPeak[i], input);
+                l->OutputLeftPeak[i] = Math.Max(l->OutputLeftPeak[i], outputLeft);
+                l->OutputRightPeak[i] = Math.Max(l->OutputRightPeak[i], outputRight);
+            }
+        }
+
+        Volatile.Write(ref l->Sequence, l->Sequence + 1); // even again; release orders the data before it
+    }
+
+    /// <summary>Host control thread: publish the driver's cumulative overload (xrun) count.</summary>
+    public void SetDriverOverloads(long count) => Volatile.Write(ref layout->DriverOverloads, count);
+
+    /// <summary>
+    ///     Copies a consistent snapshot into <paramref name="snapshot" />. Returns false if the writer kept the region
+    ///     busy for every attempt (it then holds the previous contents).
+    /// </summary>
+    public bool TryRead(TelemetrySnapshot snapshot) {
+        var l = layout;
+        for (var attempt = 0; attempt < 64; attempt++) {
+            var before = Volatile.Read(ref l->Sequence);
+            if ((before & 1) != 0) {
+                Thread.SpinWait(16);
+                continue;
+            }
+
+            snapshot.Callbacks = l->Callbacks;
+            snapshot.Frames = l->Frames;
+            snapshot.Overruns = l->Overruns;
+            snapshot.LastPercent = l->LastPercent;
+            snapshot.MaxPercent = l->MaxPercent;
+            new ReadOnlySpan<long>(l->Histogram, TelemetryLayout.Bins).CopyTo(snapshot.Histogram);
+            new ReadOnlySpan<long>(l->SlotNumber, TelemetryLayout.MeterSlots).CopyTo(snapshot.SlotNumbers);
+            new ReadOnlySpan<float>(l->InputPeak, TelemetryLayout.MeterSlots).CopyTo(snapshot.InputPeaks);
+            new ReadOnlySpan<float>(l->OutputLeftPeak, TelemetryLayout.MeterSlots).CopyTo(snapshot.OutputLeftPeaks);
+            new ReadOnlySpan<float>(l->OutputRightPeak, TelemetryLayout.MeterSlots).CopyTo(snapshot.OutputRightPeaks);
+
+            Interlocked.MemoryBarrier(); // the copies above must complete before the sequence is checked again
+            if (Volatile.Read(ref l->Sequence) == before) {
+                snapshot.DriverOverloads = Volatile.Read(ref l->DriverOverloads);
+                snapshot.SampleRate = l->SampleRate;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void Dispose() {
+        if (layout is null) {
+            return;
+        }
+
+        if (view is not null) {
+            view.SafeMemoryMappedViewHandle.ReleasePointer();
+            view.Dispose();
+            file!.Dispose();
+            if (owner && Path is not null) {
+                try {
+                    File.Delete(Path);
+                } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            }
+        } else {
+            NativeMemory.AlignedFree(layout);
+        }
+
+        layout = null;
+    }
+
+    static byte* Acquire(MemoryMappedViewAccessor view) {
+        byte* pointer = null;
+        view.SafeMemoryMappedViewHandle.AcquirePointer(ref pointer);
+        return pointer;
+    }
+
+    static void Initialise(TelemetryLayout* memory, double sampleRate) {
+        NativeMemory.Clear(memory, (nuint)sizeof(TelemetryLayout));
+        memory->Version = TelemetryLayout.CurrentVersion;
+        memory->Size = sizeof(TelemetryLayout);
+        memory->SampleRate = sampleRate;
+        for (var i = 0; i < TelemetryLayout.MeterSlots; i++) {
+            memory->SlotNumber[i] = -1;
+        }
+
+        // Last, so a reader that checks the magic never sees a half-initialised region.
+        Volatile.Write(ref memory->Magic, TelemetryLayout.MagicValue);
+    }
+}
+
+/// <summary>The region's binary layout. Version it when it changes: other processes map it.</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct TelemetryLayout {
+    public const uint MagicValue = 0x54485443; // "CTHT"
+    public const int CurrentVersion = 1;
+    public const int Bins = 201;
+    public const int MeterSlots = 64;
+    public const int FramesPerSlot = 256;
+
+    public uint Magic;
+    public int Version;
+    public int Size;
+    public int Reserved;
+    public double SampleRate;
+    public long Sequence;
+    public long Callbacks;
+    public long Frames;
+    public long Overruns;
+    public long DriverOverloads;
+    public double LastPercent;
+    public double MaxPercent;
+    public fixed long Histogram[Bins];
+    public fixed long SlotNumber[MeterSlots];
+    public fixed float InputPeak[MeterSlots];
+    public fixed float OutputLeftPeak[MeterSlots];
+    public fixed float OutputRightPeak[MeterSlots];
+}

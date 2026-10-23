@@ -41,7 +41,11 @@ Each spike is a throwaway prototype with a written result in `docs/adr/`.
 - [x] `IDspBlock` contract, `ParamBank` + smoothers, `BlockDescriptor` + catalogue registry
 - [x] Grid model → DAG → **graph compiler**: topological sort, buffer colouring, implicit mixers, latency compensation
 - [x] SPSC command ring, RCU graph swap, retired-graph hand-back
-- [ ] Telemetry shared-memory region (meters, CPU histogram ✅ in-process, xruns)
+- [x] Telemetry shared-memory region (`TelemetryRegion`, [02 §5.9](02-architecture.md#59-telemetry)). The host maps it to a file, and the Server reads it at 30 Hz for WebSocket meters.
+  - It holds meter peaks in 64 frame-tagged slots that readers never reset, the cumulative CPU histogram (readers take windowed p99.9 and max), engine overruns and driver overloads.
+  - Writes are protected by a seqlock, and the audio-thread write is allocation-free.
+  - IPC telemetry dropped from 30 to 10 Hz.
+  - RMS, per-block CPU and the scope/RTA rings come with the editor (Phase 4).
 - [x] Generated per-block test suite (null, determinism, properties, zero-allocation)
 - [x] Blocks: **Input**, **Output**, **Shunt**, implicit mixing, **Volume/Pan**, **Filter** (TPT SVF). An explicit Mixer block is still to do
 
@@ -49,16 +53,34 @@ Each spike is a throwaway prototype with a written result in `docs/adr/`.
 
 ---
 
-## Phase 2: MVP block set (6–8 weeks): *"it sounds like a real rig"* — *in progress*
+## Phase 2: MVP block set (6–8 weeks): *"it sounds like a real rig"* — *done except the playability tests*
 
 Ordered by value to a guitarist:
 
-1. [ ] **Amp (capture tier)**: NAM A1/A2 ✅ via native (`NamAmpBlock`, ADR-0003); AIDA-X still to do, input trim, loudness normalisation, output level, simple post-EQ (bass, mid, treble, presence as shelving/peaking filters on the capture)
+1. [x] **Amp (capture tier)**: `CaptureAmpBlock` with input trim, loudness normalisation, output level, and a post-EQ:
+   - bass: low shelf at 120 Hz
+   - middle: peak at 650 Hz
+   - treble: high shelf at 2.5 kHz
+   - presence: peak at 5 kHz
+
+   Models:
+   - **NAM** A1/A2 run natively (`NamAmpBlock`, ADR-0003).
+   - **AIDA-X** (RTNeural Keras JSON, `.aidax`/`.json`) runs in managed code (`AidaModel`): stacked LSTM or GRU plus a dense head, with `in_skip`, `in_gain` and `out_gain` mapped to loudness the same way as NeuralAudio.
+     - It matches a naive reference evaluation to 1e-4.
+     - Its weights live in native memory, and processing allocates nothing.
+     - Cost: LSTM-16 1.8 %, LSTM-40 7.6 % of one core (JIT, M-series).
+
+   *Not supported:* conditioned (multi-input) AIDA-X models, and resampling models trained at another rate.
 2. [x] **Cab**: zero-latency two-stage convolution (direct head + uniform partitioned tail, written in C#), 2 IR slots with levels, low/high cut, WAV IRs at any rate (resampled), stereo IRs, unit-energy normalisation. *Still to do:* IR alignment, min-phase trim
 3. [x] **Gate/Expander** block (dB-domain smoothing, hold, linked detector). *Still to do:* the gate built into the Input block, sidechain filters
 4. [x] **Drive**: Overdrive / Distortion / Fuzz voicings, ADAA clippers inside 4× IIR half-band oversampling (signal-to-aliasing 63–73 dB at full drive, 2.5 kHz). *Still to do:* WDF circuit models (TS, Rat, Klon)
 5. [x] **Delay**: digital, analog (dark, saturating repeats), tape (wow/flutter, saturation); tempo sync; Hermite interpolation; spillover-ready
-6. [ ] **Reverb**: 8-line FDN Room / Hall / Plate ✅ (T60 within 20 % of the setting). *Still to do:* a Dattorro plate and a spring (dispersion allpass chain)
+6. [x] **Reverb** types:
+   - Room, Hall and Plate: an 8-line FDN.
+   - **Dattorro Plate**: the 1997 figure-eight tank, with modulated allpasses, decay derived from T60, and the paper's output taps.
+   - **Spring**: two springs, each a chain of 80 stretched first-order allpasses inside a feedback loop (Välimäki, Parker and Abel 2010), so a click turns into a falling chirp. 300 Hz arrives more than 10 ms after 3 kHz.
+
+   Every type's measured T60 is within 20 % of the setting. Switching type starts the new tank empty. *Not modelled:* the spring's separate high-chirp branch, and a spring drive/tension control.
 7. [x] **Compressor** (Pedal/Studio/Opto, soft knee, parallel mix), **PEQ** (5-band SVF), **GEQ** (10-band octave)
 8. [x] **Chorus**, **Flanger**, **Phaser**, **Tremolo/Panner** (shared LFO and Hermite delay line)
 9. [x] **Wah** (Classic/Vox/Wide resonant sweep). *Still to do:* a component-level inductor model; driving it from an expression pedal comes with modifiers in Phase 5

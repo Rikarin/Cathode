@@ -1,0 +1,25 @@
+namespace Cathode.Dsp.Capture;
+
+/// <summary>
+///     A neural capture of an amp or pedal (a NAM model, an AIDA-X model). Load and <see cref="Reset" /> run on the
+///     control thread; <see cref="Process" /> is real-time safe.
+/// </summary>
+public interface ICaptureModel : IDisposable {
+    /// <summary>The model format, e.g. <c>NAM</c> or <c>AIDA-X</c>.</summary>
+    string Format { get; }
+
+    /// <summary>The network, e.g. <c>WaveNet</c> or <c>LSTM-16</c>.</summary>
+    string Architecture { get; }
+
+    /// <summary>The rate the model was trained at; it is run at the engine rate regardless.</summary>
+    double ExpectedSampleRate { get; }
+
+    /// <summary>Output loudness in dB, when the file records it; used to normalise models to a common level.</summary>
+    double? Loudness { get; }
+
+    /// <summary>Control thread: allocate for blocks of up to <paramref name="maxFrames" />, clear the state and pre-warm.</summary>
+    void Reset(double sampleRate, int maxFrames);
+
+    /// <summary>Audio thread. <paramref name="input" /> and <paramref name="output" /> may be the same span.</summary>
+    void Process(ReadOnlySpan<float> input, Span<float> output);
+}

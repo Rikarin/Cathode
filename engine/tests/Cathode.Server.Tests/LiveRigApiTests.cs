@@ -176,6 +176,28 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task An_aida_x_model_uploads_as_a_model_and_runs_in_the_capture_amp() {
+        const string model = """
+            {"in_shape":[null,null,1],"in_skip":1,"out_gain":2,"layers":[
+              {"type":"lstm","activation":"","shape":[null,null,2],"weights":[
+                [[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]],
+                [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]],
+                [0,0,0,0,0,0,0,0]]},
+              {"type":"dense","activation":"","shape":[null,null,1],"weights":[[[0.5],[0.5]],[0]]}]}
+            """;
+        var asset = await Upload("crunch.json", System.Text.Encoding.UTF8.GetBytes(model));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("nam", 0, 3));
+
+        var live = await Put("/api/v1/live/blocks/nam1/assets/model", new AssetRequest(asset.Ref));
+
+        Assert.Equal("aidax", asset.Kind);
+        Assert.Equal(asset.Ref, live.Preset.Blocks.Single(b => b.Id == "nam1").Assets["model"]);
+        await ServerFixture.Eventually(
+            () => (server.Block("nam1") as Cathode.Dsp.Blocks.CaptureAmpBlock)?.CaptureModel?.Format == "AIDA-X"
+        );
+    }
+
+    [Fact]
     public async Task Presets_save_list_and_load() {
         await Post("/api/v1/live/blocks", new AddBlockRequest("chorus", 0, 6));
         var saved = await Post("/api/v1/live/save", new SaveRequest("Clean Chorus"));

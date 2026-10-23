@@ -5,6 +5,7 @@ using Cathode.Dsp.Native;
 using Cathode.Dsp.Tuning;
 using Cathode.Engine;
 using Cathode.Engine.Graph;
+using Cathode.Engine.Telemetry;
 using Cathode.Ipc;
 
 namespace Cathode.EngineHost;
@@ -37,20 +38,30 @@ public sealed class EngineHostService : IDisposable {
 
     public HostInfo Info { get; }
 
+    /// <summary>
+    ///     The shared-memory telemetry the engine writes: a file named in <see cref="Info" /> when the host serves
+    ///     another process, in memory otherwise.
+    /// </summary>
+    public TelemetryRegion TelemetryRegion { get; }
+
     public EngineHostService(
         ProcessSpec spec,
         string backend,
         BlockRegistry? registry = null,
-        IDeviceMonitor? device = null
+        IDeviceMonitor? device = null,
+        string? telemetryPath = null
     ) {
         this.device = device;
-        Engine = new(spec);
+        TelemetryRegion = telemetryPath is null
+            ? TelemetryRegion.CreateInMemory(spec.SampleRate)
+            : TelemetryRegion.CreateFile(telemetryPath, spec.SampleRate);
+        Engine = new(spec) { Telemetry = TelemetryRegion };
         compiler = new(registry ?? BlockRegistry.CreateDefault().AddNativeBlocks());
         tuner = new(spec.SampleRate);
         var version = typeof(EngineHostService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
                 ?.InformationalVersion
             ?? "dev";
-        Info = new(version, backend, spec.SampleRate, spec.MaxBlockSize);
+        Info = new(version, backend, spec.SampleRate, spec.MaxBlockSize, TelemetryRegion.Path);
     }
 
     public IpcMessage Handle(IpcMessage request) {
@@ -80,6 +91,10 @@ public sealed class EngineHostService : IDisposable {
             latest?.Dispose();
             latest = null;
         }
+
+        // Only once the audio has stopped (the backend is disposed first), as the engine writes the region.
+        Engine.Telemetry = null;
+        TelemetryRegion.Dispose();
     }
 
     IpcMessage LoadGraph(IpcMessage request) {
@@ -145,6 +160,9 @@ public sealed class EngineHostService : IDisposable {
 
     HostTelemetry CollectTelemetry() {
         Engine.CollectRetired()?.Dispose();
+        if (device is not null) {
+            TelemetryRegion.SetDriverOverloads(device.Overloads);
+        }
 
         if (Engine.InputTapEnabled) {
             int read;

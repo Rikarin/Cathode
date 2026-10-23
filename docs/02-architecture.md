@@ -280,6 +280,18 @@ The audio thread writes to a **shared-memory region** owned by Host and read by 
 
 Server fans these out over WebSocket at **30–60 Hz** as binary `Float32Array` frames, plus JSON events for state changes.
 
+**As built (layout v1, `Cathode.Engine.Telemetry`).** The region is a memory-mapped file that the host creates next to its socket and names in the `hello` reply. The Server maps it read-only. One seqlock covers the whole region, so the writer never waits and readers retry.
+
+Version 1 holds:
+- the callback count and a frame clock
+- the cumulative callback-duration histogram (1 % bins), from which readers derive windowed p99.9 and max by diffing snapshots
+- engine overruns, and driver overloads (published by the host's control thread)
+- meter peaks in 64 slots of 256 frames, each tagged with its absolute slot number
+
+Every reader takes the maximum over the slots since its own previous poll. Nothing is ever reset, so any number of readers see every peak once.
+
+The Server publishes meters at 30 Hz, still as JSON. IPC telemetry, which carries the tuner, GC counts and device timing windows, dropped to 10 Hz. Still to come: RMS, per-block CPU, scene state, the tuner, scope and RTA rings, and binary frames.
+
 ### 5.10 MIDI and controllers
 
 - MIDI is read in the native shim (RtMidi, or JACK MIDI on Linux). Events are timestamped, then converted to **sample offsets** and pushed into the command ring. That gives sample-accurate tap tempo and CC ramps.

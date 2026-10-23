@@ -22,8 +22,11 @@ public sealed class CallbackStats {
     public double MaxPercent { get; private set; }
     public double LastPercent { get; private set; }
 
-    /// <summary>Audio thread: record one callback that started at <paramref name="startTimestamp" />.</summary>
-    public void Record(long startTimestamp, int frames, double sampleRate) {
+    /// <summary>
+    ///     Audio thread: record one callback that started at <paramref name="startTimestamp" />. Returns its duration as
+    ///     a percentage of the real-time budget.
+    /// </summary>
+    public double Record(long startTimestamp, int frames, double sampleRate) {
         if (Volatile.Read(ref resetRequested) != 0) {
             Reset();
             Volatile.Write(ref resetRequested, 0);
@@ -42,6 +45,7 @@ public sealed class CallbackStats {
 
         histogram[Math.Min(Bins - 1, (int)percent)]++;
         Interlocked.Increment(ref count);
+        return percent;
     }
 
     /// <summary>Budget percentage below which <paramref name="quantile" /> of callbacks fall (bin resolution: 1 %).</summary>

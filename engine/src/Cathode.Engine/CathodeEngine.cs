@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Cathode.Dsp;
 using Cathode.Engine.Graph;
+using Cathode.Engine.Telemetry;
 
 namespace Cathode.Engine;
 
@@ -25,6 +26,7 @@ public sealed class CathodeEngine : IAudioProcessor {
     float outputPeakLeft;
     float outputPeakRight;
     int meterReset;
+    TelemetryRegion? telemetry;
 
     public ProcessSpec Spec { get; }
 
@@ -47,6 +49,15 @@ public sealed class CathodeEngine : IAudioProcessor {
     public bool InputTapEnabled {
         get => Volatile.Read(ref inputTapEnabled);
         set => Volatile.Write(ref inputTapEnabled, value);
+    }
+
+    /// <summary>
+    ///     Shared-memory telemetry the audio thread writes after every callback. Set it before audio starts, or from
+    ///     any thread while running; the engine never owns or disposes it.
+    /// </summary>
+    public TelemetryRegion? Telemetry {
+        get => Volatile.Read(ref telemetry);
+        set => Volatile.Write(ref telemetry, value);
     }
 
     public CathodeEngine(ProcessSpec spec, int commandCapacity = 1024) {
@@ -122,11 +133,15 @@ public sealed class CathodeEngine : IAudioProcessor {
             }
         }
 
-        UpdateMeters(io);
-        Stats.Record(start, io.Frames, Spec.SampleRate);
+        var input = Peak(io.InputLeft);
+        var left = Peak(io.OutputLeft);
+        var right = Peak(io.OutputRight);
+        UpdateMeters(input, left, right);
+        var percent = Stats.Record(start, io.Frames, Spec.SampleRate);
+        Volatile.Read(ref telemetry)?.RecordCallback(io.Frames, percent, input, left, right);
     }
 
-    void UpdateMeters(in AudioIO io) {
+    void UpdateMeters(float input, float left, float right) {
         if (Volatile.Read(ref meterReset) != 0) {
             inputPeak = 0;
             outputPeakLeft = 0;
@@ -134,9 +149,9 @@ public sealed class CathodeEngine : IAudioProcessor {
             Volatile.Write(ref meterReset, 0);
         }
 
-        Volatile.Write(ref inputPeak, Math.Max(inputPeak, Peak(io.InputLeft)));
-        Volatile.Write(ref outputPeakLeft, Math.Max(outputPeakLeft, Peak(io.OutputLeft)));
-        Volatile.Write(ref outputPeakRight, Math.Max(outputPeakRight, Peak(io.OutputRight)));
+        Volatile.Write(ref inputPeak, Math.Max(inputPeak, input));
+        Volatile.Write(ref outputPeakLeft, Math.Max(outputPeakLeft, left));
+        Volatile.Write(ref outputPeakRight, Math.Max(outputPeakRight, right));
     }
 
     static float Peak(ReadOnlySpan<float> samples) {

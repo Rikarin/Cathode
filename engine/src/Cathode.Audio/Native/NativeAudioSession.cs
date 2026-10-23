@@ -135,6 +135,14 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         );
     }
 
+    /// <summary>Driver overloads so far. Unlike <see cref="Stats" /> it does not allocate, so it can be polled often.</summary>
+    public long Overloads {
+        get {
+            NativeMethods.Stats(stream, out var s);
+            return (long)s.Overloads;
+        }
+    }
+
     /// <summary>Snapshot of the native callback timing histogram.</summary>
     public CallbackTiming Timing() {
         TimingNative raw;

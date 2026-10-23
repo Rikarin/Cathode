@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Cathode.Dsp.Capture;
 
 namespace Cathode.Dsp.Native;
 
@@ -19,10 +20,18 @@ public sealed record NamModelInfo(
 ///     Load, <see cref="Reset" /> and <see cref="SetSize" /> run on the control thread; <see cref="Process" /> is
 ///     real-time safe.
 /// </summary>
-public sealed unsafe class NamModel : IDisposable {
+public sealed unsafe class NamModel : ICaptureModel {
     nint handle;
 
     public NamModelInfo Info { get; }
+
+    public string Format => "NAM";
+
+    public string Architecture => Info.Architecture;
+
+    public double ExpectedSampleRate => Info.ExpectedSampleRate;
+
+    public double? Loudness => Info.Loudness;
 
     /// <summary>Version of the bundled NeuralAmpModelerCore.</summary>
     public static string CoreVersion => Marshal.PtrToStringUTF8((nint)NamNative.CoreVersion()) ?? "unknown";

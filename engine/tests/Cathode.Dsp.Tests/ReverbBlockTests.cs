@@ -1,4 +1,5 @@
 using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Filters;
 using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
@@ -9,6 +10,10 @@ public class ReverbBlockTests {
     [InlineData(1f, 2f)]
     [InlineData(1f, 5f)]
     [InlineData(2f, 3f)]
+    [InlineData(3f, 1.5f)]
+    [InlineData(3f, 4f)]
+    [InlineData(4f, 1f)]
+    [InlineData(4f, 3f)]
     public void Measured_decay_time_matches_the_setting(float type, float decaySeconds) {
         // Damping fully open and no low cut, so the broadband decay is set by the line gains alone.
         using var reverb = Create(
@@ -24,6 +29,47 @@ public class ReverbBlockTests {
 
         var t60 = SchroederT60(response, 48_000);
         Assert.InRange(t60, decaySeconds * 0.8, decaySeconds * 1.2);
+    }
+
+    [Fact]
+    public void Spring_disperses_a_click_into_a_falling_chirp() {
+        // A short decay, so the first pass through the springs dominates the start of the response.
+        using var reverb = Create(
+            (ReverbBlock.Type, ReverbBlock.Spring),
+            (ReverbBlock.Decay, 0.3f),
+            (ReverbBlock.LowCut, ReverbBlock.LowCutOff),
+            (ReverbBlock.Mix, 100f)
+        );
+
+        var response = BlockRender.Mono(reverb, Signals.Impulse(4_800), 64);
+
+        var low = ArrivalMs(response, 300);
+        var high = ArrivalMs(response, 3_000);
+        Assert.True(low > high + 10, $"300 Hz arrives at {low:0.0} ms, 3 kHz at {high:0.0} ms");
+    }
+
+    [Theory]
+    [InlineData(ReverbBlock.Dattorro)]
+    [InlineData(ReverbBlock.Spring)]
+    public void New_tanks_are_stereo_and_switch_types_without_replaying_old_tails(int type) {
+        using var reverb = Create((ReverbBlock.Type, type), (ReverbBlock.Mix, 100f));
+        var (left, right) = BlockRender.Stereo(reverb, Signals.Impulse(48_000), Signals.Impulse(48_000), _ => 64);
+
+        double dot = 0, ll = 0, rr = 0;
+        for (var i = 2_400; i < left.Length; i++) {
+            dot += left[i] * right[i];
+            ll += left[i] * left[i];
+            rr += right[i] * right[i];
+        }
+
+        Assert.True(Math.Abs(dot / Math.Sqrt(ll * rr)) < 0.5, $"correlation {dot / Math.Sqrt(ll * rr):0.00}");
+
+        // Switch to the FDN hall and back: the tank must restart empty, not resume the old tail.
+        reverb.Params.SetTarget(ReverbBlock.Type, 1);
+        BlockRender.Mono(reverb, new float[4_800], 64);
+        reverb.Params.SetTarget(ReverbBlock.Type, type);
+        var after = BlockRender.Mono(reverb, new float[4_800], 64);
+        Assert.True(Analysis.Peak(after) < 1e-6, $"stale tail: {Analysis.Peak(after):E2}");
     }
 
     [Fact]
@@ -69,6 +115,22 @@ public class ReverbBlockTests {
         Assert.True(Analysis.Peak(wet.AsSpan(0, 2_400)) < 1e-6, "nothing before the 50 ms pre-delay");
         Assert.True(Analysis.Peak(wet.AsSpan(2_400)) > 1e-4, "reverb after the pre-delay");
         Assert.Equal(input, unchanged);
+    }
+
+    /// <summary>When the response's energy in a narrow band around <paramref name="frequency" /> peaks, in ms.</summary>
+    static double ArrivalMs(float[] response, double frequency) {
+        var band = response.ToArray();
+        var c = SvfCoefficients.Design(BiquadType.BandPass, 48_000, frequency, 4);
+        var state = new SvfState();
+        state.Process(c, band);
+        var envelope = new double[band.Length];
+        double smooth = 0;
+        for (var i = 0; i < band.Length; i++) {
+            smooth += (band[i] * band[i] - smooth) * 0.02;
+            envelope[i] = smooth;
+        }
+
+        return Array.IndexOf(envelope, envelope.Max()) / 48.0;
     }
 
     static ReverbBlock Create(params (int Index, float Value)[] settings) {

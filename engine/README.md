@@ -4,10 +4,10 @@ The .NET 10 audio engine. The design is described in [docs/02-architecture.md](.
 
 | Project | Role |
 |---|---|
-| `src/Cathode.Dsp` | Pure DSP: block contract, parameter bank and smoothing, biquad and TPT state-variable filters, built-in blocks, block registry |
-| `src/Cathode.Engine` | Grid model (JSON), graph compiler (pruning, ordering, buffer reuse, latency compensation), SPSC command ring, real-time loop with RCU graph swap, callback stats |
+| `src/Cathode.Dsp` | Pure DSP: block contract, parameter bank and smoothing, biquad and TPT state-variable filters, built-in blocks, AIDA-X capture models (managed LSTM/GRU), block registry |
+| `src/Cathode.Engine` | Grid model (JSON), graph compiler (pruning, ordering, buffer reuse, latency compensation), SPSC command ring, real-time loop with RCU graph swap, callback stats, shared-memory telemetry region |
 | `src/Cathode.Audio` | WAV I/O, offline renderer, null (device-less, real-time paced) backend, native device sessions, latency probe |
-| `src/Cathode.Dsp.Native` | Blocks backed by native code: `NamAmpBlock` (Neural Amp Modeler, [ADR-0003](../docs/adr/0003-nam-hosting.md)) |
+| `src/Cathode.Dsp.Native` | Blocks backed by native code: `NamAmpBlock`, the capture amp with Neural Amp Modeler models ([ADR-0003](../docs/adr/0003-nam-hosting.md)) as well as AIDA-X ones |
 | `native/cth_audio` | C shim: CoreAudio HAL IOProc backend (Windows and Linux are stubs for now), FTZ/DAZ helper |
 | `native/cth_nam` | C ABI over NeuralAmpModelerCore v0.6.0 (pinned and fetched by CMake) |
 | `src/Cathode.Host` | NativeAOT engine executable: `--serve` for the Server, plus diagnostics (`--self-test`, `--audio-test`, …) |
@@ -76,6 +76,8 @@ Then start the Server, which listens on `http://127.0.0.1:5180` with OpenAPI at 
 dotnet run -c Release --project src/Cathode.Server -- --Cathode:Engine:SocketPath=/tmp/cathode-host.sock
 ```
 
+The host writes meters, the CPU histogram and xrun counts to a memory-mapped file next to its socket (`<socket>.<pid>.telemetry`, or `--telemetry <path>`) and names it in its `hello` reply. The Server maps it read-only and sends meters to WebSocket clients at about 30 Hz. IPC telemetry (tuner, GC counts, device timing) is sent at 10 Hz.
+
 `src/Cathode.Server/cathode.http` walks through building a rig with channels and scenes. If an API change is intended, regenerate the committed OpenAPI document:
 
 ```bash
@@ -90,7 +92,7 @@ The production layout runs under editor-and-gig load: the NativeAOT host on a de
 tools/Cathode.Soak/run-soak.sh "<device uid>" 60 ./soak-results 0
 ```
 
-The last argument is the most host GCs allowed (`-1` disables that gate). Use `null` as the device to run without an audio interface.
+The last argument is the most host GCs allowed (`-1` disables that gate). Use `null` as the device to run without an audio interface. On the null backend, callback timing means little: the backend thread sleeps while it is ahead of real time and catches up in bursts, so it doesn't burn a core. Use a device for timing.
 
 `.github/workflows/soak.yml` runs it nightly on GitHub's hosted Linux runners with the null backend. It can also be started manually with a chosen length. Real-hardware soaks run on a self-hosted macOS runner labelled `audio` when the repository variable `SOAK_DEVICE` holds the device uid.
 

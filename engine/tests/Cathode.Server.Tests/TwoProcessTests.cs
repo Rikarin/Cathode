@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
 using Cathode.Contracts;
+using Cathode.Server.Engine;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Cathode.Server.Tests;
 
@@ -36,6 +38,8 @@ public sealed class TwoProcessTests : IAsyncDisposable {
         var system = await System(client);
         Assert.Equal("ipc", system.Engine.Mode);
         Assert.Equal("null", system.Engine.Backend);
+        var connection = server.Services.GetRequiredService<EngineConnection>();
+        Assert.True(connection.HasSharedTelemetry, "meters come from the host's shared-memory region");
 
         await Ok(client.PostAsJsonAsync("/api/v1/live/blocks", new AddBlockRequest("delay", 0, 2), Token));
         await Ok(
@@ -65,6 +69,7 @@ public sealed class TwoProcessTests : IAsyncDisposable {
         await Ok(client.PutAsJsonAsync("/api/v1/live/blocks/delay1/bypass", new BypassRequest(true), Token));
         await Task.Delay(300, Token);
         Assert.Null((await System(client)).Engine.LastError);
+        Assert.True(connection.HasSharedTelemetry, "the restarted host's region is mapped too");
     }
 
     void StartHost() {

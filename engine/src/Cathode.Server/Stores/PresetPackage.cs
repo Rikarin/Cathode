@@ -48,7 +48,7 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
         );
         foreach (var asset in included) {
             var entry = zip.CreateEntry(
-                $"assets/{asset.Ref[7..]}{(asset.Kind == "nam" ? ".nam" : ".wav")}",
+                $"assets/{asset.Ref[7..]}{AssetStore.Extension(asset.Kind)}",
                 CompressionLevel.Optimal
             );
             await using var target = await entry.OpenAsync(cancellationToken);
@@ -205,7 +205,7 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
         }
     }
 
-    [GeneratedRegex("""^(manifest\.json|preset\.json|assets/[0-9a-f]{64}\.(wav|nam))$""")]
+    [GeneratedRegex("""^(manifest\.json|preset\.json|assets/[0-9a-f]{64}\.(wav|nam|aidax))$""")]
     private static partial Regex AllowedName();
 
     /// <summary>A write-only stream that feeds a hash, so an asset can be verified without storing it.</summary>

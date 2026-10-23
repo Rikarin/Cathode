@@ -5,10 +5,12 @@ namespace Cathode.EngineHost;
 
 /// <summary>
 ///     Listens on a Unix domain socket for the Server (one client at a time), answers requests through
-///     <see cref="EngineHostService" /> and pushes telemetry about 30 times a second.
+///     <see cref="EngineHostService" /> and pushes telemetry ten times a second. Meters and CPU at display rate come
+///     from the shared-memory region instead (<see cref="EngineHostService.TelemetryRegion" />); the pushed messages
+///     carry the tuner, GC counts and device windows, and each one allocates, so they stay infrequent.
 /// </summary>
 public sealed class EngineHostServer(EngineHostService service, string socketPath, Action<string>? log = null) {
-    static readonly TimeSpan TelemetryInterval = TimeSpan.FromMilliseconds(33);
+    static readonly TimeSpan TelemetryInterval = TimeSpan.FromMilliseconds(100);
 
     public async Task RunAsync(CancellationToken cancellationToken) {
         if (File.Exists(socketPath)) {

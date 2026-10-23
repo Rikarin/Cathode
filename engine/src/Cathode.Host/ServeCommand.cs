@@ -15,6 +15,8 @@ static class ServeCommand {
         var socketPath = options.Text("socket") ?? throw new InvalidOperationException("--socket <path> is required.");
         var rate = options.Double("rate", 48_000);
         var buffer = options.Int("buffer", 64);
+        // Per process, so a restarted host never truncates a file a Server still has mapped (Windows forbids that).
+        var telemetry = options.Text("telemetry") ?? $"{socketPath}.{Environment.ProcessId}.telemetry";
 
         using var stop = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) => {
@@ -31,7 +33,7 @@ static class ServeCommand {
 
         if (options.Flag("null-audio")) {
             var spec = new ProcessSpec(rate, buffer);
-            using var service = new EngineHostService(spec, "null");
+            using var service = new EngineHostService(spec, "null", telemetryPath: telemetry);
             using var backend = new NullBackend((int)rate, buffer);
             backend.Start(service.Engine);
             return Serve(service, socketPath, stop.Token);
@@ -48,7 +50,8 @@ static class ServeCommand {
         using var deviceService = new EngineHostService(
             new(session.SampleRate, session.BufferFrames),
             NativeAudio.Backend,
-            device: new NativeDeviceMonitor(session)
+            device: new NativeDeviceMonitor(session),
+            telemetryPath: telemetry
         );
         forwarder.Target = deviceService.Engine;
         if (options.Flag("mute")) {

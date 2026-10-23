@@ -28,6 +28,7 @@ public sealed class BlockRegistry {
         registry.Register(PhaserBlock.Info, static () => new PhaserBlock());
         registry.Register(TremoloBlock.Info, static () => new TremoloBlock());
         registry.Register(WahBlock.Info, static () => new WahBlock());
+        registry.Register(CaptureAmpBlock.Info, static () => new CaptureAmpBlock());
         return registry;
     }
 
@@ -36,6 +37,10 @@ public sealed class BlockRegistry {
             throw new ArgumentException($"Block type '{descriptor.TypeId}' is already registered.", nameof(descriptor));
         }
     }
+
+    /// <summary>Registers a block type, replacing any registered under the same id (e.g. a native-backed variant).</summary>
+    public void Replace(BlockDescriptor descriptor, Func<IDspBlock> factory) =>
+        types[descriptor.TypeId] = (descriptor, factory);
 
     public bool Contains(string typeId) => types.ContainsKey(typeId);
 

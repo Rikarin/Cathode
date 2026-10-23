@@ -51,7 +51,16 @@ public sealed class IpcMessage {
 
 public sealed record ParamValue(string Block, string Param, float Value);
 
-public sealed record HostInfo(string Version, string Backend, double SampleRate, int BufferFrames);
+/// <summary>
+///     The host's answer to <c>hello</c>. <c>TelemetryPath</c> names its shared-memory telemetry file (meters, CPU
+///     histogram, xruns) for the Server to map read-only; it is null from hosts that predate it.
+/// </summary>
+public sealed record HostInfo(
+    string Version,
+    string Backend,
+    double SampleRate,
+    int BufferFrames,
+    string? TelemetryPath = null);
 
 /// <summary>
 ///     Host health. CPU figures cover the current 5 s window; overloads and GC counts are cumulative. Native timing is

@@ -74,7 +74,17 @@ public class ConvolutionTests {
         convolver.Reset();
         var second = (float[])input.Clone();
 
-        var allocated = AllocationProbe.Measure(() => convolver.Process(second), static () => { });
+        // Warm up on scratch data (JIT tiering), then reset again so the measured call still starts fresh.
+        var allocated = AllocationProbe.Measure(
+            () => convolver.Process(second),
+            () => {
+                for (var i = 0; i < 50; i++) {
+                    convolver.Process((float[])input.Clone());
+                }
+
+                convolver.Reset();
+            }
+        );
 
         Assert.Equal(first, second);
         Assert.Equal(0, allocated);
