@@ -2,6 +2,10 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 // The only surface the sandboxed renderer gets (typed in apps/editor/src/app/core/desktop.ts).
 contextBridge.exposeInMainWorld('cathode', {
+  platform: process.platform,
+  onFullScreen: (listener: (fullScreen: boolean) => void) => {
+    ipcRenderer.on('cathode:fullScreen', (_event, fullScreen: boolean) => listener(fullScreen === true));
+  },
   connection: () => ipcRenderer.invoke('cathode:connection'),
   target: () => ipcRenderer.invoke('cathode:target'),
   setTarget: (target: unknown) => ipcRenderer.invoke('cathode:setTarget', target),

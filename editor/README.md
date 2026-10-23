@@ -54,6 +54,6 @@ pnpm exec nx run api-client:generate
 ## Security model
 
 - **Renderer.** It is sandboxed with context isolation and no Node.
-- **Preload.** It exposes only `window.cathode` (connection, server target, audio settings, latency test), and main validates every argument.
+- **Preload.** It exposes only `window.cathode` (connection, server target, audio settings, latency test, and the platform and full-screen state for the macOS title bar), and main validates every argument.
 - **Serving the editor.** It comes from the `app://` scheme with a CSP that allows connections only to the Server in use. Navigation, new windows and permission requests are refused.
 - **Sidecars.** They listen on loopback with a random per-run token. A remote Server needs its own token, and the Server refuses to listen beyond localhost without one.

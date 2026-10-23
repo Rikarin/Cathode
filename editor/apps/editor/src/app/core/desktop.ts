@@ -48,6 +48,10 @@ export interface SidecarStatus {
  * a plain browser, where audio setup is not available.
  */
 export interface CathodeDesktop {
+  /** Node's `process.platform` of the desktop app ('darwin' on macOS). */
+  platform: string;
+  /** Called when the window enters or leaves full screen. */
+  onFullScreen(listener: (fullScreen: boolean) => void): void;
   /** The Server to use; in local mode it resolves once the sidecars answer. */
   connection(): Promise<Connection>;
   target(): Promise<ServerTarget>;

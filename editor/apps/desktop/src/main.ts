@@ -83,6 +83,10 @@ function createWindow(): void {
     title: 'Cathode',
     backgroundColor: '#111113',
     show: false,
+    // On macOS the editor's navbar is the title bar: no system bar, just the traffic lights, centred in its 48 px.
+    ...(process.platform === 'darwin'
+      ? { titleBarStyle: 'hidden' as const, trafficLightPosition: { x: 16, y: 17 } }
+      : {}),
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -93,6 +97,9 @@ function createWindow(): void {
   });
 
   window.once('ready-to-show', () => window?.show());
+  // Full screen hides the traffic lights, so the navbar can give their space back.
+  window.on('enter-full-screen', () => window?.webContents.send('cathode:fullScreen', true));
+  window.on('leave-full-screen', () => window?.webContents.send('cathode:fullScreen', false));
   // The window never navigates away from the editor; links to the web open in the browser.
   window.webContents.on('will-navigate', (event, url) => {
     if (!url.startsWith(`${Scheme}://`) && !(devServer && url.startsWith(devServer))) {

@@ -71,10 +71,12 @@ import { LiveStore } from './state/live.store';
         </xui-non-ideal-state>
       }
       @default {
-        <nav xuiNavbar class="gap-3">
+        <nav xuiNavbar class="gap-3" [class.window-drag]="macWindow" [class.ps-21]="trafficLights()">
           <div xuiNavbarGroup class="gap-1">
-            <span xuiNavbarHeading>Cathode</span>
-            <div xuiNavbarDivider></div>
+            @if (!macWindow) {
+              <span xuiNavbarHeading>Cathode</span>
+              <div xuiNavbarDivider></div>
+            }
             <a
               xuiButton
               variant="ghost"
@@ -233,6 +235,13 @@ export class App {
   protected readonly live = inject(LiveStore);
   protected readonly compare = inject(CompareStore);
 
+  /**
+   * In the macOS desktop app the navbar is the title bar: it drags the window and leaves room for the traffic lights
+   * (apps/desktop/src/main.ts), which stand in for the app's name. Full screen hides them, and the room goes with them.
+   */
+  protected readonly macWindow = window.cathode?.platform === 'darwin';
+  private readonly fullScreen = signal(false);
+  protected readonly trafficLights = computed(() => this.macWindow && !this.fullScreen());
   protected readonly tunerOpen = signal(false);
   protected readonly scopeOpen = signal(false);
   protected readonly saveAsOpen = signal(false);
@@ -246,6 +255,7 @@ export class App {
   );
 
   constructor() {
+    window.cathode?.onFullScreen?.(fullScreen => this.fullScreen.set(fullScreen));
     void this.startup.start();
   }
 
