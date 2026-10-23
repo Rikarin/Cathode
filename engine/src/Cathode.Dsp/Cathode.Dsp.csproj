@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Pure DSP: blocks, filters and parameter smoothing. No I/O, no threads, no allocation after Prepare().</Description>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,376 @@
+# 02 — Architecture
+
+> Project name: **Cathode**, an open-source project licensed GPL-3.0-or-later. Don't use Fractal trademarks such as "Axe", "Cygnus" or "Scene MIDI block" in product or model names.
+
+This document turns the feature audit ([01](01-axe-fx-iii-audit.md)) and the DSP/runtime research into a concrete system design. Each decision has a short rationale. Items marked ⚠ have a go/no-go check in Phase 0 of the [implementation plan](04-implementation-plan.md).
+
+---
+
+## 1. Goals and non-goals
+
+**Goals**
+- An Axe-Fx III–class **grid-based** multi-effects processor in software, running on a normal computer with any pro audio interface.
+- **< 6 ms measured round-trip latency** at 48 kHz / 64-sample buffers on a good ASIO or CoreAudio interface, with **zero algorithmic latency** in the default chain.
+- A **headless engine** that is fully controllable through a versioned **REST API**, with a WebSocket stream for real-time telemetry. The editor is one client among many; others could be a phone app, a foot-controller bridge, or scripts.
+- A **desktop editor** built with Electron, Angular 22, Tailwind 4 and xUI, giving the same mental model as Axe-Edit III: grid, block editor, scenes and channels, modifiers, footswitch layouts.
+- Presets, scenes and channels must switch **glitch-free**, with spillover.
+- Compatibility with the open **NAM** (`.nam` A1/A2) and **IR** (`.wav`) ecosystems from day one.
+
+**Non-goals (v1)**
+- Reading or writing Fractal `.syx` presets or IR banks. They are a proprietary format and an IP risk.
+- Recreating Fractal's exact amp algorithms. We build our own models (see §6).
+- Mobile and embedded targets. The design keeps them possible but does not optimise for them.
+
+---
+
+## 2. System overview
+
+```
+┌──────────────────────────── Electron app ────────────────────────────┐
+│ Main process: spawns/supervises engine + gateway, native menus,       │
+│               file dialogs, auto-update, MIDI-learn passthrough        │
+│ Renderer:     Angular 22 (zoneless, signals) + Tailwind 4 + xUI        │
+│               └─ generated TS API client (OpenAPI) + WS telemetry      │
+└──────────────┬───────────────────────────────────────────────────────┘
+               │ HTTP/REST (JSON)  +  WebSocket (binary telemetry, JSON events)
+┌──────────────▼──────────── Cathode.Server (ASP.NET Core) ───────────┐
+│ REST controllers · OpenAPI · auth (LAN token) · preset library (disk) │
+│ IR/NAM file store · validation · undo/redo journal · event fan-out   │
+└──────────────┬───────────────────────────────────────────────────────┘
+               │ IPC: Unix domain socket / named pipe (commands, events)
+               │      + shared-memory ring (meters, tuner, scope, RTA)
+┌──────────────▼──────────── Cathode.Host (NativeAOT engine) ─────────┐
+│ Control thread: command handling, graph compiler, model/IR loading,  │
+│                 modifier config, MIDI input, tempo                   │
+│        │  SPSC command ring ▼        ▲ retired-graph / event ring    │
+│ Audio thread (owned by OS driver):                                    │
+│   drain commands → evaluate modifiers → run compiled graph → meters   │
+│ Analysis thread: tuner (YIN/MPM), RTA FFT, looper disk I/O            │
+│ Native shim (C/C++): ASIO · CoreAudio(AUHAL) · JACK/PipeWire · WASAPI │
+│                      NAM core · RTNeural · FTZ/DAZ · RT thread prio   │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### Why the engine and the REST server are separate processes ⚠
+
+A .NET GC **suspends every thread that is running managed code**, including the audio callback, even when that thread never allocates. NativeAOT uses the same GC. Kestrel, routing and System.Text.Json allocate on every request. A 64-sample buffer at 48 kHz is 1.33 ms, so one gen0 pause at the wrong moment causes a dropout.
+
+- **Cathode.Host** is a minimal NativeAOT process. In steady state it allocates nothing: DSP memory is native or pinned, commands are unmanaged structs, and telemetry goes to shared memory. GC settings: workstation, non-concurrent, `SustainedLowLatency`, and a large gen0 budget (`GCgen0size`) so the rare allocations at preset load almost never trigger a collection.
+- **Cathode.Server** may allocate freely. Its GCs cannot touch the audio thread.
+- Both processes implement the same `IEngineControl` interface. Tests and early development can use **in-process mode** (`InProcEngineControl`), and production uses **out-of-process mode** (`IpcEngineControl`). The Phase 0 spike measures both under REST load and confirms the split is worth its cost.
+
+A user who runs no editor (a "headless rig on a mini-PC") starts only Host + Server, the way a hardware unit boots without Axe-Edit.
+
+---
+
+## 3. Repository layout
+
+```
+cathode/
+├─ engine/                                  # .NET 10 solution
+│  ├─ src/
+│  │  ├─ Cathode.Dsp/                      # pure DSP: blocks, filters, oversampling, convolution
+│  │  │                                     #   no I/O, no threads, no allocation after Prepare()
+│  │  ├─ Cathode.Dsp.Native/               # P/Invoke: NAM core, RTNeural, FTZ/DAZ, vDSP FFT
+│  │  ├─ Cathode.Engine/                   # graph model + compiler, scheduler, params, modifiers,
+│  │  │                                     #   scenes/channels runtime, spillover, telemetry writer
+│  │  ├─ Cathode.Audio/                    # IAudioBackend + Offline/Null/Native backends
+│  │  ├─ Cathode.Contracts/                # preset schema, DTOs, block catalog metadata, migrations
+│  │  ├─ Cathode.Ipc/                      # Host<->Server protocol, shared-memory telemetry
+│  │  ├─ Cathode.Host/                     # engine executable (NativeAOT)
+│  │  └─ Cathode.Server/                   # ASP.NET Core REST + WS gateway
+│  ├─ native/
+│  │  ├─ cth_audio/                          # C ABI shim over ASIO / CoreAudio / JACK / WASAPI
+│  │  └─ cth_nam/                            # extern "C" wrapper of NeuralAmpModelerCore + RTNeural
+│  ├─ tests/                                # see 03-testing-strategy.md
+│  ├─ bench/                                # BenchmarkDotNet + callback-timing soak harness
+│  └─ tools/
+│     ├─ Cathode.Render/                   # CLI: render preset × DI file → wav (offline)
+│     └─ Cathode.Analyze/                  # CLI: THD, alias ratio, ESR, MRSTFT, null residual
+├─ editor/                                  # Nx workspace (same tooling as xUI)
+│  ├─ apps/desktop/                         # Electron main + preload
+│  ├─ apps/editor/                          # Angular renderer app
+│  ├─ libs/api-client/                      # generated from engine OpenAPI (committed)
+│  ├─ libs/audio-ui/                        # knob, meter, VU, tuner, EQ curve, grid... (xUI-styled)
+│  ├─ libs/features/*                       # grid, block-editor, scenes, modifiers, library, setup
+│  └─ e2e/                                  # Playwright _electron
+├─ assets/                                  # factory presets, factory IRs (own captures), test DI corpus
+└─ docs/
+```
+
+---
+
+## 4. Domain model (what a preset is)
+
+This mirrors the Axe-Fx III concepts from [01](01-axe-fx-iii-audit.md) so users of that unit feel at home. Grid size and instance limits are **configuration**, not hard-coded. The default is **6 rows × 14 columns**, matching the Axe-Fx III grid; software can allow larger grids.
+
+```
+Preset
+├─ id, name, author, tags, schemaVersion, revision
+├─ tempo { bpm, source: preset|global|midi }
+├─ grid { rows, cols, cells[r][c] → BlockInstanceId | Shunt | Empty, cables[] }
+├─ blocks: BlockInstance[]
+│   ├─ instanceId ("amp1", "delay2")   ← stable string, never an index
+│   ├─ typeId ("amp", "cab", "delay", …) + typeVersion
+│   ├─ channels: { A, B, C, D } → ParamSet (paramId → value)
+│   ├─ isGlobal? → reference to a Global Block (shared across presets)
+│   └─ modifiers: { paramId → ModifierAssignment }
+├─ scenes[8]
+│   ├─ name, level
+│   ├─ blockState[instanceId] → { bypassed, channel }
+│   └─ sceneControllers[1..4] values
+├─ controllers: LFO×2 (A/B outs), ADSR×2, Sequencer(2–32), EnvFollower, PitchDetector,
+│               SceneCtrl×4, Manual×5, External×16 (global: CC / pedal) — 4 channels of settings
+└─ footswitchLayout? (per-preset overrides)
+```
+
+Rules:
+- **Parameter identity** is `(typeId, paramId)` with stable string IDs. Removing or renaming one requires a migration entry, and a test enforces this.
+- **Channels** are complete parameter sets per block. **Scenes** pick a channel and a bypass state per block. This is exactly the Axe-Fx III mental model.
+- A **working copy** in the engine (`ActivePreset`) is the authoritative live state. MIDI, footswitches and the editor all mutate it through the same command path. "Save" persists it to the library.
+
+### Block catalog (metadata-driven UI)
+
+Every block type publishes a **descriptor** that the editor uses to render generic UIs, and that the server uses to validate:
+
+```jsonc
+{
+  "typeId": "delay", "typeVersion": 3, "category": "Delay",
+  "maxInstances": 4, "stereo": true, "latencySamples": 0,
+  "types": [ { "id": "digital-mono", "name": "Digital Mono" }, … ],  // "Type" selector (like Fractal's Type)
+  "pages": [
+    { "id": "config", "name": "Config", "params": ["type", "time", "tempo", "feedback", "mix"] },
+    { "id": "mod",    "name": "Modulation", "params": ["modRate", "modDepth"] }
+  ],
+  "params": [
+    { "id": "time", "name": "Time", "kind": "float", "min": 1, "max": 8000,
+      "default": 375, "unit": "ms", "taper": "log", "smoothing": "glide",
+      "modulatable": true, "display": { "decimals": 0 } },
+    { "id": "tempo", "kind": "enum", "options": ["none","1/4","1/8.",…] },
+    …
+  ]
+}
+```
+
+Types switch to sensible defaults for that type, as Fractal's "Type" knob does. Custom editors (amp, EQ, cab, tuner) add rich panels **on top of** the generic descriptor; they never replace it.
+
+---
+
+## 5. Engine internals
+
+### 5.1 Threads
+
+| Thread | Owner | May allocate? | May block? | Work |
+|---|---|---|---|---|
+| Audio | OS driver (ASIO/CoreAudio/JACK), RT priority | **No** | **No** | Drain command ring, modifiers, graph, meters |
+| Control | Host | Yes (pooled) | Yes | IPC, validation, graph compile, model/IR load, MIDI |
+| Analysis | Host, normal priority | Preallocated | Yes | Tuner, RTA, scope decimation, looper disk streaming |
+| Parallel DSP workers (Phase 6+) | Host, joined to macOS audio workgroup / MMCSS "Pro Audio" | No | Spin/wait only | Run independent grid rows concurrently |
+
+### 5.2 Graph compilation
+
+The grid is **edited** as cells and cables, then **compiled** to a flat execution plan:
+
+1. Grid → DAG (shunts collapse into edges; a column with several inputs gets an implicit mixer node).
+2. Validate: no cycles except explicit Feedback Send/Return pairs, which become a one-block delay, as on the hardware.
+3. Topological sort, then **buffer allocation by graph colouring** (reuse stereo buffers whose lifetimes don't overlap).
+4. **Latency compensation:** if a parallel path contains a latent block (for example a linear-phase EQ), the other paths get matching delays. The default chain has 0 latency.
+5. Emit a `CompiledGraph`: an array of `Op` structs (`Process(block, inBuf, outBuf)`, `Mix(a,b,dst,gains)`, `Copy`, `Delay`). The audio thread walks it with **no virtual-dispatch surprises and no allocation**.
+
+The **parameter set is not part of compilation**. Changing a knob, a scene or a channel never recompiles. Only grid or block-type changes do.
+
+### 5.3 Block contract
+
+```csharp
+public interface IDspBlock : IDisposable
+{
+    BlockDescriptor Descriptor { get; }
+    ParamBank Params { get; }                             // targets writable from any thread
+    int LatencySamples { get; }
+    void Prepare(in ProcessSpec spec);                    // control thread: allocate everything here
+    void Reset();                                         // clear state, no allocation
+    void Process(in StereoBuffer io, in BlockContext ctx); // audio thread, in place
+}
+```
+
+Processing is **in place**: the compiler hands each block one buffer that holds its input and receives its output. That is what lets a series chain run in a single buffer.
+
+- DSP state lives in `NativeMemory.AlignedAlloc` buffers (64-byte aligned) or pinned arrays.
+- `Process` is `[SkipLocalsInit]` and uses `Span<T>` and `Vector128<T>` (the portable SIMD baseline; on Apple Silicon `Vector256` is emulated).
+- Signal path is float32. **Double** is used for sensitive IIR state (low-frequency high-pass filters, resonant tone stacks), phase accumulators and Newton solvers.
+- **Denormals:** FTZ/DAZ are set by a native helper when the audio thread enters, plus an ε-injection fallback in feedback paths.
+
+### 5.4 Parameters, smoothing, modifiers
+
+- Each block instance has a `ParamBank`: `float target[]`, `float current[]`, and a smoother kind per parameter (one-pole, linear ramp, or step for enums).
+- Continuous knob changes **don't use the queue at all**: the control thread writes the target with `Volatile.Write`. Aligned 32-bit writes are atomic.
+- Discrete events go through the **SPSC command ring** of unmanaged structs: bypass, channel change, scene change, tap tempo, looper transport, graph swap. The audio thread drains it at the start of each block.
+- **Modifiers** (1 or 2 sources per knob, combined with Scale/Operation; min/max, start/mid/end, slope, offset, attack/release damping, auto-engage, PC reset, per-channel enable — the Axe-Fx III surface) are evaluated at **control rate**, every 16–32-sample sub-block, and applied as `target = base + depth·curve(source)` with a per-assignment min, max, slew and curve.
+- Filters smooth the **parameter** (cutoff), then recompute coefficients per sub-block. Any filter whose parameters can move uses a TPT/ZDF state-variable filter. *Confirmed in Phase 1:* the property suite found a direct-form biquad emitting +63 dBFS transients during a fast cutoff and Q sweep, and the SVF, which has the same magnitude response, fixed it.
+- RBJ shelves are limited to Q ≤ 1. Above that they develop a large resonant bump at the corner.
+
+### 5.5 Switching and spillover
+
+| Change | Mechanism | Audible result |
+|---|---|---|
+| Knob | Smoothed target | None |
+| Block bypass | 5–20 ms crossfade. All six bypass modes: THRU, MUTE, MUTE IN, MUTE OUT, MUTE FX IN, MUTE FX OUT (the "IN" modes give per-block spillover) | Click-free |
+| Channel | Crossfade between two param sets on the same instance. For amp/cab, double-buffer the state where needed | Gapless |
+| Scene | Batch of bypass, channel and level changes applied atomically in one audio block | Gapless; delays and reverbs spill over naturally |
+| Preset | New `CompiledGraph` is built and pre-rolled off-thread, then **RCU swap** via `Interlocked.Exchange`, then a 10–30 ms crossfade. The old graph's delay and reverb tails keep running muted at their input until they drop below −90 dB or hit a time cap (**spillover**). Retired graphs return through a ring to the control thread for disposal | Gapless, with tails |
+
+Budget for **two graphs alive at once** during a preset change.
+
+### 5.6 Audio I/O ⚠
+
+`IAudioBackend` delivers `float**` planar buffers in a callback that the native driver thread owns. There is no intermediate queue, because a queue would add a buffer of latency.
+
+| Platform | Primary backend | Fallback |
+|---|---|---|
+| Windows | **ASIO**. The SDK is dual-licensed proprietary/GPLv3 since Oct 2025, so a closed-source product signs Steinberg's free proprietary agreement | WASAPI exclusive |
+| macOS | **CoreAudio AUHAL** with audio-workgroup join | — |
+| Linux | **JACK / PipeWire-JACK** (sample-accurate MIDI too) | ALSA |
+| CI/tests | **OfflineBackend** (render as fast as possible from WAV) and **NullBackend** (real-time-paced timer) | — |
+
+These sit in one C ABI shim (`native/cth_audio`). It can be built on RtAudio, which covers all of the above, plus custom CoreAudio code for workgroups. Managed code sees one `delegate* unmanaged` callback.
+
+### 5.7 Neural and native DSP ⚠
+
+- **NAM** (`.nam` A1 and A2) runs through `native/cth_nam`, an `extern "C"` wrapper around NeuralAmpModelerCore with calls such as `nam_load`, `nam_process`, `nam_reset` and `nam_free`. Hosting the reference core gives exact compatibility with the 700k+ models on Tone3000, and new architectures for free.
+- **RTNeural** covers AIDA-X and Proteus LSTM/GRU models.
+- **ONNX Runtime is not used on the audio path.** Its per-call overhead, allocations and lack of streaming state make it unsuitable.
+- Long native calls use normal P/Invoke, **never** `SuppressGCTransition`, so a GC can still proceed while the native code runs.
+
+### 5.8 Amp modelling strategy (the hard part)
+
+Three tiers ship together, in one Amp block:
+
+1. **Capture amps (NAM / RTNeural)**: user-loaded or bundled, snapshot accuracy. These give fast time-to-value.
+2. **Cathode "Circuit" amps**: our own white- and grey-box models. This is the long-term differentiator and the closest analogue to Fractal's Cygnus approach:
+   - preamp triode stages via WDF or DK-method with ADAA plus 2–8× IIR polyphase oversampling *only around the nonlinearities*
+   - an exact passive tone-stack model (FMV, Vox, Marshall, …)
+   - phase inverter
+   - push-pull power amp with sag/supply model, output transformer, negative feedback (presence/depth) and a speaker impedance curve
+   - full "expert" parameters (bias, B+ sag, transformer match, tube types)
+
+   The stages are composable, so new amp types are mostly configuration plus a measured tone-stack topology.
+3. **Hybrid**: a neural preamp capture with a parametric power amp and cab. This keeps master/presence/depth knobs "alive" on captured tones.
+
+The **Cab** block covers:
+- IR convolution: uniform partitioned at the buffer size, and Gardner-style zero-latency non-uniform partitioning for larger internal block sizes
+- up to 4 IR slots with mic blend, alignment, minimum-phase trim, and proximity, room and air controls
+- an IR library with Cab-Lab–style mixing and export
+
+### 5.9 Telemetry
+
+The audio thread writes to a **shared-memory region** owned by Host and read by Server. It uses seqlocks and SPSC rings and never blocks. Contents:
+
+- input and output peak/RMS
+- per-block level and CPU (sampled timestamps)
+- scene and channel state
+- tuner sample ring
+- RTA/scope decimated ring
+- xrun counter
+- callback duration histogram
+
+Server fans these out over WebSocket at **30–60 Hz** as binary `Float32Array` frames, plus JSON events for state changes.
+
+### 5.10 MIDI and controllers
+
+- MIDI is read in the native shim (RtMidi, or JACK MIDI on Linux). Events are timestamped, then converted to **sample offsets** and pushed into the command ring. That gives sample-accurate tap tempo and CC ramps.
+- Mappings cover preset and scene change, block bypass and channel, modifier sources, tap tempo, tuner and looper. They live in global settings, and presets can override them.
+- Foot-controller support (generic MIDI controllers in v1) uses an Axe-Fx-like **layout/view model**: layouts, per-switch tap/hold functions, LED colours sent via MIDI where the controller supports it.
+
+---
+
+## 6. REST API (Cathode.Server)
+
+**Conventions:**
+- Base path `/api/v1`.
+- JSON via System.Text.Json source generation.
+- **OpenAPI is generated and committed.**
+- Resources carry a `revision` (ETag) for optimistic concurrency; `If-Match` is required on mutations.
+- Errors are RFC 9457 problem+json.
+- Long operations (IR or model import, Tone Match) return `202` plus `/jobs/{id}`.
+- **Auth:** the server binds to localhost by default. LAN access is opt-in, protected by a pairing token, so phones and tablets can act as remote editors.
+
+| Area | Endpoints (abridged) |
+|---|---|
+| System | `GET /system` (version, CPU, xruns), `GET/PUT /system/audio` (device, sample rate, buffer, channel routing), `GET /system/audio/devices`, `POST /system/audio/latency-test` |
+| Catalog | `GET /catalog/blocks`, `GET /catalog/blocks/{typeId}` (descriptors above), `GET /catalog/amps`, `GET /catalog/drives` … |
+| Live state | `GET /live` (the full working copy), `PUT /live/preset/{presetId}` (load), `POST /live/save`, `POST /live/undo`, `POST /live/redo` |
+| Grid | `GET/PUT /live/grid`, `POST /live/grid/cells/{r}/{c}` (place block), `DELETE …`, `POST /live/grid/cables` |
+| Blocks | `GET /live/blocks/{iid}`, `PATCH /live/blocks/{iid}/channels/{ch}/params` (batch), `PUT /live/blocks/{iid}/bypass`, `PUT /live/blocks/{iid}/channel`, `POST /live/blocks/{iid}/copy-channel` |
+| Scenes | `GET /live/scenes`, `PUT /live/scenes/active` (select), `PATCH /live/scenes/{n}` |
+| Modifiers | `GET/PUT /live/controllers`, `PUT /live/blocks/{iid}/params/{pid}/modifier` |
+| Library | `GET/POST /presets`, `GET/PUT/DELETE /presets/{id}`, `POST /presets/import`, `GET /presets/{id}/export`, setlists, banks |
+| Global | `GET/PUT /global/settings`, `/global/blocks` (global blocks), `/global/eq`, `/global/midi-mappings`, `/global/footswitch-layouts` |
+| Assets | `/irs` (upload, list, tags, mix/export), `/models` (NAM/AIDA-X upload, metadata, loudness normalisation) |
+| Utilities | `/tuner` (settings), `/looper` (transport, undo, export), `/metronome`, `/tone-match` (jobs) |
+| Stream | `GET /ws`: binary telemetry channels (meters, tuner, RTA, scope, CPU) plus JSON events (`paramChanged`, `sceneChanged`, `presetLoaded`, `xrun`), with subscriptions per channel |
+
+Every mutation produces an **event** on `/ws`, whatever its source (REST, MIDI or footswitch). That keeps multiple editors in sync, and makes MIDI-driven changes visible in the UI as they are on Axe-Edit.
+
+---
+
+## 7. Editor (Electron + Angular 22 + Tailwind 4 + xUI)
+
+### 7.1 Shell
+- **Electron main:**
+  - spawns and supervises `cathode-host` and `cathode-server` (sidecars bundled per OS), with health checks and restart
+  - can instead connect to a remote server (headless rig) by URL and token
+  - provides native file dialogs, auto-update and crash reporting
+  - has contextIsolation on and nodeIntegration off; a minimal preload exposes `window.cathode.{pickFile, revealPath, version}`
+- **Renderer:** an Angular 22 standalone, zoneless, signals-based app in an Nx workspace (the same tooling as xUI, so the libs can be consumed as source during development).
+
+### 7.2 State management
+- **Server state** is mirrored into **signal stores** per feature: `LiveStore`, `CatalogStore`, `LibraryStore`. They are hydrated from REST and patched by `/ws` events.
+- **Optimistic UI for knobs:** the drag updates a local signal immediately, then a throttled PATCH (about 30 Hz) is sent with a trailing final value. The server echo is reconciled by `revision`.
+- **Telemetry** (meters, tuner, RTA) **bypasses Angular change detection.** It goes straight into canvas renderers through `requestAnimationFrame` loops, which is important for performance.
+
+### 7.3 xUI usage map
+
+| Editor feature | xUI packages | Custom (new) |
+|---|---|---|
+| App layout: grid top, block editor bottom, library side | `@xui/dock-manager`, `@xui/splitter`, `@xui/navbar`, `@xui/menubar` | — |
+| Grid editor | `@xui/context-menu`, `@xui/omnibar` (block picker, "add block ⌘K"), `@xui/tooltip`, CDK drag-drop | `cth-grid` (CSS grid plus an SVG cable layer). Evaluate `@xui/node-graph` for the cable routing |
+| Block editor pages | `@xui/tabs`, `@xui/segmented-control`, `@xui/select`, `@xui/numeric-input`, `@xui/slider`, `@xui/switch`, `@xui/control-group` | **`cth-knob`** (rotary, fine-drag with ⇧, double-click to type, ARIA slider) |
+| Scenes and channels | `@xui/button-group`, `@xui/segmented-control`, `@xui/editable-text` | — |
+| Meters, tuner, RTA, EQ curves | `@xui/echarts` for static curves (EQ, IR frequency response); `@xui/konva` for interactive EQ node dragging | **`cth-meter`**, **`cth-tuner`**, **`cth-scope`** (Canvas2D/WebGL, rAF) |
+| Preset library and setlists | `@xui/data-table`, `@xui/tree`, `@xui/tag-input`, `@xui/omnibar`, `@xui/upload` | — |
+| Modifiers | `@xui/drawer`, `@xui/popover`, `@xui/echarts` (curve preview) | — |
+| Footswitch layout editor | `@xui/card`, CDK drag-drop | `cth-footswitch` |
+| Feedback | `@xui/toast`, `@xui/alert-dialog`, `@xui/progress-bar`, `@xui/non-ideal-state` | — |
+
+xUI currently has **no knob, meter or VU component**. Build them in `editor/libs/audio-ui` against xUI's token layer (`bg-surface`, `--primary`, `--control-height-md`) and CVA variants, then **upstream them to xUI** as `@xui/knob` and `@xui/meter` once they're stable.
+
+### 7.4 UX parity checklist (from Axe-Edit III)
+- grid view with drag-to-move, shift-drag-to-copy, and right-click insert, replace and delete
+- a block editor with channel A–D tabs, a **Type** selector, pages, and an "expert" toggle
+- a scene bar (8), scene rename, and scene-level block state overview
+- a modifier editor reached by right-clicking any knob ("Attach modifier…")
+- a Cab Manager (IR library, mix, export) and a Preset Manager (drag to reorder, import/export)
+- a footswitch layout editor
+- a tuner overlay, a looper panel and a metronome
+- an **A/B compare** of the working copy against the saved preset, with undo/redo history
+
+---
+
+## 8. Security and IP
+- Server binds `127.0.0.1` by default. LAN mode requires a pairing token. Uploaded files are validated: IR WAV headers and length caps; NAM JSON schema and weight-count sanity checks.
+- **No Fractal IP:**
+  - no copying of IRs, presets, manuals or UI artwork
+  - amp and drive model naming follows the industry practice of descriptive names plus a disclaimer
+  - factory IRs and captures must be **our own recordings**, or properly licensed
+- Licences:
+  - **ASIO**: Steinberg's proprietary agreement, or GPLv3 if the whole product is GPL
+  - **NAM core**: MIT
+  - **RTNeural**: BSD-3
+  - **JUCE**: not used, to avoid GPL or commercial licensing
+  - Study the GPL code in chowdsp and other projects for ideas only, unless the licence fits.
+
+---
+
+## 9. Optional deployment targets (later)
+- **Plugin (VST3/AU/CLAP):** compile `Cathode.Engine` + `Cathode.Dsp` as a **NativeAOT shared library** with a C ABI. A thin CLAP shell plus `clap-wrapper` produces VST3 and AUv2. NPlug, a pure-.NET VST3 route, is an alternative. The editor talks to the plugin through the same REST API on an ephemeral port.
+- **Headless appliance:** Linux mini-PC with PipeWire-JACK, Host + Server as systemd services, and the editor on a laptop or phone over LAN.

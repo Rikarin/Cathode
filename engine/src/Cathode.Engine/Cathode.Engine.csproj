@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Grid model, graph compiler, command ring and the real-time processing loop.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Cathode.Dsp/Cathode.Dsp.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,46 @@
+name: engine
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths: ["engine/**", ".github/workflows/engine.yml"]
+
+defaults:
+  run:
+    working-directory: engine
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: engine/global.json
+      - run: dotnet build Cathode.slnx -c Release
+      - run: dotnet test --solution Cathode.slnx -c Release --no-build
+
+  host-aot:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, rid: linux-x64 }
+          - { os: macos-latest, rid: osx-arm64 }
+          - { os: windows-latest, rid: win-x64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: engine/global.json
+      - run: dotnet publish src/Cathode.Host -c Release -r ${{ matrix.rid }} -o out
+      - name: Self-test (zero allocation, real-time headroom)
+        shell: bash
+        run: ./out/cathode-host --self-test

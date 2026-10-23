@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>cathode-render</AssemblyName>
+    <Description>Offline renderer: graph JSON x WAV in -> WAV out.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Cathode.Audio/Cathode.Audio.csproj" />
+  </ItemGroup>
+</Project>

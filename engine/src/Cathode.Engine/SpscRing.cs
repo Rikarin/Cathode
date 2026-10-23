@@ -1,0 +1,70 @@
+using System.Runtime.InteropServices;
+
+namespace Cathode.Engine;
+
+/// <summary>
+/// Bounded, lock-free, allocation-free single-producer/single-consumer queue of unmanaged items.
+/// </summary>
+/// <remarks>Exactly one thread may enqueue and exactly one (other) thread may dequeue.</remarks>
+public sealed class SpscRing<T>
+    where T : unmanaged
+{
+    private readonly T[] _items;
+    private readonly long _mask;
+    private PaddedLong _head; // next slot to read, owned by the consumer
+    private PaddedLong _tail; // next slot to write, owned by the producer
+
+    public SpscRing(int capacity)
+    {
+        if (capacity < 2 || (capacity & (capacity - 1)) != 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(capacity), capacity, "Capacity must be a power of two >= 2.");
+        }
+
+        _items = new T[capacity];
+        _mask = capacity - 1;
+    }
+
+    public int Capacity => _items.Length;
+
+    /// <summary>Approximate number of queued items (exact when called from either endpoint while the other is idle).</summary>
+    public int Count => (int)(Volatile.Read(ref _tail.Value) - Volatile.Read(ref _head.Value));
+
+    public bool TryEnqueue(in T item)
+    {
+        var tail = _tail.Value;
+        if (tail - Volatile.Read(ref _head.Value) == _items.Length)
+        {
+            return false;
+        }
+
+        _items[tail & _mask] = item;
+        Volatile.Write(ref _tail.Value, tail + 1);
+        return true;
+    }
+
+    public bool TryDequeue(out T item)
+    {
+        var head = _head.Value;
+        if (head == Volatile.Read(ref _tail.Value))
+        {
+            item = default;
+            return false;
+        }
+
+        item = _items[head & _mask];
+        Volatile.Write(ref _head.Value, head + 1);
+        return true;
+    }
+}
+
+/// <summary>
+/// A long alone on its cache line, so the producer's and consumer's indices don't false-share.
+/// (Top level because a struct nested in a generic type is generic, and generic types can't use explicit layout.)
+/// </summary>
+[StructLayout(LayoutKind.Explicit, Size = 128)]
+internal struct PaddedLong
+{
+    [FieldOffset(64)]
+    public long Value;
+}

@@ -1,0 +1,21 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+artifacts/
+
+# Native
+build/
+cmake-build-*/
+
+# Node / editor
+node_modules/
+dist/
+.nx/
+
+# OS / IDE
+.DS_Store
+.idea/
+*.swp

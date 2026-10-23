@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Audio backends (offline, null, native) and WAV I/O.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Cathode.Engine/Cathode.Engine.csproj" />
+  </ItemGroup>
+</Project>
