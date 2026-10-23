@@ -24,6 +24,14 @@ sealed class ReferenceCircuit {
 
     public List<(INonlinearDevice Device, (int Plus, int Minus)[] Ports)> Devices { get; } = [];
 
+    public List<(int A, int B, double Henries)> Inductors { get; } = [];
+
+    /// <summary>Ideal transformers: each a list of windings (plus, minus, turns), all on one core.</summary>
+    public List<(int Plus, int Minus, double Turns)[]> Transformers { get; } = [];
+
+    /// <summary>MNA unknowns added by the transformers: one winding current each.</summary>
+    public int Windings => Transformers.Sum(static t => t.Length);
+
     public int Node() => ++nodes;
 
     public void Resistor(int a, int b, double ohms) => Resistors.Add((a, b, ohms));
@@ -31,6 +39,14 @@ sealed class ReferenceCircuit {
     public void Capacitor(int a, int b, double farads) => Capacitors.Add((a, b, farads));
 
     public void Source(int plus, int minus, Func<double, double> volts) => Sources.Add((plus, minus, volts));
+
+    public void Inductor(int a, int b, double henries) => Inductors.Add((a, b, henries));
+
+    /// <summary>
+    ///     An ideal transformer: every winding has the same volts per turn, and the ampere-turns sum to zero. Each
+    ///     winding's current flows in at its plus node.
+    /// </summary>
+    public void Transformer(params (int Plus, int Minus, double Turns)[] windings) => Transformers.Add(windings);
 
     public void Vcvs(int plus, int minus, int controlPlus, int controlMinus, double gain) =>
         Controlled.Add((plus, minus, controlPlus, controlMinus, gain));
@@ -57,6 +73,7 @@ sealed class ReferenceSimulator {
     readonly int size;
     readonly double[] x;
     readonly double[] capacitorCurrents;
+    readonly double[] inductorCurrents;
     readonly double[][] evaluation; // per device: the (limited) port voltages its next evaluation uses
     int newtonFailures;
     int mostIterations;
@@ -67,9 +84,10 @@ sealed class ReferenceSimulator {
 
     public ReferenceSimulator(ReferenceCircuit circuit) {
         this.circuit = circuit;
-        size = circuit.Nodes + circuit.Sources.Count + circuit.Controlled.Count;
+        size = circuit.Nodes + circuit.Sources.Count + circuit.Controlled.Count + circuit.Windings;
         x = new double[size];
         capacitorCurrents = new double[circuit.Capacitors.Count];
+        inductorCurrents = new double[circuit.Inductors.Count];
         evaluation = [..circuit.Devices.Select(static d => new double[d.Ports.Length])];
     }
 
@@ -80,6 +98,7 @@ sealed class ReferenceSimulator {
     public void OperatingPoint(int steps = 20) {
         Array.Clear(x);
         Array.Clear(capacitorCurrents);
+        Array.Clear(inductorCurrents);
         for (var s = 1; s <= steps; s++) {
             Newton(0, 0, (double)s / steps, transient: false);
         }
@@ -91,6 +110,7 @@ sealed class ReferenceSimulator {
     public void ZeroState() {
         Array.Clear(x);
         Array.Clear(capacitorCurrents);
+        Array.Clear(inductorCurrents);
         SyncDevices();
     }
 
@@ -102,11 +122,23 @@ sealed class ReferenceSimulator {
             previous[i] = Voltage(a) - Voltage(b);
         }
 
-        Newton(time, step, 1, transient: true, previous);
+        var previousInductors = new double[circuit.Inductors.Count];
+        for (var i = 0; i < previousInductors.Length; i++) {
+            var (a, b, _) = circuit.Inductors[i];
+            previousInductors[i] = Voltage(a) - Voltage(b);
+        }
+
+        Newton(time, step, 1, transient: true, previous, previousInductors);
         for (var i = 0; i < previous.Length; i++) {
             var (a, b, c) = circuit.Capacitors[i];
             var g = 2 * c / step;
             capacitorCurrents[i] = g * (Voltage(a) - Voltage(b) - previous[i]) - capacitorCurrents[i];
+        }
+
+        for (var i = 0; i < previousInductors.Length; i++) {
+            var (a, b, l) = circuit.Inductors[i];
+            var g = step / (2 * l);
+            inductorCurrents[i] += g * (Voltage(a) - Voltage(b) + previousInductors[i]);
         }
 
         for (var d = 0; d < circuit.Devices.Count; d++) {
@@ -130,6 +162,12 @@ sealed class ReferenceSimulator {
         foreach (var (p, m, c) in circuit.Capacitors) {
             Stamp(a, p, m, s * c);
         }
+
+        foreach (var (p, m, l) in circuit.Inductors) {
+            Stamp(a, p, m, 1 / (s * l));
+        }
+
+        StampTransformers(a);
 
         for (var j = 0; j < circuit.Sources.Count; j++) {
             var (p, m, _) = circuit.Sources[j];
@@ -155,7 +193,14 @@ sealed class ReferenceSimulator {
         return (outPlus > 0 ? solution[outPlus - 1] : 0) - (outMinus > 0 ? solution[outMinus - 1] : 0);
     }
 
-    void Newton(double time, double step, double scale, bool transient, double[]? previous = null) {
+    void Newton(
+        double time,
+        double step,
+        double scale,
+        bool transient,
+        double[]? previous = null,
+        double[]? previousInductors = null
+    ) {
         var a = new double[size, size];
         var rhs = new double[size];
         var last = new double[size];
@@ -178,7 +223,21 @@ sealed class ReferenceSimulator {
                     Stamp(a, p, m, g);
                     Inject(rhs, p, m, g * previous![i] + capacitorCurrents[i]);
                 }
+
+                // Inductors: i = G v + (i_prev + G v_prev), G = h / 2L, flowing from a to b.
+                for (var i = 0; i < circuit.Inductors.Count; i++) {
+                    var (p, m, l) = circuit.Inductors[i];
+                    var g = step / (2 * l);
+                    Stamp(a, p, m, g);
+                    Inject(rhs, p, m, -(inductorCurrents[i] + g * previousInductors![i]));
+                }
+            } else {
+                foreach (var (p, m, _) in circuit.Inductors) {
+                    Stamp(a, p, m, 1e3); // DC: a short, nearly
+                }
             }
+
+            StampTransformers(a);
 
             for (var j = 0; j < circuit.Sources.Count; j++) {
                 var (p, m, volts) = circuit.Sources[j];
@@ -245,6 +304,62 @@ sealed class ReferenceSimulator {
         }
 
         newtonFailures++;
+    }
+
+    /// <summary>
+    ///     Ideal transformers: a current unknown per winding; one row makes the ampere-turns sum to zero, the others make
+    ///     each winding's volts per turn equal the first's.
+    /// </summary>
+    void StampTransformers(double[,] a) {
+        var row = circuit.Nodes + circuit.Sources.Count + circuit.Controlled.Count;
+        foreach (var windings in circuit.Transformers) {
+            var (p0, m0, n0) = windings[0];
+            for (var k = 0; k < windings.Length; k++) {
+                var (p, m, n) = windings[k];
+                var current = row + k;
+                if (p > 0) {
+                    a[p - 1, current] += 1;
+                }
+
+                if (m > 0) {
+                    a[m - 1, current] -= 1;
+                }
+
+                a[row, current] += n; // Σ N_k i_k = 0
+                if (k == 0) {
+                    continue;
+                }
+
+                // N_0 v_k - N_k v_0 = 0
+                if (p > 0) {
+                    a[current, p - 1] += n0;
+                }
+
+                if (m > 0) {
+                    a[current, m - 1] -= n0;
+                }
+
+                if (p0 > 0) {
+                    a[current, p0 - 1] -= n;
+                }
+
+                if (m0 > 0) {
+                    a[current, m0 - 1] += n;
+                }
+            }
+
+            row += windings.Length;
+        }
+    }
+
+    void StampTransformers(Complex[,] a) {
+        var real = new double[size, size];
+        StampTransformers(real);
+        for (var i = 0; i < size; i++) {
+            for (var j = 0; j < size; j++) {
+                a[i, j] += real[i, j];
+            }
+        }
     }
 
     double[] PortVoltages((int Plus, int Minus)[] ports) {

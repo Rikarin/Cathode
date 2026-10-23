@@ -1,0 +1,267 @@
+using System.Runtime.CompilerServices;
+using Cathode.Dsp.Wdf;
+
+namespace Cathode.Dsp.Amp;
+
+/// <summary>
+///     A common-cathode triode gain stage with its input network, from the source to the grid: optional coupling cap,
+///     volume pot (with an optional bright cap across its upper half), series resistor (a mixing resistor or grid
+///     stopper, optionally bypassed by a cap) and grid leak; plate resistor from the supply, cathode resistor with an
+///     optional bypass cap. Every capacitance in farads, resistance in ohms; 0 leaves the element out.
+/// </summary>
+/// <param name="Name">A label, e.g. "V1A".</param>
+/// <param name="Tube">The triode.</param>
+/// <param name="Supply">Nominal B+ at the top of the plate resistor, in volts.</param>
+/// <param name="PlateResistor">From the supply to the plate.</param>
+/// <param name="CathodeResistor">From the cathode to ground.</param>
+/// <param name="CathodeBypass">Across the cathode resistor.</param>
+/// <param name="InputResistance">Resistance in series with the source (an input-jack resistor, a grid stopper).</param>
+/// <param name="CouplingCap">Series cap from the source; 0 couples the source directly (DC).</param>
+/// <param name="Volume">A pot after the coupling cap, wiper towards the grid; null for none.</param>
+/// <param name="VolumeRole">The knob that turns <paramref name="Volume" />.</param>
+/// <param name="BrightCap">Across the upper half of the volume pot while the bright switch is on.</param>
+/// <param name="SeriesResistor">Between the volume wiper and the grid (Marshall's 470k mixing resistor).</param>
+/// <param name="SeriesBypass">Across <paramref name="SeriesResistor" />.</param>
+/// <param name="GridLeak">Grid to ground.</param>
+public sealed record TriodeStageDesign(
+    string Name,
+    TriodeModel Tube,
+    double Supply,
+    double PlateResistor,
+    double CathodeResistor,
+    double CathodeBypass = 0,
+    double InputResistance = 0,
+    double CouplingCap = 0,
+    Pot? Volume = null,
+    PotRole VolumeRole = PotRole.Gain,
+    double BrightCap = 0,
+    double SeriesResistor = 0,
+    double SeriesBypass = 0,
+    double GridLeak = 0
+) : AmpStageDesign(Name) {
+    public override AmpStage Create(double sampleRate) => new TriodeStage(this, sampleRate);
+}
+
+/// <summary>
+///     A <see cref="TriodeStageDesign" /> as one R-type root with the triode's two ports (grid-cathode, plate-cathode)
+///     at the top, solved by Newton's method per sample (<see cref="RTypeRoot{TPorts,TDevice}" />). Every possible
+///     capacitor is a port; one the design leaves out is declared between ground and ground, where it never charges.
+///     The output is the plate's open-circuit voltage, the next stage adding <see cref="OutputResistance" />.
+/// </summary>
+public sealed class TriodeStage : AmpStage {
+    const double Off = 1e-15; // a switched-off bright cap
+
+    readonly TriodeStageDesign design;
+    readonly PotDivider? volume;
+    readonly int gridProbe;
+    readonly int cathodeProbe;
+    RTypeRoot<Ports<ResistiveVoltageSource, Capacitor, Capacitor, Capacitor, Capacitor>, FastTriode> root;
+    double sourceResistance;
+    double rotation = double.NaN;
+    bool bright;
+    double sampleRate;
+    double supplyScale = 1;
+    double outputResistance;
+    double restPlate;
+    double restCathode;
+    double restCurrent;
+
+    public TriodeStageDesign Design => design;
+
+    public override double OutputResistance => outputResistance;
+
+    public override double RestOutput => restPlate;
+
+    /// <summary>Plate current at the operating point, in amperes.</summary>
+    public double RestCurrent => restCurrent;
+
+    public double RestCathode => restCathode;
+
+    public override NewtonSolver Newton => root.Newton;
+
+    /// <summary>Grid voltage at the last sample.</summary>
+    public double Grid => root.Probe(gridProbe);
+
+    public double Cathode => root.Probe(cathodeProbe);
+
+    public TriodeStage(TriodeStageDesign design, double sampleRate) {
+        this.design = design;
+        this.sampleRate = sampleRate;
+        var net = new WdfNetlist();
+        var input = net.Node();
+        net.Port(input, WdfNetlist.Ground);
+
+        var top = input;
+        if (design.CouplingCap > 0) {
+            top = net.Node();
+            net.Port(input, top);
+        } else {
+            net.Port(WdfNetlist.Ground, WdfNetlist.Ground);
+        }
+
+        var wiper = top;
+        if (design.Volume is { } pot) {
+            var divider = PotDivider.Add(net, top, WdfNetlist.Ground, pot);
+            volume = divider;
+            wiper = divider.Wiper;
+        }
+
+        if (design.Volume is not null && design.BrightCap > 0) {
+            net.Port(top, wiper);
+        } else {
+            net.Port(WdfNetlist.Ground, WdfNetlist.Ground);
+        }
+
+        var grid = wiper;
+        if (design.SeriesResistor > 0) {
+            grid = net.Node();
+            net.Resistor(wiper, grid, design.SeriesResistor);
+        }
+
+        if (design.SeriesResistor > 0 && design.SeriesBypass > 0) {
+            net.Port(wiper, grid);
+        } else {
+            net.Port(WdfNetlist.Ground, WdfNetlist.Ground);
+        }
+
+        if (design.GridLeak > 0) {
+            net.Resistor(grid, WdfNetlist.Ground, design.GridLeak);
+        }
+
+        var (plate, cathode, supply) = (net.Node(), net.Node(), net.Node());
+        net.Resistor(supply, plate, design.PlateResistor);
+        net.Resistor(cathode, WdfNetlist.Ground, design.CathodeResistor);
+        if (design.CathodeBypass > 0) {
+            net.Port(cathode, WdfNetlist.Ground);
+        } else {
+            net.Port(WdfNetlist.Ground, WdfNetlist.Ground);
+        }
+
+        net.VoltageSource(supply, WdfNetlist.Ground);
+        net.Triode(plate, grid, cathode);
+        net.Probe(plate);
+        gridProbe = net.Probe(grid);
+        cathodeProbe = net.Probe(cathode);
+
+        sourceResistance = design.InputResistance;
+        root = new(
+            net,
+            new(
+                new(Math.Max(sourceResistance, 1)),
+                new(Capacitance(design.CouplingCap), sampleRate),
+                new(Off, sampleRate),
+                new(Capacitance(design.SeriesBypass), sampleRate),
+                new(Capacitance(design.CathodeBypass), sampleRate)
+            ),
+            new(design.Tube)
+        );
+        root.SetVoltage(0, design.Supply);
+        Update(new(0.5, 0.5, 0.5, 0.5, 1, false));
+        Reset(0);
+    }
+
+    public override void SetSampleRate(double sampleRate) {
+        this.sampleRate = sampleRate;
+        root.Ports.B.Configure(Capacitance(design.CouplingCap), sampleRate);
+        root.Ports.C.Configure(bright ? Capacitance(design.BrightCap) : Off, sampleRate);
+        root.Ports.D.Configure(Capacitance(design.SeriesBypass), sampleRate);
+        root.Ports.E.Configure(Capacitance(design.CathodeBypass), sampleRate);
+        root.Propagate();
+    }
+
+    public override void SetSourceResistance(double ohms) {
+        var total = Math.Max(ohms + design.InputResistance, 1);
+        if (total == sourceResistance) {
+            return;
+        }
+
+        sourceResistance = total;
+        root.Ports.A.Value = total;
+        root.Propagate();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public override void SetSupply(double scale) {
+        supplyScale = scale;
+        root.SetVoltage(0, design.Supply * scale);
+    }
+
+    public override void Update(in AmpControls controls) {
+        if (volume is not { } pot) {
+            return;
+        }
+
+        var turn = controls.Rotation(design.VolumeRole);
+        if (turn == rotation && controls.Bright == bright) {
+            return;
+        }
+
+        if (controls.Bright != bright) {
+            bright = controls.Bright;
+            root.Ports.C.Configure(bright ? Capacitance(design.BrightCap) : Off, sampleRate);
+        }
+
+        rotation = turn;
+        var (upper, lower) = pot.Resistances(turn);
+        root.SetResistance(pot.Top, upper);
+        root.SetResistance(pot.Bottom, lower);
+        root.Propagate();
+    }
+
+    public override void Reset(double restInput) {
+        // DC: the input chain is a ladder (source, pot, series resistor, grid leak) unless a coupling cap blocks it.
+        var source = design.CouplingCap > 0 ? 0 : restInput;
+        var sourceDrop = 0.0;
+        var top = source;
+        var wiper = source;
+        var grid = source;
+        if (design.CouplingCap <= 0) {
+            var (upper, lower) = volume is { } pot ? pot.Resistances(rotation) : (0.0, double.PositiveInfinity);
+            var after = design.GridLeak > 0 ? design.SeriesResistor + design.GridLeak : double.PositiveInfinity;
+            var shunt = Parallel(lower, after);
+            var current = double.IsInfinity(shunt) ? 0 : source / (sourceResistance + upper + shunt);
+            sourceDrop = current * sourceResistance;
+            top = source - sourceDrop;
+            wiper = double.IsInfinity(shunt) ? top : current * shunt;
+            grid = design.GridLeak > 0 ? wiper * design.GridLeak / (design.SeriesResistor + design.GridLeak) : wiper;
+        }
+
+        var (ia, plate, cathode) = OperatingPoint.CommonCathode(
+            design.Tube,
+            grid,
+            design.Supply * supplyScale,
+            design.PlateResistor,
+            design.CathodeResistor
+        );
+        restCurrent = ia;
+        restPlate = plate;
+        restCathode = cathode;
+        var (rp, mu) = OperatingPoint.SmallSignal(design.Tube, grid - cathode, plate - cathode);
+        var cathodeImpedance = design.CathodeBypass > 0 ? 0 : design.CathodeResistor;
+        outputResistance = Parallel(design.PlateResistor, rp + (mu + 1) * cathodeImpedance);
+
+        root.Reset();
+        root.SetVoltage(0, design.Supply * supplyScale);
+        root.Ports.B.Precharge(design.CouplingCap > 0 ? restInput : 0);
+        root.Ports.C.Precharge(top - wiper);
+        root.Ports.D.Precharge(wiper - grid);
+        root.Ports.E.Precharge(cathode);
+        root.SetInitialVoltages([grid - cathode, plate - cathode]);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public override double Tick(double input) {
+        root.Ports.A.Volts = input;
+        return root.Tick();
+    }
+
+    public override void FlushDenormals() {
+        Flush.Capacitor(ref root.Ports.C);
+        Flush.Capacitor(ref root.Ports.D);
+    }
+
+    static double Capacitance(double farads) => farads > 0 ? farads : 1e-9;
+
+    static double Parallel(double a, double b) =>
+        double.IsInfinity(a) ? b : double.IsInfinity(b) ? a : a * b / (a + b);
+}
