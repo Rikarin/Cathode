@@ -29,6 +29,8 @@ public sealed class BlockRegistry {
         registry.Register(TremoloBlock.Info, static () => new TremoloBlock());
         registry.Register(WahBlock.Info, static () => new WahBlock());
         registry.Register(CaptureAmpBlock.Info, static () => new CaptureAmpBlock());
+        registry.Register(PitchBlock.Info, static () => new PitchBlock());
+        registry.Register(SynthBlock.Info, static () => new SynthBlock());
         return registry;
     }
 
