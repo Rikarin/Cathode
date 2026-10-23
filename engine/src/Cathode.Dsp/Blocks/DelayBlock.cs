@@ -9,7 +9,7 @@ namespace Cathode.Dsp.Blocks;
 ///     and high cut, modulation, and the Axe-Fx mix law (50 % = -6 dB each). Reads use cubic Hermite interpolation, so
 ///     integer delays are exact and time changes glide instead of clicking.
 /// </summary>
-public sealed class DelayBlock : DspBlock {
+public sealed class DelayBlock() : DspBlock(Info) {
     public const int Type = 0;
     public const int Time = 1;
     public const int Tempo = 2;
@@ -28,14 +28,14 @@ public sealed class DelayBlock : DspBlock {
     /// <summary>Tempo divisions in beats (quarter notes).</summary>
     static readonly float[] Divisions = [0f, 4f, 2f, 1f, 1.5f, 2f / 3f, 0.5f, 0.75f, 1f / 3f, 0.25f];
 
-    readonly Line _left = new();
-    readonly Line _right = new();
-    double _lfoPhase;
-    double _wowPhase;
-    double _flutterPhase;
-    float _delaySamples;
-    float _mix;
-    float _outputGain = 1f;
+    readonly Line left = new();
+    readonly Line right = new();
+    double lfoPhase;
+    double wowPhase;
+    double flutterPhase;
+    float delaySamples;
+    float mix;
+    float outputGain = 1f;
 
     public static BlockDescriptor Info { get; } = new(
         "delay",
@@ -60,9 +60,6 @@ public sealed class DelayBlock : DspBlock {
         maxInstances: 4
     );
 
-    public DelayBlock()
-        : base(Info) { }
-
     float TargetDelaySamples(float timeMs, double tempo) {
         var division = Divisions[(int)Params.Current(Tempo)];
         var ms = division > 0 && tempo > 0 ? Math.Min(MaxTimeMs, (float)(60_000.0 / tempo * division)) : timeMs;
@@ -74,19 +71,19 @@ public sealed class DelayBlock : DspBlock {
     protected override void OnPrepare(in ProcessSpec spec) {
         // Room for the longest time plus modulation and tape wow.
         var capacity = (int)(spec.SampleRate * (MaxTimeMs + 20) / 1000) + 8;
-        _left.Allocate(capacity);
-        _right.Allocate(capacity);
+        left.Allocate(capacity);
+        right.Allocate(capacity);
     }
 
     protected override void OnReset() {
-        _left.Reset();
-        _right.Reset();
-        _lfoPhase = 0;
-        _wowPhase = 0;
-        _flutterPhase = 0;
-        _delaySamples = TargetDelaySamples(Params.Current(Time), 120);
-        _mix = Params.Current(Mix) / 100f;
-        _outputGain = Decibels.ToGain(Params.Current(Level));
+        left.Reset();
+        right.Reset();
+        lfoPhase = 0;
+        wowPhase = 0;
+        flutterPhase = 0;
+        delaySamples = TargetDelaySamples(Params.Current(Time), 120);
+        mix = Params.Current(Mix) / 100f;
+        outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -122,25 +119,25 @@ public sealed class DelayBlock : DspBlock {
         var wowStep = 2 * Math.PI * 0.55 / sampleRate;
         var flutterStep = 2 * Math.PI * 6.3 / sampleRate;
 
-        var delayStep = (targetDelay - _delaySamples) / io.Length;
-        var mixStep = (mix - _mix) / io.Length;
-        var delay = _delaySamples;
-        var currentMix = _mix;
+        var delayStep = (targetDelay - delaySamples) / io.Length;
+        var mixStep = (mix - this.mix) / io.Length;
+        var delay = delaySamples;
+        var currentMix = this.mix;
         for (var i = 0; i < io.Length; i++) {
             delay += delayStep;
             currentMix += mixStep;
-            var modulation = modDepth * (float)Math.Sin(_lfoPhase)
-                + wowDepth * (float)Math.Sin(_wowPhase)
-                + flutterDepth * (float)Math.Sin(_flutterPhase);
-            _lfoPhase = Wrap(_lfoPhase + lfoStep);
-            _wowPhase = Wrap(_wowPhase + wowStep);
-            _flutterPhase = Wrap(_flutterPhase + flutterStep);
+            var modulation = modDepth * (float)Math.Sin(lfoPhase)
+                + wowDepth * (float)Math.Sin(wowPhase)
+                + flutterDepth * (float)Math.Sin(flutterPhase);
+            lfoPhase = Wrap(lfoPhase + lfoStep);
+            wowPhase = Wrap(wowPhase + wowStep);
+            flutterPhase = Wrap(flutterPhase + flutterStep);
             var d = Math.Max(
                 3f,
                 delay + modulation + modDepth + wowDepth + flutterDepth
             ); // offset keeps modulation positive
 
-            io.Left[i] = _left.Tick(
+            io.Left[i] = left.Tick(
                 io.Left[i],
                 d,
                 feedback,
@@ -151,7 +148,7 @@ public sealed class DelayBlock : DspBlock {
                 highCutCoefficients,
                 saturate
             );
-            io.Right[i] = _right.Tick(
+            io.Right[i] = right.Tick(
                 io.Right[i],
                 d,
                 feedback,
@@ -164,28 +161,28 @@ public sealed class DelayBlock : DspBlock {
             );
         }
 
-        _delaySamples = targetDelay;
-        _mix = mix;
-        _left.FlushDenormals();
-        _right.FlushDenormals();
+        delaySamples = targetDelay;
+        this.mix = mix;
+        left.FlushDenormals();
+        right.FlushDenormals();
 
         var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, _outputGain, outputGain);
-        GainRamp.Apply(io.Right, _outputGain, outputGain);
-        _outputGain = outputGain;
+        GainRamp.Apply(io.Left, this.outputGain, outputGain);
+        GainRamp.Apply(io.Right, this.outputGain, outputGain);
+        this.outputGain = outputGain;
     }
 
     sealed class Line {
-        readonly FractionalDelayLine _delay = new();
-        SvfState _lowCut;
-        SvfState _highCut;
+        readonly FractionalDelayLine delay = new();
+        SvfState lowCut;
+        SvfState highCut;
 
-        public void Allocate(int capacity) => _delay.Allocate(capacity);
+        public void Allocate(int capacity) => delay.Allocate(capacity);
 
         public void Reset() {
-            _delay.Reset();
-            _lowCut.Reset();
-            _highCut.Reset();
+            delay.Reset();
+            lowCut.Reset();
+            highCut.Reset();
         }
 
         public float Tick(
@@ -199,15 +196,15 @@ public sealed class DelayBlock : DspBlock {
             in SvfCoefficients highCut,
             bool saturate
         ) {
-            var wet = _delay.Read(delay);
+            var wet = this.delay.Read(delay);
 
             var fed = wet;
             if (useLowCut) {
-                fed = (float)_lowCut.Tick(lowCut, fed);
+                fed = (float)this.lowCut.Tick(lowCut, fed);
             }
 
             if (useHighCut) {
-                fed = (float)_highCut.Tick(highCut, fed);
+                fed = (float)this.highCut.Tick(highCut, fed);
             }
 
             var write = input + fed * feedback;
@@ -215,13 +212,13 @@ public sealed class DelayBlock : DspBlock {
                 write = MathF.Tanh(write * 0.8f) / 0.8f; // BBD/tape headroom: repeats compress instead of building up
             }
 
-            _delay.Write(write);
+            this.delay.Write(write);
             return input * (1f - mix) + wet * mix;
         }
 
         public void FlushDenormals() {
-            _lowCut.FlushDenormals();
-            _highCut.FlushDenormals();
+            lowCut.FlushDenormals();
+            highCut.FlushDenormals();
         }
     }
 }

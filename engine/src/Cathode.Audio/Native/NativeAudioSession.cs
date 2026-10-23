@@ -57,10 +57,10 @@ public sealed record AudioSessionStats(
 public sealed unsafe class NativeAudioSession : IDisposable {
     const int MaxFrames = 4096; // CTH_MAX_FRAMES
 
-    readonly IAudioProcessor _processor;
-    readonly float[] _silence = GC.AllocateArray<float>(MaxFrames, true);
-    readonly float[] _scratchLeft = GC.AllocateArray<float>(MaxFrames, true);
-    readonly float[] _scratchRight = GC.AllocateArray<float>(MaxFrames, true);
+    readonly IAudioProcessor processor;
+    readonly float[] silence = GC.AllocateArray<float>(MaxFrames, true);
+    readonly float[] scratchLeft = GC.AllocateArray<float>(MaxFrames, true);
+    readonly float[] scratchRight = GC.AllocateArray<float>(MaxFrames, true);
     GCHandle _self;
     nint _stream;
     long _exceptions;
@@ -77,7 +77,7 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     public float OutputGain { get; set; } = 1f;
 
     NativeAudioSession(IAudioProcessor processor) {
-        _processor = processor;
+        this.processor = processor;
     }
 
     /// <summary>Opens <paramref name="deviceUid" /> (null for the default output device) without starting it.</summary>
@@ -184,11 +184,11 @@ public sealed unsafe class NativeAudioSession : IDisposable {
 
     void Process(float** inputs, int inputChannels, float** outputs, int outputChannels, int frames) {
         var input =
-            inputChannels > 0 ? new ReadOnlySpan<float>(inputs[0], frames) : _silence.AsSpan(0, frames);
-        var left = outputChannels > 0 ? new(outputs[0], frames) : _scratchLeft.AsSpan(0, frames);
-        var right = outputChannels > 1 ? new(outputs[1], frames) : _scratchRight.AsSpan(0, frames);
+            inputChannels > 0 ? new ReadOnlySpan<float>(inputs[0], frames) : silence.AsSpan(0, frames);
+        var left = outputChannels > 0 ? new(outputs[0], frames) : scratchLeft.AsSpan(0, frames);
+        var right = outputChannels > 1 ? new(outputs[1], frames) : scratchRight.AsSpan(0, frames);
 
-        _processor.Process(new(input, input, left, right));
+        processor.Process(new(input, input, left, right));
 
         var gain = OutputGain;
         if (gain != 1f) {

@@ -16,7 +16,7 @@ namespace Cathode.Dsp.Blocks;
 ///     </list>
 ///     The mix follows the Axe-Fx law (50 % = -6 dB each) for parallel compression.
 /// </summary>
-public sealed class CompressorBlock : DspBlock {
+public sealed class CompressorBlock() : DspBlock(Info) {
     public const int Type = 0;
     public const int Threshold = 1;
     public const int Ratio = 2;
@@ -29,9 +29,9 @@ public sealed class CompressorBlock : DspBlock {
 
     const double RmsWindowMs = 5;
 
-    double _meanSquare;
-    float _mix = 1f;
-    float _outputGain = 1f;
+    double meanSquare;
+    float mix = 1f;
+    float outputGain = 1f;
 
     public static BlockDescriptor Info { get; } = new(
         "compressor",
@@ -54,9 +54,6 @@ public sealed class CompressorBlock : DspBlock {
     /// <summary>Current gain reduction in dB (0 or negative). For meters and tests.</summary>
     public float GainReductionDb { get; private set; }
 
-    public CompressorBlock()
-        : base(Info) { }
-
     /// <summary>The static curve: output level for input level <paramref name="x" />, all in dB.</summary>
     public static float StaticCurve(float x, float threshold, float ratio, float knee) {
         var over = x - threshold;
@@ -77,9 +74,9 @@ public sealed class CompressorBlock : DspBlock {
 
     protected override void OnReset() {
         GainReductionDb = 0;
-        _meanSquare = 0;
-        _mix = Params.Current(Mix) / 100f;
-        _outputGain = Decibels.ToGain(Params.Current(Level));
+        meanSquare = 0;
+        mix = Params.Current(Mix) / 100f;
+        outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -96,9 +93,10 @@ public sealed class CompressorBlock : DspBlock {
         var rmsCoefficient = Coefficient(RmsWindowMs, rate);
 
         var reduction = GainReductionDb;
-        var meanSquare = _meanSquare;
-        var mixStep = (mix - _mix) / io.Length;
-        var currentMix = _mix;
+        var meanSquare = this.meanSquare;
+        var mixStep = (mix - this.mix) / io.Length;
+        var currentMix = this.mix;
+
         for (var i = 0; i < io.Length; i++) {
             var left = io.Left[i];
             var right = io.Right[i];
@@ -130,12 +128,12 @@ public sealed class CompressorBlock : DspBlock {
         }
 
         GainReductionDb = reduction > -1e-6f ? 0 : reduction;
-        _meanSquare = meanSquare < 1e-30 ? 0 : meanSquare;
-        _mix = mix;
+        this.meanSquare = meanSquare < 1e-30 ? 0 : meanSquare;
+        this.mix = mix;
 
         var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, _outputGain, outputGain);
-        GainRamp.Apply(io.Right, _outputGain, outputGain);
-        _outputGain = outputGain;
+        GainRamp.Apply(io.Left, this.outputGain, outputGain);
+        GainRamp.Apply(io.Right, this.outputGain, outputGain);
+        this.outputGain = outputGain;
     }
 }

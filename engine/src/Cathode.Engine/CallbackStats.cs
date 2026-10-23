@@ -9,17 +9,16 @@ namespace Cathode.Engine;
 public sealed class CallbackStats {
     const int Bins = 201;
 
-    readonly long[] _histogram = new long[Bins];
-    long _count;
-    long _overruns;
+    readonly long[] histogram = new long[Bins];
+    long count;
+    long overruns;
 
-    public long Count => Volatile.Read(ref _count);
+    public long Count => Volatile.Read(ref count);
 
     /// <summary>Callbacks that took longer than their real-time budget (a dropout on real hardware).</summary>
-    public long Overruns => Volatile.Read(ref _overruns);
+    public long Overruns => Volatile.Read(ref overruns);
 
     public double MaxPercent { get; private set; }
-
     public double LastPercent { get; private set; }
 
     /// <summary>Audio thread: record one callback that started at <paramref name="startTimestamp" />.</summary>
@@ -32,11 +31,11 @@ public sealed class CallbackStats {
         }
 
         if (percent >= 100.0) {
-            Interlocked.Increment(ref _overruns);
+            Interlocked.Increment(ref overruns);
         }
 
-        _histogram[Math.Min(Bins - 1, (int)percent)]++;
-        Interlocked.Increment(ref _count);
+        histogram[Math.Min(Bins - 1, (int)percent)]++;
+        Interlocked.Increment(ref count);
     }
 
     /// <summary>Budget percentage below which <paramref name="quantile" /> of callbacks fall (bin resolution: 1 %).</summary>
@@ -49,7 +48,7 @@ public sealed class CallbackStats {
         var threshold = (long)Math.Ceiling(quantile * total);
         long running = 0;
         for (var i = 0; i < Bins; i++) {
-            running += _histogram[i];
+            running += histogram[i];
             if (running >= threshold) {
                 return i + 1;
             }
@@ -59,9 +58,9 @@ public sealed class CallbackStats {
     }
 
     public void Reset() {
-        Array.Clear(_histogram);
-        _count = 0;
-        _overruns = 0;
+        Array.Clear(histogram);
+        count = 0;
+        overruns = 0;
         MaxPercent = 0;
         LastPercent = 0;
     }

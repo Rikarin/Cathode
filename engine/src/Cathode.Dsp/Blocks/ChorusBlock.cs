@@ -8,7 +8,7 @@ namespace Cathode.Dsp.Blocks;
 ///     Chorus: a short delay swept by an LFO, mixed with the dry signal. The right channel's LFO is offset by
 ///     the spread angle for width.
 /// </summary>
-public sealed class ChorusBlock : DspBlock {
+public sealed class ChorusBlock() : DspBlock(Info) {
     public const int Rate = 0;
     public const int Depth = 1;
     public const int Delay = 2;
@@ -19,11 +19,11 @@ public sealed class ChorusBlock : DspBlock {
     const float MaxDepthMs = 5f;
     const float MaxDelayMs = 30f;
 
-    readonly FractionalDelayLine _left = new();
-    readonly FractionalDelayLine _right = new();
-    Lfo _lfo;
-    float _mix;
-    float _outputGain = 1f;
+    readonly FractionalDelayLine left = new();
+    readonly FractionalDelayLine right = new();
+    Lfo lfo;
+    float mix;
+    float outputGain = 1f;
 
     public static BlockDescriptor Info { get; } = new(
         "chorus",
@@ -40,21 +40,18 @@ public sealed class ChorusBlock : DspBlock {
         maxInstances: 2
     );
 
-    public ChorusBlock()
-        : base(Info) { }
-
     protected override void OnPrepare(in ProcessSpec spec) {
         var capacity = (int)((MaxDelayMs + MaxDepthMs) * 0.001 * spec.SampleRate) + 8;
-        _left.Allocate(capacity);
-        _right.Allocate(capacity);
+        left.Allocate(capacity);
+        right.Allocate(capacity);
     }
 
     protected override void OnReset() {
-        _left.Reset();
-        _right.Reset();
-        _lfo.Reset();
-        _mix = Params.Current(Mix) / 100f;
-        _outputGain = Decibels.ToGain(Params.Current(Level));
+        left.Reset();
+        right.Reset();
+        lfo.Reset();
+        mix = Params.Current(Mix) / 100f;
+        outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -64,29 +61,29 @@ public sealed class ChorusBlock : DspBlock {
         var baseDelay = Params.Advance(Delay, io.Length) * 0.001f * (float)rate;
         var spread = Params.Advance(Spread, io.Length) / 360.0;
         var mix = Params.Advance(Mix, io.Length) / 100f;
-        var mixStep = (mix - _mix) / io.Length;
-        var currentMix = _mix;
+        var mixStep = (mix - this.mix) / io.Length;
+        var currentMix = this.mix;
 
         for (var i = 0; i < io.Length; i++) {
-            var dl = baseDelay + depth * 0.5f * (1 + _lfo.Value(LfoShape.Sine));
-            var dr = baseDelay + depth * 0.5f * (1 + _lfo.Value(LfoShape.Sine, spread));
-            _lfo.Advance(lfoRate, rate);
+            var dl = baseDelay + depth * 0.5f * (1 + lfo.Value(LfoShape.Sine));
+            var dr = baseDelay + depth * 0.5f * (1 + lfo.Value(LfoShape.Sine, spread));
+            lfo.Advance(lfoRate, rate);
             currentMix += mixStep;
 
             var left = io.Left[i];
             var right = io.Right[i];
-            var wetLeft = _left.Read(dl); // read before writing, so a delay of N is exactly N samples
-            var wetRight = _right.Read(dr);
-            _left.Write(left);
-            _right.Write(right);
+            var wetLeft = this.left.Read(dl); // read before writing, so a delay of N is exactly N samples
+            var wetRight = this.right.Read(dr);
+            this.left.Write(left);
+            this.right.Write(right);
             io.Left[i] = left * (1 - currentMix) + wetLeft * currentMix;
             io.Right[i] = right * (1 - currentMix) + wetRight * currentMix;
         }
 
-        _mix = mix;
+        this.mix = mix;
         var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, _outputGain, outputGain);
-        GainRamp.Apply(io.Right, _outputGain, outputGain);
-        _outputGain = outputGain;
+        GainRamp.Apply(io.Left, this.outputGain, outputGain);
+        GainRamp.Apply(io.Right, this.outputGain, outputGain);
+        this.outputGain = outputGain;
     }
 }

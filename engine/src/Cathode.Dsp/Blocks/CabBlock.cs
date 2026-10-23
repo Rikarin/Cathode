@@ -10,7 +10,7 @@ namespace Cathode.Dsp.Blocks;
 ///     IRs are resampled to the engine rate, normalised to unit energy and truncated to <see cref="MaxIrLength" />.
 ///     Zero latency. Stereo IRs process left and right separately; mono IRs are used for both channels.
 /// </summary>
-public sealed class CabBlock : DspBlock, IAssetConsumer {
+public sealed class CabBlock() : DspBlock(Info), IAssetConsumer {
     public const int Level1 = 0;
     public const int Level2 = 1;
     public const int LowCut = 2;
@@ -28,11 +28,11 @@ public sealed class CabBlock : DspBlock, IAssetConsumer {
 
     const int FadeLength = 64;
 
-    readonly Slot[] _slots = [new(), new()];
-    SvfState _lowCutLeft, _lowCutRight, _highCutLeft, _highCutRight;
-    float[] _scratchLeft = [];
-    float[] _scratchRight = [];
-    float _gain1 = 1f, _gain2 = 1f, _outputGain = 1f;
+    readonly Slot[] slots = [new(), new()];
+    SvfState lowCutLeft, lowCutRight, highCutLeft, highCutRight;
+    float[] scratchLeft = [];
+    float[] scratchRight = [];
+    float gain1 = 1f, gain2 = 1f, outputGain = 1f;
 
     public static BlockDescriptor Info { get; } = new(
         "cab",
@@ -50,9 +50,6 @@ public sealed class CabBlock : DspBlock, IAssetConsumer {
 
     public IReadOnlyList<string> AssetSlots { get; } = ["ir1", "ir2"];
 
-    public CabBlock()
-        : base(Info) { }
-
     /// <summary>Control thread: load a WAV impulse response into <c>ir1</c> or <c>ir2</c>.</summary>
     public void LoadAsset(string slot, string path) {
         var index = slot switch {
@@ -66,11 +63,11 @@ public sealed class CabBlock : DspBlock, IAssetConsumer {
             throw new InvalidDataException($"Impulse response '{path}' is empty.");
         }
 
-        _slots[index].Source = audio;
+        slots[index].Source = audio;
     }
 
     /// <summary>The IR as it will be convolved (resampled, truncated, normalised), for tests and the editor's plot.</summary>
-    public float[]? PreparedImpulseResponse(int slot, int channel = 0) => _slots[slot].Prepared?[channel];
+    public float[]? PreparedImpulseResponse(int slot, int channel = 0) => slots[slot].Prepared?[channel];
 
     static void Accumulate(ReadOnlySpan<float> source, Span<float> destination) {
         for (var i = 0; i < source.Length; i++) {
@@ -79,47 +76,47 @@ public sealed class CabBlock : DspBlock, IAssetConsumer {
     }
 
     protected override void OnPrepare(in ProcessSpec spec) {
-        foreach (var slot in _slots) {
+        foreach (var slot in slots) {
             slot.Build(spec.SampleRate);
         }
 
-        _scratchLeft = new float[spec.MaxBlockSize];
-        _scratchRight = new float[spec.MaxBlockSize];
+        scratchLeft = new float[spec.MaxBlockSize];
+        scratchRight = new float[spec.MaxBlockSize];
     }
 
     protected override void OnReset() {
-        foreach (var slot in _slots) {
+        foreach (var slot in slots) {
             slot.Reset();
         }
 
-        _lowCutLeft.Reset();
-        _lowCutRight.Reset();
-        _highCutLeft.Reset();
-        _highCutRight.Reset();
-        _gain1 = Decibels.ToGain(Params.Current(Level1));
-        _gain2 = Decibels.ToGain(Params.Current(Level2));
-        _outputGain = Decibels.ToGain(Params.Current(Level));
+        lowCutLeft.Reset();
+        lowCutRight.Reset();
+        highCutLeft.Reset();
+        highCutRight.Reset();
+        gain1 = Decibels.ToGain(Params.Current(Level1));
+        gain2 = Decibels.ToGain(Params.Current(Level2));
+        outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var gain1 = Decibels.ToGain(Params.Advance(Level1, io.Length));
         var gain2 = Decibels.ToGain(Params.Advance(Level2, io.Length));
-        var first = _slots[0];
-        var second = _slots[1];
+        var first = slots[0];
+        var second = slots[1];
 
         if (second.IsLoaded) {
-            var left = _scratchLeft.AsSpan(0, io.Length);
-            var right = _scratchRight.AsSpan(0, io.Length);
+            var left = scratchLeft.AsSpan(0, io.Length);
+            var right = scratchRight.AsSpan(0, io.Length);
             io.Left.CopyTo(left);
             io.Right.CopyTo(right);
             second.Process(left, right);
-            GainRamp.Apply(left, _gain2, gain2);
-            GainRamp.Apply(right, _gain2, gain2);
+            GainRamp.Apply(left, this.gain2, gain2);
+            GainRamp.Apply(right, this.gain2, gain2);
 
             if (first.IsLoaded) {
                 first.Process(io.Left, io.Right);
-                GainRamp.Apply(io.Left, _gain1, gain1);
-                GainRamp.Apply(io.Right, _gain1, gain1);
+                GainRamp.Apply(io.Left, this.gain1, gain1);
+                GainRamp.Apply(io.Right, this.gain1, gain1);
                 Accumulate(left, io.Left);
                 Accumulate(right, io.Right);
             } else {
@@ -128,42 +125,40 @@ public sealed class CabBlock : DspBlock, IAssetConsumer {
             }
         } else if (first.IsLoaded) {
             first.Process(io.Left, io.Right);
-            GainRamp.Apply(io.Left, _gain1, gain1);
-            GainRamp.Apply(io.Right, _gain1, gain1);
+            GainRamp.Apply(io.Left, this.gain1, gain1);
+            GainRamp.Apply(io.Right, this.gain1, gain1);
         }
 
-        _gain1 = gain1;
-        _gain2 = gain2;
+        this.gain1 = gain1;
+        this.gain2 = gain2;
 
         var lowCut = Params.Advance(LowCut, io.Length);
         if (lowCut > LowCutOff) {
             var c = SvfCoefficients.Design(BiquadType.HighPass, Spec.SampleRate, lowCut, 0.7071);
-            _lowCutLeft.Process(c, io.Left);
-            _lowCutRight.Process(c, io.Right);
+            lowCutLeft.Process(c, io.Left);
+            lowCutRight.Process(c, io.Right);
         }
 
         var highCut = Params.Advance(HighCut, io.Length);
         if (highCut < HighCutOff) {
             var c = SvfCoefficients.Design(BiquadType.LowPass, Spec.SampleRate, highCut, 0.7071);
-            _highCutLeft.Process(c, io.Left);
-            _highCutRight.Process(c, io.Right);
+            highCutLeft.Process(c, io.Left);
+            highCutRight.Process(c, io.Right);
         }
 
         var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, _outputGain, outputGain);
-        GainRamp.Apply(io.Right, _outputGain, outputGain);
-        _outputGain = outputGain;
+        GainRamp.Apply(io.Left, this.outputGain, outputGain);
+        GainRamp.Apply(io.Right, this.outputGain, outputGain);
+        this.outputGain = outputGain;
     }
 
     sealed class Slot {
-        Convolver? _left;
-        Convolver? _right;
+        Convolver? left;
+        Convolver? right;
 
         public AudioData? Source { get; set; }
-
         public float[][]? Prepared { get; private set; }
-
-        public bool IsLoaded => _left is not null;
+        public bool IsLoaded => left is not null;
 
         public void Build(double sampleRate) {
             if (Source is null) {
@@ -181,18 +176,18 @@ public sealed class CabBlock : DspBlock, IAssetConsumer {
             }
 
             Prepared = channels;
-            _left = new(channels[0]);
-            _right = new(channels[^1]);
+            left = new(channels[0]);
+            right = new(channels[^1]);
         }
 
         public void Reset() {
-            _left?.Reset();
-            _right?.Reset();
+            left?.Reset();
+            right?.Reset();
         }
 
         public void Process(Span<float> left, Span<float> right) {
-            _left!.Process(left);
-            _right!.Process(right);
+            this.left!.Process(left);
+            this.right!.Process(right);
         }
 
         /// <summary>Truncates to <see cref="MaxIrLength" /> with a short raised-cosine fade so the cut does not click.</summary>
