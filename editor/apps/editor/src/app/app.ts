@@ -147,21 +147,6 @@ import { LiveStore } from './state/live.store';
           </div>
           <div xuiNavbarGroup align="end" class="gap-3">
             <cth-transport />
-            <xui-segmented-control
-              size="sm"
-              aria-label="A/B compare"
-              [options]="abOptions"
-              [value]="compare.active()"
-              (valueChange)="$event && compare.switchTo($event)"
-            />
-            <xui-segmented-control
-              size="sm"
-              aria-label="Scene"
-              data-testid="scenes"
-              [options]="scenes()"
-              [value]="live.activeScene()"
-              (valueChange)="$event !== null && live.selectScene($event)"
-            />
             <button
               xuiButton
               variant="ghost"
@@ -185,6 +170,30 @@ import { LiveStore } from './state/live.store';
             <cth-engine-meters />
           </div>
         </nav>
+        <div class="bg-surface border-border flex items-center gap-6 border-b px-4 py-1.5">
+          <div class="flex items-center gap-2">
+            <span class="text-foreground-muted text-xs font-medium" aria-hidden="true">Compare</span>
+            <xui-segmented-control
+              size="sm"
+              aria-label="A/B compare"
+              [options]="abOptions"
+              [value]="compare.active()"
+              (valueChange)="$event && compare.switchTo($event)"
+            />
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-foreground-muted text-xs font-medium" aria-hidden="true">Scene</span>
+            <xui-segmented-control
+              size="sm"
+              aria-label="Scene"
+              data-testid="scenes"
+              class="grid grid-cols-4"
+              [options]="scenes()"
+              [value]="live.activeScene()"
+              (valueChange)="$event !== null && live.selectScene($event)"
+            />
+          </div>
+        </div>
         <main class="min-h-0 flex-1">
           <router-outlet />
         </main>
