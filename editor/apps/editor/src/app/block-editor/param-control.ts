@@ -38,10 +38,10 @@ import { LiveStore } from '../state/live.store';
   template: `
     @switch (param().kind) {
       @case ('float') {
-        <div class="relative" [xuiContextMenuTriggerFor]="menu">
+        <div class="relative flex w-20 justify-center" [xuiContextMenuTriggerFor]="menu">
           @if (modifier(); as m) {
             <span
-              class="bg-primary absolute top-0 right-0 size-2 rounded-full"
+              class="bg-primary absolute top-8 right-2 size-2 rounded-full"
               [xuiTooltip]="'Modified by ' + m.source"
               [attr.aria-label]="'Modified by ' + m.source"
             ></span>
@@ -54,6 +54,7 @@ import { LiveStore } from '../state/live.store';
             [max]="param().max"
             [defaultValue]="param().default"
             [taper]="param().taper === 'log' ? 'log' : 'linear'"
+            [color]="accent()"
             [value]="value()"
             (valueChange)="set($event)"
           />
@@ -74,36 +75,68 @@ import { LiveStore } from '../state/live.store';
         <cth-modifier-dialog [block]="block().id" [param]="param()" [(open)]="editing" />
       }
       @case ('enum') {
-        <div class="flex min-w-36 flex-col gap-1">
-          <span class="text-foreground-muted text-xs" [id]="labelId()">{{ param().name }}</span>
-          @if (segmented()) {
-            <xui-segmented-control
-              size="sm"
-              [attr.aria-labelledby]="labelId()"
-              [options]="choices()"
-              [value]="value()"
-              (valueChange)="set($event ?? 0)"
-            />
-          } @else {
+        @if (variant() === 'sidebar') {
+          <div class="flex flex-col gap-1.5">
+            <span class="text-foreground-muted text-[11px] font-semibold tracking-wide uppercase" [id]="labelId()">
+              {{ param().name }}
+            </span>
             <xui-select
-              class="w-44"
+              class="w-full"
               [attr.aria-labelledby]="labelId()"
               [filterable]="false"
               [items]="options()"
               [value]="options()[value()] ?? null"
               (valueChange)="set(Math.max(0, options().indexOf($event ?? '')))"
             />
-          }
-        </div>
+          </div>
+        } @else {
+          <div class="flex w-40 flex-col items-center gap-1.5">
+            <span class="h-6" aria-hidden="true"></span>
+            <div class="flex h-[52px] w-full items-center">
+              @if (segmented()) {
+                <xui-segmented-control
+                  size="sm"
+                  fill
+                  [attr.aria-labelledby]="labelId()"
+                  [options]="choices()"
+                  [value]="value()"
+                  (valueChange)="set($event ?? 0)"
+                />
+              } @else {
+                <xui-select
+                  class="w-full"
+                  [attr.aria-labelledby]="labelId()"
+                  [filterable]="false"
+                  [items]="options()"
+                  [value]="options()[value()] ?? null"
+                  (valueChange)="set(Math.max(0, options().indexOf($event ?? '')))"
+                />
+              }
+            </div>
+            <span class="text-foreground-muted text-center text-xs leading-tight" [id]="labelId()">
+              {{ param().name }}
+            </span>
+          </div>
+        }
       }
       @case ('bool') {
-        <label class="flex flex-col items-center gap-2">
-          <span class="text-foreground-muted text-xs">{{ param().name }}</span>
-          <xui-switch
-            [attr.aria-label]="param().name"
-            [checked]="value() >= 0.5"
-            (checkedChange)="set($event ? 1 : 0)"
-          />
+        <label class="flex w-20 flex-col items-center gap-1.5">
+          <span
+            class="bg-surface-inset border-border-muted flex h-6 min-w-12 items-center justify-center rounded-md border px-1.5 text-xs font-medium shadow-[inset_0_1px_2px_rgb(0_0_0/0.35)]"
+            [class.text-foreground]="value() >= 0.5"
+            [class.text-foreground-muted]="value() < 0.5"
+            aria-hidden="true"
+          >
+            {{ value() >= 0.5 ? 'On' : 'Off' }}
+          </span>
+          <span class="flex h-[52px] items-center">
+            <xui-switch
+              [attr.aria-label]="param().name"
+              [checked]="value() >= 0.5"
+              (checkedChange)="set($event ? 1 : 0)"
+            />
+          </span>
+          <span class="text-foreground-muted text-center text-xs leading-tight">{{ param().name }}</span>
         </label>
       }
     }
@@ -116,6 +149,10 @@ export class ParamControl {
 
   readonly block = input.required<PresetBlock>();
   readonly param = input.required<ParameterInfo>();
+  /** The knobs' arc colour: the block's category colour. */
+  readonly accent = input<string | null>(null);
+  /** `rack` lines controls up as knob-sized cells; `sidebar` stacks a choice as a label over a full-width select. */
+  readonly variant = input<'rack' | 'sidebar'>('rack');
 
   protected readonly labelId = computed(() => `param-${this.block().id}-${this.param().id}`);
   protected readonly value = computed(() => {
@@ -124,7 +161,7 @@ export class ParamControl {
   });
   protected readonly options = computed(() => this.param().options ?? []);
   protected readonly choices = computed(() => this.options().map((label, value) => ({ label, value })));
-  protected readonly segmented = computed(() => this.param().id === 'type' && this.options().length <= 5);
+  protected readonly segmented = computed(() => this.options().length <= 3);
   protected readonly Math = Math;
 
   protected readonly editing = signal(false);

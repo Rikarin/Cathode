@@ -57,6 +57,15 @@ export function blockColor(category: string): string {
 }
 
 /**
+ * A brighter tone of the category's colour for marks on a dark ground, like a knob's arc; `null` for the muted
+ * categories (routing, utility), which have too little colour to carry one.
+ */
+export function blockAccent(category: string): string | null {
+  const { hue, chroma } = blockCategoryStyle(category);
+  return chroma < 0.08 ? null : `oklch(0.72 ${chroma} ${hue})`;
+}
+
+/**
  * A block as a coloured tile: the category's gradient, its icon near the top and the block's name below. Used by the
  * grid and the block picker so the colours mean the same everywhere. Badges go in the default slot, positioned
  * absolutely by the caller.

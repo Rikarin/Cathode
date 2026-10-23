@@ -21,17 +21,36 @@ const StartAngle = 135; // degrees clockwise from 3 o'clock: the 7:30 position
 /**
  * A rotary control (docs/02-architecture.md §7.3: xUI has none yet). It is an ARIA slider: arrows step by 1 % of
  * the travel (⇧: 0.1 %), Page keys by 10 %, Home/End go to the ends. Drag vertically (⇧ for fine), use the wheel,
- * double-click to type a value with its unit, ⌥-click to reset to the default.
+ * double-click the knob or its readout to type a value with its unit, ⌥-click to reset to the default. It reads like
+ * hardware: the value in a recessed readout above, a machined cap whose pointer shows the position, the travel as an
+ * arc in `color`, and the name below.
  */
 @Component({
   selector: 'cth-knob',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'inline-flex flex-col items-center gap-1 select-none',
+    class: 'inline-flex flex-col items-center gap-1.5 select-none',
     '[class.opacity-50]': 'disabled()'
   },
   template: `
-    <span class="text-foreground-muted max-w-full truncate text-xs" [id]="labelId">{{ label() }}</span>
+    @if (typing()) {
+      <input
+        #editor
+        class="border-border bg-surface-inset text-foreground focus-visible:outline-focus h-6 w-20 rounded-md border px-1 text-center text-xs tabular-nums"
+        [value]="display()"
+        [attr.aria-label]="label() + ' value'"
+        (keydown.enter)="commitTyping(editor.value)"
+        (keydown.escape)="typing.set(false)"
+        (blur)="commitTyping(editor.value)"
+      />
+    } @else {
+      <span
+        class="bg-surface-inset border-border-muted text-foreground flex h-6 min-w-16 items-center justify-center rounded-md border px-1.5 text-xs font-medium tabular-nums shadow-[inset_0_1px_2px_rgb(0_0_0/0.35)]"
+        (dblclick)="startTyping()"
+      >
+        {{ display() }}
+      </span>
+    }
     <div
       #dial
       role="slider"
@@ -54,41 +73,56 @@ const StartAngle = 135; // degrees clockwise from 3 o'clock: the 7:30 position
       (keydown)="key($event)"
       (wheel)="wheel($event)"
     >
-      <svg viewBox="0 0 100 100" class="size-full overflow-visible">
-        <path [attr.d]="track" class="stroke-border fill-none" stroke-width="8" stroke-linecap="round" />
+      <svg viewBox="0 0 100 100" class="size-full overflow-visible" aria-hidden="true">
+        <defs>
+          <radialGradient [attr.id]="capId" cx="38%" cy="30%" r="75%">
+            <stop offset="0%" stop-color="#5b616c" />
+            <stop offset="55%" stop-color="#2a2e35" />
+            <stop offset="100%" stop-color="#141619" />
+          </radialGradient>
+        </defs>
+        <path [attr.d]="track" class="stroke-border fill-none" stroke-width="7" stroke-linecap="round" />
         @if (fill(); as d) {
-          <path [attr.d]="d" class="stroke-primary fill-none" stroke-width="8" stroke-linecap="round" />
+          <path
+            [attr.d]="d"
+            class="fill-none"
+            stroke-width="7"
+            stroke-linecap="round"
+            [style.stroke]="arcColor()"
+            [style.filter]="'drop-shadow(0 0 3px ' + arcColor() + ')'"
+          />
         }
-        <circle cx="50" cy="50" r="31" class="fill-surface-raised stroke-border-muted" stroke-width="1" />
+        <circle cx="50" cy="53" r="33" fill="rgb(0 0 0 / 0.45)" style="filter: blur(3px)" />
+        <circle
+          cx="50"
+          cy="50"
+          r="32"
+          [attr.fill]="'url(#' + capId + ')'"
+          stroke="rgb(255 255 255 / 0.1)"
+          stroke-width="1"
+        />
+        <circle cx="50" cy="50" r="26" fill="none" stroke="rgb(0 0 0 / 0.35)" stroke-width="1" />
         <line
-          x1="50"
-          y1="50"
+          [attr.x1]="pointerFrom().x"
+          [attr.y1]="pointerFrom().y"
           [attr.x2]="pointer().x"
           [attr.y2]="pointer().y"
-          class="stroke-foreground"
-          stroke-width="5"
+          stroke="white"
+          stroke-width="4.5"
           stroke-linecap="round"
         />
       </svg>
     </div>
-    @if (typing()) {
-      <input
-        #editor
-        class="border-border bg-surface-inset text-foreground focus-visible:outline-focus h-(--control-height-sm) w-20 rounded border px-1 text-center text-xs"
-        [value]="display()"
-        [attr.aria-label]="label() + ' value'"
-        (keydown.enter)="commitTyping(editor.value)"
-        (keydown.escape)="typing.set(false)"
-        (blur)="commitTyping(editor.value)"
-      />
-    } @else {
-      <span class="text-foreground text-xs tabular-nums">{{ display() }}</span>
-    }
+    <span class="text-foreground-muted line-clamp-2 max-w-full text-center text-xs leading-tight" [id]="labelId">
+      {{ label() }}
+    </span>
   `
 })
 export class CthKnob {
   private static nextId = 0;
-  protected readonly labelId = `cth-knob-label-${CthKnob.nextId++}`;
+  private readonly instance = CthKnob.nextId++;
+  protected readonly labelId = `cth-knob-label-${this.instance}`;
+  protected readonly capId = `cth-knob-cap-${this.instance}`;
   private readonly dial = viewChild.required<ElementRef<HTMLElement>>('dial');
   private readonly editor = viewChild<ElementRef<HTMLInputElement>>('editor');
   private dragStart: { y: number; normal: number } | null = null;
@@ -104,6 +138,8 @@ export class CthKnob {
   readonly label = input('');
   readonly size = input<'sm' | 'md' | 'lg'>('md');
   readonly disabled = input(false, { transform: booleanAttribute });
+  /** The value arc's colour (any CSS colour); the theme's primary when unset. */
+  readonly color = input<string | null>(null);
 
   /** Emitted when an interaction ends (drag release, typed value, key, reset): a good moment for an undo point. */
   readonly committed = output<number>();
@@ -120,6 +156,8 @@ export class CthKnob {
     return Math.abs(n - origin) < 0.002 ? null : arc(Math.min(origin, n), Math.max(origin, n));
   });
   protected readonly pointer = computed(() => point(this.normal(), 27));
+  protected readonly pointerFrom = computed(() => point(this.normal(), 13));
+  protected readonly arcColor = computed(() => this.color() ?? 'var(--color-primary)');
   private readonly range = computed(() => ({ min: this.min(), max: this.max(), taper: this.taper() }));
 
   protected grab(event: PointerEvent): void {
