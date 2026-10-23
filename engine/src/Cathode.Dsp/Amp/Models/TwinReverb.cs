@@ -1,0 +1,85 @@
+using Cathode.Dsp.Wdf;
+
+namespace Cathode.Dsp.Amp.Models;
+
+/// <summary>
+///     Fender Twin Reverb AB763 (85 W): the Normal or Vibrato channel (<see cref="AmpPanel.Switch1" />), each V1A into
+///     the Fender stack with a mid pot on both channels and the 1M volume with its 120 pF bright switch, V1B, the AB763
+///     mixing network (V4B and the reverb mix divider on the Vibrato channel), a 12AT7 long-tail pair, four 6L6GC in fixed
+///     bias at 460 V on a silicon rectifier, the 125A29A transformer (2k : 4 Ω), and 820 Ω / 100 Ω feedback from the
+///     4 Ω tap. No master or presence. Sources: see <see cref="Ab763" />; docs/06 §3.1.
+/// </summary>
+/// <remarks>
+///     Preamp node 270 V, plates 460 V (Robinette's model differences). The mid pot is taken as 10k audio
+///     (unverified); the idle current (30 mA per tube), the reservoir (50 µF) and the supply's source resistance are
+///     typical values, not factory figures. The 125A29A's parasitics are not published: the transformer is the
+///     library's default with its inductances, resistances and capacitance scaled to the 2k primary (the same bandwidth
+///     and losses relative to the load); with the default's 1 nF across a 2k primary, the four tubes cutting off under
+///     the Twin's heavy feedback rang hard enough to stall the power amp's Newton solve.
+/// </remarks>
+public static class TwinReverb {
+    static readonly ToneStackDesign Stack = new(
+        "Fender AB763",
+        250e-12,
+        100e3,
+        100e-9,
+        47e-9,
+        new(250e3, PotTaper.Audio),
+        new(250e3, PotTaper.Audio),
+        new(10e3, PotTaper.Audio)
+    );
+
+    public static AmpDesign Design { get; } = new(
+        "Twin Reverb",
+        [
+            new ToneStackStageDesign(
+                "V1A",
+                TriodeModel.Ecc83,
+                StackDriver.CommonCathode,
+                Supply: 270,
+                CathodeResistor: 1.5e3,
+                Stack: Stack,
+                Load: new(1e6, PotTaper.Audio),
+                LoadRole: PotRole.Gain,
+                PlateResistor: 100e3,
+                CathodeBypass: 25e-6,
+                InputResistance: 34e3,
+                BrightCap: 120e-12
+            ),
+            Ab763.SecondStage(270),
+            Ab763.Mixer(270)
+        ],
+        new(
+            "4 x 6L6GC",
+            PentodeModel.SixL6GC,
+            TubesPerSide: 2,
+            Supply: 460,
+            ScreenResistor: 470,
+            IdleCurrent: 0.030,
+            CathodeBias: false,
+            CathodeBypass: 0,
+            RatedPower: 85,
+            PhaseInverter: Ab763.PhaseInverter(420),
+            CouplingCap: 0.1e-6,
+            GridLeak: 220e3,
+            GridStopper: 1.5e3,
+            CutCap: 0,
+            CutPot: new(1e6, PotTaper.Linear),
+            Feedback: Ab763.Feedback(1 / Math.Sqrt(2), 100),
+            HasFeedback: true,
+            Transformer: new(2e3, 10, 5e-3, 75, 2e-9, 100e3),
+            Speaker: SpeakerDesign.OpenBack2x12,
+            PowerSupply: new(40, 50e-6, 100, 20e-6, 10e3, 20e-6, 8e-3, RectifierModel.Silicon)
+        ),
+        -3
+    ) {
+        Panel = new() {
+            Gain = "Volume",
+            Presence = null,
+            Depth = null,
+            Cut = null,
+            Master = null,
+            Switch1 = "Vibrato Ch"
+        }
+    };
+}

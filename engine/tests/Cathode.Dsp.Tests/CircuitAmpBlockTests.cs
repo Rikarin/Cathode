@@ -36,7 +36,10 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         var (plate, _) = power.PlateCurrents;
         var (screen, _) = power.ScreenCurrents;
         var dissipation = plate * (power.Supply - power.CathodeVoltage);
-        var rating = design.Tube == Wdf.PentodeModel.EL84 ? 12 : design.Tube == Wdf.PentodeModel.EL34 ? 25 : 30;
+        var rating = design.Tube == Wdf.PentodeModel.EL84 ? 12
+            : design.Tube == Wdf.PentodeModel.EL34 ? 25
+            : design.Tube == Wdf.PentodeModel.SixV6GT ? 14
+            : 30;
         output.WriteLine(
             $"{design.Name}: B+ {power.Supply:0.0} V, screen node {power.ScreenSupply:0.0} V, preamp node " +
             $"{power.PreampVoltage:0.0} V, grid bias {power.GridBias:0.00} V, cathode {power.CathodeVoltage:0.00} V, " +

@@ -18,10 +18,10 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         var parameters = CircuitAmpBlock.Info.Params;
         IReadOnlyList<string>? Labels(string id) => parameters.Single(p => p.Id == id).TypeLabels;
 
-        Assert.Null(Labels("gain"));
-        Assert.Equal(["", "", "Cut"], Labels("cut"));
-        Assert.Equal(["Middle", "Middle", ""], Labels("middle"));
-        Assert.All(Labels("switch1")!, static l => Assert.Empty(l));
+        Assert.Equal(["Gain", "Gain", "Gain"], Labels("gain")!.Take(3));
+        Assert.Equal(["", "", "Cut"], Labels("cut")!.Take(3));
+        Assert.Equal(["Middle", "Middle", ""], Labels("middle")!.Take(3));
+        Assert.All(Labels("switch1")!.Take(3), static l => Assert.Empty(l));
         Assert.All(Labels("eq1")!, static l => Assert.Empty(l));
         Assert.Null(Labels("variac"));
         Assert.Equal(AmpDesign.All.Count, Labels("control1")!.Count);
@@ -88,12 +88,21 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                 var design = AmpDesign.All[type];
                 foreach (var (index, value) in settings) {
                     // Known no-ops: the cathode time constant of a fixed-bias amp, a 6L6GC (the 5881's curves) or EL34
-                    // or EL84 in place of itself, the presence and depth frequencies of an amp without feedback.
+                    // or EL84 in place of itself, the presence and depth frequencies of an amp without feedback; and,
+                    // where the panel says the amp lacks the control, the master trim (no master), the bright cap (no
+                    // bright switch: a bright cap a channel switch engages, or none at all) and the presence frequency
+                    // (no presence); a speaker preset or rectifier that is the model's stock one.
                     var tube = new[] { null, "6L6GC", "EL34", "EL84", "6V6GT", "KT66", "KT88", "6550" }[
                         index == CircuitAmpBlock.PowerTube ? (int)value : 0];
                     var audible = !(index == CircuitAmpBlock.CathodeTime && !design.Power.CathodeBias)
                         && !(index == CircuitAmpBlock.PowerTube && design.Power.Name.Contains(tube ?? "-", StringComparison.Ordinal))
-                        && !(index is CircuitAmpBlock.PresenceFrequency or CircuitAmpBlock.DepthFrequency && !design.Power.HasFeedback);
+                        && !(index is CircuitAmpBlock.PresenceFrequency or CircuitAmpBlock.DepthFrequency && !design.Power.HasFeedback)
+                        && !(index == CircuitAmpBlock.MasterTrim && design.Panel.Master is null)
+                        && !(index == CircuitAmpBlock.BrightCap && design.Panel.Bright is null)
+                        && !(index == CircuitAmpBlock.PresenceFrequency && design.Panel.Presence is null)
+                        && !(index == CircuitAmpBlock.SpeakerCurve && SpeakerDesign.Presets[(int)value - 1] == design.Power.Speaker)
+                        && !(index == CircuitAmpBlock.Rectifier
+                            && RectifierModel.All[(int)value - 1] == design.Power.PowerSupply.Rectifier);
                     data.Add(type, index, value, audible);
                 }
             }
