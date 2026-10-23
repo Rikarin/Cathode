@@ -87,6 +87,26 @@ public sealed class ParamBank {
         }
     }
 
+    /// <summary>
+    ///     Audio thread, before the block's <see cref="BeginBlock" />: a modifier sets the value, ramping to it exactly
+    ///     across the next <paramref name="frames" /> instead of through the parameter's own smoother, so fast
+    ///     modulation is interpolated rather than smeared. It also becomes the target, as a modified knob is owned by its
+    ///     modifier.
+    /// </summary>
+    public void Modulate(int index, float value, int frames) {
+        var descriptor = descriptors[index];
+        value = Math.Clamp(value, descriptor.Min, descriptor.Max);
+        Volatile.Write(ref target[index], value);
+        seenTarget[index] = value;
+        if (frames <= 0 || rampSamples[index] == 0) {
+            current[index] = value;
+            remaining[index] = 0;
+        } else {
+            remaining[index] = frames;
+            step[index] = (value - current[index]) / frames;
+        }
+    }
+
     /// <summary>Audio thread: advances the smoother by <paramref name="frames" /> and returns the new value.</summary>
     public float Advance(int index, int frames) {
         var remaining = this.remaining[index];

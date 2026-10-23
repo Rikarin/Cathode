@@ -1,6 +1,9 @@
 using System.Diagnostics;
 using Cathode.Dsp;
+using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Parameters;
 using Cathode.Engine.Graph;
+using Cathode.Engine.Rig;
 using Cathode.Engine.Telemetry;
 
 namespace Cathode.Engine;
@@ -21,6 +24,11 @@ namespace Cathode.Engine;
 ///         out underneath. The old graph retires once its output has stayed below -90 dB for 4.1 s (longer than any delay
 ///         repeat), or after <see cref="TailCapSeconds" />.
 ///     </para>
+///     <para>
+///         Around the graph sits the rig (Cathode.Engine.Rig), which outlives preset changes: per sub-block the controllers
+///         advance and drive the graph's modifiers; after the graph come the scene level, the looper, the global EQ and
+///         the metronome.
+///     </para>
 /// </remarks>
 public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     public const double SwapFadeMs = 20;
@@ -32,6 +40,8 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     /// </summary>
     const double TailQuietMs = 4_100;
     const int RetiredSlots = 4;
+    const double TapWindowSeconds = 2.5;
+    const int TapHistory = 4;
 
     readonly SpscRing<EngineCommand> commands;
     readonly CompiledGraph?[] retiredGraphs = new CompiledGraph?[RetiredSlots];
@@ -42,6 +52,15 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     readonly float swapStep;
     readonly long tailCap;
     readonly long tailQuiet;
+    readonly Modulation modulation;
+    readonly Metronome metronome;
+    readonly long[] taps = new long[TapHistory];
+    readonly int tempoIndex = RigControls.Descriptor.IndexOf("tempo");
+    readonly int metronomeIndex = RigControls.Descriptor.IndexOf("metronome");
+    readonly int metroLevelIndex = RigControls.Descriptor.IndexOf("metroLevel");
+    int tapCount;
+    float levelGain = 1f;
+    Looper? looper;
     CompiledGraph? tail;
     float tailInput; // gain into the spilling graph: 1 at the swap, falling to 0
     float swapGain = 1f; // gain on the new graph: 0 at the swap, rising to 1
@@ -62,7 +81,23 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
 
     public CallbackStats Stats { get; } = new();
 
-    public double Tempo { get; set; } = 120;
+    /// <summary>
+    ///     The rig parameters (<see cref="RigControls" />): scene level, tempo, controller settings and sources. Targets
+    ///     are writable from any thread, as for block parameters.
+    /// </summary>
+    public ParamBank Rig { get; }
+
+    /// <summary>The global output EQ (block id <c>global</c>), applied to every preset.</summary>
+    public GraphicEqBlock GlobalEq { get; } = new();
+
+    /// <summary>The looper, once <see cref="EnableLooper" /> has allocated it.</summary>
+    public Looper? Looper => Volatile.Read(ref looper);
+
+    /// <summary>Current tempo in BPM (the rig's <c>tempo</c>, which tap tempo also sets).</summary>
+    public double Tempo {
+        get => Rig.Current(tempoIndex);
+        set => Rig.SetTarget(tempoIndex, (float)value);
+    }
 
     /// <summary>The graph the audio thread is currently running (may lag a just-published graph by one callback).</summary>
     public CompiledGraph? Current => Volatile.Read(ref current);
@@ -100,7 +135,16 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         swapStep = (float)(1.0 / Math.Max(1.0, SwapFadeMs * 0.001 * spec.SampleRate));
         tailCap = (long)(TailCapSeconds * spec.SampleRate);
         tailQuiet = (long)(TailQuietMs * 0.001 * spec.SampleRate);
+        Rig = new(RigControls.Descriptor.Params);
+        Rig.Prepare(spec.SampleRate);
+        Rig.SnapToTargets();
+        modulation = new(Rig, spec.SampleRate);
+        metronome = new(spec.SampleRate);
+        GlobalEq.Prepare(spec);
     }
+
+    /// <summary>Control thread, before audio starts: allocate the looper (60 s of stereo, about 46 MB at 48 kHz).</summary>
+    public void EnableLooper() => Volatile.Write(ref looper, looper ?? new Looper(Spec.SampleRate));
 
     /// <summary>True while a replaced graph is still ringing out under the current one.</summary>
     public bool IsSpilling => Volatile.Read(ref tail) is not null;
@@ -136,6 +180,8 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         }
 
         Interlocked.Exchange(ref tail, null)?.Dispose();
+        looper?.Dispose();
+        GlobalEq.Dispose();
         tailInLeft.Dispose();
         tailInRight.Dispose();
         tailOutLeft.Dispose();
@@ -184,9 +230,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
 
         var graph = current;
         while (commands.TryDequeue(out var command)) {
-            if (graph is not null && command.Generation == graph.Generation) {
-                Apply(graph, command);
-            }
+            Apply(graph, command);
         }
 
         if (graph is null) {
@@ -197,7 +241,9 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
             for (var offset = 0; offset < io.Frames; offset += maxBlock) {
                 var length = Math.Min(maxBlock, io.Frames - offset);
                 var slice = io.Slice(offset, length);
-                var context = new BlockContext(Spec.SampleRate, Tempo, sampleTime);
+                modulation.Advance(slice.InputLeft, sampleTime);
+                var context = new BlockContext(Spec.SampleRate, modulation.Tempo, sampleTime);
+                graph.ApplyModifiers(modulation, length);
                 graph.Process(slice, context);
                 if (swapGain < 1f) {
                     swapGain = Ramp(slice.OutputLeft, slice.OutputRight, swapGain, 1f);
@@ -205,6 +251,14 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
 
                 if (tail is not null) {
                     Spill(slice, context);
+                }
+
+                levelGain = RampTo(slice.OutputLeft, slice.OutputRight, levelGain, modulation.LevelGain);
+                looper?.Process(slice.OutputLeft, slice.OutputRight);
+                GlobalEq.Process(new(slice.OutputLeft, slice.OutputRight), context);
+                if (Rig.Current(metronomeIndex) >= 0.5f) {
+                    var click = MathF.Pow(10f, Rig.GetTarget(metroLevelIndex) / 20f);
+                    metronome.Process(slice.OutputLeft, slice.OutputRight, sampleTime, modulation.Tempo, click);
                 }
 
                 Volatile.Write(ref sampleTime, sampleTime + length);
@@ -299,11 +353,56 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         return peak;
     }
 
-    static void Apply(CompiledGraph graph, in EngineCommand command) {
+    void Apply(CompiledGraph? graph, in EngineCommand command) {
         switch (command.Kind) {
-            case EngineCommandKind.SetBypass:
+            case EngineCommandKind.SetBypass when graph is not null && command.Generation == graph.Generation:
                 graph.SetBypass(command.Slot, command.Value != 0f);
                 break;
+            case EngineCommandKind.TapTempo:
+                Tap(command.Time);
+                break;
+            case EngineCommandKind.Looper:
+                looper?.Apply((LooperAction)command.Slot);
+                break;
         }
+    }
+
+    /// <summary>
+    ///     Tap tempo: the average interval of the taps that came within <see cref="TapWindowSeconds" /> of each other.
+    ///     Taps carry sample times, so the result does not depend on when the command was drained.
+    /// </summary>
+    void Tap(long time) {
+        var window = (long)(TapWindowSeconds * Spec.SampleRate);
+        if (tapCount > 0 && (time - taps[(tapCount - 1) % TapHistory] > window || time <= taps[(tapCount - 1) % TapHistory])) {
+            tapCount = 0; // too long since the last tap (or out of order): start a new count
+        }
+
+        taps[tapCount % TapHistory] = time;
+        tapCount++;
+        var counted = Math.Min(tapCount, TapHistory);
+        if (counted < 2) {
+            return;
+        }
+
+        var first = taps[(tapCount - counted) % TapHistory];
+        var interval = (double)(time - first) / (counted - 1);
+        Rig.SetTarget(tempoIndex, (float)Math.Clamp(60 * Spec.SampleRate / interval, 30, 300));
+    }
+
+    /// <summary>A linear gain ramp from <paramref name="from" /> to <paramref name="to" /> across the block.</summary>
+    static float RampTo(Span<float> left, Span<float> right, float from, float to) {
+        if (from == to && to == 1f) {
+            return to;
+        }
+
+        var step = (to - from) / left.Length;
+        var gain = from;
+        for (var i = 0; i < left.Length; i++) {
+            gain += step;
+            left[i] *= gain;
+            right[i] *= gain;
+        }
+
+        return to;
     }
 }

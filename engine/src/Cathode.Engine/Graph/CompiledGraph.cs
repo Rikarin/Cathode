@@ -1,4 +1,5 @@
 using Cathode.Dsp;
+using Cathode.Engine.Rig;
 
 namespace Cathode.Engine.Graph;
 
@@ -29,6 +30,7 @@ public sealed class CompiledGraph : IDisposable {
     readonly NativeBuffer dryRight;
     readonly BypassState[] bypass;
     readonly float fadeStep;
+    readonly ModifierBinding[] modifiers;
 
     /// <summary>Identifies this graph; commands addressed to another generation are ignored.</summary>
     public int Generation { get; }
@@ -54,8 +56,10 @@ public sealed class CompiledGraph : IDisposable {
         bool[] bypassed,
         BypassKind[] bypassModes,
         DelayLine[] delays,
-        int latencySamples
+        int latencySamples,
+        ModifierBinding[]? modifiers = null
     ) {
+        this.modifiers = modifiers ?? [];
         Generation = generation;
         Spec = spec;
         this.ops = ops;
@@ -83,6 +87,33 @@ public sealed class CompiledGraph : IDisposable {
         bypass = new BypassState[blocks.Length];
         for (var i = 0; i < blocks.Length; i++) {
             bypass[i] = new(bypassed[i], bypassModes[i]);
+        }
+    }
+
+    public IReadOnlyList<ModifierBinding> Modifiers => modifiers;
+
+    /// <summary>True when a modifier follows the input pitch, so the host must run pitch detection.</summary>
+    public bool UsesPitch => modifiers.Any(static m => m.Source == ModSource.Pitch);
+
+    /// <summary>
+    ///     Audio thread, once per sub-block before <see cref="Process" />: drive every modified parameter from its source,
+    ///     ramping across the sub-block.
+    /// </summary>
+    public void ApplyModifiers(Modulation modulation, int frames) {
+        var seconds = frames / Spec.SampleRate;
+        foreach (ref var modifier in modifiers.AsSpan()) {
+            var target = Modulation.Map(
+                modulation.Value(modifier.Source),
+                modifier.Curve,
+                modifier.Min,
+                modifier.Max,
+                modifier.Log
+            );
+            var ms = target > modifier.Value ? modifier.AttackMs : modifier.ReleaseMs;
+            modifier.Value = ms <= 0 || float.IsNaN(modifier.Value)
+                ? target
+                : modifier.Value + (target - modifier.Value) * (float)(1 - Math.Exp(-seconds / (ms * 0.001)));
+            blocks[modifier.Slot].Params.Modulate(modifier.ParamIndex, modifier.Value, frames);
         }
     }
 
@@ -242,4 +273,29 @@ public sealed class CompiledGraph : IDisposable {
         /// <summary>1 = fully active, 0 = fully bypassed.</summary>
         public float Mix = bypassed ? 0f : 1f;
     }
+}
+
+/// <summary>A compiled <see cref="ModifierDefinition" /> plus its slew state.</summary>
+public struct ModifierBinding(
+    int slot,
+    int paramIndex,
+    ModSource source,
+    ModCurve curve,
+    float min,
+    float max,
+    bool log,
+    float attackMs,
+    float releaseMs) {
+    public int Slot { get; } = slot;
+    public int ParamIndex { get; } = paramIndex;
+    public ModSource Source { get; } = source;
+    public ModCurve Curve { get; } = curve;
+    public float Min { get; } = min;
+    public float Max { get; } = max;
+    public bool Log { get; } = log;
+    public float AttackMs { get; } = attackMs;
+    public float ReleaseMs { get; } = releaseMs;
+
+    /// <summary>The slewed value; NaN until the first sub-block, which then starts at its target.</summary>
+    public float Value { get; set; } = float.NaN;
 }

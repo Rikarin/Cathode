@@ -1,4 +1,6 @@
 using Cathode.Dsp;
+using Cathode.Dsp.Parameters;
+using Cathode.Engine.Rig;
 
 namespace Cathode.Engine.Graph;
 
@@ -60,6 +62,36 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                     _ => BypassKind.Thru
                 }
             );
+        }
+
+        var modifiers = new List<ModifierBinding>();
+        foreach (var modifier in definition.Modifiers) {
+            var slot = slotIds.IndexOf(modifier.Block);
+            var index = slot < 0 ? -1 : blocks[slot].Descriptor.IndexOf(modifier.Param);
+            if (index < 0) {
+                errors.Add($"Modifier: no parameter '{modifier.Param}' on block '{modifier.Block}'.");
+            } else if (!ModNames.TryParseSource(modifier.Source, out var source)) {
+                errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown source '{modifier.Source}'.");
+            } else if (!ModNames.TryParseCurve(modifier.Curve, out var curve)) {
+                errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown curve '{modifier.Curve}'.");
+            } else if (modifiers.Any(m => m.Slot == slot && m.ParamIndex == index)) {
+                errors.Add($"Parameter '{modifier.Block}.{modifier.Param}' has more than one modifier.");
+            } else {
+                var param = blocks[slot].Descriptor.Params[index];
+                modifiers.Add(
+                    new(
+                        slot,
+                        index,
+                        source,
+                        curve,
+                        Math.Clamp(modifier.Min, param.Min, param.Max),
+                        Math.Clamp(modifier.Max, param.Min, param.Max),
+                        param.Taper == ParamTaper.Log,
+                        modifier.AttackMs,
+                        modifier.ReleaseMs
+                    )
+                );
+            }
         }
 
         if (errors.Count > 0) {
@@ -155,7 +187,8 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             [..bypassed],
             [..bypassModes],
             [..emitter.Delays],
-            graphLatency
+            graphLatency,
+            [..modifiers]
         );
     }
 

@@ -46,6 +46,35 @@ public sealed class GraphDefinition {
     public List<NodeDefinition> Nodes { get; set; } = [];
 
     public List<CableDefinition> Cables { get; set; } = [];
+
+    /// <summary>Parameters driven by a controller (docs/02-architecture.md §5.4).</summary>
+    public List<ModifierDefinition> Modifiers { get; set; } = [];
+}
+
+/// <summary>
+///     One modified parameter: <c>value = min..max</c> (in parameter units, following a log taper where the parameter
+///     has one) of <c>curve(source)</c>, slewed with separate rise and fall times.
+/// </summary>
+public sealed class ModifierDefinition {
+    public string Block { get; set; } = string.Empty;
+
+    public string Param { get; set; } = string.Empty;
+
+    /// <summary>A source name (Cathode.Engine.Rig.ModNames.Sources): lfo1, adsr2, env, manualA, scene3, ext5, …</summary>
+    public string Source { get; set; } = string.Empty;
+
+    public float Min { get; set; }
+
+    public float Max { get; set; } = 1f;
+
+    /// <summary>linear, exp, log or scurve.</summary>
+    public string Curve { get; set; } = "linear";
+
+    /// <summary>Damping of rises, in ms (0 = none).</summary>
+    public float AttackMs { get; set; }
+
+    /// <summary>Damping of falls, in ms (0 = none).</summary>
+    public float ReleaseMs { get; set; }
 }
 
 public sealed class NodeDefinition {
