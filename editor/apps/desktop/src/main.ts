@@ -15,6 +15,8 @@ if (process.env['CATHODE_USER_DATA']) {
 
 /** The renderer comes from the built editor through this scheme; nothing else is served from disk. */
 const Scheme = 'app';
+/** The app icon (apps/desktop/assets/icon.png), copied next to main.js by the build. */
+const Icon = join(__dirname, 'icon.png');
 const editorRoot = resolve(
   process.env['CATHODE_EDITOR_DIR'] ?? join(__dirname, app.isPackaged ? 'editor' : '../editor/browser')
 );
@@ -83,6 +85,7 @@ function createWindow(): void {
     title: 'Cathode',
     backgroundColor: '#111113',
     show: false,
+    icon: Icon,
     // On macOS the editor's navbar is the title bar: no system bar, just the traffic lights, centred in its 48 px.
     ...(process.platform === 'darwin'
       ? { titleBarStyle: 'hidden' as const, trafficLightPosition: { x: 16, y: 17 } }
@@ -182,6 +185,11 @@ function validTarget(target: ServerTarget): ServerTarget {
 }
 
 app.whenReady().then(() => {
+  // Unpackaged, macOS would show Electron's own icon in the Dock.
+  if (existsSync(Icon)) {
+    app.dock?.setIcon(Icon);
+  }
+
   // No camera, microphone, notifications or anything else: the editor needs none of it.
   session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   serveEditor();
