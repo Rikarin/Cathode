@@ -20,6 +20,12 @@ sealed class ReferenceCircuit {
 
     public List<(int A, int B, double Henries)> Inductors { get; } = [];
 
+    /// <summary>Ideal transformers: each a list of windings (plus, minus, turns), all on one core.</summary>
+    public List<(int Plus, int Minus, double Turns)[]> Transformers { get; } = [];
+
+    /// <summary>MNA unknowns added by the transformers: one winding current each.</summary>
+    public int Windings => Transformers.Sum(static t => t.Length);
+
     public List<(int Plus, int Minus, Func<double, double> Volts)> Sources { get; } = [];
 
     public List<(int Plus, int Minus, int ControlPlus, int ControlMinus, double Gain)> Controlled { get; } = [];
@@ -34,6 +40,12 @@ sealed class ReferenceCircuit {
 
     /// <summary>An inductor, current flowing from <paramref name="a" /> to <paramref name="b" />: an MNA branch of its own.</summary>
     public void Inductor(int a, int b, double henries) => Inductors.Add((a, b, henries));
+
+    /// <summary>
+    ///     An ideal transformer: every winding has the same volts per turn, and the ampere-turns sum to zero. Each
+    ///     winding's current flows in at its plus node.
+    /// </summary>
+    public void Transformer(params (int Plus, int Minus, double Turns)[] windings) => Transformers.Add(windings);
 
     public void Source(int plus, int minus, Func<double, double> volts) => Sources.Add((plus, minus, volts));
 
@@ -74,7 +86,7 @@ sealed class ReferenceSimulator {
 
     public ReferenceSimulator(ReferenceCircuit circuit) {
         this.circuit = circuit;
-        size = circuit.Nodes + circuit.Sources.Count + circuit.Controlled.Count + circuit.Inductors.Count;
+        size = circuit.Nodes + circuit.Sources.Count + circuit.Controlled.Count + circuit.Inductors.Count + circuit.Windings;
         x = new double[size];
         capacitorCurrents = new double[circuit.Capacitors.Count];
         inductorCurrents = new double[circuit.Inductors.Count];
@@ -178,6 +190,8 @@ sealed class ReferenceSimulator {
             a[row, row] -= s * l;
         }
 
+        StampTransformers(a);
+
         if (linearised) {
             for (var d = 0; d < circuit.Devices.Count; d++) {
                 var (device, ports) = circuit.Devices[d];
@@ -273,6 +287,8 @@ sealed class ReferenceSimulator {
                 }
             }
 
+            StampTransformers(a);
+
             Array.Copy(x, last, size);
             var solution = Solve(a, rhs);
             Array.Copy(solution, x, size);
@@ -308,6 +324,62 @@ sealed class ReferenceSimulator {
         }
 
         return v;
+    }
+
+    /// <summary>
+    ///     Ideal transformers: a current unknown per winding; one row makes the ampere-turns sum to zero, the others make
+    ///     each winding's volts per turn equal the first's.
+    /// </summary>
+    void StampTransformers(double[,] a) {
+        var row = circuit.Nodes + circuit.Sources.Count + circuit.Controlled.Count + circuit.Inductors.Count;
+        foreach (var windings in circuit.Transformers) {
+            var (p0, m0, n0) = windings[0];
+            for (var k = 0; k < windings.Length; k++) {
+                var (p, m, n) = windings[k];
+                var current = row + k;
+                if (p > 0) {
+                    a[p - 1, current] += 1;
+                }
+
+                if (m > 0) {
+                    a[m - 1, current] -= 1;
+                }
+
+                a[row, current] += n; // Σ N_k i_k = 0
+                if (k == 0) {
+                    continue;
+                }
+
+                // N_0 v_k - N_k v_0 = 0
+                if (p > 0) {
+                    a[current, p - 1] += n0;
+                }
+
+                if (m > 0) {
+                    a[current, m - 1] -= n0;
+                }
+
+                if (p0 > 0) {
+                    a[current, p0 - 1] -= n;
+                }
+
+                if (m0 > 0) {
+                    a[current, m0 - 1] += n;
+                }
+            }
+
+            row += windings.Length;
+        }
+    }
+
+    void StampTransformers(Complex[,] a) {
+        var real = new double[size, size];
+        StampTransformers(real);
+        for (var i = 0; i < size; i++) {
+            for (var j = 0; j < size; j++) {
+                a[i, j] += real[i, j];
+            }
+        }
     }
 
     int InductorRow(int index) => circuit.Nodes + circuit.Sources.Count + circuit.Controlled.Count + index;
