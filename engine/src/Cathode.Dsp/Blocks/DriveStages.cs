@@ -591,8 +591,8 @@ static class OperatingPoints {
         for (var n = 0; n < 4_000; n++) {
             tick(0);
             for (var i = 0; i < root.Capacitors; i++) {
-                // The port voltage is (a + b) / 2, b being the wave the capacitor reflected this sample (what it was
-                // precharged to) and a the one it now holds; Capacitor.Voltage reads a alone once a sample has run.
+                // Relax towards the port voltage (a + b) / 2: b is what the capacitor was precharged to, a what it now
+                // holds.
                 ref var capacitor = ref root.Capacitor(i);
                 capacitor.Precharge(0.5 * (capacitor.Reflected + start[i]));
                 start[i] = capacitor.Reflected;

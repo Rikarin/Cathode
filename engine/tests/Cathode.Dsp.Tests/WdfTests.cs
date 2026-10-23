@@ -83,6 +83,12 @@ public class WdfTests {
             var t = (n - 0.5) / Fast;
             Assert.Equal(Math.Exp(-t / (R * C)) / R, rc.Tree.A.Current, 1e-9);
             Assert.Equal((1 - Math.Exp(-t * R / L)) / R, -rl.Tree.A.Current, 1e-9);
+
+            // The reactive ports read their own voltage and current after a sample, not just after a precharge.
+            Assert.Equal(1 - R * rc.Tree.A.Current, rc.Tree.B.Voltage, 1e-9);
+            Assert.Equal(rc.Tree.A.Current, rc.Tree.B.Current, 1e-12);
+            Assert.Equal(-rl.Tree.A.Voltage, rl.Tree.B.Voltage, 1e-9); // a series loop: the port voltages sum to zero
+            Assert.Equal(rl.Tree.A.Current, rl.Tree.B.Current, 1e-12);
         }
     }
 

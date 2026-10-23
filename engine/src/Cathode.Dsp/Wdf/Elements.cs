@@ -34,6 +34,7 @@ public struct Resistor(double resistance) : IWdfPort {
 /// </summary>
 public struct Capacitor(double capacitance, double sampleRate) : IWdfPort {
     double a;
+    double b;
     double state;
     double resistance = 0.5 / (capacitance * sampleRate);
 
@@ -41,9 +42,10 @@ public struct Capacitor(double capacitance, double sampleRate) : IWdfPort {
 
     public readonly double Reflected => state;
 
-    public readonly double Voltage => 0.5 * (a + state);
+    /// <summary>The port voltage this sample, (a + b) / 2: b is the wave the capacitor reflected before its incident one.</summary>
+    public readonly double Voltage => 0.5 * (a + b);
 
-    public readonly double Current => 0.5 * (a - state) / resistance;
+    public readonly double Current => 0.5 * (a - b) / resistance;
 
     /// <summary>Changes the capacitance or sample rate, keeping the stored wave. <see cref="IWdfPort.Propagate" /> after.</summary>
     public void Configure(double capacitance, double sampleRate) => resistance = 0.5 / (capacitance * sampleRate);
@@ -54,6 +56,7 @@ public struct Capacitor(double capacitance, double sampleRate) : IWdfPort {
     /// </summary>
     public void Precharge(double volts) {
         a = volts;
+        b = volts;
         state = volts;
     }
 
@@ -65,11 +68,13 @@ public struct Capacitor(double capacitance, double sampleRate) : IWdfPort {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Incident(double a) {
         this.a = a;
+        b = state;
         state = a;
     }
 
     public void Reset() {
         a = 0;
+        b = 0;
         state = 0;
     }
 }
@@ -77,6 +82,7 @@ public struct Capacitor(double capacitance, double sampleRate) : IWdfPort {
 /// <summary>An inductor discretised with the trapezoidal rule: R = 2L / T and b[n] = -a[n - 1].</summary>
 public struct Inductor(double inductance, double sampleRate) : IWdfPort {
     double a;
+    double b;
     double state;
     double resistance = 2 * inductance * sampleRate;
 
@@ -84,9 +90,10 @@ public struct Inductor(double inductance, double sampleRate) : IWdfPort {
 
     public readonly double Reflected => -state;
 
-    public readonly double Voltage => 0.5 * (a - state);
+    /// <summary>The port voltage this sample, (a + b) / 2: b is the wave the inductor reflected before its incident one.</summary>
+    public readonly double Voltage => 0.5 * (a + b);
 
-    public readonly double Current => 0.5 * (a + state) / resistance;
+    public readonly double Current => 0.5 * (a - b) / resistance;
 
     /// <summary>Changes the inductance or sample rate, keeping the stored wave. <see cref="IWdfPort.Propagate" /> after.</summary>
     public void Configure(double inductance, double sampleRate) => resistance = 2 * inductance * sampleRate;
@@ -97,6 +104,7 @@ public struct Inductor(double inductance, double sampleRate) : IWdfPort {
     /// </summary>
     public void Precharge(double amps) {
         a = amps * resistance;
+        b = -a;
         state = a;
     }
 
@@ -108,11 +116,13 @@ public struct Inductor(double inductance, double sampleRate) : IWdfPort {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Incident(double a) {
         this.a = a;
+        b = -state;
         state = a;
     }
 
     public void Reset() {
         a = 0;
+        b = 0;
         state = 0;
     }
 }

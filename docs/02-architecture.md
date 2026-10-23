@@ -198,6 +198,8 @@ public interface IDspBlock : IDisposable
 }
 ```
 
+`BlockContext` carries the sample rate, tempo, sample time and the MIDI notes currently held (`HeldNotes`). The host's MIDI input posts note on/off straight to the engine as `EngineCommand.Note`, so the Pitch block can take its key and chord from a keyboard or DAW.
+
 Processing is **in place**: the compiler hands each block one buffer that holds its input and receives its output. That is what lets a series chain run in a single buffer.
 
 - DSP state lives in `NativeMemory.AlignedAlloc` buffers (64-byte aligned) or pinned arrays.
