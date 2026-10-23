@@ -260,6 +260,19 @@
         }
       }
     },
+    "/api/v1/live/export": {
+      "get": {
+        "tags": [
+          "Live"
+        ],
+        "operationId": "ExportLive",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/live/save": {
       "post": {
         "tags": [
@@ -862,6 +875,59 @@
         }
       }
     },
+    "/api/v1/presets/{id}/export": {
+      "get": {
+        "tags": [
+          "Presets"
+        ],
+        "operationId": "ExportPreset",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/presets/import": {
+      "post": {
+        "tags": [
+          "Presets"
+        ],
+        "operationId": "ImportPreset",
+        "requestBody": {
+          "content": {
+            "application/zip": {
+              "schema": {
+                "$ref": "#/components/schemas/Stream"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/setlists": {
       "get": {
         "tags": [
@@ -1445,6 +1511,30 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ImportResult": {
+        "required": [
+          "preset",
+          "assetsAdded",
+          "renamed"
+        ],
+        "type": "object",
+        "properties": {
+          "preset": {
+            "$ref": "#/components/schemas/PresetSummary"
+          },
+          "assetsAdded": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "renamed": {
+            "type": "boolean"
           }
         }
       },

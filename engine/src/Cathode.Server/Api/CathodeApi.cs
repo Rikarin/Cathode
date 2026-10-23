@@ -6,6 +6,7 @@ using Cathode.Server.Realtime;
 using Cathode.Server.Rig;
 using Cathode.Server.Stores;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Cathode.Server.Api;
 
@@ -38,6 +39,9 @@ public static class CathodeApi {
         }).WithName("LoadSetlistEntry");
         live.MapPut("/banks/{id}/slots/{slot:int}", async (string id, int slot, Library books, LiveRig rig, HttpContext http) =>
             Respond(http, await rig.LoadAsync(books.Slot(id, slot)))).WithName("LoadBankSlot");
+        live.MapGet("/export", async (LiveRig rig, PresetPackage package, CancellationToken cancellationToken) =>
+                await Export((await rig.StateAsync()).Preset, package, cancellationToken))
+            .Produces(200, contentType: "application/zip").WithName("ExportLive");
         live.MapPost("/save", async (SaveRequest request, LiveRig rig, HttpContext http) =>
             Respond(http, await rig.SaveAsync(request, Expected(http)))).WithName("SavePreset");
         live.MapPost("/undo", async (LiveRig rig, HttpContext http) => Respond(http, await rig.UndoAsync())).WithName("Undo");
@@ -79,6 +83,16 @@ public static class CathodeApi {
         }).WithName("PutPreset");
         library.MapDelete("/{id}", Results<NoContent, NotFound> (string id, Library books) =>
             books.DeletePreset(id) ? TypedResults.NoContent() : TypedResults.NotFound()).WithName("DeletePreset");
+
+        library.MapGet("/{id}/export", (string id, PresetStore store, PresetPackage package, CancellationToken cancellationToken) => {
+            var preset = store.Get(id) ?? throw RigException.NotFound($"No preset '{id}'.");
+            return Export(preset, package, cancellationToken);
+        }).Produces(200, contentType: "application/zip").WithName("ExportPreset");
+        library.MapPost("/import", async (HttpRequest request, PresetPackage package, CancellationToken cancellationToken) =>
+                TypedResults.Ok(await package.ImportAsync(request.Body, cancellationToken)))
+            .Accepts<Stream>("application/zip")
+            .WithName("ImportPreset")
+            .WithMetadata(new RequestSizeLimitAttribute(PresetPackage.MaxPackageBytes));
 
         var setlists = api.MapGroup("/setlists").WithTags("Setlists");
         setlists.MapGet("/", (Library books) => TypedResults.Ok(books.Setlists())).WithName("ListSetlists");
@@ -127,6 +141,23 @@ public static class CathodeApi {
             using var socket = await http.WebSockets.AcceptWebSocketAsync();
             await hub.ServeAsync(socket, http.RequestAborted);
         }).ExcludeFromDescription();
+    }
+
+    /// <summary>
+    ///     Builds the package in a temporary file and streams that: ZipArchive writes some parts synchronously, which
+    ///     Kestrel forbids on a response, and a file keeps large models out of memory. The file deletes itself on close.
+    /// </summary>
+    static async Task<IResult> Export(Preset preset, PresetPackage package, CancellationToken cancellationToken) {
+        var name = string.Concat(preset.Name.Split(Path.GetInvalidFileNameChars())).Trim();
+        var file = new FileStream(Path.GetTempFileName(), FileMode.Create, FileAccess.ReadWrite, FileShare.None, 81_920, FileOptions.DeleteOnClose | FileOptions.Asynchronous);
+        try {
+            await package.ExportAsync(preset, file, cancellationToken);
+            file.Position = 0;
+            return Results.File(file, "application/zip", (name.Length > 0 ? name : "preset") + PresetPackage.Extension);
+        } catch {
+            await file.DisposeAsync();
+            throw;
+        }
     }
 
     static string Version =>

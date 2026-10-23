@@ -73,3 +73,9 @@ public sealed record Telemetry(
     TunerInfo? Tuner);
 
 public sealed record TunerInfo(double Frequency, string Note, int Octave, double Cents);
+
+/// <summary><c>manifest.json</c> of a .cthpreset package.</summary>
+public sealed record PackageManifest(string Format, int Version, string PresetId, string PresetName, IReadOnlyList<AssetInfo> Assets);
+
+public sealed record ImportResult(PresetSummary Preset, int AssetsAdded, bool Renamed);
+
