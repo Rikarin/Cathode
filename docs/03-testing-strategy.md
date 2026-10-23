@@ -60,7 +60,7 @@ Every `IDspBlock` gets a parametrised suite generated from its descriptor. Run i
 ### Property-based (CsCheck)
 
 For **every** block, with any in-range parameter vector and any bounded input (noise, DC, full-scale square, silence):
-- the output has no NaN or ∞, and stays below a stability bound of +60 dBFS (resonant filters at maximum Q legitimately exceed +40 dBFS, so the bound catches blow-ups, not gain)
+- the output has no NaN or ∞ and stays under a +160 dBFS blow-up ceiling. Legitimate gain can be large (five PEQ bands stacked at +24 dB reach +140 dB), while a truly unstable filter grows exponentially past any fixed level within a render; marginal instabilities are caught by the decay test
 - after the input stops, the output decays below −90 dBFS within T. Self-oscillating effects are exempt but must stay bounded
 - linear blocks satisfy homogeneity and superposition
 - **zipper check:** an instant parameter jump never produces a sample-to-sample step above X

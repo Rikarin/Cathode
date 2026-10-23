@@ -13,10 +13,11 @@ public class BlockConformanceTests
     private const int MaxBlock = 64;
 
     /// <summary>
-    /// Stability bound. Resonant filters at maximum Q and level legitimately exceed +40 dBFS on full-scale noise,
-    /// so this catches blow-ups rather than gain.
+    /// Blow-up ceiling. Legitimate gain can be very large (five PEQ bands stacked at +24 dB plus +20 dB level is
+    /// +140 dB), while a genuinely unstable filter grows exponentially and passes any fixed level within a render, or
+    /// goes non-finite. Marginal instabilities are covered by the decay-to-silence test.
     /// </summary>
-    private const double PeakBoundDb = 60;
+    private const double PeakBoundDb = 160;
     private static readonly ProcessSpec Spec = new(48_000, MaxBlock);
     private static readonly BlockRegistry Registry = BlockRegistry.CreateDefault();
 

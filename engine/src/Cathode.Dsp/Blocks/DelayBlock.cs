@@ -148,17 +148,15 @@ public sealed class DelayBlock : DspBlock
 
     private sealed class Line
     {
-        private float[] _buffer = [];
-        private int _write;
+        private readonly FractionalDelayLine _delay = new();
         private SvfState _lowCut;
         private SvfState _highCut;
 
-        public void Allocate(int capacity) => _buffer = new float[capacity];
+        public void Allocate(int capacity) => _delay.Allocate(capacity);
 
         public void Reset()
         {
-            Array.Clear(_buffer);
-            _write = 0;
+            _delay.Reset();
             _lowCut.Reset();
             _highCut.Reset();
         }
@@ -174,7 +172,7 @@ public sealed class DelayBlock : DspBlock
             in SvfCoefficients highCut,
             bool saturate)
         {
-            var wet = Read(delay);
+            var wet = _delay.Read(delay);
 
             var fed = wet;
             if (useLowCut)
@@ -193,12 +191,7 @@ public sealed class DelayBlock : DspBlock
                 write = MathF.Tanh(write * 0.8f) / 0.8f; // BBD/tape headroom: repeats compress instead of building up
             }
 
-            _buffer[_write] = MathF.Abs(write) < 1e-20f ? 0f : write;
-            if (++_write == _buffer.Length)
-            {
-                _write = 0;
-            }
-
+            _delay.Write(write);
             return input * (1f - mix) + wet * mix;
         }
 
@@ -206,28 +199,6 @@ public sealed class DelayBlock : DspBlock
         {
             _lowCut.FlushDenormals();
             _highCut.FlushDenormals();
-        }
-
-        /// <summary>Cubic Hermite read <paramref name="delay"/> samples behind the most recent write.</summary>
-        private float Read(float delay)
-        {
-            var position = _write - delay; // _write is the next slot; the newest sample is at _write - 1
-            var index = (int)MathF.Floor(position);
-            var frac = position - index;
-            var y0 = At(index - 1);
-            var y1 = At(index);
-            var y2 = At(index + 1);
-            var y3 = At(index + 2);
-            var c1 = 0.5f * (y2 - y0);
-            var c2 = y0 - 2.5f * y1 + 2f * y2 - 0.5f * y3;
-            var c3 = 0.5f * (y3 - y0) + 1.5f * (y1 - y2);
-            return ((c3 * frac + c2) * frac + c1) * frac + y1;
-        }
-
-        private float At(int index)
-        {
-            index %= _buffer.Length;
-            return _buffer[index < 0 ? index + _buffer.Length : index];
         }
     }
 }

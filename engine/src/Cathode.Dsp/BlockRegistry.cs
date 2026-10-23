@@ -22,6 +22,10 @@ public sealed class BlockRegistry
         registry.Register(CompressorBlock.Info, static () => new CompressorBlock());
         registry.Register(ParametricEqBlock.Info, static () => new ParametricEqBlock());
         registry.Register(GraphicEqBlock.Info, static () => new GraphicEqBlock());
+        registry.Register(ChorusBlock.Info, static () => new ChorusBlock());
+        registry.Register(FlangerBlock.Info, static () => new FlangerBlock());
+        registry.Register(PhaserBlock.Info, static () => new PhaserBlock());
+        registry.Register(TremoloBlock.Info, static () => new TremoloBlock());
         return registry;
     }
 
