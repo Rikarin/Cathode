@@ -41,7 +41,7 @@ jobs:
           global-json-file: engine/global.json
       - name: Build the engine
         working-directory: engine
-        run: dotnet build src/Cathode.Host src/Cathode.Server -c Release
+        run: dotnet build Cathode.slnx -c Release
       - uses: pnpm/action-setup@v6
         with:
           package_json_file: editor/package.json

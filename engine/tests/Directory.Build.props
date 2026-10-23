@@ -8,9 +8,6 @@
     <OutputType Condition="'$(IsTestProject)' == 'true'">Exe</OutputType>
     <!-- Test code favours readability over analyzer strictness. -->
     <NoWarn>$(NoWarn);CA1707;CA1515;CA1861;CA2007;CA1822;CA1859;CA5394</NoWarn>
-    <!-- Full JIT on first call: with tiering, a rejit or on-stack replacement can land on the test thread in the
-         middle of an AllocationProbe measurement and show up as allocated bytes, depending on machine load. -->
-    <TieredCompilation>false</TieredCompilation>
   </PropertyGroup>
   <ItemGroup Condition="'$(IsTestProject)' == 'true'">
     <PackageReference Include="xunit.v3"/>

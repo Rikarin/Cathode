@@ -90,7 +90,10 @@ public sealed class RealtimeAndContractTests : IAsyncLifetime {
         return string.Empty;
     }
 
-    static string Normalise(string json) => JsonNode.Parse(json)!.ToJsonString(new() { WriteIndented = true }) + "\n";
+    /// <summary>Canonical form; XML doc text carries the platform's line endings into descriptions, so unify them.</summary>
+    static string Normalise(string json) =>
+        JsonNode.Parse(json)!.ToJsonString(new() { WriteIndented = true }).Replace("\\r\\n", "\\n", StringComparison.Ordinal)
+        + "\n";
 
     static string EngineRoot() {
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent) {
