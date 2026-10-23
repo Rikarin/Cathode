@@ -7,6 +7,7 @@ import {
     type PresetBlock,
     type PresetCable
 } from '@cathode/api-client';
+import { CthBlockTile } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import {
     matAddRound,
@@ -18,7 +19,6 @@ import {
 } from '@ng-icons/material-icons/round';
 import { XuiContextMenuImports } from '@xui/context-menu';
 import { XuiMenuImports } from '@xui/menu';
-import { CthBlockTile } from '@cathode/audio-ui';
 import { CatalogStore } from '../state/catalog.store';
 import { LiveStore } from '../state/live.store';
 import { BlockPicker } from './block-picker';

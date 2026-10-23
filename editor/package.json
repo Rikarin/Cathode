@@ -1,9 +1,9 @@
 {
   "name": "@cathode/editor-workspace",
   "version": "0.0.0",
+  "private": true,
   "license": "GPL-3.0-or-later",
   "scripts": {},
-  "private": true,
   "dependencies": {
     "@angular/cdk": "~22.2.4",
     "@angular/common": "~22.2.0",
@@ -100,7 +100,9 @@
     "nx": "24.0.0",
     "openapi-typescript": "^7.13.0",
     "postcss": "^8.5.31",
-    "prettier": "^3.8.1",
+    "prettier": "^3.9.10",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "prettier-plugin-packagejson": "^3.0.2",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "storybook": "10.5.10",
     "tailwindcss": "^4.3.3",

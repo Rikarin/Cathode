@@ -4,6 +4,13 @@
     "trailingComma": "none",
     "arrowParens": "avoid",
     "endOfLine": "lf",
-    "plugins": ["prettier-plugin-tailwindcss"],
-    "overrides": [{ "files": "*.html", "options": { "parser": "angular" } }]
+    "plugins": ["prettier-plugin-organize-imports", "prettier-plugin-packagejson", "prettier-plugin-tailwindcss"],
+    "overrides": [
+        {
+            "files": "*.html",
+            "options": {
+                "parser": "angular"
+            }
+        }
+    ]
 }

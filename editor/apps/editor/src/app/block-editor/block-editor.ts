@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { BuiltInTypes, type ChannelName, ChannelNames } from '@cathode/api-client';
-import { BypassModes } from '@cathode/api-client';
+import { BuiltInTypes, BypassModes, type ChannelName, ChannelNames } from '@cathode/api-client';
 import { provideIcons } from '@ng-icons/core';
 import {
     matContentCopyRound,
@@ -13,13 +12,13 @@ import { XuiButtonImports } from '@xui/button';
 import { XuiIconImports } from '@xui/icon';
 import { XuiMenuImports } from '@xui/menu';
 import { XuiNonIdealStateImports } from '@xui/non-ideal-state';
-import { XuiSelectImports } from '@xui/select';
-import { XuiTagImports } from '@xui/tag';
-import { GlobalStore } from '../state/global.store';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
+import { XuiSelectImports } from '@xui/select';
 import { XuiSwitchImports } from '@xui/switch';
+import { XuiTagImports } from '@xui/tag';
 import { XuiTextImports } from '@xui/text';
 import { CatalogStore } from '../state/catalog.store';
+import { GlobalStore } from '../state/global.store';
 import { LiveStore } from '../state/live.store';
 import { AmpPanel } from './panels/amp-panel';
 import { CabPanel } from './panels/cab-panel';

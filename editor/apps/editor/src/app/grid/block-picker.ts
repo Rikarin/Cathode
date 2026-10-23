@@ -9,8 +9,8 @@ import {
     signal,
     untracked
 } from '@angular/core';
-import { BlockCategories, CthBlockTile, blockColor } from '@cathode/audio-ui';
 import type { BlockTypeInfo } from '@cathode/api-client';
+import { BlockCategories, CthBlockTile, blockColor } from '@cathode/audio-ui';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { matAddRound, matSearchRound } from '@ng-icons/material-icons/round';
 import { XuiDialogImports } from '@xui/dialog';

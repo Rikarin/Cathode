@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, signal } from '@angular/core';
 import type { PresetBlock } from '@cathode/api-client';
 import { XuiKonvaImports, type XuiKonvaEventObject } from '@xui/konva';
-import { type FilterShape, logFrequencies, sectionDb } from '../../dsp/response';
+import { logFrequencies, sectionDb, type FilterShape } from '../../dsp/response';
 import { LiveStore } from '../../state/live.store';
 
 const Width = 640;

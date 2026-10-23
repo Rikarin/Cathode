@@ -5,13 +5,13 @@ import { provideIcons } from '@ng-icons/core';
 import { matLinkOffRound, matSettingsInputComponentRound, matTuneRound } from '@ng-icons/material-icons/round';
 import { XuiContextMenuImports } from '@xui/context-menu';
 import { XuiMenuImports } from '@xui/menu';
+import { XuiSegmentedControlImports } from '@xui/segmented-control';
+import { XuiSelectImports } from '@xui/select';
+import { XuiSwitchImports } from '@xui/switch';
 import { XuiTooltipImports } from '@xui/tooltip';
 import { ModifierDialog } from '../controls/modifier-dialog';
 import { ConnectionService } from '../core/connection';
 import { Notify } from '../core/notify';
-import { XuiSegmentedControlImports } from '@xui/segmented-control';
-import { XuiSelectImports } from '@xui/select';
-import { XuiSwitchImports } from '@xui/switch';
 import { LiveStore } from '../state/live.store';
 
 /**
