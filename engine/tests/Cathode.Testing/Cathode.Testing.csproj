@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Shared stimulus generators and analysers (FFT, THD, null residual, ESR) used by tests, benchmarks and tools.</Description>
+    <Description>Shared stimulus generators and analysers (FFT, THD, null residual, ESR) used by tests, benchmarks and tools, and the amp reference harness (References/).</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Cathode.Dsp/Cathode.Dsp.csproj"/>
+    <ProjectReference Include="../../src/Cathode.Dsp.Native/Cathode.Dsp.Native.csproj"/>
   </ItemGroup>
 </Project>
