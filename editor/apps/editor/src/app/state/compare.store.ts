@@ -8,30 +8,30 @@ import { LiveStore } from './live.store';
  */
 @Injectable({ providedIn: 'root' })
 export class CompareStore {
-    private readonly live = inject(LiveStore);
-    private readonly slots = signal<{ A: Preset | null; B: Preset | null }>({ A: null, B: null });
+  private readonly live = inject(LiveStore);
+  private readonly slots = signal<{ A: Preset | null; B: Preset | null }>({ A: null, B: null });
 
-    readonly active = signal<'A' | 'B'>('A');
-    /** Whether B has been captured yet; until then, switching to B starts it as a copy of A. */
-    readonly hasB = computed(() => this.slots().B !== null);
+  readonly active = signal<'A' | 'B'>('A');
+  /** Whether B has been captured yet; until then, switching to B starts it as a copy of A. */
+  readonly hasB = computed(() => this.slots().B !== null);
 
-    async switchTo(slot: 'A' | 'B'): Promise<void> {
-        const current = this.live.preset();
-        if (!current || slot === this.active()) {
-            return;
-        }
-
-        const leaving = this.active();
-        const target = this.slots()[slot] ?? current;
-        this.slots.update(slots => ({ ...slots, [leaving]: structuredClone(current) }));
-        if (await this.live.replace({ ...structuredClone(target), id: current.id })) {
-            this.active.set(slot);
-        }
+  async switchTo(slot: 'A' | 'B'): Promise<void> {
+    const current = this.live.preset();
+    if (!current || slot === this.active()) {
+      return;
     }
 
-    /** Forget both snapshots (after loading another preset). */
-    reset(): void {
-        this.slots.set({ A: null, B: null });
-        this.active.set('A');
+    const leaving = this.active();
+    const target = this.slots()[slot] ?? current;
+    this.slots.update(slots => ({ ...slots, [leaving]: structuredClone(current) }));
+    if (await this.live.replace({ ...structuredClone(target), id: current.id })) {
+      this.active.set(slot);
     }
+  }
+
+  /** Forget both snapshots (after loading another preset). */
+  reset(): void {
+    this.slots.set({ A: null, B: null });
+    this.active.set('A');
+  }
 }

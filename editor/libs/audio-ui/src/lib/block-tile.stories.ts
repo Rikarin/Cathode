@@ -7,18 +7,18 @@ import { BlockCategories, CthBlockTile } from './block-tile';
  * Unknown categories get a stable colour from their name.
  */
 const meta: Meta<CthBlockTile> = {
-    title: 'Audio UI/Block tile',
-    component: CthBlockTile,
-    render: args => ({
-        props: args,
-        template: `<cth-block-tile
+  title: 'Audio UI/Block tile',
+  component: CthBlockTile,
+  render: args => ({
+    props: args,
+    template: `<cth-block-tile
             class="h-[60px] w-[84px]"
             [name]="name"
             [category]="category"
             [typeId]="typeId"
             [bypassed]="bypassed"
         />`
-    })
+  })
 };
 
 export default meta;
@@ -31,28 +31,28 @@ export const Bypassed: Story = { args: { name: 'Delay', category: 'Delay', typeI
 export const NewCategory: Story = { args: { name: 'Freeze', category: 'Spectral', typeId: 'freeze', bypassed: false } };
 
 export const AllCategories: Story = {
-    render: () => ({
-        props: { categories: [...Object.keys(BlockCategories), 'Spectral'] },
-        template: `
+  render: () => ({
+    props: { categories: [...Object.keys(BlockCategories), 'Spectral'] },
+    template: `
             <div class="flex flex-wrap gap-3">
                 @for (category of categories; track category) {
                     <cth-block-tile class="h-[60px] w-[84px]" [name]="category" [category]="category" />
                 }
             </div>
         `
-    })
+  })
 };
 
 /** Every built-in type's own icon, at the block picker's size. */
 export const AllTypes: Story = {
-    render: () => ({
-        props: { types: Object.keys(BlockTypeIcons) },
-        template: `
+  render: () => ({
+    props: { types: Object.keys(BlockTypeIcons) },
+    template: `
             <div class="flex flex-wrap gap-3">
                 @for (type of types; track type) {
                     <cth-block-tile class="h-24 w-30" size="lg" [name]="type" [typeId]="type" category="Utility" />
                 }
             </div>
         `
-    })
+  })
 };

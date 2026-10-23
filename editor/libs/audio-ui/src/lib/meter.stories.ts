@@ -3,13 +3,13 @@ import { CthMeter } from './meter';
 
 /** A source that wanders like a played guitar: attacks every half second, decaying in between, with a rare clip. */
 function guitar(seed: number): () => number {
-    const start = performance.now() + seed * 120;
-    return () => {
-        const t = (performance.now() - start) / 1000;
-        const note = t % 0.5;
-        const accent = Math.floor(t / 0.5) % 7 === 3 ? 1.15 : 0.6;
-        return accent * Math.exp(-note * 6) * (0.85 + 0.15 * Math.random());
-    };
+  const start = performance.now() + seed * 120;
+  return () => {
+    const t = (performance.now() - start) / 1000;
+    const note = t % 0.5;
+    const accent = Math.floor(t / 0.5) % 7 === 3 ? 1.15 : 0.6;
+    return accent * Math.exp(-note * 6) * (0.85 + 0.15 * Math.random());
+  };
 }
 
 /**
@@ -17,9 +17,9 @@ function guitar(seed: number): () => number {
  * clip light that stays on until clicked.
  */
 const meta: Meta<CthMeter> = {
-    title: 'Audio UI/Meter',
-    component: CthMeter,
-    render: args => ({ props: args, template: `<cth-meter class="h-40" [sources]="sources" [label]="label" />` })
+  title: 'Audio UI/Meter',
+  component: CthMeter,
+  render: args => ({ props: args, template: `<cth-meter class="h-40" [sources]="sources" [label]="label" />` })
 };
 
 export default meta;
