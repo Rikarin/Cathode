@@ -51,6 +51,16 @@ After an API change, regenerate the client. CI fails while it is stale:
 pnpm exec nx run api-client:generate
 ```
 
+## Package
+
+Build the desktop app for this machine's OS into `dist/release`: a `.dmg` and `.zip` on macOS, an NSIS installer on Windows, an AppImage on Linux. It publishes the engine too (NativeAOT host, self-contained server, native shims), so it needs the .NET SDK, CMake and a C++ compiler:
+
+```bash
+pnpm dist
+```
+
+NativeAOT does not cross-compile, so each OS builds its own. The `desktop` workflow builds all three on every push to master and attaches them to a GitHub release for `v*` tags. Builds are unsigned (ad hoc on macOS) unless the signing secrets it lists are set.
+
 ## Security model
 
 - **Renderer.** It is sandboxed with context isolation and no Node.

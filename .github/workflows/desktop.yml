@@ -1,0 +1,86 @@
+name: desktop
+
+# Builds the desktop app (`pnpm dist`: the editor, Electron and the engine sidecars) on each OS, since NativeAOT cannot
+# cross-compile: a .dmg and .zip for Apple Silicon Macs, an NSIS installer for Windows x64 and an AppImage for Linux
+# x64. Every run uploads them as workflow artifacts; a version tag (v1.2.3) also publishes them as a GitHub release.
+#
+# Signing is optional. Without secrets, macOS builds are signed ad hoc (Gatekeeper asks users to allow them) and Windows
+# builds are unsigned. Set CSC_LINK (base64 .p12) and CSC_KEY_PASSWORD to sign, and on macOS APPLE_ID,
+# APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID to notarise.
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+    paths: ["editor/**", "engine/**", ".github/workflows/desktop.yml"]
+  workflow_dispatch:
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, name: macos-arm64 }
+          - { os: windows-latest, name: windows-x64 }
+          - { os: ubuntu-latest, name: linux-x64 }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: editor
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: engine/global.json
+      - name: Cache native dependencies
+        uses: actions/cache@v6
+        with:
+          path: engine/artifacts/deps
+          key: native-deps-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: editor/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: editor/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Build and package
+        shell: bash
+        env:
+          CATHODE_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Without a certificate, do not let electron-builder pick one up from the runner's keychain.
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
+        run: pnpm dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cathode-${{ matrix.name }}
+          path: |
+            editor/dist/release/*.dmg
+            editor/dist/release/*.zip
+            editor/dist/release/*.exe
+            editor/dist/release/*.AppImage
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: release
+          merge-multiple: true
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" release/* --repo "${{ github.repository }}" --generate-notes

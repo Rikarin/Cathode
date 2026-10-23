@@ -3,6 +3,8 @@ allowBuilds:
   '@swc/core': true
   '@tailwindcss/oxide': true
   electron: true
+  # electron-builder's Squirrel.Windows installer; Cathode builds NSIS installers, so its download is not needed.
+  electron-winstaller: false
   esbuild: true
   lmdb: true
   msgpackr-extract: true
