@@ -20,8 +20,17 @@ namespace Cathode.Dsp.Blocks;
 ///     At partial mix the dry signal takes the same up/down filtering, so the two paths cannot comb.
 ///     <para>
 ///         The circuit types (index <see cref="CircuitTypes" /> onwards) run their stages, coupling, bias and DC blocker
-///         in the same 4x domain; Drive turns each circuit's gain pot (or input gain), and Tone works the circuit's own
-///         tone control at the base rate. Every type has the same (zero) latency.
+///         oversampled (4x, or 2x for the costliest, <see cref="DriveCircuit.Oversampling" />); Drive turns each
+///         circuit's gain pot (or input gain), and Tone works the pedal's own tone network at the base rate. They read
+///         their knobs on a fixed grid of <see cref="SubBlock" /> frames and recompute a network's components only when a
+///         smoothed knob has moved, so their output does not depend on the host's block size. Every type has the same
+///         (zero) latency.
+///     </para>
+///     <para>
+///         Input Vol is the guitar's volume knob: the source the pedal sees is the pickup behind an audio-taper volume pot
+///         (<see cref="DriveCircuits.Guitar" />). Into a component-level first stage it is a source resistance, so a Fuzz
+///         Face's low input impedance cleans up as the knob rolls back, as on the real pedal; elsewhere it is the level
+///         and the loading of a nominal input resistance. At 10 (the default) the original voicings are untouched.
 ///     </para>
 /// </summary>
 public sealed class DriveBlock() : DspBlock(Info) {
@@ -31,21 +40,37 @@ public sealed class DriveBlock() : DspBlock(Info) {
     public const int Level = 3;
     public const int Mix = 4;
 
+    /// <summary>The guitar's volume knob, appended after the original parameters (presets store indices).</summary>
+    public const int InputVolume = 5;
+
     /// <summary>Index of the first circuit model: the three original voicings keep indices 0-2.</summary>
     public const int CircuitTypes = 3;
 
+    /// <summary>Frames per knob reading of the circuit types, on a grid that ignores the host's block boundaries.</summary>
+    public const int SubBlock = 32;
+
     const int Factor = 4;
+
+    /// <summary>The 2x half-band of the circuits that run at 2x: the first stage of <see cref="Oversampler4x" />.</summary>
+    static readonly (float[], float[]) TwiceBranches =
+        HalfBandStage.Split(HalfBand.Design(Oversampler4x.AttenuationDb, 0.04));
 
     readonly Channel left = new();
     readonly Channel right = new();
+    readonly Oversampler4x dryLeft = new(1);
+    readonly Oversampler4x dryRight = new(1);
+    readonly HalfBandStage dryTwiceLeft = new(TwiceBranches);
+    readonly HalfBandStage dryTwiceRight = new(TwiceBranches);
     float gain = 1f;
     float outputGain = 1f;
     float mix = 1f;
+    float guitar = 1f;
     float[] dry = [];
     float[] secondDry = []; // the circuit types hold both channels' dry signal at once
-
-    readonly Oversampler4x dryLeft = new(1);
-    readonly Oversampler4x dryRight = new(1);
+    float[] dryTwice = [];
+    int phase; // position on the sub-block grid
+    int factor = Factor; // oversampling of the configured circuit
+    DriveCircuit? configured;
 
     public static BlockDescriptor Info { get; } = new(
         "drive",
@@ -60,7 +85,8 @@ public sealed class DriveBlock() : DspBlock(Info) {
             ParamDescriptor.Float("drive", "Drive", 0f, 10f, 5f),
             ParamDescriptor.Float("tone", "Tone", 0f, 10f, 5f),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%")
+            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
+            ParamDescriptor.Float("inputVol", "Input Vol", 0f, 10f, 10f)
         ],
         maxInstances: 4
     );
@@ -101,50 +127,92 @@ public sealed class DriveBlock() : DspBlock(Info) {
 
     /// <summary>
     ///     The circuit types run both channels through one loop: each channel is a long dependency chain, and
-    ///     interleaving two independent chains lets the core overlap them.
+    ///     interleaving two independent chains lets the core overlap them. Knobs are read once per sub-block of the grid.
     /// </summary>
-    void ProcessCircuits(
-        in StereoBuffer io,
-        DriveCircuit circuit,
-        float drive,
-        float tone,
-        float gain,
-        in SvfCoefficients dcBlock,
-        float mix
-    ) {
-        var rate = Spec.SampleRate;
-        var innerRate = Oversample ? rate * Factor : rate;
-        left.Circuit.Configure(circuit, drive, tone, innerRate, rate, Antialias);
-        right.Circuit.Configure(circuit, drive, tone, innerRate, rate, Antialias);
-
-        var leftDry = dry.AsSpan(0, io.Length);
-        var rightDry = secondDry.AsSpan(0, io.Length);
-        var blend = this.mix < 1f || mix < 1f;
-        if (blend) {
-            CopyDry(io.Left, leftDry, dryLeft);
-            CopyDry(io.Right, rightDry, dryRight);
+    void ProcessCircuits(in StereoBuffer io, int type, DriveCircuit circuit) {
+        var oversampling = Oversample ? circuit.Oversampling : 1;
+        if (!ReferenceEquals(circuit, configured)) {
+            configured = circuit;
+            if (oversampling != factor) {
+                factor = oversampling; // the other factor's filters hold stale state
+                ResetOversamplers();
+            }
         }
 
-        var innerLeft = left.Up(io.Left, Oversample);
-        var innerRight = right.Up(io.Right, Oversample);
-        CircuitChannel.ProcessInner(left.Circuit, right.Circuit, innerLeft, innerRight, this.gain, gain, dcBlock);
-        left.Down(io.Left, Oversample);
-        right.Down(io.Right, Oversample);
-        left.Circuit.ProcessOuter(io.Left);
-        right.Circuit.ProcessOuter(io.Right);
+        var rate = Spec.SampleRate;
+        var innerRate = rate * factor;
+        var dcBlock = SvfCoefficients.Design(BiquadType.HighPass, innerRate, 10, 0.7071);
+        for (var offset = 0; offset < io.Length;) {
+            var length = Math.Min(SubBlock - phase, io.Length - offset);
+            var chunk = io.Slice(offset, length);
+            var drive = Params.Advance(Drive, length);
+            var tone = Params.Advance(Tone, length);
+            var volume = Params.Advance(InputVolume, length);
+            var mix = Params.Advance(Mix, length) / 100f;
+            var outputGain = Decibels.ToGain(Params.Advance(Level, length));
+            var gain = InputGain(type, drive);
+            var guitar = (float)DriveCircuits.Guitar(volume).Level;
+            left.Circuit.Configure(circuit, drive, tone, volume, innerRate, rate, Antialias);
+            right.Circuit.Configure(circuit, drive, tone, volume, innerRate, rate, Antialias);
 
-        if (blend) {
-            GainRamp.Mix(leftDry, io.Left, this.mix, mix);
-            GainRamp.Mix(rightDry, io.Right, this.mix, mix);
+            var leftDry = dry.AsSpan(0, length);
+            var rightDry = secondDry.AsSpan(0, length);
+            var blend = this.mix < 1f || mix < 1f;
+            if (blend) {
+                CopyDry(chunk.Left, leftDry, dryLeft, dryTwiceLeft);
+                CopyDry(chunk.Right, rightDry, dryRight, dryTwiceRight);
+                GainRamp.Apply(leftDry, this.guitar, guitar); // the dry path hears the guitar's volume too
+                GainRamp.Apply(rightDry, this.guitar, guitar);
+            }
+
+            var innerLeft = left.Up(chunk.Left, factor);
+            var innerRight = right.Up(chunk.Right, factor);
+            CircuitChannel.ProcessInner(left.Circuit, right.Circuit, innerLeft, innerRight, this.gain, gain, dcBlock);
+            left.Down(chunk.Left, factor);
+            right.Down(chunk.Right, factor);
+            left.Circuit.ProcessOuter(chunk.Left);
+            right.Circuit.ProcessOuter(chunk.Right);
+
+            if (blend) {
+                GainRamp.Mix(leftDry, chunk.Left, this.mix, mix);
+                GainRamp.Mix(rightDry, chunk.Right, this.mix, mix);
+            }
+
+            GainRamp.Apply(chunk.Left, this.outputGain, outputGain);
+            GainRamp.Apply(chunk.Right, this.outputGain, outputGain);
+            this.gain = gain;
+            this.mix = mix;
+            this.outputGain = outputGain;
+            this.guitar = guitar;
+            offset += length;
+            phase = (phase + length) % SubBlock;
         }
     }
 
-    void CopyDry(ReadOnlySpan<float> samples, Span<float> dry, Oversampler4x oversampler) {
+    /// <summary>The dry signal through the same up/down filters as the processed path, so the two cannot comb.</summary>
+    void CopyDry(ReadOnlySpan<float> samples, Span<float> dry, Oversampler4x four, HalfBandStage two) {
         samples.CopyTo(dry);
-        if (Oversample) {
-            oversampler.Up(dry);
-            oversampler.Down(dry); // same phase response as the processed path
+        switch (factor) {
+            case 4:
+                four.Up(dry);
+                four.Down(dry);
+                break;
+            case 2: {
+                var twice = dryTwice.AsSpan(0, 2 * dry.Length);
+                two.Up(dry, twice);
+                two.Down(twice, dry);
+                break;
+            }
         }
+    }
+
+    void ResetOversamplers() {
+        left.ResetOversampler();
+        right.ResetOversampler();
+        dryLeft.Reset();
+        dryRight.Reset();
+        dryTwiceLeft.Reset();
+        dryTwiceRight.Reset();
     }
 
     /// <summary>Drive 0..10 mapped to a gain range per type, in dB.</summary>
@@ -166,6 +234,7 @@ public sealed class DriveBlock() : DspBlock(Info) {
         if (dry.Length != spec.MaxBlockSize) {
             dry = new float[spec.MaxBlockSize];
             secondDry = new float[spec.MaxBlockSize];
+            dryTwice = new float[2 * spec.MaxBlockSize];
         }
 
         left.Allocate(spec.MaxBlockSize);
@@ -177,17 +246,35 @@ public sealed class DriveBlock() : DspBlock(Info) {
     protected override void OnReset() {
         left.Reset();
         right.Reset();
-        dryLeft.Reset();
-        dryRight.Reset();
+        ResetOversamplers();
         gain = InputGain((int)Params.Current(Type), Params.Current(Drive));
         outputGain = Decibels.ToGain(Params.Current(Level));
         mix = Params.Current(Mix) / 100f;
+        guitar = (float)DriveCircuits.Guitar(Params.Current(InputVolume)).Level;
+        phase = 0;
+        factor = Factor;
+        configured = null;
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        var type = (int)Params.Current(Type);
+        if (type >= CircuitTypes) {
+            ProcessCircuits(io, type, DriveCircuits.All[type - CircuitTypes]);
+            return;
+        }
+
+        if (configured is not null) {
+            configured = null;
+            left.Circuit.Release(); // a circuit chosen again later starts discharged
+            right.Circuit.Release();
+            if (factor != Factor) {
+                factor = Factor;
+                ResetOversamplers();
+            }
+        }
+
         var rate = Spec.SampleRate;
         var innerRate = Oversample ? rate * Factor : rate;
-        var type = (int)Params.Current(Type);
         var shape = type switch {
             0 => ClipperShape.Soft,
             1 => ClipperShape.Hard,
@@ -195,6 +282,7 @@ public sealed class DriveBlock() : DspBlock(Info) {
         };
         var drive = Params.Advance(Drive, io.Length);
         var toneValue = Params.Advance(Tone, io.Length);
+        var guitar = (float)DriveCircuits.Guitar(Params.Advance(InputVolume, io.Length)).Level;
         var gain = InputGain(type, drive);
         var toneHz = 600f * MathF.Pow(8_000f / 600f, toneValue / 10f);
         var tone = SvfCoefficients.Design(BiquadType.LowPass, rate, toneHz, 0.7071);
@@ -206,19 +294,17 @@ public sealed class DriveBlock() : DspBlock(Info) {
         var dcBlock = SvfCoefficients.Design(BiquadType.HighPass, innerRate, 10, 0.7071);
         var mix = Params.Advance(Mix, io.Length) / 100f;
 
-        if (type >= CircuitTypes) {
-            ProcessCircuits(io, DriveCircuits.All[type - CircuitTypes], drive, toneValue, gain, dcBlock, mix);
-        } else {
-            left.Circuit.Release(); // a circuit chosen again later starts discharged
-            right.Circuit.Release();
-            var dry = this.dry.AsSpan(0, io.Length);
-            var blend = this.mix < 1f || mix < 1f;
-            ProcessChannel(left, dryLeft, io.Left, dry, blend, type, shape, gain, pre, tone, dcBlock, mix);
-            ProcessChannel(right, dryRight, io.Right, dry, blend, type, shape, gain, pre, tone, dcBlock, mix);
-        }
+        GainRamp.Apply(io.Left, this.guitar, guitar); // the guitar's volume: nothing at all at 10
+        GainRamp.Apply(io.Right, this.guitar, guitar);
+        var dry = this.dry.AsSpan(0, io.Length);
+        var blend = this.mix < 1f || mix < 1f;
+        ProcessChannel(left, dryLeft, io.Left, dry, blend, type, shape, gain, pre, tone, dcBlock, mix);
+        ProcessChannel(right, dryRight, io.Right, dry, blend, type, shape, gain, pre, tone, dcBlock, mix);
 
         this.gain = gain;
         this.mix = mix;
+        this.guitar = guitar;
+        phase = (phase + io.Length) % SubBlock;
 
         var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
         GainRamp.Apply(io.Left, this.outputGain, outputGain);
@@ -228,6 +314,8 @@ public sealed class DriveBlock() : DspBlock(Info) {
 
     sealed class Channel {
         readonly Oversampler4x oversampler = new(1);
+        readonly HalfBandStage twice = new(TwiceBranches);
+        float[] twiceBuffer = [];
         SvfState pre;
         SvfState tone;
         SvfState dc;
@@ -236,10 +324,21 @@ public sealed class DriveBlock() : DspBlock(Info) {
         /// <summary>State of the circuit types, which share this channel's oversampler.</summary>
         public CircuitChannel Circuit { get; } = new();
 
-        public void Allocate(int maxBlockSize) => oversampler.Resize(maxBlockSize);
+        public void Allocate(int maxBlockSize) {
+            oversampler.Resize(maxBlockSize);
+            if (twiceBuffer.Length != 2 * maxBlockSize) {
+                twiceBuffer = new float[2 * maxBlockSize];
+            }
+        }
+
+        public void ResetOversampler() {
+            oversampler.Reset();
+            twice.Reset();
+        }
 
         public void Reset() {
             oversampler.Reset();
+            twice.Reset();
             pre.Reset();
             tone.Reset();
             dc.Reset();
@@ -287,13 +386,31 @@ public sealed class DriveBlock() : DspBlock(Info) {
             dc.FlushDenormals();
         }
 
-        /// <summary>The span to run the circuit on: the oversampled block, or the block itself.</summary>
-        public Span<float> Up(Span<float> samples, bool oversample) => oversample ? oversampler.Up(samples) : samples;
+        /// <summary>The span to run the circuit on: the block oversampled by <paramref name="factor" /> (1, 2 or 4).</summary>
+        public Span<float> Up(Span<float> samples, int factor) {
+            switch (factor) {
+                case 4:
+                    return oversampler.Up(samples);
+                case 2: {
+                    var inner = twiceBuffer.AsSpan(0, 2 * samples.Length);
+                    twice.Up(samples, inner);
+                    return inner;
+                }
+                default:
+                    return samples;
+            }
+        }
 
-        public void Down(Span<float> samples, bool oversample) {
-            if (oversample) {
-                oversampler.Down(samples);
-                oversampler.FlushDenormals();
+        public void Down(Span<float> samples, int factor) {
+            switch (factor) {
+                case 4:
+                    oversampler.Down(samples);
+                    oversampler.FlushDenormals();
+                    break;
+                case 2:
+                    twice.Down(twiceBuffer.AsSpan(0, 2 * samples.Length), samples);
+                    twice.FlushDenormals();
+                    break;
             }
         }
     }

@@ -14,7 +14,7 @@ public static class BlockCosts {
         ["compressor"] = 0.34,
         ["crossover"] = 0.52,
         ["delay"] = 0.38,
-        ["drive"] = 5.27,
+        ["drive"] = 13.93,
         ["dyndist"] = 1.46,
         ["enhancer"] = 0.28,
         ["fbreturn"] = 0.04,
