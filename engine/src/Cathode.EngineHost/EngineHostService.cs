@@ -87,7 +87,7 @@ public sealed class EngineHostService : IDisposable {
 
     public void Dispose() {
         lock (gate) {
-            Engine.CollectRetired()?.Dispose();
+            Engine.Dispose(); // the audio has stopped by now (the backend is disposed first)
             latest?.Dispose();
             latest = null;
         }
@@ -159,7 +159,10 @@ public sealed class EngineHostService : IDisposable {
     }
 
     HostTelemetry CollectTelemetry() {
-        Engine.CollectRetired()?.Dispose();
+        while (Engine.CollectRetired() is { } retired) {
+            retired.Dispose();
+        }
+
         if (device is not null) {
             TelemetryRegion.SetDriverOverloads(device.Overloads);
         }

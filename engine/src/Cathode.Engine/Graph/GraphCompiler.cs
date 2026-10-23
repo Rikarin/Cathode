@@ -24,6 +24,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         var blocks = new List<IDspBlock>();
         var slotIds = new List<string>();
         var bypassed = new List<bool>();
+        var bypassModes = new List<BypassKind>();
         for (var n = 0; n < nodes.Count; n++) {
             slotOfNode[n] = -1;
             var node = nodes[n];
@@ -42,12 +43,23 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 block.Params.SetTarget(index, value);
             }
 
+            if (!BypassModes.IsValid(node.BypassMode)) {
+                errors.Add($"Node '{node.Id}': unknown bypass mode '{node.BypassMode}'.");
+            }
+
             LoadAssets(node, block, errors);
             block.Prepare(spec);
             slotOfNode[n] = blocks.Count;
             blocks.Add(block);
             slotIds.Add(node.Id);
             bypassed.Add(node.Bypassed);
+            bypassModes.Add(node.BypassMode switch {
+                    BypassModes.Mute => BypassKind.Mute,
+                    BypassModes.MuteIn => BypassKind.MuteIn,
+                    BypassModes.MuteFxIn => BypassKind.MuteFxIn,
+                    _ => BypassKind.Thru
+                }
+            );
         }
 
         if (errors.Count > 0) {
@@ -141,6 +153,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             [..blocks],
             [..slotIds],
             [..bypassed],
+            [..bypassModes],
             [..emitter.Delays],
             graphLatency
         );

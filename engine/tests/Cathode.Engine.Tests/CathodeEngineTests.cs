@@ -58,7 +58,7 @@ public class CathodeEngineTests {
         engine.Publish(first);
         OfflineRenderer.Render(engine, new float[64], new float[64], 64);
         engine.Publish(second);
-        OfflineRenderer.Render(engine, new float[64], new float[64], 64);
+        OfflineRenderer.Render(engine, new float[48_000 * 5], new float[48_000 * 5], 512); // let the first graph retire
 
         engine.Post(EngineCommand.SetBypass(1, 0, true)); // stale generation
         var (left, _) = OfflineRenderer.Render(engine, Signals.Step(1_024), Signals.Step(1_024), 64);
@@ -77,9 +77,55 @@ public class CathodeEngineTests {
 
         engine.Publish(Compiler.Compile(VolumeGraph(0), Spec, 2));
         OfflineRenderer.Render(engine, new float[64], new float[64], 64);
+        Assert.True(engine.IsSpilling); // the replaced graph rings out first
+        OfflineRenderer.Render(engine, new float[48_000 * 5], new float[48_000 * 5], 512); // quiet for over 4.1 s
 
+        Assert.False(engine.IsSpilling);
         Assert.Same(first, engine.CollectRetired());
         Assert.Equal(2, engine.Current!.Generation);
+    }
+
+    [Fact]
+    public void A_preset_change_lets_the_old_delay_tail_ring_out_without_a_click() {
+        var engine = new CathodeEngine(Spec);
+        engine.Publish(Compiler.Compile(DelayGraph(), Spec, 1));
+        var note = Signals.Sine(220, Spec.SampleRate, 9_600, 0.5f);
+        OfflineRenderer.Render(engine, note, note, 64);
+
+        // Swap to a plain volume block while the note keeps playing, then stop playing.
+        engine.Publish(Compiler.Compile(VolumeGraph(0), Spec, 2));
+        var input = Signals.Concat(Signals.Sine(220, Spec.SampleRate, 4_800, 0.5f), new float[19_200]);
+        var (left, _) = OfflineRenderer.Render(engine, input, input, 64);
+
+        // The note played before the swap echoes 300 ms (14,400 samples) later, 4,800-14,400 samples after the swap. The
+        // dry note stops at 4,800, so anything heard from 6,000 on is the old graph's tail: the spillover.
+        Assert.True(Analysis.Peak(left.AsSpan(6_000, 6_000)) > 0.05, "delay tail after the swap");
+        var maxStep = left.Zip(left.Skip(1), static (a, b) => Math.Abs(b - a)).Take(2_000).Max();
+        Assert.True(maxStep < 0.1f, $"click at the swap: step {maxStep}");
+    }
+
+    [Theory]
+    [InlineData("thru", 1.0, 0.0)]
+    [InlineData("mute", 0.0, 0.0)]
+    [InlineData("muteFxIn", 1.0, 0.05)]
+    [InlineData("muteIn", 0.0, 0.05)]
+    public void Bypass_modes_decide_what_passes_and_whether_tails_continue(string mode, double dry, double tail) {
+        var engine = new CathodeEngine(Spec);
+        var definition = DelayGraph();
+        definition.Nodes.Single(n => n.Id == "delay").BypassMode = mode;
+        var graph = Compiler.Compile(definition, Spec, 1);
+        engine.Publish(graph);
+        OfflineRenderer.Render(engine, Signals.Sine(220, Spec.SampleRate, 4_800, 0.5f), new float[4_800], 64);
+
+        Assert.True(engine.Post(EngineCommand.SetBypass(1, graph.SlotOf("delay"), true)));
+        var step = Signals.Step(19_200, 0.25f);
+        var (left, _) = OfflineRenderer.Render(engine, step, step, 64);
+
+        // Well after the fade, the dry step is either passed or not ...
+        Assert.InRange(left[^1] / 0.25f, dry - 0.02, dry + 0.02);
+        // ... and the echoes of the note played before the bypass either continue or stopped with it.
+        var echo = left.AsSpan(9_000, 4_000).ToArray().Select(s => Math.Abs(s - (float)(dry * 0.25))).Max();
+        Assert.True(tail > 0 ? echo > tail : echo < 0.01, $"{mode}: echo {echo:0.000}");
     }
 
     [Fact]
@@ -121,6 +167,23 @@ public class CathodeEngineTests {
         Assert.Equal(0, allocated);
         Assert.Equal(10_000, engine.Stats.Count);
     }
+
+    /// <summary>Input -> 300 ms delay (50 % mix, feedback 40 %) -> output.</summary>
+    static GraphDefinition DelayGraph() =>
+        new() {
+            Nodes = [
+                new() { Id = "in", Type = NodeTypes.Input, Row = 0, Column = 0 },
+                new() {
+                    Id = "delay",
+                    Type = "delay",
+                    Row = 0,
+                    Column = 1,
+                    Parameters = { ["time"] = 300, ["feedback"] = 40, ["mix"] = 50 }
+                },
+                new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 }
+            ],
+            Cables = [new() { From = "in", To = "delay" }, new() { From = "delay", To = "out" }]
+        };
 
     static GraphDefinition VolumeGraph(float levelDb) =>
         new() {

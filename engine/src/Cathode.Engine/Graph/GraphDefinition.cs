@@ -13,6 +13,26 @@ public static class NodeTypes {
 }
 
 /// <summary>
+///     What a bypassed block does (docs/02-architecture.md §5.5). The two "in" modes keep the block running on a muted
+///     input, so a delay or reverb bypassed by a scene change rings out instead of stopping dead.
+/// </summary>
+public static class BypassModes {
+    /// <summary>The input passes straight through (the default).</summary>
+    public const string Thru = "thru";
+
+    /// <summary>Silence.</summary>
+    public const string Mute = "mute";
+
+    /// <summary>The block's input is muted; only its tails come out.</summary>
+    public const string MuteIn = "muteIn";
+
+    /// <summary>The dry signal passes and the block's tails are added: spillover for delays and reverbs.</summary>
+    public const string MuteFxIn = "muteFxIn";
+
+    public static bool IsValid(string mode) => mode is Thru or Mute or MuteIn or MuteFxIn;
+}
+
+/// <summary>
 ///     The editable grid: blocks placed in cells plus cables between adjacent columns, as on the Axe-Fx III.
 ///     This is the serialised form; <see cref="GraphCompiler" /> turns it into a <see cref="CompiledGraph" />.
 /// </summary>
@@ -40,6 +60,9 @@ public sealed class NodeDefinition {
     public int Column { get; set; }
 
     public bool Bypassed { get; set; }
+
+    /// <summary>One of <see cref="BypassModes" />.</summary>
+    public string BypassMode { get; set; } = BypassModes.Thru;
 
     /// <summary>Parameter values by parameter id. Missing parameters take their default.</summary>
     [JsonPropertyName("params")]

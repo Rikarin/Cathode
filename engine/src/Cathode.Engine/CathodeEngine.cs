@@ -10,16 +10,46 @@ namespace Cathode.Engine;
 ///     <see cref="Process" />, which picks up the latest graph, drains commands and renders.
 /// </summary>
 /// <remarks>
-///     Graph hand-over is RCU-style: <see cref="Publish" /> stores a pending graph, the audio thread swaps it in at the
-///     next callback boundary and parks the old one for <see cref="CollectRetired" />. Nothing is disposed on the
-///     audio thread. (Crossfaded preset changes and spillover tails arrive in Phase 5.)
+///     <para>
+///         Graph hand-over is RCU-style: <see cref="Publish" /> stores a pending graph and the audio thread swaps it in at
+///         the next callback boundary. Nothing is disposed on the audio thread: replaced graphs go to a small queue that
+///         <see cref="CollectRetired" /> drains.
+///     </para>
+///     <para>
+///         Swaps are gapless with <b>spillover</b> (docs/02-architecture.md §5.5): the new graph fades in over
+///         <see cref="SwapFadeMs" /> while the old one keeps running on a fading input, so its delay and reverb tails ring
+///         out underneath. The old graph retires once its output has stayed below -90 dB for 4.1 s (longer than any delay
+///         repeat), or after <see cref="TailCapSeconds" />.
+///     </para>
 /// </remarks>
-public sealed class CathodeEngine : IAudioProcessor {
+public sealed class CathodeEngine : IAudioProcessor, IDisposable {
+    public const double SwapFadeMs = 20;
+    public const double TailCapSeconds = 12;
+    const float TailSilence = 3.2e-5f; // -90 dBFS
+    /// <summary>
+    ///     How long a spilling graph must stay silent before it retires. A delay is silent between repeats, so this has
+    ///     to outlast the longest delay time (DelayBlock.MaxTimeMs, 4 s), or a tail would be cut between two echoes.
+    /// </summary>
+    const double TailQuietMs = 4_100;
+    const int RetiredSlots = 4;
+
     readonly SpscRing<EngineCommand> commands;
+    readonly CompiledGraph?[] retiredGraphs = new CompiledGraph?[RetiredSlots];
+    readonly NativeBuffer tailInLeft;
+    readonly NativeBuffer tailInRight;
+    readonly NativeBuffer tailOutLeft;
+    readonly NativeBuffer tailOutRight;
+    readonly float swapStep;
+    readonly long tailCap;
+    readonly long tailQuiet;
+    CompiledGraph? tail;
+    float tailInput; // gain into the spilling graph: 1 at the swap, falling to 0
+    float swapGain = 1f; // gain on the new graph: 0 at the swap, rising to 1
+    long tailAge;
+    long tailQuietFor;
     readonly Lock postLock = new();
     CompiledGraph? pending;
     CompiledGraph? current;
-    CompiledGraph? retired;
     long sampleTime;
     bool inputTapEnabled;
     float inputPeak;
@@ -63,7 +93,17 @@ public sealed class CathodeEngine : IAudioProcessor {
     public CathodeEngine(ProcessSpec spec, int commandCapacity = 1024) {
         Spec = spec;
         commands = new(commandCapacity);
+        tailInLeft = new(spec.MaxBlockSize);
+        tailInRight = new(spec.MaxBlockSize);
+        tailOutLeft = new(spec.MaxBlockSize);
+        tailOutRight = new(spec.MaxBlockSize);
+        swapStep = (float)(1.0 / Math.Max(1.0, SwapFadeMs * 0.001 * spec.SampleRate));
+        tailCap = (long)(TailCapSeconds * spec.SampleRate);
+        tailQuiet = (long)(TailQuietMs * 0.001 * spec.SampleRate);
     }
+
+    /// <summary>True while a replaced graph is still ringing out under the current one.</summary>
+    public bool IsSpilling => Volatile.Read(ref tail) is not null;
 
     /// <summary>Control side: hand a prepared graph to the audio thread.</summary>
     public void Publish(CompiledGraph graph) {
@@ -75,8 +115,32 @@ public sealed class CathodeEngine : IAudioProcessor {
         Interlocked.Exchange(ref pending, graph)?.Dispose();
     }
 
-    /// <summary>Control side: take ownership of the graph the audio thread most recently replaced, if any.</summary>
-    public CompiledGraph? CollectRetired() => Interlocked.Exchange(ref retired, null);
+    /// <summary>
+    ///     Control side: take ownership of one graph the audio thread has finished with, or null. Call it until it returns
+    ///     null; the caller disposes what it gets.
+    /// </summary>
+    public CompiledGraph? CollectRetired() {
+        for (var i = 0; i < RetiredSlots; i++) {
+            if (Interlocked.Exchange(ref retiredGraphs[i], null) is { } graph) {
+                return graph;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Control side, after the audio has stopped: frees the engine's buffers and any graphs it still holds.</summary>
+    public void Dispose() {
+        while (CollectRetired() is { } graph) {
+            graph.Dispose();
+        }
+
+        Interlocked.Exchange(ref tail, null)?.Dispose();
+        tailInLeft.Dispose();
+        tailInRight.Dispose();
+        tailOutLeft.Dispose();
+        tailOutRight.Dispose();
+    }
 
     /// <summary>Control side, any thread: queue a discrete event. Returns false when the queue is full.</summary>
     public bool Post(in EngineCommand command) {
@@ -105,8 +169,12 @@ public sealed class CathodeEngine : IAudioProcessor {
             var previous = current;
             Volatile.Write(ref current, pending);
             if (previous is not null) {
-                // If the control side has not collected the last retired graph it is simply dropped to the GC.
-                Interlocked.Exchange(ref retired, previous);
+                // The old graph spills over under the new one; a graph still spilling from an earlier swap retires now.
+                Retire(Interlocked.Exchange(ref tail, previous));
+                tailInput = 1f;
+                tailAge = 0;
+                tailQuietFor = 0;
+                swapGain = 0f;
             }
         }
 
@@ -128,7 +196,17 @@ public sealed class CathodeEngine : IAudioProcessor {
             var maxBlock = Spec.MaxBlockSize;
             for (var offset = 0; offset < io.Frames; offset += maxBlock) {
                 var length = Math.Min(maxBlock, io.Frames - offset);
-                graph.Process(io.Slice(offset, length), new(Spec.SampleRate, Tempo, sampleTime));
+                var slice = io.Slice(offset, length);
+                var context = new BlockContext(Spec.SampleRate, Tempo, sampleTime);
+                graph.Process(slice, context);
+                if (swapGain < 1f) {
+                    swapGain = Ramp(slice.OutputLeft, slice.OutputRight, swapGain, 1f);
+                }
+
+                if (tail is not null) {
+                    Spill(slice, context);
+                }
+
                 Volatile.Write(ref sampleTime, sampleTime + length);
             }
         }
@@ -141,6 +219,61 @@ public sealed class CathodeEngine : IAudioProcessor {
         if (Volatile.Read(ref telemetry) is { } region) {
             region.WriteScope(io.OutputLeft);
             region.RecordCallback(io.Frames, percent, input, left, right);
+        }
+    }
+
+    /// <summary>Runs the replaced graph on a fading copy of the input and adds its output (the tails).</summary>
+    void Spill(in AudioIO io, in BlockContext context) {
+        var length = io.Frames;
+        var inLeft = tailInLeft.Span[..length];
+        var inRight = tailInRight.Span[..length];
+        var outLeft = tailOutLeft.Span[..length];
+        var outRight = tailOutRight.Span[..length];
+        if (tailInput > 0f) {
+            io.InputLeft.CopyTo(inLeft);
+            io.InputRight.CopyTo(inRight);
+            tailInput = Ramp(inLeft, inRight, tailInput, 0f);
+        } else {
+            inLeft.Clear();
+            inRight.Clear();
+        }
+
+        tail!.Process(new(inLeft, inRight, outLeft, outRight), context);
+        var peak = 0f;
+        for (var i = 0; i < length; i++) {
+            io.OutputLeft[i] += outLeft[i];
+            io.OutputRight[i] += outRight[i];
+            peak = Math.Max(peak, Math.Max(Math.Abs(outLeft[i]), Math.Abs(outRight[i])));
+        }
+
+        tailAge += length;
+        tailQuietFor = tailInput <= 0f && peak < TailSilence ? tailQuietFor + length : 0;
+        if (tailQuietFor >= tailQuiet || tailAge >= tailCap) {
+            Retire(Interlocked.Exchange(ref tail, null));
+        }
+    }
+
+    /// <summary>Applies a linear gain ramp from <paramref name="gain" /> towards <paramref name="target" />.</summary>
+    float Ramp(Span<float> left, Span<float> right, float gain, float target) {
+        for (var i = 0; i < left.Length; i++) {
+            gain = target > gain ? Math.Min(target, gain + swapStep) : Math.Max(target, gain - swapStep);
+            left[i] *= gain;
+            right[i] *= gain;
+        }
+
+        return gain;
+    }
+
+    /// <summary>Audio thread: hand a graph to the control side; if every slot is still full it is left to the GC.</summary>
+    void Retire(CompiledGraph? graph) {
+        if (graph is null) {
+            return;
+        }
+
+        for (var i = 0; i < RetiredSlots; i++) {
+            if (Interlocked.CompareExchange(ref retiredGraphs[i], graph, null) is null) {
+                return;
+            }
         }
     }
 

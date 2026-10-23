@@ -2,6 +2,14 @@ using Cathode.Dsp;
 
 namespace Cathode.Engine.Graph;
 
+/// <summary>The compiled form of <see cref="BypassModes" />.</summary>
+public enum BypassKind {
+    Thru,
+    Mute,
+    MuteIn,
+    MuteFxIn
+}
+
 /// <summary>
 ///     An immutable execution plan plus all the state it needs: block instances, work buffers and delay lines.
 ///     Built and prepared on the control thread; <see cref="Process" /> runs on the audio thread and never allocates.
@@ -44,6 +52,7 @@ public sealed class CompiledGraph : IDisposable {
         IDspBlock[] blocks,
         string[] slotIds,
         bool[] bypassed,
+        BypassKind[] bypassModes,
         DelayLine[] delays,
         int latencySamples
     ) {
@@ -73,7 +82,7 @@ public sealed class CompiledGraph : IDisposable {
         fadeStep = (float)(1.0 / Math.Max(1.0, BypassFadeMs * 0.001 * spec.SampleRate));
         bypass = new BypassState[blocks.Length];
         for (var i = 0; i < blocks.Length; i++) {
-            bypass[i] = new(bypassed[i]);
+            bypass[i] = new(bypassed[i], bypassModes[i]);
         }
     }
 
@@ -86,6 +95,8 @@ public sealed class CompiledGraph : IDisposable {
     public void SetParameter(int slot, int paramIndex, float value) => blocks[slot].Params.SetTarget(paramIndex, value);
 
     public bool IsBypassed(int slot) => bypass[slot].Target;
+
+    public BypassKind BypassModeOf(int slot) => bypass[slot].Mode;
 
     /// <summary>Audio thread: runs the plan for one block of at most <see cref="ProcessSpec.MaxBlockSize" /> frames.</summary>
     public void Process(in AudioIO io, in BlockContext context) {
@@ -139,31 +150,77 @@ public sealed class CompiledGraph : IDisposable {
     void RunBlock(int slot, in StereoBuffer io, in BlockContext context) {
         ref var bypass = ref this.bypass[slot];
         var target = bypass.Target ? 0f : 1f;
-        if (bypass.Mix == target) {
-            if (target == 1f) {
-                blocks[slot].Process(io, context);
-            }
+        var steady = bypass.Mix == target;
+        switch (bypass.Mode) {
+            case BypassKind.MuteIn or BypassKind.MuteFxIn:
+                RunWithFadedInput(slot, target, io, context);
+                return;
+            case BypassKind.Thru or BypassKind.Mute when steady:
+                if (target == 1f) {
+                    blocks[slot].Process(io, context);
+                } else if (bypass.Mode == BypassKind.Mute) {
+                    io.Left.Clear();
+                    io.Right.Clear();
+                }
 
-            return; // fully bypassed: THRU
+                return; // fully bypassed THRU leaves the input as it is
         }
 
-        // Crossfade between the dry input and the processed signal.
+        // Thru or Mute, mid-fade: crossfade between the processed signal and dry (Thru) or silence (Mute).
         var dryLeft = this.dryLeft.Span[..io.Length];
         var dryRight = this.dryRight.Span[..io.Length];
-        io.Left.CopyTo(dryLeft);
-        io.Right.CopyTo(dryRight);
-        blocks[slot].Process(io, context);
+        if (bypass.Mode == BypassKind.Thru) {
+            io.Left.CopyTo(dryLeft);
+            io.Right.CopyTo(dryRight);
+        } else {
+            dryLeft.Clear();
+            dryRight.Clear();
+        }
 
+        blocks[slot].Process(io, context);
         var mix = bypass.Mix;
-        var step = target > mix ? fadeStep : -fadeStep;
         for (var i = 0; i < io.Length; i++) {
-            mix = step > 0 ? Math.Min(target, mix + step) : Math.Max(target, mix + step);
+            mix = Step(mix, target);
             io.Left[i] = dryLeft[i] + (io.Left[i] - dryLeft[i]) * mix;
             io.Right[i] = dryRight[i] + (io.Right[i] - dryRight[i]) * mix;
         }
 
         bypass.Mix = mix;
     }
+
+    /// <summary>
+    ///     Mute In and Mute FX In: the block always runs, on its input faded by the bypass mix, so its tails continue
+    ///     after a bypass. Mute FX In adds the dry signal back as the input fades out.
+    /// </summary>
+    void RunWithFadedInput(int slot, float target, in StereoBuffer io, in BlockContext context) {
+        ref var bypass = ref this.bypass[slot];
+        var dryLeft = this.dryLeft.Span[..io.Length];
+        var dryRight = this.dryRight.Span[..io.Length];
+        io.Left.CopyTo(dryLeft);
+        io.Right.CopyTo(dryRight);
+        var mix = bypass.Mix;
+        var start = mix;
+        for (var i = 0; i < io.Length; i++) {
+            mix = Step(mix, target);
+            io.Left[i] *= mix;
+            io.Right[i] *= mix;
+        }
+
+        blocks[slot].Process(io, context);
+        if (bypass.Mode == BypassKind.MuteFxIn) {
+            var gain = start;
+            for (var i = 0; i < io.Length; i++) {
+                gain = Step(gain, target);
+                io.Left[i] += dryLeft[i] * (1f - gain);
+                io.Right[i] += dryRight[i] * (1f - gain);
+            }
+        }
+
+        bypass.Mix = mix;
+    }
+
+    float Step(float mix, float target) =>
+        target > mix ? Math.Min(target, mix + fadeStep) : Math.Max(target, mix - fadeStep);
 
     static void Accumulate(ReadOnlySpan<float> source, Span<float> destination) {
         for (var i = 0; i < source.Length; i++) {
@@ -178,7 +235,8 @@ public sealed class CompiledGraph : IDisposable {
         }
     }
 
-    struct BypassState(bool bypassed) {
+    struct BypassState(bool bypassed, BypassKind mode) {
+        public readonly BypassKind Mode = mode;
         public bool Target = bypassed;
 
         /// <summary>1 = fully active, 0 = fully bypassed.</summary>
