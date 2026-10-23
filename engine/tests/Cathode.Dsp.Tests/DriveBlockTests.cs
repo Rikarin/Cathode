@@ -9,9 +9,9 @@ public class DriveBlockTests(ITestOutputHelper output)
     private const int Length = 65_536;
     private const int FundamentalBin = 3_413; // prime, about 2.5 kHz at 48 kHz
 
-    private static DriveBlock Create(float type, float drive, bool antialias = true)
+    private static DriveBlock Create(float type, float drive, bool antialias = true, bool oversample = true)
     {
-        var block = new DriveBlock { Antialias = antialias };
+        var block = new DriveBlock { Antialias = antialias, Oversample = oversample };
         block.Params.SetTarget(DriveBlock.Type, type);
         block.Params.SetTarget(DriveBlock.Drive, drive);
         block.Params.SetTarget(DriveBlock.Tone, 10f);
@@ -42,21 +42,41 @@ public class DriveBlockTests(ITestOutputHelper output)
     [InlineData(0f)]
     [InlineData(1f)]
     [InlineData(2f)]
-    public void Antialiasing_reduces_aliasing_at_full_drive(float type)
+    public void Oversampling_and_adaa_keep_aliasing_60_db_down_at_full_drive(float type)
     {
         var input = Signals.CoherentSine(FundamentalBin * 2, Length * 2, 0.5f);
+        double Measure(bool antialias, bool oversample)
+        {
+            using var block = Create(type, 10f, antialias, oversample);
+            return Analysis.SignalToAliasingDb(BlockRender.Mono(block, input, 64).AsSpan(Length), FundamentalBin);
+        }
 
-        using var adaa = Create(type, 10f);
-        using var naive = Create(type, 10f, antialias: false);
-        var withAdaa = Analysis.SignalToAliasingDb(BlockRender.Mono(adaa, input, 64).AsSpan(Length), FundamentalBin);
-        var without = Analysis.SignalToAliasingDb(BlockRender.Mono(naive, input, 64).AsSpan(Length), FundamentalBin);
+        var naive = Measure(antialias: false, oversample: false);
+        var adaa = Measure(antialias: true, oversample: false);
+        var both = Measure(antialias: true, oversample: true);
 
-        output.WriteLine($"type {type}: signal-to-aliasing {without:0.0} dB naive, {withAdaa:0.0} dB with ADAA");
-        Assert.True(withAdaa - without >= 15, $"ADAA gained only {withAdaa - without:0.0} dB ({without:0.0} -> {withAdaa:0.0})");
+        output.WriteLine($"type {type}: signal-to-aliasing {naive:0.0} dB naive, {adaa:0.0} dB ADAA, {both:0.0} dB ADAA + 4x");
+        Assert.True(adaa - naive >= 15, $"ADAA gained only {adaa - naive:0.0} dB");
+        Assert.True(both >= 60, $"signal-to-aliasing {both:0.0} dB with ADAA + 4x oversampling (target 60 dB, docs/03 §3)");
+    }
 
-        // Measured: 38-41 dB with ADAA alone (Oct 2026). The 60 dB target in docs/03 needs 4x oversampling as well,
-        // which is still to come; this floor keeps the current level from regressing.
-        Assert.True(withAdaa >= 35, $"signal-to-aliasing {withAdaa:0.0} dB");
+    [Theory]
+    [InlineData(0f)]
+    [InlineData(1f)]
+    [InlineData(2f)]
+    public void Partial_mix_does_not_comb(float type)
+    {
+        // Drive at its minimum is close to linear, so 50 % mix should be close to the processed signal
+        // in level everywhere; a phase mismatch between paths would cut deep notches.
+        using var block = Create(type, 0f);
+        block.Params.SetTarget(DriveBlock.Mix, 50f);
+        block.Reset();
+        var impulse = BlockRender.Mono(block, Signals.Impulse(8_192, 0.01f), 64);
+
+        foreach (var f in new[] { 200.0, 1_000, 3_000, 6_000 })
+        {
+            Assert.True(Analysis.ToDb(Analysis.MagnitudeAt(impulse, f, 48_000) / 0.01) > -20, $"notch at {f} Hz");
+        }
     }
 
     [Fact]

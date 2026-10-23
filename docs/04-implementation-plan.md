@@ -56,7 +56,7 @@ Ordered by value to a guitarist:
 1. [ ] **Amp (capture tier)**: NAM A1/A2 ✅ via native (`NamAmpBlock`, ADR-0003); AIDA-X still to do, input trim, loudness normalisation, output level, simple post-EQ (bass, mid, treble, presence as shelving/peaking filters on the capture)
 2. [x] **Cab**: zero-latency two-stage convolution (direct head + uniform partitioned tail, written in C#), 2 IR slots with levels, low/high cut, WAV IRs at any rate (resampled), stereo IRs, unit-energy normalisation. *Still to do:* IR alignment, min-phase trim
 3. [x] **Gate/Expander** block (dB-domain smoothing, hold, linked detector). *Still to do:* the gate built into the Input block, sidechain filters
-4. [ ] **Drive**: Overdrive / Distortion / Fuzz voicings with ADAA clippers ✅ (signal-to-aliasing 38–41 dB at full drive, 2.5 kHz). *Still to do:* 4× oversampling to reach 60 dB, and WDF circuit models (TS, Rat, Klon)
+4. [x] **Drive**: Overdrive / Distortion / Fuzz voicings, ADAA clippers inside 4× IIR half-band oversampling (signal-to-aliasing 63–73 dB at full drive, 2.5 kHz). *Still to do:* WDF circuit models (TS, Rat, Klon)
 5. [x] **Delay**: digital, analog (dark, saturating repeats), tape (wow/flutter, saturation); tempo sync; Hermite interpolation; spillover-ready
 6. [ ] **Reverb**: 8-line FDN Room / Hall / Plate ✅ (T60 within 20 % of the setting). *Still to do:* a Dattorro plate and a spring (dispersion allpass chain)
 7. [ ] **Compressor** (feed-forward VCA and opto-style), **PEQ** (5-band TPT), **GEQ** (10-band)
