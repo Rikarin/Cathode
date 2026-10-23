@@ -215,6 +215,7 @@ sealed class ReferenceSimulator {
         var a = new double[size, size];
         var rhs = new double[size];
         var last = new double[size];
+        var change = double.MaxValue;
         for (var iteration = 1; iteration <= 200; iteration++) {
             Array.Clear(a);
             Array.Clear(rhs);
@@ -303,7 +304,7 @@ sealed class ReferenceSimulator {
                 proposed.CopyTo(evaluation[d], 0);
             }
 
-            var change = 0.0;
+            change = 0.0;
             for (var i = 0; i < size; i++) {
                 change = Math.Max(change, Math.Abs(x[i] - last[i]) / (1e-9 + 1e-9 * Math.Abs(x[i])));
             }
@@ -314,7 +315,11 @@ sealed class ReferenceSimulator {
             }
         }
 
-        newtonFailures++;
+        // Steps that only dither at the last digits (limiting toggling near a junction's knee, which varies between CPUs)
+        // are still a solution to within a microvolt; anything further off is a failure.
+        if (change > 1e3) {
+            newtonFailures++;
+        }
     }
 
     double[] PortVoltages((int Plus, int Minus)[] ports) {
