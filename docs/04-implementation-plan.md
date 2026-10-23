@@ -49,16 +49,16 @@ Each spike is a throwaway prototype with a written result in `docs/adr/`.
 
 ---
 
-## Phase 2: MVP block set (6–8 weeks): *"it sounds like a real rig"*
+## Phase 2: MVP block set (6–8 weeks): *"it sounds like a real rig"* — *in progress*
 
 Ordered by value to a guitarist:
 
 1. [ ] **Amp (capture tier)**: NAM A1/A2 ✅ via native (`NamAmpBlock`, ADR-0003); AIDA-X still to do, input trim, loudness normalisation, output level, simple post-EQ (bass, mid, treble, presence as shelving/peaking filters on the capture)
-2. [ ] **Cab**: uniform-partitioned convolution (port FFTConvolver), 2 IR slots with blend, alignment, min-phase trim and low/high cut; IR import (WAV 44.1/48/96k, resampled at import)
-3. [ ] **Noise Gate / Input gate** (with sidechain from the input, like Fractal's Input block gate)
-4. [ ] **Drive**: three WDF circuits (TS-style, Rat-style, Klon-style) with ADAA + 4× oversampling
-5. [ ] **Delay**: digital, analog (BBD-style filtered), tape (wow/flutter, saturation); tempo sync; spillover-ready
-6. [ ] **Reverb**: FDN hall and room + Dattorro plate + spring (dispersion allpass chain)
+2. [x] **Cab**: zero-latency two-stage convolution (direct head + uniform partitioned tail, written in C#), 2 IR slots with levels, low/high cut, WAV IRs at any rate (resampled), stereo IRs, unit-energy normalisation. *Still to do:* IR alignment, min-phase trim
+3. [x] **Gate/Expander** block (dB-domain smoothing, hold, linked detector). *Still to do:* the gate built into the Input block, sidechain filters
+4. [ ] **Drive**: Overdrive / Distortion / Fuzz voicings with ADAA clippers ✅ (signal-to-aliasing 38–41 dB at full drive, 2.5 kHz). *Still to do:* 4× oversampling to reach 60 dB, and WDF circuit models (TS, Rat, Klon)
+5. [x] **Delay**: digital, analog (dark, saturating repeats), tape (wow/flutter, saturation); tempo sync; Hermite interpolation; spillover-ready
+6. [ ] **Reverb**: 8-line FDN Room / Hall / Plate ✅ (T60 within 20 % of the setting). *Still to do:* a Dattorro plate and a spring (dispersion allpass chain)
 7. [ ] **Compressor** (feed-forward VCA and opto-style), **PEQ** (5-band TPT), **GEQ** (10-band)
 8. [ ] **Chorus**, **Flanger**, **Phaser**, **Tremolo/Panner** (shared modulated-delay and LFO core)
 9. [ ] **Wah** (inductor-wah model, expression-driven)

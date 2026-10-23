@@ -82,6 +82,29 @@ public static class Analysis
     }
 
     /// <summary>
+    /// Signal-to-aliasing ratio in dB of a nonlinear system's response to a coherent sine at
+    /// <paramref name="fundamentalBin"/>: energy at the true harmonics (k x f0 below Nyquist) against all other
+    /// non-DC energy, which is mostly harmonics folded back from above Nyquist. Pick a fundamental bin whose
+    /// folded harmonics don't land on harmonic bins (a prime works well).
+    /// </summary>
+    public static double SignalToAliasingDb(ReadOnlySpan<float> signal, int fundamentalBin)
+    {
+        var magnitudes = Fft.Magnitudes(signal);
+        double harmonic = 0, total = 0;
+        for (var k = 1; k < magnitudes.Length; k++)
+        {
+            var energy = magnitudes[k] * magnitudes[k];
+            total += energy;
+            if (k % fundamentalBin == 0)
+            {
+                harmonic += energy;
+            }
+        }
+
+        return 10 * Math.Log10(harmonic / Math.Max(total - harmonic, 1e-30));
+    }
+
+    /// <summary>
     /// Error-to-signal ratio with first-order pre-emphasis (1 - 0.95 z^-1), the standard amp-modelling metric.
     /// 0 is a perfect match; 1 is as large as the signal itself.
     /// </summary>
