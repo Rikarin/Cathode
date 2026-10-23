@@ -6,12 +6,11 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-/// Cabinet simulation: up to two impulse responses (mic blend), each with its own level, plus low and high cut.
-/// IRs are resampled to the engine rate, normalised to unit energy and truncated to <see cref="MaxIrLength"/>.
-/// Zero latency. Stereo IRs process left and right separately; mono IRs are used for both channels.
+///     Cabinet simulation: up to two impulse responses (mic blend), each with its own level, plus low and high cut.
+///     IRs are resampled to the engine rate, normalised to unit energy and truncated to <see cref="MaxIrLength" />.
+///     Zero latency. Stereo IRs process left and right separately; mono IRs are used for both channels.
 /// </summary>
-public sealed class CabBlock : DspBlock, IAssetConsumer
-{
+public sealed class CabBlock : DspBlock, IAssetConsumer {
     public const int Level1 = 0;
     public const int Level2 = 1;
     public const int LowCut = 2;
@@ -40,7 +39,8 @@ public sealed class CabBlock : DspBlock, IAssetConsumer
             ParamDescriptor.Float("highcut", "High Cut", 1_000f, HighCutOff, HighCutOff, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
         ],
-        maxInstances: 2);
+        maxInstances: 2
+    );
 
     private readonly Slot[] _slots = [new(), new()];
     private SvfState _lowCutLeft, _lowCutRight, _highCutLeft, _highCutRight;
@@ -49,35 +49,28 @@ public sealed class CabBlock : DspBlock, IAssetConsumer
     private float _gain1 = 1f, _gain2 = 1f, _outputGain = 1f;
 
     public CabBlock()
-        : base(Info)
-    {
-    }
+        : base(Info) { }
 
     public IReadOnlyList<string> AssetSlots { get; } = ["ir1", "ir2"];
 
     /// <summary>Control thread: load a WAV impulse response into <c>ir1</c> or <c>ir2</c>.</summary>
-    public void LoadAsset(string slot, string path)
-    {
-        var index = slot switch
-        {
+    public void LoadAsset(string slot, string path) {
+        var index = slot switch {
             "ir1" => 0,
             "ir2" => 1,
             _ => throw new ArgumentException($"Unknown asset slot '{slot}'.", nameof(slot)),
         };
 
         var audio = WavFile.Read(path);
-        if (audio.Frames == 0 || audio.Channels.Length == 0)
-        {
+        if (audio.Frames == 0 || audio.Channels.Length == 0) {
             throw new InvalidDataException($"Impulse response '{path}' is empty.");
         }
 
         _slots[index].Source = audio;
     }
 
-    protected override void OnPrepare(in ProcessSpec spec)
-    {
-        foreach (var slot in _slots)
-        {
+    protected override void OnPrepare(in ProcessSpec spec) {
+        foreach (var slot in _slots) {
             slot.Build(spec.SampleRate);
         }
 
@@ -85,10 +78,8 @@ public sealed class CabBlock : DspBlock, IAssetConsumer
         _scratchRight = new float[spec.MaxBlockSize];
     }
 
-    protected override void OnReset()
-    {
-        foreach (var slot in _slots)
-        {
+    protected override void OnReset() {
+        foreach (var slot in _slots) {
             slot.Reset();
         }
 
@@ -101,15 +92,13 @@ public sealed class CabBlock : DspBlock, IAssetConsumer
         _outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context)
-    {
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var gain1 = Decibels.ToGain(Params.Advance(Level1, io.Length));
         var gain2 = Decibels.ToGain(Params.Advance(Level2, io.Length));
         var first = _slots[0];
         var second = _slots[1];
 
-        if (second.IsLoaded)
-        {
+        if (second.IsLoaded) {
             var left = _scratchLeft.AsSpan(0, io.Length);
             var right = _scratchRight.AsSpan(0, io.Length);
             io.Left.CopyTo(left);
@@ -118,22 +107,17 @@ public sealed class CabBlock : DspBlock, IAssetConsumer
             GainRamp.Apply(left, _gain2, gain2);
             GainRamp.Apply(right, _gain2, gain2);
 
-            if (first.IsLoaded)
-            {
+            if (first.IsLoaded) {
                 first.Process(io.Left, io.Right);
                 GainRamp.Apply(io.Left, _gain1, gain1);
                 GainRamp.Apply(io.Right, _gain1, gain1);
                 Accumulate(left, io.Left);
                 Accumulate(right, io.Right);
-            }
-            else
-            {
+            } else {
                 left.CopyTo(io.Left);
                 right.CopyTo(io.Right);
             }
-        }
-        else if (first.IsLoaded)
-        {
+        } else if (first.IsLoaded) {
             first.Process(io.Left, io.Right);
             GainRamp.Apply(io.Left, _gain1, gain1);
             GainRamp.Apply(io.Right, _gain1, gain1);
@@ -143,16 +127,14 @@ public sealed class CabBlock : DspBlock, IAssetConsumer
         _gain2 = gain2;
 
         var lowCut = Params.Advance(LowCut, io.Length);
-        if (lowCut > LowCutOff)
-        {
+        if (lowCut > LowCutOff) {
             var c = SvfCoefficients.Design(BiquadType.HighPass, Spec.SampleRate, lowCut, 0.7071);
             _lowCutLeft.Process(c, io.Left);
             _lowCutRight.Process(c, io.Right);
         }
 
         var highCut = Params.Advance(HighCut, io.Length);
-        if (highCut < HighCutOff)
-        {
+        if (highCut < HighCutOff) {
             var c = SvfCoefficients.Design(BiquadType.LowPass, Spec.SampleRate, highCut, 0.7071);
             _highCutLeft.Process(c, io.Left);
             _highCutRight.Process(c, io.Right);
@@ -167,16 +149,13 @@ public sealed class CabBlock : DspBlock, IAssetConsumer
     /// <summary>The IR as it will be convolved (resampled, truncated, normalised), for tests and the editor's plot.</summary>
     public float[]? PreparedImpulseResponse(int slot, int channel = 0) => _slots[slot].Prepared?[channel];
 
-    private static void Accumulate(ReadOnlySpan<float> source, Span<float> destination)
-    {
-        for (var i = 0; i < source.Length; i++)
-        {
+    private static void Accumulate(ReadOnlySpan<float> source, Span<float> destination) {
+        for (var i = 0; i < source.Length; i++) {
             destination[i] += source[i];
         }
     }
 
-    private sealed class Slot
-    {
+    private sealed class Slot {
         private Convolver? _left;
         private Convolver? _right;
 
@@ -186,19 +165,17 @@ public sealed class CabBlock : DspBlock, IAssetConsumer
 
         public bool IsLoaded => _left is not null;
 
-        public void Build(double sampleRate)
-        {
-            if (Source is null)
-            {
+        public void Build(double sampleRate) {
+            if (Source is null) {
                 return;
             }
 
-            var channels = Source.Channels.Take(2).Select(c => Shape(Resampler.Resample(c, Source.SampleRate, sampleRate))).ToArray();
+            var channels = Source.Channels.Take(2)
+                .Select(c => Shape(Resampler.Resample(c, Source.SampleRate, sampleRate)))
+                .ToArray();
             var norm = 1f / MathF.Sqrt(channels.Average(static c => c.Sum(static v => v * v)));
-            foreach (var channel in channels)
-            {
-                for (var i = 0; i < channel.Length; i++)
-                {
+            foreach (var channel in channels) {
+                for (var i = 0; i < channel.Length; i++) {
                     channel[i] *= norm;
                 }
             }
@@ -208,29 +185,24 @@ public sealed class CabBlock : DspBlock, IAssetConsumer
             _right = new Convolver(channels[^1]);
         }
 
-        public void Reset()
-        {
+        public void Reset() {
             _left?.Reset();
             _right?.Reset();
         }
 
-        public void Process(Span<float> left, Span<float> right)
-        {
+        public void Process(Span<float> left, Span<float> right) {
             _left!.Process(left);
             _right!.Process(right);
         }
 
-        /// <summary>Truncates to <see cref="MaxIrLength"/> with a short raised-cosine fade so the cut does not click.</summary>
-        private static float[] Shape(float[] ir)
-        {
-            if (ir.Length <= MaxIrLength)
-            {
+        /// <summary>Truncates to <see cref="MaxIrLength" /> with a short raised-cosine fade so the cut does not click.</summary>
+        private static float[] Shape(float[] ir) {
+            if (ir.Length <= MaxIrLength) {
                 return ir;
             }
 
             var shaped = ir[..MaxIrLength];
-            for (var i = 0; i < FadeLength; i++)
-            {
+            for (var i = 0; i < FadeLength; i++) {
                 shaped[MaxIrLength - FadeLength + i] *= 0.5f * (1f + MathF.Cos(MathF.PI * (i + 1) / FadeLength));
             }
 

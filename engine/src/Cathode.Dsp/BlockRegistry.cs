@@ -4,13 +4,12 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp;
 
 /// <summary>Maps block type ids to their descriptor and a factory.</summary>
-public sealed class BlockRegistry
-{
-    private readonly Dictionary<string, (BlockDescriptor Descriptor, Func<IDspBlock> Factory)> _types = new(StringComparer.Ordinal);
+public sealed class BlockRegistry {
+    private readonly Dictionary<string, (BlockDescriptor Descriptor, Func<IDspBlock> Factory)> _types =
+        new(StringComparer.Ordinal);
 
     /// <summary>A registry pre-populated with every built-in block.</summary>
-    public static BlockRegistry CreateDefault()
-    {
+    public static BlockRegistry CreateDefault() {
         var registry = new BlockRegistry();
         registry.Register(VolumePanBlock.Info, static () => new VolumePanBlock());
         registry.Register(FilterBlock.Info, static () => new FilterBlock());
@@ -32,10 +31,8 @@ public sealed class BlockRegistry
 
     public IEnumerable<BlockDescriptor> Descriptors => _types.Values.Select(static t => t.Descriptor);
 
-    public void Register(BlockDescriptor descriptor, Func<IDspBlock> factory)
-    {
-        if (!_types.TryAdd(descriptor.TypeId, (descriptor, factory)))
-        {
+    public void Register(BlockDescriptor descriptor, Func<IDspBlock> factory) {
+        if (!_types.TryAdd(descriptor.TypeId, (descriptor, factory))) {
             throw new ArgumentException($"Block type '{descriptor.TypeId}' is already registered.", nameof(descriptor));
         }
     }

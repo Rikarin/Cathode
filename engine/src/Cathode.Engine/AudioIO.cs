@@ -1,13 +1,15 @@
 namespace Cathode.Engine;
 
 /// <summary>One callback's worth of stereo input and output. All spans have the same length.</summary>
-public readonly ref struct AudioIO
-{
-    public AudioIO(ReadOnlySpan<float> inputLeft, ReadOnlySpan<float> inputRight, Span<float> outputLeft, Span<float> outputRight)
-    {
+public readonly ref struct AudioIO {
+    public AudioIO(
+        ReadOnlySpan<float> inputLeft,
+        ReadOnlySpan<float> inputRight,
+        Span<float> outputLeft,
+        Span<float> outputRight
+    ) {
         var frames = outputLeft.Length;
-        if (inputLeft.Length != frames || inputRight.Length != frames || outputRight.Length != frames)
-        {
+        if (inputLeft.Length != frames || inputRight.Length != frames || outputRight.Length != frames) {
             throw new ArgumentException("All channel spans must have the same length.");
         }
 
@@ -27,15 +29,16 @@ public readonly ref struct AudioIO
 
     public int Frames => OutputLeft.Length;
 
-    public AudioIO Slice(int start, int length) => new(
-        InputLeft.Slice(start, length),
-        InputRight.Slice(start, length),
-        OutputLeft.Slice(start, length),
-        OutputRight.Slice(start, length));
+    public AudioIO Slice(int start, int length) =>
+        new(
+            InputLeft.Slice(start, length),
+            InputRight.Slice(start, length),
+            OutputLeft.Slice(start, length),
+            OutputRight.Slice(start, length)
+        );
 }
 
 /// <summary>Anything that can fill an audio callback: the engine, or a test double.</summary>
-public interface IAudioProcessor
-{
+public interface IAudioProcessor {
     void Process(in AudioIO io);
 }

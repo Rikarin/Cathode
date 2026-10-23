@@ -3,15 +3,14 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp;
 
 /// <summary>
-/// The contract every processing block implements.
+///     The contract every processing block implements.
 /// </summary>
 /// <remarks>
-/// <para><see cref="Prepare"/> runs on the control thread and is the only place a block may allocate.</para>
-/// <para><see cref="Process"/> and <see cref="Reset"/> run on the audio thread: no allocation, no locks, no I/O.</para>
-/// <para>Processing is in place: the block reads its input from <c>io</c> and overwrites it with its output.</para>
+///     <para><see cref="Prepare" /> runs on the control thread and is the only place a block may allocate.</para>
+///     <para><see cref="Process" /> and <see cref="Reset" /> run on the audio thread: no allocation, no locks, no I/O.</para>
+///     <para>Processing is in place: the block reads its input from <c>io</c> and overwrites it with its output.</para>
 /// </remarks>
-public interface IDspBlock : IDisposable
-{
+public interface IDspBlock : IDisposable {
     BlockDescriptor Descriptor { get; }
 
     /// <summary>Parameter targets and smoothers. Targets may be written from any thread.</summary>

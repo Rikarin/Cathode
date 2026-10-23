@@ -4,11 +4,10 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-/// Phaser: a chain of first-order TPT allpass stages whose break frequency is swept by an LFO (in octaves around the
-/// centre), with feedback around the chain. Mixed 50/50 with the dry signal, every 180° of chain phase cuts a notch.
+///     Phaser: a chain of first-order TPT allpass stages whose break frequency is swept by an LFO (in octaves around the
+///     centre), with feedback around the chain. Mixed 50/50 with the dry signal, every 180° of chain phase cuts a notch.
 /// </summary>
-public sealed class PhaserBlock : DspBlock
-{
+public sealed class PhaserBlock : DspBlock {
     public const int Rate = 0;
     public const int Depth = 1;
     public const int Center = 2;
@@ -36,7 +35,8 @@ public sealed class PhaserBlock : DspBlock
             ParamDescriptor.Float("spread", "Spread", 0f, 180f, 90f, "°"),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
         ],
-        maxInstances: 2);
+        maxInstances: 2
+    );
 
     private readonly float[] _stateLeft = new float[MaxStages];
     private readonly float[] _stateRight = new float[MaxStages];
@@ -47,12 +47,9 @@ public sealed class PhaserBlock : DspBlock
     private float _outputGain = 1f;
 
     public PhaserBlock()
-        : base(Info)
-    {
-    }
+        : base(Info) { }
 
-    protected override void OnReset()
-    {
+    protected override void OnReset() {
         Array.Clear(_stateLeft);
         Array.Clear(_stateRight);
         _lfo.Reset();
@@ -62,8 +59,7 @@ public sealed class PhaserBlock : DspBlock
         _outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context)
-    {
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var rate = Spec.SampleRate;
         var lfoRate = Params.Advance(Rate, io.Length);
         var octaves = Params.Advance(Depth, io.Length) / 100f * MaxSweepOctaves;
@@ -76,8 +72,7 @@ public sealed class PhaserBlock : DspBlock
         var currentMix = _mix;
         var nyquistGuard = (float)(rate * 0.45);
 
-        for (var i = 0; i < io.Length; i++)
-        {
+        for (var i = 0; i < io.Length; i++) {
             var fl = Math.Min(nyquistGuard, center * MathF.Pow(2f, octaves * _lfo.Value(LfoShape.Sine)));
             var fr = Math.Min(nyquistGuard, center * MathF.Pow(2f, octaves * _lfo.Value(LfoShape.Sine, spread)));
             _lfo.Advance(lfoRate, rate);
@@ -101,17 +96,14 @@ public sealed class PhaserBlock : DspBlock
     }
 
     /// <summary>TPT one-pole gain G = g / (1 + g) with g = tan(pi f / fs).</summary>
-    private static float Gain(float frequency, double sampleRate)
-    {
+    private static float Gain(float frequency, double sampleRate) {
         var g = MathF.Tan(MathF.PI * frequency / (float)sampleRate);
         return g / (1 + g);
     }
 
     /// <summary>First-order allpasses: low-pass via TPT, then allpass = 2 * lowpass - input.</summary>
-    private static float Chain(float[] state, int stages, float x, float gain)
-    {
-        for (var s = 0; s < stages; s++)
-        {
+    private static float Chain(float[] state, int stages, float x, float gain) {
+        for (var s = 0; s < stages; s++) {
             var v = (x - state[s]) * gain;
             var lowpass = v + state[s];
             state[s] = lowpass + v;
@@ -121,12 +113,9 @@ public sealed class PhaserBlock : DspBlock
         return x;
     }
 
-    private static void Flush(float[] state)
-    {
-        for (var s = 0; s < state.Length; s++)
-        {
-            if (MathF.Abs(state[s]) < 1e-20f)
-            {
+    private static void Flush(float[] state) {
+        for (var s = 0; s < state.Length; s++) {
+            if (MathF.Abs(state[s]) < 1e-20f) {
                 state[s] = 0;
             }
         }

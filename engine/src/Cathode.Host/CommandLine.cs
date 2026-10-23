@@ -2,28 +2,27 @@ using System.Globalization;
 
 namespace Cathode.Host;
 
-/// <summary>Minimal parser: the first <c>--name</c> is the command; later <c>--key value</c> pairs and bare flags are options.</summary>
-internal sealed class CommandLine
-{
-    private static readonly HashSet<string> Commands = ["version", "self-test", "devices", "audio-test", "latency-test", "bench-nam", "help"];
+/// <summary>
+///     Minimal parser: the first <c>--name</c> is the command; later <c>--key value</c> pairs and bare flags are
+///     options.
+/// </summary>
+internal sealed class CommandLine {
+    private static readonly HashSet<string> Commands =
+        ["version", "self-test", "devices", "audio-test", "latency-test", "bench-nam", "help"];
 
     private readonly Dictionary<string, string?> _options = new(StringComparer.Ordinal);
 
     public string? Command { get; private set; }
 
-    public static CommandLine Parse(string[] args)
-    {
+    public static CommandLine Parse(string[] args) {
         var result = new CommandLine();
-        for (var i = 0; i < args.Length; i++)
-        {
-            if (!args[i].StartsWith("--", StringComparison.Ordinal))
-            {
+        for (var i = 0; i < args.Length; i++) {
+            if (!args[i].StartsWith("--", StringComparison.Ordinal)) {
                 continue;
             }
 
             var name = args[i][2..];
-            if (result.Command is null && Commands.Contains(name))
-            {
+            if (result.Command is null && Commands.Contains(name)) {
                 result.Command = name;
                 continue;
             }
@@ -43,5 +42,7 @@ internal sealed class CommandLine
         _options.TryGetValue(name, out var v) && v is not null ? int.Parse(v, CultureInfo.InvariantCulture) : fallback;
 
     public double Double(string name, double fallback) =>
-        _options.TryGetValue(name, out var v) && v is not null ? double.Parse(v, CultureInfo.InvariantCulture) : fallback;
+        _options.TryGetValue(name, out var v) && v is not null
+            ? double.Parse(v, CultureInfo.InvariantCulture)
+            : fallback;
 }

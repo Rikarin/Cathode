@@ -3,11 +3,10 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp.Native;
 
 /// <summary>
-/// The capture tier of the Amp block: a Neural Amp Modeler model with input trim, loudness normalisation and
-/// output level. Mono in (left), mono out copied to both channels. Without a model it passes audio through.
+///     The capture tier of the Amp block: a Neural Amp Modeler model with input trim, loudness normalisation and
+///     output level. Mono in (left), mono out copied to both channels. Without a model it passes audio through.
 /// </summary>
-public sealed class NamAmpBlock : DspBlock, IAssetConsumer
-{
+public sealed class NamAmpBlock : DspBlock, IAssetConsumer {
     public const int Input = 0;
     public const int Output = 1;
     public const int Normalize = 2;
@@ -26,26 +25,23 @@ public sealed class NamAmpBlock : DspBlock, IAssetConsumer
             ParamDescriptor.Float("output", "Output", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Switch("normalize", "Normalize", defaultValue: true),
         ],
-        maxInstances: 2);
+        maxInstances: 2
+    );
 
     private NamModel? _model;
     private float _inputGain = 1f;
     private float _outputGain = 1f;
 
     public NamAmpBlock()
-        : base(Info)
-    {
-    }
+        : base(Info) { }
 
     public NamModelInfo? Model => _model?.Info;
 
     public IReadOnlyList<string> AssetSlots { get; } = [ModelSlot];
 
-    /// <summary>Control thread, before <see cref="IDspBlock.Prepare"/>.</summary>
-    public void LoadAsset(string slot, string path)
-    {
-        if (slot != ModelSlot)
-        {
+    /// <summary>Control thread, before <see cref="IDspBlock.Prepare" />.</summary>
+    public void LoadAsset(string slot, string path) {
+        if (slot != ModelSlot) {
             throw new ArgumentException($"Unknown asset slot '{slot}'.", nameof(slot));
         }
 
@@ -61,14 +57,12 @@ public sealed class NamAmpBlock : DspBlock, IAssetConsumer
 
     protected override void OnReset() => (_inputGain, _outputGain) = TargetGains();
 
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context)
-    {
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         Params.Advance(Input, io.Length);
         Params.Advance(Output, io.Length);
         var (input, output) = TargetGains();
 
-        if (_model is not null)
-        {
+        if (_model is not null) {
             GainRamp.Apply(io.Left, _inputGain, input);
             _model.Process(io.Left, io.Left);
             GainRamp.Apply(io.Left, _outputGain, output);
@@ -79,10 +73,8 @@ public sealed class NamAmpBlock : DspBlock, IAssetConsumer
         _outputGain = output;
     }
 
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
+    protected override void Dispose(bool disposing) {
+        if (disposing) {
             _model?.Dispose();
             _model = null;
         }
@@ -90,11 +82,11 @@ public sealed class NamAmpBlock : DspBlock, IAssetConsumer
         base.Dispose(disposing);
     }
 
-    private (float Input, float Output) TargetGains()
-    {
+    private (float Input, float Output) TargetGains() {
         var normalisation = Params.Current(Normalize) >= 0.5f && _model?.Info.Loudness is double loudness
             ? TargetLoudnessDb - loudness
             : 0;
-        return (Decibels.ToGain(Params.Current(Input)), (float)(Decibels.ToGain(Params.Current(Output)) * Decibels.ToGain(normalisation)));
+        return (Decibels.ToGain(Params.Current(Input)),
+            (float)(Decibels.ToGain(Params.Current(Output)) * Decibels.ToGain(normalisation)));
     }
 }

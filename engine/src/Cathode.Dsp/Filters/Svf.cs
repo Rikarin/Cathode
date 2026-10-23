@@ -3,18 +3,22 @@ using System.Runtime.CompilerServices;
 namespace Cathode.Dsp.Filters;
 
 /// <summary>
-/// Coefficients for a trapezoidal (TPT/ZDF) state-variable filter, after Andrew Simper's "SVF linear trap
-/// optimised 2" (Cytomic, 2013) and Zavalishin's "The Art of VA Filter Design".
+///     Coefficients for a trapezoidal (TPT/ZDF) state-variable filter, after Andrew Simper's "SVF linear trap
+///     optimised 2" (Cytomic, 2013) and Zavalishin's "The Art of VA Filter Design".
 /// </summary>
 /// <remarks>
-/// The magnitude responses equal the RBJ designs in <see cref="BiquadCoefficients"/>, but the state variables are
-/// the integrator states of an analog prototype, so the filter stays well-behaved when its coefficients move
-/// quickly. Use this, not a direct-form biquad, for any filter whose parameters can be modulated.
+///     The magnitude responses equal the RBJ designs in <see cref="BiquadCoefficients" />, but the state variables are
+///     the integrator states of an analog prototype, so the filter stays well-behaved when its coefficients move
+///     quickly. Use this, not a direct-form biquad, for any filter whose parameters can be modulated.
 /// </remarks>
-public readonly record struct SvfCoefficients(double A1, double A2, double A3, double M0, double M1, double M2)
-{
-    public static SvfCoefficients Design(BiquadType type, double sampleRate, double frequency, double q, double gainDb = 0)
-    {
+public readonly record struct SvfCoefficients(double A1, double A2, double A3, double M0, double M1, double M2) {
+    public static SvfCoefficients Design(
+        BiquadType type,
+        double sampleRate,
+        double frequency,
+        double q,
+        double gainDb = 0
+    ) {
         var f0 = Math.Clamp(frequency, 1.0, sampleRate * 0.49);
         q = type is BiquadType.LowShelf or BiquadType.HighShelf
             ? Math.Clamp(q, 1e-3, BiquadCoefficients.MaxShelfQ)
@@ -24,8 +28,7 @@ public readonly record struct SvfCoefficients(double A1, double A2, double A3, d
         var k = 1.0 / q;
 
         double m0, m1, m2;
-        switch (type)
-        {
+        switch (type) {
             case BiquadType.LowPass:
                 (m0, m1, m2) = (0, 0, 1);
                 break;
@@ -60,23 +63,20 @@ public readonly record struct SvfCoefficients(double A1, double A2, double A3, d
     }
 }
 
-/// <summary>State of one <see cref="SvfCoefficients"/> filter channel (two trapezoidal integrators).</summary>
-public struct SvfState
-{
+/// <summary>State of one <see cref="SvfCoefficients" /> filter channel (two trapezoidal integrators).</summary>
+public struct SvfState {
     private const double DenormalThreshold = 1e-30;
 
     private double _ic1;
     private double _ic2;
 
-    public void Reset()
-    {
+    public void Reset() {
         _ic1 = 0;
         _ic2 = 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double Tick(in SvfCoefficients c, double v0)
-    {
+    public double Tick(in SvfCoefficients c, double v0) {
         var v3 = v0 - _ic2;
         var v1 = c.A1 * _ic1 + c.A2 * v3;
         var v2 = _ic2 + c.A2 * _ic1 + c.A3 * v3;
@@ -85,10 +85,8 @@ public struct SvfState
         return c.M0 * v0 + c.M1 * v1 + c.M2 * v2;
     }
 
-    public void Process(in SvfCoefficients c, Span<float> samples)
-    {
-        for (var i = 0; i < samples.Length; i++)
-        {
+    public void Process(in SvfCoefficients c, Span<float> samples) {
+        for (var i = 0; i < samples.Length; i++) {
             samples[i] = (float)Tick(c, samples[i]);
         }
 
@@ -96,15 +94,12 @@ public struct SvfState
     }
 
     /// <summary>Zeroes state that has decayed into the subnormal range, where arithmetic gets very slow.</summary>
-    public void FlushDenormals()
-    {
-        if (Math.Abs(_ic1) < DenormalThreshold)
-        {
+    public void FlushDenormals() {
+        if (Math.Abs(_ic1) < DenormalThreshold) {
             _ic1 = 0;
         }
 
-        if (Math.Abs(_ic2) < DenormalThreshold)
-        {
+        if (Math.Abs(_ic2) < DenormalThreshold) {
             _ic2 = 0;
         }
     }

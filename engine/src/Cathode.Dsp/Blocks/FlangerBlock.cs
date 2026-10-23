@@ -4,10 +4,11 @@ using Cathode.Dsp.Parameters;
 
 namespace Cathode.Dsp.Blocks;
 
-/// <summary>Flanger: a very short swept delay with positive or negative feedback, mixed with the dry signal, giving
-/// a moving comb filter. The right channel's sweep is offset by the spread angle.</summary>
-public sealed class FlangerBlock : DspBlock
-{
+/// <summary>
+///     Flanger: a very short swept delay with positive or negative feedback, mixed with the dry signal, giving
+///     a moving comb filter. The right channel's sweep is offset by the spread angle.
+/// </summary>
+public sealed class FlangerBlock : DspBlock {
     public const int Rate = 0;
     public const int Depth = 1;
     public const int Delay = 2;
@@ -32,7 +33,8 @@ public sealed class FlangerBlock : DspBlock
             ParamDescriptor.Float("spread", "Spread", 0f, 180f, 90f, "°"),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
         ],
-        maxInstances: 2);
+        maxInstances: 2
+    );
 
     private readonly FractionalDelayLine _left = new();
     private readonly FractionalDelayLine _right = new();
@@ -41,19 +43,15 @@ public sealed class FlangerBlock : DspBlock
     private float _outputGain = 1f;
 
     public FlangerBlock()
-        : base(Info)
-    {
-    }
+        : base(Info) { }
 
-    protected override void OnPrepare(in ProcessSpec spec)
-    {
+    protected override void OnPrepare(in ProcessSpec spec) {
         var capacity = (int)((MaxDelayMs + MaxSweepMs) * 0.001 * spec.SampleRate) + 8;
         _left.Allocate(capacity);
         _right.Allocate(capacity);
     }
 
-    protected override void OnReset()
-    {
+    protected override void OnReset() {
         _left.Reset();
         _right.Reset();
         _lfo.Reset();
@@ -61,8 +59,7 @@ public sealed class FlangerBlock : DspBlock
         _outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context)
-    {
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var rate = Spec.SampleRate;
         var lfoRate = Params.Advance(Rate, io.Length);
         var sweep = Params.Advance(Depth, io.Length) / 100f * MaxSweepMs * 0.001f * (float)rate;
@@ -73,8 +70,7 @@ public sealed class FlangerBlock : DspBlock
         var mixStep = (mix - _mix) / io.Length;
         var currentMix = _mix;
 
-        for (var i = 0; i < io.Length; i++)
-        {
+        for (var i = 0; i < io.Length; i++) {
             var dl = baseDelay + sweep * 0.5f * (1 + _lfo.Value(LfoShape.Triangle));
             var dr = baseDelay + sweep * 0.5f * (1 + _lfo.Value(LfoShape.Triangle, spread));
             _lfo.Advance(lfoRate, rate);

@@ -6,32 +6,30 @@ using static Cathode.Audio.Native.NativeMethods;
 namespace Cathode.Audio.Native;
 
 /// <summary>
-/// Driver-thread callback durations measured natively around the managed call, as a percentage of the buffer
-/// period. Unlike <see cref="CallbackStats"/>, this includes time spent waiting to enter the runtime (GC suspension).
+///     Driver-thread callback durations measured natively around the managed call, as a percentage of the buffer
+///     period. Unlike <see cref="CallbackStats" />, this includes time spent waiting to enter the runtime (GC suspension).
 /// </summary>
-public sealed class CallbackTiming(ulong[] bins, ulong overBudget, double maxPercent)
-{
+public sealed class CallbackTiming(ulong[] bins, ulong overBudget, double maxPercent) {
     public ulong Count { get; } = bins.Aggregate(0UL, static (a, b) => a + b);
 
     public ulong OverBudget { get; } = overBudget;
 
     public double MaxPercent { get; } = maxPercent;
 
-    /// <summary>Upper bound (1 % resolution) of the budget percentage that <paramref name="quantile"/> of callbacks stayed under.</summary>
-    public double Percentile(double quantile)
-    {
-        if (Count == 0)
-        {
+    /// <summary>
+    ///     Upper bound (1 % resolution) of the budget percentage that <paramref name="quantile" /> of callbacks stayed
+    ///     under.
+    /// </summary>
+    public double Percentile(double quantile) {
+        if (Count == 0) {
             return 0;
         }
 
         var threshold = (ulong)Math.Ceiling(quantile * Count);
         ulong running = 0;
-        for (var i = 0; i < bins.Length; i++)
-        {
+        for (var i = 0; i < bins.Length; i++) {
             running += bins[i];
-            if (running >= threshold)
-            {
+            if (running >= threshold) {
                 return i + 1;
             }
         }
@@ -39,18 +37,23 @@ public sealed class CallbackTiming(ulong[] bins, ulong overBudget, double maxPer
         return bins.Length;
     }
 
-    /// <summary>Callbacks that took at least <paramref name="percent"/> of their budget.</summary>
-    public ulong AtLeast(int percent) => bins.Skip(Math.Clamp(percent, 0, bins.Length - 1)).Aggregate(0UL, static (a, b) => a + b);
+    /// <summary>Callbacks that took at least <paramref name="percent" /> of their budget.</summary>
+    public ulong AtLeast(int percent) =>
+        bins.Skip(Math.Clamp(percent, 0, bins.Length - 1)).Aggregate(0UL, static (a, b) => a + b);
 }
 
-public sealed record AudioSessionStats(ulong Callbacks, ulong Overloads, int InputLatencyFrames, int OutputLatencyFrames, long CallbackExceptions);
+public sealed record AudioSessionStats(
+    ulong Callbacks,
+    ulong Overloads,
+    int InputLatencyFrames,
+    int OutputLatencyFrames,
+    long CallbackExceptions);
 
 /// <summary>
-/// A running device stream that calls an <see cref="IAudioProcessor"/> on the driver's real-time thread.
-/// Input channel 1 feeds both engine channels (a guitar DI is mono); engine L/R go to output channels 1 and 2.
+///     A running device stream that calls an <see cref="IAudioProcessor" /> on the driver's real-time thread.
+///     Input channel 1 feeds both engine channels (a guitar DI is mono); engine L/R go to output channels 1 and 2.
 /// </summary>
-public sealed unsafe class NativeAudioSession : IDisposable
-{
+public sealed unsafe class NativeAudioSession : IDisposable {
     private const int MaxFrames = 4096; // CTH_MAX_FRAMES
 
     private readonly IAudioProcessor _processor;
@@ -74,14 +77,27 @@ public sealed unsafe class NativeAudioSession : IDisposable
     /// <summary>Linear gain on the device output. 0 mutes it (the default for unattended tests).</summary>
     public float OutputGain { get; set; } = 1f;
 
-    /// <summary>Opens <paramref name="deviceUid"/> (null for the default output device) without starting it.</summary>
-    public static NativeAudioSession Open(IAudioProcessor processor, string? deviceUid, double sampleRate, int bufferFrames, int inputChannels)
-    {
+    /// <summary>Opens <paramref name="deviceUid" /> (null for the default output device) without starting it.</summary>
+    public static NativeAudioSession Open(
+        IAudioProcessor processor,
+        string? deviceUid,
+        double sampleRate,
+        int bufferFrames,
+        int inputChannels
+    ) {
         var stream = new NativeAudioSession(processor);
         stream._self = GCHandle.Alloc(stream);
-        var config = new StreamConfigNative { SampleRate = sampleRate, BufferFrames = bufferFrames, InputChannels = inputChannels };
-        if (NativeMethods.Open(deviceUid, ref config, &Callback, (void*)GCHandle.ToIntPtr(stream._self), out stream._stream) != 0)
-        {
+        var config = new StreamConfigNative {
+            SampleRate = sampleRate, BufferFrames = bufferFrames, InputChannels = inputChannels
+        };
+        if (NativeMethods.Open(
+                deviceUid,
+                ref config,
+                &Callback,
+                (void*)GCHandle.ToIntPtr(stream._self),
+                out stream._stream
+            )
+            != 0) {
             stream._self.Free();
             throw new InvalidOperationException($"Could not open audio device: {LastErrorMessage()}");
         }
@@ -93,36 +109,35 @@ public sealed unsafe class NativeAudioSession : IDisposable
         return stream;
     }
 
-    public void Start()
-    {
-        if (NativeMethods.Start(_stream) != 0)
-        {
+    public void Start() {
+        if (NativeMethods.Start(_stream) != 0) {
             throw new InvalidOperationException($"Could not start audio device: {LastErrorMessage()}");
         }
     }
 
-    public void Stop()
-    {
-        if (NativeMethods.Stop(_stream) != 0)
-        {
+    public void Stop() {
+        if (NativeMethods.Stop(_stream) != 0) {
             throw new InvalidOperationException($"Could not stop audio device: {LastErrorMessage()}");
         }
     }
 
-    public AudioSessionStats Stats()
-    {
+    public AudioSessionStats Stats() {
         NativeMethods.Stats(_stream, out var s);
-        return new AudioSessionStats(s.Callbacks, s.Overloads, s.InputLatencyFrames, s.OutputLatencyFrames, Interlocked.Read(ref _exceptions));
+        return new AudioSessionStats(
+            s.Callbacks,
+            s.Overloads,
+            s.InputLatencyFrames,
+            s.OutputLatencyFrames,
+            Interlocked.Read(ref _exceptions)
+        );
     }
 
     /// <summary>Snapshot of the native callback timing histogram.</summary>
-    public CallbackTiming Timing()
-    {
+    public CallbackTiming Timing() {
         TimingNative raw;
         NativeMethods.Timing(_stream, &raw);
         var bins = new ulong[TimingBins];
-        for (var i = 0; i < TimingBins; i++)
-        {
+        for (var i = 0; i < TimingBins; i++) {
             bins[i] = raw.Bins[i];
         }
 
@@ -132,26 +147,28 @@ public sealed unsafe class NativeAudioSession : IDisposable
     /// <summary>Clears the timing histogram (applied by the audio thread at its next callback).</summary>
     public void ResetTiming() => NativeMethods.ResetTiming(_stream);
 
-    public void Dispose()
-    {
-        if (_stream != 0)
-        {
+    public void Dispose() {
+        if (_stream != 0) {
             Close(_stream);
             _stream = 0;
         }
 
-        if (_self.IsAllocated)
-        {
+        if (_self.IsAllocated) {
             _self.Free();
         }
     }
 
     [UnmanagedCallersOnly]
-    private static void Callback(void* user, float** inputs, int inputChannels, float** outputs, int outputChannels, int frames)
-    {
+    private static void Callback(
+        void* user,
+        float** inputs,
+        int inputChannels,
+        float** outputs,
+        int outputChannels,
+        int frames
+    ) {
         var self = Unsafe.As<NativeAudioSession>(GCHandle.FromIntPtr((nint)user).Target!);
-        try
-        {
+        try {
             self.Process(inputs, inputChannels, outputs, outputChannels, frames);
         }
 #pragma warning disable CA1031 // An exception must never unwind into the driver's thread.
@@ -162,19 +179,17 @@ public sealed unsafe class NativeAudioSession : IDisposable
         }
     }
 
-    private void Process(float** inputs, int inputChannels, float** outputs, int outputChannels, int frames)
-    {
-        ReadOnlySpan<float> input = inputChannels > 0 ? new ReadOnlySpan<float>(inputs[0], frames) : _silence.AsSpan(0, frames);
+    private void Process(float** inputs, int inputChannels, float** outputs, int outputChannels, int frames) {
+        ReadOnlySpan<float> input =
+            inputChannels > 0 ? new ReadOnlySpan<float>(inputs[0], frames) : _silence.AsSpan(0, frames);
         var left = outputChannels > 0 ? new Span<float>(outputs[0], frames) : _scratchLeft.AsSpan(0, frames);
         var right = outputChannels > 1 ? new Span<float>(outputs[1], frames) : _scratchRight.AsSpan(0, frames);
 
         _processor.Process(new AudioIO(input, input, left, right));
 
         var gain = OutputGain;
-        if (gain != 1f)
-        {
-            for (var i = 0; i < frames; i++)
-            {
+        if (gain != 1f) {
+            for (var i = 0; i < frames; i++) {
                 left[i] *= gain;
                 right[i] *= gain;
             }

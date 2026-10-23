@@ -1,7 +1,6 @@
 namespace Cathode.Dsp;
 
-public static class Decibels
-{
+public static class Decibels {
     /// <summary>Levels at or below this are treated as silence (gain 0).</summary>
     public const float SilenceDb = -80f;
 

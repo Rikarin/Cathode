@@ -1,15 +1,14 @@
 namespace Cathode.Dsp.Parameters;
 
 /// <summary>
-/// Parameter targets plus per-parameter smoothing state for one block instance.
+///     Parameter targets plus per-parameter smoothing state for one block instance.
 /// </summary>
 /// <remarks>
-/// Targets are written with <see cref="SetTarget"/> from any thread: an aligned 32-bit write is atomic,
-/// so continuous knob changes need no queue. The audio thread calls <see cref="BeginBlock"/> once per
-/// callback to pick up new targets and then advances the smoothers.
+///     Targets are written with <see cref="SetTarget" /> from any thread: an aligned 32-bit write is atomic,
+///     so continuous knob changes need no queue. The audio thread calls <see cref="BeginBlock" /> once per
+///     callback to pick up new targets and then advances the smoothers.
 /// </remarks>
-public sealed class ParamBank
-{
+public sealed class ParamBank {
     private readonly IReadOnlyList<ParamDescriptor> _descriptors;
     private readonly float[] _target;
     private readonly float[] _seenTarget;
@@ -18,8 +17,7 @@ public sealed class ParamBank
     private readonly int[] _remaining;
     private readonly int[] _rampSamples;
 
-    public ParamBank(IReadOnlyList<ParamDescriptor> descriptors)
-    {
+    public ParamBank(IReadOnlyList<ParamDescriptor> descriptors) {
         _descriptors = descriptors;
         var count = descriptors.Count;
         _target = new float[count];
@@ -28,8 +26,7 @@ public sealed class ParamBank
         _step = new float[count];
         _remaining = new int[count];
         _rampSamples = new int[count];
-        for (var i = 0; i < count; i++)
-        {
+        for (var i = 0; i < count; i++) {
             _target[i] = descriptors[i].Default;
         }
 
@@ -41,7 +38,8 @@ public sealed class ParamBank
     public ParamDescriptor Descriptor(int index) => _descriptors[index];
 
     /// <summary>Control side, any thread. The value is sanitised against the descriptor.</summary>
-    public void SetTarget(int index, float value) => Volatile.Write(ref _target[index], _descriptors[index].Sanitize(value));
+    public void SetTarget(int index, float value) =>
+        Volatile.Write(ref _target[index], _descriptors[index].Sanitize(value));
 
     public float GetTarget(int index) => Volatile.Read(ref _target[index]);
 
@@ -50,10 +48,8 @@ public sealed class ParamBank
 
     public bool IsRamping(int index) => _remaining[index] > 0;
 
-    public void Prepare(double sampleRate)
-    {
-        for (var i = 0; i < _descriptors.Count; i++)
-        {
+    public void Prepare(double sampleRate) {
+        for (var i = 0; i < _descriptors.Count; i++) {
             var d = _descriptors[i];
             _rampSamples[i] = d.Smoothing == ParamSmoothing.Step
                 ? 0
@@ -62,10 +58,8 @@ public sealed class ParamBank
     }
 
     /// <summary>Jumps every smoother to its target (used on reset and preset load).</summary>
-    public void SnapToTargets()
-    {
-        for (var i = 0; i < _target.Length; i++)
-        {
+    public void SnapToTargets() {
+        for (var i = 0; i < _target.Length; i++) {
             var t = Volatile.Read(ref _target[i]);
             _seenTarget[i] = t;
             _current[i] = t;
@@ -74,47 +68,36 @@ public sealed class ParamBank
     }
 
     /// <summary>Audio thread: start ramps toward any targets changed since the last block.</summary>
-    public void BeginBlock()
-    {
-        for (var i = 0; i < _target.Length; i++)
-        {
+    public void BeginBlock() {
+        for (var i = 0; i < _target.Length; i++) {
             var t = Volatile.Read(ref _target[i]);
-            if (t == _seenTarget[i])
-            {
+            if (t == _seenTarget[i]) {
                 continue;
             }
 
             _seenTarget[i] = t;
             var ramp = _rampSamples[i];
-            if (ramp == 0)
-            {
+            if (ramp == 0) {
                 _current[i] = t;
                 _remaining[i] = 0;
-            }
-            else
-            {
+            } else {
                 _remaining[i] = ramp;
                 _step[i] = (t - _current[i]) / ramp;
             }
         }
     }
 
-    /// <summary>Audio thread: advances the smoother by <paramref name="frames"/> and returns the new value.</summary>
-    public float Advance(int index, int frames)
-    {
+    /// <summary>Audio thread: advances the smoother by <paramref name="frames" /> and returns the new value.</summary>
+    public float Advance(int index, int frames) {
         var remaining = _remaining[index];
-        if (remaining == 0)
-        {
+        if (remaining == 0) {
             return _current[index];
         }
 
-        if (frames >= remaining)
-        {
+        if (frames >= remaining) {
             _remaining[index] = 0;
             _current[index] = _seenTarget[index];
-        }
-        else
-        {
+        } else {
             _remaining[index] = remaining - frames;
             _current[index] += _step[index] * frames;
         }

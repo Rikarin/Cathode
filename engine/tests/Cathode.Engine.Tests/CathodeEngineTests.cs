@@ -6,25 +6,28 @@ using Cathode.Testing;
 
 namespace Cathode.Engine.Tests;
 
-public class CathodeEngineTests
-{
+public class CathodeEngineTests {
     private static readonly ProcessSpec Spec = new(48_000, 64);
     private static readonly GraphCompiler Compiler = new(BlockRegistry.CreateDefault());
 
-    private static GraphDefinition VolumeGraph(float levelDb) => new()
-    {
-        Nodes =
-        [
-            new() { Id = "in", Type = NodeTypes.Input, Row = 0, Column = 0 },
-            new() { Id = "vol", Type = "volpan", Row = 0, Column = 1, Parameters = { ["level"] = levelDb } },
-            new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 },
-        ],
-        Cables = [new() { From = "in", To = "vol" }, new() { From = "vol", To = "out" }],
-    };
+    private static GraphDefinition VolumeGraph(float levelDb) =>
+        new() {
+            Nodes = [
+                new() { Id = "in", Type = NodeTypes.Input, Row = 0, Column = 0 },
+                new() {
+                    Id = "vol",
+                    Type = "volpan",
+                    Row = 0,
+                    Column = 1,
+                    Parameters = { ["level"] = levelDb }
+                },
+                new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 },
+            ],
+            Cables = [new() { From = "in", To = "vol" }, new() { From = "vol", To = "out" }],
+        };
 
     [Fact]
-    public void Outputs_silence_until_a_graph_is_published()
-    {
+    public void Outputs_silence_until_a_graph_is_published() {
         var engine = new CathodeEngine(Spec);
 
         var (left, _) = OfflineRenderer.Render(engine, Signals.Step(128), Signals.Step(128), 64);
@@ -33,8 +36,7 @@ public class CathodeEngineTests
     }
 
     [Fact]
-    public void Parameter_targets_apply_without_the_command_queue()
-    {
+    public void Parameter_targets_apply_without_the_command_queue() {
         var engine = new CathodeEngine(Spec);
         var graph = Compiler.Compile(VolumeGraph(0), Spec, generation: 1);
         engine.Publish(graph);
@@ -47,8 +49,7 @@ public class CathodeEngineTests
     }
 
     [Fact]
-    public void Bypass_crossfades_to_dry_without_clicks()
-    {
+    public void Bypass_crossfades_to_dry_without_clicks() {
         var engine = new CathodeEngine(Spec);
         var graph = Compiler.Compile(VolumeGraph(Decibels.SilenceDb), Spec, generation: 1);
         engine.Publish(graph);
@@ -66,8 +67,7 @@ public class CathodeEngineTests
     }
 
     [Fact]
-    public void Commands_for_a_replaced_graph_are_ignored()
-    {
+    public void Commands_for_a_replaced_graph_are_ignored() {
         var engine = new CathodeEngine(Spec);
         var first = Compiler.Compile(VolumeGraph(0), Spec, generation: 1);
         var second = Compiler.Compile(VolumeGraph(Decibels.SilenceDb), Spec, generation: 2);
@@ -84,8 +84,7 @@ public class CathodeEngineTests
     }
 
     [Fact]
-    public void Swapped_out_graphs_are_handed_back_to_the_control_side()
-    {
+    public void Swapped_out_graphs_are_handed_back_to_the_control_side() {
         var engine = new CathodeEngine(Spec);
         var first = Compiler.Compile(VolumeGraph(0), Spec, generation: 1);
         engine.Publish(first);
@@ -100,8 +99,7 @@ public class CathodeEngineTests
     }
 
     [Fact]
-    public void Callbacks_larger_than_the_max_block_are_split()
-    {
+    public void Callbacks_larger_than_the_max_block_are_split() {
         var engine = new CathodeEngine(Spec);
         engine.Publish(Compiler.Compile(VolumeGraph(0), Spec, generation: 1));
         var input = Signals.Noise(1_000, seed: 2);
@@ -113,8 +111,7 @@ public class CathodeEngineTests
     }
 
     [Fact]
-    public void Steady_state_processing_does_not_allocate()
-    {
+    public void Steady_state_processing_does_not_allocate() {
         var engine = new CathodeEngine(Spec);
         var graph = Compiler.Compile(GraphTemplates.Basic(), Spec, generation: 1);
         engine.Publish(graph);
@@ -124,20 +121,18 @@ public class CathodeEngineTests
         var slot = graph.SlotOf("volpan1");
         var bypass = false;
 
-        var allocated = AllocationProbe.Measure(() =>
-        {
-            for (var i = 0; i < 5_000; i++)
-            {
-                if (i % 500 == 0)
-                {
-                    bypass = !bypass;
-                    engine.Post(EngineCommand.SetBypass(1, slot, bypass));
-                    graph.SetParameter(slot, VolumePanBlock.Level, bypass ? -12 : 0);
-                }
+        var allocated = AllocationProbe.Measure(() => {
+                for (var i = 0; i < 5_000; i++) {
+                    if (i % 500 == 0) {
+                        bypass = !bypass;
+                        engine.Post(EngineCommand.SetBypass(1, slot, bypass));
+                        graph.SetParameter(slot, VolumePanBlock.Level, bypass ? -12 : 0);
+                    }
 
-                engine.Process(new AudioIO(input, input, outLeft, outRight));
+                    engine.Process(new AudioIO(input, input, outLeft, outRight));
+                }
             }
-        });
+        );
 
         Assert.Equal(0, allocated);
         Assert.Equal(10_000, engine.Stats.Count);

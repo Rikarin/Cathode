@@ -3,8 +3,7 @@ using System.Runtime.InteropServices;
 namespace Cathode.Audio.Native;
 
 /// <summary>P/Invoke surface of <c>cth_audio</c> (engine/native/cth_audio/include/cth_audio.h).</summary>
-internal static unsafe partial class NativeMethods
-{
+internal static unsafe partial class NativeMethods {
     private const string Library = "cth_audio";
 
     [LibraryImport(Library, EntryPoint = "cth_audio_device_count")]
@@ -19,7 +18,8 @@ internal static unsafe partial class NativeMethods
         ref StreamConfigNative config,
         delegate* unmanaged<void*, float**, int, float**, int, int, void> process,
         void* user,
-        out nint stream);
+        out nint stream
+    );
 
     [LibraryImport(Library, EntryPoint = "cth_audio_start")]
     internal static partial int Start(nint stream);
@@ -51,8 +51,7 @@ internal static unsafe partial class NativeMethods
     internal static string LastErrorMessage() => Marshal.PtrToStringUTF8((nint)LastError()) ?? "unknown error";
 
     [StructLayout(LayoutKind.Sequential)]
-    internal struct StreamConfigNative
-    {
+    internal struct StreamConfigNative {
         public double SampleRate;
         public int BufferFrames;
         public int InputChannels;
@@ -60,8 +59,7 @@ internal static unsafe partial class NativeMethods
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal struct StreamStatsNative
-    {
+    internal struct StreamStatsNative {
         public ulong Callbacks;
         public ulong Overloads;
         public int InputLatencyFrames;
@@ -71,16 +69,14 @@ internal static unsafe partial class NativeMethods
     internal const int TimingBins = 201; // CTH_TIMING_BINS
 
     [StructLayout(LayoutKind.Sequential)]
-    internal struct TimingNative
-    {
+    internal struct TimingNative {
         public fixed ulong Bins[TimingBins];
         public ulong OverBudget;
         public double MaxPercent;
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal struct DeviceInfoNative
-    {
+    internal struct DeviceInfoNative {
         public fixed byte Uid[256];
         public fixed byte Name[256];
         public int InputChannels;

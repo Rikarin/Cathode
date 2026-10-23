@@ -5,11 +5,9 @@ using Cathode.Testing;
 
 namespace Cathode.Engine.Tests;
 
-public class SampleRingTests
-{
+public class SampleRingTests {
     [Fact]
-    public void Delivers_samples_in_order_and_drops_when_full()
-    {
+    public void Delivers_samples_in_order_and_drops_when_full() {
         var ring = new SampleRing(8);
         ring.Write([1, 2, 3, 4, 5]);
         ring.Write([6, 7, 8, 9, 10]); // only 6..8 fit
@@ -23,11 +21,12 @@ public class SampleRingTests
     }
 
     [Fact]
-    public void Engine_feeds_the_input_tap_only_when_enabled()
-    {
+    public void Engine_feeds_the_input_tap_only_when_enabled() {
         var spec = new ProcessSpec(48_000, 64);
         var engine = new CathodeEngine(spec);
-        engine.Publish(new GraphCompiler(BlockRegistry.CreateDefault()).Compile(GraphTemplates.Basic(), spec, generation: 1));
+        engine.Publish(
+            new GraphCompiler(BlockRegistry.CreateDefault()).Compile(GraphTemplates.Basic(), spec, generation: 1)
+        );
         var input = Signals.Noise(256, seed: 1);
         var destination = new float[1_024];
 

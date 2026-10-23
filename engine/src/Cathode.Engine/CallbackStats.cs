@@ -3,11 +3,10 @@ using System.Diagnostics;
 namespace Cathode.Engine;
 
 /// <summary>
-/// Allocation-free timing statistics for audio callbacks: a histogram of callback duration as a percentage of
-/// the real-time budget (1 % bins, last bin catches everything at or above 200 %).
+///     Allocation-free timing statistics for audio callbacks: a histogram of callback duration as a percentage of
+///     the real-time budget (1 % bins, last bin catches everything at or above 200 %).
 /// </summary>
-public sealed class CallbackStats
-{
+public sealed class CallbackStats {
     private const int Bins = 201;
 
     private readonly long[] _histogram = new long[Bins];
@@ -25,19 +24,16 @@ public sealed class CallbackStats
 
     public double LastPercent => _lastPercent;
 
-    /// <summary>Audio thread: record one callback that started at <paramref name="startTimestamp"/>.</summary>
-    public void Record(long startTimestamp, int frames, double sampleRate)
-    {
+    /// <summary>Audio thread: record one callback that started at <paramref name="startTimestamp" />.</summary>
+    public void Record(long startTimestamp, int frames, double sampleRate) {
         var elapsed = Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds;
         var percent = elapsed / (frames / sampleRate) * 100.0;
         _lastPercent = percent;
-        if (percent > _maxPercent)
-        {
+        if (percent > _maxPercent) {
             _maxPercent = percent;
         }
 
-        if (percent >= 100.0)
-        {
+        if (percent >= 100.0) {
             Interlocked.Increment(ref _overruns);
         }
 
@@ -45,22 +41,18 @@ public sealed class CallbackStats
         Interlocked.Increment(ref _count);
     }
 
-    /// <summary>Budget percentage below which <paramref name="quantile"/> of callbacks fall (bin resolution: 1 %).</summary>
-    public double Percentile(double quantile)
-    {
+    /// <summary>Budget percentage below which <paramref name="quantile" /> of callbacks fall (bin resolution: 1 %).</summary>
+    public double Percentile(double quantile) {
         var total = Count;
-        if (total == 0)
-        {
+        if (total == 0) {
             return 0;
         }
 
         var threshold = (long)Math.Ceiling(quantile * total);
         long running = 0;
-        for (var i = 0; i < Bins; i++)
-        {
+        for (var i = 0; i < Bins; i++) {
             running += _histogram[i];
-            if (running >= threshold)
-            {
+            if (running >= threshold) {
                 return i + 1;
             }
         }
@@ -68,8 +60,7 @@ public sealed class CallbackStats
         return Bins;
     }
 
-    public void Reset()
-    {
+    public void Reset() {
         Array.Clear(_histogram);
         _count = 0;
         _overruns = 0;

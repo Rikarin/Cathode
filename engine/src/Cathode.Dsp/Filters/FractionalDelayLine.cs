@@ -1,37 +1,32 @@
 namespace Cathode.Dsp.Filters;
 
 /// <summary>
-/// Circular delay line with cubic Hermite fractional reads. <see cref="Read"/> returns the signal
-/// <c>delay</c> samples before the next write, so a delay of 1 is the most recently written sample and
-/// integer delays are exact. Delays below 3 samples are clamped (the interpolator looks one sample ahead).
+///     Circular delay line with cubic Hermite fractional reads. <see cref="Read" /> returns the signal
+///     <c>delay</c> samples before the next write, so a delay of 1 is the most recently written sample and
+///     integer delays are exact. Delays below 3 samples are clamped (the interpolator looks one sample ahead).
 /// </summary>
-public sealed class FractionalDelayLine
-{
+public sealed class FractionalDelayLine {
     public const float MinDelay = 3f;
 
     private float[] _buffer = [];
     private int _write;
 
-    /// <summary>Control thread: room for delays up to <paramref name="capacity"/> - 3 samples.</summary>
+    /// <summary>Control thread: room for delays up to <paramref name="capacity" /> - 3 samples.</summary>
     public void Allocate(int capacity) => _buffer = new float[capacity];
 
-    public void Reset()
-    {
+    public void Reset() {
         Array.Clear(_buffer);
         _write = 0;
     }
 
-    public void Write(float value)
-    {
+    public void Write(float value) {
         _buffer[_write] = MathF.Abs(value) < 1e-20f ? 0f : value;
-        if (++_write == _buffer.Length)
-        {
+        if (++_write == _buffer.Length) {
             _write = 0;
         }
     }
 
-    public float Read(float delay)
-    {
+    public float Read(float delay) {
         var position = _write - Math.Max(MinDelay, delay);
         var index = (int)MathF.Floor(position);
         var frac = position - index;
@@ -45,8 +40,7 @@ public sealed class FractionalDelayLine
         return ((c3 * frac + c2) * frac + c1) * frac + y1;
     }
 
-    private float At(int index)
-    {
+    private float At(int index) {
         index %= _buffer.Length;
         return _buffer[index < 0 ? index + _buffer.Length : index];
     }

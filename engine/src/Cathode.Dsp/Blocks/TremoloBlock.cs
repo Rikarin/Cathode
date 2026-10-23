@@ -4,11 +4,10 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-/// Tremolo (amplitude modulation) or auto-panner. The panner places the mono sum with a constant-power law, scaled so
-/// the centre position is unity on each side.
+///     Tremolo (amplitude modulation) or auto-panner. The panner places the mono sum with a constant-power law, scaled so
+///     the centre position is unity on each side.
 /// </summary>
-public sealed class TremoloBlock : DspBlock
-{
+public sealed class TremoloBlock : DspBlock {
     public const int Type = 0;
     public const int Rate = 1;
     public const int Depth = 2;
@@ -26,43 +25,36 @@ public sealed class TremoloBlock : DspBlock
             ParamDescriptor.Choice("shape", "Shape", ["Sine", "Triangle", "Square"]),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
         ],
-        maxInstances: 2);
+        maxInstances: 2
+    );
 
     private Lfo _lfo;
     private float _outputGain = 1f;
 
     public TremoloBlock()
-        : base(Info)
-    {
-    }
+        : base(Info) { }
 
-    protected override void OnReset()
-    {
+    protected override void OnReset() {
         _lfo.Reset();
         _outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context)
-    {
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var rate = Spec.SampleRate;
         var panner = Params.Current(Type) >= 0.5f;
         var shape = (LfoShape)(int)Params.Current(Shape);
         var lfoRate = Params.Advance(Rate, io.Length);
         var depth = Params.Advance(Depth, io.Length) / 100f;
 
-        for (var i = 0; i < io.Length; i++)
-        {
+        for (var i = 0; i < io.Length; i++) {
             var lfo = _lfo.Value(shape);
             _lfo.Advance(lfoRate, rate);
-            if (panner)
-            {
+            if (panner) {
                 var angle = (depth * lfo + 1) * MathF.PI / 4; // 0 = hard left, pi/2 = hard right
                 var mono = 0.5f * (io.Left[i] + io.Right[i]);
                 io.Left[i] = mono * MathF.Sqrt(2) * MathF.Cos(angle);
                 io.Right[i] = mono * MathF.Sqrt(2) * MathF.Sin(angle);
-            }
-            else
-            {
+            } else {
                 var gain = 1 - depth * 0.5f * (1 - lfo);
                 io.Left[i] *= gain;
                 io.Right[i] *= gain;

@@ -1,10 +1,9 @@
 namespace Cathode.Dsp;
 
-/// <summary>Fixed processing configuration handed to a block in <see cref="IDspBlock.Prepare"/>.</summary>
+/// <summary>Fixed processing configuration handed to a block in <see cref="IDspBlock.Prepare" />.</summary>
 /// <param name="SampleRate">Sample rate in Hz. The engine runs at 48 kHz internally by default.</param>
 /// <param name="MaxBlockSize">Largest number of frames a single <c>Process</c> call will receive.</param>
-public readonly record struct ProcessSpec(double SampleRate, int MaxBlockSize)
-{
+public readonly record struct ProcessSpec(double SampleRate, int MaxBlockSize) {
     public static ProcessSpec Default { get; } = new(48_000, 64);
 }
 

@@ -4,13 +4,12 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-/// Delay with three voicings sharing one core: Digital (clean), Analog (dark BBD-style feedback with soft
-/// saturation) and Tape (gentler filtering, saturation, wow and flutter). Up to 4 s, tempo sync, feedback-path low
-/// and high cut, modulation, and the Axe-Fx mix law (50 % = -6 dB each). Reads use cubic Hermite interpolation, so
-/// integer delays are exact and time changes glide instead of clicking.
+///     Delay with three voicings sharing one core: Digital (clean), Analog (dark BBD-style feedback with soft
+///     saturation) and Tape (gentler filtering, saturation, wow and flutter). Up to 4 s, tempo sync, feedback-path low
+///     and high cut, modulation, and the Axe-Fx mix law (50 % = -6 dB each). Reads use cubic Hermite interpolation, so
+///     integer delays are exact and time changes glide instead of clicking.
 /// </summary>
-public sealed class DelayBlock : DspBlock
-{
+public sealed class DelayBlock : DspBlock {
     public const int Type = 0;
     public const int Time = 1;
     public const int Tempo = 2;
@@ -36,7 +35,11 @@ public sealed class DelayBlock : DspBlock
         [
             ParamDescriptor.Choice("type", "Type", ["Digital", "Analog", "Tape"]),
             new("time", "Time", ParamKind.Float, 1f, MaxTimeMs, 375f, "ms", ParamTaper.Log, ParamSmoothing.Linear, 60f),
-            ParamDescriptor.Choice("tempo", "Tempo", ["Off", "1/1", "1/2", "1/4", "1/4.", "1/4T", "1/8", "1/8.", "1/8T", "1/16"]),
+            ParamDescriptor.Choice(
+                "tempo",
+                "Tempo",
+                ["Off", "1/1", "1/2", "1/4", "1/4.", "1/4T", "1/8", "1/8.", "1/8T", "1/16"]
+            ),
             ParamDescriptor.Float("feedback", "Feedback", 0f, 100f, 30f, "%"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 25f, "%"),
             ParamDescriptor.Float("lowcut", "Low Cut", LowCutOff, 2_000f, LowCutOff, "Hz", ParamTaper.Log),
@@ -45,7 +48,8 @@ public sealed class DelayBlock : DspBlock
             ParamDescriptor.Float("moddepth", "Mod Depth", 0f, 10f, 0f, "ms"),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
         ],
-        maxInstances: 4);
+        maxInstances: 4
+    );
 
     private readonly Line _left = new();
     private readonly Line _right = new();
@@ -57,20 +61,16 @@ public sealed class DelayBlock : DspBlock
     private float _outputGain = 1f;
 
     public DelayBlock()
-        : base(Info)
-    {
-    }
+        : base(Info) { }
 
-    protected override void OnPrepare(in ProcessSpec spec)
-    {
+    protected override void OnPrepare(in ProcessSpec spec) {
         // Room for the longest time plus modulation and tape wow.
         var capacity = (int)(spec.SampleRate * (MaxTimeMs + 20) / 1000) + 8;
         _left.Allocate(capacity);
         _right.Allocate(capacity);
     }
 
-    protected override void OnReset()
-    {
+    protected override void OnReset() {
         _left.Reset();
         _right.Reset();
         _lfoPhase = 0;
@@ -81,8 +81,7 @@ public sealed class DelayBlock : DspBlock
         _outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context)
-    {
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var sampleRate = (float)Spec.SampleRate;
         var type = (int)Params.Current(Type);
         var feedback = Params.Advance(Feedback, io.Length) / 100f;
@@ -93,11 +92,20 @@ public sealed class DelayBlock : DspBlock
 
         // Feedback-path filters. Analog and Tape add their own fixed darkening on top of the user's high cut.
         var lowCut = Params.Advance(LowCut, io.Length);
-        var highCut = Math.Min(Params.Advance(HighCut, io.Length), type switch { 1 => 2_800f, 2 => 6_500f, _ => HighCutOff });
+        var highCut = Math.Min(
+            Params.Advance(HighCut, io.Length),
+            type switch {
+                1 => 2_800f,
+                2 => 6_500f,
+                _ => HighCutOff
+            }
+        );
         var useLowCut = lowCut > LowCutOff;
         var useHighCut = highCut < HighCutOff;
-        var lowCutCoefficients = useLowCut ? SvfCoefficients.Design(BiquadType.HighPass, sampleRate, lowCut, 0.7071) : default;
-        var highCutCoefficients = useHighCut ? SvfCoefficients.Design(BiquadType.LowPass, sampleRate, highCut, 0.7071) : default;
+        var lowCutCoefficients =
+            useLowCut ? SvfCoefficients.Design(BiquadType.HighPass, sampleRate, lowCut, 0.7071) : default;
+        var highCutCoefficients =
+            useHighCut ? SvfCoefficients.Design(BiquadType.LowPass, sampleRate, highCut, 0.7071) : default;
         var saturate = type != 0;
 
         // Tape transport: slow wow plus faster flutter, a few tenths of a millisecond deep.
@@ -110,8 +118,7 @@ public sealed class DelayBlock : DspBlock
         var mixStep = (mix - _mix) / io.Length;
         var delay = _delaySamples;
         var currentMix = _mix;
-        for (var i = 0; i < io.Length; i++)
-        {
+        for (var i = 0; i < io.Length; i++) {
             delay += delayStep;
             currentMix += mixStep;
             var modulation = modDepth * (float)Math.Sin(_lfoPhase)
@@ -120,10 +127,33 @@ public sealed class DelayBlock : DspBlock
             _lfoPhase = Wrap(_lfoPhase + lfoStep);
             _wowPhase = Wrap(_wowPhase + wowStep);
             _flutterPhase = Wrap(_flutterPhase + flutterStep);
-            var d = Math.Max(3f, delay + modulation + modDepth + wowDepth + flutterDepth); // offset keeps modulation positive
+            var d = Math.Max(
+                3f,
+                delay + modulation + modDepth + wowDepth + flutterDepth
+            ); // offset keeps modulation positive
 
-            io.Left[i] = _left.Tick(io.Left[i], d, feedback, currentMix, useLowCut, lowCutCoefficients, useHighCut, highCutCoefficients, saturate);
-            io.Right[i] = _right.Tick(io.Right[i], d, feedback, currentMix, useLowCut, lowCutCoefficients, useHighCut, highCutCoefficients, saturate);
+            io.Left[i] = _left.Tick(
+                io.Left[i],
+                d,
+                feedback,
+                currentMix,
+                useLowCut,
+                lowCutCoefficients,
+                useHighCut,
+                highCutCoefficients,
+                saturate
+            );
+            io.Right[i] = _right.Tick(
+                io.Right[i],
+                d,
+                feedback,
+                currentMix,
+                useLowCut,
+                lowCutCoefficients,
+                useHighCut,
+                highCutCoefficients,
+                saturate
+            );
         }
 
         _delaySamples = targetDelay;
@@ -137,8 +167,7 @@ public sealed class DelayBlock : DspBlock
         _outputGain = outputGain;
     }
 
-    private float TargetDelaySamples(float timeMs, double tempo)
-    {
+    private float TargetDelaySamples(float timeMs, double tempo) {
         var division = Divisions[(int)Params.Current(Tempo)];
         var ms = division > 0 && tempo > 0 ? Math.Min(MaxTimeMs, (float)(60_000.0 / tempo * division)) : timeMs;
         return (float)(ms * 0.001 * Spec.SampleRate);
@@ -146,16 +175,14 @@ public sealed class DelayBlock : DspBlock
 
     private static double Wrap(double phase) => phase >= 2 * Math.PI ? phase - 2 * Math.PI : phase;
 
-    private sealed class Line
-    {
+    private sealed class Line {
         private readonly FractionalDelayLine _delay = new();
         private SvfState _lowCut;
         private SvfState _highCut;
 
         public void Allocate(int capacity) => _delay.Allocate(capacity);
 
-        public void Reset()
-        {
+        public void Reset() {
             _delay.Reset();
             _lowCut.Reset();
             _highCut.Reset();
@@ -170,24 +197,21 @@ public sealed class DelayBlock : DspBlock
             in SvfCoefficients lowCut,
             bool useHighCut,
             in SvfCoefficients highCut,
-            bool saturate)
-        {
+            bool saturate
+        ) {
             var wet = _delay.Read(delay);
 
             var fed = wet;
-            if (useLowCut)
-            {
+            if (useLowCut) {
                 fed = (float)_lowCut.Tick(lowCut, fed);
             }
 
-            if (useHighCut)
-            {
+            if (useHighCut) {
                 fed = (float)_highCut.Tick(highCut, fed);
             }
 
             var write = input + fed * feedback;
-            if (saturate)
-            {
+            if (saturate) {
                 write = MathF.Tanh(write * 0.8f) / 0.8f; // BBD/tape headroom: repeats compress instead of building up
             }
 
@@ -195,8 +219,7 @@ public sealed class DelayBlock : DspBlock
             return input * (1f - mix) + wet * mix;
         }
 
-        public void FlushDenormals()
-        {
+        public void FlushDenormals() {
             _lowCut.FlushDenormals();
             _highCut.FlushDenormals();
         }

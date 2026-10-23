@@ -1,7 +1,6 @@
 namespace Cathode.Engine.Graph;
 
-public enum GraphOpKind
-{
+public enum GraphOpKind {
     /// <summary>Copy the engine input into <c>Buffer</c>.</summary>
     ReadInput,
 

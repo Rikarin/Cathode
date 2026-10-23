@@ -2,17 +2,14 @@ using Cathode.Dsp.Parameters;
 
 namespace Cathode.Dsp.Tests;
 
-public class ParamBankTests
-{
-    private static readonly ParamDescriptor[] Descriptors =
-    [
+public class ParamBankTests {
+    private static readonly ParamDescriptor[] Descriptors = [
         ParamDescriptor.Float("gain", "Gain", -10, 10, 0, smoothingMs: 1),
         ParamDescriptor.Choice("mode", "Mode", ["A", "B", "C"]),
     ];
 
     [Fact]
-    public void Targets_are_clamped_rounded_and_sanitised()
-    {
+    public void Targets_are_clamped_rounded_and_sanitised() {
         var bank = new ParamBank(Descriptors);
 
         bank.SetTarget(0, 99);
@@ -24,8 +21,7 @@ public class ParamBankTests
     }
 
     [Fact]
-    public void Linear_ramp_reaches_target_after_exactly_the_smoothing_time()
-    {
+    public void Linear_ramp_reaches_target_after_exactly_the_smoothing_time() {
         var bank = new ParamBank(Descriptors);
         bank.Prepare(sampleRate: 48_000); // 1 ms = 48 samples
         bank.SetTarget(0, 4.8f);
@@ -38,8 +34,7 @@ public class ParamBankTests
     }
 
     [Fact]
-    public void Step_parameters_change_immediately()
-    {
+    public void Step_parameters_change_immediately() {
         var bank = new ParamBank(Descriptors);
         bank.Prepare(48_000);
         bank.SetTarget(1, 2);
@@ -50,8 +45,7 @@ public class ParamBankTests
     }
 
     [Fact]
-    public void Retargeting_mid_ramp_starts_from_the_current_value()
-    {
+    public void Retargeting_mid_ramp_starts_from_the_current_value() {
         var bank = new ParamBank(Descriptors);
         bank.Prepare(48_000);
         bank.SetTarget(0, 4.8f);

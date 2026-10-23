@@ -2,18 +2,16 @@ using Cathode.Audio.Native;
 
 namespace Cathode.Engine.Tests;
 
-public class NativeAudioTests
-{
+public class NativeAudioTests {
     [Fact]
-    public void Flush_to_zero_turns_subnormal_results_into_zero()
-    {
+    public void Flush_to_zero_turns_subnormal_results_into_zero() {
         Assert.SkipUnless(NativeAudio.IsLibraryPresent, "native shim not built (run native/build.sh)");
         var result = float.NaN;
-        var thread = new Thread(() =>
-        {
-            NativeAudio.FlushDenormalsOnCurrentThread();
-            result = Product(1e-38f, 1e-3f);
-        });
+        var thread = new Thread(() => {
+                NativeAudio.FlushDenormalsOnCurrentThread();
+                result = Product(1e-38f, 1e-3f);
+            }
+        );
         thread.Start();
         thread.Join();
 

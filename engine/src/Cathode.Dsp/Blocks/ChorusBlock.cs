@@ -4,10 +4,11 @@ using Cathode.Dsp.Parameters;
 
 namespace Cathode.Dsp.Blocks;
 
-/// <summary>Chorus: a short delay swept by an LFO, mixed with the dry signal. The right channel's LFO is offset by
-/// the spread angle for width.</summary>
-public sealed class ChorusBlock : DspBlock
-{
+/// <summary>
+///     Chorus: a short delay swept by an LFO, mixed with the dry signal. The right channel's LFO is offset by
+///     the spread angle for width.
+/// </summary>
+public sealed class ChorusBlock : DspBlock {
     public const int Rate = 0;
     public const int Depth = 1;
     public const int Delay = 2;
@@ -30,7 +31,8 @@ public sealed class ChorusBlock : DspBlock
             ParamDescriptor.Float("spread", "Spread", 0f, 180f, 90f, "°"),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
         ],
-        maxInstances: 2);
+        maxInstances: 2
+    );
 
     private readonly FractionalDelayLine _left = new();
     private readonly FractionalDelayLine _right = new();
@@ -39,19 +41,15 @@ public sealed class ChorusBlock : DspBlock
     private float _outputGain = 1f;
 
     public ChorusBlock()
-        : base(Info)
-    {
-    }
+        : base(Info) { }
 
-    protected override void OnPrepare(in ProcessSpec spec)
-    {
+    protected override void OnPrepare(in ProcessSpec spec) {
         var capacity = (int)((MaxDelayMs + MaxDepthMs) * 0.001 * spec.SampleRate) + 8;
         _left.Allocate(capacity);
         _right.Allocate(capacity);
     }
 
-    protected override void OnReset()
-    {
+    protected override void OnReset() {
         _left.Reset();
         _right.Reset();
         _lfo.Reset();
@@ -59,8 +57,7 @@ public sealed class ChorusBlock : DspBlock
         _outputGain = Decibels.ToGain(Params.Current(Level));
     }
 
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context)
-    {
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var rate = Spec.SampleRate;
         var lfoRate = Params.Advance(Rate, io.Length);
         var depth = Params.Advance(Depth, io.Length) / 100f * MaxDepthMs * 0.001f * (float)rate;
@@ -70,8 +67,7 @@ public sealed class ChorusBlock : DspBlock
         var mixStep = (mix - _mix) / io.Length;
         var currentMix = _mix;
 
-        for (var i = 0; i < io.Length; i++)
-        {
+        for (var i = 0; i < io.Length; i++) {
             var dl = baseDelay + depth * 0.5f * (1 + _lfo.Value(LfoShape.Sine));
             var dr = baseDelay + depth * 0.5f * (1 + _lfo.Value(LfoShape.Sine, spread));
             _lfo.Advance(lfoRate, rate);

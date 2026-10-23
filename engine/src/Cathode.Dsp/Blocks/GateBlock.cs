@@ -3,15 +3,14 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-/// Noise gate as a downward expander. A peak detector across both channels (so the image never shifts) drives a
-/// gain computer: below the threshold, gain falls by (ratio - 1) dB per dB. Gain is smoothed in decibels, so the
-/// release time means the same at any depth (in the linear domain, reaching -60 dB would take 7 time constants).
-/// Gain opens with the attack time, is
-/// held for the hold time once the signal drops, then closes with the release time. It starts open, inside a hold
-/// window, so the first note is never touched while the detector catches up.
+///     Noise gate as a downward expander. A peak detector across both channels (so the image never shifts) drives a
+///     gain computer: below the threshold, gain falls by (ratio - 1) dB per dB. Gain is smoothed in decibels, so the
+///     release time means the same at any depth (in the linear domain, reaching -60 dB would take 7 time constants).
+///     Gain opens with the attack time, is
+///     held for the hold time once the signal drops, then closes with the release time. It starts open, inside a hold
+///     window, so the first note is never touched while the detector catches up.
 /// </summary>
-public sealed class GateBlock : DspBlock
-{
+public sealed class GateBlock : DspBlock {
     public const int Threshold = 0;
     public const int Ratio = 1;
     public const int Attack = 2;
@@ -35,7 +34,8 @@ public sealed class GateBlock : DspBlock
             ParamDescriptor.Float("hold", "Hold", 0f, 500f, 20f, "ms"),
             ParamDescriptor.Float("release", "Release", 5f, 2_000f, 100f, "ms", ParamTaper.Log),
         ],
-        maxInstances: 4);
+        maxInstances: 4
+    );
 
     private float _envelope;
     private float _gainDb;
@@ -43,9 +43,7 @@ public sealed class GateBlock : DspBlock
     private float _detectorRelease;
 
     public GateBlock()
-        : base(Info)
-    {
-    }
+        : base(Info) { }
 
     /// <summary>Current gain applied by the gate (1 = open). For meters and tests.</summary>
     public float CurrentGain => MathF.Pow(10f, _gainDb / 20f);
@@ -53,15 +51,13 @@ public sealed class GateBlock : DspBlock
     protected override void OnPrepare(in ProcessSpec spec) =>
         _detectorRelease = Coefficient(DetectorReleaseMs, spec.SampleRate);
 
-    protected override void OnReset()
-    {
+    protected override void OnReset() {
         _envelope = 0;
         _gainDb = 0;
         _holdRemaining = (int)(Params.Current(Hold) * 0.001 * Spec.SampleRate);
     }
 
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context)
-    {
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var sampleRate = Spec.SampleRate;
         var thresholdDb = Params.Advance(Threshold, io.Length);
         var threshold = MathF.Pow(10f, thresholdDb / 20f);
@@ -73,32 +69,25 @@ public sealed class GateBlock : DspBlock
         var envelope = _envelope;
         var gainDb = _gainDb;
         var holdRemaining = _holdRemaining;
-        for (var i = 0; i < io.Length; i++)
-        {
+        for (var i = 0; i < io.Length; i++) {
             var level = Math.Max(Math.Abs(io.Left[i]), Math.Abs(io.Right[i]));
             envelope = level > envelope ? level : envelope * _detectorRelease;
 
             float targetDb;
-            if (envelope >= threshold)
-            {
+            if (envelope >= threshold) {
                 targetDb = 0f;
                 holdRemaining = holdSamples;
-            }
-            else
-            {
-                targetDb = envelope <= 0 ? FloorDb : Math.Max(FloorDb, slope * (20f * MathF.Log10(envelope) - thresholdDb));
+            } else {
+                targetDb = envelope <= 0
+                    ? FloorDb
+                    : Math.Max(FloorDb, slope * (20f * MathF.Log10(envelope) - thresholdDb));
             }
 
-            if (targetDb > gainDb)
-            {
+            if (targetDb > gainDb) {
                 gainDb = targetDb + (gainDb - targetDb) * attack;
-            }
-            else if (holdRemaining > 0)
-            {
+            } else if (holdRemaining > 0) {
                 holdRemaining--;
-            }
-            else
-            {
+            } else {
                 gainDb = targetDb + (gainDb - targetDb) * release;
             }
 
@@ -112,7 +101,7 @@ public sealed class GateBlock : DspBlock
         _holdRemaining = holdRemaining;
     }
 
-    /// <summary>One-pole coefficient reaching about 63 % of a step in <paramref name="milliseconds"/>.</summary>
+    /// <summary>One-pole coefficient reaching about 63 % of a step in <paramref name="milliseconds" />.</summary>
     private static float Coefficient(double milliseconds, double sampleRate) =>
         (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
 }

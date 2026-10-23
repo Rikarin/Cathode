@@ -6,20 +6,14 @@ namespace Cathode.Audio.Native;
 public sealed record AudioDeviceInfo(string Uid, string Name, int InputChannels, int OutputChannels, double SampleRate);
 
 /// <summary>Entry points of the native audio shim that are not tied to a stream.</summary>
-public static unsafe class NativeAudio
-{
+public static unsafe class NativeAudio {
     /// <summary>True when the native library was built and can be loaded (see native/build.sh).</summary>
-    public static bool IsLibraryPresent
-    {
-        get
-        {
-            try
-            {
+    public static bool IsLibraryPresent {
+        get {
+            try {
                 _ = NativeMethods.Backend();
                 return true;
-            }
-            catch (DllNotFoundException)
-            {
+            } catch (DllNotFoundException) {
                 return false;
             }
         }
@@ -31,21 +25,21 @@ public static unsafe class NativeAudio
     /// <summary>"coreaudio", or "none" on platforms whose backend isn't written yet.</summary>
     public static string Backend => Marshal.PtrToStringUTF8((nint)NativeMethods.Backend()) ?? "none";
 
-    public static IReadOnlyList<AudioDeviceInfo> Devices()
-    {
+    public static IReadOnlyList<AudioDeviceInfo> Devices() {
         var count = DeviceCount();
         var devices = new List<AudioDeviceInfo>(count);
-        for (var i = 0; i < count; i++)
-        {
+        for (var i = 0; i < count; i++) {
             DeviceInfoNative info;
-            if (DeviceInfo(i, &info) == 0)
-            {
-                devices.Add(new AudioDeviceInfo(
-                    Marshal.PtrToStringUTF8((nint)info.Uid) ?? "",
-                    Marshal.PtrToStringUTF8((nint)info.Name) ?? "",
-                    info.InputChannels,
-                    info.OutputChannels,
-                    info.SampleRate));
+            if (DeviceInfo(i, &info) == 0) {
+                devices.Add(
+                    new AudioDeviceInfo(
+                        Marshal.PtrToStringUTF8((nint)info.Uid) ?? "",
+                        Marshal.PtrToStringUTF8((nint)info.Name) ?? "",
+                        info.InputChannels,
+                        info.OutputChannels,
+                        info.SampleRate
+                    )
+                );
             }
         }
 

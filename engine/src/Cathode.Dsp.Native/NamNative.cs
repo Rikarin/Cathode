@@ -3,8 +3,7 @@ using System.Runtime.InteropServices;
 namespace Cathode.Dsp.Native;
 
 /// <summary>P/Invoke surface of <c>cth_nam</c> (engine/native/cth_nam/include/cth_nam.h).</summary>
-internal static unsafe partial class NamNative
-{
+internal static unsafe partial class NamNative {
     private const string Library = "cth_nam";
 
     [LibraryImport(Library, EntryPoint = "cth_nam_load", StringMarshalling = StringMarshalling.Utf8)]
@@ -20,8 +19,8 @@ internal static unsafe partial class NamNative
     internal static partial int SetSize(nint model, double size);
 
     /// <summary>
-    /// Real-time call. Deliberately not <c>SuppressGCTransition</c>: a model takes long enough that the GC must be
-    /// able to proceed while it runs (docs/02-architecture.md §5.7).
+    ///     Real-time call. Deliberately not <c>SuppressGCTransition</c>: a model takes long enough that the GC must be
+    ///     able to proceed while it runs (docs/02-architecture.md §5.7).
     /// </summary>
     [LibraryImport(Library, EntryPoint = "cth_nam_process")]
     internal static partial void Process(nint model, float* input, float* output, int frames);
@@ -41,8 +40,7 @@ internal static unsafe partial class NamNative
     internal static string LastErrorMessage() => Marshal.PtrToStringUTF8((nint)LastError()) ?? "unknown error";
 
     [StructLayout(LayoutKind.Sequential)]
-    internal struct Info
-    {
+    internal struct Info {
         public fixed byte Architecture[64];
         public fixed byte Version[32];
         public double ExpectedSampleRate;
