@@ -82,7 +82,7 @@ import { LiveStore } from '../state/live.store';
             </span>
             <xui-select
               class="w-full"
-              [attr.aria-labelledby]="labelId()"
+              [aria-labelledby]="labelId()"
               [filterable]="false"
               [items]="options()"
               [value]="options()[value()] ?? null"
@@ -97,7 +97,7 @@ import { LiveStore } from '../state/live.store';
                 <xui-segmented-control
                   size="sm"
                   fill
-                  [attr.aria-labelledby]="labelId()"
+                  [aria-label]="param().name"
                   [options]="choices()"
                   [value]="value()"
                   (valueChange)="set($event ?? 0)"
@@ -105,7 +105,7 @@ import { LiveStore } from '../state/live.store';
               } @else {
                 <xui-select
                   class="w-full"
-                  [attr.aria-labelledby]="labelId()"
+                  [aria-labelledby]="labelId()"
                   [filterable]="false"
                   [items]="options()"
                   [value]="options()[value()] ?? null"
