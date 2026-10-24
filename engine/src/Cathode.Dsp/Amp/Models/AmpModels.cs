@@ -32,7 +32,19 @@ public sealed partial record AmpDesign {
         Models.Peavey5150.Design,
         Models.DualRectifier.Design,
         Models.Evh5150III.Design,
-        Models.MarkIV.Design
+        Models.MarkIV.Design,
+        Models.HotRodDeluxe.Design,
+        Models.Champ.Design,
+        Models.Vibroverb.Design,
+        Models.VibroluxReverb.Design,
+        Models.Bandmaster.Design,
+        Models.TweedTwin.Design,
+        Models.TweedTwin.Jumped,
+        Models.Tremolux.Design,
+        Models.Princeton5F2.Design,
+        Models.PrincetonAA964.Design,
+        Models.VibroKing.Design,
+        Models.BluesJunior.Design
     ];
 
     public static AmpDesign Blackface => Models.Blackface.Design;

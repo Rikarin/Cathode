@@ -347,7 +347,8 @@ public sealed class CircuitAmpBlock : DspBlock {
         var design = active.Design;
         var power = design.Power;
         var trim = Decibels.ToGain(design.OutputTrimDb);
-        outputScale = trim * power.Transformer.TurnsRatio / (2 * power.Supply);
+        // Full scale is the primary's largest swing: about twice B+ plate to plate in push-pull, B+ single-ended.
+        outputScale = trim * power.Transformer.TurnsRatio / (power.Sides * power.Supply);
         preampScale = trim / PreampFullScale;
         Configure(0);
         active.Reset();

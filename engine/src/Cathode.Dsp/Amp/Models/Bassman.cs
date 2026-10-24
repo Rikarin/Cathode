@@ -119,15 +119,15 @@ public static class Bassman {
     ///     half's plate as <see cref="IdlePlate" />, the coupling caps, volumes and 270k mixing resistors; the output is V2A's
     ///     grid (the mixing node).
     /// </summary>
-    static NetworkStageDesign InputStage() {
+    internal static NetworkStageDesign InputStage(double supply = 325) {
         var net = new StageNetlist();
         var (plate, cathode, rail, idle) = (net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, 325);
+        net.Supply(rail, supply);
         net.Resistor(rail, plate, 100e3);
         net.Resistor(cathode, StageNetlist.Ground, 2 * 820);
         net.Capacitor(cathode, StageNetlist.Ground, 125e-6);
         net.Triode(plate, net.Input, cathode, TriodeModel.TwelveAY7);
-        net.Supply(idle, IdlePlateVoltage(325, 2 * 820));
+        net.Supply(idle, IdlePlateVoltage(supply, 2 * 820));
 
         var (bright, normal) = (net.Node(), net.Node());
         net.SwitchedResistor(plate, bright, Wire, Open, SwitchRole.Switch1);
@@ -139,7 +139,7 @@ public static class Bassman {
     }
 
     /// <summary>Both V1 halves on their shared cathode, both grids driven (68k each); the rest as <see cref="InputStage" />.</summary>
-    static NetworkStageDesign JumpedStage() {
+    internal static NetworkStageDesign JumpedStage(double supply = 325) {
         var net = new StageNetlist();
         var (normalGrid, brightGrid) = (net.Node(), net.Node());
         net.Resistor(net.Input, brightGrid, 68e3);
@@ -148,7 +148,7 @@ public static class Bassman {
         net.Resistor(normalGrid, StageNetlist.Ground, 1e6);
 
         var (normalPlate, brightPlate, cathode, rail) = (net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, 325);
+        net.Supply(rail, supply);
         net.Resistor(rail, normalPlate, 100e3);
         net.Resistor(rail, brightPlate, 100e3);
         net.Resistor(cathode, StageNetlist.Ground, 820);
@@ -176,10 +176,10 @@ public static class Bassman {
     ///     V2A: 100k, 820 Ω unbypassed, with its grid-plate capacitance, whose Miller multiple against the 270k mixing
     ///     resistors rolls off the top.
     /// </summary>
-    static NetworkStageDesign SecondStage() {
+    internal static NetworkStageDesign SecondStage(double supply = 325) {
         var net = new StageNetlist();
         var (plate, cathode, rail) = (net.Node(), net.Node(), net.Node());
-        net.Supply(rail, 325);
+        net.Supply(rail, supply);
         net.Resistor(rail, plate, 100e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 820);
         net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
