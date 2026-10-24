@@ -1,0 +1,160 @@
+name: release
+
+# A version tag (v1.2.3, or v1.2.3-rc.1 for a prerelease) builds every installer and publishes a GitHub release:
+#
+# - The desktop app (the editor, Electron and the engine sidecars): a .dmg and .zip for Apple Silicon Macs, an NSIS
+#   installer for Windows x64 and an AppImage for Linux x64.
+# - The headless rig (the engine and server with the web editor, systemd services and an install script) for small
+#   Linux computers without a display, x64 and ARM64: cathode-server-<version>-linux-<arch>.tar.gz. Each is installed
+#   on its runner and checked: the services start, the web editor loads and the API wants the token.
+#
+# Every installer builds on its own OS and CPU, since NativeAOT cannot cross-compile. Running the workflow by hand
+# builds them all as workflow artifacts without publishing a release.
+#
+# Signing is optional. Without secrets, macOS builds are signed ad hoc (Gatekeeper asks users to allow them) and Windows
+# builds are unsigned. Set CSC_LINK (base64 .p12) and CSC_KEY_PASSWORD to sign, and on macOS APPLE_ID,
+# APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID to notarise.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  CATHODE_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, name: macos-arm64 }
+          - { os: windows-latest, name: windows-x64 }
+          - { os: ubuntu-latest, name: linux-x64 }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: editor
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: engine/global.json
+      - name: Cache native dependencies
+        uses: actions/cache@v6
+        with:
+          path: engine/artifacts/deps
+          key: native-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
+      - name: Linux audio headers
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: editor/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: editor/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Build and package
+        shell: bash
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Without a certificate, do not let electron-builder pick one up from the runner's keychain.
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
+        run: pnpm dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-${{ matrix.name }}
+          path: |
+            editor/dist/release/*.dmg
+            editor/dist/release/*.zip
+            editor/dist/release/*.exe
+            editor/dist/release/*.AppImage
+          if-no-files-found: error
+
+  headless:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, name: linux-x64 }
+          - { os: ubuntu-24.04-arm, name: linux-arm64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: engine/global.json
+      - name: Cache native dependencies
+        uses: actions/cache@v6
+        with:
+          path: engine/artifacts/deps
+          key: native-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
+      - name: Linux audio headers
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: editor/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: editor/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: editor
+      - name: Build the package
+        run: packaging/headless/build.sh
+      - name: Install it and check it runs
+        run: |
+          package=$(ls dist/headless/*.tar.gz)
+          mkdir -p /tmp/cathode && tar -C /tmp/cathode -xzf "$package"
+          cd /tmp/cathode/cathode-server-*
+          ./bin/cathode-host --self-test
+          sudo ./install.sh
+          token=$(sudo sed -n 's/^Cathode__Token=//p' /etc/cathode/cathode.env)
+          for _ in $(seq 1 30); do
+            curl -fs -H "Authorization: Bearer $token" http://127.0.0.1:5180/api/v1/system > /tmp/system.json && break
+            sleep 2
+          done
+          cat /tmp/system.json
+          grep -q '"connected":true' /tmp/system.json
+          curl -fs http://127.0.0.1:5180/ | grep -q 'name="cathode-server" content="same-origin"'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5180/api/v1/system)" = 401
+          sudo ./uninstall.sh --purge
+      - if: failure()
+        run: sudo journalctl -u cathode-host -u cathode-server --no-pager | tail -100
+      - uses: actions/upload-artifact@v7
+        with:
+          name: headless-${{ matrix.name }}
+          path: dist/headless/*.tar.gz
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [desktop, headless]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: release
+          merge-multiple: true
+      - name: Checksums
+        working-directory: release
+        run: sha256sum -- * > SHA256SUMS
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          flags=(--generate-notes)
+          if [[ "$TAG" == *-* ]]; then flags+=(--prerelease); fi
+          gh release create "$TAG" release/* --repo "${{ github.repository }}" "${flags[@]}"

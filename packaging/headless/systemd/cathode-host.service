@@ -1,0 +1,24 @@
+[Unit]
+Description=Cathode engine (real-time audio host)
+Documentation=https://github.com/Rikarin/cathode
+After=sound.target
+Wants=sound.target
+
+[Service]
+Type=simple
+User=cathode
+Group=audio
+EnvironmentFile=/etc/cathode/cathode.env
+ExecStart=/opt/cathode/bin/run-host.sh
+# The socket the server talks to lives here, and survives a host restart.
+RuntimeDirectory=cathode
+RuntimeDirectoryPreserve=yes
+# Real-time scheduling for the audio thread, and memory that is never paged out.
+LimitRTPRIO=95
+LimitMEMLOCK=infinity
+Nice=-10
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

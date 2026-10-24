@@ -1,0 +1,22 @@
+[Unit]
+Description=Cathode server (presets, the API and the web editor)
+Documentation=https://github.com/Rikarin/cathode
+After=network-online.target cathode-host.service
+Wants=network-online.target cathode-host.service
+
+[Service]
+Type=simple
+User=cathode
+Group=audio
+EnvironmentFile=/etc/cathode/cathode.env
+Environment=Cathode__DataDirectory=/var/lib/cathode
+Environment=Cathode__Engine__SocketPath=/run/cathode/host.sock
+Environment=Cathode__EditorDirectory=/opt/cathode/editor
+Environment=DOTNET_CLI_TELEMETRY_OPTOUT=1
+ExecStart=/opt/cathode/bin/cathode-server
+StateDirectory=cathode
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -2,7 +2,7 @@ name: desktop
 
 # Builds the desktop app (`pnpm dist`: the editor, Electron and the engine sidecars) on each OS, since NativeAOT cannot
 # cross-compile: a .dmg and .zip for Apple Silicon Macs, an NSIS installer for Windows x64 and an AppImage for Linux
-# x64. Every run uploads them as workflow artifacts; a version tag (v1.2.3) also publishes them as a GitHub release.
+# x64, and uploads them as workflow artifacts. Version tags are built and released by release.yml.
 #
 # Signing is optional. Without secrets, macOS builds are signed ad hoc (Gatekeeper asks users to allow them) and Windows
 # builds are unsigned. Set CSC_LINK (base64 .p12) and CSC_KEY_PASSWORD to sign, and on macOS APPLE_ID,
@@ -11,7 +11,6 @@ name: desktop
 on:
   push:
     branches: [master]
-    tags: ["v*"]
     paths: ["editor/**", "engine/**", ".github/workflows/desktop.yml"]
   workflow_dispatch:
 
@@ -68,19 +67,3 @@ jobs:
             editor/dist/release/*.exe
             editor/dist/release/*.AppImage
           if-no-files-found: error
-
-  release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: package
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v7
-        with:
-          path: release
-          merge-multiple: true
-      - name: Publish the GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" release/* --repo "${{ github.repository }}" --generate-notes
