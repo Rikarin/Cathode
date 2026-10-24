@@ -28,6 +28,12 @@ public sealed class GlobalSettings {
     /// <summary>Noise gate offset in dB (−20..20), added to every Input block's gate threshold.</summary>
     public float NoiseGateOffset { get; set; }
 
+    /// <summary>
+    ///     Cab modeling off: every Cab and IR Player block passes audio through, for playing into a real speaker cabinet
+    ///     without changing the presets.
+    /// </summary>
+    public bool CabModelingOff { get; set; }
+
     /// <summary>The global output EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse.</summary>
     public Dictionary<string, float> Eq { get; set; } = [];
 

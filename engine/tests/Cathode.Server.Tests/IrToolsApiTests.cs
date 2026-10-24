@@ -95,6 +95,48 @@ public sealed class IrToolsApiTests : IAsyncLifetime {
         Assert.Equal(HttpStatusCode.NoContent, off.StatusCode);
     }
 
+    [Fact]
+    public async Task An_ir_upload_can_be_trimmed_and_its_polarity_corrected() {
+        var plain = await Upload("plain.wav", Impulse(40, -0.5f));
+        var processed = await Upload("trimmed.wav", Impulse(40, -0.5f), "&processing=autoTrim&polarity=true");
+        using var rejected = await client.PostAsync(
+            "/api/v1/assets?name=bad.wav&processing=sideways",
+            new ByteArrayContent(Impulse(40, 1f)),
+            Token
+        );
+
+        Assert.NotEqual(plain.Ref, processed.Ref);
+        var audio = WavFile.Read(
+            new MemoryStream(await client.GetByteArrayAsync($"/api/v1/assets/{processed.Ref}/content", Token))
+        );
+        Assert.Equal(216, audio.Frames);
+        Assert.Equal(0.5f, audio.Channels[0][0]);
+        Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_cab_exports_its_mixed_ir_and_saves_it_as_an_asset() {
+        (await client.PostAsJsonAsync("/api/v1/live/blocks", new AddBlockRequest("cab", 0, 4), Token))
+            .EnsureSuccessStatusCode();
+
+        var wav = WavFile.Read(new MemoryStream(await client.GetByteArrayAsync("/api/v1/live/blocks/cab1/ir", Token)));
+        using var saved = await client.PostAsJsonAsync(
+            "/api/v1/live/blocks/cab1/ir",
+            new CabExportRequest("My Cab"),
+            Token
+        );
+        using var notCab = await client.GetAsync("/api/v1/live/blocks/in1/ir", Token);
+
+        Assert.Equal(2, wav.Channels.Length);
+        Assert.InRange(wav.Frames, 1_000, 4_000); // the default DynaCab, trimmed
+        Assert.Equal(wav.Channels[0], wav.Channels[1]);
+        saved.EnsureSuccessStatusCode();
+        var asset = (await saved.Content.ReadFromJsonAsync<AssetInfo>(Token))!;
+        Assert.Equal("My Cab.wav", asset.Name);
+        Assert.Equal("ir", asset.Kind);
+        Assert.Equal(HttpStatusCode.BadRequest, notCab.StatusCode);
+    }
+
     static byte[] Impulse(int position, float amplitude) {
         var samples = new float[256];
         samples[position] = amplitude;
@@ -103,9 +145,9 @@ public sealed class IrToolsApiTests : IAsyncLifetime {
         return stream.ToArray();
     }
 
-    async Task<AssetInfo> Upload(string name, byte[] content) {
+    async Task<AssetInfo> Upload(string name, byte[] content, string query = "") {
         using var response =
-            await client.PostAsync($"/api/v1/assets?name={name}", new ByteArrayContent(content), Token);
+            await client.PostAsync($"/api/v1/assets?name={name}{query}", new ByteArrayContent(content), Token);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<AssetInfo>(Token))!;
     }

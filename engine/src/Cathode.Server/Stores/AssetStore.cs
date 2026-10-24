@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Cathode.Contracts;
+using Cathode.Dsp.Convolution;
+using Cathode.Dsp.IO;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.Options;
 
@@ -49,6 +51,83 @@ public sealed class AssetStore {
         lock (gate) {
             return index.TryGetValue(reference, out var info) ? FilePath(reference, info.Kind) : null;
         }
+    }
+
+    /// <summary>
+    ///     Import settings from the upload's query (<c>processing</c>: asIs, autoTrim or minimumPhase; <c>polarity</c>;
+    ///     <c>channels</c>: both, left, right or sum; <c>maxLengthMs</c>: 5 to 10,000).
+    /// </summary>
+    public static IrImportSettings ImportSettings(
+        string? processing,
+        bool? polarity,
+        string? channels,
+        double? maxLengthMs
+    ) {
+        var p = processing switch {
+            null or "asIs" => IrProcessing.AsIs,
+            "autoTrim" => IrProcessing.AutoTrim,
+            "minimumPhase" => IrProcessing.MinimumPhase,
+            _ => throw new RigException(
+                400,
+                $"Unknown IR processing '{processing}': use asIs, autoTrim or minimumPhase."
+            )
+        };
+        var c = channels switch {
+            null or "both" => IrChannels.Both,
+            "left" => IrChannels.Left,
+            "right" => IrChannels.Right,
+            "sum" => IrChannels.Sum,
+            _ => throw new RigException(400, $"Unknown IR channels '{channels}': use both, left, right or sum.")
+        };
+        if (maxLengthMs is { } ms && (ms is < 5 or > 10_000 || !double.IsFinite(ms))) {
+            throw new RigException(400, "An IR's maximum length must be 5 ms to 10 s.");
+        }
+
+        return new(p, polarity == true, c, maxLengthMs);
+    }
+
+    /// <summary>
+    ///     Adds an impulse response processed on import (<see cref="IrImport" />: trimmed or made minimum phase, its
+    ///     polarity corrected, a channel chosen, cut to a length); the processed file is what is stored and hashed. Other
+    ///     assets, and default settings, are stored as uploaded.
+    /// </summary>
+    public async Task<AssetInfo> AddAsync(
+        Stream content,
+        string name,
+        IrImportSettings import,
+        CancellationToken cancellationToken
+    ) {
+        if (import.IsDefault || !string.Equals(Path.GetExtension(name), ".wav", StringComparison.OrdinalIgnoreCase)) {
+            return await AddAsync(content, name, cancellationToken);
+        }
+
+        using var original = new MemoryStream();
+        var buffer = new byte[81_920];
+        int read;
+        while ((read = await content.ReadAsync(buffer, cancellationToken)) > 0) {
+            if (original.Length + read > MaxBytes) {
+                throw new RigException(413, $"Assets are limited to {MaxBytes / (1024 * 1024)} MB.");
+            }
+
+            original.Write(buffer, 0, read);
+        }
+
+        original.Position = 0;
+        AudioData audio;
+        try {
+            audio = WavFile.Read(original);
+        } catch (Exception e) when (e is InvalidDataException or EndOfStreamException) {
+            throw new RigException(400, $"{name}: {e.Message}");
+        }
+
+        if (audio.Frames == 0) {
+            throw new RigException(400, $"{name} is empty.");
+        }
+
+        using var processed = new MemoryStream();
+        WavFile.Write(processed, IrImport.Process(audio, import));
+        processed.Position = 0;
+        return await AddAsync(processed, name, cancellationToken);
     }
 
     public async Task<AssetInfo> AddAsync(Stream content, string name, CancellationToken cancellationToken) {

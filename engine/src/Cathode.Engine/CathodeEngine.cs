@@ -65,6 +65,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     readonly int metroLevelIndex = RigControls.Descriptor.IndexOf("metroLevel");
     readonly int effectsMixIndex = RigControls.Descriptor.IndexOf("effectsMix");
     readonly int gateOffsetIndex = RigControls.Descriptor.IndexOf("gateOffset");
+    readonly int cabsOffIndex = RigControls.Descriptor.IndexOf("cabsOff");
     int tapCount;
     float levelGain = 1f;
     Looper? looper;
@@ -287,7 +288,8 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                     sampleTime,
                     HeldNotes,
                     Rig.GetTarget(effectsMixIndex),
-                    Rig.GetTarget(gateOffsetIndex)
+                    Rig.GetTarget(gateOffsetIndex),
+                    Rig.GetTarget(cabsOffIndex) >= 0.5f
                 );
                 graph.ApplyModifiers(modulation, length);
                 graph.Process(slice, context);

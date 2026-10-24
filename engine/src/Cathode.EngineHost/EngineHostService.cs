@@ -38,7 +38,10 @@ public sealed class EngineHostService : IDisposable {
     readonly IDeviceMonitor? device;
     readonly Lock gate = new();
     readonly IpcMessage ok = new() { Type = IpcTypes.Ok };
+    readonly List<HostBlockMeters> blockMeters = [];
+    readonly List<IBlockMeters> meteredBlocks = [];
     CompiledGraph? latest;
+    CompiledGraph? metered;
     MidiInput? midi;
     TunerReading? reading;
     long windowStarted = Stopwatch.GetTimestamp();
@@ -395,6 +398,40 @@ public sealed class EngineHostService : IDisposable {
     ///     Lets blocks with derived state (the Cab's mixed slot IRs) rebuild it for their new targets, here on the
     ///     control thread rather than on the audio thread.
     /// </summary>
+    /// <summary>
+    ///     The meters of the blocks that have their own (<see cref="IBlockMeters" />), or null. The list is rebuilt only
+    ///     when the graph changes, so a telemetry push allocates nothing.
+    /// </summary>
+    List<HostBlockMeters>? CollectBlockMeters() {
+        if (latest is not { } graph) {
+            return null;
+        }
+
+        if (!ReferenceEquals(metered, graph)) {
+            metered = graph;
+            blockMeters.Clear();
+            meteredBlocks.Clear();
+            for (var slot = 0; slot < graph.SlotIds.Count; slot++) {
+                if (graph.Block(slot) is IBlockMeters meters) {
+                    meteredBlocks.Add(meters);
+                    blockMeters.Add(
+                        new() {
+                            Block = graph.SlotIds[slot],
+                            Ids = [..meters.MeterIds],
+                            Values = new float[meters.MeterIds.Count]
+                        }
+                    );
+                }
+            }
+        }
+
+        for (var i = 0; i < meteredBlocks.Count; i++) {
+            meteredBlocks[i].ReadMeters(blockMeters[i].Values);
+        }
+
+        return blockMeters.Count > 0 ? blockMeters : null;
+    }
+
     void RefreshBlocks() {
         if (latest is not { } graph) {
             return;
@@ -507,6 +544,7 @@ public sealed class EngineHostService : IDisposable {
         target.GcPauseMs = GC.GetTotalPauseDuration().TotalMilliseconds;
         target.AllocatedBytes = GC.GetTotalAllocatedBytes();
         target.Tempo = Engine.Tempo;
+        target.Blocks = CollectBlockMeters();
         if (Engine.Looper is { } looper) {
             var status = target.Looper ??= new();
             status.State = looper.State switch {

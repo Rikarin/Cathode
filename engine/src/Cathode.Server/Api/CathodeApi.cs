@@ -143,6 +143,23 @@ public static class CathodeApi {
             .WithSummary(
                 "Listens to the rig while you play, then sets a Tone Match block's correction towards a reference .wav."
             );
+        live.MapGet(
+                "/blocks/{id}/ir",
+                async (string id, IrTools tools) =>
+                    TypedResults.File(await tools.ExportCabAsync(id), "audio/wav", $"{id}.wav")
+            )
+            .Produces<byte[]>(200, "audio/wav")
+            .WithName("ExportCabIr")
+            .WithSummary(
+                "A Cab block's current mixed IR (every slot that plays, DynaCab and IR pack slots included, cuts and smoothing baked in) as a stereo .wav at the engine's rate."
+            );
+        live.MapPost(
+                "/blocks/{id}/ir",
+                async (string id, CabExportRequest request, IrTools tools, HttpContext http) =>
+                    TypedResults.Ok(await tools.SaveCabAsync(id, request, http.RequestAborted))
+            )
+            .WithName("SaveCabIr")
+            .WithSummary("Saves a Cab block's current mixed IR as a new IR asset.");
 
         live.MapPost(
                 "/cables",
@@ -309,11 +326,30 @@ public static class CathodeApi {
         assets.MapGet("/", (AssetStore store) => TypedResults.Ok(store.List().ToArray())).WithName("ListAssets");
         assets.MapPost(
                 "/",
-                async (string name, HttpRequest request, AssetStore store, CancellationToken cancellationToken) =>
-                    TypedResults.Ok(await store.AddAsync(request.Body, name, cancellationToken))
+                async (
+                        string name,
+                        HttpRequest request,
+                        AssetStore store,
+                        CancellationToken cancellationToken,
+                        string? processing,
+                        bool? polarity,
+                        string? channels,
+                        double? maxLengthMs
+                    ) =>
+                    TypedResults.Ok(
+                        await store.AddAsync(
+                            request.Body,
+                            name,
+                            AssetStore.ImportSettings(processing, polarity, channels, maxLengthMs),
+                            cancellationToken
+                        )
+                    )
             )
             .Accepts<Stream>("application/octet-stream")
-            .WithName("UploadAsset");
+            .WithName("UploadAsset")
+            .WithSummary(
+                "Uploads an asset. A .wav IR can be processed on import: processing (asIs, autoTrim, minimumPhase), polarity (make the main peak positive), channels (both, left, right, sum) and maxLengthMs."
+            );
         assets.MapPost(
                 "/mix",
                 async (IrMixRequest request, IrTools tools, CancellationToken cancellationToken) =>

@@ -254,7 +254,8 @@ public sealed partial class EngineConnection(
                     reading.Overruns,
                     Tuner(LastTelemetry),
                     LastTelemetry?.Tempo ?? 120,
-                    Looper(LastTelemetry)
+                    Looper(LastTelemetry),
+                    BlockMeters(LastTelemetry)
                 ),
                 ContractsJsonContext.Default.Telemetry
             );
@@ -263,6 +264,17 @@ public sealed partial class EngineConnection(
 
     static LooperInfo? Looper(HostTelemetry? t) =>
         t?.Looper is { } l ? new(l.State, l.LengthSeconds, l.PositionSeconds, l.Reversed, l.HalfSpeed) : null;
+
+    static IReadOnlyList<BlockMeterInfo>? BlockMeters(HostTelemetry? t) =>
+        t?.Blocks is { Count: > 0 } blocks
+            ? [
+                ..blocks.Select(static b => new BlockMeterInfo(
+                        b.Block,
+                        b.Ids.Zip(b.Values).ToDictionary(static p => p.First, static p => p.Second)
+                    )
+                )
+            ]
+            : null;
 
     static TunerInfo? Tuner(HostTelemetry? t) =>
         t?.Tuner is { } r ? new TunerInfo(r.Frequency, r.Note, r.Octave, r.Cents) : null;
@@ -309,7 +321,8 @@ public sealed partial class EngineConnection(
                     t.Overloads,
                     Tuner(t),
                     t.Tempo,
-                    Looper(t)
+                    Looper(t),
+                    BlockMeters(t)
                 ),
                 ContractsJsonContext.Default.Telemetry
             );

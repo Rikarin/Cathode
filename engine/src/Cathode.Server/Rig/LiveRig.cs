@@ -491,7 +491,8 @@ public sealed partial class LiveRig(
             new(IpcBlocks.Rig, "metronome", global.Metronome ? 1 : 0),
             new(IpcBlocks.Rig, "metroLevel", global.MetronomeLevel),
             new(IpcBlocks.Rig, "effectsMix", global.EffectsMix),
-            new(IpcBlocks.Rig, "gateOffset", global.NoiseGateOffset)
+            new(IpcBlocks.Rig, "gateOffset", global.NoiseGateOffset),
+            new(IpcBlocks.Rig, "cabsOff", global.CabModelingOff ? 1 : 0)
         };
         if (global.TempoMode == "global") {
             values.Add(new(IpcBlocks.Rig, "tempo", (float)global.Tempo));
