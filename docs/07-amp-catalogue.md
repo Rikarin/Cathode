@@ -31,17 +31,17 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
 | Blackface (Deluxe/Twin-style, generic) | ✅ Done | Blackface | — | — | 1x12 / 2x12 open back |
-| Deluxe Reverb AB763 | ✅ Done | Deluxe Reverb | T3K: '68 Custom Deluxe (modified circuit) | Stock AB763 Deluxe, direct out, volume sweep | 1x12 open, Jensen C12K/C12N |
-| Twin Reverb AB763 | ✅ Done | Twin Reverb | GPL: Twin Normal Bright, Twin Vibrato Bright | Settings stated; Normal without Bright | 2x12 open, JBL D120 / Jensen C12N |
-| Super Reverb AB763 | ✅ Done | Super Reverb | T3K: '64 Super Reverb, 5 settings | More volume steps | 4x10 open, Jensen P10R/P10Q |
+| Deluxe Reverb AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Deluxe Reverb | T3K: '68 Custom Deluxe (modified circuit) | Stock AB763 Deluxe, direct out, volume sweep | 1x12 open, Jensen C12K/C12N |
+| Twin Reverb AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Twin Reverb | GPL: Twin Normal Bright, Twin Vibrato Bright | Settings stated; Normal without Bright | 2x12 open, JBL D120 / Jensen C12N |
+| Super Reverb AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Super Reverb | T3K: '64 Super Reverb, 5 settings | More volume steps | 4x10 open, Jensen P10R/P10Q |
 | Princeton Reverb AA1164 | ✅ Done | Princeton Reverb | GPL: Princeton clean (year unknown); T3K: '68 Custom Princeton | Stock AA1164, volume sweep | 1x10 open, Jensen P10R |
 | Bassman 5F6-A | ✅ Done | Bassman 5F6-A, Jumped | — | Any 5F6-A / reissue, jumpered and single channel | 4x10 open, Jensen P10Q |
 | Tweed Deluxe 5E3 | ✅ Done | Tweed Deluxe 5E3, Jumped | T3K: 5E3 kit clone | Volume sweep, both inputs | 1x12 open, Jensen P12R/P12Q |
 | Hot Rod Deluxe (III, Fender drawing 0079604000 rev B) | ✅ Done | Hot Rod Deluxe | — | Any direct-out capture (Drive and Normal, More Drive) | 1x12 open, Celestion G12P-80 |
 | Champ 5F1 | ✅ Done | Champ 5F1 | — | Volume sweep, direct out | 1x8 open |
-| Vibroverb AB763 | ✅ Done | Vibroverb AB763 | — | Direct out, both channels | 1x15 open |
-| Vibrolux Reverb AA964 (there is no AB763 Vibrolux Reverb) | ✅ Done | Vibrolux Reverb AA964 | — | Direct out, both channels | 2x10 open |
-| Bandmaster AB763 | ✅ Done | Bandmaster AB763 | — | Direct out | 2x12 closed |
+| Vibroverb AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Vibroverb AB763 | — | Direct out, both channels | 1x15 open |
+| Vibrolux Reverb AA964 (there is no AB763 Vibrolux Reverb) | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Vibrolux Reverb AA964 | — | Direct out, both channels | 2x10 open |
+| Bandmaster AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Bandmaster AB763 | — | Direct out | 2x12 closed |
 | Tweed Twin 5F8-A / High Power Tweed Twin | ✅ Done | Tweed Twin 5F8-A, Jumped | — | Bright, Normal, jumped | 2x12 open |
 
 ## Marshall and British
@@ -246,8 +246,8 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 | Fender Bassman AB165 (blackface) | ⏸ Waiting (the only scan, schematicheaven `bassman_ab165_schem.pdf`, is too poor for the Bass channel's stack and the bias network; topology and power section read) | — | 65 Bassguy Bass / Normal | A legible AB165 drawing | 2x12 closed |
 | Fender Concert 6G12 (brownface) | ✅ Done (factory drawing, schematicheaven `concert_6g12_schem.pdf`: both channels, the harmonic vibrato as a stage with Speed, Intensity and the pedal; OT primary assumed) | Concert 6G12 | 6G12 Concert | OT primary (45249, 2 Ω secondary); captures | 4x10 open |
 | Fender Super 6G4 (brownface) | ✅ Done (factory drawing `super_6g4_schem.pdf`: the 6G12's circuit, 10k feedback, GZ34) | Super 6G4 | 6G4 Super | OT primary (45216); captures | 2x10 open |
-| Fender Tremolux AA763 | ✅ Done | Tremolux AA763 | Tremolo Lux | Direct out | 2x10 closed |
-| Fender Vibro-King | ✅ Done (rev F drawing) | Vibro-King | Vibra-King, Vibra-King Fat | Direct out, Fat on and off | 3x10 open |
+| Fender Tremolux AA763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Tremolux AA763 | Tremolo Lux | Direct out | 2x10 closed |
+| Fender Vibro-King | ✅ Done (rev F drawing; the optical vibrato from rev A, the Intensity pot's 250k track on the stack's output) | Vibro-King | Vibra-King, Vibra-King Fat | Direct out, Fat on and off | 3x10 open |
 | Fender Blues Junior | ✅ Done (III drawing) | Blues Junior | JR Blues, JR Blues Fat | Direct out (GuitarML's Blues Jr files are miked) | 1x12 open |
 | Fender Princeton 5F2 / AA964 | ✅ Done | Princeton 5F2-A, Princeton AA964 | Prince Tone 5F2, Prince Tone AA964 | Direct out | 1x10 open |
 | Fender Vibro-Champ (Eric Clapton) | ⏸ Waiting (no schematic published: Fender's product pages, schematicheaven and the forums searched; Fractal's note says cathode bypass caps were added to the 5F1, but not where) | — | 5F1 Tweed EC | Fender's EC Vibro-Champ schematic | 1x8 open |

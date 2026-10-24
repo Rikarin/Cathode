@@ -24,8 +24,7 @@ namespace Cathode.Dsp.Amp.Models;
 ///     </para>
 ///     <para>
 ///         With the Mix control at its dry end the follower drives V4A directly; the reverb's wet network on the pot's
-///         other end is left out, and so is the Intensity pot's 250k track on the stack's output (the vibrato acts
-///         relative to the dark cell: see <see cref="OpticalTremoloDesign" />). Unverified: the
+///         other end is left out; the vibrato's Intensity pot (R9, 250k) loads the stack's output with its whole track. Unverified: the
 ///         pot
 ///         tapers (not on the drawing: volume, treble and bass audio, mid linear, as on the AB763s), the output
 ///         transformer
@@ -161,7 +160,10 @@ public static class VibroKing {
         return new("V4A", net);
     }
 
-    /// <summary>V4B (100k, 1.5k ‖ 0.47 µF), the stack on its plate, and the treble wiper's 100k: the output.</summary>
+    /// <summary>
+    ///     V4B (100k, 1.5k ‖ 0.47 µF), the stack on its plate, and the treble wiper's 100k: the output, with the
+    ///     Intensity pot's 250k track to ground.
+    /// </summary>
     static NetworkStageDesign StackStage() {
         var net = new StageNetlist();
         var (plate, cathode, rail) = (net.Node(), net.Node(), net.Node());
@@ -181,6 +183,7 @@ public static class VibroKing {
         net.Rheostat(bottom, middle, new(250e3, PotTaper.Audio), PotRole.Bass);
         net.Rheostat(middle, StageNetlist.Ground, new(25e3, PotTaper.Linear), PotRole.Middle);
         net.Resistor(treble, output, 100e3);
+        net.Resistor(output, StageNetlist.Ground, 250e3); // the vibrato's Intensity pot, R9 (<see cref="Vibrato" />)
         net.Output = output;
         return new("V4B", net) { Tremolo = Vibrato };
     }

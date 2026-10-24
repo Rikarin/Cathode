@@ -43,7 +43,9 @@ public sealed record LdrDesign(
 ///     12AX7 half whose plate current lights a neon lamp (from <paramref name="DriverSupply" /> through
 ///     <paramref name="LampResistor" />, <paramref name="LampShunt" /> across it), and the lamp's photocell, from the
 ///     <paramref name="Intensity" /> pot's wiper to ground, shunts the signal at the node the pot's top hangs on
-///     (<paramref name="NodeResistance" />: that node's Thévenin resistance). <paramref name="Channel" />, when set, is
+///     (<paramref name="NodeResistance" />: that node's Thévenin resistance without the pot; 0 to take the stage's own
+///     output resistance, less the pot's track, in parallel with <paramref name="DownstreamLoad" />). The stage's
+///     netlist must carry the pot's track (<c>Intensity.Ohms</c>) from that node to ground. <paramref name="Channel" />, when set, is
 ///     the switch under which the signal passes that node (the Vibrato channel).
 /// </summary>
 /// <remarks>
@@ -57,10 +59,13 @@ public sealed record LdrDesign(
 ///     </para>
 ///     <para>
 ///         <b>The shunt.</b> With the photocell at R, the node sees <c>R_top + R_bottom ‖ R</c> to ground (the pot's
-///         halves); the signal there is scaled by that shunt against the node's resistance. The model files' netlists
-///         leave the pot's track out (it loads the node by its whole resistance with the cell dark), so the gain is
-///         applied relative to the dark cell's: with the intensity at 0 (the wiper at ground) it is exactly 1. The cell runs
-///         at the control rate (every <see cref="OpticalTremoloStage.ControlPeriod" /> samples), the gain ramped between.
+///         halves). The stage's netlist carries the pot's whole track from the node to ground (what it is with the
+///         intensity at 0, the wiper at ground, or with the cell dark, to within the dark cell's 1 %), so the runtime
+///         scales the node's signal by the shunt it actually sees against that track:
+///         <c>(1 + Z / R_track) / (1 + Z / R_shunt)</c>, Z the node's resistance without the pot (exact for a resistive
+///         node; the coupling caps around it are short at audio). At intensity 0 it is exactly 1 and the stage plays
+///         untouched. The cell runs at the control rate (every <see cref="OpticalTremoloStage.ControlPeriod" />
+///         samples), the gain ramped between.
 ///     </para>
 /// </remarks>
 public sealed record OpticalTremoloDesign(
@@ -105,17 +110,16 @@ public sealed record OpticalTremoloDesign(
 
     /// <summary>
     ///     The signal's gain at the shunted node with the photocell at <paramref name="cell" /> ohms and the Intensity pot
-    ///     at <paramref name="intensity" />, relative to the dark cell (see the remarks); <paramref name="node" /> is the
-    ///     node's resistance.
+    ///     at <paramref name="intensity" />, against the netlist's pot track (see the remarks); <paramref name="node" /> is
+    ///     the node's resistance without the pot.
     /// </summary>
     public double Gain(double cell, double intensity, double node) {
+        var track = Intensity.Ohms;
         var fraction = Intensity.Fraction(intensity);
-        var upper = (1 - fraction) * Intensity.Ohms;
-        var lower = fraction * Intensity.Ohms;
-        var dark = Cell.Dark;
-        var lit = upper + lower * cell / (lower + cell);
-        var unlit = upper + lower * dark / (lower + dark);
-        return lit / (lit + node) * ((unlit + node) / unlit);
+        var upper = (1 - fraction) * track;
+        var lower = fraction * track;
+        var shunt = upper + lower * cell / (lower + cell);
+        return (1 + node / track) / (1 + node / shunt);
     }
 
     internal override AmpStage Wrap(NetworkStageDesign design, AmpStage stage, double sampleRate) =>
@@ -332,9 +336,14 @@ public sealed class OpticalTremoloStage : AmpStage {
             phase -= 1;
         }
 
-        var node = Design.NodeResistance > 0
-            ? Design.NodeResistance
-            : 1 / (1 / Math.Max(inner.OutputResistance, 1) + 1 / Design.DownstreamLoad);
+        double node;
+        if (Design.NodeResistance > 0) {
+            node = Design.NodeResistance;
+        } else {
+            // The stage's output resistance includes the pot's track: take it out, and add what loads the node beyond.
+            var without = 1 / Math.Max(inner.OutputResistance, 1) - 1 / Design.Intensity.Ohms;
+            node = 1 / (Math.Max(without, 1e-12) + 1 / Design.DownstreamLoad);
+        }
         var to = channelOn ? Design.Gain(CellResistance, intensity, node) : 1;
         if ((depth == 0 || !channelOn) && to == 1 && Math.Abs(from - 1) < 1e-9) {
             // Off (or its channel idle) and settled: hand the stage back untouched.
