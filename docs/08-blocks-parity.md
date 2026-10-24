@@ -109,7 +109,7 @@ All with defaults that leave the earlier sound bit-identical, except the Delay m
 
 ### 1.3 CPU costs to regenerate
 
-The engine and global stream adds three block types with no entry yet (**input** 0.22 %, **output** 0.03 %, **rta** 0.03 % on the bench, so `Cpu_cost_is_recorded` fails for them until the file is regenerated) and changes **compressor** (look-ahead, sidechain), **gate** (sidechain), **chorus, flanger, phaser** (Stereo Spread), **pitch** and **rotary** (Input Select); the Global Mix switch costs nothing measurable.
+The engine and global stream adds three block types with no entry yet (**input** 0.14 %, **output** 0.03 %, **rta** 0.03 % on the bench, minimum of three passes, so `Cpu_cost_is_recorded` fails for them until the file is regenerated) and changes **compressor** (look-ahead, sidechain), **gate** (sidechain), **chorus, flanger, phaser** (Stereo Spread), **pitch** and **rotary** (Input Select); the Global Mix switch costs nothing measurable.
 
 `BlockCosts.cs` was not regenerated. Blocks whose processing changed (a new per-sample stage or a changed default path) should be re-measured: **chorus, compressor, crossover, delay, enhancer, fbreturn, filter, flanger, gate, geq, megatap, multidelay, phaser, reverb, resonator, ringmod, tremolo, volpan, wah** and the new **mixer** (placeholder entry 0.04 %). Every other effect block only gained the Balance gain stage (an extra multiply per sample when balance is off-centre): **drive, dyndist, formant, fxloop, irplayer, mbcomp, mux, peq, pitch, rotary, synth, tonematch, tonestack, vibe, vocoder** may move by a few hundredths of a percent.
 
