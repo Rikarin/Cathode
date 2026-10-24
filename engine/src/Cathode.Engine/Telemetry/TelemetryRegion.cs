@@ -161,15 +161,23 @@ public sealed unsafe class TelemetryRegion : IDisposable {
     ///     Audio thread: append output samples to the scope ring. The ring is outside the seqlock: the reader copies the
     ///     samples behind the published write count and drops any the writer overwrote meanwhile.
     /// </summary>
-    public void WriteScope(ReadOnlySpan<float> samples) {
-        var l = layout;
-        var written = l->ScopeWritten;
-        var ring = new Span<float>(l->Scope, TelemetryLayout.ScopeLength);
+    public void WriteScope(ReadOnlySpan<float> samples) => Write(ref layout->ScopeWritten, layout->Scope, samples);
+
+    /// <summary>Audio thread: append an RTA block's samples to the analyser ring (like <see cref="WriteScope" />).</summary>
+    public void WriteAnalyzer(ReadOnlySpan<float> samples) =>
+        Write(ref layout->AnalyzerWritten, layout->Analyzer, samples);
+
+    /// <summary>How many samples an RTA block has written in all; it stops growing when no block is running.</summary>
+    public long AnalyzerWritten => Volatile.Read(ref layout->AnalyzerWritten);
+
+    static void Write(ref long writtenField, float* ring, ReadOnlySpan<float> samples) {
+        var written = writtenField;
+        var span = new Span<float>(ring, TelemetryLayout.ScopeLength);
         foreach (var sample in samples) {
-            ring[(int)(written++ % TelemetryLayout.ScopeLength)] = sample;
+            span[(int)(written++ % TelemetryLayout.ScopeLength)] = sample;
         }
 
-        Volatile.Write(ref l->ScopeWritten, written);
+        Volatile.Write(ref writtenField, written);
     }
 
     /// <summary>
@@ -177,22 +185,27 @@ public sealed unsafe class TelemetryRegion : IDisposable {
     ///     <see cref="TelemetryLayout.ScopeLength" /> / 2). Returns false until that many have been written, or if the
     ///     writer kept overwriting them.
     /// </summary>
-    public bool ReadScope(Span<float> destination) {
-        var l = layout;
+    public bool ReadScope(Span<float> destination) => Read(ref layout->ScopeWritten, layout->Scope, destination);
+
+    /// <summary>As <see cref="ReadScope" />, from the RTA block's ring.</summary>
+    public bool ReadAnalyzer(Span<float> destination) =>
+        Read(ref layout->AnalyzerWritten, layout->Analyzer, destination);
+
+    static bool Read(ref long writtenField, float* ring, Span<float> destination) {
         var count = Math.Min(destination.Length, TelemetryLayout.ScopeLength / 2);
         for (var attempt = 0; attempt < 8; attempt++) {
-            var end = Volatile.Read(ref l->ScopeWritten);
+            var end = Volatile.Read(ref writtenField);
             if (end < count) {
                 return false;
             }
 
             for (var i = 0; i < count; i++) {
-                destination[i] = l->Scope[(end - count + i) % TelemetryLayout.ScopeLength];
+                destination[i] = ring[(end - count + i) % TelemetryLayout.ScopeLength];
             }
 
             Interlocked.MemoryBarrier();
             // Valid if the writer has not wrapped round onto the oldest sample copied.
-            if (Volatile.Read(ref l->ScopeWritten) - end <= TelemetryLayout.ScopeLength - count) {
+            if (Volatile.Read(ref writtenField) - end <= TelemetryLayout.ScopeLength - count) {
                 return true;
             }
         }
@@ -283,7 +296,7 @@ public sealed unsafe class TelemetryRegion : IDisposable {
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct TelemetryLayout {
     public const uint MagicValue = 0x54485443; // "CTHT"
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
     public const int Bins = 201;
     public const int MeterSlots = 64;
     public const int FramesPerSlot = 256;
@@ -308,4 +321,9 @@ public unsafe struct TelemetryLayout {
     public fixed float OutputRightPeak[MeterSlots];
     public long ScopeWritten;
     public fixed float Scope[ScopeLength];
+
+    /// <summary>The RTA block's ring (the signal at its grid position), the same length as the scope's.</summary>
+    public long AnalyzerWritten;
+
+    public fixed float Analyzer[ScopeLength];
 }

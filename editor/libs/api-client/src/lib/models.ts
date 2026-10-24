@@ -141,11 +141,15 @@ export interface ScopeFrame {
   samples: number[];
 }
 
-/** Pushed about 15 times a second while the RTA is on: the output in sixth-octave bands, 0 dB = a full-scale sine. */
+/**
+ * Pushed about 15 times a second while the RTA is on: fractional-octave bands, 0 dB = a full-scale sine, of the output
+ * or of the preset's RTA block.
+ */
 export interface RtaFrame {
   type: 'rta';
   frequencies: number[];
   levels: number[];
+  source: 'output' | 'block';
 }
 
 export type ServerMessage = { type: 'connected' } | Telemetry | ScopeFrame | RtaFrame | MidiActivity | RigEvent;

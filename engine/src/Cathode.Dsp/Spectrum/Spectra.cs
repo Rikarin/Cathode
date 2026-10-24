@@ -2,8 +2,23 @@ using Cathode.Dsp.Convolution;
 
 namespace Cathode.Dsp.Spectrum;
 
+/// <summary>The analysis window of a <see cref="PowerSpectrum" />.</summary>
+public enum SpectrumWindow {
+    /// <summary>The default: a good all-round compromise.</summary>
+    Hann,
+
+    /// <summary>Four-term Blackman-Harris: the lowest leakage, for a wide dynamic range.</summary>
+    BlackmanHarris,
+
+    /// <summary>Flat top: the most accurate levels for a tone between bins, at the cost of resolution.</summary>
+    FlatTop,
+
+    /// <summary>No window: the sharpest resolution and the most leakage.</summary>
+    Rectangular
+}
+
 /// <summary>
-///     Long-term average power spectrum (Welch's method: Hann-windowed frames, power averaged). Used off the audio thread
+///     Long-term average power spectrum (Welch's method: windowed frames, Hann by default, power averaged). Used off the audio thread
 ///     by the RTA and Tone Match. Frames below <see cref="SilenceDb" /> are skipped, so pauses in a performance do not
 ///     pull the average towards the noise floor.
 /// </summary>
@@ -23,7 +38,8 @@ public sealed class PowerSpectrum {
     /// <summary>Frames averaged so far.</summary>
     public int Frames { get; private set; }
 
-    public PowerSpectrum(int size = 4_096) {
+    /// <remarks>Each frame's power is divided by the window's energy, so band levels hardly change with the window.</remarks>
+    public PowerSpectrum(int size = 4_096, SpectrumWindow shape = SpectrumWindow.Hann) {
         Size = size;
         fft = new(size);
         window = new float[size];
@@ -32,12 +48,23 @@ public sealed class PowerSpectrum {
         sum = new double[size / 2 + 1];
         double power = 0;
         for (var i = 0; i < size; i++) {
-            window[i] = 0.5f * (1f - MathF.Cos(2f * MathF.PI * i / size));
+            window[i] = (float)Window(shape, 2 * Math.PI * i / size);
             power += window[i] * window[i];
         }
 
         windowPower = power;
     }
+
+    /// <summary>The window at phase <paramref name="x" /> (0..2π across the frame).</summary>
+    static double Window(SpectrumWindow shape, double x) =>
+        shape switch {
+            SpectrumWindow.BlackmanHarris => 0.35875 - 0.48829 * Math.Cos(x) + 0.14128 * Math.Cos(2 * x)
+                - 0.01168 * Math.Cos(3 * x),
+            SpectrumWindow.FlatTop => 0.21557895 - 0.41663158 * Math.Cos(x) + 0.277263158 * Math.Cos(2 * x)
+                - 0.083578947 * Math.Cos(3 * x) + 0.006947368 * Math.Cos(4 * x),
+            SpectrumWindow.Rectangular => 1,
+            _ => 0.5 * (1 - Math.Cos(x))
+        };
 
     /// <summary>Adds one frame of exactly <see cref="Size" /> samples. Returns false if it was too quiet to count.</summary>
     public bool AddFrame(ReadOnlySpan<float> frame) {

@@ -319,12 +319,14 @@ public static class CathodeApi {
         api.MapPut(
                 "/rta",
                 (RtaRequest request, EngineConnection engine) => {
-                    engine.RtaEnabled = request.Enabled;
+                    engine.SetRta(request);
                     return TypedResults.NoContent();
                 }
             )
             .WithName("SetRta")
-            .WithSummary("Starts or stops RTA frames (the output's sixth-octave spectrum) on the WebSocket.");
+            .WithSummary(
+                "Starts or stops RTA frames on the WebSocket (the output's spectrum, or the RTA block's while a preset has one) and sets the bands, decay and window."
+            );
 
         app.Map(
                 "/ws",

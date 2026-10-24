@@ -131,6 +131,10 @@ export const BlockIcons: Readonly<Record<string, string>> = {
     '<path d="M11 3l1.8 5.2L18 10l-5.2 1.8L11 17l-1.8-5.2L4 10l5.2-1.8z"/><path d="M18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>'
   ),
   cthBlockCrossover: svg('<path d="M3 7h6c3 0 4 10 8 10h4"/><path d="M3 17h4c4 0 5-10 8-10h6"/>'),
+  cthBlockRta: svg(
+    '<path d="M3 20h18"/><path d="M5 20v-5M8.5 20v-9M12 20v-12M15.5 20v-7M19 20v-4"/>' +
+      '<path d="M3 12h2" opacity=".6"/>'
+  ),
   cthBlockUtility: svg(
     '<circle cx="12" cy="13" r="6.5"/><path d="M12 13l3.5-3.5"/><path d="M12 3v1.5M4.5 6.5l1 1M19.5 6.5l-1 1" opacity=".6"/>'
   ),
@@ -178,7 +182,8 @@ export const BlockTypeIcons: Readonly<Record<string, string>> = {
   synth: 'cthBlockSynth',
   volpan: 'cthBlockVolumePan',
   enhancer: 'cthBlockEnhancer',
-  crossover: 'cthBlockCrossover'
+  crossover: 'cthBlockCrossover',
+  rta: 'cthBlockRta'
 };
 
 /** Icons for a type the editor has no drawing for yet, by its category. */

@@ -83,7 +83,7 @@
         "tags": [
           "cathode-server"
         ],
-        "summary": "Starts or stops RTA frames (the output\u0027s sixth-octave spectrum) on the WebSocket.",
+        "summary": "Starts or stops RTA frames on the WebSocket (the output\u0027s spectrum, or the RTA block\u0027s while a preset has one) and sets the bands, decay and window.",
         "operationId": "SetRta",
         "requestBody": {
           "content": {
@@ -3012,14 +3012,32 @@
       },
       "RtaRequest": {
         "required": [
-          "enabled"
+          "enabled",
+          "bandsPerOctave",
+          "decayMs",
+          "window"
         ],
         "type": "object",
         "properties": {
           "enabled": {
             "type": "boolean"
+          },
+          "bandsPerOctave": {
+            "type": "integer",
+            "format": "int32",
+            "default": 6
+          },
+          "decayMs": {
+            "type": "number",
+            "format": "float",
+            "default": 0
+          },
+          "window": {
+            "type": "string",
+            "default": "hann"
           }
-        }
+        },
+        "description": "Turns the RTA on or off and sets how it analyses: \u0060BandsPerOctave\u0060 3, 6 or 12 (about 30, 60 or 120 bands),\n\u0060DecayMs\u0060 how long a level takes to fall away (0 = each frame stands alone), and \u0060Window\u0060 hann,\nblackmanHarris, flatTop or rectangular."
       },
       "SaveRequest": {
         "required": [

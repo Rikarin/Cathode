@@ -274,6 +274,12 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                 );
                 graph.ApplyModifiers(modulation, length);
                 graph.Process(slice, context);
+                if (graph.Analyzer is { } analyzer) {
+                    var tapped = analyzer.Take();
+                    if (!tapped.IsEmpty && Volatile.Read(ref telemetry) is { } analysis) {
+                        analysis.WriteAnalyzer(tapped);
+                    }
+                }
                 if (swapGain < 1f) {
                     swapGain = Ramp(slice.OutputLeft, slice.OutputRight, swapGain, 1f);
                 }

@@ -1,5 +1,6 @@
 using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Routing;
 using Cathode.Engine.Rig;
 
 namespace Cathode.Engine.Graph;
@@ -61,9 +62,11 @@ public sealed class CompiledGraph : IDisposable {
         BypassKind[] bypassModes,
         DelayLine[] delays,
         int latencySamples,
-        ModifierBinding[]? modifiers = null
+        ModifierBinding[]? modifiers = null,
+        AnalyzerTap? analyzer = null
     ) {
         this.modifiers = modifiers ?? [];
+        Analyzer = analyzer;
         Generation = generation;
         Spec = spec;
         this.ops = ops;
@@ -97,6 +100,9 @@ public sealed class CompiledGraph : IDisposable {
     }
 
     public IReadOnlyList<ModifierBinding> Modifiers => modifiers;
+
+    /// <summary>The RTA block's tap, when the graph has one: the engine sends what it holds to the analyser.</summary>
+    public AnalyzerTap? Analyzer { get; }
 
     /// <summary>True when a modifier follows the input pitch, so the host must run pitch detection.</summary>
     public bool UsesPitch => modifiers.Any(static m => m.Source == ModSource.Pitch);

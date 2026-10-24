@@ -1,12 +1,18 @@
 namespace Cathode.Contracts;
 
 /// <summary>
-///     Pushed about 15 times a second while the RTA is on (<c>PUT /api/v1/rta</c>): the output's spectrum in
-///     sixth-octave bands. A full-scale sine reads 0 dB in its band.
+///     Pushed about 15 times a second while the RTA is on (<c>PUT /api/v1/rta</c>): the spectrum in fractional-octave
+///     bands. A full-scale sine reads 0 dB in its band. <c>Source</c> is <c>output</c> (the rig's output, left) or
+///     <c>block</c> (the preset's RTA block, wherever it sits on the grid).
 /// </summary>
-public sealed record RtaFrame(string Type, float[] Frequencies, float[] Levels);
+public sealed record RtaFrame(string Type, float[] Frequencies, float[] Levels, string Source = "output");
 
-public sealed record RtaRequest(bool Enabled);
+/// <summary>
+///     Turns the RTA on or off and sets how it analyses: <c>BandsPerOctave</c> 3, 6 or 12 (about 30, 60 or 120 bands),
+///     <c>DecayMs</c> how long a level takes to fall away (0 = each frame stands alone), and <c>Window</c> hann,
+///     blackmanHarris, flatTop or rectangular.
+/// </summary>
+public sealed record RtaRequest(bool Enabled, int BandsPerOctave = 6, float DecayMs = 0, string Window = "hann");
 
 /// <summary>
 ///     Learn a Tone Match: the Server listens to the rig's output for <c>Seconds</c> while you play, compares it with the

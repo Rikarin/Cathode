@@ -32,6 +32,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         var slotIds = new List<string>();
         var bypassed = new List<bool>();
         var bypassModes = new List<BypassKind>();
+        AnalyzerTap? analyzer = null;
         for (var n = 0; n < nodes.Count; n++) {
             slotOfNode[n] = -1;
             var node = nodes[n];
@@ -59,6 +60,10 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             LoadAssets(node, block, errors);
             if (block is FxLoopBlock loop) {
                 loop.Port = HardwareLoop;
+            }
+
+            if (block is RtaBlock rta) {
+                rta.Tap = analyzer ??= new(spec.MaxBlockSize);
             }
 
             block.Prepare(spec);
@@ -310,7 +315,8 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             [..bypassModes],
             [..emitter.Delays],
             graphLatency,
-            [..modifiers]
+            [..modifiers],
+            analyzer
         );
     }
 

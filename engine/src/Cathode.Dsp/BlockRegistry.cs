@@ -54,6 +54,7 @@ public sealed class BlockRegistry {
         registry.Register(ResonatorBlock.Info, static () => new ResonatorBlock());
         registry.Register(PitchBlock.Info, static () => new PitchBlock());
         registry.Register(SynthBlock.Info, static () => new SynthBlock());
+        registry.Register(RtaBlock.Info, static () => new RtaBlock());
         return registry;
     }
 

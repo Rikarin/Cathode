@@ -62,7 +62,7 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /** Starts or stops RTA frames (the output's sixth-octave spectrum) on the WebSocket. */
+    /** Starts or stops RTA frames on the WebSocket (the output's spectrum, or the RTA block's while a preset has one) and sets the bands, decay and window. */
     put: operations['SetRta'];
     post?: never;
     delete?: never;
@@ -1291,8 +1291,25 @@ export interface components {
       /** Format: date-time */
       modified: string;
     };
+    /**
+     * @description Turns the RTA on or off and sets how it analyses: `BandsPerOctave` 3, 6 or 12 (about 30, 60 or 120 bands),
+     *     `DecayMs` how long a level takes to fall away (0 = each frame stands alone), and `Window` hann,
+     *     blackmanHarris, flatTop or rectangular.
+     */
     RtaRequest: {
       enabled: boolean;
+      /**
+       * Format: int32
+       * @default 6
+       */
+      bandsPerOctave: number;
+      /**
+       * Format: float
+       * @default 0
+       */
+      decayMs: number;
+      /** @default hann */
+      window: string;
     };
     SaveRequest: {
       name?: null | string;

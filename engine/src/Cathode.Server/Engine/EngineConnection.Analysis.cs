@@ -10,21 +10,39 @@ public sealed partial class EngineConnection {
     /// <summary>RTA and Tone Match window: 4096 samples (85 ms at 48 kHz).</summary>
     const int AnalysisWindow = ToneMatchDesign.GridSize;
 
-    /// <summary>RTA bands per octave.</summary>
-    const int RtaResolution = 6;
+    /// <summary>The RTA's band resolutions, in bands per octave.</summary>
+    public static readonly int[] RtaResolutions = [3, 6, 12];
 
-    static readonly double[] RtaCenters = FractionalOctave.Centers(RtaResolution);
-    static readonly float[] RtaFrequencies = [..RtaCenters.Select(static c => (float)c)];
+    /// <summary>The RTA's windows, by their API names.</summary>
+    public static readonly string[] RtaWindows = ["hann", "blackmanHarris", "flatTop", "rectangular"];
 
     volatile bool rtaEnabled;
+    volatile RtaSettings rtaSettings = new(6, 0, SpectrumWindow.Hann);
     int rtaTick;
+    long analyzerSeen;
     PowerSpectrum? rtaSpectrum;
+    SpectrumWindow rtaSpectrumWindow;
     float[]? rtaWindow;
+    float[]? rtaLevels;
 
     /// <summary>Whether WebSocket clients get RTA frames.</summary>
     public bool RtaEnabled {
         get => rtaEnabled;
         set => rtaEnabled = value;
+    }
+
+    /// <summary>Applies an RTA request: on or off, and its resolution, decay and window. Throws on invalid settings.</summary>
+    public void SetRta(RtaRequest request) {
+        var window = Array.IndexOf(RtaWindows, request.Window);
+        if (!RtaResolutions.Contains(request.BandsPerOctave) || window < 0 || request.DecayMs is < 0 or > 10_000) {
+            throw new RigException(
+                400,
+                "The RTA takes 3, 6 or 12 bands per octave, a decay of 0-10000 ms and a hann, blackmanHarris, flatTop or rectangular window."
+            );
+        }
+
+        rtaSettings = new(request.BandsPerOctave, request.DecayMs, (SpectrumWindow)window);
+        rtaEnabled = request.Enabled;
     }
 
     /// <summary>
@@ -51,29 +69,65 @@ public sealed partial class EngineConnection {
         return (spectrum.Mean(), spectrum.Frames, region.SampleRate);
     }
 
-    /// <summary>Meter loop, every other tick: one RTA frame of the latest output.</summary>
+    /// <summary>
+    ///     Meter loop, every other tick: one RTA frame of the latest output, or of the RTA block's signal while one is
+    ///     running (its ring keeps growing). Levels fall with the decay time and rise at once, like a meter.
+    /// </summary>
     void PublishRta(TelemetryRegion region) {
         if (!rtaEnabled || ++rtaTick % 2 != 0) {
             return;
         }
 
-        rtaSpectrum ??= new(AnalysisWindow);
+        var settings = rtaSettings;
+        if (rtaSpectrum is null || rtaSpectrumWindow != settings.Window) {
+            rtaSpectrum = new(AnalysisWindow, settings.Window);
+            rtaSpectrumWindow = settings.Window;
+        }
+
         rtaWindow ??= new float[AnalysisWindow];
-        if (!region.ReadScope(rtaWindow)) {
+        var written = region.AnalyzerWritten;
+        var fromBlock = written != analyzerSeen;
+        analyzerSeen = written;
+        if (!(fromBlock ? region.ReadAnalyzer(rtaWindow) : region.ReadScope(rtaWindow))) {
             return;
         }
 
+        var centers = settings.Centers;
         rtaSpectrum.Clear();
         var levels = rtaSpectrum.AddFrame(rtaWindow)
-            ? FractionalOctave.Bands(rtaSpectrum.Mean(), region.SampleRate, RtaCenters, RtaResolution)
-            : [..RtaCenters.Select(static _ => -200f)];
+            ? FractionalOctave.Bands(rtaSpectrum.Mean(), region.SampleRate, centers, settings.BandsPerOctave)
+            : [..centers.Select(static _ => -200f)];
 
-        // A full-scale sine: power N/4 in its bin (Hann-normalised), so shift by 10 log10(N/2) and the sine's 3 dB.
+        // A full-scale sine: power N/4 in its bin (window-normalised), so shift by 10 log10(N/2) and the sine's 3 dB.
         var offset = (float)(10 * Math.Log10(AnalysisWindow / 2.0) - 10 * Math.Log10(2));
         for (var i = 0; i < levels.Length; i++) {
             levels[i] = Math.Max(-120f, levels[i] - offset);
         }
 
-        hub.Publish(new RtaFrame("rta", RtaFrequencies, levels), ContractsJsonContext.Default.RtaFrame);
+        // Decay: a level falls by 60 dB per decay time (about 30 frames a second, every other one published).
+        if (settings.DecayMs > 0 && rtaLevels is { } previous && previous.Length == levels.Length) {
+            var fall = (float)(60.0 * (2 * MeterInterval.TotalMilliseconds) / settings.DecayMs);
+            for (var i = 0; i < levels.Length; i++) {
+                levels[i] = Math.Max(levels[i], previous[i] - fall);
+            }
+        }
+
+        rtaLevels = levels;
+        hub.Publish(
+            new RtaFrame("rta", settings.Frequencies, levels, fromBlock ? "block" : "output"),
+            ContractsJsonContext.Default.RtaFrame
+        );
+    }
+
+    sealed class RtaSettings(int bandsPerOctave, float decayMs, SpectrumWindow window) {
+        public int BandsPerOctave { get; } = bandsPerOctave;
+
+        public float DecayMs { get; } = decayMs;
+
+        public SpectrumWindow Window { get; } = window;
+
+        public double[] Centers { get; } = FractionalOctave.Centers(bandsPerOctave);
+
+        public float[] Frequencies => [..Centers.Select(static c => (float)c)];
     }
 }

@@ -169,6 +169,20 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task The_rta_takes_its_resolution_decay_and_window() {
+        using var ok = await client.PutAsJsonAsync("/api/v1/rta", new RtaRequest(true, 12, 500, "flatTop"), Token);
+        using var bands = await client.PutAsJsonAsync("/api/v1/rta", new RtaRequest(true, 5), Token);
+        using var window = await client.PutAsJsonAsync("/api/v1/rta", new RtaRequest(true, Window: "kaiser"), Token);
+        using var off = await client.PutAsJsonAsync("/api/v1/rta", new RtaRequest(false), Token);
+
+        Assert.Equal(HttpStatusCode.NoContent, ok.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, bands.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, window.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, off.StatusCode);
+        Assert.False(server.Services.GetRequiredService<EngineConnection>().RtaEnabled);
+    }
+
+    [Fact]
     public async Task Midi_learn_binds_the_next_controller_moved() {
         await Ok(client.PutAsJsonAsync("/api/v1/midi/learn", new MidiLearnRequest("tuner"), Token));
         server.Services.GetRequiredService<MidiRouter>().OnMidi([new(0xB2, 64, 127, 0)]);
