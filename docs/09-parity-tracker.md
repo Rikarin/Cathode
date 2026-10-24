@@ -52,6 +52,8 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | M1.3 | JVM410HJS (Satriani) as its own model | ⏸ | — | 5 relays, 9 gain structures; no published relay table per mode |
 | M1.4 | JVM410H Clean and Crunch channels | ✅ | Remaining_marshall_chains_match_the_reference (JVM, 6 settings) | type `JVM410H Clean/Crunch` |
 | M1.5 | JVM410H Green / Orange / Red modes per channel | ◐ | The_modes_raise_the_gain_in_order | relay states deduced from the handbook (firmware sets them); Clean modes partly guessed |
+| M1.6 | Marshall AFD100 (Slash): AFD and #34 modes, High/Low input | 🟡 | Afd100_modes_and_inputs_set_the_gain; Remaining_marshall_chains_match_the_reference (AFD100, 6 settings: #34 −43 / −38 dB, AFD −44 / −41 dB at 2 / 50 mV; −27 / −24 and −23 / −20 dB with one stage per tube); sweeps, audibility, monotonic gain and master, panel labels (`RemainingMarshallTests`) | type `AFD100`, from AFD100-60-02 iss 1. Which relay state is AFD is inferred (energised = AFD; the CTL1 controller is not drawn); B+, idle, OT, feedback tap guessed; Power control and loop not modelled |
+| M1.7 | AFD100 CPU | ◐ | `Cathode.Bench --amps AFD100` (`--set 14=1` for AFD) | Over the high-gain budget (16 / 28 %) by the user's choice of accuracy, as the Quick Rod: #34 18.8 / 38.6 %, AFD 22.2 / 52.0 % (Plexi 8.3 / 14.7 %); AFD runs five triodes in one circuit (the library's new largest, `TTTTT`). One stage per tube fitted at 17.4 / 29.0 and 16.4 / 25.5 % but was −27 / −23 dB; V5 split from the AFD circuit saves a sixth and costs 11 dB |
 
 ## M2: power-amp driver variants
 
