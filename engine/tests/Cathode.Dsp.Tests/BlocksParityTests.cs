@@ -185,7 +185,10 @@ public class BlocksParityTests {
         var input = Signals.Sine(8_000, Rate, 9_600, 0.5f);
 
         var brightRms = Analysis.Rms(BlockRender.Mono(bright, input, 64).AsSpan(4_800));
-        Assert.True(Analysis.Rms(BlockRender.Mono(dark, input, 64).AsSpan(4_800)) < 0.1 * brightRms);
+        var ratio = Analysis.Rms(BlockRender.Mono(dark, input, 64).AsSpan(4_800)) / brightRms;
+
+        // First order, as in the guide: three octaves above the cut is about 18 dB down.
+        Assert.InRange(Analysis.ToDb(ratio), -20, -16);
     }
 
     // Filter

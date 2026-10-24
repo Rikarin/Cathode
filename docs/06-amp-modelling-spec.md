@@ -437,6 +437,69 @@ none of the drawings give):
   on noise (the 0.25 feedback fraction and the two-triode input).
 - **References**: none of the four amps has a GPL direct-out capture; the JCM900 captures stay on the Plexi stand-in.
 
+**As built (stream B, British vintage and boutique).** Seven types appended to `AmpDesign.All`; each file cites its
+drawing and marks its guesses (mostly the rails, idle currents and output transformers, which none of the drawings give):
+- **1959SLP** and **1987X**, from the factory reissue drawings 1959-01-60-02 issue 2 and 1987-01-60-02 issue 4 (DrTube):
+  `MarshallParts.TwoChannelInput` with the reissues' values (both V1 cathodes 820 Ω, 330 µF on the Inputs 2 half and
+  680 nF on the Inputs 1 half; Inputs 1 couples through 3n3 on the 1959SLP, 22 nF on the 1987X, with 4n7 across its
+  volume and 470 pF across its 470k mixer), V2A with 680 nF on the 1959SLP and unbypassed on the 1987X, the follower on a
+  470 pF / 33k / 22 nF / 22 nF stack (B250K, A1M, B25K; `MarshallVintageParts.ReissueStack`), 1k5 stoppers, and 47k
+  (1959SLP, four EL34) or 100k (1987X, two EL34) of feedback from the 16 Ω tap into the B5K presence pot alone.
+- **1959T Tremolo** (Unicord 70-11-11, 1970): the 1968–70 Super Lead with the tremolo channel's load, 0.1 µF and 93k
+  (10k, the 50k Intensity, 33k) from the normal volume's wiper to ground, which the oscillator's transistor chops when the
+  tremolo runs; here the tremolo is off (no library tremolo), so the load is fixed: the normal channel's first stage is
+  5.5 dB below the Super Lead's at noon. Feedback 47k (the drawing's "47K (100K)") into the 5k presence pot.
+- **Bluesbreaker 1962** (reissue drawing "1962 STD", issues 3 and 4): V1a (Channel II, **150k** plate) and V1b
+  (Channel I, 100k) on a shared 820 Ω with 330 µF as one two-triode network (the JTM45's one-triode trick needs equal
+  plates); 100 pF across both A1M volumes; Channel I's mixer 470k with 220 pF; Channel II's wiper reaches the mixing node
+  through 470k and through 100k plus 470k, the tremolo's 0.22 µF and 320k (FET off, a guess) hanging on the junction;
+  V2a 100k with 1k unbypassed, the follower on 220 pF / 56k / 22 nF / 22 nF (B220K, A1M, B22K), 0.1 µF into 220k leaks,
+  two 5881 (6L6 curves) with 470 Ω screens and no stoppers, a GZ34, 27k of feedback into the 4k7 presence pot.
+- **Hiwatt DR504** (Custom 50): the DR103's four-input preamp, copied with its rails as parameters into
+  `HiwattParts` (the DR103's file is unchanged), with hiwatt.org's 50 W output and supply redraws: two EL34 with 22k
+  stoppers, 100k leaks and 1k5 screens, 460 V from a doubler. `DR504OL.gif` on hiwatt.org is a complete two-input DR504
+  of 1983 with DC voltages and an extra 220k gain stage before the tone network: a later circuit, used only to scale the
+  guessed rails (355 / 395 / 450 V).
+- **Cornford MK50H II** (Martin Kidd's own five sheets, 2011): both channels on Switch 1 via `ChannelSwitchStageDesign`.
+  V1's plate load is 180k under 39k; the Clean channel's stack (330 pF, 68k, 0.1 µF, 33 nF; 250k-L / 250k-A / 25k-L)
+  hangs on that junction with its 1M-A volume (on the Overdrive channel it would move V1's plate load by about 6 % and
+  is left out, for CPU); the Overdrive takes 4.7 nF and
+  100k onto 4k7 and the 250k-A Gain as a variable resistor, V2 (100k, 1k5 ‖ 2.2 µF), 680k ‖ 470 pF onto the 1M-A
+  Overdrive, V3 a 15k cold clipper, 470k ‖ 470 pF over 470k; V4 (220k, 1k5) DC into the V5 follower (cut at V4's
+  plate, as the Marshalls' followers), which drives the Overdrive's stack (220 pF in series with 100k as the treble
+  cap, 43k slope, a 1M-A bass rheostat with 1 nF at its top, 33 nF to the middle's wiper) with 470k into its 25k-L
+  Volume, or the Clean channel's fixed 100k / 15k pad (each channel's network carries only its own path); the loop's
+  return V6 (220k) into 220k and the 1M-A Master as a rheostat; 91k / 100k inverter, two EL34, 10k stoppers, feedback
+  from the 8 Ω tap through 47k and the 1M-A Resonance with 4.7 nF into 4k7 and the 25k Presence. Panel names from
+  Fractal's notes (Gain, Overdrive, Volume, Resonance). Simplified: the Resonance is the library's depth shelf at
+  400 Hz; one master; the loop as a wire.
+- **Tiny Terror** (a vector redraw, not a factory sheet): V1A, then 1 nF and 68k onto 470k and the dual 500k-A Gain's
+  first half (100 pF bright) into V1B (470 pF across its 100k plate load), 68k and 47 nF onto 220k and the Gain's second
+  half into the 12AX7 pair (47k tail), two EL84 on 120 Ω, no feedback. Simplified: the dual 500k Volume between the
+  inverter's coupling caps and the grids is the library's master across the inverter's outputs (`ShuntMaster`), and the
+  Tone (2.2 nF and 500k-L across the grids) is the library's cut across the inverter's plates, which turns the other
+  way (shown as Cut).
+- **Not built**: the **Marshall Major** (Unicord 70-02-12 read: V2B is a cathodyne into an ECC82 push-pull voltage
+  amplifier that drives four KT88 through coupling caps, with no followers, which `DriverChainDesign` assumes; and the
+  feedback returns to V2A's cathode with the tone stack inside the loop: it needs a driver-chain variant and feedback
+  into a preamp stage); the **Orange AD30** (the cd0115 sheet is the main board only: the gain, tone and channel
+  circuits on the front-panel board are not in it).
+- **Library**: no shared code changed. New model-side parts files: `MarshallVintageParts` (the two stacks, a two-channel
+  input with a load on the normal volume's wiper, the Bluesbreaker's input) and `HiwattParts` (a copy of the DR103's
+  preamp stages).
+- **Validation** (`BritishVintageAmpTests`): the preamps as whole chains against the reference simulator with no cuts:
+  1959SLP −63 dB, 1959T −63 dB, Bluesbreaker −47 dB (2 mV and 50 mV), Tiny Terror −58 / −57 dB, Cornford Overdrive
+  V1–V5 −48 dB, Clean V1, V4, V5 −53 dB. Knob sweeps at full drive converge with no non-finite samples and peak below +1 dBFS;
+  every panel control moves the sound; gain and master are monotonic.
+- **References**: no GPL direct-out capture of any of these amps was found (pelennor's list and GuitarML's ToneLibrary
+  searched; ToneLibrary's "PlexiBreed" is a pedal); all ship schematic-only.
+- **CPU** (48 kHz, guitar / loud noise, Gain 7, Master 6, the minimum of three to four passes on a machine at a load
+  average of 30–180, where Plexi read 9.1 / 15.1 % and Plexi 100W 14.4 / 24.0 %): 1959SLP 14.6 / 22.7, 1987X 14.0 /
+  22.2, 1959T 14.5 / 23.1, Bluesbreaker 14.0 / 23.9, Hiwatt DR504 13.1 / 27.6 (DR103 13.5 / 31.9 in the same runs),
+  Cornford Overdrive 15.5 / 23.2 (21.4 / 31.0 before the V4 cut and the per-channel networks), Clean 10.9 / 13.4,
+  Tiny Terror 9.4 / 13.8. The four Marshalls are a little over the crunch budget, as the Plexi 100W they share the
+  two-triode first stage with; the DR504 is over on noise, as the DR103.
+
 ### 3.3 Vox and class-A boutique
 
 **AC30 Top Boost** — https://www.ampbooks.com/mobile/classic-circuits/vox-ac30/, https://www.voxac30.org.uk/vox_ac30_top_boost_circuit.html (JMI OS/010 drawing images on that site)

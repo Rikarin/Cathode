@@ -208,10 +208,12 @@ public interface IDspBlock : IDisposable
 
 Processing is **in place**: the compiler hands each block one buffer that holds its input and receives its output. That is what lets a series chain run in a single buffer.
 
-Optional interfaces a block may add:
+A block that implements **`IRowInputBlock`** takes its cabled inputs one by one, by grid row, instead of their sum: before each `Process` the compiled graph calls `MixInput(row, source, destination)` for every input (latency-aligned), and the block adds them into its buffer as it sees fit. The Multiplexer and the Mixer weigh the rows; the Vocoder (Analysis Source) and the Pitch block (Detector Source) keep one chosen row aside in a side buffer as their analysis signal and sum the rest as usual.
+
+Other optional interfaces a block may add:
 - `IAssetConsumer`: files (a NAM model, an IR) loaded by the compiler before `Prepare`.
 - `IControlRefresh`: derived state rebuilt on the control thread (§5.4).
-- `IRowInputBlock`: takes each cabled input by grid row instead of their sum (Multiplexer, Mixer).
+- `IRowInputBlock`: takes each cabled input by grid row (above).
 - `ISidechainBlock`: offered other signals for its detector (§5.2).
 - `IEngageAware`: told on the audio thread when its bypass target turns from bypassed to active, before the bypass fade starts, so an LFO can restart from a set phase (Flanger and Phaser LFO Bypass Reset, Tremolo Start Phase). A block that starts engaged is not told.
 

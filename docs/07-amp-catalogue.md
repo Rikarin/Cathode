@@ -64,10 +64,10 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | Suhr Badger / SL68 | ⏸ Waiting (an unofficial Badger 18 drawing on MEF is called inaccurate there: the real amp has a dual-ganged gain pot and a plate-driven loop; nothing for the SL68) | — | — | Schematic | 2x12 / 4x12 |
 | Marshall JMP 2204 / 2203 (1970s) | ✅ Covered by JCM800 2203 / 2204 (Marshall's 1978 drawing 78331-1, master-volume column, lists the JCM800 preamp's values) | JCM800 2203, JCM800 2204 | — | US (Unicord, 6550) versions | 4x12 closed |
 | Marshall 18 W (1974X) | ✅ Done (PedalMonkey rev 5 drawing with voltages; tremolo off) | 18 W 1974X | — | Both channels, volume sweep | 2x10 / 1x12 open |
-| Marshall Major 1967 | 📋 Planned (Unicord drawing c.1970: el34world `Marshall_Unicord_Model_1967_circa1970.jpg`, plus layout) | — | — | | 4x12 closed |
+| Marshall Major 1967 | 📋 Planned (Unicord drawing 70-02-12, July 1970, read: DrTube `1967u.gif`; the el34world JPG is a photo of the same sheet. Waits on the library: V2B is a cathodyne driving an ECC82 push-pull voltage amplifier straight into four KT88, with no followers, which `DriverChainDesign` assumes; and the global feedback enters V2A's cathode, so the tone stack sits inside the loop) | — | — | Any capture | 4x12 closed |
 | Marshall DSL / JCM2000 | 📋 Planned (factory DSL100 main board JCM2-60-02 iss 3–9 and DSL50 DL50-60-02 on drtube.com; TSL100 TL10-60-02 vector on el34world) | — | GPL: pelennor "Tim R JCM2000 Clean / Crunch / L2 G6 / L2 G8" (DSL or TSL not stated; not added) | | 4x12 closed |
-| Marshall Bluesbreaker 1962 | 📋 Planned (reissue drawings on el34world and DrTube `1962ri89.gif`; the JTM45 circuit with a tremolo channel) | — | — | | 2x12 open |
-| Hiwatt Custom 50 / DR504 | 📋 Planned (hiwatt.org redraws `DR_50wOutput.pdf`, `DR504OL.gif` and a traced layout; shares the DR103 preamp) | — | — | | 4x12 closed, Fane |
+| Marshall Bluesbreaker 1962 | ✅ Done (reissue drawing "1962 STD" issues 3 and 4, DrTube `1962ri89.gif` and `1962ri93.gif`: both channels and the jumper; the tremolo channel with the tremolo off, its load modelled) | Bluesbreaker 1962 | — | Any capture (no GPL one found) | 2x12 open |
+| Hiwatt Custom 50 / DR504 | ✅ Done (the DR103's four-input preamp redraw with hiwatt.org's 50 W output and supply redraws; `DR504OL.gif` is a complete 1983 two-input DR504 with voltages, a later circuit with an extra gain stage, used only for the rails) | Hiwatt DR504 | — | Normal/Brilliant, jumpered | 4x12 closed, Fane |
 
 ## Vox, class A and boutique
 
@@ -248,16 +248,16 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 
 | Amp | Status | Cathode type | Axe models | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Marshall 1959SLP reissue | 📋 Planned (factory reissue drawing 1959-01-60-02, scanned; el34world and DrTube) | — | 1959SLP Jump / Normal / Treble | | 4x12 closed, Greenback |
-| Marshall 1987X reissue | 📋 Planned (factory drawing 1987-01-60-02 iss 4; the "tone-stack mod" is not documented anywhere found, forums only argue 33k against 56k slope) | — | 1987X Jump / Normal / Treble | | 4x12 closed |
-| Marshall JMP 1959T Super Lead (Tremolo) | 📋 Planned (Unicord 1959T drawing c.1970, el34world JPG; also DrTube `1959tu.gif`) | — | Brit Super | | 4x12 closed |
+| Marshall 1959SLP reissue | ✅ Done (factory drawing 1959-01-60-02 issue 2, DrTube) | 1959SLP | 1959SLP Jump / Normal / Treble | | 4x12 closed, Greenback |
+| Marshall 1987X reissue | ✅ Done (factory drawing 1987-01-60-02 iss 4, as drawn with the 33k slope; the "tone-stack mod" is not documented anywhere found) | 1987X | 1987X Jump / Normal / Treble | | 4x12 closed |
+| Marshall JMP 1959T Super Lead (Tremolo) | ✅ Done (Unicord drawing 70-11-11, July 1970, DrTube `1959tu.gif`; the tremolo off, its load on the normal volume modelled) | 1959T Tremolo | Brit Super | | 4x12 closed |
 | Marshall JMP-1 preamp | 📋 Planned (DrTube `jmp1-61-04.pdf`, 6 sheets, vector; op-amp/tube: needs op-amp elements) | — | Brit Pre, JMPRE-1 OD1 / OD2 (+ bass) | | 4x12 closed |
 | Marshall AFD100 (Slash) | ⏸ Waiting (no public schematic; only the manual) | — | Brit AFS100 1 / 2 | | 4x12 closed |
 | Marshall JVM410HJS (Satriani) | 📋 Planned (factory vector sheets on DrTube: jvm410hjs-60-02 iss 2, -61-02, -62-02; after the JVM410H) | — | JS410 Crunch / Lead | | 4x12 closed, Vintage 30 |
 | Friedman Small Box | ⏸ Waiting (nothing found; GuitarML's `FriedmanSmallBox_GainKnob` may be the pedal and is undocumented) | — | Friedman Small Box | | 2x12 / 4x12 closed |
-| Cornford MK50H II | 📋 Planned (the designer Martin Kidd's own drawing, 2011, 5 sheets, vector with text: el34world `Cornford/Cornford_mk50hii.pdf`) | — | Corncob M50 | Overdrive channel | 4x12 closed |
-| Orange A30 / AD30 | 📋 Planned (factory vector sheet cd0115, 2001: el34world `Orange/Orange_ad30.pdf`) | — | Citrus A30 Clean / Dirty | | 2x12 closed |
-| Orange Tiny Terror | 📋 Planned (vector redraw, not a factory sheet: el34world `Orange/Orange_tiny_terror.pdf`) | — | Citrus Terrier | | 1x12 / 2x12 closed |
+| Cornford MK50H II | ✅ Done (Martin Kidd's own drawing, 2011, 5 sheets: both channels, one of the two masters; no voltages on it) | Cornford MK50H II | Corncob M50 | Overdrive channel | 4x12 closed |
+| Orange A30 / AD30 | ⏸ Waiting (factory sheet cd0115 issue 5, 2000, is the main board only: V1's two stages, the inverter, four EL84 and the supply, with test-point voltages; the gain, tone and channel circuits are on the front-panel board, reached through the GAIN and EQ connectors, and its sheet is not in the file. el34world, schematicheaven and thetubestore have nothing else; their AD15 file is a different amp) | — | Citrus A30 Clean / Dirty | Front-panel board sheet | 2x12 closed |
+| Orange Tiny Terror | ✅ Done (vector redraw, not a factory sheet: el34world `Orange/Orange_tiny_terror.pdf`; 15 W) | Tiny Terror | Citrus Terrier | | 1x12 / 2x12 closed |
 | Orange AD200B (bass) | ⏸ Waiting (no schematic found: searched schematicheaven, el34world, MEF and retailer pages; the MkIII is 2 × ECC83, 1 × ECC81, 4 × 6550, Gain/Bass/Middle/Treble/Volume) | — | Citrus Bass 200 | Any schematic or trace | 4x10 / 8x10 closed |
 | Blankenship Leeds 21 | ⏸ Waiting (nothing found) | — | Blanknshp Leeds | | 1x12 / 2x12 |
 | Vox AC30HW (hand-wired) | ⏸ Waiting (no service schematic found, only the owner's manual; the AC30 (2) is the JMI circuit it reissues) | — | Class-A 30w, 30W Bright, 30w Hot | Service schematic | 2x12 open, Alnico Blue |

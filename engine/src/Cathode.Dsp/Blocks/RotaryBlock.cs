@@ -1,18 +1,30 @@
 using Cathode.Dsp.Filters;
+using Cathode.Dsp.Modulation;
 using Cathode.Dsp.Parameters;
 
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     Rotary speaker (Leslie 122/147 style). The mono input goes through an optional tube-style drive, then a
-///     Linkwitz–Riley crossover splits it between the treble horn and the bass drum. Each rotor is a rotating source
-///     heard by two microphones placed <c>spread</c> degrees apart: the changing path length to each mic is a modulated
-///     delay (Doppler), and the rotor's directivity is an amplitude modulation. The slow/fast switch moves each rotor
-///     towards its new speed with its own acceleration and deceleration inertia, as the real motors and belts do.
+///     Rotary speaker (Leslie 122/147 style). The mono input (Input Select) goes through an optional tube-style drive,
+///     then a Linkwitz–Riley crossover splits it between the treble horn and the bass drum. Each rotor is a rotating
+///     source heard by two microphones, placed HF or LF Mic Spacing degrees apart: the changing path length to each mic is
+///     a modulated delay (Doppler), and the rotor's directivity is an amplitude modulation. The speed switch moves each
+///     rotor towards its new speed with its own acceleration and deceleration inertia, as the real motors and belts do;
+///     Brake stops (parks) both rotors.
 /// </summary>
 /// <remarks>
-///     Rotor speed approaches its target exponentially; the acceleration and deceleration times are the time to
-///     come within 5 % of the new speed (three time constants).
+///     <para>
+///         Rotor speed approaches its target exponentially; the acceleration and deceleration times are the time to
+///         come within 5 % of the new speed (three time constants). With Tempo set, the horn turns once per division
+///         and the drum keeps the ratio its own rates have at that speed.
+///     </para>
+///     <para>
+///         At 100 % Mic Distance the mics are far away: the path length varies as the cosine of the rotor angle, and
+///         only the rotor's directivity changes the level. Closer, the geometry is exact: the path from a mouth on a
+///         circle to a mic <c>k</c> radii from its axis is <c>√(k² + 1 − 2k cos θ)</c> radii, with the level falling
+///         as one over it, so the sweep turns lopsided and the near pass louder. Rotor Length scales the horn's radius
+///         (and so its Doppler).
+///     </para>
 /// </remarks>
 public sealed class RotaryBlock() : DspBlock(Info) {
     public const int Speed = 0;
@@ -35,7 +47,18 @@ public sealed class RotaryBlock() : DspBlock(Info) {
     public const int Mix = 17;
     public const int Level = 18;
     public const int Balance = 19;
-    public const int InputSelect = 20;
+    public const int Tempo = 20;
+    public const int RotorLength = 21;
+    public const int DrumSpread = 22;
+    public const int MicDistance = 23;
+    public const int StereoSpread = 24;
+    public const int InputSelect = 25;
+
+    public const int Slow = 0;
+    public const int Fast = 1;
+    public const int Brake = 2;
+
+    const float MaxRotorLength = 2f;
 
     /// <summary>Peak Doppler path-length change of the horn, in ms (a ~17 cm horn radius).</summary>
     public const float MaxHornExcursionMs = 0.5f;
@@ -77,7 +100,7 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         "Rotary",
         "Modulation",
         [
-            ParamDescriptor.Choice("speed", "Speed", ["Slow", "Fast"]),
+            ParamDescriptor.Choice("speed", "Speed", ["Slow", "Fast", "Brake"]),
             ParamDescriptor.Float("hornSlow", "Horn Slow", 0.1f, 3f, 0.83f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("hornFast", "Horn Fast", 2f, 10f, 6.7f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("drumSlow", "Drum Slow", 0.1f, 3f, 0.67f, "Hz", ParamTaper.Log),
@@ -90,13 +113,18 @@ public sealed class RotaryBlock() : DspBlock(Info) {
             ParamDescriptor.Float("hornDepth", "Horn Doppler", 0f, 100f, 50f, "%"),
             ParamDescriptor.Float("drumDepth", "Drum Doppler", 0f, 100f, 50f, "%"),
             ParamDescriptor.Float("amDepth", "AM Depth", 0f, 100f, 50f, "%"),
-            ParamDescriptor.Float("spread", "Mic Spread", 0f, 180f, 120f, "°"),
+            ParamDescriptor.Float("spread", "HF Mic Spacing", 0f, 180f, 120f, "°"),
             ParamDescriptor.Float("hornLevel", "Horn Level", Decibels.SilenceDb, 12f, 0f, "dB"),
             ParamDescriptor.Float("drumLevel", "Drum Level", Decibels.SilenceDb, 12f, 0f, "dB"),
             ParamDescriptor.Float("drive", "Drive", 0f, 100f, 0f, "%"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
+            ParamDescriptor.Float("rotorLength", "Rotor Length", 50f, 100f * MaxRotorLength, 100f, "%"),
+            ParamDescriptor.Float("drumSpread", "LF Mic Spacing", 0f, 180f, 120f, "°"),
+            ParamDescriptor.Float("micDistance", "Mic Distance", 0f, 100f, 100f, "%"),
+            ParamDescriptor.Float("stereoSpread", "Stereo Spread", -100f, 100f, 100f, "%"),
             ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions)
         ],
         maxInstances: 2
@@ -109,20 +137,20 @@ public sealed class RotaryBlock() : DspBlock(Info) {
     static float Directivity(float depth, float cosAngle) => 1 - depth * 0.5f * (1 - cosAngle);
 
     /// <summary>
-    ///     Soft tube-style saturation, blended in with <paramref name="drive" /> (0..1). At 0 it is an exact
-    ///     bypass; at full drive small signals gain up to 24 dB and peaks round off.
+    ///     The near-field path of a rotor to a mic <paramref name="k" /> radii from its axis, at
+    ///     <paramref name="cosAngle" />: the change in path length in radii (−1 facing, +1 away) and the inverse-distance
+    ///     level relative to facing it.
     /// </summary>
-    static float Saturate(float x, float drive) {
-        if (drive <= 0) {
-            return x;
-        }
-
-        var gain = 1 + 15 * drive;
-        return (1 - drive) * x + drive * MathF.Tanh(gain * x) / MathF.Tanh(gain);
+    public static (float Path, float Level) NearField(float k, float cosAngle) {
+        var distance = MathF.Sqrt(k * k + 1 - 2 * k * cosAngle);
+        return (distance - k, (k - 1) / distance);
     }
 
+    /// <summary>The mic's distance in rotor radii for Mic Distance below 100 % (0 % is 1.2 radii, 99 % about 10).</summary>
+    static float Radii(float distance) => 1.2f + 8.8f * distance;
+
     protected override void OnPrepare(in ProcessSpec spec) {
-        var maxExcursion = Math.Max(MaxHornExcursionMs, MaxDrumExcursionMs) * 0.001 * spec.SampleRate;
+        var maxExcursion = Math.Max(MaxRotorLength * MaxHornExcursionMs, MaxDrumExcursionMs) * 0.001 * spec.SampleRate;
         var capacity = (int)Math.Ceiling(2 * maxExcursion) + 16;
         hornLine.Allocate(capacity);
         drumLine.Allocate(capacity);
@@ -136,9 +164,10 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         high1.Reset();
         high2.Reset();
         SetCrossover(Params.Current(Crossover));
-        var fast = Params.Current(Speed) >= 0.5f;
-        hornRate = Params.Current(fast ? HornFast : HornSlow);
-        drumRate = Params.Current(fast ? DrumFast : DrumSlow);
+        var speed = (int)Params.Current(Speed);
+        var fast = speed == Fast;
+        hornRate = speed == Brake ? 0 : Params.Current(fast ? HornFast : HornSlow);
+        drumRate = speed == Brake ? 0 : Params.Current(fast ? DrumFast : DrumSlow);
         hornPhase = 0;
         drumPhase = DrumStartPhase;
         mix = Params.Current(Mix) / 100f;
@@ -159,11 +188,23 @@ public sealed class RotaryBlock() : DspBlock(Info) {
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var rate = Spec.SampleRate;
         var n = io.Length;
-        var fast = Params.Current(Speed) >= 0.5f;
+        var speed = (int)Params.Current(Speed);
+        var fast = speed == Fast;
         var hornTarget = (double)Params.Advance(fast ? HornFast : HornSlow, n);
         var drumTarget = (double)Params.Advance(fast ? DrumFast : DrumSlow, n);
         Params.Advance(fast ? HornSlow : HornFast, n);
         Params.Advance(fast ? DrumSlow : DrumFast, n);
+        var tempo = (int)Params.Current(Tempo);
+        if (tempo > 0 && context.Tempo > 0) {
+            var horn = TempoDivisions.Rate(tempo, context.Tempo, hornTarget);
+            drumTarget *= horn / hornTarget;
+            hornTarget = horn;
+        }
+
+        if (speed == Brake) {
+            (hornTarget, drumTarget) = (0, 0);
+        }
+
         var hornUp = Inertia(Params.Advance(HornAccel, n), rate);
         var hornDown = Inertia(Params.Advance(HornDecel, n), rate);
         var drumUp = Inertia(Params.Advance(DrumAccel, n), rate);
@@ -173,14 +214,22 @@ public sealed class RotaryBlock() : DspBlock(Info) {
             SetCrossover(crossover);
         }
 
-        var hornExcursion = Params.Advance(HornDepth, n) / 100f * MaxHornExcursionMs * 0.001f * (float)rate;
+        // A longer horn needs more room either side of the centre; up to the standard length the centre stays put.
+        var length = Params.Advance(RotorLength, n) / 100f;
+        var hornExcursion = Params.Advance(HornDepth, n) / 100f * MaxHornExcursionMs * 0.001f * (float)rate * length;
         var drumExcursion = Params.Advance(DrumDepth, n) / 100f * MaxDrumExcursionMs * 0.001f * (float)rate;
-        var hornCentre = MaxHornExcursionMs * 0.001f * (float)rate + FractionalDelayLine.MinDelay;
+        var hornCentre = Math.Max(1f, length) * MaxHornExcursionMs * 0.001f * (float)rate + FractionalDelayLine.MinDelay;
         var drumCentre = MaxDrumExcursionMs * 0.001f * (float)rate + FractionalDelayLine.MinDelay;
         var am = Params.Advance(AmDepth, n) / 100f;
         var hornAm = am * HornAmScale;
         var drumAm = am * DrumAmScale;
-        var micOffset = Params.Advance(Spread, n) / 720.0; // each mic sits half the spread off axis, in cycles
+        var micOffset = Params.Advance(Spread, n) / 720.0; // each mic sits half the spacing off axis, in cycles
+        var drumOffset = Params.Advance(DrumSpread, n) / 720.0;
+        var distance = Params.Advance(MicDistance, n) / 100f;
+        var far = distance >= 1f;
+        var radii = Radii(distance);
+        var stereoSpread = Params.Advance(StereoSpread, n) / 100f;
+        var select = (int)Params.Current(InputSelect);
         var drive = Params.Advance(Drive, n) / 100f;
 
         var hornGain = Decibels.ToGain(Params.Advance(HornLevel, n));
@@ -192,30 +241,38 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         var mix = Params.Advance(Mix, n) / 100f;
         var mixStep = (mix - this.mix) / n;
         var currentMix = this.mix;
-        var inputSelect = (int)Params.Current(InputSelect);
 
         for (var i = 0; i < n; i++) {
             var left = io.Left[i];
             var right = io.Right[i];
-            var input = (double)Saturate(Stereo.Select(inputSelect, left, right), drive);
+            var input = (double)SoftDrive.Apply(Stereo.Select(select, left, right), drive);
             var bass = low2.Tick(lowPass, low1.Tick(lowPass, input));
             var treble = high2.Tick(highPass, high1.Tick(highPass, input));
 
             // Angles between each rotor and each mic, in radians.
             var hornLeft = (float)(2 * Math.PI * (hornPhase + micOffset));
             var hornRight = (float)(2 * Math.PI * (hornPhase - micOffset));
-            var drumLeft = (float)(2 * Math.PI * (drumPhase + micOffset));
-            var drumRight = (float)(2 * Math.PI * (drumPhase - micOffset));
+            var drumLeft = (float)(2 * Math.PI * (drumPhase + drumOffset));
+            var drumRight = (float)(2 * Math.PI * (drumPhase - drumOffset));
             var hornCosLeft = MathF.Cos(hornLeft);
             var hornCosRight = MathF.Cos(hornRight);
             var drumCosLeft = MathF.Cos(drumLeft);
             var drumCosRight = MathF.Cos(drumRight);
 
             // A rotor facing the mic is nearest (shortest delay) and loudest.
-            var hornL = hornLine.Read(hornCentre - hornExcursion * hornCosLeft) * Directivity(hornAm, hornCosLeft);
-            var hornR = hornLine.Read(hornCentre - hornExcursion * hornCosRight) * Directivity(hornAm, hornCosRight);
-            var drumL = drumLine.Read(drumCentre - drumExcursion * drumCosLeft) * Directivity(drumAm, drumCosLeft);
-            var drumR = drumLine.Read(drumCentre - drumExcursion * drumCosRight) * Directivity(drumAm, drumCosRight);
+            float hornL, hornR, drumL, drumR;
+            if (far) {
+                hornL = hornLine.Read(hornCentre - hornExcursion * hornCosLeft) * Directivity(hornAm, hornCosLeft);
+                hornR = hornLine.Read(hornCentre - hornExcursion * hornCosRight) * Directivity(hornAm, hornCosRight);
+                drumL = drumLine.Read(drumCentre - drumExcursion * drumCosLeft) * Directivity(drumAm, drumCosLeft);
+                drumR = drumLine.Read(drumCentre - drumExcursion * drumCosRight) * Directivity(drumAm, drumCosRight);
+            } else {
+                hornL = Near(hornLine, hornCentre, hornExcursion, hornAm, radii, hornCosLeft);
+                hornR = Near(hornLine, hornCentre, hornExcursion, hornAm, radii, hornCosRight);
+                drumL = Near(drumLine, drumCentre, drumExcursion, drumAm, radii, drumCosLeft);
+                drumR = Near(drumLine, drumCentre, drumExcursion, drumAm, radii, drumCosRight);
+            }
+
             hornLine.Write((float)treble);
             drumLine.Write((float)bass);
 
@@ -224,6 +281,7 @@ public sealed class RotaryBlock() : DspBlock(Info) {
             currentMix += mixStep;
             var wetLeft = hornL * currentHornGain + drumL * currentDrumGain;
             var wetRight = hornR * currentHornGain + drumR * currentDrumGain;
+            Stereo.Spread(ref wetLeft, ref wetRight, stereoSpread);
             io.Left[i] = left + (wetLeft - left) * currentMix;
             io.Right[i] = right + (wetRight - right) * currentMix;
 
@@ -244,6 +302,12 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         this.drumGain = drumGain;
         this.mix = mix;
         output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
+    }
+
+    /// <summary>One rotor heard by one mic in the near field.</summary>
+    static float Near(FractionalDelayLine line, float centre, float excursion, float am, float radii, float cosAngle) {
+        var (path, level) = NearField(radii, cosAngle);
+        return line.Read(centre + excursion * path) * level * Directivity(am, cosAngle);
     }
 
     /// <summary>Fourth-order Linkwitz–Riley split: two cascaded Butterworth sections per side.</summary>

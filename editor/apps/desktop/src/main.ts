@@ -1,6 +1,6 @@
 import { BrowserWindow, app, ipcMain, net, protocol, session, shell } from 'electron';
-import { existsSync } from 'node:fs';
-import { join, normalize, resolve, sep } from 'node:path';
+import { existsSync, statSync } from 'node:fs';
+import { extname, join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { type AudioSettings, type ServerTarget, loadSettings, saveSettings } from './settings';
 import { type Connection, type IrCaptureOptions, Sidecars, listDevices, waitForServer } from './sidecars';
@@ -67,13 +67,24 @@ function serveEditor(): void {
   protocol.handle(Scheme, async request => {
     const { pathname } = new URL(request.url);
     const file = normalize(join(editorRoot, decodeURIComponent(pathname)));
-    // Refuse anything outside the editor build; unknown paths get the app shell (hash routing makes that rare).
-    const target = file.startsWith(editorRoot + sep) && existsSync(file) ? file : join(editorRoot, 'index.html');
+    // Refuse anything outside the editor build. Paths without an extension, like the root a reload asks for
+    // (app://editor/#/irs), get the app shell; a missing file is a 404, so a page older than the build fails to load a
+    // chunk instead of being handed the shell as JavaScript.
+    const inside = file.startsWith(editorRoot + sep);
+    if (inside && extname(file) && !isFile(file)) {
+      return new Response('Not found', { status: 404 });
+    }
+
+    const target = inside && isFile(file) ? file : join(editorRoot, 'index.html');
     const response = await net.fetch(pathToFileURL(target).toString());
     const headers = new Headers(response.headers);
     headers.set('Content-Security-Policy', contentSecurityPolicy());
     return new Response(response.body, { status: response.status, headers });
   });
+}
+
+function isFile(path: string): boolean {
+  return statSync(path, { throwIfNoEntry: false })?.isFile() ?? false;
 }
 
 function createWindow(): void {

@@ -12,16 +12,21 @@ namespace Cathode.Dsp.Filters;
 ///     quickly. Use this, not a direct-form biquad, for any filter whose parameters can be modulated.
 /// </remarks>
 public readonly record struct SvfCoefficients(double A1, double A2, double A3, double M0, double M1, double M2) {
+    /// <summary>
+    ///     RBJ-equivalent design. Shelf Q is limited to <paramref name="maxShelfQ" /> (by default
+    ///     <see cref="BiquadCoefficients.MaxShelfQ" />); a higher limit lets a shelf overshoot at its corner.
+    /// </summary>
     public static SvfCoefficients Design(
         BiquadType type,
         double sampleRate,
         double frequency,
         double q,
-        double gainDb = 0
+        double gainDb = 0,
+        double maxShelfQ = BiquadCoefficients.MaxShelfQ
     ) {
         var f0 = Math.Clamp(frequency, 1.0, sampleRate * 0.49);
         q = type is BiquadType.LowShelf or BiquadType.HighShelf
-            ? Math.Clamp(q, 1e-3, BiquadCoefficients.MaxShelfQ)
+            ? Math.Clamp(q, 1e-3, maxShelfQ)
             : Math.Max(q, 1e-3);
         var a = Math.Pow(10.0, gainDb / 40.0);
         var g = Math.Tan(Math.PI * f0 / sampleRate);

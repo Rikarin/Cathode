@@ -138,7 +138,7 @@ public static class FactoryBlockPresets {
         P("wah", "Fixed Mid Boost", ("type", 0), ("position", 60), ("resonance", 1.5f)),
 
         // Pitch.
-        P("pitch", "Detune Thickener", ("type", 0), ("detune", 8), ("voice1Delay", 12), ("voice2Delay", 18), ("mix", 40)),
+        P("pitch", "Detune Thickener", ("type", 0), ("detune1", 8), ("detune2", -8), ("voice1Delay", 12), ("voice2Delay", 18), ("mix", 40)),
         P("pitch", "Octave Up and Down", ("type", 1), ("voice1Shift", 12), ("voice2Shift", -12), ("mix", 40)),
         P("pitch", "Fifth Up", ("type", 1), ("voice1Shift", 7), ("voice2Level", -80), ("voice1Pan", 0), ("mix", 40)),
         P("pitch", "Harmony Thirds", ("type", 2), ("voice1Harmony", 16), ("voice2Level", -80), ("voice1Pan", 0), ("mix", 50)),

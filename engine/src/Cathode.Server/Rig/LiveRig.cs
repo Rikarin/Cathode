@@ -326,12 +326,26 @@ public sealed partial class LiveRig(
                 var stored = block.Channel(target);
                 var sent = new List<ParamValue>();
                 var recompile = false;
+                var typeParam = descriptor.IndexOf("type") is var typeIndex and >= 0 ? descriptor.Params[typeIndex] : null;
+                var typeChanged = typeParam is not null
+                    && values.TryGetValue("type", out var type)
+                    && typeParam.Sanitize(type) != stored.GetValueOrDefault("type", typeParam.Default);
                 foreach (var (param, raw) in values) {
                     var descriptorParam = descriptor.Params[descriptor.IndexOf(param)];
                     var value = descriptorParam.Sanitize(raw);
                     recompile |= descriptorParam.Recompile && stored.GetValueOrDefault(param, descriptorParam.Default) != value;
                     stored[param] = value;
                     sent.Add(new(id, param, value));
+                }
+
+                // A new model starts from its own defaults, not the old one's settings (values sent with it still win).
+                if (typeChanged) {
+                    foreach (var param in descriptor.TypeResets.Where(r => !values.ContainsKey(r))) {
+                        var value = descriptor.Params[descriptor.IndexOf(param)].Default;
+                        recompile |= descriptor.Params[descriptor.IndexOf(param)].Recompile;
+                        stored[param] = value;
+                        sent.Add(new(id, param, value));
+                    }
                 }
 
                 if (target == state.Channel && recompile) {

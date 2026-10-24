@@ -14,9 +14,9 @@ public class SynthBlockTests {
     [InlineData(330.0, 7f)]
     public void Oscillator_follows_the_input_pitch_plus_its_shift(double frequency, float shift) {
         using var synth = Create(
-            (SynthBlock.Voice1Shape, 0f), // sine, so the peak is the oscillator's own frequency
-            (SynthBlock.Voice1Shift, shift),
-            (SynthBlock.Cutoff, 20_000f)
+            (SynthBlock.VoiceParam(0, SynthBlock.Shape), 0f), // sine, so the peak is the oscillator's own frequency
+            (SynthBlock.VoiceParam(0, SynthBlock.Shift), shift),
+            (SynthBlock.VoiceParam(0, SynthBlock.Cutoff), 20_000f)
         );
 
         var output = BlockRender.Mono(synth, PitchTrackerTests.HarmonicTone(frequency, 48_000), 64)[12_000..];
@@ -27,7 +27,11 @@ public class SynthBlockTests {
 
     [Fact]
     public void Saw_voice_has_a_full_harmonic_series_at_the_tracked_pitch() {
-        using var synth = Create((SynthBlock.Voice1Shape, 2f), (SynthBlock.Cutoff, 20_000f), (SynthBlock.EnvAmount, 0f));
+        using var synth = Create(
+            (SynthBlock.VoiceParam(0, SynthBlock.Shape), 2f),
+            (SynthBlock.VoiceParam(0, SynthBlock.Cutoff), 20_000f),
+            (SynthBlock.EnvAmount, 0f)
+        );
 
         var output = BlockRender.Mono(synth, Signals.Sine(110, Rate, 48_000, 0.5f), 64)[12_000..];
 
@@ -59,8 +63,8 @@ public class SynthBlockTests {
     [Fact]
     public void Amplitude_follows_the_input_and_closes_after_the_note() {
         using var synth = Create(
-            (SynthBlock.Voice1Shape, 0f),
-            (SynthBlock.Cutoff, 20_000f),
+            (SynthBlock.VoiceParam(0, SynthBlock.Shape), 0f),
+            (SynthBlock.VoiceParam(0, SynthBlock.Cutoff), 20_000f),
             (SynthBlock.Release, 20f)
         );
         var input = Signals.Concat(

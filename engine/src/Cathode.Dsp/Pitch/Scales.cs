@@ -40,6 +40,26 @@ public static class Scales {
     /// <summary>Each scale's pitch classes above its root as a 12-bit mask, bit 0 = the root.</summary>
     static readonly int[] Masks = [..Intervals.Select(static degrees => degrees.Aggregate(0, static (mask, d) => mask | 1 << d))];
 
+    /// <summary>Five-limit just intonation: the ratio of each semitone above the key's root.</summary>
+    static readonly double[] Just = [1, 16 / 15.0, 9 / 8.0, 6 / 5.0, 5 / 4.0, 4 / 3.0, 45 / 32.0, 3 / 2.0, 8 / 5.0, 5 / 3.0, 9 / 5.0, 15 / 8.0];
+
+    /// <summary>
+    ///     The pitch ratio that moves <paramref name="note" /> by <paramref name="semitones" /> in just intonation on
+    ///     <paramref name="key" />: both notes are placed on the key's five-limit scale and the ratio is theirs, so a
+    ///     harmony a major third over the root is exactly 5/4 rather than the equal-tempered 1.2599. A fractional part
+    ///     of <paramref name="semitones" /> stays equal-tempered.
+    /// </summary>
+    public static double JustRatio(int note, int key, double semitones) {
+        var whole = (int)Math.Round(semitones);
+        var from = note - key;
+        return JustPosition(from + whole) / JustPosition(from) * Math.Pow(2, (semitones - whole) / 12);
+    }
+
+    static double JustPosition(int relative) {
+        var octave = (int)Math.Floor(relative / 12.0);
+        return Math.Pow(2, octave) * Just[relative - 12 * octave];
+    }
+
     /// <summary>Whether <paramref name="scale" /> is a minor one: a minor third above its root and no major third.</summary>
     public static bool IsMinor(int scale) {
         var mask = Masks[Math.Clamp(scale, 0, Masks.Length - 1)];
