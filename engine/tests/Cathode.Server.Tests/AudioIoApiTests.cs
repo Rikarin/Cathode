@@ -1,6 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using Cathode.Contracts;
+using Cathode.Dsp.Amp;
+using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Cabinets;
 using Cathode.Engine.Rig;
 
 namespace Cathode.Server.Tests;
@@ -103,6 +106,43 @@ public sealed class AudioIoApiTests : IAsyncLifetime {
         Assert.Equal(100f, resonance.Percent);
         Assert.InRange(resonance.BaseHz, 40, 200);
         Assert.Equal(resonance.BaseHz, resonance.Hz, 6);
+    }
+
+    [Fact]
+    public async Task The_speaker_resonance_follows_the_cab_after_the_amp() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("circuitamp", Preset.DefaultRow, 3));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("cab", Preset.DefaultRow, 4));
+        var live = (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!;
+        if (!live.Preset.Cables.Any(static c => c is { From: "circuitamp1", To: "cab1" })) {
+            await Post("/api/v1/live/cables", new CableRequest("circuitamp1", "cab1"));
+        }
+
+        var cab = CabBlock.Info.Params;
+        var closed = CabCatalogue.Enclosures.ToList().FindIndex(static e => e.Name == "4x12 Closed Back");
+        await Patch("cab1", new() { [cab[CabBlock.SlotParam(0, CabBlock.Cab)].Id] = closed });
+        await Patch("cab1", new() { [cab[CabBlock.SlotParam(0, CabBlock.Speaker)].Id] = 7 });
+        await Patch("circuitamp1", new() { ["speaker"] = CircuitAmpBlock.SpeakerAuto });
+
+        var followed = await Resonance();
+        Assert.Equal(AutoSpeaker.For(closed, 7)!.Resonance, followed.BaseHz, 6);
+
+        // A different speaker in the Cab moves the amp's load with it.
+        await Patch("cab1", new() { [cab[CabBlock.SlotParam(0, CabBlock.Speaker)].Id] = 8 });
+        Assert.Equal(AutoSpeaker.For(closed, 8)!.Resonance, (await Resonance()).BaseHz, 6);
+
+        // Muted, the Cab synthesises nothing to follow: the model's own load.
+        await Patch("cab1", new() { [cab[CabBlock.SlotParam(0, CabBlock.Mute)].Id] = 1 });
+        var type = (int)CircuitAmpBlock.Info.Params[CircuitAmpBlock.Type].Default;
+        Assert.Equal(CircuitAmpBlock.SpeakerResonanceHz(type, 0), (await Resonance()).BaseHz, 6);
+
+        async Task<SpeakerResonanceInfo> Resonance() =>
+            (await client.GetFromJsonAsync<SpeakerResonanceInfo>(
+                "/api/v1/live/blocks/circuitamp1/speaker-resonance",
+                Token
+            ))!;
+
+        Task Patch(string block, Dictionary<string, float> values) =>
+            Ok(client.PatchAsJsonAsync($"/api/v1/live/blocks/{block}/params", values, Token));
     }
 
     float Rig(string id) => server.Host.Engine.Rig.GetTarget(RigControls.Descriptor.IndexOf(id));

@@ -10,7 +10,7 @@ import { resonancePercent, sweepFrequency, sweepPosition } from './cab-resonance
 /**
  * The cab resonance helper on the Circuit Amp (docs/08-blocks-parity.md §2): a sine plays in place of the amp's output,
  * through the cab and whatever follows, while you sweep it to where the cabinet booms loudest; Apply writes that
- * frequency into LF Resonance, so the amp's speaker load resonates where the cab does. The tone lives in the engine
+ * frequency into Load resonance, so the amp's speaker load resonates where the cab does. The tone lives in the engine
  * only: nothing is added to the preset, and closing the helper (or leaving the block) stops it.
  */
 @Component({
@@ -60,12 +60,12 @@ import { resonancePercent, sweepFrequency, sweepPosition } from './cab-resonance
           <span class="w-16 text-right tabular-nums">{{ level() }} dB</span>
         </label>
         <p class="text-foreground-muted text-xs">
-          LF Resonance {{ percent().toFixed(0) }} % (the model's speaker resonates at {{ baseHz().toFixed(0) }} Hz at
+          Load resonance {{ percent().toFixed(0) }} % (the speaker load resonates at {{ baseHz().toFixed(0) }} Hz at
           100 %).
         </p>
         <div class="flex gap-2">
           <button xuiButton size="sm" type="button" data-testid="apply-resonance" (click)="apply()">
-            Apply as LF Resonance
+            Apply as Load resonance
           </button>
           <button xuiButton size="sm" variant="ghost" type="button" (click)="stop()">Cancel</button>
         </div>
@@ -134,7 +134,7 @@ export class CabResonanceHelper {
       resonancePercent(this.frequency(), this.baseHz())
     );
     await this.stop();
-    this.notify.success(`LF Resonance set for ${this.frequency().toFixed(0)} Hz.`);
+    this.notify.success(`Load resonance set for ${this.frequency().toFixed(0)} Hz.`);
   }
 
   protected async stop(): Promise<void> {

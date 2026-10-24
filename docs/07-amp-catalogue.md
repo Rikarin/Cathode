@@ -6,6 +6,11 @@ Every real amp we model, plan to model, or might model, with where it stands in 
 - **Amp captures** (NAM or GuitarML, *direct out / amp only*, no cab or mic) are what the reference harness matches a
   circuit model against. Note the knob settings and the input calibration (dBu at 0 dBFS) with every capture you find.
 - **Cab IRs** go in the Cab block after the amp. The "Typical cab" column says what the amp is usually heard through.
+- **Speaker load vs cab.** The Circuit Amp's *Speaker load* is the speaker as the power amp's electrical load (its
+  impedance peak and HF rise, which shape the power amp's response, clipping and sag); the Cab block is what the
+  speaker, box and mic sound like. Set *Speaker load* to **Follow Cab** and the amp takes the load of the speaker and
+  cabinet chosen in the next Cab block (from that speaker's Thiele–Small data), so a "Typical cab" picked there sets
+  both. See `docs/06-amp-modelling-spec.md` §1, speaker page.
 - Add a capture you found to `engine/tests/assets/references/manifest.json` (see `docs/06-amp-modelling-spec.md` §4).
   Tone3000 ("T3K" licence) and CC BY-NC files are local-only: never commit them.
 

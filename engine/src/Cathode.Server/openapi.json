@@ -2336,7 +2336,7 @@
         "tags": [
           "Live"
         ],
-        "summary": "A Circuit Amp\u0027s speaker resonance: the frequency at LF Resonance 100 % for its model and speaker, the current setting and the frequency it gives.",
+        "summary": "A Circuit Amp\u0027s speaker load resonance: the frequency at Load resonance 100 % for its model and Speaker load (with Follow Cab, the followed Cab\u0027s speaker), the current setting and the frequency it gives.",
         "operationId": "GetSpeakerResonance",
         "parameters": [
           {
@@ -5808,7 +5808,7 @@
             "format": "double"
           }
         },
-        "description": "A Circuit Amp\u0027s speaker resonance: the model\u0027s (or the chosen speaker\u0027s) frequency at LF Resonance 100 %, the\nLF Resonance setting, and the frequency it gives."
+        "description": "A Circuit Amp\u0027s speaker load resonance: the model\u0027s (or the chosen load\u0027s; with Follow Cab, the followed Cab\u0027s\nspeaker\u0027s) frequency at Load resonance 100 %, the Load resonance setting, and the frequency it gives."
       },
       "Stream": {
         "type": "string",

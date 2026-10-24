@@ -8,7 +8,7 @@ describe('cab resonance helper', () => {
     expect(sweepPosition(sweepFrequency(0.3))).toBeCloseTo(0.3, 6);
   });
 
-  it('turns the found frequency into LF Resonance in percent of the model', () => {
+  it('turns the found frequency into Load resonance in percent of the model', () => {
     expect(resonancePercent(120, 100)).toBe(120);
     expect(resonancePercent(85, 105)).toBe(81);
     expect(resonancePercent(10, 100)).toBe(25); // clamped to the parameter's range
