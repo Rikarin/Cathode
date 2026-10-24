@@ -130,6 +130,8 @@ All with defaults that leave the earlier sound bit-identical, except the Delay m
 - **Cab:** 🆕 Smoothing (fractional-octave, minimum-phase correction that keeps the onset), a continuous Proximity with Proximity Freq, the room page (size, shape, floor reflection, HF and LF damping, diffusion) and the mic preamp's Bass, Mid and Treble.
 - **Circuit Amp:** 🆕 Input Boost (six Drive circuits at the amp's oversampled rate), Saturation (a diode-style clipper between preamp and power amp), Input Filter and Definition, an Output EQ on the Graphic EQ's layouts at the input, before the power amp or at the output, Input Dynamics, an Output Compressor (Output/Feedback types, clarity), Speaker Drive, Thump with Cab Resonance, Speaker Compression with its time constant, Bias Tremolo and Balance (36 parameters, `Amp/AmpInserts.cs`). The knobs are read on a fixed 64-frame grid, so the output no longer depends on the host's block size.
 
+**Presets, scenes and routing stream (PS).** The features of Fractal's *Presets* page that Cathode lacked (§9). Mix laws per block (§3): constant power on Chorus, Flanger, Phaser, Reverb, Multitap, Rotary, Ten-Tap and Drive, the sweetened law on Delay, dry at 0 dB on the Vocoder, linear elsewhere, through one helper (`MixLaw`, `MixRamp`); this changes the sound at partial Mix on purpose, and the golden renders of chorus, flanger, phaser, reverb, multidelay and tentap were regenerated (Delay's default render ends before its first echo, so it is unchanged). 🆕 **Kill Dry** (`killDry`) on Delay, Multitap, Pitch, Plex and Reverb. Engine: per-block output meters and an ITU-R BS.1770 loudness meter on the output in the telemetry (layout v5), a spillover switch, the grid loop handed over across a preset change, and modifiers switched per channel. Measured cost (min of passes, 48 kHz / 64): delay 0.59 %, multidelay 0.72 %, reverb 2.81 %, chorus 0.27 %, flanger 0.86 %, phaser 0.43 %, tentap 0.51 %, rotary 0.34 %, vocoder 1.40 %, pitch 2.31 %, plex 2.33 %, drive 13.9 %: all within noise of `BlockCosts.cs`.
+
 ### 1.3 CPU costs to regenerate
 
 After the merge with P3 and the amp streams, `BlockCosts.cs` was regenerated (`--write`), so it now holds the engine and global stream's new blocks (**input**, **output**, **rta**) and the changed ones.
@@ -161,8 +163,9 @@ Cathode's `input` and `output` are built-in grid cells that the graph compiler r
 
 | Guide parameter | Cathode | Note | Effort |
 |---|---|---|---|
-| Mix (wet/dry, 50 % = −6 dB each) | ✅ | Every wet/dry block uses the linear crossfade with that law |  |
-| Delay mix law (wet full at 50 %, dry fades after) | 🆕 ✅ | Delay block only, as in the guide |  |
+| Mix (wet/dry) and its law | 🆕 ✅ | Per block, from one helper (`MixLaw`): **constant power** (dry and wet −3 dB at 50 %) on Chorus, Flanger, Phaser, Reverb, Multitap, Rotary, Ten-Tap and Drive; **linear** (−6 dB each) on Compressor, Formant, Megatap, Multiband Comp, Pitch, Plex, Ring Mod and Synth; **dry at 0 dB** to 50 % on the Vocoder. Mix 0 and 100 % are exact. Gains are interpolated per sample between the law's values at each end of a block |  |
+| Delay mix law ("sweetened") | 🆕 ✅ | The dry stays at 0 dB to 50 % and then fades out; the wet rises on a squared taper (−12 dB at 25 %, 0 dB at 50 %), so most of the knob's travel is spent on quiet echoes. Replaces the earlier both-at-full law |  |
+| Kill Dry | 🆕 ✅ | `killDry` on Delay, Multitap, Pitch, Plex and Reverb: the dry is muted in the block, so Mix sets the wet level alone (Global Mix still moves it) |  |
 | Level | ✅ | Every effect block (`level`, dB) |  |
 | Balance | 🆕 ✅ | Every effect block (`balance`, −100…100 %); the far side is turned down, wet and dry alike |  |
 | Bypass (as a modifier target) | 🆕 ✅ | A modifier on the `engage` pseudo-parameter engages the block at 50 % and above, bypasses it below, and wins over the scene; set from the engage switch's context menu |  |
@@ -472,7 +475,7 @@ One core (`Cathode.Dsp.Looping.Looper`) serves both. The grid block takes the tr
 | Record 2nd Press (overdub, play, stop) | 🆕 ✅ | Default Play, which is what the rig looper always did |  |
 | Speed | 🆕 ✅ | Normal, Half, Double; the Half Speed action halves whichever is set |  |
 | Low Cut, High Cut | 🆕 ✅ | On the loop's playback |  |
-| As a grid block (placed mid-chain, bypass modes) | 🆕 ✅ | `looper`, one per preset. The loop belongs to the preset: a preset change stops it, where the rig looper plays through. Bypassed in Thru or Mute the block stops running, so the loop pauses; the other modes keep it playing (Mute FX In: the loop plays on while nothing new reaches it) |  |
+| As a grid block (placed mid-chain, bypass modes) | 🆕 ✅ | `looper`, one per preset. 🆕 A preset change to another preset with a Looper block hands the loop over, still playing (§9); to one without, it stops, where the rig looper plays through. Bypassed in Thru or Mute the block stops running, so the loop pauses; the other modes keep it playing (Mute FX In: the loop plays on while nothing new reaches it) |  |
 
 Also new: play and stop fade over 2 ms instead of cutting.
 
@@ -896,3 +899,31 @@ In order of value to a player, then cost. Each item meets the [Definition of don
 16. 🆕 **Done (P2).** **Looper as a block** (medium), with its Config-page features (cheap): once, trims, threshold start, overdub level, crossfade, quantise, 300 s.
 17. 🆕 **Done.** Ring Modulator SSB and pitch tracking, Synth third voice and tracking modes, Vocoder band controls (stream P3); IR Player second slot; Cab preamp, air and input mode (P4).
 18. 🆕 **Mostly done (P4)**: boost, saturation, input filter, output EQ with location, output compressor, input dynamics, speaker drive, thump and compression, bias tremolo, Balance; power-tube hardness and the per-model items remain. **Amp gaps** follow [06 §5](06-amp-modelling-spec.md#5-recommended-plan): input boost (reuse Drive circuits), saturation stage, output EQ types and location, output compressor and input dynamics, speaker drive and compression.
+
+---
+
+## 9. Presets, scenes and routing (Fractal's *Presets* page)
+
+Not a block, so not in the Blocks Guide: the preset and scene behaviour around them. Already there before this pass: scene names and levels, four scene controllers, Scene MIDI, channel copy, six bypass modes with a 10 ms fade, Global blocks, the Block Library, setlists and banks, tags and author, gapless preset changes with spillover, preset export, MIDI scene select / next / previous and channel select, Sequencer modifiers.
+
+| Feature | Cathode | Note |
+|---|---|---|
+| Scene Ignore (per channel) | 🆕 ✅ | `PresetBlock.sceneIgnore` lists the channels on which a block ignores scene changes: while its live channel is one of them, selecting a scene leaves its bypass and channel (`LiveState.held`, not stored in any scene). The editor, footswitches and MIDI still change it; a channel without it makes the block follow scenes again. Switch under the channel selector in the block editor |
+| Scene Revert | 🆕 ✅ | Global `sceneRevert`: off keeps changes made while playing with their scene; on, selecting a scene recalls it from the last-saved copy of the preset |
+| Default scene on load | 🆕 ✅ | Global `defaultScene`: −1 As Saved (`Preset.savedScene`, the scene active when saved) or a fixed scene 1–8; a setlist entry's scene still wins |
+| Startup preset | 🆕 ✅ | Global `startupPreset`, loaded when the server starts |
+| Ignore Redundant PC | 🆕 ✅ | Global `ignoreRedundantPc`: a program change for the preset already loaded does nothing (otherwise it reloads it, discarding edits) |
+| Copy / swap scenes | 🆕 ✅ | `POST /live/scenes/copy`, `/live/scenes/swap` (name, block states, level, controllers, Scene MIDI). Swapping moves the active scene with its content, so nothing audible changes |
+| Swap / reset channels, reset block | 🆕 ✅ | `POST /live/blocks/{id}/channels/swap`, `/channels/{ch}/reset`, `/live/blocks/{id}/reset`; Scene Ignore moves with the channel. Scenes keep naming the same letters |
+| Scene Manager | 🆕 ✅ | The editor's Scenes page: blocks × scenes, bypass and channel editable in place (`PUT /live/scenes/{n}/blocks/{id}`), with copy and swap. All of these are undoable |
+| Block level meters | 🆕 ✅ | Each block's output peak in the telemetry (layout v5, by graph slot, mapped to ids by the server), shown along the bottom of each grid tile |
+| Output loudness | 🆕 ✅ | ITU-R BS.1770 (K-weighting, momentary 400 ms and short-term 3 s) on the output, after the global EQ; `loudnessMomentary`, `loudnessShortTerm` in the telemetry |
+| Preset Leveling | 🆕 ✅ | Editor dialog: measures while you play (BS.1770 gating of the momentary readings: −70 LUFS absolute, −10 LU relative) and sets the amp's Level, or the Output's Main Level, to reach −23, −18 or −14 LUFS. Fractal levels by its own meter; Cathode uses LUFS |
+| MIDI Vol Inc / Vol Dec, Level + Save | 🆕 ✅ | Actions `sceneLevelUp` / `sceneLevelDown` (active scene's level ±1 dB, then the preset is saved) and `save` |
+| Scene CC above 63 | 🆕 ✅ | A CC mapped to `scene` without a fixed value: 0–7 select that scene, above 63 steps to the next, wrapping |
+| Modifier scope | 🆕 ✅ | `PresetModifier.channel`: null for every channel of the block, or one channel; on the others the parameter keeps that channel's value. The engine switches the modifier as the channel changes (`setModifier`, no recompile). Editable in the modifier dialog and on the Controllers page |
+| Preset-change spillover on/off | 🆕 ✅ | Global `presetSpillover` (the rig's `spillover`): off, the outgoing preset fades out over the 20 ms swap instead of ringing out |
+| Looper across presets | 🆕 ✅ | A grid loop (recorded, playing or stopped) moves to the next preset's Looper block; without one it stops as before |
+| Confirm before discarding edits | 🆕 ✅ | Global `confirmPresetChange` (on by default): the editor asks before loading another preset over unsaved edits |
+| Preset list as text | 🆕 ✅ | `GET /presets/list.txt` (alphabetical, author, tags and scene names); "Export list…" on the Library page |
+| Recent presets | 🆕 ✅ | A menu in the editor's navbar, per editor (local storage) |

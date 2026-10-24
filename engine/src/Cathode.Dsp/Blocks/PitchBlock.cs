@@ -92,7 +92,7 @@ public enum PitchKeySource {
 ///         see <see cref="SpliceShifter" />), polyphonic Whammy 43 ms; Chromatic, Diatonic and Custom Shifter a fixed
 ///         ~29 ms plus the voice delay; Crystals up to 200 ms of grain plus the delay time.
 ///     </para>
-///     <para>Not modelled: formant correction and shift, and the Kill Dry flag (Mix 100 % does the same).</para>
+///     <para>Kill Dry mutes the dry signal, so Mix sets the wet level alone. Not modelled: formant correction and shift.</para>
 /// </remarks>
 public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
     public const int Type = 0;
@@ -184,6 +184,7 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
     public const int DetectorSource = HighCut + 1;
     public const int GlobalMix = DetectorSource + 1;
     public const int InputSelect = GlobalMix + 1;
+    public const int KillDry = InputSelect + 1;
 
     public const int VoiceCount = 4;
     public const int MaxArpSteps = 16;
@@ -489,7 +490,8 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
                 ["Block Input", ..Enumerable.Range(1, SourceRows).Select(static r => $"Row {r}")]
             ),
             EffectsMix.Param,
-            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions)
+            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
+            MixLaws.KillDryParam
         ],
         maxInstances: 2
     );
@@ -1041,6 +1043,7 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
         var ratios = type == PitchType.Chromatic ? shifts : harmonies;
         var mixStep = (mix - this.mix) / frames;
         var inputSelect = (int)Params.Current(InputSelect);
+        var killDry = Params.Current(KillDry) >= 0.5f;
         for (var i = 0; i < frames; i++) {
             var dryLeft = io.Left[i];
             var dryRight = io.Right[i];
@@ -1210,8 +1213,9 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
 
             cuts.Tick(ref wetLeft, ref wetRight);
             this.mix += mixStep;
-            io.Left[i] = dryLeft + (wetLeft - dryLeft) * this.mix;
-            io.Right[i] = dryRight + (wetRight - dryRight) * this.mix;
+            var dryGain = killDry ? 0f : 1f - this.mix;
+            io.Left[i] = dryLeft * dryGain + wetLeft * this.mix;
+            io.Right[i] = dryRight * dryGain + wetRight * this.mix;
         }
 
         // Land exactly on the targets, so rounding in the ramps never accumulates across blocks.

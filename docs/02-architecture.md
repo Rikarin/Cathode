@@ -118,8 +118,10 @@ Preset
 │   ├─ instanceId ("amp1", "delay2")   ← stable string, never an index
 │   ├─ typeId ("amp", "cab", "delay", …) + typeVersion
 │   ├─ channels: { A, B, C, D } → ParamSet (paramId → value)
+│   ├─ sceneIgnore: channels on which scene changes leave the block alone
 │   ├─ isGlobal? → reference to a Global Block (shared across presets)
 │   └─ modifiers: { paramId → ModifierAssignment }
+├─ savedScene (the scene active when saved: where it loads, by default)
 ├─ scenes[8]
 │   ├─ name, level
 │   ├─ blockState[instanceId] → { bypassed, channel }
@@ -228,6 +230,7 @@ Other optional interfaces a block may add:
 - Continuous knob changes **don't use the queue at all**: the control thread writes the target with `Volatile.Write`. Aligned 32-bit writes are atomic.
 - Discrete events go through the **SPSC command ring** of unmanaged structs: bypass, channel change, scene change, tap tempo, looper transport, graph swap. The audio thread drains it at the start of each block.
 - **Modifiers** (1 or 2 sources per knob, combined with Scale/Operation; min/max, start/mid/end, slope, offset, attack/release damping, auto-engage, PC reset, per-channel enable — the Axe-Fx III surface) are evaluated at **control rate**, every 16–32-sample sub-block, and applied as `target = base + depth·curve(source)` with a per-assignment min, max, slew and curve.
+- A modifier may be **scoped to one channel** of its block. The compiler is told which modifiers start enabled; when the block changes channel the server sends `setModifier`, and the audio thread turns the binding on, or off with the channel's value restored, so a modulated value still in flight cannot win (`EngineCommandKind.SetModifier`).
 - Filters smooth the **parameter** (cutoff), then recompute coefficients per sub-block. Any filter whose parameters can move uses a TPT/ZDF state-variable filter. *Confirmed in Phase 1:* the property suite found a direct-form biquad emitting +63 dBFS transients during a fast cutoff and Q sweep, and the SVF, which has the same magnitude response, fixed it.
 - RBJ shelves are limited to Q ≤ 1. Above that they develop a large resonant bump at the corner.
 - **Derived state too expensive for the audio thread** (the Cab block's mixed slot IRs: synthesised DynaCabs, interpolated IR packs and IR files, folded into one stereo pair; the IR Player's two slots, cut, levelled, panned and combined in parallel, stereo or series) belongs to blocks that implement `IControlRefresh`. The host calls `Refresh()` on the control thread after every parameter message and on each telemetry tick (for targets that modifiers moved). The block compares the targets with what it last built, rebuilds only what changed, and hands the result over through an `Interlocked.Exchange` slot; the audio thread crossfades the new state in and returns the old one through a second slot for the control thread to dispose. Nothing locks, and nothing is allocated or freed on the audio thread.
@@ -255,7 +258,8 @@ Budget for **two graphs alive at once** during a preset change.
   7. the metronome
 - **Rig settings** live in one parameter bank (`rig`) that IPC reaches without a graph generation, so scene and tempo changes never recompile.
 - **Looper:** one core (`Cathode.Dsp.Looping.Looper`) serves the rig looper and the `looper` grid block. While the running graph holds a Looper block (`ILooperBlock`, found by `CompiledGraph.Looper`), the looper commands, telemetry and WAV export go to it; otherwise to the rig looper. A grid loop belongs to its preset: a swap stops the outgoing graph's looper (it fades out in the spillover), and a preset that brings a Looper block stops the rig looper. The loop memory (up to 300 s) is zeroed lazily by the OS, so only what is recorded is committed.
-- **Spillover:** the old graph retires after 4.1 s of silence (longer than any delay repeat), or 12 s.
+- **Spillover:** the old graph retires after 4.1 s of silence (longer than any delay repeat), or 12 s. With the rig's `spillover` off (global *Preset spillover*) it fades out over the 20 ms swap instead, a clean cut. A grid loop is handed over to the next preset's Looper block when it has one (`ILooperBlock.TakeLoop`: the two blocks swap loopers, no allocation).
+- **Scenes and Scene Ignore** (server): the live state of a block is the active scene's, unless its channel has Scene Ignore on, in which case a scene change leaves it held (`LiveState.held`). Manual changes write the active scene and release the hold. Scene Revert recalls a scene from the last-saved copy on selection; a preset loads on its saved scene or the global default scene.
 - **MIDI** is read by the host (CoreMIDI), stamped with engine sample time, and routed by the Server's `MidiRouter`. The router owns learn, mappings and footswitches, and drives LEDs.
 
 ### 5.6 Audio I/O ⚠
@@ -331,6 +335,8 @@ Version 3 adds an output scope ring of 16,384 samples, outside the seqlock (the 
 
 Version 4 adds a second ring of the same size for the RTA block: while it keeps growing, RTA frames come from it (`source: block`) instead of the output.
 
+Version 5 adds, per meter slot, each grid block's output peak (by graph slot, up to 128, tagged with the graph generation) and the output's ITU-R BS.1770 loudness (momentary and short-term, `LoudnessMeter`). The host's `loadGraph` reply lists the slot ids, so the Server publishes the peaks by block id (`Telemetry.blocks`, shunts left out) with `loudnessMomentary` and `loudnessShortTerm`.
+
 Still to come: RMS, per-block CPU, scene state, and binary frames.
 
 ### 5.10 MIDI and controllers
@@ -359,9 +365,9 @@ Still to come: RMS, per-block CPU, scene state, and binary frames.
 | Live state | `GET /live` (the full working copy), `PUT /live/preset/{presetId}` (load), `POST /live/save`, `POST /live/undo`, `POST /live/redo` |
 | Grid | `GET/PUT /live/grid`, `POST /live/grid/cells/{r}/{c}` (place block), `DELETE …`, `POST /live/grid/cables` |
 | Blocks | `GET /live/blocks/{iid}`, `PATCH /live/blocks/{iid}/channels/{ch}/params` (batch), `PUT /live/blocks/{iid}/bypass`, `PUT /live/blocks/{iid}/channel`, `POST /live/blocks/{iid}/copy-channel` |
-| Scenes | `GET /live/scenes`, `PUT /live/scenes/active` (select), `PATCH /live/scenes/{n}` |
+| Scenes | `GET /live/scenes`, `PUT /live/scenes/active` (select), `PATCH /live/scenes/{n}`, `PUT /live/scenes/{n}/blocks/{iid}` (Scene Manager), `POST /live/scenes/copy`, `POST /live/scenes/swap`, `PUT /live/blocks/{iid}/channels/{ch}/scene-ignore`, `POST /live/blocks/{iid}/channels/swap`, `POST …/channels/{ch}/reset`, `POST /live/blocks/{iid}/reset` |
 | Modifiers | `GET/PUT /live/controllers`, `PUT /live/blocks/{iid}/params/{pid}/modifier` |
-| Library | `GET/POST /presets`, `GET/PUT/DELETE /presets/{id}`, `POST /presets/import`, `GET /presets/{id}/export`, setlists, banks |
+| Library | `GET/POST /presets`, `GET/PUT/DELETE /presets/{id}`, `POST /presets/import`, `GET /presets/{id}/export`, `GET /presets/list.txt`, setlists, banks |
 | Global | `GET/PUT /global/settings`, `/global/blocks` (global blocks), `/global/eq`, `/global/midi-mappings`, `/global/footswitch-layouts` |
 | Assets | `/irs` (upload, list, tags, mix/export), `/models` (NAM/AIDA-X upload, metadata, loudness normalisation) |
 | Utilities | `/tuner` (settings), `/looper` (transport, undo, export), `/metronome`, `/tone-match` (jobs) |

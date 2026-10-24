@@ -1,7 +1,19 @@
 namespace Cathode.Contracts;
 
-/// <summary>The rig as it is running: the working copy, which scene is active, and whether it differs from the library.</summary>
-public sealed record LiveState(Preset Preset, int ActiveScene, long Revision, bool Dirty, bool CanUndo, bool CanRedo);
+/// <summary>
+///     The rig as it is running: the working copy, which scene is active, and whether it differs from the library.
+///     <c>Held</c> lists the blocks whose bypass and channel differ from the active scene's because Scene Ignore kept
+///     them as they were: what they are running now.
+/// </summary>
+public sealed record LiveState(
+    Preset Preset,
+    int ActiveScene,
+    long Revision,
+    bool Dirty,
+    bool CanUndo,
+    bool CanRedo,
+    Dictionary<string, SceneBlockState>? Held = null
+);
 
 public sealed record PresetSummary(
     string Id,
@@ -107,7 +119,11 @@ public sealed record RigEvent(
     int? Scene = null
 );
 
-/// <summary>Pushed over the WebSocket about 30 times a second.</summary>
+/// <summary>
+///     Pushed over the WebSocket about 30 times a second. <c>Blocks</c> is each grid block's output peak since the last
+///     frame, by block id; the loudness is the output's ITU-R BS.1770 momentary (400 ms) and short-term (3 s) level in
+///     LUFS. Both come from the shared-memory telemetry and are absent without it.
+/// </summary>
 public sealed record Telemetry(
     string Type,
     float InputPeak,
@@ -117,7 +133,10 @@ public sealed record Telemetry(
     long Overloads,
     TunerInfo? Tuner,
     double Tempo = 120,
-    LooperInfo? Looper = null
+    LooperInfo? Looper = null,
+    Dictionary<string, float>? Blocks = null,
+    float? LoudnessMomentary = null,
+    float? LoudnessShortTerm = null
 );
 
 /// <summary>

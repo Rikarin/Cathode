@@ -299,12 +299,11 @@ public sealed class TenTapBlock() : DspBlock(Info) {
 
         var inputGain = Params.Advance(InputGain, n) / 100f;
         var select = (int)Params.Current(InputSelect);
-        var mixStep = (mix - this.mix) / n;
+        var gains = new MixRamp(MixLaw.ConstantPower, this.mix, mix, n);
         var delay = delaySamples;
-        var currentMix = this.mix;
         for (var i = 0; i < n; i++) {
             delay += delayStep;
-            currentMix += mixStep;
+            gains.Advance();
             var dryLeft = io.Left[i];
             var dryRight = io.Right[i];
             var x = Stereo.Select(select, dryLeft, dryRight) * inputGain;
@@ -328,9 +327,8 @@ public sealed class TenTapBlock() : DspBlock(Info) {
             line.Write(DelayBlock.Limit(loop.Active ? loopState.Tick(loop, fed) : fed));
             sampleClock++;
 
-            var (dryGain, wetGain) = DelayBlock.MixGains(currentMix);
-            io.Left[i] = dryLeft * dryGain + wetLeft * wetGain;
-            io.Right[i] = dryRight * dryGain + wetRight * wetGain;
+            io.Left[i] = dryLeft * gains.Dry + wetLeft * gains.Wet;
+            io.Right[i] = dryRight * gains.Dry + wetRight * gains.Wet;
         }
 
         delaySamples = targetDelay;

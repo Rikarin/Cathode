@@ -38,6 +38,7 @@ public sealed class CompiledGraph : IDisposable {
     readonly float fadeStep;
     readonly ModifierBinding[] modifiers;
     readonly ILooperBlock? looperBlock;
+    readonly float[] peaks;
 
     /// <summary>Identifies this graph; commands addressed to another generation are ignored.</summary>
     public int Generation { get; }
@@ -55,6 +56,15 @@ public sealed class CompiledGraph : IDisposable {
 
     /// <summary>The looper of the graph's Looper block, or null: while it runs, the engine's looper transport drives it.</summary>
     public Looper? Looper => looperBlock?.Looper;
+
+    /// <summary>The graph's Looper block, for handing a running loop over to the next preset's.</summary>
+    public ILooperBlock? LooperBlock => looperBlock;
+
+    /// <summary>
+    ///     Audio thread: each slot's output peak since <see cref="ClearPeaks" /> (0 for a block that did not run, such as
+    ///     a bypassed Thru block).
+    /// </summary>
+    public ReadOnlySpan<float> BlockPeaks => peaks;
 
     public IReadOnlyList<ModifierBinding> Modifiers => modifiers;
 
@@ -107,6 +117,7 @@ public sealed class CompiledGraph : IDisposable {
         dryLeft = new(spec.MaxBlockSize);
         dryRight = new(spec.MaxBlockSize);
         fadeStep = (float)(1.0 / Math.Max(1.0, BypassFadeMs * 0.001 * spec.SampleRate));
+        peaks = new float[blocks.Length];
         bypass = new BypassState[blocks.Length];
         for (var i = 0; i < blocks.Length; i++) {
             bypass[i] = new(bypassed[i], bypassModes[i]);
@@ -120,6 +131,10 @@ public sealed class CompiledGraph : IDisposable {
     public void ApplyModifiers(Modulation modulation, int frames) {
         var seconds = frames / Spec.SampleRate;
         foreach (ref var modifier in modifiers.AsSpan()) {
+            if (!modifier.Enabled) {
+                continue;
+            }
+
             var target = Modulation.Map(
                 modulation.Value(modifier.Source),
                 modifier.Curve,
@@ -149,6 +164,9 @@ public sealed class CompiledGraph : IDisposable {
     public int SlotOf(ReadOnlySpan<char> instanceId) => slotByName.TryGetValue(instanceId, out var slot) ? slot : -1;
 
     public IDspBlock Block(int slot) => blocks[slot];
+
+    /// <summary>Audio thread: starts a new peak measurement for <see cref="BlockPeaks" />.</summary>
+    public void ClearPeaks() => Array.Clear(peaks);
 
     /// <summary>Any thread: set a parameter target. Continuous values need no command queue.</summary>
     public void SetParameter(int slot, int paramIndex, float value) => blocks[slot].Params.SetTarget(paramIndex, value);
@@ -234,6 +252,16 @@ public sealed class CompiledGraph : IDisposable {
     }
 
     void RunBlock(int slot, in StereoBuffer io, in BlockContext context) {
+        RunBypassed(slot, io, context);
+        var peak = peaks[slot];
+        for (var i = 0; i < io.Length; i++) {
+            peak = Math.Max(peak, Math.Max(Math.Abs(io.Left[i]), Math.Abs(io.Right[i])));
+        }
+
+        peaks[slot] = peak;
+    }
+
+    void RunBypassed(int slot, in StereoBuffer io, in BlockContext context) {
         ref var bypass = ref this.bypass[slot];
         var target = bypass.Target ? 0f : 1f;
         var steady = bypass.Mix == target;
@@ -350,6 +378,24 @@ public sealed class CompiledGraph : IDisposable {
         }
     }
 
+    /// <summary>
+    ///     Audio thread only (<see cref="EngineCommandKind.SetModifier" />): a re-enabled modifier starts again from its
+    ///     source's value rather than from where it stopped; a disabled one leaves its parameter at
+    ///     <paramref name="baseValue" /> (an engage modifier leaves the bypass to the bypass commands).
+    /// </summary>
+    internal void SetModifierEnabled(int index, bool enabled, float baseValue) {
+        if ((uint)index >= (uint)modifiers.Length) {
+            return;
+        }
+
+        ref var modifier = ref modifiers[index];
+        modifier.Enabled = enabled;
+        modifier.Value = float.NaN;
+        if (!enabled && modifier.ParamIndex != ModifierBinding.Engage) {
+            blocks[modifier.Slot].Params.SetTarget(modifier.ParamIndex, baseValue);
+        }
+    }
+
     /// <summary>Audio thread only (the engine applies queued <see cref="EngineCommandKind.SetBypass" /> commands here).</summary>
     internal void SetBypass(int slot, bool bypassed) {
         if ((uint)slot >= (uint)bypass.Length) {
@@ -402,4 +448,7 @@ public struct ModifierBinding(
 
     /// <summary>The slewed value; NaN until the first sub-block, which then starts at its target.</summary>
     public float Value { get; set; } = float.NaN;
+
+    /// <summary>Whether it drives its parameter (false for a channel-scoped modifier while its block is elsewhere).</summary>
+    public bool Enabled { get; set; } = true;
 }

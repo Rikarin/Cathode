@@ -113,7 +113,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                         false,
                         modifier.AttackMs,
                         modifier.ReleaseMs
-                    )
+                    ) { Enabled = modifier.Enabled }
                 );
             } else {
                 var param = blocks[slot].Descriptor.Params[index];
@@ -128,7 +128,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                         param.Taper == ParamTaper.Log,
                         modifier.AttackMs,
                         modifier.ReleaseMs
-                    )
+                    ) { Enabled = modifier.Enabled }
                 );
             }
         }

@@ -10,7 +10,7 @@ static class GlobalValidation {
 
     static readonly string[] Actions = [
         "scene", "sceneNext", "scenePrevious", "presetSlot", "presetNext", "presetPrevious", "bypass", "channel",
-        "external", "manual", "tap", "tuner", "metronome", "looper"
+        "external", "manual", "tap", "tuner", "metronome", "looper", "sceneLevelUp", "sceneLevelDown", "save"
     ];
 
     public static void Check(GlobalSettings settings) {
@@ -29,6 +29,10 @@ static class GlobalValidation {
 
         if (settings.NoiseGateOffset is < -20f or > 20f || !float.IsFinite(settings.NoiseGateOffset)) {
             errors.Add("The noise gate offset is -20 to 20 dB.");
+        }
+
+        if (settings.DefaultScene is < -1 or >= Preset.SceneCount) {
+            errors.Add("The default scene is -1 (as saved) or 0-7.");
         }
 
         if (settings.Manual.Count != 4) {
