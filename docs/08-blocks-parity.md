@@ -679,6 +679,7 @@ Types: 16 (dual/quad detune, dual/quad chromatic and quad chromatic delay, dual/
 | Mix | Input Gain | 🆕 ✅ | The level into the shifters (the dry and the detector are unaffected); 🆕 Input Select (L+R, Left, Right) for the mono input |  |
 | Mix | Low Cut, High Cut (wet) | 🆕 ✅ | `WetCuts` |  |
 | Mix | Global Mix | 🆕 ✅ | §3 |  |
+| Formant | Formant correction and shift (firmware 33; not on the guide's Pitch pages) | 🆕 ✅ | Formant Correction (off by default: every type renders exactly as before) keeps the input's spectral envelope while the pitch moves; Formant Shift 1–4 (±12 st, per voice; one "Formant Shift" on the single-voice types) moves it. Whammy Mono/Off, Arpeggiator and Virtual Capo: linear prediction whitens the input before the splice shifter and the envelope goes back on after it (`FormantCorrector`: order 24 at 48 kHz, 21 ms frames every 10.7 ms, a 120 Hz lag window, a −50 dB floor, a level guard for spectrum changes within the shifter's delay; about 0.5 % of a core per channel). Whammy Poly: each phase-vocoder bin is scaled to the same all-pole envelope at its new frequency (`SpectralEnvelope`). Chromatic, Diatonic, Custom Shifter: PSOLA keeps the formants of itself, so the control adds the shift (each voice's grains resampled by its ratio). Hidden on Detune, Octave Divider, Crystals. Shifting down cannot restore an envelope above what the input carries, and an octave up with correction is 5–6 dB quieter than without (half as many harmonics under the same envelope) |  |
 
 ### 6.23 Plex Delay (pp. 77–79) → 🆕 `plex`
 
@@ -946,7 +947,7 @@ In order of value to a player, then cost. Each item meets the [Definition of don
 11. 🆕 ✅ **Look-ahead compressor** (medium). The compiler reads latency at compile time; a parameter-dependent latency needs a recompile on change or a fixed maximum look-ahead always reported.
 12. 🆕 ✅ **"On engage" behaviour** (medium). LFO Bypass Reset (Flanger, Phaser) and Tremolo Start Phase need the engine to tell a block it was engaged; add an optional `IEngageAware` the compiled graph calls when a bypass fade starts.
 13. 🆕 **Done** (stream P3): Phaser VCR models and Barberpole; Flanger thru-zero; Chorus Dimension.
-14. 🆕 **Done** (stream P3): Pitch completion, including polyphonic Whammy tracking (a peak-locked phase vocoder). Detector Source on the hardware inputs 🆕 done (PA). Left: formant correction.
+14. 🆕 **Done** (stream P3): Pitch completion, including polyphonic Whammy tracking (a peak-locked phase vocoder). Detector Source on the hardware inputs 🆕 done (PA). Formant correction and per-voice formant shift 🆕 done (PF, §6.22).
 15. 🆕 **Done (P4, PB)**, except per-circuit extra knobs beyond the Guv'nor's stack and new circuits. **Drive EQ pages and expert controls** (medium). The EQ 1 page (low/high cut, bass/mid/high-mid/treble) and EQ 2 (the GEQ bands pre/post) are generic; diode type/count and bias need per-circuit WDF parameters. New circuits continue as in Phase 6 (medium each).
 16. 🆕 **Done (P2).** **Looper as a block** (medium), with its Config-page features (cheap): once, trims, threshold start, overdub level, crossfade, quantise, 300 s.
 17. 🆕 **Done.** Ring Modulator SSB and pitch tracking, Synth third voice and tracking modes, Vocoder band controls (stream P3); IR Player second slot; Cab preamp, air and input mode (P4).

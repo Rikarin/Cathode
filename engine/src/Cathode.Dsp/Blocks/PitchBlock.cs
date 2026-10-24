@@ -94,7 +94,17 @@ public enum PitchKeySource {
 ///         see <see cref="SpliceShifter" />), polyphonic Whammy 43 ms; Chromatic, Diatonic and Custom Shifter a fixed
 ///         ~29 ms plus the voice delay; Crystals up to 200 ms of grain plus the delay time.
 ///     </para>
-///     <para>Kill Dry mutes the dry signal, so Mix sets the wet level alone. Not modelled: formant correction and shift.</para>
+///     <para>
+///         Formant Correction (off by default; every type then renders exactly as without it) keeps the input's
+///         spectral envelope while the pitch moves, and Formant Shift (per voice, +/- 12 semitones) moves that envelope.
+///         Whammy (Mono and Off), Arpeggiator and Virtual Capo whiten their input by linear prediction before the splice
+///         shifter and put the envelope back after it (<see cref="FormantCorrector" />, about 0.5 % of a core per
+///         channel at 48 kHz); the polyphonic Whammy rescales each moved bin of its phase vocoder to the envelope at
+///         its new frequency (<see cref="PhaseVocoderShifter" />). PSOLA keeps the formants of itself, so on Chromatic,
+///         Diatonic and Custom Shifter the control adds the shift alone: each voice's grains are resampled by its
+///         formant ratio. Hidden on Detune, Octave Divider and Crystals.
+///     </para>
+///     <para>Kill Dry mutes the dry signal, so Mix sets the wet level alone.</para>
 /// </remarks>
 public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInputBlock {
     public const int Type = 0;
@@ -198,6 +208,15 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
 
     public const int KillDry = CustomNote1 + MaxCustomNotes;
 
+    /// <summary>Formant correction on or off (off by default: every type sounds as it did without it).</summary>
+    public const int FormantCorrection = KillDry + 1;
+
+    /// <summary>Voice 1's formant shift in semitones (the single-voice types' only one); voices 2 to 4 follow.</summary>
+    public const int FormantShift1 = FormantCorrection + 1;
+
+    /// <summary>The formant shift's range either way, in semitones.</summary>
+    public const float MaxFormantShift = 12f;
+
     public const int VoiceCount = 4;
     public const int MaxArpSteps = 16;
     public const float MaxVoiceDelayMs = 1_000f;
@@ -258,6 +277,10 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
     readonly PsolaShifter psolaRight = new(VoiceCount);
     readonly PhaseVocoderShifter vocoder = new();
     readonly PhaseVocoderShifter vocoderRight = new();
+    readonly FormantCorrector formantLeft = new();
+    readonly FormantCorrector formantRight = new();
+    readonly double[] formantRatios = new double[VoiceCount];
+    bool formantActive;
     readonly GrainShifter grains = new();
     readonly AllpassDiffuser diffuser = new();
     readonly FractionalDelayLine[] delays = [new(), new(), new(), new()];
@@ -531,7 +554,22 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
                         TypeLabels = For($"Note {n + 1}", PitchType.Diatonic)
                     }
                 ),
-            MixLaws.KillDryParam
+            MixLaws.KillDryParam,
+            ParamDescriptor.Switch("formant", "Formant Correction") with {
+                TypeLabels = For("Formant Correction", FormantTypes)
+            },
+            ..Enumerable.Range(1, VoiceCount)
+                .Select(static v => ParamDescriptor.Float(
+                        $"formantShift{v}",
+                        $"Formant Shift {v}",
+                        -MaxFormantShift,
+                        MaxFormantShift,
+                        0f,
+                        "st"
+                    ) with {
+                        TypeLabels = FormantShiftLabels(v)
+                    }
+                )
         ],
         maxInstances: 2,
         pages: [
@@ -588,7 +626,8 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
                     "inputMode", "tracking", "splice", "detectorSource", "detuneLfoRate", "detuneLfoTempo",
                     "detuneLfoDepth", "inputGain", "lowCut", "highCut", "inputSelect", "globalMix", "killDry"
                 ]
-            )
+            ),
+            new("Formant", ["formant", "formantShift1", "formantShift2", "formantShift3", "formantShift4"])
         ]
     );
 
@@ -603,6 +642,26 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
     /// <summary>The types with per-voice levels, pans, delays and feedback.</summary>
     static PitchType[] VoiceTypes =>
         [PitchType.Detune, PitchType.Chromatic, PitchType.Diatonic, PitchType.CustomShifter];
+
+    /// <summary>
+    ///     The types formant correction applies to: the harmonisers (PSOLA, which keeps the formants of itself, so there
+    ///     the control adds the shift) and the single-voice shifters. Not Detune (cents move no formant), the Octave
+    ///     Divider (no shifter) or Crystals (grains of the delay, an effect rather than a voice).
+    /// </summary>
+    static PitchType[] FormantTypes => [..Enum.GetValues<PitchType>().Where(HasFormant)];
+
+    static bool HasFormant(PitchType type) =>
+        type is not (PitchType.Detune or PitchType.OctaveDivider or PitchType.Crystals);
+
+    /// <summary>Formant Shift N on the harmonisers; voice 1's is the single-voice types' "Formant Shift".</summary>
+    static string[] FormantShiftLabels(int voice) =>
+    [
+        ..Enum.GetValues<PitchType>()
+            .Select(t => IsHarmony(t) ? $"Formant Shift {voice}"
+                : voice == 1 && HasFormant(t) ? "Formant Shift"
+                : string.Empty
+            )
+    ];
 
     /// <summary>The level of an arpeggiator step at <paramref name="position" /> (0..1) through it.</summary>
     public static float ArpAmplitude(int shape, float alpha, double position) {
@@ -926,6 +985,19 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
         return (chord & ~mask) == 0;
     }
 
+    /// <summary>
+    ///     Shifter <paramref name="side" /> (0 left, 1 right) at <paramref name="speed" />; with formant correction the
+    ///     input is whitened before it and its envelope put back after (<see cref="FormantCorrector" />).
+    /// </summary>
+    float Shift(int side, float input, double speed, double period, bool formant) {
+        if (!formant) {
+            return shifters[side].Process(input, speed, period);
+        }
+
+        var corrector = side == 0 ? formantLeft : formantRight;
+        return corrector.Color(shifters[side].Process(corrector.Whiten(input), speed, period));
+    }
+
     float WhammySemitones() {
         var start = Params.Current(WhammyStart);
         return start + (Params.Current(WhammyEnd) - start) * Params.Current(Pedal) / 100f;
@@ -964,6 +1036,8 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
         psolaRight.Reset();
         vocoder.Reset();
         vocoderRight.Reset();
+        formantLeft.Reset();
+        formantRight.Reset();
         grains.Reset();
         diffuser.Reset();
         foreach (var delay in delays) {
@@ -996,6 +1070,8 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
         psolaRight.Prepare(rate);
         vocoder.Prepare(rate);
         vocoderRight.Prepare(rate);
+        formantLeft.Prepare(rate);
+        formantRight.Prepare(rate);
         grains.Prepare(rate, CrystalsGrainSeconds, MaxCrystalsSpliceMs * 0.001);
         diffuser.Prepare(rate);
         var voiceCapacity = (int)(MaxVoiceDelayMs * 0.001 * rate) + 8;
@@ -1053,6 +1129,8 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
             psolaRight.Dispose();
             vocoder.Dispose();
             vocoderRight.Dispose();
+            formantLeft.Dispose();
+            formantRight.Dispose();
             grains.Dispose();
             diffuser.Dispose();
             foreach (var delay in delays) {
@@ -1157,6 +1235,22 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
         foreach (var shifter in shifters) {
             shifter.SetSplice(splice);
         }
+
+        // Formant correction: a corrector turned on starts from a clean state.
+        var formant = HasFormant(type) && Params.Current(FormantCorrection) >= 0.5f;
+        if (formant && !formantActive) {
+            formantLeft.Reset();
+            formantRight.Reset();
+        }
+
+        formantActive = formant;
+        for (var v = 0; v < VoiceCount; v++) {
+            var formantShift = Params.Advance(FormantShift1 + v, frames);
+            formantRatios[v] = formant ? Ratio(formantShift) : 1;
+        }
+
+        formantLeft.SetShift(formantRatios[0]);
+        formantRight.SetShift(formantRatios[0]);
 
         FollowNotes(context.Notes);
         UpdateHarmony();
@@ -1282,7 +1376,7 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
                         }
 
                         var engine = stereo && v % 2 == 1 ? psolaRight : psola;
-                        var shifted = engine.Read(v, ratio, period);
+                        var shifted = engine.Read(v, ratio, period, formantRatios[v]);
                         var voice = Delayed(delays[v], shifted, delayTargets[v], shifterFeedback ? 0f : feedbacks[v]);
                         lastOut[v] = voice;
                         wetLeft += voice * gainsLeft[v];
@@ -1296,12 +1390,13 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
                     whammySemitones += whammyStep;
                     var ratio = Ratio(whammySemitones);
                     if (whammyTracking == WhammyPoly) {
-                        one = vocoder.Process(inLeft, ratio);
-                        oneRight = stereo ? vocoderRight.Process(inRight, ratio) : one;
+                        var formantRatio = formant ? formantRatios[0] : 0;
+                        one = vocoder.Process(inLeft, ratio, formantRatio);
+                        oneRight = stereo ? vocoderRight.Process(inRight, ratio, formantRatio) : one;
                     } else {
                         var hint = whammyTracking == WhammyFree ? 0 : period;
-                        one = shifters[0].Process(inLeft, ratio, hint);
-                        oneRight = stereo ? shifters[1].Process(inRight, ratio, hint) : one;
+                        one = Shift(0, inLeft, ratio, hint, formant);
+                        oneRight = stereo ? Shift(1, inRight, ratio, hint, formant) : one;
                     }
 
                     break;
@@ -1350,9 +1445,9 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
                     var running = arpRepeats == 0 || arpPasses < arpRepeats;
                     arpGate += ((running ? 1f : 0f) - arpGate) * arpGateRate;
                     var level = arpGate * ArpAmplitude(arpAmpShape, arpAmpAlpha, arpPhase);
-                    var shiftedLeft = shifters[0].Process(inLeft, arpSpeeds[arpStep], period) * level;
+                    var shiftedLeft = Shift(0, inLeft, arpSpeeds[arpStep], period, formant) * level;
                     var shiftedRight =
-                        stereo ? shifters[1].Process(inRight, arpSpeeds[arpStep], period) * level : shiftedLeft;
+                        stereo ? Shift(1, inRight, arpSpeeds[arpStep], period, formant) * level : shiftedLeft;
                     var pan = ArpPan(arpPanShape, arpPanWidth, arpStep, arpCount);
                     if (pan == 0) {
                         (one, oneRight) = (shiftedLeft, shiftedRight);
@@ -1365,8 +1460,8 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
                 }
 
                 default:
-                    one = shifters[0].Process(inLeft, capo, period);
-                    oneRight = stereo ? shifters[1].Process(inRight, capo, period) : one;
+                    one = Shift(0, inLeft, capo, period, formant);
+                    oneRight = stereo ? Shift(1, inRight, capo, period, formant) : one;
                     break;
             }
 
@@ -1396,6 +1491,11 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
 
         for (var v = 0; v < VoiceCount; v++) {
             lastOut[v] = MathF.Abs(lastOut[v]) < 1e-20f ? 0f : lastOut[v];
+        }
+
+        if (formant) {
+            formantLeft.FlushDenormals();
+            formantRight.FlushDenormals();
         }
 
         divider.FlushDenormals();

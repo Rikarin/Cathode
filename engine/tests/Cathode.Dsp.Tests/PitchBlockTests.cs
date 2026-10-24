@@ -249,7 +249,8 @@ public class PitchBlockTests(ITestOutputHelper output) {
         Assert.Equal(PitchBlock.CustomTonic, info.IndexOf("customTonic"));
         Assert.Equal(PitchBlock.CustomNote1 + PitchBlock.MaxCustomNotes - 1, info.IndexOf("customNote8"));
         Assert.Equal(PitchBlock.KillDry, info.IndexOf("killDry"));
-        Assert.Equal(PitchBlock.KillDry + 1, info.Params.Count);
+        Assert.Equal(PitchBlock.KillDry + 1, PitchBlock.FormantCorrection);
+        Assert.Equal(PitchBlock.FormantShift1 + PitchBlock.VoiceCount, info.Params.Count);
         Assert.Equal("Virtual Capo", info.Params[PitchBlock.Type].Options![(int)PitchType.VirtualCapo]);
         Assert.Equal("Custom Shifter", info.Params[PitchBlock.Type].Options![(int)PitchType.CustomShifter]);
 

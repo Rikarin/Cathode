@@ -82,7 +82,7 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | PA12 | Plex: Shift Direction per the guide's meaning | ✅ | Reverse_direction_keeps_the_interval_and_plays_each_grain_backwards | the existing behaviour matched the guide |
 | PA13 | Rotary: Low Rate Multiplier | ✅ | Low_rate_multiplier_scales_the_drum_speed |  |
 | PA14 | Wah: Min/Max Frequency on the circuit types | ✅ | Min_and_max_frequency_move_the_circuits_resonance |  |
-| PA15 | Any other ◐ / ❌ in 08 §2, §3, §5, §6 not owned by PB | ◐ | — | closed: Gate/Vocoder/Pitch hardware sources, §7 rows. Left: five newer wah voicings as circuits, classic digital reverb types, Pitch formant correction, legacy factory cab banks (licensing) |
+| PA15 | Any other ◐ / ❌ in 08 §2, §3, §5, §6 not owned by PB | ◐ | — | closed: Gate/Vocoder/Pitch hardware sources, §7 rows. Left: five newer wah voicings as circuits, classic digital reverb types, legacy factory cab banks (licensing). Pitch formant correction: 🟡 stream PF below |
 
 ## PB: Drive and the Amp block's advanced page
 
@@ -187,6 +187,16 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | CB9 | Flat slot source | ✅ | A_flat_slot_and_a_cab_slot_split_a_stereo_input_into_a_di_and_a_cab |  |
 | CB10 | Global "cab modelling off" switch | ✅ | Cab_modelling_off_passes_audio_through_and_fades_back_in | GlobalSettings.CabModelingOff; Cab and IR Player |
 | CB11 | Export the block's current mix (DynaCab slots included) as an IR file | ✅ | Export_bakes_the_master_cuts_into_the_mixed_ir; A_cab_exports_its_mixed_ir_and_saves_it_as_an_asset | GET/POST /live/blocks/{id}/ir |
+
+## PF: Pitch formant correction
+
+| ID | Item | Status | Evidence | Notes |
+|---|---|---|---|---|
+| PF1 | Formant Correction switch, appended after Kill Dry; off by default and every type then bit-identical | 🟡 | PitchFormantTests.Off_by_default_and_the_shift_alone_changes_nothing (every type); GoldenRenderTests; PitchBlockTests | hidden on Detune, Octave Divider, Crystals (Types_without_the_control_hide_it_and_ignore_it) |
+| PF2 | Splice shifters (Whammy Mono/Off, Arpeggiator, Virtual Capo): LPC whitening before, envelope after | 🟡 | Correction_keeps_the_formants_while_the_pitch_moves_an_octave (Whammy Mono, Virtual Capo) | `Pitch/FormantCorrector.cs`; order 24, 21 ms frame, 10.7 ms hop; about 0.5 % per channel at 48 kHz; a level guard (+6 dB over the input's peak) for spectrum changes inside the shifter's delay |
+| PF3 | Polyphonic Whammy: phase-vocoder bins rescaled to the envelope at their new frequency | 🟡 | Correction_keeps_the_formants_while_the_pitch_moves_an_octave (Whammy Poly) | same all-pole envelope (`Pitch/SpectralEnvelope.cs`), two more FFTs per hop (+0.7 % mono) |
+| PF4 | Formant Shift per voice, ±12 st | 🟡 | Formant_shift_moves_the_formants_by_its_interval; Psola_voices_keep_their_formants_and_take_the_shift | PSOLA types: grains resampled per voice (PSOLA keeps the formants already); voice 1's is the single-voice types' "Formant Shift" |
+| PF5 | Bounded, allocation-free, decays | 🟡 | Correction_is_bounded_allocation_free_and_decays (six types) | an octave up with correction is 5–6 dB quieter than without (half as many harmonics under the same envelope) |
 
 ## Known open items from earlier rounds
 
