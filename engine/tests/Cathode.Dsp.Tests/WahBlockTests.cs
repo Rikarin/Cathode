@@ -78,6 +78,11 @@ public class WahBlockTests(ITestOutputHelper output) {
     [Theory]
     [InlineData(WahBlock.FirstCircuit)]
     [InlineData(WahBlock.FirstCircuit + 1)]
+    [InlineData(3)] // Clyde
+    [InlineData(4)] // Colorsound
+    [InlineData(5)] // Morley
+    [InlineData(6)] // V845
+    [InlineData(7)] // Parapedal
     public void Component_types_are_deterministic_and_independent_of_block_size(int type) {
         var input = Signals.Noise(9_600, 11);
         using var first = Create(type, 30f);
@@ -96,6 +101,11 @@ public class WahBlockTests(ITestOutputHelper output) {
     [Theory]
     [InlineData(WahBlock.FirstCircuit)]
     [InlineData(WahBlock.FirstCircuit + 1)]
+    [InlineData(3)] // Clyde
+    [InlineData(4)] // Colorsound
+    [InlineData(5)] // Morley
+    [InlineData(6)] // V845
+    [InlineData(7)] // Parapedal
     public void Component_types_decay_to_silence_from_a_full_scale_burst(int type) {
         using var wah = Create(type, 0f);
         var square = Signals.Sine(997, 48_000, 4_800).Select(static s => s >= 0 ? 1f : -1f).ToArray();
@@ -119,8 +129,8 @@ public class WahBlockTests(ITestOutputHelper output) {
         var allocated = AllocationProbe.Measure(() => {
                 for (var i = 0; i < 2_000; i++) {
                     wah.Params.SetTarget(WahBlock.Position, i % 200 < 100 ? 0f : 100f);
-                    if (i % 500 == 0) {
-                        wah.Params.SetTarget(WahBlock.Type, WahBlock.FirstCircuit + i / 500 % WahBlock.Circuits.Count);
+                    if (i % 250 == 0) {
+                        wah.Params.SetTarget(WahBlock.Type, 3 + i / 250 % (WahBlock.TypeCount - 3)); // every circuit
                     }
 
                     wah.Process(new(left, right), default);
@@ -135,6 +145,9 @@ public class WahBlockTests(ITestOutputHelper output) {
     [InlineData(0)]
     [InlineData(WahBlock.FirstCircuit)]
     [InlineData(WahBlock.FirstCircuit + 1)]
+    [InlineData(3)]
+    [InlineData(5)]
+    [InlineData(7)]
     public void Sweeping_the_pedal_does_not_click(int type) {
         using var wah = new WahBlock();
         wah.Params.SetTarget(WahBlock.Type, type);

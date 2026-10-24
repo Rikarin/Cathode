@@ -534,7 +534,7 @@ public class ModulationParityTests {
     public void Min_and_max_frequency_scale_the_voicing() {
         Assert.Equal(2 * WahBlock.Frequency(0, 0), WahBlock.Frequency(0, 0, 2f), 1e-3f);
         Assert.Equal(0.5f * WahBlock.Frequency(0, 100), WahBlock.Frequency(0, 100, 0.5f, 0.5f), 1e-2f);
-        Assert.Equal(8, WahBlock.FilterVoicings);
+        Assert.Equal(3, WahBlock.FilterVoicings);
     }
 
     [Fact]

@@ -76,6 +76,9 @@ public class WahCircuitTests(ITestOutputHelper output) {
     [InlineData(0, 0.5, 0.05, 750)]
     [InlineData(0, 0.5, 0.5, 750)]
     [InlineData(1, 0.5, 0.5, 750)]
+    [InlineData(2, 0.5, 0.5, 750)] // Clyde
+    [InlineData(3, 0.5, 0.5, 750)] // Colorsound
+    [InlineData(4, 0.5, 0.5, 750)] // V845
     [InlineData(0, 0, 1, 375)] // saturates: the generic solver takes over
     public void Hot_signal_matches_the_reference(int index, double toe, double amplitude, double frequency) {
         const int Oversampling = 16;
