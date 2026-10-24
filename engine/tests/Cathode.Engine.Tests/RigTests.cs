@@ -1,6 +1,7 @@
 using Cathode.Audio;
 using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Looping;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.Testing;
@@ -129,6 +130,37 @@ public class RigTests {
     }
 
     [Fact]
+    public void Looper_commands_drive_the_grid_looper_when_the_preset_has_one_and_the_rig_looper_otherwise() {
+        var engine = new CathodeEngine(Spec);
+        engine.EnableLooper();
+        var rig = engine.RigLooper!;
+        engine.Publish(Compiler.Compile(LooperGraph(), Spec, 1));
+        var note = Signals.Sine(440, Spec.SampleRate, 4_800, 0.25f);
+
+        engine.Post(EngineCommand.Looper(LooperAction.Record));
+        OfflineRenderer.Render(engine, note, note, 64);
+        engine.Post(EngineCommand.Looper(LooperAction.Play));
+        var (played, _) = OfflineRenderer.Render(engine, new float[4_800], new float[4_800], 64);
+
+        var grid = ((LooperBlock)engine.Current!.Block(engine.Current.SlotOf("loop"))).Looper!;
+        Assert.Same(grid, engine.Looper);
+        Assert.Equal(LooperState.Playing, grid.State);
+        Assert.Equal(4_800, grid.Length);
+        Assert.Equal(LooperState.Empty, rig.State);
+        Assert.InRange(Analysis.Rms(played) / Analysis.Rms(note), 0.95, 1.02); // the first 10 ms fade in (the seam)
+
+        // A preset without a looper block: the grid loop stops with its preset and the rig looper takes the transport.
+        engine.Publish(Compiler.Compile(Graph(), Spec, 2));
+        OfflineRenderer.Render(engine, new float[64], new float[64], 64);
+        engine.Post(EngineCommand.Looper(LooperAction.Record));
+        OfflineRenderer.Render(engine, note, note, 64);
+
+        Assert.Equal(LooperState.Stopped, grid.State);
+        Assert.Same(rig, engine.Looper);
+        Assert.Equal(LooperState.Recording, rig.State);
+    }
+
+    [Fact]
     public void The_metronome_clicks_on_every_beat() {
         var engine = Engine();
         Set(engine, "metronome", 1f);
@@ -202,5 +234,15 @@ public class RigTests {
                 new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 }
             ],
             Cables = [new() { From = "in", To = "vol" }, new() { From = "vol", To = "out" }]
+        };
+
+    static GraphDefinition LooperGraph() =>
+        new() {
+            Nodes = [
+                new() { Id = "in", Type = NodeTypes.Input, Row = 0, Column = 0 },
+                new() { Id = "loop", Type = "looper", Row = 0, Column = 1 },
+                new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 }
+            ],
+            Cables = [new() { From = "in", To = "loop" }, new() { From = "loop", To = "out" }]
         };
 }
