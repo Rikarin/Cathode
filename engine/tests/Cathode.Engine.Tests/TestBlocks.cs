@@ -29,10 +29,25 @@ sealed class LatencyBlock(int samples) : DspBlock(Info) {
     }
 }
 
+/// <summary>Counts how often the graph engaged it.</summary>
+sealed class EngageCountingBlock() : DspBlock(Info), IEngageAware {
+    public static BlockDescriptor Info { get; } =
+        new("test-engage", "Engage", "Test", [ParamDescriptor.Float("unused", "Unused", 0, 1, 0)]);
+
+    public int Engaged { get; private set; }
+
+    public void Engage() => Engaged++;
+
+    protected override void OnReset() { }
+
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) { }
+}
+
 static class TestRegistry {
     public static BlockRegistry Create() {
         var registry = BlockRegistry.CreateDefault();
         registry.Register(LatencyBlock.Info, static () => new LatencyBlock(10));
+        registry.Register(EngageCountingBlock.Info, static () => new EngageCountingBlock());
         return registry;
     }
 }

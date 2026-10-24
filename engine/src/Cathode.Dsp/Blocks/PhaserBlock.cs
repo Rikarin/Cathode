@@ -26,7 +26,7 @@ namespace Cathode.Dsp.Blocks;
 ///     </para>
 ///     <para>Tone tilts the wet signal around 1 kHz, up to 6 dB either way.</para>
 /// </remarks>
-public sealed class PhaserBlock() : DspBlock(Info) {
+public sealed class PhaserBlock() : DspBlock(Info), IEngageAware {
     public const int Rate = 0;
     public const int Depth = 1;
     public const int Center = 2;
@@ -53,6 +53,9 @@ public sealed class PhaserBlock() : DspBlock(Info) {
     public const int Type = 23;
     public const int Direction = 24;
     public const int FilterQ = 25;
+    public const int LfoReset = 26;
+    public const int GlobalMix = 27;
+    public const int StereoSpread = 28;
 
     public const int Classic = 0;
     public const int Barberpole = 1;
@@ -133,7 +136,10 @@ public sealed class PhaserBlock() : DspBlock(Info) {
             },
             ParamDescriptor.Float("filterQ", "Filter Q", 0.3f, 10f, 0.7071f, string.Empty, ParamTaper.Log) with {
                 TypeLabels = ["", "Filter Q"]
-            }
+            },
+            ParamDescriptor.Switch("lfoReset", "LFO Bypass Reset"),
+            EffectsMix.Param,
+            Stereo.SpreadParam()
         ],
         maxInstances: 2
     );
@@ -185,6 +191,13 @@ public sealed class PhaserBlock() : DspBlock(Info) {
             _ => low * MathF.Pow(high / low, position)
         };
 
+    /// <summary>LFO Bypass Reset: engaging the block restarts the sweep from the top, so every engage sounds alike.</summary>
+    public void Engage() {
+        if (Params.GetTarget(LfoReset) >= 0.5f) {
+            lfo.Reset();
+        }
+    }
+
     protected override void OnReset() {
         Array.Clear(stateLeft);
         Array.Clear(stateRight);
@@ -212,7 +225,7 @@ public sealed class PhaserBlock() : DspBlock(Info) {
         var stages = StageCounts[(int)Params.Current(Stages)];
         var feedback = Params.Advance(Feedback, n) / 100f;
         var spread = Params.Advance(Spread, n) / 360.0;
-        var mix = Params.Advance(Mix, n) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, n), Params.Current(GlobalMix), context) / 100f;
         var nyquistGuard = (float)(rate * 0.45);
         var minFrequency = Math.Min(Params.Advance(MinFrequency, n), nyquistGuard);
         var maxFrequency = Math.Clamp(Params.Advance(MaxFrequency, n), minFrequency, nyquistGuard);
@@ -243,6 +256,7 @@ public sealed class PhaserBlock() : DspBlock(Info) {
         var (toneLow, toneHigh) = (MathF.Pow(2f, -ToneMaxOctaves * tone), MathF.Pow(2f, ToneMaxOctaves * tone));
         var mixStep = (mix - this.mix) / n;
         var currentMix = this.mix;
+        var stereoSpread = Params.Advance(StereoSpread, n) / 100f;
 
         for (var i = 0; i < n; i++) {
             var left = io.Left[i];
@@ -298,6 +312,7 @@ public sealed class PhaserBlock() : DspBlock(Info) {
                 wetRight = toneLow * toneRight + toneHigh * (wetRight - toneRight);
             }
 
+            Stereo.Spread(ref wetLeft, ref wetRight, stereoSpread);
             currentMix += mixStep;
             io.Left[i] = left * (1 - currentMix) + wetLeft * currentMix;
             io.Right[i] = right * (1 - currentMix) + wetRight * currentMix;

@@ -48,6 +48,7 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
     public const int Feedback1 = 26;
     public const int FilterLocation1 = 30;
     public const int FilterQ1 = 34;
+    public const int GlobalMix = FilterQ1 + Voices;
 
     public const int FilterOff = 0;
     public const int FilterPre = 1;
@@ -143,7 +144,8 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
             ..Enumerable.Range(1, Voices)
                 .Select(static v =>
                     ParamDescriptor.Float($"filterQ{v}", $"Filter Q {v}", 0.5f, 20f, 4f, string.Empty, ParamTaper.Log)
-                )
+                ),
+            EffectsMix.Param
         ],
         maxInstances: 2,
         channels: 2
@@ -193,7 +195,7 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var n = io.Length;
         Update(n);
-        var mix = Params.Advance(Mix, n) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, n), Params.Current(GlobalMix), context) / 100f;
         var mixStep = (mix - this.mix) / n;
         var currentMix = this.mix;
         var feed = Params.Advance(InputGain, n) / 100f;

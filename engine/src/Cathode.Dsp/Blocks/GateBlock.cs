@@ -16,8 +16,10 @@ namespace Cathode.Dsp.Blocks;
 ///         across the threshold never chatters. <b>Knee</b> (expanders) rounds the corner over 6 or 12 dB around the
 ///         threshold.
 ///     </para>
+///     Sidechain picks what the detector hears: the block's input, the grid input or another grid row
+///     (<see cref="ISidechainBlock" />), so a gate late in the chain can follow the clean guitar.
 /// </summary>
-public sealed class GateBlock() : DspBlock(Info) {
+public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
     public const int Threshold = 0;
     public const int Ratio = 1;
     public const int Attack = 2;
@@ -31,6 +33,7 @@ public sealed class GateBlock() : DspBlock(Info) {
     public const int Level = 10;
     public const int Balance = 11;
     public const int Knee = 12;
+    public const int Sidechain = 13;
 
     public const int Expander = 0;
     public const int Gate = 1;
@@ -51,6 +54,7 @@ public sealed class GateBlock() : DspBlock(Info) {
     /// <summary>How far below the threshold a Modern type closes, in dB.</summary>
     public const float HysteresisDb = 6f;
 
+    readonly SidechainSource sidechainSource = new();
     float envelope;
     float gainDb;
     int holdRemaining;
@@ -80,7 +84,8 @@ public sealed class GateBlock() : DspBlock(Info) {
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
             ParamDescriptor.Choice("knee", "Knee", ["Hard", "Soft", "Softer"]) with {
                 TypeLabels = ["Knee", "", "Knee", ""]
-            }
+            },
+            SidechainSource.Param()
         ],
         maxInstances: 4
     );
@@ -92,7 +97,11 @@ public sealed class GateBlock() : DspBlock(Info) {
     static float Coefficient(double milliseconds, double sampleRate) =>
         (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
 
+    public void SidechainInput(int row, in StereoBuffer source) =>
+        sidechainSource.Offer(row, source, (int)Params.GetTarget(Sidechain));
+
     protected override void OnPrepare(in ProcessSpec spec) {
+        sidechainSource.Prepare(spec.MaxBlockSize);
         detectorRelease = Coefficient(DetectorReleaseMs, spec.SampleRate);
         rmsCoefficient = Coefficient(RmsMs, spec.SampleRate);
     }
@@ -149,9 +158,12 @@ public sealed class GateBlock() : DspBlock(Info) {
         var gainDb = this.gainDb;
         var holdRemaining = this.holdRemaining;
         var open = this.open;
+        var external = sidechainSource.Active && sidechainSource.Left.Length == io.Length;
+        var sideLeft = sidechainSource.Left;
+        var sideRight = sidechainSource.Right;
         for (var i = 0; i < io.Length; i++) {
-            var detectLeft = io.Left[i];
-            var detectRight = io.Right[i];
+            var detectLeft = external ? sideLeft[i] : io.Left[i];
+            var detectRight = external ? sideRight[i] : io.Right[i];
             sidechain.Tick(ref detectLeft, ref detectRight);
             var level = Math.Max(Math.Abs(detectLeft), Math.Abs(detectRight));
             if (rms) {
@@ -197,6 +209,7 @@ public sealed class GateBlock() : DspBlock(Info) {
         this.gainDb = gainDb;
         this.holdRemaining = holdRemaining;
         this.open = open;
+        sidechainSource.Clear();
         output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 }

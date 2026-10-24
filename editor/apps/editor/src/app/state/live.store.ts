@@ -6,6 +6,7 @@ import {
   type PresetBlock,
   type PresetModifier,
   type RigEvent,
+  type SceneMidiMessage,
   unwrap
 } from '@cathode/api-client';
 import { ConnectionService } from '../core/connection';
@@ -122,11 +123,16 @@ export class LiveStore {
   setControllers = (values: Record<string, number>) =>
     this.mutate(c => c.PATCH('/api/v1/live/controllers', { body: values }));
   setTempo = (bpm: number) => this.mutate(c => c.PUT('/api/v1/live/tempo', { body: { bpm } }));
-  updateScene = (scene: number, change: { level?: number; controllers?: number[] }) =>
+  updateScene = (scene: number, change: { level?: number; controllers?: number[]; midi?: SceneMidiMessage[] }) =>
     this.mutate(c =>
       c.PATCH('/api/v1/live/scenes/{scene}', {
         params: { path: { scene } },
-        body: { name: null, level: change.level ?? null, controllers: change.controllers ?? null }
+        body: {
+          name: null,
+          level: change.level ?? null,
+          controllers: change.controllers ?? null,
+          midi: change.midi ?? null
+        }
       })
     );
   copyChannel = (id: string, from: ChannelName, to: ChannelName) =>
@@ -159,7 +165,7 @@ export class LiveStore {
     this.mutate(c =>
       c.PATCH('/api/v1/live/scenes/{scene}', {
         params: { path: { scene } },
-        body: { name, level: null, controllers: null }
+        body: { name, level: null, controllers: null, midi: null }
       })
     );
 

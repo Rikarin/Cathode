@@ -57,6 +57,7 @@ public sealed class MegatapBlock() : DspBlock(Info) {
     public const int EnvelopeThreshold = 25;
     public const int EnvelopeAttack = 26;
     public const int EnvelopeRelease = 27;
+    public const int GlobalMix = 28;
 
     public const int Flat = 0;
     public const int FadeOut = 1;
@@ -125,7 +126,8 @@ public sealed class MegatapBlock() : DspBlock(Info) {
             ParamDescriptor.Float("diffusionDepth", "Diffusion LFO Depth", 0f, 100f, 0f, "%"),
             ParamDescriptor.Float("envelopeThreshold", "Envelope Threshold", -80f, 0f, -40f, "dB"),
             ParamDescriptor.Float("envelopeAttack", "Envelope Attack", 0f, 2_000f, 0f, "ms"),
-            ParamDescriptor.Float("envelopeRelease", "Envelope Release", 10f, 2_000f, 300f, "ms", ParamTaper.Log)
+            ParamDescriptor.Float("envelopeRelease", "Envelope Release", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
+            EffectsMix.Param
         ],
         maxInstances: 2,
         channels: 2
@@ -208,7 +210,7 @@ public sealed class MegatapBlock() : DspBlock(Info) {
         Params.Advance(LevelAlpha, n);
         Params.Advance(LevelRandom, n);
         Params.Advance(PanAlpha, n);
-        var mix = Params.Advance(Mix, n) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, n), Params.Current(GlobalMix), context) / 100f;
         ComputeTapTargets(taps, time, PreDelaySamples());
         ComputeTapGains(taps, Params.Advance(Spread, n) / 100f);
         if (taps != activeTaps) {

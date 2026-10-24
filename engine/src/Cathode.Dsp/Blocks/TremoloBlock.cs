@@ -28,7 +28,7 @@ namespace Cathode.Dsp.Blocks;
 ///     With a Trigger level set, the LFO restarts from its start each time the playing rises through it (with 6 dB of
 ///     hysteresis), so the pulse locks to the picking.
 /// </summary>
-public sealed class TremoloBlock() : DspBlock(Info) {
+public sealed class TremoloBlock() : DspBlock(Info), IEngageAware {
     public const int Type = 0;
     public const int Rate = 1;
     public const int Depth = 2;
@@ -42,6 +42,7 @@ public sealed class TremoloBlock() : DspBlock(Info) {
     public const int Crossover = 10;
     public const int Trigger = 11;
     public const int CrossoverSlope = 12;
+    public const int StartPhase = 13;
 
     public const int Tremolo = 0;
     public const int Panner = 1;
@@ -94,7 +95,8 @@ public sealed class TremoloBlock() : DspBlock(Info) {
             ParamDescriptor.Float("trigger", "Trigger Level", Decibels.SilenceDb, 0f, Decibels.SilenceDb, "dB"),
             ParamDescriptor.Choice("crossoverSlope", "Crossover Slope", ["6 dB/oct", "12 dB/oct", "24 dB/oct"]) with {
                 TypeLabels = ["", "", "", "Crossover Slope", ""]
-            }
+            },
+            ParamDescriptor.Float("startPhase", "Start Phase", 0f, 360f, 0f, "°")
         ],
         maxInstances: 2
     );
@@ -105,8 +107,11 @@ public sealed class TremoloBlock() : DspBlock(Info) {
         envelopeRelease = (float)Math.Exp(-1 / (TriggerReleaseMs * 0.001 * spec.SampleRate));
     }
 
+    /// <summary>Start Phase: engaging the block starts the LFO at this phase, so the first pulse lands where it should.</summary>
+    public void Engage() => lfo.Reset(Params.GetTarget(StartPhase) / 360.0);
+
     protected override void OnReset() {
-        lfo.Reset();
+        lfo.Reset(Params.Current(StartPhase) / 360.0);
         lightLeft = 1f;
         lightRight = 1f;
         lowLeft = 0;

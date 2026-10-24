@@ -27,7 +27,7 @@ namespace Cathode.Dsp.Blocks;
 ///         <item>The wet signal has first-order low and high cuts, as in the guide, and Stereo Spread.</item>
 ///     </list>
 /// </remarks>
-public sealed class FlangerBlock() : DspBlock(Info) {
+public sealed class FlangerBlock() : DspBlock(Info), IEngageAware {
     public const int Rate = 0;
     public const int Depth = 1;
     public const int Delay = 2;
@@ -53,6 +53,8 @@ public sealed class FlangerBlock() : DspBlock(Info) {
     public const int VcoResponse = 22;
     public const int Exponent = 23;
     public const int StereoSpread = 24;
+    public const int LfoReset = 25;
+    public const int GlobalMix = 26;
 
     public const int ThruZeroOff = 0;
     public const int ThruZeroAuto = 1;
@@ -110,7 +112,9 @@ public sealed class FlangerBlock() : DspBlock(Info) {
             LfoConditioner.AutoDepthParam(),
             ParamDescriptor.Choice("vcoResponse", "VCO Response", ["Linear", "Exponential"]),
             ParamDescriptor.Float("exponent", "Exponent", 0.25f, 4f, 1f, string.Empty, ParamTaper.Log),
-            ParamDescriptor.Float("stereoSpread", "Stereo Spread", -100f, 100f, 100f, "%")
+            Stereo.SpreadParam(),
+            ParamDescriptor.Switch("lfoReset", "LFO Bypass Reset"),
+            EffectsMix.Param
         ],
         maxInstances: 2
     );
@@ -133,6 +137,13 @@ public sealed class FlangerBlock() : DspBlock(Info) {
         right.Allocate(capacity);
         dryLeft.Allocate(capacity);
         dryRight.Allocate(capacity);
+    }
+
+    /// <summary>LFO Bypass Reset: engaging the block restarts the sweep from the top, so every engage sounds alike.</summary>
+    public void Engage() {
+        if (Params.GetTarget(LfoReset) >= 0.5f) {
+            lfo.Reset();
+        }
     }
 
     protected override void OnReset() {
@@ -200,7 +211,7 @@ public sealed class FlangerBlock() : DspBlock(Info) {
         var dryDelay = thruZero == ThruZeroManual
             ? manualDry
             : SweptDelay(low, sweep, 0.5f, exponential, 1f); // Auto: the middle of the sweep
-        var mix = Params.Advance(Mix, n) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, n), Params.Current(GlobalMix), context) / 100f;
         var mixStep = (mix - this.mix) / n;
         var currentMix = this.mix;
         var conditioned = !conditioner.IsOff;

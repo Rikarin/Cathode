@@ -136,8 +136,35 @@ public sealed class Scene {
     /// <summary>Scene controllers 1-4 (0..1), modifier sources that change with the scene.</summary>
     public List<float> Controllers { get; set; } = [0, 0, 0, 0];
 
+    /// <summary>
+    ///     Up to <see cref="SceneMidiMessage.MaxPerScene" /> MIDI messages sent through the rig's MIDI output whenever this
+    ///     scene is selected, or its preset loads on it: program changes and CCs for other gear.
+    /// </summary>
+    public List<SceneMidiMessage> Midi { get; set; } = [];
+
     public SceneBlockState StateOf(string blockId) =>
         Blocks.TryGetValue(blockId, out var state) ? state : SceneBlockState.Default;
+}
+
+/// <summary>
+///     One scene MIDI message: a program change (<c>pc</c>: <see cref="Number" /> is the program) or a control change
+///     (<c>cc</c>: controller <see cref="Number" />, value <see cref="Value" />), on MIDI channel 1-16.
+/// </summary>
+public sealed record SceneMidiMessage(string Type = "pc", int Channel = 1, int Number = 0, int Value = 0) {
+    public const int MaxPerScene = 8;
+
+    /// <summary>The bytes on the wire.</summary>
+    public byte[] Bytes() =>
+        Type == "cc"
+            ? [(byte)(0xB0 | (Channel - 1)), (byte)Number, (byte)Value]
+            : [(byte)(0xC0 | (Channel - 1)), (byte)Number];
+
+    /// <summary>What is wrong with this message, or null.</summary>
+    public string? Problem() =>
+        Type is not ("pc" or "cc") ? $"Scene MIDI type '{Type}' is not pc or cc."
+        : Channel is < 1 or > 16 ? "Scene MIDI channels are 1-16."
+        : Number is < 0 or > 127 || Value is < 0 or > 127 ? "Scene MIDI numbers and values are 0-127."
+        : null;
 }
 
 public sealed record SceneBlockState(bool Bypassed = false, string Channel = "A") {

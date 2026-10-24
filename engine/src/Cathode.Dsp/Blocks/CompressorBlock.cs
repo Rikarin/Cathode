@@ -35,8 +35,15 @@ namespace Cathode.Dsp.Blocks;
 ///     high shelf (so the bass pumps less) and a sidechain EQ band; <b>Input Level</b> Line takes 12 dB off the detector
 ///     for line-level sources. Auto Makeup adds back half the gain reduction a 0 dBFS signal would get. The mix follows
 ///     the Axe-Fx law (50 % = -6 dB each) for parallel compression.
+///     <para>
+///         Sidechain picks what the detector hears: the block's input, the grid input or another grid row
+///         (<see cref="ISidechainBlock" />); the sidechain cuts, emphasis and EQ then filter that signal. Look Ahead
+///         delays the audio (wet and dry alike) while the detector hears it undelayed, so the gain is already down when
+///         a transient arrives; the block reports the delay as latency, so the compiler aligns parallel rows, and
+///         changing it rebuilds the graph (<see cref="ParamDescriptor.Recompile" />).
+///     </para>
 /// </summary>
-public sealed class CompressorBlock() : DspBlock(Info) {
+public sealed class CompressorBlock() : DspBlock(Info), ISidechainBlock {
     public const int Type = 0;
     public const int Threshold = 1;
     public const int Ratio = 2;
@@ -61,6 +68,8 @@ public sealed class CompressorBlock() : DspBlock(Info) {
     public const int SidechainQ = 21;
     public const int SidechainGain = 22;
     public const int InputLevel = 23;
+    public const int Sidechain = 24;
+    public const int LookAhead = 25;
 
     public const int Pedal = 0;
     public const int Studio = 1;
@@ -87,8 +96,16 @@ public sealed class CompressorBlock() : DspBlock(Info) {
     /// <summary>What Input Level Line takes off the detector, in dB.</summary>
     public const float LineLevelDb = 12f;
 
+    /// <summary>The Look Ahead choices, in ms (a choice, not a knob: each change rebuilds the graph).</summary>
+    public static readonly float[] LookAheadMs = [0f, 0.5f, 1f, 2f, 3f, 5f, 10f];
+
     const double RmsWindowMs = 5;
 
+    readonly SidechainSource sidechainSource = new();
+    float[] aheadLeft = [];
+    float[] aheadRight = [];
+    int ahead;
+    int aheadPosition;
     double meanSquare;
     float mix = 1f;
     float lastGain = 1f;
@@ -125,10 +142,16 @@ public sealed class CompressorBlock() : DspBlock(Info) {
             ParamDescriptor.Float("scFreq", "Sidechain Freq", 20f, 20_000f, 1_000f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("scQ", "Sidechain Q", 0.1f, 10f, 0.7071f, string.Empty, ParamTaper.Log),
             ParamDescriptor.Float("scGain", "Sidechain Gain", -24f, 24f, 0f, "dB"),
-            ParamDescriptor.Choice("inputLevel", "Input Level", ["Instrument", "Line"])
+            ParamDescriptor.Choice("inputLevel", "Input Level", ["Instrument", "Line"]),
+            SidechainSource.Param(),
+            ParamDescriptor.Choice("lookAhead", "Look Ahead", ["Off", "0.5 ms", "1 ms", "2 ms", "3 ms", "5 ms", "10 ms"])
+                with { Recompile = true }
         ],
         maxInstances: 4
     );
+
+    /// <summary>The look-ahead delay, fixed when the block is prepared (the graph compiler reads it then).</summary>
+    public override int LatencySamples => ahead;
 
     /// <summary>Current gain reduction in dB (0 or negative; positive for upward types). For meters and tests.</summary>
     public float GainReductionDb { get; private set; }
@@ -184,7 +207,20 @@ public sealed class CompressorBlock() : DspBlock(Info) {
             TypeLabels = [..Enumerable.Range(0, 6).Select(t => t == type ? descriptor.Name : string.Empty)]
         };
 
+    public void SidechainInput(int row, in StereoBuffer source) =>
+        sidechainSource.Offer(row, source, (int)Params.GetTarget(Sidechain));
+
+    protected override void OnPrepare(in ProcessSpec spec) {
+        sidechainSource.Prepare(spec.MaxBlockSize);
+        ahead = (int)Math.Round(LookAheadMs[(int)Params.GetTarget(LookAhead)] * 0.001 * spec.SampleRate);
+        aheadLeft = new float[Math.Max(1, ahead)];
+        aheadRight = new float[Math.Max(1, ahead)];
+    }
+
     protected override void OnReset() {
+        Array.Clear(aheadLeft);
+        Array.Clear(aheadRight);
+        aheadPosition = 0;
         GainReductionDb = 0;
         meanSquare = 0;
         lastGain = 1f;
@@ -287,12 +323,23 @@ public sealed class CompressorBlock() : DspBlock(Info) {
         var lastGain = this.lastGain;
         var mixStep = (mix - this.mix) / io.Length;
         var currentMix = this.mix;
+        var external = sidechainSource.Active && sidechainSource.Left.Length == io.Length;
+        var sideLeft = sidechainSource.Left;
+        var sideRight = sidechainSource.Right;
+        var position = aheadPosition;
 
         for (var i = 0; i < io.Length; i++) {
             var left = io.Left[i];
             var right = io.Right[i];
-            var detectLeft = left;
-            var detectRight = right;
+            var detectLeft = external ? sideLeft[i] : left;
+            var detectRight = external ? sideRight[i] : right;
+            if (ahead > 0) {
+                // The detector hears the input now; the audio comes out ahead samples later.
+                (left, aheadLeft[position]) = (aheadLeft[position], left);
+                (right, aheadRight[position]) = (aheadRight[position], right);
+                position = position + 1 == ahead ? 0 : position + 1;
+            }
+
             sidechain.Tick(ref detectLeft, ref detectRight);
             if (emphasis) {
                 detectLeft = (float)emphasisLeft.Tick(emphasisShelf, detectLeft);
@@ -360,6 +407,8 @@ public sealed class CompressorBlock() : DspBlock(Info) {
             io.Right[i] = right * (1 - currentMix) + right * gain * currentMix;
         }
 
+        aheadPosition = position;
+        sidechainSource.Clear();
         GainReductionDb = MathF.Abs(reduction) < 1e-6f ? 0 : reduction;
         sidechain.FlushDenormals();
         emphasisLeft.FlushDenormals();

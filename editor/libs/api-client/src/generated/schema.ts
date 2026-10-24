@@ -62,7 +62,7 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /** Starts or stops RTA frames (the output's sixth-octave spectrum) on the WebSocket. */
+    /** Starts or stops RTA frames on the WebSocket (the output's spectrum, or the RTA block's while a preset has one) and sets the bands, decay and window. */
     put: operations['SetRta'];
     post?: never;
     delete?: never;
@@ -442,6 +442,23 @@ export interface paths {
     patch: operations['UpdateScene'];
     trace?: never;
   };
+  '/api/v1/live/blocks/{id}/preset': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Sets a channel of the block (default: the active scene's) to a block preset from the Block Library. */
+    post: operations['ApplyBlockPreset'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/live/blocks/{id}/bypass-mode': {
     parameters: {
       query?: never;
@@ -672,6 +689,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/block-presets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The factory and user block presets, of one block type when ?type= is given. */
+    get: operations['ListBlockPresets'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/block-presets/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['GetBlockPreset'];
+    /** Saves a user block preset (factory ones cannot be changed). */
+    put: operations['PutBlockPreset'];
+    post?: never;
+    delete: operations['DeleteBlockPreset'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/setlists': {
     parameters: {
       query?: never;
@@ -881,6 +932,11 @@ export interface components {
       column: number;
       id?: null | string;
     };
+    /** @description Sets a block's channel (default: the one the active scene uses) to a block preset. */
+    ApplyBlockPresetRequest: {
+      preset: string;
+      channel?: null | string;
+    };
     AssetInfo: {
       ref: string;
       name: string;
@@ -899,6 +955,23 @@ export interface components {
       name: string;
       /** @description Preset id per slot; null or missing slots are empty. */
       slots: string[];
+    };
+    /**
+     * @description A named setting of one block type, kept in the Block Library: the factory's (the guide's "types" that are
+     *     presets of the same algorithm, such as the many choruses, flangers and reverbs) and the user's own. Applying one
+     *     sets a channel of a block to it; it never adds a Type parameter that would fight the knobs.
+     */
+    BlockPreset: {
+      id: string;
+      /** @description The block type id it is for, e.g. `chorus`. */
+      type: string;
+      name: string;
+      /** @description A factory preset ships with Cathode and cannot be changed or deleted. */
+      factory: boolean;
+      /** @description Parameter values by id. Sparse: anything not listed takes the block type's default. */
+      values: {
+        [key: string]: number;
+      };
     };
     /**
      * @description A block type the editor can place. `CpuCost` is its measured cost in percent of one core at 48 kHz
@@ -1053,6 +1126,17 @@ export interface components {
       metronome: boolean;
       /** Format: float */
       metronomeLevel: number;
+      /**
+       * Format: float
+       * @description Effects Mix offset (−50..50 %), added to the Mix of every block whose Global Mix is on: one control for
+       *     making the whole rig wetter or drier for a room.
+       */
+      effectsMix: number;
+      /**
+       * Format: float
+       * @description Noise gate offset in dB (−20..20), added to every Input block's gate threshold.
+       */
+      noiseGateOffset: number;
       /** @description The global output EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse. */
       eq: {
         [key: string]: number;
@@ -1280,8 +1364,25 @@ export interface components {
       /** Format: date-time */
       modified: string;
     };
+    /**
+     * @description Turns the RTA on or off and sets how it analyses: `BandsPerOctave` 3, 6 or 12 (about 30, 60 or 120 bands),
+     *     `DecayMs` how long a level takes to fall away (0 = each frame stands alone), and `Window` hann,
+     *     blackmanHarris, flatTop or rectangular.
+     */
     RtaRequest: {
       enabled: boolean;
+      /**
+       * Format: int32
+       * @default 6
+       */
+      bandsPerOctave: number;
+      /**
+       * Format: float
+       * @default 0
+       */
+      decayMs: number;
+      /** @default hann */
+      window: string;
     };
     SaveRequest: {
       name?: null | string;
@@ -1301,6 +1402,11 @@ export interface components {
       };
       /** @description Scene controllers 1-4 (0..1), modifier sources that change with the scene. */
       controllers: number[];
+      /**
+       * @description Up to int SceneMidiMessage.MaxPerScene MIDI messages sent through the rig's MIDI output whenever this
+       *     scene is selected, or its preset loads on it: program changes and CCs for other gear.
+       */
+      midi: components['schemas']['SceneMidiMessage'][];
     };
     SceneBlockState: {
       /** @default false */
@@ -1308,15 +1414,40 @@ export interface components {
       /** @default A */
       channel: string;
     };
+    /**
+     * @description One scene MIDI message: a program change (`pc`: int SceneMidiMessage.Number is the program) or a control change
+     *     (`cc`: controller int SceneMidiMessage.Number, value int SceneMidiMessage.Value), on MIDI channel 1-16.
+     */
+    SceneMidiMessage: {
+      /** @default pc */
+      type: string;
+      /**
+       * Format: int32
+       * @default 1
+       */
+      channel: number;
+      /**
+       * Format: int32
+       * @default 0
+       */
+      number: number;
+      /**
+       * Format: int32
+       * @default 0
+       */
+      value: number;
+    };
     SceneSelectRequest: {
       /** Format: int32 */
       scene: number;
     };
+    /** @description Changes to a scene; null leaves a field as it is. `Midi` replaces the scene's MIDI messages. */
     SceneUpdateRequest: {
       name?: null | string;
       /** Format: float */
       level?: null | number;
       controllers?: null | number[];
+      midi?: null | components['schemas']['SceneMidiMessage'][];
     };
     ScopeRequest: {
       enabled: boolean;
@@ -2065,6 +2196,32 @@ export interface operations {
       };
     };
   };
+  ApplyBlockPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ApplyBlockPresetRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
   SetBypassMode: {
     parameters: {
       query?: never;
@@ -2483,6 +2640,110 @@ export interface operations {
         content: {
           'application/json': components['schemas']['ImportResult'];
         };
+      };
+    };
+  };
+  ListBlockPresets: {
+    parameters: {
+      query?: {
+        type?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BlockPreset'][];
+        };
+      };
+    };
+  };
+  GetBlockPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BlockPreset'];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  PutBlockPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BlockPreset'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BlockPreset'];
+        };
+      };
+    };
+  };
+  DeleteBlockPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

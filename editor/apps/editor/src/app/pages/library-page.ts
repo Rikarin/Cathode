@@ -2,13 +2,17 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { Router } from '@angular/router';
 import type { PresetSummary } from '@cathode/api-client';
 import { provideIcons } from '@ng-icons/core';
-import { matSearchRound } from '@ng-icons/material-icons/round';
+import { matDeleteRound, matSearchRound } from '@ng-icons/material-icons/round';
 import { XuiAlertDialogImports } from '@xui/alert-dialog';
 import { XuiButtonImports } from '@xui/button';
 import { type XuiDataColumn, XuiDataTableImports } from '@xui/data-table';
+import { XuiIconImports } from '@xui/icon';
 import { XuiInputImports } from '@xui/input';
 import { XuiNonIdealStateImports } from '@xui/non-ideal-state';
+import { XuiTableImports } from '@xui/table';
 import { XuiTextImports } from '@xui/text';
+import { BlockPresetsStore } from '../state/block-presets.store';
+import { CatalogStore } from '../state/catalog.store';
 import { CompareStore } from '../state/compare.store';
 import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
@@ -21,11 +25,13 @@ import { LiveStore } from '../state/live.store';
     XuiAlertDialogImports,
     XuiButtonImports,
     XuiDataTableImports,
+    XuiIconImports,
     XuiInputImports,
+    XuiTableImports,
     XuiNonIdealStateImports,
     XuiTextImports
   ],
-  providers: [provideIcons({ matSearchRound })],
+  providers: [provideIcons({ matDeleteRound, matSearchRound })],
   host: { class: 'flex h-full flex-col gap-4 p-6' },
   template: `
     <header class="flex flex-wrap items-center gap-3">
@@ -80,6 +86,41 @@ import { LiveStore } from '../state/live.store';
       </footer>
     }
 
+    <section class="flex flex-col gap-2" aria-labelledby="block-library-heading">
+      <h2 xuiHeading id="block-library-heading" class="text-sm">Block Library</h2>
+      <p xuiText class="text-foreground-muted text-xs">
+        {{ blockPresets.presets().length - blockPresets.user().length }} factory presets for {{ factoryTypes() }} block
+        types. Load one from a block's page; save a block's channel there to add your own.
+      </p>
+      @if (blockPresets.user().length > 0) {
+        <xui-table>
+          <xui-tr>
+            <xui-th>Name</xui-th>
+            <xui-th>Block</xui-th>
+            <xui-th><span class="sr-only">Remove</span></xui-th>
+          </xui-tr>
+          @for (preset of blockPresets.user(); track preset.id) {
+            <xui-tr>
+              <xui-td>{{ preset.name }}</xui-td>
+              <xui-td>{{ catalog.info(preset.type)?.name ?? preset.type }}</xui-td>
+              <xui-td>
+                <button
+                  xuiButton
+                  variant="ghost"
+                  size="sm"
+                  color="error"
+                  [attr.aria-label]="'Delete block preset ' + preset.name"
+                  (click)="blockPresets.delete(preset.id)"
+                >
+                  <ng-icon xui name="matDeleteRound" size="sm" />
+                </button>
+              </xui-td>
+            </xui-tr>
+          }
+        </xui-table>
+      }
+    </section>
+
     <xui-alert-dialog
       destructive
       title="Delete preset?"
@@ -94,6 +135,17 @@ import { LiveStore } from '../state/live.store';
 })
 export class LibraryPage {
   protected readonly library = inject(LibraryStore);
+  protected readonly blockPresets = inject(BlockPresetsStore);
+  protected readonly catalog = inject(CatalogStore);
+  protected readonly factoryTypes = computed(
+    () =>
+      new Set(
+        this.blockPresets
+          .presets()
+          .filter(p => p.factory)
+          .map(p => p.type)
+      ).size
+  );
   private readonly live = inject(LiveStore);
   private readonly compare = inject(CompareStore);
   private readonly router = inject(Router);
@@ -124,6 +176,7 @@ export class LibraryPage {
 
   constructor() {
     void this.library.refreshPresets();
+    void this.blockPresets.refresh();
   }
 
   protected async load(): Promise<void> {

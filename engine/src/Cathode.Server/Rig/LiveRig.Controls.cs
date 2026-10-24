@@ -45,7 +45,8 @@ public sealed partial class LiveRig {
                 foreach (var m in modifiers) {
                     var block = preset.Blocks.FirstOrDefault(b => b.Id == m.Block);
                     var descriptor = block is null ? null : catalog.Descriptor(block.Type);
-                    if (descriptor is null || descriptor.IndexOf(m.Param) < 0) {
+                    var engage = m.Param == ModNames.EngageParam && block is not null && !BuiltInTypes.IsBuiltIn(block.Type);
+                    if (descriptor is null || (!engage && descriptor.IndexOf(m.Param) < 0)) {
                         errors.Add($"No parameter '{m.Param}' on block '{m.Block}'.");
                     } else if (!ModNames.TryParseSource(m.Source, out _)) {
                         errors.Add($"Unknown modifier source '{m.Source}'.");
@@ -134,19 +135,71 @@ public sealed partial class LiveRig {
         );
 
     public Task<LiveState> CopyChannelAsync(string id, CopyChannelRequest request, long? expected) =>
-        Locked(() => {
+        Locked(async () => {
                 Check(expected);
                 var block = Find(id);
                 var descriptor = catalog.Descriptor(block.Type) ?? throw new RigException(400, $"'{id}' has no channels.");
                 CheckChannel(request.From, descriptor.Channels);
                 CheckChannel(request.To, descriptor.Channels);
                 PushUndo(null);
+                var recompile = NeedsRecompile(block, request.From, request.To);
                 block.Channels[request.To] = new(block.Channels.GetValueOrDefault(request.From) ?? []);
                 if (preset.Scenes[activeScene].StateOf(id).Channel == request.To) {
-                    engine.SetParams(generation, ChannelValues(block, request.To));
+                    if (recompile) {
+                        await SyncGraphAsync();
+                    } else {
+                        engine.SetParams(generation, ChannelValues(block, request.To));
+                    }
                 }
 
-                return Task.FromResult(Changed("channelCopied", id, request.To));
+                return Changed("channelCopied", id, request.To);
+            }
+        );
+
+    /// <summary>
+    ///     Sets <paramref name="channel" /> (default: the one the active scene uses) of a block to a block preset: its
+    ///     values, and every other parameter back to its default.
+    /// </summary>
+    public Task<LiveState> ApplyBlockPresetAsync(string id, BlockPreset source, string? channel, long? expected) =>
+        Locked(async () => {
+                Check(expected);
+                var block = Find(id);
+                var descriptor = catalog.Descriptor(block.Type)
+                    ?? throw new RigException(400, $"'{id}' has no parameters.");
+                if (source.Type != block.Type) {
+                    throw new RigException(400, $"'{source.Name}' is a {source.Type} preset; '{id}' is a {block.Type}.");
+                }
+
+                var state = preset.Scenes[activeScene].StateOf(id);
+                var target = channel ?? state.Channel;
+                CheckChannel(target, descriptor.Channels);
+                PushUndo(null);
+                var before = block.Channels.GetValueOrDefault(target) ?? [];
+                var values = source.Values
+                    .Where(v => descriptor.IndexOf(v.Key) >= 0)
+                    .ToDictionary(static v => v.Key, v => descriptor.Params[descriptor.IndexOf(v.Key)].Sanitize(v.Value));
+                block.Channels[target] = values;
+                if (block.Global is { } link) {
+                    globals.Update(g => {
+                            if (g.Blocks.FirstOrDefault(b => b.Id == link) is { } shared) {
+                                shared.Channels[target] = new(values);
+                            }
+                        }
+                    );
+                }
+
+                if (target == state.Channel) {
+                    var recompile = descriptor.Params.Any(p => p.Recompile
+                        && before.GetValueOrDefault(p.Id, p.Default) != values.GetValueOrDefault(p.Id, p.Default)
+                    );
+                    if (recompile) {
+                        await SyncGraphAsync();
+                    } else {
+                        engine.SetParams(generation, ChannelValues(block, target));
+                    }
+                }
+
+                return Changed("blockPresetApplied", id, target);
             }
         );
 

@@ -60,6 +60,8 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     readonly int tempoIndex = RigControls.Descriptor.IndexOf("tempo");
     readonly int metronomeIndex = RigControls.Descriptor.IndexOf("metronome");
     readonly int metroLevelIndex = RigControls.Descriptor.IndexOf("metroLevel");
+    readonly int effectsMixIndex = RigControls.Descriptor.IndexOf("effectsMix");
+    readonly int gateOffsetIndex = RigControls.Descriptor.IndexOf("gateOffset");
     int tapCount;
     float levelGain = 1f;
     Looper? looper;
@@ -276,9 +278,22 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                 var slice = io.Slice(offset, length);
                 HardwareLoop.Offset = offset;
                 modulation.Advance(slice.InputLeft, sampleTime);
-                var context = new BlockContext(Spec.SampleRate, modulation.Tempo, sampleTime, HeldNotes);
+                var context = new BlockContext(
+                    Spec.SampleRate,
+                    modulation.Tempo,
+                    sampleTime,
+                    HeldNotes,
+                    Rig.GetTarget(effectsMixIndex),
+                    Rig.GetTarget(gateOffsetIndex)
+                );
                 graph.ApplyModifiers(modulation, length);
                 graph.Process(slice, context);
+                if (graph.Analyzer is { } analyzer) {
+                    var tapped = analyzer.Take();
+                    if (!tapped.IsEmpty && Volatile.Read(ref telemetry) is { } analysis) {
+                        analysis.WriteAnalyzer(tapped);
+                    }
+                }
                 if (swapGain < 1f) {
                     swapGain = Ramp(slice.OutputLeft, slice.OutputRight, swapGain, 1f);
                 }

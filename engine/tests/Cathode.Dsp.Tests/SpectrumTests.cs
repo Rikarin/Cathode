@@ -21,6 +21,24 @@ public class SpectrumTests {
         Assert.Equal(20 * Math.Log10(0.5 / Math.Sqrt(2)), bands[loudest] - 10 * Math.Log10(4_096.0 / 2), 1.0);
     }
 
+    [Theory]
+    [InlineData(SpectrumWindow.Hann)]
+    [InlineData(SpectrumWindow.BlackmanHarris)]
+    [InlineData(SpectrumWindow.FlatTop)]
+    [InlineData(SpectrumWindow.Rectangular)]
+    public void Every_window_reads_a_sine_at_the_same_band_level(SpectrumWindow window) {
+        // 1 kHz falls between bins (11.72 Hz apart), so the window's leakage is in play; its energy is normalised out.
+        var spectrum = new PowerSpectrum(4_096, window);
+        spectrum.AddSignal(Signals.Sine(1_000, Rate, 48_000, 0.5f));
+        var centers = FractionalOctave.Centers(3);
+
+        var bands = FractionalOctave.Bands(spectrum.Mean(), Rate, centers, 3);
+
+        var loudest = Array.IndexOf(bands, bands.Max());
+        Assert.Equal(1_000, centers[loudest], 1);
+        Assert.Equal(20 * Math.Log10(0.5 / Math.Sqrt(2)), bands[loudest] - 10 * Math.Log10(4_096.0 / 2), 1.0);
+    }
+
     [Fact]
     public void Silence_is_left_out_of_the_average() {
         var spectrum = new PowerSpectrum();

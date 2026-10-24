@@ -13,6 +13,8 @@ public sealed class BlockRegistry {
     /// <summary>A registry pre-populated with every built-in block.</summary>
     public static BlockRegistry CreateDefault() {
         var registry = new BlockRegistry();
+        registry.Register(InputBlock.Info, static () => new InputBlock());
+        registry.Register(OutputBlock.Info, static () => new OutputBlock());
         registry.Register(VolumePanBlock.Info, static () => new VolumePanBlock());
         registry.Register(FilterBlock.Info, static () => new FilterBlock());
         registry.Register(CabBlock.Info, static () => new CabBlock());
@@ -54,6 +56,7 @@ public sealed class BlockRegistry {
         registry.Register(ResonatorBlock.Info, static () => new ResonatorBlock());
         registry.Register(PitchBlock.Info, static () => new PitchBlock());
         registry.Register(SynthBlock.Info, static () => new SynthBlock());
+        registry.Register(RtaBlock.Info, static () => new RtaBlock());
         registry.Register(LooperBlock.Info, static () => new LooperBlock());
         return registry;
     }

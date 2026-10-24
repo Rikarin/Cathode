@@ -243,7 +243,9 @@ public class PitchBlockTests(ITestOutputHelper output) {
         Assert.Equal(PitchBlock.Glide, info.IndexOf("glide"));
         Assert.Equal(PitchBlock.CrystalsFeedbackType, info.IndexOf("crystalsFeedbackType"));
         Assert.Equal(PitchBlock.DetectorSource, info.IndexOf("detectorSource"));
-        Assert.Equal(PitchBlock.DetectorSource + 1, info.Params.Count);
+        Assert.Equal(PitchBlock.GlobalMix, info.IndexOf("globalMix"));
+        Assert.Equal(PitchBlock.InputSelect, info.IndexOf("inputSelect"));
+        Assert.Equal(PitchBlock.InputSelect + 1, info.Params.Count);
         Assert.Equal("Virtual Capo", info.Params[PitchBlock.Type].Options![(int)PitchType.VirtualCapo]);
         Assert.Equal("Custom Shifter", info.Params[PitchBlock.Type].Options![(int)PitchType.CustomShifter]);
 

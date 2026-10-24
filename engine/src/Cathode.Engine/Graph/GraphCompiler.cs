@@ -32,10 +32,13 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         var slotIds = new List<string>();
         var bypassed = new List<bool>();
         var bypassModes = new List<BypassKind>();
+        AnalyzerTap? analyzer = null;
         for (var n = 0; n < nodes.Count; n++) {
             slotOfNode[n] = -1;
             var node = nodes[n];
-            if (NodeTypes.IsBuiltIn(node.Type)) {
+            // Input and Output run their own block (gate, row mixer) when the registry has one; shunts never do.
+            var builtIn = NodeTypes.IsBuiltIn(node.Type);
+            if (node.Type == NodeTypes.Shunt || (builtIn && !registry.Contains(node.Type))) {
                 continue;
             }
 
@@ -59,12 +62,16 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 loop.Port = HardwareLoop;
             }
 
+            if (block is RtaBlock rta) {
+                rta.Tap = analyzer ??= new(spec.MaxBlockSize);
+            }
+
             block.Prepare(spec);
             slotOfNode[n] = blocks.Count;
             blocks.Add(block);
             slotIds.Add(node.Id);
-            bypassed.Add(node.Bypassed);
-            bypassModes.Add(node.BypassMode switch {
+            bypassed.Add(node.Bypassed && !builtIn);
+            bypassModes.Add((builtIn ? BypassModes.Thru : node.BypassMode) switch {
                     BypassModes.Mute => BypassKind.Mute,
                     BypassModes.MuteIn => BypassKind.MuteIn,
                     BypassModes.MuteFxIn => BypassKind.MuteFxIn,
@@ -75,13 +82,16 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             );
         }
 
-        var (send, ret) = PairFeedback(nodes, slotOfNode, blocks, spec, errors);
+        var feedbackPairs = PairFeedback(nodes, slotOfNode, blocks, spec, errors);
 
         var modifiers = new List<ModifierBinding>();
         foreach (var modifier in definition.Modifiers) {
             var slot = slotIds.IndexOf(modifier.Block);
-            var index = slot < 0 ? -1 : blocks[slot].Descriptor.IndexOf(modifier.Param);
-            if (index < 0) {
+            var engage = modifier.Param == ModNames.EngageParam
+                && slot >= 0
+                && !NodeTypes.IsBuiltIn(blocks[slot].Descriptor.TypeId);
+            var index = slot < 0 ? -1 : engage ? ModifierBinding.Engage : blocks[slot].Descriptor.IndexOf(modifier.Param);
+            if (index == -1) {
                 errors.Add($"Modifier: no parameter '{modifier.Param}' on block '{modifier.Block}'.");
             } else if (!ModNames.TryParseSource(modifier.Source, out var source)) {
                 errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown source '{modifier.Source}'.");
@@ -89,6 +99,20 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown curve '{modifier.Curve}'.");
             } else if (modifiers.Any(m => m.Slot == slot && m.ParamIndex == index)) {
                 errors.Add($"Parameter '{modifier.Block}.{modifier.Param}' has more than one modifier.");
+            } else if (engage) {
+                modifiers.Add(
+                    new(
+                        slot,
+                        index,
+                        source,
+                        curve,
+                        Math.Clamp(modifier.Min, 0f, 1f),
+                        Math.Clamp(modifier.Max, 0f, 1f),
+                        false,
+                        modifier.AttackMs,
+                        modifier.ReleaseMs
+                    )
+                );
             } else {
                 var param = blocks[slot].Descriptor.Params[index];
                 modifiers.Add(
@@ -114,13 +138,13 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
 
         // Plain loops from here on: this runs on every preset load in a process that must not collect.
         // A send feeds its return without a cable: link them for liveness only, not for ordering or latency.
-        if (send >= 0 && ret >= 0) {
+        foreach (var (send, ret) in feedbackPairs) {
             consumers[send].Add(ret);
             inputs[ret].Add(send);
         }
 
         var live = FindLiveNodes(definition, inputs, consumers);
-        if (send >= 0 && ret >= 0) {
+        foreach (var (send, ret) in feedbackPairs) {
             consumers[send].Remove(ret);
             inputs[ret].Remove(send);
         }
@@ -161,6 +185,35 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             }
         }
 
+        // Sidechain sources: per row, the last live node to the left of each sidechain block. Each counts as one more
+        // reader, so its buffer survives (and is not processed over in place) until the block has been offered it.
+        var sidechains = new List<(int Row, int Source)>?[nodes.Count];
+        foreach (var n in order) {
+            if (slotOfNode[n] < 0 || blocks[slotOfNode[n]] is not ISidechainBlock) {
+                continue;
+            }
+
+            var sources = new List<(int Row, int Source)>();
+            for (var row = 0; row < definition.Rows; row++) {
+                var best = -1;
+                foreach (var m in order) {
+                    if (nodes[m].Row == row
+                        && nodes[m].Column < nodes[n].Column
+                        && nodes[m].Type != NodeTypes.Output
+                        && (best < 0 || nodes[m].Column > nodes[best].Column)) {
+                        best = m;
+                    }
+                }
+
+                if (best >= 0) {
+                    sources.Add((row, best));
+                    readersLeft[best]++;
+                }
+            }
+
+            sidechains[n] = sources;
+        }
+
         var liveInputs = new List<int>();
 
         foreach (var n in order) {
@@ -174,14 +227,31 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
 
             var arrival = Arrival(inputs[n], live, latency);
             int buffer;
+            if (sidechains[n] is { } sidechainSources) {
+                emitter.Emit(new(GraphOpKind.SidechainInput, 0, Index: slotOfNode[n], Row: -1));
+                foreach (var (row, source) in sidechainSources) {
+                    emitter.Emit(new(GraphOpKind.SidechainInput, bufferOf[source], Index: slotOfNode[n], Row: row));
+                    if (--readersLeft[source] == 0) {
+                        emitter.Free(bufferOf[source]);
+                    }
+                }
+            }
 
             var mux = slotOfNode[n] >= 0 && blocks[slotOfNode[n]] is IRowInputBlock;
+            var soleReader = liveInputs.Count == 1 && readersLeft[liveInputs[0]] == 1;
             if (node.Type == NodeTypes.Input) {
                 buffer = emitter.Allocate();
                 emitter.Emit(new(GraphOpKind.ReadInput, buffer));
             } else if (liveInputs.Count == 0) {
                 buffer = emitter.Allocate(); // a Feedback Return fed only by its send
                 emitter.Emit(new(GraphOpKind.Clear, buffer));
+            } else if (soleReader && slotOfNode[n] >= 0 && blocks[slotOfNode[n]] is OutputBlock) {
+                // An Output fed by one row scales it in place rather than mixing it into a second buffer.
+                var source = liveInputs[0];
+                buffer = bufferOf[source];
+                readersLeft[source] = 0;
+                emitter.EmitDelay(buffer, arrival - latency[source]);
+                emitter.Emit(new(GraphOpKind.ScaleRow, buffer, Index: slotOfNode[n], Row: nodes[source].Row));
             } else if (mux) {
                 // Each input goes through the multiplexer's selection fade instead of a plain sum.
                 buffer = emitter.Allocate();
@@ -206,7 +276,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                         emitter.Free(bufferOf[source]);
                     }
                 }
-            } else if (liveInputs.Count == 1 && readersLeft[liveInputs[0]] == 1) {
+            } else if (soleReader) {
                 // Sole remaining reader: take over the upstream buffer and process in place.
                 var source = liveInputs[0];
                 buffer = bufferOf[source];
@@ -239,7 +309,9 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             bufferOf[n] = buffer;
             if (slotOfNode[n] >= 0) {
                 emitter.Emit(new(GraphOpKind.Process, buffer, Index: slotOfNode[n]));
-            } else if (node.Type == NodeTypes.Output) {
+            }
+
+            if (node.Type == NodeTypes.Output) {
                 emitter.EmitDelay(buffer, graphLatency - latency[n]);
                 emitter.Emit(new(GraphOpKind.WriteOutput, buffer));
             }
@@ -260,46 +332,61 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             [..bypassModes],
             [..emitter.Delays],
             graphLatency,
-            [..modifiers]
+            [..modifiers],
+            analyzer
         );
     }
 
     /// <summary>
-    ///     Connects the preset's Feedback Send to its Feedback Return through a shared <see cref="FeedbackBus" />.
-    ///     Returns their node indices (-1 when absent).
+    ///     Connects each Feedback Send to its Feedback Return through a shared <see cref="FeedbackBus" />. A preset has
+    ///     up to two pairs; a send and a return pair when their ids end in the same number (<c>fbsend2</c> feeds
+    ///     <c>fbreturn2</c>; an id without a number counts as 1). Returns the node indices of each complete pair.
     /// </summary>
-    static (int Send, int Return) PairFeedback(
+    static List<(int Send, int Return)> PairFeedback(
         List<NodeDefinition> nodes,
         int[] slotOfNode,
         List<IDspBlock> blocks,
         ProcessSpec spec,
         List<string> errors
     ) {
-        int send = -1, ret = -1;
+        var sends = new Dictionary<int, int>();
+        var returns = new Dictionary<int, int>();
         for (var n = 0; n < nodes.Count; n++) {
             var block = slotOfNode[n] >= 0 ? blocks[slotOfNode[n]] : null;
-            if (block is FeedbackSendBlock) {
-                if (send >= 0) {
-                    errors.Add($"Node '{nodes[n].Id}': a preset has at most one Feedback Send.");
-                }
-
-                send = n;
-            } else if (block is FeedbackReturnBlock) {
-                if (ret >= 0) {
-                    errors.Add($"Node '{nodes[n].Id}': a preset has at most one Feedback Return.");
-                }
-
-                ret = n;
+            var found = block switch {
+                FeedbackSendBlock => sends,
+                FeedbackReturnBlock => returns,
+                _ => null
+            };
+            if (found is not null && !found.TryAdd(FeedbackPair(nodes[n].Id), n)) {
+                var kind = block is FeedbackSendBlock ? "Feedback Send" : "Feedback Return";
+                errors.Add(
+                    $"Node '{nodes[n].Id}': a preset has at most one {kind} per pair ({kind} {FeedbackPair(nodes[n].Id)} is '{nodes[found[FeedbackPair(nodes[n].Id)]].Id}')."
+                );
             }
         }
 
-        if (send >= 0 && ret >= 0) {
-            var bus = new FeedbackBus(spec.MaxBlockSize);
-            ((FeedbackSendBlock)blocks[slotOfNode[send]]).Bus = bus;
-            ((FeedbackReturnBlock)blocks[slotOfNode[ret]]).Bus = bus;
+        var pairs = new List<(int Send, int Return)>();
+        foreach (var (pair, send) in sends) {
+            if (returns.TryGetValue(pair, out var ret)) {
+                var bus = new FeedbackBus(spec.MaxBlockSize);
+                ((FeedbackSendBlock)blocks[slotOfNode[send]]).Bus = bus;
+                ((FeedbackReturnBlock)blocks[slotOfNode[ret]]).Bus = bus;
+                pairs.Add((send, ret));
+            }
         }
 
-        return (send, ret);
+        return pairs;
+    }
+
+    /// <summary>The feedback pair an instance id names: its trailing number, or 1.</summary>
+    public static int FeedbackPair(string id) {
+        var start = id.Length;
+        while (start > 0 && char.IsAsciiDigit(id[start - 1])) {
+            start--;
+        }
+
+        return start < id.Length && int.TryParse(id.AsSpan(start), out var pair) ? pair : 1;
     }
 
     /// <summary>When the latest live input arrives, in samples of path latency (0 without live inputs).</summary>

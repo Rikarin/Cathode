@@ -31,6 +31,9 @@ public static class RigControls {
             new("tempo", "Tempo", ParamKind.Float, 30f, 300f, 120f, "BPM", Smoothing: ParamSmoothing.Step),
             ParamDescriptor.Switch("metronome", "Metronome"),
             ParamDescriptor.Float("metroLevel", "Metronome Level", -60f, 0f, -12f, "dB"),
+            // Global settings the blocks read through BlockContext: Global Mix and the Input gate's offset.
+            ParamDescriptor.Float("effectsMix", "Effects Mix", -50f, 50f, 0f, "%"),
+            ParamDescriptor.Float("gateOffset", "Noise Gate Offset", -20f, 20f, 0f, "dB"),
             ..Names("manual", ["A", "B", "C", "D"], "Manual "),
             ..Names("scene", ["1", "2", "3", "4"], "Scene Controller "),
             ..Names("ext", ["1", "2", "3", "4", "5", "6", "7", "8"], "External "),
@@ -115,6 +118,13 @@ public static class ModNames {
     ];
 
     public static readonly string[] Curves = ["linear", "exp", "log", "scurve"];
+
+    /// <summary>
+    ///     The pseudo-parameter a modifier can drive to engage and bypass a block (docs/08-blocks-parity.md §3): engaged
+    ///     while the modified value (0..1) is at least 0.5, bypassed below. While one drives a block, it wins over the
+    ///     scene's bypass state.
+    /// </summary>
+    public const string EngageParam = "engage";
 
     public static bool TryParseSource(string name, out ModSource source) {
         var index = Array.IndexOf(Sources, name);

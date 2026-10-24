@@ -12,4 +12,16 @@ public readonly record struct ProcessSpec(double SampleRate, int MaxBlockSize) {
 /// <param name="Tempo">Current tempo in BPM.</param>
 /// <param name="SampleTime">Absolute sample position of the first frame in this block.</param>
 /// <param name="Notes">The MIDI notes held down on the rig's MIDI input (any channel).</param>
-public readonly record struct BlockContext(double SampleRate, double Tempo, long SampleTime, HeldNotes Notes = default);
+/// <param name="MixOffset">
+///     The global Effects Mix offset (−50..50 %), added to the Mix of every block whose Global Mix is on
+///     (<see cref="EffectsMix" />).
+/// </param>
+/// <param name="GateOffsetDb">The global noise gate offset, added to the Input node's gate threshold.</param>
+public readonly record struct BlockContext(
+    double SampleRate,
+    double Tempo,
+    long SampleTime,
+    HeldNotes Notes = default,
+    float MixOffset = 0f,
+    float GateOffsetDb = 0f
+);

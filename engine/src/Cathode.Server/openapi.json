@@ -83,7 +83,7 @@
         "tags": [
           "cathode-server"
         ],
-        "summary": "Starts or stops RTA frames (the output\u0027s sixth-octave spectrum) on the WebSocket.",
+        "summary": "Starts or stops RTA frames on the WebSocket (the output\u0027s spectrum, or the RTA block\u0027s while a preset has one) and sets the bands, decay and window.",
         "operationId": "SetRta",
         "requestBody": {
           "content": {
@@ -896,6 +896,47 @@
         }
       }
     },
+    "/api/v1/live/blocks/{id}/preset": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Sets a channel of the block (default: the active scene\u0027s) to a block preset from the Block Library.",
+        "operationId": "ApplyBlockPreset",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyBlockPresetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/live/blocks/{id}/bypass-mode": {
       "put": {
         "tags": [
@@ -1432,6 +1473,135 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/block-presets": {
+      "get": {
+        "tags": [
+          "Block Library"
+        ],
+        "summary": "The factory and user block presets, of one block type when ?type= is given.",
+        "operationId": "ListBlockPresets",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BlockPreset"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/block-presets/{id}": {
+      "get": {
+        "tags": [
+          "Block Library"
+        ],
+        "operationId": "GetBlockPreset",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockPreset"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Block Library"
+        ],
+        "summary": "Saves a user block preset (factory ones cannot be changed).",
+        "operationId": "PutBlockPreset",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlockPreset"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockPreset"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Block Library"
+        ],
+        "operationId": "DeleteBlockPreset",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
           }
         }
       }
@@ -1993,6 +2163,24 @@
           }
         }
       },
+      "ApplyBlockPresetRequest": {
+        "required": [
+          "preset"
+        ],
+        "type": "object",
+        "properties": {
+          "preset": {
+            "type": "string"
+          },
+          "channel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Sets a block\u0027s channel (default: the one the active scene uses) to a block preset."
+      },
       "AssetInfo": {
         "required": [
           "ref",
@@ -2056,6 +2244,41 @@
           }
         },
         "description": "Numbered preset slots, as a MIDI program change addresses them (0-127)."
+      },
+      "BlockPreset": {
+        "required": [
+          "id",
+          "type",
+          "name",
+          "factory",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "The block type id it is for, e.g. \u0060chorus\u0060."
+          },
+          "name": {
+            "type": "string"
+          },
+          "factory": {
+            "type": "boolean",
+            "description": "A factory preset ships with Cathode and cannot be changed or deleted."
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number",
+              "format": "float"
+            },
+            "description": "Parameter values by id. Sparse: anything not listed takes the block type\u0027s default."
+          }
+        },
+        "description": "A named setting of one block type, kept in the Block Library: the factory\u0027s (the guide\u0027s \u0022types\u0022 that are\npresets of the same algorithm, such as the many choruses, flangers and reverbs) and the user\u0027s own. Applying one\nsets a channel of a block to it; it never adds a Type parameter that would fight the knobs."
       },
       "BlockTypeInfo": {
         "required": [
@@ -2390,6 +2613,8 @@
           "tempo",
           "metronome",
           "metronomeLevel",
+          "effectsMix",
+          "noiseGateOffset",
           "eq",
           "manual",
           "midiChannel",
@@ -2417,6 +2642,16 @@
           },
           "metronomeLevel": {
             "type": "number",
+            "format": "float"
+          },
+          "effectsMix": {
+            "type": "number",
+            "description": "Effects Mix offset (\u221250..50 %), added to the Mix of every block whose Global Mix is on: one control for\nmaking the whole rig wetter or drier for a room.",
+            "format": "float"
+          },
+          "noiseGateOffset": {
+            "type": "number",
+            "description": "Noise gate offset in dB (\u221220..20), added to every Input block\u0027s gate threshold.",
             "format": "float"
           },
           "eq": {
@@ -3000,14 +3235,32 @@
       },
       "RtaRequest": {
         "required": [
-          "enabled"
+          "enabled",
+          "bandsPerOctave",
+          "decayMs",
+          "window"
         ],
         "type": "object",
         "properties": {
           "enabled": {
             "type": "boolean"
+          },
+          "bandsPerOctave": {
+            "type": "integer",
+            "format": "int32",
+            "default": 6
+          },
+          "decayMs": {
+            "type": "number",
+            "format": "float",
+            "default": 0
+          },
+          "window": {
+            "type": "string",
+            "default": "hann"
           }
-        }
+        },
+        "description": "Turns the RTA on or off and sets how it analyses: \u0060BandsPerOctave\u0060 3, 6 or 12 (about 30, 60 or 120 bands),\n\u0060DecayMs\u0060 how long a level takes to fall away (0 = each frame stands alone), and \u0060Window\u0060 hann,\nblackmanHarris, flatTop or rectangular."
       },
       "SaveRequest": {
         "required": [
@@ -3032,7 +3285,8 @@
           "name",
           "level",
           "blocks",
-          "controllers"
+          "controllers",
+          "midi"
         ],
         "type": "object",
         "properties": {
@@ -3057,6 +3311,13 @@
               "format": "float"
             },
             "description": "Scene controllers 1-4 (0..1), modifier sources that change with the scene."
+          },
+          "midi": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SceneMidiMessage"
+            },
+            "description": "Up to int SceneMidiMessage.MaxPerScene MIDI messages sent through the rig\u0027s MIDI output whenever this\nscene is selected, or its preset loads on it: program changes and CCs for other gear."
           }
         },
         "description": "Which channel each block uses and whether it is bypassed. Blocks not listed use channel A, engaged."
@@ -3077,6 +3338,37 @@
             "default": "A"
           }
         }
+      },
+      "SceneMidiMessage": {
+        "required": [
+          "type",
+          "channel",
+          "number",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "default": "pc"
+          },
+          "channel": {
+            "type": "integer",
+            "format": "int32",
+            "default": 1
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "value": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          }
+        },
+        "description": "One scene MIDI message: a program change (\u0060pc\u0060: int SceneMidiMessage.Number is the program) or a control change\n(\u0060cc\u0060: controller int SceneMidiMessage.Number, value int SceneMidiMessage.Value), on MIDI channel 1-16."
       },
       "SceneSelectRequest": {
         "required": [
@@ -3115,8 +3407,18 @@
               "type": "number",
               "format": "float"
             }
+          },
+          "midi": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SceneMidiMessage"
+            }
           }
-        }
+        },
+        "description": "Changes to a scene; null leaves a field as it is. \u0060Midi\u0060 replaces the scene\u0027s MIDI messages."
       },
       "ScopeRequest": {
         "required": [
@@ -3291,6 +3593,9 @@
     },
     {
       "name": "Presets"
+    },
+    {
+      "name": "Block Library"
     },
     {
       "name": "Setlists"

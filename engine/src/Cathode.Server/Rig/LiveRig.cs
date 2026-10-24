@@ -304,7 +304,7 @@ public sealed partial class LiveRig(
         IReadOnlyDictionary<string, float> values,
         long? expected
     ) =>
-        Locked(() => {
+        Locked(async () => {
                 Check(expected);
                 var block = Find(id);
                 var descriptor = catalog.Descriptor(block.Type)
@@ -325,12 +325,15 @@ public sealed partial class LiveRig(
                 PushUndo($"params:{id}:{target}:{string.Join(',', values.Keys.Order())}");
                 var stored = block.Channel(target);
                 var sent = new List<ParamValue>();
+                var recompile = false;
                 var typeParam = descriptor.IndexOf("type") is var typeIndex and >= 0 ? descriptor.Params[typeIndex] : null;
                 var typeChanged = typeParam is not null
                     && values.TryGetValue("type", out var type)
                     && typeParam.Sanitize(type) != stored.GetValueOrDefault("type", typeParam.Default);
                 foreach (var (param, raw) in values) {
-                    var value = descriptor.Params[descriptor.IndexOf(param)].Sanitize(raw);
+                    var descriptorParam = descriptor.Params[descriptor.IndexOf(param)];
+                    var value = descriptorParam.Sanitize(raw);
+                    recompile |= descriptorParam.Recompile && stored.GetValueOrDefault(param, descriptorParam.Default) != value;
                     stored[param] = value;
                     sent.Add(new(id, param, value));
                 }
@@ -339,12 +342,15 @@ public sealed partial class LiveRig(
                 if (typeChanged) {
                     foreach (var param in descriptor.TypeResets.Where(r => !values.ContainsKey(r))) {
                         var value = descriptor.Params[descriptor.IndexOf(param)].Default;
+                        recompile |= descriptor.Params[descriptor.IndexOf(param)].Recompile;
                         stored[param] = value;
                         sent.Add(new(id, param, value));
                     }
                 }
 
-                if (target == state.Channel) {
+                if (target == state.Channel && recompile) {
+                    await SyncGraphAsync(); // a latency change (look-ahead): the compiler has to see it
+                } else if (target == state.Channel) {
                     engine.SetParams(generation, sent);
                 }
 
@@ -363,7 +369,7 @@ public sealed partial class LiveRig(
                     Publish(new("paramChanged", revision, id, target, value.Param, value.Value));
                 }
 
-                return Task.FromResult(State());
+                return State();
             }
         );
 
@@ -384,7 +390,7 @@ public sealed partial class LiveRig(
         );
 
     public Task<LiveState> SetChannelAsync(string id, string channel, long? expected) =>
-        Locked(() => {
+        Locked(async () => {
                 Check(expected);
                 var block = Find(id);
                 var descriptor = catalog.Descriptor(block.Type)
@@ -393,26 +399,42 @@ public sealed partial class LiveRig(
 
                 PushUndo(null);
                 var scene = preset.Scenes[activeScene];
+                var before = scene.StateOf(id).Channel;
                 scene.Blocks[id] = scene.StateOf(id) with { Channel = channel };
-                engine.SetParams(generation, ChannelValues(block, channel));
-                return Task.FromResult(Changed("channelChanged", id, channel));
+                if (NeedsRecompile(block, before, channel)) {
+                    await SyncGraphAsync();
+                } else {
+                    engine.SetParams(generation, ChannelValues(block, channel));
+                }
+
+                return Changed("channelChanged", id, channel);
             }
         );
 
     /// <summary>Switches scene: only the blocks whose bypass or channel differ are touched; nothing recompiles.</summary>
     public Task<LiveState> SelectSceneAsync(int scene) =>
-        Locked(() => {
+        Locked(async () => {
                 CheckScene(scene);
                 var from = preset.Scenes[activeScene];
                 var to = preset.Scenes[scene];
-                foreach (var block in preset.Blocks.Where(static b => !BuiltInTypes.IsBuiltIn(b.Type))) {
+                var blocks = preset.Blocks.Where(b => catalog.Descriptor(b.Type) is not null).ToList();
+                if (blocks.Any(b => NeedsRecompile(b, from.StateOf(b.Id).Channel, to.StateOf(b.Id).Channel))) {
+                    // A channel with another look-ahead: rebuild the graph for the new scene (a gapless swap).
+                    activeScene = scene;
+                    await SyncGraphAsync();
+                    revision++;
+                    Publish(new("sceneChanged", revision, Scene: scene));
+                    return State();
+                }
+
+                foreach (var block in blocks) {
                     var before = from.StateOf(block.Id);
                     var after = to.StateOf(block.Id);
                     if (before.Channel != after.Channel) {
                         engine.SetParams(generation, ChannelValues(block, after.Channel));
                     }
 
-                    if (before.Bypassed != after.Bypassed) {
+                    if (before.Bypassed != after.Bypassed && !BuiltInTypes.IsBuiltIn(block.Type)) {
                         engine.SetBypass(generation, block.Id, after.Bypassed);
                     }
                 }
@@ -421,7 +443,7 @@ public sealed partial class LiveRig(
                 engine.SetParams(generation, SceneValues());
                 revision++;
                 Publish(new("sceneChanged", revision, Scene: scene));
-                return Task.FromResult(State());
+                return State();
             }
         );
 
@@ -429,6 +451,10 @@ public sealed partial class LiveRig(
         Locked(() => {
                 Check(expected);
                 CheckScene(scene);
+                if (request.Midi is { } messages) {
+                    CheckSceneMidi(messages);
+                }
+
                 PushUndo(null);
                 var target = preset.Scenes[scene];
                 if (request.Name is { } name) {
@@ -443,6 +469,10 @@ public sealed partial class LiveRig(
                     target.Controllers = [..controllers.Select(static c => Math.Clamp(c, 0f, 1f))];
                 }
 
+                if (request.Midi is { } midi) {
+                    target.Midi = [..midi];
+                }
+
                 if (scene == activeScene) {
                     engine.SetParams(generation, SceneValues());
                 }
@@ -450,6 +480,19 @@ public sealed partial class LiveRig(
                 return Task.FromResult(Changed("sceneUpdated", scene: scene));
             }
         );
+
+    /// <summary>Whether channels <paramref name="from" /> and <paramref name="to" /> differ in a parameter only a recompile applies.</summary>
+    bool NeedsRecompile(PresetBlock block, string from, string to) {
+        if (from == to || catalog.Descriptor(block.Type) is not { } descriptor) {
+            return false;
+        }
+
+        var a = block.Channels.GetValueOrDefault(from);
+        var b = block.Channels.GetValueOrDefault(to);
+        return descriptor.Params.Any(p => p.Recompile
+            && (a?.GetValueOrDefault(p.Id, p.Default) ?? p.Default) != (b?.GetValueOrDefault(p.Id, p.Default) ?? p.Default)
+        );
+    }
 
     /// <summary>Every parameter of the block type with <paramref name="channel" />'s value or the default.</summary>
     List<ParamValue> ChannelValues(PresetBlock block, string channel) {
@@ -551,7 +594,9 @@ public sealed partial class LiveRig(
     public static List<ParamValue> GlobalValues(GlobalSettings global) {
         var values = new List<ParamValue> {
             new(IpcBlocks.Rig, "metronome", global.Metronome ? 1 : 0),
-            new(IpcBlocks.Rig, "metroLevel", global.MetronomeLevel)
+            new(IpcBlocks.Rig, "metroLevel", global.MetronomeLevel),
+            new(IpcBlocks.Rig, "effectsMix", global.EffectsMix),
+            new(IpcBlocks.Rig, "gateOffset", global.NoiseGateOffset)
         };
         if (global.TempoMode == "global") {
             values.Add(new(IpcBlocks.Rig, "tempo", (float)global.Tempo));
@@ -692,6 +737,20 @@ public sealed partial class LiveRig(
             );
         }
     }
+
+    static void CheckSceneMidi(List<SceneMidiMessage> messages) {
+        if (messages.Count > SceneMidiMessage.MaxPerScene) {
+            throw new RigException(400, $"A scene sends at most {SceneMidiMessage.MaxPerScene} MIDI messages.");
+        }
+
+        if (messages.Select(static m => m.Problem()).FirstOrDefault(static p => p is not null) is { } problem) {
+            throw new RigException(400, problem);
+        }
+    }
+
+    /// <summary>The MIDI messages scene <paramref name="scene" /> sends (unlocked read, for the MIDI router).</summary>
+    public IReadOnlyList<SceneMidiMessage> SceneMidi(int scene) =>
+        (uint)scene < Preset.SceneCount ? [..Volatile.Read(ref preset).Scenes[scene].Midi] : [];
 
     static void CheckScene(int scene) {
         if (scene is < 0 or >= Preset.SceneCount) {

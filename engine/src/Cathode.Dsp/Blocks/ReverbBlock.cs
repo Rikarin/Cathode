@@ -98,6 +98,7 @@ public sealed class ReverbBlock : DspBlock {
     public const int PitchFeedback = 53;
     public const int PitchDirection = 54;
     public const int PitchPosition = 55;
+    public const int GlobalMix = 56;
 
     public const int Room = 0;
     public const int Hall = 1;
@@ -253,7 +254,7 @@ public sealed class ReverbBlock : DspBlock {
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
             ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
-            ParamDescriptor.Float("spread", "Stereo Spread", -200f, 200f, 100f, "%"),
+            Stereo.SpreadParam("spread"),
             ParamDescriptor.Float("duckAttenuation", "Ducker Atten", 0f, 40f, 0f, "dB"),
             ParamDescriptor.Float("duckThreshold", "Ducker Threshold", -60f, 0f, -30f, "dB"),
             ParamDescriptor.Float("duckRelease", "Ducker Release", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
@@ -299,7 +300,8 @@ public sealed class ReverbBlock : DspBlock {
             ParamDescriptor.Float("splice", "Splice", 10f, MaxSpliceSeconds * 1_000f, 60f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("pitchFeedback", "Pitch Feedback", 0f, 100f, 0f, "%"),
             ParamDescriptor.Choice("pitchDirection", "Pitch Direction", ["Forward", "Reverse"]),
-            ParamDescriptor.Choice("pitchPosition", "Pitch Position", ["Input", "Output", "Tank Feedback"], 1)
+            ParamDescriptor.Choice("pitchPosition", "Pitch Position", ["Input", "Output", "Tank Feedback"], 1),
+            EffectsMix.Param
         ],
         maxInstances: 2
     );
@@ -454,7 +456,7 @@ public sealed class ReverbBlock : DspBlock {
         var preDelay = Math.Max(1f, preDelayMs * 0.001f * rate);
         var preFeedback = Params.Advance(PreDelayFeedback, n) / 100f;
         var preMix = Params.Advance(PreDelayMix, n) / 100f;
-        var mix = Params.Advance(Mix, n) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, n), Params.Current(GlobalMix), context) / 100f;
         var dampingHz = Params.Advance(Damping, n);
 
         if (type != activeType || (IsNetwork(type) && quality != activeQuality)) {

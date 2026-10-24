@@ -114,6 +114,7 @@ public sealed class DelayBlock() : DspBlock(Info) {
     public const int DiffusionTime = 77;
     public const int DiffusionRate = 78;
     public const int DiffusionDepth = 79;
+    public const int GlobalMix = 80;
 
     public const int Digital = 0;
     public const int Analog = 1;
@@ -220,7 +221,7 @@ public sealed class DelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("ratio", "L/R Time Ratio", 1f, 100f, 100f, "%").HiddenOn(TypeCount, Dual, MonoTape),
             ParamDescriptor.Float("drive", "Drive", 0f, 10f, 0f),
             ParamDescriptor.Float("bitReduction", "Bit Reduction", 0f, 20f, 0f, "bits"),
-            ParamDescriptor.Float("spread", "Spread", -100f, 100f, 100f, "%"),
+            Stereo.SpreadParam("spread", "Spread"),
             ParamDescriptor.Float("duckAttenuation", "Ducker Atten", 0f, 40f, 0f, "dB"),
             ParamDescriptor.Float("duckThreshold", "Ducker Threshold", -60f, 0f, -30f, "dB"),
             ParamDescriptor.Float("duckRelease", "Ducker Release", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
@@ -295,7 +296,8 @@ public sealed class DelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("diffusionMix", "Diffusion Mix", 0f, 100f, 0f, "%"),
             ParamDescriptor.Float("diffusionTime", "Diffusion Time", 1f, MaxDiffusionMs, 30f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("diffusionRate", "Diffusion LFO Rate", 0.05f, 5f, 0.4f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("diffusionDepth", "Diffusion LFO Depth", 0f, 100f, 0f, "%")
+            ParamDescriptor.Float("diffusionDepth", "Diffusion LFO Depth", 0f, 100f, 0f, "%"),
+            EffectsMix.Param
         ],
         maxInstances: 4
     );
@@ -385,7 +387,7 @@ public sealed class DelayBlock() : DspBlock(Info) {
         var head2Feedback = hold ? 0f : Params.Advance(Head2Feedback, n) / 100f * master;
         var crossToRight = hold ? 0f : Params.Advance(CrossLeftToRight, n) / 100f * master;
         var crossToLeft = hold ? 0f : Params.Advance(CrossRightToLeft, n) / 100f * master;
-        var mix = Params.Advance(Mix, n) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, n), Params.Current(GlobalMix), context) / 100f;
         var motorSpeed = Params.Advance(MotorSpeed, n) / 100f;
         var motor = type is Tape or MonoTape ? motorSpeed : 1f;
         var targetDelay = TargetDelaySamples(Tempo, Params.Advance(Time, n), tempo);

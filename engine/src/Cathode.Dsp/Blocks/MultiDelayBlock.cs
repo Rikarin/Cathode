@@ -102,6 +102,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
     public const int Balance = 110;
     public const int InputGain = 111;
     public const int InputSelect = 112;
+    public const int GlobalMix = 113;
 
     public const int QuadTap = 0;
     public const int QuadParallel = 1;
@@ -242,7 +243,8 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions)
+            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
+            EffectsMix.Param
         ],
         maxInstances: 2
     );
@@ -300,7 +302,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
         var tempo = context.Tempo;
         var type = (int)Params.Current(Type);
         var masterTime = Milliseconds(Tempo, Params.Advance(Time, n), tempo);
-        var mix = Params.Advance(Mix, n) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, n), Params.Current(GlobalMix), context) / 100f;
         var masterFeedback = Params.Advance(MasterFeedback, n) / 100f;
         var motorSpeed = Params.Advance(MotorSpeed, n) / 100f;
         var motor = type == QuadTape ? motorSpeed : 1f;

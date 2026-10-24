@@ -2,6 +2,7 @@ using Cathode.Audio;
 using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
 using Cathode.Engine.Graph;
+using Cathode.Engine.Rig;
 using Cathode.Testing;
 
 namespace Cathode.Engine.Tests;
@@ -48,6 +49,90 @@ public class CathodeEngineTests {
         Assert.True(maxStep <= 1.5f / fadeSamples, $"max step {maxStep}");
         Assert.Equal(1f, left[fadeSamples + 1]);
         Assert.Equal(input[^200..], left[^200..]);
+    }
+
+    [Fact]
+    public void Engaging_a_bypassed_block_tells_it_once() {
+        var engine = new CathodeEngine(Spec);
+        var graph = new GraphCompiler(TestRegistry.Create()).Compile(
+            new() {
+                Nodes = [
+                    new() { Id = "in", Type = NodeTypes.Input, Row = 0, Column = 0 },
+                    new() { Id = "fx", Type = "test-engage", Row = 0, Column = 1, Bypassed = true },
+                    new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 }
+                ],
+                Cables = [new() { From = "in", To = "fx" }, new() { From = "fx", To = "out" }]
+            },
+            Spec,
+            1
+        );
+        engine.Publish(graph);
+        var slot = graph.SlotOf("fx");
+        var block = (EngageCountingBlock)graph.Block(slot);
+
+        engine.Post(EngineCommand.SetBypass(1, slot, true)); // already bypassed: no engage
+        engine.Post(EngineCommand.SetBypass(1, slot, false));
+        engine.Post(EngineCommand.SetBypass(1, slot, false)); // already engaged: no second call
+        OfflineRenderer.Render(engine, new float[64], new float[64], 64);
+        Assert.Equal(1, block.Engaged);
+
+        engine.Post(EngineCommand.SetBypass(1, slot, true));
+        engine.Post(EngineCommand.SetBypass(1, slot, false));
+        OfflineRenderer.Render(engine, new float[64], new float[64], 64);
+        Assert.Equal(2, block.Engaged);
+    }
+
+    [Fact]
+    public void The_rig_effects_mix_reaches_blocks_with_global_mix_on() {
+        var engine = new CathodeEngine(Spec);
+        var graph = Compiler.Compile(
+            new() {
+                Nodes = [
+                    new() { Id = "in", Type = NodeTypes.Input, Row = 0, Column = 0 },
+                    new() {
+                        Id = "rev",
+                        Type = "reverb",
+                        Row = 0,
+                        Column = 1,
+                        Parameters = { ["mix"] = 0f, ["globalMix"] = 1f }
+                    },
+                    new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 }
+                ],
+                Cables = [new() { From = "in", To = "rev" }, new() { From = "rev", To = "out" }]
+            },
+            Spec,
+            1
+        );
+        engine.Publish(graph);
+        var input = Signals.Sine(220, Spec.SampleRate, 9_600, 0.25f);
+
+        var (dry, _) = OfflineRenderer.Render(engine, input, input, 64);
+        engine.Rig.SetTarget(RigControls.Descriptor.IndexOf("effectsMix"), 40f);
+        var (wet, _) = OfflineRenderer.Render(engine, input, input, 64);
+
+        Assert.Equal(input, dry);
+        Assert.True(Analysis.Rms(wet.Zip(input, static (a, b) => a - b).ToArray()) > 1e-3, "no reverb heard");
+    }
+
+    [Fact]
+    public void A_modifier_on_engage_bypasses_and_engages_the_block() {
+        var engine = new CathodeEngine(Spec);
+        var definition = VolumeGraph(-6.0206f);
+        definition.Modifiers.Add(new() { Block = "vol", Param = ModNames.EngageParam, Source = "manualA" });
+        var graph = Compiler.Compile(definition, Spec, 1);
+        engine.Publish(graph);
+        var manual = RigControls.Descriptor.IndexOf("manualA");
+
+        engine.Rig.SetTarget(manual, 0f);
+        var (off, _) = OfflineRenderer.Render(engine, Signals.Step(4_800), Signals.Step(4_800), 64);
+        var bypassed = graph.IsBypassed(graph.SlotOf("vol"));
+        engine.Rig.SetTarget(manual, 1f);
+        var (on, _) = OfflineRenderer.Render(engine, Signals.Step(4_800), Signals.Step(4_800), 64);
+
+        Assert.True(bypassed);
+        Assert.Equal(1f, off[^1], 1e-4f); // thru
+        Assert.False(graph.IsBypassed(graph.SlotOf("vol")));
+        Assert.Equal(0.5f, on[^1], 1e-4f);
     }
 
     [Fact]

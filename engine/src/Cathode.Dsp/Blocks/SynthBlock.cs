@@ -51,6 +51,7 @@ public sealed class SynthBlock() : DspBlock(Info) {
     public const int Mix = Threshold + 1;
     public const int Level = Mix + 1;
     public const int Balance = Level + 1;
+    public const int GlobalMix = Balance + 1;
 
     public const int Sine = 0;
     public const int Triangle = 1;
@@ -110,7 +111,8 @@ public sealed class SynthBlock() : DspBlock(Info) {
             ParamDescriptor.Float("threshold", "Threshold", -80f, -20f, -50f, "dB"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            EffectsMix.Param
         ],
         maxInstances: 1
     );
@@ -210,7 +212,7 @@ public sealed class SynthBlock() : DspBlock(Info) {
         var release = Coefficient(Params.Advance(Release, frames) * 0.001, rate);
         var glide = Coefficient(Params.Advance(Glide, frames) * 0.001, rate);
         var threshold = Decibels.ToGain(Params.Advance(Threshold, frames));
-        var mix = Params.Advance(Mix, frames) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, frames), Params.Current(GlobalMix), context) / 100f;
         var mixStep = (mix - this.mix) / frames;
 
         for (var i = 0; i < frames; i++) {

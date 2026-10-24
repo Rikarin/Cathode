@@ -47,6 +47,7 @@ public sealed class ChorusBlock() : DspBlock(Info) {
     public const int Lfo2Depth = 20;
     public const int StereoSpread = 21;
     public const int Dimension = 22;
+    public const int GlobalMix = 23;
 
     public const int MaxVoices = 8;
 
@@ -96,8 +97,9 @@ public sealed class ChorusBlock() : DspBlock(Info) {
             ParamDescriptor.Float("drive", "Drive", 0f, 100f, 0f, "%"),
             ParamDescriptor.Float("lfo2Rate", "LFO2 Rate", 0.05f, 10f, 0.2f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("lfo2Depth", "LFO2 Depth", 0f, 100f, 0f, "%"),
-            ParamDescriptor.Float("stereoSpread", "Stereo Spread", -100f, 100f, 100f, "%"),
-            ParamDescriptor.Choice("dimension", "Dimension", ["Off", "Low", "Medium", "High"])
+            Stereo.SpreadParam(),
+            ParamDescriptor.Choice("dimension", "Dimension", ["Off", "Low", "Medium", "High"]),
+            EffectsMix.Param
         ],
         maxInstances: 2
     );
@@ -149,7 +151,7 @@ public sealed class ChorusBlock() : DspBlock(Info) {
         var spread = Params.Advance(Spread, n) / 360.0;
         var stereoSpread = Params.Advance(StereoSpread, n) / 100f;
         var drive = Params.Advance(Drive, n) / 100f;
-        var mix = Params.Advance(Mix, n) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, n), Params.Current(GlobalMix), context) / 100f;
         var shape = (LfoShape)(int)Params.Current(LfoType);
         var cross = DimensionCross[(int)Params.Current(Dimension)];
         var voices = cross > 0 ? 1 : (int)Params.Current(Voices) + 1;

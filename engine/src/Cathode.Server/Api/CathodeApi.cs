@@ -206,6 +206,35 @@ public static class CathodeApi {
             .WithName("ImportPreset")
             .WithMetadata(new RequestSizeLimitAttribute(PresetPackage.MaxPackageBytes));
 
+        var blockPresets = api.MapGroup("/block-presets").WithTags("Block Library");
+        blockPresets.MapGet("/", (string? type, BlockPresetStore store) => TypedResults.Ok(store.List(type)))
+            .WithName("ListBlockPresets")
+            .WithSummary("The factory and user block presets, of one block type when ?type= is given.");
+        blockPresets.MapGet(
+                "/{id}",
+                Results<Ok<BlockPreset>, NotFound>(string id, BlockPresetStore store) =>
+                    store.Get(id) is { } found ? TypedResults.Ok(found) : TypedResults.NotFound()
+            )
+            .WithName("GetBlockPreset");
+        blockPresets.MapPut("/{id}", (string id, BlockPreset blockPreset, BlockPresetStore store) => TypedResults.Ok(store.Save(id, blockPreset)))
+            .WithName("PutBlockPreset")
+            .WithSummary("Saves a user block preset (factory ones cannot be changed).");
+        blockPresets.MapDelete(
+                "/{id}",
+                Results<NoContent, NotFound>(string id, BlockPresetStore store) =>
+                    store.Delete(id) ? TypedResults.NoContent() : TypedResults.NotFound()
+            )
+            .WithName("DeleteBlockPreset");
+        live.MapPost(
+                "/blocks/{id}/preset",
+                async (string id, ApplyBlockPresetRequest request, BlockPresetStore store, LiveRig rig, HttpContext http) => {
+                    var source = store.Get(request.Preset) ?? throw RigException.NotFound($"No block preset '{request.Preset}'.");
+                    return Respond(http, await rig.ApplyBlockPresetAsync(id, source, request.Channel, Expected(http)));
+                }
+            )
+            .WithName("ApplyBlockPreset")
+            .WithSummary("Sets a channel of the block (default: the active scene's) to a block preset from the Block Library.");
+
         var setlists = api.MapGroup("/setlists").WithTags("Setlists");
         setlists.MapGet("/", (Library books) => TypedResults.Ok(books.Setlists())).WithName("ListSetlists");
         setlists.MapGet(
@@ -319,12 +348,14 @@ public static class CathodeApi {
         api.MapPut(
                 "/rta",
                 (RtaRequest request, EngineConnection engine) => {
-                    engine.RtaEnabled = request.Enabled;
+                    engine.SetRta(request);
                     return TypedResults.NoContent();
                 }
             )
             .WithName("SetRta")
-            .WithSummary("Starts or stops RTA frames (the output's sixth-octave spectrum) on the WebSocket.");
+            .WithSummary(
+                "Starts or stops RTA frames on the WebSocket (the output's spectrum, or the RTA block's while a preset has one) and sets the bands, decay and window."
+            );
 
         app.Map(
                 "/ws",

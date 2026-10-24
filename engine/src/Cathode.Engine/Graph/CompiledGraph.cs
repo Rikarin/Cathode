@@ -1,5 +1,6 @@
 using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Routing;
 using Cathode.Dsp.Looping;
 using Cathode.Engine.Rig;
 
@@ -66,9 +67,11 @@ public sealed class CompiledGraph : IDisposable {
         BypassKind[] bypassModes,
         DelayLine[] delays,
         int latencySamples,
-        ModifierBinding[]? modifiers = null
+        ModifierBinding[]? modifiers = null,
+        AnalyzerTap? analyzer = null
     ) {
         this.modifiers = modifiers ?? [];
+        Analyzer = analyzer;
         Generation = generation;
         Spec = spec;
         this.ops = ops;
@@ -104,6 +107,9 @@ public sealed class CompiledGraph : IDisposable {
 
     public IReadOnlyList<ModifierBinding> Modifiers => modifiers;
 
+    /// <summary>The RTA block's tap, when the graph has one: the engine sends what it holds to the analyser.</summary>
+    public AnalyzerTap? Analyzer { get; }
+
     /// <summary>True when a modifier follows the input pitch, so the host must run pitch detection.</summary>
     public bool UsesPitch => modifiers.Any(static m => m.Source == ModSource.Pitch);
 
@@ -125,7 +131,14 @@ public sealed class CompiledGraph : IDisposable {
             modifier.Value = ms <= 0 || float.IsNaN(modifier.Value)
                 ? target
                 : modifier.Value + (target - modifier.Value) * (float)(1 - Math.Exp(-seconds / (ms * 0.001)));
-            blocks[modifier.Slot].Params.Modulate(modifier.ParamIndex, modifier.Value, frames);
+            if (modifier.ParamIndex == ModifierBinding.Engage) {
+                var bypassed = modifier.Value < 0.5f;
+                if (bypass[modifier.Slot].Target != bypassed) {
+                    SetBypass(modifier.Slot, bypassed);
+                }
+            } else {
+                blocks[modifier.Slot].Params.Modulate(modifier.ParamIndex, modifier.Value, frames);
+            }
         }
     }
 
@@ -186,6 +199,22 @@ public sealed class CompiledGraph : IDisposable {
                         new(this.left[op.Source].Span[..frames], this.right[op.Source].Span[..frames]),
                         new(left, right)
                     );
+                    break;
+                case GraphOpKind.SidechainInput:
+                    if (op.Row < 0) {
+                        // The grid input; the dry buffers are free between blocks.
+                        var inputLeft = dryLeft.Span[..frames];
+                        var inputRight = dryRight.Span[..frames];
+                        io.InputLeft.CopyTo(inputLeft);
+                        io.InputRight.CopyTo(inputRight);
+                        ((ISidechainBlock)blocks[op.Index]).SidechainInput(-1, new(inputLeft, inputRight));
+                    } else {
+                        ((ISidechainBlock)blocks[op.Index]).SidechainInput(op.Row, new(left, right));
+                    }
+
+                    break;
+                case GraphOpKind.ScaleRow:
+                    ((OutputBlock)blocks[op.Index]).ScaleInput(op.Row, new(left, right));
                     break;
             }
         }
@@ -323,9 +352,15 @@ public sealed class CompiledGraph : IDisposable {
 
     /// <summary>Audio thread only (the engine applies queued <see cref="EngineCommandKind.SetBypass" /> commands here).</summary>
     internal void SetBypass(int slot, bool bypassed) {
-        if ((uint)slot < (uint)bypass.Length) {
-            bypass[slot].Target = bypassed;
+        if ((uint)slot >= (uint)bypass.Length) {
+            return;
         }
+
+        if (bypass[slot].Target && !bypassed && blocks[slot] is IEngageAware engageAware) {
+            engageAware.Engage();
+        }
+
+        bypass[slot].Target = bypassed;
     }
 
     struct BypassState(bool bypassed, BypassKind mode) {
@@ -348,6 +383,9 @@ public struct ModifierBinding(
     bool log,
     float attackMs,
     float releaseMs) {
+    /// <summary>The <see cref="ParamIndex" /> of a modifier that engages and bypasses its block (<see cref="ModNames.EngageParam" />).</summary>
+    public const int Engage = -2;
+
     public int Slot { get; } = slot;
     public int ParamIndex { get; } = paramIndex;
     public ModSource Source { get; } = source;

@@ -28,46 +28,46 @@ The guide's comparison table (p. 3) lists 42 block types. Cathode covers 37 of t
 
 | Guide block | Cathode | Types (guide → Cathode) | Parameters ✅ / ◐ / ❌ | Verdict |
 |---|---|---|---|---|
-| Input (IN) | built-in `input` | 1 → 1 | 0 / 1 / 6 | Signal only; the noise gate and impedance are missing |
-| Output (OUT) | built-in `output` | 1 → 1 | 1 / 1 / 2 | Scene levels exist (preset level); no row mixer |
-| Common Mix/Level | every block | — | 4 / 3 / 3 | Level and 🆕 Balance everywhere; Global Mix missing |
+| Input (IN) | built-in `input` | 1 → 1 | 🆕 4 / 1 / 0 | 🆕 Noise gate (Classic, Intelligent, Noise Reducer), input level, global gate offset, channels; one stereo input pair |
+| Output (OUT) | built-in `output` | 1 → 1 | 🆕 4 / 0 / 0 | 🆕 Row mixer (level, balance per row), main level and balance, channels; scene levels |
+| Common Mix/Level | every block | — | 🆕 10 / 0 / 0 | Level and Balance everywhere; 🆕 Global Mix, engage as a modifier target, Stereo Spread to ±200 %, Input Select/Gain complete |
 | Amp (AMP) | `circuitamp`, `nam` | 309+ → 26 circuit + any capture | see [06 §1.4](06-amp-modelling-spec.md#14-parity-summary) | Core panel, expert pages and 🆕 boost, saturation, input filter/Definition, output EQ with location, input dynamics, output compressor, speaker drive/thump/compression, bias tremolo, Balance; power-tube hardness and per-model switches remain |
 | Cab (CAB) | `cab` (Legacy and DynaCab merged) | 2 150+ IRs → user IRs + synthesised DynaCab + IR packs | 🆕 15 / 3 / 1 | Done except stereo room mic spacing and a visual align view |
-| Chorus (CHO) | `chorus` | 17 → 1 | 🆕 19 / 0 / 1 | 🆕 Done: 8 voices, Dual ratios, BBD drive, Dimension, LFO 2; Global Mix (P1) and type presets left |
-| Compressor (CMP) | `compressor` | 16 → 🆕 6 | 🆕 17 / 1 / 2 | 🆕 Detector, ∞ ratio, Dynamics and Feedback types, auto times, light type, emphasis, sidechain EQ, input level; look-ahead and sidechain source are P1's |
+| Chorus (CHO) | `chorus` | 17 → 1 (+ 🆕 12 library presets) | 🆕 20 / 0 / 0 | 🆕 Done: 8 voices, Dual ratios, BBD drive, Dimension, LFO 2, Global Mix; the types as Block Library presets |
+| Compressor (CMP) | `compressor` | 16 → 🆕 6 | 🆕 19 / 1 / 0 | 🆕 Detector, ∞ ratio, Dynamics and Feedback types, auto times, light type, emphasis, sidechain EQ, input level, look-ahead and sidechain source |
 | Crossover (XVR) | `crossover` | 1 → 1 | 🆕 7 / 0 / 0 | Done (🆕 per-side band levels and pans) |
-| Delay (DLY) | `delay` | 23+ → 🆕 9 | 🆕 47 / 0 / 1 | Done except Global Mix: 🆕 Dual, Mono Tape, Reverse and Sweep types, 16 s, master and signed feedback, feedback EQ, three LFOs, diffuser, Stack |
+| Delay (DLY) | `delay` | 23+ → 🆕 9 | 🆕 48 / 0 / 0 | 🆕 Done: Dual, Mono Tape, Reverse and Sweep types, 16 s, master and signed feedback, feedback EQ, three LFOs, diffuser, Stack, Global Mix, Spread to ±200 % |
 | Drive (DRV) | `drive` | 60+ → 27 | 🆕 17 / 3 / 0 | Strong circuits; 🆕 EQ pages and the Advanced page; per-pedal extra knobs remain |
 | Dynamic Distortion (DND) | `dyndist` | 7 → 3 (🆕 7 curves) | 🆕 9 / 1 / 0 | Different design (envelope-driven); 🆕 the guide's frequency-shaped filter, bias, mono |
 | Enhancer (ENH) | `enhancer` | 3 → 🆕 4 | 🆕 10 / 0 / 0 | Done (🆕 Stereoizer, Depth) |
 | Filter (FLT) | `filter` | 15 → 🆕 15 | 🆕 21 / 0 / 0 | 🆕 Done: Shelf 2, Peaking 2, all-pass feedback, first-order cuts, LFO duty and quantise |
-| Flanger (FLG) | `flanger` | 31 → 1 | 🆕 22 / 0 / 2 | 🆕 Done: thru-zero, drive, bass focus, VCO response, min/max time; LFO reset on engage (P1) and Global Mix left |
+| Flanger (FLG) | `flanger` | 31 → 1 | 🆕 24 / 0 / 0 | 🆕 Done: thru-zero, drive, bass focus, VCO response, min/max time, LFO reset on engage, Global Mix |
 | Formant (FOR) | `formant` | 1 → 1 | 8 / 0 / 0 | Done (Cathode adds Shift) |
-| Gate/Expander (GTE) | `gate` | 4 → 🆕 4 | 🆕 14 / 0 / 1 | Done except the row sidechain (P1) |
+| Gate/Expander (GTE) | `gate` | 4 → 🆕 4 | 🆕 15 / 0 / 0 | Done (🆕 Modern types, knee, sidechain from a row or the input) |
 | Graphic EQ (GEQ) | `geq` | 16 → 🆕 10 layouts × constant/variable Q | 🆕 6 / 1 / 0 | 🆕 Band layouts, outer shelves; passive types approximated |
 | IR Player (IRP) | `irplayer` | 1 → 1 | 🆕 11 / 0 / 0 | Done (🆕 two slots, modes, length, per-IR level and pan, slopes, input select) |
 | Looper (LPR) | 🆕 `looper` grid block + rig looper | 1 → 1 | 🆕 18 / 0 / 0 | Done: placeable with bypass modes and the full Config page; the transport drives the block while its preset runs |
-| Megatap (MGT) | `megatap` | 20 → 1 | 🆕 22 / 0 / 1 | Done except Global Mix: 🆕 128 taps, pre-delay, tap feedback, alphas, randomise, diffusion, envelope |
+| Megatap (MGT) | `megatap` | 20 → 1 | 🆕 23 / 0 / 0 | 🆕 Done: 128 taps, pre-delay, tap feedback, alphas, randomise, diffusion, envelope, Global Mix |
 | Mixer (MIX) | 🆕 `mixer` | 1 → 1 | 🆕 6 / 0 / 0 | Done in this pass |
-| Multitap Delay (MTD) | `multidelay` | 34+ → 🆕 5 | 🆕 41 / 0 / 1 | Done except Global Mix: 🆕 Quad Tap, Parallel, Series, Diffusor, Tape with per-voice feedback, filter, chorus, comb and ring mod |
+| Multitap Delay (MTD) | `multidelay` | 34+ → 🆕 5 | 🆕 42 / 0 / 0 | 🆕 Done: Quad Tap, Parallel, Series, Diffusor, Tape with per-voice feedback, filter, chorus, comb and ring mod; Global Mix |
 | Multiband Comp (MBC) | `mbcomp` | 1 → 1 | 🆕 15 / 0 / 0 | Done (🆕 detector, mutes, 12/24 dB slope, auto times) |
 | Multiplexer (MUX) | `mux` | 1 → 1 | 🆕 3 / 1 / 0 | Done (rows only, no input jacks) |
 | Parametric EQ (PEQ) | `peq` | 1 → 1 | 🆕 8 / 0 / 0 | Done (🆕 Shelving 2, Peaking 2, slopes to 36 dB/oct, Solo) |
-| Phaser (PHA) | `phaser` (+ `vibe`) | 16 → 🆕 2 (+ Vibe) | 🆕 22 / 0 / 2 | 🆕 Done: VCR types, Barberpole, tone, feedback point, LFO conditioning; LFO reset on engage (P1) and Global Mix left |
-| Pitch (PIT) | `pitch` | 16 → 9 | 🆕 43 / 2 / 1 | 🆕 Done: polyphonic whammy, per-voice detune and feedback, master scalers, stereo input, temperament, detector source, 16-step arp with shapes |
+| Phaser (PHA) | `phaser` (+ `vibe`) | 16 → 🆕 2 (+ Vibe) | 🆕 24 / 0 / 0 | 🆕 Done: VCR types, Barberpole, tone, feedback point, LFO conditioning, LFO reset on engage, Global Mix |
+| Pitch (PIT) | `pitch` | 16 → 9 | 🆕 45 / 2 / 0 | 🆕 Done: polyphonic whammy, per-voice detune and feedback, master scalers, stereo input, temperament, detector source, 16-step arp with shapes, Global Mix, input select |
 | Plex Delay (PLX) | 🆕 `plex` | 44 → 🆕 5 | 🆕 28 / 1 / 0 | Done: 1–8 lines, Plex Delay, Detune, Shifter, Verb and Shimmer Verb |
-| Resonator (RES) | `resonator` | 1 → 1 | 🆕 19 / 0 / 1 | 🆕 Done: per-voice feedback and band-pass, masters, stereo input |
+| Resonator (RES) | `resonator` | 1 → 1 | 🆕 20 / 0 / 0 | 🆕 Done: per-voice feedback and band-pass, masters, stereo input, Global Mix |
 | Return (RTN) | `fbreturn` | 1 → 1 | 🆕 3 / 0 / 0 | Done |
-| Reverb (REV) | `reverb` | 66+ → 🆕 7 | 🆕 35 / 0 / 1 | Done except Global Mix: 🆕 early reflections, band decay times, wet EQ, quality, stack, shimmer pitch section, 1–6 springs, Chamber and Cathedral |
+| Reverb (REV) | `reverb` | 66+ → 🆕 7 | 🆕 36 / 0 / 0 | 🆕 Done: early reflections, band decay times, wet EQ, quality, stack, shimmer pitch section, 1–6 springs, Chamber and Cathedral, Global Mix |
 | Ring Modulator (RNG) | `ringmod` | 3 → 🆕 3 | 🆕 7 / 0 / 0 | 🆕 Done: upper and lower sideband, pitch tracking |
 | Rotary (ROT) | `rotary` | 1 → 1 | 🆕 17 / 1 / 0 | 🆕 Done: brake, tempo, rotor length, mic spacing and distance, input select, spread |
-| RTA | analyser (`PUT /rta`) | 1 → 1 | 1 / 1 / 2 | Output-only analyser, not a grid block |
-| Scene MIDI (MIDI) | — | 1 → 0 | 0 / 0 / 4 | **Missing**: medium |
-| Send (SND) | `fbsend` | 1 → 1 | 1 / 0 / 0 | Done (Cathode adds a send level) |
-| Synth (SYN) | `synth` | 1 → 1 | 🆕 19 / 0 / 1 | 🆕 Done: three voices with tracking modes, noise shapes, per-voice filter, duty and pan |
+| RTA | 🆕 `rta` block + analyser (`PUT /rta`) | 1 → 1 | 🆕 5 / 0 / 0 | 🆕 Pass-through grid block, input select; bands, decay and window on the analyser |
+| Scene MIDI (MIDI) | 🆕 per-scene MIDI messages | 1 → 1 | 🆕 4 / 0 / 0 | 🆕 Eight PC/CC messages per scene, sent on scene change and preset load |
+| Send (SND) | `fbsend` | 1 → 1 | 1 / 0 / 0 | Done (Cathode adds a send level); 🆕 two Send/Return pairs |
+| Synth (SYN) | `synth` | 1 → 1 | 🆕 20 / 0 / 0 | 🆕 Done: three voices with tracking modes, noise shapes, per-voice filter, duty and pan, Global Mix |
 | Ten-Tap Delay (TTD) | 🆕 `tentap` | 2 → 🆕 2 | 🆕 17 / 0 / 0 | Done: Ten Tap and Rhythm Tap (quantise, learn), tap count and levels, mono/stereo, pan shape |
 | Tone Match (TMA) | `tonematch` | 1 → 1 | 2 / 0 / 0 | Done (the guide defers to a separate manual) |
-| Tremolo/Panner (TRM) | `tremolo` | 5 → 5 | 🆕 12 / 0 / 1 | 🆕 Done: width to 200 %, trigger, crossover slope; start phase on engage (P1) left |
+| Tremolo/Panner (TRM) | `tremolo` | 5 → 5 | 🆕 13 / 0 / 0 | 🆕 Done: width to 200 %, trigger, crossover slope, start phase on engage |
 | Vocoder (VOC) | `vocoder` | 1 → 1 | 🆕 18 / 0 / 0 | 🆕 Done: 4–24 bands, range, resonance, shift, freeze, per-band level and pan, analysis from a row |
 | Volume/Pan (VOL) | `volpan` | 1 → 1 | 🆕 10 / 0 / 0 | Done in this pass |
 | Wah (WAH) | `wah` | 9 → 🆕 10 | 🆕 13 / 1 / 0 | 🆕 Done: five more voicings, drive, inductor bias, EQ page; min/max frequency on the filter voicings only |
@@ -95,9 +95,21 @@ All with defaults that leave the earlier sound bit-identical, except the Delay m
 - **Ring Modulator:** 🆕 frequency multiplier. **Enhancer:** 🆕 invert, Pan L/R. **Wah:** 🆕 resonance (Q), Q tracking, control taper, low cut.
 - **Mixer block** (🆕 `mixer`): six rows with gain and balance, stereo or mono output, output level and balance. It uses the Multiplexer's per-row routing, now an interface (`IRowInputBlock`).
 
-**Stream P3 (modulation, pitch and synthesis), second pass.** Every ❌ and ◐ row of §6.1, 6.8, 6.9, 6.21, 6.22, 6.25, 6.27, 6.28, 6.31, 6.34, 6.35 and 6.37 is now 🆕 ✅, except what belongs to stream P1 (Global Mix, and LFO Bypass Reset and Tremolo Start Phase, which wait for the "on engage" hook; `IEngageAware` is not on master yet), the Pitch block's Learn and custom-scale rows (covered by Key Source Auto and the Custom Shifter tables) and the Wah's Min/Max Frequency on the two component-level circuits (their range is set by their parts; Inductor Bias moves it). Defaults leave every block's sound as it was: the golden renders still match. Shared pieces, all new files: `LfoConditioner` (LFO quantise, hicut, auto depth), `SoftDrive`, `FirstOrderCuts`, `HilbertPair` (single sideband), `AllpassDiffuser`, and in `Pitch/` the `PhaseVocoderShifter` (peak-locked, for the polyphonic Whammy), plus a splice length on `SpliceShifter`, a variable grain on `GrainShifter`, `Scales.JustRatio`, `WahCircuit.Trim` (inductance and R7) and an optional shelf-Q limit on `SvfCoefficients.Design`. The Vocoder and the Pitch block now implement `IRowInputBlock`, so a chosen grid row can be their analysis or detector signal (docs/02 §5.3). The Synth's parameters are regrouped per voice and the Pitch block's grew past its old layout (no preset compatibility is kept). Also from this pass, outside the stream's rows: Input Select on the Rotary, Input Gain on the Pitch block, and Stereo Spread on the Chorus, Flanger and Rotary (§3).
+#### Engine and global stream (P1)
 
-**Time-based stream (P2, later pass).** Every ❌/◐ row of §6.4, 6.14, 6.15, 6.17, 6.23, 6.26 and 6.32, except Global Mix (P1). Defaults keep the earlier sound of Delay, Megatap, Multitap (Quad Tap), Reverb and the rig looper; their golden renders are unchanged. New shared helpers: `LoopFilter` (per-sample feedback-path cuts of 6–24 dB/oct with resonance, plus two peaking bands), `Diffuser` (a modulated four-stage allpass with a mix), `SwellEnvelope` (the Envelope page), `DelayBlock.Limit` (the loop limiter: transparent to full scale, a tanh knee that never passes 2), `TypeLabelling` (per-type pages through `typeLabels`), and a crossfade on `GrainShifter`.
+- **On engage** (§8 item 12): an optional `IEngageAware` interface; the compiled graph calls it on the audio thread when a block's bypass target turns from bypassed to active. 🆕 **LFO Bypass Reset** on Flanger and Phaser, 🆕 **Start Phase** on Tremolo.
+- **Global Mix** (§8 item 1): a global Effects Mix offset (±50 %) and a gate offset in the global settings, reaching blocks through `BlockContext`; a 🆕 `globalMix` switch on Chorus, Delay, Flanger, Megatap, Multi-Delay, Phaser, Pitch, Resonator, Reverb and Synth (`EffectsMix` helper).
+- **Input and Output nodes** (§8 item 2): the compiler now runs an `input` block after reading the input (🆕 noise gate: Off, Classic, Intelligent with hum notches, Noise Reducer; input level; the global gate offset) and hands an `output` block each row (🆕 row level and balance, main level and balance; one row is scaled in place). Both have channels; neither can be bypassed.
+- **Scene MIDI** (§8 item 3): 🆕 up to eight PC/CC messages per scene, sent through the MIDI output when the scene is selected or its preset loads; edited on the Controllers page.
+- **Sidechain** (§8 item 10): 🆕 `ISidechainBlock`; Compressor and Gate take a Sidechain source (the block, the grid input, or rows 1–6: the last live block on that row to the left).
+- **Look-ahead** (§8 item 11): 🆕 Compressor Look Ahead (0.5–10 ms) reported as latency; a parameter flagged `Recompile` makes the server rebuild the graph (a gapless swap) when it changes.
+- **Type presets** (§8 item 7): 🆕 the **Block Library**: 134 factory presets over 17 block types (chorus, flanger, phaser, delay, multi-delay, megatap, reverb, compressor, gate, filter, graphic EQ, wah, pitch, tremolo, ring mod, dynamic distortion, drive), user presets saved from a block's channel, applied to a channel from the block page.
+- **Common** (§3): 🆕 Input Select on Pitch (P3 added the Rotary's and Pitch Input Gain), Stereo Spread to ±200 % (a side gain) on Delay, Reverb, Chorus and Flanger and added to Phaser; 🆕 a modifier can drive a block's **engage** (bypassed below 50 %).
+- **Routing:** 🆕 two Feedback Send/Return pairs, matched by the number their ids end in; the 🆕 `rta` block taps the analyser anywhere on the grid, and the RTA takes 3/6/12 bands per octave, a decay time and a window.
+
+**Stream P3 (modulation, pitch and synthesis), second pass.** Every ❌ and ◐ row of §6.1, 6.8, 6.9, 6.21, 6.22, 6.25, 6.27, 6.28, 6.31, 6.34, 6.35 and 6.37 is now 🆕 ✅, except what belongs to stream P1 (Global Mix, LFO Bypass Reset and Tremolo Start Phase, since done by P1 through `IEngageAware`), the Pitch block's Learn and custom-scale rows (covered by Key Source Auto and the Custom Shifter tables) and the Wah's Min/Max Frequency on the two component-level circuits (their range is set by their parts; Inductor Bias moves it). Defaults leave every block's sound as it was: the golden renders still match. Shared pieces, all new files: `LfoConditioner` (LFO quantise, hicut, auto depth), `SoftDrive`, `FirstOrderCuts`, `HilbertPair` (single sideband), `AllpassDiffuser`, and in `Pitch/` the `PhaseVocoderShifter` (peak-locked, for the polyphonic Whammy), plus a splice length on `SpliceShifter`, a variable grain on `GrainShifter`, `Scales.JustRatio`, `WahCircuit.Trim` (inductance and R7) and an optional shelf-Q limit on `SvfCoefficients.Design`. The Vocoder and the Pitch block now implement `IRowInputBlock`, so a chosen grid row can be their analysis or detector signal (docs/02 §5.3). The Synth's parameters are regrouped per voice and the Pitch block's grew past its old layout (no preset compatibility is kept). Also from this pass, outside the stream's rows: Input Select on the Rotary, Input Gain on the Pitch block, and Stereo Spread on the Chorus, Flanger and Rotary (§3).
+
+**Time-based stream (P2, later pass).** Every ❌/◐ row of §6.4, 6.14, 6.15, 6.17, 6.23, 6.26 and 6.32 (Global Mix, P1's, is now done too). Defaults keep the earlier sound of Delay, Megatap, Multitap (Quad Tap), Reverb and the rig looper; their golden renders are unchanged. New shared helpers: `LoopFilter` (per-sample feedback-path cuts of 6–24 dB/oct with resonance, plus two peaking bands), `Diffuser` (a modulated four-stage allpass with a mix), `SwellEnvelope` (the Envelope page), `DelayBlock.Limit` (the loop limiter: transparent to full scale, a tanh knee that never passes 2), `TypeLabelling` (per-type pages through `typeLabels`), and a crossfade on `GrainShifter`.
 
 - **Delay:** 🆕 types Dual (independent times, tempos, feedback, levels, pans, cross feedback), Mono Tape (two heads with level, pan and feedback; Motor Speed, also on Tape), Reverse (moved from Multi-Delay; Run, Trigger Restart, Crossfade) and Sweep (moved from Multi-Delay; any LFO shape, tempo). Lines up to 16 s, Master Feedback to 200 %, signed feedback, Echo Pan, Right Post Delay, Stack beside Hold, cut slopes and Q, two peaking bands in the feedback path, LFO 1/2 with type, tempo, phase and target, a depth range, LFO 3 on level, pan or spread, and a diffuser.
 - **Megatap:** 🆕 up to 128 taps, pre-delay, feedback from a chosen tap, Time Alpha (the old Time Shape), Time and Amplitude Randomize (fixed per tap, so repeatable), Amplitude and Pan Alpha, signed spread, diffusion and envelope.
@@ -120,28 +132,30 @@ All with defaults that leave the earlier sound bit-identical, except the Delay m
 
 ### 1.3 CPU costs to regenerate
 
-`BlockCosts.cs` was not regenerated. Blocks whose processing changed (a new per-sample stage or a changed default path) should be re-measured: **chorus, compressor, crossover, delay, enhancer, fbreturn, filter, flanger, gate, geq, megatap, multidelay, phaser, reverb, resonator, ringmod, tremolo, volpan, wah** and the new **mixer** (placeholder entry 0.04 %). Every other effect block only gained the Balance gain stage (an extra multiply per sample when balance is off-centre): **drive, dyndist, formant, fxloop, irplayer, mbcomp, mux, peq, pitch, rotary, synth, tonematch, tonestack, vibe, vocoder** may move by a few hundredths of a percent.
+After the merge with P3 and the amp streams, `BlockCosts.cs` was regenerated (`--write`), so it now holds the engine and global stream's new blocks (**input**, **output**, **rta**) and the changed ones.
+
+Before that (the first parity pass): `BlockCosts.cs` was not regenerated. Blocks whose processing changed (a new per-sample stage or a changed default path) should be re-measured: **chorus, compressor, crossover, delay, enhancer, fbreturn, filter, flanger, gate, geq, megatap, multidelay, phaser, reverb, resonator, ringmod, tremolo, volpan, wah** and the new **mixer** (placeholder entry 0.04 %). Every other effect block only gained the Balance gain stage (an extra multiply per sample when balance is off-centre): **drive, dyndist, formant, fxloop, irplayer, mbcomp, mux, peq, pitch, rotary, synth, tonematch, tonestack, vibe, vocoder** may move by a few hundredths of a percent.
 
 ---
 
 ## 2. Input and Output blocks (pp. 4–6)
 
-Cathode's `input` and `output` are built-in node types handled by the graph compiler; they have no parameters. Input selection and output routing are host settings (Setup page).
+Cathode's `input` and `output` are built-in grid cells that the graph compiler runs as blocks (🆕 `InputBlock`, `OutputBlock`): they have parameters and four channels, but no bypass. Device channel selection stays a host setting (Setup page).
 
 | Guide parameter | Cathode | Note | Effort |
 |---|---|---|---|
 | Input 1–4 / USB source | ◐ | One stereo input pair from the interface; more channels wait for multi-channel I/O in the audio shim | medium (shim) |
-| Noise gate: Type (Classic, Intelligent, Noise Reducer) | ❌ | Use a Gate block after the input. A built-in gate belongs on the Input node as parameters | medium |
-| Gate Threshold, Ratio, Attack, Release, Output Level | ❌ | As above; the Gate block has all of them | medium (with the above) |
-| Global noisegate offset | ❌ | A global setting | cheap once the gate exists |
+| Noise gate: Type (Classic, Intelligent, Noise Reducer) | 🆕 ✅ | Off (default), Classic (downward expander), Intelligent (the detector notches the mains frequency, 50 or 60 Hz, and two harmonics), Noise Reducer (gates only above a 2 kHz split) |  |
+| Gate Threshold, Ratio, Attack, Release, Output Level | 🆕 ✅ | Output Level is the Input Level |  |
+| Global noisegate offset | 🆕 ✅ | Global page, ±20 dB, added to every Input gate threshold |  |
 | Input bypass behaves as a shunt | — | No bypass on built-ins |  |
 | Instrument impedance (1 MΩ … 22 kΩ ± cap, Auto) | — | Analogue circuitry; see [01 §1](01-axe-fx-iii-audit.md#1-hardware-and-dsp-what-the-computer-and-interface-must-replace). A pickup-load EQ is possible | medium (optional) |
-| Output: Main level and balance | ◐ | Preset scene level only; no balance | cheap |
-| Output: per-row Level and Balance mixer | ❌ | Rows summed at unity. The new Mixer block covers the use; folding it into the Output node is cheap once the compiler passes rows (as for the Mixer) | cheap |
+| Output: Main level and balance | 🆕 ✅ | On the Output block, before the scene level |  |
+| Output: per-row Level and Balance mixer | 🆕 ✅ | Six rows (rows below take the sixth's); a single row is scaled in place, so a plain chain still uses one buffer |  |
 | Output: 8 scene levels | ✅ | `Scene.Level` |  |
 | Output bypass = mute | — | Built-ins cannot be bypassed |  |
 | In/Out as an FX send/return loop | ✅ | `fxloop` block, with loop latency compensation (better than the guide's two-block arrangement) |  |
-| Four channels on In/Out | ❌ | Built-ins have no channels | medium (with the gate) |
+| Four channels on In/Out | 🆕 ✅ | Switched by scenes like any block |  |
 
 ## 3. Common mix and level parameters (pp. 7–8)
 
@@ -151,13 +165,13 @@ Cathode's `input` and `output` are built-in node types handled by the graph comp
 | Delay mix law (wet full at 50 %, dry fades after) | 🆕 ✅ | Delay block only, as in the guide |  |
 | Level | ✅ | Every effect block (`level`, dB) |  |
 | Balance | 🆕 ✅ | Every effect block (`balance`, −100…100 %); the far side is turned down, wet and dry alike |  |
-| Bypass (as a modifier target) | ◐ | Bypass is per scene and through the bypass command; a modifier cannot drive it | medium |
+| Bypass (as a modifier target) | 🆕 ✅ | A modifier on the `engage` pseudo-parameter engages the block at 50 % and above, bypasses it below, and wins over the scene; set from the engage switch's context menu |  |
 | Bypass modes Thru, Mute, Mute In, Mute FX In | ✅ | Since Phase 5 |  |
 | Bypass modes Mute Out, Mute FX Out | 🆕 ✅ | The block keeps running ("listening") while bypassed |  |
-| Input Select (L, R, L+R) | 🆕 ◐ | Reverb, Megatap, Multitap, 🆕 Ten-Tap, 🆕 Plex, Volume/Pan; missing on Rotary (sums), Pitch | cheap per block |
-| Input Gain | 🆕 ◐ | Delay, Reverb, Megatap, Multitap, 🆕 Ten-Tap, 🆕 Plex, Resonator; missing on Pitch | cheap (Pitch) |
-| Global Mix (follow the global Effects Mix offset ±50 %) | ❌ | Needs a global setting and a per-block switch; the offset applied where each block reads Mix | medium |
-| Stereo Spread (−200…+200 %) | ◐ | Reverb 🆕 ±200 % (M/S widening beyond ±100 %); Delay, Megatap, Ten-Tap and Plex ±100 %; Chorus, Flanger, Phaser have an LFO phase instead | cheap (the delays) |
+| Input Select (L, R, L+R) | 🆕 ✅ | Reverb, Megatap, Multitap, Ten-Tap, Plex, Volume/Pan, 🆕 Rotary, Pitch, RTA |  |
+| Input Gain | 🆕 ✅ | Delay, Reverb, Megatap, Multitap, Ten-Tap, Plex, Resonator, 🆕 Pitch |  |
+| Global Mix (follow the global Effects Mix offset ±50 %) | 🆕 ✅ | `globalMix` switch (off by default) on Chorus, Delay, Flanger, Megatap, Multitap, Phaser, Pitch, Resonator, Reverb, Synth; the offset (Global page) is added where each reads Mix, clamped to 0–100 % |  |
+| Stereo Spread (−200…+200 %) | 🆕 ✅ | A gain on the wet side signal with the mid kept: beyond ±100 % the image widens (an M/S widener, not Fractal's psychoacoustic processing). Delay, Reverb, 🆕 Chorus, Flanger, Phaser (besides their LFO phase) to ±200 %; Megatap, Ten-Tap and Plex ±100 % |  |
 
 ## 4. Amp block (pp. 9–18)
 
@@ -210,7 +224,7 @@ Each table lists the guide's parameters page by page. Unless noted, every block 
 
 ### 6.1 Chorus (pp. 25–26) → `chorus`
 
-Types: guide 17 (digital mono/stereo, analog mono/stereo, Japan CE-2, warm stereo, 80's style, triangle, 8-voice, vintage tape, dimension 1–3, 4/8-voice analog, tri-chorus, dual) → Cathode 1 algorithm whose knobs now cover them: voices up to 8, the Dual ratios, BBD drive and the 🆕 Dimension matrix. The named types themselves are presets (§8 item 7, stream P1).
+Types: guide 17 (digital mono/stereo, analog mono/stereo, Japan CE-2, warm stereo, 80's style, triangle, 8-voice, vintage tape, dimension 1–3, 4/8-voice analog, tri-chorus, dual) → Cathode 1 algorithm whose knobs now cover them: voices up to 8, the Dual ratios, BBD drive and the 🆕 Dimension matrix. The named types themselves are 🆕 Block Library presets (§8 item 7).
 
 | Page | Parameter | Cathode | Note | Effort |
 |---|---|---|---|---|
@@ -226,10 +240,10 @@ Types: guide 17 (digital mono/stereo, analog mono/stereo, Japan CE-2, warm stere
 | Expert | Drive (BBD) | 🆕 ✅ | Soft saturation of what enters the lines (shared `SoftDrive`) |  |
 | Expert | Width (right time scaled toward 1 ms) | 🆕 ✅ | 0–100 %: the right delay moves to 1 ms |  |
 | Expert | LFO2 Rate, LFO2 Depth | 🆕 ✅ | A sine that wobbles the main LFO's rate by up to ±100 % |  |
-| Expert | Stereo Spread | 🆕 ✅ | −100…100 % on the wet (as Delay and Reverb), besides LFO Phase |  |
+| Expert | Stereo Spread | 🆕 ✅ | −200…200 % on the wet (as Delay and Reverb, §3), besides LFO Phase |  |
 | Expert | Dimension Mode (off, low, med, high) | 🆕 ✅ | One voice per line, lines swept in antiphase, each side's wet minus 30/50/70 % of the other's: wide and still, little pitch movement in mono |  |
 | Expert | Right Time Ratio (Dual) | 🆕 ✅ | 0.5–2× |  |
-| Mix | Global Mix | ❌ | §3 (stream P1) | medium |
+| Mix | Global Mix | 🆕 ✅ | §3 |  |
 
 ### 6.2 Compressor (pp. 27–29) → `compressor`
 
@@ -242,12 +256,12 @@ Types: guide 16 (Studio FF/FB compressor and sustainer, analog compressor/sustai
 | Config | Dynamics (processor: compress ↔ expand) | 🆕 ✅ | Dynamics type: the slope over the threshold is 1 − Dynamics (−100 % expands 2:1 upwards, +100 % limits), at most +24 dB |  |
 | Config | Ratio ∞ (limiter) | 🆕 ✅ | 1–100:1; 100 is ∞:1 |  |
 | Config | Auto Attack/Release | 🆕 ✅ | Both times scaled by 2 / crest² over 200 ms (Giannoulis et al. 2012), ×0.25–4 |  |
-| Config | Look Ahead | ❌ | Needs latency reporting that depends on a parameter; the graph compiler only reads latency at compile time (P1 stream) | medium |
+| Config | Look Ahead | 🆕 ✅ | 0.5–10 ms, reported as latency (parallel rows are aligned); a change rebuilds the graph (`Recompile`) |  |
 | Config | Detector Type (RMS, Peak, RMS+Peak) | 🆕 ✅ | Type default, Peak, RMS, RMS+Peak (the mean of the two in dB) |  |
 | Config | Light Type (optical) | 🆕 ✅ | Classic, Fast LED, Slow Vactrol: the opto's attack and its program-dependent release law |  |
 | Config | Auto Makeup | ✅ | Half the reduction at 0 dBFS |  |
 | Config | Makeup | ✅ | Cathode extra |  |
-| Sidechain | Source (block, row, input) | ❌ | Needs a second input into the block (P1 stream) | medium |
+| Sidechain | Source (block, row, input) | 🆕 ✅ | Block, Input, Row 1–6 (the last live block on that row left of the compressor; not latency-aligned); the sidechain cuts, emphasis and EQ filter it |  |
 | Sidechain | Low Cut, High Cut | ✅ | Detector only |  |
 | Sidechain | Emphasis, Emphasis Frequency; filter type/freq/Q/gain | 🆕 ✅ | Emphasis: a high shelf on the detector up to +12 dB; one sidechain EQ band (low shelf, high shelf, peak) |  |
 | Mix | Input Level (instrument/line) | 🆕 ✅ | Line takes 12 dB off the detector |  |
@@ -292,7 +306,7 @@ Types: guide table lists 23 (digital/analog/tape mono and stereo, ping-pong, dua
 | Modulation | Ducker attenuation, threshold, release | 🆕 ✅ |  |  |
 | Modulation | Diffuser mix and time, its LFO | 🆕 ✅ | `Diffuser` on the repeats |  |
 | Mix | Input Gain | 🆕 ✅ |  |  |
-| Mix | Global Mix | ❌ | §3 (stream P1) | medium |
+| Mix | Global Mix | 🆕 ✅ | §3 |  |
 | — | Spillover | ✅ | Mute In / Mute FX In, and across presets |  |
 
 ### 6.5 Drive (pp. 37–39) → `drive`
@@ -364,7 +378,7 @@ Types: guide 15 → Cathode 🆕 15: Low Pass, High Pass, Band Pass, Notch, Peak
 
 ### 6.9 Flanger (pp. 43–45) → `flanger`
 
-Types: guide 31 named presets → Cathode 1 algorithm, now with 🆕 thru-zero and the VCO responses, so the named types are presets of its knobs (§8 item 7, stream P1).
+Types: guide 31 named presets → Cathode 1 algorithm, now with 🆕 thru-zero and the VCO responses, so the named types are presets of its knobs (🆕 in the Block Library, §8 item 7).
 
 | Page | Parameter | Cathode | Note | Effort |
 |---|---|---|---|---|
@@ -379,12 +393,12 @@ Types: guide 31 named presets → Cathode 1 algorithm, now with 🆕 thru-zero a
 | Expert | Phase Reverse | ✅ |  |  |
 | Expert | LFO Type | ✅ |  |  |
 | Expert | LFO Phase | ✅ | `spread` |  |
-| Expert | LFO Bypass Reset | ❌ | Needs the engine to tell a block it was engaged (§8 item 12, stream P1) | medium |
+| Expert | LFO Bypass Reset | 🆕 ✅ | `lfoReset`: engaging restarts the sweep (`IEngageAware`) |  |
 | Expert | LFO Hicut, LFO Quantize | 🆕 ✅ | `LfoConditioner`: one-pole on the LFO (0.5–50 Hz, 50 = off), 2–16 levels |  |
 | Expert | Auto Depth | 🆕 ✅ | As on the Chorus |  |
 | Expert | VCO Response, Exponent | 🆕 ✅ | Linear (in delay) or Exponential (in ratio, notches move evenly in octaves); Exponent 0.25–4 bends the LFO position |  |
-| Mix | Stereo Spread | 🆕 ✅ | −100…100 % on the wet, besides LFO Phase |  |
-| Mix | Global Mix | ❌ | §3 (stream P1) | medium |
+| Mix | Stereo Spread | 🆕 ✅ | −200…200 % on the wet (§3), besides LFO Phase |  |
+| Mix | Global Mix | 🆕 ✅ | §3 |  |
 
 ### 6.10 Formant (p. 46) → `formant`
 
@@ -407,7 +421,7 @@ Types: Classic Expander, Classic Gate, Modern Expander, Modern Gate → Cathode 
 | Threshold, Ratio, Attack, Hold, Release | ✅ |  |  |
 | Attenuation (gate types) | 🆕 ✅ |  |  |
 | Knee Type (modern expander) | 🆕 ✅ | Hard, Soft (6 dB), Softer (12 dB) on both expander types |  |
-| Sidechain Select (block, row, input) | ❌ | Needs a second input (P1 stream) | medium |
+| Sidechain Select (block, row, input) | 🆕 ✅ | As the Compressor's |  |
 | Detector Type (peak, RMS) | 🆕 ✅ |  |  |
 | Sidechain Low Cut, High Cut | 🆕 ✅ |  |  |
 | Level, Balance | 🆕 ✅ |  |  |
@@ -484,7 +498,7 @@ Types: 20 presets → none (shape choices instead; presets are §8 item 7).
 | Diffusion | Diffusion Mix, Time, LFO Rate/Depth | 🆕 ✅ | `Diffuser` |  |
 | Envelope | Threshold, Attack, Release (volume swell into the taps) | 🆕 ✅ | `SwellEnvelope`; attack 0 is off |  |
 | Mix | Input Gain, Input Select | 🆕 ✅ |  |  |
-| Mix | Global Mix | ❌ | §3 (stream P1) | medium |
+| Mix | Global Mix | 🆕 ✅ | §3 |  |
 
 ### 6.16 Mixer (p. 54) → 🆕 `mixer`
 
@@ -522,7 +536,7 @@ Core types: Quad-Tap, Quad Parallel, Quad-Series, Quad Diffusor, Quad Tape, Quad
 | Comb | Comb time and feedback per line | 🆕 ✅ | Normalised (peaks at unity), so it never adds loop gain |  |
 | Ring mod | Frequency and mix per line | 🆕 ✅ |  |  |
 | Mix | Input Select, Input Gain | 🆕 ✅ |  |  |
-| Mix | Global Mix | ❌ | §3 (stream P1) | medium |
+| Mix | Global Mix | 🆕 ✅ | §3 |  |
 
 ### 6.18 Multiband Compressor (p. 55) → `mbcomp`
 
@@ -574,9 +588,9 @@ Types: 16 (digital mono/stereo, Script 45/90, Block 90, Classic/FAS Vibe, Stereo
 | LFO Phase | ✅ | `spread` |  |
 | LFO Quantize, Astable Beta, LFO Hicut | 🆕 ✅ | `LfoConditioner`; LFO Duty is the astable's curvature (beta) |  |
 | VCR Type (linear, exponential, JFET, photocell), VCR Bias, Exponent, Photocell attack/release | 🆕 ✅ | Linear in Hz, exponential in octaves (the default, unchanged), JFET square law, photocell: an exponential law on a light level with its own attack and release (1–200 / 5–1000 ms); Bias shifts the LFO position, Exponent bends it |  |
-| LFO Reset on Bypass | ❌ | Needs an engage signal (§8 item 12, stream P1) | medium |
+| LFO Reset on Bypass | 🆕 ✅ | `lfoReset` (`IEngageAware`) |  |
 | Barberpole: Sweep Direction, Filter Q | 🆕 ✅ | Two chains of second-order allpasses (Q 0.3–10) sweeping the range on a sawtooth half a cycle apart, crossfaded by sin² windows that sum to one: a Shepard-style endless rise or fall. Coefficients on an 8-sample grid |  |
-| Global Mix | ❌ | §3 (stream P1) | medium |
+| Global Mix | 🆕 ✅ | §3 |  |
 
 ### 6.22 Pitch (pp. 66–76) → `pitch`
 
@@ -607,9 +621,9 @@ Types: 16 (dual/quad detune, dual/quad chromatic and quad chromatic delay, dual/
 | Crystals | Feedback type, splice time/tempo, direction, diffusion | 🆕 ✅ | Shifted or unshifted feedback, splice 20–200 ms or a tempo division, reverse or forward grains, a four-allpass diffuser in the loop |  |
 | Custom Shifter | Scale 1/2, Key | ✅ |  |  |
 | Virtual Capo | Shift, Detune | 🆕 ✅ | Capo Detune ±50 cents |  |
-| Mix | Input Gain | 🆕 ✅ | The level into the shifters (the dry and the detector are unaffected) |  |
+| Mix | Input Gain | 🆕 ✅ | The level into the shifters (the dry and the detector are unaffected); 🆕 Input Select (L+R, Left, Right) for the mono input |  |
 | Mix | Low Cut, High Cut (wet) | 🆕 ✅ | `WetCuts` |  |
-| Mix | Global Mix | ❌ | §3 (stream P1) | medium |
+| Mix | Global Mix | 🆕 ✅ | §3 |  |
 
 ### 6.23 Plex Delay (pp. 77–79) → 🆕 `plex`
 
@@ -633,15 +647,15 @@ Types: Plex Delay, Plex Detune, Plex Shifter, Plex Verb, Shimmer Verb + 39 varia
 | LFO rate/depth/tempo, input diffusion, ducker | 🆕 ✅ |  |
 | Input Gain, Input Select | 🆕 ✅ |  |
 
-### 6.24 Realtime Analyzer (p. 80) → `PUT /api/v1/rta`
+### 6.24 Realtime Analyzer (p. 80) → 🆕 `rta` block and `PUT /api/v1/rta`
 
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
-| Tap anywhere on the grid | ❌ | Output only; a pass-through block that publishes its input is | medium |
-| Decay Time | ◐ | Fixed ballistics | cheap |
-| Input Select | ❌ |  | cheap |
-| Bands (32/64/128) | ◐ | Sixth-octave bands | cheap |
-| Window Type | ❌ |  | cheap |
+| Tap anywhere on the grid | 🆕 ✅ | The `rta` block passes its input through and fills a second telemetry ring; while one runs, the RTA shows it (frames say `source: block`) |  |
+| Decay Time | 🆕 ✅ | 0–10 s: levels fall 60 dB per decay time, rise at once |  |
+| Input Select | 🆕 ✅ | On the block |  |
+| Bands (32/64/128) | 🆕 ✅ | 3, 6 or 12 per octave (about 30, 60, 120 bands from 20 Hz to 20 kHz) |  |
+| Window Type | 🆕 ✅ | Hann, Blackman-Harris, flat top, rectangular (energy-normalised, so levels hold) |  |
 
 ### 6.25 Resonator (p. 81) → `resonator`
 
@@ -656,7 +670,7 @@ Types: Plex Delay, Plex Detune, Plex Shifter, Plex Verb, Shimmer Verb + 39 varia
 | Filter Location 1–4, Filter Q 1–4 (band-pass) | 🆕 ✅ | Off, Pre (only the input near the pitch excites the comb) or Post (the comb rings with its fundamental); Q 0.5–20 |  |
 | Level 1–4, Pan 1–4 | ✅ |  |  |
 | Input Gain | ✅ |  |  |
-| Global Mix | ❌ | §3 (stream P1) | medium |
+| Global Mix | 🆕 ✅ | §3 |  |
 
 ### 6.26 Reverb (pp. 82–85) → `reverb`
 
@@ -681,9 +695,9 @@ Types: 66+ (halls, chambers, rooms, cathedrals, studios, plates, springs, classi
 | Modulation | Mod Depth, Rate, LFO Phase | 🆕 ✅ | Depth as % of the former fixed 0.35 ms, rate, and the phase between the two modulated lines (default 180°, the former setting). FDN types; Dattorro keeps its own fixed modulation |  |
 | Pitch | Pitch mix, shift 1/2, voice balance, splice, feedback, direction, position | 🆕 ✅ | Two granular shifters (±24 st, grain = splice, Reverse plays the grains backwards); position Input, Output or Tank Feedback (shimmer: the pitched wet feeds the tank and climbs on each pass) |  |
 | Ducker | Attenuation, Threshold, Release | 🆕 ✅ |  |  |
-| Mix | Stereo Spread | 🆕 ✅ | −200 … 200 %: beyond ±100 % the wet's side signal is raised (M/S widening), not a psychoacoustic model |  |
+| Mix | Stereo Spread | 🆕 ✅ | −200 … 200 % (§3): beyond ±100 % the wet's side signal is raised (M/S widening), not a psychoacoustic model |  |
 | Mix | Input Gain, Input Select | 🆕 ✅ |  |  |
-| Mix | Global Mix | ❌ | §3 | medium |
+| Mix | Global Mix | 🆕 ✅ | §3 |  |
 
 ### 6.27 Ring Modulator (p. 86) → `ringmod`
 
@@ -711,9 +725,16 @@ Types: 66+ (halls, chambers, rooms, cathedrals, studios, plates, springs, classi
 | Stereo Spread | 🆕 ✅ | −100…100 % on the output, besides the mic spacing |  |
 | Input Select | 🆕 ✅ | L+R, Left, Right |  |
 
-### 6.29 Scene MIDI (p. 88) → missing
+### 6.29 Scene MIDI (p. 88) → 🆕 `Scene.Midi`
 
-Eight PC/CC messages (type, channel, number, value) per scene, sent when a scene loads. **Verdict: missing, medium** (see §7).
+| Parameter | Cathode | Note |
+|---|---|---|
+| Eight messages per scene | 🆕 ✅ | `Scene.Midi`, up to eight; sent through the rig's MIDI output when the scene is selected or its preset loads on it |
+| Type (PC, CC) | 🆕 ✅ |  |
+| Channel | 🆕 ✅ | 1–16 |
+| Number, Value | 🆕 ✅ | Program for a PC; controller and value for a CC |
+
+Not a grid block: the messages belong to the scene, edited on the Controllers page.
 
 ### 6.30 Send and Return (pp. 89–90) → `fbsend`, `fbreturn`
 
@@ -723,7 +744,7 @@ Eight PC/CC messages (type, channel, number, value) per scene, sent when a scene
 | Return Level | ✅ | `level` (named Return Level) |
 | Output Level | 🆕 ✅ |  |
 | Balance | 🆕 ✅ |  |
-| Two pairs | ◐ | One pair per preset (max instances 1) |
+| Two pairs | 🆕 ✅ | Two of each; a send feeds the return whose id ends in the same number (`fbsend2` → `fbreturn2`) |
 
 ### 6.31 Synth (p. 91) → `synth`
 
@@ -740,7 +761,7 @@ Eight PC/CC messages (type, channel, number, value) per scene, sent when a scene
 | Filter frequency and Q per voice | 🆕 ✅ | Each voice has its own filter (type, cutoff, resonance), opening with the envelope (Env Amount shared) |  |
 | Attack (input envelope) | ✅ | Plus release, glide, threshold |  |
 | Level per voice | ✅ |  |  |
-| Global Mix | ❌ | §3 (stream P1) | medium |
+| Global Mix | 🆕 ✅ | §3 |  |
 
 ### 6.32 Ten-Tap Delay (pp. 92–93) → 🆕 `tentap`
 
@@ -773,7 +794,7 @@ Types: Tremolo, Panner, Bias Trem, Harmonic Trem, Optical Trem → all five.
 | Depth / Width (beyond 100 % for the panner) | 🆕 ✅ | 0–200 %; named Width on the Panner, where past 100 % the swing dwells at the sides; the tremolo types stop at 100 % |  |
 | LFO Type, LFO Duty Cycle | ✅ |  |  |
 | LFO Phase | ✅ |  |  |
-| Start Phase | ❌ | Needs an engage signal (§8 item 12, stream P1) | medium |
+| Start Phase | 🆕 ✅ | 0–360°, applied on engage (`IEngageAware`) |  |
 | Trigger Threshold (restart on playing) | 🆕 ✅ | Trigger Level (−80 dB = off … 0 dB): the LFO restarts when the playing rises through it, re-arming 6 dB below |  |
 | Crossover Frequency (harmonic) | ✅ | One-pole split |  |
 | Crossover Slope | 🆕 ✅ | 6 dB/oct (complementary one-pole, the default), 12 and 24 dB/oct (Linkwitz–Riley, summing to an allpass) |  |
@@ -842,12 +863,12 @@ Checked against what exists under other names.
 | Mixer | 🆕 `mixer` | **Implemented** in this pass | — |
 | Plex Delay | 🆕 `plex` | **Implemented**: all five core types (§6.23) | — |
 | Ten-Tap Delay | 🆕 `tentap` | **Implemented** with Rhythm Tap (§6.32) | — |
-| Scene MIDI | — | **Missing.** MIDI output exists (footswitch LED feedback), so the block is a preset-level table of 8 messages per scene sent on scene change | medium |
+| Scene MIDI | 🆕 `Scene.Midi` | **Implemented** as per-scene messages (§6.29) | — |
 | Tremolo/Panner | `tremolo` | **Complete** for its five types after this pass | — |
 | Graphic EQ modes | `geq` | 🆕 Ten layouts (all 16 guide types with the Q mode); the passive ones approximated (§6.12) | large (component-level passives) |
-| RTA | Analyser utility (`PUT /rta`, editor dialog) | Output only; a pass-through block to tap mid-grid is medium | medium |
-| Input/Output features | Built-ins | Noise gate on the Input and the row mixer on the Output missing (§2) | medium / cheap |
-| Send/Return | `fbsend` / `fbreturn` | Present (one pair) | cheap (two pairs) |
+| RTA | 🆕 `rta` block + analyser | **Implemented**: a pass-through block taps the analyser anywhere (§6.24) | — |
+| Input/Output features | Built-ins | 🆕 Noise gate on the Input, row mixer on the Output (§2); one stereo input pair | medium (multi-channel input) |
+| Send/Return | `fbsend` / `fbreturn` | 🆕 Two pairs | — |
 | Tone Match | `tonematch` | Present | — |
 | — (Cathode only) | `tonestack`, `vibe`, `fxloop` | Cathode extras: a standalone amp tone stack, a separate Uni-Vibe, and an FX loop with latency compensation | — |
 
@@ -857,18 +878,18 @@ Checked against what exists under other names.
 
 In order of value to a player, then cost. Each item meets the [Definition of done](03-testing-strategy.md#12-definition-of-done-any-block-or-feature) (conformance, analytic tests, golden, measured cost, editor).
 
-1. **Global Mix** (medium). A global "effects mix offset" (±50 %) in the global settings, sent to the engine as a rig parameter; a `globalMix` switch on Chorus, Delay, Flanger, Megatap, Multi-Delay, Phaser, Pitch, Resonator, Reverb, Synth; each block adds the offset where it reads Mix. One shared helper, one engine parameter, one API field, a Global-page control.
-2. **Input block noise gate and Output row mixer** (medium + cheap). Give the built-in nodes parameters: the Input node runs the Gate block's code (Classic; Intelligent adds a hum-aware filter at the mains frequency), the Output node gets per-row level and balance through the same row routing as the Mixer, plus a main balance. Needs the compiler to host parameters on built-ins and the editor to show them.
-3. **Scene MIDI** (medium). A preset-level `sceneMidi` table (8 × type/channel/number/value per scene) in the contract, sent through the existing MIDI output when a scene loads; an editor table on the Scenes page. Not a DSP block.
+1. 🆕 ✅ **Global Mix** (medium). A global "effects mix offset" (±50 %) in the global settings, sent to the engine as a rig parameter; a `globalMix` switch on Chorus, Delay, Flanger, Megatap, Multi-Delay, Phaser, Pitch, Resonator, Reverb, Synth; each block adds the offset where it reads Mix. One shared helper, one engine parameter, one API field, a Global-page control.
+2. 🆕 ✅ **Input block noise gate and Output row mixer** (medium + cheap). Give the built-in nodes parameters: the Input node runs the Gate block's code (Classic; Intelligent adds a hum-aware filter at the mains frequency), the Output node gets per-row level and balance through the same row routing as the Mixer, plus a main balance. Needs the compiler to host parameters on built-ins and the editor to show them.
+3. 🆕 ✅ **Scene MIDI** (medium). A preset-level `sceneMidi` table (8 × type/channel/number/value per scene) in the contract, sent through the existing MIDI output when a scene loads; an editor table on the Scenes page. Not a DSP block.
 4. 🆕 **Done (P2).** **Delay completion** (medium). Dual type (independent L/R time, feedback and cross-feedback), the two-head mono tape with motor speed, the EQ page (two peaking bands, slopes), a second LFO with targets, a diffuser (reuse the reverb's), feedback polarity and master feedback to 200 %, 16 s lines in native memory.
 5. 🆕 **Done (P2).** **Plex Delay block** (medium, then large). A new `plex` block: an 8-line feedback matrix (Hadamard or Householder) with per-line time/tempo/level/pan, decay time, input diffusion, pre-delay, stack/hold, filter with LFO, envelope and ducker (reuse `Ducker`). Second step: per-line granular detune and shift (reuse the Crystals splice shifter) for Plex Detune, Plex Shifter and Shimmer Verb.
 6. 🆕 **Done (P2).** **Reverb depth** (medium). Separate early reflections with Early/Late level, the two peaking EQ bands, pre-delay tempo/feedback/mix, modulation controls, a quality setting (line count), and a shimmer pitch section (reuse the splice shifter).
-7. **Type presets** (medium, ongoing). Many guide "types" are parameter presets (17 choruses, 31 flangers, 16 phasers, 23 delays, 66 reverbs, 20 megataps). Offer them as factory block presets in the Block Library rather than as a Type parameter, so they never fight the knobs. Needs a curated preset set per block and the library's import path.
+7. 🆕 ✅ **Type presets** (medium, ongoing). Many guide "types" are parameter presets (17 choruses, 31 flangers, 16 phasers, 23 delays, 66 reverbs, 20 megataps). Offer them as factory block presets in the Block Library rather than as a Type parameter, so they never fight the knobs. Needs a curated preset set per block and the library's import path.
 8. 🆕 **Done (P2).** **Multi-Delay algorithms** (medium each). Quad Parallel (per-line ring mod, band-pass and comb), Quad Series (send/return routing), Quad Diffusor, Quad Tape; per-tap feedback, filters and chorus; Rhythm Tap.
 9. 🆕 **Done (P4)**, except component-level passive networks. **Graphic EQ layouts** (medium). Type with 10 (2/3 oct), 8, 7 and 5 bands using `typeLabels` to rename and hide bands, shelving outer bands, then the passive types (Mark 5-band, 4-band, 3-band, console). Keep the global output EQ on the plain 10-band type.
-10. **Compressor and Gate sidechain input** (medium). A sidechain source (row or input) needs a second input into a block: the same `IRowInputBlock` routing can deliver a chosen row into a side buffer.
-11. **Look-ahead compressor** (medium). The compiler reads latency at compile time; a parameter-dependent latency needs a recompile on change or a fixed maximum look-ahead always reported.
-12. **"On engage" behaviour** (medium). LFO Bypass Reset (Flanger, Phaser) and Tremolo Start Phase need the engine to tell a block it was engaged; add an optional `IEngageAware` the compiled graph calls when a bypass fade starts.
+10. 🆕 ✅ **Compressor and Gate sidechain input** (medium). A sidechain source (row or input) needs a second input into a block: the same `IRowInputBlock` routing can deliver a chosen row into a side buffer.
+11. 🆕 ✅ **Look-ahead compressor** (medium). The compiler reads latency at compile time; a parameter-dependent latency needs a recompile on change or a fixed maximum look-ahead always reported.
+12. 🆕 ✅ **"On engage" behaviour** (medium). LFO Bypass Reset (Flanger, Phaser) and Tremolo Start Phase need the engine to tell a block it was engaged; add an optional `IEngageAware` the compiled graph calls when a bypass fade starts.
 13. 🆕 **Done** (stream P3): Phaser VCR models and Barberpole; Flanger thru-zero; Chorus Dimension.
 14. 🆕 **Done** (stream P3): Pitch completion, including polyphonic Whammy tracking (a peak-locked phase vocoder). Left: formant correction, and Detector Source on the hardware inputs (rows only).
 15. 🆕 **Done (P4)**, except per-circuit extra knobs, op-amp slew per model and new circuits. **Drive EQ pages and expert controls** (medium). The EQ 1 page (low/high cut, bass/mid/high-mid/treble) and EQ 2 (the GEQ bands pre/post) are generic; diode type/count and bias need per-circuit WDF parameters. New circuits continue as in Phase 6 (medium each).

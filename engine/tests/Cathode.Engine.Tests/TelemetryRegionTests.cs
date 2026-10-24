@@ -1,3 +1,4 @@
+using Cathode.Audio;
 using Cathode.Dsp;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Telemetry;
@@ -26,6 +27,37 @@ public class TelemetryRegionTests {
         Assert.Equal(0.5f, reading.InputPeak);
         Assert.Equal(0f, reading.OutputPeakLeft); // no graph yet: silence out
         Assert.Equal(100, reading.Callbacks);
+    }
+
+    [Fact]
+    public void An_rta_block_fills_the_analyser_ring_with_its_selected_channel() {
+        using var region = TelemetryRegion.CreateInMemory(Spec.SampleRate);
+        var engine = new CathodeEngine(Spec) { Telemetry = region };
+        engine.Publish(
+            new GraphCompiler(BlockRegistry.CreateDefault()).Compile(
+                new() {
+                    Nodes = [
+                        new() { Id = "in", Type = NodeTypes.Input, Row = 0, Column = 0 },
+                        new() { Id = "rta", Type = "rta", Row = 0, Column = 1, Parameters = { ["inputSelect"] = 2 } },
+                        new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 }
+                    ],
+                    Cables = [new() { From = "in", To = "rta" }, new() { From = "rta", To = "out" }]
+                },
+                Spec,
+                1
+            )
+        );
+        var left = Signals.Step(8_192, 0.25f);
+        var right = Signals.Step(8_192, 0.75f);
+
+        var (outLeft, outRight) = OfflineRenderer.Render(engine, left, right, 256);
+        var analysed = new float[4_096];
+
+        Assert.Equal(8_192, region.AnalyzerWritten);
+        Assert.True(region.ReadAnalyzer(analysed));
+        Assert.All(analysed, static s => Assert.Equal(0.75f, s)); // Input Select: Right
+        Assert.Equal(left, outLeft); // and the signal passes untouched
+        Assert.Equal(right, outRight);
     }
 
     [Fact]

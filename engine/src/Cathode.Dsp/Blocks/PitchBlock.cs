@@ -179,6 +179,8 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
     public const int LowCut = InputGain + 1;
     public const int HighCut = LowCut + 1;
     public const int DetectorSource = HighCut + 1;
+    public const int GlobalMix = DetectorSource + 1;
+    public const int InputSelect = GlobalMix + 1;
 
     public const int VoiceCount = 4;
     public const int MaxArpSteps = 16;
@@ -468,7 +470,9 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
                 "detectorSource",
                 "Detector Source",
                 ["Block Input", ..Enumerable.Range(1, SourceRows).Select(static r => $"Row {r}")]
-            )
+            ),
+            EffectsMix.Param,
+            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions)
         ],
         maxInstances: 2
     );
@@ -751,7 +755,7 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
         var stereo = (int)Params.Current(InputMode) == 1;
         var tracking = (int)Params.Current(Tracking);
         var inputGain = Params.Advance(InputGain, frames) / 100f;
-        var mix = MixFor(type, Params.Advance(Mix, frames));
+        var mix = MixFor(type, EffectsMix.Apply(Params.Advance(Mix, frames), Params.Current(GlobalMix), context));
         VoiceGains(type);
         var voiced = HasVoices(type);
         var harmony = IsHarmony(type);
@@ -849,10 +853,11 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
         var side = fromRow && sideFrames == frames;
         var ratios = type == PitchType.Chromatic ? shifts : harmonies;
         var mixStep = (mix - this.mix) / frames;
+        var inputSelect = (int)Params.Current(InputSelect);
         for (var i = 0; i < frames; i++) {
             var dryLeft = io.Left[i];
             var dryRight = io.Right[i];
-            var mono = 0.5f * (dryLeft + dryRight);
+            var mono = Stereo.Select(inputSelect, dryLeft, dryRight);
             if (tracking != TrackingOff) {
                 Track(fromRow ? side ? 0.5f * (sideLeft[i] + sideRight[i]) : 0f : mono, tracking == TrackingFast);
             }

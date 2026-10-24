@@ -114,6 +114,34 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
           </div>
         </section>
 
+        <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="offsets-heading">
+          <h2 xuiHeading id="offsets-heading" class="text-sm">Mix and gate offsets</h2>
+          <p xuiText class="text-foreground-muted text-xs">
+            Effects Mix is added to the Mix of every block whose Global Mix switch is on. The noise gate offset is added
+            to the threshold of every Input block's gate.
+          </p>
+          <div class="flex flex-wrap items-end gap-6">
+            <cth-knob
+              label="Effects Mix"
+              unit="%"
+              [min]="-50"
+              [max]="50"
+              [defaultValue]="0"
+              [value]="s.effectsMix"
+              (committed)="save(g => (g.effectsMix = $event))"
+            />
+            <cth-knob
+              label="Gate offset"
+              unit="dB"
+              [min]="-20"
+              [max]="20"
+              [defaultValue]="0"
+              [value]="s.noiseGateOffset"
+              (committed)="save(g => (g.noiseGateOffset = $event))"
+            />
+          </div>
+        </section>
+
         <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="eq-heading">
           <h2 xuiHeading id="eq-heading" class="text-sm">Global output EQ</h2>
           <div class="flex flex-wrap gap-4">
