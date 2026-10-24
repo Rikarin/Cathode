@@ -119,6 +119,40 @@ Last updated: 2026-10-24.
 | Randall Satan / RG100 | 💤 Not planned | — | — | | 4x12 closed |
 | Hughes & Kettner TriAmp | 💤 Not planned | — | — | | 4x12 closed |
 | Wizard Modern Classic | 💤 Not planned | — | — | | 4x12 closed |
+| Lichtlaerm Audio Prometheus (lead and clean channels) | ✅ Done, **topology inferred** (no schematic published) | Prometheus, Prometheus Clean | T3K: Prometheus TEASER-PACK (pipppriss; 5 captures, +18 dBu, knob settings not stated) | A schematic or gut shots; captures with knob settings | 4x12 closed, Mesa OS / Vintage 30 |
+
+### Lichtlaerm Audio Prometheus: what is known and what is guessed
+
+A current boutique amp (Lichtlaerm Audio, Berlin; prototype shown November 2023, shipping since 2024, about €2,900).
+No schematic, layout or gut shot is published, so **both Circuit Amp types are plausible circuits, not copies**:
+built from the documented features and fitted to captures.
+
+- **Documented** ([maker's page](https://lichtlaermaudio.com/shop/prometheus), owners on
+  [Rig-Talk](https://www.rig-talk.com/forum/threads/lichtlaerm-audio-prometheus.329616/) and
+  [The Gear Forum](https://thegearforum.com/threads/new-amp-day-lichtlaerm-audio-prometheus.4898/), the
+  [fan wiki](https://lichtlaerm-audio.fandom.com/wiki/Prometheus)): "2.5 channels". Clean channel with Warm (after a
+  Verellen Meatsmoke) and Brilliant (Twin plus a touch of Hiwatt) voices, Bass/Middle/Treble/Volume. Lead channel with
+  Gain, Bass/Middle/Treble/Volume, Vintage/Modern, a three-way Bite switch (high-mid bump / off / low-mid bump) and a
+  Cut knob (a low cut before the gain stages). Global Master, Presence and Depth (power-amp shelves), a gate,
+  a tube-buffered loop. 100–140 W, four EL34 stock, external bias, 4/8/16 Ω. Owners compare it with Engl, Marshall,
+  Diezel, Driftwood, Wizard and the Rectifier.
+- **Inferred** (`engine/src/Cathode.Dsp/Amp/Models/Prometheus.cs`, `PrometheusClean.cs`): the lead is a
+  Soldano/Driftwood-style cascade (V1A, Cut network and gain pot into V1B with the Bite caps on its cathode, the cold
+  clipper V2A, V2B, a cathode follower into a Marshall-type stack). Modern is a smaller coupling cap into the cold
+  clipper plus a bypassed V2B cathode. The clean channel is Fender-style: V1A with the stack on its plate, the volume,
+  V2A. Both run into a 12AX7 long-tail pair, four EL34 at 470 V and feedback from the 16 Ω tap. The triodes behind high
+  source resistances carry their 1.7 pF grid-plate capacitance: the Miller roll-off was the largest single improvement
+  against the captures. Every value is a guess within the usual ranges for this kind of amp.
+- **Not modelled**: the channel volumes (folded into Master), the gate, the loop, the preamp-bypass ("Defeat") switch,
+  the low-gain/high-gain lead option if it is separate from Vintage/Modern, and the line out.
+- **Captures**: the Tone3000 [teaser pack](https://www.tone3000.com/tones/lichtlaerm-audio-prometheus-teaser-pack-100836)
+  (NAM 0.7 "SlimmableContainer" WaveNets, which the pinned NeuralAmpModelerCore v0.6.0 runs at full size). It is
+  calibrated at +18 dBu but states no knob settings, so the matched settings are fitted (see the manifest notes).
+- **Match** (fitted knobs; ESR / pre-emphasised ESR / MRSTFT): clean edge 0.047 / 0.125 / 0.73 (before: 0.44 / 0.71 /
+  1.81). Lead captures 0.31–0.45 / 0.64–0.81 / 1.14–1.28 (before: 0.43–0.51 / 1.03–1.21 / 1.27–2.32). The lead misses
+  the 0.15 high-gain target: the fits push Middle and Cut to their ends. The real amp's saturated waveform is rounder,
+  with more low-mid weight, than this cascade's. The likely cause is the preamp structure (stage count, the stack's
+  position), which needs a schematic to settle.
 
 ## Bass and solid state
 

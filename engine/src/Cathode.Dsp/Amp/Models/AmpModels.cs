@@ -11,7 +11,9 @@ public sealed partial record AmpDesign {
         Models.Plexi.Design,
         Models.AC30.Design,
         Models.AC15.Design,
-        Models.DC30.Design
+        Models.DC30.Design,
+        Models.Prometheus.Design,
+        Models.PrometheusClean.Design
     ];
 
     public static AmpDesign Blackface => Models.Blackface.Design;
