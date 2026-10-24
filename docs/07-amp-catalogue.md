@@ -72,12 +72,12 @@ Last updated: 2026-10-24.
 
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
-| AC30 Top Boost | ✅ Done (values being corrected) | AC30 (2) | T3K: AC30S1 gain sweep | AC30 TB / C2 / HW direct out | 2x12 open, Celestion Blue / Alnico |
-| AC30 Normal channel | 🔨 In progress | — | — | | 2x12 open, Blue |
-| AC15 (EF86) | 🔨 In progress | — | GPL: AC15 Top Boost; T3K: AC15C1 Normal (6 settings) and Top Boost | Vintage EF86 channel captures | 1x12 open, Blue / G12M |
-| Matchless DC-30 | 🔨 In progress | — | GPL: Matchless SC30 channel 1 | DC-30 both channels | 2x12 open, G12H30 / Vintage 30 |
-| Dumble Overdrive Special | 🔨 In progress (assumptions marked) | — | GPL: Dumble kit low/high, Dumble clone clean/medium/high | Real ODS or Two-Rock, settings stated | 1x12 / 2x12 open, EV12L |
-| Two-Rock (Dumble-style) | 🔨 In progress | — | (Dumble captures above) | | 1x12 / 2x12 open |
+| AC30 Top Boost | ✅ Done (JMI OS/010, OS/065 values) | AC30 (2) | T3K: AC30S1 gain sweep | AC30 TB / C2 / HW direct out | 2x12 open, Celestion Blue / Alnico |
+| AC30 Normal channel | ✅ Done | AC30 (2), Switch 1 "Normal Ch" | — | | 2x12 open, Blue |
+| AC15 (EF86) | ✅ Done (mixing and cut assumed) | AC15 (3) | GPL: AC15 Top Boost; T3K: AC15C1 Normal (6 settings) and Top Boost | Vintage EF86 channel captures | 1x12 open, Blue / G12M |
+| Matchless DC-30 | ✅ Done | DC-30 (4) | GPL: Matchless SC30 channel 1 | DC-30 both channels | 2x12 open, G12H30 / Vintage 30 |
+| Dumble Overdrive Special | ⏸ Waiting (only partial, error-prone traces) | — | GPL: Dumble kit low/high, Dumble clone clean/medium/high | Real ODS or Two-Rock, settings stated | 1x12 / 2x12 open, EV12L |
+| Two-Rock (Dumble-style) | ⏸ Waiting (needs the ODS work) | — | (Dumble captures above) | | 1x12 / 2x12 open |
 | Bad Cat Hot Cat / Black Cat | ⏸ Waiting | — | — | Preamp schematic (only power amp found) | 2x12 open |
 | Dr Z Maz 18 | ⏸ Waiting | — | — | Schematic | 1x12 / 2x12 open |
 | Morgan AC20 / SW | ⏸ Waiting | — | — | Schematic | 1x12 open |
@@ -148,6 +148,11 @@ built from the documented features and fitted to captures.
 - **Captures**: the Tone3000 [teaser pack](https://www.tone3000.com/tones/lichtlaerm-audio-prometheus-teaser-pack-100836)
   (NAM 0.7 "SlimmableContainer" WaveNets, which the pinned NeuralAmpModelerCore v0.6.0 runs at full size). It is
   calibrated at +18 dBu but states no knob settings, so the matched settings are fitted (see the manifest notes).
+- **Match** (fitted knobs; ESR / pre-emphasised ESR / MRSTFT): clean edge 0.047 / 0.125 / 0.73 (before: 0.44 / 0.71 /
+  1.81). Lead captures 0.31–0.45 / 0.64–0.81 / 1.14–1.28 (before: 0.43–0.51 / 1.03–1.21 / 1.27–2.32). The lead misses
+  the 0.15 high-gain target: the fits push Middle and Cut to their ends. The real amp's saturated waveform is rounder,
+  with more low-mid weight, than this cascade's. The likely cause is the preamp structure (stage count, the stack's
+  position), which needs a schematic to settle.
 
 ## Bass and solid state
 
@@ -165,10 +170,10 @@ built from the documented features and fitted to captures.
 
 | Status | Amps |
 |---|---|
-| ✅ Done | 3 (Blackface, Plexi, AC30) |
-| 🔨 In progress | 29 |
+| ✅ Done | 6 (Blackface, Plexi, AC30 with Normal channel, AC15, DC-30) |
+| 🔨 In progress | 24 |
 | 📋 Planned | 3 |
-| ⏸ Waiting on a schematic | 13 |
+| ⏸ Waiting on a schematic | 15 |
 | 💤 Not planned yet | 31 |
 
 The 🔨 rows become ✅ as the family streams merge. Some of them may end as ⏸ if their streams find the data too weak.

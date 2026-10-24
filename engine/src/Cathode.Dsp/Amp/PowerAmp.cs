@@ -10,13 +10,18 @@ namespace Cathode.Dsp.Amp;
 /// <param name="Feedback">0.5 is the amp's stock feedback; 0 none, 1 twice as much.</param>
 /// <param name="Bias">0.5 is the stock idle current; 0 cold, 1 hot.</param>
 /// <param name="Sag">0.5 is the stock supply; 0 stiff, 1 very soft.</param>
+/// <param name="Master">
+///     0 to 1: a master wired across the phase inverter's outputs (<see cref="PowerAmpDesign.ShuntMaster" />); 1 is its
+///     full track.
+/// </param>
 public readonly record struct PowerControls(
     double Presence,
     double Depth,
     double Cut,
     double Sag,
     double Bias,
-    double Feedback
+    double Feedback,
+    double Master = 1
 );
 
 /// <summary>How the supply's rectifier is fed.</summary>
@@ -120,7 +125,15 @@ public sealed class PowerAmp {
     const double SaturatedInductance = 0.2; // H: the floor that keeps the explicit saturation current stable
     const double ReferenceFrequency = 40; // Hz: a core sized for full power down to here
 
-    static readonly PowerControls Unset = new(double.NaN, double.NaN, double.NaN, double.NaN, double.NaN, double.NaN);
+    static readonly PowerControls Unset = new(
+        double.NaN,
+        double.NaN,
+        double.NaN,
+        double.NaN,
+        double.NaN,
+        double.NaN,
+        double.NaN
+    );
     static readonly Dictionary<PowerAmpDesign, double> AcResistances = [];
 
     readonly PowerAmpDesign design;
@@ -159,6 +172,7 @@ public sealed class PowerAmp {
     double inverterHalfStep;
     double inverterGrid;
     double inverterCurrent;
+    double inverterRest; // the driven grid's AC voltage at rest, where the leak carries the grid current
     PentodeModel tube;
     PowerControls controls = Unset;
     PowerSettings settings = PowerSettings.Stock;
@@ -337,8 +351,8 @@ public sealed class PowerAmp {
             );
         }
 
-        if (controls.Cut != previous.Cut) {
-            root.Device.SetCut(controls.Cut, sampleRate);
+        if (controls.Cut != previous.Cut || controls.Master != previous.Master) {
+            root.Device.SetCut(controls.Cut, controls.Master, sampleRate);
         }
 
         if (controls.Sag != previous.Sag) {
@@ -451,9 +465,11 @@ public sealed class PowerAmp {
         var rectified = all.Plates + all.Screens + supply.PreampCurrent;
         rectifierRoot = rectifier is { Perveance: > 0 } r ? Math.Cbrt(rectified / r.Perveance) : 0;
         phase = 0;
-        inverterHistory = 0;
-        inverterGrid = 0;
-        excess = saturationFlux > 0 ? Excess(Flux) : 0;
+        // The inverter's input network at rest: its grid current through the leak, the coupling cap charged to match.
+        inverterRest = design.InverterInput is null ? 0 : SolveInverterGrid(0, 0, 0, 0);
+        inverterGrid = inverterRest;
+        inverterHistory = -inverterRest;
+        excess =saturationFlux > 0 ? Excess(Flux) : 0;
         root.SetCurrent(0, -excess);
         Prime(ref stage);
     }
@@ -698,12 +714,27 @@ public sealed class PowerAmp {
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     double DriveInverter(double input) {
-        var network = design.InverterInput!;
-        var fed = root.Device.Fed; // the second grid, a sample behind: the cathode follows the pair's common mode
         var series = sourceResistance + inverterHalfStep;
-        var leak = 1 / network.GridLeak;
         var e = input - inverterHistory;
-        var v = inverterGrid;
+        // The second grid, a sample behind: the cathode follows the pair's common mode.
+        var v = SolveInverterGrid(e, 1 / series, root.Device.Fed, inverterGrid);
+        var current = (e - v) / series;
+        inverterCurrent = current;
+        inverterHistory += 2 * inverterHalfStep * current;
+        inverterGrid = v;
+        return v - inverterRest;
+    }
+
+    /// <summary>
+    ///     The driven grid's AC voltage where the current from <paramref name="source" /> volts through
+    ///     <paramref name="conductance" /> balances the leak's and the grid current (Newton from <paramref name="start" />);
+    ///     with no conductance, its rest: the grid current at rest charges the coupling cap until the leak carries it.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    double SolveInverterGrid(double source, double conductance, double fed, double start) {
+        var leak = 1 / design.InverterInput!.GridLeak;
+        var e = source;
+        var v = start;
         for (var i = 0; i < 12; i++) {
             // The grid current leaves through the cathode and raises it: V_gk = table(v) - R_k I_g(V_gk).
             var open = inverterGridTables.GridToCathode(v - fed, out var cathodeSlope);
@@ -725,8 +756,8 @@ public sealed class PowerAmp {
             ig = inverterTube.GridCurrent(vgk, out gridSlope);
             var currentSlope = gridSlope * cathodeSlope / (1 + resistance * gridSlope);
             var bootstrap = inverterGridTables.LeakReturn(v - fed, out var returnSlope) + fed;
-            var f = (e - v) / series - (v - bootstrap) * leak - ig;
-            var slope = -1 / series - (1 - returnSlope) * leak - currentSlope;
+            var f = (e - v) * conductance - (v - bootstrap) * leak - ig;
+            var slope = -conductance - (1 - returnSlope) * leak - currentSlope;
             var step = f / slope;
             v -= step;
             if (Math.Abs(step) < 1e-9 + 1e-9 * Math.Abs(v)) {
@@ -734,10 +765,6 @@ public sealed class PowerAmp {
             }
         }
 
-        var current = (e - v) / series;
-        inverterCurrent = current;
-        inverterHistory += 2 * inverterHalfStep * current;
-        inverterGrid = v;
         return v;
     }
 
@@ -935,8 +962,15 @@ public sealed class PowerAmp {
         return 0.5 * (low + high);
     }
 
-    /// <summary>Cathode bias: the resistor (all tubes') that gives the design's idle current at the design's supply.</summary>
+    /// <summary>
+    ///     Cathode bias: the design's resistor (all tubes') where it gives one, else the resistor that gives the design's
+    ///     idle current at the design's supply.
+    /// </summary>
     double StockCathodeResistor() {
+        if (design.CathodeResistor > 0) {
+            return design.CathodeResistor;
+        }
+
         var (low, high) = (0.0, design.Supply);
         var tapped = ScreenTap(settings.Triode) > 0;
         for (var i = 0; i < 80; i++) {
@@ -1179,6 +1213,7 @@ struct PushPullStage : INonlinearDevice {
     readonly double gridStopper;
     readonly double cutCap;
     readonly Pot cutPot;
+    readonly Pot? shuntMaster;
     readonly double differentialResistance;
     PentodeTables tube;
     FirstOrder presence;
@@ -1260,8 +1295,13 @@ struct PushPullStage : INonlinearDevice {
         gridStopper = design.GridStopper;
         cutCap = design.CutCap;
         cutPot = design.CutPot;
+        shuntMaster = design.ShuntMaster;
         var z = phaseInverter.OutputImpedance;
-        differentialResistance = z.Zaa + z.Zbb - z.Zab - z.Zba;
+        // The cut acts on the open-circuit difference that the grid network then divides against the leaks: across the
+        // plates it sees the inverter's differential resistance in parallel with both leaks (coupling caps as shorts),
+        // and scaling the difference by Z / (Z + R_d || 2 R_leak) gives the grids what that loaded divider would.
+        var rd = z.Zaa + z.Zbb - z.Zab - z.Zba;
+        differentialResistance = rd * 2 * gridLeak / (rd + 2 * gridLeak);
         presence = FirstOrder.Unity;
         depth = FirstOrder.Unity;
         cut = FirstOrder.Unity;
@@ -1312,15 +1352,34 @@ struct PushPullStage : INonlinearDevice {
         feedback = amount * design.TapGain / turns;
     }
 
-    /// <summary>The cut control (0..1): its pot from the full track (least cut) down to nothing (most).</summary>
-    public void SetCut(double amount, double rate) {
-        hasCut = cutCap > 0 && !singleEnded;
+    /// <summary>
+    ///     The cut control (0..1): its pot from the full track (least cut) down to nothing (most); and a master across the
+    ///     outputs (0..1, <see cref="PowerAmpDesign.ShuntMaster" />): its track from nothing to full. Both load the
+    ///     inverter's differential output resistance R_d: with the cut's r + 1/sC beside the master's R, the difference
+    ///     is scaled by Z / (Z + R_d), Z = R (1 + s r C) / (1 + s (R + r) C).
+    /// </summary>
+    public void SetCut(double amount, double master, double rate) {
+        var hasCap = cutCap > 0 && !singleEnded;
+        var hasMaster = shuntMaster is not null && !singleEnded;
+        hasCut = hasCap || hasMaster;
         if (!hasCut) {
             return;
         }
 
-        var r = cutPot.Ohms * (1 - cutPot.Fraction(amount));
-        cut.Design(1, r * cutCap, 1, (r + differentialResistance) * cutCap, rate);
+        var rd = differentialResistance;
+        var series = cutPot.Ohms * (1 - cutPot.Fraction(amount));
+        if (shuntMaster is not { } pot || singleEnded) {
+            cut.Design(1, series * cutCap, 1, (series + rd) * cutCap, rate);
+            return;
+        }
+
+        var shunt = Math.Max(pot.Ohms * pot.Fraction(double.IsFinite(master) ? master : 1), 1);
+        if (!hasCap) {
+            cut.Design(shunt, 0, shunt + rd, 0, rate);
+            return;
+        }
+
+        cut.Design(shunt, shunt * series * cutCap, shunt + rd, cutCap * (shunt * series + rd * (shunt + series)), rate);
     }
 
     /// <summary>Starts the idle currents (for the supply and screens before the first sample).</summary>

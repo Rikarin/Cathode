@@ -178,6 +178,42 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task A_cab_grid_pack_uploads_and_loads_into_a_dynacab_mic_slot_only() {
+        var ir = new MemoryStream();
+        Cathode.Dsp.IO.WavFile.Write(
+            ir,
+            new(48_000, [Signals.Noise(512, 1).Select((v, i) => v * MathF.Exp(-i / 80f)).ToArray()])
+        );
+        var pack = new MemoryStream();
+        using (var zip = new System.IO.Compression.ZipArchive(pack, System.IO.Compression.ZipArchiveMode.Create, true)) {
+            await using (var wav = await zip.CreateEntry("a.wav").OpenAsync(Token)) {
+                await wav.WriteAsync(ir.ToArray(), Token);
+            }
+
+            await using var manifest = new StreamWriter(await zip.CreateEntry("manifest.json").OpenAsync(Token));
+            await manifest.WriteAsync("""{ "irs": [{ "position": 0, "distance": 1, "file": "a.wav" }] }""");
+        }
+
+        var asset = await Upload("my-412.cabgrid", pack.ToArray());
+        await Post("/api/v1/live/blocks", new AddBlockRequest("dynacab", 0, 4));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("cab", 1, 4));
+
+        var live = await Put("/api/v1/live/blocks/dynacab1/assets/grid1", new AssetRequest(asset.Ref));
+        using var rejected = await client.PutAsJsonAsync(
+            "/api/v1/live/blocks/cab1/assets/ir1",
+            new AssetRequest(asset.Ref),
+            Token
+        );
+
+        Assert.Equal("cabgrid", asset.Kind);
+        Assert.Equal(asset.Ref, live.Preset.Blocks.Single(b => b.Id == "dynacab1").Assets["grid1"]);
+        Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+        await ServerFixture.Eventually(
+            () => (server.Block("dynacab1") as Cathode.Dsp.Blocks.DynaCabBlock)?.Grid(0)?.Distances.Count == 1
+        );
+    }
+
+    [Fact]
     public async Task An_aida_x_model_uploads_as_a_model_and_runs_in_the_capture_amp() {
         const string model = """
             {"in_shape":[null,null,1],"in_skip":1,"out_gain":2,"layers":[

@@ -17,15 +17,23 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     public void Panel_labels_name_and_hide_controls_per_model() {
         var parameters = CircuitAmpBlock.Info.Params;
         IReadOnlyList<string>? Labels(string id) => parameters.Single(p => p.Id == id).TypeLabels;
+        string Label(AmpDesign design, string id) => Labels(id)![AmpDesign.All.ToList().IndexOf(design)];
 
-        // The first three models (Blackface, Plexi, AC30); later models name their own controls.
-        Assert.Equal(["Gain", "Gain", "Gain"], Labels("gain")?.Take(3) ?? ["Gain", "Gain", "Gain"]);
         Assert.Equal(["", "", "Cut"], Labels("cut")!.Take(3));
         Assert.Equal(["Middle", "Middle", ""], Labels("middle")!.Take(3));
-        Assert.All(Labels("switch1")!.Take(3), static l => Assert.Empty(l));
+        Assert.All(Labels("switch1")!.Take(2), static l => Assert.Empty(l));
         Assert.All(Labels("eq1")!.Take(3), static l => Assert.Empty(l));
         Assert.Null(Labels("variac"));
         Assert.Equal(AmpDesign.All.Count, Labels("control1")!.Count);
+
+        // Channel switches and the class-A family's own controls.
+        Assert.Equal("Normal Ch", Label(AmpDesign.AC30, "switch1"));
+        Assert.Equal("", Label(AmpDesign.AC30, "master"));
+        Assert.Equal("Brilliance", Label(Amp.Models.AC15.Design, "bright"));
+        Assert.Equal("", Label(Amp.Models.AC15.Design, "treble"));
+        Assert.Equal("Volume", Label(Amp.Models.DC30.Design, "gain"));
+        Assert.Equal("Tone (Ch 2)", Label(Amp.Models.DC30.Design, "control1"));
+        Assert.Equal("Master", Label(Amp.Models.DC30.Design, "master"));
     }
 
     [Fact]
@@ -89,12 +97,18 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                 var design = AmpDesign.All[type];
                 foreach (var (index, value) in settings) {
                     // Known no-ops: the cathode time constant of a fixed-bias amp, a 6L6GC (the 5881's curves) or EL34
-                    // or EL84 in place of itself, the presence and depth frequencies of an amp without feedback.
+                    // or EL84 in place of itself, the presence and depth frequencies of an amp without feedback; the
+                    // master trim of an amp without a master, the preamp tube and stack frequency of a (stock) channel
+                    // without a 12AX7 or a tone stack (the AC15's EF86 channel), the speaker preset the amp has anyway.
                     var tube = new[] { null, "6L6GC", "EL34", "EL84", "6V6GT", "KT66", "KT88", "6550" }[
                         index == CircuitAmpBlock.PowerTube ? (int)value : 0];
                     var audible = !(index == CircuitAmpBlock.CathodeTime && !design.Power.CathodeBias)
                         && !(index == CircuitAmpBlock.PowerTube && design.Power.Name.Contains(tube ?? "-", StringComparison.Ordinal))
-                        && !(index is CircuitAmpBlock.PresenceFrequency or CircuitAmpBlock.DepthFrequency && !design.Power.HasFeedback);
+                        && !(index is CircuitAmpBlock.PresenceFrequency or CircuitAmpBlock.DepthFrequency && !design.Power.HasFeedback)
+                        && !(index == CircuitAmpBlock.MasterTrim && design.Panel.Master is null)
+                        && !(index == CircuitAmpBlock.PreampTube && !StockPath(design).Any(HasTwelveAX7))
+                        && !(index == CircuitAmpBlock.StackFrequency && !StockPath(design).Any(HasStack))
+                        && !(index == CircuitAmpBlock.SpeakerCurve && SpeakerDesign.Presets[(int)value - 1] == design.Power.Speaker);
                     data.Add(type, index, value, audible);
                 }
             }
@@ -131,7 +145,9 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         Assert.True(Analysis.AllFinite(changed));
         Assert.True(peak < 6, $"peak {peak:0.0} dBFS");
         if (audible) {
-            Assert.True(difference > -60, $"{difference:0.0} dB from stock");
+            // A class-A amp (cathode bias, EL84) draws nearly the same current loud or quiet: its preamp sees little sag.
+            var limit = index == CircuitAmpBlock.PreampSag && AmpDesign.All[type].Power.CathodeBias ? -80 : -60;
+            Assert.True(difference > limit, $"{difference:0.0} dB from stock");
         }
     }
 
@@ -300,4 +316,23 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         Assert.InRange(cut, -12.5, -11.5);
         Assert.InRange(between, -0.5, 0.5);
     }
+
+    /// <summary>The preamp stages that play with every switch off: a channel switch's stock channel.</summary>
+    static IEnumerable<AmpStageDesign> StockPath(AmpDesign design) =>
+        design.Preamp.SelectMany(static s => s is ChannelSwitchStageDesign channels ? channels.Off : [s]);
+
+    static bool HasTwelveAX7(AmpStageDesign stage) => stage switch {
+        TriodeStageDesign triode => triode.Tube == Wdf.TriodeModel.Ecc83,
+        ToneStackStageDesign stack => stack.Tube == Wdf.TriodeModel.Ecc83,
+        NetworkStageDesign network => network.Netlist.Elements.Any(static e =>
+            e.Kind == ElementKind.Triode && e.Triode == Wdf.TriodeModel.Ecc83
+        ),
+        _ => false
+    };
+
+    static bool HasStack(AmpStageDesign stage) => stage switch {
+        ToneStackStageDesign => true,
+        NetworkStageDesign network => network.Netlist.Elements.Any(static e => e.CapacitorRole == CapacitorRole.Stack),
+        _ => false
+    };
 }
