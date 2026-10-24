@@ -480,6 +480,9 @@ public sealed class CircuitAmpBlock : DspBlock, ICabFollower {
     /// <summary>The active amp's channel (for tests and diagnostics).</summary>
     public AmpChannel Channel { get; private set; }
 
+    /// <summary>The Cab block the Auto speaker load follows, as the graph compiler linked it (<see cref="ICabFollower" />).</summary>
+    public CabBlock? FollowedCab => cab;
+
     /// <summary>The internal processing rate as a multiple of the sample rate.</summary>
     public int Oversampling { get; private set; } = 2;
 
