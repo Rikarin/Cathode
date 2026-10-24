@@ -50,9 +50,9 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Dropping_a_block_on_a_shunt_replaces_it_and_keeps_the_signal_path() {
-        var state = await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 0, 3));
+        var state = await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 2, 3));
 
-        Assert.DoesNotContain(state.Preset.Blocks, b => b is { Row: 0, Column: 3, Type: "shunt" });
+        Assert.DoesNotContain(state.Preset.Blocks, b => b is { Row: 2, Column: 3, Type: "shunt" });
         Assert.Contains(state.Preset.Cables, c => c.To == "drive1");
         Assert.Contains(state.Preset.Cables, c => c.From == "drive1");
         await ServerFixture.Eventually(() => server.Graph?.SlotOf("drive1") >= 0);
@@ -60,7 +60,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Parameters_reach_the_engine_only_for_the_active_channel() {
-        await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 0, 2));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 2, 2));
 
         await Patch("/api/v1/live/blocks/delay1/params", new Dictionary<string, float> { ["time"] = 500 });
         await Patch("/api/v1/live/blocks/delay1/params?channel=B", new Dictionary<string, float> { ["time"] = 120 });
@@ -90,7 +90,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task A_look_ahead_change_recompiles_so_the_latency_is_compensated() {
-        await Post("/api/v1/live/blocks", new AddBlockRequest("compressor", 0, 2));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("compressor", 2, 2));
         await ServerFixture.Eventually(() => server.Graph?.SlotOf("compressor1") >= 0);
         var generation = server.Graph!.Generation;
 
@@ -109,8 +109,8 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Scenes_switch_channels_and_bypass_without_recompiling() {
-        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 0, 1));
-        await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 0, 2));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 2, 1));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 2, 2));
         await Patch("/api/v1/live/blocks/drive1/params?channel=B", new Dictionary<string, float> { ["drive"] = 9 });
         await ServerFixture.Eventually(() => server.Graph?.SlotOf("delay1") >= 0);
         var generation = server.Graph!.Generation;
@@ -131,7 +131,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Undo_and_redo_restore_structure_and_the_engine_follows() {
-        await Post("/api/v1/live/blocks", new AddBlockRequest("reverb", 0, 5));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("reverb", 2, 5));
 
         var undone = await Post("/api/v1/live/undo");
         await ServerFixture.Eventually(() => server.Graph?.SlotOf("reverb1") < 0);
@@ -144,7 +144,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Knob_drags_coalesce_into_one_undo_step() {
-        await Post("/api/v1/live/blocks", new AddBlockRequest("volpan", 0, 1));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("volpan", 2, 1));
         var before = await Live();
         for (var level = -1f; level >= -10f; level -= 1f) {
             await Patch("/api/v1/live/blocks/volpan1/params", new Dictionary<string, float> { ["level"] = level });
@@ -162,10 +162,10 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     [Fact]
     public async Task Stale_revisions_are_rejected_with_412() {
         var state = await Live();
-        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 0, 1));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 2, 1));
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/live/blocks") {
-            Content = JsonContent.Create(new AddBlockRequest("delay", 0, 2))
+            Content = JsonContent.Create(new AddBlockRequest("delay", 2, 2))
         };
         request.Headers.IfMatch.Add(new($"\"{state.Revision}\""));
         using var response = await client.SendAsync(request, Token);
@@ -177,7 +177,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     public async Task Invalid_edits_return_problem_details() {
         var badCable = await client.PostAsJsonAsync("/api/v1/live/cables", new CableRequest("in1", "out1"), Token);
         var unknownParam = await client.PatchAsJsonAsync(
-            "/api/v1/live/blocks/shunt-r0c1/params",
+            "/api/v1/live/blocks/shunt-r2c1/params",
             new Dictionary<string, float> { ["x"] = 1 },
             Token
         );
@@ -200,8 +200,8 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         var irAsset = await Upload("cab.wav", ir.ToArray());
         var again = await Upload("same-cab.wav", ir.ToArray());
         var badModel = await Upload("broken.nam", "{ \"not\": \"a model\" }"u8.ToArray());
-        await Post("/api/v1/live/blocks", new AddBlockRequest("cab", 0, 4));
-        await Post("/api/v1/live/blocks", new AddBlockRequest("nam", 0, 3));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("cab", 2, 4));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("nam", 2, 3));
 
         var withIr = await Put("/api/v1/live/blocks/cab1/assets/slot1", new AssetRequest(irAsset.Ref));
         using var rejected = await client.PutAsJsonAsync(
@@ -241,8 +241,8 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         }
 
         var asset = await Upload("my-412.cabgrid", pack.ToArray());
-        await Post("/api/v1/live/blocks", new AddBlockRequest("cab", 0, 4));
-        await Post("/api/v1/live/blocks", new AddBlockRequest("irplayer", 1, 4));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("cab", 2, 4));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("irplayer", 0, 4));
 
         var live = await Put("/api/v1/live/blocks/cab1/assets/slot2", new AssetRequest(asset.Ref));
         await Patch(
@@ -267,7 +267,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Moving_a_cab_mic_reaches_the_engine_and_changes_its_ir() {
-        await Post("/api/v1/live/blocks", new AddBlockRequest("cab", 0, 4));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("cab", 2, 4));
         await ServerFixture.Eventually(() => server.Graph?.SlotOf("cab1") >= 0);
         var cab = (CabBlock)server.Block("cab1");
         var before = cab.ImpulseResponse().Left;
@@ -289,7 +289,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Changing_the_amp_type_starts_the_new_model_from_its_defaults() {
-        await Post("/api/v1/live/blocks", new AddBlockRequest("circuitamp", 0, 4));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("circuitamp", 2, 4));
         await Patch(
             "/api/v1/live/blocks/circuitamp1/params",
             new Dictionary<string, float> {
@@ -336,7 +336,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
                                {"type":"dense","activation":"","shape":[null,null,1],"weights":[[[0.5],[0.5]],[0]]}]}
                              """;
         var asset = await Upload("crunch.json", Encoding.UTF8.GetBytes(model));
-        await Post("/api/v1/live/blocks", new AddBlockRequest("nam", 0, 3));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("nam", 2, 3));
 
         var live = await Put("/api/v1/live/blocks/nam1/assets/model", new AssetRequest(asset.Ref));
 
@@ -350,7 +350,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Presets_save_list_and_load() {
-        await Post("/api/v1/live/blocks", new AddBlockRequest("chorus", 0, 6));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("chorus", 2, 6));
         var saved = await Post("/api/v1/live/save", new SaveRequest("Clean Chorus"));
         await Post("/api/v1/live/new");
 
@@ -369,7 +369,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     public async Task A_new_or_loaded_preset_is_clean_until_it_is_edited() {
         Assert.False((await Live()).Dirty);
 
-        var edited = await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 0, 2));
+        var edited = await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 2, 2));
         Assert.True(edited.Dirty);
 
         var saved = await Post("/api/v1/live/save", new SaveRequest("Crunch"));
@@ -378,79 +378,79 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
         var loaded = await Put($"/api/v1/live/preset/{saved.Preset.Id}", new { });
         Assert.False(loaded.Dirty);
-        var changed = await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 0, 3));
+        var changed = await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 2, 3));
         Assert.True(changed.Dirty);
     }
 
     [Fact]
     public async Task Removing_a_block_in_the_signal_path_leaves_a_shunt_that_keeps_it_whole() {
-        // Dropping a drive onto the main row takes over shunt-r0c2 and its cables.
-        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 0, 2));
+        // Dropping a drive onto the main row takes over shunt-r2c2 and its cables.
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 2, 2));
 
         var removed = await Delete("/api/v1/live/blocks/drive1");
 
-        var shunt = Assert.Single(removed.Preset.Blocks, b => b.Row == 0 && b.Column == 2);
+        var shunt = Assert.Single(removed.Preset.Blocks, b => b.Row == 2 && b.Column == 2);
         Assert.Equal(BuiltInTypes.Shunt, shunt.Type);
-        Assert.Contains(removed.Preset.Cables, c => c.From == "shunt-r0c1" && c.To == shunt.Id);
-        Assert.Contains(removed.Preset.Cables, c => c.From == shunt.Id && c.To == "shunt-r0c3");
+        Assert.Contains(removed.Preset.Cables, c => c.From == "shunt-r2c1" && c.To == shunt.Id);
+        Assert.Contains(removed.Preset.Cables, c => c.From == shunt.Id && c.To == "shunt-r2c3");
         Assert.DoesNotContain(removed.Preset.Cables, c => c.From == "drive1" || c.To == "drive1");
         Assert.Equal(13, removed.Preset.Cables.Count); // in to out, unbroken
 
         var undone = await Post("/api/v1/live/undo");
-        Assert.Contains(undone.Preset.Blocks, b => b.Id == "drive1" && b.Row == 0 && b.Column == 2);
-        Assert.DoesNotContain(undone.Preset.Blocks, b => b.Row == 0 && b.Column == 2 && b.Type == BuiltInTypes.Shunt);
+        Assert.Contains(undone.Preset.Blocks, b => b.Id == "drive1" && b.Row == 2 && b.Column == 2);
+        Assert.DoesNotContain(undone.Preset.Blocks, b => b.Row == 2 && b.Column == 2 && b.Type == BuiltInTypes.Shunt);
     }
 
     [Fact]
     public async Task Removing_a_branch_end_or_a_shunt_takes_its_cables_with_it() {
-        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 1, 2));
-        await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 1, 3));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 0, 2));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 0, 3));
         await Post("/api/v1/live/cables", new CableRequest("drive1", "delay1"));
 
         // The delay only takes signal in: it goes, and nothing takes its place.
         var withoutDelay = await Delete("/api/v1/live/blocks/delay1");
-        Assert.DoesNotContain(withoutDelay.Preset.Blocks, b => b.Row == 1 && b.Column == 3);
+        Assert.DoesNotContain(withoutDelay.Preset.Blocks, b => b.Row == 0 && b.Column == 3);
         Assert.DoesNotContain(withoutDelay.Preset.Cables, c => c.To == "delay1");
 
         // Deleting a shunt on purpose breaks the path there.
-        var withoutShunt = await Delete("/api/v1/live/blocks/shunt-r0c5");
-        Assert.DoesNotContain(withoutShunt.Preset.Blocks, b => b.Row == 0 && b.Column == 5);
-        Assert.DoesNotContain(withoutShunt.Preset.Cables, c => c.From == "shunt-r0c5" || c.To == "shunt-r0c5");
+        var withoutShunt = await Delete("/api/v1/live/blocks/shunt-r2c5");
+        Assert.DoesNotContain(withoutShunt.Preset.Blocks, b => b.Row == 2 && b.Column == 5);
+        Assert.DoesNotContain(withoutShunt.Preset.Cables, c => c.From == "shunt-r2c5" || c.To == "shunt-r2c5");
     }
 
     [Fact]
     public async Task Moving_a_block_onto_a_shunt_inserts_it_and_moving_it_out_leaves_the_path_whole() {
-        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 1, 3));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 0, 3));
 
         // Onto the main row's shunt: the drive takes its place and its cables.
-        var inserted = await Put("/api/v1/live/blocks/drive1/position", new MoveBlockRequest(0, 3));
-        Assert.DoesNotContain(inserted.Preset.Blocks, b => b.Id == "shunt-r0c3");
-        Assert.Contains(inserted.Preset.Cables, c => c.From == "shunt-r0c2" && c.To == "drive1");
-        Assert.Contains(inserted.Preset.Cables, c => c.From == "drive1" && c.To == "shunt-r0c4");
+        var inserted = await Put("/api/v1/live/blocks/drive1/position", new MoveBlockRequest(2, 3));
+        Assert.DoesNotContain(inserted.Preset.Blocks, b => b.Id == "shunt-r2c3");
+        Assert.Contains(inserted.Preset.Cables, c => c.From == "shunt-r2c2" && c.To == "drive1");
+        Assert.Contains(inserted.Preset.Cables, c => c.From == "drive1" && c.To == "shunt-r2c4");
         Assert.Equal(13, inserted.Preset.Cables.Count);
 
         // Along the row: a shunt fills the cell it left, and it takes over the next one.
-        var along = await Put("/api/v1/live/blocks/drive1/position", new MoveBlockRequest(0, 5));
-        Assert.Contains(along.Preset.Cables, c => c.From == "shunt-r0c4" && c.To == "drive1");
-        Assert.Contains(along.Preset.Cables, c => c.From == "drive1" && c.To == "shunt-r0c6");
-        Assert.Equal(BuiltInTypes.Shunt, along.Preset.Blocks.Single(b => b.Row == 0 && b.Column == 3).Type);
+        var along = await Put("/api/v1/live/blocks/drive1/position", new MoveBlockRequest(2, 5));
+        Assert.Contains(along.Preset.Cables, c => c.From == "shunt-r2c4" && c.To == "drive1");
+        Assert.Contains(along.Preset.Cables, c => c.From == "drive1" && c.To == "shunt-r2c6");
+        Assert.Equal(BuiltInTypes.Shunt, along.Preset.Blocks.Single(b => b.Row == 2 && b.Column == 3).Type);
         Assert.Equal(13, along.Preset.Cables.Count);
 
         // Out of the path: the row stays connected, and the drive keeps no cables.
-        var outside = await Put("/api/v1/live/blocks/drive1/position", new MoveBlockRequest(2, 5));
-        Assert.Equal(BuiltInTypes.Shunt, outside.Preset.Blocks.Single(b => b.Row == 0 && b.Column == 5).Type);
+        var outside = await Put("/api/v1/live/blocks/drive1/position", new MoveBlockRequest(0, 5));
+        Assert.Equal(BuiltInTypes.Shunt, outside.Preset.Blocks.Single(b => b.Row == 2 && b.Column == 5).Type);
         Assert.DoesNotContain(outside.Preset.Cables, c => c.From == "drive1" || c.To == "drive1");
         Assert.Equal(13, outside.Preset.Cables.Count);
     }
 
     [Fact]
     public async Task A_block_cannot_be_moved_onto_another_block() {
-        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 1, 3));
-        await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 1, 4));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 0, 3));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 0, 4));
 
         using var response = await client.PutAsJsonAsync(
             "/api/v1/live/blocks/drive1/position",
-            new MoveBlockRequest(1, 4),
+            new MoveBlockRequest(0, 4),
             Token
         );
 

@@ -57,15 +57,18 @@ public sealed class Preset {
 
     public static string NewId() => Guid.NewGuid().ToString("n");
 
-    /// <summary>The smallest working rig: Input 1 straight to Output 1 across the first row.</summary>
+    /// <summary>The row an empty preset's Input-to-Output line runs on: the third, leaving two free above it.</summary>
+    public const int DefaultRow = 2;
+
+    /// <summary>The smallest working rig: Input 1 straight to Output 1 across <see cref="DefaultRow" />.</summary>
     public static Preset CreateDefault() =>
         new Preset {
             Blocks = [
-                new() { Id = "in1", Type = BuiltInTypes.Input, Row = 0, Column = 0 },
-                new() { Id = "out1", Type = BuiltInTypes.Output, Row = 0, Column = 13 }
+                new() { Id = "in1", Type = BuiltInTypes.Input, Row = DefaultRow, Column = 0 },
+                new() { Id = "out1", Type = BuiltInTypes.Output, Row = DefaultRow, Column = 13 }
             ],
             Cables = []
-        }.WithShuntRow(0, "in1", "out1");
+        }.WithShuntRow(DefaultRow, "in1", "out1");
 
     /// <summary>Fills the cells between two blocks on one row with shunts and cables.</summary>
     public Preset WithShuntRow(int row, string from, string to) {
