@@ -288,7 +288,7 @@ public sealed partial class LiveRig(
                 }
 
                 var asset = assets.Get(request.Asset) ?? throw RigException.NotFound($"No asset {request.Asset}.");
-                if (slot == "model" != AssetStore.IsModel(asset.Kind)) {
+                if (!AssetStore.Fits(slot, asset.Kind)) {
                     throw new RigException(400, $"Slot '{slot}' cannot take a {asset.Kind} asset.");
                 }
 

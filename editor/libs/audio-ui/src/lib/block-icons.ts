@@ -146,6 +146,7 @@ export const BlockTypeIcons: Readonly<Record<string, string>> = {
   dyndist: 'cthBlockDynamicDistortion',
   nam: 'cthBlockAmpCapture',
   cab: 'cthBlockCab',
+  dynacab: 'cthBlockCab',
   irplayer: 'cthBlockIrPlayer',
   compressor: 'cthBlockCompressor',
   gate: 'cthBlockGate',

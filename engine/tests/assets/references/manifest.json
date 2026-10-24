@@ -96,13 +96,19 @@
       "sha256": "8fd19774613b1a569c337df3fe5bd05a18dc3d63240081f01e1de7fd5ca2dee7",
       "size": 152252,
       "circuit": {
-        "type": "AC30"
+        "type": "DC-30",
+        "params": {
+          "gain": 3.7,
+          "treble": 0.4,
+          "bass": 0.3,
+          "cut": 9.8
+        }
       },
       "targets": {
-        "esr": 1.5,
-        "mrstft": 3.45
+        "esr": 0.38,
+        "mrstft": 1.15
       },
-      "notes": "SC30 is the single-channel sibling of the DC-30 (EL84 x 4 class A, no NFB); closest existing type AC30."
+      "notes": "SC30 is the single-channel sibling of the DC-30 (EL84 x 4 class A, no NFB): DC-30 channel 1. The knobs are not stated: gain, treble, bass and cut were fitted (ToleranceFit at 12 dBu with an input trim, which the matcher's calibration fit replaces; it now settles at 10.4 dBu instead of the range's edge). Stream F3: ESR (pre-emphasised) 0.977 and MRSTFT 2.279 against the old AC30 type; 0.332 and 1.022 here. The capture is darker than the trace's DC-30 (the fit wants the cut nearly full and the treble low)."
     },
     {
       "id": "tl-mesa-iicplus-drive-knob",
@@ -698,13 +704,19 @@
       "sha256": "382d0bb88d1b6ee59aa9413ec5a419df857abe8c3b9f7d269221463d9daa6e14",
       "size": 421130,
       "circuit": {
-        "type": "AC30"
+        "type": "AC30",
+        "params": {
+          "gain": 10,
+          "treble": 6.8,
+          "bass": 0,
+          "cut": 10
+        }
       },
       "targets": {
-        "esr": 1.7,
-        "mrstft": 2.7
+        "esr": 1.0,
+        "mrstft": 1.9
       },
-      "notes": "AC15 Top Boost (2 x EL84); closest type AC30 (4 x EL84). Phillipe P's other AC15 files (JonAr1-4) have no stated settings and are left out."
+      "notes": "AC15 Top Boost (2 x EL84); closest type the AC30's Brilliant channel with the JMI top boost (4 x EL84); the AC15 type has no top-boost channel. The knobs are not stated: gain, treble, bass and cut were fitted (ToleranceFit at 12 dBu with an input trim, which the matcher's calibration fit replaces: -2.4 dBu, off the range's edge; the fit wants the volume full, the bass off and the cut full). Stream F3: ESR (pre-emphasised) 1.114 and MRSTFT 1.776 against the old AC30; 0.896 and 1.693 here. Phillipe P's other AC15 files (JonAr1-4) have no stated settings and are left out."
     },
     {
       "id": "pel-laney-lo-afterbreakup",
@@ -897,8 +909,9 @@
         "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
       },
       "circuit": {
-        "type": "AC30",
+        "type": "AC15",
         "params": {
+          "switch1": 1,
           "gain": 2,
           "cut": 0
         }
@@ -907,7 +920,7 @@
         "esr": 2.0,
         "mrstft": 8.0
       },
-      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86); AC30 is the closest type."
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86) into 2 x EL84: the AC15 type with its 12AX7 channel (switch 1)."
     },
     {
       "id": "t3k-ac15c1-normal-v12-cmin",
@@ -932,8 +945,9 @@
         "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
       },
       "circuit": {
-        "type": "AC30",
+        "type": "AC15",
         "params": {
+          "switch1": 1,
           "gain": 5,
           "cut": 0
         }
@@ -942,7 +956,7 @@
         "esr": 2.0,
         "mrstft": 8.0
       },
-      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86); AC30 is the closest type."
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86) into 2 x EL84: the AC15 type with its 12AX7 channel (switch 1)."
     },
     {
       "id": "t3k-ac15c1-normal-v3-cmin",
@@ -967,8 +981,9 @@
         "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
       },
       "circuit": {
-        "type": "AC30",
+        "type": "AC15",
         "params": {
+          "switch1": 1,
           "gain": 8,
           "cut": 0
         }
@@ -977,7 +992,7 @@
         "esr": 2.0,
         "mrstft": 8.0
       },
-      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86); AC30 is the closest type."
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86) into 2 x EL84: the AC15 type with its 12AX7 channel (switch 1)."
     },
     {
       "id": "t3k-ac15c1-normal-vmax-cmin",
@@ -1002,8 +1017,9 @@
         "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
       },
       "circuit": {
-        "type": "AC30",
+        "type": "AC15",
         "params": {
+          "switch1": 1,
           "gain": 10,
           "cut": 0
         }
@@ -1012,7 +1028,7 @@
         "esr": 2.0,
         "mrstft": 8.0
       },
-      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86); AC30 is the closest type."
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86) into 2 x EL84: the AC15 type with its 12AX7 channel (switch 1)."
     },
     {
       "id": "t3k-ac15c1-normal-v12-c12",
@@ -1037,8 +1053,9 @@
         "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
       },
       "circuit": {
-        "type": "AC30",
+        "type": "AC15",
         "params": {
+          "switch1": 1,
           "gain": 5,
           "cut": 5
         }
@@ -1047,7 +1064,7 @@
         "esr": 2.0,
         "mrstft": 8.0
       },
-      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86); AC30 is the closest type."
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86) into 2 x EL84: the AC15 type with its 12AX7 channel (switch 1)."
     },
     {
       "id": "t3k-ac15c1-normal-vmax-c3",
@@ -1072,8 +1089,9 @@
         "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
       },
       "circuit": {
-        "type": "AC30",
+        "type": "AC15",
         "params": {
+          "switch1": 1,
           "gain": 10,
           "cut": 8
         }
@@ -1082,7 +1100,7 @@
         "esr": 2.0,
         "mrstft": 8.0
       },
-      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86); AC30 is the closest type."
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86) into 2 x EL84: the AC15 type with its 12AX7 channel (switch 1)."
     },
     {
       "id": "t3k-ac15c1-topboost",

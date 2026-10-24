@@ -29,6 +29,13 @@ public readonly record struct TriodeModel(
     double GridSharpness = 13.9,
     double GridExponent = 1.354
 ) {
+    /// <summary>
+    ///     <paramref name="count" /> of these triodes in parallel (plates, grids and cathodes tied) as one: plate and grid
+    ///     currents scale with the count at the same voltages, which Koren's and Dempwolf's laws take exactly through
+    ///     K_g1 and G_g.
+    /// </summary>
+    public TriodeModel Paralleled(int count) => this with { Kg1 = Kg1 / count, GridConductance = GridConductance * count };
+
     /// <summary>ECC83 / 12AX7: μ 100, the high-gain preamp triode (about 1.0 mA at 250 V, -2 V).</summary>
     public static TriodeModel Ecc83 { get; } = new(100, 1.4, 1_060, 600, 300);
 
@@ -109,11 +116,15 @@ public readonly record struct PentodeModel(
     public static PentodeModel SixtyFiveFifty { get; } = new(7.9, 1.35, 890, 4_800, 60, 24);
 
     /// <summary>
-    ///     EF86 / 6267 small-signal pentode, as a preamp stage (Vox AC15, Matchless). Fitted with μ 38, K_vb 5 to 250 V
-    ///     plate, 140 V screen, -2 V: 3.0 mA, 2.0 mS, 0.6 mA screen. Use the exact <see cref="Pentode" /> device: its
-    ///     screen argument is below the power-tube tables' range.
+    ///     EF86 / 6267 small-signal pentode, as a preamp stage (Vox AC15, Matchless). Fitted with Ex 1.2, K_vb 5 and a
+    ///     sharp cut-off (K_p 1000) to two points: the datasheet's 250 V plate, 140 V screen, -2 V (3.0 mA, 0.6 mA screen)
+    ///     and the Vox AC15's resistance-coupled stage as built (220k plate, 1M screen resistor, 2.2k cathode from 291 V:
+    ///     0.91 mA and 0.19 mA at -2.4 V, the screen 102.6 V and the plate 88.6 V above the cathode; AmpBooks, with Vox's
+    ///     measured 90 V plate), which sets μ to 30. Its slope there is 1.1 mS (gain about 165 into 220k || 500k); at the
+    ///     datasheet point 1.35 mS against the datasheet's 2.0, which no Koren fit through both currents reaches. Use the
+    ///     exact <see cref="Pentode" /> device: its screen argument is below the power-tube tables' range.
     /// </summary>
-    public static PentodeModel EF86 { get; } = new(38, 1.35, 2_265, 3_369, 168, 5);
+    public static PentodeModel EF86 { get; } = new(30, 1.2, 3_367, 5_427, 1_000, 5);
 }
 
 /// <summary>
