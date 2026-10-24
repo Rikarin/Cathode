@@ -9,7 +9,7 @@ Every real amp we model, plan to model, or might model, with where it stands in 
 - Add a capture you found to `engine/tests/assets/references/manifest.json` (see `docs/06-amp-modelling-spec.md` §4).
   Tone3000 ("T3K" licence) and CC BY-NC files are local-only: never commit them.
 
-Last updated: 2026-10-24.
+Last updated: 2026-10-24 (after the four family streams and the Prometheus merged).
 
 ## Status key
 
@@ -31,12 +31,12 @@ Last updated: 2026-10-24.
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
 | Blackface (Deluxe/Twin-style, generic) | ✅ Done | Blackface (0) | — | — | 1x12 / 2x12 open back |
-| Deluxe Reverb AB763 | 🔨 In progress | — | T3K: '68 Custom Deluxe (modified circuit) | Stock AB763 Deluxe, direct out, volume sweep | 1x12 open, Jensen C12K/C12N |
-| Twin Reverb AB763 | 🔨 In progress | — | GPL: Twin Normal Bright, Twin Vibrato Bright | Settings stated; Normal without Bright | 2x12 open, JBL D120 / Jensen C12N |
-| Super Reverb AB763 | 🔨 In progress | — | T3K: '64 Super Reverb, 5 settings | More volume steps | 4x10 open, Jensen P10R/P10Q |
-| Princeton Reverb AA1164 | 🔨 In progress | — | GPL: Princeton clean (year unknown); T3K: '68 Custom Princeton | Stock AA1164, volume sweep | 1x10 open, Jensen P10R |
-| Bassman 5F6-A | 🔨 In progress | — | — | Any 5F6-A / reissue, jumpered and single channel | 4x10 open, Jensen P10Q |
-| Tweed Deluxe 5E3 | 🔨 In progress | — | T3K: 5E3 kit clone | Volume sweep, both inputs | 1x12 open, Jensen P12R/P12Q |
+| Deluxe Reverb AB763 | ✅ Done | Deluxe Reverb (12) | T3K: '68 Custom Deluxe (modified circuit) | Stock AB763 Deluxe, direct out, volume sweep | 1x12 open, Jensen C12K/C12N |
+| Twin Reverb AB763 | ✅ Done | Twin Reverb (13) | GPL: Twin Normal Bright, Twin Vibrato Bright | Settings stated; Normal without Bright | 2x12 open, JBL D120 / Jensen C12N |
+| Super Reverb AB763 | ✅ Done | Super Reverb (14) | T3K: '64 Super Reverb, 5 settings | More volume steps | 4x10 open, Jensen P10R/P10Q |
+| Princeton Reverb AA1164 | ✅ Done | Princeton Reverb (15) | GPL: Princeton clean (year unknown); T3K: '68 Custom Princeton | Stock AA1164, volume sweep | 1x10 open, Jensen P10R |
+| Bassman 5F6-A | ✅ Done | Bassman 5F6-A (16), Jumped (17) | — | Any 5F6-A / reissue, jumpered and single channel | 4x10 open, Jensen P10Q |
+| Tweed Deluxe 5E3 | ✅ Done | Tweed Deluxe 5E3 (18), Jumped (19) | T3K: 5E3 kit clone | Volume sweep, both inputs | 1x12 open, Jensen P12R/P12Q |
 | Hot Rod Deluxe | ⏸ Waiting | — | — | Readable schematic (tone stack unknown); captures | 1x12 open, Celestion G12P-80 |
 | Champ 5F1 | 💤 Not planned | — | — | Schematic, captures | 1x8 open |
 | Vibrolux / Vibroverb AB763 | 💤 Not planned | — | — | | 2x10 / 1x15 open |
@@ -48,15 +48,15 @@ Last updated: 2026-10-24.
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
 | Plexi 1959 Super Lead (50 W, generic) | ✅ Done | Plexi (1) | T3K: 1959 Plexi | Jumpered and single-input captures, volume sweep | 4x12 closed, Greenback G12M |
-| Plexi 100 W / jumpered | 🔨 In progress | — | T3K: 1959 Plexi | | 4x12 closed, Greenback |
-| JTM45 | 🔨 In progress | — | — | Any JTM45 / reissue | 4x12 or 2x12 (Bluesbreaker), Greenback / Alnico |
-| JCM800 2203 | 🔨 In progress | — | T3K: 2203 (modified) | Stock 2203, gain sweep | 4x12 closed, G12T-75 / Vintage 30 |
-| JCM800 2204 | 🔨 In progress | — | — | Stock 2204 | 4x12 closed, G12T-75 |
-| Silver Jubilee 2555 | 🔨 In progress | — | — | Rhythm clip and lead modes | 4x12 closed, G12T-75 / Vintage 30 |
-| Friedman BE-100 | 🔨 In progress | — | — | BE and HBE channels, Fat/Tight settings | 4x12 closed, Vintage 30 / Greenback |
-| JCM900 4100 / 4502 | 🔨 In progress | — | GPL: JCM900 4502 channel A gain 4–10, channel B gain 8–20 | | 4x12 closed, G12T-75 / Vintage 30 |
-| Laney GH100L | 🔨 In progress | — | GPL: Laney GH100S ×3 | | 4x12 closed, G12H-100 |
-| Hiwatt DR103 | 🔨 In progress | — | — | Normal/Brilliant, jumpered | 4x12 closed, Fane |
+| Plexi 100 W / jumpered | ✅ Done | Plexi 100W (10) | T3K: 1959 Plexi | | 4x12 closed, Greenback |
+| JTM45 | ✅ Done | JTM45 (9) | — | Any JTM45 / reissue | 4x12 or 2x12 (Bluesbreaker), Greenback / Alnico |
+| JCM800 2203 | ✅ Done | JCM800 2203 (7) | T3K: 2203 (modified) | Stock 2203, gain sweep | 4x12 closed, G12T-75 / Vintage 30 |
+| JCM800 2204 | ✅ Done | JCM800 2204 (8) | — | Stock 2204 | 4x12 closed, G12T-75 |
+| Silver Jubilee 2555 | ⏸ Waiting (relay and diode networks need a closer read) | — | — | Rhythm clip and lead modes | 4x12 closed, G12T-75 / Vintage 30 |
+| Friedman BE-100 | 📋 Planned (readable trace found; next Marshall-family model) | — | — | BE and HBE channels, Fat/Tight settings | 4x12 closed, Vintage 30 / Greenback |
+| JCM900 4100 / 4502 | ⏸ Waiting (op-amp values unreadable in the scan) | — | GPL: JCM900 4502 channel A gain 4–10, channel B gain 8–20 | | 4x12 closed, G12T-75 / Vintage 30 |
+| Laney GH100L | ✅ Done | Laney GH100L (11) | GPL: Laney GH100S ×3 | | 4x12 closed, G12H-100 |
+| Hiwatt DR103 | ⏸ Waiting (partial data) | — | — | Normal/Brilliant, jumpered | 4x12 closed, Fane |
 | Orange OR50 / Rockerverb | ⏸ Waiting | — | — | Reliable schematic (MkI only found) | 2x12 / 4x12 closed, Vintage 30 |
 | Marshall JVM410H (OD) | ⏸ Waiting | — | — | Readable factory values | 4x12 closed, Vintage 30 |
 | Splawn Quickrod | ⏸ Waiting | — | — | Schematic | 4x12 closed, Vintage 30 |
@@ -93,15 +93,15 @@ Last updated: 2026-10-24.
 
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Soldano SLO-100 | 🔨 In progress | — | GPL: Soldano crunch and high (model not stated); T3K: SLO-100 pack | Overdrive channel, gain sweep | 4x12 closed, Vintage 30 / G12T-75 |
-| Mesa/Boogie Mark IIC+ | 🔨 In progress | — | GPL: IIC+ Drive-knob model, IIC+ Drive 8; T3K: IIC+ pack | EQ in and out, Lead Drive sweep | 1x12 / 4x12 closed, EVM12L / Vintage 30 |
-| Peavey 5150 / 6505 | 🔨 In progress | — | GPL: 5150 block letter, 6505+ red (two sources) | Rhythm channel, crunch | 4x12 closed, Sheffield / Vintage 30 |
-| EVH 5150III | 🔨 In progress | — | T3K: 5150III OB1 v2 | Blue and red channels | 4x12 closed, G12EVH / Vintage 30 |
-| Mesa/Boogie Dual Rectifier | 🔨 In progress | — | GPL: Mini Rectifier (not the same amp) | Dual/Triple Rec, modern and vintage modes, tube vs SS rectifier | 4x12 closed, Vintage 30 |
-| Bogner Ecstasy | 🔨 In progress (assumptions marked) | — | — | Blue/red channels; a better schematic | 4x12 closed, Vintage 30 / Greenback |
-| Diezel VH4 (ch 3) | 🔨 In progress (assumptions marked) | — | — | Channel 3 and 4 | 4x12 closed, Vintage 30 |
-| Mesa/Boogie Mark IV (lead) | 🔨 In progress | — | GPL: Mark IV | Settings stated | 1x12 / 4x12 closed |
-| Carvin Legacy | 🔨 In progress | — | — | | 4x12 closed, Vintage 30 |
+| Soldano SLO-100 | ✅ Done | SLO-100 (20), OD channel | GPL: Soldano crunch and high (model not stated); T3K: SLO-100 pack | Overdrive channel, gain sweep | 4x12 closed, Vintage 30 / G12T-75 |
+| Mesa/Boogie Mark IIC+ | ✅ Done | Mark IIC+ (21), lead | GPL: IIC+ Drive-knob model, IIC+ Drive 8; T3K: IIC+ pack | EQ in and out, Lead Drive sweep | 1x12 / 4x12 closed, EVM12L / Vintage 30 |
+| Peavey 5150 / 6505 | ✅ Done | 5150 (22), lead | GPL: 5150 block letter, 6505+ red (two sources) | Rhythm channel, crunch | 4x12 closed, Sheffield / Vintage 30 |
+| EVH 5150III | ✅ Done | 5150III (24), red | T3K: 5150III OB1 v2 | Blue and red channels | 4x12 closed, G12EVH / Vintage 30 |
+| Mesa/Boogie Dual Rectifier | ✅ Done | Dual Rectifier (23), red | GPL: Mini Rectifier (not the same amp) | Dual/Triple Rec, modern and vintage modes, tube vs SS rectifier | 4x12 closed, Vintage 30 |
+| Bogner Ecstasy | ⏸ Waiting (only a modded-amp redraw) | — | — | Blue/red channels; a better schematic | 4x12 closed, Vintage 30 / Greenback |
+| Diezel VH4 (ch 3) | ⏸ Waiting (redraws disagree) | — | — | Channel 3 and 4 | 4x12 closed, Vintage 30 |
+| Mesa/Boogie Mark IV (lead) | ✅ Done | Mark IV (25), lead | GPL: Mark IV | Settings stated | 1x12 / 4x12 closed |
+| Carvin Legacy | 📋 Planned (redraw only; skipped for time) | — | — | | 4x12 closed, Vintage 30 |
 | Mesa/Boogie Lone Star | 📋 Planned | — | — | Clean/edge channels | 1x12 / 2x12 open |
 | Bogner Uberschall | ⏸ Waiting | — | — | Schematic | 4x12 closed |
 | Diezel Herbert | ⏸ Waiting | — | — | Schematic | 4x12 closed |
@@ -170,11 +170,12 @@ built from the documented features and fitted to captures.
 
 | Status | Amps |
 |---|---|
-| ✅ Done | 6 (Blackface, Plexi, AC30 with Normal channel, AC15, DC-30) |
-| 🔨 In progress | 24 |
-| 📋 Planned | 3 |
-| ⏸ Waiting on a schematic | 15 |
+| ✅ Done | 24 amps (26 Circuit Amp types, 0–25) |
+| 🔨 In progress | 0 |
+| 📋 Planned | 5 |
+| ⏸ Waiting on a schematic or better data | 20 |
 | 💤 Not planned yet | 31 |
 
-The 🔨 rows become ✅ as the family streams merge. Some of them may end as ⏸ if their streams find the data too weak.
-This file will then be updated with each model's Cathode type index.
+Match quality against the references is in `docs/06-amp-modelling-spec.md` (as-built notes per family) and in the
+manifest's targets. No model reaches the spec's ESR targets yet except the Prometheus clean channel; references with
+stated knob settings (the Tone3000 packs you fetch by hand) are the main thing that would tighten them.
