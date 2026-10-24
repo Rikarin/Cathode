@@ -7,7 +7,8 @@ using Cathode.Dsp.Parameters;
 // Measures each registered block at 48 kHz in 64-frame blocks on noise, as a percentage of one core in real time:
 // the default settings, and the worst of each value of the block's type/mode choice (for the Cab, slot 1's Source).
 // With --write it regenerates src/Cathode.Dsp/BlockCosts.cs, which the catalog serves to the editor's CPU estimate
-// (docs/03 §12). --only <typeId> measures one block (and never writes).
+// (docs/03 §12). --only <typeId> measures one block (and never writes). --amps times Circuit Amp models one by one (see
+// MeasureAmps).
 const double Rate = 48_000;
 const int Frames = 64;
 const int Blocks = 8_000; // about 10.7 s of audio per measurement
@@ -24,6 +25,11 @@ var registry = BlockRegistry.CreateDefault();
 var results = new SortedDictionary<string, double>(StringComparer.Ordinal);
 var onlyAt = Array.IndexOf(args, "--only");
 var only = onlyAt >= 0 && onlyAt + 1 < args.Length ? args[onlyAt + 1] : null;
+var ampsAt = Array.IndexOf(args, "--amps");
+if (ampsAt >= 0) {
+    return MeasureAmps(args[(ampsAt + 1)..]);
+}
+
 foreach (var descriptor in registry.Descriptors.Where(d => only is null || d.TypeId == only)) {
     var variants = descriptor.Params
         .Select((p, i) => (p, i))
@@ -117,6 +123,97 @@ static double Measure(BlockRegistry registry, string typeId, int param, int valu
     }
 
     return 100 * best / (Blocks * Frames / Rate);
+}
+
+// --amps [model ...] [--set index=value ...]: each Circuit Amp model (all of them without names) on a strummed chord and
+// on loud noise, as a percentage of one core, with the Plexi measured in the same passes as a yardstick. Each figure is
+// the best of five passes taken in turn, timed in process CPU time, so a loaded machine distorts it less than wall time.
+static int MeasureAmps(string[] args) {
+    const int Passes = 5;
+    const int AmpBlocks = 4_000; // about 5.3 s of audio per measurement
+    var names = args.TakeWhile(static a => !a.StartsWith("--", StringComparison.Ordinal)).ToList();
+    var settings = new List<(int Index, float Value)>();
+    for (var i = 0; i + 1 < args.Length; i++) {
+        if (args[i] == "--set" && args[i + 1].Split('=') is [var index, var value]) {
+            settings.Add((int.Parse(index, CultureInfo.InvariantCulture), float.Parse(value, CultureInfo.InvariantCulture)));
+        }
+    }
+
+    var designs = Cathode.Dsp.Amp.AmpDesign.All.Select(static a => a.Name).ToList();
+    if (names.Count == 0) {
+        names = designs;
+    }
+
+    names = ["Plexi", ..names.Where(static n => n != "Plexi")];
+    var guitar = Signal(true);
+    var noise = Signal(false);
+    var best = names.ToDictionary(static n => n, static _ => (Guitar: double.MaxValue, Noise: double.MaxValue));
+    for (var pass = 0; pass < Passes; pass++) {
+        foreach (var name in names) {
+            var type = designs.IndexOf(name);
+            if (type < 0) {
+                throw new ArgumentException($"No Circuit Amp model is called \"{name}\".");
+            }
+
+            var (g, n) = best[name];
+            best[name] = (Math.Min(g, Run(type, guitar)), Math.Min(n, Run(type, noise)));
+        }
+    }
+
+    var plexi = best["Plexi"];
+    foreach (var name in names) {
+        var (g, n) = best[name];
+        Console.WriteLine($"{name,-22} guitar {g,5:0.0} % ({g / plexi.Guitar:0.00} × Plexi)  noise {n,5:0.0} % ({n / plexi.Noise:0.00} × Plexi)");
+    }
+
+    return 0;
+
+    double Run(int type, float[] signal) {
+        using var block = new Cathode.Dsp.Blocks.CircuitAmpBlock();
+        block.Params.SetTarget(Cathode.Dsp.Blocks.CircuitAmpBlock.Type, type);
+        foreach (var (index, value) in settings) {
+            block.Params.SetTarget(index, value);
+        }
+
+        block.Prepare(new(Rate, Frames));
+        var left = new float[Frames];
+        var right = new float[Frames];
+        var context = new BlockContext(Rate, 120, 0);
+        block.Process(new(left, right), context); // warm up
+        var process = Process.GetCurrentProcess();
+        var start = process.TotalProcessorTime;
+        for (var b = 0; b < AmpBlocks; b++) {
+            signal.AsSpan(b * Frames, Frames).CopyTo(left);
+            left.CopyTo(right);
+            block.Process(new(left, right), context);
+        }
+
+        process.Refresh();
+        return 100 * (process.TotalProcessorTime - start).TotalSeconds / (AmpBlocks * Frames / Rate);
+    }
+
+    // A chord strummed every half second (decaying partials about 0.3 peak, with pick noise), or uniform noise ±0.25.
+    static float[] Signal(bool chord) {
+        double[] notes = [82.4, 123.5, 164.8, 207.7, 246.9, 329.6];
+        var random = new Random(1);
+        var y = new float[AmpBlocks * Frames];
+        for (var n = 0; n < y.Length; n++) {
+            if (!chord) {
+                y[n] = (float)(random.NextDouble() - 0.5) * 0.5f;
+                continue;
+            }
+
+            var t = n % 24_000 / Rate;
+            var s = 0.0;
+            foreach (var f in notes) {
+                s += Math.Sin(2 * Math.PI * f * n / Rate) + 0.3 * Math.Sin(4 * Math.PI * f * n / Rate);
+            }
+
+            y[n] = (float)(0.05 * Math.Exp(-t * 4) * s + (t < 0.005 ? (random.NextDouble() - 0.5) * 0.2 : 0));
+        }
+
+        return y;
+    }
 }
 
 static string FindEngineRoot() {
