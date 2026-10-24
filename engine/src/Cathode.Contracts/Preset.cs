@@ -42,6 +42,9 @@ public sealed class Preset {
     /// </summary>
     public Dictionary<string, float> Controllers { get; set; } = [];
 
+    /// <summary>The scene that was active when the preset was saved: where it starts when the global Default Scene is As Saved.</summary>
+    public int SavedScene { get; set; }
+
     public static string NewId() => Guid.NewGuid().ToString("n");
 
     /// <summary>The smallest working rig: Input 1 straight to Output 1 across the first row.</summary>
@@ -106,6 +109,16 @@ public sealed class PresetBlock {
     ///     editing them edits every linked preset.
     /// </summary>
     public string? Global { get; set; }
+
+    /// <summary>
+    ///     Scene Ignore: the channels (A-D) on which the block ignores scene changes. While its current channel is one
+    ///     of them, selecting a scene leaves the block's bypass and channel as they are; the editor, footswitches and
+    ///     MIDI still change them, and a channel not listed makes it follow the scenes again.
+    /// </summary>
+    public List<string> SceneIgnore { get; set; } = [];
+
+    /// <summary>Whether the block ignores scene changes on <paramref name="channel" />.</summary>
+    public bool IgnoresScenes(string channel) => SceneIgnore.Contains(channel);
 
     /// <summary>Parameter values of <paramref name="channel" />, creating the map if needed.</summary>
     public Dictionary<string, float> Channel(string channel) {
@@ -213,4 +226,10 @@ public sealed class PresetModifier {
     public float AttackMs { get; set; }
 
     public float ReleaseMs { get; set; }
+
+    /// <summary>
+    ///     The channel (A-D) the modifier applies on, or null for every channel of its block. On another channel the
+    ///     parameter keeps that channel's own value.
+    /// </summary>
+    public string? Channel { get; set; }
 }

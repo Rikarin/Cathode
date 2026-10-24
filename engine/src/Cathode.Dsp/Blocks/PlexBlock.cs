@@ -80,6 +80,7 @@ public sealed class PlexBlock() : DspBlock(Info) {
     public const int Balance = 84;
     public const int InputGain = 85;
     public const int InputSelect = 86;
+    public const int KillDry = 87;
 
     public const int PlexDelay = 0;
     public const int PlexDetune = 1;
@@ -226,7 +227,8 @@ public sealed class PlexBlock() : DspBlock(Info) {
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions)
+            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
+            MixLaws.KillDryParam
         ],
         maxInstances: 2
     );
@@ -437,10 +439,9 @@ public sealed class PlexBlock() : DspBlock(Info) {
 
         var select = (int)Params.Current(InputSelect);
         var mix = Params.Current(Mix) / 100f;
-        var mixStep = (mix - this.mix) / n;
-        var currentMix = this.mix;
+        var mixGains = new MixRamp(MixLaw.Linear, this.mix, mix, n, Params.Current(KillDry) >= 0.5f);
         for (var s = 0; s < n; s++) {
-            currentMix += mixStep;
+            mixGains.Advance();
             var dryLeft = io.Left[s];
             var dryRight = io.Right[s];
             var x = Stereo.Select(select, dryLeft, dryRight) * inputGain;
@@ -524,8 +525,8 @@ public sealed class PlexBlock() : DspBlock(Info) {
             }
 
             Stereo.Spread(ref wetLeft, ref wetRight, spread);
-            io.Left[s] = dryLeft * (1f - currentMix) + wetLeft * currentMix;
-            io.Right[s] = dryRight * (1f - currentMix) + wetRight * currentMix;
+            io.Left[s] = dryLeft * mixGains.Dry + wetLeft * mixGains.Wet;
+            io.Right[s] = dryRight * mixGains.Dry + wetRight * mixGains.Wet;
         }
 
         Array.Copy(lineTarget, lineDelay, MaxLines);

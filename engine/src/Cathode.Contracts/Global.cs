@@ -45,6 +45,30 @@ public sealed class GlobalSettings {
     public string? ActiveLayout { get; set; }
 
     public List<GlobalBlock> Blocks { get; set; } = [];
+
+    /// <summary>
+    ///     Scene Revert: off, changes made while playing (a bypass, a channel) stay with their scene when you come back
+    ///     to it; on, selecting a scene always recalls it as it was last saved.
+    /// </summary>
+    public bool SceneRevert { get; set; }
+
+    /// <summary>The scene a preset starts on when it loads: −1 for As Saved (the scene it was saved on), or 0-7.</summary>
+    public int DefaultScene { get; set; } = -1;
+
+    /// <summary>The preset loaded when the server starts, by id; null starts with an empty preset.</summary>
+    public string? StartupPreset { get; set; }
+
+    /// <summary>Ignore Redundant PC: a program change that selects the preset already loaded does nothing.</summary>
+    public bool IgnoreRedundantPc { get; set; }
+
+    /// <summary>
+    ///     Preset-change spillover: on, the outgoing preset's delay and reverb tails ring out under the new one; off, it
+    ///     stops with the swap fade (a clean cut).
+    /// </summary>
+    public bool PresetSpillover { get; set; } = true;
+
+    /// <summary>Whether editors ask before changing presets while the working copy has unsaved edits.</summary>
+    public bool ConfirmPresetChange { get; set; } = true;
 }
 
 /// <summary>
@@ -52,7 +76,9 @@ public sealed class GlobalSettings {
 ///     scene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank
 ///     id, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,
 ///     Value = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,
-///     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear).
+///     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), sceneLevelUp and
+///     sceneLevelDown (the active scene's level by ±1 dB, then save the preset), save (save the preset). A CC mapped to
+///     scene without a Value selects the scene its value names (0-7), and a value above 63 steps to the next scene.
 /// </summary>
 public sealed record MidiMapping(
     string Id,
@@ -121,6 +147,11 @@ public sealed record CopyChannelRequest(string From, string To);
 public sealed record LinkGlobalRequest(string? Name = null);
 
 public sealed record ValueRequest(float Value);
+
+/// <summary>Two scenes (0-7): copy <c>From</c> onto <c>To</c>, or swap them.</summary>
+public sealed record ScenePairRequest(int From, int To);
+
+public sealed record SceneIgnoreRequest(bool Enabled);
 
 /// <summary>Arms MIDI learn: the next CC, note or program change received is bound to this action.</summary>
 public sealed record MidiLearnRequest(string Action, string? Target = null, int? Value = null);

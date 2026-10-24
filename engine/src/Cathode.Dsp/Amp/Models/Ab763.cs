@@ -16,8 +16,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     Vibrato channel's 0.02 µF into the 3.3M ‖ 10 pF reverb mix resistor, V4B, its 0.1 µF and 220k. The channel not
 ///     played still loads the mix node through its own 220k: V4B's plate (in the circuit) when the Normal channel plays;
 ///     a resistor standing for the idle V1B plate (r_p ‖ 100k, about 38k) when the Vibrato channel plays. Reverb (its
-///     knob at 0: its pot's wiper at ground, so the 470k from V4B's grid goes to ground) and the vibrato (intensity at 0:
-///     its LDR dark) are not modelled.
+///     knob at 0: its pot's wiper at ground, so the 470k from V4B's grid goes to ground) is not modelled; the vibrato is
+///     <see cref="Vibrato" /> on the mixing network.
 /// </remarks>
 static class Ab763 {
     /// <summary>A 12AX7's grid-to-plate capacitance (datasheet: 1.7 pF).</summary>
@@ -25,6 +25,12 @@ static class Ab763 {
 
     /// <summary>The idle Normal channel's V1B plate as seen through its coupling cap: r_p ‖ 100k at its operating point.</summary>
     const double IdlePlate = 38e3;
+
+    /// <summary>
+    ///     The vibrato's Intensity pot (50k reverse audio), whose whole track loads the Vibrato channel's junction of its
+    ///     0.1 µF and 220k mixing resistor (the drawings: the pot's top on the junction, its bottom grounded).
+    /// </summary>
+    const double IntensityTrack = 50e3;
 
     /// <summary>A capacitor switched out (open at audio).</summary>
     const double Absent = 1e-15;
@@ -111,6 +117,7 @@ static class Ab763 {
         var coupled = net.Node();
         net.Capacitor(plate, coupled, 0.1e-6);
         net.Resistor(coupled, mix, 220e3);
+        net.Resistor(coupled, StageNetlist.Ground, IntensityTrack); // the vibrato's Intensity pot (<see cref="Vibrato" />)
 
         // The mix node drives the inverter's 1 nF input cap and 1M grid resistor (<see cref="InverterInput" />).
         net.Output = mix;
@@ -141,7 +148,7 @@ static class Ab763 {
     ///     The mixing network of the AB763 amps without reverb (Bandmaster, Tremolux, Vibrolux): the Normal channel's
     ///     0.047 µF, the Vibrato channel's 0.1 µF, each into its 220k mixing resistor; the idle channel's second-stage plate
     ///     (<see cref="IdlePlate" />) loads the mix node through its own. The vibrato's LDR, which shunts the Vibrato
-    ///     channel's cap-resistor junction, is dark with the intensity at 0 and left out.
+    ///     channel's cap-resistor junction, is <see cref="Vibrato" />.
     /// </summary>
     public static NetworkStageDesign VibratoMixer() {
         var net = new StageNetlist();
@@ -152,9 +159,59 @@ static class Ab763 {
         net.SwitchedCapacitor(net.Input, vibrato, 0.1e-6, SwitchRole.Switch1, off: Absent);
         net.SwitchedResistor(vibrato, StageNetlist.Ground, IdlePlate, 0, SwitchRole.Switch1);
         net.Resistor(vibrato, mix, 220e3);
+        net.Resistor(vibrato, StageNetlist.Ground, IntensityTrack); // the vibrato's Intensity pot (<see cref="Vibrato" />)
         net.Output = mix;
         return new("Mixer", net);
     }
+
+    /// <summary>
+    ///     The AB763 and AA763 vibrato's oscillator, as every one of their drawings has it (read on the Deluxe Reverb,
+    ///     Twin Reverb, Super Reverb, Vibroverb, Bandmaster, Tremolux and Vibrolux Reverb AA964): a 12AX7 half with 220k
+    ///     from <paramref name="supply" /> (the drawings' "B" node), 2700 Ω with 25 µF; 0.02 µF from the plate to the Speed
+    ///     rheostat (3M reverse audio, 100k in series, to ground), 0.01 µF to a node with 1M to the pedal's return (the lamp
+    ///     driver's grid), 0.01 µF to the grid with 1M to the same return. The pedal's return is grounded by the jack with
+    ///     no pedal plugged in (its 2.2M or 22M to the bias line only holds it with the pedal open, which stops the
+    ///     oscillator).
+    /// </summary>
+    public static PhaseShiftOscillatorDesign VibratoOscillator(double supply) =>
+        new(
+            TriodeModel.Ecc83,
+            supply,
+            220e3,
+            2.7e3,
+            0.02e-6,
+            0.01e-6,
+            0.01e-6,
+            100e3,
+            1e6,
+            1e6,
+            new(3e6, PotTaper.ReverseAudio)
+        );
+
+    /// <summary>
+    ///     The AB763 and AA763 vibrato (<see cref="OpticalTremoloDesign" />): the oscillator above; the other 12AX7 half
+    ///     as the lamp driver, its grid on the ladder's second node, its cathode on <paramref name="driverCathode" /> with
+    ///     25 µF (100k; the Tremolux's 56k), the neon lamp and 100k from the "B" node to its plate with 10M across them;
+    ///     the photocell from the 50k reverse-audio Intensity pot's wiper to ground, the pot's top on the Vibrato channel's
+    ///     junction of its 0.1 µF coupling cap and its 220k mixing resistor, the pot's bottom grounded. The junction's
+    ///     resistance: the stage's plate (100k ‖ r_p, about 38k) against the 220k into the mix node (the other channel's
+    ///     220k and plate, and the inverter's 1M, about 205k): 35k. The vibrato acts with the Vibrato channel playing
+    ///     (<see cref="SwitchRole.Switch1" />).
+    /// </summary>
+    /// <remarks>
+    ///     The Intensity pot's track (50k from the junction to ground) is in the mixing networks (<see cref="Mixer" />,
+    ///     <see cref="VibratoMixer" />), on whichever channel plays: the cell's shunt acts against it.
+    /// </remarks>
+    public static OpticalTremoloDesign Vibrato(double supply, double driverCathode = 100e3) =>
+        new(
+            VibratoOscillator(supply),
+            supply,
+            driverCathode,
+            100e3,
+            new(IntensityTrack, PotTaper.ReverseAudio),
+            35e3,
+            SwitchRole.Switch1
+        );
 
     /// <summary>The AB763 long-tail pair: a 12AT7, 82k and 100k plates, 22k tail, 470 Ω bias.</summary>
     public static LongTailPairDesign PhaseInverter(double supply) =>

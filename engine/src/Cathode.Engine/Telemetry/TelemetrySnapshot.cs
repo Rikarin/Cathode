@@ -27,6 +27,17 @@ public sealed class TelemetrySnapshot {
 
     public float[] OutputRightPeaks { get; } = new float[TelemetryLayout.MeterSlots];
 
+    public int[] BlockGenerations { get; } = new int[TelemetryLayout.MeterSlots];
+
+    public int[] BlockCounts { get; } = new int[TelemetryLayout.MeterSlots];
+
+    /// <summary>Block peaks, <see cref="TelemetryLayout.BlockMeters" /> per meter slot.</summary>
+    public float[] BlockPeaks { get; } = new float[TelemetryLayout.MeterSlots * TelemetryLayout.BlockMeters];
+
+    public float LoudnessMomentary { get; set; }
+
+    public float LoudnessShortTerm { get; set; }
+
     /// <summary>The meter slot that holds frame <see cref="Frames" /> - 1, or -1 before the first callback.</summary>
     public long CurrentSlot => Frames == 0 ? -1 : (Frames - 1) / TelemetryLayout.FramesPerSlot;
 
@@ -46,6 +57,43 @@ public sealed class TelemetrySnapshot {
         return (input, left, right);
     }
 
+    /// <summary>
+    ///     The highest peak of each grid block over the slots after <paramref name="slot" /> up to
+    ///     <see cref="CurrentSlot" />, for the newest graph generation among them, into <paramref name="destination" />
+    ///     (by graph slot). Returns that generation and how many blocks it has, or (-1, 0) when no slot is new.
+    /// </summary>
+    public (int Generation, int Count) BlockPeaksSince(long slot, Span<float> destination) {
+        var current = CurrentSlot;
+        long newest = -1;
+        var generation = -1;
+        for (var i = 0; i < TelemetryLayout.MeterSlots; i++) {
+            if (SlotNumbers[i] > slot && SlotNumbers[i] <= current && SlotNumbers[i] > newest) {
+                newest = SlotNumbers[i];
+                generation = BlockGenerations[i];
+            }
+        }
+
+        destination.Clear();
+        if (newest < 0 || generation < 0) {
+            return (-1, 0);
+        }
+
+        var count = 0;
+        for (var i = 0; i < TelemetryLayout.MeterSlots; i++) {
+            if (SlotNumbers[i] <= slot || SlotNumbers[i] > current || BlockGenerations[i] != generation) {
+                continue;
+            }
+
+            count = Math.Max(count, BlockCounts[i]);
+            var row = BlockPeaks.AsSpan(i * TelemetryLayout.BlockMeters, Math.Min(BlockCounts[i], destination.Length));
+            for (var b = 0; b < row.Length; b++) {
+                destination[b] = Math.Max(destination[b], row[b]);
+            }
+        }
+
+        return (generation, count);
+    }
+
     public void CopyTo(TelemetrySnapshot other) {
         other.Callbacks = Callbacks;
         other.Frames = Frames;
@@ -59,6 +107,11 @@ public sealed class TelemetrySnapshot {
         InputPeaks.CopyTo(other.InputPeaks, 0);
         OutputLeftPeaks.CopyTo(other.OutputLeftPeaks, 0);
         OutputRightPeaks.CopyTo(other.OutputRightPeaks, 0);
+        BlockGenerations.CopyTo(other.BlockGenerations, 0);
+        BlockCounts.CopyTo(other.BlockCounts, 0);
+        BlockPeaks.CopyTo(other.BlockPeaks, 0);
+        other.LoudnessMomentary = LoudnessMomentary;
+        other.LoudnessShortTerm = LoudnessShortTerm;
     }
 }
 
@@ -89,10 +142,25 @@ public sealed class TelemetryMonitor(TelemetryRegion region) {
     readonly TelemetrySnapshot current = new();
     readonly TelemetrySnapshot older = new();
     readonly TelemetrySnapshot newer = new();
+    readonly float[] blockPeaks = new float[TelemetryLayout.BlockMeters];
     long lastSlot = -1;
     bool started;
 
     public TelemetryRegion Region => region;
+
+    /// <summary>Each grid block's peak since the previous poll, by graph slot (<see cref="BlockCount" /> of them).</summary>
+    public ReadOnlySpan<float> BlockPeaks => blockPeaks.AsSpan(0, BlockCount);
+
+    /// <summary>The graph generation <see cref="BlockPeaks" /> belong to, or -1.</summary>
+    public int BlockGeneration { get; private set; } = -1;
+
+    public int BlockCount { get; private set; }
+
+    /// <summary>The output's momentary loudness (400 ms), LUFS, as of the last poll.</summary>
+    public float LoudnessMomentary { get; private set; }
+
+    /// <summary>The output's short-term loudness (3 s), LUFS, as of the last poll.</summary>
+    public float LoudnessShortTerm { get; private set; }
 
     /// <summary>Returns null when the region could not be read consistently (a writer stuck mid-update).</summary>
     public TelemetryReading? Poll() {
@@ -108,6 +176,9 @@ public sealed class TelemetryMonitor(TelemetryRegion region) {
         }
 
         var (input, left, right) = current.PeaksSince(lastSlot);
+        (BlockGeneration, BlockCount) = current.BlockPeaksSince(lastSlot, blockPeaks);
+        LoudnessMomentary = current.LoudnessMomentary;
+        LoudnessShortTerm = current.LoudnessShortTerm;
         lastSlot = current.CurrentSlot;
 
         // Roll the two staggered baselines so the window always spans between one and two Window lengths.

@@ -1,4 +1,4 @@
-import { customParamId, isCustomTableParam, noteAbove } from './custom-shifter';
+import { customParamId, customScaleNotes, isCustomTableParam, noteAbove } from './custom-shifter';
 
 describe('custom shifter', () => {
   it('names the table parameters as the engine does', () => {
@@ -20,5 +20,12 @@ describe('custom shifter', () => {
     expect(noteAbove(9, 3)).toBe('C');
     expect(noteAbove(0, -1)).toBe('B');
     expect(noteAbove(4, 24)).toBe('E');
+  });
+});
+
+describe('custom scale', () => {
+  it('names the notes in the tonic, rising, with the root and without repeats', () => {
+    expect(customScaleNotes(0, 7, [0, 2, 4, 5, 7, 9, 11, 11])).toEqual(['C', 'D', 'E', 'F', 'G', 'A', 'B']);
+    expect(customScaleNotes(9, 4, [7, 3, 3, 10, 1])).toEqual(['A', 'C', 'E', 'G']);
   });
 });

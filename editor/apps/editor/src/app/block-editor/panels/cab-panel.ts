@@ -26,6 +26,7 @@ import {
   sourceOf,
   unmuteOnEdit
 } from './cab';
+import { CabAlign } from './cab-align';
 
 const Choices: readonly SlotKey[] = ['cab', 'speaker', 'mic'];
 const Placement: readonly SlotKey[] = ['position', 'distance', 'angle'];
@@ -51,6 +52,7 @@ const responses = new Map<string, Promise<number[]>>();
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AssetPicker,
+    CabAlign,
     CthSpeakerCone,
     ParamControl,
     XuiButtonImports,
@@ -73,7 +75,17 @@ const responses = new Map<string, Promise<number[]>>();
             (selectedChange)="selected.set($event)"
           />
         </div>
-        @if (plotted()) {
+        <xui-segmented-control
+          size="sm"
+          aria-label="Cab view"
+          data-testid="cab-view"
+          [options]="viewOptions"
+          [value]="view()"
+          (valueChange)="view.set($event ?? 'response')"
+        />
+        @if (view() === 'align') {
+          <cth-cab-align [block]="block()" [selected]="selected()" (selectedChange)="selected.set($event)" />
+        } @else if (plotted()) {
           <xui-echart
             class="h-48 w-full"
             aria-label="IR frequency response"
@@ -160,6 +172,12 @@ export class CabPanel {
   protected readonly filters = Filters;
   protected readonly mixer = Mixer;
   protected readonly selected = signal(0);
+  /** The plot under the cone: the IR files' responses, or the Align page (every slot's onset in time). */
+  protected readonly view = signal<'response' | 'align'>('response');
+  protected readonly viewOptions = [
+    { label: 'Response', value: 'response' as const },
+    { label: 'Align', value: 'align' as const }
+  ];
   protected readonly loading = signal(false);
   private readonly measured = signal<Partial<Record<string, number[]>>>({});
 

@@ -1,11 +1,15 @@
 using Cathode.Dsp.Filters;
 using Cathode.Dsp.Parameters;
+using Cathode.Dsp.Routing;
 
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     The grid's Input cell (docs/08-blocks-parity.md §2): the interface input, then a noise gate and an input level.
-///     The graph compiler runs it right after reading the input; it cannot be bypassed.
+///     The grid's Input cell (docs/08-blocks-parity.md §2): an interface input, then a noise gate and an input level.
+///     The graph compiler runs it right after reading the input; it cannot be bypassed. Source picks the hardware input
+///     (<see cref="HardwareInputs" />): Input 1, the default, is the grid input the compiler has already read; the
+///     others replace it, with a 10 ms crossfade when the choice changes. Up to four Input cells can each take their
+///     own source.
 ///     <list type="bullet">
 ///         <item>Off: no gate (the default, so a plain Input is a wire).</item>
 ///         <item>
@@ -25,14 +29,15 @@ namespace Cathode.Dsp.Blocks;
 ///     </list>
 ///     The rig's global noise gate offset (<see cref="BlockContext.GateOffsetDb" />) is added to the threshold.
 /// </summary>
-public sealed class InputBlock() : DspBlock(Info) {
-    public const int GateType = 0;
-    public const int Threshold = 1;
-    public const int Ratio = 2;
-    public const int Attack = 3;
-    public const int Release = 4;
-    public const int Mains = 5;
-    public const int Level = 6;
+public sealed class InputBlock() : DspBlock(Info), IHardwareInputBlock {
+    public const int Source = 0;
+    public const int GateType = 1;
+    public const int Threshold = 2;
+    public const int Ratio = 3;
+    public const int Attack = 4;
+    public const int Release = 5;
+    public const int Mains = 6;
+    public const int Level = 7;
 
     public const int Off = 0;
     public const int Classic = 1;
@@ -46,6 +51,7 @@ public sealed class InputBlock() : DspBlock(Info) {
     const double HoldMs = 15;
     const float FloorDb = -100f;
     const int HumNotches = 3;
+    const double SourceFadeMs = 10;
 
     readonly SvfState[] hum = new SvfState[HumNotches];
     readonly SvfCoefficients[] humCoefficients = new SvfCoefficients[HumNotches];
@@ -60,12 +66,18 @@ public sealed class InputBlock() : DspBlock(Info) {
     float lowLeft2;
     float lowRight2;
     float level = 1f;
+    NativeBuffer from = NativeBuffer.Empty; // the source faded from: left, then right
+    int activeSource;
+    int fadingFrom = -1;
+    float sourceFade = 1f; // 0 = all fadingFrom, 1 = all activeSource
+    float sourceStep = 1f;
 
     public static BlockDescriptor Info { get; } = new(
         "input",
         "Input",
         "I/O",
         [
+            ParamDescriptor.Choice("source", "Source", HardwareInputs.Names),
             ParamDescriptor.Choice("type", "Gate Type", ["Off", "Classic", "Intelligent", "Noise Reducer"]),
             ParamDescriptor.Float("threshold", "Threshold", -100f, 0f, -60f, "dB"),
             ParamDescriptor.Float("ratio", "Ratio", 1f, 20f, 2f, ":1", ParamTaper.Log),
@@ -79,6 +91,8 @@ public sealed class InputBlock() : DspBlock(Info) {
 
     /// <summary>The gate's current gain (1 = open). For meters and tests.</summary>
     public float CurrentGain => MathF.Pow(10f, gainDb / 20f);
+
+    public InputPort? Inputs { get; set; }
 
     static float Coefficient(double milliseconds, double sampleRate) =>
         (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
@@ -166,10 +180,83 @@ public sealed class InputBlock() : DspBlock(Info) {
         }
     }
 
+    /// <summary>
+    ///     Replaces the grid input in <paramref name="io" /> by the selected source, crossfading from the previous one
+    ///     after a change. Input 1 is what <paramref name="io" /> already holds.
+    /// </summary>
+    void SelectSource(in StereoBuffer io) {
+        var selected = Math.Clamp((int)Params.Current(Source), 0, HardwareInputs.Count - 1);
+        if (selected != activeSource && fadingFrom < 0) {
+            fadingFrom = activeSource;
+            activeSource = selected;
+            sourceFade = 0f;
+        }
+
+        if (fadingFrom < 0 && activeSource == HardwareInputs.Input1) {
+            return;
+        }
+
+        var length = io.Length;
+        var previousLeft = from.Span[..length];
+        var previousRight = from.Span.Slice(from.Length / 2, length);
+        if (fadingFrom >= 0) {
+            Load(fadingFrom, io, previousLeft, previousRight);
+        }
+
+        if (activeSource != HardwareInputs.Input1) {
+            if (Inputs is { } port) {
+                port.Read(activeSource, io.Left, io.Right);
+            } else {
+                io.Left.Clear();
+                io.Right.Clear();
+            }
+        }
+
+        if (fadingFrom < 0) {
+            return;
+        }
+
+        var fade = sourceFade;
+        for (var i = 0; i < length; i++) {
+            fade = Math.Min(1f, fade + sourceStep);
+            io.Left[i] = previousLeft[i] + (io.Left[i] - previousLeft[i]) * fade;
+            io.Right[i] = previousRight[i] + (io.Right[i] - previousRight[i]) * fade;
+        }
+
+        sourceFade = fade;
+        if (fade >= 1f) {
+            fadingFrom = -1;
+        }
+    }
+
+    /// <summary>Source <paramref name="source" /> into the scratch buffers (Input 1 from the grid input in <paramref name="io" />).</summary>
+    void Load(int source, in StereoBuffer io, Span<float> left, Span<float> right) {
+        if (source == HardwareInputs.Input1) {
+            io.Left.CopyTo(left);
+            io.Right.CopyTo(right);
+        } else if (Inputs is { } port) {
+            port.Read(source, left, right);
+        } else {
+            left.Clear();
+            right.Clear();
+        }
+    }
+
     protected override void OnPrepare(in ProcessSpec spec) {
+        from.Dispose();
+        from = new(2 * spec.MaxBlockSize);
+        sourceStep = (float)(1.0 / Math.Max(1.0, SourceFadeMs * 0.001 * spec.SampleRate));
         detectorRelease = Coefficient(DetectorReleaseMs, spec.SampleRate);
         split = 1f - MathF.Exp(-2f * MathF.PI * NoiseSplitHz / (float)spec.SampleRate);
         designedMains = -1;
+    }
+
+    protected override void Dispose(bool disposing) {
+        if (disposing) {
+            from.Dispose();
+        }
+
+        base.Dispose(disposing);
     }
 
     protected override void OnReset() {
@@ -185,9 +272,13 @@ public sealed class InputBlock() : DspBlock(Info) {
         lowLeft2 = 0;
         lowRight2 = 0;
         level = Decibels.ToGain(Params.Current(Level));
+        activeSource = Math.Clamp((int)Params.Current(Source), 0, HardwareInputs.Count - 1);
+        fadingFrom = -1;
+        sourceFade = 1f;
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        SelectSource(io);
         var type = (int)Params.Current(GateType);
         var thresholdDb = Params.Advance(Threshold, io.Length) + context.GateOffsetDb;
         var slope = Params.Advance(Ratio, io.Length) - 1f;

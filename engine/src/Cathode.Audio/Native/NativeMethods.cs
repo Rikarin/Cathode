@@ -13,6 +13,9 @@ static unsafe partial class NativeMethods {
     [LibraryImport(Library, EntryPoint = "cth_audio_device_info")]
     internal static partial int DeviceInfo(int index, DeviceInfoNative* info);
 
+    [LibraryImport(Library, EntryPoint = "cth_audio_channel_name")]
+    internal static partial int ChannelName(int deviceIndex, int isInput, int channel, byte* name, int size);
+
     [LibraryImport(Library, EntryPoint = "cth_audio_open", StringMarshalling = StringMarshalling.Utf8)]
     internal static partial int Open(
         string? deviceUid,

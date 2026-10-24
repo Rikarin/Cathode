@@ -3,6 +3,8 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { provideIcons } from '@ng-icons/core';
 import {
   matAddRound,
+  matGraphicEqRound,
+  matHistoryRound,
   matRedoRound,
   matSaveRound,
   matShowChartRound,
@@ -15,6 +17,7 @@ import { XuiFormFieldImports } from '@xui/form-field';
 import { XuiIconImports } from '@xui/icon';
 import { XuiInputImports } from '@xui/input';
 import { XuiKbdImports } from '@xui/kbd';
+import { XuiMenuImports } from '@xui/menu';
 import { XuiNavbarImports } from '@xui/navbar';
 import { XuiNonIdealStateImports } from '@xui/non-ideal-state';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
@@ -22,17 +25,20 @@ import { XuiSpinnerImports } from '@xui/spinner';
 import { XuiTooltipImports } from '@xui/tooltip';
 import { Startup } from './core/startup';
 import { EngineMeters } from './shell/engine-meters';
+import { LevelingDialog } from './shell/leveling-dialog';
 import { ScopeDialog } from './shell/scope-dialog';
 import { Transport } from './shell/transport';
 import { TunerDialog } from './shell/tuner-dialog';
 import { CompareStore } from './state/compare.store';
 import { LiveStore } from './state/live.store';
+import { PresetSwitcher } from './state/preset-switcher';
 
 @Component({
   selector: 'cth-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     EngineMeters,
+    LevelingDialog,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
@@ -45,13 +51,25 @@ import { LiveStore } from './state/live.store';
     XuiIconImports,
     XuiInputImports,
     XuiKbdImports,
+    XuiMenuImports,
     XuiNavbarImports,
     XuiNonIdealStateImports,
     XuiSegmentedControlImports,
     XuiSpinnerImports,
     XuiTooltipImports
   ],
-  providers: [provideIcons({ matAddRound, matRedoRound, matSaveRound, matShowChartRound, matTuneRound, matUndoRound })],
+  providers: [
+    provideIcons({
+      matAddRound,
+      matGraphicEqRound,
+      matHistoryRound,
+      matRedoRound,
+      matSaveRound,
+      matShowChartRound,
+      matTuneRound,
+      matUndoRound
+    })
+  ],
   host: {
     class: 'flex h-full flex-col',
     '(document:keydown)': 'shortcut($event)'
@@ -89,6 +107,7 @@ import { LiveStore } from './state/live.store';
             <a xuiButton variant="ghost" size="sm" routerLink="/library" routerLinkActive="bg-active-overlay"
               >Library</a
             >
+            <a xuiButton variant="ghost" size="sm" routerLink="/scenes" routerLinkActive="bg-active-overlay">Scenes</a>
             <a xuiButton variant="ghost" size="sm" routerLink="/controllers" routerLinkActive="bg-active-overlay"
               >Controllers</a
             >
@@ -102,6 +121,26 @@ import { LiveStore } from './state/live.store';
                 <span class="text-warning" aria-label="unsaved changes"> •</span>
               }
             </span>
+            <button
+              xuiButton
+              variant="ghost"
+              size="sm"
+              aria-label="Recent presets"
+              data-testid="recent-presets"
+              [xuiTooltip]="'Recent presets'"
+              [xuiMenuTriggerFor]="recentMenu"
+            >
+              <ng-icon xui name="matHistoryRound" size="sm" />
+            </button>
+            <ng-template #recentMenu>
+              <xui-menu>
+                @for (recent of switcher.recent(); track recent.id) {
+                  <button xuiMenuItem (click)="switcher.load(recent.id, recent.name)">{{ recent.name }}</button>
+                } @empty {
+                  <button xuiMenuItem disabled>No recent presets</button>
+                }
+              </xui-menu>
+            </ng-template>
             <button
               xuiButton
               variant="ghost"
@@ -169,6 +208,17 @@ import { LiveStore } from './state/live.store';
             >
               <ng-icon xui name="matShowChartRound" size="sm" />
             </button>
+            <button
+              xuiButton
+              variant="ghost"
+              size="sm"
+              aria-label="Preset Leveling"
+              data-testid="leveling"
+              [xuiTooltip]="'Preset Leveling (loudness)'"
+              (click)="levelingOpen.set(true)"
+            >
+              <ng-icon xui name="matGraphicEqRound" size="sm" />
+            </button>
             <cth-engine-meters />
           </div>
         </nav>
@@ -201,6 +251,7 @@ import { LiveStore } from './state/live.store';
         </main>
         <cth-tuner-dialog [(open)]="tunerOpen" />
         <cth-scope-dialog [(open)]="scopeOpen" />
+        <cth-leveling-dialog [(open)]="levelingOpen" />
         <xui-dialog title="Save preset as" icon="matSaveRound" [(open)]="saveAsOpen">
           <xui-dialog-body>
             <xui-form-field label="Name">
@@ -234,6 +285,7 @@ export class App {
   protected readonly startup = inject(Startup);
   protected readonly live = inject(LiveStore);
   protected readonly compare = inject(CompareStore);
+  protected readonly switcher = inject(PresetSwitcher);
 
   /**
    * In the macOS desktop app the navbar is the title bar: it drags the window and leaves room for the traffic lights
@@ -244,6 +296,7 @@ export class App {
   protected readonly trafficLights = computed(() => this.macWindow && !this.fullScreen());
   protected readonly tunerOpen = signal(false);
   protected readonly scopeOpen = signal(false);
+  protected readonly levelingOpen = signal(false);
   protected readonly saveAsOpen = signal(false);
   protected readonly saveAsName = signal('');
   protected readonly abOptions = [

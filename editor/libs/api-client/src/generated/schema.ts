@@ -394,6 +394,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/live/blocks/{id}/cab/align': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The Cab block's slots for its Align page: each slot's IR head, onset and delays. */
+    get: operations['GetCabAlignment'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/live/cables': {
     parameters: {
       query?: never;
@@ -420,6 +437,124 @@ export interface paths {
     get?: never;
     put: operations['SelectScene'];
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/scenes/copy': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Copies scene From onto scene To: name, block states, level, controllers and MIDI. */
+    post: operations['CopyScene'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/scenes/swap': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Swaps two scenes; the active scene moves with its content. */
+    post: operations['SwapScenes'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/scenes/{scene}/blocks/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** A block's bypass and channel in one scene (the Scene Manager). */
+    put: operations['SetSceneBlock'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/channels/{channel}/scene-ignore': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Scene Ignore for one channel: while on it, scene changes leave the block's bypass and channel. */
+    put: operations['SetSceneIgnore'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/channels/swap': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['SwapChannels'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/channels/{channel}/reset': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Puts one channel back to the block type's defaults. */
+    post: operations['ResetChannel'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/reset': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Puts every channel of the block back to its type's defaults. */
+    post: operations['ResetBlock'];
     delete?: never;
     options?: never;
     head?: never;
@@ -641,6 +776,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/presets/list.txt': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The preset list as plain text, alphabetical, with each preset's scene names. */
+    get: operations['ExportPresetList'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/presets/{id}': {
     parameters: {
       query?: never;
@@ -795,7 +947,7 @@ export interface paths {
       cookie?: never;
     };
     get: operations['GetGlobal'];
-    /** Replaces the global settings: tempo mode, metronome, EQ, Manual A-D, MIDI, footswitches, global blocks. */
+    /** Replaces the global settings: tempo mode, metronome, EQ, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover. */
     put: operations['PutGlobal'];
     post?: never;
     delete?: never;
@@ -999,9 +1151,40 @@ export interface components {
     BypassRequest: {
       bypassed: boolean;
     };
+    /**
+     * @description The Cab block's Align page (`GET /api/v1/live/blocks/{id}/cab/align`): each slot's IR head on the active
+     *     channel, so slots can be lined up by eye.
+     */
+    CabAlignment: {
+      /**
+       * Format: double
+       * @description The rate the heads are sampled at.
+       */
+      sampleRate: number;
+      /** @description The four slots, in order. */
+      slots: components['schemas']['CabSlotAlignmentInfo'][];
+    };
     CableRequest: {
       from: string;
       to: string;
+    };
+    /**
+     * @description One slot: whether it has something to play and is heard, its onset within its own IR (the first sample within
+     *     20 dB of the peak), the delay Auto Delay gives it and its own Delay, in ms, and the first 10 ms of its IR as mixed
+     *     (cut and normalised, before level, pan and delay). It is heard at `OnsetMs + AutoDelayMs + DelayMs`.
+     */
+    CabSlotAlignmentInfo: {
+      /** Format: int32 */
+      slot: number;
+      plays: boolean;
+      audible: boolean;
+      /** Format: double */
+      onsetMs: number;
+      /** Format: double */
+      autoDelayMs: number;
+      /** Format: double */
+      delayMs: number;
+      head: number[];
     };
     ChannelRequest: {
       channel: string;
@@ -1012,7 +1195,8 @@ export interface components {
     };
     /**
      * @description Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole
-     *     driver callback); overloads and the host's GC counts are cumulative since the host started.
+     *     driver callback); overloads and the host's GC counts are cumulative since the host started. `Inputs` names
+     *     the hardware input sources the device maps (Input 1–4, USB 5/6, USB 7/8); the others are silent.
      */
     EngineStatus: {
       connected: boolean;
@@ -1069,6 +1253,7 @@ export interface components {
        * @default 0
        */
       hostAllocatedBytes: number;
+      inputs?: null | string[];
     };
     /**
      * @description One switch: the message it sends (a CC or note; value 64 or more is "down"), what a tap does, what holding it for
@@ -1153,6 +1338,27 @@ export interface components {
       /** @description The layout in use, by id. */
       activeLayout?: null | string;
       blocks: components['schemas']['GlobalBlock'][];
+      /**
+       * @description Scene Revert: off, changes made while playing (a bypass, a channel) stay with their scene when you come back
+       *     to it; on, selecting a scene always recalls it as it was last saved.
+       */
+      sceneRevert: boolean;
+      /**
+       * Format: int32
+       * @description The scene a preset starts on when it loads: −1 for As Saved (the scene it was saved on), or 0-7.
+       */
+      defaultScene: number;
+      /** @description The preset loaded when the server starts, by id; null starts with an empty preset. */
+      startupPreset?: null | string;
+      /** @description Ignore Redundant PC: a program change that selects the preset already loaded does nothing. */
+      ignoreRedundantPc: boolean;
+      /**
+       * @description Preset-change spillover: on, the outgoing preset's delay and reverb tails ring out under the new one; off, it
+       *     stops with the swap fade (a clean cut).
+       */
+      presetSpillover: boolean;
+      /** @description Whether editors ask before changing presets while the working copy has unsaved edits. */
+      confirmPresetChange: boolean;
     };
     ImportResult: {
       preset: components['schemas']['PresetSummary'];
@@ -1214,7 +1420,11 @@ export interface components {
     LinkGlobalRequest: {
       name?: null | string;
     };
-    /** @description The rig as it is running: the working copy, which scene is active, and whether it differs from the library. */
+    /**
+     * @description The rig as it is running: the working copy, which scene is active, and whether it differs from the library.
+     *     `Held` lists the blocks whose bypass and channel differ from the active scene's because Scene Ignore kept
+     *     them as they were: what they are running now.
+     */
     LiveState: {
       preset: components['schemas']['Preset'];
       /** Format: int32 */
@@ -1224,6 +1434,9 @@ export interface components {
       dirty: boolean;
       canUndo: boolean;
       canRedo: boolean;
+      held?: null | {
+        [key: string]: components['schemas']['SceneBlockState'];
+      };
     };
     /** @description Arms MIDI learn: the next CC, note or program change received is bound to this action. */
     MidiLearnRequest: {
@@ -1237,7 +1450,9 @@ export interface components {
      *     scene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank
      *     id, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,
      *     Value = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,
-     *     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear).
+     *     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), sceneLevelUp and
+     *     sceneLevelDown (the active scene's level by ±1 dB, then save the preset), save (save the preset). A CC mapped to
+     *     scene without a Value selects the scene its value names (0-7), and a value above 63 steps to the next scene.
      */
     MidiMapping: {
       id: string;
@@ -1305,6 +1520,11 @@ export interface components {
       controllers: {
         [key: string]: number;
       };
+      /**
+       * Format: int32
+       * @description The scene that was active when the preset was saved: where it starts when the global Default Scene is As Saved.
+       */
+      savedScene: number;
     };
     PresetBlock: {
       /** @description Stable instance id such as `amp1`; never an index. */
@@ -1334,6 +1554,12 @@ export interface components {
        *     editing them edits every linked preset.
        */
       global?: null | string;
+      /**
+       * @description Scene Ignore: the channels (A-D) on which the block ignores scene changes. While its current channel is one
+       *     of them, selecting a scene leaves the block's bypass and channel as they are; the editor, footswitches and
+       *     MIDI still change them, and a channel not listed makes it follow the scenes again.
+       */
+      sceneIgnore: string[];
     };
     PresetCable: {
       from: string;
@@ -1355,6 +1581,11 @@ export interface components {
       attackMs: number;
       /** Format: float */
       releaseMs: number;
+      /**
+       * @description The channel (A-D) the modifier applies on, or null for every channel of its block. On another channel the
+       *     parameter keeps that channel's own value.
+       */
+      channel?: null | string;
     };
     PresetSummary: {
       id: string;
@@ -1414,6 +1645,9 @@ export interface components {
       /** @default A */
       channel: string;
     };
+    SceneIgnoreRequest: {
+      enabled: boolean;
+    };
     /**
      * @description One scene MIDI message: a program change (`pc`: int SceneMidiMessage.Number is the program) or a control change
      *     (`cc`: controller int SceneMidiMessage.Number, value int SceneMidiMessage.Value), on MIDI channel 1-16.
@@ -1436,6 +1670,13 @@ export interface components {
        * @default 0
        */
       value: number;
+    };
+    /** @description Two scenes (0-7): copy `From` onto `To`, or swap them. */
+    ScenePairRequest: {
+      /** Format: int32 */
+      from: number;
+      /** Format: int32 */
+      to: number;
     };
     SceneSelectRequest: {
       /** Format: int32 */
@@ -2099,6 +2340,28 @@ export interface operations {
       };
     };
   };
+  GetCabAlignment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CabAlignment'];
+        };
+      };
+    };
+  };
   AddCable: {
     parameters: {
       query?: never;
@@ -2158,6 +2421,179 @@ export interface operations {
         'application/json': components['schemas']['SceneSelectRequest'];
       };
     };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  CopyScene: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ScenePairRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SwapScenes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ScenePairRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetSceneBlock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scene: number;
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SceneBlockState'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetSceneIgnore: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        channel: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SceneIgnoreRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SwapChannels: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CopyChannelRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  ResetChannel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        channel: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  ResetBlock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
     responses: {
       /** @description OK */
       200: {
@@ -2515,6 +2951,26 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['PresetSummary'][];
+        };
+      };
+    };
+  };
+  ExportPresetList: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/plain': string;
         };
       };
     };

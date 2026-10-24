@@ -1,4 +1,5 @@
 using Cathode.Dsp.Parameters;
+using Cathode.Dsp.Routing;
 
 namespace Cathode.Dsp;
 
@@ -19,11 +20,20 @@ public interface ISidechainBlock {
 /// <summary>
 ///     The sidechain a <see cref="ISidechainBlock" /> keeps: the selected source's samples for the coming
 ///     <see cref="IDspBlock.Process" />, or nothing, in which case the block listens to its own input. A selected row
-///     with no block to the left of this one (or nothing at all on it) also falls back to the block's own input.
+///     with no block to the left of this one (or nothing at all on it) also falls back to the block's own input. The
+///     source can also be one of the interface's inputs (<see cref="HardwareInputs" />), which the block offers itself
+///     through <see cref="OfferHardware" />; an unmapped one is silence, as on the hardware.
 /// </summary>
 public sealed class SidechainSource {
-    /// <summary>The Sidechain parameter's options: the block's own input, the grid input, or a grid row.</summary>
-    public static readonly string[] Options = ["Block", "Input", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6"];
+    /// <summary>The first hardware input option (Input 1); the others follow in <see cref="HardwareInputs" /> order.</summary>
+    public const int FirstInput = 8;
+
+    /// <summary>
+    ///     The Sidechain parameter's options: the block's own input, the grid input, a grid row, or a hardware input.
+    /// </summary>
+    public static readonly string[] Options = [
+        "Block", "Grid Input", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", ..HardwareInputs.Names
+    ];
 
     float[] left = [];
     float[] right = [];
@@ -54,6 +64,19 @@ public sealed class SidechainSource {
         source.Left.CopyTo(left);
         source.Right.CopyTo(right);
         length = source.Length;
+    }
+
+    /// <summary>
+    ///     Audio thread, at the start of the block's <see cref="IDspBlock.Process" />: keeps hardware input
+    ///     <paramref name="selected" /> − <see cref="FirstInput" /> when that is the selection.
+    /// </summary>
+    public void OfferHardware(InputPort? port, int selected, int frames) {
+        if (selected < FirstInput || port is null || frames > left.Length) {
+            return;
+        }
+
+        port.Read(selected - FirstInput, left.AsSpan(0, frames), right.AsSpan(0, frames));
+        length = frames;
     }
 
     /// <summary>Forgets the kept source; call at the end of every <see cref="IDspBlock.Process" />.</summary>
