@@ -47,7 +47,7 @@ public static class TwinReverb {
                 BrightCap: 120e-12
             ),
             Ab763.SecondStage(270),
-            Ab763.Mixer(270)
+            Ab763.Mixer(270) with { Tremolo = Ab763.Vibrato(460) }
         ],
         new(
             "4 x 6L6GC",
@@ -80,7 +80,9 @@ public static class TwinReverb {
             Depth = null,
             Cut = null,
             Master = null,
-            Switch1 = "Vibrato Ch"
+            Switch1 = "Vibrato Ch",
+            TremoloRate = "Speed",
+            TremoloDepth = "Intensity"
         }
     };
 }

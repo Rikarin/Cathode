@@ -278,7 +278,8 @@ export class Sidecars {
       ...(this.audio.loopIn.length ? ['--loop-in', this.audio.loopIn.join(',')] : []),
       ...(this.audio.loopOut.length ? ['--loop-out', this.audio.loopOut.join(',')] : []),
       ...(this.audio.outputs?.length ? ['--outputs', this.audio.outputs.join(',')] : []),
-      ...(this.audio.diOut?.length ? ['--di-out', this.audio.diOut.join(',')] : [])
+      ...(this.audio.diOut?.length ? ['--di-out', this.audio.diOut.join(',')] : []),
+      ...inputMap(this.audio.inputs)
     ];
     return {
       command: host.command,
@@ -363,4 +364,12 @@ export async function waitForServer(connection: Connection | { baseUrl: string; 
   }
 
   throw new Error(`The Cathode server did not start within ${ReadyTimeoutMs / 1000} s.`);
+}
+
+/** `--input-map 1;3,4;;5,6` for cathode-host, or nothing when only Input 1 is on channel 1 (the host's default). */
+export function inputMap(inputs: number[][] | undefined): string[] {
+  const sources = inputs ?? [];
+  const isDefault =
+    sources.slice(1).every(s => s.length === 0) && (sources.length === 0 || sources[0].join(',') === '1');
+  return isDefault ? [] : ['--input-map', sources.map(s => s.join(',')).join(';')];
 }

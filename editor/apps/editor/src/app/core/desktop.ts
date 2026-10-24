@@ -7,6 +7,8 @@ export interface AudioDevice {
   inputChannels: number;
   outputChannels: number;
   sampleRate: number;
+  /** The driver's name for each input channel (empty where it names none). */
+  inputNames?: string[];
 }
 
 export interface AudioSettings {
@@ -25,6 +27,8 @@ export interface AudioSettings {
   outputs: number[];
   /** Device output channels (1-based, one or two) for the dry DI out, the input before Input 1 Gain; empty for none. */
   diOut: number[];
+  /** Device input channels (1-based, up to two each) for Input 1–4, USB 5/6 and USB 7/8; empty leaves one silent. */
+  inputs?: number[][];
 }
 
 export interface LatencyResult {

@@ -173,6 +173,7 @@ function validAudio(audio: AudioSettings): AudioSettings {
   const outputs = Array.isArray(audio?.outputs)
     ? audio.outputs.map(c => (Number.isInteger(c) && c >= 0 && c <= 63 ? c : 0)).slice(0, 4)
     : [1];
+  const inputs = Array.isArray(audio?.inputs) ? audio.inputs.slice(0, 6).map(channels) : [];
   return {
     device,
     sampleRate,
@@ -180,7 +181,8 @@ function validAudio(audio: AudioSettings): AudioSettings {
     loopIn: channels(audio?.loopIn),
     loopOut: channels(audio?.loopOut),
     outputs,
-    diOut: channels(audio?.diOut)
+    diOut: channels(audio?.diOut),
+    inputs: inputs.length > 0 && inputs[0].length > 0 ? inputs : [[1], ...inputs.slice(1)]
   };
 }
 

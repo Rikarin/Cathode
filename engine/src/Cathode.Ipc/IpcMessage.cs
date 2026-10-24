@@ -22,6 +22,11 @@ public static class IpcTypes {
 
     /// <summary>Starts, retunes or stops the test tone in place of a block's output (Block, Enabled, Frequency, Level).</summary>
     public const string TestTone = "testTone";
+    /// <summary>
+    ///     Turns the modifier on <c>Block</c>.<c>Param</c> on or off (<c>Enabled</c>): channel-scoped modifiers. Turning
+    ///     it off restores the parameter to the value in <c>Params[0]</c>.
+    /// </summary>
+    public const string SetModifier = "setModifier";
 
     public const string Ok = "ok";
     public const string Error = "error";
@@ -67,6 +72,12 @@ public sealed class IpcMessage {
     public List<ParamValue>? Params { get; set; }
 
     public string? Block { get; set; }
+
+    /// <summary>setModifier: the modified parameter.</summary>
+    public string? Param { get; set; }
+
+    /// <summary>The reply to loadGraph: the block id of each graph slot, the order block meters come in.</summary>
+    public List<string>? SlotIds { get; set; }
 
     public bool? Bypassed { get; set; }
 
@@ -120,14 +131,16 @@ public sealed record ParamValue(string Block, string Param, float Value);
 
 /// <summary>
 ///     The host's answer to <c>hello</c>. <c>TelemetryPath</c> names its shared-memory telemetry file (meters, CPU
-///     histogram, xruns) for the Server to map read-only; it is null from hosts that predate it.
+///     histogram, xruns) for the Server to map read-only; it is null from hosts that predate it. <c>InputSources</c>
+///     has one bit per hardware input source with device channels (bit 0 = Input 1, then Input 2–4, USB 5/6, USB 7/8).
 /// </summary>
 public sealed record HostInfo(
     string Version,
     string Backend,
     double SampleRate,
     int BufferFrames,
-    string? TelemetryPath = null
+    string? TelemetryPath = null,
+    int InputSources = 1
 );
 
 /// <summary>

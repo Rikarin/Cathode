@@ -39,6 +39,7 @@ public sealed class CompiledGraph : IDisposable {
     readonly ModifierBinding[] modifiers;
     readonly ILooperBlock? looperBlock;
     readonly bool[] outputs = new bool[NodeTypes.OutputCount];
+    readonly float[] peaks;
 
     /// <summary>Identifies this graph; commands addressed to another generation are ignored.</summary>
     public int Generation { get; }
@@ -57,6 +58,15 @@ public sealed class CompiledGraph : IDisposable {
     /// <summary>The looper of the graph's Looper block, or null: while it runs, the engine's looper transport drives it.</summary>
     public Looper? Looper => looperBlock?.Looper;
 
+    /// <summary>The graph's Looper block, for handing a running loop over to the next preset's.</summary>
+    public ILooperBlock? LooperBlock => looperBlock;
+
+    /// <summary>
+    ///     Audio thread: each slot's output peak since <see cref="ClearPeaks" /> (0 for a block that did not run, such as
+    ///     a bypassed Thru block).
+    /// </summary>
+    public ReadOnlySpan<float> BlockPeaks => peaks;
+
     public IReadOnlyList<ModifierBinding> Modifiers => modifiers;
 
     /// <summary>The RTA block's tap, when the graph has one: the engine sends what it holds to the analyser.</summary>
@@ -67,6 +77,11 @@ public sealed class CompiledGraph : IDisposable {
 
     /// <summary>The engine's test tone (the cab resonance helper), when the compiler was given one.</summary>
     public TestTone? Tone { get; init; }
+    /// <summary>
+    ///     The graph's view of the hardware inputs, when the compiler had them and a block reads one: the engine fades it
+    ///     out when the graph is replaced.
+    /// </summary>
+    public InputPort? Inputs { get; }
 
     /// <summary>True when a modifier follows the input pitch, so the host must run pitch detection.</summary>
     public bool UsesPitch => modifiers.Any(static m => m.Source == ModSource.Pitch);
@@ -83,10 +98,12 @@ public sealed class CompiledGraph : IDisposable {
         DelayLine[] delays,
         int latencySamples,
         ModifierBinding[]? modifiers = null,
-        AnalyzerTap? analyzer = null
+        AnalyzerTap? analyzer = null,
+        InputPort? inputs = null
     ) {
         this.modifiers = modifiers ?? [];
         Analyzer = analyzer;
+        Inputs = inputs;
         Generation = generation;
         Spec = spec;
         this.ops = ops;
@@ -119,6 +136,7 @@ public sealed class CompiledGraph : IDisposable {
         dryLeft = new(spec.MaxBlockSize);
         dryRight = new(spec.MaxBlockSize);
         fadeStep = (float)(1.0 / Math.Max(1.0, BypassFadeMs * 0.001 * spec.SampleRate));
+        peaks = new float[blocks.Length];
         bypass = new BypassState[blocks.Length];
         for (var i = 0; i < blocks.Length; i++) {
             bypass[i] = new(bypassed[i], bypassModes[i]);
@@ -132,6 +150,10 @@ public sealed class CompiledGraph : IDisposable {
     public void ApplyModifiers(Modulation modulation, int frames) {
         var seconds = frames / Spec.SampleRate;
         foreach (ref var modifier in modifiers.AsSpan()) {
+            if (!modifier.Enabled) {
+                continue;
+            }
+
             var target = Modulation.Map(
                 modulation.Value(modifier.Source),
                 modifier.Curve,
@@ -164,6 +186,9 @@ public sealed class CompiledGraph : IDisposable {
 
     /// <summary>Whether the grid has a live node for output <paramref name="output" /> (0 = Output 1, 1-3 = Outputs 2-4).</summary>
     public bool HasOutput(int output) => outputs[output];
+
+    /// <summary>Audio thread: starts a new peak measurement for <see cref="BlockPeaks" />.</summary>
+    public void ClearPeaks() => Array.Clear(peaks);
 
     /// <summary>Any thread: set a parameter target. Continuous values need no command queue.</summary>
     public void SetParameter(int slot, int paramIndex, float value) => blocks[slot].Params.SetTarget(paramIndex, value);
@@ -244,6 +269,8 @@ public sealed class CompiledGraph : IDisposable {
                     break;
             }
         }
+
+        Inputs?.Advance(frames);
     }
 
     public void Dispose() {
@@ -260,6 +287,16 @@ public sealed class CompiledGraph : IDisposable {
     }
 
     void RunBlock(int slot, in StereoBuffer io, in BlockContext context) {
+        RunBypassed(slot, io, context);
+        var peak = peaks[slot];
+        for (var i = 0; i < io.Length; i++) {
+            peak = Math.Max(peak, Math.Max(Math.Abs(io.Left[i]), Math.Abs(io.Right[i])));
+        }
+
+        peaks[slot] = peak;
+    }
+
+    void RunBypassed(int slot, in StereoBuffer io, in BlockContext context) {
         ref var bypass = ref this.bypass[slot];
         var target = bypass.Target ? 0f : 1f;
         var steady = bypass.Mix == target;
@@ -376,6 +413,24 @@ public sealed class CompiledGraph : IDisposable {
         }
     }
 
+    /// <summary>
+    ///     Audio thread only (<see cref="EngineCommandKind.SetModifier" />): a re-enabled modifier starts again from its
+    ///     source's value rather than from where it stopped; a disabled one leaves its parameter at
+    ///     <paramref name="baseValue" /> (an engage modifier leaves the bypass to the bypass commands).
+    /// </summary>
+    internal void SetModifierEnabled(int index, bool enabled, float baseValue) {
+        if ((uint)index >= (uint)modifiers.Length) {
+            return;
+        }
+
+        ref var modifier = ref modifiers[index];
+        modifier.Enabled = enabled;
+        modifier.Value = float.NaN;
+        if (!enabled && modifier.ParamIndex != ModifierBinding.Engage) {
+            blocks[modifier.Slot].Params.SetTarget(modifier.ParamIndex, baseValue);
+        }
+    }
+
     /// <summary>Audio thread only (the engine applies queued <see cref="EngineCommandKind.SetBypass" /> commands here).</summary>
     internal void SetBypass(int slot, bool bypassed) {
         if ((uint)slot >= (uint)bypass.Length) {
@@ -428,4 +483,7 @@ public struct ModifierBinding(
 
     /// <summary>The slewed value; NaN until the first sub-block, which then starts at its target.</summary>
     public float Value { get; set; } = float.NaN;
+
+    /// <summary>Whether it drives its parameter (false for a channel-scoped modifier while its block is elsewhere).</summary>
+    public bool Enabled { get; set; } = true;
 }

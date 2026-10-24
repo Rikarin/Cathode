@@ -1,5 +1,6 @@
 using System.Threading.Channels;
 using Cathode.Contracts;
+using Cathode.Dsp.Routing;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Telemetry;
 using Cathode.EngineHost;
@@ -33,6 +34,9 @@ public sealed partial class EngineConnection(
     readonly Channel<Work> queue = Channel.CreateUnbounded<Work>(new() { SingleReader = true });
     HostInfo? info;
     TelemetryMonitor? monitor;
+
+    /// <summary>The block id of each slot of the graph last loaded, for block meters.</summary>
+    SlotMap slots = new(-1, []);
     string? lastError;
     volatile bool scopeEnabled;
 
@@ -73,18 +77,40 @@ public sealed partial class EngineConnection(
             t?.Gen1 ?? 0,
             t?.Gen2 ?? 0,
             t?.GcPauseMs ?? 0,
-            t?.AllocatedBytes ?? 0
+            t?.AllocatedBytes ?? 0,
+            InputNames(i?.InputSources ?? 1)
         );
     }
 
-    public Task LoadGraphAsync(GraphDefinition graph, int generation) {
+    public async Task LoadGraphAsync(GraphDefinition graph, int generation) {
         if (!IsConnected) {
-            return Task.CompletedTask;
+            return;
         }
 
         var reply = new TaskCompletionSource<IpcMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
         queue.Writer.TryWrite(new(new() { Type = IpcTypes.LoadGraph, Generation = generation, Graph = graph }, reply));
-        return reply.Task;
+        var answer = await reply.Task;
+        if (answer.SlotIds is { } ids) {
+            Volatile.Write(ref slots, new(generation, [..ids]));
+        }
+    }
+
+    public void SetModifier(int generation, string block, string param, bool enabled, float baseValue) {
+        if (IsConnected) {
+            queue.Writer.TryWrite(
+                new(
+                    new() {
+                        Type = IpcTypes.SetModifier,
+                        Generation = generation,
+                        Block = block,
+                        Param = param,
+                        Enabled = enabled,
+                        Params = [new(block, param, baseValue)]
+                    },
+                    null
+                )
+            );
+        }
     }
 
     public void SetParams(int generation, IReadOnlyList<ParamValue> values) {
@@ -308,12 +334,40 @@ public sealed partial class EngineConnection(
                     Tuner(LastTelemetry),
                     LastTelemetry?.Tempo ?? 120,
                     Looper(LastTelemetry),
+                    BlockMeters(source),
+                    source.LoudnessMomentary,
+                    source.LoudnessShortTerm,
                     OutputPeaks(LastTelemetry)
                 ),
                 ContractsJsonContext.Default.Telemetry
             );
         }
     }
+
+    /// <summary>Each block's peak by id, when the meters belong to the graph whose slot ids the host reported.</summary>
+    Dictionary<string, float>? BlockMeters(TelemetryMonitor source) {
+        var (generation, ids) = Volatile.Read(ref slots);
+        if (source.BlockGeneration != generation || generation < 0) {
+            return null;
+        }
+
+        var peaks = source.BlockPeaks;
+        var meters = new Dictionary<string, float>(Math.Min(peaks.Length, ids.Length));
+        for (var i = 0; i < peaks.Length && i < ids.Length; i++) {
+            if (!ids[i].StartsWith("shunt", StringComparison.Ordinal)) {
+                meters[ids[i]] = peaks[i];
+            }
+        }
+
+        return meters;
+    }
+
+    /// <summary>The names of the hardware input sources in <paramref name="mask" /> (bit 0 = Input 1).</summary>
+    static string[] InputNames(int mask) =>
+        Enumerable.Range(0, HardwareInputs.Count)
+            .Where(s => (mask & (1 << s)) != 0)
+            .Select(static s => HardwareInputs.Names[s])
+            .ToArray();
 
     static LooperInfo? Looper(HostTelemetry? t) =>
         t?.Looper is { } l ? new(l.State, l.LengthSeconds, l.PositionSeconds, l.Reversed, l.HalfSpeed) : null;
@@ -367,7 +421,7 @@ public sealed partial class EngineConnection(
                     Tuner(t),
                     t.Tempo,
                     Looper(t),
-                    OutputPeaks(t)
+                    OutputPeaks: OutputPeaks(t)
                 ),
                 ContractsJsonContext.Default.Telemetry
             );
@@ -414,4 +468,6 @@ public sealed partial class EngineConnection(
     public event Action<HostTelemetry>? TelemetryUpdated;
 
     sealed record Work(IpcMessage Message, TaskCompletionSource<IpcMessage>? Reply);
+
+    sealed record SlotMap(int Generation, string[] Ids);
 }

@@ -14,7 +14,8 @@ const block = (
   column,
   channels: { A: params },
   assets: {},
-  bypassMode: 'thru'
+  bypassMode: 'thru',
+  sceneIgnore: []
 });
 const cable = (from: string, to: string): PresetCable => ({ from, to });
 const defaults: Record<string, number> = { input: 3, inputSelect: 0, mode: 0 };

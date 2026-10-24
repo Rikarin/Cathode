@@ -29,6 +29,16 @@ public readonly ref struct AudioIO {
     /// </summary>
     public OutputBus? Outputs { get; init; }
 
+    /// <summary>
+    ///     Every hardware input source (<see cref="Dsp.Routing.HardwareInputs" />: Input 1–4, USB 5/6, USB 7/8), planar:
+    ///     source <c>s</c>'s left channel at <c>2s × Frames</c>, its right at <c>(2s + 1) × Frames</c>. Empty when the
+    ///     device maps only Input 1, which is then <see cref="InputLeft" /> and <see cref="InputRight" />.
+    /// </summary>
+    public ReadOnlySpan<float> Sources { get; }
+
+    /// <summary>One bit per source in <see cref="Sources" /> that has device channels (bit 0 = Input 1).</summary>
+    public int SourceMask { get; }
+
     public int Frames => OutputLeft.Length;
 
     public AudioIO(
@@ -63,6 +73,28 @@ public readonly ref struct AudioIO {
         ReturnRight = returnRight;
         SendLeft = sendLeft;
         SendRight = sendRight;
+    }
+
+    /// <summary>A callback with the hardware input sources (<see cref="Sources" />) and, optionally, the loop channels.</summary>
+    public AudioIO(
+        ReadOnlySpan<float> inputLeft,
+        ReadOnlySpan<float> inputRight,
+        Span<float> outputLeft,
+        Span<float> outputRight,
+        ReadOnlySpan<float> returnLeft,
+        ReadOnlySpan<float> returnRight,
+        Span<float> sendLeft,
+        Span<float> sendRight,
+        ReadOnlySpan<float> sources,
+        int sourceMask
+    )
+        : this(inputLeft, inputRight, outputLeft, outputRight, returnLeft, returnRight, sendLeft, sendRight) {
+        if (!sources.IsEmpty && sources.Length != Dsp.Routing.HardwareInputs.Count * 2 * outputLeft.Length) {
+            throw new ArgumentException("Sources must hold every input source, planar.", nameof(sources));
+        }
+
+        Sources = sources;
+        SourceMask = sourceMask;
     }
 
     /// <summary>The main channels only: blocks reach the loop channels through <see cref="Dsp.Routing.HardwareLoop" />.</summary>

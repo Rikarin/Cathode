@@ -50,6 +50,7 @@ const BufferSizes = [32, 64, 128, 256, 512];
             <xui-statistic title="CPU max" [value]="s.engine.cpuMax" [precision]="1" suffix=" %" />
             <xui-statistic title="Engine overruns" [value]="s.engine.overloads" />
             <xui-statistic title="Driver overloads" [value]="s.engine.driverOverloads" />
+            <xui-statistic title="Inputs" [value]="(s.engine.inputs ?? ['Input 1']).join(', ')" />
           </div>
           @if (s.engine.lastError) {
             <xui-callout color="error" title="Last engine error">{{ s.engine.lastError }}</xui-callout>
@@ -217,6 +218,28 @@ const BufferSizes = [32, 64, 128, 256, 512];
                 (change)="patch({ loopIn: parseChannels($any($event.target).value) })"
               />
             </label>
+          </div>
+          <div class="flex flex-wrap items-end gap-3" role="group" aria-label="Input map">
+            @for (source of inputSources; track $index) {
+              <label class="flex flex-col gap-1 text-sm">
+                <span class="text-foreground-muted text-xs">{{ source }}</span>
+                <input
+                  xuiInput
+                  class="w-20"
+                  [placeholder]="$index === 0 ? '1' : 'off'"
+                  [attr.aria-label]="source + ' device channels'"
+                  [title]="channelNames()"
+                  [value]="channels(settings()?.inputs?.[$index])"
+                  (change)="patchInput($index, $any($event.target).value)"
+                />
+              </label>
+            }
+            <span class="text-foreground-muted max-w-80 text-xs">
+              Device channels for each input ("3,4" stereo, "3" mono). Input 1 feeds the grid; blocks with an input
+              choice can pick the others.
+            </span>
+          </div>
+          <div class="flex flex-wrap items-end gap-4">
             <button xuiButton type="button" [loading]="applying()" [disabled]="!dirty()" (click)="apply()">
               Apply and restart engine
             </button>
@@ -373,6 +396,24 @@ export class SetupPage {
       device: device?.uid ?? null,
       sampleRate: device?.sampleRate ?? this.settings()?.sampleRate ?? 48_000
     });
+  }
+
+  /** The hardware input sources, in the engine's order (Cathode.Dsp.Routing.HardwareInputs.Names). */
+  protected readonly inputSources = ['Input 1', 'Input 2', 'Input 3', 'Input 4', 'USB 5/6', 'USB 7/8'];
+
+  /** The selected device's input channel names, as a tooltip for the input map. */
+  protected readonly channelNames = computed(() =>
+    (this.selectedDevice()?.inputNames ?? []).map((name, i) => `${i + 1}: ${name || 'unnamed'}`).join('\n')
+  );
+
+  protected patchInput(source: number, text: string): void {
+    const inputs = [...(this.settings()?.inputs ?? [[1]])];
+    while (inputs.length <= source) {
+      inputs.push([]);
+    }
+
+    inputs[source] = this.parseChannels(text);
+    this.patch({ inputs });
   }
 
   /** Device channels for the FX Loop block, shown 1-based as on the interface ("3,4"; one channel is mono). */

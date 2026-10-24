@@ -1,5 +1,6 @@
 using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
+using Cathode.Engine;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.EngineHost;
@@ -57,6 +58,53 @@ public sealed class HostAllocationTests : IDisposable {
         Assert.Equal(0, await RoundTripAsync(scene, 1_000));
         Assert.Equal(0, await RoundTripAsync(bypass, 500)); // no audio thread drains the 1,024-command queue
         Assert.Equal(0, await PushesAsync());
+    }
+
+    [Fact]
+    public async Task Multi_output_callbacks_and_their_telemetry_allocate_nothing() {
+        // Outputs 1-4 and the DI out mapped, a grid with an Output 2, Copy Output 1 to Output 2 and the output modes.
+        var token = TestContext.Current.CancellationToken;
+        var graph = Rig();
+        graph.Nodes.Add(new() { Id = "out2", Type = NodeTypes.Output2, Row = 1, Column = 7 });
+        graph.Nodes.Add(new() { Id = "vol2", Type = "volpan", Row = 1, Column = 6 });
+        graph.Cables.Add(new() { From = "reverb1", To = "vol2" });
+        graph.Cables.Add(new() { From = "vol2", To = "out2" });
+        await RoundTripAsync(new() { Type = IpcTypes.LoadGraph, Generation = 1, Graph = graph }, 1);
+        var rig = new IpcMessage {
+            Type = IpcTypes.SetParams,
+            Generation = 1,
+            Params = [
+                new(IpcBlocks.Rig, "copyOut2", 1), new(IpcBlocks.Rig, "out3Mode", 1), new(IpcBlocks.Rig, "out1Level", -3),
+                new(IpcBlocks.GlobalEq(1), "g1k", 3)
+            ]
+        };
+        await RoundTripAsync(rig, 1);
+        using var bus = new OutputBus([0, 2, 4, 6], [8, 9]);
+        var frames = service.Engine.Spec.MaxBlockSize;
+        var input = new float[frames];
+        var left = new float[frames];
+        var right = new float[frames];
+        var telemetry = new HostTelemetry();
+        var push = new IpcMessage { Type = IpcTypes.Telemetry, Telemetry = telemetry };
+
+        async Task<long> CallbacksAsync() {
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < 2_000; i++) {
+                service.Engine.Process(new(input, input, left, right) { Outputs = bus });
+                if (i % 20 == 0) {
+                    output.Position = 0;
+                    service.Telemetry(telemetry);
+                    await writer.WriteAsync(output, push, token);
+                }
+            }
+
+            return GC.GetAllocatedBytesForCurrentThread() - before;
+        }
+
+        await CallbacksAsync(); // warm up
+
+        Assert.Equal(0, await CallbacksAsync());
+        Assert.True(service.Engine.Current!.HasOutput(1));
     }
 
     [Fact]

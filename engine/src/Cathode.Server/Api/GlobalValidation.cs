@@ -15,7 +15,7 @@ static class GlobalValidation {
 
     static readonly string[] Actions = [
         "scene", "sceneNext", "scenePrevious", "presetSlot", "presetNext", "presetPrevious", "bypass", "channel",
-        "external", "manual", "tap", "tuner", "metronome", "looper"
+        "external", "manual", "tap", "tuner", "metronome", "looper", "sceneLevelUp", "sceneLevelDown", "save"
     ];
 
     public static void Check(GlobalSettings settings) {
@@ -66,6 +66,10 @@ static class GlobalValidation {
 
         if (!Oversampling.Contains(settings.Oversampling)) {
             errors.Add($"Oversampling '{settings.Oversampling}' is not minimum or linear.");
+        }
+
+        if (settings.DefaultScene is < -1 or >= Preset.SceneCount) {
+            errors.Add("The default scene is -1 (as saved) or 0-7.");
         }
 
         if (settings.Manual.Count != 4) {

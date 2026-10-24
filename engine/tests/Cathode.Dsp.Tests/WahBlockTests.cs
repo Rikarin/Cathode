@@ -156,6 +156,49 @@ public class WahBlockTests(ITestOutputHelper output) {
         Assert.True(maxStep < 0.15f, $"max step {maxStep}");
     }
 
+    [Theory]
+    [InlineData(0f, 50f, 100f, 0.5)] // heel, Min Frequency 50 %: an octave down
+    [InlineData(0f, 100f, 200f, 1.0)] // heel, Max only: unchanged
+    [InlineData(100f, 100f, 150f, 1.5)] // toe, Max Frequency 150 %
+    [InlineData(100f, 50f, 100f, 1.0)] // toe, Min only: unchanged
+    public void Min_and_max_frequency_move_the_circuits_resonance(
+        float position,
+        float minimum,
+        float maximum,
+        double ratio
+    ) {
+        var stock = CircuitPeak(position, 100f, 100f);
+        var moved = CircuitPeak(position, minimum, maximum);
+
+        Assert.Equal(stock * ratio, moved, stock * ratio * 0.06);
+    }
+
+    [Fact]
+    public void The_sweep_scale_runs_geometrically_from_min_to_max() {
+        Assert.Equal(0.5, WahBlock.SweepScale(0.5, 2, 0), 1e-12);
+        Assert.Equal(1.0, WahBlock.SweepScale(0.5, 2, 0.5), 1e-12);
+        Assert.Equal(2.0, WahBlock.SweepScale(0.5, 2, 1), 1e-12);
+    }
+
+    /// <summary>The Cry Baby circuit's resonant peak at a pedal position and Min/Max Frequency, Hz.</summary>
+    static double CircuitPeak(float position, float minimum, float maximum) {
+        using var wah = Create(WahBlock.FirstCircuit, position);
+        wah.Params.SetTarget(WahBlock.MinFrequency, minimum);
+        wah.Params.SetTarget(WahBlock.MaxFrequency, maximum);
+        wah.Reset();
+        var response = BlockRender.Mono(wah, Signals.Impulse(32_768, 1e-3f), 64);
+        var peak = 100.0;
+        var best = 0.0;
+        for (var f = 100.0; f < 8_000; f *= 1.002) {
+            var magnitude = Analysis.MagnitudeAt(response, f, 48_000);
+            if (magnitude > best) {
+                (best, peak) = (magnitude, f);
+            }
+        }
+
+        return peak;
+    }
+
     static WahBlock Create(int type, float position) {
         var wah = new WahBlock();
         wah.Params.SetTarget(WahBlock.Type, type);

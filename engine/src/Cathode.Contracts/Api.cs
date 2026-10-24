@@ -1,7 +1,19 @@
 namespace Cathode.Contracts;
 
-/// <summary>The rig as it is running: the working copy, which scene is active, and whether it differs from the library.</summary>
-public sealed record LiveState(Preset Preset, int ActiveScene, long Revision, bool Dirty, bool CanUndo, bool CanRedo);
+/// <summary>
+///     The rig as it is running: the working copy, which scene is active, and whether it differs from the library.
+///     <c>Held</c> lists the blocks whose bypass and channel differ from the active scene's because Scene Ignore kept
+///     them as they were: what they are running now.
+/// </summary>
+public sealed record LiveState(
+    Preset Preset,
+    int ActiveScene,
+    long Revision,
+    bool Dirty,
+    bool CanUndo,
+    bool CanRedo,
+    Dictionary<string, SceneBlockState>? Held = null
+);
 
 public sealed record PresetSummary(
     string Id,
@@ -15,7 +27,8 @@ public sealed record AssetInfo(string Ref, string Name, string Kind, long Size, 
 
 /// <summary>
 ///     Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole
-///     driver callback); overloads and the host's GC counts are cumulative since the host started.
+///     driver callback); overloads and the host's GC counts are cumulative since the host started. <c>Inputs</c> names
+///     the hardware input sources the device maps (Input 1–4, USB 5/6, USB 7/8); the others are silent.
 /// </summary>
 public sealed record EngineStatus(
     bool Connected,
@@ -34,7 +47,8 @@ public sealed record EngineStatus(
     int HostGen1 = 0,
     int HostGen2 = 0,
     double HostGcPauseMs = 0,
-    long HostAllocatedBytes = 0
+    long HostAllocatedBytes = 0,
+    IReadOnlyList<string>? Inputs = null
 );
 
 public sealed record SystemInfo(string Version, EngineStatus Engine);
@@ -136,7 +150,11 @@ public sealed record RigEvent(
     int? Scene = null
 );
 
-/// <summary>Pushed over the WebSocket about 30 times a second.</summary>
+/// <summary>
+///     Pushed over the WebSocket about 30 times a second. <c>Blocks</c> is each grid block's output peak since the last
+///     frame, by block id; the loudness is the output's ITU-R BS.1770 momentary (400 ms) and short-term (3 s) level in
+///     LUFS. Both come from the shared-memory telemetry and are absent without it.
+/// </summary>
 public sealed record Telemetry(
     string Type,
     float InputPeak,
@@ -147,6 +165,9 @@ public sealed record Telemetry(
     TunerInfo? Tuner,
     double Tempo = 120,
     LooperInfo? Looper = null,
+    Dictionary<string, float>? Blocks = null,
+    float? LoudnessMomentary = null,
+    float? LoudnessShortTerm = null,
     float[]? OutputPeaks = null
 );
 

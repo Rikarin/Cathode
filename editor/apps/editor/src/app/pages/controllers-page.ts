@@ -17,6 +17,11 @@ import { Notify } from '../core/notify';
 import { GlobalStore } from '../state/global.store';
 import { LiveStore } from '../state/live.store';
 
+/** How the Controllers page names a modifier's scope: all channels, or one. */
+export function scopeName(channel: string | null | undefined): string {
+  return !channel || channel === 'all' ? 'All channels' : `Channel ${channel} only`;
+}
+
 /**
  * The controllers modifiers draw on (docs/02-architecture.md §5.4): two LFOs, two ADSRs, the envelope and pitch
  * followers and the sequencer (stored with the preset), the active scene's level and controllers, and Manual A-D
@@ -227,6 +232,42 @@ import { LiveStore } from '../state/live.store';
           }
         </div>
       </section>
+
+      <section xuiCard class="flex flex-col gap-3 p-4" aria-labelledby="modifiers-heading">
+        <h2 xuiHeading id="modifiers-heading" class="text-sm">Modifiers</h2>
+        <p xuiText class="text-foreground-muted text-xs">
+          Every modified parameter of this preset. A modifier applies on all channels of its block, or on one: on the
+          others the parameter keeps that channel's own value. Right-click a knob on a block's page to add one.
+        </p>
+        @if (modifiers().length === 0) {
+          <p xuiText class="text-foreground-muted text-xs">No modifiers yet.</p>
+        } @else {
+          <xui-table data-testid="modifier-list">
+            <xui-tr>
+              <xui-th>Parameter</xui-th>
+              <xui-th>Source</xui-th>
+              <xui-th>Applies on</xui-th>
+            </xui-tr>
+            @for (m of modifiers(); track m.block + '/' + m.param; let i = $index) {
+              <xui-tr>
+                <xui-td>{{ m.block }} · {{ m.param }}</xui-td>
+                <xui-td>{{ m.source }}</xui-td>
+                <xui-td>
+                  <xui-select
+                    class="w-36"
+                    [attr.aria-label]="m.block + ' ' + m.param + ' channels'"
+                    [filterable]="false"
+                    [items]="modifierScopes"
+                    [itemText]="scopeName"
+                    [value]="m.channel ?? 'all'"
+                    (valueChange)="setScope(i, $event)"
+                  />
+                </xui-td>
+              </xui-tr>
+            }
+          </xui-table>
+        }
+      </section>
     </div>
   `
 })
@@ -239,6 +280,9 @@ export class ControllersPage {
   private readonly pending = signal<Record<string, number>>({});
 
   protected readonly manualNames = ['A', 'B', 'C', 'D'];
+  protected readonly modifiers = computed(() => this.live.preset()?.modifiers ?? []);
+  protected readonly modifierScopes = ['all', 'A', 'B', 'C', 'D'];
+  protected readonly scopeName = scopeName;
   protected readonly maxSceneMidi = 8;
   protected readonly midiTypes = ['pc', 'cc'];
   protected readonly midiTypeName = (type: string) => (type === 'cc' ? 'CC' : 'Program');
@@ -306,6 +350,14 @@ export class ControllersPage {
       });
       this.globals.settings.update(s => (s ? { ...s, manual: s.manual.map((v, i) => (i === index ? value : v)) } : s));
     });
+  }
+
+  /** Scopes modifier <code>index</code> to one channel, or (<code>all</code>) to every channel of its block. */
+  protected setScope(index: number, scope: string | null): void {
+    const modifiers = this.modifiers().map((m, i) =>
+      i === index ? { ...m, channel: !scope || scope === 'all' ? null : scope } : m
+    );
+    void this.live.setModifiers(modifiers);
   }
 }
 

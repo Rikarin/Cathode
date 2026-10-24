@@ -6,7 +6,8 @@ namespace Cathode.Dsp.Tests;
 public class TenTapBlockTests {
     [Fact]
     public void Ten_taps_are_evenly_spaced_with_a_linear_decay() {
-        // Time 200 ms: ten taps every 960 samples, full decay fades them from 1 down to 0.
+        // Time 200 ms: ten taps every 960 samples, full decay fades them from 1 down to 0; at 50 % the constant-power
+        // law puts the dry and the taps at -3 dB.
         using var delay = Create(
             (TenTapBlock.Time, 200f),
             (TenTapBlock.Mix, 50f),
@@ -16,7 +17,8 @@ public class TenTapBlockTests {
 
         var output = BlockRender.Mono(delay, Signals.Impulse(10_000), 64);
 
-        AssertTaps(output, [(0, 1f), ..Enumerable.Range(0, 9).Select(static k => (960 * (k + 1), 1f - k / 9f))]);
+        const float g = 0.70710677f;
+        AssertTaps(output, [(0, g), ..Enumerable.Range(0, 9).Select(static k => (960 * (k + 1), g * (1f - k / 9f)))]);
     }
 
     [Fact]

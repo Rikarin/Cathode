@@ -17,7 +17,8 @@ namespace Cathode.Server.Midi;
 ///     Footswitches: a switch without a hold action acts on press. One with a hold action acts on release (a tap), or
 ///     after <see cref="HoldTime" /> held (the hold action, then nothing on release). Toggles (bypass, tuner,
 ///     metronome) flip on a press; a CC mapping sets them from its value instead (64 and up means on/engaged), and a
-///     CC mapped to a scene selects the scene its value names.
+///     CC mapped to a scene selects the scene its value names (0-7), or steps to the next one, wrapping, for a value
+///     above 63. With Ignore Redundant PC on, a program change for the preset already loaded does nothing.
 /// </remarks>
 public sealed partial class MidiRouter : IDisposable {
     public static readonly TimeSpan HoldTime = TimeSpan.FromMilliseconds(500);
@@ -236,8 +237,17 @@ public sealed partial class MidiRouter : IDisposable {
     async Task ExecuteAsync(SwitchAction action, int data, bool continuous, bool down, long sampleTime) {
         var scenes = Preset.SceneCount;
         switch (action.Action) {
+            case "scene" when continuous && action.Value is null && data > 63: // the top half of a CC steps on
+                await rig.SelectSceneAsync((rig.ActiveScene + 1) % scenes);
+                break;
             case "scene" when down || continuous: // a CC's value is the scene number, whatever it is
                 await rig.SelectSceneAsync(Math.Clamp(action.Value ?? data, 0, scenes - 1));
+                break;
+            case "sceneLevelUp" or "sceneLevelDown" when down:
+                await rig.StepSceneLevelAsync(action.Action == "sceneLevelUp" ? 1f : -1f);
+                break;
+            case "save" when down:
+                await rig.SaveAsync(new(), null);
                 break;
             case "sceneNext" when down:
                 await rig.SelectSceneAsync((rig.ActiveScene + 1) % scenes);
@@ -246,7 +256,11 @@ public sealed partial class MidiRouter : IDisposable {
                 await rig.SelectSceneAsync((rig.ActiveScene + scenes - 1) % scenes);
                 break;
             case "presetSlot" when down && action.Target is { } bank:
-                await rig.LoadAsync(library.Slot(bank, action.Value ?? data));
+                var slot = library.Slot(bank, action.Value ?? data);
+                if (!(globals.Get().IgnoreRedundantPc && slot == rig.PresetId)) {
+                    await rig.LoadAsync(slot);
+                }
+
                 break;
             case "presetNext" or "presetPrevious" when down:
                 var all = presets.List().OrderBy(static p => p.Name, StringComparer.OrdinalIgnoreCase).ToList();

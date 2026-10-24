@@ -61,13 +61,15 @@ static class ServeCommand {
             buffer,
             1,
             LoopChannels.Parse(options.Text("loop-in"), options.Text("loop-out")),
+            InputMap.Parse(options.Text("input-map")),
             OutputBus.Parse(options.Text("outputs"), options.Text("di-out"))
         );
         using var deviceService = new EngineHostService(
             new(session.SampleRate, session.BufferFrames),
             NativeAudio.Backend,
             device: new NativeDeviceMonitor(session),
-            telemetryPath: telemetry
+            telemetryPath: telemetry,
+            inputSources: session.Inputs.Mask
         );
         forwarder.Target = deviceService.Engine;
         if (options.Flag("mute")) {

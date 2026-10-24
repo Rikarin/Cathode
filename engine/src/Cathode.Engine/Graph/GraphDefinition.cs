@@ -108,6 +108,12 @@ public sealed class ModifierDefinition {
 
     /// <summary>Damping of falls, in ms (0 = none).</summary>
     public float ReleaseMs { get; set; }
+
+    /// <summary>
+    ///     Whether the modifier starts out driving its parameter. A modifier scoped to one channel is compiled
+    ///     disabled while its block is on another, and switched by <c>EngineCommandKind.SetModifier</c>.
+    /// </summary>
+    public bool Enabled { get; set; } = true;
 }
 
 public sealed class NodeDefinition {

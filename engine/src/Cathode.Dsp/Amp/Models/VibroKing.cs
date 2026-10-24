@@ -9,7 +9,7 @@ namespace Cathode.Dsp.Amp.Models;
 ///     beside it), V4B (100k, 1.5k ‖ 0.47 µF) with the Fender stack on its plate (150 pF, 100k slope, 0.047 µF bass,
 ///     0.022 µF mid; 250k treble and bass, 25k mid), 100k and 0.01 µF into a 12AX7 long-tail pair (91k/100k, 820 Ω, 39k
 ///     tail), two 6L6GC in fixed bias at 465 V on a silicon bridge, and no global feedback. Panel: Volume, Treble, Bass,
-///     Middle, Fat. Reverb (Mix at its dry end) and vibrato (intensity at 0) are not modelled.
+///     Middle, Fat. Reverb (Mix at its dry end) is not modelled; the vibrato is <see cref="Vibrato" />.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -24,8 +24,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     </para>
 ///     <para>
 ///         With the Mix control at its dry end the follower drives V4A directly; the reverb's wet network on the pot's
-///         other
-///         end and the vibrato's LDR (about 5M with the intensity at 0) on the stack's 100k are left out. Unverified: the
+///         other end is left out, and so is the Intensity pot's 250k track on the stack's output (the vibrato acts
+///         relative to the dark cell: see <see cref="OpticalTremoloDesign" />). Unverified: the
 ///         pot
 ///         tapers (not on the drawing: volume, treble and bass audio, mid linear, as on the AB763s), the output
 ///         transformer
@@ -36,6 +36,39 @@ namespace Cathode.Dsp.Amp.Models;
 /// </remarks>
 public static class VibroKing {
     const double Preamp = 392;
+
+    /// <summary>
+    ///     The vibrato, from revision A of the drawing: V5A (½ 12AX7, R48 220k from the "Z" node, taken as the 392 V preamp
+    ///     node; R55 2.7k with C24 22 µF; C36 220 pF from the plate to the cathode's return) with C27 0.022 µF from its
+    ///     plate to R53 270k and the 5M Speed rheostat R8 to ground, C39 0.01 µF to a node with R52 1M to the pedal's
+    ///     return (R54 470k with C23 10 µF: an AC ground), C38 0.01 µF to the grid with R51 1M to the same return; V5B as
+    ///     the lamp driver on that node (R56 100k with C25 22 µF), the neon lamp and R49 100k from "Z" to its plate, R50 10M
+    ///     across them; the two photocells of the optocoupler, in parallel, from the 250k Intensity pot R9's wiper to
+    ///     ground, the pot's top on the output of the stack's 100k (the inverter's input). Not on the drawing (guesses):
+    ///     the Speed and Intensity tapers (reverse audio and linear) and the "Z" node's voltage.
+    /// </summary>
+    static OpticalTremoloDesign Vibrato { get; } = new(
+        new(
+            TriodeModel.Ecc83,
+            Preamp,
+            220e3,
+            2.7e3,
+            0.022e-6,
+            0.01e-6,
+            0.01e-6,
+            270e3,
+            1e6,
+            1e6,
+            new(5e6, PotTaper.ReverseAudio),
+            PlateShunt: 220e-12
+        ),
+        Preamp,
+        100e3,
+        100e3,
+        new(250e3, PotTaper.Linear),
+        0,
+        DownstreamLoad: 1e6
+    );
 
     public static AmpDesign Design { get; } = new(
         "Vibro-King",
@@ -76,7 +109,9 @@ public static class VibroKing {
             Cut = null,
             Master = null,
             Bright = null,
-            Switch1 = "Fat"
+            Switch1 = "Fat",
+            TremoloRate = "Speed",
+            TremoloDepth = "Intensity"
         }
     };
 
@@ -147,6 +182,6 @@ public static class VibroKing {
         net.Rheostat(middle, StageNetlist.Ground, new(25e3, PotTaper.Linear), PotRole.Middle);
         net.Resistor(treble, output, 100e3);
         net.Output = output;
-        return new("V4B", net);
+        return new("V4B", net) { Tremolo = Vibrato };
     }
 }

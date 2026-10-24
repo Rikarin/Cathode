@@ -188,10 +188,11 @@ Ordered by value to a guitarist:
 - [x] **Tempo:** preset, global or MIDI clock (24 ppqn, averaged in the host). Tap tempo is sample-accurate (MIDI timestamps become engine sample times), and a tapped tempo is taken back into the preset.
 - [x] **MIDI:**
   - The native shim reads CoreMIDI on macOS. Windows and Linux are stubs, like their audio backends.
-  - Mappings (CC, note or PC) cover scene, preset slot or next/previous, bypass, channel, External, Manual, tap, tuner, metronome and the looper. Actions run strictly in arrival order.
+  - Mappings (CC, note or PC) cover scene, preset slot or next/previous, bypass, channel, External, Manual, tap, tuner, metronome, the looper, 🆕 scene level up/down (with save) and save. Actions run strictly in arrival order.
   - MIDI learn works from the Global page or from any knob ("Learn MIDI controller" binds a free External source). There is a live monitor.
 - [x] **Footswitch layouts:** tap and hold (500 ms) actions per switch, LED feedback (CC or note, 127/0, sent only on change), and an editor on the Global page.
 - [x] **Looper:** stereo, 60 s, at the end of the rig so it survives preset changes. Overdub has a one-pass undo layer, plus reverse, half speed and WAV export. **Metronome** (accented, never recorded). Both are in the toolbar. 🆕 The same looper is also a grid block (`looper`, docs/08 §6.14) with the Blocks Guide's Config page; the transport drives it while its preset is running.
+- [x] **Preset and scene features** (Fractal's *Presets* page, docs/08 §9): Scene Ignore per channel, Scene Revert, default scene on load (as saved or fixed), startup preset, Ignore Redundant PC, copy/swap scenes, swap/reset channels and reset block, a Scene Manager page, per-block meters on the grid and a BS.1770 loudness meter with a Preset Leveling tool, MIDI scene level ±1 dB with save, a stepping scene CC, modifiers scoped to one channel, a spillover switch, grid loops that survive a preset change, a confirm before discarding edits, a text export of the preset list, and recent presets.
 - [x] **Global blocks:** a block can be made global, use a global or be unlinked. Linked blocks take the library's settings on load, and editing one updates the library. There is also a **global output EQ** (10 bands plus level).
 
 **Exit:** a live set of 10 presets × 8 scenes runs with a MIDI foot controller, with no gaps or clicks, verified by HIL soak with scene storms.
@@ -246,7 +247,7 @@ Close the gap with the Axe-Fx III block list in [01](01-axe-fx-iii-audit.md), in
 12. [x] **Parity: engine and global** ([08 §1.2](08-blocks-parity.md#12-what-this-pass-implemented)): `IEngageAware` (LFO Bypass Reset, Tremolo Start Phase), Global Mix with a global Effects Mix offset, blocks on the Input (noise gate) and Output (row mixer) cells, Scene MIDI, Compressor and Gate sidechain sources (`ISidechainBlock`), Compressor look-ahead (latency with a `Recompile` parameter), the Block Library of factory and user block presets, two Feedback Send/Return pairs, the RTA as a grid block, Stereo Spread to ±200 %, and a modifier on a block's engage.
 
 13. [x] **Audio I/O** ([08 §2.1](08-blocks-parity.md#21-audio-io-wiki-audio-io-and-amplification)): Output 2–4 grid blocks mapped to device channel pairs, Copy Output 1 to Output 2, per-output mode, global EQ and Boost/Pad, Input 1 calibration (full-scale volts, read by the Circuit Amp and Drive) with a Setup helper, Input 1 Gain, input and output clip warnings, a pickup-load Input Impedance on the Input block, the dry DI out, a linear-phase oversampling mode (and the Drive's own factor) with its latency compensated, a latency report, a stereo-into-mono hint on the grid and the cab resonance helper.
-   - *Waiting on multi-channel input* (stream PA): calibration, gain, clip warning and the DI out cover input 1; their settings are already lists per input.
+   - With multi-channel input, calibration, gain, the clip warning and the DI out cover Input 1, the main input; the settings are lists per input, ready for the other sources.
 
 **Definition-of-done tooling added in this phase:**
 - `tools/Cathode.Bench` measures every block (the worst of its types, with the longest IRs) and writes `BlockCosts.cs`. The conformance suite fails for a block without a cost.

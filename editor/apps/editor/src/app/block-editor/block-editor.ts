@@ -15,7 +15,9 @@ import {
   matLinkRound,
   matMoreHorizRound,
   matPublicRound,
+  matRestartAltRound,
   matSaveRound,
+  matSwapHorizRound,
   matTuneRound
 } from '@ng-icons/material-icons/round';
 import { XuiButtonImports } from '@xui/button';
@@ -91,7 +93,9 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
       matLinkRound,
       matMoreHorizRound,
       matPublicRound,
+      matRestartAltRound,
       matSaveRound,
+      matSwapHorizRound,
       matTuneRound
     })
   ],
@@ -174,6 +178,15 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                 [value]="live.channelOf(block.id)"
                 (valueChange)="$event && live.setChannel(block.id, $event)"
               />
+              <label class="text-foreground-muted flex items-center justify-between gap-3 text-xs">
+                Scene Ignore on {{ live.channelOf(block.id) }}
+                <xui-switch
+                  data-testid="scene-ignore"
+                  [attr.aria-label]="'Scene Ignore on channel ' + live.channelOf(block.id)"
+                  [checked]="live.ignoresScenes(block, live.channelOf(block.id))"
+                  (checkedChange)="live.setSceneIgnore(block.id, live.channelOf(block.id), $event)"
+                />
+              </label>
             </div>
           }
 
@@ -241,8 +254,31 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                     </button>
                   }
                 }
+                <xui-menu-divider [title]="'Swap channel ' + live.channelOf(block.id) + ' with'" />
+                @for (channel of channels; track channel.value) {
+                  @if (channel.value !== live.channelOf(block.id)) {
+                    <button
+                      xuiMenuItem
+                      icon="matSwapHorizRound"
+                      (click)="live.swapChannels(block.id, live.channelOf(block.id), channel.value)"
+                    >
+                      Channel {{ channel.label }}
+                    </button>
+                  }
+                }
                 <xui-menu-divider />
+                <button
+                  xuiMenuItem
+                  icon="matRestartAltRound"
+                  (click)="live.resetChannel(block.id, live.channelOf(block.id))"
+                >
+                  Reset channel {{ live.channelOf(block.id) }}
+                </button>
               }
+              <button xuiMenuItem icon="matRestartAltRound" color="error" (click)="live.resetBlock(block.id)">
+                Reset block (all channels)
+              </button>
+              <xui-menu-divider />
               @if (isIo()) {
                 <!-- The grid's Input and Output cannot be global. -->
               } @else if (block.global) {

@@ -8,6 +8,7 @@ const block = (id: string, row: number, column: number, type = 'delay'): PresetB
   column,
   channels: {},
   assets: {},
+  sceneIgnore: [],
   bypassMode: 'thru'
 });
 

@@ -19,6 +19,12 @@ public interface IEngineSync {
     /// <summary>Fire-and-forget, ordered after any earlier command.</summary>
     void SetBypass(int generation, string block, bool bypassed);
 
+    /// <summary>
+    ///     Turns a channel-scoped modifier on or off; off puts its parameter back to <paramref name="baseValue" />.
+    ///     Fire-and-forget, ordered after any earlier command.
+    /// </summary>
+    void SetModifier(int generation, string block, string param, bool enabled, float baseValue);
+
     void SetTuner(bool enabled);
 
     /// <summary>A tap; <paramref name="sampleTime" /> places it exactly (from a MIDI timestamp), null means now.</summary>

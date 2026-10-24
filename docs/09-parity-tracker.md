@@ -5,9 +5,9 @@
 **Sources** (paraphrased, never quoted):
 - Fractal's *Blocks Guide* (June 2023);
 - the Axe-Fx III amp list (FW 12.05);
-- the Fractal wiki pages *Amp models*, *Presets*, *Editors* and *Audio I/O and amplification* (October 2026).
+- the Fractal wiki pages *Amp models*, *Presets*, *Editors*, *Audio I/O and amplification* and *Cab block* (October 2026).
 
-**Status date:** 24 October 2026, round 3 started (streams T, M1, M2, PA, PB, PS, ED, IO).
+**Status date:** 24 October 2026, round 3 in progress (T, PS, PA merged and audited) (streams T, M1, M2, PA, PB, PS, ED, IO, CB).
 
 ## How to audit
 
@@ -32,16 +32,16 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| T1 | Bias tremolo in the power amp: phase-shift oscillator solved from its parts, bias coupling network | ⬜ | | |
-| T2 | Bias tremolo on Deluxe 6G3, Vibrolux 6G11 | ⬜ | | |
-| T3 | Gibson Scout GA-17RVT tremolo (type checked against the drawing) | ⬜ | | |
-| T4 | Other models whose drawings show bias modulation (Tremolux AA763, Princetons, AC15: check each) | ⬜ | | |
-| T5 | Optical (bulb/LDR) tremolo: Deluxe Reverb, Twin, Super, Princeton Reverb, Vibroverb, Vibrolux Reverb, Bandmaster, Vibro-King, Blues Junior if any | ⬜ | | LDR attack/release and resistance law |
-| T6 | Marshall volume-wiper tremolo: 18 W 1974X, Bluesbreaker 1962, JMP 1959T | ⬜ | | load already modelled at rest |
-| T7 | Vox AC15 / AC30 vibrato-tremolo, where the model has the channel | ⬜ | | |
-| T8 | `tremrate` / `tremdepth` drive each model's own oscillator; per-model labels via AmpPanel | ⬜ | | P4's generic bias trem kept for models without one |
-| T9 | Intensity 0 renders bit-identical to master for every model | ⬜ | | |
-| T10 | Tests: rate range vs component values, depth, no clicks, no allocation, CPU within budget | ⬜ | | |
+| T1 | Bias tremolo in the power amp: phase-shift oscillator solved from its parts, bias coupling network | ✅ | TremoloTests.The_oscillator_solves_the_textbook_ladder, The_rate_range_follows_the_drawing | Amp/Tremolo.cs; swing reaches the grids through the real coupling network |
+| T2 | Bias tremolo on Deluxe 6G3, Vibrolux 6G11 | ✅ | Full_intensity_modulates_the_note_at_the_rate, Intensity_zero_is_the_model_without_its_tremolo (Deluxe 6G3, Vibrolux 6G11) | 2.9–10.8 Hz; 9 / 26 dB depth |
+| T3 | Gibson Scout GA-17RVT tremolo (type checked against the drawing) | ✅ | same tests (Scout GA-17RVT) | a bias tremolo; 2.9–5.1 Hz; panel label Depth |
+| T4 | Other models whose drawings show bias modulation (Tremolux AA763, Princetons, AC15: check each) | ✅ | same tests (Princeton AA964, Princeton Reverb) | Tremolux is optical (T5); AC15 has no readable drawing |
+| T5 | Optical (bulb/LDR) tremolo: Deluxe Reverb, Twin, Super, Princeton Reverb, Vibroverb, Vibrolux Reverb, Bandmaster, Vibro-King, Blues Junior if any | ✅ | The_lamp_driver_sits_where_the_drawings_measure_it + the T2 tests (8 models) | Amp/StageTremolo.cs; CdS cell values guessed (no datasheet); Blues Junior has none. The mixer's Intensity pot track (~4 dB) is being added, approved for accuracy |
+| T6 | Marshall volume-wiper tremolo: 18 W 1974X, Bluesbreaker 1962, JMP 1959T | ◐ | 18 W in the T2 tests | 18 W built (V3B grid drive). Bluesbreaker: FET preset RV2 setting not on the drawing. 1959T: transistor network illegible |
+| T7 | Vox AC15 / AC30 vibrato-tremolo, where the model has the channel | ⏸ | — | AC30 model has no Vib-Trem channel; no readable AC15 drawing |
+| T8 | `tremrate` / `tremdepth` drive each model's own oscillator; per-model labels via AmpPanel | ✅ | The_panel_names_the_tremolo | 6G12/6G4 keep their own vibrato knobs; others keep the generic bias trem |
+| T9 | Intensity 0 renders bit-identical to master for every model | ✅ | Intensity_zero_is_the_model_without_its_tremolo; 81-model hash comparison against master | the pot-track accuracy fix will change the AB763 family at Intensity 0 by design |
+| T10 | Tests: rate range vs component values, depth, no clicks, no allocation, CPU within budget | ✅ | The_onset_is_smooth, The_tremolos_do_not_allocate, The_tremolo_costs_little | the CPU test is load-sensitive (failed 1 in 3 alone on a busy machine); being made robust |
 
 ## M1: remaining Marshalls
 
@@ -68,21 +68,21 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| PA1 | Multi-channel audio input: shim (CoreAudio), Cathode.Audio, host, engine config, server device settings | ⬜ | | default stays one stereo pair |
-| PA2 | Input node source selects hardware inputs 1–4 / USB (§2) | ⬜ | | needs PA1 |
-| PA3 | Mux Input Select from hardware inputs (§6.19) | ⬜ | | needs PA1 |
-| PA4 | Pitch Detector Source / Vocoder Analysis Source from hardware inputs | ⬜ | | needs PA1 |
-| PA5 | Compressor / Gate sidechain from a hardware input | ⬜ | | needs PA1 |
-| PA6 | Cab: stereo room mic spacing (left/right room IRs per slot) | ⬜ | | the last ❌ in 08 §1.1 |
-| PA7 | Cab: separate Preamp Mode | ⬜ | | |
-| PA8 | Cab: visual Align view in the editor | ⬜ | | |
-| PA9 | Compressor: JFET, tube and compander algorithms; single-knob compression types | ⬜ | | |
-| PA10 | Graphic EQ: component-level passive types (Mark 5-band, 5/4/3-band, console) | ⬜ | | replaces the approximations |
-| PA11 | Pitch: Learn and an editable custom scale | ⬜ | | |
-| PA12 | Plex: Shift Direction per the guide's meaning | ⬜ | | |
-| PA13 | Rotary: Low Rate Multiplier | ⬜ | | |
-| PA14 | Wah: Min/Max Frequency on the circuit types | ⬜ | | |
-| PA15 | Any other ◐ / ❌ in 08 §2, §3, §5, §6 not owned by PB | ⬜ | | list them here on merge |
+| PA1 | Multi-channel audio input: shim (CoreAudio), Cathode.Audio, host, engine config, server device settings | ◐ | HardwareInputTests (Input_maps_parse_one_channel_list_per_source, A_replaced_graph_stops_hearing_the_hardware_inputs, …) | tested through the offline renderer only, never on a multi-input device |
+| PA2 | Input node source selects hardware inputs 1–4 / USB (§2) | ✅ | The_input_cell_takes_the_source_it_selects, Changing_the_input_source_crossfades, … | Input cell `source` |
+| PA3 | Mux Input Select from hardware inputs (§6.19) | ✅ | The_multiplexer_can_select_a_hardware_input | Mux `input` 7–12 |
+| PA4 | Pitch Detector Source / Vocoder Analysis Source from hardware inputs | ✅ | The_pitch_detector_can_track_a_hardware_input; The_vocoder_can_analyse_a_hardware_input | needs PA1 |
+| PA5 | Compressor / Gate sidechain from a hardware input | ✅ | A_compressor_sidechain_can_listen_to_a_hardware_input; A_gate_sidechain_can_listen_to_a_hardware_input | old "Input" option renamed "Grid Input" |
+| PA6 | Cab: stereo room mic spacing (left/right room IRs per slot) | ✅ | CabRoomAndPreampTests (Spaced_room_mics_differ_in_the_reflections_and_more_so_the_wider_they_are, …) | `micspacing` 0–300 cm, DynaCab slots |
+| PA7 | Cab: separate Preamp Mode | ✅ | High_quality_preamp_folds_back_less_than_economy | Preamp Mode = Economy / High Quality (4× oversampled) |
+| PA8 | Cab: visual Align view in the editor | ◐ | The_cab_align_page_reports_each_slot_onset_and_delays; cab-align specs | editor Align view not clicked through in the app |
+| PA9 | Compressor: JFET, tube and compander algorithms; single-knob compression types | ✅ | CompressorTypesTests (8 tests) | JFET, Tube, Compander, Compression knob |
+| PA10 | Graphic EQ: component-level passive types (Mark 5-band, 5/4/3-band, console) | ✅ | PassiveGraphicEqTests | Mark values from docs/06; input resistors and inductor ESR assumed. Amp output EQ keeps the approximations (PB area) |
+| PA11 | Pitch: Learn and an editable custom scale | ✅ | PitchLearnAndCustomScaleTests | Learn cannot write the Key param; latches until Key moves |
+| PA12 | Plex: Shift Direction per the guide's meaning | ✅ | Reverse_direction_keeps_the_interval_and_plays_each_grain_backwards | the existing behaviour matched the guide |
+| PA13 | Rotary: Low Rate Multiplier | ✅ | Low_rate_multiplier_scales_the_drum_speed |  |
+| PA14 | Wah: Min/Max Frequency on the circuit types | ✅ | Min_and_max_frequency_move_the_circuits_resonance |  |
+| PA15 | Any other ◐ / ❌ in 08 §2, §3, §5, §6 not owned by PB | ◐ | — | closed: Gate/Vocoder/Pitch hardware sources, §7 rows. Left: five newer wah voicings as circuits, classic digital reverb types, Pitch formant correction, legacy factory cab banks (licensing) |
 
 ## PB: Drive and the Amp block's advanced page
 
@@ -106,27 +106,27 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| PS1 | Scene Ignore, per channel | ⬜ | | |
-| PS2 | Kill Dry on Delay, Multitap, Pitch, Plex, Reverb | ⬜ | | |
-| PS3 | Per-block mix laws (constant power / sweetened / linear / dry 0 dB) | ⬜ | | changes mid-Mix sound: goldens to list |
-| PS4 | Scene Revert setting | ⬜ | | |
-| PS5 | Default scene on preset load (As Saved / fixed) | ⬜ | | |
-| PS6 | Startup preset | ⬜ | | |
-| PS7 | Ignore Redundant PC | ⬜ | | |
-| PS8 | Copy / swap scenes | ⬜ | | |
-| PS9 | Swap channels; reset channel; reset block | ⬜ | | |
-| PS10 | Scene Manager view (blocks × scenes) | ⬜ | | |
-| PS11 | Per-block level meters in telemetry and on the grid | ⬜ | | |
-| PS12 | BS.1770 loudness meter on the output | ⬜ | | |
-| PS13 | Preset Leveling tool | ⬜ | | |
-| PS14 | MIDI: Vol Inc / Vol Dec (scene level ±1 dB + save), Level + Save | ⬜ | | |
-| PS15 | MIDI: scene CC values above 63 step through scenes | ⬜ | | |
-| PS16 | Modifier scope: all channels or one | ⬜ | | |
-| PS17 | Global preset-change spillover on/off | ⬜ | | |
-| PS18 | Grid Looper survives a preset change when both presets have one | ⬜ | | |
-| PS19 | Prompt on unsaved edits before changing presets | ⬜ | | |
-| PS20 | Export the preset list as text with scene names | ⬜ | | |
-| PS21 | Recent Presets menu | ⬜ | | |
+| PS1 | Scene Ignore, per channel | ✅ | PresetSceneApiTests.Scene_ignore_holds_a_block_across_scenes_until_its_channel_stops_ignoring | `sceneIgnore` per channel; held blocks in `LiveState.held` |
+| PS2 | Kill Dry on Delay, Multitap, Pitch, Plex, Reverb | ✅ | MixLawTests.Kill_dry_leaves_only_the_wet | `killDry` on delay, multidelay, pitch, plex, reverb |
+| PS3 | Per-block mix laws (constant power / sweetened / linear / dry 0 dB) | ✅ | MixLawTests.Each_block_follows_its_law (14 blocks) | Delay "sweetened" law is an interpretation (docs/08 §3); goldens chorus/flanger/phaser/reverb/multidelay/tentap regenerated |
+| PS4 | Scene Revert setting | ✅ | Scene_revert_recalls_the_saved_scene_and_off_keeps_changes_made_while_playing |  |
+| PS5 | Default scene on preset load (As Saved / fixed) | ✅ | A_preset_loads_on_the_scene_it_was_saved_on_or_on_the_global_default_scene |  |
+| PS6 | Startup preset | ✅ | The_startup_preset_loads_when_the_server_starts | calls the start-up path directly, no process restart |
+| PS7 | Ignore Redundant PC | ✅ | Ignore_redundant_pc_leaves_the_loaded_preset_alone |  |
+| PS8 | Copy / swap scenes | ✅ | Scenes_copy_and_swap_and_the_scene_manager_edits_any_scene_with_undo |  |
+| PS9 | Swap channels; reset channel; reset block | ✅ | Channels_swap_and_reset_and_a_block_resets_to_its_defaults | channel swap moves data; scenes keep their letters |
+| PS10 | Scene Manager view (blocks × scenes) | ✅ | scene-manager spec `sceneRows`; PUT /live/scenes/{n}/blocks/{id} in the scene test | checked in the editor by the stream |
+| PS11 | Per-block level meters in telemetry and on the grid | ◐ | Block_peaks_and_loudness_reach_the_telemetry_region; Telemetry_carries_block_meters_by_id_and_the_output_loudness | grid meters seen only on silence (no input on the null backend) |
+| PS12 | BS.1770 loudness meter on the output | ✅ | LoudnessMeterTests | −3.01 LUFS for a full-scale 997 Hz sine in one channel |
+| PS13 | Preset Leveling tool | ◐ | leveling.ts spec | dialog opens; not measured with real playing |
+| PS14 | MIDI: Vol Inc / Vol Dec (scene level ±1 dB + save), Level + Save | ✅ | Midi_steps_the_scene_level_and_saves_and_a_high_scene_cc_steps_to_the_next_scene |  |
+| PS15 | MIDI: scene CC values above 63 step through scenes | ✅ | same test | wraps 8 → 1 |
+| PS16 | Modifier scope: all channels or one | ✅ | A_modifier_scoped_to_one_channel_drives_its_parameter_only_there; A_disabled_modifier_leaves_its_parameter_until_it_is_turned_on |  |
+| PS17 | Global preset-change spillover on/off | ✅ | With_spillover_off_a_preset_change_cuts_the_old_tail_after_the_swap_fade; The_spillover_setting_reaches_the_rig |  |
+| PS18 | Grid Looper survives a preset change when both presets have one | ✅ | A_playing_grid_loop_carries_on_into_the_next_preset_when_it_has_a_looper_too; A_loop_stops_when_the_next_preset_has_no_looper |  |
+| PS19 | Prompt on unsaved edits before changing presets | ✅ | PresetSwitcher spec `needsConfirm` | checked in the editor by the stream |
+| PS20 | Export the preset list as text with scene names | ✅ | The_preset_list_exports_as_text_with_scene_names | GET /presets/list.txt; the export button not clicked |
+| PS21 | Recent Presets menu | ◐ | spec `pushRecent` | no component test; menu checked in the editor by the stream |
 
 ## ED: editor workflow (wiki *Editors*)
 
@@ -172,6 +172,22 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | IO12 | Editor hint when stereo effects sit before a mono-summing block | ⬜ | | |
 | IO13 | Cab resonance helper: guided sine sweep that writes the amp's LF Resonance | ⬜ | | |
 
+## CB: Cab block (wiki *Cab block*)
+
+| ID | Item | Status | Evidence | Notes |
+|---|---|---|---|---|
+| CB1 | Stereo input: slots 1 and 3 read the left input, 2 and 4 the right | ⬜ | | today every slot hears both sides |
+| CB2 | Preamp types to 11 (FET 1/2, Tape 70/50/35 µs, Vintage, Modern, Exciter) | ⬜ | | PA7 owns the High Quality mode |
+| CB3 | Preamp input VU (0 = onset of clipping) | ⬜ | | |
+| CB4 | Smoothing and Proximity per slot | ⬜ | | today both are global |
+| CB5 | Mic distance up to 3.4 m, shown in mm and ms; Auto-Align switch | ⬜ | | today the delay stops at 5 ms |
+| CB6 | Motor Drive (voice-coil thermal compression) with time constant and gain-reduction meter | ⬜ | | |
+| CB7 | IR import: minimum-phase / auto-trim / as-is, peak-positive polarity, stereo channel choice, length | ⬜ | | |
+| CB8 | FullRes IRs (~1.4 s) in the Cab block via partitioned convolution | ⬜ | | today 8,192 samples |
+| CB9 | Flat slot source | ⬜ | | |
+| CB10 | Global "cab modelling off" switch | ⬜ | | |
+| CB11 | Export the block's current mix (DynaCab slots included) as an IR file | ⬜ | | |
+
 ## Known open items from earlier rounds
 
 These were reported as left over or deliberately deferred, and are not assigned to a stream yet.
@@ -196,4 +212,4 @@ These were reported as left over or deliberately deferred, and are not assigned 
 | Pitch has two row-input mechanisms (`IRowInputBlock`, `ISidechainBlock`) | ⬜ | Could be unified |
 | Library-wide open issues: TriodeStage output resistance with a partly bypassed cathode; Thévenin cut behind plate-bypass cold clippers; JC-120 tone-stack level | ⬜ | docs/06 |
 | Windows `HostAllocationTests` intermittent 4-byte allocation | ⬜ | Per-thread allocation measured across awaits |
-| Load-sensitive tests (cab crossfade, CPU-per-type) | ⬜ | Pass alone; flaky under heavy load |
+| Load-sensitive tests (cab crossfade, CPU-per-type, tremolo CPU) | ⬜ | Pass alone; flaky under heavy load. The tremolo one is being fixed by T |

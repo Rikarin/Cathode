@@ -47,6 +47,8 @@ public static class RigControls {
             ParamDescriptor.Float("in1Cal", "Input 1 Full Scale", -30f, 40f, 0f, "dBV"),
             ParamDescriptor.Switch("copyOut2", "Copy Output 1 to Output 2"),
             ..Enumerable.Range(1, 4).SelectMany(static k => Output(k)),
+            // Preset-change spillover: on, the outgoing preset's tails ring out; off, it fades out in the swap fade.
+            ParamDescriptor.Switch("spillover", "Preset Spillover", true),
             ..Names("manual", ["A", "B", "C", "D"], "Manual "),
             ..Names("scene", ["1", "2", "3", "4"], "Scene Controller "),
             ..Names("ext", ["1", "2", "3", "4", "5", "6", "7", "8"], "External "),

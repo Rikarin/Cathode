@@ -24,7 +24,7 @@ public static class Vibroverb {
         [
             Ab763.FirstStage(410),
             Ab763.SecondStage(410),
-            Ab763.Mixer(410)
+            Ab763.Mixer(410) with { Tremolo = Ab763.Vibrato(465) }
         ],
         new(
             "2 x 6L6GC",
@@ -58,7 +58,9 @@ public static class Vibroverb {
             Depth = null,
             Cut = null,
             Master = null,
-            Switch1 = "Vibrato Ch"
+            Switch1 = "Vibrato Ch",
+            TremoloRate = "Speed",
+            TremoloDepth = "Intensity"
         }
     };
 }

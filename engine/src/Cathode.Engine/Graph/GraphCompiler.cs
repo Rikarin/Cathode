@@ -20,6 +20,8 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
 
     /// <summary>The engine's test tone, handed to every graph (the cab resonance helper).</summary>
     public TestTone? TestTone { get; init; }
+    /// <summary>The audio interface's input sources, handed to blocks that can read one (the engine's own).</summary>
+    public HardwareInputs? HardwareInputs { get; init; }
 
     public CompiledGraph Compile(GraphDefinition definition, ProcessSpec spec, int generation = 0) {
         var errors = new List<string>();
@@ -46,6 +48,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         var bypassed = new List<bool>();
         var bypassModes = new List<BypassKind>();
         AnalyzerTap? analyzer = null;
+        InputPort? port = null;
         for (var n = 0; n < nodes.Count; n++) {
             slotOfNode[n] = -1;
             var node = nodes[n];
@@ -73,6 +76,10 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             LoadAssets(node, block, errors);
             if (block is FxLoopBlock loop) {
                 loop.Port = HardwareLoop;
+            }
+
+            if (block is IHardwareInputBlock reader && HardwareInputs is { } hardware) {
+                reader.Inputs = port ??= new(hardware, spec.SampleRate);
             }
 
             if (block is RtaBlock rta) {
@@ -130,7 +137,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                         false,
                         modifier.AttackMs,
                         modifier.ReleaseMs
-                    )
+                    ) { Enabled = modifier.Enabled }
                 );
             } else {
                 var param = blocks[slot].Descriptor.Params[index];
@@ -145,7 +152,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                         param.Taper == ParamTaper.Log,
                         modifier.AttackMs,
                         modifier.ReleaseMs
-                    )
+                    ) { Enabled = modifier.Enabled }
                 );
             }
         }
@@ -371,7 +378,8 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             [..emitter.Delays],
             graphLatency,
             [..modifiers],
-            analyzer
+            analyzer,
+            port
         ) {
             LatencyPath = path,
             Tone = TestTone
