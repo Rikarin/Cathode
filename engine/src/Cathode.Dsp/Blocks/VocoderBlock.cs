@@ -330,8 +330,7 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
         var side = fromRow && sideFrames == n;
 
         var mix = Params.Advance(Mix, n) / 100f;
-        var mixStep = (mix - this.mix) / n;
-        var currentMix = this.mix;
+        var gains = new MixRamp(MixLaw.DryUnity, this.mix, mix, n);
         var voices = intervals.Length;
         var voiceGain = 1 / Math.Sqrt(voices);
 
@@ -368,9 +367,9 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
                 wetRight += air;
             }
 
-            currentMix += mixStep;
-            io.Left[i] = left + ((float)wetLeft - left) * currentMix;
-            io.Right[i] = right + ((float)wetRight - right) * currentMix;
+            gains.Advance();
+            io.Left[i] = left * gains.Dry + (float)wetLeft * gains.Wet;
+            io.Right[i] = right * gains.Dry + (float)wetRight * gains.Wet;
         }
 
         for (var k = 0; k < MaxBands; k++) {

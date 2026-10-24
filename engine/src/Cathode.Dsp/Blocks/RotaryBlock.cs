@@ -253,8 +253,7 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         var currentHornGain = this.hornGain;
         var currentDrumGain = this.drumGain;
         var mix = Params.Advance(Mix, n) / 100f;
-        var mixStep = (mix - this.mix) / n;
-        var currentMix = this.mix;
+        var gains = new MixRamp(MixLaw.ConstantPower, this.mix, mix, n);
 
         for (var i = 0; i < n; i++) {
             var left = io.Left[i];
@@ -292,12 +291,12 @@ public sealed class RotaryBlock() : DspBlock(Info) {
 
             currentHornGain += hornGainStep;
             currentDrumGain += drumGainStep;
-            currentMix += mixStep;
+            gains.Advance();
             var wetLeft = hornL * currentHornGain + drumL * currentDrumGain;
             var wetRight = hornR * currentHornGain + drumR * currentDrumGain;
             Stereo.Spread(ref wetLeft, ref wetRight, stereoSpread);
-            io.Left[i] = left + (wetLeft - left) * currentMix;
-            io.Right[i] = right + (wetRight - right) * currentMix;
+            io.Left[i] = left * gains.Dry + wetLeft * gains.Wet;
+            io.Right[i] = right * gains.Dry + wetRight * gains.Wet;
 
             // Motor inertia, then rotation. The horn and drum spin in opposite directions.
             hornRate += (hornTarget - hornRate) * (hornTarget > hornRate ? hornUp : hornDown);
