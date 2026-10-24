@@ -133,6 +133,12 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     /// </summary>
     public HardwareLoop HardwareLoop { get; } = new();
 
+    /// <summary>
+    ///     The device's input sources (Input 1–4, USB 5/6 and 7/8). Pass it to the <see cref="Graph.GraphCompiler" /> so
+    ///     blocks with a hardware input choice reach them.
+    /// </summary>
+    public HardwareInputs Inputs { get; } = new();
+
     public SampleRing InputTap { get; } = new(16_384);
 
     /// <summary>Any thread: start or stop feeding <see cref="InputTap" />.</summary>
@@ -211,6 +217,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         looper?.Dispose();
         GlobalEq.Dispose();
         HardwareLoop.Dispose();
+        Inputs.Dispose();
         tailInLeft.Dispose();
         tailInRight.Dispose();
         tailOutLeft.Dispose();
@@ -251,6 +258,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
             }
 
             if (previous is not null) {
+                previous.Inputs?.FadeOut(); // like the grid input below, the hardware inputs fade out of the old graph
                 // The old graph spills over under the new one; a graph still spilling from an earlier swap retires now.
                 Retire(Interlocked.Exchange(ref tail, previous));
                 tailInput = 1f;
@@ -265,6 +273,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         }
 
         HardwareLoop.BeginCallback(io.ReturnLeft, io.ReturnRight, io.Frames);
+        Inputs.BeginCallback(io.InputLeft, io.InputRight, io.Sources, io.SourceMask, io.Frames);
 
         var graph = current;
         while (commands.TryDequeue(out var command)) {
@@ -280,6 +289,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                 var length = Math.Min(maxBlock, io.Frames - offset);
                 var slice = io.Slice(offset, length);
                 HardwareLoop.Offset = offset;
+                Inputs.Offset = offset;
                 modulation.Advance(slice.InputLeft, sampleTime);
                 var context = new BlockContext(
                     Spec.SampleRate,

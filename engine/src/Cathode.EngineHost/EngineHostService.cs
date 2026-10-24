@@ -71,7 +71,8 @@ public sealed class EngineHostService : IDisposable {
         BlockRegistry? registry = null,
         IDeviceMonitor? device = null,
         string? telemetryPath = null,
-        double looperSeconds = Dsp.Looping.Looper.DefaultSeconds
+        double looperSeconds = Dsp.Looping.Looper.DefaultSeconds,
+        int inputSources = 1
     ) {
         this.device = device;
         TelemetryRegion = telemetryPath is null
@@ -83,13 +84,13 @@ public sealed class EngineHostService : IDisposable {
         }
 
         compiler = new(registry ?? BlockRegistry.CreateDefault().AddNativeBlocks()) {
-            HardwareLoop = Engine.HardwareLoop
+            HardwareLoop = Engine.HardwareLoop, HardwareInputs = Engine.Inputs
         };
         tuner = new(spec.SampleRate);
         var version = typeof(EngineHostService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
                 ?.InformationalVersion
             ?? "dev";
-        Info = new(version, backend, spec.SampleRate, spec.MaxBlockSize, TelemetryRegion.Path);
+        Info = new(version, backend, spec.SampleRate, spec.MaxBlockSize, TelemetryRegion.Path, inputSources | 1);
     }
 
     /// <summary>Starts reading MIDI input; <paramref name="forward" /> gets each batch (on the MIDI thread).</summary>

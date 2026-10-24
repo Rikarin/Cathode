@@ -2490,9 +2490,18 @@
             "type": "integer",
             "format": "int64",
             "default": 0
+          },
+          "inputs": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         },
-        "description": "Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole\ndriver callback); overloads and the host\u0027s GC counts are cumulative since the host started."
+        "description": "Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole\ndriver callback); overloads and the host\u0027s GC counts are cumulative since the host started. \u0060Inputs\u0060 names\nthe hardware input sources the device maps (Input 1\u20134, USB 5/6, USB 7/8); the others are silent."
       },
       "Footswitch": {
         "required": [

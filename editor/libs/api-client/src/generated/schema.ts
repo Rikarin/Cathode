@@ -1012,7 +1012,8 @@ export interface components {
     };
     /**
      * @description Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole
-     *     driver callback); overloads and the host's GC counts are cumulative since the host started.
+     *     driver callback); overloads and the host's GC counts are cumulative since the host started. `Inputs` names
+     *     the hardware input sources the device maps (Input 1–4, USB 5/6, USB 7/8); the others are silent.
      */
     EngineStatus: {
       connected: boolean;
@@ -1069,6 +1070,7 @@ export interface components {
        * @default 0
        */
       hostAllocatedBytes: number;
+      inputs?: null | string[];
     };
     /**
      * @description One switch: the message it sends (a CC or note; value 64 or more is "down"), what a tap does, what holding it for
