@@ -146,6 +146,83 @@ public sealed class WorkflowApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task A_column_moved_across_others_keeps_every_block_on_the_signal_path_and_undo_restores_it() {
+        // Row 2 runs In to Out through shunts; a drive at column 3 also feeds a chorus branch below (row 3), which
+        // rejoins at column 5, and a delay sits in the path at column 6.
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 2, 3));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("chorus", 3, 4));
+        await Post("/api/v1/live/cables", new CableRequest("drive1", "chorus1"));
+        await Post("/api/v1/live/cables", new CableRequest("chorus1", "shunt-r2c5"));
+        var original = await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 2, 6));
+        var onPath = OnPath(original.Preset);
+        Assert.Contains("chorus1", onPath);
+
+        // Across others, rightwards: the drive leaves the chorus branch behind and lands after the delay.
+        var right = await Post("/api/v1/live/grid/move", new MoveLineRequest("column", 3, 8));
+        Assert.Equal(8, right.Preset.Blocks.Single(static b => b.Id == "drive1").Column);
+        AssertWired(right.Preset, onPath);
+        Assert.Equal(
+            ["delay1", "drive1"],
+            Order(right.Preset).Where(static id => id is "delay1" or "drive1")
+        );
+
+        // And back leftwards, past the delay and the chorus, to column 1.
+        var left = await Post("/api/v1/live/grid/move", new MoveLineRequest("column", 8, 1));
+        Assert.Equal(1, left.Preset.Blocks.Single(static b => b.Id == "drive1").Column);
+        AssertWired(left.Preset, onPath);
+
+        // A column with an empty cell where a path must cross: column 4 holds only the chorus (row 3) and a shunt.
+        var branch = await Post("/api/v1/live/grid/move", new MoveLineRequest("column", 4, 10));
+        AssertWired(branch.Preset, onPath);
+
+        await Post("/api/v1/live/undo", new { });
+        await Post("/api/v1/live/undo", new { });
+        var undone = await Post("/api/v1/live/undo", new { });
+        Assert.Equal(Layout(original.Preset), Layout(undone.Preset));
+        Assert.Equal(Wiring(original.Preset), Wiring(undone.Preset));
+        await ServerFixture.Eventually(() => server.Graph?.SlotOf("drive1") >= 0);
+        return;
+
+        static void AssertWired(Preset preset, IReadOnlySet<string> expected) {
+            var columns = preset.Blocks.ToDictionary(static b => b.Id, static b => b.Column);
+            Assert.All(preset.Cables, c => Assert.Equal(columns[c.From] + 1, columns[c.To]));
+            Assert.Equal(Blocks(expected), Blocks(OnPath(preset)));
+        }
+
+        static string[] Blocks(IEnumerable<string> ids) => [..ids.Where(static id => !id.StartsWith("shunt", StringComparison.Ordinal)).Order()];
+
+        static IEnumerable<string> Order(Preset preset) =>
+            preset.Blocks.OrderBy(static b => b.Column).Select(static b => b.Id);
+
+        static string[] Layout(Preset preset) =>
+            [..preset.Blocks.Select(static b => $"{b.Id}@{b.Row},{b.Column}").Order()];
+
+        static string[] Wiring(Preset preset) => [..preset.Cables.Select(static c => $"{c.From}>{c.To}").Order()];
+    }
+
+    /// <summary>The blocks on a signal path: reached from an Input and reaching an Output.</summary>
+    static HashSet<string> OnPath(Preset preset) {
+        var downstream = Reach(preset, BuiltInTypes.Input, static c => (c.From, c.To));
+        var upstream = Reach(preset, BuiltInTypes.Output, static c => (c.To, c.From));
+        downstream.IntersectWith(upstream);
+        return downstream;
+
+        static HashSet<string> Reach(Preset preset, string start, Func<PresetCable, (string, string)> step) {
+            var seen = preset.Blocks.Where(b => b.Type == start).Select(static b => b.Id).ToHashSet();
+            var queue = new Queue<string>(seen);
+            while (queue.TryDequeue(out var id)) {
+                foreach (var (here, next) in preset.Cables.Select(step)) {
+                    if (here == id && seen.Add(next)) {
+                        queue.Enqueue(next);
+                    }
+                }
+            }
+
+            return seen;
+        }
+    }
+
+    [Fact]
     public async Task Disconnect_removes_every_cable_of_a_block() {
         await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 2, 3));
 
