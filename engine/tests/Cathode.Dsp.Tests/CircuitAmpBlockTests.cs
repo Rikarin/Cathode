@@ -183,6 +183,25 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         return block;
     }
 
+    [Fact]
+    public void A_type_change_takes_effect_once_the_control_thread_has_built_its_channel() {
+        var plexi = AmpDesign.All.ToList().IndexOf(Plexi.Design);
+        var afd = AmpDesign.All.ToList().IndexOf(MarshallAfd100.Design);
+        using var block = Create(plexi);
+        block.Params.SetTarget(CircuitAmpBlock.Type, afd);
+        var left = new float[64];
+        var right = new float[64];
+        block.Process(new(left, right), new(Rate, 120, 0)); // warm the path up
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        block.Process(new(left, right), new(Rate, 120, 0));
+        Assert.Equal(before, GC.GetAllocatedBytesForCurrentThread()); // the audio thread builds nothing
+        Assert.Same(Plexi.Design, block.Channel.Design); // and plays the channel it has meanwhile
+
+        block.Refresh(); // what the host does on the control thread after setting parameters
+        block.Process(new(left, right), new(Rate, 120, 0));
+        Assert.Same(MarshallAfd100.Design, block.Channel.Design);
+    }
+
     /// <summary>
     ///     A strummed E major chord (decaying harmonic tones), restruck every half second, peaking at
     ///     <paramref name="peak" />.
