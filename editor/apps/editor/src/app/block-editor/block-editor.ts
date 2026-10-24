@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { BuiltInTypes, BypassModes, type ChannelName, ChannelNames } from '@cathode/api-client';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { BuiltInTypes, BypassModes, type ChannelName, ChannelNames, type ParameterInfo } from '@cathode/api-client';
 import { CthBlockTile, blockAccent } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import {
@@ -7,9 +7,11 @@ import {
   matLinkOffRound,
   matLinkRound,
   matMoreHorizRound,
-  matPublicRound
+  matPublicRound,
+  matTuneRound
 } from '@ng-icons/material-icons/round';
 import { XuiButtonImports } from '@xui/button';
+import { XuiContextMenuImports } from '@xui/context-menu';
 import { XuiIconImports } from '@xui/icon';
 import { XuiMenuImports } from '@xui/menu';
 import { XuiNonIdealStateImports } from '@xui/non-ideal-state';
@@ -18,6 +20,7 @@ import { XuiSelectImports } from '@xui/select';
 import { XuiSwitchImports } from '@xui/switch';
 import { XuiTagImports } from '@xui/tag';
 import { XuiTextImports } from '@xui/text';
+import { ModifierDialog } from '../controls/modifier-dialog';
 import { CatalogStore } from '../state/catalog.store';
 import { GlobalStore } from '../state/global.store';
 import { LiveStore } from '../state/live.store';
@@ -48,6 +51,8 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
     CthBlockTile,
     CabPanel,
     IrPlayerPanel,
+    ModifierDialog,
+    XuiContextMenuImports,
     ParamControl,
     PeqPanel,
     PitchPanel,
@@ -62,7 +67,16 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
     XuiSelectImports,
     XuiTagImports
   ],
-  providers: [provideIcons({ matContentCopyRound, matLinkOffRound, matLinkRound, matMoreHorizRound, matPublicRound })],
+  providers: [
+    provideIcons({
+      matContentCopyRound,
+      matLinkOffRound,
+      matLinkRound,
+      matMoreHorizRound,
+      matPublicRound,
+      matTuneRound
+    })
+  ],
   host: { class: 'block h-full overflow-auto p-4' },
   template: `
     @if (block(); as block) {
@@ -91,6 +105,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
 
           @if (!isIo()) {
             <label
+              [xuiContextMenuTriggerFor]="engageMenu"
               class="bg-surface-raised border-border flex items-center justify-between gap-3 rounded-lg border px-3 py-1.5 text-sm"
             >
               <span class="flex items-center gap-2">
@@ -110,6 +125,22 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                 (checkedChange)="live.setBypass(block.id, !$event)"
               />
             </label>
+            <ng-template #engageMenu>
+              <xui-menu>
+                <button xuiMenuItem icon="matTuneRound" (click)="editingEngage.set(true)">
+                  {{ engageModifier() ? 'Edit engage modifier…' : 'Engage from a modifier…' }}
+                </button>
+                @if (engageModifier()) {
+                  <button xuiMenuItem icon="matLinkOffRound" color="error" (click)="removeEngageModifier()">
+                    Remove engage modifier
+                  </button>
+                }
+              </xui-menu>
+            </ng-template>
+            <cth-modifier-dialog [block]="block.id" [param]="engageParam" [(open)]="editingEngage" />
+            @if (engageModifier(); as m) {
+              <span class="text-foreground-muted -mt-2 text-[11px]">Engaged by {{ m.source }} (at 50 % and above)</span>
+            }
           }
 
           @if ((info()?.channels ?? 0) > 1) {
@@ -268,6 +299,22 @@ export class BlockEditor {
   private readonly globals = inject(GlobalStore);
 
   protected readonly channels = ChannelNames.map(c => ({ label: c, value: c as ChannelName }));
+  /** The pseudo-parameter a modifier drives to engage the block: engaged at 0.5 and above (ModNames.EngageParam). */
+  protected readonly engageParam: ParameterInfo = {
+    id: 'engage',
+    name: 'Engage',
+    kind: 'float',
+    min: 0,
+    max: 1,
+    default: 1,
+    unit: '',
+    taper: 'linear'
+  };
+  protected readonly editingEngage = signal(false);
+  protected readonly engageModifier = computed(() => {
+    const block = this.block();
+    return block ? this.live.modifierOf(block.id, 'engage') : undefined;
+  });
   protected readonly bypassModes = [...BypassModes];
   protected readonly bypassModeName = (mode: string) =>
     ({
@@ -293,6 +340,13 @@ export class BlockEditor {
   protected readonly isIo = computed(
     () => this.block()?.type === BuiltInTypes.input || this.block()?.type === BuiltInTypes.output
   );
+  protected removeEngageModifier(): void {
+    const block = this.block();
+    if (block) {
+      void this.live.putModifier(block.id, 'engage', null);
+    }
+  }
+
   protected readonly info = computed(() => (this.block() ? this.catalog.info(this.block()!.type) : undefined));
   protected readonly title = computed(() => this.info()?.name ?? this.block()?.type ?? '');
   protected readonly typeParam = computed(() => this.info()?.params.find(p => p.id === 'type') ?? null);

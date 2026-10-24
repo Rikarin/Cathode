@@ -45,7 +45,8 @@ public sealed partial class LiveRig {
                 foreach (var m in modifiers) {
                     var block = preset.Blocks.FirstOrDefault(b => b.Id == m.Block);
                     var descriptor = block is null ? null : catalog.Descriptor(block.Type);
-                    if (descriptor is null || descriptor.IndexOf(m.Param) < 0) {
+                    var engage = m.Param == ModNames.EngageParam && block is not null && !BuiltInTypes.IsBuiltIn(block.Type);
+                    if (descriptor is null || (!engage && descriptor.IndexOf(m.Param) < 0)) {
                         errors.Add($"No parameter '{m.Param}' on block '{m.Block}'.");
                     } else if (!ModNames.TryParseSource(m.Source, out _)) {
                         errors.Add($"Unknown modifier source '{m.Source}'.");

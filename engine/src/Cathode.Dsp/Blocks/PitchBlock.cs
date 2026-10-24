@@ -120,6 +120,8 @@ public sealed class PitchBlock() : DspBlock(Info) {
 
     public const int Balance = CustomTable + 12 * 4;
     public const int GlobalMix = Balance + 1;
+    public const int InputSelect = GlobalMix + 1;
+    public const int InputGain = InputSelect + 1;
 
     public const int VoiceCount = 4;
     public const int MaxArpSteps = 8;
@@ -268,7 +270,9 @@ public sealed class PitchBlock() : DspBlock(Info) {
             ParamDescriptor.Choice("keySource", "Key Source", ["Fixed", "MIDI", "Auto"]),
             ..CustomTableParams(),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
-            EffectsMix.Param
+            EffectsMix.Param,
+            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
+            ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%")
         ],
         maxInstances: 2
     );
@@ -496,10 +500,12 @@ public sealed class PitchBlock() : DspBlock(Info) {
 
         var ratios = type == PitchType.Chromatic ? shifts : harmonies;
         var mixStep = (mix - this.mix) / frames;
+        var inputSelect = (int)Params.Current(InputSelect);
+        var inputGain = Params.Advance(InputGain, frames) / 100f;
         for (var i = 0; i < frames; i++) {
             var dryLeft = io.Left[i];
             var dryRight = io.Right[i];
-            var mono = 0.5f * (dryLeft + dryRight);
+            var mono = inputGain * Stereo.Select(inputSelect, dryLeft, dryRight);
             Track(mono);
             var period = sinceVoiced < voicedHold ? lastPeriod : 0;
             for (var v = 0; v < VoiceCount; v++) {

@@ -47,9 +47,14 @@ public static class Stereo {
         }
     }
 
+    /// <summary>The Stereo Spread parameter (−200..200 %, default 100 %: the pair as it is).</summary>
+    public static Parameters.ParamDescriptor SpreadParam(string id = "stereoSpread", string name = "Stereo Spread") =>
+        Parameters.ParamDescriptor.Float(id, name, -200f, 200f, 100f, "%");
+
     /// <summary>
-    ///     Stereo Spread on a wet pair: 1 leaves it as it is, 0 folds it to mono and −1 swaps the sides; values between
-    ///     blend.
+    ///     Stereo Spread on a wet pair, as a gain on its side (difference) signal with the mid kept: 1 leaves it as it
+    ///     is, 0 folds it to mono, −1 swaps the sides, and beyond ±1 (up to ±2, the guide's ±200 %) the image widens
+    ///     past the speakers; values between blend.
     /// </summary>
     public static void Spread(ref float left, ref float right, float spread) {
         if (spread == 1f) {

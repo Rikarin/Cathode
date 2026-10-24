@@ -21,6 +21,7 @@ public sealed class PhaserBlock : DspBlock, IEngageAware {
     public const int LfoType = 10;
     public const int LfoReset = 11;
     public const int GlobalMix = 12;
+    public const int StereoSpread = 13;
 
     const int MaxStages = 12;
     const float MaxSweepOctaves = 2f;
@@ -51,7 +52,8 @@ public sealed class PhaserBlock : DspBlock, IEngageAware {
             ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
             ParamDescriptor.Choice("lfoType", "LFO Type", Lfo.ShapeNames),
             ParamDescriptor.Switch("lfoReset", "LFO Bypass Reset"),
-            EffectsMix.Param
+            EffectsMix.Param,
+            Stereo.SpreadParam()
         ],
         maxInstances: 2
     );
@@ -115,6 +117,7 @@ public sealed class PhaserBlock : DspBlock, IEngageAware {
         var mixStep = (mix - this.mix) / io.Length;
         var currentMix = this.mix;
         var nyquistGuard = (float)(rate * 0.45);
+        var stereoSpread = Params.Advance(StereoSpread, io.Length) / 100f;
 
         for (var i = 0; i < io.Length; i++) {
             var fl = Math.Min(nyquistGuard, center * MathF.Pow(2f, octaves * lfo.Value(shape)));
@@ -126,8 +129,10 @@ public sealed class PhaserBlock : DspBlock, IEngageAware {
             var right = io.Right[i];
             lastLeft = Chain(stateLeft, stages, left + feedback * lastLeft, Gain(fl, rate));
             lastRight = Chain(stateRight, stages, right + feedback * lastRight, Gain(fr, rate));
-            io.Left[i] = left * (1 - currentMix) + lastLeft * currentMix;
-            io.Right[i] = right * (1 - currentMix) + lastRight * currentMix;
+            var (wetLeft, wetRight) = (lastLeft, lastRight);
+            Stereo.Spread(ref wetLeft, ref wetRight, stereoSpread);
+            io.Left[i] = left * (1 - currentMix) + wetLeft * currentMix;
+            io.Right[i] = right * (1 - currentMix) + wetRight * currentMix;
         }
 
         Flush(stateLeft);

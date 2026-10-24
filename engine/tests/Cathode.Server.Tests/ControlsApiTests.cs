@@ -183,6 +183,23 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task A_modifier_can_engage_a_block_but_not_the_input() {
+        var live = await Put(
+            "/api/v1/live/modifiers",
+            new List<PresetModifier> { new() { Block = "delay1", Param = "engage", Source = "manualB" } }
+        );
+        using var input = await client.PutAsJsonAsync(
+            "/api/v1/live/modifiers",
+            new List<PresetModifier> { new() { Block = "in1", Param = "engage", Source = "manualB" } },
+            Token
+        );
+
+        Assert.Single(live.Preset.Modifiers);
+        Assert.Equal(HttpStatusCode.BadRequest, input.StatusCode);
+        await ServerFixture.Eventually(() => server.Graph!.Modifiers.Any(static m => m.ParamIndex == ModifierBinding.Engage));
+    }
+
+    [Fact]
     public async Task Midi_learn_binds_the_next_controller_moved() {
         await Ok(client.PutAsJsonAsync("/api/v1/midi/learn", new MidiLearnRequest("tuner"), Token));
         server.Services.GetRequiredService<MidiRouter>().OnMidi([new(0xB2, 64, 127, 0)]);

@@ -87,8 +87,11 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         var modifiers = new List<ModifierBinding>();
         foreach (var modifier in definition.Modifiers) {
             var slot = slotIds.IndexOf(modifier.Block);
-            var index = slot < 0 ? -1 : blocks[slot].Descriptor.IndexOf(modifier.Param);
-            if (index < 0) {
+            var engage = modifier.Param == ModNames.EngageParam
+                && slot >= 0
+                && !NodeTypes.IsBuiltIn(blocks[slot].Descriptor.TypeId);
+            var index = slot < 0 ? -1 : engage ? ModifierBinding.Engage : blocks[slot].Descriptor.IndexOf(modifier.Param);
+            if (index == -1) {
                 errors.Add($"Modifier: no parameter '{modifier.Param}' on block '{modifier.Block}'.");
             } else if (!ModNames.TryParseSource(modifier.Source, out var source)) {
                 errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown source '{modifier.Source}'.");
@@ -96,6 +99,20 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown curve '{modifier.Curve}'.");
             } else if (modifiers.Any(m => m.Slot == slot && m.ParamIndex == index)) {
                 errors.Add($"Parameter '{modifier.Block}.{modifier.Param}' has more than one modifier.");
+            } else if (engage) {
+                modifiers.Add(
+                    new(
+                        slot,
+                        index,
+                        source,
+                        curve,
+                        Math.Clamp(modifier.Min, 0f, 1f),
+                        Math.Clamp(modifier.Max, 0f, 1f),
+                        false,
+                        modifier.AttackMs,
+                        modifier.ReleaseMs
+                    )
+                );
             } else {
                 var param = blocks[slot].Descriptor.Params[index];
                 modifiers.Add(

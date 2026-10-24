@@ -125,7 +125,14 @@ public sealed class CompiledGraph : IDisposable {
             modifier.Value = ms <= 0 || float.IsNaN(modifier.Value)
                 ? target
                 : modifier.Value + (target - modifier.Value) * (float)(1 - Math.Exp(-seconds / (ms * 0.001)));
-            blocks[modifier.Slot].Params.Modulate(modifier.ParamIndex, modifier.Value, frames);
+            if (modifier.ParamIndex == ModifierBinding.Engage) {
+                var bypassed = modifier.Value < 0.5f;
+                if (bypass[modifier.Slot].Target != bypassed) {
+                    SetBypass(modifier.Slot, bypassed);
+                }
+            } else {
+                blocks[modifier.Slot].Params.Modulate(modifier.ParamIndex, modifier.Value, frames);
+            }
         }
     }
 
@@ -370,6 +377,9 @@ public struct ModifierBinding(
     bool log,
     float attackMs,
     float releaseMs) {
+    /// <summary>The <see cref="ParamIndex" /> of a modifier that engages and bypasses its block (<see cref="ModNames.EngageParam" />).</summary>
+    public const int Engage = -2;
+
     public int Slot { get; } = slot;
     public int ParamIndex { get; } = paramIndex;
     public ModSource Source { get; } = source;

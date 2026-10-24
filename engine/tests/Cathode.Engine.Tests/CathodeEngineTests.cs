@@ -115,6 +115,27 @@ public class CathodeEngineTests {
     }
 
     [Fact]
+    public void A_modifier_on_engage_bypasses_and_engages_the_block() {
+        var engine = new CathodeEngine(Spec);
+        var definition = VolumeGraph(-6.0206f);
+        definition.Modifiers.Add(new() { Block = "vol", Param = ModNames.EngageParam, Source = "manualA" });
+        var graph = Compiler.Compile(definition, Spec, 1);
+        engine.Publish(graph);
+        var manual = RigControls.Descriptor.IndexOf("manualA");
+
+        engine.Rig.SetTarget(manual, 0f);
+        var (off, _) = OfflineRenderer.Render(engine, Signals.Step(4_800), Signals.Step(4_800), 64);
+        var bypassed = graph.IsBypassed(graph.SlotOf("vol"));
+        engine.Rig.SetTarget(manual, 1f);
+        var (on, _) = OfflineRenderer.Render(engine, Signals.Step(4_800), Signals.Step(4_800), 64);
+
+        Assert.True(bypassed);
+        Assert.Equal(1f, off[^1], 1e-4f); // thru
+        Assert.False(graph.IsBypassed(graph.SlotOf("vol")));
+        Assert.Equal(0.5f, on[^1], 1e-4f);
+    }
+
+    [Fact]
     public void Midi_notes_are_held_until_released() {
         var engine = new CathodeEngine(Spec);
         engine.Publish(Compiler.Compile(VolumeGraph(0), Spec, 1));

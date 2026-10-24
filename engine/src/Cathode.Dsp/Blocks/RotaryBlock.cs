@@ -35,6 +35,7 @@ public sealed class RotaryBlock() : DspBlock(Info) {
     public const int Mix = 17;
     public const int Level = 18;
     public const int Balance = 19;
+    public const int InputSelect = 20;
 
     /// <summary>Peak Doppler path-length change of the horn, in ms (a ~17 cm horn radius).</summary>
     public const float MaxHornExcursionMs = 0.5f;
@@ -95,7 +96,8 @@ public sealed class RotaryBlock() : DspBlock(Info) {
             ParamDescriptor.Float("drive", "Drive", 0f, 100f, 0f, "%"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions)
         ],
         maxInstances: 2
     );
@@ -190,11 +192,12 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         var mix = Params.Advance(Mix, n) / 100f;
         var mixStep = (mix - this.mix) / n;
         var currentMix = this.mix;
+        var inputSelect = (int)Params.Current(InputSelect);
 
         for (var i = 0; i < n; i++) {
             var left = io.Left[i];
             var right = io.Right[i];
-            var input = (double)Saturate(0.5f * (left + right), drive);
+            var input = (double)Saturate(Stereo.Select(inputSelect, left, right), drive);
             var bass = low2.Tick(lowPass, low1.Tick(lowPass, input));
             var treble = high2.Tick(highPass, high1.Tick(highPass, input));
 
