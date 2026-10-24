@@ -250,11 +250,15 @@ public sealed partial class MidiRouter : IDisposable {
     void Run(SwitchAction action, int data, bool continuous, bool down, long sampleTime) =>
         actions.Writer.TryWrite(() => ExecuteAsync(action, data, continuous, down, sampleTime));
 
+    /// <remarks>
+    ///     Any failure is logged and the next action runs: one failed action (a save that could not write its file,
+    ///     say) must not stop MIDI control for the rest of the session.
+    /// </remarks>
     async Task WorkAsync() {
         await foreach (var action in actions.Reader.ReadAllAsync()) {
             try {
                 await action();
-            } catch (Exception e) when (e is RigException or IpcException or IOException or KeyNotFoundException) {
+            } catch (Exception e) when (e is not OutOfMemoryException) {
                 ActionFailed(logger, "MIDI", e.Message);
             }
         }

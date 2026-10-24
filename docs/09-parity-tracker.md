@@ -119,7 +119,7 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | PS11 | Per-block level meters in telemetry and on the grid | ◐ | Block_peaks_and_loudness_reach_the_telemetry_region; Telemetry_carries_block_meters_by_id_and_the_output_loudness | grid meters seen only on silence (no input on the null backend) |
 | PS12 | BS.1770 loudness meter on the output | ✅ | LoudnessMeterTests | −3.01 LUFS for a full-scale 997 Hz sine in one channel |
 | PS13 | Preset Leveling tool | ◐ | leveling.ts spec | dialog opens; not measured with real playing |
-| PS14 | MIDI: Vol Inc / Vol Dec (scene level ±1 dB + save), Level + Save | ✅ | Midi_steps_the_scene_level_and_saves_and_a_high_scene_cc_steps_to_the_next_scene |  |
+| PS14 | MIDI: Vol Inc / Vol Dec (scene level ±1 dB + save), Level + Save | 🟡 | Midi_steps_the_scene_level_and_saves_and_a_high_scene_cc_steps_to_the_next_scene; JsonFileStoreTests | the test failed in full runs: a save renamed over a preset file another thread was reading, Windows refused it (access denied), and that uncaught exception stopped the MIDI worker for good. Reads now share delete, saves and reads retry a short sharing violation, and the MIDI worker logs any failed action and carries on; 3 full Server runs green |
 | PS15 | MIDI: scene CC values above 63 step through scenes | ✅ | same test | wraps 8 → 1 |
 | PS16 | Modifier scope: all channels or one | ✅ | A_modifier_scoped_to_one_channel_drives_its_parameter_only_there; A_disabled_modifier_leaves_its_parameter_until_it_is_turned_on |  |
 | PS17 | Global preset-change spillover on/off | ✅ | With_spillover_off_a_preset_change_cuts_the_old_tail_after_the_swap_fade; The_spillover_setting_reaches_the_rig |  |
@@ -140,7 +140,7 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | ED6 | Snapshots (timestamped, server-side, load/delete) | ✅ | Snapshots_keep_unsaved_edits_and_load_list_and_delete; E2E a snapshot keeps unsaved edits and loads back | Snapshots dialog opened in the browser |
 | ED7 | Templates: New from template, Save as template | ◐ | Templates_are_saved_and_start_new_presets | UI not driven in the running editor |
 | ED8 | Replace block type keeping cables | ✅ | Replacing_a_block_keeps_its_cell_and_cables; E2E Q-replace step |  |
-| ED9 | Drag-onto swap, ⌘-drag replace; move row / column | ◐ | Dropping_swaps_two_blocks_with_the_wiring_in_place_or_replaces_the_target; A_row_moves_with_its_cables_and_a_column_shifts_the_ones_between | moving a column drops cables that end up joining non-adjacent columns; drag-to-swap not driven in E2E |
+| ED9 | Drag-onto swap, ⌘-drag replace; move row / column | ◐ | Dropping_swaps_two_blocks_with_the_wiring_in_place_or_replaces_the_target; A_row_moves_with_its_cables_and_a_column_shifts_the_ones_between; A_column_moved_across_others_keeps_every_block_on_the_signal_path_and_undo_restores_it | 🟡 a column move now rewires instead of dropping cables (the path closes behind the column and runs through it where it lands; docs/02 §7.5); drag-to-swap not driven in E2E |
 | ED10 | Cut; paste onto same-type block copies settings; disconnect all cables | ✅ | Pasting_settings_replaces_every_channel_of_a_same_type_block; Disconnect_removes_every_cable_of_a_block; E2E cut and paste |  |
 | ED11 | All-scenes actions: channel, engage, bypass | ✅ | All_scene_actions_set_the_channel_and_bypass_in_every_scene; E2E ⇧Space |  |
 | ED12 | Block Info view; amps-in-use summary | ✅ | Block Info specs; E2E F1 step |  |
