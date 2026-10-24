@@ -28,7 +28,9 @@ describe('block icons', () => {
       ...Object.values(CategoryIcons),
       'cthBlockGeneric',
       blockIconName('vibe', ''),
-      blockIconName('looper', '')
+      blockIconName('looper', ''),
+      blockIconName('tentap', ''),
+      blockIconName('plex', '')
     ]) {
       expect(BlockIcons[name]).toMatch(/^<svg .*<\/svg>$/);
     }

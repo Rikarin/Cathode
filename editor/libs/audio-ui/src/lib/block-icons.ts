@@ -109,6 +109,12 @@ export const BlockIcons: Readonly<Record<string, string>> = {
   cthBlockDelay: svg('<path d="M4 4v16M9.5 7v10M14.5 9.5v5M19 11v2"/>'),
   cthBlockMultiDelay: svg('<path d="M3 6v12M7 9v6M11 3v18M15 8v8M19 10.5v3"/>'),
   cthBlockMegatap: svg('<path d="M3 4v16M6 6v12M9 7.5v9M12 9v6M15 10v4M18 11v2M21 11.5v1"/>'),
+  cthBlockTenTap: svg(
+    '<path d="M3 6v12M7 6v12M11 9v6M15 6v12M19 9v6"/><path d="M3 21h18" stroke-dasharray="1.5 2.5"/>'
+  ),
+  cthBlockPlex: svg(
+    '<path d="M4 5v14M9 8v8M15 8v8M20 5v14"/><path d="M4 12c3-4 5-4 8 0s5 4 8 0" stroke-dasharray="2 2"/>'
+  ),
   cthBlockReverb: svg(
     dot(5, 19, 1.6) + '<path d="M5 13.5a5.5 5.5 0 0 1 5.5 5.5M5 9a10 10 0 0 1 10 10M5 4.5A14.5 14.5 0 0 1 19.5 19"/>'
   ),
@@ -174,6 +180,8 @@ export const BlockTypeIcons: Readonly<Record<string, string>> = {
   delay: 'cthBlockDelay',
   multidelay: 'cthBlockMultiDelay',
   megatap: 'cthBlockMegatap',
+  tentap: 'cthBlockTenTap',
+  plex: 'cthBlockPlex',
   reverb: 'cthBlockReverb',
   pitch: 'cthBlockPitch',
   synth: 'cthBlockSynth',
