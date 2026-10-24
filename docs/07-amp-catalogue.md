@@ -86,9 +86,9 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | Divided by 13 | ⏸ Waiting (searched 2026-10: no schematic or trace for the JRT 9/15, CJ 11 or FTR 37) | — | — | Schematic | 1x12 / 2x12 |
 | Budda Superdrive | ⏸ Waiting (searched 2026-10: no schematic or trace) | — | — | Schematic | 2x12 |
 | Trainwreck Express | ✅ Done (redraw A1a of the schematicheaven collection, hearsay: medium confidence) | Express | — | Captures with settings; a measured trace | 2x12 / 4x12 |
-| Supro (1960s) | 💤 Not planned | — | — | | 1x12 open |
-| Gibson GA-40 Les Paul | 💤 Not planned | — | — | | 1x12 open |
-| Magnatone (Custom 280 / 15) | 💤 Not planned | — | — | | 2x12 open |
+| Supro (1960s) | ⏸ Waiting (1624T values read; needs a paraphase phase inverter in the library) | — | — | | 1x12 open |
+| Gibson GA-40 Les Paul | ⏸ Waiting (factory drawing read; needs a 5879 tube table and a paraphase inverter) | — | — | | 1x12 open |
+| Magnatone (Custom 280 / 15) | ⏸ Waiting (drawings read; the dry path runs through the varistor vibrato, and 6CZ5 curves are missing) | — | — | | 2x12 open |
 | Supro 1624T Dual-Tone | ⏸ Waiting (values read from a clean redraw, el34world `Supro_1624t_schematic_263.pdf`, power amp confirmed by AmpBooks; its floating paraphase inverter is not in the library) | — | — | A paraphase inverter in `PowerAmp`; B+ and OT (AmpBooks models 7k) | 1x12 open |
 | Gibson GA-40 Les Paul (5879 version) | ⏸ Waiting (factory drawing with a voltage table, el34world `Gibson_ga_40_les_paul_with_5879.pdf`, read; needs a 5879 pentode table and a self-balancing paraphase inverter) | — | — | 5879 curves; OT primary (about 10k on the 1954 parts list) | 1x12 open, Jensen P12Q |
 | Magnatone Custom 280 (280-A / 280-B) | ⏸ Waiting (factory drawings read, el34world `Magnatone_280a.pdf`, `Magnatone_280b.png`; the dry path runs through the varistor vibrato network, whose static resistance is not given; 6CZ5 curves missing) | — | — | Varistor data; OT primary. Custom 15 drawings exist (`Magnatone_m15a_revf.png`) but are not read | 2x12 open |
@@ -185,8 +185,8 @@ Counted over every table in this file, including the two sections added from Fra
 |---|---|
 | ✅ Done | 55 |
 | 📋 Planned (schematic found, not built yet) | 25 |
-| ⏸ Waiting on a schematic or better data | 56 |
-| 💤 Not researched yet | 3 |
+| ⏸ Waiting on a schematic or better data | 59 |
+| 💤 Not researched yet | 0 |
 
 ### Circuit Amp types by index
 
