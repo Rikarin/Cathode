@@ -1,12 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal, viewChild } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { provideIcons } from '@ng-icons/core';
 import {
   matAddRound,
   matGraphicEqRound,
   matHistoryRound,
+  matKeyboardRound,
   matRedoRound,
   matSaveRound,
+  matSettingsRound,
   matShowChartRound,
   matTuneRound,
   matUndoRound
@@ -24,25 +26,39 @@ import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import { XuiSpinnerImports } from '@xui/spinner';
 import { XuiTooltipImports } from '@xui/tooltip';
 import { Startup } from './core/startup';
+import { BatchSetDialog } from './shell/batch-set-dialog';
 import { EngineMeters } from './shell/engine-meters';
 import { LevelingDialog } from './shell/leveling-dialog';
+import { PreferencesDialog } from './shell/preferences-dialog';
+import { PresetMenu } from './shell/preset-menu';
+import { PresetPicker } from './shell/preset-picker';
+import { SaveBlockDialog } from './shell/save-block-dialog';
 import { ScopeDialog } from './shell/scope-dialog';
+import { ShortcutHelp } from './shell/shortcut-help';
+import { ShortcutService } from './shell/shortcuts';
 import { Transport } from './shell/transport';
 import { TunerDialog } from './shell/tuner-dialog';
 import { CompareStore } from './state/compare.store';
 import { LiveStore } from './state/live.store';
 import { PresetSwitcher } from './state/preset-switcher';
+import { UiStore } from './state/ui.store';
 
 @Component({
   selector: 'cth-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    BatchSetDialog,
     EngineMeters,
+    PreferencesDialog,
+    PresetMenu,
+    PresetPicker,
     LevelingDialog,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
+    SaveBlockDialog,
     ScopeDialog,
+    ShortcutHelp,
     Transport,
     TunerDialog,
     XuiButtonImports,
@@ -63,8 +79,10 @@ import { PresetSwitcher } from './state/preset-switcher';
       matAddRound,
       matGraphicEqRound,
       matHistoryRound,
+      matKeyboardRound,
       matRedoRound,
       matSaveRound,
+      matSettingsRound,
       matShowChartRound,
       matTuneRound,
       matUndoRound
@@ -72,7 +90,9 @@ import { PresetSwitcher } from './state/preset-switcher';
   ],
   host: {
     class: 'flex h-full flex-col',
-    '(document:keydown)': 'shortcut($event)'
+    '(document:keydown)': 'onKeydown($event)',
+    '(document:keyup)': 'shortcuts.keyUp($event)',
+    '(window:blur)': 'shortcuts.altHeld.set(false)'
   },
   template: `
     @switch (startup.state()) {
@@ -111,16 +131,25 @@ import { PresetSwitcher } from './state/preset-switcher';
             <a xuiButton variant="ghost" size="sm" routerLink="/controllers" routerLinkActive="bg-active-overlay"
               >Controllers</a
             >
+            <a xuiButton variant="ghost" size="sm" routerLink="/perform" routerLinkActive="bg-active-overlay"
+              >Perform</a
+            >
             <a xuiButton variant="ghost" size="sm" routerLink="/irs" routerLinkActive="bg-active-overlay">IRs</a>
             <a xuiButton variant="ghost" size="sm" routerLink="/global" routerLinkActive="bg-active-overlay">Global</a>
             <a xuiButton variant="ghost" size="sm" routerLink="/setup" routerLinkActive="bg-active-overlay">Setup</a>
             <div xuiNavbarDivider></div>
-            <span class="max-w-56 truncate text-sm font-medium" data-testid="preset-name">
-              {{ live.preset()?.name }}
+            <button
+              type="button"
+              class="hover:bg-active-overlay max-w-56 truncate rounded px-1 text-sm font-medium"
+              data-testid="preset-name"
+              [xuiTooltip]="'Presets (P)'"
+              (click)="ui.presetPicker.set('browse')"
+            >
+              {{ live.preset()?.name || '(untitled)' }}
               @if (live.state()?.dirty) {
                 <span class="text-warning" aria-label="unsaved changes"> •</span>
               }
-            </span>
+            </button>
             <button
               xuiButton
               variant="ghost"
@@ -163,6 +192,7 @@ import { PresetSwitcher } from './state/preset-switcher';
               <ng-icon xui name="matSaveRound" size="sm" />
             </button>
             <button xuiButton variant="ghost" size="sm" (click)="openSaveAs()">Save as…</button>
+            <cth-preset-menu />
             <button
               xuiButton
               variant="ghost"
@@ -180,7 +210,7 @@ import { PresetSwitcher } from './state/preset-switcher';
               size="sm"
               aria-label="Redo"
               [disabled]="!live.state()?.canRedo"
-              [xuiTooltip]="'Redo (⇧⌘Z)'"
+              [xuiTooltip]="'Redo (⇧⌘Z, ⌘Y)'"
               (click)="live.redo()"
             >
               <ng-icon xui name="matRedoRound" size="sm" />
@@ -193,8 +223,8 @@ import { PresetSwitcher } from './state/preset-switcher';
               variant="ghost"
               size="sm"
               aria-label="Tuner"
-              [xuiTooltip]="'Tuner'"
-              (click)="tunerOpen.set(true)"
+              [xuiTooltip]="'Tuner (⌘T)'"
+              (click)="ui.tunerOpen.set(true)"
             >
               <ng-icon xui name="matTuneRound" size="sm" />
             </button>
@@ -220,6 +250,27 @@ import { PresetSwitcher } from './state/preset-switcher';
               <ng-icon xui name="matGraphicEqRound" size="sm" />
             </button>
             <cth-engine-meters />
+            <button
+              xuiButton
+              variant="ghost"
+              size="sm"
+              aria-label="Keyboard shortcuts"
+              [xuiTooltip]="'Keyboard shortcuts (?)'"
+              (click)="shortcuts.helpOpen.set(true)"
+            >
+              <ng-icon xui name="matKeyboardRound" size="sm" />
+            </button>
+            <button
+              xuiButton
+              variant="ghost"
+              size="sm"
+              aria-label="Preferences"
+              data-testid="preferences-button"
+              [xuiTooltip]="'Preferences'"
+              (click)="ui.preferencesOpen.set(true)"
+            >
+              <ng-icon xui name="matSettingsRound" size="sm" />
+            </button>
           </div>
         </nav>
         <div class="bg-surface border-border flex items-center gap-6 border-b px-4 py-1.5">
@@ -249,7 +300,12 @@ import { PresetSwitcher } from './state/preset-switcher';
         <main class="min-h-0 flex-1">
           <router-outlet />
         </main>
-        <cth-tuner-dialog [(open)]="tunerOpen" />
+        <cth-tuner-dialog [open]="ui.tunerOpen()" (openChange)="ui.tunerOpen.set($event)" />
+        <cth-shortcut-help [open]="shortcuts.helpOpen()" (openChange)="shortcuts.helpOpen.set($event)" />
+        <cth-preferences-dialog [open]="ui.preferencesOpen()" (openChange)="ui.preferencesOpen.set($event)" />
+        <cth-preset-picker />
+        <cth-save-block-dialog />
+        <cth-batch-set-dialog />
         <cth-scope-dialog [(open)]="scopeOpen" />
         <cth-leveling-dialog [(open)]="levelingOpen" />
         <xui-dialog title="Save preset as" icon="matSaveRound" [(open)]="saveAsOpen">
@@ -285,6 +341,9 @@ export class App {
   protected readonly startup = inject(Startup);
   protected readonly live = inject(LiveStore);
   protected readonly compare = inject(CompareStore);
+  protected readonly ui = inject(UiStore);
+  protected readonly shortcuts = inject(ShortcutService);
+  private readonly presetPicker = viewChild(PresetPicker);
   protected readonly switcher = inject(PresetSwitcher);
 
   /**
@@ -294,7 +353,6 @@ export class App {
   protected readonly macWindow = window.cathode?.platform === 'darwin';
   private readonly fullScreen = signal(false);
   protected readonly trafficLights = computed(() => this.macWindow && !this.fullScreen());
-  protected readonly tunerOpen = signal(false);
   protected readonly scopeOpen = signal(false);
   protected readonly levelingOpen = signal(false);
   protected readonly saveAsOpen = signal(false);
@@ -310,6 +368,7 @@ export class App {
   constructor() {
     window.cathode?.onFullScreen?.(fullScreen => this.fullScreen.set(fullScreen));
     void this.startup.start();
+    inject(DestroyRef).onDestroy(this.registerShortcuts());
   }
 
   protected async newPreset(): Promise<void> {
@@ -334,26 +393,60 @@ export class App {
     }
   }
 
-  protected shortcut(event: KeyboardEvent): void {
-    const target = event.target as HTMLElement | null;
-    if (!(event.metaKey || event.ctrlKey) || target?.closest('input, textarea, [contenteditable]')) {
-      return;
+  /**
+   * Hands key presses to the shortcuts. It returns nothing on purpose: an Angular listener that returns false
+   * cancels the event, which would stop ⌘A and typing everywhere a shortcut does not apply.
+   */
+  protected onKeydown(event: KeyboardEvent): void {
+    this.shortcuts.dispatch(event);
+  }
+
+  /** The shortcuts that work on every page (docs/02-architecture.md §7.5); the grid adds the cell commands. */
+  private registerShortcuts(): () => void {
+    const ui = this.ui;
+    const block = () => ui.block();
+    const handlers: Record<string, () => void> = {
+      presetPicker: () => ui.presetPicker.set('browse'),
+      goTo: () => ui.presetPicker.set('goto'),
+      presetPrevious: () => void this.presetPicker()?.step(-1),
+      presetNext: () => void this.presetPicker()?.step(1),
+      reload: () => void this.presetPicker()?.reload(),
+      save: () => this.save(),
+      saveAs: () => this.openSaveAs(),
+      level: () => this.levelingOpen.set(true),
+      channelReset: () => {
+        const selected = block();
+        if (selected && ui.channels(selected) > 0) {
+          void this.live.resetChannel(selected.id, this.live.channelOf(selected.id));
+        }
+      },
+      channelNext: () => ui.nextChannel(),
+      bypass: () => ui.toggleBypass(),
+      engageAll: () => ui.allScenes({ bypassed: false }),
+      bypassAll: () => ui.allScenes({ bypassed: true }),
+      global: () => ui.toggleGlobal(),
+      saveBlock: () => block() && ui.saveBlockOpen.set(true),
+      blockInfo: () => this.shortcuts.blockInfo.update(on => !on),
+      undo: () => void this.live.undo(),
+      redo: () => void this.live.redo(),
+      redoAlias: () => void this.live.redo(),
+      tuner: () => ui.tunerOpen.update(open => !open),
+      help: () => this.shortcuts.helpOpen.update(open => !open)
+    };
+    for (const channel of ['A', 'B', 'C', 'D'] as const) {
+      handlers[`channel${channel}`] = () => ui.setChannel(channel);
     }
 
-    const key = event.key.toLowerCase();
-    if (key === 's') {
-      event.preventDefault();
-      if (event.shiftKey) {
-        this.openSaveAs();
-      } else {
-        this.save();
-      }
-    } else if (key === 'z') {
-      event.preventDefault();
-      void (event.shiftKey ? this.live.redo() : this.live.undo());
-    } else if (key === 'a') {
-      // An editor, not a document: select-all would only paint every label blue.
-      event.preventDefault();
+    handlers['bypassAlias'] = () => ui.toggleBypass();
+
+    for (let scene = 0; scene < 8; scene++) {
+      handlers[`scene${scene + 1}`] = () => {
+        if (scene < (this.live.preset()?.scenes.length ?? 0)) {
+          void this.live.selectScene(scene);
+        }
+      };
     }
+
+    return this.shortcuts.register(handlers);
   }
 }

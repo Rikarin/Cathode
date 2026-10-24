@@ -32,5 +32,15 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./pages/global-page').then(m => m.GlobalPage),
     title: 'Global · Cathode'
   },
+  {
+    path: 'perform',
+    loadComponent: () => import('./pages/perform-page').then(m => m.PerformPage),
+    title: 'Perform · Cathode'
+  },
+  {
+    path: 'manage',
+    loadComponent: () => import('./pages/manage-page').then(m => m.ManagePage),
+    title: 'Manage presets and IRs · Cathode'
+  },
   { path: '**', redirectTo: '' }
 ];

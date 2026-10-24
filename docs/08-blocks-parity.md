@@ -952,3 +952,54 @@ Not a block, so not in the Blocks Guide: the preset and scene behaviour around t
 | Confirm before discarding edits | 🆕 ✅ | Global `confirmPresetChange` (on by default): the editor asks before loading another preset over unsaved edits |
 | Preset list as text | 🆕 ✅ | `GET /presets/list.txt` (alphabetical, author, tags and scene names); "Export list…" on the Library page |
 | Recent presets | 🆕 ✅ | A menu in the editor's navbar, per editor (local storage) |
+
+## 10. Editor features (stream ED)
+
+These come from Fractal's software-editor documentation rather than the Blocks Guide. They are paraphrased, and the full design is in [02 §7.5](02-architecture.md#75-editor-workflow-as-built). Most are 🆕 ✅.
+
+- **Keyboard.**
+  - Presets: P picker, ⌘PgUp/PgDn, ⌘G go to a preset or bank slot, F5 reload, ⌘S and ⇧⌘S save.
+  - Scenes: ⌘1–8.
+  - Channels: A, ⇧B, C and D (B stays the bypass alias), and X for the next channel.
+  - Blocks:
+    - Space (or B) bypasses or engages.
+    - ⇧Space engages and ⇧⌘Space bypasses, in every scene.
+    - ⌘X cut, ⌘D disconnect, ⌘U shunt, ⌘B save to the Library, G global, Q add or replace.
+    - ⌥ held or F1 shows Block Info.
+  - Other: ⌘T tuner, ⌘Y redo.
+  - `?` lists every shortcut.
+  - ⌘L opens Preset Leveling and ⌘I resets the channel (the PS stream's dialog and endpoint). Every preset change from the keyboard or the pickers asks before discarding unsaved edits.
+- **Preferences:** knob mode (linear or circular), wheel (normal, reverse or off), tooltips, meter refresh rate, and the default Circuit Amp view.
+- **Preset commands:** revert to saved, clear (with a confirmation), one-click timestamped snapshots kept on the Server, and templates (save as, new from).
+- **Grid:**
+  - replace a block with another type, keeping its cables;
+  - drag onto a block to swap the two, ⌘-drag to replace it;
+  - move a row or column;
+  - cut;
+  - paste onto a block of the same type, which copies its settings into all channels;
+  - disconnect all cables.
+- **All scenes:** set a block's channel, or engage or bypass it, in every scene.
+- **Block Info:** tiles show an abbreviation, the channel letter and a Global mark, and a line under the grid lists the amps in use (model per channel, and the scenes that use each).
+- **Circuit Amp Ideal/Authentic.** Authentic shows only the model's own controls. Ideal shows every control, under the generic name where the model has none. The default is a preference, and the amp page can switch it.
+- **Library:**
+  - save one channel, or the whole block with its modifiers and assets;
+  - recall into the current channel or all channels;
+  - folders;
+  - `.cthblock` export and import, including dropping a file on the Library page or a grid cell;
+  - save every block of the preset.
+- **Manage Presets and Manage IRs:**
+  - multi-select (⇧ for a range, ⌘ to toggle);
+  - drag to swap, ⌘-drag to move, ⇧-drag to copy, within a bank or onto another bank;
+  - changes held and marked until Save, and Close discards them;
+  - duplicate, rename, delete, colour and favourite;
+  - **Reset Amp blocks**, which resets every Circuit Amp parameter except the model's front-panel controls.
+  - ◐ Manage IRs has no drag or duplicate: IRs are content-addressed and not slotted, so neither has a meaning.
+- **Parameter Batch Set:** a control's context menu sets its value in other presets, on the same block id and type, for one channel or all.
+- **Pickers:** colour tags and favourites on presets and IRs, stored in the preset and the asset index. They have search with keyboard navigation and a pin that keeps the picker open while auditioning.
+- **Perform pages:** a global page (in Global) and a per-preset page (in the preset), each a grid of large controls. A control's context menu adds to either.
+- **Footswitches:**
+  - layout links (a switch also jumps to another layout);
+  - views (pages of switches, with view, viewNext and viewPrevious actions);
+  - per-preset overrides of a switch's action.
+  
+  All of them are edited in the Global footswitch editor.

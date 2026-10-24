@@ -26,4 +26,9 @@ describe('labelledParams', () => {
   it('passes parameters through for a type beyond the labels', () => {
     expect(labelledParams(params, 7).map(p => p.id)).toEqual(['gain', 'cut', 'switch1', 'control1']);
   });
+
+  it('shows every control in the Ideal view: the model’s names where it has them, generic ones elsewhere', () => {
+    expect(labelledParams(params, 0, true).map(p => p.name)).toEqual(['Gain', 'Cut', 'Switch 1', 'Lead Drive']);
+    expect(labelledParams(params, 1, true).map(p => p.name)).toEqual(['Gain', 'Cut', 'Jumper', 'Control 1']);
+  });
 });

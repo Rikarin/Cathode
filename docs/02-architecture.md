@@ -423,6 +423,52 @@ xUI currently has **no knob, meter or VU component**. Build them in `editor/libs
 - a tuner overlay, a looper panel and a metronome
 - an **A/B compare** of the working copy against the saved preset, with undo/redo history
 
+### 7.5 Editor workflow (as built)
+
+The editor's software-editor features, built in the ED stream. They follow Fractal's editor in what they do, not in how they look.
+
+- **Shortcuts.** One table in `shell/shortcuts.ts` drives two things: dispatch (`ShortcutService`, through a document `keydown`) and the `?` help overlay.
+  - Handlers register per page. The app owns the preset, scene, channel, block, edit and tuner commands. The grid owns the cell commands (Q, ⌘X/C/V/D/U, Delete), because it knows the focused cell.
+  - Nothing fires while focus is in a text field.
+  - ⌥ held, or F1, shows Block Info.
+  - B keeps its old job, bypass, as an alias of Space. Channel B is therefore ⇧B; A, C and D need no ⇧.
+  - A unit test checks that no two bindings collide and that none clashes with Electron's default menu, which is the only menu the desktop app has.
+- **Preferences** (`PreferencesStore`) are kept in local storage, per user and per machine: knob mode, wheel, tooltips, meter rate, and the default Circuit Amp view.
+  - They reach `cth-knob` and `cth-meter` through audio-ui's `CTH_KNOB_PREFERENCES` and `CTH_METER_PREFERENCES` tokens.
+  - Turning tooltips off puts the `cth-no-tooltips` class on the root.
+- **Server endpoints.** Everything the editor needs the Server to do lives in `Api/WorkflowApi.cs`, `Rig/LiveRig.Workflow.cs`, `Rig/PresetTools.cs` and `Stores/WorkflowStores.cs`. Live edits are one undo step each.
+  - Preset commands: `POST /live/revert`, `POST /live/clear`.
+  - Snapshots: `POST /live/snapshots`, `POST /live/snapshots/{id}/load`, `GET`/`DELETE /snapshots`. They are stored in `<data>/snapshots`.
+  - Templates: `POST /live/templates`, `POST /live/templates/{id}/new`, `GET`/`DELETE /templates`. They are stored in `<data>/templates`.
+  - Grid operations:
+    - `PUT /live/blocks/{id}/type` replaces a block and keeps its cables.
+    - `POST /live/blocks/{id}/drop` takes `swap` (the cables stay in place) or `replace`.
+    - `POST /live/grid/move` moves a row or column.
+    - `DELETE /live/blocks/{id}/cables` disconnects a block.
+    - `PUT /live/blocks/{id}/settings` pastes settings onto a block of the same type, all channels.
+    - `PUT /live/blocks/{id}/all-scenes` sets a block's state in every scene.
+  - Performance pages and footswitch overrides: `PUT /live/perform`, `PUT /live/footswitch-overrides`.
+  - Block Library:
+    - `POST /live/block-presets` saves every block.
+    - `POST /block-presets/export` and `/import` handle `.cthblock` files.
+    - `ApplyBlockPresetRequest.AllChannels` recalls a whole-block entry.
+  - Metadata and preset tools:
+    - `PATCH /presets/{id}/metadata` and `PATCH /assets/{ref}/metadata` set name, colour tag and favourite.
+    - `POST /presets/{id}/duplicate`.
+    - `POST /presets/reset-amps`.
+    - `POST /presets/batch-set`.
+- **Reset Amp blocks** goes through each preset's Circuit Amp channels.
+  - It clears every parameter in `BlockDescriptor.TypeResets` whose `AmpPanel.Label(id, "")` is empty.
+  - That resets the expert settings and the controls the model lacks.
+  - It keeps the model's front-panel knobs and switches, plus type, level, balance and input select.
+- **Footswitches.**
+  - A `FootswitchLayout` can have named `Views`. Each `Footswitch` sits on one `View` and may `Link` to another layout, which takes over after its tap action.
+  - The new actions are `layout`, `view`, `viewNext` and `viewPrevious`. `GlobalSettings.ActiveView` holds the page in use.
+  - In the MIDI router, `Preset.FootswitchOverrides` replace a switch's tap and hold while the preset is loaded. LEDs follow the active view and the overrides.
+- **Manage Presets** (`pages/manage.ts`) holds bank edits, copies, renames, metadata and deletions in a `ManageSession` until Save.
+  - Save applies them in an order the Server accepts: copies, metadata, banks, then deletions.
+  - **Manage IRs** works the same way through an `AssetSession`.
+
 ---
 
 ## 8. Security and IP

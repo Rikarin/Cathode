@@ -1,5 +1,15 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, input, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  computed,
+  inject,
+  input,
+  signal,
+  viewChild
+} from '@angular/core';
 import { onAnimationFrame, themeColor } from './animation';
+import { CTH_METER_PREFERENCES, frameDue } from './preferences';
 import { toDecibels } from './values';
 
 const FloorDb = -60;
@@ -65,6 +75,7 @@ export class CthMeter {
   private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
   private states: ChannelState[] = [];
   private last = 0;
+  private readonly preferences = inject(CTH_METER_PREFERENCES, { optional: true });
 
   readonly sources = input.required<ReadonlyArray<() => number>>();
   readonly label = input('Level');
@@ -78,7 +89,13 @@ export class CthMeter {
   protected readonly thickness = computed(() => this.sources().length * (Bar + ChannelGap) - ChannelGap);
 
   constructor() {
-    onAnimationFrame(time => this.draw(time));
+    // At the user's refresh rate: a lower one costs less on a busy machine. The levels between frames are peaks
+    // the sources keep, so a slower meter misses nothing.
+    onAnimationFrame(time => {
+      if (frameDue(time, this.last, this.preferences?.rate() ?? 60)) {
+        this.draw(time);
+      }
+    });
   }
 
   private draw(time: number): void {

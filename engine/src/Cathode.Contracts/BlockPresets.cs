@@ -18,7 +18,25 @@ public sealed class BlockPreset {
 
     /// <summary>Parameter values by id. Sparse: anything not listed takes the block type's default.</summary>
     public Dictionary<string, float> Values { get; set; } = [];
+
+    /// <summary>A folder (category) in the Library, or null for the top level.</summary>
+    public string? Folder { get; set; }
+
+    /// <summary>
+    ///     A whole-block entry: every channel's values (<see cref="Values" /> is then the channel it was saved from).
+    ///     Null for a single-channel entry.
+    /// </summary>
+    public Dictionary<string, Dictionary<string, float>>? Channels { get; set; }
+
+    /// <summary>A whole-block entry's modifiers, with <c>Block</c> left empty: recalled onto the target block.</summary>
+    public List<PresetModifier>? Modifiers { get; set; }
+
+    /// <summary>A whole-block entry's assets (IRs, captures) by slot.</summary>
+    public Dictionary<string, string>? Assets { get; set; }
 }
 
-/// <summary>Sets a block's channel (default: the one the active scene uses) to a block preset.</summary>
-public sealed record ApplyBlockPresetRequest(string Preset, string? Channel = null);
+/// <summary>
+///     Sets a block's channel (default: the one the active scene uses) to a block preset, or with <c>AllChannels</c>
+///     every channel (a whole-block entry's own channels, modifiers and assets).
+/// </summary>
+public sealed record ApplyBlockPresetRequest(string Preset, string? Channel = null, bool AllChannels = false);

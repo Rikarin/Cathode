@@ -59,7 +59,7 @@ export class Editor {
 
   /** Picks an option of a select by the select's accessible name. */
   async choose(select: string, option: string): Promise<void> {
-    await this.window.getByRole('combobox', { name: select }).click();
+    await this.window.getByRole('combobox', { name: select, exact: true }).click();
     await this.window.getByRole('option', { name: option, exact: true }).click();
   }
 }

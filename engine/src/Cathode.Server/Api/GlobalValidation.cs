@@ -10,7 +10,8 @@ static class GlobalValidation {
 
     static readonly string[] Actions = [
         "scene", "sceneNext", "scenePrevious", "presetSlot", "presetNext", "presetPrevious", "bypass", "channel",
-        "external", "manual", "tap", "tuner", "metronome", "looper", "sceneLevelUp", "sceneLevelDown", "save"
+        "external", "manual", "tap", "tuner", "metronome", "looper", "sceneLevelUp", "sceneLevelDown", "save",
+        "layout", "view", "viewNext", "viewPrevious"
     ];
 
     public static void Check(GlobalSettings settings) {
@@ -49,6 +50,19 @@ static class GlobalValidation {
             CheckAction(footswitch.Tap.Action, errors);
             if (footswitch.Hold is { } hold) {
                 CheckAction(hold.Action, errors);
+            }
+        }
+
+        foreach (var layout in settings.Footswitches) {
+            var views = Math.Max(1, layout.Views?.Count ?? 0);
+            foreach (var footswitch in layout.Switches) {
+                if (footswitch.View < 0 || footswitch.View >= views) {
+                    errors.Add($"Switch {footswitch.Index} of '{layout.Name}' is on view {footswitch.View}; the layout has {views}.");
+                }
+
+                if (footswitch.Link is { } link && settings.Footswitches.All(l => l.Id != link)) {
+                    errors.Add($"Switch {footswitch.Index} of '{layout.Name}' links to no layout '{link}'.");
+                }
             }
         }
 

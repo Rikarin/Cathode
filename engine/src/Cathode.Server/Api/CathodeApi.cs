@@ -279,7 +279,12 @@ public static class CathodeApi {
                 ) => {
                     var source = store.Get(request.Preset)
                         ?? throw RigException.NotFound($"No block preset '{request.Preset}'.");
-                    return Respond(http, await rig.ApplyBlockPresetAsync(id, source, request.Channel, Expected(http)));
+                    return Respond(
+                        http,
+                        request.AllChannels
+                            ? await rig.ApplyBlockPresetAllAsync(id, source, Expected(http))
+                            : await rig.ApplyBlockPresetAsync(id, source, request.Channel, Expected(http))
+                    );
                 }
             )
             .WithName("ApplyBlockPreset")
@@ -336,6 +341,7 @@ public static class CathodeApi {
             .WithName("DeleteBank");
 
         MapControls(api, live);
+        WorkflowApi.MapWorkflow(api, live);
 
         var assets = api.MapGroup("/assets").WithTags("Assets");
         assets.MapGet("/", (AssetStore store) => TypedResults.Ok(store.List().ToArray())).WithName("ListAssets");
@@ -577,7 +583,9 @@ public static class CathodeApi {
                                 g.MidiMappings = settings.MidiMappings;
                                 g.Footswitches = settings.Footswitches;
                                 g.ActiveLayout = settings.ActiveLayout;
+                                g.ActiveView = Math.Max(0, settings.ActiveView);
                                 g.Blocks = settings.Blocks;
+                                g.Perform = settings.Perform;
                                 g.EffectsMix = settings.EffectsMix;
                                 g.NoiseGateOffset = settings.NoiseGateOffset;
                                 g.SceneRevert = settings.SceneRevert;
@@ -714,13 +722,13 @@ public static class CathodeApi {
             .WithSummary("Puts every channel of the block back to its type's defaults.");
     }
 
-    static Ok<LiveState> Respond(HttpContext http, LiveState state) {
+    internal static Ok<LiveState> Respond(HttpContext http, LiveState state) {
         http.Response.Headers.ETag = $"\"{state.Revision.ToString(CultureInfo.InvariantCulture)}\"";
         return TypedResults.Ok(state);
     }
 
     /// <summary>The revision from <c>If-Match</c>, if the client sent one.</summary>
-    static long? Expected(HttpContext http) {
+    internal static long? Expected(HttpContext http) {
         var header = http.Request.Headers.IfMatch.ToString().Trim().Trim('"');
         return long.TryParse(header, NumberStyles.Integer, CultureInfo.InvariantCulture, out var revision)
             ? revision
