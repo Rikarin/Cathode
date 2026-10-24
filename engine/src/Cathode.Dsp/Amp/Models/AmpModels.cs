@@ -77,7 +77,11 @@ public sealed partial record AmpDesign {
         Models.SubwayBlues.Design,
         Models.TriAxis.Rhythm,
         Models.TriAxis.Lead1,
-        Models.TriAxis.Lead2
+        Models.TriAxis.Lead2,
+        Models.JCM900.Design,
+        Models.JCM900.Head100,
+        Models.Valvestate8080.Design,
+        Models.JVM410H.Design
     ];
 
     public static AmpDesign Blackface => Models.Blackface.Design;

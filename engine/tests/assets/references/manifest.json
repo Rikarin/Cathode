@@ -592,16 +592,16 @@
       "sha256": "bc4672fa2825a79090112e1fb22ab2e46da98b9401fbb157454c0fdfa79622a9",
       "size": 408517,
       "circuit": {
-        "type": "Plexi",
+        "type": "JCM900 4502",
         "params": {
           "gain": 4
         }
       },
       "targets": {
-        "esr": 1.05,
-        "mrstft": 1.55
+        "esr": 0.35,
+        "mrstft": 0.95
       },
-      "notes": "Tier 2 JCM900 (op-amp/diode front end); compared with Plexi, the closest Marshall type, gain mapped 1:1."
+      "notes": "JCM900 4502 type, channel A gain 4; master, tone and presence not stated (left at 5). Achieved (2026-10): ESRpre 0.296, ESR 0.079, MRSTFT 0.783 (Plexi stand-in before: 0.603 / 0.232 / 1.006)."
     },
     {
       "id": "pel-jcm900-a-g6",
@@ -625,16 +625,16 @@
       "sha256": "84b3da4a17487975d9837bb8f747e6884e3cc797be133a47a1de152d019aa533",
       "size": 408449,
       "circuit": {
-        "type": "Plexi",
+        "type": "JCM900 4502",
         "params": {
           "gain": 6
         }
       },
       "targets": {
-        "esr": 1.05,
-        "mrstft": 1.6
+        "esr": 0.5,
+        "mrstft": 1.1
       },
-      "notes": "Tier 2 JCM900 (op-amp/diode front end); compared with Plexi, the closest Marshall type, gain mapped 1:1."
+      "notes": "JCM900 4502 type, channel A gain 6; master, tone and presence not stated (left at 5). Achieved (2026-10): ESRpre 0.406, ESR 0.125, MRSTFT 0.94 (Plexi stand-in before: 0.548 / 0.179 / 1.048)."
     },
     {
       "id": "pel-jcm900-a-g8",
@@ -658,16 +658,16 @@
       "sha256": "e2281b8bd7403946b58612581b6d782588c88999c36a6d5193b95da2aa9115c7",
       "size": 408543,
       "circuit": {
-        "type": "Plexi",
+        "type": "JCM900 4502",
         "params": {
           "gain": 8
         }
       },
       "targets": {
-        "esr": 0.9,
-        "mrstft": 1.8
+        "esr": 0.7,
+        "mrstft": 1.2
       },
-      "notes": "Tier 2 JCM900 (op-amp/diode front end); compared with Plexi, the closest Marshall type, gain mapped 1:1."
+      "notes": "JCM900 4502 type, channel A gain 8; master, tone and presence not stated (left at 5). Achieved (2026-10): ESRpre 0.602, ESR 0.181, MRSTFT 1.006 (Plexi stand-in before: 0.565 / 0.19 / 1.195)."
     },
     {
       "id": "pel-jcm900-a-g10",
@@ -691,16 +691,16 @@
       "sha256": "9c94aff2d395a64aec1309686431e7d129a5da51cc35f7a4cf3673f6c503c8f1",
       "size": 408396,
       "circuit": {
-        "type": "Plexi",
+        "type": "JCM900 4502",
         "params": {
           "gain": 10
         }
       },
       "targets": {
-        "esr": 1.65,
-        "mrstft": 1.85
+        "esr": 0.95,
+        "mrstft": 1.3
       },
-      "notes": "Tier 2 JCM900 (op-amp/diode front end); compared with Plexi, the closest Marshall type, gain mapped 1:1."
+      "notes": "JCM900 4502 type, channel A gain 10; master, tone and presence not stated (left at 5). Achieved (2026-10): ESRpre 0.826, ESR 0.205, MRSTFT 1.107 (Plexi stand-in before: 0.937 / 0.291 / 1.215)."
     },
     {
       "id": "pel-jcm900-b-g8",
@@ -724,16 +724,17 @@
       "sha256": "23a89b7c1c79d70f8798bf534870692b55917d4660d045fedb4ad90ca14c1bbf",
       "size": 408130,
       "circuit": {
-        "type": "Plexi",
+        "type": "JCM900 4502",
         "params": {
+          "switch1": 1,
           "gain": 4.0
         }
       },
       "targets": {
-        "esr": 1.35,
-        "mrstft": 1.8
+        "esr": 0.55,
+        "mrstft": 1.0
       },
-      "notes": "Channel B gain as named (0-20 per the file names); mapped to Plexi gain/2. Channel B has diode clipping Plexi lacks."
+      "notes": "JCM900 4502 type, channel B gain 8 of 20 (knob 4 of 10); master, tone and presence not stated (left at 5). Achieved (2026-10): ESRpre 0.458, ESR 0.089, MRSTFT 0.869 (Plexi stand-in before: 0.869 / 0.242 / 1.169)."
     },
     {
       "id": "pel-jcm900-b-g12",
@@ -757,16 +758,17 @@
       "sha256": "7cfcda985d14a9b0fe11bd93ad2903c619ca568d8edc7cbf3fc718bd50202dfb",
       "size": 408189,
       "circuit": {
-        "type": "Plexi",
+        "type": "JCM900 4502",
         "params": {
+          "switch1": 1,
           "gain": 6.0
         }
       },
       "targets": {
-        "esr": 1.7,
-        "mrstft": 2.05
+        "esr": 0.75,
+        "mrstft": 1.25
       },
-      "notes": "Channel B gain as named (0-20 per the file names); mapped to Plexi gain/2. Channel B has diode clipping Plexi lacks."
+      "notes": "JCM900 4502 type, channel B gain 12 of 20 (knob 6 of 10); master, tone and presence not stated (left at 5). Achieved (2026-10): ESRpre 0.625, ESR 0.224, MRSTFT 1.072 (Plexi stand-in before: 1.106 / 0.374 / 1.339)."
     },
     {
       "id": "pel-jcm900-b-g16",
@@ -790,16 +792,17 @@
       "sha256": "ef867ea19fbf0d49ee576f761f82531e849b622bff01beb9593593eae3909f27",
       "size": 408069,
       "circuit": {
-        "type": "Plexi",
+        "type": "JCM900 4502",
         "params": {
+          "switch1": 1,
           "gain": 8.0
         }
       },
       "targets": {
-        "esr": 1.7,
-        "mrstft": 2.25
+        "esr": 0.8,
+        "mrstft": 1.4
       },
-      "notes": "Channel B gain as named (0-20 per the file names); mapped to Plexi gain/2. Channel B has diode clipping Plexi lacks."
+      "notes": "JCM900 4502 type, channel B gain 16 of 20 (knob 8 of 10); master, tone and presence not stated (left at 5). Achieved (2026-10): ESRpre 0.691, ESR 0.34, MRSTFT 1.205 (Plexi stand-in before: 1.098 / 0.504 / 1.509)."
     },
     {
       "id": "pel-jcm900-b-g20",
@@ -823,16 +826,17 @@
       "sha256": "3e5d632c18b4c45a7d71ca53c3b87ac0996abc3606b7d846497a7ae1d4725092",
       "size": 408005,
       "circuit": {
-        "type": "Plexi",
+        "type": "JCM900 4502",
         "params": {
+          "switch1": 1,
           "gain": 10.0
         }
       },
       "targets": {
-        "esr": 1.8,
-        "mrstft": 2.1
+        "esr": 0.95,
+        "mrstft": 1.55
       },
-      "notes": "Channel B gain as named (0-20 per the file names); mapped to Plexi gain/2. Channel B has diode clipping Plexi lacks."
+      "notes": "JCM900 4502 type, channel B gain 20 of 20 (knob 10 of 10); master, tone and presence not stated (left at 5). Achieved (2026-10): ESRpre 0.788, ESR 0.411, MRSTFT 1.341 (Plexi stand-in before: 1.187 / 0.535 / 1.373)."
     },
     {
       "id": "pel-ac15-topboost",

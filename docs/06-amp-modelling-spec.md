@@ -500,6 +500,61 @@ drawing and marks its guesses (mostly the rails, idle currents and output transf
   Tiny Terror 9.4 / 13.8. The four Marshalls are a little over the crunch budget, as the Plexi 100W they share the
   two-triode first stage with; the DR504 is over on noise, as the DR103.
 
+**As built (stream A, modern Marshall, op-amp and channel-switching designs).** Four types appended to `AmpDesign.All`;
+each file cites its drawings and marks its guesses (mostly the rails, which none of these drawings give, the output
+transformers and the feedback taps):
+- **JCM900 4502** and **JCM900 4100** (`JCM900.cs`), both channels, from JMP52-02 issue 11 as read above, with these
+  corrections: the W005F bridge has the 1N4007 across its DC terminals, which makes a symmetric clamp of three junctions
+  each way; channel A's IC4a, channel B's IC6b and IC4b, both IC1 sections and both masters are M5201 switching op-amps
+  whose sections share one output; the two masters are the same circuit, so one Master knob turns the playing one;
+  Presence is V2a's cathode network (470 Ω + 0.22 µF and the 10k pot across 2k2), a preamp control on Control 1; the
+  return op-amp's input resistor (not drawn) is taken as 100k. Power amps from the scans 4100-60-02 issue 11 (4 × EL34,
+  47 nF out) and CDD112 issue 10 for the 50 W models (2 × EL34, 2k2 screens, 22 nF out): 82k ‖ 100 pF / 100k, 1k bias,
+  15k tail, 150k leaks, 1k5 stoppers, 100k of feedback into 4k7 (the Dual Reverbs' presence cap is "not fitted").
+- **Valvestate 8080** (`Valvestate8080.cs`), both channels, from PC0689 issue 5 and PC0689P issue 9 (vector,
+  schematicheaven): boost IC1a ×22, IC3b (Gain as a feedback rheostat, OD1/OD2 on Switch 2) onto two LEDs, the ECC83 as
+  a shunt-feedback gain stage (220k + 100 nF from its follower to its grid) driving a Marshall stack with a 5 nF bass
+  shunt, the Contour network and IC5b ×11; Normal: IC1b with the Crunch treble boost and IC2 with the Crunch LEDs (Switch
+  3), its own stack and IC5a ×2; both into the loop's summing stage, IC8a and the Master, then the solid-state power amp
+  (`AmpDesign.SolidState`: 33k over 1k of voltage feedback, BDV65/64 Darlingtons with 0.33 Ω, ±39 V on 2200 µF). Its
+  current feedback (0.33 Ω in the speaker return) is not modelled.
+- **JVM410H OD** (`JVM410H.cs`), OD1 and OD2 (Switch 1) in the full-cascade mode, from JVM410-60-02 issue 2 and
+  JVM410-61-02 issue 1 (vector, el34world): V6b, the front panel's OD1 (3.3 nF, 470k, 1 nF) or OD2 (1 nF, 470k, 1.5 nF)
+  gain network, V6a (220k, 2k7 ‖ 680 nF), V7b (82k + 22k with 1 nF to the rail, 10k unbypassed), V7a (220k, 820 Ω), the
+  V8b follower into both OD stacks in parallel (470 pF, 33k or 47k, 22 nF, 22 nF; 39k into 1M volumes, 330k onto a bus
+  the idle channels load), the V8a follower, the bypassed loop's mix node, V9b as a shunt-feedback mixer (4M7 over 1M),
+  the V9a follower, the 200k Master, a 82k / 100k long-tail pair with a 10k + 4k7 tail and 82k of feedback, four EL34.
+  Not built: Clean/Crunch and the Green/Orange modes (the drawings name the relays but not the states each mode sets).
+- **Not built**: the DSL100 (main board JCM2-60-02 iss 9 and front panel JCM2-61-00 iss 5 fetched from DrTube and read in
+  part; the boards' connectors still to be traced), the JMP-1 (digital pots and an active tone sheet), the JVM410HJS (a
+  different main board with a THAT4301 gate in the path and different front-panel values: its own read). docs/07 lists
+  what was found.
+- **Library changes** (`NetworkStage`, additive): `StageNetlist.Amplifier`, an op-amp that never reaches its rails as a
+  linear voltage-controlled source inside the adaptor (no device, no Newton; the DC solve stamps it), used for every op-amp
+  whose signal stays inside its rails or whose clipping a diode clamp right after it masks (on loud noise, under the
+  same load, the JCM900's channel A stage with its LEDs went from 2.8 to 0.5 µs a sample and the master stage from 3.4
+  to 0.2 µs); and one device combination, an op-amp with a diode clipper (`DO`, the Valvestate's Normal IC2). The test
+  reference appends an amplifier as a VCVS.
+- **Validation**: whole preamp chains against the reference simulator (`Modern_marshall_chains_match_the_reference`):
+  JCM900 channel A and B and the Valvestate's Normal channel below −30 dB, the Valvestate's boost channel −26 dB (the
+  cut after its LED clamp), the JVM's OD1 and OD2 below −30 dB once its cuts sit at the next grids (at the gain pot's
+  reactive wiper they were −21 dB). Knob sweeps at full drive converge with no NaN, every control is audible, gain and
+  master are monotonic on both channels, peaks stay under +6 dBFS (`ModernMarshallTests`).
+- **References**: the eight pelennor JCM900 4502 captures (Tim R, GPL) now map to the JCM900 4502 type (channel B's
+  0–20 gain halved onto the knob; other knobs unstated, left at 5). Against the Plexi stand-in, pre-emphasised ESR /
+  MRSTFT: channel A gain 4 0.603 / 1.006 → 0.296 / 0.783, 6 0.548 / 1.048 → 0.406 / 0.940, 8 0.565 / 1.195 →
+  0.602 / 1.006, 10 0.937 / 1.215 → 0.826 / 1.107; channel B gain 8 0.869 / 1.169 → 0.458 / 0.869, 12 1.106 / 1.339 →
+  0.625 / 1.072, 16 1.098 / 1.509 → 0.691 / 1.205, 20 1.187 / 1.373 → 0.788 / 1.341 (MRSTFT better everywhere, ESR
+  everywhere but channel A at 8). With the M5201s as op-amp devices instead of linear amplifiers channel A was 0.07–0.33
+  better in ESR, channel B the same; the difference was not traced. Channel A's fitted calibration still pins at −20 dBu
+  (the unstated master and tone are the likely cause; no fit of them was run). No GPL direct-out
+  capture of a Valvestate or a JVM410H was found (the pelennor JVM files state neither amp nor rig).
+- **CPU** (48 kHz, 64-frame blocks, `Gain` 7, `Master` 6, guitar chord / loud noise, process CPU time, minimum of three
+  passes on a machine with a load average of 150–350, where the Plexi read 9.1 / 15.3 %): JCM900 4502 channel A
+  15.6 / 29.6 %, channel B 19.3 / 26.4 % (the 4100 the same), over the high-gain budget on guitar for B and on noise for
+  A (the V1 pair with its 220k feedback around the stack is 6–10 % of it); Valvestate 8080 boost 15.3 / 24.2 %, Normal
+  11.4 / 16.5 %; JVM410H OD 17.2 / 24.7 %, a little over on guitar.
+
 ### 3.3 Vox and class-A boutique
 
 **AC30 Top Boost** — https://www.ampbooks.com/mobile/classic-circuits/vox-ac30/, https://www.voxac30.org.uk/vox_ac30_top_boost_circuit.html (JMI OS/010 drawing images on that site)
