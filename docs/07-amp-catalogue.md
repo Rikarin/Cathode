@@ -101,7 +101,7 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | Mesa/Boogie Mark IIC+ | ✅ Done | Mark IIC+, lead | GPL: IIC+ Drive-knob model, IIC+ Drive 8; T3K: IIC+ pack | EQ in and out, Lead Drive sweep | 1x12 / 4x12 closed, EVM12L / Vintage 30 |
 | Peavey 5150 / 6505 | ✅ Done (lead); rhythm ⏸ | 5150, lead | GPL: 5150 block letter, 6505+ red (two sources) | Rhythm channel: its network is on the factory "Initial Preamp Stage" page, but the relay states (K1, K2, K4) per channel and crunch setting are on a page the excerpts lack; a full factory set or a trace of the switching logic | 4x12 closed, Sheffield / Vintage 30 |
 | EVH 5150III | ✅ Done | 5150III, red | T3K: 5150III OB1 v2 | Blue and red channels | 4x12 closed, G12EVH / Vintage 30 |
-| Mesa/Boogie Dual Rectifier | ✅ Done | Dual Rectifier, red | GPL: Mini Rectifier (not the same amp) | Dual/Triple Rec, modern and vintage modes, tube vs SS rectifier | 4x12 closed, Vintage 30 |
+| Mesa/Boogie Dual Rectifier | ✅ Done (factory two-channel drawing, 1993, red channel; Modern takes the feedback out) | Dual Rectifier, red | GPL: Mini Rectifier (not the same amp) | Dual/Triple Rec, modern and vintage modes, tube vs SS rectifier | 4x12 closed, Vintage 30 |
 | Bogner Ecstasy | ⏸ Waiting (only a modded "83K" redraw and an OD-channel-only redraw of unknown version; no 100B/101B or 20th Anniversary drawing found) | — | GPL: Ecstasy Blue *pedal* (not the amp) | Blue/red channels; a stock 100B/101B schematic | 4x12 closed, Vintage 30 / Greenback |
 | Diezel VH4 (ch 3) | ⏸ Waiting (a 2005 factory sheet gives the topology but no values; an owner's trace gives the stacks only; the clone redraws disagree) | — | — | Channel 3 and 4 values | 4x12 closed, Vintage 30 |
 | Mesa/Boogie Mark IV (lead) | ✅ Done | Mark IV, lead | GPL: Mark IV | Settings stated | 1x12 / 4x12 closed |
@@ -123,7 +123,7 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | Hughes & Kettner TriAmp | ⏸ Waiting (owner manuals only; a MkII service manual is mentioned on forums but not found) | — | — | Service manual | 4x12 closed |
 | Wizard Modern Classic | ⏸ Waiting (an MCII schematic and turret layout by a forum member are ampgarage attachments, login only, viewtopic.php?p=398776; the thread text gives only the inverter and feedback values) | — | — | Read the ampgarage trace | 4x12 closed |
 | Mesa/Boogie Mark V | ✅ Done (factory drawing), channel 3 with its IIC+ / Mark IV / Extreme modes | Mark V | GPL (not usable): ToneLibrary SmartAmp Mark 5 high gain (WaveNet format the harness does not run; settings and rig unstated) | Channels 1 and 2; 45 W / 10 W modes | 4x12 / 1x12 closed |
-| Mesa/Boogie Triple Rectifier | ✅ Done as a variant (no schematic; the Dual Rectifier preamp with six 6L6) | Triple Rectifier | — | A Triple Rectifier drawing | 4x12 closed, Vintage 30 |
+| Mesa/Boogie Triple Rectifier | ✅ Done as a variant (no schematic; the three-channel Dual Rectifier with six 6L6) | Triple Rectifier | — | A Triple Rectifier drawing | 4x12 closed, Vintage 30 |
 | Mesa/Boogie Rect-o-Verb | ✅ Done (factory Solo 50 / Rectoverb drawing, first series), lead channel | Rect-o-Verb | — | Rhythm channel; Series II drawing | 1x12 / 2x12 closed |
 | Lichtlaerm Audio Prometheus (lead and clean channels) | ✅ Done, **topology inferred** (no schematic published) | Prometheus, Prometheus Clean | T3K: Prometheus TEASER-PACK (pipppriss; 5 captures, +18 dBu, knob settings not stated) | A schematic or gut shots; captures with knob settings | 4x12 closed, Mesa OS / Vintage 30 |
 
@@ -266,7 +266,7 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 
 | Amp | Status | Cathode type | Axe models | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Dumble ODS (HRM and Robben Ford versions) | 📋 Planned (1970s ODS preamp, overdrive and power redraws on schematicheaven `dumbleamps/`, with Rock/Jazz and Deep; no HRM drawing found) | ODS 97 is a 1997 ODS 100 | ODS-100 Clean / HRM / HRM Mid / Ford 1, 2, Mid | HRM schematic | 1x12 / 2x12 open |
+| Dumble ODS (HRM and Robben Ford versions) | ✅ Done as the 1970s ODS (schematicheaven `dumbleamps/` preamp, overdrive, supply and output redraws: Rock/Jazz, Deep, Bright, Accent; no HRM drawing found, so no HRM stack) | ODS 70s (Switch 1 Overdrive, Switch 2 Jazz, Switch 3 Deep, Presence = Accent) | — (the GPL Dumble kit and clone captures stay on ODS 97: their circuits are not stated) | HRM schematic; captures of a 1970s ODS | 1x12 / 2x12 open |
 | Fuchs Overdrive Supreme | ⏸ Waiting (searched 2026-10: no schematic) | — | Fox ODS, Fox ODS Deep | Schematic | 1x12 / 2x12 open |
 | Two-Rock Jet 35 | ⏸ Waiting (searched 2026-10: no schematic) | — | Two Stone J35 1 / 2 | Schematic | 1x12 open |
 | Bludotone Ojai | ⏸ Waiting (searched 2026-10: no schematic; said to follow Robben Ford's "Tan" Dumble) | — | Bludojai Clean / Lead 1 / Lead 2 | Schematic | 1x12 / 2x12 open |
@@ -277,7 +277,7 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 | Morgan AC20 Deluxe | ⏸ Waiting (see the Morgan row) | — | AC-20 12AX7 / EF86, Bass / Treble | Schematic | 1x12 open |
 | Bad Cat Hot Cat 30 | ✅ Done | Hot Cat 30 | Hot Kitty | Captures | 2x12 open |
 | Matchless Chieftain | ✅ Done | Chieftain | Boutique 1 / 2 | Captures | 2x12 open |
-| Trainwreck Liverpool | 📋 Planned (schematicheaven `newamps/trainwreck_liverpool.pdf`: a builder's drawing of two amps, the Express preamp with 4 x EL84 and feedback; two coupling values were "tuned" per amp) | — | Wrecker Liverpool | | 2x12 |
+| Trainwreck Liverpool | ✅ Done (Mark Abbott's hand drawings of the two Liverpools he saw, schematicheaven `newamps/trainwreck_liverpool.pdf`; R7/C8 at his recommended 68k / 2.2 nF) | Liverpool (Switch 1 Clarity, Bright 500 pF) | — | Captures with settings | 2x12 |
 | Trainwreck Rocket | ⏸ Waiting (only DIY drafts behind the ampgarage login) | — | Wrecker Rocket | Schematic | 1x12 / 2x12 |
 | Komet 60 / Concorde | ⏸ Waiting (drawings only behind the ampgarage login; Komet restricts them) | — | Comet 60, Comet Concourse | Schematic | 2x12 / 4x12 |
 | Swart Atomic Space Tone | ⏸ Waiting (searched 2026-10: no schematic) | — | Nuclear-Tone | Schematic | 1x12 open |
@@ -289,11 +289,11 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 
 | Amp | Status | Cathode type | Axe models | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Mesa/Boogie TriAxis preamp | 📋 Planned (factory drawing on el34world: Boogie_triaxis.pdf; not read yet) | — | USA Pre Clean / LD1 / LD2 | Lead 1 and Lead 2 modes | 4x12 closed |
+| Mesa/Boogie TriAxis preamp | ✅ Done (factory audio sheets rev 1.08 with the LDR mode table; LDR ranges taken from the Mark IIC+; presence LDR fixed) into a generic power amp (the Dual Rectifier model's 4 × 6L6) | TriAxis Rhythm (Switch 1 Yellow), TriAxis Lead 1, TriAxis Lead 2 (Switch 1 Yellow, Switch 2 Red; Control 1 lead drive, Control 2 Dynamic Voice) | — | Captures with settings | 4x12 closed |
 | Mesa/Boogie JP-2C | ⏸ Waiting (no drawing found; the Mark IIC+ model covers its channel 3 circuit) | — | USA JP IIC+ Green / Yellow / Red | | 4x12 closed |
 | Mesa/Boogie Triple Crown TC-100 | ⏸ Waiting (no drawing found) | — | Triple Crest 2 / 3 | | 4x12 closed |
-| Mesa/Boogie Subway Blues | 📋 Planned (factory drawing on el34world: Boogie_subwayblues.pdf; not read yet) | — | USA Sub Blues | | 1x10 open |
-| Mesa/Boogie Dual Rectifier, 2- and 3-channel revisions | 📋 Planned (factory scans of both on el34world; the current model follows a redraw of the 2-channel one) | Dual Rectifier covers one; Triple Rectifier | Recto1 / Recto2 Orange / Red, Thordendal | | 4x12 closed, Vintage 30 |
+| Mesa/Boogie Subway Blues | ✅ Done, partly (factory drawings read; the potted "Toning Module" is not drawn and is left out) | Subway Blues (Switch 1 Fat) | — | The toning module's contents | 1x10 open |
+| Mesa/Boogie Dual Rectifier, 2- and 3-channel revisions | ✅ Done (both factory scans: the two-channel 1993 RF-1F set now drives the Dual Rectifier type, which the redraw had wrong; the three-channel Solo Head set is a new type and the Triple Rectifier's base) | Dual Rectifier (2-channel, red), Dual Rectifier 3-Ch (channel 3; Bright = Raw), Triple Rectifier | — | Orange / channel 1-2 voicings; Raw vs Vintage captures | 4x12 closed, Vintage 30 |
 | Soldano X88R preamp | ⏸ Waiting (a legible single-sheet redraw, "SOLDANO X88R" 13 Jul 2002, on el34world, Soldano_x88r.pdf; its origin is unknown and owners doubt it; not built) | — | Solo 88 Clean / Rhythm / Lead | A second source to confirm the redraw | 4x12 closed |
 | Soldano/Caswell X99 preamp | ⏸ Waiting (a legible scan of a hand-labelled drawing on el34world, Soldano_x99.pdf, no title block; Fractal says its rhythm channel is the SLO-100's; not built) | — | Solo 99 Clean / Lead | Confirm the drawing; a power amp to pair it with (Fractal uses the SLO's) | 4x12 closed |
 | CAE 3+ SE preamp | ⏸ Waiting (a schematic of unknown origin is a GroupDIY attachment, thread 51582, which refused automated access; not read) | — | CA3+ Clean / Rhythm / Lead | Read the GroupDIY drawing | 4x12 closed |
@@ -307,7 +307,7 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 
 | Amp | Status | Cathode type | Axe models | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Mesa/Boogie Bass 400 | 📋 Planned (Mesa's 1982 factory schematic found: el34world Boogie_bass400.pdf, a 149 dpi scan, values partly readable by eye; 4 × 12AX7, 6 × 6550 or 6L6; not built for time) | — | USA Bass 400 1 / 2 | Captures; a sharper scan | 8x10 / 4x10 closed |
+| Mesa/Boogie Bass 400 | ⏸ Waiting (factory 1985 scan read, see docs/06 §3.4 stream D; not built: the power amp's driver is two cascaded differential stages (V3: 33k plates, a 33k tail to -68 V; V4: 470k / 220k grid dividers, a shared 470 Ω cathode, RC-coupled to six 6550 on 100k bias feeds), which none of the library's inverters covers, and the volume mixing's return and V3B's 62k wiring are unreadable) | — | — | A sharper scan or a trace of the driver | 8x10 / 4x10 closed |
 
 Already in the catalogue and in the Axe list (no row added): Bassman 5F6-A, Champ 5F1, Tweed Twin 5F8, Bandmaster,
 Tweed Deluxe 5E3, Deluxe Reverb, Twin Reverb, Super Reverb, Princeton Reverb, Vibrolux, Vibroverb, Supro 1624T, JTM45,

@@ -142,8 +142,8 @@ public sealed class StageNetlist {
     public void CathodeResistor(int a, int b, double ohms) => Add(new(ElementKind.Resistor, a, b, ohms) { Cathode = true });
 
     /// <summary>
-    ///     A resistor of <paramref name="on" /> ohms while <paramref name="role" /> is on, else <paramref name="off" />
-    ///     (0: open).
+    ///     A resistor of <paramref name="on" /> ohms while <paramref name="role" /> is on, else <paramref name="off" />;
+    ///     either 0 is an open contact (a closed one is a small resistance, e.g. 1 Ω).
     /// </summary>
     public void SwitchedResistor(int a, int b, double off, double on, SwitchRole role) =>
         Add(new(ElementKind.Resistor, a, b, on) { OffValue = off, Switch = role });
@@ -615,7 +615,8 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
         var on = e.Switch is not { } role || controls.IsOn(role);
         switch (e.Kind) {
             case ElementKind.Resistor: {
-                var ohms = on ? e.Value : e.OffValue > 0 ? e.OffValue : Open;
+                // A switched resistor's 0 is absent (an open contact) in either position, as documented.
+                var ohms = on ? e.Switch is null || e.Value > 0 ? e.Value : Open : e.OffValue > 0 ? e.OffValue : Open;
                 if (e.Part != PotPart.None) {
                     var fraction = e.Pot.Fraction(controls.Rotation(e.Role));
                     ohms = (e.Part == PotPart.Upper ? 1 - fraction : fraction) * e.Pot.Ohms;

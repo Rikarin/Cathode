@@ -288,6 +288,10 @@ public enum PowerTopology {
 ///     <see cref="PowerSupplyDesign.ScreenCap" /> so that the node rests there. 0 for screens near B+ (the bias is then
 ///     found with the screens at B+).
 /// </param>
+/// <param name="FeedbackOffSwitch">
+///     A front-panel switch that takes the global feedback out while it is on (Mesa's Modern mode on the Rectifiers);
+///     null for none.
+/// </param>
 public sealed record PowerAmpDesign(
     string Name,
     PentodeModel Tube,
@@ -319,7 +323,8 @@ public sealed record PowerAmpDesign(
     Pot? ShuntMaster = null,
     double CathodeResistor = 0,
     IReadOnlyList<SupplySwitchDesign>? SupplySwitches = null,
-    double ScreenSupply = 0
+    double ScreenSupply = 0,
+    SwitchRole? FeedbackOffSwitch = null
 ) {
     /// <summary>1 when single-ended, else 2.</summary>
     public int Sides => Topology == PowerTopology.SingleEnded ? 1 : 2;
