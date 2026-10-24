@@ -202,6 +202,8 @@ public interface IDspBlock : IDisposable
 
 Processing is **in place**: the compiler hands each block one buffer that holds its input and receives its output. That is what lets a series chain run in a single buffer.
 
+A block that implements **`IRowInputBlock`** takes its cabled inputs one by one, by grid row, instead of their sum: before each `Process` the compiled graph calls `MixInput(row, source, destination)` for every input (latency-aligned), and the block adds them into its buffer as it sees fit. The Multiplexer and the Mixer weigh the rows; the Vocoder (Analysis Source) and the Pitch block (Detector Source) keep one chosen row aside in a side buffer as their analysis signal and sum the rest as usual.
+
 - DSP state lives in `NativeMemory.AlignedAlloc` buffers (64-byte aligned) or pinned arrays.
 - `Process` is `[SkipLocalsInit]` and uses `Span<T>` and `Vector128<T>` (the portable SIMD baseline; on Apple Silicon `Vector256` is emulated).
 - Signal path is float32. **Double** is used for sensitive IIR state (low-frequency high-pass filters, resonant tone stacks), phase accumulators and Newton solvers.
