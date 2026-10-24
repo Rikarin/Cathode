@@ -52,7 +52,7 @@ Each release lists `SHA256SUMS` to check the downloads against.
 | Platform | Audio and MIDI |
 |---|---|
 | macOS | ✅ CoreAudio and CoreMIDI |
-| Linux | 🚧 ALSA (and JACK) in progress |
+| Linux | ◐ ALSA (direct, no sound server) and JACK or PipeWire, with ALSA sequencer MIDI, early: tested in containers, not yet on a real interface |
 | Windows | ◐ WASAPI and WinMM MIDI, early: tested on shared-mode output only (exclusive mode and inputs still need a real interface); ASIO planned |
 
 Without a working audio driver, Cathode runs on a silent "null" backend: you can build and edit presets, but you will

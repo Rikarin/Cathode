@@ -1,13 +1,13 @@
-# ADR-0002: Native audio shim with a planar C ABI (spike S1, macOS)
+# ADR-0002: Native audio shim with a planar C ABI (spike S1, macOS and Linux)
 
-- **Status:** accepted for macOS. Windows has a WASAPI backend (see [Windows](#windows-wasapi)); ASIO and Linux (JACK) still need their spikes.
+- **Status:** accepted for macOS. Windows has a WASAPI backend (see [Windows](#windows-wasapi)); ASIO still needs its spike. Linux (ALSA, with JACK as a second backend) is implemented and container-tested (see [Linux](#linux-backend)), and still needs a hardware run.
 - **Date:** 2026-10-23
 - **Spikes:** S1 (native audio shim) and S5 (FTZ/DAZ), from [04-implementation-plan.md](../04-implementation-plan.md#phase-0-feasibility-spikes-34-weeks--answer-the--items-before-committing)
 
 ## Decision
 
 Audio I/O goes through `engine/native/cth_audio`, a small C library with one C ABI on every platform:
-- The OS driver owns the real-time thread. There is no intermediate queue.
+- The OS driver owns the real-time thread (CoreAudio, JACK), or the shim owns one (ALSA). There is no intermediate queue.
 - The shim deinterleaves device buffers into planar float channels, enables flush-to-zero on the callback thread, and calls a managed `[UnmanagedCallersOnly]` function pointer. Output channels arrive zeroed, and callbacks larger than 4096 frames are split.
 - On macOS the backend is a **HAL IOProc** on a single device (`AudioDeviceCreateIOProcID`) rather than AUHAL. It is the lowest layer, gives direct buffer-size control, and runs on CoreAudio's real-time thread.
 - Dropouts are counted from `kAudioDeviceProcessorOverload`.
@@ -53,10 +53,24 @@ Managed side: `Cathode.Audio.Native` (`LibraryImport` bindings, `NativeAudioSess
 
 Verified on Windows 11 x64 over Remote Desktop, whose only endpoint is "Remote Audio" (shared mode only, 10 ms periods, no input): 100 callbacks/s at 480 frames and 48 kHz as expected, 0 overloads, the NativeAOT host at ≤ 2 % of budget, `--self-test` and `--serve` working. Exclusive mode, duplex and the latency test still need a machine with a local interface.
 
+## Linux backend
+
+The target is a headless box in the rig (a Raspberry Pi 5 or a mini PC, x64 or ARM64) running the Host and Server as systemd services, so the primary Linux backend talks to ALSA directly and needs no sound server. JACK is a second backend for desktops (jackd, or PipeWire's JACK).
+
+- **ALSA** (`cth_audio_alsa.c`): `hw:` PCMs opened full duplex on one device, capture linked to playback (`snd_pcm_link`) when the driver allows. Read/write access, interleaved or not. Formats S32_LE, S24_3LE, S24_LE, S16_LE or float, converted to and from planar float. The period is the requested buffer. There are 2 periods, or 3 on USB-Audio cards; `CTH_ALSA_PERIODS` overrides. Resampling in `plughw:` is turned off.
+  - The shim runs its own thread: `SCHED_FIFO` at priority 70 (`CTH_RT_PRIORITY` changes it, 0 turns it off). If the process may not use it, the thread runs at normal priority and logs a warning, so the systemd unit should set `LimitRTPRIO=`.
+  - The thread is non-blocking and waits in `poll()` on the PCM and a wake pipe, so stopping never waits on the device. Each cycle reads one period, processes it and writes one period.
+  - An xrun, a suspend or a 4-buffer stall counts one overload. Both streams are then dropped, re-primed with a full buffer of silence and restarted together, which keeps input and output a fixed distance apart. A lost device keeps retrying five times a second until stopped. `cth_audio_stop` and `close` still return at once.
+  - Reported latency: input 1 period, output (periods − 1) periods. The round trip is periods × period, plus converter and USB latency that ALSA does not report.
+- **Device ids:** `alsa:<card id>` is PCM device 0 of a card (`alsa:USB` → `hw:CARD=USB,DEV=0`) and `alsa:<card id>,<n>` another device on it. Card ids survive reboots and replugging; card numbers do not. Any other id is passed to `snd_pcm_open` as a PCM name, with or without the `alsa:` prefix (`hw:1,0`, `alsa:plughw:USB`, `null`). With no id, the shim opens the first duplex device, or else the first one with outputs. Enumeration opens each PCM briefly to read its channel counts and picks 48 kHz when the device allows it (the ABI carries one rate per device). A busy device keeps the counts it had last time. ALSA has no channel names.
+- **JACK** (`cth_audio_jack.c`, ids `jack:<client>`): libjack is loaded with `dlopen`, so it is neither a build nor a run-time dependency. A device is a client that owns physical ports: `jack:system` under jackd, one per card under PipeWire. Rate and buffer size come from the server. Latency is the physical ports' latency ranges, and xruns come from the xrun callback. JACK buffers are planar float and are used in place. A server whose buffer grows after open still gets callbacks at the size the stream opened with.
+- **MIDI** (`cth_midi_alsa.c`) uses the ALSA sequencer, which shares ports with other programs and covers USB, serial and software ports alike. Every source is subscribed, and Midi Through and PipeWire's bridge ports are skipped. A reader thread blocked in `poll()` stamps events on arrival with `CLOCK_MONOTONIC` (the `cth_midi_now_ns` clock), decodes them with `snd_midi_event` and queues them in the same lock-free ring as CoreMIDI. SysEx and system common messages are dropped. Uids are `<client name>:<port>`, with `#2` appended for a second identical device.
+- **Verified in a Linux container (Debian, ARM64; no sound hardware):** it compiles warning-free under gcc and clang with `-Wall -Wextra -Werror`, and `cathode-host --self-test` passes. The ALSA `null` PCM runs open, start, stop and duplex. A JACK-paced ALSA PCM (the alsa-plugins `jack` type on jackd's dummy driver) runs at the exact callback rate (375/s at 48 kHz / 128). So does the JACK backend. Killing the server mid-stream counts overloads, and the stream then stops cleanly on both backends. The container could not run real-time, so its xrun counts mean nothing.
+
 ## Still open
 
 - A **physical** loopback measurement on a real interface (ProFX or better), to compare its reported latency with what is measured.
 - **S2:** callback timing under REST and GC load. This is the process-split decision, ADR-0001.
 - Windows: exclusive mode, duplex and a loopback latency measurement on a local interface; **ASIO** (needs the Steinberg SDK, under GPLv3).
-- Linux backend (JACK/PipeWire). The library builds as a stub there, so the managed code and CI work.
+- Linux on real hardware: a loopback round trip and a 30 min soak on a USB interface (Pi 5 and x64), with `SCHED_FIFO` granted. Check that 2 or 3 periods hold at 64 frames, and the MIDI path with a USB foot controller.
 - Device hot-plug, sample-rate change notifications, and aggregate devices (separate input and output devices).

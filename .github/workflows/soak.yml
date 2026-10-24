@@ -44,8 +44,8 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: engine/global.json
-      - name: Install NativeAOT prerequisites
-        run: sudo apt-get update -q && sudo apt-get install -y -q clang zlib1g-dev
+      - name: Install NativeAOT prerequisites and ALSA headers
+        run: sudo apt-get update -q && sudo apt-get install -y -q clang zlib1g-dev libasound2-dev
       - name: Cache native dependencies
         uses: actions/cache@v6
         with:
