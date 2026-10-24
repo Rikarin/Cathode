@@ -1,0 +1,45 @@
+{
+  "name": "@cathode/website",
+  "version": "0.0.0",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "build": "ng build && node -e \"require('node:fs').copyFileSync('dist/website/browser/404/index.html', 'dist/website/browser/404.html')\"",
+    "deploy": "pnpm build && wrangler deploy",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "preview": "pnpm build && wrangler dev",
+    "start": "ng serve"
+  },
+  "dependencies": {
+    "@angular/common": "~22.2.0",
+    "@angular/compiler": "~22.2.0",
+    "@angular/core": "~22.2.0",
+    "@angular/platform-browser": "~22.2.0",
+    "@angular/platform-server": "~22.2.0",
+    "@angular/router": "~22.2.0",
+    "@angular/ssr": "~22.2.0",
+    "@fontsource-variable/inter": "^5.2.8",
+    "@ng-icons/core": "^35.1.0",
+    "@ng-icons/material-icons": "^35.1.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "~22.2.0",
+    "@angular/cli": "~22.2.0",
+    "@angular/compiler-cli": "~22.2.0",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^24.0.0",
+    "postcss": "^8.5.31",
+    "prettier": "^3.9.10",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "prettier-plugin-packagejson": "^3.0.2",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.3",
+    "wrangler": "^4.152.0"
+  },
+  "packageManager": "pnpm@12.9.1"
+}
