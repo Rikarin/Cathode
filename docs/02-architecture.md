@@ -456,7 +456,10 @@ The editor's software-editor features, built in the ED stream. They follow Fract
   - Grid operations:
     - `PUT /live/blocks/{id}/type` replaces a block and keeps its cables.
     - `POST /live/blocks/{id}/drop` takes `swap` (the cables stay in place) or `replace`.
-    - `POST /live/grid/move` moves a row or column.
+    - `POST /live/grid/move` moves a row or column, shifting those between. A row keeps every cable. Cables only join adjacent columns, so a column move rewires and the signal paths stay whole:
+      - each block of the moved column that sat in a path hands its inputs straight to its outputs, so the path closes behind it;
+      - every cable that then jumps over the column where it lands runs through it: through the moved block in its row when that block can carry a path (a shunt, or a block that was in a path), else through an idle moved block that was in a path, else through a new shunt in an empty cell;
+      - a moved block that was in a path but gets none goes in parallel with the nearest block of its column that did, and a moved branch end (an Output) is fed from its new row neighbour.
     - `DELETE /live/blocks/{id}/cables` disconnects a block.
     - `PUT /live/blocks/{id}/settings` pastes settings onto a block of the same type, all channels.
     - `PUT /live/blocks/{id}/all-scenes` sets a block's state in every scene.

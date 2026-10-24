@@ -151,8 +151,9 @@ public sealed partial class LiveRig {
         );
 
     /// <summary>
-    ///     Moves a whole row or column to another index, shifting those between. Rows keep every cable; a column move
-    ///     drops the cables it leaves joining non-adjacent columns.
+    ///     Moves a whole row or column to another index, shifting those between. Rows keep every cable. Cables only join
+    ///     adjacent columns, so a column move rewires as it goes (<see cref="RewireColumnMove" />): the signal paths stay
+    ///     whole, closing behind the moved column and running through it where it lands.
     /// </summary>
     public Task<LiveState> MoveLineAsync(MoveLineRequest request, long? expected) =>
         Locked(async () => {
@@ -167,15 +168,17 @@ public sealed partial class LiveRig {
                     throw new RigException(400, $"{request.Axis} {request.From} or {request.To} is outside the grid.");
                 }
 
+                if (request.From == request.To) {
+                    return State(); // nothing moves: no undo step
+                }
+
                 await StructuralAsync(p => {
-                        foreach (var block in p.Blocks) {
-                            var at = rows ? block.Row : block.Column;
-                            var moved = Shifted(at, request.From, request.To);
-                            if (rows) {
-                                block.Row = moved;
-                            } else {
-                                block.Column = moved;
+                        if (rows) {
+                            foreach (var block in p.Blocks) {
+                                block.Row = Shifted(block.Row, request.From, request.To);
                             }
+                        } else {
+                            RewireColumnMove(p, request.From, request.To);
                         }
 
                         p.Cables.RemoveAll(c => !Adjacent(p, c));
@@ -490,6 +493,181 @@ public sealed partial class LiveRig {
     static string ShuntId(PresetBlock block) => $"shunt-r{block.Row}c{block.Column}";
 
     static string Swapped(string end, string a, string b) => end == a ? b : end == b ? a : end;
+
+    /// <summary>
+    ///     Moves column <paramref name="from" /> to <paramref name="to" /> and keeps the signal paths whole, since cables
+    ///     only join adjacent columns. The move is a lift and an insert:
+    ///     <list type="number">
+    ///         <item>
+    ///             Lift: each block of the moved column that sat in a path hands its inputs straight to its outputs
+    ///             (the path closes behind it, as when a block leaves a shunt) and loses its cables.
+    ///         </item>
+    ///         <item>The columns between shift over by one; the moved column lands at <paramref name="to" />.</item>
+    ///         <item>
+    ///             Insert: every cable that now jumps over the landed column runs through it. It takes, in order, the
+    ///             moved block in its own row (or its target's) when that block can carry a path (a shunt, or a block
+    ///             that was in a path); a moved block that was in a path and has none yet, so it stays in series; a new
+    ///             shunt in an empty cell (own row, target's, then the nearest); any block that can carry it.
+    ///         </item>
+    ///         <item>
+    ///             A moved block that was in a path but got none (a parallel branch whose row has no path where it
+    ///             lands) goes in parallel with the nearest block of the column that did.
+    ///         </item>
+    ///         <item>
+    ///             A moved branch end (an Output, say) that has lost its one side is fed from, or feeds, its new row
+    ///             neighbour.
+    ///         </item>
+    ///     </list>
+    ///     Only a cable with nowhere to run through is dropped (by the caller's adjacency filter).
+    /// </summary>
+    static void RewireColumnMove(Preset p, int from, int to) {
+        var moved = p.Blocks.Where(b => b.Column == from).ToList();
+        var through = new HashSet<string>(StringComparer.Ordinal); // may carry a path where it lands
+        var inPath = new List<PresetBlock>(); // non-shunt blocks that sat in a path
+        var fedEnds = new List<PresetBlock>();
+        var feedingEnds = new List<PresetBlock>();
+        foreach (var block in moved) {
+            var inputs = p.Cables.Where(c => c.To == block.Id).Select(static c => c.From).ToList();
+            var outputs = p.Cables.Where(c => c.From == block.Id).Select(static c => c.To).ToList();
+            if (inputs.Count > 0 && outputs.Count > 0) {
+                foreach (var input in inputs) {
+                    foreach (var output in outputs) {
+                        Connect(p, input, output);
+                    }
+                }
+
+                if (block.Type != BuiltInTypes.Shunt) {
+                    inPath.Add(block);
+                }
+            } else if (inputs.Count > 0) {
+                fedEnds.Add(block);
+            } else if (outputs.Count > 0) {
+                feedingEnds.Add(block);
+            }
+
+            if (block.Type == BuiltInTypes.Shunt
+                || !BuiltInTypes.IsBuiltIn(block.Type) && inputs.Count > 0 && outputs.Count > 0) {
+                through.Add(block.Id);
+            }
+
+            p.Cables.RemoveAll(c => c.From == block.Id || c.To == block.Id);
+        }
+
+        foreach (var block in p.Blocks) {
+            block.Column = Shifted(block.Column, from, to);
+        }
+
+        var at = p.Blocks.ToDictionary(static b => b.Id, StringComparer.Ordinal);
+        var jumping = p.Cables.Where(c => at[c.From].Column == to - 1 && at[c.To].Column == to + 1).ToList();
+        // First the cables that meet a moved block in their own rows, so an idle block is not taken from them.
+        var sameRow = jumping
+            .Select(c => (Cable: c, Via: new[] { at[c.From].Row, at[c.To].Row }
+                    .Select(r => BlockAt(p, r, to))
+                    .FirstOrDefault(b => b is not null && through.Contains(b.Id))
+                )
+            )
+            .Where(static j => j.Via is not null)
+            .ToList();
+        foreach (var (cable, via) in sameRow) {
+            Splice(cable, via!.Id);
+        }
+
+        foreach (var cable in jumping.Except(sameRow.Select(static j => j.Cable)).ToList()) {
+            var (source, target) = (at[cable.From], at[cable.To]);
+            var idle = inPath.Where(b => !Wired(b.Id))
+                .OrderBy(b => Math.Abs(b.Row - source.Row))
+                .FirstOrDefault();
+            if ((idle?.Id ?? FreeCell(source.Row, target.Row) ?? Carrier(source.Row)) is { } via) {
+                Splice(cable, via);
+            }
+        }
+
+        foreach (var block in inPath.Where(b => !Wired(b.Id))) {
+            var peer = p.Blocks.Where(b => b.Column == to && b.Id != block.Id && Wired(b.Id))
+                .OrderBy(b => Math.Abs(b.Row - block.Row))
+                .FirstOrDefault();
+            if (peer is null) {
+                continue;
+            }
+
+            foreach (var input in p.Cables.Where(c => c.To == peer.Id).Select(static c => c.From).ToList()) {
+                Connect(p, input, block.Id);
+            }
+
+            foreach (var output in p.Cables.Where(c => c.From == peer.Id).Select(static c => c.To).ToList()) {
+                Connect(p, block.Id, output);
+            }
+        }
+
+        foreach (var end in fedEnds.Where(e => p.Cables.All(c => c.To != e.Id))) {
+            if (BlockAt(p, end.Row, to - 1) is { } neighbour) {
+                Connect(p, neighbour.Id, end.Id);
+            }
+        }
+
+        foreach (var end in feedingEnds.Where(e => p.Cables.All(c => c.From != e.Id))) {
+            if (BlockAt(p, end.Row, to + 1) is { } neighbour) {
+                Connect(p, end.Id, neighbour.Id);
+            }
+        }
+
+        return;
+
+        bool Wired(string id) => p.Cables.Any(c => c.From == id) && p.Cables.Any(c => c.To == id);
+
+        void Splice(PresetCable cable, string via) {
+            p.Cables.Remove(cable);
+            Connect(p, cable.From, via);
+            Connect(p, via, cable.To);
+        }
+
+        IEnumerable<int> Rows(int first, int second) =>
+            Enumerable.Range(0, p.Rows)
+                .OrderBy(r => r == first ? 0 : r == second ? 1 : 2)
+                .ThenBy(r => Math.Abs(r - first))
+                .ThenBy(static r => r);
+
+        // A new shunt in an empty cell of the landed column.
+        string? FreeCell(int sourceRow, int targetRow) {
+            foreach (var row in Rows(sourceRow, targetRow).Where(r => BlockAt(p, r, to) is null)) {
+                var id = $"shunt-r{row}c{to}";
+                for (var n = 1; p.Blocks.Any(b => b.Id == id); n++) {
+                    id = $"{BuiltInTypes.Shunt}{n}";
+                }
+
+                var shunt = new PresetBlock { Id = id, Type = BuiltInTypes.Shunt, Row = row, Column = to };
+                p.Blocks.Add(shunt);
+                at[id] = shunt;
+                through.Add(id);
+                return id;
+            }
+
+            return null;
+        }
+
+        // Any block of the landed column that can carry a path, nearest first.
+        string? Carrier(int sourceRow) =>
+            Rows(sourceRow, sourceRow)
+                .Select(r => BlockAt(p, r, to))
+                .FirstOrDefault(b => b is not null && through.Contains(b.Id))
+                ?.Id;
+    }
+
+    static PresetBlock? BlockAt(Preset p, int row, int column) =>
+        p.Blocks.FirstOrDefault(b => b.Row == row && b.Column == column);
+
+    /// <summary>Adds a cable unless it exists or would leave an Output or enter an Input.</summary>
+    static void Connect(Preset p, string from, string to) {
+        var source = p.Blocks.First(b => b.Id == from);
+        var target = p.Blocks.First(b => b.Id == to);
+        if (BuiltInTypes.IsOutput(source.Type)
+            || target.Type == BuiltInTypes.Input
+            || p.Cables.Any(c => c.From == from && c.To == to)) {
+            return;
+        }
+
+        p.Cables.Add(new() { From = from, To = to });
+    }
 
     /// <summary>Where index <paramref name="at" /> goes when <paramref name="from" /> moves to <paramref name="to" />.</summary>
     static int Shifted(int at, int from, int to) =>
