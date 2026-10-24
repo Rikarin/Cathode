@@ -42,7 +42,9 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
             $"{power.PreampVoltage:0.0} V, grid bias {power.GridBias:0.00} V, cathode {power.CathodeVoltage:0.00} V, " +
             $"{plate * 1e3:0.0} mA plate + {screen * 1e3:0.00} mA screen per tube, {dissipation:0.0} W of {rating} W"
         );
-        Assert.InRange(dissipation, 0.4 * rating, 0.9 * rating);
+        // An amp biased cold by design (the 5150's fixed bias: 11-14 mA a tube) idles well under half its rating.
+        var coldest = design.IdleCurrent < 0.02 ? 0.15 : 0.4;
+        Assert.InRange(dissipation, coldest * rating, 0.9 * rating);
         Assert.InRange(power.Supply, 0.97 * design.Supply, 1.03 * design.Supply);
     }
 

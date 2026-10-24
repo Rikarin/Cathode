@@ -82,7 +82,11 @@ namespace Cathode.Dsp.Blocks;
 ///         <item><b>Variac</b> (100 %): the mains voltage: every supply node, and a fixed bias with them ("brown sound").</item>
 ///         <item><b>B+ Time Const</b> (100 %): the reservoir cap: how fast the supply sags and recovers.</item>
 ///         <item><b>Supply Type</b> (Stock): an ideal DC source, or rectified 60 Hz or 50 Hz mains with ripple.</item>
-///         <item><b>Rectifier</b> (Stock): silicon, or a GZ34, 5U4, 5Y3 or EZ81 with its drop rising with the current.</item>
+///         <item>
+///             <b>Rectifier</b> (Stock): silicon, or a GZ34, 5U4, 5Y3 or EZ81 with its drop rising with the current. A
+///             model's panel may switch its rectifier or mains tap too (<see cref="SupplySwitchDesign" />: Mesa's
+///             rectifier and Bold/Spongy switches); this choice and the Variac apply on top.
+///         </item>
 ///         <item><b>Cathode Time Const</b> (100 %): a cathode-biased power amp's bypass cap.</item>
 ///     </list>
 /// </remarks>
@@ -395,6 +399,17 @@ public sealed class CircuitAmpBlock : DspBlock {
         );
         var speaker = (int)Params.Current(SpeakerCurve);
         var rectifier = (int)Params.Current(Rectifier);
+        var variac = Percent(Params.Advance(Variac, frames));
+        var switched = default(RectifierModel);
+        if (design.Power.SupplySwitches is { } supplySwitches) {
+            for (var i = 0; i < supplySwitches.Count; i++) {
+                if (preamp.IsOn(supplySwitches[i].Role)) {
+                    switched = supplySwitches[i].Rectifier ?? switched;
+                    variac *= supplySwitches[i].Variac;
+                }
+            }
+        }
+
         var powerSettings = new PowerSettings(
             PowerTubes[Math.Clamp((int)Params.Current(PowerTube), 0, PowerTubes.Length - 1)],
             Percent(Params.Current(TransformerMatch)),
@@ -409,10 +424,10 @@ public sealed class CircuitAmpBlock : DspBlock {
             Percent(Params.Current(SpeakerImpedance)),
             Percent(Params.Advance(PresenceFrequency, frames)),
             Percent(Params.Advance(DepthFrequency, frames)),
-            Percent(Params.Advance(Variac, frames)),
+            variac,
             Percent(Params.Current(SupplyTime)),
             (SupplyMode)Math.Clamp((int)Params.Current(SupplyType), 0, 3),
-            rectifier > 0 ? RectifierModel.All[Math.Min(rectifier, RectifierModel.All.Count) - 1] : null,
+            rectifier > 0 ? RectifierModel.All[Math.Min(rectifier, RectifierModel.All.Count) - 1] : switched,
             Percent(Params.Current(CathodeTime)),
             design.Power.TriodeSwitch is { } role && preamp.IsOn(role)
         );

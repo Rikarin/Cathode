@@ -17,12 +17,15 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     public void Panel_labels_name_and_hide_controls_per_model() {
         var parameters = CircuitAmpBlock.Info.Params;
         IReadOnlyList<string>? Labels(string id) => parameters.Single(p => p.Id == id).TypeLabels;
+        IEnumerable<string> First(string id) =>
+            Labels(id)?.Take(3) ?? Enumerable.Repeat(parameters.Single(p => p.Id == id).Name, 3);
 
-        Assert.Null(Labels("gain"));
-        Assert.Equal(["", "", "Cut"], Labels("cut"));
-        Assert.Equal(["Middle", "Middle", ""], Labels("middle"));
-        Assert.All(Labels("switch1")!, static l => Assert.Empty(l));
-        Assert.All(Labels("eq1")!, static l => Assert.Empty(l));
+        // The first three models; later ones are checked by their own families' tests.
+        Assert.Equal(["Gain", "Gain", "Gain"], First("gain"));
+        Assert.Equal(["", "", "Cut"], First("cut"));
+        Assert.Equal(["Middle", "Middle", ""], First("middle"));
+        Assert.All(First("switch1"), static l => Assert.Empty(l));
+        Assert.All(First("eq1"), static l => Assert.Empty(l));
         Assert.Null(Labels("variac"));
         Assert.Equal(AmpDesign.All.Count, Labels("control1")!.Count);
     }
@@ -88,12 +91,14 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                 var design = AmpDesign.All[type];
                 foreach (var (index, value) in settings) {
                     // Known no-ops: the cathode time constant of a fixed-bias amp, a 6L6GC (the 5881's curves) or EL34
-                    // or EL84 in place of itself, the presence and depth frequencies of an amp without feedback.
+                    // or EL84 in place of itself, the presence and depth frequencies of an amp without feedback, the
+                    // bright cap of an amp without one.
                     var tube = new[] { null, "6L6GC", "EL34", "EL84", "6V6GT", "KT66", "KT88", "6550" }[
                         index == CircuitAmpBlock.PowerTube ? (int)value : 0];
                     var audible = !(index == CircuitAmpBlock.CathodeTime && !design.Power.CathodeBias)
                         && !(index == CircuitAmpBlock.PowerTube && design.Power.Name.Contains(tube ?? "-", StringComparison.Ordinal))
-                        && !(index is CircuitAmpBlock.PresenceFrequency or CircuitAmpBlock.DepthFrequency && !design.Power.HasFeedback);
+                        && !(index is CircuitAmpBlock.PresenceFrequency or CircuitAmpBlock.DepthFrequency && !design.Power.HasFeedback)
+                        && !(index == CircuitAmpBlock.BrightCap && !HasBrightCap(design));
                     data.Add(type, index, value, audible);
                 }
             }
@@ -101,6 +106,16 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
             return data;
         }
     }
+
+    /// <summary>Whether a model has a bright cap for the Bright Cap setting to scale (the Mark IV's lead channel has none).</summary>
+    static bool HasBrightCap(AmpDesign design) =>
+        design.Preamp.Any(static s => s switch {
+                TriodeStageDesign t => t.BrightCap > 0,
+                ToneStackStageDesign t => t.BrightCap > 0,
+                NetworkStageDesign n => n.Netlist.Elements.Any(static e => e.CapacitorRole == CapacitorRole.Bright),
+                _ => false
+            }
+        );
 
     [Theory]
     [MemberData(nameof(ExpertSettings))]
