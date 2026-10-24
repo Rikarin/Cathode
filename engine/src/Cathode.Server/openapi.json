@@ -2889,7 +2889,7 @@
             "additionalProperties": {
               "type": "string"
             },
-            "description": "Asset slot to asset reference (\u0060sha256:\u0026lt;hex\u0026gt;\u0060), e.g. \u0060\u0022model\u0022\u0060 or \u0060\u0022ir1\u0022\u0060."
+            "description": "Asset slot to asset reference (\u0060sha256:\u0026lt;hex\u0026gt;\u0060), e.g. \u0060\u0022model\u0022\u0060 or \u0060\u0022slot1\u0022\u0060."
           },
           "bypassMode": {
             "type": "string",

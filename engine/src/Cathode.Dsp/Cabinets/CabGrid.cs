@@ -108,12 +108,15 @@ public sealed class CabGrid : IDisposable {
         }
 
         return Path.GetExtension(path).ToLowerInvariant() switch {
-            ".wav" => new(Path.GetFileNameWithoutExtension(path), [0], [0], new[,] { { WavFile.Read(path) } }),
+            ".wav" => Single(Path.GetFileNameWithoutExtension(path), WavFile.Read(path)),
             ".json" => FromManifest(path),
             ".cabgrid" or ".zip" => FromArchive(path),
             _ => throw new InvalidDataException($"'{path}' is not a cab grid: use a .cabgrid, a manifest.json or a .wav.")
         };
     }
+
+    /// <summary>Control thread: a one-point grid from a single decoded IR (its first channel).</summary>
+    public static CabGrid Single(string name, AudioData ir) => new(name, [0], [0], new[,] { { ir } });
 
     /// <summary>
     ///     Natural-log magnitude at <paramref name="position" /> (0 … 1) and <paramref name="distance" /> (inches) on the

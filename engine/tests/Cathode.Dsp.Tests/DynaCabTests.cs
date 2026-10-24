@@ -6,7 +6,7 @@ using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
 
-/// <summary>Physical sanity of the DynaCab model, level normalisation, the IR swap and user grids.</summary>
+/// <summary>The Cab block's DynaCab source: physical sanity of the model, level normalisation, the IR swap and user grids.</summary>
 public sealed class DynaCabTests : IDisposable {
     const double Rate = 48_000;
     const double Inch = 0.0254;
@@ -122,25 +122,25 @@ public sealed class DynaCabTests : IDisposable {
         var input = PinkNoise(48_000, 3);
         var levels = new List<(string Name, double Db)>();
         for (var i = 0; i < CabCatalogue.Speakers.Count; i++) {
-            levels.Add((CabCatalogue.Speakers[i].Name, Loudness(DynaCabBlock.SlotParam(0, DynaCabBlock.Speaker), i)));
+            levels.Add((CabCatalogue.Speakers[i].Name, Loudness(CabBlock.SlotParam(0, CabBlock.Speaker), i)));
         }
 
         for (var i = 0; i < CabCatalogue.Mics.Count; i++) {
-            levels.Add((CabCatalogue.Mics[i].Name, Loudness(DynaCabBlock.SlotParam(0, DynaCabBlock.Mic), i)));
+            levels.Add((CabCatalogue.Mics[i].Name, Loudness(CabBlock.SlotParam(0, CabBlock.Mic), i)));
         }
 
         for (var i = 0; i < CabCatalogue.Enclosures.Count; i++) {
-            levels.Add((CabCatalogue.Enclosures[i].Name, Loudness(DynaCabBlock.SlotParam(0, DynaCabBlock.Cab), i)));
+            levels.Add((CabCatalogue.Enclosures[i].Name, Loudness(CabBlock.SlotParam(0, CabBlock.Cab), i)));
         }
 
-        levels.Add(("edge", Loudness(DynaCabBlock.SlotParam(0, DynaCabBlock.Position), 100)));
-        levels.Add(("12 in", Loudness(DynaCabBlock.SlotParam(0, DynaCabBlock.Distance), 12)));
-        levels.Add(("room", Loudness(DynaCabBlock.Room, 100)));
+        levels.Add(("edge", Loudness(CabBlock.SlotParam(0, CabBlock.Position), 100)));
+        levels.Add(("12 in", Loudness(CabBlock.SlotParam(0, CabBlock.Distance), 12)));
+        levels.Add(("room", Loudness(CabBlock.Room, 100)));
         var spread = levels.Max(static l => l.Db) - levels.Min(static l => l.Db);
         Assert.True(spread < 2, string.Join(", ", levels.Select(static l => $"{l.Name} {l.Db:0.0}")));
 
         double Loudness(int param, float value) {
-            using var block = new DynaCabBlock();
+            using var block = new CabBlock();
             block.Params.SetTarget(param, value);
             block.Prepare(Spec);
             var output = BlockRender.Mono(block, input, 64);
@@ -154,35 +154,36 @@ public sealed class DynaCabTests : IDisposable {
         var (left, right) = block.ImpulseResponse();
 
         Assert.Equal(left, right);
-        Assert.InRange(left.Length, block.Taps + (int)(0.005 * Rate), block.Taps + (int)(0.007 * Rate));
+        var longest = Math.Max(CabBlock.MaxIrLength, block.Taps);
+        Assert.InRange(left.Length, longest + (int)(0.005 * Rate), longest + (int)(0.007 * Rate));
         Assert.InRange(Analysis.PeakIndex(left), 0, 8); // aligned: no distance delay without Auto Delay
     }
 
     [Fact]
-    public void Level_pan_invert_delay_and_mute_are_mixed_into_the_ir() {
+    public void Pan_invert_delay_and_mute_are_mixed_into_the_ir() {
         using var block = Prepared();
         var (reference, _) = block.ImpulseResponse();
 
-        block.Params.SetTarget(DynaCabBlock.SlotParam(0, DynaCabBlock.Pan), -100f);
+        block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Pan), -100f);
         var (left, right) = block.ImpulseResponse();
         Assert.Equal(reference, left);
         Assert.All(right, static v => Assert.Equal(0f, v));
 
-        block.Params.SetTarget(DynaCabBlock.SlotParam(0, DynaCabBlock.Pan), 0f);
-        block.Params.SetTarget(DynaCabBlock.SlotParam(0, DynaCabBlock.SlotLevel), -6.0206f);
-        block.Params.SetTarget(DynaCabBlock.SlotParam(0, DynaCabBlock.Invert), 1f);
+        block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Pan), 0f);
+        block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.SlotLevel), -6.0206f);
+        block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Invert), 1f);
         (left, _) = block.ImpulseResponse();
         for (var i = 0; i < reference.Length; i++) {
-            Assert.Equal(-0.5f * reference[i], left[i], 1e-6f);
+            Assert.Equal(-reference[i], left[i], 1e-6f); // alone, a slot's level is relative: it does nothing
         }
 
-        block.Params.SetTarget(DynaCabBlock.SlotParam(0, DynaCabBlock.Invert), 0f);
-        block.Params.SetTarget(DynaCabBlock.SlotParam(0, DynaCabBlock.SlotLevel), 0f);
-        block.Params.SetTarget(DynaCabBlock.SlotParam(0, DynaCabBlock.Delay), 1f);
+        block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Invert), 0f);
+        block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.SlotLevel), 0f);
+        block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Delay), 1f);
         (left, _) = block.ImpulseResponse();
         Assert.Equal(Analysis.PeakIndex(reference) + 48, Analysis.PeakIndex(left));
 
-        block.Params.SetTarget(DynaCabBlock.SlotParam(0, DynaCabBlock.Mute), 1f);
+        block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Mute), 1f);
         (left, _) = block.ImpulseResponse();
         Assert.All(left, static v => Assert.Equal(0f, v));
     }
@@ -191,9 +192,9 @@ public sealed class DynaCabTests : IDisposable {
     public void Solo_plays_only_the_soloed_slots() {
         using var block = Prepared();
         var (one, _) = block.ImpulseResponse();
-        block.Params.SetTarget(DynaCabBlock.SlotParam(1, DynaCabBlock.Mute), 0f);
+        block.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Mute), 0f);
         var (both, _) = block.ImpulseResponse();
-        block.Params.SetTarget(DynaCabBlock.SlotParam(0, DynaCabBlock.Solo), 1f);
+        block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Solo), 1f);
         var (soloed, _) = block.ImpulseResponse();
 
         Assert.NotEqual(one, both);
@@ -203,22 +204,22 @@ public sealed class DynaCabTests : IDisposable {
     [Fact]
     public void Auto_delay_delays_each_mic_by_its_distance() {
         using var block = Prepared();
-        block.Params.SetTarget(DynaCabBlock.SlotParam(0, DynaCabBlock.Distance), 0f);
-        block.Params.SetTarget(DynaCabBlock.SlotParam(1, DynaCabBlock.Mic), 0f);
-        block.Params.SetTarget(DynaCabBlock.SlotParam(1, DynaCabBlock.Position), 25f);
-        block.Params.SetTarget(DynaCabBlock.SlotParam(1, DynaCabBlock.Distance), 12f);
-        block.Params.SetTarget(DynaCabBlock.SlotParam(1, DynaCabBlock.Mute), 0f);
-        block.Params.SetTarget(DynaCabBlock.SlotParam(0, DynaCabBlock.Mute), 1f);
+        block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Distance), 0f);
+        block.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Mic), 0f);
+        block.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Position), 25f);
+        block.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Distance), 12f);
+        block.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Mute), 0f);
+        block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Mute), 1f);
         var (alone, _) = block.ImpulseResponse(); // slot 2 alone: nothing earlier, so not delayed
-        block.Params.SetTarget(DynaCabBlock.AutoDelay, 1f);
-        block.Params.SetTarget(DynaCabBlock.SlotParam(0, DynaCabBlock.Mute), 0f);
+        block.Params.SetTarget(CabBlock.AutoDelay, 1f);
+        block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Mute), 0f);
         var (both, _) = block.ImpulseResponse();
-        block.Params.SetTarget(DynaCabBlock.SlotParam(1, DynaCabBlock.Mute), 1f);
+        block.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Mute), 1f);
         var (first, _) = block.ImpulseResponse();
 
         // The mix is linear, so both minus slot 1 alone is slot 2 as delayed behind slot 1 at the grille: 12 in more
         // path, 12 * 25.4 mm / 343 m/s.
-        var second = both.Select((v, i) => v - first[i]).ToArray();
+        var second = both.Select((v, i) => 2 * v - first[i]).ToArray(); // two slots at 0 dB: each at half
         var expected = 12 * Inch / CabAcoustics.SpeedOfSound * Rate;
         Assert.Equal(expected, Analysis.PeakIndex(second) - Analysis.PeakIndex(alone), 1.5);
     }
@@ -227,7 +228,7 @@ public sealed class DynaCabTests : IDisposable {
     public void A_parameter_change_is_crossfaded_in_without_a_click_or_allocation() {
         var input = Signals.Sine(220, Rate, 24_000, 0.5f);
         using var before = Prepared();
-        using var after = Prepared(DynaCabBlock.SlotParam(0, DynaCabBlock.Mic), 5); // R-121
+        using var after = Prepared(CabBlock.SlotParam(0, CabBlock.Mic), 5); // R-121
         using var switched = Prepared();
         var a = BlockRender.Mono(before, input, 64);
         var b = BlockRender.Mono(after, input, 64);
@@ -238,7 +239,7 @@ public sealed class DynaCabTests : IDisposable {
         long allocated = 0;
         for (var offset = 0; offset < output.Length; offset += 64) {
             if (offset == SwapAt) {
-                switched.Params.SetTarget(DynaCabBlock.SlotParam(0, DynaCabBlock.Mic), 5);
+                switched.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Mic), 5);
                 switched.Refresh(); // control thread
             }
 
@@ -285,8 +286,8 @@ public sealed class DynaCabTests : IDisposable {
         using var block = Prepared();
         block.Refresh();
         BlockRender.Mono(block, Signals.Noise(512, 1), 64);
-        block.Params.SetTarget(DynaCabBlock.LowCut, 200f); // filtered on the audio thread: no rebuild
-        block.Params.SetTarget(DynaCabBlock.Level, -3f);
+        block.Params.SetTarget(CabBlock.LowCut, 200f); // filtered on the audio thread: no rebuild
+        block.Params.SetTarget(CabBlock.Level, -3f);
         block.Refresh();
         BlockRender.Mono(block, Signals.Noise(512, 1), 64);
 
@@ -297,7 +298,7 @@ public sealed class DynaCabTests : IDisposable {
     [InlineData(44_100)]
     [InlineData(96_000)]
     public void Irs_scale_with_the_sample_rate(double rate) {
-        using var block = new DynaCabBlock();
+        using var block = new CabBlock();
         block.Prepare(new(rate, 128));
 
         Assert.Equal((int)Math.Round(2_048 * rate / 48_000), block.Taps);
@@ -328,8 +329,9 @@ public sealed class DynaCabTests : IDisposable {
             $$"""{ "format": "cathode-cabgrid", "version": 1, "name": "test", "irs": [{{string.Join(",", entries)}}] }"""
         );
 
-        using var block = new DynaCabBlock();
-        block.LoadAsset("grid1", folder);
+        using var block = new CabBlock();
+        block.LoadAsset("slot1", folder);
+        block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Source), CabBlock.SourcePack);
         block.Prepare(Spec);
         Assert.Equal([0, 0.5, 1], block.Grid(0)!.Positions);
 
@@ -384,8 +386,8 @@ public sealed class DynaCabTests : IDisposable {
         Assert.Equal(-3.01, CabAcoustics.HighPassDb(100, 100, 0.7071), 2);
     }
 
-    static DynaCabBlock Prepared(int param = -1, float value = 0) {
-        var block = new DynaCabBlock();
+    static CabBlock Prepared(int param = -1, float value = 0) {
+        var block = new CabBlock();
         if (param >= 0) {
             block.Params.SetTarget(param, value);
         }
@@ -394,9 +396,9 @@ public sealed class DynaCabTests : IDisposable {
         return block;
     }
 
-    static float[] IrAt(DynaCabBlock block, float position, float distance) {
-        block.Params.SetTarget(DynaCabBlock.SlotParam(0, DynaCabBlock.Position), position);
-        block.Params.SetTarget(DynaCabBlock.SlotParam(0, DynaCabBlock.Distance), distance);
+    static float[] IrAt(CabBlock block, float position, float distance) {
+        block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Position), position);
+        block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Distance), distance);
         return block.ImpulseResponse().Left;
     }
 

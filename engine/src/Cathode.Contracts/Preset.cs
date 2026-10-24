@@ -92,7 +92,7 @@ public sealed class PresetBlock {
     /// <summary>Channel name (A-D) to parameter id to value. Only values that differ from the default need to be present.</summary>
     public Dictionary<string, Dictionary<string, float>> Channels { get; set; } = [];
 
-    /// <summary>Asset slot to asset reference (<c>sha256:&lt;hex&gt;</c>), e.g. <c>"model"</c> or <c>"ir1"</c>.</summary>
+    /// <summary>Asset slot to asset reference (<c>sha256:&lt;hex&gt;</c>), e.g. <c>"model"</c> or <c>"slot1"</c>.</summary>
     public Dictionary<string, string> Assets { get; set; } = [];
 
     /// <summary>What bypassing does: thru, mute, muteIn or muteFxIn (the last two let tails spill over).</summary>

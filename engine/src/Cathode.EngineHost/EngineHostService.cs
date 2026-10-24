@@ -381,7 +381,7 @@ public sealed class EngineHostService : IDisposable {
     }
 
     /// <summary>
-    ///     Lets blocks with derived state (DynaCab's synthesised IRs) rebuild it for their new targets, here on the
+    ///     Lets blocks with derived state (the Cab's mixed slot IRs) rebuild it for their new targets, here on the
     ///     control thread rather than on the audio thread.
     /// </summary>
     void RefreshBlocks() {

@@ -101,7 +101,7 @@ export function coneDescription(mic: ConeMic): string {
 }
 
 /**
- * A speaker cone seen from the side, as DynaCab draws it: the cone from its dust cap (left) to its edge (right) behind
+ * A speaker cone seen from the side, as the Axe-Fx DynaCab draws it (the Cab block's mic placement): the cone from its dust cap (left) to its edge (right) behind
  * the grille, and below it the space in front where each mic sits, across the cone horizontally and away from the
  * grille vertically. Drag a mic to move it; it is also an ARIA slider (←/→ across, ↑/↓ nearer or further, ⇧ for big
  * steps, Home/End to cap or edge). A mic's body leans by its angle; muted mics are hollow.

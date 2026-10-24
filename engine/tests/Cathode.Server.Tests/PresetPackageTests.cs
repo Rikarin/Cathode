@@ -132,7 +132,7 @@ public sealed class PresetPackageTests : IAsyncLifetime {
         var asset = (await upload.Content.ReadFromJsonAsync<AssetInfo>(Token))!;
         await Ensure(client.PostAsJsonAsync("/api/v1/live/new", new { }, Token));
         await Ensure(client.PostAsJsonAsync("/api/v1/live/blocks", new AddBlockRequest("cab", 0, 2), Token));
-        await Ensure(client.PutAsJsonAsync("/api/v1/live/blocks/cab1/assets/ir1", new AssetRequest(asset.Ref), Token));
+        await Ensure(client.PutAsJsonAsync("/api/v1/live/blocks/cab1/assets/slot1", new AssetRequest(asset.Ref), Token));
         using var saved = await client.PostAsJsonAsync("/api/v1/live/save", new SaveRequest(name, true), Token);
         return (await saved.Content.ReadFromJsonAsync<LiveState>(Token))!.Preset.Id;
     }
