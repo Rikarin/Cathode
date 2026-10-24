@@ -8,36 +8,38 @@ namespace Cathode.Dsp.Amp;
 ///     cubic Hermite interpolation: C¹, and accurate to O(h⁴) (about 1e-9 relative for the tube laws here).
 /// </summary>
 public sealed class HermiteTable {
-    readonly double[] values;
-    readonly double[] slopes; // pre-multiplied by the step
+    readonly double[] knots; // per point its value, then its slope pre-multiplied by the step: one cache line a read
     readonly double inverseStep;
+    readonly double min;
+    readonly int last; // the last interval's first point
 
-    public double Min { get; }
+    public double Min => min;
 
     public double Max { get; }
 
     /// <summary>Tabulates <paramref name="function" />, which returns the value and the slope at a point.</summary>
     public HermiteTable(Func<double, (double Value, double Slope)> function, double min, double max, int points) {
-        Min = min;
+        this.min = min;
         Max = max;
-        values = new double[points];
-        slopes = new double[points];
+        knots = new double[2 * points];
+        last = points - 2;
         var step = (max - min) / (points - 1);
         inverseStep = 1 / step;
         for (var i = 0; i < points; i++) {
             var (value, slope) = function(min + i * step);
-            values[i] = value;
-            slopes[i] = slope * step;
+            knots[2 * i] = value;
+            knots[2 * i + 1] = slope * step;
         }
     }
 
     /// <summary>The value at <paramref name="x" /> (within [Min, Max]) and its slope.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Evaluate(double x, out double slope) {
-        var position = (x - Min) * inverseStep;
-        var i = Math.Min((int)position, values.Length - 2);
+        var position = (x - min) * inverseStep;
+        var i = Math.Min((int)position, last);
         var t = position - i;
-        var (y0, y1, m0, m1) = (values[i], values[i + 1], slopes[i], slopes[i + 1]);
+        var knot = knots.AsSpan(2 * i, 4);
+        var (y0, m0, y1, m1) = (knot[0], knot[1], knot[2], knot[3]);
         var delta = y1 - y0;
 
         // Hermite in the form y0 + t (m0 + t (c2 + t c3)).
@@ -85,11 +87,17 @@ public sealed class TriodeTables {
     readonly HermiteTable p;
     readonly HermiteTable grid;
     readonly double lowestGrid;
+    readonly double inverseMu; // 1 / μ, K_vb and 2 / K_g1: the model's, read without going through it
+    readonly double kvb;
+    readonly double gain;
 
     public TriodeModel Model { get; }
 
     TriodeTables(TriodeModel model) {
         Model = model;
+        inverseMu = 1 / model.Mu;
+        kvb = model.Kvb;
+        gain = 2 / model.Kg1;
         var ex = model.Exponent;
         g = new(u => HermiteTable.SoftplusPower(u, ex), LowestU, HighestU, 8_193);
         p = new(
@@ -155,6 +163,27 @@ public sealed class TriodeTables {
         double plateScale,
         out double gridSlope,
         out double plateSlope
+    ) =>
+        ScaledPlateCurrent(vgk, vpk, kp, PlateScale(plateScale), out gridSlope, out plateSlope);
+
+    /// <summary>
+    ///     The scale (2 / K_g1) <paramref name="plateScale" /> of
+    ///     <see cref="PlateCurrent(double, double, double, double, out double, out double)" />.
+    /// </summary>
+    internal double PlateScale(double plateScale) => gain * plateScale;
+
+    /// <summary>
+    ///     <see cref="PlateCurrent(double, double, double, double, out double, out double)" /> with its scale
+    ///     (<see cref="PlateScale" />) worked out once, by the device.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal double ScaledPlateCurrent(
+        double vgk,
+        double vpk,
+        double kp,
+        double scale,
+        out double gridSlope,
+        out double plateSlope
     ) {
         if (!(vpk > 0)) {
             gridSlope = 0;
@@ -162,10 +191,9 @@ public sealed class TriodeTables {
             return 0;
         }
 
-        var m = Model;
-        var squared = m.Kvb + vpk * vpk;
+        var squared = kvb + vpk * vpk;
         var root = Math.Sqrt(squared);
-        var u = kp * (1 / m.Mu + vgk / root);
+        var u = kp * (inverseMu + vgk / root);
         if (!(u > LowestU)) {
             gridSlope = 0;
             plateSlope = 0;
@@ -176,19 +204,18 @@ public sealed class TriodeTables {
         if (u < HighestU) {
             gu = g.Evaluate(u, out du);
         } else {
-            gu = Math.Pow(u, m.Exponent); // softplus(u) = u here
-            du = m.Exponent * gu / u;
+            gu = Math.Pow(u, Model.Exponent); // softplus(u) = u here
+            du = Model.Exponent * gu / u;
         }
 
         double pv, dv;
         if (vpk >= LowestPlate && vpk < HighestPlate) {
             pv = p.Evaluate(vpk, out dv);
         } else {
-            pv = Math.Pow(vpk / m.Kp, m.Exponent);
-            dv = m.Exponent * pv / vpk;
+            pv = Math.Pow(vpk / Model.Kp, Model.Exponent);
+            dv = Model.Exponent * pv / vpk;
         }
 
-        var scale = 2 / m.Kg1 * plateScale;
         gridSlope = scale * pv * du * kp / root;
         plateSlope = scale * (dv * gu - pv * du * kp * vgk * vpk / (squared * root));
         return scale * pv * gu;
@@ -207,7 +234,7 @@ public sealed class TriodeTables {
 public readonly struct FastTriode(TriodeModel model, double hardness = 1, double gridCurrent = 1) : INonlinearDevice {
     readonly TriodeTables tables = TriodeTables.For(model);
     readonly double kp = model.Kp * hardness;
-    readonly double plateScale = Math.Pow(hardness, -model.Exponent);
+    readonly double scale = TriodeTables.For(model).PlateScale(Math.Pow(hardness, -model.Exponent));
 
     public int Ports => 2;
 
@@ -218,11 +245,11 @@ public readonly struct FastTriode(TriodeModel model, double hardness = 1, double
         var vgk = voltages[0];
         currents[0] = gridCurrent * tables.GridCurrent(vgk, out jacobian[0]);
         jacobian[0] *= gridCurrent;
-        currents[1] = tables.PlateCurrent(
+        currents[1] = tables.ScaledPlateCurrent(
             vgk,
             voltages[1],
             kp,
-            plateScale,
+            scale,
             out jacobian[stride],
             out jacobian[stride + 1]
         );
@@ -271,11 +298,13 @@ public sealed class PentodeTables {
     readonly HermiteTable g;
     readonly HermiteTable knee;
     readonly HermiteTable screen;
+    readonly double inverseMu; // 1 / μ
 
     public PentodeModel Model { get; }
 
     PentodeTables(PentodeModel model) {
         Model = model;
+        inverseMu = 1 / model.Mu;
         var ex = model.Exponent;
         g = new(u => HermiteTable.SoftplusPower(u, ex), LowestU, HighestU, 8_193);
         knee = new(
@@ -356,7 +385,7 @@ public sealed class PentodeTables {
         }
 
         var m = Model;
-        var u = kp * (1 / m.Mu + vg1 / vg2);
+        var u = kp * (inverseMu + vg1 / vg2);
         if (!(u > LowestU)) {
             return 0;
         }

@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace Cathode.Dsp.Wdf;
 
@@ -97,6 +98,11 @@ public struct RTypeRoot<TPorts, TDevice>
             }
 
             Newton.blockEnd[k] = end;
+        }
+
+        Newton.pairs = device.Ports % 2 == 0;
+        for (var k = 0; k < device.Ports; k++) {
+            Newton.pairs &= Newton.blockStart[k] == (k & ~1) && Newton.blockEnd[k] == (k | 1) + 1;
         }
 
         inputs = new double[Scattering.Inputs];
@@ -846,6 +852,11 @@ public struct RTypeRoot<TPorts, TDevice>
         ref var jacobian = ref MemoryMarshal.GetArrayDataReference(s.jacobian);
         ref var gc = ref MemoryMarshal.GetArrayDataReference(s.conductances);
         ref var system = ref MemoryMarshal.GetArrayDataReference(target ?? s.system);
+        if (s.pairs && Vector128.IsHardwareAccelerated) {
+            BuildPairs(k, ref f, ref jacobian, ref gc, ref system);
+            return;
+        }
+
         ref var first = ref MemoryMarshal.GetArrayDataReference(s.blockStart);
         ref var end = ref MemoryMarshal.GetArrayDataReference(s.blockEnd);
         for (var d = 0; d < k; d++) {
@@ -859,6 +870,35 @@ public struct RTypeRoot<TPorts, TDevice>
                 }
 
                 Unsafe.Add(ref system, d * k + l) = sum;
+            }
+        }
+    }
+
+    /// <summary>
+    ///     <see cref="BuildSystem" /> when every device block is a pair of ports: both columns of a block at once, each
+    ///     lane the same subtractions in the same order as the scalar sum (the slope's diagonal less G_c, the other
+    ///     entries less 0, which leaves them as they are), so the same bits.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static void BuildPairs(int k, ref double f, ref double jacobian, ref double gc, ref double system) {
+        var identity0 = Vector128.Create(1.0, 0.0);
+        var identity1 = Vector128.Create(0.0, 1.0);
+        for (var b = 0; b < k; b += 2) {
+            // The block's two slope rows, (∂i_b/∂v_b - G_c, ∂i_b/∂v_b+1) and (∂i_b+1/∂v_b, ∂i_b+1/∂v_b+1 - G_c).
+            var upper = Vector128.Subtract(
+                Vector128.LoadUnsafe(ref Unsafe.Add(ref jacobian, b * k + b)),
+                Vector128.Create(Unsafe.Add(ref gc, b), 0.0)
+            );
+            var lower = Vector128.Subtract(
+                Vector128.LoadUnsafe(ref Unsafe.Add(ref jacobian, (b + 1) * k + b)),
+                Vector128.Create(0.0, Unsafe.Add(ref gc, b + 1))
+            );
+            for (var d = 0; d < k; d++) {
+                ref var row = ref Unsafe.Add(ref f, d * k + b);
+                var sum = d == b ? identity0 : d == b + 1 ? identity1 : Vector128<double>.Zero;
+                sum = Vector128.Subtract(sum, Vector128.Multiply(Vector128.Create(row), upper));
+                sum = Vector128.Subtract(sum, Vector128.Multiply(Vector128.Create(Unsafe.Add(ref row, 1)), lower));
+                sum.StoreUnsafe(ref Unsafe.Add(ref system, d * k + b));
             }
         }
     }
@@ -977,6 +1017,7 @@ public sealed class NewtonSolver {
     internal readonly int[] blockStart; // per port: the first port of its device block
     internal readonly int[] blockEnd; // per port: one past the last port of its device block
     internal bool factored; // whether the system and pivot buffers hold the factors of the last Jacobian's system
+    internal bool pairs; // whether the device blocks are all two ports (triodes, op-amps)
 
     /// <summary>Iterations per sample before giving up and keeping the best iterate.</summary>
     public int MaxIterations { get; set; } = 32;

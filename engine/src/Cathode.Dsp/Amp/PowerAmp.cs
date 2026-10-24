@@ -1239,6 +1239,7 @@ struct GridPair {
     double historyB;
     bool conductingA; // the conduction states last committed, where the next solve starts
     bool conductingB;
+    GridSystems systems; // per conduction state (A on: 2, B on: 1), its matrix and the inverse of its determinant
 
     /// <param name="source">The inverter's output impedance matrix (single-ended: the driving stage).</param>
     /// <param name="coupling">The coupling caps.</param>
@@ -1259,6 +1260,15 @@ struct GridPair {
         leak = 1 / gridLeak;
         stopper = gridStopper;
         diode = conduction > 0 ? 1 / (gridStopper + ConductionResistance / conduction) : 0;
+        for (var state = 0; state < 4; state++) {
+            var sa = state >= 2 ? leak + diode : leak;
+            var sb = (state & 1) != 0 ? leak + diode : leak;
+            var a00 = zaa * sa + 1;
+            var a01 = zab * sb;
+            var a10 = zba * sa;
+            var a11 = zbb * sb + 1;
+            systems[state] = new(a00, a01, a10, a11, 1 / (a00 * a11 - a01 * a10));
+        }
     }
 
     /// <summary>
@@ -1281,16 +1291,11 @@ struct GridPair {
         double ya = 0, yb = 0, inverse = 0;
         double a00 = 0, a01 = 0, a10 = 0, a11 = 0;
         for (var attempt = 0; attempt < 4; attempt++) {
-            // Each grid-leak node draws i = s y + c; with the plates at e - Z i, the branches give A y = r.
-            var sa = onA ? leak + diode : leak;
-            var sb = onB ? leak + diode : leak;
+            // Each grid-leak node draws i = s y + c; with the plates at e - Z i, the branches give A y = r (A for each
+            // conduction state worked out when the network is configured).
             var ca = onA ? -diode * thresholdA : 0;
             var cb = onB ? -diode * thresholdB : 0;
-            a00 = zaa * sa + 1;
-            a01 = zab * sb;
-            a10 = zba * sa;
-            a11 = zbb * sb + 1;
-            inverse = 1 / (a00 * a11 - a01 * a10);
+            (a00, a01, a10, a11, inverse) = systems[(onA ? 2 : 0) + (onB ? 1 : 0)];
             var ra = ea - historyA - zaa * ca - zab * cb;
             var rb = eb - historyB - zba * ca - zbb * cb;
             ya = (a11 * ra - a01 * rb) * inverse;
@@ -1332,6 +1337,15 @@ struct GridPair {
         historyA = Flush.Value(historyA);
         historyB = Flush.Value(historyB);
     }
+}
+
+/// <summary>A <see cref="GridPair" />'s linear system for one conduction state, and the inverse of its determinant.</summary>
+readonly record struct GridSystem(double A00, double A01, double A10, double A11, double Inverse);
+
+/// <summary>A <see cref="GridSystem" /> for each of a <see cref="GridPair" />'s four conduction states.</summary>
+[InlineArray(4)]
+struct GridSystems {
+    GridSystem element;
 }
 
 /// <summary>
