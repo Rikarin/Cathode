@@ -33,16 +33,18 @@ namespace Cathode.Dsp.Amp.Models;
 ///         assignment is the one inference here; the controller between the switch and CTL1 is not on the drawing.
 ///     </para>
 ///     <para>
-///         Stages and cuts: the coupling network after each clipping plate belongs to the next stage (so a grid's
-///         current charges its own coupling cap); V7A and the V7B follower with the stack are one circuit (the
-///         follower's grid current and cut-off into the stack); the stack is cut at its 300k / 560k node, ahead of the
-///         V8A follower; the send is cut ahead of the 100k into V8B (the stage's input resistance). Against the whole
-///         chain in one circuit: −27 dB (#34) and −23 dB (AFD) at small signals, −24 and −20 dB at 50 mV. The AFD
-///         mode's V6A plate, its cathode bypassed above 160 Hz, has an output resistance that moves with frequency;
-///         V8A's bootstrapped grid (about 1.4M) loads the stack. Folding V8A into the V7 circuit (three triodes)
-///         brought #34 to −34 dB but cost 40 % more CPU; splitting V7A from its follower saved 15 % and lost 10 dB in
-///         clipping. CPU (48 kHz, guitar / loud noise, with the Plexi at 8.4 / 14.8 %): #34 17.4 / 29.0 %, AFD 16.4 /
-///         25.5 %, with Newton's tolerance at 1e-5 and chord steps in every stage.
+///         Stages and cuts, accuracy over the CPU budget (the user's rule, as for the Quick Rod): a cut is a Thévenin
+///         resistor found at 1 kHz with the caps as real conductances, which is poor where a cathode is bypassed (V5;
+///         V6A in AFD, above 160 Hz) and where V8A's bootstrapped grid (about 1.4M) loads the stack, so no cut is made
+///         there. #34 runs V5 and V6A as one circuit, V6B (from V6A's unbypassed plate) and V7, the stack and V8A (from
+///         V6B's plate) as three triodes; AFD runs everything from the input to the send as one circuit of five triodes
+///         (the library's largest). Both cut at the send ahead of the 100k into V8B (the stage's input resistance). The
+///         coupling network after each cut plate belongs to the next stage, so a grid's current charges its own
+///         coupling cap. Against the whole chain in one circuit: #34 −43 dB at 2 mV and −38 dB at 50 mV, AFD −44 and
+///         −41 dB (the cuts as first built, one per tube: −27 / −24 and −23 / −20 dB). Splitting V5 from the AFD
+///         circuit costs 11 dB and saves a sixth of the CPU. CPU (48 kHz, guitar / loud noise, with the Plexi at 8.3 /
+///         14.7 %): #34 18.8 / 38.6 %, AFD 22.2 / 52.0 %, over the high-gain budget (16 / 28 %), with Newton's
+///         tolerance at 1e-4 (no change in the reference error against 1e-6) and chord steps in every stage.
 ///     </para>
 ///     <para>
 ///         The effects loop's relay (RL2, CTL2) is at rest, the loop off: RL2B feeds V8B from the 100k, and RL2C shorts
@@ -83,21 +85,16 @@ public static class MarshallAfd100 {
     public static AmpDesign Design { get; } = new(
         "AFD100",
         [
-            Stage("V5", FirstStage()),
             new ChannelSwitchStageDesign(
                 "Mode",
                 SwitchRole.Switch1,
                 [
-                    Stage("V6A #34", SecondStage(false)),
-                    Stage("V6B", ThirdStage()),
-                    Stage("V7 #34", FourthStage(false))
+                    Stage("V5 V6A #34", ThirtyFourInput()),
+                    Stage("V6B", ThirtyFourBoost()),
+                    Stage("V7 V8A #34", ThirtyFourStack())
                 ],
-                [
-                    Stage("V6A AFD", SecondStage(true)),
-                    Stage("V7 AFD", FourthStage(true))
-                ]
+                [Stage("V5 V6A V7 V8A AFD", AfdChain())]
             ),
-            Stage("V8A", SendStage()),
             Stage("V8B", RecoveryStage(), 100e3)
         ],
         new(
@@ -135,49 +132,80 @@ public static class MarshallAfd100 {
     };
 
     /// <summary>
-    ///     A stage with the solver shortcuts of docs/06 §5.3: Newton's step tolerance at 1e-5 and chord steps on the
+    ///     A stage with the solver shortcuts of docs/06 §5.3: Newton's step tolerance at 1e-4 and chord steps on the
     ///     last factorisation.
     /// </summary>
     static NetworkStageDesign Stage(string name, StageNetlist net, double inputResistance = 0) =>
-        new(name, net, inputResistance) { Tolerance = 1e-5, ReuseFactors = true };
+        new(name, net, inputResistance) { Tolerance = 1e-4, ReuseFactors = true };
+
+    /// <summary>
+    ///     #34 from the input: V5 and V6A (<see cref="InputTube" />, <see cref="GainTube" />). Out at V6A's plate.
+    /// </summary>
+    static StageNetlist ThirtyFourInput() {
+        var net = new StageNetlist();
+        net.Output = GainTube(net, InputTube(net), false);
+        return net;
+    }
+
+    /// <summary>#34's extra stage from V6A's plate (<see cref="BoostTube" />). Out at V6B's plate.</summary>
+    static StageNetlist ThirtyFourBoost() {
+        var net = new StageNetlist();
+        net.Output = BoostTube(net, net.Input);
+        return net;
+    }
+
+    /// <summary>#34 from V6B's plate: V7, the stack and V8A (<see cref="StackTubes" />). Out at the send.</summary>
+    static StageNetlist ThirtyFourStack() {
+        var net = new StageNetlist();
+        net.Output = StackTubes(net, net.Input, false);
+        return net;
+    }
+
+    /// <summary>
+    ///     The AFD mode from the input to the send, one circuit: V5, V6A with its bypassed cathode, V7, the stack and
+    ///     V8A.
+    /// </summary>
+    static StageNetlist AfdChain() {
+        var net = new StageNetlist();
+        net.Output = StackTubes(net, GainTube(net, InputTube(net), true), true);
+        return net;
+    }
 
     /// <summary>
     ///     The input jacks and V5, both triodes in parallel (4M7 grid leak, 51k, 1k33 with 1.36 µF, 220 pF plate to
-    ///     cathode). Out at the plate. The High input is 68k ‖ 68k to the grid (the jack's 1M sits across the ideal
-    ///     source, so it is left out); the Low input (switch 2) 68k, with the High jack's 68k from the grid to ground.
+    ///     cathode). The High input is 68k ‖ 68k to the grid (the jack's 1M sits across the ideal source, so it is left
+    ///     out); the Low input (switch 2) 68k, with the High jack's 68k from the grid to ground. Returns the plate.
     /// </summary>
-    static StageNetlist FirstStage() {
-        var net = new StageNetlist();
+    static int InputTube(StageNetlist net) {
         var (grid, rail, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.SwitchedResistor(net.Input, grid, 34e3, 68e3, SwitchRole.Switch2);
         net.SwitchedResistor(grid, StageNetlist.Ground, 0, 68e3, SwitchRole.Switch2);
         net.Resistor(grid, StageNetlist.Ground, 4.7e6);
         net.Supply(rail, Ht7);
         net.Resistor(rail, plate, 51e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.33e3);
+        net.Resistor(cathode, StageNetlist.Ground, 1.33e3);
         net.Capacitor(cathode, StageNetlist.Ground, 1.36e-6);
         net.Capacitor(plate, cathode, 220e-12);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83.Paralleled(2));
-        net.Output = plate;
-        return net;
+        return plate;
     }
 
     /// <summary>
-    ///     From V5's plate: 22 nF, 470k ‖ 2.2 nF onto the 1M audio Gain (1 nF from its top to its wiper), V6A on the
-    ///     wiper (100k, 10k), with R80 (150k) and C57 (100 nF) in series from its grid to its cathode (#34), or their
-    ///     junction grounded (<paramref name="afd" />: 150k on the wiper, 100 nF across the 10k). Out at the plate.
+    ///     From V5's <paramref name="source" /> plate: 22 nF, 470k ‖ 2.2 nF onto the 1M audio Gain (1 nF from its top
+    ///     to its wiper), V6A on the wiper (100k, 10k), with R80 (150k) and C57 (100 nF) in series from its grid to its
+    ///     cathode (#34), or their junction grounded (<paramref name="afd" />: 150k on the wiper, 100 nF across the
+    ///     10k). Returns the plate.
     /// </summary>
-    static StageNetlist SecondStage(bool afd) {
-        var net = new StageNetlist();
+    static int GainTube(StageNetlist net, int source, bool afd) {
         var (coupled, top, rail, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Capacitor(net.Input, coupled, 22e-9);
+        net.Capacitor(source, coupled, 22e-9);
         net.Resistor(coupled, top, 470e3);
         net.Capacitor(coupled, top, 2.2e-9);
         var grid = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
         net.Capacitor(top, grid, 1e-9, CapacitorRole.Bright);
         net.Supply(rail, Ht6);
         net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 10e3);
+        net.Resistor(cathode, StageNetlist.Ground, 10e3);
         if (afd) {
             net.Resistor(grid, StageNetlist.Ground, 150e3);
             net.Capacitor(cathode, StageNetlist.Ground, 0.1e-6);
@@ -188,26 +216,23 @@ public static class MarshallAfd100 {
         }
 
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Output = plate;
-        return net;
+        return plate;
     }
 
     /// <summary>
-    ///     #34's extra stage: from V6A's plate, 22 nF into 470k ‖ 470 pF over 470k, V6B on the tap (100k, 10k with 10k
-    ///     + 100 nF across it). Out at the plate.
+    ///     #34's V6B from V6A's <paramref name="source" /> plate: 22 nF into 470k ‖ 470 pF over 470k, V6B on the tap
+    ///     (100k, 10k with 10k + 100 nF across it). Returns the plate.
     /// </summary>
-    static StageNetlist ThirdStage() {
-        var net = new StageNetlist();
+    static int BoostTube(StageNetlist net, int source) {
         var (rail, plate, cathode, bypass) = (net.Node(), net.Node(), net.Node(), net.Node());
-        var grid = Divider(net, net.Input, 470e-12, 470e3);
+        var grid = Divider(net, source, 470e-12, 470e3);
         net.Supply(rail, Ht6);
         net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 10e3);
+        net.Resistor(cathode, StageNetlist.Ground, 10e3);
         net.Capacitor(cathode, bypass, 0.1e-6);
         net.Resistor(bypass, StageNetlist.Ground, 10e3);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Output = plate;
-        return net;
+        return plate;
     }
 
     /// <summary>
@@ -227,31 +252,23 @@ public static class MarshallAfd100 {
     }
 
     /// <summary>
-    ///     V7A on its divider, from V6B's plate (#34: 22 nF into 470k over 470k) or V6A's (<paramref name="afd" />: 22
-    ///     nF into 470k ‖ 470 pF over 470k), its 4M7 grid leak; V7A (100k with 1 nF across it, 820 Ω with 680 nF) and
-    ///     the V7B follower DC-coupled to its plate (<see cref="Follower" />). Out at the stack's 300k / 560k node.
+    ///     V7A on its divider from the <paramref name="source" /> plate, V6B's (#34: 22 nF into 470k over 470k) or
+    ///     V6A's (<paramref name="afd" />: 22 nF into 470k ‖ 470 pF over 470k), its 4M7 grid leak; V7A (100k with 1 nF
+    ///     across it, 820 Ω with 680 nF), the V7B follower DC-coupled to its plate, 100k from its cathode, which drives
+    ///     the stack directly (470 pF, 33k, 22 nF, 22 nF; 250k linear treble, 1M audio bass, 25k linear middle with the
+    ///     middle cap on its wiper); the treble wiper's 300k onto 560k ‖ 100 pF; 22 nF into the V8A follower (1k and
+    ///     100k from its cathode, the 100k grid leak from their junction), 330 nF to the send divider (15k over 1k).
+    ///     Returns the send.
     /// </summary>
-    static StageNetlist FourthStage(bool afd) {
-        var net = new StageNetlist();
-        var grid7 = Divider(net, net.Input, afd ? 470e-12 : 0, 470e3 * 4.7e6 / (470e3 + 4.7e6));
-        var (rail, plate, cathode) = (net.Node(), net.Node(), net.Node());
+    static int StackTubes(StageNetlist net, int source, bool afd) {
+        var grid7 = Divider(net, source, afd ? 470e-12 : 0, 470e3 * 4.7e6 / (470e3 + 4.7e6));
+        var (rail, plate, cathode, follower) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Supply(rail, Ht5);
         net.Resistor(rail, plate, 100e3);
         net.Capacitor(rail, plate, 1e-9);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 820);
+        net.Resistor(cathode, StageNetlist.Ground, 820);
         net.Capacitor(cathode, StageNetlist.Ground, 680e-9);
         net.Triode(plate, grid7, cathode, TriodeModel.Ecc83);
-        net.Output = Follower(net, rail, plate);
-        return net;
-    }
-
-    /// <summary>
-    ///     The V7B follower, its grid on V7A's <paramref name="plate" />, 100k from its cathode, which drives the stack
-    ///     directly (470 pF, 33k, 22 nF, 22 nF; 250k linear treble, 1M audio bass, 25k linear middle with the middle
-    ///     cap on its wiper); the treble wiper's 300k onto 560k ‖ 100 pF. Returns that node.
-    /// </summary>
-    static int Follower(StageNetlist net, int rail, int plate) {
-        var follower = net.Node();
         net.Triode(rail, plate, follower, TriodeModel.Ecc83);
         net.Resistor(follower, StageNetlist.Ground, 100e3);
 
@@ -267,26 +284,17 @@ public static class MarshallAfd100 {
         net.Resistor(treble, output, 300e3);
         net.Resistor(output, StageNetlist.Ground, 560e3);
         net.Capacitor(output, StageNetlist.Ground, 100e-12);
-        return output;
-    }
 
-    /// <summary>
-    ///     22 nF into the V8A follower (1k and 100k from its cathode, the 100k grid leak from their junction), 330 nF
-    ///     to the send divider (15k over 1k). Out at the send.
-    /// </summary>
-    static StageNetlist SendStage() {
-        var net = new StageNetlist();
-        var (rail, grid, cathode, junction, send) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, Ht4);
-        net.Capacitor(net.Input, grid, 22e-9);
-        net.Resistor(grid, junction, 100e3);
-        net.Resistor(cathode, junction, 1e3);
+        var (rail4, grid8, cathode8, junction, send) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        net.Supply(rail4, Ht4);
+        net.Capacitor(output, grid8, 22e-9);
+        net.Resistor(grid8, junction, 100e3);
+        net.Resistor(cathode8, junction, 1e3);
         net.Resistor(junction, StageNetlist.Ground, 100e3);
-        net.Triode(rail, grid, cathode, TriodeModel.Ecc83);
-        net.Capacitor(cathode, send, 330e-9);
+        net.Triode(rail4, grid8, cathode8, TriodeModel.Ecc83);
+        net.Capacitor(cathode8, send, 330e-9);
         net.Resistor(send, StageNetlist.Ground, 16e3);
-        net.Output = send;
-        return net;
+        return send;
     }
 
     /// <summary>

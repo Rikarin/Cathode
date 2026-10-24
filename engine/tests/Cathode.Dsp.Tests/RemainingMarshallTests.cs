@@ -35,15 +35,14 @@ public partial class AmpStageTests {
             { "JMP-1", 4, 0.005, -30 },
             { "JMP-1", 1, 0.0001, -20 },
             { "JMP-1", 3, 0.0001, -20 },
-            // The AFD100's cuts cost more than most: the AFD mode's V6A plate has its cathode bypassed above 160 Hz (an
-            // output resistance that moves with frequency), and V8A's bootstrapped grid (about 1.4M) loads the stack's
-            // output, cut there (merging either into its neighbour puts three triodes in one stage, over budget).
-            { "AFD100", 0, 0.002, -25 },
-            { "AFD100", 2, 0.002, -25 },
-            { "AFD100", 0, 0.05, -22 },
-            { "AFD100", 1, 0.002, -21 },
-            { "AFD100", 3, 0.002, -21 },
-            { "AFD100", 1, 0.05, -18 }
+            // The AFD100's cuts: #34 at V6A's and V6B's plates and at the send, AFD at the send only (its five triodes
+            // up to V8A are one circuit: the bypassed cathodes of V5 and V6A make a poor Thévenin resistor).
+            { "AFD100", 0, 0.002, -41 },
+            { "AFD100", 2, 0.002, -41 },
+            { "AFD100", 0, 0.05, -37 },
+            { "AFD100", 1, 0.002, -42 },
+            { "AFD100", 3, 0.002, -42 },
+            { "AFD100", 1, 0.05, -39 }
         };
 
     /// <summary>The stages <paramref name="controls" /> play, nested channel switches resolved.</summary>

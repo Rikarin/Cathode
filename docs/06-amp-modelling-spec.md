@@ -656,10 +656,13 @@ cites its drawings and marks what is read, inferred or guessed:
   Inferred: which relay state the AFD LED means (#34 then has 4.5 dB more gain at 1 kHz and one more clipping stage).
   Guessed: B+ 470 V, 40 mA idle, 1.7k OT, feedback tap 4 Ω; the preamp rails (423 / 351 / 303 / 284 / 272 V) follow
   from the drawing's dropping chain. Not modelled: the Power control (a MOSFET screen regulator and a gang in the
-  feedback path; at full), the loop. Chain against the one-circuit reference −23 to −27 dB (the real-valued cut
-  resistance at bypassed cathodes, and V8A's bootstrapped grid loading the stack); CPU 17.4 / 29.0 % #34, 16.4 / 25.5 %
-  AFD with the Plexi at 8.4 / 14.8 %, Newton tolerance 1e-5 and chord steps in every stage: #34 over the high-gain
-  guitar budget.
+  feedback path; at full), the loop. Stages: #34 runs V5 with V6A, V6B, and V7 with the stack and V8A; AFD runs
+  V5 to V8A as one five-triode circuit (`NetworkStage` gained a `TTTTT` case); both cut at the send. A cut is a
+  Thévenin resistor at 1 kHz, poor at bypassed cathodes (V5; V6A in AFD) and where V8A's bootstrapped grid loads the stack,
+  so none is made there. Chain against the one-circuit reference: #34 −43 / −38 dB, AFD −44 / −41 dB at 2 / 50 mV
+  (−27 / −24 and −23 / −20 dB with one stage per tube). CPU 18.8 / 38.6 % #34, 22.2 / 52.0 % AFD with the Plexi at
+  8.3 / 14.7 %, Newton tolerance 1e-4 and chord steps in every stage: over the high-gain budget by the user's choice
+  of accuracy, as the Quick Rod.
 - **Not built: JVM410HJS.** Its sheets (-60-02 iss 2, -61-02 iss 1, -62-02 iss 1) carry the JVM410H's channel networks
   and three-path cascade with other values, plus the input buffer, the THAT4301 gate and mid-shift relays, but five
   main-board relays (RL101, RL103 B/C, RL104, RL105) where the JVM410H has three, and its handbook describes the modes'

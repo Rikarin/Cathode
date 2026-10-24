@@ -107,7 +107,7 @@ public sealed record StageElement(ElementKind Kind, int A, int B, double Value) 
 /// <summary>
 ///     The circuit of a <see cref="NetworkStageDesign" />, written like a SPICE netlist: nodes, passive elements
 ///     (resistors, capacitors, inductors), pots turned by front-panel knobs, elements switched by front-panel switches,
-///     supply rails that follow the preamp's sag, and up to four triodes, or a pentode, or one or two diode clippers (a
+///     supply rails that follow the preamp's sag, and up to five triodes, or a pentode, or one or two diode clippers (a
 ///     triode with one or two clippers, and two triodes with two, also work), or one or two op-amps (one op-amp with a
 ///     diode clipper also works), besides any number of linear amplifiers. The source drives <see cref="Input" />
 ///     through the previous stage's output resistance; the stage's output is the voltage at <see cref="Output" />.
@@ -342,6 +342,16 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
                 (s, _) => new(
                     new(s.Triode(devices[0].Triode), s.Triode(devices[1].Triode)),
                     new(s.Triode(devices[2].Triode), s.Triode(devices[3].Triode))
+                ),
+                sampleRate
+            ),
+            "TTTTT" => new NetworkStage<
+                Devices<Devices<FastTriode, FastTriode>, Devices<FastTriode, Devices<FastTriode, FastTriode>>>>(
+                this,
+                devices,
+                (s, _) => new(
+                    new(s.Triode(devices[0].Triode), s.Triode(devices[1].Triode)),
+                    new(s.Triode(devices[2].Triode), new(s.Triode(devices[3].Triode), s.Triode(devices[4].Triode)))
                 ),
                 sampleRate
             ),
