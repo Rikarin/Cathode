@@ -473,6 +473,23 @@ public static class FactoryBlockPresets {
         P("dyndist", "Hard Clip Bloom", ("type", 1), ("drive", 6), ("dynamics", 50)),
         P("dyndist", "Asymmetric Crunch", ("type", 2), ("drive", 4), ("dynamics", 30)),
         P("dyndist", "Inverse (Softer Picks Dirtier)", ("type", 0), ("drive", 5), ("dynamics", -60)),
+        // The guide's types are settings of the frequency-shaped filter ahead of the clipper (paraphrased, not named).
+        P("dyndist", "Treble Edge", ("type", 0), ("drive", 4), ("filterType", 2), ("filterFreq", 2_500), ("filterGain", 12)),
+        P("dyndist", "Bass Bloom", ("type", 5), ("drive", 4), ("filterType", 1), ("filterFreq", 200), ("filterGain", 12)),
+        P(
+            "dyndist",
+            "Mid Honk",
+            ("type", 7),
+            ("drive", 5),
+            ("filterType", 3),
+            ("filterFreq", 900),
+            ("filterQ", 1.5f),
+            ("filterGain", 15)
+        ),
+        P("dyndist", "Fuzzy Octave", ("type", 8), ("drive", 7), ("dynamics", 40), ("bias", 20)),
+        P("dyndist", "Hot Plate", ("type", 11), ("drive", 6), ("filterType", 2), ("filterFreq", 1_500), ("filterGain", 6)),
+        P("dyndist", "Silicon Bite", ("type", 12), ("drive", 6), ("filterType", 3), ("filterFreq", 1_800), ("filterGain", 9)),
+        P("dyndist", "Screamer Push", ("type", 13), ("drive", 5), ("filterType", 3), ("filterFreq", 720), ("filterGain", 12)),
 
         // Drive: the circuits are types already; these are settings of them.
         P("drive", "Clean Boost", ("type", 22), ("drive", 2), ("tone", 5), ("level", 6)),

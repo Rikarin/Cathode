@@ -72,7 +72,10 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
             ParamDescriptor.Choice(
                 "type",
                 "Type",
-                ["Soft", "Hard", "Asymmetric", "Germanium", "LED", "Tube", "Op-Amp"]
+                [
+                    "Soft", "Hard", "Asymmetric", "Germanium", "LED", "Tube", "Op-Amp", "FET", "Rectifier", "Variable",
+                    "HV Tube", "LV Tube", "Silicon", "4558 Diode"
+                ]
             ),
             ParamDescriptor.Float("drive", "Drive", 0f, 10f, 3f),
             ParamDescriptor.Float("dynamics", "Dynamics", -100f, 100f, 50f, "%"),

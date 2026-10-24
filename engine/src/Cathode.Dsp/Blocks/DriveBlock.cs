@@ -46,7 +46,7 @@ namespace Cathode.Dsp.Blocks;
 ///         </item>
 ///         <item>
 ///             <b>Clip Type</b> (original voicings): another clipping curve in place of the type's (Soft, Hard,
-///             Asymmetric, Germanium, LED, Tube, Op-Amp or none); the type's filtering and clean blend stay.
+///             Asymmetric, Germanium, LED, Tube, Op-Amp, FET, Rectifier, Variable, HV or LV Tube, Silicon, 4558 Diode or none); the type's filtering and clean blend stay.
 ///             <b>Clip Shape</b> bends the curve towards a soft knee (−) or a hard clip (+).
 ///         </item>
 ///         <item>
@@ -59,7 +59,15 @@ namespace Cathode.Dsp.Blocks;
 ///         </item>
 ///         <item><b>Dry Level</b>: the clean input summed after the clipping, inside the circuit (before the tone).</item>
 ///         <item><b>Bias</b>: an offset ahead of the clipping, for even harmonics (DC-blocked after).</item>
-///         <item><b>Slew Rate</b> (V/µs): a slew limit after the clipping, at the oversampled rate; 10 is off.</item>
+///         <item>
+///             <b>Slew Rate</b> (V/µs; 10 is off): an op-amp circuit's op-amps slew at it (the RAT's LM308 in place of its
+///             own 0.3 V/µs; a linear op-amp stage limits its output to it); any other type is slew-limited after the
+///             clipping, at the oversampled rate.
+///         </item>
+///         <item>
+///             <b>Bass Pot</b>, <b>Middle Pot</b> (5, the pedal as built): the bass and middle pots of a circuit with a
+///             real tone stack (the Guv'nor's), which its Tone (treble) pot works with.
+///         </item>
 ///         <item>
 ///             <b>Bit Reduce</b> and <b>Sample Rate</b>: a lo-fi word length and sample-and-hold rate on the driven signal
 ///             (<see cref="Decimator" />); 0 bits and 48 kHz are off.
@@ -101,6 +109,8 @@ public sealed class DriveBlock() : DspBlock(Info) {
     public const int SlewRate = 32;
     public const int BitReduce = 33;
     public const int SampleRate = 34;
+    public const int StackBass = 35;
+    public const int StackMiddle = 36;
 
     public const int EqOff = 0;
     public const int EqPre = 1;
@@ -195,7 +205,10 @@ public sealed class DriveBlock() : DspBlock(Info) {
                 ParamDescriptor.Choice(
                     "clipType",
                     "Clip Type",
-                    ["Default", "Soft", "Hard", "Asymmetric", "Germanium", "LED", "Tube", "Op-Amp", "None"]
+                    [
+                        "Default", "Soft", "Hard", "Asymmetric", "Germanium", "LED", "Tube", "Op-Amp", "FET", "Rectifier",
+                        "Variable", "HV Tube", "LV Tube", "Silicon", "4558 Diode", "None"
+                    ]
                 ),
                 static t => t < CircuitTypes
             ),
@@ -220,7 +233,9 @@ public sealed class DriveBlock() : DspBlock(Info) {
                 Decimator.RateOff,
                 "Hz",
                 ParamTaper.Log
-            )
+            ),
+            ForTypes(ParamDescriptor.Float("stackBass", "Bass Pot", 0f, 10f, 5f), HasStack),
+            ForTypes(ParamDescriptor.Float("stackMid", "Middle Pot", 0f, 10f, 5f), HasStack)
         ],
         maxInstances: 4
     );
@@ -247,6 +262,10 @@ public sealed class DriveBlock() : DspBlock(Info) {
             TypeLabels =
                 [..Enumerable.Range(0, TypeNames.Length).Select(t => shown(t) ? descriptor.Name : string.Empty)]
         };
+
+    /// <summary>Whether circuit type <paramref name="type" /> has a bass/middle/treble stack with real bass and middle pots.</summary>
+    static bool HasStack(int type) =>
+        type >= CircuitTypes && DriveCircuits.All[type - CircuitTypes].Tone.Kind == ToneKind.Stack;
 
     static bool HasDiodes(int type) =>
         type >= CircuitTypes && DriveCircuits.HasDiodes(DriveCircuits.All[type - CircuitTypes]);
@@ -300,7 +319,9 @@ public sealed class DriveBlock() : DspBlock(Info) {
                 Params.Advance(BassResponse, length) / 100.0,
                 Params.Advance(Bias, length) / 100.0 * FullBias,
                 Decibels.ToGain(Params.Advance(DryLevel, length)),
-                SlewStep(Params.Advance(SlewRate, length), innerRate)
+                SlewStep(Params.Advance(SlewRate, length), innerRate),
+                Params.Advance(StackBass, length) / 10.0,
+                Params.Advance(StackMiddle, length) / 10.0
             );
             ReadPage(length);
             var gain = InputGain(type, drive);

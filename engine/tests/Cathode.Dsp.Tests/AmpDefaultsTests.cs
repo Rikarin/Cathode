@@ -26,8 +26,8 @@ public class AmpDefaultsTests {
         var reference = File.ReadAllLines(Path);
         Assert.Equal(81 * Gains.Length, renders.Count(static l => l.StartsWith("circuitamp ", StringComparison.Ordinal)));
         var mismatched = reference.Except(renders).ToArray();
+        // Types added since (more Dynamic Distortion curves) have no reference; every one that has must match.
         Assert.True(mismatched.Length == 0, $"Not bit-identical to master: {string.Join("; ", mismatched.Take(10))}");
-        Assert.Equal(reference.Length, renders.Count);
     }
 
     /// <summary>One line per block type, type and gain: "id type gain SHA-256" of the stereo render.</summary>

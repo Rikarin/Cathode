@@ -86,6 +86,9 @@ public sealed class OpAmpStage {
     double rate;
     double drive = double.NaN;
     double source = double.NaN;
+    double slewRate; // V/s in place of the op-amp's own; 0 for its own
+    double limit; // a slew limit on the output where the solve has none, volts per sample; 0 for none
+    double held;
 
     /// <summary>The model the configured stage uses.</summary>
     public OpAmpSolve Solve { get; private set; }
@@ -158,11 +161,29 @@ public sealed class OpAmpStage {
     ///     Sets the component values for Drive at <paramref name="drive" /> (0..1) and a source of
     ///     <paramref name="sourceResistance" />. Recomputes only what changed; a new stage or rate starts discharged.
     /// </summary>
-    public void Configure(DriveStage stage, double drive, double sourceResistance, double rate, bool antialias) {
+    /// <param name="stage">The stage's components.</param>
+    /// <param name="drive">Drive, 0..1.</param>
+    /// <param name="sourceResistance">What drives it.</param>
+    /// <param name="rate">The oversampled rate.</param>
+    /// <param name="antialias">Whether the diode and rail roots anti-alias.</param>
+    /// <param name="slewRate">
+    ///     The op-amp's slew rate in V/s in place of the model's (the Drive block's Slew Rate); 0 for the model's. The
+    ///     full device (<see cref="OpAmpSolve.Device" />) takes it as its own; the linear solves, which model none, limit
+    ///     the stage's output to it.
+    /// </param>
+    public void Configure(
+        DriveStage stage,
+        double drive,
+        double sourceResistance,
+        double rate,
+        bool antialias,
+        double slewRate = 0
+    ) {
         var fresh = !ReferenceEquals(stage, this.stage) || rate != this.rate;
         diodes.Root.Antialiased = antialias;
         rails.Root.Antialiased = antialias;
-        if (!fresh && drive == this.drive && sourceResistance == source) {
+        var slewed = slewRate != this.slewRate;
+        if (!fresh && !slewed && drive == this.drive && sourceResistance == source) {
             return;
         }
 
@@ -226,6 +247,16 @@ public sealed class OpAmpStage {
             circuit.Propagate();
         }
 
+        if (fresh || slewed) {
+            this.slewRate = slewRate;
+            limit = Solve != OpAmpSolve.Device && slewRate > 0 ? slewRate / rate : 0;
+            if (Solve == OpAmpSolve.Device) {
+                var device = Device.Device;
+                device.SetSlewRate(slewRate > 0 ? slewRate : model.SlewRate, rate);
+                Device.Device = device;
+            }
+        }
+
         if (fresh) {
             Reset();
         }
@@ -233,22 +264,41 @@ public sealed class OpAmpStage {
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Tick(double x) {
-        switch (Solve) {
-            case OpAmpSolve.FeedbackDiodes:
-                diodes.Tree.Ports.A.Volts = x;
-                diodes.Tick();
-                return diodes.Tree.Ports.B.Voltage;
-            case OpAmpSolve.Rails:
-                rails.Tree.Ports.A.Volts = x;
-                rails.Tick();
-                return rails.Tree.Ports.B.Voltage;
-            default:
-                Device.Source.Volts = x;
-                return Device.Tick();
+        var y = Solve switch {
+            OpAmpSolve.FeedbackDiodes => TickDiodes(x),
+            OpAmpSolve.Rails => TickRails(x),
+            _ => TickDevice(x)
+        };
+        if (limit > 0) {
+            y = held + Math.Clamp(y - held, -limit, limit);
+            held = y;
         }
+
+        return y;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    double TickDiodes(double x) {
+        diodes.Tree.Ports.A.Volts = x;
+        diodes.Tick();
+        return diodes.Tree.Ports.B.Voltage;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    double TickRails(double x) {
+        rails.Tree.Ports.A.Volts = x;
+        rails.Tick();
+        return rails.Tree.Ports.B.Voltage;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    double TickDevice(double x) {
+        Device.Source.Volts = x;
+        return Device.Tick();
     }
 
     public void Reset() {
+        held = 0;
         Device.Reset();
         diodes.Reset();
         rails.Reset();
@@ -632,6 +682,8 @@ public sealed class ToneStage {
     CircuitRoot<ResistiveVoltageSource, NoDevice>? root;
     double rate;
     double position = double.NaN;
+    double bass = 0.5;
+    double middle = 0.5;
     double sign = 1;
 
     public ToneStage() {
@@ -742,22 +794,29 @@ public sealed class ToneStage {
     ///     Sets the network and its Tone pot to <paramref name="tone" /> (0..1). Recomputes the matrix only when the
     ///     setting changed; a new network starts discharged.
     /// </summary>
-    public void Configure(ToneNetwork network, double tone, double rate) {
+    /// <param name="network">The pedal's tone network.</param>
+    /// <param name="tone">The Tone pot, 0..1.</param>
+    /// <param name="rate">The base rate.</param>
+    /// <param name="bass">A stack's bass pot (<see cref="ToneKind.Stack" />), 0..1; noon is the pedal as built.</param>
+    /// <param name="middle">A stack's middle pot.</param>
+    public void Configure(ToneNetwork network, double tone, double rate, double bass = 0.5, double middle = 0.5) {
         var fresh = !ReferenceEquals(network, this.network) || rate != this.rate;
-        if (!fresh && tone == position) {
+        if (!fresh && tone == position && bass == this.bass && middle == this.middle) {
             return;
         }
 
         this.network = network;
         this.rate = rate;
         position = tone;
+        this.bass = bass;
+        this.middle = middle;
         sign = network.Kind == ToneKind.Treble ? -1 : 1; // the Baxandall amp inverts; keep the pedal's polarity
         root = network.Kind == ToneKind.Range ? null : roots[(int)network.Kind];
         if (root is null) {
             return;
         }
 
-        Set(root, network, tone, rate);
+        Set(root, network, tone, bass, middle, rate);
         if (fresh) {
             root.Reset();
         }
@@ -786,7 +845,14 @@ public sealed class ToneStage {
     ///     Sets the components of <paramref name="network" /> with its pot at <paramref name="tone" />, in netlist resistor
     ///     order, and recomputes the matrix.
     /// </summary>
-    static void Set(CircuitRoot<ResistiveVoltageSource, NoDevice> root, ToneNetwork network, double tone, double rate) {
+    static void Set(
+        CircuitRoot<ResistiveVoltageSource, NoDevice> root,
+        ToneNetwork network,
+        double tone,
+        double bass,
+        double middle,
+        double rate
+    ) {
         var n = network;
         var amount = n.AudioTaper ? DriveCircuits.AudioTaper(tone) : tone;
         root.Source.Value = n.Source;
@@ -832,8 +898,8 @@ public sealed class ToneStage {
                 root.SetResistance(0, n.Resistor1);
                 root.SetResistance(1, n.Pot * (1 - amount));
                 root.SetResistance(2, n.Pot * amount);
-                root.SetResistance(3, n.Resistor2 * DriveCircuits.AudioTaper(0.5));
-                root.SetResistance(4, n.Resistor3 * 0.5);
+                root.SetResistance(3, n.Resistor2 * DriveCircuits.AudioTaper(bass));
+                root.SetResistance(4, n.Resistor3 * middle);
                 root.SetResistance(5, n.Load);
                 break;
         }
