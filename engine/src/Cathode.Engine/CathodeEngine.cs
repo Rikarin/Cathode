@@ -454,7 +454,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                 graph.SetBypass(command.Slot, command.Value != 0f);
                 break;
             case EngineCommandKind.SetModifier when graph is not null && command.Generation == graph.Generation:
-                graph.SetModifierEnabled(command.Slot, command.Value != 0f);
+                graph.SetModifierEnabled(command.Slot, float.IsNaN(command.Value), command.Value);
                 break;
             case EngineCommandKind.TapTempo:
                 Tap(command.Time);

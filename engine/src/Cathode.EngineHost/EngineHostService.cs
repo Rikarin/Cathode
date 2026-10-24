@@ -460,7 +460,8 @@ public sealed class EngineHostService : IDisposable {
             return IpcMessage.Fail(request.Id, $"No modifier on '{request.Block}.{request.Param}'.");
         }
 
-        return Engine.Post(EngineCommand.SetModifier(latest.Generation, index, request.Enabled == true))
+        var baseValue = request.Params is [{ } value, ..] ? value.Value : 0f;
+        return Engine.Post(EngineCommand.SetModifier(latest.Generation, index, request.Enabled == true, baseValue))
             ? IpcMessage.Ok(request.Id)
             : IpcMessage.Fail(request.Id, "The engine command queue is full.");
     }

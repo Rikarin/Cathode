@@ -94,10 +94,13 @@ public class PresetFeatureEngineTests {
         var (off, _) = OfflineRenderer.Render(engine, Signals.Step(4_800), Signals.Step(4_800), 64);
         engine.Post(EngineCommand.SetModifier(1, 0, true));
         var (on, _) = OfflineRenderer.Render(engine, Signals.Step(4_800), Signals.Step(4_800), 64);
+        engine.Post(EngineCommand.SetModifier(1, 0, false, -12.0412f)); // off again, back to the channel's value
+        var (back, _) = OfflineRenderer.Render(engine, Signals.Step(4_800), Signals.Step(4_800), 64);
 
         Assert.Equal(1f, off[^1], 1e-4f);
         Assert.Equal(0.5f, on[^1], 1e-3f);
-        Assert.True(graph.Modifiers[0].Enabled);
+        Assert.Equal(0.25f, back[^1], 1e-3f);
+        Assert.False(graph.Modifiers[0].Enabled);
     }
 
     [Fact]

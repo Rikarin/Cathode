@@ -380,12 +380,19 @@ public sealed class CompiledGraph : IDisposable {
 
     /// <summary>
     ///     Audio thread only (<see cref="EngineCommandKind.SetModifier" />): a re-enabled modifier starts again from its
-    ///     source's value rather than from where it stopped.
+    ///     source's value rather than from where it stopped; a disabled one leaves its parameter at
+    ///     <paramref name="baseValue" /> (an engage modifier leaves the bypass to the bypass commands).
     /// </summary>
-    internal void SetModifierEnabled(int index, bool enabled) {
-        if ((uint)index < (uint)modifiers.Length && modifiers[index].Enabled != enabled) {
-            modifiers[index].Enabled = enabled;
-            modifiers[index].Value = float.NaN;
+    internal void SetModifierEnabled(int index, bool enabled, float baseValue) {
+        if ((uint)index >= (uint)modifiers.Length) {
+            return;
+        }
+
+        ref var modifier = ref modifiers[index];
+        modifier.Enabled = enabled;
+        modifier.Value = float.NaN;
+        if (!enabled && modifier.ParamIndex != ModifierBinding.Engage) {
+            blocks[modifier.Slot].Params.SetTarget(modifier.ParamIndex, baseValue);
         }
     }
 

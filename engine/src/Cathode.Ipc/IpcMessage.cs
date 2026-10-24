@@ -17,7 +17,10 @@ public static class IpcTypes {
     public const string SetMidi = "setMidi";
     public const string MidiOut = "midiOut";
 
-    /// <summary>Turns the modifier on <c>Block</c>.<c>Param</c> on or off (<c>Enabled</c>): channel-scoped modifiers.</summary>
+    /// <summary>
+    ///     Turns the modifier on <c>Block</c>.<c>Param</c> on or off (<c>Enabled</c>): channel-scoped modifiers. Turning
+    ///     it off restores the parameter to the value in <c>Params[0]</c>.
+    /// </summary>
     public const string SetModifier = "setModifier";
 
     public const string Ok = "ok";
