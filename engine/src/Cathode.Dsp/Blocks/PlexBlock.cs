@@ -230,7 +230,52 @@ public sealed class PlexBlock() : DspBlock(Info) {
             ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
             MixLaws.KillDryParam
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "delays", "masterTime", "decay", "diffusion", "inputDiffusion", "preDelay", "lowCut", "highCut",
+                    "hold", "masterPan", "masterDetune", "spread"
+                ]
+            ),
+            new(
+                "Times",
+                [
+                    "time1", "time2", "time3", "time4", "time5", "time6", "time7", "time8", "tempo1", "tempo2",
+                    "tempo3", "tempo4", "tempo5", "tempo6", "tempo7", "tempo8"
+                ]
+            ),
+            new(
+                "Levels",
+                [
+                    "level1", "level2", "level3", "level4", "level5", "level6", "level7", "level8", "pan1", "pan2",
+                    "pan3", "pan4", "pan5", "pan6", "pan7", "pan8"
+                ]
+            ),
+            new(
+                "Pitch",
+                [
+                    "detune1", "detune2", "detune3", "detune4", "detune5", "detune6", "detune7", "detune8", "shift1",
+                    "shift2", "shift3", "shift4", "shift5", "shift6", "shift7", "shift8", "granule", "direction",
+                    "crossfade", "verbSize", "shimmerIntensity"
+                ]
+            ),
+            new(
+                "Modulation",
+                [
+                    "filterType", "filterFrequency", "filterQ", "filterGain", "filterLfoRate", "filterLfoTempo",
+                    "modFrequency", "lfoRate", "lfoTempo", "lfoDepth"
+                ]
+            ),
+            new("Ducking", ["duckThreshold", "duckAttenuation", "duckRelease"]),
+            new(
+                "Advanced",
+                [
+                    "envelopeThreshold", "envelopeAttack", "envelopeRelease", "inputGain", "inputSelect", "killDry"
+                ]
+            )
+        ]
     );
 
     static IEnumerable<ParamDescriptor> Line(Func<int, ParamDescriptor> parameter) =>

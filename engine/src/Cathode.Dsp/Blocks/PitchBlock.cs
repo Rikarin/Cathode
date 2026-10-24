@@ -533,7 +533,63 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
                 ),
             MixLaws.KillDryParam
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "key", "scale", "keySource", "temperament", "masterPitch", "masterLevel", "masterPan",
+                    "masterDelay", "masterFeedback", "feedbackMode", "glide"
+                ]
+            ),
+            new(
+                "Voices",
+                [
+                    "voice1Shift", "voice1Harmony", "voice1Level", "voice1Pan", "voice1Delay", "delayTempo1", "detune1",
+                    "feedback1", "voice2Shift", "voice2Harmony", "voice2Level", "voice2Pan", "voice2Delay",
+                    "delayTempo2", "detune2", "feedback2", "voice3Shift", "voice3Harmony", "voice3Level", "voice3Pan",
+                    "voice3Delay", "delayTempo3", "detune3", "feedback3", "voice4Shift", "voice4Harmony", "voice4Level",
+                    "voice4Pan", "voice4Delay", "delayTempo4", "detune4", "feedback4"
+                ]
+            ),
+            new(
+                "Whammy",
+                [
+                    "whammyStart", "whammyEnd", "pedal", "whammyTracking", "octave1Level", "octave2Level", "capo",
+                    "capoDetune"
+                ]
+            ),
+            new(
+                "Crystals",
+                [
+                    "crystalsShift", "crystalsTime", "crystalsFeedback", "crystalsFeedbackType", "crystalsSplice",
+                    "crystalsSpliceTempo", "crystalsDirection", "crystalsDiffusion"
+                ]
+            ),
+            new(
+                "Arpeggiator",
+                [
+                    "arpTempo", "arpSteps", "arpRepeats", "arpAmpShape", "arpAmpAlpha", "arpPanShape", "arpPanAlpha",
+                    "arpStep1", "arpStep2", "arpStep3", "arpStep4", "arpStep5", "arpStep6", "arpStep7", "arpStep8",
+                    "arpStep9", "arpStep10", "arpStep11", "arpStep12", "arpStep13", "arpStep14", "arpStep15",
+                    "arpStep16"
+                ]
+            ),
+            new(
+                "Scale",
+                [
+                    "customNotes", "customTonic", "customNote1", "customNote2", "customNote3", "customNote4",
+                    "customNote5", "customNote6", "customNote7", "customNote8", "learn"
+                ]
+            ),
+            new(
+                "Advanced",
+                [
+                    "inputMode", "tracking", "splice", "detectorSource", "detuneLfoRate", "detuneLfoTempo",
+                    "detuneLfoDepth", "inputGain", "lowCut", "highCut", "inputSelect", "globalMix", "killDry"
+                ]
+            )
+        ]
     );
 
     public InputPort? Inputs { get; set; }

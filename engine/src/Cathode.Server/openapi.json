@@ -3982,9 +3982,18 @@
             "type": "number",
             "format": "double",
             "default": 0
+          },
+          "pages": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         },
-        "description": "A block type the editor can place. \u0060CpuCost\u0060 is its measured cost in percent of one core at 48 kHz\n(64-frame blocks, its most expensive type), for the editor\u0027s CPU estimate; 0 for built-in cells."
+        "description": "A block type the editor can place. \u0060CpuCost\u0060 is its measured cost in percent of one core at 48 kHz\n(64-frame blocks, its most expensive type), for the editor\u0027s CPU estimate; 0 for built-in cells. \u0060Pages\u0060\nnames the editor pages its parameters sit on (each string? ParameterInfo.Page), in order; empty for one."
       },
       "BypassModeRequest": {
         "required": [
@@ -5051,6 +5060,12 @@
             "items": {
               "type": "string"
             }
+          },
+          "page": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "A block parameter. \u0060TypeLabels\u0060, where present, names the parameter per value of the block\u0027s \u0060type\u0060\nparameter (an amp model\u0027s own name for a generic control), empty where that type lacks the control: hide it there."

@@ -99,7 +99,13 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
             ParamDescriptor.Switch("midMute", "Mid Mute"),
             ParamDescriptor.Switch("highMute", "High Mute")
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new("Basic", ["lowFreq", "highFreq", "slope", "knee", "detector", "autoTime"]),
+            new("Low", ["lowThreshold", "lowRatio", "lowAttack", "lowRelease", "lowLevel", "lowMute"]),
+            new("Mid", ["midThreshold", "midRatio", "midAttack", "midRelease", "midLevel", "midMute"]),
+            new("High", ["highThreshold", "highRatio", "highAttack", "highRelease", "highLevel", "highMute"])
+        ]
     );
 
     public static int Threshold(int band) => 2 + band * ParamsPerBand;

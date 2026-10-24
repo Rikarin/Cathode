@@ -25,7 +25,7 @@ test('? lists the shortcuts, and the block shortcuts bypass, replace, cut and pa
   await picker.getByRole('combobox', { name: 'Search blocks' }).fill('Delay');
   await window.keyboard.press('Enter');
   const delay = editor.block('Delay', 'delay1');
-  await expect(delay).toHaveAccessibleName(/row 1, column 3$/);
+  await expect(delay).toHaveAccessibleName(/row 3, column 3$/);
   await expect(drive).toHaveCount(0);
 
   // ⌘X cuts it (a shunt stays), ⌘V puts it back.

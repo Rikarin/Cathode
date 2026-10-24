@@ -649,7 +649,54 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
             "Amp",
             parameters,
             maxInstances: 2,
-            typeResets: [..parameters.Select(static p => p.Id).Where(static id => !KeptOnTypeChange.Contains(id))]
+            typeResets: [..parameters.Select(static p => p.Id).Where(static id => !KeptOnTypeChange.Contains(id))],
+            pages: [
+                new(
+                    "Basic",
+                    [
+                        "gain", "bass", "middle", "treble", "presence", "depth", "cut", "master", "bright", "switch1",
+                        "switch2", "switch3", "control1", "control2", "eq1", "eq2", "eq3", "eq4", "eq5", "hitreble",
+                        "overdrive", "presshift", "fatsw", "cutsw"
+                    ]
+                ),
+                new(
+                    "Preamp",
+                    [
+                        "intrim", "inputsel", "lowcut", "pretube", "presag", "stacktype", "stackloc", "definition",
+                        "saturation", "satdrive", "boost", "boostdrive", "boosttone", "boostlevel"
+                    ]
+                ),
+                new(
+                    "Power Amp",
+                    [
+                        "sag", "bias", "feedback", "mvtrim", "poweramp", "powertube", "presfreq", "depthfreq", "variac",
+                        "supply", "rectifier", "mvloc", "suppressor", "tremrate", "tremdepth"
+                    ]
+                ),
+                new(
+                    "Speaker",
+                    [
+                        "speaker", "spkres", "spkq", "spkpeak", "spkhf", "spkimp", "spkdrive", "thump", "cabres",
+                        "spkcomp", "spkcomptc", "outmode"
+                    ]
+                ),
+                new(
+                    "EQ",
+                    [
+                        "infilter", "inffreq", "infq", "infgain", "outeq", "outeqloc", "outeq1", "outeq2", "outeq3",
+                        "outeq4", "outeq5", "outeq6", "outeq7", "outeq8", "outeq9", "outeq10"
+                    ]
+                ),
+                new("Dynamics", ["indyn", "comptype", "compamount", "compthresh", "compclarity"]),
+                new(
+                    "Advanced",
+                    [
+                        "brightcap", "prebias", "prehard", "stackfreq", "t1plate", "t2plate", "cfcomp", "cfharm",
+                        "prebiasx", "pibiasx", "pthard", "ptbiasx", "ptbiastime", "ptrecovery", "masterbiasx", "mvcap",
+                        "screenfreq", "screenq", "xfmrmatch", "xfmrlf", "xfmrhf", "xfmrdrive", "btc", "katc"
+                    ]
+                )
+            ]
         );
 
     /// <summary>The descriptor's parameters with each model's panel names (<see cref="ParamDescriptor.TypeLabels" />).</summary>

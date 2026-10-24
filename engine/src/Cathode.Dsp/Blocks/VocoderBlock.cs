@@ -157,7 +157,35 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock, IHardwareIn
                 .Select(static b => ParamDescriptor.Float($"bandPan{b}", $"Pan {b}", -100f, 100f, 0f, "%"))
         ],
         maxInstances: 1,
-        channels: 1
+        channels: 1,
+        pages: [
+            new("Basic", ["carrier", "note", "chord", "attack", "release", "bands", "minFreq", "maxFreq", "resonance"]),
+            new(
+                "Advanced",
+                [
+                    "emphasis", "freqShift", "freeze", "hpMix", "masterPan", "inputGain", "analysisChannel",
+                    "analysisSource"
+                ]
+            ),
+            new(
+                "Band Levels",
+                [
+                    "bandLevel1", "bandLevel2", "bandLevel3", "bandLevel4", "bandLevel5", "bandLevel6", "bandLevel7",
+                    "bandLevel8", "bandLevel9", "bandLevel10", "bandLevel11", "bandLevel12", "bandLevel13",
+                    "bandLevel14", "bandLevel15", "bandLevel16", "bandLevel17", "bandLevel18", "bandLevel19",
+                    "bandLevel20", "bandLevel21", "bandLevel22", "bandLevel23", "bandLevel24"
+                ]
+            ),
+            new(
+                "Band Pans",
+                [
+                    "bandPan1", "bandPan2", "bandPan3", "bandPan4", "bandPan5", "bandPan6", "bandPan7", "bandPan8",
+                    "bandPan9", "bandPan10", "bandPan11", "bandPan12", "bandPan13", "bandPan14", "bandPan15",
+                    "bandPan16", "bandPan17", "bandPan18", "bandPan19", "bandPan20", "bandPan21", "bandPan22",
+                    "bandPan23", "bandPan24"
+                ]
+            )
+        ]
     );
 
     public InputPort? Inputs { get; set; }

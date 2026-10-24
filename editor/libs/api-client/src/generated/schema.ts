@@ -1749,7 +1749,8 @@ export interface components {
     };
     /**
      * @description A block type the editor can place. `CpuCost` is its measured cost in percent of one core at 48 kHz
-     *     (64-frame blocks, its most expensive type), for the editor's CPU estimate; 0 for built-in cells.
+     *     (64-frame blocks, its most expensive type), for the editor's CPU estimate; 0 for built-in cells. `Pages`
+     *     names the editor pages its parameters sit on (each string? ParameterInfo.Page), in order; empty for one.
      */
     BlockTypeInfo: {
       typeId: string;
@@ -1766,6 +1767,7 @@ export interface components {
        * @default 0
        */
       cpuCost: number;
+      pages?: null | string[];
     };
     BypassModeRequest: {
       mode: string;
@@ -2240,6 +2242,7 @@ export interface components {
       taper: string;
       options?: null | string[];
       typeLabels?: null | string[];
+      page?: null | string;
     };
     /**
      * @description One control on a performance page: a parameter of a block, by the block's id (`amp1`) so a global page

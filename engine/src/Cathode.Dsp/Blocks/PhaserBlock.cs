@@ -148,7 +148,18 @@ public sealed class PhaserBlock() : DspBlock(Info), IEngageAware {
             EffectsMix.Param,
             Stereo.SpreadParam()
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new("Basic", ["rate", "tempo", "depth", "center", "stages", "feedback", "spread", "tone"]),
+            new("Modulation", ["lfoType", "lfoDuty", "lfoHicut", "lfoQuantize", "lfoReset", "direction"]),
+            new(
+                "Advanced",
+                [
+                    "feedbackPoint", "minFreq", "maxFreq", "filterQ", "vcrType", "vcrBias", "exponent", "photoAttack",
+                    "photoRelease", "stereoSpread", "globalMix"
+                ]
+            )
+        ]
     );
 
     /// <summary>

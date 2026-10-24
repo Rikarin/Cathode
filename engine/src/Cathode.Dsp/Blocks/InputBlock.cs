@@ -111,7 +111,11 @@ public sealed class InputBlock() : DspBlock(Info), IHardwareInputBlock {
             ParamDescriptor.Float("cable", "Cable Capacitance", 0f, 2_000f, 500f, "pF"),
             ParamDescriptor.Switch("buffer", "Pickup Buffer")
         ],
-        maxInstances: 4
+        maxInstances: HardwareInputs.Names.Length,
+        pages: [
+            new("Gate", ["threshold", "ratio", "attack", "release"]),
+            new("Input", ["source", "mains", "impedance", "pickup", "pickupL", "pickupR", "pickupC", "cable", "buffer"])
+        ]
     );
 
     /// <summary>Whether the pickup load filter is running (it is skipped while it would be flat).</summary>

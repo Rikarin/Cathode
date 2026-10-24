@@ -89,7 +89,11 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock, IHardwareInpu
             },
             SidechainSource.Param()
         ],
-        maxInstances: 4
+        maxInstances: 4,
+        pages: [
+            new("Basic", ["threshold", "ratio", "attack", "hold", "release", "attenuation", "knee", "detector"]),
+            new("Sidechain", ["scSource", "scLowCut", "scHighCut"])
+        ]
     );
 
     public InputPort? Inputs { get; set; }

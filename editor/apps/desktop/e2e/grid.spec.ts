@@ -35,7 +35,7 @@ test('the picker groups blocks by category, filters them and adds one from the k
   await search.press('ArrowLeft');
   await expect(search).toHaveAttribute('aria-activedescendant', 'block-option-delay');
   await search.press('Enter');
-  await expect(editor.block('Delay', 'delay1')).toHaveAccessibleName(/row 1, column 3$/);
+  await expect(editor.block('Delay', 'delay1')).toHaveAccessibleName(/row 3, column 3$/);
 });
 
 test('blocks are copied, pasted, moved and removed, and undo brings them back', async ({ window, editor }) => {
@@ -49,7 +49,7 @@ test('blocks are copied, pasted, moved and removed, and undo brings them back', 
   await editor.grid.press('ArrowDown');
   await editor.grid.press('ControlOrMeta+v');
   const copy = editor.block('Drive', 'drive2');
-  await expect(copy).toHaveAccessibleName(/row 2, column 3$/);
+  await expect(copy).toHaveAccessibleName(/row 4, column 3$/);
   await expect(editor.knob('Drive')).toHaveAttribute('aria-valuenow', '8');
 
   // Drag the copy two columns to the right.
@@ -144,19 +144,19 @@ test('removing a block from the signal path leaves a shunt, so the path stays co
 }) => {
   // The drive takes over a shunt on the main row, and its cables.
   await editor.addBlock(2, 2, 'Drive');
-  await expect(window.getByTestId('cable-shunt-r0c1>drive1')).toHaveCount(1);
-  await expect(window.getByTestId('cable-drive1>shunt-r0c3')).toHaveCount(1);
+  await expect(window.getByTestId('cable-shunt-r2c1>drive1')).toHaveCount(1);
+  await expect(window.getByTestId('cable-drive1>shunt-r2c3')).toHaveCount(1);
 
   await editor.block('Drive', 'drive1').click();
   await editor.grid.press('Delete');
   await expect(editor.cell(2, 2)).toHaveAccessibleName(/^Shunt/);
-  await expect(window.getByTestId('cable-shunt-r0c1>shunt-r0c2')).toHaveCount(1);
-  await expect(window.getByTestId('cable-shunt-r0c2>shunt-r0c3')).toHaveCount(1);
+  await expect(window.getByTestId('cable-shunt-r2c1>shunt-r2c2')).toHaveCount(1);
+  await expect(window.getByTestId('cable-shunt-r2c2>shunt-r2c3')).toHaveCount(1);
   // Only the output's shunt has no cable out, as with an untouched preset: nothing is left dangling.
   await expect(window.locator('[data-testid^="outlet-shunt"]')).toHaveCount(0);
 
   await window.getByRole('button', { name: 'Undo' }).click();
-  await expect(editor.block('Drive', 'drive1')).toHaveAccessibleName(/row 1, column 3$/);
+  await expect(editor.block('Drive', 'drive1')).toHaveAccessibleName(/row 3, column 3$/);
 });
 
 test('a block dragged onto the cable through a shunt joins the signal path, and dragged off leaves it whole', async ({
@@ -168,15 +168,15 @@ test('a block dragged onto the cable through a shunt joins the signal path, and 
 
   // Onto the main row: it takes the shunt's place and its cables.
   await drive.dragTo(editor.cell(2, 3));
-  await expect(drive).toHaveAccessibleName(/row 1, column 4$/);
-  await expect(window.getByTestId('cable-shunt-r0c2>drive1')).toHaveCount(1);
-  await expect(window.getByTestId('cable-drive1>shunt-r0c4')).toHaveCount(1);
+  await expect(drive).toHaveAccessibleName(/row 3, column 4$/);
+  await expect(window.getByTestId('cable-shunt-r2c2>drive1')).toHaveCount(1);
+  await expect(window.getByTestId('cable-drive1>shunt-r2c4')).toHaveCount(1);
 
   // Back off it: a shunt fills the gap, so input still reaches output.
-  await drive.dragTo(editor.cell(2, 3));
-  await expect(drive).toHaveAccessibleName(/row 3, column 4$/);
+  await drive.dragTo(editor.cell(1, 3));
+  await expect(drive).toHaveAccessibleName(/row 2, column 4$/);
   await expect(editor.cell(2, 3)).toHaveAccessibleName(/^Shunt/);
-  await expect(window.getByTestId('cable-shunt-r0c2>shunt-r0c3')).toHaveCount(1);
-  await expect(window.getByTestId('cable-shunt-r0c3>shunt-r0c4')).toHaveCount(1);
+  await expect(window.getByTestId('cable-shunt-r2c2>shunt-r2c3')).toHaveCount(1);
+  await expect(window.getByTestId('cable-shunt-r2c3>shunt-r2c4')).toHaveCount(1);
   await expect(window.locator('[data-testid^="cable-drive1"], [data-testid$=">drive1"]')).toHaveCount(0);
 });

@@ -340,7 +340,53 @@ public sealed class DelayBlock() : DspBlock(Info) {
             EffectsMix.Param,
             MixLaws.KillDryParam
         ],
-        maxInstances: 4
+        maxInstances: 4,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "time", "tempo", "feedback", "lowcut", "highcut", "drive", "spread", "ratio", "echoPan", "hold"
+                ]
+            ),
+            new(
+                "Stereo",
+                [
+                    "timeRight", "tempoRight", "feedbackRight", "levelLeft", "levelRight", "panLeft", "panRight",
+                    "crossLeftToRight", "crossRightToLeft", "rightPostDelay", "phaseReverse", "masterFeedback"
+                ]
+            ),
+            new(
+                "Modulation",
+                [
+                    "depthRange", "lfo1Type", "lfo1Rate", "lfo1Tempo", "lfo1Depth", "lfo1Phase", "lfo1Target",
+                    "lfo2Type", "lfo2Rate", "lfo2Tempo", "lfo2Depth", "lfo2Phase", "lfo2Target", "lfo3Type", "lfo3Rate",
+                    "lfo3Tempo", "lfo3Depth", "lfo3Target"
+                ]
+            ),
+            new("Diffusion", ["diffusionMix", "diffusionTime", "diffusionRate", "diffusionDepth"]),
+            new(
+                "EQ",
+                [
+                    "lowCutSlope", "lowCutQ", "highCutSlope", "highCutQ", "eq1Frequency", "eq1Q", "eq1Gain",
+                    "eq2Frequency", "eq2Q", "eq2Gain"
+                ]
+            ),
+            new("Ducking", ["duckThreshold", "duckAttenuation", "duckRelease"]),
+            new(
+                "Sweep",
+                [
+                    "sweepStart", "sweepStop", "sweepResonance", "sweepShape", "sweepRate", "sweepTempo", "sweepPhase"
+                ]
+            ),
+            new(
+                "Advanced",
+                [
+                    "motorSpeed", "head2Ratio", "head1Level", "head2Level", "head1Pan", "head2Pan", "head2Feedback",
+                    "reverseRun", "reverseRestart", "reverseCrossfade", "bitReduction", "inputGain", "globalMix",
+                    "killDry"
+                ]
+            )
+        ]
     );
 
 

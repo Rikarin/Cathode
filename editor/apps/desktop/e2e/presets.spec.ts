@@ -21,7 +21,7 @@ test('a saved preset reloads with its blocks, channels and values', async ({ win
 
   // Load it back from the library.
   await window.getByRole('link', { name: 'Library' }).click();
-  await window.getByRole('grid').getByText('Round Trip').click();
+  await window.getByTestId('preset-list').getByText('Round Trip').click();
   await window.getByTestId('load-preset').click();
   await window.getByRole('link', { name: 'Editor' }).click();
   // Just loaded, so nothing is unsaved: no marker after the name.

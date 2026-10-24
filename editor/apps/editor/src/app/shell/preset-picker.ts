@@ -152,7 +152,9 @@ export class PresetPicker {
     }
 
     const current = all.findIndex(p => p.id === this.live.preset()?.id);
-    const next = all[(Math.max(current, 0) + direction + all.length) % all.length];
+    // From a preset not in the library, next is the first and previous the last.
+    const next =
+      current < 0 ? all[direction === 1 ? 0 : all.length - 1] : all[(current + direction + all.length) % all.length];
     await this.switcher.load(next.id, next.name);
   }
 

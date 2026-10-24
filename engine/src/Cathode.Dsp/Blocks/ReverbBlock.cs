@@ -341,7 +341,36 @@ public sealed class ReverbBlock : DspBlock {
             EffectsMix.Param,
             MixLaws.KillDryParam
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "decay", "size", "predelay", "preDelayTempo", "lowcut", "damping", "spread", "earlyLevel",
+                    "lateLevel", "quality"
+                ]
+            ),
+            new(
+                "Advanced",
+                [
+                    "lowCrossover", "lowTime", "highCrossover", "highTime", "earlyDiffusion", "earlyTime", "earlyDecay",
+                    "lateInputMix", "echoDensity", "wallDiffusion", "inputDiffusion", "inputDiffusionTime",
+                    "micSpacing", "preDelayFeedback", "preDelayMix", "hold", "inputGain", "inputSelect", "globalMix",
+                    "killDry"
+                ]
+            ),
+            new("EQ", ["lowMidFrequency", "lowMidQ", "lowMidGain", "highMidFrequency", "highMidQ", "highMidGain"]),
+            new("Modulation", ["modDepth", "modRate", "modPhase"]),
+            new("Spring", ["springs", "springTone", "springDrive", "boing"]),
+            new(
+                "Pitch",
+                [
+                    "pitchMix", "shift1", "shift2", "voiceBalance", "splice", "pitchFeedback", "pitchDirection",
+                    "pitchPosition"
+                ]
+            ),
+            new("Ducking", ["duckThreshold", "duckAttenuation", "duckRelease"])
+        ]
     );
 
     public ReverbBlock()

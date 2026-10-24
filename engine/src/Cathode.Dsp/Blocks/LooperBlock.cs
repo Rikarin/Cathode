@@ -76,7 +76,17 @@ public sealed class LooperBlock() : DspBlock(Info), ILooperBlock {
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 1,
-        channels: 2
+        channels: 2,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "playbackLevel", "dryLevel", "overdubLevel", "speed", "threshold", "thresholdLevel", "once",
+                    "lowCut", "highCut"
+                ]
+            ),
+            new("Advanced", ["maxTime", "trimStart", "trimEnd", "crossfade", "quantize", "secondPress"])
+        ]
     );
 
     public Looper? Looper => Volatile.Read(ref looper);

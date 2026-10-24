@@ -90,7 +90,7 @@ test('the Library holds the cab IRs and the IR tools', async ({ window }) => {
 
   await list.getByText('Room mic', { exact: true }).click();
   await window.getByTestId('delete-assets').click();
-  await window.getByRole('button', { name: 'Delete' }).last().click();
+  await window.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
   await expect(window.getByText('No cab IRs yet')).toBeVisible();
   await window.getByRole('link', { name: 'Editor' }).click();
 });
@@ -133,7 +133,7 @@ test('a knob gets a modifier, taps set the tempo, and the looper records', async
 
 test('the global page holds tempo, EQ, MIDI and footswitches', async ({ window }) => {
   await window.getByRole('link', { name: 'Global' }).click();
-  await expect(window.getByRole('heading', { name: 'Global output EQ' })).toBeVisible();
+  await expect(window.getByRole('heading', { name: 'Outputs' })).toBeVisible();
   await window.getByRole('button', { name: 'New layout' }).click();
   await window.getByRole('button', { name: 'Add switch' }).click();
   await expect(window.getByLabel('Switch 1 tap action')).toHaveValue('scene 0');

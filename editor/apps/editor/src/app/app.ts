@@ -30,6 +30,7 @@ import { EngineMeters } from './shell/engine-meters';
 import { LevelingDialog } from './shell/leveling-dialog';
 import { PresetMenu } from './shell/preset-menu';
 import { PresetPicker } from './shell/preset-picker';
+import { PresetSceneDisplay } from './shell/preset-scene-display';
 import { SaveBlockDialog } from './shell/save-block-dialog';
 import { ScopeDialog } from './shell/scope-dialog';
 import { SettingsDialog } from './shell/settings-dialog';
@@ -48,6 +49,7 @@ import { UiStore } from './state/ui.store';
     BatchSetDialog,
     EngineMeters,
     PresetMenu,
+    PresetSceneDisplay,
     PresetPicker,
     LevelingDialog,
     RouterLink,
@@ -229,19 +231,8 @@ import { UiStore } from './state/ui.store';
               (valueChange)="$event !== null && live.selectScene($event)"
             />
           </div>
-          <div class="ms-auto flex min-w-0 items-center gap-1" aria-label="Preset">
-            <button
-              type="button"
-              class="hover:bg-active-overlay max-w-56 truncate rounded px-1 text-sm font-medium"
-              data-testid="preset-name"
-              [xuiTooltip]="'Presets (P)'"
-              (click)="ui.presetPicker.set(true)"
-            >
-              {{ live.preset()?.name || '(untitled)' }}
-              @if (live.state()?.dirty) {
-                <span class="text-warning" aria-label="unsaved changes"> •</span>
-              }
-            </button>
+          <cth-preset-scene-display class="max-w-xl min-w-0 flex-1" (stepPreset)="presetPicker()?.step($event)" />
+          <div class="ms-auto flex shrink-0 items-center gap-1" aria-label="Preset actions">
             <button
               xuiButton
               variant="ghost"
@@ -343,7 +334,7 @@ export class App {
   protected readonly compare = inject(CompareStore);
   protected readonly ui = inject(UiStore);
   protected readonly shortcuts = inject(ShortcutService);
-  private readonly presetPicker = viewChild(PresetPicker);
+  protected readonly presetPicker = viewChild(PresetPicker);
   protected readonly switcher = inject(PresetSwitcher);
 
   /**

@@ -180,6 +180,9 @@ public sealed partial class LiveRig(
                     throw RigException.Conflict($"Block id '{id}' is taken.");
                 }
 
+                // A new Input takes the first hardware input no other Input reads.
+                var source = request.Type == BuiltInTypes.Input ? FreeSource(preset) : 0;
+
                 await StructuralAsync(p => {
                         // Dropping a block onto a shunt replaces it and keeps its cables, as on the Axe-Fx.
                         var occupant = p.Blocks.FirstOrDefault(b => b.Row == request.Row && b.Column == request.Column);
@@ -194,9 +197,17 @@ public sealed partial class LiveRig(
                             Repoint(p, occupant.Id, id);
                         }
 
-                        p.Blocks.Add(
-                            new() { Id = id, Type = request.Type, Row = request.Row, Column = request.Column }
-                        );
+                        var added = new PresetBlock {
+                            Id = id,
+                            Type = request.Type,
+                            Row = request.Row,
+                            Column = request.Column
+                        };
+                        if (source > 0) {
+                            SetSource(added, source, info.Channels);
+                        }
+
+                        p.Blocks.Add(added);
                     }
                 );
                 return Changed("blockAdded", id);
@@ -346,6 +357,13 @@ public sealed partial class LiveRig(
                     );
                 }
 
+                int? source = block.Type == BuiltInTypes.Input && values.TryGetValue(SourceParam, out var rawSource)
+                    ? (int)descriptor.Params[descriptor.IndexOf(SourceParam)].Sanitize(rawSource)
+                    : null;
+                if (source is { } wanted) {
+                    CheckSource(block, wanted);
+                }
+
                 PushUndo($"params:{id}:{target}:{string.Join(',', values.Keys.Order())}");
                 var stored = block.Channel(target);
                 var sent = new List<ParamValue>();
@@ -363,6 +381,10 @@ public sealed partial class LiveRig(
                         && stored.GetValueOrDefault(param, descriptorParam.Default) != value;
                     stored[param] = value;
                     sent.Add(new(id, param, value));
+                }
+
+                if (source is { } chosen) {
+                    SetSource(block, chosen, descriptor.Channels);
                 }
 
                 // A new model starts from its own defaults, not the old one's settings (values sent with it still win).

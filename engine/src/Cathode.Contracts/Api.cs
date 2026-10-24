@@ -106,12 +106,14 @@ public sealed record ParameterInfo(
     string Unit,
     string Taper,
     IReadOnlyList<string>? Options,
-    IReadOnlyList<string>? TypeLabels = null
+    IReadOnlyList<string>? TypeLabels = null,
+    string? Page = null
 );
 
 /// <summary>
 ///     A block type the editor can place. <c>CpuCost</c> is its measured cost in percent of one core at 48 kHz
-///     (64-frame blocks, its most expensive type), for the editor's CPU estimate; 0 for built-in cells.
+///     (64-frame blocks, its most expensive type), for the editor's CPU estimate; 0 for built-in cells. <c>Pages</c>
+///     names the editor pages its parameters sit on (each <see cref="ParameterInfo.Page" />), in order; empty for one.
 /// </summary>
 public sealed record BlockTypeInfo(
     string TypeId,
@@ -121,7 +123,8 @@ public sealed record BlockTypeInfo(
     int Channels,
     IReadOnlyList<string> AssetSlots,
     IReadOnlyList<ParameterInfo> Params,
-    double CpuCost = 0
+    double CpuCost = 0,
+    IReadOnlyList<string>? Pages = null
 );
 
 // Request bodies.

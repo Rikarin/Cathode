@@ -92,7 +92,11 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info), IOversampledBlock
             ParamDescriptor.Float("bias", "Bias", -100f, 100f, 0f, "%"),
             ParamDescriptor.Choice("mode", "Mode", ["Stereo", "Mono"])
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new("Basic", ["drive", "dynamics", "threshold", "attack", "release", "bias", "mode"]),
+            new("Filter", ["filterType", "filterFreq", "filterQ", "filterGain"])
+        ]
     );
 
     /// <summary>The oversamplers' filters (the global setting); set before <see cref="IDspBlock.Prepare" />.</summary>
