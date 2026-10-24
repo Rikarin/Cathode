@@ -9,9 +9,15 @@ namespace Cathode.Dsp.Blocks;
 ///     release time means the same at any depth (in the linear domain, reaching -60 dB would take 7 time constants).
 ///     Gain opens with the attack time, is
 ///     held for the hold time once the signal drops, then closes with the release time. It starts open, inside a hold
-///     window, so the first note is never touched while the detector catches up. Sidechain picks what the detector
-///     hears: the block's input, the grid input or another grid row (<see cref="ISidechainBlock" />), so a gate late in
-///     the chain can follow the clean guitar.
+///     window, so the first note is never touched while the detector catches up.
+///     <para>
+///         Types: the classic Expander and Gate, and their Modern versions, which add <see cref="HysteresisDb" /> of
+///         hysteresis: once open, they stay open until the level falls that far below the threshold, so a note decaying
+///         across the threshold never chatters. <b>Knee</b> (expanders) rounds the corner over 6 or 12 dB around the
+///         threshold.
+///     </para>
+///     Sidechain picks what the detector hears: the block's input, the grid input or another grid row
+///     (<see cref="ISidechainBlock" />), so a gate late in the chain can follow the clean guitar.
 /// </summary>
 public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
     public const int Threshold = 0;
@@ -26,10 +32,13 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
     public const int Detector = 9;
     public const int Level = 10;
     public const int Balance = 11;
-    public const int Sidechain = 12;
+    public const int Knee = 12;
+    public const int Sidechain = 13;
 
     public const int Expander = 0;
     public const int Gate = 1;
+    public const int ModernExpander = 2;
+    public const int ModernGate = 3;
     public const int Peak = 0;
     public const int Rms = 1;
 
@@ -42,10 +51,14 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
     /// <summary>Deepest attenuation the gate applies, in dB.</summary>
     const float FloorDb = -100f;
 
+    /// <summary>How far below the threshold a Modern type closes, in dB.</summary>
+    public const float HysteresisDb = 6f;
+
     readonly SidechainSource sidechainSource = new();
     float envelope;
     float gainDb;
     int holdRemaining;
+    bool open = true;
     float detectorRelease;
     float rmsCoefficient;
     float meanSquare;
@@ -62,13 +75,16 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
             ParamDescriptor.Float("attack", "Attack", 0.05f, 50f, 0.5f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("hold", "Hold", 0f, 500f, 20f, "ms"),
             ParamDescriptor.Float("release", "Release", 5f, 2_000f, 100f, "ms", ParamTaper.Log),
-            ParamDescriptor.Choice("type", "Type", ["Expander", "Gate"]),
+            ParamDescriptor.Choice("type", "Type", ["Expander", "Gate", "Modern Expander", "Modern Gate"]),
             ParamDescriptor.Float("attenuation", "Attenuation", 0f, 100f, 60f, "dB"),
             WetCuts.LowCutParam("scLowCut", "Sidechain Low Cut"),
             WetCuts.HighCutParam("scHighCut", "Sidechain High Cut"),
             ParamDescriptor.Choice("detector", "Detector", ["Peak", "RMS"]),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Choice("knee", "Knee", ["Hard", "Soft", "Softer"]) with {
+                TypeLabels = ["Knee", "", "Knee", ""]
+            },
             SidechainSource.Param()
         ],
         maxInstances: 4
@@ -90,7 +106,25 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
         rmsCoefficient = Coefficient(RmsMs, spec.SampleRate);
     }
 
+    /// <summary>
+    ///     The expander's gain in dB for a level <paramref name="under" /> dB from the threshold (negative below it), with
+    ///     a soft knee <paramref name="knee" /> dB wide centred on the threshold.
+    /// </summary>
+    public static float ExpanderGainDb(float under, float slope, float knee) {
+        if (knee <= 0 || 2 * under < -knee) {
+            return under >= 0 ? 0f : slope * under;
+        }
+
+        if (2 * under > knee) {
+            return 0f;
+        }
+
+        var t = under - knee / 2;
+        return -slope * t * t / (2 * knee);
+    }
+
     protected override void OnReset() {
+        open = true;
         envelope = 0;
         meanSquare = 0;
         gainDb = 0;
@@ -107,7 +141,11 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
         var attack = Coefficient(Params.Advance(Attack, io.Length), sampleRate);
         var release = Coefficient(Params.Advance(Release, io.Length), sampleRate);
         var holdSamples = (int)(Params.Advance(Hold, io.Length) * 0.001 * sampleRate);
-        var gate = (int)Params.Current(Type) == Gate;
+        var type = (int)Params.Current(Type);
+        var gate = type is Gate or ModernGate;
+        var modern = type is ModernExpander or ModernGate;
+        var closeThreshold = modern ? MathF.Pow(10f, (thresholdDb - HysteresisDb) / 20f) : threshold;
+        var knee = gate ? 0f : 6f * (int)Params.Current(Knee);
         var closedDb = Math.Max(FloorDb, -Params.Advance(Attenuation, io.Length));
         var rms = (int)Params.Current(Detector) == Rms;
         sidechain.Design(
@@ -119,6 +157,7 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
         var envelope = this.envelope;
         var gainDb = this.gainDb;
         var holdRemaining = this.holdRemaining;
+        var open = this.open;
         var external = sidechainSource.Active && sidechainSource.Left.Length == io.Length;
         var sideLeft = sidechainSource.Left;
         var sideRight = sidechainSource.Right;
@@ -135,14 +174,19 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
             }
 
             float targetDb;
-            if (envelope >= threshold) {
-                targetDb = 0f;
+            if (envelope >= threshold || (open && envelope >= closeThreshold)) {
+                open = true;
+                targetDb = knee > 0 && envelope >= threshold
+                    ? ExpanderGainDb(20f * MathF.Log10(envelope) - thresholdDb, slope, knee)
+                    : 0f;
                 holdRemaining = holdSamples;
             } else if (gate) {
+                open = false;
                 targetDb = closedDb;
             } else {
-                targetDb = envelope <= 0
-                    ? FloorDb
+                open = false;
+                targetDb = envelope <= 0 ? FloorDb
+                    : knee > 0 ? Math.Max(FloorDb, ExpanderGainDb(20f * MathF.Log10(envelope) - thresholdDb, slope, knee))
                     : Math.Max(FloorDb, slope * (20f * MathF.Log10(envelope) - thresholdDb));
             }
 
@@ -164,6 +208,7 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
         sidechain.FlushDenormals();
         this.gainDb = gainDb;
         this.holdRemaining = holdRemaining;
+        this.open = open;
         sidechainSource.Clear();
         output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }

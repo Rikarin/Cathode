@@ -70,7 +70,18 @@ public sealed partial record AmpDesign {
         Models.Bluesbreaker.Design,
         Models.HiwattDR504.Design,
         Models.CornfordMk50.Design,
-        Models.TinyTerror.Design
+        Models.TinyTerror.Design,
+        Models.Liverpool.Design,
+        Models.OverdriveSpecial70s.Design,
+        Models.DualRectifier3Channel.Design,
+        Models.SubwayBlues.Design,
+        Models.TriAxis.Rhythm,
+        Models.TriAxis.Lead1,
+        Models.TriAxis.Lead2,
+        Models.JCM900.Design,
+        Models.JCM900.Head100,
+        Models.Valvestate8080.Design,
+        Models.JVM410H.Design
     ];
 
     public static AmpDesign Blackface => Models.Blackface.Design;

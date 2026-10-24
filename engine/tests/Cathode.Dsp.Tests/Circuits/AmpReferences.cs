@@ -227,7 +227,7 @@ static class AmpReferences {
             var on = e.Switch is not { } role || controls.IsOn(role);
             switch (e.Kind) {
                 case ElementKind.Resistor: {
-                    var ohms = on ? e.Value : e.OffValue > 0 ? e.OffValue : 1e12;
+                    var ohms = on ? e.Switch is null || e.Value > 0 ? e.Value : 1e12 : e.OffValue > 0 ? e.OffValue : 1e12;
                     if (e.Part != PotPart.None) {
                         var fraction = e.Pot.Fraction(controls.Rotation(e.Role));
                         ohms = (e.Part == PotPart.Upper ? 1 - fraction : fraction) * e.Pot.Ohms;
@@ -266,6 +266,9 @@ static class AmpReferences {
                 case ElementKind.OpAmp:
                     // Linear and ideal but for a finite gain: valid below clipping, which the comparisons stay under.
                     c.Vcvs(e.C, 0, e.A, e.B, 1e5);
+                    break;
+                case ElementKind.Amplifier:
+                    c.Vcvs(e.C, 0, e.A, e.B, e.Value);
                     break;
             }
         }

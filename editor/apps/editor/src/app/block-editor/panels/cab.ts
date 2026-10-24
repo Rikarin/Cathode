@@ -102,8 +102,8 @@ export const LowCutOff = 10;
 export const HighCutOff = 20_000;
 
 /**
- * The response in dB at `frequency` of a cut of slope index `slope` (6, 12, 18, 24 dB/oct), as the engine's
- * `CutFilter`: a one-pole and up to two Butterworth sections.
+ * The response in dB at `frequency` of a cut of slope index `slope` (6 to 36 dB/oct), as the engine's
+ * `CutFilter`: a one-pole and up to three Butterworth sections.
  */
 export function cutDb(
   highPass: boolean,
@@ -123,6 +123,10 @@ export function cutDb(
       return onePole + section(1);
     case 3:
       return section(0.5412) + section(1.3066);
+    case 4:
+      return onePole + section(0.618) + section(1.618);
+    case 5:
+      return section(0.5176) + section(0.7071) + section(1.9319);
     default:
       return section(0.7071);
   }

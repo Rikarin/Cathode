@@ -60,8 +60,8 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 
 | Parameter | Range | Default | Physical meaning | Cathode |
 |---|---|---|---|---|
-| Input Boost / Boost Type / Boost Level | on/off; pedal voicings; dB (0–20 *unverified*) | off | A built-in boost pedal | **S** in the amp: use a Drive block in front. Revisit for parity later |
-| Saturation Switch / Saturation Drive | OFF / ON AUTH / ON IDEAL; 0–10 | model | The common "saturation" mod between preamp and stack (adds a clipping stage) | **E** later; needs a diode/transistor clipper stage (Friedman Sat uses MPSA06 + diodes) |
+| Input Boost / Boost Type / Boost Level | on/off; pedal voicings; dB (0–20 *unverified*) | off | A built-in boost pedal | 🆕 **✓** `boost` (six Drive circuits at the amp's 2x rate), `boostdrive`, `boosttone`, `boostlevel` (docs/08 §4) |
+| Saturation Switch / Saturation Drive | OFF / ON AUTH / ON IDEAL; 0–10 | model | The common "saturation" mod between preamp and stack (adds a clipping stage) | 🆕 **✓** `saturation` and `satdrive`: a diode-style clipper between preamp and power amp (generic, not each model's own mod) |
 | Fat Switch | off/on | off | Moves the tone stack's centre frequency down | **E** (scale the stack's mid cap; Friedman has a real Fat switch) |
 | Cut Switch | off/on | off | Low cut at the input | **E** (a smaller input coupling cap) |
 | Preamp Tube Type | enum (12AX7 variants, EF86, …) | model | Triode characteristics | **E** (12AX7, 12AY7, 5751, 12AT7, 12AU7) |
@@ -72,12 +72,12 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 
 | Parameter | Range | Default | Physical meaning | Cathode |
 |---|---|---|---|---|
-| Input EQ filters (Type/Freq/Q/Gain) | — | flat | Parametric EQ before the amp | **S** use a PEQ block in front |
+| Input EQ filters (Type/Freq/Q/Gain) | — | flat | Parametric EQ before the amp | 🆕 **✓** `infilter` (shelves, peak, high/low-pass), `inffreq`, `infq`, `infgain` |
 | Low Cut | Hz (about 10–2000 *unverified*) | model | Input high-pass ("tightening") | **D** one cheap first-order HPF before V1 |
 | High Cut | Hz | model | Low-pass between preamp and power amp; deprecated in fw 33.00 b2 | **S** (deprecated upstream) |
-| Definition | bipolar tilt | 0 | Tilt EQ at the input | **D** cheap; optional |
+| Definition | bipolar tilt | 0 | Tilt EQ at the input | 🆕 **✓** `definition`: a treble/bass tilt around 650 Hz into the preamp, ±4 dB |
 | Graphic EQ bands | dB (±12 *unverified*) | 0 | Built-in graphic EQ | **D** later; the Mark 5-band EQ must be **M** (it is part of the circuit) |
-| EQ Type / EQ Location / EQ On | enum; INPUT, PRE PA, OUTPUT | OUTPUT | Number of bands; where the EQ sits | **D** later. PRE PA matters (the Mark EQ sits there) |
+| EQ Type / EQ Location / EQ On | enum; INPUT, PRE PA, OUTPUT | OUTPUT | Number of bands; where the EQ sits | 🆕 **✓** `outeq` (every Graphic EQ layout), `outeqloc` (input, pre power amp, output), `outeq1`–`outeq10` |
 
 **Power Supply page**
 
@@ -86,7 +86,7 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 | Supply Sag | 0–10 | model | Supply source impedance, i.e. B+ droop | **✓** Sag |
 | B+ Time Constant | ms | model | Reservoir RC speed | **E** (scale reservoir C; already in `PowerSupplyDesign`) |
 | Supply Type | AC / DC | model | Rectified AC with ripple, or ideal DC | **E** with rectifier ripple (not modelled yet) |
-| AC Line Frequency | 50 / 60 Hz | 60 *(unverified)* | Ripple frequency | **E** global setting rather than per amp |
+| AC Line Frequency | 50 / 60 Hz | 60 *(unverified)* | Ripple frequency | **✓** Supply Type AC 60 Hz / AC 50 Hz |
 | Variac | % of line (about 50–150 *unverified*) | 100 % | Mains voltage; level-compensated | **E** cheap: scales every supply node; the "brown sound" |
 | Screen Frequency / Screen Q | Hz / Q | model | Resonance of the screen supply's filter | **M** (falls out of the supply network) |
 
@@ -101,7 +101,7 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 | Power Tube Hardness | 0–10 | model | Knee sharpness | **S** our tubes come from Koren curves; a "hardness" knob has no circuit meaning. Revisit if matching needs it |
 | Transformer Matching | ratio (about 0.5–2 *unverified*) | model | OT impedance ratio vs stock | **E** (scales `PlateToPlate`) |
 | Speaker Impedance | × nominal | 1.0 | Load mismatch (4 Ω speaker on the 8 Ω tap) | **E** (scales the speaker load) |
-| Bias Trem Frequency / Depth | Hz / % | depth 0 | Real bias tremolo | **E** later (Princeton/Deluxe vibrato is bias-modulation in the Princeton; it is a real circuit feature) |
+| Bias Trem Frequency / Depth | Hz / % | depth 0 | Real bias tremolo | 🆕 **✓** `tremrate`, `tremdepth`: a sine on the Bias control (64-frame steps) |
 
 **Speaker page (impedance load and speaker nonlinearity)**
 
@@ -112,12 +112,12 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 | LF Resonance (amount) | dB | model | Peak height | **E** (`PeakImpedance`) |
 | HF Resonance Frequency / amount | Hz (about 1–10 k) | model | Voice-coil inductance against transformer capacitance | **E** |
 | HF Slope | 3.0–4.5 typical, about 3.7 median | model | Voice-coil semi-inductance (eddy losses) | **E** (we have a "lossy voice coil": expose its exponent) |
-| Cabinet Resonance | % | model | Scales the cabinet part of the impedance curve | **S** for now; fold into LF amount |
+| Cabinet Resonance | % | model | Scales the cabinet part of the impedance curve | 🆕 ◐ `cabres`, the frequency of the Thump boost |
 | Speaker Impedance Curve | enum (82+ measured curves) | model | Measured load curves | **M** a small set of parametric presets (open-back 1×12, closed 4×12, 2×12 combo, bass 8×10). Do not copy Fractal's measured curves |
 | Auto Dyna-Cab Impedance | off/on | — | Curve follows the Cab block | **S** (couples blocks; later) |
-| Speaker Drive | 0–10 | model | Cone distortion | **S** belongs in the Cab block |
-| Speaker Thump | 0–10 | 2.5 on reset | Subsonic cone nonlinearity | **S** Cab block |
-| Speaker Compression / Speaker Time Constant | dB / ms | about 3 dB | Voice-coil thermal compression | **S** Cab block |
+| Speaker Drive | 0–10 | model | Cone distortion | 🆕 **✓** `spkdrive`: soft saturation of the band below 150 Hz at the amp's output |
+| Speaker Thump | 0–10 | 2.5 on reset | Subsonic cone nonlinearity | 🆕 **✓** `thump`: up to +12 dB at `cabres` (50–250 Hz) |
+| Speaker Compression / Speaker Time Constant | dB / ms | about 3 dB | Voice-coil thermal compression | 🆕 **✓** `spkcomp`, `spkcomptc`: voice-coil heating, an RMS power detector with its time constant |
 | Speaker Compliance | % | 50 % | Suspension nonlinearity | **S** Cab block |
 | Transformer LF / HF | Hz | model | OT bandwidth (primary inductance; leakage and capacitance) | **E** (scale magnetising and leakage inductance in `OutputTransformerDesign`) |
 | Transformer Drive | 0–10 | model | Core saturation | **E** after transformer saturation exists (not modelled yet) |
@@ -126,8 +126,8 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 
 | Parameter | Range | Default | Physical meaning | Cathode |
 |---|---|---|---|---|
-| Input Dynamics | bipolar | 0 | Input compander | **S** not a circuit feature |
-| Output Compression / Type / Threshold / Clarity | — | 0 | Output compressor (Output, Feedback, Gain Enhancer) | **S** use a Compressor block |
+| Input Dynamics | bipolar | 0 | Input compander | 🆕 **✓** `indyn`: expands or compresses the input by its envelope around −20 dBV, within ±12 dB |
+| Output Compression / Type / Threshold / Clarity | — | 0 | Output compressor (Output, Feedback, Gain Enhancer) | 🆕 **✓** `comptype` (Output, Feedback), `compamount`, `compthresh`, `compclarity` (detector high-pass) |
 | Master Bias Excursion | % | 100 % mostly | Scales all bias-excursion effects | **S** in a circuit model, bias excursion is a consequence of the coupling caps and grid current, not a knob |
 
 **Advanced page**
@@ -154,7 +154,7 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 | Power Tube Bias Excursion / Excursion Time / Recovery Time | % / ms | model | Coupling-cap charging when the power grids conduct | **S** already emerges (grid networks and grid conduction are in `PowerAmp`) |
 | Dynamic Damping | — | model | Plate impedance | **S** emerges from the tube model |
 | Plate Suppressor Diodes | off/on | model | Flyback diodes | **E** later (cheap clamp on the primary) |
-| Level / Balance / Bypass | dB / L-R / bool | 0 | Common | **✓** Level; the rest are generic block features |
+| Level / Balance / Bypass | dB / L-R / bool | 0 | Common | **✓** Level, 🆕 Balance; bypass is generic |
 
 ### 1.4 Parity summary
 
@@ -500,6 +500,61 @@ drawing and marks its guesses (mostly the rails, idle currents and output transf
   Tiny Terror 9.4 / 13.8. The four Marshalls are a little over the crunch budget, as the Plexi 100W they share the
   two-triode first stage with; the DR504 is over on noise, as the DR103.
 
+**As built (stream A, modern Marshall, op-amp and channel-switching designs).** Four types appended to `AmpDesign.All`;
+each file cites its drawings and marks its guesses (mostly the rails, which none of these drawings give, the output
+transformers and the feedback taps):
+- **JCM900 4502** and **JCM900 4100** (`JCM900.cs`), both channels, from JMP52-02 issue 11 as read above, with these
+  corrections: the W005F bridge has the 1N4007 across its DC terminals, which makes a symmetric clamp of three junctions
+  each way; channel A's IC4a, channel B's IC6b and IC4b, both IC1 sections and both masters are M5201 switching op-amps
+  whose sections share one output; the two masters are the same circuit, so one Master knob turns the playing one;
+  Presence is V2a's cathode network (470 Ω + 0.22 µF and the 10k pot across 2k2), a preamp control on Control 1; the
+  return op-amp's input resistor (not drawn) is taken as 100k. Power amps from the scans 4100-60-02 issue 11 (4 × EL34,
+  47 nF out) and CDD112 issue 10 for the 50 W models (2 × EL34, 2k2 screens, 22 nF out): 82k ‖ 100 pF / 100k, 1k bias,
+  15k tail, 150k leaks, 1k5 stoppers, 100k of feedback into 4k7 (the Dual Reverbs' presence cap is "not fitted").
+- **Valvestate 8080** (`Valvestate8080.cs`), both channels, from PC0689 issue 5 and PC0689P issue 9 (vector,
+  schematicheaven): boost IC1a ×22, IC3b (Gain as a feedback rheostat, OD1/OD2 on Switch 2) onto two LEDs, the ECC83 as
+  a shunt-feedback gain stage (220k + 100 nF from its follower to its grid) driving a Marshall stack with a 5 nF bass
+  shunt, the Contour network and IC5b ×11; Normal: IC1b with the Crunch treble boost and IC2 with the Crunch LEDs (Switch
+  3), its own stack and IC5a ×2; both into the loop's summing stage, IC8a and the Master, then the solid-state power amp
+  (`AmpDesign.SolidState`: 33k over 1k of voltage feedback, BDV65/64 Darlingtons with 0.33 Ω, ±39 V on 2200 µF). Its
+  current feedback (0.33 Ω in the speaker return) is not modelled.
+- **JVM410H OD** (`JVM410H.cs`), OD1 and OD2 (Switch 1) in the full-cascade mode, from JVM410-60-02 issue 2 and
+  JVM410-61-02 issue 1 (vector, el34world): V6b, the front panel's OD1 (3.3 nF, 470k, 1 nF) or OD2 (1 nF, 470k, 1.5 nF)
+  gain network, V6a (220k, 2k7 ‖ 680 nF), V7b (82k + 22k with 1 nF to the rail, 10k unbypassed), V7a (220k, 820 Ω), the
+  V8b follower into both OD stacks in parallel (470 pF, 33k or 47k, 22 nF, 22 nF; 39k into 1M volumes, 330k onto a bus
+  the idle channels load), the V8a follower, the bypassed loop's mix node, V9b as a shunt-feedback mixer (4M7 over 1M),
+  the V9a follower, the 200k Master, a 82k / 100k long-tail pair with a 10k + 4k7 tail and 82k of feedback, four EL34.
+  Not built: Clean/Crunch and the Green/Orange modes (the drawings name the relays but not the states each mode sets).
+- **Not built**: the DSL100 (main board JCM2-60-02 iss 9 and front panel JCM2-61-00 iss 5 fetched from DrTube and read in
+  part; the boards' connectors still to be traced), the JMP-1 (digital pots and an active tone sheet), the JVM410HJS (a
+  different main board with a THAT4301 gate in the path and different front-panel values: its own read). docs/07 lists
+  what was found.
+- **Library changes** (`NetworkStage`, additive): `StageNetlist.Amplifier`, an op-amp that never reaches its rails as a
+  linear voltage-controlled source inside the adaptor (no device, no Newton; the DC solve stamps it), used for every op-amp
+  whose signal stays inside its rails or whose clipping a diode clamp right after it masks (on loud noise, under the
+  same load, the JCM900's channel A stage with its LEDs went from 2.8 to 0.5 µs a sample and the master stage from 3.4
+  to 0.2 µs); and one device combination, an op-amp with a diode clipper (`DO`, the Valvestate's Normal IC2). The test
+  reference appends an amplifier as a VCVS.
+- **Validation**: whole preamp chains against the reference simulator (`Modern_marshall_chains_match_the_reference`):
+  JCM900 channel A and B and the Valvestate's Normal channel below −30 dB, the Valvestate's boost channel −26 dB (the
+  cut after its LED clamp), the JVM's OD1 and OD2 below −30 dB once its cuts sit at the next grids (at the gain pot's
+  reactive wiper they were −21 dB). Knob sweeps at full drive converge with no NaN, every control is audible, gain and
+  master are monotonic on both channels, peaks stay under +6 dBFS (`ModernMarshallTests`).
+- **References**: the eight pelennor JCM900 4502 captures (Tim R, GPL) now map to the JCM900 4502 type (channel B's
+  0–20 gain halved onto the knob; other knobs unstated, left at 5). Against the Plexi stand-in, pre-emphasised ESR /
+  MRSTFT: channel A gain 4 0.603 / 1.006 → 0.296 / 0.783, 6 0.548 / 1.048 → 0.406 / 0.940, 8 0.565 / 1.195 →
+  0.602 / 1.006, 10 0.937 / 1.215 → 0.826 / 1.107; channel B gain 8 0.869 / 1.169 → 0.458 / 0.869, 12 1.106 / 1.339 →
+  0.625 / 1.072, 16 1.098 / 1.509 → 0.691 / 1.205, 20 1.187 / 1.373 → 0.788 / 1.341 (MRSTFT better everywhere, ESR
+  everywhere but channel A at 8). With the M5201s as op-amp devices instead of linear amplifiers channel A was 0.07–0.33
+  better in ESR, channel B the same; the difference was not traced. Channel A's fitted calibration still pins at −20 dBu
+  (the unstated master and tone are the likely cause; no fit of them was run). No GPL direct-out
+  capture of a Valvestate or a JVM410H was found (the pelennor JVM files state neither amp nor rig).
+- **CPU** (48 kHz, 64-frame blocks, `Gain` 7, `Master` 6, guitar chord / loud noise, process CPU time, minimum of three
+  passes on a machine with a load average of 150–350, where the Plexi read 9.1 / 15.3 %): JCM900 4502 channel A
+  15.6 / 29.6 %, channel B 19.3 / 26.4 % (the 4100 the same), over the high-gain budget on guitar for B and on noise for
+  A (the V1 pair with its 220k feedback around the stack is 6–10 % of it); Valvestate 8080 boost 15.3 / 24.2 %, Normal
+  11.4 / 16.5 %; JVM410H OD 17.2 / 24.7 %, a little over on guitar.
+
 ### 3.3 Vox and class-A boutique
 
 **AC30 Top Boost** — https://www.ampbooks.com/mobile/classic-circuits/vox-ac30/, https://www.voxac30.org.uk/vox_ac30_top_boost_circuit.html (JMI OS/010 drawing images on that site)
@@ -631,6 +686,19 @@ These cascades already clip at 2 mV, so the error is the known Thévenin cut beh
 References: no free direct-out capture of these amps exists in a format the harness runs. The ToneLibrary "SmartAmp" Mark 5 file is a WaveNet JSON with unstated settings, and the pelennor "Engl Savage" file is an Axe-Fx capture, excluded.
 
 CPU (48 kHz, default settings, guitar-like chord bursts / white noise, measured on a heavily loaded machine where Plexi read 10.4 / 16.0 % against its usual 9.9 / 14.3 %): Lone Star 11.6 / 22.1, Mark V 15.0 / 27.0, Rect-o-Verb 11.6 / 18.5, Triple Rectifier 11.6 / 19.8, Powerball 15.2 / 25.9, Savage 120 15.5 / 27.0 %. In the same run, Mark IV read 16.8 / 24.8 and Dual Rectifier 11.5 / 19.8.
+
+**As built (stream D: Mesa and US boutique).** Seven types appended to `AmpDesign.All`, one existing model corrected; each file cites its drawing and marks what is read, inferred or assumed.
+- **Dual Rectifier (corrected)** and **Dual Rectifier 3-Ch** (new), from Mesa's factory scans (el34world `Boogie_dualrectifier.pdf`, preamp RF-1F of 6-93 with the LDR table per mode; `Boogie_3ch_dual_rectifier.pdf`, the three-channel Solo Head set). **The Yahiake redraw the old model followed was wrong on the modes**: on the two-channel drawing both red modes fully bypass V1A, V2A and V3A (LDR3, LDR10 on) and keep the 680k ‖ 2 nF branch (LDR4 on); Modern and Vintage differ only in the global feedback (LDR19: on in Vintage, off in Modern) and a treble roll-off on the idle orange channel. The red treble cap is 680 pF in both modes, the cold clipper has 1 nF from plate to supply, the middle pot takes its 20 nF on the wiper, and the red presence is a preamp shunt (22k, 3 nF, 25k) on the treble wiper (now Control 2). The three-channel revision differs: 250k (not 1M) gain, 100 Ω under each 1 µF bypass, 475k stoppers, 500 pF + 180 pF in Modern (RY7a), Modern = no feedback (RY7b), Raw = no 680k ‖ 2 nF (RY6a, on the Bright switch). The Triple Rectifier now derives from the three-channel type (its own notes said Mesa built it on that preamp). Values: V1A 220k / 1.8k ‖ 1 µF; V2A 100k; V2B 39k / 100k ‖ 1 nF; V3A 220k; CF 100k; LTP 82k / 91k, 470 Ω, 10k + 4.7k, feedback 47k + 0.1 µF into 4.7k; 4 × 6L6 at 460 V (2-ch) / 475 V (3-ch), 1k screens, 1.5k stoppers, 220k leaks.
+- **Subway Blues**: Mesa's factory set (preamp, power amp, supply, block diagram) read whole, except the potted "Toning Module" between the reverb mix and the loop buffer, which no drawing shows and which is left out (the 10 nF drives the buffer directly). A low-voltage preamp (168 V node): V1a 100k / 1.6k ‖ 3.3 µF into a Mark stack (250 pF + 750 pF Fat, 150k, 0.1 µF, 47 nF; 250k-A / 250k-A / 25k-L), the 1M volume (120 pF), V1b, V2a, a heavy reverb-mix pad, Q1 (an ideal buffer), V2b, into a long-tail pair with unequal plates (68k / 120k) whose tail returns to -15 V and whose feedback enters the second grid (56k ‖ (33k + 5 nF) over 1.6k), and two fixed-bias EL84 (-11 V) through 220k series resistors. The negative-tail inverter is mapped onto the block's ground-referenced pair with the same currents (15k tail, 1.2k bias, 350 V); the 33k + 5 nF is the feedback network's fixed shelf (`LowFeedback` 0.37 at 965 Hz).
+- **TriAxis Rhythm / Lead 1 / Lead 2**: the factory audio sheets (rev 1.08, 1992) with the LDR switching matrix and its mode table, el34world `Boogie_triaxis.pdf`. Each type sets the LDRs its mode lights; Switch 1 Yellow and Switch 2 Red pick the voicing. Lead 2's overdrive (V4A / V4B) is the Mark IIC+ / IV lead circuit value for value. The "Dynamic Voice" is the Mesa graphic EQ with its sliders fixed: one TL072 (a network stage with an op-amp and five inductors), four LCR branches on the inverting side (89, 335, 1,570, 4,820 Hz) and one on the non-inverting side (720 Hz) to a common node that its LDR grounds: flat at 0, the "V" at 10 (Control 2). The LDRs' ranges are not printed; the Mark IIC+'s pot values are used (marked), the presence LDR is fixed (the block has no third free control), the bright cap printed "C75P" is read as 75 pF. Followed by a generic power amp: the Dual Rectifier model's (four 6L6GC, factory values) with its feedback on and no panel switches; Mesa's own TriAxis power amps are Simul-Class, but the Mark IIC+ model's Simul-Class stage cost about 3 % more.
+- **ODS 70s** (Dumble, 1970s, Robben Ford era): schematicheaven's `dumbleamps/` preamp, overdrive, supply and output redraws (CAD, voltages, no stated provenance). V1 100k / 1.5k ‖ 5 µF into a plate-fed stack (330 pF to 250k-A treble, 100k, 0.1 µF to a 250k-A bass with 1.8k at its foot, 50 nF into a 100k-L middle rheostat) with **Rock/Jazz** (Jazz lifts the treble pot's foot onto 5 nF and ties the bass wiper to the treble wiper through 100k) and **Deep** (the 270k + 270k bass-wiper-to-volume-wiper path's junction to 1M ‖ 10 nF + 10k), the 1M volume with a 500 pF Bright, V2 with 22M + 50 nF plate-to-grid feedback; the overdrive is two 100k / 1.5k ‖ 5 µF stages with 500 pF plate to cathode, the Overdrive pot between them and an output trim (OD Level); 12AX7 LTP (100k, 820 Ω, 24k), two 6L6GC (not named on the drawing) at 457 V, 3.9k into 390 Ω with the Accent cap (2.2 µF) on the Presence knob. No HRM drawing exists, so no HRM type.
+- **Liverpool** (Trainwreck): Mark Abbott's hand drawings of two amps (schematicheaven `newamps/trainwreck_liverpool.pdf`) with measured nodes: the Express front end with a 50 pF treble cap, V1b 2.7k ‖ 22 µF behind a 2.2k grid stopper, the "tuned" coupling (R7 68k, C8 2.2 nF, his recommendation), a cold V2 (10k), LTP (1M leaks, 1k bias, 39k + 4.7k), four EL84 on a shared 50 Ω ‖ 220 µF, 1k screens, 331 V.
+- **Not built: the Bass 400** (Mesa, 1985 factory scan). Read: two inputs, V1A 100k with 1.5k ‖ 15 µF and V1B 150k, 1M volumes with 120 pF Bright switches mixed through 1.5M and 470k; V2A 100k with 1k ‖ 0.15 µF and Bass Shift (15 µF + 33k); a Mark stack (250 pF + 750 pF Treble Shift, 100k, 47 nF, 0.1 µF; 250k bass, 10k mid); V2B as a cathode follower (33k) with 3.3M bias, 0.1 µF and 15k into the 250k master; a discrete six-band graphic EQ (50k sliders, 470 Ω + 1 H + 22 µF, 1 H + 2.2 µF, 0.35 H + 1 µF, 0.22 H + 0.22 µF, 0.068 H + 0.15 µF, 680 Ω + 0.033 H + 47 nF) on four transistors; 6 × 6550 (or 6L6) at 540 V, 2.2k stoppers, 2.7k screens, -62 V. The driver is two differential stages in cascade (V3: 33k plates at 350 V, the tail 33k to -68 V; V4: grids on 470k / 220k dividers, a shared 470 Ω cathode, 0.1 µF into 100k bias feeds), which none of the library's inverters covers, and the volume mix's return (to V2A's cathode as drawn?) and V3B's 62k wiring are not readable.
+- **Shared library changes**: (1) `PowerAmpDesign.FeedbackOffSwitch`: a panel switch that takes the global feedback out (Mesa's Modern); `CircuitAmpBlock` sets the feedback control to zero while it is on (two lines). (2) **A bug fix in `NetworkStage`** (and the reference circuit builder in the tests): a switched resistor whose *on* value is 0 was a short (1 µΩ), while the documentation (and the off value) treat 0 as an open contact; now 0 is open in either position. This changes two existing models whose authors relied on the documented meaning: the Mark V's V3A bypass (the 100 µF "Extreme" bypass was connected in every mode) and the Powerball's Lo/Hi and Open/Focused switches (both paths were connected when the switch was on), and the AB763 vibrato mixer (Bandmaster, Tremolux), whose Vibrato channel was shorted to ground and now plays (its two channels then differ only in their coupling caps, so `FenderUsAmpTests` allows -35 dB of residual for that switch). (3) `MesaParts.Stack`, the Mark plate-fed stack as a helper (Subway Blues, TriAxis).
+- **Sharing with the Mark models**: the TriAxis stack, the Subway Blues stack and the Bass 400 stack are the Mark IIC+ stack (250 pF / 750 pF shift, 100k or 150k, 0.1 µF, 47 nF) and now share `MesaParts.Stack`; the Mark files keep their inline stacks (not touched). The TriAxis Lead 2 stages are the Mark lead stages with identical values, but each Mark model's lead netlist has its own switches (Shift, Lead Bright, the IIC+'s 680k drive feed), so they are not factored. The Mark-series **graphic EQ is not shared**: the Mark models use the behavioural `EqualizerStageDesign`. The TriAxis Dynamic Voice and the Bass 400 drawing show Mesa's real topology (slider ends on the op-amp's two inputs, the wiper through a series LCR to ground; the Bass 400's branches pair 1 H / 22 µF, 1 H / 2.2 µF, 0.35 H / 1 µF, 0.22 H / 0.22 µF, 0.068 H / 0.15 µF, 0.033 H / 47 nF), which settles §3.6 item 2's pairing question: a network-stage GEQ for the Marks could use it (not done here; the Mark IIC+ values in §3.4 pair the same way).
+- **Validation** (`MesaBoutiqueAmpTests`): chains against the reference simulator with no cuts: Liverpool V1a-V2 -33 dB (2 mV and 50 mV), Subway Blues V1a-V2a -31 dB, TriAxis Rhythm V2A-V3A -42 dB, Lead 1 V1A-V3A -46 dB, Lead 2 V2A-V3A through the overdrive -19 dB (2 mV) / -13 dB (50 mV), ODS 70s V1-V2 -34 dB and through the overdrive -23 dB, Dual Rectifier V1A-V3A -16 dB and 3-Ch -16 dB at 2 mV (a cold clipper with a plate cap behind clipping stages: the known weak spot of the cuts). Panels, sweeps converging at full drive, every control audible, gain and master monotonic, levels below +6 dBFS (worst +2.8 dBFS, TriAxis Rhythm), and Modern taking the feedback out (+9 dB open loop on the 3-Ch).
+- **References**: none. No free direct-out capture of these amps was found (GuitarML ToneLibrary, pelennor2170/NAM_models searched); the Dumble kit and clone captures stay on ODS 97.
+- **CPU** (48 kHz, default settings, guitar-like chord bursts / white noise, best of three passes on a machine with a load average of 100 to 360, where Plexi read 9.1 / 15.2 %): Liverpool 10.8 / 16.8, ODS 70s clean 8.7 / 13.0, overdrive 12.3 / 17.9, Dual Rectifier 13.4 / 21.7 (Modern 13.3 / 21.7), Dual Rectifier 3-Ch 14.8 / 23.7, Triple Rectifier 13.9 / 24.1, Subway Blues 11.3 / 18.2, **TriAxis Rhythm 15.4 / 23.2, Lead 1 16.1 / 26.4, Lead 2 18.9 / 31.9 %: over budget** (Rhythm against the clean class, Lead 2 against high gain). Per stage at 96 kHz the Dynamic Voice (one op-amp, five LCR branches) costs about 2.4 % and V5A 1.2 %; the TriAxis runs eight stages (Lead 2) where a Mark runs six. Next: an ideal-op-amp element (the R-type adaptor already has VCVS ports) so that the Dynamic Voice is a linear network with no Newton device, or the Dynamic Voice bypassed at zero.
 
 ### 3.5 Bass and solid state (tier 2)
 

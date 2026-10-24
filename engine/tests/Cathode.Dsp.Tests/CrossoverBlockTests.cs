@@ -22,8 +22,14 @@ public class CrossoverBlockTests {
 
     [Fact]
     public void Each_band_is_6_dB_down_at_the_crossover_and_rolls_off_at_24_dB_per_octave() {
-        using var low = TestBlocks.Create<CrossoverBlock>((CrossoverBlock.HighLevel, Off));
-        using var high = TestBlocks.Create<CrossoverBlock>((CrossoverBlock.LowLevel, Off));
+        using var low = TestBlocks.Create<CrossoverBlock>(
+            (CrossoverBlock.HighLevelLeft, Off),
+            (CrossoverBlock.HighLevelRight, Off)
+        );
+        using var high = TestBlocks.Create<CrossoverBlock>(
+            (CrossoverBlock.LowLevelLeft, Off),
+            (CrossoverBlock.LowLevelRight, Off)
+        );
 
         var lowResponse = BlockRender.Mono(low, Signals.Impulse(16_384), 64);
         var highResponse = BlockRender.Mono(high, Signals.Impulse(16_384), 64);
@@ -51,13 +57,30 @@ public class CrossoverBlockTests {
 
     [Fact]
     public void Band_pan_moves_only_that_band() {
-        using var block = TestBlocks.Create<CrossoverBlock>((CrossoverBlock.LowPan, 100f));
+        using var block = TestBlocks.Create<CrossoverBlock>((CrossoverBlock.LowPanLeft, 100f));
         var impulse = Signals.Impulse(16_384);
 
         var (left, right) = BlockRender.Stereo(block, impulse, impulse, _ => 64);
 
-        Assert.True(Analysis.ToDb(Analysis.MagnitudeAt(left, 100, Rate)) < -40, "low band should leave the left side");
+        Assert.True(Analysis.ToDb(Analysis.MagnitudeAt(left, 100, Rate)) < -40, "the left low band leaves the left side");
         Assert.Equal(0, Analysis.ToDb(Analysis.MagnitudeAt(left, 8_000, Rate)), 0.05);
-        Assert.Equal(0, Analysis.ToDb(Analysis.MagnitudeAt(right, 100, Rate)), 0.05);
+        Assert.Equal(6.02, Analysis.ToDb(Analysis.MagnitudeAt(right, 100, Rate)), 0.05); // both low bands on the right
+        Assert.Equal(0, Analysis.ToDb(Analysis.MagnitudeAt(right, 8_000, Rate)), 0.05);
+    }
+
+    [Fact]
+    public void Band_levels_are_per_side() {
+        using var block = TestBlocks.Create<CrossoverBlock>(
+            (CrossoverBlock.LowLevelRight, Off),
+            (CrossoverBlock.HighLevelLeft, -6.02f)
+        );
+        var impulse = Signals.Impulse(16_384);
+
+        var (left, right) = BlockRender.Stereo(block, impulse, impulse, _ => 64);
+
+        Assert.Equal(0, Analysis.ToDb(Analysis.MagnitudeAt(left, 100, Rate)), 0.05);
+        Assert.Equal(-6.02, Analysis.ToDb(Analysis.MagnitudeAt(left, 8_000, Rate)), 0.05);
+        Assert.True(Analysis.ToDb(Analysis.MagnitudeAt(right, 100, Rate)) < -40, "the right low band is off");
+        Assert.Equal(0, Analysis.ToDb(Analysis.MagnitudeAt(right, 8_000, Rate)), 0.05);
     }
 }

@@ -68,4 +68,45 @@ public class EqBlockTests {
             "three octaves away is nearly flat"
         );
     }
+
+    [Fact]
+    public void Every_graphic_layout_puts_each_band_at_its_centre() {
+        for (var type = 0; type < GraphicEqualizer.Layouts.Count; type++) {
+            var layout = GraphicEqualizer.Layouts[type];
+            for (var band = 0; band < layout.Count; band++) {
+                using var geq = TestBlocks.Create<GraphicEqBlock>((GraphicEqBlock.Type, type), (band, 9f));
+                var response = BlockRender.Mono(geq, Signals.Impulse(48_000), 64);
+                var shape = GraphicEqualizer.BandType(layout, band, false);
+                var probe = shape switch {
+                    BiquadType.LowShelf => layout.Centers[band] / 4,
+                    BiquadType.HighShelf => Math.Min(20_000, layout.Centers[band] * 2.5),
+                    _ => layout.Centers[band]
+                };
+                Assert.Equal(9.0, Analysis.ToDb(Analysis.MagnitudeAt(response, probe, Rate)), 0.6);
+            }
+        }
+    }
+
+    [Fact]
+    public void Graphic_bands_a_layout_lacks_are_hidden_and_silent() {
+        var fiveBand = GraphicEqualizer.LayoutNames.ToList().IndexOf("5 Band");
+        Assert.Equal("", GraphicEqBlock.Info.Params[7].TypeLabels![fiveBand]);
+        Assert.Equal("1k Hz", GraphicEqBlock.Info.Params[2].TypeLabels![fiveBand]);
+        Assert.Equal("31 Hz", GraphicEqBlock.Info.Params[0].TypeLabels![0]);
+
+        using var geq = TestBlocks.Create<GraphicEqBlock>((GraphicEqBlock.Type, fiveBand), (7, 12f), (9, -12f));
+        var input = Signals.Noise(4_800, 2);
+        Assert.Equal(input, BlockRender.Mono(geq, input, 64));
+    }
+
+    [Fact]
+    public void Outer_shelves_lift_everything_below_the_lowest_band() {
+        using var peak = TestBlocks.Create<GraphicEqBlock>((0, 12f));
+        using var shelf = TestBlocks.Create<GraphicEqBlock>((0, 12f), (GraphicEqBlock.Shelves, 1f));
+        var peaked = BlockRender.Mono(peak, Signals.Impulse(65_536), 64);
+        var shelved = BlockRender.Mono(shelf, Signals.Impulse(65_536), 64);
+
+        Assert.True(Analysis.ToDb(Analysis.MagnitudeAt(peaked, 5, Rate)) < 3, "a peak falls back to flat below its band");
+        Assert.Equal(12.0, Analysis.ToDb(Analysis.MagnitudeAt(shelved, 5, Rate)), 0.5);
+    }
 }

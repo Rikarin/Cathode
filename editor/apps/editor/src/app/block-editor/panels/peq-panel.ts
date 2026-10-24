@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, signal } from '@angular/core';
 import type { PresetBlock } from '@cathode/api-client';
 import { XuiKonvaImports, type XuiKonvaEventObject } from '@xui/konva';
-import { logFrequencies, sectionDb, type FilterShape } from '../../dsp/response';
+import { logFrequencies } from '../../dsp/response';
 import { LiveStore } from '../../state/live.store';
+import { peqBandDb, type PeqBand } from './peq';
 
 const Width = 640;
 const Height = 220;
@@ -60,27 +61,20 @@ export class PeqPanel {
     const channel = this.live.channelOf(block.id);
     const value = (id: string, fallback: number) => this.live.valueOf(block, channel, id) ?? fallback;
     const defaults = [80, 400, 1_000, 3_000, 8_000];
-    return Bands.map(band => {
-      const shape: FilterShape =
-        band === 1 && value('lowtype', 0) === 0
-          ? 'lowshelf'
-          : band === 5 && value('hightype', 0) === 0
-            ? 'highshelf'
-            : 'peak';
-      return {
-        band,
-        shape,
-        frequency: value(`freq${band}`, defaults[band - 1]),
-        gain: value(`gain${band}`, 0),
-        q: value(`q${band}`, 0.7071)
-      };
-    });
+    return Bands.map((band): PeqBand => ({
+      band,
+      type: band === 1 ? value('lowtype', 0) : band === 5 ? value('hightype', 0) : 1,
+      frequency: value(`freq${band}`, defaults[band - 1]),
+      gain: value(`gain${band}`, 0),
+      q: value(`q${band}`, 0.7071),
+      slope: band === 1 ? value('lowslope', 1) : value('highslope', 1)
+    }));
   });
 
   protected readonly curve = computed(() => {
     const bands = this.bands();
     const points = Frequencies.flatMap(f => {
-      const db = bands.reduce((sum, b) => sum + sectionDb(b.shape, b.frequency, b.gain, b.q, f, 48_000), 0);
+      const db = bands.reduce((sum, b) => sum + peqBandDb(b, f), 0);
       return [xOf(f), yOf(Math.max(-MaxDb, Math.min(MaxDb, db)))];
     });
     return { points, stroke: this.colors().curve, strokeWidth: 2, lineJoin: 'round' as const, listening: false };

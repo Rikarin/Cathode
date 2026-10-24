@@ -1,4 +1,5 @@
 using Cathode.Dsp.Amp;
+using Cathode.Dsp.Filters;
 using Cathode.Dsp.Parameters;
 using Cathode.Dsp.Resampling;
 using Cathode.Dsp.Wdf;
@@ -93,6 +94,42 @@ namespace Cathode.Dsp.Blocks;
 ///         </item>
 ///         <item><b>Cathode Time Const</b> (100 %): a cathode-biased power amp's bypass cap.</item>
 ///     </list>
+///     <para>
+///         Then the stages around the circuit (docs/08 §4), each off or neutral at its default and skipped while it is
+///         (helpers in <c>Amp/AmpInserts.cs</c>), all at the inner rate:
+///     </para>
+///     <list type="bullet">
+///         <item><b>Input Dynamics</b> (0 %): expands (positive) or compresses (negative) the input by its envelope.</item>
+///         <item>
+///             <b>Boost Type</b> (Off), <b>Boost Drive</b>, <b>Boost Tone</b>, <b>Boost Level</b>: a drive pedal from
+///             <see cref="DriveCircuits" /> in front of the amp (<see cref="AmpBoost" />).
+///         </item>
+///         <item>
+///             <b>Input Filter</b> (Off: shelves, peak, high- or low-pass) with its frequency, Q and gain, and
+///             <b>Definition</b> (0 %), a treble-versus-bass tilt into the preamp (<see cref="AmpInputFilter" />).
+///         </item>
+///         <item>
+///             <b>Saturation</b> (off) and <b>Saturation Drive</b>: a diode-style soft clipper between the preamp and the
+///             power amp (<see cref="AmpSaturation" />).
+///         </item>
+///         <item>
+///             <b>Output EQ</b> (Off, or a <see cref="GraphicEqualizer" /> layout) with ten band gains, at the
+///             <b>Output EQ Location</b>: the output (default), before the power amp, or the input.
+///         </item>
+///         <item>
+///             <b>Speaker Drive</b>, <b>Speaker Thump</b> at <b>Cab Resonance</b>, <b>Speaker Compression</b> with its
+///             time (all 0 = off; <see cref="SpeakerStage" />).
+///         </item>
+///         <item>
+///             <b>Output Comp</b> (Off, Output, Feedback) with amount, threshold and clarity (<see cref="AmpCompressor" />).
+///         </item>
+///         <item><b>Bias Trem Rate</b>, <b>Bias Trem Depth</b> (0 %): an LFO on the output tubes' bias, per sub-block.</item>
+///         <item><b>Balance</b> (0 %) on the stereo output.</item>
+///     </list>
+///     <para>
+///         The knobs are read on a fixed grid of <see cref="SubBlock" /> frames, so the output does not depend on the
+///         host's block size.
+///     </para>
 /// </remarks>
 public sealed class CircuitAmpBlock : DspBlock {
     public const int Type = 0;
@@ -143,6 +180,41 @@ public sealed class CircuitAmpBlock : DspBlock {
     public const int SupplyType = 49;
     public const int Rectifier = 50;
     public const int CathodeTime = 51;
+    public const int BoostType = 52;
+    public const int BoostDrive = 53;
+    public const int BoostTone = 54;
+    public const int BoostLevel = 55;
+    public const int Saturation = 56;
+    public const int SaturationDrive = 57;
+    public const int InputFilter = 58;
+    public const int InputFilterFrequency = 59;
+    public const int InputFilterQ = 60;
+    public const int InputFilterGain = 61;
+    public const int Definition = 62;
+    public const int OutputEq = 63;
+    public const int OutputEqLocation = 64;
+    public const int OutputEq1 = 65; // to OutputEq1 + 9
+    public const int InputDynamics = 75;
+    public const int CompressorType = 76;
+    public const int CompressorAmount = 77;
+    public const int CompressorThreshold = 78;
+    public const int CompressorClarity = 79;
+    public const int SpeakerDrive = 80;
+    public const int Thump = 81;
+    public const int CabResonance = 82;
+    public const int SpeakerCompression = 83;
+    public const int SpeakerCompressionTime = 84;
+    public const int TremoloRate = 85;
+    public const int TremoloDepth = 86;
+    public const int Balance = 87;
+
+    // Values of Output EQ Location.
+    public const int EqAtOutput = 0;
+    public const int EqBeforePowerAmp = 1;
+    public const int EqAtInput = 2;
+
+    /// <summary>Frames per knob reading, on a fixed grid that ignores the host's block boundaries.</summary>
+    public const int SubBlock = 64;
 
     /// <summary>Guitar volts per unit of input.</summary>
     const double InputVolts = 1;
@@ -178,16 +250,26 @@ public sealed class CircuitAmpBlock : DspBlock {
     ///     model and goes back to its default, so the new model starts as it ships
     ///     (<see cref="BlockDescriptor.TypeResets" />).
     /// </summary>
-    static readonly string[] KeptOnTypeChange = ["type", "level", "inputsel"];
+    static readonly string[] KeptOnTypeChange = ["type", "level", "balance", "inputsel"];
 
     readonly AmpChannel[] channels;
     readonly Oversampler2x oversampler = new(1);
+    readonly AmpBoost boost = new();
+    readonly AmpEqualizer equalizer = new();
+    readonly float[] eqGains = new float[GraphicEqualizer.MaxBands];
     AmpChannel active;
+    AmpInputFilter inputFilter;
+    AmpInputDynamics dynamics;
+    AmpSaturation saturation;
+    AmpCompressor compressor;
+    SpeakerStage speaker;
+    OutputStage output;
     int activeType = -1;
     int factor = 2;
+    int phase; // position on the sub-block grid
+    double tremoloPhase;
     double outputScale = 1;
     double preampScale = 1;
-    float outputGain = 1f;
 
     public static BlockDescriptor Info { get; } = Describe(
         Labelled([
@@ -250,7 +332,35 @@ public sealed class CircuitAmpBlock : DspBlock {
             Expert(ParamDescriptor.Float("btc", "B+ Time Const", 25f, 400f, 100f, "%", ParamTaper.Log)),
             ParamDescriptor.Choice("supply", "Supply Type", ["Stock", "DC", "AC 60 Hz", "AC 50 Hz"]),
             ParamDescriptor.Choice("rectifier", "Rectifier", ["Stock", "Silicon", "GZ34", "5U4", "5Y3", "EZ81"]),
-            Expert(ParamDescriptor.Float("katc", "Cathode Time Const", 25f, 400f, 100f, "%", ParamTaper.Log))
+            Expert(ParamDescriptor.Float("katc", "Cathode Time Const", 25f, 400f, 100f, "%", ParamTaper.Log)),
+            ParamDescriptor.Choice("boost", "Boost Type", AmpBoost.Types),
+            ParamDescriptor.Float("boostdrive", "Boost Drive", 0f, 10f, 3f),
+            ParamDescriptor.Float("boosttone", "Boost Tone", 0f, 10f, 5f),
+            ParamDescriptor.Float("boostlevel", "Boost Level", -20f, 20f, 0f, "dB"),
+            ParamDescriptor.Switch("saturation", "Saturation"),
+            ParamDescriptor.Float("satdrive", "Saturation Drive", 0f, 10f, 5f),
+            ParamDescriptor.Choice("infilter", "Input Filter", AmpInputFilter.Types),
+            ParamDescriptor.Float("inffreq", "Input Filter Freq", 20f, 20_000f, 1_000f, "Hz", ParamTaper.Log),
+            ParamDescriptor.Float("infq", "Input Filter Q", 0.1f, 10f, 0.7071f, string.Empty, ParamTaper.Log),
+            ParamDescriptor.Float("infgain", "Input Filter Gain", -12f, 12f, 0f, "dB"),
+            ParamDescriptor.Float("definition", "Definition", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Choice("outeq", "Output EQ", ["Off", ..GraphicEqualizer.LayoutNames]),
+            ParamDescriptor.Choice("outeqloc", "Output EQ Location", ["Output", "Pre Power Amp", "Input"]),
+            ..Enumerable.Range(1, GraphicEqualizer.MaxBands)
+                .Select(static b => ParamDescriptor.Float($"outeq{b}", $"Output EQ {b}", -12f, 12f, 0f, "dB")),
+            ParamDescriptor.Float("indyn", "Input Dynamics", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Choice("comptype", "Output Comp", AmpCompressor.Types),
+            ParamDescriptor.Float("compamount", "Output Comp Amount", 0f, 10f, 5f),
+            ParamDescriptor.Float("compthresh", "Output Comp Threshold", -60f, 0f, -20f, "dB"),
+            ParamDescriptor.Float("compclarity", "Output Comp Clarity", 0f, 10f, 0f),
+            ParamDescriptor.Float("spkdrive", "Speaker Drive", 0f, 10f, 0f),
+            ParamDescriptor.Float("thump", "Speaker Thump", 0f, 10f, 0f),
+            ParamDescriptor.Float("cabres", "Cab Resonance", 50f, 250f, 100f, "Hz", ParamTaper.Log),
+            ParamDescriptor.Float("spkcomp", "Speaker Compression", 0f, 10f, 0f),
+            ParamDescriptor.Float("spkcomptc", "Speaker Comp Time", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
+            ParamDescriptor.Float("tremrate", "Bias Trem Rate", 0.5f, 15f, 4f, "Hz", ParamTaper.Log),
+            ParamDescriptor.Float("tremdepth", "Bias Trem Depth", 0f, 100f, 0f, "%"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ])
     );
 
@@ -287,21 +397,31 @@ public sealed class CircuitAmpBlock : DspBlock {
         foreach (var channel in channels) {
             channel.SetSampleRate(spec.SampleRate * factor);
         }
+
+        dynamics.Prepare(spec.SampleRate * factor);
+        compressor.Prepare(spec.SampleRate * factor);
     }
 
     protected override void OnReset() {
         oversampler.Reset();
+        boost.Reset();
+        inputFilter.Reset();
+        dynamics.Reset();
+        equalizer.Reset();
+        saturation.Reset();
+        compressor.Reset();
+        speaker.Reset();
+        phase = 0;
+        tremoloPhase = 0;
         activeType = -1;
         Select((int)Params.Current(Type));
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var type = (int)Params.Current(Type);
         if (type != activeType) {
             Select(type);
-        } else {
-            Configure(io.Length);
         }
 
         var select = (int)Params.Current(InputSelect);
@@ -313,25 +433,114 @@ public sealed class CircuitAmpBlock : DspBlock {
             }
         }
 
-        var inner = factor == 2 ? oversampler.Up(io.Left) : io.Left;
-        var channel = active;
-        var scale = channel.PowerAmpEnabled ? outputScale : preampScale;
-        var trim = Decibels.ToGain(Params.Advance(InputTrim, io.Length));
-        for (var i = 0; i < inner.Length; i++) {
-            var y = channel.Tick(inner[i] * InputVolts * trim) * scale;
-            inner[i] = Math.Abs(y) < 1e-30 ? 0f : (float)y;
+        for (var offset = 0; offset < io.Length;) {
+            var length = Math.Min(SubBlock - phase, io.Length - offset);
+            ProcessChunk(io.Left.Slice(offset, length));
+            offset += length;
+            phase = (phase + length) % SubBlock;
         }
 
         if (factor == 2) {
-            oversampler.Down(io.Left);
             oversampler.FlushDenormals();
         }
 
-        channel.FlushDenormals();
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        active.FlushDenormals();
+        equalizer.FlushDenormals();
         io.Left.CopyTo(io.Right);
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
+    }
+
+    /// <summary>
+    ///     One sub-block of the grid: the knobs, then at the inner rate the input stages (dynamics, boost, filter and
+    ///     Definition, an input EQ), the amp (with the saturation and a pre-power-amp EQ between preamp and power amp),
+    ///     and the output stages (EQ, speaker, compressor). Each insert is skipped while it is off.
+    /// </summary>
+    void ProcessChunk(Span<float> samples) {
+        var length = samples.Length;
+        Configure(length);
+        var innerRate = Spec.SampleRate * factor;
+        var trim = Decibels.ToGain(Params.Advance(InputTrim, length));
+        var boostDrive = Params.Advance(BoostDrive, length);
+        var boostTone = Params.Advance(BoostTone, length);
+        var boostLevel = Params.Advance(BoostLevel, length);
+        boost.Configure((int)Params.Current(BoostType), boostDrive, boostTone, boostLevel, innerRate);
+        inputFilter.Design(
+            (int)Params.Current(InputFilter),
+            Params.Advance(InputFilterFrequency, length),
+            Params.Advance(InputFilterQ, length),
+            Params.Advance(InputFilterGain, length),
+            Params.Advance(Definition, length) / 100.0,
+            innerRate
+        );
+        for (var b = 0; b < eqGains.Length; b++) {
+            eqGains[b] = Params.Advance(OutputEq1 + b, length);
+        }
+
+        equalizer.Design((int)Params.Current(OutputEq) - 1, eqGains, innerRate);
+        var location = equalizer.IsActive ? (int)Params.Current(OutputEqLocation) : -1;
+        var saturate = Params.Current(Saturation) >= 0.5f;
+        var satDrive = Decibels.ToGain(Params.Advance(SaturationDrive, length) * (AmpSaturation.MaxDriveDb / 10));
+        if (!saturate) {
+            saturation.Reset();
+        }
+
+        var inner = factor == 2 ? oversampler.Up(samples) : samples;
+        dynamics.Process(inner, Params.Advance(InputDynamics, length) / 100f);
+        boost.Process(inner);
+        inputFilter.Process(inner);
+        if (location == EqAtInput) {
+            equalizer.Process(inner);
+        }
+
+        var channel = active;
+        var scale = channel.PowerAmpEnabled ? outputScale : preampScale;
+        if (saturate || location == EqBeforePowerAmp) {
+            var eq = location == EqBeforePowerAmp;
+            for (var i = 0; i < inner.Length; i++) {
+                var x = channel.TickPreamp(inner[i] * InputVolts * trim);
+                if (saturate) {
+                    x = saturation.Tick(x, preampScale, satDrive);
+                }
+
+                if (eq) {
+                    x = equalizer.Tick(x);
+                }
+
+                var y = channel.TickPowerAmp(x) * scale;
+                inner[i] = Math.Abs(y) < 1e-30 ? 0f : (float)y;
+            }
+        } else {
+            for (var i = 0; i < inner.Length; i++) {
+                var y = channel.Tick(inner[i] * InputVolts * trim) * scale;
+                inner[i] = Math.Abs(y) < 1e-30 ? 0f : (float)y;
+            }
+        }
+
+        if (location == EqAtOutput) {
+            equalizer.Process(inner);
+        }
+
+        speaker.Process(
+            inner,
+            Params.Advance(SpeakerDrive, length),
+            Params.Advance(Thump, length),
+            Params.Advance(CabResonance, length),
+            Params.Advance(SpeakerCompression, length),
+            Params.Advance(SpeakerCompressionTime, length),
+            innerRate
+        );
+        compressor.Process(
+            inner,
+            (int)Params.Current(CompressorType),
+            Params.Advance(CompressorAmount, length),
+            Params.Advance(CompressorThreshold, length),
+            Params.Advance(CompressorClarity, length),
+            innerRate
+        );
+
+        if (factor == 2) {
+            oversampler.Down(samples);
+        }
     }
 
     static BlockDescriptor Describe(IReadOnlyList<ParamDescriptor> parameters) =>
@@ -376,6 +585,26 @@ public sealed class CircuitAmpBlock : DspBlock {
         active.Reset();
     }
 
+    /// <summary>
+    ///     Bias tremolo: the output tubes' bias swung by a sine at Trem Rate, Trem Depth 100 % taking it the whole way
+    ///     from cold to hot (the Bias control's range) around the knob's setting. Read once per sub-block.
+    /// </summary>
+    double Tremolo(double bias, int frames) {
+        var depth = Params.Advance(TremoloDepth, frames) / 100.0;
+        var rate = Params.Advance(TremoloRate, frames);
+        if (depth == 0) {
+            tremoloPhase = 0;
+            return bias;
+        }
+
+        tremoloPhase += 2 * Math.PI * rate * frames / Spec.SampleRate;
+        if (tremoloPhase >= 2 * Math.PI) {
+            tremoloPhase -= 2 * Math.PI;
+        }
+
+        return Math.Clamp(bias + 0.5 * depth * Math.Sin(tremoloPhase), 0, 1);
+    }
+
     /// <summary>The knobs, advanced over <paramref name="frames" />, applied to the active amp.</summary>
     void Configure(int frames) {
         static double Knob(float value) => value / 10.0;
@@ -405,13 +634,18 @@ public sealed class CircuitAmpBlock : DspBlock {
                 Params.Advance(Eq1 + 4, frames)
             )
         );
+        var feedback = Knob(Params.Advance(Feedback, frames));
+        if (design.Power.FeedbackOffSwitch is { } off && preamp.IsOn(off)) {
+            feedback = 0;
+        }
+
         var power = new PowerControls(
             Knob(Params.Advance(Presence, frames)),
             Knob(Params.Advance(Depth, frames)),
             Knob(Params.Advance(Cut, frames)),
             Knob(Params.Advance(Sag, frames)),
-            Params.Advance(Bias, frames) / 100.0,
-            Knob(Params.Advance(Feedback, frames)),
+            Tremolo(Params.Advance(Bias, frames) / 100.0, frames),
+            feedback,
             preamp.Master
         );
 

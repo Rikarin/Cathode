@@ -15,8 +15,8 @@ namespace Cathode.Dsp.Tests;
 ///     first is a <see cref="TriodeStage" />, whose Thévenin resistance treats a partly bypassed cathode (1.8k ‖ 1 µF) as
 ///     grounded, and to -60 dB where it is a network stage, which uses the 1 kHz impedance. Driven hard, the cut's
 ///     linearised plate is the main error, worst behind a cold clipper with a plate bypass cap (SLO-100, 5150III) whose
-///     next stage draws grid current: -17 and -9 dB there (-26 and -19 dB with the cap removed), -60 dB on the
-///     Rectifier's chain, which has no plate cap.
+///     next stage draws grid current: -17 and -9 dB there (-26 and -19 dB with the cap removed). The Rectifier's chain
+///     was -60 dB while it followed a redraw without the plate cap; the factory drawing has 1 nF there, and it is -8 dB.
 /// </remarks>
 public partial class AmpStageTests {
     public static TheoryData<string, bool, double, double> ColdClipperChains => new() {
@@ -26,7 +26,7 @@ public partial class AmpStageTests {
         { "SLO-100", true, 0.05, -28 },
         { "5150", false, 0.002, -25 },
         { "5150", false, 0.05, -20 },
-        { "Dual Rectifier", false, 0.05, -50 },
+        { "Dual Rectifier", false, 0.05, -5 },
         { "5150III", false, 0.05, -6 },
         { "Legacy VL100", false, 0.002, -21 },
         { "Legacy VL100", false, 0.05, -14 },
