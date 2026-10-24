@@ -191,7 +191,7 @@ Ordered by value to a guitarist:
   - Mappings (CC, note or PC) cover scene, preset slot or next/previous, bypass, channel, External, Manual, tap, tuner, metronome and the looper. Actions run strictly in arrival order.
   - MIDI learn works from the Global page or from any knob ("Learn MIDI controller" binds a free External source). There is a live monitor.
 - [x] **Footswitch layouts:** tap and hold (500 ms) actions per switch, LED feedback (CC or note, 127/0, sent only on change), and an editor on the Global page.
-- [x] **Looper:** stereo, 60 s, at the end of the rig so it survives preset changes. Overdub has a one-pass undo layer, plus reverse, half speed and WAV export. **Metronome** (accented, never recorded). Both are in the toolbar.
+- [x] **Looper:** stereo, 60 s, at the end of the rig so it survives preset changes. Overdub has a one-pass undo layer, plus reverse, half speed and WAV export. **Metronome** (accented, never recorded). Both are in the toolbar. 🆕 The same looper is also a grid block (`looper`, docs/08 §6.14) with the Blocks Guide's Config page; the transport drives it while its preset is running.
 - [x] **Global blocks:** a block can be made global, use a global or be unlinked. Linked blocks take the library's settings on load, and editing one updates the library. There is also a **global output EQ** (10 bands plus level).
 
 **Exit:** a live set of 10 presets × 8 scenes runs with a MIDI foot controller, with no gaps or clicks, verified by HIL soak with scene storms.

@@ -235,10 +235,11 @@ Budget for **two graphs alive at once** during a preset change.
   2. the graph's modifiers
   3. the graph, plus the spilling tail graph
   4. the scene level
-  5. the looper
+  5. the rig looper
   6. the global EQ
   7. the metronome
 - **Rig settings** live in one parameter bank (`rig`) that IPC reaches without a graph generation, so scene and tempo changes never recompile.
+- **Looper:** one core (`Cathode.Dsp.Looping.Looper`) serves the rig looper and the `looper` grid block. While the running graph holds a Looper block (`ILooperBlock`, found by `CompiledGraph.Looper`), the looper commands, telemetry and WAV export go to it; otherwise to the rig looper. A grid loop belongs to its preset: a swap stops the outgoing graph's looper (it fades out in the spillover), and a preset that brings a Looper block stops the rig looper. The loop memory (up to 300 s) is zeroed lazily by the OS, so only what is recorded is committed.
 - **Spillover:** the old graph retires after 4.1 s of silence (longer than any delay repeat), or 12 s.
 - **MIDI** is read by the host (CoreMIDI), stamped with engine sample time, and routed by the Server's `MidiRouter`. The router owns learn, mappings and footswitches, and drives LEDs.
 
