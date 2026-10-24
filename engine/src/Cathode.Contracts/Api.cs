@@ -20,10 +20,20 @@ public sealed record PresetSummary(
     string Name,
     string? Author,
     IReadOnlyList<string> Tags,
-    DateTimeOffset Modified
+    DateTimeOffset Modified,
+    string? Color = null,
+    bool Favorite = false
 );
 
-public sealed record AssetInfo(string Ref, string Name, string Kind, long Size, DateTimeOffset Added);
+public sealed record AssetInfo(
+    string Ref,
+    string Name,
+    string Kind,
+    long Size,
+    DateTimeOffset Added,
+    string? Color = null,
+    bool Favorite = false
+);
 
 /// <summary>
 ///     Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole
@@ -153,7 +163,8 @@ public sealed record RigEvent(
 /// <summary>
 ///     Pushed over the WebSocket about 30 times a second. <c>Blocks</c> is each grid block's output peak since the last
 ///     frame, by block id; the loudness is the output's ITU-R BS.1770 momentary (400 ms) and short-term (3 s) level in
-///     LUFS. Both come from the shared-memory telemetry and are absent without it.
+///     LUFS. Both come from the shared-memory telemetry and are absent without it. <c>BlockMeters</c> are the meters
+///     blocks keep of their own (<see cref="BlockMeterInfo" />), about ten times a second.
 /// </summary>
 public sealed record Telemetry(
     string Type,
@@ -168,8 +179,15 @@ public sealed record Telemetry(
     Dictionary<string, float>? Blocks = null,
     float? LoudnessMomentary = null,
     float? LoudnessShortTerm = null,
-    float[]? OutputPeaks = null
+    float[]? OutputPeaks = null,
+    IReadOnlyList<BlockMeterInfo>? BlockMeters = null
 );
+
+/// <summary>
+///     A block's own meters by id, in dB: the Cab's <c>preampIn</c> (the level into the mic preamp, 0 at the onset of
+///     clipping) and <c>motorReduction</c> (Motor Drive's gain reduction). About ten times a second.
+/// </summary>
+public sealed record BlockMeterInfo(string Block, IReadOnlyDictionary<string, float> Meters);
 
 /// <summary>
 ///     Pushed about 30 times a second while the scope is on (<c>PUT /api/v1/scope</c>): the most recent output samples

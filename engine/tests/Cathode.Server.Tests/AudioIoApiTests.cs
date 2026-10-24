@@ -14,7 +14,7 @@ public sealed class AudioIoApiTests : IAsyncLifetime {
 
     public async ValueTask InitializeAsync() {
         client = await server.ConnectedClientAsync();
-        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 0, 2));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", Preset.DefaultRow, 2));
     }
 
     public async ValueTask DisposeAsync() {
@@ -64,11 +64,11 @@ public sealed class AudioIoApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Output_2_is_a_grid_output_and_nothing_leaves_it() {
-        await Post("/api/v1/live/blocks", new AddBlockRequest("output2", 1, 3));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("output2", Preset.DefaultRow + 1, 3));
         await Post("/api/v1/live/cables", new CableRequest("drive1", "out2"));
 
         await ServerFixture.Eventually(() => server.Graph?.HasOutput(1) == true);
-        await Post("/api/v1/live/blocks", new AddBlockRequest("volpan", 1, 4));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("volpan", Preset.DefaultRow + 1, 4));
         using var outOfOutput = await client.PostAsJsonAsync(
             "/api/v1/live/cables",
             new CableRequest("out2", "volpan1"),
@@ -79,7 +79,7 @@ public sealed class AudioIoApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task The_test_tone_plays_for_a_block_without_touching_the_preset() {
-        await Post("/api/v1/live/blocks", new AddBlockRequest("circuitamp", 0, 3));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("circuitamp", Preset.DefaultRow, 3));
         var before = (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!;
 
         await Ok(client.PutAsJsonAsync("/api/v1/live/blocks/circuitamp1/test-tone", new TestToneRequest(true, 110), Token));

@@ -17,10 +17,13 @@ public readonly record struct ProcessSpec(double SampleRate, int MaxBlockSize) {
 ///     (<see cref="EffectsMix" />).
 /// </param>
 /// <param name="GateOffsetDb">The global noise gate offset, added to the Input node's gate threshold.</param>
+/// <param name="CabsOff">
+///     The global cab modelling switch is off (a player using a real cab): Cab and IR Player blocks pass audio through.
+/// </param>
 /// <param name="InputCalibrationDb">
 ///     Input 1's calibration: the volts at the instrument jack that reach full scale, in dB re 1 V (0 = 1 V, the
-///     default). Blocks that model circuits by voltage (the Circuit Amp, Drive and Dynamic Distortion) scale their
-///     input by <see cref="InputVolts" />, so the drive they get does not depend on the interface's gain.
+///     default). Blocks that model circuits by voltage (the Circuit Amp and Drive) scale their input by
+///     <see cref="InputVolts" />, so the drive they get does not depend on the interface's gain.
 /// </param>
 public readonly record struct BlockContext(
     double SampleRate,
@@ -29,6 +32,7 @@ public readonly record struct BlockContext(
     HeldNotes Notes = default,
     float MixOffset = 0f,
     float GateOffsetDb = 0f,
+    bool CabsOff = false,
     float InputCalibrationDb = 0f
 ) {
     /// <summary>Volts at the instrument jack per unit of signal (<see cref="InputCalibrationDb" />).</summary>

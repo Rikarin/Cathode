@@ -51,6 +51,47 @@
         }
       }
     },
+    "/api/v1/assets/{reference}/metadata": {
+      "patch": {
+        "tags": [
+          "Assets"
+        ],
+        "summary": "Renames an asset or sets its colour tag or favourite flag.",
+        "operationId": "SetAssetMetadata",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetMetadataRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/tuner": {
       "put": {
         "tags": [
@@ -773,6 +814,77 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/blocks/{id}/ir": {
+      "get": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "A Cab block\u0027s current mixed IR (every slot that plays, DynaCab and IR pack slots included, cuts and smoothing baked in) as a stereo .wav at the engine\u0027s rate.",
+        "operationId": "ExportCabIr",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "audio/wav": {
+                "schema": {
+                  "type": "string",
+                  "format": "byte"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Saves a Cab block\u0027s current mixed IR as a new IR asset.",
+        "operationId": "SaveCabIr",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CabExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetInfo"
                 }
               }
             }
@@ -1636,6 +1748,500 @@
         }
       }
     },
+    "/api/v1/live/revert": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Discards the edits: the working copy goes back to the saved version (undoable).",
+        "operationId": "RevertPreset",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/clear": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Empties the grid and the name, keeping the preset\u0027s id (undoable).",
+        "operationId": "ClearPreset",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/snapshots": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Stores the working copy, unsaved edits included, as a timestamped snapshot.",
+        "operationId": "TakeSnapshot",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnapshotRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/snapshots/{id}/load": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Puts a snapshot into the working copy (undoable).",
+        "operationId": "LoadSnapshot",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/templates": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Saves the working copy as a template.",
+        "operationId": "SaveTemplate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresetSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/templates/{id}/new": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Starts a new preset (a fresh id) from a template.",
+        "operationId": "NewFromTemplate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/blocks/{id}/type": {
+      "put": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Replaces a block with a new block of another type in its cell, keeping its cables.",
+        "operationId": "ReplaceBlock",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceBlockRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/blocks/{id}/drop": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Drops a block on another: swap exchanges their cells (the cables stay put), replace takes the target\u0027s cell and cables.",
+        "operationId": "DropBlock",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DropBlockRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/grid/move": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Moves a whole row or column, shifting the ones between.",
+        "operationId": "MoveGridLine",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveLineRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/blocks/{id}/cables": {
+      "delete": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Removes every cable into and out of a block.",
+        "operationId": "DisconnectBlock",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/blocks/{id}/settings": {
+      "put": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Replaces every channel (and the assets) of a block with another same-type block\u0027s.",
+        "operationId": "PasteBlockSettings",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlockSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/blocks/{id}/all-scenes": {
+      "put": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Sets a block\u0027s bypass and/or channel in every scene.",
+        "operationId": "SetBlockInAllScenes",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AllScenesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/perform": {
+      "put": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Replaces the preset\u0027s performance page.",
+        "operationId": "SetPerformPage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PerformControl"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/footswitch-overrides": {
+      "put": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Replaces the preset\u0027s own footswitch actions.",
+        "operationId": "SetFootswitchOverrides",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FootswitchOverride"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/block-presets": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Saves every block of the working copy (all channels and modifiers) to the Block Library.",
+        "operationId": "SaveAllBlocks",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveAllBlocksRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BlockPreset"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/live/blocks/{id}/test-tone": {
       "put": {
         "tags": [
@@ -2400,6 +3006,315 @@
         }
       }
     },
+    "/api/v1/snapshots": {
+      "get": {
+        "tags": [
+          "Snapshots"
+        ],
+        "summary": "Snapshots, newest first; of one preset when ?preset= is given.",
+        "operationId": "ListSnapshots",
+        "parameters": [
+          {
+            "name": "preset",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SnapshotSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/snapshots/{id}": {
+      "delete": {
+        "tags": [
+          "Snapshots"
+        ],
+        "operationId": "DeleteSnapshot",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/templates": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "operationId": "ListTemplates",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PresetSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/templates/{id}": {
+      "delete": {
+        "tags": [
+          "Templates"
+        ],
+        "operationId": "DeleteTemplate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/presets/{id}/metadata": {
+      "patch": {
+        "tags": [
+          "Presets"
+        ],
+        "summary": "Renames a preset or sets its colour tag or favourite flag, stored and live.",
+        "operationId": "SetPresetMetadata",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresetMetadataRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/presets/{id}/duplicate": {
+      "post": {
+        "tags": [
+          "Presets"
+        ],
+        "operationId": "DuplicatePreset",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DuplicatePresetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresetSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/presets/reset-amps": {
+      "post": {
+        "tags": [
+          "Presets"
+        ],
+        "summary": "Sets every Circuit Amp parameter of the presets back to its default, except the model\u0027s front-panel controls.",
+        "operationId": "ResetAmpBlocks",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresetBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/presets/batch-set": {
+      "post": {
+        "tags": [
+          "Presets"
+        ],
+        "summary": "Sets one parameter on the matching block (same id and type) of each preset.",
+        "operationId": "BatchSetParameter",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchSetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/block-presets/export": {
+      "post": {
+        "tags": [
+          "Block Library"
+        ],
+        "summary": "Block Library entries as a .cthblock file.",
+        "operationId": "ExportBlockPresets",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlockPresetExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockPresetFile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/block-presets/import": {
+      "post": {
+        "tags": [
+          "Block Library"
+        ],
+        "summary": "Adds the entries of a .cthblock file as new user entries.",
+        "operationId": "ImportBlockPresets",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlockPresetFile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BlockPreset"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/assets": {
       "get": {
         "tags": [
@@ -2426,6 +3341,7 @@
         "tags": [
           "Assets"
         ],
+        "summary": "Uploads an asset. A .wav IR can be processed on import: processing (asIs, autoTrim, minimumPhase), polarity (make the main peak positive), channels (both, left, right, sum) and maxLengthMs.",
         "operationId": "UploadAsset",
         "parameters": [
           {
@@ -2434,6 +3350,35 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "processing",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "polarity",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "channels",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maxLengthMs",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
             }
           }
         ],
@@ -2572,9 +3517,28 @@
           }
         }
       },
+      "AllScenesRequest": {
+        "type": "object",
+        "properties": {
+          "bypassed": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "channel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Sets a block\u0027s bypass and/or channel in every scene; null leaves that part alone."
+      },
       "ApplyBlockPresetRequest": {
         "required": [
-          "preset"
+          "preset",
+          "allChannels"
         ],
         "type": "object",
         "properties": {
@@ -2586,9 +3550,13 @@
               "null",
               "string"
             ]
+          },
+          "allChannels": {
+            "type": "boolean",
+            "default": false
           }
         },
-        "description": "Sets a block\u0027s channel (default: the one the active scene uses) to a block preset."
+        "description": "Sets a block\u0027s channel (default: the one the active scene uses) to a block preset, or with \u0060AllChannels\u0060\nevery channel (a whole-block entry\u0027s own channels, modifiers and assets)."
       },
       "AssetInfo": {
         "required": [
@@ -2596,7 +3564,8 @@
           "name",
           "kind",
           "size",
-          "added"
+          "added",
+          "favorite"
         ],
         "type": "object",
         "properties": {
@@ -2616,8 +3585,42 @@
           "added": {
             "type": "string",
             "format": "date-time"
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "favorite": {
+            "type": "boolean",
+            "default": false
           }
         }
+      },
+      "AssetMetadataRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "favorite": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        },
+        "description": "An asset\u0027s metadata; null leaves a field alone, an empty colour clears it."
       },
       "AssetRequest": {
         "required": [
@@ -2654,6 +3657,66 @@
         },
         "description": "Numbered preset slots, as a MIDI program change addresses them (0-127)."
       },
+      "BatchResult": {
+        "required": [
+          "changed",
+          "skipped"
+        ],
+        "type": "object",
+        "properties": {
+          "changed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Presets changed by a batch operation, and those it left alone (no matching block, or not found)."
+      },
+      "BatchSetRequest": {
+        "required": [
+          "presets",
+          "block",
+          "type",
+          "param",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "presets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "block": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "param": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "float"
+          },
+          "channel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Parameter Batch Set: \u0060Param\u0060 = \u0060Value\u0060 on the block with id \u0060Block\u0060 and type \u0060Type\u0060 in each\npreset, on \u0060Channel\u0060 (every channel when null)."
+      },
       "BlockPreset": {
         "required": [
           "id",
@@ -2685,9 +3748,120 @@
               "format": "float"
             },
             "description": "Parameter values by id. Sparse: anything not listed takes the block type\u0027s default."
+          },
+          "folder": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A folder (category) in the Library, or null for the top level."
+          },
+          "channels": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "number",
+                "format": "float"
+              }
+            },
+            "description": "A whole-block entry: every channel\u0027s values (Dictionary\u0026lt;string, float\u0026gt; BlockPreset.Values is then the channel it was saved from).\nNull for a single-channel entry."
+          },
+          "modifiers": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/PresetModifier"
+            },
+            "description": "A whole-block entry\u0027s modifiers, with \u0060Block\u0060 left empty: recalled onto the target block."
+          },
+          "assets": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "A whole-block entry\u0027s assets (IRs, captures) by slot."
           }
         },
         "description": "A named setting of one block type, kept in the Block Library: the factory\u0027s (the guide\u0027s \u0022types\u0022 that are\npresets of the same algorithm, such as the many choruses, flangers and reverbs) and the user\u0027s own. Applying one\nsets a channel of a block to it; it never adds a Type parameter that would fight the knobs."
+      },
+      "BlockPresetExportRequest": {
+        "required": [
+          "ids"
+        ],
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "BlockPresetFile": {
+        "required": [
+          "format",
+          "version",
+          "presets"
+        ],
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "presets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BlockPreset"
+            }
+          }
+        },
+        "description": "A file of Block Library entries, as exported and imported (\u0060.cthblock\u0060)."
+      },
+      "BlockSettingsRequest": {
+        "required": [
+          "type",
+          "channels"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "channels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "number",
+                "format": "float"
+              }
+            }
+          },
+          "assets": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "A block\u0027s settings (every channel, and its assets) pasted onto a block of the same type."
       },
       "BlockTypeInfo": {
         "required": [
@@ -2783,6 +3957,19 @@
         },
         "description": "The Cab block\u0027s Align page (\u0060GET /api/v1/live/blocks/{id}/cab/align\u0060): each slot\u0027s IR head on the active\nchannel, so slots can be lined up by eye."
       },
+      "CabExportRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "File name for the result (\u0022.wav\u0022 is added)."
+          }
+        },
+        "description": "Saves a Cab block\u0027s current mixed IR as a new IR asset."
+      },
       "CableRequest": {
         "required": [
           "from",
@@ -2867,6 +4054,41 @@
             "type": "string"
           }
         }
+      },
+      "DropBlockRequest": {
+        "required": [
+          "target",
+          "mode"
+        ],
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "default": "swap"
+          }
+        },
+        "description": "Drops block \u0060{id}\u0060 on \u0060Target\u0060: \u0060swap\u0060 exchanges their cells, \u0060replace\u0060 takes its place."
+      },
+      "DuplicatePresetRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Copies a stored preset under \u0060Id\u0060 (a new one when null) and \u0060Name\u0060 (the original\u0027s plus \u0022copy\u0022)."
       },
       "EngineStatus": {
         "required": [
@@ -2987,7 +4209,8 @@
           "number",
           "tap",
           "hold",
-          "led"
+          "led",
+          "view"
         ],
         "type": "object",
         "properties": {
@@ -3025,9 +4248,20 @@
           "led": {
             "type": "boolean",
             "default": true
+          },
+          "view": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "link": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "One switch: the message it sends (a CC or note; value 64 or more is \u0022down\u0022), what a tap does, what holding it for\nhalf a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is\nactive, 0 when not)."
+        "description": "One switch: the message it sends (a CC or note; value 64 or more is \u0022down\u0022), what a tap does, what holding it for\nhalf a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is\nactive, 0 when not). It answers only while its \u0060View\u0060 is the active one, and a \u0060Link\u0060 (a layout id)\nswitches to that layout after its tap action."
       },
       "FootswitchLayout": {
         "required": [
@@ -3048,9 +4282,56 @@
             "items": {
               "$ref": "#/components/schemas/Footswitch"
             }
+          },
+          "views": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         },
-        "description": "A set of footswitches on a generic MIDI foot controller."
+        "description": "A set of footswitches on a generic MIDI foot controller. \u0060Views\u0060 names its pages of switches (each switch\nsays which int Footswitch.View it is on); none means one page."
+      },
+      "FootswitchOverride": {
+        "required": [
+          "layout",
+          "index",
+          "tap",
+          "hold"
+        ],
+        "type": "object",
+        "properties": {
+          "layout": {
+            "type": "string"
+          },
+          "index": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tap": {
+            "$ref": "#/components/schemas/SwitchAction"
+          },
+          "hold": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SwitchAction"
+              }
+            ]
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A preset\u0027s own action for one switch of a footswitch layout: while the preset is loaded, the switch at\n\u0060Index\u0060 of layout \u0060Layout\u0060 does this instead of what the layout says."
       },
       "GlobalBlock": {
         "required": [
@@ -3099,6 +4380,7 @@
           "metronomeLevel",
           "effectsMix",
           "noiseGateOffset",
+          "cabModelingOff",
           "outputs",
           "copyOutput1To2",
           "inputs",
@@ -3107,7 +4389,9 @@
           "midiChannel",
           "midiMappings",
           "footswitches",
+          "activeView",
           "blocks",
+          "perform",
           "sceneRevert",
           "defaultScene",
           "ignoreRedundantPc",
@@ -3145,6 +4429,10 @@
             "type": "number",
             "description": "Noise gate offset in dB (\u221220..20), added to every Input block\u0027s gate threshold.",
             "format": "float"
+          },
+          "cabModelingOff": {
+            "type": "boolean",
+            "description": "Cab modeling off: every Cab and IR Player block passes audio through, for playing into a real speaker cabinet\nwithout changing the presets."
           },
           "outputs": {
             "type": "array",
@@ -3200,11 +4488,23 @@
             ],
             "description": "The layout in use, by id."
           },
+          "activeView": {
+            "type": "integer",
+            "description": "The view (page of switches) of the active layout that is in use, 0 for the first.",
+            "format": "int32"
+          },
           "blocks": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/GlobalBlock"
             }
+          },
+          "perform": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PerformControl"
+            },
+            "description": "The global performance page: controls shown in every preset that has their block."
           },
           "sceneRevert": {
             "type": "boolean",
@@ -3552,7 +4852,7 @@
             "format": "int32"
           }
         },
-        "description": "A MIDI message bound to an action. \u0060Message\u0060 is cc, note or pc; \u0060Channel\u0060 0 means any. Actions:\nscene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank\nid, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,\nValue = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,\nmetronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), sceneLevelUp and\nsceneLevelDown (the active scene\u0027s level by \u00B11 dB, then save the preset), save (save the preset). A CC mapped to\nscene without a Value selects the scene its value names (0-7), and a value above 63 steps to the next scene."
+        "description": "A MIDI message bound to an action. \u0060Message\u0060 is cc, note or pc; \u0060Channel\u0060 0 means any. Actions:\nscene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank\nid, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,\nValue = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,\nmetronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), sceneLevelUp and\nsceneLevelDown (the active scene\u0027s level by \u00B11 dB, then save the preset), save (save the preset), layout\n(Target = layout id), view (Value = view index), viewNext, viewPrevious. A CC mapped to scene without a Value\nselects the scene its value names (0-7), and a value above 63 steps to the next scene."
       },
       "MoveBlockRequest": {
         "required": [
@@ -3570,6 +4870,28 @@
             "format": "int32"
           }
         }
+      },
+      "MoveLineRequest": {
+        "required": [
+          "axis",
+          "from",
+          "to"
+        ],
+        "type": "object",
+        "properties": {
+          "axis": {
+            "type": "string"
+          },
+          "from": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "to": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Moves a whole row or column (\u0060Axis\u0060) from one index to another, shifting the ones between."
       },
       "OutputSettings": {
         "required": [
@@ -3660,6 +4982,28 @@
         },
         "description": "A block parameter. \u0060TypeLabels\u0060, where present, names the parameter per value of the block\u0027s \u0060type\u0060\nparameter (an amp model\u0027s own name for a generic control), empty where that type lacks the control: hide it there."
       },
+      "PerformControl": {
+        "required": [
+          "block",
+          "param"
+        ],
+        "type": "object",
+        "properties": {
+          "block": {
+            "type": "string"
+          },
+          "param": {
+            "type": "string"
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One control on a performance page: a parameter of a block, by the block\u0027s id (\u0060amp1\u0060) so a global page\nworks in every preset that has that block. \u0060Label\u0060 overrides the parameter\u0027s name."
+      },
       "Preset": {
         "required": [
           "schemaVersion",
@@ -3674,6 +5018,9 @@
           "scenes",
           "modifiers",
           "controllers",
+          "favorite",
+          "perform",
+          "footswitchOverrides",
           "savedScene"
         ],
         "type": "object",
@@ -3745,6 +5092,30 @@
             },
             "description": "Controller settings (LFO rates and shapes, ADSR times, envelope and sequencer settings) by rig parameter id,\ne.g. \u0060lfo1Rate\u0060. Sparse: missing ones take their default."
           },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A colour tag for pickers and Manage Presets (a CSS colour name or hex), or null."
+          },
+          "favorite": {
+            "type": "boolean"
+          },
+          "perform": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PerformControl"
+            },
+            "description": "The preset\u0027s performance page: the controls it puts in front of a player."
+          },
+          "footswitchOverrides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FootswitchOverride"
+            },
+            "description": "Switches of the global footswitch layouts that do something else while this preset is loaded."
+          },
           "savedScene": {
             "type": "integer",
             "description": "The scene that was active when the preset was saved: where it starts when the global Default Scene is As Saved.",
@@ -3752,6 +5123,20 @@
           }
         },
         "description": "A complete rig: grid, blocks with up to four channels each, cables and eight scenes. Parameter values are stored\nsparsely; anything not listed takes the block type\u0027s default, so new parameters need no migration."
+      },
+      "PresetBatchRequest": {
+        "required": [
+          "presets"
+        ],
+        "type": "object",
+        "properties": {
+          "presets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
       },
       "PresetBlock": {
         "required": [
@@ -3834,6 +5219,30 @@
           }
         }
       },
+      "PresetMetadataRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "favorite": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        },
+        "description": "A preset\u0027s metadata, changed in place; null leaves a field alone, an empty colour clears it."
+      },
       "PresetModifier": {
         "required": [
           "block",
@@ -3891,6 +5300,7 @@
         "required": [
           "id",
           "name",
+          "favorite",
           "tags",
           "modified"
         ],
@@ -3917,8 +5327,30 @@
           "modified": {
             "type": "string",
             "format": "date-time"
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "favorite": {
+            "type": "boolean",
+            "default": false
           }
         }
+      },
+      "ReplaceBlockRequest": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          }
+        },
+        "description": "Replaces a block with a new one of \u0060Type\u0060 in the same cell, keeping its cables."
       },
       "RtaRequest": {
         "required": [
@@ -3948,6 +5380,18 @@
           }
         },
         "description": "Turns the RTA on or off and sets how it analyses: \u0060BandsPerOctave\u0060 3, 6 or 12 (about 30, 60 or 120 bands),\n\u0060DecayMs\u0060 how long a level takes to fall away (0 = each frame stands alone), and \u0060Window\u0060 hann,\nblackmanHarris, flatTop or rectangular."
+      },
+      "SaveAllBlocksRequest": {
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Saves every block of the working copy (all channels and modifiers) to the Block Library."
       },
       "SaveRequest": {
         "required": [
@@ -4193,6 +5637,41 @@
           }
         }
       },
+      "SnapshotRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SnapshotSummary": {
+        "required": [
+          "id",
+          "presetId",
+          "name",
+          "created"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "presetId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "SpeakerResonanceInfo": {
         "required": [
           "baseHz",
@@ -4257,6 +5736,17 @@
           },
           "engine": {
             "$ref": "#/components/schemas/EngineStatus"
+          }
+        }
+      },
+      "TemplateRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
           }
         }
       },
@@ -4349,6 +5839,9 @@
       "name": "cathode-server"
     },
     {
+      "name": "Assets"
+    },
+    {
       "name": "Catalog"
     },
     {
@@ -4376,7 +5869,10 @@
       "name": "MIDI"
     },
     {
-      "name": "Assets"
+      "name": "Snapshots"
+    },
+    {
+      "name": "Templates"
     }
   ]
 }

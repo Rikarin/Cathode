@@ -189,6 +189,18 @@ public sealed class HostTelemetry {
     ///     the global EQ and Boost/Pad). Refilled in place.
     /// </summary>
     public float[] OutputPeaks { get; set; } = new float[4];
+
+    /// <summary>The meters of blocks that have their own (the Cab's preamp input and Motor Drive), or null.</summary>
+    public List<HostBlockMeters>? Blocks { get; set; }
+}
+
+/// <summary>One block's meters (<c>IBlockMeters</c>); refilled in place for every push, like the rest.</summary>
+public sealed class HostBlockMeters {
+    public string Block { get; set; } = string.Empty;
+
+    public string[] Ids { get; set; } = [];
+
+    public float[] Values { get; set; } = [];
 }
 
 /// <summary>

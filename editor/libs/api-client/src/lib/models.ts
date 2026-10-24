@@ -32,6 +32,12 @@ export type GlobalBlock = Schemas['GlobalBlock'];
 export type IrMixRequest = Schemas['IrMixRequest'];
 export type IrMixSource = Schemas['IrMixSource'];
 export type ToneMatchRequest = Schemas['ToneMatchRequest'];
+export type PerformControl = Schemas['PerformControl'];
+export type FootswitchOverride = Schemas['FootswitchOverride'];
+export type SnapshotSummary = Schemas['SnapshotSummary'];
+export type BlockPresetFile = Schemas['BlockPresetFile'];
+export type BatchResult = Schemas['BatchResult'];
+export type Bank = Schemas['Bank'];
 export type ScenePairRequest = Schemas['ScenePairRequest'];
 
 /** Modifier sources (Cathode.Engine.Rig.ModNames). */
@@ -83,7 +89,11 @@ export const MidiActions = [
   'looper',
   'sceneLevelUp',
   'sceneLevelDown',
-  'save'
+  'save',
+  'layout',
+  'view',
+  'viewNext',
+  'viewPrevious'
 ] as const;
 
 export const LooperActions = ['record', 'play', 'stop', 'overdub', 'undo', 'reverse', 'halfSpeed', 'clear'] as const;
@@ -165,6 +175,17 @@ export interface Telemetry {
   loudnessShortTerm?: number;
   /** Peak of Outputs 1-4 (after their EQ and Boost/Pad), as the slower host telemetry last reported them. */
   outputPeaks?: number[];
+  /** Blocks with meters of their own, about ten times a second. */
+  blockMeters?: BlockMeterInfo[];
+}
+
+/**
+ * A block's own meters by id, in dB: the Cab's `preampIn` (the level into its mic preamp, 0 at the onset of clipping)
+ * and `motorReduction` (Motor Drive's gain reduction).
+ */
+export interface BlockMeterInfo {
+  block: string;
+  meters: Record<string, number>;
 }
 
 /** Pushed about 30 times a second while the scope is on: recent output samples, oldest first. */

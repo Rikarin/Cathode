@@ -7,7 +7,7 @@
 - the Axe-Fx III amp list (FW 12.05);
 - the Fractal wiki pages *Amp models*, *Presets*, *Editors*, *Audio I/O and amplification* and *Cab block* (October 2026).
 
-**Status date:** 24 October 2026, round 3 in progress (T, PS, PA merged and audited) (streams T, M1, M2, PA, PB, PS, ED, IO, CB).
+**Status date:** 24 October 2026, round 3 in progress (T, PS, PA, CB, M1, M2 merged and audited) (streams T, M1, M2, PA, PB, PS, ED, IO, CB).
 
 ## How to audit
 
@@ -36,33 +36,33 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | T2 | Bias tremolo on Deluxe 6G3, Vibrolux 6G11 | ✅ | Full_intensity_modulates_the_note_at_the_rate, Intensity_zero_is_the_model_without_its_tremolo (Deluxe 6G3, Vibrolux 6G11) | 2.9–10.8 Hz; 9 / 26 dB depth |
 | T3 | Gibson Scout GA-17RVT tremolo (type checked against the drawing) | ✅ | same tests (Scout GA-17RVT) | a bias tremolo; 2.9–5.1 Hz; panel label Depth |
 | T4 | Other models whose drawings show bias modulation (Tremolux AA763, Princetons, AC15: check each) | ✅ | same tests (Princeton AA964, Princeton Reverb) | Tremolux is optical (T5); AC15 has no readable drawing |
-| T5 | Optical (bulb/LDR) tremolo: Deluxe Reverb, Twin, Super, Princeton Reverb, Vibroverb, Vibrolux Reverb, Bandmaster, Vibro-King, Blues Junior if any | ✅ | The_lamp_driver_sits_where_the_drawings_measure_it + the T2 tests (8 models) | Amp/StageTremolo.cs; CdS cell values guessed (no datasheet); Blues Junior has none. The mixer's Intensity pot track (~4 dB) is being added, approved for accuracy |
+| T5 | Optical (bulb/LDR) tremolo: Deluxe Reverb, Twin, Super, Princeton Reverb, Vibroverb, Vibrolux Reverb, Bandmaster, Vibro-King, Blues Junior if any | ✅ | The_lamp_driver_sits_where_the_drawings_measure_it + the T2 tests (8 models) | Amp/StageTremolo.cs; CdS cell values guessed (no datasheet); Blues Junior has none. The mixer's Intensity pot track added (accuracy decision): Vibrato channel −0.5 to −4.5 dB with the tremolo off, Vibro-King up to −5.4 dB; test The_netlists_carry_the_intensity_pot_track |
 | T6 | Marshall volume-wiper tremolo: 18 W 1974X, Bluesbreaker 1962, JMP 1959T | ◐ | 18 W in the T2 tests | 18 W built (V3B grid drive). Bluesbreaker: FET preset RV2 setting not on the drawing. 1959T: transistor network illegible |
 | T7 | Vox AC15 / AC30 vibrato-tremolo, where the model has the channel | ⏸ | — | AC30 model has no Vib-Trem channel; no readable AC15 drawing |
 | T8 | `tremrate` / `tremdepth` drive each model's own oscillator; per-model labels via AmpPanel | ✅ | The_panel_names_the_tremolo | 6G12/6G4 keep their own vibrato knobs; others keep the generic bias trem |
 | T9 | Intensity 0 renders bit-identical to master for every model | ✅ | Intensity_zero_is_the_model_without_its_tremolo; 81-model hash comparison against master | the pot-track accuracy fix will change the AB763 family at Intensity 0 by design |
-| T10 | Tests: rate range vs component values, depth, no clicks, no allocation, CPU within budget | ✅ | The_onset_is_smooth, The_tremolos_do_not_allocate, The_tremolo_costs_little | the CPU test is load-sensitive (failed 1 in 3 alone on a busy machine); being made robust |
+| T10 | Tests: rate range vs component values, depth, no clicks, no allocation, CPU within budget | ✅ | The_onset_is_smooth, The_tremolos_do_not_allocate, The_tremolo_costs_little | the CPU test now times on/off interleaved and asserts the median ratio < 1.25 |
 
 ## M1: remaining Marshalls
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| M1.1 | DSL100 / JCM2000: Classic Gain and Ultra Gain, modes, Tone Shift, Deep | ⬜ | | inter-board wiring had to be traced |
-| M1.2 | JMP-1 preamp: OD1, OD2, Clean (and Crunch) + documented power amp | ⬜ | | TC9176 digital pots |
-| M1.3 | JVM410HJS (Satriani) as its own model | ⬜ | | input buffer, THAT4301 gate |
-| M1.4 | JVM410H Clean and Crunch channels | ⬜ | | |
-| M1.5 | JVM410H Green / Orange / Red modes per channel | ⬜ | | relay states per mode were unknown |
+| M1.1 | DSL100 / JCM2000: Classic Gain and Ultra Gain, modes, Tone Shift, Deep | ◐ | Dsl100_modes_and_tone_shift_do_what_the_handbook_says; Remaining_marshall_chains_match_the_reference (DSL100, 5 settings) | Deep is the generic Depth knob labelled "Deep", not the gyrator switch; no Deep test. Feedback resistor guessed |
+| M1.2 | JMP-1 preamp: OD1, OD2, Clean (and Crunch) + documented power amp | ✅ | Jmp1_switches_change_the_gain_and_the_bass; Jmp1_active_tone_is_flat_at_the_centre_and_each_band_boosts_its_region | Clean I/II, OD I/II, Bass Shift into the JCM900 4100 power amp; digital pot values guessed; OD path −25 dB vs reference (finite-GBW op-amp) |
+| M1.3 | JVM410HJS (Satriani) as its own model | ⏸ | — | 5 relays, 9 gain structures; no published relay table per mode |
+| M1.4 | JVM410H Clean and Crunch channels | ✅ | Remaining_marshall_chains_match_the_reference (JVM, 6 settings) | type `JVM410H Clean/Crunch` |
+| M1.5 | JVM410H Green / Orange / Red modes per channel | ◐ | The_modes_raise_the_gain_in_order | relay states deduced from the handbook (firmware sets them); Clean modes partly guessed |
 
 ## M2: power-amp driver variants
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| M2.1 | Cathodyne + ECC82 push-pull driver design (no cathode followers) | ⬜ | | validated against ReferenceSimulator |
-| M2.2 | Global feedback into a preamp cathode (tone stack inside the loop) | ⬜ | | |
-| M2.3 | Marshall Major 1967 model (4 × KT88) | ⬜ | | |
-| M2.4 | Cascaded differential driver design | ⬜ | | |
-| M2.5 | Mesa/Boogie Bass 400 model, with its LC graphic EQ | ⬜ | | scan partly unreadable: guesses marked |
-| M2.6 | Existing inverters bit-identical | ⬜ | | |
+| M2.1 | Cathodyne + ECC82 push-pull driver design (no cathode followers) | ✅ | Cathodyne_driver_table_matches_the_reference_dc_sweep; Driver_power_amps_match_the_reference_in_the_time_domain | CathodyneDriverDesign; table omits grid current |
+| M2.2 | Global feedback into a preamp cathode (tone stack inside the loop) | ✅ | Driver_power_amps_match_the_reference_in_the_time_domain (−32 dB closed loop); Major_feedback_flattens_its_tone_stack | LoopStageDesign; presence branch left out of V2A degeneration |
+| M2.3 | Marshall Major 1967 model (4 × KT88) | ✅ | Driver_variant_preamps_match_the_reference (−78 dB); DriverVariantAmpTests | B+, idle, OT and UL tap guessed. Power-amp-off drops V2A and the stack; Stack Freq doesn't reach the loop |
+| M2.4 | Cascaded differential driver design | ✅ | Differential_driver_table_matches_the_reference_dc_sweep | DifferentialDriverDesign; Bass 400 power amp −40 dB vs reference |
+| M2.5 | Mesa/Boogie Bass 400 model, with its LC graphic EQ | ◐ | Driver_variant_preamps_match_the_reference (−46 dB); Bass_400_sliders_boost_and_cut_their_bands | V4 plates, EQ resistors and OT guessed; EQ op-amp linear; idle 45 mA where the drawing's −63 V would need 65 mA on the library 6550 |
+| M2.6 | Existing inverters bit-identical | ✅ | InverterBitIdentityTests (81 cases) | hashes from before the change |
 
 ## PA: I/O, cab and effects
 
@@ -176,17 +176,17 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| CB1 | Stereo input: slots 1 and 3 read the left input, 2 and 4 the right | ⬜ | | today every slot hears both sides |
-| CB2 | Preamp types to 11 (FET 1/2, Tape 70/50/35 µs, Vintage, Modern, Exciter) | ⬜ | | PA7 owns the High Quality mode |
-| CB3 | Preamp input VU (0 = onset of clipping) | ⬜ | | |
-| CB4 | Smoothing and Proximity per slot | ⬜ | | today both are global |
-| CB5 | Mic distance up to 3.4 m, shown in mm and ms; Auto-Align switch | ⬜ | | today the delay stops at 5 ms |
-| CB6 | Motor Drive (voice-coil thermal compression) with time constant and gain-reduction meter | ⬜ | | |
-| CB7 | IR import: minimum-phase / auto-trim / as-is, peak-positive polarity, stereo channel choice, length | ⬜ | | |
-| CB8 | FullRes IRs (~1.4 s) in the Cab block via partitioned convolution | ⬜ | | today 8,192 samples |
-| CB9 | Flat slot source | ⬜ | | |
-| CB10 | Global "cab modelling off" switch | ⬜ | | |
-| CB11 | Export the block's current mix (DynaCab slots included) as an IR file | ⬜ | | |
+| CB1 | Stereo input: slots 1 and 3 read the left input, 2 and 4 the right | ✅ | A_stereo_input_feeds_slots_one_and_three_from_the_left_and_two_and_four_from_the_right; Two_convolutions_serve_one_side_or_a_mono_input | 4 convolutions when both sides play, 2 otherwise; golden cab.wav changed on purpose |
+| CB2 | Preamp types to 11 (FET 1/2, Tape 70/50/35 µs, Vintage, Modern, Exciter) | ✅ | Preamp_types_keep_their_curves_and_their_onsets_mark_one_db_of_compression; Tape_emphasis_saturates_the_treble_first_and_vintage_the_lows; The_exciter_adds_harmonics_to_the_treble_and_leaves_the_bass_clean | 12 types (Cabinets/MicPreampTypes.cs); the old single Tape replaced by the three |
+| CB3 | Preamp input VU (0 = onset of clipping) | ✅ | The_preamp_input_meter_reads_zero_at_the_onset_of_clipping | new IBlockMeters → Telemetry.BlockMeters (a second meter path beside PS's Telemetry.blocks) |
+| CB4 | Smoothing and Proximity per slot | ✅ | Proximity_lifts_the_lows_of_an_ir_slot_but_not_of_a_dynacab; Smoothing_works_per_slot_on_a_dynacab_too | `mNproximity`, `mNproxfreq`, `mNsmoothing`; globals removed |
+| CB5 | Mic distance up to 3.4 m, shown in mm and ms; Auto-Align switch | ✅ | Mic_distance_delays_a_slot_by_up_to_three_point_four_metres; Auto_align_off_delays_a_mic_by_its_distance | `mNdelay` to 9.91 ms, `mNalign` per slot |
+| CB6 | Motor Drive (voice-coil thermal compression) with time constant and gain-reduction meter | ✅ | Motor_drive_compresses_as_the_voice_coil_heats_and_is_off_by_default | Cabinets/VoiceCoil.cs; `motor`, `motortime`, `motorReduction` meter |
+| CB7 | IR import: minimum-phase / auto-trim / as-is, peak-positive polarity, stereo channel choice, length | ✅ | IrImportTests; An_ir_upload_can_be_trimmed_and_its_polarity_corrected | POST /assets takes processing, polarity, channels, maxLengthMs |
+| CB8 | FullRes IRs (~1.4 s) in the Cab block via partitioned convolution | ✅ | Full_res_irs_play_to_about_one_point_four_seconds | 65,536 samples; worst case ~9.7 % (4 slots, Stereo); not gapless for long IRs; non-uniform partitions are the next speed-up |
+| CB9 | Flat slot source | ✅ | A_flat_slot_and_a_cab_slot_split_a_stereo_input_into_a_di_and_a_cab |  |
+| CB10 | Global "cab modelling off" switch | ✅ | Cab_modelling_off_passes_audio_through_and_fades_back_in | GlobalSettings.CabModelingOff; Cab and IR Player |
+| CB11 | Export the block's current mix (DynaCab slots included) as an IR file | ✅ | Export_bakes_the_master_cuts_into_the_mixed_ir; A_cab_exports_its_mixed_ir_and_saves_it_as_an_asset | GET/POST /live/blocks/{id}/ir |
 
 ## Known open items from earlier rounds
 
@@ -197,6 +197,8 @@ These were reported as left over or deliberately deferred, and are not assigned 
 | Silver Jubilee over the high-gain CPU budget on loud noise (28–31.5 %) | ⏸ | Kept by decision (docs/06 §5.3): its sound wins |
 | SVT with Ultra switches on: 37 % on noise | ⬜ | Next idea: source stepping on hard samples |
 | TriAxis Lead 2 over budget (19 / 32 %); Rhythm over the clean budget | ⬜ | Dynamic Voice op-amp stage ≈ 2.4 %; could become a linear network |
+| JVM410H Orange/Red, JMP-1 OD over on guitar (17–19.6 %); JVM/DSL clean modes over on noise (26–30 %) | ⬜ | No solver shortcuts tried yet |
+| Bass 400 bias: drawing's −63 V needs 65 mA (35 W) on the library 6550 | ⬜ | Check the 6550 tube fit against a datasheet; the model runs 45 mA |
 | JCM900 ch B over on guitar, ch A over on noise; JVM410H slightly over on guitar | ⬜ | V1 pair with the 220k loop is 6–10 % alone |
 | Orange AD30 | ⏸ | No front-panel board schematic found |
 | Dumble ODS HRM | ⏸ | No HRM drawing exists |
@@ -212,4 +214,7 @@ These were reported as left over or deliberately deferred, and are not assigned 
 | Pitch has two row-input mechanisms (`IRowInputBlock`, `ISidechainBlock`) | ⬜ | Could be unified |
 | Library-wide open issues: TriodeStage output resistance with a partly bypassed cathode; Thévenin cut behind plate-bypass cold clippers; JC-120 tone-stack level | ⬜ | docs/06 |
 | Windows `HostAllocationTests` intermittent 4-byte allocation | ⬜ | Per-thread allocation measured across awaits |
-| Load-sensitive tests (cab crossfade, CPU-per-type, tremolo CPU) | ⬜ | Pass alone; flaky under heavy load. The tremolo one is being fixed by T |
+| Load-sensitive tests (cab crossfade, CPU-per-type) | ⬜ | Pass alone; flaky under heavy load (the tremolo one is fixed) |
+| Preset-load allocation budget raised 128 → 136 → 137.5 KB as blocks grew (HostAllocationTests) | ⬜ | Keeps creeping; find what a load allocates per parameter and cut it |
+| Two block-meter telemetry paths (`Telemetry.blocks` peaks, `Telemetry.BlockMeters` named meters) | ⬜ | Could be unified |
+| 18 W Intensity rheostat R32 (1k) fixed at mid-travel | ⬜ | Drawing doesn't show which end is 0; link it to `tremdepth` once the orientation is known |

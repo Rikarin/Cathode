@@ -29,6 +29,8 @@ import { Notify } from '../core/notify';
 import { CatalogStore } from '../state/catalog.store';
 import { GlobalStore } from '../state/global.store';
 import { LibraryStore } from '../state/library.store';
+import { LiveStore } from '../state/live.store';
+import { addView, overrideOf, removeView, viewNames, withOverride } from './footswitches';
 
 const Messages = ['cc', 'note', 'pc'];
 
@@ -187,6 +189,23 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
               (committed)="save(g => (g.noiseGateOffset = $event))"
             />
           </div>
+        </section>
+
+        <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="cabs-heading">
+          <h2 xuiHeading id="cabs-heading" class="text-sm">Cab modeling</h2>
+          <p xuiText class="text-foreground-muted text-xs">
+            For playing through a real speaker cabinet: every Cab and IR Player block passes its input straight through,
+            without changing any preset.
+          </p>
+          <label class="flex items-center gap-2 text-sm">
+            <xui-switch
+              aria-label="Cab modeling off"
+              data-testid="cab-modeling-off"
+              [checked]="s.cabModelingOff"
+              (checkedChange)="save(g => (g.cabModelingOff = $event))"
+            />
+            Cab modeling off
+          </label>
         </section>
 
         <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="outputs-heading">
@@ -406,6 +425,41 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
             </button>
           </div>
           @if (activeLayout(); as layout) {
+            <div class="flex flex-wrap items-center gap-2" data-testid="footswitch-views">
+              <span class="text-foreground-muted text-xs">Views</span>
+              @for (view of views(); track $index; let i = $index) {
+                <span class="flex items-center gap-0.5">
+                  <button
+                    xuiButton
+                    size="sm"
+                    [variant]="i === editingView() ? 'default' : 'outline'"
+                    (click)="editingView.set(i)"
+                  >
+                    {{ view }}{{ i === s.activeView ? ' (active)' : '' }}
+                  </button>
+                  @if (views().length > 1 && i === editingView()) {
+                    <button
+                      xuiButton
+                      size="sm"
+                      variant="ghost"
+                      color="error"
+                      [attr.aria-label]="'Remove view ' + view"
+                      (click)="dropView(layout, i)"
+                    >
+                      <ng-icon xui name="matDeleteRound" size="sm" />
+                    </button>
+                  }
+                </span>
+              }
+              <button xuiButton size="sm" variant="ghost" (click)="saveLayout(addView(layout))">
+                <ng-icon xui name="matAddRound" size="sm" /> View
+              </button>
+              @if (editingView() !== s.activeView) {
+                <button xuiButton size="sm" variant="ghost" (click)="save(g => (g.activeView = editingView()))">
+                  Make active
+                </button>
+              }
+            </div>
             <xui-table>
               <xui-tr>
                 <xui-th>Switch</xui-th>
@@ -413,9 +467,11 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                 <xui-th>Tap</xui-th>
                 <xui-th>Hold</xui-th>
                 <xui-th>LED</xui-th>
+                <xui-th>Then layout</xui-th>
+                <xui-th>In this preset</xui-th>
                 <xui-th><span class="sr-only">Remove</span></xui-th>
               </xui-tr>
-              @for (fs of layout.switches; track fs.index) {
+              @for (fs of switchesOnView(layout); track fs.index) {
                 <xui-tr>
                   <xui-td>
                     <input
@@ -489,6 +545,29 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                     />
                   </xui-td>
                   <xui-td>
+                    <xui-select
+                      class="w-32"
+                      placeholder="(stay)"
+                      [filterable]="false"
+                      [attr.aria-label]="'Switch ' + fs.index + ' layout link'"
+                      [items]="s.footswitches"
+                      [itemText]="layoutName"
+                      [value]="linkOf(fs)"
+                      (valueChange)="editSwitch(layout, fs, { link: $event?.id ?? null })"
+                    />
+                  </xui-td>
+                  <xui-td>
+                    <input
+                      xuiInput
+                      size="sm"
+                      class="w-36"
+                      placeholder="(layout's)"
+                      [attr.aria-label]="'Switch ' + fs.index + ' action in this preset'"
+                      [value]="presetOverride(layout.id, fs.index)"
+                      (change)="setOverride(layout.id, fs.index, $any($event.target).value)"
+                    />
+                  </xui-td>
+                  <xui-td>
                     <button
                       xuiButton
                       variant="ghost"
@@ -510,8 +589,10 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
             </div>
             <xui-callout minimal compact color="primary">
               Actions are written as "action target value": scene 2, sceneNext, bypass delay1, channel amp1 1, looper
-              record, tap, tuner, metronome, presetNext. A switch with a hold action acts on release; hold it for half a
-              second for the hold action.
+              record, tap, tuner, metronome, presetNext, viewNext, layout &lt;id&gt;. A switch with a hold action acts
+              on release; hold it for half a second for the hold action. A switch can also jump to another layout after
+              its action, and the loaded preset can give it an action of its own (In this preset), saved with the
+              preset.
             </xui-callout>
           }
         </section>
@@ -524,8 +605,16 @@ export class GlobalPage {
   private readonly catalog = inject(CatalogStore);
   private readonly connection = inject(ConnectionService);
   private readonly notify = inject(Notify);
+  private readonly live = inject(LiveStore);
 
   protected readonly settings = this.globals.settings;
+  protected readonly addView = addView;
+  /** The view of the active layout being edited. */
+  protected readonly editingView = signal(0);
+  protected readonly views = computed(() => {
+    const layout = this.activeLayout();
+    return layout ? viewNames(layout) : [];
+  });
   protected readonly tempoModes = [
     { label: 'Preset', value: 'preset' },
     { label: 'Global', value: 'global' },
@@ -658,7 +747,9 @@ export class GlobalPage {
           number: 19 + index,
           tap: { action: 'scene', target: null, value: index - 1 },
           hold: null,
-          led: true
+          led: true,
+          view: this.editingView(),
+          link: null
         });
     });
   }
@@ -669,6 +760,41 @@ export class GlobalPage {
       const i = switches.findIndex(s => s.index === fs.index);
       switches[i] = { ...switches[i], ...change };
     });
+  }
+
+  protected switchesOnView(layout: FootswitchLayout): Footswitch[] {
+    return layout.switches.filter(s => s.view === Math.min(this.editingView(), viewNames(layout).length - 1));
+  }
+
+  protected linkOf(fs: Footswitch): FootswitchLayout | null {
+    return this.settings()?.footswitches.find(l => l.id === fs.link) ?? null;
+  }
+
+  protected saveLayout(layout: FootswitchLayout): void {
+    this.save(g => {
+      const i = g.footswitches.findIndex(l => l.id === layout.id);
+      g.footswitches[i] = layout;
+    });
+  }
+
+  protected dropView(layout: FootswitchLayout, view: number): void {
+    this.editingView.set(0);
+    this.save(g => {
+      const i = g.footswitches.findIndex(l => l.id === layout.id);
+      g.footswitches[i] = removeView(layout, view);
+      g.activeView = 0;
+    });
+  }
+
+  /** The loaded preset's own action for a switch, as text. */
+  protected presetOverride(layout: string, index: number): string {
+    const own = overrideOf(this.live.preset()?.footswitchOverrides ?? [], layout, index);
+    return own ? this.actionText(own.tap) : '';
+  }
+
+  protected setOverride(layout: string, index: number, text: string): void {
+    const overrides = this.live.preset()?.footswitchOverrides ?? [];
+    void this.live.setFootswitchOverrides(withOverride(overrides, layout, index, this.parseAction(text)));
   }
 
   protected removeSwitch(layout: FootswitchLayout, fs: Footswitch): void {

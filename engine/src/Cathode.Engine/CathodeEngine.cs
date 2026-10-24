@@ -83,6 +83,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     float inputGain = 1f;
     bool copyToSecond;
     int outputPeakReset;
+    readonly int cabsOffIndex = RigControls.Descriptor.IndexOf("cabsOff");
     readonly int spilloverIndex = RigControls.Descriptor.IndexOf("spillover");
     readonly LoudnessMeter loudness;
     int tapCount;
@@ -362,6 +363,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                     HeldNotes,
                     Rig.GetTarget(effectsMixIndex),
                     Rig.GetTarget(gateOffsetIndex),
+                    Rig.GetTarget(cabsOffIndex) >= 0.5f,
                     Rig.GetTarget(calibrationIndex)
                 );
                 FindActiveOutputs(graph, bus);

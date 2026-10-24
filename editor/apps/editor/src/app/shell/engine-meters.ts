@@ -16,28 +16,30 @@ import { LiveStore } from '../state/live.store';
   selector: 'cth-engine-meters',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CthMeter, XuiStatusImports, XuiTooltipImports],
-  host: { class: 'flex h-8 items-center gap-3' },
+  host: { class: 'flex h-8 items-center gap-2' },
   template: `
     <div class="flex flex-col justify-center gap-1">
       @for (meter of meters; track meter.label) {
         <div class="flex items-center gap-2">
-          <span class="text-foreground-muted w-6 text-[10px] font-semibold tracking-wide" aria-hidden="true">
-            {{ meter.caption }}
-          </span>
-          <cth-meter class="w-28" orientation="horizontal" [label]="meter.label" [sources]="meter.sources" />
+          <!-- The caption turns into the clip mark, so the warning takes no room in the full top bar. -->
           <span
-            class="w-7 rounded px-0.5 text-center text-[9px] font-bold"
-            [class]="meter.clip() ? 'bg-error text-white' : 'text-transparent'"
+            class="w-6 rounded-sm text-center font-semibold tracking-wide"
+            [class]="meter.clip() ? 'bg-error text-[9px] text-white' : 'text-foreground-muted text-[10px]'"
             [attr.data-testid]="meter.caption === 'IN' ? 'input-clip' : 'output-clip'"
-            [xuiTooltip]="meter.clipText()"
+            [attr.data-clipping]="meter.clip()"
+            [attr.aria-hidden]="meter.clip() ? null : 'true'"
+            [attr.role]="meter.clip() ? 'status' : null"
+            [attr.aria-label]="meter.clip() ? meter.clipText() : null"
+            [xuiTooltip]="meter.clip() ? meter.clipText() : meter.label"
           >
-            CLIP
+            {{ meter.clip() ? 'CLIP' : meter.caption }}
           </span>
+          <cth-meter class="w-24" orientation="horizontal" [label]="meter.label" [sources]="meter.sources" />
         </div>
       }
     </div>
     <span
-      class="text-foreground-muted w-20 text-xs whitespace-nowrap tabular-nums"
+      class="text-foreground-muted w-16 text-xs whitespace-nowrap tabular-nums"
       [xuiTooltip]="'Engine CPU, 99.9th percentile of callbacks'"
     >
       CPU {{ cpu() }} %

@@ -1,8 +1,18 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
-import { type AssetInfo, type PresetSummary, unwrap } from '@cathode/api-client';
+import { type AssetInfo, type Bank, type PresetSummary, unwrap } from '@cathode/api-client';
 import { ConnectionService } from '../core/connection';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
+
+/** How an IR file is processed on import, as the Server's upload takes it (all optional: as-is by default). */
+export interface IrImportOptions {
+  processing?: 'asIs' | 'autoTrim' | 'minimumPhase';
+  /** Invert the IR if its main peak is negative. */
+  polarity?: boolean;
+  /** For a stereo file. */
+  channels?: 'both' | 'left' | 'right' | 'sum';
+  maxLengthMs?: number;
+}
 
 /** The preset library and the asset store (captures and impulse responses). */
 @Injectable({ providedIn: 'root' })
@@ -12,6 +22,7 @@ export class LibraryStore {
 
   readonly presets = signal<readonly PresetSummary[]>([]);
   readonly assets = signal<readonly AssetInfo[]>([]);
+  readonly banks = signal<readonly Bank[]>([]);
   readonly models = computed(() => this.assets().filter(a => a.kind === 'nam' || a.kind === 'aidax'));
   readonly impulseResponses = computed(() => this.assets().filter(a => a.kind === 'ir'));
   /** What a Cab slot playing an IR Pack takes: a multi-position pack (.cabgrid) or a single IR as a one-point pack. */
@@ -39,6 +50,45 @@ export class LibraryStore {
     await this.notify.run(async () => this.assets.set(unwrap(await this.connection.client.GET('/api/v1/assets'))));
   }
 
+  async refreshBanks(): Promise<void> {
+    await this.notify.run(async () => this.banks.set(unwrap(await this.connection.client.GET('/api/v1/banks'))));
+  }
+
+  /** Renames a preset or sets its colour tag or favourite flag (stored, and live when it is loaded). */
+  async setPresetMetadata(id: string, change: { name?: string; color?: string; favorite?: boolean }): Promise<boolean> {
+    const done = await this.notify.run(async () => {
+      unwrap(
+        await this.connection.client.PATCH('/api/v1/presets/{id}/metadata', {
+          params: { path: { id } },
+          body: { name: change.name ?? null, color: change.color ?? null, favorite: change.favorite ?? null }
+        })
+      );
+      return true;
+    });
+    await this.refreshPresets();
+    return done ?? false;
+  }
+
+  async setAssetMetadata(
+    reference: string,
+    change: { name?: string; color?: string; favorite?: boolean }
+  ): Promise<boolean> {
+    const done = await this.notify.run(async () => {
+      unwrap(
+        await this.connection.client.PATCH('/api/v1/assets/{reference}/metadata', {
+          params: { path: { reference } },
+          body: { name: change.name ?? null, color: change.color ?? null, favorite: change.favorite ?? null }
+        })
+      );
+      return true;
+    });
+    await this.refreshAssets();
+    return done ?? false;
+  }
+
+  /** The library's presets in "next preset" order (by name, as the MIDI router steps through them). */
+  readonly ordered = computed(() => [...this.presets()].sort((a, b) => a.name.localeCompare(b.name)));
+
   async deletePreset(id: string): Promise<void> {
     await this.notify.run(async () => {
       unwrap(await this.connection.client.DELETE('/api/v1/presets/{id}', { params: { path: { id } } }));
@@ -46,12 +96,15 @@ export class LibraryStore {
     });
   }
 
-  /** Uploads a capture (.nam, .aidax) or impulse response (.wav); the same file twice is stored once. */
-  async upload(file: File): Promise<AssetInfo | undefined> {
+  /**
+   * Uploads a capture (.nam, .aidax) or impulse response (.wav); the same file twice is stored once. An IR can be
+   * processed on import (`options`): trimmed or made minimum phase, its polarity corrected, a channel chosen, cut.
+   */
+  async upload(file: File, options: IrImportOptions = {}): Promise<AssetInfo | undefined> {
     return this.notify.run(async () => {
       const asset = unwrap(
         await this.connection.client.POST('/api/v1/assets', {
-          params: { query: { name: file.name } },
+          params: { query: { name: file.name, ...options } },
           body: file as unknown as string,
           bodySerializer: body => body as unknown as BodyInit,
           headers: { 'Content-Type': 'application/octet-stream' }

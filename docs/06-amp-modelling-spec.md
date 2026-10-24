@@ -322,10 +322,10 @@ Shared changes: `Pot` takes an audio taper's midpoint (Fender marks it in the pa
 
 - `PhaseShiftOscillatorDesign`: a triode with a three-section CR ladder, any leg holding the Speed rheostat. The rate is where the ladder inverts (bisection on the network, including the plate's source resistance, shunt and load; the textbook ladder's 1/(2πRC√6) to 1e-6). The swing is a describing-function balance on the tube's Koren curves along the AC load line, the grid clamped by grid current once the swing passes the bias; the plate's first three harmonics are kept. Solved on 13 Speed rotations at first use (cached per design); a ladder that cannot oscillate at an end of the knob's travel (Vibro-King below Speed 0.8, the Scout above 8.3) is held to the range that does.
 - **Bias tremolo** (`PowerAmpDesign.BiasTremolo`, `BiasTremoloDesign`): the plate (or a follower) through the drawing's series resistor, shunt cap and coupling cap into the Intensity pot (or a return resistor), its wiper on the grid leaks' common return with its cap, solved per harmonic and loaded by the leak branches. `PowerAmp` swings the return per sample: the grid network takes it through its coupling caps and leaks exactly (the inverter's sources are referred to the return, `PushPullStage.BiasSwing`), so the grids see the swing low-passed and phase-shifted by the leak's time constant, not a sine. Harmonics follow their targets with a 30 ms smoother (build-up, no clicks); at depth 0, once died away, it stops. Deluxe 6G3 (820k, 2700 Ω; 220k, 0.1 µF, 250k linear, 0.05 µF), Vibrolux 6G11 (470k, 4700 Ω, a cathode follower, 220k, 0.1 µF, 250k audio, 0.05 µF), Princeton AA964 and Princeton Reverb AA1164 (220k, 3300 Ω; 1M, 0.02 µF, 0.1 µF, 250k linear), Scout GA-17RVT (6EU7, 150k, grounded cathode, ladder 0.022/0.022/0.01 µF with 330k, 150k + 1.5M Speed, 4.7M; 0.047 µF and 1M into the leaks' junction, 330k to the cathode's bypass; no Intensity: Depth scales it).
-- **Optical vibrato** (`NetworkStageDesign.Tremolo` = `OpticalTremoloDesign`): the AB763/AA763 drawings' oscillator (220k, 2700 Ω, 0.02/0.01/0.01 µF, 3M reverse-audio Speed + 100k, 1M, 1M), the second ladder node driving the lamp driver (100k with 25 µF; the Tremolux 56k) in class C: its cathode bias solved where the pulses' mean current holds it, 17.6 V on the Deluxe Reverb at slow Speed where the drawings mark +17.0 V. The neon lamp (60 V, 100k, 10M across) lights the CdS cell: R = 4k × (I/1 mA)^−0.8 ‖ 5M, 5 ms attack, 35 ms release (typical values, no data for the roach). The cell shunts the Vibrato channel's 0.1 µF / 220k junction from the 50k reverse-audio Intensity's wiper (junction 35k); the gain is applied at the mixer's output, relative to the dark cell, every 32 samples with a ramp, only with the Vibrato channel playing. Deluxe Reverb, Twin Reverb, Super Reverb, Vibroverb, Vibrolux Reverb AA964, Bandmaster, Tremolux; Vibro-King (rev A: 220k, 2.7k, 0.022/0.01/0.01 µF, 270k + 5M Speed, 220 pF; 250k Intensity on the stack's output, the stage's own output resistance against the inverter's 1M). Not modelled: the Intensity pot's track, which loads the junction with the cell dark, is absent from the existing mixers; adding it would change every model at Intensity 0, so the gain is relative to the dark cell. The Blues Junior has no tremolo.
+- **Optical vibrato** (`NetworkStageDesign.Tremolo` = `OpticalTremoloDesign`): the AB763/AA763 drawings' oscillator (220k, 2700 Ω, 0.02/0.01/0.01 µF, 3M reverse-audio Speed + 100k, 1M, 1M), the second ladder node driving the lamp driver (100k with 25 µF; the Tremolux 56k) in class C: its cathode bias solved where the pulses' mean current holds it, 17.6 V on the Deluxe Reverb at slow Speed where the drawings mark +17.0 V. The neon lamp (60 V, 100k, 10M across) lights the CdS cell: R = 4k × (I/1 mA)^−0.8 ‖ 5M, 5 ms attack, 35 ms release (typical values, no data for the roach). The cell shunts the Vibrato channel's 0.1 µF / 220k junction from the 50k reverse-audio Intensity's wiper. The pot's whole track is in the mixing netlists (`Ab763.Mixer`, `VibratoMixer`; the Vibro-King's 250k on its stack's output), as the drawings show it; the runtime scales the junction's signal by the shunt the cell makes against that track, (1 + Z/R_track)/(1 + Z/R_shunt) with Z the junction's 35k without the pot (exact for a resistive node), at the mixer's output every 32 samples with a ramp, only with the Vibrato channel playing; at Intensity 0 it is exactly 1. Deluxe Reverb, Twin Reverb, Super Reverb, Vibroverb, Vibrolux Reverb AA964, Bandmaster, Tremolux; Vibro-King (rev A: 220k, 2.7k, 0.022/0.01/0.01 µF, 270k + 5M Speed, 220 pF; 250k Intensity on the stack's output, the stage's own output resistance against the inverter's 1M). The pot's track was missing from the stream F1/F5 mixers; adding it (accuracy over bit-identity) moves the models with the tremolo off: the Vibrato channel by −4.0 to −4.5 dB at Volume 3, −2.5 to −4.3 dB at 5 and −0.5 to −2.1 dB at 8 (where the stages after it compress), the Normal channel by −0.1 to −0.3 dB (the idle junction loads the mix through its 220k); the Vibro-King by −3.3 to −5.4 dB at 3, −2.4 to −4.7 dB at 5, −0.5 to −2.2 dB at 8 (more with the treble up: the stack's output is the higher impedance there). The Blues Junior has no tremolo.
 - **18 W 1974X** (`GridDriveTremoloDesign`): V3B is the oscillator and shares V3A's plate supply and cathode. At depth 0 the plain netlist (grid grounded) plays; running, a copy with V3B's grid on a source plays, crossfaded in over 10 ms, the source swinging with the solved grid wave (ladder 0.01 µF ×3, 470k + 2M audio Speed, 1M, 2.2M; 0.05 µF at the plate), so the network computes what V3B's current does to V3A. Its Newton settings are untouched. Approximation: the shared cathode as V3B's own 1.32k; Depth scales the swing (the real Intensity, a 1k rheostat in the cathode, would move the operating point).
 - **Not built**: the Bluesbreaker 1962's FET tremolo (its gate drive depends on the RV2 preset, not given), the 1959T's transistor tremolo (its transistor and base network are illegible), the AC15's vibrato-tremolo (no drawing), the AC30 (the model has no Vib-Trem channel). The harmonic vibratos (Concert 6G12, Super 6G4) keep their own Control 1/2 and pedal; on them `tremrate`/`tremdepth` remain the generic bias tremolo.
-- **Validation** (`TremoloTests`): the textbook ladder; every model's rate range (AB763 family 3.1–11.0 Hz, 6G3 2.9–10.8, 6G11 2.9–10.7, Princetons 3.1–11.0, Scout 2.9–5.1, Vibro-King 2.7–8.3, 18 W 3.4–6.2) checked to invert the phase by an independent nodal solve; full intensity modulates a steady note by 7–26 dB at the rate asked for (±15 %); intensity 0 renders sample for sample as the model without its tremolo (and all 81 models render bit-identical to master at the defaults); a smooth onset (no step larger than the steady signal's); no allocation; cost: no measurable change (Deluxe 6G3 8.1 → 8.4 %, Deluxe Reverb 9.6 → 9.3 %, Vibro-King 8.9 → 8.1 %, 18 W 9.5 → 9.4 % in the same run).
+- **Validation** (`TremoloTests`): the textbook ladder; every model's rate range (AB763 family 3.1–11.0 Hz, 6G3 2.9–10.8, 6G11 2.9–10.7, Princetons 3.1–11.0, Scout 2.9–5.1, Vibro-King 2.7–8.3, 18 W 3.4–6.2) checked to invert the phase by an independent nodal solve; full intensity modulates a steady note by 7–26 dB at the rate asked for (±15 %); intensity 0 renders sample for sample as the model without its tremolo (oscillator stopped, cell dark, pot track present); the netlists carry the pot tracks; a smooth onset (no step larger than the steady signal's); no allocation; cost: no measurable change (Deluxe 6G3 8.1 → 8.4 %, Deluxe Reverb 9.6 → 9.3 %, Vibro-King 8.9 → 8.1 %, 18 W 9.5 → 9.4 % in the same run).
 
 ### 3.2 Marshall and British
 
@@ -587,6 +587,66 @@ transformers and the feedback taps):
   A (the V1 pair with its 220k feedback around the stack is 6–10 % of it); Valvestate 8080 boost 15.3 / 24.2 %, Normal
   11.4 / 16.5 %; JVM410H OD 17.2 / 24.7 %, a little over on guitar.
 
+**As built (stream M1, the remaining Marshalls).** Two types appended to `AmpDesign.All` and one extended; each file
+cites its drawings and marks what is read, inferred or guessed:
+- **JVM410H**, all four channels and their three modes: `JVM410H OD` (OD1, OD2 on Switch 1) and the new
+  `JVM410H Clean/Crunch` (Crunch on Switch 1); Switch 2 is Orange and Switch 3 Red, both off Green. From the JVM410H's
+  own sheets (main board JVM410-60-02 iss 2, front panels -61-02 iss 1, footswitch -67-02 iss 2; DrTube): the channel
+  network's output (connector pin 3) always reaches V6a through 220k, and relays RL3 and RL4 (latch outputs A2, A3)
+  give three cascades, V6b-V7a (RL4 on), V6b-V7b-V7a (both off) or V6b-V6a-V7b-V7a (RL3 on); RL2 (A1) grounds V7b's
+  82k/22k junction (gain about 2 against 9). Read newly: the Clean channel's pre-gain stack (220 pF, 56k, 100 nF, 47 nF;
+  200k-B, 200k-A, 20k-B) into the 1M-A Clean Gain with 220 pF; the Crunch network (10 nF, 470k ‖ 470 pF, 1 nF top to
+  wiper); RL204 puts the line on the OD stacks or on the Crunch stack and Clean volume network (10k, 4.7 nF + 220k onto
+  the 1M Volume, or 47k past it in Clean Green: RL205). The modes' relay states are firmware (an ATmega8 on the main
+  board); no drawing, forum trace or measurement gives them, so they are deduced from the handbook's gain-structure
+  descriptions: Clean 2 / 3 / 4 triodes with RL2 on in Red, Crunch 2 / 3 (RL2 on) / 3, OD 3 / 4 (RL2 on) / 4. Each mode
+  is its own chain of stages under nested `ChannelSwitchStageDesign`s (no library change).
+- **DSL100** (`Dsl100.cs`), both channels: Classic Gain (Clean / Crunch on Switch 2) and Ultra Gain (Switch 1; Lead 1 /
+  Lead 2 on Switch 2), Tone Shift on Switch 3, Deep as the Depth control. The previous blocker, the missing wiring
+  drawing JCM2-68-02, is not needed: both boards print their connectors' partners (main CON3 to front CON2 and so on),
+  and the 1997 issue-1 main board (JCM2-60-00, a scan) agrees. V1B into relay RL1, which feeds one channel's network
+  and grounds the other's input; Classic's wiper and Ultra's V1A path (4.7 nF, 10k, 1k ‖ 470 pF) meet through 470k each
+  (the 1997 sheet's LDR1/LDR2, resistors by issue 9) at V2B (4k7 unbypassed), V2A (2k2, 470k/470k in), V3B (the reverb
+  mixer's 100k / 47k / 47k + 2k2), V3A follower straight into the stack; Tone Shift adds 470 pF, 68k and 22 nF in series
+  with the treble cap, slope and middle cap. Which switch position is which mode follows the handbook (Lead 2 "mid-boosted
+  ... even higher gain": the lifted bridge and the full V1A bypass; read the other way it had 3 dB less gain than Lead 1).
+  Guessed: rails, idle current, OT, and the feedback resistor (47k from 16 Ω; it is on the jack wiring).
+- **JMP-1** (`Jmp1.cs`), Clean I/II and OD I/II (Switch 1 OD, Switch 2 II, Switch 3 Bass Shift), from JMP1-61-04
+  iss 10 (six vector sheets): IC34's switched sections, the TC9176 Gain (two cascaded sections with a follower: each a
+  10k linear pot, so the pair follows a square law; the part's value is not drawn), the clean VB1a/VB1b with their
+  voicing network, the OD path's ×196 TL072 into the W005F/1N4007 clamp and VB2a/VB2b, OD II's fixed voicing network,
+  the active tone circuit (four band filters returned through TC9170 pots between an inverting input stage's and output
+  stage's summing nodes; flat at the centre, each band +4 to +9 dB at full), IC17, the Volume, the output mixer and
+  driver. Every op-amp but the OD's inverting stage is a linear amplifier. Its line output drives the JCM900 4100's
+  documented EL34 power amp (4100-60-02); presence and depth hidden, Control 1 the Output level, Control 2 the preamp's
+  Presence band.
+- **Not built: JVM410HJS.** Its sheets (-60-02 iss 2, -61-02 iss 1, -62-02 iss 1) carry the JVM410H's channel networks
+  and three-path cascade with other values, plus the input buffer, the THAT4301 gate and mid-shift relays, but five
+  main-board relays (RL101, RL103 B/C, RL104, RL105) where the JVM410H has three, and its handbook describes the modes'
+  voicings, not their gain stages, so the relay states of its nine gain structures cannot be deduced as the JVM410H's
+  were.
+- **Library**: no shared code changed. The JVM tests moved from `ModernMarshallTests` to `RemainingMarshallTests`,
+  whose chain test resolves nested channel switches.
+- **Validation** (`Remaining_marshall_chains_match_the_reference`, the playing chain of every channel and mode as one
+  circuit): JVM410H every mode −44 to −47 dB, DSL100 −46 to −63 dB, JMP-1 Clean −37 to −49 dB and OD −25 dB (the
+  TL072 model's 3 MHz gain-bandwidth against the reference's ideal op-amp, at a closed-loop gain of 196). Knob sweeps at
+  full drive converge in every channel and mode, every control is audible, gain and master are monotonic, peaks stay
+  under +6 dBFS; the modes raise the gain in order, Tone Shift scoops the middle, the JMP-1's tone circuit is flat at the
+  centre (`RemainingMarshallTests`).
+- **References**: no GPL direct-out capture of these amps with stated settings was found (pelennor's "Tim R JCM2000"
+  files do not say DSL or TSL; the JVM files state neither amp nor rig); all ship schematic-only.
+- **CPU** (48 kHz, guitar chord / loud noise, Gain 7, Master 6, minimum of five passes, `Cathode.Bench --amps`):
+machine at a load average of 150–210, where the Plexi read 8.4–10.7 / 15.0–18.0 % across the runs (each figure
+  below with the Plexi of its own run): JVM410H OD Green 15.8 / 23.1 (Plexi 8.4 / 15.0), Orange 19.0 / 28.5 (10.3 /
+  17.3), Red 18.6 / 28.2 (10.1 / 17.8), OD2 Green 17.5 / 25.6 (10.7 / 18.0), OD2 Red 16.8 / 25.3 (8.4 / 15.1); JVM410H
+  Clean Green 12.9 / 26.5, Orange 16.1 / 27.8, Red 19.6 / 30.4, Crunch Green 15.1 / 26.3, Orange 14.3 / 26.1, Red 15.3 /
+  24.0; DSL100 Classic Clean 11.6 / 26.2, Crunch 15.2 / 28.6, Ultra Lead 1 17.4 / 26.9, Lead 2 15.6 / 24.9 (Tone Shift
+  13.2 / 29.6 on Clean); JMP-1 Clean I 10.7 / 16.6, Clean II 12.0 / 19.7, OD I 19.0 / 25.1, OD II 16.9 / 22.6, OD I with
+  Bass Shift 17.0 / 22.4. Relative to the Plexi of the same run (1.3–2.0 × on guitar, 1.1–1.8 × on noise) the clean
+  modes of the JVM and the DSL are over the clean noise budget (their noise figures are high-gain cascades' figures:
+  every triode of the clean chains clips on loud noise), and the JVM's Orange/Red and the JMP-1's OD a little over the
+  high-gain guitar budget; no solver shortcut was tried (each needs a −60 dB golden comparison).
+
 ### 3.3 Vox and class-A boutique
 
 **AC30 Top Boost** — https://www.ampbooks.com/mobile/classic-circuits/vox-ac30/, https://www.voxac30.org.uk/vox_ac30_top_boost_circuit.html (JMI OS/010 drawing images on that site)
@@ -731,6 +791,42 @@ CPU (48 kHz, default settings, guitar-like chord bursts / white noise, measured 
 - **Validation** (`MesaBoutiqueAmpTests`): chains against the reference simulator with no cuts: Liverpool V1a-V2 -33 dB (2 mV and 50 mV), Subway Blues V1a-V2a -31 dB, TriAxis Rhythm V2A-V3A -42 dB, Lead 1 V1A-V3A -46 dB, Lead 2 V2A-V3A through the overdrive -19 dB (2 mV) / -13 dB (50 mV), ODS 70s V1-V2 -34 dB and through the overdrive -23 dB, Dual Rectifier V1A-V3A -16 dB and 3-Ch -16 dB at 2 mV (a cold clipper with a plate cap behind clipping stages: the known weak spot of the cuts). Panels, sweeps converging at full drive, every control audible, gain and master monotonic, levels below +6 dBFS (worst +2.8 dBFS, TriAxis Rhythm), and Modern taking the feedback out (+9 dB open loop on the 3-Ch).
 - **References**: none. No free direct-out capture of these amps was found (GuitarML ToneLibrary, pelennor2170/NAM_models searched); the Dumble kit and clone captures stay on ODS 97.
 - **CPU** (48 kHz, default settings, guitar-like chord bursts / white noise, best of three passes on a machine with a load average of 100 to 360, where Plexi read 9.1 / 15.2 %): Liverpool 10.8 / 16.8, ODS 70s clean 8.7 / 13.0, overdrive 12.3 / 17.9, Dual Rectifier 13.4 / 21.7 (Modern 13.3 / 21.7), Dual Rectifier 3-Ch 14.8 / 23.7, Triple Rectifier 13.9 / 24.1, Subway Blues 11.3 / 18.2, **TriAxis Rhythm 15.4 / 23.2, Lead 1 16.1 / 26.4, Lead 2 18.9 / 31.9 %: over budget** (Rhythm against the clean class, Lead 2 against high gain). Per stage at 96 kHz the Dynamic Voice (one op-amp, five LCR branches) costs about 2.4 % and V5A 1.2 %; the TriAxis runs eight stages (Lead 2) where a Mark runs six. Next: an ideal-op-amp element (the R-type adaptor already has VCVS ports) so that the Dynamic Voice is a linear network with no Newton device, or the Dynamic Voice bypassed at zero.
+
+**As built (stream M2, power-amp driver variants, round 3).** Two types appended to `AmpDesign.All`, and three library
+additions (new types; every existing inverter and power amp renders bit-identical, pinned by `InverterBitIdentityTests`):
+- **Library**: `CathodyneDriverDesign` (a cathodyne whose plate and junction each AC-couple into one grid of a triode pair
+  with a shared unbypassed cathode, no followers; outputs the pair's plates); `DifferentialDriverDesign` (a long-tail pair
+  on a negative tail, each plate onto a coupling load and a divider into a second pair with a shared cathode); and
+  `LoopStageDesign` on `PowerAmpDesign.Loop`: a common-cathode triode taking the feedback at the bottom of its cathode
+  circuit, followed by a linear RC network with pots and switches (`StageNetlist`, resistors and capacitors), run inside
+  the power amp's scalar Newton as a table plus a trapezoidal state-space whose output is affine in the sample's input,
+  so the tone stack sits inside the loop with no delay. The loop stage inverts, so the feedback is taken with the other
+  sign; the knobs reach it through `PowerAmp.ConfigureLoop` (called from `AmpChannel.Configure`) and the preamp's sag through
+  `PowerAmp.SetLoopSupply` (per sample, from `AmpChannel.Tick`; the table scaled with the supply). Also `PotRole.Equalizer1`
+  to `Equalizer5`: a network-stage pot turned by the block's EQ band gains (±12 dB as the slider's travel).
+- **Major 1967** (Unicord 70-02-12): both V1 channels and the volume mix as one stage; V2A (bypassed 470 above the 470 Ω
+  feedback shunt, 47k from the 16 Ω tap, 5k / 0.68 µF presence) and the stack (500 pF, 33k, 22 nF to the bass, 22 nF to
+  the middle pot's *wiper*, 250k / 1M / 25k) in the loop; V2B cathodyne 100k / 2.7k / 100k; ECC82 47k plates, shared
+  1.5k, 270k leaks (printed "270"); four KT88 ultralinear, 68k feeds, 5.6k stoppers. The Treble volume's 2.2 nF line is
+  read as crossing the mix line (joined, the pot would move the level 2 dB). Guessed: B+ 600 V, the nodes, 40 mA idle,
+  2.5k primary, 43 % taps. The feedback flattens the stack: treble 0 → 10 moves 3 kHz 4.4 dB in the loop, 9.5 dB open.
+- **Bass 400** (Mesa 1985, rendered from the PDF with its page transforms, which made docs' unreadable parts readable:
+  the volumes return to ground, V3B's grid and its 62k sit on the ground line): V1A / V1B with their volumes (Switch 1
+  picks input 2); V2A + stack + V2B as one stage (V2B's grid biases itself by grid current from 3.3M and loads the stack:
+  a Thévenin cut there was −13 dB off the reference); the six-band LC graphic EQ on a linear op-amp (five EQ bands and
+  Control 2 for 4 kHz; ±19–21 dB at the extremes); V3 33k / 33k tail to −68 V, 62k and 470k / 220k into V4 (47k guessed,
+  plates 279 V against the marked 276 V), shared 470 Ω; six 6550 at 45 mA (the
+  library's 6550 then wants −67 V where the sheet marks −63 V; matching the mark would be 35 W a tube); no feedback.
+- **Validation**: the driver tables against exact DC sweeps (`Cathodyne_driver_table_matches_the_reference_dc_sweep`,
+  `Differential_driver_table_matches_the_reference_dc_sweep`: < 0.05 V wherever no grid draws current); whole power amps
+  in the time domain with a stiff supply (`Driver_power_amps_match_the_reference_in_the_time_domain`: Major −32 dB with the
+  loop closed, −38 dB open, Bass 400 −40 dB; the closed loop's residue is the presence branch, which the model leaves out
+  of V2A's degeneration); the preamps as whole chains (`Driver_variant_preamps_match_the_reference`: Major −78 dB, Bass 400
+  −46 dB). Knob sweeps at full drive converge with peaks below 0 dBFS (`DriverVariantAmpTests`).
+- **References**: none found (GuitarML ToneLibrary, pelennor2170/NAM_models).
+- **CPU** (48 kHz, best of three, Plexi 8.4 / 15.0 % in the same passes): Major 10.0 / 16.5 %, Bass 400 13.0 / 21.4 % (over
+  the clean budget, within crunch: five triodes, a twelve-reactance EQ and six output tubes; a looser Newton tolerance
+  did not help).
 
 ### 3.5 Bass and solid state (tier 2)
 

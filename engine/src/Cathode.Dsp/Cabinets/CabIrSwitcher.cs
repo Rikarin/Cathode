@@ -2,38 +2,124 @@ using Cathode.Dsp.Convolution;
 
 namespace Cathode.Dsp.Cabinets;
 
+/// <summary>Which inputs a <see cref="StereoIr" /> convolves.</summary>
+public enum IrFeed {
+    /// <summary>Left input through the left IR to the left output, right through the right IR to the right.</summary>
+    Both,
+
+    /// <summary>The left input alone feeds both IRs (the Cab's Stereo input with only slots 1 and 3 playing).</summary>
+    Left,
+
+    /// <summary>The right input alone feeds both IRs (only slots 2 and 4 playing).</summary>
+    Right,
+
+    /// <summary>
+    ///     Each input through its own pair, summed per output: four convolutions (the Cab's Stereo input with slots on
+    ///     both sides).
+    /// </summary>
+    Cross
+}
+
 /// <summary>
-///     A left and right impulse response as a pair of convolvers, built on the control thread; or the identity, which
-///     passes audio through untouched and costs nothing.
+///     A left and right impulse response as a pair of convolvers, built on the control thread; or two pairs, one fed by
+///     each input (<see cref="IrFeed.Cross" />); or the identity, which passes audio through untouched and costs
+///     nothing.
 /// </summary>
 public sealed class StereoIr : IDisposable {
     readonly Convolver? left;
     readonly Convolver? right;
+    readonly Convolver? leftToRight;
+    readonly Convolver? rightToLeft;
+    readonly NativeBuffer fromLeft = NativeBuffer.Empty;
+    readonly NativeBuffer fromRight = NativeBuffer.Empty;
 
     public bool IsIdentity => left is null;
+
+    public IrFeed Feed { get; }
 
     /// <summary>The identity: <see cref="Process" /> leaves the audio as it is.</summary>
     public StereoIr() { }
 
-    public StereoIr(ReadOnlySpan<float> left, ReadOnlySpan<float> right) {
+    public StereoIr(ReadOnlySpan<float> left, ReadOnlySpan<float> right, IrFeed feed = IrFeed.Both) {
+        if (feed == IrFeed.Cross) {
+            throw new ArgumentException("A cross feed takes two pairs.", nameof(feed));
+        }
+
         this.left = new(left);
         this.right = new(right);
+        Feed = feed;
     }
 
-    /// <summary>Audio thread: convolves left with the left IR and right with the right IR, in place.</summary>
+    /// <summary>
+    ///     Two pairs: the left input through <paramref name="leftToLeft" /> and <paramref name="leftToRight" />, the right
+    ///     input through <paramref name="rightToLeft" /> and <paramref name="rightToRight" />, for callbacks of up to
+    ///     <paramref name="maxBlockSize" /> frames.
+    /// </summary>
+    public StereoIr(
+        ReadOnlySpan<float> leftToLeft,
+        ReadOnlySpan<float> leftToRight,
+        ReadOnlySpan<float> rightToLeft,
+        ReadOnlySpan<float> rightToRight,
+        int maxBlockSize
+    ) {
+        left = new(leftToLeft);
+        right = new(rightToRight);
+        this.leftToRight = new(leftToRight);
+        this.rightToLeft = new(rightToLeft);
+        fromLeft = new(maxBlockSize);
+        fromRight = new(maxBlockSize);
+        Feed = IrFeed.Cross;
+    }
+
+    /// <summary>Audio thread: convolves the inputs as <see cref="Feed" /> says, in place.</summary>
     public void Process(Span<float> left, Span<float> right) {
-        this.left?.Process(left);
-        this.right?.Process(right);
+        if (this.left is null) {
+            return;
+        }
+
+        switch (Feed) {
+            case IrFeed.Left:
+                left.CopyTo(right);
+                break;
+            case IrFeed.Right:
+                right.CopyTo(left);
+                break;
+            case IrFeed.Cross: {
+                var a = fromLeft.Span[..left.Length];
+                var b = fromRight.Span[..right.Length];
+                left.CopyTo(a);
+                right.CopyTo(b);
+                leftToRight!.Process(a);
+                rightToLeft!.Process(b);
+                this.left.Process(left);
+                this.right!.Process(right);
+                for (var i = 0; i < left.Length; i++) {
+                    left[i] += b[i];
+                    right[i] += a[i];
+                }
+
+                return;
+            }
+        }
+
+        this.left.Process(left);
+        this.right!.Process(right);
     }
 
     public void Reset() {
         left?.Reset();
         right?.Reset();
+        leftToRight?.Reset();
+        rightToLeft?.Reset();
     }
 
     public void Dispose() {
         left?.Dispose();
         right?.Dispose();
+        leftToRight?.Dispose();
+        rightToLeft?.Dispose();
+        fromLeft.Dispose();
+        fromRight.Dispose();
     }
 }
 

@@ -149,6 +149,23 @@ public static class CathodeApi {
             .WithSummary(
                 "Listens to the rig while you play, then sets a Tone Match block's correction towards a reference .wav."
             );
+        live.MapGet(
+                "/blocks/{id}/ir",
+                async (string id, IrTools tools) =>
+                    TypedResults.File(await tools.ExportCabAsync(id), "audio/wav", $"{id}.wav")
+            )
+            .Produces<byte[]>(200, "audio/wav")
+            .WithName("ExportCabIr")
+            .WithSummary(
+                "A Cab block's current mixed IR (every slot that plays, DynaCab and IR pack slots included, cuts and smoothing baked in) as a stereo .wav at the engine's rate."
+            );
+        live.MapPost(
+                "/blocks/{id}/ir",
+                async (string id, CabExportRequest request, IrTools tools, HttpContext http) =>
+                    TypedResults.Ok(await tools.SaveCabAsync(id, request, http.RequestAborted))
+            )
+            .WithName("SaveCabIr")
+            .WithSummary("Saves a Cab block's current mixed IR as a new IR asset.");
 
         live.MapGet(
                 "/blocks/{id}/cab/align",
@@ -268,7 +285,12 @@ public static class CathodeApi {
                 ) => {
                     var source = store.Get(request.Preset)
                         ?? throw RigException.NotFound($"No block preset '{request.Preset}'.");
-                    return Respond(http, await rig.ApplyBlockPresetAsync(id, source, request.Channel, Expected(http)));
+                    return Respond(
+                        http,
+                        request.AllChannels
+                            ? await rig.ApplyBlockPresetAllAsync(id, source, Expected(http))
+                            : await rig.ApplyBlockPresetAsync(id, source, request.Channel, Expected(http))
+                    );
                 }
             )
             .WithName("ApplyBlockPreset")
@@ -325,16 +347,36 @@ public static class CathodeApi {
             .WithName("DeleteBank");
 
         MapControls(api, live);
+        WorkflowApi.MapWorkflow(api, live);
 
         var assets = api.MapGroup("/assets").WithTags("Assets");
         assets.MapGet("/", (AssetStore store) => TypedResults.Ok(store.List().ToArray())).WithName("ListAssets");
         assets.MapPost(
                 "/",
-                async (string name, HttpRequest request, AssetStore store, CancellationToken cancellationToken) =>
-                    TypedResults.Ok(await store.AddAsync(request.Body, name, cancellationToken))
+                async (
+                        string name,
+                        HttpRequest request,
+                        AssetStore store,
+                        CancellationToken cancellationToken,
+                        string? processing,
+                        bool? polarity,
+                        string? channels,
+                        double? maxLengthMs
+                    ) =>
+                    TypedResults.Ok(
+                        await store.AddAsync(
+                            request.Body,
+                            name,
+                            AssetStore.ImportSettings(processing, polarity, channels, maxLengthMs),
+                            cancellationToken
+                        )
+                    )
             )
             .Accepts<Stream>("application/octet-stream")
-            .WithName("UploadAsset");
+            .WithName("UploadAsset")
+            .WithSummary(
+                "Uploads an asset. A .wav IR can be processed on import: processing (asIs, autoTrim, minimumPhase), polarity (make the main peak positive), channels (both, left, right, sum) and maxLengthMs."
+            );
         assets.MapPost(
                 "/mix",
                 async (IrMixRequest request, IrTools tools, CancellationToken cancellationToken) =>
@@ -575,7 +617,9 @@ public static class CathodeApi {
                                 g.MidiMappings = settings.MidiMappings;
                                 g.Footswitches = settings.Footswitches;
                                 g.ActiveLayout = settings.ActiveLayout;
+                                g.ActiveView = Math.Max(0, settings.ActiveView);
                                 g.Blocks = settings.Blocks;
+                                g.Perform = settings.Perform;
                                 g.EffectsMix = settings.EffectsMix;
                                 g.NoiseGateOffset = settings.NoiseGateOffset;
                                 g.SceneRevert = settings.SceneRevert;
@@ -712,13 +756,13 @@ public static class CathodeApi {
             .WithSummary("Puts every channel of the block back to its type's defaults.");
     }
 
-    static Ok<LiveState> Respond(HttpContext http, LiveState state) {
+    internal static Ok<LiveState> Respond(HttpContext http, LiveState state) {
         http.Response.Headers.ETag = $"\"{state.Revision.ToString(CultureInfo.InvariantCulture)}\"";
         return TypedResults.Ok(state);
     }
 
     /// <summary>The revision from <c>If-Match</c>, if the client sent one.</summary>
-    static long? Expected(HttpContext http) {
+    internal static long? Expected(HttpContext http) {
         var header = http.Request.Headers.IfMatch.ToString().Trim().Trim('"');
         return long.TryParse(header, NumberStyles.Integer, CultureInfo.InvariantCulture, out var revision)
             ? revision

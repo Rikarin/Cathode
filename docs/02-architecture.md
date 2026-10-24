@@ -210,7 +210,7 @@ public interface IDspBlock : IDisposable
 }
 ```
 
-`BlockContext` carries the sample rate, tempo, sample time, the MIDI notes currently held (`HeldNotes`), and three global settings from the rig bank: the Effects Mix offset that blocks with Global Mix on add to their Mix, the noise gate offset the Input gate adds to its threshold, and Input 1's calibration (`InputCalibrationDb`, dB re 1 V at full scale; `InputVolts` is the factor), by which the voltage-modelled blocks (Circuit Amp, Drive) scale their input. The host's MIDI input posts note on/off straight to the engine as `EngineCommand.Note`, so the Pitch block can take its key and chord from a keyboard or DAW.
+`BlockContext` carries the sample rate, tempo, sample time, the MIDI notes currently held (`HeldNotes`), and four global settings from the rig bank: the Effects Mix offset that blocks with Global Mix on add to their Mix, the noise gate offset the Input gate adds to its threshold, `CabsOff` (Global "cab modeling off"), under which the Cab and IR Player blocks pass audio through, and Input 1's calibration (`InputCalibrationDb`, dB re 1 V at full scale; `InputVolts` is the factor), by which the voltage-modelled blocks (Circuit Amp, Drive) scale their input. The host's MIDI input posts note on/off straight to the engine as `EngineCommand.Note`, so the Pitch block can take its key and chord from a keyboard or DAW.
 
 Processing is **in place**: the compiler hands each block one buffer that holds its input and receives its output. That is what lets a series chain run in a single buffer.
 
@@ -223,6 +223,7 @@ Other optional interfaces a block may add:
 - `ISidechainBlock`: offered other signals for its detector (§5.2).
 - `IHardwareInputBlock`: given the graph's `InputPort` to read the interface's input sources (§5.2).
 - `IEngageAware`: told on the audio thread when its bypass target turns from bypassed to active, before the bypass fade starts, so an LFO can restart from a set phase (Flanger and Phaser LFO Bypass Reset, Tremolo Start Phase). A block that starts engaged is not told.
+- `IBlockMeters`: meters of its own (the Cab's preamp input level and Motor Drive gain reduction), plain fields the audio thread writes. The host reads them on the control thread with each IPC telemetry push (the list is rebuilt only when the graph changes, so a push allocates nothing) and the Server forwards them in the `telemetry` message's `blocks`.
 
 - DSP state lives in `NativeMemory.AlignedAlloc` buffers (64-byte aligned) or pinned arrays.
 - `Process` is `[SkipLocalsInit]` and uses `Span<T>` and `Vector128<T>` (the portable SIMD baseline; on Apple Silicon `Vector256` is emulated).
@@ -238,7 +239,7 @@ Other optional interfaces a block may add:
 - A modifier may be **scoped to one channel** of its block. The compiler is told which modifiers start enabled; when the block changes channel the server sends `setModifier`, and the audio thread turns the binding on, or off with the channel's value restored, so a modulated value still in flight cannot win (`EngineCommandKind.SetModifier`).
 - Filters smooth the **parameter** (cutoff), then recompute coefficients per sub-block. Any filter whose parameters can move uses a TPT/ZDF state-variable filter. *Confirmed in Phase 1:* the property suite found a direct-form biquad emitting +63 dBFS transients during a fast cutoff and Q sweep, and the SVF, which has the same magnitude response, fixed it.
 - RBJ shelves are limited to Q ≤ 1. Above that they develop a large resonant bump at the corner.
-- **Derived state too expensive for the audio thread** (the Cab block's mixed slot IRs: synthesised DynaCabs, interpolated IR packs and IR files, folded into one stereo pair; the IR Player's two slots, cut, levelled, panned and combined in parallel, stereo or series) belongs to blocks that implement `IControlRefresh`. The host calls `Refresh()` on the control thread after every parameter message and on each telemetry tick (for targets that modifiers moved). The block compares the targets with what it last built, rebuilds only what changed, and hands the result over through an `Interlocked.Exchange` slot; the audio thread crossfades the new state in and returns the old one through a second slot for the control thread to dispose. Nothing locks, and nothing is allocated or freed on the audio thread.
+- **Derived state too expensive for the audio thread** (the Cab block's mixed slot IRs: synthesised DynaCabs, interpolated IR packs, IR files and Flat slots, folded into one stereo pair, or with a Stereo input into a left-fed and a right-fed pair, four convolutions, since slots 1 and 3 hear the left input and 2 and 4 the right; the IR Player's two slots, cut, levelled, panned and combined in parallel, stereo or series) belongs to blocks that implement `IControlRefresh`. The host calls `Refresh()` on the control thread after every parameter message and on each telemetry tick (for targets that modifiers moved). The block compares the targets with what it last built, rebuilds only what changed, and hands the result over through an `Interlocked.Exchange` slot; the audio thread crossfades the new state in and returns the old one through a second slot for the control thread to dispose. Nothing locks, and nothing is allocated or freed on the audio thread.
 
 ### 5.5 Switching and spillover
 
@@ -336,7 +337,7 @@ Version 1 holds:
 
 Every reader takes the maximum over the slots since its own previous poll. Nothing is ever reset, so any number of readers see every peak once.
 
-The Server publishes meters at 30 Hz, still as JSON. IPC telemetry, which carries the tuner, GC counts and device timing windows, dropped to 10 Hz.
+The Server publishes meters at 30 Hz, still as JSON. IPC telemetry, which carries the tuner, GC counts, device timing windows and the blocks' own meters (`IBlockMeters`, as `blocks: [{ block, meters: { id: dB } }]` in the `telemetry` message), dropped to 10 Hz.
 
 Version 3 adds an output scope ring of 16,384 samples, outside the seqlock (the reader checks that the writer did not lap it). The Server reads it for three things:
 - scope frames, while the scope is on
@@ -432,6 +433,52 @@ xUI currently has **no knob, meter or VU component**. Build them in `editor/libs
 - a footswitch layout editor
 - a tuner overlay, a looper panel and a metronome
 - an **A/B compare** of the working copy against the saved preset, with undo/redo history
+
+### 7.5 Editor workflow (as built)
+
+The editor's software-editor features, built in the ED stream. They follow Fractal's editor in what they do, not in how they look.
+
+- **Shortcuts.** One table in `shell/shortcuts.ts` drives two things: dispatch (`ShortcutService`, through a document `keydown`) and the `?` help overlay.
+  - Handlers register per page. The app owns the preset, scene, channel, block, edit and tuner commands. The grid owns the cell commands (Q, ⌘X/C/V/D/U, Delete), because it knows the focused cell.
+  - Nothing fires while focus is in a text field.
+  - ⌥ held, or F1, shows Block Info.
+  - B keeps its old job, bypass, as an alias of Space. Channel B is therefore ⇧B; A, C and D need no ⇧.
+  - A unit test checks that no two bindings collide and that none clashes with Electron's default menu, which is the only menu the desktop app has.
+- **Preferences** (`PreferencesStore`) are kept in local storage, per user and per machine: knob mode, wheel, tooltips, meter rate, and the default Circuit Amp view.
+  - They reach `cth-knob` and `cth-meter` through audio-ui's `CTH_KNOB_PREFERENCES` and `CTH_METER_PREFERENCES` tokens.
+  - Turning tooltips off puts the `cth-no-tooltips` class on the root.
+- **Server endpoints.** Everything the editor needs the Server to do lives in `Api/WorkflowApi.cs`, `Rig/LiveRig.Workflow.cs`, `Rig/PresetTools.cs` and `Stores/WorkflowStores.cs`. Live edits are one undo step each.
+  - Preset commands: `POST /live/revert`, `POST /live/clear`.
+  - Snapshots: `POST /live/snapshots`, `POST /live/snapshots/{id}/load`, `GET`/`DELETE /snapshots`. They are stored in `<data>/snapshots`.
+  - Templates: `POST /live/templates`, `POST /live/templates/{id}/new`, `GET`/`DELETE /templates`. They are stored in `<data>/templates`.
+  - Grid operations:
+    - `PUT /live/blocks/{id}/type` replaces a block and keeps its cables.
+    - `POST /live/blocks/{id}/drop` takes `swap` (the cables stay in place) or `replace`.
+    - `POST /live/grid/move` moves a row or column.
+    - `DELETE /live/blocks/{id}/cables` disconnects a block.
+    - `PUT /live/blocks/{id}/settings` pastes settings onto a block of the same type, all channels.
+    - `PUT /live/blocks/{id}/all-scenes` sets a block's state in every scene.
+  - Performance pages and footswitch overrides: `PUT /live/perform`, `PUT /live/footswitch-overrides`.
+  - Block Library:
+    - `POST /live/block-presets` saves every block.
+    - `POST /block-presets/export` and `/import` handle `.cthblock` files.
+    - `ApplyBlockPresetRequest.AllChannels` recalls a whole-block entry.
+  - Metadata and preset tools:
+    - `PATCH /presets/{id}/metadata` and `PATCH /assets/{ref}/metadata` set name, colour tag and favourite.
+    - `POST /presets/{id}/duplicate`.
+    - `POST /presets/reset-amps`.
+    - `POST /presets/batch-set`.
+- **Reset Amp blocks** goes through each preset's Circuit Amp channels.
+  - It clears every parameter in `BlockDescriptor.TypeResets` whose `AmpPanel.Label(id, "")` is empty.
+  - That resets the expert settings and the controls the model lacks.
+  - It keeps the model's front-panel knobs and switches, plus type, level, balance and input select.
+- **Footswitches.**
+  - A `FootswitchLayout` can have named `Views`. Each `Footswitch` sits on one `View` and may `Link` to another layout, which takes over after its tap action.
+  - The new actions are `layout`, `view`, `viewNext` and `viewPrevious`. `GlobalSettings.ActiveView` holds the page in use.
+  - In the MIDI router, `Preset.FootswitchOverrides` replace a switch's tap and hold while the preset is loaded. LEDs follow the active view and the overrides.
+- **Manage Presets** (`pages/manage.ts`) holds bank edits, copies, renames, metadata and deletions in a `ManageSession` until Save.
+  - Save applies them in an order the Server accepts: copies, metadata, banks, then deletions.
+  - **Manage IRs** works the same way through an `AssetSession`.
 
 ---
 

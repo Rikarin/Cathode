@@ -36,6 +36,10 @@ public sealed record ToneMatchRequest(
 /// <param name="Invert">Flip the polarity.</param>
 public sealed record IrMixSource(string Asset, double LevelDb = 0, double DelayMs = 0, bool Invert = false);
 
+/// <summary>Saves a Cab block's current mixed IR as a new IR asset.</summary>
+/// <param name="Name">File name for the result (".wav" is added).</param>
+public sealed record CabExportRequest(string Name);
+
 /// <summary>
 ///     Mixes impulse responses into a new one (a Cab-Lab-style blend of mics or cabs), stored as a new asset.
 /// </summary>

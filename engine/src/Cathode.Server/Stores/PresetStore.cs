@@ -14,9 +14,12 @@ public sealed class PresetStore(IOptions<ServerOptions> options) {
 
     public IReadOnlyList<PresetSummary> List() => [
         ..files.All()
-            .Select(static e => new PresetSummary(e.Item.Id, e.Item.Name, e.Item.Author, e.Item.Tags, e.Modified))
+            .Select(static e => Summary(e.Item, e.Modified))
             .OrderBy(static p => p.Name, StringComparer.OrdinalIgnoreCase)
     ];
+
+    public static PresetSummary Summary(Preset preset, DateTimeOffset modified) =>
+        new(preset.Id, preset.Name, preset.Author, preset.Tags, modified, preset.Color, preset.Favorite);
 
     public Preset? Get(string id) => files.Get(id);
 

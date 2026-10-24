@@ -63,6 +63,8 @@ export interface CathodeDesktop {
   platform: string;
   /** Called when the window enters or leaves full screen. */
   onFullScreen(listener: (fullScreen: boolean) => void): void;
+  /** Called when the app menu's Settings… (⌘,) is chosen. */
+  onOpenSettings?(listener: () => void): void;
   /** The Server to use; in local mode it resolves once the sidecars answer. */
   connection(): Promise<Connection>;
   target(): Promise<ServerTarget>;

@@ -81,7 +81,7 @@ public class AccessTests {
         var next = (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Cancel))!.Preset;
         next.Id = "ignored";
         next.Name = "Version B";
-        next.Blocks.Add(new() { Id = "delay1", Type = "delay", Row = 1, Column = 3 });
+        next.Blocks.Add(new() { Id = "delay1", Type = "delay", Row = 0, Column = 3 });
 
         using var put = await client.PutAsJsonAsync("/api/v1/live", next, Cancel);
         var replaced = (await put.Content.ReadFromJsonAsync<LiveState>(Cancel))!;

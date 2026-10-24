@@ -293,6 +293,11 @@ public enum PowerTopology {
 ///     A front-panel switch that takes the global feedback out while it is on (Mesa's Modern mode on the Rectifiers);
 ///     null for none.
 /// </param>
+/// <param name="Loop">
+///     A preamp stage inside the global feedback loop, ahead of the phase inverter (the Marshall Major's V2A and tone
+///     stack, with the feedback at V2A's cathode): the power amp's input is then that stage's grid, and the feedback
+///     subtracts there. Null for none (the feedback at the inverter). Push-pull only.
+/// </param>
 public sealed record PowerAmpDesign(
     string Name,
     PentodeModel Tube,
@@ -325,7 +330,8 @@ public sealed record PowerAmpDesign(
     double CathodeResistor = 0,
     IReadOnlyList<SupplySwitchDesign>? SupplySwitches = null,
     double ScreenSupply = 0,
-    SwitchRole? FeedbackOffSwitch = null
+    SwitchRole? FeedbackOffSwitch = null,
+    LoopStageDesign? Loop = null
 ) {
     /// <summary>1 when single-ended, else 2.</summary>
     public int Sides => Topology == PowerTopology.SingleEnded ? 1 : 2;

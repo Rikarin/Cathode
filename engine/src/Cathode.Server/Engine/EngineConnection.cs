@@ -337,7 +337,8 @@ public sealed partial class EngineConnection(
                     BlockMeters(source),
                     source.LoudnessMomentary,
                     source.LoudnessShortTerm,
-                    OutputPeaks(LastTelemetry)
+                    OutputPeaks: OutputPeaks(LastTelemetry),
+                    BlockMeters: OwnMeters(LastTelemetry)
                 ),
                 ContractsJsonContext.Default.Telemetry
             );
@@ -374,6 +375,17 @@ public sealed partial class EngineConnection(
 
     /// <summary>Outputs 1-4's peaks (a copy: an in-process host refills its telemetry in place).</summary>
     static float[]? OutputPeaks(HostTelemetry? t) => t is null ? null : [..t.OutputPeaks];
+    /// <summary>The meters blocks keep of their own (<c>IBlockMeters</c>), from the host's IPC telemetry.</summary>
+    static IReadOnlyList<BlockMeterInfo>? OwnMeters(HostTelemetry? t) =>
+        t?.Blocks is { Count: > 0 } blocks
+            ? [
+                ..blocks.Select(static b => new BlockMeterInfo(
+                        b.Block,
+                        b.Ids.Zip(b.Values).ToDictionary(static p => p.First, static p => p.Second)
+                    )
+                )
+            ]
+            : null;
 
     static TunerInfo? Tuner(HostTelemetry? t) =>
         t?.Tuner is { } r ? new TunerInfo(r.Frequency, r.Note, r.Octave, r.Cents) : null;
@@ -421,7 +433,8 @@ public sealed partial class EngineConnection(
                     Tuner(t),
                     t.Tempo,
                     Looper(t),
-                    OutputPeaks: OutputPeaks(t)
+                    OutputPeaks: OutputPeaks(t),
+                    BlockMeters: OwnMeters(t)
                 ),
                 ContractsJsonContext.Default.Telemetry
             );

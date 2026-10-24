@@ -120,8 +120,9 @@ public class TremoloTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     At intensity 0 each model renders sample for sample what the same model without its tremolo renders, whatever
-    ///     the rate: the tremolo leaves no trace when it is off.
+    ///     At intensity 0 each model renders sample for sample what the same model without its tremolo renders (its
+    ///     oscillator stopped, its photocell dark: the netlists keep the Intensity pot's track, which with the wiper at
+    ///     ground is all the pot does), whatever the rate: the tremolo leaves no trace when it is off.
     /// </summary>
     [Theory]
     [MemberData(nameof(Models))]
@@ -151,6 +152,23 @@ public class TremoloTests(ITestOutputHelper output) {
                     Assert.Equal(without.Tick(x), with.Tick(x));
                 }
             }
+        }
+    }
+
+    /// <summary>
+    ///     The optical vibratos' Intensity pot loads the node its top hangs on with its whole track, as the drawings show
+    ///     it (the cell's shunt acts against it): each such stage's netlist carries a resistor of the pot's value from a
+    ///     node to ground.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Models))]
+    public void The_netlists_carry_the_intensity_pot_track(string model) {
+        foreach (var stage in Networks(Design(model).Preamp).Where(static n => n.Tremolo is OpticalTremoloDesign)) {
+            var track = ((OpticalTremoloDesign)stage.Tremolo!).Intensity.Ohms;
+            Assert.Contains(
+                stage.Netlist.Elements,
+                e => e.Kind == ElementKind.Resistor && e.Value == track && (e.A == StageNetlist.Ground || e.B == StageNetlist.Ground)
+            );
         }
     }
 
@@ -239,39 +257,43 @@ public class TremoloTests(ITestOutputHelper output) {
 
     /// <summary>
     ///     The oscillators are behavioural, solved at control rate: a model with its tremolo running costs about what it
-    ///     costs without (best of several passes, against the same model with the tremolo off in the same run).
+    ///     costs without. The two are timed interleaved, block by block (a busy machine slows both alike), and the median
+    ///     of the per-block ratios taken, which a pre-empted block cannot move.
     /// </summary>
     [Theory]
     [MemberData(nameof(Kinds))]
     public void The_tremolo_costs_little(string model) {
         var input = CircuitAmpBlockTests.Chord(48_000, 0.25f);
-
-        double Seconds(float depth) {
-            using var block = Create(model, (CircuitAmpBlock.Switch1, 1f), (CircuitAmpBlock.TremoloDepth, depth));
-            var buffer = new float[64];
-            var best = double.MaxValue;
-            for (var pass = 0; pass < 3; pass++) {
-                var watch = Stopwatch.StartNew();
-                for (var offset = 0; offset < input.Length; offset += 64) {
-                    input.AsSpan(offset, 64).CopyTo(buffer);
-                    block.Process(new(buffer, buffer), default);
+        using var off = Create(model, (CircuitAmpBlock.Switch1, 1f));
+        using var on = Create(model, (CircuitAmpBlock.Switch1, 1f), (CircuitAmpBlock.TremoloDepth, 100f));
+        var buffer = new float[64];
+        var ratios = new List<double>();
+        for (var pass = 0; pass < 4; pass++) {
+            for (var offset = 0; offset < input.Length; offset += 64) {
+                // Alternate which goes first, so neither always finds the caches warm.
+                var first = (offset / 64 + pass) % 2 == 0;
+                input.AsSpan(offset, 64).CopyTo(buffer);
+                var a = Stopwatch.GetTimestamp();
+                (first ? off : on).Process(new(buffer, buffer), default);
+                var b = Stopwatch.GetTimestamp();
+                input.AsSpan(offset, 64).CopyTo(buffer);
+                (first ? on : off).Process(new(buffer, buffer), default);
+                var c = Stopwatch.GetTimestamp();
+                if (pass > 0) {
+                    // The first pass warms both up.
+                    var (offTicks, onTicks) = first ? (b - a, c - b) : (c - b, b - a);
+                    ratios.Add((double)onTicks / Math.Max(offTicks, 1));
                 }
-
-                best = Math.Min(best, watch.Elapsed.TotalSeconds);
             }
-
-            return best;
         }
 
-        // Warm both paths up, then take the best of several interleaved passes.
-        var (off, on) = (double.MaxValue, double.MaxValue);
-        for (var round = 0; round < 4; round++) {
-            off = Math.Min(off, Seconds(0));
-            on = Math.Min(on, Seconds(100));
-        }
-
-        output.WriteLine($"{model}: {100 * off:0.0} % off, {100 * on:0.0} % on (of one core, per second of audio)");
-        Assert.True(on < 1.3 * off + 0.005, $"{on / off:0.00} times the cost");
+        ratios.Sort();
+        var median = ratios[ratios.Count / 2];
+        output.WriteLine(
+            $"{model}: on / off per block, median {median:0.00} (quartiles {ratios[ratios.Count / 4]:0.00}, "
+            + $"{ratios[3 * ratios.Count / 4]:0.00})"
+        );
+        Assert.True(median < 1.25, $"{median:0.00} times the cost");
     }
 
     internal static AmpDesign Design(string name) => AmpDesign.All.Single(a => a.Name == name);

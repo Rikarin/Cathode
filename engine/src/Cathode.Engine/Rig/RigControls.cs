@@ -75,7 +75,9 @@ public static class RigControls {
             ParamDescriptor.Float("seqRate", "Sequencer Rate", 0.1f, 20f, 2f, "Hz", ParamTaper.Log),
             ParamDescriptor.Choice("seqTempo", "Sequencer Tempo", Divisions),
             ..Enumerable.Range(1, SequencerStages)
-                .Select(static i => ParamDescriptor.Float($"seq{i}", $"Stage {i}", 0f, 1f, i % 2 == 0 ? 0f : 1f))
+                .Select(static i => ParamDescriptor.Float($"seq{i}", $"Stage {i}", 0f, 1f, i % 2 == 0 ? 0f : 1f)),
+            // Global: Cab and IR Player blocks pass audio through (BlockContext.CabsOff), for a real cab.
+            ParamDescriptor.Switch("cabsOff", "Cab Modeling Off")
         ],
         maxInstances: 1,
         channels: 1

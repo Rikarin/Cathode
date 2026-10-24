@@ -2,7 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output, si
 import type { ParameterInfo, PresetBlock } from '@cathode/api-client';
 import { CthKnob, CthToggle } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
-import { matLinkOffRound, matSettingsInputComponentRound, matTuneRound } from '@ng-icons/material-icons/round';
+import {
+  matDashboardCustomizeRound,
+  matDynamicFeedRound,
+  matLinkOffRound,
+  matSettingsInputComponentRound,
+  matTuneRound
+} from '@ng-icons/material-icons/round';
 import { XuiContextMenuImports } from '@xui/context-menu';
 import { XuiMenuImports } from '@xui/menu';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
@@ -11,7 +17,10 @@ import { XuiTooltipImports } from '@xui/tooltip';
 import { ModifierDialog } from '../controls/modifier-dialog';
 import { ConnectionService } from '../core/connection';
 import { Notify } from '../core/notify';
+import { withControl } from '../pages/perform';
+import { GlobalStore } from '../state/global.store';
 import { LiveStore } from '../state/live.store';
+import { UiStore } from '../state/ui.store';
 
 /**
  * One parameter of the selected block, generated from its descriptor: a knob for continuous values, a segmented
@@ -32,7 +41,15 @@ import { LiveStore } from '../state/live.store';
     XuiSelectImports,
     XuiTooltipImports
   ],
-  providers: [provideIcons({ matLinkOffRound, matSettingsInputComponentRound, matTuneRound })],
+  providers: [
+    provideIcons({
+      matDashboardCustomizeRound,
+      matDynamicFeedRound,
+      matLinkOffRound,
+      matSettingsInputComponentRound,
+      matTuneRound
+    })
+  ],
   host: { class: 'contents' },
   template: `
     @switch (param().kind) {
@@ -69,6 +86,14 @@ import { LiveStore } from '../state/live.store';
                 Remove modifier
               </button>
             }
+            <xui-menu-divider />
+            <button xuiMenuItem icon="matDashboardCustomizeRound" (click)="addToPerform('preset')">
+              Add to the preset's Perform page
+            </button>
+            <button xuiMenuItem icon="matDashboardCustomizeRound" (click)="addToPerform('global')">
+              Add to the global Perform page
+            </button>
+            <button xuiMenuItem icon="matDynamicFeedRound" (click)="batchSet()">Set in other presets…</button>
           </xui-menu>
         </ng-template>
         <cth-modifier-dialog [block]="block().id" [param]="param()" [(open)]="editing" />
@@ -134,6 +159,8 @@ export class ParamControl {
   private readonly live = inject(LiveStore);
   private readonly connection = inject(ConnectionService);
   private readonly notify = inject(Notify);
+  private readonly ui = inject(UiStore);
+  private readonly globals = inject(GlobalStore);
 
   readonly block = input.required<PresetBlock>();
   readonly param = input.required<ParameterInfo>();
@@ -156,6 +183,22 @@ export class ParamControl {
 
   protected readonly editing = signal(false);
   protected readonly modifier = computed(() => this.live.modifierOf(this.block().id, this.param().id));
+
+  /** Puts this control on a Perform page: the preset's, or the global one shown in every preset with this block. */
+  protected addToPerform(page: 'preset' | 'global'): void {
+    const control = { block: this.block().id, param: this.param().id, label: null };
+    if (page === 'preset') {
+      void this.live.setPerform(withControl(this.live.preset()?.perform ?? [], control));
+    } else {
+      void this.globals.update(g => (g.perform = withControl(g.perform, control)));
+    }
+  }
+
+  /** Parameter Batch Set: this value into the same block of other presets. */
+  protected batchSet(): void {
+    const block = this.block();
+    this.ui.batchSet.set({ block, param: this.param(), channel: this.live.channelOf(block.id), value: this.value() });
+  }
 
   protected removeModifier(): void {
     void this.live.putModifier(this.block().id, this.param().id, null);

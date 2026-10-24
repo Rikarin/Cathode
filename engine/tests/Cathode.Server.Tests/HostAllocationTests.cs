@@ -112,14 +112,16 @@ public sealed class HostAllocationTests : IDisposable {
         // The cab's IR is cached and the convolvers live in native memory; before that a load was about 160 KB. The Drive
         // block builds every component-level network of its catalogue up front, for both channels (about 90 KB of small
         // objects), so that switching its type on the audio thread never allocates. The time-based parity pass added about
-        // 6 KB (the Delay's 80 parameters, its diffuser and post-delay lines; the Reverb's extra settings). The audio I/O
-        // pass added under 1 KB: the latency path the compiler records, the Input block's pickup load parameters and the
-        // Drive's oversampling setting.
+        // 6 KB (the Delay's 80 parameters, its diffuser and post-delay lines; the Reverb's extra settings). The Cab block
+        // stream added about 1 KB (16 more Cab parameters: per-slot proximity, smoothing and Auto-Align, Motor Drive), and
+        // the audio I/O pass under 1 KB (the latency path the compiler records, the Input block's pickup load parameters
+        // and the Drive's oversampling setting): 138,008 bytes
+        // measured with both, under a limit that leaves about 2 KB.
         var load = new IpcMessage { Type = IpcTypes.LoadGraph, Generation = 1, Graph = Rig() };
 
         var allocated = await RoundTripAsync(load, 3);
 
-        Assert.True(allocated < 137_500, $"a preset load allocated {allocated} bytes");
+        Assert.True(allocated < 140_000, $"a preset load allocated {allocated} bytes");
     }
 
     [Fact]

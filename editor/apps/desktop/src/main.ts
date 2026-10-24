@@ -1,4 +1,14 @@
-import { BrowserWindow, app, ipcMain, net, protocol, session, shell } from 'electron';
+import {
+  BrowserWindow,
+  Menu,
+  type MenuItemConstructorOptions,
+  app,
+  ipcMain,
+  net,
+  protocol,
+  session,
+  shell
+} from 'electron';
 import { existsSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -89,10 +99,11 @@ function isFile(path: string): boolean {
 
 function createWindow(): void {
   window = new BrowserWindow({
+    // The editor's grid, its block page and both bars fit without scrolling at 1440 x 1080; smaller hides them.
     width: 1440,
-    height: 900,
-    minWidth: 1024,
-    minHeight: 640,
+    height: 1080,
+    minWidth: 1440,
+    minHeight: 1080,
     title: 'Cathode',
     backgroundColor: '#111113',
     show: false,
@@ -209,6 +220,49 @@ function validTarget(target: ServerTarget): ServerTarget {
   return { mode: 'local' };
 }
 
+/**
+ * The application menu: Electron's default menus, with Settings… (⌘,) where a Mac app keeps it, in the app menu
+ * (and in File elsewhere). It asks the editor to open its Settings dialog.
+ */
+function buildMenu(): void {
+  const settings: MenuItemConstructorOptions = {
+    label: 'Settings…',
+    accelerator: 'CmdOrCtrl+,',
+    click: () => window?.webContents.send('cathode:openSettings')
+  };
+  const template: MenuItemConstructorOptions[] =
+    process.platform === 'darwin'
+      ? [
+          {
+            label: 'Cathode',
+            submenu: [
+              { role: 'about' },
+              { type: 'separator' },
+              settings,
+              { type: 'separator' },
+              { role: 'services' },
+              { type: 'separator' },
+              { role: 'hide' },
+              { role: 'hideOthers' },
+              { role: 'unhide' },
+              { type: 'separator' },
+              { role: 'quit' }
+            ]
+          },
+          { role: 'fileMenu' },
+          { role: 'editMenu' },
+          { role: 'viewMenu' },
+          { role: 'windowMenu' }
+        ]
+      : [
+          { label: 'File', submenu: [settings, { type: 'separator' }, { role: 'quit' }] },
+          { role: 'editMenu' },
+          { role: 'viewMenu' },
+          { role: 'windowMenu' }
+        ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
 app.whenReady().then(() => {
   // Unpackaged, macOS would show Electron's own icon in the Dock.
   if (existsSync(Icon)) {
@@ -219,6 +273,7 @@ app.whenReady().then(() => {
   session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   serveEditor();
   handleIpc();
+  buildMenu();
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

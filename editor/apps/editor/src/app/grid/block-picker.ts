@@ -88,12 +88,7 @@ export function bestMatch(items: readonly PickerItem[], query: string): PickerIt
   imports: [CthBlockTile, NgIcon, XuiDialogImports, XuiInputImports, XuiKbdImports],
   providers: [provideIcons({ matAddRound, matSearchRound })],
   template: `
-    <xui-dialog
-      title="Add a block"
-      icon="matAddRound"
-      class="w-[min(48rem,calc(100vw-2rem))] max-w-none"
-      [(open)]="open"
-    >
+    <xui-dialog icon="matAddRound" [title]="title()" class="w-[min(48rem,calc(100vw-2rem))] max-w-none" [(open)]="open">
       <xui-dialog-body class="flex min-h-0 flex-col gap-4">
         <xui-input-group class="w-full">
           <ng-icon xuiInputLeftElement name="matSearchRound" />
@@ -178,6 +173,8 @@ export class BlockPicker {
   /** Whether a type has reached its instance limit in the preset. */
   readonly isFull = input<(type: BlockTypeInfo) => boolean>(() => false);
   readonly open = model(false);
+  /** "Add a block", or "Replace … with" when the palette replaces a block (keeping its cables). */
+  readonly title = input('Add a block');
   readonly picked = output<BlockTypeInfo>();
 
   protected readonly query = signal('');
