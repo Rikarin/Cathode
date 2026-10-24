@@ -15,15 +15,25 @@ namespace Cathode.Dsp.Pitch;
 /// </remarks>
 public sealed class GrainShifter : IDisposable {
     readonly FractionalDelayLine line = new();
+    double sampleRate;
+    double maxGrain;
     double grain;
     double phase;
 
-    /// <summary>Control thread: allocates for grains of <paramref name="grainSeconds" />.</summary>
-    public void Prepare(double sampleRate, double grainSeconds) {
+    /// <summary>
+    ///     Control thread: allocates for grains of up to <paramref name="maxGrainSeconds" /> (by default
+    ///     <paramref name="grainSeconds" />) and starts at <paramref name="grainSeconds" />.
+    /// </summary>
+    public void Prepare(double sampleRate, double grainSeconds, double maxGrainSeconds = 0) {
+        this.sampleRate = sampleRate;
+        maxGrain = Math.Max(grainSeconds, maxGrainSeconds) * sampleRate;
         grain = grainSeconds * sampleRate;
-        line.Allocate((int)grain + 16);
+        line.Allocate((int)maxGrain + 16);
         Reset();
     }
+
+    /// <summary>Audio thread: a new grain length, clamped to what <see cref="Prepare" /> allocated.</summary>
+    public void SetGrain(double grainSeconds) => grain = Math.Clamp(grainSeconds * sampleRate, 16, maxGrain);
 
     public void Reset() {
         line.Reset();
