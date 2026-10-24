@@ -3,7 +3,7 @@ import { expect, test } from './fixtures';
 // The selected block's page: its type, knobs, bypass mode, channels A-D and how scenes recall them.
 
 test('a block’s type, knobs and bypass mode are edited from its page', async ({ window, editor }) => {
-  await editor.addBlock(0, 2, 'Delay');
+  await editor.addBlock(2, 2, 'Delay');
   await expect(window.getByRole('region', { name: 'Delay settings' })).toBeVisible();
 
   // Type: Digital to Tape.
@@ -24,14 +24,14 @@ test('a block’s type, knobs and bypass mode are edited from its page', async (
   await expect(window.getByRole('combobox', { name: 'Bypass mode' })).toContainText('Mute');
 
   // The page shows the same values after selecting another block and coming back.
-  await editor.addBlock(0, 4, 'Drive');
+  await editor.addBlock(2, 4, 'Drive');
   await editor.block('Delay', 'delay1').click();
   await expect(window.getByRole('combobox', { name: 'Type', exact: true })).toContainText('Tape');
   await expect(window.getByRole('combobox', { name: 'Bypass mode' })).toContainText('Mute');
 });
 
 test('each channel keeps its own settings, and one channel copies to another', async ({ window, editor }) => {
-  await editor.addBlock(0, 2, 'Drive');
+  await editor.addBlock(2, 2, 'Drive');
   const drive = editor.block('Drive', 'drive1');
   await expect(drive).toHaveAccessibleName(/channel A/);
 
@@ -62,8 +62,8 @@ test('each channel keeps its own settings, and one channel copies to another', a
 });
 
 test('each scene recalls the channel and bypass state of every block', async ({ editor }) => {
-  await editor.addBlock(0, 2, 'Drive');
-  await editor.addBlock(0, 3, 'Delay');
+  await editor.addBlock(2, 2, 'Drive');
+  await editor.addBlock(2, 3, 'Delay');
   const drive = editor.block('Drive', 'drive1');
   const delay = editor.block('Delay', 'delay1');
 

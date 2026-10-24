@@ -5,13 +5,14 @@ import { provideIcons } from '@ng-icons/core';
 import { matDeleteRound, matSearchRound } from '@ng-icons/material-icons/round';
 import { XuiAlertDialogImports } from '@xui/alert-dialog';
 import { XuiButtonImports } from '@xui/button';
-import { type XuiDataColumn, XuiDataTableImports } from '@xui/data-table';
 import { XuiDialogImports } from '@xui/dialog';
 import { XuiIconImports } from '@xui/icon';
 import { XuiInputImports } from '@xui/input';
 import { XuiMenuImports } from '@xui/menu';
 import { XuiNonIdealStateImports } from '@xui/non-ideal-state';
+import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import { XuiTableImports } from '@xui/table';
+import { XuiTagImports } from '@xui/tag';
 import { XuiTextImports } from '@xui/text';
 import { Notify } from '../core/notify';
 import { BlockFileExtension, BlockPresetsStore } from '../state/block-presets.store';
@@ -20,168 +21,248 @@ import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { PresetSwitcher } from '../state/preset-switcher';
 
-/** The preset library: search by name, author or tag; load, export, import and delete. */
+/**
+ * The Library: presets (search by name, author or tag; double-click or Load opens one in the editor; export, import,
+ * delete) and the Block Library (folders of block and channel presets).
+ */
 @Component({
   selector: 'cth-library-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     XuiAlertDialogImports,
     XuiButtonImports,
-    XuiDataTableImports,
     XuiDialogImports,
     XuiIconImports,
     XuiInputImports,
     XuiMenuImports,
     XuiTableImports,
+    XuiTagImports,
     XuiNonIdealStateImports,
+    XuiSegmentedControlImports,
     XuiTextImports
   ],
   providers: [provideIcons({ matDeleteRound, matSearchRound })],
-  host: { class: 'flex h-full flex-col gap-4 p-6' },
+  host: { class: 'flex h-full flex-col' },
   template: `
-    <header class="flex flex-wrap items-center gap-3">
-      <h1 xuiHeading class="mr-auto text-lg">Presets</h1>
-      <input
-        xuiInput
-        type="search"
-        class="w-64"
-        placeholder="Search name, author or tag"
-        aria-label="Search presets"
-        [value]="query()"
-        (input)="query.set($any($event.target).value)"
+    <header class="border-border flex flex-wrap items-center gap-4 border-b px-6 py-3">
+      <h1 xuiHeading class="text-lg">Library</h1>
+      <xui-segmented-control
+        size="sm"
+        aria-label="Library section"
+        [options]="views"
+        [value]="view()"
+        (valueChange)="$event && view.set($event)"
       />
-      <button
-        xuiButton
-        type="button"
-        variant="outline"
-        data-testid="export-list"
-        (click)="library.download('/api/v1/presets/list.txt', 'Cathode presets.txt')"
-      >
-        Export list…
-      </button>
-      <button xuiButton type="button" variant="outline" (click)="importFile.click()">Import…</button>
-      <input #importFile type="file" class="hidden" accept=".cthpreset" (change)="import(importFile)" />
+      @if (view() === 'presets') {
+        <div class="relative ml-auto">
+          <ng-icon
+            xui
+            name="matSearchRound"
+            size="sm"
+            class="text-foreground-muted pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2"
+          />
+          <input
+            xuiInput
+            type="search"
+            class="w-72 pl-8"
+            placeholder="Search name, author or tag"
+            aria-label="Search presets"
+            [value]="query()"
+            (input)="query.set($any($event.target).value)"
+          />
+        </div>
+        <button xuiButton type="button" variant="outline" size="sm" (click)="importFile.click()">Import…</button>
+        <input #importFile type="file" class="hidden" accept=".cthpreset" (change)="import(importFile)" />
+        <button
+          xuiButton
+          type="button"
+          variant="outline"
+          size="sm"
+          data-testid="export-list"
+          (click)="library.download('/api/v1/presets/list.txt', 'Cathode presets.txt')"
+        >
+          Export list…
+        </button>
+      } @else {
+        <div class="ml-auto flex items-center gap-2">
+          <button xuiButton size="sm" variant="outline" type="button" (click)="saveAllBlocks()">
+            Save all blocks of this preset
+          </button>
+          <button xuiButton size="sm" variant="outline" type="button" (click)="blockFile.click()">Import…</button>
+          <input #blockFile type="file" class="hidden" accept=".cthblock" multiple (change)="importBlocks(blockFile)" />
+          <button
+            xuiButton
+            size="sm"
+            variant="outline"
+            type="button"
+            [disabled]="chosen().size === 0"
+            (click)="exportBlocks()"
+          >
+            Export{{ chosen().size ? ' ' + chosen().size : '' }}
+          </button>
+        </div>
+      }
     </header>
 
-    @if (library.presets().length === 0) {
-      <xui-non-ideal-state
-        class="flex-1"
-        title="No presets yet"
-        description="Build a rig in the editor and save it, or import a .cthpreset file."
-      />
-    } @else {
-      <xui-data-table
-        class="flex-1"
-        [data]="rows()"
-        [columns]="columns"
-        [height]="420"
-        [multiple]="false"
-        [reorderable]="false"
-        (cellClicked)="selected.set($event.row)"
-      />
-      <footer class="flex items-center gap-2">
-        <span class="text-foreground-muted mr-auto text-sm">
-          {{ selected() ? selected()!.name : rows().length + ' preset(s)' }}
-        </span>
-        <button xuiButton type="button" variant="outline" [disabled]="!selected()" (click)="export()">Export</button>
-        <button
-          xuiButton
-          type="button"
-          variant="outline"
-          color="error"
-          [disabled]="!selected()"
-          (click)="confirmDelete.set(true)"
-        >
-          Delete
-        </button>
-        <button xuiButton type="button" data-testid="load-preset" [disabled]="!selected()" (click)="load()">
-          Load
-        </button>
-      </footer>
-    }
-
-    <section
-      class="flex flex-col gap-2 rounded-lg"
-      aria-labelledby="block-library-heading"
-      data-testid="block-library-section"
-      [class.outline-2]="dropping()"
-      [class.outline-primary]="dropping()"
-      [class.outline-dashed]="dropping()"
-      (dragover)="libraryDragOver($event)"
-      (dragleave)="dropping.set(false)"
-      (drop)="libraryDrop($event)"
-    >
-      <div class="flex flex-wrap items-center gap-2">
-        <h2 xuiHeading id="block-library-heading" class="mr-auto text-sm">Block Library</h2>
-        <button xuiButton size="sm" variant="outline" type="button" (click)="saveAllBlocks()">
-          Save all blocks of this preset
-        </button>
-        <button xuiButton size="sm" variant="outline" type="button" (click)="blockFile.click()">Import…</button>
-        <input #blockFile type="file" class="hidden" accept=".cthblock" multiple (change)="importBlocks(blockFile)" />
-        <button
-          xuiButton
-          size="sm"
-          variant="outline"
-          type="button"
-          [disabled]="chosen().size === 0"
-          (click)="exportBlocks()"
-        >
-          Export {{ chosen().size || '' }}
-        </button>
-      </div>
-      <p xuiText class="text-foreground-muted text-xs">
-        {{ blockPresets.presets().length - blockPresets.user().length }} factory presets for {{ factoryTypes() }} block
-        types. Recall one from a block's page; save a channel or a whole block there (⌘B) to add your own. Drop
-        .cthblock files here, or on a grid cell, to import them.
-      </p>
-      @for (folder of blockPresets.folders(); track folder.name) {
-        <details open class="flex flex-col">
-          <summary class="cursor-pointer text-xs font-semibold">
-            {{ folder.name || 'Unfiled' }} ({{ folder.entries.length }})
-          </summary>
-          <xui-table>
-            @for (preset of folder.entries; track preset.id) {
+    @if (view() === 'presets') {
+      @if (library.presets().length === 0) {
+        <xui-non-ideal-state
+          class="flex-1"
+          title="No presets yet"
+          description="Build a rig in the editor and save it, or import a .cthpreset file."
+        />
+      } @else {
+        <div class="min-h-0 flex-1 overflow-auto px-6 pt-4">
+          <xui-table interactive class="w-full" data-testid="preset-list" aria-label="Presets">
+            <xui-tr class="bg-background sticky top-0 z-10">
+              <xui-th class="min-w-0 flex-1">Name</xui-th>
+              <xui-th class="w-48">Author</xui-th>
+              <xui-th class="w-52 justify-end">Modified</xui-th>
+            </xui-tr>
+            @for (preset of rows(); track preset.id) {
+              <xui-tr
+                tabindex="0"
+                class="cursor-default"
+                [class.cth-selected-row]="selected()?.id === preset.id"
+                [attr.data-state]="selected()?.id === preset.id ? 'selected' : null"
+                [attr.aria-selected]="selected()?.id === preset.id"
+                [attr.data-testid]="'preset-row-' + preset.id"
+                (click)="selected.set(preset)"
+                (dblclick)="loadPreset(preset)"
+                (keydown.enter)="loadPreset(preset)"
+                (focus)="selected.set(preset)"
+              >
+                <xui-td class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    <span class="font-medium">{{ preset.name }}</span>
+                    @for (tag of preset.tags; track tag) {
+                      <xui-tag minimal round>{{ tag }}</xui-tag>
+                    }
+                  </div>
+                </xui-td>
+                <xui-td class="text-foreground-muted w-48">{{ preset.author || '—' }}</xui-td>
+                <xui-td class="text-foreground-muted w-52 justify-end tabular-nums">{{ modified(preset) }}</xui-td>
+              </xui-tr>
+            } @empty {
               <xui-tr>
-                <xui-td>
-                  <input
-                    type="checkbox"
-                    [attr.aria-label]="'Choose ' + preset.name"
-                    [checked]="chosen().has(preset.id)"
-                    (change)="toggleChosen(preset.id)"
-                  />
-                </xui-td>
-                <xui-td class="w-full">{{ preset.name }}</xui-td>
-                <xui-td>{{ catalog.info(preset.type)?.name ?? preset.type }}</xui-td>
-                <xui-td>{{ preset.channels ? 'whole block' : 'one channel' }}</xui-td>
-                <xui-td>
-                  <button
-                    xuiButton
-                    variant="ghost"
-                    size="sm"
-                    [xuiMenuTriggerFor]="folders"
-                    [xuiMenuTriggerData]="{ preset }"
-                  >
-                    Move…
-                  </button>
-                </xui-td>
-                <xui-td>
-                  <button
-                    xuiButton
-                    variant="ghost"
-                    size="sm"
-                    color="error"
-                    [attr.aria-label]="'Delete block preset ' + preset.name"
-                    (click)="blockPresets.delete(preset.id)"
-                  >
-                    <ng-icon xui name="matDeleteRound" size="sm" />
-                  </button>
+                <xui-td class="text-foreground-muted flex-1 justify-center py-8">
+                  No preset matches “{{ query() }}”.
                 </xui-td>
               </xui-tr>
             }
           </xui-table>
-        </details>
+        </div>
+        <footer class="border-border bg-surface flex items-center gap-2 border-t px-6 py-3">
+          <span class="text-foreground-muted mr-auto text-sm">
+            @if (selected(); as preset) {
+              <span class="text-foreground font-medium">{{ preset.name }}</span>
+            } @else {
+              {{ rows().length }} {{ rows().length === 1 ? 'preset' : 'presets' }} · double-click one to load it
+            }
+          </span>
+          <button xuiButton type="button" variant="ghost" [disabled]="!selected()" (click)="export()">Export</button>
+          <button
+            xuiButton
+            type="button"
+            variant="ghost"
+            color="error"
+            [disabled]="!selected()"
+            (click)="confirmDelete.set(true)"
+          >
+            Delete
+          </button>
+          <button
+            xuiButton
+            type="button"
+            color="primary"
+            data-testid="load-preset"
+            [disabled]="!selected()"
+            (click)="load()"
+          >
+            Load
+          </button>
+        </footer>
       }
-    </section>
+    } @else {
+      <section
+        class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-6 py-4"
+        aria-label="Block Library"
+        data-testid="block-library-section"
+        [class.outline-2]="dropping()"
+        [class.-outline-offset-8]="dropping()"
+        [class.outline-primary]="dropping()"
+        [class.outline-dashed]="dropping()"
+        (dragover)="libraryDragOver($event)"
+        (dragleave)="dropping.set(false)"
+        (drop)="libraryDrop($event)"
+      >
+        <p xuiText class="text-foreground-muted text-sm">
+          {{ blockPresets.presets().length - blockPresets.user().length }} factory presets for {{ factoryTypes() }}
+          block types. Recall one from a block's page; save a channel or a whole block there (⌘B) to add your own. Drop
+          .cthblock files here, or on a grid cell, to import them.
+        </p>
+        @if (blockPresets.folders().length === 0) {
+          <xui-non-ideal-state
+            class="flex-1"
+            title="No block presets of your own yet"
+            description="Open a block, then save its channel or the whole block (⌘B). It shows up here, ready for any preset."
+          />
+        }
+        @for (folder of blockPresets.folders(); track folder.name) {
+          <details open class="border-border rounded-lg border">
+            <summary
+              class="hover:bg-hover-overlay flex cursor-pointer items-center gap-2 rounded-t-lg px-4 py-2 text-sm font-semibold"
+            >
+              {{ folder.name || 'Unfiled' }}
+              <span class="text-foreground-muted font-normal">{{ folder.entries.length }}</span>
+            </summary>
+            <xui-table compact interactive class="w-full">
+              @for (preset of folder.entries; track preset.id) {
+                <xui-tr>
+                  <xui-td class="w-8">
+                    <input
+                      type="checkbox"
+                      class="accent-primary"
+                      [attr.aria-label]="'Choose ' + preset.name"
+                      [checked]="chosen().has(preset.id)"
+                      (change)="toggleChosen(preset.id)"
+                    />
+                  </xui-td>
+                  <xui-td class="min-w-0 flex-1 font-medium">{{ preset.name }}</xui-td>
+                  <xui-td class="text-foreground-muted w-44 whitespace-nowrap">
+                    {{ catalog.info(preset.type)?.name ?? preset.type }}
+                  </xui-td>
+                  <xui-td class="w-32">
+                    <xui-tag minimal round>{{ preset.channels ? 'Whole block' : 'Channel' }}</xui-tag>
+                  </xui-td>
+                  <xui-td class="w-32 justify-end whitespace-nowrap">
+                    <button
+                      xuiButton
+                      variant="ghost"
+                      size="sm"
+                      [xuiMenuTriggerFor]="folders"
+                      [xuiMenuTriggerData]="{ preset }"
+                    >
+                      Move…
+                    </button>
+                    <button
+                      xuiButton
+                      variant="ghost"
+                      size="sm"
+                      color="error"
+                      [attr.aria-label]="'Delete block preset ' + preset.name"
+                      (click)="blockPresets.delete(preset.id)"
+                    >
+                      <ng-icon xui name="matDeleteRound" size="sm" />
+                    </button>
+                  </xui-td>
+                </xui-tr>
+              }
+            </xui-table>
+          </details>
+        }
+      </section>
+    }
 
     <xui-dialog title="New folder" [open]="folderFor() !== null" (openChange)="!$event && folderFor.set(null)">
       <xui-dialog-body>
@@ -249,17 +330,10 @@ export class LibraryPage {
   protected readonly dropping = signal(false);
   protected readonly folderFor = signal<BlockPreset | null>(null);
   protected readonly folderName = signal('');
-  protected readonly columns: XuiDataColumn<PresetSummary>[] = [
-    { id: 'name', header: 'Name', width: 280, sortable: true },
-    { id: 'author', header: 'Author', width: 160, sortable: true, value: p => p.author ?? '' },
-    { id: 'tags', header: 'Tags', width: 220, value: p => p.tags.join(', ') },
-    {
-      id: 'modified',
-      header: 'Modified',
-      width: 180,
-      sortable: true,
-      value: p => new Date(p.modified).toLocaleString()
-    }
+  protected readonly view = signal<'presets' | 'blocks'>('presets');
+  protected readonly views = [
+    { label: 'Presets', value: 'presets' as const },
+    { label: 'Block Library', value: 'blocks' as const }
   ];
 
   protected readonly rows = computed(() => {
@@ -275,11 +349,24 @@ export class LibraryPage {
     void this.blockPresets.refresh();
   }
 
-  protected async load(): Promise<void> {
+  protected load(): void {
     const preset = this.selected();
-    if (preset && (await this.switcher.load(preset.id, preset.name))) {
-      await this.router.navigateByUrl('/');
+    if (preset) {
+      void this.loadPreset(preset);
     }
+  }
+
+  /** Opens the editor at once and loads there, so the loading shows over the grid rather than on this page. */
+  protected async loadPreset(preset: PresetSummary): Promise<void> {
+    this.selected.set(preset);
+    if (this.switcher.mayReplace(preset.name)) {
+      await this.router.navigateByUrl('/');
+      await this.switcher.load(preset.id, preset.name, true);
+    }
+  }
+
+  protected modified(preset: PresetSummary): string {
+    return new Date(preset.modified).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
   }
 
   protected export(): void {

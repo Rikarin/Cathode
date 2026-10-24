@@ -6,6 +6,9 @@ contextBridge.exposeInMainWorld('cathode', {
   onFullScreen: (listener: (fullScreen: boolean) => void) => {
     ipcRenderer.on('cathode:fullScreen', (_event, fullScreen: boolean) => listener(fullScreen === true));
   },
+  onOpenSettings: (listener: () => void) => {
+    ipcRenderer.on('cathode:openSettings', () => listener());
+  },
   connection: () => ipcRenderer.invoke('cathode:connection'),
   target: () => ipcRenderer.invoke('cathode:target'),
   setTarget: (target: unknown) => ipcRenderer.invoke('cathode:setTarget', target),

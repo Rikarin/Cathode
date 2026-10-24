@@ -2,7 +2,7 @@ import { expect, test } from './fixtures';
 
 test('a guitarist builds a preset from scratch and saves it', async ({ window }) => {
   // Drop a drive onto the shunt row, from the block palette.
-  await window.getByTestId('cell-0-2').dblclick();
+  await window.getByTestId('cell-2-2').dblclick();
   await window.getByRole('combobox', { name: 'Search blocks' }).fill('Drive');
   await window.keyboard.press('Enter');
   const drive = window.getByRole('gridcell', { name: /^Drive drive1/ });
@@ -29,11 +29,11 @@ test('a guitarist builds a preset from scratch and saves it', async ({ window })
   await window.getByTestId('save-as-confirm').click();
   await expect(window.getByTestId('preset-name')).toHaveText('First Rig');
   await window.getByRole('link', { name: 'Library' }).click();
-  await expect(window.getByRole('grid').getByText('First Rig')).toBeVisible();
+  await expect(window.getByTestId('preset-list').getByText('First Rig')).toBeVisible();
 });
 
 test('undo, redo and scenes change the rig', async ({ window }) => {
-  await window.getByTestId('cell-0-3').dblclick();
+  await window.getByTestId('cell-2-3').dblclick();
   await window.getByRole('combobox', { name: 'Search blocks' }).fill('Delay');
   await window.keyboard.press('Enter');
   const delay = window.getByRole('gridcell', { name: /^Delay delay1/ });
@@ -82,7 +82,7 @@ test('reloading the window brings the editor back on the same page', async ({ wi
 });
 
 test('a knob gets a modifier, taps set the tempo, and the looper records', async ({ window }) => {
-  await window.getByTestId('cell-0-2').dblclick();
+  await window.getByTestId('cell-2-2').dblclick();
   await window.getByRole('combobox', { name: 'Search blocks' }).fill('Delay');
   await window.keyboard.press('Enter');
   await expect(window.getByRole('gridcell', { name: /^Delay delay1/ })).toBeVisible();
@@ -116,8 +116,9 @@ test('the global page holds tempo, EQ, MIDI and footswitches', async ({ window }
   await expect(window.getByLabel('Switch 1 tap action')).toHaveValue('scene 0');
 });
 
-test('the setup page shows the engine the desktop app started', async ({ window }) => {
-  await window.getByRole('link', { name: 'Setup' }).click();
+test('the audio setup shows the engine the desktop app started', async ({ window }) => {
+  await window.keyboard.press('ControlOrMeta+Comma');
+  await window.getByRole('tab', { name: 'Audio setup' }).click();
   await expect(window.getByText('Backend')).toBeVisible();
   await expect(window.getByText('null', { exact: true })).toBeVisible();
   await expect(window.getByRole('heading', { name: 'Audio interface' })).toBeVisible();

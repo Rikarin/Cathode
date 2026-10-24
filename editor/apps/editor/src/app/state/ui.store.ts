@@ -28,6 +28,9 @@ export function nextChannel(current: ChannelName, count: number): ChannelName {
   return ChannelNames[(index + 1) % Math.max(1, Math.min(count, ChannelNames.length))];
 }
 
+/** The tabs of the Settings dialog. */
+export type SettingsTab = 'preferences' | 'setup' | 'shortcuts';
+
 /**
  * Shell state the shortcuts, menus and dialogs share (which dialog is open, Block Info), and the commands on the
  * selected block that more than one place offers (the grid's menu, the keyboard).
@@ -40,7 +43,8 @@ export class UiStore {
 
   readonly presetPicker = signal<'browse' | 'goto' | null>(null);
   readonly tunerOpen = signal(false);
-  readonly preferencesOpen = signal(false);
+  /** Which Settings tab is showing (⌘, opens Preferences, `?` the shortcuts), or null when Settings is closed. */
+  readonly settings = signal<SettingsTab | null>(null);
   readonly saveBlockOpen = signal(false);
   readonly batchSet = signal<ParamTarget | null>(null);
   /** Tiles show their abbreviation, channel letter and a Global mark: F1 toggles, ⌥ shows while held. */

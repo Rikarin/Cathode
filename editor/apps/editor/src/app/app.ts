@@ -5,8 +5,6 @@ import {
   matAddRound,
   matGraphicEqRound,
   matHistoryRound,
-  matKeyboardRound,
-  matMoreHorizRound,
   matRedoRound,
   matSaveRound,
   matSettingsRound,
@@ -30,12 +28,11 @@ import { Startup } from './core/startup';
 import { BatchSetDialog } from './shell/batch-set-dialog';
 import { EngineMeters } from './shell/engine-meters';
 import { LevelingDialog } from './shell/leveling-dialog';
-import { PreferencesDialog } from './shell/preferences-dialog';
 import { PresetMenu } from './shell/preset-menu';
 import { PresetPicker } from './shell/preset-picker';
 import { SaveBlockDialog } from './shell/save-block-dialog';
 import { ScopeDialog } from './shell/scope-dialog';
-import { ShortcutHelp } from './shell/shortcut-help';
+import { SettingsDialog } from './shell/settings-dialog';
 import { ShortcutService } from './shell/shortcuts';
 import { Transport } from './shell/transport';
 import { TunerDialog } from './shell/tuner-dialog';
@@ -50,7 +47,6 @@ import { UiStore } from './state/ui.store';
   imports: [
     BatchSetDialog,
     EngineMeters,
-    PreferencesDialog,
     PresetMenu,
     PresetPicker,
     LevelingDialog,
@@ -59,7 +55,7 @@ import { UiStore } from './state/ui.store';
     RouterOutlet,
     SaveBlockDialog,
     ScopeDialog,
-    ShortcutHelp,
+    SettingsDialog,
     Transport,
     TunerDialog,
     XuiButtonImports,
@@ -80,8 +76,6 @@ import { UiStore } from './state/ui.store';
       matAddRound,
       matGraphicEqRound,
       matHistoryRound,
-      matKeyboardRound,
-      matMoreHorizRound,
       matRedoRound,
       matSaveRound,
       matSettingsRound,
@@ -138,9 +132,32 @@ import { UiStore } from './state/ui.store';
             >
             <a xuiButton variant="ghost" size="sm" routerLink="/irs" routerLinkActive="bg-active-overlay">IRs</a>
             <a xuiButton variant="ghost" size="sm" routerLink="/global" routerLinkActive="bg-active-overlay">Global</a>
-            <a xuiButton variant="ghost" size="sm" routerLink="/setup" routerLinkActive="bg-active-overlay">Setup</a>
           </div>
           <div xuiNavbarGroup align="end" class="shrink-0 gap-2">
+            <div class="flex items-center">
+              <button
+                xuiButton
+                variant="ghost"
+                size="sm"
+                aria-label="Undo"
+                [attr.disabled]="live.state()?.canUndo ? null : ''"
+                [xuiTooltip]="'Undo (⌘Z)'"
+                (click)="live.undo()"
+              >
+                <ng-icon xui name="matUndoRound" size="sm" />
+              </button>
+              <button
+                xuiButton
+                variant="ghost"
+                size="sm"
+                aria-label="Redo"
+                [attr.disabled]="live.state()?.canRedo ? null : ''"
+                [xuiTooltip]="'Redo (⇧⌘Z, ⌘Y)'"
+                (click)="live.redo()"
+              >
+                <ng-icon xui name="matRedoRound" size="sm" />
+              </button>
+            </div>
             <cth-transport />
             <button
               xuiButton
@@ -174,36 +191,46 @@ import { UiStore } from './state/ui.store';
               <ng-icon xui name="matGraphicEqRound" size="sm" />
             </button>
             <cth-engine-meters />
-            <button
-              xuiButton
-              variant="ghost"
-              size="sm"
-              aria-label="More"
-              data-testid="more-menu"
-              [xuiTooltip]="'More'"
-              [xuiMenuTriggerFor]="moreMenu"
-            >
-              <ng-icon xui name="matMoreHorizRound" size="sm" />
-            </button>
-            <ng-template #moreMenu>
-              <xui-menu>
-                <button xuiMenuItem icon="matKeyboardRound" (click)="shortcuts.helpOpen.set(true)">
-                  Keyboard shortcuts<span menuItemLabel>?</span>
-                </button>
-                <button
-                  xuiMenuItem
-                  icon="matSettingsRound"
-                  data-testid="preferences-button"
-                  (click)="ui.preferencesOpen.set(true)"
-                >
-                  Preferences
-                </button>
-              </xui-menu>
-            </ng-template>
+            @if (settingsButton) {
+              <button
+                xuiButton
+                variant="ghost"
+                size="sm"
+                aria-label="Settings"
+                data-testid="preferences-button"
+                [xuiTooltip]="'Settings (⌘,)'"
+                (click)="ui.settings.set('preferences')"
+              >
+                <ng-icon xui name="matSettingsRound" size="sm" />
+              </button>
+            }
           </div>
         </nav>
         <div class="bg-surface border-border flex items-center gap-6 border-b px-4 py-1.5">
-          <div class="flex min-w-0 items-center gap-1" aria-label="Preset">
+          <div class="flex items-center gap-2">
+            <span class="text-foreground-muted text-xs font-medium" aria-hidden="true">Compare</span>
+            <xui-segmented-control
+              class="cth-lit"
+              size="sm"
+              aria-label="A/B compare"
+              [options]="abOptions"
+              [value]="compare.active()"
+              (valueChange)="$event && compare.switchTo($event)"
+            />
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-foreground-muted text-xs font-medium" aria-hidden="true">Scene</span>
+            <xui-segmented-control
+              class="cth-lit grid grid-cols-4"
+              size="sm"
+              aria-label="Scene"
+              data-testid="scenes"
+              [options]="scenes()"
+              [value]="live.activeScene()"
+              (valueChange)="$event !== null && live.selectScene($event)"
+            />
+          </div>
+          <div class="ms-auto flex min-w-0 items-center gap-1" aria-label="Preset">
             <button
               type="button"
               class="hover:bg-active-overlay max-w-56 truncate rounded px-1 text-sm font-medium"
@@ -258,58 +285,25 @@ import { UiStore } from './state/ui.store';
               <ng-icon xui name="matSaveRound" size="sm" />
             </button>
             <cth-preset-menu (saveAs)="openSaveAs()" />
-            <button
-              xuiButton
-              variant="ghost"
-              size="sm"
-              aria-label="Undo"
-              [disabled]="!live.state()?.canUndo"
-              [xuiTooltip]="'Undo (⌘Z)'"
-              (click)="live.undo()"
-            >
-              <ng-icon xui name="matUndoRound" size="sm" />
-            </button>
-            <button
-              xuiButton
-              variant="ghost"
-              size="sm"
-              aria-label="Redo"
-              [disabled]="!live.state()?.canRedo"
-              [xuiTooltip]="'Redo (⇧⌘Z, ⌘Y)'"
-              (click)="live.redo()"
-            >
-              <ng-icon xui name="matRedoRound" size="sm" />
-            </button>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-foreground-muted text-xs font-medium" aria-hidden="true">Compare</span>
-            <xui-segmented-control
-              size="sm"
-              aria-label="A/B compare"
-              [options]="abOptions"
-              [value]="compare.active()"
-              (valueChange)="$event && compare.switchTo($event)"
-            />
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-foreground-muted text-xs font-medium" aria-hidden="true">Scene</span>
-            <xui-segmented-control
-              size="sm"
-              aria-label="Scene"
-              data-testid="scenes"
-              class="grid grid-cols-4"
-              [options]="scenes()"
-              [value]="live.activeScene()"
-              (valueChange)="$event !== null && live.selectScene($event)"
-            />
           </div>
         </div>
-        <main class="min-h-0 flex-1">
+        <main class="relative min-h-0 flex-1">
           <router-outlet />
+          @if (switcher.loading(); as loading) {
+            <div
+              class="bg-background/70 absolute inset-0 z-20 grid place-items-center backdrop-blur-[1px]"
+              role="status"
+              data-testid="preset-loading"
+            >
+              <div class="flex flex-col items-center gap-3">
+                <xui-spinner aria-hidden="true" />
+                <span class="text-foreground-muted text-sm">Loading “{{ loading }}”…</span>
+              </div>
+            </div>
+          }
         </main>
         <cth-tuner-dialog [open]="ui.tunerOpen()" (openChange)="ui.tunerOpen.set($event)" />
-        <cth-shortcut-help [open]="shortcuts.helpOpen()" (openChange)="shortcuts.helpOpen.set($event)" />
-        <cth-preferences-dialog [open]="ui.preferencesOpen()" (openChange)="ui.preferencesOpen.set($event)" />
+        <cth-settings-dialog />
         <cth-preset-picker />
         <cth-save-block-dialog />
         <cth-batch-set-dialog />
@@ -358,6 +352,8 @@ export class App {
    * (apps/desktop/src/main.ts), which stand in for the app's name. Full screen hides them, and the room goes with them.
    */
   protected readonly macWindow = window.cathode?.platform === 'darwin';
+  /** The desktop app opens Settings from its app menu (⌘,); a plain browser has no menu, so it gets a button. */
+  protected readonly settingsButton = !window.cathode;
   private readonly fullScreen = signal(false);
   protected readonly trafficLights = computed(() => this.macWindow && !this.fullScreen());
   protected readonly scopeOpen = signal(false);
@@ -374,6 +370,7 @@ export class App {
 
   constructor() {
     window.cathode?.onFullScreen?.(fullScreen => this.fullScreen.set(fullScreen));
+    window.cathode?.onOpenSettings?.(() => this.ui.settings.set('preferences'));
     void this.startup.start();
     inject(DestroyRef).onDestroy(this.registerShortcuts());
   }
@@ -438,7 +435,8 @@ export class App {
       redo: () => void this.live.redo(),
       redoAlias: () => void this.live.redo(),
       tuner: () => ui.tunerOpen.update(open => !open),
-      help: () => this.shortcuts.helpOpen.update(open => !open)
+      settings: () => ui.settings.update(tab => (tab === null ? 'preferences' : null)),
+      help: () => ui.settings.update(tab => (tab === 'shortcuts' ? null : 'shortcuts'))
     };
     for (const channel of ['A', 'B', 'C', 'D'] as const) {
       handlers[`channel${channel}`] = () => ui.setChannel(channel);

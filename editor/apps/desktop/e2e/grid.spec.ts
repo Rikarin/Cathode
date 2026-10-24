@@ -7,7 +7,7 @@ test('the picker groups blocks by category, filters them and adds one from the k
   editor
 }) => {
   // Arrow to an empty cell on the shunt row and open the picker with Enter.
-  await editor.cell(0, 1).click();
+  await editor.cell(2, 1).click();
   await editor.grid.press('ArrowRight');
   await editor.grid.press('Enter');
   const picker = window.getByRole('dialog', { name: 'Add a block' });
@@ -24,7 +24,7 @@ test('the picker groups blocks by category, filters them and adds one from the k
   await expect(list.getByRole('option', { name: 'Drive' })).toHaveCount(0);
   await search.press('Escape');
   await expect(picker).toBeHidden();
-  await expect(editor.cell(0, 2)).toHaveAccessibleName(/^Shunt/);
+  await expect(editor.cell(2, 2)).toHaveAccessibleName(/^Shunt/);
 
   // Reopen, search by category, move with the arrows and add the highlighted block.
   await editor.grid.press('Enter');
@@ -39,7 +39,7 @@ test('the picker groups blocks by category, filters them and adds one from the k
 });
 
 test('blocks are copied, pasted, moved and removed, and undo brings them back', async ({ window, editor }) => {
-  await editor.addBlock(0, 2, 'Drive');
+  await editor.addBlock(2, 2, 'Drive');
   await editor.setKnob('Drive', '8');
   await expect(editor.knob('Drive')).toHaveAttribute('aria-valuenow', '8');
 
@@ -143,13 +143,13 @@ test('removing a block from the signal path leaves a shunt, so the path stays co
   editor
 }) => {
   // The drive takes over a shunt on the main row, and its cables.
-  await editor.addBlock(0, 2, 'Drive');
+  await editor.addBlock(2, 2, 'Drive');
   await expect(window.getByTestId('cable-shunt-r0c1>drive1')).toHaveCount(1);
   await expect(window.getByTestId('cable-drive1>shunt-r0c3')).toHaveCount(1);
 
   await editor.block('Drive', 'drive1').click();
   await editor.grid.press('Delete');
-  await expect(editor.cell(0, 2)).toHaveAccessibleName(/^Shunt/);
+  await expect(editor.cell(2, 2)).toHaveAccessibleName(/^Shunt/);
   await expect(window.getByTestId('cable-shunt-r0c1>shunt-r0c2')).toHaveCount(1);
   await expect(window.getByTestId('cable-shunt-r0c2>shunt-r0c3')).toHaveCount(1);
   // Only the output's shunt has no cable out, as with an untouched preset: nothing is left dangling.
@@ -167,7 +167,7 @@ test('a block dragged onto the cable through a shunt joins the signal path, and 
   const drive = editor.block('Drive', 'drive1');
 
   // Onto the main row: it takes the shunt's place and its cables.
-  await drive.dragTo(editor.cell(0, 3));
+  await drive.dragTo(editor.cell(2, 3));
   await expect(drive).toHaveAccessibleName(/row 1, column 4$/);
   await expect(window.getByTestId('cable-shunt-r0c2>drive1')).toHaveCount(1);
   await expect(window.getByTestId('cable-drive1>shunt-r0c4')).toHaveCount(1);
@@ -175,7 +175,7 @@ test('a block dragged onto the cable through a shunt joins the signal path, and 
   // Back off it: a shunt fills the gap, so input still reaches output.
   await drive.dragTo(editor.cell(2, 3));
   await expect(drive).toHaveAccessibleName(/row 3, column 4$/);
-  await expect(editor.cell(0, 3)).toHaveAccessibleName(/^Shunt/);
+  await expect(editor.cell(2, 3)).toHaveAccessibleName(/^Shunt/);
   await expect(window.getByTestId('cable-shunt-r0c2>shunt-r0c3')).toHaveCount(1);
   await expect(window.getByTestId('cable-shunt-r0c3>shunt-r0c4')).toHaveCount(1);
   await expect(window.locator('[data-testid^="cable-drive1"], [data-testid$=">drive1"]')).toHaveCount(0);

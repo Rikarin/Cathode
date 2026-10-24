@@ -81,6 +81,7 @@ export const Shortcuts: readonly Shortcut[] = [
   { id: 'redo', group: 'Edit', label: 'Redo', key: 'z', mod: true, shift: true },
   { id: 'redoAlias', group: 'Edit', label: 'Redo (alias)', key: 'y', mod: true },
   { id: 'tuner', group: 'Other', label: 'Tuner', key: 't', mod: true },
+  { id: 'settings', group: 'Other', label: 'Settings', key: ',', mod: true },
   { id: 'help', group: 'Other', label: 'Keyboard shortcuts', key: '?', shift: true }
 ];
 
@@ -157,7 +158,6 @@ export class ShortcutService {
   /** Whether Block Info is showing: toggled with F1, or while ⌥ is held. */
   readonly blockInfo = signal(false);
   readonly altHeld = signal(false);
-  readonly helpOpen = signal(false);
 
   /** Registers handlers by shortcut id; returns a function that removes them again. */
   register(handlers: Record<string, () => void>): () => void {

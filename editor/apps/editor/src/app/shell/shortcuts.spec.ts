@@ -46,6 +46,7 @@ describe('keyboard shortcuts', () => {
     expect(findShortcut(key('y', { metaKey: true }))?.id).toBe('redoAlias');
     expect(findShortcut(key('z', { metaKey: true, shiftKey: true }))?.id).toBe('redo');
     expect(findShortcut(key('?', { shiftKey: true }))?.id).toBe('help');
+    expect(findShortcut(key(',', { metaKey: true }))?.id).toBe('settings');
   });
 
   it('reads as the platform writes it', () => {

@@ -13,11 +13,6 @@ export const appRoutes: Route[] = [
     title: 'Impulse responses · Cathode'
   },
   {
-    path: 'setup',
-    loadComponent: () => import('./pages/setup-page').then(m => m.SetupPage),
-    title: 'Setup · Cathode'
-  },
-  {
     path: 'scenes',
     loadComponent: () => import('./pages/scene-manager').then(m => m.SceneManagerPage),
     title: 'Scenes · Cathode'
