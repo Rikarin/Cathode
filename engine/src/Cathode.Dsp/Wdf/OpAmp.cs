@@ -98,6 +98,12 @@ public struct OpAmp : INonlinearDevice {
         slew = Model.SlewRate / sampleRate;
     }
 
+    /// <summary>
+    ///     A slew rate in place of the model's (the Drive block's Slew Rate on this op-amp), in V/s at
+    ///     <paramref name="sampleRate" />; a later <see cref="Configure" /> restores the model's.
+    /// </summary>
+    public void SetSlewRate(double voltsPerSecond, double sampleRate) => slew = voltsPerSecond / sampleRate;
+
     public readonly double Conductance(int port) => port == 0 ? Math.Max(inputConductance, 1e-9) : outputConductance;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -68,6 +68,13 @@ public readonly record struct TriodeModel(
     /// </summary>
     public TriodeModel Paralleled(int count) =>
         this with { Kg1 = Kg1 / count, GridConductance = GridConductance * count };
+
+    /// <summary>
+    ///     The triode with its cut-off knee K_p multiplied by <paramref name="hardness" />: the knee into cut-off
+    ///     sharpens (or softens) while the current well above it stays as it is (there E₁ tends to V_pk (1/μ + V_gk /
+    ///     √(K_vb + V_pk²)), free of K_p). The Circuit Amp's Preamp Hardness; 1 is the model itself.
+    /// </summary>
+    public TriodeModel Hardened(double hardness) => hardness == 1 ? this : this with { Kp = Kp * hardness };
 }
 
 /// <summary>
@@ -147,6 +154,15 @@ public readonly record struct PentodeModel(
     ///     instead of three times it, as K_vb 12 gives.
     /// </summary>
     public static PentodeModel SixAQ5 { get; } = new(9.535, 1.35, 2_257, 7_733, 56.43, 32.88);
+
+    /// <summary>
+    ///     The tube with both knees sharpened by <paramref name="hardness" />: the cut-off knee K_p multiplied by it and
+    ///     the plate knee K_vb divided by it, so the tube goes into cut-off and into plate saturation more abruptly
+    ///     (or, below 1, more gently), with the current well inside its range unchanged. The Circuit Amp's Power Tube
+    ///     Hardness; 1 is the model itself.
+    /// </summary>
+    public PentodeModel Hardened(double hardness) =>
+        hardness == 1 ? this : this with { Kp = Kp * hardness, Kvb = Kvb / hardness };
 }
 
 /// <summary>

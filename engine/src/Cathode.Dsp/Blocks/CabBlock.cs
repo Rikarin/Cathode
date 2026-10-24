@@ -342,6 +342,24 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     public static int SlotParam(int slot, int offset) => SlotBase + slot * SlotStride + offset;
 
     /// <summary>
+    ///     The DynaCab enclosure and speaker (indices into <see cref="CabCatalogue" />) of the first unmuted slot that
+    ///     synthesises one, or (-1, -1) when none does: what an amp's Auto speaker load follows
+    ///     (<see cref="ICabFollower" />). Allocation-free; any thread.
+    /// </summary>
+    public (int Enclosure, int Speaker) DynaCab {
+        get {
+            for (var slot = 0; slot < Slots; slot++) {
+                if ((int)Params.Current(SlotParam(slot, Source)) == SourceDynaCab
+                    && Params.Current(SlotParam(slot, Mute)) < 0.5f) {
+                    return ((int)Params.Current(SlotParam(slot, Cab)), (int)Params.Current(SlotParam(slot, Speaker)));
+                }
+            }
+
+            return (-1, -1);
+        }
+    }
+
+    /// <summary>
     ///     Control thread: loads <paramref name="path" /> into <c>slot1</c> … <c>slot4</c>. A <c>.wav</c> serves both an
     ///     IR slot and an IR Pack slot (as a one-point pack); a <c>.cabgrid</c> (or a pack's folder or manifest) only
     ///     an IR Pack slot.

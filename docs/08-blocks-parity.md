@@ -31,14 +31,14 @@ The guide's comparison table (p. 3) lists 42 block types. Cathode covers 37 of t
 | Input (IN) | built-in `input` | 1 → 1 | 🆕 5 / 0 / 0 | 🆕 Noise gate (Classic, Intelligent, Noise Reducer), input level, global gate offset, channels; 🆕 Source: Input 1–4, USB 5/6 and 7/8 from a multi-channel interface |
 | Output (OUT) | built-in `output` | 1 → 1 | 🆕 4 / 0 / 0 | 🆕 Row mixer (level, balance per row), main level and balance, channels; scene levels |
 | Common Mix/Level | every block | — | 🆕 10 / 0 / 0 | Level and Balance everywhere; 🆕 Global Mix, engage as a modifier target, Stereo Spread to ±200 %, Input Select/Gain complete |
-| Amp (AMP) | `circuitamp`, `nam` | 309+ → 26 circuit + any capture | see [06 §1.4](06-amp-modelling-spec.md#14-parity-summary) | Core panel, expert pages and 🆕 boost, saturation, input filter/Definition, output EQ with location, input dynamics, output compressor, speaker drive/thump/compression, bias tremolo, Balance; power-tube hardness and per-model switches remain |
+| Amp (AMP) | `circuitamp`, `nam` | 309+ → 26 circuit + any capture | see [06 §1.4](06-amp-modelling-spec.md#14-parity-summary) | Core panel, expert pages and 🆕 boost, saturation, input filter/Definition, output EQ with location, input dynamics, output compressor, speaker drive/thump/compression, bias tremolo, Balance; 🆕 the advanced page (PB): tube hardness, generic switches, stack type and location, plate frequencies, CF and bias-excursion controls, suppressor diodes, master location and cap, output mode, Auto speaker, screen supply |
 | Cab (CAB) | `cab` (Legacy and DynaCab merged) | 2 150+ IRs → user IRs + synthesised DynaCab + IR packs + Flat | 🆕 24 / 1 / 0 | 🆕 Done: stereo room mic spacing, Preamp Mode, the Align view (stream PA); stereo input routing, twelve preamp types and their input meter, per-slot proximity and smoothing, 3.4 m mic distance with Auto-Align, Motor Drive, FullRes IRs, Flat, IR import processing, a global cab-off switch and IR export (stream CB); factory banks stay out (licensing) |
 | Chorus (CHO) | `chorus` | 17 → 1 (+ 🆕 12 library presets) | 🆕 20 / 0 / 0 | 🆕 Done: 8 voices, Dual ratios, BBD drive, Dimension, LFO 2, Global Mix; the types as Block Library presets |
 | Compressor (CMP) | `compressor` | 16 → 🆕 9 | 🆕 20 / 0 / 0 | 🆕 Detector, ∞ ratio, Dynamics and Feedback types, auto times, light type, emphasis, sidechain EQ, input level, look-ahead and sidechain source; 🆕 JFET, Tube and Compander types, the single Compression knob, sidechain from a hardware input |
 | Crossover (XVR) | `crossover` | 1 → 1 | 🆕 7 / 0 / 0 | Done (🆕 per-side band levels and pans) |
 | Delay (DLY) | `delay` | 23+ → 🆕 9 | 🆕 48 / 0 / 0 | 🆕 Done: Dual, Mono Tape, Reverse and Sweep types, 16 s, master and signed feedback, feedback EQ, three LFOs, diffuser, Stack, Global Mix, Spread to ±200 % |
-| Drive (DRV) | `drive` | 60+ → 27 | 🆕 17 / 3 / 0 | Strong circuits; 🆕 EQ pages and the Advanced page; per-pedal extra knobs remain |
-| Dynamic Distortion (DND) | `dyndist` | 7 → 3 (🆕 7 curves) | 🆕 9 / 1 / 0 | Different design (envelope-driven); 🆕 the guide's frequency-shaped filter, bias, mono |
+| Drive (DRV) | `drive` | 60+ → 27 | 🆕 19 / 1 / 0 | Strong circuits; 🆕 EQ pages and the Advanced page, all the guide's clip types, Slew Rate per op-amp; per-pedal extra knobs only on the Guv'nor's stack so far |
+| Dynamic Distortion (DND) | `dyndist` | 7 → 🆕 14 curves + 7 library presets | 🆕 10 / 0 / 0 | Different design (envelope-driven); 🆕 the guide's frequency-shaped filter, bias, mono; 🆕 the types as filter presets |
 | Enhancer (ENH) | `enhancer` | 3 → 🆕 4 | 🆕 10 / 0 / 0 | Done (🆕 Stereoizer, Depth) |
 | Filter (FLT) | `filter` | 15 → 🆕 15 | 🆕 21 / 0 / 0 | 🆕 Done: Shelf 2, Peaking 2, all-pass feedback, first-order cuts, LFO duty and quantise |
 | Flanger (FLG) | `flanger` | 31 → 1 | 🆕 24 / 0 / 0 | 🆕 Done: thru-zero, drive, bass focus, VCO response, min/max time, LFO reset on engage, Global Mix |
@@ -150,6 +150,13 @@ All with defaults that leave the earlier sound bit-identical, except the Delay m
 - **Flat** (CB9): a slot Source that is a unit impulse. **Cab modelling off** (CB10): a global setting (`GlobalSettings.CabModelingOff`, rig `cabsOff`, `BlockContext.CabsOff`) under which every Cab and IR Player block passes audio through, crossfading over one callback; on the Global page.
 - **IR import** (CB7): `POST /api/v1/assets` takes `processing` (asIs, autoTrim, minimumPhase), `polarity`, `channels` (both, left, right, sum) and `maxLengthMs` for a .wav (`IrImport`, cepstral minimum phase); the IRs page has an import section with them. **IR export** (CB11): `GET /api/v1/live/blocks/{id}/ir` returns the Cab's current mixed IR as a stereo .wav (every playing slot, DynaCab and pack slots included, slot and master cuts, proximity and smoothing baked in) and `POST` saves it as a new IR asset; the Cab panel has Export IR and Save as IR.
 
+**Stream PB (Drive and the Amp block's advanced page), round 3.** Every new control is stock at its default: `AmpDefaultsTests` renders all 81 Circuit Amp models, every Drive type and the seven original Dynamic Distortion types at their defaults and checks them bit for bit against hashes rendered on master (`tests/assets/defaults/master.sha256`). Where the guide's control is emergent in a circuit model, it is a scale on a component the model already has, and the control is hidden on a model without that component (`Amp/AmpAdvanced.cs`, `AmpFeatures`).
+
+- **Circuit Amp** (25 parameters, §4): 🆕 Power Tube Hardness and Preamp Hardness (both tube knees, `PentodeModel.Hardened`/`TriodeModel.Hardened`, served by the existing tables: G(u) is free of K_p, the plate knee is read at a scaled voltage); generic Presence Shift (presence an octave down), Fat (stack × 0.6), Input Cut (150 Hz), High Treble (±12 dB shelf at 3 kHz before the power amp) and Overdrive (up to 20 dB more swing into the last gain stage), each hidden where the model has its own; Tonestack Type (any model's tone-stack-stage stack) and Location (Pre, Mid, Post: the stack's stage moved, every stage held at its own operating point by an ideal level shift); Triode 1/2 Plate Freq (plate-bypass caps, the SLO and 5150 III); CF Compression and CF Harmonics (a cathode follower's grid current and cathode resistor); Preamp, PI and Power Tube Bias Excursion (grid current), Excursion Time (power-grid coupling caps), Recovery Time (grid leaks) and Master Bias Excursion over all three; Plate Suppressor Diodes (clamps that keep each plate above its cathode); Master Location (Post PI: a divider on both inverter outputs) and Master Cap (a cap across the master's upper half); Output Mode (SS Power Amp + Cab leaves speaker drive, thump and compression to the real cab); Speaker Auto (Cab), which follows the next Cab block's DynaCab enclosure and speaker (`ICabFollower`, linked by the graph compiler); Screen Freq and Screen Q (the screen node's cap, and a choke of inductance (QR)²C feeding it).
+- **Drive** (§6.5): 🆕 Clip Types FET, Rectifier, Variable, HV Tube, LV Tube, Silicon and 4558 Diode (each with its ADAA antiderivative); Bass Pot and Middle Pot on the Guv'nor (its stack's real pots, noon as built); Slew Rate on each op-amp (the RAT's LM308 device takes it as its own slew; the linear op-amp solves limit their output), the post-clip limiter only on circuits without one.
+- **Dynamic Distortion** (§6.6): 🆕 every clip curve (14), and seven Block Library presets standing in for the guide's filter-shaped types.
+- Not done: per-pedal extra knobs beyond the Guv'nor (the Timmy-style bass and treble cuts, the Zendrive's Voice, the OCD's HP/LP switch need their networks extended, medium each); Tonestack Location End (no circuit meaning: the stack's tube stage cannot run at speaker voltage) and stacks inside a network stage or a channel switch (Location moves a whole stage; Type swaps a tone-stack stage's values only); Master Location Pre-Triode; Auto speaker from an IR (it follows DynaCab slots only).
+
 ### 1.3 CPU costs to regenerate
 
 After the merge with P3 and the amp streams, `BlockCosts.cs` was regenerated (`--write`), so it now holds the engine and global stream's new blocks (**input**, **output**, **rta**) and the changed ones.
@@ -215,19 +222,19 @@ The wiki page covers what the hardware does around the grid: its outputs, conver
 
 ## 4. Amp block (pp. 9–18)
 
-Audited in detail in [06 §1](06-amp-modelling-spec.md#1-axe-fx-iii-amp-block-parameter-parity). The P4 stream added the non-model parameters in `CircuitAmpBlock` and `Amp/AmpInserts.cs`, all off or neutral by default; what is left needs changes inside the models or the power amp (several are emergent in a circuit model). Current state of `circuitamp` (🆕 88 parameters; catalogue in [07](07-amp-catalogue.md)):
+Audited in detail in [06 §1](06-amp-modelling-spec.md#1-axe-fx-iii-amp-block-parameter-parity). The P4 stream added the non-model parameters in `CircuitAmpBlock` and `Amp/AmpInserts.cs`, all off or neutral by default; what is left needs changes inside the models or the power amp (several are emergent in a circuit model). Current state of `circuitamp` (🆕 113 parameters; catalogue in [07](07-amp-catalogue.md)):
 
 | Page | Present | Missing | Effort for the gaps |
 |---|---|---|---|
-| Type, Tone | Type, Gain, Bass, Middle, Treble, Master, Presence, Depth, Cut, Bright, model switches and second controls, Input Trim | Presence Shift as a generic switch, Overdrive on all models | per model (emergent in the circuits) |
-| Preamp | Preamp tube type, Bright Cap, Preamp Bias, Preamp Sag, 🆕 Input Boost (type from the Drive circuits, drive, tone, level), 🆕 Saturation switch and drive (diode-style clipper between preamp and power amp) | Fat and Cut as generic switches, High Treble | per model (switch roles in the circuits) |
+| Type, Tone | Type, Gain, Bass, Middle, Treble, Master, Presence, Depth, Cut, Bright, model switches and second controls, Input Trim, 🆕 Presence Shift and Overdrive as generic controls where a model has none | — | |
+| Preamp | Preamp tube type, Bright Cap, Preamp Bias, Preamp Sag, 🆕 Input Boost (type from the Drive circuits, drive, tone, level), 🆕 Saturation switch and drive (diode-style clipper between preamp and power amp), 🆕 Fat, Input Cut, High Treble | — | |
 | Input EQ | Input select, Low Cut, 🆕 Input Filter (off, shelves, peak, high/low-pass; freq, Q, gain), 🆕 Definition (treble/bass tilt into the preamp) | — | |
 | Output EQ | 5 model EQ bands (`eq1`–`eq5`), 🆕 Output EQ type (every Graphic EQ layout) with 10 bands, 🆕 EQ location (input, pre power amp, output) | Passive types are approximations (see §6.12) | — |
-| Power supply | Sag, B+ time constant, supply type (DC, AC 60 Hz, AC 50 Hz = AC line frequency), rectifier, Variac | Screen frequency/Q | model data |
-| Power amp | Power amp on/off, power tube type, bias, negative feedback, transformer matching, LF/HF, drive, speaker impedance, 🆕 bias tremolo (rate, depth: the model's own tremolo circuit where it has one, a bias tremolo from the drawing's oscillator and coupling network in the power amp, an optical vibrato or the 18 W's; elsewhere a sine on the Bias control) | Power tube hardness: needs the pentode law in PowerAmp/Tubes, outside this block | medium (power amp) |
-| Speaker | Speaker curve, LF resonance freq/Q/peak, HF, impedance, 🆕 speaker drive (cone excursion), 🆕 thump with cab resonance, 🆕 speaker compression and its time constant | Compliance (covered by the impedance curve's LF Q and amount) | — |
-| Dynamics | 🆕 Input dynamics (expand/compress by envelope), 🆕 output compressor (Output/Feedback type, amount, threshold, clarity) | Master bias excursion (emergent in the power amp) | — |
-| Advanced | Tonestack frequency, master volume trim, presence/depth frequency, cathode time constant | Tonestack type substitution and location, triode plate frequencies, preamp hardness, cathode follower controls, PI/power tube bias excursion, plate suppressor diodes, master volume location/cap, output mode (FRFR / SS PA + cab), auto DynaCab impedance | medium–large; several are emergent in a circuit model ([06 §1.4](06-amp-modelling-spec.md#14-parity-summary)) |
+| Power supply | Sag, B+ time constant, supply type (DC, AC 60 Hz, AC 50 Hz = AC line frequency), rectifier, Variac, 🆕 Screen Freq (the screen node's cap), 🆕 Screen Q (a choke feeding it) | — | |
+| Power amp | Power amp on/off, power tube type, bias, negative feedback, transformer matching, LF/HF, drive, speaker impedance, 🆕 bias tremolo (rate, depth: the model's own tremolo circuit where it has one, a bias tremolo from the drawing's oscillator and coupling network in the power amp, an optical vibrato or the 18 W's; elsewhere a sine on the Bias control), 🆕 Power Tube Hardness (both knees of the pentode law), 🆕 Plate Suppressor Diodes | — | |
+| Speaker | Speaker curve (🆕 Auto: the next Cab block's DynaCab cabinet and speaker), LF resonance freq/Q/peak, HF, impedance, 🆕 speaker drive (cone excursion), 🆕 thump with cab resonance, 🆕 speaker compression and its time constant | Compliance (covered by the impedance curve's LF Q and amount); Auto from an IR slot | — |
+| Dynamics | 🆕 Input dynamics (expand/compress by envelope), 🆕 output compressor (Output/Feedback type, amount, threshold, clarity), 🆕 Master Bias Excursion (scales the preamp, PI and power-tube grid current) | — | |
+| Advanced | Tonestack frequency, master volume trim, presence/depth frequency, cathode time constant, 🆕 Tonestack Type and Location, Triode 1/2 Plate Freq, Preamp Hardness, CF Compression and Harmonics, Preamp/PI/Power Tube Bias Excursion with Excursion and Recovery Time, Master Location and Cap, Output Mode (FRFR / SS PA + cab) | ◐ Tonestack Location End, Master Location Pre-Triode; Type and Location only on a model's tone-stack stage | — (no circuit meaning, or a stage inside a network) |
 | Output | Level, 🆕 Balance, bypass mode handled by the engine | — | |
 
 The capture tier (`nam`) has input, output, normalise and a four-band post EQ; the guide has no counterpart (Fractal's NAM block arrived with firmware 33).
@@ -363,17 +370,17 @@ Types: guide about 60 named pedals → Cathode 27 (3 voicings + 24 WDF circuits;
 | Page | Parameter | Cathode | Note | Effort |
 |---|---|---|---|---|
 | Basic | Drive, Tone, Level, Mix | ✅ | Per-pedal panel names are generic |  |
-| Basic | Per-type extra knobs (e.g. Bass/Treble, Presence) | ◐ | One tone control per circuit; the generic EQ 1 page stands in | medium per circuit |
+| Basic | Per-type extra knobs (e.g. Bass/Treble, Presence) | 🆕 ◐ | 🆕 Bass Pot and Middle Pot on the Guv'nor (its stack's own pots); the other circuits model one tone control, and the generic EQ 1 page stands in | medium per circuit (Timmy cuts, Zendrive Voice, OCD HP/LP) |
 | EQ 1 | Low Cut, High Cut | 🆕 ✅ | 12 dB/oct, off at their ends | |
 | EQ 1 | Bass, Mid (with frequency), High Mid, Treble ±12 dB | 🆕 ✅ | Low shelf 100 Hz, peak at Mid Freq (200 Hz–5 kHz), peak 2.5 kHz, high shelf 5 kHz | |
 | EQ 2 | 10-band 2/3-octave graphic EQ, Pre/Post/Off | 🆕 ✅ | The shared `GraphicEqualizer` (2/3-octave layout) | |
-| Advanced | Clip Type (4558/diode, FET, rectifier, Ge, hard, HV/LV tube, LED, op-amp, Si, soft, variable, null) | 🆕 ◐ | Voicings: Soft, Hard, Asymmetric, Germanium, LED, Tube, Op-Amp, None; circuits: implied by the circuit (see diodes). FET, rectifier and variable missing | cheap (more curves) |
+| Advanced | Clip Type (4558/diode, FET, rectifier, Ge, hard, HV/LV tube, LED, op-amp, Si, soft, variable, null) | 🆕 ✅ | Voicings: Soft, Hard, Asymmetric, Germanium, LED, Tube, Op-Amp, 🆕 FET, Rectifier, Variable, HV Tube, LV Tube, Silicon, 4558 Diode, None; circuits: implied by the circuit (see diodes) | |
 | Advanced | Clip Shape | 🆕 ✅ | Voicings: bends the curve towards a soft knee or a hard clip | |
 | Advanced | Diode ± type and quantity | 🆕 ✅ | Circuits with clipping diodes: Si, Ge, Schottky, LED, MOSFET, 1–4 per side; variants prebuilt | |
 | Advanced | Bass Response | 🆕 ✅ | Scales the input coupling corner (voicing pre-filter, circuit coupling cap) | |
 | Advanced | Dry Level (dry inside the circuit) | 🆕 ✅ | Summed after the clipping, before the tone | |
 | Advanced | Bias | 🆕 ✅ | Offset ahead of the clipping, DC-blocked after | |
-| Advanced | Slew Rate | 🆕 ◐ | A generic slew limiter after the clipping on every type; the RAT's op-amp keeps its modelled slew | medium (per op-amp model) |
+| Advanced | Slew Rate | 🆕 ✅ | 🆕 Per op-amp: the RAT's LM308 device slews at it, a linear op-amp stage limits its output to it; a slew limiter after the clipping on the other types | |
 | Advanced | Bit Reduce, Sample Rate | 🆕 ✅ | Word length and sample-and-hold rate on the driven signal | |
 | — | Input Vol (guitar volume knob) | ✅ | Cathode extra |  |
 | Advanced | Oversampling (Global, 1x, 2x, 4x) | 🆕 ✅ | With the global linear-phase mode it sets the latency (§2.1) |  |
@@ -384,7 +391,7 @@ Cathode's block distorts by envelope (drive follows the level) rather than throu
 
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
-| Preset page | ◐ | Type selects the clip shape (🆕 7 curves) | — |
+| Preset page | 🆕 ✅ | Type selects the clip shape (🆕 14 curves); 🆕 seven Block Library presets set the filter as the guide's types do | — |
 | Filter Type (high shelf, low shelf, peaking), Frequency, Q, Gain | 🆕 ✅ | Boosts the band ahead of the clipper, the inverse filter after: clean signals stay flat, the band clips first | |
 | Clip Shape | ✅ | Type |  |
 | Bias | 🆕 ✅ | DC-blocked after the clipper | |
@@ -940,10 +947,10 @@ In order of value to a player, then cost. Each item meets the [Definition of don
 12. 🆕 ✅ **"On engage" behaviour** (medium). LFO Bypass Reset (Flanger, Phaser) and Tremolo Start Phase need the engine to tell a block it was engaged; add an optional `IEngageAware` the compiled graph calls when a bypass fade starts.
 13. 🆕 **Done** (stream P3): Phaser VCR models and Barberpole; Flanger thru-zero; Chorus Dimension.
 14. 🆕 **Done** (stream P3): Pitch completion, including polyphonic Whammy tracking (a peak-locked phase vocoder). Detector Source on the hardware inputs 🆕 done (PA). Left: formant correction.
-15. 🆕 **Done (P4)**, except per-circuit extra knobs, op-amp slew per model and new circuits. **Drive EQ pages and expert controls** (medium). The EQ 1 page (low/high cut, bass/mid/high-mid/treble) and EQ 2 (the GEQ bands pre/post) are generic; diode type/count and bias need per-circuit WDF parameters. New circuits continue as in Phase 6 (medium each).
+15. 🆕 **Done (P4, PB)**, except per-circuit extra knobs beyond the Guv'nor's stack and new circuits. **Drive EQ pages and expert controls** (medium). The EQ 1 page (low/high cut, bass/mid/high-mid/treble) and EQ 2 (the GEQ bands pre/post) are generic; diode type/count and bias need per-circuit WDF parameters. New circuits continue as in Phase 6 (medium each).
 16. 🆕 **Done (P2).** **Looper as a block** (medium), with its Config-page features (cheap): once, trims, threshold start, overdub level, crossfade, quantise, 300 s.
 17. 🆕 **Done.** Ring Modulator SSB and pitch tracking, Synth third voice and tracking modes, Vocoder band controls (stream P3); IR Player second slot; Cab preamp, air and input mode (P4).
-18. 🆕 **Mostly done (P4)**: boost, saturation, input filter, output EQ with location, output compressor, input dynamics, speaker drive, thump and compression, bias tremolo, Balance; power-tube hardness and the per-model items remain. **Amp gaps** follow [06 §5](06-amp-modelling-spec.md#5-recommended-plan): input boost (reuse Drive circuits), saturation stage, output EQ types and location, output compressor and input dynamics, speaker drive and compression.
+18. 🆕 **Done (P4, PB)**: boost, saturation, input filter, output EQ with location, output compressor, input dynamics, speaker drive, thump and compression, bias tremolo, Balance; 🆕 the advanced page (PB). Left: Tonestack Location End and Master Location Pre-Triode (no circuit meaning here). **Amp gaps** follow [06 §5](06-amp-modelling-spec.md#5-recommended-plan): input boost (reuse Drive circuits), saturation stage, output EQ types and location, output compressor and input dynamics, speaker drive and compression.
 
 ---
 

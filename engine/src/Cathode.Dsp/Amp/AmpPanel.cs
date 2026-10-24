@@ -17,7 +17,9 @@ public sealed record AmpPanel {
     static readonly string[] TubeOnly = [
         "bias", "feedback", "pretube", "brightcap", "prebias", "presag", "powertube", "xfmrmatch", "xfmrlf", "xfmrhf",
         "xfmrdrive", "speaker", "spkres", "spkq", "spkpeak", "spkhf", "spkimp", "presfreq", "depthfreq", "supply",
-        "rectifier", "katc", "tremrate", "tremdepth"
+        "rectifier", "katc", "tremrate", "tremdepth", "pthard", "prehard", "t1plate", "t2plate", "cfcomp", "cfharm",
+        "prebiasx", "pibiasx", "ptbiasx", "ptbiastime", "ptrecovery", "masterbiasx", "suppressor", "mvloc", "mvcap",
+        "screenfreq", "screenq", "stacktype"
     ];
 
     /// <summary>Every standard knob under its usual name, no model-specific controls.</summary>
@@ -73,6 +75,9 @@ public sealed record AmpPanel {
     ///     from its panel (and do nothing).
     /// </summary>
     public bool HasTubes { get; init; } = true;
+
+    /// <summary>Whether one of the model's own switches is called <paramref name="name" />.</summary>
+    public bool HasSwitch(string name) => Switch1 == name || Switch2 == name || Switch3 == name;
 
     /// <summary>
     ///     The label of the Circuit Amp parameter <paramref name="id" /> on this panel: its name, null where absent, or
