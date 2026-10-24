@@ -21,7 +21,10 @@ namespace Cathode.Dsp.Pitch;
 ///         warble less on sustained notes and smear more on fast passages; the unvoiced fallback stays at least 2.5
 ///         times the minimum.
 ///     </para>
-///     <para>Not modelled: formant preservation (it is a resampler) and splice-point search by cross-correlation.</para>
+///     <para>
+///         A resampler, so the formants move with the pitch; <see cref="FormantCorrector" /> around it keeps them. Not
+///         modelled: splice-point search by cross-correlation.
+///     </para>
 /// </remarks>
 public sealed class SpliceShifter : IDisposable {
     /// <summary>The shortest minimum splice <see cref="SetSplice" /> takes.</summary>

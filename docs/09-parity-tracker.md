@@ -82,7 +82,7 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | PA12 | Plex: Shift Direction per the guide's meaning | ✅ | Reverse_direction_keeps_the_interval_and_plays_each_grain_backwards | the existing behaviour matched the guide |
 | PA13 | Rotary: Low Rate Multiplier | ✅ | Low_rate_multiplier_scales_the_drum_speed |  |
 | PA14 | Wah: Min/Max Frequency on the circuit types | ✅ | Min_and_max_frequency_move_the_circuits_resonance |  |
-| PA15 | Any other ◐ / ❌ in 08 §2, §3, §5, §6 not owned by PB | ◐ | — | closed: Gate/Vocoder/Pitch hardware sources, §7 rows; the five newer wah voicings as circuits went to stream W (below). Left: Pitch formant correction, legacy factory cab banks (licensing). Classic digital reverb types: 🟡 stream R (below) |
+| PA15 | Any other ◐ / ❌ in 08 §2, §3, §5, §6 not owned by PB | ◐ | — | closed: Gate/Vocoder/Pitch hardware sources, §7 rows; the five newer wah voicings as circuits went to stream W (below). Left: legacy factory cab banks (licensing). Classic digital reverb types: 🟡 stream R; Pitch formant correction: 🟡 stream PF (below) |
 
 ## W: the five newer wah types as circuits (08 §6.37)
 
@@ -213,6 +213,16 @@ New Reverb types appended after Cathedral (indices 7–10), so stored presets ke
 | R4 | Classic Room: short-decay room/ambience | 🟡 | ClassicReverbTests (type 10) | `Reverb/NestedRoom.cs`. Gardner's nested-allpass small room (MIT 1992; Kahrs and Brandenburg 1998), lengths our reading of the figure; a second copy 7 % longer for the right side. Decay follows down to about 0.3 s. 0.45 % CPU |
 | R5 | Common controls on the new types; the rest hidden via `typeLabels` | 🟡 | Controls_a_type_does_not_use_are_hidden_on_it; High_cut_…; Low_freq_time_… | Decay, Size, Pre-delay, High/Low Cut, Low/High Freq Time, early reflections, EQ, pitch, ducker, Mix, Kill Dry, Global Mix, Stack/Hold on all four; Mod and Echo Density on the ring; Input Diffusion on the ring and combs; Quality and Wall Diffusion hidden |
 | R6 | Block Library presets of the named classic types | 🟡 | BlockLibraryTests.Every_factory_preset_names_real_parameters_with_values_in_range | 12: Classic Concert Hall, Classic Large Hall, Random Hall, Rich Plate, Small Plate, Vocal Plate, Early Digital Hall, Early Digital Room, Ambience, Small Ambience, Recording Studio, Bright Room |
+
+## PF: Pitch formant correction
+
+| ID | Item | Status | Evidence | Notes |
+|---|---|---|---|---|
+| PF1 | Formant Correction switch, appended after Kill Dry; off by default and every type then bit-identical | 🟡 | PitchFormantTests.Off_by_default_and_the_shift_alone_changes_nothing (every type); GoldenRenderTests; PitchBlockTests | hidden on Detune, Octave Divider, Crystals (Types_without_the_control_hide_it_and_ignore_it) |
+| PF2 | Splice shifters (Whammy Mono/Off, Arpeggiator, Virtual Capo): LPC whitening before, envelope after | 🟡 | Correction_keeps_the_formants_while_the_pitch_moves_an_octave (Whammy Mono, Virtual Capo) | `Pitch/FormantCorrector.cs`; order 24, 21 ms frame, 10.7 ms hop; about 0.5 % per channel at 48 kHz; a level guard (+6 dB over the input's peak) for spectrum changes inside the shifter's delay |
+| PF3 | Polyphonic Whammy: phase-vocoder bins rescaled to the envelope at their new frequency | 🟡 | Correction_keeps_the_formants_while_the_pitch_moves_an_octave (Whammy Poly) | same all-pole envelope (`Pitch/SpectralEnvelope.cs`), two more FFTs per hop (+0.7 % mono) |
+| PF4 | Formant Shift per voice, ±12 st | 🟡 | Formant_shift_moves_the_formants_by_its_interval; Psola_voices_keep_their_formants_and_take_the_shift | PSOLA types: grains resampled per voice (PSOLA keeps the formants already); voice 1's is the single-voice types' "Formant Shift" |
+| PF5 | Bounded, allocation-free, decays | 🟡 | Correction_is_bounded_allocation_free_and_decays (six types) | an octave up with correction is 5–6 dB quieter than without (half as many harmonics under the same envelope) |
 
 ## Known open items from earlier rounds
 
