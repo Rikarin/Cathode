@@ -115,9 +115,8 @@ public static class TriAxis {
     ///     The generic power amp the TriAxis feeds here: the Dual Rectifier model's (four 6L6GC at 460 V, a long-tail pair,
     ///     the factory drawing's values) with its feedback on and without its panel switches, as a Mesa 2:Ninety-style
     ///     stage would be (Mesa's own TriAxis power amps are Simul-Class; the plain pentode quad costs less).
-    ///     Computed on each call, so that it never reads as null while the types above it are initialised.
     /// </summary>
-    static PowerAmpDesign PowerAmp => DualRectifier.Design.Power with {
+    static PowerAmpDesign PowerAmp { get; } = DualRectifier.Design.Power with {
         Name = "4 x 6L6GC (Dual Rectifier power amp)", SupplySwitches = null, FeedbackOffSwitch = null
     };
 

@@ -309,6 +309,13 @@ public static class DriveCircuits {
         DiodeModel.Silicon, DiodeModel.Germanium, DiodeModel.Schottky, DiodeModel.Led, DiodeModel.Mosfet
     ];
 
+    /// <summary>
+    ///     Every circuit with every diode override, built once when the catalogue loads so that choosing one on the audio
+    ///     thread only looks it up: <c>[circuit][type * DiodeCounts.Count + count]</c>. A choice that changes nothing (a
+    ///     circuit without clipping diodes, or both Stock) is the circuit itself.
+    /// </summary>
+    static readonly DriveCircuit[][] DiodeVariants = [..All!.Select(BuildVariants)];
+
     public static IReadOnlyList<DriveCircuit> All { get; } = Catalogue();
 
     /// <summary>The Drive block's Diode Type choices: the circuit's own, then a model for every clipping diode.</summary>
@@ -317,14 +324,6 @@ public static class DriveCircuits {
 
     /// <summary>The Drive block's Diode Count choices: the circuit's own, then 1 to 4 in series on each side.</summary>
     public static IReadOnlyList<string> DiodeCounts { get; } = ["Stock", "1", "2", "3", "4"];
-
-    /// <summary>
-    ///     Every circuit with every diode override, built once when the catalogue loads so that choosing one on the audio
-    ///     thread only looks it up: <c>[circuit][type * DiodeCounts.Count + count]</c>. A choice that changes nothing (a
-    ///     circuit without clipping diodes, or both Stock) is the circuit itself. A property after <see cref="All" />, <see cref="DiodeTypes" /> and <see cref="DiodeCounts" />, so
-    ///     that a member reorder keeps it initialised after the catalogue.
-    /// </summary>
-    static DriveCircuit[][] DiodeVariants { get; } = [..All.Select(BuildVariants)];
 
     /// <summary>The TS808 tone stage: 1k into 220 nF, 20k Tone pot, 220 Ω + 220 nF from its wiper, 1k feedback.</summary>
     static ToneNetwork ScreamerTone =>
