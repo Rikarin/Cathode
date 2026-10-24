@@ -96,9 +96,9 @@ public sealed record StageElement(ElementKind Kind, int A, int B, double Value) 
 /// <summary>
 ///     The circuit of a <see cref="NetworkStageDesign" />, written like a SPICE netlist: nodes, passive elements
 ///     (resistors, capacitors, inductors), pots turned by front-panel knobs, elements switched by front-panel switches,
-///     supply rails that follow the preamp's sag, and up to two triodes, or a pentode, or a diode clipper (a triode and a
-///     diode clipper together also work). The source drives <see cref="Input" /> through the previous stage's output
-///     resistance; the stage's output is the voltage at <see cref="Output" />.
+///     supply rails that follow the preamp's sag, and up to two triodes, or a pentode, or one or two diode clippers (a
+///     triode with one or two clippers, and two triodes with two, also work). The source drives <see cref="Input" />
+///     through the previous stage's output resistance; the stage's output is the voltage at <see cref="Output" />.
 /// </summary>
 /// <remarks>
 ///     Build it on the control thread when the model is defined; the stage reads it once. Values are in ohms, farads,
@@ -255,7 +255,30 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
                 s => new(new(s.TubeFor(devices[0].Triode)), Clipper(devices[1])),
                 sampleRate
             ),
-            _ => throw new NotSupportedException($"{Name}: a network stage takes up to two triodes, a pentode or a diode clipper.")
+            "DD" => new NetworkStage<Devices<DiodeClipper, DiodeClipper>>(
+                this,
+                devices,
+                _ => new(Clipper(devices[0]), Clipper(devices[1])),
+                sampleRate
+            ),
+            "TDD" => new NetworkStage<Devices<FastTriode, Devices<DiodeClipper, DiodeClipper>>>(
+                this,
+                devices,
+                s => new(new(s.TubeFor(devices[0].Triode)), new(Clipper(devices[1]), Clipper(devices[2]))),
+                sampleRate
+            ),
+            "TTDD" => new NetworkStage<Devices<Devices<FastTriode, FastTriode>, Devices<DiodeClipper, DiodeClipper>>>(
+                this,
+                devices,
+                s => new(
+                    new(new(s.TubeFor(devices[0].Triode)), new(s.TubeFor(devices[1].Triode))),
+                    new(Clipper(devices[2]), Clipper(devices[3]))
+                ),
+                sampleRate
+            ),
+            _ => throw new NotSupportedException(
+                $"{Name}: a network stage takes T, TT, P, D, DD, TD, TDD or TTDD (triodes, pentode, diode clippers)."
+            )
         };
     }
 

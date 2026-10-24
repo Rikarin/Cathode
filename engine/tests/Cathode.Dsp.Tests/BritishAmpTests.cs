@@ -12,9 +12,10 @@ namespace Cathode.Dsp.Tests;
 /// </summary>
 public partial class AmpStageTests {
     public static TheoryData<string, int, double, double> BritishChains => new() {
-        { "BE-100", 4, 0.002, -25 },
-        { "BE-100", 4, 0.05, -12 },
-        { "BE-100 HBE", 3, 0.01, -15 }
+        { "BE-100", 4, 0.002, -36 },
+        { "BE-100", 4, 0.05, -16 },
+        { "BE-100 HBE", 3, 0.01, -60 },
+        { "Silver Jubilee", 3, 0.002, -12 }
     };
 
     [Theory]
@@ -70,7 +71,7 @@ public partial class AmpStageTests {
 public class BritishAmpTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
-    static readonly string[] Models = ["BE-100", "BE-100 HBE"];
+    static readonly string[] Models = ["BE-100", "BE-100 HBE", "Silver Jubilee"];
 
     public static TheoryData<string> Types => [..Models];
 
