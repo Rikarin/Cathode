@@ -31,9 +31,10 @@ public static class DenseLu {
             var best = Math.Abs(Unsafe.Add(ref m, k * n + k));
             for (var r = k + 1; r < n; r++) {
                 var candidate = Math.Abs(Unsafe.Add(ref m, r * n + k));
-                var greater = candidate > best;
-                best = greater ? candidate : best;
-                pivot = greater ? r : pivot;
+                if (candidate > best) {
+                    best = candidate;
+                    pivot = r;
+                }
             }
 
             pivots[k] = pivot;
@@ -66,25 +67,14 @@ public static class DenseLu {
                 // Two rows at a time, each with its own multiplier: they share the pivot row's loads.
                 for (; i + 2 <= n; i += 2) {
                     ref var first = ref Unsafe.Add(ref m, i * n);
-                    ref var second = ref Unsafe.Add(ref first, n);
-                    var f0 = Unsafe.Add(ref first, k) * inverse;
-                    var f1 = Unsafe.Add(ref second, k) * inverse;
-                    Unsafe.Add(ref first, k) = f0;
-                    Unsafe.Add(ref second, k) = f1;
-                    if (f0 == 0 || f1 == 0) {
-                        if (f0 != 0) {
-                            Eliminate(ref first, ref top, f0, k + 1, n, paired);
-                        }
-
-                        if (f1 != 0) {
-                            Eliminate(ref second, ref top, f1, k + 1, n, paired);
-                        }
-
-                        continue;
-                    }
-
-                    EliminateTwo(ref first, ref second, ref top, f0, f1, k + 1, n);
+                    EliminatePaired(ref first, ref Unsafe.Add(ref first, n), ref top, inverse, k, n);
                 }
+
+                if (i < n) {
+                    EliminatePaired(ref Unsafe.Add(ref m, i * n), ref top, inverse, k, n);
+                }
+
+                continue;
             }
 
             for (; i < n; i++) {
@@ -95,40 +85,13 @@ public static class DenseLu {
                     continue;
                 }
 
-                Eliminate(ref row, ref top, factor, k + 1, n, paired);
+                for (var j = k + 1; j < n; j++) {
+                    Unsafe.Add(ref row, j) -= factor * Unsafe.Add(ref top, j);
+                }
             }
         }
 
         return true;
-    }
-
-    /// <summary><see cref="Eliminate" /> (paired) on two rows with their own factors, sharing the pivot row's loads.</summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static void EliminateTwo(
-        ref double first,
-        ref double second,
-        ref double top,
-        double f0,
-        double f1,
-        int start,
-        int end
-    ) {
-        var j = start;
-        if ((j & 1) != 0) {
-            var t = Unsafe.Add(ref top, j);
-            Unsafe.Add(ref first, j) -= f0 * t;
-            Unsafe.Add(ref second, j) -= f1 * t;
-            j++;
-        }
-
-        var (v0, v1) = (Vector128.Create(f0), Vector128.Create(f1));
-        for (; j < end; j += 2) {
-            var pivot = Vector128.LoadUnsafe(ref Unsafe.Add(ref top, j));
-            ref var a = ref Unsafe.Add(ref first, j);
-            ref var b = ref Unsafe.Add(ref second, j);
-            Vector128.Subtract(Vector128.LoadUnsafe(ref a), Vector128.Multiply(v0, pivot)).StoreUnsafe(ref a);
-            Vector128.Subtract(Vector128.LoadUnsafe(ref b), Vector128.Multiply(v1, pivot)).StoreUnsafe(ref b);
-        }
     }
 
     /// <summary>
@@ -155,31 +118,94 @@ public static class DenseLu {
     }
 
     /// <summary>
-    ///     row[j] -= factor × top[j] for j from <paramref name="start" /> to <paramref name="end" />. With
-    ///     <paramref name="paired" /> (an even order), two entries at a time from an even j (an odd first one alone),
-    ///     each lane the same multiply and subtract as one at a time, so the same bits.
+    ///     Step <paramref name="k" /> of the elimination for one row of an even order: its multiplier (the pivot column's
+    ///     entry times <paramref name="inverse" />) into the pivot column, then row[j] -= multiplier × top[j] for j &gt;
+    ///     <paramref name="k" />, two entries at a time at even offsets; each lane the same multiply and subtract as the
+    ///     scalar code, so the same bits. At an even step the pair holding the pivot column is updated whole and its
+    ///     first lane replaced by the multiplier, so that no load ever reads half of a two-lane store (which waits for
+    ///     the store to retire).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static void Eliminate(ref double row, ref double top, double factor, int start, int end, bool paired) {
-        var j = start;
-        if (paired) {
-            if ((j & 1) != 0) {
-                Unsafe.Add(ref row, j) -= factor * Unsafe.Add(ref top, j);
-                j++;
+    static void EliminatePaired(ref double row, ref double top, double inverse, int k, int n) {
+        var j = k + 1;
+        double factor;
+        if ((k & 1) == 0) {
+            var pair = Vector128.LoadUnsafe(ref Unsafe.Add(ref row, k));
+            factor = pair.GetElement(0) * inverse;
+            if (factor == 0) {
+                Unsafe.Add(ref row, k) = factor;
+                return;
             }
 
-            var f = Vector128.Create(factor);
-            for (; j < end; j += 2) {
-                ref var target = ref Unsafe.Add(ref row, j);
-                var product = Vector128.Multiply(f, Vector128.LoadUnsafe(ref Unsafe.Add(ref top, j)));
-                Vector128.Subtract(Vector128.LoadUnsafe(ref target), product).StoreUnsafe(ref target);
+            var product = Vector128.Multiply(Vector128.Create(factor), Vector128.LoadUnsafe(ref Unsafe.Add(ref top, k)));
+            Vector128.Subtract(pair, product).WithElement(0, factor).StoreUnsafe(ref Unsafe.Add(ref row, k));
+            j = k + 2;
+        } else {
+            factor = Unsafe.Add(ref row, k) * inverse;
+            Unsafe.Add(ref row, k) = factor;
+            if (factor == 0) {
+                return;
             }
-
-            return;
         }
 
-        for (; j < end; j++) {
-            Unsafe.Add(ref row, j) -= factor * Unsafe.Add(ref top, j);
+        var f = Vector128.Create(factor);
+        for (; j < n; j += 2) {
+            ref var target = ref Unsafe.Add(ref row, j);
+            var product = Vector128.Multiply(f, Vector128.LoadUnsafe(ref Unsafe.Add(ref top, j)));
+            Vector128.Subtract(Vector128.LoadUnsafe(ref target), product).StoreUnsafe(ref target);
+        }
+    }
+
+    /// <summary>
+    ///     <see cref="EliminatePaired(ref double, ref double, double, int, int)" /> for two rows, sharing the pivot
+    ///     row's loads; a row whose multiplier is 0 is left as it is beyond the pivot column.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static void EliminatePaired(ref double first, ref double second, ref double top, double inverse, int k, int n) {
+        var j = k + 1;
+        double f0, f1;
+        if ((k & 1) == 0) {
+            var pivot = Vector128.LoadUnsafe(ref Unsafe.Add(ref top, k));
+            var a = Vector128.LoadUnsafe(ref Unsafe.Add(ref first, k));
+            var b = Vector128.LoadUnsafe(ref Unsafe.Add(ref second, k));
+            (f0, f1) = (a.GetElement(0) * inverse, b.GetElement(0) * inverse);
+            if (f0 == 0 || f1 == 0) {
+                Separately(ref first, ref second, ref top, inverse, k, n);
+                return;
+            }
+
+            Vector128.Subtract(a, Vector128.Multiply(Vector128.Create(f0), pivot))
+                .WithElement(0, f0)
+                .StoreUnsafe(ref Unsafe.Add(ref first, k));
+            Vector128.Subtract(b, Vector128.Multiply(Vector128.Create(f1), pivot))
+                .WithElement(0, f1)
+                .StoreUnsafe(ref Unsafe.Add(ref second, k));
+            j = k + 2;
+        } else {
+            (f0, f1) = (Unsafe.Add(ref first, k) * inverse, Unsafe.Add(ref second, k) * inverse);
+            if (f0 == 0 || f1 == 0) {
+                Separately(ref first, ref second, ref top, inverse, k, n);
+                return;
+            }
+
+            Unsafe.Add(ref first, k) = f0;
+            Unsafe.Add(ref second, k) = f1;
+        }
+
+        var (v0, v1) = (Vector128.Create(f0), Vector128.Create(f1));
+        for (; j < n; j += 2) {
+            var pivot = Vector128.LoadUnsafe(ref Unsafe.Add(ref top, j));
+            ref var a = ref Unsafe.Add(ref first, j);
+            ref var b = ref Unsafe.Add(ref second, j);
+            Vector128.Subtract(Vector128.LoadUnsafe(ref a), Vector128.Multiply(v0, pivot)).StoreUnsafe(ref a);
+            Vector128.Subtract(Vector128.LoadUnsafe(ref b), Vector128.Multiply(v1, pivot)).StoreUnsafe(ref b);
+        }
+
+        return;
+
+        static void Separately(ref double first, ref double second, ref double top, double inverse, int k, int n) {
+            EliminatePaired(ref first, ref top, inverse, k, n);
+            EliminatePaired(ref second, ref top, inverse, k, n);
         }
     }
 
@@ -255,14 +281,16 @@ public static class DenseLu {
             }
         }
 
+        if (Vector128.IsHardwareAccelerated && n % 2 == 0) {
+            SolvePaired(ref a, n, ref x);
+            return;
+        }
+
         for (var i = 1; i < n; i++) {
             ref var row = ref Unsafe.Add(ref a, i * n);
             var sum = Unsafe.Add(ref x, i);
             for (var k = 0; k < i; k++) {
-                var factor = Unsafe.Add(ref row, k);
-                if (factor != 0) {
-                    sum -= factor * Unsafe.Add(ref x, k);
-                }
+                sum -= Term(Unsafe.Add(ref row, k), Unsafe.Add(ref x, k));
             }
 
             Unsafe.Add(ref x, i) = sum;
@@ -272,15 +300,68 @@ public static class DenseLu {
             ref var row = ref Unsafe.Add(ref a, i * n);
             var sum = Unsafe.Add(ref x, i);
             for (var k = i + 1; k < n; k++) {
-                var factor = Unsafe.Add(ref row, k);
-                if (factor != 0) {
-                    sum -= factor * Unsafe.Add(ref x, k);
-                }
+                sum -= Term(Unsafe.Add(ref row, k), Unsafe.Add(ref x, k));
             }
 
             var inverse = 1 / Unsafe.Add(ref row, i);
             Unsafe.Add(ref x, i) = sum * inverse;
         }
+    }
+
+    /// <summary>
+    ///     The substitutions of <see cref="Solve(ReadOnlySpan{double}, int, ReadOnlySpan{int}, Span{double})" />
+    ///     (after the swaps) for an even order: the same terms in the same order, the factors read a pair at a time at
+    ///     even offsets, as <see cref="Factor" /> stored them.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static void SolvePaired(ref double a, int n, ref double x) {
+        for (var i = 1; i < n; i++) {
+            ref var row = ref Unsafe.Add(ref a, i * n);
+            var sum = Unsafe.Add(ref x, i);
+            var k = 0;
+            for (; k + 2 <= i; k += 2) {
+                var pair = Vector128.LoadUnsafe(ref Unsafe.Add(ref row, k));
+                sum -= Term(pair.GetElement(0), Unsafe.Add(ref x, k));
+                sum -= Term(pair.GetElement(1), Unsafe.Add(ref x, k + 1));
+            }
+
+            if (k < i) {
+                sum -= Term(Vector128.LoadUnsafe(ref Unsafe.Add(ref row, k)).GetElement(0), Unsafe.Add(ref x, k));
+            }
+
+            Unsafe.Add(ref x, i) = sum;
+        }
+
+        for (var i = n - 1; i >= 0; i--) {
+            ref var row = ref Unsafe.Add(ref a, i * n);
+            var sum = Unsafe.Add(ref x, i);
+            var k = i + 1;
+            var diagonal = Vector128.LoadUnsafe(ref Unsafe.Add(ref row, i & ~1)).GetElement(i & 1);
+            if ((k & 1) != 0 && k < n) {
+                sum -= Term(Vector128.LoadUnsafe(ref Unsafe.Add(ref row, k - 1)).GetElement(1), Unsafe.Add(ref x, k));
+                k++;
+            }
+
+            for (; k < n; k += 2) {
+                var pair = Vector128.LoadUnsafe(ref Unsafe.Add(ref row, k));
+                sum -= Term(pair.GetElement(0), Unsafe.Add(ref x, k));
+                sum -= Term(pair.GetElement(1), Unsafe.Add(ref x, k + 1));
+            }
+
+            var inverse = 1 / diagonal;
+            Unsafe.Add(ref x, i) = sum * inverse;
+        }
+    }
+
+    /// <summary>
+    ///     <paramref name="factor" /> × <paramref name="x" />, or +0 for a zero factor: subtracting +0 leaves every
+    ///     value as it is (-0 and NaN included), so this is the same as skipping the term, without a branch, and the
+    ///     selection stays off the running sum's chain.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static double Term(double factor, double x) {
+        var product = factor * x;
+        return factor != 0 ? product : 0.0;
     }
 
     /// <summary>Solves the n × n system A x = b in place for one right-hand side. Returns false if A is singular.</summary>
