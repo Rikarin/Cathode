@@ -22,7 +22,10 @@ public enum GraphOpKind {
     /// <summary>Silence <c>Buffer</c> (a node whose inputs are all pruned, or a Feedback Return with none).</summary>
     Clear,
 
-    /// <summary>Let multiplexer slot <c>Index</c> add buffer <c>Source</c>, from grid row <c>Row</c>, into <c>Buffer</c>.</summary>
+    /// <summary>
+    ///     Let row-input block slot <c>Index</c> (a multiplexer or mixer) add buffer <c>Source</c>, from grid row
+    ///     <c>Row</c>, into <c>Buffer</c>.
+    /// </summary>
     MuxInput
 }
 

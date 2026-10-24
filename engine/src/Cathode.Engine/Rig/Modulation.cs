@@ -133,6 +133,7 @@ public sealed class Modulation(ParamBank rig, double sampleRate) {
             3 => p,
             4 => 1f - p,
             5 => held,
+            > 5 => 0.5f + 0.5f * (float)Dsp.Modulation.Lfo.Shape((Dsp.Modulation.LfoShape)shape, p),
             _ => 0.5f + 0.5f * MathF.Sin(2f * MathF.PI * p)
         };
     }

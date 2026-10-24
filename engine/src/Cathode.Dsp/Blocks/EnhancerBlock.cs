@@ -17,7 +17,8 @@ namespace Cathode.Dsp.Blocks;
 ///         <item><b>Haas</b>: the right channel is delayed by <b>Time</b> (precedence effect). Not mono compatible.</item>
 ///     </list>
 ///     Modern and Classic add the derived side as <c>L + s</c>, <c>R - s</c>, so the mono sum L + R is untouched. The
-///     side is band-limited by <b>Low Cut</b> (keeping the bass centred) and <b>High Cut</b>.
+///     side is band-limited by <b>Low Cut</b> (keeping the bass centred) and <b>High Cut</b>. Then either side can be
+///     phase-inverted and each panned, as a channel converter (merge to mono, swap or narrow).
 /// </summary>
 public sealed class EnhancerBlock() : DspBlock(Info) {
     public const int Type = 0;
@@ -26,6 +27,10 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
     public const int LowCut = 3;
     public const int HighCut = 4;
     public const int Level = 5;
+    public const int Balance = 6;
+    public const int Invert = 7;
+    public const int PanLeft = 8;
+    public const int PanRight = 9;
 
     const double MaxTimeMs = 30;
     const double AllpassQ = 0.6;
@@ -39,7 +44,7 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
     SvfState lowCut;
     SvfState highCut;
     float width;
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "enhancer",
@@ -51,7 +56,11 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
             ParamDescriptor.Float("time", "Time", 1f, (float)MaxTimeMs, 8f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("lowCut", "Low Cut", 20f, 2_000f, 150f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("highCut", "High Cut", 1_000f, 20_000f, 12_000f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Choice("invert", "Invert", ChorusBlock.PhaseOptions),
+            ParamDescriptor.Float("panLeft", "Pan Left", -100f, 100f, -100f, "%"),
+            ParamDescriptor.Float("panRight", "Pan Right", -100f, 100f, 100f, "%")
         ],
         maxInstances: 2
     );
@@ -71,7 +80,7 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
         lowCut.Reset();
         highCut.Reset();
         width = Params.Current(Width) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -119,11 +128,9 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
         lowCut.FlushDenormals();
         highCut.FlushDenormals();
         this.width = width;
-
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        Stereo.Invert(io, (int)Params.Current(Invert));
+        Stereo.Pan(io, Params.Advance(PanLeft, io.Length) / 100f, Params.Advance(PanRight, io.Length) / 100f);
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 
     protected override void Dispose(bool disposing) {

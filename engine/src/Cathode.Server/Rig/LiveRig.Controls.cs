@@ -26,7 +26,10 @@ public sealed partial class LiveRig {
                 Check(expected);
                 var block = Find(id);
                 if (BuiltInTypes.IsBuiltIn(block.Type) || !BypassModes.IsValid(mode)) {
-                    throw new RigException(400, $"Bypass mode '{mode}' is not one of thru, mute, muteIn, muteFxIn.");
+                    throw new RigException(
+                        400,
+                        $"Bypass mode '{mode}' is not one of thru, mute, muteIn, muteFxIn, muteOut, muteFxOut."
+                    );
                 }
 
                 await StructuralAsync(p => p.Blocks.Single(b => b.Id == id).BypassMode = mode);

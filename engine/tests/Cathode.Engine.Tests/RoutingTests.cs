@@ -37,6 +37,32 @@ public class RoutingTests {
     }
 
     [Fact]
+    public void Mixer_sums_the_rows_with_their_own_gain_and_balance() {
+        // Row 1 (0.5) at 50 % gain, centred; row 2 (0.25) at full gain, balanced hard right.
+        var definition = Graph(
+            [
+                Node("in", NodeTypes.Input, 0, 0),
+                Node("a", "volpan", 0, 1, ("level", -6.0206f)),
+                Node("b", "volpan", 1, 1, ("level", -12.0412f)),
+                Node("mixer", "mixer", 0, 2, ("gain1", 50f), ("balance2", 100f)),
+                Node("out", NodeTypes.Output, 0, 3)
+            ],
+            ("in", "a"),
+            ("in", "b"),
+            ("a", "mixer"),
+            ("b", "mixer"),
+            ("mixer", "out")
+        );
+        var engine = new CathodeEngine(Spec);
+        engine.Publish(Compiler.Compile(definition, Spec, 1));
+
+        var (left, right) = OfflineRenderer.Render(engine, Signals.Step(4_800), Signals.Step(4_800), 64);
+
+        Assert.Equal(0.25f, left[^1], 1e-4f);
+        Assert.Equal(0.5f, right[^1], 1e-4f);
+    }
+
+    [Fact]
     public void Feedback_return_repeats_the_send_one_block_later() {
         var output = Run(Feedback(-6.0206f), Signals.Impulse(512));
 

@@ -43,6 +43,7 @@ public sealed class SynthBlock() : DspBlock(Info) {
     public const int Threshold = 16;
     public const int Mix = 17;
     public const int Level = 18;
+    public const int Balance = 19;
 
     const int FilterUpdateInterval = 16;
     const double VoicedHoldSeconds = 0.05;
@@ -64,7 +65,7 @@ public sealed class SynthBlock() : DspBlock(Info) {
     float amplitude;
     long sampleCount;
     float mix;
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "synth",
@@ -89,7 +90,8 @@ public sealed class SynthBlock() : DspBlock(Info) {
             ParamDescriptor.Float("glide", "Glide", 0f, 500f, 20f, "ms"),
             ParamDescriptor.Float("threshold", "Threshold", -80f, -20f, -50f, "dB"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 1
     );
@@ -116,7 +118,7 @@ public sealed class SynthBlock() : DspBlock(Info) {
         amplitude = 0;
         sampleCount = 0;
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void Dispose(bool disposing) {
@@ -211,10 +213,7 @@ public sealed class SynthBlock() : DspBlock(Info) {
             envelope = 0;
         }
 
-        var outputGain = Decibels.ToGain(Params.Advance(Level, frames));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, frames), Params.Advance(Balance, frames));
     }
 
     /// <summary>Phase-accumulator oscillator; the saw and pulse are band-limited with PolyBLEP.</summary>

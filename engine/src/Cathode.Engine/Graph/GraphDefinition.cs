@@ -29,7 +29,13 @@ public static class BypassModes {
     /// <summary>The dry signal passes and the block's tails are added: spillover for delays and reverbs.</summary>
     public const string MuteFxIn = "muteFxIn";
 
-    public static bool IsValid(string mode) => mode is Thru or Mute or MuteIn or MuteFxIn;
+    /// <summary>The block keeps running on its input but its output is muted, so tails are ready when it is engaged.</summary>
+    public const string MuteOut = "muteOut";
+
+    /// <summary>As <see cref="MuteOut" />, with the dry signal passing in place of the block's output.</summary>
+    public const string MuteFxOut = "muteFxOut";
+
+    public static bool IsValid(string mode) => mode is Thru or Mute or MuteIn or MuteFxIn or MuteOut or MuteFxOut;
 }
 
 /// <summary>

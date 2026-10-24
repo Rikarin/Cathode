@@ -28,6 +28,7 @@ public static class BlockCosts {
         ["irplayer"] = 6.94,
         ["mbcomp"] = 0.45,
         ["megatap"] = 0.57,
+        ["mixer"] = 0.04, // placeholder (the Multiplexer's cost): regenerate with Cathode.Bench --write
         ["multidelay"] = 0.60,
         ["mux"] = 0.04,
         ["nam"] = 0.05,

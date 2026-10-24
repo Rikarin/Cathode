@@ -26,14 +26,18 @@ public class DelayBlockTests {
         Assert.Equal(0.25f, output[1_440], 1e-5f);
     }
 
-    [Fact]
-    public void Mix_follows_the_inverse_linear_law() {
-        using var delay = Create((DelayBlock.Time, 10f), (DelayBlock.Feedback, 0f), (DelayBlock.Mix, 50f));
+    [Theory]
+    [InlineData(25f, 1f, 0.5f)]
+    [InlineData(50f, 1f, 1f)]
+    [InlineData(75f, 0.5f, 1f)]
+    public void Mix_follows_the_delay_law(float mix, float dry, float wet) {
+        // The wet rises to full level by 50 % while the dry stays at full level, then the dry fades out.
+        using var delay = Create((DelayBlock.Time, 10f), (DelayBlock.Feedback, 0f), (DelayBlock.Mix, mix));
 
         var output = BlockRender.Mono(delay, Signals.Impulse(1_000), 64);
 
-        Assert.Equal(0.5f, output[0], 1e-6f); // dry at -6 dB
-        Assert.Equal(0.5f, output[480], 1e-6f); // wet at -6 dB
+        Assert.Equal(dry, output[0], 1e-6f);
+        Assert.Equal(wet, output[480], 1e-6f);
     }
 
     [Fact]

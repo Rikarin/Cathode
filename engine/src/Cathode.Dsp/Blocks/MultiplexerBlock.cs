@@ -7,9 +7,10 @@ namespace Cathode.Dsp.Blocks;
 ///     switch between parallel paths: two amps, a clean and a dirty chain. The graph compiler routes each input through
 ///     <see cref="MixInput" /> instead of summing it; <see cref="DspBlock.Process" /> then applies the level.
 /// </summary>
-public sealed class MultiplexerBlock() : DspBlock(Info) {
+public sealed class MultiplexerBlock() : DspBlock(Info), IRowInputBlock {
     public const int Input = 0;
     public const int Level = 1;
+    public const int Balance = 2;
 
     /// <summary>Rows the input choice can name; inputs from other rows are only heard with "All".</summary>
     public const int Rows = 6;
@@ -19,7 +20,7 @@ public sealed class MultiplexerBlock() : DspBlock(Info) {
 
     readonly float[] gains = new float[Rows + 1];
     float fadeStep = 1f;
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "mux",
@@ -27,7 +28,8 @@ public sealed class MultiplexerBlock() : DspBlock(Info) {
         "Routing",
         [
             ParamDescriptor.Choice("input", "Input", ["Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", "All"]),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 4
     );
@@ -69,14 +71,11 @@ public sealed class MultiplexerBlock() : DspBlock(Info) {
             gains[row] = selected == All || selected == row ? 1f : 0f;
         }
 
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 
     static void Add(ReadOnlySpan<float> source, Span<float> destination) {

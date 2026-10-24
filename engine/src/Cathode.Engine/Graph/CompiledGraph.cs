@@ -9,7 +9,9 @@ public enum BypassKind {
     Thru,
     Mute,
     MuteIn,
-    MuteFxIn
+    MuteFxIn,
+    MuteOut,
+    MuteFxOut
 }
 
 /// <summary>
@@ -173,7 +175,7 @@ public sealed class CompiledGraph : IDisposable {
                     right.Clear();
                     break;
                 case GraphOpKind.MuxInput:
-                    ((MultiplexerBlock)blocks[op.Index]).MixInput(
+                    ((IRowInputBlock)blocks[op.Index]).MixInput(
                         op.Row,
                         new(this.left[op.Source].Span[..frames], this.right[op.Source].Span[..frames]),
                         new(left, right)
@@ -203,6 +205,9 @@ public sealed class CompiledGraph : IDisposable {
         switch (bypass.Mode) {
             case BypassKind.MuteIn or BypassKind.MuteFxIn:
                 RunWithFadedInput(slot, target, io, context);
+                return;
+            case BypassKind.MuteOut or BypassKind.MuteFxOut:
+                RunWithFadedOutput(slot, target, io, context);
                 return;
             case BypassKind.Thru or BypassKind.Mute when steady:
                 if (target == 1f) {
@@ -263,6 +268,39 @@ public sealed class CompiledGraph : IDisposable {
                 io.Left[i] += dryLeft[i] * (1f - gain);
                 io.Right[i] += dryRight[i] * (1f - gain);
             }
+        }
+
+        bypass.Mix = mix;
+    }
+
+    /// <summary>
+    ///     Mute Out and Mute FX Out: the block always runs on its full input, so it keeps listening while bypassed and its
+    ///     tails are already there when it is engaged; its output is faded by the bypass mix. Mute FX Out puts the dry
+    ///     signal in its place, Mute Out silence.
+    /// </summary>
+    void RunWithFadedOutput(int slot, float target, in StereoBuffer io, in BlockContext context) {
+        ref var bypass = ref this.bypass[slot];
+        if (bypass.Mix == target && target == 1f) {
+            blocks[slot].Process(io, context);
+            return;
+        }
+
+        var dryLeft = this.dryLeft.Span[..io.Length];
+        var dryRight = this.dryRight.Span[..io.Length];
+        if (bypass.Mode == BypassKind.MuteFxOut) {
+            io.Left.CopyTo(dryLeft);
+            io.Right.CopyTo(dryRight);
+        } else {
+            dryLeft.Clear();
+            dryRight.Clear();
+        }
+
+        blocks[slot].Process(io, context);
+        var mix = bypass.Mix;
+        for (var i = 0; i < io.Length; i++) {
+            mix = Step(mix, target);
+            io.Left[i] = dryLeft[i] + (io.Left[i] - dryLeft[i]) * mix;
+            io.Right[i] = dryRight[i] + (io.Right[i] - dryRight[i]) * mix;
         }
 
         bypass.Mix = mix;

@@ -21,7 +21,7 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
         Assert.Equal(DriveCircuits.All.Select(static c => c.Name), options.Skip(DriveBlock.CircuitTypes));
         Assert.True(DriveCircuits.All.Count >= 20, $"only {DriveCircuits.All.Count} circuits");
         Assert.Equal(options.Count, options.Distinct().Count());
-        Assert.Equal(["type", "drive", "tone", "level", "mix", "inputVol"], DriveBlock.Info.Params.Select(static p => p.Id));
+        Assert.Equal(["type", "drive", "tone", "level", "mix", "inputVol", "balance"], DriveBlock.Info.Params.Select(static p => p.Id));
     }
 
     [Theory]

@@ -16,6 +16,11 @@ public sealed class WahBlock : DspBlock {
     public const int Position = 1;
     public const int Mix = 2;
     public const int Level = 3;
+    public const int Balance = 4;
+    public const int Resonance = 5;
+    public const int QTracking = 6;
+    public const int Taper = 7;
+    public const int LowCut = 8;
 
     /// <summary>The first type modelled at component level: type <c>FirstCircuit + i</c> is <see cref="Circuits" />[i].</summary>
     public const int FirstCircuit = 3;
@@ -35,11 +40,12 @@ public sealed class WahBlock : DspBlock {
     ];
 
     SvfState bandLeft, bandRight, lowLeft, lowRight;
+    WetCuts lowCut;
     WahCircuit? circuitLeft, circuitRight;
     int configured = -1;
     int countdown;
     float mix = 1f;
-    float outputGain = 1f;
+    OutputStage output;
 
     /// <summary>
     ///     The component-level voicings, in type order after the filter approximations. Append only: presets store the
@@ -89,7 +95,12 @@ public sealed class WahBlock : DspBlock {
                 SmoothingMs: 10f
             ),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Float("resonance", "Resonance Q", 0.25f, 4f, 1f, "x", ParamTaper.Log),
+            ParamDescriptor.Float("qTracking", "Q Tracking", 0f, 100f, 0f, "%"),
+            ParamDescriptor.Choice("taper", "Control Taper", ["Linear", "Log", "Reverse Log"]),
+            WetCuts.LowCutParam("lowCut", "Low Cut", 500f)
         ],
         maxInstances: 2
     );
@@ -139,8 +150,9 @@ public sealed class WahBlock : DspBlock {
         bandRight.Reset();
         lowLeft.Reset();
         lowRight.Reset();
+        lowCut.Reset();
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
         var type = (int)Params.Current(Type);
         if (circuitLeft is null) {
             return;
@@ -155,29 +167,50 @@ public sealed class WahBlock : DspBlock {
         }
     }
 
+    /// <summary>The pedal position (0..100 %) through the Control Taper: linear, or bunched toward heel or toe.</summary>
+    public static float Tapered(int taper, float position) {
+        var p = Math.Clamp(position, 0f, 100f) / 100f;
+        return 100f * taper switch {
+            1 => p * p,
+            2 => 1 - (1 - p) * (1 - p),
+            _ => p
+        };
+    }
+
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var type = (int)Params.Current(Type);
+        lowCut.Design(Spec.SampleRate, Params.Advance(LowCut, io.Length), WetCuts.HighOff);
+        if (Params.Current(LowCut) > WetCuts.LowOff) {
+            // The input coupling capacitor: everything the wah hears, and so its wet and dry alike, loses its lows.
+            for (var i = 0; i < io.Length; i++) {
+                lowCut.Tick(ref io.Left[i], ref io.Right[i]);
+            }
+
+            lowCut.FlushDenormals();
+        }
+
         if (type >= FirstCircuit) {
             ProcessCircuit(io, type);
         } else {
             ProcessFilter(io, type);
         }
 
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 
     void ProcessFilter(in StereoBuffer io, int type) {
-        var q = Voicings[type].Q;
+        var taper = (int)Params.Current(Taper);
+        var baseQ = Voicings[type].Q * Params.Advance(Resonance, io.Length);
+        var tracking = Params.Advance(QTracking, io.Length) / 100f;
         var mix = Params.Advance(Mix, io.Length) / 100f;
         var mixStep = (mix - this.mix) / io.Length;
         var currentMix = this.mix;
 
         for (var start = 0; start < io.Length; start += SubBlock) {
             var length = Math.Min(SubBlock, io.Length - start);
-            var frequency = Frequency(type, Params.Advance(Position, length));
+            var position = Tapered(taper, Params.Advance(Position, length));
+            var frequency = Frequency(type, position);
+            var q = baseQ * (1 - 0.5f * tracking * position / 100f); // some wahs get less peaky toward the toe
             var band = SvfCoefficients.Design(BiquadType.BandPass, Spec.SampleRate, frequency, q);
             var low = SvfCoefficients.Design(BiquadType.LowPass, Spec.SampleRate, frequency, 0.7071);
             for (var i = start; i < start + length; i++) {
@@ -213,7 +246,7 @@ public sealed class WahBlock : DspBlock {
         var start = 0;
         while (start < io.Length) {
             if (countdown == 0) {
-                var toe = Params.Current(Position) / 100.0;
+                var toe = Tapered((int)Params.Current(Taper), Params.Current(Position)) / 100.0;
                 left.SetPosition(toe);
                 right.SetPosition(toe);
                 countdown = SubBlock;
@@ -238,7 +271,7 @@ public sealed class WahBlock : DspBlock {
         var voicing = Circuits[type - FirstCircuit];
         circuitLeft!.Configure(voicing);
         circuitRight!.Configure(voicing);
-        var toe = Params.Current(Position) / 100.0;
+        var toe = Tapered((int)Params.Current(Taper), Params.Current(Position)) / 100.0;
         circuitLeft.SetPosition(toe);
         circuitRight.SetPosition(toe);
         configured = type;

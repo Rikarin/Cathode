@@ -1,3 +1,4 @@
+using Cathode.Dsp.Filters;
 using Cathode.Dsp.Parameters;
 
 namespace Cathode.Dsp.Blocks;
@@ -13,8 +14,13 @@ namespace Cathode.Dsp.Blocks;
 ///             <b>Opto</b>: peak level with program-dependent release; the deeper the gain reduction, the slower it
 ///             recovers, like a photocell.
 ///         </item>
+///         <item>
+///             <b>Sustainer</b>: upward compression on the Studio detector. Below the threshold, quiet signals are raised
+///             by (1 - 1 / ratio) dB per dB, at most <see cref="MaxSustainDb" />, so notes sustain as they fade.
+///         </item>
 ///     </list>
-///     The mix follows the Axe-Fx law (50 % = -6 dB each) for parallel compression.
+///     The detector can be fed through a sidechain low and high cut, and Auto Makeup adds back half the gain reduction a
+///     0 dBFS signal would get. The mix follows the Axe-Fx law (50 % = -6 dB each) for parallel compression.
 /// </summary>
 public sealed class CompressorBlock() : DspBlock(Info) {
     public const int Type = 0;
@@ -26,19 +32,32 @@ public sealed class CompressorBlock() : DspBlock(Info) {
     public const int Makeup = 6;
     public const int Mix = 7;
     public const int Level = 8;
+    public const int Balance = 9;
+    public const int AutoMakeup = 10;
+    public const int SidechainLowCut = 11;
+    public const int SidechainHighCut = 12;
+
+    public const int Pedal = 0;
+    public const int Studio = 1;
+    public const int Opto = 2;
+    public const int Sustainer = 3;
+
+    /// <summary>The most the Sustainer raises a quiet signal, in dB.</summary>
+    public const float MaxSustainDb = 24f;
 
     const double RmsWindowMs = 5;
 
     double meanSquare;
     float mix = 1f;
-    float outputGain = 1f;
+    WetCuts sidechain;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "compressor",
         "Compressor",
         "Dynamics",
         [
-            ParamDescriptor.Choice("type", "Type", ["Pedal", "Studio", "Opto"]),
+            ParamDescriptor.Choice("type", "Type", ["Pedal", "Studio", "Opto", "Sustainer"]),
             ParamDescriptor.Float("threshold", "Threshold", -60f, 0f, -20f, "dB"),
             ParamDescriptor.Float("ratio", "Ratio", 1f, 20f, 4f, ":1", ParamTaper.Log),
             ParamDescriptor.Float("attack", "Attack", 0.1f, 100f, 5f, "ms", ParamTaper.Log),
@@ -46,7 +65,11 @@ public sealed class CompressorBlock() : DspBlock(Info) {
             ParamDescriptor.Float("knee", "Knee", 0f, 24f, 6f, "dB"),
             ParamDescriptor.Float("makeup", "Makeup", 0f, 30f, 0f, "dB"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Switch("autoMakeup", "Auto Makeup"),
+            WetCuts.LowCutParam("scLowCut", "Sidechain Low Cut"),
+            WetCuts.HighCutParam("scHighCut", "Sidechain High Cut")
         ],
         maxInstances: 4
     );
@@ -75,8 +98,9 @@ public sealed class CompressorBlock() : DspBlock(Info) {
     protected override void OnReset() {
         GainReductionDb = 0;
         meanSquare = 0;
+        sidechain.Reset();
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -89,6 +113,12 @@ public sealed class CompressorBlock() : DspBlock(Info) {
         var releaseMs = Params.Advance(Release, io.Length);
         var release = Coefficient(releaseMs, rate);
         var makeup = Params.Advance(Makeup, io.Length);
+        if (Params.Current(AutoMakeup) >= 0.5f) {
+            makeup -= 0.5f * StaticCurve(0f, threshold, ratio, knee); // half the reduction at 0 dBFS
+        }
+
+        var upward = type == Sustainer;
+        sidechain.Design(rate, Params.Advance(SidechainLowCut, io.Length), Params.Advance(SidechainHighCut, io.Length));
         var mix = Params.Advance(Mix, io.Length) / 100f;
         var rmsCoefficient = Coefficient(RmsWindowMs, rate);
 
@@ -100,22 +130,27 @@ public sealed class CompressorBlock() : DspBlock(Info) {
         for (var i = 0; i < io.Length; i++) {
             var left = io.Left[i];
             var right = io.Right[i];
+            var detectLeft = left;
+            var detectRight = right;
+            sidechain.Tick(ref detectLeft, ref detectRight);
 
             float levelDb;
-            if (type == 1) {
-                var square = 0.5 * ((double)left * left + (double)right * right);
+            if (type is Studio or Sustainer) {
+                var square = 0.5 * ((double)detectLeft * detectLeft + (double)detectRight * detectRight);
                 meanSquare = square + (meanSquare - square) * rmsCoefficient;
                 levelDb = meanSquare > 1e-20 ? (float)(10 * Math.Log10(meanSquare)) : -200f;
             } else {
-                var peak = Math.Max(MathF.Abs(left), MathF.Abs(right));
+                var peak = Math.Max(MathF.Abs(detectLeft), MathF.Abs(detectRight));
                 levelDb = peak > 1e-10f ? 20f * MathF.Log10(peak) : -200f;
             }
 
-            var target = StaticCurve(levelDb, threshold, ratio, knee) - levelDb; // <= 0
+            var target = upward
+                ? Math.Min(MaxSustainDb, -StaticCurve(-levelDb, -threshold, ratio, knee) - levelDb) // >= 0
+                : StaticCurve(levelDb, threshold, ratio, knee) - levelDb; // <= 0
             if (target < reduction) {
                 reduction = target + (reduction - target) * attack;
             } else {
-                var coefficient = type == 2
+                var coefficient = type == Opto
                     ? Coefficient(releaseMs * (1 - reduction / 6), rate) // opto: 6 dB of reduction doubles the release
                     : release;
                 reduction = target + (reduction - target) * coefficient;
@@ -127,13 +162,11 @@ public sealed class CompressorBlock() : DspBlock(Info) {
             io.Right[i] = right * (1 - currentMix) + right * gain * currentMix;
         }
 
-        GainReductionDb = reduction > -1e-6f ? 0 : reduction;
+        GainReductionDb = MathF.Abs(reduction) < 1e-6f ? 0 : reduction;
+        sidechain.FlushDenormals();
         this.meanSquare = meanSquare < 1e-30 ? 0 : meanSquare;
         this.mix = mix;
 
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 }

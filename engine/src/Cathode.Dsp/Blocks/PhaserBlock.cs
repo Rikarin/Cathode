@@ -16,6 +16,9 @@ public sealed class PhaserBlock : DspBlock {
     public const int Mix = 5;
     public const int Spread = 6;
     public const int Level = 7;
+    public const int Balance = 8;
+    public const int Tempo = 9;
+    public const int LfoType = 10;
 
     const int MaxStages = 12;
     const float MaxSweepOctaves = 2f;
@@ -27,7 +30,7 @@ public sealed class PhaserBlock : DspBlock {
     float lastLeft;
     float lastRight;
     float mix;
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "phaser",
@@ -41,7 +44,10 @@ public sealed class PhaserBlock : DspBlock {
             ParamDescriptor.Float("feedback", "Feedback", -95f, 95f, 0f, "%"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 50f, "%"),
             ParamDescriptor.Float("spread", "Spread", 0f, 180f, 90f, "°"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
+            ParamDescriptor.Choice("lfoType", "LFO Type", Lfo.ShapeNames)
         ],
         maxInstances: 2
     );
@@ -82,12 +88,13 @@ public sealed class PhaserBlock : DspBlock {
         lastLeft = 0;
         lastRight = 0;
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var rate = Spec.SampleRate;
-        var lfoRate = Params.Advance(Rate, io.Length);
+        var lfoRate = TempoDivisions.Rate((int)Params.Current(Tempo), context.Tempo, Params.Advance(Rate, io.Length));
+        var shape = (LfoShape)(int)Params.Current(LfoType);
         var octaves = Params.Advance(Depth, io.Length) / 100f * MaxSweepOctaves;
         var center = Params.Advance(Center, io.Length);
         var stages = StageCounts[(int)Params.Current(Stages)];
@@ -99,8 +106,8 @@ public sealed class PhaserBlock : DspBlock {
         var nyquistGuard = (float)(rate * 0.45);
 
         for (var i = 0; i < io.Length; i++) {
-            var fl = Math.Min(nyquistGuard, center * MathF.Pow(2f, octaves * lfo.Value(LfoShape.Sine)));
-            var fr = Math.Min(nyquistGuard, center * MathF.Pow(2f, octaves * lfo.Value(LfoShape.Sine, spread)));
+            var fl = Math.Min(nyquistGuard, center * MathF.Pow(2f, octaves * lfo.Value(shape)));
+            var fr = Math.Min(nyquistGuard, center * MathF.Pow(2f, octaves * lfo.Value(shape, spread)));
             lfo.Advance(lfoRate, rate);
             currentMix += mixStep;
 
@@ -115,9 +122,6 @@ public sealed class PhaserBlock : DspBlock {
         Flush(stateLeft);
         Flush(stateRight);
         this.mix = mix;
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 }

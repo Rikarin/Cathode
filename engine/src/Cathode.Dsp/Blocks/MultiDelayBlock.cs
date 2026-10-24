@@ -55,6 +55,9 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
     public const int HighCut = 29;
     public const int Mix = 30;
     public const int Level = 31;
+    public const int Balance = 32;
+    public const int InputGain = 33;
+    public const int InputSelect = 34;
 
     public const int QuadTap = 0;
     public const int TenTap = 1;
@@ -78,9 +81,6 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
     /// <summary>Plex line lengths as fractions of Time.</summary>
     public static readonly float[] PlexRatios = [1f, 0.887f, 0.743f, 0.613f];
 
-    /// <summary>Tempo divisions in beats (quarter notes), as in <see cref="DelayBlock" />.</summary>
-    static readonly float[] Divisions = [0f, 4f, 2f, 1f, 1.5f, 2f / 3f, 0.5f, 0.75f, 1f / 3f, 0.25f];
-
     /// <summary>Plex loop allpass lengths in ms; subtracted from the line lengths so each loop is exactly its ratio of Time.</summary>
     static readonly float[] PlexAllpassMs = [3.7f, 5.3f, 7.9f, 10.1f];
 
@@ -98,7 +98,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
     int activeType = -1;
     float delaySamples;
     float mix;
-    float outputGain = 1f;
+    OutputStage output;
 
     // Per-callback settings read by the per-sample ticks.
     float feedback;
@@ -131,11 +131,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
         [
             ParamDescriptor.Choice("type", "Type", ["Quad Tap", "Ten Tap", "Plex", "Ducking", "Reverse", "Sweep"]),
             new("time", "Time", ParamKind.Float, 1f, MaxTimeMs, 400f, "ms", ParamTaper.Log, ParamSmoothing.Linear, 60f),
-            ParamDescriptor.Choice(
-                "tempo",
-                "Tempo",
-                ["Off", "1/1", "1/2", "1/4", "1/4.", "1/4T", "1/8", "1/8.", "1/8T", "1/16"]
-            ),
+            ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
             ParamDescriptor.Float("feedback", "Feedback", 0f, 100f, 20f, "%"),
             ParamDescriptor.Float("tap1Time", "Tap 1 Time", 0f, 100f, 25f, "%"),
             ParamDescriptor.Float("tap2Time", "Tap 2 Time", 0f, 100f, 50f, "%"),
@@ -164,7 +160,10 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("lowCut", "Low Cut", LowCutOff, 2_000f, LowCutOff, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("highCut", "High Cut", 500f, HighCutOff, HighCutOff, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 25f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
+            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions)
         ],
         maxInstances: 2
     );
@@ -175,8 +174,8 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
     static float OnePole(float ms, float sampleRate) => MathF.Exp(-1f / (ms * 0.001f * sampleRate));
 
     float TargetDelaySamples(float timeMs, double tempo) {
-        var division = Divisions[(int)Params.Current(Tempo)];
-        var ms = division > 0 && tempo > 0 ? Math.Min(MaxTimeMs, (float)(60_000.0 / tempo * division)) : timeMs;
+        var division = TempoDivisions.Milliseconds((int)Params.Current(Tempo), tempo);
+        var ms = division > 0 ? Math.Min(MaxTimeMs, (float)division) : timeMs;
         return (float)(ms * 0.001 * Spec.SampleRate);
     }
 
@@ -197,7 +196,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
         ComputeTapTargets(activeType, delaySamples);
         Array.Copy(tapTarget, tapDelay, TenTaps);
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void Dispose(bool disposing) {
@@ -260,6 +259,8 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
             tapStep[k] = (tapTarget[k] - tapDelay[k]) / io.Length;
         }
 
+        var inputGain = Params.Advance(InputGain, io.Length) / 100f;
+        var select = (int)Params.Current(InputSelect);
         var mixStep = (mix - this.mix) / io.Length;
         var delay = delaySamples;
         var currentMix = this.mix;
@@ -272,7 +273,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
             currentMix += mixStep;
             var dryLeft = io.Left[n];
             var dryRight = io.Right[n];
-            var mono = 0.5f * (dryLeft + dryRight);
+            var mono = Stereo.Select(select, dryLeft, dryRight) * inputGain;
 
             if (type == Sweep) {
                 // Coefficients move on a fixed internal hop, so the output does not depend on the host block size.
@@ -290,8 +291,8 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                 TenTap => TickTaps(mono, delay, TenTaps),
                 Plex => TickPlex(mono),
                 Ducking => TickDucking(mono, delay),
-                Reverse => TickReverse(dryLeft, dryRight, delay),
-                _ => TickSweep(dryLeft, dryRight, delay)
+                Reverse => TickReverse(dryLeft * inputGain, dryRight * inputGain, delay),
+                _ => TickSweep(dryLeft * inputGain, dryRight * inputGain, delay)
             };
 
             io.Left[n] = dryLeft * (1f - currentMix) + wetLeft * currentMix;
@@ -303,10 +304,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
         this.mix = mix;
         FlushDenormals();
 
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 
     void ClearState() {

@@ -41,6 +41,9 @@ public readonly record struct SvfCoefficients(double A1, double A2, double A3, d
             case BiquadType.Notch:
                 (m0, m1, m2) = (1, -k, 0);
                 break;
+            case BiquadType.AllPass:
+                (m0, m1, m2) = (1, -2 * k, 0);
+                break;
             case BiquadType.Peak:
                 k = 1.0 / (q * a);
                 (m0, m1, m2) = (1, k * (a * a - 1), 0);

@@ -19,6 +19,7 @@ public sealed class FormantBlock() : DspBlock(Info) {
     public const int Shift = 5;
     public const int Mix = 6;
     public const int Level = 7;
+    public const int Balance = 8;
 
     public const int Formants = 3;
 
@@ -40,7 +41,7 @@ public sealed class FormantBlock() : DspBlock(Info) {
     readonly SvfState[] right = new SvfState[Formants];
     readonly SvfCoefficients[] coefficients = new SvfCoefficients[Formants];
     float mix = 1f;
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "formant",
@@ -54,7 +55,8 @@ public sealed class FormantBlock() : DspBlock(Info) {
             ParamDescriptor.Float("resonance", "Resonance", 1f, 30f, 8f, "Q", ParamTaper.Log),
             ParamDescriptor.Float("shift", "Shift", -12f, 12f, 0f, "st"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 2
     );
@@ -90,7 +92,7 @@ public sealed class FormantBlock() : DspBlock(Info) {
         Array.Clear(left);
         Array.Clear(right);
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -122,9 +124,6 @@ public sealed class FormantBlock() : DspBlock(Info) {
 
         this.mix = mix;
 
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 }

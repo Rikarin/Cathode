@@ -450,7 +450,7 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /** thru, mute, muteIn or muteFxIn; the 'in' modes let delay and reverb tails spill over. */
+    /** thru, mute, muteIn, muteFxIn, muteOut or muteFxOut; the 'in' modes let delay and reverb tails spill over, the 'out' modes keep the block listening while bypassed. */
     put: operations['SetBypassMode'];
     post?: never;
     delete?: never;
@@ -1240,7 +1240,10 @@ export interface components {
       assets: {
         [key: string]: string;
       };
-      /** @description What bypassing does: thru, mute, muteIn or muteFxIn (the last two let tails spill over). */
+      /**
+       * @description What bypassing does: thru, mute, muteIn, muteFxIn, muteOut or muteFxOut (the "in" modes let tails spill over,
+       *     the "out" modes keep the block listening while bypassed).
+       */
       bypassMode: string;
       /**
        * @description The global block this block is linked to, if any: its channels and assets come from the global library and

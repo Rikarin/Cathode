@@ -21,6 +21,10 @@ export const BlockIcons: Readonly<Record<string, string>> = {
       dot(3, 12) +
       dot(3, 18.5)
   ),
+  cthBlockMixer: svg(
+    '<path d="M6 4v16M12 4v16M18 4v16"/><rect x="4" y="13" width="4" height="3" rx="1"/>' +
+      '<rect x="10" y="7" width="4" height="3" rx="1"/><rect x="16" y="10" width="4" height="3" rx="1"/>'
+  ),
   cthBlockShunt: svg('<path d="M5 12h14"/>' + dot(4, 12, 2) + dot(20, 12, 2)),
   cthBlockFxLoop: svg(
     '<path d="M4 12V9a3 3 0 0 1 3-3h11M15 3l3 3-3 3"/><path d="M20 12v3a3 3 0 0 1-3 3H6M9 15l-3 3 3 3"/>'
@@ -138,6 +142,7 @@ export const BlockTypeIcons: Readonly<Record<string, string>> = {
   input: 'cthBlockInput',
   output: 'cthBlockOutput',
   mux: 'cthBlockMux',
+  mixer: 'cthBlockMixer',
   shunt: 'cthBlockShunt',
   fxloop: 'cthBlockFxLoop',
   fbsend: 'cthBlockFeedbackSend',

@@ -901,7 +901,7 @@
         "tags": [
           "Live"
         ],
-        "summary": "thru, mute, muteIn or muteFxIn; the \u0027in\u0027 modes let delay and reverb tails spill over.",
+        "summary": "thru, mute, muteIn, muteFxIn, muteOut or muteFxOut; the \u0027in\u0027 modes let delay and reverb tails spill over, the \u0027out\u0027 modes keep the block listening while bypassed.",
         "operationId": "SetBypassMode",
         "parameters": [
           {
@@ -2893,7 +2893,7 @@
           },
           "bypassMode": {
             "type": "string",
-            "description": "What bypassing does: thru, mute, muteIn or muteFxIn (the last two let tails spill over)."
+            "description": "What bypassing does: thru, mute, muteIn, muteFxIn, muteOut or muteFxOut (the \u0022in\u0022 modes let tails spill over,\nthe \u0022out\u0022 modes keep the block listening while bypassed)."
           },
           "global": {
             "type": [

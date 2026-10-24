@@ -34,6 +34,7 @@ public sealed class RotaryBlock() : DspBlock(Info) {
     public const int Drive = 16;
     public const int Mix = 17;
     public const int Level = 18;
+    public const int Balance = 19;
 
     /// <summary>Peak Doppler path-length change of the horn, in ms (a ~17 cm horn radius).</summary>
     public const float MaxHornExcursionMs = 0.5f;
@@ -68,7 +69,7 @@ public sealed class RotaryBlock() : DspBlock(Info) {
     float mix;
     float hornGain;
     float drumGain;
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "rotary",
@@ -93,7 +94,8 @@ public sealed class RotaryBlock() : DspBlock(Info) {
             ParamDescriptor.Float("drumLevel", "Drum Level", Decibels.SilenceDb, 12f, 0f, "dB"),
             ParamDescriptor.Float("drive", "Drive", 0f, 100f, 0f, "%"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 2
     );
@@ -140,7 +142,7 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         mix = Params.Current(Mix) / 100f;
         hornGain = Decibels.ToGain(Params.Current(HornLevel));
         drumGain = Decibels.ToGain(Params.Current(DrumLevel));
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void Dispose(bool disposing) {
@@ -238,10 +240,7 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         this.hornGain = hornGain;
         this.drumGain = drumGain;
         this.mix = mix;
-        var outputGain = Decibels.ToGain(Params.Advance(Level, n));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
     }
 
     /// <summary>Fourth-order Linkwitz–Riley split: two cascaded Butterworth sections per side.</summary>

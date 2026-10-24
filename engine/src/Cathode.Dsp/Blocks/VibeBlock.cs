@@ -19,6 +19,7 @@ public sealed class VibeBlock() : DspBlock(Info) {
     public const int Mix = 3;
     public const int Spread = 4;
     public const int Level = 5;
+    public const int Balance = 6;
 
     public const int StageCount = 4;
 
@@ -43,7 +44,7 @@ public sealed class VibeBlock() : DspBlock(Info) {
     float lightLeft;
     float lightRight;
     float mix;
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "vibe",
@@ -55,7 +56,8 @@ public sealed class VibeBlock() : DspBlock(Info) {
             ParamDescriptor.Float("intensity", "Intensity", 0f, 100f, 75f, "%"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 50f, "%"),
             ParamDescriptor.Float("spread", "Spread", 0f, 180f, 0f, "°"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 2
     );
@@ -104,7 +106,7 @@ public sealed class VibeBlock() : DspBlock(Info) {
         lightLeft = MeanLight;
         lightRight = MeanLight;
         mix = TargetMix();
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -141,10 +143,7 @@ public sealed class VibeBlock() : DspBlock(Info) {
         Flush(stateLeft);
         Flush(stateRight);
         this.mix = mix;
-        var outputGain = Decibels.ToGain(Params.Advance(Level, n));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
     }
 
     /// <summary>Vibrato is the chain alone; chorus blends it with the dry signal.</summary>

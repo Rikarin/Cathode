@@ -16,6 +16,7 @@ public sealed class FxLoopBlock() : DspBlock(Info) {
     public const int Mix = 2;
     public const int Latency = 3;
     public const int Level = 4;
+    public const int Balance = 5;
 
     /// <summary>Longest round trip the dry delay covers.</summary>
     public const float MaxLatencyMs = 100f;
@@ -24,7 +25,8 @@ public sealed class FxLoopBlock() : DspBlock(Info) {
     NativeBuffer delayRight = NativeBuffer.Empty;
     int delayPosition;
     int latency;
-    float returnGain = 1f, mix = 1f, outputGain = 1f;
+    float returnGain = 1f, mix = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "fxloop",
@@ -35,7 +37,8 @@ public sealed class FxLoopBlock() : DspBlock(Info) {
             ParamDescriptor.Float("return", "Return Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
             ParamDescriptor.Float("latency", "Loop Latency", 0f, MaxLatencyMs, 0f, "ms"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 2
     );
@@ -59,7 +62,7 @@ public sealed class FxLoopBlock() : DspBlock(Info) {
         delayPosition = 0;
         returnGain = Decibels.ToGain(Params.Current(Return));
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -100,10 +103,7 @@ public sealed class FxLoopBlock() : DspBlock(Info) {
 
         this.returnGain = returnGain;
         this.mix = mix;
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 
     protected override void Dispose(bool disposing) {

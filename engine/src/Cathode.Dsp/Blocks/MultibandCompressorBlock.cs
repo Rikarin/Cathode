@@ -18,6 +18,7 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
     public const int Knee = 17;
     public const int Mix = 18;
     public const int Level = 19;
+    public const int Balance = 20;
 
     const int ParamsPerBand = 5;
     const int SubBlock = 32;
@@ -31,7 +32,7 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
     Channel left;
     Channel right;
     float mix = 1f;
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "mbcomp",
@@ -71,7 +72,8 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
                 ),
             ParamDescriptor.Float("knee", "Knee", 0f, 24f, 6f, "dB"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 2
     );
@@ -101,7 +103,7 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
         }
 
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -169,10 +171,7 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
 
         this.mix = mix;
 
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 
     /// <summary>One channel of the three-way split.</summary>

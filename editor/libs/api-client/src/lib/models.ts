@@ -55,7 +55,7 @@ export const ModifierSources = [
 
 export const ModifierCurves = ['linear', 'exp', 'log', 'scurve'] as const;
 
-export const BypassModes = ['thru', 'mute', 'muteIn', 'muteFxIn'] as const;
+export const BypassModes = ['thru', 'mute', 'muteIn', 'muteFxIn', 'muteOut', 'muteFxOut'] as const;
 
 /** Actions MIDI mappings and footswitches can trigger (GlobalValidation on the Server). */
 export const MidiActions = [

@@ -43,18 +43,25 @@ public sealed class FeedbackSendBlock() : DspBlock(Info) {
 /// </summary>
 public sealed class FeedbackReturnBlock() : DspBlock(Info) {
     public const int Level = 0;
+    public const int OutputLevel = 1;
+    public const int Balance = 2;
 
     const float Limit = 8f;
 
     NativeBuffer returnLeft = NativeBuffer.Empty;
     NativeBuffer returnRight = NativeBuffer.Empty;
     float gain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "fbreturn",
         "Feedback Return",
         "Routing",
-        [ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 6f, 0f, "dB")],
+        [
+            ParamDescriptor.Float("level", "Return Level", Decibels.SilenceDb, 6f, 0f, "dB"),
+            ParamDescriptor.Float("outputLevel", "Output Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+        ],
         maxInstances: 1,
         channels: 1
     );
@@ -72,6 +79,7 @@ public sealed class FeedbackReturnBlock() : DspBlock(Info) {
     protected override void OnReset() {
         Bus?.Reset();
         gain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(OutputLevel), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -90,6 +98,7 @@ public sealed class FeedbackReturnBlock() : DspBlock(Info) {
         }
 
         this.gain = gain;
+        output.Apply(io, Params.Advance(OutputLevel, io.Length), Params.Advance(Balance, io.Length));
     }
 
     protected override void Dispose(bool disposing) {

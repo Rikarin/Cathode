@@ -126,6 +126,8 @@ public class CathodeEngineTests {
     [InlineData("mute", 0.0, 0.0)]
     [InlineData("muteFxIn", 1.0, 0.05)]
     [InlineData("muteIn", 0.0, 0.05)]
+    [InlineData("muteOut", 0.0, 0.0)]
+    [InlineData("muteFxOut", 1.0, 0.0)]
     public void Bypass_modes_decide_what_passes_and_whether_tails_continue(string mode, double dry, double tail) {
         var engine = new CathodeEngine(Spec);
         var definition = DelayGraph();
