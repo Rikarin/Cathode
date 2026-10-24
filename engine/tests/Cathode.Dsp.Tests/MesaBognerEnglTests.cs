@@ -1,8 +1,76 @@
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Tests.Circuits;
 using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
+
+/// <summary>
+///     The second high-gain stream's front ends against the reference MNA simulator as whole chains: the first four
+///     preamp stages joined in one circuit with no Thévenin cut (see the high-gain chains for what such limits record).
+/// </summary>
+/// <remarks>
+///     Measured, with a few dB of margin: these cascades already clip at 2 mV, so even the small-signal rows test the
+///     cuts under grid current. The Savage's four network stages agree to -87 dB at 2 mV; driven hard, its V2B (330k
+///     plate, unbypassed 3.3k) into V3B's grid current is the cuts' known weak spot (-8 dB), as the Rect-o-Verb's cold
+///     clipper with a plate bypass cap is (-13 dB).
+/// </remarks>
+public partial class AmpStageTests {
+    public static TheoryData<string, double, double> MesaEnglChains => new() {
+        { "Mark V", 0.002, -16 },
+        { "Mark V", 0.05, -16 },
+        { "Rect-o-Verb", 0.002, -15 },
+        { "Rect-o-Verb", 0.05, -9 },
+        { "Powerball", 0.0005, -25 },
+        { "Powerball", 0.05, -10 },
+        { "Savage 120", 0.002, -80 },
+        { "Savage 120", 0.05, -5 }
+    };
+
+    [Theory]
+    [MemberData(nameof(MesaEnglChains))]
+    public void Mesa_and_Engl_chains_match_the_reference(string type, double amplitude, double limitDb) {
+        var designs = AmpDesign.All.Single(a => a.Name == type).Preamp.Take(4).ToArray();
+        var controls = new AmpControls(0.5, 0.5, 0.5, 0.5, 1, false);
+
+        var stages = designs.Select(static d => d.Create(Rate)).ToArray();
+        var (rest, resistance) = (0.0, 0.0);
+        foreach (var stage in stages) {
+            stage.Update(controls);
+            stage.SetSourceResistance(resistance);
+            stage.Reset(rest);
+            (rest, resistance) = (stage.RestOutput, stage.OutputResistance);
+        }
+
+        var circuit = new ReferenceCircuit();
+        var node = circuit.Node();
+        circuit.Source(node, 0, t => Drive(amplitude, t));
+        foreach (var d in designs) {
+            var network = d switch {
+                TriodeStageDesign triode => triode.ToNetwork(),
+                NetworkStageDesign net => net,
+                _ => throw new InvalidOperationException(d.Name)
+            };
+            node = AmpReferences.Append(circuit, network, controls, PreampSettings.Stock, node);
+        }
+
+        var errorDb = CompareInTime(
+            $"{type} {string.Join(" > ", designs.Select(static d => d.Name))}",
+            x => {
+                foreach (var stage in stages) {
+                    x = stage.Tick(x);
+                }
+
+                return x;
+            },
+            stages[^1].Newton,
+            circuit,
+            node,
+            amplitude
+        );
+        Assert.True(errorDb < limitDb, $"{type}: {errorDb:0.0} dB from the reference");
+    }
+}
 
 /// <summary>
 ///     The Mesa, Bogner, Diezel and Engl models (the second high-gain stream) on the Circuit Amp block: their panels,
@@ -83,6 +151,36 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         Assert.Equal("Presence", Label("control2", "Lone Star"));
         Assert.Equal("Thick", Label("bright", "Lone Star"));
         Assert.Empty(Label("presence", "Lone Star")!);
+        Assert.Equal(["IIC+ Mode", "Mark IV Mode", "Bright"], new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "Mark V")));
+        Assert.Equal("Output", Label("master", "Mark V"));
+        Assert.Equal("80", Label("eq1", "Mark V"));
+        Assert.Equal("Presence", Label("control2", "Rect-o-Verb"));
+        Assert.Equal(["Modern", "Tube Rectifier", "Spongy"], new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "Triple Rectifier")));
+        Assert.Equal(["Focused", "Hi Lead"], new[] { "switch1", "switch2" }.Select(id => Label(id, "Powerball")));
+        Assert.Equal("Mid Open", Label("middle", "Powerball"));
+        Assert.Equal("Mid Focused", Label("control1", "Powerball"));
+        Assert.Equal(["Contour", "Lead Boost"], new[] { "switch1", "switch2" }.Select(id => Label(id, "Savage 120")));
+        Assert.Equal("Lead", Label("control1", "Savage 120"));
+        Assert.Equal(6, AmpDesign.All.Single(a => a.Name == "Triple Rectifier").Power.TubesPerSide * 2);
+    }
+
+    /// <summary>The Lone Star's rectifier switch puts a 5U4G in place of silicon: B+ sags further under drive.</summary>
+    [Fact]
+    public void Lone_Star_tube_rectifier_lowers_the_supply() {
+        double Supply(bool tube) {
+            using var block = Create(
+                "Lone Star",
+                (CircuitAmpBlock.Gain, 8f),
+                (CircuitAmpBlock.Master, 10f),
+                (CircuitAmpBlock.Switch3, tube ? 1f : 0f)
+            );
+            BlockRender.Mono(block, Signals.Sine(110, Rate, 24_000, 0.5f), 64);
+            return block.Channel.Power.Supply;
+        }
+
+        var (silicon, tube) = (Supply(false), Supply(true));
+        output.WriteLine($"B+ under drive: silicon {silicon:0.0} V, 5U4G {tube:0.0} V");
+        Assert.True(tube < silicon - 10);
     }
 
     /// <summary>Every knob swept end to end in each channel while a loud chord plays: finite, bounded, Newton converging.</summary>
