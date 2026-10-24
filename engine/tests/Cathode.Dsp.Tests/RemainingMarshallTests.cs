@@ -29,7 +29,12 @@ public partial class AmpStageTests {
             { "DSL100", 2, 0.002, -30 },
             { "DSL100", 1, 0.001, -30 },
             { "DSL100", 3, 0.0005, -30 },
-            { "DSL100", 7, 0.0005, -30 }
+            { "DSL100", 7, 0.0005, -30 },
+            { "JMP-1", 0, 0.005, -30 },
+            { "JMP-1", 2, 0.002, -30 },
+            { "JMP-1", 4, 0.005, -30 },
+            { "JMP-1", 1, 0.0001, -20 },
+            { "JMP-1", 3, 0.0001, -20 }
         };
 
     /// <summary>The stages <paramref name="controls" /> play, nested channel switches resolved.</summary>
@@ -112,7 +117,8 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
     static readonly (string Type, int[] Settings)[] Models = [
         ("JVM410H OD", [0, 2, 4, 1, 3, 5]),
         ("JVM410H Clean/Crunch", [0, 2, 4, 1, 3, 5]),
-        ("DSL100", [0, 2, 1, 3, 4])
+        ("DSL100", [0, 2, 1, 3, 4]),
+        ("JMP-1", [0, 2, 1, 3, 4])
     ];
 
     public static TheoryData<string, int> Settings {
@@ -154,6 +160,84 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
         Assert.Equal("Volume", Label("master", "DSL100"));
         Assert.Equal("Deep", Label("depth", "DSL100"));
         Assert.Empty(Label("control1", "DSL100"));
+
+        Assert.Equal(
+            ["OD", "Clean II / OD II", "Bass Shift"],
+            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "JMP-1"))
+        );
+        Assert.Equal(["Output", "Presence"], new[] { "control1", "control2" }.Select(id => Label(id, "JMP-1")));
+        Assert.Empty(Label("presence", "JMP-1"));
+        Assert.Empty(Label("depth", "JMP-1"));
+    }
+
+    /// <summary>
+    ///     The JMP-1's switches: OD has more gain than Clean, Clean II than Clean I, OD II's voicing moves the level, and
+    ///     Bass Shift moves the low end on both channels (110 Hz against 1 kHz).
+    /// </summary>
+    [Fact]
+    public void Jmp1_switches_change_the_gain_and_the_bass() {
+        double Level(float hz, params (int, float)[] switches) {
+            using var block = Create("JMP-1", [(CircuitAmpBlock.Gain, 5f), (CircuitAmpBlock.Master, 5f), ..switches]);
+            var rendered = BlockRender.Mono(block, Signals.Sine(hz, Rate, 24_000, 0.0005f), 64);
+            return Analysis.ToDb(Analysis.MagnitudeAt(rendered.AsSpan(12_000).ToArray(), hz, Rate));
+        }
+
+        var clean = Level(1_000);
+        var cleanTwo = Level(1_000, (CircuitAmpBlock.Switch2, 1f));
+        var od = Level(1_000, (CircuitAmpBlock.Switch1, 1f));
+        var odTwo = Level(1_000, (CircuitAmpBlock.Switch1, 1f), (CircuitAmpBlock.Switch2, 1f));
+        output.WriteLine($"clean I {clean:0.0}, clean II {cleanTwo:0.0}, OD I {od:0.0}, OD II {odTwo:0.0} dB");
+        Assert.True(cleanTwo > clean + 3);
+        Assert.True(od > clean + 10);
+        Assert.True(Math.Abs(odTwo - od) > 1);
+
+        foreach (var channel in new[] { 0f, 1f }) {
+            var tilt = Level(110, (CircuitAmpBlock.Switch1, channel)) - Level(1_000, (CircuitAmpBlock.Switch1, channel));
+            var shifted = Level(110, (CircuitAmpBlock.Switch1, channel), (CircuitAmpBlock.Switch3, 1f))
+                - Level(1_000, (CircuitAmpBlock.Switch1, channel), (CircuitAmpBlock.Switch3, 1f));
+            output.WriteLine($"channel {channel}: 110 Hz against 1 kHz {tilt:0.0} dB, with Bass Shift {shifted:0.0} dB");
+            Assert.True(Math.Abs(shifted - tilt) > 1);
+        }
+    }
+
+    /// <summary>
+    ///     The JMP-1's active tone circuit is flat with every band at the centre (the bands' boost and cut currents
+    ///     cancel), and each band boosts its own region: Bass at 100 Hz, Middle at 700 Hz, Treble and Presence above.
+    /// </summary>
+    [Fact]
+    public void Jmp1_active_tone_is_flat_at_the_centre_and_each_band_boosts_its_region() {
+        var design = AmpDesign.All.Single(a => a.Name == "JMP-1");
+        var tone = (NetworkStageDesign)design.Preamp.Single(d => d.Name == "Active tone");
+
+        double Gain(double hz, AmpControls controls) {
+            var stage = tone.Create(96_000);
+            stage.Update(controls);
+            stage.SetSourceResistance(0);
+            stage.Reset(0);
+            var input = Signals.Sine(hz, 96_000, 38_400, 0.01f);
+            var rendered = input.Select(x => (float)(stage.Tick(x) - stage.RestOutput)).ToArray();
+            return Analysis.ToDb(
+                Analysis.MagnitudeAt(rendered.AsSpan(19_200).ToArray(), hz, 96_000)
+                / Analysis.MagnitudeAt(input.AsSpan(19_200).ToArray(), hz, 96_000)
+            );
+        }
+
+        var centre = new AmpControls(0.5, 0.5, 0.5, 0.5, 0.5, false, Control2: 0.5);
+        foreach (var hz in new[] { 100.0, 700, 3_000, 8_000 }) {
+            var flat = Gain(hz, centre);
+            output.WriteLine($"{hz} Hz at the centre: {flat:+0.0;-0.0} dB");
+            Assert.True(Math.Abs(flat) < 1);
+        }
+
+        (double Hz, AmpControls Up)[] bands = [
+            (100, centre with { Bass = 1 }), (700, centre with { Middle = 1 }), (8_000, centre with { Treble = 1 }),
+            (3_000, centre with { Control2 = 1 })
+        ];
+        foreach (var (hz, up) in bands) {
+            var boost = Gain(hz, up) - Gain(hz, centre);
+            output.WriteLine($"{hz} Hz boost: {boost:+0.0;-0.0} dB");
+            Assert.True(boost > 3);
+        }
     }
 
     /// <summary>

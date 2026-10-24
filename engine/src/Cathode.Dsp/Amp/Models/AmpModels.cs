@@ -91,6 +91,7 @@ public sealed partial record AmpDesign {
         Bassman135.Design,
         GibsonScout.Design,
         JVM410H.CleanCrunch,
-        Dsl100.Design
+        Dsl100.Design,
+        Jmp1.Design
     ];
 }
