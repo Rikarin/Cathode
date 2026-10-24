@@ -110,13 +110,20 @@ public sealed record SpeakerDesign(
 /// <param name="PresenceCap">The presence cap.</param>
 /// <param name="DepthFrequency">Below it, the depth control lowers the feedback.</param>
 /// <param name="TapGain">The tap's voltage relative to an 8 Ω secondary (√2 for a 16 Ω tap).</param>
+/// <param name="LowFeedback">
+///     The network's own feedback below the depth frequency, as a fraction of the mid band's, with the depth control at
+///     0: a cap across part of the feedback resistor (the Friedman BE-100's 220k with 4.7 nF, in series with 47k) is a
+///     fixed low shelf with its pole at <paramref name="DepthFrequency" /> and its zero at this fraction of it; 1 for a
+///     plain resistor. The depth control lowers it further.
+/// </param>
 public sealed record FeedbackDesign(
     double TapGain,
     double FeedbackResistor,
     double ShuntResistor,
     Pot Presence,
     double PresenceCap,
-    double DepthFrequency = 90
+    double DepthFrequency = 90,
+    double LowFeedback = 1
 ) {
     /// <summary>The feedback fraction at mid frequencies, with presence off.</summary>
     public double Beta => ShuntResistor / (FeedbackResistor + ShuntResistor);
