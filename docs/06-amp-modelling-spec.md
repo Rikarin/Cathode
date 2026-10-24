@@ -425,10 +425,12 @@ none of the drawings give):
   cost; at higher drive the reference simulator itself fails to converge on the LED strings). Knob sweeps at full drive
   converge, every panel control moves the sound, gain and master are monotonic (`BritishAmpTests`).
 - **CPU** (48 kHz, guitar / loud noise, `Gain` 7, `Master` 6, measured beside other streams on a loaded machine where
-  Plexi read 8.9–11.0 / 14.9–21.3 %): BE-100 15.9 / 25.3, BE-100 HBE 16.6 / 26.7 (high-gain budget); 18 W 10.0 / 13.5,
-  Tremolo channel 16.5 / 25.4; Hiwatt DR103 12.8 / 31.7; Silver Jubilee 24–31 / 39–56. The Jubilee is over budget: its
-  V1B circuit (a triode and two clippers in the relay's feedback loop) takes about 6.5 Newton iterations a sample on
-  noise. The Hiwatt is over on noise (the 0.25 feedback fraction and the two-triode input).
+  Plexi read 8.6–11.0 / 14.4–21.3 %): BE-100 15.9 / 25.3, BE-100 HBE 16.6 / 26.7 (high-gain budget); 18 W 10.0 / 13.5,
+  Tremolo channel 16.5 / 25.4; Hiwatt DR103 12.5 / 30.8; Silver Jubilee 17.1 / 35.3 (Boost 17.9 / 32.0). The Jubilee is
+  over its crunch budget: its V1B circuit (a triode and two clippers in the relay's feedback loop) takes many Newton
+  iterations on noise. Its LED strings are three and two fitted junctions (3.0 V and 2.0 V): five and four silicon
+  junctions fit the parts better but left Newton unconverged on a few dozen samples at full drive. The Hiwatt is over
+  on noise (the 0.25 feedback fraction and the two-triode input).
 - **References**: none of the four amps has a GPL direct-out capture; the JCM900 captures stay on the Plexi stand-in.
 
 ### 3.3 Vox and class-A boutique

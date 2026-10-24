@@ -34,8 +34,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         Not on the drawings (guesses): the rails (B+ 496 V at the plates, as AmpBooks gives; 450 V at the inverter
 ///         and, through the 22k and 10k droppers, 320 V at V2A and 285 V at V1, V2B and V3), the EL34s' 30 mA, the
-///         output transformer's 1.7k plate to plate, the supply's caps and choke. The 47 nF across V2B's 1k5 is drawn
-///         dashed (fitted on some) and left out.
+///         output transformer's 1.7k plate to plate, the supply's reservoir and choke. The supply's preamp node is the
+///         drawing's far one: both droppers (32k) and its 16 µF. The 47 nF across V2B's 1k5 is drawn dashed (fitted on
+///         some) and left out.
 ///     </para>
 /// </remarks>
 public static class HiwattDR103 {
@@ -67,7 +68,7 @@ public static class HiwattDR103 {
             HasFeedback: true,
             Transformer: new(1.7e3),
             Speaker: SpeakerDesign.Closed4x12,
-            PowerSupply: new(25, 100e-6, 100, 50e-6, 22e3, 32e-6, 6e-3),
+            PowerSupply: new(25, 100e-6, 100, 50e-6, 32e3, 16e-6, 6e-3),
             InverterInput: null
         ),
         -6

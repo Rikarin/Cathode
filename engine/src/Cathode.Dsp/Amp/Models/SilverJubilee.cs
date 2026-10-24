@@ -23,9 +23,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///         about 220k over the 100k and the Gain pot's source), the 220k from V1B's coupling cap parallels the 47k, and
 ///         10k + 100k from L carry T to V2A's grid beside the Lead Master: the rhythm sound. "Pull Rhythm Clip" (on the
 ///         Input Gain) joins L to the 1N4007 pair, which sits on V2A's grid through 47k and 2.2 nF and then clamps T
-///         directly. The LED strings (an LED and two 1N4007 one way, an LED and one 1N4007 the other) are five and four
-///         small-signal junctions here: about 2.9 V and 2.3 V at 1 mA against 3.0 and 2.4 V for the parts (LED colour
-///         not stated). C21 reads "1n" at the scan's resolution (1 µF would short the signal).
+///         directly. The LED strings (an LED and two 1N4007 one way, an LED and one 1N4007 the other) are three and two
+///         fitted junctions here (1.0 V at 1 mA each, n = 1.9, the strings' slope): 3.0 V and 2.0 V against about 3.0
+///         and 2.4 V for the parts (LED colour not stated). Five and four silicon junctions fit both thresholds but left
+///         Newton unconverged on a few dozen samples at full drive in the rhythm setting. C21 reads "1n" at the scan's resolution (1 µF would short the signal).
 ///     </para>
 ///     <para>
 ///         The tone network, from V2B's plate: 0.1 µF to the back gang of the tandem 1M log Bass pot (100k to ground at
@@ -54,6 +55,9 @@ public static class SilverJubilee {
     const double Closed = 10;
     const double Open = 1e12;
     const double PreampSupply = 300;
+
+    /// <summary>One third of an LED and two 1N4007: 1.0 V at 1 mA, n = 1.9 (see the remarks).</summary>
+    static readonly DiodeModel LedString = new(1e-3 * Math.Exp(-1.0 / (1.9 * 0.02585)), 1.9);
 
     public static AmpDesign Design { get; } = new(
         "Silver Jubilee",
@@ -145,7 +149,7 @@ public static class SilverJubilee {
         net.SwitchedResistor(relay, StageNetlist.Ground, Open, Closed, SwitchRole.Switch1);
         net.SwitchedResistor(relay, clip, Closed, Open, SwitchRole.Switch1);
 
-        net.Diodes(clip, StageNetlist.Ground, DiodeModel.Silicon, 5, 4);
+        net.Diodes(clip, StageNetlist.Ground, LedString, 3, 2);
         net.Capacitor(clip, StageNetlist.Ground, 1e-9);
         var lead = net.Pot(clip, StageNetlist.Ground, new(220e3, PotTaper.Linear), PotRole.Control1);
         net.Resistor(lead, v2Grid, 47e3);
