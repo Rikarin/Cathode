@@ -10,31 +10,7 @@ public static partial class DriveCircuits {
     ///     was guessed.
     /// </summary>
     static DriveCircuit[] Round4Overdrives() => [
-        new(
-            "Full OD",
-            "Fulltone Full-Drive 2 (Flat-Mids): JRC4558 with silicon diodes across its feedback, a lower bass corner than "
-            + "a TS, passive treble cut"
-        ) {
-            Stages = [
-                new(StageKind.OpAmp) {
-                    InputBias = 510e3,
-                    GroundResistance = 2.2e3,
-                    GroundCapacitance = 220e-9,
-                    Feedback = 47e3,
-                    FeedbackPot = 500e3,
-                    FeedbackCapacitance = 47e-12,
-                    Diodes = DiodeStacks.Pair(Si)
-                }
-            ],
-            Tone = new(ToneKind.HighCut) {
-                Source = 1e3,
-                Resistor1 = 1e3,
-                Pot = 25e3,
-                AudioTaper = true,
-                Capacitor1 = 10e-9
-            },
-            OutputDb = -6
-        },
+        FullDrive(),
         new(
             "OD-One Overdrive",
             "Boss OD-1: op-amp with asymmetric 1 + 2 silicon diodes across its feedback, fixed output low-pass (no tone "
@@ -102,31 +78,7 @@ public static partial class DriveCircuits {
             Tone = ScreamerTone with { Load = 100e3 },
             OutputDb = -6.5
         },
-        new(
-            "Eternal Love",
-            "Lovepedal Eternity: TS-style gain stage with a fuller bass corner into silicon diodes to ground, passive "
-            + "treble cut (Glass)"
-        ) {
-            Stages = [
-                new(StageKind.OpAmp) {
-                    InputBias = 510e3,
-                    GroundResistance = 4.7e3,
-                    GroundCapacitance = 100e-9,
-                    Feedback = 51e3,
-                    FeedbackPot = 500e3,
-                    FeedbackCapacitance = 51e-12
-                },
-                new(StageKind.Clipper) { Series = 4.7e3, Shunt = 10e-9, Diodes = DiodeStacks.Pair(Si) }
-            ],
-            Tone = new(ToneKind.HighCut) {
-                Source = 1e3,
-                Resistor1 = 1e3,
-                Pot = 25e3,
-                AudioTaper = true,
-                Capacitor1 = 10e-9
-            },
-            OutputDb = -7.4
-        },
+        Eternity(),
         new(
             "Jam Ray",
             "Vemuram Jan Ray: Timmy-style op-amp stage with silicon diodes across its feedback, full bass, active treble "
@@ -148,10 +100,12 @@ public static partial class DriveCircuits {
         },
         new(
             "Horizon Precision Drive",
-            "Horizon Devices Precision Drive: tight pre-cut (Attack at noon), high-gain TL072 into its rails, silicon "
-            + "diodes to ground, passive treble cut in place of the Bright switch"
+            "Horizon Devices Precision Drive: tight pre-cut (the Attack knob), high-gain TL072 into its rails, silicon "
+            + "diodes to ground, passive treble cut in place of the Bright switch, noise gate"
         ) {
-            InputHighPassHz = 160,
+            InputHighPassHz = 160, // Attack at noon
+            AttackKnob = true,
+            Gate = true,
             Stages = [
                 new(StageKind.OpAmp) {
                     Amplifier = OpAmpModel.TL072,
@@ -172,38 +126,7 @@ public static partial class DriveCircuits {
             },
             OutputDb = -8
         },
-        new(
-            "Tone of Kings",
-            "Analog Man King of Tone (OD mode): a Bluesbreaker-style op-amp stage with silicon diodes across its feedback "
-            + "into a second, low-gain diode-feedback stage, passive treble cut"
-        ) {
-            Stages = [
-                new(StageKind.OpAmp) {
-                    Amplifier = OpAmpModel.TL072,
-                    GroundResistance = 6.8e3,
-                    GroundCapacitance = 1e-6,
-                    Feedback = 10e3,
-                    FeedbackPot = 100e3,
-                    FeedbackCapacitance = 1e-9,
-                    Diodes = DiodeStacks.Pair(Si)
-                },
-                new(StageKind.Gain) {
-                    GroundResistance = 4.7e3,
-                    GroundCapacitance = 220e-9,
-                    Feedback = 10e3,
-                    FeedbackCapacitance = 1e-9,
-                    Diodes = DiodeStacks.Pair(Si)
-                }
-            ],
-            Tone = new(ToneKind.HighCut) {
-                Source = 1e3,
-                Resistor1 = 1e3,
-                Pot = 25e3,
-                AudioTaper = true,
-                Capacitor1 = 10e-9
-            },
-            OutputDb = -4
-        },
+        KingOfTone(),
         new(
             "Hoodoo Drive",
             "Voodoo Lab Overdrive: a TS808-derived clipping amp with more bass into the diodes, TS tone stage"
@@ -221,4 +144,133 @@ public static partial class DriveCircuits {
             OutputDb = -2.8
         }
     ];
+
+    /// <summary>
+    ///     The Full-Drive 2: JRC4558 with silicon diodes across its feedback, passive treble cut. Its three-way switch:
+    ///     Flat-Mids (the circuit as listed: 2.2k + 220 nF to ground, a 330 Hz bass corner), Comp-Cut (two diodes in
+    ///     series each way: less compression, more output) and Vintage (the TS's 4.7k + 47 nF, 720 Hz: the mid hump). The
+    ///     Boost footswitch adds up to 20 dB of clean boost ahead of the clipping amp. The switch positions' values and the
+    ///     boost's range are guessed from Fulltone's descriptions.
+    /// </summary>
+    static DriveCircuit FullDrive() {
+        var stage = new DriveStage(StageKind.OpAmp) {
+            InputBias = 510e3,
+            GroundResistance = 2.2e3,
+            GroundCapacitance = 220e-9,
+            Feedback = 47e3,
+            FeedbackPot = 500e3,
+            FeedbackCapacitance = 47e-12,
+            Diodes = DiodeStacks.Pair(Si)
+        };
+        var flat = new DriveCircuit(
+            "Full OD",
+            "Fulltone Full-Drive 2: JRC4558 with silicon diodes across its feedback, a lower bass corner than a TS "
+            + "(Flat-Mids), passive treble cut; Comp-Cut and Vintage modes, Boost footswitch"
+        ) {
+            Switch = PedalSwitch.FullDriveMode,
+            BoostDb = 20,
+            Stages = [stage],
+            Tone = new(ToneKind.HighCut) {
+                Source = 1e3,
+                Resistor1 = 1e3,
+                Pot = 25e3,
+                AudioTaper = true,
+                Capacitor1 = 10e-9
+            },
+            OutputDb = -6
+        };
+        return flat with {
+            Modes = [
+                flat with { Stages = [stage with { Diodes = DiodeStacks.Pair(Si, 2) }] },
+                flat with { Stages = [stage with { GroundResistance = 4.7e3, GroundCapacitance = 47e-9 }] }
+            ]
+        };
+    }
+
+    /// <summary>
+    ///     The Eternity: a TS-style gain stage with a fuller bass corner into silicon diodes to ground, passive treble cut
+    ///     (Glass). Glow adds a silicon pair across the gain stage's feedback, for the smoother, more compressed voice
+    ///     Lovepedal describes (the Glow network is guessed: no verified schematic of it).
+    /// </summary>
+    static DriveCircuit Eternity() {
+        var stage = new DriveStage(StageKind.OpAmp) {
+            InputBias = 510e3,
+            GroundResistance = 4.7e3,
+            GroundCapacitance = 100e-9,
+            Feedback = 51e3,
+            FeedbackPot = 500e3,
+            FeedbackCapacitance = 51e-12
+        };
+        var clipper = new DriveStage(StageKind.Clipper) { Series = 4.7e3, Shunt = 10e-9, Diodes = DiodeStacks.Pair(Si) };
+        var glass = new DriveCircuit(
+            "Eternal Love",
+            "Lovepedal Eternity: TS-style gain stage with a fuller bass corner into silicon diodes to ground, passive "
+            + "treble cut (Glass); Glow adds diodes across the gain stage's feedback"
+        ) {
+            Switch = PedalSwitch.Glow,
+            Stages = [stage, clipper],
+            Tone = new(ToneKind.HighCut) {
+                Source = 1e3,
+                Resistor1 = 1e3,
+                Pot = 25e3,
+                AudioTaper = true,
+                Capacitor1 = 10e-9
+            },
+            OutputDb = -7.4
+        };
+        return glass with { Modes = [glass with { Stages = [stage with { Diodes = DiodeStacks.Pair(Si) }, clipper] }] };
+    }
+
+    /// <summary>
+    ///     The King of Tone: a Bluesbreaker-style op-amp stage into a second, low-gain diode-feedback stage, passive
+    ///     treble cut. Its mode DIP switches: OD (the first stage's diodes across its feedback, as listed), Distortion
+    ///     (those diodes to ground after it instead, through 1k: harder clipping, more gain) and Boost (no diodes: the
+    ///     op-amps clip on their rails, much louder). The Distortion clipper's resistor and the Boost stage's 4 V swing
+    ///     are guessed.
+    /// </summary>
+    static DriveCircuit KingOfTone() {
+        var first = new DriveStage(StageKind.OpAmp) {
+            Amplifier = OpAmpModel.TL072,
+            GroundResistance = 6.8e3,
+            GroundCapacitance = 1e-6,
+            Feedback = 10e3,
+            FeedbackPot = 100e3,
+            FeedbackCapacitance = 1e-9,
+            Diodes = DiodeStacks.Pair(Si)
+        };
+        var second = new DriveStage(StageKind.Gain) {
+            GroundResistance = 4.7e3,
+            GroundCapacitance = 220e-9,
+            Feedback = 10e3,
+            FeedbackCapacitance = 1e-9,
+            Diodes = DiodeStacks.Pair(Si)
+        };
+        var overdrive = new DriveCircuit(
+            "Tone of Kings",
+            "Analog Man King of Tone: a Bluesbreaker-style op-amp stage with silicon diodes across its feedback (OD; "
+            + "to ground in Distortion, none in Boost) into a second, low-gain diode-feedback stage, passive treble cut"
+        ) {
+            Switch = PedalSwitch.KingMode,
+            Stages = [first, second],
+            Tone = new(ToneKind.HighCut) {
+                Source = 1e3,
+                Resistor1 = 1e3,
+                Pot = 25e3,
+                AudioTaper = true,
+                Capacitor1 = 10e-9
+            },
+            OutputDb = -4
+        };
+        var open = first with { Diodes = default };
+        return overdrive with {
+            Modes = [
+                overdrive with {
+                    Stages = [
+                        open, new(StageKind.Clipper) { Series = 1e3, Shunt = 10e-9, Diodes = DiodeStacks.Pair(Si) }, second
+                    ]
+                },
+                overdrive with { Stages = [open, second with { Diodes = default, Rail = 4 }] }
+            ]
+        };
+    }
 }

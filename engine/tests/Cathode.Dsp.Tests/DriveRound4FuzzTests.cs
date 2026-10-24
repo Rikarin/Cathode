@@ -53,11 +53,14 @@ public class DriveRound4FuzzTests(ITestOutputHelper output) {
         var face = Spectrum("Face Fuzz", 5f, 5f, Signals.CoherentSine(LowBin, Length, 0.1f));
         Assert.True(octave > Analysis.ToDb(face[2 * LowBin] / face[LowBin]) + 6);
 
-        // The tone switch's scoop: at noon the low-pass and high-pass halves cancel around 1 kHz, below either alone.
-        double Mid(float tone) => Analysis.ToDb(Analysis.MagnitudeAt(Impulse("Super Fuzz", 5f, tone), 1_000, Rate));
-        var (dark, noon, bright) = (Mid(0f), Mid(5f), Mid(10f));
-        output.WriteLine($"Super Fuzz small-signal 1 kHz: {dark:0.0} dB at tone 0, {noon:0.0} at 5, {bright:0.0} at 10");
-        Assert.True(noon < Math.Min(dark, bright) - 3, "no mid scoop at noon");
+        // The tone switch's scoop: the low-pass and high-pass halves cancel around 1 kHz; Flat switches the filter out.
+        double Mid(float position) =>
+            Analysis.ToDb(
+                Analysis.MagnitudeAt(Impulse("Super Fuzz", 5f, 5f, (DriveBlock.ToneSwitch, position)), 1_000, Rate)
+            );
+        var (scoop, flat) = (Mid(0f), Mid(1f));
+        output.WriteLine($"Super Fuzz small-signal 1 kHz: {scoop:0.0} dB scooped, {flat:0.0} dB flat");
+        Assert.True(scoop < flat - 3, "no mid scoop");
 
         var (lowGain, lowThd) = GainAndThd("Super Fuzz", 0f, Signals.CoherentSine(LowBin, Length, 0.03f), LowBin);
         var (highGain, highThd) = GainAndThd("Super Fuzz", 10f, Signals.CoherentSine(LowBin, Length, 0.03f), LowBin);

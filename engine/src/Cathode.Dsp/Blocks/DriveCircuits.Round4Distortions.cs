@@ -123,6 +123,7 @@ public static partial class DriveCircuits {
             + "four-band active EQ, Grunt and Attack switches"
         ) {
             GruntAndAttack = true,
+            BlendKnob = true,
             InputHighPassHz = 40,
             Stages = [
                 new(StageKind.Gain) {
@@ -145,15 +146,15 @@ public static partial class DriveCircuits {
                     Rail = 3.5
                 }
             ],
-            CleanMix = 0.5, // Blend at noon
+            CleanMix = 0.5, // the clean path's level with the Blend knob at noon
             Tone = new(ToneKind.ActiveEq) {
                 Source = 1e3,
                 Resistor1 = 10e3,
                 Pot = 50e3,
                 BandResistance = 3.3e3, // ±12 dB
                 LowHz = 100,
-                MidHz = 500,
-                Mid2Hz = 1_500,
+                MidHz = 500, // Lo Mids (the Middle Pot)
+                Mid2Hz = 1_500, // Hi Mids
                 HighHz = 5_000,
                 BandQ = 0.9,
                 Load = 100e3
@@ -180,8 +181,12 @@ public static partial class DriveCircuits {
         },
         new(
             "Esoteric Bass RCB",
-            "Xotic Bass RC Booster: a full-range clean op-amp boost that only softens on its rails, bass and treble"
+            "Xotic Bass RC Booster: a full-range clean op-amp boost that only softens on its rails, bass and treble, "
+            + "internal DIP switches for the bass and treble frequencies"
         ) {
+            // The DIP switches move each band up an octave (guessed: Xotic publish no frequencies for them).
+            DipLowHz = 120,
+            DipHighHz = 5_000,
             MaxGainDb = 12, // as the Esoteric Boost: the booster's gain range reaches its rails on a hot pickup
             InputHighPassHz = 10,
             Stages = [

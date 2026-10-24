@@ -117,7 +117,8 @@ public sealed class HostAllocationTests : IDisposable {
         // the audio I/O pass under 1 KB (the latency path the compiler records, the Input block's pickup load parameters
         // and the Drive's oversampling setting): 138,008 bytes measured with both. Round 4 of the Drive grew its catalogue
         // from 24 circuits to 61, each prebuilt for both channels (about 750 bytes a circuit), and added the classic
-        // reverbs and the Pitch formant parameters: 168,240 bytes, under a limit that leaves about 2 KB.
+        // reverbs and the Pitch formant parameters: 168,240 bytes, under a limit that leaves about 2 KB. The Drive's last
+        // per-pedal knobs (12 parameters, a noise gate's sub-block of gains per channel) took it to 169,480 bytes.
         var load = new IpcMessage { Type = IpcTypes.LoadGraph, Generation = 1, Graph = Rig() };
 
         var allocated = await RoundTripAsync(load, 3);
