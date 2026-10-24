@@ -141,6 +141,34 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Selecting_a_scene_sends_its_midi_messages() {
+        var sent = new List<byte[]>();
+        server.Host.NativeMidiSend = (_, bytes) => {
+            lock (sent) {
+                sent.Add(bytes);
+            }
+
+            return true;
+        };
+        server.Services.GetRequiredService<MidiRouter>();
+        var live = await Patch(
+            "/api/v1/live/scenes/2",
+            new SceneUpdateRequest(Midi: [new("pc", 2, 5), new("cc", 1, 7, 100)])
+        );
+        using var invalid = await client.PatchAsJsonAsync(
+            "/api/v1/live/scenes/2",
+            new SceneUpdateRequest(Midi: [new("nrpn", 1, 7, 100)]),
+            Token
+        );
+
+        await Put("/api/v1/live/scenes/active", new SceneSelectRequest(2));
+
+        Assert.Equal(2, live.Preset.Scenes[2].Midi.Count);
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+        await ServerFixture.Eventually(() => Sent(sent, [0xC1, 5]) && Sent(sent, [0xB0, 7, 100]));
+    }
+
+    [Fact]
     public async Task Midi_learn_binds_the_next_controller_moved() {
         await Ok(client.PutAsJsonAsync("/api/v1/midi/learn", new MidiLearnRequest("tuner"), Token));
         server.Services.GetRequiredService<MidiRouter>().OnMidi([new(0xB2, 64, 127, 0)]);

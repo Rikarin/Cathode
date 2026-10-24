@@ -58,7 +58,12 @@ public sealed partial class MidiRouter : IDisposable {
         this.hub = hub;
         this.logger = logger;
         engine.MidiReceived += OnMidi;
-        rig.Changes += _ => UpdateLeds();
+        rig.Changes += change => {
+            UpdateLeds();
+            if (change.Type is "sceneChanged" or "presetLoaded") {
+                SendSceneMidi(change.Scene ?? rig.ActiveScene);
+            }
+        };
         globals.Changed += _ => UpdateLeds();
         engine.Connected += () => {
             lock (gate) {
@@ -276,6 +281,19 @@ public sealed partial class MidiRouter : IDisposable {
             case "looper" when down && action.Target is { } looper:
                 engine.Looper(looper);
                 break;
+        }
+    }
+
+    /// <summary>Scene MIDI: the messages a scene sends to other gear when it is selected or its preset loads on it.</summary>
+    void SendSceneMidi(int scene) {
+        if (!engine.IsConnected) {
+            return;
+        }
+
+        foreach (var message in rig.SceneMidi(scene)) {
+            if (message.Problem() is null) {
+                engine.MidiOut(null, message.Bytes());
+            }
         }
     }
 

@@ -1053,6 +1053,17 @@ export interface components {
       metronome: boolean;
       /** Format: float */
       metronomeLevel: number;
+      /**
+       * Format: float
+       * @description Effects Mix offset (−50..50 %), added to the Mix of every block whose Global Mix is on: one control for
+       *     making the whole rig wetter or drier for a room.
+       */
+      effectsMix: number;
+      /**
+       * Format: float
+       * @description Noise gate offset in dB (−20..20), added to every Input block's gate threshold.
+       */
+      noiseGateOffset: number;
       /** @description The global output EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse. */
       eq: {
         [key: string]: number;
@@ -1301,6 +1312,11 @@ export interface components {
       };
       /** @description Scene controllers 1-4 (0..1), modifier sources that change with the scene. */
       controllers: number[];
+      /**
+       * @description Up to int SceneMidiMessage.MaxPerScene MIDI messages sent through the rig's MIDI output whenever this
+       *     scene is selected, or its preset loads on it: program changes and CCs for other gear.
+       */
+      midi: components['schemas']['SceneMidiMessage'][];
     };
     SceneBlockState: {
       /** @default false */
@@ -1308,15 +1324,40 @@ export interface components {
       /** @default A */
       channel: string;
     };
+    /**
+     * @description One scene MIDI message: a program change (`pc`: int SceneMidiMessage.Number is the program) or a control change
+     *     (`cc`: controller int SceneMidiMessage.Number, value int SceneMidiMessage.Value), on MIDI channel 1-16.
+     */
+    SceneMidiMessage: {
+      /** @default pc */
+      type: string;
+      /**
+       * Format: int32
+       * @default 1
+       */
+      channel: number;
+      /**
+       * Format: int32
+       * @default 0
+       */
+      number: number;
+      /**
+       * Format: int32
+       * @default 0
+       */
+      value: number;
+    };
     SceneSelectRequest: {
       /** Format: int32 */
       scene: number;
     };
+    /** @description Changes to a scene; null leaves a field as it is. `Midi` replaces the scene's MIDI messages. */
     SceneUpdateRequest: {
       name?: null | string;
       /** Format: float */
       level?: null | number;
       controllers?: null | number[];
+      midi?: null | components['schemas']['SceneMidiMessage'][];
     };
     ScopeRequest: {
       enabled: boolean;

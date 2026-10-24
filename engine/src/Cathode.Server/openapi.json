@@ -2390,6 +2390,8 @@
           "tempo",
           "metronome",
           "metronomeLevel",
+          "effectsMix",
+          "noiseGateOffset",
           "eq",
           "manual",
           "midiChannel",
@@ -2417,6 +2419,16 @@
           },
           "metronomeLevel": {
             "type": "number",
+            "format": "float"
+          },
+          "effectsMix": {
+            "type": "number",
+            "description": "Effects Mix offset (\u221250..50 %), added to the Mix of every block whose Global Mix is on: one control for\nmaking the whole rig wetter or drier for a room.",
+            "format": "float"
+          },
+          "noiseGateOffset": {
+            "type": "number",
+            "description": "Noise gate offset in dB (\u221220..20), added to every Input block\u0027s gate threshold.",
             "format": "float"
           },
           "eq": {
@@ -3032,7 +3044,8 @@
           "name",
           "level",
           "blocks",
-          "controllers"
+          "controllers",
+          "midi"
         ],
         "type": "object",
         "properties": {
@@ -3057,6 +3070,13 @@
               "format": "float"
             },
             "description": "Scene controllers 1-4 (0..1), modifier sources that change with the scene."
+          },
+          "midi": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SceneMidiMessage"
+            },
+            "description": "Up to int SceneMidiMessage.MaxPerScene MIDI messages sent through the rig\u0027s MIDI output whenever this\nscene is selected, or its preset loads on it: program changes and CCs for other gear."
           }
         },
         "description": "Which channel each block uses and whether it is bypassed. Blocks not listed use channel A, engaged."
@@ -3077,6 +3097,37 @@
             "default": "A"
           }
         }
+      },
+      "SceneMidiMessage": {
+        "required": [
+          "type",
+          "channel",
+          "number",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "default": "pc"
+          },
+          "channel": {
+            "type": "integer",
+            "format": "int32",
+            "default": 1
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "value": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          }
+        },
+        "description": "One scene MIDI message: a program change (\u0060pc\u0060: int SceneMidiMessage.Number is the program) or a control change\n(\u0060cc\u0060: controller int SceneMidiMessage.Number, value int SceneMidiMessage.Value), on MIDI channel 1-16."
       },
       "SceneSelectRequest": {
         "required": [
@@ -3115,8 +3166,18 @@
               "type": "number",
               "format": "float"
             }
+          },
+          "midi": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SceneMidiMessage"
+            }
           }
-        }
+        },
+        "description": "Changes to a scene; null leaves a field as it is. \u0060Midi\u0060 replaces the scene\u0027s MIDI messages."
       },
       "ScopeRequest": {
         "required": [

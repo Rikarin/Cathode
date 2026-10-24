@@ -82,7 +82,12 @@ public sealed record AssetRequest(string Asset);
 
 public sealed record SceneSelectRequest(int Scene);
 
-public sealed record SceneUpdateRequest(string? Name = null, float? Level = null, List<float>? Controllers = null);
+/// <summary>Changes to a scene; null leaves a field as it is. <c>Midi</c> replaces the scene's MIDI messages.</summary>
+public sealed record SceneUpdateRequest(
+    string? Name = null,
+    float? Level = null,
+    List<float>? Controllers = null,
+    List<SceneMidiMessage>? Midi = null);
 
 public sealed record SaveRequest(string? Name = null, bool AsNew = false);
 

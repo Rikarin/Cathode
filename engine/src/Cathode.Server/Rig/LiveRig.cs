@@ -437,6 +437,10 @@ public sealed partial class LiveRig(
         Locked(() => {
                 Check(expected);
                 CheckScene(scene);
+                if (request.Midi is { } messages) {
+                    CheckSceneMidi(messages);
+                }
+
                 PushUndo(null);
                 var target = preset.Scenes[scene];
                 if (request.Name is { } name) {
@@ -449,6 +453,10 @@ public sealed partial class LiveRig(
 
                 if (request.Controllers is { Count: 4 } controllers) {
                     target.Controllers = [..controllers.Select(static c => Math.Clamp(c, 0f, 1f))];
+                }
+
+                if (request.Midi is { } midi) {
+                    target.Midi = [..midi];
                 }
 
                 if (scene == activeScene) {
@@ -715,6 +723,20 @@ public sealed partial class LiveRig(
             );
         }
     }
+
+    static void CheckSceneMidi(List<SceneMidiMessage> messages) {
+        if (messages.Count > SceneMidiMessage.MaxPerScene) {
+            throw new RigException(400, $"A scene sends at most {SceneMidiMessage.MaxPerScene} MIDI messages.");
+        }
+
+        if (messages.Select(static m => m.Problem()).FirstOrDefault(static p => p is not null) is { } problem) {
+            throw new RigException(400, problem);
+        }
+    }
+
+    /// <summary>The MIDI messages scene <paramref name="scene" /> sends (unlocked read, for the MIDI router).</summary>
+    public IReadOnlyList<SceneMidiMessage> SceneMidi(int scene) =>
+        (uint)scene < Preset.SceneCount ? [..Volatile.Read(ref preset).Scenes[scene].Midi] : [];
 
     static void CheckScene(int scene) {
         if (scene is < 0 or >= Preset.SceneCount) {

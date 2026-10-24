@@ -127,7 +127,7 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
               [min]="-50"
               [max]="50"
               [defaultValue]="0"
-              [value]="s.effectsMix ?? 0"
+              [value]="s.effectsMix"
               (committed)="save(g => (g.effectsMix = $event))"
             />
             <cth-knob
@@ -136,7 +136,7 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
               [min]="-20"
               [max]="20"
               [defaultValue]="0"
-              [value]="s.noiseGateOffset ?? 0"
+              [value]="s.noiseGateOffset"
               (committed)="save(g => (g.noiseGateOffset = $event))"
             />
           </div>
