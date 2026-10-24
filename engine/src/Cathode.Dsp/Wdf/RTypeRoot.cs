@@ -741,16 +741,21 @@ public struct RTypeRoot<TPorts, TDevice>
         bool rebuild = false
     ) {
         var s = Newton;
+        var held = 0; // usually none: then there is nothing to re-solve
+        for (var d = 0; d < k; d++) {
+            held += proposed[d] == v[d] + unlimited[d] ? 0 : 1;
+        }
+
+        if (held == 0 || held == k) {
+            return;
+        }
+
         Span<int> free = stackalloc int[k];
         var count = 0;
         for (var d = 0; d < k; d++) {
             if (proposed[d] == v[d] + unlimited[d]) {
                 free[count++] = d;
             }
-        }
-
-        if (count == k || count == 0) {
-            return;
         }
 
         s.factored = false; // the system and pivot buffers are borrowed
@@ -982,15 +987,35 @@ public struct RTypeRoot<TPorts, TDevice>
         var norm = 0.0;
         var (absolute, relative) = (s.AbsoluteTolerance, s.RelativeTolerance);
         ref var r = ref MemoryMarshal.GetReference(trial);
-        for (var d = 0; d < k; d++) {
-            var g = v[d] - p[d];
-            ref var row = ref MemoryMarshal.GetReference(f[(d * k)..]);
+        ref var rows = ref MemoryMarshal.GetReference(f);
+        var port = 0;
+        for (; port + 2 <= k; port += 2) {
+            // Two rows at once, each its own sum in its own order (the currents read once for both).
+            var (g, next) = (v[port] - p[port], v[port + 1] - p[port + 1]);
+            ref var row = ref Unsafe.Add(ref rows, port * k);
+            ref var below = ref Unsafe.Add(ref row, k);
+            for (var e = 0; e < k; e++) {
+                var drawn = Unsafe.Add(ref r, e);
+                g -= Unsafe.Add(ref row, e) * drawn;
+                next -= Unsafe.Add(ref below, e) * drawn;
+            }
+
+            (step[port], step[port + 1]) = (-g, -next);
+            var scaled = g / (absolute + relative * Math.Abs(v[port]));
+            var nextScaled = next / (absolute + relative * Math.Abs(v[port + 1]));
+            norm += scaled * scaled;
+            norm += nextScaled * nextScaled;
+        }
+
+        for (; port < k; port++) {
+            var g = v[port] - p[port];
+            ref var row = ref Unsafe.Add(ref rows, port * k);
             for (var e = 0; e < k; e++) {
                 g -= Unsafe.Add(ref row, e) * Unsafe.Add(ref r, e);
             }
 
-            step[d] = -g;
-            var scaled = g / (absolute + relative * Math.Abs(v[d]));
+            step[port] = -g;
+            var scaled = g / (absolute + relative * Math.Abs(v[port]));
             norm += scaled * scaled;
         }
 
