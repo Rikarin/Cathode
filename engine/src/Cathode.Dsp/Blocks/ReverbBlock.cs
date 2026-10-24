@@ -9,8 +9,11 @@ namespace Cathode.Dsp.Blocks;
 /// <summary>
 ///     Algorithmic reverb. Room, Hall, Plate, Chamber and Cathedral are a feedback delay network of 4 to 16 lines (Jot
 ///     and Chaigne 1991) with a Householder feedback matrix; Dattorro is Dattorro's plate (<see cref="DattorroPlate" />)
-///     and Spring a dispersive tank of one to six springs (<see cref="SpringTank" />). Pre-delay, early reflections,
-///     the wet EQ, the pitch section, ducker, mix and level are shared.
+///     and Spring a dispersive tank of one to six springs (<see cref="SpringTank" />). The classic digital types (appended
+///     after Cathedral) have their own topologies: Classic Hall and Classic Plate a 224-style ring of four modulated
+///     sections (<see cref="RingTank" />), Vintage Digital Schroeder–Moorer combs and allpasses (<see cref="CombReverb" />)
+///     and Classic Room Gardner's nested-allpass room (<see cref="NestedRoom" />). Pre-delay, early reflections, the wet
+///     EQ, the pitch section, ducker, mix and level are shared.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -108,6 +111,13 @@ public sealed class ReverbBlock : DspBlock {
     public const int Spring = 4;
     public const int Chamber = 5;
     public const int Cathedral = 6;
+    public const int ClassicHall = 7;
+    public const int ClassicPlate = 8;
+    public const int VintageDigital = 9;
+    public const int ClassicRoom = 10;
+
+    /// <summary>The number of types; new ones are appended, since presets store the index.</summary>
+    public const int TypeCount = 11;
 
     public const int HoldOff = 0;
     public const int HoldOn = 1;
@@ -222,6 +232,9 @@ public sealed class ReverbBlock : DspBlock {
     readonly GrainShifter voice2 = new();
     readonly DattorroPlate plate = new();
     readonly SpringTank spring = new();
+    readonly RingTank ring = new();
+    readonly CombReverb combs = new();
+    readonly NestedRoom room = new();
     int activeType = -1;
     int activeQuality = -1;
     int lineCount;
@@ -246,6 +259,8 @@ public sealed class ReverbBlock : DspBlock {
     float earlyDiffusion;
     bool pitchRunning;
     float pitched;
+    float dcIn, dcOut;
+    float dcPole = 1f;
     float mix;
     Ducker ducker;
     OutputStage output;
@@ -258,7 +273,10 @@ public sealed class ReverbBlock : DspBlock {
             ParamDescriptor.Choice(
                 "type",
                 "Type",
-                ["Room", "Hall", "Plate", "Dattorro Plate", "Spring", "Chamber", "Cathedral"],
+                [
+                    "Room", "Hall", "Plate", "Dattorro Plate", "Spring", "Chamber", "Cathedral", "Classic Hall",
+                    "Classic Plate", "Vintage Digital", "Classic Room"
+                ],
                 1
             ),
             ParamDescriptor.Float("decay", "Decay Time", 0.1f, 20f, 2f, "s", ParamTaper.Log),
@@ -277,12 +295,12 @@ public sealed class ReverbBlock : DspBlock {
             ParamDescriptor.Float("duckRelease", "Ducker Release", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
             ParamDescriptor.Choice("hold", "Stack/Hold", ["Off", "Hold", "Stack"]),
             Network(ParamDescriptor.Choice("quality", "Quality", ["Economy", "Normal", "High", "Ultra High"], 1)),
-            Network(ParamDescriptor.Float("lowCrossover", "Low Crossover", 50f, 1_000f, 250f, "Hz", ParamTaper.Log)),
-            Network(ParamDescriptor.Float("lowTime", "Low Freq Time", 25f, 400f, 100f, "%", ParamTaper.Log)),
-            Network(
+            Banded(ParamDescriptor.Float("lowCrossover", "Low Crossover", 50f, 1_000f, 250f, "Hz", ParamTaper.Log)),
+            Banded(ParamDescriptor.Float("lowTime", "Low Freq Time", 25f, 400f, 100f, "%", ParamTaper.Log)),
+            Banded(
                 ParamDescriptor.Float("highCrossover", "High Crossover", 1_000f, 12_000f, 4_000f, "Hz", ParamTaper.Log)
             ),
-            Network(ParamDescriptor.Float("highTime", "High Freq Time", 10f, 200f, 100f, "%", ParamTaper.Log)),
+            Banded(ParamDescriptor.Float("highTime", "High Freq Time", 10f, 200f, 100f, "%", ParamTaper.Log)),
             Reflecting(ParamDescriptor.Float("earlyLevel", "Early Level", 0f, 100f, 0f, "%")),
             ParamDescriptor.Float("lateLevel", "Late Level", 0f, 100f, 100f, "%"),
             Reflecting(ParamDescriptor.Float("earlyDiffusion", "Early Diffusion", 0f, 100f, 50f, "%")),
@@ -298,10 +316,10 @@ public sealed class ReverbBlock : DspBlock {
             ParamDescriptor.Choice("preDelayTempo", "Pre-Delay Tempo", TempoDivisions.Names),
             ParamDescriptor.Float("preDelayFeedback", "Pre-Delay Feedback", 0f, 90f, 0f, "%"),
             ParamDescriptor.Float("preDelayMix", "Pre-Delay Mix", 0f, 100f, 100f, "%"),
-            Network(ParamDescriptor.Float("echoDensity", "Echo Density", 0f, 100f, 50f, "%")),
+            Dense(ParamDescriptor.Float("echoDensity", "Echo Density", 0f, 100f, 50f, "%")),
             Network(ParamDescriptor.Float("wallDiffusion", "Wall Diffusion", 0f, 100f, 0f, "%")),
-            Network(ParamDescriptor.Float("inputDiffusion", "Input Diffusion", 0f, 120f, 100f, "%")),
-            Network(
+            Diffused(ParamDescriptor.Float("inputDiffusion", "Input Diffusion", 0f, 120f, 100f, "%")),
+            Diffused(
                 ParamDescriptor.Float(
                     "inputDiffusionTime",
                     "Input Diffusion Time",
@@ -327,9 +345,9 @@ public sealed class ReverbBlock : DspBlock {
             SpringOnly(ParamDescriptor.Float("springTone", "Spring Tone", 0f, 100f, 50f, "%")),
             SpringOnly(ParamDescriptor.Float("springDrive", "Spring Drive", 0f, 10f, 0f)),
             SpringOnly(ParamDescriptor.Float("boing", "Boing", 0f, 100f, 0f, "%")),
-            Network(ParamDescriptor.Float("modDepth", "Mod Depth", 0f, MaxModDepth * 100f, 100f, "%")),
-            Network(ParamDescriptor.Float("modRate", "Mod Rate", 0.1f, 5f, 0.7f, "Hz", ParamTaper.Log)),
-            Network(ParamDescriptor.Float("modPhase", "LFO Phase", 0f, 180f, 180f, "°")),
+            Modulated(ParamDescriptor.Float("modDepth", "Mod Depth", 0f, MaxModDepth * 100f, 100f, "%")),
+            Modulated(ParamDescriptor.Float("modRate", "Mod Rate", 0.1f, 5f, 0.7f, "Hz", ParamTaper.Log)),
+            Modulated(ParamDescriptor.Float("modPhase", "LFO Phase", 0f, 180f, 180f, "°")),
             ParamDescriptor.Float("pitchMix", "Pitch Mix", 0f, 100f, 0f, "%"),
             ParamDescriptor.Float("shift1", "Shift 1", -24f, 24f, 12f, "st"),
             ParamDescriptor.Float("shift2", "Shift 2", -24f, 24f, 7f, "st"),
@@ -377,7 +395,7 @@ public sealed class ReverbBlock : DspBlock {
         : base(Info) { }
 
     /// <summary>Whether <paramref name="type" /> runs on the feedback delay network.</summary>
-    public static bool IsNetwork(int type) => type is not (Dattorro or Spring);
+    public static bool IsNetwork(int type) => type is Room or Hall or Plate or Chamber or Cathedral;
 
     /// <summary>The <see cref="EarlyMs" /> row of a type (Dattorro takes the plate's; Spring has none).</summary>
     public static int ErRow(int type) =>
@@ -385,6 +403,10 @@ public sealed class ReverbBlock : DspBlock {
             Dattorro => 2,
             Chamber => 3,
             Cathedral => 4,
+            ClassicHall => 1,
+            ClassicPlate => 2,
+            VintageDigital => 3,
+            ClassicRoom => 0,
             _ => Math.Clamp(type, 0, 2)
         };
 
@@ -399,12 +421,43 @@ public sealed class ReverbBlock : DspBlock {
     /// <summary>The type labels that show a parameter on <paramref name="types" /> and hide it on the others.</summary>
     static ParamDescriptor ShownOn(ParamDescriptor p, params int[] types) =>
         p with {
-            TypeLabels = [..Enumerable.Range(0, Cathedral + 1).Select(t => types.Contains(t) ? p.Name : string.Empty)]
+            TypeLabels = [..Enumerable.Range(0, TypeCount).Select(t => types.Contains(t) ? p.Name : string.Empty)]
         };
 
     static ParamDescriptor Network(ParamDescriptor p) => ShownOn(p, Room, Hall, Plate, Chamber, Cathedral);
 
-    static ParamDescriptor Reflecting(ParamDescriptor p) => ShownOn(p, Room, Hall, Plate, Dattorro, Chamber, Cathedral);
+    static ParamDescriptor Reflecting(ParamDescriptor p) =>
+        ShownOn(
+            p,
+            Room,
+            Hall,
+            Plate,
+            Dattorro,
+            Chamber,
+            Cathedral,
+            ClassicHall,
+            ClassicPlate,
+            VintageDigital,
+            ClassicRoom
+        );
+
+    /// <summary>The decay-band controls: the network and every classic digital tank.</summary>
+    static ParamDescriptor Banded(ParamDescriptor p) =>
+        ShownOn(p, Room, Hall, Plate, Chamber, Cathedral, ClassicHall, ClassicPlate, VintageDigital, ClassicRoom);
+
+    /// <summary>Echo Density: the network's wall allpasses, the ring's in-loop allpasses.</summary>
+    static ParamDescriptor Dense(ParamDescriptor p) =>
+        ShownOn(p, Room, Hall, Plate, Chamber, Cathedral, ClassicHall, ClassicPlate);
+
+    /// <summary>Input Diffusion and Time: the network's and the ring's input diffusers, the combs' series allpasses.</summary>
+    static ParamDescriptor Diffused(ParamDescriptor p) =>
+        ShownOn(p, Room, Hall, Plate, Chamber, Cathedral, ClassicHall, ClassicPlate, VintageDigital);
+
+    static ParamDescriptor Modulated(ParamDescriptor p) =>
+        ShownOn(p, Room, Hall, Plate, Chamber, Cathedral, ClassicHall, ClassicPlate);
+
+    /// <summary>Whether <paramref name="type" /> is one of the classic digital tanks (ring, combs, nested room).</summary>
+    public static bool IsClassic(int type) => type is ClassicHall or ClassicPlate or VintageDigital or ClassicRoom;
 
     static ParamDescriptor SpringOnly(ParamDescriptor p) => ShownOn(p, Spring);
 
@@ -429,12 +482,25 @@ public sealed class ReverbBlock : DspBlock {
         return SvfCoefficients.Design(BiquadType.Peak, rate, frequency, q, gainDb);
     }
 
+    /// <summary>
+    ///     A 5 Hz DC blocker ahead of the classic tanks: their loops (combs, the ring, the nested room) all recirculate
+    ///     with positive gain at DC, so an offset at the input would build up by 1 / (1 - g).
+    /// </summary>
+    float BlockDc(float x) {
+        dcOut = x - dcIn + dcPole * dcOut;
+        dcIn = x;
+        return dcOut;
+    }
+
     float Voices(float x, double speed1, double speed2, float balance) =>
         voice1.Process(x, speed1) * (1f - balance) + voice2.Process(x, speed2) * balance;
 
     void FlushDenormals() {
         ducker.FlushDenormals();
         spring.FlushDenormals();
+        ring.FlushDenormals();
+        combs.FlushDenormals();
+        room.FlushDenormals();
         for (var i = 0; i < MaxLines; i++) {
             if (MathF.Abs(damping[i]) < 1e-20f) {
                 damping[i] = 0;
@@ -455,6 +521,10 @@ public sealed class ReverbBlock : DspBlock {
 
         if (MathF.Abs(pitched) < 1e-20f) {
             pitched = 0;
+        }
+
+        if (MathF.Abs(dcOut) < 1e-20f) {
+            dcOut = 0;
         }
 
         lowCutLeft.FlushDenormals();
@@ -484,6 +554,18 @@ public sealed class ReverbBlock : DspBlock {
                 break;
             case Spring:
                 spring.Clear();
+                break;
+            case ClassicHall or ClassicPlate:
+                ring.Clear();
+                dcIn = dcOut = 0;
+                break;
+            case VintageDigital:
+                combs.Clear();
+                dcIn = dcOut = 0;
+                break;
+            case ClassicRoom:
+                room.Clear();
+                dcIn = dcOut = 0;
                 break;
             default:
                 ClearNetwork();
@@ -542,6 +624,46 @@ public sealed class ReverbBlock : DspBlock {
         var phase = Params.Advance(ModPhase, n);
         modOpposed = phase == 180f;
         modOffset = Math.PI * phase / 180.0;
+    }
+
+    /// <summary>
+    ///     The classic digital tanks' settings for this block (<see cref="RingTank" />, <see cref="CombReverb" />,
+    ///     <see cref="NestedRoom" />).
+    /// </summary>
+    void ConfigureClassic(int type, float decay, float scale, float dampingHz, float rate, int n) {
+        var lowHz = Params.Advance(LowCrossover, n);
+        var lowTime = Params.Advance(LowTime, n) / 100f;
+        var highHz = Params.Advance(HighCrossover, n);
+        var highTime = Params.Advance(HighTime, n) / 100f;
+        var shape = DecayShape.Create(decay, dampingHz, lowHz, lowTime, highHz, highTime, rate);
+        switch (type) {
+            case ClassicHall or ClassicPlate:
+                ring.Configure(
+                    type == ClassicHall ? RingTank.Hall : RingTank.Plate,
+                    shape,
+                    scale,
+                    Params.Advance(InputDiffusion, n) / 100f,
+                    Params.Advance(InputDiffusionTime, n) / 100f,
+                    Params.Advance(EchoDensity, n) / 50f,
+                    Params.Advance(ModDepth, n) / 100f,
+                    Params.Advance(ModRate, n),
+                    Params.Advance(ModPhase, n),
+                    stack
+                );
+                break;
+            case VintageDigital:
+                combs.Configure(
+                    shape,
+                    scale,
+                    Params.Advance(InputDiffusion, n) / 100f,
+                    Params.Advance(InputDiffusionTime, n) / 100f,
+                    stack
+                );
+                break;
+            default:
+                room.Configure(shape, scale, stack);
+                break;
+        }
     }
 
     /// <summary>Early reflection taps for this block: times, the decay across the pattern, sides and the diffusion.</summary>
@@ -658,6 +780,10 @@ public sealed class ReverbBlock : DspBlock {
         voice2.Prepare(rate, 0.06, MaxSpliceSeconds);
         plate.Allocate(rate, MaxSizeScale);
         spring.Allocate(rate);
+        ring.Allocate(rate, MaxSizeScale, MaxInputDiffusionTime, MaxModDepth);
+        combs.Allocate(rate, MaxSizeScale, MaxInputDiffusionTime);
+        room.Allocate(rate, MaxSizeScale);
+        dcPole = (float)(1 - 2 * Math.PI * 5 / rate);
     }
 
     protected override void OnReset() {
@@ -681,6 +807,10 @@ public sealed class ReverbBlock : DspBlock {
         preDelayOut = 0;
         plate.Clear();
         spring.Clear();
+        ring.Clear();
+        combs.Clear();
+        room.Clear();
+        dcIn = dcOut = 0;
         lowCutLeft.Reset();
         lowCutRight.Reset();
         lowMidLeft.Reset();
@@ -711,6 +841,9 @@ public sealed class ReverbBlock : DspBlock {
             voice2.Dispose();
             plate.Dispose();
             spring.Dispose();
+            ring.Dispose();
+            combs.Dispose();
+            room.Dispose();
         }
 
         base.Dispose(disposing);
@@ -777,6 +910,9 @@ public sealed class ReverbBlock : DspBlock {
                     Params.Advance(Boing, n) / 100f
                 );
                 spring.Configure(decay, scale);
+                break;
+            case ClassicHall or ClassicPlate or VintageDigital or ClassicRoom:
+                ConfigureClassic(type, decay, scale, dampingHz, rate, n);
                 break;
             default:
                 ConfigureNetwork(type, quality, decay, scale, dampingHz, rate, n);
@@ -885,6 +1021,9 @@ public sealed class ReverbBlock : DspBlock {
             var (wetLeft, wetRight) = type switch {
                 Dattorro => plate.Tick(x),
                 Spring => spring.Tick(x),
+                ClassicHall or ClassicPlate => ring.Tick(BlockDc(x)),
+                VintageDigital => combs.Tick(BlockDc(x)),
+                ClassicRoom => room.Tick(BlockDc(x)),
                 _ => TickNetwork(x)
             };
 

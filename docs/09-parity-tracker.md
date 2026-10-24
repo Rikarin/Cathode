@@ -82,7 +82,7 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | PA12 | Plex: Shift Direction per the guide's meaning | ✅ | Reverse_direction_keeps_the_interval_and_plays_each_grain_backwards | the existing behaviour matched the guide |
 | PA13 | Rotary: Low Rate Multiplier | ✅ | Low_rate_multiplier_scales_the_drum_speed |  |
 | PA14 | Wah: Min/Max Frequency on the circuit types | ✅ | Min_and_max_frequency_move_the_circuits_resonance |  |
-| PA15 | Any other ◐ / ❌ in 08 §2, §3, §5, §6 not owned by PB | ◐ | — | closed: Gate/Vocoder/Pitch hardware sources, §7 rows; the five newer wah voicings as circuits went to stream W (below). Left: classic digital reverb types, Pitch formant correction, legacy factory cab banks (licensing) |
+| PA15 | Any other ◐ / ❌ in 08 §2, §3, §5, §6 not owned by PB | ◐ | — | closed: Gate/Vocoder/Pitch hardware sources, §7 rows; the five newer wah voicings as circuits went to stream W (below). Left: Pitch formant correction, legacy factory cab banks (licensing). Classic digital reverb types: 🟡 stream R (below) |
 
 ## W: the five newer wah types as circuits (08 §6.37)
 
@@ -200,6 +200,19 @@ They replace the filter voicings in place (same type index and name). Defaults u
 | CB9 | Flat slot source | ✅ | A_flat_slot_and_a_cab_slot_split_a_stereo_input_into_a_di_and_a_cab |  |
 | CB10 | Global "cab modelling off" switch | ✅ | Cab_modelling_off_passes_audio_through_and_fades_back_in | GlobalSettings.CabModelingOff; Cab and IR Player |
 | CB11 | Export the block's current mix (DynaCab slots included) as an IR file | ✅ | Export_bakes_the_master_cuts_into_the_mixed_ir; A_cab_exports_its_mixed_ir_and_saves_it_as_an_asset | GET/POST /live/blocks/{id}/ir |
+
+## R: Reverb classic digital types (08 §6.26)
+
+New Reverb types appended after Cathedral (indices 7–10), so stored presets keep their types; the reverb golden render and `ReverbBlockTests` pass unchanged. Every row's evidence is in `ClassicReverbTests` (decay time from the impulse response's Schroeder integral within 20 %, the decay kept at Size 100 %, stereo correlation under 0.3, level within 4 dB of the Hall, High Cut and Low Freq Time working, no DC build-up or subnormals, bounded at maximum settings with Stack, no allocation, type switches start empty, unused controls hidden). Section lengths are ours, not the hardware's.
+
+| ID | Item | Status | Evidence | Notes |
+|---|---|---|---|---|
+| R1 | Classic Hall: a 224/480-style ring of four sections (modulated allpass, delay, loss, allpass, delay), input diffusers, multi-tap output | 🟡 | ClassicReverbTests (type 7) | `Reverb/RingTank.cs`. After Griesinger's tank as published by Dattorro (JAES 1997, a two-section ring); four sections of about 125 ms. Spin (sine) + wander (random ramps) modulation; bass/treble multipliers in every section. 0.49 % CPU |
+| R2 | Classic Plate: the same ring with a plate voicing | 🟡 | ClassicReverbTests (type 8) | sections of about 55 ms, denser input and loop diffusion. 0.49 % CPU |
+| R3 | Vintage Digital: first-generation (EMT 250-era) comb/allpass reverb | 🟡 | ClassicReverbTests (type 9) | `Reverb/CombReverb.cs`. Schroeder (JAES 1962) combs and allpasses with Moorer's (CMJ 1979) low-pass combs at Moorer's lengths, behind a 10 kHz bandwidth; right side 0.53 ms longer. Not a model of the EMT 250's own program (unpublished). 0.57 % CPU |
+| R4 | Classic Room: short-decay room/ambience | 🟡 | ClassicReverbTests (type 10) | `Reverb/NestedRoom.cs`. Gardner's nested-allpass small room (MIT 1992; Kahrs and Brandenburg 1998), lengths our reading of the figure; a second copy 7 % longer for the right side. Decay follows down to about 0.3 s. 0.45 % CPU |
+| R5 | Common controls on the new types; the rest hidden via `typeLabels` | 🟡 | Controls_a_type_does_not_use_are_hidden_on_it; High_cut_…; Low_freq_time_… | Decay, Size, Pre-delay, High/Low Cut, Low/High Freq Time, early reflections, EQ, pitch, ducker, Mix, Kill Dry, Global Mix, Stack/Hold on all four; Mod and Echo Density on the ring; Input Diffusion on the ring and combs; Quality and Wall Diffusion hidden |
+| R6 | Block Library presets of the named classic types | 🟡 | BlockLibraryTests.Every_factory_preset_names_real_parameters_with_values_in_range | 12: Classic Concert Hall, Classic Large Hall, Random Hall, Rich Plate, Small Plate, Vocal Plate, Early Digital Hall, Early Digital Room, Ambience, Small Ambience, Recording Studio, Bright Room |
 
 ## Known open items from earlier rounds
 
