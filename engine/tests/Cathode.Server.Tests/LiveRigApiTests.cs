@@ -240,6 +240,38 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Changing_the_amp_type_starts_the_new_model_from_its_defaults() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("circuitamp", 0, 4));
+        await Patch(
+            "/api/v1/live/blocks/circuitamp1/params",
+            new Dictionary<string, float> { ["gain"] = 9, ["switch1"] = 1, ["bias"] = 80, ["level"] = -6, ["inputsel"] = 2 }
+        );
+
+        var state = await Patch(
+            "/api/v1/live/blocks/circuitamp1/params",
+            new Dictionary<string, float> { ["type"] = 3, ["treble"] = 7 }
+        );
+
+        var stored = state.Preset.Blocks.Single(b => b.Id == "circuitamp1").Channels["A"];
+        var info = Cathode.Dsp.Blocks.CircuitAmpBlock.Info;
+        Assert.Equal(info.Params[info.IndexOf("gain")].Default, stored["gain"]);
+        Assert.Equal(0, stored["switch1"]); // a control the new model may not even have
+        Assert.Equal(info.Params[info.IndexOf("bias")].Default, stored["bias"]);
+        Assert.Equal(7, stored["treble"]); // sent with the type: kept
+        Assert.Equal(-6, stored["level"]); // the block's own output and routing carry over
+        Assert.Equal(2, stored["inputsel"]);
+        await ServerFixture.Eventually(() => server.Target("circuitamp1", "gain") == stored["gain"]);
+
+        // Setting the same type again is not a change.
+        state = await Patch(
+            "/api/v1/live/blocks/circuitamp1/params",
+            new Dictionary<string, float> { ["gain"] = 8 }
+        );
+        state = await Patch("/api/v1/live/blocks/circuitamp1/params", new Dictionary<string, float> { ["type"] = 3 });
+        Assert.Equal(8, state.Preset.Blocks.Single(b => b.Id == "circuitamp1").Channels["A"]["gain"]);
+    }
+
+    [Fact]
     public async Task An_aida_x_model_uploads_as_a_model_and_runs_in_the_capture_amp() {
         const string model = """
             {"in_shape":[null,null,1],"in_skip":1,"out_gain":2,"layers":[

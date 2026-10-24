@@ -24,6 +24,13 @@ public sealed class BlockDescriptor {
 
     public IReadOnlyList<ParamDescriptor> Params { get; }
 
+    /// <summary>
+    ///     The parameters set back to their defaults when the block's <c>type</c> changes: the settings that belong to
+    ///     one model (the Circuit Amp's knobs, switches and expert values), so the new model starts as it ships rather
+    ///     than with the old one's settings. Empty for a block whose settings carry over between types.
+    /// </summary>
+    public IReadOnlyList<string> TypeResets { get; }
+
     public BlockDescriptor(
         string typeId,
         string name,
@@ -31,7 +38,8 @@ public sealed class BlockDescriptor {
         IReadOnlyList<ParamDescriptor> parameters,
         int typeVersion = 1,
         int maxInstances = 4,
-        int channels = 4
+        int channels = 4,
+        IReadOnlyList<string>? typeResets = null
     ) {
         TypeId = typeId;
         Name = name;
@@ -40,6 +48,7 @@ public sealed class BlockDescriptor {
         TypeVersion = typeVersion;
         MaxInstances = maxInstances;
         Channels = channels;
+        TypeResets = typeResets ?? [];
         indexById = new(StringComparer.Ordinal);
         for (var i = 0; i < parameters.Count; i++) {
             if (!indexById.TryAdd(parameters[i].Id, i)) {
@@ -51,6 +60,9 @@ public sealed class BlockDescriptor {
         }
 
         indexByName = indexById.GetAlternateLookup<ReadOnlySpan<char>>();
+        if (TypeResets.FirstOrDefault(r => r == "type" || !indexById.ContainsKey(r)) is { } bad) {
+            throw new ArgumentException($"Block '{typeId}' cannot reset '{bad}' on a type change.", nameof(typeResets));
+        }
     }
 
     /// <summary>Returns the parameter index for <paramref name="id" />, or -1.</summary>

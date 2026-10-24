@@ -173,6 +173,13 @@ public sealed class CircuitAmpBlock : DspBlock {
         PentodeModel.SixL6GC
     ];
 
+    /// <summary>
+    ///     The parameters a type change leaves alone: the block's own routing and output. Every other one belongs to a
+    ///     model and goes back to its default, so the new model starts as it ships
+    ///     (<see cref="BlockDescriptor.TypeResets" />).
+    /// </summary>
+    static readonly string[] KeptOnTypeChange = ["type", "level", "inputsel"];
+
     readonly AmpChannel[] channels;
     readonly Oversampler2x oversampler = new(1);
     AmpChannel active;
@@ -182,10 +189,7 @@ public sealed class CircuitAmpBlock : DspBlock {
     double preampScale = 1;
     float outputGain = 1f;
 
-    public static BlockDescriptor Info { get; } = new(
-        "circuitamp",
-        "Amp (circuit)",
-        "Amp",
+    public static BlockDescriptor Info { get; } = Describe(
         Labelled([
             ParamDescriptor.Choice("type", "Type", [..AmpDesign.All.Select(static a => a.Name)]),
             ParamDescriptor.Float("gain", "Gain", 0f, 10f, 5f),
@@ -247,8 +251,7 @@ public sealed class CircuitAmpBlock : DspBlock {
             ParamDescriptor.Choice("supply", "Supply Type", ["Stock", "DC", "AC 60 Hz", "AC 50 Hz"]),
             ParamDescriptor.Choice("rectifier", "Rectifier", ["Stock", "Silicon", "GZ34", "5U4", "5Y3", "EZ81"]),
             Expert(ParamDescriptor.Float("katc", "Cathode Time Const", 25f, 400f, 100f, "%", ParamTaper.Log))
-        ]),
-        maxInstances: 2
+        ])
     );
 
     static CircuitAmpBlock() {
@@ -330,6 +333,16 @@ public sealed class CircuitAmpBlock : DspBlock {
         this.outputGain = outputGain;
         io.Left.CopyTo(io.Right);
     }
+
+    static BlockDescriptor Describe(IReadOnlyList<ParamDescriptor> parameters) =>
+        new(
+            "circuitamp",
+            "Amp (circuit)",
+            "Amp",
+            parameters,
+            maxInstances: 2,
+            typeResets: [..parameters.Select(static p => p.Id).Where(static id => !KeptOnTypeChange.Contains(id))]
+        );
 
     /// <summary>The descriptor's parameters with each model's panel names (<see cref="ParamDescriptor.TypeLabels" />).</summary>
     static IReadOnlyList<ParamDescriptor> Labelled(IReadOnlyList<ParamDescriptor> parameters) =>
