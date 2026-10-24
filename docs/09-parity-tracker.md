@@ -52,6 +52,7 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | M1.3 | JVM410HJS (Satriani) as its own model | ⏸ | — | 5 relays, 9 gain structures; no published relay table per mode |
 | M1.4 | JVM410H Clean and Crunch channels | ✅ | Remaining_marshall_chains_match_the_reference (JVM, 6 settings) | type `JVM410H Clean/Crunch` |
 | M1.5 | JVM410H Green / Orange / Red modes per channel | ◐ | The_modes_raise_the_gain_in_order | relay states deduced from the handbook (firmware sets them); Clean modes partly guessed |
+| M1.6 | Marshall AFD100 (Slash): AFD and #34 modes, High/Low input | ◐ | Afd100_modes_and_inputs_set_the_gain; Remaining_marshall_chains_match_the_reference (AFD100, 6 settings: #34 −27 / −24 dB, AFD −23 / −20 dB at 2 / 50 mV); sweeps, audibility, monotonic gain and master, panel labels (`RemainingMarshallTests`) | type `AFD100`, from AFD100-60-02 iss 1. Which relay state is AFD is inferred (CTL1 controller not drawn); B+, idle, OT, feedback tap guessed; Power control and loop not modelled; #34 over the high-gain guitar budget (~2.1 × Plexi) |
 
 ## M2: power-amp driver variants
 
@@ -200,6 +201,7 @@ These were reported as left over or deliberately deferred, and are not assigned 
 | JVM410H Orange/Red, JMP-1 OD over on guitar (17–19.6 %); JVM/DSL clean modes over on noise (26–30 %) | ⬜ | No solver shortcuts tried yet |
 | Bass 400 bias: drawing's −63 V needs 65 mA (35 W) on the library 6550 | ⬜ | Check the 6550 tube fit against a datasheet; the model runs 45 mA |
 | JCM900 ch B over on guitar, ch A over on noise; JVM410H slightly over on guitar | ⬜ | V1 pair with the 220k loop is 6–10 % alone |
+| AFD100 #34 over the high-gain budget on guitar (17.4 / 29.0 %, 2.1 / 2.0 × Plexi; AFD 16.4 / 25.5 %); its chain is −23 to −27 dB from the one-circuit reference | ⬜ | Six stages; V7A+V7B+stack is the dear one (the follower cuts off into the stack on noise). The cut error is the library's real-valued output resistance at bypassed cathodes (V5, AFD's V6A) and V8A's bootstrapped grid on the stack; a three-triode V7+V8A stage reached −34 dB at +40 % CPU |
 | Orange AD30 | ⏸ | No front-panel board schematic found |
 | Dumble ODS HRM | ⏸ | No HRM drawing exists |
 | Bassman 135 first stage 4 dB short of the drawing's test voltages | ⬜ | Unresolved; pot tapers guessed |

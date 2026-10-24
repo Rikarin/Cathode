@@ -620,6 +620,21 @@ cites its drawings and marks what is read, inferred or guessed:
   driver. Every op-amp but the OD's inverting stage is a linear amplifier. Its line output drives the JCM900 4100's
   documented EL34 power amp (4100-60-02); presence and depth hidden, Control 1 the Output level, Control 2 the preamp's
   Presence band.
+- **AFD100** (`MarshallAfd100.cs`, added after M1), from the main-board drawing AFD100-60-02 iss 1 (10-6-10, vector):
+  V5 (both triodes of an ECC83 in parallel, 51k, 1k33 bypassed), the 1M Gain with 470k ‖ 2.2 nF ahead of it and a 1 nF
+  bright cap, V6A (10k), V6B (10k with 10k + 100 nF), V7A, the V7B follower straight into a 2203-style stack (250k
+  treble, 25k middle), 300k onto 560k ‖ 100 pF, the V8A follower with a bootstrapped grid, the send divider, V8B as a
+  unity-gain shunt-feedback recovery stage (loop off), 120k onto the 1M Master; a long-tail pair with 470 pF between the
+  plates, four 6550 with per-tube servo bias. The two modes are relays RL1 and RL3 driven together from CTL1: at rest
+  (#34) V6B is in the chain and R80/C57 bootstrap V6A's grid; energised (AFD) RL1 skips V6B and RL3 grounds R80/C57,
+  loading the Gain's wiper with 150k and bypassing V6A's cathode above 160 Hz. Switch 1 is AFD, Switch 2 the Low input.
+  Inferred: which relay state the AFD LED means (#34 then has 4.5 dB more gain at 1 kHz and one more clipping stage).
+  Guessed: B+ 470 V, 40 mA idle, 1.7k OT, feedback tap 4 Ω; the preamp rails (423 / 351 / 303 / 284 / 272 V) follow
+  from the drawing's dropping chain. Not modelled: the Power control (a MOSFET screen regulator and a gang in the
+  feedback path; at full), the loop. Chain against the one-circuit reference −23 to −27 dB (the real-valued cut
+  resistance at bypassed cathodes, and V8A's bootstrapped grid loading the stack); CPU 17.4 / 29.0 % #34, 16.4 / 25.5 %
+  AFD with the Plexi at 8.4 / 14.8 %, Newton tolerance 1e-5 and chord steps in every stage: #34 over the high-gain
+  guitar budget.
 - **Not built: JVM410HJS.** Its sheets (-60-02 iss 2, -61-02 iss 1, -62-02 iss 1) carry the JVM410H's channel networks
   and three-path cascade with other values, plus the input buffer, the THAT4301 gate and mid-shift relays, but five
   main-board relays (RL101, RL103 B/C, RL104, RL105) where the JVM410H has three, and its handbook describes the modes'
