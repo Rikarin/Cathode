@@ -89,6 +89,8 @@ public sealed partial record AmpDesign {
         Deluxe6G3.Design,
         Vibrolux6G11.Design,
         Bassman135.Design,
-        GibsonScout.Design
+        GibsonScout.Design,
+        MarshallMajor.Design,
+        MesaBass400.Design
     ];
 }

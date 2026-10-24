@@ -94,7 +94,13 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                         && !(index == CircuitAmpBlock.BrightCap && !HasBrightCap(design))
                         && !(design.SolidState is not null && !SolidStateAudible(design, index))
                         // A preamp fed from a separate screen winding (the SVT) sees no sag to scale.
-                        && !(index == CircuitAmpBlock.PreampSag && design.Power.ScreenSupply > 0);
+                        && !(index == CircuitAmpBlock.PreampSag && design.Power.ScreenSupply > 0)
+                        // The Major's preamp node sits behind 25k and 50 µF (1.25 s): it does not move within the
+                        // render, and its only preamp stage before the loop is V1 at small signal.
+                        && !(index == CircuitAmpBlock.PreampSag
+                            && design.Power.PowerSupply.PreampResistance * design.Power.PowerSupply.PreampCap > 1)
+                        // A 400 W bass amp at this level is far below the core's knee (−65 dB at drive 10).
+                        && !(index == CircuitAmpBlock.TransformerDrive && design.Power.RatedPower >= 400);
                     data.Add(type, index, value, audible);
                 }
             }

@@ -732,6 +732,42 @@ CPU (48 kHz, default settings, guitar-like chord bursts / white noise, measured 
 - **References**: none. No free direct-out capture of these amps was found (GuitarML ToneLibrary, pelennor2170/NAM_models searched); the Dumble kit and clone captures stay on ODS 97.
 - **CPU** (48 kHz, default settings, guitar-like chord bursts / white noise, best of three passes on a machine with a load average of 100 to 360, where Plexi read 9.1 / 15.2 %): Liverpool 10.8 / 16.8, ODS 70s clean 8.7 / 13.0, overdrive 12.3 / 17.9, Dual Rectifier 13.4 / 21.7 (Modern 13.3 / 21.7), Dual Rectifier 3-Ch 14.8 / 23.7, Triple Rectifier 13.9 / 24.1, Subway Blues 11.3 / 18.2, **TriAxis Rhythm 15.4 / 23.2, Lead 1 16.1 / 26.4, Lead 2 18.9 / 31.9 %: over budget** (Rhythm against the clean class, Lead 2 against high gain). Per stage at 96 kHz the Dynamic Voice (one op-amp, five LCR branches) costs about 2.4 % and V5A 1.2 %; the TriAxis runs eight stages (Lead 2) where a Mark runs six. Next: an ideal-op-amp element (the R-type adaptor already has VCVS ports) so that the Dynamic Voice is a linear network with no Newton device, or the Dynamic Voice bypassed at zero.
 
+**As built (stream M2, power-amp driver variants, round 3).** Two types appended to `AmpDesign.All`, and three library
+additions (new types; every existing inverter and power amp renders bit-identical, pinned by `InverterBitIdentityTests`):
+- **Library**: `CathodyneDriverDesign` (a cathodyne whose plate and junction each AC-couple into one grid of a triode pair
+  with a shared unbypassed cathode, no followers; outputs the pair's plates); `DifferentialDriverDesign` (a long-tail pair
+  on a negative tail, each plate onto a coupling load and a divider into a second pair with a shared cathode); and
+  `LoopStageDesign` on `PowerAmpDesign.Loop`: a common-cathode triode taking the feedback at the bottom of its cathode
+  circuit, followed by a linear RC network with pots and switches (`StageNetlist`, resistors and capacitors), run inside
+  the power amp's scalar Newton as a table plus a trapezoidal state-space whose output is affine in the sample's input,
+  so the tone stack sits inside the loop with no delay. The loop stage inverts, so the feedback is taken with the other
+  sign; the knobs reach it through `PowerAmp.ConfigureLoop` (called from `AmpChannel.Configure`) and the preamp's sag through
+  `PowerAmp.SetLoopSupply` (per sample, from `AmpChannel.Tick`; the table scaled with the supply). Also `PotRole.Equalizer1`
+  to `Equalizer5`: a network-stage pot turned by the block's EQ band gains (±12 dB as the slider's travel).
+- **Major 1967** (Unicord 70-02-12): both V1 channels and the volume mix as one stage; V2A (bypassed 470 above the 470 Ω
+  feedback shunt, 47k from the 16 Ω tap, 5k / 0.68 µF presence) and the stack (500 pF, 33k, 22 nF to the bass, 22 nF to
+  the middle pot's *wiper*, 250k / 1M / 25k) in the loop; V2B cathodyne 100k / 2.7k / 100k; ECC82 47k plates, shared
+  1.5k, 270k leaks (printed "270"); four KT88 ultralinear, 68k feeds, 5.6k stoppers. The Treble volume's 2.2 nF line is
+  read as crossing the mix line (joined, the pot would move the level 2 dB). Guessed: B+ 600 V, the nodes, 40 mA idle,
+  2.5k primary, 43 % taps. The feedback flattens the stack: treble 0 → 10 moves 3 kHz 4.4 dB in the loop, 9.5 dB open.
+- **Bass 400** (Mesa 1985, rendered from the PDF with its page transforms, which made docs' unreadable parts readable:
+  the volumes return to ground, V3B's grid and its 62k sit on the ground line): V1A / V1B with their volumes (Switch 1
+  picks input 2); V2A + stack + V2B as one stage (V2B's grid biases itself by grid current from 3.3M and loads the stack:
+  a Thévenin cut there was −13 dB off the reference); the six-band LC graphic EQ on a linear op-amp (five EQ bands and
+  Control 2 for 4 kHz; ±19–21 dB at the extremes); V3 33k / 33k tail to −68 V, 62k and 470k / 220k into V4 (47k guessed,
+  plates 279 V against the marked 276 V), shared 470 Ω; six 6550 at 45 mA (the
+  library's 6550 then wants −67 V where the sheet marks −63 V; matching the mark would be 35 W a tube); no feedback.
+- **Validation**: the driver tables against exact DC sweeps (`Cathodyne_driver_table_matches_the_reference_dc_sweep`,
+  `Differential_driver_table_matches_the_reference_dc_sweep`: < 0.05 V wherever no grid draws current); whole power amps
+  in the time domain with a stiff supply (`Driver_power_amps_match_the_reference_in_the_time_domain`: Major −32 dB with the
+  loop closed, −38 dB open, Bass 400 −40 dB; the closed loop's residue is the presence branch, which the model leaves out
+  of V2A's degeneration); the preamps as whole chains (`Driver_variant_preamps_match_the_reference`: Major −78 dB, Bass 400
+  −46 dB). Knob sweeps at full drive converge with peaks below 0 dBFS (`DriverVariantAmpTests`).
+- **References**: none found (GuitarML ToneLibrary, pelennor2170/NAM_models).
+- **CPU** (48 kHz, best of three, Plexi 8.4 / 15.0 % in the same passes): Major 10.0 / 16.5 %, Bass 400 13.0 / 21.4 % (over
+  the clean budget, within crunch: five triodes, a twelve-reactance EQ and six output tubes; a looser Newton tolerance
+  did not help).
+
 ### 3.5 Bass and solid state (tier 2)
 
 - **Ampeg SVT**: 300 W, 6 × 6550 (6146B in 1969–70) in two groups of three, each driven by a DC-coupled 12BH7 CF that also sets the bias [https://en.wikipedia.org/wiki/Ampeg_SVT; https://www.talkbass.com/threads/ampeg-svt-1979-power-amp-problem.519028/]. B+ about 660 V and OT impedance *(unverified)*. Needs CF-driven grids, 6550 tables, and a bass speaker load (8 × 10).
