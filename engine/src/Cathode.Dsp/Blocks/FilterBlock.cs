@@ -11,15 +11,22 @@ namespace Cathode.Dsp.Blocks;
 ///         <item>Order 4th cascades two identical sections (pass, stop and all-pass types).</item>
 ///         <item>Tilt EQ: a low shelf cut and a high shelf boost of half the gain each, hinged at the frequency.</item>
 ///         <item>Null: no filter, for the gain, pan and phase controls alone.</item>
+///         <item>All Pass can have feedback around it (one sample later), which turns its phase sweep into peaks.</item>
+///         <item>
+///             Low and High Shelf 2: shelves whose Q may rise to <see cref="MaxShelf2Q" />, so they overshoot at the corner
+///             as passive shelving networks do. Peaking 2: the peak narrows as its gain grows (proportional Q: Q times
+///             the square root of the linear gain).
+///         </item>
 ///         <item>
 ///             FF and FB Comb: the signal plus Depth times itself (feed-forward) or its output (feedback) Comb Time
 ///             earlier, giving notches or peaks at multiples of 1 / time.
 ///         </item>
 ///     </list>
-///     A built-in LFO can sweep the frequency between Frequency and Mod Frequency (log-spaced). While anything that
+///     A built-in LFO, with duty and quantise, can sweep the frequency between Frequency and Mod Frequency (log-spaced).
+///     While anything that
 ///     shapes the filter is moving, coefficients are recomputed every <see cref="SubBlock" /> samples on a grid
-///     counted from the start of the stream, so the result does not depend on the callback size. Then come a first
-///     low and high cut, the pans of each input side, phase invert, and level and balance.
+///     counted from the start of the stream, so the result does not depend on the callback size. Then come a first-order
+///     (6 dB/oct) low and high cut, the pans of each input side, phase invert, and level and balance.
 /// </summary>
 public sealed class FilterBlock() : DspBlock(Info) {
     public const int Type = 0;
@@ -41,6 +48,9 @@ public sealed class FilterBlock() : DspBlock(Info) {
     public const int LfoRate = 16;
     public const int LfoTempo = 17;
     public const int ModFrequency = 18;
+    public const int Feedback = 19;
+    public const int LfoDuty = 20;
+    public const int LfoQuantize = 21;
 
     /// <summary>Type indices beyond the seven biquad responses (which match <see cref="BiquadType" />).</summary>
     public const int Null = 7;
@@ -49,6 +59,11 @@ public sealed class FilterBlock() : DspBlock(Info) {
     public const int Tilt = 9;
     public const int FeedForwardComb = 10;
     public const int FeedbackComb = 11;
+    public const int LowShelf2 = 12;
+    public const int HighShelf2 = 13;
+    public const int Peaking2 = 14;
+
+    public const double MaxShelf2Q = 4;
 
     const int SubBlock = 32;
     const float MaxCombMs = 20f;
@@ -62,9 +77,11 @@ public sealed class FilterBlock() : DspBlock(Info) {
     SvfState right;
     SvfState secondLeft;
     SvfState secondRight;
-    WetCuts cuts;
+    FirstOrderCuts cuts;
     Lfo lfo;
     int phase;
+    float allPassLeft;
+    float allPassRight;
     OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
@@ -87,7 +104,10 @@ public sealed class FilterBlock() : DspBlock(Info) {
                     "All Pass",
                     "Tilt EQ",
                     "FF Comb",
-                    "FB Comb"
+                    "FB Comb",
+                    "Low Shelf 2",
+                    "High Shelf 2",
+                    "Peaking 2"
                 ]
             ),
             ParamDescriptor.Float("freq", "Frequency", 20f, 20_000f, 1_000f, "Hz", ParamTaper.Log),
@@ -107,7 +127,10 @@ public sealed class FilterBlock() : DspBlock(Info) {
             ParamDescriptor.Choice("lfoType", "LFO Type", Lfo.ShapeNames),
             ParamDescriptor.Float("lfoRate", "LFO Rate", 0.05f, 20f, 1f, "Hz", ParamTaper.Log),
             ParamDescriptor.Choice("lfoTempo", "LFO Tempo", TempoDivisions.Names),
-            ParamDescriptor.Float("modFreq", "Mod Frequency", 20f, 20_000f, 4_000f, "Hz", ParamTaper.Log)
+            ParamDescriptor.Float("modFreq", "Mod Frequency", 20f, 20_000f, 4_000f, "Hz", ParamTaper.Log),
+            ParamDescriptor.Float("feedback", "Feedback", -95f, 95f, 0f, "%"),
+            ParamDescriptor.Float("lfoDuty", "LFO Duty", 0f, 100f, 50f, "%"),
+            LfoConditioner.QuantizeParam()
         ],
         maxInstances: 4
     );
@@ -117,6 +140,9 @@ public sealed class FilterBlock() : DspBlock(Info) {
         type switch {
             < Null => (BiquadType)type,
             AllPass => BiquadType.AllPass,
+            LowShelf2 => BiquadType.LowShelf,
+            HighShelf2 => BiquadType.HighShelf,
+            Peaking2 => BiquadType.Peak,
             _ => null
         };
 
@@ -136,6 +162,8 @@ public sealed class FilterBlock() : DspBlock(Info) {
         cuts.Reset();
         lfo.Reset();
         phase = 0;
+        allPassLeft = 0;
+        allPassRight = 0;
         UpdateCoefficients(Params.Current(Frequency));
         output.Reset(Params.Current(Level), Params.Current(Balance));
     }
@@ -157,6 +185,12 @@ public sealed class FilterBlock() : DspBlock(Info) {
         if (type == Tilt) {
             first = SvfCoefficients.Design(BiquadType.LowShelf, rate, frequency, 0.7071, -0.5 * gain);
             second = SvfCoefficients.Design(BiquadType.HighShelf, rate, frequency, 0.7071, 0.5 * gain);
+        } else if (type is LowShelf2 or HighShelf2) {
+            first = SvfCoefficients.Design(Response(type)!.Value, rate, frequency, q, gain, MaxShelf2Q);
+            second = first;
+        } else if (type == Peaking2) {
+            first = SvfCoefficients.Design(BiquadType.Peak, rate, frequency, q * Math.Sqrt(Decibels.ToGain(Math.Abs(gain))), gain);
+            second = first;
         } else if (Response(type) is { } response) {
             first = SvfCoefficients.Design(response, rate, frequency, q, gain);
             second = first;
@@ -175,7 +209,14 @@ public sealed class FilterBlock() : DspBlock(Info) {
         var freeRate = Params.Advance(LfoRate, io.Length);
         var lfoRate = TempoDivisions.Rate((int)Params.Current(LfoTempo), context.Tempo, freeRate);
         var shape = (LfoShape)(int)Params.Current(LfoType);
+        var duty = Params.Advance(LfoDuty, io.Length) / 100.0;
+        var quantize = (int)Params.Current(LfoQuantize);
         var modFrequency = Params.Advance(ModFrequency, io.Length);
+        var allPassFeedback = Params.Advance(Feedback, io.Length) / 100f;
+        var feedback = type == AllPass && allPassFeedback != 0;
+        if (!feedback) {
+            (allPassLeft, allPassRight) = (0f, 0f);
+        }
 
         if (type is FeedForwardComb or FeedbackComb) {
             Params.Advance(Frequency, io.Length);
@@ -191,7 +232,12 @@ public sealed class FilterBlock() : DspBlock(Info) {
                 if (!moving || phase == 0) {
                     if (lfoOn) {
                         // The LFO's 0..1 position moves log-wise from Frequency to Mod Frequency.
-                        var position = 0.5f * (1 + lfo.Value(shape));
+                        var value = lfo.Value(shape, 0, duty);
+                        if (quantize > 0) {
+                            value = LfoConditioner.Quantize(value, LfoConditioner.Levels(quantize));
+                        }
+
+                        var position = 0.5f * (1 + value);
                         frequency *= MathF.Pow(modFrequency / frequency, position);
                     }
 
@@ -203,6 +249,13 @@ public sealed class FilterBlock() : DspBlock(Info) {
                 }
 
                 var chunk = io.Slice(start, length);
+                if (feedback) {
+                    AllPassWithFeedback(chunk, cascade, allPassFeedback);
+                    phase = moving ? (phase + length) % SubBlock : 0;
+                    start += length;
+                    continue;
+                }
+
                 left.Process(first, chunk.Left);
                 right.Process(first, chunk.Right);
                 if (cascade) {
@@ -220,6 +273,28 @@ public sealed class FilterBlock() : DspBlock(Info) {
         }
 
         Finish(io);
+    }
+
+    /// <summary>The all-pass (one or two sections) with its output fed back to its input one sample later.</summary>
+    void AllPassWithFeedback(in StereoBuffer chunk, bool cascade, float feedback) {
+        for (var i = 0; i < chunk.Length; i++) {
+            var l = left.Tick(first, chunk.Left[i] + feedback * allPassLeft);
+            var r = right.Tick(first, chunk.Right[i] + feedback * allPassRight);
+            if (cascade) {
+                l = secondLeft.Tick(second, l);
+                r = secondRight.Tick(second, r);
+            }
+
+            allPassLeft = MathF.Abs((float)l) < 1e-20f ? 0f : (float)l;
+            allPassRight = MathF.Abs((float)r) < 1e-20f ? 0f : (float)r;
+            chunk.Left[i] = allPassLeft;
+            chunk.Right[i] = allPassRight;
+        }
+
+        left.FlushDenormals();
+        right.FlushDenormals();
+        secondLeft.FlushDenormals();
+        secondRight.FlushDenormals();
     }
 
     /// <summary>Feed-forward or feedback comb at Comb Time with gain Depth.</summary>
