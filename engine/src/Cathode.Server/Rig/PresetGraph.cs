@@ -6,9 +6,20 @@ namespace Cathode.Server.Rig;
 
 /// <summary>Turns the working copy plus the active scene into the graph the engine compiles.</summary>
 public static class PresetGraph {
-    public static GraphDefinition Build(Preset preset, int sceneIndex, AssetStore assets) {
+    /// <param name="preset">The working copy.</param>
+    /// <param name="sceneIndex">The active scene.</param>
+    /// <param name="assets">Where asset references resolve.</param>
+    /// <param name="oversampling">The global oversampling filters (minimum or linear).</param>
+    public static GraphDefinition Build(
+        Preset preset,
+        int sceneIndex,
+        AssetStore assets,
+        string oversampling = "minimum"
+    ) {
         var scene = preset.Scenes[sceneIndex];
-        var graph = new GraphDefinition { Rows = preset.Rows, Columns = preset.Columns };
+        var graph = new GraphDefinition {
+            Rows = preset.Rows, Columns = preset.Columns, Oversampling = oversampling
+        };
         foreach (var block in preset.Blocks) {
             var node = new NodeDefinition {
                 Id = block.Id,

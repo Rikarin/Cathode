@@ -39,6 +39,35 @@ public sealed record EngineStatus(
 
 public sealed record SystemInfo(string Version, EngineStatus Engine);
 
+/// <summary>One block on the graph's longest path and the latency it adds, in frames.</summary>
+public sealed record LatencyStepInfo(string Block, string Type, int Frames);
+
+/// <summary>
+///     Where the time goes, instrument to speaker: the device's input and output latency as its driver reports them
+///     (each includes one buffer), the buffer itself, the graph's latency along its longest path (with the blocks on
+///     it), and the total of the device and graph latencies.
+/// </summary>
+public sealed record LatencyInfo(
+    bool Connected,
+    double SampleRate,
+    int BufferFrames,
+    int InputFrames,
+    int OutputFrames,
+    int GraphFrames,
+    IReadOnlyList<LatencyStepInfo> Path,
+    int TotalFrames,
+    double TotalMs
+);
+
+/// <summary>The cab resonance helper's sine, in place of a block's output: on or off, its pitch and level (dBFS).</summary>
+public sealed record TestToneRequest(bool Enabled, double Frequency = 100, float Level = -20);
+
+/// <summary>
+///     A Circuit Amp's speaker resonance: the model's (or the chosen speaker's) frequency at LF Resonance 100 %, the
+///     LF Resonance setting, and the frequency it gives.
+/// </summary>
+public sealed record SpeakerResonanceInfo(double BaseHz, float Percent, double Hz);
+
 /// <summary>
 ///     A block parameter. <c>TypeLabels</c>, where present, names the parameter per value of the block's <c>type</c>
 ///     parameter (an amp model's own name for a generic control), empty where that type lacks the control: hide it there.
@@ -117,7 +146,8 @@ public sealed record Telemetry(
     long Overloads,
     TunerInfo? Tuner,
     double Tempo = 120,
-    LooperInfo? Looper = null
+    LooperInfo? Looper = null,
+    float[]? OutputPeaks = null
 );
 
 /// <summary>

@@ -120,6 +120,59 @@ public sealed partial class EngineConnection(
         return reply.Task;
     }
 
+    /// <summary>The device's and the graph's latency (zeros while no engine is connected).</summary>
+    public async Task<LatencyInfo> LatencyAsync() {
+        var reply = await RequestAsync(new() { Type = IpcTypes.Latency });
+        if (reply?.Latency is not { } l) {
+            return new(false, info?.SampleRate ?? 0, info?.BufferFrames ?? 0, 0, 0, 0, [], 0, 0);
+        }
+
+        var total = l.InputLatencyFrames + l.OutputLatencyFrames + l.GraphLatencyFrames;
+        return new(
+            true,
+            l.SampleRate,
+            l.BufferFrames,
+            l.InputLatencyFrames,
+            l.OutputLatencyFrames,
+            l.GraphLatencyFrames,
+            [..l.Path.Select(static s => new LatencyStepInfo(s.Block, s.Type, s.Samples))],
+            total,
+            l.SampleRate > 0 ? total / l.SampleRate * 1_000 : 0
+        );
+    }
+
+    /// <summary>Starts, retunes or stops the test tone in place of <paramref name="block" />'s output.</summary>
+    public async Task TestToneAsync(string block, TestToneRequest request) {
+        if (await RequestAsync(
+                new() {
+                    Type = IpcTypes.TestTone,
+                    Block = block,
+                    Enabled = request.Enabled,
+                    Frequency = request.Frequency,
+                    Level = request.Level
+                }
+            )
+            is null
+            && request.Enabled) {
+            throw new RigException(503, "The engine is not connected.");
+        }
+    }
+
+    /// <summary>A request with a reply, or null when no engine is connected.</summary>
+    async Task<IpcMessage?> RequestAsync(IpcMessage message) {
+        if (!IsConnected) {
+            return null;
+        }
+
+        var reply = new TaskCompletionSource<IpcMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        queue.Writer.TryWrite(new(message, reply));
+        try {
+            return await reply.Task;
+        } catch (IpcException e) {
+            throw new RigException(422, e.Message, e.Errors);
+        }
+    }
+
     public void SetMidi(bool followClock) => Enqueue(new() { Type = IpcTypes.SetMidi, FollowClock = followClock });
 
     public void MidiOut(string? destination, IReadOnlyList<byte> bytes) =>
@@ -254,7 +307,8 @@ public sealed partial class EngineConnection(
                     reading.Overruns,
                     Tuner(LastTelemetry),
                     LastTelemetry?.Tempo ?? 120,
-                    Looper(LastTelemetry)
+                    Looper(LastTelemetry),
+                    OutputPeaks(LastTelemetry)
                 ),
                 ContractsJsonContext.Default.Telemetry
             );
@@ -263,6 +317,9 @@ public sealed partial class EngineConnection(
 
     static LooperInfo? Looper(HostTelemetry? t) =>
         t?.Looper is { } l ? new(l.State, l.LengthSeconds, l.PositionSeconds, l.Reversed, l.HalfSpeed) : null;
+
+    /// <summary>Outputs 1-4's peaks (a copy: an in-process host refills its telemetry in place).</summary>
+    static float[]? OutputPeaks(HostTelemetry? t) => t is null ? null : [..t.OutputPeaks];
 
     static TunerInfo? Tuner(HostTelemetry? t) =>
         t?.Tuner is { } r ? new TunerInfo(r.Frequency, r.Note, r.Octave, r.Cents) : null;
@@ -309,7 +366,8 @@ public sealed partial class EngineConnection(
                     t.Overloads,
                     Tuner(t),
                     t.Tempo,
-                    Looper(t)
+                    Looper(t),
+                    OutputPeaks(t)
                 ),
                 ContractsJsonContext.Default.Telemetry
             );

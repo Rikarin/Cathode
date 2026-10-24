@@ -288,5 +288,10 @@ public sealed partial class LiveRig {
 
         engine.SetParams(generation, values);
         engine.SetMidi(global.TempoMode == "midiClock");
+        if (global.Oversampling != Volatile.Read(ref compiledOversampling)) {
+            // The filters change the blocks' latency, so the graph is compiled again (gaplessly).
+            _ = ResyncAsync()
+                .ContinueWith(static t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
+        }
     }
 }

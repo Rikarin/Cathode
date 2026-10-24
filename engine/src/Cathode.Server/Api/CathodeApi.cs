@@ -27,6 +27,12 @@ public static class CathodeApi {
         api.MapGet("/system", (EngineConnection engine) => TypedResults.Ok(new SystemInfo(Version, engine.Status())))
             .WithName("GetSystem");
 
+        api.MapGet("/system/latency", async (EngineConnection engine) => TypedResults.Ok(await engine.LatencyAsync()))
+            .WithName("GetLatency")
+            .WithSummary(
+                "The latency from instrument to speaker: the device's input and output latency, the buffer, and the graph's latency along its longest path, block by block."
+            );
+
         var catalog = api.MapGroup("/catalog").WithTags("Catalog");
         catalog.MapGet("/blocks", (BlockCatalog blocks) => TypedResults.Ok(blocks.All.ToArray()))
             .WithName("ListBlockTypes");
@@ -345,6 +351,31 @@ public static class CathodeApi {
             .WithName("GetAssetContent")
             .WithSummary("The asset's file, e.g. an impulse response for the editor's frequency-response plot.");
 
+        live.MapPut(
+                "/blocks/{id}/test-tone",
+                async Task<IResult> (string id, TestToneRequest request, LiveRig rig, EngineConnection engine) => {
+                    if (request.Enabled) {
+                        await rig.CheckBlockAsync(id);
+                    }
+
+                    await engine.TestToneAsync(id, request);
+                    return TypedResults.NoContent();
+                }
+            )
+            .WithName("SetTestTone")
+            .WithSummary(
+                "Plays a sine in place of the block's output (the cab resonance helper), or stops it. Nothing is stored in the preset, and loading another graph stops it."
+            );
+
+        live.MapGet(
+                "/blocks/{id}/speaker-resonance",
+                async (string id, LiveRig rig) => TypedResults.Ok(await rig.SpeakerResonanceAsync(id))
+            )
+            .WithName("GetSpeakerResonance")
+            .WithSummary(
+                "A Circuit Amp's speaker resonance: the frequency at LF Resonance 100 % for its model and speaker, the current setting and the frequency it gives."
+            );
+
         api.MapPut(
                 "/tuner",
                 (BypassRequest request, IEngineSync engine) => {
@@ -520,7 +551,10 @@ public static class CathodeApi {
                                 g.Tempo = Math.Clamp(settings.Tempo, 30, 300);
                                 g.Metronome = settings.Metronome;
                                 g.MetronomeLevel = Math.Clamp(settings.MetronomeLevel, -60, 0);
-                                g.Eq = settings.Eq;
+                                g.Outputs = settings.Outputs;
+                                g.CopyOutput1To2 = settings.CopyOutput1To2;
+                                g.Inputs = settings.Inputs;
+                                g.Oversampling = settings.Oversampling;
                                 g.Manual = settings.Manual;
                                 g.MidiChannel = settings.MidiChannel;
                                 g.MidiMappings = settings.MidiMappings;
@@ -534,7 +568,7 @@ public static class CathodeApi {
             )
             .WithName("PutGlobal")
             .WithSummary(
-                "Replaces the global settings: tempo mode, metronome, EQ, Manual A-D, MIDI, footswitches, global blocks."
+                "Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, Manual A-D, MIDI, footswitches, global blocks."
             );
 
         var looper = api.MapGroup("/looper").WithTags("Looper");
