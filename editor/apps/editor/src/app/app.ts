@@ -90,7 +90,7 @@ import { UiStore } from './state/ui.store';
   ],
   host: {
     class: 'flex h-full flex-col',
-    '(document:keydown)': 'shortcuts.dispatch($event)',
+    '(document:keydown)': 'onKeydown($event)',
     '(document:keyup)': 'shortcuts.keyUp($event)',
     '(window:blur)': 'shortcuts.altHeld.set(false)'
   },
@@ -391,6 +391,14 @@ export class App {
     if (name && (await this.live.save(name, true))) {
       this.saveAsOpen.set(false);
     }
+  }
+
+  /**
+   * Hands key presses to the shortcuts. It returns nothing on purpose: an Angular listener that returns false
+   * cancels the event, which would stop ⌘A and typing everywhere a shortcut does not apply.
+   */
+  protected onKeydown(event: KeyboardEvent): void {
+    this.shortcuts.dispatch(event);
   }
 
   /** The shortcuts that work on every page (docs/02-architecture.md §7.5); the grid adds the cell commands. */

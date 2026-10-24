@@ -51,7 +51,7 @@ test('each channel keeps its own settings, and one channel copies to another', a
 
   // Copy A to C from the block's menu.
   await window.getByRole('button', { name: 'Block actions' }).click();
-  await window.getByRole('menuitem', { name: 'Channel C' }).click();
+  await window.getByRole('menuitem', { name: 'Channel C' }).first().click(); // Copy to; Swap with comes second
   await editor.segment('Channel', 'C').click();
   await expect(editor.knob('Drive')).toHaveAttribute('aria-valuenow', '8');
   await expect(window.getByRole('combobox', { name: 'Type', exact: true })).toContainText('Fuzz');
