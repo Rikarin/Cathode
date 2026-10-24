@@ -157,14 +157,14 @@ public sealed class Convolver : IDisposable {
                 slot -= partitions;
             }
 
-            var xr = Spectrum(inRe, slot);
-            var xi = Spectrum(inIm, slot);
-            var hr = Spectrum(irRe, p);
-            var hi = Spectrum(irIm, p);
-            for (var k = 0; k < Bins; k++) {
-                accRe[k] += xr[k] * hr[k] - xi[k] * hi[k];
-                accIm[k] += xr[k] * hi[k] + xi[k] * hr[k];
-            }
+            MultiplyAccumulate(
+                Spectrum(inRe, slot),
+                Spectrum(inIm, slot),
+                Spectrum(irRe, p),
+                Spectrum(irIm, p),
+                accRe,
+                accIm
+            );
         }
 
         for (var k = 0; k < Bins; k++) {
@@ -180,6 +180,37 @@ public sealed class Convolver : IDisposable {
         Fft.Inverse(re, im);
         re.Slice(B, B).CopyTo(tailOut.Span);
         frame.Slice(B, B).CopyTo(frame); // the current block becomes the previous one
+    }
+
+    /// <summary>
+    ///     <c>acc += x · h</c> over complex bins, a vector of bins at a time. Each bin's arithmetic is the scalar one
+    ///     (no fused multiply-add), so the result is bit-identical to a scalar loop; long IRs spend nearly all their time
+    ///     here.
+    /// </summary>
+    static void MultiplyAccumulate(
+        ReadOnlySpan<float> xr,
+        ReadOnlySpan<float> xi,
+        ReadOnlySpan<float> hr,
+        ReadOnlySpan<float> hi,
+        Span<float> accRe,
+        Span<float> accIm
+    ) {
+        var vxr = MemoryMarshal.Cast<float, Vector<float>>(xr);
+        var vxi = MemoryMarshal.Cast<float, Vector<float>>(xi);
+        var vhr = MemoryMarshal.Cast<float, Vector<float>>(hr);
+        var vhi = MemoryMarshal.Cast<float, Vector<float>>(hi);
+        var vre = MemoryMarshal.Cast<float, Vector<float>>(accRe);
+        var vim = MemoryMarshal.Cast<float, Vector<float>>(accIm);
+        var k = 0;
+        for (; k < vxr.Length; k++) {
+            vre[k] += vxr[k] * vhr[k] - vxi[k] * vhi[k];
+            vim[k] += vxr[k] * vhi[k] + vxi[k] * vhr[k];
+        }
+
+        for (k *= Vector<float>.Count; k < xr.Length; k++) {
+            accRe[k] += xr[k] * hr[k] - xi[k] * hi[k];
+            accIm[k] += xr[k] * hi[k] + xi[k] * hr[k];
+        }
     }
 
     static float Dot(ReadOnlySpan<float> a, ReadOnlySpan<float> b) {

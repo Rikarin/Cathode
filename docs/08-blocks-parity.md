@@ -32,7 +32,7 @@ The guide's comparison table (p. 3) lists 42 block types. Cathode covers 37 of t
 | Output (OUT) | built-in `output` | 1 → 1 | 🆕 4 / 0 / 0 | 🆕 Row mixer (level, balance per row), main level and balance, channels; scene levels |
 | Common Mix/Level | every block | — | 🆕 10 / 0 / 0 | Level and Balance everywhere; 🆕 Global Mix, engage as a modifier target, Stereo Spread to ±200 %, Input Select/Gain complete |
 | Amp (AMP) | `circuitamp`, `nam` | 309+ → 26 circuit + any capture | see [06 §1.4](06-amp-modelling-spec.md#14-parity-summary) | Core panel, expert pages and 🆕 boost, saturation, input filter/Definition, output EQ with location, input dynamics, output compressor, speaker drive/thump/compression, bias tremolo, Balance; power-tube hardness and per-model switches remain |
-| Cab (CAB) | `cab` (Legacy and DynaCab merged) | 2 150+ IRs → user IRs + synthesised DynaCab + IR packs | 🆕 18 / 1 / 0 | 🆕 Done: stereo room mic spacing, Preamp Mode, the Align view; factory banks stay out (licensing) |
+| Cab (CAB) | `cab` (Legacy and DynaCab merged) | 2 150+ IRs → user IRs + synthesised DynaCab + IR packs + Flat | 🆕 24 / 1 / 0 | 🆕 Done: stereo room mic spacing, Preamp Mode, the Align view (stream PA); stereo input routing, twelve preamp types and their input meter, per-slot proximity and smoothing, 3.4 m mic distance with Auto-Align, Motor Drive, FullRes IRs, Flat, IR import processing, a global cab-off switch and IR export (stream CB); factory banks stay out (licensing) |
 | Chorus (CHO) | `chorus` | 17 → 1 (+ 🆕 12 library presets) | 🆕 20 / 0 / 0 | 🆕 Done: 8 voices, Dual ratios, BBD drive, Dimension, LFO 2, Global Mix; the types as Block Library presets |
 | Compressor (CMP) | `compressor` | 16 → 🆕 9 | 🆕 20 / 0 / 0 | 🆕 Detector, ∞ ratio, Dynamics and Feedback types, auto times, light type, emphasis, sidechain EQ, input level, look-ahead and sidechain source; 🆕 JFET, Tube and Compander types, the single Compression knob, sidechain from a hardware input |
 | Crossover (XVR) | `crossover` | 1 → 1 | 🆕 7 / 0 / 0 | Done (🆕 per-side band levels and pans) |
@@ -140,6 +140,16 @@ All with defaults that leave the earlier sound bit-identical, except the Delay m
 - **Graphic EQ** (§6.12): the passive types are 🆕 component-level networks (`PassiveGraphicEq`): the Mark and 5-band on a simulated inductor graphic (`LcrGraphicEq`: an op-amp with each slider between its inputs and its wiper into a series L-C-R; the Mark with the Mesa IIC+ parts of docs/06 §3.4), the console on three broad resonators of the same circuit, the 3-band on the Marshall stack and the 4-band on that stack plus a presence network. The amp's output EQ keeps the approximations.
 - **Pitch** (§6.22): 🆕 **Learn** latches the played note as the key; 🆕 **Custom** scale of 4–8 notes with a tonic. **Plex** (§6.23): Direction confirmed against the guide (reversed granules in order) and tested. **Rotary** (§6.28): 🆕 **Low Rate Multiplier**. **Wah** (§6.37): Min/Max Frequency now 🆕 on the circuits (their inductor scaled per pedal position).
 
+**Cab block stream (CB, round 3).** From the Cab block's wiki page (paraphrased). Every new control defaults to the earlier sound except the Stereo input routing, which deliberately changes it: the `cab` golden render was regenerated (the default block, Input Stereo with slot 1 alone, now hears only the left input). No other golden changed.
+
+- **Stereo input** (CB1): with Input on Stereo, slots 1 and 3 hear the left input and slots 2 and 4 the right, each still panned into the stereo output, as on the Axe-Fx. The slots mix into a left-fed and a right-fed IR pair (`IrFeed.Cross`, four convolutions), or one pair fed by one side when only that side's slots play (two). Left, Right and Sum (the Axe-Fx's Mono) mix all four slots into one pair as before. With a stereo input each side's slot levels are relative among themselves, so a lone slot on each side plays at unity (the split DI/cab trick).
+- **Mic preamp** (CB2, CB3): twelve types (`MicPreampTypes`): None, Tube, Bipolar, FET 1 (the old FET), FET 2 (a square-law JFET stage), Transformer, Tape 70/50/35 µs (record pre-emphasis with the time constant, tape saturation, exact playback de-emphasis), Vintage (a transformer's low-frequency flux saturation before a triode), Modern (an op-amp's sharp knee) and Exciter (only the band above 3 kHz through the curve). Tube, Bipolar, FET 1 and Transformer keep their curves; the old single Tape type is replaced by the three equalised ones. The preamp's input level is a block meter (`preampIn`, `IBlockMeters`), 0 dB at each type's 1 dB onset of clipping, shown in the Cab panel.
+- **Per slot** (CB4, CB5): Proximity and Proximity Freq (a gradient mic's near-field shelf on IR, IR pack and Flat slots; a DynaCab's Distance sets its own) and Smoothing replace the global controls; the slot Delay goes to 3.4 m (9.9 ms), shown as ms and mm; Auto-Align (on) replaces the global Auto Delay, and off delays a DynaCab or pack slot by its mic's travel time, less the nearest modelled mic's.
+- **Motor Drive** (CB6): voice-coil thermal compression (`VoiceCoil`: the coil's resistance follows the power it takes through a 0.05–1 s time constant), off by default, with a gain-reduction meter (`motorReduction`).
+- **FullRes** (CB8): IR files up to 65,536 samples at 48 kHz (1.37 s) in the Cab and the IR Player, on the existing zero-latency convolver (64 direct taps, then 64-sample uniform partitions), whose spectrum multiply-accumulate is now vectorised (bit-identical). Measured with `Cathode.Bench --only cab` (best of three, loaded machine): four FullRes slots on a Stereo input (four convolutions) 9.7 % of a core, the same on Sum (two) 5.1 %, the default DynaCab 0.85 %; IR Player with two FullRes IRs about 10 %. A 64-sample partition is memory-bound on a 1.4 s IR; a non-uniform tail (1,024-sample partitions) would cut that several times and is the next step. A change of IR is crossfaded over 20 ms but the new pair starts with an empty history, so for a reverberant FullRes IR the old tail stops at the end of the fade: not gapless.
+- **Flat** (CB9): a slot Source that is a unit impulse. **Cab modelling off** (CB10): a global setting (`GlobalSettings.CabModelingOff`, rig `cabsOff`, `BlockContext.CabsOff`) under which every Cab and IR Player block passes audio through, crossfading over one callback; on the Global page.
+- **IR import** (CB7): `POST /api/v1/assets` takes `processing` (asIs, autoTrim, minimumPhase), `polarity`, `channels` (both, left, right, sum) and `maxLengthMs` for a .wav (`IrImport`, cepstral minimum phase); the IRs page has an import section with them. **IR export** (CB11): `GET /api/v1/live/blocks/{id}/ir` returns the Cab's current mixed IR as a stereo .wav (every playing slot, DynaCab and pack slots included, slot and master cuts, proximity and smoothing baked in) and `POST` saves it as a new IR asset; the Cab panel has Export IR and Save as IR.
+
 ### 1.3 CPU costs to regenerate
 
 After the merge with P3 and the amp streams, `BlockCosts.cs` was regenerated (`--write`), so it now holds the engine and global stream's new blocks (**input**, **output**, **rta**) and the changed ones.
@@ -212,22 +222,28 @@ Re-audited for the merged `cab` block (the old `cab` and `dynacab` are one block
 | Cab Mode (Legacy / DynaCab) | ✅ | Per slot: Source IR, DynaCab or IR Pack |  |
 | Legacy: Bank and Cab Number, cab picker | ◐ | Any IR from the asset store; no factory banks (licensing) | — |
 | Legacy: 4 IRs per channel | ✅ | Four slots, any mix of sources |  |
-| Mic Distance (align, sub-ms delay) | ✅ | Per-slot Delay (0–5 ms, fractional) and Auto Delay (lines the modelled mics up by their travel time) |  |
-| Proximity, Proximity Freq | 🆕 ✅ | Proximity 0–200 % of the physical boost (0 off), Proximity Freq 25–400 % of its corner |  |
-| Smoothing | 🆕 ✅ | 0–1 octave magnitude smoothing of the mixed IR at build time; a minimum-phase correction keeps the onset and the slots' alignment |  |
+| Mic Distance (align, sub-ms delay) | 🆕 ✅ | Per-slot Delay up to 3.4 m (9.9 ms, fractional), shown in ms and mm |  |
+| Auto-Align | 🆕 ✅ | Per slot, on by default (aligned); off delays a DynaCab or IR pack slot by its mic's travel time, less the nearest modelled mic's (no added latency) |  |
+| Proximity, Proximity Freq | 🆕 ✅ | Per slot: 0–200 % of a gradient mic's near-field shelf at 20–500 Hz on IR, IR pack and Flat slots; a DynaCab's Distance sets its physical proximity |  |
+| Smoothing | 🆕 ✅ | Per slot, 0–1 octave magnitude smoothing at build time on IR, DynaCab and pack slots; a minimum-phase correction keeps the onset and the slots' alignment |  |
+| Flat IR | 🆕 ✅ | Slot Source Flat: a unit impulse (a DI next to a cab, or Mic Distance without colouring) |  |
 | DynaCab: cab type, mic type, position, distance | ✅ | Synthesised models (10 speakers, 11 mics, 7 cabinets), plus mic angle |  |
 | Level per IR (relative, normalised mix), Mute, Solo, Pan | ✅ | Every slot, plus Invert |  |
 | Per-IR low/high cut and slopes | ✅ | 6–24 dB/oct, baked into the mixed IR |  |
 | IR Length | ✅ | Per slot, 5–170 ms with a short fade |  |
-| Preamp page: Drive, Saturation, Type (Tube, FET, Tape…) | ✅ | None, Tube, Bipolar, FET, Transformer, Tape |  |
+| Preamp page: Drive, Saturation, Type (Tube, FET, Tape…) | 🆕 ✅ | None, Tube, Bipolar, FET 1, FET 2, Transformer, Tape 70/50/35 µs (equalised around the saturation), Vintage, Modern, Exciter (`MicPreampTypes`) |  |
+| Preamp page: input VU | 🆕 ✅ | The level into the preamp's curve, 0 dB at the type's onset of clipping (1 dB of compression); a block meter in the Cab panel |  |
 | Preamp page: Bass/Mid/Treble | 🆕 ✅ | 120 Hz shelf, 800 Hz peak, 4 kHz shelf, ±12 dB; skipped at 0 dB |  |
 | Preamp page: Mode | 🆕 ✅ | The guide's Mode is High Quality or Economy (CPU): Economy (default) runs the preamp at the engine rate, High Quality 4× oversampled, so its harmonics fold back far less; a change rebuilds the graph (`Recompile`), so only a High Quality cab holds the oversamplers |  |
 | Master low/high cut and slopes | ✅ | 6–24 dB/oct |  |
 | Room page: level, size, shape, LF/HF damping, floor reflections, diffusion | 🆕 ✅ | Room, Room Size, Room Shape, Floor Reflection, Room HF/LF Damping, Room Diffusion, in the DynaCab synthesis (an IR file or pack carries its own room) |  |
 | Room page: mic spacing | 🆕 ✅ | Room Mic Spacing 0–300 cm: each DynaCab slot gets a left and a right IR whose reflections are heard from half the spacing to either side (`CabRoom.MicOffset`); the direct sound stays the close mic's, so the room widens and the close sound stays centred. IR files and packs carry their own room |  |
-| Align page | 🆕 ✅ | Cab panel, Align view: each slot's first 10 ms as mixed, on one axis with its Delay and Auto Delay, its onset marked; drag a slot or nudge it by 0.01/0.1 ms, or Align onsets (`GET /api/v1/live/blocks/{id}/cab/align`) |  |
-| Mix page: Input Mode (L, R, Sum, Stereo), Air, Air Frequency | ✅ |  |  |
-| FullRes long IRs (1.37 s) | ✅ | IR Player up to 680 ms; `cab` up to 170 ms per slot | — |
+| Align page | 🆕 ✅ | Cab panel, Align view: each slot's first 10 ms as mixed, on one axis with its Delay and what Auto-Align off adds, its onset marked; drag a slot or nudge it by 0.01/0.1 ms, or Align onsets (`GET /api/v1/live/blocks/{id}/cab/align`) |  |
+| Mix page: Input Mode (L, R, Sum, Stereo), Air, Air Frequency | 🆕 ✅ | Stereo as on the Axe-Fx: slots 1 and 3 hear the left input, 2 and 4 the right (four convolutions when both sides play) |  |
+| Motor Drive, Motor Time Constant | 🆕 ✅ | Voice-coil thermal compression, 0.05–1 s, off by default; gain-reduction meter |  |
+| FullRes long IRs (1.37 s) | 🆕 ✅ | 65,536 samples at 48 kHz in every Cab slot and the IR Player; zero latency, uniform 64-sample partitions (CPU above); a switch is click-free but not gapless for long reverberant IRs |  |
+| Global: cab modelling off | 🆕 ✅ | Global page: every Cab and IR Player passes audio through |  |
+| Cab-Lab: import options, export a mix | 🆕 ✅ | IR import: as-is, auto-trim, minimum phase, polarity, stereo channel, length; export the block's mixed IR (`GET`/`POST /live/blocks/{id}/ir`) |  |
 
 ## 6. Effect blocks
 
@@ -457,7 +473,7 @@ Types: guide 16 (10-band, 10-band 2/3-octave, 8-, 7- and 5-band, each constant o
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
 | Two IR slots (bank, number) | 🆕 ✅ | `ir` and `ir2`, baked into one stereo pair on the control thread and crossfaded (as the Cab) |  |
-| Length (MAX…256, OFF) | 🆕 ✅ | Per slot, 5–680 ms with a short fade (the top is the whole IR); a slot's level mutes it |  |
+| Length (MAX…256, OFF) | 🆕 ✅ | Per slot, 5–1,366 ms with a short fade (the top is the whole IR, up to 65,536 samples as the Cab's FullRes); a slot's level mutes it |  |
 | Per-IR Level, Pan | 🆕 ✅ | Balance-law pan |  |
 | Mix | ✅ |  |  |
 | Low Cut, High Cut | ✅ |  |  |

@@ -185,6 +185,23 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
           </div>
         </section>
 
+        <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="cabs-heading">
+          <h2 xuiHeading id="cabs-heading" class="text-sm">Cab modeling</h2>
+          <p xuiText class="text-foreground-muted text-xs">
+            For playing through a real speaker cabinet: every Cab and IR Player block passes its input straight through,
+            without changing any preset.
+          </p>
+          <label class="flex items-center gap-2 text-sm">
+            <xui-switch
+              aria-label="Cab modeling off"
+              data-testid="cab-modeling-off"
+              [checked]="s.cabModelingOff"
+              (checkedChange)="save(g => (g.cabModelingOff = $event))"
+            />
+            Cab modeling off
+          </label>
+        </section>
+
         <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="eq-heading">
           <h2 xuiHeading id="eq-heading" class="text-sm">Global output EQ</h2>
           <div class="flex flex-wrap gap-4">

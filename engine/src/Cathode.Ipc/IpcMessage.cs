@@ -155,6 +155,18 @@ public sealed class HostTelemetry {
     public double Tempo { get; set; } = 120;
 
     public LooperStatus? Looper { get; set; }
+
+    /// <summary>The meters of blocks that have their own (the Cab's preamp input and Motor Drive), or null.</summary>
+    public List<HostBlockMeters>? Blocks { get; set; }
+}
+
+/// <summary>One block's meters (<c>IBlockMeters</c>); refilled in place for every push, like the rest.</summary>
+public sealed class HostBlockMeters {
+    public string Block { get; set; } = string.Empty;
+
+    public string[] Ids { get; set; } = [];
+
+    public float[] Values { get; set; } = [];
 }
 
 /// <summary>A MIDI message as the host forwards it, timed on the engine's sample clock.</summary>

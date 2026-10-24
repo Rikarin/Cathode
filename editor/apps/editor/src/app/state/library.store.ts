@@ -4,6 +4,16 @@ import { ConnectionService } from '../core/connection';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
 
+/** How an IR file is processed on import, as the Server's upload takes it (all optional: as-is by default). */
+export interface IrImportOptions {
+  processing?: 'asIs' | 'autoTrim' | 'minimumPhase';
+  /** Invert the IR if its main peak is negative. */
+  polarity?: boolean;
+  /** For a stereo file. */
+  channels?: 'both' | 'left' | 'right' | 'sum';
+  maxLengthMs?: number;
+}
+
 /** The preset library and the asset store (captures and impulse responses). */
 @Injectable({ providedIn: 'root' })
 export class LibraryStore {
@@ -46,12 +56,15 @@ export class LibraryStore {
     });
   }
 
-  /** Uploads a capture (.nam, .aidax) or impulse response (.wav); the same file twice is stored once. */
-  async upload(file: File): Promise<AssetInfo | undefined> {
+  /**
+   * Uploads a capture (.nam, .aidax) or impulse response (.wav); the same file twice is stored once. An IR can be
+   * processed on import (`options`): trimmed or made minimum phase, its polarity corrected, a channel chosen, cut.
+   */
+  async upload(file: File, options: IrImportOptions = {}): Promise<AssetInfo | undefined> {
     return this.notify.run(async () => {
       const asset = unwrap(
         await this.connection.client.POST('/api/v1/assets', {
-          params: { query: { name: file.name } },
+          params: { query: { name: file.name, ...options } },
           body: file as unknown as string,
           bodySerializer: body => body as unknown as BodyInit,
           headers: { 'Content-Type': 'application/octet-stream' }

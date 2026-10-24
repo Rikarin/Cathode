@@ -9,7 +9,25 @@ import { XuiTableImports } from '@xui/table';
 import { XuiTextImports } from '@xui/text';
 import { ConnectionService } from '../core/connection';
 import { Notify } from '../core/notify';
-import { LibraryStore } from '../state/library.store';
+import { type IrImportOptions, LibraryStore } from '../state/library.store';
+
+interface Choice<T> {
+  value: T;
+  label: string;
+}
+
+const Processing: readonly Choice<NonNullable<IrImportOptions['processing']>>[] = [
+  { value: 'asIs', label: 'As is' },
+  { value: 'autoTrim', label: 'Auto-trim (remove leading silence)' },
+  { value: 'minimumPhase', label: 'Minimum phase' }
+];
+
+const Channels: readonly Choice<NonNullable<IrImportOptions['channels']>>[] = [
+  { value: 'both', label: 'Both' },
+  { value: 'left', label: 'Left' },
+  { value: 'right', label: 'Right' },
+  { value: 'sum', label: 'Sum (L+R)' }
+];
 
 interface MixRow {
   asset: AssetInfo | null;
@@ -19,8 +37,9 @@ interface MixRow {
 }
 
 /**
- * Impulse responses: the IRs in the asset store, a Cab-Lab-style mixer that blends them into a new IR, and (in the
- * desktop app, on a real interface) measuring one with a sine sweep.
+ * Impulse responses: importing .wav files (as is, auto-trimmed or minimum phase, polarity corrected, a stereo file's
+ * channel chosen, cut to a length), the IRs in the asset store, a Cab-Lab-style mixer that blends them into a new IR,
+ * and (in the desktop app, on a real interface) measuring one with a sine sweep.
  */
 @Component({
   selector: 'cth-irs-page',
@@ -36,8 +55,71 @@ interface MixRow {
   ],
   host: { class: 'flex h-full flex-col gap-8 overflow-auto p-6' },
   template: `
+    <section class="flex flex-col gap-3" aria-labelledby="import-heading" data-testid="ir-import">
+      <h1 xuiHeading id="import-heading" class="text-lg">Import IRs</h1>
+      <p class="text-foreground-muted max-w-2xl text-sm">
+        Auto-trim removes the silence before the IR starts; minimum phase keeps its frequency response and moves its
+        energy as early as it can go, so IRs line up without a delay. Polarity makes each IR's main peak positive, so
+        blended IRs do not cancel.
+      </p>
+      <div class="flex flex-wrap items-end gap-4">
+        <label class="flex flex-col gap-1">
+          <span class="text-foreground-muted text-xs">Processing</span>
+          <xui-select
+            class="w-64"
+            aria-label="Import processing"
+            [items]="processingChoices"
+            [itemText]="choiceLabel"
+            [value]="processing()"
+            (valueChange)="$event && processing.set($event)"
+          />
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-foreground-muted text-xs">Stereo files</span>
+          <xui-select
+            class="w-36"
+            aria-label="Stereo channels"
+            [items]="channelChoices"
+            [itemText]="choiceLabel"
+            [value]="channels()"
+            (valueChange)="$event && channels.set($event)"
+          />
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-foreground-muted text-xs">Max length (ms, 0 = all)</span>
+          <input
+            xuiInput
+            type="number"
+            min="0"
+            max="10000"
+            class="w-28"
+            aria-label="Maximum IR length"
+            [value]="maxLengthMs()"
+            (change)="maxLengthMs.set(Math.max(0, +$any($event.target).value || 0))"
+          />
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <xui-switch aria-label="Correct polarity" [checked]="polarity()" (checkedChange)="polarity.set($event)" />
+          Correct polarity
+        </label>
+        <label xuiButton variant="outline" size="sm" class="cursor-pointer" [class.opacity-50]="importing()">
+          Choose .wav files…
+          <input
+            type="file"
+            accept=".wav"
+            multiple
+            class="sr-only"
+            aria-label="Import IR files"
+            data-testid="ir-import-files"
+            [disabled]="importing()"
+            (change)="importFiles($any($event.target))"
+          />
+        </label>
+      </div>
+    </section>
+
     <section class="flex flex-col gap-3" aria-labelledby="mix-heading">
-      <h1 xuiHeading id="mix-heading" class="text-lg">IR mixer</h1>
+      <h2 xuiHeading id="mix-heading" class="text-base">IR mixer</h2>
       <p class="text-foreground-muted max-w-2xl text-sm">
         Blend impulse responses (two mics on one cab, two cabs) into a new IR. Alignment moves each IR's peak to the
         same sample before its delay applies, so the blend starts phase-coherent.
@@ -207,7 +289,9 @@ interface MixRow {
             <span class="text-foreground-muted">{{ added(ir) }}</span>
           </li>
         } @empty {
-          <li class="text-foreground-muted">No IRs yet: upload one in a Cab or IR Player block.</li>
+          <li class="text-foreground-muted">
+            No IRs yet: import some above, or upload one in a Cab or IR Player block.
+          </li>
         }
       </ul>
     </section>
@@ -237,11 +321,53 @@ export class IrsPage {
   protected readonly captureOutput = signal<string | null>(null);
   protected readonly captureOk = signal(false);
 
+  protected readonly processingChoices = Processing;
+  protected readonly channelChoices = Channels;
+  protected readonly processing = signal(Processing[0]);
+  protected readonly channels = signal(Channels[0]);
+  protected readonly polarity = signal(true);
+  protected readonly maxLengthMs = signal(0);
+  protected readonly importing = signal(false);
+  protected readonly choiceLabel = (choice: Choice<string>) => choice.label;
+
   protected readonly name = (asset: AssetInfo) => asset.name;
   protected readonly added = (asset: AssetInfo) => new Date(asset.added).toLocaleDateString();
 
   constructor() {
     void this.library.refreshAssets();
+  }
+
+  /** The import settings as the Server's upload takes them. */
+  protected importOptions(): IrImportOptions {
+    const maxLengthMs = this.maxLengthMs();
+    return {
+      processing: this.processing().value,
+      channels: this.channels().value,
+      polarity: this.polarity(),
+      ...(maxLengthMs >= 5 ? { maxLengthMs } : {})
+    };
+  }
+
+  protected async importFiles(input: HTMLInputElement): Promise<void> {
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+    if (files.length === 0) {
+      return;
+    }
+
+    this.importing.set(true);
+    const options = this.importOptions();
+    let imported = 0;
+    for (const file of files) {
+      if (await this.library.upload(file, options)) {
+        imported++;
+      }
+    }
+
+    this.importing.set(false);
+    if (imported > 0) {
+      this.notify.success(`Imported ${imported} IR${imported === 1 ? '' : 's'}.`);
+    }
   }
 
   protected edit(index: number, change: Partial<MixRow>): void {

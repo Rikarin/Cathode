@@ -759,6 +759,77 @@
         }
       }
     },
+    "/api/v1/live/blocks/{id}/ir": {
+      "get": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "A Cab block\u0027s current mixed IR (every slot that plays, DynaCab and IR pack slots included, cuts and smoothing baked in) as a stereo .wav at the engine\u0027s rate.",
+        "operationId": "ExportCabIr",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "audio/wav": {
+                "schema": {
+                  "type": "string",
+                  "format": "byte"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Saves a Cab block\u0027s current mixed IR as a new IR asset.",
+        "operationId": "SaveCabIr",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CabExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/live/blocks/{id}/cab/align": {
       "get": {
         "tags": [
@@ -2340,6 +2411,7 @@
         "tags": [
           "Assets"
         ],
+        "summary": "Uploads an asset. A .wav IR can be processed on import: processing (asIs, autoTrim, minimumPhase), polarity (make the main peak positive), channels (both, left, right, sum) and maxLengthMs.",
         "operationId": "UploadAsset",
         "parameters": [
           {
@@ -2348,6 +2420,35 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "processing",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "polarity",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "channels",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maxLengthMs",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
             }
           }
         ],
@@ -2697,6 +2798,19 @@
         },
         "description": "The Cab block\u0027s Align page (\u0060GET /api/v1/live/blocks/{id}/cab/align\u0060): each slot\u0027s IR head on the active\nchannel, so slots can be lined up by eye."
       },
+      "CabExportRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "File name for the result (\u0022.wav\u0022 is added)."
+          }
+        },
+        "description": "Saves a Cab block\u0027s current mixed IR as a new IR asset."
+      },
       "CableRequest": {
         "required": [
           "from",
@@ -3013,6 +3127,7 @@
           "metronomeLevel",
           "effectsMix",
           "noiseGateOffset",
+          "cabModelingOff",
           "eq",
           "manual",
           "midiChannel",
@@ -3056,6 +3171,10 @@
             "type": "number",
             "description": "Noise gate offset in dB (\u221220..20), added to every Input block\u0027s gate threshold.",
             "format": "float"
+          },
+          "cabModelingOff": {
+            "type": "boolean",
+            "description": "Cab modeling off: every Cab and IR Player block passes audio through, for playing into a real speaker cabinet\nwithout changing the presets."
           },
           "eq": {
             "type": "object",

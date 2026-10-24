@@ -207,7 +207,7 @@ public interface IDspBlock : IDisposable
 }
 ```
 
-`BlockContext` carries the sample rate, tempo, sample time, the MIDI notes currently held (`HeldNotes`), and two global settings from the rig bank: the Effects Mix offset that blocks with Global Mix on add to their Mix, and the noise gate offset the Input gate adds to its threshold. The host's MIDI input posts note on/off straight to the engine as `EngineCommand.Note`, so the Pitch block can take its key and chord from a keyboard or DAW.
+`BlockContext` carries the sample rate, tempo, sample time, the MIDI notes currently held (`HeldNotes`), and three global settings from the rig bank: the Effects Mix offset that blocks with Global Mix on add to their Mix, the noise gate offset the Input gate adds to its threshold, and `CabsOff` (Global "cab modeling off"), under which the Cab and IR Player blocks pass audio through. The host's MIDI input posts note on/off straight to the engine as `EngineCommand.Note`, so the Pitch block can take its key and chord from a keyboard or DAW.
 
 Processing is **in place**: the compiler hands each block one buffer that holds its input and receives its output. That is what lets a series chain run in a single buffer.
 
@@ -220,6 +220,7 @@ Other optional interfaces a block may add:
 - `ISidechainBlock`: offered other signals for its detector (§5.2).
 - `IHardwareInputBlock`: given the graph's `InputPort` to read the interface's input sources (§5.2).
 - `IEngageAware`: told on the audio thread when its bypass target turns from bypassed to active, before the bypass fade starts, so an LFO can restart from a set phase (Flanger and Phaser LFO Bypass Reset, Tremolo Start Phase). A block that starts engaged is not told.
+- `IBlockMeters`: meters of its own (the Cab's preamp input level and Motor Drive gain reduction), plain fields the audio thread writes. The host reads them on the control thread with each IPC telemetry push (the list is rebuilt only when the graph changes, so a push allocates nothing) and the Server forwards them in the `telemetry` message's `blocks`.
 
 - DSP state lives in `NativeMemory.AlignedAlloc` buffers (64-byte aligned) or pinned arrays.
 - `Process` is `[SkipLocalsInit]` and uses `Span<T>` and `Vector128<T>` (the portable SIMD baseline; on Apple Silicon `Vector256` is emulated).
@@ -235,7 +236,7 @@ Other optional interfaces a block may add:
 - A modifier may be **scoped to one channel** of its block. The compiler is told which modifiers start enabled; when the block changes channel the server sends `setModifier`, and the audio thread turns the binding on, or off with the channel's value restored, so a modulated value still in flight cannot win (`EngineCommandKind.SetModifier`).
 - Filters smooth the **parameter** (cutoff), then recompute coefficients per sub-block. Any filter whose parameters can move uses a TPT/ZDF state-variable filter. *Confirmed in Phase 1:* the property suite found a direct-form biquad emitting +63 dBFS transients during a fast cutoff and Q sweep, and the SVF, which has the same magnitude response, fixed it.
 - RBJ shelves are limited to Q ≤ 1. Above that they develop a large resonant bump at the corner.
-- **Derived state too expensive for the audio thread** (the Cab block's mixed slot IRs: synthesised DynaCabs, interpolated IR packs and IR files, folded into one stereo pair; the IR Player's two slots, cut, levelled, panned and combined in parallel, stereo or series) belongs to blocks that implement `IControlRefresh`. The host calls `Refresh()` on the control thread after every parameter message and on each telemetry tick (for targets that modifiers moved). The block compares the targets with what it last built, rebuilds only what changed, and hands the result over through an `Interlocked.Exchange` slot; the audio thread crossfades the new state in and returns the old one through a second slot for the control thread to dispose. Nothing locks, and nothing is allocated or freed on the audio thread.
+- **Derived state too expensive for the audio thread** (the Cab block's mixed slot IRs: synthesised DynaCabs, interpolated IR packs, IR files and Flat slots, folded into one stereo pair, or with a Stereo input into a left-fed and a right-fed pair, four convolutions, since slots 1 and 3 hear the left input and 2 and 4 the right; the IR Player's two slots, cut, levelled, panned and combined in parallel, stereo or series) belongs to blocks that implement `IControlRefresh`. The host calls `Refresh()` on the control thread after every parameter message and on each telemetry tick (for targets that modifiers moved). The block compares the targets with what it last built, rebuilds only what changed, and hands the result over through an `Interlocked.Exchange` slot; the audio thread crossfades the new state in and returns the old one through a second slot for the control thread to dispose. Nothing locks, and nothing is allocated or freed on the audio thread.
 
 ### 5.5 Switching and spillover
 
@@ -328,7 +329,7 @@ Version 1 holds:
 
 Every reader takes the maximum over the slots since its own previous poll. Nothing is ever reset, so any number of readers see every peak once.
 
-The Server publishes meters at 30 Hz, still as JSON. IPC telemetry, which carries the tuner, GC counts and device timing windows, dropped to 10 Hz.
+The Server publishes meters at 30 Hz, still as JSON. IPC telemetry, which carries the tuner, GC counts, device timing windows and the blocks' own meters (`IBlockMeters`, as `blocks: [{ block, meters: { id: dB } }]` in the `telemetry` message), dropped to 10 Hz.
 
 Version 3 adds an output scope ring of 16,384 samples, outside the seqlock (the reader checks that the writer did not lap it). The Server reads it for three things:
 - scope frames, while the scope is on

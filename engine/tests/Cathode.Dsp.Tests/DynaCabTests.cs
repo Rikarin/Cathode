@@ -277,9 +277,10 @@ public sealed class DynaCabTests : IDisposable {
         var (left, right) = block.ImpulseResponse();
 
         Assert.Equal(left, right);
-        var longest = Math.Max(CabBlock.MaxIrLength, block.Taps);
-        Assert.InRange(left.Length, longest + (int)(0.005 * Rate), longest + (int)(0.007 * Rate));
-        Assert.InRange(Analysis.PeakIndex(left), 0, 8); // aligned: no distance delay without Auto Delay
+        Assert.True(left.Length >= CabBlock.IrCapacity(Rate) + (int)(CabBlock.MaxDelayMs / 1_000 * Rate));
+        Assert.All(left[(2 * block.Taps)..], static v => Assert.Equal(0f, v)); // a DynaCab is 2,048 taps
+        Assert.InRange(Analysis.PeakIndex(left), 0, 8); // aligned: no distance delay with Auto-Align on
+        Assert.Equal(IrFeed.Left, block.Feed); // Stereo input, slot 1 alone: it hears the left input
     }
 
     [Fact]
@@ -325,7 +326,7 @@ public sealed class DynaCabTests : IDisposable {
     }
 
     [Fact]
-    public void Auto_delay_delays_each_mic_by_its_distance() {
+    public void Auto_align_off_delays_a_mic_by_its_distance() {
         using var block = Prepared();
         block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Distance), 0f);
         block.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Mic), 0f);
@@ -334,7 +335,7 @@ public sealed class DynaCabTests : IDisposable {
         block.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Mute), 0f);
         block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Mute), 1f);
         var (alone, _) = block.ImpulseResponse(); // slot 2 alone: nothing earlier, so not delayed
-        block.Params.SetTarget(CabBlock.AutoDelay, 1f);
+        block.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.AutoAlign), 0f);
         block.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Mute), 0f);
         var (both, _) = block.ImpulseResponse();
         block.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Mute), 1f);

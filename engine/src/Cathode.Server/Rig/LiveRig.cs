@@ -567,6 +567,7 @@ public sealed partial class LiveRig(
             new(IpcBlocks.Rig, "metroLevel", global.MetronomeLevel),
             new(IpcBlocks.Rig, "effectsMix", global.EffectsMix),
             new(IpcBlocks.Rig, "gateOffset", global.NoiseGateOffset),
+            new(IpcBlocks.Rig, "cabsOff", global.CabModelingOff ? 1 : 0),
             new(IpcBlocks.Rig, "spillover", global.PresetSpillover ? 1 : 0)
         };
         if (global.TempoMode == "global") {
