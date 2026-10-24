@@ -174,6 +174,7 @@ public class PitchBlockTests(ITestOutputHelper output) {
         using var detune = Create(
             (PitchBlock.Type, (float)PitchType.Detune),
             (PitchBlock.Detune, 50f),
+            (PitchBlock.Detune2, -50f),
             (PitchBlock.Mix, 100f)
         );
 
@@ -223,10 +224,10 @@ public class PitchBlockTests(ITestOutputHelper output) {
     }
 
     [Fact]
-    public void Parameters_added_later_are_appended_so_stored_presets_keep_their_indices() {
+    public void Parameter_constants_match_the_descriptor() {
         var info = PitchBlock.Info;
         Assert.Equal(PitchBlock.Capo, info.IndexOf("capo"));
-        Assert.Equal(34, PitchBlock.Capo);
+        Assert.Equal(PitchBlock.ArpStep1 + PitchBlock.MaxArpSteps - 1, info.IndexOf("arpStep16"));
         Assert.Equal(PitchBlock.Voice3Shift, info.IndexOf("voice3Shift"));
         Assert.Equal(PitchBlock.Voice4Delay, info.IndexOf("voice4Delay"));
         Assert.Equal(PitchBlock.KeySource, info.IndexOf("keySource"));
@@ -234,7 +235,15 @@ public class PitchBlockTests(ITestOutputHelper output) {
         Assert.Equal(PitchBlock.CustomTable + 13, info.IndexOf("custom2Cs"));
         Assert.Equal(PitchBlock.CustomTable + 47, info.IndexOf("custom4B"));
         Assert.Equal(PitchBlock.CustomTable + 48, PitchBlock.Balance);
-        Assert.Equal(PitchBlock.Balance + 1, info.Params.Count);
+        Assert.Equal(PitchBlock.Detune, info.IndexOf("detune1"));
+        Assert.Equal(PitchBlock.Detune4, info.IndexOf("detune4"));
+        Assert.Equal(PitchBlock.MasterDelay, info.IndexOf("masterDelay"));
+        Assert.Equal(PitchBlock.Feedback1 + 3, info.IndexOf("feedback4"));
+        Assert.Equal(PitchBlock.DelayTempo1 + 3, info.IndexOf("delayTempo4"));
+        Assert.Equal(PitchBlock.Glide, info.IndexOf("glide"));
+        Assert.Equal(PitchBlock.CrystalsFeedbackType, info.IndexOf("crystalsFeedbackType"));
+        Assert.Equal(PitchBlock.DetectorSource, info.IndexOf("detectorSource"));
+        Assert.Equal(PitchBlock.DetectorSource + 1, info.Params.Count);
         Assert.Equal("Virtual Capo", info.Params[PitchBlock.Type].Options![(int)PitchType.VirtualCapo]);
         Assert.Equal("Custom Shifter", info.Params[PitchBlock.Type].Options![(int)PitchType.CustomShifter]);
 

@@ -16,15 +16,27 @@ namespace Cathode.Dsp.Pitch;
 ///         behind the input: shifting up it sweeps one splice (8-25 ms), shifting down up to two, so the wet path delay
 ///         averages 5-15 ms and peaks near 50 ms for unvoiced downward shifts. At unison it holds still at ~13 ms.
 ///     </para>
+///     <para>
+///         <see cref="SetSplice" /> lengthens the minimum splice (the Pitch block's splice length): longer splices
+///         warble less on sustained notes and smear more on fast passages; the unvoiced fallback stays at least 2.5
+///         times the minimum.
+///     </para>
 ///     <para>Not modelled: formant preservation (it is a resampler) and splice-point search by cross-correlation.</para>
 /// </remarks>
 public sealed class SpliceShifter : IDisposable {
-    const double MinSpliceSeconds = 0.008;
+    /// <summary>The shortest minimum splice <see cref="SetSplice" /> takes.</summary>
+    public const double MinSpliceSeconds = 0.008;
+
+    /// <summary>The longest minimum splice <see cref="SetSplice" /> takes.</summary>
+    public const double MaxSpliceSeconds = 0.04;
+
     const double FallbackSpliceSeconds = 0.025;
+    const double FallbackRatio = 2.5;
     const double VoicedFadeSeconds = 0.005;
     const double FallbackFadeSeconds = 0.015;
 
     readonly FractionalDelayLine line = new();
+    double sampleRate;
     double minSplice;
     double fallbackSplice;
     int voicedFade;
@@ -37,16 +49,29 @@ public sealed class SpliceShifter : IDisposable {
 
     /// <summary>Control thread: sizes the delay line for <paramref name="sampleRate" />.</summary>
     public void Prepare(double sampleRate) {
+        this.sampleRate = sampleRate;
         minSplice = MinSpliceSeconds * sampleRate;
         fallbackSplice = FallbackSpliceSeconds * sampleRate;
         voicedFade = (int)(VoicedFadeSeconds * sampleRate);
         fallbackFade = (int)(FallbackFadeSeconds * sampleRate);
 
-        // The longest splice is one period of the lowest tracked note, two minimum splices, or the fallback.
-        var longest = Math.Max(Math.Max(sampleRate / PitchTracker.MinFrequency, 2 * minSplice), fallbackSplice);
+        // The longest splice is one period of the lowest tracked note, two minimum splices, or the fallback, at the
+        // longest splice setting.
+        var maxSplice = MaxSpliceSeconds * sampleRate;
+        var longest = Math.Max(
+            Math.Max(sampleRate / PitchTracker.MinFrequency, 2 * maxSplice),
+            Math.Max(fallbackSplice, FallbackRatio * maxSplice)
+        );
         maxDelay = 2 * longest + 16;
         line.Allocate((int)maxDelay + 8);
         Reset();
+    }
+
+    /// <summary>Audio thread: the minimum splice, from <see cref="MinSpliceSeconds" /> to <see cref="MaxSpliceSeconds" />.</summary>
+    public void SetSplice(double seconds) {
+        var splice = Math.Clamp(seconds, MinSpliceSeconds, MaxSpliceSeconds) * sampleRate;
+        minSplice = splice;
+        fallbackSplice = Math.Max(FallbackSpliceSeconds * sampleRate, FallbackRatio * splice);
     }
 
     public void Reset() {
