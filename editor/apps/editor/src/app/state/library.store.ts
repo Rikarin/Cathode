@@ -14,7 +14,7 @@ export class LibraryStore {
   readonly assets = signal<readonly AssetInfo[]>([]);
   readonly models = computed(() => this.assets().filter(a => a.kind === 'nam' || a.kind === 'aidax'));
   readonly impulseResponses = computed(() => this.assets().filter(a => a.kind === 'ir'));
-  /** What a DynaCab mic slot takes: a multi-position IR pack (.cabgrid) or a single IR. */
+  /** What a Cab slot playing an IR Pack takes: a multi-position pack (.cabgrid) or a single IR as a one-point pack. */
   readonly cabGrids = computed(() => this.assets().filter(a => a.kind === 'cabgrid' || a.kind === 'ir'));
 
   constructor() {
@@ -99,7 +99,7 @@ export class LibraryStore {
     });
   }
 
-  /** An asset's bytes (an impulse response for the cab panel's plot). */
+  /** An asset's bytes (an impulse response for the Cab panel's plot). */
   async content(reference: string): Promise<ArrayBuffer> {
     const connection = this.connection.connection()!;
     const response = await fetch(`${connection.baseUrl}/api/v1/assets/${encodeURIComponent(reference)}/content`, {

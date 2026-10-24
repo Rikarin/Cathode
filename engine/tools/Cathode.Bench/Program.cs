@@ -5,8 +5,9 @@ using Cathode.Dsp;
 using Cathode.Dsp.Parameters;
 
 // Measures each registered block at 48 kHz in 64-frame blocks on noise, as a percentage of one core in real time:
-// the default settings, and the worst of each value of the block's type/mode choice. With --write it regenerates
-// src/Cathode.Dsp/BlockCosts.cs, which the catalog serves to the editor's CPU estimate (docs/03 §12).
+// the default settings, and the worst of each value of the block's type/mode choice (for the Cab, slot 1's Source).
+// With --write it regenerates src/Cathode.Dsp/BlockCosts.cs, which the catalog serves to the editor's CPU estimate
+// (docs/03 §12). --only <typeId> measures one block (and never writes).
 const double Rate = 48_000;
 const int Frames = 64;
 const int Blocks = 8_000; // about 10.7 s of audio per measurement
@@ -21,10 +22,12 @@ Cathode.Dsp.IO.WavFile.Write(
 
 var registry = BlockRegistry.CreateDefault();
 var results = new SortedDictionary<string, double>(StringComparer.Ordinal);
-foreach (var descriptor in registry.Descriptors) {
+var onlyAt = Array.IndexOf(args, "--only");
+var only = onlyAt >= 0 && onlyAt + 1 < args.Length ? args[onlyAt + 1] : null;
+foreach (var descriptor in registry.Descriptors.Where(d => only is null || d.TypeId == only)) {
     var variants = descriptor.Params
         .Select((p, i) => (p, i))
-        .FirstOrDefault(static x => x.p.Kind == ParamKind.Enum && x.p.Id is "type" or "mode" or "model");
+        .FirstOrDefault(static x => x.p.Kind == ParamKind.Enum && x.p.Id is "type" or "mode" or "model" or "m1source");
     var worst = Measure(registry, descriptor.TypeId, -1, 0, irPath);
     if (variants.p is { } choice) {
         for (var option = 0; option <= (int)choice.Max; option++) {
@@ -36,11 +39,11 @@ foreach (var descriptor in registry.Descriptors) {
     Console.WriteLine($"{descriptor.TypeId,-12} {worst,6:0.00} %");
 }
 
-// DynaCab's IR synthesis runs on the control thread, so it is not part of the block's audio cost: report it apart.
-using (var cab = new Cathode.Dsp.Blocks.DynaCabBlock()) {
+// The Cab's IR synthesis and mixing run on the control thread, so they are not part of its audio cost: report them apart.
+using (var cab = new Cathode.Dsp.Blocks.CabBlock()) {
     cab.Prepare(new(Rate, Frames));
-    var position = Cathode.Dsp.Blocks.DynaCabBlock.SlotParam(0, Cathode.Dsp.Blocks.DynaCabBlock.Position);
-    var level = Cathode.Dsp.Blocks.DynaCabBlock.SlotParam(0, Cathode.Dsp.Blocks.DynaCabBlock.SlotLevel);
+    var position = Cathode.Dsp.Blocks.CabBlock.SlotParam(0, Cathode.Dsp.Blocks.CabBlock.Position);
+    var level = Cathode.Dsp.Blocks.CabBlock.SlotParam(0, Cathode.Dsp.Blocks.CabBlock.SlotLevel);
     double Time(int param, int runs) {
         var start = Stopwatch.GetTimestamp();
         for (var i = 0; i < runs; i++) {
@@ -52,10 +55,10 @@ using (var cab = new Cathode.Dsp.Blocks.DynaCabBlock()) {
     }
 
     Time(position, 20); // warm up
-    Console.WriteLine($"dynacab IR synthesis (one slot moved, control thread): {Time(position, 100):0.00} ms; remix only (a level): {Time(level, 100):0.00} ms");
+    Console.WriteLine($"cab IR synthesis (one slot moved, control thread): {Time(position, 100):0.00} ms; remix only (a level): {Time(level, 100):0.00} ms");
 }
 
-if (args.Contains("--write")) {
+if (args.Contains("--write") && only is null) {
     var path = Path.Combine(FindEngineRoot(), "src", "Cathode.Dsp", "BlockCosts.cs");
     var code = new StringBuilder();
     code.AppendLine("namespace Cathode.Dsp;");

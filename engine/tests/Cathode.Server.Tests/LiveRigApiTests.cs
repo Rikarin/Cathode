@@ -36,7 +36,8 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         var blocks = await client.GetFromJsonAsync<BlockTypeInfo[]>("/api/v1/catalog/blocks", Token);
 
         Assert.Contains(blocks!, b => b.TypeId == "nam" && b.AssetSlots.Contains("model"));
-        Assert.Contains(blocks!, b => b.TypeId == "cab" && b.AssetSlots.SequenceEqual(["ir1", "ir2"]));
+        Assert.Contains(blocks!, b => b.TypeId == "cab" && b.AssetSlots.SequenceEqual(["slot1", "slot2", "slot3", "slot4"]));
+        Assert.DoesNotContain(blocks!, b => b.TypeId == "dynacab");
         Assert.Contains(blocks!.Single(b => b.TypeId == "delay").Params, p => p.Id == "time" && p.Unit == "ms");
     }
 
@@ -161,7 +162,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         await Post("/api/v1/live/blocks", new AddBlockRequest("cab", 0, 4));
         await Post("/api/v1/live/blocks", new AddBlockRequest("nam", 0, 3));
 
-        var withIr = await Put("/api/v1/live/blocks/cab1/assets/ir1", new AssetRequest(irAsset.Ref));
+        var withIr = await Put("/api/v1/live/blocks/cab1/assets/slot1", new AssetRequest(irAsset.Ref));
         using var rejected = await client.PutAsJsonAsync(
             "/api/v1/live/blocks/nam1/assets/model",
             new AssetRequest(badModel.Ref),
@@ -172,13 +173,13 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         Assert.Equal(ir.ToArray(), content);
         Assert.Equal(irAsset.Ref, again.Ref); // stored once
         Assert.StartsWith("sha256:", irAsset.Ref, StringComparison.Ordinal);
-        Assert.Equal(irAsset.Ref, withIr.Preset.Blocks.Single(b => b.Id == "cab1").Assets["ir1"]);
+        Assert.Equal(irAsset.Ref, withIr.Preset.Blocks.Single(b => b.Id == "cab1").Assets["slot1"]);
         Assert.Equal((HttpStatusCode)422, rejected.StatusCode);
         Assert.Empty((await Live()).Preset.Blocks.Single(b => b.Id == "nam1").Assets);
     }
 
     [Fact]
-    public async Task A_cab_grid_pack_uploads_and_loads_into_a_dynacab_mic_slot_only() {
+    public async Task A_cab_grid_pack_uploads_into_a_cab_slot_and_plays_as_its_ir_pack() {
         var ir = new MemoryStream();
         Cathode.Dsp.IO.WavFile.Write(
             ir,
@@ -195,22 +196,47 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         }
 
         var asset = await Upload("my-412.cabgrid", pack.ToArray());
-        await Post("/api/v1/live/blocks", new AddBlockRequest("dynacab", 0, 4));
-        await Post("/api/v1/live/blocks", new AddBlockRequest("cab", 1, 4));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("cab", 0, 4));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("irplayer", 1, 4));
 
-        var live = await Put("/api/v1/live/blocks/dynacab1/assets/grid1", new AssetRequest(asset.Ref));
+        var live = await Put("/api/v1/live/blocks/cab1/assets/slot2", new AssetRequest(asset.Ref));
+        await Patch(
+            "/api/v1/live/blocks/cab1/params",
+            new Dictionary<string, float> { ["m2source"] = Cathode.Dsp.Blocks.CabBlock.SourcePack, ["m2mute"] = 0 }
+        );
         using var rejected = await client.PutAsJsonAsync(
-            "/api/v1/live/blocks/cab1/assets/ir1",
+            "/api/v1/live/blocks/irplayer1/assets/ir",
             new AssetRequest(asset.Ref),
             Token
         );
 
         Assert.Equal("cabgrid", asset.Kind);
-        Assert.Equal(asset.Ref, live.Preset.Blocks.Single(b => b.Id == "dynacab1").Assets["grid1"]);
+        Assert.Equal(asset.Ref, live.Preset.Blocks.Single(b => b.Id == "cab1").Assets["slot2"]);
         Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
         await ServerFixture.Eventually(
-            () => (server.Block("dynacab1") as Cathode.Dsp.Blocks.DynaCabBlock)?.Grid(0)?.Distances.Count == 1
+            () => (server.Block("cab1") as Cathode.Dsp.Blocks.CabBlock)?.Grid(1)?.Distances.Count == 1
+                && server.Target("cab1", "m2source") == Cathode.Dsp.Blocks.CabBlock.SourcePack
         );
+    }
+
+    [Fact]
+    public async Task Moving_a_cab_mic_reaches_the_engine_and_changes_its_ir() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("cab", 0, 4));
+        await ServerFixture.Eventually(() => server.Graph?.SlotOf("cab1") >= 0);
+        var cab = (Cathode.Dsp.Blocks.CabBlock)server.Block("cab1");
+        var before = cab.ImpulseResponse().Left;
+
+        var state = await Patch(
+            "/api/v1/live/blocks/cab1/params",
+            new Dictionary<string, float> { ["m1position"] = 80, ["m1distance"] = 6 }
+        );
+
+        Assert.Equal(80, state.Preset.Blocks.Single(b => b.Id == "cab1").Channels["A"]["m1position"]);
+        await ServerFixture.Eventually(() => server.Target("cab1", "m1position") == 80 && server.Target("cab1", "m1distance") == 6);
+        Assert.Same(cab, server.Block("cab1")); // a parameter, not a rebuild of the graph
+        var after = cab.ImpulseResponse().Left;
+        var change = Analysis.NullResidualDb(before, after) - Analysis.NullResidualDb(before, new float[before.Length]);
+        Assert.True(change > -20, $"the mic moved: the IR should change (by {change:0.0} dB)");
     }
 
     [Fact]

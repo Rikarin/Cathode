@@ -189,7 +189,8 @@ public sealed class HostAllocationTests : IDisposable {
         for (var i = 0; i < types.Length; i++) {
             var node = new NodeDefinition { Id = types[i] + "1", Type = types[i], Row = 0, Column = i + 1 };
             if (types[i] == "cab") {
-                node.Assets["ir1"] = Path.Combine(EngineRoot, "examples", "synthetic-cab.wav");
+                node.Assets["slot1"] = Path.Combine(EngineRoot, "examples", "synthetic-cab.wav");
+                node.Parameters["m1source"] = Cathode.Dsp.Blocks.CabBlock.SourceIr;
             }
 
             graph.Nodes.Add(node);

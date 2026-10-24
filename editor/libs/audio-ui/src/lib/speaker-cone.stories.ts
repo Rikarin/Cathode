@@ -10,7 +10,8 @@ const Mics: ConeMic[] = [
 ];
 
 /**
- * DynaCab's mic placement: the cone from cap to edge, the mics in front of it. Drag a mic, or focus it and use the
+ * The Cab block's mic placement: the cone from cap to edge, the DynaCab and IR pack slots in front of it (muted ones
+ * hollow). Drag a mic, or focus it and use the
  * arrow keys (⇧ for big steps).
  */
 const meta: Meta<CthSpeakerCone> = {
@@ -48,3 +49,14 @@ export const FourMics: Story = {};
 
 /** One close mic on the cap edge, the classic SM57 placement. */
 export const SingleMic: Story = { args: { mics: [Mics[0]] } };
+
+/**
+ * A Cab mixing sources: slot 2 plays an IR file, so it is not on the cone; slot 3 plays an IR pack (no angle) and slot 4
+ * is muted.
+ */
+export const MixedSources: Story = {
+  args: {
+    mics: [Mics[0], { slot: 2, name: 'My 4x12', position: 40, distance: 2, angle: 0, muted: false }, Mics[3]],
+    selected: 2
+  }
+};

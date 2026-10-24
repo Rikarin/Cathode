@@ -6,7 +6,7 @@
     { "id": "gate1", "type": "gate", "row": 0, "column": 1, "params": { "threshold": -55 } },
     { "id": "drive1", "type": "drive", "row": 0, "column": 2, "params": { "drive": 2, "tone": 6 } },
     { "id": "amp1", "type": "nam", "row": 0, "column": 3, "assets": { "model": "../artifacts/native/nam-models/A2.nam" } },
-    { "id": "cab1", "type": "cab", "row": 0, "column": 4, "assets": { "ir1": "synthetic-cab.wav" }, "params": { "lowcut": 80, "highcut": 9000 } },
+    { "id": "cab1", "type": "cab", "row": 0, "column": 4, "assets": { "slot1": "synthetic-cab.wav" }, "params": { "m1source": 0, "lowcut": 80, "highcut": 9000 } },
     { "id": "delay1", "type": "delay", "row": 0, "column": 5, "params": { "type": 1, "time": 420, "feedback": 35, "mix": 20, "moddepth": 1 } },
     { "id": "reverb1", "type": "reverb", "row": 0, "column": 6, "params": { "type": 1, "decay": 3.5, "mix": 18 } },
     { "id": "out1", "type": "output", "row": 0, "column": 7 }

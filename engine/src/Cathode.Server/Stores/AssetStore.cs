@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 namespace Cathode.Server.Stores;
 
 /// <summary>
-///     Content-addressed store for impulse responses (.wav), DynaCab IR grid packs (.cabgrid: a zip with a manifest)
+///     Content-addressed store for impulse responses (.wav), multi-position cab IR packs (.cabgrid: a zip with a manifest)
 ///     and amp captures (NAM .nam, AIDA-X .aidax/.json) in <c>&lt;data&gt;/assets</c>.
 ///     Presets reference assets as <c>sha256:&lt;hex&gt;</c>, so the same file uploaded twice is stored once and a
 ///     preset always gets exactly the file it was made with.
@@ -119,12 +119,13 @@ public sealed class AssetStore {
 
     /// <summary>
     ///     True when an asset of <paramref name="kind" /> can go into <paramref name="slot" />: models into
-    ///     <c>model</c>, IR packs (or single IRs) into DynaCab's <c>grid</c> slots, impulse responses elsewhere.
+    ///     <c>model</c>, impulse responses or IR packs into the Cab's <c>slot1</c> … <c>slot4</c> (what a slot plays
+    ///     depends on its Source), impulse responses elsewhere.
     /// </summary>
     public static bool Fits(string slot, string kind) =>
         slot == "model"
             ? IsModel(kind)
-            : slot.StartsWith("grid", StringComparison.Ordinal)
+            : slot.StartsWith("slot", StringComparison.Ordinal)
                 ? kind is "ir" or "cabgrid"
                 : kind == "ir";
 

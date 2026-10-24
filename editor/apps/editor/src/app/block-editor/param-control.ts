@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import type { ParameterInfo, PresetBlock } from '@cathode/api-client';
 import { CthKnob } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
@@ -153,6 +153,8 @@ export class ParamControl {
   readonly accent = input<string | null>(null);
   /** `rack` lines controls up as knob-sized cells; `sidebar` stacks a choice as a label over a full-width select. */
   readonly variant = input<'rack' | 'sidebar'>('rack');
+  /** Emits each value the user sets, after it has gone to the live rig (the Cab panel unmutes an edited slot). */
+  readonly edited = output<number>();
 
   protected readonly labelId = computed(() => `param-${this.block().id}-${this.param().id}`);
   protected readonly value = computed(() => {
@@ -202,5 +204,6 @@ export class ParamControl {
   protected set(value: number): void {
     const block = this.block();
     this.live.setParam(block.id, this.live.channelOf(block.id), this.param().id, value);
+    this.edited.emit(value);
   }
 }

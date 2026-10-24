@@ -78,7 +78,8 @@ sealed class Api(HttpClient http) {
         }
 
         await PutAsync("/api/v1/live/blocks/amp1/assets/model", new AssetRequest(model));
-        await PutAsync("/api/v1/live/blocks/cab1/assets/ir1", new AssetRequest(ir));
+        await PutAsync("/api/v1/live/blocks/cab1/assets/slot1", new AssetRequest(ir));
+        await PatchAsync("/api/v1/live/blocks/cab1/params", new Dictionary<string, float> { ["m1source"] = 0 });
         await PatchAsync("/api/v1/live/blocks/amp1/params?channel=B", new Dictionary<string, float> { ["input"] = 6 });
 
         // Scene 2: amp on channel B and the last block bypassed; scene 3: the next-to-last block bypassed.

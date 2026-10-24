@@ -1236,7 +1236,7 @@ export interface components {
           [key: string]: number;
         };
       };
-      /** @description Asset slot to asset reference (`sha256:&lt;hex&gt;`), e.g. `"model"` or `"ir1"`. */
+      /** @description Asset slot to asset reference (`sha256:&lt;hex&gt;`), e.g. `"model"` or `"slot1"`. */
       assets: {
         [key: string]: string;
       };

@@ -2,25 +2,38 @@ using Cathode.Dsp.Convolution;
 
 namespace Cathode.Dsp.Cabinets;
 
-/// <summary>A left and right impulse response as a pair of convolvers, built on the control thread.</summary>
+/// <summary>
+///     A left and right impulse response as a pair of convolvers, built on the control thread; or the identity, which
+///     passes audio through untouched and costs nothing.
+/// </summary>
 public sealed class StereoIr : IDisposable {
-    public Convolver Left { get; }
+    readonly Convolver? left;
+    readonly Convolver? right;
 
-    public Convolver Right { get; }
+    /// <summary>The identity: <see cref="Process" /> leaves the audio as it is.</summary>
+    public StereoIr() { }
 
     public StereoIr(ReadOnlySpan<float> left, ReadOnlySpan<float> right) {
-        Left = new(left);
-        Right = new(right);
+        this.left = new(left);
+        this.right = new(right);
+    }
+
+    public bool IsIdentity => left is null;
+
+    /// <summary>Audio thread: convolves left with the left IR and right with the right IR, in place.</summary>
+    public void Process(Span<float> left, Span<float> right) {
+        this.left?.Process(left);
+        this.right?.Process(right);
     }
 
     public void Reset() {
-        Left.Reset();
-        Right.Reset();
+        left?.Reset();
+        right?.Reset();
     }
 
     public void Dispose() {
-        Left.Dispose();
-        Right.Dispose();
+        left?.Dispose();
+        right?.Dispose();
     }
 }
 
@@ -100,8 +113,7 @@ public sealed class CabIrSwitcher : IDisposable {
         }
 
         if (fading is null) {
-            active.Left.Process(left);
-            active.Right.Process(right);
+            active.Process(left, right);
             return;
         }
 
@@ -109,10 +121,8 @@ public sealed class CabIrSwitcher : IDisposable {
         var oldRight = this.oldRight.Span[..right.Length];
         left.CopyTo(oldLeft);
         right.CopyTo(oldRight);
-        fading.Left.Process(oldLeft);
-        fading.Right.Process(oldRight);
-        active.Left.Process(left);
-        active.Right.Process(right);
+        fading.Process(oldLeft, oldRight);
+        active.Process(left, right);
         var step = 1f / FadeLength;
         for (var i = 0; i < left.Length; i++) {
             var mix = Math.Min(1f, (faded + i + 1) * step);
