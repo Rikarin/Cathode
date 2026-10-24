@@ -276,8 +276,14 @@ public sealed class PowerAmp {
         Rebias();
         var noon = new PowerControls(0.5, 0, 0, 0.5, 0.5, 0.5);
         Configure(noon);
-        var total = IdleCurrents(design.Supply, design.Supply, out _);
         var supply = design.PowerSupply;
+        var total = IdleCurrents(design.Supply, design.Supply, out _);
+        for (var i = 0; i < 40; i++) {
+            // The screen node sits below B+ by the choke's (or dropping resistor's) drop, which the currents depend on.
+            var node = design.Supply - supply.ChokeResistance * (total.Screens + supply.PreampCurrent);
+            total = IdleCurrents(design.Supply, Math.Max(node, 1e-3), out _);
+        }
+
         var draw = total.Plates + total.Screens + supply.PreampCurrent;
         unloadedSupply = design.Supply + supply.SourceResistance * draw + (rectifier?.Drop(draw) ?? 0);
         acResistance = CalibrateAc(draw);
@@ -435,9 +441,12 @@ public sealed class PowerAmp {
             var sag = supply.SourceResistance * sagScale;
             var draw = total.Plates + total.Screens + supply.PreampCurrent;
             var next = unloaded - sag * draw - (rectifier?.Drop(draw) ?? 0);
-            screen = next - supply.ChokeResistance * (total.Screens + supply.PreampCurrent);
-            var change = Math.Abs(next - reservoir);
+            var node = next - supply.ChokeResistance * (total.Screens + supply.PreampCurrent);
+
+            // Both nodes must settle: the screen node starts at B+, and a large dropping resistor moves it far.
+            var change = Math.Abs(next - reservoir) + Math.Abs(node - screen);
             reservoir = next;
+            screen = node;
             if (change < 1e-9) {
                 converged = true;
                 break;

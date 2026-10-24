@@ -18,7 +18,15 @@ public sealed partial record AmpDesign {
         Models.JCM2204.Design,
         Models.JTM45.Design,
         Models.SuperLead100.Design,
-        Models.LaneyGH100L.Design
+        Models.LaneyGH100L.Design,
+        Models.DeluxeReverb.Design,
+        Models.TwinReverb.Design,
+        Models.SuperReverb.Design,
+        Models.PrincetonReverb.Design,
+        Models.Bassman.Design,
+        Models.Bassman.Jumped,
+        Models.TweedDeluxe.Design,
+        Models.TweedDeluxe.Jumped
     ];
 
     public static AmpDesign Blackface => Models.Blackface.Design;

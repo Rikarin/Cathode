@@ -107,7 +107,9 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                     // Known no-ops: the cathode time constant of a fixed-bias amp, a 6L6GC (the 5881's curves) or EL34
                     // or EL84 in place of itself, the presence and depth frequencies of an amp without feedback; the
                     // master trim of an amp without a master, the preamp tube and stack frequency of a (stock) channel
-                    // without a 12AX7 or a tone stack (the AC15's EF86 channel), the speaker preset the amp has anyway.
+                    // without a 12AX7 or a tone stack (the AC15's EF86 channel), the speaker preset or rectifier the amp
+                    // has anyway; and where the panel says the amp lacks the control, the bright cap (no bright switch:
+                    // a bright cap a channel switch engages, or none at all) and the presence frequency (no presence).
                     var tube = new[] { null, "6L6GC", "EL34", "EL84", "6V6GT", "KT66", "KT88", "6550" }[
                         index == CircuitAmpBlock.PowerTube ? (int)value : 0];
                     // And the bright cap of an amp without one (the Laney's drive channel).
@@ -118,7 +120,11 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                         && !(index == CircuitAmpBlock.MasterTrim && design.Panel.Master is null)
                         && !(index == CircuitAmpBlock.PreampTube && !StockPath(design).Any(HasTwelveAX7))
                         && !(index == CircuitAmpBlock.StackFrequency && !StockPath(design).Any(HasStack))
-                        && !(index == CircuitAmpBlock.SpeakerCurve && SpeakerDesign.Presets[(int)value - 1] == design.Power.Speaker);
+                        && !(index == CircuitAmpBlock.BrightCap && design.Panel.Bright is null)
+                        && !(index == CircuitAmpBlock.PresenceFrequency && design.Panel.Presence is null)
+                        && !(index == CircuitAmpBlock.SpeakerCurve && SpeakerDesign.Presets[(int)value - 1] == design.Power.Speaker)
+                        && !(index == CircuitAmpBlock.Rectifier
+                            && RectifierModel.All[(int)value - 1] == design.Power.PowerSupply.Rectifier);
                     data.Add(type, index, value, audible);
                 }
             }
