@@ -233,7 +233,8 @@ public class PitchBlockTests(ITestOutputHelper output) {
         Assert.Equal(PitchBlock.CustomTable, info.IndexOf("custom1C"));
         Assert.Equal(PitchBlock.CustomTable + 13, info.IndexOf("custom2Cs"));
         Assert.Equal(PitchBlock.CustomTable + 47, info.IndexOf("custom4B"));
-        Assert.Equal(PitchBlock.CustomTable + 48, info.Params.Count);
+        Assert.Equal(PitchBlock.CustomTable + 48, PitchBlock.Balance);
+        Assert.Equal(PitchBlock.Balance + 1, info.Params.Count);
         Assert.Equal("Virtual Capo", info.Params[PitchBlock.Type].Options![(int)PitchType.VirtualCapo]);
         Assert.Equal("Custom Shifter", info.Params[PitchBlock.Type].Options![(int)PitchType.CustomShifter]);
 

@@ -16,6 +16,7 @@ public sealed class ToneStackBlock() : DspBlock(Info) {
     public const int Middle = 2;
     public const int Treble = 3;
     public const int Level = 4;
+    public const int Balance = 5;
 
     const double SourceResistance = 1e3;
     const double LoadResistance = 1e6;
@@ -26,7 +27,7 @@ public sealed class ToneStackBlock() : DspBlock(Info) {
     readonly ToneStackCircuit[] left = Stacks();
     readonly ToneStackCircuit[] right = Stacks();
     int active = -1;
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "tonestack",
@@ -37,7 +38,8 @@ public sealed class ToneStackBlock() : DspBlock(Info) {
             ParamDescriptor.Float("bass", "Bass", 0f, 10f, 5f),
             ParamDescriptor.Float("middle", "Middle", 0f, 10f, 5f),
             ParamDescriptor.Float("treble", "Treble", 0f, 10f, 5f),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 4
     );
@@ -53,7 +55,7 @@ public sealed class ToneStackBlock() : DspBlock(Info) {
         active = (int)Params.Current(Type);
         left[active].Reset();
         right[active].Reset();
-        outputGain = Gain(Params.Current(Level));
+        output.Reset(WithMakeup(Params.Current(Level)), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -77,14 +79,14 @@ public sealed class ToneStackBlock() : DspBlock(Info) {
 
         l.FlushDenormals();
         r.FlushDenormals();
-        var outputGain = Gain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, WithMakeup(Params.Advance(Level, io.Length)), Params.Advance(Balance, io.Length));
     }
 
-    float Gain(float levelDb) =>
-        (float)(Decibels.ToGain(levelDb) * Makeup[Math.Clamp((int)Params.Current(Type), 0, Makeup.Length - 1)]);
+    /// <summary>The level plus the current stack's make-up gain, in dB (silence stays silence).</summary>
+    float WithMakeup(float levelDb) =>
+        levelDb <= Decibels.SilenceDb
+            ? levelDb
+            : levelDb + (float)Decibels.FromGain(Makeup[Math.Clamp((int)Params.Current(Type), 0, Makeup.Length - 1)]);
 
     static ToneStackCircuit[] Stacks() =>
         [..ToneStackDesign.All.Select(static d => new ToneStackCircuit(d, 48_000, SourceResistance, LoadResistance))];

@@ -25,6 +25,8 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
     public const int Damping = 16;
     public const int Mix = 17;
     public const int Level = 18;
+    public const int Balance = 19;
+    public const int InputGain = 20;
 
     public const int Voices = 4;
     public const float MinFrequency = 20f;
@@ -60,7 +62,7 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
     readonly float[] inputGain = new float[Voices];
     readonly float[] damping = new float[Voices];
     float mix;
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "resonator",
@@ -90,7 +92,9 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
             ParamDescriptor.Float("decay", "Decay", 0.05f, 10f, 1f, "s", ParamTaper.Log),
             ParamDescriptor.Float("damping", "Damping", 0f, 100f, 25f, "%"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 50f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%")
         ],
         maxInstances: 2,
         channels: 2
@@ -112,7 +116,7 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
         Array.Copy(nextLeft, gainLeft, Voices);
         Array.Copy(nextRight, gainRight, Voices);
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void Dispose(bool disposing) {
@@ -131,11 +135,12 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
         var mix = Params.Advance(Mix, n) / 100f;
         var mixStep = (mix - this.mix) / n;
         var currentMix = this.mix;
+        var feed = Params.Advance(InputGain, n) / 100f;
 
         for (var i = 0; i < n; i++) {
             var left = io.Left[i];
             var right = io.Right[i];
-            var input = 0.5f * (left + right);
+            var input = 0.5f * (left + right) * feed;
             var position = (i + 1) / (float)n;
             float wetLeft = 0, wetRight = 0;
             for (var v = 0; v < Voices; v++) {
@@ -152,10 +157,7 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
         Array.Copy(nextLeft, gainLeft, Voices);
         Array.Copy(nextRight, gainRight, Voices);
         this.mix = mix;
-        var outputGain = Decibels.ToGain(Params.Advance(Level, n));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
     }
 
     /// <summary>

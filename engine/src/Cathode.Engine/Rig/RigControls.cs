@@ -1,4 +1,5 @@
 using Cathode.Dsp;
+using Cathode.Dsp.Modulation;
 using Cathode.Dsp.Parameters;
 
 namespace Cathode.Engine.Rig;
@@ -13,13 +14,13 @@ public static class RigControls {
     public const string BlockId = "rig";
     public const int SequencerStages = 16;
 
-    public static readonly string[] LfoShapes = ["Sine", "Triangle", "Square", "Saw Up", "Saw Down", "Random"];
+    public static readonly string[] LfoShapes = Dsp.Modulation.Lfo.ShapeNames;
 
     /// <summary>Tempo divisions for synced controllers; "Off" uses the rate in Hz.</summary>
-    public static readonly string[] Divisions = ["Off", "1/1", "1/2", "1/4", "1/4.", "1/4T", "1/8", "1/8.", "1/8T", "1/16"];
+    public static readonly string[] Divisions = TempoDivisions.Names;
 
     /// <summary>Length of each <see cref="Divisions" /> entry in quarter notes (index 0 unused).</summary>
-    public static readonly double[] DivisionBeats = [0, 4, 2, 1, 1.5, 2.0 / 3, 0.5, 0.75, 1.0 / 3, 0.25];
+    public static readonly double[] DivisionBeats = TempoDivisions.Beats;
 
     public static BlockDescriptor Descriptor { get; } = new(
         BlockId,

@@ -9,7 +9,8 @@ public enum BiquadType {
     Notch,
     Peak,
     LowShelf,
-    HighShelf
+    HighShelf,
+    AllPass
 }
 
 /// <summary>Normalised biquad coefficients (a0 = 1). Double precision keeps low-frequency, high-Q sections stable.</summary>
@@ -101,6 +102,14 @@ public readonly record struct BiquadCoefficients(double B0, double B1, double B2
                 break;
             }
 
+            case BiquadType.AllPass:
+                b0 = 1 - alpha;
+                b1 = -2 * cos;
+                b2 = 1 + alpha;
+                a0 = 1 + alpha;
+                a1 = -2 * cos;
+                a2 = 1 - alpha;
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }

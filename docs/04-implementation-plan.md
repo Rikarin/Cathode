@@ -47,7 +47,7 @@ Each spike is a throwaway prototype with a written result in `docs/adr/`.
   - IPC telemetry dropped from 30 to 10 Hz.
   - RMS, per-block CPU and the scope/RTA rings come with the editor (Phase 4).
 - [x] Generated per-block test suite (null, determinism, properties, zero-allocation)
-- [x] Blocks: **Input**, **Output**, **Shunt**, implicit mixing, **Volume/Pan**, **Filter** (TPT SVF). An explicit Mixer block is still to do
+- [x] Blocks: **Input**, **Output**, **Shunt**, implicit mixing, **Volume/Pan**, **Filter** (TPT SVF), and an explicit **Mixer** (`mixer`, six rows with gain and balance; added with the parity pass, [08](08-blocks-parity.md))
 
 **Exit:** a JSON graph file can be rendered offline. A live passthrough with a gain block runs at 64 samples with no xruns, and the CI suites are green.
 
@@ -178,7 +178,7 @@ Ordered by value to a guitarist:
 - [x] **Gapless preset changes with spillover:**
   - The replaced graph keeps running on a fading input while the new one fades in over 20 ms.
   - It retires after 4.1 s below −90 dB (longer than any delay repeat) or 12 s.
-  - **Bypass modes:** Thru, Mute, Mute In and Mute FX In. The "in" modes give scene spillover.
+  - **Bypass modes:** Thru, Mute, Mute In, Mute FX In, Mute Out and Mute FX Out. The "in" modes give scene spillover; the "out" modes keep a bypassed block listening.
 - [x] **Channels:** continuous parameters glide through their smoothers on a channel switch, and copy channel is in the API and the block menu.
   - *Not done:* a dual-state crossfade for discrete parameter jumps (a Type change still switches at once).
 - [x] **Controllers:** LFO ×2 (6 shapes, free or synced), ADSR ×2 (input-gated), a 16-stage sequencer, an envelope follower, a pitch follower (host MPM at 10 Hz), Manual A–D (global), External 1–8 (CC/pedals), and scene controllers 1–4.
@@ -236,6 +236,8 @@ Close the gap with the Axe-Fx III block list in [01](01-axe-fx-iii-audit.md), in
    - **User IR grids**: a `.cabgrid` asset (a zip with `manifest.json` listing `{position, distance, file}` on a full grid), a folder, or a single `.wav` per slot (`grid1`–`grid4`). Points are interpolated bilinearly in log magnitude, with the onset delay interpolated apart, and rebuilt as minimum phase. Crossfading neighbouring IRs instead would comb-filter. Packs live in the asset store, never in the repository.
    - **Editor**: `cth-speaker-cone` (audio-ui, with a story) draws the cone from the side. Each mic is dragged across the cone and away from the grille, or moved with the arrow keys. The DynaCab panel adds the selected mic's controls and its IR pack picker.
    - Cost 0.95 %. *Not modelled:* speaker drive and compression, mic preamp, cone ageing, slant cabs, the room beyond 4 early reflections, and phase detail lost when a user grid is rebuilt as minimum phase.
+
+11. [x] **Blocks Guide parity pass** ([08](08-blocks-parity.md)): every block audited against the June 2023 Blocks Guide, page by page. Added Balance on every block, the ten guide LFO waveforms with duty, a longer shared tempo list, the Mixer block, the two "out" bypass modes, Tremolo's Bias/Harmonic/Optical types, new Filter types (null, all-pass, tilt, combs) with pans and an LFO, a full Volume/Pan (tapers, auto-swell), Delay ping-pong, ducker, hold, bit reduction and the guide's delay mix law, and input gain, sidechain and ducker controls across the dynamics, delay and reverb blocks. [08 §8](08-blocks-parity.md#8-plan-for-the-medium-and-large-gaps) plans the rest (Global Mix, Input gate and Output mixer, Scene MIDI, Plex Delay).
 
 **Definition-of-done tooling added in this phase:**
 - `tools/Cathode.Bench` measures every block (the worst of its types, with the longest IRs) and writes `BlockCosts.cs`. The conformance suite fails for a block without a cost.

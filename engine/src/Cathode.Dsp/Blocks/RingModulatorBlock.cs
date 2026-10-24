@@ -16,6 +16,8 @@ public sealed class RingModulatorBlock() : DspBlock(Info) {
     public const int HighCut = 2;
     public const int Mix = 3;
     public const int Level = 4;
+    public const int Balance = 5;
+    public const int Multiplier = 6;
 
     /// <summary>Carrier cycles per beat for each <see cref="Tempo" /> option after "Off".</summary>
     static readonly double[] CyclesPerBeat = [1, 2, 4, 8, 16];
@@ -25,7 +27,7 @@ public sealed class RingModulatorBlock() : DspBlock(Info) {
     SvfState highCutLeft;
     SvfState highCutRight;
     float mix = 1f;
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "ringmod",
@@ -36,7 +38,9 @@ public sealed class RingModulatorBlock() : DspBlock(Info) {
             ParamDescriptor.Choice("tempo", "Tempo", ["Off", "1/4", "1/8", "1/16", "1/32", "1/64"]),
             ParamDescriptor.Float("highCut", "High Cut", 200f, 20_000f, 20_000f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Float("multiplier", "Freq Multiplier", 0.25f, 4f, 1f, "x", ParamTaper.Log)
         ],
         maxInstances: 1,
         channels: 2
@@ -44,19 +48,21 @@ public sealed class RingModulatorBlock() : DspBlock(Info) {
 
     double CarrierFrequency(in BlockContext context, int frames) {
         var knob = Params.Advance(Frequency, frames);
+        var multiplier = Params.Advance(Multiplier, frames);
         var tempo = (int)Params.Current(Tempo);
-        return tempo == 0 || !(context.Tempo > 0)
+        var carrier = tempo == 0 || !(context.Tempo > 0)
             ? knob
             : Math.Clamp(context.Tempo, 20, 400) / 60 * CyclesPerBeat[tempo - 1];
+        return carrier * multiplier;
     }
 
     protected override void OnReset() {
         phase = 0;
-        frequency = Params.Current(Tempo) == 0 ? Params.Current(Frequency) : 0;
+        frequency = Params.Current(Tempo) == 0 ? Params.Current(Frequency) * Params.Current(Multiplier) : 0;
         highCutLeft.Reset();
         highCutRight.Reset();
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -89,9 +95,6 @@ public sealed class RingModulatorBlock() : DspBlock(Info) {
         frequency = target;
         this.mix = mix;
 
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 }

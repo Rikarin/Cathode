@@ -269,7 +269,14 @@ export class BlockEditor {
   protected readonly channels = ChannelNames.map(c => ({ label: c, value: c as ChannelName }));
   protected readonly bypassModes = [...BypassModes];
   protected readonly bypassModeName = (mode: string) =>
-    ({ thru: 'Thru', mute: 'Mute', muteIn: 'Mute In', muteFxIn: 'Mute FX In (spillover)' })[mode] ?? mode;
+    ({
+      thru: 'Thru',
+      mute: 'Mute',
+      muteIn: 'Mute In',
+      muteFxIn: 'Mute FX In (spillover)',
+      muteOut: 'Mute Out',
+      muteFxOut: 'Mute FX Out'
+    })[mode] ?? mode;
   protected readonly globalBlock = computed(() => {
     const id = this.block()?.global;
     return id ? this.globals.settings()?.blocks.find(b => b.id === id) : undefined;

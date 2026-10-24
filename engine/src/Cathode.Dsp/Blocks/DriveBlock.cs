@@ -42,6 +42,7 @@ public sealed class DriveBlock() : DspBlock(Info) {
 
     /// <summary>The guitar's volume knob, appended after the original parameters (presets store indices).</summary>
     public const int InputVolume = 5;
+    public const int Balance = 6;
 
     /// <summary>Index of the first circuit model: the three original voicings keep indices 0-2.</summary>
     public const int CircuitTypes = 3;
@@ -62,7 +63,7 @@ public sealed class DriveBlock() : DspBlock(Info) {
     readonly HalfBandStage dryTwiceLeft = new(TwiceBranches);
     readonly HalfBandStage dryTwiceRight = new(TwiceBranches);
     float gain = 1f;
-    float outputGain = 1f;
+    OutputStage output;
     float mix = 1f;
     float guitar = 1f;
     float[] dry = [];
@@ -86,7 +87,8 @@ public sealed class DriveBlock() : DspBlock(Info) {
             ParamDescriptor.Float("tone", "Tone", 0f, 10f, 5f),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("inputVol", "Input Vol", 0f, 10f, 10f)
+            ParamDescriptor.Float("inputVol", "Input Vol", 0f, 10f, 10f),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 4
     );
@@ -149,7 +151,8 @@ public sealed class DriveBlock() : DspBlock(Info) {
             var tone = Params.Advance(Tone, length);
             var volume = Params.Advance(InputVolume, length);
             var mix = Params.Advance(Mix, length) / 100f;
-            var outputGain = Decibels.ToGain(Params.Advance(Level, length));
+            var level = Params.Advance(Level, length);
+            var balance = Params.Advance(Balance, length);
             var gain = InputGain(type, drive);
             var guitar = (float)DriveCircuits.Guitar(volume).Level;
             left.Circuit.Configure(circuit, drive, tone, volume, innerRate, rate, Antialias);
@@ -178,11 +181,9 @@ public sealed class DriveBlock() : DspBlock(Info) {
                 GainRamp.Mix(rightDry, chunk.Right, this.mix, mix);
             }
 
-            GainRamp.Apply(chunk.Left, this.outputGain, outputGain);
-            GainRamp.Apply(chunk.Right, this.outputGain, outputGain);
+            output.Apply(chunk, level, balance);
             this.gain = gain;
             this.mix = mix;
-            this.outputGain = outputGain;
             this.guitar = guitar;
             offset += length;
             phase = (phase + length) % SubBlock;
@@ -248,7 +249,7 @@ public sealed class DriveBlock() : DspBlock(Info) {
         right.Reset();
         ResetOversamplers();
         gain = InputGain((int)Params.Current(Type), Params.Current(Drive));
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
         mix = Params.Current(Mix) / 100f;
         guitar = (float)DriveCircuits.Guitar(Params.Current(InputVolume)).Level;
         phase = 0;
@@ -306,10 +307,7 @@ public sealed class DriveBlock() : DspBlock(Info) {
         this.guitar = guitar;
         phase = (phase + io.Length) % SubBlock;
 
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 
     sealed class Channel {

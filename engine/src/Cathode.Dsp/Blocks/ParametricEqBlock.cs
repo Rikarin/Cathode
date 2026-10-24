@@ -4,7 +4,8 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     Five-band parametric EQ. Band 1 can be a low shelf or a peak, band 5 a high shelf or a peak, bands 2-4 are peaks.
+///     Five-band parametric EQ. Band 1 can be a low shelf, a peak or a blocking (high-pass) filter, band 5 a high
+///     shelf, a peak or a blocking (low-pass) filter; bands 2-4 are peaks. A blocking band ignores its gain.
 ///     Coefficients follow smoothed parameters every <see cref="SubBlock" /> samples.
 /// </summary>
 public sealed class ParametricEqBlock : DspBlock {
@@ -12,12 +13,13 @@ public sealed class ParametricEqBlock : DspBlock {
     public const int LowType = 15;
     public const int HighType = 16;
     public const int Level = 17;
+    public const int Balance = 18;
 
     const int SubBlock = 32;
     static readonly float[] DefaultFrequencies = [100f, 300f, 1_000f, 3_000f, 8_000f];
 
     readonly EqBand[] bands = [new(), new(), new(), new(), new()];
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "peq",
@@ -39,9 +41,10 @@ public sealed class ParametricEqBlock : DspBlock {
                         ParamDescriptor.Float($"q{b}", $"Q {b}", 0.1f, 10f, 0.7071f, string.Empty, ParamTaper.Log)
                     }
                 ),
-            ParamDescriptor.Choice("lowtype", "Band 1 Type", ["Low Shelf", "Peak"]),
-            ParamDescriptor.Choice("hightype", "Band 5 Type", ["High Shelf", "Peak"]),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Choice("lowtype", "Band 1 Type", ["Low Shelf", "Peak", "Blocking"]),
+            ParamDescriptor.Choice("hightype", "Band 5 Type", ["High Shelf", "Peak", "Blocking"]),
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 4
     );
@@ -60,7 +63,7 @@ public sealed class ParametricEqBlock : DspBlock {
             band.Reset();
         }
 
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -74,16 +77,15 @@ public sealed class ParametricEqBlock : DspBlock {
                 var q = Params.Advance(Q(b), length);
                 var type = b switch {
                     1 when Params.Current(LowType) == 0 => BiquadType.LowShelf,
+                    1 when Params.Current(LowType) == 2 => BiquadType.HighPass,
                     Bands when Params.Current(HighType) == 0 => BiquadType.HighShelf,
+                    Bands when Params.Current(HighType) == 2 => BiquadType.LowPass,
                     _ => BiquadType.Peak
                 };
                 bands[b - 1].Process(chunk, type, Spec.SampleRate, frequency, q, gain, moving);
             }
         }
 
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 }

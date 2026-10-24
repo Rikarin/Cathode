@@ -20,6 +20,7 @@ public sealed class CrossoverBlock() : DspBlock(Info) {
     public const int HighPan = 4;
     public const int Mode = 5;
     public const int Level = 6;
+    public const int Balance = 7;
 
     const int SubBlock = 32;
 
@@ -38,28 +39,34 @@ public sealed class CrossoverBlock() : DspBlock(Info) {
             ParamDescriptor.Float("lowPan", "Low Pan", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float("highPan", "High Pan", -100f, 100f, 0f, "%"),
             ParamDescriptor.Choice("mode", "Mode", ["Stereo", "Low Left / High Right"]),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 2,
         channels: 2
     );
 
     /// <summary>Balance law: centre is unity on both sides, panning attenuates the opposite side linearly.</summary>
-    static (float Left, float Right) Balance(float pan) => (pan > 0 ? 1 - pan : 1, pan < 0 ? 1 + pan : 1);
+    static (float Left, float Right) PanGains(float pan) => (pan > 0 ? 1 - pan : 1, pan < 0 ? 1 + pan : 1);
 
     Gains Target(int length) {
-        var output = Decibels.ToGain(Params.Advance(Level, length));
-        var low = Decibels.ToGain(Params.Advance(LowLevel, length)) * output;
-        var high = Decibels.ToGain(Params.Advance(HighLevel, length)) * output;
+        var (outLeft, outRight) = OutputStage.Gains(Params.Advance(Level, length), Params.Advance(Balance, length));
+        var low = Decibels.ToGain(Params.Advance(LowLevel, length));
+        var high = Decibels.ToGain(Params.Advance(HighLevel, length));
         var lowPan = Params.Advance(LowPan, length) / 100f;
         var highPan = Params.Advance(HighPan, length) / 100f;
         if (Params.Current(Mode) >= 0.5f) {
-            return new(low, 0, 0, high);
+            return new(low * outLeft, 0, 0, high * outRight);
         }
 
-        var (lowLeft, lowRight) = Balance(lowPan);
-        var (highLeft, highRight) = Balance(highPan);
-        return new(low * lowLeft, low * lowRight, high * highLeft, high * highRight);
+        var (lowLeft, lowRight) = PanGains(lowPan);
+        var (highLeft, highRight) = PanGains(highPan);
+        return new(
+            low * lowLeft * outLeft,
+            low * lowRight * outRight,
+            high * highLeft * outLeft,
+            high * highRight * outRight
+        );
     }
 
     protected override void OnReset() {

@@ -1,3 +1,4 @@
+using Cathode.Dsp.Filters;
 using Cathode.Dsp.Parameters;
 
 namespace Cathode.Dsp.Blocks;
@@ -10,15 +11,30 @@ namespace Cathode.Dsp.Blocks;
 ///     held for the hold time once the signal drops, then closes with the release time. It starts open, inside a hold
 ///     window, so the first note is never touched while the detector catches up.
 /// </summary>
-public sealed class GateBlock : DspBlock {
+public sealed class GateBlock() : DspBlock(Info) {
     public const int Threshold = 0;
     public const int Ratio = 1;
     public const int Attack = 2;
     public const int Hold = 3;
     public const int Release = 4;
+    public const int Type = 5;
+    public const int Attenuation = 6;
+    public const int SidechainLowCut = 7;
+    public const int SidechainHighCut = 8;
+    public const int Detector = 9;
+    public const int Level = 10;
+    public const int Balance = 11;
+
+    public const int Expander = 0;
+    public const int Gate = 1;
+    public const int Peak = 0;
+    public const int Rms = 1;
 
     /// <summary>Release of the level detector itself; short, so the gate reacts to the playing, not to its own tail.</summary>
     const double DetectorReleaseMs = 10;
+
+    /// <summary>Averaging time of the RMS detector.</summary>
+    const double RmsMs = 10;
 
     /// <summary>Deepest attenuation the gate applies, in dB.</summary>
     const float FloorDb = -100f;
@@ -27,6 +43,10 @@ public sealed class GateBlock : DspBlock {
     float gainDb;
     int holdRemaining;
     float detectorRelease;
+    float rmsCoefficient;
+    float meanSquare;
+    WetCuts sidechain;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "gate",
@@ -37,7 +57,14 @@ public sealed class GateBlock : DspBlock {
             ParamDescriptor.Float("ratio", "Ratio", 1f, 20f, 4f, ":1", ParamTaper.Log),
             ParamDescriptor.Float("attack", "Attack", 0.05f, 50f, 0.5f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("hold", "Hold", 0f, 500f, 20f, "ms"),
-            ParamDescriptor.Float("release", "Release", 5f, 2_000f, 100f, "ms", ParamTaper.Log)
+            ParamDescriptor.Float("release", "Release", 5f, 2_000f, 100f, "ms", ParamTaper.Log),
+            ParamDescriptor.Choice("type", "Type", ["Expander", "Gate"]),
+            ParamDescriptor.Float("attenuation", "Attenuation", 0f, 100f, 60f, "dB"),
+            WetCuts.LowCutParam("scLowCut", "Sidechain Low Cut"),
+            WetCuts.HighCutParam("scHighCut", "Sidechain High Cut"),
+            ParamDescriptor.Choice("detector", "Detector", ["Peak", "RMS"]),
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 4
     );
@@ -45,19 +72,21 @@ public sealed class GateBlock : DspBlock {
     /// <summary>Current gain applied by the gate (1 = open). For meters and tests.</summary>
     public float CurrentGain => MathF.Pow(10f, gainDb / 20f);
 
-    public GateBlock()
-        : base(Info) { }
-
     /// <summary>One-pole coefficient reaching about 63 % of a step in <paramref name="milliseconds" />.</summary>
     static float Coefficient(double milliseconds, double sampleRate) =>
         (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
 
-    protected override void OnPrepare(in ProcessSpec spec) =>
+    protected override void OnPrepare(in ProcessSpec spec) {
         detectorRelease = Coefficient(DetectorReleaseMs, spec.SampleRate);
+        rmsCoefficient = Coefficient(RmsMs, spec.SampleRate);
+    }
 
     protected override void OnReset() {
         envelope = 0;
+        meanSquare = 0;
         gainDb = 0;
+        sidechain.Reset();
+        output.Reset(Params.Current(Level), Params.Current(Balance));
         holdRemaining = (int)(Params.Current(Hold) * 0.001 * Spec.SampleRate);
     }
 
@@ -69,18 +98,36 @@ public sealed class GateBlock : DspBlock {
         var attack = Coefficient(Params.Advance(Attack, io.Length), sampleRate);
         var release = Coefficient(Params.Advance(Release, io.Length), sampleRate);
         var holdSamples = (int)(Params.Advance(Hold, io.Length) * 0.001 * sampleRate);
+        var gate = (int)Params.Current(Type) == Gate;
+        var closedDb = Math.Max(FloorDb, -Params.Advance(Attenuation, io.Length));
+        var rms = (int)Params.Current(Detector) == Rms;
+        sidechain.Design(
+            sampleRate,
+            Params.Advance(SidechainLowCut, io.Length),
+            Params.Advance(SidechainHighCut, io.Length)
+        );
 
         var envelope = this.envelope;
         var gainDb = this.gainDb;
         var holdRemaining = this.holdRemaining;
         for (var i = 0; i < io.Length; i++) {
-            var level = Math.Max(Math.Abs(io.Left[i]), Math.Abs(io.Right[i]));
-            envelope = level > envelope ? level : envelope * detectorRelease;
+            var detectLeft = io.Left[i];
+            var detectRight = io.Right[i];
+            sidechain.Tick(ref detectLeft, ref detectRight);
+            var level = Math.Max(Math.Abs(detectLeft), Math.Abs(detectRight));
+            if (rms) {
+                meanSquare = level * level + (meanSquare - level * level) * rmsCoefficient;
+                envelope = MathF.Sqrt(meanSquare);
+            } else {
+                envelope = level > envelope ? level : envelope * detectorRelease;
+            }
 
             float targetDb;
             if (envelope >= threshold) {
                 targetDb = 0f;
                 holdRemaining = holdSamples;
+            } else if (gate) {
+                targetDb = closedDb;
             } else {
                 targetDb = envelope <= 0
                     ? FloorDb
@@ -101,7 +148,10 @@ public sealed class GateBlock : DspBlock {
         }
 
         this.envelope = envelope < 1e-20f ? 0 : envelope;
+        meanSquare = meanSquare < 1e-30f ? 0 : meanSquare;
+        sidechain.FlushDenormals();
         this.gainDb = gainDb;
         this.holdRemaining = holdRemaining;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 }

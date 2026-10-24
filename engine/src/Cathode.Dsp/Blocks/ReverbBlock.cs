@@ -24,6 +24,14 @@ public sealed class ReverbBlock : DspBlock {
     public const int LowCut = 5;
     public const int Mix = 6;
     public const int Level = 7;
+    public const int Balance = 8;
+    public const int InputGain = 9;
+    public const int InputSelect = 10;
+    public const int Spread = 11;
+    public const int DuckAttenuation = 12;
+    public const int DuckThreshold = 13;
+    public const int DuckRelease = 14;
+    public const int Hold = 15;
 
     public const int Dattorro = 3;
     public const int Spring = 4;
@@ -31,6 +39,9 @@ public sealed class ReverbBlock : DspBlock {
     public const float LowCutOff = 20f;
     const int Lines = 8;
     const float MaxPreDelayMs = 250f;
+
+    /// <summary>The decay time Hold uses: the tail is held, yet every loop stays below unity gain.</summary>
+    const float HoldDecaySeconds = 600f;
     const float MaxSizeScale = 1.5f;
     const float ModulationMs = 0.35f;
 
@@ -66,7 +77,8 @@ public sealed class ReverbBlock : DspBlock {
     SvfState lowCutLeft, lowCutRight;
     double modPhase;
     float mix;
-    float outputGain = 1f;
+    Ducker ducker;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "reverb",
@@ -80,7 +92,15 @@ public sealed class ReverbBlock : DspBlock {
             ParamDescriptor.Float("damping", "High Cut", 1_000f, 20_000f, 6_000f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("lowcut", "Low Cut", LowCutOff, 1_000f, 80f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 20f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
+            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
+            ParamDescriptor.Float("spread", "Stereo Spread", -100f, 100f, 100f, "%"),
+            ParamDescriptor.Float("duckAttenuation", "Ducker Atten", 0f, 40f, 0f, "dB"),
+            ParamDescriptor.Float("duckThreshold", "Ducker Threshold", -60f, 0f, -30f, "dB"),
+            ParamDescriptor.Float("duckRelease", "Ducker Release", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
+            ParamDescriptor.Switch("hold", "Hold")
         ],
         maxInstances: 2
     );
@@ -106,6 +126,7 @@ public sealed class ReverbBlock : DspBlock {
 
     protected override void OnReset() {
         preDelay.Clear();
+        ducker.Reset();
         foreach (var diffuser in diffusers) {
             diffuser.Clear();
         }
@@ -121,7 +142,7 @@ public sealed class ReverbBlock : DspBlock {
         lowCutRight.Reset();
         modPhase = 0;
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void Dispose(bool disposing) {
@@ -146,7 +167,21 @@ public sealed class ReverbBlock : DspBlock {
         var rate = (float)Spec.SampleRate;
         var type = (int)Params.Current(Type);
         var scale = 0.5f + Params.Current(Size) / 100f;
+        var hold = Params.Current(Hold) >= 0.5f;
         var decay = Params.Advance(Decay, io.Length);
+        if (hold) {
+            decay = HoldDecaySeconds; // an "infinite" tail: the loops lose only what their damping takes
+        }
+
+        var inputGain = hold ? 0f : Params.Advance(InputGain, io.Length) / 100f;
+        var select = (int)Params.Current(InputSelect);
+        var spread = Params.Advance(Spread, io.Length) / 100f;
+        ducker.Configure(
+            rate,
+            Params.Advance(DuckAttenuation, io.Length),
+            Params.Advance(DuckThreshold, io.Length),
+            Params.Advance(DuckRelease, io.Length)
+        );
         var preDelay = Math.Max(1f, Params.Advance(PreDelay, io.Length) * 0.001f * rate);
         var mix = Params.Advance(Mix, io.Length) / 100f;
         var dampingHz = Params.Advance(Damping, io.Length);
@@ -183,7 +218,7 @@ public sealed class ReverbBlock : DspBlock {
         for (var n = 0; n < io.Length; n++) {
             var dryLeft = io.Left[n];
             var dryRight = io.Right[n];
-            var x = this.preDelay.ReadWrite(0.5f * (dryLeft + dryRight), preDelay);
+            var x = this.preDelay.ReadWrite(Stereo.Select(select, dryLeft, dryRight) * inputGain, preDelay);
             var (wetLeft, wetRight) = type switch {
                 Dattorro => plate.Tick(x),
                 Spring => spring.Tick(x),
@@ -195,12 +230,21 @@ public sealed class ReverbBlock : DspBlock {
                 wetRight = (float)lowCutRight.Tick(lowCutCoefficients, wetRight);
             }
 
+            if (ducker.Active) {
+                var duck = ducker.Tick(Math.Max(MathF.Abs(dryLeft), MathF.Abs(dryRight)));
+                wetLeft *= duck;
+                wetRight *= duck;
+            }
+
+            Stereo.Spread(ref wetLeft, ref wetRight, spread);
+
             currentMix += mixStep;
             io.Left[n] = dryLeft * (1f - currentMix) + wetLeft * currentMix;
             io.Right[n] = dryRight * (1f - currentMix) + wetRight * currentMix;
         }
 
         this.mix = mix;
+        ducker.FlushDenormals();
         for (var i = 0; i < Lines; i++) {
             if (MathF.Abs(damping[i]) < 1e-20f) {
                 damping[i] = 0;
@@ -210,10 +254,7 @@ public sealed class ReverbBlock : DspBlock {
         lowCutLeft.FlushDenormals();
         lowCutRight.FlushDenormals();
 
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 
     void ClearTank(int type) {

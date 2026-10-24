@@ -68,6 +68,8 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                     BypassModes.Mute => BypassKind.Mute,
                     BypassModes.MuteIn => BypassKind.MuteIn,
                     BypassModes.MuteFxIn => BypassKind.MuteFxIn,
+                    BypassModes.MuteOut => BypassKind.MuteOut,
+                    BypassModes.MuteFxOut => BypassKind.MuteFxOut,
                     _ => BypassKind.Thru
                 }
             );
@@ -173,7 +175,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             var arrival = Arrival(inputs[n], live, latency);
             int buffer;
 
-            var mux = slotOfNode[n] >= 0 && blocks[slotOfNode[n]] is MultiplexerBlock;
+            var mux = slotOfNode[n] >= 0 && blocks[slotOfNode[n]] is IRowInputBlock;
             if (node.Type == NodeTypes.Input) {
                 buffer = emitter.Allocate();
                 emitter.Emit(new(GraphOpKind.ReadInput, buffer));

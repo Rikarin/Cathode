@@ -12,6 +12,7 @@ namespace Cathode.Dsp.Blocks;
 public sealed class ToneMatchBlock() : DspBlock(Info), IAssetConsumer {
     public const int Mix = 0;
     public const int Level = 1;
+    public const int Balance = 2;
 
     /// <summary>Longest correction filter kept; the Server designs 2048 taps (43 ms at 48 kHz).</summary>
     public const int FilterLength = 4_096;
@@ -21,7 +22,8 @@ public sealed class ToneMatchBlock() : DspBlock(Info), IAssetConsumer {
     readonly StereoConvolver convolver = new(Shape);
     NativeBuffer wetLeft = NativeBuffer.Empty;
     NativeBuffer wetRight = NativeBuffer.Empty;
-    float mix, outputGain = 1f;
+    float mix;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "tonematch",
@@ -29,7 +31,8 @@ public sealed class ToneMatchBlock() : DspBlock(Info), IAssetConsumer {
         "EQ",
         [
             ParamDescriptor.Float("mix", "Amount", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 1
     );
@@ -57,7 +60,7 @@ public sealed class ToneMatchBlock() : DspBlock(Info), IAssetConsumer {
     protected override void OnReset() {
         convolver.Reset();
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -73,10 +76,7 @@ public sealed class ToneMatchBlock() : DspBlock(Info), IAssetConsumer {
         }
 
         this.mix = mix;
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 
     protected override void Dispose(bool disposing) {

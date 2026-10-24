@@ -16,6 +16,12 @@ public sealed class FlangerBlock : DspBlock {
     public const int Mix = 4;
     public const int Spread = 5;
     public const int Level = 6;
+    public const int Balance = 7;
+    public const int Tempo = 8;
+    public const int LfoType = 9;
+    public const int LowCut = 10;
+    public const int HighCut = 11;
+    public const int PhaseReverse = 12;
 
     const float MaxSweepMs = 7f;
     const float MaxDelayMs = 10f;
@@ -23,8 +29,9 @@ public sealed class FlangerBlock : DspBlock {
     readonly FractionalDelayLine left = new();
     readonly FractionalDelayLine right = new();
     Lfo lfo;
+    WetCuts cuts;
     float mix;
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "flanger",
@@ -37,7 +44,13 @@ public sealed class FlangerBlock : DspBlock {
             ParamDescriptor.Float("feedback", "Feedback", -95f, 95f, 50f, "%"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 50f, "%"),
             ParamDescriptor.Float("spread", "Spread", 0f, 180f, 90f, "°"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
+            ParamDescriptor.Choice("lfoType", "LFO Type", Lfo.ShapeNames, (int)LfoShape.Triangle),
+            WetCuts.LowCutParam("lowCut", "Low Cut"),
+            WetCuts.HighCutParam("highCut", "High Cut"),
+            ParamDescriptor.Choice("phaseReverse", "Phase Reverse", ChorusBlock.PhaseOptions)
         ],
         maxInstances: 2
     );
@@ -55,8 +68,9 @@ public sealed class FlangerBlock : DspBlock {
         left.Reset();
         right.Reset();
         lfo.Reset();
+        cuts.Reset();
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void Dispose(bool disposing) {
@@ -70,7 +84,10 @@ public sealed class FlangerBlock : DspBlock {
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var rate = Spec.SampleRate;
-        var lfoRate = Params.Advance(Rate, io.Length);
+        var lfoRate = TempoDivisions.Rate((int)Params.Current(Tempo), context.Tempo, Params.Advance(Rate, io.Length));
+        var shape = (LfoShape)(int)Params.Current(LfoType);
+        var (polarityLeft, polarityRight) = ChorusBlock.Polarity((int)Params.Current(PhaseReverse));
+        cuts.Design(rate, Params.Advance(LowCut, io.Length), Params.Advance(HighCut, io.Length));
         var sweep = Params.Advance(Depth, io.Length) / 100f * MaxSweepMs * 0.001f * (float)rate;
         var baseDelay = Params.Advance(Delay, io.Length) * 0.001f * (float)rate;
         var feedback = Params.Advance(Feedback, io.Length) / 100f;
@@ -80,8 +97,8 @@ public sealed class FlangerBlock : DspBlock {
         var currentMix = this.mix;
 
         for (var i = 0; i < io.Length; i++) {
-            var dl = baseDelay + sweep * 0.5f * (1 + lfo.Value(LfoShape.Triangle));
-            var dr = baseDelay + sweep * 0.5f * (1 + lfo.Value(LfoShape.Triangle, spread));
+            var dl = baseDelay + sweep * 0.5f * (1 + lfo.Value(shape));
+            var dr = baseDelay + sweep * 0.5f * (1 + lfo.Value(shape, spread));
             lfo.Advance(lfoRate, rate);
             currentMix += mixStep;
 
@@ -91,14 +108,14 @@ public sealed class FlangerBlock : DspBlock {
             var wetRight = this.right.Read(dr);
             this.left.Write(left + wetLeft * feedback);
             this.right.Write(right + wetRight * feedback);
-            io.Left[i] = left * (1 - currentMix) + wetLeft * currentMix;
-            io.Right[i] = right * (1 - currentMix) + wetRight * currentMix;
+            cuts.Tick(ref wetLeft, ref wetRight);
+            io.Left[i] = left * (1 - currentMix) + polarityLeft * wetLeft * currentMix;
+            io.Right[i] = right * (1 - currentMix) + polarityRight * wetRight * currentMix;
         }
 
+        cuts.FlushDenormals();
+
         this.mix = mix;
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 }

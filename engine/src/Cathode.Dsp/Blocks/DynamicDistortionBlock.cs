@@ -23,6 +23,7 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
     public const int Release = 5;
     public const int Mix = 6;
     public const int Level = 7;
+    public const int Balance = 8;
 
     const int Factor = 4;
     const float MaxDriveDb = 40f;
@@ -38,7 +39,7 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
     float driveDb;
     float previousGain = 1f;
     float mix = 1f;
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "dyndist",
@@ -52,7 +53,8 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
             ParamDescriptor.Float("attack", "Attack", 0.1f, 100f, 5f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("release", "Release", 10f, 1_000f, 100f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 2
     );
@@ -131,7 +133,7 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
         driveDb = DriveDb(Params.Current(Drive));
         previousGain = Decibels.ToGain(driveDb);
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -148,10 +150,7 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
         previousGain = gains[^1];
         this.mix = mix;
 
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 
     sealed class Channel {

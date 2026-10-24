@@ -35,6 +35,7 @@ public sealed class BlockRegistry {
         registry.Register(IrPlayerBlock.Info, static () => new IrPlayerBlock());
         registry.Register(ToneMatchBlock.Info, static () => new ToneMatchBlock());
         registry.Register(MultiplexerBlock.Info, static () => new MultiplexerBlock());
+        registry.Register(MixerBlock.Info, static () => new MixerBlock());
         registry.Register(FeedbackSendBlock.Info, static () => new FeedbackSendBlock());
         registry.Register(FeedbackReturnBlock.Info, static () => new FeedbackReturnBlock());
         registry.Register(FxLoopBlock.Info, static () => new FxLoopBlock());

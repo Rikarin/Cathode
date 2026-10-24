@@ -1,4 +1,5 @@
 using Cathode.Dsp.Filters;
+using Cathode.Dsp.Modulation;
 using Cathode.Dsp.Parameters;
 
 namespace Cathode.Dsp.Blocks;
@@ -33,6 +34,9 @@ public sealed class MegatapBlock() : DspBlock(Info) {
     public const int HighCut = 8;
     public const int Mix = 9;
     public const int Level = 10;
+    public const int Balance = 11;
+    public const int InputGain = 12;
+    public const int InputSelect = 13;
 
     public const int Flat = 0;
     public const int FadeOut = 1;
@@ -54,7 +58,6 @@ public sealed class MegatapBlock() : DspBlock(Info) {
     public const float ExponentialFloorDb = -40f;
 
     /// <summary>Tempo divisions in beats (quarter notes), as in <see cref="DelayBlock" />.</summary>
-    static readonly float[] Divisions = [0f, 4f, 2f, 1f, 1.5f, 2f / 3f, 0.5f, 0.75f, 1f / 3f, 0.25f];
 
     readonly FractionalDelayLine line = new();
     readonly float[] tapDelay = new float[MaxTaps];
@@ -66,7 +69,7 @@ public sealed class MegatapBlock() : DspBlock(Info) {
     SvfState highCut;
     int activeTaps;
     float mix;
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "megatap",
@@ -74,11 +77,7 @@ public sealed class MegatapBlock() : DspBlock(Info) {
         "Delay",
         [
             new("time", "Time", ParamKind.Float, 10f, MaxTimeMs, 1_000f, "ms", ParamTaper.Log, ParamSmoothing.Linear, 60f),
-            ParamDescriptor.Choice(
-                "tempo",
-                "Tempo",
-                ["Off", "1/1", "1/2", "1/4", "1/4.", "1/4T", "1/8", "1/8.", "1/8T", "1/16"]
-            ),
+            ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
             new("taps", "Taps", ParamKind.Float, 1f, MaxTaps, 16f, Smoothing: ParamSmoothing.Step),
             ParamDescriptor.Float("timeShape", "Time Shape", -100f, 100f, 0f, "%"),
             ParamDescriptor.Choice("levelShape", "Level Shape", ["Flat", "Fade Out", "Fade In", "Swell", "Exponential"], 1),
@@ -87,7 +86,10 @@ public sealed class MegatapBlock() : DspBlock(Info) {
             ParamDescriptor.Float("lowCut", "Low Cut", LowCutOff, 2_000f, LowCutOff, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("highCut", "High Cut", 500f, HighCutOff, HighCutOff, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 50f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
+            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions)
         ],
         maxInstances: 2,
         channels: 2
@@ -113,8 +115,8 @@ public sealed class MegatapBlock() : DspBlock(Info) {
     }
 
     float TargetDelaySamples(float timeMs, double tempo) {
-        var division = Divisions[(int)Params.Current(Tempo)];
-        var ms = division > 0 && tempo > 0 ? Math.Min(MaxTimeMs, (float)(60_000.0 / tempo * division)) : timeMs;
+        var division = TempoDivisions.Milliseconds((int)Params.Current(Tempo), tempo);
+        var ms = division > 0 ? Math.Min(MaxTimeMs, (float)division) : timeMs;
         return (float)(ms * 0.001 * Spec.SampleRate);
     }
 
@@ -129,7 +131,7 @@ public sealed class MegatapBlock() : DspBlock(Info) {
         ComputeTapTargets(activeTaps, TargetDelaySamples(Params.Current(Time), 120));
         Array.Copy(tapTarget, tapDelay, MaxTaps);
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void Dispose(bool disposing) {
@@ -167,6 +169,8 @@ public sealed class MegatapBlock() : DspBlock(Info) {
             tapStep[k] = (tapTarget[k] - tapDelay[k]) / io.Length;
         }
 
+        var inputGain = Params.Advance(InputGain, io.Length) / 100f;
+        var select = (int)Params.Current(InputSelect);
         var mixStep = (mix - this.mix) / io.Length;
         var currentMix = this.mix;
         for (var n = 0; n < io.Length; n++) {
@@ -181,7 +185,7 @@ public sealed class MegatapBlock() : DspBlock(Info) {
                 wetRight += tap * tapRight[k];
             }
 
-            var x = 0.5f * (dryLeft + dryRight);
+            var x = Stereo.Select(select, dryLeft, dryRight) * inputGain;
             if (useLowCut) {
                 x = (float)lowCut.Tick(lowCutCoefficients, x);
             }
@@ -200,10 +204,7 @@ public sealed class MegatapBlock() : DspBlock(Info) {
         lowCut.FlushDenormals();
         highCut.FlushDenormals();
 
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 
     int TapCount() => Math.Clamp((int)MathF.Round(Params.Current(Taps)), 1, MaxTaps);

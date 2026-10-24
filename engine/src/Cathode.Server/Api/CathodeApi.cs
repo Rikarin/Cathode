@@ -377,7 +377,10 @@ public static class CathodeApi {
                     Respond(http, await rig.SetBypassModeAsync(id, request.Mode, Expected(http)))
             )
             .WithName("SetBypassMode")
-            .WithSummary("thru, mute, muteIn or muteFxIn; the 'in' modes let delay and reverb tails spill over.");
+            .WithSummary(
+                "thru, mute, muteIn, muteFxIn, muteOut or muteFxOut; the 'in' modes let delay and reverb tails spill over, "
+                + "the 'out' modes keep the block listening while bypassed."
+            );
         live.MapPut(
                 "/modifiers",
                 async (List<PresetModifier> modifiers, LiveRig rig, HttpContext http) =>

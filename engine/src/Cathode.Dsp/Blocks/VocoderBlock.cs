@@ -25,6 +25,7 @@ public sealed class VocoderBlock() : DspBlock(Info) {
     public const int Emphasis = 5;
     public const int Mix = 6;
     public const int Level = 7;
+    public const int Balance = 8;
 
     public const int CarrierSaw = 0;
     public const int CarrierPulse = 1;
@@ -68,7 +69,7 @@ public sealed class VocoderBlock() : DspBlock(Info) {
     float emphasis = float.NaN;
     uint noise;
     float mix;
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "vocoder",
@@ -86,7 +87,8 @@ public sealed class VocoderBlock() : DspBlock(Info) {
             ParamDescriptor.Float("release", "Release", 5f, 500f, 40f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("emphasis", "HF Emphasis", 0f, 100f, 50f, "%"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 1,
         channels: 1
@@ -125,7 +127,7 @@ public sealed class VocoderBlock() : DspBlock(Info) {
         noise = NoiseSeed;
         emphasis = float.NaN;
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -186,10 +188,7 @@ public sealed class VocoderBlock() : DspBlock(Info) {
         }
 
         this.mix = mix;
-        var outputGain = Decibels.ToGain(Params.Advance(Level, n));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
     }
 
     /// <summary>One sample of the internal carrier: the chord's voices summed, or white noise.</summary>

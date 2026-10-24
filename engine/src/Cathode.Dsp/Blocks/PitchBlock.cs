@@ -118,6 +118,8 @@ public sealed class PitchBlock() : DspBlock(Info) {
     /// <summary>The Custom Shifter tables: voice v's (0-3) shift for note n of the key is at CustomTable + 12 v + n.</summary>
     public const int CustomTable = KeySource + 1;
 
+    public const int Balance = CustomTable + 12 * 4;
+
     public const int VoiceCount = 4;
     public const int MaxArpSteps = 8;
     public const float MaxVoiceDelayMs = 1_000f;
@@ -184,7 +186,7 @@ public sealed class PitchBlock() : DspBlock(Info) {
     float whammySemitones;
     float crystalsDelay;
     float mix;
-    float outputGain = 1f;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "pitch",
@@ -263,7 +265,8 @@ public sealed class PitchBlock() : DspBlock(Info) {
             VoiceDelay(3),
             VoiceDelay(4),
             ParamDescriptor.Choice("keySource", "Key Source", ["Fixed", "MIDI", "Auto"]),
-            ..CustomTableParams()
+            ..CustomTableParams(),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 2
     );
@@ -399,7 +402,7 @@ public sealed class PitchBlock() : DspBlock(Info) {
         VoiceGains(activeType);
         targetsLeft.CopyTo(gainsLeft, 0);
         targetsRight.CopyTo(gainsRight, 0);
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void Dispose(bool disposing) {
@@ -572,10 +575,7 @@ public sealed class PitchBlock() : DspBlock(Info) {
         crystalsLow.FlushDenormals();
         crystalsHigh.FlushDenormals();
 
-        var outputGain = Decibels.ToGain(Params.Advance(Level, frames));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, frames), Params.Advance(Balance, frames));
     }
 
     static float MixFor(PitchType type, float mix) =>

@@ -95,7 +95,10 @@ public sealed class PresetBlock {
     /// <summary>Asset slot to asset reference (<c>sha256:&lt;hex&gt;</c>), e.g. <c>"model"</c> or <c>"ir1"</c>.</summary>
     public Dictionary<string, string> Assets { get; set; } = [];
 
-    /// <summary>What bypassing does: thru, mute, muteIn or muteFxIn (the last two let tails spill over).</summary>
+    /// <summary>
+    ///     What bypassing does: thru, mute, muteIn, muteFxIn, muteOut or muteFxOut (the "in" modes let tails spill over,
+    ///     the "out" modes keep the block listening while bypassed).
+    /// </summary>
     public string BypassMode { get; set; } = "thru";
 
     /// <summary>

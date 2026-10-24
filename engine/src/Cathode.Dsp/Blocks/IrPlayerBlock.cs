@@ -14,6 +14,7 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer {
     public const int LowCut = 1;
     public const int HighCut = 2;
     public const int Level = 3;
+    public const int Balance = 4;
 
     /// <summary>Longest IR kept, in samples at the engine rate (about 680 ms at 48 kHz).</summary>
     public const int MaxIrLength = 32_768;
@@ -24,7 +25,8 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer {
     SvfState lowCutLeft, lowCutRight, highCutLeft, highCutRight;
     NativeBuffer wetLeft = NativeBuffer.Empty;
     NativeBuffer wetRight = NativeBuffer.Empty;
-    float mix, outputGain = 1f;
+    float mix;
+    OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
         "irplayer",
@@ -34,7 +36,8 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer {
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
             ParamDescriptor.Float("lowcut", "Low Cut", CabBlock.LowCutOff, 500f, CabBlock.LowCutOff, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("highcut", "High Cut", 1_000f, CabBlock.HighCutOff, CabBlock.HighCutOff, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB")
+            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 2
     );
@@ -67,7 +70,7 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer {
         highCutLeft.Reset();
         highCutRight.Reset();
         mix = Params.Current(Mix) / 100f;
-        outputGain = Decibels.ToGain(Params.Current(Level));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -97,10 +100,7 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer {
         }
 
         this.mix = mix;
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 
     protected override void Dispose(bool disposing) {
