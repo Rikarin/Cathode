@@ -14,6 +14,41 @@ namespace Cathode.Dsp.Tests;
 public partial class AmpStageTests {
     public static TheoryData<string> DriverPowerAmps => ["Major 1967", "Major 1967 open loop", "Bass 400"];
 
+    /// <summary>
+    ///     The bias tremolo hook (<see cref="PowerAmpDesign.BiasTremolo" />) acts after the inverter, on the grid networks,
+    ///     so it applies to the new drivers too: borrowed from the Vibrolux 6G11, it modulates both power amps' output.
+    /// </summary>
+    [Theory]
+    [InlineData("Major 1967")]
+    [InlineData("Bass 400")]
+    public void Bias_tremolo_modulates_through_the_new_drivers(string name) {
+        var tremolo = Vibrolux6G11.Design.Power.BiasTremolo;
+        Assert.NotNull(tremolo);
+        var design = AmpDesign.All.Single(a => a.Name == name).Power with { BiasTremolo = tremolo };
+        var power = new PowerAmp(design, Rate);
+        power.Configure(new(0.5, 0, 0, 0.5, 0.5, 0.5, 1, 5, 1));
+        power.ConfigureLoop(new(0.5, 0.5, 0.5, 0.5, 1, false));
+        power.Reset();
+        var (low, high) = (double.MaxValue, 0.0);
+        var block = 0.0;
+        for (var n = 1; n <= (int)Rate; n++) {
+            var y = power.Tick(0.05 * Math.Sin(2 * Math.PI * 1_000 * n / Rate));
+            block = Math.Max(block, Math.Abs(y));
+            if (n % 960 == 0) {
+                if (n > Rate / 4) {
+                    (low, high) = (Math.Min(low, block), Math.Max(high, block));
+                }
+
+                block = 0;
+            }
+        }
+
+        var swing = 20 * Math.Log10(high / low);
+        output.WriteLine($"{name}: tremolo swings the 1 kHz level {swing:0.0} dB");
+        Assert.True(power.TremoloRunning);
+        Assert.True(swing > 3, $"{name}: {swing:0.0} dB");
+    }
+
     [Fact]
     public void Cathodyne_driver_table_matches_the_reference_dc_sweep() {
         var design = (CathodyneDriverDesign)MarshallMajor.Design.Power.PhaseInverter;

@@ -79,7 +79,7 @@ public static class MarshallMajor {
             UltralinearTap: 0.43,
             Loop: new(TriodeModel.Ecc83, SecondSupply, 100e3, 470, 470 * 47e3 / (470 + 47e3), Stack(), 40)
         ),
-        -7
+        -5
     ) {
         Panel = AmpPanel.Standard with {
             Gain = "Treble Vol",
