@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using Cathode.Contracts;
 using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Parameters;
 using Cathode.Engine.Rig;
 using Cathode.Ipc;
 using Cathode.Server.Engine;
@@ -391,7 +392,8 @@ public sealed partial class LiveRig(
                 if (typeChanged) {
                     foreach (var param in descriptor.TypeResets.Where(r => !values.ContainsKey(r))) {
                         var value = descriptor.Params[descriptor.IndexOf(param)].Default;
-                        recompile |= descriptor.Params[descriptor.IndexOf(param)].Recompile;
+                        recompile |= descriptor.Params[descriptor.IndexOf(param)].Recompile
+                            && stored.GetValueOrDefault(param, value) != value;
                         stored[param] = value;
                         sent.Add(new(id, param, value));
                     }
@@ -657,13 +659,27 @@ public sealed partial class LiveRig(
             return false;
         }
 
-        var a = block.Channels.GetValueOrDefault(from);
-        var b = block.Channels.GetValueOrDefault(to);
-        return descriptor.Params.Any(p => p.Recompile
+        return RecompileDiffers(
+            descriptor,
+            block.Channels.GetValueOrDefault(from),
+            block.Channels.GetValueOrDefault(to)
+        );
+    }
+
+    /// <summary>
+    ///     Whether the channel values <paramref name="a" /> and <paramref name="b" /> (null: all defaults) differ in a
+    ///     parameter only a recompile applies. A recompile rebuilds every block of the graph, so the rig asks for one
+    ///     only when this holds.
+    /// </summary>
+    static bool RecompileDiffers(
+        BlockDescriptor descriptor,
+        IReadOnlyDictionary<string, float>? a,
+        IReadOnlyDictionary<string, float>? b
+    ) =>
+        descriptor.Params.Any(p => p.Recompile
             && (a?.GetValueOrDefault(p.Id, p.Default) ?? p.Default)
             != (b?.GetValueOrDefault(p.Id, p.Default) ?? p.Default)
         );
-    }
 
     /// <summary>Every parameter of the block type with <paramref name="channel" />'s value or the default.</summary>
     List<ParamValue> ChannelValues(PresetBlock block, string channel) {
