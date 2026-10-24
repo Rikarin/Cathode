@@ -51,6 +51,15 @@ namespace Cathode.Dsp.Amp.Models;
 ///     </para>
 /// </remarks>
 public static class TriAxis {
+    /// <summary>
+    ///     The generic power amp the TriAxis feeds here: the Dual Rectifier model's (four 6L6GC at 460 V, a long-tail pair,
+    ///     the factory drawing's values) with its feedback on and without its panel switches, as a Mesa 2:Ninety-style
+    ///     stage would be (Mesa's own TriAxis power amps are Simul-Class; the plain pentode quad costs less).
+    /// </summary>
+    static readonly PowerAmpDesign PowerAmp = DualRectifier.Design.Power with {
+        Name = "4 x 6L6GC (Dual Rectifier power amp)", SupplySwitches = null, FeedbackOffSwitch = null
+    };
+
     /// <summary>The front supply (B+, V1A and V2A/B).</summary>
     const double FrontSupply = 416;
 
@@ -110,15 +119,6 @@ public static class TriAxis {
         ],
         LeadPanel("Lead 2 Drive")
     );
-
-    /// <summary>
-    ///     The generic power amp the TriAxis feeds here: the Dual Rectifier model's (four 6L6GC at 460 V, a long-tail pair,
-    ///     the factory drawing's values) with its feedback on and without its panel switches, as a Mesa 2:Ninety-style
-    ///     stage would be (Mesa's own TriAxis power amps are Simul-Class; the plain pentode quad costs less).
-    /// </summary>
-    static PowerAmpDesign PowerAmp { get; } = DualRectifier.Design.Power with {
-        Name = "4 x 6L6GC (Dual Rectifier power amp)", SupplySwitches = null, FeedbackOffSwitch = null
-    };
 
     static AmpPanel LeadPanel(string drive) =>
         AmpPanel.Standard with {
