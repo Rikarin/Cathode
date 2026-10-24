@@ -1,13 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import type { ParameterInfo, PresetBlock } from '@cathode/api-client';
-import { CthKnob } from '@cathode/audio-ui';
+import { CthKnob, CthToggle } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import { matLinkOffRound, matSettingsInputComponentRound, matTuneRound } from '@ng-icons/material-icons/round';
 import { XuiContextMenuImports } from '@xui/context-menu';
 import { XuiMenuImports } from '@xui/menu';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import { XuiSelectImports } from '@xui/select';
-import { XuiSwitchImports } from '@xui/switch';
 import { XuiTooltipImports } from '@xui/tooltip';
 import { ModifierDialog } from '../controls/modifier-dialog';
 import { ConnectionService } from '../core/connection';
@@ -25,12 +24,12 @@ import { LiveStore } from '../state/live.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CthKnob,
+    CthToggle,
     ModifierDialog,
     XuiContextMenuImports,
     XuiMenuImports,
     XuiSegmentedControlImports,
     XuiSelectImports,
-    XuiSwitchImports,
     XuiTooltipImports
   ],
   providers: [provideIcons({ matLinkOffRound, matSettingsInputComponentRound, matTuneRound })],
@@ -120,24 +119,13 @@ import { LiveStore } from '../state/live.store';
         }
       }
       @case ('bool') {
-        <label class="flex w-20 flex-col items-center gap-1.5">
-          <span
-            class="bg-surface-inset border-border-muted flex h-6 min-w-12 items-center justify-center rounded-md border px-1.5 text-xs font-medium shadow-[inset_0_1px_2px_rgb(0_0_0/0.35)]"
-            [class.text-foreground]="value() >= 0.5"
-            [class.text-foreground-muted]="value() < 0.5"
-            aria-hidden="true"
-          >
-            {{ value() >= 0.5 ? 'On' : 'Off' }}
-          </span>
-          <span class="flex h-[52px] items-center">
-            <xui-switch
-              [attr.aria-label]="param().name"
-              [checked]="value() >= 0.5"
-              (checkedChange)="set($event ? 1 : 0)"
-            />
-          </span>
-          <span class="text-foreground-muted text-center text-xs leading-tight">{{ param().name }}</span>
-        </label>
+        <cth-toggle
+          class="w-20"
+          [label]="param().name"
+          [color]="accent()"
+          [checked]="value() >= 0.5"
+          (checkedChange)="set($event ? 1 : 0)"
+        />
       }
     }
   `

@@ -1,15 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
-import { CthKnob } from '@cathode/audio-ui';
+import { CthKnob, CthToggle } from '@cathode/audio-ui';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import { XuiSelectImports } from '@xui/select';
-import { XuiSwitchImports } from '@xui/switch';
 import { CatalogStore } from '../state/catalog.store';
 
 /** One rig parameter (from GET /catalog/rig) as a knob, a choice or a switch. */
 @Component({
   selector: 'cth-rig-control',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CthKnob, XuiSegmentedControlImports, XuiSelectImports, XuiSwitchImports],
+  imports: [CthKnob, XuiSegmentedControlImports, XuiSelectImports, CthToggle],
   host: { class: 'contents' },
   template: `
     @if (param(); as p) {
@@ -28,14 +27,12 @@ import { CatalogStore } from '../state/catalog.store';
           </div>
         }
         @case ('bool') {
-          <label class="flex flex-col items-center gap-2">
-            <span class="text-foreground-muted text-xs">{{ label() ?? p.name }}</span>
-            <xui-switch
-              [attr.aria-label]="label() ?? p.name"
-              [checked]="value() >= 0.5"
-              (checkedChange)="changed.emit($event ? 1 : 0)"
-            />
-          </label>
+          <cth-toggle
+            size="sm"
+            [label]="label() ?? p.name"
+            [checked]="value() >= 0.5"
+            (checkedChange)="changed.emit($event ? 1 : 0)"
+          />
         }
         @default {
           <cth-knob
