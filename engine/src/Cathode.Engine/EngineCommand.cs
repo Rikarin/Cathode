@@ -1,4 +1,4 @@
-using Cathode.Engine.Rig;
+using Cathode.Dsp.Looping;
 
 namespace Cathode.Engine;
 

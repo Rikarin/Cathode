@@ -26,6 +26,7 @@ public static class BlockCosts {
         ["gate"] = 0.13,
         ["geq"] = 0.05,
         ["irplayer"] = 6.85,
+        ["looper"] = 0.05,
         ["mbcomp"] = 0.43,
         ["megatap"] = 0.48,
         ["mixer"] = 0.09,
