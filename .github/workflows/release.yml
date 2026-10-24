@@ -119,7 +119,8 @@ jobs:
           ./bin/cathode-host --self-test
           sudo ./install.sh
           token=$(sudo sed -n 's/^Cathode__Token=//p' /etc/cathode/cathode.env)
-          for _ in $(seq 1 30); do
+          # Up to three minutes: a runner is slower than a desktop, and the server unpacks itself on its first start.
+          for _ in $(seq 1 90); do
             curl -fs -H "Authorization: Bearer $token" http://127.0.0.1:5180/api/v1/system > /tmp/system.json && break
             sleep 2
           done
@@ -129,7 +130,9 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5180/api/v1/system)" = 401
           sudo ./uninstall.sh --purge
       - if: failure()
-        run: sudo journalctl -u cathode-host -u cathode-server --no-pager | tail -100
+        run: |
+          sudo systemctl status cathode-host cathode-server --no-pager || true
+          sudo journalctl -u cathode-host -u cathode-server --no-pager | tail -150
       - uses: actions/upload-artifact@v7
         with:
           name: headless-${{ matrix.name }}

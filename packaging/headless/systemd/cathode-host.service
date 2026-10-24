@@ -9,6 +9,8 @@ Type=simple
 User=cathode
 Group=audio
 EnvironmentFile=/etc/cathode/cathode.env
+# A large first GC generation, so no collection interrupts playing (as the desktop app starts the host).
+Environment=DOTNET_GCgen0size=10000000
 ExecStart=/opt/cathode/bin/run-host.sh
 # The socket the server talks to lives here, and survives a host restart.
 RuntimeDirectory=cathode
