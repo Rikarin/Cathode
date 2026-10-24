@@ -69,6 +69,12 @@ namespace Cathode.Dsp.Blocks;
 ///             real tone stack (the Guv'nor's), which its Tone (treble) pot works with.
 ///         </item>
 ///         <item>
+///             Per-pedal knobs on the Basic page, each the pedal's own network and stock at its default: the Timmy's
+///             <b>Bass</b> (a pot across its gain stage's ground-leg capacitor; its Tone is labelled Treble), the
+///             Zendrive's <b>Voice</b> (a pot in series with its ground leg) and the OCD's <b>HP/LP</b> switch (a resistor
+///             in parallel with its clipper's series resistor).
+///         </item>
+///         <item>
 ///             <b>Bit Reduce</b> and <b>Sample Rate</b>: a lo-fi word length and sample-and-hold rate on the driven signal
 ///             (<see cref="Decimator" />); 0 bits and 48 kHz are off.
 ///         </item>
@@ -114,6 +120,15 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
 
     /// <summary>Oversampling: Global (each type's own factor), 1x, 2x or 4x. Changes the latency, so it recompiles.</summary>
     public const int OversamplingSetting = 37;
+
+    /// <summary>The Timmy's Bass pot (<see cref="DriveStage.BassShunt" />), 0..10; 0 is the circuit as listed.</summary>
+    public const int PedalBass = 38;
+
+    /// <summary>The Zendrive's Voice pot (<see cref="DriveStage.VoicePot" />), 0..10; 10 is the circuit as listed.</summary>
+    public const int Voice = 39;
+
+    /// <summary>The OCD's HP/LP switch (<see cref="DriveStage.HighPeak" />): LP (0, the circuit as listed) or HP (1).</summary>
+    public const int HighPeak = 40;
 
     public const int EqOff = 0;
     public const int EqPre = 1;
@@ -185,7 +200,8 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
         [
             ParamDescriptor.Choice("type", "Type", TypeNames),
             ParamDescriptor.Float("drive", "Drive", 0f, 10f, 5f),
-            ParamDescriptor.Float("tone", "Tone", 0f, 10f, 5f),
+            ParamDescriptor.Float("tone", "Tone", 0f, 10f, 5f)
+                .RenamedOn(TypeNames.Length, TypeIndex("Transparent OD"), "Treble"),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
             ParamDescriptor.Float("inputVol", "Input Vol", 0f, 10f, 10f),
@@ -245,11 +261,20 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
             ForTypes(ParamDescriptor.Float("stackMid", "Middle Pot", 0f, 10f, 5f), HasStack),
             ParamDescriptor.Choice("oversampling", "Oversampling", ["Global", "1x", "2x", "4x"]) with {
                 Recompile = true
-            }
+            },
+            ForTypes(ParamDescriptor.Float("pedalBass", "Bass", 0f, 10f, 0f), t => HasStage(t, static s => s.BassShunt)),
+            ForTypes(ParamDescriptor.Float("voice", "Voice", 0f, 10f, 10f), t => HasStage(t, static s => s.VoicePot > 0)),
+            ForTypes(
+                ParamDescriptor.Choice("peak", "HP/LP", ["LP", "HP"]),
+                t => HasStage(t, static s => s.HighPeak > 0)
+            )
         ],
         maxInstances: 4,
         pages: [
-            new("Basic", ["drive", "tone", "inputVol", "stackBass", "stackMid", "lowCut", "highCut"]),
+            new(
+                "Basic",
+                ["drive", "tone", "inputVol", "stackBass", "stackMid", "pedalBass", "voice", "peak", "lowCut", "highCut"]
+            ),
             new("Tone", ["bass", "mid", "midFreq", "highMid", "treble", "bassResponse"]),
             new("Graphic EQ", ["eq2", "geq1", "geq2", "geq3", "geq4", "geq5", "geq6", "geq7", "geq8", "geq9", "geq10"]),
             new(
@@ -297,6 +322,13 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
     /// <summary>Whether circuit type <paramref name="type" /> has a bass/middle/treble stack with real bass and middle pots.</summary>
     static bool HasStack(int type) =>
         type >= CircuitTypes && DriveCircuits.All[type - CircuitTypes].Tone.Kind == ToneKind.Stack;
+
+    /// <summary>Whether circuit type <paramref name="type" /> has a stage <paramref name="has" /> accepts.</summary>
+    static bool HasStage(int type, Func<DriveStage, bool> has) =>
+        type >= CircuitTypes && DriveCircuits.All[type - CircuitTypes].Stages.Any(has);
+
+    /// <summary>The type index of the circuit called <paramref name="name" />.</summary>
+    static int TypeIndex(string name) => Array.IndexOf(TypeNames, name);
 
     static bool HasDiodes(int type) =>
         type >= CircuitTypes && DriveCircuits.HasDiodes(DriveCircuits.All[type - CircuitTypes]);
@@ -346,7 +378,10 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
                 Decibels.ToGain(Params.Advance(DryLevel, length)),
                 SlewStep(Params.Advance(SlewRate, length), innerRate),
                 Params.Advance(StackBass, length) / 10.0,
-                Params.Advance(StackMiddle, length) / 10.0
+                Params.Advance(StackMiddle, length) / 10.0,
+                Params.Advance(PedalBass, length) / 10.0,
+                1 - Params.Advance(Voice, length) / 10.0,
+                Params.Current(HighPeak) >= 0.5f
             );
             ReadPage(length);
             var gain = InputGain(type, drive);

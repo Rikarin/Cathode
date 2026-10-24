@@ -226,6 +226,26 @@ public sealed record DriveStage(StageKind Kind) {
 
     public double BaseToGround { get; init; }
 
+    /// <summary>
+    ///     OpAmp: a pot in series with the first ground leg that the Drive block's Voice knob turns down (linear; 0 = none):
+    ///     the Zendrive's Voice. Voice at 10 is the pot at zero (the stage as listed); turning it down raises the leg's
+    ///     resistance, so the stage has less gain and its bass corner falls.
+    /// </summary>
+    public double VoicePot { get; init; }
+
+    /// <summary>
+    ///     OpAmp: the Drive block's Bass knob works a pot across the first ground leg's capacitor (the Timmy's Bass). At
+    ///     0 the pot is out (the stage as listed, its bass cut below the leg's corner); turning it up lets the leg pass
+    ///     DC, so the low end is amplified (and clipped) as much as the mids. The stage must not use a second leg.
+    /// </summary>
+    public bool BassShunt { get; init; }
+
+    /// <summary>
+    ///     Clipper: the resistor the HP/LP switch puts in parallel with <see cref="Series" /> in its HP position (the
+    ///     OCD's; 0 = no switch). LP is the stage as listed.
+    /// </summary>
+    public double HighPeak { get; init; }
+
     /// <summary>True when the stage's transfer curve is odd-symmetric.</summary>
     public bool IsSymmetric =>
         Kind switch {
@@ -290,7 +310,7 @@ public sealed record DriveCircuit(string Name, string ModelledAfter) {
 public readonly record struct GuitarSource(double Series, double Shunt, double Resistance, double Level, double Emf);
 
 /// <summary>The circuit catalogue appended after the three original <see cref="DriveBlock" /> voicings.</summary>
-public static class DriveCircuits {
+public static partial class DriveCircuits {
     public const int MaxStages = 4;
 
     /// <summary>The guitar's pickup resistance and volume pot, which form the source the first stage sees.</summary>
@@ -493,7 +513,8 @@ public static class DriveCircuits {
                         Feedback = 22e3,
                         FeedbackPot = 500e3,
                         FeedbackCapacitance = 100e-12,
-                        Diodes = DiodeStacks.Pair(Si, 2)
+                        Diodes = DiodeStacks.Pair(Si, 2),
+                        VoicePot = 10e3
                     }
                 ],
                 Tone = TrebleTone with { Capacitor1 = 4.7e-9, Capacitor2 = 4.7e-9, Pot = 50e3, Resistor3 = 3.3e3 },
@@ -531,7 +552,8 @@ public static class DriveCircuits {
                         Feedback = 10e3,
                         FeedbackPot = 500e3,
                         FeedbackCapacitance = 47e-12,
-                        Diodes = DiodeStacks.Pair(Si)
+                        Diodes = DiodeStacks.Pair(Si),
+                        BassShunt = true
                     }
                 ],
                 InputHighPassHz = 80,
@@ -604,7 +626,9 @@ public static class DriveCircuits {
                         FeedbackPot = 470e3,
                         FeedbackCapacitance = 100e-12
                     },
-                    new(StageKind.Clipper) { Series = 10e3, Shunt = 4.7e-9, Diodes = new(Ge, 1, Si, 1) }
+                    new(StageKind.Clipper) {
+                        Series = 10e3, Shunt = 4.7e-9, Diodes = new(Ge, 1, Si, 1), HighPeak = 3.3e3
+                    }
                 ],
                 Tone = new(ToneKind.HighCut) {
                     Source = 1e3,
@@ -852,7 +876,8 @@ public static class DriveCircuits {
                 Oversampling = 2,
                 Tone = FuzzTone,
                 OutputDb = -25
-            }
+            },
+            ..Round4Overdrives()
         ];
 
         foreach (var circuit in all) {
@@ -956,8 +981,11 @@ struct CircuitStage {
         clipper = new(new(new(1e3), new(1e-9, 48_000)), default);
     }
 
-    /// <summary>Sets the component values for drive pot position <paramref name="drive" /> (0..1).</summary>
-    public void Configure(DriveStage stage, double drive, double sampleRate, bool antialias) {
+    /// <summary>
+    ///     Sets the component values for drive pot position <paramref name="drive" /> (0..1), and a clipper's HP/LP
+    ///     switch in its HP position when <paramref name="highPeak" /> (<see cref="DriveStage.HighPeak" />).
+    /// </summary>
+    public void Configure(DriveStage stage, double drive, double sampleRate, bool antialias, bool highPeak = false) {
         kind = stage.Kind;
         inverting = stage.Inverting;
         rail = stage.Rail;
@@ -994,7 +1022,9 @@ struct CircuitStage {
             }
 
             case StageKind.Clipper:
-                clipper.Tree.A.Value = stage.Series;
+                clipper.Tree.A.Value = highPeak && stage.HighPeak > 0
+                    ? stage.Series * stage.HighPeak / (stage.Series + stage.HighPeak)
+                    : stage.Series;
                 clipper.Tree.B.Configure(stage.Shunt, sampleRate);
                 clipper.Root.Configure(d.Forward, d.ForwardCount, d.Reverse, d.ReverseCount);
                 clipper.Root.Antialiased = antialias;
@@ -1106,13 +1136,22 @@ struct CircuitStage {
 /// </param>
 /// <param name="StackBass">A tone stack's bass pot (<see cref="ToneKind.Stack" />), 0..1; noon as built.</param>
 /// <param name="StackMiddle">A tone stack's middle pot.</param>
+/// <param name="PedalBass">The Bass knob of a stage with <see cref="DriveStage.BassShunt" />, 0..1 (0 = as listed).</param>
+/// <param name="VoiceCut">
+///     How far the Voice knob is turned down from 10, 0..1, on a stage with a <see cref="DriveStage.VoicePot" /> (0 = as
+///     listed).
+/// </param>
+/// <param name="HighPeak">The HP/LP switch in its HP position, on a clipper with <see cref="DriveStage.HighPeak" />.</param>
 readonly record struct CircuitTweaks(
     double BassScale = 1,
     double Bias = 0,
     double DryLevel = 0,
     double Slew = 0,
     double StackBass = 0.5,
-    double StackMiddle = 0.5
+    double StackMiddle = 0.5,
+    double PedalBass = 0,
+    double VoiceCut = 0,
+    bool HighPeak = false
 ) {
     public static CircuitTweaks Stock => new(1);
 }
@@ -1181,7 +1220,16 @@ sealed class CircuitChannel {
             kinds[i] = stage.Kind;
             switch (stage.Kind) {
                 case StageKind.OpAmp:
-                    opAmp.Configure(stage, position, resistance, innerRate, antialias, tweaks.Slew * innerRate);
+                    opAmp.Configure(
+                        stage,
+                        position,
+                        resistance,
+                        innerRate,
+                        antialias,
+                        tweaks.Slew * innerRate,
+                        stage.VoicePot * tweaks.VoiceCut,
+                        stage.BassShunt ? tweaks.PedalBass : 0
+                    );
                     break;
                 case StageKind.Transistor: {
                     var range = circuit.Tone;
@@ -1196,7 +1244,7 @@ sealed class CircuitChannel {
                     fuzz.Configure(stage, position, driven, innerRate);
                     break;
                 default:
-                    stages[i].Configure(stage, position, innerRate, antialias);
+                    stages[i].Configure(stage, position, innerRate, antialias, tweaks.HighPeak);
                     break;
             }
         }
