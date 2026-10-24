@@ -2,6 +2,7 @@ using System.Globalization;
 using Cathode.Dsp.Filters;
 using Cathode.Dsp.Modulation;
 using Cathode.Dsp.Parameters;
+using Cathode.Dsp.Routing;
 using Cathode.Dsp.Pitch;
 
 namespace Cathode.Dsp.Blocks;
@@ -70,7 +71,8 @@ public enum PitchKeySource {
 ///         past 0.05 and with a shorter hold, and Off stops tracking (the splices run free and the harmony stays put).
 ///         Splice Length sets the shifters' minimum splice. Detector Source can take the tracked signal from another grid
 ///         row instead of the block input; the block then takes its inputs by row (<see cref="IRowInputBlock" />), the
-///         chosen row feeding only the detector.
+///         chosen row feeding only the detector. It can also be one of the interface's inputs
+///         (<see cref="HardwareInputs" />), say a second guitar or a keyboard on Input 2.
 ///     </para>
 ///     <para>
 ///         Feedback per voice: Delay mode repeats the voice through its own delay line (echoes at the same pitch), Shifter
@@ -94,7 +96,7 @@ public enum PitchKeySource {
 ///     </para>
 ///     <para>Not modelled: formant correction and shift, and the Kill Dry flag (Mix 100 % does the same).</para>
 /// </remarks>
-public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
+public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInputBlock {
     public const int Type = 0;
     public const int Mix = 1;
     public const int Level = 2;
@@ -486,13 +488,19 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
             ParamDescriptor.Choice(
                 "detectorSource",
                 "Detector Source",
-                ["Block Input", ..Enumerable.Range(1, SourceRows).Select(static r => $"Row {r}")]
+                [
+                    "Block Input",
+                    ..Enumerable.Range(1, SourceRows).Select(static r => $"Row {r}"),
+                    ..HardwareInputs.Names
+                ]
             ),
             EffectsMix.Param,
             ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions)
         ],
         maxInstances: 2
     );
+
+    public InputPort? Inputs { get; set; }
 
     /// <summary>The key (pitch class, 0 = C) the harmony voices currently use: Key, or the one from the Key Source.</summary>
     public int HarmonyKey { get; private set; }
@@ -535,6 +543,25 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
             default:
                 return 0f;
         }
+    }
+
+    /// <summary>
+    ///     Hardware input <paramref name="source" /> (<see cref="HardwareInputs" />) into the side buffer, as a chosen row
+    ///     would arrive there; silence without the graph's inputs.
+    /// </summary>
+    void LoadHardwareSource(int source, int frames) {
+        if (frames > sideLeft.Length) {
+            return;
+        }
+
+        if (Inputs is { } port) {
+            port.Read(source, sideLeft.AsSpan(0, frames), sideRight.AsSpan(0, frames));
+        } else {
+            Array.Clear(sideLeft, 0, frames);
+            Array.Clear(sideRight, 0, frames);
+        }
+
+        sideFrames = frames;
     }
 
     public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) {
@@ -1036,7 +1063,12 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
             arpSpeeds[s] = Ratio(Params.Current(ArpStep1 + s));
         }
 
-        var fromRow = (int)Params.Current(DetectorSource) > 0;
+        var sourceChoice = (int)Params.Current(DetectorSource);
+        if (sourceChoice > SourceRows) {
+            LoadHardwareSource(sourceChoice - SourceRows - 1, frames);
+        }
+
+        var fromRow = sourceChoice > 0;
         var side = fromRow && sideFrames == frames;
         var ratios = type == PitchType.Chromatic ? shifts : harmonies;
         var mixStep = (mix - this.mix) / frames;

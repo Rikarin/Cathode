@@ -1,5 +1,6 @@
 using Cathode.Dsp.Filters;
 using Cathode.Dsp.Parameters;
+using Cathode.Dsp.Routing;
 
 namespace Cathode.Dsp.Blocks;
 
@@ -17,7 +18,8 @@ namespace Cathode.Dsp.Blocks;
 ///         Source set to a row, whatever is cabled in from that grid row. The block then takes its inputs by row
 ///         (<see cref="IRowInputBlock" />): the chosen row feeds the analysis alone and every other row is summed into
 ///         the block input as usual, which is where an input carrier comes from. With the row not cabled the analysis
-///         is silent.
+///         is silent. Analysis Source can also name one of the interface's inputs (<see cref="HardwareInputs" />): a
+///         microphone on Input 2 talking through the guitar, the classic vocoder rig.
 ///     </para>
 ///     <para>
 ///         Bands: 4 to 24 filters spaced logarithmically from Min to Max Frequency, each two cascaded constant-peak
@@ -28,7 +30,7 @@ namespace Cathode.Dsp.Blocks;
 ///         Freeze holds the band envelopes where they are, so the carrier keeps the last spectrum.
 ///     </para>
 /// </remarks>
-public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
+public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock, IHardwareInputBlock {
     public const int Carrier = 0;
     public const int Note = 1;
     public const int Chord = 2;
@@ -135,7 +137,11 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
             ParamDescriptor.Choice(
                 "analysisSource",
                 "Analysis Source",
-                ["Block Input", ..Enumerable.Range(1, SourceRows).Select(static r => $"Row {r}")]
+                [
+                    "Block Input",
+                    ..Enumerable.Range(1, SourceRows).Select(static r => $"Row {r}"),
+                    ..HardwareInputs.Names
+                ]
             ),
             ..Enumerable.Range(1, MaxBands)
                 .Select(static b => ParamDescriptor.Float(
@@ -154,6 +160,8 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
         channels: 1
     );
 
+    public InputPort? Inputs { get; set; }
+
     /// <summary>
     ///     Centre frequency of band <paramref name="band" /> of <paramref name="count" />, spaced logarithmically from
     ///     <paramref name="min" /> to <paramref name="max" />.
@@ -166,6 +174,25 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
 
     /// <summary>The number of bands for option <paramref name="option" /> of the Bands parameter.</summary>
     public static int BandCount(int option) => BandCounts[Math.Clamp(option, 0, BandCounts.Length - 1)];
+
+    /// <summary>
+    ///     Hardware input <paramref name="source" /> (<see cref="HardwareInputs" />) into the side buffer, as a chosen row
+    ///     would arrive there; silence without the graph's inputs.
+    /// </summary>
+    void LoadHardwareSource(int source, int frames) {
+        if (frames > sideLeft.Length) {
+            return;
+        }
+
+        if (Inputs is { } port) {
+            port.Read(source, sideLeft.AsSpan(0, frames), sideRight.AsSpan(0, frames));
+        } else {
+            Array.Clear(sideLeft, 0, frames);
+            Array.Clear(sideRight, 0, frames);
+        }
+
+        sideFrames = frames;
+    }
 
     public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) {
         var analysisRow = (int)Params.GetTarget(AnalysisSource) - 1;
@@ -322,7 +349,12 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
         var highpassMix = Params.Advance(HighpassMix, n) / 100f;
         var inputGain = Params.Advance(InputGain, n) / 100f;
         var channel = (int)Params.Current(AnalysisChannel);
-        var fromRow = (int)Params.Current(AnalysisSource) > 0;
+        var sourceChoice = (int)Params.Current(AnalysisSource);
+        if (sourceChoice > SourceRows) {
+            LoadHardwareSource(sourceChoice - SourceRows - 1, n);
+        }
+
+        var fromRow = sourceChoice > 0;
         if (channel == 0 && !fromRow && source is CarrierLeftInput or CarrierRightInput) {
             channel = source == CarrierLeftInput ? 2 : 1; // the carrier has one side: analyse the other
         }

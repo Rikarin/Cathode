@@ -1,5 +1,6 @@
 using Cathode.Dsp.Filters;
 using Cathode.Dsp.Parameters;
+using Cathode.Dsp.Routing;
 
 namespace Cathode.Dsp.Blocks;
 
@@ -36,14 +37,14 @@ namespace Cathode.Dsp.Blocks;
 ///     for line-level sources. Auto Makeup adds back half the gain reduction a 0 dBFS signal would get. The mix follows
 ///     the Axe-Fx law (50 % = -6 dB each) for parallel compression.
 ///     <para>
-///         Sidechain picks what the detector hears: the block's input, the grid input or another grid row
-///         (<see cref="ISidechainBlock" />); the sidechain cuts, emphasis and EQ then filter that signal. Look Ahead
+///         Sidechain picks what the detector hears: the block's input, the grid input, another grid row
+///         (<see cref="ISidechainBlock" />) or one of the interface's inputs (<see cref="HardwareInputs" />); the sidechain cuts, emphasis and EQ then filter that signal. Look Ahead
 ///         delays the audio (wet and dry alike) while the detector hears it undelayed, so the gain is already down when
 ///         a transient arrives; the block reports the delay as latency, so the compiler aligns parallel rows, and
 ///         changing it rebuilds the graph (<see cref="ParamDescriptor.Recompile" />).
 ///     </para>
 /// </summary>
-public sealed class CompressorBlock() : DspBlock(Info), ISidechainBlock {
+public sealed class CompressorBlock() : DspBlock(Info), ISidechainBlock, IHardwareInputBlock {
     public const int Type = 0;
     public const int Threshold = 1;
     public const int Ratio = 2;
@@ -156,6 +157,8 @@ public sealed class CompressorBlock() : DspBlock(Info), ISidechainBlock {
         maxInstances: 4
     );
 
+    public InputPort? Inputs { get; set; }
+
     /// <summary>The look-ahead delay, fixed when the block is prepared (the graph compiler reads it then).</summary>
     public override int LatencySamples => ahead;
 
@@ -244,6 +247,7 @@ public sealed class CompressorBlock() : DspBlock(Info), ISidechainBlock {
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        sidechainSource.OfferHardware(Inputs, (int)Params.GetTarget(Sidechain), io.Length);
         var rate = Spec.SampleRate;
         var type = (int)Params.Current(Type);
         var threshold = Params.Advance(Threshold, io.Length);
