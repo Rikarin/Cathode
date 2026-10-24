@@ -3,12 +3,13 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Soldano SLO-100, overdrive channel: V1A (220k, 1.8k ‖ 1 µF), the OD preamp gain (500k audio, 1 nF bright cap,
-///     470k ‖ 2 nF ahead of it and 470k after it) into V1B, a 470k/1M divider into the V2A cold clipper (39k unbypassed,
+///     Soldano SLO-100, overdrive and normal channels. Overdrive: V1A (220k, 1.8k ‖ 1 µF), the OD preamp gain (500k
+///     audio, 1 nF bright cap, 470k ‖ 2 nF ahead of it and 470k after it) into V1B, a 470k/1M divider into the V2A cold clipper (39k unbypassed,
 ///     100k plate with a 1 nF plate bypass), V2B (220k) DC-coupled to a cathode follower whose 100k + 1k cathode load
 ///     is the effects-loop send (about -40 dB), the loop return stage, and a second cathode follower driving a
 ///     Marshall-topology stack (47k slope, 470 pF, 22 nF, 22 nF) and the OD master; a 12AX7 long-tail pair, four 6L6GC
-///     on a silicon rectifier, feedback from the 4 Ω tap with presence and depth.
+///     on a silicon rectifier, feedback from the 4 Ω tap with presence and depth. Normal (Switch 1): the Crunch/Clean
+///     divider, the bright cap and the normal volume into one more stage, joining before V2B.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -30,8 +31,22 @@ namespace Cathode.Dsp.Amp.Models;
 ///         of a core.
 ///     </para>
 ///     <para>
-///         Not modelled: the normal channel and its Crunch switch (a separate path joining after the cold clipper;
-///         the block's preamp is one serial chain), the loop's jacks (send and return are joined).
+///         The normal channel (Switch 1, with Switch 2 for Crunch and the Bright switch) is read from the
+///         "Soldano Super Lead Overdrive 100W" drawing of 15 March 1996 (el34world, Soldano_slo100.pdf, a clean CAD
+///         redraw of unknown origin with optocoupler channel switching): V1A's 20 nF output feeds both channels; the
+///         Crunch/Clean switch puts 470k in series and 39k across the normal volume (Clean) or neither (Crunch), a 470k
+///         with the bright cap follows, the 500k normal volume, the normal V1B (100k, 2.2k unbypassed), 20 nF into
+///         2.2M ‖ 120 pF over 330k, which joins the overdrive path at the grid side of the stage after the cold
+///         clipper. Robinette's text agrees on the dividers (Crunch passes 52 % at full volume, Clean 4 %; 13 % after
+///         the second stage). Read with doubt: the drawing wires a short across the overdrive path's 470k ‖ 2 nF (taken
+///         as a drafting error: the overdrive channel keeps it, as in the other sources), and its Bright/Norm switch
+///         looks like it selects the 470 pF in place of the 470k (here it puts the cap across the 470k, as Fractal
+///         describes a bright cap on this channel); the normal volume's taper is not printed (audio assumed).
+///     </para>
+///     <para>
+///         Not modelled: in overdrive mode the normal channel stays connected and its out-of-phase signal mixes into
+///         the overdrive path (Robinette); the separate normal master (Master turns both channels); the loop's jacks
+///         (send and return are joined).
 ///     </para>
 /// </remarks>
 public static class Slo100 {
@@ -59,28 +74,46 @@ public static class Slo100 {
                 InputResistance: 68e3,
                 GridLeak: 1e6
             ),
-            new NetworkStageDesign("V1B", OverdriveGain()),
-            new TriodeStageDesign(
-                "V2A",
-                TriodeModel.Ecc83,
-                350,
-                100e3,
-                39e3,
-                CouplingCap: 20e-9,
-                SeriesResistor: 470e3,
-                GridLeak: 1e6,
-                PlateBypass: 1e-9
-            ),
-            new TriodeStageDesign(
-                "V2B",
-                TriodeModel.Ecc83,
-                380,
-                220e3,
-                1.8e3,
-                CathodeBypass: 1e-6,
-                CouplingCap: 20e-9,
-                SeriesResistor: 220e3,
-                GridLeak: 2.2e6
+            new ChannelSwitchStageDesign(
+                "Channel",
+                SwitchRole.Switch1,
+                [
+                    new NetworkStageDesign("V1B", OverdriveGain()),
+                    new TriodeStageDesign(
+                        "V2A",
+                        TriodeModel.Ecc83,
+                        350,
+                        100e3,
+                        39e3,
+                        CouplingCap: 20e-9,
+                        SeriesResistor: 470e3,
+                        GridLeak: 1e6,
+                        PlateBypass: 1e-9
+                    ),
+                    new TriodeStageDesign(
+                        "V2B",
+                        TriodeModel.Ecc83,
+                        380,
+                        220e3,
+                        1.8e3,
+                        CathodeBypass: 1e-6,
+                        CouplingCap: 20e-9,
+                        SeriesResistor: 220e3,
+                        GridLeak: 2.2e6
+                    )
+                ],
+                [
+                    new NetworkStageDesign("Normal V1B", NormalChannel()),
+                    new TriodeStageDesign(
+                        "Normal V2B",
+                        TriodeModel.Ecc83,
+                        380,
+                        220e3,
+                        1.8e3,
+                        CathodeBypass: 1e-6,
+                        SeriesResistor: 220e3
+                    )
+                ]
             ),
             new NetworkStageDesign("V3A", SendFollower()),
             new TriodeStageDesign(
@@ -129,7 +162,11 @@ public static class Slo100 {
         ),
         -7.5
     ) {
-        Panel = AmpPanel.Standard with { Cut = null, Bright = null }
+        Panel = AmpPanel.Standard with {
+            Cut = null,
+            Switch1 = "Normal Ch",
+            Switch2 = "Crunch"
+        }
     };
 
     /// <summary>
@@ -153,6 +190,40 @@ public static class Slo100 {
         net.Resistor(bypass, StageNetlist.Ground, 100);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
         net.Output = plate;
+        return net;
+    }
+
+    /// <summary>
+    ///     The normal channel from V1A's plate: 20 nF; the overdrive path's 470k ‖ 2 nF and gain pot loading it; the
+    ///     Crunch/Clean switch (Clean: 470k in series and 39k across the volume; Crunch: neither), the 470k with the
+    ///     Bright switch's 470 pF across it, the 500k normal volume; V1B (100k, 2.2k unbypassed, 359 V); 20 nF, 2.2M
+    ///     ‖ 120 pF into 330k to ground, where the overdrive path joins.
+    /// </summary>
+    static StageNetlist NormalChannel() {
+        var net = new StageNetlist();
+        var (coupled, overdrive, mode, top, supply, plate, cathode, output, join) = (
+            net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(),
+            net.Node()
+        );
+        net.Capacitor(net.Input, coupled, 20e-9);
+        net.Resistor(coupled, overdrive, 470e3);
+        net.Capacitor(coupled, overdrive, 2e-9);
+        net.Resistor(overdrive, StageNetlist.Ground, 500e3);
+        net.Resistor(coupled, mode, 470e3);
+        net.SwitchedResistor(coupled, mode, 0, 10, SwitchRole.Switch2);
+        net.Resistor(mode, top, 470e3);
+        net.SwitchedCapacitor(mode, top, 470e-12, SwitchRole.Bright, CapacitorRole.Bright);
+        net.SwitchedResistor(top, StageNetlist.Ground, 39e3, 1e12, SwitchRole.Switch2); // open with Crunch on
+        var grid = net.Pot(top, StageNetlist.Ground, new(500e3, PotTaper.Audio), PotRole.Gain);
+        net.Supply(supply, 359);
+        net.Resistor(supply, plate, 100e3);
+        net.CathodeResistor(cathode, StageNetlist.Ground, 2.2e3);
+        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
+        net.Capacitor(plate, output, 20e-9);
+        net.Resistor(output, join, 2.2e6);
+        net.Capacitor(output, join, 120e-12);
+        net.Resistor(join, StageNetlist.Ground, 330e3);
+        net.Output = join;
         return net;
     }
 
