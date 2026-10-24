@@ -864,7 +864,8 @@ Splawn Nitro row stays waiting.
   ground, 47k, 220 nF to the bass, 22 nF to the 25k middle's wiper; 250k / 1M / 25k); 100k from the treble's wiper to the
   inverter. Clean: 470 pF / 47k / 220 nF / 22 nF with 6k8 for the middle, 250k treble and 1M bass, the 1M Clean Gain with
   1 nF across its top half, both V3 halves in parallel (100k), 22 nF into the 1M Volume. V1B and V3 share one 1k5 ‖ 1 µF
-  cathode, so each channel's first netlist holds V1A, V1B and the paralleled V3 (the idle channel's pots at noon). Rails
+  cathode, so each channel's first netlist holds V1A, V1B and the paralleled V3 (the idle channel's pots at noon), and
+  the overdrive channel's holds V2A too (four triodes; `NetworkStage` gained a `TTTT` device set for it). Rails
   from the drawing's 420 V through two 10k droppers: 386 V and 371 V at the triodes' own 4.6 mA.
 - **Panel**: Switch 1 Clean, Bright OD2, Switch 2 and 3 the 2nd and 3rd gear switches (drawn as two independent
   switches), Control 1 Solo Boost (0 is the boost off: the switch grounds the Master's foot where the pot at 0 does);
@@ -872,14 +873,15 @@ Splawn Nitro row stays waiting.
 - **Guessed**: the power amp (the JCM800 2203's: four EL34, 470 V, 1.7k, 100k feedback with the 22k presence), the
   inverter on the 420 V node, the dropper to it, the switch positions (OD1 and 1st gear the grounded ones) and the tapers.
 - **Validation** (`Quick_rod_chains_match_the_reference`, each channel's chain as one circuit): clean −64 dB, overdrive
-  −45 dB in 1st gear, −37 dB in 2nd and −29 dB in 3rd: the cut at V2A's grid, where V2A's Miller capacitance meets a
-  reactive source. All four triodes in one netlist gave −55 to −58 dB but 17.4 / 34.3 % CPU, so the cut stays.
+  −55 dB in 1st gear and with OD2, −56 dB in 2nd, −58 dB in 3rd. Cut at V2A's grid instead (three triodes) it was −45 /
+  −37 / −29 dB: V2A's Miller capacitance against that node's reactive source.
   `QuickRodTests`: OD2 and each gear raise the gain (1st 6.0, 2nd 14.4, 3rd 22.4, OD2 10.0, clean −20.5 dB at 440 Hz),
   the Solo Boost lifts the level, sweeps at full drive converge under +1 dBFS, every knob is audible, Gain and Master are
   monotonic.
-- **CPU** (48 kHz, Gain 7, Master 6, best of five, Plexi 8.8 / 15.3–15.5 % in the same passes): overdrive 15.0 / 25.8 %
-  (1.69 / 1.66 × Plexi), 3rd gear with OD2 14.7 / 26.3 %, clean 11.1 / 24.1 %: within the high-gain budget; both first
-  netlists take chord steps and a 1e-5 tolerance.
+- **CPU** (48 kHz, Gain 7, Master 6, best of five, Plexi 8.8–8.9 / 15.5–15.6 % in the same passes): overdrive 17.6 /
+  35.0 % (2.0 / 2.25 × Plexi), 3rd gear with OD2 19.7 / 34.0 %, clean 11.1 / 24.3 %. **Over the high-gain budget by
+  choice** (16 / 28 %): the three-triode cut fitted it (15.0 / 25.8 %) at −29 dB in 3rd gear, and the user chose
+  accuracy, as for the Silver Jubilee's noise case. Both first netlists take chord steps and a 1e-5 tolerance.
 
 ### 3.5 Bass and solid state (tier 2)
 

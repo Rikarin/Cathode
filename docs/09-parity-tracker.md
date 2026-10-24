@@ -192,10 +192,10 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| QR1 | Quick Rod from the user's preamp drawing ("Splawn QuickRod" sheet 1/1): both channels, OD1/OD2, 1st/2nd and 3rd gear, solo boost, V1B and V3 on their shared cathode | 🟡 | Quick_rod_chains_match_the_reference (7 settings: clean −64, overdrive −45 / −37 / −29 dB in 1st / 2nd / 3rd gear); Od2_and_the_gears_raise_the_gain_in_order; Solo_boost_lifts_the_master | type `Quick Rod`; power amp (JCM800 2203's), switch positions and tapers guessed; the 3rd-gear residue is the cut at V2A's grid (four triodes in one netlist: −57 dB, over the CPU budget) |
+| QR1 | Quick Rod from the user's preamp drawing ("Splawn QuickRod" sheet 1/1): both channels, OD1/OD2, 1st/2nd and 3rd gear, solo boost, V1B and V3 on their shared cathode | 🟡 | Quick_rod_chains_match_the_reference (7 settings: clean −64, overdrive −55 / −56 / −58 dB in 1st / 2nd / 3rd gear); Od2_and_the_gears_raise_the_gain_in_order; Solo_boost_lifts_the_master | type `Quick Rod`; power amp (JCM800 2203's), switch positions and tapers guessed; the overdrive channel's V1A, V1B, V3 and V2A in one netlist (`NetworkStage` `TTTT`, which leaves every other model bit-identical: AmpDefaultsTests) |
 | QR2 | Panel names the amp's controls | 🟡 | Panel_names_the_real_controls_and_hides_the_rest | Clean (Switch 1), OD2 (Bright), 2nd / 3rd Gear (Switch 2 / 3), Solo Boost (Control 1, 0 = off) |
 | QR3 | Sweeps converge, every knob audible, Gain and Master monotonic, peaks under +6 dBFS | 🟡 | Knob_sweeps_at_full_drive_stay_finite_and_converge; Every_knob_is_audible; Gain_and_master_raise_the_level_monotonically | Middle and Solo Boost skipped on the clean channel (not in its circuit) |
-| QR4 | CPU within the high-gain budget | 🟡 | `Cathode.Bench --amps "Quick Rod"` | 15.0 / 25.8 % overdrive, 11.1 / 24.1 % clean (Plexi 8.8 / 15.4 %) |
+| QR4 | CPU | ◐ | `Cathode.Bench --amps "Quick Rod"` | Over the high-gain budget (16 / 28 %) by the user's choice of accuracy, like the Silver Jubilee's noise case: overdrive 17.6 / 35.0 %, 3rd gear with OD2 19.7 / 34.0 %, clean 11.1 / 24.3 % (Plexi 8.8 / 15.5 %); the three-triode cut fitted at 15.0 / 25.8 % but was −29 dB in 3rd gear |
 | QR5 | Splawn Nitro | ⏸ | — | the drawing is the Quick Rod only; no Nitro circuit on it |
 
 ## Known open items from earlier rounds

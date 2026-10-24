@@ -9,20 +9,18 @@ namespace Cathode.Dsp.Tests;
 
 /// <summary>
 ///     The Splawn Quick Rod against the reference MNA simulator: each channel's playing chain at each setting of the OD
-///     and gear switches, as one circuit with no Thévenin cut (V1A, V1B and the paralleled V3 on their shared cathode
-///     in the first netlist). The cut at V2A's grid costs the most with 2nd and 3rd gear (the 68k lifted, V2A's Miller
-///     capacitance against a higher, reactive source): about −37 and −29 dB; a single netlist of all four triodes stays
-///     within −55 dB but is over the CPU budget.
+///     and gear switches, as one circuit with no Thévenin cut (V1A, V1B and the paralleled V3 on their shared cathode,
+///     and in the overdrive channel V2A too, in the first netlist; the one cut is at V2B's grid).
 /// </summary>
 public partial class AmpStageTests {
     public static TheoryData<int, double, double> QuickRodChains =>
         new() {
             // Switches as bits: 1 = Switch 1 (Clean), 2 = Switch 2 (2nd gear), 4 = Switch 3 (3rd gear), 8 = OD2.
-            { 0, 0.001, -42 },
-            { 2, 0.0005, -34 },
-            { 6, 0.0003, -27 },
-            { 8, 0.0003, -42 },
-            { 14, 0.0001, -27 },
+            { 0, 0.001, -50 },
+            { 2, 0.0005, -50 },
+            { 6, 0.0003, -50 },
+            { 8, 0.0003, -50 },
+            { 14, 0.0001, -50 },
             { 1, 0.01, -55 },
             { 9, 0.01, -55 }
         };

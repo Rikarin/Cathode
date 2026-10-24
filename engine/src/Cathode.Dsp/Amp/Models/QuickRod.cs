@@ -27,10 +27,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Rod (a clean channel switched in at the inverter's input); with the inverter, the four-12AX7 amp.
 ///     </para>
 ///     <para>
-///         Guessed (the drawing ends at "OUT_TO_P.I."): the whole power amp, taken from the JCM800 2203 (four EL34,
-///         470 V B+, 35 mA a tube, 1k screens, 5k6 stoppers, a 12AX7 long-tail pair with 82k / 100k, 470 and 10k, 22 nF
-///         out to 220k, 22 nF and 1M in, 100k of feedback from the 4 Ω tap into 4k7 with the 22k Presence and 0.1 µF,
-///         1.7k plate to plate), with the inverter on the drawing's 420 V node, and the dropper from B+ to that node (7k2)
+///         Guessed (the drawing ends at "OUT_TO_P.I."): the whole power amp, taken from the JCM800 2203 (four EL34, 470
+///         V B+, 35 mA a tube, 1k screens, 5k6 stoppers, a 12AX7 long-tail pair with 82k / 100k, 470 and 10k, 22 nF out
+///         to 220k, 22 nF and 1M in, 100k of feedback from the 4 Ω tap into 4k7 with the 22k Presence and 0.1 µF, 1.7k
+///         plate to plate), with the inverter on the drawing's 420 V node, and the dropper from B+ to that node (7k2)
 ///         sized for 420 V at the preamp's and inverter's 6.5 mA; the 4 × 12 closed load (Vintage 30). Also guessed:
 ///         which position of each switch is which (OD1 grounds the 47k, 1st gear the 68k; the drawing's two gear
 ///         switches act independently, so 3rd gear with the first switch in 1st is possible too), the pots' tapers
@@ -42,11 +42,13 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Simplified: none of the drawn preamp. V1A drives both channels' networks in each, and V1B and V3 share their
 ///         cathode in each, so each channel's first netlist holds all three: the idle channel's pots sit at noon (its
 ///         Volume, in the overdrive channel, only loads V3's coupling cap: 1M either way). The two V3 halves are one
-///         paralleled triode. The overdrive chain is cut at V2A's grid: with 2nd and 3rd gear V2A's Miller capacitance
-///         against that node's reactive source puts the chain −37 and −29 dB from the uncut circuit (−45 dB in 1st
-///         gear). V2A in the first netlist too (four triodes) stays within −55 dB but takes about a fifth more CPU on
-///         guitar and a third more on loud noise, past the high-gain budget. Both channels' first netlists take chord
-///         steps and a 1e-5 Newton tolerance.
+///         paralleled triode. The overdrive channel's first netlist holds V2A as well (four triodes) and is cut only at
+///         V2B's grid, −55 to −58 dB from the uncut circuit; cut at V2A's grid it was −29 dB in 3rd gear (V2A's Miller
+///         capacitance against a reactive source), at 15.0 / 25.8 % CPU. With the four-triode netlist the overdrive
+///         channel costs 17.6 % on guitar and 35.0 % on loud noise, 19.7 / 34.0 % in 3rd gear with OD2 (Gain 7, Master
+///         6; the Plexi 8.8 / 15.5 %), over the high-gain budget (16 / 28 %): the user chose accuracy over the budget
+///         here, as for the Silver Jubilee's noise case. The clean channel costs 11.1 / 24.3 %. Both channels' first
+///         netlists take chord steps and a 1e-5 Newton tolerance.
 ///     </para>
 ///     <para>
 ///         Panel: Switch 1 selects the clean channel; Bright is OD2, Switch 2 and Switch 3 the "2nd gear" and "3rd
@@ -73,10 +75,9 @@ public static class QuickRod {
                 "Channel",
                 SwitchRole.Switch1,
                 [
-                    new NetworkStageDesign("V1 + V3", Front(false)) {
+                    new NetworkStageDesign("V1 + V2A + V3", Front(false)) {
                         MaxIterations = 64, ReuseFactors = true, Tolerance = 1e-5
                     },
-                    new NetworkStageDesign("V2A", SecondStage()),
                     new NetworkStageDesign("V2B", StackStage())
                 ],
                 [
@@ -135,12 +136,13 @@ public static class QuickRod {
     }
 
     /// <summary>
-    ///     The three triodes that share circuit: the input (1M, 68k), V1A and its 22 nF onto both channels' networks;
-    ///     the overdrive channel's (470k ‖ 1 nF into the Gain pot, the 47k of OD1) into V1B, whose plate couples
-    ///     through 22 nF and 470k ‖ 1 nF into V2A's grid (220k and 1 nF to ground, 68k in 1st gear), the output when
-    ///     <paramref name="clean" /> is false; the clean channel's stack and Clean Gain pot into the paralleled V3,
-    ///     whose plate couples through 22 nF into the 1M Volume, whose wiper is the output when it is true. V1B and V3 on
-    ///     their shared 1k5 ‖ 1 µF.
+    ///     The triodes that share circuit: the input (1M, 68k), V1A and its 22 nF onto both channels' networks; the
+    ///     overdrive channel's (470k ‖ 1 nF into the Gain pot, the 47k of OD1) into V1B, whose plate couples through 22
+    ///     nF and 470k ‖ 1 nF into V2A's grid (220k and 1 nF to ground, 68k in 1st gear); the clean channel's stack and
+    ///     Clean Gain pot into the paralleled V3, whose plate couples through 22 nF into the 1M Volume. V1B and V3 on
+    ///     their shared 1k5 ‖ 1 µF. With <paramref name="clean" /> the Volume's wiper is the output and V2A's grid
+    ///     network only loads V1B; without, V2A follows in the same netlist (four triodes) and V2B's grid is the
+    ///     output.
     /// </summary>
     static StageNetlist Front(bool clean) {
         var net = new StageNetlist();
@@ -214,28 +216,21 @@ public static class QuickRod {
         }
 
         net.Resistor(volumeTop, StageNetlist.Ground, Gain.Ohms);
-        net.Output = v2Grid;
-        return net;
-    }
 
-    /// <summary>
-    ///     V2A from its grid: 100k ‖ 1 nF plate, 2k7 and (3rd gear) 1 µF; 22 nF and 330k into V2B's grid, 150k to
-    ///     ground (the output).
-    /// </summary>
-    static StageNetlist SecondStage() {
-        var net = new StageNetlist();
-        var (rail, plate, cathode, coupled, grid) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, V2Rail);
-        net.Resistor(rail, plate, 100e3);
-        net.Capacitor(rail, plate, 1e-9, CapacitorRole.Plate);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 2.7e3);
-        net.SwitchedCapacitor(cathode, StageNetlist.Ground, 1e-6, SwitchRole.Switch3);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(net.Input, plate, GridPlate);
-        net.Capacitor(plate, coupled, 22e-9);
-        net.Resistor(coupled, grid, 330e3);
-        net.Resistor(grid, StageNetlist.Ground, 150e3);
-        net.Output = grid;
+        // V2A: 100k ‖ 1 nF plate, 2k7 and (3rd gear) 1 µF; 22 nF and 330k into V2B's grid, 150k to ground.
+        var (v2Rail, v2Plate, v2Cathode, v2Coupled, next) =
+            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        net.Supply(v2Rail, V2Rail);
+        net.Resistor(v2Rail, v2Plate, 100e3);
+        net.Capacitor(v2Rail, v2Plate, 1e-9, CapacitorRole.Plate);
+        net.CathodeResistor(v2Cathode, StageNetlist.Ground, 2.7e3);
+        net.SwitchedCapacitor(v2Cathode, StageNetlist.Ground, 1e-6, SwitchRole.Switch3);
+        net.Triode(v2Plate, v2Grid, v2Cathode, TriodeModel.Ecc83);
+        net.Capacitor(v2Grid, v2Plate, GridPlate);
+        net.Capacitor(v2Plate, v2Coupled, 22e-9);
+        net.Resistor(v2Coupled, next, 330e3);
+        net.Resistor(next, StageNetlist.Ground, 150e3);
+        net.Output = next;
         return net;
     }
 
