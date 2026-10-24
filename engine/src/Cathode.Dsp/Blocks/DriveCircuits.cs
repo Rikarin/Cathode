@@ -312,10 +312,9 @@ public static class DriveCircuits {
     /// <summary>
     ///     Every circuit with every diode override, built once when the catalogue loads so that choosing one on the audio
     ///     thread only looks it up: <c>[circuit][type * DiodeCounts.Count + count]</c>. A choice that changes nothing (a
-    ///     circuit without clipping diodes, or both Stock) is the circuit itself. Built in the static constructor, after
-    ///     every initialiser (it needs <see cref="All" /> and the choice lists), whatever order the members are in.
+    ///     circuit without clipping diodes, or both Stock) is the circuit itself.
     /// </summary>
-    static readonly DriveCircuit[][] DiodeVariants;
+    static readonly DriveCircuit[][] DiodeVariants = [..All!.Select(BuildVariants)];
 
     public static IReadOnlyList<DriveCircuit> All { get; } = Catalogue();
 
@@ -325,8 +324,6 @@ public static class DriveCircuits {
 
     /// <summary>The Drive block's Diode Count choices: the circuit's own, then 1 to 4 in series on each side.</summary>
     public static IReadOnlyList<string> DiodeCounts { get; } = ["Stock", "1", "2", "3", "4"];
-
-    static DriveCircuits() => DiodeVariants = [..All.Select(BuildVariants)];
 
     /// <summary>The TS808 tone stage: 1k into 220 nF, 20k Tone pot, 220 Ω + 220 nF from its wiper, 1k feedback.</summary>
     static ToneNetwork ScreamerTone =>
