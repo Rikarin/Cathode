@@ -280,6 +280,15 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
     /// </summary>
     public int MaxIterations { get; init; } = 32;
 
+    /// <summary>Chord steps on a recent Jacobian before full ones (<see cref="NewtonSolver.ReuseFactors" />).</summary>
+    public bool ReuseFactors { get; init; }
+
+    /// <summary>
+    ///     Newton's absolute (volts) and relative step tolerance (the solver's default, 1e-6, unless a stage that
+    ///     converges slowly can take a looser one: the error a converged step leaves is about its square).
+    /// </summary>
+    public double Tolerance { get; init; } = 1e-6;
+
     public override AmpStage Create(double sampleRate) {
         var devices = Netlist.Elements
             .Where(static e => e.Kind is ElementKind.Triode or ElementKind.Pentode or ElementKind.Diodes or ElementKind.OpAmp)
@@ -402,7 +411,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     readonly double[] portCurrents;
     readonly double[] jacobian;
     readonly int[] pivots;
-    readonly int supplies;
+    readonly int[] supplies; // the supply elements' indices: the preamp's sag moves them every sample
     readonly int amplifiers;
     readonly bool hasGainStage;
     readonly bool hasMemory; // a device with state of its own (an op-amp's pole)
@@ -464,14 +473,12 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
                 inductors.Add(e.Kind == ElementKind.Inductor);
             }
 
-            if (e.Kind == ElementKind.Supply) {
-                supplies++;
-            }
-
             if (e.Kind == ElementKind.Amplifier) {
                 amplifiers++;
             }
         }
+
+        supplies = [..Enumerable.Range(0, elements.Length).Where(i => elements[i].Kind == ElementKind.Supply)];
 
         var ports = new List<(int, int)>();
         foreach (var d in devices) {
@@ -517,8 +524,11 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         ApplySupplies();
         root.Newton.Linearise = true;
         root.Newton.MaxIterations = design.MaxIterations;
+        root.Newton.ReuseFactors = design.ReuseFactors;
+        root.Newton.AbsoluteTolerance = design.Tolerance;
+        root.Newton.RelativeTolerance = design.Tolerance;
 
-        size = netlist.Nodes + supplies + amplifiers;
+        size = netlist.Nodes + supplies.Length + amplifiers;
         matrix = new double[size * size];
         vector = new double[size];
         solution = new double[size];
@@ -690,10 +700,8 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     }
 
     void ApplySupplies() {
-        for (var i = 0; i < elements.Length; i++) {
-            if (elements[i].Kind == ElementKind.Supply) {
-                root.SetVoltage(index[i], elements[i].Value * supplyScale);
-            }
+        foreach (var i in supplies) {
+            root.SetVoltage(index[i], elements[i].Value * supplyScale);
         }
     }
 
@@ -776,7 +784,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
                     break;
                 case ElementKind.Amplifier: {
                     // v(C) = A (v(A) - v(B)), its output current the row's unknown.
-                    var row = n + supplies + amplifier++;
+                    var row = n + supplies.Length + amplifier++;
                     if (e.C > 0) {
                         a[row * size + e.C - 1] = 1;
                         a[(e.C - 1) * size + row] = 1;

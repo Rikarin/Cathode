@@ -8,22 +8,22 @@ namespace Cathode.Dsp;
 /// </summary>
 public static class BlockCosts {
     static readonly Dictionary<string, double> Percent = new(StringComparer.Ordinal) {
-        ["cab"] = 2.07,
-        ["chorus"] = 0.38,
-        ["circuitamp"] = 43.19,
-        ["compressor"] = 0.35,
-        ["crossover"] = 0.52,
-        ["delay"] = 0.47,
-        ["drive"] = 13.63,
-        ["dyndist"] = 1.41,
-        ["enhancer"] = 0.29,
+        ["cab"] = 4.07,
+        ["chorus"] = 0.23,
+        ["circuitamp"] = 31.12,
+        ["compressor"] = 0.36,
+        ["crossover"] = 0.53,
+        ["delay"] = 0.66,
+        ["drive"] = 20.07,
+        ["dyndist"] = 1.42,
+        ["enhancer"] = 0.30,
         ["fbreturn"] = 0.04,
         ["fbsend"] = 0.04,
-        ["filter"] = 0.51,
-        ["flanger"] = 0.28,
+        ["filter"] = 0.31,
+        ["flanger"] = 0.25,
         ["formant"] = 0.27,
         ["fxloop"] = 0.20,
-        ["gate"] = 0.13,
+        ["gate"] = 0.14,
         ["geq"] = 0.05,
         ["irplayer"] = 6.85,
         ["looper"] = 0.05,
@@ -48,8 +48,8 @@ public static class BlockCosts {
         ["tremolo"] = 0.19,
         ["vibe"] = 0.39,
         ["vocoder"] = 1.16,
-        ["volpan"] = 0.21,
-        ["wah"] = 1.64
+        ["volpan"] = 0.22,
+        ["wah"] = 1.83
     };
 
     /// <summary>The cost of <paramref name="typeId" />, or null for a block that has not been measured.</summary>

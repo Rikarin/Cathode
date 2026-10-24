@@ -46,6 +46,12 @@ public static class Svt {
     const double Wire = 1;
     const double Preamp = 300;
 
+    /// <summary>
+    ///     Newton's step tolerance in every preamp stage (the default is 1e-6): ten times looser costs a fraction of an
+    ///     iteration a sample and leaves the output within -100 dB of the default's.
+    /// </summary>
+    const double NewtonTolerance = 1e-5;
+
     /// <summary>The midrange inductor (see the remarks).</summary>
     const double MidInductor = 3.5;
 
@@ -123,7 +129,7 @@ public static class Svt {
         net.Resistor(cathode, StageNetlist.Ground, 3.3e3);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
         net.Output = plate;
-        return new("V1A", net);
+        return new("V1A", net) { Tolerance = NewtonTolerance };
     }
 
     /// <summary>
@@ -137,7 +143,7 @@ public static class Svt {
         net.Resistor(follower, StageNetlist.Ground, 47e3);
         net.Triode(rail, net.Input, follower, TriodeModel.Ecc82);
         net.Output = follower;
-        return new("V1B", net);
+        return new("V1B", net) { Tolerance = NewtonTolerance };
     }
 
     /// <summary>
@@ -172,7 +178,7 @@ public static class Svt {
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
         net.Triode(plate, wiper, cathode, TriodeModel.Ecc82);
         net.Output = plate;
-        return new("V3A", net);
+        return new("V3A", net) { Tolerance = NewtonTolerance };
     }
 
     /// <summary>
@@ -240,7 +246,7 @@ public static class Svt {
         net.Resistor(winding, coil, 300);
         net.SelectedCapacitor(coil, StageNetlist.Ground, MidCaps, PotRole.Control1);
         net.Output = tap;
-        return new("V3B-V4", net) { MaxIterations = 128 };
+        return new("V3B-V4", net) { MaxIterations = 128, ReuseFactors = true, Tolerance = NewtonTolerance };
     }
 
     /// <summary>
@@ -262,7 +268,7 @@ public static class Svt {
         net.Resistor(bias, StageNetlist.Ground, 47e3);
         net.Triode(rail, grid, cathode, TriodeModel.Ecc82);
         net.Output = cathode;
-        return new("V5", net) { MaxIterations = 64 };
+        return new("V5", net) { MaxIterations = 64, Tolerance = NewtonTolerance };
     }
 
     /// <summary>
@@ -278,7 +284,7 @@ public static class Svt {
         net.Diodes(clamp, StageNetlist.Ground, DiodeModel.Silicon, 1, 1);
         net.Resistor(clamp, StageNetlist.Ground, 470e3);
         net.Output = clamp;
-        return new("Clamp", net);
+        return new("Clamp", net) { Tolerance = NewtonTolerance };
     }
 
     /// <summary>The capacitance that resonates with <see cref="MidInductor" /> at <paramref name="hertz" />.</summary>

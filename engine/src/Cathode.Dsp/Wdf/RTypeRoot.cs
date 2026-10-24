@@ -88,6 +88,16 @@ public struct RTypeRoot<TPorts, TDevice>
         newton = new(device.Ports);
         for (var k = 0; k < device.Ports; k++) {
             newton.conductances[k] = Math.Max(device.Conductance(k), 1e-15);
+            newton.blockStart[k] = device.BlockStart(k);
+        }
+
+        for (var k = 0; k < device.Ports; k++) {
+            var end = k + 1;
+            while (end < device.Ports && newton.blockStart[end] == newton.blockStart[k]) {
+                end++;
+            }
+
+            newton.blockEnd[k] = end;
         }
 
         inputs = new double[scattering.Inputs];
@@ -99,6 +109,15 @@ public struct RTypeRoot<TPorts, TDevice>
     public void Propagate() {
         Ports.Propagate(scattering.PortResistances);
         scattering.Recompute();
+        // F, the impedance the network presents to the devices, for the Newton solver.
+        var k = Device.Ports;
+        var matrix = scattering.Matrix;
+        for (var d = 0; d < k; d++) {
+            var row = (scattering.DeviceRow + d) * scattering.Columns + scattering.Inputs;
+            matrix.Slice(row, k).CopyTo(newton.impedance.AsSpan(d * k));
+        }
+
+        newton.factored = false;
     }
 
     /// <summary>Sets ideal voltage source <paramref name="index" /> (in volts) for the coming samples.</summary>
@@ -200,6 +219,7 @@ public struct RTypeRoot<TPorts, TDevice>
 
     public void Reset() {
         newton.primed = false;
+        newton.factored = false;
         Ports.Reset();
         Device.Reset();
         newton.voltages.AsSpan().Clear();
@@ -211,9 +231,11 @@ public struct RTypeRoot<TPorts, TDevice>
     /// <summary>
     ///     <see cref="Solve" /> for one device port, written out: the same arithmetic in the same order (so the same
     ///     result to the last bit) without the general case's loops and spans. It covers the common case, plain limited
-    ///     Newton steps converging within <see cref="NewtonSolver.LineSearchAfter" /> iterations; anything else (a
-    ///     singular step, a non-finite residual, a slow sample) puts the sample back as it was and returns false, and
-    ///     the general solver takes it from the start.
+    ///     Newton steps converging within <see cref="NewtonSolver.LineSearchAfter" /> iterations, or with the bracket
+    ///     safeguard (<see cref="NewtonSolver.SafeguardAfter" />, which only this path has) within
+    ///     <see cref="NewtonSolver.MaxIterations" />; anything else (a singular step, a non-finite residual, a slow
+    ///     sample without a bracket) puts the sample back as it was and returns false, and the general solver takes it
+    ///     from the start.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     bool SolveOne() {
@@ -251,7 +273,14 @@ public struct RTypeRoot<TPorts, TDevice>
         var scaled = g / (absolute + relative * Math.Abs(x));
         var norm = 0.0;
         norm += scaled * scaled;
+        var (below, above) = (double.NaN, double.NaN); // where g < 0 and g > 0, for the safeguard
         while (double.IsFinite(norm)) {
+            if (g < 0) {
+                below = x;
+            } else if (g > 0) {
+                above = x;
+            }
+
             var j = jacobian[0];
             var a = 1.0;
             a -= f * (j - gc);
@@ -263,6 +292,13 @@ public struct RTypeRoot<TPorts, TDevice>
             s.proposed[0] = proposed;
             Device.Limit(v.AsSpan(0, 1), s.proposed.AsSpan(0, 1));
             proposed = s.proposed[0];
+            var bracketed = double.IsFinite(below) && double.IsFinite(above);
+            if (iterations >= s.SafeguardAfter && bracketed
+                && !(proposed > Math.Min(below, above) && proposed < Math.Max(below, above))) {
+                // Newton is cycling across a kink: bisect the bracket instead of leaving it.
+                proposed = 0.5 * (below + above);
+            }
+
             var step = proposed - x;
             if (Math.Abs(step) <= absolute + relative * Math.Abs(x)) {
                 var r = trial;
@@ -274,7 +310,8 @@ public struct RTypeRoot<TPorts, TDevice>
             }
 
             iterations++;
-            if (iterations > s.LineSearchAfter || iterations > s.MaxIterations) {
+            if ((iterations > s.LineSearchAfter && !(bracketed && iterations > s.SafeguardAfter))
+                || iterations > s.MaxIterations) {
                 break;
             }
 
@@ -438,30 +475,24 @@ public struct RTypeRoot<TPorts, TDevice>
         var direction = s.direction.AsSpan(0, k);
         var history = s.history.AsSpan(0, k);
         var best = s.best.AsSpan(0, k);
-        var bestCurrents = s.bestCurrents.AsSpan(0, k);
-        var f = s.impedance.AsSpan(0, k * k);
-        var matrix = scattering.Matrix;
-        for (var d = 0; d < k; d++) {
-            matrix.Slice((scattering.DeviceRow + d) * scattering.Columns + scattering.Inputs, k).CopyTo(f[(d * k)..]);
-        }
-
         v.CopyTo(start);
         if (s.Linearise && s.primed) {
-            // One Newton step on the last sample's Jacobian for the change in p: v + M⁻¹ Δp, limited.
+            // One Newton step on the last sample's Jacobian for the change in p: v + M⁻¹ Δp, limited. When the last
+            // sample converged, that Jacobian's system is still factored.
             for (var d = 0; d < k; d++) {
-                for (var l = 0; l < k; l++) {
-                    var sum = d == l ? 1.0 : 0.0;
-                    for (var e = 0; e < k; e++) {
-                        sum -= f[d * k + e] * (jacobian[e * k + l] - (e == l ? gc[e] : 0));
-                    }
-
-                    system[d * k + l] = sum;
-                }
-
                 step[d] = s.prediction[d] - s.previousPrediction[d];
             }
 
-            if (SolveSmall(system, k, step, s.pivots)) {
+            bool solved;
+            if (k > 2 && s.factored) {
+                DenseLu.Solve(system, k, s.pivots, step, 1);
+                solved = true;
+            } else {
+                BuildSystem(k);
+                solved = SolveSmall(system, k, step, s.pivots);
+            }
+
+            if (solved) {
                 for (var d = 0; d < k; d++) {
                     proposed[d] = start[d] + step[d];
                 }
@@ -480,6 +511,8 @@ public struct RTypeRoot<TPorts, TDevice>
             proposed.CopyTo(v);
         }
 
+        var chord = s.ReuseFactors && k > 2;
+        s.factored &= chord;
         start.CopyTo(history);
         var bestNorm = double.PositiveInfinity;
         var iterations = 1;
@@ -487,31 +520,26 @@ public struct RTypeRoot<TPorts, TDevice>
         var (below, above) = (double.NaN, double.NaN); // one port: points where g < 0 and g > 0, for the bracket
         Bracket(k, v, ref below, ref above);
         while (double.IsFinite(norm)) {
-            // J = I - F (∂i/∂v - G_c), solved for the step -J⁻¹ g (the step buffer holds -g).
-            for (var d = 0; d < k; d++) {
-                for (var l = 0; l < k; l++) {
-                    var sum = d == l ? 1.0 : 0.0;
-                    for (var e = 0; e < k; e++) {
-                        sum -= f[d * k + e] * (jacobian[e * k + l] - (e == l ? gc[e] : 0));
-                    }
-
-                    system[d * k + l] = sum;
-                }
+            if (chord && s.factored && norm <= NewtonSolver.ChordNorm * k && Chord(k)) {
+                s.Record(iterations, converged: true, finite: true);
+                return;
             }
 
-            system.CopyTo(s.systemCopy);
+            // J = I - F (∂i/∂v - G_c), solved for the step -J⁻¹ g (the step buffer holds -g).
+            BuildSystem(k);
             step.CopyTo(s.rhsCopy);
             if (!SolveSmall(system, k, step, s.pivots)) {
                 break;
             }
 
+            s.factored = true; // until Constrain borrows the buffers, or (unless they are reused) the next evaluation
             for (var d = 0; d < k; d++) {
                 proposed[d] = v[d] + step[d];
             }
 
             Device.Limit(v, proposed);
             if (k > 1) {
-                Constrain(k, v, step, proposed);
+                Constrain(k, v, step, proposed, rebuild: true);
             }
 
             var converged = true;
@@ -524,7 +552,7 @@ public struct RTypeRoot<TPorts, TDevice>
                 // The currents at the new voltages, to second order in the step: r + (∂i/∂v - G_c) Δ.
                 for (var d = 0; d < k; d++) {
                     var sum = trial[d];
-                    for (var l = 0; l < k; l++) {
+                    for (var l = s.blockStart[d]; l < s.blockEnd[d]; l++) {
                         sum += (jacobian[d * k + l] - (d == l ? gc[d] : 0)) * step[l];
                     }
 
@@ -535,6 +563,8 @@ public struct RTypeRoot<TPorts, TDevice>
                 s.Record(iterations, converged: true, finite: true);
                 return;
             }
+
+            s.factored &= s.ReuseFactors;
 
             // Backtrack until |g| decreases: the first try is the full (limited) step. Residual overwrites the step
             // buffer, so the direction is kept apart.
@@ -568,6 +598,7 @@ public struct RTypeRoot<TPorts, TDevice>
             }
         }
 
+        s.factored = false; // the fallbacks borrow the buffers
         if (k == 1 && Bisect(below, above, ref iterations)) {
             s.Record(iterations, converged: true, finite: true);
         } else if (bestNorm <= NewtonSolver.AcceptableNorm) {
@@ -583,12 +614,71 @@ public struct RTypeRoot<TPorts, TDevice>
     }
 
     /// <summary>
+    ///     A chord step (<see cref="NewtonSolver.ReuseFactors" />): the factored system of a recent Jacobian solved for
+    ///     this iterate's residual, which saves building and factoring one. Taken only when it converges unlimited, with
+    ///     the currents linearised on this iterate's own Jacobian; otherwise the step buffer gets -g back and a full
+    ///     Newton step follows.
+    /// </summary>
+    bool Chord(int k) {
+        var s = newton;
+        var v = s.voltages.AsSpan(0, k);
+        var step = s.step.AsSpan(0, k);
+        var proposed = s.proposed.AsSpan(0, k);
+        var jacobian = s.jacobian.AsSpan(0, k * k);
+        var gc = s.conductances.AsSpan(0, k);
+        step.CopyTo(s.rhsCopy);
+        DenseLu.Solve(s.system.AsSpan(0, k * k), k, s.pivots, step, 1);
+        for (var d = 0; d < k; d++) {
+            proposed[d] = v[d] + step[d];
+        }
+
+        Device.Limit(v, proposed);
+        var converged = true;
+        for (var d = 0; d < k; d++) {
+            converged &= proposed[d] == v[d] + step[d];
+            step[d] = proposed[d] - v[d];
+            converged &= Math.Abs(step[d]) <= s.AbsoluteTolerance + s.RelativeTolerance * Math.Abs(v[d]);
+        }
+
+        if (!converged) {
+            s.rhsCopy.AsSpan(0, k).CopyTo(step);
+            return false;
+        }
+
+        for (var d = 0; d < k; d++) {
+            var sum = s.residual[d];
+            for (var l = s.blockStart[d]; l < s.blockEnd[d]; l++) {
+                sum += (jacobian[d * k + l] - (d == l ? gc[d] : 0)) * step[l];
+            }
+
+            s.currents[d] = sum;
+        }
+
+        proposed.CopyTo(v);
+        return true;
+    }
+
+    /// <summary>
     ///     When the devices limited some ports' steps, re-solves the linearised system for the other ports with the
     ///     limited ones held at their limited values, so the step stays a Newton step of the constrained problem. Without
     ///     this, a limited junction leaves its neighbours stepping as if it had moved all the way, which sends a
     ///     transistor's other junction, or an op-amp's output, far off.
     /// </summary>
-    void Constrain(int k, ReadOnlySpan<double> v, ReadOnlySpan<double> unlimited, Span<double> proposed) {
+    /// <param name="k">The ports.</param>
+    /// <param name="v">The iterate.</param>
+    /// <param name="unlimited">The Newton step before limiting.</param>
+    /// <param name="proposed">The limited proposal, re-solved in place.</param>
+    /// <param name="rebuild">
+    ///     Whether to rebuild the unfactored system from the Jacobian (the general solver); otherwise the caller has
+    ///     put it in the system copy.
+    /// </param>
+    void Constrain(
+        int k,
+        ReadOnlySpan<double> v,
+        ReadOnlySpan<double> unlimited,
+        Span<double> proposed,
+        bool rebuild = false
+    ) {
         var s = newton;
         Span<int> free = stackalloc int[k];
         var count = 0;
@@ -600,6 +690,11 @@ public struct RTypeRoot<TPorts, TDevice>
 
         if (count == k || count == 0) {
             return;
+        }
+
+        s.factored = false; // the system and pivot buffers are borrowed
+        if (rebuild) {
+            BuildSystem(k, s.systemCopy);
         }
 
         var a = s.system.AsSpan(0, count * count);
@@ -703,29 +798,18 @@ public struct RTypeRoot<TPorts, TDevice>
         var jacobian = s.jacobian.AsSpan(0, k * k);
         var system = s.system.AsSpan(0, k * k);
         var step = s.step.AsSpan(0, k);
-        var f = s.impedance.AsSpan(0, k * k);
         best.CopyTo(v);
         s.bestCurrents.AsSpan(0, k).CopyTo(r);
         var ignored = double.PositiveInfinity;
         Residual(k, v, ref ignored);
-        for (var d = 0; d < k; d++) {
-            for (var l = 0; l < k; l++) {
-                var sum = d == l ? 1.0 : 0.0;
-                for (var e = 0; e < k; e++) {
-                    sum -= f[d * k + e] * (jacobian[e * k + l] - (e == l ? gc[e] : 0));
-                }
-
-                system[d * k + l] = sum;
-            }
-        }
-
+        BuildSystem(k);
         if (!SolveSmall(system, k, step, s.pivots)) {
             return;
         }
 
         for (var d = 0; d < k; d++) {
             var sum = trial[d];
-            for (var l = 0; l < k; l++) {
+            for (var l = s.blockStart[d]; l < s.blockEnd[d]; l++) {
                 sum += (jacobian[d * k + l] - (d == l ? gc[d] : 0)) * step[l];
             }
 
@@ -739,6 +823,37 @@ public struct RTypeRoot<TPorts, TDevice>
         for (var d = 0; d < k; d++) {
             r[d] = s.proposed[d];
             v[d] += step[d];
+        }
+    }
+
+    /// <summary>
+    ///     The Newton system J = I - F (∂i/∂v - G_c) at the last evaluation, into <paramref name="target" /> (the system
+    ///     buffer by default). ∂i/∂v is block diagonal (<see cref="INonlinearDevice.BlockStart" />): each column sums
+    ///     over its own block only, in the same order as a full sum, so the result is the same to the bit.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    readonly void BuildSystem(int k, double[]? target = null) {
+        var s = newton;
+
+        // On references (the solver's buffers hold k × k): this runs once or twice per iteration.
+        ref var f = ref MemoryMarshal.GetArrayDataReference(s.impedance);
+        ref var jacobian = ref MemoryMarshal.GetArrayDataReference(s.jacobian);
+        ref var gc = ref MemoryMarshal.GetArrayDataReference(s.conductances);
+        ref var system = ref MemoryMarshal.GetArrayDataReference(target ?? s.system);
+        ref var first = ref MemoryMarshal.GetArrayDataReference(s.blockStart);
+        ref var end = ref MemoryMarshal.GetArrayDataReference(s.blockEnd);
+        for (var d = 0; d < k; d++) {
+            ref var row = ref Unsafe.Add(ref f, d * k);
+            for (var l = 0; l < k; l++) {
+                var sum = d == l ? 1.0 : 0.0;
+                var last = Unsafe.Add(ref end, l);
+                for (var e = Unsafe.Add(ref first, l); e < last; e++) {
+                    var slope = Unsafe.Add(ref jacobian, e * k + l) - (e == l ? Unsafe.Add(ref gc, e) : 0);
+                    sum -= Unsafe.Add(ref row, e) * slope;
+                }
+
+                Unsafe.Add(ref system, d * k + l) = sum;
+            }
         }
     }
 
@@ -763,14 +878,17 @@ public struct RTypeRoot<TPorts, TDevice>
         }
 
         var norm = 0.0;
+        var (absolute, relative) = (s.AbsoluteTolerance, s.RelativeTolerance);
+        ref var r = ref MemoryMarshal.GetReference(trial);
         for (var d = 0; d < k; d++) {
             var g = v[d] - p[d];
+            ref var row = ref MemoryMarshal.GetReference(f[(d * k)..]);
             for (var e = 0; e < k; e++) {
-                g -= f[d * k + e] * trial[e];
+                g -= Unsafe.Add(ref row, e) * Unsafe.Add(ref r, e);
             }
 
             step[d] = -g;
-            var scaled = g / (s.AbsoluteTolerance + s.RelativeTolerance * Math.Abs(v[d]));
+            var scaled = g / (absolute + relative * Math.Abs(v[d]));
             norm += scaled * scaled;
         }
 
@@ -822,6 +940,13 @@ public sealed class NewtonSolver {
     /// </summary>
     internal const double AcceptableNorm = 1e6;
 
+    /// <summary>
+    ///     Scaled |g|² per port below which a chord step may be tried (|g| within ten tolerances): the step is then
+    ///     small whichever recent Jacobian computes it, so a factorisation from before a device switched cannot pass an
+    ///     iterate as converged that a fresh one would move by more than a few tolerances.
+    /// </summary>
+    internal const double ChordNorm = 100;
+
     internal readonly double[] voltages;
     internal readonly double[] currents; // the solution's residual currents r = i - G_c v
     internal readonly double[] prediction;
@@ -841,8 +966,11 @@ public sealed class NewtonSolver {
     internal readonly double[] history; // the solution before last, for the extrapolated start
     internal readonly double[] previousPrediction; // the last sample's p, for the linearised start
     internal bool primed; // whether the last sample's solution, Jacobian and p are there to start from
-    internal readonly double[] impedance; // F, copied out of the scattering matrix per sample
+    internal readonly double[] impedance; // F, copied out of the scattering matrix when it changes
     internal readonly int[] pivots;
+    internal readonly int[] blockStart; // per port: the first port of its device block
+    internal readonly int[] blockEnd; // per port: one past the last port of its device block
+    internal bool factored; // whether the system and pivot buffers hold the factors of the last Jacobian's system
     long samples;
     long iterations;
     int lastIterations;
@@ -877,11 +1005,28 @@ public sealed class NewtonSolver {
     public bool Linearise { get; set; }
 
     /// <summary>
+    ///     Three or more ports: keep the last factored Newton system across iterations and samples and first try a chord
+    ///     step on it (taken only when it converges unlimited), building and factoring a new one only when that fails.
+    ///     The solution moves within the tolerances, so this is off by default (bit-for-bit renders); on a smooth signal
+    ///     it saves most factorisations.
+    /// </summary>
+    public bool ReuseFactors { get; set; }
+
+    /// <summary>
     ///     Iterations of plain (limited) Newton before a step must also reduce |g| (a backtracking line search). Junctions
     ///     climbing a steep exponential legitimately raise |g| for a while, so the line search only steps in for samples
     ///     that are struggling, e.g. an op-amp bouncing between its rails.
     /// </summary>
     public int LineSearchAfter { get; set; } = 16;
+
+    /// <summary>
+    ///     One port: iterations of plain Newton before a step that would leave the bracket the iterates have found (one
+    ///     point where g &lt; 0, one where g &gt; 0) bisects it instead, and the sample carries on to
+    ///     <see cref="MaxIterations" /> rather than restarting with the line search. A power amp under deep feedback
+    ///     cycles across the grid-conduction kink on a few samples in a hundred, and these used to take 25 to 60
+    ///     iterations; samples that converge sooner are untouched.
+    /// </summary>
+    public int SafeguardAfter { get; set; } = 8;
 
     /// <summary>Samples solved since the last <see cref="ResetStatistics" />.</summary>
     public long Samples => samples;
@@ -923,6 +1068,8 @@ public sealed class NewtonSolver {
         previousPrediction = new double[k];
         impedance = new double[k * k];
         pivots = new int[k];
+        blockStart = new int[k];
+        blockEnd = new int[k];
     }
 
     public void ResetStatistics() {
