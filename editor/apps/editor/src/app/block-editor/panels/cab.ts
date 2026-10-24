@@ -23,13 +23,28 @@ export const SlotKeys = [
   'delay',
   'invert',
   'mute',
-  'solo'
+  'solo',
+  'proximity',
+  'proxfreq',
+  'smoothing',
+  'align'
 ] as const;
 
 export type SlotKey = (typeof SlotKeys)[number];
 
-/** A slot's Source values, as the engine's `CabBlock.SourceIr`, `SourceDynaCab` and `SourcePack`. */
-export const Source = { ir: 0, dynaCab: 1, pack: 2 } as const;
+/** A slot's Source values, as the engine's `CabBlock.SourceIr`, `SourceDynaCab`, `SourcePack` and `SourceFlat`. */
+export const Source = { ir: 0, dynaCab: 1, pack: 2, flat: 3 } as const;
+
+/** The speed of sound the engine uses (`CabAcoustics.SpeedOfSound`), m/s: a slot's delay as a mic distance. */
+export const SpeedOfSound = 343;
+
+/** A slot delay in ms as the mic distance that gives it, e.g. "1.00 ms · 343 mm". */
+export function delayLabel(ms: number): string {
+  return `${ms.toFixed(2)} ms · ${Math.round(ms * SpeedOfSound)} mm`;
+}
+
+/** Whether a slot's source takes a file: an IR, or an IR pack (a DynaCab and Flat do not). */
+export const takesFile = (source: SourceValue): boolean => source === Source.ir || source === Source.pack;
 
 export type SourceValue = (typeof Source)[keyof typeof Source];
 
@@ -38,7 +53,7 @@ export const slotParamId = (slot: number, key: SlotKey): string => `m${slot + 1}
 
 const SlotParam = new RegExp(`^m[1-${CabSlots}](${SlotKeys.join('|')})$`);
 
-/** True for a slot's parameters, which the Cab panel shows per slot instead of as 72 knobs. */
+/** True for a slot's parameters, which the Cab panel shows per slot instead of as 88 knobs. */
 export const isCabSlotParam = (id: string): boolean => SlotParam.test(id);
 
 /** The asset slot of slot `slot` (0-based): an IR for an IR slot, a pack (or one IR) for an IR Pack slot. */
@@ -83,7 +98,7 @@ export function coneMics(
   packName: (slot: number) => string | undefined
 ): ConeMic[] {
   return Array.from({ length: CabSlots }, (_, slot) => slot)
-    .filter(slot => sourceOf(slot, value) !== Source.ir)
+    .filter(slot => sourceOf(slot, value) === Source.dynaCab || sourceOf(slot, value) === Source.pack)
     .map(slot => ({
       slot,
       name:

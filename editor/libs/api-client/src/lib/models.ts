@@ -133,6 +133,17 @@ export interface Telemetry {
   tuner?: TunerInfo;
   tempo: number;
   looper?: LooperInfo;
+  /** Blocks with meters of their own, about ten times a second. */
+  blocks?: BlockMeterInfo[];
+}
+
+/**
+ * A block's own meters by id, in dB: the Cab's `preampIn` (the level into its mic preamp, 0 at the onset of clipping)
+ * and `motorReduction` (Motor Drive's gain reduction).
+ */
+export interface BlockMeterInfo {
+  block: string;
+  meters: Record<string, number>;
 }
 
 /** Pushed about 30 times a second while the scope is on: recent output samples, oldest first. */

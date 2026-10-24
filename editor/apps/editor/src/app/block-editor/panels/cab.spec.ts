@@ -3,6 +3,7 @@ import {
   coneMics,
   cutDb,
   cutsDb,
+  delayLabel,
   isAudible,
   isCabSlotParam,
   isMuted,
@@ -11,6 +12,7 @@ import {
   slotAsset,
   slotParamId,
   sourceOf,
+  takesFile,
   unmuteOnEdit
 } from './cab';
 
@@ -54,6 +56,25 @@ describe('Cab panel helpers', () => {
     expect(isCabSlotParam('autodelay')).toBe(false);
     expect(isCabSlotParam('roomsize')).toBe(false);
     expect(isCabSlotParam('smoothing')).toBe(false);
+  });
+
+  it('knows the per-slot proximity, smoothing and Auto-Align', () => {
+    expect(isCabSlotParam('m1proximity')).toBe(true);
+    expect(isCabSlotParam('m2proxfreq')).toBe(true);
+    expect(isCabSlotParam('m3smoothing')).toBe(true);
+    expect(isCabSlotParam('m4align')).toBe(true);
+    expect(isCabSlotParam('proximity')).toBe(false);
+  });
+
+  it('shows a slot delay as time and mic distance', () => {
+    expect(delayLabel(1)).toBe('1.00 ms · 343 mm');
+    expect(delayLabel(9.9125)).toBe('9.91 ms · 3400 mm');
+  });
+
+  it('gives a file only to IR and IR pack slots, and the cone only DynaCab and pack slots', () => {
+    expect([Source.ir, Source.dynaCab, Source.pack, Source.flat].map(takesFile)).toEqual([true, false, true, false]);
+    const flat = values({ m1source: Source.flat, m2mute: 0 });
+    expect(coneMics(flat, Mics, () => undefined).map(m => m.slot)).toEqual([1, 2, 3]);
   });
 
   it('shortens mic names to their model', () => {

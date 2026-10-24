@@ -394,6 +394,24 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/live/blocks/{id}/ir': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** A Cab block's current mixed IR (every slot that plays, DynaCab and IR pack slots included, cuts and smoothing baked in) as a stereo .wav at the engine's rate. */
+    get: operations['ExportCabIr'];
+    put?: never;
+    /** Saves a Cab block's current mixed IR as a new IR asset. */
+    post: operations['SaveCabIr'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/live/cables': {
     parameters: {
       query?: never;
@@ -863,6 +881,7 @@ export interface paths {
     };
     get: operations['ListAssets'];
     put?: never;
+    /** Uploads an asset. A .wav IR can be processed on import: processing (asIs, autoTrim, minimumPhase), polarity (make the main peak positive), channels (both, left, right, sum) and maxLengthMs. */
     post: operations['UploadAsset'];
     delete?: never;
     options?: never;
@@ -998,6 +1017,11 @@ export interface components {
     };
     BypassRequest: {
       bypassed: boolean;
+    };
+    /** @description Saves a Cab block's current mixed IR as a new IR asset. */
+    CabExportRequest: {
+      /** @description File name for the result (".wav" is added). */
+      name: string;
     };
     CableRequest: {
       from: string;
@@ -1137,6 +1161,11 @@ export interface components {
        * @description Noise gate offset in dB (−20..20), added to every Input block's gate threshold.
        */
       noiseGateOffset: number;
+      /**
+       * @description Cab modeling off: every Cab and IR Player block passes audio through, for playing into a real speaker cabinet
+       *     without changing the presets.
+       */
+      cabModelingOff: boolean;
       /** @description The global output EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse. */
       eq: {
         [key: string]: number;
@@ -2095,6 +2124,54 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  ExportCabIr: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'audio/wav': string;
+        };
+      };
+    };
+  };
+  SaveCabIr: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CabExportRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AssetInfo'];
         };
       };
     };
@@ -3126,6 +3203,10 @@ export interface operations {
     parameters: {
       query: {
         name: string;
+        processing?: string;
+        polarity?: boolean;
+        channels?: string;
+        maxLengthMs?: number;
       };
       header?: never;
       path?: never;
