@@ -71,6 +71,12 @@ public sealed class CompiledGraph : IDisposable {
     /// <summary>The RTA block's tap, when the graph has one: the engine sends what it holds to the analyser.</summary>
     public AnalyzerTap? Analyzer { get; }
 
+    /// <summary>
+    ///     The graph's view of the hardware inputs, when the compiler had them and a block reads one: the engine fades it
+    ///     out when the graph is replaced.
+    /// </summary>
+    public InputPort? Inputs { get; }
+
     /// <summary>True when a modifier follows the input pitch, so the host must run pitch detection.</summary>
     public bool UsesPitch => modifiers.Any(static m => m.Source == ModSource.Pitch);
 
@@ -86,10 +92,12 @@ public sealed class CompiledGraph : IDisposable {
         DelayLine[] delays,
         int latencySamples,
         ModifierBinding[]? modifiers = null,
-        AnalyzerTap? analyzer = null
+        AnalyzerTap? analyzer = null,
+        InputPort? inputs = null
     ) {
         this.modifiers = modifiers ?? [];
         Analyzer = analyzer;
+        Inputs = inputs;
         Generation = generation;
         Spec = spec;
         this.ops = ops;
@@ -236,6 +244,8 @@ public sealed class CompiledGraph : IDisposable {
                     break;
             }
         }
+
+        Inputs?.Advance(frames);
     }
 
     public void Dispose() {

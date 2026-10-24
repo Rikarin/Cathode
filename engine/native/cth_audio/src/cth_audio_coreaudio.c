@@ -152,6 +152,33 @@ int32_t cth_audio_device_info(int32_t index, cth_device_info *info)
     return 0;
 }
 
+int32_t cth_audio_channel_name(int32_t device_index, int32_t is_input, int32_t channel, char *name, int32_t size)
+{
+    if (!name || size <= 0) return fail("invalid arguments", 0);
+    name[0] = 0;
+    AudioObjectID *devices = NULL;
+    int32_t count = device_list(&devices);
+    if (device_index < 0 || device_index >= count) {
+        free(devices);
+        return fail("device index out of range", 0);
+    }
+    AudioObjectID device = devices[device_index];
+    free(devices);
+    AudioObjectPropertyScope scope = is_input ? kAudioObjectPropertyScopeInput : kAudioObjectPropertyScopeOutput;
+    if (channel < 0 || channel >= channel_count(device, scope)) return fail("channel out of range", 0);
+
+    /* Channel elements are 1-based; element 0 is the device as a whole. */
+    AudioObjectPropertyAddress a = {kAudioObjectPropertyElementName, scope, (AudioObjectPropertyElement)(channel + 1)};
+    CFStringRef value = NULL;
+    UInt32 value_size = sizeof value;
+    if (AudioObjectHasProperty(device, &a)
+        && AudioObjectGetPropertyData(device, &a, 0, NULL, &value_size, &value) == noErr && value) {
+        CFStringGetCString(value, name, (CFIndex)size, kCFStringEncodingUTF8);
+        CFRelease(value);
+    }
+    return 0;
+}
+
 static AudioObjectID find_device(const char *uid)
 {
     if (!uid || !uid[0]) {
@@ -186,6 +213,8 @@ static void deinterleave(const AudioBufferList *list, const float *const *planar
             for (UInt32 i = 0; i < frames; i++) dst[i] = data ? data[(offset + i) * stride + c] : 0.0f;
         }
     }
+    /* Channels the device did not deliver this time (a stream missing from the list) read as silence. */
+    for (; channel < channels; channel++) memset((float *)planar[channel], 0, frames * sizeof(float));
 }
 
 static void interleave(AudioBufferList *list, float *const *planar, int32_t channels, UInt32 offset, UInt32 frames)
@@ -225,7 +254,11 @@ static OSStatus io_proc(AudioObjectID device, const AudioTimeStamp *now, const A
 
     for (UInt32 offset = 0; offset < total; offset += CTH_MAX_FRAMES) {
         UInt32 frames = total - offset < CTH_MAX_FRAMES ? total - offset : CTH_MAX_FRAMES;
-        if (s->input_channels > 0 && input) deinterleave(input, s->in_ptrs, s->input_channels, offset, frames);
+        if (s->input_channels > 0 && input) {
+            deinterleave(input, s->in_ptrs, s->input_channels, offset, frames);
+        } else {
+            for (int32_t c = 0; c < s->input_channels; c++) memset((float *)s->in_ptrs[c], 0, frames * sizeof(float));
+        }
         for (int32_t c = 0; c < s->output_channels; c++) memset(s->out_ptrs[c], 0, frames * sizeof(float));
         s->process(s->user, s->in_ptrs, s->input_channels, s->out_ptrs, s->output_channels, (int32_t)frames);
         interleave(output, s->out_ptrs, s->output_channels, offset, frames);

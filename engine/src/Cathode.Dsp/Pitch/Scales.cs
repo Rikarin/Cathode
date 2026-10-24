@@ -2,6 +2,12 @@ namespace Cathode.Dsp.Pitch;
 
 /// <summary>Keys, scales and diatonic intervals for the intelligent harmonizer.</summary>
 public static class Scales {
+    /// <summary>The Custom scale's index in <see cref="Names" />: its degrees come from the Pitch block's custom notes.</summary>
+    public const int Custom = 12;
+
+    /// <summary>The intervals a custom note can take above the tonic, as degree names.</summary>
+    public static readonly string[] Degrees = ["1", "b2", "2", "b3", "3", "4", "b5", "5", "b6", "6", "b7", "7"];
+
     /// <summary>Semitones of each scale degree above the root.</summary>
     static readonly int[][] Intervals = [
         [0, 2, 4, 5, 7, 9, 11],
@@ -43,7 +49,8 @@ public static class Scales {
         "Melodic Minor",
         "Major Pentatonic",
         "Minor Pentatonic",
-        "Blues"
+        "Blues",
+        "Custom"
     ];
 
     /// <summary>
@@ -98,8 +105,14 @@ public static class Scales {
     ///     <paramref name="key" /> and <paramref name="scale" />. A note outside the scale harmonises as the scale note
     ///     just below it, so the interval stays diatonic; e.g. in C major a third above A is C (+3), above C is E (+4).
     /// </summary>
-    public static int HarmonySemitones(int note, int key, int scale, int steps) {
-        var degrees = Intervals[Math.Clamp(scale, 0, Intervals.Length - 1)];
+    public static int HarmonySemitones(int note, int key, int scale, int steps) =>
+        HarmonySemitones(note, key, Intervals[Math.Clamp(scale, 0, Intervals.Length - 1)], steps);
+
+    /// <summary>
+    ///     <see cref="HarmonySemitones(int, int, int, int)" /> on any scale: <paramref name="degrees" /> are its semitones
+    ///     above the key, rising from 0 (the root), within the octave.
+    /// </summary>
+    public static int HarmonySemitones(int note, int key, ReadOnlySpan<int> degrees, int steps) {
         var relative = note - key;
         var octave = (int)Math.Floor(relative / 12.0);
         var pitchClass = relative - 12 * octave;
@@ -121,9 +134,13 @@ public static class Scales {
     ///     Unison and octaves stay as they are, and the snapped voice keeps at least a minor third from the played note
     ///     (or the diatonic interval's own size, if smaller), so it never rubs a semitone against the melody.
     /// </summary>
-    public static int HarmonySemitones(int note, int key, int scale, int steps, int chord) {
-        var semitones = HarmonySemitones(note, key, scale, steps);
-        var length = Intervals[Math.Clamp(scale, 0, Intervals.Length - 1)].Length;
+    public static int HarmonySemitones(int note, int key, int scale, int steps, int chord) =>
+        HarmonySemitones(note, key, Intervals[Math.Clamp(scale, 0, Intervals.Length - 1)], steps, chord);
+
+    /// <summary><see cref="HarmonySemitones(int, int, int, int, int)" /> on any scale's <paramref name="degrees" />.</summary>
+    public static int HarmonySemitones(int note, int key, ReadOnlySpan<int> degrees, int steps, int chord) {
+        var semitones = HarmonySemitones(note, key, degrees, steps);
+        var length = degrees.Length;
         var target = note + semitones;
         if (chord == 0 || steps % length == 0 || ((chord >> PitchClass(target)) & 1) != 0) {
             return semitones;
@@ -145,6 +162,30 @@ public static class Scales {
 
         return semitones;
     }
+
+    /// <summary>
+    ///     A custom scale's degrees: the first <paramref name="count" /> of <paramref name="notes" /> (semitones above the
+    ///     tonic, 0–11) with the root added, sorted and without repeats, into <paramref name="degrees" />; returns how many.
+    ///     Allocation-free.
+    /// </summary>
+    public static int CustomDegrees(ReadOnlySpan<int> notes, int count, Span<int> degrees) {
+        var mask = 1; // the root is always a degree
+        for (var i = 0; i < Math.Min(count, notes.Length); i++) {
+            mask |= 1 << PitchClass(notes[i]);
+        }
+
+        var length = 0;
+        for (var pc = 0; pc < 12; pc++) {
+            if ((mask & (1 << pc)) != 0) {
+                degrees[length++] = pc;
+            }
+        }
+
+        return length;
+    }
+
+    /// <summary>Whether a scale of <paramref name="degrees" /> is minor: a minor third above its root and no major third.</summary>
+    public static bool IsMinor(ReadOnlySpan<int> degrees) => degrees.Contains(3) && !degrees.Contains(4);
 
     static double JustPosition(int relative) {
         var octave = (int)Math.Floor(relative / 12.0);

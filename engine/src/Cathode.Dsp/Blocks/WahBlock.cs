@@ -14,8 +14,9 @@ namespace Cathode.Dsp.Blocks;
 /// <remarks>
 ///     <list type="bullet">
 ///         <item>
-///             Min and Max Frequency scale the filter voicings' heel and toe frequencies (100 % is the voicing's own).
-///             Resonance Q and Q Tracking reshape their peak; on the circuits they scale R7, the resistor across the
+///             Min and Max Frequency scale the heel and toe frequencies (100 % is the voicing's own): the filter
+///             voicings' directly, the circuits' through their inductor, scaled at each pedal position so the resonance
+///             moves by Min at the heel and Max at the toe (<see cref="SweepScale" />). Resonance Q and Q Tracking reshape their peak; on the circuits they scale R7, the resistor across the
 ///             inductor that damps the resonator.
 ///         </item>
 ///         <item>
@@ -159,12 +160,8 @@ public sealed class WahBlock() : DspBlock(Info) {
             ParamDescriptor.Float("qTracking", "Q Tracking", 0f, 100f, 0f, "%"),
             ParamDescriptor.Choice("taper", "Control Taper", ["Linear", "Log", "Reverse Log"]),
             WetCuts.LowCutParam("lowCut", "Low Cut", 500f),
-            ParamDescriptor.Float("minFreq", "Min Frequency", 50f, 200f, 100f, "%") with {
-                TypeLabels = FilterOnly("Min Frequency")
-            },
-            ParamDescriptor.Float("maxFreq", "Max Frequency", 50f, 200f, 100f, "%") with {
-                TypeLabels = FilterOnly("Max Frequency")
-            },
+            ParamDescriptor.Float("minFreq", "Min Frequency", 50f, 200f, 100f, "%"),
+            ParamDescriptor.Float("maxFreq", "Max Frequency", 50f, 200f, 100f, "%"),
             ParamDescriptor.Float("drive", "Drive", 0f, 100f, 0f, "%"),
             ParamDescriptor.Float("inductorBias", "Inductor Bias", 0f, 100f, 0f, "%"),
             ..EqFrequencies.Select(static (f, i) => ParamDescriptor.Float(
@@ -209,10 +206,6 @@ public sealed class WahBlock() : DspBlock(Info) {
                 _ => p
             };
     }
-
-    static string[] FilterOnly(string name) => [
-        ..Enumerable.Range(0, Voicings.Length + Circuits.Count).Select(t => t < Voicings.Length ? name : string.Empty)
-    ];
 
     static float Voice(
         float x,
@@ -290,6 +283,8 @@ public sealed class WahBlock() : DspBlock(Info) {
         var drive = 1f + (MaxCircuitDrive - 1f) * Params.Advance(Drive, io.Length) / 100f;
         var trim = (float)Decibels.ToGain(Circuits[type - FirstCircuit].OutputDb) / drive;
         var inductance = BiasedInductance(Params.Advance(InductorBias, io.Length) / 100f);
+        var minScale = Params.Advance(MinFrequency, io.Length) / 100.0;
+        var maxScale = Params.Advance(MaxFrequency, io.Length) / 100.0;
         var resonance = Params.Advance(Resonance, io.Length);
         var tracking = Params.Advance(QTracking, io.Length) / 100f;
         var mix = Params.Advance(Mix, io.Length) / 100f;
@@ -301,8 +296,9 @@ public sealed class WahBlock() : DspBlock(Info) {
             if (countdown == 0) {
                 var toe = Tapered((int)Params.Current(Taper), Params.Current(Position)) / 100.0;
                 var q = resonance * (1 - 0.5 * tracking * toe); // less peaky toward the toe, as on the filter types
-                left.Trim(inductance, q);
-                right.Trim(inductance, q);
+                var scaled = inductance / Square(SweepScale(minScale, maxScale, toe));
+                left.Trim(scaled, q);
+                right.Trim(scaled, q);
                 left.SetPosition(toe);
                 right.SetPosition(toe);
                 countdown = SubBlock;
@@ -322,6 +318,16 @@ public sealed class WahBlock() : DspBlock(Info) {
 
         this.mix = mix;
     }
+
+    /// <summary>
+    ///     How far Min and Max Frequency move a circuit's resonance at pedal position <paramref name="toe" /> (0 … 1): Min
+    ///     at the heel, Max at the toe, geometrically between. The circuit takes it as its inductor, scaled by one over
+    ///     its square (the resonance goes as one over root L).
+    /// </summary>
+    public static double SweepScale(double minScale, double maxScale, double toe) =>
+        minScale == maxScale ? minScale : Math.Pow(minScale, 1 - toe) * Math.Pow(maxScale, toe);
+
+    static double Square(double x) => x * x;
 
     void Configure(int type) {
         var voicing = Circuits[type - FirstCircuit];

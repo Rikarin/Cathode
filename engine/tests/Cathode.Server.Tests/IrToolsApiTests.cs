@@ -95,6 +95,34 @@ public sealed class IrToolsApiTests : IAsyncLifetime {
         Assert.Equal(HttpStatusCode.NoContent, off.StatusCode);
     }
 
+    [Fact]
+    public async Task The_cab_align_page_reports_each_slot_onset_and_delays() {
+        var ir = await Upload("late.wav", Impulse(48, 1f)); // onset at 1 ms
+        (await client.PostAsJsonAsync("/api/v1/live/blocks", new AddBlockRequest("cab", 0, 6), Token))
+            .EnsureSuccessStatusCode();
+        (await client.PutAsJsonAsync("/api/v1/live/blocks/cab1/assets/slot2", new AssetRequest(ir.Ref), Token))
+            .EnsureSuccessStatusCode();
+        (await client.PatchAsJsonAsync(
+                "/api/v1/live/blocks/cab1/params",
+                new Dictionary<string, float> { ["m2source"] = 0, ["m2mute"] = 0, ["m2delay"] = 0.5f },
+                Token
+            ))
+            .EnsureSuccessStatusCode();
+
+        var alignment = (await client.GetFromJsonAsync<CabAlignment>("/api/v1/live/blocks/cab1/cab/align", Token))!;
+        using var wrongBlock = await client.GetAsync("/api/v1/live/blocks/in1/cab/align", Token);
+
+        Assert.Equal(48_000, alignment.SampleRate);
+        Assert.Equal(4, alignment.Slots.Count);
+        var slot = alignment.Slots[1];
+        Assert.True(slot.Plays && slot.Audible);
+        Assert.Equal(1.0, slot.OnsetMs, 3);
+        Assert.Equal(0.5, slot.DelayMs, 3);
+        Assert.Equal(256, slot.Head.Count); // a 10 ms head, cut to the 256-sample IR
+        Assert.True(alignment.Slots[0].Plays); // the default DynaCab
+        Assert.Equal(HttpStatusCode.BadRequest, wrongBlock.StatusCode);
+    }
+
     static byte[] Impulse(int position, float amplitude) {
         var samples = new float[256];
         samples[position] = amplitude;

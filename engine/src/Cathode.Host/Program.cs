@@ -46,6 +46,8 @@ int Usage() {
                  --device <uid>  --rate 48000  --buffer 64  --null-audio  --mute
                  --telemetry <path>  (shared-memory telemetry; default <socket>.<pid>.telemetry)
                  --loop-in 3,4  --loop-out 3,4  (device channels for FX Loop blocks' return and send)
+                 --input-map "1;3,4;;;5,6"  (device channels for Input 1, Input 2, Input 3, Input 4, USB 5/6, USB 7/8;
+                                             default: Input 1 on channel 1)
            --self-test                     offline real-time path check (no device)
            --devices [--json]              list audio devices
            --audio-test [options]          run the engine on a device and report timing and dropouts

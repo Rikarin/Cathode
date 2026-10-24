@@ -1,5 +1,6 @@
 using System.Threading.Channels;
 using Cathode.Contracts;
+using Cathode.Dsp.Routing;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Telemetry;
 using Cathode.EngineHost;
@@ -76,7 +77,8 @@ public sealed partial class EngineConnection(
             t?.Gen1 ?? 0,
             t?.Gen2 ?? 0,
             t?.GcPauseMs ?? 0,
-            t?.AllocatedBytes ?? 0
+            t?.AllocatedBytes ?? 0,
+            InputNames(i?.InputSources ?? 1)
         );
     }
 
@@ -305,6 +307,13 @@ public sealed partial class EngineConnection(
 
         return meters;
     }
+
+    /// <summary>The names of the hardware input sources in <paramref name="mask" /> (bit 0 = Input 1).</summary>
+    static string[] InputNames(int mask) =>
+        Enumerable.Range(0, HardwareInputs.Count)
+            .Where(s => (mask & (1 << s)) != 0)
+            .Select(static s => HardwareInputs.Names[s])
+            .ToArray();
 
     static LooperInfo? Looper(HostTelemetry? t) =>
         t?.Looper is { } l ? new(l.State, l.LengthSeconds, l.PositionSeconds, l.Reversed, l.HalfSpeed) : null;

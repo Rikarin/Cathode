@@ -2,6 +2,7 @@ using System.Globalization;
 using Cathode.Dsp.Filters;
 using Cathode.Dsp.Modulation;
 using Cathode.Dsp.Parameters;
+using Cathode.Dsp.Routing;
 using Cathode.Dsp.Pitch;
 
 namespace Cathode.Dsp.Blocks;
@@ -70,7 +71,8 @@ public enum PitchKeySource {
 ///         past 0.05 and with a shorter hold, and Off stops tracking (the splices run free and the harmony stays put).
 ///         Splice Length sets the shifters' minimum splice. Detector Source can take the tracked signal from another grid
 ///         row instead of the block input; the block then takes its inputs by row (<see cref="IRowInputBlock" />), the
-///         chosen row feeding only the detector.
+///         chosen row feeding only the detector. It can also be one of the interface's inputs
+///         (<see cref="HardwareInputs" />), say a second guitar or a keyboard on Input 2.
 ///     </para>
 ///     <para>
 ///         Feedback per voice: Delay mode repeats the voice through its own delay line (echoes at the same pitch), Shifter
@@ -94,7 +96,7 @@ public enum PitchKeySource {
 ///     </para>
 ///     <para>Kill Dry mutes the dry signal, so Mix sets the wet level alone. Not modelled: formant correction and shift.</para>
 /// </remarks>
-public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
+public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInputBlock {
     public const int Type = 0;
     public const int Mix = 1;
     public const int Level = 2;
@@ -184,7 +186,17 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
     public const int DetectorSource = HighCut + 1;
     public const int GlobalMix = DetectorSource + 1;
     public const int InputSelect = GlobalMix + 1;
-    public const int KillDry = InputSelect + 1;
+    public const int Learn = InputSelect + 1;
+    public const int CustomNoteCount = Learn + 1;
+    public const int CustomTonic = CustomNoteCount + 1;
+
+    /// <summary>The custom scale's first note (semitones above the tonic); notes 2 to 8 follow.</summary>
+    public const int CustomNote1 = CustomTonic + 1;
+
+    /// <summary>The most notes a custom scale has.</summary>
+    public const int MaxCustomNotes = 8;
+
+    public const int KillDry = CustomNote1 + MaxCustomNotes;
 
     public const int VoiceCount = 4;
     public const int MaxArpSteps = 16;
@@ -215,6 +227,9 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
     const double ArpGateSeconds = 0.003;
     const double OnsetReleaseSeconds = 0.03;
     const float OnsetLevel = 0.01f; // -40 dBFS
+    /// <summary>The custom scale's notes by default: a major scale (the eighth note unused at 7 notes).</summary>
+    static readonly int[] DefaultCustomNotes = [0, 2, 4, 5, 7, 9, 11, 11];
+
     const int MajorScale = 0;
     const int MinorScale = 1;
 
@@ -283,6 +298,10 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
     int harmonyNote;
     int chordRoot;
     int chordTones;
+    int learnedKey = -1; // the key Learn latched, kept until the Key parameter moves
+    int learnedOver;
+    readonly int[] customNotes = new int[MaxCustomNotes];
+    readonly int[] customDegrees = new int[12];
     double arpPhase;
     int arpStep;
     int arpPasses;
@@ -487,14 +506,37 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
             ParamDescriptor.Choice(
                 "detectorSource",
                 "Detector Source",
-                ["Block Input", ..Enumerable.Range(1, SourceRows).Select(static r => $"Row {r}")]
+                [
+                    "Block Input",
+                    ..Enumerable.Range(1, SourceRows).Select(static r => $"Row {r}"),
+                    ..HardwareInputs.Names
+                ]
             ),
             EffectsMix.Param,
             ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
+            ParamDescriptor.Switch("learn", "Learn") with { TypeLabels = For("Learn", PitchType.Diatonic) },
+            ParamDescriptor.Choice("customNotes", "Number of Notes", ["4", "5", "6", "7", "8"], 3) with {
+                TypeLabels = For("Number of Notes", PitchType.Diatonic)
+            },
+            ParamDescriptor.Choice("customTonic", "Tonic", Scales.Keys) with {
+                TypeLabels = For("Tonic", PitchType.Diatonic)
+            },
+            ..Enumerable.Range(0, MaxCustomNotes)
+                .Select(static n => ParamDescriptor.Choice(
+                        $"customNote{n + 1}",
+                        $"Note {n + 1}",
+                        Scales.Degrees,
+                        DefaultCustomNotes[n]
+                    ) with {
+                        TypeLabels = For($"Note {n + 1}", PitchType.Diatonic)
+                    }
+                ),
             MixLaws.KillDryParam
         ],
         maxInstances: 2
     );
+
+    public InputPort? Inputs { get; set; }
 
     /// <summary>The key (pitch class, 0 = C) the harmony voices currently use: Key, or the one from the Key Source.</summary>
     public int HarmonyKey { get; private set; }
@@ -537,6 +579,25 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
             default:
                 return 0f;
         }
+    }
+
+    /// <summary>
+    ///     Hardware input <paramref name="source" /> (<see cref="HardwareInputs" />) into the side buffer, as a chosen row
+    ///     would arrive there; silence without the graph's inputs.
+    /// </summary>
+    void LoadHardwareSource(int source, int frames) {
+        if (frames > sideLeft.Length) {
+            return;
+        }
+
+        if (Inputs is { } port) {
+            port.Read(source, sideLeft.AsSpan(0, frames), sideRight.AsSpan(0, frames));
+        } else {
+            Array.Clear(sideLeft, 0, frames);
+            Array.Clear(sideRight, 0, frames);
+        }
+
+        sideFrames = frames;
     }
 
     public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) {
@@ -727,20 +788,42 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
         chordTones = notes.PitchClasses;
     }
 
-    /// <summary>Picks the key and scale from the Key Source, then each harmony voice's ratio for the tracked note.</summary>
+    /// <summary>
+    ///     Picks the key and scale from the Key Source (or Learn), then each harmony voice's ratio for the tracked note.
+    /// </summary>
     void UpdateHarmony() {
         var key = (int)Params.Current(Key);
         var scale = (int)Params.Current(Scale);
+        var degrees = CustomDegrees(scale);
         var chord = 0;
+
+        // Learn: while on, the Key follows the note played; once off, that key stays until the Key parameter moves.
+        if (Params.Current(Learn) >= 0.5f && harmonyNote != int.MinValue) {
+            learnedKey = Scales.PitchClass(harmonyNote);
+            learnedOver = key;
+        } else if (learnedKey >= 0 && key != learnedOver) {
+            learnedKey = -1;
+        }
+
+        if (learnedKey >= 0) {
+            key = learnedKey;
+        }
+
         switch ((PitchKeySource)(int)Params.Current(KeySource)) {
             case PitchKeySource.Midi when chordRoot >= 0:
                 (key, chord) = (chordRoot, chordTones);
-                scale = Scales.ChordScale(key, chord, scale);
+                if (scale != Scales.Custom || !Holds(degrees, key, chord)) {
+                    scale = Scales.ChordScale(key, chord, scale == Scales.Custom ? MajorScale : scale);
+                    degrees = [];
+                }
+
                 break;
             case PitchKeySource.Auto when keys.Key >= 0:
                 key = keys.Key;
-                if (Scales.IsMinor(scale) != keys.Minor) {
+                var minor = scale == Scales.Custom ? Scales.IsMinor(degrees) : Scales.IsMinor(scale);
+                if (minor != keys.Minor) {
                     scale = keys.Minor ? MinorScale : MajorScale;
+                    degrees = [];
                 }
 
                 break;
@@ -755,17 +838,36 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
         var note = harmonyNote == int.MinValue ? 60 : harmonyNote;
         var degree = Scales.PitchClass(note - key);
         for (var v = 0; v < VoiceCount; v++) {
-            var semitones = activeType == PitchType.CustomShifter
-                ? Params.Current(CustomTable + 12 * v + degree)
-                : Scales.HarmonySemitones(
-                    note,
-                    key,
-                    scale,
-                    (int)Params.Current(HarmonyParams[v]) - MaxHarmonySteps,
-                    chord
-                );
+            var steps = (int)Params.Current(HarmonyParams[v]) - MaxHarmonySteps;
+            var semitones = activeType == PitchType.CustomShifter ? Params.Current(CustomTable + 12 * v + degree)
+                : degrees.IsEmpty ? Scales.HarmonySemitones(note, key, scale, steps, chord)
+                : Scales.HarmonySemitones(note, key, degrees, steps, chord);
             harmonies[v] = just ? Scales.JustRatio(note, key, semitones) : Ratio(semitones);
         }
+    }
+
+    /// <summary>The custom scale's degrees when <paramref name="scale" /> is Custom, otherwise empty.</summary>
+    ReadOnlySpan<int> CustomDegrees(int scale) {
+        if (scale != Scales.Custom) {
+            return [];
+        }
+
+        for (var n = 0; n < MaxCustomNotes; n++) {
+            customNotes[n] = (int)Params.Current(CustomNote1 + n);
+        }
+
+        var count = 4 + (int)Params.Current(CustomNoteCount);
+        return customDegrees.AsSpan(0, Scales.CustomDegrees(customNotes, count, customDegrees));
+    }
+
+    /// <summary>Whether every tone of <paramref name="chord" /> is in the scale of <paramref name="degrees" /> on <paramref name="key" />.</summary>
+    static bool Holds(ReadOnlySpan<int> degrees, int key, int chord) {
+        var mask = 0;
+        foreach (var d in degrees) {
+            mask |= 1 << Scales.PitchClass(d + key);
+        }
+
+        return (chord & ~mask) == 0;
     }
 
     float WhammySemitones() {
@@ -869,6 +971,7 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
         harmonyNote = int.MinValue;
         chordRoot = -1;
         chordTones = 0;
+        learnedKey = -1;
         sideFrames = 0;
         detuneLfo.Reset();
         cuts.Reset();
@@ -1038,7 +1141,12 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
             arpSpeeds[s] = Ratio(Params.Current(ArpStep1 + s));
         }
 
-        var fromRow = (int)Params.Current(DetectorSource) > 0;
+        var sourceChoice = (int)Params.Current(DetectorSource);
+        if (sourceChoice > SourceRows) {
+            LoadHardwareSource(sourceChoice - SourceRows - 1, frames);
+        }
+
+        var fromRow = sourceChoice > 0;
         var side = fromRow && sideFrames == frames;
         var ratios = type == PitchType.Chromatic ? shifts : harmonies;
         var mixStep = (mix - this.mix) / frames;

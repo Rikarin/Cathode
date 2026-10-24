@@ -103,14 +103,16 @@ public sealed record ParamValue(string Block, string Param, float Value);
 
 /// <summary>
 ///     The host's answer to <c>hello</c>. <c>TelemetryPath</c> names its shared-memory telemetry file (meters, CPU
-///     histogram, xruns) for the Server to map read-only; it is null from hosts that predate it.
+///     histogram, xruns) for the Server to map read-only; it is null from hosts that predate it. <c>InputSources</c>
+///     has one bit per hardware input source with device channels (bit 0 = Input 1, then Input 2–4, USB 5/6, USB 7/8).
 /// </summary>
 public sealed record HostInfo(
     string Version,
     string Backend,
     double SampleRate,
     int BufferFrames,
-    string? TelemetryPath = null
+    string? TelemetryPath = null,
+    int InputSources = 1
 );
 
 /// <summary>

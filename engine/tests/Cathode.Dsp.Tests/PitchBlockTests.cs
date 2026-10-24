@@ -245,6 +245,9 @@ public class PitchBlockTests(ITestOutputHelper output) {
         Assert.Equal(PitchBlock.DetectorSource, info.IndexOf("detectorSource"));
         Assert.Equal(PitchBlock.GlobalMix, info.IndexOf("globalMix"));
         Assert.Equal(PitchBlock.InputSelect, info.IndexOf("inputSelect"));
+        Assert.Equal(PitchBlock.Learn, info.IndexOf("learn"));
+        Assert.Equal(PitchBlock.CustomTonic, info.IndexOf("customTonic"));
+        Assert.Equal(PitchBlock.CustomNote1 + PitchBlock.MaxCustomNotes - 1, info.IndexOf("customNote8"));
         Assert.Equal(PitchBlock.KillDry, info.IndexOf("killDry"));
         Assert.Equal(PitchBlock.KillDry + 1, info.Params.Count);
         Assert.Equal("Virtual Capo", info.Params[PitchBlock.Type].Options![(int)PitchType.VirtualCapo]);
