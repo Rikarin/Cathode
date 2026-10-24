@@ -46,6 +46,15 @@ textarea,
   display: none !important;
 }
 
+/* Tooltips: a black chip with a hairline edge, not xUI's inverted (white on the dark theme) neutral one. */
+:is(xui-tooltip-panel.bg-foreground, xui-tooltip-panel .bg-foreground) {
+  background: #000;
+  color: #fff;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.12),
+    0 4px 12px rgb(0 0 0 / 0.5);
+}
+
 /* The top bar's page links scroll sideways rather than push the meters and tools off the end; no scrollbar. */
 .no-scrollbar {
   scrollbar-width: none;

@@ -92,6 +92,30 @@
         }
       }
     },
+    "/api/v1/assets/usage": {
+      "get": {
+        "tags": [
+          "Assets"
+        ],
+        "summary": "Which stored presets use each asset, so a library can say what deleting one would break.",
+        "operationId": "GetAssetUsage",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssetUsage"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/tuner": {
       "put": {
         "tags": [
@@ -1000,6 +1024,37 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SceneSelectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/info": {
+      "patch": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Renames the working copy and sets its author and tags (undoable).",
+        "operationId": "UpdatePresetInfo",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresetInfoRequest"
               }
             }
           },
@@ -3619,8 +3674,7 @@
               "boolean"
             ]
           }
-        },
-        "description": "An asset\u0027s metadata; null leaves a field alone, an empty colour clears it."
+        }
       },
       "AssetRequest": {
         "required": [
@@ -3632,6 +3686,25 @@
             "type": "string"
           }
         }
+      },
+      "AssetUsage": {
+        "required": [
+          "ref",
+          "presets"
+        ],
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string"
+          },
+          "presets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "An asset\u0027s metadata; null leaves a field alone, an empty colour clears it."
       },
       "Bank": {
         "required": [
@@ -5218,6 +5291,33 @@
             "type": "string"
           }
         }
+      },
+      "PresetInfoRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "author": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tags": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Changes to the working copy\u0027s name, author and tags; null leaves a field as it is."
       },
       "PresetMetadataRequest": {
         "type": "object",

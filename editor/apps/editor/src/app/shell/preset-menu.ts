@@ -9,6 +9,7 @@ import {
   matDeleteSweepRound,
   matExpandMoreRound,
   matHistoryRound,
+  matInfoRound,
   matRestoreRound,
   matSaveAsRound,
   matViewQuiltRound
@@ -53,6 +54,7 @@ import { PresetSwitcher, needsConfirm } from '../state/preset-switcher';
       matDeleteSweepRound,
       matExpandMoreRound,
       matHistoryRound,
+      matInfoRound,
       matRestoreRound,
       matSaveAsRound,
       matViewQuiltRound
@@ -65,6 +67,9 @@ import { PresetSwitcher, needsConfirm } from '../state/preset-switcher';
     </button>
     <ng-template #menu>
       <xui-menu>
+        <button xuiMenuItem icon="matInfoRound" data-testid="preset-info" (click)="openInfo()">
+          Name, author and tags…
+        </button>
         <button xuiMenuItem icon="matSaveAsRound" (click)="saveAs.emit()">
           Save as…<span menuItemLabel>⇧⌘S</span>
         </button>
@@ -176,6 +181,52 @@ import { PresetSwitcher, needsConfirm } from '../state/preset-switcher';
       </xui-dialog>
     }
 
+    @if (infoOpen()) {
+      <xui-dialog
+        title="Preset info"
+        icon="matInfoRound"
+        class="w-[min(28rem,calc(100vw-2rem))] max-w-none"
+        [(open)]="infoOpen"
+      >
+        <xui-dialog-body class="flex flex-col gap-3">
+          <xui-form-field label="Name">
+            <input
+              xuiInput
+              class="w-full"
+              data-testid="preset-info-name"
+              [value]="infoName()"
+              (input)="infoName.set($any($event.target).value)"
+              (keydown.enter)="saveInfo()"
+            />
+          </xui-form-field>
+          <xui-form-field label="Author">
+            <input
+              xuiInput
+              class="w-full"
+              data-testid="preset-info-author"
+              [value]="infoAuthor()"
+              (input)="infoAuthor.set($any($event.target).value)"
+              (keydown.enter)="saveInfo()"
+            />
+          </xui-form-field>
+          <xui-form-field label="Tags" helperText="Separated by commas">
+            <input
+              xuiInput
+              class="w-full"
+              data-testid="preset-info-tags"
+              [value]="infoTags()"
+              (input)="infoTags.set($any($event.target).value)"
+              (keydown.enter)="saveInfo()"
+            />
+          </xui-form-field>
+        </xui-dialog-body>
+        <xui-dialog-footer>
+          <button xuiButton variant="ghost" type="button" (click)="infoOpen.set(false)">Cancel</button>
+          <button xuiButton type="button" (click)="saveInfo()">Apply</button>
+        </xui-dialog-footer>
+      </xui-dialog>
+    }
+
     <xui-dialog title="Save as template" icon="matAddRound" [(open)]="saveTemplateOpen">
       <xui-dialog-body>
         <xui-form-field label="Template name">
@@ -207,12 +258,35 @@ export class PresetMenu {
   private readonly notify = inject(Notify);
 
   protected readonly confirmClear = signal(false);
+  protected readonly infoOpen = signal(false);
+  protected readonly infoName = signal('');
+  protected readonly infoAuthor = signal('');
+  protected readonly infoTags = signal('');
   protected readonly snapshotsOpen = signal(false);
   protected readonly templatesOpen = signal(false);
   protected readonly saveTemplateOpen = signal(false);
   protected readonly templateName = signal('');
   protected readonly snapshots = signal<readonly SnapshotSummary[]>([]);
   protected readonly templates = signal<readonly PresetSummary[]>([]);
+
+  /** Opens the name, author and tags of the working copy; Apply changes them (undoable, saved with the preset). */
+  openInfo(): void {
+    const preset = this.live.preset();
+    this.infoName.set(preset?.name ?? '');
+    this.infoAuthor.set(preset?.author ?? '');
+    this.infoTags.set(preset?.tags.join(', ') ?? '');
+    this.infoOpen.set(true);
+  }
+
+  protected async saveInfo(): Promise<void> {
+    const tags = this.infoTags()
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(Boolean);
+    if (await this.live.updateInfo({ name: this.infoName().trim(), author: this.infoAuthor(), tags })) {
+      this.infoOpen.set(false);
+    }
+  }
 
   protected async revert(): Promise<void> {
     if (await this.live.revert()) {

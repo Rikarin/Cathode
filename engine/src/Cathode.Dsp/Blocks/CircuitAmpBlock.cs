@@ -645,7 +645,7 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
     static BlockDescriptor Describe(IReadOnlyList<ParamDescriptor> parameters) =>
         new(
             "circuitamp",
-            "Amp (circuit)",
+            "Amp",
             "Amp",
             parameters,
             maxInstances: 2,

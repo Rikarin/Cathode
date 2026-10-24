@@ -527,6 +527,30 @@ public sealed partial class LiveRig(
     /// <summary>Takes the working copy as the saved state Scene Revert recalls.</summary>
     void Remember() => savedJson = JsonSerializer.Serialize(preset, ContractsJsonContext.Default.Preset);
 
+    /// <summary>
+    ///     Renames the working copy and sets its author and tags, as one undoable edit. Nothing reaches the engine.
+    ///     Blank tags are dropped; an empty author clears it.
+    /// </summary>
+    public Task<LiveState> UpdateInfoAsync(PresetInfoRequest request, long? expected) =>
+        Locked(() => {
+                Check(expected);
+                PushUndo(null);
+                if (request.Name is { } name) {
+                    preset.Name = name.Trim();
+                }
+
+                if (request.Author is { } author) {
+                    preset.Author = string.IsNullOrWhiteSpace(author) ? null : author.Trim();
+                }
+
+                if (request.Tags is { } tags) {
+                    preset.Tags = [..tags.Select(static t => t.Trim()).Where(static t => t.Length > 0).Distinct()];
+                }
+
+                return Task.FromResult(Changed("presetInfoUpdated"));
+            }
+        );
+
     public Task<LiveState> UpdateSceneAsync(int scene, SceneUpdateRequest request, long? expected) =>
         Locked(() => {
                 Check(expected);

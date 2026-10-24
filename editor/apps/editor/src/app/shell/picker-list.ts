@@ -141,7 +141,9 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
           </button>
         </li>
       } @empty {
-        <li class="text-foreground-muted py-8 text-center text-sm">Nothing matches “{{ query() }}”.</li>
+        @if (!extra()) {
+          <li class="text-foreground-muted py-8 text-center text-sm">Nothing matches “{{ query() }}”.</li>
+        }
       }
     </ul>
     <ng-template #colors let-entry="entry">

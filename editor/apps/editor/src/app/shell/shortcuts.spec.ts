@@ -25,7 +25,7 @@ describe('keyboard shortcuts', () => {
     expect(findShortcut(key('p'))?.id).toBe('presetPicker');
     expect(findShortcut(key('P', { metaKey: true }))).toBeNull();
     expect(findShortcut(key('PageDown', { metaKey: true }))?.id).toBe('presetNext');
-    expect(findShortcut(key('g', { ctrlKey: true }))?.id).toBe('goTo');
+    expect(findShortcut(key('g', { ctrlKey: true }))).toBeNull();
     expect(findShortcut(key('g'))?.id).toBe('global');
     expect(findShortcut(key('F5'))?.id).toBe('reload');
     expect(findShortcut(key('3', { metaKey: true, code: 'Digit3' }))?.id).toBe('scene3');

@@ -7,11 +7,7 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./pages/library-page').then(m => m.LibraryPage),
     title: 'Library · Cathode'
   },
-  {
-    path: 'irs',
-    loadComponent: () => import('./pages/irs-page').then(m => m.IrsPage),
-    title: 'Impulse responses · Cathode'
-  },
+  { path: 'irs', redirectTo: () => '/library?view=cabs' },
   {
     path: 'scenes',
     loadComponent: () => import('./pages/scene-manager').then(m => m.SceneManagerPage),
@@ -35,7 +31,7 @@ export const appRoutes: Route[] = [
   {
     path: 'manage',
     loadComponent: () => import('./pages/manage-page').then(m => m.ManagePage),
-    title: 'Manage presets and IRs · Cathode'
+    title: 'Manage presets · Cathode'
   },
   { path: '**', redirectTo: '' }
 ];

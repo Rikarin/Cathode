@@ -76,7 +76,7 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
   host: { class: 'block h-full overflow-auto p-6' },
   template: `
     @if (settings(); as s) {
-      <div class="flex max-w-6xl flex-col gap-6">
+      <div class="mx-auto flex max-w-6xl flex-col gap-6">
         <h1 xuiHeading class="text-lg">Global</h1>
 
         <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="tempo-heading">

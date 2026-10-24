@@ -130,7 +130,6 @@ import { UiStore } from './state/ui.store';
             <a xuiButton variant="ghost" size="sm" routerLink="/perform" routerLinkActive="bg-active-overlay"
               >Perform</a
             >
-            <a xuiButton variant="ghost" size="sm" routerLink="/irs" routerLinkActive="bg-active-overlay">IRs</a>
             <a xuiButton variant="ghost" size="sm" routerLink="/global" routerLinkActive="bg-active-overlay">Global</a>
           </div>
           <div xuiNavbarGroup align="end" class="shrink-0 gap-2">
@@ -236,7 +235,7 @@ import { UiStore } from './state/ui.store';
               class="hover:bg-active-overlay max-w-56 truncate rounded px-1 text-sm font-medium"
               data-testid="preset-name"
               [xuiTooltip]="'Presets (P)'"
-              (click)="ui.presetPicker.set('browse')"
+              (click)="ui.presetPicker.set(true)"
             >
               {{ live.preset()?.name || '(untitled)' }}
               @if (live.state()?.dirty) {
@@ -287,7 +286,7 @@ import { UiStore } from './state/ui.store';
             <cth-preset-menu (saveAs)="openSaveAs()" />
           </div>
         </div>
-        <main class="relative min-h-0 flex-1">
+        <main class="relative min-h-0 flex-1 overflow-hidden">
           <router-outlet />
           @if (switcher.loading(); as loading) {
             <div
@@ -410,8 +409,7 @@ export class App {
     const ui = this.ui;
     const block = () => ui.block();
     const handlers: Record<string, () => void> = {
-      presetPicker: () => ui.presetPicker.set('browse'),
-      goTo: () => ui.presetPicker.set('goto'),
+      presetPicker: () => ui.presetPicker.set(true),
       presetPrevious: () => void this.presetPicker()?.step(-1),
       presetNext: () => void this.presetPicker()?.step(1),
       reload: () => void this.presetPicker()?.reload(),

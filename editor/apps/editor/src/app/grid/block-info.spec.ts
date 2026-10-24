@@ -18,7 +18,7 @@ describe('Block Info', () => {
     expect(abbreviate('Drive', 'drive1')).toBe('DRV');
     expect(abbreviate('Drive', 'drive2')).toBe('DRV2');
     expect(abbreviate('Graphic EQ')).toBe('GEQ');
-    expect(abbreviate('Amp (circuit)', 'circuitamp1')).toBe('AMP');
+    expect(abbreviate('Amp', 'circuitamp1')).toBe('AMP');
     expect(abbreviate('Multitap Delay')).toBe('MD');
     expect(abbreviate('RTA')).toBe('RTA');
   });
@@ -28,7 +28,7 @@ describe('Block Info', () => {
       type === 'circuitamp'
         ? {
             typeId: type,
-            name: 'Amp (circuit)',
+            name: 'Amp',
             category: 'Amp',
             maxInstances: 2,
             channels: 4,

@@ -231,6 +231,13 @@ export class LiveStore {
     await this.connection.client.POST('/api/v1/live/tap');
   }
 
+  /** The working copy's name, author and tags (one undoable edit); a field left out stays as it is. */
+  updateInfo = (info: { name?: string; author?: string; tags?: string[] }) =>
+    this.mutate(c =>
+      c.PATCH('/api/v1/live/info', {
+        body: { name: info.name ?? null, author: info.author ?? null, tags: info.tags ?? null }
+      })
+    );
   renameScene = (scene: number, name: string) =>
     this.mutate(c =>
       c.PATCH('/api/v1/live/scenes/{scene}', {

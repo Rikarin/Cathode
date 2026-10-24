@@ -12,6 +12,7 @@ export type BlockPreset = Schemas['BlockPreset'];
 export type LiveState = Schemas['LiveState'];
 export type PresetSummary = Schemas['PresetSummary'];
 export type AssetInfo = Schemas['AssetInfo'];
+export type AssetUsage = Schemas['AssetUsage'];
 export type SystemInfo = Schemas['SystemInfo'];
 export type EngineStatus = Schemas['EngineStatus'];
 export type BlockTypeInfo = Schemas['BlockTypeInfo'];

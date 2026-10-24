@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import type { BlockPreset, PresetSummary } from '@cathode/api-client';
 import { provideIcons } from '@ng-icons/core';
 import { matDeleteRound, matSearchRound } from '@ng-icons/material-icons/round';
@@ -20,15 +20,20 @@ import { CatalogStore } from '../state/catalog.store';
 import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { PresetSwitcher } from '../state/preset-switcher';
+import { AssetLibrary, AssetList, AssetToolbar } from './asset-library';
 
 /**
  * The Library: presets (search by name, author or tag; double-click or Load opens one in the editor; export, import,
- * delete) and the Block Library (folders of block and channel presets).
+ * delete), the Block Library (folders of block and channel presets), and the NAM amps and IR cabs every Amp NAM, Cab
+ * and IR Player block picks from (upload, rename, tag, delete; the IR tools). `?view=amps` or `?view=cabs` opens
+ * those.
  */
 @Component({
   selector: 'cth-library-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AssetList,
+    AssetToolbar,
     XuiAlertDialogImports,
     XuiButtonImports,
     XuiDialogImports,
@@ -41,7 +46,7 @@ import { PresetSwitcher } from '../state/preset-switcher';
     XuiSegmentedControlImports,
     XuiTextImports
   ],
-  providers: [provideIcons({ matDeleteRound, matSearchRound })],
+  providers: [AssetLibrary, provideIcons({ matDeleteRound, matSearchRound })],
   host: { class: 'flex h-full flex-col' },
   template: `
     <header class="border-border flex flex-wrap items-center gap-4 border-b px-6 py-3">
@@ -51,7 +56,7 @@ import { PresetSwitcher } from '../state/preset-switcher';
         aria-label="Library section"
         [options]="views"
         [value]="view()"
-        (valueChange)="$event && view.set($event)"
+        (valueChange)="$event && show($event)"
       />
       @if (view() === 'presets') {
         <div class="relative ml-auto">
@@ -83,7 +88,7 @@ import { PresetSwitcher } from '../state/preset-switcher';
         >
           Export list…
         </button>
-      } @else {
+      } @else if (view() === 'blocks') {
         <div class="ml-auto flex items-center gap-2">
           <button xuiButton size="sm" variant="outline" type="button" (click)="saveAllBlocks()">
             Save all blocks of this preset
@@ -101,6 +106,8 @@ import { PresetSwitcher } from '../state/preset-switcher';
             Export{{ chosen().size ? ' ' + chosen().size : '' }}
           </button>
         </div>
+      } @else {
+        <cth-asset-toolbar />
       }
     </header>
 
@@ -183,7 +190,7 @@ import { PresetSwitcher } from '../state/preset-switcher';
           </button>
         </footer>
       }
-    } @else {
+    } @else if (view() === 'blocks') {
       <section
         class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-6 py-4"
         aria-label="Block Library"
@@ -262,6 +269,8 @@ import { PresetSwitcher } from '../state/preset-switcher';
           </details>
         }
       </section>
+    } @else {
+      <cth-asset-list />
     }
 
     <xui-dialog title="New folder" [open]="folderFor() !== null" (openChange)="!$event && folderFor.set(null)">
@@ -330,10 +339,18 @@ export class LibraryPage {
   protected readonly dropping = signal(false);
   protected readonly folderFor = signal<BlockPreset | null>(null);
   protected readonly folderName = signal('');
-  protected readonly view = signal<'presets' | 'blocks'>('presets');
+  private readonly assets = inject(AssetLibrary);
+  /** Presets, the Block Library, or the asset views (whose kind the asset state keeps, as an upload can switch it). */
+  private readonly section = signal<'presets' | 'blocks' | 'assets'>('presets');
+  protected readonly view = computed(() => {
+    const section = this.section();
+    return section === 'assets' ? this.assets.kind() : section;
+  });
   protected readonly views = [
     { label: 'Presets', value: 'presets' as const },
-    { label: 'Block Library', value: 'blocks' as const }
+    { label: 'Block Library', value: 'blocks' as const },
+    { label: 'NAM amps', value: 'amps' as const },
+    { label: 'IR cabs', value: 'cabs' as const }
   ];
 
   protected readonly rows = computed(() => {
@@ -347,6 +364,20 @@ export class LibraryPage {
   constructor() {
     void this.library.refreshPresets();
     void this.blockPresets.refresh();
+    this.assets.refresh();
+    const view = inject(ActivatedRoute).snapshot.queryParamMap.get('view');
+    if (view === 'amps' || view === 'cabs' || view === 'blocks') {
+      this.show(view);
+    }
+  }
+
+  protected show(view: 'presets' | 'blocks' | 'amps' | 'cabs'): void {
+    if (view === 'amps' || view === 'cabs') {
+      this.assets.show(view);
+      this.section.set('assets');
+    } else {
+      this.section.set(view);
+    }
   }
 
   protected load(): void {

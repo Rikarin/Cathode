@@ -72,6 +72,21 @@ public sealed class PresetToolsApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Asset_usage_names_the_stored_presets_that_use_each_asset() {
+        using var upload = new ByteArrayContent(Wav());
+        var asset = await Json<AssetInfo>(client.PostAsync("/api/v1/assets?name=room.wav", upload, Token));
+        await Live(client.PostAsJsonAsync("/api/v1/live/blocks", new AddBlockRequest("irplayer", 0, 3), Token));
+        await Live(client.PutAsJsonAsync("/api/v1/live/blocks/irplayer1/assets/ir", new AssetRequest(asset.Ref), Token));
+        await Live(client.PutAsJsonAsync("/api/v1/live/blocks/irplayer1/assets/ir2", new AssetRequest(asset.Ref), Token));
+        await Live(client.PostAsJsonAsync("/api/v1/live/save", new SaveRequest("Verse", true), Token));
+        await Live(client.PostAsJsonAsync("/api/v1/live/save", new SaveRequest("Chorus", true), Token));
+
+        var usage = await Json<AssetUsage[]>(client.GetAsync("/api/v1/assets/usage", Token));
+
+        Assert.Equal(["Chorus", "Verse"], Assert.Single(usage, u => u.Ref == asset.Ref).Presets); // each preset once
+    }
+
+    [Fact]
     public async Task Reset_amp_blocks_keeps_the_front_panel_and_resets_the_expert_settings() {
         await Live(client.PostAsJsonAsync("/api/v1/live/blocks", new AddBlockRequest("circuitamp", 0, 3), Token));
         // Model 0 (a blackface) has Gain on its panel and no Cut; Bias is an expert setting.

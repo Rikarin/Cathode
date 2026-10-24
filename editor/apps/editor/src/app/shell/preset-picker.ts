@@ -19,7 +19,7 @@ import { PresetSwitcher } from '../state/preset-switcher';
 import { UiStore } from '../state/ui.store';
 import { type PickerEntry, PickerList } from './picker-list';
 
-/** A bank slot typed in the Go to picker: "12" is slot 12 of the chosen bank (1-based, as on a foot controller). */
+/** A bank slot typed in the preset picker: "12" is slot 12 of the chosen bank (1-based, as on a foot controller). */
 export function parseSlot(query: string): number | null {
   const match = /^\s*(\d{1,3})\s*$/.exec(query);
   const slot = match ? Number(match[1]) : NaN;
@@ -27,8 +27,8 @@ export function parseSlot(query: string): number | null {
 }
 
 /**
- * The preset picker (P), and Go to (⌘G), which also takes a bank slot number. Choosing loads the preset; with the
- * pin on, the picker stays open to audition one after another.
+ * The preset picker (P): search by name, author or tag, or type a slot number of the bank chosen above the list (when
+ * there are banks). Choosing loads the preset; with the pin on, the picker stays open to audition one after another.
  */
 @Component({
   selector: 'cth-preset-picker',
@@ -39,12 +39,12 @@ export function parseSlot(query: string): number | null {
     <xui-dialog
       icon="matLibraryMusicRound"
       class="w-[min(40rem,calc(100vw-2rem))] max-w-none"
-      [title]="ui.presetPicker() === 'goto' ? 'Go to preset or bank slot' : 'Presets'"
-      [open]="ui.presetPicker() !== null"
-      (openChange)="!$event && ui.presetPicker.set(null)"
+      title="Presets"
+      [open]="ui.presetPicker()"
+      (openChange)="!$event && ui.presetPicker.set(false)"
     >
       <xui-dialog-body class="flex min-h-0 flex-col gap-3">
-        @if (ui.presetPicker() === 'goto' && library.banks().length > 0) {
+        @if (library.banks().length > 0) {
           <xui-select
             class="w-64"
             aria-label="Bank"
@@ -57,7 +57,9 @@ export function parseSlot(query: string): number | null {
         }
         <cth-picker-list
           noun="presets"
-          [placeholder]="ui.presetPicker() === 'goto' ? 'Name, or a slot number' : 'Search name, author or tag'"
+          [placeholder]="
+            library.banks().length > 0 ? 'Search name, author or tag, or a slot number' : 'Search name, author or tag'
+          "
           [entries]="entries()"
           [current]="live.preset()?.id ?? null"
           [extra]="slotText()"
@@ -97,7 +99,7 @@ export class PresetPicker {
   protected readonly slotText = computed(() => {
     const slot = parseSlot(this.query());
     const bank = this.bank();
-    if (this.ui.presetPicker() !== 'goto' || slot === null || !bank) {
+    if (slot === null || !bank) {
       return null;
     }
 
@@ -108,7 +110,7 @@ export class PresetPicker {
 
   constructor() {
     effect(() => {
-      if (this.ui.presetPicker() !== null) {
+      if (this.ui.presetPicker()) {
         untracked(() => {
           this.query.set('');
           void this.library.refreshPresets();
@@ -121,7 +123,7 @@ export class PresetPicker {
   /** Loads through the preset switcher: it asks before discarding unsaved edits, and keeps Recent Presets. */
   protected async load(entry: PickerEntry): Promise<void> {
     if ((await this.switcher.load(entry.id, entry.name)) && !this.list()?.pinned()) {
-      this.ui.presetPicker.set(null);
+      this.ui.presetPicker.set(false);
     }
   }
 
@@ -137,7 +139,7 @@ export class PresetPicker {
     if (!id) {
       this.notify.error(`Slot ${slot + 1} of ${bank.name} is empty.`);
     } else if (await this.switcher.load(id, name)) {
-      this.ui.presetPicker.set(null);
+      this.ui.presetPicker.set(false);
     }
   }
 

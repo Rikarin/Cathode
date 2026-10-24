@@ -41,7 +41,7 @@ export class UiStore {
   private readonly catalog = inject(CatalogStore);
   private readonly shortcuts = inject(ShortcutService);
 
-  readonly presetPicker = signal<'browse' | 'goto' | null>(null);
+  readonly presetPicker = signal(false);
   readonly tunerOpen = signal(false);
   /** Which Settings tab is showing (⌘, opens Preferences, `?` the shortcuts), or null when Settings is closed. */
   readonly settings = signal<SettingsTab | null>(null);

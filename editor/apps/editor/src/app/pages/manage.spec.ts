@@ -1,5 +1,5 @@
 import type { Bank, PresetSummary } from '@cathode/api-client';
-import { AssetSession, ManageSession, nextSelection } from './manage';
+import { ManageSession, nextSelection } from './manage';
 
 const preset = (id: string, name = id): PresetSummary => ({ id, name, tags: [], modified: '', favorite: false });
 
@@ -68,24 +68,21 @@ describe('Manage Presets', () => {
     expect(m.plan().banks.map(b => b.id)).toEqual(['one']);
   });
 
-  it('starts clean, and a new bank is saved with it', () => {
+  it("keeps a renamed bank's name on Save, and a deleted bank takes its pending slot changes with it", () => {
     const m = session();
-    expect(m.dirty).toBe(false);
-    m.addBank('Three');
-    expect(m.plan().banks.map(b => b.name)).toEqual(['Three']);
+    m.renameBank('one', 'Live');
+    m.swap({ bank: 'one', slot: 0 }, { bank: 'one', slot: 1 });
+    m.move({ bank: 'two', slot: 0 }, { bank: 'two', slot: 3 });
+    m.deleteBank('two');
+
+    expect(m.plan().banks.map(b => b.name)).toEqual(['Live']);
+    expect(m.banks.map(b => b.id)).toEqual(['one']);
   });
-});
 
-describe('Manage IRs', () => {
-  it('holds renames, tags and deletions until Save', () => {
-    const s = new AssetSession();
-    s.change(['sha256:1', 'sha256:2'], { color: 'blue' });
-    s.change(['sha256:1'], { name: 'Room' });
-    s.delete(['sha256:2']);
-
-    expect(s.meta.get('sha256:1')).toEqual({ color: 'blue', name: 'Room' });
-    expect(s.meta.has('sha256:2')).toBe(false);
-    expect(s.isChanged('sha256:2')).toBe(true);
-    expect(s.dirty).toBe(true);
+  it('starts clean, and a bank stored by the page joins it without a change to save', () => {
+    const m = session();
+    m.addBank({ id: 'three', name: 'Three', slots: [] } as Bank);
+    expect(m.banks.map(b => b.name)).toEqual(['One', 'Two', 'Three']);
+    expect(m.dirty).toBe(false);
   });
 });

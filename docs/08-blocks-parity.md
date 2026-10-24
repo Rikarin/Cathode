@@ -985,7 +985,7 @@ Not a block, so not in the Blocks Guide: the preset and scene behaviour around t
 These come from Fractal's software-editor documentation rather than the Blocks Guide. They are paraphrased, and the full design is in [02 §7.5](02-architecture.md#75-editor-workflow-as-built). Most are 🆕 ✅.
 
 - **Keyboard.**
-  - Presets: P picker, ⌘PgUp/PgDn, ⌘G go to a preset or bank slot, F5 reload, ⌘S and ⇧⌘S save.
+  - Presets: P picker (a name, or a slot number of a bank), ⌘PgUp/PgDn, F5 reload, ⌘S and ⇧⌘S save.
   - Scenes: ⌘1–8.
   - Channels: A, ⇧B, C and D (B stays the bypass alias), and X for the next channel.
   - Blocks:

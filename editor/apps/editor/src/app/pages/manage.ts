@@ -74,8 +74,6 @@ export class ManageSession {
   readonly deleted = new Set<string>();
   /** `bank:slot` of every slot changed. */
   readonly changedSlots = new Set<string>();
-  /** Banks made in this session, stored on Save. */
-  readonly createdBanks = new Set<string>();
   private nextCopy = 0;
 
   constructor(
@@ -91,13 +89,7 @@ export class ManageSession {
   }
 
   get dirty(): boolean {
-    return (
-      this.changedSlots.size > 0 ||
-      this.createdBanks.size > 0 ||
-      this.copies.length > 0 ||
-      this.meta.size > 0 ||
-      this.deleted.size > 0
-    );
+    return this.changedSlots.size > 0 || this.copies.length > 0 || this.meta.size > 0 || this.deleted.size > 0;
   }
 
   bank(id: string): WorkBank {
@@ -169,11 +161,30 @@ export class ManageSession {
     }
   }
 
-  addBank(name: string): WorkBank {
-    const bank: WorkBank = { id: this.newId(), name, slots: Array.from({ length: SlotCount }, () => null) };
-    this.banks.push(bank);
-    this.createdBanks.add(bank.id);
-    return bank;
+  /** Adds a bank the page has just stored on the Server (banks are created, renamed and deleted at once). */
+  addBank(bank: Bank): WorkBank {
+    const work: WorkBank = { ...bank, slots: Array.from({ length: SlotCount }, (_, i) => bank.slots[i] ?? null) };
+    this.banks.push(work);
+    return work;
+  }
+
+  /**
+   * Renames a bank in the session. The page renames it on the Server at once; this keeps the working copy in step, so a
+   * later Save of its slots does not put the old name back.
+   */
+  renameBank(id: string, name: string): void {
+    this.bank(id).name = name;
+  }
+
+  /**
+   * Drops a bank from the session with its pending slot changes, after the page has deleted it on the Server. Its
+   * presets stay in the library.
+   */
+  deleteBank(id: string): void {
+    this.banks.splice(this.banks.indexOf(this.bank(id)), 1);
+    for (const key of [...this.changedSlots].filter(k => k.startsWith(`${id}:`))) {
+      this.changedSlots.delete(key);
+    }
   }
 
   rename(id: string, name: string): void {
@@ -216,10 +227,7 @@ export class ManageSession {
     banks: WorkBank[];
     deletes: string[];
   } {
-    const changedBanks = new Set([
-      ...this.createdBanks,
-      ...[...this.changedSlots].map(key => key.slice(0, key.lastIndexOf(':')))
-    ]);
+    const changedBanks = new Set([...this.changedSlots].map(key => key.slice(0, key.lastIndexOf(':'))));
     return {
       copies: [...this.copies],
       meta: [...this.meta.entries()],
@@ -240,36 +248,6 @@ export class ManageSession {
     if (bank.slots[ref.slot] !== id) {
       bank.slots[ref.slot] = id;
       this.changedSlots.add(`${ref.bank}:${ref.slot}`);
-    }
-  }
-}
-
-/**
- * Manage IRs' changes, held until Save: renames, colour tags, favourites and deletions. IRs are not slotted, so
- * there is nothing to swap or move, and an IR is stored once by its content, so a copy would be the same IR.
- */
-export class AssetSession {
-  readonly meta = new Map<string, PendingMeta>();
-  readonly deleted = new Set<string>();
-
-  get dirty(): boolean {
-    return this.meta.size > 0 || this.deleted.size > 0;
-  }
-
-  isChanged(reference: string): boolean {
-    return this.meta.has(reference) || this.deleted.has(reference);
-  }
-
-  change(references: readonly string[], change: PendingMeta): void {
-    for (const reference of references) {
-      this.meta.set(reference, { ...this.meta.get(reference), ...change });
-    }
-  }
-
-  delete(references: readonly string[]): void {
-    for (const reference of references) {
-      this.deleted.add(reference);
-      this.meta.delete(reference);
     }
   }
 }

@@ -78,6 +78,9 @@ public sealed record TemplateRequest(string Name);
 public sealed record PresetMetadataRequest(string? Name = null, string? Color = null, bool? Favorite = null);
 
 /// <summary>An asset's metadata; null leaves a field alone, an empty colour clears it.</summary>
+/// <summary>The stored presets that use an asset (in any block's asset slot), by name.</summary>
+public sealed record AssetUsage(string Ref, List<string> Presets);
+
 public sealed record AssetMetadataRequest(string? Name = null, string? Color = null, bool? Favorite = null);
 
 /// <summary>Copies a stored preset under <c>Id</c> (a new one when null) and <c>Name</c> (the original's plus "copy").</summary>

@@ -184,6 +184,10 @@ static class WorkflowApi {
             .WithTags("Assets")
             .WithName("SetAssetMetadata")
             .WithSummary("Renames an asset or sets its colour tag or favourite flag.");
+        api.MapGet("/assets/usage", (PresetStore presets) => TypedResults.Ok(presets.AssetUsage()))
+            .WithTags("Assets")
+            .WithName("GetAssetUsage")
+            .WithSummary("Which stored presets use each asset, so a library can say what deleting one would break.");
 
         var blockPresets = api.MapGroup("/block-presets").WithTags("Block Library");
         blockPresets.MapPost(

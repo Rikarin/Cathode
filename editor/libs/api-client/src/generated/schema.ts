@@ -54,6 +54,23 @@ export interface paths {
     patch: operations['SetAssetMetadata'];
     trace?: never;
   };
+  '/api/v1/assets/usage': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Which stored presets use each asset, so a library can say what deleting one would break. */
+    get: operations['GetAssetUsage'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tuner': {
     parameters: {
       query?: never;
@@ -493,6 +510,23 @@ export interface paths {
     options?: never;
     head?: never;
     patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/info': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Renames the working copy and sets its author and tags (undoable). */
+    patch: operations['UpdatePresetInfo'];
     trace?: never;
   };
   '/api/v1/live/scenes/copy': {
@@ -1619,7 +1653,6 @@ export interface components {
       /** @default false */
       favorite: boolean;
     };
-    /** @description An asset's metadata; null leaves a field alone, an empty colour clears it. */
     AssetMetadataRequest: {
       name?: null | string;
       color?: null | string;
@@ -1627,6 +1660,11 @@ export interface components {
     };
     AssetRequest: {
       asset: string;
+    };
+    /** @description An asset's metadata; null leaves a field alone, an empty colour clears it. */
+    AssetUsage: {
+      ref: string;
+      presets: string[];
     };
     /** @description Numbered preset slots, as a MIDI program change addresses them (0-127). */
     Bank: {
@@ -2296,6 +2334,12 @@ export interface components {
       from: string;
       to: string;
     };
+    /** @description Changes to the working copy's name, author and tags; null leaves a field as it is. */
+    PresetInfoRequest: {
+      name?: null | string;
+      author?: null | string;
+      tags?: null | string[];
+    };
     /** @description A preset's metadata, changed in place; null leaves a field alone, an empty colour clears it. */
     PresetMetadataRequest: {
       name?: null | string;
@@ -2613,6 +2657,26 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['AssetInfo'];
+        };
+      };
+    };
+  };
+  GetAssetUsage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AssetUsage'][];
         };
       };
     };
@@ -3300,6 +3364,30 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['SceneSelectRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  UpdatePresetInfo: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PresetInfoRequest'];
       };
     };
     responses: {

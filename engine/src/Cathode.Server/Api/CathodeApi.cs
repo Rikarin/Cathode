@@ -193,6 +193,13 @@ public static class CathodeApi {
                     Respond(http, await rig.SelectSceneAsync(request.Scene))
             )
             .WithName("SelectScene");
+        live.MapPatch(
+                "/info",
+                async (PresetInfoRequest request, LiveRig rig, HttpContext http) =>
+                    Respond(http, await rig.UpdateInfoAsync(request, Expected(http)))
+            )
+            .WithName("UpdatePresetInfo")
+            .WithSummary("Renames the working copy and sets its author and tags (undoable).");
         MapScenes(live);
         live.MapPatch(
                 "/scenes/{scene:int}",

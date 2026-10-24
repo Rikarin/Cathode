@@ -50,10 +50,9 @@ const channels: Shortcut[] = ['A', 'B', 'C', 'D'].map(c => ({
  * with the desktop app's menu, which is Electron's default (⌘C/⌘V/⌘X/⌘A edit, ⌘R reload, ⌘W, ⌘M, ⌘Q, ⌥⌘I).
  */
 export const Shortcuts: readonly Shortcut[] = [
-  { id: 'presetPicker', group: 'Presets', label: 'Open the preset picker', key: 'p' },
+  { id: 'presetPicker', group: 'Presets', label: 'Open the preset picker (a name, or a bank slot number)', key: 'p' },
   { id: 'presetPrevious', group: 'Presets', label: 'Previous preset', key: 'PageUp', mod: true },
   { id: 'presetNext', group: 'Presets', label: 'Next preset', key: 'PageDown', mod: true },
-  { id: 'goTo', group: 'Presets', label: 'Go to a preset or bank slot', key: 'g', mod: true },
   { id: 'reload', group: 'Presets', label: 'Reload the preset', key: 'F5' },
   { id: 'save', group: 'Presets', label: 'Save', key: 's', mod: true },
   { id: 'saveAs', group: 'Presets', label: 'Save as…', key: 's', mod: true, shift: true },

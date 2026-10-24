@@ -147,6 +147,9 @@ public sealed record SceneUpdateRequest(
     List<SceneMidiMessage>? Midi = null
 );
 
+/// <summary>Changes to the working copy's name, author and tags; null leaves a field as it is.</summary>
+public sealed record PresetInfoRequest(string? Name = null, string? Author = null, List<string>? Tags = null);
+
 public sealed record SaveRequest(string? Name = null, bool AsNew = false);
 
 /// <summary>Pushed over the WebSocket after every change, whatever its source (REST, MIDI later, another editor).</summary>
