@@ -14,12 +14,13 @@ namespace Cathode.Dsp.Amp;
 ///     0 to 1: a master wired across the phase inverter's outputs (<see cref="PowerAmpDesign.ShuntMaster" />); 1 is its
 ///     full track.
 /// </param>
-/// <param name="PostMaster">
-///     The gain of a master moved after the phase inverter (the Circuit Amp's Master Location, Post PI): a dual-gang
-///     divider on both inverter outputs, ahead of the coupling caps; 1 for none.
-/// </param>
 /// <param name="TremoloRate">The bias tremolo's rate in hertz (<see cref="PowerAmpDesign.BiasTremolo" />).</param>
 /// <param name="TremoloDepth">The bias tremolo's Intensity rotation, 0..1 (0 stops it).</param>
+/// <param name="PostMaster">
+///     The gain of a master moved after the phase inverter (the Circuit Amp's Master Location, Post PI): a dual-gang
+///     divider on both inverter outputs, ahead of the coupling caps; 1 for none. Last, so that positional callers of the
+///     earlier fields are unaffected.
+/// </param>
 public readonly record struct PowerControls(
     double Presence,
     double Depth,
@@ -28,9 +29,9 @@ public readonly record struct PowerControls(
     double Bias,
     double Feedback,
     double Master = 1,
-    double PostMaster = 1,
     double TremoloRate = 0,
-    double TremoloDepth = 0
+    double TremoloDepth = 0,
+    double PostMaster = 1
 );
 
 /// <summary>How the supply's rectifier is fed.</summary>

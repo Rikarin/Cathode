@@ -320,6 +320,12 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
         TriodeModel.Ecc82
     ];
 
+    /// <summary>
+    ///     Per model, which generic advanced controls act on it (<see cref="AmpFeatures" />), looked up here once so that
+    ///     the audio thread only reads a flag (the lookups enumerate the model's stages).
+    /// </summary>
+    static readonly AdvancedFeatures[] Features = [..AmpDesign.All.Select(AdvancedFeatures.Of)];
+
     /// <summary>The Power Tube choice after Stock.</summary>
     static readonly PentodeModel?[] PowerTubes = [
         null,
@@ -347,6 +353,7 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
     readonly float[] eqGains = new float[GraphicEqualizer.MaxBands];
     readonly Pot postMaster = new(1e6, PotTaper.Audio); // a master moved after the phase inverter
     HighTreble highTreble;
+    AdvancedFeatures features = Features[0];
     CabBlock? cab;
     AmpInputFilter inputFilter;
     AmpInputDynamics dynamics;
@@ -666,6 +673,7 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
     void Select(int type) {
         activeType = type;
         Channel = channels[Math.Clamp(type, 0, channels.Length - 1)];
+        features = Features[Math.Clamp(type, 0, channels.Length - 1)];
         var design = Channel.Design;
         var power = design.Power;
         var trim = Decibels.ToGain(design.OutputTrimDb);
@@ -708,7 +716,7 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
         static double Hardness(float value) => Math.Pow(2, (value - 5) / 2.5);
 
         var design = Channel.Design;
-        var postInverter = (int)Params.Current(MasterLocation) == MasterPostInverter && AmpFeatures.Has(design, "mvloc");
+        var postInverter = (int)Params.Current(MasterLocation) == MasterPostInverter && features.PostMaster;
         var masterRotation =
             Math.Min(Knob(Params.Advance(Master, frames)) * Percent(Params.Advance(MasterTrim, frames)), 1);
         var switch1 = Params.Current(Switch1) >= 0.5f;
@@ -758,13 +766,13 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
                 : Tremolo(Params.Advance(Bias, frames) / 100.0, tremoloRate, tremoloDepth, frames),
             feedback,
             preamp.Master,
-            postInverter ? postMaster.Fraction(masterRotation) : 1,
             ownTremolo ? tremoloRate : 0,
-            ownTremolo ? tremoloDepth : 0
+            ownTremolo ? tremoloDepth : 0,
+            postInverter ? postMaster.Fraction(masterRotation) : 1
         );
 
         var excursion = Percent(Params.Current(MasterExcursion));
-        var fat = Params.Current(Fat) >= 0.5f && AmpFeatures.Has(design, "fatsw");
+        var fat = Params.Current(Fat) >= 0.5f && features.Fat;
         var stackType = (int)Params.Current(StackType);
         var preampSettings = new PreampSettings(
             PreampTubes[Math.Clamp((int)Params.Current(PreampTube), 0, PreampTubes.Length - 1)],
@@ -810,7 +818,7 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
             Percent(Params.Current(SpeakerHigh)),
             Percent(Params.Current(SpeakerImpedance)),
             Percent(Params.Advance(PresenceFrequency, frames))
-            * (Params.Current(PresenceShift) >= 0.5f && AmpFeatures.Has(design, "presshift") ? PresenceShiftFactor : 1),
+            * (Params.Current(PresenceShift) >= 0.5f && features.PresenceShift ? PresenceShiftFactor : 1),
             Percent(Params.Advance(DepthFrequency, frames)),
             variac,
             Percent(Params.Current(SupplyTime)),
@@ -828,7 +836,7 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
             Params.Current(ScreenQ)
         );
         var lowCut = Params.Advance(LowCut, frames);
-        if (Params.Current(InputCut) >= 0.5f && AmpFeatures.Has(design, "cutsw")) {
+        if (Params.Current(InputCut) >= 0.5f && features.InputCut) {
             lowCut = Math.Max(lowCut, (float)InputCutHz);
         }
 
@@ -838,7 +846,7 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
             Percent(Params.Advance(PreampSag, frames)),
             Params.Current(PowerAmpModel) >= 0.5f,
             (StackLocation)Math.Clamp((int)Params.Current(StackPlace), 0, 3),
-            overdrive > 0 && AmpFeatures.Has(design, "overdrive") ? Decibels.ToGain(overdrive * OverdriveDb / 10) : 1,
+            overdrive > 0 && features.Overdrive ? Decibels.ToGain(overdrive * OverdriveDb / 10) : 1,
             Percent(Params.Current(Triode1Plate)),
             Percent(Params.Current(Triode2Plate))
         );
@@ -912,4 +920,16 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
         io.Left.CopyTo(io.Right);
         output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
+}
+
+/// <summary>Which of the Circuit Amp's generic advanced controls a model takes (<see cref="AmpFeatures.Has" />).</summary>
+readonly record struct AdvancedFeatures(bool PostMaster, bool Fat, bool PresenceShift, bool InputCut, bool Overdrive) {
+    public static AdvancedFeatures Of(AmpDesign design) =>
+        new(
+            AmpFeatures.Has(design, "mvloc"),
+            AmpFeatures.Has(design, "fatsw"),
+            AmpFeatures.Has(design, "presshift"),
+            AmpFeatures.Has(design, "cutsw"),
+            AmpFeatures.Has(design, "overdrive")
+        );
 }
