@@ -202,6 +202,12 @@ public interface IDspBlock : IDisposable
 
 Processing is **in place**: the compiler hands each block one buffer that holds its input and receives its output. That is what lets a series chain run in a single buffer.
 
+Optional interfaces a block may add:
+- `IAssetConsumer`: files (a NAM model, an IR) loaded by the compiler before `Prepare`.
+- `IControlRefresh`: derived state rebuilt on the control thread (§5.4).
+- `IRowInputBlock`: takes each cabled input by grid row instead of their sum (Multiplexer, Mixer).
+- `IEngageAware`: told on the audio thread when its bypass target turns from bypassed to active, before the bypass fade starts, so an LFO can restart from a set phase (Flanger and Phaser LFO Bypass Reset, Tremolo Start Phase). A block that starts engaged is not told.
+
 - DSP state lives in `NativeMemory.AlignedAlloc` buffers (64-byte aligned) or pinned arrays.
 - `Process` is `[SkipLocalsInit]` and uses `Span<T>` and `Vector128<T>` (the portable SIMD baseline; on Apple Silicon `Vector256` is emulated).
 - Signal path is float32. **Double** is used for sensitive IIR state (low-frequency high-pass filters, resonant tone stacks), phase accumulators and Newton solvers.

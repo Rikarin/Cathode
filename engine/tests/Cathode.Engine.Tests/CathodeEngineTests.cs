@@ -51,6 +51,36 @@ public class CathodeEngineTests {
     }
 
     [Fact]
+    public void Engaging_a_bypassed_block_tells_it_once() {
+        var engine = new CathodeEngine(Spec);
+        var graph = new GraphCompiler(TestRegistry.Create()).Compile(
+            new() {
+                Nodes = [
+                    new() { Id = "in", Type = NodeTypes.Input, Row = 0, Column = 0 },
+                    new() { Id = "fx", Type = "test-engage", Row = 0, Column = 1, Bypassed = true },
+                    new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 }
+                ],
+                Cables = [new() { From = "in", To = "fx" }, new() { From = "fx", To = "out" }]
+            },
+            Spec,
+            1
+        );
+        engine.Publish(graph);
+        var block = (EngageCountingBlock)graph.Block(graph.SlotOf("fx"));
+
+        engine.Post(EngineCommand.SetBypass(1, 0, true)); // already bypassed: no engage
+        engine.Post(EngineCommand.SetBypass(1, 0, false));
+        engine.Post(EngineCommand.SetBypass(1, 0, false)); // already engaged: no second call
+        OfflineRenderer.Render(engine, new float[64], new float[64], 64);
+        Assert.Equal(1, block.Engaged);
+
+        engine.Post(EngineCommand.SetBypass(1, 0, true));
+        engine.Post(EngineCommand.SetBypass(1, 0, false));
+        OfflineRenderer.Render(engine, new float[64], new float[64], 64);
+        Assert.Equal(2, block.Engaged);
+    }
+
+    [Fact]
     public void Midi_notes_are_held_until_released() {
         var engine = new CathodeEngine(Spec);
         engine.Publish(Compiler.Compile(VolumeGraph(0), Spec, 1));

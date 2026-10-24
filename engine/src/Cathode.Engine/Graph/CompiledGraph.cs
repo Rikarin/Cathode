@@ -317,9 +317,15 @@ public sealed class CompiledGraph : IDisposable {
 
     /// <summary>Audio thread only (the engine applies queued <see cref="EngineCommandKind.SetBypass" /> commands here).</summary>
     internal void SetBypass(int slot, bool bypassed) {
-        if ((uint)slot < (uint)bypass.Length) {
-            bypass[slot].Target = bypassed;
+        if ((uint)slot >= (uint)bypass.Length) {
+            return;
         }
+
+        if (bypass[slot].Target && !bypassed && blocks[slot] is IEngageAware engageAware) {
+            engageAware.Engage();
+        }
+
+        bypass[slot].Target = bypassed;
     }
 
     struct BypassState(bool bypassed, BypassKind mode) {
