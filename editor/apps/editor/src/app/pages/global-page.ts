@@ -381,7 +381,10 @@ export class GlobalPage {
   protected readonly actions = [...MidiActions];
   protected readonly messages = Messages;
   protected readonly layoutName = (l: FootswitchLayout) => l.name;
-  protected readonly eqParams = computed(() => this.catalog.info('geq')?.params ?? []);
+  /** The global EQ is the Graphic EQ's plain ten-band type: its knobs, without the type and switch choices. */
+  protected readonly eqParams = computed(() =>
+    (this.catalog.info('geq')?.params ?? []).filter(p => p.kind === 'float')
+  );
   protected readonly activeLayout = computed(() => {
     const s = this.settings();
     return s?.footswitches.find(l => l.id === s.activeLayout) ?? null;

@@ -60,8 +60,8 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 
 | Parameter | Range | Default | Physical meaning | Cathode |
 |---|---|---|---|---|
-| Input Boost / Boost Type / Boost Level | on/off; pedal voicings; dB (0–20 *unverified*) | off | A built-in boost pedal | **S** in the amp: use a Drive block in front. Revisit for parity later |
-| Saturation Switch / Saturation Drive | OFF / ON AUTH / ON IDEAL; 0–10 | model | The common "saturation" mod between preamp and stack (adds a clipping stage) | **E** later; needs a diode/transistor clipper stage (Friedman Sat uses MPSA06 + diodes) |
+| Input Boost / Boost Type / Boost Level | on/off; pedal voicings; dB (0–20 *unverified*) | off | A built-in boost pedal | 🆕 **✓** `boost` (six Drive circuits at the amp's 2x rate), `boostdrive`, `boosttone`, `boostlevel` (docs/08 §4) |
+| Saturation Switch / Saturation Drive | OFF / ON AUTH / ON IDEAL; 0–10 | model | The common "saturation" mod between preamp and stack (adds a clipping stage) | 🆕 **✓** `saturation` and `satdrive`: a diode-style clipper between preamp and power amp (generic, not each model's own mod) |
 | Fat Switch | off/on | off | Moves the tone stack's centre frequency down | **E** (scale the stack's mid cap; Friedman has a real Fat switch) |
 | Cut Switch | off/on | off | Low cut at the input | **E** (a smaller input coupling cap) |
 | Preamp Tube Type | enum (12AX7 variants, EF86, …) | model | Triode characteristics | **E** (12AX7, 12AY7, 5751, 12AT7, 12AU7) |
@@ -72,12 +72,12 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 
 | Parameter | Range | Default | Physical meaning | Cathode |
 |---|---|---|---|---|
-| Input EQ filters (Type/Freq/Q/Gain) | — | flat | Parametric EQ before the amp | **S** use a PEQ block in front |
+| Input EQ filters (Type/Freq/Q/Gain) | — | flat | Parametric EQ before the amp | 🆕 **✓** `infilter` (shelves, peak, high/low-pass), `inffreq`, `infq`, `infgain` |
 | Low Cut | Hz (about 10–2000 *unverified*) | model | Input high-pass ("tightening") | **D** one cheap first-order HPF before V1 |
 | High Cut | Hz | model | Low-pass between preamp and power amp; deprecated in fw 33.00 b2 | **S** (deprecated upstream) |
-| Definition | bipolar tilt | 0 | Tilt EQ at the input | **D** cheap; optional |
+| Definition | bipolar tilt | 0 | Tilt EQ at the input | 🆕 **✓** `definition`: a treble/bass tilt around 650 Hz into the preamp, ±4 dB |
 | Graphic EQ bands | dB (±12 *unverified*) | 0 | Built-in graphic EQ | **D** later; the Mark 5-band EQ must be **M** (it is part of the circuit) |
-| EQ Type / EQ Location / EQ On | enum; INPUT, PRE PA, OUTPUT | OUTPUT | Number of bands; where the EQ sits | **D** later. PRE PA matters (the Mark EQ sits there) |
+| EQ Type / EQ Location / EQ On | enum; INPUT, PRE PA, OUTPUT | OUTPUT | Number of bands; where the EQ sits | 🆕 **✓** `outeq` (every Graphic EQ layout), `outeqloc` (input, pre power amp, output), `outeq1`–`outeq10` |
 
 **Power Supply page**
 
@@ -86,7 +86,7 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 | Supply Sag | 0–10 | model | Supply source impedance, i.e. B+ droop | **✓** Sag |
 | B+ Time Constant | ms | model | Reservoir RC speed | **E** (scale reservoir C; already in `PowerSupplyDesign`) |
 | Supply Type | AC / DC | model | Rectified AC with ripple, or ideal DC | **E** with rectifier ripple (not modelled yet) |
-| AC Line Frequency | 50 / 60 Hz | 60 *(unverified)* | Ripple frequency | **E** global setting rather than per amp |
+| AC Line Frequency | 50 / 60 Hz | 60 *(unverified)* | Ripple frequency | **✓** Supply Type AC 60 Hz / AC 50 Hz |
 | Variac | % of line (about 50–150 *unverified*) | 100 % | Mains voltage; level-compensated | **E** cheap: scales every supply node; the "brown sound" |
 | Screen Frequency / Screen Q | Hz / Q | model | Resonance of the screen supply's filter | **M** (falls out of the supply network) |
 
@@ -101,7 +101,7 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 | Power Tube Hardness | 0–10 | model | Knee sharpness | **S** our tubes come from Koren curves; a "hardness" knob has no circuit meaning. Revisit if matching needs it |
 | Transformer Matching | ratio (about 0.5–2 *unverified*) | model | OT impedance ratio vs stock | **E** (scales `PlateToPlate`) |
 | Speaker Impedance | × nominal | 1.0 | Load mismatch (4 Ω speaker on the 8 Ω tap) | **E** (scales the speaker load) |
-| Bias Trem Frequency / Depth | Hz / % | depth 0 | Real bias tremolo | **E** later (Princeton/Deluxe vibrato is bias-modulation in the Princeton; it is a real circuit feature) |
+| Bias Trem Frequency / Depth | Hz / % | depth 0 | Real bias tremolo | 🆕 **✓** `tremrate`, `tremdepth`: a sine on the Bias control (64-frame steps) |
 
 **Speaker page (impedance load and speaker nonlinearity)**
 
@@ -112,12 +112,12 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 | LF Resonance (amount) | dB | model | Peak height | **E** (`PeakImpedance`) |
 | HF Resonance Frequency / amount | Hz (about 1–10 k) | model | Voice-coil inductance against transformer capacitance | **E** |
 | HF Slope | 3.0–4.5 typical, about 3.7 median | model | Voice-coil semi-inductance (eddy losses) | **E** (we have a "lossy voice coil": expose its exponent) |
-| Cabinet Resonance | % | model | Scales the cabinet part of the impedance curve | **S** for now; fold into LF amount |
+| Cabinet Resonance | % | model | Scales the cabinet part of the impedance curve | 🆕 ◐ `cabres`, the frequency of the Thump boost |
 | Speaker Impedance Curve | enum (82+ measured curves) | model | Measured load curves | **M** a small set of parametric presets (open-back 1×12, closed 4×12, 2×12 combo, bass 8×10). Do not copy Fractal's measured curves |
 | Auto Dyna-Cab Impedance | off/on | — | Curve follows the Cab block | **S** (couples blocks; later) |
-| Speaker Drive | 0–10 | model | Cone distortion | **S** belongs in the Cab block |
-| Speaker Thump | 0–10 | 2.5 on reset | Subsonic cone nonlinearity | **S** Cab block |
-| Speaker Compression / Speaker Time Constant | dB / ms | about 3 dB | Voice-coil thermal compression | **S** Cab block |
+| Speaker Drive | 0–10 | model | Cone distortion | 🆕 **✓** `spkdrive`: soft saturation of the band below 150 Hz at the amp's output |
+| Speaker Thump | 0–10 | 2.5 on reset | Subsonic cone nonlinearity | 🆕 **✓** `thump`: up to +12 dB at `cabres` (50–250 Hz) |
+| Speaker Compression / Speaker Time Constant | dB / ms | about 3 dB | Voice-coil thermal compression | 🆕 **✓** `spkcomp`, `spkcomptc`: voice-coil heating, an RMS power detector with its time constant |
 | Speaker Compliance | % | 50 % | Suspension nonlinearity | **S** Cab block |
 | Transformer LF / HF | Hz | model | OT bandwidth (primary inductance; leakage and capacitance) | **E** (scale magnetising and leakage inductance in `OutputTransformerDesign`) |
 | Transformer Drive | 0–10 | model | Core saturation | **E** after transformer saturation exists (not modelled yet) |
@@ -126,8 +126,8 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 
 | Parameter | Range | Default | Physical meaning | Cathode |
 |---|---|---|---|---|
-| Input Dynamics | bipolar | 0 | Input compander | **S** not a circuit feature |
-| Output Compression / Type / Threshold / Clarity | — | 0 | Output compressor (Output, Feedback, Gain Enhancer) | **S** use a Compressor block |
+| Input Dynamics | bipolar | 0 | Input compander | 🆕 **✓** `indyn`: expands or compresses the input by its envelope around −20 dBV, within ±12 dB |
+| Output Compression / Type / Threshold / Clarity | — | 0 | Output compressor (Output, Feedback, Gain Enhancer) | 🆕 **✓** `comptype` (Output, Feedback), `compamount`, `compthresh`, `compclarity` (detector high-pass) |
 | Master Bias Excursion | % | 100 % mostly | Scales all bias-excursion effects | **S** in a circuit model, bias excursion is a consequence of the coupling caps and grid current, not a knob |
 
 **Advanced page**
@@ -154,7 +154,7 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 | Power Tube Bias Excursion / Excursion Time / Recovery Time | % / ms | model | Coupling-cap charging when the power grids conduct | **S** already emerges (grid networks and grid conduction are in `PowerAmp`) |
 | Dynamic Damping | — | model | Plate impedance | **S** emerges from the tube model |
 | Plate Suppressor Diodes | off/on | model | Flyback diodes | **E** later (cheap clamp on the primary) |
-| Level / Balance / Bypass | dB / L-R / bool | 0 | Common | **✓** Level; the rest are generic block features |
+| Level / Balance / Bypass | dB / L-R / bool | 0 | Common | **✓** Level, 🆕 Balance; bypass is generic |
 
 ### 1.4 Parity summary
 

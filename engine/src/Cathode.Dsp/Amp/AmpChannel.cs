@@ -151,6 +151,35 @@ public sealed class AmpChannel {
         return SolidState is { } solid ? solid.Tick(x) : Power.Tick(x);
     }
 
+    /// <summary>
+    ///     <see cref="Tick" />'s first half, for a block that inserts a stage between the preamp and the power amp: the
+    ///     low cut and the preamp stages, guitar volts in, phase inverter input volts out. Follow it with
+    ///     <see cref="TickPowerAmp" /> on the same sample, so the preamp's supply keeps following the sag.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public double TickPreamp(double input) {
+        var sag = channelSettings.PreampSag;
+        var preampSupply = PreampSupply;
+        var supply = sag == 1 ? preampSupply : 1 + sag * (preampSupply - 1);
+        var x = channelSettings.LowCut > 0 ? lowCut.Process(input) : input;
+        foreach (var stage in stages) {
+            stage.SetSupply(supply);
+            x = stage.Tick(x);
+        }
+
+        return x;
+    }
+
+    /// <summary><see cref="Tick" />'s second half: the power amp (or nothing, with it off).</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public double TickPowerAmp(double x) {
+        if (!channelSettings.PowerAmp) {
+            return x;
+        }
+
+        return SolidState is { } solid ? solid.Tick(x) : Power.Tick(x);
+    }
+
     public void FlushDenormals() {
         foreach (var stage in stages) {
             stage.FlushDenormals();

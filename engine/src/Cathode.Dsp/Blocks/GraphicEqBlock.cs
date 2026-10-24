@@ -4,22 +4,28 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     10-band octave graphic EQ (31 Hz to 16 kHz) of peaking bands, one octave wide (Q = sqrt 2) times Master Q. In
-///     Variable Q mode a band narrows as it is pushed harder: its Q runs from 40 % of the constant one near 0 dB to the full
-///     value at ±12 dB, so gentle settings are broad, as on an analogue graphic.
+///     Graphic EQ on the shared <see cref="GraphicEqualizer" />. Type picks the band layout: ten octave bands (31 Hz to
+///     16 kHz, the default and the global output EQ's), ten at 2/3 octave, eight, seven or five bands, or one of the
+///     passive-style layouts (Mark, 5-, 4- and 3-band, console). The band parameters keep their ids on every layout and
+///     are renamed and hidden per type (<see cref="ParamDescriptor.TypeLabels" />). Bands are peaks one octave wide
+///     (Q = sqrt 2) times Master Q, or the layout's own width; Outer Shelves turns the outermost two into shelves. In
+///     Variable Q mode a band narrows as it is pushed harder, as on an analogue graphic.
 /// </summary>
 public sealed class GraphicEqBlock : DspBlock {
     public const int Bands = 10;
     public const int Balance = 11;
     public const int MasterQ = 12;
     public const int QMode = 13;
+    public const int Type = 14;
+    public const int Shelves = 15;
     public const int Level = Bands;
-    public const float BandQ = 1.4142f;
+    public const float BandQ = GraphicEqualizer.OctaveQ;
 
-    public static readonly float[] Centers = [31.25f, 62.5f, 125f, 250f, 500f, 1_000f, 2_000f, 4_000f, 8_000f, 16_000f];
-    static readonly string[] Labels = ["31", "63", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"];
+    public static readonly float[] Centers = GraphicEqualizer.Layouts[0].Centers;
 
-    readonly EqBand[] bands = [..Enumerable.Range(0, Bands).Select(static _ => new EqBand())];
+    readonly GraphicEqualizer equalizer = new();
+    readonly float[] gains = new float[Bands];
+    readonly bool[] moving = new bool[Bands];
     OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
@@ -27,11 +33,17 @@ public sealed class GraphicEqBlock : DspBlock {
         "Graphic EQ",
         "EQ",
         [
-            ..Labels.Select(static l => ParamDescriptor.Float($"g{l}", $"{l} Hz", -12f, 12f, 0f, "dB")),
+            ..GraphicEqualizer.Layouts[0]
+                .Labels.Select(static (l, b) => ParamDescriptor.Float($"g{l}", $"{l} Hz", -12f, 12f, 0f, "dB") with {
+                        TypeLabels = GraphicEqualizer.BandLabels(b)
+                    }
+                ),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float("masterQ", "Master Q", 0.25f, 4f, 1f, string.Empty, ParamTaper.Log),
-            ParamDescriptor.Choice("qMode", "Q Mode", ["Constant Q", "Variable Q"])
+            ParamDescriptor.Choice("qMode", "Q Mode", ["Constant Q", "Variable Q"]),
+            ParamDescriptor.Choice("type", "Type", GraphicEqualizer.LayoutNames),
+            ParamDescriptor.Switch("shelves", "Outer Shelves")
         ],
         maxInstances: 4
     );
@@ -40,23 +52,26 @@ public sealed class GraphicEqBlock : DspBlock {
         : base(Info) { }
 
     protected override void OnReset() {
-        foreach (var band in bands) {
-            band.Reset();
-        }
-
+        equalizer.Reset();
         output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
-        var q = BandQ * Params.Advance(MasterQ, io.Length);
-        var variable = (int)Params.Current(QMode) == 1;
         for (var b = 0; b < Bands; b++) {
-            var moving = Params.IsRamping(b);
-            var gain = Params.Advance(b, io.Length);
-            var bandQ = variable ? q * (0.4f + 0.6f * Math.Min(1f, MathF.Abs(gain) / 12f)) : q;
-            bands[b].Process(io, BiquadType.Peak, Spec.SampleRate, Centers[b], bandQ, gain, moving);
+            moving[b] = Params.IsRamping(b);
+            gains[b] = Params.Advance(b, io.Length);
         }
 
+        equalizer.Process(
+            io,
+            Spec.SampleRate,
+            (int)Params.Current(Type),
+            gains,
+            moving,
+            Params.Advance(MasterQ, io.Length),
+            (int)Params.Current(QMode) == 1,
+            Params.Current(Shelves) >= 0.5f
+        );
         output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 }

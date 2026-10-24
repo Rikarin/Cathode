@@ -12,7 +12,14 @@ namespace Cathode.Dsp.Blocks;
 ///     dynamics clean up hard picking.
 ///     The clipper is antiderivative anti-aliased and runs at 4x through the same half-band oversampling as
 ///     <see cref="DriveBlock" />, with the drive gain interpolated across the oversampled samples. A 10 Hz DC blocker
-///     removes the asymmetric shape's offset. At partial mix the dry signal takes the same up/down filtering.
+///     removes the asymmetric shape's offset (and the Bias's). At partial mix the dry signal takes the same up/down
+///     filtering.
+///     <para>
+///         The frequency-dependent part: <b>Filter Type</b> (a low shelf, high shelf or peak at <b>Frequency</b>, with
+///         <b>Q</b> and <b>Gain</b>) emphasises a band ahead of the clipper and the inverse filter takes it back out
+///         after, so a quiet signal comes through flat while the emphasised band clips first and hardest. <b>Bias</b>
+///         offsets the clipper for even harmonics; <b>Mono</b> sums the input and runs one channel to both outputs.
+///     </para>
 /// </summary>
 public sealed class DynamicDistortionBlock() : DspBlock(Info) {
     public const int Type = 0;
@@ -24,6 +31,21 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
     public const int Mix = 6;
     public const int Level = 7;
     public const int Balance = 8;
+    public const int FilterType = 9;
+    public const int FilterFrequency = 10;
+    public const int FilterQ = 11;
+    public const int FilterGain = 12;
+    public const int Bias = 13;
+    public const int Mode = 14;
+
+    // Values of Filter Type.
+    public const int FilterNone = 0;
+    public const int FilterLowShelf = 1;
+    public const int FilterHighShelf = 2;
+    public const int FilterPeak = 3;
+
+    /// <summary>The clipper's input offset at a Bias of 100 %.</summary>
+    public const float FullBias = 0.5f;
 
     const int Factor = 4;
     const float MaxDriveDb = 40f;
@@ -39,6 +61,7 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
     float driveDb;
     float previousGain = 1f;
     float mix = 1f;
+    float bias;
     OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
@@ -46,7 +69,7 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
         "Dynamic Distortion",
         "Drive",
         [
-            ParamDescriptor.Choice("type", "Type", ["Soft", "Hard", "Asymmetric"]),
+            ParamDescriptor.Choice("type", "Type", ["Soft", "Hard", "Asymmetric", "Germanium", "LED", "Tube", "Op-Amp"]),
             ParamDescriptor.Float("drive", "Drive", 0f, 10f, 3f),
             ParamDescriptor.Float("dynamics", "Dynamics", -100f, 100f, 50f, "%"),
             ParamDescriptor.Float("threshold", "Threshold", -60f, 0f, -40f, "dB"),
@@ -54,10 +77,24 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
             ParamDescriptor.Float("release", "Release", 10f, 1_000f, 100f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Choice("filterType", "Filter Type", ["None", "Low Shelf", "High Shelf", "Peaking"]),
+            ParamDescriptor.Float("filterFreq", "Frequency", 50f, 10_000f, 1_000f, "Hz", ParamTaper.Log),
+            ParamDescriptor.Float("filterQ", "Q", 0.1f, 10f, 0.7071f, string.Empty, ParamTaper.Log),
+            ParamDescriptor.Float("filterGain", "Gain", -24f, 24f, 12f, "dB"),
+            ParamDescriptor.Float("bias", "Bias", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Choice("mode", "Mode", ["Stereo", "Mono"])
         ],
         maxInstances: 2
     );
+
+    /// <summary>The emphasis filter's type for Filter Type <paramref name="filter" />.</summary>
+    public static BiquadType EmphasisType(int filter) =>
+        filter switch {
+            FilterLowShelf => BiquadType.LowShelf,
+            FilterHighShelf => BiquadType.HighShelf,
+            _ => BiquadType.Peak
+        };
 
     /// <summary>Drive 0..10 mapped to 0..40 dB.</summary>
     static float DriveDb(float drive) => drive * (MaxDriveDb / 10f);
@@ -98,6 +135,8 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
         bool blend,
         ClipperShape shape,
         in SvfCoefficients dcBlock,
+        in Emphasis emphasis,
+        float bias,
         float mix
     ) {
         if (blend) {
@@ -106,7 +145,7 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
             dryOversampler.Down(dry); // same phase response as the processed path
         }
 
-        channel.Process(samples, gains, previousGain, shape, dcBlock);
+        channel.Process(samples, gains, previousGain, shape, dcBlock, emphasis, this.bias, bias);
         if (blend) {
             GainRamp.Mix(dry, samples, this.mix, mix);
         }
@@ -133,29 +172,63 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
         driveDb = DriveDb(Params.Current(Drive));
         previousGain = Decibels.ToGain(driveDb);
         mix = Params.Current(Mix) / 100f;
+        bias = Params.Current(Bias) / 100f * FullBias;
         output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var shape = (ClipperShape)(int)Params.Current(Type);
         var dcBlock = SvfCoefficients.Design(BiquadType.HighPass, Spec.SampleRate * Factor, 10, 0.7071);
+        var mono = (int)Params.Current(Mode) == 1;
+        if (mono) {
+            for (var i = 0; i < io.Length; i++) {
+                io.Left[i] = 0.5f * (io.Left[i] + io.Right[i]);
+            }
+
+            io.Left.CopyTo(io.Right);
+        }
+
         var gains = this.gains.AsSpan(0, io.Length);
         ComputeGains(io, gains);
+
+        var filter = (int)Params.Current(FilterType);
+        var frequency = Params.Advance(FilterFrequency, io.Length);
+        var q = Params.Advance(FilterQ, io.Length);
+        var filterGain = Params.Advance(FilterGain, io.Length);
+        var emphasis = filter == FilterNone || filterGain == 0f
+            ? default
+            : new Emphasis(
+                true,
+                SvfCoefficients.Design(EmphasisType(filter), Spec.SampleRate, frequency, q, filterGain),
+                SvfCoefficients.Design(EmphasisType(filter), Spec.SampleRate, frequency, q, -filterGain)
+            );
+        var bias = Params.Advance(Bias, io.Length) / 100f * FullBias;
 
         var mix = Params.Advance(Mix, io.Length) / 100f;
         var dry = this.dry.AsSpan(0, io.Length);
         var blend = this.mix < 1f || mix < 1f;
-        ProcessChannel(left, dryLeft, io.Left, dry, gains, blend, shape, dcBlock, mix);
-        ProcessChannel(right, dryRight, io.Right, dry, gains, blend, shape, dcBlock, mix);
+        ProcessChannel(left, dryLeft, io.Left, dry, gains, blend, shape, dcBlock, emphasis, bias, mix);
+        if (mono) {
+            io.Left.CopyTo(io.Right);
+        } else {
+            ProcessChannel(right, dryRight, io.Right, dry, gains, blend, shape, dcBlock, emphasis, bias, mix);
+        }
+
         previousGain = gains[^1];
         this.mix = mix;
+        this.bias = bias;
 
         output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 
+    /// <summary>The emphasis filter ahead of the clipper and its inverse after it, or none.</summary>
+    readonly record struct Emphasis(bool On, SvfCoefficients Pre, SvfCoefficients Post);
+
     sealed class Channel {
         readonly Oversampler4x oversampler = new(1);
         SvfState dc;
+        SvfState pre;
+        SvfState post;
         AdaaClipper clipper;
 
         public void Allocate(int maxBlockSize) => oversampler.Resize(maxBlockSize);
@@ -163,28 +236,48 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
         public void Reset() {
             oversampler.Reset();
             dc.Reset();
+            pre.Reset();
+            post.Reset();
             clipper.Reset();
         }
 
         /// <summary>
         ///     Clips <paramref name="samples" /> at 4x, the drive moving linearly from one frame's gain to the next across
-        ///     the oversampled samples between them.
+        ///     the oversampled samples between them, the bias from <paramref name="fromBias" /> to
+        ///     <paramref name="toBias" /> across the block.
         /// </summary>
         public void Process(
             Span<float> samples,
             ReadOnlySpan<float> gains,
             float previousGain,
             ClipperShape shape,
-            in SvfCoefficients dcBlock
+            in SvfCoefficients dcBlock,
+            in Emphasis emphasis,
+            float fromBias,
+            float toBias
         ) {
+            if (emphasis.On) {
+                pre.Process(emphasis.Pre, samples);
+            } else {
+                pre.Reset(); // a filter switched back in starts clean
+                post.Reset();
+            }
+
             var inner = oversampler.Up(samples);
             var from = previousGain;
+            var biased = fromBias != 0f || toBias != 0f;
+            var biasStep = (toBias - fromBias) / inner.Length;
             for (var i = 0; i < samples.Length; i++) {
                 var to = gains[i];
                 var step = (to - from) / Factor;
                 for (var k = 0; k < Factor; k++) {
                     var n = i * Factor + k;
-                    var y = clipper.Process(shape, inner[n] * (from + step * (k + 1)));
+                    var x = inner[n] * (from + step * (k + 1));
+                    if (biased) {
+                        x += fromBias + biasStep * (n + 1);
+                    }
+
+                    var y = clipper.Process(shape, x);
                     inner[n] = (float)dc.Tick(dcBlock, y);
                 }
 
@@ -194,6 +287,9 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
             oversampler.Down(samples);
             oversampler.FlushDenormals();
             dc.FlushDenormals();
+            if (emphasis.On) {
+                post.Process(emphasis.Post, samples);
+            }
         }
     }
 }

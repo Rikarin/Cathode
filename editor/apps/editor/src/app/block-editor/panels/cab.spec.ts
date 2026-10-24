@@ -52,6 +52,8 @@ describe('Cab panel helpers', () => {
     expect(isCabSlotParam('level')).toBe(false);
     expect(isCabSlotParam('lowcut')).toBe(false);
     expect(isCabSlotParam('autodelay')).toBe(false);
+    expect(isCabSlotParam('roomsize')).toBe(false);
+    expect(isCabSlotParam('smoothing')).toBe(false);
   });
 
   it('shortens mic names to their model', () => {

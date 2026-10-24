@@ -306,6 +306,51 @@ public sealed class CabBlockTests : IDisposable {
     }
 
     [Fact]
+    public void Smoothing_flattens_a_comb_and_keeps_the_onset() {
+        // An IR with an echo 2 ms later at half level: a comb with 500 Hz between its notches.
+        var comb = new float[4_096];
+        comb[0] = 1f;
+        comb[96] = 0.5f;
+        var path = WriteIr("comb.wav", comb, 48_000);
+        using var plain = Create(null, ("slot1", path));
+        using var smooth = Create(static c => c.Params.SetTarget(CabBlock.Smoothing, 100f), ("slot1", path));
+
+        var (sharp, _) = plain.ImpulseResponse();
+        var (smoothed, _) = smooth.ImpulseResponse();
+
+        Assert.True(Ripple(smoothed) < 0.25 * Ripple(sharp), $"ripple {Ripple(sharp):0.0} dB, smoothed {Ripple(smoothed):0.0} dB");
+        Assert.Equal(0, Analysis.PeakIndex(smoothed));
+        Assert.Equal(Analysis.Rms(sharp), Analysis.Rms(smoothed), 0.2 * Analysis.Rms(sharp));
+
+        static double Ripple(float[] ir) {
+            var levels = new List<double>();
+            for (var hz = 2_000.0; hz <= 8_000; hz *= 1.01) {
+                levels.Add(20 * Math.Log10(Analysis.MagnitudeAt(ir, hz, 48_000) + 1e-9));
+            }
+
+            return levels.Max() - levels.Min();
+        }
+    }
+
+    [Theory]
+    [InlineData(CabBlock.PreampBass, 30, 12)]
+    [InlineData(CabBlock.PreampMid, 800, 12)]
+    [InlineData(CabBlock.PreampTreble, 16_000, -12)]
+    public void Preamp_tone_shapes_its_band_and_leaves_the_rest(int param, double hz, float gain) {
+        using var flat = Create(null);
+        using var toned = Create(c => c.Params.SetTarget(param, gain));
+        var impulse = Signals.Impulse(16_384);
+
+        var reference = BlockRender.Mono(flat, impulse, 64);
+        var response = BlockRender.Mono(toned, impulse, 64);
+
+        Assert.Equal(impulse, reference); // at 0 dB the tone is skipped
+        Assert.Equal(gain, Analysis.ToDb(Analysis.MagnitudeAt(response, hz, 48_000)), 0.7);
+        var far = param == CabBlock.PreampTreble ? 100 : param == CabBlock.PreampBass ? 8_000 : 30;
+        Assert.InRange(Analysis.ToDb(Analysis.MagnitudeAt(response, far, 48_000)), -1.5, 1.5);
+    }
+
+    [Fact]
     public void Input_mode_feeds_the_cab_left_right_or_their_sum() {
         var left = Signals.Noise(1_000, 23);
         var right = Signals.Noise(1_000, 24);
