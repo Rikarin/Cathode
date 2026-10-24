@@ -800,6 +800,37 @@
         }
       }
     },
+    "/api/v1/live/blocks/{id}/cab/align": {
+      "get": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "The Cab block\u0027s slots for its Align page: each slot\u0027s IR head, onset and delays.",
+        "operationId": "GetCabAlignment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CabAlignment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/live/cables": {
       "post": {
         "tags": [
@@ -882,6 +913,277 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/scenes/copy": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Copies scene From onto scene To: name, block states, level, controllers and MIDI.",
+        "operationId": "CopyScene",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenePairRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/scenes/swap": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Swaps two scenes; the active scene moves with its content.",
+        "operationId": "SwapScenes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenePairRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/scenes/{scene}/blocks/{id}": {
+      "put": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "A block\u0027s bypass and channel in one scene (the Scene Manager).",
+        "operationId": "SetSceneBlock",
+        "parameters": [
+          {
+            "name": "scene",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SceneBlockState"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/blocks/{id}/channels/{channel}/scene-ignore": {
+      "put": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Scene Ignore for one channel: while on it, scene changes leave the block\u0027s bypass and channel.",
+        "operationId": "SetSceneIgnore",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channel",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SceneIgnoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/blocks/{id}/channels/swap": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "operationId": "SwapChannels",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CopyChannelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/blocks/{id}/channels/{channel}/reset": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Puts one channel back to the block type\u0027s defaults.",
+        "operationId": "ResetChannel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channel",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/blocks/{id}/reset": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Puts every channel of the block back to its type\u0027s defaults.",
+        "operationId": "ResetBlock",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -1871,6 +2173,27 @@
         }
       }
     },
+    "/api/v1/presets/list.txt": {
+      "get": {
+        "tags": [
+          "Presets"
+        ],
+        "summary": "The preset list as plain text, alphabetical, with each preset\u0027s scene names.",
+        "operationId": "ExportPresetList",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/presets/{id}": {
       "get": {
         "tags": [
@@ -2400,7 +2723,7 @@
         "tags": [
           "Global"
         ],
-        "summary": "Replaces the global settings: tempo mode, metronome, EQ, Manual A-D, MIDI, footswitches, global blocks.",
+        "summary": "Replaces the global settings: tempo mode, metronome, EQ, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover.",
         "operationId": "PutGlobal",
         "requestBody": {
           "content": {
@@ -3425,6 +3748,28 @@
           }
         }
       },
+      "CabAlignment": {
+        "required": [
+          "sampleRate",
+          "slots"
+        ],
+        "type": "object",
+        "properties": {
+          "sampleRate": {
+            "type": "number",
+            "description": "The rate the heads are sampled at.",
+            "format": "double"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CabSlotAlignmentInfo"
+            },
+            "description": "The four slots, in order."
+          }
+        },
+        "description": "The Cab block\u0027s Align page (\u0060GET /api/v1/live/blocks/{id}/cab/align\u0060): each slot\u0027s IR head on the active\nchannel, so slots can be lined up by eye."
+      },
       "CableRequest": {
         "required": [
           "from",
@@ -3439,6 +3784,50 @@
             "type": "string"
           }
         }
+      },
+      "CabSlotAlignmentInfo": {
+        "required": [
+          "slot",
+          "plays",
+          "audible",
+          "onsetMs",
+          "autoDelayMs",
+          "delayMs",
+          "head"
+        ],
+        "type": "object",
+        "properties": {
+          "slot": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "plays": {
+            "type": "boolean"
+          },
+          "audible": {
+            "type": "boolean"
+          },
+          "onsetMs": {
+            "type": "number",
+            "format": "double"
+          },
+          "autoDelayMs": {
+            "type": "number",
+            "format": "double"
+          },
+          "delayMs": {
+            "type": "number",
+            "format": "double"
+          },
+          "head": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "float"
+            }
+          }
+        },
+        "description": "One slot: whether it has something to play and is heard, its onset within its own IR (the first sample within\n20 dB of the peak), the delay Auto Delay gives it and its own Delay, in ms, and the first 10 ms of its IR as mixed\n(cut and normalised, before level, pan and delay). It is heard at \u0060OnsetMs \u002B AutoDelayMs \u002B DelayMs\u0060."
       },
       "ChannelRequest": {
         "required": [
@@ -3598,9 +3987,18 @@
             "type": "integer",
             "format": "int64",
             "default": 0
+          },
+          "inputs": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         },
-        "description": "Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole\ndriver callback); overloads and the host\u0027s GC counts are cumulative since the host started."
+        "description": "Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole\ndriver callback); overloads and the host\u0027s GC counts are cumulative since the host started. \u0060Inputs\u0060 names\nthe hardware input sources the device maps (Input 1\u20134, USB 5/6, USB 7/8); the others are silent."
       },
       "Footswitch": {
         "required": [
@@ -3789,7 +4187,12 @@
           "footswitches",
           "activeView",
           "blocks",
-          "perform"
+          "perform",
+          "sceneRevert",
+          "defaultScene",
+          "ignoreRedundantPc",
+          "presetSpillover",
+          "confirmPresetChange"
         ],
         "type": "object",
         "properties": {
@@ -3880,6 +4283,34 @@
               "$ref": "#/components/schemas/PerformControl"
             },
             "description": "The global performance page: controls shown in every preset that has their block."
+          },
+          "sceneRevert": {
+            "type": "boolean",
+            "description": "Scene Revert: off, changes made while playing (a bypass, a channel) stay with their scene when you come back\nto it; on, selecting a scene always recalls it as it was last saved."
+          },
+          "defaultScene": {
+            "type": "integer",
+            "description": "The scene a preset starts on when it loads: \u22121 for As Saved (the scene it was saved on), or 0-7.",
+            "format": "int32"
+          },
+          "startupPreset": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The preset loaded when the server starts, by id; null starts with an empty preset."
+          },
+          "ignoreRedundantPc": {
+            "type": "boolean",
+            "description": "Ignore Redundant PC: a program change that selects the preset already loaded does nothing."
+          },
+          "presetSpillover": {
+            "type": "boolean",
+            "description": "Preset-change spillover: on, the outgoing preset\u0027s delay and reverb tails ring out under the new one; off, it\nstops with the swap fade (a clean cut)."
+          },
+          "confirmPresetChange": {
+            "type": "boolean",
+            "description": "Whether editors ask before changing presets while the working copy has unsaved edits."
           }
         },
         "description": "Settings that belong to the rig rather than to any preset: tempo source, metronome, the global output EQ,\nManual A-D, MIDI mappings, footswitch layouts and the global block library. Stored as one document."
@@ -4025,9 +4456,18 @@
           },
           "canRedo": {
             "type": "boolean"
+          },
+          "held": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SceneBlockState"
+            }
           }
         },
-        "description": "The rig as it is running: the working copy, which scene is active, and whether it differs from the library."
+        "description": "The rig as it is running: the working copy, which scene is active, and whether it differs from the library.\n\u0060Held\u0060 lists the blocks whose bypass and channel differ from the active scene\u0027s because Scene Ignore kept\nthem as they were: what they are running now."
       },
       "MidiLearnRequest": {
         "required": [
@@ -4095,7 +4535,7 @@
             "format": "int32"
           }
         },
-        "description": "A MIDI message bound to an action. \u0060Message\u0060 is cc, note or pc; \u0060Channel\u0060 0 means any. Actions:\nscene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank\nid, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,\nValue = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,\nmetronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), layout (Target =\nlayout id), view (Value = view index), viewNext, viewPrevious."
+        "description": "A MIDI message bound to an action. \u0060Message\u0060 is cc, note or pc; \u0060Channel\u0060 0 means any. Actions:\nscene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank\nid, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,\nValue = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,\nmetronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), sceneLevelUp and\nsceneLevelDown (the active scene\u0027s level by \u00B11 dB, then save the preset), save (save the preset), layout\n(Target = layout id), view (Value = view index), viewNext, viewPrevious. A CC mapped to scene without a Value\nselects the scene its value names (0-7), and a value above 63 steps to the next scene."
       },
       "MoveBlockRequest": {
         "required": [
@@ -4235,7 +4675,8 @@
           "controllers",
           "favorite",
           "perform",
-          "footswitchOverrides"
+          "footswitchOverrides",
+          "savedScene"
         ],
         "type": "object",
         "properties": {
@@ -4329,6 +4770,11 @@
               "$ref": "#/components/schemas/FootswitchOverride"
             },
             "description": "Switches of the global footswitch layouts that do something else while this preset is loaded."
+          },
+          "savedScene": {
+            "type": "integer",
+            "description": "The scene that was active when the preset was saved: where it starts when the global Default Scene is As Saved.",
+            "format": "int32"
           }
         },
         "description": "A complete rig: grid, blocks with up to four channels each, cables and eight scenes. Parameter values are stored\nsparsely; anything not listed takes the block type\u0027s default, so new parameters need no migration."
@@ -4355,7 +4801,8 @@
           "column",
           "channels",
           "assets",
-          "bypassMode"
+          "bypassMode",
+          "sceneIgnore"
         ],
         "type": "object",
         "properties": {
@@ -4402,6 +4849,13 @@
               "string"
             ],
             "description": "The global block this block is linked to, if any: its channels and assets come from the global library and\nediting them edits every linked preset."
+          },
+          "sceneIgnore": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Scene Ignore: the channels (A-D) on which the block ignores scene changes. While its current channel is one\nof them, selecting a scene leaves the block\u0027s bypass and channel as they are; the editor, footswitches and\nMIDI still change them, and a channel not listed makes it follow the scenes again."
           }
         }
       },
@@ -4486,6 +4940,13 @@
           "releaseMs": {
             "type": "number",
             "format": "float"
+          },
+          "channel": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The channel (A-D) the modifier applies on, or null for every channel of its block. On another channel the\nparameter keeps that channel\u0027s own value."
           }
         },
         "description": "One modified parameter; see Cathode.Engine.Graph.ModifierDefinition for the semantics."
@@ -4664,6 +5125,17 @@
           }
         }
       },
+      "SceneIgnoreRequest": {
+        "required": [
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
       "SceneMidiMessage": {
         "required": [
           "type",
@@ -4694,6 +5166,24 @@
           }
         },
         "description": "One scene MIDI message: a program change (\u0060pc\u0060: int SceneMidiMessage.Number is the program) or a control change\n(\u0060cc\u0060: controller int SceneMidiMessage.Number, value int SceneMidiMessage.Value), on MIDI channel 1-16."
+      },
+      "ScenePairRequest": {
+        "required": [
+          "from",
+          "to"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "to": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Two scenes (0-7): copy \u0060From\u0060 onto \u0060To\u0060, or swap them."
       },
       "SceneSelectRequest": {
         "required": [

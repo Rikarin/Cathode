@@ -21,7 +21,7 @@ public static class SuperReverb {
         [
             FirstStage(),
             Ab763.SecondStage(270),
-            Ab763.Mixer(270)
+            Ab763.Mixer(270) with { Tremolo = Ab763.Vibrato(460) }
         ],
         new(
             "2 x 6L6GC",
@@ -54,7 +54,9 @@ public static class SuperReverb {
             Depth = null,
             Cut = null,
             Master = null,
-            Switch1 = "Vibrato Ch"
+            Switch1 = "Vibrato Ch",
+            TremoloRate = "Speed",
+            TremoloDepth = "Intensity"
         }
     };
 

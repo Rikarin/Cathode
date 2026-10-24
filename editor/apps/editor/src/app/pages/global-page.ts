@@ -25,6 +25,7 @@ import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
 import { CatalogStore } from '../state/catalog.store';
 import { GlobalStore } from '../state/global.store';
+import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { addView, overrideOf, removeView, viewNames, withOverride } from './footswitches';
 
@@ -113,6 +114,48 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
               [value]="s.metronomeLevel"
               (committed)="save(g => (g.metronomeLevel = $event))"
             />
+          </div>
+        </section>
+
+        <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="presets-heading">
+          <h2 xuiHeading id="presets-heading" class="text-sm">Presets and scenes</h2>
+          <div class="flex flex-wrap items-end gap-6">
+            <div class="flex flex-col gap-1">
+              <span class="text-foreground-muted text-xs" id="default-scene-label">Scene on preset load</span>
+              <xui-select
+                class="w-40"
+                data-testid="default-scene"
+                aria-labelledby="default-scene-label"
+                [filterable]="false"
+                [items]="defaultScenes"
+                [itemText]="defaultSceneName"
+                [value]="String(s.defaultScene)"
+                (valueChange)="$event !== null && save(g => (g.defaultScene = +$event))"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <span class="text-foreground-muted text-xs" id="startup-preset-label">Startup preset</span>
+              <xui-select
+                class="w-56"
+                data-testid="startup-preset"
+                aria-labelledby="startup-preset-label"
+                [items]="startupChoices()"
+                [itemText]="startupName"
+                [value]="s.startupPreset ?? 'none'"
+                (valueChange)="save(g => (g.startupPreset = !$event || $event === 'none' ? null : $event))"
+              />
+            </div>
+            @for (option of presetSwitches; track option.key) {
+              <label class="flex flex-col items-center gap-2" [attr.title]="option.help">
+                <span class="text-foreground-muted text-xs">{{ option.label }}</span>
+                <xui-switch
+                  [attr.data-testid]="'global-' + option.key"
+                  [attr.aria-label]="option.label"
+                  [checked]="s[option.key]"
+                  (checkedChange)="save(g => (g[option.key] = $event))"
+                />
+              </label>
+            }
           </div>
         </section>
 
@@ -479,6 +522,39 @@ export class GlobalPage {
   protected readonly channelNames = Array.from({ length: 17 }, (_, i) => (i === 0 ? 'All' : `Channel ${i}`));
   protected readonly Math = Math;
   protected readonly actions = [...MidiActions];
+  protected readonly defaultScenes = ['-1', '0', '1', '2', '3', '4', '5', '6', '7'];
+  protected readonly String = String;
+  protected readonly defaultSceneName = (scene: string) => (+scene < 0 ? 'As saved' : `Scene ${+scene + 1}`);
+  protected readonly presetSwitches: {
+    key: 'sceneRevert' | 'ignoreRedundantPc' | 'presetSpillover' | 'confirmPresetChange';
+    label: string;
+    help: string;
+  }[] = [
+    {
+      key: 'sceneRevert',
+      label: 'Scene Revert',
+      help: 'On: a scene always comes back as saved. Off: changes made while playing stay with their scene.'
+    },
+    {
+      key: 'ignoreRedundantPc',
+      label: 'Ignore redundant PC',
+      help: 'A program change for the preset already loaded does nothing.'
+    },
+    {
+      key: 'presetSpillover',
+      label: 'Preset spillover',
+      help: 'On: delay and reverb tails ring out across a preset change. Off: a clean cut.'
+    },
+    {
+      key: 'confirmPresetChange',
+      label: 'Confirm discarding edits',
+      help: 'Ask before changing presets while the current one has unsaved edits.'
+    }
+  ];
+  private readonly library = inject(LibraryStore);
+  protected readonly startupChoices = computed(() => ['none', ...this.library.presets().map(p => p.id)]);
+  protected readonly startupName = (id: string) =>
+    id === 'none' ? 'None (an empty preset)' : (this.library.presets().find(p => p.id === id)?.name ?? id);
   protected readonly messages = Messages;
   protected readonly layoutName = (l: FootswitchLayout) => l.name;
   /** The global EQ is the Graphic EQ's plain ten-band type: its knobs, without the type and switch choices. */
@@ -496,6 +572,7 @@ export class GlobalPage {
   protected readonly monitor = signal<string[]>([]);
 
   constructor() {
+    void this.library.refreshPresets();
     const subscription = inject(EventStream).midi$.subscribe(message => {
       if (message.type === 'midiLearned') {
         this.learning.set(false);

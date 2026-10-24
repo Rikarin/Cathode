@@ -13,9 +13,9 @@ import { matLibraryMusicRound } from '@ng-icons/material-icons/round';
 import { XuiDialogImports } from '@xui/dialog';
 import { XuiSelectImports } from '@xui/select';
 import { Notify } from '../core/notify';
-import { CompareStore } from '../state/compare.store';
 import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
+import { PresetSwitcher } from '../state/preset-switcher';
 import { UiStore } from '../state/ui.store';
 import { type PickerEntry, PickerList } from './picker-list';
 
@@ -75,7 +75,7 @@ export class PresetPicker {
   protected readonly ui = inject(UiStore);
   protected readonly live = inject(LiveStore);
   protected readonly library = inject(LibraryStore);
-  private readonly compare = inject(CompareStore);
+  private readonly switcher = inject(PresetSwitcher);
   private readonly notify = inject(Notify);
   private readonly list = viewChild(PickerList);
 
@@ -118,13 +118,10 @@ export class PresetPicker {
     });
   }
 
+  /** Loads through the preset switcher: it asks before discarding unsaved edits, and keeps Recent Presets. */
   protected async load(entry: PickerEntry): Promise<void> {
-    // TODO(PS): ask about unsaved edits first, through the unsaved-edits prompt once it is on master.
-    if (await this.live.load(entry.id)) {
-      this.compare.reset();
-      if (!this.list()?.pinned()) {
-        this.ui.presetPicker.set(null);
-      }
+    if ((await this.switcher.load(entry.id, entry.name)) && !this.list()?.pinned()) {
+      this.ui.presetPicker.set(null);
     }
   }
 
@@ -135,11 +132,11 @@ export class PresetPicker {
       return;
     }
 
-    const loaded = await this.live.mutate(c =>
-      c.PUT('/api/v1/live/banks/{id}/slots/{slot}', { params: { path: { id: bank.id, slot } } })
-    );
-    if (loaded) {
-      this.compare.reset();
+    const id = bank.slots[slot];
+    const name = this.library.presets().find(p => p.id === id)?.name ?? id;
+    if (!id) {
+      this.notify.error(`Slot ${slot + 1} of ${bank.name} is empty.`);
+    } else if (await this.switcher.load(id, name)) {
       this.ui.presetPicker.set(null);
     }
   }
@@ -154,9 +151,7 @@ export class PresetPicker {
 
     const current = all.findIndex(p => p.id === this.live.preset()?.id);
     const next = all[(Math.max(current, 0) + direction + all.length) % all.length];
-    if (await this.live.load(next.id)) {
-      this.compare.reset();
-    }
+    await this.switcher.load(next.id, next.name);
   }
 
   /** F5: the saved version again (a fresh load, which clears undo); an unsaved preset has none. */
@@ -165,8 +160,8 @@ export class PresetPicker {
     const id = this.live.preset()?.id;
     if (!id || !this.library.presets().some(p => p.id === id)) {
       this.notify.error('This preset has not been saved yet: there is nothing to reload.');
-    } else if (await this.live.load(id)) {
-      this.compare.reset();
+    } else {
+      await this.switcher.load(id, this.live.preset()?.name ?? id);
     }
   }
 }

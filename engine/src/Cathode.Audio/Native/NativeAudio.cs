@@ -3,7 +3,18 @@ using static Cathode.Audio.Native.NativeMethods;
 
 namespace Cathode.Audio.Native;
 
-public sealed record AudioDeviceInfo(string Uid, string Name, int InputChannels, int OutputChannels, double SampleRate);
+/// <summary>
+///     An audio device. <c>InputNames</c> holds the driver's name for each input channel (empty where it names none), for
+///     labelling the input map.
+/// </summary>
+public sealed record AudioDeviceInfo(
+    string Uid,
+    string Name,
+    int InputChannels,
+    int OutputChannels,
+    double SampleRate,
+    IReadOnlyList<string> InputNames
+);
 
 /// <summary>Entry points of the native audio shim that are not tied to a stream.</summary>
 public static unsafe class NativeAudio {
@@ -37,13 +48,26 @@ public static unsafe class NativeAudio {
                         Marshal.PtrToStringUTF8((nint)info.Name) ?? string.Empty,
                         info.InputChannels,
                         info.OutputChannels,
-                        info.SampleRate
+                        info.SampleRate,
+                        InputNames(i, info.InputChannels)
                     )
                 );
             }
         }
 
         return devices;
+    }
+
+    static string[] InputNames(int device, int channels) {
+        var names = new string[channels];
+        var buffer = stackalloc byte[256];
+        for (var c = 0; c < channels; c++) {
+            names[c] = ChannelName(device, 1, c, buffer, 256) == 0
+                ? Marshal.PtrToStringUTF8((nint)buffer) ?? string.Empty
+                : string.Empty;
+        }
+
+        return names;
     }
 
     /// <summary>Enables flush-to-zero / denormals-are-zero on the calling thread.</summary>

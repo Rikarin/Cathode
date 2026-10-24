@@ -9,7 +9,8 @@ const block = (id: string, type: string, channels: PresetBlock['channels'] = {})
   column: 1,
   channels,
   assets: {},
-  bypassMode: 'thru'
+  bypassMode: 'thru',
+  sceneIgnore: []
 });
 
 describe('Block Info', () => {

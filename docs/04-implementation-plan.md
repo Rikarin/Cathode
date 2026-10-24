@@ -188,10 +188,11 @@ Ordered by value to a guitarist:
 - [x] **Tempo:** preset, global or MIDI clock (24 ppqn, averaged in the host). Tap tempo is sample-accurate (MIDI timestamps become engine sample times), and a tapped tempo is taken back into the preset.
 - [x] **MIDI:**
   - The native shim reads CoreMIDI on macOS. Windows and Linux are stubs, like their audio backends.
-  - Mappings (CC, note or PC) cover scene, preset slot or next/previous, bypass, channel, External, Manual, tap, tuner, metronome and the looper. Actions run strictly in arrival order.
+  - Mappings (CC, note or PC) cover scene, preset slot or next/previous, bypass, channel, External, Manual, tap, tuner, metronome, the looper, 🆕 scene level up/down (with save) and save. Actions run strictly in arrival order.
   - MIDI learn works from the Global page or from any knob ("Learn MIDI controller" binds a free External source). There is a live monitor.
 - [x] **Footswitch layouts:** tap and hold (500 ms) actions per switch, LED feedback (CC or note, 127/0, sent only on change), and an editor on the Global page.
 - [x] **Looper:** stereo, 60 s, at the end of the rig so it survives preset changes. Overdub has a one-pass undo layer, plus reverse, half speed and WAV export. **Metronome** (accented, never recorded). Both are in the toolbar. 🆕 The same looper is also a grid block (`looper`, docs/08 §6.14) with the Blocks Guide's Config page; the transport drives it while its preset is running.
+- [x] **Preset and scene features** (Fractal's *Presets* page, docs/08 §9): Scene Ignore per channel, Scene Revert, default scene on load (as saved or fixed), startup preset, Ignore Redundant PC, copy/swap scenes, swap/reset channels and reset block, a Scene Manager page, per-block meters on the grid and a BS.1770 loudness meter with a Preset Leveling tool, MIDI scene level ±1 dB with save, a stepping scene CC, modifiers scoped to one channel, a spillover switch, grid loops that survive a preset change, a confirm before discarding edits, a text export of the preset list, and recent presets.
 - [x] **Global blocks:** a block can be made global, use a global or be unlinked. Linked blocks take the library's settings on load, and editing one updates the library. There is also a **global output EQ** (10 bands plus level).
 
 **Exit:** a live set of 10 presets × 8 scenes runs with a MIDI foot controller, with no gaps or clicks, verified by HIL soak with scene storms.
@@ -296,7 +297,7 @@ Gate for each model: ESR/MRSTFT within target across a knob sweep, plus an ABX p
   - Library folders, files and whole-block entries;
   - Manage Presets and Manage IRs, Reset Amp blocks, Parameter Batch Set;
   - picker tags, favourites and pin, Perform pages, and footswitch views, links and per-preset overrides.
-- [ ] Editor workflow, waiting on the PS stream: ⌘L Preset Leveling, ⌘I reset channel, and the unsaved-edits prompt before the preset picker and New from template load another preset.
+- [x] Editor workflow on top of the PS stream: ⌘L opens Preset Leveling, ⌘I resets the selected block's channel, and the preset picker, Go to, ⌘PgUp/PgDn, F5 and New from template ask before discarding unsaved edits (`PresetSwitcher`).
 
 - [ ] Factory content: 50+ presets, factory IRs (our own captures or properly licensed), factory NAM captures (own or licensed)
 - [ ] Installers (signed and notarised), auto-update, crash reporting (opt-in), telemetry-free by default

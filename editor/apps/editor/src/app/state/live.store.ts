@@ -8,6 +8,7 @@ import {
   type PresetBlock,
   type PresetModifier,
   type RigEvent,
+  type SceneBlockState,
   type SceneMidiMessage,
   unwrap
 } from '@cathode/api-client';
@@ -54,15 +55,25 @@ export class LiveStore {
     inject(DestroyRef).onDestroy(() => subscriptions.forEach(s => s.unsubscribe()));
   }
 
-  /** The channel a block uses in the active scene. */
+  /** What a block is running: the state Scene Ignore held it in, or the active scene's. */
+  liveState(blockId: string): SceneBlockState {
+    const state = this.state();
+    const held = state?.held?.[blockId];
+    return held ?? state?.preset.scenes[state.activeScene]?.blocks[blockId] ?? { bypassed: false, channel: 'A' };
+  }
+
+  /** The channel a block is running (the active scene's, unless Scene Ignore held it). */
   channelOf(blockId: string): ChannelName {
-    const scene = this.preset()?.scenes[this.activeScene()];
-    return (scene?.blocks[blockId]?.channel ?? 'A') as ChannelName;
+    return this.liveState(blockId).channel as ChannelName;
   }
 
   isBypassed(blockId: string): boolean {
-    const scene = this.preset()?.scenes[this.activeScene()];
-    return scene?.blocks[blockId]?.bypassed ?? false;
+    return this.liveState(blockId).bypassed;
+  }
+
+  /** Whether Scene Ignore is on for a channel of a block. */
+  ignoresScenes(block: PresetBlock, channel: ChannelName): boolean {
+    return block.sceneIgnore?.includes(channel) ?? false;
   }
 
   /** A parameter's value on a channel: a pending drag, the stored value, or undefined for the type's default. */
@@ -147,6 +158,30 @@ export class LiveStore {
     this.mutate(c => c.PUT('/api/v1/live/blocks/{id}/global/{globalId}', { params: { path: { id, globalId } } }));
   unlinkGlobal = (id: string) =>
     this.mutate(c => c.DELETE('/api/v1/live/blocks/{id}/global', { params: { path: { id } } }));
+  setSceneIgnore = (id: string, channel: ChannelName, enabled: boolean) =>
+    this.mutate(c =>
+      c.PUT('/api/v1/live/blocks/{id}/channels/{channel}/scene-ignore', {
+        params: { path: { id, channel } },
+        body: { enabled }
+      })
+    );
+  swapChannels = (id: string, from: ChannelName, to: ChannelName) =>
+    this.mutate(c =>
+      c.POST('/api/v1/live/blocks/{id}/channels/swap', { params: { path: { id } }, body: { from, to } })
+    );
+  resetChannel = (id: string, channel: ChannelName) =>
+    this.mutate(c =>
+      c.POST('/api/v1/live/blocks/{id}/channels/{channel}/reset', { params: { path: { id, channel } } })
+    );
+  resetBlock = (id: string) => this.mutate(c => c.POST('/api/v1/live/blocks/{id}/reset', { params: { path: { id } } }));
+  setSceneBlock = (scene: number, id: string, state: SceneBlockState) =>
+    this.mutate(c =>
+      c.PUT('/api/v1/live/scenes/{scene}/blocks/{id}', { params: { path: { scene, id } }, body: state })
+    );
+  copyScene = (from: number, to: number) =>
+    this.mutate(c => c.POST('/api/v1/live/scenes/copy', { body: { from, to } }));
+  swapScenes = (from: number, to: number) =>
+    this.mutate(c => c.POST('/api/v1/live/scenes/swap', { body: { from, to } }));
 
   // The editor workflow (docs/02-architecture.md §7.5); each is one undo step on the Server.
   revert = () => this.mutate(c => c.POST('/api/v1/live/revert'));

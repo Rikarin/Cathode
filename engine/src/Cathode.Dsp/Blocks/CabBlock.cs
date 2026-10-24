@@ -2,6 +2,7 @@ using Cathode.Dsp.Cabinets;
 using Cathode.Dsp.Convolution;
 using Cathode.Dsp.Filters;
 using Cathode.Dsp.Parameters;
+using Cathode.Dsp.Resampling;
 
 namespace Cathode.Dsp.Blocks;
 
@@ -35,7 +36,16 @@ namespace Cathode.Dsp.Blocks;
 ///     <para>
 ///         Around the convolution, on the audio thread: the Input mode (left, right, their sum, or stereo), Air (the
 ///         dry signal above Air Freq mixed back in, as the air between speaker and mic), the mic preamp
-///         (<see cref="MicPreamp" />), the master low and high cuts and the Level.
+///         (<see cref="MicPreamp" />; Preamp Mode High Quality runs it 4× oversampled, Economy at the engine rate; a change of
+///         mode rebuilds the graph, so only a High Quality cab holds the oversamplers), the
+///         master low and high cuts and the Level.
+///     </para>
+///     <para>
+///         Room Mic Spacing: the modelled room is heard by a stereo pair of room mics that far apart. Each modelled
+///         slot is then synthesised twice, its reflections reaching the left IR from half the spacing to one side and
+///         the right IR from half to the other (<see cref="CabRoom.MicOffset" />); the direct sound is the slot's own
+///         mic on both, so the image widens with the spacing while the close sound stays centred. At 0, or with no
+///         Room, both sides share one IR as before. IR files and packs carry their own room.
 ///     </para>
 ///     <para>
 ///         Rebuilding runs on the control thread: in <see cref="IDspBlock.Prepare" />, and in
@@ -72,8 +82,13 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     public const int AutoDelay = 23;
     public const int Smoothing = 24;
 
+    // Appended after the first parity pass: Preamp Mode runs on the audio thread, Room Mic Spacing resynthesises the
+    // modelled slots.
+    public const int PreampMode = 25;
+    public const int MicSpacing = 26;
+
     /// <summary>Index of slot 1's first parameter; slot n's are at <c>SlotBase + n * SlotStride</c>.</summary>
-    public const int SlotBase = 25;
+    public const int SlotBase = 27;
 
     public const int SlotStride = 18;
     public const int Slots = 4;
@@ -102,6 +117,13 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     public const int SourceIr = 0;
     public const int SourceDynaCab = 1;
     public const int SourcePack = 2;
+
+    // Values of Preamp Mode.
+    public const int PreampEconomy = 0;
+    public const int PreampHighQuality = 1;
+
+    /// <summary>Widest Room Mic Spacing, cm.</summary>
+    public const float MaxMicSpacing = 300f;
 
     // Values of Input.
     public const int InputLeft = 0;
@@ -176,6 +198,8 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     CutState lowCutLeft, lowCutRight, highCutLeft, highCutRight;
     SvfState airLeft, airRight;
     MicPreamp preampLeft, preampRight;
+    Oversampler4x? upLeft, upRight;
+    NativeBuffer slotRoomIrs = NativeBuffer.Empty; // the right room mic's slot IRs, while Room Mic Spacing is on
     float outputGain = 1f;
     float airGain;
     float drive;
@@ -221,6 +245,8 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             IrParam(ParamDescriptor.Float("diffusion", "Room Diffusion", 0f, 100f, 0f, "%")),
             ParamDescriptor.Switch("autodelay", "Auto Delay"),
             IrParam(ParamDescriptor.Float("smoothing", "Smoothing", 0f, 100f, 0f, "%")),
+            ParamDescriptor.Choice("preampMode", "Preamp Mode", ["Economy", "High Quality"]) with { Recompile = true },
+            IrParam(ParamDescriptor.Float("micspacing", "Room Mic Spacing", 0f, MaxMicSpacing, 0f, "cm")),
             ..Slot(1, 5, 3, 0, 25, 1, false),
             ..Slot(2, 5, 3, 5, 50, 4, true),
             ..Slot(3, 5, 0, 1, 35, 2, true),
@@ -318,6 +344,73 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
 
             return (mixLeft.Span.ToArray(), mixRight.Span.ToArray());
         }
+    }
+
+    /// <summary>
+    ///     Control thread: each slot as the Align page shows it (docs/08-blocks-parity.md §5): the head of its IR as it is
+    ///     mixed (resampled, cut, normalised, before its level, pan and delay) and where its onset falls, the first sample
+    ///     within 20 dB of its peak. Building first if the targets changed. Prepare first.
+    /// </summary>
+    public IReadOnlyList<CabSlotAlignment> Alignment(double headMs = 10) {
+        lock (sync) {
+            if (synthesizer is null) {
+                throw new InvalidOperationException("Prepare the block first.");
+            }
+
+            ReadTargets();
+            if (NeedsBuild()) {
+                switcher.Publish(Build());
+            }
+
+            var taps = synthesizer.Taps;
+            var anySolo = false;
+            var earliest = double.MaxValue;
+            for (var s = 0; s < Slots; s++) {
+                anySolo |= SlotTarget(s, Solo) >= 0.5f;
+                if (HasResponse(s) && SourceOf(s) != SourceIr) {
+                    earliest = Math.Min(earliest, slotDelays[s]);
+                }
+            }
+
+            var auto = targets[AutoDelay] >= 0.5f;
+            var head = (int)Math.Round(headMs / 1_000.0 * Spec.SampleRate);
+            var result = new CabSlotAlignment[Slots];
+            for (var s = 0; s < Slots; s++) {
+                var file = SourceOf(s) == SourceIr;
+                var plays = HasResponse(s);
+                var ir = !plays ? []
+                    : file ? Shaped(s, prepared[s]![0])
+                    : Shaped(s, slotIrs.Span.Slice(s * taps, taps));
+                var samples = ir[..Math.Min(head, ir.Length)].ToArray();
+                result[s] = new(
+                    s,
+                    plays,
+                    IsAudible(s, anySolo),
+                    Onset(samples) * 1_000.0 / Spec.SampleRate,
+                    auto && plays && !file ? (slotDelays[s] - earliest) * 1_000.0 : 0,
+                    SlotTarget(s, Delay),
+                    samples
+                );
+            }
+
+            return result;
+        }
+    }
+
+    /// <summary>The first sample within 20 dB of the peak, or 0 for silence.</summary>
+    static int Onset(ReadOnlySpan<float> ir) {
+        var peak = 0f;
+        foreach (var v in ir) {
+            peak = Math.Max(peak, Math.Abs(v));
+        }
+
+        for (var i = 0; i < ir.Length; i++) {
+            if (Math.Abs(ir[i]) >= 0.1f * peak && peak > 0f) {
+                return i;
+            }
+        }
+
+        return 0;
     }
 
     static IEnumerable<ParamDescriptor> Slot(
@@ -463,6 +556,10 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         }
 
         for (var i = Proximity; i < targets.Length; i++) {
+            if (i == PreampMode) {
+                continue; // the audio thread's
+            }
+
             if (targets[i] != built[i]) {
                 return true;
             }
@@ -492,6 +589,8 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             globalsChanged |= targets[i] != built[i];
         }
 
+        globalsChanged |= targets[MicSpacing] != built[MicSpacing];
+
         for (var s = 0; s < Slots; s++) {
             var source = SourceOf(s);
             var changed = stale[s] || globalsChanged;
@@ -501,9 +600,21 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
 
             if (changed && HasResponse(s) && source != SourceIr) {
                 var ir = slotIrs.Span.Slice(s * taps, taps);
-                slotDelays[s] = source == SourcePack
-                    ? synthesizer.Synthesize(grids[s]!, SlotTarget(s, Position) / 100.0, SlotTarget(s, Distance), ir)
-                    : synthesizer.Synthesize(Placement(s), ir);
+                if (source == SourcePack) {
+                    slotDelays[s] = synthesizer.Synthesize(
+                        grids[s]!,
+                        SlotTarget(s, Position) / 100.0,
+                        SlotTarget(s, Distance),
+                        ir
+                    );
+                } else if (HasRoomPair()) {
+                    // A stereo pair of room mics: the reflections reach each side from half the spacing away.
+                    var half = targets[MicSpacing] / 200.0;
+                    slotDelays[s] = synthesizer.Synthesize(Placement(s, -half), ir);
+                    synthesizer.Synthesize(Placement(s, half), slotRoomIrs.Span.Slice(s * taps, taps));
+                } else {
+                    slotDelays[s] = synthesizer.Synthesize(Placement(s), ir);
+                }
             }
 
             stale[s] = false;
@@ -527,7 +638,10 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         return new(mixLeft.Span[..length], mixRight.Span[..length]);
     }
 
-    MicPlacement Placement(int slot) =>
+    /// <summary>Whether the modelled slots get a separate right room mic (Room Mic Spacing with some room).</summary>
+    bool HasRoomPair() => targets[MicSpacing] > 0f && targets[Room] > 0f;
+
+    MicPlacement Placement(int slot, double roomMicOffset = 0) =>
         new(
             CabCatalogue.Speakers[(int)SlotTarget(slot, Speaker)],
             CabCatalogue.Enclosures[(int)SlotTarget(slot, Cab)],
@@ -545,7 +659,8 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
                 targets[Floor] / 100.0,
                 Math.Pow(4, (targets[HighDamping] - 50) / 50.0),
                 targets[LowDamping],
-                targets[Diffusion] / 100.0 * FullDiffusion
+                targets[Diffusion] / 100.0 * FullDiffusion,
+                roomMicOffset
             )
         );
 
@@ -614,6 +729,10 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             } else {
                 var ir = Shaped(s, slotIrs.Span.Slice(s * taps, taps));
                 AddShifted(ir, left, shift, gainLeft);
+                if (SourceOf(s) == SourceDynaCab && HasRoomPair()) {
+                    ir = Shaped(s, slotRoomIrs.Span.Slice(s * taps, taps));
+                }
+
                 AddShifted(ir, right, shift, gainRight);
             }
         }
@@ -681,6 +800,18 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             synthesizer = new(spec.SampleRate);
             var taps = synthesizer.Taps;
             slotIrs = new(Slots * taps);
+            slotRoomIrs.Dispose();
+            slotRoomIrs = new(Slots * taps);
+            // The oversamplers exist only in High Quality: changing the mode rebuilds the graph (Recompile), so an
+            // Economy cab allocates nothing for them.
+            if ((int)Params.GetTarget(PreampMode) == PreampHighQuality) {
+                upLeft ??= new(spec.MaxBlockSize);
+                upRight ??= new(spec.MaxBlockSize);
+                upLeft.Resize(spec.MaxBlockSize);
+                upRight.Resize(spec.MaxBlockSize);
+            } else {
+                (upLeft, upRight) = (null, null);
+            }
             slotScratch = new(Math.Max(MaxIrLength, taps));
             var length = Math.Max(MaxIrLength, taps)
                 + (int)Math.Ceiling(MaxShiftSeconds() * spec.SampleRate)
@@ -710,6 +841,8 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         airRight.Reset();
         preampLeft.Reset();
         preampRight.Reset();
+        upLeft?.Reset();
+        upRight?.Reset();
         preampBass.Reset();
         preampMid.Reset();
         preampTreble.Reset();
@@ -765,8 +898,19 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         var type = (int)Params.Advance(Preamp, io.Length);
         var drive = Params.Advance(Drive, io.Length);
         var saturation = Params.Advance(Saturation, io.Length) / 100f;
-        preampLeft.Process(type, Spec.SampleRate, this.drive, drive, this.saturation, saturation, io.Left);
-        preampRight.Process(type, Spec.SampleRate, this.drive, drive, this.saturation, saturation, io.Right);
+        if (type != MicPreamp.None && upLeft is not null && upRight is not null) {
+            // High Quality runs the waveshaper at four times the rate, so its harmonics fold back far less.
+            var rate = 4 * Spec.SampleRate;
+            var twice = upLeft.Up(io.Left);
+            preampLeft.Process(type, rate, this.drive, drive, this.saturation, saturation, twice);
+            upLeft.Down(io.Left);
+            twice = upRight.Up(io.Right);
+            preampRight.Process(type, rate, this.drive, drive, this.saturation, saturation, twice);
+            upRight.Down(io.Right);
+        } else {
+            preampLeft.Process(type, Spec.SampleRate, this.drive, drive, this.saturation, saturation, io.Left);
+            preampRight.Process(type, Spec.SampleRate, this.drive, drive, this.saturation, saturation, io.Right);
+        }
         this.drive = drive;
         this.saturation = saturation;
         Tone(io, preampBass, BiquadType.LowShelf, PreampBassHz, 0.7071f, PreampBass);
@@ -805,6 +949,7 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
                 smoother?.Dispose();
                 smoother = null;
                 slotIrs.Dispose();
+                slotRoomIrs.Dispose();
                 slotScratch.Dispose();
                 mixLeft.Dispose();
                 mixRight.Dispose();
@@ -819,3 +964,17 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         base.Dispose(disposing);
     }
 }
+
+/// <summary>
+///     One Cab slot on the Align page (<see cref="CabBlock.Alignment" />): whether it has something to play and is heard,
+///     its onset in its own IR, the delay Auto Delay adds and the slot's own Delay (both in ms), and its IR's head.
+/// </summary>
+public sealed record CabSlotAlignment(
+    int Slot,
+    bool Plays,
+    bool Audible,
+    double OnsetMs,
+    double AutoDelayMs,
+    double DelayMs,
+    float[] Head
+);

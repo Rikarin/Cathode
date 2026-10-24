@@ -33,6 +33,7 @@ export type SnapshotSummary = Schemas['SnapshotSummary'];
 export type BlockPresetFile = Schemas['BlockPresetFile'];
 export type BatchResult = Schemas['BatchResult'];
 export type Bank = Schemas['Bank'];
+export type ScenePairRequest = Schemas['ScenePairRequest'];
 
 /** Modifier sources (Cathode.Engine.Rig.ModNames). */
 export const ModifierSources = [
@@ -81,6 +82,9 @@ export const MidiActions = [
   'tuner',
   'metronome',
   'looper',
+  'sceneLevelUp',
+  'sceneLevelDown',
+  'save',
   'layout',
   'view',
   'viewNext',
@@ -143,6 +147,11 @@ export interface Telemetry {
   tuner?: TunerInfo;
   tempo: number;
   looper?: LooperInfo;
+  /** Each grid block's output peak since the last frame, by block id (absent without shared-memory telemetry). */
+  blocks?: Record<string, number>;
+  /** The output's BS.1770 momentary (400 ms) and short-term (3 s) loudness, LUFS. */
+  loudnessMomentary?: number;
+  loudnessShortTerm?: number;
 }
 
 /** Pushed about 30 times a second while the scope is on: recent output samples, oldest first. */

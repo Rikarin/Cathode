@@ -22,7 +22,7 @@ public static class VibroluxReverb {
         [
             Ab763.FirstStage(260),
             Ab763.SecondStage(260),
-            Ab763.Mixer(260)
+            Ab763.Mixer(260) with { Tremolo = Ab763.Vibrato(410) }
         ],
         new(
             "2 x 6L6GC",
@@ -56,7 +56,9 @@ public static class VibroluxReverb {
             Depth = null,
             Cut = null,
             Master = null,
-            Switch1 = "Vibrato Ch"
+            Switch1 = "Vibrato Ch",
+            TremoloRate = "Speed",
+            TremoloDepth = "Intensity"
         }
     };
 }

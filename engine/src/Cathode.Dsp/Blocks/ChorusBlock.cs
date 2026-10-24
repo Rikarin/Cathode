@@ -161,8 +161,7 @@ public sealed class ChorusBlock() : DspBlock(Info) {
         var voiceGain = 1f / MathF.Sqrt(voices);
         var (polarityLeft, polarityRight) = Polarity((int)Params.Current(PhaseReverse));
         cuts.Design(rate, Params.Advance(LowCut, n), Params.Advance(HighCut, n));
-        var mixStep = (mix - this.mix) / n;
-        var currentMix = this.mix;
+        var gains = new MixRamp(MixLaw.ConstantPower, this.mix, mix, n);
 
         for (var i = 0; i < n; i++) {
             float wetLeft;
@@ -197,7 +196,7 @@ public sealed class ChorusBlock() : DspBlock(Info) {
             lfo.Advance(lfoRate * wobble, rate);
             lfoRight.Advance(lfoRate * rightRate * wobble, rate);
             lfo2.Advance(lfo2Rate, rate);
-            currentMix += mixStep;
+            gains.Advance();
             cuts.Tick(ref wetLeft, ref wetRight);
             Stereo.Spread(ref wetLeft, ref wetRight, stereoSpread);
 
@@ -212,8 +211,8 @@ public sealed class ChorusBlock() : DspBlock(Info) {
                 right.Write(SoftDrive.Apply(dryRight, drive));
             }
 
-            io.Left[i] = dryLeft * (1 - currentMix) + polarityLeft * wetLeft * currentMix;
-            io.Right[i] = dryRight * (1 - currentMix) + polarityRight * wetRight * currentMix;
+            io.Left[i] = dryLeft * gains.Dry + polarityLeft * wetLeft * gains.Wet;
+            io.Right[i] = dryRight * gains.Dry + polarityRight * wetRight * gains.Wet;
         }
 
         cuts.FlushDenormals();

@@ -130,7 +130,8 @@ describe('channels and the Library', () => {
       column: 2,
       channels: { A: { time: 300 }, B: { time: 500 } },
       assets: {},
-      bypassMode: 'thru'
+      bypassMode: 'thru',
+      sceneIgnore: []
     };
     const modifiers = [
       { block: 'delay1', param: 'mix', source: 'lfo1', min: 0, max: 1, curve: 'linear', attackMs: 0, releaseMs: 0 },

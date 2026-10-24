@@ -17,7 +17,7 @@ import {
   type PresetBlock,
   type PresetCable
 } from '@cathode/api-client';
-import { CthBlockTile } from '@cathode/audio-ui';
+import { CthBlockTile, CthMeter } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import {
   matAddRound,
@@ -35,6 +35,7 @@ import {
 } from '@ng-icons/material-icons/round';
 import { XuiContextMenuImports } from '@xui/context-menu';
 import { XuiMenuImports } from '@xui/menu';
+import { EventStream } from '../core/events';
 import { ShortcutService } from '../shell/shortcuts';
 import { BlockFileExtension, BlockPresetsStore } from '../state/block-presets.store';
 import { CatalogStore } from '../state/catalog.store';
@@ -121,7 +122,7 @@ export function dropAction(
 @Component({
   selector: 'cth-grid-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BlockPicker, CthBlockTile, XuiContextMenuImports, XuiMenuImports],
+  imports: [BlockPicker, CthBlockTile, CthMeter, XuiContextMenuImports, XuiMenuImports],
   providers: [
     provideIcons({
       matAddRound,
@@ -221,6 +222,13 @@ export function dropAction(
                     {{ live.channelOf(block.id) }}
                   </span>
                 }
+                <cth-meter
+                  class="pointer-events-none absolute right-1 bottom-0.5 left-1"
+                  orientation="horizontal"
+                  [attr.data-testid]="'meter-' + block.id"
+                  [label]="title(block) + ' output level'"
+                  [sources]="meterSources(block.id)"
+                />
               </cth-block-tile>
             }
           } @else {
@@ -422,6 +430,19 @@ export function dropAction(
 })
 export class GridEditor {
   protected readonly live = inject(LiveStore);
+  private readonly events = inject(EventStream);
+  private readonly meters = new Map<string, ReadonlyArray<() => number>>();
+
+  /** A block tile's meter source: its output peak from the latest telemetry frame. One array per block, kept. */
+  protected meterSources(id: string): ReadonlyArray<() => number> {
+    let sources = this.meters.get(id);
+    if (!sources) {
+      sources = [() => this.events.latest?.blocks?.[id] ?? 0];
+      this.meters.set(id, sources);
+    }
+
+    return sources;
+  }
   protected readonly catalog = inject(CatalogStore);
   protected readonly ui = inject(UiStore);
   private readonly blockPresets = inject(BlockPresetsStore);

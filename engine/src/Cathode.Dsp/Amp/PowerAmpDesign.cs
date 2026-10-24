@@ -329,4 +329,10 @@ public sealed record PowerAmpDesign(
 ) {
     /// <summary>1 when single-ended, else 2.</summary>
     public int Sides => Topology == PowerTopology.SingleEnded ? 1 : 2;
+
+    /// <summary>
+    ///     The amp's bias tremolo: an oscillator swinging the grid leaks' return (<see cref="BiasTremoloDesign" />), run
+    ///     by <see cref="PowerAmp" />; null for none.
+    /// </summary>
+    public BiasTremoloDesign? BiasTremolo { get; init; }
 }

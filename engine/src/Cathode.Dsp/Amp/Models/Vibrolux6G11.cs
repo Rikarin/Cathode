@@ -32,16 +32,45 @@ namespace Cathode.Dsp.Amp.Models;
 ///         (Treble linear, Bass and Volume audio as on the drawing's "A"), the output transformer 45217 (4k assumed, as
 ///         the Vibrolux Reverb's 125A6A), the feedback tap (the two 8 Ω
 ///         10s in parallel, 4 Ω), the supply's source resistance, the 2 × 10's impedance curve (the 4 × 10 preset).
-///         Not modelled: the tremolo (a bias tremolo on the 6L6 grids through the Intensity pot: at 0), the 100 pF between
-///         the inverter's plates.
+///         Not modelled: the 100 pF between the inverter's plates.
 ///     </para>
 ///     <para>
 ///         The catalogue had this amp down for the harmonic vibrato of the 6G12; the 6G11 drawing shows a bias tremolo (an
-///         oscillator and a follower into the Intensity pot on the bias line), so it has none.
+///         oscillator and a follower into the Intensity pot on the bias line): <see cref="Tremolo" />, on the Circuit
+///         Amp's tremolo parameters (Speed, Intensity).
 ///     </para>
 /// </remarks>
 public static class Vibrolux6G11 {
     const double Preamp = 275;
+
+    /// <summary>
+    ///     The bias tremolo, from the drawing: a 12AX7 half (470k from the 364 V node, 4700 Ω with 25 µF; 190 V at the
+    ///     plate) with 0.02 µF from its plate to the Speed rheostat (3.5M reverse audio, 100k in series), 0.01 µF to a node
+    ///     with 1M to the cathode (the pedal's jack on it), 0.01 µF to the grid with 1M to ground; the other half a
+    ///     cathode follower on the plate (470k; 200 V), from its cathode 220k and 0.1 µF to the 250k audio Intensity pot,
+    ///     whose far end is the −45 V bias supply (25 µF and 47k), its wiper on the 6L6 grid leaks' return with 0.05 µF to
+    ///     ground. The follower's gain (0.99) is μR_k / (r_p + (μ + 1)R_k) at its operating point.
+    /// </summary>
+    internal static BiasTremoloDesign Tremolo { get; } = new(
+        new(
+            TriodeModel.Ecc83,
+            364,
+            470e3,
+            4.7e3,
+            0.02e-6,
+            0.01e-6,
+            0.01e-6,
+            100e3,
+            1e6,
+            1e6,
+            new(3.5e6, PotTaper.ReverseAudio)
+        ),
+        220e3,
+        0.1e-6,
+        new Pot(250e3, PotTaper.Audio),
+        WiperCap: 0.05e-6,
+        FollowerGain: 0.99
+    );
 
     public static AmpDesign Design { get; } = new(
         "Vibrolux 6G11",
@@ -75,10 +104,12 @@ public static class Vibrolux6G11 {
             SpeakerDesign.OpenBack4x10,
             new(100, 32e-6, 100, 16e-6, 10e3, 16e-6, 5.8e-3, RectifierModel.GZ34),
             InverterInput: new(0.005e-6, 1e6)
-        ),
+        ) { BiasTremolo = Tremolo },
         -5
     ) {
         Panel = new() {
+            TremoloRate = "Speed",
+            TremoloDepth = "Intensity",
             Gain = "Volume",
             Middle = null,
             Presence = null,

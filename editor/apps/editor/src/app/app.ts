@@ -3,6 +3,8 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { provideIcons } from '@ng-icons/core';
 import {
   matAddRound,
+  matGraphicEqRound,
+  matHistoryRound,
   matKeyboardRound,
   matRedoRound,
   matSaveRound,
@@ -17,15 +19,16 @@ import { XuiFormFieldImports } from '@xui/form-field';
 import { XuiIconImports } from '@xui/icon';
 import { XuiInputImports } from '@xui/input';
 import { XuiKbdImports } from '@xui/kbd';
+import { XuiMenuImports } from '@xui/menu';
 import { XuiNavbarImports } from '@xui/navbar';
 import { XuiNonIdealStateImports } from '@xui/non-ideal-state';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import { XuiSpinnerImports } from '@xui/spinner';
 import { XuiTooltipImports } from '@xui/tooltip';
-import { Notify } from './core/notify';
 import { Startup } from './core/startup';
 import { BatchSetDialog } from './shell/batch-set-dialog';
 import { EngineMeters } from './shell/engine-meters';
+import { LevelingDialog } from './shell/leveling-dialog';
 import { PreferencesDialog } from './shell/preferences-dialog';
 import { PresetMenu } from './shell/preset-menu';
 import { PresetPicker } from './shell/preset-picker';
@@ -37,6 +40,7 @@ import { Transport } from './shell/transport';
 import { TunerDialog } from './shell/tuner-dialog';
 import { CompareStore } from './state/compare.store';
 import { LiveStore } from './state/live.store';
+import { PresetSwitcher } from './state/preset-switcher';
 import { UiStore } from './state/ui.store';
 
 @Component({
@@ -48,6 +52,7 @@ import { UiStore } from './state/ui.store';
     PreferencesDialog,
     PresetMenu,
     PresetPicker,
+    LevelingDialog,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
@@ -62,6 +67,7 @@ import { UiStore } from './state/ui.store';
     XuiIconImports,
     XuiInputImports,
     XuiKbdImports,
+    XuiMenuImports,
     XuiNavbarImports,
     XuiNonIdealStateImports,
     XuiSegmentedControlImports,
@@ -71,6 +77,8 @@ import { UiStore } from './state/ui.store';
   providers: [
     provideIcons({
       matAddRound,
+      matGraphicEqRound,
+      matHistoryRound,
       matKeyboardRound,
       matRedoRound,
       matSaveRound,
@@ -119,6 +127,7 @@ import { UiStore } from './state/ui.store';
             <a xuiButton variant="ghost" size="sm" routerLink="/library" routerLinkActive="bg-active-overlay"
               >Library</a
             >
+            <a xuiButton variant="ghost" size="sm" routerLink="/scenes" routerLinkActive="bg-active-overlay">Scenes</a>
             <a xuiButton variant="ghost" size="sm" routerLink="/controllers" routerLinkActive="bg-active-overlay"
               >Controllers</a
             >
@@ -141,6 +150,26 @@ import { UiStore } from './state/ui.store';
                 <span class="text-warning" aria-label="unsaved changes"> •</span>
               }
             </button>
+            <button
+              xuiButton
+              variant="ghost"
+              size="sm"
+              aria-label="Recent presets"
+              data-testid="recent-presets"
+              [xuiTooltip]="'Recent presets'"
+              [xuiMenuTriggerFor]="recentMenu"
+            >
+              <ng-icon xui name="matHistoryRound" size="sm" />
+            </button>
+            <ng-template #recentMenu>
+              <xui-menu>
+                @for (recent of switcher.recent(); track recent.id) {
+                  <button xuiMenuItem (click)="switcher.load(recent.id, recent.name)">{{ recent.name }}</button>
+                } @empty {
+                  <button xuiMenuItem disabled>No recent presets</button>
+                }
+              </xui-menu>
+            </ng-template>
             <button
               xuiButton
               variant="ghost"
@@ -209,6 +238,17 @@ import { UiStore } from './state/ui.store';
             >
               <ng-icon xui name="matShowChartRound" size="sm" />
             </button>
+            <button
+              xuiButton
+              variant="ghost"
+              size="sm"
+              aria-label="Preset Leveling"
+              data-testid="leveling"
+              [xuiTooltip]="'Preset Leveling (loudness)'"
+              (click)="levelingOpen.set(true)"
+            >
+              <ng-icon xui name="matGraphicEqRound" size="sm" />
+            </button>
             <cth-engine-meters />
             <button
               xuiButton
@@ -267,6 +307,7 @@ import { UiStore } from './state/ui.store';
         <cth-save-block-dialog />
         <cth-batch-set-dialog />
         <cth-scope-dialog [(open)]="scopeOpen" />
+        <cth-leveling-dialog [(open)]="levelingOpen" />
         <xui-dialog title="Save preset as" icon="matSaveRound" [(open)]="saveAsOpen">
           <xui-dialog-body>
             <xui-form-field label="Name">
@@ -302,8 +343,8 @@ export class App {
   protected readonly compare = inject(CompareStore);
   protected readonly ui = inject(UiStore);
   protected readonly shortcuts = inject(ShortcutService);
-  private readonly notify = inject(Notify);
   private readonly presetPicker = viewChild(PresetPicker);
+  protected readonly switcher = inject(PresetSwitcher);
 
   /**
    * In the macOS desktop app the navbar is the title bar: it drags the window and leaves room for the traffic lights
@@ -313,6 +354,7 @@ export class App {
   private readonly fullScreen = signal(false);
   protected readonly trafficLights = computed(() => this.macWindow && !this.fullScreen());
   protected readonly scopeOpen = signal(false);
+  protected readonly levelingOpen = signal(false);
   protected readonly saveAsOpen = signal(false);
   protected readonly saveAsName = signal('');
   protected readonly abOptions = [
@@ -351,10 +393,7 @@ export class App {
     }
   }
 
-  /**
-   * The shortcuts that work on every page (docs/02-architecture.md §7.5); the grid adds the cell commands. Preset
-   * Leveling (⌘L) and Reset channel (⌘I) are waiting for the PS stream's endpoints.
-   */
+  /** The shortcuts that work on every page (docs/02-architecture.md §7.5); the grid adds the cell commands. */
   private registerShortcuts(): () => void {
     const ui = this.ui;
     const block = () => ui.block();
@@ -366,10 +405,13 @@ export class App {
       reload: () => void this.presetPicker()?.reload(),
       save: () => this.save(),
       saveAs: () => this.openSaveAs(),
-      // TODO(PS): Preset Leveling: call the PS stream's leveling endpoint once it is on master.
-      level: () => this.notify.error('Preset Leveling is not available yet.'),
-      // TODO(PS): Reset channel: call the PS stream's channel reset endpoint once it is on master.
-      channelReset: () => this.notify.error('Reset channel is not available yet.'),
+      level: () => this.levelingOpen.set(true),
+      channelReset: () => {
+        const selected = block();
+        if (selected && ui.channels(selected) > 0) {
+          void this.live.resetChannel(selected.id, this.live.channelOf(selected.id));
+        }
+      },
       channelNext: () => ui.nextChannel(),
       bypass: () => ui.toggleBypass(),
       engageAll: () => ui.allScenes({ bypassed: false }),
