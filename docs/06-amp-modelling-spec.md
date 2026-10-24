@@ -100,21 +100,44 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 | Negative Feedback | 0–10 | model | Global feedback amount | **✓** Feedback |
 | Power Tube Hardness | 0–10 | model | Knee sharpness | **S** our tubes come from Koren curves; a "hardness" knob has no circuit meaning. Revisit if matching needs it |
 | Transformer Matching | ratio (about 0.5–2 *unverified*) | model | OT impedance ratio vs stock | **E** (scales `PlateToPlate`) |
-| Speaker Impedance | × nominal | 1.0 | Load mismatch (4 Ω speaker on the 8 Ω tap) | **E** (scales the speaker load) |
+| Speaker Impedance | × nominal | 1.0 | Load mismatch (4 Ω speaker on the 8 Ω tap) | **✓** `spkimp` *Load impedance* (scales the speaker load) |
 | Bias Trem Frequency / Depth | Hz / % | depth 0 | Real bias tremolo | 🆕 **✓** `tremrate`, `tremdepth`: on the 14 models with a tremolo of their own, its circuit (Speed in hertz within the knob's range, Intensity as the knob; stream T, §3.1); elsewhere a sine on the Bias control (64-frame steps) |
 
 **Speaker page (impedance load and speaker nonlinearity)**
 
+The amp's speaker parameters model the speaker as the **electrical load** on the power amp, not as a sound, which is
+why Cathode names them *Speaker load*, *Load resonance*, *Load Q*, *Load peak*, *Load HF* and *Load impedance* (ids
+`speaker`, `spkres`, `spkq`, `spkpeak`, `spkhf`, `spkimp`, unchanged; issue #1). The split:
+
+- **Amp: the load.** A speaker's impedance is far from a flat 8 Ω: it peaks at the cone's resonance (tens of ohms
+  around 50–120 Hz) and rises with the voice coil's inductance at the top. A tube power amp has a high output
+  impedance, most of all with little or no negative feedback (AC30, tweed Deluxe), so its output voltage follows the
+  curve: more low-end thump and more treble, and the load changes how the power tubes clip and the supply sags. That
+  happens inside the amp, so it is modelled there; a linear cab IR afterwards cannot reproduce it.
+- **Cab: the acoustics.** Cone breakup, the box, the mic and its placement: what turns the amp's output voltage into
+  what a mic hears. That is the Cab block's job.
+
+*Speaker load* is Stock (the model's own load), one of five parametric presets, or **Follow Cab**: the load of the
+speaker and cabinet the next Cab block synthesises. Each DynaCab speaker carries its Thiele–Small electrical data
+(`SpeakerElectrical`: Re, Qms, Qes, Le, nominal impedance; manufacturer data where published, the class's typical
+values where not, cited per speaker in `CabCatalogue`), so the load is that speaker's own curve: Re, the motional
+resonance peaking at Re + Re·Qms/Qes, and the voice coil's semi-inductance (Wright's K(jω)^0.7, fitted to the
+datasheet Le at 1 kHz), in its enclosure (a closed box raises Fs and Qms by √(1 + Vas/Vb) per speaker and leaves the
+peak; an open back is free air) and wiring (series/parallel; the curve is normalised to the cabinet's nominal, i.e.
+the amp is on the matching tap, and Load impedance sets a mismatch). The amp follows the nearest Cab block downstream
+(breadth first through the cables, so on a split the first branch's) and in it the first unmuted DynaCab slot; with
+no Cab, or one playing only IRs, the load is Stock. The load expert knobs scale whichever curve is chosen.
+
 | Parameter | Range | Default | Physical meaning | Cathode |
 |---|---|---|---|---|
-| LF Resonance Frequency | Hz (real speakers 50–150) | model | Bass impedance peak | **E** (exists as `SpeakerDesign.Resonance`) |
-| LF Resonance Q | Q | model | Peak sharpness | **E** (`SpeakerDesign.Q`) |
-| LF Resonance (amount) | dB | model | Peak height | **E** (`PeakImpedance`) |
+| LF Resonance Frequency | Hz (real speakers 50–150) | model | Bass impedance peak | **✓** `spkres` *Load resonance* (`SpeakerDesign.Resonance`) |
+| LF Resonance Q | Q | model | Peak sharpness | **✓** `spkq` *Load Q* (`SpeakerDesign.Q`) |
+| LF Resonance (amount) | dB | model | Peak height | **✓** `spkpeak` *Load peak* (`PeakImpedance`) |
 | HF Resonance Frequency / amount | Hz (about 1–10 k) | model | Voice-coil inductance against transformer capacitance | **E** |
 | HF Slope | 3.0–4.5 typical, about 3.7 median | model | Voice-coil semi-inductance (eddy losses) | **E** (we have a "lossy voice coil": expose its exponent) |
 | Cabinet Resonance | % | model | Scales the cabinet part of the impedance curve | 🆕 ◐ `cabres`, the frequency of the Thump boost |
 | Speaker Impedance Curve | enum (82+ measured curves) | model | Measured load curves | **M** a small set of parametric presets (open-back 1×12, closed 4×12, 2×12 combo, bass 8×10). Do not copy Fractal's measured curves |
-| Auto Dyna-Cab Impedance | off/on | — | Curve follows the Cab block | **S** (couples blocks; later) |
+| Auto Dyna-Cab Impedance | off/on | — | Curve follows the Cab block | 🆕 **✓** *Speaker load: Follow Cab*: the next Cab block's DynaCab speaker and cabinet, from the speaker's own Thiele–Small data (`AutoSpeaker`, `SpeakerElectrical`) |
 | Speaker Drive | 0–10 | model | Cone distortion | 🆕 **✓** `spkdrive`: soft saturation of the band below 150 Hz at the amp's output |
 | Speaker Thump | 0–10 | 2.5 on reset | Subsonic cone nonlinearity | 🆕 **✓** `thump`: up to +12 dB at `cabres` (50–250 Hz) |
 | Speaker Compression / Speaker Time Constant | dB / ms | about 3 dB | Voice-coil thermal compression | 🆕 **✓** `spkcomp`, `spkcomptc`: voice-coil heating, an RMS power detector with its time constant |

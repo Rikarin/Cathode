@@ -87,8 +87,8 @@ public sealed record LatencyInfo(
 public sealed record TestToneRequest(bool Enabled, double Frequency = 100, float Level = -20);
 
 /// <summary>
-///     A Circuit Amp's speaker resonance: the model's (or the chosen speaker's) frequency at LF Resonance 100 %, the
-///     LF Resonance setting, and the frequency it gives.
+///     A Circuit Amp's speaker load resonance: the model's (or the chosen load's; with Follow Cab, the followed Cab's
+///     speaker's) frequency at Load resonance 100 %, the Load resonance setting, and the frequency it gives.
 /// </summary>
 public sealed record SpeakerResonanceInfo(double BaseHz, float Percent, double Hz);
 

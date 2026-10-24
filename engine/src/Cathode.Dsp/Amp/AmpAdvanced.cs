@@ -111,10 +111,32 @@ public static class AmpStacks {
 }
 
 /// <summary>
-///     The Auto speaker load (Speaker: Auto): the impedance curve of the cabinet and speaker the next Cab block
-///     synthesises (<see cref="ICabFollower" />). The curve is the closest parametric preset for the enclosure (open or
-///     closed, by its number of speakers) with its resonance moved to the speaker's in that box: its free-air Fs, raised
-///     by a closed box's air spring to Fs √(1 + V_as / V_b) per speaker.
+///     The Follow Cab speaker load (Speaker load: Follow Cab): the impedance curve of the cabinet and speaker the next
+///     Cab block synthesises (<see cref="ICabFollower" />), derived from that speaker's own electrical data
+///     (<see cref="SpeakerElectrical" />) in that enclosure (<see cref="EnclosureModel.Impedance" />):
+///     <list type="bullet">
+///         <item>
+///             the voice coil's DC resistance Re, and its semi-inductance as the power amp's lumped lossy coil
+///             (<see cref="SpeakerElectrical.LossyCoil" />: an inductance across an eddy-current resistance, matched to
+///             the semi-inductance at 1 and 5 kHz);
+///         </item>
+///         <item>
+///             the motional resonance at the system resonance: free-air Fs in an open back, Fs √(1 + Vas / Vb) in a
+///             closed box of Vb per speaker, with Qms raised by the same factor; the peak at Re + Re Qms / Qes, which
+///             the box leaves alone;
+///         </item>
+///         <item>
+///             the cabinet's wiring (<see cref="EnclosureModel.Series" />), which scales the curve by series over
+///             parallel. The amp is taken to be on the matching tap, as the presets are: the curve is normalised to
+///             the cabinet's nominal impedance (a Super Reverb's 2 Ω load on its 2 Ω tap is the 8 Ω reference's
+///             shape), and Load impedance sets a mismatch on top.
+///         </item>
+///     </list>
+///     Approximations: identical speakers, each in its own share of the box; an open back's speakers in free air
+///     (the baffle's and the neighbouring cones' air mass, which lower Fs a few per cent, are left out); the power amp's
+///     voice coil is first order (one inductance across one resistance), so the load matches the speaker's
+///     semi-inductance at 1 and 5 kHz and is within about 20 % of it between 20 Hz and 5 kHz.
+///     The table is built once (control thread); the audio thread only looks it up.
 /// </summary>
 public static class AutoSpeaker {
     static readonly SpeakerDesign[][] Table = [
@@ -127,19 +149,24 @@ public static class AutoSpeaker {
             ? Table[enclosure][speaker]
             : null;
 
-    static SpeakerDesign Design(EnclosureModel enclosure, SpeakerModel speaker) {
-        var count = enclosure.Others.Length + 1;
-        var preset = enclosure.Open
-            ? count switch {
-                1 => SpeakerDesign.OpenBack1x12,
-                2 => SpeakerDesign.OpenBack2x12,
-                _ => SpeakerDesign.OpenBack4x10
-            }
-            : count > 4 ? SpeakerDesign.Closed8x10 : SpeakerDesign.Closed4x12;
-        var resonance = enclosure.Open || enclosure.LitresPerSpeaker <= 0
-            ? speaker.Fs
-            : speaker.Fs * Math.Sqrt(1 + speaker.Vas / enclosure.LitresPerSpeaker);
-        return preset with { Resonance = resonance };
+    /// <summary>
+    ///     <paramref name="speaker" /> in <paramref name="enclosure" /> as the power amp's load, normalised to
+    ///     <see cref="SpeakerDesign.Nominal" />.
+    /// </summary>
+    public static SpeakerDesign Design(EnclosureModel enclosure, SpeakerModel speaker) {
+        var electrical = speaker.Electrical;
+        var stiffening = enclosure.Stiffening(speaker);
+        // Series over parallel scales every element alike, and normalising to the cabinet's nominal undoes it.
+        var scale = SpeakerDesign.Nominal / electrical.Nominal;
+        var (inductance, eddy) = electrical.LossyCoil();
+        return new(
+            electrical.Re * scale,
+            inductance * scale,
+            eddy * scale,
+            speaker.Fs * stiffening,
+            (electrical.Re + electrical.Res) * scale,
+            electrical.Qms * stiffening
+        );
     }
 }
 

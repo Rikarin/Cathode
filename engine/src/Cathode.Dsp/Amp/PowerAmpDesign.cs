@@ -1,3 +1,4 @@
+using System.Numerics;
 using Cathode.Dsp.Wdf;
 
 namespace Cathode.Dsp.Amp;
@@ -82,6 +83,20 @@ public sealed record SpeakerDesign(
     /// <summary>The motional resistance, inductance and capacitance of the resonance.</summary>
     public (double Resistance, double Inductance, double Capacitance) Motional =>
         MotionalOf(Resonance, PeakImpedance - Resistance, Q);
+
+    /// <summary>
+    ///     The load's impedance in ohms at <paramref name="hz" />: the voice coil's resistance, its inductance across
+    ///     the eddy-current resistance, and the motional parallel resonance, in series (control thread; for tests and
+    ///     plots).
+    /// </summary>
+    public Complex Impedance(double hz) {
+        var omega = 2 * Math.PI * hz;
+        var coil = new Complex(0, omega * Inductance);
+        coil = coil * EddyResistance / (coil + EddyResistance);
+        var (rm, lm, cm) = Motional;
+        var motional = 1 / (1 / rm + 1 / new Complex(0, omega * lm) + new Complex(0, omega * cm));
+        return Resistance + coil + motional;
+    }
 
     /// <summary>
     ///     The motional parallel RLC of a resonance at <paramref name="resonance" /> hertz peaking
