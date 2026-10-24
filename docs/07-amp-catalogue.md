@@ -9,14 +9,14 @@ Every real amp we model, plan to model, or might model, with where it stands in 
 - Add a capture you found to `engine/tests/assets/references/manifest.json` (see `docs/06-amp-modelling-spec.md` §4).
   Tone3000 ("T3K" licence) and CC BY-NC files are local-only: never commit them.
 
-Last updated: 2026-10-24 (after the four family streams and the Prometheus merged).
+Last updated: 2026-10-24 (after the second round of family streams merged).
 
 ## Status key
 
 | Status | Meaning |
 |---|---|
 | ✅ Done | A Circuit Amp type exists and is in master |
-| 🔨 In progress | A family stream is building it now |
+| 🔨 In progress | A stream is building it now |
 | 📋 Planned | On the list (spec tier 1 or 2), schematic available |
 | ⏸ Waiting | Wanted, but no reliable schematic yet: a circuit model would be guesswork. Find a schematic first |
 | 💤 Not planned | Popular, not researched yet. Candidates for later |
@@ -30,13 +30,13 @@ Last updated: 2026-10-24 (after the four family streams and the Prometheus merge
 
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Blackface (Deluxe/Twin-style, generic) | ✅ Done | Blackface (0) | — | — | 1x12 / 2x12 open back |
-| Deluxe Reverb AB763 | ✅ Done | Deluxe Reverb (12) | T3K: '68 Custom Deluxe (modified circuit) | Stock AB763 Deluxe, direct out, volume sweep | 1x12 open, Jensen C12K/C12N |
-| Twin Reverb AB763 | ✅ Done | Twin Reverb (13) | GPL: Twin Normal Bright, Twin Vibrato Bright | Settings stated; Normal without Bright | 2x12 open, JBL D120 / Jensen C12N |
-| Super Reverb AB763 | ✅ Done | Super Reverb (14) | T3K: '64 Super Reverb, 5 settings | More volume steps | 4x10 open, Jensen P10R/P10Q |
-| Princeton Reverb AA1164 | ✅ Done | Princeton Reverb (15) | GPL: Princeton clean (year unknown); T3K: '68 Custom Princeton | Stock AA1164, volume sweep | 1x10 open, Jensen P10R |
-| Bassman 5F6-A | ✅ Done | Bassman 5F6-A (16), Jumped (17) | — | Any 5F6-A / reissue, jumpered and single channel | 4x10 open, Jensen P10Q |
-| Tweed Deluxe 5E3 | ✅ Done | Tweed Deluxe 5E3 (18), Jumped (19) | T3K: 5E3 kit clone | Volume sweep, both inputs | 1x12 open, Jensen P12R/P12Q |
+| Blackface (Deluxe/Twin-style, generic) | ✅ Done | Blackface | — | — | 1x12 / 2x12 open back |
+| Deluxe Reverb AB763 | ✅ Done | Deluxe Reverb | T3K: '68 Custom Deluxe (modified circuit) | Stock AB763 Deluxe, direct out, volume sweep | 1x12 open, Jensen C12K/C12N |
+| Twin Reverb AB763 | ✅ Done | Twin Reverb | GPL: Twin Normal Bright, Twin Vibrato Bright | Settings stated; Normal without Bright | 2x12 open, JBL D120 / Jensen C12N |
+| Super Reverb AB763 | ✅ Done | Super Reverb | T3K: '64 Super Reverb, 5 settings | More volume steps | 4x10 open, Jensen P10R/P10Q |
+| Princeton Reverb AA1164 | ✅ Done | Princeton Reverb | GPL: Princeton clean (year unknown); T3K: '68 Custom Princeton | Stock AA1164, volume sweep | 1x10 open, Jensen P10R |
+| Bassman 5F6-A | ✅ Done | Bassman 5F6-A, Jumped | — | Any 5F6-A / reissue, jumpered and single channel | 4x10 open, Jensen P10Q |
+| Tweed Deluxe 5E3 | ✅ Done | Tweed Deluxe 5E3, Jumped | T3K: 5E3 kit clone | Volume sweep, both inputs | 1x12 open, Jensen P12R/P12Q |
 | Hot Rod Deluxe (III, Fender drawing 0079604000 rev B) | ✅ Done | Hot Rod Deluxe | — | Any direct-out capture (Drive and Normal, More Drive) | 1x12 open, Celestion G12P-80 |
 | Champ 5F1 | ✅ Done | Champ 5F1 | — | Volume sweep, direct out | 1x8 open |
 | Vibroverb AB763 | ✅ Done | Vibroverb AB763 | — | Direct out, both channels | 1x15 open |
@@ -48,21 +48,21 @@ Last updated: 2026-10-24 (after the four family streams and the Prometheus merge
 
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Plexi 1959 Super Lead (50 W, generic) | ✅ Done | Plexi (1) | T3K: 1959 Plexi | Jumpered and single-input captures, volume sweep | 4x12 closed, Greenback G12M |
-| Plexi 100 W / jumpered | ✅ Done | Plexi 100W (10) | T3K: 1959 Plexi | | 4x12 closed, Greenback |
-| JTM45 | ✅ Done | JTM45 (9) | — | Any JTM45 / reissue | 4x12 or 2x12 (Bluesbreaker), Greenback / Alnico |
-| JCM800 2203 | ✅ Done | JCM800 2203 (7) | T3K: 2203 (modified) | Stock 2203, gain sweep | 4x12 closed, G12T-75 / Vintage 30 |
-| JCM800 2204 | ✅ Done | JCM800 2204 (8) | — | Stock 2204 | 4x12 closed, G12T-75 |
+| Plexi 1959 Super Lead (50 W, generic) | ✅ Done | Plexi | T3K: 1959 Plexi | Jumpered and single-input captures, volume sweep | 4x12 closed, Greenback G12M |
+| Plexi 100 W / jumpered | ✅ Done | Plexi 100W | T3K: 1959 Plexi | | 4x12 closed, Greenback |
+| JTM45 | ✅ Done | JTM45 | — | Any JTM45 / reissue | 4x12 or 2x12 (Bluesbreaker), Greenback / Alnico |
+| JCM800 2203 | ✅ Done | JCM800 2203 | T3K: 2203 (modified) | Stock 2203, gain sweep | 4x12 closed, G12T-75 / Vintage 30 |
+| JCM800 2204 | ✅ Done | JCM800 2204 | — | Stock 2204 | 4x12 closed, G12T-75 |
 | Silver Jubilee 2555 | ✅ Done (factory drawing 2555 STD iss 3; relay, shunt feedback and both clippers modelled) | Silver Jubilee | — | Rhythm clip and lead (Boost) modes | 4x12 closed, G12T-75 / Vintage 30 |
 | Friedman BE-100 | ✅ Done (rev 1.5 "BE-100 v2" trace, 2014; two-way Voice as traced, later amps have three) | BE-100, BE-100 HBE | — | BE and HBE channels, Fat/C45/Sat settings | 4x12 closed, Vintage 30 / Greenback |
 | JCM900 4100 / 4502 | 📋 Planned (vector factory drawing JMP52-02 iss 11 is fully legible, values read into docs/06 §3.2; needs op-amp elements in network stages) | — | GPL: JCM900 4502 channel A gain 4–10, channel B gain 8–20 (still on the Plexi stand-in) | | 4x12 closed, G12T-75 / Vintage 30 |
-| Laney GH100L | ✅ Done | Laney GH100L (11) | GPL: Laney GH100S ×3 | | 4x12 closed, G12H-100 |
+| Laney GH100L | ✅ Done | Laney GH100L | GPL: Laney GH100S ×3 | | 4x12 closed, G12H-100 |
 | Hiwatt DR103 | ✅ Done (Mark Huss's hiwatt.org redraws: mid-70s four-input preamp, 100 W output) | Hiwatt DR103 | — (T3K: DR103 1974, local only, not mapped) | Normal/Brilliant, jumpered | 4x12 closed, Fane |
 | Orange OR50 / Rockerverb | ⏸ Waiting (only the Rockerverb 50 MkI factory sheet, 2004, marginal scan; nothing for MkII/MkIII or the OR50 reissue, MEF requests unanswered; Orange gives schematics to authorised techs only) | — | — | Reliable schematic (MkI only found) | 2x12 / 4x12 closed, Vintage 30 |
 | Marshall JVM410H (OD) | 📋 Planned (el34world `Marshall_jvm410_sch.pdf` is vector: JVM410-60-02 iss 2 and the front-panel board JVM410-61-02 with the OD tone stacks render crisp at 600 dpi; DrTube has the sheets separately) | — | GPL: pelennor "Phillipe P JVM-OD1/OD2 ... NoDrive" (not added: amp and rig not stated) | | 4x12 closed, Vintage 30 |
 | Splawn Quickrod | ⏸ Waiting (no schematic: the schems.com link is dead, an elektrotanya file is said to be the 4 × 12AX7 version; Splawn reportedly has none) | — | — | Schematic | 4x12 closed, Vintage 30 |
 | Suhr Badger / SL68 | ⏸ Waiting (an unofficial Badger 18 drawing on MEF is called inaccurate there: the real amp has a dual-ganged gain pot and a plate-driven loop; nothing for the SL68) | — | — | Schematic | 2x12 / 4x12 |
-| Marshall JMP 2204 / 2203 (1970s) | ✅ Covered by JCM800 2203 / 2204 (Marshall's 1978 drawing 78331-1, master-volume column, lists the JCM800 preamp's values) | JCM800 2203 (7), JCM800 2204 (8) | — | US (Unicord, 6550) versions | 4x12 closed |
+| Marshall JMP 2204 / 2203 (1970s) | ✅ Covered by JCM800 2203 / 2204 (Marshall's 1978 drawing 78331-1, master-volume column, lists the JCM800 preamp's values) | JCM800 2203, JCM800 2204 | — | US (Unicord, 6550) versions | 4x12 closed |
 | Marshall 18 W (1974X) | ✅ Done (PedalMonkey rev 5 drawing with voltages; tremolo off) | 18 W 1974X | — | Both channels, volume sweep | 2x10 / 1x12 open |
 | Marshall Major 1967 | 📋 Planned (Unicord drawing c.1970: el34world `Marshall_Unicord_Model_1967_circa1970.jpg`, plus layout) | — | — | | 4x12 closed |
 | Marshall DSL / JCM2000 | 📋 Planned (factory DSL100 main board JCM2-60-02 iss 3–9 and DSL50 DL50-60-02 on drtube.com; TSL100 TL10-60-02 vector on el34world) | — | GPL: pelennor "Tim R JCM2000 Clean / Crunch / L2 G6 / L2 G8" (DSL or TSL not stated; not added) | | 4x12 closed |
@@ -73,19 +73,19 @@ Last updated: 2026-10-24 (after the four family streams and the Prometheus merge
 
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
-| AC30 Top Boost | ✅ Done (JMI OS/010, OS/065 values) | AC30 (2) | T3K: AC30S1 gain sweep | AC30 TB / C2 / HW direct out | 2x12 open, Celestion Blue / Alnico |
-| AC30 Normal channel | ✅ Done | AC30 (2), Switch 1 "Normal Ch" | — | | 2x12 open, Blue |
-| AC15 (EF86) | ✅ Done (mixing and cut assumed) | AC15 (3) | GPL: AC15 Top Boost; T3K: AC15C1 Normal (6 settings) and Top Boost | Vintage EF86 channel captures | 1x12 open, Blue / G12M |
-| Matchless DC-30 | ✅ Done | DC-30 (4) | GPL: Matchless SC30 channel 1 | DC-30 both channels | 2x12 open, G12H30 / Vintage 30 |
-| Dumble Overdrive Special | ✅ Done (a 1997 ODS 100, traced: clean and overdrive) | ODS 97 (28) | GPL: Dumble kit low/high, Dumble clone clean/medium/high (all mapped, knobs fitted) | Real ODS captures with settings; the 1970s ODS (Rock/Jazz, Deep) and HRM circuits | 1x12 / 2x12 open, EV12L |
+| AC30 Top Boost | ✅ Done (JMI OS/010, OS/065 values) | AC30 | T3K: AC30S1 gain sweep | AC30 TB / C2 / HW direct out | 2x12 open, Celestion Blue / Alnico |
+| AC30 Normal channel | ✅ Done | AC30, Switch 1 "Normal Ch" | — | | 2x12 open, Blue |
+| AC15 (EF86) | ✅ Done (mixing and cut assumed) | AC15 | GPL: AC15 Top Boost; T3K: AC15C1 Normal (6 settings) and Top Boost | Vintage EF86 channel captures | 1x12 open, Blue / G12M |
+| Matchless DC-30 | ✅ Done | DC-30 | GPL: Matchless SC30 channel 1 | DC-30 both channels | 2x12 open, G12H30 / Vintage 30 |
+| Dumble Overdrive Special | ✅ Done (a 1997 ODS 100, traced: clean and overdrive) | ODS 97 | GPL: Dumble kit low/high, Dumble clone clean/medium/high (all mapped, knobs fitted) | Real ODS captures with settings; the 1970s ODS (Rock/Jazz, Deep) and HRM circuits | 1x12 / 2x12 open, EV12L |
 | Two-Rock (Dumble-style) | ⏸ Waiting (no schematic published; the ODS work does not carry over without one) | — | (Dumble captures above) | Schematic or trace | 1x12 / 2x12 open |
-| Bad Cat Hot Cat / Black Cat | ✅ Done (Hot Cat 30, both inputs; Black Cat ⏸: no schematic, Bad Cat never published one) | Hot Cat 30 (27) | — | Hot Cat 30 captures, Gain and Clean inputs | 2x12 open |
+| Bad Cat Hot Cat / Black Cat | ✅ Done (Hot Cat 30, both inputs; Black Cat ⏸: no schematic, Bad Cat never published one) | Hot Cat 30 | — | Hot Cat 30 captures, Gain and Clean inputs | 2x12 open |
 | Dr Z Maz 18 | ⏸ Waiting (searched 2026-10: no schematic or trace; specs only: 2 x EL84 cathode bias, 5AR4) | — | — | Schematic | 1x12 / 2x12 open |
 | Morgan AC20 / SW | ⏸ Waiting (searched 2026-10: no schematic; specs only: EF86 or 12AX7 channel, 2 x EL84, GZ34) | — | — | Schematic | 1x12 open |
-| Matchless Chieftain | ✅ Done (factory drawing 1994 plus a measured trace) | Chieftain (26) | — | Captures with settings | 2x12 open, G12H30 |
+| Matchless Chieftain | ✅ Done (factory drawing 1994 plus a measured trace) | Chieftain | — | Captures with settings | 2x12 open, G12H30 |
 | Divided by 13 | ⏸ Waiting (searched 2026-10: no schematic or trace for the JRT 9/15, CJ 11 or FTR 37) | — | — | Schematic | 1x12 / 2x12 |
 | Budda Superdrive | ⏸ Waiting (searched 2026-10: no schematic or trace) | — | — | Schematic | 2x12 |
-| Trainwreck Express | ✅ Done (redraw A1a of the schematicheaven collection, hearsay: medium confidence) | Express (29) | — | Captures with settings; a measured trace | 2x12 / 4x12 |
+| Trainwreck Express | ✅ Done (redraw A1a of the schematicheaven collection, hearsay: medium confidence) | Express | — | Captures with settings; a measured trace | 2x12 / 4x12 |
 | Supro (1960s) | 💤 Not planned | — | — | | 1x12 open |
 | Gibson GA-40 Les Paul | 💤 Not planned | — | — | | 1x12 open |
 | Magnatone (Custom 280 / 15) | 💤 Not planned | — | — | | 2x12 open |
@@ -97,15 +97,15 @@ Last updated: 2026-10-24 (after the four family streams and the Prometheus merge
 
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Soldano SLO-100 | ✅ Done | SLO-100 (20): OD channel; Switch 1 the normal channel (Crunch, Bright) | GPL: Soldano crunch and high (model not stated); T3K: SLO-100 pack | Normal channel clean and crunch captures; OD gain sweep | 4x12 closed, Vintage 30 / G12T-75 |
-| Mesa/Boogie Mark IIC+ | ✅ Done | Mark IIC+ (21), lead | GPL: IIC+ Drive-knob model, IIC+ Drive 8; T3K: IIC+ pack | EQ in and out, Lead Drive sweep | 1x12 / 4x12 closed, EVM12L / Vintage 30 |
-| Peavey 5150 / 6505 | ✅ Done (lead); rhythm ⏸ | 5150 (22), lead | GPL: 5150 block letter, 6505+ red (two sources) | Rhythm channel: its network is on the factory "Initial Preamp Stage" page, but the relay states (K1, K2, K4) per channel and crunch setting are on a page the excerpts lack; a full factory set or a trace of the switching logic | 4x12 closed, Sheffield / Vintage 30 |
-| EVH 5150III | ✅ Done | 5150III (24), red | T3K: 5150III OB1 v2 | Blue and red channels | 4x12 closed, G12EVH / Vintage 30 |
-| Mesa/Boogie Dual Rectifier | ✅ Done | Dual Rectifier (23), red | GPL: Mini Rectifier (not the same amp) | Dual/Triple Rec, modern and vintage modes, tube vs SS rectifier | 4x12 closed, Vintage 30 |
+| Soldano SLO-100 | ✅ Done | SLO-100: OD channel; Switch 1 the normal channel (Crunch, Bright) | GPL: Soldano crunch and high (model not stated); T3K: SLO-100 pack | Normal channel clean and crunch captures; OD gain sweep | 4x12 closed, Vintage 30 / G12T-75 |
+| Mesa/Boogie Mark IIC+ | ✅ Done | Mark IIC+, lead | GPL: IIC+ Drive-knob model, IIC+ Drive 8; T3K: IIC+ pack | EQ in and out, Lead Drive sweep | 1x12 / 4x12 closed, EVM12L / Vintage 30 |
+| Peavey 5150 / 6505 | ✅ Done (lead); rhythm ⏸ | 5150, lead | GPL: 5150 block letter, 6505+ red (two sources) | Rhythm channel: its network is on the factory "Initial Preamp Stage" page, but the relay states (K1, K2, K4) per channel and crunch setting are on a page the excerpts lack; a full factory set or a trace of the switching logic | 4x12 closed, Sheffield / Vintage 30 |
+| EVH 5150III | ✅ Done | 5150III, red | T3K: 5150III OB1 v2 | Blue and red channels | 4x12 closed, G12EVH / Vintage 30 |
+| Mesa/Boogie Dual Rectifier | ✅ Done | Dual Rectifier, red | GPL: Mini Rectifier (not the same amp) | Dual/Triple Rec, modern and vintage modes, tube vs SS rectifier | 4x12 closed, Vintage 30 |
 | Bogner Ecstasy | ⏸ Waiting (only a modded "83K" redraw and an OD-channel-only redraw of unknown version; no 100B/101B or 20th Anniversary drawing found) | — | GPL: Ecstasy Blue *pedal* (not the amp) | Blue/red channels; a stock 100B/101B schematic | 4x12 closed, Vintage 30 / Greenback |
 | Diezel VH4 (ch 3) | ⏸ Waiting (a 2005 factory sheet gives the topology but no values; an owner's trace gives the stacks only; the clone redraws disagree) | — | — | Channel 3 and 4 values | 4x12 closed, Vintage 30 |
-| Mesa/Boogie Mark IV (lead) | ✅ Done | Mark IV (25), lead | GPL: Mark IV | Settings stated | 1x12 / 4x12 closed |
-| Carvin Legacy VL100 | ✅ Done (factory schematic) | Legacy VL100 (26): lead; Switch 1 the clean channel | — | Any VL100 capture, settings stated (Vai: Drive 7.5, Bass 6, Mid 4, Treble 8, Presence 8) | 4x12 / 2x12 closed, Vintage 30 |
+| Mesa/Boogie Mark IV (lead) | ✅ Done | Mark IV, lead | GPL: Mark IV | Settings stated | 1x12 / 4x12 closed |
+| Carvin Legacy VL100 | ✅ Done (factory schematic) | Legacy VL100: lead; Switch 1 the clean channel | — | Any VL100 capture, settings stated (Vai: Drive 7.5, Bass 6, Mid 4, Treble 8, Presence 8) | 4x12 / 2x12 closed, Vintage 30 |
 | Mesa/Boogie Lone Star | ✅ Done (factory drawing) | Lone Star, both channels (Switch 1 "Channel 2", Switch 2 "Drive Mode") | — | Clean/edge channels, 50 W mode | 1x12 / 2x12 open |
 | Bogner Uberschall | ⏸ Waiting (two redraws that disagree on the stack topology and several caps) | — | — | A factory drawing or a third trace | 4x12 closed |
 | Diezel Herbert | ⏸ Waiting (nothing found; the service manual gives only the tube functions) | — | — | Schematic | 4x12 closed |
@@ -164,9 +164,9 @@ built from the documented features and fitted to captures.
 
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Ampeg SVT (1970, 6550) | ✅ Done (channel one; power-amp nodes and OT assumed) | SVT (26) | — (no free capture found) | Direct-out captures with settings, Ultra Lo, each Mid Freq | 8x10 closed |
-| Ampeg B-15-N Portaflex (1968) | ✅ Done (channel one) | Portaflex B-15N (27) | — | Direct-out captures, Ultra Lo / Hi | 1x15 closed |
-| Roland JC-120 (1984 board) | ✅ Done (effect channel, effects off; solid state) | JC-120 (28) | — | Direct-out captures, volume sweep | 2x12 open |
+| Ampeg SVT (1970, 6550) | ✅ Done (channel one; power-amp nodes and OT assumed) | SVT | — (no free capture found) | Direct-out captures with settings, Ultra Lo, each Mid Freq | 8x10 closed |
+| Ampeg B-15-N Portaflex (1968) | ✅ Done (channel one) | Portaflex B-15N | — | Direct-out captures, Ultra Lo / Hi | 1x15 closed |
+| Roland JC-120 (1984 board) | ✅ Done (effect channel, effects off; solid state) | JC-120 | — | Direct-out captures, volume sweep | 2x12 open |
 | Fender Bassman 100 / 135 (bass) | 📋 Planned (CBS factory drawing 014283 of the 135 found and readable: Bass and Normal channels with Deep and Bright, 12AT7 LTP, 4 × 6L6GC ultralinear; not built for time) | — | — | Schematic of the 100; captures | 4x12 / 2x15 |
 | Marshall Valvestate 8080 / 8100 | 📋 Planned (Marshall drawings PC0689 issue 5 and PC0689P issue 9, vector PDFs at schematicheaven: every value readable; op-amp and LED-clipper front end, one ECC83, a TL072-driven class-AB power amp with current feedback; not built for time) | — | — | Captures | 1x12 / 4x12 closed |
 
@@ -179,17 +179,45 @@ the B-15 runs on the Circuit Amp's closed 8 × 10 speaker curve.
 
 ## Counts
 
-| Status | Amps |
+Counted over every table in this file, including the two sections added from Fractal's lists.
+
+| Status | Rows |
 |---|---|
-| ✅ Done | 24 amps (26 Circuit Amp types, 0–25) |
-| 🔨 In progress | 0 |
-| 📋 Planned | 5 |
-| ⏸ Waiting on a schematic or better data | 20 |
-| 💤 Not planned yet | 31 |
+| ✅ Done | 55 |
+| 📋 Planned (schematic found, not built yet) | 25 |
+| ⏸ Waiting on a schematic or better data | 56 |
+| 💤 Not researched yet | 3 |
+
+### Circuit Amp types by index
+
+The Circuit Amp block has 57 types. The "Cathode type" column above names them; this is their order in the Type list.
+
+| # | Type | # | Type | # | Type |
+|---|---|---|---|---|---|
+| 0 | Blackface | 19 | Tweed Deluxe 5E3 Jumped | 38 | Portaflex B-15N |
+| 1 | Plexi | 20 | SLO-100 | 39 | JC-120 |
+| 2 | AC30 | 21 | Mark IIC+ | 40 | Hot Rod Deluxe |
+| 3 | AC15 | 22 | 5150 | 41 | Champ 5F1 |
+| 4 | DC-30 | 23 | Dual Rectifier | 42 | Vibroverb AB763 |
+| 5 | Prometheus | 24 | 5150III | 43 | Vibrolux Reverb AA964 |
+| 6 | Prometheus Clean | 25 | Mark IV | 44 | Bandmaster AB763 |
+| 7 | JCM800 2203 | 26 | Legacy VL100 | 45 | Tweed Twin 5F8-A |
+| 8 | JCM800 2204 | 27 | Chieftain | 46 | Tweed Twin 5F8-A Jumped |
+| 9 | JTM45 | 28 | Hot Cat 30 | 47 | Tremolux AA763 |
+| 10 | Plexi 100W | 29 | ODS 97 | 48 | Princeton 5F2-A |
+| 11 | Laney GH100L | 30 | Express | 49 | Princeton AA964 |
+| 12 | Deluxe Reverb | 31 | Lone Star | 50 | Vibro-King |
+| 13 | Twin Reverb | 32 | Mark V | 51 | Blues Junior |
+| 14 | Super Reverb | 33 | Rect-o-Verb | 52 | BE-100 |
+| 15 | Princeton Reverb | 34 | Triple Rectifier | 53 | BE-100 HBE |
+| 16 | Bassman 5F6-A | 35 | Powerball | 54 | Silver Jubilee |
+| 17 | Bassman 5F6-A Jumped | 36 | Savage 120 | 55 | 18 W 1974X |
+| 18 | Tweed Deluxe 5E3 | 37 | SVT | 56 | Hiwatt DR103 |
 
 Match quality against the references is in `docs/06-amp-modelling-spec.md` (as-built notes per family) and in the
-manifest's targets. No model reaches the spec's ESR targets yet except the Prometheus clean channel; references with
-stated knob settings (the Tone3000 packs you fetch by hand) are the main thing that would tighten them.
+manifest's targets. Only the Prometheus clean channel reaches the spec's ESR target; captures with stated knob settings
+(the Tone3000 packs you fetch by hand) are the main thing that would tighten the others. Most models added in the second
+round have no free capture at all and rest on their schematics alone.
 
 ---
 
@@ -238,7 +266,7 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 
 | Amp | Status | Cathode type | Axe models | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Dumble ODS (HRM and Robben Ford versions) | 📋 Planned (1970s ODS preamp, overdrive and power redraws on schematicheaven `dumbleamps/`, with Rock/Jazz and Deep; no HRM drawing found) | ODS 97 (28) is a 1997 ODS 100 | ODS-100 Clean / HRM / HRM Mid / Ford 1, 2, Mid | HRM schematic | 1x12 / 2x12 open |
+| Dumble ODS (HRM and Robben Ford versions) | 📋 Planned (1970s ODS preamp, overdrive and power redraws on schematicheaven `dumbleamps/`, with Rock/Jazz and Deep; no HRM drawing found) | ODS 97 is a 1997 ODS 100 | ODS-100 Clean / HRM / HRM Mid / Ford 1, 2, Mid | HRM schematic | 1x12 / 2x12 open |
 | Fuchs Overdrive Supreme | ⏸ Waiting (searched 2026-10: no schematic) | — | Fox ODS, Fox ODS Deep | Schematic | 1x12 / 2x12 open |
 | Two-Rock Jet 35 | ⏸ Waiting (searched 2026-10: no schematic) | — | Two Stone J35 1 / 2 | Schematic | 1x12 open |
 | Bludotone Ojai | ⏸ Waiting (searched 2026-10: no schematic; said to follow Robben Ford's "Tan" Dumble) | — | Bludojai Clean / Lead 1 / Lead 2 | Schematic | 1x12 / 2x12 open |
@@ -247,8 +275,8 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 | Divided by 13 CJ 11 / FTR 37 | ⏸ Waiting (see the Divided by 13 row) | — | Div/13 CJ, CJ Boost, FT37 High / Low | Schematic | 1x12 / 2x12 |
 | Dr Z Route 66 / MAZ 8 / MAZ 38 SR | ⏸ Waiting (see the Dr Z row) | — | Mr Z Hwy 66, MZ-8, MZ-38 | Schematic | 1x12 / 2x12 open |
 | Morgan AC20 Deluxe | ⏸ Waiting (see the Morgan row) | — | AC-20 12AX7 / EF86, Bass / Treble | Schematic | 1x12 open |
-| Bad Cat Hot Cat 30 | ✅ Done | Hot Cat 30 (27) | Hot Kitty | Captures | 2x12 open |
-| Matchless Chieftain | ✅ Done | Chieftain (26) | Boutique 1 / 2 | Captures | 2x12 open |
+| Bad Cat Hot Cat 30 | ✅ Done | Hot Cat 30 | Hot Kitty | Captures | 2x12 open |
+| Matchless Chieftain | ✅ Done | Chieftain | Boutique 1 / 2 | Captures | 2x12 open |
 | Trainwreck Liverpool | 📋 Planned (schematicheaven `newamps/trainwreck_liverpool.pdf`: a builder's drawing of two amps, the Express preamp with 4 x EL84 and feedback; two coupling values were "tuned" per amp) | — | Wrecker Liverpool | | 2x12 |
 | Trainwreck Rocket | ⏸ Waiting (only DIY drafts behind the ampgarage login) | — | Wrecker Rocket | Schematic | 1x12 / 2x12 |
 | Komet 60 / Concorde | ⏸ Waiting (drawings only behind the ampgarage login; Komet restricts them) | — | Comet 60, Comet Concourse | Schematic | 2x12 / 4x12 |
@@ -265,7 +293,7 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 | Mesa/Boogie JP-2C | ⏸ Waiting (no drawing found; the Mark IIC+ model covers its channel 3 circuit) | — | USA JP IIC+ Green / Yellow / Red | | 4x12 closed |
 | Mesa/Boogie Triple Crown TC-100 | ⏸ Waiting (no drawing found) | — | Triple Crest 2 / 3 | | 4x12 closed |
 | Mesa/Boogie Subway Blues | 📋 Planned (factory drawing on el34world: Boogie_subwayblues.pdf; not read yet) | — | USA Sub Blues | | 1x10 open |
-| Mesa/Boogie Dual Rectifier, 2- and 3-channel revisions | 📋 Planned (factory scans of both on el34world; the current model follows a redraw of the 2-channel one) | Dual Rectifier (23) covers one; Triple Rectifier | Recto1 / Recto2 Orange / Red, Thordendal | | 4x12 closed, Vintage 30 |
+| Mesa/Boogie Dual Rectifier, 2- and 3-channel revisions | 📋 Planned (factory scans of both on el34world; the current model follows a redraw of the 2-channel one) | Dual Rectifier covers one; Triple Rectifier | Recto1 / Recto2 Orange / Red, Thordendal | | 4x12 closed, Vintage 30 |
 | Soldano X88R preamp | ⏸ Waiting (a legible single-sheet redraw, "SOLDANO X88R" 13 Jul 2002, on el34world, Soldano_x88r.pdf; its origin is unknown and owners doubt it; not built) | — | Solo 88 Clean / Rhythm / Lead | A second source to confirm the redraw | 4x12 closed |
 | Soldano/Caswell X99 preamp | ⏸ Waiting (a legible scan of a hand-labelled drawing on el34world, Soldano_x99.pdf, no title block; Fractal says its rhythm channel is the SLO-100's; not built) | — | Solo 99 Clean / Lead | Confirm the drawing; a power amp to pair it with (Fractal uses the SLO's) | 4x12 closed |
 | CAE 3+ SE preamp | ⏸ Waiting (a schematic of unknown origin is a GroupDIY attachment, thread 51582, which refused automated access; not read) | — | CA3+ Clean / Rhythm / Lead | Read the GroupDIY drawing | 4x12 closed |
