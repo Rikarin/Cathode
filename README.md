@@ -53,7 +53,7 @@ Each release lists `SHA256SUMS` to check the downloads against.
 |---|---|
 | macOS | ✅ CoreAudio and CoreMIDI |
 | Linux | 🚧 ALSA (and JACK) in progress |
-| Windows | 🚧 Not yet (ASIO planned); the app runs, but without audio |
+| Windows | ◐ WASAPI and WinMM MIDI, early: tested on shared-mode output only (exclusive mode and inputs still need a real interface); ASIO planned |
 
 Without a working audio driver, Cathode runs on a silent "null" backend: you can build and edit presets, but you will
 not hear them.
