@@ -178,6 +178,13 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             }
         }
 
+        // Blocks that follow a Cab block (an amp's Auto speaker load): the first Cab reached through their outputs.
+        foreach (var n in order) {
+            if (slotOfNode[n] >= 0 && blocks[slotOfNode[n]] is ICabFollower follower) {
+                follower.FollowCab(DownstreamCab(n, consumers, live, slotOfNode, blocks));
+            }
+        }
+
         var emitter = new PlanEmitter();
         var bufferOf = new int[nodes.Count];
         var readersLeft = new int[nodes.Count];
@@ -488,6 +495,34 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         }
 
         return (inputs, consumers);
+    }
+
+    /// <summary>The first live Cab block downstream of node <paramref name="start" />, breadth first; null for none.</summary>
+    static CabBlock? DownstreamCab(
+        int start,
+        List<int>[] consumers,
+        bool[] live,
+        int[] slotOfNode,
+        List<IDspBlock> blocks
+    ) {
+        var queue = new Queue<int>(consumers[start]);
+        var seen = new HashSet<int> { start };
+        while (queue.Count > 0) {
+            var n = queue.Dequeue();
+            if (!seen.Add(n) || !live[n]) {
+                continue;
+            }
+
+            if (slotOfNode[n] >= 0 && blocks[slotOfNode[n]] is CabBlock cab) {
+                return cab;
+            }
+
+            foreach (var next in consumers[n]) {
+                queue.Enqueue(next);
+            }
+        }
+
+        return null;
     }
 
     /// <summary>A node is live when it is reachable from an input and can reach an output.</summary>
