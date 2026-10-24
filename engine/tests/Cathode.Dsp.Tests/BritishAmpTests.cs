@@ -71,7 +71,7 @@ public partial class AmpStageTests {
 public class BritishAmpTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
-    static readonly string[] Models = ["BE-100", "BE-100 HBE", "Silver Jubilee"];
+    static readonly string[] Models = ["BE-100", "BE-100 HBE", "Silver Jubilee", "18 W 1974X"];
 
     public static TheoryData<string> Types => [..Models];
 
@@ -112,14 +112,20 @@ public class BritishAmpTests(ITestOutputHelper output) {
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {
         Assert.Equal("Sat", Label("bright", "BE-100"));
-        Assert.Equal(["Fat", "C45", "Voice"], new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "BE-100 HBE")));
+        Assert.Equal(["Fat", "C45", "Voice"], Switches("BE-100 HBE"));
+        Assert.Equal(["Boost", "Rhythm Clip", "Low Power"], Switches("Silver Jubilee"));
+        Assert.Equal("Lead Master", Label("control1", "Silver Jubilee"));
+        Assert.Empty(Label("depth", "BE-100"));
+        Assert.Equal("Tone", Label("treble", "18 W 1974X"));
+        Assert.Empty(Label("master", "18 W 1974X"));
         foreach (var type in Models) {
             Assert.Empty(Label("cut", type));
-            Assert.Equal("Treble", Label("treble", type));
+            Assert.NotEmpty(Label("treble", type));
         }
-
-        Assert.Empty(Label("depth", "BE-100"));
     }
+
+    static IEnumerable<string> Switches(string type) =>
+        new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, type));
 
     /// <summary>Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.</summary>
     [Theory]
@@ -204,7 +210,7 @@ public class BritishAmpTests(ITestOutputHelper output) {
             return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)));
         }
 
-        foreach (var knob in new[] { CircuitAmpBlock.Gain, CircuitAmpBlock.Master }) {
+        foreach (var knob in new[] { CircuitAmpBlock.Gain, CircuitAmpBlock.Master }.Where(k => Controls(type).Contains(k))) {
             var levels = new[] { 0f, 2.5f, 5f, 7.5f, 10f }.Select(v => Level(knob, v)).ToArray();
             output.WriteLine($"{type} knob {knob}: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB");
             for (var i = 1; i < levels.Length; i++) {
