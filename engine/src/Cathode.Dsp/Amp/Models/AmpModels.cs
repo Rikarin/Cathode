@@ -9,7 +9,9 @@ public sealed partial record AmpDesign {
     public static IReadOnlyList<AmpDesign> All { get; } = [
         Models.Blackface.Design,
         Models.Plexi.Design,
-        Models.AC30.Design
+        Models.AC30.Design,
+        Models.AC15.Design,
+        Models.DC30.Design
     ];
 
     public static AmpDesign Blackface => Models.Blackface.Design;

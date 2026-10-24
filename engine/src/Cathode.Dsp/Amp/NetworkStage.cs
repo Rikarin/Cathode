@@ -73,6 +73,24 @@ public sealed record StageElement(ElementKind Kind, int A, int B, double Value) 
     public int Forward { get; init; }
 
     public int Reverse { get; init; }
+
+    /// <summary>
+    ///     A rotary selector's values (<see cref="StageNetlist.SelectedCapacitor" />), the first at the knob's zero and
+    ///     the last at ten; null for none.
+    /// </summary>
+    public double[]? Steps { get; init; }
+
+    /// <summary>
+    ///     The value at <paramref name="controls" />, before pots and expert settings: a selector's step, a switched
+    ///     element's on or off value (0: absent), or the value.
+    /// </summary>
+    public double ValueAt(in AmpControls controls) {
+        if (Steps is { Length: > 0 } steps) {
+            return steps[(int)Math.Round(Math.Clamp(controls.Rotation(Role), 0, 1) * (steps.Length - 1))];
+        }
+
+        return Switch is not { } role || controls.IsOn(role) ? Value : OffValue;
+    }
 }
 
 /// <summary>
@@ -141,6 +159,19 @@ public sealed class StageNetlist {
         double off = 0
     ) =>
         Add(new(ElementKind.Capacitor, a, b, farads) { OffValue = off, Switch = role, CapacitorRole = capacitorRole });
+
+    /// <summary>
+    ///     A capacitor chosen by a rotary switch turned by <paramref name="role" />'s knob: <paramref name="steps" />
+    ///     spread over its rotation (the Matchless DC-30's six-way tone switch of coupling caps).
+    /// </summary>
+    public void SelectedCapacitor(
+        int a,
+        int b,
+        double[] steps,
+        PotRole role,
+        CapacitorRole capacitorRole = CapacitorRole.Plain
+    ) =>
+        Add(new(ElementKind.Capacitor, a, b, steps[0]) { Steps = steps, Role = role, CapacitorRole = capacitorRole });
 
     public void Inductor(int a, int b, double henries) => Add(new(ElementKind.Inductor, a, b, henries));
 
@@ -501,7 +532,7 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
                 return e.Cathode ? ohms * settings.CathodeResistor : ohms;
             }
             case ElementKind.Capacitor: {
-                var farads = on ? e.Value : e.OffValue > 0 ? e.OffValue : Off;
+                var farads = e.ValueAt(controls) is var f && f > 0 ? f : Off;
                 return e.CapacitorRole switch {
                     CapacitorRole.Bright => farads * settings.BrightCap,
                     CapacitorRole.Stack => farads / settings.StackFrequency,
