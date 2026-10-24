@@ -16,7 +16,9 @@ namespace Cathode.Dsp.Blocks;
 ///     <para>
 ///         Rotor speed approaches its target exponentially; the acceleration and deceleration times are the time to
 ///         come within 5 % of the new speed (three time constants). With Tempo set, the horn turns once per division
-///         and the drum keeps the ratio its own rates have at that speed.
+///         and the drum keeps the ratio its own rates have at that speed. Low Rate Multiplier scales the drum against
+///         the horn: every drum rate (its Slow, Fast and tempo-locked speeds) is multiplied by it, 1 keeping the rates
+///         as set.
 ///     </para>
 ///     <para>
 ///         At 100 % Mic Distance the mics are far away: the path length varies as the cosine of the rotor angle, and
@@ -53,6 +55,7 @@ public sealed class RotaryBlock() : DspBlock(Info) {
     public const int MicDistance = 23;
     public const int StereoSpread = 24;
     public const int InputSelect = 25;
+    public const int LowRateMultiplier = 26;
 
     public const int Slow = 0;
     public const int Fast = 1;
@@ -125,7 +128,8 @@ public sealed class RotaryBlock() : DspBlock(Info) {
             ParamDescriptor.Float("drumSpread", "LF Mic Spacing", 0f, 180f, 120f, "°"),
             ParamDescriptor.Float("micDistance", "Mic Distance", 0f, 100f, 100f, "%"),
             ParamDescriptor.Float("stereoSpread", "Stereo Spread", -100f, 100f, 100f, "%"),
-            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions)
+            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
+            ParamDescriptor.Float("lowRateMult", "Low Rate Multiplier", 0.25f, 4f, 1f, "×", ParamTaper.Log)
         ],
         maxInstances: 2
     );
@@ -180,7 +184,7 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         var speed = (int)Params.Current(Speed);
         var fast = speed == Fast;
         hornRate = speed == Brake ? 0 : Params.Current(fast ? HornFast : HornSlow);
-        drumRate = speed == Brake ? 0 : Params.Current(fast ? DrumFast : DrumSlow);
+        drumRate = speed == Brake ? 0 : Params.Current(fast ? DrumFast : DrumSlow) * Params.Current(LowRateMultiplier);
         hornPhase = 0;
         drumPhase = DrumStartPhase;
         mix = Params.Current(Mix) / 100f;
@@ -204,7 +208,8 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         var speed = (int)Params.Current(Speed);
         var fast = speed == Fast;
         var hornTarget = (double)Params.Advance(fast ? HornFast : HornSlow, n);
-        var drumTarget = (double)Params.Advance(fast ? DrumFast : DrumSlow, n);
+        var drumTarget = (double)Params.Advance(fast ? DrumFast : DrumSlow, n)
+            * Params.Advance(LowRateMultiplier, n);
         Params.Advance(fast ? HornSlow : HornFast, n);
         Params.Advance(fast ? DrumSlow : DrumFast, n);
         var tempo = (int)Params.Current(Tempo);
