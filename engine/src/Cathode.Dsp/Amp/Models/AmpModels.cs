@@ -81,7 +81,13 @@ public sealed partial record AmpDesign {
         Models.JCM900.Design,
         Models.JCM900.Head100,
         Models.Valvestate8080.Design,
-        Models.JVM410H.Design
+        Models.JVM410H.Design,
+        Models.Concert6G12.Design,
+        Models.Super6G4.Design,
+        Models.Deluxe6G3.Design,
+        Models.Vibrolux6G11.Design,
+        Models.Bassman135.Design,
+        Models.GibsonScout.Design
     ];
 
     public static AmpDesign Blackface => Models.Blackface.Design;
