@@ -94,13 +94,47 @@ public class RoutingTests {
     }
 
     [Fact]
-    public void A_preset_has_at_most_one_feedback_send() {
+    public void A_preset_has_at_most_one_feedback_send_per_pair() {
         var definition = Feedback(0f);
-        definition.Nodes.Add(Node("send2", "fbsend", 2, 2));
+        definition.Nodes.Add(Node("send1", "fbsend", 2, 2)); // pair 1, like "send"
 
         var error = Assert.Throws<GraphValidationException>(() => Compiler.Compile(definition, Spec));
 
-        Assert.Contains(error.Errors, static e => e.Contains("at most one Feedback Send", StringComparison.Ordinal));
+        Assert.Contains(error.Errors, static e => e.Contains("at most one Feedback Send per pair", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Two_feedback_pairs_are_matched_by_the_number_their_ids_end_in() {
+        // Pair 1 at -6 dB on rows 1-2, pair 2 at -12 dB on rows 3-4: each return repeats only its own send.
+        var definition = Graph(
+            [
+                Node("in", NodeTypes.Input, 0, 0),
+                Node("fbreturn1", "fbreturn", 0, 1),
+                Node("fbsend1", "fbsend", 1, 2, ("level", -6.0206f)),
+                Node("shunt1", NodeTypes.Shunt, 0, 2),
+                Node("fbreturn2", "fbreturn", 2, 1),
+                Node("fbsend2", "fbsend", 3, 2, ("level", -12.0412f)),
+                Node("shunt2", NodeTypes.Shunt, 2, 2),
+                Node("out", NodeTypes.Output, 0, 3)
+            ],
+            ("in", "fbreturn1"),
+            ("fbreturn1", "fbsend1"),
+            ("fbreturn1", "shunt1"),
+            ("shunt1", "out"),
+            ("in", "fbreturn2"),
+            ("fbreturn2", "fbsend2"),
+            ("fbreturn2", "shunt2"),
+            ("shunt2", "out")
+        );
+
+        var output = Run(definition, Signals.Impulse(512));
+
+        // Both rows pass the impulse, then each repeats at its own level once per 64-sample block.
+        Assert.Equal(2f, output[0], 1e-5f);
+        Assert.Equal(0.5f + 0.25f, output[64], 2e-3f);
+        Assert.Equal(0.25f + 0.0625f, output[128], 2e-3f);
+        Assert.Equal(1, GraphCompiler.FeedbackPair("fbsend"));
+        Assert.Equal(2, GraphCompiler.FeedbackPair("fbreturn2"));
     }
 
     [Fact]

@@ -77,7 +77,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             );
         }
 
-        var (send, ret) = PairFeedback(nodes, slotOfNode, blocks, spec, errors);
+        var feedbackPairs = PairFeedback(nodes, slotOfNode, blocks, spec, errors);
 
         var modifiers = new List<ModifierBinding>();
         foreach (var modifier in definition.Modifiers) {
@@ -116,13 +116,13 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
 
         // Plain loops from here on: this runs on every preset load in a process that must not collect.
         // A send feeds its return without a cable: link them for liveness only, not for ordering or latency.
-        if (send >= 0 && ret >= 0) {
+        foreach (var (send, ret) in feedbackPairs) {
             consumers[send].Add(ret);
             inputs[ret].Add(send);
         }
 
         var live = FindLiveNodes(definition, inputs, consumers);
-        if (send >= 0 && ret >= 0) {
+        foreach (var (send, ret) in feedbackPairs) {
             consumers[send].Remove(ret);
             inputs[ret].Remove(send);
         }
@@ -315,41 +315,55 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
     }
 
     /// <summary>
-    ///     Connects the preset's Feedback Send to its Feedback Return through a shared <see cref="FeedbackBus" />.
-    ///     Returns their node indices (-1 when absent).
+    ///     Connects each Feedback Send to its Feedback Return through a shared <see cref="FeedbackBus" />. A preset has
+    ///     up to two pairs; a send and a return pair when their ids end in the same number (<c>fbsend2</c> feeds
+    ///     <c>fbreturn2</c>; an id without a number counts as 1). Returns the node indices of each complete pair.
     /// </summary>
-    static (int Send, int Return) PairFeedback(
+    static List<(int Send, int Return)> PairFeedback(
         List<NodeDefinition> nodes,
         int[] slotOfNode,
         List<IDspBlock> blocks,
         ProcessSpec spec,
         List<string> errors
     ) {
-        int send = -1, ret = -1;
+        var sends = new Dictionary<int, int>();
+        var returns = new Dictionary<int, int>();
         for (var n = 0; n < nodes.Count; n++) {
             var block = slotOfNode[n] >= 0 ? blocks[slotOfNode[n]] : null;
-            if (block is FeedbackSendBlock) {
-                if (send >= 0) {
-                    errors.Add($"Node '{nodes[n].Id}': a preset has at most one Feedback Send.");
-                }
-
-                send = n;
-            } else if (block is FeedbackReturnBlock) {
-                if (ret >= 0) {
-                    errors.Add($"Node '{nodes[n].Id}': a preset has at most one Feedback Return.");
-                }
-
-                ret = n;
+            var found = block switch {
+                FeedbackSendBlock => sends,
+                FeedbackReturnBlock => returns,
+                _ => null
+            };
+            if (found is not null && !found.TryAdd(FeedbackPair(nodes[n].Id), n)) {
+                var kind = block is FeedbackSendBlock ? "Feedback Send" : "Feedback Return";
+                errors.Add(
+                    $"Node '{nodes[n].Id}': a preset has at most one {kind} per pair ({kind} {FeedbackPair(nodes[n].Id)} is '{nodes[found[FeedbackPair(nodes[n].Id)]].Id}')."
+                );
             }
         }
 
-        if (send >= 0 && ret >= 0) {
-            var bus = new FeedbackBus(spec.MaxBlockSize);
-            ((FeedbackSendBlock)blocks[slotOfNode[send]]).Bus = bus;
-            ((FeedbackReturnBlock)blocks[slotOfNode[ret]]).Bus = bus;
+        var pairs = new List<(int Send, int Return)>();
+        foreach (var (pair, send) in sends) {
+            if (returns.TryGetValue(pair, out var ret)) {
+                var bus = new FeedbackBus(spec.MaxBlockSize);
+                ((FeedbackSendBlock)blocks[slotOfNode[send]]).Bus = bus;
+                ((FeedbackReturnBlock)blocks[slotOfNode[ret]]).Bus = bus;
+                pairs.Add((send, ret));
+            }
         }
 
-        return (send, ret);
+        return pairs;
+    }
+
+    /// <summary>The feedback pair an instance id names: its trailing number, or 1.</summary>
+    public static int FeedbackPair(string id) {
+        var start = id.Length;
+        while (start > 0 && char.IsAsciiDigit(id[start - 1])) {
+            start--;
+        }
+
+        return start < id.Length && int.TryParse(id.AsSpan(start), out var pair) ? pair : 1;
     }
 
     /// <summary>When the latest live input arrives, in samples of path latency (0 without live inputs).</summary>
