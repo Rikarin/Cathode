@@ -15,7 +15,8 @@ namespace Cathode.Dsp.Amp.Models;
 /// </summary>
 /// <remarks>
 ///     Unverified: the 6L6 idle current (35 mA; the drawing gives a −48 V bias supply), the supply's source resistance,
-///     and the cabinet's impedance curve (the closed-back preset). The vibrato (intensity at 0) is not modelled.
+///     and the cabinet's impedance curve (the closed-back preset). The vibrato is the AB763's
+///     (<see cref="Ab763.Vibrato" />), on the Circuit Amp's tremolo parameters.
 /// </remarks>
 public static class Bandmaster {
     public static AmpDesign Design { get; } = new(

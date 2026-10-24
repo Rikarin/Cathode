@@ -27,8 +27,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         the drawing's −26 V with 365 V screens, past the tube's 14 W rating), the supply's source resistance. Inferred:
 ///         which end of the Tone pot is "up" (the 500 pF end: brighter turned up). The idle channel loads the mix through
 ///         its 220k and its Volume (at the same setting), its coupling cap and its plate (220k ‖ r_p, about 48k). Not
-///         modelled: the tremolo (a bias tremolo on the 6V6 grids: intensity at 0), the 100 pF between the inverter's
-///         plates.
+///         modelled: the 100 pF between the inverter's plates. The bias tremolo is <see cref="Tremolo" />, on the Circuit
+///         Amp's tremolo parameters (Speed, Intensity).
 ///     </para>
 /// </remarks>
 public static class Deluxe6G3 {

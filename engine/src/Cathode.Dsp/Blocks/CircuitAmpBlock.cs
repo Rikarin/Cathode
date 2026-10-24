@@ -128,7 +128,12 @@ namespace Cathode.Dsp.Blocks;
 ///             <b>Output Comp</b> (Off, Output, Feedback) with amount, threshold and clarity (<see cref="AmpCompressor" />
 ///             ).
 ///         </item>
-///         <item><b>Bias Trem Rate</b>, <b>Bias Trem Depth</b> (0 %): an LFO on the output tubes' bias, per sub-block.</item>
+///         <item>
+///             <b>Bias Trem Rate</b>, <b>Bias Trem Depth</b> (0 %): on a model with a tremolo of its own
+///             (<see cref="AmpChannel.HasTremolo" />: a bias tremolo in its power amp, an optical vibrato, the 18 W's
+///             oscillating tube), that tremolo's Speed in hertz (held to its knob's range) and its Intensity (the knob's
+///             rotation; the panel names them); elsewhere an LFO on the output tubes' bias, per sub-block.
+///         </item>
 ///         <item><b>Balance</b> (0 %) on the stereo output.</item>
 ///     </list>
 ///     <para>

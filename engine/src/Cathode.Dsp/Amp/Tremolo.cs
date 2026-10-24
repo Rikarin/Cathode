@@ -107,7 +107,11 @@ public sealed record PhaseShiftOscillatorDesign(
     }
 
     /// <summary>The slowest and fastest rates the Speed knob reaches, in hertz.</summary>
-    public (double Slowest, double Fastest) RateRange() => (Table.Rates[0], Table.Rates[^1]);
+    public (double Slowest, double Fastest) RateRange() => (Table.Rates[Table.First], Table.Rates[Table.Last]);
+
+    /// <summary>The Speed rotations between which it oscillates (a ladder with too much loss stalls at an end).</summary>
+    public (double From, double To) RunningRange() =>
+        (Table.First / (double)(Points - 1), Table.Last / (double)(Points - 1));
 
     /// <summary>The grid's peak swing at Speed rotation <paramref name="speed" />, volts (0 if it cannot oscillate).</summary>
     public double GridSwing(double speed) => OscillatorTable.At(Table.Amplitudes, speed * (Points - 1));
@@ -186,6 +190,12 @@ sealed class OscillatorTable {
     /// <summary>The cathode's bias voltage at the operating point.</summary>
     public readonly double Bias;
 
+    /// <summary>The first rotation where the oscillator runs (a ladder with too much loss at an end of the Speed knob stalls).</summary>
+    public int First { get; }
+
+    /// <summary>The last rotation where it runs.</summary>
+    public int Last { get; }
+
     public OscillatorTable(PhaseShiftOscillatorDesign design) {
         var (current, plateVolts, cathode) = design.OperatingPoint();
         Bias = cathode;
@@ -228,21 +238,30 @@ sealed class OscillatorTable {
                 Plate[p * PhaseShiftOscillatorDesign.Harmonics + k - 1] = Harmonic(wave, k);
             }
         }
+
+        First = Array.FindIndex(Amplitudes, static a => a > 0);
+        Last = Array.FindLastIndex(Amplitudes, static a => a > 0);
+        if (First < 0 || First == Last) {
+            throw new ArgumentException("The oscillator does not oscillate over the Speed knob's travel.", nameof(design));
+        }
     }
 
-    /// <summary>The table position (fractional rotation index) of the rate nearest <paramref name="hertz" />.</summary>
+    /// <summary>
+    ///     The table position (fractional rotation index) of the rate nearest <paramref name="hertz" />, within the
+    ///     rotations where the oscillator runs (<see cref="First" /> to <see cref="Last" />).
+    /// </summary>
     public double Position(double hertz) {
-        if (!(hertz > Rates[0])) {
-            return 0;
+        if (!(hertz > Rates[First])) {
+            return First;
         }
 
-        for (var p = 1; p < Rates.Length; p++) {
+        for (var p = First + 1; p <= Last; p++) {
             if (hertz <= Rates[p]) {
                 return p - 1 + (hertz - Rates[p - 1]) / (Rates[p] - Rates[p - 1]);
             }
         }
 
-        return Rates.Length - 1;
+        return Last;
     }
 
     /// <summary>A table column interpolated at <paramref name="position" />.</summary>

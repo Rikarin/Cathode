@@ -32,12 +32,12 @@ namespace Cathode.Dsp.Amp.Models;
 ///         (Treble linear, Bass and Volume audio as on the drawing's "A"), the output transformer 45217 (4k assumed, as
 ///         the Vibrolux Reverb's 125A6A), the feedback tap (the two 8 Ω
 ///         10s in parallel, 4 Ω), the supply's source resistance, the 2 × 10's impedance curve (the 4 × 10 preset).
-///         Not modelled: the tremolo (a bias tremolo on the 6L6 grids through the Intensity pot: at 0), the 100 pF between
-///         the inverter's plates.
+///         Not modelled: the 100 pF between the inverter's plates.
 ///     </para>
 ///     <para>
 ///         The catalogue had this amp down for the harmonic vibrato of the 6G12; the 6G11 drawing shows a bias tremolo (an
-///         oscillator and a follower into the Intensity pot on the bias line), so it has none.
+///         oscillator and a follower into the Intensity pot on the bias line): <see cref="Tremolo" />, on the Circuit
+///         Amp's tremolo parameters (Speed, Intensity).
 ///     </para>
 /// </remarks>
 public static class Vibrolux6G11 {

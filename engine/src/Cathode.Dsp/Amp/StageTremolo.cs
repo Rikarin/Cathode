@@ -79,8 +79,10 @@ public sealed record OpticalTremoloDesign(
 ) : StageTremoloDesign {
     static readonly ConditionalWeakTable<OpticalTremoloDesign, LampTable> Tables = new();
 
+    static readonly LdrDesign Roach = new();
+
     /// <summary>The photocell.</summary>
-    public LdrDesign Cell => Ldr ?? new();
+    public LdrDesign Cell => Ldr ?? Roach;
 
     /// <summary>The lamp's current over a cycle and the driver's bias, per Speed rotation (built on first use).</summary>
     internal LampTable Lamp => Tables.GetValue(this, static d => new(d));

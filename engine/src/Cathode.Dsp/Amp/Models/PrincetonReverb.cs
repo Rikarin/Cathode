@@ -9,7 +9,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     0.1 µF into a cathodyne phase inverter on half a 12AX7 (56k plate, 56k cathode, 1k bias), two 6V6GT in fixed bias
 ///     with no grid stoppers or screen resistors, on a 5U4GB and a 20 µF can with no choke, 2.7k feedback from the
 ///     speaker.
-///     No bright, middle, master or presence; reverb and the bias tremolo are not modelled. Sources: Rob Robinette,
+///     No bright, middle, master or presence; the reverb is not modelled; the bias tremolo is
+///     <see cref="Tremolo" />. Sources: Rob Robinette,
 ///     "AA1164 Princeton Reverb" (robrobinette.com): three fully bypassed stages, the cathodyne's 56k/56k/1k, 0.1 µF in,
 ///     the 3.3M/470k divider, 2.7k feedback, the 20/20/20/20 µF can; music-electronics-forum (2.7k into 47 Ω under the
 ///     stage before the inverter); docs/06 §3.1.

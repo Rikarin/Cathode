@@ -16,8 +16,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     Vibrato channel's 0.02 µF into the 3.3M ‖ 10 pF reverb mix resistor, V4B, its 0.1 µF and 220k. The channel not
 ///     played still loads the mix node through its own 220k: V4B's plate (in the circuit) when the Normal channel plays;
 ///     a resistor standing for the idle V1B plate (r_p ‖ 100k, about 38k) when the Vibrato channel plays. Reverb (its
-///     knob at 0: its pot's wiper at ground, so the 470k from V4B's grid goes to ground) and the vibrato (intensity at 0:
-///     its LDR dark) are not modelled.
+///     knob at 0: its pot's wiper at ground, so the 470k from V4B's grid goes to ground) is not modelled; the vibrato is
+///     <see cref="Vibrato" /> on the mixing network.
 /// </remarks>
 static class Ab763 {
     /// <summary>A 12AX7's grid-to-plate capacitance (datasheet: 1.7 pF).</summary>
@@ -141,7 +141,7 @@ static class Ab763 {
     ///     The mixing network of the AB763 amps without reverb (Bandmaster, Tremolux, Vibrolux): the Normal channel's
     ///     0.047 µF, the Vibrato channel's 0.1 µF, each into its 220k mixing resistor; the idle channel's second-stage plate
     ///     (<see cref="IdlePlate" />) loads the mix node through its own. The vibrato's LDR, which shunts the Vibrato
-    ///     channel's cap-resistor junction, is dark with the intensity at 0 and left out.
+    ///     channel's cap-resistor junction, is <see cref="Vibrato" />.
     /// </summary>
     public static NetworkStageDesign VibratoMixer() {
         var net = new StageNetlist();

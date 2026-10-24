@@ -28,8 +28,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         transformer TF 18-01
 ///         at the 6AQ5 datasheet's 10k plate to plate for push-pull class AB1; the supply's source resistance; the 1 × 12
 ///         open-back preset for the 1 × 10. The two 330k-returned grid leaks act as 220k for the push-pull signal. Not
-///         modelled: the reverb (at 0) and the tremolo (its bias modulation through R34 1M into the grid leaks' return,
-///         switched off by the footswitch).
+///         modelled: the reverb (at 0). The tremolo is a bias tremolo into the grid leaks' return (<see cref="Tremolo" />):
+///         Speed and Depth on the Circuit Amp's tremolo parameters, Depth 0 its footswitch off.
 ///     </para>
 /// </remarks>
 public static class GibsonScout {

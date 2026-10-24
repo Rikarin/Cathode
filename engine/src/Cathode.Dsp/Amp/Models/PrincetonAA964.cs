@@ -7,8 +7,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     the fixed-mid Fender stack on its plate (no coupling cap) and the 1M volume on the treble wiper, V1B (100k,
 ///     1.5k ‖ 25 µF over the 47 Ω the feedback returns to), 0.022 µF into a cathodyne on half a 12AX7 (56k plate, 56k
 ///     cathode, 1k bias, its 1M grid leak to the bias junction), two 6V6GT in fixed bias with no grid stoppers or screen
-///     resistors, at 420 V on a GZ34, 2.7k feedback from the speaker. Panel: Volume, Treble, Bass. The tremolo
-///     (intensity at 0) is not modelled.
+///     resistors, at 420 V on a GZ34, 2.7k feedback from the speaker. Panel: Volume, Treble, Bass, and the bias
+///     tremolo's Speed and Intensity (<see cref="Tremolo" />).
 /// </summary>
 /// <remarks>
 ///     <para>

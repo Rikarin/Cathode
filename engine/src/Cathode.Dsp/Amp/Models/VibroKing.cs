@@ -9,7 +9,7 @@ namespace Cathode.Dsp.Amp.Models;
 ///     beside it), V4B (100k, 1.5k ‖ 0.47 µF) with the Fender stack on its plate (150 pF, 100k slope, 0.047 µF bass,
 ///     0.022 µF mid; 250k treble and bass, 25k mid), 100k and 0.01 µF into a 12AX7 long-tail pair (91k/100k, 820 Ω, 39k
 ///     tail), two 6L6GC in fixed bias at 465 V on a silicon bridge, and no global feedback. Panel: Volume, Treble, Bass,
-///     Middle, Fat. Reverb (Mix at its dry end) and vibrato (intensity at 0) are not modelled.
+///     Middle, Fat. Reverb (Mix at its dry end) is not modelled; the vibrato is <see cref="Vibrato" />.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -24,8 +24,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     </para>
 ///     <para>
 ///         With the Mix control at its dry end the follower drives V4A directly; the reverb's wet network on the pot's
-///         other
-///         end and the vibrato's LDR (about 5M with the intensity at 0) on the stack's 100k are left out. Unverified: the
+///         other end is left out, and so is the Intensity pot's 250k track on the stack's output (the vibrato acts
+///         relative to the dark cell: see <see cref="OpticalTremoloDesign" />). Unverified: the
 ///         pot
 ///         tapers (not on the drawing: volume, treble and bass audio, mid linear, as on the AB763s), the output
 ///         transformer

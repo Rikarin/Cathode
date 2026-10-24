@@ -16,10 +16,12 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         The inverter is the mixer: the Normal volume drives V2A's grid through 0.01 µF, the Tremolo volume V2B's
 ///         through 0.022 µF. Each channel here drives the inverter's input; the idle channel's grid is taken as AC
-///         ground (in the amp it sits on the idle volume's wiper). The tremolo is off: the footswitch grounds V3B's grid,
+///         ground (in the amp it sits on the idle volume's wiper). With the tremolo stopped the footswitch grounds V3B's grid,
 ///         so V3B idles on the shared cathode (820 plus the 1k Intensity rheostat, at half here) and its plate current
 ///         through the shared 100k sets V3A's supply; the phase-shift network's 0.05 µF decouples that node, the rest of
-///         it is left out. The Normal Tone grounds its wiper: turned up, it grounds the 100k's foot (thinner, brighter);
+///         it is left out. Running, V3B oscillates and its current moves V3A's supply and cathode:
+///         <see cref="Oscillator" /> drives V3B's grid in a copy of the channel's netlist (<see cref="GridDriveTremoloDesign" />),
+///         on the Circuit Amp's tremolo parameters (Speed, and Depth for the oscillation's swing). The Normal Tone grounds its wiper: turned up, it grounds the 100k's foot (thinner, brighter);
 ///         down, the 0.01 µF's foot (darker); that direction is assumed.
 ///     </para>
 ///     <para>
@@ -127,7 +129,7 @@ public static class Marshall18W {
     }
 
     /// <summary>
-    ///     The Tremolo channel with the tremolo off: V3A (68k, 1M; 220k from the node V3B's plate shares through 100k;
+    ///     The Tremolo channel (its tremolo on <see cref="GridDriveTremoloDesign" />), stopped: V3A (68k, 1M; 220k from the node V3B's plate shares through 100k;
     ///     the shared cathode, 820 plus half the 1k Intensity, with 50 µF), V3B's grid grounded; 0.005 µF, 470k to
     ///     ground, 0.005 µF to the Volume's top and through 470 pF to the Tone, whose foot has 0.005 µF to ground; the
     ///     Tone's and the Volume's wipers are joined (the output).

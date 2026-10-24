@@ -16,7 +16,8 @@ namespace Cathode.Dsp.Amp.Models;
 /// <remarks>
 ///     The drawing shows no 1.5k grid stoppers on the 6L6s; this model has none (1 Ω). Unverified: the 6L6 idle current
 ///     (35 mA; the drawing gives −45 V at the grids), the supply's source resistance, the cabinet's impedance curve (the
-///     4 × 10 preset stands in for the closed 2 × 10). The tremolo (intensity at 0) is not modelled.
+///     4 × 10 preset stands in for the closed 2 × 10). The tremolo is the AB763's optical
+///     vibrato (<see cref="Ab763.Vibrato" />, its lamp driver on 56k), on the Circuit Amp's tremolo parameters.
 /// </remarks>
 public static class Tremolux {
     public static AmpDesign Design { get; } = new(
