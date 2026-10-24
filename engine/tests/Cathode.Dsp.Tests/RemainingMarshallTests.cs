@@ -24,7 +24,12 @@ public partial class AmpStageTests {
             { "JVM410H Clean/Crunch", 4, 0.0005, -30 },
             { "JVM410H Clean/Crunch", 1, 0.005, -30 },
             { "JVM410H Clean/Crunch", 3, 0.001, -30 },
-            { "JVM410H Clean/Crunch", 5, 0.0005, -30 }
+            { "JVM410H Clean/Crunch", 5, 0.0005, -30 },
+            { "DSL100", 0, 0.01, -30 },
+            { "DSL100", 2, 0.002, -30 },
+            { "DSL100", 1, 0.001, -30 },
+            { "DSL100", 3, 0.0005, -30 },
+            { "DSL100", 7, 0.0005, -30 }
         };
 
     /// <summary>The stages <paramref name="controls" /> play, nested channel switches resolved.</summary>
@@ -106,7 +111,8 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
     /// <summary>Each type with the switch settings (bits: Switch 1, 2, 3) that select its channels and modes.</summary>
     static readonly (string Type, int[] Settings)[] Models = [
         ("JVM410H OD", [0, 2, 4, 1, 3, 5]),
-        ("JVM410H Clean/Crunch", [0, 2, 4, 1, 3, 5])
+        ("JVM410H Clean/Crunch", [0, 2, 4, 1, 3, 5]),
+        ("DSL100", [0, 2, 1, 3, 4])
     ];
 
     public static TheoryData<string, int> Settings {
@@ -140,6 +146,42 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
             Assert.Empty(Label("cut", type));
             Assert.Empty(Label("bright", type));
         }
+
+        Assert.Equal(
+            ["Ultra Gain", "Crunch / Lead 2", "Tone Shift"],
+            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "DSL100"))
+        );
+        Assert.Equal("Volume", Label("master", "DSL100"));
+        Assert.Equal("Deep", Label("depth", "DSL100"));
+        Assert.Empty(Label("control1", "DSL100"));
+    }
+
+    /// <summary>
+    ///     The DSL100's mode switches raise the gain below clipping (Classic Clean to Crunch, Lead 1 to Lead 2), and the
+    ///     Ultra Gain channel has more than the Classic Gain one; Tone Shift scoops the middle (750 Hz) against the
+    ///     treble (3 kHz).
+    /// </summary>
+    [Fact]
+    public void Dsl100_modes_and_tone_shift_do_what_the_handbook_says() {
+        double Level(float hz, params (int, float)[] switches) {
+            using var block = Create("DSL100", [(CircuitAmpBlock.Gain, 5f), (CircuitAmpBlock.Master, 3f), ..switches]);
+            var rendered = BlockRender.Mono(block, Signals.Sine(hz, Rate, 24_000, 0.0005f), 64);
+            return Analysis.ToDb(Analysis.MagnitudeAt(rendered.AsSpan(12_000).ToArray(), hz, Rate));
+        }
+
+        var clean = Level(440);
+        var crunch = Level(440, (CircuitAmpBlock.Switch2, 1f));
+        var lead1 = Level(440, (CircuitAmpBlock.Switch1, 1f));
+        var lead2 = Level(440, (CircuitAmpBlock.Switch1, 1f), (CircuitAmpBlock.Switch2, 1f));
+        output.WriteLine($"clean {clean:0.0}, crunch {crunch:0.0}, lead 1 {lead1:0.0}, lead 2 {lead2:0.0} dB");
+        Assert.True(crunch > clean + 3);
+        Assert.True(lead1 > crunch);
+        Assert.True(lead2 > lead1);
+
+        var scoop = Level(750) - Level(3_000);
+        var shifted = Level(750, (CircuitAmpBlock.Switch3, 1f)) - Level(3_000, (CircuitAmpBlock.Switch3, 1f));
+        output.WriteLine($"750 Hz against 3 kHz: {scoop:0.0} dB, with Tone Shift {shifted:0.0} dB");
+        Assert.True(shifted < scoop - 2);
     }
 
     /// <summary>

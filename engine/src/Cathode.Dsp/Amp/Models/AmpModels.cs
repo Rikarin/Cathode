@@ -90,6 +90,7 @@ public sealed partial record AmpDesign {
         Vibrolux6G11.Design,
         Bassman135.Design,
         GibsonScout.Design,
-        JVM410H.CleanCrunch
+        JVM410H.CleanCrunch,
+        Dsl100.Design
     ];
 }
