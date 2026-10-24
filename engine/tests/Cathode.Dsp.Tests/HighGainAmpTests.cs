@@ -19,21 +19,33 @@ namespace Cathode.Dsp.Tests;
 ///     Rectifier's chain, which has no plate cap.
 /// </remarks>
 public partial class AmpStageTests {
-    public static TheoryData<string, double, double> ColdClipperChains => new() {
-        { "SLO-100", 0.002, -22 },
-        { "SLO-100", 0.05, -14 },
-        { "5150", 0.002, -25 },
-        { "5150", 0.05, -20 },
-        { "Dual Rectifier", 0.05, -50 },
-        { "5150III", 0.05, -6 }
+    public static TheoryData<string, bool, double, double> ColdClipperChains => new() {
+        { "SLO-100", false, 0.002, -22 },
+        { "SLO-100", false, 0.05, -14 },
+        { "SLO-100", true, 0.002, -28 },
+        { "SLO-100", true, 0.05, -28 },
+        { "5150", false, 0.002, -25 },
+        { "5150", false, 0.05, -20 },
+        { "Dual Rectifier", false, 0.05, -50 },
+        { "5150III", false, 0.05, -6 },
+        { "Legacy VL100", false, 0.002, -21 },
+        { "Legacy VL100", false, 0.05, -14 },
+        { "Legacy VL100", true, 0.05, -45 }
     };
 
+    /// <summary>
+    ///     The first four stages of the channel <paramref name="switched" /> selects (Switch 1 on: a channel switch's
+    ///     other channel), or as many as it has.
+    /// </summary>
     [Theory]
     [MemberData(nameof(ColdClipperChains))]
-    public void Cold_clipper_chains_match_the_reference(string type, double amplitude, double limitDb) {
+    public void Cold_clipper_chains_match_the_reference(string type, bool switched, double amplitude, double limitDb) {
         var design = AmpDesign.All.Single(a => a.Name == type);
-        var designs = design.Preamp.Take(4).ToArray();
-        var controls = new AmpControls(0.5, 0.5, 0.5, 0.5, 1, false);
+        var designs = design.Preamp
+            .SelectMany(s => s is ChannelSwitchStageDesign c ? switched ? c.On : c.Off : [s])
+            .Take(4)
+            .ToArray();
+        var controls = new AmpControls(0.5, 0.5, 0.5, 0.5, 1, false, Switch1: switched);
 
         var stages = designs.Select(static d => d.Create(Rate)).ToArray();
         var (rest, resistance) = (0.0, 0.0);
@@ -57,7 +69,7 @@ public partial class AmpStageTests {
         }
 
         var errorDb = CompareInTime(
-            $"{type} {string.Join(" > ", designs.Select(static d => d.Name))}",
+            $"{type}{(switched ? " (switched)" : "")} {string.Join(" > ", designs.Select(static d => d.Name))}",
             x => {
                 foreach (var stage in stages) {
                     x = stage.Tick(x);
@@ -127,7 +139,7 @@ public class HighGainAmpTests(ITestOutputHelper output) {
             Assert.Equal("Treble", Label("treble", type));
         }
 
-        Assert.Empty(Label("switch1", "SLO-100"));
+        Assert.Equal("Normal Ch", Label("switch1", "SLO-100"));
         Assert.Empty(Label("eq1", "5150"));
     }
 
