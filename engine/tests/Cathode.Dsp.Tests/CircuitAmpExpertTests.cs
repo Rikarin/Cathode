@@ -19,6 +19,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         IReadOnlyList<string>? Labels(string id) => parameters.Single(p => p.Id == id).TypeLabels;
         string Label(AmpDesign design, string id) => Labels(id)![AmpDesign.All.ToList().IndexOf(design)];
 
+        Assert.Equal(["Gain", "Gain", "Gain"], Labels("gain")!.Take(3));
         Assert.Equal(["", "", "Cut"], Labels("cut")!.Take(3));
         Assert.Equal(["Middle", "Middle", ""], Labels("middle")!.Take(3));
         Assert.All(Labels("switch1")!.Take(2), static l => Assert.Empty(l));
@@ -34,6 +35,13 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         Assert.Equal("Volume", Label(Amp.Models.DC30.Design, "gain"));
         Assert.Equal("Tone (Ch 2)", Label(Amp.Models.DC30.Design, "control1"));
         Assert.Equal("Master", Label(Amp.Models.DC30.Design, "master"));
+
+        // The Marshall family's.
+        Assert.Equal("Preamp", Label(Amp.Models.JCM2203.Design, "gain"));
+        Assert.Equal("Low Input", Label(Amp.Models.JCM2203.Design, "switch1"));
+        Assert.Equal("Jumper", Label(Amp.Models.JTM45.Design, "switch1"));
+        Assert.Equal("", Label(Amp.Models.JTM45.Design, "master"));
+        Assert.Equal("Drive", Label(Amp.Models.LaneyGH100L.Design, "control1"));
     }
 
     [Fact]
@@ -102,7 +110,9 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                     // without a 12AX7 or a tone stack (the AC15's EF86 channel), the speaker preset the amp has anyway.
                     var tube = new[] { null, "6L6GC", "EL34", "EL84", "6V6GT", "KT66", "KT88", "6550" }[
                         index == CircuitAmpBlock.PowerTube ? (int)value : 0];
+                    // And the bright cap of an amp without one (the Laney's drive channel).
                     var audible = !(index == CircuitAmpBlock.CathodeTime && !design.Power.CathodeBias)
+                        && !(index == CircuitAmpBlock.BrightCap && design == Amp.Models.LaneyGH100L.Design)
                         && !(index == CircuitAmpBlock.PowerTube && design.Power.Name.Contains(tube ?? "-", StringComparison.Ordinal))
                         && !(index is CircuitAmpBlock.PresenceFrequency or CircuitAmpBlock.DepthFrequency && !design.Power.HasFeedback)
                         && !(index == CircuitAmpBlock.MasterTrim && design.Panel.Master is null)

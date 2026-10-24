@@ -268,7 +268,7 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
 ///     solved by Newton's method per sample. Its operating point comes from a DC solve of the same netlist
 ///     (capacitors open, inductors shorted, Newton with source stepping, allocation-free), and its output resistance
 ///     from the circuit linearised there at 1 kHz magnitudes (each capacitor and inductor as the resistance of its
-///     reactance), for the next stage's Thévenin cut.
+///     reactance), for the next stage's Thévenin cut; turning a knob or a switch recomputes it there.
 /// </summary>
 public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INonlinearDevice {
     const double Off = 1e-15; // a switched-off capacitor
@@ -300,6 +300,7 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
     double supplyScale = 1;
     double outputResistance;
     double restOutput;
+    bool solved;
 
     public NetworkStageDesign Design => design;
 
@@ -480,6 +481,7 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
 
         restOutput = Rest(design.Netlist.Output);
         outputResistance = SmallSignalOutputResistance();
+        solved = true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -513,8 +515,15 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
             }
         }
 
-        if (changed) {
-            root.Propagate();
+        if (!changed) {
+            return;
+        }
+
+        root.Propagate();
+        if (solved) {
+            // A pot or switch in the output's path moves its resistance (a volume's wiper, a switched input): the next
+            // stage reads it for its Thévenin cut. The operating point stays (pots and switches sit behind coupling caps).
+            outputResistance = SmallSignalOutputResistance();
         }
     }
 

@@ -13,7 +13,12 @@ public sealed partial record AmpDesign {
         Models.AC15.Design,
         Models.DC30.Design,
         Models.Prometheus.Design,
-        Models.PrometheusClean.Design
+        Models.PrometheusClean.Design,
+        Models.JCM2203.Design,
+        Models.JCM2204.Design,
+        Models.JTM45.Design,
+        Models.SuperLead100.Design,
+        Models.LaneyGH100L.Design
     ];
 
     public static AmpDesign Blackface => Models.Blackface.Design;
