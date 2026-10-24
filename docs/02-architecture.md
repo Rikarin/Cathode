@@ -422,7 +422,7 @@ The editor's software-editor features, built in the ED stream. They follow Fract
   - Handlers register per page. The app owns the preset, scene, channel, block, edit and tuner commands. The grid owns the cell commands (Q, ⌘X/C/V/D/U, Delete), because it knows the focused cell.
   - Nothing fires while focus is in a text field.
   - ⌥ held, or F1, shows Block Info.
-  - B is channel B on a block that has channels; on any other block it still bypasses.
+  - B keeps its old job, bypass, as an alias of Space. Channel B is therefore ⇧B; A, C and D need no ⇧.
   - A unit test checks that no two bindings collide and that none clashes with Electron's default menu, which is the only menu the desktop app has.
 - **Preferences** (`PreferencesStore`) are kept in local storage, per user and per machine: knob mode, wheel, tooltips, meter rate, and the default Circuit Amp view.
   - They reach `cth-knob` and `cth-meter` through audio-ui's `CTH_KNOB_PREFERENCES` and `CTH_METER_PREFERENCES` tokens.

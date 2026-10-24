@@ -904,9 +904,9 @@ These come from Fractal's software-editor documentation rather than the Blocks G
 - **Keyboard.**
   - Presets: P picker, ⌘PgUp/PgDn, ⌘G go to a preset or bank slot, F5 reload, ⌘S and ⇧⌘S save.
   - Scenes: ⌘1–8.
-  - Channels: A–D, and X for the next channel.
+  - Channels: A, ⇧B, C and D (B stays the bypass alias), and X for the next channel.
   - Blocks:
-    - Space (or B on a block without channels) bypasses or engages.
+    - Space (or B) bypasses or engages.
     - ⇧Space engages and ⇧⌘Space bypasses, in every scene.
     - ⌘X cut, ⌘D disconnect, ⌘U shunt, ⌘B save to the Library, G global, Q add or replace.
     - ⌥ held or F1 shows Block Info.
