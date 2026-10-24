@@ -28,6 +28,7 @@ namespace Cathode.Contracts;
 [JsonSerializable(typeof(RtaRequest))]
 [JsonSerializable(typeof(ToneMatchRequest))]
 [JsonSerializable(typeof(IrMixRequest))]
+[JsonSerializable(typeof(CabAlignment))]
 [JsonSerializable(typeof(Setlist))]
 [JsonSerializable(typeof(PackageManifest))]
 [JsonSerializable(typeof(ImportResult))]

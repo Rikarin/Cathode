@@ -144,6 +144,13 @@ public static class CathodeApi {
                 "Listens to the rig while you play, then sets a Tone Match block's correction towards a reference .wav."
             );
 
+        live.MapGet(
+                "/blocks/{id}/cab/align",
+                async (string id, IrTools tools) => TypedResults.Ok(await tools.CabAlignmentAsync(id))
+            )
+            .WithName("GetCabAlignment")
+            .WithSummary("The Cab block's slots for its Align page: each slot's IR head, onset and delays.");
+
         live.MapPost(
                 "/cables",
                 async (CableRequest request, LiveRig rig, HttpContext http) =>

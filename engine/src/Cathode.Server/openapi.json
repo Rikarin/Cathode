@@ -759,6 +759,37 @@
         }
       }
     },
+    "/api/v1/live/blocks/{id}/cab/align": {
+      "get": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "The Cab block\u0027s slots for its Align page: each slot\u0027s IR head, onset and delays.",
+        "operationId": "GetCabAlignment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CabAlignment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/live/cables": {
       "post": {
         "tags": [
@@ -2352,6 +2383,28 @@
           }
         }
       },
+      "CabAlignment": {
+        "required": [
+          "sampleRate",
+          "slots"
+        ],
+        "type": "object",
+        "properties": {
+          "sampleRate": {
+            "type": "number",
+            "description": "The rate the heads are sampled at.",
+            "format": "double"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CabSlotAlignmentInfo"
+            },
+            "description": "The four slots, in order."
+          }
+        },
+        "description": "The Cab block\u0027s Align page (\u0060GET /api/v1/live/blocks/{id}/cab/align\u0060): each slot\u0027s IR head on the active\nchannel, so slots can be lined up by eye."
+      },
       "CableRequest": {
         "required": [
           "from",
@@ -2366,6 +2419,50 @@
             "type": "string"
           }
         }
+      },
+      "CabSlotAlignmentInfo": {
+        "required": [
+          "slot",
+          "plays",
+          "audible",
+          "onsetMs",
+          "autoDelayMs",
+          "delayMs",
+          "head"
+        ],
+        "type": "object",
+        "properties": {
+          "slot": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "plays": {
+            "type": "boolean"
+          },
+          "audible": {
+            "type": "boolean"
+          },
+          "onsetMs": {
+            "type": "number",
+            "format": "double"
+          },
+          "autoDelayMs": {
+            "type": "number",
+            "format": "double"
+          },
+          "delayMs": {
+            "type": "number",
+            "format": "double"
+          },
+          "head": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "float"
+            }
+          }
+        },
+        "description": "One slot: whether it has something to play and is heard, its onset within its own IR (the first sample within\n20 dB of the peak), the delay Auto Delay gives it and its own Delay, in ms, and the first 10 ms of its IR as mixed\n(cut and normalised, before level, pan and delay). It is heard at \u0060OnsetMs \u002B AutoDelayMs \u002B DelayMs\u0060."
       },
       "ChannelRequest": {
         "required": [

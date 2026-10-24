@@ -394,6 +394,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/live/blocks/{id}/cab/align': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The Cab block's slots for its Align page: each slot's IR head, onset and delays. */
+    get: operations['GetCabAlignment'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/live/cables': {
     parameters: {
       query?: never;
@@ -999,9 +1016,40 @@ export interface components {
     BypassRequest: {
       bypassed: boolean;
     };
+    /**
+     * @description The Cab block's Align page (`GET /api/v1/live/blocks/{id}/cab/align`): each slot's IR head on the active
+     *     channel, so slots can be lined up by eye.
+     */
+    CabAlignment: {
+      /**
+       * Format: double
+       * @description The rate the heads are sampled at.
+       */
+      sampleRate: number;
+      /** @description The four slots, in order. */
+      slots: components['schemas']['CabSlotAlignmentInfo'][];
+    };
     CableRequest: {
       from: string;
       to: string;
+    };
+    /**
+     * @description One slot: whether it has something to play and is heard, its onset within its own IR (the first sample within
+     *     20 dB of the peak), the delay Auto Delay gives it and its own Delay, in ms, and the first 10 ms of its IR as mixed
+     *     (cut and normalised, before level, pan and delay). It is heard at `OnsetMs + AutoDelayMs + DelayMs`.
+     */
+    CabSlotAlignmentInfo: {
+      /** Format: int32 */
+      slot: number;
+      plays: boolean;
+      audible: boolean;
+      /** Format: double */
+      onsetMs: number;
+      /** Format: double */
+      autoDelayMs: number;
+      /** Format: double */
+      delayMs: number;
+      head: number[];
     };
     ChannelRequest: {
       channel: string;
@@ -2097,6 +2145,28 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  GetCabAlignment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CabAlignment'];
         };
       };
     };
