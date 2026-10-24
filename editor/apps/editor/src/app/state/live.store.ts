@@ -1,7 +1,9 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import {
   type ChannelName,
+  type FootswitchOverride,
   type LiveState,
+  type PerformControl,
   type Preset,
   type PresetBlock,
   type PresetModifier,
@@ -145,6 +147,39 @@ export class LiveStore {
     this.mutate(c => c.PUT('/api/v1/live/blocks/{id}/global/{globalId}', { params: { path: { id, globalId } } }));
   unlinkGlobal = (id: string) =>
     this.mutate(c => c.DELETE('/api/v1/live/blocks/{id}/global', { params: { path: { id } } }));
+
+  // The editor workflow (docs/02-architecture.md §7.5); each is one undo step on the Server.
+  revert = () => this.mutate(c => c.POST('/api/v1/live/revert'));
+  clear = () => this.mutate(c => c.POST('/api/v1/live/clear'));
+  loadSnapshot = (id: string) =>
+    this.mutate(c => c.POST('/api/v1/live/snapshots/{id}/load', { params: { path: { id } } }));
+  newFromTemplate = (id: string) =>
+    this.mutate(c => c.POST('/api/v1/live/templates/{id}/new', { params: { path: { id } } }));
+  replaceBlock = (id: string, type: string) =>
+    this.mutate(c => c.PUT('/api/v1/live/blocks/{id}/type', { params: { path: { id } }, body: { type } }));
+  dropBlock = (id: string, target: string, mode: 'swap' | 'replace') =>
+    this.mutate(c => c.POST('/api/v1/live/blocks/{id}/drop', { params: { path: { id } }, body: { target, mode } }));
+  moveLine = (axis: 'row' | 'column', from: number, to: number) =>
+    this.mutate(c => c.POST('/api/v1/live/grid/move', { body: { axis, from, to } }));
+  disconnect = (id: string) =>
+    this.mutate(c => c.DELETE('/api/v1/live/blocks/{id}/cables', { params: { path: { id } } }));
+  pasteSettings = (id: string, type: string, channels: PresetBlock['channels'], assets?: PresetBlock['assets']) =>
+    this.mutate(c =>
+      c.PUT('/api/v1/live/blocks/{id}/settings', {
+        params: { path: { id } },
+        body: { type, channels, assets: assets ?? null }
+      })
+    );
+  setAllScenes = (id: string, change: { bypassed?: boolean; channel?: ChannelName }) =>
+    this.mutate(c =>
+      c.PUT('/api/v1/live/blocks/{id}/all-scenes', {
+        params: { path: { id } },
+        body: { bypassed: change.bypassed ?? null, channel: change.channel ?? null }
+      })
+    );
+  setPerform = (controls: PerformControl[]) => this.mutate(c => c.PUT('/api/v1/live/perform', { body: controls }));
+  setFootswitchOverrides = (overrides: FootswitchOverride[]) =>
+    this.mutate(c => c.PUT('/api/v1/live/footswitch-overrides', { body: overrides }));
 
   /** The modifier on a parameter, if any. */
   modifierOf(block: string, param: string): PresetModifier | undefined {

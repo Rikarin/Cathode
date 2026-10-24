@@ -40,3 +40,8 @@ textarea,
 .window-drag :is(a, button, input, select, textarea, [role='radio'], [tabindex], cth-meter) {
   -webkit-app-region: no-drag;
 }
+
+/* Preferences: tooltips off hides every xUI tooltip (PreferencesStore). */
+.cth-no-tooltips xui-tooltip-panel {
+  display: none !important;
+}
