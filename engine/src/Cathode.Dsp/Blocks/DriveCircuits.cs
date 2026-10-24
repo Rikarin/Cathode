@@ -143,7 +143,7 @@ public sealed record ToneNetwork(ToneKind Kind) {
     /// <summary>ActiveEq: the first mid band's centre (0 = none); the Middle Freq control replaces it where it sweeps.</summary>
     public double MidHz { get; init; }
 
-    /// <summary>ActiveEq: the second mid band's centre (0 = none), fixed at noon.</summary>
+    /// <summary>ActiveEq: the second mid band's centre (0 = none), worked by the Hi Mids pot (<see cref="DriveBlock.HiMid" />).</summary>
     public double Mid2Hz { get; init; }
 
     /// <summary>ActiveEq: the treble band's corner (0 = none).</summary>
@@ -374,8 +374,83 @@ public sealed record DriveCircuit(string Name, string ModelledAfter) {
     /// <summary>The circuit has the B7K's Grunt and Attack switches (<see cref="DriveBlock.Grunt" />).</summary>
     public bool GruntAndAttack { get; init; }
 
+    /// <summary>
+    ///     The pedal switch that changes this circuit's network (<see cref="PedalSwitch.None" /> for none); the circuit is
+    ///     its first position and <see cref="Modes" /> the others, all built when the catalogue loads.
+    /// </summary>
+    public PedalSwitch Switch { get; init; }
+
+    /// <summary>The circuit in each further position of <see cref="Switch" /> (position 1 onwards).</summary>
+    public IReadOnlyList<DriveCircuit> Modes { get; init; } = [];
+
+    /// <summary>
+    ///     The B7K's Blend knob (<see cref="DriveBlock.Blend" />): the clean path (<see cref="CleanMix" />) and the
+    ///     distorted one crossfade, both at full level at noon (the circuit as listed).
+    /// </summary>
+    public bool BlendKnob { get; init; }
+
+    /// <summary>
+    ///     The Full-Drive 2's Boost footswitch and knob (<see cref="DriveBlock.BoostLevel" />): a clean boost of up to this
+    ///     many dB ahead of the clipping amp (0 = none).
+    /// </summary>
+    public double BoostDb { get; init; }
+
+    /// <summary>
+    ///     The Precision Drive's Attack knob (<see cref="DriveBlock.PedalAttack" />): it sweeps the input coupling corner
+    ///     <see cref="AttackSpan" /> times either way of <see cref="InputHighPassHz" /> (noon).
+    /// </summary>
+    public bool AttackKnob { get; init; }
+
+    /// <summary>How far the Attack knob moves the coupling corner at either end, as a ratio.</summary>
+    public const double AttackSpan = 4;
+
+    /// <summary>The Precision Drive's noise gate (<see cref="DriveBlock.Gate" />), off at 0.</summary>
+    public bool Gate { get; init; }
+
+    /// <summary>The Buxom Boost's Tight switch: the input coupling corner it switches to (0 = no switch).</summary>
+    public double TightHz { get; init; }
+
+    /// <summary>
+    ///     A bass control after the tone network (the Buxom Boost's Bass, worked by the Bass Pot): a first-order shelf
+    ///     at this corner, ±<see cref="BassShelfDb" /> at its ends and flat at noon (0 = none).
+    /// </summary>
+    public double BassShelfHz { get; init; }
+
+    public const double BassShelfDb = 15;
+
+    /// <summary>
+    ///     The Bass RC Booster's internal DIP switches (<see cref="DriveBlock.DipSwitches" />): the active EQ's low and
+    ///     treble corners with each switch on (0 = no switch).
+    /// </summary>
+    public double DipLowHz { get; init; }
+
+    public double DipHighHz { get; init; }
+
+    /// <summary>
+    ///     False where the pedal has no tone knob but a switch (the Super-Fuzz): Tone is hidden and its network stays at
+    ///     noon.
+    /// </summary>
+    public bool ToneKnob { get; init; } = true;
+
     /// <summary>True when the transfer curve is odd-symmetric, so the circuit makes (almost) only odd harmonics.</summary>
     public bool IsSymmetric => Bias == 0 && Stages.All(static s => s.IsSymmetric);
+}
+
+/// <summary>A pedal switch that changes a circuit's network: its positions are prebuilt circuits (<see cref="DriveCircuit.Modes" />).</summary>
+public enum PedalSwitch {
+    None,
+
+    /// <summary>The King of Tone's mode DIP switches: OD, Distortion, Boost (<see cref="DriveBlock.KingMode" />).</summary>
+    KingMode,
+
+    /// <summary>The Full-Drive 2's mode switch: Flat-Mids, Comp-Cut, Vintage (<see cref="DriveBlock.FullMode" />).</summary>
+    FullDriveMode,
+
+    /// <summary>The Eternity's Glow switch (<see cref="DriveBlock.Glow" />).</summary>
+    Glow,
+
+    /// <summary>The Super-Fuzz's two-position tone switch (<see cref="DriveBlock.ToneSwitch" />).</summary>
+    ToneSwitch
 }
 
 /// <summary>The guitar as a source for its volume knob; see <see cref="DriveCircuits.Guitar" />.</summary>
@@ -480,12 +555,15 @@ public static partial class DriveCircuits {
     public static bool HasDiodes(DriveCircuit circuit) => circuit.Stages.Any(HasDiodes);
 
     /// <summary>
-    ///     Circuit <paramref name="index" /> of <see cref="All" /> with its clipping diodes replaced: Diode Type
+    ///     Circuit <paramref name="index" /> of <see cref="All" /> in position <paramref name="mode" /> of its
+    ///     <see cref="DriveCircuit.Switch" /> (0 = the circuit itself), with its clipping diodes replaced: Diode Type
     ///     <paramref name="type" /> and Count <paramref name="count" /> (0 = Stock for either). Allocation-free.
     /// </summary>
-    public static DriveCircuit Variant(int index, int type, int count) {
+    public static DriveCircuit Variant(int index, int type, int count, int mode = 0) {
         var variants = DiodeVariants[index];
-        var at = Math.Clamp(type, 0, DiodeTypes.Count - 1) * DiodeCounts.Count
+        var choices = DiodeTypes.Count * DiodeCounts.Count;
+        var at = Math.Clamp(mode, 0, variants.Length / choices - 1) * choices
+            + Math.Clamp(type, 0, DiodeTypes.Count - 1) * DiodeCounts.Count
             + Math.Clamp(count, 0, DiodeCounts.Count - 1);
         return variants[at];
     }
@@ -520,24 +598,29 @@ public static partial class DriveCircuits {
         stage.Kind is StageKind.Gain or StageKind.OpAmp or StageKind.Clipper
         && stage.Diodes.ForwardCount + stage.Diodes.ReverseCount > 0;
 
+    /// <summary>Every position of <paramref name="circuit" />'s switch, each with every diode override.</summary>
     static DriveCircuit[] BuildVariants(DriveCircuit circuit) {
-        var variants = new DriveCircuit[DiodeTypes.Count * DiodeCounts.Count];
-        for (var type = 0; type < DiodeTypes.Count; type++) {
-            for (var count = 0; count < DiodeCounts.Count; count++) {
-                var at = type * DiodeCounts.Count + count;
-                if ((type == 0 && count == 0) || !HasDiodes(circuit)) {
-                    variants[at] = circuit;
-                    continue;
-                }
+        var choices = DiodeTypes.Count * DiodeCounts.Count;
+        var variants = new DriveCircuit[(1 + circuit.Modes.Count) * choices];
+        for (var mode = 0; mode <= circuit.Modes.Count; mode++) {
+            var position = mode == 0 ? circuit : circuit.Modes[mode - 1];
+            for (var type = 0; type < DiodeTypes.Count; type++) {
+                for (var count = 0; count < DiodeCounts.Count; count++) {
+                    var at = mode * choices + type * DiodeCounts.Count + count;
+                    if ((type == 0 && count == 0) || !HasDiodes(position)) {
+                        variants[at] = position;
+                        continue;
+                    }
 
-                variants[at] = circuit with {
-                    Stages = [
-                        ..circuit.Stages.Select(s => HasDiodes(s)
-                                ? s with { Diodes = Override(s.Diodes, type, count) }
-                                : s
-                        )
-                    ]
-                };
+                    variants[at] = position with {
+                        Stages = [
+                            ..position.Stages.Select(s => HasDiodes(s)
+                                    ? s with { Diodes = Override(s.Diodes, type, count) }
+                                    : s
+                            )
+                        ]
+                    };
+                }
             }
         }
 
@@ -961,8 +1044,12 @@ public static partial class DriveCircuits {
             ..Round4Fuzz()
         ];
 
-        foreach (var circuit in all) {
+        foreach (var circuit in all.SelectMany(static c => c.Modes.Prepend(c))) {
             foreach (var stage in circuit.Stages) {
+                if (OperatingPoints.ContainsKey(stage)) {
+                    continue; // a switch position that shares the stage
+                }
+
                 if (stage.Kind == StageKind.Transistor) {
                     OperatingPoints[stage] = TransistorStage.OperatingPoint(stage);
                 } else if (stage.Kind == StageKind.FuzzPair) {
@@ -1275,6 +1362,57 @@ struct CircuitStage {
 }
 
 /// <summary>
+///     The Precision Drive's noise gate, for one channel at the base rate: a peak detector on the pedal's input and a
+///     downward expander (1:3 below the threshold) whose gain opens in about a millisecond and closes over about 60 ms.
+///     The Gate knob sets the threshold from −75 dBV (just above 0) to −30 dBV (10). Its curve and times are a design:
+///     Horizon Devices publish none.
+/// </summary>
+struct NoiseGate {
+    const double OpenMs = 1;
+    const double CloseMs = 60;
+    const double PeakReleaseMs = 20;
+
+    double threshold;
+    double open;
+    double close;
+    double peakRelease;
+    double peak;
+    double gain;
+    bool engaged;
+
+    /// <summary>The Gate knob at <paramref name="knob" /> (above 0, up to 10), at <paramref name="rate" />.</summary>
+    public void Configure(double knob, double rate) {
+        threshold = Decibels.ToGain(-80 + 5 * Math.Clamp(knob, 0, 10));
+        open = 1 - Math.Exp(-1000 / (OpenMs * rate));
+        close = 1 - Math.Exp(-1000 / (CloseMs * rate));
+        peakRelease = Math.Exp(-1000 / (PeakReleaseMs * rate));
+        if (!engaged) {
+            engaged = true;
+            gain = 1; // switched on mid-note: start open
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public float Tick(float x) {
+        peak = Math.Max(Math.Abs(x), peak * peakRelease);
+        var ratio = peak / threshold;
+        var target = ratio >= 1 ? 1 : ratio * ratio;
+        gain += (target - gain) * (target > gain ? open : close);
+        if (gain < 1e-30) {
+            gain = 0;
+        }
+
+        return (float)gain;
+    }
+
+    public void Reset() {
+        peak = 0;
+        gain = 1;
+        engaged = false;
+    }
+}
+
+/// <summary>
 ///     The Drive block's Advanced page, applied on top of a circuit's own values; <see cref="Stock" /> changes nothing.
 /// </summary>
 /// <param name="BassScale">
@@ -1304,6 +1442,16 @@ struct CircuitStage {
 ///     The B7K's Attack switch: 0 flat, 1 Boost, 2 Cut: a first-order treble shelf (above
 ///     <see cref="CircuitChannel.AttackHz" />) ahead of the clipping, +6 dB or -6 dB.
 /// </param>
+/// <param name="HiMid">
+///     The B7K's Hi Mids pot from noon, −0.5..0.5 (0 = as built): an active EQ's second mid band
+///     (<see cref="ToneNetwork.Mid2Hz" />).
+/// </param>
+/// <param name="Blend">The B7K's Blend from noon, −0.5..0.5 (0 = as built); see <see cref="DriveCircuit.BlendKnob" />.</param>
+/// <param name="BoostDb">The Full-Drive 2's boost, in dB, when its footswitch is on (0 = off).</param>
+/// <param name="AttackTurn">The Precision Drive's Attack from noon, −1..1 (0 = as built).</param>
+/// <param name="Gate">The Precision Drive's Gate knob, 0..10 (0 = off).</param>
+/// <param name="Tight">The Buxom Boost's Tight switch on.</param>
+/// <param name="Dip">The Bass RC Booster's DIP switches: bit 0 the bass switch, bit 1 the treble switch (0 = stock).</param>
 readonly record struct CircuitTweaks(
     double BassScale = 1,
     double Bias = 0,
@@ -1316,7 +1464,14 @@ readonly record struct CircuitTweaks(
     bool HighPeak = false,
     double MidHz = 0,
     int Grunt = 0,
-    int Attack = 0
+    int Attack = 0,
+    double HiMid = 0,
+    double Blend = 0,
+    double BoostDb = 0,
+    double AttackTurn = 0,
+    double Gate = 0,
+    bool Tight = false,
+    int Dip = 0
 ) {
     public static CircuitTweaks Stock => new(1);
 }
@@ -1335,7 +1490,14 @@ sealed class CircuitChannel {
     readonly ToneStage tone = new();
     RcLowPass input = new();
     RcLowPass attackFilter = new();
+    RcLowPass shelfFilter = new();
+    NoiseGate gate;
+    readonly float[] gateGains = new float[DriveBlock.SubBlock];
     double attack; // the B7K's Attack: gain of the treble added ahead of the clipping (0 = off)
+    double shelf; // a bass shelf after the tone network: the low-passed signal's weight (0 = flat)
+    double wet = 1; // the distorted path's share of a Blend (1 = as built)
+    double boost = 1; // a clean boost ahead of the stages (1 = none)
+    bool gated;
     SvfState dc;
     DriveCircuit? circuit;
     int count;
@@ -1436,6 +1598,10 @@ sealed class CircuitChannel {
             bassScale *= tweaks.Grunt == 1 ? 0.25 : 4;
         }
 
+        if (circuit.AttackKnob && tweaks.AttackTurn != 0) {
+            bassScale *= Math.Pow(DriveCircuit.AttackSpan, tweaks.AttackTurn);
+        }
+
         attack = tweaks.Attack switch {
             1 => 1, // +6 dB above the corner
             2 => -0.5, // -6 dB
@@ -1445,7 +1611,8 @@ sealed class CircuitChannel {
             attackFilter.SetCutoff(AttackHz, innerRate);
         }
 
-        var corner = circuit.InputHighPassHz > 0 ? circuit.InputHighPassHz * bassScale
+        var coupling = circuit.TightHz > 0 && tweaks.Tight ? circuit.TightHz : circuit.InputHighPassHz;
+        var corner = coupling > 0 ? coupling * bassScale
             : bassScale != 1 ? 10 * bassScale
             : 0;
         highPass = corner > 0;
@@ -1453,11 +1620,70 @@ sealed class CircuitChannel {
             input.SetCutoff(corner, innerRate);
         }
 
-        clean = circuit.CleanMix * (1 - 0.75 * position) + tweaks.DryLevel;
+        // A Blend crossfades the two paths: both at full level at noon, one alone at either end.
+        var blend = circuit.BlendKnob ? 0.5 + tweaks.Blend : 0.5;
+        wet = Math.Min(1, 2 * blend);
+        clean = circuit.CleanMix * (1 - 0.75 * position) * Math.Min(1, 2 * (1 - blend)) + tweaks.DryLevel;
+        boost = circuit.BoostDb > 0 && tweaks.BoostDb > 0 ? Decibels.ToGain(Math.Min(tweaks.BoostDb, circuit.BoostDb)) : 1;
         trim = Decibels.ToGain(circuit.OutputDb) * (circuit.InvertOutput ? -1 : 1);
-        this.tone.Configure(circuit.Tone, tone / 10, rate, tweaks.StackBass, tweaks.StackMiddle, tweaks.MidHz);
+        ConfigureShelf(circuit, tweaks.StackBass, rate);
+        var wasGated = gated;
+        gated = circuit.Gate && tweaks.Gate > 0;
+        if (gated) {
+            gate.Configure(tweaks.Gate, rate);
+        } else if (wasGated) {
+            gate.Reset();
+        }
+
+        var dip = circuit.Tone.Kind == ToneKind.ActiveEq ? tweaks.Dip : 0;
+        this.tone.Configure(
+            circuit.Tone,
+            tone / 10,
+            rate,
+            tweaks.StackBass,
+            tweaks.StackMiddle,
+            tweaks.MidHz,
+            0.5 + tweaks.HiMid,
+            (dip & 1) != 0 ? circuit.DipLowHz : 0,
+            (dip & 2) != 0 ? circuit.DipHighHz : 0
+        );
         if (fresh) {
             Reset(); // a new circuit starts discharged, or at its operating point
+        }
+    }
+
+    /// <summary>
+    ///     The bass shelf of a circuit with <see cref="DriveCircuit.BassShelfHz" />, for its Bass Pot at
+    ///     <paramref name="bass" /> (0..1): a boost of g below the corner is x + (g − 1) LP(x); the mirror cut, of 1 / g,
+    ///     is x − (1 − 1 / g) LP(x) with the low-pass at g times the corner, so the two are each other's inverse.
+    /// </summary>
+    void ConfigureShelf(DriveCircuit circuit, double bass, double rate) {
+        var was = shelf;
+        shelf = 0;
+        if (circuit.BassShelfHz <= 0 || bass == 0.5) {
+            if (was != 0) {
+                shelfFilter.Reset();
+            }
+
+            return;
+        }
+
+        var g = Decibels.ToGain((bass - 0.5) * 2 * DriveCircuit.BassShelfDb);
+        shelf = g - 1; // a cut's weight is −(1 − g)
+        shelfFilter.SetCutoff(g >= 1 ? circuit.BassShelfHz : circuit.BassShelfHz / g, rate);
+    }
+
+    /// <summary>
+    ///     The noise gate's detector, on the pedal's input (<paramref name="input" />, one sub-block at the base rate,
+    ///     before anything else): the gains <see cref="ProcessOuter" /> applies. Does nothing unless the gate is on.
+    /// </summary>
+    public void Detect(ReadOnlySpan<float> input) {
+        if (!gated) {
+            return;
+        }
+
+        for (var i = 0; i < input.Length; i++) {
+            gateGains[i] = gate.Tick(input[i]);
         }
     }
 
@@ -1502,11 +1728,21 @@ sealed class CircuitChannel {
     /// <summary>The base-rate part: tone network and output trim.</summary>
     public void ProcessOuter(Span<float> samples) {
         for (var i = 0; i < samples.Length; i++) {
-            var y = tone.Tick(samples[i]) * trim;
+            var t = tone.Tick(samples[i]);
+            if (shelf != 0) {
+                t += shelf * shelfFilter.Tick(t);
+            }
+
+            var y = t * trim;
+            if (gated) {
+                y *= gateGains[i];
+            }
+
             samples[i] = Math.Abs(y) < 1e-30 ? 0f : (float)y; // a decaying high-pass can cancel down to subnormals
         }
 
         tone.FlushDenormals();
+        shelfFilter.FlushDenormals();
     }
 
     public void Reset() {
@@ -1521,6 +1757,8 @@ sealed class CircuitChannel {
         tone.Reset();
         input.Reset();
         attackFilter.Reset();
+        shelfFilter.Reset();
+        gate.Reset();
         dc.Reset();
         slewed = 0;
     }
@@ -1534,7 +1772,7 @@ sealed class CircuitChannel {
 
         // The Attack shelf shapes only what the clipping hears; the clean blend stays flat.
         var driven = attack != 0 ? x + attack * (x - attackFilter.Tick(x)) : x;
-        var v = driven * gain * level + bias;
+        var v = driven * gain * level * boost + bias;
         var stages = this.stages.AsSpan(0, count);
         for (var s = 0; s < stages.Length; s++) {
             v = kinds[s] switch {
@@ -1551,7 +1789,7 @@ sealed class CircuitChannel {
             slewed = v;
         }
 
-        return (float)dc.Tick(dcBlock, v + clean * x * level);
+        return (float)dc.Tick(dcBlock, v * wet + clean * x * level);
     }
 
     void FlushDenormals() {

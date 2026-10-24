@@ -75,7 +75,14 @@ namespace Cathode.Dsp.Blocks;
 ///             Per-pedal knobs on the Basic page, each the pedal's own network and stock at its default: the Timmy's
 ///             <b>Bass</b> (a pot across its gain stage's ground-leg capacitor; its Tone is labelled Treble), the
 ///             Zendrive's <b>Voice</b> (a pot in series with its ground leg) and the OCD's <b>HP/LP</b> switch (a resistor
-///             in parallel with its clipper's series resistor).
+///             in parallel with its clipper's series resistor). Then the B7K's <b>Hi Mids</b> (its EQ's second mid band)
+///             and <b>Blend</b> (the clean and distorted paths crossfade); the King of Tone's <b>Mode</b> (OD,
+///             Distortion, Boost) and the Full-Drive 2's (Flat-Mids, Comp-Cut, Vintage) with its <b>Boost</b> footswitch
+///             and knob; the Eternity's <b>Glow</b>; the Precision Drive's <b>Attack</b> (its coupling corner) and
+///             <b>Gate</b>; the Buxom Boost's <b>Bass</b> (the Bass Pot) and <b>Tight</b>; the Bass RC Booster's
+///             <b>DIP Switches</b>; and the Super-Fuzz's two-position <b>Tone</b> switch in place of its Tone knob. A
+///             switch that changes a network picks one of the circuits prebuilt for its positions
+///             (<see cref="DriveCircuit.Modes" />).
 ///         </item>
 ///         <item>
 ///             <b>Bit Reduce</b> and <b>Sample Rate</b>: a lo-fi word length and sample-and-hold rate on the driven signal
@@ -141,6 +148,42 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
 
     /// <summary>The B7K's Attack switch (Flat, Boost, Cut): treble into the clipping.</summary>
     public const int Attack = 43;
+
+    /// <summary>The B7K's Hi Mids pot, 0..10 (5 as built): its EQ's second mid band (1.5 kHz).</summary>
+    public const int HiMid = 44;
+
+    /// <summary>The B7K's Blend, 0..10 (5 as built): the clean and distorted paths crossfade.</summary>
+    public const int Blend = 45;
+
+    /// <summary>The King of Tone's mode DIP switches: OD (0, as built), Distortion, Boost.</summary>
+    public const int KingMode = 46;
+
+    /// <summary>The Full-Drive 2's mode switch: Flat-Mids (0, as built), Comp-Cut, Vintage.</summary>
+    public const int FullMode = 47;
+
+    /// <summary>The Full-Drive 2's Boost footswitch: Off (0) or On.</summary>
+    public const int BoostSwitch = 48;
+
+    /// <summary>The Full-Drive 2's Boost knob, 0..10 (0 to 20 dB of clean boost while its footswitch is on).</summary>
+    public const int BoostLevel = 49;
+
+    /// <summary>The Eternity's Glow switch: Off (0, Glass, as built) or On.</summary>
+    public const int Glow = 50;
+
+    /// <summary>The Precision Drive's Attack knob, 0..10 (5 as built): the coupling corner into the gain stage.</summary>
+    public const int PedalAttack = 51;
+
+    /// <summary>The Precision Drive's Gate knob, 0..10 (0 = off).</summary>
+    public const int Gate = 52;
+
+    /// <summary>The Buxom Boost's Tight switch: Off (0, as built) or On.</summary>
+    public const int Tight = 53;
+
+    /// <summary>The Bass RC Booster's internal DIP switches: the bass and treble bands' frequencies (0 = stock).</summary>
+    public const int DipSwitches = 54;
+
+    /// <summary>The Super-Fuzz's tone switch: Scoop (0, the network as built) or Flat. Its Tone knob is hidden.</summary>
+    public const int ToneSwitch = 55;
 
     public const int EqOff = 0;
     public const int EqPre = 1;
@@ -213,7 +256,8 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
             ParamDescriptor.Choice("type", "Type", TypeNames),
             ParamDescriptor.Float("drive", "Drive", 0f, 10f, 5f),
             ParamDescriptor.Float("tone", "Tone", 0f, 10f, 5f)
-                .RenamedOn(TypeNames.Length, TypeIndex("Transparent OD"), "Treble"),
+                .RenamedOn(TypeNames.Length, TypeIndex("Transparent OD"), "Treble")
+                .HiddenOn(TypeNames.Length, [..Enumerable.Range(0, TypeNames.Length).Where(static t => !HasToneKnob(t))]),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
             ParamDescriptor.Float("inputVol", "Input Vol", 0f, 10f, 10f),
@@ -269,7 +313,8 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
                 "Hz",
                 ParamTaper.Log
             ),
-            ForTypes(ParamDescriptor.Float("stackBass", "Bass Pot", 0f, 10f, 5f), HasBassPot),
+            ForTypes(ParamDescriptor.Float("stackBass", "Bass Pot", 0f, 10f, 5f), HasBassPot)
+                .RenamedOn(TypeNames.Length, TypeIndex("Bosom Boost"), "Bass"),
             ForTypes(ParamDescriptor.Float("stackMid", "Middle Pot", 0f, 10f, 5f), HasMiddlePot),
             ParamDescriptor.Choice("oversampling", "Oversampling", ["Global", "1x", "2x", "4x"]) with {
                 Recompile = true
@@ -285,15 +330,50 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
                 HasMidSweep
             ),
             ForTypes(ParamDescriptor.Choice("grunt", "Grunt", ["Stock", "Fat", "Raw"]), HasGruntAttack),
-            ForTypes(ParamDescriptor.Choice("attack", "Attack", ["Flat", "Boost", "Cut"]), HasGruntAttack)
+            ForTypes(ParamDescriptor.Choice("attack", "Attack", ["Flat", "Boost", "Cut"]), HasGruntAttack),
+            ForTypes(ParamDescriptor.Float("hiMid", "Hi Mids", 0f, 10f, 5f), HasHiMid),
+            ForTypes(ParamDescriptor.Float("blend", "Blend", 0f, 10f, 5f), t => Has(t, static c => c.BlendKnob)),
+            ForTypes(
+                ParamDescriptor.Choice("kingMode", "Mode", ["OD", "Distortion", "Boost"]),
+                t => Has(t, static c => c.Switch == PedalSwitch.KingMode)
+            ),
+            ForTypes(
+                ParamDescriptor.Choice("fullMode", "Mode", ["Flat-Mids", "Comp-Cut", "Vintage"]),
+                t => Has(t, static c => c.Switch == PedalSwitch.FullDriveMode)
+            ),
+            ForTypes(
+                ParamDescriptor.Choice("boostOn", "Boost Switch", ["Off", "On"]),
+                t => Has(t, static c => c.BoostDb > 0)
+            ),
+            ForTypes(ParamDescriptor.Float("boostLevel", "Boost", 0f, 10f, 5f), t => Has(t, static c => c.BoostDb > 0)),
+            ForTypes(
+                ParamDescriptor.Choice("glow", "Glow", ["Off", "On"]),
+                t => Has(t, static c => c.Switch == PedalSwitch.Glow)
+            ),
+            ForTypes(ParamDescriptor.Float("pedalAttack", "Attack", 0f, 10f, 5f), t => Has(t, static c => c.AttackKnob)),
+            ForTypes(ParamDescriptor.Float("gate", "Gate", 0f, 10f, 0f), t => Has(t, static c => c.Gate)),
+            ForTypes(ParamDescriptor.Choice("tight", "Tight", ["Off", "On"]), t => Has(t, static c => c.TightHz > 0)),
+            ForTypes(
+                ParamDescriptor.Choice(
+                    "dip",
+                    "DIP Switches",
+                    ["Stock", "Bass Up", "Treble Up", "Bass + Treble Up"]
+                ),
+                t => Has(t, static c => c.DipLowHz > 0 || c.DipHighHz > 0)
+            ),
+            ForTypes(
+                ParamDescriptor.Choice("toneSwitch", "Tone", ["Scoop", "Flat"]),
+                t => Has(t, static c => c.Switch == PedalSwitch.ToneSwitch)
+            )
         ],
         maxInstances: 4,
         pages: [
             new(
                 "Basic",
                 [
-                    "drive", "tone", "inputVol", "stackBass", "stackMid", "pedalBass", "voice", "peak",
-                    "pedalMidFreq", "grunt", "attack", "lowCut", "highCut"
+                    "drive", "tone", "toneSwitch", "inputVol", "stackBass", "stackMid", "hiMid", "pedalBass", "voice",
+                    "peak", "pedalMidFreq", "grunt", "attack", "blend", "kingMode", "fullMode", "boostOn", "boostLevel",
+                    "glow", "pedalAttack", "gate", "tight", "dip", "lowCut", "highCut"
                 ]
             ),
             new("Tone", ["bass", "mid", "midFreq", "highMid", "treble", "bassResponse"]),
@@ -346,8 +426,8 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
     /// </summary>
     static bool HasBassPot(int type) =>
         type >= CircuitTypes
-        && DriveCircuits.All[type - CircuitTypes].Tone is { } tone
-        && (tone.Kind == ToneKind.Stack || (tone.Kind == ToneKind.ActiveEq && tone.LowHz > 0));
+        && DriveCircuits.All[type - CircuitTypes] is { Tone: var tone } circuit
+        && (tone.Kind == ToneKind.Stack || (tone.Kind == ToneKind.ActiveEq && tone.LowHz > 0) || circuit.BassShelfHz > 0);
 
     /// <summary>Whether circuit type <paramref name="type" /> has a real middle pot (a stack, or an EQ's mid band).</summary>
     static bool HasMiddlePot(int type) =>
@@ -357,6 +437,16 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
 
     static bool HasMidSweep(int type) =>
         type >= CircuitTypes && DriveCircuits.All[type - CircuitTypes].Tone is { Kind: ToneKind.ActiveEq, MidSweep: true };
+
+    static bool HasHiMid(int type) =>
+        type >= CircuitTypes && DriveCircuits.All[type - CircuitTypes].Tone is { Kind: ToneKind.ActiveEq, Mid2Hz: > 0 };
+
+    /// <summary>Whether <paramref name="type" /> is a circuit <paramref name="has" /> accepts.</summary>
+    static bool Has(int type, Func<DriveCircuit, bool> has) =>
+        type >= CircuitTypes && has(DriveCircuits.All[type - CircuitTypes]);
+
+    /// <summary>Every type has a Tone knob but a circuit whose pedal has a switch in its place.</summary>
+    static bool HasToneKnob(int type) => type < CircuitTypes || DriveCircuits.All[type - CircuitTypes].ToneKnob;
 
     static bool HasGruntAttack(int type) =>
         type >= CircuitTypes && DriveCircuits.All[type - CircuitTypes].GruntAndAttack;
@@ -370,6 +460,16 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
 
     static bool HasDiodes(int type) =>
         type >= CircuitTypes && DriveCircuits.HasDiodes(DriveCircuits.All[type - CircuitTypes]);
+
+    /// <summary>The position of the pedal switch <paramref name="kind" /> (0 for none).</summary>
+    int SwitchPosition(PedalSwitch kind) =>
+        kind switch {
+            PedalSwitch.KingMode => (int)Params.Current(KingMode),
+            PedalSwitch.FullDriveMode => (int)Params.Current(FullMode),
+            PedalSwitch.Glow => (int)Params.Current(Glow),
+            PedalSwitch.ToneSwitch => (int)Params.Current(ToneSwitch),
+            _ => 0
+        };
 
     /// <summary>Slew Rate in V/µs as the largest step per sample at <paramref name="innerRate" />; 0 when off.</summary>
     static double SlewStep(float voltsPerMicrosecond, double innerRate) =>
@@ -410,6 +510,7 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
             var mix = Params.Advance(Mix, length) / 100f;
             var level = Params.Advance(Level, length);
             var balance = Params.Advance(Balance, length);
+            var boostDb = 2.0 * Params.Advance(BoostLevel, length); // 0 to 20 dB
             var tweaks = new CircuitTweaks(
                 Params.Advance(BassResponse, length) / 100.0,
                 Params.Advance(Bias, length) / 100.0 * FullBias,
@@ -422,13 +523,23 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
                 Params.Current(HighPeak) >= 0.5f,
                 Params.Advance(PedalMidFreq, length),
                 (int)Params.Current(Grunt),
-                (int)Params.Current(Attack)
+                (int)Params.Current(Attack),
+                Params.Advance(HiMid, length) / 10.0 - 0.5,
+                Params.Advance(Blend, length) / 10.0 - 0.5,
+                Params.Current(BoostSwitch) >= 0.5f ? boostDb : 0,
+                Params.Advance(PedalAttack, length) / 5.0 - 1,
+                Params.Advance(Gate, length),
+                Params.Current(Tight) >= 0.5f,
+                (int)Params.Current(DipSwitches)
             );
             ReadPage(length);
             var gain = InputGain(type, drive);
             var guitar = (float)DriveCircuits.Guitar(volume).Level;
-            left.Circuit.Configure(circuit, drive, tone, volume, innerRate, rate, Antialias, tweaks);
-            right.Circuit.Configure(circuit, drive, tone, volume, innerRate, rate, Antialias, tweaks);
+            var toneKnob = circuit.ToneKnob ? tone : 5f; // a switch in its place: the network stays at noon
+            left.Circuit.Configure(circuit, drive, toneKnob, volume, innerRate, rate, Antialias, tweaks);
+            right.Circuit.Configure(circuit, drive, toneKnob, volume, innerRate, rate, Antialias, tweaks);
+            left.Circuit.Detect(chunk.Left); // the gate listens to the pedal's input
+            right.Circuit.Detect(chunk.Right);
 
             var leftDry = dry.AsSpan(0, length);
             var rightDry = secondDry.AsSpan(0, length);
@@ -670,7 +781,8 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
             var circuit = DriveCircuits.Variant(
                 type - CircuitTypes,
                 (int)Params.Current(DiodeType),
-                (int)Params.Current(DiodeCount)
+                (int)Params.Current(DiodeCount),
+                SwitchPosition(DriveCircuits.All[type - CircuitTypes].Switch)
             );
             ProcessCircuits(io, type, circuit);
             return;
