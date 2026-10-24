@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Dsp.Parameters;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.Options;
 
@@ -49,19 +50,57 @@ public sealed class BlockPresetStore(IOptions<ServerOptions> options, BlockCatal
             throw new RigException(400, "A block preset needs a name.");
         }
 
+        var channels = preset.Channels?.Where(c => Array.IndexOf(Preset.ChannelNames, c.Key) is var i
+                    && i >= 0
+                    && i < descriptor.Channels
+                )
+                .ToDictionary(static c => c.Key, c => Sanitize(descriptor, c.Value));
         var saved = new BlockPreset {
             Id = id,
             Type = preset.Type,
             Name = preset.Name.Trim(),
             Factory = false,
-            Values = preset.Values.ToDictionary(
-                static v => v.Key,
-                v => descriptor.Params[descriptor.IndexOf(v.Key)].Sanitize(v.Value)
-            )
+            Values = Sanitize(descriptor, preset.Values),
+            Folder = string.IsNullOrWhiteSpace(preset.Folder) ? null : preset.Folder.Trim(),
+            Channels = channels,
+            Modifiers = preset.Modifiers?.Where(m => descriptor.IndexOf(m.Param) >= 0 || m.Param == "engage")
+                .Select(static m => new PresetModifier {
+                        Param = m.Param,
+                        Source = m.Source,
+                        Min = m.Min,
+                        Max = m.Max,
+                        Curve = m.Curve,
+                        AttackMs = m.AttackMs,
+                        ReleaseMs = m.ReleaseMs
+                    }
+                )
+                .ToList(),
+            Assets = preset.Assets is { Count: > 0 } assets ? new(assets) : null
         };
         files.Save(saved);
         return saved;
     }
+
+    /// <summary>Adds every entry of an exported file as a new user entry (fresh ids); factory flags are dropped.</summary>
+    public BlockPreset[] Import(BlockPresetFile file) {
+        if (file.Format != BlockPresetFile.FormatName) {
+            throw new RigException(400, $"Not a Block Library file (format '{file.Format}').");
+        }
+
+        return [..file.Presets.Select(p => Save(Preset.NewId(), p))];
+    }
+
+    /// <summary>The entries <paramref name="ids" /> as a file to save.</summary>
+    public BlockPresetFile Export(IEnumerable<string> ids) =>
+        new(
+            BlockPresetFile.FormatName,
+            1,
+            [..ids.Select(id => Get(id) ?? throw RigException.NotFound($"No block preset '{id}'."))]
+        );
+
+    static Dictionary<string, float> Sanitize(BlockDescriptor descriptor, Dictionary<string, float> values) =>
+        values.Where(v => descriptor.IndexOf(v.Key) >= 0)
+            .ToDictionary(static v => v.Key, v => descriptor.Params[descriptor.IndexOf(v.Key)].Sanitize(v.Value));
 
     public bool Delete(string id) =>
         FactoryBlockPresets.All.Any(p => p.Id == id)

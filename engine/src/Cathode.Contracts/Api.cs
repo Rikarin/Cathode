@@ -8,10 +8,20 @@ public sealed record PresetSummary(
     string Name,
     string? Author,
     IReadOnlyList<string> Tags,
-    DateTimeOffset Modified
+    DateTimeOffset Modified,
+    string? Color = null,
+    bool Favorite = false
 );
 
-public sealed record AssetInfo(string Ref, string Name, string Kind, long Size, DateTimeOffset Added);
+public sealed record AssetInfo(
+    string Ref,
+    string Name,
+    string Kind,
+    long Size,
+    DateTimeOffset Added,
+    string? Color = null,
+    bool Favorite = false
+);
 
 /// <summary>
 ///     Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole

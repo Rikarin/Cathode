@@ -42,6 +42,17 @@ public sealed class Preset {
     /// </summary>
     public Dictionary<string, float> Controllers { get; set; } = [];
 
+    /// <summary>A colour tag for pickers and Manage Presets (a CSS colour name or hex), or null.</summary>
+    public string? Color { get; set; }
+
+    public bool Favorite { get; set; }
+
+    /// <summary>The preset's performance page: the controls it puts in front of a player.</summary>
+    public List<PerformControl> Perform { get; set; } = [];
+
+    /// <summary>Switches of the global footswitch layouts that do something else while this preset is loaded.</summary>
+    public List<FootswitchOverride> FootswitchOverrides { get; set; } = [];
+
     public static string NewId() => Guid.NewGuid().ToString("n");
 
     /// <summary>The smallest working rig: Input 1 straight to Output 1 across the first row.</summary>

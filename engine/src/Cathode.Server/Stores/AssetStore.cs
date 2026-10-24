@@ -102,6 +102,25 @@ public sealed class AssetStore {
         }
     }
 
+    /// <summary>Renames an asset or changes its colour tag or favourite flag; the content and reference stay.</summary>
+    public AssetInfo Update(string reference, AssetMetadataRequest change) {
+        lock (gate) {
+            var info = index.GetValueOrDefault(reference) ?? throw RigException.NotFound($"No asset {reference}.");
+            if (change.Name is { } name && string.IsNullOrWhiteSpace(name)) {
+                throw new RigException(400, "An asset needs a name.");
+            }
+
+            info = info with {
+                Name = change.Name?.Trim() ?? info.Name,
+                Color = change.Color is { } color ? (color.Length == 0 ? null : color) : info.Color,
+                Favorite = change.Favorite ?? info.Favorite
+            };
+            index[reference] = info;
+            SaveIndex();
+            return info;
+        }
+    }
+
     public bool Delete(string reference) {
         lock (gate) {
             if (!index.Remove(reference, out var info)) {

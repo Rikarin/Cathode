@@ -44,6 +44,9 @@ builder.Services.AddSingleton<GlobalStore>();
 builder.Services.AddSingleton<LiveRig>();
 builder.Services.AddSingleton<IrTools>();
 builder.Services.AddSingleton<MidiRouter>();
+builder.Services.AddSingleton<SnapshotStore>();
+builder.Services.AddSingleton<TemplateStore>();
+builder.Services.AddSingleton<PresetTools>();
 
 var app = builder.Build();
 app.UseCathodeAccess(token);

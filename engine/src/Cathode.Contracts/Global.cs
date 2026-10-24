@@ -44,7 +44,13 @@ public sealed class GlobalSettings {
     /// <summary>The layout in use, by id.</summary>
     public string? ActiveLayout { get; set; }
 
+    /// <summary>The view (page of switches) of the active layout that is in use, 0 for the first.</summary>
+    public int ActiveView { get; set; }
+
     public List<GlobalBlock> Blocks { get; set; } = [];
+
+    /// <summary>The global performance page: controls shown in every preset that has their block.</summary>
+    public List<PerformControl> Perform { get; set; } = [];
 }
 
 /// <summary>
@@ -52,7 +58,8 @@ public sealed class GlobalSettings {
 ///     scene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank
 ///     id, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,
 ///     Value = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,
-///     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear).
+///     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), layout (Target =
+///     layout id), view (Value = view index), viewNext, viewPrevious.
 /// </summary>
 public sealed record MidiMapping(
     string Id,
@@ -64,13 +71,17 @@ public sealed record MidiMapping(
     int? Value = null
 );
 
-/// <summary>A set of footswitches on a generic MIDI foot controller.</summary>
-public sealed record FootswitchLayout(string Id, string Name, List<Footswitch> Switches);
+/// <summary>
+///     A set of footswitches on a generic MIDI foot controller. <c>Views</c> names its pages of switches (each switch
+///     says which <see cref="Footswitch.View" /> it is on); none means one page.
+/// </summary>
+public sealed record FootswitchLayout(string Id, string Name, List<Footswitch> Switches, List<string>? Views = null);
 
 /// <summary>
 ///     One switch: the message it sends (a CC or note; value 64 or more is "down"), what a tap does, what holding it for
 ///     half a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is
-///     active, 0 when not).
+///     active, 0 when not). It answers only while its <c>View</c> is the active one, and a <c>Link</c> (a layout id)
+///     switches to that layout after its tap action.
 /// </summary>
 public sealed record Footswitch(
     int Index,
@@ -80,7 +91,9 @@ public sealed record Footswitch(
     int Number,
     SwitchAction Tap,
     SwitchAction? Hold = null,
-    bool Led = true
+    bool Led = true,
+    int View = 0,
+    string? Link = null
 );
 
 /// <summary>An action, with the same vocabulary as <see cref="MidiMapping" />.</summary>
