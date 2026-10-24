@@ -56,6 +56,17 @@ public readonly record struct TriodeModel(
     ///     250 V, -3 V: 1.0 mA, 1.2 mS (r_p 58k).
     /// </summary>
     public static TriodeModel FiveSevenFiveOne { get; } = new(70, 1.4, 1_508, 370.5, 300);
+
+    /// <summary>
+    ///     6EU7: μ 100, a low-hum twin triode with the 12AX7's ratings on a different base (Gibson's GA-17RVT Scout). Fitted
+    ///     with μ held at the datasheet's 100 (RCA 6EU7, data 1 and 2, 8-60) by least squares on log errors to the
+    ///     tabulated characteristics (100 V, -1 V: 0.5 mA, 1.25 mS, 80k; 250 V, -2 V: 1.2 mA, 1.6 mS, 62.5k) and 17 points
+    ///     read off the average plate characteristics (92CM-10470: 0 to -3 V at 0.5, 1 and 2 mA). The fit runs to
+    ///     Ex 1.0 (refitted with Koren's 1.4, the chart is 32 % off RMS): the chart points within 11 % RMS, 32 % at worst;
+    ///     the tabulated points 0.475 mA, 1.18 mS, 77k and 1.42 mA, 1.48 mS, 60k. The Scout's stages as drawn (470k from
+    ///     257 V, 4.7k) then sit at 119 V and 1.38 V against the drawing's 120 V and 1.2 V (Koren's 12AX7 gives 136 V).
+    /// </summary>
+    public static TriodeModel SixEU7 { get; } = new(100, 1.0, 988, 503, 4_240);
 }
 
 /// <summary>
@@ -125,6 +136,16 @@ public readonly record struct PentodeModel(
     ///     exact <see cref="Pentode" /> device: its screen argument is below the power-tube tables' range.
     /// </summary>
     public static PentodeModel EF86 { get; } = new(30, 1.2, 3_367, 5_427, 1_000, 5);
+
+    /// <summary>
+    ///     6AQ5 / 6005 beam pentode, a 6V6GT on a seven-pin base (Gibson Scout, small combos). Fitted with Ex 1.35 by least
+    ///     squares on log errors to GE's ET-T885 (6-55): the class-A points 180 V plate and screen, -8.5 V (29 mA, 3.0 mA
+    ///     screen, 3.7 mS, r_p 58k) and 250 V, -12.5 V (45 mA, 4.5 mA, 4.1 mS, 52k), and the triode connection at 250 V,
+    ///     -12.5 V (49.5 mA). It gives 29.5 / 3.04 mA, 3.65 mS, 48k and 44.6 / 4.44 mA, 4.14 mS, 62k, and 49.1 mA strapped;
+    ///     μ comes out at 9.5, the datasheet's triode μ. K_vb (33 V) is free here, so that r_p comes out near the datasheet's
+    ///     instead of three times it, as K_vb 12 gives.
+    /// </summary>
+    public static PentodeModel SixAQ5 { get; } = new(9.535, 1.35, 2_257, 7_733, 56.43, 32.88);
 }
 
 /// <summary>

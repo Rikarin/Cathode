@@ -35,6 +35,14 @@ public interface INonlinearDevice {
 
     /// <summary>Clears any state.</summary>
     void Reset();
+
+    /// <summary>
+    ///     The first port of the block of ports that port <paramref name="port" /> belongs to: the Jacobian is block
+    ///     diagonal, each port's current depending only on its own block's voltages. A single device is one block (the
+    ///     default); <see cref="Devices{TA,TB}" /> puts its two devices in blocks of their own, so the root's Newton
+    ///     solver skips the zeros between them. Read once, when the root is built.
+    /// </summary>
+    int BlockStart(int port) => 0;
 }
 
 /// <summary>No nonlinear device: an R-type root that is linear.</summary>
@@ -90,6 +98,9 @@ public struct Devices<TA, TB>(TA a, TB b) : INonlinearDevice
         A.Reset();
         B.Reset();
     }
+
+    public readonly int BlockStart(int port) =>
+        port < A.Ports ? A.BlockStart(port) : A.Ports + B.BlockStart(port - A.Ports);
 }
 
 /// <summary>Numerical helpers shared by the device models.</summary>

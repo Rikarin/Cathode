@@ -209,6 +209,19 @@ public sealed class StageNetlist {
             }
         );
 
+    /// <summary>
+    ///     A DC block after <paramref name="node" />: a 1 µF series cap and 100M to ground (a corner of 1.6 mHz); returns
+    ///     the blocked node. For a stage whose output (a plate, a mix of plates) rests at a high voltage and feeds the power
+    ///     amp, whose input network (<see cref="InverterInputDesign" />) holds the real coupling cap and grid leak and takes
+    ///     an input that rests at 0 V.
+    /// </summary>
+    public int DcBlock(int node) {
+        var blocked = Node();
+        Capacitor(node, blocked, 1e-6);
+        Resistor(blocked, Ground, 100e6);
+        return blocked;
+    }
+
     /// <summary>A supply rail at <paramref name="volts" /> (nominal; it follows the preamp's sag).</summary>
     public void Supply(int node, double volts) => Add(new(ElementKind.Supply, node, Ground, volts));
 
@@ -266,6 +279,15 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
     ///     stage needs more: three triodes in a feedback loop driven into hard clipping).
     /// </summary>
     public int MaxIterations { get; init; } = 32;
+
+    /// <summary>Chord steps on a recent Jacobian before full ones (<see cref="NewtonSolver.ReuseFactors" />).</summary>
+    public bool ReuseFactors { get; init; }
+
+    /// <summary>
+    ///     Newton's absolute (volts) and relative step tolerance (the solver's default, 1e-6, unless a stage that
+    ///     converges slowly can take a looser one: the error a converged step leaves is about its square).
+    /// </summary>
+    public double Tolerance { get; init; } = 1e-6;
 
     public override AmpStage Create(double sampleRate) {
         var devices = Netlist.Elements
@@ -350,6 +372,16 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
     static Wdf.OpAmp OpAmp(StageElement e, double sampleRate) => new(e.OpAmp, -e.Value, e.Value, sampleRate);
 }
 
+/// <summary>A stage whose supply rails another part of the amp moves per sample (an oscillator on a bias line).</summary>
+public interface IRailModulation {
+    /// <summary>
+    ///     Sets supply <paramref name="element" /> (an index into the netlist's elements) to its nominal voltage, with the
+    ///     sag, plus <paramref name="volts" />, for the coming samples. A supply change (<see cref="AmpStage.SetSupply" />)
+    ///     puts it back at nominal, so set it after that, before each sample.
+    /// </summary>
+    void OffsetRail(int element, double volts);
+}
+
 /// <summary>
 ///     A <see cref="NetworkStageDesign" /> as one R-type root: capacitors and inductors as adapted ports, resistors, pots
 ///     and supply rails inside the adaptor (a knob or switch only recomputes the matrix), the devices at the root,
@@ -358,7 +390,7 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
 ///     from the circuit linearised there at 1 kHz magnitudes (each capacitor and inductor as the resistance of its
 ///     reactance), for the next stage's Thévenin cut; turning a knob or a switch recomputes it there.
 /// </summary>
-public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INonlinearDevice {
+public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDevice : struct, INonlinearDevice {
     const double Off = 1e-15; // a switched-off capacitor
     const double Open = 1e12; // a switched-off resistor
     const double Gmin = 1e-12;
@@ -379,7 +411,7 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
     readonly double[] portCurrents;
     readonly double[] jacobian;
     readonly int[] pivots;
-    readonly int supplies;
+    readonly int[] supplies; // the supply elements' indices: the preamp's sag moves them every sample
     readonly int amplifiers;
     readonly bool hasGainStage;
     readonly bool hasMemory; // a device with state of its own (an op-amp's pole)
@@ -441,14 +473,12 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
                 inductors.Add(e.Kind == ElementKind.Inductor);
             }
 
-            if (e.Kind == ElementKind.Supply) {
-                supplies++;
-            }
-
             if (e.Kind == ElementKind.Amplifier) {
                 amplifiers++;
             }
         }
+
+        supplies = [..Enumerable.Range(0, elements.Length).Where(i => elements[i].Kind == ElementKind.Supply)];
 
         var ports = new List<(int, int)>();
         foreach (var d in devices) {
@@ -494,8 +524,11 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
         ApplySupplies();
         root.Newton.Linearise = true;
         root.Newton.MaxIterations = design.MaxIterations;
+        root.Newton.ReuseFactors = design.ReuseFactors;
+        root.Newton.AbsoluteTolerance = design.Tolerance;
+        root.Newton.RelativeTolerance = design.Tolerance;
 
-        size = netlist.Nodes + supplies + amplifiers;
+        size = netlist.Nodes + supplies.Length + amplifiers;
         matrix = new double[size * size];
         vector = new double[size];
         solution = new double[size];
@@ -600,6 +633,10 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
 
     public override void FlushDenormals() => root.Ports.FlushDenormals();
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void OffsetRail(int element, double volts) =>
+        root.SetVoltage(index[element], elements[element].Value * supplyScale + volts);
+
     /// <summary>Every element's value for the current knobs, switches and settings; recomputes the matrix if one moved.</summary>
     void Refresh() {
         var changed = false;
@@ -663,10 +700,8 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
     }
 
     void ApplySupplies() {
-        for (var i = 0; i < elements.Length; i++) {
-            if (elements[i].Kind == ElementKind.Supply) {
-                root.SetVoltage(index[i], elements[i].Value * supplyScale);
-            }
+        foreach (var i in supplies) {
+            root.SetVoltage(index[i], elements[i].Value * supplyScale);
         }
     }
 
@@ -749,7 +784,7 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
                     break;
                 case ElementKind.Amplifier: {
                     // v(C) = A (v(A) - v(B)), its output current the row's unknown.
-                    var row = n + supplies + amplifier++;
+                    var row = n + supplies.Length + amplifier++;
                     if (e.C > 0) {
                         a[row * size + e.C - 1] = 1;
                         a[(e.C - 1) * size + row] = 1;
