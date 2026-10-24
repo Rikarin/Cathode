@@ -7,7 +7,7 @@
 - the Axe-Fx III amp list (FW 12.05);
 - the Fractal wiki pages *Amp models*, *Presets*, *Editors*, *Audio I/O and amplification* and *Cab block* (October 2026).
 
-**Status date:** 24 October 2026, round 3 in progress (T, PS, PA merged and audited) (streams T, M1, M2, PA, PB, PS, ED, IO, CB).
+**Status date:** 24 October 2026, round 3 in progress (T, PS, PA, CB merged and audited) (streams T, M1, M2, PA, PB, PS, ED, IO, CB).
 
 ## How to audit
 
@@ -176,17 +176,17 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| CB1 | Stereo input: slots 1 and 3 read the left input, 2 and 4 the right | ⬜ | | today every slot hears both sides |
-| CB2 | Preamp types to 11 (FET 1/2, Tape 70/50/35 µs, Vintage, Modern, Exciter) | ⬜ | | PA7 owns the High Quality mode |
-| CB3 | Preamp input VU (0 = onset of clipping) | ⬜ | | |
-| CB4 | Smoothing and Proximity per slot | ⬜ | | today both are global |
-| CB5 | Mic distance up to 3.4 m, shown in mm and ms; Auto-Align switch | ⬜ | | today the delay stops at 5 ms |
-| CB6 | Motor Drive (voice-coil thermal compression) with time constant and gain-reduction meter | ⬜ | | |
-| CB7 | IR import: minimum-phase / auto-trim / as-is, peak-positive polarity, stereo channel choice, length | ⬜ | | |
-| CB8 | FullRes IRs (~1.4 s) in the Cab block via partitioned convolution | ⬜ | | today 8,192 samples |
-| CB9 | Flat slot source | ⬜ | | |
-| CB10 | Global "cab modelling off" switch | ⬜ | | |
-| CB11 | Export the block's current mix (DynaCab slots included) as an IR file | ⬜ | | |
+| CB1 | Stereo input: slots 1 and 3 read the left input, 2 and 4 the right | ✅ | A_stereo_input_feeds_slots_one_and_three_from_the_left_and_two_and_four_from_the_right; Two_convolutions_serve_one_side_or_a_mono_input | 4 convolutions when both sides play, 2 otherwise; golden cab.wav changed on purpose |
+| CB2 | Preamp types to 11 (FET 1/2, Tape 70/50/35 µs, Vintage, Modern, Exciter) | ✅ | Preamp_types_keep_their_curves_and_their_onsets_mark_one_db_of_compression; Tape_emphasis_saturates_the_treble_first_and_vintage_the_lows; The_exciter_adds_harmonics_to_the_treble_and_leaves_the_bass_clean | 12 types (Cabinets/MicPreampTypes.cs); the old single Tape replaced by the three |
+| CB3 | Preamp input VU (0 = onset of clipping) | ✅ | The_preamp_input_meter_reads_zero_at_the_onset_of_clipping | new IBlockMeters → Telemetry.BlockMeters (a second meter path beside PS's Telemetry.blocks) |
+| CB4 | Smoothing and Proximity per slot | ✅ | Proximity_lifts_the_lows_of_an_ir_slot_but_not_of_a_dynacab; Smoothing_works_per_slot_on_a_dynacab_too | `mNproximity`, `mNproxfreq`, `mNsmoothing`; globals removed |
+| CB5 | Mic distance up to 3.4 m, shown in mm and ms; Auto-Align switch | ✅ | Mic_distance_delays_a_slot_by_up_to_three_point_four_metres; Auto_align_off_delays_a_mic_by_its_distance | `mNdelay` to 9.91 ms, `mNalign` per slot |
+| CB6 | Motor Drive (voice-coil thermal compression) with time constant and gain-reduction meter | ✅ | Motor_drive_compresses_as_the_voice_coil_heats_and_is_off_by_default | Cabinets/VoiceCoil.cs; `motor`, `motortime`, `motorReduction` meter |
+| CB7 | IR import: minimum-phase / auto-trim / as-is, peak-positive polarity, stereo channel choice, length | ✅ | IrImportTests; An_ir_upload_can_be_trimmed_and_its_polarity_corrected | POST /assets takes processing, polarity, channels, maxLengthMs |
+| CB8 | FullRes IRs (~1.4 s) in the Cab block via partitioned convolution | ✅ | Full_res_irs_play_to_about_one_point_four_seconds | 65,536 samples; worst case ~9.7 % (4 slots, Stereo); not gapless for long IRs; non-uniform partitions are the next speed-up |
+| CB9 | Flat slot source | ✅ | A_flat_slot_and_a_cab_slot_split_a_stereo_input_into_a_di_and_a_cab |  |
+| CB10 | Global "cab modelling off" switch | ✅ | Cab_modelling_off_passes_audio_through_and_fades_back_in | GlobalSettings.CabModelingOff; Cab and IR Player |
+| CB11 | Export the block's current mix (DynaCab slots included) as an IR file | ✅ | Export_bakes_the_master_cuts_into_the_mixed_ir; A_cab_exports_its_mixed_ir_and_saves_it_as_an_asset | GET/POST /live/blocks/{id}/ir |
 
 ## Known open items from earlier rounds
 
@@ -213,4 +213,6 @@ These were reported as left over or deliberately deferred, and are not assigned 
 | Library-wide open issues: TriodeStage output resistance with a partly bypassed cathode; Thévenin cut behind plate-bypass cold clippers; JC-120 tone-stack level | ⬜ | docs/06 |
 | Windows `HostAllocationTests` intermittent 4-byte allocation | ⬜ | Per-thread allocation measured across awaits |
 | Load-sensitive tests (cab crossfade, CPU-per-type) | ⬜ | Pass alone; flaky under heavy load (the tremolo one is fixed) |
+| Preset-load allocation budget raised 128 → 136 → 137.5 KB as blocks grew (HostAllocationTests) | ⬜ | Keeps creeping; find what a load allocates per parameter and cut it |
+| Two block-meter telemetry paths (`Telemetry.blocks` peaks, `Telemetry.BlockMeters` named meters) | ⬜ | Could be unified |
 | 18 W Intensity rheostat R32 (1k) fixed at mid-travel | ⬜ | Drawing doesn't show which end is 0; link it to `tremdepth` once the orientation is known |
