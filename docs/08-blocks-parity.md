@@ -72,7 +72,7 @@ The guide's comparison table (p. 3) lists 42 block types. Cathode covers 37 of t
 | Volume/Pan (VOL) | `volpan` | 1 → 1 | 🆕 10 / 0 / 0 | Done in this pass |
 | Wah (WAH) | `wah` | 9 → 🆕 10 | 🆕 13 / 1 / 0 | 🆕 Done: five more voicings, drive, inductor bias, EQ page; min/max frequency on the filter voicings only |
 
-**Totals** (the counts above, summed over the 40 audited blocks and pages, Amp excluded): about **370 / 85 / 245** (✅ / ◐ / ❌), i.e. **roughly 64 % of the guide's parameters present at least in part**, up from about 42 % before this pass. Type coverage remains the largest gap: Fractal's catalogue of named type presets (Chorus 17, Flanger 31, Phaser 16, Delay 23+, Reverb 66+, Plex 44) maps to one or a few algorithms with knobs here.
+**Totals** (the counts above, summed over the 42 audited blocks and pages, Amp excluded), after the four parity streams of October 2026 (P1–P4): about **646 / 16 / 1** (✅ / ◐ / ❌), i.e. **about 97 % of the guide's parameters fully present and nearly all of the rest in part**, up from about 64 % after the first pass and 42 % before it. The one ❌ is the Cab's stereo room mic spacing; the ◐ rows are listed per block in §6. Type coverage is now closed mostly by the Block Library's factory presets (146 over 19 blocks) on top of the algorithms here, rather than by one algorithm per guide type.
 
 ### 1.2 What this pass implemented
 

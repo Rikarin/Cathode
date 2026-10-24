@@ -183,36 +183,44 @@ Counted over every table in this file, including the two sections added from Fra
 
 | Status | Rows |
 |---|---|
-| ✅ Done | 55 |
-| 📋 Planned (schematic found, not built yet) | 25 |
-| ⏸ Waiting on a schematic or better data | 59 |
-| 💤 Not researched yet | 0 |
+| ✅ Done | 76 |
+| 📋 Planned (schematic found, not built yet) | 4 |
+| ⏸ Waiting on a schematic or better data | 64 |
+| 💤 Not researched yet | 2 |
 
 ### Circuit Amp types by index
 
-The Circuit Amp block has 57 types. The "Cathode type" column above names them; this is their order in the Type list.
+The Circuit Amp block has 81 types. The "Cathode type" column above names them; this is their order in the Type list.
 
 | # | Type | # | Type | # | Type |
 |---|---|---|---|---|---|
-| 0 | Blackface | 19 | Tweed Deluxe 5E3 Jumped | 38 | Portaflex B-15N |
-| 1 | Plexi | 20 | SLO-100 | 39 | JC-120 |
-| 2 | AC30 | 21 | Mark IIC+ | 40 | Hot Rod Deluxe |
-| 3 | AC15 | 22 | 5150 | 41 | Champ 5F1 |
-| 4 | DC-30 | 23 | Dual Rectifier | 42 | Vibroverb AB763 |
-| 5 | Prometheus | 24 | 5150III | 43 | Vibrolux Reverb AA964 |
-| 6 | Prometheus Clean | 25 | Mark IV | 44 | Bandmaster AB763 |
-| 7 | JCM800 2203 | 26 | Legacy VL100 | 45 | Tweed Twin 5F8-A |
-| 8 | JCM800 2204 | 27 | Chieftain | 46 | Tweed Twin 5F8-A Jumped |
-| 9 | JTM45 | 28 | Hot Cat 30 | 47 | Tremolux AA763 |
-| 10 | Plexi 100W | 29 | ODS 97 | 48 | Princeton 5F2-A |
-| 11 | Laney GH100L | 30 | Express | 49 | Princeton AA964 |
-| 12 | Deluxe Reverb | 31 | Lone Star | 50 | Vibro-King |
-| 13 | Twin Reverb | 32 | Mark V | 51 | Blues Junior |
-| 14 | Super Reverb | 33 | Rect-o-Verb | 52 | BE-100 |
-| 15 | Princeton Reverb | 34 | Triple Rectifier | 53 | BE-100 HBE |
-| 16 | Bassman 5F6-A | 35 | Powerball | 54 | Silver Jubilee |
-| 17 | Bassman 5F6-A Jumped | 36 | Savage 120 | 55 | 18 W 1974X |
-| 18 | Tweed Deluxe 5E3 | 37 | SVT | 56 | Hiwatt DR103 |
+| 0 | Blackface | 27 | Chieftain | 54 | Silver Jubilee |
+| 1 | Plexi | 28 | Hot Cat 30 | 55 | 18 W 1974X |
+| 2 | AC30 | 29 | ODS 97 | 56 | Hiwatt DR103 |
+| 3 | AC15 | 30 | Express | 57 | 1959SLP |
+| 4 | DC-30 | 31 | Lone Star | 58 | 1987X |
+| 5 | Prometheus | 32 | Mark V | 59 | 1959T Tremolo |
+| 6 | Prometheus Clean | 33 | Rect-o-Verb | 60 | Bluesbreaker 1962 |
+| 7 | JCM800 2203 | 34 | Triple Rectifier | 61 | Hiwatt DR504 |
+| 8 | JCM800 2204 | 35 | Powerball | 62 | Cornford MK50H II |
+| 9 | JTM45 | 36 | Savage 120 | 63 | Tiny Terror |
+| 10 | Plexi 100W | 37 | SVT | 64 | Liverpool |
+| 11 | Laney GH100L | 38 | Portaflex B-15N | 65 | ODS 70s |
+| 12 | Deluxe Reverb | 39 | JC-120 | 66 | Dual Rectifier 3-Ch |
+| 13 | Twin Reverb | 40 | Hot Rod Deluxe | 67 | Subway Blues |
+| 14 | Super Reverb | 41 | Champ 5F1 | 68 | TriAxis Rhythm |
+| 15 | Princeton Reverb | 42 | Vibroverb AB763 | 69 | TriAxis Lead 1 |
+| 16 | Bassman 5F6-A | 43 | Vibrolux Reverb AA964 | 70 | TriAxis Lead 2 |
+| 17 | Bassman 5F6-A Jumped | 44 | Bandmaster AB763 | 71 | JCM900 4502 |
+| 18 | Tweed Deluxe 5E3 | 45 | Tweed Twin 5F8-A | 72 | JCM900 4100 |
+| 19 | Tweed Deluxe 5E3 Jumped | 46 | Tweed Twin 5F8-A Jumped | 73 | Valvestate 8080 |
+| 20 | SLO-100 | 47 | Tremolux AA763 | 74 | JVM410H OD |
+| 21 | Mark IIC+ | 48 | Princeton 5F2-A | 75 | Concert 6G12 |
+| 22 | 5150 | 49 | Princeton AA964 | 76 | Super 6G4 |
+| 23 | Dual Rectifier | 50 | Vibro-King | 77 | Deluxe 6G3 |
+| 24 | 5150III | 51 | Blues Junior | 78 | Vibrolux 6G11 |
+| 25 | Mark IV | 52 | BE-100 | 79 | Bassman 135 |
+| 26 | Legacy VL100 | 53 | BE-100 HBE | 80 | Scout GA-17RVT |
 
 Match quality against the references is in `docs/06-amp-modelling-spec.md` (as-built notes per family) and in the
 manifest's targets. Only the Prometheus clean channel reaches the spec's ESR target; captures with stated knob settings

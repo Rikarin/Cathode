@@ -914,6 +914,9 @@ to the Plexi, not the raw percentages.
 - *An unconverged stage cannot be tuned against its own goldens.* The Jubilee's V1B leaves about 45 samples a second of
   loud noise unconverged at its 32-iteration limit (Boost); their fallback values differ by −30 dB from the converged
   solution, so any change to that stage's Newton path other than a bit-exact one moves the output by −30 to −40 dB.
+  **Decision (October 2026): the Jubilee keeps its current sound** and stays slightly over the high-gain budget on loud
+  noise (28–31.5 %; within it on guitar). Letting V1B converge, and then using chord steps there, would bring it in at the
+  cost of that −30 dB change; revisit only if a capture shows the converged solution is closer to the real amp.
 
 ### 5.4 Matching method
 
