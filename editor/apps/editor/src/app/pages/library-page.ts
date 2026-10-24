@@ -13,9 +13,8 @@ import { XuiTableImports } from '@xui/table';
 import { XuiTextImports } from '@xui/text';
 import { BlockPresetsStore } from '../state/block-presets.store';
 import { CatalogStore } from '../state/catalog.store';
-import { CompareStore } from '../state/compare.store';
 import { LibraryStore } from '../state/library.store';
-import { LiveStore } from '../state/live.store';
+import { PresetSwitcher } from '../state/preset-switcher';
 
 /** The preset library: search by name, author or tag; load, export, import and delete. */
 @Component({
@@ -45,6 +44,15 @@ import { LiveStore } from '../state/live.store';
         [value]="query()"
         (input)="query.set($any($event.target).value)"
       />
+      <button
+        xuiButton
+        type="button"
+        variant="outline"
+        data-testid="export-list"
+        (click)="library.download('/api/v1/presets/list.txt', 'Cathode presets.txt')"
+      >
+        Export list…
+      </button>
       <button xuiButton type="button" variant="outline" (click)="importFile.click()">Import…</button>
       <input #importFile type="file" class="hidden" accept=".cthpreset" (change)="import(importFile)" />
     </header>
@@ -146,8 +154,7 @@ export class LibraryPage {
           .map(p => p.type)
       ).size
   );
-  private readonly live = inject(LiveStore);
-  private readonly compare = inject(CompareStore);
+  private readonly switcher = inject(PresetSwitcher);
   private readonly router = inject(Router);
 
   protected readonly query = signal('');
@@ -181,8 +188,7 @@ export class LibraryPage {
 
   protected async load(): Promise<void> {
     const preset = this.selected();
-    if (preset && (await this.live.load(preset.id))) {
-      this.compare.reset();
+    if (preset && (await this.switcher.load(preset.id, preset.name))) {
       await this.router.navigateByUrl('/');
     }
   }

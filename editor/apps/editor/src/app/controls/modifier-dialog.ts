@@ -106,6 +106,17 @@ export function shape(curve: string, s: number): number {
               (valueChange)="patch({ releaseMs: $event })"
             />
           </div>
+          <label class="flex items-center gap-3">
+            <span class="text-foreground-muted text-xs">Applies on</span>
+            <xui-segmented-control
+              size="sm"
+              aria-label="Channels the modifier applies on"
+              data-testid="modifier-scope"
+              [options]="scopes"
+              [value]="draft().channel ?? 'all'"
+              (valueChange)="patch({ channel: $event === 'all' || $event === null ? null : $event })"
+            />
+          </label>
           <xui-segmented-control
             size="sm"
             aria-label="Curve"
@@ -140,6 +151,11 @@ export class ModifierDialog {
     value: c,
     label: c === 'scurve' ? 'S-curve' : c[0].toUpperCase() + c.slice(1)
   }));
+  /** All channels of the block, or one (the modifier then leaves the parameter alone on the others). */
+  protected readonly scopes = [
+    { value: 'all', label: 'All channels' },
+    ...['A', 'B', 'C', 'D'].map(c => ({ value: c, label: c }))
+  ];
   protected readonly sourceName = (s: string) => SourceNames[s] ?? `External ${s.slice(3)}`;
   protected readonly existing = computed(() => this.live.modifierOf(this.block(), this.param().id));
   protected readonly log = computed(() => this.param().taper === 'log');
