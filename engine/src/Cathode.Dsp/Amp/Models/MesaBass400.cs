@@ -30,15 +30,18 @@ namespace Cathode.Dsp.Amp.Models;
 ///         after 10k), -68 V and -63 V. The marked voltages give the preamp's draw (16.5 mA through the 10k).
 ///     </para>
 ///     <para>
-///         Guessed (not printed): V4's plate resistors (no value on the sheet: 100k, which with a 12AX7 puts the plates
-///         near the marked 276 V), the equaliser's input and feedback resistors (10k each, as in the TriAxis Dynamic
+///         Guessed (not printed): V4's plate resistors (no value on the sheet: 47k, which with 12AX7s puts the plates at
+///         279 V and the cathodes at 1.8 V against the marked 276 V and 2 V; 100k gave 221 V), the 6550s' idle current
+///         (45 mA, inside the tube's dissipation; the library's 6550 then wants -67 V of bias where the sheet marks -63 V,
+///         and 65 mA would match the mark at 35 W a tube), the equaliser's input and feedback resistors (10k each, as in the TriAxis Dynamic
 ///         Voice; unlabelled), the tapers (volumes and master audio, sliders and treble linear; treble 250k), the
 ///         reservoir (ten 220 µF in series pairs: 550 µF), the output transformer (1.2k plate to plate, about 400 W at
 ///         540 V), the supply's source resistance, the choke's resistance and the rated power. Simplified: the
 ///         equaliser's discrete op-amp is linear (it swings about ±10 V around its -20.7 V bias; the levels here stay
 ///         below that except with the volumes and the sliders all up), its PNP follower an ideal buffer; the first grid
 ///         leaks taken to the grids (drawn on the jacks' side of the 47 nF); the effects loop and its blend a wire, the
-///         equaliser's in/out switch in; the coupling caps inside the driver shorts (the driver's table).
+///         equaliser's in/out switch in; the coupling caps inside the driver shorts (the driver's table). With the read
+///         values V3's plates rest at 335 V, where the sheet marks 350 V.
 ///     </para>
 ///     <para>
 ///         Panel: Volume 1 on Gain, Volume 2 on Control 1, Input 2 (Switch 1: the guitar in input 2 instead), Bass Shift
@@ -55,8 +58,7 @@ public static class MesaBass400 {
         "Bass 400",
         [
             new NetworkStageDesign("V1", InputStage()),
-            new NetworkStageDesign("V2A", StackStage()),
-            new NetworkStageDesign("V2B", FollowerStage()),
+            new NetworkStageDesign("V2", SecondStage()),
             new NetworkStageDesign("Graphic EQ", Equalizer())
         ],
         new(
@@ -65,7 +67,7 @@ public static class MesaBass400 {
             3,
             540,
             2.7e3,
-            0.032,
+            0.045,
             false,
             0,
             400,
@@ -80,7 +82,7 @@ public static class MesaBass400 {
                 220e3,
                 TriodeModel.Ecc83,
                 Rail,
-                100e3,
+                47e3,
                 470
             ),
             0.1e-6,
@@ -154,11 +156,13 @@ public static class MesaBass400 {
     }
 
     /// <summary>
-    ///     V2A: 100k plate; 1000 Ω ‖ 0.15 µF on the cathode, and 15 µF through 33k that Bass Shift (Switch 2) shorts; the
-    ///     Mark stack off the plate (250 pF, 750 pF more with Treble Shift on Switch 3, 100k, 47 nF, 0.1 µF; 250k treble,
-    ///     250k bass, 10k middle). Out at the treble wiper.
+    ///     V2A and V2B in one stage (V2B's grid conducts and loads the stack, which a Thévenin cut would miss): V2A's 100k
+    ///     plate, 1000 Ω ‖ 0.15 µF on its cathode and 15 µF through 33k that Bass Shift (Switch 2) shorts; the Mark stack off
+    ///     the plate (250 pF, 750 pF more with Treble Shift on Switch 3, 100k, 47 nF, 0.1 µF; 250k treble, 250k bass, 10k
+    ///     middle); 47 nF from the treble wiper into V2B, a follower with 3.3M from the rail to its grid (the only DC path
+    ///     drawn: the grid biases itself by its grid current) and 33k on its cathode; 0.1 µF into 15k. Out at the 15k.
     /// </summary>
-    static StageNetlist StackStage() {
+    static StageNetlist SecondStage() {
         var net = new StageNetlist();
         var (rail, plate, cathode, shift) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Supply(rail, Rail);
@@ -182,20 +186,13 @@ public static class MesaBass400 {
             new(250e3, PotTaper.Audio),
             new(10e3, PotTaper.Linear)
         );
-        net.Output = wiper;
-        return net;
-    }
 
-    /// <summary>V2B as a cathode follower: 47 nF in, 3.3M from the rail, 33k cathode; 0.1 µF into 15k. Out at the 15k.</summary>
-    static StageNetlist FollowerStage() {
-        var net = new StageNetlist();
-        var (rail, grid, cathode, output) = (net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, Rail);
-        net.Capacitor(net.Input, grid, 47e-9);
+        var (grid, follower, output) = (net.Node(), net.Node(), net.Node());
+        net.Capacitor(wiper, grid, 47e-9);
         net.Resistor(rail, grid, 3.3e6);
-        net.Resistor(cathode, StageNetlist.Ground, 33e3);
-        net.Triode(rail, grid, cathode, TriodeModel.Ecc83);
-        net.Capacitor(cathode, output, 0.1e-6);
+        net.Resistor(follower, StageNetlist.Ground, 33e3);
+        net.Triode(rail, grid, follower, TriodeModel.Ecc83);
+        net.Capacitor(follower, output, 0.1e-6);
         net.Resistor(output, StageNetlist.Ground, 15e3);
         net.Output = output;
         return net;

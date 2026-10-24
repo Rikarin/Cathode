@@ -143,6 +143,8 @@ public sealed class AmpChannel {
             x = stage.Tick(x);
         }
 
+        Power.SetLoopSupply(supply);
+
         if (!channelSettings.PowerAmp) {
             return x;
         }
@@ -165,6 +167,8 @@ public sealed class AmpChannel {
             stage.SetSupply(supply);
             x = stage.Tick(x);
         }
+
+        Power.SetLoopSupply(supply);
 
         return x;
     }

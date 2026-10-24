@@ -14,9 +14,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Source: the Unicord drawing 70-02-12 "Marshall 1967", July 1970, http://www.drtube.com/schematics/marshall/1967u.gif
 ///         (2098 × 1354, read by eye at 2-4×; the el34world JPG is a photo of the same sheet). Read from it: the inputs
 ///         (68k, 68k, 1M per channel), V1's 100k plates, 820 ‖ 250 µF and 2.7k ‖ 0.68 µF, the 22 nF and 2.2 nF coupling
-///         caps, the two 1M volumes, the 470k from the Normal volume's wiper into the mix node, the Treble volume's top on
-///         the mix node with 470k ‖ 500 pF from it to the wiper (as drawn: turned down, that channel is loaded rather than
-///         cut off); V2A's 100k plate, 470 ‖ 25 µF above the feedback node, 470 Ω from it to ground, 47k from the 16 Ω
+///         caps, the two 1M volumes, 470k from the Normal volume's wiper and 470k ‖ 500 pF from the Treble volume's
+///         wiper into the mix node (the 2.2 nF line to the Treble volume's top meets the mix line at a dot; read as a
+///         crossing, since joined there the Treble volume would only load the mix node, 2 dB over its whole travel);
+///         V2A's 100k plate, 470 ‖ 25 µF above the feedback node, 470 Ω from it to ground, 47k from the 16 Ω
 ///         terminal, the 5k presence pot with 0.68 µF; the stack (500 pF, 33k slope, 22 nF to the bass, 22 nF to the
 ///         middle pot's wiper, 250k treble, a 1M bass rheostat, a 25k middle pot); 22 nF into V2B, its 1M leak to the
 ///         junction, 100k plate, 2.7k and 100k; 47 nF into each ECC82 grid, the 270 Ω printed at the leaks (read as 270k:
@@ -78,7 +79,7 @@ public static class MarshallMajor {
             UltralinearTap: 0.43,
             Loop: new(TriodeModel.Ecc83, SecondSupply, 100e3, 470, 470 * 47e3 / (470 + 47e3), Stack(), 40)
         ),
-        -4
+        -7
     ) {
         Panel = AmpPanel.Standard with {
             Gain = "Treble Vol",
@@ -107,12 +108,12 @@ public static class MarshallMajor {
         net.SwitchedResistor(net.Input, normalJack, 0, Closed, SwitchRole.Switch1);
         net.SwitchedResistor(net.Input, normalJack, 0, Closed, SwitchRole.Switch2);
 
-        Channel(net, rail, trebleJack, 2.7e3, 0.68e-6, 2.2e-9, mix);
-        var normalOut = net.Node();
+        var (trebleOut, normalOut) = (net.Node(), net.Node());
+        Channel(net, rail, trebleJack, 2.7e3, 0.68e-6, 2.2e-9, trebleOut);
         Channel(net, rail, normalJack, 820, 250e-6, 22e-9, normalOut);
 
-        // The Treble volume: its top on the mix node, 470k ‖ 500 pF from the mix node to its wiper.
-        var trebleWiper = net.Pot(mix, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
+        // The Treble volume: 470k ‖ 500 pF from its wiper to the mix node.
+        var trebleWiper = net.Pot(trebleOut, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
         net.Resistor(mix, trebleWiper, 470e3);
         net.Capacitor(mix, trebleWiper, 500e-12, CapacitorRole.Bright);
 
@@ -137,7 +138,7 @@ public static class MarshallMajor {
         net.Resistor(jack, StageNetlist.Ground, 1e6);
         net.Resistor(jack, grid, 34e3);
         net.Resistor(rail, plate, 100e3);
-        net.Resistor(cathode, StageNetlist.Ground, cathodeResistor);
+        net.CathodeResistor(cathode, StageNetlist.Ground, cathodeResistor);
         net.Capacitor(cathode, StageNetlist.Ground, bypass);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
         net.Capacitor(plate, output, coupling);

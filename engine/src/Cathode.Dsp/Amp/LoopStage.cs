@@ -66,6 +66,8 @@ public sealed class LoopStage {
     bool configured;
     double sampleRate;
     double gain;
+    double supply = 1; // the preamp node's sag, as a fraction of nominal
+    double inverseSupply = 1;
 
     public LoopStageDesign Design { get; }
 
@@ -131,7 +133,8 @@ public sealed class LoopStage {
     ///     this sample, and its slope; no state moves.
     /// </summary>
     public double Peek(double vd, out double slope) {
-        var (plate, _) = triode.Evaluate(vd, out var plateSlope, out _);
+        var (plate, _) = triode.Evaluate(vd * inverseSupply, out var plateSlope, out _);
+        plate *= supply;
         var y = gain * plate;
         for (var k = 0; k < history.Length; k++) {
             y += weights[k] * history[k];
@@ -143,7 +146,8 @@ public sealed class LoopStage {
 
     /// <summary><see cref="Peek" />, and advances the network's state.</summary>
     public double Process(double vd) {
-        var (plate, _) = triode.Evaluate(vd, out _, out _);
+        var (plate, _) = triode.Evaluate(vd * inverseSupply, out _, out _);
+        plate *= supply;
         var y = gain * plate;
         for (var k = 0; k < history.Length; k++) {
             y += weights[k] * history[k];
@@ -160,6 +164,18 @@ public sealed class LoopStage {
 
         Array.Copy(next, history, history.Length);
         return y;
+    }
+
+    /// <summary>
+    ///     The stage's supply as a fraction of nominal (the preamp node's sag), set per sample: the triode's transfer is
+    ///     scaled with it, its swing and its input range in proportion (exact for the scale-free part of the 3/2 law, a
+    ///     close approximation for the few percent a supply sags).
+    /// </summary>
+    public void SetSupply(double scale) {
+        if (scale != supply && scale > 0) {
+            supply = scale;
+            inverseSupply = 1 / scale;
+        }
     }
 
     public void Reset() => Array.Clear(history);

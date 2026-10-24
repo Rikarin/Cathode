@@ -325,6 +325,10 @@ public sealed class PowerAmp {
     /// </summary>
     public void ConfigureLoop(in AmpControls controls) => root.Device.Loop?.Configure(controls);
 
+    /// <summary>The preamp supply (fraction of nominal) a stage inside the feedback loop runs on; nothing without one.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetLoopSupply(double scale) => root.Device.Loop?.SetSupply(scale);
+
     /// <summary>Applies the power-amp knobs; recomputes only what changed.</summary>
     public void Configure(in PowerControls controls) {
         if (controls == this.controls) {

@@ -279,9 +279,9 @@ static class AmpReferences {
             c.Resistor(loopSupply, plate, loop.PlateResistor);
             if (loop.BypassedCathode > 0) {
                 c.Resistor(cathode, feedback, loop.BypassedCathode);
-                c.Capacitor(cathode, feedback, 0.1);
+                c.Capacitor(cathode, feedback, 1e-3);
             } else {
-                c.Resistor(cathode, feedback, Floor);
+                c.Resistor(cathode, feedback, 1);
             }
 
             c.Device(new Triode(loop.Tube), (ga, cathode), (plate, cathode));
@@ -292,7 +292,7 @@ static class AmpReferences {
             }
 
             int Map(int k) => k == 0 ? 0 : first + k - 1;
-            c.Resistor(plate, Map(net.Input), Floor);
+            c.Resistor(plate, Map(net.Input), 1);
             Elements(c, new("loop", net), loopControls ?? new(0.5, 0.5, 0.5, 0.5, 0.5, false), PreampSettings.Stock, Map);
             loopGrid = c.Node();
             c.Capacitor(Map(net.Output), loopGrid, 10e-6);
@@ -491,6 +491,10 @@ static class AmpReferences {
             c.Resistor(feedback, 0, f.ShuntResistor);
             c.Resistor(feedback, presenceNode, Math.Max(f.Presence.Ohms * (1 - f.Presence.Fraction(presence)), Floor));
             c.Capacitor(presenceNode, 0, f.PresenceCap);
+        } else if (d.Loop is not null) {
+            // The loop stage's cathode keeps the feedback network's shunt with the feedback off (its tap at ground).
+            c.Resistor(feedback, 0, d.Feedback.ShuntResistor);
+            c.Resistor(feedback, 0, d.Feedback.FeedbackResistor);
         } else {
             c.Resistor(feedback, 0, 1);
         }
