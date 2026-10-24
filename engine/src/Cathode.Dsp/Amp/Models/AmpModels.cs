@@ -36,7 +36,8 @@ public sealed partial record AmpDesign {
         Models.FriedmanBE100.Design,
         Models.FriedmanBE100.Hbe,
         Models.SilverJubilee.Design,
-        Models.Marshall18W.Design
+        Models.Marshall18W.Design,
+        Models.HiwattDR103.Design
     ];
 
     public static AmpDesign Blackface => Models.Blackface.Design;
