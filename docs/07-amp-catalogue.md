@@ -167,11 +167,11 @@ built from the documented features and fitted to captures.
 | Ampeg SVT (1970, 6550) | ✅ Done (channel one; power-amp nodes and OT assumed) | SVT | — (no free capture found) | Direct-out captures with settings, Ultra Lo, each Mid Freq | 8x10 closed |
 | Ampeg B-15-N Portaflex (1968) | ✅ Done (channel one) | Portaflex B-15N | — | Direct-out captures, Ultra Lo / Hi | 1x15 closed |
 | Roland JC-120 (1984 board) | ✅ Done (effect channel, effects off; solid state) | JC-120 | — | Direct-out captures, volume sweep | 2x12 open |
-| Fender Bassman 100 / 135 (bass) | 📋 Planned (CBS factory drawing 014283 of the 135 found and readable: Bass and Normal channels with Deep and Bright, 12AT7 LTP, 4 × 6L6GC ultralinear; not built for time) | — | — | Schematic of the 100; captures | 4x12 / 2x15 |
+| Fender Bassman 100 / 135 (bass) | ✅ Done (the 135, from CBS drawing 014283 with the 100's drawing 010303 for the small print: Bass and Normal channels, Deep, Bright, Master, 12AT7 LTP, 4 × 6L6GC ultralinear; the OT and its screen taps assumed; the 100 is the same preamp with pentode screens) | Bassman 135 | — (no free capture found) | Direct-out captures with settings | 4x12 / 2x15 |
 | Marshall Valvestate 8080 / 8100 | 📋 Planned (Marshall drawings PC0689 issue 5 and PC0689P issue 9, vector PDFs at schematicheaven: every value readable; op-amp and LED-clipper front end, one ECC83, a TL072-driven class-AB power amp with current feedback; not built for time) | — | — | Captures | 1x12 / 4x12 closed |
 
 No free (GPL / CC) direct-out capture of any of these was found: GuitarML ToneLibrary and pelennor2170/NAM_models
-hold none (searched October 2026), so the three models are schematic-only. Sources, readings and guesses are in
+hold none (searched October 2026; ToneLibrary's Bassman files are the 5F6-A), so the four models are schematic-only. Sources, readings and guesses are in
 `docs/06-amp-modelling-spec.md` §3.5 and in each model file. The bass cabs (8 × 10, 1 × 15) are not Cab-block IRs yet:
 the B-15 runs on the Circuit Amp's closed 8 × 10 speaker curve.
 
@@ -236,8 +236,8 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 | Amp | Status | Cathode type | Axe models | Look for | Typical cab |
 |---|---|---|---|---|---|
 | Fender Bassman AB165 (blackface) | ⏸ Waiting (the only scan, schematicheaven `bassman_ab165_schem.pdf`, is too poor for the Bass channel's stack and the bias network; topology and power section read) | — | 65 Bassguy Bass / Normal | A legible AB165 drawing | 2x12 closed |
-| Fender Concert 6G12 (brownface) | 📋 Planned (factory drawing read, schematicheaven `concert_6g12_schem.pdf`; the dry path runs through the harmonic vibrato's crossover and mixer pair, not built yet) | — | 6G12 Concert | OT primary (45249, 2 Ω secondary) | 4x10 open |
-| Fender Super 6G4 (brownface) | 📋 Planned (as the 6G12: same drawing family, 10k feedback, GZ34) | — | 6G4 Super | OT primary (45216) | 2x10 open |
+| Fender Concert 6G12 (brownface) | ✅ Done (factory drawing, schematicheaven `concert_6g12_schem.pdf`: both channels, the harmonic vibrato as a stage with Speed, Intensity and the pedal; OT primary assumed) | Concert 6G12 | 6G12 Concert | OT primary (45249, 2 Ω secondary); captures | 4x10 open |
+| Fender Super 6G4 (brownface) | ✅ Done (factory drawing `super_6g4_schem.pdf`: the 6G12's circuit, 10k feedback, GZ34) | Super 6G4 | 6G4 Super | OT primary (45216); captures | 2x10 open |
 | Fender Tremolux AA763 | ✅ Done | Tremolux AA763 | Tremolo Lux | Direct out | 2x10 closed |
 | Fender Vibro-King | ✅ Done (rev F drawing) | Vibro-King | Vibra-King, Vibra-King Fat | Direct out, Fat on and off | 3x10 open |
 | Fender Blues Junior | ✅ Done (III drawing) | Blues Junior | JR Blues, JR Blues Fat | Direct out (GuitarML's Blues Jr files are miked) | 1x12 open |
@@ -283,7 +283,7 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 | Swart Atomic Space Tone | ⏸ Waiting (searched 2026-10: no schematic) | — | Nuclear-Tone | Schematic | 1x12 open |
 | Paul Ruby Rocket | ⏸ Waiting (searched 2026-10: no schematic) | — | Ruby Rocket, Ruby Rocket Bright | Schematic | 1x12 open |
 | Carol-Ann OD-2 / Triptik / Tucana 3 | ⏸ Waiting (searched 2026-10: no schematic) | — | Carol-Ann OD-2, Triptik, Tucana | Schematic | 2x12 / 4x12 |
-| Gibson Scout | 📋 Planned (factory GA-17RVT drawing with voltages: schematicheaven `gibsonamps/ga17rvt.pdf`; needs 6EU7 and 6AQ5 tube tables) | — | Gibtone Scout | Captures | 1x10 / 1x12 open |
+| Gibson Scout | ✅ Done (GA-17RVT drawing with voltages, schematicheaven `gibsonamps/ga17rvt.pdf`; new 6EU7 and 6AQ5 tables fitted to the RCA and GE datasheets; reverb and tremolo off) | Scout GA-17RVT | Gibtone Scout | Captures | 1x10 / 1x12 open |
 
 ### High gain
 
@@ -323,8 +323,8 @@ models. Against the catalogue above it adds these real amps:
 
 | Amp | Family | Status | Cathode type | Axe models | Typical cab |
 |---|---|---|---|---|---|
-| Fender Deluxe 6G3 (brownface) | Fender | 📋 Planned (factory drawing on schematicheaven, `deluxe_6g3_schem.pdf`; not read yet) | — | Deluxe 6G3 | 1x12 open |
-| Fender Vibrolux 6G11 (brownface, 1962/63) | Fender | 📋 Planned (factory drawing on schematicheaven, `vibrolux_6g11_schem.pdf`; not read yet; harmonic vibrato like the 6G12) | — | Vibrato Lux 6G11 | 2x10 open |
+| Fender Deluxe 6G3 (brownface) | Fender | ✅ Done (factory drawing `deluxe_6g3_schem.pdf`: Normal and Bright channels, Tone, the split-load second stage; the bias tremolo is not modelled) | Deluxe 6G3 | Deluxe 6G3 | 1x12 open |
+| Fender Vibrolux 6G11 (brownface, 1962/63) | Fender | ✅ Done (factory drawing `vibrolux_6g11_schem.pdf`: Normal and Bright channels; the drawing has a bias tremolo, not the harmonic vibrato, and it is not modelled; OT assumed) | Vibrolux 6G11 | Vibrato Lux 6G11 | 2x10 open |
 | Supro 1695T Black Magick | US vintage | ⏸ Waiting (a 2016 reissue-era design by Absara; no schematic published: only specifications, 2 × 6973 cathode-biased, 25 W) | — | Supremo Black Magick | 1x12 open |
 | Supro 1964T | US vintage | ⏸ Waiting (no schematic for a "1964T" found; the 2014 reissues' S6420 / S6424 schematics may be related) | — | Supremo 1964T | 1x12 open |
 | Marshall SV20H (Studio Vintage, 20 W Plexi) | Marshall | 💤 Not planned (not searched yet) | — | Plexi Studio 20 | 2x12 / 4x12 closed |
