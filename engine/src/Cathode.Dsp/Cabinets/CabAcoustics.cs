@@ -11,6 +11,11 @@ namespace Cathode.Dsp.Cabinets;
 /// <param name="Angle">Off-axis tilt of the mic, in radians.</param>
 /// <param name="Proximity">Model the proximity effect of pressure-gradient mics.</param>
 /// <param name="Room">Floor and room reflections, 0 (anechoic) to 1.</param>
+/// <param name="ProximityAmount">Scales the proximity boost: 1 is the physical amount, 0 none, 2 twice it.</param>
+/// <param name="ProximityFrequency">
+///     Scales the proximity corner (<c>c / 2πρ</c>): above 1 the boost reaches higher, as if the mic were closer.
+/// </param>
+/// <param name="RoomShape">The room's geometry and surfaces; null for <see cref="CabRoom.Default" />.</param>
 public readonly record struct MicPlacement(
     SpeakerModel Speaker,
     EnclosureModel Enclosure,
@@ -19,8 +24,33 @@ public readonly record struct MicPlacement(
     double Distance,
     double Angle,
     bool Proximity,
-    double Room
+    double Room,
+    double ProximityAmount = 1,
+    double ProximityFrequency = 1,
+    CabRoom? RoomShape = null
 );
+
+/// <summary>The room around the cab, for the reflections <see cref="CabAcoustics.Paths" /> adds.</summary>
+/// <param name="Size">Scales every wall's (and the ceiling's) distance: 1 is a small studio room.</param>
+/// <param name="Shape">−1 … 1: the side wall moves out by 2^Shape and the back wall in by as much (0 as stock).</param>
+/// <param name="Floor">The floor reflection's level relative to stock (1).</param>
+/// <param name="HighDamping">Divides the surfaces' high-frequency absorption corners (1 stock, 4 a dull room).</param>
+/// <param name="LowDamping">First-order high-pass on the reflections, Hz (0 none): bass traps.</param>
+/// <param name="Diffusion">
+///     How rough the walls are, as the spread (standard deviation) of a wall reflection's arrival time in seconds: its
+///     coherent share falls as <c>exp(−(ω σ)² / 2)</c> and the rest adds as power, so the comb it makes with the direct
+///     sound evens out from the treble down (0 a specular room).
+/// </param>
+public readonly record struct CabRoom(
+    double Size = 1,
+    double Shape = 0,
+    double Floor = 1,
+    double HighDamping = 1,
+    double LowDamping = 0,
+    double Diffusion = 0
+) {
+    public static CabRoom Default { get; } = new(Size: 1);
+}
 
 /// <summary>
 ///     The physics of one miked speaker, evaluated per frequency. The response splits in two:
@@ -83,6 +113,7 @@ public readonly struct CabAcoustics {
     readonly double lowCornerHz;
     readonly double lowQ;
     readonly double tilt;
+    readonly CabRoom room;
 
     /// <summary>Time from the cone to the mic, in seconds.</summary>
     public double DirectDelay => depth / SpeedOfSound;
@@ -98,6 +129,7 @@ public readonly struct CabAcoustics {
         nearField = 1 / (1 + depth * depth / (radius * radius));
         curvature = Math.Sqrt(depth * depth + Curvature * radius * Curvature * radius);
         tilt = Math.Clamp(placement.Angle, 0, Math.PI / 2);
+        room = placement.RoomShape ?? CabRoom.Default;
         var speaker = placement.Speaker;
         if (placement.Enclosure.Open) {
             lowCornerHz = speaker.Fs;
@@ -158,6 +190,14 @@ public readonly struct CabAcoustics {
             db += 10 * Math.Log10(1 + incoherent * power);
         }
 
+        // Diffuse walls: what their reflections lose in coherence (see Paths) adds back as power.
+        if (placement.Room > 0 && room.Diffusion > 0) {
+            var omega = 2 * Math.PI * hz;
+            var share = Coherence(omega, room.Diffusion);
+            var diffuse = (1 - share * share) * WallPower(hz, omega, k, effective);
+            db += 10 * Math.Log10(1 + diffuse);
+        }
+
         return db;
     }
 
@@ -188,24 +228,52 @@ public readonly struct CabAcoustics {
         }
 
         if (placement.Room > 0) {
-            var room = Math.Clamp(placement.Room, 0, 1);
+            var (ceiling, sideWall, backWall, damping, level) = Walls();
             var height = enclosure.Height;
+            var lowCut = room.LowDamping > 0 ? HighPass(hz, room.LowDamping) : Complex.One;
+            var walls = level * lowCut * Coherence(omega, room.Diffusion);
 
-            // Floor: the image speaker 2h below, reflected at 0.8, softened above 6 kHz.
-            sum += room * 0.8 * Absorb(hz, 6_000) * Source(omega, k, effective, 2 * height, depth);
+            // Floor: the image speaker 2h below, reflected at 0.8, softened above 6 kHz. Only the walls diffuse.
+            sum += level * lowCut * room.Floor * 0.8 * Absorb(hz, 6_000 / damping)
+                * Source(omega, k, effective, 2 * height, depth);
 
             // Ceiling, side wall and the wall behind the mic (arriving from behind: a cardioid rejects it, a
             // figure-8 hears it inverted).
-            sum += room * 0.6 * Absorb(hz, 4_000)
-                * Source(omega, k, effective, 2 * (CeilingHeight - height), depth);
-            sum += room * 0.6 * Absorb(hz, 4_000) * Source(omega, k, effective, 2 * SideWallDistance, depth);
-            var back = 2 * BackWallDistance - depth;
+            sum += walls * 0.6 * Absorb(hz, 4_000 / damping) * Source(omega, k, effective, 2 * (ceiling - height), depth);
+            sum += walls * 0.6 * Absorb(hz, 4_000 / damping) * Source(omega, k, effective, 2 * sideWall, depth);
+            var back = 2 * backWall - depth;
             var backRho = Math.Sqrt(back * back + Square(Curvature * radius));
-            sum += room * 0.5 * Absorb(hz, 3_000) * (curvature / backRho) * Pattern(omega, backRho, -1)
+            sum += walls * 0.5 * Absorb(hz, 3_000 / damping) * (curvature / backRho) * Pattern(omega, backRho, -1)
                 * Complex.FromPolarCoordinates(1, -omega * (back - depth) / SpeedOfSound);
         }
 
         return sum;
+    }
+
+    /// <summary>The power the ceiling, side and back walls reflect at <paramref name="hz" />, before diffusion.</summary>
+    double WallPower(double hz, double omega, double k, double effective) {
+        var (ceiling, sideWall, backWall, damping, level) = Walls();
+        var lowCut = room.LowDamping > 0 ? HighPass(hz, room.LowDamping).Magnitude : 1;
+        var height = placement.Enclosure.Height;
+        var back = 2 * backWall - depth;
+        var backRho = Math.Sqrt(back * back + Square(Curvature * radius));
+        var a = 0.6 * Absorb(hz, 4_000 / damping) * Source(omega, k, effective, 2 * (ceiling - height), depth).Magnitude;
+        var b = 0.6 * Absorb(hz, 4_000 / damping) * Source(omega, k, effective, 2 * sideWall, depth).Magnitude;
+        var c = 0.5 * Absorb(hz, 3_000 / damping) * (curvature / backRho) * Pattern(omega, backRho, -1).Magnitude;
+        return Square(level * lowCut) * (a * a + b * b + c * c);
+    }
+
+    /// <summary>The room's ceiling height, side and back wall distances, HF damping and level.</summary>
+    (double Ceiling, double SideWall, double BackWall, double Damping, double Level) Walls() {
+        var size = Math.Max(0.1, room.Size);
+        var aspect = Math.Pow(2, Math.Clamp(room.Shape, -1, 1));
+        return (
+            Math.Max(CeilingHeight * size, placement.Enclosure.Height + 0.1),
+            SideWallDistance * size * aspect,
+            Math.Max(BackWallDistance * size / aspect, depth + 0.05),
+            Math.Max(0.05, room.HighDamping),
+            Math.Clamp(placement.Room, 0, 1)
+        );
     }
 
     /// <summary>J0 by its power series (exact enough for the arguments here, below 20).</summary>
@@ -260,6 +328,13 @@ public readonly struct CabAcoustics {
 
     static double Square(double x) => x * x;
 
+    /// <summary>A first-order high-pass <c>j f / (fc + j f)</c>.</summary>
+    static Complex HighPass(double hz, double corner) => new Complex(0, hz) / new Complex(corner, hz);
+
+    /// <summary>The coherent share of a reflection whose arrival is spread by <paramref name="spread" /> seconds.</summary>
+    static double Coherence(double omega, double spread) =>
+        spread <= 0 ? 1 : Math.Exp(-0.5 * Square(omega * spread));
+
     /// <summary>First-order HF absorption of a reflecting surface.</summary>
     static double Absorb(double hz, double corner) => 1 / Math.Sqrt(1 + Square(hz / corner));
 
@@ -280,8 +355,9 @@ public readonly struct CabAcoustics {
             return mic.Omni + gradient * cos;
         }
 
-        // 1 + c / (j ω ρ), held finite below the capsule's floor.
-        var boost = 1 + SpeedOfSound / (new Complex(2 * Math.PI * ProximityFloorHz, omega) * rho);
+        // 1 + c / (j ω ρ), held finite below the capsule's floor; Proximity Freq scales the corner c / 2πρ.
+        var corner = SpeedOfSound * placement.ProximityFrequency;
+        var boost = 1 + placement.ProximityAmount * corner / (new Complex(2 * Math.PI * ProximityFloorHz, omega) * rho);
         return mic.Omni + gradient * cos * boost;
     }
 
