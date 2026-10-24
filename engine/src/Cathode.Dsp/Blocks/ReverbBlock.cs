@@ -183,7 +183,11 @@ public sealed class ReverbBlock : DspBlock {
     readonly float[] lowStates = new float[MaxLines];
     readonly float[] highStates = new float[MaxLines];
     readonly float[] outputs = new float[MaxLines];
-    readonly int[] active = new int[MaxLines];
+    readonly float[] readLengths = new float[MaxLines];
+    readonly float[] signLeft = new float[MaxLines];
+    readonly float[] signRight = new float[MaxLines];
+    readonly DelayBuffer[] slots = new DelayBuffer[MaxLines];
+    readonly ReverbLine[] wallSlots = new ReverbLine[MaxLines];
     readonly ReverbLine early = new();
     readonly ReverbLine[] earlyDiffusers = [new(), new(), new(), new()];
     readonly float[] earlyDiffuserLengths = new float[4];
@@ -494,7 +498,13 @@ public sealed class ReverbBlock : DspBlock {
         var lateLevel = Params.Advance(LateLevel, n) / 100f;
         var lateInputMix = Params.Advance(LateInputMix, n) / 100f;
         var reflections = type != Spring && (earlyLevel > 0 || lateInputMix > 0);
-        ConfigureEarly(type, scale, rate, n);
+        if (reflections) {
+            ConfigureEarly(type, scale, rate, n);
+        } else {
+            Params.Advance(EarlyTime, n);
+            Params.Advance(EarlyDecay, n);
+            Params.Advance(EarlyDiffusion, n);
+        }
 
         var lowCut = Params.Advance(LowCut, n);
         var useLowCut = lowCut > LowCutOff;
@@ -735,9 +745,6 @@ public sealed class ReverbBlock : DspBlock {
         var row = FdnRow(type);
         quality = Math.Clamp(quality, 0, QualityLines.Length - 1);
         lineCount = QualityLines[quality];
-        for (var p = 0; p < lineCount; p++) {
-            active[p] = quality == 0 ? EconomyLines[p] : p;
-        }
 
         var norm = MathF.Sqrt(8f / lineCount);
         injection = 0.35f;
@@ -760,17 +767,23 @@ public sealed class ReverbBlock : DspBlock {
         var density = Params.Advance(EchoDensity, n) / 100f;
         wallGain = Params.Advance(WallDiffusion, n) / 100f * 0.7f;
         wall = wallGain > 0;
+        // Per-line settings in the order the lines run (slot p holds line i), so the per-sample loop reads them in turn.
         for (var p = 0; p < lineCount; p++) {
-            var i = active[p];
-            lengths[i] = LineMs[row][i] * scale * 0.001f * rate;
-            gains[i] = MathF.Pow(10f, -3f * lengths[i] / (decay * rate)); // -60 dB after `decay` seconds
+            var i = quality == 0 ? EconomyLines[p] : p;
+            slots[p] = lines[i];
+            wallSlots[p] = walls[i];
+            signLeft[p] = LeftSigns[i];
+            signRight[p] = RightSigns[i];
+            lengths[p] = LineMs[row][i] * scale * 0.001f * rate;
+            gains[p] = MathF.Pow(10f, -3f * lengths[p] / (decay * rate)); // -60 dB after `decay` seconds
             if (bands) {
-                lowDeltas[i] = MathF.Pow(10f, -3f * lengths[i] / (decay * lowTime * rate)) - gains[i];
-                highDeltas[i] = MathF.Pow(10f, -3f * lengths[i] / (decay * highTime * rate)) - gains[i];
+                lowDeltas[p] = MathF.Pow(10f, -3f * lengths[p] / (decay * lowTime * rate)) - gains[p];
+                highDeltas[p] = MathF.Pow(10f, -3f * lengths[p] / (decay * highTime * rate)) - gains[p];
             }
 
             // The wall allpass is taken out of the line, so the loop keeps its length and its decay.
-            wallLengths[i] = wall ? Math.Max(2f, (0.05f + (MaxWallFraction - 0.05f) * density) * lengths[i]) : 0f;
+            wallLengths[p] = wall ? Math.Max(2f, (0.05f + (MaxWallFraction - 0.05f) * density) * lengths[p]) : 0f;
+            readLengths[p] = lengths[p] - wallLengths[p];
         }
 
         // One-pole damping in each line: the coefficient that puts its -3 dB point near the chosen frequency.
@@ -842,26 +855,24 @@ public sealed class ReverbBlock : DspBlock {
         var second = lineCount - 2;
         float sum = 0;
         for (var p = 0; p < lineCount; p++) {
-            var i = active[p];
-            var length = lengths[i] - wallLengths[i]
-                + (p == first ? modulation + modDepth : p == second ? modDepth + opposite : 0f);
-            var y = lines[i].Read(length);
+            var length = readLengths[p] + (p == first ? modulation + modDepth : p == second ? modDepth + opposite : 0f);
+            var y = slots[p].Read(length);
             if (wall) {
-                y = walls[i].Allpass(y, wallLengths[i], wallGain);
+                y = wallSlots[p].Allpass(y, wallLengths[p], wallGain);
             }
 
-            damping[i] = y + (damping[i] - y) * damp;
-            var v = damping[i];
+            var v = y + (damping[p] - y) * damp;
+            damping[p] = v;
             float o;
             if (bands) {
-                lowStates[i] += (v - lowStates[i]) * lowCoefficient;
-                highStates[i] += (v - highStates[i]) * highCoefficient;
-                o = v * gains[i] + lowDeltas[i] * lowStates[i] + highDeltas[i] * (v - highStates[i]);
+                lowStates[p] += (v - lowStates[p]) * lowCoefficient;
+                highStates[p] += (v - highStates[p]) * highCoefficient;
+                o = v * gains[p] + lowDeltas[p] * lowStates[p] + highDeltas[p] * (v - highStates[p]);
             } else {
-                o = v * gains[i];
+                o = v * gains[p];
             }
 
-            outputs[i] = o;
+            outputs[p] = o;
             sum += o;
         }
 
@@ -869,11 +880,10 @@ public sealed class ReverbBlock : DspBlock {
         var reflection = sum * (2f / lineCount);
         float wetLeft = 0, wetRight = 0;
         for (var p = 0; p < lineCount; p++) {
-            var i = active[p];
-            var value = outputs[i] - reflection + x * injection;
-            lines[i].Write(stack ? Limit(value) : value);
-            wetLeft += outputs[i] * LeftSigns[i];
-            wetRight += outputs[i] * RightSigns[i];
+            var value = outputs[p] - reflection + x * injection;
+            slots[p].Write(stack ? Limit(value) : value);
+            wetLeft += outputs[p] * signLeft[p];
+            wetRight += outputs[p] * signRight[p];
         }
 
         return (wetLeft * outputGain, wetRight * outputGain);
