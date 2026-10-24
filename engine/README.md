@@ -8,7 +8,7 @@ The .NET 10 audio engine. The design is described in [docs/02-architecture.md](.
 | `src/Cathode.Engine` | Grid model (JSON), graph compiler (pruning, ordering, buffer reuse, latency compensation), SPSC command ring, real-time loop with RCU graph swap, callback stats, shared-memory telemetry region |
 | `src/Cathode.Audio` | WAV I/O, offline renderer, null (device-less, real-time paced) backend, native device sessions, latency probe |
 | `src/Cathode.Dsp.Native` | Blocks backed by native code: `NamAmpBlock`, the capture amp with Neural Amp Modeler models ([ADR-0003](../docs/adr/0003-nam-hosting.md)) as well as AIDA-X ones |
-| `native/cth_audio` | C shim: CoreAudio HAL IOProc backend (Windows and Linux are stubs for now), FTZ/DAZ helper |
+| `native/cth_audio` | C shim: CoreAudio HAL IOProc (macOS), ALSA `hw:` and JACK (Linux; needs `libasound2-dev` to build), FTZ/DAZ helper; Windows is a stub for now |
 | `native/cth_nam` | C ABI over NeuralAmpModelerCore v0.6.0 (pinned and fetched by CMake) |
 | `src/Cathode.Host` | NativeAOT engine executable: `--serve` for the Server, plus diagnostics (`--self-test`, `--audio-test`, …) |
 | `src/Cathode.Contracts` | Preset schema and API DTOs (no engine dependencies) |

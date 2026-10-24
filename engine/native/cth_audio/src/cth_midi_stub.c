@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * MIDI placeholder for platforms without a backend yet (WinMM/WinRT MIDI on Windows, ALSA/JACK on Linux). */
+ * MIDI placeholder for platforms without a backend yet (WinMM/WinRT MIDI on Windows). */
 #include <stddef.h>
 #include <time.h>
 #include "cth_audio.h"
