@@ -7,7 +7,7 @@
 - the Axe-Fx III amp list (FW 12.05);
 - the Fractal wiki pages *Amp models*, *Presets*, *Editors*, *Audio I/O and amplification* and *Cab block* (October 2026).
 
-**Status date:** 24 October 2026, round 3 in progress (T, PS, PA, CB merged and audited) (streams T, M1, M2, PA, PB, PS, ED, IO, CB).
+**Status date:** 24 October 2026, round 3 in progress (T, PS, PA, CB, M1, M2 merged and audited) (streams T, M1, M2, PA, PB, PS, ED, IO, CB).
 
 ## How to audit
 
@@ -47,22 +47,22 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| M1.1 | DSL100 / JCM2000: Classic Gain and Ultra Gain, modes, Tone Shift, Deep | ⬜ | | inter-board wiring had to be traced |
-| M1.2 | JMP-1 preamp: OD1, OD2, Clean (and Crunch) + documented power amp | ⬜ | | TC9176 digital pots |
-| M1.3 | JVM410HJS (Satriani) as its own model | ⬜ | | input buffer, THAT4301 gate |
-| M1.4 | JVM410H Clean and Crunch channels | ⬜ | | |
-| M1.5 | JVM410H Green / Orange / Red modes per channel | ⬜ | | relay states per mode were unknown |
+| M1.1 | DSL100 / JCM2000: Classic Gain and Ultra Gain, modes, Tone Shift, Deep | ◐ | Dsl100_modes_and_tone_shift_do_what_the_handbook_says; Remaining_marshall_chains_match_the_reference (DSL100, 5 settings) | Deep is the generic Depth knob labelled "Deep", not the gyrator switch; no Deep test. Feedback resistor guessed |
+| M1.2 | JMP-1 preamp: OD1, OD2, Clean (and Crunch) + documented power amp | ✅ | Jmp1_switches_change_the_gain_and_the_bass; Jmp1_active_tone_is_flat_at_the_centre_and_each_band_boosts_its_region | Clean I/II, OD I/II, Bass Shift into the JCM900 4100 power amp; digital pot values guessed; OD path −25 dB vs reference (finite-GBW op-amp) |
+| M1.3 | JVM410HJS (Satriani) as its own model | ⏸ | — | 5 relays, 9 gain structures; no published relay table per mode |
+| M1.4 | JVM410H Clean and Crunch channels | ✅ | Remaining_marshall_chains_match_the_reference (JVM, 6 settings) | type `JVM410H Clean/Crunch` |
+| M1.5 | JVM410H Green / Orange / Red modes per channel | ◐ | The_modes_raise_the_gain_in_order | relay states deduced from the handbook (firmware sets them); Clean modes partly guessed |
 
 ## M2: power-amp driver variants
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| M2.1 | Cathodyne + ECC82 push-pull driver design (no cathode followers) | ⬜ | | validated against ReferenceSimulator |
-| M2.2 | Global feedback into a preamp cathode (tone stack inside the loop) | ⬜ | | |
-| M2.3 | Marshall Major 1967 model (4 × KT88) | ⬜ | | |
-| M2.4 | Cascaded differential driver design | ⬜ | | |
-| M2.5 | Mesa/Boogie Bass 400 model, with its LC graphic EQ | ⬜ | | scan partly unreadable: guesses marked |
-| M2.6 | Existing inverters bit-identical | ⬜ | | |
+| M2.1 | Cathodyne + ECC82 push-pull driver design (no cathode followers) | ✅ | Cathodyne_driver_table_matches_the_reference_dc_sweep; Driver_power_amps_match_the_reference_in_the_time_domain | CathodyneDriverDesign; table omits grid current |
+| M2.2 | Global feedback into a preamp cathode (tone stack inside the loop) | ✅ | Driver_power_amps_match_the_reference_in_the_time_domain (−32 dB closed loop); Major_feedback_flattens_its_tone_stack | LoopStageDesign; presence branch left out of V2A degeneration |
+| M2.3 | Marshall Major 1967 model (4 × KT88) | ✅ | Driver_variant_preamps_match_the_reference (−78 dB); DriverVariantAmpTests | B+, idle, OT and UL tap guessed. Power-amp-off drops V2A and the stack; Stack Freq doesn't reach the loop |
+| M2.4 | Cascaded differential driver design | ✅ | Differential_driver_table_matches_the_reference_dc_sweep | DifferentialDriverDesign; Bass 400 power amp −40 dB vs reference |
+| M2.5 | Mesa/Boogie Bass 400 model, with its LC graphic EQ | ◐ | Driver_variant_preamps_match_the_reference (−46 dB); Bass_400_sliders_boost_and_cut_their_bands | V4 plates, EQ resistors and OT guessed; EQ op-amp linear; idle 45 mA where the drawing's −63 V would need 65 mA on the library 6550 |
+| M2.6 | Existing inverters bit-identical | ✅ | InverterBitIdentityTests (81 cases) | hashes from before the change |
 
 ## PA: I/O, cab and effects
 
@@ -197,6 +197,8 @@ These were reported as left over or deliberately deferred, and are not assigned 
 | Silver Jubilee over the high-gain CPU budget on loud noise (28–31.5 %) | ⏸ | Kept by decision (docs/06 §5.3): its sound wins |
 | SVT with Ultra switches on: 37 % on noise | ⬜ | Next idea: source stepping on hard samples |
 | TriAxis Lead 2 over budget (19 / 32 %); Rhythm over the clean budget | ⬜ | Dynamic Voice op-amp stage ≈ 2.4 %; could become a linear network |
+| JVM410H Orange/Red, JMP-1 OD over on guitar (17–19.6 %); JVM/DSL clean modes over on noise (26–30 %) | ⬜ | No solver shortcuts tried yet |
+| Bass 400 bias: drawing's −63 V needs 65 mA (35 W) on the library 6550 | ⬜ | Check the 6550 tube fit against a datasheet; the model runs 45 mA |
 | JCM900 ch B over on guitar, ch A over on noise; JVM410H slightly over on guitar | ⬜ | V1 pair with the 220k loop is 6–10 % alone |
 | Orange AD30 | ⏸ | No front-panel board schematic found |
 | Dumble ODS HRM | ⏸ | No HRM drawing exists |
