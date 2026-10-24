@@ -973,7 +973,7 @@ struct CircuitStage {
     double emphasisB0, emphasisB1, emphasisA1;
     double emphasisState, deemphasisState;
 
-    // Crusher: quantisation levels per volt (0 = none), hold step per sample, its phase and the held sample.
+    // Crusher: quantisation levels per volt, hold step per sample (1 = every sample), its phase and the held sample.
     double levels;
     double holdStep;
     double holdPhase;
