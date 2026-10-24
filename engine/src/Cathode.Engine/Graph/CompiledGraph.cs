@@ -181,6 +181,19 @@ public sealed class CompiledGraph : IDisposable {
                         new(left, right)
                     );
                     break;
+                case GraphOpKind.SidechainInput:
+                    if (op.Row < 0) {
+                        // The grid input; the dry buffers are free between blocks.
+                        var inputLeft = dryLeft.Span[..frames];
+                        var inputRight = dryRight.Span[..frames];
+                        io.InputLeft.CopyTo(inputLeft);
+                        io.InputRight.CopyTo(inputRight);
+                        ((ISidechainBlock)blocks[op.Index]).SidechainInput(-1, new(inputLeft, inputRight));
+                    } else {
+                        ((ISidechainBlock)blocks[op.Index]).SidechainInput(op.Row, new(left, right));
+                    }
+
+                    break;
                 case GraphOpKind.ScaleRow:
                     ((OutputBlock)blocks[op.Index]).ScaleInput(op.Row, new(left, right));
                     break;

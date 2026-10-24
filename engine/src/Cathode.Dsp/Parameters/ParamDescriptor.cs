@@ -26,6 +26,12 @@ public enum ParamSmoothing {
 ///     <see cref="TypeLabels" />, for a block whose models differ in their front panels (the Circuit Amp): the
 ///     parameter's name per value of the block's <c>type</c> parameter, or empty where that type has no such control
 ///     (the editor hides it there). Null for a parameter that is the same on every type.
+///     <para>
+///         <see cref="Recompile" />: the parameter changes the block's <see cref="IDspBlock.LatencySamples" /> (a
+///         compressor's look-ahead), which the graph compiler reads only when it compiles. The server rebuilds the graph
+///         (a gapless swap) when one changes, instead of only setting the target; the block keeps the value it was
+///         compiled with until then.
+///     </para>
 /// </remarks>
 public sealed record ParamDescriptor(
     string Id,
@@ -39,7 +45,8 @@ public sealed record ParamDescriptor(
     ParamSmoothing Smoothing = ParamSmoothing.Linear,
     float SmoothingMs = 20f,
     IReadOnlyList<string>? Options = null,
-    IReadOnlyList<string>? TypeLabels = null
+    IReadOnlyList<string>? TypeLabels = null,
+    bool Recompile = false
 ) {
     public static ParamDescriptor Float(
         string id,

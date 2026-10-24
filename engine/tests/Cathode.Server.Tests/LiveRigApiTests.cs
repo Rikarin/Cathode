@@ -67,6 +67,33 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task The_input_and_output_take_parameters_and_channels_but_no_bypass() {
+        await Patch("/api/v1/live/blocks/in1/params", new Dictionary<string, float> { ["gateType"] = 1, ["threshold"] = -50 });
+        await Patch("/api/v1/live/blocks/out1/params?channel=B", new Dictionary<string, float> { ["level1"] = -6 });
+        await ServerFixture.Eventually(() => server.Target("in1", "threshold") == -50);
+
+        await Put("/api/v1/live/blocks/out1/channel", new ChannelRequest("B"));
+        await ServerFixture.Eventually(() => server.Target("out1", "level1") == -6);
+        var bypass = await client.PutAsJsonAsync("/api/v1/live/blocks/in1/bypass", new BypassRequest(true), Token);
+        Assert.Equal(HttpStatusCode.BadRequest, bypass.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_look_ahead_change_recompiles_so_the_latency_is_compensated() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("compressor", 0, 2));
+        await ServerFixture.Eventually(() => server.Graph?.SlotOf("compressor1") >= 0);
+        var generation = server.Graph!.Generation;
+
+        await Patch("/api/v1/live/blocks/compressor1/params", new Dictionary<string, float> { ["lookAhead"] = 5 }); // 5 ms
+
+        await ServerFixture.Eventually(() => server.Graph!.Generation > generation && server.Graph.LatencySamples == 240);
+        generation = server.Graph!.Generation;
+        await Patch("/api/v1/live/blocks/compressor1/params", new Dictionary<string, float> { ["threshold"] = -10 });
+        await ServerFixture.Eventually(() => server.Target("compressor1", "threshold") == -10);
+        Assert.Equal(generation, server.Graph!.Generation); // an ordinary knob does not
+    }
+
+    [Fact]
     public async Task Scenes_switch_channels_and_bypass_without_recompiling() {
         await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 0, 1));
         await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 0, 2));

@@ -134,19 +134,24 @@ public sealed partial class LiveRig {
         );
 
     public Task<LiveState> CopyChannelAsync(string id, CopyChannelRequest request, long? expected) =>
-        Locked(() => {
+        Locked(async () => {
                 Check(expected);
                 var block = Find(id);
                 var descriptor = catalog.Descriptor(block.Type) ?? throw new RigException(400, $"'{id}' has no channels.");
                 CheckChannel(request.From, descriptor.Channels);
                 CheckChannel(request.To, descriptor.Channels);
                 PushUndo(null);
+                var recompile = NeedsRecompile(block, request.From, request.To);
                 block.Channels[request.To] = new(block.Channels.GetValueOrDefault(request.From) ?? []);
                 if (preset.Scenes[activeScene].StateOf(id).Channel == request.To) {
-                    engine.SetParams(generation, ChannelValues(block, request.To));
+                    if (recompile) {
+                        await SyncGraphAsync();
+                    } else {
+                        engine.SetParams(generation, ChannelValues(block, request.To));
+                    }
                 }
 
-                return Task.FromResult(Changed("channelCopied", id, request.To));
+                return Changed("channelCopied", id, request.To);
             }
         );
 

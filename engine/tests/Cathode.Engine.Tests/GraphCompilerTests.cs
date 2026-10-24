@@ -85,6 +85,46 @@ public class GraphCompilerTests {
         Assert.Equal(0.5f, output[^1], 1e-3f);
     }
 
+    [Theory]
+    [InlineData(0f, false)] // Block: its own quiet input stays under the threshold
+    [InlineData(3f, true)] // Row 2: the loud row ducks it
+    public void A_compressor_hears_the_row_its_sidechain_selects(float sidechain, bool ducked) {
+        var definition = Graph(
+            [
+                Node("in", NodeTypes.Input, 0, 0),
+                Node("quiet", "volpan", 0, 1, ("level", -40f)),
+                Node(
+                    "comp",
+                    "compressor",
+                    0,
+                    2,
+                    ("threshold", -30f),
+                    ("ratio", 20f),
+                    ("knee", 0f),
+                    ("scSource", sidechain)
+                ),
+                Node("loud", "volpan", 1, 1),
+                Node("mute", "volpan", 1, 2, ("level", -80f)),
+                Node("out", NodeTypes.Output, 0, 3)
+            ],
+            ("in", "quiet"),
+            ("quiet", "comp"),
+            ("comp", "out"),
+            ("in", "loud"),
+            ("loud", "mute"),
+            ("mute", "out")
+        );
+
+        var output = Run(definition, Signals.Sine(500, Spec.SampleRate, 9_600));
+
+        var peak = Analysis.Peak(output.AsSpan(4_800));
+        if (ducked) {
+            Assert.True(peak < 0.002f, $"peak {peak}");
+        } else {
+            Assert.Equal(0.01f, peak, 1e-3f);
+        }
+    }
+
     [Fact]
     public void Buffers_are_reused_down_a_long_parallel_grid() {
         var nodes = new List<NodeDefinition> { Node("in", NodeTypes.Input, 0, 0) };

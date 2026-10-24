@@ -163,6 +163,35 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             }
         }
 
+        // Sidechain sources: per row, the last live node to the left of each sidechain block. Each counts as one more
+        // reader, so its buffer survives (and is not processed over in place) until the block has been offered it.
+        var sidechains = new List<(int Row, int Source)>?[nodes.Count];
+        foreach (var n in order) {
+            if (slotOfNode[n] < 0 || blocks[slotOfNode[n]] is not ISidechainBlock) {
+                continue;
+            }
+
+            var sources = new List<(int Row, int Source)>();
+            for (var row = 0; row < definition.Rows; row++) {
+                var best = -1;
+                foreach (var m in order) {
+                    if (nodes[m].Row == row
+                        && nodes[m].Column < nodes[n].Column
+                        && nodes[m].Type != NodeTypes.Output
+                        && (best < 0 || nodes[m].Column > nodes[best].Column)) {
+                        best = m;
+                    }
+                }
+
+                if (best >= 0) {
+                    sources.Add((row, best));
+                    readersLeft[best]++;
+                }
+            }
+
+            sidechains[n] = sources;
+        }
+
         var liveInputs = new List<int>();
 
         foreach (var n in order) {
@@ -176,6 +205,15 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
 
             var arrival = Arrival(inputs[n], live, latency);
             int buffer;
+            if (sidechains[n] is { } sidechainSources) {
+                emitter.Emit(new(GraphOpKind.SidechainInput, 0, Index: slotOfNode[n], Row: -1));
+                foreach (var (row, source) in sidechainSources) {
+                    emitter.Emit(new(GraphOpKind.SidechainInput, bufferOf[source], Index: slotOfNode[n], Row: row));
+                    if (--readersLeft[source] == 0) {
+                        emitter.Free(bufferOf[source]);
+                    }
+                }
+            }
 
             var mux = slotOfNode[n] >= 0 && blocks[slotOfNode[n]] is IRowInputBlock;
             var soleReader = liveInputs.Count == 1 && readersLeft[liveInputs[0]] == 1;

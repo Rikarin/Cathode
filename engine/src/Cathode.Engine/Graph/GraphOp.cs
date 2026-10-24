@@ -32,7 +32,13 @@ public enum GraphOpKind {
     ///     Let Output block slot <c>Index</c> scale <c>Buffer</c>, its only input, by the level and balance of grid row
     ///     <c>Row</c>, in place (the single-input case of <see cref="MuxInput" />, without a second buffer).
     /// </summary>
-    ScaleRow
+    ScaleRow,
+
+    /// <summary>
+    ///     Offer sidechain block slot <c>Index</c> buffer <c>Buffer</c>, the signal on grid row <c>Row</c>; with
+    ///     <c>Row</c> −1, the grid input instead (and <c>Buffer</c> is unused).
+    /// </summary>
+    SidechainInput
 }
 
 /// <summary>One step of a compiled execution plan. A plan is a flat array walked once per callback.</summary>

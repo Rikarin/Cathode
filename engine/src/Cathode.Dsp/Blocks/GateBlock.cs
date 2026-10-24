@@ -9,9 +9,11 @@ namespace Cathode.Dsp.Blocks;
 ///     release time means the same at any depth (in the linear domain, reaching -60 dB would take 7 time constants).
 ///     Gain opens with the attack time, is
 ///     held for the hold time once the signal drops, then closes with the release time. It starts open, inside a hold
-///     window, so the first note is never touched while the detector catches up.
+///     window, so the first note is never touched while the detector catches up. Sidechain picks what the detector
+///     hears: the block's input, the grid input or another grid row (<see cref="ISidechainBlock" />), so a gate late in
+///     the chain can follow the clean guitar.
 /// </summary>
-public sealed class GateBlock() : DspBlock(Info) {
+public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
     public const int Threshold = 0;
     public const int Ratio = 1;
     public const int Attack = 2;
@@ -24,6 +26,7 @@ public sealed class GateBlock() : DspBlock(Info) {
     public const int Detector = 9;
     public const int Level = 10;
     public const int Balance = 11;
+    public const int Sidechain = 12;
 
     public const int Expander = 0;
     public const int Gate = 1;
@@ -39,6 +42,7 @@ public sealed class GateBlock() : DspBlock(Info) {
     /// <summary>Deepest attenuation the gate applies, in dB.</summary>
     const float FloorDb = -100f;
 
+    readonly SidechainSource sidechainSource = new();
     float envelope;
     float gainDb;
     int holdRemaining;
@@ -64,7 +68,8 @@ public sealed class GateBlock() : DspBlock(Info) {
             WetCuts.HighCutParam("scHighCut", "Sidechain High Cut"),
             ParamDescriptor.Choice("detector", "Detector", ["Peak", "RMS"]),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            SidechainSource.Param()
         ],
         maxInstances: 4
     );
@@ -76,7 +81,11 @@ public sealed class GateBlock() : DspBlock(Info) {
     static float Coefficient(double milliseconds, double sampleRate) =>
         (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
 
+    public void SidechainInput(int row, in StereoBuffer source) =>
+        sidechainSource.Offer(row, source, (int)Params.GetTarget(Sidechain));
+
     protected override void OnPrepare(in ProcessSpec spec) {
+        sidechainSource.Prepare(spec.MaxBlockSize);
         detectorRelease = Coefficient(DetectorReleaseMs, spec.SampleRate);
         rmsCoefficient = Coefficient(RmsMs, spec.SampleRate);
     }
@@ -110,9 +119,12 @@ public sealed class GateBlock() : DspBlock(Info) {
         var envelope = this.envelope;
         var gainDb = this.gainDb;
         var holdRemaining = this.holdRemaining;
+        var external = sidechainSource.Active && sidechainSource.Left.Length == io.Length;
+        var sideLeft = sidechainSource.Left;
+        var sideRight = sidechainSource.Right;
         for (var i = 0; i < io.Length; i++) {
-            var detectLeft = io.Left[i];
-            var detectRight = io.Right[i];
+            var detectLeft = external ? sideLeft[i] : io.Left[i];
+            var detectRight = external ? sideRight[i] : io.Right[i];
             sidechain.Tick(ref detectLeft, ref detectRight);
             var level = Math.Max(Math.Abs(detectLeft), Math.Abs(detectRight));
             if (rms) {
@@ -152,6 +164,7 @@ public sealed class GateBlock() : DspBlock(Info) {
         sidechain.FlushDenormals();
         this.gainDb = gainDb;
         this.holdRemaining = holdRemaining;
+        sidechainSource.Clear();
         output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 }
