@@ -144,7 +144,7 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
     public void Symmetric_circuits_make_odd_harmonics_and_asymmetric_ones_even(int type) {
         var circuit = DriveCircuits.All[type - DriveBlock.CircuitTypes];
         var input = Signals.CoherentSine(32, 8_192, 0.2f); // about 190 Hz
-        using var block = Create(type, 6f, 10f);
+        using var block = Create(type, 6f);
 
         var rendered = BlockRender.Mono(block, Signals.Concat(input, input, input), 64).AsSpan(16_384);
         var magnitudes = Fft.Magnitudes(rendered);

@@ -33,7 +33,7 @@ try {
     var manifestPath = options.Value("manifest") ?? ReferenceManifest.Locate(Directory.GetCurrentDirectory());
     var manifest = ReferenceManifest.Load(manifestPath);
     var cache = options.Value("cache") is { } root
-        ? new ReferenceCache(Path.GetFullPath(root))
+        ? new(Path.GetFullPath(root))
         : ReferenceCache.Default;
 
     return args[0] switch {

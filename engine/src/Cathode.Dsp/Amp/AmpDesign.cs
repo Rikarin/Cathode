@@ -1,3 +1,5 @@
+using Cathode.Dsp.Amp.Models;
+
 namespace Cathode.Dsp.Amp;
 
 /// <summary>
@@ -47,5 +49,5 @@ public sealed partial record AmpDesign(
     ///     The <see cref="Power" /> of a model with a <see cref="SolidState" /> power amp: a tube power amp the channel
     ///     builds (so that every model has one to inspect) but never runs.
     /// </summary>
-    public static PowerAmpDesign SolidStateTubePlaceholder => Models.Blackface.Design.Power;
+    public static PowerAmpDesign SolidStateTubePlaceholder => Blackface.Design.Power;
 }

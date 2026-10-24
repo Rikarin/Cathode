@@ -10,39 +10,32 @@ namespace Cathode.EngineHost;
 ///     engine shares the Server's GC (docs/adr/0001-process-model.md).
 /// </summary>
 public sealed class InProcessEngineLink : IEngineLink {
-    readonly EngineHostService service;
     readonly NullBackend backend;
     readonly Timer telemetry;
 
     public bool IsConnected => true;
 
-    public EngineHostService Service => service;
+    public EngineHostService Service { get; }
 
     public InProcessEngineLink(ProcessSpec? spec = null, BlockRegistry? registry = null) {
         var processSpec = spec ?? ProcessSpec.Default;
         // A short looper: tests and development need it to work, not to hold a minute of audio.
-        service = new(processSpec, "in-process (null)", registry, looperSeconds: 5);
+        Service = new(processSpec, "in-process (null)", registry, looperSeconds: 5);
         backend = new((int)processSpec.SampleRate, processSpec.MaxBlockSize);
-        backend.Start(service.Engine);
+        backend.Start(Service.Engine);
         telemetry = new(
-            _ => TelemetryReceived?.Invoke(service.Telemetry()),
+            _ => TelemetryReceived?.Invoke(Service.Telemetry()),
             null,
             TimeSpan.FromMilliseconds(100),
             TimeSpan.FromMilliseconds(100)
         );
     }
 
-    public event Action<HostTelemetry>? TelemetryReceived;
-
-    public event Action<IReadOnlyList<MidiEventMessage>>? MidiReceived;
-
     /// <summary>Tests and development: deliver MIDI as if a device had sent it (there is no device in process).</summary>
     public void InjectMidi(IReadOnlyList<MidiEventMessage> messages) => MidiReceived?.Invoke(messages);
 
-    public event Action? Disconnected;
-
     public Task<IpcMessage> SendAsync(IpcMessage request, CancellationToken cancellationToken = default) {
-        var reply = service.Handle(request);
+        var reply = Service.Handle(request);
         return reply.Type == IpcTypes.Error
             ? Task.FromException<IpcMessage>(new IpcException(reply.Error ?? "Engine error.", reply.Errors ?? []))
             : Task.FromResult(reply);
@@ -51,7 +44,13 @@ public sealed class InProcessEngineLink : IEngineLink {
     public async ValueTask DisposeAsync() {
         await telemetry.DisposeAsync().ConfigureAwait(false);
         backend.Dispose();
-        service.Dispose();
+        Service.Dispose();
         Disconnected?.Invoke();
     }
+
+    public event Action<HostTelemetry>? TelemetryReceived;
+
+    public event Action<IReadOnlyList<MidiEventMessage>>? MidiReceived;
+
+    public event Action? Disconnected;
 }

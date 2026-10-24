@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Cathode.Contracts;
@@ -5,7 +6,7 @@ namespace Cathode.Contracts;
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,
+    ReadCommentHandling = JsonCommentHandling.Skip,
     AllowTrailingCommas = true
 )]
 [JsonSerializable(typeof(Preset))]

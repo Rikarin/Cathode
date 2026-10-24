@@ -29,14 +29,14 @@ public sealed class SidechainSource {
     float[] right = [];
     int length;
 
-    public static ParamDescriptor Param(string id = "scSource") => ParamDescriptor.Choice(id, "Sidechain", Options);
-
     /// <summary>Whether a source was kept for this sub-block.</summary>
     public bool Active => length > 0;
 
     public ReadOnlySpan<float> Left => left.AsSpan(0, length);
 
     public ReadOnlySpan<float> Right => right.AsSpan(0, length);
+
+    public static ParamDescriptor Param(string id = "scSource") => ParamDescriptor.Choice(id, "Sidechain", Options);
 
     /// <summary>Control thread: room for one sub-block.</summary>
     public void Prepare(int maxBlockSize) {

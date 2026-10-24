@@ -68,7 +68,7 @@ public static class DualRectifier {
             1.5e3,
             0,
             new(1e6, PotTaper.Linear),
-            new(1, 47e3, 4.7e3, new(25e3, PotTaper.Linear), 0.1e-6, 90),
+            new(1, 47e3, 4.7e3, new(25e3, PotTaper.Linear), 0.1e-6),
             true,
             new(1.9e3),
             new(Inductance: 1.4e-3, EddyResistance: 22, Resonance: 95, PeakImpedance: 30, Q: 2.2),

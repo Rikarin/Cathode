@@ -96,10 +96,10 @@ public sealed class CompressorBlock() : DspBlock(Info), ISidechainBlock {
     /// <summary>What Input Level Line takes off the detector, in dB.</summary>
     public const float LineLevelDb = 12f;
 
+    const double RmsWindowMs = 5;
+
     /// <summary>The Look Ahead choices, in ms (a choice, not a knob: each change rebuilds the graph).</summary>
     public static readonly float[] LookAheadMs = [0f, 0.5f, 1f, 2f, 3f, 5f, 10f];
-
-    const double RmsWindowMs = 5;
 
     readonly SidechainSource sidechainSource = new();
     float[] aheadLeft = [];
@@ -193,6 +193,9 @@ public sealed class CompressorBlock() : DspBlock(Info), ISidechainBlock {
         return slope <= 1f / InfiniteRatio ? InfiniteRatio : 1f / slope;
     }
 
+    public void SidechainInput(int row, in StereoBuffer source) =>
+        sidechainSource.Offer(row, source, (int)Params.GetTarget(Sidechain));
+
     static float Limit(float x, float threshold, float knee) {
         var over = x - threshold;
         if (2 * over < -knee) {
@@ -215,9 +218,6 @@ public sealed class CompressorBlock() : DspBlock(Info), ISidechainBlock {
         descriptor with {
             TypeLabels = [..Enumerable.Range(0, 6).Select(t => t == type ? descriptor.Name : string.Empty)]
         };
-
-    public void SidechainInput(int row, in StereoBuffer source) =>
-        sidechainSource.Offer(row, source, (int)Params.GetTarget(Sidechain));
 
     protected override void OnPrepare(in ProcessSpec spec) {
         sidechainSource.Prepare(spec.MaxBlockSize);

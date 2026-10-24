@@ -52,7 +52,7 @@ public static class Marshall18W {
             8.2e3,
             0,
             new(250e3, PotTaper.Linear),
-            new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6, 90),
+            new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6),
             false,
             new(8e3),
             SpeakerDesign.OpenBack2x12,

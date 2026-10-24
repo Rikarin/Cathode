@@ -80,21 +80,6 @@ public sealed class PhaseVocoderShifter : IDisposable {
         Reset();
     }
 
-    /// <summary>
-    ///     One FFT per size for every shifter in the process: its tables are read-only after construction, so the
-    ///     instances share them, and a block's Prepare does not allocate them again.
-    /// </summary>
-    static Fft SharedFft(int size) {
-        lock (FftLock) {
-            if (!Ffts.TryGetValue(size, out var fft)) {
-                fft = new(size);
-                Ffts[size] = fft;
-            }
-
-            return fft;
-        }
-    }
-
     public void Reset() {
         input.Clear();
         output.Clear();
@@ -136,6 +121,21 @@ public sealed class PhaseVocoderShifter : IDisposable {
 
         input = output = window = re = im =
             lastPhase = sumPhase = magnitude = frequency = synthesisPhase = peaks = NativeBuffer.Empty;
+    }
+
+    /// <summary>
+    ///     One FFT per size for every shifter in the process: its tables are read-only after construction, so the
+    ///     instances share them, and a block's Prepare does not allocate them again.
+    /// </summary>
+    static Fft SharedFft(int size) {
+        lock (FftLock) {
+            if (!Ffts.TryGetValue(size, out var fft)) {
+                fft = new(size);
+                Ffts[size] = fft;
+            }
+
+            return fft;
+        }
     }
 
     /// <summary>Analyses the last frame, moves its partials by <paramref name="ratio" /> and overlap-adds the result.</summary>

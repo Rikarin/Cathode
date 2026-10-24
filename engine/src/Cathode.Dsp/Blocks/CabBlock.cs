@@ -180,7 +180,6 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     float airGain;
     float drive;
     float saturation;
-    bool passThrough;
     bool disposed;
 
     /// <summary>
@@ -204,7 +203,7 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             ParamDescriptor.Choice("input", "Input", Inputs, InputStereo),
             ParamDescriptor.Float("air", "Air", 0f, 100f, 0f, "%"),
             ParamDescriptor.Float("airfreq", "Air Freq", 1_000f, 20_000f, 6_000f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Choice("preamp", "Preamp Type", MicPreamp.Types, MicPreamp.None),
+            ParamDescriptor.Choice("preamp", "Preamp Type", MicPreamp.Types),
             ParamDescriptor.Float("drive", "Preamp Drive", 0f, MicPreamp.MaxDriveDb, 0f, "dB"),
             ParamDescriptor.Float("saturation", "Preamp Saturation", 0f, 100f, 0f, "%"),
             ParamDescriptor.Float("prebass", "Preamp Bass", -12f, 12f, 0f, "dB"),
@@ -242,7 +241,7 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     public int Taps => synthesizer?.Taps ?? 0;
 
     /// <summary>Control thread: true when the last build found nothing to play, so the block passes audio through.</summary>
-    public bool IsPassThrough => passThrough;
+    public bool IsPassThrough { get; private set; }
 
     /// <summary>Parameter index of <paramref name="offset" /> in slot <paramref name="slot" /> (0-based).</summary>
     public static int SlotParam(int slot, int offset) => SlotBase + slot * SlotStride + offset;
@@ -319,157 +318,6 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
 
             return (mixLeft.Span.ToArray(), mixRight.Span.ToArray());
         }
-    }
-
-    protected override void OnPrepare(in ProcessSpec spec) {
-        lock (sync) {
-            synthesizer?.Dispose();
-            slotIrs.Dispose();
-            slotScratch.Dispose();
-            mixLeft.Dispose();
-            mixRight.Dispose();
-            dryLeft.Dispose();
-            dryRight.Dispose();
-            smoother?.Dispose();
-            synthesizer = new(spec.SampleRate);
-            var taps = synthesizer.Taps;
-            slotIrs = new(Slots * taps);
-            slotScratch = new(Math.Max(MaxIrLength, taps));
-            var length = Math.Max(MaxIrLength, taps)
-                + (int)Math.Ceiling(MaxShiftSeconds() * spec.SampleRate)
-                + 2 * SincHalf;
-            smoother = new(length);
-            mixLeft = new(length);
-            mixRight = new(length);
-            dryLeft = new(spec.MaxBlockSize);
-            dryRight = new(spec.MaxBlockSize);
-            for (var s = 0; s < Slots; s++) {
-                prepared[s] = files[s]?.Prepare(spec.SampleRate, Shape);
-            }
-
-            Array.Fill(stale, true);
-            ReadTargets();
-            switcher.Prepare(spec, Build());
-        }
-    }
-
-    protected override void OnReset() {
-        switcher.Reset();
-        lowCutLeft.Reset();
-        lowCutRight.Reset();
-        highCutLeft.Reset();
-        highCutRight.Reset();
-        airLeft.Reset();
-        airRight.Reset();
-        preampLeft.Reset();
-        preampRight.Reset();
-        preampBass.Reset();
-        preampMid.Reset();
-        preampTreble.Reset();
-        outputGain = Decibels.ToGain(Params.Current(Level));
-        airGain = AirGain(Params.Current(Air));
-        drive = Params.Current(Drive);
-        saturation = Params.Current(Saturation) / 100f;
-    }
-
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
-        var input = (int)Params.Advance(Input, io.Length);
-        if (input == InputLeft) {
-            io.Left.CopyTo(io.Right);
-        } else if (input == InputRight) {
-            io.Right.CopyTo(io.Left);
-        } else if (input == InputSum) {
-            for (var i = 0; i < io.Length; i++) {
-                var sum = 0.5f * (io.Left[i] + io.Right[i]);
-                io.Left[i] = sum;
-                io.Right[i] = sum;
-            }
-        }
-
-        // Air: the dry signal above Air Freq, kept from before the convolution and mixed back after it.
-        var airGain = AirGain(Params.Advance(Air, io.Length));
-        var airFreq = Params.Advance(AirFreq, io.Length);
-        var air = airGain > 0f || this.airGain > 0f;
-        if (air) {
-            if (this.airGain == 0f) {
-                airLeft.Reset();
-                airRight.Reset();
-            }
-
-            var c = SvfCoefficients.Design(BiquadType.HighPass, Spec.SampleRate, airFreq, 0.7071);
-            var left = dryLeft.Span[..io.Length];
-            var right = dryRight.Span[..io.Length];
-            io.Left.CopyTo(left);
-            io.Right.CopyTo(right);
-            airLeft.Process(c, left);
-            airRight.Process(c, right);
-            GainRamp.Apply(left, this.airGain, airGain);
-            GainRamp.Apply(right, this.airGain, airGain);
-        }
-
-        switcher.Process(io.Left, io.Right);
-        if (air) {
-            Accumulate(dryLeft.Span[..io.Length], io.Left);
-            Accumulate(dryRight.Span[..io.Length], io.Right);
-        }
-
-        this.airGain = airGain;
-
-        var type = (int)Params.Advance(Preamp, io.Length);
-        var drive = Params.Advance(Drive, io.Length);
-        var saturation = Params.Advance(Saturation, io.Length) / 100f;
-        preampLeft.Process(type, Spec.SampleRate, this.drive, drive, this.saturation, saturation, io.Left);
-        preampRight.Process(type, Spec.SampleRate, this.drive, drive, this.saturation, saturation, io.Right);
-        this.drive = drive;
-        this.saturation = saturation;
-        Tone(io, preampBass, BiquadType.LowShelf, PreampBassHz, 0.7071f, PreampBass);
-        Tone(io, preampMid, BiquadType.Peak, PreampMidHz, 0.7f, PreampMid);
-        Tone(io, preampTreble, BiquadType.HighShelf, PreampTrebleHz, 0.7071f, PreampTreble);
-
-        var lowCut = Params.Advance(LowCut, io.Length);
-        var lowSlope = (int)Params.Advance(LowSlope, io.Length);
-        if (lowCut > LowCutOff) {
-            var c = CutFilter.Design(true, Spec.SampleRate, lowCut, lowSlope);
-            lowCutLeft.Process(c, io.Left);
-            lowCutRight.Process(c, io.Right);
-        }
-
-        var highCut = Params.Advance(HighCut, io.Length);
-        var highSlope = (int)Params.Advance(HighSlope, io.Length);
-        if (highCut < HighCutOff) {
-            var c = CutFilter.Design(false, Spec.SampleRate, highCut, highSlope);
-            highCutLeft.Process(c, io.Left);
-            highCutRight.Process(c, io.Right);
-        }
-
-        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
-        GainRamp.Apply(io.Left, this.outputGain, outputGain);
-        GainRamp.Apply(io.Right, this.outputGain, outputGain);
-        this.outputGain = outputGain;
-    }
-
-    protected override void Dispose(bool disposing) {
-        if (disposing) {
-            lock (sync) {
-                disposed = true;
-                switcher.Dispose();
-                synthesizer?.Dispose();
-                synthesizer = null;
-                smoother?.Dispose();
-                smoother = null;
-                slotIrs.Dispose();
-                slotScratch.Dispose();
-                mixLeft.Dispose();
-                mixRight.Dispose();
-                dryLeft.Dispose();
-                dryRight.Dispose();
-                foreach (var grid in grids) {
-                    grid?.Dispose();
-                }
-            }
-        }
-
-        base.Dispose(disposing);
     }
 
     static IEnumerable<ParamDescriptor> Slot(
@@ -663,7 +511,7 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
 
         Array.Copy(targets, built, targets.Length);
         Mix();
-        if (passThrough) {
+        if (IsPassThrough) {
             return new();
         }
 
@@ -734,8 +582,8 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             }
         }
 
-        passThrough = audible && !playing;
-        if (passThrough) {
+        IsPassThrough = audible && !playing;
+        if (IsPassThrough) {
             left[0] = 1f;
             right[0] = 1f;
             return;
@@ -819,4 +667,155 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
 
     bool IsAudible(int slot, bool anySolo) =>
         SlotTarget(slot, Mute) < 0.5f && (!anySolo || SlotTarget(slot, Solo) >= 0.5f);
+
+    protected override void OnPrepare(in ProcessSpec spec) {
+        lock (sync) {
+            synthesizer?.Dispose();
+            slotIrs.Dispose();
+            slotScratch.Dispose();
+            mixLeft.Dispose();
+            mixRight.Dispose();
+            dryLeft.Dispose();
+            dryRight.Dispose();
+            smoother?.Dispose();
+            synthesizer = new(spec.SampleRate);
+            var taps = synthesizer.Taps;
+            slotIrs = new(Slots * taps);
+            slotScratch = new(Math.Max(MaxIrLength, taps));
+            var length = Math.Max(MaxIrLength, taps)
+                + (int)Math.Ceiling(MaxShiftSeconds() * spec.SampleRate)
+                + 2 * SincHalf;
+            smoother = new(length);
+            mixLeft = new(length);
+            mixRight = new(length);
+            dryLeft = new(spec.MaxBlockSize);
+            dryRight = new(spec.MaxBlockSize);
+            for (var s = 0; s < Slots; s++) {
+                prepared[s] = files[s]?.Prepare(spec.SampleRate, Shape);
+            }
+
+            Array.Fill(stale, true);
+            ReadTargets();
+            switcher.Prepare(spec, Build());
+        }
+    }
+
+    protected override void OnReset() {
+        switcher.Reset();
+        lowCutLeft.Reset();
+        lowCutRight.Reset();
+        highCutLeft.Reset();
+        highCutRight.Reset();
+        airLeft.Reset();
+        airRight.Reset();
+        preampLeft.Reset();
+        preampRight.Reset();
+        preampBass.Reset();
+        preampMid.Reset();
+        preampTreble.Reset();
+        outputGain = Decibels.ToGain(Params.Current(Level));
+        airGain = AirGain(Params.Current(Air));
+        drive = Params.Current(Drive);
+        saturation = Params.Current(Saturation) / 100f;
+    }
+
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        var input = (int)Params.Advance(Input, io.Length);
+        if (input == InputLeft) {
+            io.Left.CopyTo(io.Right);
+        } else if (input == InputRight) {
+            io.Right.CopyTo(io.Left);
+        } else if (input == InputSum) {
+            for (var i = 0; i < io.Length; i++) {
+                var sum = 0.5f * (io.Left[i] + io.Right[i]);
+                io.Left[i] = sum;
+                io.Right[i] = sum;
+            }
+        }
+
+        // Air: the dry signal above Air Freq, kept from before the convolution and mixed back after it.
+        var airGain = AirGain(Params.Advance(Air, io.Length));
+        var airFreq = Params.Advance(AirFreq, io.Length);
+        var air = airGain > 0f || this.airGain > 0f;
+        if (air) {
+            if (this.airGain == 0f) {
+                airLeft.Reset();
+                airRight.Reset();
+            }
+
+            var c = SvfCoefficients.Design(BiquadType.HighPass, Spec.SampleRate, airFreq, 0.7071);
+            var left = dryLeft.Span[..io.Length];
+            var right = dryRight.Span[..io.Length];
+            io.Left.CopyTo(left);
+            io.Right.CopyTo(right);
+            airLeft.Process(c, left);
+            airRight.Process(c, right);
+            GainRamp.Apply(left, this.airGain, airGain);
+            GainRamp.Apply(right, this.airGain, airGain);
+        }
+
+        switcher.Process(io.Left, io.Right);
+        if (air) {
+            Accumulate(dryLeft.Span[..io.Length], io.Left);
+            Accumulate(dryRight.Span[..io.Length], io.Right);
+        }
+
+        this.airGain = airGain;
+
+        var type = (int)Params.Advance(Preamp, io.Length);
+        var drive = Params.Advance(Drive, io.Length);
+        var saturation = Params.Advance(Saturation, io.Length) / 100f;
+        preampLeft.Process(type, Spec.SampleRate, this.drive, drive, this.saturation, saturation, io.Left);
+        preampRight.Process(type, Spec.SampleRate, this.drive, drive, this.saturation, saturation, io.Right);
+        this.drive = drive;
+        this.saturation = saturation;
+        Tone(io, preampBass, BiquadType.LowShelf, PreampBassHz, 0.7071f, PreampBass);
+        Tone(io, preampMid, BiquadType.Peak, PreampMidHz, 0.7f, PreampMid);
+        Tone(io, preampTreble, BiquadType.HighShelf, PreampTrebleHz, 0.7071f, PreampTreble);
+
+        var lowCut = Params.Advance(LowCut, io.Length);
+        var lowSlope = (int)Params.Advance(LowSlope, io.Length);
+        if (lowCut > LowCutOff) {
+            var c = CutFilter.Design(true, Spec.SampleRate, lowCut, lowSlope);
+            lowCutLeft.Process(c, io.Left);
+            lowCutRight.Process(c, io.Right);
+        }
+
+        var highCut = Params.Advance(HighCut, io.Length);
+        var highSlope = (int)Params.Advance(HighSlope, io.Length);
+        if (highCut < HighCutOff) {
+            var c = CutFilter.Design(false, Spec.SampleRate, highCut, highSlope);
+            highCutLeft.Process(c, io.Left);
+            highCutRight.Process(c, io.Right);
+        }
+
+        var outputGain = Decibels.ToGain(Params.Advance(Level, io.Length));
+        GainRamp.Apply(io.Left, this.outputGain, outputGain);
+        GainRamp.Apply(io.Right, this.outputGain, outputGain);
+        this.outputGain = outputGain;
+    }
+
+    protected override void Dispose(bool disposing) {
+        if (disposing) {
+            lock (sync) {
+                disposed = true;
+                switcher.Dispose();
+                synthesizer?.Dispose();
+                synthesizer = null;
+                smoother?.Dispose();
+                smoother = null;
+                slotIrs.Dispose();
+                slotScratch.Dispose();
+                mixLeft.Dispose();
+                mixRight.Dispose();
+                dryLeft.Dispose();
+                dryRight.Dispose();
+                foreach (var grid in grids) {
+                    grid?.Dispose();
+                }
+            }
+        }
+
+        base.Dispose(disposing);
+    }
 }

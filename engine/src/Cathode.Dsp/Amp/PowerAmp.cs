@@ -137,8 +137,6 @@ public sealed class PowerAmp {
 
     static readonly Dictionary<PowerAmpDesign, double> AcResistances = [];
 
-    readonly PowerAmpDesign design;
-    readonly PhaseInverter phaseInverter;
     readonly TriodeTables inverterTube;
     readonly PhaseInverter inverterGridTables; // the inverter with its plates loaded, for its grid current
     readonly double acResistance; // the AC supply's charging resistance, as a multiple of the source resistance
@@ -146,15 +144,9 @@ public sealed class PowerAmp {
     double sampleRate;
     double turns;
     double magnetising; // the magnetising inductance as set
-    double unloadedSupply; // the rectifier's open-circuit voltage at stock mains
-    double nominalPreamp; // the preamp node at idle with every knob at noon
-    double reservoir;
-    double screen;
-    double preamp;
-    double cathodeA;
+    readonly double unloadedSupply; // the rectifier's open-circuit voltage at stock mains
+    readonly double nominalPreamp; // the preamp node at idle with every knob at noon
     double cathodeB;
-    double cathodeResistor; // all tubes' (with separate cathodes, each side's is twice it)
-    double gridBias;
     double sagScale = 1;
     double stockBias; // the fixed bias that gives the design's idle current at the design's supply
     double stockCathodeResistor; // the same for a cathode-biased amp
@@ -171,46 +163,44 @@ public sealed class PowerAmp {
     double sourceResistance = 30e3; // the previous stage's output resistance (inverter input, single-ended grid)
     double inverterHistory;
     double inverterHalfStep;
-    double inverterGrid;
-    double inverterCurrent;
     double inverterRest; // the driven grid's AC voltage at rest, where the leak carries the grid current
     PentodeModel tube;
     PowerControls controls = Unset;
     PowerSettings settings = PowerSettings.Stock;
 
-    public PowerAmpDesign Design => design;
+    public PowerAmpDesign Design { get; }
 
-    public PhaseInverter PhaseInverter => phaseInverter;
+    public PhaseInverter PhaseInverter { get; }
 
     public NewtonSolver Newton => root.Newton;
 
     /// <summary>The preamp node as a fraction of its nominal voltage (the preamp's sag), after the last sample.</summary>
-    public double PreampSupply => preamp / nominalPreamp;
+    public double PreampSupply => PreampVoltage / nominalPreamp;
 
     /// <summary>B+ at the centre tap, in volts.</summary>
-    public double Supply => reservoir;
+    public double Supply { get; private set; }
 
-    public double ScreenSupply => screen;
+    public double ScreenSupply { get; private set; }
 
-    public double PreampVoltage => preamp;
+    public double PreampVoltage { get; private set; }
 
     /// <summary>The cathode voltage (cathode bias; side A's with separate cathodes), or 0.</summary>
-    public double CathodeVoltage => cathodeA;
+    public double CathodeVoltage { get; private set; }
 
     /// <summary>The cathode resistor of a cathode-biased amp as the bias knob sets it (all tubes').</summary>
-    public double CathodeResistor => cathodeResistor;
+    public double CathodeResistor { get; private set; }
 
     /// <summary>The grids' DC voltage relative to ground (negative for fixed bias).</summary>
-    public double GridBias => gridBias;
+    public double GridBias { get; private set; }
 
     /// <summary>The output tube in use.</summary>
     public PentodeModel Tube => tube;
 
     /// <summary>The phase inverter's driven grid (AC volts) at the last sample, with an <see cref="InverterInputDesign" />.</summary>
-    public double InverterGrid => inverterGrid;
+    public double InverterGrid { get; private set; }
 
     /// <summary>The current through the inverter's coupling cap at the last sample (grid current and leak).</summary>
-    public double InverterCurrent => inverterCurrent;
+    public double InverterCurrent { get; private set; }
 
     /// <summary>Plate current per tube on each side at the last sample.</summary>
     public (double A, double B) PlateCurrents => (root.Device.PlateA, root.Device.PlateB);
@@ -221,9 +211,9 @@ public sealed class PowerAmp {
     public (double A, double B) PlateVoltages {
         get {
             var v = root.DeviceVoltage(0);
-            return design.Topology == PowerTopology.SingleEnded
-                ? (reservoir + v, reservoir)
-                : (reservoir + 0.5 * v, reservoir - 0.5 * v);
+            return Design.Topology == PowerTopology.SingleEnded
+                ? (Supply + v, Supply)
+                : (Supply + 0.5 * v, Supply - 0.5 * v);
         }
     }
 
@@ -233,14 +223,20 @@ public sealed class PowerAmp {
     /// <summary>The core's flux linkage (volt-seconds) at the last sample.</summary>
     public double Flux => magnetising * root.Ports.A.Current;
 
+    /// <summary>Whether the tubes' wiring leaves the plain push-pull pentode case (see <see cref="PushPullStage" />).</summary>
+    bool IsGeneral =>
+        Design.Topology == PowerTopology.SingleEnded
+        || ScreenTap(settings.Triode) > 0
+        || (Design.Strapped is not null && Design.StrappedPerSide > 0);
+
     public PowerAmp(PowerAmpDesign design, double sampleRate) {
-        this.design = design;
+        Design = design;
         this.sampleRate = sampleRate;
         tube = design.Tube;
-        phaseInverter = PhaseInverter.For(design.PhaseInverter);
+        PhaseInverter = PhaseInverter.For(design.PhaseInverter);
         inverterTube = TriodeTables.For(design.PhaseInverter.Tube);
         inverterGridTables = design.InverterInput is null
-            ? phaseInverter
+            ? PhaseInverter
             : PhaseInverter.For(design.PhaseInverter, design.GridLeak);
         turns = design.Transformer.TurnsRatio;
         magnetising = design.Transformer.PrimaryInductance;
@@ -269,14 +265,14 @@ public sealed class PowerAmp {
         net.Probe(secondary);
         net.CurrentSource(primary, WdfNetlist.Ground); // the core's saturation current
 
-        var stage = new PushPullStage(design, phaseInverter, sampleRate);
+        var stage = new PushPullStage(design, PhaseInverter, sampleRate);
         root = new(net, Network(sampleRate), stage);
         root.Newton.RelativeTolerance = 1e-7;
         root.Newton.Linearise = true;
         inverterHalfStep = design.InverterInput is { } input ? 0.5 / (input.CouplingCap * sampleRate) : 0;
 
         // The rectifier's open-circuit voltage gives the design's B+ at idle with the knobs at noon.
-        cathodeResistor = 1;
+        CathodeResistor = 1;
         Rebias();
         var noon = new PowerControls(0.5, 0, 0, 0.5, 0.5, 0.5);
         Configure(noon);
@@ -292,28 +288,14 @@ public sealed class PowerAmp {
         unloadedSupply = design.Supply + supply.SourceResistance * draw + (rectifier?.Drop(draw) ?? 0);
         acResistance = CalibrateAc(draw);
         Reset();
-        nominalPreamp = preamp;
-    }
-
-    /// <summary>The transformer and speaker, referred to the primary, for <paramref name="rate" />.</summary>
-    Ports<Inductor, Capacitor, Inductor, Inductor, Inductor, Capacitor> Network(double rate) {
-        var n2 = turns * turns;
-        var (_, lm, cm) = design.Speaker.Motional;
-        return new(
-            new(design.Transformer.PrimaryInductance, rate),
-            new(design.Transformer.PrimaryCapacitance, rate),
-            new(design.Transformer.LeakageInductance, rate),
-            new(design.Speaker.Inductance * n2, rate),
-            new(lm * n2, rate),
-            new(cm / n2, rate)
-        );
+        nominalPreamp = PreampVoltage;
     }
 
     public void SetSampleRate(double sampleRate) {
         this.sampleRate = sampleRate;
         ApplyNetwork();
         root.Device.SetSampleRate(sampleRate, sourceResistance);
-        inverterHalfStep = design.InverterInput is { } input ? 0.5 / (input.CouplingCap * sampleRate) : 0;
+        inverterHalfStep = Design.InverterInput is { } input ? 0.5 / (input.CouplingCap * sampleRate) : 0;
         var c = controls;
         controls = Unset;
         Configure(c);
@@ -329,7 +311,7 @@ public sealed class PowerAmp {
         }
 
         sourceResistance = Math.Max(ohms, 1);
-        if (design.Topology == PowerTopology.SingleEnded) {
+        if (Design.Topology == PowerTopology.SingleEnded) {
             root.Device.SetSourceResistance(sourceResistance, sampleRate);
         }
     }
@@ -345,13 +327,13 @@ public sealed class PowerAmp {
         if (controls.Presence != previous.Presence
             || controls.Depth != previous.Depth
             || controls.Feedback != previous.Feedback) {
-            var amount = design.HasFeedback ? 2 * controls.Feedback : Math.Max(0, 2 * controls.Feedback - 1);
+            var amount = Design.HasFeedback ? 2 * controls.Feedback : Math.Max(0, 2 * controls.Feedback - 1);
             // The secondary is the primary less the copper's drop into the nominal load (see the remarks).
-            var ot = design.Transformer;
+            var ot = Design.Transformer;
             var load = ot.PlateToPlate * settings.Match;
             var copper = load / (load + ot.WindingResistance);
             root.Device.SetFeedback(
-                design.Feedback,
+                Design.Feedback,
                 controls.Presence,
                 controls.Depth,
                 amount * copper,
@@ -373,10 +355,10 @@ public sealed class PowerAmp {
         if (controls.Bias != previous.Bias) {
             // Fixed bias: the bias voltage from 1.2x (cold) to 0.8x (hot) of the stock one. Cathode bias: the cathode
             // resistor from twice to half the stock one.
-            if (design.CathodeBias) {
-                cathodeResistor = stockCathodeResistor * Math.Pow(2, 1 - 2 * controls.Bias);
+            if (Design.CathodeBias) {
+                CathodeResistor = stockCathodeResistor * Math.Pow(2, 1 - 2 * controls.Bias);
             } else {
-                gridBias = -stockBias * (1.2 - 0.4 * controls.Bias) * variac;
+                GridBias = -stockBias * (1.2 - 0.4 * controls.Bias) * variac;
             }
         }
     }
@@ -393,7 +375,7 @@ public sealed class PowerAmp {
         var previous = this.settings;
         this.settings = settings;
         var reset = false;
-        var model = settings.Tube ?? design.Tube;
+        var model = settings.Tube ?? Design.Tube;
         if (model != tube || settings.Triode != previous.Triode) {
             tube = model;
             root.Device.SetTube(PentodeTables.For(model), ScreenTap(settings.Triode));
@@ -410,19 +392,19 @@ public sealed class PowerAmp {
             || settings.ResonancePeak != previous.ResonancePeak
             || settings.VoiceCoil != previous.VoiceCoil
             || settings.Impedance != previous.Impedance) {
-            turns = Math.Sqrt(design.Transformer.PlateToPlate * settings.Match / SpeakerDesign.Nominal);
+            turns = Math.Sqrt(Design.Transformer.PlateToPlate * settings.Match / SpeakerDesign.Nominal);
             ApplyNetwork();
         }
 
         variac = settings.Variac;
-        reservoirCap = design.PowerSupply.Reservoir * settings.TimeConstant;
-        bypassCap = design.CathodeBypass * settings.CathodeTimeConstant;
-        rectifier = settings.Rectifier ?? design.PowerSupply.Rectifier;
+        reservoirCap = Design.PowerSupply.Reservoir * settings.TimeConstant;
+        bypassCap = Design.CathodeBypass * settings.CathodeTimeConstant;
+        rectifier = settings.Rectifier ?? Design.PowerSupply.Rectifier;
         lineFrequency = settings.Supply switch {
             SupplyMode.Dc => 0,
             SupplyMode.Ac60 => 60,
             SupplyMode.Ac50 => 50,
-            _ => design.PowerSupply.LineFrequency
+            _ => Design.PowerSupply.LineFrequency
         };
         SetSaturation(settings.Drive);
 
@@ -438,14 +420,14 @@ public sealed class PowerAmp {
     ///     a few tens of microseconds, so a type change can call it on the audio thread.
     /// </summary>
     public void Reset() {
-        reservoir = design.Supply;
-        screen = design.Supply;
-        var supply = design.PowerSupply;
+        Supply = Design.Supply;
+        ScreenSupply = Design.Supply;
+        var supply = Design.PowerSupply;
         var unloaded = unloadedSupply * variac;
         var converged = false;
         for (var i = 0; i < 40; i++) {
-            var total = IdleCurrents(reservoir, screen, out var vk);
-            cathodeA = vk;
+            var total = IdleCurrents(Supply, ScreenSupply, out var vk);
+            CathodeVoltage = vk;
             cathodeB = vk;
             var sag = supply.SourceResistance * sagScale;
             var draw = total.Plates + total.Screens + supply.PreampCurrent;
@@ -453,39 +435,39 @@ public sealed class PowerAmp {
             var node = next - supply.ChokeResistance * (total.Screens + supply.PreampCurrent);
 
             // Both nodes must settle: the screen node starts at B+, and a large dropping resistor moves it far.
-            var change = Math.Abs(next - reservoir) + Math.Abs(node - screen);
-            reservoir = next;
-            screen = node;
+            var change = Math.Abs(next - Supply) + Math.Abs(node - ScreenSupply);
+            Supply = next;
+            ScreenSupply = node;
             if (change < 1e-9) {
                 converged = true;
                 break;
             }
         }
 
-        if (!converged || !(reservoir > 0) || !(screen > 0)) {
+        if (!converged || !(Supply > 0) || !(ScreenSupply > 0)) {
             SolveSupply(unloaded);
         }
 
-        preamp = screen - supply.PreampResistance * supply.PreampCurrent;
+        PreampVoltage = ScreenSupply - supply.PreampResistance * supply.PreampCurrent;
         root.Reset();
         root.SetInitialVoltages([0]);
         ref var stage = ref root.Device;
         stage.Reset();
-        var idle = IdlePerTube(reservoir, screen);
+        var idle = IdlePerTube(Supply, ScreenSupply);
         stage.SetIdle(idle.Plate, idle.Screen);
-        if (design.Topology == PowerTopology.SingleEnded) {
+        if (Design.Topology == PowerTopology.SingleEnded) {
             // The idle current flows from B+ through the whole primary: the magnetising inductance carries it.
-            var draw = IdleCurrents(reservoir, screen, out _).Plates;
+            var draw = IdleCurrents(Supply, ScreenSupply, out _).Plates;
             root.Ports.A.Precharge(-draw);
         }
 
-        var all = IdleCurrents(reservoir, screen, out _);
+        var all = IdleCurrents(Supply, ScreenSupply, out _);
         var rectified = all.Plates + all.Screens + supply.PreampCurrent;
         rectifierRoot = rectifier is { Perveance: > 0 } r ? Math.Cbrt(rectified / r.Perveance) : 0;
         phase = 0;
         // The inverter's input network at rest: its grid current through the leak, the coupling cap charged to match.
-        inverterRest = design.InverterInput is null ? 0 : SolveInverterGrid(0, 0, 0, 0);
-        inverterGrid = inverterRest;
+        inverterRest = Design.InverterInput is null ? 0 : SolveInverterGrid(0, 0, 0, 0);
+        InverterGrid = inverterRest;
         inverterHistory = -inverterRest;
         excess = saturationFlux > 0 ? Excess(Flux) : 0;
         root.SetCurrent(0, -excess);
@@ -496,20 +478,20 @@ public sealed class PowerAmp {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Tick(double input) {
         ref var stage = ref root.Device;
-        stage.Input = design.InverterInput is null ? input : DriveInverter(input);
+        stage.Input = Design.InverterInput is null ? input : DriveInverter(input);
         Prime(ref stage);
         root.Tick();
 
         // The supply and the cathode bias, from this sample's currents.
-        var supply = design.PowerSupply;
+        var supply = Design.PowerSupply;
         var dt = 1 / sampleRate;
         double plates, screens;
         if (stage.General) {
             plates = stage.ReservoirCurrent;
             screens = stage.ScreenNodeCurrent;
         } else {
-            plates = design.TubesPerSide * (stage.PlateA + stage.PlateB);
-            screens = design.TubesPerSide * (stage.ScreenCurrentA + stage.ScreenCurrentB);
+            plates = Design.TubesPerSide * (stage.PlateA + stage.PlateB);
+            screens = Design.TubesPerSide * (stage.ScreenCurrentA + stage.ScreenCurrentB);
         }
 
         if (!double.IsFinite(plates + screens + stage.GridCurrents)) {
@@ -517,19 +499,20 @@ public sealed class PowerAmp {
         }
 
         var fromRectifier = Rectify(supply);
-        var toScreen = (reservoir - screen) / supply.ChokeResistance;
-        var toPreamp = (screen - preamp) / supply.PreampResistance;
-        reservoir += dt / reservoirCap * (Math.Max(fromRectifier, 0) - plates - toScreen);
-        screen += dt / supply.ScreenCap * (toScreen - screens - toPreamp);
-        preamp += dt / supply.PreampCap * (toPreamp - supply.PreampCurrent);
-        if (design.CathodeBias) {
-            if (design.SeparateCathodes) {
-                var side = 2 * cathodeResistor;
-                cathodeA += dt / bypassCap * (stage.CathodeCurrentA - cathodeA / side);
+        var toScreen = (Supply - ScreenSupply) / supply.ChokeResistance;
+        var toPreamp = (ScreenSupply - PreampVoltage) / supply.PreampResistance;
+        Supply += dt / reservoirCap * (Math.Max(fromRectifier, 0) - plates - toScreen);
+        ScreenSupply += dt / supply.ScreenCap * (toScreen - screens - toPreamp);
+        PreampVoltage += dt / supply.PreampCap * (toPreamp - supply.PreampCurrent);
+        if (Design.CathodeBias) {
+            if (Design.SeparateCathodes) {
+                var side = 2 * CathodeResistor;
+                CathodeVoltage += dt / bypassCap * (stage.CathodeCurrentA - CathodeVoltage / side);
                 cathodeB += dt / bypassCap * (stage.CathodeCurrentB - cathodeB / side);
             } else {
-                cathodeA += dt / bypassCap * (plates + screens + stage.GridCurrents - cathodeA / cathodeResistor);
-                cathodeB = cathodeA;
+                CathodeVoltage +=
+                    dt / bypassCap * (plates + screens + stage.GridCurrents - CathodeVoltage / CathodeResistor);
+                cathodeB = CathodeVoltage;
             }
         }
 
@@ -550,8 +533,22 @@ public sealed class PowerAmp {
         Flush.Capacitor(ref root.Ports.F);
         root.Device.FlushDenormals();
         inverterHistory = Flush.Value(inverterHistory);
-        inverterGrid = Flush.Value(inverterGrid);
+        InverterGrid = Flush.Value(InverterGrid);
         excess = Flush.Value(excess);
+    }
+
+    /// <summary>The transformer and speaker, referred to the primary, for <paramref name="rate" />.</summary>
+    Ports<Inductor, Capacitor, Inductor, Inductor, Inductor, Capacitor> Network(double rate) {
+        var n2 = turns * turns;
+        var (_, lm, cm) = Design.Speaker.Motional;
+        return new(
+            new(Design.Transformer.PrimaryInductance, rate),
+            new(Design.Transformer.PrimaryCapacitance, rate),
+            new(Design.Transformer.LeakageInductance, rate),
+            new(Design.Speaker.Inductance * n2, rate),
+            new(lm * n2, rate),
+            new(cm / n2, rate)
+        );
     }
 
     /// <summary>
@@ -572,7 +569,7 @@ public sealed class PowerAmp {
             resistance *= acResistance;
         }
 
-        var headroom = source - reservoir;
+        var headroom = source - Supply;
         if (rectifier is not { Perveance: > 0 } r) {
             return headroom / resistance;
         }
@@ -607,7 +604,7 @@ public sealed class PowerAmp {
     ///     plain fixed-point iteration in <see cref="Reset" /> does not settle: a hot tube on a soft supply, say.
     /// </summary>
     void SolveSupply(double unloaded) {
-        var supply = design.PowerSupply;
+        var supply = Design.PowerSupply;
         var (low, high) = (0.0, unloaded);
         for (var i = 0; i < 60; i++) {
             var plate = 0.5 * (low + high);
@@ -627,9 +624,9 @@ public sealed class PowerAmp {
             var draw = total.Plates + total.Screens + supply.PreampCurrent;
             var residual = unloaded - supply.SourceResistance * sagScale * draw - (rectifier?.Drop(draw) ?? 0) - plate;
             (low, high) = residual > 0 ? (plate, high) : (low, plate);
-            reservoir = plate;
-            screen = Math.Max(node, 1e-3);
-            cathodeA = vk;
+            Supply = plate;
+            ScreenSupply = Math.Max(node, 1e-3);
+            CathodeVoltage = vk;
             cathodeB = vk;
         }
     }
@@ -642,9 +639,9 @@ public sealed class PowerAmp {
     /// </summary>
     double CalibrateAc(double load) {
         lock (AcResistances) {
-            if (!AcResistances.TryGetValue(design, out var factor)) {
-                factor = CalibrateAc(design, unloadedSupply, load);
-                AcResistances[design] = factor;
+            if (!AcResistances.TryGetValue(Design, out var factor)) {
+                factor = CalibrateAc(Design, unloadedSupply, load);
+                AcResistances[Design] = factor;
             }
 
             return factor;
@@ -684,7 +681,7 @@ public sealed class PowerAmp {
 
     /// <summary>The core: the knee's flux for transformer drive <paramref name="drive" /> (0..10).</summary>
     void SetSaturation(double drive) {
-        var ot = design.Transformer;
+        var ot = Design.Transformer;
         var stock = ot.SaturationFlux;
         if (stock <= 0 && drive <= 0) {
             saturationFlux = 0;
@@ -695,12 +692,12 @@ public sealed class PowerAmp {
 
         // Single-ended, the idle current's flux sits in the core: the drive moves the knee closer to it, not to zero (a
         // knee below the idle flux would saturate the core at rest).
-        var idle = design.Topology == PowerTopology.SingleEnded
-            ? ot.PrimaryInductance * design.TubesPerSide * design.IdleCurrent
+        var idle = Design.Topology == PowerTopology.SingleEnded
+            ? ot.PrimaryInductance * Design.TubesPerSide * Design.IdleCurrent
             : 0;
         if (stock <= 0) {
             // A core with the knee at eight times the flux of full power at 40 Hz: far out of the way at 0.
-            var swing = Math.Sqrt(2 * design.RatedPower * ot.PlateToPlate);
+            var swing = Math.Sqrt(2 * Design.RatedPower * ot.PlateToPlate);
             stock = 8 * swing / (2 * Math.PI * ReferenceFrequency) + idle;
         }
 
@@ -737,11 +734,11 @@ public sealed class PowerAmp {
         var series = sourceResistance + inverterHalfStep;
         var e = input - inverterHistory;
         // The second grid, a sample behind: the cathode follows the pair's common mode.
-        var v = SolveInverterGrid(e, 1 / series, root.Device.Fed, inverterGrid);
+        var v = SolveInverterGrid(e, 1 / series, root.Device.Fed, InverterGrid);
         var current = (e - v) / series;
-        inverterCurrent = current;
+        InverterCurrent = current;
         inverterHistory += 2 * inverterHalfStep * current;
-        inverterGrid = v;
+        InverterGrid = v;
         return v - inverterRest;
     }
 
@@ -752,7 +749,7 @@ public sealed class PowerAmp {
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     double SolveInverterGrid(double source, double conductance, double fed, double start) {
-        var leak = 1 / design.InverterInput!.GridLeak;
+        var leak = 1 / Design.InverterInput!.GridLeak;
         var e = source;
         var v = start;
         for (var i = 0; i < 12; i++) {
@@ -791,22 +788,22 @@ public sealed class PowerAmp {
     /// <summary>The per-sample inputs of the device that come from the supply and the bias.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     void Prime(ref PushPullStage stage) {
-        stage.SupplyA = reservoir - cathodeA;
-        stage.SupplyB = reservoir - cathodeB;
+        stage.SupplyA = Supply - CathodeVoltage;
+        stage.SupplyB = Supply - cathodeB;
         stage.SetScreens(
-            screen - design.ScreenResistor * stage.ScreenCurrentA - cathodeA,
-            screen - design.ScreenResistor * stage.ScreenCurrentB - cathodeB
+            ScreenSupply - Design.ScreenResistor * stage.ScreenCurrentA - CathodeVoltage,
+            ScreenSupply - Design.ScreenResistor * stage.ScreenCurrentB - cathodeB
         );
-        var bias = design.CathodeBias ? 0 : gridBias;
-        stage.GridOffsetA = bias - cathodeA;
+        var bias = Design.CathodeBias ? 0 : GridBias;
+        stage.GridOffsetA = bias - CathodeVoltage;
         stage.GridOffsetB = bias - cathodeB;
     }
 
     /// <summary>The transformer and speaker values as the expert settings scale them, into the network.</summary>
     void ApplyNetwork() {
         var s = settings;
-        var ot = design.Transformer;
-        var speaker = s.Speaker ?? design.Speaker;
+        var ot = Design.Transformer;
+        var speaker = s.Speaker ?? Design.Speaker;
         var n2 = turns * turns;
         var impedance = s.Impedance;
         var (rm, lm, cm) = SpeakerDesign.MotionalOf(
@@ -831,13 +828,13 @@ public sealed class PowerAmp {
     }
 
     /// <summary>The main tubes' screen tap: 0 in pentode operation, the ultralinear tap, or 1 strapped as triodes.</summary>
-    double ScreenTap(bool triode) => triode && design.TriodeSwitch is not null ? 1 : design.UltralinearTap;
+    double ScreenTap(bool triode) => triode && Design.TriodeSwitch is not null ? 1 : Design.UltralinearTap;
 
     /// <summary>The stock bias for the tube in use: the grid voltage, or the cathode resistor.</summary>
     void Rebias() {
-        if (design.CathodeBias) {
+        if (Design.CathodeBias) {
             stockCathodeResistor = StockCathodeResistor();
-            cathodeResistor = controls.Bias is var b && double.IsFinite(b)
+            CathodeResistor = controls.Bias is var b && double.IsFinite(b)
                 ? stockCathodeResistor * Math.Pow(2, 1 - 2 * b)
                 : stockCathodeResistor;
         } else {
@@ -853,20 +850,14 @@ public sealed class PowerAmp {
         var idle = IdlePerTube(plate, screen);
         cathode = idle.Cathode;
         if (!IsGeneral) {
-            var count = 2 * design.TubesPerSide;
+            var count = 2 * Design.TubesPerSide;
             return (count * idle.Plate, count * idle.Screen);
         }
 
-        var vg = design.CathodeBias ? -idle.Cathode : gridBias;
+        var vg = Design.CathodeBias ? -idle.Cathode : GridBias;
         var (reservoirSide, screenSide) = SideCurrents(vg, plate - idle.Cathode, screen - idle.Cathode);
-        return (design.Sides * reservoirSide, design.Sides * screenSide);
+        return (Design.Sides * reservoirSide, Design.Sides * screenSide);
     }
-
-    /// <summary>Whether the tubes' wiring leaves the plain push-pull pentode case (see <see cref="PushPullStage" />).</summary>
-    bool IsGeneral =>
-        design.Topology == PowerTopology.SingleEnded
-        || ScreenTap(settings.Triode) > 0
-        || (design.Strapped is not null && design.StrappedPerSide > 0);
 
     /// <summary>
     ///     One side's idle currents at grid-cathode voltage <paramref name="vg" /> with the plate and the screen node at
@@ -878,10 +869,10 @@ public sealed class PowerAmp {
         var vs = tap > 0 ? plate : ScreenAtIdle(tube, vg, screen);
         var ip = KorenPentode.Plate(tube, vg, vs, plate);
         var ig2 = KorenPentode.Screen(tube, vg, vs);
-        var fromReservoir = design.TubesPerSide * (ip + (tap > 0 ? ig2 : 0));
-        var fromScreens = tap > 0 ? 0 : design.TubesPerSide * ig2;
-        if (design.Strapped is { } strapped && design.StrappedPerSide > 0) {
-            fromReservoir += design.StrappedPerSide
+        var fromReservoir = Design.TubesPerSide * (ip + (tap > 0 ? ig2 : 0));
+        var fromScreens = tap > 0 ? 0 : Design.TubesPerSide * ig2;
+        if (Design.Strapped is { } strapped && Design.StrappedPerSide > 0) {
+            fromReservoir += Design.StrappedPerSide
                 * (KorenPentode.Plate(strapped, vg, plate, plate) + KorenPentode.Screen(strapped, vg, plate));
         }
 
@@ -895,9 +886,9 @@ public sealed class PowerAmp {
     /// </summary>
     (double Plate, double Screen, double Cathode) IdlePerTube(double plate, double screen) {
         var tapped = ScreenTap(settings.Triode) > 0;
-        if (!design.CathodeBias) {
-            var vs = tapped ? plate : ScreenAtIdle(tube, gridBias, screen);
-            return (KorenPentode.Plate(tube, gridBias, vs, plate), KorenPentode.Screen(tube, gridBias, vs), 0);
+        if (!Design.CathodeBias) {
+            var vs = tapped ? plate : ScreenAtIdle(tube, GridBias, screen);
+            return (KorenPentode.Plate(tube, GridBias, vs, plate), KorenPentode.Screen(tube, GridBias, vs), 0);
         }
 
         if (!(plate > 0)) {
@@ -905,7 +896,7 @@ public sealed class PowerAmp {
         }
 
         var (low, high) = (0.0, plate);
-        var x0 = Math.Clamp(double.IsFinite(cathodeA) ? cathodeA : 0, 0.01 * plate, 0.5 * plate);
+        var x0 = Math.Clamp(double.IsFinite(CathodeVoltage) ? CathodeVoltage : 0, 0.01 * plate, 0.5 * plate);
         var f0 = CathodeResidual(x0, plate, screen);
         var x1 = x0 * 1.01;
         var f1 = CathodeResidual(x1, plate, screen);
@@ -940,13 +931,13 @@ public sealed class PowerAmp {
     double CathodeResidual(double vk, double plate, double screen) {
         if (IsGeneral) {
             var (fromReservoir, fromScreens) = SideCurrents(-vk, plate - vk, screen - vk);
-            return design.Sides * (fromReservoir + fromScreens) * cathodeResistor - vk;
+            return Design.Sides * (fromReservoir + fromScreens) * CathodeResistor - vk;
         }
 
         var vs = ScreenAtIdle(tube, -vk, screen - vk);
-        var count = 2 * design.TubesPerSide;
+        var count = 2 * Design.TubesPerSide;
         var current = count * (KorenPentode.Plate(tube, -vk, vs, plate - vk) + KorenPentode.Screen(tube, -vk, vs));
-        return current * cathodeResistor - vk;
+        return current * CathodeResistor - vk;
     }
 
     /// <summary>
@@ -956,7 +947,7 @@ public sealed class PowerAmp {
     double ScreenAtIdle(PentodeModel tube, double grid, double node) {
         var vs = node;
         for (var i = 0; i < 30; i++) {
-            var next = node - design.ScreenResistor * KorenPentode.Screen(tube, grid, vs);
+            var next = node - Design.ScreenResistor * KorenPentode.Screen(tube, grid, vs);
             if (Math.Abs(next - vs) < 1e-12) {
                 return next;
             }
@@ -969,13 +960,13 @@ public sealed class PowerAmp {
 
     /// <summary>Fixed bias: the grid voltage that gives the design's idle current at the design's supply.</summary>
     double StockBias() {
-        var (low, high) = (0.0, design.Supply);
+        var (low, high) = (0.0, Design.Supply);
         var tapped = ScreenTap(settings.Triode) > 0;
-        var screenNode = design.ScreenSupply > 0 ? design.ScreenSupply : design.Supply;
+        var screenNode = Design.ScreenSupply > 0 ? Design.ScreenSupply : Design.Supply;
         for (var i = 0; i < 80; i++) {
             var bias = 0.5 * (low + high);
-            var vs = tapped ? design.Supply : ScreenAtIdle(tube, -bias, screenNode);
-            if (KorenPentode.Plate(tube, -bias, vs, design.Supply) > design.IdleCurrent) {
+            var vs = tapped ? Design.Supply : ScreenAtIdle(tube, -bias, screenNode);
+            if (KorenPentode.Plate(tube, -bias, vs, Design.Supply) > Design.IdleCurrent) {
                 low = bias;
             } else {
                 high = bias;
@@ -990,16 +981,16 @@ public sealed class PowerAmp {
     ///     idle current at the design's supply.
     /// </summary>
     double StockCathodeResistor() {
-        if (design.CathodeResistor > 0) {
-            return design.CathodeResistor;
+        if (Design.CathodeResistor > 0) {
+            return Design.CathodeResistor;
         }
 
-        var (low, high) = (0.0, design.Supply);
+        var (low, high) = (0.0, Design.Supply);
         var tapped = ScreenTap(settings.Triode) > 0;
         for (var i = 0; i < 80; i++) {
             var vk = 0.5 * (low + high);
-            var vs = tapped ? design.Supply - vk : ScreenAtIdle(tube, -vk, design.Supply - vk);
-            if (KorenPentode.Plate(tube, -vk, vs, design.Supply - vk) > design.IdleCurrent) {
+            var vs = tapped ? Design.Supply - vk : ScreenAtIdle(tube, -vk, Design.Supply - vk);
+            if (KorenPentode.Plate(tube, -vk, vs, Design.Supply - vk) > Design.IdleCurrent) {
                 low = vk;
             } else {
                 high = vk;
@@ -1007,9 +998,9 @@ public sealed class PowerAmp {
         }
 
         var bias = 0.5 * (low + high);
-        var screenVoltage = tapped ? design.Supply - bias : ScreenAtIdle(tube, -bias, design.Supply - bias);
-        var perTube = design.IdleCurrent + KorenPentode.Screen(tube, -bias, screenVoltage);
-        return bias / (design.Sides * design.TubesPerSide * perTube);
+        var screenVoltage = tapped ? Design.Supply - bias : ScreenAtIdle(tube, -bias, Design.Supply - bias);
+        var perTube = Design.IdleCurrent + KorenPentode.Screen(tube, -bias, screenVoltage);
+        return bias / (Design.Sides * Design.TubesPerSide * perTube);
     }
 }
 
@@ -1058,32 +1049,31 @@ public static class KorenPentode {
 
 /// <summary>A first-order section, transposed direct form II, with a look-ahead that leaves the state alone.</summary>
 struct FirstOrder {
-    double b0;
     double b1;
     double a1;
     double state;
 
-    public readonly double B0 => b0;
+    public double B0 { get; private set; }
 
     /// <summary>The identity.</summary>
-    public static FirstOrder Unity => new() { b0 = 1 };
+    public static FirstOrder Unity => new() { B0 = 1 };
 
     /// <summary>Bilinear transform of (n0 + n1 s) / (d0 + d1 s) at <paramref name="rate" />, keeping the state.</summary>
     public void Design(double n0, double n1, double d0, double d1, double rate) {
         var k = 2 * rate;
         var norm = 1 / (d0 + d1 * k);
-        b0 = (n0 + n1 * k) * norm;
+        B0 = (n0 + n1 * k) * norm;
         b1 = (n0 - n1 * k) * norm;
         a1 = (d0 - d1 * k) * norm;
     }
 
     /// <summary>The output for <paramref name="x" /> without advancing.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly double Peek(double x) => b0 * x + state;
+    public readonly double Peek(double x) => B0 * x + state;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Process(double x) {
-        var y = b0 * x + state;
+        var y = B0 * x + state;
         state = b1 * x - a1 * y;
         return y;
     }
@@ -1227,29 +1217,6 @@ struct GridPair {
 ///     follow the plates.
 /// </remarks>
 struct PushPullStage : INonlinearDevice {
-    readonly PhaseInverter phaseInverter;
-    readonly PentodeTables? strapped;
-    readonly double tubes;
-    readonly double strappedTubes;
-    readonly bool singleEnded;
-    readonly double coupling;
-    readonly double gridLeak;
-    readonly double gridStopper;
-    readonly double cutCap;
-    readonly Pot cutPot;
-    readonly Pot? shuntMaster;
-    readonly double differentialResistance;
-    PentodeTables tube;
-    FirstOrder presence;
-    FirstOrder depth;
-    FirstOrder cut;
-    GridPair grids;
-    double feedback; // feedback knob × tap gain / turns ratio: volts at the feedback filter per volt of primary
-    bool hasCut;
-    double screenTap; // the main tubes' screen tap: 0 pentode, the ultralinear fraction, or 1 triode
-    double factorA; // the plate current's screen factor per side, per sample
-    double factorB;
-
     /// <summary>The phase inverter's grid voltage (AC), set per sample.</summary>
     public double Input;
 
@@ -1297,6 +1264,29 @@ struct PushPullStage : INonlinearDevice {
 
     /// <summary>The feedback voltage at the inverter's second grid at the last committed sample.</summary>
     public double Fed;
+
+    readonly PhaseInverter phaseInverter;
+    readonly PentodeTables? strapped;
+    readonly double tubes;
+    readonly double strappedTubes;
+    readonly bool singleEnded;
+    readonly double coupling;
+    readonly double gridLeak;
+    readonly double gridStopper;
+    readonly double cutCap;
+    readonly Pot cutPot;
+    readonly Pot? shuntMaster;
+    readonly double differentialResistance;
+    PentodeTables tube;
+    FirstOrder presence;
+    FirstOrder depth;
+    FirstOrder cut;
+    GridPair grids;
+    double feedback; // feedback knob × tap gain / turns ratio: volts at the feedback filter per volt of primary
+    bool hasCut;
+    double screenTap; // the main tubes' screen tap: 0 pentode, the ultralinear fraction, or 1 triode
+    double factorA; // the plate current's screen factor per side, per sample
+    double factorB;
 
     public readonly int Ports => 1;
 
@@ -1645,7 +1635,8 @@ struct PushPullStage : INonlinearDevice {
             var ig2 = second.ScreenCurrent(vg, plate, out var screenSlope);
             total += strappedTubes * (ip + ig2);
             slope += strappedTubes
-                * (gs * gridDrive + (ss + ps) * plateDrive
+                * (gs * gridDrive
+                    + (ss + ps) * plateDrive
                     + screenSlope * (gridDrive + plateDrive / second.Model.Mu));
         }
 

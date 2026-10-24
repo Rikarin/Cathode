@@ -99,6 +99,9 @@ public sealed class VibeBlock() : DspBlock(Info) {
         }
     }
 
+    /// <summary>Vibrato is the chain alone; chorus blends it with the dry signal.</summary>
+    float TargetMix() => Params.Current(Mode) >= 0.5f ? 1f : Params.Current(Mix) / 100f;
+
     protected override void OnReset() {
         Array.Clear(stateLeft);
         Array.Clear(stateRight);
@@ -145,7 +148,4 @@ public sealed class VibeBlock() : DspBlock(Info) {
         this.mix = mix;
         output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
     }
-
-    /// <summary>Vibrato is the chain alone; chorus blends it with the dry signal.</summary>
-    float TargetMix() => Params.Current(Mode) >= 0.5f ? 1f : Params.Current(Mix) / 100f;
 }

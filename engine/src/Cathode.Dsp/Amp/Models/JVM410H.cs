@@ -85,7 +85,7 @@ public static class JVM410H {
             5.6e3,
             0,
             new(1e6, PotTaper.Linear),
-            new(Math.Sqrt(2), 82e3, 4.7e3, new(10e3, PotTaper.Linear), 0.1e-6, 90),
+            new(Math.Sqrt(2), 82e3, 4.7e3, new(10e3, PotTaper.Linear), 0.1e-6),
             true,
             new(1.7e3),
             SpeakerDesign.Closed4x12,

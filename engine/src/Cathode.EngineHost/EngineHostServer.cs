@@ -1,4 +1,5 @@
 using System.Net.Sockets;
+using System.Threading.Channels;
 using Cathode.Ipc;
 
 namespace Cathode.EngineHost;
@@ -14,11 +15,9 @@ public sealed class EngineHostServer(EngineHostService service, string socketPat
     static readonly TimeSpan TelemetryInterval = TimeSpan.FromMilliseconds(100);
 
     /// <summary>MIDI waiting for the Server; when none is connected the oldest batches are dropped.</summary>
-    readonly System.Threading.Channels.Channel<List<MidiEventMessage>> midi =
-        System.Threading.Channels.Channel.CreateBounded<List<MidiEventMessage>>(
-            new System.Threading.Channels.BoundedChannelOptions(64) {
-                FullMode = System.Threading.Channels.BoundedChannelFullMode.DropOldest, SingleReader = true
-            }
+    readonly Channel<List<MidiEventMessage>> midi =
+        Channel.CreateBounded<List<MidiEventMessage>>(
+            new BoundedChannelOptions(64) { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true }
         );
 
     public async Task RunAsync(CancellationToken cancellationToken) {

@@ -154,36 +154,6 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
             { "Express", false }
         };
 
-    /// <summary>The preamp's stage designs in signal order, with the channel switch's chain for <paramref name="on" />.</summary>
-    internal static IEnumerable<AmpStageDesign> Chain(AmpDesign design, bool on) =>
-        design.Preamp.SelectMany(s => s is ChannelSwitchStageDesign channel ? on ? channel.On : channel.Off : [s]);
-
-    static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);
-
-    static CircuitAmpBlock Create(string type, params (int Index, float Value)[] settings) {
-        var block = new CircuitAmpBlock();
-        block.Params.SetTarget(CircuitAmpBlock.Type, TypeOf(type));
-        foreach (var (index, value) in settings) {
-            block.Params.SetTarget(index, value);
-        }
-
-        block.Prepare(new(Rate, 64));
-        block.Reset();
-        return block;
-    }
-
-    static string Label(string id, string type) {
-        var parameter = CircuitAmpBlock.Info.Params.Single(p => p.Id == id);
-        return parameter.TypeLabels is { } labels ? labels[TypeOf(type)] : parameter.Name;
-    }
-
-    /// <summary>The level (dB) of a quiet sine at <paramref name="frequency" /> with the given settings.</summary>
-    static double Level(string type, double frequency, float amplitude, params (int Index, float Value)[] settings) {
-        using var block = Create(type, settings);
-        var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 19_200, amplitude), 64);
-        return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(9_600)));
-    }
-
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {
         Assert.Equal("Volume", Label("gain", "Chieftain"));
@@ -431,4 +401,34 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
         output.WriteLine($"B+ under drive: GZ34 {tube:0.0} V, silicon {silicon:0.0} V");
         Assert.True(silicon > tube + 5);
     }
+
+    static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);
+
+    static CircuitAmpBlock Create(string type, params (int Index, float Value)[] settings) {
+        var block = new CircuitAmpBlock();
+        block.Params.SetTarget(CircuitAmpBlock.Type, TypeOf(type));
+        foreach (var (index, value) in settings) {
+            block.Params.SetTarget(index, value);
+        }
+
+        block.Prepare(new(Rate, 64));
+        block.Reset();
+        return block;
+    }
+
+    static string Label(string id, string type) {
+        var parameter = CircuitAmpBlock.Info.Params.Single(p => p.Id == id);
+        return parameter.TypeLabels is { } labels ? labels[TypeOf(type)] : parameter.Name;
+    }
+
+    /// <summary>The level (dB) of a quiet sine at <paramref name="frequency" /> with the given settings.</summary>
+    static double Level(string type, double frequency, float amplitude, params (int Index, float Value)[] settings) {
+        using var block = Create(type, settings);
+        var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 19_200, amplitude), 64);
+        return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(9_600)));
+    }
+
+    /// <summary>The preamp's stage designs in signal order, with the channel switch's chain for <paramref name="on" />.</summary>
+    internal static IEnumerable<AmpStageDesign> Chain(AmpDesign design, bool on) =>
+        design.Preamp.SelectMany(s => s is ChannelSwitchStageDesign channel ? on ? channel.On : channel.Off : [s]);
 }

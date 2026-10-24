@@ -109,7 +109,7 @@ public sealed class DynaCabTests : IDisposable {
             );
             double moment = 0, energy = 0;
             for (var i = 0; i < dry.Length; i++) {
-                var d = (double)wet[i] - dry[i] * (Rms(wet) / Rms(dry));
+                var d = wet[i] - dry[i] * (Rms(wet) / Rms(dry));
                 moment += i * d * d;
                 energy += d * d;
             }

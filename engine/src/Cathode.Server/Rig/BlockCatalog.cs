@@ -15,6 +15,17 @@ public sealed class BlockCatalog {
 
     public IReadOnlyList<BlockTypeInfo> All => [..infos.Values];
 
+    /// <summary>The rig parameters (controllers, scene level, tempo, sources), for the editor's controller pages.</summary>
+    public BlockTypeInfo Rig { get; } = new(
+        RigControls.BlockId,
+        RigControls.Descriptor.Name,
+        RigControls.Descriptor.Category,
+        1,
+        1,
+        [],
+        [..RigControls.Descriptor.Params.Select(ToInfo)]
+    );
+
     public BlockCatalog(BlockRegistry registry) {
         foreach (var builtIn in new[] {
                      new BlockTypeInfo(BuiltInTypes.Input, "Input", "I/O", 4, 0, [], []),
@@ -42,17 +53,6 @@ public sealed class BlockCatalog {
     }
 
     public BlockTypeInfo? Info(string typeId) => infos.GetValueOrDefault(typeId);
-
-    /// <summary>The rig parameters (controllers, scene level, tempo, sources), for the editor's controller pages.</summary>
-    public BlockTypeInfo Rig { get; } = new(
-        RigControls.BlockId,
-        RigControls.Descriptor.Name,
-        RigControls.Descriptor.Category,
-        1,
-        1,
-        [],
-        [..RigControls.Descriptor.Params.Select(ToInfo)]
-    );
 
     /// <summary>The DSP descriptor, or null for built-in cells and unknown types.</summary>
     public BlockDescriptor? Descriptor(string typeId) => descriptors.GetValueOrDefault(typeId);

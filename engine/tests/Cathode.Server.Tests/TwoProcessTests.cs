@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
+using System.Text;
 using Cathode.Contracts;
 using Cathode.Server.Engine;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,12 +12,13 @@ namespace Cathode.Server.Tests;
 ///     it over a Unix domain socket.
 /// </summary>
 public sealed class TwoProcessTests : IAsyncDisposable {
-    readonly System.Text.StringBuilder hostOutput = new();
+    readonly StringBuilder hostOutput = new();
 
     readonly string socketPath = Path.Combine(
         Path.GetTempPath(),
         $"cth-{Guid.NewGuid().ToString("n")[..8]}.sock"
     ); // Unix socket paths are limited to ~104 bytes on macOS
+
     Process? host;
 
     CancellationToken Token => TestContext.Current.CancellationToken;

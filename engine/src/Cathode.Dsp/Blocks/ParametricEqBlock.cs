@@ -96,6 +96,18 @@ public sealed class ParametricEqBlock : DspBlock {
 
     public static int Q(int band) => (band - 1) * 3 + 2;
 
+    /// <summary>Solo: <paramref name="chunk" /> through band <paramref name="band" />'s region alone.</summary>
+    void Listen(in StereoBuffer chunk, int band, float frequency, float q) {
+        var type = band switch {
+            1 => BiquadType.LowPass,
+            Bands => BiquadType.HighPass,
+            _ => BiquadType.BandPass
+        };
+        var c = SvfCoefficients.Design(type, Spec.SampleRate, frequency, type == BiquadType.BandPass ? q : 0.7071);
+        soloLeft.Process(c, chunk.Left);
+        soloRight.Process(c, chunk.Right);
+    }
+
     protected override void OnReset() {
         foreach (var band in bands) {
             band.Reset();
@@ -163,18 +175,6 @@ public sealed class ParametricEqBlock : DspBlock {
         }
 
         output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
-    }
-
-    /// <summary>Solo: <paramref name="chunk" /> through band <paramref name="band" />'s region alone.</summary>
-    void Listen(in StereoBuffer chunk, int band, float frequency, float q) {
-        var type = band switch {
-            1 => BiquadType.LowPass,
-            Bands => BiquadType.HighPass,
-            _ => BiquadType.BandPass
-        };
-        var c = SvfCoefficients.Design(type, Spec.SampleRate, frequency, type == BiquadType.BandPass ? q : 0.7071);
-        soloLeft.Process(c, chunk.Left);
-        soloRight.Process(c, chunk.Right);
     }
 
     /// <summary>

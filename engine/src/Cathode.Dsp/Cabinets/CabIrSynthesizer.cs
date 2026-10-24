@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace Cathode.Dsp.Cabinets;
 
 /// <summary>
@@ -36,7 +38,7 @@ public sealed class CabIrSynthesizer : IDisposable {
     public CabIrSynthesizer(double sampleRate) {
         SampleRate = sampleRate;
         Taps = Math.Max(256, (int)Math.Round(ReferenceTaps * sampleRate / ReferenceRate));
-        FftSize = 4 * (int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)Taps);
+        FftSize = 4 * (int)BitOperations.RoundUpToPowerOf2((uint)Taps);
         fft = new(FftSize);
         re = new(FftSize);
         im = new(FftSize);

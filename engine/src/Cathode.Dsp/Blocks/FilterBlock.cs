@@ -147,6 +147,101 @@ public sealed class FilterBlock() : DspBlock(Info) {
             _ => null
         };
 
+    void UpdateCoefficients(float frequency) {
+        var type = (int)Params.Current(Type);
+        var q = Params.Current(Q);
+        var gain = Params.Current(Gain);
+        var rate = Spec.SampleRate;
+        if (type == Tilt) {
+            first = SvfCoefficients.Design(BiquadType.LowShelf, rate, frequency, 0.7071, -0.5 * gain);
+            second = SvfCoefficients.Design(BiquadType.HighShelf, rate, frequency, 0.7071, 0.5 * gain);
+        } else if (type is LowShelf2 or HighShelf2) {
+            first = SvfCoefficients.Design(Response(type)!.Value, rate, frequency, q, gain, MaxShelf2Q);
+            second = first;
+        } else if (type == Peaking2) {
+            first = SvfCoefficients.Design(
+                BiquadType.Peak,
+                rate,
+                frequency,
+                q * Math.Sqrt(Decibels.ToGain(Math.Abs(gain))),
+                gain
+            );
+            second = first;
+        } else if (Response(type) is { } response) {
+            first = SvfCoefficients.Design(response, rate, frequency, q, gain);
+            second = first;
+        }
+    }
+
+    /// <summary>The all-pass (one or two sections) with its output fed back to its input one sample later.</summary>
+    void AllPassWithFeedback(in StereoBuffer chunk, bool cascade, float feedback) {
+        for (var i = 0; i < chunk.Length; i++) {
+            var l = left.Tick(first, chunk.Left[i] + feedback * allPassLeft);
+            var r = right.Tick(first, chunk.Right[i] + feedback * allPassRight);
+            if (cascade) {
+                l = secondLeft.Tick(second, l);
+                r = secondRight.Tick(second, r);
+            }
+
+            allPassLeft = MathF.Abs((float)l) < 1e-20f ? 0f : (float)l;
+            allPassRight = MathF.Abs((float)r) < 1e-20f ? 0f : (float)r;
+            chunk.Left[i] = allPassLeft;
+            chunk.Right[i] = allPassRight;
+        }
+
+        left.FlushDenormals();
+        right.FlushDenormals();
+        secondLeft.FlushDenormals();
+        secondRight.FlushDenormals();
+    }
+
+    /// <summary>Feed-forward or feedback comb at Comb Time with gain Depth.</summary>
+    void Comb(in StereoBuffer io, bool feedback) {
+        var delay = Params.Advance(CombTime, io.Length) * 0.001f * (float)Spec.SampleRate;
+        var depth = Params.Advance(Depth, io.Length) / 100f;
+        if (feedback) {
+            depth = Math.Clamp(depth, -MaxCombFeedback, MaxCombFeedback);
+        }
+
+        for (var i = 0; i < io.Length; i++) {
+            var x = io.Left[i];
+            var y = x + depth * combLeft.Read(delay);
+            combLeft.Write(feedback ? y : x);
+            io.Left[i] = y;
+
+            x = io.Right[i];
+            y = x + depth * combRight.Read(delay);
+            combRight.Write(feedback ? y : x);
+            io.Right[i] = y;
+        }
+    }
+
+    /// <summary>Low and high cut, the input sides' pans, phase invert, then level and balance.</summary>
+    void Finish(in StereoBuffer io) {
+        var n = io.Length;
+        cuts.Design(Spec.SampleRate, Params.Advance(LowCut, n), Params.Advance(HighCut, n));
+        var panLeft = Params.Advance(PanLeft, n) / 100f;
+        var panRight = Params.Advance(PanRight, n) / 100f;
+        var (polarityLeft, polarityRight) = ChorusBlock.Polarity((int)Params.Current(PhaseInvert));
+        var panned = panLeft != -1f || panRight != 1f;
+        var (leftToLeft, leftToRight) = (Math.Min(1f, 1f - panLeft), Math.Min(1f, 1f + panLeft));
+        var (rightToLeft, rightToRight) = (Math.Min(1f, 1f - panRight), Math.Min(1f, 1f + panRight));
+        for (var i = 0; i < n; i++) {
+            var l = io.Left[i];
+            var r = io.Right[i];
+            cuts.Tick(ref l, ref r);
+            if (panned) {
+                (l, r) = (l * leftToLeft + r * rightToLeft, l * leftToRight + r * rightToRight);
+            }
+
+            io.Left[i] = polarityLeft * l;
+            io.Right[i] = polarityRight * r;
+        }
+
+        cuts.FlushDenormals();
+        output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
+    }
+
     protected override void OnPrepare(in ProcessSpec spec) {
         var capacity = (int)(MaxCombMs * 0.001 * spec.SampleRate) + 8;
         combLeft.Allocate(capacity);
@@ -176,32 +271,6 @@ public sealed class FilterBlock() : DspBlock(Info) {
         }
 
         base.Dispose(disposing);
-    }
-
-    void UpdateCoefficients(float frequency) {
-        var type = (int)Params.Current(Type);
-        var q = Params.Current(Q);
-        var gain = Params.Current(Gain);
-        var rate = Spec.SampleRate;
-        if (type == Tilt) {
-            first = SvfCoefficients.Design(BiquadType.LowShelf, rate, frequency, 0.7071, -0.5 * gain);
-            second = SvfCoefficients.Design(BiquadType.HighShelf, rate, frequency, 0.7071, 0.5 * gain);
-        } else if (type is LowShelf2 or HighShelf2) {
-            first = SvfCoefficients.Design(Response(type)!.Value, rate, frequency, q, gain, MaxShelf2Q);
-            second = first;
-        } else if (type == Peaking2) {
-            first = SvfCoefficients.Design(
-                BiquadType.Peak,
-                rate,
-                frequency,
-                q * Math.Sqrt(Decibels.ToGain(Math.Abs(gain))),
-                gain
-            );
-            second = first;
-        } else if (Response(type) is { } response) {
-            first = SvfCoefficients.Design(response, rate, frequency, q, gain);
-            second = first;
-        }
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -280,74 +349,5 @@ public sealed class FilterBlock() : DspBlock(Info) {
         }
 
         Finish(io);
-    }
-
-    /// <summary>The all-pass (one or two sections) with its output fed back to its input one sample later.</summary>
-    void AllPassWithFeedback(in StereoBuffer chunk, bool cascade, float feedback) {
-        for (var i = 0; i < chunk.Length; i++) {
-            var l = left.Tick(first, chunk.Left[i] + feedback * allPassLeft);
-            var r = right.Tick(first, chunk.Right[i] + feedback * allPassRight);
-            if (cascade) {
-                l = secondLeft.Tick(second, l);
-                r = secondRight.Tick(second, r);
-            }
-
-            allPassLeft = MathF.Abs((float)l) < 1e-20f ? 0f : (float)l;
-            allPassRight = MathF.Abs((float)r) < 1e-20f ? 0f : (float)r;
-            chunk.Left[i] = allPassLeft;
-            chunk.Right[i] = allPassRight;
-        }
-
-        left.FlushDenormals();
-        right.FlushDenormals();
-        secondLeft.FlushDenormals();
-        secondRight.FlushDenormals();
-    }
-
-    /// <summary>Feed-forward or feedback comb at Comb Time with gain Depth.</summary>
-    void Comb(in StereoBuffer io, bool feedback) {
-        var delay = Params.Advance(CombTime, io.Length) * 0.001f * (float)Spec.SampleRate;
-        var depth = Params.Advance(Depth, io.Length) / 100f;
-        if (feedback) {
-            depth = Math.Clamp(depth, -MaxCombFeedback, MaxCombFeedback);
-        }
-
-        for (var i = 0; i < io.Length; i++) {
-            var x = io.Left[i];
-            var y = x + depth * combLeft.Read(delay);
-            combLeft.Write(feedback ? y : x);
-            io.Left[i] = y;
-
-            x = io.Right[i];
-            y = x + depth * combRight.Read(delay);
-            combRight.Write(feedback ? y : x);
-            io.Right[i] = y;
-        }
-    }
-
-    /// <summary>Low and high cut, the input sides' pans, phase invert, then level and balance.</summary>
-    void Finish(in StereoBuffer io) {
-        var n = io.Length;
-        cuts.Design(Spec.SampleRate, Params.Advance(LowCut, n), Params.Advance(HighCut, n));
-        var panLeft = Params.Advance(PanLeft, n) / 100f;
-        var panRight = Params.Advance(PanRight, n) / 100f;
-        var (polarityLeft, polarityRight) = ChorusBlock.Polarity((int)Params.Current(PhaseInvert));
-        var panned = panLeft != -1f || panRight != 1f;
-        var (leftToLeft, leftToRight) = (Math.Min(1f, 1f - panLeft), Math.Min(1f, 1f + panLeft));
-        var (rightToLeft, rightToRight) = (Math.Min(1f, 1f - panRight), Math.Min(1f, 1f + panRight));
-        for (var i = 0; i < n; i++) {
-            var l = io.Left[i];
-            var r = io.Right[i];
-            cuts.Tick(ref l, ref r);
-            if (panned) {
-                (l, r) = (l * leftToLeft + r * rightToLeft, l * leftToRight + r * rightToRight);
-            }
-
-            io.Left[i] = polarityLeft * l;
-            io.Right[i] = polarityRight * r;
-        }
-
-        cuts.FlushDenormals();
-        output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
     }
 }

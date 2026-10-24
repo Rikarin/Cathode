@@ -16,31 +16,6 @@ public class ModernHighGainAmpTests(ITestOutputHelper output) {
     public static TheoryData<string, bool> Channels =>
         new() { { "Legacy VL100", false }, { "Legacy VL100", true }, { "SLO-100", true } };
 
-    static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);
-
-    static CircuitAmpBlock Create(string type, params (int Index, float Value)[] settings) {
-        var block = new CircuitAmpBlock();
-        block.Params.SetTarget(CircuitAmpBlock.Type, TypeOf(type));
-        foreach (var (index, value) in settings) {
-            block.Params.SetTarget(index, value);
-        }
-
-        block.Prepare(new(Rate, 64));
-        block.Reset();
-        return block;
-    }
-
-    static string Label(string id, string type) {
-        var parameter = CircuitAmpBlock.Info.Params.Single(p => p.Id == id);
-        return parameter.TypeLabels is { } labels ? labels[TypeOf(type)] : parameter.Name;
-    }
-
-    static double Level(string type, double frequency, double amplitude, params (int Index, float Value)[] settings) {
-        using var block = Create(type, settings);
-        var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 24_000, (float)amplitude), 64);
-        return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)));
-    }
-
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {
         Assert.Equal("Drive", Label("gain", "Legacy VL100"));
@@ -212,5 +187,30 @@ public class ModernHighGainAmpTests(ITestOutputHelper output) {
         var lift = Normal(true) - Normal(false);
         output.WriteLine($"Crunch: {lift:0.0} dB");
         Assert.InRange(lift, 15, 26);
+    }
+
+    static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);
+
+    static CircuitAmpBlock Create(string type, params (int Index, float Value)[] settings) {
+        var block = new CircuitAmpBlock();
+        block.Params.SetTarget(CircuitAmpBlock.Type, TypeOf(type));
+        foreach (var (index, value) in settings) {
+            block.Params.SetTarget(index, value);
+        }
+
+        block.Prepare(new(Rate, 64));
+        block.Reset();
+        return block;
+    }
+
+    static string Label(string id, string type) {
+        var parameter = CircuitAmpBlock.Info.Params.Single(p => p.Id == id);
+        return parameter.TypeLabels is { } labels ? labels[TypeOf(type)] : parameter.Name;
+    }
+
+    static double Level(string type, double frequency, double amplitude, params (int Index, float Value)[] settings) {
+        using var block = Create(type, settings);
+        var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 24_000, (float)amplitude), 64);
+        return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)));
     }
 }

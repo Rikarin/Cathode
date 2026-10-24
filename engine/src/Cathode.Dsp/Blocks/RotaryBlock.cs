@@ -58,8 +58,6 @@ public sealed class RotaryBlock() : DspBlock(Info) {
     public const int Fast = 1;
     public const int Brake = 2;
 
-    const float MaxRotorLength = 2f;
-
     /// <summary>Peak Doppler path-length change of the horn, in ms (a ~17 cm horn radius).</summary>
     public const float MaxHornExcursionMs = 0.5f;
 
@@ -71,6 +69,8 @@ public sealed class RotaryBlock() : DspBlock(Info) {
 
     /// <summary>The drum's baffle is far less directional than the horn.</summary>
     public const float DrumAmScale = 0.5f;
+
+    const float MaxRotorLength = 2f;
 
     /// <summary>Starting angle of the drum, in cycles, so the rotors are not in lockstep.</summary>
     const double DrumStartPhase = 0.25;
@@ -130,12 +130,6 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         maxInstances: 2
     );
 
-    /// <summary>Per-sample smoothing coefficient that settles within 5 % in <paramref name="seconds" />.</summary>
-    static double Inertia(float seconds, double sampleRate) => 1 - Math.Exp(-3 / (seconds * sampleRate));
-
-    /// <summary>Rotor gain towards a mic: 1 facing it, 1 - <paramref name="depth" /> facing away.</summary>
-    static float Directivity(float depth, float cosAngle) => 1 - depth * 0.5f * (1 - cosAngle);
-
     /// <summary>
     ///     The near-field path of a rotor to a mic <paramref name="k" /> radii from its axis, at
     ///     <paramref name="cosAngle" />: the change in path length in radii (−1 facing, +1 away) and the inverse-distance
@@ -146,8 +140,27 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         return (distance - k, (k - 1) / distance);
     }
 
+    /// <summary>Per-sample smoothing coefficient that settles within 5 % in <paramref name="seconds" />.</summary>
+    static double Inertia(float seconds, double sampleRate) => 1 - Math.Exp(-3 / (seconds * sampleRate));
+
+    /// <summary>Rotor gain towards a mic: 1 facing it, 1 - <paramref name="depth" /> facing away.</summary>
+    static float Directivity(float depth, float cosAngle) => 1 - depth * 0.5f * (1 - cosAngle);
+
     /// <summary>The mic's distance in rotor radii for Mic Distance below 100 % (0 % is 1.2 radii, 99 % about 10).</summary>
     static float Radii(float distance) => 1.2f + 8.8f * distance;
+
+    /// <summary>One rotor heard by one mic in the near field.</summary>
+    static float Near(FractionalDelayLine line, float centre, float excursion, float am, float radii, float cosAngle) {
+        var (path, level) = NearField(radii, cosAngle);
+        return line.Read(centre + excursion * path) * level * Directivity(am, cosAngle);
+    }
+
+    /// <summary>Fourth-order Linkwitz–Riley split: two cascaded Butterworth sections per side.</summary>
+    void SetCrossover(float frequency) {
+        crossover = frequency;
+        lowPass = SvfCoefficients.Design(BiquadType.LowPass, Spec.SampleRate, frequency, ButterworthQ);
+        highPass = SvfCoefficients.Design(BiquadType.HighPass, Spec.SampleRate, frequency, ButterworthQ);
+    }
 
     protected override void OnPrepare(in ProcessSpec spec) {
         var maxExcursion = Math.Max(MaxRotorLength * MaxHornExcursionMs, MaxDrumExcursionMs) * 0.001 * spec.SampleRate;
@@ -303,18 +316,5 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         this.drumGain = drumGain;
         this.mix = mix;
         output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
-    }
-
-    /// <summary>One rotor heard by one mic in the near field.</summary>
-    static float Near(FractionalDelayLine line, float centre, float excursion, float am, float radii, float cosAngle) {
-        var (path, level) = NearField(radii, cosAngle);
-        return line.Read(centre + excursion * path) * level * Directivity(am, cosAngle);
-    }
-
-    /// <summary>Fourth-order Linkwitz–Riley split: two cascaded Butterworth sections per side.</summary>
-    void SetCrossover(float frequency) {
-        crossover = frequency;
-        lowPass = SvfCoefficients.Design(BiquadType.LowPass, Spec.SampleRate, frequency, ButterworthQ);
-        highPass = SvfCoefficients.Design(BiquadType.HighPass, Spec.SampleRate, frequency, ButterworthQ);
     }
 }

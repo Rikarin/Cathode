@@ -3,6 +3,6 @@
     <Description>Server-to-Host protocol: message envelope, length-prefixed JSON framing over a Unix domain socket, and the client.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../Cathode.Engine/Cathode.Engine.csproj" />
+    <ProjectReference Include="../Cathode.Engine/Cathode.Engine.csproj"/>
   </ItemGroup>
 </Project>

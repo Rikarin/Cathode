@@ -61,7 +61,7 @@ public static class Powerball {
             2.2e3,
             0,
             new(1e6, PotTaper.Linear),
-            new(1, 23.5e3, 4.7e3, new(50e3, PotTaper.ReverseAudio), 0.1e-6, 90),
+            new(1, 23.5e3, 4.7e3, new(50e3, PotTaper.ReverseAudio), 0.1e-6),
             true,
             new(1.9e3),
             SpeakerDesign.Closed4x12,

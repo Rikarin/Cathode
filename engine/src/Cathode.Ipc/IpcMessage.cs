@@ -98,7 +98,8 @@ public sealed record HostInfo(
     string Backend,
     double SampleRate,
     int BufferFrames,
-    string? TelemetryPath = null);
+    string? TelemetryPath = null
+);
 
 /// <summary>
 ///     Host health. CPU figures cover the current 5 s window; overloads and GC counts are cumulative. Native timing is

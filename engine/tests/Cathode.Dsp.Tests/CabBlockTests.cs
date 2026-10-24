@@ -423,7 +423,7 @@ public sealed class CabBlockTests : IDisposable {
         var tone = Signals.Sine(220, 48_000, 9_600, 0.002f);
 
         var small = BlockRender.Mono(quiet, tone, 64);
-        var big = BlockRender.Mono(loud, Signals.Sine(220, 48_000, 9_600, 1f), 64);
+        var big = BlockRender.Mono(loud, Signals.Sine(220, 48_000, 9_600), 64);
 
         // Unity small-signal gain (the treble roll-off barely touches 220 Hz), and a bounded, finite output.
         Assert.Equal(Analysis.Rms(tone.AsSpan(4_800)), Analysis.Rms(small.AsSpan(4_800)), 0.0002);

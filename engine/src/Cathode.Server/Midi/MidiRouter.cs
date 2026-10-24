@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 using Cathode.Contracts;
 using Cathode.Ipc;
 using Cathode.Server.Engine;
@@ -34,12 +35,21 @@ public sealed partial class MidiRouter : IDisposable {
     readonly Timer ledRefresh;
 
     /// <summary>Actions run one at a time, in the order the MIDI arrived: a scene change then a bypass must not swap.</summary>
-    readonly System.Threading.Channels.Channel<Func<Task>> actions =
-        System.Threading.Channels.Channel.CreateUnbounded<Func<Task>>(new() { SingleReader = true });
+    readonly Channel<Func<Task>> actions =
+        Channel.CreateUnbounded<Func<Task>>(new() { SingleReader = true });
 
     readonly Task worker;
     MidiLearnRequest? learning;
     bool tunerOn;
+
+    /// <summary>The armed MIDI learn request, if any.</summary>
+    public MidiLearnRequest? Learning {
+        get {
+            lock (gate) {
+                return learning;
+            }
+        }
+    }
 
     public MidiRouter(
         EngineConnection engine,
@@ -78,15 +88,6 @@ public sealed partial class MidiRouter : IDisposable {
         worker = Task.Run(WorkAsync);
     }
 
-    /// <summary>The armed MIDI learn request, if any.</summary>
-    public MidiLearnRequest? Learning {
-        get {
-            lock (gate) {
-                return learning;
-            }
-        }
-    }
-
     public void Learn(MidiLearnRequest? request) {
         lock (gate) {
             learning = request;
@@ -102,7 +103,7 @@ public sealed partial class MidiRouter : IDisposable {
                 ContractsJsonContext.Default.MidiActivity
             );
             var channel = message.Status < 0xF0 ? (message.Status & 0x0F) + 1 : 0;
-            if (channel == 0 || settings.MidiChannel != 0 && channel != settings.MidiChannel) {
+            if (channel == 0 || (settings.MidiChannel != 0 && channel != settings.MidiChannel)) {
                 continue;
             }
 
@@ -115,7 +116,7 @@ public sealed partial class MidiRouter : IDisposable {
                 continue;
             }
 
-            var down = kind == "pc" || message.Data2 >= 64 && (message.Status & 0xF0) != 0x80;
+            var down = kind == "pc" || (message.Data2 >= 64 && (message.Status & 0xF0) != 0x80);
             var layout = settings.Footswitches.FirstOrDefault(l => l.Id == settings.ActiveLayout);
             foreach (var footswitch in layout?.Switches ?? []) {
                 if (footswitch.Message == kind
@@ -130,7 +131,7 @@ public sealed partial class MidiRouter : IDisposable {
                 // its own CC, note or program number.
                 var matches = mapping.Message == kind
                     && (mapping.Channel == 0 || mapping.Channel == channel)
-                    && (kind == "pc" && mapping.Action == "presetSlot" || mapping.Number == message.Data1);
+                    && ((kind == "pc" && mapping.Action == "presetSlot") || mapping.Number == message.Data1);
                 if (matches) {
                     var data = kind == "pc" ? message.Data1 : message.Data2;
                     Run(
@@ -159,7 +160,7 @@ public sealed partial class MidiRouter : IDisposable {
     bool TryLearn(string kind, int channel, MidiEventMessage message) {
         MidiLearnRequest request;
         lock (gate) {
-            if (learning is null || kind == "note" && message.Data2 == 0) {
+            if (learning is null || (kind == "note" && message.Data2 == 0)) {
                 return false;
             }
 

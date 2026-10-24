@@ -60,15 +60,6 @@ public static class TriAxis {
     /// <summary>A contact closed in a mode (an LDR lit).</summary>
     const double Lit = 1;
 
-    /// <summary>
-    ///     The generic power amp the TriAxis feeds here: the Dual Rectifier model's (four 6L6GC at 460 V, a long-tail pair,
-    ///     the factory drawing's values) with its feedback on and without its panel switches, as a Mesa 2:Ninety-style
-    ///     stage would be (Mesa's own TriAxis power amps are Simul-Class; the plain pentode quad costs less).
-    /// </summary>
-    static PowerAmpDesign PowerAmp { get; } = DualRectifier.Design.Power with {
-        Name = "4 x 6L6GC (Dual Rectifier power amp)", SupplySwitches = null, FeedbackOffSwitch = null
-    };
-
     public static AmpDesign Rhythm { get; } = Create(
         "TriAxis Rhythm",
         -7,
@@ -120,11 +111,14 @@ public static class TriAxis {
         LeadPanel("Lead 2 Drive")
     );
 
-    enum Mode {
-        Rhythm,
-        LeadOne,
-        LeadTwo
-    }
+    /// <summary>
+    ///     The generic power amp the TriAxis feeds here: the Dual Rectifier model's (four 6L6GC at 460 V, a long-tail pair,
+    ///     the factory drawing's values) with its feedback on and without its panel switches, as a Mesa 2:Ninety-style
+    ///     stage would be (Mesa's own TriAxis power amps are Simul-Class; the plain pentode quad costs less).
+    /// </summary>
+    static PowerAmpDesign PowerAmp { get; } = DualRectifier.Design.Power with {
+        Name = "4 x 6L6GC (Dual Rectifier power amp)", SupplySwitches = null, FeedbackOffSwitch = null
+    };
 
     static AmpPanel LeadPanel(string drive) =>
         AmpPanel.Standard with {
@@ -456,5 +450,11 @@ public static class TriAxis {
         net.Resistor(output, StageNetlist.Ground, 25e3);
         net.Output = output;
         return net;
+    }
+
+    enum Mode {
+        Rhythm,
+        LeadOne,
+        LeadTwo
     }
 }

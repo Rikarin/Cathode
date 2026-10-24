@@ -29,14 +29,6 @@ public readonly record struct TriodeModel(
     double GridSharpness = 13.9,
     double GridExponent = 1.354
 ) {
-    /// <summary>
-    ///     <paramref name="count" /> of these triodes in parallel (plates, grids and cathodes tied) as one: plate and grid
-    ///     currents scale with the count at the same voltages, which Koren's and Dempwolf's laws take exactly through
-    ///     K_g1 and G_g.
-    /// </summary>
-    public TriodeModel Paralleled(int count) =>
-        this with { Kg1 = Kg1 / count, GridConductance = GridConductance * count };
-
     /// <summary>ECC83 / 12AX7: μ 100, the high-gain preamp triode (about 1.0 mA at 250 V, -2 V).</summary>
     public static TriodeModel Ecc83 { get; } = new(100, 1.4, 1_060, 600, 300);
 
@@ -68,6 +60,14 @@ public readonly record struct TriodeModel(
     ///     257 V, 4.7k) then sit at 119 V and 1.38 V against the drawing's 120 V and 1.2 V (Koren's 12AX7 gives 136 V).
     /// </summary>
     public static TriodeModel SixEU7 { get; } = new(100, 1.0, 988, 503, 4_240);
+
+    /// <summary>
+    ///     <paramref name="count" /> of these triodes in parallel (plates, grids and cathodes tied) as one: plate and grid
+    ///     currents scale with the count at the same voltages, which Koren's and Dempwolf's laws take exactly through
+    ///     K_g1 and G_g.
+    /// </summary>
+    public TriodeModel Paralleled(int count) =>
+        this with { Kg1 = Kg1 / count, GridConductance = GridConductance * count };
 }
 
 /// <summary>

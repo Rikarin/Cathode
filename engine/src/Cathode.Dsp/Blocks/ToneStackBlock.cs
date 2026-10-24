@@ -4,7 +4,8 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     A passive amp tone stack on its own (the same exact networks as the Circuit Amp's: <see cref="ToneStackCircuit" />),
+///     A passive amp tone stack on its own (the same exact networks as the Circuit Amp's: <see cref="ToneStackCircuit" />
+///     ),
 ///     driven from a cathode follower's 1 kΩ into a 1 MΩ grid, for shaping a capture or a clean amp. Linear, so it runs
 ///     at the sample rate (the bilinear transform's warping moves the treble corners by a few percent at most), in
 ///     stereo. The stack's insertion loss with every knob at noon is made up, so that Level 0 dB is about unity at
@@ -44,6 +45,29 @@ public sealed class ToneStackBlock() : DspBlock(Info) {
         maxInstances: 4
     );
 
+    /// <summary>The level plus the current stack's make-up gain, in dB (silence stays silence).</summary>
+    float WithMakeup(float levelDb) =>
+        levelDb <= Decibels.SilenceDb
+            ? levelDb
+            : levelDb + (float)Decibels.FromGain(Makeup[Math.Clamp((int)Params.Current(Type), 0, Makeup.Length - 1)]);
+
+    static ToneStackCircuit[] Stacks() => [..ToneStackDesign.All.Select(static d => new ToneStackCircuit(d, 48_000))];
+
+    /// <summary>|H(1 kHz)| at noon, from the impulse response.</summary>
+    static double NoonGain(ToneStackDesign design) {
+        const double Rate = 48_000;
+        var stack = new ToneStackCircuit(design, Rate);
+        var (re, im) = (0.0, 0.0);
+        for (var n = 0; n < 16_384; n++) {
+            var h = stack.Tick(n == 0 ? 1 : 0);
+            var phase = 2 * Math.PI * 1_000 * n / Rate;
+            re += h * Math.Cos(phase);
+            im -= h * Math.Sin(phase);
+        }
+
+        return Math.Sqrt(re * re + im * im);
+    }
+
     protected override void OnPrepare(in ProcessSpec spec) {
         for (var i = 0; i < left.Length; i++) {
             left[i].SetSampleRate(spec.SampleRate);
@@ -80,29 +104,5 @@ public sealed class ToneStackBlock() : DspBlock(Info) {
         l.FlushDenormals();
         r.FlushDenormals();
         output.Apply(io, WithMakeup(Params.Advance(Level, io.Length)), Params.Advance(Balance, io.Length));
-    }
-
-    /// <summary>The level plus the current stack's make-up gain, in dB (silence stays silence).</summary>
-    float WithMakeup(float levelDb) =>
-        levelDb <= Decibels.SilenceDb
-            ? levelDb
-            : levelDb + (float)Decibels.FromGain(Makeup[Math.Clamp((int)Params.Current(Type), 0, Makeup.Length - 1)]);
-
-    static ToneStackCircuit[] Stacks() =>
-        [..ToneStackDesign.All.Select(static d => new ToneStackCircuit(d, 48_000, SourceResistance, LoadResistance))];
-
-    /// <summary>|H(1 kHz)| at noon, from the impulse response.</summary>
-    static double NoonGain(ToneStackDesign design) {
-        const double Rate = 48_000;
-        var stack = new ToneStackCircuit(design, Rate, SourceResistance, LoadResistance);
-        var (re, im) = (0.0, 0.0);
-        for (var n = 0; n < 16_384; n++) {
-            var h = stack.Tick(n == 0 ? 1 : 0);
-            var phase = 2 * Math.PI * 1_000 * n / Rate;
-            re += h * Math.Cos(phase);
-            im -= h * Math.Sin(phase);
-        }
-
-        return Math.Sqrt(re * re + im * im);
     }
 }

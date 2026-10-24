@@ -21,7 +21,8 @@ public sealed partial class LiveRig(
     PresetStore presets,
     IEngineSync engine,
     EventHub hub,
-    GlobalStore globals) : IDisposable {
+    GlobalStore globals
+) : IDisposable {
     const int UndoLimit = 100;
 
     readonly SemaphoreSlim gate = new(1, 1);
@@ -45,13 +46,10 @@ public sealed partial class LiveRig(
             )
     ];
 
-    /// <summary>Raised (inside the rig's lock) for every change, like the WebSocket events: for in-process listeners.</summary>
-    public event Action<RigEvent>? Changes;
-
-    public void Dispose() => gate.Dispose();
-
     /// <summary>The active scene, for listeners that must not wait for the lock (footswitch LEDs).</summary>
     public int ActiveScene => Volatile.Read(ref activeScene);
+
+    public void Dispose() => gate.Dispose();
 
     /// <summary>Whether a block is bypassed in the active scene (unlocked read for LED feedback).</summary>
     public bool IsBypassed(string block) => preset.Scenes[ActiveScene].StateOf(block).Bypassed;
@@ -487,6 +485,32 @@ public sealed partial class LiveRig(
             }
         );
 
+    /// <summary>Everything the global settings put into the engine: tempo (global mode), metronome, Manual A-D, EQ.</summary>
+    public static List<ParamValue> GlobalValues(GlobalSettings global) {
+        var values = new List<ParamValue> {
+            new(IpcBlocks.Rig, "metronome", global.Metronome ? 1 : 0),
+            new(IpcBlocks.Rig, "metroLevel", global.MetronomeLevel),
+            new(IpcBlocks.Rig, "effectsMix", global.EffectsMix),
+            new(IpcBlocks.Rig, "gateOffset", global.NoiseGateOffset)
+        };
+        if (global.TempoMode == "global") {
+            values.Add(new(IpcBlocks.Rig, "tempo", (float)global.Tempo));
+        }
+
+        values.AddRange(
+            global.Manual.Take(4).Select(static (v, i) => new ParamValue(IpcBlocks.Rig, $"manual{(char)('A' + i)}", v))
+        );
+        foreach (var param in GraphicEqBlock.Info.Params) {
+            values.Add(new(IpcBlocks.Global, param.Id, global.Eq.GetValueOrDefault(param.Id, param.Default)));
+        }
+
+        return values;
+    }
+
+    /// <summary>The MIDI messages scene <paramref name="scene" /> sends (unlocked read, for the MIDI router).</summary>
+    public IReadOnlyList<SceneMidiMessage> SceneMidi(int scene) =>
+        (uint)scene < Preset.SceneCount ? [..Volatile.Read(ref preset).Scenes[scene].Midi] : [];
+
     /// <summary>
     ///     Whether channels <paramref name="from" /> and <paramref name="to" /> differ in a parameter only a recompile
     ///     applies.
@@ -598,28 +622,6 @@ public sealed partial class LiveRig(
             new(IpcBlocks.Rig, "level", scene.Level),
             ..scene.Controllers.Take(4).Select(static (v, i) => new ParamValue(IpcBlocks.Rig, $"scene{i + 1}", v))
         ];
-    }
-
-    /// <summary>Everything the global settings put into the engine: tempo (global mode), metronome, Manual A-D, EQ.</summary>
-    public static List<ParamValue> GlobalValues(GlobalSettings global) {
-        var values = new List<ParamValue> {
-            new(IpcBlocks.Rig, "metronome", global.Metronome ? 1 : 0),
-            new(IpcBlocks.Rig, "metroLevel", global.MetronomeLevel),
-            new(IpcBlocks.Rig, "effectsMix", global.EffectsMix),
-            new(IpcBlocks.Rig, "gateOffset", global.NoiseGateOffset)
-        };
-        if (global.TempoMode == "global") {
-            values.Add(new(IpcBlocks.Rig, "tempo", (float)global.Tempo));
-        }
-
-        values.AddRange(
-            global.Manual.Take(4).Select(static (v, i) => new ParamValue(IpcBlocks.Rig, $"manual{(char)('A' + i)}", v))
-        );
-        foreach (var param in GraphicEqBlock.Info.Params) {
-            values.Add(new(IpcBlocks.Global, param.Id, global.Eq.GetValueOrDefault(param.Id, param.Default)));
-        }
-
-        return values;
     }
 
     /// <summary>Linked blocks take their settings from the global library (when it still has them).</summary>
@@ -763,10 +765,6 @@ public sealed partial class LiveRig(
         }
     }
 
-    /// <summary>The MIDI messages scene <paramref name="scene" /> sends (unlocked read, for the MIDI router).</summary>
-    public IReadOnlyList<SceneMidiMessage> SceneMidi(int scene) =>
-        (uint)scene < Preset.SceneCount ? [..Volatile.Read(ref preset).Scenes[scene].Midi] : [];
-
     static void CheckScene(int scene) {
         if (scene is < 0 or >= Preset.SceneCount) {
             throw new RigException(400, $"Scenes are numbered 0 to {Preset.SceneCount - 1}.");
@@ -787,6 +785,9 @@ public sealed partial class LiveRig(
             gate.Release();
         }
     }
+
+    /// <summary>Raised (inside the rig's lock) for every change, like the WebSocket events: for in-process listeners.</summary>
+    public event Action<RigEvent>? Changes;
 
     sealed record Snapshot(string Json, int ActiveScene);
 }

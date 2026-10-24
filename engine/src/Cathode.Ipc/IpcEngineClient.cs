@@ -18,12 +18,6 @@ public sealed class IpcEngineClient(string socketPath) : IEngineLink {
 
     public bool IsConnected => stream is not null;
 
-    public event Action<HostTelemetry>? TelemetryReceived;
-
-    public event Action<IReadOnlyList<MidiEventMessage>>? MidiReceived;
-
-    public event Action? Disconnected;
-
     /// <summary>Connects, retrying every 100 ms until <paramref name="timeout" />.</summary>
     public async Task ConnectAsync(TimeSpan timeout, CancellationToken cancellationToken = default) {
         var deadline = DateTime.UtcNow + timeout;
@@ -104,6 +98,12 @@ public sealed class IpcEngineClient(string socketPath) : IEngineLink {
             Disconnected?.Invoke();
         }
     }
+
+    public event Action<HostTelemetry>? TelemetryReceived;
+
+    public event Action<IReadOnlyList<MidiEventMessage>>? MidiReceived;
+
+    public event Action? Disconnected;
 }
 
 public sealed class IpcException : Exception {

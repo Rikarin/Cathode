@@ -58,7 +58,7 @@ public static class Savage120 {
             2.2e3,
             0,
             new(1e6, PotTaper.Linear),
-            new(1, 26.5e3, 4.8e3, new(50e3, PotTaper.Linear), 10e-9, 90),
+            new(1, 26.5e3, 4.8e3, new(50e3, PotTaper.Linear), 10e-9),
             true,
             new(3.4e3),
             SpeakerDesign.Closed4x12,

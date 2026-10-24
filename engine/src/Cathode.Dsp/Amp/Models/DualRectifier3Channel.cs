@@ -57,7 +57,7 @@ public static class DualRectifier3Channel {
         DualRectifier.Design.Power with {
             Supply = 475,
             PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 435, 82e3, 91e3, 14.7e3, 470),
-            Feedback = new(1, 47e3, 4.7e3, new(100e3, PotTaper.Linear), 0.1e-6, 90),
+            Feedback = new(1, 47e3, 4.7e3, new(100e3, PotTaper.Linear), 0.1e-6),
             // 220 + 220 µF stacked, the choke to B's 30 µF, 2.7k to C (10 µF parts, about 20 µF on the node).
             PowerSupply = new(30, 110e-6, 100, 30e-6, 2.7e3, 20e-6, 6e-3, RectifierModel.Silicon)
         },

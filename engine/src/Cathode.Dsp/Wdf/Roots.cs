@@ -19,19 +19,17 @@ public struct IdealVoltageSource : IWdfRoot {
 
 /// <summary>An open circuit (i = 0, b = a): the tree's port voltage is its open-circuit voltage.</summary>
 public struct OpenCircuit : IWdfRoot {
-    double a;
-
-    public readonly double Voltage => a;
+    public double Voltage { get; private set; }
 
     public readonly void Adapt(double resistance) { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Scatter(double a) {
-        this.a = a;
+        Voltage = a;
         return a;
     }
 
-    public void Reset() => a = 0;
+    public void Reset() => Voltage = 0;
 }
 
 /// <summary>A short circuit (v = 0, b = -a).</summary>
@@ -117,7 +115,6 @@ public struct DiodePair : IWdfRoot {
     double reverseOffset;
     double previous;
     double previousIntegral;
-    double voltage;
 
     /// <summary>Use antiderivative antialiasing instead of the exact solve.</summary>
     public bool Antialiased { readonly get; set; }
@@ -125,7 +122,7 @@ public struct DiodePair : IWdfRoot {
     /// <summary>True when neither direction conducts.</summary>
     public readonly bool IsOpen => forwardIs == 0 && reverseIs == 0;
 
-    public readonly double Voltage => voltage;
+    public double Voltage { get; private set; }
 
     public DiodePair(DiodeModel forward, int forwardCount, DiodeModel reverse, int reverseCount) {
         Configure(forward, forwardCount, reverse, reverseCount);
@@ -160,8 +157,8 @@ public struct DiodePair : IWdfRoot {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Scatter(double a) {
         if (!Antialiased) {
-            voltage = Solve(a);
-            return 2 * voltage - a;
+            Voltage = Solve(a);
+            return 2 * Voltage - a;
         }
 
         var integral = Integral(a);
@@ -169,11 +166,11 @@ public struct DiodePair : IWdfRoot {
         double b;
         if (Math.Abs(delta) > IllConditioned) {
             b = (integral - previousIntegral) / delta;
-            voltage = 0.5 * (b + 0.5 * (a + previous));
+            Voltage = 0.5 * (b + 0.5 * (a + previous));
         } else {
             var middle = 0.5 * (a + previous);
-            voltage = Closed(middle);
-            b = 2 * voltage - middle;
+            Voltage = Closed(middle);
+            b = 2 * Voltage - middle;
         }
 
         previous = a;
@@ -184,7 +181,7 @@ public struct DiodePair : IWdfRoot {
     public void Reset() {
         previous = 0;
         previousIntegral = 0;
-        voltage = 0;
+        Voltage = 0;
     }
 
     /// <summary>The exact port voltage for incident wave <paramref name="a" />.</summary>

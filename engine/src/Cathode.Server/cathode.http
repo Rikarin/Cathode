@@ -15,49 +15,72 @@ POST {{base}}/live/new
 POST {{base}}/live/blocks
 Content-Type: application/json
 
-{ "type": "drive", "row": 0, "column": 1 }
+{
+    "type": "drive",
+    "row": 0,
+    "column": 1
+}
 
 ### ...and a delay at column 2
 POST {{base}}/live/blocks
 Content-Type: application/json
 
-{ "type": "delay", "row": 0, "column": 2 }
+{
+    "type": "delay",
+    "row": 0,
+    "column": 2
+}
 
 ### Channel A: light crunch (the active channel, so it is heard at once)
 PATCH {{base}}/live/blocks/drive1/params
 Content-Type: application/json
 
-{ "drive": 3, "tone": 6 }
+{
+    "drive": 3,
+    "tone": 6
+}
 
 ### Channel B: lead drive (stored, not heard until a scene uses it)
 PATCH {{base}}/live/blocks/drive1/params?channel=B
 Content-Type: application/json
 
-{ "drive": 8, "tone": 7, "level": -3 }
+{
+    "drive": 8,
+    "tone": 7,
+    "level": -3
+}
 
 ### Scene 2: switch to it, put the drive on channel B, bypass the delay
 PUT {{base}}/live/scenes/active
 Content-Type: application/json
 
-{ "scene": 1 }
+{
+    "scene": 1
+}
 
 ###
 PUT {{base}}/live/blocks/drive1/channel
 Content-Type: application/json
 
-{ "channel": "B" }
+{
+    "channel": "B"
+}
 
 ###
 PATCH {{base}}/live/scenes/1
 Content-Type: application/json
 
-{ "name": "Lead" }
+{
+    "name": "Lead"
+}
 
 ### Back to scene 1: drive returns to channel A, the delay comes back; nothing recompiles
 PUT {{base}}/live/scenes/active
 Content-Type: application/json
 
-{ "scene": 0 }
+{
+    "scene": 0
+}
 
 ### Upload an impulse response (content-addressed; the response's "ref" goes into a cab block)
 POST {{base}}/assets?name=my-cab.wav
@@ -69,7 +92,9 @@ Content-Type: application/octet-stream
 POST {{base}}/live/save
 Content-Type: application/json
 
-{ "name": "Crunch and Lead" }
+{
+    "name": "Crunch and Lead"
+}
 
 ### The library
 GET {{base}}/presets

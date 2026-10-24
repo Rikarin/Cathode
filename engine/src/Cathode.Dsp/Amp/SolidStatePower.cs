@@ -79,7 +79,6 @@ public sealed record SolidStatePowerDesign(
 public sealed class SolidStatePowerAmp {
     const int MaxIterations = 64;
 
-    readonly SolidStatePowerDesign design;
     readonly Diode junction;
     readonly double bias; // the class-AB bias voltage per side (half the bias spreader's)
     readonly double load;
@@ -98,28 +97,24 @@ public sealed class SolidStatePowerAmp {
     double variac = 1;
     double reservoir;
     long iterations;
-    long samples;
-    long unconverged;
-    long nonFinite;
-    int mostIterations;
 
-    public SolidStatePowerDesign Design => design;
+    public SolidStatePowerDesign Design { get; }
 
     /// <summary>The rails at the last sample.</summary>
     public (double Positive, double Negative) Rails => (positive, negative);
 
-    public long Samples => samples;
+    public long Samples { get; private set; }
 
-    public long Unconverged => unconverged;
+    public long Unconverged { get; private set; }
 
-    public long NonFinite => nonFinite;
+    public long NonFinite { get; private set; }
 
-    public int MostIterations => mostIterations;
+    public int MostIterations { get; private set; }
 
-    public double MeanIterations => samples > 0 ? (double)iterations / samples : 0;
+    public double MeanIterations => Samples > 0 ? (double)iterations / Samples : 0;
 
     public SolidStatePowerAmp(SolidStatePowerDesign design, double sampleRate) {
-        this.design = design;
+        Design = design;
         load = design.Load;
         reservoir = design.Reservoir;
         var model = new DiodeModel(1e-12, 1);
@@ -133,18 +128,18 @@ public sealed class SolidStatePowerAmp {
 
     public void SetSampleRate(double sampleRate) {
         this.sampleRate = sampleRate;
-        input.Design(0, design.InputCap * design.InputResistor, 1, design.InputCap * design.InputResistor, sampleRate);
-        var (rf, rs, c) = (design.FeedbackResistor, design.ShuntResistor, design.ShuntCap);
+        input.Design(0, Design.InputCap * Design.InputResistor, 1, Design.InputCap * Design.InputResistor, sampleRate);
+        var (rf, rs, c) = (Design.FeedbackResistor, Design.ShuntResistor, Design.ShuntCap);
         if (c > 0) {
             feedback.Design(1, rs * c, 1, (rs + rf) * c, sampleRate);
         } else {
             feedback.Design(rs / (rs + rf), 0, 1, 0, sampleRate);
         }
 
-        var pole = 2 * Math.PI * design.GainBandwidth / design.OpenLoopGain;
+        var pole = 2 * Math.PI * Design.GainBandwidth / Design.OpenLoopGain;
         var k = pole / (2 * sampleRate);
         hold = (1 - k) / (1 + k);
-        gain = k * design.OpenLoopGain / (1 + k);
+        gain = k * Design.OpenLoopGain / (1 + k);
     }
 
     /// <summary>The knobs that reach a solid-state power amp: sag (0.5 stock) scales the rails' source resistance.</summary>
@@ -156,7 +151,7 @@ public sealed class SolidStatePowerAmp {
     /// </summary>
     public void Apply(in PowerSettings settings) {
         variac = settings.Variac;
-        reservoir = design.Reservoir * settings.TimeConstant;
+        reservoir = Design.Reservoir * settings.TimeConstant;
     }
 
     public void Reset() {
@@ -166,8 +161,8 @@ public sealed class SolidStatePowerAmp {
         previousError = 0;
         output = 0;
         previousOutput = 0;
-        positive = design.Rail * variac;
-        negative = design.Rail * variac;
+        positive = Design.Rail * variac;
+        negative = Design.Rail * variac;
     }
 
     /// <summary>One sample: the voltage amplifier's input volts in, the speaker volts out.</summary>
@@ -176,8 +171,8 @@ public sealed class SolidStatePowerAmp {
         var drive = input.Process(x);
         var b0 = feedback.B0;
         var fed0 = feedback.Peek(0);
-        var high = positive - design.Headroom;
-        var low = -(negative - design.Headroom);
+        var high = positive - Design.Headroom;
+        var low = -(negative - Design.Headroom);
         var centre = 0.5 * (high + low);
         var half = Math.Max(0.5 * (high - low), 1e-3);
 
@@ -225,15 +220,15 @@ public sealed class SolidStatePowerAmp {
             v = next;
         }
 
-        samples++;
+        Samples++;
         iterations += n + 1;
-        mostIterations = Math.Max(mostIterations, n + 1);
+        MostIterations = Math.Max(MostIterations, n + 1);
         if (!converged) {
-            unconverged++;
+            Unconverged++;
         }
 
         if (!double.IsFinite(v)) {
-            nonFinite++;
+            NonFinite++;
             v = 0;
         }
 
@@ -252,8 +247,8 @@ public sealed class SolidStatePowerAmp {
         port[0] = v - driven + bias;
         junction.Evaluate(port, current, slope, 1);
         var down = current[0];
-        var resistance = design.RailResistance * sagScale;
-        var idle = design.Rail * variac;
+        var resistance = Design.RailResistance * sagScale;
+        var idle = Design.Rail * variac;
         var step = 1 / (sampleRate * reservoir);
         positive += step * ((idle - positive) / resistance - up);
         negative += step * ((idle - negative) / resistance - down);

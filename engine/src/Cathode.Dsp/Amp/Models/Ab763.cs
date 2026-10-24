@@ -20,14 +20,35 @@ namespace Cathode.Dsp.Amp.Models;
 ///     its LDR dark) are not modelled.
 /// </remarks>
 static class Ab763 {
+    /// <summary>A 12AX7's grid-to-plate capacitance (datasheet: 1.7 pF).</summary>
+    public const double GridPlate = 1.7e-12;
+
     /// <summary>The idle Normal channel's V1B plate as seen through its coupling cap: r_p ‖ 100k at its operating point.</summary>
     const double IdlePlate = 38e3;
 
     /// <summary>A capacitor switched out (open at audio).</summary>
     const double Absent = 1e-15;
 
-    /// <summary>A 12AX7's grid-to-plate capacitance (datasheet: 1.7 pF).</summary>
-    public const double GridPlate = 1.7e-12;
+    /// <summary>
+    ///     The AB763 stack with the mid pot replaced by a fixed 6.8k (Deluxe, Vibroverb, Vibrolux, Bandmaster, Tremolux):
+    ///     here a 13.6k pot left at noon.
+    /// </summary>
+    public static ToneStackDesign FixedMidStack { get; } = new(
+        "Fender AB763 fixed mid",
+        250e-12,
+        100e3,
+        100e-9,
+        47e-9,
+        new(250e3, PotTaper.Audio),
+        new(250e3, PotTaper.Audio),
+        new(13.6e3, PotTaper.Linear)
+    );
+
+    /// <summary>
+    ///     The inverter's input: 1 nF from the mix node, the 1M grid resistor returning to the bias junction (which follows
+    ///     the input, so the leak is bootstrapped), and the driven grid's own grid current.
+    /// </summary>
+    public static InverterInputDesign InverterInput { get; } = new(1e-9, 1e6);
 
     /// <summary>
     ///     V1B/V2B: the two second stages share one 820 Ω ‖ 25 µF cathode, so each draws its current through what is, for
@@ -97,21 +118,6 @@ static class Ab763 {
     }
 
     /// <summary>
-    ///     The AB763 stack with the mid pot replaced by a fixed 6.8k (Deluxe, Vibroverb, Vibrolux, Bandmaster, Tremolux):
-    ///     here a 13.6k pot left at noon.
-    /// </summary>
-    public static ToneStackDesign FixedMidStack { get; } = new(
-        "Fender AB763 fixed mid",
-        250e-12,
-        100e3,
-        100e-9,
-        47e-9,
-        new(250e3, PotTaper.Audio),
-        new(250e3, PotTaper.Audio),
-        new(13.6e3, PotTaper.Linear)
-    );
-
-    /// <summary>
     ///     V1A of either channel with the fixed-mid stack, the 1M audio volume and the 120 pF bright switch (34k
     ///     stopper, 100k plate, 1.5k ‖ 25 µF): the first stage of the AB763 amps without a mid control.
     /// </summary>
@@ -149,12 +155,6 @@ static class Ab763 {
         net.Output = mix;
         return new("Mixer", net);
     }
-
-    /// <summary>
-    ///     The inverter's input: 1 nF from the mix node, the 1M grid resistor returning to the bias junction (which follows
-    ///     the input, so the leak is bootstrapped), and the driven grid's own grid current.
-    /// </summary>
-    public static InverterInputDesign InverterInput { get; } = new(1e-9, 1e6);
 
     /// <summary>The AB763 long-tail pair: a 12AT7, 82k and 100k plates, 22k tail, 470 Ω bias.</summary>
     public static LongTailPairDesign PhaseInverter(double supply) =>

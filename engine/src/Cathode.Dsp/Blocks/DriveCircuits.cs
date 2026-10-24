@@ -305,15 +305,6 @@ public static class DriveCircuits {
     static readonly DiodeModel Ge = DiodeModel.Germanium;
     static readonly Dictionary<DriveStage, double[]> OperatingPoints = new(ReferenceEqualityComparer.Instance);
 
-    public static IReadOnlyList<DriveCircuit> All { get; } = Catalogue();
-
-    /// <summary>The Drive block's Diode Type choices: the circuit's own, then a model for every clipping diode.</summary>
-    public static IReadOnlyList<string> DiodeTypes { get; } =
-        ["Stock", "Silicon", "Germanium", "Schottky", "LED", "MOSFET"];
-
-    /// <summary>The Drive block's Diode Count choices: the circuit's own, then 1 to 4 in series on each side.</summary>
-    public static IReadOnlyList<string> DiodeCounts { get; } = ["Stock", "1", "2", "3", "4"];
-
     static readonly DiodeModel[] DiodeModels = [
         DiodeModel.Silicon, DiodeModel.Germanium, DiodeModel.Schottky, DiodeModel.Led, DiodeModel.Mosfet
     ];
@@ -323,7 +314,62 @@ public static class DriveCircuits {
     ///     thread only looks it up: <c>[circuit][type * DiodeCounts.Count + count]</c>. A choice that changes nothing (a
     ///     circuit without clipping diodes, or both Stock) is the circuit itself.
     /// </summary>
-    static readonly DriveCircuit[][] DiodeVariants = [..All.Select(BuildVariants)];
+    static readonly DriveCircuit[][] DiodeVariants = [..All!.Select(BuildVariants)];
+
+    public static IReadOnlyList<DriveCircuit> All { get; } = Catalogue();
+
+    /// <summary>The Drive block's Diode Type choices: the circuit's own, then a model for every clipping diode.</summary>
+    public static IReadOnlyList<string> DiodeTypes { get; } =
+        ["Stock", "Silicon", "Germanium", "Schottky", "LED", "MOSFET"];
+
+    /// <summary>The Drive block's Diode Count choices: the circuit's own, then 1 to 4 in series on each side.</summary>
+    public static IReadOnlyList<string> DiodeCounts { get; } = ["Stock", "1", "2", "3", "4"];
+
+    /// <summary>The TS808 tone stage: 1k into 220 nF, 20k Tone pot, 220 Ω + 220 nF from its wiper, 1k feedback.</summary>
+    static ToneNetwork ScreamerTone =>
+        new(ToneKind.Screamer) {
+            Source = 75,
+            Resistor1 = 1e3,
+            Capacitor1 = 220e-9,
+            Pot = 20e3,
+            Resistor2 = 220,
+            Capacitor2 = 220e-9,
+            Resistor3 = 1e3,
+            Load = 10e3
+        };
+
+    /// <summary>A Baxandall treble control (Klon-style): 10k in and out, 10 nF to a 10k pot, 1.8k from its wiper.</summary>
+    static ToneNetwork TrebleTone =>
+        new(ToneKind.Treble) {
+            Source = 100,
+            Resistor1 = 10e3,
+            Resistor2 = 10e3,
+            Capacitor1 = 10e-9,
+            Capacitor2 = 10e-9,
+            Pot = 10e3,
+            Resistor3 = 1.8e3,
+            Load = 100e3
+        };
+
+    /// <summary>The RAT's filter: 1.5k and the 100k Filter pot into 3.3 nF (Tone 10 is the Filter knob fully down).</summary>
+    static ToneNetwork RatFilter =>
+        new(ToneKind.HighCut) {
+            Source = 1e3,
+            Resistor1 = 1.5e3,
+            Pot = 100e3,
+            AudioTaper = true,
+            Capacitor1 = 3.3e-9
+        };
+
+    /// <summary>A passive treble cut after a fuzz with no tone control of its own (the common tone mod).</summary>
+    static ToneNetwork FuzzTone =>
+        new(ToneKind.HighCut) {
+            Source = 1e3,
+            Resistor1 = 1e3,
+            Pot = 100e3,
+            AudioTaper = true,
+            Capacitor1 = 1e-9
+        };
 
     /// <summary>True when <paramref name="circuit" /> has clipping diodes the Diode Type and Count can replace.</summary>
     public static bool HasDiodes(DriveCircuit circuit) => circuit.Stages.Any(HasDiodes);
@@ -338,6 +384,32 @@ public static class DriveCircuits {
             + Math.Clamp(count, 0, DiodeCounts.Count - 1);
         return variants[at];
     }
+
+    /// <summary>The DC operating point of a transistor stage of the catalogue, computed once when it loads.</summary>
+    public static bool TryGetOperatingPoint(DriveStage stage, out double[] point) =>
+        OperatingPoints.TryGetValue(stage, out point!);
+
+    /// <summary>
+    ///     The guitar as a source, for its volume knob at <paramref name="volume" /> (0..10): the pickup (its resistance and
+    ///     inductance) in series with the top of an audio-taper volume pot, the bottom of the pot across the output. Rolling
+    ///     the volume back raises the source resistance, so a low-impedance input (a Fuzz Face) loses gain much faster than
+    ///     the level alone would say, and cleans up; the inductance makes such an input darker, as on the real pedal.
+    /// </summary>
+    public static GuitarSource Guitar(double volume) {
+        var bottom = VolumePot * AudioTaper(Math.Clamp(volume / 10, 0, 1));
+        var series = PickupResistance + VolumePot - bottom;
+        var full = VolumePot / (PickupResistance + VolumePot);
+        return new(
+            series,
+            Math.Max(bottom, 1e-3),
+            Math.Max(series * bottom / (series + bottom), 1),
+            bottom / (series + bottom) / full,
+            1 / full
+        );
+    }
+
+    /// <summary>Audio-taper pot: about 12 % of the resistance at half rotation.</summary>
+    public static double AudioTaper(double position) => (Math.Exp(4 * position) - 1) / (Math.Exp(4) - 1);
 
     static bool HasDiodes(DriveStage stage) =>
         stage.Kind is StageKind.Gain or StageKind.OpAmp or StageKind.Clipper
@@ -374,32 +446,6 @@ public static class DriveCircuits {
         var reverseCount = count > 0 && stacks.ReverseCount > 0 ? count : stacks.ReverseCount;
         return new(forward, forwardCount, reverse, reverseCount);
     }
-
-    /// <summary>The DC operating point of a transistor stage of the catalogue, computed once when it loads.</summary>
-    public static bool TryGetOperatingPoint(DriveStage stage, out double[] point) =>
-        OperatingPoints.TryGetValue(stage, out point!);
-
-    /// <summary>
-    ///     The guitar as a source, for its volume knob at <paramref name="volume" /> (0..10): the pickup (its resistance and
-    ///     inductance) in series with the top of an audio-taper volume pot, the bottom of the pot across the output. Rolling
-    ///     the volume back raises the source resistance, so a low-impedance input (a Fuzz Face) loses gain much faster than
-    ///     the level alone would say, and cleans up; the inductance makes such an input darker, as on the real pedal.
-    /// </summary>
-    public static GuitarSource Guitar(double volume) {
-        var bottom = VolumePot * AudioTaper(Math.Clamp(volume / 10, 0, 1));
-        var series = PickupResistance + VolumePot - bottom;
-        var full = VolumePot / (PickupResistance + VolumePot);
-        return new(
-            series,
-            Math.Max(bottom, 1e-3),
-            Math.Max(series * bottom / (series + bottom), 1),
-            bottom / (series + bottom) / full,
-            1 / full
-        );
-    }
-
-    /// <summary>Audio-taper pot: about 12 % of the resistance at half rotation.</summary>
-    public static double AudioTaper(double position) => (Math.Exp(4 * position) - 1) / (Math.Exp(4) - 1);
 
     static DriveCircuit[] Catalogue() {
         DriveCircuit[] all = [
@@ -816,52 +862,6 @@ public static class DriveCircuits {
         return all;
     }
 
-    /// <summary>The TS808 tone stage: 1k into 220 nF, 20k Tone pot, 220 Ω + 220 nF from its wiper, 1k feedback.</summary>
-    static ToneNetwork ScreamerTone =>
-        new(ToneKind.Screamer) {
-            Source = 75,
-            Resistor1 = 1e3,
-            Capacitor1 = 220e-9,
-            Pot = 20e3,
-            Resistor2 = 220,
-            Capacitor2 = 220e-9,
-            Resistor3 = 1e3,
-            Load = 10e3
-        };
-
-    /// <summary>A Baxandall treble control (Klon-style): 10k in and out, 10 nF to a 10k pot, 1.8k from its wiper.</summary>
-    static ToneNetwork TrebleTone =>
-        new(ToneKind.Treble) {
-            Source = 100,
-            Resistor1 = 10e3,
-            Resistor2 = 10e3,
-            Capacitor1 = 10e-9,
-            Capacitor2 = 10e-9,
-            Pot = 10e3,
-            Resistor3 = 1.8e3,
-            Load = 100e3
-        };
-
-    /// <summary>The RAT's filter: 1.5k and the 100k Filter pot into 3.3 nF (Tone 10 is the Filter knob fully down).</summary>
-    static ToneNetwork RatFilter =>
-        new(ToneKind.HighCut) {
-            Source = 1e3,
-            Resistor1 = 1.5e3,
-            Pot = 100e3,
-            AudioTaper = true,
-            Capacitor1 = 3.3e-9
-        };
-
-    /// <summary>A passive treble cut after a fuzz with no tone control of its own (the common tone mod).</summary>
-    static ToneNetwork FuzzTone =>
-        new(ToneKind.HighCut) {
-            Source = 1e3,
-            Resistor1 = 1e3,
-            Pot = 100e3,
-            AudioTaper = true,
-            Capacitor1 = 1e-9
-        };
-
     /// <summary>
     ///     The TS clipping amp: JRC4558 on 9 V, 510k input bias, 4.7k + 47n to ground (720 Hz), 51k + Drive in feedback
     ///     with 51p and the diodes.
@@ -1018,6 +1018,22 @@ struct CircuitStage {
         }
     }
 
+    public void Reset() {
+        legs.Reset();
+        feedback.Reset();
+        clipper.Reset();
+        previous = 0;
+        previousIntegral = Integral(0);
+    }
+
+    /// <summary>Clears capacitor charge that has decayed into the subnormal range.</summary>
+    public void FlushDenormals() {
+        Flush(ref legs.Tree.A.B);
+        Flush(ref legs.Tree.B.B);
+        Flush(ref feedback.Tree.B);
+        Flush(ref clipper.Tree.B);
+    }
+
     /// <summary>
     ///     The memoryless part of the stage (soft rails, or the rectifier) with first-order antiderivative
     ///     antialiasing, like <see cref="AdaaClipper" />.
@@ -1062,29 +1078,12 @@ struct CircuitStage {
         return a;
     }
 
-    public void Reset() {
-        legs.Reset();
-        feedback.Reset();
-        clipper.Reset();
-        previous = 0;
-        previousIntegral = Integral(0);
-    }
-
-    /// <summary>Clears capacitor charge that has decayed into the subnormal range.</summary>
-    public void FlushDenormals() {
-        Flush(ref legs.Tree.A.B);
-        Flush(ref legs.Tree.B.B);
-        Flush(ref feedback.Tree.B);
-        Flush(ref clipper.Tree.B);
-    }
-
     static void Flush(ref Capacitor capacitor) {
         if (Math.Abs(capacitor.Reflected) < 1e-30) {
             capacitor.Reset();
         }
     }
 }
-
 
 /// <summary>
 ///     The Drive block's Advanced page, applied on top of a circuit's own values; <see cref="Stock" /> changes nothing.
@@ -1154,7 +1153,7 @@ sealed class CircuitChannel {
             var stage = circuit.Stages[i];
             var resistance = i == 0 ? guitar.Resistance : stage.SourceResistance;
             var driven = i == 0
-                ? new StageSource(guitar.Series, DriveCircuits.PickupInductance, guitar.Shunt)
+                ? new(guitar.Series, DriveCircuits.PickupInductance, guitar.Shunt)
                 : StageSource.Driven(stage.SourceResistance);
             kinds[i] = stage.Kind;
             switch (stage.Kind) {

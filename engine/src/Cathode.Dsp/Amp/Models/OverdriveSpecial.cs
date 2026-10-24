@@ -78,7 +78,7 @@ public static class OverdriveSpecial {
             5.1e3,
             0,
             new(1e6, PotTaper.Linear),
-            new(1, 4.7e3, 390, new(2e3, PotTaper.Linear), 1e-6, 90),
+            new(1, 4.7e3, 390, new(2e3, PotTaper.Linear), 1e-6),
             true,
             new(1.73e3),
             SpeakerDesign.OpenBack2x12,

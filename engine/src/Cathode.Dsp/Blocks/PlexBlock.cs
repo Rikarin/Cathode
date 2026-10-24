@@ -237,6 +237,58 @@ public sealed class PlexBlock() : DspBlock(Info) {
     /// <summary>Gains of the balance pan law: unity on both sides at centre, the far side fading to zero.</summary>
     static (float Left, float Right) Pan(float pan) => (Math.Min(1f, 1f - pan), Math.Min(1f, 1f + pan));
 
+    int LineCount() => Math.Clamp((int)MathF.Round(Params.Current(Delays)), 1, MaxLines);
+
+    SvfCoefficients DesignFilter(int type, float sampleRate, float frequencyScale) =>
+        SvfCoefficients.Design(
+            type switch {
+                1 => BiquadType.LowPass,
+                2 => BiquadType.HighPass,
+                3 => BiquadType.BandPass,
+                _ => BiquadType.Peak
+            },
+            sampleRate,
+            Params.Current(FilterFrequency) * frequencyScale,
+            Params.Current(FilterQ),
+            Params.Current(FilterGain)
+        );
+
+    void ClearState() {
+        for (var i = 0; i < MaxLines; i++) {
+            lines[i].Reset();
+            allpasses[i].Clear();
+            shifters[i].Reset();
+            loopState[i].Reset();
+            filterState[i].Reset();
+        }
+
+        lfo.Reset();
+        filterLfo.Reset();
+        filterCounter = 0;
+    }
+
+    /// <summary>
+    ///     Line read delays in samples: each line's time (or tempo) scaled by Master Time, or for the verbs the verb lengths
+    ///     scaled by Size; less the loop allpass, so the loop is exactly that long.
+    /// </summary>
+    void ComputeLineTargets(int type, double tempo) {
+        var rate = (float)Spec.SampleRate;
+        var verb = type is PlexVerb or ShimmerVerb;
+        var size = 0.3f + 1.4f * Params.Current(VerbSize) / 100f;
+        var master = Params.Current(MasterTime) / 100f;
+        for (var i = 0; i < MaxLines; i++) {
+            float ms;
+            if (verb) {
+                ms = VerbMs[i] * size;
+            } else {
+                var division = TempoDivisions.Milliseconds((int)Params.Current(Tempo1 + i), tempo);
+                ms = Math.Min(MaxTotalMs, (division > 0 ? (float)division : Params.Current(Time1 + i)) * master);
+            }
+
+            lineTarget[i] = Math.Max(FractionalDelayLine.MinDelay, ms * rate / 1_000f - allpassLength[i]);
+        }
+    }
+
     protected override void OnPrepare(in ProcessSpec spec) {
         var rate = spec.SampleRate;
         var length = (int)(rate * (MaxTotalMs + 2 * MaxLfoMs + 5) / 1000) + 8;
@@ -486,57 +538,5 @@ public sealed class PlexBlock() : DspBlock(Info) {
         ducker.FlushDenormals();
         envelope.FlushDenormals();
         output.Apply(io, Params.Current(Level), Params.Current(Balance));
-    }
-
-    int LineCount() => Math.Clamp((int)MathF.Round(Params.Current(Delays)), 1, MaxLines);
-
-    SvfCoefficients DesignFilter(int type, float sampleRate, float frequencyScale) =>
-        SvfCoefficients.Design(
-            type switch {
-                1 => BiquadType.LowPass,
-                2 => BiquadType.HighPass,
-                3 => BiquadType.BandPass,
-                _ => BiquadType.Peak
-            },
-            sampleRate,
-            Params.Current(FilterFrequency) * frequencyScale,
-            Params.Current(FilterQ),
-            Params.Current(FilterGain)
-        );
-
-    void ClearState() {
-        for (var i = 0; i < MaxLines; i++) {
-            lines[i].Reset();
-            allpasses[i].Clear();
-            shifters[i].Reset();
-            loopState[i].Reset();
-            filterState[i].Reset();
-        }
-
-        lfo.Reset();
-        filterLfo.Reset();
-        filterCounter = 0;
-    }
-
-    /// <summary>
-    ///     Line read delays in samples: each line's time (or tempo) scaled by Master Time, or for the verbs the verb lengths
-    ///     scaled by Size; less the loop allpass, so the loop is exactly that long.
-    /// </summary>
-    void ComputeLineTargets(int type, double tempo) {
-        var rate = (float)Spec.SampleRate;
-        var verb = type is PlexVerb or ShimmerVerb;
-        var size = 0.3f + 1.4f * Params.Current(VerbSize) / 100f;
-        var master = Params.Current(MasterTime) / 100f;
-        for (var i = 0; i < MaxLines; i++) {
-            float ms;
-            if (verb) {
-                ms = VerbMs[i] * size;
-            } else {
-                var division = TempoDivisions.Milliseconds((int)Params.Current(Tempo1 + i), tempo);
-                ms = Math.Min(MaxTotalMs, (division > 0 ? (float)division : Params.Current(Time1 + i)) * master);
-            }
-
-            lineTarget[i] = Math.Max(FractionalDelayLine.MinDelay, ms * rate / 1_000f - allpassLength[i]);
-        }
     }
 }

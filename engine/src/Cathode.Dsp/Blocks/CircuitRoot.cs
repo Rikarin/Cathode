@@ -67,7 +67,6 @@ public sealed class CircuitRoot<TSource, TDevice>
     const double ShortestStep = 1.0 / 16;
     const double AcceptableNorm = 1e6;
 
-    readonly RTypeScattering scattering;
     readonly int ports; // the source and the capacitors
     readonly int stride; // child waves, device currents, one constant
     readonly int probes;
@@ -101,9 +100,7 @@ public sealed class CircuitRoot<TSource, TDevice>
     DeviceMatrix system;
     DeviceMatrix lastFactors; // LU of the last converged sample's Jacobian of g
     bool hasFactors;
-    long samples;
     long iterations;
-    long unconverged;
 
     /// <summary>The stage input (a resistive source, perhaps behind a series adaptor): port 0 of the netlist.</summary>
     public ref TSource Source => ref source;
@@ -115,7 +112,7 @@ public sealed class CircuitRoot<TSource, TDevice>
     public int Capacitors => capacitors.Length;
 
     /// <summary>The scattering matrix, for inspection.</summary>
-    public RTypeScattering Scattering => scattering;
+    public RTypeScattering Scattering { get; }
 
     /// <summary>Convergence: every Newton step below this many volts plus <see cref="RelativeTolerance" />.</summary>
     public double AbsoluteTolerance { get; set; } = 1e-5;
@@ -123,20 +120,20 @@ public sealed class CircuitRoot<TSource, TDevice>
     public double RelativeTolerance { get; set; } = 1e-5;
 
     /// <summary>Samples solved since the last <see cref="ResetStatistics" />.</summary>
-    public long Samples => samples;
+    public long Samples { get; private set; }
 
     /// <summary>Samples that ran out of iterations and kept their best (or the previous) solution.</summary>
-    public long Unconverged => unconverged;
+    public long Unconverged { get; private set; }
 
-    public double MeanIterations => samples == 0 ? 0 : (double)iterations / samples;
+    public double MeanIterations => Samples == 0 ? 0 : (double)iterations / Samples;
 
     /// <param name="netlist">Port 0 is the source, every other port a capacitor.</param>
     /// <param name="source">The source, with its resistance.</param>
     /// <param name="capacitors">One capacitor per remaining port, in netlist order.</param>
     /// <param name="device">The nonlinear devices.</param>
     public CircuitRoot(WdfNetlist netlist, TSource source, Capacitor[] capacitors, TDevice device) {
-        scattering = new(netlist);
-        if (scattering.HasUp || scattering.PortCount != capacitors.Length + 1 || capacitors.Length > MaxCapacitors) {
+        Scattering = new(netlist);
+        if (Scattering.HasUp || Scattering.PortCount != capacitors.Length + 1 || capacitors.Length > MaxCapacitors) {
             throw new ArgumentException(
                 "A circuit root has a source port, then one port per capacitor.",
                 nameof(netlist)
@@ -148,9 +145,9 @@ public sealed class CircuitRoot<TSource, TDevice>
         }
 
         var k = device.Ports;
-        if (scattering.DeviceCount != k || k > 4) {
+        if (Scattering.DeviceCount != k || k > 4) {
             throw new ArgumentException(
-                $"The netlist has {scattering.DeviceCount} device ports, the devices {k}.",
+                $"The netlist has {Scattering.DeviceCount} device ports, the devices {k}.",
                 nameof(device)
             );
         }
@@ -160,13 +157,13 @@ public sealed class CircuitRoot<TSource, TDevice>
         this.device = device;
         ports = capacitors.Length + 1;
         stride = ports + k + 1;
-        probes = scattering.ProbeCount;
+        probes = Scattering.ProbeCount;
         rows = new double[(k + ports + probes) * stride];
         supplies = new double[netlist.Count(NetlistElementKind.VoltageSource)];
         for (var d = 0; d < k; d++) {
             var g = Math.Max(device.Conductance(d), 1e-15);
             conductances[d] = g;
-            scattering.SetDeviceConductance(d, g);
+            Scattering.SetDeviceConductance(d, g);
         }
 
         Propagate();
@@ -179,41 +176,41 @@ public sealed class CircuitRoot<TSource, TDevice>
     public void SetSupply(int index, double volts) => supplies[index] = volts;
 
     /// <summary>Changes internal resistor <paramref name="index" />; takes effect at <see cref="Propagate" />.</summary>
-    public void SetResistance(int index, double ohms) => scattering.SetResistance(index, ohms);
+    public void SetResistance(int index, double ohms) => Scattering.SetResistance(index, ohms);
 
     /// <summary>Changes the gain of VCVS <paramref name="index" />; takes effect at <see cref="Propagate" />.</summary>
-    public void SetGain(int index, double gain) => scattering.SetGain(index, gain);
+    public void SetGain(int index, double gain) => Scattering.SetGain(index, gain);
 
     /// <summary>
     ///     Recomputes the scattering matrix from the component values and packs it. Allocation-free; returns false (keeping
     ///     the previous matrix) for a singular network.
     /// </summary>
     public bool Propagate() {
-        var resistances = scattering.PortResistances;
+        var resistances = Scattering.PortResistances;
         resistances[0] = source.Propagate();
         for (var i = 0; i < capacitors.Length; i++) {
             resistances[i + 1] = capacitors[i].Propagate();
         }
 
-        if (!scattering.Recompute()) {
+        if (!Scattering.Recompute()) {
             return false;
         }
 
         var k = device.Ports;
-        var matrix = scattering.Matrix;
-        var columns = scattering.Columns;
+        var matrix = Scattering.Matrix;
+        var columns = Scattering.Columns;
         var total = k + ports + probes;
         for (var i = 0; i < total; i++) {
-            var row = i < k ? scattering.DeviceRow + i
+            var row = i < k ? Scattering.DeviceRow + i
                 : i < k + ports ? i - k
-                : scattering.ProbeRow + i - k - ports;
+                : Scattering.ProbeRow + i - k - ports;
             var from = matrix.Slice(row * columns, columns);
             var to = rows.AsSpan(i * stride, stride);
             from[..ports].CopyTo(to);
-            from.Slice(scattering.Inputs, k).CopyTo(to[ports..]);
+            from.Slice(Scattering.Inputs, k).CopyTo(to[ports..]);
             var constant = 0.0;
             for (var s = 0; s < supplies.Length; s++) {
-                constant += from[scattering.VoltageSourceColumn + s] * supplies[s];
+                constant += from[Scattering.VoltageSourceColumn + s] * supplies[s];
             }
 
             to[ports + k] = constant;
@@ -340,9 +337,9 @@ public sealed class CircuitRoot<TSource, TDevice>
     }
 
     public void ResetStatistics() {
-        samples = 0;
+        Samples = 0;
         iterations = 0;
-        unconverged = 0;
+        Unconverged = 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -685,10 +682,10 @@ public sealed class CircuitRoot<TSource, TDevice>
     }
 
     void Record(int count, bool converged) {
-        samples++;
+        Samples++;
         iterations += count;
         if (!converged) {
-            unconverged++;
+            Unconverged++;
         }
     }
 

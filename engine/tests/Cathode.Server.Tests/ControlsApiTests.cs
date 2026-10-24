@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using Cathode.Contracts;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
-using Cathode.Ipc;
 using Cathode.Server.Engine;
 using Cathode.Server.Midi;
 using Microsoft.Extensions.DependencyInjection;
@@ -88,7 +87,7 @@ public sealed class ControlsApiTests : IAsyncLifetime {
 
         // Four taps exactly half a second apart on the engine's clock: 120 BPM, however late they are delivered.
         for (var i = 0; i < 4; i++) {
-            router.OnMidi([new MidiEventMessage(0xB0, 80, 127, 1_000 + i * 24_000)]);
+            router.OnMidi([new(0xB0, 80, 127, 1_000 + i * 24_000)]);
         }
 
         await ServerFixture.Eventually(() => Math.Abs(server.Host.Engine.Tempo - 120) < 0.01);

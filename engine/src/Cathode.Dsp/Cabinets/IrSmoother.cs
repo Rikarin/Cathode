@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace Cathode.Dsp.Cabinets;
 
 /// <summary>
@@ -32,7 +34,7 @@ public sealed class IrSmoother : IDisposable {
 
     public IrSmoother(int maxLength) {
         MaxLength = maxLength;
-        var size = (int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)Math.Max(64, 2 * maxLength));
+        var size = (int)BitOperations.RoundUpToPowerOf2((uint)Math.Max(64, 2 * maxLength));
         fft = new(size);
         re = new(size);
         im = new(size);

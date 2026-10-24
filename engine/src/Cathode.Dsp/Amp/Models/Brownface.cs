@@ -46,6 +46,27 @@ static class Brownface {
     const double InputResistance = 34e3;
 
     /// <summary>
+    ///     The brownface long-tail pair: a 7025 with 82k and 100k plates from the 430 V node, a 6.8k tail and 820 Ω bias;
+    ///     its second grid on 0.1 µF to the tail's bottom, 1M grid resistors, 0.001 µF in (the 47 pF between its plates is
+    ///     left out).
+    /// </summary>
+    public static LongTailPairDesign PhaseInverter { get; } = new(TriodeModel.Ecc83, 430, 82e3, 100e3, 6.8e3, 820);
+
+    /// <summary>The panel: Volume, Treble, Bass and Presence, the channel, the vibrato pedal, Speed and Intensity.</summary>
+    public static AmpPanel Panel { get; } = new() {
+        Gain = "Volume",
+        Middle = null,
+        Depth = null,
+        Cut = null,
+        Master = null,
+        Bright = null,
+        Switch1 = "Vibrato Ch",
+        Switch2 = "Vibrato",
+        Control1 = "Speed",
+        Control2 = "Intensity"
+    };
+
+    /// <summary>
     ///     A channel's first triode with the tone network and the Volume: 100k from the preamp node, the two first triodes'
     ///     shared 820 Ω ‖ 25 µF (twice the resistor each), 0.05 µF into the network; the output is the Volume's wiper.
     ///     <paramref name="brightCap" /> sits across the Volume (47 pF on the Vibrato channel, none on the Normal).
@@ -127,25 +148,4 @@ static class Brownface {
             [FirstStage("V1B", 0), NormalSecondStage()],
             [FirstStage("V1A", 47e-12), VibratoSecondStage(), new HarmonicVibratoStageDesign("Vibrato", Mixer)]
         );
-
-    /// <summary>
-    ///     The brownface long-tail pair: a 7025 with 82k and 100k plates from the 430 V node, a 6.8k tail and 820 Ω bias;
-    ///     its second grid on 0.1 µF to the tail's bottom, 1M grid resistors, 0.001 µF in (the 47 pF between its plates is
-    ///     left out).
-    /// </summary>
-    public static LongTailPairDesign PhaseInverter { get; } = new(TriodeModel.Ecc83, 430, 82e3, 100e3, 6.8e3, 820);
-
-    /// <summary>The panel: Volume, Treble, Bass and Presence, the channel, the vibrato pedal, Speed and Intensity.</summary>
-    public static AmpPanel Panel { get; } = new() {
-        Gain = "Volume",
-        Middle = null,
-        Depth = null,
-        Cut = null,
-        Master = null,
-        Bright = null,
-        Switch1 = "Vibrato Ch",
-        Switch2 = "Vibrato",
-        Control1 = "Speed",
-        Control2 = "Intensity"
-    };
 }

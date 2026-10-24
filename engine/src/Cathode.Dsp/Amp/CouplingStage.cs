@@ -45,10 +45,10 @@ public sealed class CouplingStage(CouplingStageDesign design) : AmpStage {
         }
     }
 
+    public override double RestOutput => 0;
+
     /// <summary>The resistance from the network's node to ground: the pot and the shunt resistor.</summary>
     double Load => design.ShuntResistor > 0 ? Parallel(design.Pot.Ohms, design.ShuntResistor) : design.Pot.Ohms;
-
-    public override double RestOutput => 0;
 
     public override void SetSampleRate(double sampleRate) {
         halfStep = 0.5 / (design.CouplingCap * sampleRate);

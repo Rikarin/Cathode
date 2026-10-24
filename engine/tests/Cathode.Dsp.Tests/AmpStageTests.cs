@@ -15,6 +15,18 @@ public partial class AmpStageTests(ITestOutputHelper output) {
     const double Rate = 96_000; // the circuit amp's rate at 48 kHz
     const int Oversampling = 16;
 
+    /// <summary>12AX7, 100k plate, 1.5k bypassed cathode, 1M grid leak, 22 nF coupling: the textbook stage.</summary>
+    static readonly TriodeStageDesign Textbook = new(
+        "textbook",
+        TriodeModel.Ecc83,
+        300,
+        100e3,
+        1.5e3,
+        22e-6,
+        CouplingCap: 22e-9,
+        GridLeak: 1e6
+    );
+
     public static TheoryData<int, double, double, double> ToneStackSettings =>
         new() {
             { 0, 0.5, 0.5, 0.5 },
@@ -28,13 +40,16 @@ public partial class AmpStageTests(ITestOutputHelper output) {
             { 2, 0.0, 0.7, 1.0 }
         };
 
+    public static TheoryData<string> TriodeStages =>
+        ["textbook", "blackface V2A", "plexi V1A", "plexi V2A", "ac30 V1A"];
+
     [Theory]
     [MemberData(nameof(ToneStackSettings))]
     public void Tone_stacks_match_the_reference_response(int kind, double bass, double middle, double treble) {
         const int Length = 65_536;
         double[] frequencies = [30, 60, 100, 200, 400, 700, 1_000, 2_000, 4_000, 8_000, 15_000, 20_000];
         var design = ToneStackDesign.All[kind];
-        var stack = new ToneStackCircuit(design, Rate, 1e3, 1e6);
+        var stack = new ToneStackCircuit(design, Rate);
         stack.Set(0.3, 0.6, 0.4); // reach the setting by a recompute, as a knob would
         stack.Set(bass, middle, treble);
         var impulse = new float[Length];
@@ -130,21 +145,6 @@ public partial class AmpStageTests(ITestOutputHelper output) {
         output.WriteLine($"{model}: worst relative error {worst:E2}");
         Assert.True(worst < 1e-6, $"{worst:E2}");
     }
-
-    /// <summary>12AX7, 100k plate, 1.5k bypassed cathode, 1M grid leak, 22 nF coupling: the textbook stage.</summary>
-    static readonly TriodeStageDesign Textbook = new(
-        "textbook",
-        TriodeModel.Ecc83,
-        300,
-        100e3,
-        1.5e3,
-        22e-6,
-        CouplingCap: 22e-9,
-        GridLeak: 1e6
-    );
-
-    public static TheoryData<string> TriodeStages =>
-        ["textbook", "blackface V2A", "plexi V1A", "plexi V2A", "ac30 V1A"];
 
     [Theory]
     [MemberData(nameof(TriodeStages))]

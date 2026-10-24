@@ -1,5 +1,6 @@
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Filters;
+using Cathode.Dsp.Wdf;
 using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
@@ -156,7 +157,7 @@ public class DriveParityTests {
         Assert.Same(DriveCircuits.All[index], DriveCircuits.Variant(index, 0, 0));
         var led = DriveCircuits.Variant(index, 4, 0);
         Assert.Same(led, DriveCircuits.Variant(index, 4, 0)); // built once: no allocation when chosen
-        Assert.Contains(led.Stages, static s => s.Diodes.ForwardCount > 0 && s.Diodes.Forward == Wdf.DiodeModel.Led);
+        Assert.Contains(led.Stages, static s => s.Diodes.ForwardCount > 0 && s.Diodes.Forward == DiodeModel.Led);
 
         double Loudness(int diode) {
             using var block = Create(

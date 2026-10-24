@@ -46,14 +46,14 @@ public sealed unsafe class NativeBuffer : IDisposable {
         GC.SuppressFinalize(this);
     }
 
-    ~NativeBuffer() {
-        Free();
-    }
-
     void Free() {
         var pointer = Interlocked.Exchange(ref memory, 0);
         if (pointer != 0) {
             NativeMemory.AlignedFree((void*)pointer);
         }
+    }
+
+    ~NativeBuffer() {
+        Free();
     }
 }

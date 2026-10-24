@@ -1,6 +1,7 @@
 using System.Numerics;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Tests.Circuits;
+using Cathode.Dsp.Wdf;
 
 namespace Cathode.Dsp.Tests;
 
@@ -259,8 +260,8 @@ public class WahCircuitTests(ITestOutputHelper output) {
         c.Resistor(c1, b2, v.Base2);
         c.Resistor(vcc, c2, v.Collector2);
         c.Resistor(e2, 0, v.Emitter2);
-        c.Device(new Wdf.Bjt(v.Transistor), (b1, e1), (b1, c1));
-        c.Device(new Wdf.Bjt(v.Transistor), (b2, e2), (b2, c2));
+        c.Device(new Bjt(v.Transistor), (b1, e1), (b1, c1));
+        c.Device(new Bjt(v.Transistor), (b2, e2), (b2, c2));
 
         var nodes = new int[WahCircuit.Nodes + 1];
         nodes[WahCircuit.WindingNode] = winding;

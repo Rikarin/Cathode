@@ -48,7 +48,7 @@ public sealed class FormantBlock() : DspBlock(Info) {
         "Formant",
         "Filter",
         [
-            ParamDescriptor.Choice("start", "Start Vowel", Vowels, 0),
+            ParamDescriptor.Choice("start", "Start Vowel", Vowels),
             ParamDescriptor.Choice("mid", "Mid Vowel", Vowels, 1),
             ParamDescriptor.Choice("end", "End Vowel", Vowels, 2),
             ParamDescriptor.Float("control", "Control", 0f, 100f, 0f, "%"),

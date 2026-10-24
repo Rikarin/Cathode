@@ -34,7 +34,7 @@ public class SweepMeasurementTests {
         convolver.Process(recorded);
 
         var ir = measurement.Deconvolve(recorded);
-        var trimmed = measurement.Trim(ir, 40, 1);
+        var trimmed = measurement.Trim(ir, 40);
 
         foreach (var hz in new[] { 200.0, 1_000, 3_000, 8_000 }) {
             Assert.Equal(

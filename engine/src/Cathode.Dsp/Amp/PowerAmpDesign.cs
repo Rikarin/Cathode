@@ -58,7 +58,7 @@ public sealed record SpeakerDesign(
     public const double Nominal = 8;
 
     /// <summary>An open-back 1 × 12 combo: a high, sharp resonance (little air load).</summary>
-    public static SpeakerDesign OpenBack1x12 { get; } = new(6.4, 1.0e-3, 25, 100, 40, 3);
+    public static SpeakerDesign OpenBack1x12 { get; } = new(6.4, 1.0e-3, 25, 100);
 
     /// <summary>An open-back 2 × 12 combo: two cones share the air load, a slightly lower, broader peak.</summary>
     public static SpeakerDesign OpenBack2x12 { get; } = new(6.4, 1.1e-3, 25, 90, 32, 2.5);

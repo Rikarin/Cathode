@@ -405,17 +405,6 @@ public class ModulationParityTests {
         );
     }
 
-    /// <summary>The level around a harmonic, summed over a few cents either side, so a noise-driven ring reads steadily.</summary>
-    static double Band(ReadOnlySpan<float> signal, double frequency) {
-        var sum = 0.0;
-        for (var i = -4; i <= 4; i++) {
-            var level = Level(signal, frequency * (1 + 0.002 * i));
-            sum += level * level;
-        }
-
-        return Math.Sqrt(sum);
-    }
-
     // Synth
 
     [Fact]
@@ -543,7 +532,7 @@ public class ModulationParityTests {
 
     [Fact]
     public void Min_and_max_frequency_scale_the_voicing() {
-        Assert.Equal(2 * WahBlock.Frequency(0, 0), WahBlock.Frequency(0, 0, 2f, 1f), 1e-3f);
+        Assert.Equal(2 * WahBlock.Frequency(0, 0), WahBlock.Frequency(0, 0, 2f), 1e-3f);
         Assert.Equal(0.5f * WahBlock.Frequency(0, 100), WahBlock.Frequency(0, 100, 0.5f, 0.5f), 1e-2f);
         Assert.Equal(8, WahBlock.FilterVoicings);
     }
@@ -714,6 +703,17 @@ public class ModulationParityTests {
 
         Assert.True(Analysis.AllFinite(output));
         Assert.True(Analysis.Rms(output.AsSpan(4_800)) > 0.1);
+    }
+
+    /// <summary>The level around a harmonic, summed over a few cents either side, so a noise-driven ring reads steadily.</summary>
+    static double Band(ReadOnlySpan<float> signal, double frequency) {
+        var sum = 0.0;
+        for (var i = -4; i <= 4; i++) {
+            var level = Level(signal, frequency * (1 + 0.002 * i));
+            sum += level * level;
+        }
+
+        return Math.Sqrt(sum);
     }
 
     static PitchBlock CreatePitch(params (int Index, float Value)[] settings) =>

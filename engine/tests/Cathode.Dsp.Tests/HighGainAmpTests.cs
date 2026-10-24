@@ -99,28 +99,6 @@ public class HighGainAmpTests(ITestOutputHelper output) {
 
     public static TheoryData<string> Types => [..Models];
 
-    static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);
-
-    static CircuitAmpBlock Create(string type, params (int Index, float Value)[] settings) {
-        var block = new CircuitAmpBlock();
-        block.Params.SetTarget(CircuitAmpBlock.Type, TypeOf(type));
-        foreach (var (index, value) in settings) {
-            block.Params.SetTarget(index, value);
-        }
-
-        block.Prepare(new(Rate, 64));
-        block.Reset();
-        return block;
-    }
-
-    static string Label(string id, string type) {
-        var parameter = CircuitAmpBlock.Info.Params.Single(p => p.Id == id);
-        return parameter.TypeLabels is { } labels ? labels[TypeOf(type)] : parameter.Name;
-    }
-
-    static IEnumerable<string> Switches(string type) =>
-        new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, type));
-
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {
         Assert.Equal("Volume", Label("gain", "Mark IIC+"));
@@ -263,4 +241,26 @@ public class HighGainAmpTests(ITestOutputHelper output) {
         Assert.InRange(lift, 8, 13);
         Assert.InRange(Math.Abs(off), 0, 2);
     }
+
+    static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);
+
+    static CircuitAmpBlock Create(string type, params (int Index, float Value)[] settings) {
+        var block = new CircuitAmpBlock();
+        block.Params.SetTarget(CircuitAmpBlock.Type, TypeOf(type));
+        foreach (var (index, value) in settings) {
+            block.Params.SetTarget(index, value);
+        }
+
+        block.Prepare(new(Rate, 64));
+        block.Reset();
+        return block;
+    }
+
+    static string Label(string id, string type) {
+        var parameter = CircuitAmpBlock.Info.Params.Single(p => p.Id == id);
+        return parameter.TypeLabels is { } labels ? labels[TypeOf(type)] : parameter.Name;
+    }
+
+    static IEnumerable<string> Switches(string type) =>
+        new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, type));
 }

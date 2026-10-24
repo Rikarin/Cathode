@@ -142,6 +142,9 @@ public abstract class AmpStage {
     /// <summary>The Newton statistics of the stage's nonlinear root, or null for a linear stage.</summary>
     public virtual NewtonSolver? Newton => null;
 
+    /// <summary>Whether this is a common-cathode gain stage, which <see cref="PreampSettings.CathodeResistor" /> may bias.</summary>
+    public virtual bool IsGainStage => false;
+
     public abstract void SetSampleRate(double sampleRate);
 
     /// <summary>The previous stage's output resistance, in series with this stage's own input resistance.</summary>
@@ -158,9 +161,6 @@ public abstract class AmpStage {
     ///     operating point, so the channel resets afterwards (<see cref="Reset" />).
     /// </summary>
     public virtual void Apply(in PreampSettings settings) { }
-
-    /// <summary>Whether this is a common-cathode gain stage, which <see cref="PreampSettings.CathodeResistor" /> may bias.</summary>
-    public virtual bool IsGainStage => false;
 
     /// <summary>
     ///     Puts the stage at its DC operating point for a source resting at <paramref name="restInput" /> volts:

@@ -17,6 +17,10 @@ namespace Cathode.Server.Api;
 ///     the new live state and its revision as the ETag.
 /// </summary>
 public static class CathodeApi {
+    static string Version =>
+        typeof(CathodeApi).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+        ?? "dev";
+
     public static void MapCathodeApi(this WebApplication app) {
         var api = app.MapGroup("/api/v1").AddEndpointFilter<RigExceptionFilter>();
 
@@ -411,10 +415,6 @@ public static class CathodeApi {
             throw;
         }
     }
-
-    static string Version =>
-        typeof(CathodeApi).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-        ?? "dev";
 
     /// <summary>Phase 5: bypass modes, modifiers, controllers, tempo, channels, global blocks, globals, looper, MIDI.</summary>
     static void MapControls(RouteGroupBuilder api, RouteGroupBuilder live) {

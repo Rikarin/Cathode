@@ -56,22 +56,6 @@ public sealed class PowerSpectrum {
         windowPower = power;
     }
 
-    /// <summary>The window at phase <paramref name="x" /> (0..2π across the frame).</summary>
-    static double Window(SpectrumWindow shape, double x) =>
-        shape switch {
-            SpectrumWindow.BlackmanHarris => 0.35875
-                - 0.48829 * Math.Cos(x)
-                + 0.14128 * Math.Cos(2 * x)
-                - 0.01168 * Math.Cos(3 * x),
-            SpectrumWindow.FlatTop => 0.21557895
-                - 0.41663158 * Math.Cos(x)
-                + 0.277263158 * Math.Cos(2 * x)
-                - 0.083578947 * Math.Cos(3 * x)
-                + 0.006947368 * Math.Cos(4 * x),
-            SpectrumWindow.Rectangular => 1,
-            _ => 0.5 * (1 - Math.Cos(x))
-        };
-
     /// <summary>Adds one frame of exactly <see cref="Size" /> samples. Returns false if it was too quiet to count.</summary>
     public bool AddFrame(ReadOnlySpan<float> frame) {
         double energy = 0;
@@ -120,6 +104,22 @@ public sealed class PowerSpectrum {
 
         return mean;
     }
+
+    /// <summary>The window at phase <paramref name="x" /> (0..2π across the frame).</summary>
+    static double Window(SpectrumWindow shape, double x) =>
+        shape switch {
+            SpectrumWindow.BlackmanHarris => 0.35875
+                - 0.48829 * Math.Cos(x)
+                + 0.14128 * Math.Cos(2 * x)
+                - 0.01168 * Math.Cos(3 * x),
+            SpectrumWindow.FlatTop => 0.21557895
+                - 0.41663158 * Math.Cos(x)
+                + 0.277263158 * Math.Cos(2 * x)
+                - 0.083578947 * Math.Cos(3 * x)
+                + 0.006947368 * Math.Cos(4 * x),
+            SpectrumWindow.Rectangular => 1,
+            _ => 0.5 * (1 - Math.Cos(x))
+        };
 }
 
 /// <summary>Fractional-octave views of a power spectrum: RTA bands and smoothing.</summary>

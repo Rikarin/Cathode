@@ -81,6 +81,12 @@ public partial class AmpStageTests {
 public class MesaBognerEnglTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
+    static readonly int[] Knobs = [
+        CircuitAmpBlock.Gain, CircuitAmpBlock.Bass, CircuitAmpBlock.Middle, CircuitAmpBlock.Treble,
+        CircuitAmpBlock.Presence, CircuitAmpBlock.Depth, CircuitAmpBlock.Master, CircuitAmpBlock.Control1,
+        CircuitAmpBlock.Control2
+    ];
+
     /// <summary>Each model with the switch settings that select each of its channels or modes.</summary>
     public static TheoryData<string, float, float, float> Channels =>
         new() {
@@ -97,54 +103,6 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             { "Savage 120", 0, 0, 0 },
             { "Savage 120", 1, 1, 0 }
         };
-
-    static readonly int[] Knobs = [
-        CircuitAmpBlock.Gain, CircuitAmpBlock.Bass, CircuitAmpBlock.Middle, CircuitAmpBlock.Treble,
-        CircuitAmpBlock.Presence, CircuitAmpBlock.Depth, CircuitAmpBlock.Master, CircuitAmpBlock.Control1,
-        CircuitAmpBlock.Control2
-    ];
-
-    /// <summary>
-    ///     A signal small enough to stay below clipping at the knob settings these tests use: the Engl cascades have
-    ///     four fully bypassed stages before the stack.
-    /// </summary>
-    static float SmallSignal(string type) => type is "Powerball" or "Savage 120" ? 1e-6f : 1e-4f;
-
-    /// <summary>Whether a control plays in this channel (some only work in one mode).</summary>
-    static bool Plays(string type, int knob, float s1, float s2) =>
-        (type, knob) switch {
-            ("Lone Star", CircuitAmpBlock.Control1) => s2 > 0,
-            ("Powerball", CircuitAmpBlock.Control1) => s1 > 0,
-            ("Powerball", CircuitAmpBlock.Middle) => s1 == 0,
-            _ => true
-        };
-
-    static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);
-
-    static CircuitAmpBlock Create(string type, params (int Index, float Value)[] settings) {
-        var block = new CircuitAmpBlock();
-        block.Params.SetTarget(CircuitAmpBlock.Type, TypeOf(type));
-        foreach (var (index, value) in settings) {
-            block.Params.SetTarget(index, value);
-        }
-
-        block.Prepare(new(Rate, 64));
-        block.Reset();
-        return block;
-    }
-
-    static (int, float)[] Switches(float s1, float s2, float s3) =>
-        [(CircuitAmpBlock.Switch1, s1), (CircuitAmpBlock.Switch2, s2), (CircuitAmpBlock.Switch3, s3)];
-
-    static string? Label(string id, string type) {
-        var parameter = CircuitAmpBlock.Info.Params.Single(p => p.Id == id);
-        return parameter.TypeLabels is { } labels ? labels[TypeOf(type)] : parameter.Name;
-    }
-
-    static double Level(CircuitAmpBlock block, double frequency = 1_000, float amplitude = 1e-4f) {
-        var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 24_000, amplitude), 64);
-        return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)));
-    }
 
     [Fact]
     public void Panels_name_the_real_controls() {
@@ -311,5 +269,47 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             output.WriteLine($"{type} {s1}{s2}{s3} {id}: {change:0.0} dB");
             Assert.True(change > 1, $"{type}: {id} changes the sound by only {change:0.00} dB");
         }
+    }
+
+    /// <summary>
+    ///     A signal small enough to stay below clipping at the knob settings these tests use: the Engl cascades have
+    ///     four fully bypassed stages before the stack.
+    /// </summary>
+    static float SmallSignal(string type) => type is "Powerball" or "Savage 120" ? 1e-6f : 1e-4f;
+
+    /// <summary>Whether a control plays in this channel (some only work in one mode).</summary>
+    static bool Plays(string type, int knob, float s1, float s2) =>
+        (type, knob) switch {
+            ("Lone Star", CircuitAmpBlock.Control1) => s2 > 0,
+            ("Powerball", CircuitAmpBlock.Control1) => s1 > 0,
+            ("Powerball", CircuitAmpBlock.Middle) => s1 == 0,
+            _ => true
+        };
+
+    static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);
+
+    static CircuitAmpBlock Create(string type, params (int Index, float Value)[] settings) {
+        var block = new CircuitAmpBlock();
+        block.Params.SetTarget(CircuitAmpBlock.Type, TypeOf(type));
+        foreach (var (index, value) in settings) {
+            block.Params.SetTarget(index, value);
+        }
+
+        block.Prepare(new(Rate, 64));
+        block.Reset();
+        return block;
+    }
+
+    static (int, float)[] Switches(float s1, float s2, float s3) =>
+        [(CircuitAmpBlock.Switch1, s1), (CircuitAmpBlock.Switch2, s2), (CircuitAmpBlock.Switch3, s3)];
+
+    static string? Label(string id, string type) {
+        var parameter = CircuitAmpBlock.Info.Params.Single(p => p.Id == id);
+        return parameter.TypeLabels is { } labels ? labels[TypeOf(type)] : parameter.Name;
+    }
+
+    static double Level(CircuitAmpBlock block, double frequency = 1_000, float amplitude = 1e-4f) {
+        var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 24_000, amplitude), 64);
+        return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)));
     }
 }

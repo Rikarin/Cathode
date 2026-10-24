@@ -270,114 +270,6 @@ public sealed class DriveBlock() : DspBlock(Info) {
         return Decibels.ToGain(minDb + (maxDb - minDb) * drive / 10f);
     }
 
-    protected override void OnPrepare(in ProcessSpec spec) {
-        if (dry.Length != spec.MaxBlockSize) {
-            dry = new float[spec.MaxBlockSize];
-            secondDry = new float[spec.MaxBlockSize];
-            dryTwice = new float[2 * spec.MaxBlockSize];
-        }
-
-        left.Allocate(spec.MaxBlockSize);
-        right.Allocate(spec.MaxBlockSize);
-        dryLeft.Resize(spec.MaxBlockSize);
-        dryRight.Resize(spec.MaxBlockSize);
-    }
-
-    protected override void OnReset() {
-        left.Reset();
-        right.Reset();
-        ResetOversamplers();
-        foreach (var band in eq1) {
-            band.Reset();
-        }
-
-        eq2.Reset();
-        cuts.Reset();
-        decimator.Reset();
-        gain = InputGain((int)Params.Current(Type), Params.Current(Drive));
-        output.Reset(Params.Current(Level), Params.Current(Balance));
-        mix = Params.Current(Mix) / 100f;
-        guitar = (float)DriveCircuits.Guitar(Params.Current(InputVolume)).Level;
-        phase = 0;
-        factor = Factor;
-        configured = null;
-    }
-
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
-        var type = (int)Params.Current(Type);
-        if (type >= CircuitTypes) {
-            var circuit = DriveCircuits.Variant(
-                type - CircuitTypes,
-                (int)Params.Current(DiodeType),
-                (int)Params.Current(DiodeCount)
-            );
-            ProcessCircuits(io, type, circuit);
-            return;
-        }
-
-        if (configured is not null) {
-            configured = null;
-            left.Circuit.Release(); // a circuit chosen again later starts discharged
-            right.Circuit.Release();
-            if (factor != Factor) {
-                factor = Factor;
-                ResetOversamplers();
-            }
-        }
-
-        var rate = Spec.SampleRate;
-        var innerRate = Oversample ? rate * Factor : rate;
-        var shape = ShapeOf(type, (int)Params.Current(ClipType));
-        var drive = Params.Advance(Drive, io.Length);
-        var toneValue = Params.Advance(Tone, io.Length);
-        var guitar = (float)DriveCircuits.Guitar(Params.Advance(InputVolume, io.Length)).Level;
-        var gain = InputGain(type, drive);
-        var toneHz = 600f * MathF.Pow(8_000f / 600f, toneValue / 10f);
-        var tone = SvfCoefficients.Design(BiquadType.LowPass, rate, toneHz, 0.7071);
-        var bass = Params.Advance(BassResponse, io.Length) / 100f;
-        var preHz = type switch {
-            0 => 720f,
-            1 => 60f,
-            _ => 30f
-        };
-        var pre = SvfCoefficients.Design(BiquadType.HighPass, innerRate, bass == 1f ? preHz : preHz * bass, 0.7071);
-        var dcBlock = SvfCoefficients.Design(BiquadType.HighPass, innerRate, 10, 0.7071);
-        var mix = Params.Advance(Mix, io.Length) / 100f;
-        var advanced = new Advanced(
-            Params.Advance(ClipShape, io.Length) / 100f,
-            Params.Advance(Bias, io.Length) / 100f * FullBias,
-            Decibels.ToGain(Params.Advance(DryLevel, io.Length)),
-            (float)SlewStep(Params.Advance(SlewRate, io.Length), innerRate)
-        );
-        ReadPage(io.Length);
-
-        GainRamp.Apply(io.Left, this.guitar, guitar); // the guitar's volume: nothing at all at 10
-        GainRamp.Apply(io.Right, this.guitar, guitar);
-        var leftDry = dry.AsSpan(0, io.Length);
-        var rightDry = secondDry.AsSpan(0, io.Length);
-        var blend = this.mix < 1f || mix < 1f;
-        if (blend) {
-            CopyVoicingDry(io.Left, leftDry, dryLeft);
-            CopyVoicingDry(io.Right, rightDry, dryRight);
-        }
-
-        Pre(io);
-        left.Process(io.Left, Oversample, type, shape, this.gain, gain, pre, tone, dcBlock, Antialias, advanced);
-        right.Process(io.Right, Oversample, type, shape, this.gain, gain, pre, tone, dcBlock, Antialias, advanced);
-        Post(io);
-        if (blend) {
-            GainRamp.Mix(leftDry, io.Left, this.mix, mix);
-            GainRamp.Mix(rightDry, io.Right, this.mix, mix);
-        }
-
-        this.gain = gain;
-        this.mix = mix;
-        this.guitar = guitar;
-        phase = (phase + io.Length) % SubBlock;
-
-        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
-    }
-
     /// <summary>
     ///     The circuit types run both channels through one loop: each channel is a long dependency chain, and
     ///     interleaving two independent chains lets the core overlap them. Knobs are read once per sub-block of the grid.
@@ -538,6 +430,114 @@ public sealed class DriveBlock() : DspBlock(Info) {
         dryRight.Reset();
         dryTwiceLeft.Reset();
         dryTwiceRight.Reset();
+    }
+
+    protected override void OnPrepare(in ProcessSpec spec) {
+        if (dry.Length != spec.MaxBlockSize) {
+            dry = new float[spec.MaxBlockSize];
+            secondDry = new float[spec.MaxBlockSize];
+            dryTwice = new float[2 * spec.MaxBlockSize];
+        }
+
+        left.Allocate(spec.MaxBlockSize);
+        right.Allocate(spec.MaxBlockSize);
+        dryLeft.Resize(spec.MaxBlockSize);
+        dryRight.Resize(spec.MaxBlockSize);
+    }
+
+    protected override void OnReset() {
+        left.Reset();
+        right.Reset();
+        ResetOversamplers();
+        foreach (var band in eq1) {
+            band.Reset();
+        }
+
+        eq2.Reset();
+        cuts.Reset();
+        decimator.Reset();
+        gain = InputGain((int)Params.Current(Type), Params.Current(Drive));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
+        mix = Params.Current(Mix) / 100f;
+        guitar = (float)DriveCircuits.Guitar(Params.Current(InputVolume)).Level;
+        phase = 0;
+        factor = Factor;
+        configured = null;
+    }
+
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        var type = (int)Params.Current(Type);
+        if (type >= CircuitTypes) {
+            var circuit = DriveCircuits.Variant(
+                type - CircuitTypes,
+                (int)Params.Current(DiodeType),
+                (int)Params.Current(DiodeCount)
+            );
+            ProcessCircuits(io, type, circuit);
+            return;
+        }
+
+        if (configured is not null) {
+            configured = null;
+            left.Circuit.Release(); // a circuit chosen again later starts discharged
+            right.Circuit.Release();
+            if (factor != Factor) {
+                factor = Factor;
+                ResetOversamplers();
+            }
+        }
+
+        var rate = Spec.SampleRate;
+        var innerRate = Oversample ? rate * Factor : rate;
+        var shape = ShapeOf(type, (int)Params.Current(ClipType));
+        var drive = Params.Advance(Drive, io.Length);
+        var toneValue = Params.Advance(Tone, io.Length);
+        var guitar = (float)DriveCircuits.Guitar(Params.Advance(InputVolume, io.Length)).Level;
+        var gain = InputGain(type, drive);
+        var toneHz = 600f * MathF.Pow(8_000f / 600f, toneValue / 10f);
+        var tone = SvfCoefficients.Design(BiquadType.LowPass, rate, toneHz, 0.7071);
+        var bass = Params.Advance(BassResponse, io.Length) / 100f;
+        var preHz = type switch {
+            0 => 720f,
+            1 => 60f,
+            _ => 30f
+        };
+        var pre = SvfCoefficients.Design(BiquadType.HighPass, innerRate, bass == 1f ? preHz : preHz * bass, 0.7071);
+        var dcBlock = SvfCoefficients.Design(BiquadType.HighPass, innerRate, 10, 0.7071);
+        var mix = Params.Advance(Mix, io.Length) / 100f;
+        var advanced = new Advanced(
+            Params.Advance(ClipShape, io.Length) / 100f,
+            Params.Advance(Bias, io.Length) / 100f * FullBias,
+            Decibels.ToGain(Params.Advance(DryLevel, io.Length)),
+            (float)SlewStep(Params.Advance(SlewRate, io.Length), innerRate)
+        );
+        ReadPage(io.Length);
+
+        GainRamp.Apply(io.Left, this.guitar, guitar); // the guitar's volume: nothing at all at 10
+        GainRamp.Apply(io.Right, this.guitar, guitar);
+        var leftDry = dry.AsSpan(0, io.Length);
+        var rightDry = secondDry.AsSpan(0, io.Length);
+        var blend = this.mix < 1f || mix < 1f;
+        if (blend) {
+            CopyVoicingDry(io.Left, leftDry, dryLeft);
+            CopyVoicingDry(io.Right, rightDry, dryRight);
+        }
+
+        Pre(io);
+        left.Process(io.Left, Oversample, type, shape, this.gain, gain, pre, tone, dcBlock, Antialias, advanced);
+        right.Process(io.Right, Oversample, type, shape, this.gain, gain, pre, tone, dcBlock, Antialias, advanced);
+        Post(io);
+        if (blend) {
+            GainRamp.Mix(leftDry, io.Left, this.mix, mix);
+            GainRamp.Mix(rightDry, io.Right, this.mix, mix);
+        }
+
+        this.gain = gain;
+        this.mix = mix;
+        this.guitar = guitar;
+        phase = (phase + io.Length) % SubBlock;
+
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 
     /// <summary>The voicings' Advanced page for one block.</summary>

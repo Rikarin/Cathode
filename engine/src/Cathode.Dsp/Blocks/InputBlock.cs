@@ -83,46 +83,6 @@ public sealed class InputBlock() : DspBlock(Info) {
     static float Coefficient(double milliseconds, double sampleRate) =>
         (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
 
-    protected override void OnPrepare(in ProcessSpec spec) {
-        detectorRelease = Coefficient(DetectorReleaseMs, spec.SampleRate);
-        split = 1f - MathF.Exp(-2f * MathF.PI * NoiseSplitHz / (float)spec.SampleRate);
-        designedMains = -1;
-    }
-
-    protected override void OnReset() {
-        foreach (ref var state in hum.AsSpan()) {
-            state.Reset();
-        }
-
-        envelope = 0;
-        gainDb = 0;
-        holdRemaining = (int)(HoldMs * 0.001 * Spec.SampleRate);
-        lowLeft = 0;
-        lowRight = 0;
-        lowLeft2 = 0;
-        lowRight2 = 0;
-        level = Decibels.ToGain(Params.Current(Level));
-    }
-
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
-        var type = (int)Params.Current(GateType);
-        var thresholdDb = Params.Advance(Threshold, io.Length) + context.GateOffsetDb;
-        var slope = Params.Advance(Ratio, io.Length) - 1f;
-        var attack = Coefficient(Params.Advance(Attack, io.Length), Spec.SampleRate);
-        var release = Coefficient(Params.Advance(Release, io.Length), Spec.SampleRate);
-        if (type != Off) {
-            Gate(io, type, thresholdDb, slope, attack, release);
-        }
-
-        var target = Decibels.ToGain(Params.Advance(Level, io.Length));
-        if (target != 1f || level != 1f) {
-            GainRamp.Apply(io.Left, level, target);
-            GainRamp.Apply(io.Right, level, target);
-        }
-
-        level = target;
-    }
-
     void Gate(in StereoBuffer io, int type, float thresholdDb, float slope, float attack, float release) {
         var threshold = MathF.Pow(10f, thresholdDb / 20f);
         var holdSamples = (int)(HoldMs * 0.001 * Spec.SampleRate);
@@ -204,5 +164,45 @@ public sealed class InputBlock() : DspBlock(Info) {
         for (var h = 0; h < HumNotches; h++) {
             humCoefficients[h] = SvfCoefficients.Design(BiquadType.Notch, Spec.SampleRate, fundamental * (h + 1), 2.0);
         }
+    }
+
+    protected override void OnPrepare(in ProcessSpec spec) {
+        detectorRelease = Coefficient(DetectorReleaseMs, spec.SampleRate);
+        split = 1f - MathF.Exp(-2f * MathF.PI * NoiseSplitHz / (float)spec.SampleRate);
+        designedMains = -1;
+    }
+
+    protected override void OnReset() {
+        foreach (ref var state in hum.AsSpan()) {
+            state.Reset();
+        }
+
+        envelope = 0;
+        gainDb = 0;
+        holdRemaining = (int)(HoldMs * 0.001 * Spec.SampleRate);
+        lowLeft = 0;
+        lowRight = 0;
+        lowLeft2 = 0;
+        lowRight2 = 0;
+        level = Decibels.ToGain(Params.Current(Level));
+    }
+
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        var type = (int)Params.Current(GateType);
+        var thresholdDb = Params.Advance(Threshold, io.Length) + context.GateOffsetDb;
+        var slope = Params.Advance(Ratio, io.Length) - 1f;
+        var attack = Coefficient(Params.Advance(Attack, io.Length), Spec.SampleRate);
+        var release = Coefficient(Params.Advance(Release, io.Length), Spec.SampleRate);
+        if (type != Off) {
+            Gate(io, type, thresholdDb, slope, attack, release);
+        }
+
+        var target = Decibels.ToGain(Params.Advance(Level, io.Length));
+        if (target != 1f || level != 1f) {
+            GainRamp.Apply(io.Left, level, target);
+            GainRamp.Apply(io.Right, level, target);
+        }
+
+        level = target;
     }
 }

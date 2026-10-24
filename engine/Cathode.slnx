@@ -1,30 +1,30 @@
 <Solution>
   <Folder Name="/spikes/">
-    <Project Path="spikes/Cathode.Spikes.GcLoad/Cathode.Spikes.GcLoad.csproj" />
+    <Project Path="spikes/Cathode.Spikes.GcLoad/Cathode.Spikes.GcLoad.csproj"/>
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/Cathode.Audio/Cathode.Audio.csproj" />
-    <Project Path="src/Cathode.Contracts/Cathode.Contracts.csproj" />
-    <Project Path="src/Cathode.Dsp.Native/Cathode.Dsp.Native.csproj" />
-    <Project Path="src/Cathode.Dsp/Cathode.Dsp.csproj" />
-    <Project Path="src/Cathode.Engine/Cathode.Engine.csproj" />
-    <Project Path="src/Cathode.EngineHost/Cathode.EngineHost.csproj" />
-    <Project Path="src/Cathode.Host/Cathode.Host.csproj" />
-    <Project Path="src/Cathode.Ipc/Cathode.Ipc.csproj" />
-    <Project Path="src/Cathode.Server/Cathode.Server.csproj" />
+    <Project Path="src/Cathode.Audio/Cathode.Audio.csproj"/>
+    <Project Path="src/Cathode.Contracts/Cathode.Contracts.csproj"/>
+    <Project Path="src/Cathode.Dsp.Native/Cathode.Dsp.Native.csproj"/>
+    <Project Path="src/Cathode.Dsp/Cathode.Dsp.csproj"/>
+    <Project Path="src/Cathode.Engine/Cathode.Engine.csproj"/>
+    <Project Path="src/Cathode.EngineHost/Cathode.EngineHost.csproj"/>
+    <Project Path="src/Cathode.Host/Cathode.Host.csproj"/>
+    <Project Path="src/Cathode.Ipc/Cathode.Ipc.csproj"/>
+    <Project Path="src/Cathode.Server/Cathode.Server.csproj"/>
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Cathode.Dsp.Tests/Cathode.Dsp.Tests.csproj" />
-    <Project Path="tests/Cathode.Engine.Tests/Cathode.Engine.Tests.csproj" />
-    <Project Path="tests/Cathode.References.Tests/Cathode.References.Tests.csproj" />
-    <Project Path="tests/Cathode.Server.Tests/Cathode.Server.Tests.csproj" />
-    <Project Path="tests/Cathode.Testing.Tests/Cathode.Testing.Tests.csproj" />
-    <Project Path="tests/Cathode.Testing/Cathode.Testing.csproj" />
+    <Project Path="tests/Cathode.Dsp.Tests/Cathode.Dsp.Tests.csproj"/>
+    <Project Path="tests/Cathode.Engine.Tests/Cathode.Engine.Tests.csproj"/>
+    <Project Path="tests/Cathode.References.Tests/Cathode.References.Tests.csproj"/>
+    <Project Path="tests/Cathode.Server.Tests/Cathode.Server.Tests.csproj"/>
+    <Project Path="tests/Cathode.Testing.Tests/Cathode.Testing.Tests.csproj"/>
+    <Project Path="tests/Cathode.Testing/Cathode.Testing.csproj"/>
   </Folder>
   <Folder Name="/tools/">
-    <Project Path="tools/Cathode.Bench/Cathode.Bench.csproj" />
-    <Project Path="tools/Cathode.References/Cathode.References.csproj" />
-    <Project Path="tools/Cathode.Render/Cathode.Render.csproj" />
-    <Project Path="tools/Cathode.Soak/Cathode.Soak.csproj" />
+    <Project Path="tools/Cathode.Bench/Cathode.Bench.csproj"/>
+    <Project Path="tools/Cathode.References/Cathode.References.csproj"/>
+    <Project Path="tools/Cathode.Render/Cathode.Render.csproj"/>
+    <Project Path="tools/Cathode.Soak/Cathode.Soak.csproj"/>
   </Folder>
 </Solution>

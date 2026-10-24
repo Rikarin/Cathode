@@ -19,9 +19,6 @@ public sealed class GlobalStore {
         settings = Read() ?? new();
     }
 
-    /// <summary>Raised after every change, outside the lock.</summary>
-    public event Action<GlobalSettings>? Changed;
-
     public GlobalSettings Get() {
         lock (gate) {
             return Copy(settings);
@@ -59,4 +56,7 @@ public sealed class GlobalStore {
             JsonSerializer.Serialize(value, ContractsJsonContext.Default.GlobalSettings),
             ContractsJsonContext.Default.GlobalSettings
         )!;
+
+    /// <summary>Raised after every change, outside the lock.</summary>
+    public event Action<GlobalSettings>? Changed;
 }

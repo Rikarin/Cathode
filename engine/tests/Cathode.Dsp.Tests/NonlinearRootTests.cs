@@ -267,13 +267,14 @@ public class NonlinearRootTests(ITestOutputHelper output) {
                 3
             )),
             ("R-type root, linear (tone stack, 4 ports)", Measure(stack.Tick, 1)),
-            ("R-type root, diode pair (K = 1)", Measure(
-                x => {
-                    clipper.Ports.A.Volts = x;
-                    return clipper.Tick();
-                },
-                3
-            )),
+            ("R-type root, diode pair (K = 1)",
+                Measure(
+                    x => {
+                        clipper.Ports.A.Volts = x;
+                        return clipper.Tick();
+                    },
+                    3
+                )),
             ("R-type root, BJT common emitter (K = 2)", Measure(bjt.Tick, 0.01)),
             ("R-type root, 12AX7 common cathode (K = 2)", Measure(triode.Tick, 1)),
             ("R-type root, op-amp + diodes (K = 3)", Measure(opamp.Tick, 0.1)),

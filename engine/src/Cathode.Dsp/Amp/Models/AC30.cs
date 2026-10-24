@@ -61,7 +61,7 @@ public static class AC30 {
             1.5e3,
             4.7e-9,
             new(250e3, PotTaper.ReverseAudio), // log track, its resistance falling fastest as the cut comes in
-            new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6, 90),
+            new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6),
             false,
             new(4e3),
             SpeakerDesign.OpenBack2x12,
@@ -81,39 +81,6 @@ public static class AC30 {
             Switch1 = "Normal Ch"
         }
     };
-
-    /// <summary>
-    ///     V1, one half of the 12AX7 both channels start in: 68k input resistor, 1M grid leak, 220k plate. The halves
-    ///     share a 1.5k cathode with 25 µF; with the other half idling beside it, one half sees twice the resistance
-    ///     and half the cap.
-    /// </summary>
-    internal static TriodeStageDesign FirstStage(string name) =>
-        new(
-            name,
-            TriodeModel.Ecc83,
-            PreampSupply,
-            220e3,
-            3e3,
-            12.5e-6,
-            68e3,
-            GridLeak: 1e6
-        );
-
-    /// <summary>
-    ///     A channel's volume into the mixing node: <paramref name="couplingCap" /> into a 500k log volume (the Gain
-    ///     knob), the wiper through 220k to the node, the other channel's 220k mixing resistor from the node to ground
-    ///     (its volume at zero). The output is the node.
-    /// </summary>
-    internal static NetworkStageDesign NormalVolume(string name, double couplingCap) {
-        var net = new StageNetlist();
-        var (top, mix) = (net.Node(), net.Node());
-        net.Capacitor(net.Input, top, couplingCap);
-        var wiper = net.Pot(top, StageNetlist.Ground, new(500e3, PotTaper.Audio), PotRole.Gain);
-        net.Resistor(wiper, mix, 220e3);
-        net.Resistor(mix, StageNetlist.Ground, 220e3);
-        net.Output = mix;
-        return new(name, net);
-    }
 
     /// <summary>
     ///     The top boost's gain stage: the Brilliant half's 500 pF into its 500k log volume (Gain) with the unit's 100 pF
@@ -159,5 +126,38 @@ public static class AC30 {
         net.Resistor(mix, StageNetlist.Ground, 220e3);
         net.Output = mix;
         return new("TB V1B", net);
+    }
+
+    /// <summary>
+    ///     V1, one half of the 12AX7 both channels start in: 68k input resistor, 1M grid leak, 220k plate. The halves
+    ///     share a 1.5k cathode with 25 µF; with the other half idling beside it, one half sees twice the resistance
+    ///     and half the cap.
+    /// </summary>
+    internal static TriodeStageDesign FirstStage(string name) =>
+        new(
+            name,
+            TriodeModel.Ecc83,
+            PreampSupply,
+            220e3,
+            3e3,
+            12.5e-6,
+            68e3,
+            GridLeak: 1e6
+        );
+
+    /// <summary>
+    ///     A channel's volume into the mixing node: <paramref name="couplingCap" /> into a 500k log volume (the Gain
+    ///     knob), the wiper through 220k to the node, the other channel's 220k mixing resistor from the node to ground
+    ///     (its volume at zero). The output is the node.
+    /// </summary>
+    internal static NetworkStageDesign NormalVolume(string name, double couplingCap) {
+        var net = new StageNetlist();
+        var (top, mix) = (net.Node(), net.Node());
+        net.Capacitor(net.Input, top, couplingCap);
+        var wiper = net.Pot(top, StageNetlist.Ground, new(500e3, PotTaper.Audio), PotRole.Gain);
+        net.Resistor(wiper, mix, 220e3);
+        net.Resistor(mix, StageNetlist.Ground, 220e3);
+        net.Output = mix;
+        return new(name, net);
     }
 }

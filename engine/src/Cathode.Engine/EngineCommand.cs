@@ -22,7 +22,8 @@ public readonly record struct EngineCommand(
     int Generation,
     int Slot,
     float Value,
-    long Time = 0) {
+    long Time = 0
+) {
     public static EngineCommand SetBypass(int generation, int slot, bool bypassed) =>
         new(EngineCommandKind.SetBypass, generation, slot, bypassed ? 1f : 0f);
 

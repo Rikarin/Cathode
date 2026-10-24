@@ -10,13 +10,13 @@ interface ITestStage {
     /// <summary>Node whose voltage is the stage's output (AC coupled into its load).</summary>
     int OutputNode { get; }
 
+    NewtonSolver Newton { get; }
+
     /// <summary>One WDF sample; returns the output node's voltage.</summary>
     double Tick(double input);
 
     /// <summary>The WDF's voltage at <paramref name="node" /> after the last sample.</summary>
     double Node(int node);
-
-    NewtonSolver Newton { get; }
 
     /// <summary>Precharges every capacitor and sets Newton's start from a reference operating point.</summary>
     void StartAt(Func<int, double> voltage);

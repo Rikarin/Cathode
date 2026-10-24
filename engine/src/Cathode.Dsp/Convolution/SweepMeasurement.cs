@@ -13,7 +13,8 @@ public sealed class SweepMeasurement(
     double sampleRate,
     double seconds = 5,
     double startHz = 20,
-    double endHz = 20_000) {
+    double endHz = 20_000
+) {
     /// <summary>Fade at each end of the sweep, so it starts and stops without clicks.</summary>
     const double FadeSeconds = 0.05;
 
@@ -23,10 +24,10 @@ public sealed class SweepMeasurement(
 
     public double SampleRate { get; } = sampleRate;
 
-    double End => Math.Min(endHz, SampleRate * 0.45);
-
     /// <summary>The excitation at full scale; scale it to the playback level.</summary>
     public float[] Sweep => sweep ??= Build();
+
+    double End => Math.Min(endHz, SampleRate * 0.45);
 
     /// <summary>
     ///     The impulse response in <paramref name="recorded" /> (which must start when the sweep starts and run on past

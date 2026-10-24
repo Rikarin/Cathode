@@ -60,8 +60,6 @@ public sealed record CathodyneDesign(
 public abstract class PhaseInverter {
     protected const int Points = 1_025;
 
-    static readonly Dictionary<(PhaseInverterDesign, double), PhaseInverter> Cache = [];
-
     internal readonly double[] a = new double[Points];
     internal readonly double[] b = new double[Points];
     internal readonly double[] slopeA = new double[Points];
@@ -71,6 +69,8 @@ public abstract class PhaseInverter {
     internal readonly double[] cathodeResistances = new double[Points];
     internal readonly double step;
     internal readonly double inverseStep;
+
+    static readonly Dictionary<(PhaseInverterDesign, double), PhaseInverter> Cache = [];
 
     /// <summary>± volts of input the table spans; flat beyond.</summary>
     public double Range { get; }
@@ -213,15 +213,6 @@ public abstract class PhaseInverter {
         return leakReturns[i] + t * (leakReturns[i + 1] - leakReturns[i]);
     }
 
-    /// <summary>Central-difference slopes of the tables (for the Hermite reads).</summary>
-    protected void Differentiate() {
-        for (var n = 0; n < Points; n++) {
-            var (lo, hi) = (Math.Max(n - 1, 0), Math.Min(n + 1, Points - 1));
-            slopeA[n] = (a[hi] - a[lo]) / ((hi - lo) * step);
-            slopeB[n] = (b[hi] - b[lo]) / ((hi - lo) * step);
-        }
-    }
-
     protected static double Parallel(double a, double b) => a * b / (a + b);
 
     /// <summary>
@@ -260,6 +251,15 @@ public abstract class PhaseInverter {
         }
 
         return current;
+    }
+
+    /// <summary>Central-difference slopes of the tables (for the Hermite reads).</summary>
+    protected void Differentiate() {
+        for (var n = 0; n < Points; n++) {
+            var (lo, hi) = (Math.Max(n - 1, 0), Math.Min(n + 1, Points - 1));
+            slopeA[n] = (a[hi] - a[lo]) / ((hi - lo) * step);
+            slopeB[n] = (b[hi] - b[lo]) / ((hi - lo) * step);
+        }
     }
 }
 
@@ -304,7 +304,7 @@ public sealed class LongTailPair : PhaseInverter {
 
         // The output impedances: draw a small current from each plate in turn and see both plates move.
         const double Probe = 1e-6;
-        var (aa, ba, _) = Solve(triode, design, grid, grid, Probe, 0);
+        var (aa, ba, _) = Solve(triode, design, grid, grid, Probe);
         var (ab, bb, _) = Solve(triode, design, grid, grid, 0, Probe);
         OutputImpedance = (
             (RestPlateA - (design.Supply - (aa + Probe) * design.PlateResistorA)) / Probe,
@@ -427,7 +427,7 @@ public sealed class Cathodyne : PhaseInverter {
         RestPlateB = current * design.CathodeResistor;
 
         const double Probe = 1e-6;
-        var withA = Solve(triode, design, grid, Probe, 0);
+        var withA = Solve(triode, design, grid, Probe);
         var withB = Solve(triode, design, grid, 0, Probe);
         OutputImpedance = (
             (RestPlateA - (design.Supply - (withA + Probe) * design.PlateResistor)) / Probe,

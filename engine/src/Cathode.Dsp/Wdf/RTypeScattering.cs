@@ -64,8 +64,6 @@ public sealed class RTypeScattering {
     readonly int[] pivots;
     readonly double[] matrix;
     readonly int upElement;
-    double upResistance;
-    bool isValid;
 
     /// <summary>Nodes besides ground.</summary>
     public int Nodes { get; }
@@ -108,10 +106,10 @@ public sealed class RTypeScattering {
     public int ProbeRow => DeviceRow + DeviceCount;
 
     /// <summary>Resistance of the parent port, adapted at the last <see cref="Recompute" />.</summary>
-    public double UpResistance => upResistance;
+    public double UpResistance { get; private set; }
 
     /// <summary>False when the last <see cref="Recompute" /> met a singular network (and kept the previous matrix).</summary>
-    public bool IsValid => isValid;
+    public bool IsValid { get; private set; }
 
     /// <summary>Row-major <see cref="Rows" /> × <see cref="Columns" /> output matrix; see the remarks.</summary>
     public ReadOnlySpan<double> Matrix => matrix;
@@ -259,19 +257,19 @@ public sealed class RTypeScattering {
 
         var pivots = this.pivots.AsSpan(0, n);
         if (!DenseLu.Factor(a, n, pivots)) {
-            isValid = false;
+            IsValid = false;
             return false;
         }
 
         DenseLu.Solve(a, n, pivots, rhs, columns);
 
         if (HasUp && !AdaptUp(rhs, columns)) {
-            isValid = false;
+            IsValid = false;
             return false;
         }
 
         Extract(rhs, columns);
-        isValid = true;
+        IsValid = true;
         return true;
     }
 
@@ -293,7 +291,7 @@ public sealed class RTypeScattering {
         }
 
         var g = 1 / r;
-        upResistance = r;
+        UpResistance = r;
         for (var i = 0; i < size; i++) {
             z[i * columns + UpColumn] *= g; // the parent's Norton current is G a_up
         }
@@ -352,17 +350,6 @@ public sealed class RTypeScattering {
         }
     }
 
-    /// <summary>Σ row_j u_j over the length of <paramref name="u" />.</summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static double Dot(ReadOnlySpan<double> row, ReadOnlySpan<double> u) {
-        var sum = 0.0;
-        for (var j = 0; j < u.Length; j++) {
-            sum += row[j] * u[j];
-        }
-
-        return sum;
-    }
-
     static double Difference(ReadOnlySpan<double> z, int columns, int column, int p, int m) =>
         (p > 0 ? z[(p - 1) * columns + column] : 0) - (m > 0 ? z[(m - 1) * columns + column] : 0);
 
@@ -402,5 +389,16 @@ public sealed class RTypeScattering {
             a[(m - 1) * n + row] -= 1;
             a[row * n + m - 1] -= 1;
         }
+    }
+
+    /// <summary>Σ row_j u_j over the length of <paramref name="u" />.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static double Dot(ReadOnlySpan<double> row, ReadOnlySpan<double> u) {
+        var sum = 0.0;
+        for (var j = 0; j < u.Length; j++) {
+            sum += row[j] * u[j];
+        }
+
+        return sum;
     }
 }

@@ -39,7 +39,6 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     ];
 
     readonly SvfState[] tone = new SvfState[ToneBands.Length];
-    ICaptureModel? model;
     float inputGain = 1f;
     float outputGain = 1f;
 
@@ -60,7 +59,7 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     );
 
     /// <summary>The loaded capture, if any.</summary>
-    public ICaptureModel? CaptureModel => model;
+    public ICaptureModel? CaptureModel { get; private set; }
 
     public IReadOnlyList<string> AssetSlots { get; } = [ModelSlot];
 
@@ -75,46 +74,16 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
         }
 
         var loaded = load(path);
-        model?.Dispose();
-        model = loaded;
+        CaptureModel?.Dispose();
+        CaptureModel = loaded;
     }
 
     (float Input, float Output) TargetGains() {
-        var normalisation = Params.Current(Normalize) >= 0.5f && model?.Loudness is double loudness
+        var normalisation = Params.Current(Normalize) >= 0.5f && CaptureModel?.Loudness is double loudness
             ? TargetLoudnessDb - loudness
             : 0;
         return (Decibels.ToGain(Params.Current(Input)),
             (float)(Decibels.ToGain(Params.Current(Output)) * Decibels.ToGain(normalisation)));
-    }
-
-    protected override void OnPrepare(in ProcessSpec spec) => model?.Reset(spec.SampleRate, spec.MaxBlockSize);
-
-    protected override void OnReset() {
-        (inputGain, outputGain) = TargetGains();
-        for (var b = 0; b < tone.Length; b++) {
-            tone[b].Reset();
-        }
-    }
-
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
-        Params.Advance(Input, io.Length);
-        Params.Advance(Output, io.Length);
-        var (input, output) = TargetGains();
-
-        if (model is not null) {
-            GainRamp.Apply(io.Left, inputGain, input);
-            model.Process(io.Left, io.Left);
-        }
-
-        ApplyTone(io.Left);
-
-        if (model is not null) {
-            GainRamp.Apply(io.Left, outputGain, output);
-        }
-
-        io.Left.CopyTo(io.Right);
-        inputGain = input;
-        outputGain = output;
     }
 
     void ApplyTone(Span<float> samples) {
@@ -134,10 +103,40 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
         }
     }
 
+    protected override void OnPrepare(in ProcessSpec spec) => CaptureModel?.Reset(spec.SampleRate, spec.MaxBlockSize);
+
+    protected override void OnReset() {
+        (inputGain, outputGain) = TargetGains();
+        for (var b = 0; b < tone.Length; b++) {
+            tone[b].Reset();
+        }
+    }
+
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        Params.Advance(Input, io.Length);
+        Params.Advance(Output, io.Length);
+        var (input, output) = TargetGains();
+
+        if (CaptureModel is not null) {
+            GainRamp.Apply(io.Left, inputGain, input);
+            CaptureModel.Process(io.Left, io.Left);
+        }
+
+        ApplyTone(io.Left);
+
+        if (CaptureModel is not null) {
+            GainRamp.Apply(io.Left, outputGain, output);
+        }
+
+        io.Left.CopyTo(io.Right);
+        inputGain = input;
+        outputGain = output;
+    }
+
     protected override void Dispose(bool disposing) {
         if (disposing) {
-            model?.Dispose();
-            model = null;
+            CaptureModel?.Dispose();
+            CaptureModel = null;
         }
 
         base.Dispose(disposing);

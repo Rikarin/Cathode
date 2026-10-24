@@ -56,6 +56,14 @@ public sealed class CompiledGraph : IDisposable {
     /// <summary>The looper of the graph's Looper block, or null: while it runs, the engine's looper transport drives it.</summary>
     public Looper? Looper => looperBlock?.Looper;
 
+    public IReadOnlyList<ModifierBinding> Modifiers => modifiers;
+
+    /// <summary>The RTA block's tap, when the graph has one: the engine sends what it holds to the analyser.</summary>
+    public AnalyzerTap? Analyzer { get; }
+
+    /// <summary>True when a modifier follows the input pitch, so the host must run pitch detection.</summary>
+    public bool UsesPitch => modifiers.Any(static m => m.Source == ModSource.Pitch);
+
     internal CompiledGraph(
         int generation,
         ProcessSpec spec,
@@ -104,14 +112,6 @@ public sealed class CompiledGraph : IDisposable {
             bypass[i] = new(bypassed[i], bypassModes[i]);
         }
     }
-
-    public IReadOnlyList<ModifierBinding> Modifiers => modifiers;
-
-    /// <summary>The RTA block's tap, when the graph has one: the engine sends what it holds to the analyser.</summary>
-    public AnalyzerTap? Analyzer { get; }
-
-    /// <summary>True when a modifier follows the input pitch, so the host must run pitch detection.</summary>
-    public bool UsesPitch => modifiers.Any(static m => m.Source == ModSource.Pitch);
 
     /// <summary>
     ///     Audio thread, once per sub-block before <see cref="Process" />: drive every modified parameter from its source,
@@ -382,7 +382,8 @@ public struct ModifierBinding(
     float max,
     bool log,
     float attackMs,
-    float releaseMs) {
+    float releaseMs
+) {
     /// <summary>
     ///     The <see cref="ParamIndex" /> of a modifier that engages and bypasses its block
     ///     (<see cref="ModNames.EngageParam" />).

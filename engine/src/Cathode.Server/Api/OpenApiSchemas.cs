@@ -14,7 +14,7 @@ static class OpenApiSchemas {
                 if (schema.Properties is { Count: > 0 } properties) {
                     foreach (var (name, property) in properties) {
                         if (property is OpenApiSchemaReference
-                            || property.Type is { } type && !type.HasFlag(JsonSchemaType.Null)) {
+                            || (property.Type is { } type && !type.HasFlag(JsonSchemaType.Null))) {
                             (schema.Required ??= new HashSet<string>()).Add(name);
                         } else {
                             schema.Required?.Remove(name);

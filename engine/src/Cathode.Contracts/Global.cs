@@ -61,7 +61,8 @@ public sealed record MidiMapping(
     int Number,
     string Action,
     string? Target = null,
-    int? Value = null);
+    int? Value = null
+);
 
 /// <summary>A set of footswitches on a generic MIDI foot controller.</summary>
 public sealed record FootswitchLayout(string Id, string Name, List<Footswitch> Switches);
@@ -79,7 +80,8 @@ public sealed record Footswitch(
     int Number,
     SwitchAction Tap,
     SwitchAction? Hold = null,
-    bool Led = true);
+    bool Led = true
+);
 
 /// <summary>An action, with the same vocabulary as <see cref="MidiMapping" />.</summary>
 public sealed record SwitchAction(string Action, string? Target = null, int? Value = null);
@@ -106,7 +108,8 @@ public sealed record LooperInfo(
     double LengthSeconds,
     double PositionSeconds,
     bool Reversed,
-    bool HalfSpeed);
+    bool HalfSpeed
+);
 
 // Request bodies.
 public sealed record BypassModeRequest(string Mode);

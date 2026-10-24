@@ -46,7 +46,7 @@ public class SidechainAndLookAheadTests {
     [Fact]
     public void The_compressor_follows_the_selected_sidechain() {
         var quiet = Signals.Sine(500, Rate, 9_600, Decibels.ToGain(-40f));
-        var loud = Signals.Sine(500, Rate, 9_600, 1f);
+        var loud = Signals.Sine(500, Rate, 9_600);
         var settings = new[] { (CompressorBlock.Threshold, -30f), (CompressorBlock.Ratio, 20f) };
         using var own = TestBlocks.Create<CompressorBlock>([..settings, (CompressorBlock.Sidechain, 0f)]);
         using var row = TestBlocks.Create<CompressorBlock>([..settings, (CompressorBlock.Sidechain, 3f)]); // Row 2
@@ -67,7 +67,7 @@ public class SidechainAndLookAheadTests {
         );
         var quiet = Signals.Sine(500, Rate, 9_600, Decibels.ToGain(-40f));
 
-        Assert.Equal(quiet, Run(block, quiet, Signals.Sine(500, Rate, 9_600, 1f), 1));
+        Assert.Equal(quiet, Run(block, quiet, Signals.Sine(500, Rate, 9_600), 1));
     }
 
     [Fact]

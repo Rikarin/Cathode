@@ -167,21 +167,6 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
     /// <summary>The number of bands for option <paramref name="option" /> of the Bands parameter.</summary>
     public static int BandCount(int option) => BandCounts[Math.Clamp(option, 0, BandCounts.Length - 1)];
 
-    /// <summary>PolyBLEP residual that band-limits a unit step at phase 0 (Välimäki and Huovilainen).</summary>
-    static double Blep(double t, double dt) {
-        if (t < dt) {
-            var x = t / dt;
-            return x + x - x * x - 1;
-        }
-
-        if (t > 1 - dt) {
-            var x = (t - 1) / dt;
-            return x * x + x + x + 1;
-        }
-
-        return 0;
-    }
-
     public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) {
         var analysisRow = (int)Params.GetTarget(AnalysisSource) - 1;
         if (row != analysisRow || source.Length > sideLeft.Length) {
@@ -202,6 +187,97 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
         for (var i = 0; i < source.Length; i++) {
             sideLeft[i] += source.Left[i];
             sideRight[i] += source.Right[i];
+        }
+    }
+
+    /// <summary>PolyBLEP residual that band-limits a unit step at phase 0 (Välimäki and Huovilainen).</summary>
+    static double Blep(double t, double dt) {
+        if (t < dt) {
+            var x = t / dt;
+            return x + x - x * x - 1;
+        }
+
+        if (t > 1 - dt) {
+            var x = (t - 1) / dt;
+            return x * x + x + x + 1;
+        }
+
+        return 0;
+    }
+
+    /// <summary>One sample of the internal carrier: the chord's voices summed, or white noise.</summary>
+    double Oscillator(int source, float note, int[] intervals, double sampleRate) {
+        if (source == CarrierNoise) {
+            noise ^= noise << 13;
+            noise ^= noise >> 17;
+            noise ^= noise << 5;
+            return noise * (2.0 / uint.MaxValue) - 1;
+        }
+
+        double sum = 0;
+        for (var v = 0; v < intervals.Length; v++) {
+            var frequency = Math.Min(440 * Math.Pow(2, (note + intervals[v] - 69) / 12.0), sampleRate * 0.45);
+            var dt = frequency / sampleRate;
+            var t = phase[v];
+            if (source == CarrierSaw) {
+                sum += 2 * t - 1 - Blep(t, dt);
+            } else {
+                var falling = t - PulseWidth;
+                falling -= Math.Floor(falling);
+                sum += (t < PulseWidth ? 1 : -1) + Blep(t, dt) - Blep(falling, dt) + (1 - 2 * PulseWidth);
+            }
+
+            t += dt;
+            phase[v] = t - Math.Floor(t);
+        }
+
+        return sum;
+    }
+
+    /// <summary>
+    ///     Redesigns the banks when their layout changes: analysis bands from <paramref name="min" /> to
+    ///     <paramref name="max" />, synthesis bands <paramref name="shift" /> times higher, and the synthesis band
+    ///     weights, a tilt of up to +6 dB per octave around 1 kHz times the make-up gain.
+    /// </summary>
+    void Design(int count, float min, float max, float q, float shift, float emphasis) {
+        if (design == (count, min, max, q, shift, emphasis)) {
+            return;
+        }
+
+        if (count != design.Count) {
+            Array.Clear(analysis);
+            Array.Clear(synthesis);
+            Array.Clear(envelope);
+        }
+
+        design = (count, min, max, q, shift, emphasis);
+        var rate = Spec.SampleRate;
+        var top = Math.Min(max, rate * 0.45);
+        for (var k = 0; k < count; k++) {
+            var frequency = BandFrequency(k, count, min, top);
+            var shifted = Math.Min(frequency * shift, rate * 0.45);
+            analysisBands[k] = SvfCoefficients.Design(BiquadType.BandPass, rate, frequency, q);
+            synthesisBands[k] = SvfCoefficients.Design(BiquadType.BandPass, rate, shifted, q);
+            weight[k] = OutputScale * (float)Math.Pow(shifted / 1_000, emphasis);
+        }
+
+        highpass = SvfCoefficients.Design(BiquadType.HighPass, rate, top, 0.7071);
+    }
+
+    /// <summary>Each band's left and right gains: its level, placed by its pan (scaled by Master Pan) at constant power.</summary>
+    void BandGains(int frames) {
+        var masterPan = Params.Advance(MasterPan, frames) / 100f;
+        for (var k = 0; k < MaxBands; k++) {
+            var gain = Decibels.ToGain(Params.Advance(BandLevel1 + k, frames));
+            var pan = Params.Advance(BandPan1 + k, frames) / 100f * masterPan;
+            if (pan == 0) {
+                (gainLeft[k], gainRight[k]) = (gain, gain);
+                continue;
+            }
+
+            var angle = (pan + 1) * MathF.PI / 4; // constant power, unity per side at the centre
+            gainLeft[k] = gain * MathF.Sqrt(2) * MathF.Cos(angle);
+            gainRight[k] = gain * MathF.Sqrt(2) * MathF.Sin(angle);
         }
     }
 
@@ -317,81 +393,5 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
 
         this.mix = mix;
         output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
-    }
-
-    /// <summary>One sample of the internal carrier: the chord's voices summed, or white noise.</summary>
-    double Oscillator(int source, float note, int[] intervals, double sampleRate) {
-        if (source == CarrierNoise) {
-            noise ^= noise << 13;
-            noise ^= noise >> 17;
-            noise ^= noise << 5;
-            return noise * (2.0 / uint.MaxValue) - 1;
-        }
-
-        double sum = 0;
-        for (var v = 0; v < intervals.Length; v++) {
-            var frequency = Math.Min(440 * Math.Pow(2, (note + intervals[v] - 69) / 12.0), sampleRate * 0.45);
-            var dt = frequency / sampleRate;
-            var t = phase[v];
-            if (source == CarrierSaw) {
-                sum += 2 * t - 1 - Blep(t, dt);
-            } else {
-                var falling = t - PulseWidth;
-                falling -= Math.Floor(falling);
-                sum += (t < PulseWidth ? 1 : -1) + Blep(t, dt) - Blep(falling, dt) + (1 - 2 * PulseWidth);
-            }
-
-            t += dt;
-            phase[v] = t - Math.Floor(t);
-        }
-
-        return sum;
-    }
-
-    /// <summary>
-    ///     Redesigns the banks when their layout changes: analysis bands from <paramref name="min" /> to
-    ///     <paramref name="max" />, synthesis bands <paramref name="shift" /> times higher, and the synthesis band
-    ///     weights, a tilt of up to +6 dB per octave around 1 kHz times the make-up gain.
-    /// </summary>
-    void Design(int count, float min, float max, float q, float shift, float emphasis) {
-        if (design == (count, min, max, q, shift, emphasis)) {
-            return;
-        }
-
-        if (count != design.Count) {
-            Array.Clear(analysis);
-            Array.Clear(synthesis);
-            Array.Clear(envelope);
-        }
-
-        design = (count, min, max, q, shift, emphasis);
-        var rate = Spec.SampleRate;
-        var top = Math.Min(max, rate * 0.45);
-        for (var k = 0; k < count; k++) {
-            var frequency = BandFrequency(k, count, min, top);
-            var shifted = Math.Min(frequency * shift, rate * 0.45);
-            analysisBands[k] = SvfCoefficients.Design(BiquadType.BandPass, rate, frequency, q);
-            synthesisBands[k] = SvfCoefficients.Design(BiquadType.BandPass, rate, shifted, q);
-            weight[k] = OutputScale * (float)Math.Pow(shifted / 1_000, emphasis);
-        }
-
-        highpass = SvfCoefficients.Design(BiquadType.HighPass, rate, top, 0.7071);
-    }
-
-    /// <summary>Each band's left and right gains: its level, placed by its pan (scaled by Master Pan) at constant power.</summary>
-    void BandGains(int frames) {
-        var masterPan = Params.Advance(MasterPan, frames) / 100f;
-        for (var k = 0; k < MaxBands; k++) {
-            var gain = Decibels.ToGain(Params.Advance(BandLevel1 + k, frames));
-            var pan = Params.Advance(BandPan1 + k, frames) / 100f * masterPan;
-            if (pan == 0) {
-                (gainLeft[k], gainRight[k]) = (gain, gain);
-                continue;
-            }
-
-            var angle = (pan + 1) * MathF.PI / 4; // constant power, unity per side at the centre
-            gainLeft[k] = gain * MathF.Sqrt(2) * MathF.Cos(angle);
-            gainRight[k] = gain * MathF.Sqrt(2) * MathF.Sin(angle);
-        }
     }
 }

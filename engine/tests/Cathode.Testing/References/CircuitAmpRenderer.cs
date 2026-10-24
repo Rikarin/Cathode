@@ -13,16 +13,16 @@ public sealed class CircuitAmpRenderer : IDisposable {
     readonly CircuitAmpBlock block = new();
     readonly double sampleRate;
 
-    public CircuitAmpRenderer(double sampleRate) {
-        this.sampleRate = sampleRate;
-        block.Prepare(new(sampleRate, Block));
-    }
-
     public IReadOnlyList<string> Types =>
         CircuitAmpBlock.Info.Params[CircuitAmpBlock.Info.IndexOf("type")].Options ?? [];
 
     /// <summary>The parameter ids the block has (for tolerance names and the CLI).</summary>
     public static IEnumerable<string> ParameterIds => CircuitAmpBlock.Info.Params.Select(static p => p.Id);
+
+    public CircuitAmpRenderer(double sampleRate) {
+        this.sampleRate = sampleRate;
+        block.Prepare(new(sampleRate, Block));
+    }
 
     /// <summary>
     ///     Renders <paramref name="volts" /> with <paramref name="settings" />, then <paramref name="overrides" /> (by
@@ -45,6 +45,22 @@ public sealed class CircuitAmpRenderer : IDisposable {
     }
 
     public void Dispose() => block.Dispose();
+
+    /// <summary>Settings as text, e.g. <c>Plexi gain=6 bright=1</c>.</summary>
+    public static string Describe(CircuitSettings settings, IReadOnlyDictionary<string, double>? overrides = null) {
+        var all = new SortedDictionary<string, double>(StringComparer.Ordinal);
+        foreach (var source in new[] { settings.Params, overrides }) {
+            foreach (var (id, value) in source ?? new Dictionary<string, double>()) {
+                all[id] = value;
+            }
+        }
+
+        return string.Join(
+            ' ',
+            all.Select(static p => $"{p.Key}={p.Value.ToString("0.##", CultureInfo.InvariantCulture)}")
+                .Prepend(settings.Type)
+        );
+    }
 
     void Configure(CircuitSettings settings, IReadOnlyDictionary<string, double>? overrides) {
         var info = CircuitAmpBlock.Info;
@@ -76,21 +92,5 @@ public sealed class CircuitAmpRenderer : IDisposable {
         }
 
         block.Reset();
-    }
-
-    /// <summary>Settings as text, e.g. <c>Plexi gain=6 bright=1</c>.</summary>
-    public static string Describe(CircuitSettings settings, IReadOnlyDictionary<string, double>? overrides = null) {
-        var all = new SortedDictionary<string, double>(StringComparer.Ordinal);
-        foreach (var source in new[] { settings.Params, overrides }) {
-            foreach (var (id, value) in source ?? new Dictionary<string, double>()) {
-                all[id] = value;
-            }
-        }
-
-        return string.Join(
-            ' ',
-            all.Select(static p => $"{p.Key}={p.Value.ToString("0.##", CultureInfo.InvariantCulture)}")
-                .Prepend(settings.Type)
-        );
     }
 }

@@ -39,23 +39,22 @@ public struct Lfo {
     public static readonly string[] ShapeNames =
         ["Sine", "Triangle", "Square", "Saw Up", "Saw Down", "Random", "Log", "Exponential", "Trapezoid", "Astable"];
 
-    double phase;
     long cycle;
 
     /// <summary>The phase in cycles, [0, 1).</summary>
-    public readonly double Phase => phase;
+    public double Phase { get; private set; }
 
     public void Reset(double phase = 0) {
-        this.phase = phase - Math.Floor(phase);
+        Phase = phase - Math.Floor(phase);
         cycle = 0;
     }
 
     /// <summary>Advances by one sample at <paramref name="rateHz" />.</summary>
     public void Advance(double rateHz, double sampleRate) {
-        phase += rateHz / sampleRate;
-        if (phase >= 1) {
-            cycle += (long)Math.Floor(phase);
-            phase -= Math.Floor(phase);
+        Phase += rateHz / sampleRate;
+        if (Phase >= 1) {
+            cycle += (long)Math.Floor(Phase);
+            Phase -= Math.Floor(Phase);
         }
     }
 
@@ -69,7 +68,7 @@ public struct Lfo {
             return Hold(cycle);
         }
 
-        var p = phase + offset;
+        var p = Phase + offset;
         return (float)Shape(shape, p - Math.Floor(p), duty);
     }
 

@@ -37,7 +37,7 @@ public class RigTests {
     public void The_envelope_follower_opens_a_parameter_with_the_playing() {
         var engine = Engine(Modifier("env", -60f, 0f));
         Set(engine, "envGain", 0f);
-        var input = Signals.Concat(new float[9_600], Signals.Sine(220, Spec.SampleRate, 9_600, 1f));
+        var input = Signals.Concat(new float[9_600], Signals.Sine(220, Spec.SampleRate, 9_600));
 
         var (left, _) = OfflineRenderer.Render(engine, input, input, 64);
 

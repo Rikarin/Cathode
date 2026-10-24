@@ -43,7 +43,7 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
             throw new RigException(409, "Nothing was heard from the rig: play while Tone Match listens.");
         }
 
-        var reference = new PowerSpectrum(ToneMatchDesign.GridSize);
+        var reference = new PowerSpectrum();
         reference.AddSignal(Resampler.Resample(Mono(referenceAudio), referenceAudio.SampleRate, rate));
         if (reference.Frames == 0) {
             throw new RigException(400, "The reference recording is silent or shorter than a tenth of a second.");

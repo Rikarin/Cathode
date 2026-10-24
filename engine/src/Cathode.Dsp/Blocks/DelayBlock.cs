@@ -364,6 +364,27 @@ public sealed class DelayBlock() : DspBlock(Info) {
     /// <summary>Gains of the balance pan law: unity on both sides at centre, the far side fading to zero.</summary>
     static (float Left, float Right) Pan(float pan) => (Math.Min(1f, 1f - pan), Math.Min(1f, 1f + pan));
 
+    /// <summary>The incoming and outgoing reverse heads of one line, crossfaded so the pair sums to unity.</summary>
+    float ReverseHeads(Line line, in LoopSettings loop) {
+        var incoming = line.Read(2f * reversePosition + 3f, loop);
+        if (reverseFade <= 0f) {
+            return incoming;
+        }
+
+        var outgoing = reverseFade / reverseFadeLength;
+        return incoming + (line.Read(2f * reverseOutgoing + 3f, loop) - incoming) * outgoing;
+    }
+
+    /// <summary>The band-pass at the LFO's position, swept logarithmically from start (LFO -1) to stop (LFO +1).</summary>
+    SvfCoefficients SweepCoefficients(LfoShape shape, float start, float stop, float q, float phase, float sampleRate) {
+        var position = 0.5f * (sweepLfo.Value(shape, phase) + 1f);
+        var frequency = start * MathF.Pow(stop / start, position);
+        return SvfCoefficients.Design(BiquadType.BandPass, sampleRate, frequency, q);
+    }
+
+    /// <summary>The quantisation step for a word length of <paramref name="bits" /> (0 when 24 bits or more).</summary>
+    static float Quantum(float bits) => bits >= 23.99f ? 0f : MathF.Pow(2f, 1f - MathF.Max(1f, bits));
+
     protected override void OnPrepare(in ProcessSpec spec) {
         // Room for the longest time plus the widest modulation (both LFOs at the high range, kept positive) and wow.
         capacity = (int)(spec.SampleRate * (MaxTimeMs + 4 * MaxDepthMs * DepthScale[^1] + 20) / 1000) + 8;
@@ -757,27 +778,6 @@ public sealed class DelayBlock() : DspBlock(Info) {
 
         output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
     }
-
-    /// <summary>The incoming and outgoing reverse heads of one line, crossfaded so the pair sums to unity.</summary>
-    float ReverseHeads(Line line, in LoopSettings loop) {
-        var incoming = line.Read(2f * reversePosition + 3f, loop);
-        if (reverseFade <= 0f) {
-            return incoming;
-        }
-
-        var outgoing = reverseFade / reverseFadeLength;
-        return incoming + (line.Read(2f * reverseOutgoing + 3f, loop) - incoming) * outgoing;
-    }
-
-    /// <summary>The band-pass at the LFO's position, swept logarithmically from start (LFO -1) to stop (LFO +1).</summary>
-    SvfCoefficients SweepCoefficients(LfoShape shape, float start, float stop, float q, float phase, float sampleRate) {
-        var position = 0.5f * (sweepLfo.Value(shape, phase) + 1f);
-        var frequency = start * MathF.Pow(stop / start, position);
-        return SvfCoefficients.Design(BiquadType.BandPass, sampleRate, frequency, q);
-    }
-
-    /// <summary>The quantisation step for a word length of <paramref name="bits" /> (0 when 24 bits or more).</summary>
-    static float Quantum(float bits) => bits >= 23.99f ? 0f : MathF.Pow(2f, 1f - MathF.Max(1f, bits));
 
     /// <summary>What the lines' feedback paths do this block.</summary>
     readonly record struct LoopSettings(LoopFilter Filter, bool Saturate, float Drive, float Quantum, bool Limit);

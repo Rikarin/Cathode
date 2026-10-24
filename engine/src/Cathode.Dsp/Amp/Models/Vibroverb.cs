@@ -17,7 +17,7 @@ namespace Cathode.Dsp.Amp.Models;
 /// </remarks>
 public static class Vibroverb {
     /// <summary>An open-back 1 × 15: a lower resonance than a 12, a little more voice-coil inductance (typical values).</summary>
-    static readonly SpeakerDesign OpenBack1x15 = new(6.4, 1.3e-3, 25, 75, 40, 3);
+    static readonly SpeakerDesign OpenBack1x15 = new(6.4, 1.3e-3, 25, 75);
 
     public static AmpDesign Design { get; } = new(
         "Vibroverb AB763",

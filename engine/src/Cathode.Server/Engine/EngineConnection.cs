@@ -5,6 +5,7 @@ using Cathode.Engine.Telemetry;
 using Cathode.EngineHost;
 using Cathode.Ipc;
 using Cathode.Server.Realtime;
+using Cathode.Server.Rig;
 using Microsoft.Extensions.Options;
 
 namespace Cathode.Server.Engine;
@@ -20,27 +21,25 @@ namespace Cathode.Server.Engine;
 public sealed partial class EngineConnection(
     IOptions<ServerOptions> options,
     EventHub hub,
-    ILogger<EngineConnection> logger)
+    ILogger<EngineConnection> logger
+)
     : BackgroundService, IEngineSync {
-    static readonly TimeSpan MeterInterval = TimeSpan.FromMilliseconds(33);
-
     /// <summary>Scope window: 2048 samples (43 ms at 48 kHz), sent as 512 points.</summary>
     const int ScopeSamples = 2048;
 
     const int ScopeDecimation = 4;
+    static readonly TimeSpan MeterInterval = TimeSpan.FromMilliseconds(33);
 
     readonly Channel<Work> queue = Channel.CreateUnbounded<Work>(new() { SingleReader = true });
-    IEngineLink? link;
     HostInfo? info;
-    HostTelemetry? telemetry;
     TelemetryMonitor? monitor;
     string? lastError;
     volatile bool scopeEnabled;
 
     /// <summary>The live link, for diagnostics and tests (an <see cref="InProcessEngineLink" /> in in-process mode).</summary>
-    public IEngineLink? Link => link;
+    public IEngineLink? Link { get; private set; }
 
-    public bool IsConnected => info is not null && link?.IsConnected == true;
+    public bool IsConnected => info is not null && Link?.IsConnected == true;
 
     /// <summary>Whether WebSocket clients get scope frames. Off by default: they are the largest messages by far.</summary>
     public bool ScopeEnabled {
@@ -51,11 +50,11 @@ public sealed partial class EngineConnection(
     /// <summary>True while meters come from the host's shared-memory region rather than IPC telemetry.</summary>
     public bool HasSharedTelemetry => monitor is not null;
 
-    /// <summary>Raised after every (re)connection, once the host has answered <c>hello</c>.</summary>
-    public event Func<Task>? Connected;
+    /// <summary>The engine's tempo and looper as of the last IPC telemetry.</summary>
+    public HostTelemetry? LastTelemetry { get; private set; }
 
     public EngineStatus Status() {
-        var t = telemetry;
+        var t = LastTelemetry;
         var i = info;
         return new(
             IsConnected,
@@ -128,46 +127,22 @@ public sealed partial class EngineConnection(
             new() { Type = IpcTypes.MidiOut, Destination = destination, Bytes = [..bytes.Select(static b => (int)b)] }
         );
 
-    /// <summary>MIDI from the host's devices (or injected in process).</summary>
-    public event Action<IReadOnlyList<MidiEventMessage>>? MidiReceived;
-
-    /// <summary>The engine's tempo and looper as of the last IPC telemetry.</summary>
-    public HostTelemetry? LastTelemetry => telemetry;
-
-    void Enqueue(IpcMessage message) {
-        if (IsConnected) {
-            queue.Writer.TryWrite(new(message, null));
-        }
-    }
-
     public void SetTuner(bool enabled) {
         if (IsConnected) {
             queue.Writer.TryWrite(new(new() { Type = IpcTypes.SetTuner, Enabled = enabled }, null));
         }
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
-        while (!stoppingToken.IsCancellationRequested) {
-            try {
-                await RunOnceAsync(stoppingToken);
-            } catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) {
-                break;
-            } catch (Exception e) {
-                // Whatever went wrong with this link (a timeout, a protocol error, a host that died mid-request), drop it
-                // and reconnect. An exception escaping here would stop the background service and, with the default
-                // host options, the whole server.
-                lastError = e.Message;
-                LinkLost(logger, e.Message);
-            }
-
-            await Task.Delay(1_000, stoppingToken).ContinueWith(static _ => { }, TaskScheduler.Default);
+    public override async Task StopAsync(CancellationToken cancellationToken) {
+        await base.StopAsync(cancellationToken);
+        if (Link is not null) {
+            await Link.DisposeAsync();
         }
     }
 
-    public override async Task StopAsync(CancellationToken cancellationToken) {
-        await base.StopAsync(cancellationToken);
-        if (link is not null) {
-            await link.DisposeAsync();
+    void Enqueue(IpcMessage message) {
+        if (IsConnected) {
+            queue.Writer.TryWrite(new(message, null));
         }
     }
 
@@ -190,7 +165,7 @@ public sealed partial class EngineConnection(
         var meters = Task.CompletedTask;
         try {
             DiscardQueued("The engine host restarted.");
-            link = current;
+            Link = current;
             info = (await current.SendAsync(new() { Type = IpcTypes.Hello }, stoppingToken)).Host;
             lastError = null;
             if (info is not null) {
@@ -212,7 +187,7 @@ public sealed partial class EngineConnection(
                 foreach (var handler in handlers.GetInvocationList().Cast<Func<Task>>()) {
                     try {
                         await handler();
-                    } catch (Exception e) when (e is IpcException or IOException or Rig.RigException) {
+                    } catch (Exception e) when (e is IpcException or IOException or RigException) {
                         lastError = e.Message;
                     }
                 }
@@ -229,7 +204,7 @@ public sealed partial class EngineConnection(
             await meters.ContinueWith(static _ => { }, TaskScheduler.Default);
             mapped?.Dispose();
             info = null;
-            link = null;
+            Link = null;
             await current.DisposeAsync();
         }
     }
@@ -277,9 +252,9 @@ public sealed partial class EngineConnection(
                     reading.OutputPeakRight,
                     reading.CpuP999,
                     reading.Overruns,
-                    Tuner(telemetry),
-                    telemetry?.Tempo ?? 120,
-                    Looper(telemetry)
+                    Tuner(LastTelemetry),
+                    LastTelemetry?.Tempo ?? 120,
+                    Looper(LastTelemetry)
                 ),
                 ContractsJsonContext.Default.Telemetry
             );
@@ -320,11 +295,8 @@ public sealed partial class EngineConnection(
 
     void OnMidi(IReadOnlyList<MidiEventMessage> messages) => MidiReceived?.Invoke(messages);
 
-    /// <summary>Raised for every IPC telemetry frame (about ten a second).</summary>
-    public event Action<HostTelemetry>? TelemetryUpdated;
-
     void OnTelemetry(HostTelemetry t) {
-        telemetry = t;
+        LastTelemetry = t;
         TelemetryUpdated?.Invoke(t);
         if (monitor is null) {
             hub.Publish(
@@ -355,6 +327,33 @@ public sealed partial class EngineConnection(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Engine rejected {Type}: {Error}")]
     static partial void EngineRejected(ILogger logger, string type, string error);
+
+    /// <summary>Raised after every (re)connection, once the host has answered <c>hello</c>.</summary>
+    public event Func<Task>? Connected;
+
+    /// <summary>MIDI from the host's devices (or injected in process).</summary>
+    public event Action<IReadOnlyList<MidiEventMessage>>? MidiReceived;
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
+        while (!stoppingToken.IsCancellationRequested) {
+            try {
+                await RunOnceAsync(stoppingToken);
+            } catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) {
+                break;
+            } catch (Exception e) {
+                // Whatever went wrong with this link (a timeout, a protocol error, a host that died mid-request), drop it
+                // and reconnect. An exception escaping here would stop the background service and, with the default
+                // host options, the whole server.
+                lastError = e.Message;
+                LinkLost(logger, e.Message);
+            }
+
+            await Task.Delay(1_000, stoppingToken).ContinueWith(static _ => { }, TaskScheduler.Default);
+        }
+    }
+
+    /// <summary>Raised for every IPC telemetry frame (about ten a second).</summary>
+    public event Action<HostTelemetry>? TelemetryUpdated;
 
     sealed record Work(IpcMessage Message, TaskCompletionSource<IpcMessage>? Reply);
 }

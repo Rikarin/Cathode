@@ -156,6 +156,82 @@ public sealed class TenTapBlock() : DspBlock(Info) {
         return (float)(ms * 0.001 * Spec.SampleRate);
     }
 
+    /// <summary>Learn: a note after a silence of Time starts a pattern; later notes within Time add taps.</summary>
+    void LearnOnset(float peak, float threshold, float release, float time) {
+        onsetEnvelope = peak > onsetEnvelope ? peak : onsetEnvelope * release;
+        if (onsetArmed && onsetEnvelope > threshold) {
+            onsetArmed = false;
+            var elapsed = learnStart < 0 ? double.MaxValue : sampleClock - learnStart;
+            if (elapsed >= time) {
+                learnStart = sampleClock;
+                learnedCount = 0;
+            } else if (learnedCount < MaxTaps && elapsed > 0) {
+                learned[learnedCount++] = (float)(elapsed / time);
+            }
+        } else if (!onsetArmed && onsetEnvelope < 0.5f * threshold) {
+            onsetArmed = true;
+        }
+    }
+
+    void ComputeTapTargets(float time, double tempo) {
+        if ((int)Params.Current(Type) == TenTap) {
+            // Shuffle delays the off-beat taps (1, 3, 5, ... counting the dry note as beat 0) by up to half a step.
+            var taps = Math.Clamp((int)MathF.Round(Params.Current(Taps)), 1, MaxTaps);
+            var swing = Params.Current(Shuffle) / 100f * 0.5f;
+            for (var k = 0; k < MaxTaps; k++) {
+                tapTarget[k] = time * (k + 1 + (k % 2 == 0 ? swing : 0f)) / taps;
+            }
+
+            return;
+        }
+
+        // Rhythm Tap: the learned pattern while Learn is on, otherwise the tap times, quantised if asked.
+        var useLearned = (int)Params.Current(Learn) != LearnOff && learnedCount > 0;
+        var grid = TempoDivisions.Milliseconds((int)Params.Current(Quantize), tempo) * 0.001 * Spec.SampleRate;
+        for (var k = 0; k < MaxTaps; k++) {
+            var position = useLearned ? k < learnedCount ? learned[k] : 1f : Params.Current(Tap1Time + k) / 100f;
+            var samples = time * position;
+            if (grid > 0 && !useLearned) {
+                samples = (float)(Math.Round(samples / grid) * grid);
+            }
+
+            tapTarget[k] = Math.Clamp(samples, FractionalDelayLine.MinDelay, time);
+        }
+    }
+
+    void ComputeTapGains(int taps, bool stereo) {
+        // Positive decay fades the taps out across the pattern, negative fades them in.
+        var decay = Params.Current(Decay) / 100f;
+        var spread = Params.Current(Spread) / 100f;
+        var shape = (int)Params.Current(PanShape);
+        var power = MathF.Pow(2f, 2f * Params.Current(PanAlpha) / 100f);
+        var learnedTaps = (int)Params.Current(Type) == RhythmTap
+            && (int)Params.Current(Learn) != LearnOff
+            && learnedCount > 0;
+        for (var k = 0; k < MaxTaps; k++) {
+            var u = taps > 1 ? k / (taps - 1f) : 0f;
+            var level = decay >= 0 ? 1f - decay * u : 1f + decay * (1f - u);
+            level *= Params.Current(Tap1Level + k) / 100f;
+            if (learnedTaps && k >= learnedCount) {
+                level = 0f;
+            }
+
+            var position = shape switch {
+                Alternate => k % 2 == 0 ? -1f : 1f,
+                LeftToRight => 2f * u - 1f,
+                RightToLeft => 1f - 2f * u,
+                _ => 0f
+            };
+            if (power != 1f) {
+                position = MathF.CopySign(MathF.Pow(MathF.Abs(position), power), position);
+            }
+
+            var (left, right) = stereo ? Pan(spread * position) : (1f, 1f);
+            tapLeft[k] = level * left;
+            tapRight[k] = level * right;
+        }
+    }
+
     protected override void OnPrepare(in ProcessSpec spec) =>
         line.Allocate((int)(spec.SampleRate * MaxTimeMs / 1000) + 8);
 
@@ -266,81 +342,5 @@ public sealed class TenTapBlock() : DspBlock(Info) {
         }
 
         output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
-    }
-
-    /// <summary>Learn: a note after a silence of Time starts a pattern; later notes within Time add taps.</summary>
-    void LearnOnset(float peak, float threshold, float release, float time) {
-        onsetEnvelope = peak > onsetEnvelope ? peak : onsetEnvelope * release;
-        if (onsetArmed && onsetEnvelope > threshold) {
-            onsetArmed = false;
-            var elapsed = learnStart < 0 ? double.MaxValue : sampleClock - learnStart;
-            if (elapsed >= time) {
-                learnStart = sampleClock;
-                learnedCount = 0;
-            } else if (learnedCount < MaxTaps && elapsed > 0) {
-                learned[learnedCount++] = (float)(elapsed / time);
-            }
-        } else if (!onsetArmed && onsetEnvelope < 0.5f * threshold) {
-            onsetArmed = true;
-        }
-    }
-
-    void ComputeTapTargets(float time, double tempo) {
-        if ((int)Params.Current(Type) == TenTap) {
-            // Shuffle delays the off-beat taps (1, 3, 5, ... counting the dry note as beat 0) by up to half a step.
-            var taps = Math.Clamp((int)MathF.Round(Params.Current(Taps)), 1, MaxTaps);
-            var swing = Params.Current(Shuffle) / 100f * 0.5f;
-            for (var k = 0; k < MaxTaps; k++) {
-                tapTarget[k] = time * (k + 1 + (k % 2 == 0 ? swing : 0f)) / taps;
-            }
-
-            return;
-        }
-
-        // Rhythm Tap: the learned pattern while Learn is on, otherwise the tap times, quantised if asked.
-        var useLearned = (int)Params.Current(Learn) != LearnOff && learnedCount > 0;
-        var grid = TempoDivisions.Milliseconds((int)Params.Current(Quantize), tempo) * 0.001 * Spec.SampleRate;
-        for (var k = 0; k < MaxTaps; k++) {
-            var position = useLearned ? k < learnedCount ? learned[k] : 1f : Params.Current(Tap1Time + k) / 100f;
-            var samples = time * position;
-            if (grid > 0 && !useLearned) {
-                samples = (float)(Math.Round(samples / grid) * grid);
-            }
-
-            tapTarget[k] = Math.Clamp(samples, FractionalDelayLine.MinDelay, time);
-        }
-    }
-
-    void ComputeTapGains(int taps, bool stereo) {
-        // Positive decay fades the taps out across the pattern, negative fades them in.
-        var decay = Params.Current(Decay) / 100f;
-        var spread = Params.Current(Spread) / 100f;
-        var shape = (int)Params.Current(PanShape);
-        var power = MathF.Pow(2f, 2f * Params.Current(PanAlpha) / 100f);
-        var learnedTaps = (int)Params.Current(Type) == RhythmTap
-            && (int)Params.Current(Learn) != LearnOff
-            && learnedCount > 0;
-        for (var k = 0; k < MaxTaps; k++) {
-            var u = taps > 1 ? k / (taps - 1f) : 0f;
-            var level = decay >= 0 ? 1f - decay * u : 1f + decay * (1f - u);
-            level *= Params.Current(Tap1Level + k) / 100f;
-            if (learnedTaps && k >= learnedCount) {
-                level = 0f;
-            }
-
-            var position = shape switch {
-                Alternate => k % 2 == 0 ? -1f : 1f,
-                LeftToRight => 2f * u - 1f,
-                RightToLeft => 1f - 2f * u,
-                _ => 0f
-            };
-            if (power != 1f) {
-                position = MathF.CopySign(MathF.Pow(MathF.Abs(position), power), position);
-            }
-
-            var (left, right) = stereo ? Pan(spread * position) : (1f, 1f);
-            tapLeft[k] = level * left;
-            tapRight[k] = level * right;
-        }
     }
 }

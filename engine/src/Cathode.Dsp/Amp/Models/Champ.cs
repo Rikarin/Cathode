@@ -37,6 +37,22 @@ public static class Champ {
     public static AmpDesign Design { get; } = Build("Champ 5F1", FirstStage(false, PotTaper.Audio), OpenBack1x8, -10);
 
     /// <summary>
+    ///     V1B: 100k, 1.5k unbypassed (the feedback's return), with its grid-plate capacitance; the output is the plate,
+    ///     into the power amp's 0.02 µF and the 6V6's 220k grid leak.
+    /// </summary>
+    static NetworkStageDesign SecondStage() {
+        var net = new StageNetlist();
+        var (plate, cathode, rail) = (net.Node(), net.Node(), net.Node());
+        net.Supply(rail, 250);
+        net.Resistor(rail, plate, 100e3);
+        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
+        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
+        net.Capacitor(net.Input, plate, Ab763.GridPlate);
+        net.Output = plate;
+        return new("V1B", net);
+    }
+
+    /// <summary>
     ///     The 5F1-family amp: <paramref name="first" /> (V1A and the volume network) into V1B and the single-ended 6V6.
     /// </summary>
     internal static AmpDesign Build(
@@ -115,21 +131,5 @@ public static class Champ {
 
         net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
         net.Capacitor(plate, top, 20e-9);
-    }
-
-    /// <summary>
-    ///     V1B: 100k, 1.5k unbypassed (the feedback's return), with its grid-plate capacitance; the output is the plate,
-    ///     into the power amp's 0.02 µF and the 6V6's 220k grid leak.
-    /// </summary>
-    static NetworkStageDesign SecondStage() {
-        var net = new StageNetlist();
-        var (plate, cathode, rail) = (net.Node(), net.Node(), net.Node());
-        net.Supply(rail, 250);
-        net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(net.Input, plate, Ab763.GridPlate);
-        net.Output = plate;
-        return new("V1B", net);
     }
 }

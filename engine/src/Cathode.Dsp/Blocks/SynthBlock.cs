@@ -146,6 +146,12 @@ public sealed class SynthBlock() : DspBlock(Info) {
     static float Coefficient(double seconds, double rate) =>
         seconds <= 0 ? 1f : (float)(1 - Math.Exp(-1 / (seconds * rate)));
 
+    /// <summary>A VCA following its target with the attack and release; closed and quiet, it snaps to zero.</summary>
+    static float Follow(float amplitude, float target, float attack, float release, bool gate) {
+        amplitude += (target - amplitude) * (target > amplitude ? attack : release);
+        return !gate && amplitude < SilentAmplitude ? 0f : amplitude;
+    }
+
     protected override void OnPrepare(in ProcessSpec spec) {
         tracker.Prepare(spec.SampleRate);
         voicedHold = (int)(VoicedHoldSeconds * spec.SampleRate);
@@ -293,12 +299,6 @@ public sealed class SynthBlock() : DspBlock(Info) {
         }
 
         output.Apply(io, Params.Advance(Level, frames), Params.Advance(Balance, frames));
-    }
-
-    /// <summary>A VCA following its target with the attack and release; closed and quiet, it snaps to zero.</summary>
-    static float Follow(float amplitude, float target, float attack, float release, bool gate) {
-        amplitude += (target - amplitude) * (target > amplitude ? attack : release);
-        return !gate && amplitude < SilentAmplitude ? 0f : amplitude;
     }
 
     /// <summary>

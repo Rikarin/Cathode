@@ -1,6 +1,10 @@
+using System.IO.Compression;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using Cathode.Contracts;
+using Cathode.Dsp.Blocks;
+using Cathode.Dsp.IO;
 using Cathode.Testing;
 using Microsoft.AspNetCore.Mvc;
 
@@ -189,7 +193,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     [Fact]
     public async Task Assets_upload_by_content_and_a_broken_model_is_rolled_back() {
         var ir = new MemoryStream();
-        Cathode.Dsp.IO.WavFile.Write(
+        WavFile.Write(
             ir,
             new(48_000, [Signals.Noise(512, 1).Select((v, i) => v * MathF.Exp(-i / 80f)).ToArray()])
         );
@@ -218,14 +222,14 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     [Fact]
     public async Task A_cab_grid_pack_uploads_into_a_cab_slot_and_plays_as_its_ir_pack() {
         var ir = new MemoryStream();
-        Cathode.Dsp.IO.WavFile.Write(
+        WavFile.Write(
             ir,
             new(48_000, [Signals.Noise(512, 1).Select((v, i) => v * MathF.Exp(-i / 80f)).ToArray()])
         );
         var pack = new MemoryStream();
-        using (var zip = new System.IO.Compression.ZipArchive(
+        using (var zip = new ZipArchive(
                    pack,
-                   System.IO.Compression.ZipArchiveMode.Create,
+                   ZipArchiveMode.Create,
                    true
                )) {
             await using (var wav = await zip.CreateEntry("a.wav").OpenAsync(Token)) {
@@ -243,7 +247,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         var live = await Put("/api/v1/live/blocks/cab1/assets/slot2", new AssetRequest(asset.Ref));
         await Patch(
             "/api/v1/live/blocks/cab1/params",
-            new Dictionary<string, float> { ["m2source"] = Cathode.Dsp.Blocks.CabBlock.SourcePack, ["m2mute"] = 0 }
+            new Dictionary<string, float> { ["m2source"] = CabBlock.SourcePack, ["m2mute"] = 0 }
         );
         using var rejected = await client.PutAsJsonAsync(
             "/api/v1/live/blocks/irplayer1/assets/ir",
@@ -254,10 +258,10 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         Assert.Equal("cabgrid", asset.Kind);
         Assert.Equal(asset.Ref, live.Preset.Blocks.Single(b => b.Id == "cab1").Assets["slot2"]);
         Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
-        await ServerFixture.Eventually(() => (server.Block("cab1") as Cathode.Dsp.Blocks.CabBlock)?.Grid(1)
+        await ServerFixture.Eventually(() => (server.Block("cab1") as CabBlock)?.Grid(1)
             ?.Distances.Count
             == 1
-            && server.Target("cab1", "m2source") == Cathode.Dsp.Blocks.CabBlock.SourcePack
+            && server.Target("cab1", "m2source") == CabBlock.SourcePack
         );
     }
 
@@ -265,7 +269,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     public async Task Moving_a_cab_mic_reaches_the_engine_and_changes_its_ir() {
         await Post("/api/v1/live/blocks", new AddBlockRequest("cab", 0, 4));
         await ServerFixture.Eventually(() => server.Graph?.SlotOf("cab1") >= 0);
-        var cab = (Cathode.Dsp.Blocks.CabBlock)server.Block("cab1");
+        var cab = (CabBlock)server.Block("cab1");
         var before = cab.ImpulseResponse().Left;
 
         var state = await Patch(
@@ -303,7 +307,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         );
 
         var stored = state.Preset.Blocks.Single(b => b.Id == "circuitamp1").Channels["A"];
-        var info = Cathode.Dsp.Blocks.CircuitAmpBlock.Info;
+        var info = CircuitAmpBlock.Info;
         Assert.Equal(info.Params[info.IndexOf("gain")].Default, stored["gain"]);
         Assert.Equal(0, stored["switch1"]); // a control the new model may not even have
         Assert.Equal(info.Params[info.IndexOf("bias")].Default, stored["bias"]);
@@ -331,14 +335,14 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
                                  [0,0,0,0,0,0,0,0]]},
                                {"type":"dense","activation":"","shape":[null,null,1],"weights":[[[0.5],[0.5]],[0]]}]}
                              """;
-        var asset = await Upload("crunch.json", System.Text.Encoding.UTF8.GetBytes(model));
+        var asset = await Upload("crunch.json", Encoding.UTF8.GetBytes(model));
         await Post("/api/v1/live/blocks", new AddBlockRequest("nam", 0, 3));
 
         var live = await Put("/api/v1/live/blocks/nam1/assets/model", new AssetRequest(asset.Ref));
 
         Assert.Equal("aidax", asset.Kind);
         Assert.Equal(asset.Ref, live.Preset.Blocks.Single(b => b.Id == "nam1").Assets["model"]);
-        await ServerFixture.Eventually(() => (server.Block("nam1") as Cathode.Dsp.Blocks.CaptureAmpBlock)?.CaptureModel
+        await ServerFixture.Eventually(() => (server.Block("nam1") as CaptureAmpBlock)?.CaptureModel
             ?.Format
             == "AIDA-X"
         );

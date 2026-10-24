@@ -98,16 +98,11 @@ public sealed unsafe class Looper : IDisposable {
     readonly float* layerLeft;
     readonly float* layerRight;
     readonly ulong* touched; // one bit per sample: reached by the current overdub pass
-    readonly int capacity;
     readonly float fadeStep;
     LooperSettings settings = LooperSettings.Default;
-    int length;
     int extent; // samples [0, extent) may be non-zero
     int start;
     int end;
-    double position;
-    bool reverse;
-    bool half;
     bool layerUndoable;
     float passLevel = 1f;
     float fade;
@@ -116,26 +111,28 @@ public sealed unsafe class Looper : IDisposable {
 
     public LooperState State { get; private set; } = LooperState.Empty;
 
-    public bool IsReversed => reverse;
+    public bool IsReversed { get; private set; }
 
-    public bool IsHalfSpeed => half;
+    public bool IsHalfSpeed { get; private set; }
 
     /// <summary>Loop length in samples (0 when empty).</summary>
-    public int Length => length;
+    public int Length { get; private set; }
 
-    public double Position => position;
+    public double Position { get; private set; }
 
     /// <summary>Capacity in samples.</summary>
-    public int Capacity => capacity;
+    public int Capacity { get; }
+
+    int MaxSamples => settings.MaxSamples > 0 ? Math.Min(settings.MaxSamples, Capacity) : Capacity;
 
     public Looper(double sampleRate, double seconds = DefaultSeconds) {
-        capacity = (int)(Math.Clamp(seconds, 1, MaxSeconds) * sampleRate);
-        var bytes = (nuint)capacity * sizeof(float);
+        Capacity = (int)(Math.Clamp(seconds, 1, MaxSeconds) * sampleRate);
+        var bytes = (nuint)Capacity * sizeof(float);
         baseLeft = (float*)NativeMemory.AllocZeroed(bytes);
         baseRight = (float*)NativeMemory.AllocZeroed(bytes);
         layerLeft = (float*)NativeMemory.AllocZeroed(bytes);
         layerRight = (float*)NativeMemory.AllocZeroed(bytes);
-        touched = (ulong*)NativeMemory.AllocZeroed((nuint)((capacity + 63) / 64), sizeof(ulong));
+        touched = (ulong*)NativeMemory.AllocZeroed((nuint)((Capacity + 63) / 64), sizeof(ulong));
         fadeStep = (float)(1.0 / Math.Max(1.0, FadeMs * 0.001 * sampleRate));
         UpdateWindow();
     }
@@ -144,7 +141,7 @@ public sealed unsafe class Looper : IDisposable {
     public void Configure(in LooperSettings next) {
         settings = next;
         UpdateWindow();
-        if (State == LooperState.Recording && length >= MaxSamples) {
+        if (State == LooperState.Recording && Length >= MaxSamples) {
             Close(LooperState.Playing);
         }
     }
@@ -155,8 +152,8 @@ public sealed unsafe class Looper : IDisposable {
             case LooperAction.Record:
                 if (State == LooperState.Armed) {
                     State = LooperState.Empty;
-                } else if (State is LooperState.Empty or LooperState.Stopped && length == 0) {
-                    position = 0;
+                } else if (State is LooperState.Empty or LooperState.Stopped && Length == 0) {
+                    Position = 0;
                     State = settings.Threshold > 0 ? LooperState.Armed : LooperState.Recording;
                 } else if (State == LooperState.Recording) {
                     switch (settings.SecondPress) {
@@ -171,7 +168,7 @@ public sealed unsafe class Looper : IDisposable {
                             Close(LooperState.Playing);
                             break;
                     }
-                } else if (length > 0) {
+                } else if (Length > 0) {
                     StartOverdub();
                 }
 
@@ -179,9 +176,9 @@ public sealed unsafe class Looper : IDisposable {
             case LooperAction.Play:
                 if (State == LooperState.Recording) {
                     Close(LooperState.Playing);
-                } else if (length > 0) {
+                } else if (Length > 0) {
                     if (State == LooperState.Stopped) {
-                        position = reverse ? end - 1 : start;
+                        Position = IsReversed ? end - 1 : start;
                     }
 
                     State = LooperState.Playing;
@@ -194,7 +191,7 @@ public sealed unsafe class Looper : IDisposable {
                     StartOverdub();
                 } else if (State == LooperState.Overdubbing) {
                     State = LooperState.Playing;
-                } else if (length > 0) {
+                } else if (Length > 0) {
                     StartOverdub();
                 }
 
@@ -204,7 +201,7 @@ public sealed unsafe class Looper : IDisposable {
                     Close(LooperState.Stopped);
                 } else if (State == LooperState.Armed) {
                     State = LooperState.Empty;
-                } else if (length > 0) {
+                } else if (Length > 0) {
                     State = LooperState.Stopped;
                 }
 
@@ -212,7 +209,7 @@ public sealed unsafe class Looper : IDisposable {
             case LooperAction.Undo:
                 if (layerUndoable) {
                     var restore = passLevel > 0 ? 1f / passLevel : 1f;
-                    var words = (length + 63) / 64;
+                    var words = (Length + 63) / 64;
                     for (var w = 0; w < words; w++) {
                         var bits = touched[w];
                         while (bits != 0) {
@@ -236,10 +233,10 @@ public sealed unsafe class Looper : IDisposable {
 
                 break;
             case LooperAction.Reverse:
-                reverse = !reverse;
+                IsReversed = !IsReversed;
                 break;
             case LooperAction.HalfSpeed:
-                half = !half;
+                IsHalfSpeed = !IsHalfSpeed;
                 break;
             case LooperAction.Clear:
                 Clear();
@@ -250,8 +247,8 @@ public sealed unsafe class Looper : IDisposable {
     /// <summary>Audio thread: empties the loop and returns to the initial transport (forward, full speed).</summary>
     public void Reset() {
         Clear();
-        reverse = false;
-        half = false;
+        IsReversed = false;
+        IsHalfSpeed = false;
     }
 
     /// <summary>
@@ -277,10 +274,10 @@ public sealed unsafe class Looper : IDisposable {
 
         var playing = State != LooperState.Stopped;
         fade = playing ? MathF.Min(1f, fade + fadeStep) : MathF.Max(0f, fade - fadeStep);
-        var index = (int)position;
+        var index = (int)Position;
         var span = end - start;
         float playLeft, playRight;
-        if (seamLength > 0 && (reverse || half || settings.Speed != 1 || index != start + seamPosition)) {
+        if (seamLength > 0 && (IsReversed || IsHalfSpeed || settings.Speed != 1 || index != start + seamPosition)) {
             seamLength = 0; // the seam is only blended on a forward first pass at normal speed
         }
 
@@ -295,8 +292,8 @@ public sealed unsafe class Looper : IDisposable {
                 seamLength = 0;
             }
         } else {
-            var next = reverse ? index - 1 < start ? end - 1 : index - 1 : index + 1 >= end ? start : index + 1;
-            var frac = reverse ? 0f : (float)(position - index);
+            var next = IsReversed ? index - 1 < start ? end - 1 : index - 1 : index + 1 >= end ? start : index + 1;
+            var frac = IsReversed ? 0f : (float)(Position - index);
             playLeft = Sample(baseLeft, layerLeft, index, next, frac);
             playRight = Sample(baseRight, layerRight, index, next, frac);
             if (State == LooperState.Overdubbing) {
@@ -307,14 +304,14 @@ public sealed unsafe class Looper : IDisposable {
         }
 
         var output = (playLeft * fade, playRight * fade);
-        position += (reverse ? -1.0 : 1.0) * settings.Speed * (half ? 0.5 : 1.0);
-        if (position >= end || position < start) {
-            var wrapped = (position - start) % span;
-            position = start + (wrapped < 0 ? wrapped + span : wrapped);
+        Position += (IsReversed ? -1.0 : 1.0) * settings.Speed * (IsHalfSpeed ? 0.5 : 1.0);
+        if (Position >= end || Position < start) {
+            var wrapped = (Position - start) % span;
+            Position = start + (wrapped < 0 ? wrapped + span : wrapped);
             if (settings.Once && State == LooperState.Playing) {
                 State = LooperState.Stopped;
                 fade = 0f;
-                position = reverse ? end - 1 : start;
+                Position = IsReversed ? end - 1 : start;
             }
         }
 
@@ -336,9 +333,9 @@ public sealed unsafe class Looper : IDisposable {
 
     /// <summary>Control thread: the loop as it plays (base + layer), for export. Read it while stopped for a clean copy.</summary>
     public (float[] Left, float[] Right) Snapshot() {
-        var left = new float[length];
-        var right = new float[length];
-        for (var i = 0; i < length; i++) {
+        var left = new float[Length];
+        var right = new float[Length];
+        for (var i = 0; i < Length; i++) {
             left[i] = baseLeft[i] + layerLeft[i];
             right[i] = baseRight[i] + layerRight[i];
         }
@@ -354,17 +351,15 @@ public sealed unsafe class Looper : IDisposable {
         NativeMemory.Free(touched);
     }
 
-    int MaxSamples => settings.MaxSamples > 0 ? Math.Min(settings.MaxSamples, capacity) : capacity;
-
     (float Left, float Right) Record(float left, float right) {
-        if (length < MaxSamples) {
-            baseLeft[length] = left;
-            baseRight[length] = right;
-            length++;
-            extent = Math.Max(extent, length);
+        if (Length < MaxSamples) {
+            baseLeft[Length] = left;
+            baseRight[Length] = right;
+            Length++;
+            extent = Math.Max(extent, Length);
         }
 
-        if (length >= MaxSamples) {
+        if (Length >= MaxSamples) {
             Close(LooperState.Playing);
         }
 
@@ -379,8 +374,8 @@ public sealed unsafe class Looper : IDisposable {
         NativeMemory.Clear(layerRight, bytes);
         NativeMemory.Clear(touched, (nuint)((extent + 63) / 64) * sizeof(ulong));
         extent = 0;
-        length = 0;
-        position = 0;
+        Length = 0;
+        Position = 0;
         fade = 0f;
         seamLength = 0;
         layerUndoable = false;
@@ -389,27 +384,27 @@ public sealed unsafe class Looper : IDisposable {
     }
 
     void Close(LooperState next) {
-        if (settings.BeatSamples > 0 && length > 0) {
+        if (settings.BeatSamples > 0 && Length > 0) {
             // Loop Quantize: the nearest whole number of beats that fits; the samples past the recording are silent.
-            var beats = Math.Max(1, (int)Math.Round(length / settings.BeatSamples));
+            var beats = Math.Max(1, (int)Math.Round(Length / settings.BeatSamples));
             while (beats > 1 && (int)Math.Round(beats * settings.BeatSamples) > MaxSamples) {
                 beats--;
             }
 
-            length = Math.Clamp((int)Math.Round(beats * settings.BeatSamples), 1, MaxSamples);
-            extent = Math.Max(extent, length);
+            Length = Math.Clamp((int)Math.Round(beats * settings.BeatSamples), 1, MaxSamples);
+            extent = Math.Max(extent, Length);
         }
 
-        State = length > 0 ? next : LooperState.Empty;
+        State = Length > 0 ? next : LooperState.Empty;
         UpdateWindow();
-        position = reverse && length > 0 ? end - 1 : start;
+        Position = IsReversed && Length > 0 ? end - 1 : start;
         fade = next == LooperState.Stopped ? 0f : 1f;
-        seamLength = start == 0 ? Math.Min(settings.CrossfadeSamples, length / 2) : 0;
+        seamLength = start == 0 ? Math.Min(settings.CrossfadeSamples, Length / 2) : 0;
         seamPosition = 0;
     }
 
     void UpdateWindow() {
-        if (length == 0) {
+        if (Length == 0) {
             start = 0;
             end = 1;
             return;
@@ -417,12 +412,12 @@ public sealed unsafe class Looper : IDisposable {
 
         var a = Math.Clamp(settings.TrimStart, 0f, 1f);
         var b = Math.Clamp(settings.TrimEnd, 0f, 1f);
-        start = Math.Min((int)MathF.Round(Math.Min(a, b) * length), length - 1);
-        end = Math.Clamp((int)MathF.Round(Math.Max(a, b) * length), start + 1, length);
+        start = Math.Min((int)MathF.Round(Math.Min(a, b) * Length), Length - 1);
+        end = Math.Clamp((int)MathF.Round(Math.Max(a, b) * Length), start + 1, Length);
     }
 
     void StartOverdub() {
-        NativeMemory.Clear(touched, (nuint)((length + 63) / 64) * sizeof(ulong));
+        NativeMemory.Clear(touched, (nuint)((Length + 63) / 64) * sizeof(ulong));
         layerUndoable = true;
         passLevel = settings.OverdubLevel;
         State = LooperState.Overdubbing;

@@ -69,7 +69,8 @@ public readonly record struct LoopFilter(
         double OnePole,
         int Sections,
         SvfCoefficients First,
-        SvfCoefficients Second) {
+        SvfCoefficients Second
+    ) {
         /// <summary>
         ///     The largest gain of a cut of <paramref name="slope" /> and resonance <paramref name="q" />: the peak of its
         ///     resonant section, <c>Q / √(1 - 1/(4Q²))</c> above a Q of 1/√2, else unity.

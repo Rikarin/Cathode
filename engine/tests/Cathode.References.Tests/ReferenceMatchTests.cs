@@ -7,10 +7,10 @@ namespace Cathode.References.Tests;
 ///     targets. References not in the local cache are skipped, never failed: CI has no cache, and tests never download.
 /// </summary>
 public class ReferenceMatchTests(ITestOutputHelper output) {
-    static ReferenceManifest Manifest { get; } = ReferenceManifest.Load(ReferenceManifest.Locate());
-
     public static TheoryData<string> Comparable =>
         new(Manifest.References.Where(static r => r.Circuit is not null).Select(static r => r.Id));
+
+    static ReferenceManifest Manifest { get; } = ReferenceManifest.Load(ReferenceManifest.Locate());
 
     [Theory]
     [MemberData(nameof(Comparable))]

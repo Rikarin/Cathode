@@ -31,7 +31,7 @@ namespace Cathode.Dsp.Blocks;
 ///         <item>An 8-band octave graphic EQ (63 Hz to 8 kHz, ±12 dB) follows; flat bands cost nothing.</item>
 ///     </list>
 /// </remarks>
-public sealed class WahBlock : DspBlock {
+public sealed class WahBlock() : DspBlock(Info) {
     public const int Type = 0;
     public const int Position = 1;
     public const int Mix = 2;
@@ -180,9 +180,6 @@ public sealed class WahBlock : DspBlock {
         maxInstances: 2
     );
 
-    public WahBlock()
-        : base(Info) { }
-
     /// <summary>The number of filter-approximation voicings, which come before the circuits.</summary>
     public static int FilterVoicings => Voicings.Length;
 
@@ -201,6 +198,17 @@ public sealed class WahBlock : DspBlock {
 
     /// <summary>The inductance left by Inductor Bias <paramref name="bias" /> (0..1), as a fraction of the unbiased.</summary>
     public static float BiasedInductance(float bias) => 1f - MaxBiasDrop * Math.Clamp(bias, 0f, 1f);
+
+    /// <summary>The pedal position (0..100 %) through the Control Taper: linear, or bunched toward heel or toe.</summary>
+    public static float Tapered(int taper, float position) {
+        var p = Math.Clamp(position, 0f, 100f) / 100f;
+        return 100f
+            * taper switch {
+                1 => p * p,
+                2 => 1 - (1 - p) * (1 - p),
+                _ => p
+            };
+    }
 
     static string[] FilterOnly(string name) => [
         ..Enumerable.Range(0, Voicings.Length + Circuits.Count).Select(t => t < Voicings.Length ? name : string.Empty)
@@ -229,76 +237,6 @@ public sealed class WahBlock : DspBlock {
         }
 
         return x * (1 - mix) + wet * mix;
-    }
-
-    protected override void OnPrepare(in ProcessSpec spec) {
-        circuitLeft = new(Circuits[0], spec.SampleRate);
-        circuitRight = new(Circuits[0], spec.SampleRate);
-        configured = FirstCircuit;
-    }
-
-    protected override void OnReset() {
-        bandLeft.Reset();
-        bandRight.Reset();
-        lowLeft.Reset();
-        lowRight.Reset();
-        lowCut.Reset();
-        foreach (var band in eq) {
-            band.Reset();
-        }
-
-        mix = Params.Current(Mix) / 100f;
-        output.Reset(Params.Current(Level), Params.Current(Balance));
-        var type = (int)Params.Current(Type);
-        if (circuitLeft is null) {
-            return;
-        }
-
-        if (type >= FirstCircuit) {
-            Configure(type);
-        } else {
-            circuitLeft.Reset();
-            circuitRight!.Reset();
-            countdown = 0;
-        }
-    }
-
-    /// <summary>The pedal position (0..100 %) through the Control Taper: linear, or bunched toward heel or toe.</summary>
-    public static float Tapered(int taper, float position) {
-        var p = Math.Clamp(position, 0f, 100f) / 100f;
-        return 100f
-            * taper switch {
-                1 => p * p,
-                2 => 1 - (1 - p) * (1 - p),
-                _ => p
-            };
-    }
-
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
-        var type = (int)Params.Current(Type);
-        lowCut.Design(Spec.SampleRate, Params.Advance(LowCut, io.Length), WetCuts.HighOff);
-        if (Params.Current(LowCut) > WetCuts.LowOff) {
-            // The input coupling capacitor: everything the wah hears, and so its wet and dry alike, loses its lows.
-            for (var i = 0; i < io.Length; i++) {
-                lowCut.Tick(ref io.Left[i], ref io.Right[i]);
-            }
-
-            lowCut.FlushDenormals();
-        }
-
-        if (type >= FirstCircuit) {
-            ProcessCircuit(io, type);
-        } else {
-            ProcessFilter(io, type);
-        }
-
-        for (var b = 0; b < EqBands; b++) {
-            var moving = Params.IsRamping(Eq1 + b);
-            var gain = Params.Advance(Eq1 + b, io.Length);
-            eq[b].Process(io, BiquadType.Peak, Spec.SampleRate, EqFrequencies[b], EqQ, gain, moving);
-        }
-
-        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 
     void ProcessFilter(in StereoBuffer io, int type) {
@@ -394,5 +332,64 @@ public sealed class WahBlock : DspBlock {
         circuitRight.SetPosition(toe);
         configured = type;
         countdown = SubBlock;
+    }
+
+    protected override void OnPrepare(in ProcessSpec spec) {
+        circuitLeft = new(Circuits[0], spec.SampleRate);
+        circuitRight = new(Circuits[0], spec.SampleRate);
+        configured = FirstCircuit;
+    }
+
+    protected override void OnReset() {
+        bandLeft.Reset();
+        bandRight.Reset();
+        lowLeft.Reset();
+        lowRight.Reset();
+        lowCut.Reset();
+        foreach (var band in eq) {
+            band.Reset();
+        }
+
+        mix = Params.Current(Mix) / 100f;
+        output.Reset(Params.Current(Level), Params.Current(Balance));
+        var type = (int)Params.Current(Type);
+        if (circuitLeft is null) {
+            return;
+        }
+
+        if (type >= FirstCircuit) {
+            Configure(type);
+        } else {
+            circuitLeft.Reset();
+            circuitRight!.Reset();
+            countdown = 0;
+        }
+    }
+
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        var type = (int)Params.Current(Type);
+        lowCut.Design(Spec.SampleRate, Params.Advance(LowCut, io.Length), WetCuts.HighOff);
+        if (Params.Current(LowCut) > WetCuts.LowOff) {
+            // The input coupling capacitor: everything the wah hears, and so its wet and dry alike, loses its lows.
+            for (var i = 0; i < io.Length; i++) {
+                lowCut.Tick(ref io.Left[i], ref io.Right[i]);
+            }
+
+            lowCut.FlushDenormals();
+        }
+
+        if (type >= FirstCircuit) {
+            ProcessCircuit(io, type);
+        } else {
+            ProcessFilter(io, type);
+        }
+
+        for (var b = 0; b < EqBands; b++) {
+            var moving = Params.IsRamping(Eq1 + b);
+            var gain = Params.Advance(Eq1 + b, io.Length);
+            eq[b].Process(io, BiquadType.Peak, Spec.SampleRate, EqFrequencies[b], EqQ, gain, moving);
+        }
+
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 }

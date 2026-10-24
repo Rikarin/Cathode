@@ -98,13 +98,14 @@ public class SpectrumTests {
 
         var a = MinimumPhase.MagnitudeDb(first, ToneMatchDesign.GridSize);
         var b = MinimumPhase.MagnitudeDb(second, ToneMatchDesign.GridSize);
-        for (var k = 20; k < 1_400; k += 20) { // 230 Hz to 16 kHz
+        for (var k = 20; k < 1_400; k += 20) {
+            // 230 Hz to 16 kHz
             Assert.Equal(a[k], b[k], 1.0);
         }
     }
 
     static double[] Mean(float[] signal) {
-        var spectrum = new PowerSpectrum(ToneMatchDesign.GridSize);
+        var spectrum = new PowerSpectrum();
         spectrum.AddSignal(signal);
         return spectrum.Mean();
     }

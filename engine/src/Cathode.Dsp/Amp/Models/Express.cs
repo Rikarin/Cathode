@@ -69,7 +69,7 @@ public static class Express {
             1.5e3,
             0,
             new(1e6, PotTaper.Linear),
-            new(1, 100e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 90),
+            new(1, 100e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6),
             true,
             new(6.6e3),
             SpeakerDesign.Closed4x12,

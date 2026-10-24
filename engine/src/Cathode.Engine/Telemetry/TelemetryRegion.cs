@@ -40,6 +40,9 @@ public sealed unsafe class TelemetryRegion : IDisposable {
 
     public double SampleRate => layout->SampleRate;
 
+    /// <summary>How many samples an RTA block has written in all; it stops growing when no block is running.</summary>
+    public long AnalyzerWritten => Volatile.Read(ref layout->AnalyzerWritten);
+
     TelemetryRegion(
         TelemetryLayout* layout,
         string? path,
@@ -172,19 +175,6 @@ public sealed unsafe class TelemetryRegion : IDisposable {
     public void WriteAnalyzer(ReadOnlySpan<float> samples) =>
         Write(ref layout->AnalyzerWritten, layout->Analyzer, samples);
 
-    /// <summary>How many samples an RTA block has written in all; it stops growing when no block is running.</summary>
-    public long AnalyzerWritten => Volatile.Read(ref layout->AnalyzerWritten);
-
-    static void Write(ref long writtenField, float* ring, ReadOnlySpan<float> samples) {
-        var written = writtenField;
-        var span = new Span<float>(ring, TelemetryLayout.ScopeLength);
-        foreach (var sample in samples) {
-            span[(int)(written++ % TelemetryLayout.ScopeLength)] = sample;
-        }
-
-        Volatile.Write(ref writtenField, written);
-    }
-
     /// <summary>
     ///     Copies the most recent <paramref name="destination" />.Length output samples (at most
     ///     <see cref="TelemetryLayout.ScopeLength" /> / 2). Returns false until that many have been written, or if the
@@ -195,28 +185,6 @@ public sealed unsafe class TelemetryRegion : IDisposable {
     /// <summary>As <see cref="ReadScope" />, from the RTA block's ring.</summary>
     public bool ReadAnalyzer(Span<float> destination) =>
         Read(ref layout->AnalyzerWritten, layout->Analyzer, destination);
-
-    static bool Read(ref long writtenField, float* ring, Span<float> destination) {
-        var count = Math.Min(destination.Length, TelemetryLayout.ScopeLength / 2);
-        for (var attempt = 0; attempt < 8; attempt++) {
-            var end = Volatile.Read(ref writtenField);
-            if (end < count) {
-                return false;
-            }
-
-            for (var i = 0; i < count; i++) {
-                destination[i] = ring[(end - count + i) % TelemetryLayout.ScopeLength];
-            }
-
-            Interlocked.MemoryBarrier();
-            // Valid if the writer has not wrapped round onto the oldest sample copied.
-            if (Volatile.Read(ref writtenField) - end <= TelemetryLayout.ScopeLength - count) {
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     /// <summary>Host control thread: publish the driver's cumulative overload (xrun) count.</summary>
     public void SetDriverOverloads(long count) => Volatile.Write(ref layout->DriverOverloads, count);
@@ -275,6 +243,38 @@ public sealed unsafe class TelemetryRegion : IDisposable {
         }
 
         layout = null;
+    }
+
+    static void Write(ref long writtenField, float* ring, ReadOnlySpan<float> samples) {
+        var written = writtenField;
+        var span = new Span<float>(ring, TelemetryLayout.ScopeLength);
+        foreach (var sample in samples) {
+            span[(int)(written++ % TelemetryLayout.ScopeLength)] = sample;
+        }
+
+        Volatile.Write(ref writtenField, written);
+    }
+
+    static bool Read(ref long writtenField, float* ring, Span<float> destination) {
+        var count = Math.Min(destination.Length, TelemetryLayout.ScopeLength / 2);
+        for (var attempt = 0; attempt < 8; attempt++) {
+            var end = Volatile.Read(ref writtenField);
+            if (end < count) {
+                return false;
+            }
+
+            for (var i = 0; i < count; i++) {
+                destination[i] = ring[(end - count + i) % TelemetryLayout.ScopeLength];
+            }
+
+            Interlocked.MemoryBarrier();
+            // Valid if the writer has not wrapped round onto the oldest sample copied.
+            if (Volatile.Read(ref writtenField) - end <= TelemetryLayout.ScopeLength - count) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     static byte* Acquire(MemoryMappedViewAccessor view) {

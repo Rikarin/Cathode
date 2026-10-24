@@ -1,3 +1,5 @@
+using Cathode.Dsp.Parameters;
+
 namespace Cathode.Dsp;
 
 /// <summary>Small stereo helpers shared by the blocks' common parameters.</summary>
@@ -48,8 +50,8 @@ public static class Stereo {
     }
 
     /// <summary>The Stereo Spread parameter (−200..200 %, default 100 %: the pair as it is).</summary>
-    public static Parameters.ParamDescriptor SpreadParam(string id = "stereoSpread", string name = "Stereo Spread") =>
-        Parameters.ParamDescriptor.Float(id, name, -200f, 200f, 100f, "%");
+    public static ParamDescriptor SpreadParam(string id = "stereoSpread", string name = "Stereo Spread") =>
+        ParamDescriptor.Float(id, name, -200f, 200f, 100f, "%");
 
     /// <summary>
     ///     Stereo Spread on a wet pair, as a gain on its side (difference) signal with the mid kept: 1 leaves it as it

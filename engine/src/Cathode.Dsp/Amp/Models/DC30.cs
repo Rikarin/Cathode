@@ -57,7 +57,7 @@ public static class DC30 {
             1.5e3,
             2.2e-9,
             new(250e3, PotTaper.ReverseAudio), // log track, its resistance falling fastest as the cut comes in
-            new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6, 90),
+            new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6),
             false,
             new(4e3),
             SpeakerDesign.OpenBack2x12,

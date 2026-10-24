@@ -156,6 +156,66 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
         channels: 2
     );
 
+    /// <summary>One sample of voice <paramref name="v" />: its comb, with its band-pass before or after it.</summary>
+    float Voice(int v, DampedComb comb, ref SvfState state, float input) {
+        var location = this.location[v];
+        if (location == FilterPre) {
+            input = (float)state.Tick(band[v], input);
+        }
+
+        var ring = comb.Tick(input * inputGain[v], delay[v], feedback[v], damping[v]);
+        return location == FilterPost ? (float)state.Tick(band[v], ring) : ring;
+    }
+
+    /// <summary>
+    ///     Advances the parameters by <paramref name="frames" /> and derives each voice's loop: delay (the period less
+    ///     the loop filter's phase delay), feedback for the decay time, input normalisation, and pan gains.
+    /// </summary>
+    void Update(int frames) {
+        var rate = Spec.SampleRate;
+        var chord = Params.Current(Tuning) < 0.5f ? ChordIntervals[(int)Params.Current(Chord)] : null;
+        var root = Params.Advance(Root, frames);
+        var t60 = Params.Advance(Decay, frames);
+        var cutoff = OpenCutoff * Math.Pow(ClosedCutoff / OpenCutoff, Params.Advance(Damping, frames) / 100.0);
+        var a = Math.Exp(-2 * Math.PI * cutoff / rate);
+        var maxFrequency = Math.Min(MaxFrequency, rate * 0.45);
+        var masterLevel = Decibels.ToGain(Params.Advance(MasterLevel, frames));
+        var masterPan = Params.Advance(MasterPan, frames) / 100f;
+        var masterFeedback = Params.Advance(MasterFeedback, frames) / 100.0;
+        var masterQ = Params.Advance(MasterQ, frames);
+        var stereo = (int)Params.Current(InputMode) == 1;
+
+        for (var v = 0; v < Voices; v++) {
+            var free = Params.Advance(Frequency1 + v, frames);
+            var frequency = chord is null ? free : 440 * Math.Pow(2, (root + chord[v] - 69) / 12.0);
+            frequency = Math.Clamp(frequency, MinFrequency, maxFrequency);
+            var scale = Params.Advance(Feedback1 + v, frames) / 100.0 * masterFeedback;
+            var g = Math.Min(MaxLoopGain, Math.Pow(10, -3 / (t60 * frequency)) * scale);
+            delay[v] = (float)(rate / frequency - DampedComb.PhaseDelay(a, frequency, rate));
+            feedback[v] = (float)g;
+            inputGain[v] = (float)Math.Sqrt(1 - g * g);
+            damping[v] = (float)a;
+            location[v] = (int)Params.Current(FilterLocation1 + v);
+            var q = Params.Advance(FilterQ1 + v, frames) * masterQ;
+            if (location[v] != FilterOff) {
+                band[v] = SvfCoefficients.Design(BiquadType.BandPass, rate, frequency, q);
+            }
+
+            // Constant-power pan (a balance in stereo); four voices summed at half gain keep a broadband input near unity.
+            var gain = 0.5f * Decibels.ToGain(Params.Advance(Level1 + v, frames)) * masterLevel;
+            var pan = Params.Advance(Pan1 + v, frames) / 100f * masterPan;
+            if (stereo) {
+                (nextLeft[v], nextRight[v]) = OutputStage.Gains(0f, 100f * pan);
+                nextLeft[v] *= gain;
+                nextRight[v] *= gain;
+            } else {
+                var angle = (pan + 1) * MathF.PI / 4;
+                nextLeft[v] = gain * MathF.Sqrt(2) * MathF.Cos(angle);
+                nextRight[v] = gain * MathF.Sqrt(2) * MathF.Sin(angle);
+            }
+        }
+    }
+
     protected override void OnPrepare(in ProcessSpec spec) {
         var capacity = (int)Math.Ceiling(spec.SampleRate / MinFrequency) + 4;
         foreach (var comb in combs.Concat(combsRight)) {
@@ -248,65 +308,5 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
 
         this.mix = mix;
         output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
-    }
-
-    /// <summary>One sample of voice <paramref name="v" />: its comb, with its band-pass before or after it.</summary>
-    float Voice(int v, DampedComb comb, ref SvfState state, float input) {
-        var location = this.location[v];
-        if (location == FilterPre) {
-            input = (float)state.Tick(band[v], input);
-        }
-
-        var ring = comb.Tick(input * inputGain[v], delay[v], feedback[v], damping[v]);
-        return location == FilterPost ? (float)state.Tick(band[v], ring) : ring;
-    }
-
-    /// <summary>
-    ///     Advances the parameters by <paramref name="frames" /> and derives each voice's loop: delay (the period less
-    ///     the loop filter's phase delay), feedback for the decay time, input normalisation, and pan gains.
-    /// </summary>
-    void Update(int frames) {
-        var rate = Spec.SampleRate;
-        var chord = Params.Current(Tuning) < 0.5f ? ChordIntervals[(int)Params.Current(Chord)] : null;
-        var root = Params.Advance(Root, frames);
-        var t60 = Params.Advance(Decay, frames);
-        var cutoff = OpenCutoff * Math.Pow(ClosedCutoff / OpenCutoff, Params.Advance(Damping, frames) / 100.0);
-        var a = Math.Exp(-2 * Math.PI * cutoff / rate);
-        var maxFrequency = Math.Min(MaxFrequency, rate * 0.45);
-        var masterLevel = Decibels.ToGain(Params.Advance(MasterLevel, frames));
-        var masterPan = Params.Advance(MasterPan, frames) / 100f;
-        var masterFeedback = Params.Advance(MasterFeedback, frames) / 100.0;
-        var masterQ = Params.Advance(MasterQ, frames);
-        var stereo = (int)Params.Current(InputMode) == 1;
-
-        for (var v = 0; v < Voices; v++) {
-            var free = Params.Advance(Frequency1 + v, frames);
-            var frequency = chord is null ? free : 440 * Math.Pow(2, (root + chord[v] - 69) / 12.0);
-            frequency = Math.Clamp(frequency, MinFrequency, maxFrequency);
-            var scale = Params.Advance(Feedback1 + v, frames) / 100.0 * masterFeedback;
-            var g = Math.Min(MaxLoopGain, Math.Pow(10, -3 / (t60 * frequency)) * scale);
-            delay[v] = (float)(rate / frequency - DampedComb.PhaseDelay(a, frequency, rate));
-            feedback[v] = (float)g;
-            inputGain[v] = (float)Math.Sqrt(1 - g * g);
-            damping[v] = (float)a;
-            location[v] = (int)Params.Current(FilterLocation1 + v);
-            var q = Params.Advance(FilterQ1 + v, frames) * masterQ;
-            if (location[v] != FilterOff) {
-                band[v] = SvfCoefficients.Design(BiquadType.BandPass, rate, frequency, q);
-            }
-
-            // Constant-power pan (a balance in stereo); four voices summed at half gain keep a broadband input near unity.
-            var gain = 0.5f * Decibels.ToGain(Params.Advance(Level1 + v, frames)) * masterLevel;
-            var pan = Params.Advance(Pan1 + v, frames) / 100f * masterPan;
-            if (stereo) {
-                (nextLeft[v], nextRight[v]) = OutputStage.Gains(0f, 100f * pan);
-                nextLeft[v] *= gain;
-                nextRight[v] *= gain;
-            } else {
-                var angle = (pan + 1) * MathF.PI / 4;
-                nextLeft[v] = gain * MathF.Sqrt(2) * MathF.Cos(angle);
-                nextRight[v] = gain * MathF.Sqrt(2) * MathF.Sin(angle);
-            }
-        }
     }
 }

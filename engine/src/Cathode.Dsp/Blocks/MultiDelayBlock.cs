@@ -362,6 +362,112 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
         return division > 0 ? Math.Min(MaxTimeMs, (float)division) : timeMs;
     }
 
+    static double Wrap(double phase) => phase >= 2 * Math.PI ? phase - 2 * Math.PI : phase;
+
+    /// <summary>A voice's filter, comb and ring modulator.</summary>
+    float Process(int k, float y) {
+        if (filterType[k] != FilterOff) {
+            y = (float)filterState[k].Tick(filterCoefficients[k], y);
+        }
+
+        if (combFeedback[k] != 0) {
+            // Normalised feedback comb: the peaks stay at unity whatever the feedback.
+            var g = combFeedback[k];
+            y = (1f - MathF.Abs(g)) * y + g * combs[k].Read(combDelay[k]);
+            combs[k].Write(y);
+        }
+
+        if (ringMix[k] > 0) {
+            y *= 1f - ringMix[k] + ringMix[k] * (float)Math.Sin(ringPhase[k]);
+            ringPhase[k] = Wrap(ringPhase[k] + ringStep[k]);
+        }
+
+        return y;
+    }
+
+    void Write(int line, float value, in LoopFilter loop, float drive, bool tape) {
+        if (loop.Active) {
+            value = loopState[line].Tick(loop, value);
+        }
+
+        if (drive > 0) {
+            var gain = 1f + drive;
+            value = MathF.Tanh(value * gain) / gain;
+        }
+
+        if (tape) {
+            value = MathF.Tanh(value * 0.8f) / 0.8f; // tape headroom: repeats compress instead of building up
+        }
+
+        lines[line].Write(DelayBlock.Limit(value));
+    }
+
+    void DesignFilters(float sampleRate, float frequencyScale) {
+        for (var k = 0; k < Voices; k++) {
+            if (filterType[k] == FilterOff) {
+                continue;
+            }
+
+            var type = filterType[k] switch {
+                FilterLowPass => BiquadType.LowPass,
+                FilterHighPass => BiquadType.HighPass,
+                FilterBandPass => BiquadType.BandPass,
+                _ => BiquadType.Peak
+            };
+            filterCoefficients[k] = SvfCoefficients.Design(
+                type,
+                sampleRate,
+                filterFrequency[k] * frequencyScale,
+                filterQ[k],
+                filterGain[k]
+            );
+        }
+    }
+
+    void ClearState() {
+        for (var k = 0; k < Voices; k++) {
+            lines[k].Reset();
+            combs[k].Reset();
+            loopState[k].Reset();
+            filterState[k].Reset();
+            chorusPhase[k] = 0;
+            ringPhase[k] = 0;
+            voice[k] = 0;
+        }
+
+        diffuser.Clear();
+        ducker.Reset();
+        envelope.Reset();
+        lfo1.Reset();
+        lfo2.Reset();
+        filterLfo.Reset();
+        filterCounter = 0;
+        wowPhase = 0;
+        flutterPhase = 0;
+    }
+
+    /// <summary>The voices' read delays in samples: a percentage of the master time, or the voice's own tempo.</summary>
+    void ComputeTapTargets(int type, float masterTimeMs, double tempo, float motor) {
+        var longest = capacity
+            - 8
+            - (MaxScale * (MaxChorusMs + 2 * MaxLfoMs) * 2 + 20) * 0.001f * (float)Spec.SampleRate;
+        for (var k = 0; k < Voices; k++) {
+            var ms = Milliseconds(Tap1Tempo + k, masterTimeMs * Params.Current(Tap1Time + k) / 100f, tempo);
+            var samples = ms * 0.001f * (float)Spec.SampleRate;
+            tapTarget[k] = Math.Min(longest, type == QuadTape && motor != 1f ? samples / motor : samples);
+        }
+    }
+
+    void FlushDenormals() {
+        for (var k = 0; k < Voices; k++) {
+            loopState[k].FlushDenormals();
+            filterState[k].FlushDenormals();
+        }
+
+        ducker.FlushDenormals();
+        envelope.FlushDenormals();
+    }
+
     protected override void OnPrepare(in ProcessSpec spec) {
         // The longest voice plus the widest modulation (chorus and both LFOs at the master scalers' top, kept positive).
         var margin = MaxScale * (MaxChorusMs + 2 * MaxLfoMs) * 2 + 20;
@@ -660,111 +766,5 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
         FlushDenormals();
 
         output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
-    }
-
-    static double Wrap(double phase) => phase >= 2 * Math.PI ? phase - 2 * Math.PI : phase;
-
-    /// <summary>A voice's filter, comb and ring modulator.</summary>
-    float Process(int k, float y) {
-        if (filterType[k] != FilterOff) {
-            y = (float)filterState[k].Tick(filterCoefficients[k], y);
-        }
-
-        if (combFeedback[k] != 0) {
-            // Normalised feedback comb: the peaks stay at unity whatever the feedback.
-            var g = combFeedback[k];
-            y = (1f - MathF.Abs(g)) * y + g * combs[k].Read(combDelay[k]);
-            combs[k].Write(y);
-        }
-
-        if (ringMix[k] > 0) {
-            y *= 1f - ringMix[k] + ringMix[k] * (float)Math.Sin(ringPhase[k]);
-            ringPhase[k] = Wrap(ringPhase[k] + ringStep[k]);
-        }
-
-        return y;
-    }
-
-    void Write(int line, float value, in LoopFilter loop, float drive, bool tape) {
-        if (loop.Active) {
-            value = loopState[line].Tick(loop, value);
-        }
-
-        if (drive > 0) {
-            var gain = 1f + drive;
-            value = MathF.Tanh(value * gain) / gain;
-        }
-
-        if (tape) {
-            value = MathF.Tanh(value * 0.8f) / 0.8f; // tape headroom: repeats compress instead of building up
-        }
-
-        lines[line].Write(DelayBlock.Limit(value));
-    }
-
-    void DesignFilters(float sampleRate, float frequencyScale) {
-        for (var k = 0; k < Voices; k++) {
-            if (filterType[k] == FilterOff) {
-                continue;
-            }
-
-            var type = filterType[k] switch {
-                FilterLowPass => BiquadType.LowPass,
-                FilterHighPass => BiquadType.HighPass,
-                FilterBandPass => BiquadType.BandPass,
-                _ => BiquadType.Peak
-            };
-            filterCoefficients[k] = SvfCoefficients.Design(
-                type,
-                sampleRate,
-                filterFrequency[k] * frequencyScale,
-                filterQ[k],
-                filterGain[k]
-            );
-        }
-    }
-
-    void ClearState() {
-        for (var k = 0; k < Voices; k++) {
-            lines[k].Reset();
-            combs[k].Reset();
-            loopState[k].Reset();
-            filterState[k].Reset();
-            chorusPhase[k] = 0;
-            ringPhase[k] = 0;
-            voice[k] = 0;
-        }
-
-        diffuser.Clear();
-        ducker.Reset();
-        envelope.Reset();
-        lfo1.Reset();
-        lfo2.Reset();
-        filterLfo.Reset();
-        filterCounter = 0;
-        wowPhase = 0;
-        flutterPhase = 0;
-    }
-
-    /// <summary>The voices' read delays in samples: a percentage of the master time, or the voice's own tempo.</summary>
-    void ComputeTapTargets(int type, float masterTimeMs, double tempo, float motor) {
-        var longest = capacity
-            - 8
-            - (MaxScale * (MaxChorusMs + 2 * MaxLfoMs) * 2 + 20) * 0.001f * (float)Spec.SampleRate;
-        for (var k = 0; k < Voices; k++) {
-            var ms = Milliseconds(Tap1Tempo + k, masterTimeMs * Params.Current(Tap1Time + k) / 100f, tempo);
-            var samples = ms * 0.001f * (float)Spec.SampleRate;
-            tapTarget[k] = Math.Min(longest, type == QuadTape && motor != 1f ? samples / motor : samples);
-        }
-    }
-
-    void FlushDenormals() {
-        for (var k = 0; k < Voices; k++) {
-            loopState[k].FlushDenormals();
-            filterState[k].FlushDenormals();
-        }
-
-        ducker.FlushDenormals();
-        envelope.FlushDenormals();
     }
 }

@@ -28,16 +28,17 @@ public class GuitarMlLstmModelTests {
         var linearBias = 0.01f;
 
         var proteus = new JsonObject {
-            ["model_data"] = new JsonObject {
-                ["model"] = "SimpleRNN",
-                ["input_size"] = 1,
-                ["skip"] = 1,
-                ["output_size"] = 1,
-                ["unit_type"] = "LSTM",
-                ["num_layers"] = 1,
-                ["hidden_size"] = Hidden,
-                ["bias_fl"] = true
-            },
+            ["model_data"] =
+                new JsonObject {
+                    ["model"] = "SimpleRNN",
+                    ["input_size"] = 1,
+                    ["skip"] = 1,
+                    ["output_size"] = 1,
+                    ["unit_type"] = "LSTM",
+                    ["num_layers"] = 1,
+                    ["hidden_size"] = Hidden,
+                    ["bias_fl"] = true
+                },
             ["state_dict"] = new JsonObject {
                 ["rec.weight_ih_l0"] = Json(weightIh),
                 ["rec.weight_hh_l0"] = Json(weightHh),

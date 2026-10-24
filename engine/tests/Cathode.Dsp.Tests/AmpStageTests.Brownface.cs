@@ -45,37 +45,6 @@ public partial class AmpStageTests {
             { "Scout GA-17RVT", false, 0.01, -35 }
         };
 
-    static AmpControls StreamCControls(string flags) =>
-        new(
-            0.6,
-            0.4,
-            0.7,
-            0.6,
-            0.8,
-            flags.Contains('b', StringComparison.Ordinal),
-            0.3,
-            Switch1: flags.Contains('v', StringComparison.Ordinal),
-            Switch2: flags.Contains('m', StringComparison.Ordinal)
-        );
-
-    /// <summary>The playing chain, with the channel switch's chosen path in place of the switch.</summary>
-    static List<AmpStageDesign> PlayingChain(string model, in AmpControls controls) {
-        var on = controls.Switch1;
-        return AmpDesign.All.Single(a => a.Name == model)
-            .Preamp
-            .SelectMany(s => s is ChannelSwitchStageDesign c ? on ? c.On : c.Off : [s])
-            .ToList();
-    }
-
-    /// <summary>A stage as the netlist the reference simulator runs (the vibrato's network with its sources at rest).</summary>
-    static NetworkStageDesign AsNetwork(AmpStageDesign stage) =>
-        stage switch {
-            NetworkStageDesign network => network,
-            HarmonicVibratoStageDesign vibrato => vibrato.Network,
-            TriodeStageDesign triode => triode.ToNetwork(),
-            _ => throw new InvalidOperationException(stage.Name)
-        };
-
     [Theory]
     [MemberData(nameof(StreamCNetworks))]
     public void Stream_c_stages_match_the_reference_in_the_time_domain(string model, string stage, double amplitude) {
@@ -160,4 +129,35 @@ public partial class AmpStageTests {
         );
         Assert.True(errorDb < limitDb, $"{model}: {errorDb:0.0} dB from the reference");
     }
+
+    static AmpControls StreamCControls(string flags) =>
+        new(
+            0.6,
+            0.4,
+            0.7,
+            0.6,
+            0.8,
+            flags.Contains('b', StringComparison.Ordinal),
+            0.3,
+            Switch1: flags.Contains('v', StringComparison.Ordinal),
+            Switch2: flags.Contains('m', StringComparison.Ordinal)
+        );
+
+    /// <summary>The playing chain, with the channel switch's chosen path in place of the switch.</summary>
+    static List<AmpStageDesign> PlayingChain(string model, in AmpControls controls) {
+        var on = controls.Switch1;
+        return AmpDesign.All.Single(a => a.Name == model)
+            .Preamp
+            .SelectMany(s => s is ChannelSwitchStageDesign c ? on ? c.On : c.Off : [s])
+            .ToList();
+    }
+
+    /// <summary>A stage as the netlist the reference simulator runs (the vibrato's network with its sources at rest).</summary>
+    static NetworkStageDesign AsNetwork(AmpStageDesign stage) =>
+        stage switch {
+            NetworkStageDesign network => network,
+            HarmonicVibratoStageDesign vibrato => vibrato.Network,
+            TriodeStageDesign triode => triode.ToNetwork(),
+            _ => throw new InvalidOperationException(stage.Name)
+        };
 }

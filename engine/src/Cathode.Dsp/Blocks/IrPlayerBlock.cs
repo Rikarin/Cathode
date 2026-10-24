@@ -192,117 +192,6 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
         }
     }
 
-    protected override void OnPrepare(in ProcessSpec spec) {
-        lock (sync) {
-            mixLeft.Dispose();
-            mixRight.Dispose();
-            scratch.Dispose();
-            wetLeft.Dispose();
-            wetRight.Dispose();
-            mixLeft = new(MaxIrLength);
-            mixRight = new(MaxIrLength);
-            scratch = new(2 * MaxIrLength);
-            wetLeft = new(spec.MaxBlockSize);
-            wetRight = new(spec.MaxBlockSize);
-            for (var s = 0; s < Slots; s++) {
-                prepared[s] = files[s]?.Prepare(spec.SampleRate, Shape);
-            }
-
-            ready = true;
-            stale = true;
-            ReadTargets();
-            switcher.Prepare(spec, Build());
-        }
-    }
-
-    protected override void OnReset() {
-        switcher.Reset();
-        lowCutLeft.Reset();
-        lowCutRight.Reset();
-        highCutLeft.Reset();
-        highCutRight.Reset();
-        mix = Params.Current(Mix) / 100f;
-        output.Reset(Params.Current(Level), Params.Current(Balance));
-    }
-
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
-        var mix = Params.Advance(Mix, io.Length) / 100f;
-        var lowCut = Params.Advance(LowCut, io.Length);
-        var highCut = Params.Advance(HighCut, io.Length);
-        var lowSlope = (int)Params.Current(LowSlope);
-        var highSlope = (int)Params.Current(HighSlope);
-        if (playing) {
-            var left = wetLeft.Span[..io.Length];
-            var right = wetRight.Span[..io.Length];
-            switch ((int)Params.Current(Input)) {
-                case InputSum:
-                    for (var i = 0; i < io.Length; i++) {
-                        left[i] = right[i] = 0.5f * (io.Left[i] + io.Right[i]);
-                    }
-
-                    break;
-                case InputLeft:
-                    io.Left.CopyTo(left);
-                    io.Left.CopyTo(right);
-                    break;
-                case InputRight:
-                    io.Right.CopyTo(left);
-                    io.Right.CopyTo(right);
-                    break;
-                default:
-                    io.Left.CopyTo(left);
-                    io.Right.CopyTo(right);
-                    break;
-            }
-
-            switcher.Process(left, right);
-            if (lowCut > CabBlock.LowCutOff) {
-                var c = CutFilter.Design(true, Spec.SampleRate, lowCut, lowSlope);
-                lowCutLeft.Process(c, left);
-                lowCutRight.Process(c, right);
-            }
-
-            if (highCut < CabBlock.HighCutOff) {
-                var c = CutFilter.Design(false, Spec.SampleRate, highCut, highSlope);
-                highCutLeft.Process(c, left);
-                highCutRight.Process(c, right);
-            }
-
-            Blend(io.Left, left, this.mix, mix);
-            Blend(io.Right, right, this.mix, mix);
-        }
-
-        this.mix = mix;
-        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
-    }
-
-    protected override void Dispose(bool disposing) {
-        if (disposing) {
-            lock (sync) {
-                disposed = true;
-                switcher.Dispose();
-                series?.Dispose();
-                mixLeft.Dispose();
-                mixRight.Dispose();
-                scratch.Dispose();
-                wetLeft.Dispose();
-                wetRight.Dispose();
-            }
-        }
-
-        base.Dispose(disposing);
-    }
-
-    /// <summary><c>dry = dry + (wet - dry) * mix</c>, with the mix ramped across the block.</summary>
-    internal static void Blend(Span<float> dry, ReadOnlySpan<float> wet, float from, float to) {
-        var step = (to - from) / dry.Length;
-        var mix = from;
-        for (var i = 0; i < dry.Length; i++) {
-            mix += step;
-            dry[i] += (wet[i] - dry[i]) * mix;
-        }
-    }
-
     static IEnumerable<ParamDescriptor> Slot(int n) => [
         ParamDescriptor.Float($"length{n}", $"IR {n} Length", 5f, FullLengthMs, FullLengthMs, "ms", ParamTaper.Log),
         ParamDescriptor.Float($"level{n}", $"IR {n} Level", Decibels.SilenceDb, 12f, 0f, "dB"),
@@ -420,6 +309,117 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
         }
 
         return shaped;
+    }
+
+    /// <summary><c>dry = dry + (wet - dry) * mix</c>, with the mix ramped across the block.</summary>
+    internal static void Blend(Span<float> dry, ReadOnlySpan<float> wet, float from, float to) {
+        var step = (to - from) / dry.Length;
+        var mix = from;
+        for (var i = 0; i < dry.Length; i++) {
+            mix += step;
+            dry[i] += (wet[i] - dry[i]) * mix;
+        }
+    }
+
+    protected override void OnPrepare(in ProcessSpec spec) {
+        lock (sync) {
+            mixLeft.Dispose();
+            mixRight.Dispose();
+            scratch.Dispose();
+            wetLeft.Dispose();
+            wetRight.Dispose();
+            mixLeft = new(MaxIrLength);
+            mixRight = new(MaxIrLength);
+            scratch = new(2 * MaxIrLength);
+            wetLeft = new(spec.MaxBlockSize);
+            wetRight = new(spec.MaxBlockSize);
+            for (var s = 0; s < Slots; s++) {
+                prepared[s] = files[s]?.Prepare(spec.SampleRate, Shape);
+            }
+
+            ready = true;
+            stale = true;
+            ReadTargets();
+            switcher.Prepare(spec, Build());
+        }
+    }
+
+    protected override void OnReset() {
+        switcher.Reset();
+        lowCutLeft.Reset();
+        lowCutRight.Reset();
+        highCutLeft.Reset();
+        highCutRight.Reset();
+        mix = Params.Current(Mix) / 100f;
+        output.Reset(Params.Current(Level), Params.Current(Balance));
+    }
+
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        var mix = Params.Advance(Mix, io.Length) / 100f;
+        var lowCut = Params.Advance(LowCut, io.Length);
+        var highCut = Params.Advance(HighCut, io.Length);
+        var lowSlope = (int)Params.Current(LowSlope);
+        var highSlope = (int)Params.Current(HighSlope);
+        if (playing) {
+            var left = wetLeft.Span[..io.Length];
+            var right = wetRight.Span[..io.Length];
+            switch ((int)Params.Current(Input)) {
+                case InputSum:
+                    for (var i = 0; i < io.Length; i++) {
+                        left[i] = right[i] = 0.5f * (io.Left[i] + io.Right[i]);
+                    }
+
+                    break;
+                case InputLeft:
+                    io.Left.CopyTo(left);
+                    io.Left.CopyTo(right);
+                    break;
+                case InputRight:
+                    io.Right.CopyTo(left);
+                    io.Right.CopyTo(right);
+                    break;
+                default:
+                    io.Left.CopyTo(left);
+                    io.Right.CopyTo(right);
+                    break;
+            }
+
+            switcher.Process(left, right);
+            if (lowCut > CabBlock.LowCutOff) {
+                var c = CutFilter.Design(true, Spec.SampleRate, lowCut, lowSlope);
+                lowCutLeft.Process(c, left);
+                lowCutRight.Process(c, right);
+            }
+
+            if (highCut < CabBlock.HighCutOff) {
+                var c = CutFilter.Design(false, Spec.SampleRate, highCut, highSlope);
+                highCutLeft.Process(c, left);
+                highCutRight.Process(c, right);
+            }
+
+            Blend(io.Left, left, this.mix, mix);
+            Blend(io.Right, right, this.mix, mix);
+        }
+
+        this.mix = mix;
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
+    }
+
+    protected override void Dispose(bool disposing) {
+        if (disposing) {
+            lock (sync) {
+                disposed = true;
+                switcher.Dispose();
+                series?.Dispose();
+                mixLeft.Dispose();
+                mixRight.Dispose();
+                scratch.Dispose();
+                wetLeft.Dispose();
+                wetRight.Dispose();
+            }
+        }
+
+        base.Dispose(disposing);
     }
 
     /// <summary>Offline FFT convolution of two IRs (control thread), in native memory.</summary>

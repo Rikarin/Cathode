@@ -125,7 +125,8 @@ namespace Cathode.Dsp.Blocks;
 ///             time (all 0 = off; <see cref="SpeakerStage" />).
 ///         </item>
 ///         <item>
-///             <b>Output Comp</b> (Off, Output, Feedback) with amount, threshold and clarity (<see cref="AmpCompressor" />).
+///             <b>Output Comp</b> (Off, Output, Feedback) with amount, threshold and clarity (<see cref="AmpCompressor" />
+///             ).
 ///         </item>
 ///         <item><b>Bias Trem Rate</b>, <b>Bias Trem Depth</b> (0 %): an LFO on the output tubes' bias, per sub-block.</item>
 ///         <item><b>Balance</b> (0 %) on the stereo output.</item>
@@ -261,7 +262,6 @@ public sealed class CircuitAmpBlock : DspBlock {
     readonly AmpBoost boost = new();
     readonly AmpEqualizer equalizer = new();
     readonly float[] eqGains = new float[GraphicEqualizer.MaxBands];
-    AmpChannel active;
     AmpInputFilter inputFilter;
     AmpInputDynamics dynamics;
     AmpSaturation saturation;
@@ -269,7 +269,6 @@ public sealed class CircuitAmpBlock : DspBlock {
     SpeakerStage speaker;
     OutputStage output;
     int activeType = -1;
-    int factor = 2;
     int phase; // position on the sub-block grid
     double tremoloPhase;
     double outputScale = 1;
@@ -370,6 +369,12 @@ public sealed class CircuitAmpBlock : DspBlock {
         )
     );
 
+    /// <summary>The active amp's channel (for tests and diagnostics).</summary>
+    public AmpChannel Channel { get; private set; }
+
+    /// <summary>The internal processing rate as a multiple of the sample rate.</summary>
+    public int Oversampling { get; private set; } = 2;
+
     static CircuitAmpBlock() {
         // Every tube table a setting can ask for, built here (control thread), so that changing one on the audio
         // thread only looks it up.
@@ -388,72 +393,7 @@ public sealed class CircuitAmpBlock : DspBlock {
 
     public CircuitAmpBlock() : base(Info) {
         channels = [..AmpDesign.All.Select(static a => new AmpChannel(a, 96_000))];
-        active = channels[0];
-    }
-
-    /// <summary>The active amp's channel (for tests and diagnostics).</summary>
-    public AmpChannel Channel => active;
-
-    /// <summary>The internal processing rate as a multiple of the sample rate.</summary>
-    public int Oversampling => factor;
-
-    protected override void OnPrepare(in ProcessSpec spec) {
-        factor = spec.SampleRate < 64_000 ? 2 : 1;
-        oversampler.Resize(spec.MaxBlockSize);
-        foreach (var channel in channels) {
-            channel.SetSampleRate(spec.SampleRate * factor);
-        }
-
-        dynamics.Prepare(spec.SampleRate * factor);
-        compressor.Prepare(spec.SampleRate * factor);
-    }
-
-    protected override void OnReset() {
-        oversampler.Reset();
-        boost.Reset();
-        inputFilter.Reset();
-        dynamics.Reset();
-        equalizer.Reset();
-        saturation.Reset();
-        compressor.Reset();
-        speaker.Reset();
-        phase = 0;
-        tremoloPhase = 0;
-        activeType = -1;
-        Select((int)Params.Current(Type));
-        output.Reset(Params.Current(Level), Params.Current(Balance));
-    }
-
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
-        var type = (int)Params.Current(Type);
-        if (type != activeType) {
-            Select(type);
-        }
-
-        var select = (int)Params.Current(InputSelect);
-        if (select == 1) {
-            io.Right.CopyTo(io.Left);
-        } else if (select == 2) {
-            for (var i = 0; i < io.Length; i++) {
-                io.Left[i] = 0.5f * (io.Left[i] + io.Right[i]);
-            }
-        }
-
-        for (var offset = 0; offset < io.Length;) {
-            var length = Math.Min(SubBlock - phase, io.Length - offset);
-            ProcessChunk(io.Left.Slice(offset, length));
-            offset += length;
-            phase = (phase + length) % SubBlock;
-        }
-
-        if (factor == 2) {
-            oversampler.FlushDenormals();
-        }
-
-        active.FlushDenormals();
-        equalizer.FlushDenormals();
-        io.Left.CopyTo(io.Right);
-        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
+        Channel = channels[0];
     }
 
     /// <summary>
@@ -464,7 +404,7 @@ public sealed class CircuitAmpBlock : DspBlock {
     void ProcessChunk(Span<float> samples) {
         var length = samples.Length;
         Configure(length);
-        var innerRate = Spec.SampleRate * factor;
+        var innerRate = Spec.SampleRate * Oversampling;
         var trim = Decibels.ToGain(Params.Advance(InputTrim, length));
         var boostDrive = Params.Advance(BoostDrive, length);
         var boostTone = Params.Advance(BoostTone, length);
@@ -490,7 +430,7 @@ public sealed class CircuitAmpBlock : DspBlock {
             saturation.Reset();
         }
 
-        var inner = factor == 2 ? oversampler.Up(samples) : samples;
+        var inner = Oversampling == 2 ? oversampler.Up(samples) : samples;
         dynamics.Process(inner, Params.Advance(InputDynamics, length) / 100f);
         boost.Process(inner);
         inputFilter.Process(inner);
@@ -498,7 +438,7 @@ public sealed class CircuitAmpBlock : DspBlock {
             equalizer.Process(inner);
         }
 
-        var channel = active;
+        var channel = Channel;
         var scale = channel.PowerAmpEnabled ? outputScale : preampScale;
         if (saturate || location == EqBeforePowerAmp) {
             var eq = location == EqBeforePowerAmp;
@@ -544,7 +484,7 @@ public sealed class CircuitAmpBlock : DspBlock {
             innerRate
         );
 
-        if (factor == 2) {
+        if (Oversampling == 2) {
             oversampler.Down(samples);
         }
     }
@@ -574,8 +514,8 @@ public sealed class CircuitAmpBlock : DspBlock {
     /// <summary>Switches to amp <paramref name="type" />, which starts at its operating point.</summary>
     void Select(int type) {
         activeType = type;
-        active = channels[Math.Clamp(type, 0, channels.Length - 1)];
-        var design = active.Design;
+        Channel = channels[Math.Clamp(type, 0, channels.Length - 1)];
+        var design = Channel.Design;
         var power = design.Power;
         var trim = Decibels.ToGain(design.OutputTrimDb);
         // Full scale: the largest swing the output stage can make (a tube amp's primary, about twice B+ plate to plate in
@@ -587,7 +527,7 @@ public sealed class CircuitAmpBlock : DspBlock {
         // its gain.
         preampScale = design.SolidState is { } input ? trim * input.Gain / input.Swing : trim / PreampFullScale;
         Configure(0);
-        active.Reset();
+        Channel.Reset();
     }
 
     /// <summary>
@@ -615,7 +555,7 @@ public sealed class CircuitAmpBlock : DspBlock {
         static double Knob(float value) => value / 10.0;
         static double Percent(float value) => value / 100.0;
 
-        var design = active.Design;
+        var design = Channel.Design;
         var switch1 = Params.Current(Switch1) >= 0.5f;
         var switch2 = Params.Current(Switch2) >= 0.5f;
         var switch3 = Params.Current(Switch3) >= 0.5f;
@@ -700,7 +640,66 @@ public sealed class CircuitAmpBlock : DspBlock {
             Params.Current(PowerAmpModel) >= 0.5f
         );
 
-        active.Apply(preampSettings, powerSettings, channelSettings);
-        active.Configure(preamp, power);
+        Channel.Apply(preampSettings, powerSettings, channelSettings);
+        Channel.Configure(preamp, power);
+    }
+
+    protected override void OnPrepare(in ProcessSpec spec) {
+        Oversampling = spec.SampleRate < 64_000 ? 2 : 1;
+        oversampler.Resize(spec.MaxBlockSize);
+        foreach (var channel in channels) {
+            channel.SetSampleRate(spec.SampleRate * Oversampling);
+        }
+
+        dynamics.Prepare(spec.SampleRate * Oversampling);
+        compressor.Prepare(spec.SampleRate * Oversampling);
+    }
+
+    protected override void OnReset() {
+        oversampler.Reset();
+        boost.Reset();
+        inputFilter.Reset();
+        dynamics.Reset();
+        equalizer.Reset();
+        saturation.Reset();
+        compressor.Reset();
+        speaker.Reset();
+        phase = 0;
+        tremoloPhase = 0;
+        activeType = -1;
+        Select((int)Params.Current(Type));
+        output.Reset(Params.Current(Level), Params.Current(Balance));
+    }
+
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        var type = (int)Params.Current(Type);
+        if (type != activeType) {
+            Select(type);
+        }
+
+        var select = (int)Params.Current(InputSelect);
+        if (select == 1) {
+            io.Right.CopyTo(io.Left);
+        } else if (select == 2) {
+            for (var i = 0; i < io.Length; i++) {
+                io.Left[i] = 0.5f * (io.Left[i] + io.Right[i]);
+            }
+        }
+
+        for (var offset = 0; offset < io.Length;) {
+            var length = Math.Min(SubBlock - phase, io.Length - offset);
+            ProcessChunk(io.Left.Slice(offset, length));
+            offset += length;
+            phase = (phase + length) % SubBlock;
+        }
+
+        if (Oversampling == 2) {
+            oversampler.FlushDenormals();
+        }
+
+        Channel.FlushDenormals();
+        equalizer.FlushDenormals();
+        io.Left.CopyTo(io.Right);
+        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 }

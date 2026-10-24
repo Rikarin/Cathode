@@ -40,8 +40,8 @@ public static class Access {
         var expected = Encoding.UTF8.GetBytes(token);
         app.Use(async (context, next) => {
                 if (HttpMethods.IsOptions(context.Request.Method)
-                    || Presented(context.Request) is { } presented
-                    && CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(presented), expected)) {
+                    || (Presented(context.Request) is { } presented
+                        && CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(presented), expected))) {
                     await next(context);
                     return;
                 }
@@ -86,5 +86,6 @@ public static class Access {
 
     static bool IsLoopbackOrigin(string origin) =>
         Uri.TryCreate(origin, UriKind.Absolute, out var uri)
-        && (uri.Host == "localhost" || IPAddress.TryParse(uri.Host, out var address) && IPAddress.IsLoopback(address));
+        && (uri.Host == "localhost"
+            || (IPAddress.TryParse(uri.Host, out var address) && IPAddress.IsLoopback(address)));
 }

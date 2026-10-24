@@ -10,6 +10,8 @@ public sealed class StereoIr : IDisposable {
     readonly Convolver? left;
     readonly Convolver? right;
 
+    public bool IsIdentity => left is null;
+
     /// <summary>The identity: <see cref="Process" /> leaves the audio as it is.</summary>
     public StereoIr() { }
 
@@ -17,8 +19,6 @@ public sealed class StereoIr : IDisposable {
         this.left = new(left);
         this.right = new(right);
     }
-
-    public bool IsIdentity => left is null;
 
     /// <summary>Audio thread: convolves left with the left IR and right with the right IR, in place.</summary>
     public void Process(Span<float> left, Span<float> right) {

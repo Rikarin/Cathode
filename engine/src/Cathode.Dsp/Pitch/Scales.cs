@@ -2,6 +2,30 @@ namespace Cathode.Dsp.Pitch;
 
 /// <summary>Keys, scales and diatonic intervals for the intelligent harmonizer.</summary>
 public static class Scales {
+    /// <summary>Semitones of each scale degree above the root.</summary>
+    static readonly int[][] Intervals = [
+        [0, 2, 4, 5, 7, 9, 11],
+        [0, 2, 3, 5, 7, 8, 10],
+        [0, 2, 3, 5, 7, 9, 10],
+        [0, 1, 3, 5, 7, 8, 10],
+        [0, 2, 4, 6, 7, 9, 11],
+        [0, 2, 4, 5, 7, 9, 10],
+        [0, 1, 3, 5, 6, 8, 10],
+        [0, 2, 3, 5, 7, 8, 11],
+        [0, 2, 3, 5, 7, 9, 11],
+        [0, 2, 4, 7, 9],
+        [0, 3, 5, 7, 10],
+        [0, 3, 5, 6, 7, 10]
+    ];
+
+    /// <summary>Each scale's pitch classes above its root as a 12-bit mask, bit 0 = the root.</summary>
+    static readonly int[] Masks =
+        [..Intervals.Select(static degrees => degrees.Aggregate(0, static (mask, d) => mask | (1 << d)))];
+
+    /// <summary>Five-limit just intonation: the ratio of each semitone above the key's root.</summary>
+    static readonly double[] Just =
+        [1, 16 / 15.0, 9 / 8.0, 6 / 5.0, 5 / 4.0, 4 / 3.0, 45 / 32.0, 3 / 2.0, 8 / 5.0, 5 / 3.0, 9 / 5.0, 15 / 8.0];
+
     /// <summary>Key names, C first. A key is the pitch class of the scale's root.</summary>
     public static IReadOnlyList<string> Keys { get; } =
         ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -22,30 +46,6 @@ public static class Scales {
         "Blues"
     ];
 
-    /// <summary>Semitones of each scale degree above the root.</summary>
-    static readonly int[][] Intervals = [
-        [0, 2, 4, 5, 7, 9, 11],
-        [0, 2, 3, 5, 7, 8, 10],
-        [0, 2, 3, 5, 7, 9, 10],
-        [0, 1, 3, 5, 7, 8, 10],
-        [0, 2, 4, 6, 7, 9, 11],
-        [0, 2, 4, 5, 7, 9, 10],
-        [0, 1, 3, 5, 6, 8, 10],
-        [0, 2, 3, 5, 7, 8, 11],
-        [0, 2, 3, 5, 7, 9, 11],
-        [0, 2, 4, 7, 9],
-        [0, 3, 5, 7, 10],
-        [0, 3, 5, 6, 7, 10]
-    ];
-
-    /// <summary>Each scale's pitch classes above its root as a 12-bit mask, bit 0 = the root.</summary>
-    static readonly int[] Masks =
-        [..Intervals.Select(static degrees => degrees.Aggregate(0, static (mask, d) => mask | 1 << d))];
-
-    /// <summary>Five-limit just intonation: the ratio of each semitone above the key's root.</summary>
-    static readonly double[] Just =
-        [1, 16 / 15.0, 9 / 8.0, 6 / 5.0, 5 / 4.0, 4 / 3.0, 45 / 32.0, 3 / 2.0, 8 / 5.0, 5 / 3.0, 9 / 5.0, 15 / 8.0];
-
     /// <summary>
     ///     The pitch ratio that moves <paramref name="note" /> by <paramref name="semitones" /> in just intonation on
     ///     <paramref name="key" />: both notes are placed on the key's five-limit scale and the ratio is theirs, so a
@@ -58,15 +58,10 @@ public static class Scales {
         return JustPosition(from + whole) / JustPosition(from) * Math.Pow(2, (semitones - whole) / 12);
     }
 
-    static double JustPosition(int relative) {
-        var octave = (int)Math.Floor(relative / 12.0);
-        return Math.Pow(2, octave) * Just[relative - 12 * octave];
-    }
-
     /// <summary>Whether <paramref name="scale" /> is a minor one: a minor third above its root and no major third.</summary>
     public static bool IsMinor(int scale) {
         var mask = Masks[Math.Clamp(scale, 0, Masks.Length - 1)];
-        return (mask & 1 << 3) != 0 && (mask & 1 << 4) == 0;
+        return (mask & (1 << 3)) != 0 && (mask & (1 << 4)) == 0;
     }
 
     /// <summary>Pitch class (0 = C .. 11 = B) of a MIDI note.</summary>
@@ -80,7 +75,7 @@ public static class Scales {
     /// </summary>
     public static int ChordScale(int root, int chord, int preferred) {
         root = PitchClass(root);
-        var relative = (chord >> root | chord << (12 - root)) & 0xFFF;
+        var relative = ((chord >> root) | (chord << (12 - root))) & 0xFFF;
         preferred = Math.Clamp(preferred, 0, Masks.Length - 1);
         if ((relative & ~Masks[preferred]) == 0) {
             return preferred;
@@ -130,7 +125,7 @@ public static class Scales {
         var semitones = HarmonySemitones(note, key, scale, steps);
         var length = Intervals[Math.Clamp(scale, 0, Intervals.Length - 1)].Length;
         var target = note + semitones;
-        if (chord == 0 || steps % length == 0 || (chord >> PitchClass(target) & 1) != 0) {
+        if (chord == 0 || steps % length == 0 || ((chord >> PitchClass(target)) & 1) != 0) {
             return semitones;
         }
 
@@ -140,7 +135,7 @@ public static class Scales {
             foreach (var candidate in (ReadOnlySpan<int>)
                      [target - direction * distance, target + direction * distance]) {
                 var interval = candidate - note;
-                if ((chord >> PitchClass(candidate) & 1) != 0
+                if (((chord >> PitchClass(candidate)) & 1) != 0
                     && Math.Sign(interval) == direction
                     && Math.Abs(interval) >= minimum) {
                     return interval;
@@ -149,5 +144,10 @@ public static class Scales {
         }
 
         return semitones;
+    }
+
+    static double JustPosition(int relative) {
+        var octave = (int)Math.Floor(relative / 12.0);
+        return Math.Pow(2, octave) * Just[relative - 12 * octave];
     }
 }

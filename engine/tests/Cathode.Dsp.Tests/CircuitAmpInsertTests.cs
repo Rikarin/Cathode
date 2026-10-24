@@ -14,13 +14,6 @@ public class CircuitAmpInsertTests {
     const double Rate = 48_000;
     const double InnerRate = 96_000;
 
-    static float[] Render(float[] input, params (int Index, float Value)[] settings) {
-        using var block = TestBlocks.Create<CircuitAmpBlock>([(CircuitAmpBlock.Gain, 2f), ..settings]);
-        return BlockRender.Stereo(block, input, input, static _ => 64).Left;
-    }
-
-    static double SteadyRmsDb(float[] signal) => Analysis.ToDb(Analysis.Rms(signal.AsSpan(signal.Length / 2)));
-
     [Fact]
     public void Inserts_at_their_defaults_leave_the_amp_untouched() {
         var input = Signals.Sine(220, Rate, 9_600, 0.3f);
@@ -129,7 +122,7 @@ public class CircuitAmpInsertTests {
     [Fact]
     public void Saturation_is_transparent_when_quiet_and_clips_when_driven() {
         const int length = 8_192;
-        var drive = (float)Decibels.ToGain(AmpSaturation.MaxDriveDb);
+        var drive = Decibels.ToGain(AmpSaturation.MaxDriveDb);
 
         float[] Shape(float amplitude) {
             var saturation = new AmpSaturation();
@@ -278,4 +271,11 @@ public class CircuitAmpInsertTests {
         Assert.All(left, static s => Assert.Equal(0f, s));
         Assert.True(Analysis.Rms(right) > 0);
     }
+
+    static float[] Render(float[] input, params (int Index, float Value)[] settings) {
+        using var block = TestBlocks.Create<CircuitAmpBlock>([(CircuitAmpBlock.Gain, 2f), ..settings]);
+        return BlockRender.Stereo(block, input, input, static _ => 64).Left;
+    }
+
+    static double SteadyRmsDb(float[] signal) => Analysis.ToDb(Analysis.Rms(signal.AsSpan(signal.Length / 2)));
 }

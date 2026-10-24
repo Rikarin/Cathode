@@ -1,5 +1,7 @@
 using Cathode.Dsp;
+using Cathode.Dsp.Blocks;
 using Cathode.Engine.Graph;
+using Cathode.Engine.Rig;
 using Cathode.EngineHost;
 using Cathode.Ipc;
 
@@ -74,9 +76,9 @@ public sealed class HostAllocationTests : IDisposable {
     public void Fast_path_applies_parameters_like_the_deserializing_path() {
         service.Handle(new() { Type = IpcTypes.LoadGraph, Generation = 4, Graph = GraphTemplates.Basic() });
         var frame = """
-            {"params":[{"value":-12.5,"param":"level","block":"volpan1"},{"block":"volpan1","param":"nope","value":1}],
-             "generation":4,"id":9,"type":"setParams","graph":null}
-            """u8;
+                    {"params":[{"value":-12.5,"param":"level","block":"volpan1"},{"block":"volpan1","param":"nope","value":1}],
+                     "generation":4,"id":9,"type":"setParams","graph":null}
+                    """u8;
 
         Assert.True(service.TryHandle(frame, out var reply));
         Assert.Equal(IpcTypes.Error, reply.Type);
@@ -100,7 +102,7 @@ public sealed class HostAllocationTests : IDisposable {
         Assert.True(service.TryHandle(frame, out var reply));
 
         Assert.Equal(IpcTypes.Ok, reply.Type);
-        Assert.Equal(90f, service.Engine.Rig.GetTarget(Cathode.Engine.Rig.RigControls.Descriptor.IndexOf("tempo")));
+        Assert.Equal(90f, service.Engine.Rig.GetTarget(RigControls.Descriptor.IndexOf("tempo")));
         Assert.True(
             service.TryHandle(
                 """{"type":"setParams","generation":99,"params":[{"block":"rig","param":"tempo","value":80},{"block":"amp1","param":"x","value":1}]}"""u8,
@@ -108,7 +110,7 @@ public sealed class HostAllocationTests : IDisposable {
             )
         );
         Assert.Contains("Stale", reply.Error, StringComparison.Ordinal); // a graph value rejects the whole update
-        Assert.Equal(90f, service.Engine.Rig.GetTarget(Cathode.Engine.Rig.RigControls.Descriptor.IndexOf("tempo")));
+        Assert.Equal(90f, service.Engine.Rig.GetTarget(RigControls.Descriptor.IndexOf("tempo")));
     }
 
     [Fact]
@@ -192,7 +194,7 @@ public sealed class HostAllocationTests : IDisposable {
             var node = new NodeDefinition { Id = types[i] + "1", Type = types[i], Row = 0, Column = i + 1 };
             if (types[i] == "cab") {
                 node.Assets["slot1"] = Path.Combine(EngineRoot, "examples", "synthetic-cab.wav");
-                node.Parameters["m1source"] = Cathode.Dsp.Blocks.CabBlock.SourceIr;
+                node.Parameters["m1source"] = CabBlock.SourceIr;
             }
 
             graph.Nodes.Add(node);

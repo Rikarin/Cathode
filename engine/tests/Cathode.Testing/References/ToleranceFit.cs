@@ -95,9 +95,9 @@ public sealed class ToleranceFit(
         var prediction = render(values);
         var aligned = MatchMetrics.Align(target, prediction).Apply(prediction);
         return objective switch {
-            FitObjective.Esr => Analysis.Esr(target, aligned, MatchMetrics.PreEmphasis),
+            FitObjective.Esr => Analysis.Esr(target, aligned),
             FitObjective.Mrstft => MatchMetrics.Mrstft(target, aligned),
-            _ => Analysis.Esr(target, aligned, MatchMetrics.PreEmphasis) + MatchMetrics.Mrstft(target, aligned)
+            _ => Analysis.Esr(target, aligned) + MatchMetrics.Mrstft(target, aligned)
         };
     }
 

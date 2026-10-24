@@ -339,6 +339,16 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         );
     }
 
+    /// <summary>The feedback pair an instance id names: its trailing number, or 1.</summary>
+    public static int FeedbackPair(string id) {
+        var start = id.Length;
+        while (start > 0 && char.IsAsciiDigit(id[start - 1])) {
+            start--;
+        }
+
+        return start < id.Length && int.TryParse(id.AsSpan(start), out var pair) ? pair : 1;
+    }
+
     /// <summary>
     ///     Connects each Feedback Send to its Feedback Return through a shared <see cref="FeedbackBus" />. A preset has
     ///     up to two pairs; a send and a return pair when their ids end in the same number (<c>fbsend2</c> feeds
@@ -379,16 +389,6 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         }
 
         return pairs;
-    }
-
-    /// <summary>The feedback pair an instance id names: its trailing number, or 1.</summary>
-    public static int FeedbackPair(string id) {
-        var start = id.Length;
-        while (start > 0 && char.IsAsciiDigit(id[start - 1])) {
-            start--;
-        }
-
-        return start < id.Length && int.TryParse(id.AsSpan(start), out var pair) ? pair : 1;
     }
 
     /// <summary>When the latest live input arrives, in samples of path latency (0 without live inputs).</summary>

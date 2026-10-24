@@ -51,7 +51,7 @@ public static class TinyTerror {
             1.5e3,
             2.2e-9,
             new(500e3, PotTaper.Linear),
-            new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6, 90),
+            new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6),
             false,
             new(8e3),
             SpeakerDesign.Closed4x12,

@@ -119,19 +119,19 @@ public enum ModCurve {
 }
 
 public static class ModNames {
-    public static readonly string[] Sources = [
-        "lfo1", "lfo2", "adsr1", "adsr2", "seq", "env", "pitch", "manualA", "manualB", "manualC", "manualD", "scene1",
-        "scene2", "scene3", "scene4", "ext1", "ext2", "ext3", "ext4", "ext5", "ext6", "ext7", "ext8"
-    ];
-
-    public static readonly string[] Curves = ["linear", "exp", "log", "scurve"];
-
     /// <summary>
     ///     The pseudo-parameter a modifier can drive to engage and bypass a block (docs/08-blocks-parity.md §3): engaged
     ///     while the modified value (0..1) is at least 0.5, bypassed below. While one drives a block, it wins over the
     ///     scene's bypass state.
     /// </summary>
     public const string EngageParam = "engage";
+
+    public static readonly string[] Sources = [
+        "lfo1", "lfo2", "adsr1", "adsr2", "seq", "env", "pitch", "manualA", "manualB", "manualC", "manualD", "scene1",
+        "scene2", "scene3", "scene4", "ext1", "ext2", "ext3", "ext4", "ext5", "ext6", "ext7", "ext8"
+    ];
+
+    public static readonly string[] Curves = ["linear", "exp", "log", "scurve"];
 
     public static bool TryParseSource(string name, out ModSource source) {
         var index = Array.IndexOf(Sources, name);

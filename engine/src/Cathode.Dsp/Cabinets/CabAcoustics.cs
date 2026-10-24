@@ -110,7 +110,6 @@ public readonly struct CabAcoustics {
     readonly double depth;
     readonly double nearField;
     readonly double curvature;
-    readonly double lowCornerHz;
     readonly double lowQ;
     readonly double tilt;
     readonly CabRoom room;
@@ -119,7 +118,7 @@ public readonly struct CabAcoustics {
     public double DirectDelay => depth / SpeedOfSound;
 
     /// <summary>The closed box's (or free-air) system resonance, Hz.</summary>
-    public double SystemResonance => lowCornerHz;
+    public double SystemResonance { get; }
 
     public CabAcoustics(in MicPlacement placement) {
         this.placement = placement;
@@ -132,11 +131,11 @@ public readonly struct CabAcoustics {
         room = placement.RoomShape ?? CabRoom.Default;
         var speaker = placement.Speaker;
         if (placement.Enclosure.Open) {
-            lowCornerHz = speaker.Fs;
+            SystemResonance = speaker.Fs;
             lowQ = speaker.Qts;
         } else {
             var stiffening = Math.Sqrt(1 + speaker.Vas / placement.Enclosure.LitresPerSpeaker);
-            lowCornerHz = speaker.Fs * stiffening;
+            SystemResonance = speaker.Fs * stiffening;
             lowQ = speaker.Qts * stiffening;
         }
     }
@@ -145,7 +144,7 @@ public readonly struct CabAcoustics {
     public double MagnitudeDb(double hz) {
         var speaker = placement.Speaker;
         var mic = placement.Mic;
-        var db = HighPassDb(hz, lowCornerHz, lowQ);
+        var db = HighPassDb(hz, SystemResonance, lowQ);
         for (var i = 0; i < speaker.Breakup.Length; i++) {
             var peak = speaker.Breakup[i];
             var mode = CabCatalogue.RadialModes[Math.Min(i, CabCatalogue.RadialModes.Length - 1)];
@@ -264,34 +263,6 @@ public readonly struct CabAcoustics {
         return sum;
     }
 
-    /// <summary>The power the ceiling, side and back walls reflect at <paramref name="hz" />, before diffusion.</summary>
-    double WallPower(double hz, double omega, double k, double effective) {
-        var (ceiling, sideWall, backWall, damping, level) = Walls();
-        var lowCut = room.LowDamping > 0 ? HighPass(hz, room.LowDamping).Magnitude : 1;
-        var height = placement.Enclosure.Height;
-        var back = 2 * backWall - depth;
-        var backRho = Math.Sqrt(back * back + Square(Curvature * radius));
-        var a = 0.6
-            * Absorb(hz, 4_000 / damping)
-            * Source(omega, k, effective, 2 * (ceiling - height), depth).Magnitude;
-        var b = 0.6 * Absorb(hz, 4_000 / damping) * Source(omega, k, effective, 2 * sideWall, depth).Magnitude;
-        var c = 0.5 * Absorb(hz, 3_000 / damping) * (curvature / backRho) * Pattern(omega, backRho, -1).Magnitude;
-        return Square(level * lowCut) * (a * a + b * b + c * c);
-    }
-
-    /// <summary>The room's ceiling height, side and back wall distances, HF damping and level.</summary>
-    (double Ceiling, double SideWall, double BackWall, double Damping, double Level) Walls() {
-        var size = Math.Max(0.1, room.Size);
-        var aspect = Math.Pow(2, Math.Clamp(room.Shape, -1, 1));
-        return (
-            Math.Max(CeilingHeight * size, placement.Enclosure.Height + 0.1),
-            SideWallDistance * size * aspect,
-            Math.Max(BackWallDistance * size / aspect, depth + 0.05),
-            Math.Max(0.05, room.HighDamping),
-            Math.Clamp(placement.Room, 0, 1)
-        );
-    }
-
     /// <summary>J0 by its power series (exact enough for the arguments here, below 20).</summary>
     public static double BesselJ0(double x) {
         var term = 1.0;
@@ -340,6 +311,34 @@ public readonly struct CabAcoustics {
     public static double PistonGain(double x) {
         var u = Math.Abs(x) / 1.62;
         return 1 / Math.Sqrt(1 + u * u * u);
+    }
+
+    /// <summary>The power the ceiling, side and back walls reflect at <paramref name="hz" />, before diffusion.</summary>
+    double WallPower(double hz, double omega, double k, double effective) {
+        var (ceiling, sideWall, backWall, damping, level) = Walls();
+        var lowCut = room.LowDamping > 0 ? HighPass(hz, room.LowDamping).Magnitude : 1;
+        var height = placement.Enclosure.Height;
+        var back = 2 * backWall - depth;
+        var backRho = Math.Sqrt(back * back + Square(Curvature * radius));
+        var a = 0.6
+            * Absorb(hz, 4_000 / damping)
+            * Source(omega, k, effective, 2 * (ceiling - height), depth).Magnitude;
+        var b = 0.6 * Absorb(hz, 4_000 / damping) * Source(omega, k, effective, 2 * sideWall, depth).Magnitude;
+        var c = 0.5 * Absorb(hz, 3_000 / damping) * (curvature / backRho) * Pattern(omega, backRho, -1).Magnitude;
+        return Square(level * lowCut) * (a * a + b * b + c * c);
+    }
+
+    /// <summary>The room's ceiling height, side and back wall distances, HF damping and level.</summary>
+    (double Ceiling, double SideWall, double BackWall, double Damping, double Level) Walls() {
+        var size = Math.Max(0.1, room.Size);
+        var aspect = Math.Pow(2, Math.Clamp(room.Shape, -1, 1));
+        return (
+            Math.Max(CeilingHeight * size, placement.Enclosure.Height + 0.1),
+            SideWallDistance * size * aspect,
+            Math.Max(BackWallDistance * size / aspect, depth + 0.05),
+            Math.Max(0.05, room.HighDamping),
+            Math.Clamp(placement.Room, 0, 1)
+        );
     }
 
     static double Square(double x) => x * x;

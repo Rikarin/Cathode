@@ -1,5 +1,7 @@
 using Cathode.Dsp.Amp;
+using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Wdf;
 using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
@@ -26,8 +28,8 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
             // The Princeton AA964 has two stages, the second inside the feedback loop: at 5 it is still clean and
             // quiet (13 dB under the Princeton Reverb, which has a third), and its trim is held down by full drive. So is
             // the Gibson Scout's (two stages after an audio-taper volume, no feedback, a class-A pair).
-            var quiet = AmpDesign.All[type] == Amp.Models.PrincetonAA964.Design
-                || AmpDesign.All[type] == Amp.Models.GibsonScout.Design;
+            var quiet = AmpDesign.All[type] == PrincetonAA964.Design
+                || AmpDesign.All[type] == GibsonScout.Design;
             var floor = gain == 3f ? -30 : quiet && gain == 5f ? -18 : -12;
             Assert.InRange(peak, floor, 0.5);
         }
@@ -46,10 +48,10 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         var (plate, _) = power.PlateCurrents;
         var (screen, _) = power.ScreenCurrents;
         var dissipation = plate * (power.Supply - power.CathodeVoltage);
-        var rating = design.Tube == Wdf.PentodeModel.EL84 ? 12
-            : design.Tube == Wdf.PentodeModel.EL34 ? 25
-            : design.Tube == Wdf.PentodeModel.SixV6GT ? 14
-            : design.Tube == Wdf.PentodeModel.SixAQ5 ? 12
+        var rating = design.Tube == PentodeModel.EL84 ? 12
+            : design.Tube == PentodeModel.EL34 ? 25
+            : design.Tube == PentodeModel.SixV6GT ? 14
+            : design.Tube == PentodeModel.SixAQ5 ? 12
             : 30;
         output.WriteLine(
             $"{design.Name}: B+ {power.Supply:0.0} V, screen node {power.ScreenSupply:0.0} V, preamp node "
@@ -61,8 +63,8 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         // 5150's fixed bias: 11-14 mA a tube) idles well under half its rating.
         // So do the class-A EL34 pairs on a resistor each: the Chieftain's and the Hot Cat's drawings both measure 24 V
         // across 270 Ω (89 mA a tube, about 31 W of plate dissipation at 390 V).
-        var hot = design.CathodeBias && design.Tube == Wdf.PentodeModel.EL84 ? 1.45
-            : design.CathodeBias && design.Tube == Wdf.PentodeModel.EL34 ? 1.5
+        var hot = design.CathodeBias && design.Tube == PentodeModel.EL84 ? 1.45
+            : design.CathodeBias && design.Tube == PentodeModel.EL34 ? 1.5
             : 0.9;
         var coldest = design.IdleCurrent < 0.02 ? 0.15 : 0.4;
         Assert.InRange(dissipation, coldest * rating, hot * rating);

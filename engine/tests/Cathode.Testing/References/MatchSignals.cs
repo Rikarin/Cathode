@@ -12,10 +12,10 @@ public static class MatchSignals {
     /// <summary>Silence at the start of every stimulus, so both models settle and latency can be measured.</summary>
     public const double LeadInSeconds = 0.1;
 
-    const double HarmonicSeconds = 0.4;
-
     /// <summary>The bin count of the window <see cref="HarmonicTone" /> is analysed over.</summary>
     public const int HarmonicWindow = 8_192;
+
+    const double HarmonicSeconds = 0.4;
 
     /// <summary>Peak volts of the three dynamics in <see cref="Performance" />: soft single-coil to hard humbucker.</summary>
     public static readonly double[] PerformancePeaks = [0.05, 0.2, 0.6];

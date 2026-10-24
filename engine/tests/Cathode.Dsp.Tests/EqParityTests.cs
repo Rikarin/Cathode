@@ -233,7 +233,7 @@ public sealed class EqParityTests : IDisposable {
     [Fact]
     public void Ir_player_input_select_feeds_one_side() {
         using var block = Create(
-            ("ir", Write("a.wav", Signals.Impulse(16, 1f))),
+            ("ir", Write("a.wav", Signals.Impulse(16))),
             (IrPlayerBlock.Input, IrPlayerBlock.InputLeft)
         );
         var left = Signals.Impulse(100);
@@ -247,7 +247,7 @@ public sealed class EqParityTests : IDisposable {
 
     [Fact]
     public void Ir_player_changes_crossfade_in_after_a_refresh() {
-        using var block = Create(("ir", Write("a.wav", Signals.Impulse(16, 1f))));
+        using var block = Create(("ir", Write("a.wav", Signals.Impulse(16))));
         block.Params.SetTarget(IrPlayerBlock.SlotParam(0, IrPlayerBlock.SlotLevel), -6f);
         block.Refresh();
         BlockRender.Mono(block, new float[4_800], 64);

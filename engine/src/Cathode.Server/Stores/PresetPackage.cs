@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using System.Text.RegularExpressions;
 using Cathode.Contracts;
 using Cathode.Server.Rig;
@@ -169,7 +170,7 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
     static async Task<T> ReadJsonAsync<T>(
         ZipArchive zip,
         string name,
-        System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo,
+        JsonTypeInfo<T> typeInfo,
         CancellationToken cancellationToken
     ) {
         var entry = zip.GetEntry(name) ?? throw new RigException(400, $"The package has no {name}.");

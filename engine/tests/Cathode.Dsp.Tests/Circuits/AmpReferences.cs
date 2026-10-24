@@ -224,71 +224,6 @@ static class AmpReferences {
         return Map(net.Output);
     }
 
-    /// <summary>The netlist's elements into <paramref name="c" />, its node n at <paramref name="map" />(n).</summary>
-    static void Elements(
-        ReferenceCircuit c,
-        NetworkStageDesign d,
-        AmpControls controls,
-        PreampSettings settings,
-        Func<int, int> map
-    ) {
-        foreach (var raw in d.Netlist.Elements) {
-            var e = raw with { A = map(raw.A), B = map(raw.B), C = map(raw.C), D = map(raw.D) };
-            var on = e.Switch is not { } role || controls.IsOn(role);
-            switch (e.Kind) {
-                case ElementKind.Resistor: {
-                    var ohms = on ? e.Switch is null || e.Value > 0 ? e.Value : 1e12 :
-                        e.OffValue > 0 ? e.OffValue : 1e12;
-                    if (e.Part != PotPart.None) {
-                        var fraction = e.Pot.Fraction(controls.Rotation(e.Role));
-                        ohms = (e.Part == PotPart.Upper ? 1 - fraction : fraction) * e.Pot.Ohms;
-                    }
-
-                    c.Resistor(e.A, e.B, Math.Max(e.Cathode ? ohms * settings.CathodeResistor : ohms, Floor));
-                    break;
-                }
-                case ElementKind.Capacitor: {
-                    var farads = e.ValueAt(controls);
-                    if (farads > 0) {
-                        c.Capacitor(
-                            e.A,
-                            e.B,
-                            e.CapacitorRole switch {
-                                CapacitorRole.Bright => farads * settings.BrightCap,
-                                CapacitorRole.Stack => farads / settings.StackFrequency,
-                                _ => farads
-                            }
-                        );
-                    }
-
-                    break;
-                }
-                case ElementKind.Inductor:
-                    c.Inductor(e.A, e.B, e.Value);
-                    break;
-                case ElementKind.Supply:
-                    c.Source(e.A, 0, _ => e.Value);
-                    break;
-                case ElementKind.Triode:
-                    c.Device(new Triode(settings.TubeFor(e.Triode)), (e.B, e.C), (e.A, e.C));
-                    break;
-                case ElementKind.Pentode:
-                    c.Device(new Pentode(e.Pentode), (e.C, e.D), (e.B, e.D), (e.A, e.D));
-                    break;
-                case ElementKind.Diodes:
-                    c.Device(new DiodeClipper(e.Diode, e.Forward, e.Diode, e.Reverse), (e.A, e.B));
-                    break;
-                case ElementKind.OpAmp:
-                    // Linear and ideal but for a finite gain: valid below clipping, which the comparisons stay under.
-                    c.Vcvs(e.C, 0, e.A, e.B, 1e5);
-                    break;
-                case ElementKind.Amplifier:
-                    c.Vcvs(e.C, 0, e.A, e.B, e.Value);
-                    break;
-            }
-        }
-    }
-
     /// <summary>
     ///     A complete power amp as the circuit it models: the phase inverter (a real long-tail pair, two exact triodes
     ///     with the grid leaks returning to the tail and the second grid AC-coupled to the feedback node; or a
@@ -486,5 +421,70 @@ static class AmpReferences {
         }
 
         return (c, speaker, ga);
+    }
+
+    /// <summary>The netlist's elements into <paramref name="c" />, its node n at <paramref name="map" />(n).</summary>
+    static void Elements(
+        ReferenceCircuit c,
+        NetworkStageDesign d,
+        AmpControls controls,
+        PreampSettings settings,
+        Func<int, int> map
+    ) {
+        foreach (var raw in d.Netlist.Elements) {
+            var e = raw with { A = map(raw.A), B = map(raw.B), C = map(raw.C), D = map(raw.D) };
+            var on = e.Switch is not { } role || controls.IsOn(role);
+            switch (e.Kind) {
+                case ElementKind.Resistor: {
+                    var ohms = on ? e.Switch is null || e.Value > 0 ? e.Value : 1e12 :
+                        e.OffValue > 0 ? e.OffValue : 1e12;
+                    if (e.Part != PotPart.None) {
+                        var fraction = e.Pot.Fraction(controls.Rotation(e.Role));
+                        ohms = (e.Part == PotPart.Upper ? 1 - fraction : fraction) * e.Pot.Ohms;
+                    }
+
+                    c.Resistor(e.A, e.B, Math.Max(e.Cathode ? ohms * settings.CathodeResistor : ohms, Floor));
+                    break;
+                }
+                case ElementKind.Capacitor: {
+                    var farads = e.ValueAt(controls);
+                    if (farads > 0) {
+                        c.Capacitor(
+                            e.A,
+                            e.B,
+                            e.CapacitorRole switch {
+                                CapacitorRole.Bright => farads * settings.BrightCap,
+                                CapacitorRole.Stack => farads / settings.StackFrequency,
+                                _ => farads
+                            }
+                        );
+                    }
+
+                    break;
+                }
+                case ElementKind.Inductor:
+                    c.Inductor(e.A, e.B, e.Value);
+                    break;
+                case ElementKind.Supply:
+                    c.Source(e.A, 0, _ => e.Value);
+                    break;
+                case ElementKind.Triode:
+                    c.Device(new Triode(settings.TubeFor(e.Triode)), (e.B, e.C), (e.A, e.C));
+                    break;
+                case ElementKind.Pentode:
+                    c.Device(new Pentode(e.Pentode), (e.C, e.D), (e.B, e.D), (e.A, e.D));
+                    break;
+                case ElementKind.Diodes:
+                    c.Device(new DiodeClipper(e.Diode, e.Forward, e.Diode, e.Reverse), (e.A, e.B));
+                    break;
+                case ElementKind.OpAmp:
+                    // Linear and ideal but for a finite gain: valid below clipping, which the comparisons stay under.
+                    c.Vcvs(e.C, 0, e.A, e.B, 1e5);
+                    break;
+                case ElementKind.Amplifier:
+                    c.Vcvs(e.C, 0, e.A, e.B, e.Value);
+                    break;
+            }
+        }
     }
 }

@@ -42,6 +42,9 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
     public const int Peak = 0;
     public const int Rms = 1;
 
+    /// <summary>How far below the threshold a Modern type closes, in dB.</summary>
+    public const float HysteresisDb = 6f;
+
     /// <summary>Release of the level detector itself; short, so the gate reacts to the playing, not to its own tail.</summary>
     const double DetectorReleaseMs = 10;
 
@@ -50,9 +53,6 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
 
     /// <summary>Deepest attenuation the gate applies, in dB.</summary>
     const float FloorDb = -100f;
-
-    /// <summary>How far below the threshold a Modern type closes, in dB.</summary>
-    public const float HysteresisDb = 6f;
 
     readonly SidechainSource sidechainSource = new();
     float envelope;
@@ -93,18 +93,8 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
     /// <summary>Current gain applied by the gate (1 = open). For meters and tests.</summary>
     public float CurrentGain => MathF.Pow(10f, gainDb / 20f);
 
-    /// <summary>One-pole coefficient reaching about 63 % of a step in <paramref name="milliseconds" />.</summary>
-    static float Coefficient(double milliseconds, double sampleRate) =>
-        (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
-
     public void SidechainInput(int row, in StereoBuffer source) =>
         sidechainSource.Offer(row, source, (int)Params.GetTarget(Sidechain));
-
-    protected override void OnPrepare(in ProcessSpec spec) {
-        sidechainSource.Prepare(spec.MaxBlockSize);
-        detectorRelease = Coefficient(DetectorReleaseMs, spec.SampleRate);
-        rmsCoefficient = Coefficient(RmsMs, spec.SampleRate);
-    }
 
     /// <summary>
     ///     The expander's gain in dB for a level <paramref name="under" /> dB from the threshold (negative below it), with
@@ -121,6 +111,16 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
 
         var t = under - knee / 2;
         return -slope * t * t / (2 * knee);
+    }
+
+    /// <summary>One-pole coefficient reaching about 63 % of a step in <paramref name="milliseconds" />.</summary>
+    static float Coefficient(double milliseconds, double sampleRate) =>
+        (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
+
+    protected override void OnPrepare(in ProcessSpec spec) {
+        sidechainSource.Prepare(spec.MaxBlockSize);
+        detectorRelease = Coefficient(DetectorReleaseMs, spec.SampleRate);
+        rmsCoefficient = Coefficient(RmsMs, spec.SampleRate);
     }
 
     protected override void OnReset() {

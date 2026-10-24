@@ -64,13 +64,12 @@ public struct OpAmp : INonlinearDevice {
     double slew; // volts per sample
     double gain; // ∂y/∂v_d before slew limiting: k A₀ / (1 + k)
     double hold; // (1 - k) / (1 + k)
-    double y;
     double previousInput;
 
     public OpAmpModel Model { get; }
 
     /// <summary>The internal output before the rails, as of the last committed sample.</summary>
-    public readonly double InternalOutput => y;
+    public double InternalOutput { get; private set; }
 
     public readonly int Ports => 2;
 
@@ -124,15 +123,15 @@ public struct OpAmp : INonlinearDevice {
     ///     rail to rail.
     /// </summary>
     public readonly void Limit(ReadOnlySpan<double> previous, Span<double> proposed) {
-        var low = Math.Max(centre - half, y - slew);
-        var high = Math.Min(centre + half, y + slew);
+        var low = Math.Max(centre - half, InternalOutput - slew);
+        var high = Math.Min(centre + half, InternalOutput + slew);
         if (low > high) {
-            low = high = Math.Clamp(y, centre - half, centre + half);
+            low = high = Math.Clamp(InternalOutput, centre - half, centre + half);
         }
 
         // target = hold y + gain (v_d + v_d[n-1]), solved for v_d at the window's ends.
-        var from = (low - hold * y) / gain - previousInput;
-        var to = (high - hold * y) / gain - previousInput;
+        var from = (low - hold * InternalOutput) / gain - previousInput;
+        var to = (high - hold * InternalOutput) / gain - previousInput;
         if (proposed[0] > to && previous[0] < to) {
             proposed[0] = to;
         } else if (proposed[0] < from && previous[0] > from) {
@@ -142,22 +141,22 @@ public struct OpAmp : INonlinearDevice {
 
     public void Commit(ReadOnlySpan<double> voltages) {
         var vd = voltages[0];
-        y = Math.Clamp(Internal(vd, out _), centre - 1.25 * half, centre + 1.25 * half);
+        InternalOutput = Math.Clamp(Internal(vd, out _), centre - 1.25 * half, centre + 1.25 * half);
         previousInput = vd;
     }
 
     public void Reset() {
-        y = 0;
+        InternalOutput = 0;
         previousInput = 0;
     }
 
     /// <summary>The internal output after the pole and the slew limit, and its slope against v_d.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     readonly double Internal(double vd, out double slope) {
-        var target = hold * y + gain * (vd + previousInput);
-        var step = SoftLimit(target - y, slew, out var limiterSlope);
+        var target = hold * InternalOutput + gain * (vd + previousInput);
+        var step = SoftLimit(target - InternalOutput, slew, out var limiterSlope);
         slope = limiterSlope * gain;
-        return y + step;
+        return InternalOutput + step;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

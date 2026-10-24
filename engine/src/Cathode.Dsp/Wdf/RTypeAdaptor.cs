@@ -22,81 +22,79 @@ namespace Cathode.Dsp.Wdf;
 /// </remarks>
 public struct RTypeAdaptor<TPorts> : IWdfPort
     where TPorts : struct, IWdfPortList {
-    readonly RTypeScattering scattering;
-    readonly double[] inputs; // u: child waves, the parent wave, source values
-    readonly double[] outputs;
-    double a;
-    double b;
-
     /// <summary>The children, in netlist port order.</summary>
     public TPorts Ports;
 
+    readonly double[] inputs; // u: child waves, the parent wave, source values
+    readonly double[] outputs;
+    double a;
+
     /// <summary>The matrix and its structure, for inspection.</summary>
-    public readonly RTypeScattering Scattering => scattering;
+    public RTypeScattering Scattering { get; }
 
-    public readonly double Resistance => scattering.UpResistance;
+    public readonly double Resistance => Scattering.UpResistance;
 
-    public readonly double Reflected => b;
+    public double Reflected { get; private set; }
 
-    public readonly double Voltage => 0.5 * (a + b);
+    public readonly double Voltage => 0.5 * (a + Reflected);
 
-    public readonly double Current => 0.5 * (a - b) / scattering.UpResistance;
+    public readonly double Current => 0.5 * (a - Reflected) / Scattering.UpResistance;
 
     public RTypeAdaptor(WdfNetlist netlist, TPorts ports) {
-        scattering = new(netlist);
-        if (!scattering.HasUp) {
+        Scattering = new(netlist);
+        if (!Scattering.HasUp) {
             throw new ArgumentException("An internal R-type adaptor needs an Up port.", nameof(netlist));
         }
 
-        if (scattering.DeviceCount > 0) {
+        if (Scattering.DeviceCount > 0) {
             throw new ArgumentException("Nonlinear devices belong to an RTypeRoot.", nameof(netlist));
         }
 
-        if (scattering.PortCount != ports.Count) {
+        if (Scattering.PortCount != ports.Count) {
             throw new ArgumentException(
-                $"The netlist has {scattering.PortCount} ports, the port list {ports.Count}.",
+                $"The netlist has {Scattering.PortCount} ports, the port list {ports.Count}.",
                 nameof(ports)
             );
         }
 
         Ports = ports;
-        inputs = new double[scattering.Inputs];
-        outputs = new double[scattering.PortCount];
+        inputs = new double[Scattering.Inputs];
+        outputs = new double[Scattering.PortCount];
     }
 
     /// <summary>Sets ideal voltage source <paramref name="index" /> (in volts) for the coming samples.</summary>
-    public readonly void SetVoltage(int index, double volts) => inputs[scattering.VoltageSourceColumn + index] = volts;
+    public readonly void SetVoltage(int index, double volts) => inputs[Scattering.VoltageSourceColumn + index] = volts;
 
     /// <summary>Sets ideal current source <paramref name="index" /> (in amperes) for the coming samples.</summary>
-    public readonly void SetCurrent(int index, double amps) => inputs[scattering.CurrentSourceColumn + index] = amps;
+    public readonly void SetCurrent(int index, double amps) => inputs[Scattering.CurrentSourceColumn + index] = amps;
 
     /// <summary>Changes internal resistor <paramref name="index" />. Propagate the tree afterwards.</summary>
-    public readonly void SetResistance(int index, double ohms) => scattering.SetResistance(index, ohms);
+    public readonly void SetResistance(int index, double ohms) => Scattering.SetResistance(index, ohms);
 
     /// <summary>Changes the gain of VCVS <paramref name="index" />. Propagate the tree afterwards.</summary>
-    public readonly void SetGain(int index, double gain) => scattering.SetGain(index, gain);
+    public readonly void SetGain(int index, double gain) => Scattering.SetGain(index, gain);
 
     public double Propagate() {
-        Ports.Propagate(scattering.PortResistances);
-        scattering.Recompute();
-        return scattering.UpResistance;
+        Ports.Propagate(Scattering.PortResistances);
+        Scattering.Recompute();
+        return Scattering.UpResistance;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Reflect() {
         var u = inputs.AsSpan();
         Ports.Reflect(u);
-        b = RTypeScattering.Dot(scattering.Row(scattering.UpRow), u);
-        return b;
+        Reflected = RTypeScattering.Dot(Scattering.Row(Scattering.UpRow), u);
+        return Reflected;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Incident(double a) {
         var u = inputs.AsSpan();
-        u[scattering.UpColumn] = a;
+        u[Scattering.UpColumn] = a;
         var waves = outputs.AsSpan();
         for (var k = 0; k < waves.Length; k++) {
-            waves[k] = RTypeScattering.Dot(scattering.Row(k), u);
+            waves[k] = RTypeScattering.Dot(Scattering.Row(k), u);
         }
 
         Ports.Incident(waves);
@@ -105,8 +103,8 @@ public struct RTypeAdaptor<TPorts> : IWdfPort
 
     public void Reset() {
         a = 0;
-        b = 0;
-        inputs.AsSpan(0, scattering.VoltageSourceColumn).Clear(); // keep the source values
+        Reflected = 0;
+        inputs.AsSpan(0, Scattering.VoltageSourceColumn).Clear(); // keep the source values
         Ports.Reset();
     }
 }

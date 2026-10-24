@@ -54,7 +54,7 @@ public sealed partial class EngineConnection {
         CancellationToken cancellationToken
     ) {
         var region = monitor?.Region ?? throw new RigException(503, "The engine's telemetry is not available.");
-        var spectrum = new PowerSpectrum(AnalysisWindow);
+        var spectrum = new PowerSpectrum();
         var window = new float[AnalysisWindow];
 
         // Half-overlapping frames: a new one every half window.

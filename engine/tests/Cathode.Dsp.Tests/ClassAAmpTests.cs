@@ -1,6 +1,7 @@
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Tests.Circuits;
+using Cathode.Dsp.Wdf;
 
 namespace Cathode.Dsp.Tests;
 
@@ -11,10 +12,6 @@ namespace Cathode.Dsp.Tests;
 ///     outputs; and the operating points against the voltages on the schematics.
 /// </summary>
 public partial class AmpStageTests {
-    /// <summary>The stages of a model's channel: <paramref name="on" /> picks a channel switch's other channel.</summary>
-    static IReadOnlyList<AmpStageDesign> Chain(AmpDesign design, bool on) =>
-        [..design.Preamp.SelectMany(s => s is ChannelSwitchStageDesign c ? on ? c.On : c.Off : [s])];
-
     public static TheoryData<string, int, double, double, double> ClassAStages =>
         new() {
             // name, stage index in the chain, amplitude, knob (gain/treble/tone), bass
@@ -244,7 +241,7 @@ public partial class AmpStageTests {
                     return s switch {
                         TriodeStage t => node == 1 ? t.RestOutput : t.RestCathode,
                         NetworkStage<FastTriode> n => n.RestVoltage(node),
-                        NetworkStage<Wdf.Pentode> n => n.RestVoltage(node),
+                        NetworkStage<Pentode> n => n.RestVoltage(node),
                         _ => double.NaN
                     };
                 }
@@ -286,4 +283,8 @@ public partial class AmpStageTests {
             return peak;
         }
     }
+
+    /// <summary>The stages of a model's channel: <paramref name="on" /> picks a channel switch's other channel.</summary>
+    static IReadOnlyList<AmpStageDesign> Chain(AmpDesign design, bool on) =>
+        [..design.Preamp.SelectMany(s => s is ChannelSwitchStageDesign c ? on ? c.On : c.Off : [s])];
 }

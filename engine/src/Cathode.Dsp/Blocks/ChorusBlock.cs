@@ -56,11 +56,11 @@ public sealed class ChorusBlock() : DspBlock(Info) {
     const float MaxRightRatio = 2f;
     const float WidthTargetMs = 1f;
 
-    /// <summary>The inverted cross-mix of each Dimension mode (Off, Low, Medium, High).</summary>
-    static readonly float[] DimensionCross = [0f, 0.3f, 0.5f, 0.7f];
-
     /// <summary>Wet polarity per side for each Phase Reverse option (None, Left, Right, Both).</summary>
     public static readonly string[] PhaseOptions = ["None", "Left", "Right", "Both"];
+
+    /// <summary>The inverted cross-mix of each Dimension mode (Off, Low, Medium, High).</summary>
+    static readonly float[] DimensionCross = [0f, 0.3f, 0.5f, 0.7f];
 
     readonly FractionalDelayLine left = new();
     readonly FractionalDelayLine right = new();

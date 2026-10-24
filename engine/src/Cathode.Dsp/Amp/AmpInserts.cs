@@ -155,10 +155,9 @@ public sealed class AmpEqualizer {
     readonly bool[] active = new bool[GraphicEqualizer.MaxBands];
     int layout = -1;
     int count;
-    bool isActive;
 
     /// <summary>True when at least one band is cut or boosted.</summary>
-    public bool IsActive => isActive;
+    public bool IsActive { get; private set; }
 
     public void Reset() {
         Array.Clear(states);
@@ -171,7 +170,7 @@ public sealed class AmpEqualizer {
             Reset();
         }
 
-        isActive = false;
+        IsActive = false;
         if (layoutIndex < 0) {
             count = 0;
             return;
@@ -192,7 +191,7 @@ public sealed class AmpEqualizer {
             }
 
             active[b] = true;
-            isActive = true;
+            IsActive = true;
             var type = GraphicEqualizer.BandType(l, b, false);
             var frequency = type switch {
                 BiquadType.LowShelf => l.Centers[b] * 1.4142f,
@@ -304,7 +303,6 @@ public struct AmpCompressor {
 
     SvfState sidechain;
     SvfCoefficients sidechainCoefficients;
-    float reduction;
     float lastGain;
     float attack;
     float release;
@@ -313,7 +311,7 @@ public struct AmpCompressor {
     public static IReadOnlyList<string> Types { get; } = ["Off", "Output", "Feedback"];
 
     /// <summary>Current gain reduction in dB (tests, meters).</summary>
-    public readonly float ReductionDb => reduction;
+    public float ReductionDb { get; private set; }
 
     public void Prepare(double rate) {
         attack = (float)Math.Exp(-1 / (0.005 * rate));
@@ -322,13 +320,13 @@ public struct AmpCompressor {
 
     public void Reset() {
         sidechain.Reset();
-        reduction = 0;
+        ReductionDb = 0;
         lastGain = 1;
     }
 
     public void Process(Span<float> samples, int type, float amount, float threshold, float clarity, double rate) {
         if (type == Off || amount <= 0) {
-            if (this.reduction != 0) {
+            if (ReductionDb != 0) {
                 Reset();
             }
 
@@ -343,7 +341,7 @@ public struct AmpCompressor {
             0.7071
         );
         var feedback = type == Feedback;
-        var reduction = this.reduction;
+        var reduction = ReductionDb;
         var lastGain = this.lastGain;
         for (var i = 0; i < samples.Length; i++) {
             var x = samples[i];
@@ -357,7 +355,7 @@ public struct AmpCompressor {
         }
 
         sidechain.FlushDenormals();
-        this.reduction = reduction > -1e-6f ? 0 : reduction;
+        ReductionDb = reduction > -1e-6f ? 0 : reduction;
         this.lastGain = lastGain;
     }
 }

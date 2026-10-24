@@ -9,35 +9,29 @@ namespace Cathode.Dsp.Wdf;
 public struct Series<TA, TB>(TA first, TB second) : IWdfPort
     where TA : struct, IWdfPort
     where TB : struct, IWdfPort {
+    public TA A = first;
+    public TB B = second;
     double a;
-    double b;
-    double resistance;
     double conductance;
     double ratio; // R_A / R
 
-    public TA A = first;
-    public TB B = second;
-
-    public readonly double Resistance => resistance;
-
-    public readonly double Reflected => b;
-
-    public readonly double Voltage => 0.5 * (a + b);
-
-    public readonly double Current => 0.5 * (a - b) * conductance;
+    public double Resistance { get; private set; }
+    public double Reflected { get; private set; }
+    public readonly double Voltage => 0.5 * (a + Reflected);
+    public readonly double Current => 0.5 * (a - Reflected) * conductance;
 
     public double Propagate() {
         var ra = A.Propagate();
-        resistance = ra + B.Propagate();
-        conductance = 1 / resistance;
-        ratio = ra / resistance;
-        return resistance;
+        Resistance = ra + B.Propagate();
+        conductance = 1 / Resistance;
+        ratio = ra / Resistance;
+        return Resistance;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Reflect() {
-        b = A.Reflect() + B.Reflect();
-        return b;
+        Reflected = A.Reflect() + B.Reflect();
+        return Reflected;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -51,7 +45,7 @@ public struct Series<TA, TB>(TA first, TB second) : IWdfPort
 
     public void Reset() {
         a = 0;
-        b = 0;
+        Reflected = 0;
         A.Reset();
         B.Reset();
     }
@@ -63,31 +57,25 @@ public struct Series<TA, TB>(TA first, TB second) : IWdfPort
 public struct Parallel<TA, TB>(TA first, TB second) : IWdfPort
     where TA : struct, IWdfPort
     where TB : struct, IWdfPort {
+    public TA A = first;
+    public TB B = second;
     double a;
-    double b;
     double difference; // b_B - b_A from the last Reflect
-    double resistance;
     double conductance;
     double ratio; // G_A / G
 
-    public TA A = first;
-    public TB B = second;
-
-    public readonly double Resistance => resistance;
-
-    public readonly double Reflected => b;
-
-    public readonly double Voltage => 0.5 * (a + b);
-
-    public readonly double Current => 0.5 * (a - b) * conductance;
+    public double Resistance { get; private set; }
+    public double Reflected { get; private set; }
+    public readonly double Voltage => 0.5 * (a + Reflected);
+    public readonly double Current => 0.5 * (a - Reflected) * conductance;
 
     public double Propagate() {
         var ga = 1 / A.Propagate();
         var g = ga + 1 / B.Propagate();
-        resistance = 1 / g;
+        Resistance = 1 / g;
         conductance = g;
         ratio = ga / g;
-        return resistance;
+        return Resistance;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -95,13 +83,13 @@ public struct Parallel<TA, TB>(TA first, TB second) : IWdfPort
         var ba = A.Reflect();
         var bb = B.Reflect();
         difference = bb - ba;
-        b = bb - ratio * difference;
-        return b;
+        Reflected = bb - ratio * difference;
+        return Reflected;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Incident(double a) {
-        var toB = a + b - B.Reflected;
+        var toB = a + Reflected - B.Reflected;
         A.Incident(toB + difference);
         B.Incident(toB);
         this.a = a;
@@ -109,7 +97,7 @@ public struct Parallel<TA, TB>(TA first, TB second) : IWdfPort
 
     public void Reset() {
         a = 0;
-        b = 0;
+        Reflected = 0;
         difference = 0;
         A.Reset();
         B.Reset();

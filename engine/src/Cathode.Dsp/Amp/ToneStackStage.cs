@@ -57,7 +57,6 @@ public sealed record ToneStackStageDesign(
 public sealed class ToneStackStage : AmpStage {
     const double Off = 1e-15;
 
-    readonly ToneStackStageDesign design;
     readonly ToneStackNetwork stack;
     readonly PotDivider load;
     readonly int drivenProbe;
@@ -77,28 +76,25 @@ public sealed class ToneStackStage : AmpStage {
     bool bright;
     double sampleRate;
     double supplyScale = 1;
-    double restDriven;
-    double restCathode;
-    double restCurrent;
 
-    public ToneStackStageDesign Design => design;
+    public ToneStackStageDesign Design { get; }
 
     /// <summary>The wiper's Thévenin resistance, roughly: the pot's halves in parallel plus the stack's share.</summary>
     public override double OutputResistance {
         get {
             var a = load.Pot.Fraction(rotation);
-            return a * (1 - a) * load.Pot.Ohms + a * a * design.Stack.SlopeResistor;
+            return a * (1 - a) * load.Pot.Ohms + a * a * Design.Stack.SlopeResistor;
         }
     }
 
     public override double RestOutput => 0;
 
     /// <summary>The DC voltage of the node driving the stack (the cathode or the plate).</summary>
-    public double RestDriven => restDriven;
+    public double RestDriven { get; private set; }
 
-    public double RestCathode => restCathode;
+    public double RestCathode { get; private set; }
 
-    public double RestCurrent => restCurrent;
+    public double RestCurrent { get; private set; }
 
     public override NewtonSolver Newton => root.Newton;
 
@@ -109,10 +105,10 @@ public sealed class ToneStackStage : AmpStage {
 
     public double Cathode => root.Probe(cathodeProbe);
 
-    public override bool IsGainStage => design.Driver == StackDriver.CommonCathode;
+    public override bool IsGainStage => Design.Driver == StackDriver.CommonCathode;
 
     public ToneStackStage(ToneStackStageDesign design, double sampleRate) {
-        this.design = design;
+        Design = design;
         this.sampleRate = sampleRate;
         tube = design.Tube;
         cathodeResistor = design.CathodeResistor;
@@ -177,16 +173,16 @@ public sealed class ToneStackStage : AmpStage {
 
     public override void SetSampleRate(double sampleRate) {
         this.sampleRate = sampleRate;
-        root.Ports.B.Configure(design.CathodeBypass > 0 ? design.CathodeBypass : 1e-9, sampleRate);
-        root.Ports.C.Configure(design.Stack.TrebleCap / stackScale, sampleRate);
-        root.Ports.D.Configure(design.Stack.BassCap / stackScale, sampleRate);
-        root.Ports.E.Configure(design.Stack.MiddleCap / stackScale, sampleRate);
-        root.Ports.F.Configure(bright && design.BrightCap > 0 ? design.BrightCap * brightScale : Off, sampleRate);
+        root.Ports.B.Configure(Design.CathodeBypass > 0 ? Design.CathodeBypass : 1e-9, sampleRate);
+        root.Ports.C.Configure(Design.Stack.TrebleCap / stackScale, sampleRate);
+        root.Ports.D.Configure(Design.Stack.BassCap / stackScale, sampleRate);
+        root.Ports.E.Configure(Design.Stack.MiddleCap / stackScale, sampleRate);
+        root.Ports.F.Configure(bright && Design.BrightCap > 0 ? Design.BrightCap * brightScale : Off, sampleRate);
         root.Propagate();
     }
 
     public override void SetSourceResistance(double ohms) {
-        var total = Math.Max(ohms + design.InputResistance, 1);
+        var total = Math.Max(ohms + Design.InputResistance, 1);
         if (total == sourceResistance) {
             return;
         }
@@ -199,12 +195,12 @@ public sealed class ToneStackStage : AmpStage {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override void SetSupply(double scale) {
         supplyScale = scale;
-        root.SetVoltage(0, design.Supply * scale);
+        root.SetVoltage(0, Design.Supply * scale);
     }
 
     public override void Update(in AmpControls controls) {
-        var turn = controls.Rotation(design.LoadRole);
-        var brightOn = controls.IsOn(design.BrightSwitch) && design.BrightCap > 0;
+        var turn = controls.Rotation(Design.LoadRole);
+        var brightOn = controls.IsOn(Design.BrightSwitch) && Design.BrightCap > 0;
         if (controls.Bass == bass
             && controls.Middle == middle
             && controls.Treble == treble
@@ -215,7 +211,7 @@ public sealed class ToneStackStage : AmpStage {
 
         if (brightOn != bright) {
             bright = brightOn;
-            root.Ports.F.Configure(bright ? design.BrightCap * brightScale : Off, sampleRate);
+            root.Ports.F.Configure(bright ? Design.BrightCap * brightScale : Off, sampleRate);
         }
 
         (bass, middle, treble, rotation) = (controls.Bass, controls.Middle, controls.Treble, turn);
@@ -231,13 +227,13 @@ public sealed class ToneStackStage : AmpStage {
     }
 
     public override void Apply(in PreampSettings settings) {
-        var model = settings.TubeFor(design.Tube);
+        var model = settings.TubeFor(Design.Tube);
         if (model != tube) {
             tube = model;
             root.Device = new(model);
         }
 
-        var rk = design.CathodeResistor * settings.CathodeResistor;
+        var rk = Design.CathodeResistor * settings.CathodeResistor;
         if (settings.BrightCap == brightScale && settings.StackFrequency == stackScale && rk == cathodeResistor) {
             return;
         }
@@ -251,33 +247,33 @@ public sealed class ToneStackStage : AmpStage {
 
     public override void Reset(double restInput) {
         // No grid current at rest: the grid sits at the source's DC, divided by the grid leak if there is one.
-        var grid = design.GridLeak > 0 ? restInput * design.GridLeak / (sourceResistance + design.GridLeak) : restInput;
+        var grid = Design.GridLeak > 0 ? restInput * Design.GridLeak / (sourceResistance + Design.GridLeak) : restInput;
         double driven, cathode, plate;
-        if (design.Driver == StackDriver.CathodeFollower) {
-            (restCurrent, cathode) = OperatingPoint.CathodeFollower(
+        if (Design.Driver == StackDriver.CathodeFollower) {
+            (RestCurrent, cathode) = OperatingPoint.CathodeFollower(
                 tube,
                 grid,
-                design.Supply * supplyScale,
+                Design.Supply * supplyScale,
                 cathodeResistor
             );
             driven = cathode;
-            plate = design.Supply * supplyScale;
+            plate = Design.Supply * supplyScale;
         } else {
-            (restCurrent, plate, cathode) = OperatingPoint.CommonCathode(
+            (RestCurrent, plate, cathode) = OperatingPoint.CommonCathode(
                 tube,
                 grid,
-                design.Supply * supplyScale,
-                design.PlateResistor,
+                Design.Supply * supplyScale,
+                Design.PlateResistor,
                 cathodeResistor
             );
             driven = plate;
         }
 
-        restDriven = driven;
-        restCathode = cathode;
+        RestDriven = driven;
+        RestCathode = cathode;
         root.Reset();
-        root.SetVoltage(0, design.Supply * supplyScale);
-        root.Ports.B.Precharge(design.CathodeBypass > 0 ? cathode : 0);
+        root.SetVoltage(0, Design.Supply * supplyScale);
+        root.Ports.B.Precharge(Design.CathodeBypass > 0 ? cathode : 0);
         root.Ports.C.Precharge(driven); // the stack's caps hold the driver's DC; its pots carry none
         root.Ports.D.Precharge(driven);
         root.Ports.E.Precharge(driven);

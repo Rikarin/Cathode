@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Cathode.Engine;
@@ -62,7 +63,7 @@ public sealed record LoopChannels(int[] Returns, int[] Sends) {
         string.IsNullOrWhiteSpace(text)
             ? []
             : text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(static c => int.Parse(c, System.Globalization.CultureInfo.InvariantCulture) - 1)
+                .Select(static c => int.Parse(c, CultureInfo.InvariantCulture) - 1)
                 .Take(2)
                 .ToArray();
 }
@@ -94,6 +95,14 @@ public sealed unsafe class NativeAudioSession : IDisposable {
 
     /// <summary>Linear gain on the device output. 0 mutes it (the default for unattended tests).</summary>
     public float OutputGain { get; set; } = 1f;
+
+    /// <summary>Driver overloads so far. Unlike <see cref="Stats" /> it does not allocate, so it can be polled often.</summary>
+    public long Overloads {
+        get {
+            NativeMethods.Stats(stream, out var s);
+            return (long)s.Overloads;
+        }
+    }
 
     NativeAudioSession(IAudioProcessor processor, LoopChannels? loop) {
         this.processor = processor;
@@ -160,14 +169,6 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         );
     }
 
-    /// <summary>Driver overloads so far. Unlike <see cref="Stats" /> it does not allocate, so it can be polled often.</summary>
-    public long Overloads {
-        get {
-            NativeMethods.Stats(stream, out var s);
-            return (long)s.Overloads;
-        }
-    }
-
     /// <summary>Snapshot of the native callback timing histogram.</summary>
     public CallbackTiming Timing() {
         TimingNative raw;
@@ -232,7 +233,8 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         }
 
         var gain = OutputGain;
-        if (gain != 1f) { // the loop's send channels stay live: muting is for the speakers
+        if (gain != 1f) {
+            // the loop's send channels stay live: muting is for the speakers
             for (var i = 0; i < frames; i++) {
                 left[i] *= gain;
                 right[i] *= gain;

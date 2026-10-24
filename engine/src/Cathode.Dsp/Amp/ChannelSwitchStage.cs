@@ -30,7 +30,6 @@ public sealed record ChannelSwitchStageDesign(
 ///     find it: idle, its caps charged), so the change is as quiet as moving the cable.
 /// </summary>
 public sealed class ChannelSwitchStage : AmpStage {
-    readonly ChannelSwitchStageDesign design;
     readonly AmpStage[] off;
     readonly AmpStage[] on;
     readonly int offGainStage;
@@ -40,7 +39,7 @@ public sealed class ChannelSwitchStage : AmpStage {
     double restInput;
     double supply = 1;
 
-    public ChannelSwitchStageDesign Design => design;
+    public ChannelSwitchStageDesign Design { get; }
 
     /// <summary>The playing channel's stages.</summary>
     public IReadOnlyList<AmpStage> Active => active;
@@ -72,7 +71,7 @@ public sealed class ChannelSwitchStage : AmpStage {
             throw new ArgumentException($"{design.Name}: both channels need a stage.", nameof(design));
         }
 
-        this.design = design;
+        Design = design;
         off = [..design.Off.Select(d => d.Create(sampleRate))];
         on = [..design.On.Select(d => d.Create(sampleRate))];
         offGainStage = Array.FindLastIndex(off, static s => s.IsGainStage);
@@ -99,7 +98,7 @@ public sealed class ChannelSwitchStage : AmpStage {
     public override void Update(in AmpControls controls) {
         Configure(off, controls);
         Configure(on, controls);
-        var selected = controls.IsOn(design.Switch) ? on : off;
+        var selected = controls.IsOn(Design.Switch) ? on : off;
         if (!ReferenceEquals(selected, active)) {
             active = selected;
             Settle(active);

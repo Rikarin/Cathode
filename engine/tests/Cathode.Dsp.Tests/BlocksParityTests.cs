@@ -8,6 +8,8 @@ namespace Cathode.Dsp.Tests;
 public class BlocksParityTests {
     const double Rate = 48_000;
 
+    public static TheoryData<LfoShape> Shapes => [..Enum.GetValues<LfoShape>()];
+
     // LFO waveforms and tempo divisions
 
     [Theory]
@@ -516,6 +518,4 @@ public class BlocksParityTests {
         Assert.Equal(1f, sum.Left[^1], 1e-6f);
         Assert.Equal(1f, sum.Right[^1], 1e-6f);
     }
-
-    public static TheoryData<LfoShape> Shapes => [..Enum.GetValues<LfoShape>()];
 }

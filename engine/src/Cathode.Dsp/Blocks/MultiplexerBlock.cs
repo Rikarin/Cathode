@@ -62,6 +62,12 @@ public sealed class MultiplexerBlock() : DspBlock(Info), IRowInputBlock {
         gains[slot] = gain;
     }
 
+    static void Add(ReadOnlySpan<float> source, Span<float> destination) {
+        for (var i = 0; i < source.Length; i++) {
+            destination[i] += source[i];
+        }
+    }
+
     protected override void OnPrepare(in ProcessSpec spec) =>
         fadeStep = (float)(1.0 / Math.Max(1.0, FadeMs * 0.001 * spec.SampleRate));
 
@@ -76,11 +82,5 @@ public sealed class MultiplexerBlock() : DspBlock(Info), IRowInputBlock {
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
-    }
-
-    static void Add(ReadOnlySpan<float> source, Span<float> destination) {
-        for (var i = 0; i < source.Length; i++) {
-            destination[i] += source[i];
-        }
     }
 }

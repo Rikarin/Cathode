@@ -117,6 +117,19 @@ public static class Bassman {
             }
         };
 
+    /// <summary>The coupling caps, volumes (the Bright one with its 100 pF) and 270k mixing resistors; returns the mix node.</summary>
+    static int Volumes(StageNetlist net, int brightPlate, int normalPlate) {
+        var (brightTop, normalTop, mix) = (net.Node(), net.Node(), net.Node());
+        net.Capacitor(brightPlate, brightTop, 20e-9);
+        var bright = net.Pot(brightTop, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
+        net.Capacitor(brightTop, bright, 100e-12, CapacitorRole.Bright);
+        net.Resistor(bright, mix, 270e3);
+        net.Capacitor(normalPlate, normalTop, 20e-9);
+        var normal = net.Pot(normalTop, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Control1);
+        net.Resistor(normal, mix, 270e3);
+        return mix;
+    }
+
     /// <summary>
     ///     The played half of V1 (Bright, or Normal with <see cref="SwitchRole.Switch1" />) routed to its channel, the idle
     ///     half's plate as <see cref="IdlePlate" />, the coupling caps, volumes and 270k mixing resistors; the output is V2A's
@@ -160,19 +173,6 @@ public static class Bassman {
         net.Triode(normalPlate, normalGrid, cathode, TriodeModel.TwelveAY7);
         net.Output = Volumes(net, brightPlate, normalPlate);
         return new("V1", net);
-    }
-
-    /// <summary>The coupling caps, volumes (the Bright one with its 100 pF) and 270k mixing resistors; returns the mix node.</summary>
-    static int Volumes(StageNetlist net, int brightPlate, int normalPlate) {
-        var (brightTop, normalTop, mix) = (net.Node(), net.Node(), net.Node());
-        net.Capacitor(brightPlate, brightTop, 20e-9);
-        var bright = net.Pot(brightTop, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
-        net.Capacitor(brightTop, bright, 100e-12, CapacitorRole.Bright);
-        net.Resistor(bright, mix, 270e3);
-        net.Capacitor(normalPlate, normalTop, 20e-9);
-        var normal = net.Pot(normalTop, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Control1);
-        net.Resistor(normal, mix, 270e3);
-        return mix;
     }
 
     /// <summary>

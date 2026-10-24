@@ -14,7 +14,41 @@ namespace Cathode.Dsp.Tests;
 ///     ultralinear, triode strapping, Simul-Class, separate cathodes, a cathodyne-driven pair).
 /// </summary>
 public partial class AmpStageTests {
+    /// <summary>The SLO-100's third stage: a cold clipper (39k unbypassed) with a 1 nF plate bypass, 220k stopper, 330k leak.</summary>
+    static readonly TriodeStageDesign ColdClipper = new(
+        "cold",
+        TriodeModel.Ecc83,
+        360,
+        100e3,
+        39e3,
+        InputResistance: 220e3,
+        CouplingCap: 22e-9,
+        GridLeak: 330e3,
+        PlateBypass: 1e-9
+    );
+
     public static TheoryData<string> NewTubes => ["12AY7", "5751", "6V6GT", "KT66", "KT88", "6550"];
+
+    public static TheoryData<string, double, double, bool> NetworkSettings =>
+        new() {
+            { "blend", 0.5, 0.5, false },
+            { "blend", 0.1, 0.9, true },
+            { "blend", 0.9, 0.2, true },
+            { "resonant", 0.0, 0.5, false },
+            { "resonant", 0.3, 0.5, false },
+            { "resonant", 1.0, 0.5, false }
+        };
+
+    public static TheoryData<string> PowerVariants => [
+        "single-ended 6V6",
+        "ultralinear EL34",
+        "triode switch",
+        "simul-class",
+        "separate cathodes",
+        "cathodyne 6V6",
+        "inverter grid current",
+        "inverter grid current with feedback"
+    ];
 
     [Theory]
     [MemberData(nameof(NewTubes))]
@@ -125,7 +159,7 @@ public partial class AmpStageTests {
         var controls = new AmpControls(0.6, 0.5, 0.5, 0.5, 1, true);
         var stage = new TriodeStage(design, Rate);
         var network = design.ToNetwork().Create(Rate);
-        foreach (var s in new AmpStage[] { stage, network }) {
+        foreach (var s in new[] { stage, network }) {
             s.SetSourceResistance(30e3);
             s.Update(controls);
             s.Reset(0);
@@ -151,48 +185,6 @@ public partial class AmpStageTests {
         output.WriteLine($"  difference {db:0.0} dB");
         Assert.True(db < -90, $"{db:0.0} dB");
     }
-
-    /// <summary>
-    ///     A passive tone network that is not a TMB stack: a rheostat (bass) into a Big-Muff-style low-pass/high-pass
-    ///     pair blended by a pot (treble), a switched cap (switch 1) on the low-pass side, into a 1M load.
-    /// </summary>
-    static NetworkStageDesign BlendNetwork() {
-        var net = new StageNetlist();
-        var (series, low, high) = (net.Node(), net.Node(), net.Node());
-        net.Rheostat(net.Input, series, new(250e3, PotTaper.Audio), PotRole.Bass);
-        net.Resistor(series, low, 22e3);
-        net.Capacitor(low, StageNetlist.Ground, 10e-9, CapacitorRole.Stack);
-        net.SwitchedCapacitor(low, StageNetlist.Ground, 22e-9, SwitchRole.Switch1);
-        net.Capacitor(net.Input, high, 3.9e-9, CapacitorRole.Stack);
-        net.Resistor(high, StageNetlist.Ground, 22e3);
-        var wiper = net.Pot(high, low, new(100e3, PotTaper.Linear), PotRole.Treble);
-        net.Resistor(wiper, StageNetlist.Ground, 1e6);
-        net.Output = wiper;
-        return new("blend", net);
-    }
-
-    /// <summary>A Mark-style EQ band: a series LC to ground through a slider (control 1), across a 10k-fed node.</summary>
-    static NetworkStageDesign ResonantNetwork() {
-        var net = new StageNetlist();
-        var (node, coil, cap) = (net.Node(), net.Node(), net.Node());
-        net.Resistor(net.Input, node, 10e3);
-        net.Inductor(node, coil, 0.39);
-        net.Capacitor(coil, cap, 0.47e-6);
-        net.Rheostat(cap, StageNetlist.Ground, new(50e3, PotTaper.Linear), PotRole.Control1);
-        net.Resistor(node, StageNetlist.Ground, 100e3);
-        net.Output = node;
-        return new("resonant", net);
-    }
-
-    public static TheoryData<string, double, double, bool> NetworkSettings =>
-        new() {
-            { "blend", 0.5, 0.5, false },
-            { "blend", 0.1, 0.9, true },
-            { "blend", 0.9, 0.2, true },
-            { "resonant", 0.0, 0.5, false },
-            { "resonant", 0.3, 0.5, false },
-            { "resonant", 1.0, 0.5, false }
-        };
 
     [Theory]
     [MemberData(nameof(NetworkSettings))]
@@ -225,59 +217,6 @@ public partial class AmpStageTests {
 
         output.WriteLine($"{name} knob {knob} treble {treble} switch {switched}: worst {worst:0.000000} dB");
         Assert.True(worst < 0.01, $"{worst:0.000} dB from the reference");
-    }
-
-    /// <summary>The SLO-100's third stage: a cold clipper (39k unbypassed) with a 1 nF plate bypass, 220k stopper, 330k leak.</summary>
-    static readonly TriodeStageDesign ColdClipper = new(
-        "cold",
-        TriodeModel.Ecc83,
-        360,
-        100e3,
-        39e3,
-        InputResistance: 220e3,
-        CouplingCap: 22e-9,
-        GridLeak: 330e3,
-        PlateBypass: 1e-9
-    );
-
-    /// <summary>A cathode follower not driving a stack, DC-coupled to the previous plate: 100k to ground, AC out to 1M.</summary>
-    static NetworkStageDesign Follower() {
-        var net = new StageNetlist();
-        var (supply, cathode, output) = (net.Node(), net.Node(), net.Node());
-        net.Supply(supply, 330);
-        net.Resistor(cathode, StageNetlist.Ground, 100e3);
-        net.Capacitor(cathode, output, 22e-9);
-        net.Resistor(output, StageNetlist.Ground, 1e6);
-        net.Triode(supply, net.Input, cathode, TriodeModel.Ecc83);
-        net.Output = output;
-        return new("follower", net);
-    }
-
-    /// <summary>The AC15's EF86 stage: 220k plate, 1M screen resistor with 0.1 µF bypass, 2.2k with 25 µF, 1M grid leak.</summary>
-    static NetworkStageDesign Ef86() {
-        var net = new StageNetlist();
-        var (supply, plate, screen, cathode) = (net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(supply, 300);
-        net.Resistor(net.Input, StageNetlist.Ground, 1e6);
-        net.Resistor(supply, plate, 220e3);
-        net.Resistor(supply, screen, 1e6);
-        net.Capacitor(screen, StageNetlist.Ground, 0.1e-6);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 2.2e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 25e-6);
-        net.Pentode(plate, screen, net.Input, cathode, PentodeModel.EF86);
-        net.Output = plate;
-        return new("EF86", net, 68e3);
-    }
-
-    /// <summary>A diode clipper: 10k in, a 1N4007 each way and 1 nF to ground.</summary>
-    static NetworkStageDesign Clipper() {
-        var net = new StageNetlist();
-        var node = net.Node();
-        net.Resistor(net.Input, node, 10e3);
-        net.Diodes(node, StageNetlist.Ground, DiodeModel.Rectifier, 1, 1);
-        net.Capacitor(node, StageNetlist.Ground, 1e-9);
-        net.Output = node;
-        return new("clipper", net);
     }
 
     [Theory]
@@ -361,17 +300,6 @@ public partial class AmpStageTests {
         Assert.True(inverter.OutputImpedance.Zaa > 5 * inverter.OutputImpedance.Zbb);
     }
 
-    public static TheoryData<string> PowerVariants => [
-        "single-ended 6V6",
-        "ultralinear EL34",
-        "triode switch",
-        "simul-class",
-        "separate cathodes",
-        "cathodyne 6V6",
-        "inverter grid current",
-        "inverter grid current with feedback"
-    ];
-
     [Theory]
     [MemberData(nameof(PowerVariants))]
     public void Power_amp_variants_match_the_reference_in_the_time_domain(string name) {
@@ -389,24 +317,26 @@ public partial class AmpStageTests {
             InverterInput = null
         };
         var (design, amplitude, sourceResistance, triode) = name switch {
-            "single-ended 6V6" => (sixV6 with {
-                Topology = PowerTopology.SingleEnded,
-                TubesPerSide = 1,
-                Transformer = new(5e3),
-                CathodeBypass = 25e-6,
-                RatedPower = 5
-            }, 6.0, 40e3, false),
+            "single-ended 6V6" => (
+                sixV6 with {
+                    Topology = PowerTopology.SingleEnded,
+                    TubesPerSide = 1,
+                    Transformer = new(5e3),
+                    CathodeBypass = 25e-6,
+                    RatedPower = 5
+                }, 6.0, 40e3, false),
             "ultralinear EL34" => (plexi with { UltralinearTap = 0.43, ScreenResistor = 1 }, 0.4, 0.0, false),
             "triode switch" => (plexi with { TriodeSwitch = SwitchRole.Switch1, ScreenResistor = 1 }, 0.6, 0.0, true),
-            "simul-class" => (Blackface.Design.Power with {
-                Strapped = PentodeModel.EL34, StrappedPerSide = 1, PowerSupply = stiff
-            }, 0.6, 0.0, false),
-            "separate cathodes" => (AC30.Design.Power with {
-                SeparateCathodes = true, PowerSupply = stiff, InverterInput = null
-            }, 0.15, 0.0, false),
-            "cathodyne 6V6" => (sixV6 with {
-                PhaseInverter = new CathodyneDesign(TriodeModel.Ecc83, 330, 56e3, 56e3, 1.5e3), CutCap = 0
-            }, 2.0, 0.0, false),
+            "simul-class" => (
+                Blackface.Design.Power with { Strapped = PentodeModel.EL34, StrappedPerSide = 1, PowerSupply = stiff },
+                0.6, 0.0, false),
+            "separate cathodes" => (
+                AC30.Design.Power with { SeparateCathodes = true, PowerSupply = stiff, InverterInput = null }, 0.15,
+                0.0, false),
+            "cathodyne 6V6" => (
+                sixV6 with {
+                    PhaseInverter = new CathodyneDesign(TriodeModel.Ecc83, 330, 56e3, 56e3, 1.5e3), CutCap = 0
+                }, 2.0, 0.0, false),
             "inverter grid current" => (plexi with { InverterInput = new(22e-9, 1e6), HasFeedback = false }, 7.0, 30e3,
                 false),
             _ => (plexi with { InverterInput = new(22e-9, 1e6) }, 7.0, 30e3, false)
@@ -460,5 +390,77 @@ public partial class AmpStageTests {
         var unloadedDb = CompareInTime("inverter grid, unloaded", x => rest + x, null, circuit, grid, amplitude, 8);
         Assert.True(gridDb < -35, $"inverter grid: {gridDb:0.0} dB from the reference");
         Assert.True(gridDb < unloadedDb - 6, $"{gridDb:0.0} dB with the input network, {unloadedDb:0.0} dB without");
+    }
+
+    /// <summary>
+    ///     A passive tone network that is not a TMB stack: a rheostat (bass) into a Big-Muff-style low-pass/high-pass
+    ///     pair blended by a pot (treble), a switched cap (switch 1) on the low-pass side, into a 1M load.
+    /// </summary>
+    static NetworkStageDesign BlendNetwork() {
+        var net = new StageNetlist();
+        var (series, low, high) = (net.Node(), net.Node(), net.Node());
+        net.Rheostat(net.Input, series, new(250e3, PotTaper.Audio), PotRole.Bass);
+        net.Resistor(series, low, 22e3);
+        net.Capacitor(low, StageNetlist.Ground, 10e-9, CapacitorRole.Stack);
+        net.SwitchedCapacitor(low, StageNetlist.Ground, 22e-9, SwitchRole.Switch1);
+        net.Capacitor(net.Input, high, 3.9e-9, CapacitorRole.Stack);
+        net.Resistor(high, StageNetlist.Ground, 22e3);
+        var wiper = net.Pot(high, low, new(100e3, PotTaper.Linear), PotRole.Treble);
+        net.Resistor(wiper, StageNetlist.Ground, 1e6);
+        net.Output = wiper;
+        return new("blend", net);
+    }
+
+    /// <summary>A Mark-style EQ band: a series LC to ground through a slider (control 1), across a 10k-fed node.</summary>
+    static NetworkStageDesign ResonantNetwork() {
+        var net = new StageNetlist();
+        var (node, coil, cap) = (net.Node(), net.Node(), net.Node());
+        net.Resistor(net.Input, node, 10e3);
+        net.Inductor(node, coil, 0.39);
+        net.Capacitor(coil, cap, 0.47e-6);
+        net.Rheostat(cap, StageNetlist.Ground, new(50e3, PotTaper.Linear), PotRole.Control1);
+        net.Resistor(node, StageNetlist.Ground, 100e3);
+        net.Output = node;
+        return new("resonant", net);
+    }
+
+    /// <summary>A cathode follower not driving a stack, DC-coupled to the previous plate: 100k to ground, AC out to 1M.</summary>
+    static NetworkStageDesign Follower() {
+        var net = new StageNetlist();
+        var (supply, cathode, output) = (net.Node(), net.Node(), net.Node());
+        net.Supply(supply, 330);
+        net.Resistor(cathode, StageNetlist.Ground, 100e3);
+        net.Capacitor(cathode, output, 22e-9);
+        net.Resistor(output, StageNetlist.Ground, 1e6);
+        net.Triode(supply, net.Input, cathode, TriodeModel.Ecc83);
+        net.Output = output;
+        return new("follower", net);
+    }
+
+    /// <summary>The AC15's EF86 stage: 220k plate, 1M screen resistor with 0.1 µF bypass, 2.2k with 25 µF, 1M grid leak.</summary>
+    static NetworkStageDesign Ef86() {
+        var net = new StageNetlist();
+        var (supply, plate, screen, cathode) = (net.Node(), net.Node(), net.Node(), net.Node());
+        net.Supply(supply, 300);
+        net.Resistor(net.Input, StageNetlist.Ground, 1e6);
+        net.Resistor(supply, plate, 220e3);
+        net.Resistor(supply, screen, 1e6);
+        net.Capacitor(screen, StageNetlist.Ground, 0.1e-6);
+        net.CathodeResistor(cathode, StageNetlist.Ground, 2.2e3);
+        net.Capacitor(cathode, StageNetlist.Ground, 25e-6);
+        net.Pentode(plate, screen, net.Input, cathode, PentodeModel.EF86);
+        net.Output = plate;
+        return new("EF86", net, 68e3);
+    }
+
+    /// <summary>A diode clipper: 10k in, a 1N4007 each way and 1 nF to ground.</summary>
+    static NetworkStageDesign Clipper() {
+        var net = new StageNetlist();
+        var node = net.Node();
+        net.Resistor(net.Input, node, 10e3);
+        net.Diodes(node, StageNetlist.Ground, DiodeModel.Rectifier, 1, 1);
+        net.Capacitor(node, StageNetlist.Ground, 1e-9);
+        net.Output = node;
+        return new("clipper", net);
     }
 }

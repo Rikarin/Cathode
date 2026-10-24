@@ -118,7 +118,6 @@ public sealed class StageNetlist {
     public const int Ground = 0;
 
     readonly List<StageElement> elements = [];
-    int nodes;
 
     /// <summary>The node the source drives (through the previous stage's output resistance).</summary>
     public int Input { get; }
@@ -127,7 +126,7 @@ public sealed class StageNetlist {
     public int Output { get; set; }
 
     /// <summary>Number of nodes besides ground.</summary>
-    public int Nodes => nodes;
+    public int Nodes { get; private set; }
 
     /// <summary>The elements, in the order they were added.</summary>
     public IReadOnlyList<StageElement> Elements => elements;
@@ -138,7 +137,7 @@ public sealed class StageNetlist {
     }
 
     /// <summary>Adds a node and returns it.</summary>
-    public int Node() => ++nodes;
+    public int Node() => ++Nodes;
 
     public void Resistor(int a, int b, double ohms) => Add(new(ElementKind.Resistor, a, b, ohms));
 
@@ -254,7 +253,7 @@ public sealed class StageNetlist {
         Add(new(ElementKind.Amplifier, nonInverting, inverting, gain) { C = output });
 
     void Add(StageElement element) {
-        if (element.A > nodes || element.B > nodes || element.C > nodes || element.D > nodes) {
+        if (element.A > Nodes || element.B > Nodes || element.C > Nodes || element.D > Nodes) {
             throw new ArgumentException("Unknown node.", nameof(element));
         }
 
@@ -404,11 +403,11 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     const double Short = 1e3; // siemens: an inductor at DC
     const double EndStop = 1e-6; // ohms: a pot's half at an end stop, as the scattering's own floor
 
-    readonly NetworkStageDesign design;
     readonly StageElement[] elements;
 
     readonly int[]
         index; // per element: its port (reactive), resistor or supply index in the WDF netlist; -1 for devices
+
     readonly double[] values; // per element: its value as the knobs, switches and settings have it
     readonly (int Plus, int Minus)[] devicePorts;
     readonly Func<PreampSettings, double, TDevice> make; // the devices for the settings and the sample rate
@@ -422,7 +421,6 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     readonly int[] pivots;
     readonly int[] supplies; // the supply elements' indices: the preamp's sag moves them every sample
     readonly int amplifiers;
-    readonly bool hasGainStage;
     readonly bool hasMemory; // a device with state of its own (an op-amp's pole)
     RTypeRoot<NetworkPorts, TDevice> root;
     AmpControls controls;
@@ -434,7 +432,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     double restOutput;
     bool solved;
 
-    public NetworkStageDesign Design => design;
+    public NetworkStageDesign Design { get; }
 
     public override double OutputResistance => outputResistance;
 
@@ -442,7 +440,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
 
     public override NewtonSolver? Newton => root.Device.Ports > 0 ? root.Newton : null;
 
-    public override bool IsGainStage => hasGainStage;
+    public override bool IsGainStage { get; }
 
     internal NetworkStage(
         NetworkStageDesign design,
@@ -450,14 +448,14 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         Func<PreampSettings, double, TDevice> make,
         double sampleRate
     ) {
-        this.design = design;
+        Design = design;
         this.make = make;
         this.sampleRate = sampleRate;
         var netlist = design.Netlist;
         elements = [..netlist.Elements];
         index = new int[elements.Length];
         values = new double[elements.Length];
-        hasGainStage = elements.Any(static e => e.Cathode);
+        IsGainStage = elements.Any(static e => e.Cathode);
         hasMemory = devices.Any(static e => e.Kind == ElementKind.OpAmp);
         controls = new(0.5, 0.5, 0.5, 0.5, 1, false);
 
@@ -572,7 +570,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     }
 
     public override void SetSourceResistance(double ohms) {
-        var total = Math.Max(ohms + design.InputResistance, 1);
+        var total = Math.Max(ohms + Design.InputResistance, 1);
         if (total == sourceResistance) {
             return;
         }
@@ -629,7 +627,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
             root.SetInitialVoltages(portVoltages.AsSpan(0, k));
         }
 
-        restOutput = Rest(design.Netlist.Output);
+        restOutput = Rest(Design.Netlist.Output);
         outputResistance = SmallSignalOutputResistance();
         solved = true;
     }
@@ -758,7 +756,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     ///     otherwise both are the resistances of their reactances at 1 kHz and the sources are zero.
     /// </summary>
     void Stamp(double input, double scale, bool dc) {
-        var n = design.Netlist.Nodes;
+        var n = Design.Netlist.Nodes;
         var a = matrix.AsSpan(0, size * size);
         var b = vector.AsSpan(0, size);
         a.Clear();
@@ -767,7 +765,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
             a[j * size + j] += Gmin;
         }
 
-        var input0 = design.Netlist.Input;
+        var input0 = Design.Netlist.Input;
         Conductance(a, input0, StageNetlist.Ground, 1 / sourceResistance);
         if (dc) {
             b[input0 - 1] += input / sourceResistance;
@@ -866,7 +864,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     /// <summary>The output's resistance to ground with the sources off, linearised at the operating point.</summary>
     double SmallSignalOutputResistance() {
         Stamp(0, 0, false);
-        var output = design.Netlist.Output;
+        var output = Design.Netlist.Output;
         if (output == StageNetlist.Ground) {
             return 0;
         }

@@ -53,7 +53,7 @@ public sealed class LooperBlock() : DspBlock(Info), ILooperBlock {
                 "Max Loop Time",
                 ParamKind.Float,
                 1f,
-                (float)Looping.Looper.MaxSeconds,
+                (float)Looper.MaxSeconds,
                 60f,
                 "s",
                 Smoothing: ParamSmoothing.Step
@@ -81,9 +81,26 @@ public sealed class LooperBlock() : DspBlock(Info), ILooperBlock {
 
     public Looper? Looper => Volatile.Read(ref looper);
 
+    /// <summary>The Config page as the looper takes it, at <paramref name="tempo" /> BPM (0: no quantising).</summary>
+    LooperSettings Settings(double tempo) {
+        var rate = Spec.SampleRate;
+        return new() {
+            MaxSamples = (int)(Params.Current(MaxTime) * rate),
+            Once = Params.Current(Once) >= 0.5f,
+            TrimStart = Params.Current(TrimStart) / 100f,
+            TrimEnd = Params.Current(TrimEnd) / 100f,
+            Threshold = Params.Current(Threshold) >= 0.5f ? Decibels.ToGain(Params.Current(ThresholdLevel)) : 0f,
+            OverdubLevel = Params.Current(OverdubLevel) / 100f,
+            CrossfadeSamples = (int)(Params.Current(Crossfade) * 0.001 * rate),
+            BeatSamples = Params.Current(Quantize) >= 0.5f && tempo > 0 ? 60.0 * rate / tempo : 0,
+            SecondPress = (LooperSecondPress)(int)Params.Current(SecondPress),
+            Speed = Speeds[Math.Clamp((int)Params.Current(Speed), 0, Speeds.Length - 1)]
+        };
+    }
+
     protected override void OnPrepare(in ProcessSpec spec) {
         looper?.Dispose();
-        Volatile.Write(ref looper, new(spec.SampleRate, Looping.Looper.MaxSeconds));
+        Volatile.Write(ref looper, new(spec.SampleRate, Looper.MaxSeconds));
     }
 
     protected override void OnReset() {
@@ -101,23 +118,6 @@ public sealed class LooperBlock() : DspBlock(Info), ILooperBlock {
         }
 
         base.Dispose(disposing);
-    }
-
-    /// <summary>The Config page as the looper takes it, at <paramref name="tempo" /> BPM (0: no quantising).</summary>
-    LooperSettings Settings(double tempo) {
-        var rate = Spec.SampleRate;
-        return new() {
-            MaxSamples = (int)(Params.Current(MaxTime) * rate),
-            Once = Params.Current(Once) >= 0.5f,
-            TrimStart = Params.Current(TrimStart) / 100f,
-            TrimEnd = Params.Current(TrimEnd) / 100f,
-            Threshold = Params.Current(Threshold) >= 0.5f ? Decibels.ToGain(Params.Current(ThresholdLevel)) : 0f,
-            OverdubLevel = Params.Current(OverdubLevel) / 100f,
-            CrossfadeSamples = (int)(Params.Current(Crossfade) * 0.001 * rate),
-            BeatSamples = Params.Current(Quantize) >= 0.5f && tempo > 0 ? 60.0 * rate / tempo : 0,
-            SecondPress = (LooperSecondPress)(int)Params.Current(SecondPress),
-            Speed = Speeds[Math.Clamp((int)Params.Current(Speed), 0, Speeds.Length - 1)]
-        };
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {

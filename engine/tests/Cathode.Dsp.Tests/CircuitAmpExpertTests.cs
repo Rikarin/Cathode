@@ -1,6 +1,7 @@
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Wdf;
 using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
@@ -13,52 +14,6 @@ namespace Cathode.Dsp.Tests;
 public class CircuitAmpExpertTests(ITestOutputHelper output) {
     const double Rate = 48_000;
     const double InnerRate = 96_000;
-
-    [Fact]
-    public void Panel_labels_name_and_hide_controls_per_model() {
-        var parameters = CircuitAmpBlock.Info.Params;
-        IReadOnlyList<string>? Labels(string id) => parameters.Single(p => p.Id == id).TypeLabels;
-        string Label(AmpDesign design, string id) => Labels(id)![AmpDesign.All.ToList().IndexOf(design)];
-
-        Assert.Equal(["Gain", "Gain", "Gain"], Labels("gain")!.Take(3));
-        Assert.Equal([string.Empty, string.Empty, "Cut"], Labels("cut")!.Take(3));
-        Assert.Equal(["Middle", "Middle", string.Empty], Labels("middle")!.Take(3));
-        Assert.All(Labels("switch1")!.Take(2), static l => Assert.Empty(l));
-        Assert.All(Labels("eq1")!.Take(3), static l => Assert.Empty(l));
-        Assert.Null(Labels("variac"));
-        Assert.Equal(AmpDesign.All.Count, Labels("control1")!.Count);
-
-        // Channel switches and the class-A family's own controls.
-        Assert.Equal("Normal Ch", Label(AC30.Design, "switch1"));
-        Assert.Equal(string.Empty, Label(AC30.Design, "master"));
-        Assert.Equal("Brilliance", Label(AC15.Design, "bright"));
-        Assert.Equal(string.Empty, Label(AC15.Design, "treble"));
-        Assert.Equal("Volume", Label(DC30.Design, "gain"));
-        Assert.Equal("Tone (Ch 2)", Label(DC30.Design, "control1"));
-        Assert.Equal("Master", Label(DC30.Design, "master"));
-
-        // The Marshall family's.
-        Assert.Equal("Preamp", Label(JCM2203.Design, "gain"));
-        Assert.Equal("Low Input", Label(JCM2203.Design, "switch1"));
-        Assert.Equal("Jumper", Label(JTM45.Design, "switch1"));
-        Assert.Equal(string.Empty, Label(JTM45.Design, "master"));
-        Assert.Equal("Drive", Label(LaneyGH100L.Design, "control1"));
-    }
-
-    [Fact]
-    public void Parameters_after_level_are_appended_with_stock_defaults() {
-        var parameters = CircuitAmpBlock.Info.Params;
-        string[] first = [
-            "type", "gain", "bass", "middle", "treble", "presence", "depth", "cut", "master", "sag", "bias",
-            "feedback", "bright", "level"
-        ];
-        Assert.Equal(first, parameters.Take(first.Length).Select(static p => p.Id));
-        Assert.Equal(88, parameters.Count);
-        Assert.Equal(CircuitAmpBlock.Balance, parameters.Count - 1);
-        foreach (var p in parameters.Skip(first.Length)) {
-            output.WriteLine($"{p.Id,-10} {p.Name,-20} {p.Min,8} .. {p.Max,-8} default {p.Default} {p.Unit}");
-        }
-    }
 
     /// <summary>Each expert parameter, away from its default, on each model: what to set, and whether it must be audible.</summary>
     public static TheoryData<int, int, float, bool> ExpertSettings {
@@ -148,23 +103,51 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         }
     }
 
-    /// <summary>
-    ///     Whether an expert parameter reaches a solid-state amp: not where its panel hides it (the tube parameters); the
-    ///     supply's (Variac, B+ Time Const) only once the rails are loaded hard, which this test's chord does not do.
-    /// </summary>
-    static bool SolidStateAudible(AmpDesign design, int index) =>
-        design.Panel.Label(CircuitAmpBlock.Info.Params[index].Id, "-") is not null
-        && index is not (CircuitAmpBlock.Variac or CircuitAmpBlock.SupplyTime);
+    [Fact]
+    public void Panel_labels_name_and_hide_controls_per_model() {
+        var parameters = CircuitAmpBlock.Info.Params;
+        IReadOnlyList<string>? Labels(string id) => parameters.Single(p => p.Id == id).TypeLabels;
+        string Label(AmpDesign design, string id) => Labels(id)![AmpDesign.All.ToList().IndexOf(design)];
 
-    /// <summary>Whether a model has a bright cap for the Bright Cap setting to scale (the Mark IV's lead channel has none).</summary>
-    static bool HasBrightCap(AmpDesign design) =>
-        design.Preamp.Any(static s => s switch {
-                TriodeStageDesign t => t.BrightCap > 0,
-                ToneStackStageDesign t => t.BrightCap > 0,
-                NetworkStageDesign n => n.Netlist.Elements.Any(static e => e.CapacitorRole == CapacitorRole.Bright),
-                _ => false
-            }
-        );
+        Assert.Equal(["Gain", "Gain", "Gain"], Labels("gain")!.Take(3));
+        Assert.Equal([string.Empty, string.Empty, "Cut"], Labels("cut")!.Take(3));
+        Assert.Equal(["Middle", "Middle", string.Empty], Labels("middle")!.Take(3));
+        Assert.All(Labels("switch1")!.Take(2), static l => Assert.Empty(l));
+        Assert.All(Labels("eq1")!.Take(3), static l => Assert.Empty(l));
+        Assert.Null(Labels("variac"));
+        Assert.Equal(AmpDesign.All.Count, Labels("control1")!.Count);
+
+        // Channel switches and the class-A family's own controls.
+        Assert.Equal("Normal Ch", Label(AC30.Design, "switch1"));
+        Assert.Equal(string.Empty, Label(AC30.Design, "master"));
+        Assert.Equal("Brilliance", Label(AC15.Design, "bright"));
+        Assert.Equal(string.Empty, Label(AC15.Design, "treble"));
+        Assert.Equal("Volume", Label(DC30.Design, "gain"));
+        Assert.Equal("Tone (Ch 2)", Label(DC30.Design, "control1"));
+        Assert.Equal("Master", Label(DC30.Design, "master"));
+
+        // The Marshall family's.
+        Assert.Equal("Preamp", Label(JCM2203.Design, "gain"));
+        Assert.Equal("Low Input", Label(JCM2203.Design, "switch1"));
+        Assert.Equal("Jumper", Label(JTM45.Design, "switch1"));
+        Assert.Equal(string.Empty, Label(JTM45.Design, "master"));
+        Assert.Equal("Drive", Label(LaneyGH100L.Design, "control1"));
+    }
+
+    [Fact]
+    public void Parameters_after_level_are_appended_with_stock_defaults() {
+        var parameters = CircuitAmpBlock.Info.Params;
+        string[] first = [
+            "type", "gain", "bass", "middle", "treble", "presence", "depth", "cut", "master", "sag", "bias",
+            "feedback", "bright", "level"
+        ];
+        Assert.Equal(first, parameters.Take(first.Length).Select(static p => p.Id));
+        Assert.Equal(88, parameters.Count);
+        Assert.Equal(CircuitAmpBlock.Balance, parameters.Count - 1);
+        foreach (var p in parameters.Skip(first.Length)) {
+            output.WriteLine($"{p.Id,-10} {p.Name,-20} {p.Min,8} .. {p.Max,-8} default {p.Default} {p.Unit}");
+        }
+    }
 
     [Theory]
     [MemberData(nameof(ExpertSettings))]
@@ -369,16 +352,34 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         Assert.InRange(between, -0.5, 0.5);
     }
 
+    /// <summary>
+    ///     Whether an expert parameter reaches a solid-state amp: not where its panel hides it (the tube parameters); the
+    ///     supply's (Variac, B+ Time Const) only once the rails are loaded hard, which this test's chord does not do.
+    /// </summary>
+    static bool SolidStateAudible(AmpDesign design, int index) =>
+        design.Panel.Label(CircuitAmpBlock.Info.Params[index].Id, "-") is not null
+        && index is not (CircuitAmpBlock.Variac or CircuitAmpBlock.SupplyTime);
+
+    /// <summary>Whether a model has a bright cap for the Bright Cap setting to scale (the Mark IV's lead channel has none).</summary>
+    static bool HasBrightCap(AmpDesign design) =>
+        design.Preamp.Any(static s => s switch {
+                TriodeStageDesign t => t.BrightCap > 0,
+                ToneStackStageDesign t => t.BrightCap > 0,
+                NetworkStageDesign n => n.Netlist.Elements.Any(static e => e.CapacitorRole == CapacitorRole.Bright),
+                _ => false
+            }
+        );
+
     /// <summary>The preamp stages that play with every switch off: a channel switch's stock channel.</summary>
     static IEnumerable<AmpStageDesign> StockPath(AmpDesign design) =>
         design.Preamp.SelectMany(static s => s is ChannelSwitchStageDesign channels ? channels.Off : [s]);
 
     static bool HasTwelveAX7(AmpStageDesign stage) =>
         stage switch {
-            TriodeStageDesign triode => triode.Tube == Wdf.TriodeModel.Ecc83,
-            ToneStackStageDesign stack => stack.Tube == Wdf.TriodeModel.Ecc83,
+            TriodeStageDesign triode => triode.Tube == TriodeModel.Ecc83,
+            ToneStackStageDesign stack => stack.Tube == TriodeModel.Ecc83,
             NetworkStageDesign network => network.Netlist.Elements.Any(static e =>
-                e.Kind == ElementKind.Triode && e.Triode == Wdf.TriodeModel.Ecc83
+                e.Kind == ElementKind.Triode && e.Triode == TriodeModel.Ecc83
             ),
             _ => false
         };

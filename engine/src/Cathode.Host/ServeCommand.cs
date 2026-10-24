@@ -11,6 +11,12 @@ namespace Cathode.Host;
 ///     socket until SIGINT or SIGTERM (docs/adr/0001-process-model.md, docs/adr/0004-state-ownership.md).
 /// </summary>
 static class ServeCommand {
+    /// <summary>
+    ///     The GC budget that keeps the host collection-free for hours (docs/adr/0001-process-model.md). NativeAOT reads
+    ///     it from the environment only, as bare hex, so whoever launches the host must set it.
+    /// </summary>
+    public const string Gen0Budget = "10000000"; // 256 MB
+
     public static int Run(CommandLine options) {
         var socketPath = options.Text("socket") ?? throw new InvalidOperationException("--socket <path> is required.");
         var rate = options.Double("rate", 48_000);
@@ -72,12 +78,6 @@ static class ServeCommand {
             session.Stop();
         }
     }
-
-    /// <summary>
-    ///     The GC budget that keeps the host collection-free for hours (docs/adr/0001-process-model.md). NativeAOT reads
-    ///     it from the environment only, as bare hex, so whoever launches the host must set it.
-    /// </summary>
-    public const string Gen0Budget = "10000000"; // 256 MB
 
     static int Serve(EngineHostService service, string socketPath, CancellationToken cancellationToken) {
         if (Environment.GetEnvironmentVariable("DOTNET_GCgen0size") is null) {

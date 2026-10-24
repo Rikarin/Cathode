@@ -1,16 +1,14 @@
 using System.Runtime.CompilerServices;
 using Cathode.Dsp.Wdf;
-using LinearOpAmpCircuit = Cathode.Dsp.Wdf.WdfCircuit<
-    Cathode.Dsp.Wdf.RTypeAdaptor<
-        Cathode.Dsp.Wdf.Ports<
-            Cathode.Dsp.Wdf.ResistiveVoltageSource,
-            Cathode.Dsp.Wdf.Resistor,
-            Cathode.Dsp.Wdf.Capacitor,
-            Cathode.Dsp.Wdf.Capacitor,
-            Cathode.Dsp.Wdf.Capacitor,
-            Cathode.Dsp.Wdf.Capacitor
-        >
-    >,
+using LinearOpAmpCircuit = Cathode.Dsp.Wdf.WdfCircuit<Cathode.Dsp.Wdf.RTypeAdaptor<Cathode.Dsp.Wdf.Ports<
+    Cathode.Dsp.Wdf.ResistiveVoltageSource,
+    Cathode.Dsp.Wdf.Resistor,
+    Cathode.Dsp.Wdf.Capacitor,
+    Cathode.Dsp.Wdf.Capacitor,
+    Cathode.Dsp.Wdf.Capacitor,
+    Cathode.Dsp.Wdf.Capacitor
+>
+>,
     Cathode.Dsp.Wdf.DiodePair
 >;
 
@@ -82,24 +80,22 @@ public sealed class OpAmpStage {
     static readonly WdfNetlist DiodesNetlist = Netlist(OpAmpSolve.FeedbackDiodes);
     static readonly WdfNetlist RailsNetlist = Netlist(OpAmpSolve.Rails);
 
-    readonly CircuitRoot<ResistiveVoltageSource, OpAmp> device;
     LinearOpAmpCircuit diodes;
     LinearOpAmpCircuit rails;
     DriveStage? stage;
     double rate;
     double drive = double.NaN;
     double source = double.NaN;
-    OpAmpSolve solve;
 
     /// <summary>The model the configured stage uses.</summary>
-    public OpAmpSolve Solve => solve;
+    public OpAmpSolve Solve { get; private set; }
 
     /// <summary>The Newton root of <see cref="OpAmpSolve.Device" />.</summary>
-    public CircuitRoot<ResistiveVoltageSource, OpAmp> Device => device;
+    public CircuitRoot<ResistiveVoltageSource, OpAmp> Device { get; }
 
     public OpAmpStage() {
         var amplifier = new OpAmp(OpAmpModel.JRC4558, -4.5, 4.5, 48_000);
-        device = new(DeviceNetlist, new(1e3), Capacitors(3), amplifier) {
+        Device = new(DeviceNetlist, new(1e3), Capacitors(3), amplifier) {
             // 100 µV steps: the op-amp is linear inside its window, so only its knees are approximate.
             AbsoluteTolerance = 1e-4, RelativeTolerance = 1e-4
         };
@@ -175,11 +171,11 @@ public sealed class OpAmpStage {
             this.stage = stage;
             this.rate = rate;
             var d = stage.Diodes;
-            solve = d.ForwardCount + d.ReverseCount > 0 ? OpAmpSolve.FeedbackDiodes
+            Solve = d.ForwardCount + d.ReverseCount > 0 ? OpAmpSolve.FeedbackDiodes
                 : stage.SlewLimited ? OpAmpSolve.Device
                 : OpAmpSolve.Rails;
             var rail = stage.Supply / 2;
-            switch (solve) {
+            switch (Solve) {
                 case OpAmpSolve.FeedbackDiodes:
                     diodes.Root.Configure(d.Forward, d.ForwardCount, d.Reverse, d.ReverseCount);
                     break;
@@ -190,7 +186,7 @@ public sealed class OpAmpStage {
                 }
 
                 default:
-                    device.Device = new(model, -rail, rail, rate);
+                    Device.Device = new(model, -rail, rail, rate);
                     break;
             }
         }
@@ -200,19 +196,19 @@ public sealed class OpAmpStage {
         var second = stage.GroundResistance2 > 0;
         var feedback = stage.Feedback + stage.FeedbackPot * DriveCircuits.AudioTaper(drive);
         var leg = stage.GroundResistance + stage.GroundPot * DriveCircuits.AudioTaper(1 - drive);
-        if (solve == OpAmpSolve.Device) {
-            device.Source.Value = sourceResistance;
-            device.SetResistance(InputBias, stage.InputBias);
-            device.SetResistance(Feedback, feedback);
-            device.SetResistance(Leg, leg);
-            device.SetResistance(SecondLeg, second ? stage.GroundResistance2 : Absent);
-            device.SetResistance(Load, stage.Load);
-            device.Capacitor(0).Configure(Math.Max(stage.FeedbackCapacitance, 1e-15), rate);
-            device.Capacitor(1).Configure(stage.GroundCapacitance, rate);
-            device.Capacitor(2).Configure(second ? stage.GroundCapacitance2 : 1e-12, rate);
-            device.Propagate();
+        if (Solve == OpAmpSolve.Device) {
+            Device.Source.Value = sourceResistance;
+            Device.SetResistance(InputBias, stage.InputBias);
+            Device.SetResistance(Feedback, feedback);
+            Device.SetResistance(Leg, leg);
+            Device.SetResistance(SecondLeg, second ? stage.GroundResistance2 : Absent);
+            Device.SetResistance(Load, stage.Load);
+            Device.Capacitor(0).Configure(Math.Max(stage.FeedbackCapacitance, 1e-15), rate);
+            Device.Capacitor(1).Configure(stage.GroundCapacitance, rate);
+            Device.Capacitor(2).Configure(second ? stage.GroundCapacitance2 : 1e-12, rate);
+            Device.Propagate();
         } else {
-            ref var circuit = ref solve == OpAmpSolve.FeedbackDiodes ? ref diodes : ref rails;
+            ref var circuit = ref Solve == OpAmpSolve.FeedbackDiodes ? ref diodes : ref rails;
             ref var tree = ref circuit.Tree;
             tree.Ports.A.Value = sourceResistance;
             tree.Ports.B.Value = stage.Load;
@@ -237,7 +233,7 @@ public sealed class OpAmpStage {
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Tick(double x) {
-        switch (solve) {
+        switch (Solve) {
             case OpAmpSolve.FeedbackDiodes:
                 diodes.Tree.Ports.A.Volts = x;
                 diodes.Tick();
@@ -247,19 +243,19 @@ public sealed class OpAmpStage {
                 rails.Tick();
                 return rails.Tree.Ports.B.Voltage;
             default:
-                device.Source.Volts = x;
-                return device.Tick();
+                Device.Source.Volts = x;
+                return Device.Tick();
         }
     }
 
     public void Reset() {
-        device.Reset();
+        Device.Reset();
         diodes.Reset();
         rails.Reset();
     }
 
     public void FlushDenormals() {
-        switch (solve) {
+        switch (Solve) {
             case OpAmpSolve.FeedbackDiodes:
                 Flush(ref diodes);
                 break;
@@ -267,7 +263,7 @@ public sealed class OpAmpStage {
                 Flush(ref rails);
                 break;
             default:
-                device.FlushDenormals();
+                Device.FlushDenormals();
                 break;
         }
     }
@@ -311,17 +307,16 @@ public sealed class TransistorStage {
 
     static readonly WdfNetlist Circuit = Netlist();
 
-    readonly CircuitRoot<Series<ResistiveVoltageSource, Inductor>, Bjt> root;
     readonly double[] start = new double[5];
     DriveStage? stage;
     double rate;
     double input = double.NaN;
     StageSource source;
 
-    public CircuitRoot<Series<ResistiveVoltageSource, Inductor>, Bjt> Root => root;
+    public CircuitRoot<Series<ResistiveVoltageSource, Inductor>, Bjt> Root { get; }
 
     public TransistorStage() {
-        root = new(
+        Root = new(
             Circuit,
             new(new(1e3), new(1e-9, 48_000)),
             [new(1e-6, 48_000), new(1e-6, 48_000), new(1e-6, 48_000)],
@@ -378,24 +373,24 @@ public sealed class TransistorStage {
         if (fresh) {
             this.stage = stage;
             this.rate = rate;
-            root.Device = new(stage.Transistor);
-            root.SetSupply(0, stage.Transistor.Polarity == BjtPolarity.Npn ? stage.Supply : -stage.Supply);
-            root.SetResistance(BaseToSupply, stage.BaseToSupply > 0 ? stage.BaseToSupply : Absent);
-            root.SetResistance(BaseToGround, stage.BaseToGround > 0 ? stage.BaseToGround : Absent);
-            root.SetResistance(Emitter, stage.Emitter);
-            root.SetResistance(Collector, stage.Collector);
-            root.SetResistance(Feedback, stage.Feedback > 0 ? stage.Feedback : Absent);
-            root.SetResistance(Load, stage.Load);
-            root.Capacitor(1).Configure(stage.EmitterCapacitance, rate);
-            root.Capacitor(2).Configure(stage.OutputCapacitance, rate);
+            Root.Device = new(stage.Transistor);
+            Root.SetSupply(0, stage.Transistor.Polarity == BjtPolarity.Npn ? stage.Supply : -stage.Supply);
+            Root.SetResistance(BaseToSupply, stage.BaseToSupply > 0 ? stage.BaseToSupply : Absent);
+            Root.SetResistance(BaseToGround, stage.BaseToGround > 0 ? stage.BaseToGround : Absent);
+            Root.SetResistance(Emitter, stage.Emitter);
+            Root.SetResistance(Collector, stage.Collector);
+            Root.SetResistance(Feedback, stage.Feedback > 0 ? stage.Feedback : Absent);
+            Root.SetResistance(Load, stage.Load);
+            Root.Capacitor(1).Configure(stage.EmitterCapacitance, rate);
+            Root.Capacitor(2).Configure(stage.OutputCapacitance, rate);
         }
 
         input = inputCapacitance;
         this.source = source;
-        source.Apply(ref root.Source, rate);
-        root.SetResistance(Shunt, source.Shunt);
-        root.Capacitor(0).Configure(inputCapacitance, rate);
-        root.Propagate();
+        source.Apply(ref Root.Source, rate);
+        Root.SetResistance(Shunt, source.Shunt);
+        Root.Capacitor(0).Configure(inputCapacitance, rate);
+        Root.Propagate();
         if (fresh) {
             Reset();
         }
@@ -403,19 +398,19 @@ public sealed class TransistorStage {
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Tick(double x) {
-        root.Source.A.Volts = x;
-        return root.Tick();
+        Root.Source.A.Volts = x;
+        return Root.Tick();
     }
 
     /// <summary>Back to the operating point.</summary>
     public void Reset() {
-        root.Reset();
+        Root.Reset();
         if (stage is not null && DriveCircuits.TryGetOperatingPoint(stage, out var point)) {
-            root.StartAt(point);
+            Root.StartAt(point);
         }
     }
 
-    double[] Settle() => OperatingPoints.Settle(root, start, Tick, rate);
+    double[] Settle() => OperatingPoints.Settle(Root, start, Tick, rate);
 }
 
 /// <summary>
@@ -446,17 +441,16 @@ public sealed class FuzzPairStage {
 
     static readonly WdfNetlist Circuit = Netlist();
 
-    readonly CircuitRoot<Series<ResistiveVoltageSource, Inductor>, Devices<Bjt, Bjt>> root;
     readonly double[] start = new double[7];
     DriveStage? stage;
     double rate;
     double drive = double.NaN;
     StageSource source;
 
-    public CircuitRoot<Series<ResistiveVoltageSource, Inductor>, Devices<Bjt, Bjt>> Root => root;
+    public CircuitRoot<Series<ResistiveVoltageSource, Inductor>, Devices<Bjt, Bjt>> Root { get; }
 
     public FuzzPairStage() {
-        root = new(
+        Root = new(
             Circuit,
             new(new(1e3), new(1e-9, 48_000)),
             [new(2.2e-6, 48_000), new(20e-6, 48_000), new(10e-9, 48_000)],
@@ -517,25 +511,25 @@ public sealed class FuzzPairStage {
         if (fresh) {
             this.stage = stage;
             this.rate = rate;
-            root.Device = new(new(stage.Transistor), new(stage.Transistor));
-            root.SetSupply(0, stage.Transistor.Polarity == BjtPolarity.Npn ? stage.Supply : -stage.Supply);
-            root.SetResistance(FirstCollector, stage.Collector);
-            root.SetResistance(SecondCollector, stage.SecondCollector);
-            root.SetResistance(CollectorSupply, stage.CollectorSupply);
-            root.SetResistance(Feedback, stage.Feedback);
-            root.SetResistance(Load, stage.Load);
-            root.Capacitor(0).Configure(stage.InputCapacitance, rate);
-            root.Capacitor(1).Configure(stage.EmitterCapacitance, rate);
-            root.Capacitor(2).Configure(stage.OutputCapacitance, rate);
+            Root.Device = new(new(stage.Transistor), new(stage.Transistor));
+            Root.SetSupply(0, stage.Transistor.Polarity == BjtPolarity.Npn ? stage.Supply : -stage.Supply);
+            Root.SetResistance(FirstCollector, stage.Collector);
+            Root.SetResistance(SecondCollector, stage.SecondCollector);
+            Root.SetResistance(CollectorSupply, stage.CollectorSupply);
+            Root.SetResistance(Feedback, stage.Feedback);
+            Root.SetResistance(Load, stage.Load);
+            Root.Capacitor(0).Configure(stage.InputCapacitance, rate);
+            Root.Capacitor(1).Configure(stage.EmitterCapacitance, rate);
+            Root.Capacitor(2).Configure(stage.OutputCapacitance, rate);
         }
 
         this.drive = drive;
         this.source = source;
-        source.Apply(ref root.Source, rate);
-        root.SetResistance(Shunt, source.Shunt);
-        root.SetResistance(EmitterToWiper, (1 - drive) * stage.Emitter);
-        root.SetResistance(WiperToGround, drive * stage.Emitter);
-        root.Propagate();
+        source.Apply(ref Root.Source, rate);
+        Root.SetResistance(Shunt, source.Shunt);
+        Root.SetResistance(EmitterToWiper, (1 - drive) * stage.Emitter);
+        Root.SetResistance(WiperToGround, drive * stage.Emitter);
+        Root.Propagate();
         if (fresh) {
             Reset();
         }
@@ -543,8 +537,8 @@ public sealed class FuzzPairStage {
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Tick(double x) {
-        root.Source.A.Volts = x;
-        return root.Tick();
+        Root.Source.A.Volts = x;
+        return Root.Tick();
     }
 
     /// <summary>
@@ -552,17 +546,17 @@ public sealed class FuzzPairStage {
     ///     bypass capacitor's charge, which sits at the wiper's share of the emitter voltage.
     /// </summary>
     public void Reset() {
-        root.Reset();
+        Root.Reset();
         if (stage is null || !DriveCircuits.TryGetOperatingPoint(stage, out var point)) {
             return;
         }
 
-        root.StartAt(point);
+        Root.StartAt(point);
         var emitter = point[3] - point[4] - point[5]; // v_BE1 - v_BC1 - v_BE2, up from the grounded first emitter
-        root.Capacitor(1).Precharge(drive * emitter);
+        Root.Capacitor(1).Precharge(drive * emitter);
     }
 
-    double[] Settle() => OperatingPoints.Settle(root, start, Tick, rate);
+    double[] Settle() => OperatingPoints.Settle(Root, start, Tick, rate);
 }
 
 /// <summary>The DC operating point of a transistor stage's root.</summary>
@@ -769,6 +763,25 @@ public sealed class ToneStage {
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public double Tick(double x) {
+        if (root is null) {
+            return x;
+        }
+
+        root.Source.Volts = x;
+        return sign * root.Tick();
+    }
+
+    public void Reset() {
+        foreach (var root in roots) {
+            root.Reset();
+        }
+    }
+
+    /// <summary>Clears capacitor charge that has decayed into the subnormal range.</summary>
+    public void FlushDenormals() => root?.FlushDenormals();
+
     /// <summary>
     ///     Sets the components of <paramref name="network" /> with its pot at <paramref name="tone" />, in netlist resistor
     ///     order, and recomputes the matrix.
@@ -827,23 +840,4 @@ public sealed class ToneStage {
 
         root.Propagate();
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double Tick(double x) {
-        if (root is null) {
-            return x;
-        }
-
-        root.Source.Volts = x;
-        return sign * root.Tick();
-    }
-
-    public void Reset() {
-        foreach (var root in roots) {
-            root.Reset();
-        }
-    }
-
-    /// <summary>Clears capacitor charge that has decayed into the subnormal range.</summary>
-    public void FlushDenormals() => root?.FlushDenormals();
 }

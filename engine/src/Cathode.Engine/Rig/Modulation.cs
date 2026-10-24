@@ -1,3 +1,4 @@
+using Cathode.Dsp.Modulation;
 using Cathode.Dsp.Parameters;
 
 namespace Cathode.Engine.Rig;
@@ -38,13 +39,13 @@ public sealed class Modulation(ParamBank rig, double sampleRate) {
     float lfo2Held;
     float follower; // linear peak of the input, before sensitivity
 
-    /// <summary>The current value of a source, 0..1.</summary>
-    public float Value(ModSource source) => values[(int)source];
-
     /// <summary>Scene level as a linear gain (smoothed by its parameter).</summary>
     public float LevelGain { get; private set; } = 1f;
 
     public double Tempo => rig.Current(tempo);
+
+    /// <summary>The current value of a source, 0..1.</summary>
+    public float Value(ModSource source) => values[(int)source];
 
     /// <summary>Audio thread: advance every controller over the next <paramref name="input" />.Length frames.</summary>
     public void Advance(ReadOnlySpan<float> input, long sampleTime) {
@@ -133,7 +134,7 @@ public sealed class Modulation(ParamBank rig, double sampleRate) {
             3 => p,
             4 => 1f - p,
             5 => held,
-            > 5 => 0.5f + 0.5f * (float)Dsp.Modulation.Lfo.Shape((Dsp.Modulation.LfoShape)shape, p),
+            > 5 => 0.5f + 0.5f * (float)Dsp.Modulation.Lfo.Shape((LfoShape)shape, p),
             _ => 0.5f + 0.5f * MathF.Sin(2f * MathF.PI * p)
         };
     }

@@ -27,19 +27,17 @@ public sealed class AmpChannel {
     ChannelSettings channelSettings = ChannelSettings.Stock;
 
     public AmpDesign Design { get; }
-
     public IReadOnlyList<AmpStage> Stages => stages;
-
     public PowerAmp Power { get; }
 
     /// <summary>The solid-state power amp that runs in place of <see cref="Power" />, or null for a tube amp.</summary>
     public SolidStatePowerAmp? SolidState { get; }
 
-    /// <summary>The preamp's supply as a fraction of nominal: a solid-state amp's preamp rails are regulated.</summary>
-    double PreampSupply => SolidState is null ? Power.PreampSupply : 1;
-
     /// <summary>Whether the power amp is modelled (the Power Amp Modeling switch); otherwise the output is the preamp's.</summary>
     public bool PowerAmpEnabled => channelSettings.PowerAmp;
+
+    /// <summary>The preamp's supply as a fraction of nominal: a solid-state amp's preamp rails are regulated.</summary>
+    double PreampSupply => SolidState is null ? Power.PreampSupply : 1;
 
     public AmpChannel(AmpDesign design, double sampleRate) {
         Design = design;

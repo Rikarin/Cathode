@@ -26,7 +26,8 @@ public sealed record ToneMatchRequest(
     string Reference,
     double Seconds = 10,
     double Amount = 100,
-    double Smoothing = 1.0 / 3);
+    double Smoothing = 1.0 / 3
+);
 
 /// <summary>One impulse response in an IR mix.</summary>
 /// <param name="Asset">An asset reference of a .wav IR.</param>
@@ -50,4 +51,5 @@ public sealed record IrMixRequest(
     bool Align = true,
     double LengthMs = 170,
     int SampleRate = 48_000,
-    bool Normalize = true);
+    bool Normalize = true
+);

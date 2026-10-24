@@ -1,3 +1,4 @@
+using System.Globalization;
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Blocks;
 using Cathode.Testing;
@@ -67,7 +68,7 @@ public class FenderAmpTests(ITestOutputHelper output) {
             .Select(g => Analysis.ToDb(Analysis.Rms(Render(model, 0.03f, (CircuitAmpBlock.Gain, g)).AsSpan(4_800))))
             .ToArray();
         output.WriteLine(
-            $"{model}: rms {string.Join(", ", rms.Select(static r => r.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)))} dBFS at volume 1, 3, 5, 8"
+            $"{model}: rms {string.Join(", ", rms.Select(static r => r.ToString("0.0", CultureInfo.InvariantCulture)))} dBFS at volume 1, 3, 5, 8"
         );
         for (var i = 1; i < rms.Length; i++) {
             Assert.True(rms[i] > rms[i - 1] + 0.5, $"volume {i}: {rms[i]:0.0} dB after {rms[i - 1]:0.0} dB");

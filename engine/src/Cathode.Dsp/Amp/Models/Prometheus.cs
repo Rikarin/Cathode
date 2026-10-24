@@ -102,7 +102,7 @@ public static class Prometheus {
             5.6e3,
             0,
             new(1e6, PotTaper.Linear),
-            new(Math.Sqrt(2), 100e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6, 90),
+            new(Math.Sqrt(2), 100e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6),
             true,
             new(1.7e3),
             new(Resonance: 95, PeakImpedance: 30, Q: 2.5),

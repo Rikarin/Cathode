@@ -1,3 +1,4 @@
+using System.Globalization;
 using Cathode.Dsp.Filters;
 using Cathode.Dsp.Modulation;
 using Cathode.Dsp.Parameters;
@@ -503,7 +504,63 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
     static PitchType[] VoiceTypes =>
         [PitchType.Detune, PitchType.Chromatic, PitchType.Diatonic, PitchType.CustomShifter];
 
-    static string Invariant(int value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    /// <summary>The level of an arpeggiator step at <paramref name="position" /> (0..1) through it.</summary>
+    public static float ArpAmplitude(int shape, float alpha, double position) {
+        var k = Math.Pow(4, (alpha - 50) / 50.0); // 0.25 .. 4
+        var p = Math.Clamp(position, 0, 1);
+        return shape switch {
+            1 => (float)Math.Pow(1 - p, k),
+            2 => (float)Math.Pow(p, k),
+            3 => (float)Math.Pow(1 - Math.Abs(2 * p - 1), k),
+            _ => 1f
+        };
+    }
+
+    /// <summary>The pan (−1..1) of arpeggiator step <paramref name="step" /> of <paramref name="count" />.</summary>
+    public static float ArpPan(int shape, float width, int step, int count) {
+        var w = Math.Clamp(width / 100f, 0f, 1f);
+        switch (shape) {
+            case 1:
+                return step % 2 == 0 ? -w : w;
+            case 2:
+                return count > 1 ? -w + 2 * w * step / (count - 1) : 0f;
+            case 3: {
+                var x = (uint)step * 0x9E3779B1u;
+                x ^= x >> 15;
+                x *= 0x85EBCA77u;
+                x ^= x >> 13;
+                return w * ((x & 0xFFFF) / 32_767.5f - 1);
+            }
+
+            default:
+                return 0f;
+        }
+    }
+
+    public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) {
+        var detectorRow = (int)Params.GetTarget(DetectorSource) - 1;
+        if (row != detectorRow || source.Length > sideLeft.Length) {
+            for (var i = 0; i < source.Length; i++) {
+                destination.Left[i] += source.Left[i];
+                destination.Right[i] += source.Right[i];
+            }
+
+            return;
+        }
+
+        if (sideFrames != source.Length) {
+            Array.Clear(sideLeft, 0, source.Length);
+            Array.Clear(sideRight, 0, source.Length);
+            sideFrames = source.Length;
+        }
+
+        for (var i = 0; i < source.Length; i++) {
+            sideLeft[i] += source.Left[i];
+            sideRight[i] += source.Right[i];
+        }
+    }
+
+    static string Invariant(int value) => value.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>Type labels that show a parameter as <paramref name="name" /> on <paramref name="types" /> only.</summary>
     static string[] For(string name, params PitchType[] types) =>
@@ -612,60 +669,160 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
 
     static bool HasVoices(PitchType type) => IsHarmony(type) || type == PitchType.Detune;
 
-    /// <summary>The level of an arpeggiator step at <paramref name="position" /> (0..1) through it.</summary>
-    public static float ArpAmplitude(int shape, float alpha, double position) {
-        var k = Math.Pow(4, (alpha - 50) / 50.0); // 0.25 .. 4
-        var p = Math.Clamp(position, 0, 1);
-        return shape switch {
-            1 => (float)Math.Pow(1 - p, k),
-            2 => (float)Math.Pow(p, k),
-            3 => (float)Math.Pow(1 - Math.Abs(2 * p - 1), k),
-            _ => 1f
-        };
+    static float MixFor(PitchType type, float mix) =>
+        type is PitchType.Whammy or PitchType.VirtualCapo ? 1f : mix / 100f;
+
+    /// <summary>The voice's delay line, read before it is written (a delay of N is N samples), with its own feedback.</summary>
+    static float Delayed(FractionalDelayLine line, float input, float delay, float feedback) {
+        var output = line.Read(delay);
+        line.Write(input + feedback * output);
+        return output;
     }
 
-    /// <summary>The pan (−1..1) of arpeggiator step <paramref name="step" /> of <paramref name="count" />.</summary>
-    public static float ArpPan(int shape, float width, int step, int count) {
-        var w = Math.Clamp(width / 100f, 0f, 1f);
-        switch (shape) {
-            case 1:
-                return step % 2 == 0 ? -w : w;
-            case 2:
-                return count > 1 ? -w + 2 * w * step / (count - 1) : 0f;
-            case 3: {
-                var x = (uint)step * 0x9E3779B1u;
-                x ^= x >> 15;
-                x *= 0x85EBCA77u;
-                x ^= x >> 13;
-                return w * ((x & 0xFFFF) / 32_767.5f - 1);
-            }
-
-            default:
-                return 0f;
+    /// <summary>Restarts the arpeggiator on each new note: the playing rising through −40 dBFS after falling 6 dB below.</summary>
+    void Onset(float mono) {
+        var magnitude = MathF.Abs(mono);
+        onsetEnvelope = magnitude > onsetEnvelope ? magnitude : onsetEnvelope * onsetRelease;
+        if (onsetArmed && onsetEnvelope > OnsetLevel) {
+            onsetArmed = false;
+            arpPhase = 0;
+            arpStep = 0;
+            arpPasses = 0;
+        } else if (!onsetArmed && onsetEnvelope < 0.5f * OnsetLevel) {
+            onsetArmed = true;
         }
     }
 
-    public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) {
-        var detectorRow = (int)Params.GetTarget(DetectorSource) - 1;
-        if (row != detectorRow || source.Length > sideLeft.Length) {
-            for (var i = 0; i < source.Length; i++) {
-                destination.Left[i] += source.Left[i];
-                destination.Right[i] += source.Right[i];
-            }
+    void Track(float mono, bool fast) {
+        if (sinceVoiced < int.MaxValue) {
+            sinceVoiced++;
+        }
 
+        if (!tracker.Push(mono) || !tracker.Voiced) {
             return;
         }
 
-        if (sideFrames != source.Length) {
-            Array.Clear(sideLeft, 0, source.Length);
-            Array.Clear(sideRight, 0, source.Length);
-            sideFrames = source.Length;
+        sinceVoiced = 0;
+        lastPeriod = tracker.Period;
+
+        // The note changes only past a small hysteresis, so a bend or vibrato does not flip the harmony.
+        var midi = Scales.MidiNote(tracker.Frequency);
+        if (Math.Abs(midi - harmonyNote) > 0.5 + (fast ? FastHysteresis : NoteHysteresis)) {
+            harmonyNote = (int)Math.Round(midi);
         }
 
-        for (var i = 0; i < source.Length; i++) {
-            sideLeft[i] += source.Left[i];
-            sideRight[i] += source.Right[i];
+        keys.Add(Scales.PitchClass(harmonyNote), hopSeconds);
+        UpdateHarmony();
+    }
+
+    /// <summary>Latches the chord held on the MIDI input; with every key released the last chord stays.</summary>
+    void FollowNotes(in HeldNotes notes) {
+        if (notes.IsEmpty) {
+            return;
         }
+
+        chordRoot = Scales.PitchClass(notes.Lowest);
+        chordTones = notes.PitchClasses;
+    }
+
+    /// <summary>Picks the key and scale from the Key Source, then each harmony voice's ratio for the tracked note.</summary>
+    void UpdateHarmony() {
+        var key = (int)Params.Current(Key);
+        var scale = (int)Params.Current(Scale);
+        var chord = 0;
+        switch ((PitchKeySource)(int)Params.Current(KeySource)) {
+            case PitchKeySource.Midi when chordRoot >= 0:
+                (key, chord) = (chordRoot, chordTones);
+                scale = Scales.ChordScale(key, chord, scale);
+                break;
+            case PitchKeySource.Auto when keys.Key >= 0:
+                key = keys.Key;
+                if (Scales.IsMinor(scale) != keys.Minor) {
+                    scale = keys.Minor ? MinorScale : MajorScale;
+                }
+
+                break;
+        }
+
+        (HarmonyKey, HarmonyScale) = (key, scale);
+        if (activeType is not (PitchType.Diatonic or PitchType.CustomShifter)) {
+            return;
+        }
+
+        var just = (int)Params.Current(Temperament) == 1;
+        var note = harmonyNote == int.MinValue ? 60 : harmonyNote;
+        var degree = Scales.PitchClass(note - key);
+        for (var v = 0; v < VoiceCount; v++) {
+            var semitones = activeType == PitchType.CustomShifter
+                ? Params.Current(CustomTable + 12 * v + degree)
+                : Scales.HarmonySemitones(
+                    note,
+                    key,
+                    scale,
+                    (int)Params.Current(HarmonyParams[v]) - MaxHarmonySteps,
+                    chord
+                );
+            harmonies[v] = just ? Scales.JustRatio(note, key, semitones) : Ratio(semitones);
+        }
+    }
+
+    float WhammySemitones() {
+        var start = Params.Current(WhammyStart);
+        return start + (Params.Current(WhammyEnd) - start) * Params.Current(Pedal) / 100f;
+    }
+
+    float CrystalsDelaySamples() => Params.Current(CrystalsTime) * 0.001f * (float)Spec.SampleRate;
+
+    /// <summary>
+    ///     Sets each voice's target gains: four voices for the harmony and detune types, or one centred voice, all at the
+    ///     master level and with their pans scaled by the master pan.
+    /// </summary>
+    void VoiceGains(PitchType type) {
+        var master = Decibels.ToGain(Params.Current(MasterLevel));
+        var masterPan = Params.Current(MasterPan) / 100f;
+        var voices = HasVoices(type) ? VoiceCount : 0;
+        for (var v = 0; v < VoiceCount; v++) {
+            (targetsLeft[v], targetsRight[v]) = v < voices
+                ? Pan(
+                    Decibels.ToGain(Params.Current(LevelParams[v])) * master,
+                    Params.Current(PanParams[v]) * masterPan
+                )
+                : (0f, 0f);
+        }
+
+        if (voices == 0) {
+            (targetsLeft[0], targetsRight[0]) = (master, master);
+        }
+    }
+
+    void ResetEngines() {
+        foreach (var shifter in shifters) {
+            shifter.Reset();
+        }
+
+        psola.Reset();
+        psolaRight.Reset();
+        vocoder.Reset();
+        vocoderRight.Reset();
+        grains.Reset();
+        diffuser.Reset();
+        foreach (var delay in delays) {
+            delay.Reset();
+        }
+
+        crystalsLine.Reset();
+        divider.Reset();
+        dividerRight.Reset();
+        crystalsLow.Reset();
+        crystalsHigh.Reset();
+        Array.Clear(skipped);
+        Array.Clear(lastOut);
+        arpPhase = 0;
+        arpStep = 0;
+        arpPasses = 0;
+        arpGate = 1f;
+        onsetEnvelope = 0;
+        onsetArmed = true;
     }
 
     protected override void OnPrepare(in ProcessSpec spec) {
@@ -1085,161 +1242,5 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
 
         sideFrames = 0;
         output.Apply(io, Params.Advance(Level, frames), Params.Advance(Balance, frames));
-    }
-
-    static float MixFor(PitchType type, float mix) =>
-        type is PitchType.Whammy or PitchType.VirtualCapo ? 1f : mix / 100f;
-
-    /// <summary>The voice's delay line, read before it is written (a delay of N is N samples), with its own feedback.</summary>
-    static float Delayed(FractionalDelayLine line, float input, float delay, float feedback) {
-        var output = line.Read(delay);
-        line.Write(input + feedback * output);
-        return output;
-    }
-
-    /// <summary>Restarts the arpeggiator on each new note: the playing rising through −40 dBFS after falling 6 dB below.</summary>
-    void Onset(float mono) {
-        var magnitude = MathF.Abs(mono);
-        onsetEnvelope = magnitude > onsetEnvelope ? magnitude : onsetEnvelope * onsetRelease;
-        if (onsetArmed && onsetEnvelope > OnsetLevel) {
-            onsetArmed = false;
-            arpPhase = 0;
-            arpStep = 0;
-            arpPasses = 0;
-        } else if (!onsetArmed && onsetEnvelope < 0.5f * OnsetLevel) {
-            onsetArmed = true;
-        }
-    }
-
-    void Track(float mono, bool fast) {
-        if (sinceVoiced < int.MaxValue) {
-            sinceVoiced++;
-        }
-
-        if (!tracker.Push(mono) || !tracker.Voiced) {
-            return;
-        }
-
-        sinceVoiced = 0;
-        lastPeriod = tracker.Period;
-
-        // The note changes only past a small hysteresis, so a bend or vibrato does not flip the harmony.
-        var midi = Scales.MidiNote(tracker.Frequency);
-        if (Math.Abs(midi - harmonyNote) > 0.5 + (fast ? FastHysteresis : NoteHysteresis)) {
-            harmonyNote = (int)Math.Round(midi);
-        }
-
-        keys.Add(Scales.PitchClass(harmonyNote), hopSeconds);
-        UpdateHarmony();
-    }
-
-    /// <summary>Latches the chord held on the MIDI input; with every key released the last chord stays.</summary>
-    void FollowNotes(in HeldNotes notes) {
-        if (notes.IsEmpty) {
-            return;
-        }
-
-        chordRoot = Scales.PitchClass(notes.Lowest);
-        chordTones = notes.PitchClasses;
-    }
-
-    /// <summary>Picks the key and scale from the Key Source, then each harmony voice's ratio for the tracked note.</summary>
-    void UpdateHarmony() {
-        var key = (int)Params.Current(Key);
-        var scale = (int)Params.Current(Scale);
-        var chord = 0;
-        switch ((PitchKeySource)(int)Params.Current(KeySource)) {
-            case PitchKeySource.Midi when chordRoot >= 0:
-                (key, chord) = (chordRoot, chordTones);
-                scale = Scales.ChordScale(key, chord, scale);
-                break;
-            case PitchKeySource.Auto when keys.Key >= 0:
-                key = keys.Key;
-                if (Scales.IsMinor(scale) != keys.Minor) {
-                    scale = keys.Minor ? MinorScale : MajorScale;
-                }
-
-                break;
-        }
-
-        (HarmonyKey, HarmonyScale) = (key, scale);
-        if (activeType is not (PitchType.Diatonic or PitchType.CustomShifter)) {
-            return;
-        }
-
-        var just = (int)Params.Current(Temperament) == 1;
-        var note = harmonyNote == int.MinValue ? 60 : harmonyNote;
-        var degree = Scales.PitchClass(note - key);
-        for (var v = 0; v < VoiceCount; v++) {
-            var semitones = activeType == PitchType.CustomShifter
-                ? Params.Current(CustomTable + 12 * v + degree)
-                : Scales.HarmonySemitones(
-                    note,
-                    key,
-                    scale,
-                    (int)Params.Current(HarmonyParams[v]) - MaxHarmonySteps,
-                    chord
-                );
-            harmonies[v] = just ? Scales.JustRatio(note, key, semitones) : Ratio(semitones);
-        }
-    }
-
-    float WhammySemitones() {
-        var start = Params.Current(WhammyStart);
-        return start + (Params.Current(WhammyEnd) - start) * Params.Current(Pedal) / 100f;
-    }
-
-    float CrystalsDelaySamples() => Params.Current(CrystalsTime) * 0.001f * (float)Spec.SampleRate;
-
-    /// <summary>
-    ///     Sets each voice's target gains: four voices for the harmony and detune types, or one centred voice, all at the
-    ///     master level and with their pans scaled by the master pan.
-    /// </summary>
-    void VoiceGains(PitchType type) {
-        var master = Decibels.ToGain(Params.Current(MasterLevel));
-        var masterPan = Params.Current(MasterPan) / 100f;
-        var voices = HasVoices(type) ? VoiceCount : 0;
-        for (var v = 0; v < VoiceCount; v++) {
-            (targetsLeft[v], targetsRight[v]) = v < voices
-                ? Pan(
-                    Decibels.ToGain(Params.Current(LevelParams[v])) * master,
-                    Params.Current(PanParams[v]) * masterPan
-                )
-                : (0f, 0f);
-        }
-
-        if (voices == 0) {
-            (targetsLeft[0], targetsRight[0]) = (master, master);
-        }
-    }
-
-    void ResetEngines() {
-        foreach (var shifter in shifters) {
-            shifter.Reset();
-        }
-
-        psola.Reset();
-        psolaRight.Reset();
-        vocoder.Reset();
-        vocoderRight.Reset();
-        grains.Reset();
-        diffuser.Reset();
-        foreach (var delay in delays) {
-            delay.Reset();
-        }
-
-        crystalsLine.Reset();
-        divider.Reset();
-        dividerRight.Reset();
-        crystalsLow.Reset();
-        crystalsHigh.Reset();
-        Array.Clear(skipped);
-        Array.Clear(lastOut);
-        arpPhase = 0;
-        arpStep = 0;
-        arpPasses = 0;
-        arpGate = 1f;
-        onsetEnvelope = 0;
-        onsetArmed = true;
     }
 }

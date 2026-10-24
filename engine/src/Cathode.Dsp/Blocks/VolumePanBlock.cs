@@ -75,35 +75,6 @@ public sealed class VolumePanBlock() : DspBlock(Info) {
         return (MathF.Pow(b, v) - 1) / (b - 1);
     }
 
-    protected override void OnPrepare(in ProcessSpec spec) =>
-        envelopeRelease = (float)Math.Exp(-1 / (EnvelopeReleaseMs * 0.001 * spec.SampleRate));
-
-    protected override void OnReset() {
-        output.Reset(Params.Current(Level), Params.Current(Balance));
-        volumeGain = TaperGain((int)Params.Current(Taper), Params.Current(Volume) / 100f);
-        swell = (int)Params.Current(Type) == AutoSwell ? 0f : 1f;
-        envelope = 0;
-        open = false;
-    }
-
-    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
-        var n = io.Length;
-        SelectInput(io, (int)Params.Current(InputSelect));
-        Stereo.Pan(io, Params.Advance(PanLeft, n) / 100f, Params.Advance(PanRight, n) / 100f);
-
-        if ((int)Params.Current(Type) == AutoSwell) {
-            Swell(io, Decibels.ToGain(Params.Advance(Threshold, n)), Params.Advance(Attack, n));
-        } else {
-            swell = 1f;
-        }
-
-        var volumeGain = TaperGain((int)Params.Current(Taper), Params.Advance(Volume, n) / 100f);
-        GainRamp.Apply(io.Left, this.volumeGain, volumeGain);
-        GainRamp.Apply(io.Right, this.volumeGain, volumeGain);
-        this.volumeGain = volumeGain;
-        output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
-    }
-
     static void SelectInput(in StereoBuffer io, int select) {
         if (select == 1) {
             io.Left.CopyTo(io.Right);
@@ -140,5 +111,34 @@ public sealed class VolumePanBlock() : DspBlock(Info) {
         if (envelope < 1e-20f) {
             envelope = 0;
         }
+    }
+
+    protected override void OnPrepare(in ProcessSpec spec) =>
+        envelopeRelease = (float)Math.Exp(-1 / (EnvelopeReleaseMs * 0.001 * spec.SampleRate));
+
+    protected override void OnReset() {
+        output.Reset(Params.Current(Level), Params.Current(Balance));
+        volumeGain = TaperGain((int)Params.Current(Taper), Params.Current(Volume) / 100f);
+        swell = (int)Params.Current(Type) == AutoSwell ? 0f : 1f;
+        envelope = 0;
+        open = false;
+    }
+
+    protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        var n = io.Length;
+        SelectInput(io, (int)Params.Current(InputSelect));
+        Stereo.Pan(io, Params.Advance(PanLeft, n) / 100f, Params.Advance(PanRight, n) / 100f);
+
+        if ((int)Params.Current(Type) == AutoSwell) {
+            Swell(io, Decibels.ToGain(Params.Advance(Threshold, n)), Params.Advance(Attack, n));
+        } else {
+            swell = 1f;
+        }
+
+        var volumeGain = TaperGain((int)Params.Current(Taper), Params.Advance(Volume, n) / 100f);
+        GainRamp.Apply(io.Left, this.volumeGain, volumeGain);
+        GainRamp.Apply(io.Right, this.volumeGain, volumeGain);
+        this.volumeGain = volumeGain;
+        output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
     }
 }

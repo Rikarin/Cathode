@@ -78,45 +78,6 @@ public class BritishAmpTests(ITestOutputHelper output) {
 
     public static TheoryData<string> Types => [..Models];
 
-    static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);
-
-    static CircuitAmpBlock Create(string type, params (int Index, float Value)[] settings) {
-        var block = new CircuitAmpBlock();
-        block.Params.SetTarget(CircuitAmpBlock.Type, TypeOf(type));
-        foreach (var (index, value) in settings) {
-            block.Params.SetTarget(index, value);
-        }
-
-        block.Prepare(new(Rate, 64));
-        block.Reset();
-        return block;
-    }
-
-    static string Label(string id, string type) {
-        var parameter = CircuitAmpBlock.Info.Params.Single(p => p.Id == id);
-        return parameter.TypeLabels is { } labels ? labels[TypeOf(type)] : parameter.Name;
-    }
-
-    /// <summary>The knobs and switches a model's panel shows, as block parameter indices.</summary>
-    static IEnumerable<int> Controls(string type) {
-        (string Id, int Index)[] all = [
-            ("gain", CircuitAmpBlock.Gain), ("bass", CircuitAmpBlock.Bass), ("middle", CircuitAmpBlock.Middle),
-            ("treble", CircuitAmpBlock.Treble), ("presence", CircuitAmpBlock.Presence),
-            ("depth", CircuitAmpBlock.Depth),
-            ("cut", CircuitAmpBlock.Cut), ("master", CircuitAmpBlock.Master), ("bright", CircuitAmpBlock.Bright),
-            ("switch1", CircuitAmpBlock.Switch1), ("switch2", CircuitAmpBlock.Switch2),
-            ("switch3", CircuitAmpBlock.Switch3),
-            ("control1", CircuitAmpBlock.Control1), ("control2", CircuitAmpBlock.Control2)
-        ];
-        return all.Where(c => !string.IsNullOrEmpty(Label(c.Id, type))).Select(static c => c.Index);
-    }
-
-    static bool IsSwitch(int index) =>
-        index is CircuitAmpBlock.Bright
-            or CircuitAmpBlock.Switch1
-            or CircuitAmpBlock.Switch2
-            or CircuitAmpBlock.Switch3;
-
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {
         Assert.Equal("Sat", Label("bright", "BE-100"));
@@ -131,9 +92,6 @@ public class BritishAmpTests(ITestOutputHelper output) {
             Assert.NotEmpty(Label("treble", type));
         }
     }
-
-    static IEnumerable<string> Switches(string type) =>
-        new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, type));
 
     /// <summary>Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.</summary>
     [Theory]
@@ -236,4 +194,46 @@ public class BritishAmpTests(ITestOutputHelper output) {
             Assert.True(levels[^1] - levels[0] > 10, $"{type}: knob {knob} spans only {levels[^1] - levels[0]:0.0} dB");
         }
     }
+
+    static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);
+
+    static CircuitAmpBlock Create(string type, params (int Index, float Value)[] settings) {
+        var block = new CircuitAmpBlock();
+        block.Params.SetTarget(CircuitAmpBlock.Type, TypeOf(type));
+        foreach (var (index, value) in settings) {
+            block.Params.SetTarget(index, value);
+        }
+
+        block.Prepare(new(Rate, 64));
+        block.Reset();
+        return block;
+    }
+
+    static string Label(string id, string type) {
+        var parameter = CircuitAmpBlock.Info.Params.Single(p => p.Id == id);
+        return parameter.TypeLabels is { } labels ? labels[TypeOf(type)] : parameter.Name;
+    }
+
+    /// <summary>The knobs and switches a model's panel shows, as block parameter indices.</summary>
+    static IEnumerable<int> Controls(string type) {
+        (string Id, int Index)[] all = [
+            ("gain", CircuitAmpBlock.Gain), ("bass", CircuitAmpBlock.Bass), ("middle", CircuitAmpBlock.Middle),
+            ("treble", CircuitAmpBlock.Treble), ("presence", CircuitAmpBlock.Presence),
+            ("depth", CircuitAmpBlock.Depth),
+            ("cut", CircuitAmpBlock.Cut), ("master", CircuitAmpBlock.Master), ("bright", CircuitAmpBlock.Bright),
+            ("switch1", CircuitAmpBlock.Switch1), ("switch2", CircuitAmpBlock.Switch2),
+            ("switch3", CircuitAmpBlock.Switch3),
+            ("control1", CircuitAmpBlock.Control1), ("control2", CircuitAmpBlock.Control2)
+        ];
+        return all.Where(c => !string.IsNullOrEmpty(Label(c.Id, type))).Select(static c => c.Index);
+    }
+
+    static bool IsSwitch(int index) =>
+        index is CircuitAmpBlock.Bright
+            or CircuitAmpBlock.Switch1
+            or CircuitAmpBlock.Switch2
+            or CircuitAmpBlock.Switch3;
+
+    static IEnumerable<string> Switches(string type) =>
+        new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, type));
 }

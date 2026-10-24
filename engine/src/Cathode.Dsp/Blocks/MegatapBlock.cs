@@ -193,6 +193,65 @@ public sealed class MegatapBlock() : DspBlock(Info) {
         return (float)(ms * 0.001 * Spec.SampleRate);
     }
 
+    int TapCount() => Math.Clamp((int)MathF.Round(Params.Current(Taps)), 1, MaxTaps);
+
+    float PreDelaySamples() => Params.Current(PreDelay) * 0.001f * (float)Spec.SampleRate;
+
+    void ComputeTapTargets(int taps, float time, float preDelay) {
+        var alpha = Params.Current(TimeAlpha) / 100f;
+        var random = Params.Current(TimeRandom) / 100f;
+        for (var k = 0; k < taps; k++) {
+            var position = TapPosition(k, taps, alpha);
+            if (random > 0) {
+                position = Math.Max(0f, position + random * (Jitter(k, 1) - 0.5f) / taps);
+            }
+
+            tapTarget[k] = preDelay + time * position;
+        }
+    }
+
+    void ComputeTapGains(int taps, float spread) {
+        var levelShape = (int)Params.Current(LevelShape);
+        var panShape = (int)Params.Current(PanShape);
+        var levelPower = AlphaPower(Params.Current(LevelAlpha) / 100f);
+        var levelRandom = Params.Current(LevelRandom) / 100f;
+        var panPower = AlphaPower(Params.Current(PanAlpha) / 100f);
+        var power = 0f;
+        for (var k = 0; k < taps; k++) {
+            var amplitude = Amplitude(k, taps, levelShape, levelPower, levelRandom);
+            power += amplitude * amplitude;
+        }
+
+        var norm = power > 0 ? 1f / MathF.Sqrt(power) : 0f;
+        for (var k = 0; k < taps; k++) {
+            var u = taps > 1 ? k / (taps - 1f) : 0.5f;
+            var position = panShape switch {
+                Alternate => k % 2 == 0 ? -1f : 1f,
+                LeftToRight => 2f * u - 1f,
+                RightToLeft => 1f - 2f * u,
+                _ => 0f
+            };
+            if (panPower != 1f) {
+                position = MathF.CopySign(MathF.Pow(MathF.Abs(position), panPower), position);
+            }
+
+            // Balance law: unity on both sides at centre, the far side fading to zero.
+            var pan = spread * position;
+            var amplitude = Amplitude(k, taps, levelShape, levelPower, levelRandom) * norm;
+            tapLeft[k] = amplitude * Math.Min(1f, 1f - pan);
+            tapRight[k] = amplitude * Math.Min(1f, 1f + pan);
+        }
+    }
+
+    static float Amplitude(int k, int taps, int shape, float power, float random) {
+        var amplitude = TapAmplitude(k, taps, shape);
+        if (power != 1f) {
+            amplitude = MathF.Pow(amplitude, power);
+        }
+
+        return random > 0 ? amplitude * (1f - random * Jitter(k, 2)) : amplitude;
+    }
+
     protected override void OnPrepare(in ProcessSpec spec) {
         line.Allocate((int)(spec.SampleRate * (MaxTimeMs + MaxPreDelayMs) / 1000) + 8);
         diffuser.Allocate(spec.SampleRate, MaxDiffusionMs);
@@ -317,64 +376,5 @@ public sealed class MegatapBlock() : DspBlock(Info) {
         envelope.FlushDenormals();
 
         output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
-    }
-
-    int TapCount() => Math.Clamp((int)MathF.Round(Params.Current(Taps)), 1, MaxTaps);
-
-    float PreDelaySamples() => Params.Current(PreDelay) * 0.001f * (float)Spec.SampleRate;
-
-    void ComputeTapTargets(int taps, float time, float preDelay) {
-        var alpha = Params.Current(TimeAlpha) / 100f;
-        var random = Params.Current(TimeRandom) / 100f;
-        for (var k = 0; k < taps; k++) {
-            var position = TapPosition(k, taps, alpha);
-            if (random > 0) {
-                position = Math.Max(0f, position + random * (Jitter(k, 1) - 0.5f) / taps);
-            }
-
-            tapTarget[k] = preDelay + time * position;
-        }
-    }
-
-    void ComputeTapGains(int taps, float spread) {
-        var levelShape = (int)Params.Current(LevelShape);
-        var panShape = (int)Params.Current(PanShape);
-        var levelPower = AlphaPower(Params.Current(LevelAlpha) / 100f);
-        var levelRandom = Params.Current(LevelRandom) / 100f;
-        var panPower = AlphaPower(Params.Current(PanAlpha) / 100f);
-        var power = 0f;
-        for (var k = 0; k < taps; k++) {
-            var amplitude = Amplitude(k, taps, levelShape, levelPower, levelRandom);
-            power += amplitude * amplitude;
-        }
-
-        var norm = power > 0 ? 1f / MathF.Sqrt(power) : 0f;
-        for (var k = 0; k < taps; k++) {
-            var u = taps > 1 ? k / (taps - 1f) : 0.5f;
-            var position = panShape switch {
-                Alternate => k % 2 == 0 ? -1f : 1f,
-                LeftToRight => 2f * u - 1f,
-                RightToLeft => 1f - 2f * u,
-                _ => 0f
-            };
-            if (panPower != 1f) {
-                position = MathF.CopySign(MathF.Pow(MathF.Abs(position), panPower), position);
-            }
-
-            // Balance law: unity on both sides at centre, the far side fading to zero.
-            var pan = spread * position;
-            var amplitude = Amplitude(k, taps, levelShape, levelPower, levelRandom) * norm;
-            tapLeft[k] = amplitude * Math.Min(1f, 1f - pan);
-            tapRight[k] = amplitude * Math.Min(1f, 1f + pan);
-        }
-    }
-
-    static float Amplitude(int k, int taps, int shape, float power, float random) {
-        var amplitude = TapAmplitude(k, taps, shape);
-        if (power != 1f) {
-            amplitude = MathF.Pow(amplitude, power);
-        }
-
-        return random > 0 ? amplitude * (1f - random * Jitter(k, 2)) : amplitude;
     }
 }

@@ -436,7 +436,7 @@ public class PitchBlockTests(ITestOutputHelper output) {
     [InlineData(0, new[] { 0, 4, 7 }, 4, 4)] // C major in Lydian: Lydian holds it
     [InlineData(0, new[] { 0, 1, 2, 3 }, 0, 0)] // a cluster no scale holds: the preferred scale
     public void Chord_scale_is_the_first_that_holds_every_chord_tone(int root, int[] tones, int preferred, int scale) {
-        var chord = tones.Aggregate(0, static (mask, t) => mask | 1 << t);
+        var chord = tones.Aggregate(0, static (mask, t) => mask | (1 << t));
         Assert.Equal(scale, Scales.ChordScale(root, chord, preferred));
     }
 
@@ -447,7 +447,7 @@ public class PitchBlockTests(ITestOutputHelper output) {
     [InlineData(65, -2, -5)] // F, a third down: D is not a chord tone, E too close, so C
     [InlineData(62, 7, 12)] // octaves never snap
     public void Harmony_snaps_to_chord_tones(int note, int steps, int semitones) {
-        var cMajor = 1 << 0 | 1 << 4 | 1 << 7;
+        var cMajor = (1 << 0) | (1 << 4) | (1 << 7);
         Assert.Equal(semitones, Scales.HarmonySemitones(note, 0, 0, steps, cMajor));
     }
 
@@ -489,6 +489,16 @@ public class PitchBlockTests(ITestOutputHelper output) {
     }
 
     static double Frequency(int note) => 440 * Math.Pow(2, (note - 69) / 12.0);
+
+    static PitchBlock Create(params (int Index, float Value)[] settings) {
+        var block = new PitchBlock();
+        foreach (var (index, value) in settings) {
+            block.Params.SetTarget(index, value);
+        }
+
+        block.Prepare(new(Rate, 64));
+        return block;
+    }
 
     /// <summary>Amplitude of the component at <paramref name="frequency" /> (Hann-windowed DTFT).</summary>
     internal static double Level(ReadOnlySpan<float> signal, double frequency) {
@@ -532,15 +542,5 @@ public class PitchBlockTests(ITestOutputHelper output) {
         }
 
         return peak;
-    }
-
-    static PitchBlock Create(params (int Index, float Value)[] settings) {
-        var block = new PitchBlock();
-        foreach (var (index, value) in settings) {
-            block.Params.SetTarget(index, value);
-        }
-
-        block.Prepare(new(Rate, 64));
-        return block;
     }
 }

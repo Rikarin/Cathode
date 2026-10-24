@@ -18,18 +18,6 @@ namespace Cathode.Server.Tests;
 public sealed class ServerFixture(string? socketPath = null, string? token = null) : WebApplicationFactory<Program> {
     readonly string dataDirectory = Directory.CreateTempSubdirectory("cathode-server-").FullName;
 
-    protected override void ConfigureWebHost(IWebHostBuilder builder) {
-        builder.UseSetting("Cathode:DataDirectory", dataDirectory);
-        builder.UseSetting("Cathode:Engine:Mode", socketPath is null ? "inprocess" : "ipc");
-        if (token is not null) {
-            builder.UseSetting("Cathode:Token", token);
-        }
-
-        if (socketPath is not null) {
-            builder.UseSetting("Cathode:Engine:SocketPath", socketPath);
-        }
-    }
-
     /// <summary>The in-process engine host (in-process mode only).</summary>
     public EngineHostService Host =>
         ((InProcessEngineLink)Services.GetRequiredService<EngineConnection>().Link!).Service;
@@ -85,6 +73,18 @@ public sealed class ServerFixture(string? socketPath = null, string? token = nul
     }
 
     public static Task Eventually(Func<bool> condition) => Eventually(() => Task.FromResult(condition()));
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder) {
+        builder.UseSetting("Cathode:DataDirectory", dataDirectory);
+        builder.UseSetting("Cathode:Engine:Mode", socketPath is null ? "inprocess" : "ipc");
+        if (token is not null) {
+            builder.UseSetting("Cathode:Token", token);
+        }
+
+        if (socketPath is not null) {
+            builder.UseSetting("Cathode:Engine:SocketPath", socketPath);
+        }
+    }
 
     protected override void Dispose(bool disposing) {
         base.Dispose(disposing);

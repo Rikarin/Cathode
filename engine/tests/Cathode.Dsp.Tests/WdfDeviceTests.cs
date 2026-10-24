@@ -1,3 +1,4 @@
+using System.Globalization;
 using Cathode.Dsp.Wdf;
 using Cathode.Testing;
 
@@ -191,7 +192,7 @@ public class WdfDeviceTests(ITestOutputHelper output) {
     }
 
     static string Format(double[] v) =>
-        string.Join(", ", v.Select(static x => x.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)));
+        string.Join(", ", v.Select(static x => x.ToString("0.000", CultureInfo.InvariantCulture)));
 
     static RTypeRoot<Ports<ResistiveVoltageSource>, OpAmp> NonInverting(
         OpAmpModel model,

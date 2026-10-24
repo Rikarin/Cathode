@@ -150,6 +150,9 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         set => Volatile.Write(ref telemetry, value);
     }
 
+    /// <summary>True while a replaced graph is still ringing out under the current one.</summary>
+    public bool IsSpilling => Volatile.Read(ref tail) is not null;
+
     public CathodeEngine(ProcessSpec spec, int commandCapacity = 1024) {
         Spec = spec;
         commands = new(commandCapacity);
@@ -171,11 +174,8 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     /// <summary>
     ///     Control thread, before audio starts: allocate the rig looper (60 s of stereo is about 46 MB at 48 kHz).
     /// </summary>
-    public void EnableLooper(double seconds = Dsp.Looping.Looper.DefaultSeconds) =>
+    public void EnableLooper(double seconds = Looper.DefaultSeconds) =>
         Volatile.Write(ref looper, looper ?? new Looper(Spec.SampleRate, seconds));
-
-    /// <summary>True while a replaced graph is still ringing out under the current one.</summary>
-    public bool IsSpilling => Volatile.Read(ref tail) is not null;
 
     /// <summary>Control side: hand a prepared graph to the audio thread.</summary>
     public void Publish(CompiledGraph graph) {

@@ -151,6 +151,24 @@ public sealed class PhaserBlock() : DspBlock(Info), IEngageAware {
         maxInstances: 2
     );
 
+    /// <summary>
+    ///     The stage frequency for an LFO <paramref name="position" /> in [0, 1] across [<paramref name="low" />,
+    ///     <paramref name="high" />] for a VCR type (the photocell's light level is the position it is given).
+    /// </summary>
+    public static float VcrFrequency(int vcr, float low, float high, float position) =>
+        vcr switch {
+            VcrLinear => low + (high - low) * position,
+            VcrJfet => low + (high - low) * position * position,
+            _ => low * MathF.Pow(high / low, position)
+        };
+
+    /// <summary>LFO Bypass Reset: engaging the block restarts the sweep from the top, so every engage sounds alike.</summary>
+    public void Engage() {
+        if (Params.GetTarget(LfoReset) >= 0.5f) {
+            lfo.Reset();
+        }
+    }
+
     static string[] ClassicOnly(string name) => [name, string.Empty];
 
     /// <summary>TPT one-pole gain G = g / (1 + g) with g = tan(pi f / fs).</summary>
@@ -187,22 +205,57 @@ public sealed class PhaserBlock() : DspBlock(Info), IEngageAware {
         }
     }
 
-    /// <summary>
-    ///     The stage frequency for an LFO <paramref name="position" /> in [0, 1] across [<paramref name="low" />,
-    ///     <paramref name="high" />] for a VCR type (the photocell's light level is the position it is given).
-    /// </summary>
-    public static float VcrFrequency(int vcr, float low, float high, float position) =>
-        vcr switch {
-            VcrLinear => low + (high - low) * position,
-            VcrJfet => low + (high - low) * position * position,
-            _ => low * MathF.Pow(high / low, position)
-        };
+    /// <summary>Per-sample coefficient of a one-pole with time constant <paramref name="ms" />.</summary>
+    static float OnePole(float ms, double rate) => (float)(1 - Math.Exp(-1 / (ms * 0.001 * rate)));
 
-    /// <summary>LFO Bypass Reset: engaging the block restarts the sweep from the top, so every engage sounds alike.</summary>
-    public void Engage() {
-        if (Params.GetTarget(LfoReset) >= 0.5f) {
-            lfo.Reset();
+    /// <summary>The LFO's 0..1 position, shifted by the VCR bias and bent by the exponent.</summary>
+    static float Position(float lfo, float bias, float exponent) {
+        var p = Math.Clamp(0.5f * (1 + lfo) + 0.5f * bias, 0f, 1f);
+        return exponent == 1f ? p : MathF.Pow(p, exponent);
+    }
+
+    static double Wrap(double p) => p - Math.Floor(p);
+
+    /// <summary>The coefficients of each barberpole chain on each side, for the chains' sawtooth positions.</summary>
+    void DesignBarber(double position, double positionRight, float low, float high, float q) {
+        for (var k = 0; k < BarberChains; k++) {
+            var offset = (double)k / BarberChains;
+            barberCoefficients[k] = SvfCoefficients.Design(
+                BiquadType.AllPass,
+                Spec.SampleRate,
+                low * Math.Pow(high / low, Wrap(position + offset)),
+                q
+            );
+            barberCoefficients[BarberChains + k] = SvfCoefficients.Design(
+                BiquadType.AllPass,
+                Spec.SampleRate,
+                low * Math.Pow(high / low, Wrap(positionRight + offset)),
+                q
+            );
         }
+    }
+
+    /// <summary>
+    ///     One side of the barberpole: each chain (stages / 2 second-order allpasses with its own feedback) weighted by
+    ///     its sin² window, the two windows summing to one.
+    /// </summary>
+    float Barber(int side, float x, double position, float feedback, int stages) {
+        var sections = stages / 2;
+        float sum = 0;
+        for (var k = 0; k < BarberChains; k++) {
+            var chain = side * BarberChains + k;
+            var c = barberCoefficients[chain];
+            double y = x + feedback * barberLast[chain];
+            for (var s = 0; s < sections; s++) {
+                y = barber[chain * (MaxStages / 2) + s].Tick(c, y);
+            }
+
+            barberLast[chain] = (float)y;
+            var window = MathF.Sin(MathF.PI * (float)Wrap(position + (double)k / BarberChains));
+            sum += window * window * (float)y;
+        }
+
+        return sum;
     }
 
     protected override void OnReset() {
@@ -342,58 +395,5 @@ public sealed class PhaserBlock() : DspBlock(Info), IEngageAware {
 
         this.mix = mix;
         output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
-    }
-
-    /// <summary>Per-sample coefficient of a one-pole with time constant <paramref name="ms" />.</summary>
-    static float OnePole(float ms, double rate) => (float)(1 - Math.Exp(-1 / (ms * 0.001 * rate)));
-
-    /// <summary>The LFO's 0..1 position, shifted by the VCR bias and bent by the exponent.</summary>
-    static float Position(float lfo, float bias, float exponent) {
-        var p = Math.Clamp(0.5f * (1 + lfo) + 0.5f * bias, 0f, 1f);
-        return exponent == 1f ? p : MathF.Pow(p, exponent);
-    }
-
-    static double Wrap(double p) => p - Math.Floor(p);
-
-    /// <summary>The coefficients of each barberpole chain on each side, for the chains' sawtooth positions.</summary>
-    void DesignBarber(double position, double positionRight, float low, float high, float q) {
-        for (var k = 0; k < BarberChains; k++) {
-            var offset = (double)k / BarberChains;
-            barberCoefficients[k] = SvfCoefficients.Design(
-                BiquadType.AllPass,
-                Spec.SampleRate,
-                low * Math.Pow(high / low, Wrap(position + offset)),
-                q
-            );
-            barberCoefficients[BarberChains + k] = SvfCoefficients.Design(
-                BiquadType.AllPass,
-                Spec.SampleRate,
-                low * Math.Pow(high / low, Wrap(positionRight + offset)),
-                q
-            );
-        }
-    }
-
-    /// <summary>
-    ///     One side of the barberpole: each chain (stages / 2 second-order allpasses with its own feedback) weighted by
-    ///     its sin² window, the two windows summing to one.
-    /// </summary>
-    float Barber(int side, float x, double position, float feedback, int stages) {
-        var sections = stages / 2;
-        float sum = 0;
-        for (var k = 0; k < BarberChains; k++) {
-            var chain = side * BarberChains + k;
-            var c = barberCoefficients[chain];
-            double y = x + feedback * barberLast[chain];
-            for (var s = 0; s < sections; s++) {
-                y = barber[chain * (MaxStages / 2) + s].Tick(c, y);
-            }
-
-            barberLast[chain] = (float)y;
-            var window = MathF.Sin(MathF.PI * (float)Wrap(position + (double)k / BarberChains));
-            sum += window * window * (float)y;
-        }
-
-        return sum;
     }
 }

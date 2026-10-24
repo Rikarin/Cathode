@@ -151,7 +151,7 @@ public static class ReferenceMatcher {
             alignment.GainDb,
             alignment.Gain < 0,
             Analysis.Esr(target, aligned, 0),
-            Analysis.Esr(target, aligned, MatchMetrics.PreEmphasis),
+            Analysis.Esr(target, aligned),
             MatchMetrics.Mrstft(target, aligned),
             levels,
             referenceHarmonics,

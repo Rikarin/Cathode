@@ -318,7 +318,6 @@ public sealed record HarmonicVibratoStageDesign(
 public sealed class HarmonicVibratoStage : AmpStage {
     const double SmoothingTime = 0.03;
 
-    readonly HarmonicVibratoStageDesign design;
     readonly VibratoOscillatorDesign lfo;
     readonly AmpStage bass;
     readonly AmpStage treble;
@@ -329,9 +328,7 @@ public sealed class HarmonicVibratoStage : AmpStage {
     double restMix;
     double outputResistance;
     double sampleRate;
-    double frequency;
     double target; // the depth the knobs and pedal ask for, peak volts at the wiper
-    double depth; // the smoothed depth
     double smoothing;
     double sine;
     double cosine = 1;
@@ -342,13 +339,13 @@ public sealed class HarmonicVibratoStage : AmpStage {
     bool running;
     bool modulated; // the sources are off their rest
 
-    public HarmonicVibratoStageDesign Design => design;
+    public HarmonicVibratoStageDesign Design { get; }
 
     /// <summary>The oscillator's rate for the current Speed knob, in hertz.</summary>
-    public double Frequency => frequency;
+    public double Frequency { get; private set; }
 
     /// <summary>The LFO's depth, the smoothed peak volts at the Intensity wiper (each grid line swings about half of it).</summary>
-    public double Depth => depth;
+    public double Depth { get; private set; }
 
     /// <summary>The treble band's Newton statistics (<see cref="Newton" /> is the bass band's).</summary>
     public NewtonSolver? TrebleNewton => treble.Newton;
@@ -367,7 +364,7 @@ public sealed class HarmonicVibratoStage : AmpStage {
         AmpStage treble,
         double sampleRate
     ) {
-        this.design = design;
+        Design = design;
         lfo = design.Lfo;
         this.bass = bass;
         this.treble = treble;
@@ -399,7 +396,7 @@ public sealed class HarmonicVibratoStage : AmpStage {
     public override void Update(in AmpControls controls) {
         bass.Update(controls);
         treble.Update(controls);
-        Configure(controls.Rotation(design.Speed), controls.Rotation(design.Intensity), controls.IsOn(design.Pedal));
+        Configure(controls.Rotation(Design.Speed), controls.Rotation(Design.Intensity), controls.IsOn(Design.Pedal));
     }
 
     public override void Apply(in PreampSettings settings) {
@@ -413,21 +410,21 @@ public sealed class HarmonicVibratoStage : AmpStage {
         Mix();
         sine = 0;
         cosine = 1;
-        depth = target;
+        Depth = target;
         modulated = false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override double Tick(double input) {
-        depth += smoothing * (target - depth);
-        if (depth > 1e-6) {
+        Depth += smoothing * (target - Depth);
+        if (Depth > 1e-6) {
             // A rotating phasor, renormalised each sample (to first order: cheap and drift-free).
             var s = sine * stepCosine + cosine * stepSine;
             var c = cosine * stepCosine - sine * stepSine;
             var norm = 1.5 - 0.5 * (s * s + c * c);
             sine = s * norm;
             cosine = c * norm;
-            var volts = depth * sine;
+            var volts = Depth * sine;
             bassRails.OffsetRail(HarmonicVibratoStageDesign.BandSource, volts);
             trebleRails.OffsetRail(HarmonicVibratoStageDesign.BandSource, -volts);
             modulated = true;
@@ -447,9 +444,9 @@ public sealed class HarmonicVibratoStage : AmpStage {
 
     /// <summary>The output node from the two plates through the mixing resistors, loaded by the idle channel.</summary>
     void Mix() {
-        var gb = 1 / (bass.OutputResistance + design.MixResistor);
-        var gt = 1 / (treble.OutputResistance + design.MixResistor);
-        var total = gb + gt + 1 / design.IdleLoad;
+        var gb = 1 / (bass.OutputResistance + Design.MixResistor);
+        var gt = 1 / (treble.OutputResistance + Design.MixResistor);
+        var total = gb + gt + 1 / Design.IdleLoad;
         (bassWeight, trebleWeight) = (gb / total, gt / total);
         outputResistance = 1 / total;
         restMix = bassWeight * bass.RestOutput + trebleWeight * treble.RestOutput;
@@ -462,16 +459,16 @@ public sealed class HarmonicVibratoStage : AmpStage {
         }
 
         if (speed != this.speed) {
-            frequency = lfo.Rate(speed);
+            Frequency = lfo.Rate(speed);
         }
 
         (this.speed, this.intensity, this.running) = (speed, intensity, running);
-        target = running ? lfo.Depth(frequency, intensity) : 0;
+        target = running ? lfo.Depth(Frequency, intensity) : 0;
         Step();
     }
 
     void Step() {
-        var omega = 2 * Math.PI * frequency / sampleRate;
+        var omega = 2 * Math.PI * Frequency / sampleRate;
         (stepSine, stepCosine) = Math.SinCos(omega);
         smoothing = 1 - Math.Exp(-1 / (SmoothingTime * sampleRate));
     }

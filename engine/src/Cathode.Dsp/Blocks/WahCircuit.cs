@@ -159,9 +159,7 @@ public sealed class WahCircuit {
         Devices<Bjt, Bjt>> root;
 
     RTypeRoot<Ports<ResistiveVoltageSource>, Devices<Bjt, Bjt>> dc;
-    WahVoicing voicing;
     double inductorCurrent;
-    double wiper = double.NaN;
     double inductanceScale = 1;
     double qScale = 1;
     double saturationCurrent;
@@ -169,11 +167,10 @@ public sealed class WahCircuit {
     double reverseLeak;
     double vt;
     double critical;
-    double companion;
-    long fallbacks;
+    readonly double companion;
 
     /// <summary>The voicing set by the last <see cref="Configure" />.</summary>
-    public WahVoicing Voicing => voicing;
+    public WahVoicing Voicing { get; private set; }
 
     /// <summary>Node voltages at the DC operating point (index node - 1).</summary>
     public ReadOnlySpan<double> OperatingPoint => operatingPoint;
@@ -182,14 +179,14 @@ public sealed class WahCircuit {
     public NewtonSolver Newton => root.Newton;
 
     /// <summary>Samples solved by the generic four-port solver since the last <see cref="Configure" />.</summary>
-    public long Fallbacks => fallbacks;
+    public long Fallbacks { get; private set; }
 
     /// <summary>Wiper-to-ground fraction of the pot, as of the last <see cref="SetPosition" />.</summary>
-    public double Wiper => wiper;
+    public double Wiper { get; private set; } = double.NaN;
 
     public WahCircuit(WahVoicing voicing, double sampleRate) {
         this.sampleRate = sampleRate;
-        this.voicing = voicing;
+        Voicing = voicing;
         var net = Build(false);
         net.Probe(OutputNode);
         root = new(
@@ -246,7 +243,7 @@ public sealed class WahCircuit {
             throw new ArgumentException("The wah circuit is built with NPN transistors.", nameof(voicing));
         }
 
-        this.voicing = voicing;
+        Voicing = voicing;
         (inductanceScale, qScale) = (1, 1);
         var v = voicing;
         var model = v.Transistor;
@@ -255,7 +252,7 @@ public sealed class WahCircuit {
         reverseLeak = model.SaturationCurrent / model.ReverseBeta;
         vt = model.EmissionVoltage;
         critical = DeviceMath.CriticalVoltage(model.SaturationCurrent, vt);
-        fallbacks = 0;
+        Fallbacks = 0;
         Span<double> resistors = stackalloc double[10];
         resistors[0] = v.Collector1;
         resistors[1] = v.Emitter1;
@@ -285,7 +282,7 @@ public sealed class WahCircuit {
         root.SetVoltage(0, v.Supply);
         dc.SetVoltage(0, v.Supply);
         inputs[^1] = v.Supply;
-        wiper = double.NaN;
+        Wiper = double.NaN;
         SetPot(0.5, false);
         dc.SetResistance(PotUpper, 0.5 * v.Pot);
         dc.SetResistance(PotLower, 0.5 * v.Pot);
@@ -296,7 +293,7 @@ public sealed class WahCircuit {
     }
 
     /// <summary>Moves the pot to pedal position <paramref name="toe" /> (0 heel, 1 toe) and refactors the adaptor.</summary>
-    public void SetPosition(double toe) => SetPot(WiperFraction(voicing, toe), true);
+    public void SetPosition(double toe) => SetPot(WiperFraction(Voicing, toe), true);
 
     /// <summary>
     ///     Scales the inductance and R7 (which sets the resonator's Q) against the voicing's values, refactoring the
@@ -309,8 +306,8 @@ public sealed class WahCircuit {
         }
 
         (this.inductanceScale, this.qScale) = (inductanceScale, qScale);
-        root.Ports.G.Configure(voicing.Inductance * inductanceScale, sampleRate);
-        root.SetResistance(QResistorIndex, voicing.QResistor * qScale);
+        root.Ports.G.Configure(Voicing.Inductance * inductanceScale, sampleRate);
+        root.SetResistance(QResistorIndex, Voicing.QResistor * qScale);
         Propagate();
     }
 
@@ -396,13 +393,13 @@ public sealed class WahCircuit {
     static double Node(ReadOnlySpan<double> voltages, int node) => voltages[node - 1];
 
     void SetPot(double fraction, bool propagate) {
-        if (fraction == wiper) {
+        if (fraction == Wiper) {
             return;
         }
 
-        wiper = fraction;
-        root.SetResistance(PotUpper, (1 - fraction) * voicing.Pot);
-        root.SetResistance(PotLower, fraction * voicing.Pot);
+        Wiper = fraction;
+        root.SetResistance(PotUpper, (1 - fraction) * Voicing.Pot);
+        root.SetResistance(PotLower, fraction * Voicing.Pot);
         if (propagate) {
             Propagate();
         }
@@ -533,7 +530,7 @@ public sealed class WahCircuit {
 
     /// <summary>The sample through the generic solver, started from the last solution.</summary>
     double Fallback() {
-        fallbacks++;
+        Fallbacks++;
         root.SetInitialVoltages(voltages);
         var output = root.Tick();
         voltages.CopyTo(previous, 0);
@@ -628,7 +625,7 @@ public sealed class WahCircuit {
         }
 
         var p = operatingPoint.AsSpan();
-        inductorCurrent = (Node(p, WindingNode) - Node(p, BiasNode)) / voicing.InductorResistance;
+        inductorCurrent = (Node(p, WindingNode) - Node(p, BiasNode)) / Voicing.InductorResistance;
         for (var d = 0; d < 4; d++) {
             initialVoltages[d] = dc.DeviceVoltage(d);
         }

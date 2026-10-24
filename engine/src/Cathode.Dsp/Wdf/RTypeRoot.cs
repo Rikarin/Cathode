@@ -43,39 +43,37 @@ namespace Cathode.Dsp.Wdf;
 public struct RTypeRoot<TPorts, TDevice>
     where TPorts : struct, IWdfPortList
     where TDevice : struct, INonlinearDevice {
-    readonly RTypeScattering scattering;
-    readonly NewtonSolver newton;
-    readonly double[] inputs;
-    readonly double[] outputs;
-
     /// <summary>The subtrees, in netlist port order.</summary>
     public TPorts Ports;
 
     /// <summary>The nonlinear devices, in netlist device-port order.</summary>
     public TDevice Device;
 
+    readonly double[] inputs;
+    readonly double[] outputs;
+
     /// <summary>The matrix and its structure, for inspection.</summary>
-    public readonly RTypeScattering Scattering => scattering;
+    public RTypeScattering Scattering { get; }
 
     /// <summary>Newton settings and statistics.</summary>
-    public readonly NewtonSolver Newton => newton;
+    public NewtonSolver Newton { get; }
 
     public RTypeRoot(WdfNetlist netlist, TPorts ports, TDevice device) {
-        scattering = new(netlist);
-        if (scattering.HasUp) {
+        Scattering = new(netlist);
+        if (Scattering.HasUp) {
             throw new ArgumentException("A root has no Up port.", nameof(netlist));
         }
 
-        if (scattering.PortCount != ports.Count) {
+        if (Scattering.PortCount != ports.Count) {
             throw new ArgumentException(
-                $"The netlist has {scattering.PortCount} ports, the port list {ports.Count}.",
+                $"The netlist has {Scattering.PortCount} ports, the port list {ports.Count}.",
                 nameof(ports)
             );
         }
 
-        if (scattering.DeviceCount != device.Ports) {
+        if (Scattering.DeviceCount != device.Ports) {
             throw new ArgumentException(
-                $"The netlist has {scattering.DeviceCount} device ports, the devices {device.Ports}.",
+                $"The netlist has {Scattering.DeviceCount} device ports, the devices {device.Ports}.",
                 nameof(device)
             );
         }
@@ -83,55 +81,55 @@ public struct RTypeRoot<TPorts, TDevice>
         Ports = ports;
         Device = device;
         for (var k = 0; k < device.Ports; k++) {
-            scattering.SetDeviceConductance(k, Math.Max(device.Conductance(k), 1e-15));
+            Scattering.SetDeviceConductance(k, Math.Max(device.Conductance(k), 1e-15));
         }
 
-        newton = new(device.Ports);
+        Newton = new(device.Ports);
         for (var k = 0; k < device.Ports; k++) {
-            newton.conductances[k] = Math.Max(device.Conductance(k), 1e-15);
-            newton.blockStart[k] = device.BlockStart(k);
+            Newton.conductances[k] = Math.Max(device.Conductance(k), 1e-15);
+            Newton.blockStart[k] = device.BlockStart(k);
         }
 
         for (var k = 0; k < device.Ports; k++) {
             var end = k + 1;
-            while (end < device.Ports && newton.blockStart[end] == newton.blockStart[k]) {
+            while (end < device.Ports && Newton.blockStart[end] == Newton.blockStart[k]) {
                 end++;
             }
 
-            newton.blockEnd[k] = end;
+            Newton.blockEnd[k] = end;
         }
 
-        inputs = new double[scattering.Inputs];
-        outputs = new double[scattering.PortCount];
+        inputs = new double[Scattering.Inputs];
+        outputs = new double[Scattering.PortCount];
         Propagate();
     }
 
     /// <summary>Recomputes the port resistances and the scattering matrix after a component change. Allocation-free.</summary>
     public void Propagate() {
-        Ports.Propagate(scattering.PortResistances);
-        scattering.Recompute();
+        Ports.Propagate(Scattering.PortResistances);
+        Scattering.Recompute();
         // F, the impedance the network presents to the devices, for the Newton solver.
         var k = Device.Ports;
-        var matrix = scattering.Matrix;
+        var matrix = Scattering.Matrix;
         for (var d = 0; d < k; d++) {
-            var row = (scattering.DeviceRow + d) * scattering.Columns + scattering.Inputs;
-            matrix.Slice(row, k).CopyTo(newton.impedance.AsSpan(d * k));
+            var row = (Scattering.DeviceRow + d) * Scattering.Columns + Scattering.Inputs;
+            matrix.Slice(row, k).CopyTo(Newton.impedance.AsSpan(d * k));
         }
 
-        newton.factored = false;
+        Newton.factored = false;
     }
 
     /// <summary>Sets ideal voltage source <paramref name="index" /> (in volts) for the coming samples.</summary>
-    public readonly void SetVoltage(int index, double volts) => inputs[scattering.VoltageSourceColumn + index] = volts;
+    public readonly void SetVoltage(int index, double volts) => inputs[Scattering.VoltageSourceColumn + index] = volts;
 
     /// <summary>Sets ideal current source <paramref name="index" /> (in amperes) for the coming samples.</summary>
-    public readonly void SetCurrent(int index, double amps) => inputs[scattering.CurrentSourceColumn + index] = amps;
+    public readonly void SetCurrent(int index, double amps) => inputs[Scattering.CurrentSourceColumn + index] = amps;
 
     /// <summary>Changes internal resistor <paramref name="index" />; call <see cref="Propagate" /> afterwards.</summary>
-    public readonly void SetResistance(int index, double ohms) => scattering.SetResistance(index, ohms);
+    public readonly void SetResistance(int index, double ohms) => Scattering.SetResistance(index, ohms);
 
     /// <summary>Changes the gain of VCVS <paramref name="index" />; call <see cref="Propagate" /> afterwards.</summary>
-    public readonly void SetGain(int index, double gain) => scattering.SetGain(index, gain);
+    public readonly void SetGain(int index, double gain) => Scattering.SetGain(index, gain);
 
     /// <summary>Evaluates one sample. Returns probe 0 (or 0 when the netlist has no probe).</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -143,21 +141,21 @@ public struct RTypeRoot<TPorts, TDevice>
 
         // The rows are read in place (the same products in the same order as RTypeScattering.Dot, without its bounds
         // checks: the matrix has Rows × Columns entries and every row starts with the inputs, then the devices).
-        var columns = scattering.Columns;
+        var columns = Scattering.Columns;
         var count = u.Length;
-        ref var matrix = ref MemoryMarshal.GetReference(scattering.Matrix);
+        ref var matrix = ref MemoryMarshal.GetReference(Scattering.Matrix);
         ref var input = ref MemoryMarshal.GetArrayDataReference(inputs);
         if (k == 0) {
             for (var j = 0; j < waves.Length; j++) {
                 waves[j] = Dot(ref Unsafe.Add(ref matrix, j * columns), ref input, count);
             }
         } else {
-            var p = newton.prediction;
-            if (newton.Linearise) {
-                Array.Copy(p, newton.previousPrediction, k);
+            var p = Newton.prediction;
+            if (Newton.Linearise) {
+                Array.Copy(p, Newton.previousPrediction, k);
             }
 
-            var deviceRow = scattering.DeviceRow;
+            var deviceRow = Scattering.DeviceRow;
             for (var d = 0; d < k; d++) {
                 p[d] = Dot(ref Unsafe.Add(ref matrix, (deviceRow + d) * columns), ref input, count);
             }
@@ -166,32 +164,60 @@ public struct RTypeRoot<TPorts, TDevice>
                 Solve(k);
             }
 
-            ref var r = ref MemoryMarshal.GetArrayDataReference(newton.currents);
+            ref var r = ref MemoryMarshal.GetArrayDataReference(Newton.currents);
             for (var j = 0; j < waves.Length; j++) {
                 ref var row = ref Unsafe.Add(ref matrix, j * columns);
                 waves[j] = Dot(ref row, ref input, count) + Dot(ref Unsafe.Add(ref row, count), ref r, k);
             }
 
-            Device.Commit(newton.voltages.AsSpan(0, k));
+            Device.Commit(Newton.voltages.AsSpan(0, k));
         }
 
         Ports.Incident(waves);
-        return scattering.ProbeCount > 0 ? Probe(0) : 0;
+        return Scattering.ProbeCount > 0 ? Probe(0) : 0;
     }
 
     /// <summary>Probed voltage <paramref name="index" /> at the last sample.</summary>
     public readonly double Probe(int index) {
         var count = inputs.Length;
         ref var row = ref Unsafe.Add(
-            ref MemoryMarshal.GetReference(scattering.Matrix),
-            (scattering.ProbeRow + index) * scattering.Columns
+            ref MemoryMarshal.GetReference(Scattering.Matrix),
+            (Scattering.ProbeRow + index) * Scattering.Columns
         );
         return Dot(ref row, ref MemoryMarshal.GetArrayDataReference(inputs), count)
             + Dot(
                 ref Unsafe.Add(ref row, count),
-                ref MemoryMarshal.GetArrayDataReference(newton.currents),
+                ref MemoryMarshal.GetArrayDataReference(Newton.currents),
                 Device.Ports
             );
+    }
+
+    /// <summary>Voltage across device port <paramref name="port" /> at the last sample.</summary>
+    public readonly double DeviceVoltage(int port) => Newton.voltages[port];
+
+    /// <summary>Current into device port <paramref name="port" /> at the last sample.</summary>
+    public readonly double DeviceCurrent(int port) =>
+        Newton.currents[port] + Newton.conductances[port] * Newton.voltages[port];
+
+    /// <summary>
+    ///     Sets the device port voltages Newton starts the next sample from, e.g. a known operating point, so that a
+    ///     circuit switched on at full supply does not have to find it from zero.
+    /// </summary>
+    public readonly void SetInitialVoltages(ReadOnlySpan<double> voltages) {
+        voltages.CopyTo(Newton.voltages);
+        voltages.CopyTo(Newton.history);
+        Newton.primed = false;
+    }
+
+    public void Reset() {
+        Newton.primed = false;
+        Newton.factored = false;
+        Ports.Reset();
+        Device.Reset();
+        Newton.voltages.AsSpan().Clear();
+        Newton.history.AsSpan().Clear();
+        Newton.currents.AsSpan().Clear();
+        inputs.AsSpan(0, Scattering.VoltageSourceColumn).Clear(); // keep the source values
     }
 
     /// <summary><see cref="RTypeScattering.Dot" /> on references: the same sum, in the same order.</summary>
@@ -205,34 +231,6 @@ public struct RTypeRoot<TPorts, TDevice>
         return sum;
     }
 
-    /// <summary>Voltage across device port <paramref name="port" /> at the last sample.</summary>
-    public readonly double DeviceVoltage(int port) => newton.voltages[port];
-
-    /// <summary>Current into device port <paramref name="port" /> at the last sample.</summary>
-    public readonly double DeviceCurrent(int port) =>
-        newton.currents[port] + newton.conductances[port] * newton.voltages[port];
-
-    /// <summary>
-    ///     Sets the device port voltages Newton starts the next sample from, e.g. a known operating point, so that a
-    ///     circuit switched on at full supply does not have to find it from zero.
-    /// </summary>
-    public readonly void SetInitialVoltages(ReadOnlySpan<double> voltages) {
-        voltages.CopyTo(newton.voltages);
-        voltages.CopyTo(newton.history);
-        newton.primed = false;
-    }
-
-    public void Reset() {
-        newton.primed = false;
-        newton.factored = false;
-        Ports.Reset();
-        Device.Reset();
-        newton.voltages.AsSpan().Clear();
-        newton.history.AsSpan().Clear();
-        newton.currents.AsSpan().Clear();
-        inputs.AsSpan(0, scattering.VoltageSourceColumn).Clear(); // keep the source values
-    }
-
     /// <summary>
     ///     <see cref="Solve" /> for one device port, written out: the same arithmetic in the same order (so the same
     ///     result to the last bit) without the general case's loops and spans. It covers the common case, plain limited
@@ -244,8 +242,8 @@ public struct RTypeRoot<TPorts, TDevice>
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     bool SolveOne() {
-        var s = newton;
-        var f = scattering.Matrix[scattering.DeviceRow * scattering.Columns + scattering.Inputs];
+        var s = Newton;
+        var f = Scattering.Matrix[Scattering.DeviceRow * Scattering.Columns + Scattering.Inputs];
         var (v, h, p, current, jacobian) = (s.voltages, s.history, s.prediction, s.deviceCurrents, s.jacobian);
         var (gc, absolute, relative) = (s.conductances[0], s.AbsoluteTolerance, s.RelativeTolerance);
         var (entry, previous) = (v[0], h[0]);
@@ -341,11 +339,11 @@ public struct RTypeRoot<TPorts, TDevice>
     /// <summary><see cref="SolveOne" /> for two device ports (a triode).</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     bool SolveTwo() {
-        var s = newton;
-        var matrix = scattering.Matrix;
-        var row = scattering.DeviceRow * scattering.Columns + scattering.Inputs;
+        var s = Newton;
+        var matrix = Scattering.Matrix;
+        var row = Scattering.DeviceRow * Scattering.Columns + Scattering.Inputs;
         var (f00, f01) = (matrix[row], matrix[row + 1]);
-        row += scattering.Columns;
+        row += Scattering.Columns;
         var (f10, f11) = (matrix[row], matrix[row + 1]);
         var (v, h, p, current, jacobian) = (s.voltages, s.history, s.prediction, s.deviceCurrents, s.jacobian);
         var (gc0, gc1) = (s.conductances[0], s.conductances[1]);
@@ -467,7 +465,7 @@ public struct RTypeRoot<TPorts, TDevice>
     /// </summary>
     void Solve(int k) {
         const double ShortestStep = 1.0 / 16;
-        var s = newton;
+        var s = Newton;
         var v = s.voltages.AsSpan(0, k);
         var r = s.currents.AsSpan(0, k);
         var current = s.deviceCurrents.AsSpan(0, k);
@@ -628,7 +626,7 @@ public struct RTypeRoot<TPorts, TDevice>
     ///     Newton step follows.
     /// </summary>
     bool Chord(int k) {
-        var s = newton;
+        var s = Newton;
         var v = s.voltages.AsSpan(0, k);
         var step = s.step.AsSpan(0, k);
         var proposed = s.proposed.AsSpan(0, k);
@@ -687,7 +685,7 @@ public struct RTypeRoot<TPorts, TDevice>
         Span<double> proposed,
         bool rebuild = false
     ) {
-        var s = newton;
+        var s = Newton;
         Span<int> free = stackalloc int[k];
         var count = 0;
         for (var d = 0; d < k; d++) {
@@ -744,7 +742,7 @@ public struct RTypeRoot<TPorts, TDevice>
             return;
         }
 
-        var g = -newton.step[0];
+        var g = -Newton.step[0];
         if (g < 0) {
             below = v[0];
         } else if (g > 0) {
@@ -764,7 +762,7 @@ public struct RTypeRoot<TPorts, TDevice>
             return false;
         }
 
-        var s = newton;
+        var s = Newton;
         var v = s.voltages.AsSpan(0, 1);
         var ignored = double.PositiveInfinity;
         for (var n = 0; n < MostBisections; n++) {
@@ -797,7 +795,7 @@ public struct RTypeRoot<TPorts, TDevice>
     ///     the way an inconsistent current would; a singular tangent leaves the best point itself.
     /// </summary>
     void Fallback(int k) {
-        var s = newton;
+        var s = Newton;
         var v = s.voltages.AsSpan(0, k);
         var r = s.currents.AsSpan(0, k);
         var best = s.best.AsSpan(0, k);
@@ -841,7 +839,7 @@ public struct RTypeRoot<TPorts, TDevice>
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     readonly void BuildSystem(int k, double[]? target = null) {
-        var s = newton;
+        var s = Newton;
 
         // On references (the solver's buffers hold k × k): this runs once or twice per iteration.
         ref var f = ref MemoryMarshal.GetArrayDataReference(s.impedance);
@@ -871,7 +869,7 @@ public struct RTypeRoot<TPorts, TDevice>
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     double Residual(int k, ReadOnlySpan<double> v, ref double bestNorm) {
-        var s = newton;
+        var s = Newton;
         var current = s.deviceCurrents.AsSpan(0, k);
         var trial = s.residual.AsSpan(0, k);
         var gc = s.conductances.AsSpan(0, k);
@@ -979,12 +977,6 @@ public sealed class NewtonSolver {
     internal readonly int[] blockStart; // per port: the first port of its device block
     internal readonly int[] blockEnd; // per port: one past the last port of its device block
     internal bool factored; // whether the system and pivot buffers hold the factors of the last Jacobian's system
-    long samples;
-    long iterations;
-    int lastIterations;
-    int mostIterations;
-    long unconverged;
-    long nonFinite;
 
     /// <summary>Iterations per sample before giving up and keeping the best iterate.</summary>
     public int MaxIterations { get; set; } = 32;
@@ -1037,20 +1029,20 @@ public sealed class NewtonSolver {
     public int SafeguardAfter { get; set; } = 8;
 
     /// <summary>Samples solved since the last <see cref="ResetStatistics" />.</summary>
-    public long Samples => samples;
+    public long Samples { get; private set; }
 
     /// <summary>Device evaluations (Newton iterations) in total.</summary>
-    public long Iterations => iterations;
+    public long Iterations { get; private set; }
 
-    public int LastIterations => lastIterations;
+    public int LastIterations { get; private set; }
 
-    public int MostIterations => mostIterations;
+    public int MostIterations { get; private set; }
 
     /// <summary>Samples that hit <see cref="MaxIterations" /> (or a singular Jacobian) and kept the best iterate.</summary>
-    public long Unconverged => unconverged;
+    public long Unconverged { get; private set; }
 
     /// <summary>Samples where a device returned a non-finite value and the previous solution was repeated.</summary>
-    public long NonFinite => nonFinite;
+    public long NonFinite { get; private set; }
 
     public double MeanIterations => Samples == 0 ? 0 : (double)Iterations / Samples;
 
@@ -1081,26 +1073,26 @@ public sealed class NewtonSolver {
     }
 
     public void ResetStatistics() {
-        samples = 0;
-        iterations = 0;
-        lastIterations = 0;
-        mostIterations = 0;
-        unconverged = 0;
-        nonFinite = 0;
+        Samples = 0;
+        Iterations = 0;
+        LastIterations = 0;
+        MostIterations = 0;
+        Unconverged = 0;
+        NonFinite = 0;
     }
 
     internal void Record(int count, bool converged, bool finite) {
         primed = finite;
-        samples++;
-        iterations += count;
-        lastIterations = count;
-        mostIterations = Math.Max(mostIterations, count);
+        Samples++;
+        Iterations += count;
+        LastIterations = count;
+        MostIterations = Math.Max(MostIterations, count);
         if (!converged && finite) {
-            unconverged++;
+            Unconverged++;
         }
 
         if (!finite) {
-            nonFinite++;
+            NonFinite++;
         }
     }
 }

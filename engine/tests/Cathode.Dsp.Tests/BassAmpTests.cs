@@ -102,32 +102,6 @@ public class BassAmpTests(ITestOutputHelper output) {
 
     public static TheoryData<string> Types => [..Models];
 
-    static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);
-
-    static CircuitAmpBlock Create(string type, params (int Index, float Value)[] settings) {
-        var block = new CircuitAmpBlock();
-        block.Params.SetTarget(CircuitAmpBlock.Type, TypeOf(type));
-        foreach (var (index, value) in settings) {
-            block.Params.SetTarget(index, value);
-        }
-
-        block.Prepare(new(Rate, 64));
-        block.Reset();
-        return block;
-    }
-
-    static string Label(string id, string type) {
-        var parameter = CircuitAmpBlock.Info.Params.Single(p => p.Id == id);
-        return parameter.TypeLabels is { } labels ? labels[TypeOf(type)] : parameter.Name;
-    }
-
-    /// <summary>The block's output level (dB) for a sine at <paramref name="frequency" />.</summary>
-    static double Level(string type, double frequency, float amplitude, params (int Index, float Value)[] settings) {
-        using var block = Create(type, settings);
-        var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 24_000, amplitude), 64);
-        return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)));
-    }
-
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {
         Assert.Equal(
@@ -358,9 +332,35 @@ public class BassAmpTests(ITestOutputHelper output) {
         Assert.True(stiff < 40 && soft < stiff - 2, $"{stiff:0.0} / {soft:0.0} V");
 
         using var loud = Create("JC-120", (CircuitAmpBlock.Gain, 10f));
-        var rendered = BlockRender.Mono(loud, Signals.Sine(110, Rate, 24_000, 1f), 64);
+        var rendered = BlockRender.Mono(loud, Signals.Sine(110, Rate, 24_000), 64);
         var peak = Analysis.ToDb(Analysis.Peak(rendered.AsSpan(12_000)));
         output.WriteLine($"Full drive: peak {peak:0.0} dBFS");
         Assert.InRange(peak, -6, 0.5);
+    }
+
+    static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);
+
+    static CircuitAmpBlock Create(string type, params (int Index, float Value)[] settings) {
+        var block = new CircuitAmpBlock();
+        block.Params.SetTarget(CircuitAmpBlock.Type, TypeOf(type));
+        foreach (var (index, value) in settings) {
+            block.Params.SetTarget(index, value);
+        }
+
+        block.Prepare(new(Rate, 64));
+        block.Reset();
+        return block;
+    }
+
+    static string Label(string id, string type) {
+        var parameter = CircuitAmpBlock.Info.Params.Single(p => p.Id == id);
+        return parameter.TypeLabels is { } labels ? labels[TypeOf(type)] : parameter.Name;
+    }
+
+    /// <summary>The block's output level (dB) for a sine at <paramref name="frequency" />.</summary>
+    static double Level(string type, double frequency, float amplitude, params (int Index, float Value)[] settings) {
+        using var block = Create(type, settings);
+        var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 24_000, amplitude), 64);
+        return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)));
     }
 }

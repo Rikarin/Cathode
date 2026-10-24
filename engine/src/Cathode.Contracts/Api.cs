@@ -8,7 +8,8 @@ public sealed record PresetSummary(
     string Name,
     string? Author,
     IReadOnlyList<string> Tags,
-    DateTimeOffset Modified);
+    DateTimeOffset Modified
+);
 
 public sealed record AssetInfo(string Ref, string Name, string Kind, long Size, DateTimeOffset Added);
 
@@ -33,7 +34,8 @@ public sealed record EngineStatus(
     int HostGen1 = 0,
     int HostGen2 = 0,
     double HostGcPauseMs = 0,
-    long HostAllocatedBytes = 0);
+    long HostAllocatedBytes = 0
+);
 
 public sealed record SystemInfo(string Version, EngineStatus Engine);
 
@@ -51,7 +53,8 @@ public sealed record ParameterInfo(
     string Unit,
     string Taper,
     IReadOnlyList<string>? Options,
-    IReadOnlyList<string>? TypeLabels = null);
+    IReadOnlyList<string>? TypeLabels = null
+);
 
 /// <summary>
 ///     A block type the editor can place. <c>CpuCost</c> is its measured cost in percent of one core at 48 kHz
@@ -65,7 +68,8 @@ public sealed record BlockTypeInfo(
     int Channels,
     IReadOnlyList<string> AssetSlots,
     IReadOnlyList<ParameterInfo> Params,
-    double CpuCost = 0);
+    double CpuCost = 0
+);
 
 // Request bodies.
 public sealed record AddBlockRequest(string Type, int Row, int Column, string? Id = null);
@@ -87,7 +91,8 @@ public sealed record SceneUpdateRequest(
     string? Name = null,
     float? Level = null,
     List<float>? Controllers = null,
-    List<SceneMidiMessage>? Midi = null);
+    List<SceneMidiMessage>? Midi = null
+);
 
 public sealed record SaveRequest(string? Name = null, bool AsNew = false);
 
@@ -99,7 +104,8 @@ public sealed record RigEvent(
     string? Channel = null,
     string? Param = null,
     float? Value = null,
-    int? Scene = null);
+    int? Scene = null
+);
 
 /// <summary>Pushed over the WebSocket about 30 times a second.</summary>
 public sealed record Telemetry(
@@ -111,7 +117,8 @@ public sealed record Telemetry(
     long Overloads,
     TunerInfo? Tuner,
     double Tempo = 120,
-    LooperInfo? Looper = null);
+    LooperInfo? Looper = null
+);
 
 /// <summary>
 ///     Pushed about 30 times a second while the scope is on (<c>PUT /api/v1/scope</c>): the most recent output samples
@@ -129,6 +136,7 @@ public sealed record PackageManifest(
     int Version,
     string PresetId,
     string PresetName,
-    IReadOnlyList<AssetInfo> Assets);
+    IReadOnlyList<AssetInfo> Assets
+);
 
 public sealed record ImportResult(PresetSummary Preset, int AssetsAdded, bool Renamed);

@@ -120,18 +120,6 @@ public sealed class ReverbBlock : DspBlock {
     public const float MaxPreDelayMs = 1_000f;
     public const float MaxMicSpacingMs = 20f;
 
-    /// <summary>Line counts of the Quality choices.</summary>
-    public static readonly int[] QualityLines = [4, 8, 12, 16];
-
-    /// <summary>Early reflection tap times in ms at size 50 % and Early Time 100 %, per ER row (see <see cref="ErRow" />).</summary>
-    public static readonly float[][] EarlyMs = [
-        [3.1f, 5.3f, 7.9f, 10.1f, 12.7f, 15.1f, 18.3f, 21.1f, 24.7f, 28.3f, 32.9f, 37.1f], // Room
-        [7.3f, 11.9f, 17.1f, 21.7f, 26.3f, 31.9f, 37.7f, 43.1f, 49.3f, 56.9f, 63.1f, 71.3f], // Hall
-        [1.3f, 2.9f, 4.1f, 5.7f, 7.3f, 8.9f, 10.7f, 12.1f, 14.3f, 16.1f, 18.7f, 21.3f], // Plate (and Dattorro)
-        [4.1f, 6.7f, 9.9f, 13.1f, 16.3f, 19.7f, 23.3f, 27.1f, 31.3f, 35.9f, 40.1f, 45.7f], // Chamber
-        [11.3f, 19.7f, 27.1f, 35.3f, 44.9f, 53.1f, 62.9f, 71.3f, 81.7f, 92.3f, 103.1f, 117.7f] // Cathedral
-    ];
-
     const int MaxLines = 16;
     const int EarlyTaps = 12;
 
@@ -149,6 +137,24 @@ public sealed class ReverbBlock : DspBlock {
 
     /// <summary>The off-axis gain of an early reflection on the side it does not come from.</summary>
     const float EarlyCrossGain = 0.35f;
+
+    /// <summary>The longest <see cref="LineMs" /> entry (Cathedral's), which sizes the lines.</summary>
+    const float LongestLineMs = 111.3f;
+
+    /// <summary>The longest <see cref="EarlyMs" /> entry (Cathedral's last tap), which sizes the reflection line.</summary>
+    const float LongestEarlyMs = 117.7f;
+
+    /// <summary>Line counts of the Quality choices.</summary>
+    public static readonly int[] QualityLines = [4, 8, 12, 16];
+
+    /// <summary>Early reflection tap times in ms at size 50 % and Early Time 100 %, per ER row (see <see cref="ErRow" />).</summary>
+    public static readonly float[][] EarlyMs = [
+        [3.1f, 5.3f, 7.9f, 10.1f, 12.7f, 15.1f, 18.3f, 21.1f, 24.7f, 28.3f, 32.9f, 37.1f], // Room
+        [7.3f, 11.9f, 17.1f, 21.7f, 26.3f, 31.9f, 37.7f, 43.1f, 49.3f, 56.9f, 63.1f, 71.3f], // Hall
+        [1.3f, 2.9f, 4.1f, 5.7f, 7.3f, 8.9f, 10.7f, 12.1f, 14.3f, 16.1f, 18.7f, 21.3f], // Plate (and Dattorro)
+        [4.1f, 6.7f, 9.9f, 13.1f, 16.3f, 19.7f, 23.3f, 27.1f, 31.3f, 35.9f, 40.1f, 45.7f], // Chamber
+        [11.3f, 19.7f, 27.1f, 35.3f, 44.9f, 53.1f, 62.9f, 71.3f, 81.7f, 92.3f, 103.1f, 117.7f] // Cathedral
+    ];
 
     /// <summary>Line lengths in ms at size 50 % (scale 1), per FDN row. Normal quality uses the first eight.</summary>
     static readonly float[][] LineMs = [
@@ -173,12 +179,6 @@ public sealed class ReverbBlock : DspBlock {
             111.3f
         ] // Cathedral
     ];
-
-    /// <summary>The longest <see cref="LineMs" /> entry (Cathedral's), which sizes the lines.</summary>
-    const float LongestLineMs = 111.3f;
-
-    /// <summary>The longest <see cref="EarlyMs" /> entry (Cathedral's last tap), which sizes the reflection line.</summary>
-    const float LongestEarlyMs = 117.7f;
 
     /// <summary>The lines Economy quality keeps, spread across the Normal set.</summary>
     static readonly int[] EconomyLines = [0, 2, 5, 7];
@@ -348,18 +348,18 @@ public sealed class ReverbBlock : DspBlock {
     /// <summary>Whether <paramref name="type" /> runs on the feedback delay network.</summary>
     public static bool IsNetwork(int type) => type is not (Dattorro or Spring);
 
-    /// <summary>The <see cref="LineMs" /> row of a network type.</summary>
-    static int FdnRow(int type) =>
+    /// <summary>The <see cref="EarlyMs" /> row of a type (Dattorro takes the plate's; Spring has none).</summary>
+    public static int ErRow(int type) =>
         type switch {
+            Dattorro => 2,
             Chamber => 3,
             Cathedral => 4,
             _ => Math.Clamp(type, 0, 2)
         };
 
-    /// <summary>The <see cref="EarlyMs" /> row of a type (Dattorro takes the plate's; Spring has none).</summary>
-    public static int ErRow(int type) =>
+    /// <summary>The <see cref="LineMs" /> row of a network type.</summary>
+    static int FdnRow(int type) =>
         type switch {
-            Dattorro => 2,
             Chamber => 3,
             Cathedral => 4,
             _ => Math.Clamp(type, 0, 2)
@@ -379,6 +379,233 @@ public sealed class ReverbBlock : DspBlock {
 
     /// <summary>A soft limit near ±4 (12 dBFS) for stacked tails: transparent at playing levels.</summary>
     static float Limit(float x) => 4f * MathF.Tanh(0.25f * x);
+
+    /// <summary>A peaking band's coefficients; a band at 0 dB is skipped and starts clean when it comes back.</summary>
+    static SvfCoefficients Band(
+        float frequency,
+        float q,
+        float gainDb,
+        float rate,
+        ref SvfState left,
+        ref SvfState right
+    ) {
+        if (gainDb == 0) {
+            left.Reset();
+            right.Reset();
+            return default;
+        }
+
+        return SvfCoefficients.Design(BiquadType.Peak, rate, frequency, q, gainDb);
+    }
+
+    float Voices(float x, double speed1, double speed2, float balance) =>
+        voice1.Process(x, speed1) * (1f - balance) + voice2.Process(x, speed2) * balance;
+
+    void FlushDenormals() {
+        ducker.FlushDenormals();
+        spring.FlushDenormals();
+        for (var i = 0; i < MaxLines; i++) {
+            if (MathF.Abs(damping[i]) < 1e-20f) {
+                damping[i] = 0;
+            }
+
+            if (MathF.Abs(lowStates[i]) < 1e-20f) {
+                lowStates[i] = 0;
+            }
+
+            if (MathF.Abs(highStates[i]) < 1e-20f) {
+                highStates[i] = 0;
+            }
+        }
+
+        if (MathF.Abs(preDelayOut) < 1e-20f) {
+            preDelayOut = 0;
+        }
+
+        if (MathF.Abs(pitched) < 1e-20f) {
+            pitched = 0;
+        }
+
+        lowCutLeft.FlushDenormals();
+        lowCutRight.FlushDenormals();
+        lowMidLeft.FlushDenormals();
+        lowMidRight.FlushDenormals();
+        highMidLeft.FlushDenormals();
+        highMidRight.FlushDenormals();
+    }
+
+    void ClearNetwork() {
+        foreach (var diffuser in diffusers) {
+            diffuser.Clear();
+        }
+
+        lines.Clear();
+        walls.Clear();
+        Array.Clear(damping);
+        Array.Clear(lowStates);
+        Array.Clear(highStates);
+    }
+
+    void ClearTank(int type) {
+        switch (type) {
+            case Dattorro:
+                plate.Clear();
+                break;
+            case Spring:
+                spring.Clear();
+                break;
+            default:
+                ClearNetwork();
+                break;
+        }
+    }
+
+    void ConfigureNetwork(int type, int quality, float decay, float scale, float dampingHz, float rate, int n) {
+        var row = FdnRow(type);
+        quality = Math.Clamp(quality, 0, QualityLines.Length - 1);
+        lineCount = QualityLines[quality];
+
+        var norm = MathF.Sqrt(8f / lineCount);
+        injection = 0.35f;
+        outputGain = 0.5f * norm;
+
+        diffusion = Math.Min(MaxDiffuserGain, DiffusionGain[row] * (Params.Advance(InputDiffusion, n) / 100f));
+        var diffusionTime = Params.Advance(InputDiffusionTime, n) / 100f;
+        for (var i = 0; i < diffusers.Length; i++) {
+            diffusers[i].SetLength((int)(DiffuserMs[i] * diffusionTime * 0.001 * rate) + 1);
+        }
+
+        var lowTime = Params.Advance(LowTime, n) / 100f;
+        var highTime = Params.Advance(HighTime, n) / 100f;
+        var lowHz = Params.Advance(LowCrossover, n);
+        var highHz = Math.Max(lowHz, Params.Advance(HighCrossover, n));
+        bands = lowTime != 1f || highTime != 1f;
+        lowCoefficient = 1f - MathF.Exp(-2f * MathF.PI * lowHz / rate);
+        highCoefficient = 1f - MathF.Exp(-2f * MathF.PI * highHz / rate);
+
+        var density = Params.Advance(EchoDensity, n) / 100f;
+        wallGain = Params.Advance(WallDiffusion, n) / 100f * 0.7f;
+        wall = wallGain > 0;
+        // Per-line settings in the order the lines run (slot p holds line i), so the per-sample loop reads them in turn.
+        for (var p = 0; p < lineCount; p++) {
+            var i = quality == 0 ? EconomyLines[p] : p;
+            slots[p] = i;
+            signLeft[p] = LeftSigns[i];
+            signRight[p] = RightSigns[i];
+            lengths[p] = LineMs[row][i] * scale * 0.001f * rate;
+            gains[p] = MathF.Pow(10f, -3f * lengths[p] / (decay * rate)); // -60 dB after `decay` seconds
+            if (bands) {
+                lowDeltas[p] = MathF.Pow(10f, -3f * lengths[p] / (decay * lowTime * rate)) - gains[p];
+                highDeltas[p] = MathF.Pow(10f, -3f * lengths[p] / (decay * highTime * rate)) - gains[p];
+            }
+
+            // The wall allpass is taken out of the line, so the loop keeps its length and its decay.
+            wallLengths[p] = wall ? Math.Max(2f, (0.05f + (MaxWallFraction - 0.05f) * density) * lengths[p]) : 0f;
+            readLengths[p] = lengths[p] - wallLengths[p];
+        }
+
+        // One-pole damping in each line: the coefficient that puts its -3 dB point near the chosen frequency.
+        damp = MathF.Exp(-2f * MathF.PI * dampingHz / rate);
+        modDepth = ModulationMs * 0.001f * rate * (Params.Advance(ModDepth, n) / 100f);
+        modStep = 2 * Math.PI * Params.Advance(ModRate, n) / rate;
+        var phase = Params.Advance(ModPhase, n);
+        modOpposed = phase == 180f;
+        modOffset = Math.PI * phase / 180.0;
+    }
+
+    /// <summary>Early reflection taps for this block: times, the decay across the pattern, sides and the diffusion.</summary>
+    void ConfigureEarly(int type, float scale, float rate, int n) {
+        var row = ErRow(type);
+        var time = Params.Advance(EarlyTime, n) / 100f;
+        var decay = Params.Advance(EarlyDecay, n) / 100f;
+        earlyDiffusion = Params.Advance(EarlyDiffusion, n) / 100f * 0.7f;
+        var last = EarlyMs[row][EarlyTaps - 1];
+        var power = 0f;
+        for (var k = 0; k < EarlyTaps; k++) {
+            var ms = EarlyMs[row][k];
+            tapDelays[k] = 1f + ms * scale * time * 0.001f * rate; // Read(1) is the sample just written
+            var gain = MathF.Pow(10f, -3f * decay * ms / last); // Early Decay 100 %: the last tap is 60 dB down
+            tapLeft[k] = gain;
+            power += gain * gain;
+        }
+
+        var norm = 1f / MathF.Sqrt(power);
+        for (var k = 0; k < EarlyTaps; k++) {
+            var gain = tapLeft[k] * norm;
+            tapLeft[k] = k % 2 == 0 ? gain : gain * EarlyCrossGain;
+            tapRight[k] = k % 2 == 0 ? gain * EarlyCrossGain : gain;
+        }
+    }
+
+    (float Left, float Right) TickEarly(float x) {
+        early.Write(x);
+        float left = 0, right = 0;
+        for (var k = 0; k < EarlyTaps; k++) {
+            var v = early.Read(tapDelays[k]);
+            left += v * tapLeft[k];
+            right += v * tapRight[k];
+        }
+
+        if (earlyDiffusion > 0) {
+            left = earlyDiffusers[0].Allpass(left, earlyDiffuserLengths[0], earlyDiffusion);
+            left = earlyDiffusers[1].Allpass(left, earlyDiffuserLengths[1], earlyDiffusion);
+            right = earlyDiffusers[2].Allpass(right, earlyDiffuserLengths[2], earlyDiffusion);
+            right = earlyDiffusers[3].Allpass(right, earlyDiffuserLengths[3], earlyDiffusion);
+        }
+
+        return (left, right);
+    }
+
+    (float Left, float Right) TickNetwork(float x) {
+        foreach (var diffuser in diffusers) {
+            x = diffuser.Process(x, diffusion);
+        }
+
+        var modulation = modDepth * (float)Math.Sin(modPhase);
+        var opposite = modOpposed ? -modulation : modDepth * (float)Math.Sin(modPhase + modOffset);
+        modPhase += modStep;
+        if (modPhase >= 2 * Math.PI) {
+            modPhase -= 2 * Math.PI;
+        }
+
+        // Read every line (two of them modulated), damp, split into bands if asked, and apply the decay gains.
+        var first = 1;
+        var second = lineCount - 2;
+        float sum = 0;
+        for (var p = 0; p < lineCount; p++) {
+            var length = readLengths[p] + (p == first ? modulation + modDepth : p == second ? modDepth + opposite : 0f);
+            var y = lines.Read(slots[p], length);
+            if (wall) {
+                y = walls.Allpass(slots[p], y, wallLengths[p], wallGain);
+            }
+
+            var v = y + (damping[p] - y) * damp;
+            damping[p] = v;
+            float o;
+            if (bands) {
+                lowStates[p] += (v - lowStates[p]) * lowCoefficient;
+                highStates[p] += (v - highStates[p]) * highCoefficient;
+                o = v * gains[p] + lowDeltas[p] * lowStates[p] + highDeltas[p] * (v - highStates[p]);
+            } else {
+                o = v * gains[p];
+            }
+
+            outputs[p] = o;
+            sum += o;
+        }
+
+        // Householder feedback (I - 2/N * 11^T) plus the diffused input, written back into the lines.
+        var reflection = sum * (2f / lineCount);
+        float wetLeft = 0, wetRight = 0;
+        for (var p = 0; p < lineCount; p++) {
+            var value = outputs[p] - reflection + x * injection;
+            lines.Write(slots[p], stack ? Limit(value) : value);
+            wetLeft += outputs[p] * signLeft[p];
+            wetRight += outputs[p] * signRight[p];
+        }
+
+        return (wetLeft * outputGain, wetRight * outputGain);
+    }
 
     protected override void OnPrepare(in ProcessSpec spec) {
         var rate = spec.SampleRate;
@@ -684,233 +911,6 @@ public sealed class ReverbBlock : DspBlock {
         this.mix = mix;
         FlushDenormals();
         output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
-    }
-
-    /// <summary>A peaking band's coefficients; a band at 0 dB is skipped and starts clean when it comes back.</summary>
-    static SvfCoefficients Band(
-        float frequency,
-        float q,
-        float gainDb,
-        float rate,
-        ref SvfState left,
-        ref SvfState right
-    ) {
-        if (gainDb == 0) {
-            left.Reset();
-            right.Reset();
-            return default;
-        }
-
-        return SvfCoefficients.Design(BiquadType.Peak, rate, frequency, q, gainDb);
-    }
-
-    float Voices(float x, double speed1, double speed2, float balance) =>
-        voice1.Process(x, speed1) * (1f - balance) + voice2.Process(x, speed2) * balance;
-
-    void FlushDenormals() {
-        ducker.FlushDenormals();
-        spring.FlushDenormals();
-        for (var i = 0; i < MaxLines; i++) {
-            if (MathF.Abs(damping[i]) < 1e-20f) {
-                damping[i] = 0;
-            }
-
-            if (MathF.Abs(lowStates[i]) < 1e-20f) {
-                lowStates[i] = 0;
-            }
-
-            if (MathF.Abs(highStates[i]) < 1e-20f) {
-                highStates[i] = 0;
-            }
-        }
-
-        if (MathF.Abs(preDelayOut) < 1e-20f) {
-            preDelayOut = 0;
-        }
-
-        if (MathF.Abs(pitched) < 1e-20f) {
-            pitched = 0;
-        }
-
-        lowCutLeft.FlushDenormals();
-        lowCutRight.FlushDenormals();
-        lowMidLeft.FlushDenormals();
-        lowMidRight.FlushDenormals();
-        highMidLeft.FlushDenormals();
-        highMidRight.FlushDenormals();
-    }
-
-    void ClearNetwork() {
-        foreach (var diffuser in diffusers) {
-            diffuser.Clear();
-        }
-
-        lines.Clear();
-        walls.Clear();
-        Array.Clear(damping);
-        Array.Clear(lowStates);
-        Array.Clear(highStates);
-    }
-
-    void ClearTank(int type) {
-        switch (type) {
-            case Dattorro:
-                plate.Clear();
-                break;
-            case Spring:
-                spring.Clear();
-                break;
-            default:
-                ClearNetwork();
-                break;
-        }
-    }
-
-    void ConfigureNetwork(int type, int quality, float decay, float scale, float dampingHz, float rate, int n) {
-        var row = FdnRow(type);
-        quality = Math.Clamp(quality, 0, QualityLines.Length - 1);
-        lineCount = QualityLines[quality];
-
-        var norm = MathF.Sqrt(8f / lineCount);
-        injection = 0.35f;
-        outputGain = 0.5f * norm;
-
-        diffusion = Math.Min(MaxDiffuserGain, DiffusionGain[row] * (Params.Advance(InputDiffusion, n) / 100f));
-        var diffusionTime = Params.Advance(InputDiffusionTime, n) / 100f;
-        for (var i = 0; i < diffusers.Length; i++) {
-            diffusers[i].SetLength((int)(DiffuserMs[i] * diffusionTime * 0.001 * rate) + 1);
-        }
-
-        var lowTime = Params.Advance(LowTime, n) / 100f;
-        var highTime = Params.Advance(HighTime, n) / 100f;
-        var lowHz = Params.Advance(LowCrossover, n);
-        var highHz = Math.Max(lowHz, Params.Advance(HighCrossover, n));
-        bands = lowTime != 1f || highTime != 1f;
-        lowCoefficient = 1f - MathF.Exp(-2f * MathF.PI * lowHz / rate);
-        highCoefficient = 1f - MathF.Exp(-2f * MathF.PI * highHz / rate);
-
-        var density = Params.Advance(EchoDensity, n) / 100f;
-        wallGain = Params.Advance(WallDiffusion, n) / 100f * 0.7f;
-        wall = wallGain > 0;
-        // Per-line settings in the order the lines run (slot p holds line i), so the per-sample loop reads them in turn.
-        for (var p = 0; p < lineCount; p++) {
-            var i = quality == 0 ? EconomyLines[p] : p;
-            slots[p] = i;
-            signLeft[p] = LeftSigns[i];
-            signRight[p] = RightSigns[i];
-            lengths[p] = LineMs[row][i] * scale * 0.001f * rate;
-            gains[p] = MathF.Pow(10f, -3f * lengths[p] / (decay * rate)); // -60 dB after `decay` seconds
-            if (bands) {
-                lowDeltas[p] = MathF.Pow(10f, -3f * lengths[p] / (decay * lowTime * rate)) - gains[p];
-                highDeltas[p] = MathF.Pow(10f, -3f * lengths[p] / (decay * highTime * rate)) - gains[p];
-            }
-
-            // The wall allpass is taken out of the line, so the loop keeps its length and its decay.
-            wallLengths[p] = wall ? Math.Max(2f, (0.05f + (MaxWallFraction - 0.05f) * density) * lengths[p]) : 0f;
-            readLengths[p] = lengths[p] - wallLengths[p];
-        }
-
-        // One-pole damping in each line: the coefficient that puts its -3 dB point near the chosen frequency.
-        damp = MathF.Exp(-2f * MathF.PI * dampingHz / rate);
-        modDepth = ModulationMs * 0.001f * rate * (Params.Advance(ModDepth, n) / 100f);
-        modStep = 2 * Math.PI * Params.Advance(ModRate, n) / rate;
-        var phase = Params.Advance(ModPhase, n);
-        modOpposed = phase == 180f;
-        modOffset = Math.PI * phase / 180.0;
-    }
-
-    /// <summary>Early reflection taps for this block: times, the decay across the pattern, sides and the diffusion.</summary>
-    void ConfigureEarly(int type, float scale, float rate, int n) {
-        var row = ErRow(type);
-        var time = Params.Advance(EarlyTime, n) / 100f;
-        var decay = Params.Advance(EarlyDecay, n) / 100f;
-        earlyDiffusion = Params.Advance(EarlyDiffusion, n) / 100f * 0.7f;
-        var last = EarlyMs[row][EarlyTaps - 1];
-        var power = 0f;
-        for (var k = 0; k < EarlyTaps; k++) {
-            var ms = EarlyMs[row][k];
-            tapDelays[k] = 1f + ms * scale * time * 0.001f * rate; // Read(1) is the sample just written
-            var gain = MathF.Pow(10f, -3f * decay * ms / last); // Early Decay 100 %: the last tap is 60 dB down
-            tapLeft[k] = gain;
-            power += gain * gain;
-        }
-
-        var norm = 1f / MathF.Sqrt(power);
-        for (var k = 0; k < EarlyTaps; k++) {
-            var gain = tapLeft[k] * norm;
-            tapLeft[k] = k % 2 == 0 ? gain : gain * EarlyCrossGain;
-            tapRight[k] = k % 2 == 0 ? gain * EarlyCrossGain : gain;
-        }
-    }
-
-    (float Left, float Right) TickEarly(float x) {
-        early.Write(x);
-        float left = 0, right = 0;
-        for (var k = 0; k < EarlyTaps; k++) {
-            var v = early.Read(tapDelays[k]);
-            left += v * tapLeft[k];
-            right += v * tapRight[k];
-        }
-
-        if (earlyDiffusion > 0) {
-            left = earlyDiffusers[0].Allpass(left, earlyDiffuserLengths[0], earlyDiffusion);
-            left = earlyDiffusers[1].Allpass(left, earlyDiffuserLengths[1], earlyDiffusion);
-            right = earlyDiffusers[2].Allpass(right, earlyDiffuserLengths[2], earlyDiffusion);
-            right = earlyDiffusers[3].Allpass(right, earlyDiffuserLengths[3], earlyDiffusion);
-        }
-
-        return (left, right);
-    }
-
-    (float Left, float Right) TickNetwork(float x) {
-        foreach (var diffuser in diffusers) {
-            x = diffuser.Process(x, diffusion);
-        }
-
-        var modulation = modDepth * (float)Math.Sin(modPhase);
-        var opposite = modOpposed ? -modulation : modDepth * (float)Math.Sin(modPhase + modOffset);
-        modPhase += modStep;
-        if (modPhase >= 2 * Math.PI) {
-            modPhase -= 2 * Math.PI;
-        }
-
-        // Read every line (two of them modulated), damp, split into bands if asked, and apply the decay gains.
-        var first = 1;
-        var second = lineCount - 2;
-        float sum = 0;
-        for (var p = 0; p < lineCount; p++) {
-            var length = readLengths[p] + (p == first ? modulation + modDepth : p == second ? modDepth + opposite : 0f);
-            var y = lines.Read(slots[p], length);
-            if (wall) {
-                y = walls.Allpass(slots[p], y, wallLengths[p], wallGain);
-            }
-
-            var v = y + (damping[p] - y) * damp;
-            damping[p] = v;
-            float o;
-            if (bands) {
-                lowStates[p] += (v - lowStates[p]) * lowCoefficient;
-                highStates[p] += (v - highStates[p]) * highCoefficient;
-                o = v * gains[p] + lowDeltas[p] * lowStates[p] + highDeltas[p] * (v - highStates[p]);
-            } else {
-                o = v * gains[p];
-            }
-
-            outputs[p] = o;
-            sum += o;
-        }
-
-        // Householder feedback (I - 2/N * 11^T) plus the diffused input, written back into the lines.
-        var reflection = sum * (2f / lineCount);
-        float wetLeft = 0, wetRight = 0;
-        for (var p = 0; p < lineCount; p++) {
-            var value = outputs[p] - reflection + x * injection;
-            lines.Write(slots[p], stack ? Limit(value) : value);
-            wetLeft += outputs[p] * signLeft[p];
-            wetRight += outputs[p] * signRight[p];
-        }
-
-        return (wetLeft * outputGain, wetRight * outputGain);
     }
 
     /// <summary>

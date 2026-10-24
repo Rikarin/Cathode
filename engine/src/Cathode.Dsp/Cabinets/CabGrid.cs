@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Numerics;
 using System.Text.Json;
 using Cathode.Dsp.IO;
 
@@ -57,7 +58,7 @@ public sealed class CabGrid : IDisposable {
         Distances = distances;
         fileRate = irs[0, 0].SampleRate;
         var window = (int)Math.Round(CabIrSynthesizer.ReferenceTaps * fileRate / CabIrSynthesizer.ReferenceRate);
-        fftSize = 4 * (int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)window);
+        fftSize = 4 * (int)BitOperations.RoundUpToPowerOf2((uint)window);
         bins = fftSize / 2 + 1;
         onsets = new double[positions.Length * distances.Length];
         logMagnitude = new(onsets.Length * bins);

@@ -10,9 +10,7 @@ namespace Cathode.Dsp.Tests.Circuits;
 sealed class ReferenceCircuit {
     public const int Ground = 0;
 
-    int nodes;
-
-    public int Nodes => nodes;
+    public int Nodes { get; private set; }
 
     public List<(int A, int B, double Ohms)> Resistors { get; } = [];
 
@@ -32,7 +30,7 @@ sealed class ReferenceCircuit {
 
     public List<(INonlinearDevice Device, (int Plus, int Minus)[] Ports)> Devices { get; } = [];
 
-    public int Node() => ++nodes;
+    public int Node() => ++Nodes;
 
     public void Resistor(int a, int b, double ohms) => Resistors.Add((a, b, ohms));
 
@@ -77,12 +75,10 @@ sealed class ReferenceSimulator {
     readonly double[] inductorCurrents;
     readonly double[] inductorVoltages;
     readonly double[][] evaluation; // per device: the (limited) port voltages its next evaluation uses
-    int newtonFailures;
-    int mostIterations;
 
-    public int NewtonFailures => newtonFailures;
+    public int NewtonFailures { get; private set; }
 
-    public int MostIterations => mostIterations;
+    public int MostIterations { get; private set; }
 
     public ReferenceSimulator(ReferenceCircuit circuit) {
         this.circuit = circuit;
@@ -314,7 +310,7 @@ sealed class ReferenceSimulator {
             }
 
             if (!limited && change <= 1 && iteration > 1) {
-                mostIterations = Math.Max(mostIterations, iteration);
+                MostIterations = Math.Max(MostIterations, iteration);
                 return;
             }
         }
@@ -322,7 +318,7 @@ sealed class ReferenceSimulator {
         // Steps that only dither at the last digits (limiting toggling near a junction's knee, which varies between CPUs)
         // are still a solution to within a microvolt; anything further off is a failure.
         if (change > 1e3) {
-            newtonFailures++;
+            NewtonFailures++;
         }
     }
 

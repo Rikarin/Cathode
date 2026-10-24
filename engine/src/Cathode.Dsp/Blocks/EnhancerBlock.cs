@@ -97,11 +97,6 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
     /// </summary>
     public static double AllpassQFor(float depth) => depth == 0.5f ? AllpassQ : AllpassQ * Math.Pow(4, 2 * depth - 1);
 
-    protected override void OnPrepare(in ProcessSpec spec) {
-        delay.Allocate((int)Math.Ceiling(MaxTimeMs * 0.001 * spec.SampleRate) + 8);
-        designedType = -1;
-    }
-
     /// <summary>Designs the allpass chain for <paramref name="type" /> and <paramref name="depth" /> when they change.</summary>
     int DesignAllpasses(int type, float depth) {
         var frequencies = type == Stereoizer ? StereoizerFrequencies : AllpassFrequencies;
@@ -123,6 +118,11 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
         }
 
         return frequencies.Length;
+    }
+
+    protected override void OnPrepare(in ProcessSpec spec) {
+        delay.Allocate((int)Math.Ceiling(MaxTimeMs * 0.001 * spec.SampleRate) + 8);
+        designedType = -1;
     }
 
     protected override void OnReset() {

@@ -42,7 +42,8 @@ public readonly record struct NetlistElement(
 
 /// <summary>
 ///     The circuit embedded in an R-type adaptor, described like a SPICE netlist: nodes, and what joins them. Build it on
-///     the control thread, then hand it to <see cref="RTypeAdaptor{TPorts}" /> or <see cref="RTypeRoot{TPorts,TDevice}" />,
+///     the control thread, then hand it to <see cref="RTypeAdaptor{TPorts}" /> or <see cref="RTypeRoot{TPorts,TDevice}" />
+///     ,
 ///     which compute their scattering matrix from its modified nodal analysis.
 /// </summary>
 /// <remarks>
@@ -67,21 +68,20 @@ public sealed class WdfNetlist {
     public const int Ground = 0;
 
     readonly List<NetlistElement> elements = [];
-    int nodes;
 
     /// <summary>Number of nodes besides ground.</summary>
-    public int Nodes => nodes;
+    public int Nodes { get; private set; }
 
     /// <summary>Every element, in declaration order.</summary>
     public IReadOnlyList<NetlistElement> Elements => elements;
 
     /// <summary>Adds a node and returns its index (1, 2, ...).</summary>
-    public int Node() => ++nodes;
+    public int Node() => ++Nodes;
 
     /// <summary>Adds <paramref name="count" /> nodes and returns the first.</summary>
     public int AddNodes(int count) {
-        var first = nodes + 1;
-        nodes += count;
+        var first = Nodes + 1;
+        Nodes += count;
         return first;
     }
 
@@ -187,7 +187,7 @@ public sealed class WdfNetlist {
     }
 
     void Check(int node) {
-        if (node < 0 || node > nodes) {
+        if (node < 0 || node > Nodes) {
             throw new ArgumentOutOfRangeException(
                 nameof(node),
                 node,

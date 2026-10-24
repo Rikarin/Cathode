@@ -6,7 +6,8 @@ public sealed record IrMixInput(
     double SampleRate,
     double LevelDb = 0,
     double DelayMs = 0,
-    bool Invert = false);
+    bool Invert = false
+);
 
 /// <summary>
 ///     Blends impulse responses into one (Cab-Lab style): each is resampled to the target rate, optionally aligned on its

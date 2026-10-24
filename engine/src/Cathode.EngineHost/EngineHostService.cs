@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
+using Cathode.Audio.Native;
 using Cathode.Dsp;
 using Cathode.Dsp.IO;
 using Cathode.Dsp.Looping;
@@ -22,14 +23,14 @@ namespace Cathode.EngineHost;
 ///     from control threads only; one lock serialises requests and telemetry.
 /// </summary>
 public sealed class EngineHostService : IDisposable {
+    /// <summary>Longest block or parameter id the allocation-free path reads; longer ones take the slow path.</summary>
+    const int MaxIdLength = 64;
+
     /// <summary>
     ///     CPU figures describe the last few seconds, not the process lifetime (which would keep start-up spikes
     ///     forever).
     /// </summary>
     static readonly TimeSpan StatsWindow = TimeSpan.FromSeconds(5);
-
-    /// <summary>Longest block or parameter id the allocation-free path reads; longer ones take the slow path.</summary>
-    const int MaxIdLength = 64;
 
     readonly GraphCompiler compiler;
     readonly Tuner tuner;
@@ -56,13 +57,7 @@ public sealed class EngineHostService : IDisposable {
 
     /// <summary>Sends MIDI out (footswitch LEDs); replaced in tests. Defaults to the native shim.</summary>
     public Func<string?, byte[], bool> NativeMidiSend { get; set; } = static (destination, bytes) =>
-        Cathode.Audio.Native.NativeMidi.Send(destination, bytes);
-
-    /// <summary>Starts reading MIDI input; <paramref name="forward" /> gets each batch (on the MIDI thread).</summary>
-    public void StartMidi(Action<List<MidiEventMessage>> forward) {
-        midi ??= new MidiInput(Engine, forward);
-        midi.Start();
-    }
+        NativeMidi.Send(destination, bytes);
 
     /// <summary>
     ///     The shared-memory telemetry the engine writes: a file named in <see cref="Info" /> when the host serves
@@ -95,6 +90,12 @@ public sealed class EngineHostService : IDisposable {
                 ?.InformationalVersion
             ?? "dev";
         Info = new(version, backend, spec.SampleRate, spec.MaxBlockSize, TelemetryRegion.Path);
+    }
+
+    /// <summary>Starts reading MIDI input; <paramref name="forward" /> gets each batch (on the MIDI thread).</summary>
+    public void StartMidi(Action<List<MidiEventMessage>> forward) {
+        midi ??= new(Engine, forward);
+        midi.Start();
     }
 
     public IpcMessage Handle(IpcMessage request) {

@@ -42,13 +42,6 @@ public sealed class MixerBlock() : DspBlock(Info), IRowInputBlock {
 
     public static int RowBalance(int row) => Rows + row;
 
-    /// <summary>Row <paramref name="row" />'s left and right gains for its current gain and balance targets.</summary>
-    (float Left, float Right) Target(int row) {
-        var gain = Params.GetTarget(Gain(row)) / 100f;
-        var (left, right) = OutputStage.Gains(0f, Params.GetTarget(RowBalance(row)));
-        return (gain * left, gain * right);
-    }
-
     public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) {
         var slot = Math.Clamp(row, 0, Rows - 1);
         var (targetLeft, targetRight) = Target(slot);
@@ -72,6 +65,13 @@ public sealed class MixerBlock() : DspBlock(Info), IRowInputBlock {
 
         gainLeft[slot] = left;
         gainRight[slot] = right;
+    }
+
+    /// <summary>Row <paramref name="row" />'s left and right gains for its current gain and balance targets.</summary>
+    (float Left, float Right) Target(int row) {
+        var gain = Params.GetTarget(Gain(row)) / 100f;
+        var (left, right) = OutputStage.Gains(0f, Params.GetTarget(RowBalance(row)));
+        return (gain * left, gain * right);
     }
 
     float Glide(float gain, float target) =>

@@ -101,14 +101,20 @@ public sealed class TremoloBlock() : DspBlock(Info), IEngageAware {
         maxInstances: 2
     );
 
+    /// <summary>Start Phase: engaging the block starts the LFO at this phase, so the first pulse lands where it should.</summary>
+    public void Engage() => lfo.Reset(Params.GetTarget(StartPhase) / 360.0);
+
+    /// <summary>1 at the LFO's peak, 1 − depth at its trough.</summary>
+    static float Gain(float depth, float lfo) => 1 - depth * 0.5f * (1 - lfo);
+
+    /// <summary>The photocell follows the lamp quickly as it brightens and slowly as it darkens.</summary>
+    float Photocell(float light, float lamp) => light + (lamp > light ? attack : release) * (lamp - light);
+
     protected override void OnPrepare(in ProcessSpec spec) {
         attack = (float)(1 - Math.Exp(-1 / (PhotocellAttackMs * 0.001 * spec.SampleRate)));
         release = (float)(1 - Math.Exp(-1 / (PhotocellReleaseMs * 0.001 * spec.SampleRate)));
         envelopeRelease = (float)Math.Exp(-1 / (TriggerReleaseMs * 0.001 * spec.SampleRate));
     }
-
-    /// <summary>Start Phase: engaging the block starts the LFO at this phase, so the first pulse lands where it should.</summary>
-    public void Engage() => lfo.Reset(Params.GetTarget(StartPhase) / 360.0);
 
     protected override void OnReset() {
         lfo.Reset(Params.Current(StartPhase) / 360.0);
@@ -226,12 +232,6 @@ public sealed class TremoloBlock() : DspBlock(Info), IEngageAware {
 
         output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
-
-    /// <summary>1 at the LFO's peak, 1 − depth at its trough.</summary>
-    static float Gain(float depth, float lfo) => 1 - depth * 0.5f * (1 - lfo);
-
-    /// <summary>The photocell follows the lamp quickly as it brightens and slowly as it darkens.</summary>
-    float Photocell(float light, float lamp) => light + (lamp > light ? attack : release) * (lamp - light);
 
     /// <summary>A second-order Linkwitz–Riley split from TPT one-poles: low-pass squared and high-pass squared.</summary>
     struct SecondOrderSplit {

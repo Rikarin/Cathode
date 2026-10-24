@@ -21,14 +21,14 @@ sealed class DattorroPlate : IDisposable {
     const double ModulationHz = 1.0;
     const float OutputScale = 0.6f;
 
+    // Tank, in signal order: left half then right half.
+    const int LeftAllpass1 = 672, LeftDelay1 = 4453, LeftAllpass2 = 1800, LeftDelay2 = 3720;
+    const int RightAllpass1 = 908, RightDelay1 = 4217, RightAllpass2 = 2656, RightDelay2 = 3163;
+
     static readonly int[] InputLengths = [142, 107, 379, 277];
 
     /// <summary>Output taps (left then right), in the order <see cref="Tick" /> reads them.</summary>
     static readonly int[] PaperTaps = [266, 2974, 1913, 1996, 1990, 187, 1066, 353, 3627, 1228, 2673, 2111, 335, 121];
-
-    // Tank, in signal order: left half then right half.
-    const int LeftAllpass1 = 672, LeftDelay1 = 4453, LeftAllpass2 = 1800, LeftDelay2 = 3720;
-    const int RightAllpass1 = 908, RightDelay1 = 4217, RightAllpass2 = 2656, RightDelay2 = 3163;
 
     readonly ReverbLine[] input = [new(), new(), new(), new()];
     readonly ReverbLine leftAllpass1 = new(), leftDelay1 = new(), leftAllpass2 = new(), leftDelay2 = new();

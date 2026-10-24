@@ -8,11 +8,6 @@ namespace Cathode.Dsp.Tests;
 public class DynamicsParityTests {
     const double Rate = 48_000;
 
-    static float Db(float db) => MathF.Pow(10f, db / 20f);
-
-    static float SteadyPeakDb(IDspBlock block, float[] input) =>
-        (float)Analysis.ToDb(Analysis.Peak(BlockRender.Mono(block, input, 64).AsSpan(input.Length / 2)));
-
     [Theory]
     [InlineData(0f, -20f, 0f, -20f)] // 20 dB over a limiter: held at the threshold
     [InlineData(-10f, -20f, 0f, -20f)]
@@ -281,4 +276,9 @@ public class DynamicsParityTests {
 
         Assert.True(Reduction(1) > Reduction(0) + 1f);
     }
+
+    static float Db(float db) => MathF.Pow(10f, db / 20f);
+
+    static float SteadyPeakDb(IDspBlock block, float[] input) =>
+        (float)Analysis.ToDb(Analysis.Peak(BlockRender.Mono(block, input, 64).AsSpan(input.Length / 2)));
 }
