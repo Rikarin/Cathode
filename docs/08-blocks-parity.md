@@ -28,13 +28,13 @@ The guide's comparison table (p. 3) lists 42 block types. Cathode covers 37 of t
 
 | Guide block | Cathode | Types (guide → Cathode) | Parameters ✅ / ◐ / ❌ | Verdict |
 |---|---|---|---|---|
-| Input (IN) | built-in `input` | 1 → 1 | 🆕 4 / 1 / 0 | 🆕 Noise gate (Classic, Intelligent, Noise Reducer), input level, global gate offset, channels; one stereo input pair |
+| Input (IN) | built-in `input` | 1 → 1 | 🆕 5 / 0 / 0 | 🆕 Noise gate (Classic, Intelligent, Noise Reducer), input level, global gate offset, channels; 🆕 Source: Input 1–4, USB 5/6 and 7/8 from a multi-channel interface |
 | Output (OUT) | built-in `output` | 1 → 1 | 🆕 4 / 0 / 0 | 🆕 Row mixer (level, balance per row), main level and balance, channels; scene levels |
 | Common Mix/Level | every block | — | 🆕 10 / 0 / 0 | Level and Balance everywhere; 🆕 Global Mix, engage as a modifier target, Stereo Spread to ±200 %, Input Select/Gain complete |
 | Amp (AMP) | `circuitamp`, `nam` | 309+ → 26 circuit + any capture | see [06 §1.4](06-amp-modelling-spec.md#14-parity-summary) | Core panel, expert pages and 🆕 boost, saturation, input filter/Definition, output EQ with location, input dynamics, output compressor, speaker drive/thump/compression, bias tremolo, Balance; power-tube hardness and per-model switches remain |
-| Cab (CAB) | `cab` (Legacy and DynaCab merged) | 2 150+ IRs → user IRs + synthesised DynaCab + IR packs | 🆕 15 / 3 / 1 | Done except stereo room mic spacing and a visual align view |
+| Cab (CAB) | `cab` (Legacy and DynaCab merged) | 2 150+ IRs → user IRs + synthesised DynaCab + IR packs | 🆕 18 / 1 / 0 | 🆕 Done: stereo room mic spacing, Preamp Mode, the Align view; factory banks stay out (licensing) |
 | Chorus (CHO) | `chorus` | 17 → 1 (+ 🆕 12 library presets) | 🆕 20 / 0 / 0 | 🆕 Done: 8 voices, Dual ratios, BBD drive, Dimension, LFO 2, Global Mix; the types as Block Library presets |
-| Compressor (CMP) | `compressor` | 16 → 🆕 6 | 🆕 19 / 1 / 0 | 🆕 Detector, ∞ ratio, Dynamics and Feedback types, auto times, light type, emphasis, sidechain EQ, input level, look-ahead and sidechain source |
+| Compressor (CMP) | `compressor` | 16 → 🆕 9 | 🆕 20 / 0 / 0 | 🆕 Detector, ∞ ratio, Dynamics and Feedback types, auto times, light type, emphasis, sidechain EQ, input level, look-ahead and sidechain source; 🆕 JFET, Tube and Compander types, the single Compression knob, sidechain from a hardware input |
 | Crossover (XVR) | `crossover` | 1 → 1 | 🆕 7 / 0 / 0 | Done (🆕 per-side band levels and pans) |
 | Delay (DLY) | `delay` | 23+ → 🆕 9 | 🆕 48 / 0 / 0 | 🆕 Done: Dual, Mono Tape, Reverse and Sweep types, 16 s, master and signed feedback, feedback EQ, three LFOs, diffuser, Stack, Global Mix, Spread to ±200 % |
 | Drive (DRV) | `drive` | 60+ → 27 | 🆕 17 / 3 / 0 | Strong circuits; 🆕 EQ pages and the Advanced page; per-pedal extra knobs remain |
@@ -44,23 +44,23 @@ The guide's comparison table (p. 3) lists 42 block types. Cathode covers 37 of t
 | Flanger (FLG) | `flanger` | 31 → 1 | 🆕 24 / 0 / 0 | 🆕 Done: thru-zero, drive, bass focus, VCO response, min/max time, LFO reset on engage, Global Mix |
 | Formant (FOR) | `formant` | 1 → 1 | 8 / 0 / 0 | Done (Cathode adds Shift) |
 | Gate/Expander (GTE) | `gate` | 4 → 🆕 4 | 🆕 15 / 0 / 0 | Done (🆕 Modern types, knee, sidechain from a row or the input) |
-| Graphic EQ (GEQ) | `geq` | 16 → 🆕 10 layouts × constant/variable Q | 🆕 6 / 1 / 0 | 🆕 Band layouts, outer shelves; passive types approximated |
+| Graphic EQ (GEQ) | `geq` | 16 → 🆕 10 layouts × constant/variable Q | 🆕 7 / 0 / 0 | 🆕 Band layouts, outer shelves; 🆕 the passive types as component-level networks |
 | IR Player (IRP) | `irplayer` | 1 → 1 | 🆕 11 / 0 / 0 | Done (🆕 two slots, modes, length, per-IR level and pan, slopes, input select) |
 | Looper (LPR) | 🆕 `looper` grid block + rig looper | 1 → 1 | 🆕 18 / 0 / 0 | Done: placeable with bypass modes and the full Config page; the transport drives the block while its preset runs |
 | Megatap (MGT) | `megatap` | 20 → 1 | 🆕 23 / 0 / 0 | 🆕 Done: 128 taps, pre-delay, tap feedback, alphas, randomise, diffusion, envelope, Global Mix |
 | Mixer (MIX) | 🆕 `mixer` | 1 → 1 | 🆕 6 / 0 / 0 | Done in this pass |
 | Multitap Delay (MTD) | `multidelay` | 34+ → 🆕 5 | 🆕 42 / 0 / 0 | 🆕 Done: Quad Tap, Parallel, Series, Diffusor, Tape with per-voice feedback, filter, chorus, comb and ring mod; Global Mix |
 | Multiband Comp (MBC) | `mbcomp` | 1 → 1 | 🆕 15 / 0 / 0 | Done (🆕 detector, mutes, 12/24 dB slope, auto times) |
-| Multiplexer (MUX) | `mux` | 1 → 1 | 🆕 3 / 1 / 0 | Done (rows only, no input jacks) |
+| Multiplexer (MUX) | `mux` | 1 → 1 | 🆕 4 / 0 / 0 | 🆕 Done: rows and the hardware inputs |
 | Parametric EQ (PEQ) | `peq` | 1 → 1 | 🆕 8 / 0 / 0 | Done (🆕 Shelving 2, Peaking 2, slopes to 36 dB/oct, Solo) |
 | Phaser (PHA) | `phaser` (+ `vibe`) | 16 → 🆕 2 (+ Vibe) | 🆕 24 / 0 / 0 | 🆕 Done: VCR types, Barberpole, tone, feedback point, LFO conditioning, LFO reset on engage, Global Mix |
-| Pitch (PIT) | `pitch` | 16 → 9 | 🆕 45 / 2 / 0 | 🆕 Done: polyphonic whammy, per-voice detune and feedback, master scalers, stereo input, temperament, detector source, 16-step arp with shapes, Global Mix, input select |
-| Plex Delay (PLX) | 🆕 `plex` | 44 → 🆕 5 | 🆕 28 / 1 / 0 | Done: 1–8 lines, Plex Delay, Detune, Shifter, Verb and Shimmer Verb |
+| Pitch (PIT) | `pitch` | 16 → 9 | 🆕 47 / 0 / 0 | 🆕 Done: polyphonic whammy, per-voice detune and feedback, master scalers, stereo input, temperament, detector source, 16-step arp with shapes, Global Mix, input select; 🆕 Learn, custom scale, detector on a hardware input |
+| Plex Delay (PLX) | 🆕 `plex` | 44 → 🆕 5 | 🆕 29 / 0 / 0 | Done: 1–8 lines, Plex Delay, Detune, Shifter, Verb and Shimmer Verb |
 | Resonator (RES) | `resonator` | 1 → 1 | 🆕 20 / 0 / 0 | 🆕 Done: per-voice feedback and band-pass, masters, stereo input, Global Mix |
 | Return (RTN) | `fbreturn` | 1 → 1 | 🆕 3 / 0 / 0 | Done |
 | Reverb (REV) | `reverb` | 66+ → 🆕 7 | 🆕 36 / 0 / 0 | 🆕 Done: early reflections, band decay times, wet EQ, quality, stack, shimmer pitch section, 1–6 springs, Chamber and Cathedral, Global Mix |
 | Ring Modulator (RNG) | `ringmod` | 3 → 🆕 3 | 🆕 7 / 0 / 0 | 🆕 Done: upper and lower sideband, pitch tracking |
-| Rotary (ROT) | `rotary` | 1 → 1 | 🆕 17 / 1 / 0 | 🆕 Done: brake, tempo, rotor length, mic spacing and distance, input select, spread |
+| Rotary (ROT) | `rotary` | 1 → 1 | 🆕 18 / 0 / 0 | 🆕 Done: brake, tempo, rotor length, mic spacing and distance, input select, spread, 🆕 low rate multiplier |
 | RTA | 🆕 `rta` block + analyser (`PUT /rta`) | 1 → 1 | 🆕 5 / 0 / 0 | 🆕 Pass-through grid block, input select; bands, decay and window on the analyser |
 | Scene MIDI (MIDI) | 🆕 per-scene MIDI messages | 1 → 1 | 🆕 4 / 0 / 0 | 🆕 Eight PC/CC messages per scene, sent on scene change and preset load |
 | Send (SND) | `fbsend` | 1 → 1 | 1 / 0 / 0 | Done (Cathode adds a send level); 🆕 two Send/Return pairs |
@@ -70,9 +70,9 @@ The guide's comparison table (p. 3) lists 42 block types. Cathode covers 37 of t
 | Tremolo/Panner (TRM) | `tremolo` | 5 → 5 | 🆕 13 / 0 / 0 | 🆕 Done: width to 200 %, trigger, crossover slope, start phase on engage |
 | Vocoder (VOC) | `vocoder` | 1 → 1 | 🆕 18 / 0 / 0 | 🆕 Done: 4–24 bands, range, resonance, shift, freeze, per-band level and pan, analysis from a row |
 | Volume/Pan (VOL) | `volpan` | 1 → 1 | 🆕 10 / 0 / 0 | Done in this pass |
-| Wah (WAH) | `wah` | 9 → 🆕 10 | 🆕 13 / 1 / 0 | 🆕 Done: five more voicings, drive, inductor bias, EQ page; min/max frequency on the filter voicings only |
+| Wah (WAH) | `wah` | 9 → 🆕 10 | 🆕 14 / 0 / 0 | 🆕 Done: five more voicings, drive, inductor bias, EQ page; 🆕 min/max frequency on the circuits too |
 
-**Totals** (the counts above, summed over the 42 audited blocks and pages, Amp excluded), after the four parity streams of October 2026 (P1–P4): about **646 / 16 / 1** (✅ / ◐ / ❌), i.e. **about 97 % of the guide's parameters fully present and nearly all of the rest in part**, up from about 64 % after the first pass and 42 % before it. The one ❌ is the Cab's stereo room mic spacing; the ◐ rows are listed per block in §6. Type coverage is now closed mostly by the Block Library's factory presets (146 over 19 blocks) on top of the algorithms here, rather than by one algorithm per guide type.
+**Totals** (the counts above, summed over the 42 audited blocks and pages, Amp excluded), after the four parity streams of October 2026 (P1–P4): about **646 / 16 / 1** (✅ / ◐ / ❌), i.e. **about 97 % of the guide's parameters fully present and nearly all of the rest in part**, up from about 64 % after the first pass and 42 % before it. The one ❌ was the Cab's stereo room mic spacing (🆕 done by stream PA); the ◐ rows are listed per block in §6. Type coverage is now closed mostly by the Block Library's factory presets (146 over 19 blocks) on top of the algorithms here, rather than by one algorithm per guide type.
 
 ### 1.2 What this pass implemented
 
@@ -130,6 +130,16 @@ All with defaults that leave the earlier sound bit-identical, except the Delay m
 - **Cab:** 🆕 Smoothing (fractional-octave, minimum-phase correction that keeps the onset), a continuous Proximity with Proximity Freq, the room page (size, shape, floor reflection, HF and LF damping, diffusion) and the mic preamp's Bass, Mid and Treble.
 - **Circuit Amp:** 🆕 Input Boost (six Drive circuits at the amp's oversampled rate), Saturation (a diode-style clipper between preamp and power amp), Input Filter and Definition, an Output EQ on the Graphic EQ's layouts at the input, before the power amp or at the output, Input Dynamics, an Output Compressor (Output/Feedback types, clarity), Speaker Drive, Thump with Cab Resonance, Speaker Compression with its time constant, Bias Tremolo and Balance (36 parameters, `Amp/AmpInserts.cs`). The knobs are read on a fixed 64-frame grid, so the output no longer depends on the host's block size.
 
+**Presets, scenes and routing stream (PS).** The features of Fractal's *Presets* page that Cathode lacked (§9). Mix laws per block (§3): constant power on Chorus, Flanger, Phaser, Reverb, Multitap, Rotary, Ten-Tap and Drive, the sweetened law on Delay, dry at 0 dB on the Vocoder, linear elsewhere, through one helper (`MixLaw`, `MixRamp`); this changes the sound at partial Mix on purpose, and the golden renders of chorus, flanger, phaser, reverb, multidelay and tentap were regenerated (Delay's default render ends before its first echo, so it is unchanged). 🆕 **Kill Dry** (`killDry`) on Delay, Multitap, Pitch, Plex and Reverb. Engine: per-block output meters and an ITU-R BS.1770 loudness meter on the output in the telemetry (layout v5), a spillover switch, the grid loop handed over across a preset change, and modifiers switched per channel. Measured cost (min of passes, 48 kHz / 64): delay 0.59 %, multidelay 0.72 %, reverb 2.81 %, chorus 0.27 %, flanger 0.86 %, phaser 0.43 %, tentap 0.51 %, rotary 0.34 %, vocoder 1.40 %, pitch 2.31 %, plex 2.33 %, drive 13.9 %: all within noise of `BlockCosts.cs`.
+
+**Stream PA (round 3: I/O, cab and effects).** Every ◐/❌ of §2, §5, §6.2, §6.12, §6.19, §6.22, §6.23, §6.28 and §6.37 that was not the Drive's or the Amp's, with defaults that keep the earlier sound (the golden renders pass).
+
+- **Multi-channel input** (§2): the native shim names each device channel (`cth_audio_channel_name`) and silences channels a callback does not deliver; `NativeAudioSession` takes an `InputMap` (cathode-host `--input-map "1;3,4;;;5,6"`: device channels for Input 1, Input 2, Input 3, Input 4, USB 5/6 and USB 7/8; one channel feeds both sides) and passes the extra sources planar in `AudioIO.Sources`; the engine copies them into `HardwareInputs`; the compiler hands each block that reads one (`IHardwareInputBlock`) its graph's `InputPort`, which fades out when the graph is replaced. The default maps Input 1 only, to channel 1: nothing changes for existing rigs. The Setup page has the input map, the host reports the mapped sources (`HostInfo.InputSources`, `EngineStatus.inputs`). Choices that use it: the Input cell's 🆕 **Source**, the Multiplexer's Input Select, the Compressor's and Gate's Sidechain (the old "Input" is now "Grid Input"), the Pitch block's Detector Source and the Vocoder's Analysis Source.
+- **Cab** (§5): 🆕 **Room Mic Spacing** (0–300 cm: each DynaCab slot synthesised for a left and a right room mic, its reflections heard from half the spacing to either side; the direct sound stays the close mic's), 🆕 **Preamp Mode** (Economy, the old path, or High Quality: the mic preamp 4× oversampled), and the 🆕 **Align** view in the Cab panel (every slot's IR head on one time axis from `GET /api/v1/live/blocks/{id}/cab/align`; drag or nudge a slot's Delay, or line every heard slot up with the latest onset).
+- **Compressor** (§6.2): 🆕 **JFET** (1176-style feedback peak detector; the gain cell's odd harmonics grow with the reduction), 🆕 **Tube** (variable-mu: a knee of at least 18 dB, RMS feedback detector, a little second harmonic) and 🆕 **Compander** (compression above Threshold, downward expansion below Expander Threshold by Expander Ratio); 🆕 **Controls** Compression: one knob for threshold and ratio together. Four Block Library presets for them.
+- **Graphic EQ** (§6.12): the passive types are 🆕 component-level networks (`PassiveGraphicEq`): the Mark and 5-band on a simulated inductor graphic (`LcrGraphicEq`: an op-amp with each slider between its inputs and its wiper into a series L-C-R; the Mark with the Mesa IIC+ parts of docs/06 §3.4), the console on three broad resonators of the same circuit, the 3-band on the Marshall stack and the 4-band on that stack plus a presence network. The amp's output EQ keeps the approximations.
+- **Pitch** (§6.22): 🆕 **Learn** latches the played note as the key; 🆕 **Custom** scale of 4–8 notes with a tonic. **Plex** (§6.23): Direction confirmed against the guide (reversed granules in order) and tested. **Rotary** (§6.28): 🆕 **Low Rate Multiplier**. **Wah** (§6.37): Min/Max Frequency now 🆕 on the circuits (their inductor scaled per pedal position).
+
 ### 1.3 CPU costs to regenerate
 
 After the merge with P3 and the amp streams, `BlockCosts.cs` was regenerated (`--write`), so it now holds the engine and global stream's new blocks (**input**, **output**, **rta**) and the changed ones.
@@ -144,7 +154,7 @@ Cathode's `input` and `output` are built-in grid cells that the graph compiler r
 
 | Guide parameter | Cathode | Note | Effort |
 |---|---|---|---|
-| Input 1–4 / USB source | ◐ | One stereo input pair from the interface; more channels wait for multi-channel I/O in the audio shim | medium (shim) |
+| Input 1–4 / USB source | 🆕 ✅ | Source: Input 1 (the default, the grid input), Input 2–4, USB 5/6, USB 7/8, each mapped to device channels on the Setup page (one channel is mono on both sides); unmapped sources are silent. 10 ms crossfade on a change; up to four Input cells, each with its own source |  |
 | Noise gate: Type (Classic, Intelligent, Noise Reducer) | 🆕 ✅ | Off (default), Classic (downward expander), Intelligent (the detector notches the mains frequency, 50 or 60 Hz, and two harmonics), Noise Reducer (gates only above a 2 kHz split) |  |
 | Gate Threshold, Ratio, Attack, Release, Output Level | 🆕 ✅ | Output Level is the Input Level |  |
 | Global noisegate offset | 🆕 ✅ | Global page, ±20 dB, added to every Input gate threshold |  |
@@ -161,8 +171,9 @@ Cathode's `input` and `output` are built-in grid cells that the graph compiler r
 
 | Guide parameter | Cathode | Note | Effort |
 |---|---|---|---|
-| Mix (wet/dry, 50 % = −6 dB each) | ✅ | Every wet/dry block uses the linear crossfade with that law |  |
-| Delay mix law (wet full at 50 %, dry fades after) | 🆕 ✅ | Delay block only, as in the guide |  |
+| Mix (wet/dry) and its law | 🆕 ✅ | Per block, from one helper (`MixLaw`): **constant power** (dry and wet −3 dB at 50 %) on Chorus, Flanger, Phaser, Reverb, Multitap, Rotary, Ten-Tap and Drive; **linear** (−6 dB each) on Compressor, Formant, Megatap, Multiband Comp, Pitch, Plex, Ring Mod and Synth; **dry at 0 dB** to 50 % on the Vocoder. Mix 0 and 100 % are exact. Gains are interpolated per sample between the law's values at each end of a block |  |
+| Delay mix law ("sweetened") | 🆕 ✅ | The dry stays at 0 dB to 50 % and then fades out; the wet rises on a squared taper (−12 dB at 25 %, 0 dB at 50 %), so most of the knob's travel is spent on quiet echoes. Replaces the earlier both-at-full law |  |
+| Kill Dry | 🆕 ✅ | `killDry` on Delay, Multitap, Pitch, Plex and Reverb: the dry is muted in the block, so Mix sets the wet level alone (Global Mix still moves it) |  |
 | Level | ✅ | Every effect block (`level`, dB) |  |
 | Balance | 🆕 ✅ | Every effect block (`balance`, −100…100 %); the far side is turned down, wet and dry alike |  |
 | Bypass (as a modifier target) | 🆕 ✅ | A modifier on the `engage` pseudo-parameter engages the block at 50 % and above, bypasses it below, and wins over the scene; set from the engage switch's context menu |  |
@@ -184,7 +195,7 @@ Audited in detail in [06 §1](06-amp-modelling-spec.md#1-axe-fx-iii-amp-block-pa
 | Input EQ | Input select, Low Cut, 🆕 Input Filter (off, shelves, peak, high/low-pass; freq, Q, gain), 🆕 Definition (treble/bass tilt into the preamp) | — | |
 | Output EQ | 5 model EQ bands (`eq1`–`eq5`), 🆕 Output EQ type (every Graphic EQ layout) with 10 bands, 🆕 EQ location (input, pre power amp, output) | Passive types are approximations (see §6.12) | — |
 | Power supply | Sag, B+ time constant, supply type (DC, AC 60 Hz, AC 50 Hz = AC line frequency), rectifier, Variac | Screen frequency/Q | model data |
-| Power amp | Power amp on/off, power tube type, bias, negative feedback, transformer matching, LF/HF, drive, speaker impedance, 🆕 bias tremolo (rate, depth on the Bias control) | Power tube hardness: needs the pentode law in PowerAmp/Tubes, outside this block | medium (power amp) |
+| Power amp | Power amp on/off, power tube type, bias, negative feedback, transformer matching, LF/HF, drive, speaker impedance, 🆕 bias tremolo (rate, depth: the model's own tremolo circuit where it has one, a bias tremolo from the drawing's oscillator and coupling network in the power amp, an optical vibrato or the 18 W's; elsewhere a sine on the Bias control) | Power tube hardness: needs the pentode law in PowerAmp/Tubes, outside this block | medium (power amp) |
 | Speaker | Speaker curve, LF resonance freq/Q/peak, HF, impedance, 🆕 speaker drive (cone excursion), 🆕 thump with cab resonance, 🆕 speaker compression and its time constant | Compliance (covered by the impedance curve's LF Q and amount) | — |
 | Dynamics | 🆕 Input dynamics (expand/compress by envelope), 🆕 output compressor (Output/Feedback type, amount, threshold, clarity) | Master bias excursion (emergent in the power amp) | — |
 | Advanced | Tonestack frequency, master volume trim, presence/depth frequency, cathode time constant | Tonestack type substitution and location, triode plate frequencies, preamp hardness, cathode follower controls, PI/power tube bias excursion, plate suppressor diodes, master volume location/cap, output mode (FRFR / SS PA + cab), auto DynaCab impedance | medium–large; several are emergent in a circuit model ([06 §1.4](06-amp-modelling-spec.md#14-parity-summary)) |
@@ -210,11 +221,11 @@ Re-audited for the merged `cab` block (the old `cab` and `dynacab` are one block
 | IR Length | ✅ | Per slot, 5–170 ms with a short fade |  |
 | Preamp page: Drive, Saturation, Type (Tube, FET, Tape…) | ✅ | None, Tube, Bipolar, FET, Transformer, Tape |  |
 | Preamp page: Bass/Mid/Treble | 🆕 ✅ | 120 Hz shelf, 800 Hz peak, 4 kHz shelf, ±12 dB; skipped at 0 dB |  |
-| Preamp page: Mode | ◐ | The type sets both the curve and the treble roll-off; no separate mode | cheap |
+| Preamp page: Mode | 🆕 ✅ | The guide's Mode is High Quality or Economy (CPU): Economy (default) runs the preamp at the engine rate, High Quality 4× oversampled, so its harmonics fold back far less; a change rebuilds the graph (`Recompile`), so only a High Quality cab holds the oversamplers |  |
 | Master low/high cut and slopes | ✅ | 6–24 dB/oct |  |
 | Room page: level, size, shape, LF/HF damping, floor reflections, diffusion | 🆕 ✅ | Room, Room Size, Room Shape, Floor Reflection, Room HF/LF Damping, Room Diffusion, in the DynaCab synthesis (an IR file or pack carries its own room) |  |
-| Room page: mic spacing | ❌ | The room is in each slot's mono IR; stereo room mics need separate left and right room IRs per slot | medium |
-| Align page | ◐ | Per-slot delay and Auto Delay; no visual alignment view | medium (editor) |
+| Room page: mic spacing | 🆕 ✅ | Room Mic Spacing 0–300 cm: each DynaCab slot gets a left and a right IR whose reflections are heard from half the spacing to either side (`CabRoom.MicOffset`); the direct sound stays the close mic's, so the room widens and the close sound stays centred. IR files and packs carry their own room |  |
+| Align page | 🆕 ✅ | Cab panel, Align view: each slot's first 10 ms as mixed, on one axis with its Delay and Auto Delay, its onset marked; drag a slot or nudge it by 0.01/0.1 ms, or Align onsets (`GET /api/v1/live/blocks/{id}/cab/align`) |  |
 | Mix page: Input Mode (L, R, Sum, Stereo), Air, Air Frequency | ✅ |  |  |
 | FullRes long IRs (1.37 s) | ✅ | IR Player up to 680 ms; `cab` up to 170 ms per slot | — |
 
@@ -247,12 +258,13 @@ Types: guide 17 (digital mono/stereo, analog mono/stereo, Japan CE-2, warm stere
 
 ### 6.2 Compressor (pp. 27–29) → `compressor`
 
-Types: guide 16 (Studio FF/FB compressor and sustainer, analog compressor/sustainer, compander, DynaComp, dynamics processor, JFET compressor/sustainer, optical compressor/sustainer, pedal 1/2, tube) → Cathode 🆕 6 (Pedal, Studio, Opto, Sustainer, 🆕 Dynamics, 🆕 Feedback). JFET, tube and the compander are still missing algorithms; most other guide types are presets of these (detector, ratio, times, light type).
+Types: guide 16 (Studio FF/FB compressor and sustainer, analog compressor/sustainer, compander, DynaComp, dynamics processor, JFET compressor/sustainer, optical compressor/sustainer, pedal 1/2, tube) → Cathode 🆕 9 (Pedal, Studio, Opto, Sustainer, Dynamics, Feedback, 🆕 JFET, 🆕 Tube, 🆕 Compander); the other guide types are presets of these (detector, ratio, times, light type).
 
 | Page | Parameter | Cathode | Note | Effort |
 |---|---|---|---|---|
 | Config | Threshold, Ratio, Attack, Release, Knee, Mix | ✅ |  |  |
-| Config | Compression (single-knob types) | ◐ | Ratio covers it | — |
+| Config | Compression (single-knob types) | 🆕 ✅ | Controls: Threshold/Ratio or Compression, one knob that lowers the threshold (−6 to −50 dB) and raises the ratio (1:1 to 20:1) together, on any type |  |
+| Type | JFET, Tube, Compander | 🆕 ✅ | JFET: feedback peak detector, odd harmonics growing with the reduction. Tube: variable-mu, knee ≥ 18 dB, RMS feedback detector, DC-blocked second harmonic. Compander: compression above Threshold, downward expansion (Expander Threshold, Expander Ratio, at most 80 dB) below |  |
 | Config | Dynamics (processor: compress ↔ expand) | 🆕 ✅ | Dynamics type: the slope over the threshold is 1 − Dynamics (−100 % expands 2:1 upwards, +100 % limits), at most +24 dB |  |
 | Config | Ratio ∞ (limiter) | 🆕 ✅ | 1–100:1; 100 is ∞:1 |  |
 | Config | Auto Attack/Release | 🆕 ✅ | Both times scaled by 2 / crest² over 200 ms (Giannoulis et al. 2012), ×0.25–4 |  |
@@ -261,7 +273,7 @@ Types: guide 16 (Studio FF/FB compressor and sustainer, analog compressor/sustai
 | Config | Light Type (optical) | 🆕 ✅ | Classic, Fast LED, Slow Vactrol: the opto's attack and its program-dependent release law |  |
 | Config | Auto Makeup | ✅ | Half the reduction at 0 dBFS |  |
 | Config | Makeup | ✅ | Cathode extra |  |
-| Sidechain | Source (block, row, input) | 🆕 ✅ | Block, Input, Row 1–6 (the last live block on that row left of the compressor; not latency-aligned); the sidechain cuts, emphasis and EQ filter it |  |
+| Sidechain | Source (block, row, input) | 🆕 ✅ | Block, Grid Input, Row 1–6 (the last live block on that row left of the compressor; not latency-aligned), 🆕 Input 1–4, USB 5/6 and 7/8 (the hardware inputs); the sidechain cuts, emphasis and EQ filter it |  |
 | Sidechain | Low Cut, High Cut | ✅ | Detector only |  |
 | Sidechain | Emphasis, Emphasis Frequency; filter type/freq/Q/gain | 🆕 ✅ | Emphasis: a high shelf on the detector up to +12 dB; one sidechain EQ band (low shelf, high shelf, peak) |  |
 | Mix | Input Level (instrument/line) | 🆕 ✅ | Line takes 12 dB off the detector |  |
@@ -421,7 +433,7 @@ Types: Classic Expander, Classic Gate, Modern Expander, Modern Gate → Cathode 
 | Threshold, Ratio, Attack, Hold, Release | ✅ |  |  |
 | Attenuation (gate types) | 🆕 ✅ |  |  |
 | Knee Type (modern expander) | 🆕 ✅ | Hard, Soft (6 dB), Softer (12 dB) on both expander types |  |
-| Sidechain Select (block, row, input) | 🆕 ✅ | As the Compressor's |  |
+| Sidechain Select (block, row, input) | 🆕 ✅ | As the Compressor's, 🆕 hardware inputs included |  |
 | Detector Type (peak, RMS) | 🆕 ✅ |  |  |
 | Sidechain Low Cut, High Cut | 🆕 ✅ |  |  |
 | Level, Balance | 🆕 ✅ |  |  |
@@ -436,7 +448,7 @@ Types: guide 16 (10-band, 10-band 2/3-octave, 8-, 7- and 5-band, each constant o
 | Outermost bands as shelves | 🆕 ✅ | Outer Shelves switch; off by default, and the global output EQ stays on plain peaks |  |
 | Band layouts (10 at 2/3 oct, 8, 7, 5) | 🆕 ✅ | Type; the editor shows each layout's bands under their own names |  |
 | Variable Q | 🆕 ✅ |  |  |
-| Passive types (Mark, 5/4/3-band, console) | 🆕 ◐ | Broad, overlapping proportional-Q bands and end shelves at those networks' centres; neighbours interact through their skirts, but a cut does not move the other bands' corners as a real passive network does | large (component-level networks) |
+| Passive types (Mark, 5/4/3-band, console) | 🆕 ✅ | Component-level networks (`PassiveGraphicEq`): Mark and 5-band, an inductor graphic (op-amp, sliders between its inputs, each wiper into a series L-C-R; the Mark on the Mesa IIC+ parts, 88–4 824 Hz, the input resistors and the inductors' resistance assumed); console, three broad resonators of the same circuit; 3-band, the Marshall stack; 4-band (JMP-1), that stack plus a presence network. Band gains are slider and pot positions, so bands interact and overshoot as the circuits do. The amp's output EQ keeps the approximation |  |
 | Master Q | 🆕 ✅ |  |  |
 | Level, Balance | ✅ / 🆕 |  |  |
 
@@ -472,7 +484,7 @@ One core (`Cathode.Dsp.Looping.Looper`) serves both. The grid block takes the tr
 | Record 2nd Press (overdub, play, stop) | 🆕 ✅ | Default Play, which is what the rig looper always did |  |
 | Speed | 🆕 ✅ | Normal, Half, Double; the Half Speed action halves whichever is set |  |
 | Low Cut, High Cut | 🆕 ✅ | On the loop's playback |  |
-| As a grid block (placed mid-chain, bypass modes) | 🆕 ✅ | `looper`, one per preset. The loop belongs to the preset: a preset change stops it, where the rig looper plays through. Bypassed in Thru or Mute the block stops running, so the loop pauses; the other modes keep it playing (Mute FX In: the loop plays on while nothing new reaches it) |  |
+| As a grid block (placed mid-chain, bypass modes) | 🆕 ✅ | `looper`, one per preset. 🆕 A preset change to another preset with a Looper block hands the loop over, still playing (§9); to one without, it stops, where the rig looper plays through. Bypassed in Thru or Mute the block stops running, so the loop pauses; the other modes keep it playing (Mute FX In: the loop plays on while nothing new reaches it) |  |
 
 Also new: play and stop fade over 2 ms instead of cutting.
 
@@ -556,7 +568,7 @@ Core types: Quad-Tap, Quad Parallel, Quad-Series, Quad Diffusor, Quad Tape, Quad
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
 | Input Select: rows 1–6 | ✅ | Plus "All" |  |
-| Input Select: inputs 1–4, USB 5/6 and 7/8 | ❌ | Needs multi-channel input: the audio shim delivers one stereo pair, so there is nothing to select yet (P4 left it for the shim work) | medium (shim) |
+| Input Select: inputs 1–4, USB 5/6 and 7/8 | 🆕 ✅ | After the rows and All: the hardware input replaces the rows with the same 10 ms fade. The block still needs a cable from the grid input to be in the graph |  |
 | Level, Balance | ✅ / 🆕 |  |  |
 | Gapless switching | ✅ | 10 ms crossfade |  |
 
@@ -601,7 +613,7 @@ Types: 16 (dual/quad detune, dual/quad chromatic and quad chromatic delay, dual/
 | Config | Input Mode (mono, stereo) | 🆕 ✅ | Stereo: voices 1 and 3 shift the left input, 2 and 4 the right (two PSOLA analysis buffers); the single-voice types keep the sides apart. The detector always hears both |  |
 | Config | LFO rate/tempo/depth on detune | 🆕 ✅ | A sine sways each voice's detune by up to ±50 cents, the voices half or a quarter cycle apart |  |
 | Master | Master Level, Pan, Feedback, Pitch, Delay | 🆕 ✅ | Scale every voice's level (dB), pan, feedback, shift (Detune and Chromatic) and delay |  |
-| Detector | Source (block, input 1–4) | 🆕 ✅ | Detector Source: the block input or grid row 1–6. The block takes its inputs by row (`IRowInputBlock`); the chosen row feeds only the tracker. Hardware inputs 1–4 are not grid rows here | — |
+| Detector | Source (block, input 1–4) | 🆕 ✅ | Detector Source: the block input, grid row 1–6 (`IRowInputBlock`; the chosen row feeds only the tracker) or 🆕 a hardware input (Input 1–4, USB 5/6, 7/8) |  |
 | Detector | Pitch tracking (fast, smooth, off) | 🆕 ✅ | Smooth (0.15-semitone hysteresis, the old behaviour), Fast (0.05, shorter hold), Off (free splices, harmony holds) |  |
 | Detector | Tracking (splice length) | 🆕 ✅ | Splice Length 8–40 ms (the shifters' minimum splice) |  |
 | Detector | Temperament (equal, just) | 🆕 ✅ | Just: five-limit ratios on the key for Diatonic and Custom Shifter (`Scales.JustRatio`) |  |
@@ -611,9 +623,9 @@ Types: 16 (dual/quad detune, dual/quad chromatic and quad chromatic delay, dual/
 | Chromatic | Shift 1–4, Level 1–4, Pan 1–4, Delay 1–4 | ✅ |  |  |
 | Chromatic | Delay Tempo 1–4 | 🆕 ✅ | A tempo division replaces the voice's delay (up to 1 s) |  |
 | Diatonic | Key, Scale, Harmony 1–4 | ✅ | Plus key from MIDI or auto |  |
-| Diatonic | Learn | ◐ | Key Source "Auto" | — |
+| Diatonic | Learn | 🆕 ✅ | While on, the key follows the note played; once off, that key stays until Key is moved (the block cannot write its own Key parameter). Key Source Auto remains for a key estimated from a melody |  |
 | Diatonic | Glide Time | 🆕 ✅ | 0–1000 ms, in log frequency |  |
-| Diatonic | Custom scale (notes, tonic) | ◐ | Custom Shifter tables (12 per voice) | — |
+| Diatonic | Custom scale (notes, tonic) | 🆕 ✅ | Scale Custom: Number of Notes 4–8, Note 1–8 as degrees above the tonic (the root always included, repeats dropped), Tonic only names them (the Pitch panel lists the notes in it); Auto and MIDI key sources treat it like any scale |  |
 | Arpeggiator | Run, Steps, Tempo, Stage shifts | 🆕 ✅ | 16 steps |  |
 | Arpeggiator | Repeats, Amplitude/Pan shape and alpha | 🆕 ✅ | Repeats infinite or 1–8 (restarting on each new note, the playing rising through −40 dBFS); amplitude Flat, Decay, Swell, Triangle with alpha as the curve; pan Center, Alternate, Ramp, Random with alpha as the width |  |
 | Whammy | Mode (classic), Start/Stop shift, Control | ✅ | Start, End, Pedal |  |
@@ -642,7 +654,7 @@ Types: Plex Delay, Plex Detune, Plex Shifter, Plex Verb, Shimmer Verb + 39 varia
 | Filter (type, freq, Q, gain), LFO, Mod Frequency | 🆕 ✅ | Mod Frequency is the LFO's swing in octaves |
 | Envelope follower | 🆕 ✅ | `SwellEnvelope` on the input |
 | Detune 1–8, Granule Length, Master Detune | 🆕 ✅ | Granular shifters in the loops (`GrainShifter`) |
-| Shift 1–8, Direction | 🆕 ◐ | Shifts ±24 st; Direction is read as forward or reversed grains |
+| Shift 1–8, Direction | 🆕 ✅ | Shifts ±24 st; Direction plays every granule backwards with the granules in order, as the guide describes, and keeps the shift |
 | Plex Verb Size, Decay; Shimmer Intensity, Crossfade | 🆕 ✅ | Crossfade is the grains' crossfade length |
 | LFO rate/depth/tempo, input diffusion, ducker | 🆕 ✅ |  |
 | Input Gain, Input Select | 🆕 ✅ |  |
@@ -718,7 +730,7 @@ Types: 66+ (halls, chambers, rooms, cathedrals, studios, plates, springs, classi
 | Hi Depth, Low Depth | ✅ | Horn and drum Doppler |  |
 | Hi Level | ✅ | Horn and drum levels |  |
 | Rotor Length | 🆕 ✅ | 50–200 %: the horn's radius, so its Doppler |  |
-| Low Rate Multiplier | ◐ | Separate drum rates | — |
+| Low Rate Multiplier | 🆕 ✅ | 0.25–4× on every drum rate (Slow, Fast, tempo), 1 by default; the drum's own rates stay as well |  |
 | Low/Hi Time Constant | ✅ | Accel and decel for each |  |
 | LF and HF Mic Spacing | 🆕 ✅ | Separate angles for the drum and horn mics |  |
 | Mic Distance | 🆕 ✅ | 100 % is the far field (the old model); closer uses the exact path √(k² + 1 − 2k cos θ) and 1/r level, so the near pass is louder and the sweep lopsided |  |
@@ -805,7 +817,7 @@ Types: Tremolo, Panner, Bias Trem, Harmonic Trem, Optical Trem → all five.
 
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
-| Analysis Source (an input) | 🆕 ✅ | Block Input or grid row 1–6: the block takes its inputs by row (`IRowInputBlock`), the chosen row feeding only the analysis and the others summed as the block input (where an input carrier comes from) | — |
+| Analysis Source (an input) | 🆕 ✅ | Block Input, grid row 1–6 (`IRowInputBlock`: the chosen row feeds only the analysis, the others are the block input) or 🆕 a hardware input (a microphone on Input 2) |  |
 | Analysis Channel | 🆕 ✅ | L+R, Left, Right; with a carrier from one input side, L+R means the other side |  |
 | Number of Bands (up to 24) | 🆕 ✅ | 4, 8, 12, 16, 20 (default) or 24 |  |
 | Min / Max Frequency | 🆕 ✅ | 50–1000 Hz and 1–16 kHz, log-spaced bands between |  |
@@ -845,7 +857,7 @@ Types: FAS Wah, Clyde, Cry Babe, VX846, Color-Tone, Funk Wah, Mortal, VX845, Par
 | Resonance Q | 🆕 ✅ | Filter types scale their Q; 🆕 the circuits scale R7, the resistor that damps the resonator |  |
 | Q Tracking | 🆕 ✅ | Less peak toward the toe; 🆕 on the circuits too, through R7 |  |
 | Low Cut Frequency | ✅ |  |  |
-| Minimum / Maximum Frequency | 🆕 ◐ | 50–200 % of the filter voicing's heel and toe frequencies; the circuits' range is set by their parts (Inductor Bias moves it) | — |
+| Minimum / Maximum Frequency | 🆕 ✅ | 50–200 % of the heel and toe frequencies: the filter voicings' directly, 🆕 the circuits' through their inductor, scaled per pedal position (Min at the heel, Max at the toe, geometrically between) |  |
 | Drive | 🆕 ✅ | Filter types saturate ahead of the filter; circuits get up to 18 dB more input (and as much less output), so their transistors clip |  |
 | Inductor Bias | 🆕 ✅ | DC through the winding lowers the inductance (to 40 % at full bias), raising the sweep by up to 1.6×: L1 on the circuits (`WahCircuit.Trim`), the matching shift on the filter types. The core's saturation curve is not modelled |  |
 | Fat (dry blend up to 50/50) | ✅ | Mix |  |
@@ -865,9 +877,9 @@ Checked against what exists under other names.
 | Ten-Tap Delay | 🆕 `tentap` | **Implemented** with Rhythm Tap (§6.32) | — |
 | Scene MIDI | 🆕 `Scene.Midi` | **Implemented** as per-scene messages (§6.29) | — |
 | Tremolo/Panner | `tremolo` | **Complete** for its five types after this pass | — |
-| Graphic EQ modes | `geq` | 🆕 Ten layouts (all 16 guide types with the Q mode); the passive ones approximated (§6.12) | large (component-level passives) |
+| Graphic EQ modes | `geq` | 🆕 Ten layouts (all 16 guide types with the Q mode); 🆕 the passive ones as component-level networks (§6.12) | — |
 | RTA | 🆕 `rta` block + analyser | **Implemented**: a pass-through block taps the analyser anywhere (§6.24) | — |
-| Input/Output features | Built-ins | 🆕 Noise gate on the Input, row mixer on the Output (§2); one stereo input pair | medium (multi-channel input) |
+| Input/Output features | Built-ins | 🆕 Noise gate on the Input, row mixer on the Output (§2); 🆕 six hardware input sources from a multi-channel interface | — |
 | Send/Return | `fbsend` / `fbreturn` | 🆕 Two pairs | — |
 | Tone Match | `tonematch` | Present | — |
 | — (Cathode only) | `tonestack`, `vibe`, `fxloop` | Cathode extras: a standalone amp tone stack, a separate Uni-Vibe, and an FX loop with latency compensation | — |
@@ -886,13 +898,41 @@ In order of value to a player, then cost. Each item meets the [Definition of don
 6. 🆕 **Done (P2).** **Reverb depth** (medium). Separate early reflections with Early/Late level, the two peaking EQ bands, pre-delay tempo/feedback/mix, modulation controls, a quality setting (line count), and a shimmer pitch section (reuse the splice shifter).
 7. 🆕 ✅ **Type presets** (medium, ongoing). Many guide "types" are parameter presets (17 choruses, 31 flangers, 16 phasers, 23 delays, 66 reverbs, 20 megataps). Offer them as factory block presets in the Block Library rather than as a Type parameter, so they never fight the knobs. Needs a curated preset set per block and the library's import path.
 8. 🆕 **Done (P2).** **Multi-Delay algorithms** (medium each). Quad Parallel (per-line ring mod, band-pass and comb), Quad Series (send/return routing), Quad Diffusor, Quad Tape; per-tap feedback, filters and chorus; Rhythm Tap.
-9. 🆕 **Done (P4)**, except component-level passive networks. **Graphic EQ layouts** (medium). Type with 10 (2/3 oct), 8, 7 and 5 bands using `typeLabels` to rename and hide bands, shelving outer bands, then the passive types (Mark 5-band, 4-band, 3-band, console). Keep the global output EQ on the plain 10-band type.
+9. 🆕 **Done (P4; the component-level passive networks PA).** **Graphic EQ layouts** (medium). Type with 10 (2/3 oct), 8, 7 and 5 bands using `typeLabels` to rename and hide bands, shelving outer bands, then the passive types (Mark 5-band, 4-band, 3-band, console). Keep the global output EQ on the plain 10-band type.
 10. 🆕 ✅ **Compressor and Gate sidechain input** (medium). A sidechain source (row or input) needs a second input into a block: the same `IRowInputBlock` routing can deliver a chosen row into a side buffer.
 11. 🆕 ✅ **Look-ahead compressor** (medium). The compiler reads latency at compile time; a parameter-dependent latency needs a recompile on change or a fixed maximum look-ahead always reported.
 12. 🆕 ✅ **"On engage" behaviour** (medium). LFO Bypass Reset (Flanger, Phaser) and Tremolo Start Phase need the engine to tell a block it was engaged; add an optional `IEngageAware` the compiled graph calls when a bypass fade starts.
 13. 🆕 **Done** (stream P3): Phaser VCR models and Barberpole; Flanger thru-zero; Chorus Dimension.
-14. 🆕 **Done** (stream P3): Pitch completion, including polyphonic Whammy tracking (a peak-locked phase vocoder). Left: formant correction, and Detector Source on the hardware inputs (rows only).
+14. 🆕 **Done** (stream P3): Pitch completion, including polyphonic Whammy tracking (a peak-locked phase vocoder). Detector Source on the hardware inputs 🆕 done (PA). Left: formant correction.
 15. 🆕 **Done (P4)**, except per-circuit extra knobs, op-amp slew per model and new circuits. **Drive EQ pages and expert controls** (medium). The EQ 1 page (low/high cut, bass/mid/high-mid/treble) and EQ 2 (the GEQ bands pre/post) are generic; diode type/count and bias need per-circuit WDF parameters. New circuits continue as in Phase 6 (medium each).
 16. 🆕 **Done (P2).** **Looper as a block** (medium), with its Config-page features (cheap): once, trims, threshold start, overdub level, crossfade, quantise, 300 s.
 17. 🆕 **Done.** Ring Modulator SSB and pitch tracking, Synth third voice and tracking modes, Vocoder band controls (stream P3); IR Player second slot; Cab preamp, air and input mode (P4).
 18. 🆕 **Mostly done (P4)**: boost, saturation, input filter, output EQ with location, output compressor, input dynamics, speaker drive, thump and compression, bias tremolo, Balance; power-tube hardness and the per-model items remain. **Amp gaps** follow [06 §5](06-amp-modelling-spec.md#5-recommended-plan): input boost (reuse Drive circuits), saturation stage, output EQ types and location, output compressor and input dynamics, speaker drive and compression.
+
+---
+
+## 9. Presets, scenes and routing (Fractal's *Presets* page)
+
+Not a block, so not in the Blocks Guide: the preset and scene behaviour around them. Already there before this pass: scene names and levels, four scene controllers, Scene MIDI, channel copy, six bypass modes with a 10 ms fade, Global blocks, the Block Library, setlists and banks, tags and author, gapless preset changes with spillover, preset export, MIDI scene select / next / previous and channel select, Sequencer modifiers.
+
+| Feature | Cathode | Note |
+|---|---|---|
+| Scene Ignore (per channel) | 🆕 ✅ | `PresetBlock.sceneIgnore` lists the channels on which a block ignores scene changes: while its live channel is one of them, selecting a scene leaves its bypass and channel (`LiveState.held`, not stored in any scene). The editor, footswitches and MIDI still change it; a channel without it makes the block follow scenes again. Switch under the channel selector in the block editor |
+| Scene Revert | 🆕 ✅ | Global `sceneRevert`: off keeps changes made while playing with their scene; on, selecting a scene recalls it from the last-saved copy of the preset |
+| Default scene on load | 🆕 ✅ | Global `defaultScene`: −1 As Saved (`Preset.savedScene`, the scene active when saved) or a fixed scene 1–8; a setlist entry's scene still wins |
+| Startup preset | 🆕 ✅ | Global `startupPreset`, loaded when the server starts |
+| Ignore Redundant PC | 🆕 ✅ | Global `ignoreRedundantPc`: a program change for the preset already loaded does nothing (otherwise it reloads it, discarding edits) |
+| Copy / swap scenes | 🆕 ✅ | `POST /live/scenes/copy`, `/live/scenes/swap` (name, block states, level, controllers, Scene MIDI). Swapping moves the active scene with its content, so nothing audible changes |
+| Swap / reset channels, reset block | 🆕 ✅ | `POST /live/blocks/{id}/channels/swap`, `/channels/{ch}/reset`, `/live/blocks/{id}/reset`; Scene Ignore moves with the channel. Scenes keep naming the same letters |
+| Scene Manager | 🆕 ✅ | The editor's Scenes page: blocks × scenes, bypass and channel editable in place (`PUT /live/scenes/{n}/blocks/{id}`), with copy and swap. All of these are undoable |
+| Block level meters | 🆕 ✅ | Each block's output peak in the telemetry (layout v5, by graph slot, mapped to ids by the server), shown along the bottom of each grid tile |
+| Output loudness | 🆕 ✅ | ITU-R BS.1770 (K-weighting, momentary 400 ms and short-term 3 s) on the output, after the global EQ; `loudnessMomentary`, `loudnessShortTerm` in the telemetry |
+| Preset Leveling | 🆕 ✅ | Editor dialog: measures while you play (BS.1770 gating of the momentary readings: −70 LUFS absolute, −10 LU relative) and sets the amp's Level, or the Output's Main Level, to reach −23, −18 or −14 LUFS. Fractal levels by its own meter; Cathode uses LUFS |
+| MIDI Vol Inc / Vol Dec, Level + Save | 🆕 ✅ | Actions `sceneLevelUp` / `sceneLevelDown` (active scene's level ±1 dB, then the preset is saved) and `save` |
+| Scene CC above 63 | 🆕 ✅ | A CC mapped to `scene` without a fixed value: 0–7 select that scene, above 63 steps to the next, wrapping |
+| Modifier scope | 🆕 ✅ | `PresetModifier.channel`: null for every channel of the block, or one channel; on the others the parameter keeps that channel's value. The engine switches the modifier as the channel changes (`setModifier`, no recompile). Editable in the modifier dialog and on the Controllers page |
+| Preset-change spillover on/off | 🆕 ✅ | Global `presetSpillover` (the rig's `spillover`): off, the outgoing preset fades out over the 20 ms swap instead of ringing out |
+| Looper across presets | 🆕 ✅ | A grid loop (recorded, playing or stopped) moves to the next preset's Looper block; without one it stops as before |
+| Confirm before discarding edits | 🆕 ✅ | Global `confirmPresetChange` (on by default): the editor asks before loading another preset over unsaved edits |
+| Preset list as text | 🆕 ✅ | `GET /presets/list.txt` (alphabetical, author, tags and scene names); "Export list…" on the Library page |
+| Recent presets | 🆕 ✅ | A menu in the editor's navbar, per editor (local storage) |

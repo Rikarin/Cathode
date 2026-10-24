@@ -7,8 +7,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     the fixed-mid Fender stack on its plate (no coupling cap) and the 1M volume on the treble wiper, V1B (100k,
 ///     1.5k ‖ 25 µF over the 47 Ω the feedback returns to), 0.022 µF into a cathodyne on half a 12AX7 (56k plate, 56k
 ///     cathode, 1k bias, its 1M grid leak to the bias junction), two 6V6GT in fixed bias with no grid stoppers or screen
-///     resistors, at 420 V on a GZ34, 2.7k feedback from the speaker. Panel: Volume, Treble, Bass. The tremolo
-///     (intensity at 0) is not modelled.
+///     resistors, at 420 V on a GZ34, 2.7k feedback from the speaker. Panel: Volume, Treble, Bass, and the bias
+///     tremolo's Speed and Intensity (<see cref="Tremolo" />).
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -32,6 +32,34 @@ namespace Cathode.Dsp.Amp.Models;
 public static class PrincetonAA964 {
     /// <summary>V1B's gain from its cathode to its plate, which the feedback's tap gain carries.</summary>
     const double CathodeGain = 55;
+
+    /// <summary>
+    ///     The bias tremolo, from the drawing: a 12AX7 half (220k from the 415 V node, 3300 Ω with 25 µF) with
+    ///     0.02 µF from its plate to the Speed rheostat (3M reverse audio, 100k in series), 0.01 µF to a node with 1M to
+    ///     the cathode (the pedal's jack on it), 0.01 µF to the grid with 1M to ground; the plate through 1M (0.02 µF to
+    ///     ground after it) and 0.1 µF to the 250k linear Intensity pot, whose far end is the bias supply (25 µF and 27k),
+    ///     its wiper on the 6V6 grid leaks' return. The plate's load from that network at the rate is about 1.2M.
+    /// </summary>
+    internal static BiasTremoloDesign Tremolo { get; } = new(
+        new(
+            TriodeModel.Ecc83,
+            415,
+            220e3,
+            3.3e3,
+            0.02e-6,
+            0.01e-6,
+            0.01e-6,
+            100e3,
+            1e6,
+            1e6,
+            new(3e6, PotTaper.ReverseAudio),
+            PlateLoad: 1.2e6
+        ),
+        1e6,
+        0.1e-6,
+        new Pot(250e3, PotTaper.Linear),
+        0.02e-6
+    );
 
     public static AmpDesign Design { get; } = new(
         "Princeton AA964",
@@ -72,10 +100,12 @@ public static class PrincetonAA964 {
             new(6.6e3),
             SpeakerDesign.OpenBack1x12,
             new(150, 20e-6, 1e3, 20e-6, 36e3, 20e-6, 3.5e-3, RectifierModel.GZ34)
-        ),
+        ) { BiasTremolo = Tremolo },
         0
     ) {
         Panel = new() {
+            TremoloRate = "Speed",
+            TremoloDepth = "Intensity",
             Gain = "Volume",
             Middle = null,
             Presence = null,

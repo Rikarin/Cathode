@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using Cathode.Contracts;
 using Cathode.Dsp.Blocks;
@@ -35,6 +36,15 @@ public sealed partial class LiveRig(
     int generation;
     string? coalesceKey;
 
+    /// <summary>
+    ///     Scene Ignore: blocks whose live bypass and channel differ from the active scene's, because their channel
+    ///     ignored the last scene change. Concurrent: footswitch LEDs read it without the lock.
+    /// </summary>
+    readonly ConcurrentDictionary<string, SceneBlockState> held = new(StringComparer.Ordinal);
+
+    /// <summary>The working copy as last loaded or saved, for Scene Revert.</summary>
+    string savedJson = JsonSerializer.Serialize(Preset.CreateDefault(), ContractsJsonContext.Default.Preset);
+
     /// <summary>Controller settings a preset may store; the rest of the rig bank is scene, global or live state.</summary>
     static readonly HashSet<string> ControllerParams = [
         ..RigControls.Descriptor.Params.Select(static p => p.Id)
@@ -52,7 +62,11 @@ public sealed partial class LiveRig(
     public void Dispose() => gate.Dispose();
 
     /// <summary>Whether a block is bypassed in the active scene (unlocked read for LED feedback).</summary>
-    public bool IsBypassed(string block) => preset.Scenes[ActiveScene].StateOf(block).Bypassed;
+    public bool IsBypassed(string block) => Live(block).Bypassed;
+
+    /// <summary>What a block is running now: its held state (Scene Ignore) or the active scene's.</summary>
+    public SceneBlockState Live(string block) =>
+        held.TryGetValue(block, out var state) ? state : Volatile.Read(ref preset).Scenes[ActiveScene].StateOf(block);
 
     public Task<LiveState> StateAsync() => Locked(() => Task.FromResult(State()));
 
@@ -67,13 +81,17 @@ public sealed partial class LiveRig(
     public Task<LiveState> NewAsync() =>
         Locked(async () => {
                 await ReplaceAsync(Preset.CreateDefault());
+                Remember();
                 // A fresh preset has nothing to lose: it is not an unsaved change.
                 return Changed("presetLoaded", markDirty: false);
             }
         );
 
-    /// <summary>Loads a preset from the library and starts on <paramref name="scene" /> (a setlist entry's scene).</summary>
-    public Task<LiveState> LoadAsync(string id, int scene = 0) =>
+    /// <summary>
+    ///     Loads a preset from the library and starts on <paramref name="scene" /> (a setlist entry's scene), or by
+    ///     default on the global Default Scene: the scene it was saved on, or a fixed one.
+    /// </summary>
+    public Task<LiveState> LoadAsync(string id, int? scene = null) =>
         Locked(async () => {
                 var loaded = presets.Get(id) ?? throw RigException.NotFound($"No preset '{id}'.");
                 if (loaded.SchemaVersion > Preset.CurrentSchemaVersion) {
@@ -82,11 +100,15 @@ public sealed partial class LiveRig(
                     );
                 }
 
-                CheckScene(scene);
+                var start = scene ?? (globals.Get().DefaultScene is var fixedScene and >= 0 and < Preset.SceneCount
+                    ? fixedScene
+                    : Math.Clamp(loaded.SavedScene, 0, Preset.SceneCount - 1));
+                CheckScene(start);
                 ApplyGlobals(loaded);
-                await ReplaceAsync(loaded, scene);
+                await ReplaceAsync(loaded, start);
+                Remember();
                 // Just loaded, so it matches what is saved.
-                return Changed("presetLoaded", scene: scene, markDirty: false);
+                return Changed("presetLoaded", scene: start, markDirty: false);
             }
         );
 
@@ -101,9 +123,7 @@ public sealed partial class LiveRig(
                     preset.Name = request.Name.Trim();
                 }
 
-                presets.Save(preset);
-                dirty = false;
-                return Task.FromResult(Changed("presetSaved", markDirty: false));
+                return Task.FromResult(SaveWorkingCopy());
             }
         );
 
@@ -192,6 +212,8 @@ public sealed partial class LiveRig(
                         foreach (var scene in p.Scenes) {
                             scene.Blocks.Remove(id);
                         }
+
+                        held.TryRemove(id, out _);
 
                         // A block in a signal path leaves a shunt that keeps its cables, so the path stays whole: the
                         // reverse of dropping a block onto a shunt. A shunt, or a block at the end of a branch, just goes.
@@ -310,7 +332,7 @@ public sealed partial class LiveRig(
                 var block = Find(id);
                 var descriptor = catalog.Descriptor(block.Type)
                     ?? throw new RigException(400, $"'{id}' has no parameters.");
-                var state = preset.Scenes[activeScene].StateOf(id);
+                var state = Live(id);
                 var target = channel ?? state.Channel;
                 CheckChannel(target, descriptor.Channels);
 
@@ -386,8 +408,10 @@ public sealed partial class LiveRig(
                 }
 
                 PushUndo(null);
-                var scene = preset.Scenes[activeScene];
-                scene.Blocks[id] = scene.StateOf(id) with { Bypassed = bypassed };
+                // A change made while playing stays with the scene (unless Scene Revert); a held block takes it too.
+                var live = Live(id) with { Bypassed = bypassed };
+                preset.Scenes[activeScene].Blocks[id] = live;
+                held.TryRemove(id, out _);
                 engine.SetBypass(generation, id, bypassed);
                 return Task.FromResult(Changed("bypassChanged", id));
             }
@@ -402,54 +426,105 @@ public sealed partial class LiveRig(
                 CheckChannel(channel, descriptor.Channels);
 
                 PushUndo(null);
-                var scene = preset.Scenes[activeScene];
-                var before = scene.StateOf(id).Channel;
-                scene.Blocks[id] = scene.StateOf(id) with { Channel = channel };
-                if (NeedsRecompile(block, before, channel)) {
-                    await SyncGraphAsync();
-                } else {
-                    engine.SetParams(generation, ChannelValues(block, channel));
-                }
-
+                var before = LiveStates();
+                preset.Scenes[activeScene].Blocks[id] = Live(id) with { Channel = channel };
+                held.TryRemove(id, out _);
+                await ApplyLiveAsync(before);
                 return Changed("channelChanged", id, channel);
             }
         );
 
-    /// <summary>Switches scene: only the blocks whose bypass or channel differ are touched; nothing recompiles.</summary>
+    /// <summary>
+    ///     Switches scene: only the blocks whose bypass or channel differ are touched; nothing recompiles. With Scene
+    ///     Revert on, the scene is first put back as it was last saved. A block whose live channel has Scene Ignore on
+    ///     keeps its bypass and channel.
+    /// </summary>
     public Task<LiveState> SelectSceneAsync(int scene) =>
         Locked(async () => {
                 CheckScene(scene);
-                var from = preset.Scenes[activeScene];
-                var to = preset.Scenes[scene];
-                var blocks = preset.Blocks.Where(b => catalog.Descriptor(b.Type) is not null).ToList();
-                if (blocks.Any(b => NeedsRecompile(b, from.StateOf(b.Id).Channel, to.StateOf(b.Id).Channel))) {
-                    // A channel with another look-ahead: rebuild the graph for the new scene (a gapless swap).
-                    activeScene = scene;
-                    await SyncGraphAsync();
-                    revision++;
-                    Publish(new("sceneChanged", revision, Scene: scene));
-                    return State();
+                var before = LiveStates();
+                if (globals.Get().SceneRevert) {
+                    var saved = JsonSerializer.Deserialize(savedJson, ContractsJsonContext.Default.Preset)!;
+                    if (saved.Id == preset.Id && saved.Scenes.Count == Preset.SceneCount) {
+                        preset.Scenes[scene] = saved.Scenes[scene];
+                    }
                 }
 
-                foreach (var block in blocks) {
-                    var before = from.StateOf(block.Id);
-                    var after = to.StateOf(block.Id);
-                    if (before.Channel != after.Channel) {
-                        engine.SetParams(generation, ChannelValues(block, after.Channel));
-                    }
-
-                    if (before.Bypassed != after.Bypassed && !BuiltInTypes.IsBuiltIn(block.Type)) {
-                        engine.SetBypass(generation, block.Id, after.Bypassed);
+                var to = preset.Scenes[scene];
+                foreach (var block in preset.Blocks) {
+                    var live = before.GetValueOrDefault(block.Id) ?? SceneBlockState.Default;
+                    if (block.IgnoresScenes(live.Channel) && live != to.StateOf(block.Id)) {
+                        held[block.Id] = live;
+                    } else {
+                        held.TryRemove(block.Id, out _);
                     }
                 }
 
                 activeScene = scene;
+                await ApplyLiveAsync(before);
                 engine.SetParams(generation, SceneValues());
                 revision++;
                 Publish(new("sceneChanged", revision, Scene: scene));
                 return State();
             }
         );
+
+    /// <summary>Every block's live state (<see cref="Live" />), by id.</summary>
+    Dictionary<string, SceneBlockState> LiveStates() =>
+        preset.Blocks.ToDictionary(static b => b.Id, b => Live(b.Id), StringComparer.Ordinal);
+
+    /// <summary>
+    ///     Moves the engine from the live states <paramref name="before" /> to the current ones: the channel values and
+    ///     scoped modifiers of every block whose channel changed and the bypass of every one whose bypass did, or a
+    ///     gapless rebuild when a channel differs in a parameter only a recompile applies (look-ahead).
+    /// </summary>
+    async Task ApplyLiveAsync(IReadOnlyDictionary<string, SceneBlockState> before) {
+        var changes = preset.Blocks.Where(b => catalog.Descriptor(b.Type) is not null)
+            .Select(b => (Block: b, From: before.GetValueOrDefault(b.Id) ?? SceneBlockState.Default, To: Live(b.Id)))
+            .Where(static c => c.From != c.To)
+            .ToList();
+        if (changes.Any(c => NeedsRecompile(c.Block, c.From.Channel, c.To.Channel))) {
+            await SyncGraphAsync();
+            return;
+        }
+
+        foreach (var (block, from, to) in changes) {
+            if (from.Channel != to.Channel) {
+                SyncModifiers(block, to.Channel);
+                engine.SetParams(generation, ChannelValues(block, to.Channel));
+            }
+
+            if (from.Bypassed != to.Bypassed && !BuiltInTypes.IsBuiltIn(block.Type)) {
+                engine.SetBypass(generation, block.Id, to.Bypassed);
+            }
+        }
+    }
+
+    /// <summary>Turns the block's channel-scoped modifiers on for <paramref name="channel" /> and off for the rest.</summary>
+    void SyncModifiers(PresetBlock block, string channel) {
+        var descriptor = catalog.Descriptor(block.Type);
+        foreach (var modifier in preset.Modifiers.Where(m => m.Block == block.Id && m.Channel is not null)) {
+            var index = descriptor?.IndexOf(modifier.Param) ?? -1;
+            var value = index < 0
+                ? 0f
+                : block.Channels.GetValueOrDefault(channel)
+                    ?.GetValueOrDefault(modifier.Param, descriptor!.Params[index].Default)
+                ?? descriptor!.Params[index].Default;
+            engine.SetModifier(generation, block.Id, modifier.Param, modifier.Channel == channel, value);
+        }
+    }
+
+    /// <summary>Stores the working copy in the library, remembering the scene it is on and the copy for Scene Revert.</summary>
+    LiveState SaveWorkingCopy() {
+        preset.SavedScene = activeScene;
+        presets.Save(preset);
+        Remember();
+        dirty = false;
+        return Changed("presetSaved", markDirty: false);
+    }
+
+    /// <summary>Takes the working copy as the saved state Scene Revert recalls.</summary>
+    void Remember() => savedJson = JsonSerializer.Serialize(preset, ContractsJsonContext.Default.Preset);
 
     public Task<LiveState> UpdateSceneAsync(int scene, SceneUpdateRequest request, long? expected) =>
         Locked(() => {
@@ -491,7 +566,8 @@ public sealed partial class LiveRig(
             new(IpcBlocks.Rig, "metronome", global.Metronome ? 1 : 0),
             new(IpcBlocks.Rig, "metroLevel", global.MetronomeLevel),
             new(IpcBlocks.Rig, "effectsMix", global.EffectsMix),
-            new(IpcBlocks.Rig, "gateOffset", global.NoiseGateOffset)
+            new(IpcBlocks.Rig, "gateOffset", global.NoiseGateOffset),
+            new(IpcBlocks.Rig, "spillover", global.PresetSpillover ? 1 : 0)
         };
         if (global.TempoMode == "global") {
             values.Add(new(IpcBlocks.Rig, "tempo", (float)global.Tempo));
@@ -565,6 +641,7 @@ public sealed partial class LiveRig(
         var before = Capture();
         preset = next;
         activeScene = scene;
+        held.Clear();
         try {
             await SyncGraphAsync();
         } catch (Exception e) when (e is IpcException or RigException) {
@@ -596,7 +673,7 @@ public sealed partial class LiveRig(
 
     async Task SyncGraphAsync() {
         generation++;
-        await engine.LoadGraphAsync(PresetGraph.Build(preset, activeScene, assets), generation);
+        await engine.LoadGraphAsync(PresetGraph.Build(preset, activeScene, assets, held), generation);
         engine.SetParams(generation, [..RigValues(), ..GlobalValues(globals.Get())]);
     }
 
@@ -665,6 +742,9 @@ public sealed partial class LiveRig(
     void Restore(Snapshot snapshot) {
         preset = JsonSerializer.Deserialize(snapshot.Json, ContractsJsonContext.Default.Preset)!;
         activeScene = snapshot.ActiveScene;
+        foreach (var id in held.Keys.Where(id => preset.Blocks.All(b => b.Id != id))) {
+            held.TryRemove(id, out _);
+        }
     }
 
     LiveState Changed(
@@ -685,7 +765,15 @@ public sealed partial class LiveRig(
             JsonSerializer.Serialize(preset, ContractsJsonContext.Default.Preset),
             ContractsJsonContext.Default.Preset
         )!;
-        return new(copy, activeScene, revision, dirty, undo.Count > 0, redo.Count > 0);
+        return new(
+            copy,
+            activeScene,
+            revision,
+            dirty,
+            undo.Count > 0,
+            redo.Count > 0,
+            held.IsEmpty ? null : new(held, StringComparer.Ordinal)
+        );
     }
 
     PresetBlock Find(string id) =>

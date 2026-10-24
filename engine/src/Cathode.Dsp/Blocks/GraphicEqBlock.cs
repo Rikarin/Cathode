@@ -9,7 +9,9 @@ namespace Cathode.Dsp.Blocks;
 ///     passive-style layouts (Mark, 5-, 4- and 3-band, console). The band parameters keep their ids on every layout and
 ///     are renamed and hidden per type (<see cref="ParamDescriptor.TypeLabels" />). Bands are peaks one octave wide
 ///     (Q = sqrt 2) times Master Q, or the layout's own width; Outer Shelves turns the outermost two into shelves. In
-///     Variable Q mode a band narrows as it is pushed harder, as on an analogue graphic.
+///     Variable Q mode a band narrows as it is pushed harder, as on an analogue graphic. The passive types run their
+///     component-level networks (<see cref="PassiveGraphicEq" />): the band gains are slider and pot positions there,
+///     and Master Q, Q Mode and Outer Shelves do not apply.
 /// </summary>
 public sealed class GraphicEqBlock : DspBlock {
     public const int Bands = 10;
@@ -23,7 +25,7 @@ public sealed class GraphicEqBlock : DspBlock {
 
     public static readonly float[] Centers = GraphicEqualizer.Layouts[0].Centers;
 
-    readonly GraphicEqualizer equalizer = new();
+    readonly GraphicEqualizer equalizer = new(networks: true);
     readonly float[] gains = new float[Bands];
     readonly bool[] moving = new bool[Bands];
     OutputStage output;
@@ -50,6 +52,8 @@ public sealed class GraphicEqBlock : DspBlock {
 
     public GraphicEqBlock()
         : base(Info) { }
+
+    protected override void OnPrepare(in ProcessSpec spec) => equalizer.Prepare(spec.SampleRate);
 
     protected override void OnReset() {
         equalizer.Reset();

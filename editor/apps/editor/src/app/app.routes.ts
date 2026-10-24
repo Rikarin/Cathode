@@ -18,6 +18,11 @@ export const appRoutes: Route[] = [
     title: 'Setup · Cathode'
   },
   {
+    path: 'scenes',
+    loadComponent: () => import('./pages/scene-manager').then(m => m.SceneManagerPage),
+    title: 'Scenes · Cathode'
+  },
+  {
     path: 'controllers',
     loadComponent: () => import('./pages/controllers-page').then(m => m.ControllersPage),
     title: 'Controllers · Cathode'

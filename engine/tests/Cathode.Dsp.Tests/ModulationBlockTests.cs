@@ -8,7 +8,8 @@ public class ModulationBlockTests {
 
     [Fact]
     public void Static_flanger_is_a_comb_with_notches_at_odd_multiples_of_half_the_inverse_delay() {
-        // 1 ms delay, no sweep, no feedback, 50 % mix: H = (1 + z^-48) / 2, notches at 500, 1500, 2500 Hz.
+        // 1 ms delay, no sweep, no feedback, 50 % mix under the constant-power law: H = (1 + z^-48) / sqrt 2, notches
+        // at 500, 1500, 2500 Hz and peaks of +3 dB.
         using var flanger = Create<FlangerBlock>(
             (FlangerBlock.Depth, 0f),
             (FlangerBlock.Delay, 1f),
@@ -22,7 +23,7 @@ public class ModulationBlockTests {
             Assert.True(Analysis.ToDb(Analysis.MagnitudeAt(response, notch, Rate)) < -40, $"no notch at {notch} Hz");
         }
 
-        Assert.Equal(0, Analysis.ToDb(Analysis.MagnitudeAt(response, 1_000, Rate)), 0.05); // peaks in between
+        Assert.Equal(3.01, Analysis.ToDb(Analysis.MagnitudeAt(response, 1_000, Rate)), 0.05); // peaks in between
     }
 
     [Fact]

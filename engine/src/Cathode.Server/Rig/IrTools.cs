@@ -68,6 +68,50 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
         return await rig.SetAssetAsync(blockId, "match", new(asset.Ref), null);
     }
 
+    /// <summary>
+    ///     The Cab block's Align page: a copy of the block on its active channel, built here on the Server (the slots'
+    ///     synthesis is the engine's own code), reports each slot's IR head and onset.
+    /// </summary>
+    public async Task<CabAlignment> CabAlignmentAsync(string blockId) {
+        var state = await rig.StateAsync();
+        var block = state.Preset.Blocks.FirstOrDefault(b => b.Id == blockId)
+            ?? throw RigException.NotFound($"No block '{blockId}'.");
+        if (block.Type != CabBlock.Info.TypeId) {
+            throw new RigException(400, $"'{blockId}' is not a Cab block.");
+        }
+
+        const double rate = 48_000;
+        var channel = state.Preset.Scenes[state.ActiveScene].StateOf(block.Id).Channel;
+        using var cab = new CabBlock();
+        foreach (var (param, value) in block.Channels.GetValueOrDefault(channel) ?? []) {
+            var index = CabBlock.Info.IndexOf(param);
+            if (index >= 0) {
+                cab.Params.SetTarget(index, value);
+            }
+        }
+
+        foreach (var (slot, reference) in block.Assets) {
+            if (assets.PathOf(reference) is { } path) {
+                cab.LoadAsset(slot, path);
+            }
+        }
+
+        cab.Prepare(new(rate, 64));
+        var slots = cab.Alignment()
+            .Select(static s => new CabSlotAlignmentInfo(
+                    s.Slot,
+                    s.Plays,
+                    s.Audible,
+                    s.OnsetMs,
+                    s.AutoDelayMs,
+                    s.DelayMs,
+                    s.Head
+                )
+            )
+            .ToArray();
+        return new(rate, slots);
+    }
+
     /// <summary>Blends IRs into a new IR asset.</summary>
     public async Task<AssetInfo> MixAsync(IrMixRequest request, CancellationToken cancellationToken) {
         if (request.Sources.Count is < 1 or > 8) {

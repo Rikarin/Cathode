@@ -21,6 +21,8 @@ public sealed record ChannelSwitchStageDesign(
     IReadOnlyList<AmpStageDesign> Off,
     IReadOnlyList<AmpStageDesign> On
 ) : AmpStageDesign(Name) {
+    public override bool HasTremolo => Off.Any(static s => s.HasTremolo) || On.Any(static s => s.HasTremolo);
+
     public override AmpStage Create(double sampleRate) => new ChannelSwitchStage(this, sampleRate);
 }
 

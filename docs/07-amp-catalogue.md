@@ -63,10 +63,10 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | Splawn Quickrod | ⏸ Waiting (no schematic: the schems.com link is dead, an elektrotanya file is said to be the 4 × 12AX7 version; Splawn reportedly has none) | — | — | Schematic | 4x12 closed, Vintage 30 |
 | Suhr Badger / SL68 | ⏸ Waiting (an unofficial Badger 18 drawing on MEF is called inaccurate there: the real amp has a dual-ganged gain pot and a plate-driven loop; nothing for the SL68) | — | — | Schematic | 2x12 / 4x12 |
 | Marshall JMP 2204 / 2203 (1970s) | ✅ Covered by JCM800 2203 / 2204 (Marshall's 1978 drawing 78331-1, master-volume column, lists the JCM800 preamp's values) | JCM800 2203, JCM800 2204 | — | US (Unicord, 6550) versions | 4x12 closed |
-| Marshall 18 W (1974X) | ✅ Done (PedalMonkey rev 5 drawing with voltages; tremolo off) | 18 W 1974X | — | Both channels, volume sweep | 2x10 / 1x12 open |
+| Marshall 18 W (1974X) | ✅ Done (PedalMonkey rev 5 drawing with voltages; the tremolo: V3B oscillating in the channel's netlist, Speed and Depth) | 18 W 1974X | — | Both channels, volume sweep | 2x10 / 1x12 open |
 | Marshall Major 1967 | ✅ Done (Unicord drawing 70-02-12, July 1970, DrTube `1967u.gif`; both channels, V2A and its tone stack inside the feedback loop via `LoopStageDesign`, cathodyne plus ECC82 push-pull driver via `CathodyneDriverDesign`, ultralinear KT88s; B+, idle, OT and UL tap guessed. No redistributable capture found: GuitarML ToneLibrary and pelennor2170/NAM_models have none) | Major 1967 | — | Any capture | 4x12 closed |
 | Marshall DSL / JCM2000 | 📋 Planned (DrTube DSL100 main board JCM2-60-02 iss 9 (2003, vector; marked "for parts list purposes only", the wiring is on JCM2-68-02, not found) and the front-panel board JCM2-61-00 iss 5 (2001, vector) with the gain networks, stacks and channel relays fetched and read in part (V1B 220k, 1k8 ‖ 4.7 µF, 100 pF; V1A 100k, 10k with 1 µF switched by the front panel; an NSL-32 LDR mute); the two boards' connectors still to be traced; also JCM2-62-02 and -63-02 on DrTube, TSL100 TL10-60-02 vector on el34world) | — | GPL: pelennor "Tim R JCM2000 Clean / Crunch / L2 G6 / L2 G8" (DSL or TSL not stated; not added) | | 4x12 closed |
-| Marshall Bluesbreaker 1962 | ✅ Done (reissue drawing "1962 STD" issues 3 and 4, DrTube `1962ri89.gif` and `1962ri93.gif`: both channels and the jumper; the tremolo channel with the tremolo off, its load modelled) | Bluesbreaker 1962 | — | Any capture (no GPL one found) | 2x12 open |
+| Marshall Bluesbreaker 1962 | ✅ Done (reissue drawing "1962 STD" issues 3 and 4, DrTube `1962ri89.gif` and `1962ri93.gif`: both channels and the jumper; the tremolo channel with the tremolo at rest, its load modelled; the tremolo itself (a J174 FET on the Intensity wiper, its gate drive set by the RV2 preset, whose setting the drawing does not give) is not built) | Bluesbreaker 1962 | — | Any capture (no GPL one found) | 2x12 open |
 | Hiwatt Custom 50 / DR504 | ✅ Done (the DR103's four-input preamp redraw with hiwatt.org's 50 W output and supply redraws; `DR504OL.gif` is a complete 1983 two-input DR504 with voltages, a later circuit with an extra gain stage, used only for the rails) | Hiwatt DR504 | — | Normal/Brilliant, jumpered | 4x12 closed, Fane |
 
 ## Vox, class A and boutique
@@ -75,7 +75,7 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 |---|---|---|---|---|---|
 | AC30 Top Boost | ✅ Done (JMI OS/010, OS/065 values) | AC30 | T3K: AC30S1 gain sweep | AC30 TB / C2 / HW direct out | 2x12 open, Celestion Blue / Alnico |
 | AC30 Normal channel | ✅ Done | AC30, Switch 1 "Normal Ch" | — | | 2x12 open, Blue |
-| AC15 (EF86) | ✅ Done (mixing and cut assumed) | AC15 | GPL: AC15 Top Boost; T3K: AC15C1 Normal (6 settings) and Top Boost | Vintage EF86 channel captures | 1x12 open, Blue / G12M |
+| AC15 (EF86) | ✅ Done (mixing and cut assumed; no vibrato-tremolo: no AC15 drawing could be read) | AC15 | GPL: AC15 Top Boost; T3K: AC15C1 Normal (6 settings) and Top Boost | Vintage EF86 channel captures | 1x12 open, Blue / G12M |
 | Matchless DC-30 | ✅ Done | DC-30 | GPL: Matchless SC30 channel 1 | DC-30 both channels | 2x12 open, G12H30 / Vintage 30 |
 | Dumble Overdrive Special | ✅ Done (a 1997 ODS 100, traced: clean and overdrive) | ODS 97 | GPL: Dumble kit low/high, Dumble clone clean/medium/high (all mapped, knobs fitted) | Real ODS captures with settings; the 1970s ODS (Rock/Jazz, Deep) and HRM circuits | 1x12 / 2x12 open, EV12L |
 | Two-Rock (Dumble-style) | ⏸ Waiting (no schematic published; the ODS work does not carry over without one) | — | (Dumble captures above) | Schematic or trace | 1x12 / 2x12 open |
@@ -258,7 +258,7 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 |---|---|---|---|---|---|
 | Marshall 1959SLP reissue | ✅ Done (factory drawing 1959-01-60-02 issue 2, DrTube) | 1959SLP | 1959SLP Jump / Normal / Treble | | 4x12 closed, Greenback |
 | Marshall 1987X reissue | ✅ Done (factory drawing 1987-01-60-02 iss 4, as drawn with the 33k slope; the "tone-stack mod" is not documented anywhere found) | 1987X | 1987X Jump / Normal / Treble | | 4x12 closed |
-| Marshall JMP 1959T Super Lead (Tremolo) | ✅ Done (Unicord drawing 70-11-11, July 1970, DrTube `1959tu.gif`; the tremolo off, its load on the normal volume modelled) | 1959T Tremolo | Brit Super | | 4x12 closed |
+| Marshall JMP 1959T Super Lead (Tremolo) | ✅ Done (Unicord drawing 70-11-11, July 1970, DrTube `1959tu.gif`; the tremolo at rest, its load on the normal volume modelled; the tremolo itself is not built: the switching transistor's type and its base network are illegible on the scan) | 1959T Tremolo | Brit Super | | 4x12 closed |
 | Marshall JMP-1 preamp | 📋 Planned (DrTube `jmp1-61-04.pdf`, 6 sheets, vector, iss 10 2001/02: channel, power supply, active tone ("AT"), output, digital and front-panel sheets. The gain and volume pots are TC9176 digital potentiometers and the tone controls an active circuit on their own sheet; not read for time) | — | Brit Pre, JMPRE-1 OD1 / OD2 (+ bass) | | 4x12 closed |
 | Marshall AFD100 (Slash) | ⏸ Waiting (no public schematic; only the manual) | — | Brit AFS100 1 / 2 | | 4x12 closed |
 | Marshall JVM410HJS (Satriani) | 📋 Planned (DrTube jvm410hjs-60-02 iss 2, -61-02 iss 1, -62-02 iss 1, vector, fetched: a different main board from the JVM410H's (an input buffer and a THAT4301 noise gate in the path, V101–V104), and front-panel gain networks and stacks with other values (OD gain: 3.3 nF, 470k ‖ 2.2 nF, 470 pF + 470k bright; stacks 220 pF ‖ 470 pF with 47k to the treble pot, 47 nF + 47 nF middle with 1M, mid-shift relays): needs its own read, not a variant of the JVM410H type) | — | JS410 Crunch / Lead | | 4x12 closed, Vintage 30 |
@@ -291,7 +291,7 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 | Swart Atomic Space Tone | ⏸ Waiting (searched 2026-10: no schematic) | — | Nuclear-Tone | Schematic | 1x12 open |
 | Paul Ruby Rocket | ⏸ Waiting (searched 2026-10: no schematic) | — | Ruby Rocket, Ruby Rocket Bright | Schematic | 1x12 open |
 | Carol-Ann OD-2 / Triptik / Tucana 3 | ⏸ Waiting (searched 2026-10: no schematic) | — | Carol-Ann OD-2, Triptik, Tucana | Schematic | 2x12 / 4x12 |
-| Gibson Scout | ✅ Done (GA-17RVT drawing with voltages, schematicheaven `gibsonamps/ga17rvt.pdf`; new 6EU7 and 6AQ5 tables fitted to the RCA and GE datasheets; reverb and tremolo off) | Scout GA-17RVT | Gibtone Scout | Captures | 1x10 / 1x12 open |
+| Gibson Scout | ✅ Done (GA-17RVT drawing with voltages, schematicheaven `gibsonamps/ga17rvt.pdf`; new 6EU7 and 6AQ5 tables fitted to the RCA and GE datasheets; the bias tremolo with Speed and Depth; reverb off) | Scout GA-17RVT | Gibtone Scout | Captures | 1x10 / 1x12 open |
 
 ### High gain
 
@@ -331,8 +331,8 @@ models. Against the catalogue above it adds these real amps:
 
 | Amp | Family | Status | Cathode type | Axe models | Typical cab |
 |---|---|---|---|---|---|
-| Fender Deluxe 6G3 (brownface) | Fender | ✅ Done (factory drawing `deluxe_6g3_schem.pdf`: Normal and Bright channels, Tone, the split-load second stage; the bias tremolo is not modelled) | Deluxe 6G3 | Deluxe 6G3 | 1x12 open |
-| Fender Vibrolux 6G11 (brownface, 1962/63) | Fender | ✅ Done (factory drawing `vibrolux_6g11_schem.pdf`: Normal and Bright channels; the drawing has a bias tremolo, not the harmonic vibrato, and it is not modelled; OT assumed) | Vibrolux 6G11 | Vibrato Lux 6G11 | 2x10 open |
+| Fender Deluxe 6G3 (brownface) | Fender | ✅ Done (factory drawing `deluxe_6g3_schem.pdf`: Normal and Bright channels, Tone, the split-load second stage; the bias tremolo with Speed and Intensity) | Deluxe 6G3 | Deluxe 6G3 | 1x12 open |
+| Fender Vibrolux 6G11 (brownface, 1962/63) | Fender | ✅ Done (factory drawing `vibrolux_6g11_schem.pdf`: Normal and Bright channels; the drawing has a bias tremolo, not the harmonic vibrato: built, with Speed and Intensity; OT assumed) | Vibrolux 6G11 | Vibrato Lux 6G11 | 2x10 open |
 | Supro 1695T Black Magick | US vintage | ⏸ Waiting (a 2016 reissue-era design by Absara; no schematic published: only specifications, 2 × 6973 cathode-biased, 25 W) | — | Supremo Black Magick | 1x12 open |
 | Supro 1964T | US vintage | ⏸ Waiting (no schematic for a "1964T" found; the 2014 reissues' S6420 / S6424 schematics may be related) | — | Supremo 1964T | 1x12 open |
 | Marshall SV20H (Studio Vintage, 20 W Plexi) | Marshall | 💤 Not planned (not searched yet) | — | Plexi Studio 20 | 2x12 / 4x12 closed |

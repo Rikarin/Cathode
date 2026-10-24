@@ -1,13 +1,17 @@
 using Cathode.Dsp.Parameters;
+using Cathode.Dsp.Routing;
 
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
 ///     Picks one of the rows cabled into it (or all of them), with a 10 ms crossfade, so a scene or a footswitch can
 ///     switch between parallel paths: two amps, a clean and a dirty chain. The graph compiler routes each input through
-///     <see cref="MixInput" /> instead of summing it; <see cref="DspBlock.Process" /> then applies the level.
+///     <see cref="MixInput" /> instead of summing it; <see cref="DspBlock.Process" /> then applies the level. The choice
+///     can also be one of the interface's inputs (<see cref="HardwareInputs" />: Input 1–4, USB 5/6 and 7/8), heard
+///     instead of the rows, so a second instrument or a DAW return can be switched in; the block still needs a cable from
+///     the grid input to be part of the graph.
 /// </summary>
-public sealed class MultiplexerBlock() : DspBlock(Info), IRowInputBlock {
+public sealed class MultiplexerBlock() : DspBlock(Info), IRowInputBlock, IHardwareInputBlock {
     public const int Input = 0;
     public const int Level = 1;
     public const int Balance = 2;
@@ -15,11 +19,16 @@ public sealed class MultiplexerBlock() : DspBlock(Info), IRowInputBlock {
     /// <summary>Rows the input choice can name; inputs from other rows are only heard with "All".</summary>
     public const int Rows = 6;
 
+    /// <summary>The first hardware input choice (Input 1); the others follow in <see cref="HardwareInputs" /> order.</summary>
+    public const int FirstInput = Rows + 1;
+
     const int All = Rows;
     const double FadeMs = 10;
 
     readonly float[] gains = new float[Rows + 1];
+    readonly float[] inputGains = new float[HardwareInputs.Count];
     float fadeStep = 1f;
+    NativeBuffer scratch = NativeBuffer.Empty; // a hardware input fading: left, then right
     OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
@@ -27,12 +36,18 @@ public sealed class MultiplexerBlock() : DspBlock(Info), IRowInputBlock {
         "Multiplexer",
         "Routing",
         [
-            ParamDescriptor.Choice("input", "Input", ["Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", "All"]),
+            ParamDescriptor.Choice(
+                "input",
+                "Input",
+                ["Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", "All", ..HardwareInputs.Names]
+            ),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 4
     );
+
+    public InputPort? Inputs { get; set; }
 
     /// <summary>
     ///     Audio thread, once per sub-block for each cabled input, before <see cref="DspBlock.Process" />: adds
@@ -62,14 +77,43 @@ public sealed class MultiplexerBlock() : DspBlock(Info), IRowInputBlock {
         gains[slot] = gain;
     }
 
+    /// <summary>Adds hardware source <paramref name="source" /> with a gain ramp from <paramref name="from" /> to <paramref name="to" />.</summary>
+    void AddRamped(InputPort port, int source, in StereoBuffer io, float from, float to) {
+        if (from == to) {
+            port.Add(source, io.Left, io.Right, from);
+            return;
+        }
+
+        var left = scratch.Span[..io.Length];
+        var right = scratch.Span.Slice(scratch.Length / 2, io.Length);
+        port.Read(source, left, right);
+        var step = (to - from) / io.Length;
+        for (var i = 0; i < io.Length; i++) {
+            var gain = from + step * (i + 1);
+            io.Left[i] += left[i] * gain;
+            io.Right[i] += right[i] * gain;
+        }
+    }
+
     static void Add(ReadOnlySpan<float> source, Span<float> destination) {
         for (var i = 0; i < source.Length; i++) {
             destination[i] += source[i];
         }
     }
 
-    protected override void OnPrepare(in ProcessSpec spec) =>
+    protected override void OnPrepare(in ProcessSpec spec) {
         fadeStep = (float)(1.0 / Math.Max(1.0, FadeMs * 0.001 * spec.SampleRate));
+        scratch.Dispose();
+        scratch = new(2 * spec.MaxBlockSize);
+    }
+
+    protected override void Dispose(bool disposing) {
+        if (disposing) {
+            scratch.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
 
     protected override void OnReset() {
         var selected = (int)Params.Current(Input);
@@ -77,10 +121,36 @@ public sealed class MultiplexerBlock() : DspBlock(Info), IRowInputBlock {
             gains[row] = selected == All || selected == row ? 1f : 0f;
         }
 
+        for (var source = 0; source < inputGains.Length; source++) {
+            inputGains[source] = selected == FirstInput + source ? 1f : 0f;
+        }
+
         output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        var selected = (int)Params.GetTarget(Input);
+        for (var source = 0; source < inputGains.Length; source++) {
+            var target = selected == FirstInput + source ? 1f : 0f;
+            var gain = inputGains[source];
+            if (gain == 0f && target == 0f) {
+                continue;
+            }
+
+            if (Inputs is { } port) {
+                // A whole sub-block per step: the fade is linear across it, as the rows' is per sample.
+                var end = target > gain
+                    ? Math.Min(target, gain + fadeStep * io.Length)
+                    : Math.Max(target, gain - fadeStep * io.Length);
+                AddRamped(port, source, io, gain, end);
+                gain = end;
+            } else {
+                gain = target;
+            }
+
+            inputGains[source] = gain;
+        }
+
         output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 }

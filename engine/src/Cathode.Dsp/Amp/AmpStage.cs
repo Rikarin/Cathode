@@ -62,6 +62,9 @@ public enum SwitchRole {
 
 /// <summary>The design of one preamp stage; <see cref="Create" /> builds it.</summary>
 public abstract record AmpStageDesign(string Name) {
+    /// <summary>Whether the stage carries a tremolo of the model's own (<see cref="StageTremoloDesign" />).</summary>
+    public virtual bool HasTremolo => false;
+
     /// <summary>A new stage for this design at <paramref name="sampleRate" />, at its operating point.</summary>
     public abstract AmpStage Create(double sampleRate);
 }
@@ -82,7 +85,9 @@ public readonly record struct EqualizerGains(double Band1, double Band2, double 
 /// <summary>
 ///     The preamp knobs, as rotations 0..1, and the switches: the bright switch, the model's extra pots
 ///     (<paramref name="Control1" />, <paramref name="Control2" />) and switches (<paramref name="Switch1" /> to
-///     <paramref name="Switch3" />), and a graphic equaliser's band gains.
+///     <paramref name="Switch3" />), a graphic equaliser's band gains, and the model's own tremolo
+///     (<see cref="StageTremoloDesign" />): <paramref name="TremoloRate" /> in hertz, <paramref name="TremoloDepth" /> its
+///     Intensity knob's rotation (0 stops it).
 /// </summary>
 public readonly record struct AmpControls(
     double Gain,
@@ -96,7 +101,9 @@ public readonly record struct AmpControls(
     bool Switch1 = false,
     bool Switch2 = false,
     bool Switch3 = false,
-    EqualizerGains Equalizer = default
+    EqualizerGains Equalizer = default,
+    double TremoloRate = 0,
+    double TremoloDepth = 0
 ) {
     public double Rotation(PotRole role) =>
         role switch {

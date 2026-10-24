@@ -41,13 +41,20 @@ public readonly record struct MicPlacement(
 ///     coherent share falls as <c>exp(−(ω σ)² / 2)</c> and the rest adds as power, so the comb it makes with the direct
 ///     sound evens out from the treble down (0 a specular room).
 /// </param>
+/// <param name="MicOffset">
+///     Where the mic hears the room from, in metres sideways from the close mic: one of a stereo pair of room mics,
+///     −spacing/2 on the left and +spacing/2 on the right (positive away from the side wall). The direct sound stays
+///     the close mic's; every reflection's image is that much further off its axis, so the two sides' room sounds
+///     arrive at different times and decorrelate. 0 (the default) is the mono room.
+/// </param>
 public readonly record struct CabRoom(
     double Size = 1,
     double Shape = 0,
     double Floor = 1,
     double HighDamping = 1,
     double LowDamping = 0,
-    double Diffusion = 0
+    double Diffusion = 0,
+    double MicOffset = 0
 ) {
     public static CabRoom Default { get; } = new(1);
 }
@@ -241,17 +248,20 @@ public readonly struct CabAcoustics {
                 * room.Floor
                 * 0.8
                 * Absorb(hz, 6_000 / damping)
-                * Source(omega, k, effective, 2 * height, depth);
+                * Source(omega, k, effective, Offset(2 * height), depth);
 
             // Ceiling, side wall and the wall behind the mic (arriving from behind: a cardioid rejects it, a
             // figure-8 hears it inverted).
             sum += walls
                 * 0.6
                 * Absorb(hz, 4_000 / damping)
-                * Source(omega, k, effective, 2 * (ceiling - height), depth);
-            sum += walls * 0.6 * Absorb(hz, 4_000 / damping) * Source(omega, k, effective, 2 * sideWall, depth);
+                * Source(omega, k, effective, Offset(2 * (ceiling - height)), depth);
+            sum += walls
+                * 0.6
+                * Absorb(hz, 4_000 / damping)
+                * Source(omega, k, effective, SideImage(sideWall), depth);
             var back = 2 * backWall - depth;
-            var backRho = Math.Sqrt(back * back + Square(Curvature * radius));
+            var backRho = BackRho(back);
             sum += walls
                 * 0.5
                 * Absorb(hz, 3_000 / damping)
@@ -319,11 +329,11 @@ public readonly struct CabAcoustics {
         var lowCut = room.LowDamping > 0 ? HighPass(hz, room.LowDamping).Magnitude : 1;
         var height = placement.Enclosure.Height;
         var back = 2 * backWall - depth;
-        var backRho = Math.Sqrt(back * back + Square(Curvature * radius));
+        var backRho = BackRho(back);
         var a = 0.6
             * Absorb(hz, 4_000 / damping)
-            * Source(omega, k, effective, 2 * (ceiling - height), depth).Magnitude;
-        var b = 0.6 * Absorb(hz, 4_000 / damping) * Source(omega, k, effective, 2 * sideWall, depth).Magnitude;
+            * Source(omega, k, effective, Offset(2 * (ceiling - height)), depth).Magnitude;
+        var b = 0.6 * Absorb(hz, 4_000 / damping) * Source(omega, k, effective, SideImage(sideWall), depth).Magnitude;
         var c = 0.5 * Absorb(hz, 3_000 / damping) * (curvature / backRho) * Pattern(omega, backRho, -1).Magnitude;
         return Square(level * lowCut) * (a * a + b * b + c * c);
     }
@@ -342,6 +352,20 @@ public readonly struct CabAcoustics {
     }
 
     static double Square(double x) => x * x;
+
+    /// <summary>
+    ///     An image <paramref name="side" /> off the mic's axis (above or below it), seen from the room mic
+    ///     (<see cref="CabRoom.MicOffset" /> sideways); exactly <paramref name="side" /> for the mono room.
+    /// </summary>
+    double Offset(double side) => room.MicOffset == 0 ? side : Math.Sqrt(side * side + Square(room.MicOffset));
+
+    /// <summary>The side wall's image, 2 × the wall's distance across, plus the room mic's own offset away from it.</summary>
+    double SideImage(double sideWall) =>
+        room.MicOffset == 0 ? 2 * sideWall : Math.Max(0.01, 2 * sideWall + room.MicOffset);
+
+    /// <summary>The back wall image's wavefront radius as the room mic sees it.</summary>
+    double BackRho(double back) =>
+        Math.Sqrt(back * back + Square(Curvature * radius) + (room.MicOffset == 0 ? 0 : Square(room.MicOffset)));
 
     /// <summary>A first-order high-pass <c>j f / (fc + j f)</c>.</summary>
     static Complex HighPass(double hz, double corner) => new Complex(0, hz) / new Complex(corner, hz);

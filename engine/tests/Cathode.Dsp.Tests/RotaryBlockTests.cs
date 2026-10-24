@@ -69,6 +69,30 @@ public class RotaryBlockTests {
         Assert.True(Level(Tone + hornRate / 2) < carrier - 50, "energy between the sidebands");
     }
 
+    [Theory]
+    [InlineData(1f, 2.0)]
+    [InlineData(2f, 4.0)]
+    [InlineData(0.5f, 1.0)]
+    public void Low_rate_multiplier_scales_the_drum_speed(float multiplier, double expected) {
+        // Drum only, amplitude modulation only: a 400 Hz tone (under the crossover) rises once per drum revolution.
+        using var rotary = Create(
+            (RotaryBlock.Speed, 1f),
+            (RotaryBlock.DrumFast, 2f),
+            (RotaryBlock.LowRateMultiplier, multiplier),
+            (RotaryBlock.DrumDepth, 0f),
+            (RotaryBlock.AmDepth, 100f),
+            (RotaryBlock.HornLevel, -80f),
+            (RotaryBlock.Crossover, 2_000f),
+            (RotaryBlock.Spread, 0f)
+        );
+
+        var output = BlockRender.Mono(rotary, Signals.Sine(400, Rate, 6 * 48_000, 0.5f), 64);
+
+        var settled = Revolutions(output).Where(static r => r.Time > 1.5).ToArray();
+        Assert.NotEmpty(settled);
+        Assert.All(settled, r => Assert.Equal(expected, r.Rate, expected * 0.05));
+    }
+
     [Fact]
     public void Mics_hear_the_rotor_at_different_angles() {
         using var rotary = Create();

@@ -50,6 +50,60 @@ public static class OfflineRenderer {
         return (outLeft, outRight);
     }
 
+    /// <summary>
+    ///     Renders with several hardware input sources (<see cref="Dsp.Routing.HardwareInputs" />), as a multi-channel
+    ///     device would deliver them: <paramref name="sources" />[s] is source s (Input 1 first, which is also the main
+    ///     input), null where the device maps nothing. Every source must be as long as Input 1.
+    /// </summary>
+    public static (float[] Left, float[] Right) Render(
+        IAudioProcessor processor,
+        IReadOnlyList<(float[] Left, float[] Right)?> sources,
+        int blockSize
+    ) {
+        var (left, right) = sources[0] ?? throw new ArgumentException("Input 1 is required.", nameof(sources));
+        var count = Dsp.Routing.HardwareInputs.Count;
+        var mask = 0;
+        for (var s = 0; s < Math.Min(count, sources.Count); s++) {
+            mask |= sources[s] is null ? 0 : 1 << s;
+        }
+
+        var outLeft = new float[left.Length];
+        var outRight = new float[left.Length];
+        var planar = new float[count * 2 * blockSize];
+        for (var offset = 0; offset < left.Length; offset += blockSize) {
+            var frames = Math.Min(blockSize, left.Length - offset);
+            for (var s = 0; s < count; s++) {
+                var source = s < sources.Count ? sources[s] : null;
+                var l = planar.AsSpan(2 * s * frames, frames);
+                var r = planar.AsSpan((2 * s + 1) * frames, frames);
+                if (source is { } pair) {
+                    pair.Left.AsSpan(offset, frames).CopyTo(l);
+                    pair.Right.AsSpan(offset, frames).CopyTo(r);
+                } else {
+                    l.Clear();
+                    r.Clear();
+                }
+            }
+
+            processor.Process(
+                new(
+                    left.AsSpan(offset, frames),
+                    right.AsSpan(offset, frames),
+                    outLeft.AsSpan(offset, frames),
+                    outRight.AsSpan(offset, frames),
+                    [],
+                    [],
+                    [],
+                    [],
+                    planar.AsSpan(0, count * 2 * frames),
+                    mask
+                )
+            );
+        }
+
+        return (outLeft, outRight);
+    }
+
     /// <summary>Renders a WAV-style clip. Mono input is fed to both engine channels (a guitar DI is mono).</summary>
     public static AudioData Render(IAudioProcessor processor, AudioData input, int blockSize) {
         var left = input.Channels[0];
