@@ -413,24 +413,28 @@ Types: guide 16 (10-band, 10-band 2/3-octave, 8-, 7- and 5-band, each constant o
 | Input Select, Mode (stereo, parallel, series) | ❌ |  | cheap (with two slots) |
 | Level, Balance | ✅ / 🆕 |  |  |
 
-### 6.14 Looper (pp. 50–51) → rig looper (`Cathode.Engine.Rig.Looper`), not a grid block
+### 6.14 Looper (pp. 50–51) → 🆕 `looper` grid block, and the rig looper (`Cathode.Engine`)
+
+One core (`Cathode.Dsp.Looping.Looper`) serves both. The grid block takes the transport (toolbar, REST `/looper`, MIDI and footswitches) while its preset is running; without one, the rig looper at the end of the chain does, as before. The rig looper keeps the default Config (no params of its own).
 
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
-| Record, Play, Undo, Reverse | ✅ | Toolbar, MIDI and footswitch actions |  |
+| Record, Play, Undo, Reverse | ✅ | Toolbar, MIDI and footswitch actions; Undo also divides out the pass's overdub level |  |
 | Erase | ✅ |  |  |
-| Once (one-shot) | ❌ |  | cheap |
-| Trim Start, Trim End | ❌ |  | cheap |
-| Threshold recording | ❌ |  | cheap |
-| Max Loop Time | ◐ | Fixed 60 s; the guide's 300 s fits in native memory | cheap |
-| Playback Level, Dry Level | ◐ | Looper level only | cheap |
-| Overdub Level (loop decay) | ❌ |  | cheap |
-| Crossfade | ❌ |  | cheap |
-| Loop Quantize (to tempo) | ❌ |  | cheap |
-| Record 2nd Press (overdub, play, stop) | ◐ | Fixed to overdub | cheap |
-| Speed | ◐ | Half speed only | cheap |
-| Low Cut, High Cut | ❌ |  | cheap |
-| As a grid block (placed mid-chain, bypass modes) | ❌ | See §7 | medium |
+| Once (one-shot) | 🆕 ✅ | Playback stops at the end of the loop |  |
+| Trim Start, Trim End | 🆕 ✅ | % of the loop; playback, reverse and overdub stay inside the window |  |
+| Threshold recording | 🆕 ✅ | Record arms (state `armed`); the recording starts on the first sample above the level |  |
+| Max Loop Time | 🆕 ✅ | 1–300 s on the block (memory committed only as it is recorded); the rig looper keeps 60 s |  |
+| Playback Level, Dry Level | 🆕 ✅ | Block only, ramped per sample |  |
+| Overdub Level (loop decay) | 🆕 ✅ | Each pass scales what the loop held; at 0 % Undo cannot bring it back |  |
+| Crossfade | 🆕 ✅ | The playing that follows a closing recording is faded into the loop's first samples (up to 100 ms), so the seam continues the performance; only on a forward first pass at normal speed |  |
+| Loop Quantize (to tempo) | 🆕 ✅ | The closing length is rounded to whole beats of the tempo (quarter notes), padded with silence |  |
+| Record 2nd Press (overdub, play, stop) | 🆕 ✅ | Default Play, which is what the rig looper always did |  |
+| Speed | 🆕 ✅ | Normal, Half, Double; the Half Speed action halves whichever is set |  |
+| Low Cut, High Cut | 🆕 ✅ | On the loop's playback |  |
+| As a grid block (placed mid-chain, bypass modes) | 🆕 ✅ | `looper`, one per preset. The loop belongs to the preset: a preset change stops it, where the rig looper plays through. Bypassed in Thru or Mute the block stops running, so the loop pauses; the other modes keep it playing (Mute FX In: the loop plays on while nothing new reaches it) |  |
+
+Also new: play and stop fade over 2 ms instead of cutting.
 
 ### 6.15 Megatap (pp. 52–53) → `megatap`
 
@@ -808,7 +812,7 @@ Checked against what exists under other names.
 
 | Guide block | Exists as | Verdict | Effort |
 |---|---|---|---|
-| Looper | Rig looper (stereo, 60 s, overdub with undo, reverse, half speed, WAV export), at the end of the rig | Functionally present, not placeable. A grid block would let it sit before effects and take bypass modes; most Config-page features are cheap additions to the rig looper (§6.14) | medium (block), cheap (features) |
+| Looper | 🆕 `looper` grid block, and the rig looper at the end of the rig (one shared core) | **Implemented**: placeable, with bypass modes and the Config page (§6.14); the transport drives the block while its preset runs | — |
 | Mixer | 🆕 `mixer` | **Implemented** in this pass | — |
 | Plex Delay | Multi-Delay type "Plex" (4 lines) | Partial; a real Plex block is the largest delay gap | medium (Plex Delay/Verb), large (Detune/Shifter/Shimmer) |
 | Ten-Tap Delay | Multi-Delay type "Ten Tap" | Covered; Rhythm Tap and per-tap levels missing (§6.32) | cheap–medium |

@@ -7,6 +7,7 @@ using Cathode.Dsp.Native;
 using Cathode.Dsp.Tuning;
 using Cathode.Engine;
 using Cathode.Dsp.IO;
+using Cathode.Dsp.Looping;
 using Cathode.Dsp.Parameters;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
@@ -75,7 +76,7 @@ public sealed class EngineHostService : IDisposable {
         BlockRegistry? registry = null,
         IDeviceMonitor? device = null,
         string? telemetryPath = null,
-        double looperSeconds = Cathode.Engine.Rig.Looper.MaxSeconds
+        double looperSeconds = Dsp.Looping.Looper.DefaultSeconds
     ) {
         this.device = device;
         TelemetryRegion = telemetryPath is null
@@ -501,6 +502,7 @@ public sealed class EngineHostService : IDisposable {
                 LooperState.Playing => "playing",
                 LooperState.Overdubbing => "overdubbing",
                 LooperState.Stopped => "stopped",
+                LooperState.Armed => "armed",
                 _ => "empty"
             };
             status.LengthSeconds = looper.Length / Engine.Spec.SampleRate;

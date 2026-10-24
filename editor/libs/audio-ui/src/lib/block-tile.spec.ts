@@ -24,7 +24,12 @@ describe('block icons', () => {
   });
 
   it('are all drawn', () => {
-    for (const name of [...Object.values(CategoryIcons), 'cthBlockGeneric', blockIconName('vibe', '')]) {
+    for (const name of [
+      ...Object.values(CategoryIcons),
+      'cthBlockGeneric',
+      blockIconName('vibe', ''),
+      blockIconName('looper', '')
+    ]) {
       expect(BlockIcons[name]).toMatch(/^<svg .*<\/svg>$/);
     }
   });
