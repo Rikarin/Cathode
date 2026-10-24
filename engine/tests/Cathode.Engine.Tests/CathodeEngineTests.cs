@@ -2,6 +2,7 @@ using Cathode.Audio;
 using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
 using Cathode.Engine.Graph;
+using Cathode.Engine.Rig;
 using Cathode.Testing;
 
 namespace Cathode.Engine.Tests;
@@ -78,6 +79,38 @@ public class CathodeEngineTests {
         engine.Post(EngineCommand.SetBypass(1, 0, false));
         OfflineRenderer.Render(engine, new float[64], new float[64], 64);
         Assert.Equal(2, block.Engaged);
+    }
+
+    [Fact]
+    public void The_rig_effects_mix_reaches_blocks_with_global_mix_on() {
+        var engine = new CathodeEngine(Spec);
+        var graph = Compiler.Compile(
+            new() {
+                Nodes = [
+                    new() { Id = "in", Type = NodeTypes.Input, Row = 0, Column = 0 },
+                    new() {
+                        Id = "rev",
+                        Type = "reverb",
+                        Row = 0,
+                        Column = 1,
+                        Parameters = { ["mix"] = 0f, ["globalMix"] = 1f }
+                    },
+                    new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 }
+                ],
+                Cables = [new() { From = "in", To = "rev" }, new() { From = "rev", To = "out" }]
+            },
+            Spec,
+            1
+        );
+        engine.Publish(graph);
+        var input = Signals.Sine(220, Spec.SampleRate, 9_600, 0.25f);
+
+        var (dry, _) = OfflineRenderer.Render(engine, input, input, 64);
+        engine.Rig.SetTarget(RigControls.Descriptor.IndexOf("effectsMix"), 40f);
+        var (wet, _) = OfflineRenderer.Render(engine, input, input, 64);
+
+        Assert.Equal(input, dry);
+        Assert.True(Analysis.Rms(wet.Zip(input, static (a, b) => a - b).ToArray()) > 1e-3, "no reverb heard");
     }
 
     [Fact]

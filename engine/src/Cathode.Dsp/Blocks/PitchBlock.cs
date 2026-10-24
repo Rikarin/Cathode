@@ -119,6 +119,7 @@ public sealed class PitchBlock() : DspBlock(Info) {
     public const int CustomTable = KeySource + 1;
 
     public const int Balance = CustomTable + 12 * 4;
+    public const int GlobalMix = Balance + 1;
 
     public const int VoiceCount = 4;
     public const int MaxArpSteps = 8;
@@ -266,7 +267,8 @@ public sealed class PitchBlock() : DspBlock(Info) {
             VoiceDelay(4),
             ParamDescriptor.Choice("keySource", "Key Source", ["Fixed", "MIDI", "Auto"]),
             ..CustomTableParams(),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            EffectsMix.Param
         ],
         maxInstances: 2
     );
@@ -449,7 +451,7 @@ public sealed class PitchBlock() : DspBlock(Info) {
         }
 
         var rate = Spec.SampleRate;
-        var mix = MixFor(type, Params.Advance(Mix, frames));
+        var mix = MixFor(type, EffectsMix.Apply(Params.Advance(Mix, frames), Params.Current(GlobalMix), context));
         VoiceGains(type);
         var harmony = IsHarmony(type);
         for (var v = 0; v < VoiceCount; v++) {

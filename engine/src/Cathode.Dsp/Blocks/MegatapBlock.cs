@@ -37,6 +37,7 @@ public sealed class MegatapBlock() : DspBlock(Info) {
     public const int Balance = 11;
     public const int InputGain = 12;
     public const int InputSelect = 13;
+    public const int GlobalMix = 14;
 
     public const int Flat = 0;
     public const int FadeOut = 1;
@@ -89,7 +90,8 @@ public sealed class MegatapBlock() : DspBlock(Info) {
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions)
+            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
+            EffectsMix.Param
         ],
         maxInstances: 2,
         channels: 2
@@ -147,7 +149,7 @@ public sealed class MegatapBlock() : DspBlock(Info) {
         var taps = TapCount();
         var time = TargetDelaySamples(Params.Advance(Time, io.Length), context.Tempo);
         Params.Advance(TimeShape, io.Length);
-        var mix = Params.Advance(Mix, io.Length) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, io.Length), Params.Current(GlobalMix), context) / 100f;
         ComputeTapTargets(taps, time);
         ComputeTapGains(taps, Params.Advance(Spread, io.Length) / 100f);
         if (taps != activeTaps) {

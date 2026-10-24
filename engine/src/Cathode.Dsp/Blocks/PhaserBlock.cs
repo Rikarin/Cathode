@@ -20,6 +20,7 @@ public sealed class PhaserBlock : DspBlock, IEngageAware {
     public const int Tempo = 9;
     public const int LfoType = 10;
     public const int LfoReset = 11;
+    public const int GlobalMix = 12;
 
     const int MaxStages = 12;
     const float MaxSweepOctaves = 2f;
@@ -49,7 +50,8 @@ public sealed class PhaserBlock : DspBlock, IEngageAware {
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
             ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
             ParamDescriptor.Choice("lfoType", "LFO Type", Lfo.ShapeNames),
-            ParamDescriptor.Switch("lfoReset", "LFO Bypass Reset")
+            ParamDescriptor.Switch("lfoReset", "LFO Bypass Reset"),
+            EffectsMix.Param
         ],
         maxInstances: 2
     );
@@ -109,7 +111,7 @@ public sealed class PhaserBlock : DspBlock, IEngageAware {
         var stages = StageCounts[(int)Params.Current(Stages)];
         var feedback = Params.Advance(Feedback, io.Length) / 100f;
         var spread = Params.Advance(Spread, io.Length) / 360.0;
-        var mix = Params.Advance(Mix, io.Length) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, io.Length), Params.Current(GlobalMix), context) / 100f;
         var mixStep = (mix - this.mix) / io.Length;
         var currentMix = this.mix;
         var nyquistGuard = (float)(rate * 0.45);

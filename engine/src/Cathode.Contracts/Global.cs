@@ -19,6 +19,15 @@ public sealed class GlobalSettings {
 
     public float MetronomeLevel { get; set; } = -12;
 
+    /// <summary>
+    ///     Effects Mix offset (−50..50 %), added to the Mix of every block whose Global Mix is on: one control for
+    ///     making the whole rig wetter or drier for a room.
+    /// </summary>
+    public float EffectsMix { get; set; }
+
+    /// <summary>Noise gate offset in dB (−20..20), added to every Input block's gate threshold.</summary>
+    public float NoiseGateOffset { get; set; }
+
     /// <summary>The global output EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse.</summary>
     public Dictionary<string, float> Eq { get; set; } = [];
 

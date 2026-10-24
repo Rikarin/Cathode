@@ -41,6 +41,7 @@ public sealed class DelayBlock() : DspBlock(Info) {
     public const int DuckRelease = 18;
     public const int Hold = 19;
     public const int PhaseReverse = 20;
+    public const int GlobalMix = 21;
 
     public const int Digital = 0;
     public const int Analog = 1;
@@ -89,7 +90,8 @@ public sealed class DelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("duckThreshold", "Ducker Threshold", -60f, 0f, -30f, "dB"),
             ParamDescriptor.Float("duckRelease", "Ducker Release", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
             ParamDescriptor.Switch("hold", "Repeat Hold"),
-            ParamDescriptor.Choice("phaseReverse", "Phase Reverse", ChorusBlock.PhaseOptions)
+            ParamDescriptor.Choice("phaseReverse", "Phase Reverse", ChorusBlock.PhaseOptions),
+            EffectsMix.Param
         ],
         maxInstances: 4
     );
@@ -139,7 +141,7 @@ public sealed class DelayBlock() : DspBlock(Info) {
         var type = (int)Params.Current(Type);
         var hold = Params.Current(Hold) >= 0.5f;
         var feedback = hold ? 1f : Params.Advance(Feedback, n) / 100f;
-        var mix = Params.Advance(Mix, n) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, n), Params.Current(GlobalMix), context) / 100f;
         var targetDelay = TargetDelaySamples(Params.Advance(Time, n), context.Tempo);
         var ratio = Params.Advance(Ratio, n) / 100f;
         var modDepth = Params.Advance(ModDepth, n) * 0.001f * sampleRate;

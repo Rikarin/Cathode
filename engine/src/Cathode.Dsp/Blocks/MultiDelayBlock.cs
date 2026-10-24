@@ -58,6 +58,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
     public const int Balance = 32;
     public const int InputGain = 33;
     public const int InputSelect = 34;
+    public const int GlobalMix = 35;
 
     public const int QuadTap = 0;
     public const int TenTap = 1;
@@ -163,7 +164,8 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions)
+            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
+            EffectsMix.Param
         ],
         maxInstances: 2
     );
@@ -217,7 +219,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
         var sampleRate = (float)Spec.SampleRate;
         var type = (int)Params.Current(Type);
         var targetDelay = TargetDelaySamples(Params.Advance(Time, io.Length), context.Tempo);
-        var mix = Params.Advance(Mix, io.Length) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, io.Length), Params.Current(GlobalMix), context) / 100f;
         feedback = Params.Advance(Feedback, io.Length) / 100f;
         for (var i = Tap1Time; i <= Spread; i++) {
             Params.Advance(i, io.Length); // tap times, levels and pans are read back by the tap computations below

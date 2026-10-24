@@ -27,6 +27,7 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
     public const int Level = 18;
     public const int Balance = 19;
     public const int InputGain = 20;
+    public const int GlobalMix = 21;
 
     public const int Voices = 4;
     public const float MinFrequency = 20f;
@@ -94,7 +95,8 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 50f, "%"),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
-            ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%")
+            ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
+            EffectsMix.Param
         ],
         maxInstances: 2,
         channels: 2
@@ -132,7 +134,7 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var n = io.Length;
         Update(n);
-        var mix = Params.Advance(Mix, n) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, n), Params.Current(GlobalMix), context) / 100f;
         var mixStep = (mix - this.mix) / n;
         var currentMix = this.mix;
         var feed = Params.Advance(InputGain, n) / 100f;

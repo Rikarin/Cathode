@@ -23,6 +23,14 @@ static class GlobalValidation {
             errors.Add("The MIDI channel is 0 (all) or 1-16.");
         }
 
+        if (settings.EffectsMix is < -50f or > 50f || !float.IsFinite(settings.EffectsMix)) {
+            errors.Add("The effects mix offset is -50 to 50 %.");
+        }
+
+        if (settings.NoiseGateOffset is < -20f or > 20f || !float.IsFinite(settings.NoiseGateOffset)) {
+            errors.Add("The noise gate offset is -20 to 20 dB.");
+        }
+
         if (settings.Manual.Count != 4) {
             errors.Add("Manual has four values (A-D).");
         }

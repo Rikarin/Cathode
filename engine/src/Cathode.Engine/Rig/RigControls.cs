@@ -31,6 +31,9 @@ public static class RigControls {
             new("tempo", "Tempo", ParamKind.Float, 30f, 300f, 120f, "BPM", Smoothing: ParamSmoothing.Step),
             ParamDescriptor.Switch("metronome", "Metronome"),
             ParamDescriptor.Float("metroLevel", "Metronome Level", -60f, 0f, -12f, "dB"),
+            // Global settings the blocks read through BlockContext: Global Mix and the Input gate's offset.
+            ParamDescriptor.Float("effectsMix", "Effects Mix", -50f, 50f, 0f, "%"),
+            ParamDescriptor.Float("gateOffset", "Noise Gate Offset", -20f, 20f, 0f, "dB"),
             ..Names("manual", ["A", "B", "C", "D"], "Manual "),
             ..Names("scene", ["1", "2", "3", "4"], "Scene Controller "),
             ..Names("ext", ["1", "2", "3", "4", "5", "6", "7", "8"], "External "),

@@ -23,6 +23,7 @@ public sealed class FlangerBlock : DspBlock, IEngageAware {
     public const int HighCut = 11;
     public const int PhaseReverse = 12;
     public const int LfoReset = 13;
+    public const int GlobalMix = 14;
 
     const float MaxSweepMs = 7f;
     const float MaxDelayMs = 10f;
@@ -52,7 +53,8 @@ public sealed class FlangerBlock : DspBlock, IEngageAware {
             WetCuts.LowCutParam("lowCut", "Low Cut"),
             WetCuts.HighCutParam("highCut", "High Cut"),
             ParamDescriptor.Choice("phaseReverse", "Phase Reverse", ChorusBlock.PhaseOptions),
-            ParamDescriptor.Switch("lfoReset", "LFO Bypass Reset")
+            ParamDescriptor.Switch("lfoReset", "LFO Bypass Reset"),
+            EffectsMix.Param
         ],
         maxInstances: 2
     );
@@ -101,7 +103,7 @@ public sealed class FlangerBlock : DspBlock, IEngageAware {
         var baseDelay = Params.Advance(Delay, io.Length) * 0.001f * (float)rate;
         var feedback = Params.Advance(Feedback, io.Length) / 100f;
         var spread = Params.Advance(Spread, io.Length) / 360.0;
-        var mix = Params.Advance(Mix, io.Length) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, io.Length), Params.Current(GlobalMix), context) / 100f;
         var mixStep = (mix - this.mix) / io.Length;
         var currentMix = this.mix;
 

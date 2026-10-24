@@ -23,6 +23,7 @@ public sealed class ChorusBlock() : DspBlock(Info) {
     public const int LowCut = 10;
     public const int HighCut = 11;
     public const int PhaseReverse = 12;
+    public const int GlobalMix = 13;
 
     public const int MaxVoices = 4;
 
@@ -56,7 +57,8 @@ public sealed class ChorusBlock() : DspBlock(Info) {
             ParamDescriptor.Choice("voices", "Voices", ["1", "2", "3", "4"]),
             WetCuts.LowCutParam("lowCut", "Low Cut"),
             WetCuts.HighCutParam("highCut", "High Cut"),
-            ParamDescriptor.Choice("phaseReverse", "Phase Reverse", PhaseOptions)
+            ParamDescriptor.Choice("phaseReverse", "Phase Reverse", PhaseOptions),
+            EffectsMix.Param
         ],
         maxInstances: 2
     );
@@ -95,7 +97,7 @@ public sealed class ChorusBlock() : DspBlock(Info) {
         var depth = Params.Advance(Depth, io.Length) / 100f * MaxDepthMs * 0.001f * (float)rate;
         var baseDelay = Params.Advance(Delay, io.Length) * 0.001f * (float)rate;
         var spread = Params.Advance(Spread, io.Length) / 360.0;
-        var mix = Params.Advance(Mix, io.Length) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, io.Length), Params.Current(GlobalMix), context) / 100f;
         var shape = (LfoShape)(int)Params.Current(LfoType);
         var voices = (int)Params.Current(Voices) + 1;
         var voiceGain = 1f / MathF.Sqrt(voices);

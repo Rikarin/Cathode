@@ -32,6 +32,7 @@ public sealed class ReverbBlock : DspBlock {
     public const int DuckThreshold = 13;
     public const int DuckRelease = 14;
     public const int Hold = 15;
+    public const int GlobalMix = 16;
 
     public const int Dattorro = 3;
     public const int Spring = 4;
@@ -100,7 +101,8 @@ public sealed class ReverbBlock : DspBlock {
             ParamDescriptor.Float("duckAttenuation", "Ducker Atten", 0f, 40f, 0f, "dB"),
             ParamDescriptor.Float("duckThreshold", "Ducker Threshold", -60f, 0f, -30f, "dB"),
             ParamDescriptor.Float("duckRelease", "Ducker Release", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
-            ParamDescriptor.Switch("hold", "Hold")
+            ParamDescriptor.Switch("hold", "Hold"),
+            EffectsMix.Param
         ],
         maxInstances: 2
     );
@@ -183,7 +185,7 @@ public sealed class ReverbBlock : DspBlock {
             Params.Advance(DuckRelease, io.Length)
         );
         var preDelay = Math.Max(1f, Params.Advance(PreDelay, io.Length) * 0.001f * rate);
-        var mix = Params.Advance(Mix, io.Length) / 100f;
+        var mix = EffectsMix.Apply(Params.Advance(Mix, io.Length), Params.Current(GlobalMix), context) / 100f;
         var dampingHz = Params.Advance(Damping, io.Length);
 
         if (type != activeType) {

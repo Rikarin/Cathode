@@ -538,7 +538,9 @@ public sealed partial class LiveRig(
     public static List<ParamValue> GlobalValues(GlobalSettings global) {
         var values = new List<ParamValue> {
             new(IpcBlocks.Rig, "metronome", global.Metronome ? 1 : 0),
-            new(IpcBlocks.Rig, "metroLevel", global.MetronomeLevel)
+            new(IpcBlocks.Rig, "metroLevel", global.MetronomeLevel),
+            new(IpcBlocks.Rig, "effectsMix", global.EffectsMix),
+            new(IpcBlocks.Rig, "gateOffset", global.NoiseGateOffset)
         };
         if (global.TempoMode == "global") {
             values.Add(new(IpcBlocks.Rig, "tempo", (float)global.Tempo));
