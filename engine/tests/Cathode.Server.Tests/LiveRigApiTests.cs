@@ -214,6 +214,23 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Moving_a_dynacab_mic_through_the_api_swaps_in_a_new_ir() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("dynacab", 0, 4));
+        await ServerFixture.Eventually(() => server.Block("dynacab1") is Cathode.Dsp.Blocks.DynaCabBlock);
+        var block = (Cathode.Dsp.Blocks.DynaCabBlock)server.Block("dynacab1")!;
+        var swaps = block.IrSwaps;
+
+        using var response = await client.PatchAsJsonAsync(
+            "/api/v1/live/blocks/dynacab1/params?channel=A",
+            new Dictionary<string, float> { ["m1position"] = 80, ["m1distance"] = 6 },
+            Token
+        );
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        await ServerFixture.Eventually(() => block.IrSwaps > swaps);
+    }
+
+    [Fact]
     public async Task An_aida_x_model_uploads_as_a_model_and_runs_in_the_capture_amp() {
         const string model = """
             {"in_shape":[null,null,1],"in_skip":1,"out_gain":2,"layers":[
