@@ -288,6 +288,16 @@ Gate for each model: ESR/MRSTFT within target across a knob sweep, plus an ABX p
 
 ## Phase 8: polish and ship (4–6 weeks)
 
+- [x] **Editor workflow** (stream ED, [02 §7.5](02-architecture.md#75-editor-workflow-as-built)):
+  - shortcuts with a `?` overlay, and preferences;
+  - revert, clear, snapshots and templates;
+  - replace, swap and drop, row and column moves, cut, paste settings, disconnect;
+  - all-scene actions, Block Info, and the Circuit Amp Ideal/Authentic view;
+  - Library folders, files and whole-block entries;
+  - Manage Presets and Manage IRs, Reset Amp blocks, Parameter Batch Set;
+  - picker tags, favourites and pin, Perform pages, and footswitch views, links and per-preset overrides.
+- [ ] Editor workflow, waiting on the PS stream: ⌘L Preset Leveling, ⌘I reset channel, and the unsaved-edits prompt before the preset picker and New from template load another preset.
+
 - [ ] Factory content: 50+ presets, factory IRs (our own captures or properly licensed), factory NAM captures (own or licensed)
 - [ ] Installers (signed and notarised), auto-update, crash reporting (opt-in), telemetry-free by default
 - [ ] User docs: block guide generated from descriptors, plus how-tos
