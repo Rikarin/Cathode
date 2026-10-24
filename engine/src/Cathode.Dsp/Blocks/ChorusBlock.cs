@@ -101,7 +101,17 @@ public sealed class ChorusBlock() : DspBlock(Info) {
             ParamDescriptor.Choice("dimension", "Dimension", ["Off", "Low", "Medium", "High"]),
             EffectsMix.Param
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new("Basic", ["voices", "rate", "tempo", "depth", "delay", "width", "spread", "dimension"]),
+            new(
+                "Advanced",
+                [
+                    "lfoType", "lfo2Rate", "lfo2Depth", "autoDepth", "rightRate", "rightDepth", "rightTime", "lowCut",
+                    "highCut", "drive", "phaseReverse", "stereoSpread", "globalMix"
+                ]
+            )
+        ]
     );
 
     /// <summary>Wet polarity of the left and right side for a Phase Reverse setting.</summary>

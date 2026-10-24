@@ -116,7 +116,18 @@ public sealed class FlangerBlock() : DspBlock(Info), IEngageAware {
             ParamDescriptor.Switch("lfoReset", "LFO Bypass Reset"),
             EffectsMix.Param
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new("Basic", ["rate", "tempo", "depth", "delay", "feedback", "spread", "thruZero", "lfoType"]),
+            new(
+                "Advanced",
+                [
+                    "lowCut", "highCut", "phaseReverse", "bassFocus", "drive", "minTime", "maxTime", "dryDelay",
+                    "lfoHicut", "lfoQuantize", "autoDepth", "vcoResponse", "exponent", "stereoSpread", "lfoReset",
+                    "globalMix"
+                ]
+            )
+        ]
     );
 
     /// <summary>

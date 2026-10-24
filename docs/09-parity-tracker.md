@@ -170,7 +170,7 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | IO10 | Latency report in Setup: converters, buffer and per-block latency | ✅ | Linear_phase_oversampling_recompiles_and_the_latency_report_names_the_drive | GET /api/v1/system/latency; Setup tab of Settings shows it (checked in the browser by the stream) |
 | IO11 | Output clip warning at −1 dBFS | ✅ | Output_peaks_follow_each_output_after_its_trim | CLIP badge forced and seen in the browser by the stream |
 | IO12 | Editor hint when stereo effects sit before a mono-summing block | ◐ | mono-hint spec | Drive not flagged (it never sums to mono); UI not driven in the running editor |
-| IO13 | Cab resonance helper: guided sine sweep that writes the amp's LF Resonance | ◐ | The_test_tone_replaces_a_blocks_output…; The_test_tone_plays_for_a_block_without_touching_the_preset | helper UI not driven in the running editor |
+| IO13 | Cab resonance helper: guided sine sweep that writes the amp's Load resonance | ◐ | The_test_tone_replaces_a_blocks_output…; The_test_tone_plays_for_a_block_without_touching_the_preset | helper UI not driven in the running editor |
 
 ## CB: Cab block (wiki *Cab block*)
 

@@ -114,7 +114,31 @@ public sealed class SynthBlock() : DspBlock(Info) {
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
             EffectsMix.Param
         ],
-        maxInstances: 1
+        maxInstances: 1,
+        pages: [
+            new(
+                "Voice 1",
+                [
+                    "voice1Shape", "voice1Track", "voice1Freq", "voice1Shift", "voice1Tune", "voice1Level",
+                    "voice1Duty", "voice1Pan", "voice1FilterType", "voice1Cutoff", "voice1Resonance"
+                ]
+            ),
+            new(
+                "Voice 2",
+                [
+                    "voice2Shape", "voice2Track", "voice2Freq", "voice2Shift", "voice2Tune", "voice2Level",
+                    "voice2Duty", "voice2Pan", "voice2FilterType", "voice2Cutoff", "voice2Resonance"
+                ]
+            ),
+            new(
+                "Voice 3",
+                [
+                    "voice3Shape", "voice3Track", "voice3Freq", "voice3Shift", "voice3Tune", "voice3Level",
+                    "voice3Duty", "voice3Pan", "voice3FilterType", "voice3Cutoff", "voice3Resonance"
+                ]
+            ),
+            new("Envelope", ["envAmount", "attack", "release", "glide", "threshold", "globalMix"])
+        ]
     );
 
     /// <summary>

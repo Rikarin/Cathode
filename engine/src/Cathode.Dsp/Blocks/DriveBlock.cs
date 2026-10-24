@@ -247,7 +247,19 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
                 Recompile = true
             }
         ],
-        maxInstances: 4
+        maxInstances: 4,
+        pages: [
+            new("Basic", ["drive", "tone", "inputVol", "stackBass", "stackMid", "lowCut", "highCut"]),
+            new("Tone", ["bass", "mid", "midFreq", "highMid", "treble", "bassResponse"]),
+            new("Graphic EQ", ["eq2", "geq1", "geq2", "geq3", "geq4", "geq5", "geq6", "geq7", "geq8", "geq9", "geq10"]),
+            new(
+                "Advanced",
+                [
+                    "clipType", "clipShape", "diodeType", "diodeCount", "dryLevel", "bias", "slewRate", "bitReduce",
+                    "sampleRate", "oversampling"
+                ]
+            )
+        ]
     );
 
     /// <summary>Disables antiderivative anti-aliasing, for measuring what it buys.</summary>

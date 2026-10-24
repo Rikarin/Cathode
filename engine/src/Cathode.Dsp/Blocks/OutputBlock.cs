@@ -25,7 +25,7 @@ public sealed class OutputBlock(BlockDescriptor descriptor) : DspBlock(descripto
 
     public OutputBlock() : this(Info) { }
 
-    public static BlockDescriptor Info { get; } = Describe("output", "Output", 4);
+    public static BlockDescriptor Info { get; } = Describe("output", "Output 1", 1);
 
     /// <summary>Outputs 2-4, by index 1-3 (index 0 is <see cref="Info" />).</summary>
     public static IReadOnlyList<BlockDescriptor> Numbered { get; } = [

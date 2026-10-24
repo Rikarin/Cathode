@@ -312,7 +312,17 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             ..Slot(3, 5, 0, 1, 35, 2, true),
             ..Slot(4, 5, 3, 8, 0, 12, true)
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "input", "lowcut", "lowslope", "highcut", "highslope", "air", "airfreq", "motor", "motortime"
+                ]
+            ),
+            new("Preamp", ["preampMode", "preamp", "drive", "saturation", "prebass", "premid", "pretreble"]),
+            new("Room", ["room", "roomsize", "roomshape", "floor", "hfdamp", "lfdamp", "diffusion", "micspacing"])
+        ]
     );
 
     public IReadOnlyList<string> AssetSlots => SlotAssets;

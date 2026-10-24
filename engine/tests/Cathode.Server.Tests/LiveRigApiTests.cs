@@ -457,6 +457,47 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Each_hardware_input_feeds_one_input_block_and_a_preset_has_one_output_1() {
+        var added = await Post("/api/v1/live/blocks", new AddBlockRequest(BuiltInTypes.Input, 0, 0));
+        var second = added.Preset.Blocks.Single(b => b.Id == "input1");
+        Assert.All(Preset.ChannelNames, c => Assert.Equal(1, second.Channels[c]["source"])); // Input 2, on every channel
+
+        using var taken = await client.PatchAsJsonAsync(
+            "/api/v1/live/blocks/in1/params",
+            new Dictionary<string, float> { ["source"] = 1 },
+            Token
+        );
+        Assert.Equal(HttpStatusCode.Conflict, taken.StatusCode);
+
+        var moved = await Patch(
+            "/api/v1/live/blocks/input1/params?channel=B",
+            new Dictionary<string, float> { ["source"] = 4 }
+        );
+        Assert.All(
+            Preset.ChannelNames,
+            c => Assert.Equal(4, moved.Preset.Blocks.Single(b => b.Id == "input1").Channels[c]["source"])
+        );
+
+        foreach (var row in new[] { 1, 3, 4, 5 }) { // row 2 holds in1
+            await Post("/api/v1/live/blocks", new AddBlockRequest(BuiltInTypes.Input, row, 0));
+        }
+
+        using var seventh = await client.PostAsJsonAsync(
+            "/api/v1/live/blocks",
+            new AddBlockRequest(BuiltInTypes.Input, 0, 1),
+            Token
+        );
+        using var output = await client.PostAsJsonAsync(
+            "/api/v1/live/blocks",
+            new AddBlockRequest(BuiltInTypes.Output, 0, 13),
+            Token
+        );
+        Assert.Equal(HttpStatusCode.Conflict, seventh.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, output.StatusCode);
+        Assert.Equal(6, (await Live()).Preset.Blocks.Count(b => b.Type == BuiltInTypes.Input));
+    }
+
     async Task<LiveState> Delete(string url) => await Read(await client.DeleteAsync(url, Token));
 
     async Task<LiveState> Live() => (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!;

@@ -361,9 +361,40 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             <div
               class="from-surface-raised to-surface border-border flex gap-6 rounded-xl border bg-linear-to-b p-5 shadow-[inset_0_1px_0_rgb(255_255_255/0.05)]"
             >
+              @if (pages().length > 1) {
+                <nav
+                  role="tablist"
+                  aria-label="Block pages"
+                  aria-orientation="vertical"
+                  class="border-border -my-1 flex w-32 shrink-0 flex-col gap-0.5 border-e pe-3"
+                  data-testid="block-pages"
+                >
+                  @for (name of pages(); track name) {
+                    <button
+                      type="button"
+                      role="tab"
+                      class="rounded-md px-2.5 py-1.5 text-start text-sm transition-colors"
+                      [class.bg-active-overlay]="name === page()"
+                      [class.font-medium]="name === page()"
+                      [class.text-foreground-muted]="name !== page()"
+                      [class.hover:bg-hover-overlay]="name !== page()"
+                      [class.hover:text-foreground]="name !== page()"
+                      [style.color]="name === page() ? accent() : null"
+                      [attr.aria-selected]="name === page()"
+                      (click)="showPage(name)"
+                    >
+                      {{ name }}
+                    </button>
+                  }
+                </nav>
+              }
               @if (mainParams().length > 0) {
-                <div class="flex min-w-0 flex-1 flex-wrap content-start gap-x-3 gap-y-5">
-                  @for (param of mainParams(); track param.id) {
+                <div
+                  role="tabpanel"
+                  class="grid min-w-0 flex-1 grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] content-start justify-items-center gap-x-3 gap-y-5"
+                  [attr.aria-label]="page()"
+                >
+                  @for (param of pageParams(); track param.id) {
                     <cth-param-control [block]="block" [param]="param" [accent]="accent()" />
                   }
                 </div>
@@ -507,6 +538,30 @@ export class BlockEditor {
   /** The block's own controls, and its output stage (level, mix, balance, pan) set apart on the right. */
   protected readonly mainParams = computed(() => this.otherParams().filter(p => !OutputParams.has(p.id)));
   protected readonly outputParams = computed(() => this.otherParams().filter(p => OutputParams.has(p.id)));
+  /** The block's pages that have a control to show (a page may hold only output or hidden controls). */
+  protected readonly pages = computed(() => {
+    const declared = this.info()?.pages ?? [];
+    return declared.filter(name => this.mainParams().some(p => (p.page ?? declared[0]) === name));
+  });
+  /** The page showing: the one last chosen for this block type, else the first. */
+  protected readonly page = computed(() => {
+    const pages = this.pages();
+    const chosen = this.ui.blockPage()[this.block()?.type ?? ''];
+    return chosen && pages.includes(chosen) ? chosen : (pages[0] ?? null);
+  });
+  /** The controls on the page showing; all of them for a block with one page. */
+  protected readonly pageParams = computed(() => {
+    const page = this.page();
+    const first = this.info()?.pages?.[0];
+    return this.pages().length > 1 ? this.mainParams().filter(p => (p.page ?? first) === page) : this.mainParams();
+  });
   protected readonly category = computed(() => this.info()?.category ?? '');
   protected readonly accent = computed(() => blockAccent(this.category()));
+
+  protected showPage(name: string): void {
+    const type = this.block()?.type;
+    if (type) {
+      this.ui.blockPage.update(pages => ({ ...pages, [type]: name }));
+    }
+  }
 }

@@ -1125,7 +1125,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** A Circuit Amp's speaker resonance: the frequency at LF Resonance 100 % for its model and speaker, the current setting and the frequency it gives. */
+    /** A Circuit Amp's speaker load resonance: the frequency at Load resonance 100 % for its model and Speaker load (with Follow Cab, the followed Cab's speaker), the current setting and the frequency it gives. */
     get: operations['GetSpeakerResonance'];
     put?: never;
     post?: never;
@@ -1749,7 +1749,8 @@ export interface components {
     };
     /**
      * @description A block type the editor can place. `CpuCost` is its measured cost in percent of one core at 48 kHz
-     *     (64-frame blocks, its most expensive type), for the editor's CPU estimate; 0 for built-in cells.
+     *     (64-frame blocks, its most expensive type), for the editor's CPU estimate; 0 for built-in cells. `Pages`
+     *     names the editor pages its parameters sit on (each string? ParameterInfo.Page), in order; empty for one.
      */
     BlockTypeInfo: {
       typeId: string;
@@ -1766,6 +1767,7 @@ export interface components {
        * @default 0
        */
       cpuCost: number;
+      pages?: null | string[];
     };
     BypassModeRequest: {
       mode: string;
@@ -2240,6 +2242,7 @@ export interface components {
       taper: string;
       options?: null | string[];
       typeLabels?: null | string[];
+      page?: null | string;
     };
     /**
      * @description One control on a performance page: a parameter of a block, by the block's id (`amp1`) so a global page
@@ -2511,8 +2514,8 @@ export interface components {
       created: string;
     };
     /**
-     * @description A Circuit Amp's speaker resonance: the model's (or the chosen speaker's) frequency at LF Resonance 100 %, the
-     *     LF Resonance setting, and the frequency it gives.
+     * @description A Circuit Amp's speaker load resonance: the model's (or the chosen load's; with Follow Cab, the followed Cab's
+     *     speaker's) frequency at Load resonance 100 %, the Load resonance setting, and the frequency it gives.
      */
     SpeakerResonanceInfo: {
       /** Format: double */

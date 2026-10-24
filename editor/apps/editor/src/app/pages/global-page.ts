@@ -460,30 +460,36 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                 </button>
               }
             </div>
-            <xui-table>
-              <xui-tr>
-                <xui-th>Switch</xui-th>
-                <xui-th>Sends</xui-th>
-                <xui-th>Tap</xui-th>
-                <xui-th>Hold</xui-th>
-                <xui-th>LED</xui-th>
-                <xui-th>Then layout</xui-th>
-                <xui-th>In this preset</xui-th>
-                <xui-th><span class="sr-only">Remove</span></xui-th>
-              </xui-tr>
+            <div role="table" aria-label="Footswitches on this view" class="flex flex-col gap-1">
+              <div
+                role="row"
+                class="text-foreground-muted grid grid-cols-[7rem_13.5rem_minmax(8rem,1fr)_minmax(8rem,1fr)_2.5rem_minmax(7rem,9rem)_minmax(8rem,1fr)_2rem] items-center gap-2 px-1 text-xs font-medium"
+              >
+                <span role="columnheader">Switch</span>
+                <span role="columnheader">Sends</span>
+                <span role="columnheader">Tap</span>
+                <span role="columnheader">Hold</span>
+                <span role="columnheader">LED</span>
+                <span role="columnheader">Then layout</span>
+                <span role="columnheader">In this preset</span>
+                <span role="columnheader"><span class="sr-only">Remove</span></span>
+              </div>
               @for (fs of switchesOnView(layout); track fs.index) {
-                <xui-tr>
-                  <xui-td>
+                <div
+                  role="row"
+                  class="bg-surface-raised grid grid-cols-[7rem_13.5rem_minmax(8rem,1fr)_minmax(8rem,1fr)_2.5rem_minmax(7rem,9rem)_minmax(8rem,1fr)_2rem] items-center gap-2 rounded-md px-1 py-1.5"
+                >
+                  <div role="cell" class="min-w-0">
                     <input
                       xuiInput
                       size="sm"
-                      class="w-28"
+                      class="w-full"
                       [attr.aria-label]="'Switch ' + fs.index + ' label'"
                       [value]="fs.label"
                       (change)="editSwitch(layout, fs, { label: $any($event.target).value })"
                     />
-                  </xui-td>
-                  <xui-td class="flex items-center gap-1">
+                  </div>
+                  <div role="cell" class="flex items-center gap-1">
                     <xui-select
                       class="w-20"
                       [filterable]="false"
@@ -510,12 +516,12 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                       [value]="fs.channel"
                       (change)="editSwitch(layout, fs, { channel: +$any($event.target).value })"
                     />
-                  </xui-td>
-                  <xui-td>
+                  </div>
+                  <div role="cell" class="min-w-0">
                     <input
                       xuiInput
                       size="sm"
-                      class="w-40"
+                      class="w-full"
                       placeholder="scene 2"
                       [attr.aria-label]="'Switch ' + fs.index + ' tap action'"
                       [value]="actionText(fs.tap)"
@@ -525,28 +531,28 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                         })
                       "
                     />
-                  </xui-td>
-                  <xui-td>
+                  </div>
+                  <div role="cell" class="min-w-0">
                     <input
                       xuiInput
                       size="sm"
-                      class="w-40"
+                      class="w-full"
                       placeholder="(none)"
                       [attr.aria-label]="'Switch ' + fs.index + ' hold action'"
                       [value]="fs.hold ? actionText(fs.hold) : ''"
                       (change)="editSwitch(layout, fs, { hold: parseAction($any($event.target).value) })"
                     />
-                  </xui-td>
-                  <xui-td>
+                  </div>
+                  <div role="cell" class="min-w-0">
                     <xui-switch
                       [attr.aria-label]="'Switch ' + fs.index + ' LED'"
                       [checked]="fs.led"
                       (checkedChange)="editSwitch(layout, fs, { led: $event })"
                     />
-                  </xui-td>
-                  <xui-td>
+                  </div>
+                  <div role="cell" class="min-w-0">
                     <xui-select
-                      class="w-32"
+                      class="w-full"
                       placeholder="(stay)"
                       [filterable]="false"
                       [attr.aria-label]="'Switch ' + fs.index + ' layout link'"
@@ -555,19 +561,19 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                       [value]="linkOf(fs)"
                       (valueChange)="editSwitch(layout, fs, { link: $event?.id ?? null })"
                     />
-                  </xui-td>
-                  <xui-td>
+                  </div>
+                  <div role="cell" class="min-w-0">
                     <input
                       xuiInput
                       size="sm"
-                      class="w-36"
+                      class="w-full"
                       placeholder="(layout's)"
                       [attr.aria-label]="'Switch ' + fs.index + ' action in this preset'"
                       [value]="presetOverride(layout.id, fs.index)"
                       (change)="setOverride(layout.id, fs.index, $any($event.target).value)"
                     />
-                  </xui-td>
-                  <xui-td>
+                  </div>
+                  <div role="cell" class="min-w-0">
                     <button
                       xuiButton
                       variant="ghost"
@@ -578,10 +584,10 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                     >
                       <ng-icon xui name="matDeleteRound" size="sm" />
                     </button>
-                  </xui-td>
-                </xui-tr>
+                  </div>
+                </div>
               }
-            </xui-table>
+            </div>
             <div>
               <button xuiButton variant="outline" size="sm" type="button" (click)="addSwitch(layout)">
                 <ng-icon xui name="matAddRound" size="sm" /> Add switch

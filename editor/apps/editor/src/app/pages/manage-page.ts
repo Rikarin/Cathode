@@ -164,8 +164,15 @@ const PresetMime = 'application/x-cathode-preset';
               >
                 <span class="text-foreground-subtle tabular-nums">{{ slot.index + 1 }}</span>
                 <span class="truncate font-medium">{{ slot.name }}</span>
-                @if (slot.color) {
-                  <span class="absolute top-1 right-1.5 size-2 rounded-full" [style.background]="slot.color"></span>
+                @if (slot.favorite || slot.color) {
+                  <span class="absolute top-1 right-1.5 flex items-center gap-1">
+                    @if (slot.favorite) {
+                      <ng-icon xui name="matStarRound" size="xs" class="text-warning" aria-label="favourite" />
+                    }
+                    @if (slot.color) {
+                      <span class="size-2 rounded-full" [style.background]="slot.color"></span>
+                    }
+                  </span>
                 }
                 @if (slot.changed) {
                   <span class="text-warning absolute right-1.5 bottom-0.5 text-[10px]" aria-label="changed">●</span>
@@ -280,11 +287,22 @@ export class ManagePage {
         index,
         id: id ?? null,
         name: id ? session.nameOf(id) : '',
-        color: id ? (session.meta.get(id)?.color ?? session.presets.get(id)?.color ?? null) : null,
+        ...(id ? this.metaOf(id) : { color: null, favorite: false }),
         changed: session.isChanged(ref)
       };
     });
   });
+  /** A preset's colour tag and favourite flag as Save will leave them (a pending "" clears the colour). */
+  private metaOf(id: string): { color: string | null; favorite: boolean } {
+    const session = this.session();
+    const pending = session.meta.get(id);
+    const stored = session.presets.get(id);
+    return {
+      color: pending?.color !== undefined ? pending.color || null : (stored?.color ?? null),
+      favorite: pending?.favorite ?? stored?.favorite ?? false
+    };
+  }
+
   protected readonly selectedIds = computed(() =>
     [...this.selected()].map(i => this.slots()[i]?.id).filter((id): id is string => !!id)
   );

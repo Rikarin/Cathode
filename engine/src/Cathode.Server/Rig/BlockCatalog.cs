@@ -1,6 +1,7 @@
 using Cathode.Contracts;
 using Cathode.Dsp;
 using Cathode.Dsp.Parameters;
+using Cathode.Dsp.Routing;
 using Cathode.Engine.Rig;
 
 namespace Cathode.Server.Rig;
@@ -28,16 +29,15 @@ public sealed class BlockCatalog {
 
     public BlockCatalog(BlockRegistry registry) {
         foreach (var builtIn in new[] {
-                     new BlockTypeInfo(BuiltInTypes.Input, "Input", "I/O", 4, 0, [], []),
-                     new BlockTypeInfo(BuiltInTypes.Output, "Output", "I/O", 4, 0, [], []),
+                     new BlockTypeInfo(BuiltInTypes.Input, "Input", "I/O", HardwareInputs.Names.Length, 0, [], []),
+                     new BlockTypeInfo(BuiltInTypes.Output, "Output 1", "I/O", 1, 0, [], []),
                      new BlockTypeInfo(BuiltInTypes.Shunt, "Shunt", "Routing", 84, 0, [], [])
                  }) {
             infos[builtIn.TypeId] = builtIn;
         }
 
         foreach (var descriptor in registry.Descriptors) {
-            using var block = registry.Create(descriptor.TypeId);
-            var slots = block is IAssetConsumer consumer ? consumer.AssetSlots : [];
+            var slots = registry.AssetSlots(descriptor.TypeId);
             descriptors[descriptor.TypeId] = descriptor;
             infos[descriptor.TypeId] = new(
                 descriptor.TypeId,
@@ -47,7 +47,8 @@ public sealed class BlockCatalog {
                 descriptor.Channels,
                 [..slots],
                 [..descriptor.Params.Select(ToInfo)],
-                BlockCosts.Of(descriptor.TypeId) ?? 0
+                BlockCosts.Of(descriptor.TypeId) ?? 0,
+                descriptor.Pages
             );
         }
     }
@@ -68,6 +69,7 @@ public sealed class BlockCatalog {
             p.Unit,
             p.Taper.ToString().ToLowerInvariant(),
             p.Options,
-            p.TypeLabels
+            p.TypeLabels,
+            p.Page
         );
 }

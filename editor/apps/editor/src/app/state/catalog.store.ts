@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { type BlockTypeInfo, BuiltInTypes, unwrap } from '@cathode/api-client';
+import { type BlockTypeInfo, unwrap } from '@cathode/api-client';
 import { ConnectionService } from '../core/connection';
 import { Notify } from '../core/notify';
 
@@ -16,12 +16,8 @@ export class CatalogStore {
   readonly rigParams = computed(() => new Map((this.rig()?.params ?? []).map(p => [p.id, p])));
   readonly byId = computed(() => new Map(this.types().map(t => [t.typeId, t])));
 
-  /** What the block palette offers: everything but the grid's input and output cells. */
-  readonly placeable = computed(() =>
-    this.types().filter(
-      t => t.typeId !== BuiltInTypes.input && t.typeId !== BuiltInTypes.output && t.category !== 'System'
-    )
-  );
+  /** What the block palette offers: every block type, Input and Output included, so a deleted one can come back. */
+  readonly placeable = computed(() => this.types().filter(t => t.category !== 'System'));
 
   async load(): Promise<void> {
     await this.notify.run(async () => {

@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "cathode-website",
+  "compatibility_date": "2026-10-01",
+  // No `main`, and so no Worker code: every route is prerendered, and the deployment is the static assets alone.
+  "assets": {
+    "directory": "./dist/website/browser",
+    // `404.html` is the prerendered not-found page, copied into place by `pnpm build`. Served with a real 404, it
+    // reads without JavaScript, and the router renders the same component over it on boot.
+    "not_found_handling": "404-page"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

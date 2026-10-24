@@ -12,6 +12,12 @@ public sealed class ServerOptions {
     /// </summary>
     public string? Token { get; set; }
 
+    /// <summary>
+    ///     The editor's web build to serve at the root (a headless rig's packaged <c>editor</c> folder), or null to serve
+    ///     only the API, as the desktop app's sidecar does.
+    /// </summary>
+    public string? EditorDirectory { get; set; }
+
     public EngineOptions Engine { get; set; } = new();
 }
 

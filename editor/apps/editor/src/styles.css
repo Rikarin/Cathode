@@ -46,6 +46,35 @@ textarea,
   display: none !important;
 }
 
+/*
+ * xUI's select trigger has an 11rem minimum width that overflows any narrower select into its neighbours. A select
+ * given a width (w-20, w-full, ...) takes that width; one without keeps xUI's default.
+ */
+xui-select[class*='w-'] > button {
+  min-width: 0;
+}
+
+/* A select in a knob-sized cell (the block editor's rack): tighter padding, smaller text and chevron. */
+.cth-compact-select > button {
+  padding-inline: 0.375rem;
+  font-size: 0.75rem;
+}
+
+.cth-compact-select > button > ng-icon {
+  margin-inline-start: 0.125rem;
+  width: 0.75rem;
+}
+
+/* The preset and scene readout's up/down steppers: half-height buttons stacked beside each line. */
+.cth-stepper {
+  @apply bg-surface-inset border-border text-foreground-muted grid w-5 flex-1 place-items-center border;
+  @apply hover:bg-hover-overlay hover:text-foreground focus-visible:border-focus outline-none;
+}
+
+.cth-stepper + .cth-stepper {
+  border-top-width: 0;
+}
+
 /* Tooltips: a black chip with a hairline edge, not xUI's inverted (white on the dark theme) neutral one. */
 :is(xui-tooltip-panel.bg-foreground, xui-tooltip-panel .bg-foreground) {
   background: #000;

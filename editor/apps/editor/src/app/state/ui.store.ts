@@ -47,6 +47,8 @@ export class UiStore {
   readonly settings = signal<SettingsTab | null>(null);
   readonly saveBlockOpen = signal(false);
   readonly batchSet = signal<ParamTarget | null>(null);
+  /** The drawer page last shown per block type (Basic, Tone, ...), so a block opens where it was left. */
+  readonly blockPage = signal<Readonly<Record<string, string>>>({});
   /** Tiles show their abbreviation, channel letter and a Global mark: F1 toggles, ⌥ shows while held. */
   readonly blockInfo = computed(() => this.shortcuts.blockInfo() || this.shortcuts.altHeld());
 

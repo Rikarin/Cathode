@@ -2336,7 +2336,7 @@
         "tags": [
           "Live"
         ],
-        "summary": "A Circuit Amp\u0027s speaker resonance: the frequency at LF Resonance 100 % for its model and speaker, the current setting and the frequency it gives.",
+        "summary": "A Circuit Amp\u0027s speaker load resonance: the frequency at Load resonance 100 % for its model and Speaker load (with Follow Cab, the followed Cab\u0027s speaker), the current setting and the frequency it gives.",
         "operationId": "GetSpeakerResonance",
         "parameters": [
           {
@@ -3982,9 +3982,18 @@
             "type": "number",
             "format": "double",
             "default": 0
+          },
+          "pages": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         },
-        "description": "A block type the editor can place. \u0060CpuCost\u0060 is its measured cost in percent of one core at 48 kHz\n(64-frame blocks, its most expensive type), for the editor\u0027s CPU estimate; 0 for built-in cells."
+        "description": "A block type the editor can place. \u0060CpuCost\u0060 is its measured cost in percent of one core at 48 kHz\n(64-frame blocks, its most expensive type), for the editor\u0027s CPU estimate; 0 for built-in cells. \u0060Pages\u0060\nnames the editor pages its parameters sit on (each string? ParameterInfo.Page), in order; empty for one."
       },
       "BypassModeRequest": {
         "required": [
@@ -5051,6 +5060,12 @@
             "items": {
               "type": "string"
             }
+          },
+          "page": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "A block parameter. \u0060TypeLabels\u0060, where present, names the parameter per value of the block\u0027s \u0060type\u0060\nparameter (an amp model\u0027s own name for a generic control), empty where that type lacks the control: hide it there."
@@ -5793,7 +5808,7 @@
             "format": "double"
           }
         },
-        "description": "A Circuit Amp\u0027s speaker resonance: the model\u0027s (or the chosen speaker\u0027s) frequency at LF Resonance 100 %, the\nLF Resonance setting, and the frequency it gives."
+        "description": "A Circuit Amp\u0027s speaker load resonance: the model\u0027s (or the chosen load\u0027s; with Follow Cab, the followed Cab\u0027s\nspeaker\u0027s) frequency at Load resonance 100 %, the Load resonance setting, and the frequency it gives."
       },
       "Stream": {
         "type": "string",

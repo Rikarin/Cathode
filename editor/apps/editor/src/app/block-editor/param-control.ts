@@ -11,7 +11,6 @@ import {
 } from '@ng-icons/material-icons/round';
 import { XuiContextMenuImports } from '@xui/context-menu';
 import { XuiMenuImports } from '@xui/menu';
-import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import { XuiSelectImports } from '@xui/select';
 import { XuiTooltipImports } from '@xui/tooltip';
 import { ModifierDialog } from '../controls/modifier-dialog';
@@ -23,8 +22,8 @@ import { LiveStore } from '../state/live.store';
 import { UiStore } from '../state/ui.store';
 
 /**
- * One parameter of the selected block, generated from its descriptor: a knob for continuous values, a segmented
- * control or select for choices, a switch for on/off. Edits go to the channel the block uses in the active scene.
+ * One parameter of the selected block, generated from its descriptor: a knob for continuous values, a select for
+ * choices, a switch for on/off. Edits go to the channel the block uses in the active scene.
  * Right-click a continuous parameter to give it a modifier or learn a MIDI controller for it; a dot marks a modified
  * parameter, whose value then follows its controller.
  */
@@ -37,7 +36,6 @@ import { UiStore } from '../state/ui.store';
     ModifierDialog,
     XuiContextMenuImports,
     XuiMenuImports,
-    XuiSegmentedControlImports,
     XuiSelectImports,
     XuiTooltipImports
   ],
@@ -50,7 +48,7 @@ import { UiStore } from '../state/ui.store';
       matTuneRound
     })
   ],
-  host: { class: 'contents' },
+  host: { class: 'block' },
   template: `
     @switch (param().kind) {
       @case ('float') {
@@ -100,7 +98,7 @@ import { UiStore } from '../state/ui.store';
       }
       @case ('enum') {
         @if (variant() === 'sidebar') {
-          <div class="flex flex-col gap-1.5">
+          <div class="flex flex-col gap-1.5" [xuiContextMenuTriggerFor]="settingMenu">
             <span class="text-foreground-muted text-[11px] font-semibold tracking-wide uppercase" [id]="labelId()">
               {{ param().name }}
             </span>
@@ -114,28 +112,19 @@ import { UiStore } from '../state/ui.store';
             />
           </div>
         } @else {
-          <div class="flex w-40 flex-col items-center gap-1.5">
+          <!-- One knob-sized cell, so knobs, toggles and selects make a uniform grid. -->
+          <div class="flex w-20 flex-col items-center gap-1.5" [xuiContextMenuTriggerFor]="settingMenu">
             <span class="h-6" aria-hidden="true"></span>
             <div class="flex h-[52px] w-full items-center">
-              @if (segmented()) {
-                <xui-segmented-control
-                  size="sm"
-                  fill
-                  [aria-label]="param().name"
-                  [options]="choices()"
-                  [value]="value()"
-                  (valueChange)="set($event ?? 0)"
-                />
-              } @else {
-                <xui-select
-                  class="w-full"
-                  [aria-labelledby]="labelId()"
-                  [filterable]="false"
-                  [items]="options()"
-                  [value]="options()[value()] ?? null"
-                  (valueChange)="set(Math.max(0, options().indexOf($event ?? '')))"
-                />
-              }
+              <xui-select
+                class="cth-compact-select w-full"
+                [aria-labelledby]="labelId()"
+                [matchTargetWidth]="false"
+                [filterable]="false"
+                [items]="options()"
+                [value]="options()[value()] ?? null"
+                (valueChange)="set(Math.max(0, options().indexOf($event ?? '')))"
+              />
             </div>
             <span class="text-foreground-muted text-center text-xs leading-tight" [id]="labelId()">
               {{ param().name }}
@@ -146,6 +135,7 @@ import { UiStore } from '../state/ui.store';
       @case ('bool') {
         <cth-toggle
           class="w-20"
+          [xuiContextMenuTriggerFor]="settingMenu"
           [label]="param().name"
           [color]="accent()"
           [checked]="value() >= 0.5"
@@ -153,6 +143,18 @@ import { UiStore } from '../state/ui.store';
         />
       }
     }
+    <!-- A switch or choice: what applies to any setting (modifiers and MIDI learn drive continuous values). -->
+    <ng-template #settingMenu>
+      <xui-menu>
+        <button xuiMenuItem icon="matDashboardCustomizeRound" (click)="addToPerform('preset')">
+          Add to the preset's Perform page
+        </button>
+        <button xuiMenuItem icon="matDashboardCustomizeRound" (click)="addToPerform('global')">
+          Add to the global Perform page
+        </button>
+        <button xuiMenuItem icon="matDynamicFeedRound" (click)="batchSet()">Set in other presets…</button>
+      </xui-menu>
+    </ng-template>
   `
 })
 export class ParamControl {
@@ -177,8 +179,6 @@ export class ParamControl {
     return this.live.valueOf(block, this.live.channelOf(block.id), this.param().id) ?? this.param().default;
   });
   protected readonly options = computed(() => this.param().options ?? []);
-  protected readonly choices = computed(() => this.options().map((label, value) => ({ label, value })));
-  protected readonly segmented = computed(() => this.options().length <= 3);
   protected readonly Math = Math;
 
   protected readonly editing = signal(false);

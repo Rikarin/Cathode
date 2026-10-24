@@ -1,0 +1,348 @@
+@import 'tailwindcss';
+
+/* The display face, self-hosted so the first paint does not wait on a third party. */
+@import '@fontsource-variable/inter';
+
+@source './app';
+
+/*
+ * The site is one black stage, the same world as xuijs.org: true black ground, glass cards lit by one colour. Here the
+ * colour is the electric cyan of the app icon's waveform rather than xUI's blue. Every border and fill is white at an
+ * alpha between 5% and 25%.
+ */
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: #000000;
+  --color-foreground: oklch(98.5% 0 0);
+  --color-foreground-muted: oklch(70.5% 0.015 286);
+  /* zinc-500 sits at 4.3:1 on true black; this clears 4.5:1 for the small print. */
+  --color-foreground-subtle: oklch(66% 0.01 286);
+  /* The solid fill: dark enough to carry white text at 4.5:1. */
+  --color-primary: oklch(56% 0.14 240);
+  /* The lit accent: the icon's waveform, for glyphs, glows and lit cells only. */
+  --color-signal: oklch(80% 0.14 220);
+  --color-focus: oklch(78% 0.14 220);
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  background: var(--color-background);
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  @apply bg-background text-foreground font-sans antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+  min-height: 100svh;
+  scrollbar-color: color-mix(in oklab, #ffffff 20%, transparent) transparent;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--color-primary) 55%, transparent);
+  color: #ffffff;
+}
+
+/* Sections are jumped to from the sticky header; this keeps their headline clear of it. */
+section[id] {
+  scroll-margin-top: 4.5rem;
+}
+
+.skip-link {
+  @apply sr-only;
+}
+
+.skip-link:focus {
+  @apply text-foreground not-sr-only absolute start-4 top-4 z-50 rounded-md bg-zinc-900 px-4 py-2 ring-2 ring-(--color-focus);
+}
+
+:where(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ display type */
+/* Inter at semibold with tight tracking, balanced so a two-line headline never orphans a word. */
+.display {
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+/* The lavender → white → ice fill on display headlines. The box shrinks to the text so the coloured ends land on the
+   first and last words; `padding-bottom` keeps descenders inside the clipped box. */
+.gradient,
+.gradient-warm {
+  display: block;
+  width: fit-content;
+  margin-inline: auto;
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient {
+  background-image: linear-gradient(90deg, #cabfff 0%, #ffffff 45%, #ffffff 55%, #bfeaff 100%);
+}
+
+/* The warm alternate, used once to break the run of cool headlines. */
+.gradient-warm {
+  background-image: linear-gradient(90deg, #ffabab 0%, #ffffff 40%, #ffffff 52%, #bbadff 100%);
+}
+
+.gradient.text-start,
+.gradient-warm.text-start {
+  margin-inline: 0;
+}
+
+/* ------------------------------------------------------------------ surfaces */
+/* Translucent card on black. The inset highlight is the top edge catching light, which is what separates a glass card
+   from a grey rectangle. */
+.card {
+  position: relative;
+  border-radius: 1.5rem;
+  border: 1px solid color-mix(in oklab, #ffffff 10%, transparent);
+  background: color-mix(in oklab, #ffffff 5%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, #ffffff 6%, transparent);
+}
+
+.card-interactive {
+  transition:
+    border-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-interactive:hover {
+  border-color: color-mix(in oklab, #ffffff 18%, transparent);
+  background: color-mix(in oklab, #ffffff 7%, transparent);
+  transform: translateY(-2px);
+}
+
+/* The status pill above the headline. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklab, #ffffff 12%, transparent);
+  background: color-mix(in oklab, #ffffff 6%, transparent);
+  padding: 0.3rem 0.5rem 0.3rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-foreground);
+  text-decoration: none;
+  transition: border-color 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pill:hover {
+  border-color: color-mix(in oklab, #ffffff 25%, transparent);
+}
+
+/* ------------------------------------------------------------------ actions */
+/* The primary action: the "comet" button. A lavender→cyan tint, a 1px gradient hairline drawn by masking a padding box
+   out of a border-box fill, and a comet of light that orbits the hairline. */
+@property --comet-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.cta {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 3.5rem;
+  padding-inline: 1.625rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(90deg, rgb(170 153 255 / 0.24), rgb(26 179 255 / 0.24));
+  color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 600;
+  text-decoration: none;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.14),
+    0 16px 40px -16px rgb(60 170 255 / 0.55);
+  transition:
+    background 200ms cubic-bezier(0.445, 0.05, 0.55, 0.95),
+    box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cta::before,
+.cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  padding: 1px;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+
+.cta::before {
+  background: linear-gradient(90deg, rgb(170 153 255 / 0.85), rgb(26 179 255 / 0.85));
+  z-index: 1;
+}
+
+.cta::after {
+  background: conic-gradient(from var(--comet-angle), transparent 60%, #fff, rgb(255 255 255 / 0.07) 80%, transparent);
+  /* Always faintly in orbit, so a touch screen sees it too; full strength on hover. */
+  opacity: 0.55;
+  z-index: 2;
+  transition: opacity 200ms cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+
+.cta:hover {
+  background: linear-gradient(90deg, rgb(170 153 255 / 0.34), rgb(26 179 255 / 0.34));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.18),
+    0 20px 48px -16px rgb(60 170 255 / 0.7);
+}
+
+.cta:hover::after,
+.cta:focus-visible::after {
+  opacity: 1;
+}
+
+@keyframes comet {
+  to {
+    --comet-angle: 1.5turn;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cta::after {
+    animation: comet 2.5s linear infinite;
+  }
+}
+
+.cta:active {
+  transform: translateY(1px);
+}
+
+/* The unlit partner of the comet: same height and radius, no fill. */
+.ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 3.5rem;
+  padding-inline: 1.25rem;
+  border-radius: 0.75rem;
+  color: var(--color-foreground-muted);
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 150ms;
+}
+
+.ghost:hover {
+  color: var(--color-foreground);
+}
+
+/* The filled action in the header, with a lit top edge and a hairline outline. */
+.buy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 2.25rem;
+  padding-inline: 1.125rem;
+  border-radius: 0.375rem;
+  background:
+    linear-gradient(oklch(from var(--color-primary) calc(l + 0.12) c h), transparent 100%), var(--color-primary);
+  outline: 1px solid rgb(255 255 255 / 0.15);
+  outline-offset: -1px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 150ms;
+}
+
+.buy:hover {
+  opacity: 0.92;
+}
+
+.buy:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ light */
+/* A cyan wash behind the hero and the closer: the one colour allowed to own a region of the page. */
+.glow {
+  background:
+    radial-gradient(60% 70% at 50% -5%, color-mix(in oklab, var(--color-primary) 60%, transparent), transparent 72%),
+    radial-gradient(35% 45% at 68% 12%, rgb(170 153 255 / 0.26), transparent 70%),
+    radial-gradient(30% 40% at 32% 18%, rgb(26 179 255 / 0.2), transparent 70%);
+}
+
+/* A dot grid, radially masked, behind the routing grid section. */
+.dots {
+  background-image: radial-gradient(color-mix(in oklab, #ffffff 9%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(70% 70% at 50% 50%, #000, transparent);
+}
+
+/* The icon's waveform, drawn once across the hero. */
+.trace {
+  filter: drop-shadow(0 0 6px rgb(26 179 255 / 0.8)) drop-shadow(0 0 18px rgb(26 179 255 / 0.45));
+}
+
+@keyframes trace-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .trace path {
+    stroke-dasharray: 1;
+    animation: trace-draw 1600ms cubic-bezier(0.65, 0, 0.35, 1) 300ms both;
+  }
+}
+
+/* ------------------------------------------------------------------ motion */
+/* One entrance for the hero. Elements are visible by default; the animation only runs where motion is welcome,
+   staggered by `--i`. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rise {
+    animation: rise 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--i, 0) * 90ms);
+  }
+}

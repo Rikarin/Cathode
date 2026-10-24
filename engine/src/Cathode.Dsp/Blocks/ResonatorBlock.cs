@@ -153,7 +153,25 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
             EffectsMix.Param
         ],
         maxInstances: 2,
-        channels: 2
+        channels: 2,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "tuning", "root", "chord", "decay", "damping", "masterFeedback", "masterQ", "masterLevel",
+                    "masterPan"
+                ]
+            ),
+            new(
+                "Resonators",
+                [
+                    "freq1", "level1", "pan1", "feedback1", "filterLocation1", "filterQ1", "freq2", "level2", "pan2",
+                    "feedback2", "filterLocation2", "filterQ2", "freq3", "level3", "pan3", "feedback3",
+                    "filterLocation3", "filterQ3", "freq4", "level4", "pan4", "feedback4", "filterLocation4", "filterQ4"
+                ]
+            ),
+            new("Advanced", ["inputGain", "inputMode", "globalMix"])
+        ]
     );
 
     /// <summary>One sample of voice <paramref name="v" />: its comb, with its band-pass before or after it.</summary>

@@ -16,13 +16,19 @@ export class Startup {
   private readonly library = inject(LibraryStore);
   private readonly globals = inject(GlobalStore);
 
-  readonly state = signal<'starting' | 'ready' | 'failed'>('starting');
+  /** `token`: a browser reached a Server that wants an access token it does not have (or has a wrong one). */
+  readonly state = signal<'starting' | 'ready' | 'failed' | 'token'>('starting');
   readonly error = signal<string | null>(null);
 
   async start(): Promise<void> {
     this.state.set('starting');
     try {
       await this.connection.connect();
+      if (!this.connection.desktop && (await this.connection.refused())) {
+        this.state.set('token');
+        return;
+      }
+
       await this.catalog.load();
       if (this.catalog.types().length === 0) {
         throw new Error(`No answer from ${this.connection.connection()?.baseUrl}. Is cathode-server running?`);
@@ -35,5 +41,11 @@ export class Startup {
       this.error.set(error instanceof Error ? error.message : String(error));
       this.state.set('failed');
     }
+  }
+
+  /** Connects again with a token typed in the browser. */
+  async useToken(token: string): Promise<void> {
+    this.connection.useToken(token);
+    await this.start();
   }
 }

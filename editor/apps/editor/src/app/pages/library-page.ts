@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { ActivatedRoute, Router } from '@angular/router';
 import type { BlockPreset, PresetSummary } from '@cathode/api-client';
 import { provideIcons } from '@ng-icons/core';
-import { matDeleteRound, matSearchRound } from '@ng-icons/material-icons/round';
+import { matDeleteRound, matSearchRound, matStarOutlineRound, matStarRound } from '@ng-icons/material-icons/round';
 import { XuiAlertDialogImports } from '@xui/alert-dialog';
 import { XuiButtonImports } from '@xui/button';
 import { XuiDialogImports } from '@xui/dialog';
@@ -46,7 +46,7 @@ import { AssetLibrary, AssetList, AssetToolbar } from './asset-library';
     XuiSegmentedControlImports,
     XuiTextImports
   ],
-  providers: [AssetLibrary, provideIcons({ matDeleteRound, matSearchRound })],
+  providers: [AssetLibrary, provideIcons({ matDeleteRound, matSearchRound, matStarOutlineRound, matStarRound })],
   host: { class: 'flex h-full flex-col' },
   template: `
     <header class="border-border flex flex-wrap items-center gap-4 border-b px-6 py-3">
@@ -122,6 +122,7 @@ import { AssetLibrary, AssetList, AssetToolbar } from './asset-library';
         <div class="min-h-0 flex-1 overflow-auto px-6 pt-4">
           <xui-table interactive class="w-full" data-testid="preset-list" aria-label="Presets">
             <xui-tr class="bg-background sticky top-0 z-10">
+              <xui-th class="w-10" aria-label="Favourite" />
               <xui-th class="min-w-0 flex-1">Name</xui-th>
               <xui-th class="w-48">Author</xui-th>
               <xui-th class="w-52 justify-end">Modified</xui-th>
@@ -139,8 +140,27 @@ import { AssetLibrary, AssetList, AssetToolbar } from './asset-library';
                 (keydown.enter)="loadPreset(preset)"
                 (focus)="selected.set(preset)"
               >
+                <xui-td class="w-10">
+                  <button
+                    type="button"
+                    class="hover:bg-active-overlay rounded p-1"
+                    [class.text-warning]="preset.favorite"
+                    [class.text-foreground-subtle]="!preset.favorite"
+                    [attr.aria-label]="(preset.favorite ? 'Unfavourite ' : 'Favourite ') + preset.name"
+                    [attr.aria-pressed]="preset.favorite"
+                    (click)="
+                      $event.stopPropagation(); library.setPresetMetadata(preset.id, { favorite: !preset.favorite })
+                    "
+                    (dblclick)="$event.stopPropagation()"
+                  >
+                    <ng-icon xui size="sm" [name]="preset.favorite ? 'matStarRound' : 'matStarOutlineRound'" />
+                  </button>
+                </xui-td>
                 <xui-td class="min-w-0 flex-1">
                   <div class="flex flex-wrap items-center gap-1.5">
+                    @if (preset.color) {
+                      <span class="size-2.5 shrink-0 rounded-full" [style.background]="preset.color"></span>
+                    }
                     <span class="font-medium">{{ preset.name }}</span>
                     @for (tag of preset.tags; track tag) {
                       <xui-tag minimal round>{{ tag }}</xui-tag>
@@ -355,7 +375,9 @@ export class LibraryPage {
 
   protected readonly rows = computed(() => {
     const query = this.query().trim().toLowerCase();
-    const all = [...this.library.presets()].sort((a, b) => a.name.localeCompare(b.name));
+    const all = [...this.library.presets()].sort(
+      (a, b) => Number(b.favorite ?? false) - Number(a.favorite ?? false) || a.name.localeCompare(b.name)
+    );
     return query
       ? all.filter(p => [p.name, p.author ?? '', ...p.tags].some(field => field.toLowerCase().includes(query)))
       : all;
