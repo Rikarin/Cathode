@@ -276,3 +276,31 @@ the Plexi 50 W and 100 W, JMP 2204, JCM800 2203 and 2204, Silver Jubilee, JVM410
 Hiwatt DR103, Orange Rockerverb, Splawn Quick Rod, Suhr Badger, AC15, AC30 Top Boost, Matchless DC-30, Trainwreck
 Express, SLO-100, Mark IIC+, Mark IV, Dual Rectifier, Lone Star, 5150, 6505+, 5150III, Bogner Ecstasy, Überschall and
 Shiva, Diezel VH4 and Herbert, Engl Powerball and Savage, Carvin Legacy, Cameron CCV, Ampeg SVT and B-15, Roland JC-120.
+
+### Added from Fractal's current wiki list (October 2026)
+
+Fractal's wiki page "Amp models" lists every model in current firmware (Axe-Fx III, FM3, FM9, AM4, ICONS): about 330
+models. Against the catalogue above it adds these real amps:
+
+| Amp | Family | Status | Cathode type | Axe models | Typical cab |
+|---|---|---|---|---|---|
+| Fender Deluxe 6G3 (brownface) | Fender | 💤 Not planned | — | Deluxe 6G3 | 1x12 open |
+| Fender Vibrolux 6G11 (brownface, 1962/63) | Fender | 💤 Not planned | — | Vibrato Lux 6G11 | 2x10 open |
+| Supro 1695T Black Magick | US vintage | 💤 Not planned | — | Supremo Black Magick | 1x12 open |
+| Supro 1964T | US vintage | 💤 Not planned | — | Supremo 1964T | 1x12 open |
+| Marshall SV20H (Studio Vintage, 20 W Plexi) | Marshall | 💤 Not planned | — | Plexi Studio 20 | 2x12 / 4x12 closed |
+| Marshall SC20H (Studio Classic, 20 W JCM800) | Marshall | 💤 Not planned | — | Brit 800 Studio 20 | 2x12 / 4x12 closed |
+| Diamond Del Fuego | Modern high gain | 💤 Not planned | — | Del Fuego | 4x12 closed |
+
+The wiki also names variants of amps already listed, which can be covered by switches or extra types once the base amp
+exists:
+- **Fender:** a '59 Bassman LTD reissue, a 1971 silverface Twin Reverb, and old and Custom reissue Vibroverbs.
+- **Marshall:** Plexis dated 1967, 1969, 1970 and 1972, a 50 W Plexi with 6CA7 tubes, and JCM800 2203/2204 High and Low inputs.
+- **High gain:**
+  - EVH: the 5150III Stealth (100S).
+  - Mesa: Mark IIC+ Bright/Deep, the Mark IV rhythm and mid-gain voicings, the Mark V IIC+/MKIV/XT modes, and JP-2C Shred.
+  - Others: Ecstasy 20th Anniversary, Diezel Herbert MkIII, Carvin VL300, Revv Generator Green/Purple/Red, PRS Archon Clean/Lead/Bright, Fryette D60 Less/More.
+- **Boutique:** Two-Rock and ODS PAB switch variants.
+
+For each model the wiki page also gives the original amp's controls, power tubes, matching speakers and Fractal's comments.
+That is useful when building a model: check the controls and tubes against the schematic.
