@@ -144,13 +144,56 @@ public readonly record struct AmpControls(
 ///     The cathode resistor as a multiple of stock: the channel applies it to its last gain stage only (the Axe-Fx's
 ///     Preamp Bias), 1 elsewhere.
 /// </param>
+/// <param name="Hardness">Every preamp triode's cut-off knee (<see cref="TriodeModel.Hardened" />): 1 stock.</param>
+/// <param name="GridCurrent">
+///     Every preamp triode's grid current as a multiple of stock: how far a driven stage charges its coupling cap and
+///     shifts its bias (the Axe-Fx's Preamp Bias Excursion); cathode followers take <paramref name="FollowerGrid" />.
+/// </param>
+/// <param name="PlateFrequency">
+///     A plate-bypass cap's corner as a multiple of stock (the cap divided by it); the channel applies it per stage
+///     (Triode 1 and 2 Plate Freq on the last two stages with such a cap), 1 elsewhere.
+/// </param>
+/// <param name="MasterCap">The bright cap across a master pot, as a multiple of stock.</param>
+/// <param name="FollowerGrid">
+///     A cathode follower's grid current as a multiple of stock: its compression when the previous plate drives its
+///     grid above its cathode.
+/// </param>
+/// <param name="FollowerBias">
+///     A cathode follower's cathode resistor as a multiple of stock: its idle current, so how early and how
+///     asymmetrically it clips (its harmonics).
+/// </param>
+/// <param name="Stack">A tone stack in place of a <see cref="ToneStackStage" />'s own; null for stock.</param>
 public readonly record struct PreampSettings(
     TriodeModel? Tube = null,
     double BrightCap = 1,
     double StackFrequency = 1,
-    double CathodeResistor = 1
+    double CathodeResistor = 1,
+    double Hardness = 1,
+    double GridCurrent = 1,
+    double PlateFrequency = 1,
+    double MasterCap = 1,
+    double FollowerGrid = 1,
+    double FollowerBias = 1,
+    ToneStackDesign? Stack = null
 ) {
     public static PreampSettings Stock => new(null);
+
+    /// <summary>The tabulated device for a triode built with <paramref name="stock" />, with these settings.</summary>
+    public FastTriode Triode(TriodeModel stock) => new(TubeFor(stock), Hardness, GridCurrent);
+
+    /// <summary>The exact model of that device, for operating points.</summary>
+    public TriodeModel Law(TriodeModel stock) => TubeFor(stock).Hardened(Hardness);
+
+    /// <summary>Whether a change from <paramref name="previous" /> moves an operating point (the channel resets).</summary>
+    public bool MovesOperatingPoint(in PreampSettings previous) =>
+        Tube != previous.Tube
+        || CathodeResistor != previous.CathodeResistor
+        || Hardness != previous.Hardness
+        || FollowerBias != previous.FollowerBias;
+
+    /// <summary>Whether a stage must rebuild its devices for a change from <paramref name="previous" />.</summary>
+    public bool ChangesDevices(in PreampSettings previous) =>
+        Tube != previous.Tube || Hardness != previous.Hardness || GridCurrent != previous.GridCurrent;
 
     /// <summary>
     ///     The triode a stage built with <paramref name="stock" /> runs: <see cref="Tube" /> in place of a 12AX7, the

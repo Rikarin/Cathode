@@ -36,6 +36,23 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task The_name_author_and_tags_are_set_as_one_undoable_edit_that_survives_save() {
+        var info = await Patch("/api/v1/live/info", new PresetInfoRequest(" Lead ", " Jiu ", ["solo", " ", "solo", "lead"]));
+        Assert.Equal(("Lead", "Jiu"), (info.Preset.Name, info.Preset.Author));
+        Assert.Equal(["solo", "lead"], info.Preset.Tags);
+        Assert.True(info.Dirty);
+
+        var saved = await Post("/api/v1/live/save", new SaveRequest(AsNew: true));
+        Assert.Equal("Jiu", saved.Preset.Author);
+        var cleared = await Patch("/api/v1/live/info", new PresetInfoRequest(Author: ""));
+        Assert.Null(cleared.Preset.Author);
+        Assert.Equal("Lead", cleared.Preset.Name); // a null field is left as it is
+
+        var undone = await Post("/api/v1/live/undo");
+        Assert.Equal("Jiu", undone.Preset.Author);
+    }
+
+    [Fact]
     public async Task Scene_ignore_holds_a_block_across_scenes_until_its_channel_stops_ignoring() {
         await Put("/api/v1/live/scenes/1/blocks/delay1", new SceneBlockState(true, "B"));
         var ignoring = await Put(

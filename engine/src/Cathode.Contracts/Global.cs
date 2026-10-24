@@ -34,8 +34,23 @@ public sealed class GlobalSettings {
     /// </summary>
     public bool CabModelingOff { get; set; }
 
-    /// <summary>The global output EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse.</summary>
-    public Dictionary<string, float> Eq { get; set; } = [];
+    /// <summary>
+    ///     Outputs 1-4 (docs/08-blocks-parity.md §2): each one's mode, Boost/Pad and global EQ. Always four, Output 1
+    ///     first.
+    /// </summary>
+    public List<OutputSettings> Outputs { get; set; } = [new(), new(), new(), new()];
+
+    /// <summary>Plays Output 1 on Output 2 as well, unless the preset has an Output 2 block of its own.</summary>
+    public bool CopyOutput1To2 { get; set; }
+
+    /// <summary>The interface inputs, Input 1 first: each one's calibration and gain trim.</summary>
+    public List<InputSettings> Inputs { get; set; } = [new()];
+
+    /// <summary>
+    ///     The oversamplers' filters in the Amp, Drive and Dynamic Distortion blocks: <c>minimum</c> (IIR, no added
+    ///     latency, the default) or <c>linear</c> (linear-phase FIR, a few milliseconds of latency).
+    /// </summary>
+    public string Oversampling { get; set; } = "minimum";
 
     /// <summary>Manual A-D (0..1): modifier sources a person or pedal sets, shared by every preset.</summary>
     public List<float> Manual { get; set; } = [0, 0, 0, 0];
@@ -50,8 +65,13 @@ public sealed class GlobalSettings {
     /// <summary>The layout in use, by id.</summary>
     public string? ActiveLayout { get; set; }
 
+    /// <summary>The view (page of switches) of the active layout that is in use, 0 for the first.</summary>
+    public int ActiveView { get; set; }
+
     public List<GlobalBlock> Blocks { get; set; } = [];
 
+    /// <summary>The global performance page: controls shown in every preset that has their block.</summary>
+    public List<PerformControl> Perform { get; set; } = [];
     /// <summary>
     ///     Scene Revert: off, changes made while playing (a bypass, a channel) stay with their scene when you come back
     ///     to it; on, selecting a scene always recalls it as it was last saved.
@@ -77,14 +97,39 @@ public sealed class GlobalSettings {
     public bool ConfirmPresetChange { get; set; } = true;
 }
 
+/// <summary>One of Outputs 1-4.</summary>
+public sealed class OutputSettings {
+    /// <summary><c>stereo</c>, <c>sum</c> (L+R on both), <c>copyLR</c> (left on the right too) or <c>dualMono</c>.</summary>
+    public string Mode { get; set; } = "stereo";
+
+    /// <summary>Level trim after the EQ, −18 to +18 dB.</summary>
+    public float BoostPad { get; set; }
+
+    /// <summary>The output's global EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse.</summary>
+    public Dictionary<string, float> Eq { get; set; } = [];
+}
+
+/// <summary>One interface input.</summary>
+public sealed class InputSettings {
+    /// <summary>
+    ///     The peak volts at the jack that reach 0 dBFS (default 1 V, how Cathode always read its input). The amp and
+    ///     drive models scale their input by it, so changing the interface's gain and this together keeps their drive.
+    /// </summary>
+    public float FullScaleVolts { get; set; } = 1f;
+
+    /// <summary>A trim applied to every preset ahead of the grid, −20 to +20 dB (Input 1 Gain).</summary>
+    public float Gain { get; set; }
+}
+
 /// <summary>
 ///     A MIDI message bound to an action. <c>Message</c> is cc, note or pc; <c>Channel</c> 0 means any. Actions:
 ///     scene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank
 ///     id, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,
 ///     Value = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,
 ///     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), sceneLevelUp and
-///     sceneLevelDown (the active scene's level by ±1 dB, then save the preset), save (save the preset). A CC mapped to
-///     scene without a Value selects the scene its value names (0-7), and a value above 63 steps to the next scene.
+///     sceneLevelDown (the active scene's level by ±1 dB, then save the preset), save (save the preset), layout
+///     (Target = layout id), view (Value = view index), viewNext, viewPrevious. A CC mapped to scene without a Value
+///     selects the scene its value names (0-7), and a value above 63 steps to the next scene.
 /// </summary>
 public sealed record MidiMapping(
     string Id,
@@ -96,13 +141,17 @@ public sealed record MidiMapping(
     int? Value = null
 );
 
-/// <summary>A set of footswitches on a generic MIDI foot controller.</summary>
-public sealed record FootswitchLayout(string Id, string Name, List<Footswitch> Switches);
+/// <summary>
+///     A set of footswitches on a generic MIDI foot controller. <c>Views</c> names its pages of switches (each switch
+///     says which <see cref="Footswitch.View" /> it is on); none means one page.
+/// </summary>
+public sealed record FootswitchLayout(string Id, string Name, List<Footswitch> Switches, List<string>? Views = null);
 
 /// <summary>
 ///     One switch: the message it sends (a CC or note; value 64 or more is "down"), what a tap does, what holding it for
 ///     half a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is
-///     active, 0 when not).
+///     active, 0 when not). It answers only while its <c>View</c> is the active one, and a <c>Link</c> (a layout id)
+///     switches to that layout after its tap action.
 /// </summary>
 public sealed record Footswitch(
     int Index,
@@ -112,7 +161,9 @@ public sealed record Footswitch(
     int Number,
     SwitchAction Tap,
     SwitchAction? Hold = null,
-    bool Led = true
+    bool Led = true,
+    int View = 0,
+    string? Link = null
 );
 
 /// <summary>An action, with the same vocabulary as <see cref="MidiMapping" />.</summary>

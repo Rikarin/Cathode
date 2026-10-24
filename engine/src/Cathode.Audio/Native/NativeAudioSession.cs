@@ -119,8 +119,9 @@ public sealed record InputMap(int[][] Sources) {
 /// <summary>
 ///     A running device stream that calls an <see cref="IAudioProcessor" /> on the driver's real-time thread.
 ///     The <see cref="InputMap" />'s Input 1 is the engine's main input (by default channel 1 on both sides: a guitar DI
-///     is mono), and its other sources travel in <see cref="AudioIO.Sources" />; engine L/R go to output channels 1 and
-///     2. Optional <see cref="LoopChannels" /> carry an external effects loop.
+///     is mono), and its other sources travel in <see cref="AudioIO.Sources" />. An <see cref="OutputBus" /> maps
+///     Output 1 (by default to channels 1 and 2), Outputs 2-4 and the DI out to device channels; an output mapped past
+///     the device's last channel is dropped. Optional <see cref="LoopChannels" /> carry an external effects loop.
 /// </summary>
 public sealed unsafe class NativeAudioSession : IDisposable {
     const int MaxFrames = 4096; // CTH_MAX_FRAMES
@@ -130,6 +131,7 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     readonly float[] scratchLeft = GC.AllocateArray<float>(MaxFrames, true);
     readonly float[] scratchRight = GC.AllocateArray<float>(MaxFrames, true);
     readonly LoopChannels loop;
+    readonly OutputBus outputs;
     readonly InputMap inputs;
     readonly float[] sources;
     readonly int sourceMask;
@@ -156,9 +158,10 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         }
     }
 
-    NativeAudioSession(IAudioProcessor processor, LoopChannels? loop, InputMap? inputs) {
+    NativeAudioSession(IAudioProcessor processor, LoopChannels? loop, InputMap? inputs, OutputBus? outputs) {
         this.processor = processor;
         this.loop = loop ?? new([], []);
+        this.outputs = outputs ?? new();
         this.inputs = inputs ?? InputMap.Default;
         sourceMask = this.inputs.Mask;
         sources = this.inputs.HasExtraSources
@@ -177,9 +180,10 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         int bufferFrames,
         int inputChannels,
         LoopChannels? loop = null,
-        InputMap? inputs = null
+        InputMap? inputs = null,
+        OutputBus? outputs = null
     ) {
-        var stream = new NativeAudioSession(processor, loop, inputs);
+        var stream = new NativeAudioSession(processor, loop, inputs, outputs);
         if (loop is { Returns.Length: > 0 }) {
             inputChannels = Math.Max(inputChannels, loop.Returns.Max() + 1);
         }
@@ -256,6 +260,8 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         if (self.IsAllocated) {
             self.Free();
         }
+
+        outputs.Dispose();
     }
 
     [UnmanagedCallersOnly]
@@ -280,18 +286,21 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     }
 
     void Process(float** inputs, int inputChannels, float** outputs, int outputChannels, int frames) {
-        var main = this.inputs.Sources[0];
-        var inputLeft = Input(inputs, inputChannels, main, 0, frames);
-        var inputRight = Input(inputs, inputChannels, main, 1, frames);
-        var left = outputChannels > 0 ? new(outputs[0], frames) : scratchLeft.AsSpan(0, frames);
-        var right = outputChannels > 1 ? new(outputs[1], frames) : scratchRight.AsSpan(0, frames);
+        var source = this.inputs.Sources[0];
+        var inputLeft = Input(inputs, inputChannels, source, 0, frames);
+        var inputRight = Input(inputs, inputChannels, source, 1, frames);
+        var main = this.outputs.Pair(0);
+        var left = main >= 0 && main < outputChannels ? new(outputs[main], frames) : scratchLeft.AsSpan(0, frames);
+        var right = main >= 0 && main + 1 < outputChannels
+            ? new(outputs[main + 1], frames)
+            : scratchRight.AsSpan(0, frames);
 
         if (sources.Length > 0) {
             FillSources(inputs, inputChannels, frames);
         }
 
         if (loop.Returns.Length == 0 && loop.Sends.Length == 0 && sources.Length == 0) {
-            processor.Process(new(inputLeft, inputRight, left, right));
+            processor.Process(new(inputLeft, inputRight, left, right) { Outputs = this.outputs });
         } else {
             var returnLeft = Channel(inputs, inputChannels, loop.Returns, 0, frames);
             var returnRight = Channel(inputs, inputChannels, loop.Returns, 1, frames);
@@ -309,18 +318,50 @@ public sealed unsafe class NativeAudioSession : IDisposable {
                     sendRight,
                     sources.AsSpan(0, sources.Length == 0 ? 0 : Dsp.Routing.HardwareInputs.Count * 2 * frames),
                     sourceMask
-                )
+                ) { Outputs = this.outputs }
             );
         }
 
+        // the loop's send channels stay live: muting is for the speakers
         var gain = OutputGain;
-        if (gain != 1f) {
-            // the loop's send channels stay live: muting is for the speakers
-            for (var i = 0; i < frames; i++) {
-                left[i] *= gain;
-                right[i] *= gain;
+        Scale(left, gain);
+        Scale(right, gain);
+        for (var k = 1; k < OutputBus.Count; k++) {
+            var pair = this.outputs.Pair(k);
+            if (pair >= 0) {
+                Write(outputs, outputChannels, pair, this.outputs.Left(k)[..frames], gain);
+                Write(outputs, outputChannels, pair + 1, this.outputs.Right(k)[..frames], gain);
             }
         }
+
+        var di = this.outputs.DiChannels;
+        if (di.Length > 0) {
+            Write(outputs, outputChannels, di[0], this.outputs.DiLeft[..frames], gain);
+            if (di.Length > 1) {
+                Write(outputs, outputChannels, di[1], this.outputs.DiRight[..frames], gain);
+            }
+        }
+    }
+
+    static void Scale(Span<float> samples, float gain) {
+        if (gain == 1f) {
+            return;
+        }
+
+        for (var i = 0; i < samples.Length; i++) {
+            samples[i] *= gain;
+        }
+    }
+
+    /// <summary>Copies <paramref name="samples" /> to device channel <paramref name="channel" />, if the device has it.</summary>
+    static void Write(float** outputs, int count, int channel, ReadOnlySpan<float> samples, float gain) {
+        if (channel >= count) {
+            return;
+        }
+
+        var destination = new Span<float>(outputs[channel], samples.Length);
+        samples.CopyTo(destination);
+        Scale(destination, gain);
     }
 
     /// <summary>Side <paramref name="side" /> of an input source: its second channel, or its first again when mono.</summary>

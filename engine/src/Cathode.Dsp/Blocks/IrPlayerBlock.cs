@@ -134,7 +134,11 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
             ..Slot(1),
             ..Slot(2)
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new("Basic", ["input", "mode", "length1", "level1", "pan1", "length2", "level2", "pan2"]),
+            new("EQ", ["lowcut", "lowslope", "highcut", "highslope"])
+        ]
     );
 
     public IReadOnlyList<string> AssetSlots => SlotAssets;

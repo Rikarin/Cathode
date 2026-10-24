@@ -13,7 +13,16 @@ public static class RigControls {
     public const string BlockId = "rig";
     public const int SequencerStages = 16;
 
+    // Values of the Output Mode choices.
+    public const int Stereo = 0;
+    public const int SumLeftRight = 1;
+    public const int CopyLeftToRight = 2;
+    public const int DualMono = 3;
+
     public static readonly string[] LfoShapes = Dsp.Modulation.Lfo.ShapeNames;
+
+    /// <summary>Output Mode choices (<c>out1Mode</c>..<c>out4Mode</c>).</summary>
+    public static readonly string[] OutputModes = ["Stereo", "Sum L+R", "Copy L>R", "Dual Mono"];
 
     /// <summary>Tempo divisions for synced controllers; "Off" uses the rate in Hz.</summary>
     public static readonly string[] Divisions = TempoDivisions.Names;
@@ -33,6 +42,11 @@ public static class RigControls {
             // Global settings the blocks read through BlockContext: Global Mix and the Input gate's offset.
             ParamDescriptor.Float("effectsMix", "Effects Mix", -50f, 50f, 0f, "%"),
             ParamDescriptor.Float("gateOffset", "Noise Gate Offset", -20f, 20f, 0f, "dB"),
+            // Audio I/O (docs/08-blocks-parity.md §2): Input 1's trim and calibration, and the outputs' settings.
+            ParamDescriptor.Float("in1Gain", "Input 1 Gain", -20f, 20f, 0f, "dB"),
+            ParamDescriptor.Float("in1Cal", "Input 1 Full Scale", -30f, 40f, 0f, "dBV"),
+            ParamDescriptor.Switch("copyOut2", "Copy Output 1 to Output 2"),
+            ..Enumerable.Range(1, 4).SelectMany(static k => Output(k)),
             // Preset-change spillover: on, the outgoing preset's tails ring out; off, it fades out in the swap fade.
             ParamDescriptor.Switch("spillover", "Preset Spillover", true),
             ..Names("manual", ["A", "B", "C", "D"], "Manual "),
@@ -68,6 +82,11 @@ public static class RigControls {
         maxInstances: 1,
         channels: 1
     );
+
+    static IEnumerable<ParamDescriptor> Output(int k) => [
+        ParamDescriptor.Choice($"out{k}Mode", $"Output {k} Mode", OutputModes),
+        ParamDescriptor.Float($"out{k}Level", $"Output {k} Boost/Pad", -18f, 18f, 0f, "dB")
+    ];
 
     static IEnumerable<ParamDescriptor> Names(string prefix, string[] suffixes, string name) =>
         suffixes.Select(s => ParamDescriptor.Float(prefix + s, name + s, 0f, 1f, 0f));

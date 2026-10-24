@@ -21,7 +21,7 @@ Each spike is a throwaway prototype with a written result in `docs/adr/`.
 
 | # | Spike | Pass criterion | If it fails |
 |---|---|---|---|
-| S1 | ◐ macOS done except the 30 min soak and a physical loopback ([ADR-0002](adr/0002-native-audio-backend.md)). **Native audio shim** (`cth_audio`): ASIO (Windows), CoreAudio HAL IOProc (macOS) and JACK (Linux) calling a managed `delegate* unmanaged` passthrough | 64 samples at 48 kHz, < 6 ms measured loopback round trip, 0 xruns in 30 min on each OS | Use 128-sample buffers as the minimum supported, or use RtAudio as is |
+| S1 | ◐ macOS done except the 30 min soak and a physical loopback. Linux ALSA (plus JACK) implemented and container-tested; hardware run pending ([ADR-0002](adr/0002-native-audio-backend.md)). **Native audio shim** (`cth_audio`): ASIO (Windows), CoreAudio HAL IOProc (macOS) and ALSA `hw:` / JACK (Linux) calling a managed `delegate* unmanaged` passthrough | 64 samples at 48 kHz, < 6 ms measured loopback round trip, 0 xruns in 30 min on each OS | Use 128-sample buffers as the minimum supported, or use RtAudio as is |
 | S2 | ✅ Out-of-process ([ADR-0001](adr/0001-process-model.md)): in-process dropped out even at 100 req/s; out-of-process stayed at baseline at 14 k req/s. **GC under load**: a passthrough plus a 2 ms synthetic DSP load, with the REST server **in the same process** vs **a separate process**, under a load generator | p99.9 callback < 70 % of budget and 0 xruns over 1 h. Pick the process model (ADR-001) | Out-of-process becomes mandatory; tune `GCgen0size` |
 | S3 | ◐ macOS verified, Windows/Linux pending CI ([ADR-0003](adr/0003-nam-hosting.md)): A1 at 4.2 %, A2 Full at 4.0 %, A2 Lite at 0.57 % of one core, golden-matched to upstream. **NativeAOT Host**: a P/Invoke round trip into NAM core via `cth_nam`, loading an A1 and an A2 model | Builds on all 3 operating systems. A standard A1 WaveNet uses < 15 % of one core at 48k/64 | Fall back to LSTM models, or a C# port of the WaveNet for A1 only |
 | S4 | **C# DSP throughput**: biquad cascade, 4× IIR polyphase oversampler + tanh ADAA, 4096-tap uniform partitioned convolution, all `Vector128` | Within 1.5× of an equivalent C++ (chowdsp/FFTConvolver) build | Move hot kernels to native `cth_dsp` |
@@ -36,7 +36,7 @@ Each spike is a throwaway prototype with a written result in `docs/adr/`.
 ## Phase 1: engine core (4–6 weeks) — *in progress*
 
 - [x] Solution scaffold per [02 §3](02-architecture.md#3-repository-layout); CI on Windows, macOS and Linux (GitHub Actions); `Directory.Build.props` with analyzers and `TreatWarningsAsErrors`
-- [ ] Audio backends: **Offline** ✅, **Null** ✅, **Native** ✅ macOS CoreAudio (Windows and Linux still stubs)
+- [ ] Audio backends: **Offline** ✅, **Null** ✅, **Native** ✅ macOS CoreAudio, ✅ Windows WASAPI, ◐ Linux ALSA and JACK (no hardware run yet); ASIO still to do
 - [x] `Cathode.Testing` analysis toolkit ([03 §2](03-testing-strategy.md#2-the-analysis-toolkit-build-this-first)) and the `cathode-render` CLI (the `Cathode.Analyze` CLI is still to do)
 - [x] `IDspBlock` contract, `ParamBank` + smoothers, `BlockDescriptor` + catalogue registry
 - [x] Grid model → DAG → **graph compiler**: topological sort, buffer colouring, implicit mixers, latency compensation
@@ -187,7 +187,7 @@ Ordered by value to a guitarist:
   - Editor: right-click any knob to open the modifier dialog with a curve preview. A Controllers page holds every setting.
 - [x] **Tempo:** preset, global or MIDI clock (24 ppqn, averaged in the host). Tap tempo is sample-accurate (MIDI timestamps become engine sample times), and a tapped tempo is taken back into the preset.
 - [x] **MIDI:**
-  - The native shim reads CoreMIDI on macOS. Windows and Linux are stubs, like their audio backends.
+  - The native shim reads CoreMIDI on macOS, WinMM on Windows and the ALSA sequencer on Linux.
   - Mappings (CC, note or PC) cover scene, preset slot or next/previous, bypass, channel, External, Manual, tap, tuner, metronome, the looper, 🆕 scene level up/down (with save) and save. Actions run strictly in arrival order.
   - MIDI learn works from the Global page or from any knob ("Learn MIDI controller" binds a free External source). There is a live monitor.
 - [x] **Footswitch layouts:** tap and hold (500 ms) actions per switch, LED feedback (CC or note, 127/0, sent only on change), and an editor on the Global page.
@@ -246,6 +246,9 @@ Close the gap with the Axe-Fx III block list in [01](01-axe-fx-iii-audit.md), in
 11. [x] **Blocks Guide parity pass** ([08](08-blocks-parity.md)): every block audited against the June 2023 Blocks Guide, page by page. Added Balance on every block, the ten guide LFO waveforms with duty, a longer shared tempo list, the Mixer block, the two "out" bypass modes, Tremolo's Bias/Harmonic/Optical types, new Filter types (null, all-pass, tilt, combs) with pans and an LFO, a full Volume/Pan (tapers, auto-swell), Delay ping-pong, ducker, hold, bit reduction and the guide's delay mix law, and input gain, sidechain and ducker controls across the dynamics, delay and reverb blocks. [08 §8](08-blocks-parity.md#8-plan-for-the-medium-and-large-gaps) plans the rest (Global Mix, Input gate and Output mixer, Scene MIDI). The time-based stream then completed Delay, Megatap, Multitap, Reverb and the Looper (now also a grid block) and added the Plex and Ten-Tap blocks.
 12. [x] **Parity: engine and global** ([08 §1.2](08-blocks-parity.md#12-what-this-pass-implemented)): `IEngageAware` (LFO Bypass Reset, Tremolo Start Phase), Global Mix with a global Effects Mix offset, blocks on the Input (noise gate) and Output (row mixer) cells, Scene MIDI, Compressor and Gate sidechain sources (`ISidechainBlock`), Compressor look-ahead (latency with a `Recompile` parameter), the Block Library of factory and user block presets, two Feedback Send/Return pairs, the RTA as a grid block, Stereo Spread to ±200 %, and a modifier on a block's engage.
 
+13. [x] **Audio I/O** ([08 §2.1](08-blocks-parity.md#21-audio-io-wiki-audio-io-and-amplification)): Output 2–4 grid blocks mapped to device channel pairs, Copy Output 1 to Output 2, per-output mode, global EQ and Boost/Pad, Input 1 calibration (full-scale volts, read by the Circuit Amp and Drive) with a Setup helper, Input 1 Gain, input and output clip warnings, a pickup-load Input Impedance on the Input block, the dry DI out, a linear-phase oversampling mode (and the Drive's own factor) with its latency compensated, a latency report, a stereo-into-mono hint on the grid and the cab resonance helper.
+   - With multi-channel input, calibration, gain, the clip warning and the DI out cover Input 1, the main input; the settings are lists per input, ready for the other sources.
+
 **Definition-of-done tooling added in this phase:**
 - `tools/Cathode.Bench` measures every block (the worst of its types, with the longest IRs) and writes `BlockCosts.cs`. The conformance suite fails for a block without a cost.
 - `GoldenRenderTests` compares each block's default render with `tests/assets/golden/<type>.wav` (null residual below −90 dB). Regenerate with `CATHODE_UPDATE_GOLDEN=1`.
@@ -288,6 +291,16 @@ Gate for each model: ESR/MRSTFT within target across a knob sweep, plus an ABX p
 ---
 
 ## Phase 8: polish and ship (4–6 weeks)
+
+- [x] **Editor workflow** (stream ED, [02 §7.5](02-architecture.md#75-editor-workflow-as-built)):
+  - shortcuts with a `?` overlay, and preferences;
+  - revert, clear, snapshots and templates;
+  - replace, swap and drop, row and column moves, cut, paste settings, disconnect;
+  - all-scene actions, Block Info, and the Circuit Amp Ideal/Authentic view;
+  - Library folders, files and whole-block entries;
+  - Manage Presets and Manage IRs, Reset Amp blocks, Parameter Batch Set;
+  - picker tags, favourites and pin, Perform pages, and footswitch views, links and per-preset overrides.
+- [x] Editor workflow on top of the PS stream: ⌘L opens Preset Leveling, ⌘I resets the selected block's channel, and the preset picker, Go to, ⌘PgUp/PgDn, F5 and New from template ask before discarding unsaved edits (`PresetSwitcher`).
 
 - [ ] Factory content: 50+ presets, factory IRs (our own captures or properly licensed), factory NAM captures (own or licensed)
 - [ ] Installers (signed and notarised), auto-update, crash reporting (opt-in), telemetry-free by default

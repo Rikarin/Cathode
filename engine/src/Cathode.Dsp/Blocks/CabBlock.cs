@@ -312,7 +312,17 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             ..Slot(3, 5, 0, 1, 35, 2, true),
             ..Slot(4, 5, 3, 8, 0, 12, true)
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "input", "lowcut", "lowslope", "highcut", "highslope", "air", "airfreq", "motor", "motortime"
+                ]
+            ),
+            new("Preamp", ["preampMode", "preamp", "drive", "saturation", "prebass", "premid", "pretreble"]),
+            new("Room", ["room", "roomsize", "roomshape", "floor", "hfdamp", "lfdamp", "diffusion", "micspacing"])
+        ]
     );
 
     public IReadOnlyList<string> AssetSlots => SlotAssets;
@@ -340,6 +350,24 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
 
     /// <summary>Parameter index of <paramref name="offset" /> in slot <paramref name="slot" /> (0-based).</summary>
     public static int SlotParam(int slot, int offset) => SlotBase + slot * SlotStride + offset;
+
+    /// <summary>
+    ///     The DynaCab enclosure and speaker (indices into <see cref="CabCatalogue" />) of the first unmuted slot that
+    ///     synthesises one, or (-1, -1) when none does: what an amp's Auto speaker load follows
+    ///     (<see cref="ICabFollower" />). Allocation-free; any thread.
+    /// </summary>
+    public (int Enclosure, int Speaker) DynaCab {
+        get {
+            for (var slot = 0; slot < Slots; slot++) {
+                if ((int)Params.Current(SlotParam(slot, Source)) == SourceDynaCab
+                    && Params.Current(SlotParam(slot, Mute)) < 0.5f) {
+                    return ((int)Params.Current(SlotParam(slot, Cab)), (int)Params.Current(SlotParam(slot, Speaker)));
+                }
+            }
+
+            return (-1, -1);
+        }
+    }
 
     /// <summary>
     ///     Control thread: loads <paramref name="path" /> into <c>slot1</c> … <c>slot4</c>. A <c>.wav</c> serves both an

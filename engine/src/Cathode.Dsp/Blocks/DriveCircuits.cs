@@ -1100,8 +1100,20 @@ struct CircuitStage {
 /// </param>
 /// <param name="Bias">Volts added to the circuit's own bias ahead of the first stage.</param>
 /// <param name="DryLevel">Clean signal summed after the stages, on top of the circuit's own clean blend (linear).</param>
-/// <param name="Slew">Largest change per oversampled sample after the stages, in volts (0 = no limit).</param>
-readonly record struct CircuitTweaks(double BassScale = 1, double Bias = 0, double DryLevel = 0, double Slew = 0) {
+/// <param name="Slew">
+///     Largest change per oversampled sample, in volts (0 = no limit): an op-amp circuit's op-amp slews at it (each
+///     op-amp stage, <see cref="OpAmpStage" />), any other circuit is limited after its stages.
+/// </param>
+/// <param name="StackBass">A tone stack's bass pot (<see cref="ToneKind.Stack" />), 0..1; noon as built.</param>
+/// <param name="StackMiddle">A tone stack's middle pot.</param>
+readonly record struct CircuitTweaks(
+    double BassScale = 1,
+    double Bias = 0,
+    double DryLevel = 0,
+    double Slew = 0,
+    double StackBass = 0.5,
+    double StackMiddle = 0.5
+) {
     public static CircuitTweaks Stock => new(1);
 }
 
@@ -1154,7 +1166,12 @@ sealed class CircuitChannel {
         var guitar = DriveCircuits.Guitar(volume);
         count = circuit.Stages.Count;
         bias = circuit.Bias + tweaks.Bias;
-        slew = tweaks.Slew;
+        var opAmps = false;
+        for (var i = 0; i < count; i++) {
+            opAmps |= circuit.Stages[i].Kind == StageKind.OpAmp; // a loop: no enumerator on the audio thread
+        }
+
+        slew = opAmps ? 0 : tweaks.Slew;
         for (var i = 0; i < count; i++) {
             var stage = circuit.Stages[i];
             var resistance = i == 0 ? guitar.Resistance : stage.SourceResistance;
@@ -1164,7 +1181,7 @@ sealed class CircuitChannel {
             kinds[i] = stage.Kind;
             switch (stage.Kind) {
                 case StageKind.OpAmp:
-                    opAmp.Configure(stage, position, resistance, innerRate, antialias);
+                    opAmp.Configure(stage, position, resistance, innerRate, antialias, tweaks.Slew * innerRate);
                     break;
                 case StageKind.Transistor: {
                     var range = circuit.Tone;
@@ -1203,7 +1220,7 @@ sealed class CircuitChannel {
 
         clean = circuit.CleanMix * (1 - 0.75 * position) + tweaks.DryLevel;
         trim = Decibels.ToGain(circuit.OutputDb) * (circuit.InvertOutput ? -1 : 1);
-        this.tone.Configure(circuit.Tone, tone / 10, rate);
+        this.tone.Configure(circuit.Tone, tone / 10, rate, tweaks.StackBass, tweaks.StackMiddle);
         if (fresh) {
             Reset(); // a new circuit starts discharged, or at its operating point
         }

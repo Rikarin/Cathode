@@ -48,6 +48,8 @@ int Usage() {
                  --loop-in 3,4  --loop-out 3,4  (device channels for FX Loop blocks' return and send)
                  --input-map "1;3,4;;;5,6"  (device channels for Input 1, Input 2, Input 3, Input 4, USB 5/6, USB 7/8;
                                              default: Input 1 on channel 1)
+                 --outputs 1,3,0,0  (first device channel of Outputs 1-4, 0 = unmapped; default 1)
+                 --di-out 5,6  (device channels for the dry DI out, before Input 1 Gain)
            --self-test                     offline real-time path check (no device)
            --devices [--json]              list audio devices
            --audio-test [options]          run the engine on a device and report timing and dropouts

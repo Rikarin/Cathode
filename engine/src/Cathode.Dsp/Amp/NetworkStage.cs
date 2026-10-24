@@ -12,7 +12,10 @@ public enum CapacitorRole {
     Bright,
 
     /// <summary>A tone-stack cap: divided by <see cref="PreampSettings.StackFrequency" />.</summary>
-    Stack
+    Stack,
+
+    /// <summary>A cap across a plate resistor: divided by <see cref="PreampSettings.PlateFrequency" />.</summary>
+    Plate
 }
 
 /// <summary>Which part of a pot a resistor of a <see cref="StageNetlist" /> is.</summary>
@@ -104,7 +107,7 @@ public sealed record StageElement(ElementKind Kind, int A, int B, double Value) 
 /// <summary>
 ///     The circuit of a <see cref="NetworkStageDesign" />, written like a SPICE netlist: nodes, passive elements
 ///     (resistors, capacitors, inductors), pots turned by front-panel knobs, elements switched by front-panel switches,
-///     supply rails that follow the preamp's sag, and up to three triodes, or a pentode, or one or two diode clippers (a
+///     supply rails that follow the preamp's sag, and up to four triodes, or a pentode, or one or two diode clippers (a
 ///     triode with one or two clippers, and two triodes with two, also work), or one or two op-amps (one op-amp with a
 ///     diode clipper also works), besides any number of linear amplifiers. The source drives <see cref="Input" />
 ///     through the previous stage's output resistance; the stage's output is the voltage at <see cref="Output" />.
@@ -317,19 +320,28 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
         );
         return kinds switch {
             "" => new NetworkStage<NoDevice>(this, devices, static (_, _) => default, sampleRate),
-            "T" => new NetworkStage<FastTriode>(this, devices, (s, _) => new(s.TubeFor(devices[0].Triode)), sampleRate),
+            "T" => new NetworkStage<FastTriode>(this, devices, (s, _) => s.Triode(devices[0].Triode), sampleRate),
             "TT" => new NetworkStage<Devices<FastTriode, FastTriode>>(
                 this,
                 devices,
-                (s, _) => new(new(s.TubeFor(devices[0].Triode)), new(s.TubeFor(devices[1].Triode))),
+                (s, _) => new(s.Triode(devices[0].Triode), s.Triode(devices[1].Triode)),
                 sampleRate
             ),
             "TTT" => new NetworkStage<Devices<FastTriode, Devices<FastTriode, FastTriode>>>(
                 this,
                 devices,
                 (s, _) => new(
-                    new(s.TubeFor(devices[0].Triode)),
-                    new(new(s.TubeFor(devices[1].Triode)), new(s.TubeFor(devices[2].Triode)))
+                    s.Triode(devices[0].Triode),
+                    new(s.Triode(devices[1].Triode), s.Triode(devices[2].Triode))
+                ),
+                sampleRate
+            ),
+            "TTTT" => new NetworkStage<Devices<Devices<FastTriode, FastTriode>, Devices<FastTriode, FastTriode>>>(
+                this,
+                devices,
+                (s, _) => new(
+                    new(s.Triode(devices[0].Triode), s.Triode(devices[1].Triode)),
+                    new(s.Triode(devices[2].Triode), s.Triode(devices[3].Triode))
                 ),
                 sampleRate
             ),
@@ -338,7 +350,7 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
             "TD" => new NetworkStage<Devices<FastTriode, DiodeClipper>>(
                 this,
                 devices,
-                (s, _) => new(new(s.TubeFor(devices[0].Triode)), Clipper(devices[1])),
+                (s, _) => new(s.Triode(devices[0].Triode), Clipper(devices[1])),
                 sampleRate
             ),
             "O" => new NetworkStage<OpAmp>(this, devices, (_, rate) => OpAmp(devices[0], rate), sampleRate),
@@ -363,20 +375,20 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
             "TDD" => new NetworkStage<Devices<FastTriode, Devices<DiodeClipper, DiodeClipper>>>(
                 this,
                 devices,
-                (s, _) => new(new(s.TubeFor(devices[0].Triode)), new(Clipper(devices[1]), Clipper(devices[2]))),
+                (s, _) => new(s.Triode(devices[0].Triode), new(Clipper(devices[1]), Clipper(devices[2]))),
                 sampleRate
             ),
             "TTDD" => new NetworkStage<Devices<Devices<FastTriode, FastTriode>, Devices<DiodeClipper, DiodeClipper>>>(
                 this,
                 devices,
                 (s, _) => new(
-                    new(new(s.TubeFor(devices[0].Triode)), new(s.TubeFor(devices[1].Triode))),
+                    new(s.Triode(devices[0].Triode), s.Triode(devices[1].Triode)),
                     new(Clipper(devices[2]), Clipper(devices[3]))
                 ),
                 sampleRate
             ),
             _ => throw new NotSupportedException(
-                $"{Name}: a network stage takes T, TT, TTT, P, D, DD, TD, TDD, TTDD, O, OO or DO "
+                $"{Name}: a network stage takes T, TT, TTT, TTTT, P, D, DD, TD, TDD, TTDD, O, OO or DO "
                 + "(triodes, a pentode, diode clippers, op-amps)."
             )
         };
@@ -418,6 +430,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         index; // per element: its port (reactive), resistor or supply index in the WDF netlist; -1 for devices
 
     readonly double[] values; // per element: its value as the knobs, switches and settings have it
+    readonly bool[] acrossMaster; // per element: a cap across a master pot's upper half
     readonly (int Plus, int Minus)[] devicePorts;
     readonly Func<PreampSettings, double, TDevice> make; // the devices for the settings and the sample rate
     readonly int size; // DC unknowns: nodes and supply currents
@@ -464,6 +477,8 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         elements = [..netlist.Elements];
         index = new int[elements.Length];
         values = new double[elements.Length];
+        // A cap across a master pot's upper half (its bright cap) follows Master Cap.
+        acrossMaster = [..elements.Select(e => e.Kind == ElementKind.Capacitor && AcrossMaster(e, elements))];
         IsGainStage = elements.Any(static e => e.Cathode);
         hasMemory = devices.Any(static e => e.Kind == ElementKind.OpAmp);
         controls = new(0.5, 0.5, 0.5, 0.5, 1, false);
@@ -477,7 +492,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         var inductors = new List<bool>();
         for (var i = 0; i < elements.Length; i++) {
             var e = elements[i];
-            values[i] = Value(e);
+            values[i] = Value(i);
             index[i] = e.Kind switch {
                 ElementKind.Capacitor or ElementKind.Inductor => net.Port(e.A, e.B) - 1,
                 ElementKind.Resistor => net.Resistor(e.A, e.B, Math.Max(values[i], EndStop)), // a pot at an end stop
@@ -605,7 +620,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     }
 
     public override void Apply(in PreampSettings settings) {
-        if (settings.Tube != this.settings.Tube) {
+        if (settings.ChangesDevices(this.settings)) {
             root.Device = make(settings, sampleRate);
         }
 
@@ -662,7 +677,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
                 continue;
             }
 
-            var value = Value(e);
+            var value = Value(i);
             if (value == values[i]) {
                 continue;
             }
@@ -688,8 +703,9 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         }
     }
 
-    /// <summary>An element's value for the current knobs, switches and settings.</summary>
-    double Value(StageElement e) {
+    /// <summary>Element <paramref name="i" />'s value for the current knobs, switches and settings.</summary>
+    double Value(int i) {
+        var e = elements[i];
         var on = e.Switch is not { } role || controls.IsOn(role);
         switch (e.Kind) {
             case ElementKind.Resistor: {
@@ -704,15 +720,32 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
             }
             case ElementKind.Capacitor: {
                 var farads = e.ValueAt(controls) is var f && f > 0 ? f : Off;
+                if (acrossMaster[i]) {
+                    return farads * settings.MasterCap;
+                }
+
                 return e.CapacitorRole switch {
                     CapacitorRole.Bright => farads * settings.BrightCap,
                     CapacitorRole.Stack => farads / settings.StackFrequency,
+                    CapacitorRole.Plate => farads / settings.PlateFrequency,
                     _ => farads
                 };
             }
             default:
                 return e.Value;
         }
+    }
+
+    /// <summary>Whether <paramref name="cap" /> sits across the upper half of a master pot among <paramref name="all" />.</summary>
+    static bool AcrossMaster(StageElement cap, StageElement[] all) {
+        foreach (var pot in all) {
+            if (pot is { Role: PotRole.Master, Part: PotPart.Upper }
+                && ((pot.A == cap.A && pot.B == cap.B) || (pot.A == cap.B && pot.B == cap.A))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     void ApplySupplies() {

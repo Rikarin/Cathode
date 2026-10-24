@@ -20,10 +20,20 @@ public sealed record PresetSummary(
     string Name,
     string? Author,
     IReadOnlyList<string> Tags,
-    DateTimeOffset Modified
+    DateTimeOffset Modified,
+    string? Color = null,
+    bool Favorite = false
 );
 
-public sealed record AssetInfo(string Ref, string Name, string Kind, long Size, DateTimeOffset Added);
+public sealed record AssetInfo(
+    string Ref,
+    string Name,
+    string Kind,
+    long Size,
+    DateTimeOffset Added,
+    string? Color = null,
+    bool Favorite = false
+);
 
 /// <summary>
 ///     Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole
@@ -53,6 +63,35 @@ public sealed record EngineStatus(
 
 public sealed record SystemInfo(string Version, EngineStatus Engine);
 
+/// <summary>One block on the graph's longest path and the latency it adds, in frames.</summary>
+public sealed record LatencyStepInfo(string Block, string Type, int Frames);
+
+/// <summary>
+///     Where the time goes, instrument to speaker: the device's input and output latency as its driver reports them
+///     (each includes one buffer), the buffer itself, the graph's latency along its longest path (with the blocks on
+///     it), and the total of the device and graph latencies.
+/// </summary>
+public sealed record LatencyInfo(
+    bool Connected,
+    double SampleRate,
+    int BufferFrames,
+    int InputFrames,
+    int OutputFrames,
+    int GraphFrames,
+    IReadOnlyList<LatencyStepInfo> Path,
+    int TotalFrames,
+    double TotalMs
+);
+
+/// <summary>The cab resonance helper's sine, in place of a block's output: on or off, its pitch and level (dBFS).</summary>
+public sealed record TestToneRequest(bool Enabled, double Frequency = 100, float Level = -20);
+
+/// <summary>
+///     A Circuit Amp's speaker load resonance: the model's (or the chosen load's; with Follow Cab, the followed Cab's
+///     speaker's) frequency at Load resonance 100 %, the Load resonance setting, and the frequency it gives.
+/// </summary>
+public sealed record SpeakerResonanceInfo(double BaseHz, float Percent, double Hz);
+
 /// <summary>
 ///     A block parameter. <c>TypeLabels</c>, where present, names the parameter per value of the block's <c>type</c>
 ///     parameter (an amp model's own name for a generic control), empty where that type lacks the control: hide it there.
@@ -67,12 +106,14 @@ public sealed record ParameterInfo(
     string Unit,
     string Taper,
     IReadOnlyList<string>? Options,
-    IReadOnlyList<string>? TypeLabels = null
+    IReadOnlyList<string>? TypeLabels = null,
+    string? Page = null
 );
 
 /// <summary>
 ///     A block type the editor can place. <c>CpuCost</c> is its measured cost in percent of one core at 48 kHz
-///     (64-frame blocks, its most expensive type), for the editor's CPU estimate; 0 for built-in cells.
+///     (64-frame blocks, its most expensive type), for the editor's CPU estimate; 0 for built-in cells. <c>Pages</c>
+///     names the editor pages its parameters sit on (each <see cref="ParameterInfo.Page" />), in order; empty for one.
 /// </summary>
 public sealed record BlockTypeInfo(
     string TypeId,
@@ -82,7 +123,8 @@ public sealed record BlockTypeInfo(
     int Channels,
     IReadOnlyList<string> AssetSlots,
     IReadOnlyList<ParameterInfo> Params,
-    double CpuCost = 0
+    double CpuCost = 0,
+    IReadOnlyList<string>? Pages = null
 );
 
 // Request bodies.
@@ -107,6 +149,9 @@ public sealed record SceneUpdateRequest(
     List<float>? Controllers = null,
     List<SceneMidiMessage>? Midi = null
 );
+
+/// <summary>Changes to the working copy's name, author and tags; null leaves a field as it is.</summary>
+public sealed record PresetInfoRequest(string? Name = null, string? Author = null, List<string>? Tags = null);
 
 public sealed record SaveRequest(string? Name = null, bool AsNew = false);
 
@@ -140,6 +185,7 @@ public sealed record Telemetry(
     Dictionary<string, float>? Blocks = null,
     float? LoudnessMomentary = null,
     float? LoudnessShortTerm = null,
+    float[]? OutputPeaks = null,
     IReadOnlyList<BlockMeterInfo>? BlockMeters = null
 );
 

@@ -131,7 +131,24 @@ public sealed class RotaryBlock() : DspBlock(Info) {
             ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
             ParamDescriptor.Float("lowRateMult", "Low Rate Multiplier", 0.25f, 4f, 1f, "×", ParamTaper.Log)
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "speed", "tempo", "hornDepth", "drumDepth", "amDepth", "hornLevel", "drumLevel", "drive", "spread",
+                    "drumSpread"
+                ]
+            ),
+            new(
+                "Rotors",
+                [
+                    "hornSlow", "hornFast", "hornAccel", "hornDecel", "drumSlow", "drumFast", "drumAccel", "drumDecel",
+                    "lowRateMult"
+                ]
+            ),
+            new("Advanced", ["rotorLength", "crossover", "micDistance", "stereoSpread", "inputSelect"])
+        ]
     );
 
     /// <summary>

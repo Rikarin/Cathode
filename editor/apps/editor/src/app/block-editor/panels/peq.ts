@@ -50,3 +50,30 @@ export function peqBandDb(b: PeqBand, frequency: number, sampleRate = 48_000): n
       return sectionDb('peak', b.frequency, b.gain, b.q, frequency, sampleRate);
   }
 }
+
+/** The whole EQ's response in dB at `frequency`: the bands' sum. */
+export function peqTotalDb(bands: readonly PeqBand[], frequency: number): number {
+  return bands.reduce((sum, b) => sum + peqBandDb(b, frequency), 0);
+}
+
+/**
+ * The gain that makes the whole EQ read `targetDb` at `frequency` with band `band` moved there: the other bands' sum is
+ * fixed, and a band's own dB at its frequency moves in step with its gain (a peak reads its gain, a shelf half of it).
+ * Null for a band whose gain does nothing there (a cut).
+ */
+export function peqGainFor(
+  bands: readonly PeqBand[],
+  band: number,
+  frequency: number,
+  targetDb: number
+): number | null {
+  const own = { ...bands.find(b => b.band === band)!, frequency };
+  const others = peqTotalDb(
+    bands.filter(b => b.band !== band),
+    frequency
+  );
+  // How the band's own dB at its frequency moves with its gain (a cut reads -3 dB there whatever its gain).
+  const flat = peqBandDb({ ...own, gain: 0 }, frequency);
+  const perDb = (peqBandDb({ ...own, gain: 12 }, frequency) - flat) / 12;
+  return Math.abs(perDb) < 0.05 ? null : (targetDb - others - flat) / perDb;
+}

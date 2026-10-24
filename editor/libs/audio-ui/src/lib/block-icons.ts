@@ -152,6 +152,9 @@ export const BlockIcons: Readonly<Record<string, string>> = {
 export const BlockTypeIcons: Readonly<Record<string, string>> = {
   input: 'cthBlockInput',
   output: 'cthBlockOutput',
+  output2: 'cthBlockOutput',
+  output3: 'cthBlockOutput',
+  output4: 'cthBlockOutput',
   mux: 'cthBlockMux',
   mixer: 'cthBlockMixer',
   shunt: 'cthBlockShunt',

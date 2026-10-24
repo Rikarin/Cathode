@@ -189,9 +189,13 @@ The **parameter set is not part of compilation**. Changing a knob, a scene or a 
 **As built.**
 - The Input and Output cells run blocks of their own (`input`: noise gate and input level; `output`: a row mixer with main level and balance). The Output takes each input with its grid row, like the Mixer (`MuxInput`); a single row is scaled in place (`ScaleRow`), so a plain chain still needs one buffer. Neither can be bypassed.
 - A sidechain block (`ISidechainBlock`: Compressor, Gate) is offered, before it runs, the grid input and the output of the last live node on each row to its left (`SidechainInput` ops). Each such source counts as one more reader of its buffer, so it is neither freed nor processed over in place first. Sidechains are not latency-aligned.
+- A block that follows a Cab (`ICabFollower`: the Circuit Amp, for its Auto speaker load) is handed, at every compile, the first live `cab` block reached breadth-first through its outputs, or null. It reads that block's DynaCab enclosure and speaker (`CabBlock.DynaCab`) on the audio thread; nothing is copied or scheduled.
 - Feedback Send/Return come in up to two pairs, matched by the number their ids end in.
 - An RTA block gets the graph's `AnalyzerTap`; the engine moves what it holds into the telemetry region after each sub-block.
 - **Hardware inputs** (docs/08 §2): the host maps device input channels onto six stereo sources, Input 1–4, USB 5/6 and USB 7/8 (`InputMap`; cathode-host `--input-map "1;3,4;;;5,6"`, the Setup page's input map; by default Input 1 only, on channel 1). Input 1 is the main pair (`AudioIO.InputLeft`/`InputRight`, what `ReadInput` copies); the others travel planar in `AudioIO.Sources` with a mask of the mapped ones. The engine copies all six into `HardwareInputs` at the start of each callback and sets its offset per sub-block. The compiler gives every block that implements `IHardwareInputBlock` its graph's `InputPort`; when the graph is replaced the engine fades that port out over the swap fade, as it fades the grid input into a spilling graph. Blocks name a source by index into `HardwareInputs.Names`, appended after their other choices: the Input cell's Source (0 = Input 1), the Multiplexer's Input Select (`FirstInput` = 7), a sidechain (`SidechainSource.FirstInput` = 8), the Pitch Detector Source and the Vocoder Analysis Source (after Block Input and Rows 1–6). The host reports the mapped sources (`HostInfo.InputSources`, a bit mask) and the Server names them in `EngineStatus.inputs`.
+- **Outputs 1–4.** Besides the main `output`, the grid may hold one each of `output2`..`output4` (an `OutputBlock` under another type id). Each `WriteOutput` op carries its output's index; the graph adds Output 1 into the callback's output and Outputs 2–4 into the engine's `GraphOutputs`. Every output is delayed to the slowest path (`LatencySamples` is the latest output's), and the compiler records that path's blocks with their latencies (`CompiledGraph.LatencyPath`) for the latency report.
+- **Oversampling filters.** `GraphDefinition.Oversampling` (`minimum` or `linear`, from the global settings) is handed to every `IOversampledBlock` (Circuit Amp, Drive, Dynamic Distortion) before `Prepare`. Linear phase gives those blocks a latency, which the compiler aligns like any other; the Server recompiles when the setting changes.
+- **Test tone.** The compiler gives every graph the engine's `TestTone`; while it is on for a slot of that graph's generation, the sine replaces that block's output after it runs (the cab resonance helper). It is engine state, never part of a preset.
 
 ### 5.3 Block contract
 
@@ -207,7 +211,7 @@ public interface IDspBlock : IDisposable
 }
 ```
 
-`BlockContext` carries the sample rate, tempo, sample time, the MIDI notes currently held (`HeldNotes`), and three global settings from the rig bank: the Effects Mix offset that blocks with Global Mix on add to their Mix, the noise gate offset the Input gate adds to its threshold, and `CabsOff` (Global "cab modeling off"), under which the Cab and IR Player blocks pass audio through. The host's MIDI input posts note on/off straight to the engine as `EngineCommand.Note`, so the Pitch block can take its key and chord from a keyboard or DAW.
+`BlockContext` carries the sample rate, tempo, sample time, the MIDI notes currently held (`HeldNotes`), and four global settings from the rig bank: the Effects Mix offset that blocks with Global Mix on add to their Mix, the noise gate offset the Input gate adds to its threshold, `CabsOff` (Global "cab modeling off"), under which the Cab and IR Player blocks pass audio through, and Input 1's calibration (`InputCalibrationDb`, dB re 1 V at full scale; `InputVolts` is the factor), by which the voltage-modelled blocks (Circuit Amp, Drive) scale their input. The host's MIDI input posts note on/off straight to the engine as `EngineCommand.Note`, so the Pitch block can take its key and chord from a keyboard or DAW.
 
 Processing is **in place**: the compiler hands each block one buffer that holds its input and receives its output. That is what lets a series chain run in a single buffer.
 
@@ -218,6 +222,7 @@ Other optional interfaces a block may add:
 - `IControlRefresh`: derived state rebuilt on the control thread (§5.4).
 - `IRowInputBlock`: takes each cabled input by grid row (above).
 - `ISidechainBlock`: offered other signals for its detector (§5.2).
+- `ICabFollower`: linked at compile time to the next Cab block downstream (§5.2).
 - `IHardwareInputBlock`: given the graph's `InputPort` to read the interface's input sources (§5.2).
 - `IEngageAware`: told on the audio thread when its bypass target turns from bypassed to active, before the bypass fade starts, so an LFO can restart from a set phase (Flanger and Phaser LFO Bypass Reset, Tremolo Start Phase). A block that starts engaged is not told.
 - `IBlockMeters`: meters of its own (the Cab's preamp input level and Motor Drive gain reduction), plain fields the audio thread writes. The host reads them on the control thread with each IPC telemetry push (the list is rebuilt only when the graph changes, so a push allocates nothing) and the Server forwards them in the `telemetry` message's `blocks`.
@@ -277,6 +282,11 @@ Budget for **two graphs alive at once** during a preset change.
 | CI/tests | **OfflineBackend** (render as fast as possible from WAV) and **NullBackend** (real-time-paced timer) | — |
 
 These sit in one C ABI shim (`native/cth_audio`). It can be built on RtAudio, which covers all of the above, plus custom CoreAudio code for workgroups. Managed code sees one `delegate* unmanaged` callback.
+
+**As built (audio I/O, [08 §2.1](08-blocks-parity.md#21-audio-io-wiki-audio-io-and-amplification)).**
+- The shim opens every output channel of the device. The backend owns an `OutputBus` (Cathode.Engine): which device pair each of Outputs 1–4 plays on (the host's `--outputs 1,3,5,7`, first channel of each pair, 0 for none; the default is Output 1 on 1–2) and the DI out's channels (`--di-out`). It hands the bus to the engine in `AudioIO.Outputs`, then copies Outputs 2–4 and the DI out from it to their channels. The `NullBackend` and the offline renderer (`OfflineRenderer.RenderOutputs`) take a bus too, so the multi-output path is tested without a device.
+- Per callback the engine copies the raw input to the DI out, then per sub-block applies **Input 1 Gain** (rig `in1Gain`) to a copy of the input the graph reads. After the graph, the spillover tail, the scene level and the looper, it copies Output 1 to Output 2 when **Copy Output 1 to Output 2** is on and the graph has no Output 2, then gives each output its **mode** (Stereo, Sum L+R, Copy L→R, Dual Mono), its own **global EQ** (`GraphicEqBlock`s, IPC blocks `global`, `global2`..`global4`) and its **Boost/Pad**; the metronome is added to Output 1. Only outputs that are mapped and fed are rendered. The engine keeps each output's peak for telemetry (`HostTelemetry.OutputPeaks`).
+- Input 1 Gain, the calibration, the input clip warning and the DI out act on Input 1, the main pair the `InputMap` delivers as `AudioIO.InputLeft`/`InputRight`. The other hardware sources reach blocks through the `InputPort` untrimmed; the calibration reaching `BlockContext` is Input 1's. The global settings keep `inputs` as a list, so per-source values can follow.
 
 ### 5.7 Neural and native DSP ⚠
 
@@ -339,6 +349,7 @@ Version 3 adds an output scope ring of 16,384 samples, outside the seqlock (the 
 Version 4 adds a second ring of the same size for the RTA block: while it keeps growing, RTA frames come from it (`source: block`) instead of the output.
 
 Version 5 adds, per meter slot, each grid block's output peak (by graph slot, up to 128, tagged with the graph generation) and the output's ITU-R BS.1770 loudness (momentary and short-term, `LoudnessMeter`). The host's `loadGraph` reply lists the slot ids, so the Server publishes the peaks by block id (`Telemetry.blocks`, shunts left out) with `loudnessMomentary` and `loudnessShortTerm`.
+Each output's peak (after its EQ and Boost/Pad) goes over IPC telemetry (`outputPeaks`, 10 Hz) and on to WebSocket clients in the telemetry frames, for the editor's output clip warning at −1 dBFS; the input clip warning (0.5 dB below full scale) reads the existing input peak.
 
 Still to come: RMS, per-block CPU, scene state, and binary frames.
 
@@ -377,6 +388,8 @@ Still to come: RMS, per-block CPU, scene state, and binary frames.
 | Stream | `GET /ws`: binary telemetry channels (meters, tuner, RTA, scope, CPU) plus JSON events (`paramChanged`, `sceneChanged`, `presetLoaded`, `xrun`), with subscriptions per channel |
 
 > **As built (Phase 3):** the domain lives in the Server ([ADR-0004](adr/0004-state-ownership.md)). Some routes differ from the sketch above: `PUT /live/blocks/{id}/position` moves a block, `DELETE /live/cables?from=&to=` removes a cable, and parameters are `PATCH /live/blocks/{id}/params?channel=B` with a `{ paramId: value }` body. `/ws` sends JSON text, starting with `{"type":"connected"}`. A client waits for it before reading `GET /live`. The committed `engine/src/Cathode.Server/openapi.json` is the source of truth.
+
+> **Audio I/O:** `GET /system/latency` reports the device's input and output latency, the buffer, and the graph's latency along its longest path, block by block. `PUT /live/blocks/{id}/test-tone` (`{ enabled, frequency, level }`) plays the cab resonance helper's sine in place of a block's output, and `GET /live/blocks/{id}/speaker-resonance` gives a Circuit Amp's speaker load resonance at Load resonance 100 % (with Follow Cab, the followed Cab speaker's). The global settings gained `outputs` (mode, Boost/Pad and EQ per output), `copyOutput1To2`, `inputs` (full-scale volts and gain per input) and `oversampling`; the device channel mapping stays with the desktop app's audio settings (host arguments).
 
 Every mutation produces an **event** on `/ws`, whatever its source (REST, MIDI or footswitch). That keeps multiple editors in sync, and makes MIDI-driven changes visible in the UI as they are on Axe-Edit.
 
@@ -422,6 +435,52 @@ xUI currently has **no knob, meter or VU component**. Build them in `editor/libs
 - a footswitch layout editor
 - a tuner overlay, a looper panel and a metronome
 - an **A/B compare** of the working copy against the saved preset, with undo/redo history
+
+### 7.5 Editor workflow (as built)
+
+The editor's software-editor features, built in the ED stream. They follow Fractal's editor in what they do, not in how they look.
+
+- **Shortcuts.** One table in `shell/shortcuts.ts` drives two things: dispatch (`ShortcutService`, through a document `keydown`) and the `?` help overlay.
+  - Handlers register per page. The app owns the preset, scene, channel, block, edit and tuner commands. The grid owns the cell commands (Q, ⌘X/C/V/D/U, Delete), because it knows the focused cell.
+  - Nothing fires while focus is in a text field.
+  - ⌥ held, or F1, shows Block Info.
+  - B keeps its old job, bypass, as an alias of Space. Channel B is therefore ⇧B; A, C and D need no ⇧.
+  - A unit test checks that no two bindings collide and that none clashes with Electron's default menu, which is the only menu the desktop app has.
+- **Preferences** (`PreferencesStore`) are kept in local storage, per user and per machine: knob mode, wheel, tooltips, meter rate, and the default Circuit Amp view.
+  - They reach `cth-knob` and `cth-meter` through audio-ui's `CTH_KNOB_PREFERENCES` and `CTH_METER_PREFERENCES` tokens.
+  - Turning tooltips off puts the `cth-no-tooltips` class on the root.
+- **Server endpoints.** Everything the editor needs the Server to do lives in `Api/WorkflowApi.cs`, `Rig/LiveRig.Workflow.cs`, `Rig/PresetTools.cs` and `Stores/WorkflowStores.cs`. Live edits are one undo step each.
+  - Preset commands: `POST /live/revert`, `POST /live/clear`.
+  - Snapshots: `POST /live/snapshots`, `POST /live/snapshots/{id}/load`, `GET`/`DELETE /snapshots`. They are stored in `<data>/snapshots`.
+  - Templates: `POST /live/templates`, `POST /live/templates/{id}/new`, `GET`/`DELETE /templates`. They are stored in `<data>/templates`.
+  - Grid operations:
+    - `PUT /live/blocks/{id}/type` replaces a block and keeps its cables.
+    - `POST /live/blocks/{id}/drop` takes `swap` (the cables stay in place) or `replace`.
+    - `POST /live/grid/move` moves a row or column.
+    - `DELETE /live/blocks/{id}/cables` disconnects a block.
+    - `PUT /live/blocks/{id}/settings` pastes settings onto a block of the same type, all channels.
+    - `PUT /live/blocks/{id}/all-scenes` sets a block's state in every scene.
+  - Performance pages and footswitch overrides: `PUT /live/perform`, `PUT /live/footswitch-overrides`.
+  - Block Library:
+    - `POST /live/block-presets` saves every block.
+    - `POST /block-presets/export` and `/import` handle `.cthblock` files.
+    - `ApplyBlockPresetRequest.AllChannels` recalls a whole-block entry.
+  - Metadata and preset tools:
+    - `PATCH /presets/{id}/metadata` and `PATCH /assets/{ref}/metadata` set name, colour tag and favourite.
+    - `POST /presets/{id}/duplicate`.
+    - `POST /presets/reset-amps`.
+    - `POST /presets/batch-set`.
+- **Reset Amp blocks** goes through each preset's Circuit Amp channels.
+  - It clears every parameter in `BlockDescriptor.TypeResets` whose `AmpPanel.Label(id, "")` is empty.
+  - That resets the expert settings and the controls the model lacks.
+  - It keeps the model's front-panel knobs and switches, plus type, level, balance and input select.
+- **Footswitches.**
+  - A `FootswitchLayout` can have named `Views`. Each `Footswitch` sits on one `View` and may `Link` to another layout, which takes over after its tap action.
+  - The new actions are `layout`, `view`, `viewNext` and `viewPrevious`. `GlobalSettings.ActiveView` holds the page in use.
+  - In the MIDI router, `Preset.FootswitchOverrides` replace a switch's tap and hold while the preset is loaded. LEDs follow the active view and the overrides.
+- **Manage Presets** (`pages/manage.ts`) holds bank edits, copies, renames, metadata and deletions in a `ManageSession` until Save.
+  - Save applies them in an order the Server accepts: copies, metadata, banks, then deletions.
+  - **Manage IRs** works the same way through an `AssetSession`.
 
 ---
 

@@ -6,6 +6,11 @@ Every real amp we model, plan to model, or might model, with where it stands in 
 - **Amp captures** (NAM or GuitarML, *direct out / amp only*, no cab or mic) are what the reference harness matches a
   circuit model against. Note the knob settings and the input calibration (dBu at 0 dBFS) with every capture you find.
 - **Cab IRs** go in the Cab block after the amp. The "Typical cab" column says what the amp is usually heard through.
+- **Speaker load vs cab.** The Circuit Amp's *Speaker load* is the speaker as the power amp's electrical load (its
+  impedance peak and HF rise, which shape the power amp's response, clipping and sag); the Cab block is what the
+  speaker, box and mic sound like. Set *Speaker load* to **Follow Cab** and the amp takes the load of the speaker and
+  cabinet chosen in the next Cab block (from that speaker's Thiele–Small data), so a "Typical cab" picked there sets
+  both. See `docs/06-amp-modelling-spec.md` §1, speaker page.
 - Add a capture you found to `engine/tests/assets/references/manifest.json` (see `docs/06-amp-modelling-spec.md` §4).
   Tone3000 ("T3K" licence) and CC BY-NC files are local-only: never commit them.
 
@@ -60,7 +65,7 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | Hiwatt DR103 | ✅ Done (Mark Huss's hiwatt.org redraws: mid-70s four-input preamp, 100 W output) | Hiwatt DR103 | — (T3K: DR103 1974, local only, not mapped) | Normal/Brilliant, jumpered | 4x12 closed, Fane |
 | Orange OR50 / Rockerverb | ⏸ Waiting (only the Rockerverb 50 MkI factory sheet, 2004, marginal scan; nothing for MkII/MkIII or the OR50 reissue, MEF requests unanswered; Orange gives schematics to authorised techs only) | — | — | Reliable schematic (MkI only found) | 2x12 / 4x12 closed, Vintage 30 |
 | Marshall JVM410H | ✅ Done, all four channels in their Green, Orange and Red modes (DrTube jvm410-60-02 iss 2, -61-02 iss 1, -67-02 iss 2, vector; el34world `Marshall_jvm410_sch.pdf`). The relay states per mode are firmware and on no drawing or forum: deduced from the relays' contacts and the handbook's gain-structure descriptions (see `JVM410H.cs`) | JVM410H OD, JVM410H Clean/Crunch | GPL: pelennor "Phillipe P JVM-OD1/OD2 ... NoDrive" (not added: amp and rig not stated) | Mode-labelled captures | 4x12 closed, Vintage 30 |
-| Splawn Quickrod | ⏸ Waiting (no schematic: the schems.com link is dead, an elektrotanya file is said to be the 4 × 12AX7 version; Splawn reportedly has none) | — | — | Schematic | 4x12 closed, Vintage 30 |
+| Splawn Quickrod | ✅ Done, both channels (the preamp drawing "Splawn QuickRod", sheet 1/1, a clean CAD drawing, file `Splawn Quickrod Preamp Schematic.pdf`: the two-channel amp with three 12AX7s in the preamp, four with the inverter; OD1/OD2, the 1st/2nd and 3rd gear switches, the solo boost and the clean channel; V1B and the paralleled V3 on one cathode as drawn. The drawing ends at the inverter: the power amp is the JCM800 2203's, guessed, as are the switch positions and the pot tapers. Over the high-gain CPU budget by choice: the overdrive channel's four triodes in one netlist, −55 to −58 dB from the uncut circuit, cost 17.6 / 35.0 % (3rd gear 19.7 / 34.0 %) against 16 / 28 %; the user chose accuracy, as for the Silver Jubilee's noise case) | Quick Rod | Spawn Q-Rod 1st / 2nd / 3rd Gear | A Quick Rod capture with stated settings; the power amp's drawing | 4x12 closed, Vintage 30 |
 | Suhr Badger / SL68 | ⏸ Waiting (an unofficial Badger 18 drawing on MEF is called inaccurate there: the real amp has a dual-ganged gain pot and a plate-driven loop; nothing for the SL68) | — | — | Schematic | 2x12 / 4x12 |
 | Marshall JMP 2204 / 2203 (1970s) | ✅ Covered by JCM800 2203 / 2204 (Marshall's 1978 drawing 78331-1, master-volume column, lists the JCM800 preamp's values) | JCM800 2203, JCM800 2204 | — | US (Unicord, 6550) versions | 4x12 closed |
 | Marshall 18 W (1974X) | ✅ Done (PedalMonkey rev 5 drawing with voltages; the tremolo: V3B oscillating in the channel's netlist, Speed and Depth) | 18 W 1974X | — | Both channels, volume sweep | 2x10 / 1x12 open |

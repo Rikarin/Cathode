@@ -3,7 +3,7 @@ import type { PresetBlock } from '@cathode/api-client';
 import { XuiKonvaImports, type XuiKonvaEventObject } from '@xui/konva';
 import { logFrequencies } from '../../dsp/response';
 import { LiveStore } from '../../state/live.store';
-import { peqBandDb, type PeqBand } from './peq';
+import { peqGainFor, peqTotalDb, type PeqBand } from './peq';
 
 const Width = 640;
 const Height = 220;
@@ -14,11 +14,14 @@ const Frequencies = logFrequencies(240);
 const xOf = (frequency: number) => (Math.log(frequency / 20) / Math.log(1000)) * Width;
 const frequencyOf = (x: number) => 20 * Math.pow(1000, Math.min(Width, Math.max(0, x)) / Width);
 const yOf = (db: number) => Height / 2 - (db / MaxDb) * (Height / 2);
-const dbOf = (y: number) => Math.max(-MaxDb, Math.min(MaxDb, ((Height / 2 - y) / (Height / 2)) * MaxDb));
+const clampDb = (db: number) => Math.max(-MaxDb, Math.min(MaxDb, db));
+const dbOf = (y: number) => clampDb(((Height / 2 - y) / (Height / 2)) * MaxDb);
 
 /**
- * The parametric EQ as a curve (docs/02-architecture.md §7.3, via @xui/konva). Drag a band's handle to set its
- * frequency and gain; scroll over it to change its Q. The knobs below show the same parameters.
+ * The parametric EQ as a curve (docs/02-architecture.md §7.3, via @xui/konva). Each band's handle sits on the curve,
+ * at the whole EQ's response at its frequency, so a boost nearby lifts its neighbours' handles with the line. Drag a
+ * handle to set its frequency and gain (the gain that puts the curve where it is dropped); scroll over it to change
+ * its Q. The knobs below show the same parameters.
  */
 @Component({
   selector: 'cth-peq-panel',
@@ -73,10 +76,7 @@ export class PeqPanel {
 
   protected readonly curve = computed(() => {
     const bands = this.bands();
-    const points = Frequencies.flatMap(f => {
-      const db = bands.reduce((sum, b) => sum + peqBandDb(b, f), 0);
-      return [xOf(f), yOf(Math.max(-MaxDb, Math.min(MaxDb, db)))];
-    });
+    const points = Frequencies.flatMap(f => [xOf(f), yOf(clampDb(peqTotalDb(bands, f)))]);
     return { points, stroke: this.colors().curve, strokeWidth: 2, lineJoin: 'round' as const, listening: false };
   });
 
@@ -85,7 +85,7 @@ export class PeqPanel {
       band: b.band,
       config: {
         x: xOf(b.frequency),
-        y: yOf(b.gain),
+        y: yOf(clampDb(peqTotalDb(this.bands(), b.frequency))),
         radius: 8,
         fill: this.colors().handle,
         stroke: this.colors().curve,
@@ -124,8 +124,12 @@ export class PeqPanel {
     const node = event.event.target;
     const block = this.block();
     const channel = this.live.channelOf(block.id);
-    this.live.setParam(block.id, channel, `freq${band}`, frequencyOf(node.x()));
-    this.live.setParam(block.id, channel, `gain${band}`, dbOf(node.y()));
+    const frequency = frequencyOf(node.x());
+    this.live.setParam(block.id, channel, `freq${band}`, frequency);
+    const gain = peqGainFor(this.bands(), band, frequency, dbOf(node.y()));
+    if (gain !== null) {
+      this.live.setParam(block.id, channel, `gain${band}`, clampDb(gain));
+    }
   }
 
   protected wheel(band: number, event: XuiKonvaEventObject<WheelEvent>): void {

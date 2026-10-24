@@ -24,6 +24,12 @@ public readonly ref struct AudioIO {
     public Span<float> SendRight { get; }
 
     /// <summary>
+    ///     Outputs 2-4 and the DI out, with the device channels they are mapped to; null when the backend has only the
+    ///     main output (the engine then renders nothing for the others).
+    /// </summary>
+    public OutputBus? Outputs { get; init; }
+
+    /// <summary>
     ///     Every hardware input source (<see cref="Dsp.Routing.HardwareInputs" />: Input 1–4, USB 5/6, USB 7/8), planar:
     ///     source <c>s</c>'s left channel at <c>2s × Frames</c>, its right at <c>(2s + 1) × Frames</c>. Empty when the
     ///     device maps only Input 1, which is then <see cref="InputLeft" /> and <see cref="InputRight" />.

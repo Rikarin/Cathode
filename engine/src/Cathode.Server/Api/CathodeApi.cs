@@ -27,6 +27,12 @@ public static class CathodeApi {
         api.MapGet("/system", (EngineConnection engine) => TypedResults.Ok(new SystemInfo(Version, engine.Status())))
             .WithName("GetSystem");
 
+        api.MapGet("/system/latency", async (EngineConnection engine) => TypedResults.Ok(await engine.LatencyAsync()))
+            .WithName("GetLatency")
+            .WithSummary(
+                "The latency from instrument to speaker: the device's input and output latency, the buffer, and the graph's latency along its longest path, block by block."
+            );
+
         var catalog = api.MapGroup("/catalog").WithTags("Catalog");
         catalog.MapGet("/blocks", (BlockCatalog blocks) => TypedResults.Ok(blocks.All.ToArray()))
             .WithName("ListBlockTypes");
@@ -187,6 +193,13 @@ public static class CathodeApi {
                     Respond(http, await rig.SelectSceneAsync(request.Scene))
             )
             .WithName("SelectScene");
+        live.MapPatch(
+                "/info",
+                async (PresetInfoRequest request, LiveRig rig, HttpContext http) =>
+                    Respond(http, await rig.UpdateInfoAsync(request, Expected(http)))
+            )
+            .WithName("UpdatePresetInfo")
+            .WithSummary("Renames the working copy and sets its author and tags (undoable).");
         MapScenes(live);
         live.MapPatch(
                 "/scenes/{scene:int}",
@@ -279,7 +292,12 @@ public static class CathodeApi {
                 ) => {
                     var source = store.Get(request.Preset)
                         ?? throw RigException.NotFound($"No block preset '{request.Preset}'.");
-                    return Respond(http, await rig.ApplyBlockPresetAsync(id, source, request.Channel, Expected(http)));
+                    return Respond(
+                        http,
+                        request.AllChannels
+                            ? await rig.ApplyBlockPresetAllAsync(id, source, Expected(http))
+                            : await rig.ApplyBlockPresetAsync(id, source, request.Channel, Expected(http))
+                    );
                 }
             )
             .WithName("ApplyBlockPreset")
@@ -336,6 +354,7 @@ public static class CathodeApi {
             .WithName("DeleteBank");
 
         MapControls(api, live);
+        WorkflowApi.MapWorkflow(api, live);
 
         var assets = api.MapGroup("/assets").WithTags("Assets");
         assets.MapGet("/", (AssetStore store) => TypedResults.Ok(store.List().ToArray())).WithName("ListAssets");
@@ -395,6 +414,31 @@ public static class CathodeApi {
             )
             .WithName("GetAssetContent")
             .WithSummary("The asset's file, e.g. an impulse response for the editor's frequency-response plot.");
+
+        live.MapPut(
+                "/blocks/{id}/test-tone",
+                async Task<IResult> (string id, TestToneRequest request, LiveRig rig, EngineConnection engine) => {
+                    if (request.Enabled) {
+                        await rig.CheckBlockAsync(id);
+                    }
+
+                    await engine.TestToneAsync(id, request);
+                    return TypedResults.NoContent();
+                }
+            )
+            .WithName("SetTestTone")
+            .WithSummary(
+                "Plays a sine in place of the block's output (the cab resonance helper), or stops it. Nothing is stored in the preset, and loading another graph stops it."
+            );
+
+        live.MapGet(
+                "/blocks/{id}/speaker-resonance",
+                async (string id, LiveRig rig) => TypedResults.Ok(await rig.SpeakerResonanceAsync(id))
+            )
+            .WithName("GetSpeakerResonance")
+            .WithSummary(
+                "A Circuit Amp's speaker load resonance: the frequency at Load resonance 100 % for its model and Speaker load (with Follow Cab, the followed Cab's speaker), the current setting and the frequency it gives."
+            );
 
         api.MapPut(
                 "/tuner",
@@ -571,13 +615,18 @@ public static class CathodeApi {
                                 g.Tempo = Math.Clamp(settings.Tempo, 30, 300);
                                 g.Metronome = settings.Metronome;
                                 g.MetronomeLevel = Math.Clamp(settings.MetronomeLevel, -60, 0);
-                                g.Eq = settings.Eq;
+                                g.Outputs = settings.Outputs;
+                                g.CopyOutput1To2 = settings.CopyOutput1To2;
+                                g.Inputs = settings.Inputs;
+                                g.Oversampling = settings.Oversampling;
                                 g.Manual = settings.Manual;
                                 g.MidiChannel = settings.MidiChannel;
                                 g.MidiMappings = settings.MidiMappings;
                                 g.Footswitches = settings.Footswitches;
                                 g.ActiveLayout = settings.ActiveLayout;
+                                g.ActiveView = Math.Max(0, settings.ActiveView);
                                 g.Blocks = settings.Blocks;
+                                g.Perform = settings.Perform;
                                 g.EffectsMix = settings.EffectsMix;
                                 g.NoiseGateOffset = settings.NoiseGateOffset;
                                 g.SceneRevert = settings.SceneRevert;
@@ -595,7 +644,7 @@ public static class CathodeApi {
             )
             .WithName("PutGlobal")
             .WithSummary(
-                "Replaces the global settings: tempo mode, metronome, EQ, Manual A-D, MIDI, footswitches, global blocks, "
+                "Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, Manual A-D, MIDI, footswitches, global blocks, "
                 + "scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover."
             );
 
@@ -714,13 +763,13 @@ public static class CathodeApi {
             .WithSummary("Puts every channel of the block back to its type's defaults.");
     }
 
-    static Ok<LiveState> Respond(HttpContext http, LiveState state) {
+    internal static Ok<LiveState> Respond(HttpContext http, LiveState state) {
         http.Response.Headers.ETag = $"\"{state.Revision.ToString(CultureInfo.InvariantCulture)}\"";
         return TypedResults.Ok(state);
     }
 
     /// <summary>The revision from <c>If-Match</c>, if the client sent one.</summary>
-    static long? Expected(HttpContext http) {
+    internal static long? Expected(HttpContext http) {
         var header = http.Request.Headers.IfMatch.ToString().Trim().Trim('"');
         return long.TryParse(header, NumberStyles.Integer, CultureInfo.InvariantCulture, out var revision)
             ? revision

@@ -133,7 +133,17 @@ public sealed class FilterBlock() : DspBlock(Info) {
             ParamDescriptor.Float("lfoDuty", "LFO Duty", 0f, 100f, 50f, "%"),
             LfoConditioner.QuantizeParam()
         ],
-        maxInstances: 4
+        maxInstances: 4,
+        pages: [
+            new("Basic", ["freq", "q", "gain", "order", "lowCut", "highCut", "combTime", "feedback"]),
+            new(
+                "Modulation",
+                [
+                    "lfoOn", "lfoType", "lfoRate", "lfoTempo", "depth", "modFreq", "lfoDuty", "lfoQuantize"
+                ]
+            ),
+            new("Stereo", ["panLeft", "panRight", "phaseInvert"])
+        ]
     );
 
     /// <summary>The biquad response a type uses, or null for the types that are not one SVF section.</summary>

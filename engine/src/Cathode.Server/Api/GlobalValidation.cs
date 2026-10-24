@@ -8,9 +8,15 @@ static class GlobalValidation {
     static readonly string[] TempoModes = ["preset", "global", "midiClock"];
     static readonly string[] Messages = ["cc", "note", "pc"];
 
+    /// <summary>The output modes, in the order of the engine's Output Mode choice.</summary>
+    public static readonly string[] OutputModes = ["stereo", "sum", "copyLR", "dualMono"];
+
+    public static readonly string[] Oversampling = ["minimum", "linear"];
+
     static readonly string[] Actions = [
         "scene", "sceneNext", "scenePrevious", "presetSlot", "presetNext", "presetPrevious", "bypass", "channel",
-        "external", "manual", "tap", "tuner", "metronome", "looper", "sceneLevelUp", "sceneLevelDown", "save"
+        "external", "manual", "tap", "tuner", "metronome", "looper", "sceneLevelUp", "sceneLevelDown", "save",
+        "layout", "view", "viewNext", "viewPrevious"
     ];
 
     public static void Check(GlobalSettings settings) {
@@ -31,6 +37,38 @@ static class GlobalValidation {
             errors.Add("The noise gate offset is -20 to 20 dB.");
         }
 
+        if (settings.Outputs.Count != 4) {
+            errors.Add("Outputs has four entries (Outputs 1-4).");
+        }
+
+        foreach (var (output, n) in settings.Outputs.Select(static (o, i) => (o, i + 1))) {
+            if (!OutputModes.Contains(output.Mode)) {
+                errors.Add($"Output {n}: mode '{output.Mode}' is not stereo, sum, copyLR or dualMono.");
+            }
+
+            if (output.BoostPad is < -18f or > 18f || !float.IsFinite(output.BoostPad)) {
+                errors.Add($"Output {n}: Boost/Pad is -18 to 18 dB.");
+            }
+        }
+
+        if (settings.Inputs.Count is < 1 or > 4) {
+            errors.Add("Inputs has one to four entries.");
+        }
+
+        foreach (var (input, n) in settings.Inputs.Select(static (input, i) => (input, i + 1))) {
+            if (input.FullScaleVolts is < 0.0316f or > 100f || !float.IsFinite(input.FullScaleVolts)) {
+                errors.Add($"Input {n}: full scale is 0.0316 to 100 V (-30 to +40 dBV).");
+            }
+
+            if (input.Gain is < -20f or > 20f || !float.IsFinite(input.Gain)) {
+                errors.Add($"Input {n}: gain is -20 to 20 dB.");
+            }
+        }
+
+        if (!Oversampling.Contains(settings.Oversampling)) {
+            errors.Add($"Oversampling '{settings.Oversampling}' is not minimum or linear.");
+        }
+
         if (settings.DefaultScene is < -1 or >= Preset.SceneCount) {
             errors.Add("The default scene is -1 (as saved) or 0-7.");
         }
@@ -49,6 +87,19 @@ static class GlobalValidation {
             CheckAction(footswitch.Tap.Action, errors);
             if (footswitch.Hold is { } hold) {
                 CheckAction(hold.Action, errors);
+            }
+        }
+
+        foreach (var layout in settings.Footswitches) {
+            var views = Math.Max(1, layout.Views?.Count ?? 0);
+            foreach (var footswitch in layout.Switches) {
+                if (footswitch.View < 0 || footswitch.View >= views) {
+                    errors.Add($"Switch {footswitch.Index} of '{layout.Name}' is on view {footswitch.View}; the layout has {views}.");
+                }
+
+                if (footswitch.Link is { } link && settings.Footswitches.All(l => l.Id != link)) {
+                    errors.Add($"Switch {footswitch.Index} of '{layout.Name}' links to no layout '{link}'.");
+                }
             }
         }
 

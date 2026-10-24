@@ -13,9 +13,11 @@ namespace Cathode.Server.Tests;
 
 /// <summary>
 ///     A Server with a throwaway data folder and, by default, an in-process engine (null audio). Pass a socket path
-///     to talk to a separate cathode-host over IPC instead, and a token to require one on every request.
+///     to talk to a separate cathode-host over IPC instead, a token to require one on every request, and an editor
+///     folder to serve the editor's web build at the root, as a headless rig does.
 /// </summary>
-public sealed class ServerFixture(string? socketPath = null, string? token = null) : WebApplicationFactory<Program> {
+public sealed class ServerFixture(string? socketPath = null, string? token = null, string? editorDirectory = null)
+    : WebApplicationFactory<Program> {
     readonly string dataDirectory = Directory.CreateTempSubdirectory("cathode-server-").FullName;
 
     /// <summary>The in-process engine host (in-process mode only).</summary>
@@ -83,6 +85,10 @@ public sealed class ServerFixture(string? socketPath = null, string? token = nul
 
         if (socketPath is not null) {
             builder.UseSetting("Cathode:Engine:SocketPath", socketPath);
+        }
+
+        if (editorDirectory is not null) {
+            builder.UseSetting("Cathode:EditorDirectory", editorDirectory);
         }
     }
 

@@ -15,6 +15,7 @@ namespace Cathode.Audio;
 public sealed class NullBackend : IDisposable {
     readonly int sampleRate;
     readonly int blockSize;
+    readonly OutputBus? outputs;
     Thread? thread;
     volatile bool running;
 
@@ -24,9 +25,14 @@ public sealed class NullBackend : IDisposable {
     /// <summary>Times the thread fell more than 100 ms behind (and skipped ahead).</summary>
     public long LateCallbacks { get; private set; }
 
-    public NullBackend(int sampleRate, int blockSize) {
+    /// <summary>A backend at <paramref name="sampleRate" /> calling back every <paramref name="blockSize" /> frames.</summary>
+    /// <param name="sampleRate">Frames per second.</param>
+    /// <param name="blockSize">Frames per callback.</param>
+    /// <param name="outputs">Outputs 2-4 and the DI out to render (and discard), as a device with them would.</param>
+    public NullBackend(int sampleRate, int blockSize, OutputBus? outputs = null) {
         this.sampleRate = sampleRate;
         this.blockSize = blockSize;
+        this.outputs = outputs;
     }
 
     public void Start(IAudioProcessor processor) {
@@ -56,7 +62,7 @@ public sealed class NullBackend : IDisposable {
         var period = Stopwatch.Frequency * blockSize / sampleRate;
         var deadline = Stopwatch.GetTimestamp() + period;
         while (running) {
-            processor.Process(new(input, input, outLeft, outRight));
+            processor.Process(new(input, input, outLeft, outRight) { Outputs = outputs });
             var now = Stopwatch.GetTimestamp();
             if (now - deadline > MaxLag) {
                 LateCallbacks++;

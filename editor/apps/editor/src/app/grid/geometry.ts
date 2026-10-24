@@ -1,4 +1,4 @@
-import type { PresetBlock, PresetCable } from '@cathode/api-client';
+import { OutputTypes, type PresetBlock, type PresetCable } from '@cathode/api-client';
 
 /** Grid metrics in CSS pixels. */
 export const Cell = { width: 84, height: 60, gap: 12 } as const;
@@ -42,7 +42,7 @@ export function canConnect(from: PresetBlock, to: PresetBlock, cables: readonly 
   return (
     to.column === from.column + 1 &&
     to.type !== 'input' &&
-    from.type !== 'output' &&
+    !OutputTypes.includes(from.type) &&
     !cables.some(c => c.from === from.id && c.to === to.id)
   );
 }

@@ -174,7 +174,17 @@ public sealed class WahBlock() : DspBlock(Info) {
                 )
             )
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "position", "minFreq", "maxFreq", "resonance", "qTracking", "taper", "lowCut", "drive",
+                    "inductorBias"
+                ]
+            ),
+            new("Graphic EQ", ["eq1", "eq2", "eq3", "eq4", "eq5", "eq6", "eq7", "eq8"])
+        ]
     );
 
     /// <summary>The number of filter-approximation voicings, which come before the circuits.</summary>

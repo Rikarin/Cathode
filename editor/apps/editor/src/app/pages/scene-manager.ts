@@ -50,7 +50,7 @@ export function sceneRows(
       <h1 xuiHeading class="mr-auto text-lg">Scenes</h1>
       <span class="text-foreground-muted text-xs">Scene</span>
       <xui-select
-        class="w-40 shrink-0"
+        class="shrink-0"
         aria-label="First scene"
         [filterable]="false"
         [items]="sceneIndexes"
@@ -60,7 +60,7 @@ export function sceneRows(
       />
       <span class="text-foreground-muted text-xs">and</span>
       <xui-select
-        class="w-40 shrink-0"
+        class="shrink-0"
         aria-label="Second scene"
         [filterable]="false"
         [items]="sceneIndexes"
@@ -130,6 +130,9 @@ export function sceneRows(
                             live.setSceneBlock(scene, row.id, { bypassed: !state.bypassed, channel: state.channel })
                           "
                         ></button>
+                      } @else {
+                        <!-- Input and Output can't be bypassed: keep the dot's place so the channels line up. -->
+                        <span class="size-3 shrink-0" aria-hidden="true"></span>
                       }
                       @if (row.channels.length > 1) {
                         @for (channel of row.channels; track channel) {

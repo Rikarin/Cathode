@@ -20,6 +20,11 @@ public readonly record struct ProcessSpec(double SampleRate, int MaxBlockSize) {
 /// <param name="CabsOff">
 ///     The global cab modelling switch is off (a player using a real cab): Cab and IR Player blocks pass audio through.
 /// </param>
+/// <param name="InputCalibrationDb">
+///     Input 1's calibration: the volts at the instrument jack that reach full scale, in dB re 1 V (0 = 1 V, the
+///     default). Blocks that model circuits by voltage (the Circuit Amp and Drive) scale their input by
+///     <see cref="InputVolts" />, so the drive they get does not depend on the interface's gain.
+/// </param>
 public readonly record struct BlockContext(
     double SampleRate,
     double Tempo,
@@ -27,5 +32,9 @@ public readonly record struct BlockContext(
     HeldNotes Notes = default,
     float MixOffset = 0f,
     float GateOffsetDb = 0f,
-    bool CabsOff = false
-);
+    bool CabsOff = false,
+    float InputCalibrationDb = 0f
+) {
+    /// <summary>Volts at the instrument jack per unit of signal (<see cref="InputCalibrationDb" />).</summary>
+    public double InputVolts => InputCalibrationDb == 0f ? 1.0 : Math.Pow(10, InputCalibrationDb / 20.0);
+}

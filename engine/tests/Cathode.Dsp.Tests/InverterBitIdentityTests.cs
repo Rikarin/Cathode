@@ -6,7 +6,8 @@ namespace Cathode.Dsp.Tests;
 ///     Stream M2's guard that the driver variants and the loop stage leave every other model as it was: each model's
 ///     phase-inverter table and its power amp, rendered alone, hash to the same bits as on the commit before them
 ///     (49fe687). An intended change to an inverter or to <see cref="PowerAmp" /> regenerates the table from this
-///     test's output.
+///     test's output. The hashes are macOS ARM64 renders, so the test runs there only
+///     (<see cref="BaselinePlatform" />).
 /// </summary>
 public class InverterBitIdentityTests(ITestOutputHelper output) {
     /// <summary>(inverter table, power amp render) per model, from 49fe687.</summary>
@@ -99,6 +100,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
     [Theory]
     [MemberData(nameof(Names))]
     public void Existing_inverters_and_power_amps_render_bit_identical(string name) {
+        BaselinePlatform.Require();
         var design = AmpDesign.All.Single(a => a.Name == name);
         var (table, render) = (Table(design.Power.PhaseInverter), Render(design.Power));
         output.WriteLine($"{{ \"{name}\", (0x{table:X16}, 0x{render:X16}) }},");

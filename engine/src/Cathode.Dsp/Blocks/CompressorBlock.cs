@@ -207,7 +207,23 @@ public sealed class CompressorBlock() : DspBlock(Info), ISidechainBlock, IHardwa
             Only(ParamDescriptor.Float("expThreshold", "Expander Threshold", -90f, 0f, -60f, "dB"), Compander),
             Only(ParamDescriptor.Float("expRatio", "Expander Ratio", 1f, 10f, 2f, ":1", ParamTaper.Log), Compander)
         ],
-        maxInstances: 4
+        maxInstances: 4,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "threshold", "ratio", "attack", "release", "knee", "makeup", "autoMakeup", "compression",
+                    "inputLevel", "controls", "light"
+                ]
+            ),
+            new("Sidechain", ["scSource", "scLowCut", "scHighCut", "scFilter", "scFreq", "scQ", "scGain", "detector"]),
+            new(
+                "Advanced",
+                [
+                    "autoTime", "dynamics", "emphasis", "emphasisFreq", "lookAhead", "expThreshold", "expRatio"
+                ]
+            )
+        ]
     );
 
     public InputPort? Inputs { get; set; }

@@ -141,7 +141,19 @@ public sealed class TenTapBlock() : DspBlock(Info) {
             ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
             ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions)
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new("Basic", ["time", "tempo", "feedback", "taps", "decay", "shuffle", "ratio", "lowCut", "highCut"]),
+            new(
+                "Taps",
+                [
+                    "tap1Time", "tap2Time", "tap3Time", "tap4Time", "tap5Time", "tap6Time", "tap7Time", "tap8Time",
+                    "tap9Time", "tap10Time", "tap1Level", "tap2Level", "tap3Level", "tap4Level", "tap5Level",
+                    "tap6Level", "tap7Level", "tap8Level", "tap9Level", "tap10Level", "quantize", "learn"
+                ]
+            ),
+            new("Advanced", ["mode", "spread", "panShape", "panAlpha", "inputGain", "inputSelect"])
+        ]
     );
 
     /// <summary>The fractions of Time the learned pattern's taps sit at, in order (for tests and display).</summary>

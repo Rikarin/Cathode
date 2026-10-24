@@ -79,13 +79,18 @@ namespace Cathode.Dsp.Blocks;
 ///             power saturate the core.
 ///         </item>
 ///         <item>
-///             <b>Speaker</b> (Stock): an impedance curve preset: open-back 1x12, 2x12 or 4x10, closed 4x12, closed 8x10.
+///             <b>Speaker load</b> (Stock): the speaker as the electrical load on the power amp, not its sound. A
+///             speaker's impedance peaks at the cone's resonance and rises with the voice coil's inductance, and a tube
+///             power amp's output (most of all with little feedback) follows it: more thump and more treble, and
+///             different clipping and sag. That happens inside the amp; the cone's breakup, the cabinet's acoustics and
+///             the mic are the Cab block's. Stock is the model's own load; then an impedance curve preset (open-back
+///             1x12, 2x12 or 4x10, closed 4x12, closed 8x10), or <b>Follow Cab</b>: the load of the speaker and cabinet
+///             the next Cab block synthesises, from that speaker's own Thiele-Small data (<see cref="AutoSpeaker" />).
 ///         </item>
 ///         <item>
-///             <b>LF Resonance</b>, <b>LF Q</b>, <b>LF Amount</b> (100 %): the speaker's resonance frequency, sharpness
-///             and
-///             peak height; <b>Speaker HF</b> (100 %) its voice-coil inductance; <b>Speaker Imp</b> (100 %) the whole
-///             load against the tap (50 % is a 4 Ω cab on the 8 Ω tap).
+///             <b>Load resonance</b>, <b>Load Q</b>, <b>Load peak</b> (100 %): the load's resonance frequency,
+///             sharpness and peak height; <b>Load HF</b> (100 %) its voice-coil inductance; <b>Load impedance</b>
+///             (100 %) the whole load against the tap (50 % is a 4 Ω cab on the 8 Ω tap). All scale the chosen curve.
 ///         </item>
 ///         <item><b>Presence Freq</b>, <b>Depth Freq</b> (100 %): the presence and depth controls' frequencies.</item>
 ///         <item><b>Variac</b> (100 %): the mains voltage: every supply node, and a fixed bias with them ("brown sound").</item>
@@ -137,11 +142,51 @@ namespace Cathode.Dsp.Blocks;
 ///         <item><b>Balance</b> (0 %) on the stereo output.</item>
 ///     </list>
 ///     <para>
+///         Then the advanced page (docs/08 §4, stream PB), each stock at its default. Most scale a component value the
+///         model already has, and are hidden on a model without it (<see cref="AmpFeatures" />):
+///     </para>
+///     <list type="bullet">
+///         <item>
+///             <b>Power Tube Hardness</b>, <b>Preamp Hardness</b> (5): the tubes' knees sharpened or softened, 4x to
+///             0.25x (<see cref="PentodeModel.Hardened" />, <see cref="TriodeModel.Hardened" />).
+///         </item>
+///         <item>
+///             Generic switches where a model has no circuit of its own: <b>Presence Shift</b> (the presence
+///             frequency an octave down), <b>Fat</b> (the stack's frequencies down by 0.6), <b>Input Cut</b> (a 150 Hz
+///             input high-pass at least), <b>High Treble</b> (5 flat: a ±12 dB shelf at 3 kHz before the power amp)
+///             and <b>Overdrive</b> (0: up to 20 dB more swing into the last gain stage).
+///         </item>
+///         <item>
+///             <b>Tonestack Type</b> (Stock: any model's stack in a tone-stack stage) and <b>Tonestack Location</b>
+///             (Stock, Pre, Mid, Post: the stack's stage moved, each stage kept at its operating point).
+///         </item>
+///         <item>
+///             <b>Triode 1/2 Plate Freq</b> (100 %: the plate-bypass caps of the last two gain stages), <b>CF
+///             Compression</b> (a cathode follower's grid current) and <b>CF Harmonics</b> (its cathode resistor).
+///         </item>
+///         <item>
+///             <b>Preamp</b>, <b>PI</b> and <b>Power Tube Bias Excursion</b> (100 %: their grid current), the power
+///             grids' <b>Excursion Time</b> (coupling caps) and <b>Recovery Time</b> (grid leaks), <b>Master Bias
+///             Excursion</b> over all three, and <b>Plate Suppressor Diodes</b>.
+///         </item>
+///         <item>
+///             <b>Master Location</b> (Stock, or Post PI: the master as a divider after the phase inverter) and
+///             <b>Master Cap</b> (a cap across the master's upper half).
+///         </item>
+///         <item>
+///             <b>Output Mode</b> (FRFR; SS Power Amp + Cab leaves the speaker stages to the real cab), Speaker load
+///             <b>Follow Cab</b> (the next Cab block's cabinet and speaker, <see cref="AutoSpeaker" />: the nearest Cab
+///             block downstream, breadth first through the grid's cables, so on a split the first branch's; in it the
+///             first unmuted DynaCab slot. With no Cab downstream, or one playing only IRs, the load is Stock),
+///             <b>Screen Freq</b> and <b>Screen Q</b> (the screen node's filter; Q above 0 makes its feed a choke).
+///         </item>
+///     </list>
+///     <para>
 ///         The knobs are read on a fixed grid of <see cref="SubBlock" /> frames, so the output does not depend on the
 ///         host's block size.
 ///     </para>
 /// </remarks>
-public sealed class CircuitAmpBlock : DspBlock {
+public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower {
     public const int Type = 0;
     public const int Gain = 1;
     public const int Bass = 2;
@@ -217,6 +262,48 @@ public sealed class CircuitAmpBlock : DspBlock {
     public const int TremoloRate = 85;
     public const int TremoloDepth = 86;
     public const int Balance = 87;
+    public const int PowerTubeHardness = 88;
+    public const int PreampHardness = 89;
+    public const int PresenceShift = 90;
+    public const int Fat = 91;
+    public const int InputCut = 92;
+    public const int HighTrebleKnob = 93;
+    public const int Overdrive = 94;
+    public const int StackType = 95;
+    public const int StackPlace = 96;
+    public const int Triode1Plate = 97;
+    public const int Triode2Plate = 98;
+    public const int FollowerCompression = 99;
+    public const int FollowerHarmonics = 100;
+    public const int PreampExcursion = 101;
+    public const int InverterExcursion = 102;
+    public const int PowerTubeExcursion = 103;
+    public const int ExcursionTime = 104;
+    public const int RecoveryTime = 105;
+    public const int MasterExcursion = 106;
+    public const int Suppressor = 107;
+    public const int MasterLocation = 108;
+    public const int MasterCap = 109;
+    public const int OutputMode = 110;
+    public const int ScreenFrequency = 111;
+    public const int ScreenQ = 112;
+
+    // Values of Speaker, Master Location and Output Mode.
+    public const int SpeakerAuto = 6;
+    public const int MasterPostInverter = 1;
+    public const int OutputSolidStateCab = 1;
+
+    /// <summary>Presence Shift: the presence control's frequency multiplied by this.</summary>
+    public const double PresenceShiftFactor = 0.5;
+
+    /// <summary>Fat: the tone stack's frequencies multiplied by this.</summary>
+    public const double FatFactor = 0.6;
+
+    /// <summary>Input Cut: the input high-pass at least here.</summary>
+    public const double InputCutHz = 150;
+
+    /// <summary>Overdrive at 10, in decibels.</summary>
+    public const double OverdriveDb = 20;
 
     // Values of Output EQ Location.
     public const int EqAtOutput = 0;
@@ -226,8 +313,6 @@ public sealed class CircuitAmpBlock : DspBlock {
     /// <summary>Frames per knob reading, on a fixed grid that ignores the host's block boundaries.</summary>
     public const int SubBlock = 64;
 
-    /// <summary>Guitar volts per unit of input.</summary>
-    const double InputVolts = 1;
 
     /// <summary>The phase inverter's input volts at full scale, with the power amp off.</summary>
     const double PreampFullScale = 50;
@@ -241,6 +326,12 @@ public sealed class CircuitAmpBlock : DspBlock {
         TriodeModel.Ecc81,
         TriodeModel.Ecc82
     ];
+
+    /// <summary>
+    ///     Per model, which generic advanced controls act on it (<see cref="AmpFeatures" />), looked up here once so that
+    ///     the audio thread only reads a flag (the lookups enumerate the model's stages).
+    /// </summary>
+    static readonly AdvancedFeatures[] Features = [..AmpDesign.All.Select(AdvancedFeatures.Of)];
 
     /// <summary>The Power Tube choice after Stock.</summary>
     static readonly PentodeModel?[] PowerTubes = [
@@ -267,6 +358,10 @@ public sealed class CircuitAmpBlock : DspBlock {
     readonly AmpBoost boost = new();
     readonly AmpEqualizer equalizer = new();
     readonly float[] eqGains = new float[GraphicEqualizer.MaxBands];
+    readonly Pot postMaster = new(1e6, PotTaper.Audio); // a master moved after the phase inverter
+    HighTreble highTreble;
+    AdvancedFeatures features = Features[0];
+    CabBlock? cab;
     AmpInputFilter inputFilter;
     AmpInputDynamics dynamics;
     AmpSaturation saturation;
@@ -278,6 +373,12 @@ public sealed class CircuitAmpBlock : DspBlock {
     double tremoloPhase;
     double outputScale = 1;
     double preampScale = 1;
+
+    /// <summary>
+    ///     Guitar volts per unit of input: the input calibration (<see cref="BlockContext.InputVolts" />), 1 V at full
+    ///     scale unless set.
+    /// </summary>
+    double inputVolts = 1;
 
     public static BlockDescriptor Info { get; } = Describe(
         Labelled(
@@ -327,14 +428,14 @@ public sealed class CircuitAmpBlock : DspBlock {
                 Expert(ParamDescriptor.Float("xfmrdrive", "Xfmr Drive", 0f, 10f, 0f)),
                 ParamDescriptor.Choice(
                     "speaker",
-                    "Speaker",
-                    ["Stock", "1x12 Open", "2x12 Open", "4x10 Open", "4x12 Closed", "8x10 Closed"]
+                    "Speaker load",
+                    ["Stock", "1x12 Open", "2x12 Open", "4x10 Open", "4x12 Closed", "8x10 Closed", "Follow Cab"]
                 ),
-                Expert(ParamDescriptor.Float("spkres", "LF Resonance", 25f, 400f, 100f, "%", ParamTaper.Log)),
-                Expert(ParamDescriptor.Float("spkq", "LF Q", 25f, 400f, 100f, "%", ParamTaper.Log)),
-                Expert(ParamDescriptor.Float("spkpeak", "LF Amount", 25f, 400f, 100f, "%", ParamTaper.Log)),
-                Expert(ParamDescriptor.Float("spkhf", "Speaker HF", 25f, 400f, 100f, "%", ParamTaper.Log)),
-                Expert(ParamDescriptor.Float("spkimp", "Speaker Imp", 50f, 200f, 100f, "%", ParamTaper.Log)),
+                Expert(ParamDescriptor.Float("spkres", "Load resonance", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(ParamDescriptor.Float("spkq", "Load Q", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(ParamDescriptor.Float("spkpeak", "Load peak", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(ParamDescriptor.Float("spkhf", "Load HF", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(ParamDescriptor.Float("spkimp", "Load impedance", 50f, 200f, 100f, "%", ParamTaper.Log)),
                 ParamDescriptor.Float("presfreq", "Presence Freq", 25f, 400f, 100f, "%", ParamTaper.Log),
                 ParamDescriptor.Float("depthfreq", "Depth Freq", 25f, 400f, 100f, "%", ParamTaper.Log),
                 ParamDescriptor.Float("variac", "Variac", 50f, 130f, 100f, "%"),
@@ -369,16 +470,70 @@ public sealed class CircuitAmpBlock : DspBlock {
                 ParamDescriptor.Float("spkcomptc", "Speaker Comp Time", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
                 ParamDescriptor.Float("tremrate", "Bias Trem Rate", 0.5f, 15f, 4f, "Hz", ParamTaper.Log),
                 ParamDescriptor.Float("tremdepth", "Bias Trem Depth", 0f, 100f, 0f, "%"),
-                ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+                ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+                Expert(ParamDescriptor.Float("pthard", "Power Tube Hardness", 0f, 10f, 5f)),
+                Expert(ParamDescriptor.Float("prehard", "Preamp Hardness", 0f, 10f, 5f)),
+                ParamDescriptor.Switch("presshift", "Presence Shift"),
+                ParamDescriptor.Switch("fatsw", "Fat"),
+                ParamDescriptor.Switch("cutsw", "Input Cut"),
+                ParamDescriptor.Float("hitreble", "High Treble", 0f, 10f, 5f),
+                ParamDescriptor.Float("overdrive", "Overdrive", 0f, 10f, 0f),
+                ParamDescriptor.Choice("stacktype", "Tonestack Type", AmpStacks.Names),
+                ParamDescriptor.Choice("stackloc", "Tonestack Location", ["Stock", "Pre", "Mid", "Post"]),
+                Expert(ParamDescriptor.Float("t1plate", "Triode 1 Plate Freq", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(ParamDescriptor.Float("t2plate", "Triode 2 Plate Freq", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(ParamDescriptor.Float("cfcomp", "CF Compression", 0f, 400f, 100f, "%")),
+                Expert(ParamDescriptor.Float("cfharm", "CF Harmonics", 50f, 200f, 100f, "%", ParamTaper.Log)),
+                Expert(ParamDescriptor.Float("prebiasx", "Preamp Bias Excursion", 0f, 400f, 100f, "%")),
+                Expert(ParamDescriptor.Float("pibiasx", "PI Bias Excursion", 0f, 400f, 100f, "%")),
+                Expert(ParamDescriptor.Float("ptbiasx", "Power Tube Bias Excursion", 0f, 400f, 100f, "%")),
+                Expert(ParamDescriptor.Float("ptbiastime", "Excursion Time", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(ParamDescriptor.Float("ptrecovery", "Recovery Time", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(ParamDescriptor.Float("masterbiasx", "Master Bias Excursion", 0f, 200f, 100f, "%")),
+                ParamDescriptor.Switch("suppressor", "Plate Suppressor Diodes"),
+                ParamDescriptor.Choice("mvloc", "Master Location", ["Stock", "Post PI"]),
+                Expert(ParamDescriptor.Float("mvcap", "Master Cap", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                ParamDescriptor.Choice("outmode", "Output Mode", ["FRFR", "SS Power Amp + Cab"]),
+                Expert(ParamDescriptor.Float("screenfreq", "Screen Freq", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(ParamDescriptor.Float("screenq", "Screen Q", 0f, 5f, 0f))
             ]
         )
     );
 
+    /// <summary>
+    ///     The speaker load's resonance (Hz) at Load resonance 100 % for amp <paramref name="type" /> with Speaker load
+    ///     choice <paramref name="speaker" /> (0 = the model's stock load), following the DynaCab enclosure and speaker
+    ///     <paramref name="cab" /> for Follow Cab (null: none, so Stock): what the cab resonance helper scales.
+    /// </summary>
+    public static double SpeakerResonanceHz(int type, int speaker, (int Enclosure, int Speaker)? cab = null) =>
+        (LoadFor(speaker, cab ?? (-1, -1))
+            ?? AmpDesign.All[Math.Clamp(type, 0, AmpDesign.All.Count - 1)].Power.Speaker).Resonance;
+
+    /// <summary>
+    ///     The load Speaker load choice <paramref name="speaker" /> picks in place of the model's (null: Stock), with
+    ///     <paramref name="cab" /> the followed Cab's DynaCab enclosure and speaker ((-1, -1) for none).
+    ///     Allocation-free.
+    /// </summary>
+    public static SpeakerDesign? LoadFor(int speaker, (int Enclosure, int Speaker) cab) =>
+        speaker switch {
+            SpeakerAuto => AutoSpeaker.For(cab.Enclosure, cab.Speaker),
+            > 0 and < SpeakerAuto => SpeakerDesign.Presets[speaker - 1],
+            _ => null
+        };
+
     /// <summary>The active amp's channel (for tests and diagnostics).</summary>
     public AmpChannel Channel { get; private set; }
 
+    /// <summary>The Cab block the Auto speaker load follows, as the graph compiler linked it (<see cref="ICabFollower" />).</summary>
+    public CabBlock? FollowedCab => cab;
+
     /// <summary>The internal processing rate as a multiple of the sample rate.</summary>
     public int Oversampling { get; private set; } = 2;
+
+    /// <summary>The oversampler's filters (the global setting); set before <see cref="IDspBlock.Prepare" />.</summary>
+    public OversamplingPhase OversamplingPhase { get; set; }
+
+    public override int LatencySamples => Oversampling == 2 ? oversampler.LatencySamples : 0;
 
     static CircuitAmpBlock() {
         // Every tube table a setting can ask for, built here (control thread), so that changing one on the audio
@@ -435,6 +590,12 @@ public sealed class CircuitAmpBlock : DspBlock {
             saturation.Reset();
         }
 
+        highTreble.Design(Params.Advance(HighTrebleKnob, length) / 10.0, innerRate);
+        var treble = highTreble.IsActive;
+        if (!treble) {
+            highTreble.Reset();
+        }
+
         var inner = Oversampling == 2 ? oversampler.Up(samples) : samples;
         dynamics.Process(inner, Params.Advance(InputDynamics, length) / 100f);
         boost.Process(inner);
@@ -445,10 +606,14 @@ public sealed class CircuitAmpBlock : DspBlock {
 
         var channel = Channel;
         var scale = channel.PowerAmpEnabled ? outputScale : preampScale;
-        if (saturate || location == EqBeforePowerAmp) {
+        if (saturate || location == EqBeforePowerAmp || treble) {
             var eq = location == EqBeforePowerAmp;
             for (var i = 0; i < inner.Length; i++) {
-                var x = channel.TickPreamp(inner[i] * InputVolts * trim);
+                var x = channel.TickPreamp(inner[i] * inputVolts * trim);
+                if (treble) {
+                    x = highTreble.Tick(x);
+                }
+
                 if (saturate) {
                     x = saturation.Tick(x, preampScale, satDrive);
                 }
@@ -462,7 +627,7 @@ public sealed class CircuitAmpBlock : DspBlock {
             }
         } else {
             for (var i = 0; i < inner.Length; i++) {
-                var y = channel.Tick(inner[i] * InputVolts * trim) * scale;
+                var y = channel.Tick(inner[i] * inputVolts * trim) * scale;
                 inner[i] = Math.Abs(y) < 1e-30 ? 0f : (float)y;
             }
         }
@@ -471,12 +636,14 @@ public sealed class CircuitAmpBlock : DspBlock {
             equalizer.Process(inner);
         }
 
+        // Into a solid-state power amp and a real cab, the cab's own cone does the speaker stages' work.
+        var realCab = (int)Params.Current(OutputMode) == OutputSolidStateCab;
         speaker.Process(
             inner,
-            Params.Advance(SpeakerDrive, length),
-            Params.Advance(Thump, length),
+            realCab ? 0 : Params.Advance(SpeakerDrive, length),
+            realCab ? 0 : Params.Advance(Thump, length),
             Params.Advance(CabResonance, length),
-            Params.Advance(SpeakerCompression, length),
+            realCab ? 0 : Params.Advance(SpeakerCompression, length),
             Params.Advance(SpeakerCompressionTime, length),
             innerRate
         );
@@ -497,17 +664,66 @@ public sealed class CircuitAmpBlock : DspBlock {
     static BlockDescriptor Describe(IReadOnlyList<ParamDescriptor> parameters) =>
         new(
             "circuitamp",
-            "Amp (circuit)",
+            "Amp",
             "Amp",
             parameters,
             maxInstances: 2,
-            typeResets: [..parameters.Select(static p => p.Id).Where(static id => !KeptOnTypeChange.Contains(id))]
+            typeResets: [..parameters.Select(static p => p.Id).Where(static id => !KeptOnTypeChange.Contains(id))],
+            pages: [
+                new(
+                    "Basic",
+                    [
+                        "gain", "bass", "middle", "treble", "presence", "depth", "cut", "master", "bright", "switch1",
+                        "switch2", "switch3", "control1", "control2", "eq1", "eq2", "eq3", "eq4", "eq5", "hitreble",
+                        "overdrive", "presshift", "fatsw", "cutsw"
+                    ]
+                ),
+                new(
+                    "Preamp",
+                    [
+                        "intrim", "inputsel", "lowcut", "pretube", "presag", "stacktype", "stackloc", "definition",
+                        "saturation", "satdrive", "boost", "boostdrive", "boosttone", "boostlevel"
+                    ]
+                ),
+                new(
+                    "Power Amp",
+                    [
+                        "sag", "bias", "feedback", "mvtrim", "poweramp", "powertube", "presfreq", "depthfreq", "variac",
+                        "supply", "rectifier", "mvloc", "suppressor", "tremrate", "tremdepth"
+                    ]
+                ),
+                new(
+                    "Speaker",
+                    [
+                        "speaker", "spkres", "spkq", "spkpeak", "spkhf", "spkimp", "spkdrive", "thump", "cabres",
+                        "spkcomp", "spkcomptc", "outmode"
+                    ]
+                ),
+                new(
+                    "EQ",
+                    [
+                        "infilter", "inffreq", "infq", "infgain", "outeq", "outeqloc", "outeq1", "outeq2", "outeq3",
+                        "outeq4", "outeq5", "outeq6", "outeq7", "outeq8", "outeq9", "outeq10"
+                    ]
+                ),
+                new("Dynamics", ["indyn", "comptype", "compamount", "compthresh", "compclarity"]),
+                new(
+                    "Advanced",
+                    [
+                        "brightcap", "prebias", "prehard", "stackfreq", "t1plate", "t2plate", "cfcomp", "cfharm",
+                        "prebiasx", "pibiasx", "pthard", "ptbiasx", "ptbiastime", "ptrecovery", "masterbiasx", "mvcap",
+                        "screenfreq", "screenq", "xfmrmatch", "xfmrlf", "xfmrhf", "xfmrdrive", "btc", "katc"
+                    ]
+                )
+            ]
         );
 
     /// <summary>The descriptor's parameters with each model's panel names (<see cref="ParamDescriptor.TypeLabels" />).</summary>
     static IReadOnlyList<ParamDescriptor> Labelled(IReadOnlyList<ParamDescriptor> parameters) => [
         ..parameters.Select(static p => {
-                string[] labels = [..AmpDesign.All.Select(a => a.Panel.Label(p.Id, p.Name) ?? string.Empty)];
+                string[] labels = [
+                    ..AmpDesign.All.Select(a => AmpFeatures.Has(a, p.Id) ? a.Panel.Label(p.Id, p.Name) ?? string.Empty : string.Empty)
+                ];
                 return labels.All(l => l == p.Name) ? p : p with { TypeLabels = labels };
             }
         )
@@ -516,10 +732,14 @@ public sealed class CircuitAmpBlock : DspBlock {
     /// <summary>A component value: applied as a step (it may recompute a circuit), not ramped.</summary>
     static ParamDescriptor Expert(ParamDescriptor descriptor) => descriptor with { Smoothing = ParamSmoothing.Step };
 
+    /// <summary>The Cab block whose cabinet the Auto speaker load follows (<see cref="ICabFollower" />).</summary>
+    public void FollowCab(CabBlock? cab) => this.cab = cab;
+
     /// <summary>Switches to amp <paramref name="type" />, which starts at its operating point.</summary>
     void Select(int type) {
         activeType = type;
         Channel = channels[Math.Clamp(type, 0, channels.Length - 1)];
+        features = Features[Math.Clamp(type, 0, channels.Length - 1)];
         var design = Channel.Design;
         var power = design.Power;
         var trim = Decibels.ToGain(design.OutputTrimDb);
@@ -559,7 +779,12 @@ public sealed class CircuitAmpBlock : DspBlock {
         static double Knob(float value) => value / 10.0;
         static double Percent(float value) => value / 100.0;
 
+        static double Hardness(float value) => Math.Pow(2, (value - 5) / 2.5);
+
         var design = Channel.Design;
+        var postInverter = (int)Params.Current(MasterLocation) == MasterPostInverter && features.PostMaster;
+        var masterRotation =
+            Math.Min(Knob(Params.Advance(Master, frames)) * Percent(Params.Advance(MasterTrim, frames)), 1);
         var switch1 = Params.Current(Switch1) >= 0.5f;
         var switch2 = Params.Current(Switch2) >= 0.5f;
         var switch3 = Params.Current(Switch3) >= 0.5f;
@@ -568,7 +793,7 @@ public sealed class CircuitAmpBlock : DspBlock {
             Knob(Params.Advance(Bass, frames)),
             Knob(Params.Advance(Middle, frames)),
             Knob(Params.Advance(Treble, frames)),
-            Math.Min(Knob(Params.Advance(Master, frames)) * Percent(Params.Advance(MasterTrim, frames)), 1),
+            postInverter ? 1 : masterRotation,
             Params.Current(Bright) >= 0.5f,
             Knob(Params.Advance(Control1, frames)),
             Knob(Params.Advance(Control2, frames)),
@@ -608,16 +833,28 @@ public sealed class CircuitAmpBlock : DspBlock {
             feedback,
             preamp.Master,
             ownTremolo ? tremoloRate : 0,
-            ownTremolo ? tremoloDepth : 0
+            ownTremolo ? tremoloDepth : 0,
+            postInverter ? postMaster.Fraction(masterRotation) : 1
         );
 
+        var excursion = Percent(Params.Current(MasterExcursion));
+        var fat = Params.Current(Fat) >= 0.5f && features.Fat;
+        var stackType = (int)Params.Current(StackType);
         var preampSettings = new PreampSettings(
             PreampTubes[Math.Clamp((int)Params.Current(PreampTube), 0, PreampTubes.Length - 1)],
             Percent(Params.Current(BrightCap)),
-            Percent(Params.Current(StackFrequency)),
-            Math.Pow(2, -Percent(Params.Current(PreampBias)))
+            Percent(Params.Current(StackFrequency)) * (fat ? FatFactor : 1),
+            Math.Pow(2, -Percent(Params.Current(PreampBias))),
+            Hardness(Params.Current(PreampHardness)),
+            Percent(Params.Current(PreampExcursion)) * excursion,
+            1,
+            Percent(Params.Current(MasterCap)),
+            Percent(Params.Current(FollowerCompression)),
+            Percent(Params.Current(FollowerHarmonics)),
+            stackType > 0 ? AmpStacks.All[Math.Min(stackType, AmpStacks.All.Count) - 1] : null
         );
         var speaker = (int)Params.Current(SpeakerCurve);
+        var speakerDesign = LoadFor(speaker, speaker == SpeakerAuto && cab is not null ? cab.DynaCab : (-1, -1));
         var rectifier = (int)Params.Current(Rectifier);
         var variac = Percent(Params.Advance(Variac, frames));
         var switched = default(RectifierModel);
@@ -636,25 +873,44 @@ public sealed class CircuitAmpBlock : DspBlock {
             Percent(Params.Current(TransformerLow)),
             Percent(Params.Current(TransformerHigh)),
             Params.Current(TransformerDrive),
-            speaker > 0 ? SpeakerDesign.Presets[Math.Min(speaker, SpeakerDesign.Presets.Count) - 1] : null,
+            speakerDesign,
             Percent(Params.Current(SpeakerResonance)),
             Percent(Params.Current(SpeakerQ)),
             Percent(Params.Current(SpeakerPeak)),
             Percent(Params.Current(SpeakerHigh)),
             Percent(Params.Current(SpeakerImpedance)),
-            Percent(Params.Advance(PresenceFrequency, frames)),
+            Percent(Params.Advance(PresenceFrequency, frames))
+            * (Params.Current(PresenceShift) >= 0.5f && features.PresenceShift ? PresenceShiftFactor : 1),
             Percent(Params.Advance(DepthFrequency, frames)),
             variac,
             Percent(Params.Current(SupplyTime)),
             (SupplyMode)Math.Clamp((int)Params.Current(SupplyType), 0, 3),
             rectifier > 0 ? RectifierModel.All[Math.Min(rectifier, RectifierModel.All.Count) - 1] : switched,
             Percent(Params.Current(CathodeTime)),
-            design.Power.TriodeSwitch is { } role && preamp.IsOn(role)
+            design.Power.TriodeSwitch is { } role && preamp.IsOn(role),
+            Hardness(Params.Current(PowerTubeHardness)),
+            Percent(Params.Current(PowerTubeExcursion)) * excursion,
+            Percent(Params.Current(ExcursionTime)),
+            Percent(Params.Current(RecoveryTime)),
+            Percent(Params.Current(InverterExcursion)) * excursion,
+            Params.Current(Suppressor) >= 0.5f,
+            Percent(Params.Current(ScreenFrequency)),
+            Params.Current(ScreenQ)
         );
+        var lowCut = Params.Advance(LowCut, frames);
+        if (Params.Current(InputCut) >= 0.5f && features.InputCut) {
+            lowCut = Math.Max(lowCut, (float)InputCutHz);
+        }
+
+        var overdrive = Params.Advance(Overdrive, frames);
         var channelSettings = new ChannelSettings(
-            Params.Advance(LowCut, frames),
+            lowCut,
             Percent(Params.Advance(PreampSag, frames)),
-            Params.Current(PowerAmpModel) >= 0.5f
+            Params.Current(PowerAmpModel) >= 0.5f,
+            (StackLocation)Math.Clamp((int)Params.Current(StackPlace), 0, 3),
+            overdrive > 0 && features.Overdrive ? Decibels.ToGain(overdrive * OverdriveDb / 10) : 1,
+            Percent(Params.Current(Triode1Plate)),
+            Percent(Params.Current(Triode2Plate))
         );
 
         Channel.Apply(preampSettings, powerSettings, channelSettings);
@@ -664,6 +920,10 @@ public sealed class CircuitAmpBlock : DspBlock {
     protected override void OnPrepare(in ProcessSpec spec) {
         Oversampling = spec.SampleRate < 64_000 ? 2 : 1;
         oversampler.Resize(spec.MaxBlockSize);
+        if (oversampler.Phase != OversamplingPhase) {
+            oversampler.SetPhase(OversamplingPhase);
+        }
+
         foreach (var channel in channels) {
             channel.SetSampleRate(spec.SampleRate * Oversampling);
         }
@@ -681,6 +941,7 @@ public sealed class CircuitAmpBlock : DspBlock {
         saturation.Reset();
         compressor.Reset();
         speaker.Reset();
+        highTreble.Reset();
         phase = 0;
         tremoloPhase = 0;
         activeType = -1;
@@ -694,6 +955,7 @@ public sealed class CircuitAmpBlock : DspBlock {
             Select(type);
         }
 
+        inputVolts = context.InputVolts;
         var select = (int)Params.Current(InputSelect);
         if (select == 1) {
             io.Right.CopyTo(io.Left);
@@ -716,7 +978,20 @@ public sealed class CircuitAmpBlock : DspBlock {
 
         Channel.FlushDenormals();
         equalizer.FlushDenormals();
+        highTreble.FlushDenormals();
         io.Left.CopyTo(io.Right);
         output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
+}
+
+/// <summary>Which of the Circuit Amp's generic advanced controls a model takes (<see cref="AmpFeatures.Has" />).</summary>
+readonly record struct AdvancedFeatures(bool PostMaster, bool Fat, bool PresenceShift, bool InputCut, bool Overdrive) {
+    public static AdvancedFeatures Of(AmpDesign design) =>
+        new(
+            AmpFeatures.Has(design, "mvloc"),
+            AmpFeatures.Has(design, "fatsw"),
+            AmpFeatures.Has(design, "presshift"),
+            AmpFeatures.Has(design, "cutsw"),
+            AmpFeatures.Has(design, "overdrive")
+        );
 }

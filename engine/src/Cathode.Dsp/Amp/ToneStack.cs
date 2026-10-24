@@ -80,6 +80,9 @@ public readonly record struct ToneStackNetwork(
     int BassResistor,
     int MiddleResistor
 ) {
+    /// <summary>The slope resistor's index among the netlist's resistors.</summary>
+    public int SlopeResistor { get; init; }
+
     /// <summary>
     ///     Adds the stack fed from node <paramref name="input" /> and declares its three capacitor ports (call it where
     ///     those ports belong in the port list). The output is the treble wiper, unloaded.
@@ -92,13 +95,13 @@ public readonly record struct ToneStackNetwork(
         net.Port(input, top);
         net.Port(slope, bottom);
         net.Port(slope, middle);
-        net.Resistor(input, slope, design.SlopeResistor);
+        var slopeResistor = net.Resistor(input, slope, design.SlopeResistor);
         var output = net.Node();
         var trebleTop = net.Resistor(top, output, design.Treble.Ohms / 2);
         var trebleBottom = net.Resistor(output, bottom, design.Treble.Ohms / 2);
         var bass = net.Resistor(bottom, middle, design.Bass.Ohms / 2);
         var mid = net.Resistor(middle, WdfNetlist.Ground, design.Middle.Ohms / 2);
-        return new(design, output, trebleTop, trebleBottom, bass, mid);
+        return new(design, output, trebleTop, trebleBottom, bass, mid) { SlopeResistor = slopeResistor };
     }
 
     /// <summary>

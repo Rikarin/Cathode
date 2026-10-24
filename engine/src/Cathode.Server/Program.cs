@@ -44,8 +44,15 @@ builder.Services.AddSingleton<GlobalStore>();
 builder.Services.AddSingleton<LiveRig>();
 builder.Services.AddSingleton<IrTools>();
 builder.Services.AddSingleton<MidiRouter>();
+builder.Services.AddSingleton<SnapshotStore>();
+builder.Services.AddSingleton<TemplateStore>();
+builder.Services.AddSingleton<PresetTools>();
 
 var app = builder.Build();
+if (builder.Configuration["Cathode:EditorDirectory"] is { Length: > 0 } editor) {
+    app.UseCathodeEditor(editor);
+}
+
 app.UseCathodeAccess(token);
 app.UseWebSockets();
 app.MapOpenApi();

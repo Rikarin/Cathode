@@ -35,6 +35,7 @@ public sealed partial class LiveRig(
     bool dirty;
     int generation;
     string? coalesceKey;
+    string compiledOversampling = "minimum";
 
     /// <summary>
     ///     Scene Ignore: blocks whose live bypass and channel differ from the active scene's, because their channel
@@ -179,6 +180,9 @@ public sealed partial class LiveRig(
                     throw RigException.Conflict($"Block id '{id}' is taken.");
                 }
 
+                // A new Input takes the first hardware input no other Input reads.
+                var source = request.Type == BuiltInTypes.Input ? FreeSource(preset) : 0;
+
                 await StructuralAsync(p => {
                         // Dropping a block onto a shunt replaces it and keeps its cables, as on the Axe-Fx.
                         var occupant = p.Blocks.FirstOrDefault(b => b.Row == request.Row && b.Column == request.Column);
@@ -193,9 +197,17 @@ public sealed partial class LiveRig(
                             Repoint(p, occupant.Id, id);
                         }
 
-                        p.Blocks.Add(
-                            new() { Id = id, Type = request.Type, Row = request.Row, Column = request.Column }
-                        );
+                        var added = new PresetBlock {
+                            Id = id,
+                            Type = request.Type,
+                            Row = request.Row,
+                            Column = request.Column
+                        };
+                        if (source > 0) {
+                            SetSource(added, source, info.Channels);
+                        }
+
+                        p.Blocks.Add(added);
                     }
                 );
                 return Changed("blockAdded", id);
@@ -273,7 +285,7 @@ public sealed partial class LiveRig(
                     throw new RigException(400, "Cables connect a block to one in the next column.");
                 }
 
-                if (from.Type == BuiltInTypes.Output || to.Type == BuiltInTypes.Input) {
+                if (BuiltInTypes.IsOutput(from.Type) || to.Type == BuiltInTypes.Input) {
                     throw new RigException(
                         400,
                         "Cables run from an output side to an input side: nothing leaves an Output block or enters an Input block."
@@ -345,6 +357,13 @@ public sealed partial class LiveRig(
                     );
                 }
 
+                int? source = block.Type == BuiltInTypes.Input && values.TryGetValue(SourceParam, out var rawSource)
+                    ? (int)descriptor.Params[descriptor.IndexOf(SourceParam)].Sanitize(rawSource)
+                    : null;
+                if (source is { } wanted) {
+                    CheckSource(block, wanted);
+                }
+
                 PushUndo($"params:{id}:{target}:{string.Join(',', values.Keys.Order())}");
                 var stored = block.Channel(target);
                 var sent = new List<ParamValue>();
@@ -362,6 +381,10 @@ public sealed partial class LiveRig(
                         && stored.GetValueOrDefault(param, descriptorParam.Default) != value;
                     stored[param] = value;
                     sent.Add(new(id, param, value));
+                }
+
+                if (source is { } chosen) {
+                    SetSource(block, chosen, descriptor.Channels);
                 }
 
                 // A new model starts from its own defaults, not the old one's settings (values sent with it still win).
@@ -526,6 +549,30 @@ public sealed partial class LiveRig(
     /// <summary>Takes the working copy as the saved state Scene Revert recalls.</summary>
     void Remember() => savedJson = JsonSerializer.Serialize(preset, ContractsJsonContext.Default.Preset);
 
+    /// <summary>
+    ///     Renames the working copy and sets its author and tags, as one undoable edit. Nothing reaches the engine.
+    ///     Blank tags are dropped; an empty author clears it.
+    /// </summary>
+    public Task<LiveState> UpdateInfoAsync(PresetInfoRequest request, long? expected) =>
+        Locked(() => {
+                Check(expected);
+                PushUndo(null);
+                if (request.Name is { } name) {
+                    preset.Name = name.Trim();
+                }
+
+                if (request.Author is { } author) {
+                    preset.Author = string.IsNullOrWhiteSpace(author) ? null : author.Trim();
+                }
+
+                if (request.Tags is { } tags) {
+                    preset.Tags = [..tags.Select(static t => t.Trim()).Where(static t => t.Length > 0).Distinct()];
+                }
+
+                return Task.FromResult(Changed("presetInfoUpdated"));
+            }
+        );
+
     public Task<LiveState> UpdateSceneAsync(int scene, SceneUpdateRequest request, long? expected) =>
         Locked(() => {
                 Check(expected);
@@ -560,7 +607,10 @@ public sealed partial class LiveRig(
             }
         );
 
-    /// <summary>Everything the global settings put into the engine: tempo (global mode), metronome, Manual A-D, EQ.</summary>
+    /// <summary>
+    ///     Everything the global settings put into the engine: tempo (global mode), metronome, Manual A-D, the outputs'
+    ///     modes, Boost/Pad and EQs, and Input 1's gain and calibration.
+    /// </summary>
     public static List<ParamValue> GlobalValues(GlobalSettings global) {
         var values = new List<ParamValue> {
             new(IpcBlocks.Rig, "metronome", global.Metronome ? 1 : 0),
@@ -577,10 +627,20 @@ public sealed partial class LiveRig(
         values.AddRange(
             global.Manual.Take(4).Select(static (v, i) => new ParamValue(IpcBlocks.Rig, $"manual{(char)('A' + i)}", v))
         );
-        foreach (var param in GraphicEqBlock.Info.Params) {
-            values.Add(new(IpcBlocks.Global, param.Id, global.Eq.GetValueOrDefault(param.Id, param.Default)));
+        values.Add(new(IpcBlocks.Rig, "copyOut2", global.CopyOutput1To2 ? 1 : 0));
+        for (var k = 0; k < 4; k++) {
+            var output = k < global.Outputs.Count ? global.Outputs[k] : new();
+            var mode = Array.IndexOf(Api.GlobalValidation.OutputModes, output.Mode);
+            values.Add(new(IpcBlocks.Rig, $"out{k + 1}Mode", Math.Max(mode, 0)));
+            values.Add(new(IpcBlocks.Rig, $"out{k + 1}Level", output.BoostPad));
+            foreach (var param in GraphicEqBlock.Info.Params) {
+                values.Add(new(IpcBlocks.GlobalEq(k), param.Id, output.Eq.GetValueOrDefault(param.Id, param.Default)));
+            }
         }
 
+        var input = global.Inputs.Count > 0 ? global.Inputs[0] : new();
+        values.Add(new(IpcBlocks.Rig, "in1Gain", input.Gain));
+        values.Add(new(IpcBlocks.Rig, "in1Cal", (float)(20 * Math.Log10(Math.Max(input.FullScaleVolts, 1e-3f)))));
         return values;
     }
 
@@ -674,7 +734,9 @@ public sealed partial class LiveRig(
 
     async Task SyncGraphAsync() {
         generation++;
-        await engine.LoadGraphAsync(PresetGraph.Build(preset, activeScene, assets, held), generation);
+        var oversampling = globals.Get().Oversampling;
+        await engine.LoadGraphAsync(PresetGraph.Build(preset, activeScene, assets, held, oversampling), generation);
+        compiledOversampling = oversampling;
         engine.SetParams(generation, [..RigValues(), ..GlobalValues(globals.Get())]);
     }
 
@@ -811,6 +873,12 @@ public sealed partial class LiveRig(
     }
 
     string NextId(string type) {
+        // Outputs 2-4 are named like Output 1 (out1): out2, out3, out4.
+        if (type is BuiltInTypes.Output2 or BuiltInTypes.Output3 or BuiltInTypes.Output4
+            && preset.Blocks.All(b => b.Id != $"out{type[^1]}")) {
+            return $"out{type[^1]}";
+        }
+
         for (var n = 1;; n++) {
             var id = $"{type}{n}";
             if (preset.Blocks.All(b => b.Id != id)) {

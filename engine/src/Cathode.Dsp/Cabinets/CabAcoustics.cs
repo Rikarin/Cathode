@@ -137,14 +137,9 @@ public readonly struct CabAcoustics {
         tilt = Math.Clamp(placement.Angle, 0, Math.PI / 2);
         room = placement.RoomShape ?? CabRoom.Default;
         var speaker = placement.Speaker;
-        if (placement.Enclosure.Open) {
-            SystemResonance = speaker.Fs;
-            lowQ = speaker.Qts;
-        } else {
-            var stiffening = Math.Sqrt(1 + speaker.Vas / placement.Enclosure.LitresPerSpeaker);
-            SystemResonance = speaker.Fs * stiffening;
-            lowQ = speaker.Qts * stiffening;
-        }
+        var stiffening = placement.Enclosure.Stiffening(speaker);
+        SystemResonance = speaker.Fs * stiffening;
+        lowQ = speaker.Qts * stiffening;
     }
 
     /// <summary>The magnitude part, in dB at <paramref name="hz" />.</summary>

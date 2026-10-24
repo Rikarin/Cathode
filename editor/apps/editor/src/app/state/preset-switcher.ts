@@ -37,17 +37,31 @@ export class PresetSwitcher {
   /** Asks the person; replaceable in tests. */
   confirm: (message: string) => boolean = message => window.confirm(message);
 
-  async load(id: string, name: string): Promise<boolean> {
+  /** The name of the preset being loaded, while it loads (the editor shows it over the grid). */
+  readonly loading = signal<string | null>(null);
+
+  /** Whether the current preset may be replaced: asks first when it has unsaved changes and the setting says so. */
+  mayReplace(name: string): boolean {
     const current = this.live.preset();
-    if (
-      needsConfirm(this.live.state()?.dirty, this.globals.settings()?.confirmPresetChange) &&
-      !this.confirm(`“${current?.name ?? 'This preset'}” has unsaved changes. Discard them and load “${name}”?`)
-    ) {
+    return (
+      !needsConfirm(this.live.state()?.dirty, this.globals.settings()?.confirmPresetChange) ||
+      this.confirm(`“${current?.name ?? 'This preset'}” has unsaved changes. Discard them and load “${name}”?`)
+    );
+  }
+
+  /** Loads a preset, asking first about unsaved changes unless the caller already has (`confirmed`). */
+  async load(id: string, name: string, confirmed = false): Promise<boolean> {
+    if (!confirmed && !this.mayReplace(name)) {
       return false;
     }
 
-    if (!(await this.live.load(id))) {
-      return false;
+    this.loading.set(name);
+    try {
+      if (!(await this.live.load(id))) {
+        return false;
+      }
+    } finally {
+      this.loading.set(null);
     }
 
     this.compare.reset();

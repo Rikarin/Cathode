@@ -7,7 +7,7 @@
 - the Axe-Fx III amp list (FW 12.05);
 - the Fractal wiki pages *Amp models*, *Presets*, *Editors*, *Audio I/O and amplification* and *Cab block* (October 2026).
 
-**Status date:** 24 October 2026, round 3 in progress (T, PS, PA, CB, M1, M2 merged and audited) (streams T, M1, M2, PA, PB, PS, ED, IO, CB).
+**Status date:** 24 October 2026, round 3 merged and audited (T, M1, M2, PA, PB, PS, ED, IO, CB) (streams T, M1, M2, PA, PB, PS, ED, IO, CB).
 
 ## How to audit
 
@@ -89,19 +89,19 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| PB1 | Drive: per-type extra knobs from each pedal's schematic | ⬜ | | |
-| PB2 | Drive: remaining clip types (FET, rectifier, variable, HV/LV tube, Si, …) | ⬜ | | |
-| PB3 | Drive: per-op-amp slew in the WDF op-amp model | ⬜ | | |
-| PB4 | Dynamic Distortion: remaining ◐ | ⬜ | | |
-| PB5 | Amp: power-tube hardness (pentode law) | ⬜ | | |
-| PB6 | Amp: generic Presence Shift, Fat, Cut, High Treble, Overdrive switches where a model has no circuit | ⬜ | | |
-| PB7 | Amp: tonestack type substitution and location | ⬜ | | |
-| PB8 | Amp: triode plate frequencies, preamp hardness, cathode follower controls | ⬜ | | |
-| PB9 | Amp: PI and power-tube bias excursion, plate suppressor diodes | ⬜ | | |
-| PB10 | Amp: master volume location / cap | ⬜ | | |
-| PB11 | Amp: output mode (FRFR / SS PA + cab), auto DynaCab impedance | ⬜ | | |
-| PB12 | Amp: screen frequency / Q | ⬜ | | |
-| PB13 | All 81 models bit-identical at defaults (a test) | ⬜ | | |
+| PB1 | Drive: per-type extra knobs from each pedal's schematic | ◐ | DriveRound3Tests.Stack_bass_and_middle_pots_work_the_stack | Guv'nor stack pots only; Timmy cuts, Zendrive Voice, OCD HP/LP not done |
+| PB2 | Drive: remaining clip types (FET, rectifier, variable, HV/LV tube, Si, …) | ✅ | New_clip_curves_are_continuous_monotonic_and_their_antiderivatives_match; Clip_curves_have_their_shapes; Drive_clip_types_are_audible_and_bounded |  |
+| PB3 | Drive: per-op-amp slew in the WDF op-amp model | ✅ | Slew_rate_sets_the_rat_op_amps_own_slew; Slew_rate_limits_a_linear_op_amp_stage_at_its_output |  |
+| PB4 | Dynamic Distortion: remaining ◐ | ✅ | Dynamic_distortion_takes_the_new_curves | 14 curves; 7 Block Library presets for the filter-shaped types |
+| PB5 | Amp: power-tube hardness (pentode law) | ✅ | Hardened_pentode_tables_match_the_hardened_law; Hardness_sharpens_the_cut_off_knee; Power_tube_hardness_changes_a_driven_power_amp | `pthard` |
+| PB6 | Amp: generic Presence Shift, Fat, Cut, High Treble, Overdrive switches where a model has no circuit | ✅ | Generic_switches_hide_where_the_model_has_its_own; Fat_and_presence_shift_are_audible; High_treble_shelf_reaches_its_gain; Overdrive_adds_gain_into_the_last_stage |  |
+| PB7 | Amp: tonestack type substitution and location | ◐ | Stack_type_substitution_changes_the_stack…; Stack_location_moves_the_stack… | no End location; stacks inside network or channel-switch stages get Location only |
+| PB8 | Amp: triode plate frequencies, preamp hardness, cathode follower controls | ✅ | Plate_frequency_moves_the_cold_clippers_treble_cut; Hardened_triode_matches_the_hardened_law; Cathode_follower_controls_change_a_driven_follower | plate freqs on SLO and 5150 III only |
+| PB9 | Amp: PI and power-tube bias excursion, plate suppressor diodes | ✅ | Power_tube_bias_excursion_off_stops_grid_current; Suppressor_diodes_keep_the_plates_above_the_cathode | `pibiasx` only bounded-tested |
+| PB10 | Amp: master volume location / cap | ◐ | Post_inverter_master_drives_the_inverter_harder | Pre-Triode location not done; `mvcap` only bounded-tested |
+| PB11 | Amp: output mode (FRFR / SS PA + cab), auto DynaCab impedance | ✅ | Solid_state_output_mode_leaves_the_speaker_stages_to_the_cab; Auto_speaker_follows_the_cabs_enclosure_and_speaker; RoutingTests.Compiler_links_an_amp_to_the_next_cab_downstream | Auto follows DynaCab slots only |
+| PB12 | Amp: screen frequency / Q | ✅ | Screen_q_rings_the_screen_node |  |
+| PB13 | All 81 models bit-identical at defaults (a test) | ✅ | AmpDefaultsTests (240 renders: 86 amps × 2 gains, drives, dyndist) against hashes from master just before PB | re-based on pre-PB master because the AB763 pot tracks changed those models on purpose |
 
 ## PS: presets, scenes and routing (wiki *Presets*)
 
@@ -133,45 +133,45 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| ED1 | Shortcuts: presets (P, ⌘PgUp/PgDn, ⌘G, F5), scenes (⌘1–8), channels (A–D, X) | ⬜ | | |
-| ED2 | Shortcuts: blocks (Space, ⇧Space, ⇧⌘Space, ⌘X, ⌘D, ⌘U, ⌘B, G, Q, ⌥/F1), ⌘T, ⌘Y | ⬜ | | ⌘I / ⌘L hook into PS |
-| ED3 | `?` help overlay listing every shortcut | ⬜ | | |
-| ED4 | Preferences: knob mode (linear/circular), wheel (normal/reverse/off), tooltips, meter refresh | ⬜ | | |
-| ED5 | Revert preset; Clear preset | ⬜ | | |
-| ED6 | Snapshots (timestamped, server-side, load/delete) | ⬜ | | |
-| ED7 | Templates: New from template, Save as template | ⬜ | | |
-| ED8 | Replace block type keeping cables | ⬜ | | |
-| ED9 | Drag-onto swap, ⌘-drag replace; move row / column | ⬜ | | |
-| ED10 | Cut; paste onto same-type block copies settings; disconnect all cables | ⬜ | | |
-| ED11 | All-scenes actions: channel, engage, bypass | ⬜ | | |
-| ED12 | Block Info view; amps-in-use summary | ⬜ | | |
-| ED13 | Circuit Amp Ideal / Authentic view | ⬜ | | |
-| ED14 | Library: single channel or whole block (with modifiers); recall into channel or all | ⬜ | | |
-| ED15 | Library: folders, file export/import, drag-and-drop, save all blocks of a preset | ⬜ | | |
-| ED16 | Manage Presets / IRs: multi-select, drag swap/move/copy, pending changes until Save, duplicate/rename/delete | ⬜ | | |
-| ED17 | Reset Amp blocks on selected presets (keeps the real amp's panel controls) | ⬜ | | |
-| ED18 | Parameter Batch Set | ⬜ | | |
-| ED19 | Pickers: colour tags / favourites, keyboard search, pin | ⬜ | | |
-| ED20 | Performance pages: global and per-preset | ⬜ | | |
-| ED21 | Footswitches: layout links, views, per-preset overrides | ⬜ | | |
+| ED1 | Shortcuts: presets (P, which also takes a bank slot number; ⌘PgUp/PgDn, F5), scenes (⌘1–8), channels (A–D, X) | ✅ | shortcuts.spec (finds the command…, maps each binding…, leaves the menu accelerators alone); E2E step to the next channel | channel B is ⇧B (B stays bypass) |
+| ED2 | Shortcuts: blocks (Space, ⇧Space, ⇧⌘Space, ⌘X, ⌘D, ⌘U, ⌘B, G, Q, ⌥/F1), ⌘T, ⌘Y | ✅ | shortcuts.spec; E2E "? lists the shortcuts, and the block shortcuts bypass, replace, cut and paste" | ⌘L opens Preset Leveling, ⌘I resets the channel (PS endpoints) |
+| ED3 | `?` help overlay listing every shortcut | ✅ | E2E above (now a tab of Settings) | the overlay became the Keyboard shortcuts tab of Settings (⌘, / ?), checked in the browser |
+| ED4 | Preferences: knob mode (linear/circular), wheel (normal/reverse/off), tooltips, meter refresh | ✅ | preferences spec; audio-ui knob and meter preferences; E2E preferences test | now the Preferences tab of Settings |
+| ED5 | Revert preset; Clear preset | ◐ | Revert_goes_back_to_the_saved_version_and_can_be_undone; Clear_empties_the_grid_and_the_name_but_keeps_the_id | menu items seen in the browser; UI not driven in the running editor |
+| ED6 | Snapshots (timestamped, server-side, load/delete) | ✅ | Snapshots_keep_unsaved_edits_and_load_list_and_delete; E2E a snapshot keeps unsaved edits and loads back | Snapshots dialog opened in the browser |
+| ED7 | Templates: New from template, Save as template | ◐ | Templates_are_saved_and_start_new_presets | UI not driven in the running editor |
+| ED8 | Replace block type keeping cables | ✅ | Replacing_a_block_keeps_its_cell_and_cables; E2E Q-replace step |  |
+| ED9 | Drag-onto swap, ⌘-drag replace; move row / column | ◐ | Dropping_swaps_two_blocks_with_the_wiring_in_place_or_replaces_the_target; A_row_moves_with_its_cables_and_a_column_shifts_the_ones_between | moving a column drops cables that end up joining non-adjacent columns; drag-to-swap not driven in E2E |
+| ED10 | Cut; paste onto same-type block copies settings; disconnect all cables | ✅ | Pasting_settings_replaces_every_channel_of_a_same_type_block; Disconnect_removes_every_cable_of_a_block; E2E cut and paste |  |
+| ED11 | All-scenes actions: channel, engage, bypass | ✅ | All_scene_actions_set_the_channel_and_bypass_in_every_scene; E2E ⇧Space |  |
+| ED12 | Block Info view; amps-in-use summary | ✅ | Block Info specs; E2E F1 step |  |
+| ED13 | Circuit Amp Ideal / Authentic view | ◐ | labelledParams › shows every control in the Ideal view… | toggle UI not driven in the running editor |
+| ED14 | Library: single channel or whole block (with modifiers); recall into channel or all | ◐ | Whole_block_entries_recall_every_channel_with_modifiers_and_travel_as_files | UI not driven in the running editor |
+| ED15 | Library: folders, file export/import, drag-and-drop, save all blocks of a preset | ◐ | same server test; folder spec | drag-and-drop not run |
+| ED16 | Manage Presets / IRs: multi-select, drag swap/move/copy, pending changes until Save, duplicate/rename/delete | ◐ | Manage Presets › (5); Manage IRs › holds renames…; metadata server tests | Manage IRs has no drag or duplicate (content-addressed IRs); page UI not driven in the running editor |
+| ED17 | Reset Amp blocks on selected presets (keeps the real amp's panel controls) | ◐ | Reset_amp_blocks_keeps_the_front_panel_and_resets_the_expert_settings | button UI not driven in the running editor |
+| ED18 | Parameter Batch Set | ◐ | Batch_set_writes_one_parameter_into_the_matching_block_of_each_preset | UI not driven in the running editor |
+| ED19 | Pickers: colour tags / favourites, keyboard search, pin | ◐ | pickers specs; metadata server tests | UI not driven in the running editor |
+| ED20 | Performance pages: global and per-preset | ◐ | Performance_pages_live_in_the_preset_and_in_global; performance pages specs | UI not driven in the running editor |
+| ED21 | Footswitches: layout links, views, per-preset overrides | ◐ | Footswitch_views_links_and_preset_overrides_change_what_a_switch_does; footswitch specs | Global page editor UI not driven in the running editor |
 
 ## IO: audio inputs and outputs (wiki *Audio I/O and amplification*)
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| IO1 | Output 2–4 blocks on the grid, each mapped to device output channels | ⬜ | | today there is one output |
-| IO2 | Copy Output 1 → Output 2 setting; an Output block on the grid overrides it | ⬜ | | |
-| IO3 | Per-output mode: Stereo / Sum L+R / Copy L→R / Dual Mono | ⬜ | | |
-| IO4 | Per-output global EQ and level trim (Boost/Pad) | ⬜ | | today one global EQ |
-| IO5 | Input calibration: full-scale volts or dBu per input, so amp gain doesn't depend on the interface gain | ⬜ | | Circuit Amp treats 0 dBFS as 1 V |
-| IO6 | Input clip warning (within 0.5 dB of full scale) and a global Input 1 Gain trim for all presets | ⬜ | | |
-| IO7 | Input impedance on the Input block: pickup resonance loaded by the chosen impedance and cable capacitance | ⬜ | | |
-| IO8 | Dry DI out: the unprocessed input on spare device channels for re-amping | ⬜ | | |
-| IO9 | Oversampling mode: linear-phase (current) or minimum-phase for Amp and Drive; a Drive per-block setting | ⬜ | | |
-| IO10 | Latency report in Setup: converters, buffer and per-block latency | ⬜ | | |
-| IO11 | Output clip warning at −1 dBFS | ⬜ | | |
-| IO12 | Editor hint when stereo effects sit before a mono-summing block | ⬜ | | |
-| IO13 | Cab resonance helper: guided sine sweep that writes the amp's LF Resonance | ⬜ | | |
+| IO1 | Output 2–4 blocks on the grid, each mapped to device output channels | ◐ | AudioIoTests.Outputs_2_to_4_play_on_their_mapped_pairs…; Without_a_bus_or_a_mapping_only_output_1_is_rendered; AudioIoApiTests.Output_2_is_a_grid_output… | tested through the offline renderer, never on a multi-output interface |
+| IO2 | Copy Output 1 → Output 2 setting; an Output block on the grid overrides it | ✅ | Copy_output_1_to_2_plays_output_1_unless_the_grid_has_an_output_2 |  |
+| IO3 | Per-output mode: Stereo / Sum L+R / Copy L→R / Dual Mono | ✅ | Output_modes_sum_or_copy_the_channels | Copy L→R and Dual Mono render the same (both left on both sides) |
+| IO4 | Per-output global EQ and level trim (Boost/Pad) | ✅ | Each_output_has_its_own_global_eq_and_boost_pad | `GlobalSettings.outputs[k].eq` replaces the top-level `eq` |
+| IO5 | Input calibration: full-scale volts or dBu per input, so amp gain doesn't depend on the interface gain | ✅ | Calibrating_the_input_keeps_the_amps_drive_when_the_interface_gain_changes (null below −60 dB) | Dynamic Distortion clips in full-scale units and is not scaled; per-source calibration for inputs 2–4 not yet |
+| IO6 | Input clip warning (within 0.5 dB of full scale) and a global Input 1 Gain trim for all presets | ✅ | Input_1_gain_feeds_the_grid…; clip spec | input clip shows as a CLIP badge in the meter caption |
+| IO7 | Input impedance on the Input block: pickup resonance loaded by the chosen impedance and cable capacitance | ✅ | PickupLoadTests (f₀ and Q vs the RLC formula) | the guitar's own pots not modelled |
+| IO8 | Dry DI out: the unprocessed input on spare device channels for re-amping | ✅ | Input_1_gain_feeds_the_grid_and_the_di_out_takes_the_raw_input |  |
+| IO9 | Oversampling mode: linear-phase (current) or minimum-phase for Amp and Drive; a Drive per-block setting | ✅ | OversamplingPhaseTests; Outputs_are_aligned_to_the_slowest… | the existing IIR half-band is the Minimum mode (default); the new Linear mode is a Kaiser FIR (86 / 93 samples) |
+| IO10 | Latency report in Setup: converters, buffer and per-block latency | ✅ | Linear_phase_oversampling_recompiles_and_the_latency_report_names_the_drive | GET /api/v1/system/latency; Setup tab of Settings shows it (checked in the browser by the stream) |
+| IO11 | Output clip warning at −1 dBFS | ✅ | Output_peaks_follow_each_output_after_its_trim | CLIP badge forced and seen in the browser by the stream |
+| IO12 | Editor hint when stereo effects sit before a mono-summing block | ◐ | mono-hint spec | Drive not flagged (it never sums to mono); UI not driven in the running editor |
+| IO13 | Cab resonance helper: guided sine sweep that writes the amp's Load resonance | ◐ | The_test_tone_replaces_a_blocks_output…; The_test_tone_plays_for_a_block_without_touching_the_preset | helper UI not driven in the running editor |
 
 ## CB: Cab block (wiki *Cab block*)
 
@@ -188,6 +188,16 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | CB9 | Flat slot source | ✅ | A_flat_slot_and_a_cab_slot_split_a_stereo_input_into_a_di_and_a_cab |  |
 | CB10 | Global "cab modelling off" switch | ✅ | Cab_modelling_off_passes_audio_through_and_fades_back_in | GlobalSettings.CabModelingOff; Cab and IR Player |
 | CB11 | Export the block's current mix (DynaCab slots included) as an IR file | ✅ | Export_bakes_the_master_cuts_into_the_mixed_ir; A_cab_exports_its_mixed_ir_and_saves_it_as_an_asset | GET/POST /live/blocks/{id}/ir |
+
+## QR: Splawn Quick Rod
+
+| ID | Item | Status | Evidence | Notes |
+|---|---|---|---|---|
+| QR1 | Quick Rod from the user's preamp drawing ("Splawn QuickRod" sheet 1/1): both channels, OD1/OD2, 1st/2nd and 3rd gear, solo boost, V1B and V3 on their shared cathode | 🟡 | Quick_rod_chains_match_the_reference (7 settings: clean −64, overdrive −55 / −56 / −58 dB in 1st / 2nd / 3rd gear); Od2_and_the_gears_raise_the_gain_in_order; Solo_boost_lifts_the_master | type `Quick Rod`; power amp (JCM800 2203's), switch positions and tapers guessed; the overdrive channel's V1A, V1B, V3 and V2A in one netlist (`NetworkStage` `TTTT`, which leaves every other model bit-identical: AmpDefaultsTests) |
+| QR2 | Panel names the amp's controls | 🟡 | Panel_names_the_real_controls_and_hides_the_rest | Clean (Switch 1), OD2 (Bright), 2nd / 3rd Gear (Switch 2 / 3), Solo Boost (Control 1, 0 = off) |
+| QR3 | Sweeps converge, every knob audible, Gain and Master monotonic, peaks under +6 dBFS | 🟡 | Knob_sweeps_at_full_drive_stay_finite_and_converge; Every_knob_is_audible; Gain_and_master_raise_the_level_monotonically | Middle and Solo Boost skipped on the clean channel (not in its circuit) |
+| QR4 | CPU | ◐ | `Cathode.Bench --amps "Quick Rod"` | Over the high-gain budget (16 / 28 %) by the user's choice of accuracy, like the Silver Jubilee's noise case: overdrive 17.6 / 35.0 %, 3rd gear with OD2 19.7 / 34.0 %, clean 11.1 / 24.3 % (Plexi 8.8 / 15.5 %); the three-triode cut fitted at 15.0 / 25.8 % but was −29 dB in 3rd gear |
+| QR5 | Splawn Nitro | ⏸ | — | the drawing is the Quick Rod only; no Nitro circuit on it |
 
 ## Known open items from earlier rounds
 
@@ -217,6 +227,6 @@ These were reported as left over or deliberately deferred, and are not assigned 
 | Library-wide open issues: TriodeStage output resistance with a partly bypassed cathode; Thévenin cut behind plate-bypass cold clippers; JC-120 tone-stack level | ⬜ | docs/06 |
 | Windows `HostAllocationTests` intermittent 4-byte allocation | ⬜ | Per-thread allocation measured across awaits |
 | Load-sensitive tests (cab crossfade, CPU-per-type) | ⬜ | Pass alone; flaky under heavy load (the tremolo one is fixed) |
-| Preset-load allocation budget raised 128 → 136 → 137.5 KB as blocks grew (HostAllocationTests) | ⬜ | Keeps creeping; find what a load allocates per parameter and cut it |
+| Preset-load allocation budget raised 128 → 136 → 137.5 → 140 KB as blocks grew (HostAllocationTests) | ⬜ | Keeps creeping; find what a load allocates per parameter and cut it |
 | Two block-meter telemetry paths (`Telemetry.blocks` peaks, `Telemetry.BlockMeters` named meters) | ⬜ | Could be unified |
 | 18 W Intensity rheostat R32 (1k) fixed at mid-travel | ⬜ | Drawing doesn't show which end is 0; link it to `tremdepth` once the orientation is known |

@@ -45,7 +45,7 @@ export function scopeName(channel: string | null | undefined): string {
   providers: [provideIcons({ matAddRound, matDeleteRound })],
   host: { class: 'block h-full overflow-auto p-6' },
   template: `
-    <div class="flex max-w-6xl flex-col gap-6">
+    <div class="mx-auto flex max-w-6xl flex-col gap-6">
       <h1 xuiHeading class="text-lg">Controllers</h1>
 
       <section xuiCard class="flex flex-col gap-3 p-4" aria-labelledby="scene-heading">

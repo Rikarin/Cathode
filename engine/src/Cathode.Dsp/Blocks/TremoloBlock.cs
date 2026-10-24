@@ -98,7 +98,11 @@ public sealed class TremoloBlock() : DspBlock(Info), IEngageAware {
             },
             ParamDescriptor.Float("startPhase", "Start Phase", 0f, 360f, 0f, "°")
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new("Basic", ["rate", "tempo", "depth", "shape", "duty", "phase", "panCenter"]),
+            new("Advanced", ["crossover", "crossoverSlope", "trigger", "startPhase"])
+        ]
     );
 
     /// <summary>Start Phase: engaging the block starts the LFO at this phase, so the first pulse lands where it should.</summary>

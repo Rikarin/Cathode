@@ -31,6 +31,35 @@ public class AccessTests {
     }
 
     [Fact]
+    public async Task A_headless_server_serves_the_editor_without_the_token_and_marks_it_same_origin() {
+        var editor = Directory.CreateTempSubdirectory("cathode-editor-").FullName;
+        try {
+            await File.WriteAllTextAsync(
+                Path.Combine(editor, "index.html"),
+                "<html><head></head><body></body></html>",
+                Cancel
+            );
+            await File.WriteAllTextAsync(Path.Combine(editor, "main-ABC.js"), "console.log(1)", Cancel);
+            await using var server = new ServerFixture(token: Token, editorDirectory: editor);
+            using var anonymous = server.CreateClient();
+
+            using var page = await anonymous.GetAsync("/", Cancel);
+            using var script = await anonymous.GetAsync("/main-ABC.js", Cancel);
+            using var api = await anonymous.GetAsync("/api/v1/system", Cancel);
+
+            Assert.Equal(HttpStatusCode.OK, page.StatusCode);
+            Assert.Contains(
+                """<meta name="cathode-server" content="same-origin"></head>""",
+                await page.Content.ReadAsStringAsync(Cancel)
+            );
+            Assert.Equal(HttpStatusCode.OK, script.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, api.StatusCode); // the API still wants the token
+        } finally {
+            Directory.Delete(editor, true);
+        }
+    }
+
+    [Fact]
     public async Task With_a_token_the_websocket_takes_it_as_a_query_parameter_and_any_origin_may_call() {
         await using var server = new ServerFixture(token: Token);
         var sockets = server.Server.CreateWebSocketClient();
@@ -81,7 +110,7 @@ public class AccessTests {
         var next = (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Cancel))!.Preset;
         next.Id = "ignored";
         next.Name = "Version B";
-        next.Blocks.Add(new() { Id = "delay1", Type = "delay", Row = 1, Column = 3 });
+        next.Blocks.Add(new() { Id = "delay1", Type = "delay", Row = 0, Column = 3 });
 
         using var put = await client.PutAsJsonAsync("/api/v1/live", next, Cancel);
         var replaced = (await put.Content.ReadFromJsonAsync<LiveState>(Cancel))!;

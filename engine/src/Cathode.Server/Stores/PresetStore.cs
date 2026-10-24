@@ -14,11 +14,30 @@ public sealed class PresetStore(IOptions<ServerOptions> options) {
 
     public IReadOnlyList<PresetSummary> List() => [
         ..files.All()
-            .Select(static e => new PresetSummary(e.Item.Id, e.Item.Name, e.Item.Author, e.Item.Tags, e.Modified))
+            .Select(static e => Summary(e.Item, e.Modified))
             .OrderBy(static p => p.Name, StringComparer.OrdinalIgnoreCase)
     ];
 
+    public static PresetSummary Summary(Preset preset, DateTimeOffset modified) =>
+        new(preset.Id, preset.Name, preset.Author, preset.Tags, modified, preset.Color, preset.Favorite);
+
     public Preset? Get(string id) => files.Get(id);
+
+    /// <summary>Every asset a stored preset uses, with those presets' names (sorted).</summary>
+    public AssetUsage[] AssetUsage() => [
+        ..files.All()
+            .SelectMany(static e => e.Item.Blocks
+                .SelectMany(static b => b.Assets.Values)
+                .Distinct()
+                .Select(reference => (Reference: reference, e.Item.Name))
+            )
+            .GroupBy(static use => use.Reference)
+            .Select(static g => new AssetUsage(
+                    g.Key,
+                    [..g.Select(static use => use.Name).Order(StringComparer.OrdinalIgnoreCase)]
+                )
+            )
+    ];
 
     public bool Exists(string id) => files.Exists(id);
 
