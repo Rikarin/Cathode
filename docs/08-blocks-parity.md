@@ -31,28 +31,28 @@ The guide's comparison table (p. 3) lists 42 block types. Cathode covers 37 of t
 | Input (IN) | built-in `input` | 1 → 1 | 0 / 1 / 6 | Signal only; the noise gate and impedance are missing |
 | Output (OUT) | built-in `output` | 1 → 1 | 1 / 1 / 2 | Scene levels exist (preset level); no row mixer |
 | Common Mix/Level | every block | — | 4 / 3 / 3 | Level and 🆕 Balance everywhere; Global Mix missing |
-| Amp (AMP) | `circuitamp`, `nam` | 309+ → 26 circuit + any capture | see [06 §1.4](06-amp-modelling-spec.md#14-parity-summary) | Core panel and most expert pages done; boost, saturation, output compressor missing |
-| Cab (CAB) | `cab`, `dynacab` | 2 150+ IRs → user IRs + synthesised DynaCab | 11 / 6 / 13 | DynaCab strong; legacy Cab thin (2 slots, no preamp/room/air) |
+| Amp (AMP) | `circuitamp`, `nam` | 309+ → 26 circuit + any capture | see [06 §1.4](06-amp-modelling-spec.md#14-parity-summary) | Core panel, expert pages and 🆕 boost, saturation, input filter/Definition, output EQ with location, input dynamics, output compressor, speaker drive/thump/compression, bias tremolo, Balance; power-tube hardness and per-model switches remain |
+| Cab (CAB) | `cab` (Legacy and DynaCab merged) | 2 150+ IRs → user IRs + synthesised DynaCab + IR packs | 🆕 15 / 3 / 1 | Done except stereo room mic spacing and a visual align view |
 | Chorus (CHO) | `chorus` | 17 → 1 | 🆕 11 / 2 / 7 | Core and LFO done; type presets, drive, dimension missing |
-| Compressor (CMP) | `compressor` | 16 → 🆕 4 | 🆕 10 / 2 / 7 | Core done; look-ahead, detector choice, feedback types missing |
-| Crossover (XVR) | `crossover` | 1 → 1 | 🆕 5 / 2 / 0 | Done (per-side levels merged) |
+| Compressor (CMP) | `compressor` | 16 → 🆕 6 | 🆕 17 / 1 / 2 | 🆕 Detector, ∞ ratio, Dynamics and Feedback types, auto times, light type, emphasis, sidechain EQ, input level; look-ahead and sidechain source are P1's |
+| Crossover (XVR) | `crossover` | 1 → 1 | 🆕 7 / 0 / 0 | Done (🆕 per-side band levels and pans) |
 | Delay (DLY) | `delay` | 23+ → 🆕 5 | 🆕 25 / 6 / 17 | Core, ducker, hold, bit reduction, ping-pong done; dual/tape heads, EQ page, LFO 2 missing |
-| Drive (DRV) | `drive` | 60+ → 27 | 🆕 6 / 1 / 12 | Strong circuits; EQ pages and expert clip controls missing |
-| Dynamic Distortion (DND) | `dyndist` | 7 → 3 | 🆕 5 / 2 / 3 | Different design (envelope-driven); filter section missing |
-| Enhancer (ENH) | `enhancer` | 3 → 3 | 🆕 7 / 2 / 1 | Done except the Stereoizer type |
+| Drive (DRV) | `drive` | 60+ → 27 | 🆕 17 / 3 / 0 | Strong circuits; 🆕 EQ pages and the Advanced page; per-pedal extra knobs remain |
+| Dynamic Distortion (DND) | `dyndist` | 7 → 3 (🆕 7 curves) | 🆕 9 / 1 / 0 | Different design (envelope-driven); 🆕 the guide's frequency-shaped filter, bias, mono |
+| Enhancer (ENH) | `enhancer` | 3 → 🆕 4 | 🆕 10 / 0 / 0 | Done (🆕 Stereoizer, Depth) |
 | Filter (FLT) | `filter` | 15 → 🆕 12 | 🆕 17 / 2 / 2 | Done except passive shelf/peak 2 and LFO duty/quantise |
 | Flanger (FLG) | `flanger` | 31 → 1 | 🆕 12 / 3 / 9 | Core done; thru-zero, drive, VCO response missing |
 | Formant (FOR) | `formant` | 1 → 1 | 8 / 0 / 0 | Done (Cathode adds Shift) |
-| Gate/Expander (GTE) | `gate` | 4 → 🆕 2 | 🆕 12 / 1 / 1 | Done except modern types and row sidechain |
-| Graphic EQ (GEQ) | `geq` | 16 → 🆕 2 | 🆕 4 / 1 / 2 | 10-band only; band layouts and passive types missing |
-| IR Player (IRP) | `irplayer` | 1 → 1 | 🆕 6 / 1 / 4 | One IR; second slot, series/parallel and length missing |
+| Gate/Expander (GTE) | `gate` | 4 → 🆕 4 | 🆕 14 / 0 / 1 | Done except the row sidechain (P1) |
+| Graphic EQ (GEQ) | `geq` | 16 → 🆕 10 layouts × constant/variable Q | 🆕 6 / 1 / 0 | 🆕 Band layouts, outer shelves; passive types approximated |
+| IR Player (IRP) | `irplayer` | 1 → 1 | 🆕 11 / 0 / 0 | Done (🆕 two slots, modes, length, per-IR level and pan, slopes, input select) |
 | Looper (LPR) | rig looper (not a block) | 1 → 1 | 9 / 3 / 6 | Works, but as a rig utility at the end of the chain |
 | Megatap (MGT) | `megatap` | 20 → 1 | 🆕 10 / 4 / 9 | Shapes done; alphas, randomise, feedback, diffusion, envelope missing |
 | Mixer (MIX) | 🆕 `mixer` | 1 → 1 | 🆕 6 / 0 / 0 | Done in this pass |
 | Multitap Delay (MTD) | `multidelay` | 34+ → 6 | 🆕 14 / 8 / 20 | Quad Tap, Ten Tap, Plex, Ducking, Reverse, Sweep; quad-series/parallel, per-tap filters, chorus, comb, ring mod missing |
-| Multiband Comp (MBC) | `mbcomp` | 1 → 1 | 🆕 10 / 1 / 4 | Done except detector, mute, slope, auto attack/release |
+| Multiband Comp (MBC) | `mbcomp` | 1 → 1 | 🆕 15 / 0 / 0 | Done (🆕 detector, mutes, 12/24 dB slope, auto times) |
 | Multiplexer (MUX) | `mux` | 1 → 1 | 🆕 3 / 1 / 0 | Done (rows only, no input jacks) |
-| Parametric EQ (PEQ) | `peq` | 1 → 1 | 🆕 5 / 1 / 1 | Done except Shelving 2/Peaking 2 and Solo |
+| Parametric EQ (PEQ) | `peq` | 1 → 1 | 🆕 8 / 0 / 0 | Done (🆕 Shelving 2, Peaking 2, slopes to 36 dB/oct, Solo) |
 | Phaser (PHA) | `phaser` (+ `vibe`) | 16 → 1 (+ Vibe) | 🆕 11 / 2 / 11 | Core done; VCR modelling, astable, LFO hicut missing |
 | Pitch (PIT) | `pitch` | 16 → 9 | 🆕 24 / 7 / 15 | Most types; per-voice feedback, LFO, temperament, master scalers missing |
 | Plex Delay (PLX) | `multidelay` type Plex | 44 → 1 | 4 / 3 / 22 | **Medium/large gap**: a 4-line plex without shifters |
@@ -94,6 +94,17 @@ All with defaults that leave the earlier sound bit-identical, except the Delay m
 - **PEQ:** 🆕 Blocking (high-/low-pass) band types for bands 1 and 5. **Graphic EQ:** 🆕 Master Q and a Variable Q mode.
 - **Ring Modulator:** 🆕 frequency multiplier. **Enhancer:** 🆕 invert, Pan L/R. **Wah:** 🆕 resonance (Q), Q tracking, control taper, low cut.
 - **Mixer block** (🆕 `mixer`): six rows with gain and balance, stereo or mono output, output level and balance. It uses the Multiplexer's per-row routing, now an interface (`IRowInputBlock`).
+
+**P4 stream (dynamics, EQ, drive, cab and the amp block).** Every new control defaults to off or stock, so presets sound as before (the golden renders pass, and every Circuit Amp model renders bit-identical at its defaults).
+
+- **Compressor:** 🆕 Detector choice (type default, peak, RMS, RMS+peak), Ratio to 100:1 = ∞ (a limiter), the 🆕 Dynamics type (a dynamics processor: compress or expand above the threshold) and Feedback type (the detector hears the output), Auto Attack/Release (crest-factor scaling, `CrestFactor`), Light Type for the opto, an Emphasis high shelf and one sidechain EQ band on the detector, and Input Level (Line takes 12 dB off the detector).
+- **Gate:** 🆕 Modern Expander and Modern Gate (6 dB of hysteresis, no chatter) and a soft Knee for the expanders. **Multiband Compressor:** 🆕 Peak/RMS detector, per-band mute, a 12 dB/oct (LR2) crossover option, Auto Attack/Release.
+- **Graphic EQ:** 🆕 a shared `GraphicEqualizer` (also used by the Drive's EQ 2 and the amp's output EQ) with ten layouts (10 octave, 10 at 2/3 octave, 8, 7, 5 bands, and approximated Mark, 5-, 4-, 3-band and console passives), the bands renamed and hidden per type through `typeLabels`, and Outer Shelves. The global output EQ stays on the plain ten-band type.
+- **Parametric EQ:** 🆕 Shelving 2 (first order) and Peaking 2 (proportional Q) on bands 1 and 5, blocking slopes from 6 to 36 dB/oct (`CutFilter` gained 30 and 36), and an engine-side Solo; the editor's curve draws every type. **Crossover:** 🆕 four band levels and four band pans (the left and right input's low and high bands).
+- **Enhancer:** 🆕 the Stereoizer type (24 third-octave allpasses, complementary and mono compatible) and Depth (the allpasses' sharpness). **IR Player:** 🆕 a second IR slot, Mode (parallel, stereo, series), per-IR Length, Level and Pan, cut slopes, Input Select; the slots are baked on the control thread (`IControlRefresh`) and crossfaded, as the Cab does.
+- **Drive:** 🆕 the EQ 1 page (low/high cut, bass, mid with frequency, high mid, treble), EQ 2 (a ten-band 2/3-octave graphic, pre or post), and the Advanced page: Clip Type and Clip Shape for the voicings, diode type and count overrides for the circuits (variants prebuilt, allocation-free), Bass Response, Dry Level, Bias, Slew Rate, Bit Reduce and Sample Rate. **Dynamic Distortion:** 🆕 the boost filter (shelf or peak, with its inverse after the clipper), Bias, Mono/Stereo, and four more clip curves.
+- **Cab:** 🆕 Smoothing (fractional-octave, minimum-phase correction that keeps the onset), a continuous Proximity with Proximity Freq, the room page (size, shape, floor reflection, HF and LF damping, diffusion) and the mic preamp's Bass, Mid and Treble.
+- **Circuit Amp:** 🆕 Input Boost (six Drive circuits at the amp's oversampled rate), Saturation (a diode-style clipper between preamp and power amp), Input Filter and Definition, an Output EQ on the Graphic EQ's layouts at the input, before the power amp or at the output, Input Dynamics, an Output Compressor (Output/Feedback types, clarity), Speaker Drive, Thump with Cab Resonance, Speaker Compression with its time constant, Bias Tremolo and Balance (36 parameters, `Amp/AmpInserts.cs`). The knobs are read on a fixed 64-frame grid, so the output no longer depends on the host's block size.
 
 ### 1.3 CPU costs to regenerate
 
@@ -138,45 +149,48 @@ Cathode's `input` and `output` are built-in node types handled by the graph comp
 
 ## 4. Amp block (pp. 9–18)
 
-Audited in detail in [06 §1](06-amp-modelling-spec.md#1-axe-fx-iii-amp-block-parameter-parity); this pass did not touch the Amp blocks (they are being changed by other streams). Current state of `circuitamp` (52 parameters, 26 types; catalogue in [07](07-amp-catalogue.md)):
+Audited in detail in [06 §1](06-amp-modelling-spec.md#1-axe-fx-iii-amp-block-parameter-parity). The P4 stream added the non-model parameters in `CircuitAmpBlock` and `Amp/AmpInserts.cs`, all off or neutral by default; what is left needs changes inside the models or the power amp (several are emergent in a circuit model). Current state of `circuitamp` (🆕 88 parameters; catalogue in [07](07-amp-catalogue.md)):
 
 | Page | Present | Missing | Effort for the gaps |
 |---|---|---|---|
-| Type, Tone | Type, Gain, Bass, Middle, Treble, Master, Presence, Depth, Cut, Bright, model switches and second controls, Input Trim | Presence Shift as a generic switch, Overdrive on all models | cheap per model |
-| Preamp | Preamp tube type, Bright Cap, Preamp Bias, Preamp Sag | Input Boost (type, level), Saturation switch and drive, Fat and Cut as generic switches, High Treble | medium (boost = reuse Drive circuits), large (saturation stage) |
-| Input EQ | Input select, Low Cut | Input filter (type, freq, Q, gain), Definition | cheap |
-| Output EQ | 5 EQ bands (`eq1`–`eq5`) | EQ type (3–8 bands, passive, Mark), EQ location (input, pre-PA, output) | medium |
-| Power supply | Sag, B+ time constant, supply type, rectifier, Variac | AC line frequency, screen frequency/Q | cheap / model data |
-| Power amp | Power amp on/off, power tube type, bias, negative feedback, transformer matching, LF/HF, drive, speaker impedance | Power tube hardness, bias tremolo | medium |
-| Speaker | Speaker curve, LF resonance freq/Q/peak, HF, impedance | Cabinet resonance, speaker drive, thump, speaker compression and its time constant, compliance | medium–large |
-| Dynamics | — | Input dynamics, output compression (type, threshold, clarity), master bias excursion | medium (reuse Compressor) |
+| Type, Tone | Type, Gain, Bass, Middle, Treble, Master, Presence, Depth, Cut, Bright, model switches and second controls, Input Trim | Presence Shift as a generic switch, Overdrive on all models | per model (emergent in the circuits) |
+| Preamp | Preamp tube type, Bright Cap, Preamp Bias, Preamp Sag, 🆕 Input Boost (type from the Drive circuits, drive, tone, level), 🆕 Saturation switch and drive (diode-style clipper between preamp and power amp) | Fat and Cut as generic switches, High Treble | per model (switch roles in the circuits) |
+| Input EQ | Input select, Low Cut, 🆕 Input Filter (off, shelves, peak, high/low-pass; freq, Q, gain), 🆕 Definition (treble/bass tilt into the preamp) | — | |
+| Output EQ | 5 model EQ bands (`eq1`–`eq5`), 🆕 Output EQ type (every Graphic EQ layout) with 10 bands, 🆕 EQ location (input, pre power amp, output) | Passive types are approximations (see §6.12) | — |
+| Power supply | Sag, B+ time constant, supply type (DC, AC 60 Hz, AC 50 Hz = AC line frequency), rectifier, Variac | Screen frequency/Q | model data |
+| Power amp | Power amp on/off, power tube type, bias, negative feedback, transformer matching, LF/HF, drive, speaker impedance, 🆕 bias tremolo (rate, depth on the Bias control) | Power tube hardness: needs the pentode law in PowerAmp/Tubes, outside this block | medium (power amp) |
+| Speaker | Speaker curve, LF resonance freq/Q/peak, HF, impedance, 🆕 speaker drive (cone excursion), 🆕 thump with cab resonance, 🆕 speaker compression and its time constant | Compliance (covered by the impedance curve's LF Q and amount) | — |
+| Dynamics | 🆕 Input dynamics (expand/compress by envelope), 🆕 output compressor (Output/Feedback type, amount, threshold, clarity) | Master bias excursion (emergent in the power amp) | — |
 | Advanced | Tonestack frequency, master volume trim, presence/depth frequency, cathode time constant | Tonestack type substitution and location, triode plate frequencies, preamp hardness, cathode follower controls, PI/power tube bias excursion, plate suppressor diodes, master volume location/cap, output mode (FRFR / SS PA + cab), auto DynaCab impedance | medium–large; several are emergent in a circuit model ([06 §1.4](06-amp-modelling-spec.md#14-parity-summary)) |
-| Output | Level | 🆕 Balance not added (Amp untouched in this pass), bypass mode handled by the engine | cheap |
+| Output | Level, 🆕 Balance, bypass mode handled by the engine | — | |
 
 The capture tier (`nam`) has input, output, normalise and a four-band post EQ; the guide has no counterpart (Fractal's NAM block arrived with firmware 33).
 
 ## 5. Cab block (pp. 19–24)
 
-Not changed in this pass. `cab` (legacy, 2 IR slots) and `dynacab` (4 synthesised or user-grid mic slots) together:
+Re-audited for the merged `cab` block (the old `cab` and `dynacab` are one block with four slots, each playing an IR file, a synthesised DynaCab or an IR pack).
 
 | Guide parameter | Cathode | Note | Effort |
 |---|---|---|---|
-| Cab Mode (Legacy / DynaCab) | ✅ | Two blocks rather than a mode |  |
+| Cab Mode (Legacy / DynaCab) | ✅ | Per slot: Source IR, DynaCab or IR Pack |  |
 | Legacy: Bank and Cab Number, cab picker | ◐ | Any IR from the asset store; no factory banks (licensing) | — |
-| Legacy: 4 IRs per channel | ◐ | 2 in `cab`, 4 in `dynacab` | medium (4 slots in `cab`) |
-| Mic Distance (align, sub-ms delay) | ◐ | DynaCab per-slot delay and Auto Delay; not in `cab` | cheap |
-| Proximity, Proximity Freq | ◐ | DynaCab Proximity (global); no frequency | cheap |
-| Smoothing | ❌ |  | cheap–medium (cepstral or 1/n-octave smoothing at IR load) |
-| DynaCab: cab type, mic type, position, distance | ✅ | Synthesised models; 10 speakers, 11 mics, 7 cabinets |  |
-| Level per IR (relative, normalised mix), Mute, Solo, Pan | ✅ | DynaCab; `cab` has level only | cheap |
-| Per-IR low/high cut and slopes | ◐ | Global low and high cut; no per-IR filters or slopes | cheap |
-| IR Length | ❌ |  | cheap |
-| Preamp page: Drive, Saturation, Bass/Mid/Treble, Mode, Type (Tube, FET, Tape…) | ❌ | Mic preamp simulation | medium |
-| Master low/high cut and slopes | ◐ | No slope choice | cheap |
-| Room page: level, size, shape, LF/HF damping, mic spacing, floor reflections, diffusion | ◐ | DynaCab Room (4 early reflections); no size/shape controls | medium |
-| Align page | ◐ | Per-slot delay; no visual alignment view | medium (editor) |
-| Mix page: Input Mode (L, R, Sum, Stereo), Air, Air Frequency | ❌ |  | cheap |
-| FullRes long IRs (1.37 s) | ✅ | IR Player up to 680 ms; `cab` partitioned convolution | — |
+| Legacy: 4 IRs per channel | ✅ | Four slots, any mix of sources |  |
+| Mic Distance (align, sub-ms delay) | ✅ | Per-slot Delay (0–5 ms, fractional) and Auto Delay (lines the modelled mics up by their travel time) |  |
+| Proximity, Proximity Freq | 🆕 ✅ | Proximity 0–200 % of the physical boost (0 off), Proximity Freq 25–400 % of its corner |  |
+| Smoothing | 🆕 ✅ | 0–1 octave magnitude smoothing of the mixed IR at build time; a minimum-phase correction keeps the onset and the slots' alignment |  |
+| DynaCab: cab type, mic type, position, distance | ✅ | Synthesised models (10 speakers, 11 mics, 7 cabinets), plus mic angle |  |
+| Level per IR (relative, normalised mix), Mute, Solo, Pan | ✅ | Every slot, plus Invert |  |
+| Per-IR low/high cut and slopes | ✅ | 6–24 dB/oct, baked into the mixed IR |  |
+| IR Length | ✅ | Per slot, 5–170 ms with a short fade |  |
+| Preamp page: Drive, Saturation, Type (Tube, FET, Tape…) | ✅ | None, Tube, Bipolar, FET, Transformer, Tape |  |
+| Preamp page: Bass/Mid/Treble | 🆕 ✅ | 120 Hz shelf, 800 Hz peak, 4 kHz shelf, ±12 dB; skipped at 0 dB |  |
+| Preamp page: Mode | ◐ | The type sets both the curve and the treble roll-off; no separate mode | cheap |
+| Master low/high cut and slopes | ✅ | 6–24 dB/oct |  |
+| Room page: level, size, shape, LF/HF damping, floor reflections, diffusion | 🆕 ✅ | Room, Room Size, Room Shape, Floor Reflection, Room HF/LF Damping, Room Diffusion, in the DynaCab synthesis (an IR file or pack carries its own room) |  |
+| Room page: mic spacing | ❌ | The room is in each slot's mono IR; stereo room mics need separate left and right room IRs per slot | medium |
+| Align page | ◐ | Per-slot delay and Auto Delay; no visual alignment view | medium (editor) |
+| Mix page: Input Mode (L, R, Sum, Stereo), Air, Air Frequency | ✅ |  |  |
+| FullRes long IRs (1.37 s) | ✅ | IR Player up to 680 ms; `cab` up to 170 ms per slot | — |
 
 ## 6. Effect blocks
 
@@ -207,24 +221,24 @@ Types: guide 17 (digital mono/stereo, analog mono/stereo, Japan CE-2, warm stere
 
 ### 6.2 Compressor (pp. 27–29) → `compressor`
 
-Types: guide 16 (Studio FF/FB compressor and sustainer, analog compressor/sustainer, compander, DynaComp, dynamics processor, JFET compressor/sustainer, optical compressor/sustainer, pedal 1/2, tube) → Cathode 4 (Pedal, Studio, Opto, 🆕 Sustainer). Feedback topologies, JFET, tube and the compander are missing algorithms.
+Types: guide 16 (Studio FF/FB compressor and sustainer, analog compressor/sustainer, compander, DynaComp, dynamics processor, JFET compressor/sustainer, optical compressor/sustainer, pedal 1/2, tube) → Cathode 🆕 6 (Pedal, Studio, Opto, Sustainer, 🆕 Dynamics, 🆕 Feedback). JFET, tube and the compander are still missing algorithms; most other guide types are presets of these (detector, ratio, times, light type).
 
 | Page | Parameter | Cathode | Note | Effort |
 |---|---|---|---|---|
 | Config | Threshold, Ratio, Attack, Release, Knee, Mix | ✅ |  |  |
 | Config | Compression (single-knob types) | ◐ | Ratio covers it | — |
-| Config | Dynamics (processor: compress ↔ expand) | ❌ |  | cheap |
-| Config | Ratio ∞ (limiter) | ◐ | Ratio up to 20:1 | cheap |
-| Config | Auto Attack/Release | ❌ | Program-dependent times | cheap |
-| Config | Look Ahead | ❌ | Needs latency reporting that depends on a parameter; the graph compiler only reads latency at compile time | medium |
-| Config | Detector Type (RMS, Peak, RMS+Peak) | ◐ | Tied to the type | cheap |
-| Config | Light Type (optical) | ❌ |  | cheap |
-| Config | Auto Makeup | 🆕 ✅ | Half the reduction at 0 dBFS |  |
+| Config | Dynamics (processor: compress ↔ expand) | 🆕 ✅ | Dynamics type: the slope over the threshold is 1 − Dynamics (−100 % expands 2:1 upwards, +100 % limits), at most +24 dB |  |
+| Config | Ratio ∞ (limiter) | 🆕 ✅ | 1–100:1; 100 is ∞:1 |  |
+| Config | Auto Attack/Release | 🆕 ✅ | Both times scaled by 2 / crest² over 200 ms (Giannoulis et al. 2012), ×0.25–4 |  |
+| Config | Look Ahead | ❌ | Needs latency reporting that depends on a parameter; the graph compiler only reads latency at compile time (P1 stream) | medium |
+| Config | Detector Type (RMS, Peak, RMS+Peak) | 🆕 ✅ | Type default, Peak, RMS, RMS+Peak (the mean of the two in dB) |  |
+| Config | Light Type (optical) | 🆕 ✅ | Classic, Fast LED, Slow Vactrol: the opto's attack and its program-dependent release law |  |
+| Config | Auto Makeup | ✅ | Half the reduction at 0 dBFS |  |
 | Config | Makeup | ✅ | Cathode extra |  |
-| Sidechain | Source (block, row, input) | ❌ | Needs a second input into the block | medium |
-| Sidechain | Low Cut, High Cut | 🆕 ✅ | Detector only |  |
-| Sidechain | Emphasis, Emphasis Frequency; filter type/freq/Q/gain | ❌ |  | cheap |
-| Mix | Input Level (instrument/line) | ❌ | Detector scaling | cheap |
+| Sidechain | Source (block, row, input) | ❌ | Needs a second input into the block (P1 stream) | medium |
+| Sidechain | Low Cut, High Cut | ✅ | Detector only |  |
+| Sidechain | Emphasis, Emphasis Frequency; filter type/freq/Q/gain | 🆕 ✅ | Emphasis: a high shelf on the detector up to +12 dB; one sidechain EQ band (low shelf, high shelf, peak) |  |
+| Mix | Input Level (instrument/line) | 🆕 ✅ | Line takes 12 dB off the detector |  |
 
 ### 6.3 Crossover (p. 30) → `crossover`
 
@@ -232,8 +246,8 @@ Types: guide 16 (Studio FF/FB compressor and sustainer, analog compressor/sustai
 |---|---|---|---|
 | Frequency (LR4) | ✅ | 40 Hz–16 kHz covers the ×10 multiplier |  |
 | Frequency multiplier | — | Not needed with the wider range |  |
-| Lo/Hi Level, left and right | ◐ | One level per band for both sides | cheap |
-| Low/Hi Pan for the left and right input bands | ◐ | One pan per band | cheap |
+| Lo/Hi Level, left and right | 🆕 ✅ | Four band levels |  |
+| Low/Hi Pan for the left and right input bands | 🆕 ✅ | Four band pans (balance law); hard left and right by default, which keeps the image |  |
 | Level, Balance | 🆕 ✅ |  |  |
 | Mode "Low Left / High Right" | ✅ | Cathode extra |  |
 
@@ -276,18 +290,18 @@ Types: guide about 60 named pedals → Cathode 27 (3 voicings + 24 WDF circuits;
 | Page | Parameter | Cathode | Note | Effort |
 |---|---|---|---|---|
 | Basic | Drive, Tone, Level, Mix | ✅ | Per-pedal panel names are generic |  |
-| Basic | Per-type extra knobs (e.g. Bass/Treble, Presence) | ◐ | One tone control per circuit | medium per circuit |
-| EQ 1 | Low Cut, High Cut | ❌ | | cheap |
-| EQ 1 | Bass, Mid (with frequency), High Mid, Treble ±12 dB | ❌ |  | cheap |
-| EQ 2 | 10-band 2/3-octave graphic EQ, Pre/Post/Off | ❌ | Reuse GEQ bands | cheap |
-| Advanced | Clip Type (4558/diode, FET, rectifier, Ge, hard, HV/LV tube, LED, op-amp, Si, soft, variable, null) | ◐ | Implied by the circuit; the three voicings have fixed clippers | medium |
-| Advanced | Clip Shape | ❌ |  | cheap (for the voicings) |
-| Advanced | Diode ± type and quantity | ❌ | Circuit parameters in WDF models | medium |
-| Advanced | Bass Response | ❌ | Input coupling cap per circuit | cheap |
-| Advanced | Dry Level (dry inside the circuit) | ❌ |  | cheap |
-| Advanced | Bias | ❌ |  | cheap |
-| Advanced | Slew Rate | ◐ | Modelled only in the RAT's op-amp | medium |
-| Advanced | Bit Reduce, Sample Rate | ❌ |  | cheap |
+| Basic | Per-type extra knobs (e.g. Bass/Treble, Presence) | ◐ | One tone control per circuit; the generic EQ 1 page stands in | medium per circuit |
+| EQ 1 | Low Cut, High Cut | 🆕 ✅ | 12 dB/oct, off at their ends | |
+| EQ 1 | Bass, Mid (with frequency), High Mid, Treble ±12 dB | 🆕 ✅ | Low shelf 100 Hz, peak at Mid Freq (200 Hz–5 kHz), peak 2.5 kHz, high shelf 5 kHz | |
+| EQ 2 | 10-band 2/3-octave graphic EQ, Pre/Post/Off | 🆕 ✅ | The shared `GraphicEqualizer` (2/3-octave layout) | |
+| Advanced | Clip Type (4558/diode, FET, rectifier, Ge, hard, HV/LV tube, LED, op-amp, Si, soft, variable, null) | 🆕 ◐ | Voicings: Soft, Hard, Asymmetric, Germanium, LED, Tube, Op-Amp, None; circuits: implied by the circuit (see diodes). FET, rectifier and variable missing | cheap (more curves) |
+| Advanced | Clip Shape | 🆕 ✅ | Voicings: bends the curve towards a soft knee or a hard clip | |
+| Advanced | Diode ± type and quantity | 🆕 ✅ | Circuits with clipping diodes: Si, Ge, Schottky, LED, MOSFET, 1–4 per side; variants prebuilt | |
+| Advanced | Bass Response | 🆕 ✅ | Scales the input coupling corner (voicing pre-filter, circuit coupling cap) | |
+| Advanced | Dry Level (dry inside the circuit) | 🆕 ✅ | Summed after the clipping, before the tone | |
+| Advanced | Bias | 🆕 ✅ | Offset ahead of the clipping, DC-blocked after | |
+| Advanced | Slew Rate | 🆕 ◐ | A generic slew limiter after the clipping on every type; the RAT's op-amp keeps its modelled slew | medium (per op-amp model) |
+| Advanced | Bit Reduce, Sample Rate | 🆕 ✅ | Word length and sample-and-hold rate on the driven signal | |
 | — | Input Vol (guitar volume knob) | ✅ | Cathode extra |  |
 
 ### 6.6 Dynamic Distortion (p. 40) → `dyndist`
@@ -296,28 +310,28 @@ Cathode's block distorts by envelope (drive follows the level) rather than throu
 
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
-| Preset page | ◐ | Type selects the clip shape | — |
-| Filter Type (high shelf, low shelf, peaking), Frequency, Q, Gain | ❌ | The frequency-dependent part of the guide's design | cheap–medium |
+| Preset page | ◐ | Type selects the clip shape (🆕 7 curves) | — |
+| Filter Type (high shelf, low shelf, peaking), Frequency, Q, Gain | 🆕 ✅ | Boosts the band ahead of the clipper, the inverse filter after: clean signals stay flat, the band clips first | |
 | Clip Shape | ✅ | Type |  |
-| Bias | ❌ |  | cheap |
+| Bias | 🆕 ✅ | DC-blocked after the clipper | |
 | Drive | ✅ |  |  |
-| Mono/Stereo | ❌ |  | cheap |
-| Level, Pan | ✅ | Level and 🆕 Balance |  |
+| Mono/Stereo | 🆕 ✅ | Mono sums the input and runs one channel | |
+| Level, Pan | ✅ | Level and Balance |  |
 | — | Dynamics, Threshold, Attack, Release, Mix | ✅ | Cathode extras |  |
 
 ### 6.7 Enhancer (p. 41) → `enhancer`
 
-Types: Modern, Classic, Stereoizer → Cathode Modern, Classic (a delayed-mid side signal, mono compatible), Haas (the guide's Classic: right channel delayed). The Stereoizer (high-order filter decorrelation) is missing: **cheap–medium**.
+Types: Modern, Classic, Stereoizer → Cathode Modern, Classic (a delayed-mid side signal, mono compatible), Haas (the guide's Classic: right channel delayed), 🆕 Stereoizer (a side from 24 third-octave allpasses: narrow bands alternate left and right, complementary and mono compatible).
 
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
-| Modern: Width, Depth | ◐ | Width only | cheap |
+| Modern: Width, Depth | 🆕 ✅ | Depth is the allpasses' sharpness; 50 % is the earlier voicing |  |
 | Modern: Low Cut, High Cut | ✅ |  |  |
 | Classic: Width (0–20 ms) | ✅ | Time (Haas) |  |
 | Classic: Invert | 🆕 ✅ |  |  |
 | Classic: Pan L, Pan R | 🆕 ✅ |  |  |
 | Classic: Balance | 🆕 ✅ |  |  |
-| Stereoizer: Width, Depth | ❌ |  | cheap–medium |
+| Stereoizer: Width, Depth | 🆕 ✅ | As Modern, through the high-order chain |  |
 
 ### 6.8 Filter (p. 42) → `filter`
 
@@ -374,29 +388,29 @@ Verdict: **complete**.
 
 ### 6.11 Gate/Expander (p. 47) → `gate`
 
-Types: Classic Expander, Classic Gate, Modern Expander, Modern Gate → Cathode Expander, 🆕 Gate (the "modern" ballistics are missing: **cheap**).
+Types: Classic Expander, Classic Gate, Modern Expander, Modern Gate → Cathode Expander, Gate, 🆕 Modern Expander, 🆕 Modern Gate (6 dB of hysteresis: once open they close only that far under the threshold, so a decaying note never chatters).
 
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
 | Threshold, Ratio, Attack, Hold, Release | ✅ |  |  |
 | Attenuation (gate types) | 🆕 ✅ |  |  |
-| Knee Type (modern expander) | ❌ |  | cheap |
-| Sidechain Select (block, row, input) | ❌ | Needs a second input | medium |
+| Knee Type (modern expander) | 🆕 ✅ | Hard, Soft (6 dB), Softer (12 dB) on both expander types |  |
+| Sidechain Select (block, row, input) | ❌ | Needs a second input (P1 stream) | medium |
 | Detector Type (peak, RMS) | 🆕 ✅ |  |  |
 | Sidechain Low Cut, High Cut | 🆕 ✅ |  |  |
 | Level, Balance | 🆕 ✅ |  |  |
 
 ### 6.12 Graphic EQ (p. 48) → `geq`
 
-Types: guide 16 (10-band, 10-band 2/3-octave, 8-, 7- and 5-band, each constant or variable Q, plus passive 5-band Mark, 5-, 4- (JMPre-1) and 3-band, 3-band console) → Cathode 🆕 2 (10-band constant Q, 10-band variable Q).
+Types: guide 16 (10-band, 10-band 2/3-octave, 8-, 7- and 5-band, each constant or variable Q, plus passive 5-band Mark, 5-, 4- (JMPre-1) and 3-band, 3-band console) → Cathode 🆕 10 layouts (`GraphicEqualizer`: 10 octave, 10 at 2/3 octave, 8, 7, 5 bands, each with constant or variable Q; Mark, 5-, 4- and 3-band passive, console), so all 16. The band parameters keep their ids and are renamed and hidden per type (`typeLabels`).
 
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
 | 10 octave bands, ±12 dB | ✅ |  |  |
-| Outermost bands as shelves | ❌ | Ours are peaks; a type option keeps the global output EQ unchanged | cheap |
-| Band layouts (10 at 2/3 oct, 8, 7, 5) | ❌ | `typeLabels` can rename and hide bands per type, as the Circuit Amp does | medium (ids, editor check) |
+| Outermost bands as shelves | 🆕 ✅ | Outer Shelves switch; off by default, and the global output EQ stays on plain peaks |  |
+| Band layouts (10 at 2/3 oct, 8, 7, 5) | 🆕 ✅ | Type; the editor shows each layout's bands under their own names |  |
 | Variable Q | 🆕 ✅ |  |  |
-| Passive types (Mark, 5/4/3-band, console) | ❌ | Passive networks; the Mark EQ also belongs in the amp | medium |
+| Passive types (Mark, 5/4/3-band, console) | 🆕 ◐ | Broad, overlapping proportional-Q bands and end shelves at those networks' centres; neighbours interact through their skirts, but a cut does not move the other bands' corners as a real passive network does | large (component-level networks) |
 | Master Q | 🆕 ✅ |  |  |
 | Level, Balance | ✅ / 🆕 |  |  |
 
@@ -404,13 +418,13 @@ Types: guide 16 (10-band, 10-band 2/3-octave, 8-, 7- and 5-band, each constant o
 
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
-| Two IR slots (bank, number) | ◐ | One IR | medium |
-| Length (MAX…256, OFF) | ❌ |  | cheap |
-| Per-IR Level, Pan | ❌ | With the second slot | cheap |
+| Two IR slots (bank, number) | 🆕 ✅ | `ir` and `ir2`, baked into one stereo pair on the control thread and crossfaded (as the Cab) |  |
+| Length (MAX…256, OFF) | 🆕 ✅ | Per slot, 5–680 ms with a short fade (the top is the whole IR); a slot's level mutes it |  |
+| Per-IR Level, Pan | 🆕 ✅ | Balance-law pan |  |
 | Mix | ✅ |  |  |
 | Low Cut, High Cut | ✅ |  |  |
-| Filter Slope | ❌ |  | cheap |
-| Input Select, Mode (stereo, parallel, series) | ❌ |  | cheap (with two slots) |
+| Filter Slope | 🆕 ✅ | 6–24 dB/oct on each cut |  |
+| Input Select, Mode (stereo, parallel, series) | 🆕 ✅ | Input: stereo, L+R, left, right. Mode: Parallel (summed), Stereo (IR 1 left, IR 2 right), Series (their convolution, offline by FFT, cut to 680 ms) |  |
 | Level, Balance | ✅ / 🆕 |  |  |
 
 ### 6.14 Looper (pp. 50–51) → rig looper (`Cathode.Engine.Rig.Looper`), not a grid block
@@ -500,11 +514,11 @@ Core types: Quad-Tap, Quad Parallel, Quad-Series, Quad Diffusor, Quad Tape, Quad
 |---|---|---|---|
 | Crossover Frequency, Frequency Range | ✅ | Low and high split |  |
 | Threshold, Ratio, Attack, Release, Level per band | ✅ |  |  |
-| Detector (RMS/peak) | ❌ |  | cheap |
-| Mute per band (solo by muting two) | ❌ |  | cheap |
-| Crossover Slope (12/24 dB) | ◐ | LR4 only | cheap |
+| Detector (RMS/peak) | 🆕 ✅ | Peak, or RMS over 5 ms |  |
+| Mute per band (solo by muting two) | 🆕 ✅ |  |  |
+| Crossover Slope (12/24 dB) | 🆕 ✅ | LR4, or LR2 (one-poles squared, the high band inverted, so the bands still sum to an allpass) |  |
 | Knee Type | ✅ | Knee (dB) |  |
-| Auto Attack/Release | ❌ |  | cheap |
+| Auto Attack/Release | 🆕 ✅ | Per band, crest-factor scaling as the Compressor |  |
 | Level, Balance | ✅ / 🆕 |  |  |
 
 ### 6.19 Multiplexer (p. 56) → `mux`
@@ -512,7 +526,7 @@ Core types: Quad-Tap, Quad Parallel, Quad-Series, Quad Diffusor, Quad Tape, Quad
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
 | Input Select: rows 1–6 | ✅ | Plus "All" |  |
-| Input Select: inputs 1–4, USB 5/6 and 7/8 | ❌ | Needs multi-channel input | medium |
+| Input Select: inputs 1–4, USB 5/6 and 7/8 | ❌ | Needs multi-channel input: the audio shim delivers one stereo pair, so there is nothing to select yet (P4 left it for the shim work) | medium (shim) |
 | Level, Balance | ✅ / 🆕 |  |  |
 | Gapless switching | ✅ | 10 ms crossfade |  |
 
@@ -522,10 +536,10 @@ Core types: Quad-Tap, Quad Parallel, Quad-Series, Quad Diffusor, Quad Tape, Quad
 |---|---|---|---|
 | Type: Shelving, Peaking | ✅ | Bands 1 and 5 shelf or peak; 2–4 peak |  |
 | Type: Blocking (high-pass, low-pass) | 🆕 ✅ | Bands 1 and 5 |  |
-| Type: Shelving 2, Peaking 2 | ❌ |  | cheap |
+| Type: Shelving 2, Peaking 2 | 🆕 ✅ | Bands 1 and 5: Shelving 2 a first-order shelf centred on the frequency, Peaking 2 a proportional-Q peak |  |
 | Frequency, Q, Gain (±12 dB; ours ±24) | ✅ |  |  |
-| Slope for blocking bands (6–36 dB/oct) | ◐ | 12 dB/oct | cheap |
-| Solo | ❌ | Editor-side feature | cheap |
+| Slope for blocking bands (6–36 dB/oct) | 🆕 ✅ | 12 dB/oct keeps the band's Q as resonance; the others are Butterworth |  |
+| Solo | 🆕 ✅ | In the engine: one band's region alone (a peak's band-pass, band 1's low-pass, band 5's high-pass) |  |
 
 ### 6.21 Phaser (pp. 64–65) → `phaser` (and `vibe`)
 
@@ -814,7 +828,7 @@ Checked against what exists under other names.
 | Ten-Tap Delay | Multi-Delay type "Ten Tap" | Covered; Rhythm Tap and per-tap levels missing (§6.32) | cheap–medium |
 | Scene MIDI | — | **Missing.** MIDI output exists (footswitch LED feedback), so the block is a preset-level table of 8 messages per scene sent on scene change | medium |
 | Tremolo/Panner | `tremolo` | **Complete** for its five types after this pass | — |
-| Graphic EQ modes | `geq` | 10-band only; band layouts and passive types missing (§6.12) | medium |
+| Graphic EQ modes | `geq` | 🆕 Ten layouts (all 16 guide types with the Q mode); the passive ones approximated (§6.12) | large (component-level passives) |
 | RTA | Analyser utility (`PUT /rta`, editor dialog) | Output only; a pass-through block to tap mid-grid is medium | medium |
 | Input/Output features | Built-ins | Noise gate on the Input and the row mixer on the Output missing (§2) | medium / cheap |
 | Send/Return | `fbsend` / `fbreturn` | Present (one pair) | cheap (two pairs) |
@@ -835,13 +849,13 @@ In order of value to a player, then cost. Each item meets the [Definition of don
 6. **Reverb depth** (medium). Separate early reflections with Early/Late level, the two peaking EQ bands, pre-delay tempo/feedback/mix, modulation controls, a quality setting (line count), and a shimmer pitch section (reuse the splice shifter).
 7. **Type presets** (medium, ongoing). Many guide "types" are parameter presets (17 choruses, 31 flangers, 16 phasers, 23 delays, 66 reverbs, 20 megataps). Offer them as factory block presets in the Block Library rather than as a Type parameter, so they never fight the knobs. Needs a curated preset set per block and the library's import path.
 8. **Multi-Delay algorithms** (medium each). Quad Parallel (per-line ring mod, band-pass and comb), Quad Series (send/return routing), Quad Diffusor, Quad Tape; per-tap feedback, filters and chorus; Rhythm Tap.
-9. **Graphic EQ layouts** (medium). Type with 10 (2/3 oct), 8, 7 and 5 bands using `typeLabels` to rename and hide bands, shelving outer bands, then the passive types (Mark 5-band, 4-band, 3-band, console). Keep the global output EQ on the plain 10-band type.
+9. 🆕 **Done (P4)**, except component-level passive networks. **Graphic EQ layouts** (medium). Type with 10 (2/3 oct), 8, 7 and 5 bands using `typeLabels` to rename and hide bands, shelving outer bands, then the passive types (Mark 5-band, 4-band, 3-band, console). Keep the global output EQ on the plain 10-band type.
 10. **Compressor and Gate sidechain input** (medium). A sidechain source (row or input) needs a second input into a block: the same `IRowInputBlock` routing can deliver a chosen row into a side buffer.
 11. **Look-ahead compressor** (medium). The compiler reads latency at compile time; a parameter-dependent latency needs a recompile on change or a fixed maximum look-ahead always reported.
 12. **"On engage" behaviour** (medium). LFO Bypass Reset (Flanger, Phaser) and Tremolo Start Phase need the engine to tell a block it was engaged; add an optional `IEngageAware` the compiled graph calls when a bypass fade starts.
 13. **Phaser VCR models and Barberpole; Flanger thru-zero; Chorus Dimension** (medium each).
 14. **Pitch completion** (cheap items batched, medium overall). Master scalers, per-voice detune and feedback, input gain and mode, wet cuts, temperament, glide, 16 arpeggiator steps, LFO on detune; polyphonic whammy tracking is large.
-15. **Drive EQ pages and expert controls** (medium). The EQ 1 page (low/high cut, bass/mid/high-mid/treble) and EQ 2 (the GEQ bands pre/post) are generic; diode type/count and bias need per-circuit WDF parameters. New circuits continue as in Phase 6 (medium each).
+15. 🆕 **Done (P4)**, except per-circuit extra knobs, op-amp slew per model and new circuits. **Drive EQ pages and expert controls** (medium). The EQ 1 page (low/high cut, bass/mid/high-mid/treble) and EQ 2 (the GEQ bands pre/post) are generic; diode type/count and bias need per-circuit WDF parameters. New circuits continue as in Phase 6 (medium each).
 16. **Looper as a block** (medium), with its Config-page features (cheap): once, trims, threshold start, overdub level, crossfade, quantise, 300 s.
-17. **Ring Modulator SSB and pitch tracking; Synth third voice and tracking modes; Vocoder band controls; IR Player second slot; Cab preamp, air and input mode** (cheap to medium each).
-18. **Amp gaps** follow [06 §5](06-amp-modelling-spec.md#5-recommended-plan): input boost (reuse Drive circuits), saturation stage, output EQ types and location, output compressor and input dynamics, speaker drive and compression.
+17. **Ring Modulator SSB and pitch tracking; Synth third voice and tracking modes; Vocoder band controls; IR Player second slot; Cab preamp, air and input mode** (cheap to medium each). 🆕 The IR Player and Cab items are done (P4).
+18. 🆕 **Mostly done (P4)**: boost, saturation, input filter, output EQ with location, output compressor, input dynamics, speaker drive, thump and compression, bias tremolo, Balance; power-tube hardness and the per-model items remain. **Amp gaps** follow [06 §5](06-amp-modelling-spec.md#5-recommended-plan): input boost (reuse Drive circuits), saturation stage, output EQ types and location, output compressor and input dynamics, speaker drive and compression.
