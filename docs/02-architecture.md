@@ -189,6 +189,7 @@ The **parameter set is not part of compilation**. Changing a knob, a scene or a 
 - A sidechain block (`ISidechainBlock`: Compressor, Gate) is offered, before it runs, the grid input and the output of the last live node on each row to its left (`SidechainInput` ops). Each such source counts as one more reader of its buffer, so it is neither freed nor processed over in place first. Sidechains are not latency-aligned.
 - Feedback Send/Return come in up to two pairs, matched by the number their ids end in.
 - An RTA block gets the graph's `AnalyzerTap`; the engine moves what it holds into the telemetry region after each sub-block.
+- **Hardware inputs** (docs/08 §2): the host maps device input channels onto six stereo sources, Input 1–4, USB 5/6 and USB 7/8 (`InputMap`; cathode-host `--input-map "1;3,4;;;5,6"`, the Setup page's input map; by default Input 1 only, on channel 1). Input 1 is the main pair (`AudioIO.InputLeft`/`InputRight`, what `ReadInput` copies); the others travel planar in `AudioIO.Sources` with a mask of the mapped ones. The engine copies all six into `HardwareInputs` at the start of each callback and sets its offset per sub-block. The compiler gives every block that implements `IHardwareInputBlock` its graph's `InputPort`; when the graph is replaced the engine fades that port out over the swap fade, as it fades the grid input into a spilling graph. Blocks name a source by index into `HardwareInputs.Names`, appended after their other choices: the Input cell's Source (0 = Input 1), the Multiplexer's Input Select (`FirstInput` = 7), a sidechain (`SidechainSource.FirstInput` = 8), the Pitch Detector Source and the Vocoder Analysis Source (after Block Input and Rows 1–6). The host reports the mapped sources (`HostInfo.InputSources`, a bit mask) and the Server names them in `EngineStatus.inputs`.
 
 ### 5.3 Block contract
 
@@ -215,6 +216,7 @@ Other optional interfaces a block may add:
 - `IControlRefresh`: derived state rebuilt on the control thread (§5.4).
 - `IRowInputBlock`: takes each cabled input by grid row (above).
 - `ISidechainBlock`: offered other signals for its detector (§5.2).
+- `IHardwareInputBlock`: given the graph's `InputPort` to read the interface's input sources (§5.2).
 - `IEngageAware`: told on the audio thread when its bypass target turns from bypassed to active, before the bypass fade starts, so an LFO can restart from a set phase (Flanger and Phaser LFO Bypass Reset, Tremolo Start Phase). A block that starts engaged is not told.
 
 - DSP state lives in `NativeMemory.AlignedAlloc` buffers (64-byte aligned) or pinned arrays.

@@ -36,7 +36,8 @@ namespace Cathode.Dsp.Blocks;
 ///     <para>
 ///         Around the convolution, on the audio thread: the Input mode (left, right, their sum, or stereo), Air (the
 ///         dry signal above Air Freq mixed back in, as the air between speaker and mic), the mic preamp
-///         (<see cref="MicPreamp" />; Preamp Mode High Quality runs it 4× oversampled, Economy at the engine rate), the
+///         (<see cref="MicPreamp" />; Preamp Mode High Quality runs it 4× oversampled, Economy at the engine rate; a change of
+///         mode rebuilds the graph, so only a High Quality cab holds the oversamplers), the
 ///         master low and high cuts and the Level.
 ///     </para>
 ///     <para>
@@ -244,7 +245,7 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             IrParam(ParamDescriptor.Float("diffusion", "Room Diffusion", 0f, 100f, 0f, "%")),
             ParamDescriptor.Switch("autodelay", "Auto Delay"),
             IrParam(ParamDescriptor.Float("smoothing", "Smoothing", 0f, 100f, 0f, "%")),
-            ParamDescriptor.Choice("preampMode", "Preamp Mode", ["Economy", "High Quality"]),
+            ParamDescriptor.Choice("preampMode", "Preamp Mode", ["Economy", "High Quality"]) with { Recompile = true },
             IrParam(ParamDescriptor.Float("micspacing", "Room Mic Spacing", 0f, MaxMicSpacing, 0f, "cm")),
             ..Slot(1, 5, 3, 0, 25, 1, false),
             ..Slot(2, 5, 3, 5, 50, 4, true),
@@ -801,10 +802,16 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             slotIrs = new(Slots * taps);
             slotRoomIrs.Dispose();
             slotRoomIrs = new(Slots * taps);
-            upLeft ??= new(spec.MaxBlockSize);
-            upRight ??= new(spec.MaxBlockSize);
-            upLeft.Resize(spec.MaxBlockSize);
-            upRight.Resize(spec.MaxBlockSize);
+            // The oversamplers exist only in High Quality: changing the mode rebuilds the graph (Recompile), so an
+            // Economy cab allocates nothing for them.
+            if ((int)Params.GetTarget(PreampMode) == PreampHighQuality) {
+                upLeft ??= new(spec.MaxBlockSize);
+                upRight ??= new(spec.MaxBlockSize);
+                upLeft.Resize(spec.MaxBlockSize);
+                upRight.Resize(spec.MaxBlockSize);
+            } else {
+                (upLeft, upRight) = (null, null);
+            }
             slotScratch = new(Math.Max(MaxIrLength, taps));
             var length = Math.Max(MaxIrLength, taps)
                 + (int)Math.Ceiling(MaxShiftSeconds() * spec.SampleRate)
@@ -891,13 +898,13 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         var type = (int)Params.Advance(Preamp, io.Length);
         var drive = Params.Advance(Drive, io.Length);
         var saturation = Params.Advance(Saturation, io.Length) / 100f;
-        if (type != MicPreamp.None && (int)Params.Current(PreampMode) == PreampHighQuality) {
+        if (type != MicPreamp.None && upLeft is not null && upRight is not null) {
             // High Quality runs the waveshaper at four times the rate, so its harmonics fold back far less.
             var rate = 4 * Spec.SampleRate;
-            var twice = upLeft!.Up(io.Left);
+            var twice = upLeft.Up(io.Left);
             preampLeft.Process(type, rate, this.drive, drive, this.saturation, saturation, twice);
             upLeft.Down(io.Left);
-            twice = upRight!.Up(io.Right);
+            twice = upRight.Up(io.Right);
             preampRight.Process(type, rate, this.drive, drive, this.saturation, saturation, twice);
             upRight.Down(io.Right);
         } else {
