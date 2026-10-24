@@ -23,7 +23,7 @@ namespace Cathode.Dsp.Blocks;
 ///     </list>
 ///     The right channel's LFO is offset by LFO Phase (tremolo types only), and Tempo locks the rate to the rig tempo.
 /// </summary>
-public sealed class TremoloBlock() : DspBlock(Info) {
+public sealed class TremoloBlock() : DspBlock(Info), IEngageAware {
     public const int Type = 0;
     public const int Rate = 1;
     public const int Depth = 2;
@@ -35,6 +35,7 @@ public sealed class TremoloBlock() : DspBlock(Info) {
     public const int Phase = 8;
     public const int PanCenter = 9;
     public const int Crossover = 10;
+    public const int StartPhase = 11;
 
     public const int Tremolo = 0;
     public const int Panner = 1;
@@ -70,7 +71,8 @@ public sealed class TremoloBlock() : DspBlock(Info) {
             ParamDescriptor.Float("duty", "LFO Duty", 0f, 100f, 50f, "%"),
             ParamDescriptor.Float("phase", "LFO Phase", 0f, 180f, 0f, "°"),
             ParamDescriptor.Float("panCenter", "Pan Center", -100f, 100f, 0f, "%"),
-            ParamDescriptor.Float("crossover", "Crossover Freq", 100f, 3_000f, 700f, "Hz", ParamTaper.Log)
+            ParamDescriptor.Float("crossover", "Crossover Freq", 100f, 3_000f, 700f, "Hz", ParamTaper.Log),
+            ParamDescriptor.Float("startPhase", "Start Phase", 0f, 360f, 0f, "°")
         ],
         maxInstances: 2
     );
@@ -80,8 +82,11 @@ public sealed class TremoloBlock() : DspBlock(Info) {
         release = (float)(1 - Math.Exp(-1 / (PhotocellReleaseMs * 0.001 * spec.SampleRate)));
     }
 
+    /// <summary>Start Phase: engaging the block starts the LFO at this phase, so the first pulse lands where it should.</summary>
+    public void Engage() => lfo.Reset(Params.GetTarget(StartPhase) / 360.0);
+
     protected override void OnReset() {
-        lfo.Reset();
+        lfo.Reset(Params.Current(StartPhase) / 360.0);
         lightLeft = 1f;
         lightRight = 1f;
         lowLeft = 0;

@@ -7,7 +7,7 @@ namespace Cathode.Dsp.Blocks;
 ///     Phaser: a chain of first-order TPT allpass stages whose break frequency is swept by an LFO (in octaves around the
 ///     centre), with feedback around the chain. Mixed 50/50 with the dry signal, every 180° of chain phase cuts a notch.
 /// </summary>
-public sealed class PhaserBlock : DspBlock {
+public sealed class PhaserBlock : DspBlock, IEngageAware {
     public const int Rate = 0;
     public const int Depth = 1;
     public const int Center = 2;
@@ -19,6 +19,7 @@ public sealed class PhaserBlock : DspBlock {
     public const int Balance = 8;
     public const int Tempo = 9;
     public const int LfoType = 10;
+    public const int LfoReset = 11;
 
     const int MaxStages = 12;
     const float MaxSweepOctaves = 2f;
@@ -47,7 +48,8 @@ public sealed class PhaserBlock : DspBlock {
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
             ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
-            ParamDescriptor.Choice("lfoType", "LFO Type", Lfo.ShapeNames)
+            ParamDescriptor.Choice("lfoType", "LFO Type", Lfo.ShapeNames),
+            ParamDescriptor.Switch("lfoReset", "LFO Bypass Reset")
         ],
         maxInstances: 2
     );
@@ -78,6 +80,13 @@ public sealed class PhaserBlock : DspBlock {
             if (MathF.Abs(state[s]) < 1e-20f) {
                 state[s] = 0;
             }
+        }
+    }
+
+    /// <summary>LFO Bypass Reset: engaging the block restarts the sweep from the top, so every engage sounds alike.</summary>
+    public void Engage() {
+        if (Params.GetTarget(LfoReset) >= 0.5f) {
+            lfo.Reset();
         }
     }
 

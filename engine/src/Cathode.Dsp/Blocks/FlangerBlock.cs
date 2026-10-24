@@ -8,7 +8,7 @@ namespace Cathode.Dsp.Blocks;
 ///     Flanger: a very short swept delay with positive or negative feedback, mixed with the dry signal, giving
 ///     a moving comb filter. The right channel's sweep is offset by the spread angle.
 /// </summary>
-public sealed class FlangerBlock : DspBlock {
+public sealed class FlangerBlock : DspBlock, IEngageAware {
     public const int Rate = 0;
     public const int Depth = 1;
     public const int Delay = 2;
@@ -22,6 +22,7 @@ public sealed class FlangerBlock : DspBlock {
     public const int LowCut = 10;
     public const int HighCut = 11;
     public const int PhaseReverse = 12;
+    public const int LfoReset = 13;
 
     const float MaxSweepMs = 7f;
     const float MaxDelayMs = 10f;
@@ -50,7 +51,8 @@ public sealed class FlangerBlock : DspBlock {
             ParamDescriptor.Choice("lfoType", "LFO Type", Lfo.ShapeNames, (int)LfoShape.Triangle),
             WetCuts.LowCutParam("lowCut", "Low Cut"),
             WetCuts.HighCutParam("highCut", "High Cut"),
-            ParamDescriptor.Choice("phaseReverse", "Phase Reverse", ChorusBlock.PhaseOptions)
+            ParamDescriptor.Choice("phaseReverse", "Phase Reverse", ChorusBlock.PhaseOptions),
+            ParamDescriptor.Switch("lfoReset", "LFO Bypass Reset")
         ],
         maxInstances: 2
     );
@@ -62,6 +64,13 @@ public sealed class FlangerBlock : DspBlock {
         var capacity = (int)((MaxDelayMs + MaxSweepMs) * 0.001 * spec.SampleRate) + 8;
         left.Allocate(capacity);
         right.Allocate(capacity);
+    }
+
+    /// <summary>LFO Bypass Reset: engaging the block restarts the sweep from the top, so every engage sounds alike.</summary>
+    public void Engage() {
+        if (Params.GetTarget(LfoReset) >= 0.5f) {
+            lfo.Reset();
+        }
     }
 
     protected override void OnReset() {
