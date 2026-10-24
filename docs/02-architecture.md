@@ -157,7 +157,7 @@ Every block type publishes a **descriptor** that the editor uses to render gener
 }
 ```
 
-Types switch to sensible defaults for that type, as Fractal's "Type" knob does. Custom editors (amp, EQ, cab, tuner) add rich panels **on top of** the generic descriptor; they never replace it.
+Types switch to sensible defaults for that type, as Fractal's "Type" knob does. A parameter may carry `typeLabels`, its name per value of the block's `type` (empty where that type has no such control): the editor renames or hides it as the type changes. The Circuit Amp uses it for its per-model panels, and the delays and reverbs for their type-specific pages (Delay's Dual, Mono Tape, Reverse and Sweep, the Plex shifters, the springs); `TypeLabelling` builds them. Custom editors (amp, EQ, cab, tuner) add rich panels **on top of** the generic descriptor; they never replace it.
 
 ---
 

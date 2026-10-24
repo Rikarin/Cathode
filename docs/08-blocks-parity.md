@@ -36,7 +36,7 @@ The guide's comparison table (p. 3) lists 42 block types. Cathode covers 37 of t
 | Chorus (CHO) | `chorus` | 17 → 1 | 🆕 11 / 2 / 7 | Core and LFO done; type presets, drive, dimension missing |
 | Compressor (CMP) | `compressor` | 16 → 🆕 4 | 🆕 10 / 2 / 7 | Core done; look-ahead, detector choice, feedback types missing |
 | Crossover (XVR) | `crossover` | 1 → 1 | 🆕 5 / 2 / 0 | Done (per-side levels merged) |
-| Delay (DLY) | `delay` | 23+ → 🆕 5 | 🆕 25 / 6 / 17 | Core, ducker, hold, bit reduction, ping-pong done; dual/tape heads, EQ page, LFO 2 missing |
+| Delay (DLY) | `delay` | 23+ → 🆕 9 | 🆕 47 / 0 / 1 | Done except Global Mix: 🆕 Dual, Mono Tape, Reverse and Sweep types, 16 s, master and signed feedback, feedback EQ, three LFOs, diffuser, Stack |
 | Drive (DRV) | `drive` | 60+ → 27 | 🆕 6 / 1 / 12 | Strong circuits; EQ pages and expert clip controls missing |
 | Dynamic Distortion (DND) | `dyndist` | 7 → 3 | 🆕 5 / 2 / 3 | Different design (envelope-driven); filter section missing |
 | Enhancer (ENH) | `enhancer` | 3 → 3 | 🆕 7 / 2 / 1 | Done except the Stereoizer type |
@@ -46,26 +46,26 @@ The guide's comparison table (p. 3) lists 42 block types. Cathode covers 37 of t
 | Gate/Expander (GTE) | `gate` | 4 → 🆕 2 | 🆕 12 / 1 / 1 | Done except modern types and row sidechain |
 | Graphic EQ (GEQ) | `geq` | 16 → 🆕 2 | 🆕 4 / 1 / 2 | 10-band only; band layouts and passive types missing |
 | IR Player (IRP) | `irplayer` | 1 → 1 | 🆕 6 / 1 / 4 | One IR; second slot, series/parallel and length missing |
-| Looper (LPR) | rig looper (not a block) | 1 → 1 | 9 / 3 / 6 | Works, but as a rig utility at the end of the chain |
-| Megatap (MGT) | `megatap` | 20 → 1 | 🆕 10 / 4 / 9 | Shapes done; alphas, randomise, feedback, diffusion, envelope missing |
+| Looper (LPR) | 🆕 `looper` grid block + rig looper | 1 → 1 | 🆕 18 / 0 / 0 | Done: placeable with bypass modes and the full Config page; the transport drives the block while its preset runs |
+| Megatap (MGT) | `megatap` | 20 → 1 | 🆕 22 / 0 / 1 | Done except Global Mix: 🆕 128 taps, pre-delay, tap feedback, alphas, randomise, diffusion, envelope |
 | Mixer (MIX) | 🆕 `mixer` | 1 → 1 | 🆕 6 / 0 / 0 | Done in this pass |
-| Multitap Delay (MTD) | `multidelay` | 34+ → 6 | 🆕 14 / 8 / 20 | Quad Tap, Ten Tap, Plex, Ducking, Reverse, Sweep; quad-series/parallel, per-tap filters, chorus, comb, ring mod missing |
+| Multitap Delay (MTD) | `multidelay` | 34+ → 🆕 5 | 🆕 41 / 0 / 1 | Done except Global Mix: 🆕 Quad Tap, Parallel, Series, Diffusor, Tape with per-voice feedback, filter, chorus, comb and ring mod |
 | Multiband Comp (MBC) | `mbcomp` | 1 → 1 | 🆕 10 / 1 / 4 | Done except detector, mute, slope, auto attack/release |
 | Multiplexer (MUX) | `mux` | 1 → 1 | 🆕 3 / 1 / 0 | Done (rows only, no input jacks) |
 | Parametric EQ (PEQ) | `peq` | 1 → 1 | 🆕 5 / 1 / 1 | Done except Shelving 2/Peaking 2 and Solo |
 | Phaser (PHA) | `phaser` (+ `vibe`) | 16 → 1 (+ Vibe) | 🆕 11 / 2 / 11 | Core done; VCR modelling, astable, LFO hicut missing |
 | Pitch (PIT) | `pitch` | 16 → 9 | 🆕 24 / 7 / 15 | Most types; per-voice feedback, LFO, temperament, master scalers missing |
-| Plex Delay (PLX) | `multidelay` type Plex | 44 → 1 | 4 / 3 / 22 | **Medium/large gap**: a 4-line plex without shifters |
+| Plex Delay (PLX) | 🆕 `plex` | 44 → 🆕 5 | 🆕 28 / 1 / 0 | Done: 1–8 lines, Plex Delay, Detune, Shifter, Verb and Shimmer Verb |
 | Resonator (RES) | `resonator` | 1 → 1 | 🆕 12 / 3 / 5 | Done except per-voice feedback, BPF, stereo input |
 | Return (RTN) | `fbreturn` | 1 → 1 | 🆕 3 / 0 / 0 | Done |
-| Reverb (REV) | `reverb` | 66+ → 5 | 🆕 14 / 3 / 19 | Core and 🆕 ducker/hold/spread; EQ page, early/late, pitch section missing |
+| Reverb (REV) | `reverb` | 66+ → 🆕 7 | 🆕 35 / 0 / 1 | Done except Global Mix: 🆕 early reflections, band decay times, wet EQ, quality, stack, shimmer pitch section, 1–6 springs, Chamber and Cathedral |
 | Ring Modulator (RNG) | `ringmod` | 3 → 1 | 🆕 5 / 0 / 2 | Classic only; SSB types and pitch tracking missing |
 | Rotary (ROT) | `rotary` | 1 → 1 | 12 / 3 / 3 | Done except tempo, input select, mic distance |
 | RTA | analyser (`PUT /rta`) | 1 → 1 | 1 / 1 / 2 | Output-only analyser, not a grid block |
 | Scene MIDI (MIDI) | — | 1 → 0 | 0 / 0 / 4 | **Missing**: medium |
 | Send (SND) | `fbsend` | 1 → 1 | 1 / 0 / 0 | Done (Cathode adds a send level) |
 | Synth (SYN) | `synth` | 1 → 1 | 9 / 5 / 6 | 2 voices, not 3; tracking modes, per-voice filter missing |
-| Ten-Tap Delay (TTD) | `multidelay` type Ten Tap | 2 → 1 | 7 / 3 / 7 | Ten Tap works; Rhythm Tap and per-tap levels missing |
+| Ten-Tap Delay (TTD) | 🆕 `tentap` | 2 → 🆕 2 | 🆕 17 / 0 / 0 | Done: Ten Tap and Rhythm Tap (quantise, learn), tap count and levels, mono/stereo, pan shape |
 | Tone Match (TMA) | `tonematch` | 1 → 1 | 2 / 0 / 0 | Done (the guide defers to a separate manual) |
 | Tremolo/Panner (TRM) | `tremolo` | 5 → 🆕 5 | 🆕 10 / 1 / 2 | Done in this pass except start phase and trigger |
 | Vocoder (VOC) | `vocoder` | 1 → 1 | 7 / 4 / 7 | 20 fixed bands; analysis/band controls missing |
@@ -94,6 +94,16 @@ All with defaults that leave the earlier sound bit-identical, except the Delay m
 - **PEQ:** 🆕 Blocking (high-/low-pass) band types for bands 1 and 5. **Graphic EQ:** 🆕 Master Q and a Variable Q mode.
 - **Ring Modulator:** 🆕 frequency multiplier. **Enhancer:** 🆕 invert, Pan L/R. **Wah:** 🆕 resonance (Q), Q tracking, control taper, low cut.
 - **Mixer block** (🆕 `mixer`): six rows with gain and balance, stereo or mono output, output level and balance. It uses the Multiplexer's per-row routing, now an interface (`IRowInputBlock`).
+
+**Time-based stream (P2, later pass).** Every ❌/◐ row of §6.4, 6.14, 6.15, 6.17, 6.23, 6.26 and 6.32, except Global Mix (P1). Defaults keep the earlier sound of Delay, Megatap, Multitap (Quad Tap), Reverb and the rig looper; their golden renders are unchanged. New shared helpers: `LoopFilter` (per-sample feedback-path cuts of 6–24 dB/oct with resonance, plus two peaking bands), `Diffuser` (a modulated four-stage allpass with a mix), `SwellEnvelope` (the Envelope page), `DelayBlock.Limit` (the loop limiter: transparent to full scale, a tanh knee that never passes 2), `TypeLabelling` (per-type pages through `typeLabels`), and a crossfade on `GrainShifter`.
+
+- **Delay:** 🆕 types Dual (independent times, tempos, feedback, levels, pans, cross feedback), Mono Tape (two heads with level, pan and feedback; Motor Speed, also on Tape), Reverse (moved from Multi-Delay; Run, Trigger Restart, Crossfade) and Sweep (moved from Multi-Delay; any LFO shape, tempo). Lines up to 16 s, Master Feedback to 200 %, signed feedback, Echo Pan, Right Post Delay, Stack beside Hold, cut slopes and Q, two peaking bands in the feedback path, LFO 1/2 with type, tempo, phase and target, a depth range, LFO 3 on level, pan or spread, and a diffuser.
+- **Megatap:** 🆕 up to 128 taps, pre-delay, feedback from a chosen tap, Time Alpha (the old Time Shape), Time and Amplitude Randomize (fixed per tap, so repeatable), Amplitude and Pan Alpha, signed spread, diffusion and envelope.
+- **Multitap Delay:** 🆕 now the quad family: Quad Tap, Quad Parallel, Quad Series (send, return, series feedback), Quad Diffusor (four long allpasses) and Quad Tape. Each voice has a time or tempo, feedback, signed level, pan, filter (LP/HP/BP/peak), chorus, normalised comb and ring modulator; cross feedback, master scalers, two time LFOs, a filter LFO, drive, cut slopes, diffuser, ducker and envelope. Ten Tap and Plex left for their own blocks; Ducking, Reverse and Sweep for the Delay.
+- **Ten-Tap Delay** (🆕 `tentap`): Ten Tap and Rhythm Tap (per-tap times, quantise to a tempo division, learn from the playing), 1–10 taps, tap levels, mono/stereo, ratio, pan shape and alpha, feedback.
+- **Plex Delay** (🆕 `plex`): 1–8 lines on a Householder matrix with per-line time, tempo, level and pan, decay time, loop and input diffusion, pre-delay, stack/hold, a loop filter with LFO, envelope, ducker, and the types Plex Detune, Plex Shifter (granular shifters in every loop, forward or reversed grains, granule and crossfade), Plex Verb and Shimmer Verb.
+- **Reverb:** 🆕 types Chamber and Cathedral. Early reflections with Early/Late Level, Early Diffusion, Time and Decay, and Late Input Mix. Low and High Freq Time multipliers at two crossovers. Low Mid and High Mid peaking bands. Pre-delay Tempo, Feedback and Mix (pre-delay up to 1 s). Echo Density and Wall Diffusion (in-loop allpasses that keep the decay). Input Diffusion and its Time. Quality, from 4 to 16 lines, level-matched. Stack alongside Hold. Mic Spacing. Mod Depth, Rate and LFO Phase. A two-voice granular pitch section at the input, the output or in the tank (shimmer), with splice, feedback, reverse and voice balance. Spring with 1–6 springs, Tone, Drive and Boing. Stereo Spread to ±200 % (M/S widening).
+- **Looper** (🆕 `looper`): a grid block on one looper core shared with the rig looper (`Cathode.Dsp.Looping`), with Once, Trim Start/End, threshold recording, Max Loop Time up to 300 s (memory committed only as it is recorded), Playback and Dry Level, Overdub Level (an exact undo of the last pass), a seam Crossfade, Loop Quantize to the tempo, Record 2nd Press, Speed (half/double) and Low/High Cut. Looper commands, telemetry and export go to the running preset's Looper block, otherwise to the rig looper; a preset change stops the outgoing grid loop. Play and stop now fade over 2 ms.
 
 ### 1.3 CPU costs to regenerate
 
@@ -131,10 +141,10 @@ Cathode's `input` and `output` are built-in node types handled by the graph comp
 | Bypass (as a modifier target) | ◐ | Bypass is per scene and through the bypass command; a modifier cannot drive it | medium |
 | Bypass modes Thru, Mute, Mute In, Mute FX In | ✅ | Since Phase 5 |  |
 | Bypass modes Mute Out, Mute FX Out | 🆕 ✅ | The block keeps running ("listening") while bypassed |  |
-| Input Select (L, R, L+R) | 🆕 ◐ | Reverb, Megatap, Multi-Delay, Volume/Pan; missing on Rotary (sums), Pitch | cheap per block |
-| Input Gain | 🆕 ◐ | Delay, Reverb, Megatap, Multi-Delay, Resonator; missing on Pitch and Plex | cheap (Pitch) |
+| Input Select (L, R, L+R) | 🆕 ◐ | Reverb, Megatap, Multitap, 🆕 Ten-Tap, 🆕 Plex, Volume/Pan; missing on Rotary (sums), Pitch | cheap per block |
+| Input Gain | 🆕 ◐ | Delay, Reverb, Megatap, Multitap, 🆕 Ten-Tap, 🆕 Plex, Resonator; missing on Pitch | cheap (Pitch) |
 | Global Mix (follow the global Effects Mix offset ±50 %) | ❌ | Needs a global setting and a per-block switch; the offset applied where each block reads Mix | medium |
-| Stereo Spread (−200…+200 %) | ◐ | Delay and Reverb (−100…+100 %); Chorus, Flanger, Phaser have an LFO phase instead. The psychoacoustic range beyond ±100 % is missing | cheap (±100), medium (beyond) |
+| Stereo Spread (−200…+200 %) | ◐ | Reverb 🆕 ±200 % (M/S widening beyond ±100 %); Delay, Megatap, Ten-Tap and Plex ±100 %; Chorus, Flanger, Phaser have an LFO phase instead | cheap (the delays) |
 
 ## 4. Amp block (pp. 9–18)
 
@@ -239,34 +249,34 @@ Types: guide 16 (Studio FF/FB compressor and sustainer, analog compressor/sustai
 
 ### 6.4 Delay (pp. 31–36) → `delay`
 
-Types: guide table lists 23 (digital/analog/tape mono and stereo, ping-pong, dual, reverse, sweep, ducking, vintage digital, 2290 with modulation, ambient stereo, Deluxe Mind Guy, mono/stereo BBD, lo-fi tape, Stereo Mind Guy, diffused, Graphite Copy, worn tape, Zephyr) → Cathode 5 (Digital, Analog, Tape, 🆕 Ping-Pong, 🆕 Vintage Digital). Reverse, Sweep and Ducking exist as Multi-Delay types. Most others are presets over the parameters below.
+Types: guide table lists 23 (digital/analog/tape mono and stereo, ping-pong, dual, reverse, sweep, ducking, vintage digital, 2290 with modulation, ambient stereo, Deluxe Mind Guy, mono/stereo BBD, lo-fi tape, Stereo Mind Guy, diffused, Graphite Copy, worn tape, Zephyr) → Cathode 🆕 9 (Digital, Analog, Tape, Ping-Pong, Vintage Digital, 🆕 Dual, 🆕 Mono Tape, 🆕 Reverse, 🆕 Sweep). Ducking is any type with the ducker on; diffused is any type with the diffuser; most others are presets over the parameters below. The Dual, Mono Tape, Reverse and Sweep pages show only on their types (`typeLabels`).
 
 | Page | Parameter | Cathode | Note | Effort |
 |---|---|---|---|---|
-| Config | Time (up to 16 s), Tempo | ◐ | Up to 4 s; the extended tempo list | cheap (longer line in native memory) |
-| Config | Master Feedback (0–200 %) | ❌ |  | cheap |
-| Config | Feedback (±) | ◐ | 0–100 %, no polarity | cheap |
-| Config | Echo Pan | ❌ |  | cheap |
-| Config | Repeat Hold / Stack | 🆕 ◐ | Hold only (no Stack) | cheap |
+| Config | Time (up to 16 s), Tempo | 🆕 ✅ | 16 s lines in native memory |  |
+| Config | Master Feedback (0–200 %) | 🆕 ✅ | Scales every feedback; above unity the loop limiter (transparent to full scale, then a tanh knee that never passes 2) keeps the loop bounded |  |
+| Config | Feedback (±) | 🆕 ✅ | −100…100 % |  |
+| Config | Echo Pan | 🆕 ✅ | Pans the repeats (balance law) |  |
+| Config | Repeat Hold / Stack | 🆕 ✅ | Off / Hold / Stack; Stack keeps the input open, through the limiter |  |
 | Config | Drive | 🆕 ✅ |  |  |
 | Config | Bit Reduction | 🆕 ✅ |  |  |
-| Config | Right Post Delay | ❌ |  | cheap |
+| Config | Right Post Delay | 🆕 ✅ | Up to 1 s on the right repeats |  |
 | Config | Spread | 🆕 ✅ |  |  |
 | Stereo | L/R Time Ratio | 🆕 ✅ |  |  |
-| Stereo | Feedback L, Feedback R | ❌ | One feedback for both | cheap |
-| Dual | Independent L/R time, tempo, level, pan, feedback; cross feedback L→R, R→L | ❌ |  | medium |
-| Sweep | Start/stop frequency, resonance, sweep type, rate, tempo, phase | ◐ | In Multi-Delay's Sweep type | cheap (move into Delay) |
-| Mono Tape | Motor speed, Head 1 time/tempo, Head 2 ratio, per-head level, feedback, pan | ◐ | Tape type has wow/flutter, one head | medium |
-| Reverse | Time, Run, Trigger Restart, Crossfade | ◐ | Multi-Delay Reverse: no run/restart | cheap |
+| Stereo | Feedback L, Feedback R | 🆕 ✅ | Dual: Feedback is the left line's, Right Feedback the right's |  |
+| Dual | Independent L/R time, tempo, level, pan, feedback; cross feedback L→R, R→L | 🆕 ✅ | Dual type |  |
+| Sweep | Start/stop frequency, resonance, sweep type, rate, tempo, phase | 🆕 ✅ | Sweep type (moved from Multi-Delay); the sweep type is any of the ten LFO shapes |  |
+| Mono Tape | Motor speed, Head 1 time/tempo, Head 2 ratio, per-head level, feedback, pan | 🆕 ✅ | Mono Tape type. Motor Speed (also on Tape) stretches the time, slows wow and flutter and darkens the loop |  |
+| Reverse | Time, Run, Trigger Restart, Crossfade | 🆕 ✅ | Reverse type. Trigger Restart starts a chunk on a note crossing −40 dBFS; chunks up to a third of the line (5.3 s) |  |
 | EQ | Low/High Cut | ✅ | In the feedback path |  |
-| EQ | Cut slopes, Q | ❌ |  | cheap |
-| EQ | Two peaking EQs (freq, Q, gain) | ❌ |  | cheap |
-| Modulation | LFO depth range, phase reverse | ◐ | 🆕 phase reverse; no depth range | cheap |
-| Modulation | LFO 1/2 type, target, rate, tempo, depth, phase; LFO 3 (level/pan/spread) | ◐ | One sine LFO (rate, depth) | cheap–medium |
+| EQ | Cut slopes, Q | 🆕 ✅ | 6–24 dB/oct, resonance on the last section (`LoopFilter`) |  |
+| EQ | Two peaking EQs (freq, Q, gain) | 🆕 ✅ | In the feedback path, so each repeat is shaped again |  |
+| Modulation | LFO depth range, phase reverse | 🆕 ✅ | Low (×0.1), Normal, High (×10, up to 100 ms) |  |
+| Modulation | LFO 1/2 type, target, rate, tempo, depth, phase; LFO 3 (level/pan/spread) | 🆕 ✅ | LFO 1/2 on the left, right or both line times, with an L/R phase; LFO 3 on the wet level, the echo pan or the spread |  |
 | Modulation | Ducker attenuation, threshold, release | 🆕 ✅ |  |  |
-| Modulation | Diffuser mix and time, its LFO | ❌ | Reuse the reverb diffusers | cheap |
+| Modulation | Diffuser mix and time, its LFO | 🆕 ✅ | `Diffuser` on the repeats |  |
 | Mix | Input Gain | 🆕 ✅ |  |  |
-| Mix | Global Mix | ❌ | §3 | medium |
+| Mix | Global Mix | ❌ | §3 (stream P1) | medium |
 | — | Spillover | ✅ | Mute In / Mute FX In, and across presets |  |
 
 ### 6.5 Drive (pp. 37–39) → `drive`
@@ -438,27 +448,27 @@ Also new: play and stop fade over 2 ms instead of cutting.
 
 ### 6.15 Megatap (pp. 52–53) → `megatap`
 
-Types: 20 presets → none (shape choices instead).
+Types: 20 presets → none (shape choices instead; presets are §8 item 7).
 
 | Page | Parameter | Cathode | Note | Effort |
 |---|---|---|---|---|
-| Config | Master Level | ◐ | Level | — |
+| Config | Master Level | ✅ | Level |  |
 | Config | Delay Time (last tap), Tempo | ✅ |  |  |
-| Config | Number of Taps (1–128) | ◐ | Up to 40 | cheap |
-| Config | Predelay | ❌ |  | cheap |
-| Config | Feedback, Feedback Tap | ❌ |  | cheap |
+| Config | Number of Taps (1–128) | 🆕 ✅ |  |  |
+| Config | Predelay | 🆕 ✅ | Up to 1 s before the first tap |  |
+| Config | Feedback, Feedback Tap | 🆕 ✅ | The chosen tap re-enters the line through the low and high cut |  |
 | Config | Low Cut, High Cut | ✅ |  |  |
-| Tap control | Time Alpha | ◐ | Time Shape (±) | — |
-| Tap control | Time Randomize | ❌ |  | cheap |
+| Tap control | Time Alpha | 🆕 ✅ | The former Time Shape (`timeAlpha`) |  |
+| Tap control | Time Randomize | 🆕 ✅ | Up to half a tap spacing, fixed per tap |  |
 | Tap control | Amplitude Shape | ✅ | Level Shape |  |
-| Tap control | Amplitude Alpha, Randomize | ❌ |  | cheap |
+| Tap control | Amplitude Alpha, Randomize | 🆕 ✅ | Alpha raises the shape to a power of 1/4…4 |  |
 | Tap control | Pan Shape | ✅ |  |  |
-| Tap control | Pan Alpha | ❌ |  | cheap |
-| Tap control | Stereo Spread | ◐ | Spread 0–100 % | cheap |
-| Diffusion | Diffusion Mix, Time, LFO Rate/Depth | ❌ |  | cheap |
-| Envelope | Threshold, Attack, Release (volume swell into the taps) | ❌ |  | cheap |
+| Tap control | Pan Alpha | 🆕 ✅ |  |  |
+| Tap control | Stereo Spread | 🆕 ✅ | −100…100 % (negative mirrors) |  |
+| Diffusion | Diffusion Mix, Time, LFO Rate/Depth | 🆕 ✅ | `Diffuser` |  |
+| Envelope | Threshold, Attack, Release (volume swell into the taps) | 🆕 ✅ | `SwellEnvelope`; attack 0 is off |  |
 | Mix | Input Gain, Input Select | 🆕 ✅ |  |  |
-| Mix | Global Mix | ❌ | §3 | medium |
+| Mix | Global Mix | ❌ | §3 (stream P1) | medium |
 
 ### 6.16 Mixer (p. 54) → 🆕 `mixer`
 
@@ -474,29 +484,29 @@ Verdict: **complete**. The graph compiler hands each cabled input to the block b
 
 ### 6.17 Multitap Delay (pp. 57–62) → `multidelay`
 
-Core types: Quad-Tap, Quad Parallel, Quad-Series, Quad Diffusor, Quad Tape, Quad Tap Band, plus 28 variants → Cathode 6: Quad Tap, Ten Tap, Plex, Ducking, Reverse, Sweep. Missing algorithms: Quad Parallel (with ring mod, band-pass, comb per line), Quad Series, Quad Diffusor (four 2 s diffusers), Quad Tape: **medium** each.
+Core types: Quad-Tap, Quad Parallel, Quad-Series, Quad Diffusor, Quad Tape, Quad Tap Band, plus 28 variants → Cathode 🆕 5: Quad Tap, 🆕 Quad Parallel, 🆕 Quad Series, 🆕 Quad Diffusor, 🆕 Quad Tape. Quad Tap Band is Quad Tap with band-pass voice filters. Ten Tap and Plex moved to their own blocks (§6.32, §6.23), Ducking, Reverse and Sweep to the Delay (§6.4).
 
 | Page | Parameter | Cathode | Note | Effort |
 |---|---|---|---|---|
-| Master | Master Time | ✅ | Time (taps are % of it) |  |
-| Master | Master Feedback, Level, Pan | ◐ | Feedback, Level; Spread for pan | cheap |
-| Master | Master LFO rate/depth, filter freq/Q, chorus, comb, ring mod scalers | ❌ |  | with the features |
-| Master | Drive | ❌ |  | cheap |
-| Diffuser | Diffusion Mix, Time, LFO | ◐ | Diffusion (Plex only) | cheap |
-| Ducker | Threshold, Attenuation, Release | ✅ | Ducking type |  |
-| Envelope | Threshold, Attack, Release | ❌ |  | cheap |
-| Delay | Time 1–4, Tempo 1–4 | ◐ | Tap times as % of Time; no per-tap tempo | cheap |
-| Delay | Feedback 1–4, cross feedback 1→2…4→1 | ❌ | One feedback | cheap–medium |
-| Quad Series | Feedback, Send, Return | ❌ |  | medium |
-| Level/Pan | Level 1–4 (± invert), Pan 1–4 | ◐ | No polarity | cheap |
-| EQ | Filter type/freq/Q/gain, low/high cut and slopes | ◐ | Low and high cut | cheap |
-| Modulation | LFO 1/2 type, phase, rate, tempo, depth | ❌ |  | cheap |
-| Filter | Band-pass 1–4 frequency and Q, filter LFO | ❌ |  | cheap–medium |
-| Chorus | Per-voice chorus rate/depth | ❌ |  | cheap |
-| Comb | Comb time and feedback per line | ❌ |  | cheap |
-| Ring mod | Frequency and mix per line | ❌ |  | cheap |
+| Master | Master Time | ✅ | Voice times are % of it |  |
+| Master | Master Feedback, Level, Pan | 🆕 ✅ | Master Feedback scales every voice and cross feedback (0–200 %, limited) |  |
+| Master | Master LFO rate/depth, filter freq/Q, chorus, comb, ring mod scalers | 🆕 ✅ |  |  |
+| Master | Drive | 🆕 ✅ |  |  |
+| Diffuser | Diffusion Mix, Time, LFO | 🆕 ✅ | `Diffuser` on the wet |  |
+| Ducker | Threshold, Attenuation, Release | ✅ | Every type (off by default) |  |
+| Envelope | Threshold, Attack, Release | 🆕 ✅ |  |  |
+| Delay | Time 1–4, Tempo 1–4 | 🆕 ✅ | A voice tempo overrides its share of the master time |  |
+| Delay | Feedback 1–4, cross feedback 1→2…4→1 | 🆕 ✅ | Cross feedback on Parallel and Diffusor |  |
+| Quad Series | Feedback, Send, Return | 🆕 ✅ |  |  |
+| Level/Pan | Level 1–4 (± invert), Pan 1–4 | 🆕 ✅ | Level −100…100 % |  |
+| EQ | Filter type/freq/Q/gain, low/high cut and slopes | 🆕 ✅ | Voice filter LP/HP/BP/peak; loop cuts 6–24 dB/oct |  |
+| Modulation | LFO 1/2 type, phase, rate, tempo, depth | 🆕 ✅ | On every voice's time; the phase steps from voice to voice |  |
+| Filter | Band-pass 1–4 frequency and Q, filter LFO | 🆕 ✅ | Filter LFO moves the voice filters by up to 4 octaves |  |
+| Chorus | Per-voice chorus rate/depth | 🆕 ✅ |  |  |
+| Comb | Comb time and feedback per line | 🆕 ✅ | Normalised (peaks at unity), so it never adds loop gain |  |
+| Ring mod | Frequency and mix per line | 🆕 ✅ |  |  |
 | Mix | Input Select, Input Gain | 🆕 ✅ |  |  |
-| Mix | Global Mix | ❌ | §3 | medium |
+| Mix | Global Mix | ❌ | §3 (stream P1) | medium |
 
 ### 6.18 Multiband Compressor (p. 55) → `mbcomp`
 
@@ -585,27 +595,27 @@ Types: 16 (dual/quad detune, dual/quad chromatic and quad chromatic delay, dual/
 | Mix | Low Cut, High Cut (wet) | ❌ |  | cheap |
 | Mix | Global Mix | ❌ | §3 | medium |
 
-### 6.23 Plex Delay (pp. 77–79) → `multidelay` type Plex
+### 6.23 Plex Delay (pp. 77–79) → 🆕 `plex`
 
-Types: Plex Delay, Plex Detune, Plex Shifter, Plex Verb, Shimmer Verb + 39 variants → one 4-line Hadamard plex with allpass diffusion. **Verdict: a separate block is a medium-to-large gap** (see §8).
+Types: Plex Delay, Plex Detune, Plex Shifter, Plex Verb, Shimmer Verb + 39 variants → 🆕 the five core types; the variants are presets. Up to eight lines on a Householder feedback matrix (orthogonal for any line count), a Schroeder allpass in each loop, loop gains from the decay time. Type-specific pages show only on their types.
 
 | Parameter | Cathode | Note |
 |---|---|---|
-| Number of Delays (up to 8) | ◐ | Fixed 4 |
-| Decay Time | ◐ | Feedback |
-| Diffusion | ✅ |  |
-| Low Cut, High Cut | ✅ |  |
-| Pre-Delay | ❌ |  |
-| Stack/Hold | ❌ |  |
-| Master Time / Level / Pan | ◐ | Time, Level, Spread |
-| Delay Time 1–8, Tempo 1–8, Level 1–8, Pan 1–8 | ❌ | Fixed ratios |
-| Filter (type, freq, Q, gain), LFO, Mod Frequency | ❌ |  |
-| Envelope follower | ❌ |  |
-| Detune 1–8, Granule Length, Master Detune | ❌ |  |
-| Shift 1–8, Direction | ❌ |  |
-| Plex Verb Size, Decay; Shimmer Intensity, Crossfade | ❌ |  |
-| LFO rate/depth/tempo, input diffusion, ducker | ❌ |  |
-| Input Gain, Input Select | 🆕 ✅ | Through Multi-Delay |
+| Number of Delays (up to 8) | 🆕 ✅ | 1–8 |
+| Decay Time | 🆕 ✅ | T60 in seconds, per line from its loop length |
+| Diffusion | 🆕 ✅ | Loop allpass gain |
+| Low Cut, High Cut | 🆕 ✅ | In the loop |
+| Pre-Delay | 🆕 ✅ |  |
+| Stack/Hold | 🆕 ✅ |  |
+| Master Time / Level / Pan | 🆕 ✅ |  |
+| Delay Time 1–8, Tempo 1–8, Level 1–8, Pan 1–8 | 🆕 ✅ | With no diffusion a line's first echo lands exactly on its time |
+| Filter (type, freq, Q, gain), LFO, Mod Frequency | 🆕 ✅ | Mod Frequency is the LFO's swing in octaves |
+| Envelope follower | 🆕 ✅ | `SwellEnvelope` on the input |
+| Detune 1–8, Granule Length, Master Detune | 🆕 ✅ | Granular shifters in the loops (`GrainShifter`) |
+| Shift 1–8, Direction | 🆕 ◐ | Shifts ±24 st; Direction is read as forward or reversed grains |
+| Plex Verb Size, Decay; Shimmer Intensity, Crossfade | 🆕 ✅ | Crossfade is the grains' crossfade length |
+| LFO rate/depth/tempo, input diffusion, ducker | 🆕 ✅ |  |
+| Input Gain, Input Select | 🆕 ✅ |  |
 
 ### 6.24 Realtime Analyzer (p. 80) → `PUT /api/v1/rta`
 
@@ -716,21 +726,21 @@ Eight PC/CC messages (type, channel, number, value) per scene, sent when a scene
 | Level per voice | ✅ |  |  |
 | Global Mix | ❌ | §3 | medium |
 
-### 6.32 Ten-Tap Delay (pp. 92–93) → `multidelay` type Ten Tap
+### 6.32 Ten-Tap Delay (pp. 92–93) → 🆕 `tentap`
 
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
 | Type: Ten-Tap | ✅ |  |  |
-| Type: Rhythm Tap (per-tap times, quantise, learn, feedback) | ❌ |  | medium |
-| Mono/Stereo | ❌ |  | cheap |
+| Type: Rhythm Tap (per-tap times, quantise, learn, feedback) | 🆕 ✅ | Learn (Listen/Hold) takes the pattern from the notes played; it lives in the block and does not rewrite the tap time parameters |  |
+| Mono/Stereo | 🆕 ✅ |  |  |
 | Delay Time, Tempo | ✅ |  |  |
-| Number of Taps (1–10) | ❌ | Fixed ten | cheap |
-| Decay | ✅ | Level Taper |  |
+| Number of Taps (1–10) | 🆕 ✅ |  |  |
+| Decay | ✅ |  |  |
 | Shuffle | ✅ |  |  |
-| Spread, Ratio | ◐ | Spread | cheap |
-| Pan Shape, Pan Alpha | ❌ | Alternating pans | cheap |
+| Spread, Ratio | 🆕 ✅ | Ratio sets the right taps' times against the left's |  |
+| Pan Shape, Pan Alpha | 🆕 ✅ |  |  |
 | Low Cut, High Cut | ✅ |  |  |
-| Tap Level 1–10 | ❌ |  | cheap |
+| Tap Level 1–10 | 🆕 ✅ |  |  |
 | Input Gain | 🆕 ✅ |  |  |
 
 ### 6.33 Tone Match (p. 94) → `tonematch`
@@ -814,8 +824,8 @@ Checked against what exists under other names.
 |---|---|---|---|
 | Looper | 🆕 `looper` grid block, and the rig looper at the end of the rig (one shared core) | **Implemented**: placeable, with bypass modes and the Config page (§6.14); the transport drives the block while its preset runs | — |
 | Mixer | 🆕 `mixer` | **Implemented** in this pass | — |
-| Plex Delay | Multi-Delay type "Plex" (4 lines) | Partial; a real Plex block is the largest delay gap | medium (Plex Delay/Verb), large (Detune/Shifter/Shimmer) |
-| Ten-Tap Delay | Multi-Delay type "Ten Tap" | Covered; Rhythm Tap and per-tap levels missing (§6.32) | cheap–medium |
+| Plex Delay | 🆕 `plex` | **Implemented**: all five core types (§6.23) | — |
+| Ten-Tap Delay | 🆕 `tentap` | **Implemented** with Rhythm Tap (§6.32) | — |
 | Scene MIDI | — | **Missing.** MIDI output exists (footswitch LED feedback), so the block is a preset-level table of 8 messages per scene sent on scene change | medium |
 | Tremolo/Panner | `tremolo` | **Complete** for its five types after this pass | — |
 | Graphic EQ modes | `geq` | 10-band only; band layouts and passive types missing (§6.12) | medium |
@@ -834,11 +844,11 @@ In order of value to a player, then cost. Each item meets the [Definition of don
 1. **Global Mix** (medium). A global "effects mix offset" (±50 %) in the global settings, sent to the engine as a rig parameter; a `globalMix` switch on Chorus, Delay, Flanger, Megatap, Multi-Delay, Phaser, Pitch, Resonator, Reverb, Synth; each block adds the offset where it reads Mix. One shared helper, one engine parameter, one API field, a Global-page control.
 2. **Input block noise gate and Output row mixer** (medium + cheap). Give the built-in nodes parameters: the Input node runs the Gate block's code (Classic; Intelligent adds a hum-aware filter at the mains frequency), the Output node gets per-row level and balance through the same row routing as the Mixer, plus a main balance. Needs the compiler to host parameters on built-ins and the editor to show them.
 3. **Scene MIDI** (medium). A preset-level `sceneMidi` table (8 × type/channel/number/value per scene) in the contract, sent through the existing MIDI output when a scene loads; an editor table on the Scenes page. Not a DSP block.
-4. **Delay completion** (medium). Dual type (independent L/R time, feedback and cross-feedback), the two-head mono tape with motor speed, the EQ page (two peaking bands, slopes), a second LFO with targets, a diffuser (reuse the reverb's), feedback polarity and master feedback to 200 %, 16 s lines in native memory.
-5. **Plex Delay block** (medium, then large). A new `plex` block: an 8-line feedback matrix (Hadamard or Householder) with per-line time/tempo/level/pan, decay time, input diffusion, pre-delay, stack/hold, filter with LFO, envelope and ducker (reuse `Ducker`). Second step: per-line granular detune and shift (reuse the Crystals splice shifter) for Plex Detune, Plex Shifter and Shimmer Verb.
-6. **Reverb depth** (medium). Separate early reflections with Early/Late level, the two peaking EQ bands, pre-delay tempo/feedback/mix, modulation controls, a quality setting (line count), and a shimmer pitch section (reuse the splice shifter).
+4. 🆕 **Done (P2).** **Delay completion** (medium). Dual type (independent L/R time, feedback and cross-feedback), the two-head mono tape with motor speed, the EQ page (two peaking bands, slopes), a second LFO with targets, a diffuser (reuse the reverb's), feedback polarity and master feedback to 200 %, 16 s lines in native memory.
+5. 🆕 **Done (P2).** **Plex Delay block** (medium, then large). A new `plex` block: an 8-line feedback matrix (Hadamard or Householder) with per-line time/tempo/level/pan, decay time, input diffusion, pre-delay, stack/hold, filter with LFO, envelope and ducker (reuse `Ducker`). Second step: per-line granular detune and shift (reuse the Crystals splice shifter) for Plex Detune, Plex Shifter and Shimmer Verb.
+6. 🆕 **Done (P2).** **Reverb depth** (medium). Separate early reflections with Early/Late level, the two peaking EQ bands, pre-delay tempo/feedback/mix, modulation controls, a quality setting (line count), and a shimmer pitch section (reuse the splice shifter).
 7. **Type presets** (medium, ongoing). Many guide "types" are parameter presets (17 choruses, 31 flangers, 16 phasers, 23 delays, 66 reverbs, 20 megataps). Offer them as factory block presets in the Block Library rather than as a Type parameter, so they never fight the knobs. Needs a curated preset set per block and the library's import path.
-8. **Multi-Delay algorithms** (medium each). Quad Parallel (per-line ring mod, band-pass and comb), Quad Series (send/return routing), Quad Diffusor, Quad Tape; per-tap feedback, filters and chorus; Rhythm Tap.
+8. 🆕 **Done (P2).** **Multi-Delay algorithms** (medium each). Quad Parallel (per-line ring mod, band-pass and comb), Quad Series (send/return routing), Quad Diffusor, Quad Tape; per-tap feedback, filters and chorus; Rhythm Tap.
 9. **Graphic EQ layouts** (medium). Type with 10 (2/3 oct), 8, 7 and 5 bands using `typeLabels` to rename and hide bands, shelving outer bands, then the passive types (Mark 5-band, 4-band, 3-band, console). Keep the global output EQ on the plain 10-band type.
 10. **Compressor and Gate sidechain input** (medium). A sidechain source (row or input) needs a second input into a block: the same `IRowInputBlock` routing can deliver a chosen row into a side buffer.
 11. **Look-ahead compressor** (medium). The compiler reads latency at compile time; a parameter-dependent latency needs a recompile on change or a fixed maximum look-ahead always reported.
@@ -846,6 +856,6 @@ In order of value to a player, then cost. Each item meets the [Definition of don
 13. **Phaser VCR models and Barberpole; Flanger thru-zero; Chorus Dimension** (medium each).
 14. **Pitch completion** (cheap items batched, medium overall). Master scalers, per-voice detune and feedback, input gain and mode, wet cuts, temperament, glide, 16 arpeggiator steps, LFO on detune; polyphonic whammy tracking is large.
 15. **Drive EQ pages and expert controls** (medium). The EQ 1 page (low/high cut, bass/mid/high-mid/treble) and EQ 2 (the GEQ bands pre/post) are generic; diode type/count and bias need per-circuit WDF parameters. New circuits continue as in Phase 6 (medium each).
-16. **Looper as a block** (medium), with its Config-page features (cheap): once, trims, threshold start, overdub level, crossfade, quantise, 300 s.
+16. 🆕 **Done (P2).** **Looper as a block** (medium), with its Config-page features (cheap): once, trims, threshold start, overdub level, crossfade, quantise, 300 s.
 17. **Ring Modulator SSB and pitch tracking; Synth third voice and tracking modes; Vocoder band controls; IR Player second slot; Cab preamp, air and input mode** (cheap to medium each).
 18. **Amp gaps** follow [06 §5](06-amp-modelling-spec.md#5-recommended-plan): input boost (reuse Drive circuits), saturation stage, output EQ types and location, output compressor and input dynamics, speaker drive and compression.
