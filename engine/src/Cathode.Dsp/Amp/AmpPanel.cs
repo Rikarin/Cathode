@@ -11,12 +11,13 @@ namespace Cathode.Dsp.Amp;
 public sealed record AmpPanel {
     /// <summary>
     ///     The Circuit Amp parameters that only mean something on a tube amp: its power tubes, transformer, speaker load
-    ///     (which a solid-state amp's feedback holds flat), bias, feedback knob, rectifier, preamp tubes and bright caps.
+    ///     (which a solid-state amp's feedback holds flat), bias and bias tremolo, feedback knob, rectifier, preamp tubes and
+    ///     bright caps.
     /// </summary>
     static readonly string[] TubeOnly = [
         "bias", "feedback", "pretube", "brightcap", "prebias", "presag", "powertube", "xfmrmatch", "xfmrlf", "xfmrhf",
         "xfmrdrive", "speaker", "spkres", "spkq", "spkpeak", "spkhf", "spkimp", "presfreq", "depthfreq", "supply",
-        "rectifier", "katc"
+        "rectifier", "katc", "tremrate", "tremdepth"
     ];
 
     /// <summary>Every standard knob under its usual name, no model-specific controls.</summary>
