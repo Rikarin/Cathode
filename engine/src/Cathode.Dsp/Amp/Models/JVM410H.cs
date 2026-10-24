@@ -36,6 +36,14 @@ namespace Cathode.Dsp.Amp.Models;
 ///         gain networks taken as disconnected by their relays.
 ///     </para>
 ///     <para>
+///         Where the stages are cut: at the next grid wherever a coupling network follows a plate (V6a's, V7b's and
+///         V7a's grids, which draw nothing until they conduct; cut at the gain pot's reactive wiper instead, the chain
+///         was 21 dB from the reference), at V7a's plate (the DC-coupled follower's grid, as on the JCM800), at the bus
+///         (V8a's 22 nF and bootstrapped leak in its own netlist, so that its grid rests where the leak puts it) and at
+///         V8a's cathode. Eight one-triode stages cost about half of what the same circuit cost as five stages with two
+///         triode pairs.
+///     </para>
+///     <para>
 ///         Panel: Switch 1 selects OD2; Gain, Bass, Middle and Treble are the playing channel's (the idle channel's stack
 ///         follows the same knobs and loads the follower as it does in the amp); Control 1 its Volume; Master Master 1.
 ///     </para>
@@ -54,8 +62,10 @@ public static class JVM410H {
             new NetworkStageDesign("V6b", FirstStage(), 1e3),
             new NetworkStageDesign("V6a", SecondStage()),
             new NetworkStageDesign("V7b", ColdClipper()),
-            new NetworkStageDesign("V7a", Stacks()) { MaxIterations = 64 },
-            new NetworkStageDesign("V8a", LoopMixer()) { MaxIterations = 64 },
+            new NetworkStageDesign("V7a", ThirdStage()),
+            new NetworkStageDesign("V8b", Stacks()),
+            new NetworkStageDesign("V8a", LoopFollower()),
+            new NetworkStageDesign("V9b", LoopMixer()),
             new NetworkStageDesign("V9a", MasterStage())
         ],
         new(
@@ -185,21 +195,29 @@ public static class JVM410H {
     }
 
     /// <summary>
-    ///     V7a, from its grid (220k, 820 Ω unbypassed), the V8b follower (47k), 330 nF and 470k, both OD stacks with their
-    ///     volumes and 330k each onto the bus, which the idle channels' grounded volumes load with 330k each (clean and
-    ///     crunch, and the idle OD channel's own). Out at the bus.
+    ///     V7a, from its grid: 220k plate, 820 Ω unbypassed. Out at the plate, which drives V8b's grid directly.
+    /// </summary>
+    static StageNetlist ThirdStage() {
+        var net = new StageNetlist();
+        var (rail, plate, cathode) = (net.Node(), net.Node(), net.Node());
+        net.Supply(rail, Ht4);
+        net.Resistor(rail, plate, 220e3);
+        net.CathodeResistor(cathode, StageNetlist.Ground, 820);
+        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
+        net.Output = plate;
+        return net;
+    }
+
+    /// <summary>
+    ///     The V8b follower (47k), DC-coupled to V7a's plate, 330 nF and 470k, both OD stacks with their volumes and 330k
+    ///     each onto the bus, which the idle channels' grounded volumes load with 330k each (clean and crunch, and the
+    ///     idle OD channel's own). Out at the bus.
     /// </summary>
     static StageNetlist Stacks() {
         var net = new StageNetlist();
-        var (rail4, rail3, plate, cathode, follower, line, bus) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        var grid = net.Input;
-        net.Supply(rail4, Ht4);
+        var (rail3, follower, line, bus) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Supply(rail3, Ht3);
-        net.Resistor(rail4, plate, 220e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 820);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Triode(rail3, plate, follower, TriodeModel.Ecc83);
+        net.Triode(rail3, net.Input, follower, TriodeModel.Ecc83);
         net.Resistor(follower, StageNetlist.Ground, 47e3);
         net.Capacitor(follower, line, 330e-9);
         net.Resistor(line, StageNetlist.Ground, 470e3);
@@ -232,24 +250,33 @@ public static class JVM410H {
     }
 
     /// <summary>
-    ///     22 nF into the V8a follower (1k5 + 100k to ground, its 1M grid leak returning between them), 330 nF, the send
-    ///     divider (15k + 4k7), 22k into the mix node (322k to ground through the bypassed loop's mix pot and return), 1M
-    ///     to V9b's input node, which 22 nF couples to its grid (1M leak) and 4M7 ties to its plate (150k, 2k2 ‖ 22 µF;
-    ///     the reverb driver's 552k to ground). Out at V9b's plate.
+    ///     22 nF into the V8a follower (1k5 + 100k to ground, its 1M grid leak returning between them). Out at its
+    ///     cathode, a source of a few hundred ohms.
     /// </summary>
-    static StageNetlist LoopMixer() {
+    static StageNetlist LoopFollower() {
         var net = new StageNetlist();
-        var (grid, rail3, rail2, cathode, tap, coupled, mix, n, grid9, plate, cathode9) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(),
-                net.Node(), net.Node());
+        var (grid, rail, cathode, tap) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Capacitor(net.Input, grid, 22e-9);
-        net.Supply(rail3, Ht3);
-        net.Supply(rail2, Ht2);
-        net.Triode(rail3, grid, cathode, TriodeModel.Ecc83);
+        net.Supply(rail, Ht3);
+        net.Triode(rail, grid, cathode, TriodeModel.Ecc83);
         net.Resistor(cathode, tap, 1.5e3);
         net.Resistor(tap, StageNetlist.Ground, 100e3);
         net.Resistor(grid, tap, 1e6);
-        net.Capacitor(cathode, coupled, 330e-9);
+        net.Output = cathode;
+        return net;
+    }
+
+    /// <summary>
+    ///     From V8a's cathode: 330 nF, the send divider (15k + 4k7), 22k into the mix node (322k to ground through the
+    ///     bypassed loop's mix pot and return), 1M to V9b's input node, which 22 nF couples to its grid (1M leak) and 4M7
+    ///     ties to its plate (150k, 2k2 ‖ 22 µF; the reverb driver's 552k to ground). Out at V9b's plate.
+    /// </summary>
+    static StageNetlist LoopMixer() {
+        var net = new StageNetlist();
+        var (rail2, coupled, mix, n, grid9, plate, cathode9) =
+            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        net.Supply(rail2, Ht2);
+        net.Capacitor(net.Input, coupled, 330e-9);
         net.Resistor(coupled, StageNetlist.Ground, 19.7e3);
         net.Resistor(coupled, mix, 22e3);
         net.Resistor(mix, StageNetlist.Ground, 322e3);

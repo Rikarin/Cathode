@@ -106,8 +106,8 @@ public sealed record StageElement(ElementKind Kind, int A, int B, double Value) 
 ///     (resistors, capacitors, inductors), pots turned by front-panel knobs, elements switched by front-panel switches,
 ///     supply rails that follow the preamp's sag, and up to three triodes, or a pentode, or one or two diode clippers (a
 ///     triode with one or two clippers, and two triodes with two, also work), or one or two op-amps (one op-amp with a
-///     diode clipper or a triode also works). The source drives <see cref="Input" /> through the previous stage's output
-///     resistance; the stage's output is the voltage at <see cref="Output" />.
+///     diode clipper also works), besides any number of linear amplifiers. The source drives <see cref="Input" />
+///     through the previous stage's output resistance; the stage's output is the voltage at <see cref="Output" />.
 /// </summary>
 /// <remarks>
 ///     Build it on the control thread when the model is defined; the stage reads it once. Values are in ohms, farads,
@@ -317,12 +317,6 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
                 (_, rate) => new(Clipper(devices[0]), OpAmp(devices[1], rate)),
                 sampleRate
             ),
-            "TO" => new NetworkStage<Devices<FastTriode, Wdf.OpAmp>>(
-                this,
-                devices,
-                (s, rate) => new(new(s.TubeFor(devices[0].Triode)), OpAmp(devices[1], rate)),
-                sampleRate
-            ),
             "DD" => new NetworkStage<Devices<DiodeClipper, DiodeClipper>>(
                 this,
                 devices,
@@ -345,7 +339,7 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
                 sampleRate
             ),
             _ => throw new NotSupportedException(
-                $"{Name}: a network stage takes T, TT, TTT, P, D, DD, TD, TDD, TTDD, O, OO, DO or TO "
+                $"{Name}: a network stage takes T, TT, TTT, P, D, DD, TD, TDD, TTDD, O, OO or DO "
                 + "(triodes, a pentode, diode clippers, op-amps)."
             )
         };

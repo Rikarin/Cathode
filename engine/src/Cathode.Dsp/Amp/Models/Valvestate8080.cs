@@ -34,7 +34,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///         current feedback (0.33 Ω in the speaker's return through 10 µF and 470 Ω, which raises its output impedance)
 ///         is left out, so the speaker load does not move its response; its voltage feedback is the 33k over R59's 1k.
 ///         The loop is wired with nothing plugged in (the send normalled to the return) and its level switch at −10;
-///         the mix pot sits at noon; the reverb is off; IC4 is an ideal follower.
+///         the mix pot sits at noon; the reverb is off; IC4 is an ideal follower. IC1, IC3b, IC5a, IC6a and IC8a
+///         are linear amplifiers (<see cref="StageNetlist.Amplifier" />): IC3b's rail clipping (gain up to 110) would
+///         only square a signal its LEDs clamp at 1.8 V just after it (the LEDs' current, and so their voltage, a little
+///         higher); the others stay inside their rails. IC2, IC5b and IC6b clip at their rails.
 ///     </para>
 ///     <para>
 ///         Panel: Gain is the playing channel's gain, Bass, Middle and Treble both channels' stacks, Control 1 the
@@ -74,7 +77,7 @@ public static class Valvestate8080 {
             new NetworkStageDesign("IC8a", MasterStage())
         ],
         AmpDesign.SolidStateTubePlaceholder,
-        -3
+        -9
     ) {
         SolidState = new(
             "BDV65/BDV64 class AB",

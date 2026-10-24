@@ -38,8 +38,13 @@ namespace Cathode.Dsp.Amp.Models;
 ///         sheets have no DC voltages), the idle current (40 mA, the bias set to −40 to −42 V as the sheet says), the
 ///         output transformers (3.2k as AmpBooks' 2204 for the 50 W, 1.7k for the 100 W), the feedback tap (4 Ω, as the
 ///         JCM800's 100k; the 50 W sheet takes it from a wire whose tap is not legible), the effects return's input
-///         resistor (100k, for unity gain: it is on the jack board, which is not drawn), and the op-amp types (the M5201
-///         as a JRC4558, the 1458 as a 741). Simplified: the send buffer (IC5b, a unity follower of a few volts at most)
+///         resistor (100k, for unity gain: it is on the jack board, which is not drawn), and IC6b's type (the M5201 as a
+///         JRC4558). Simplified: every op-amp but IC6b is a linear amplifier (<see cref="StageNetlist.Amplifier" />):
+///         IC4b and the return stay inside their rails, IC1 too but for channel B above about 0.6 V in (where the boost
+///         and the clamp follow anyway); IC4a's LEDs hold its output to about 3.5 V; the master's
+///         rail clipping (above about 13 V, at high Master settings) would only square a signal the inverter has
+///         clipped already. Channel B's IC6b clips at its rails as it does (gain up to 100), into the bridge clamp. The
+///         send buffer (IC5b, a unity follower of a few volts at most)
 ///         is an ideal buffer, the loop is a wire, the reverb is off (its drive's 470k + 220k loads V2a's coupled plate
 ///         and its return's 680k + 220k V2b's grid, as resistors to ground), the deselected master's 220k and pot hang
 ///         from the master's input node to the output (the M5201's idle inputs taken as open), the 100 pF across the
@@ -121,7 +126,10 @@ public static class JCM900 {
         new ChannelSwitchStageDesign(
             "Channel",
             SwitchRole.Switch1,
-            [new NetworkStageDesign("IC1a", InputStage(100e3, 22e-12, 15e3, 0.1e-6), 10e3), new NetworkStageDesign("IC4a", NormalStage())],
+            [
+                new NetworkStageDesign("IC1a", InputStage(100e3, 22e-12, 15e3, 0.1e-6), 10e3),
+                new NetworkStageDesign("IC4a", NormalStage())
+            ],
             [
                 new NetworkStageDesign("IC1b", InputStage(100e3, 470e-12, 4.7e3, 47e-9), 10e3),
                 new NetworkStageDesign("IC6b", BoostStage()),
