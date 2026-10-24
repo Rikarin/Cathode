@@ -202,6 +202,36 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Resetting_a_drive_keeps_the_running_graph_unless_its_oversampling_changes() {
+        // A Drive has a parameter only a recompile applies (Oversampling). Resetting one used to rebuild the graph
+        // regardless, which starts every block of the preset afresh: the reset of a drive nowhere near the signal
+        // path restarted the delay (and, in the reported preset, an arpeggiating pitch block) mid-note. drive1 is
+        // that drive: on row 2, without cables.
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 2, 5));
+        await Patch("/api/v1/live/blocks/drive1/params?channel=A", new Dictionary<string, float> { ["drive"] = 8 });
+        await ServerFixture.Eventually(() => server.Target("drive1", "drive") == 8);
+        var running = server.Graph;
+        var delay = server.Block("delay1");
+
+        await Post("/api/v1/live/blocks/drive1/reset");
+        var defaultDrive = DriveBlock.Info.Params[DriveBlock.Info.IndexOf("drive")].Default;
+        await ServerFixture.Eventually(() => server.Target("drive1", "drive") == defaultDrive);
+        await Post("/api/v1/live/blocks/drive1/channels/A/reset");
+        await Post("/api/v1/live/blocks/drive1/channels/swap", new CopyChannelRequest("A", "B"));
+        await Task.Delay(100, Token);
+        Assert.Same(running, server.Graph);
+        Assert.Same(delay, server.Block("delay1"));
+
+        // A changed oversampling still reaches the compiler.
+        var fourX = new Dictionary<string, float> { ["oversampling"] = 3 };
+        await Patch("/api/v1/live/blocks/drive1/params?channel=A", fourX);
+        await ServerFixture.Eventually(() => server.Graph != running && server.Target("drive1", "oversampling") == 3);
+        var rebuilt = server.Graph;
+        await Post("/api/v1/live/blocks/drive1/reset");
+        await ServerFixture.Eventually(() => server.Graph != rebuilt && server.Target("drive1", "oversampling") == 0);
+    }
+
+    [Fact]
     public async Task Midi_steps_the_scene_level_and_saves_and_a_high_scene_cc_steps_to_the_next_scene() {
         var saved = await Post("/api/v1/live/save", new SaveRequest("Levels", true));
         await PutGlobal(g => {

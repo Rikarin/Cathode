@@ -104,6 +104,7 @@ public sealed partial class LiveRig {
                 CheckChannel(request.From, descriptor.Channels);
                 CheckChannel(request.To, descriptor.Channels);
                 PushUndo(null);
+                var before = Channels(block);
                 var a = block.Channels.GetValueOrDefault(request.From);
                 var b = block.Channels.GetValueOrDefault(request.To);
                 Put(block, request.From, b);
@@ -120,7 +121,7 @@ public sealed partial class LiveRig {
                 }
 
                 block.SceneIgnore.Sort(StringComparer.Ordinal);
-                await RefreshChannelAsync(block, request.From, request.To);
+                await RefreshChannelAsync(block, before, request.From, request.To);
                 return Changed("channelsSwapped", id, request.To);
             }
         );
@@ -134,9 +135,10 @@ public sealed partial class LiveRig {
                     ?? throw new RigException(400, $"'{id}' has no channels.");
                 CheckChannel(channel, descriptor.Channels);
                 PushUndo(null);
+                var before = Channels(block);
                 Put(block, channel, null);
                 block.SceneIgnore.Remove(channel);
-                await RefreshChannelAsync(block, channel);
+                await RefreshChannelAsync(block, before, channel);
                 return Changed("channelReset", id, channel);
             }
         );
@@ -149,12 +151,13 @@ public sealed partial class LiveRig {
                 var descriptor = catalog.Descriptor(block.Type)
                     ?? throw new RigException(400, $"'{id}' has no parameters.");
                 PushUndo(null);
+                var before = Channels(block);
                 foreach (var channel in Preset.ChannelNames[..descriptor.Channels]) {
                     Put(block, channel, null);
                 }
 
                 block.SceneIgnore.Clear();
-                await RefreshChannelAsync(block, Preset.ChannelNames[..descriptor.Channels]);
+                await RefreshChannelAsync(block, before, Preset.ChannelNames[..descriptor.Channels]);
                 return Changed("blockReset", id);
             }
         );
@@ -203,15 +206,28 @@ public sealed partial class LiveRig {
         }
     }
 
-    /// <summary>After a channel's values changed: sends them if the block is running one of <paramref name="channels" />.</summary>
-    async Task RefreshChannelAsync(PresetBlock block, params string[] channels) {
+    /// <summary>The block's channels as they are now (<see cref="Put" /> replaces a channel, never edits it).</summary>
+    static Dictionary<string, Dictionary<string, float>> Channels(PresetBlock block) => new(block.Channels);
+
+    /// <summary>
+    ///     After a channel's values changed: sends them if the block is running one of <paramref name="channels" />.
+    ///     Only a change to a parameter a recompile applies (a look-ahead, the oversampling) rebuilds the graph, as a
+    ///     rebuild starts every block of the preset afresh (the pitch, delay and reverb lose their state); the values
+    ///     the block had <paramref name="before" /> tell.
+    /// </summary>
+    async Task RefreshChannelAsync(
+        PresetBlock block,
+        Dictionary<string, Dictionary<string, float>> before,
+        params string[] channels
+    ) {
         var live = Live(block.Id).Channel;
         if (!channels.Contains(live)) {
             return;
         }
 
-        if (catalog.Descriptor(block.Type)!.Params.Any(static p => p.Recompile)) {
-            await SyncGraphAsync(); // the values may hold a look-ahead the compiler has to see
+        var descriptor = catalog.Descriptor(block.Type)!;
+        if (RecompileDiffers(descriptor, before.GetValueOrDefault(live), block.Channels.GetValueOrDefault(live))) {
+            await SyncGraphAsync(); // the compiler has to see the new latency
         } else {
             SyncModifiers(block, live);
             engine.SetParams(generation, ChannelValues(block, live));
