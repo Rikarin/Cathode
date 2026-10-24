@@ -253,6 +253,15 @@ public enum PowerTopology {
 ///     one shared by all.
 /// </param>
 /// <param name="InverterInput">The phase inverter's input network with grid current; null for none (see the type).</param>
+/// <param name="ShuntMaster">
+///     A master volume wired as a rheostat across the phase inverter's outputs (Matchless DC-30), turned by the Master
+///     knob: its full track at 10, a short at 0; beside the cut control if there is one. Null for none.
+/// </param>
+/// <param name="CathodeResistor">
+///     Cathode bias: the schematic's cathode resistor (all tubes'; with separate cathodes, half of each side's), which
+///     then sets the idle current in place of <paramref name="IdleCurrent" /> (a replacement tube keeps it, as it would
+///     in the amp); 0 to derive it from <paramref name="IdleCurrent" />.
+/// </param>
 public sealed record PowerAmpDesign(
     string Name,
     PentodeModel Tube,
@@ -280,7 +289,9 @@ public sealed record PowerAmpDesign(
     int StrappedPerSide = 0,
     SwitchRole? TriodeSwitch = null,
     bool SeparateCathodes = false,
-    InverterInputDesign? InverterInput = null
+    InverterInputDesign? InverterInput = null,
+    Pot? ShuntMaster = null,
+    double CathodeResistor = 0
 ) {
     /// <summary>1 when single-ended, else 2.</summary>
     public int Sides => Topology == PowerTopology.SingleEnded ? 1 : 2;

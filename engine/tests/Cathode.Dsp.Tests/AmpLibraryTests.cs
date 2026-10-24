@@ -374,7 +374,8 @@ public partial class AmpStageTests {
             IdleCurrent = 0.035,
             Transformer = new(8e3),
             RatedPower = 15,
-            PowerSupply = stiff
+            PowerSupply = stiff,
+            InverterInput = null
         };
         var (design, amplitude, sourceResistance, triode) = name switch {
             "single-ended 6V6" => (sixV6 with {
@@ -391,7 +392,11 @@ public partial class AmpStageTests {
                 StrappedPerSide = 1,
                 PowerSupply = stiff
             }, 0.6, 0.0, false),
-            "separate cathodes" => (AmpDesign.AC30.Power with { SeparateCathodes = true, PowerSupply = stiff }, 0.15, 0.0, false),
+            "separate cathodes" => (AmpDesign.AC30.Power with {
+                SeparateCathodes = true,
+                PowerSupply = stiff,
+                InverterInput = null
+            }, 0.15, 0.0, false),
             "cathodyne 6V6" => (sixV6 with {
                 PhaseInverter = new CathodyneDesign(TriodeModel.Ecc83, 330, 56e3, 56e3, 1.5e3),
                 CutCap = 0
