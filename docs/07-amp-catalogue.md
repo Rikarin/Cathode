@@ -179,3 +179,100 @@ built from the documented features and fitted to captures.
 Match quality against the references is in `docs/06-amp-modelling-spec.md` (as-built notes per family) and in the
 manifest's targets. No model reaches the spec's ESR targets yet except the Prometheus clean channel; references with
 stated knob settings (the Tone3000 packs you fetch by hand) are the main thing that would tighten them.
+
+---
+
+## Added from the Axe-Fx III amp list (firmware 12.05)
+
+Cross-checked against a community-made list of the Axe-Fx III's 275 amp models at firmware 12.05, built on 132 real
+amps ([archive.axefx.fr](https://archive.axefx.fr/AxeFX%20III/Docs/FAS_Amps%20Models%20Axe%20III%20Ares12.05.pdf)).
+Firmware 12 is old: the current Axe-Fx III has over 300 models, so amps added since are not in it. Fractal's own
+"FAS" designs (FAS Modern, FAS Lead, FAS Brootalz, FAS Skull Crusher, FAS Bass and the like) are not real amps and are
+left out, as are pure variants of amps already listed (for example "Big Hair", a JCM800 mod, or the Van Halen Plexi).
+
+Every amp below was missing from the catalogue. The Axe model names are given so you can find captures of the same amp.
+
+### Fender
+
+| Amp | Status | Cathode type | Axe models | Look for | Typical cab |
+|---|---|---|---|---|---|
+| Fender Bassman AB165 (blackface) | 💤 Not planned | — | 65 Bassguy Bass / Normal | Both channels, bright on | 2x12 closed |
+| Fender Concert 6G12 (brownface) | 💤 Not planned | — | 6G12 Concert | | 4x10 open |
+| Fender Super 6G4 (brownface) | 💤 Not planned | — | 6G4 Super | | 2x10 open |
+| Fender Tremolux AA763 | 💤 Not planned | — | Tremolo Lux | | 2x10 closed |
+| Fender Vibro-King | 💤 Not planned | — | Vibra-King, Vibra-King Fat | Fat switch | 3x10 open |
+| Fender Blues Junior | 💤 Not planned | — | JR Blues, JR Blues Fat | Fat switch | 1x12 open |
+| Fender Princeton 5F2 / AA964 | 💤 Not planned (variants of the Princeton) | — | Prince Tone 5F2, Prince Tone AA964 | | 1x10 open |
+| Fender Vibro-Champ (Eric Clapton) | 💤 Not planned (5F1 variant with bypassed cathode) | — | 5F1 Tweed EC | | 1x8 open |
+
+### Marshall and British
+
+| Amp | Status | Cathode type | Axe models | Look for | Typical cab |
+|---|---|---|---|---|---|
+| Marshall 1959SLP reissue | 💤 Not planned (Plexi reissue) | — | 1959SLP Jump / Normal / Treble | | 4x12 closed, Greenback |
+| Marshall 1987X reissue | 💤 Not planned (50 W Plexi reissue) | — | 1987X Jump / Normal / Treble | | 4x12 closed |
+| Marshall JMP 1959T Super Lead (Tremolo) | 💤 Not planned | — | Brit Super | | 4x12 closed |
+| Marshall JMP-1 preamp | 💤 Not planned (op-amp/tube MIDI preamp) | — | Brit Pre, JMPRE-1 OD1 / OD2 (+ bass) | | 4x12 closed |
+| Marshall AFD100 (Slash) | 💤 Not planned | — | Brit AFS100 1 / 2 | | 4x12 closed |
+| Marshall JVM410HJS (Satriani) | 💤 Not planned (JVM variant) | — | JS410 Crunch / Lead | | 4x12 closed, Vintage 30 |
+| Friedman Small Box | 💤 Not planned | — | Friedman Small Box | | 2x12 / 4x12 closed |
+| Cornford MK50H II | 💤 Not planned | — | Corncob M50 | Overdrive channel | 4x12 closed |
+| Orange A30 / AD30 | 💤 Not planned | — | Citrus A30 Clean / Dirty | | 2x12 closed |
+| Orange Tiny Terror | 💤 Not planned | — | Citrus Terrier | | 1x12 / 2x12 closed |
+| Orange AD200B (bass) | 💤 Not planned | — | Citrus Bass 200 | | 4x10 / 8x10 closed |
+| Blankenship Leeds 21 | 💤 Not planned | — | Blanknshp Leeds | | 1x12 / 2x12 |
+| Vox AC30HW (hand-wired) | 💤 Not planned (AC30 variant) | — | Class-A 30w, 30W Bright, 30w Hot | | 2x12 open, Alnico Blue |
+
+### Boutique and class A
+
+| Amp | Status | Cathode type | Axe models | Look for | Typical cab |
+|---|---|---|---|---|---|
+| Dumble ODS (HRM and Robben Ford versions) | ⏸ Waiting (see the Dumble ODS row) | — | ODS-100 Clean / HRM / HRM Mid / Ford 1, 2, Mid | | 1x12 / 2x12 open |
+| Fuchs Overdrive Supreme | 💤 Not planned | — | Fox ODS, Fox ODS Deep | | 1x12 / 2x12 open |
+| Two-Rock Jet 35 | 💤 Not planned | — | Two Stone J35 1 / 2 | | 1x12 open |
+| Bludotone Ojai | 💤 Not planned | — | Bludojai Clean / Lead 1 / Lead 2 | | 1x12 / 2x12 open |
+| Carr Rambler | 💤 Not planned | — | Car Roamer, FAS Class-A | | 1x12 / 2x12 open |
+| Budda Twinmaster | 💤 Not planned | — | Buttery | | 2x12 open |
+| Divided by 13 CJ 11 / FTR 37 | 💤 Not planned (see Divided by 13 row) | — | Div/13 CJ, CJ Boost, FT37 High / Low | | 1x12 / 2x12 |
+| Dr Z Route 66 / MAZ 8 / MAZ 38 SR | 💤 Not planned (see Dr Z row) | — | Mr Z Hwy 66, MZ-8, MZ-38 | | 1x12 / 2x12 open |
+| Morgan AC20 Deluxe | 💤 Not planned (see Morgan row) | — | AC-20 12AX7 / EF86, Bass / Treble | | 1x12 open |
+| Bad Cat Hot Cat 30 | 💤 Not planned (see Bad Cat row) | — | Hot Kitty | | 2x12 open |
+| Matchless Chieftain | 💤 Not planned (see Matchless Chieftain row) | — | Boutique 1 / 2 | | 2x12 open |
+| Trainwreck Liverpool | 💤 Not planned | — | Wrecker Liverpool | | 2x12 |
+| Trainwreck Rocket | 💤 Not planned | — | Wrecker Rocket | | 1x12 / 2x12 |
+| Komet 60 / Concorde | 💤 Not planned | — | Comet 60, Comet Concourse | | 2x12 / 4x12 |
+| Swart Atomic Space Tone | 💤 Not planned | — | Nuclear-Tone | | 1x12 open |
+| Paul Ruby Rocket | 💤 Not planned | — | Ruby Rocket, Ruby Rocket Bright | | 1x12 open |
+| Carol-Ann OD-2 / Triptik / Tucana 3 | 💤 Not planned | — | Carol-Ann OD-2, Triptik, Tucana | | 2x12 / 4x12 |
+| Gibson Scout | 💤 Not planned | — | Gibtone Scout | | 1x10 / 1x12 open |
+
+### High gain
+
+| Amp | Status | Cathode type | Axe models | Look for | Typical cab |
+|---|---|---|---|---|---|
+| Mesa/Boogie TriAxis preamp | 💤 Not planned | — | USA Pre Clean / LD1 / LD2 | Lead 1 and Lead 2 modes | 4x12 closed |
+| Mesa/Boogie JP-2C | 💤 Not planned (IIC+ reissue) | — | USA JP IIC+ Green / Yellow / Red | | 4x12 closed |
+| Mesa/Boogie Triple Crown TC-100 | 💤 Not planned | — | Triple Crest 2 / 3 | | 4x12 closed |
+| Mesa/Boogie Subway Blues | 💤 Not planned | — | USA Sub Blues | | 1x10 open |
+| Mesa/Boogie Dual Rectifier, 2- and 3-channel revisions | 💤 Not planned (variants of Dual Rectifier) | Dual Rectifier (23) covers one | Recto1 / Recto2 Orange / Red, Thordendal | | 4x12 closed, Vintage 30 |
+| Soldano X88R preamp | 💤 Not planned | — | Solo 88 Clean / Rhythm / Lead | | 4x12 closed |
+| Soldano/Caswell X99 preamp | 💤 Not planned | — | Solo 99 Clean / Lead | | 4x12 closed |
+| CAE 3+ SE preamp | 💤 Not planned | — | CA3+ Clean / Rhythm / Lead | | 4x12 closed |
+| Bogner Fish preamp | 💤 Not planned | — | Bogfish Brown / Strato | | 4x12 closed |
+| Cameron Atomica | 💤 Not planned | — | Atomica High / Low | | 4x12 closed |
+| Hook Captain 34 | 💤 Not planned | — | Capt Hook 1A–3B | | 4x12 closed |
+| Splawn Nitro | 💤 Not planned | — | Spawn Nitrous 1 / 2 | | 4x12 closed |
+| Fryette D60 | 💤 Not planned | — | Fryette D60 Less / More | | 4x12 closed |
+
+### Bass
+
+| Amp | Status | Cathode type | Axe models | Look for | Typical cab |
+|---|---|---|---|---|---|
+| Mesa/Boogie Bass 400 | 💤 Not planned | — | USA Bass 400 1 / 2 | | 8x10 / 4x10 closed |
+
+Already in the catalogue and in the Axe list (no row added): Bassman 5F6-A, Champ 5F1, Tweed Twin 5F8, Bandmaster,
+Tweed Deluxe 5E3, Deluxe Reverb, Twin Reverb, Super Reverb, Princeton Reverb, Vibrolux, Vibroverb, Supro 1624T, JTM45,
+the Plexi 50 W and 100 W, JMP 2204, JCM800 2203 and 2204, Silver Jubilee, JVM410H, Friedman BE-100 and Dirty Shirley,
+Hiwatt DR103, Orange Rockerverb, Splawn Quick Rod, Suhr Badger, AC15, AC30 Top Boost, Matchless DC-30, Trainwreck
+Express, SLO-100, Mark IIC+, Mark IV, Dual Rectifier, Lone Star, 5150, 6505+, 5150III, Bogner Ecstasy, Überschall and
+Shiva, Diezel VH4 and Herbert, Engl Powerball and Savage, Carvin Legacy, Cameron CCV, Ampeg SVT and B-15, Roland JC-120.
