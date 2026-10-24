@@ -284,7 +284,11 @@ public static class CathodeApi {
                     store.Get(reference) is { } info && store.PathOf(reference) is { } path
                         ? TypedResults.File(
                             File.OpenRead(path),
-                            info.Kind == "ir" ? "audio/wav" : "application/json",
+                            info.Kind switch {
+                                "ir" => "audio/wav",
+                                "cabgrid" => "application/zip",
+                                _ => "application/json"
+                            },
                             info.Name
                         )
                         : TypedResults.NotFound()
