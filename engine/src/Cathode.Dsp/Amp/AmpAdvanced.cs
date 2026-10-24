@@ -16,8 +16,8 @@ public static class AmpFeatures {
         return id switch {
             "stacktype" => preamp.Any(static s => s is ToneStackStageDesign),
             "stackloc" => preamp.Any(AmpChannel.IsStack),
-            "t1plate" => HasPlateCap(design, 1),
-            "t2plate" => HasPlateCap(design, 0),
+            "t1plate" => HasPlateCap(design, 2),
+            "t2plate" => HasPlateCap(design, 1),
             "cfcomp" or "cfharm" => preamp.Any(static s => s is ToneStackStageDesign {
                     Driver: StackDriver.CathodeFollower
                 }
@@ -36,23 +36,22 @@ public static class AmpFeatures {
         };
     }
 
-    /// <summary>Whether the <paramref name="fromLast" />-th gain stage from the end (0 the last) has a plate-bypass cap.</summary>
-    static bool HasPlateCap(AmpDesign design, int fromLast) {
-        var gain = design.Preamp.Where(IsGainStage).Reverse().ElementAtOrDefault(fromLast);
-        return gain switch {
-            TriodeStageDesign triode => triode.PlateBypass > 0,
-            NetworkStageDesign network => network.Netlist.Elements.Any(static e =>
-                e.CapacitorRole == CapacitorRole.Plate
-            ),
-            _ => false
-        };
-    }
+    /// <summary>
+    ///     Whether <paramref name="design" /> has at least <paramref name="count" /> top-level stages with a
+    ///     plate-bypass cap (<see cref="HasPlateCap(AmpStageDesign)" />).
+    /// </summary>
+    static bool HasPlateCap(AmpDesign design, int count) => design.Preamp.Count(HasPlateCap) >= count;
 
-    static bool IsGainStage(AmpStageDesign stage) =>
+    /// <summary>
+    ///     Whether a stage holds a plate-bypass cap (a triode stage's <see cref="TriodeStageDesign.PlateBypass" />, a
+    ///     network's <see cref="CapacitorRole.Plate" /> cap, or either in a channel-switched branch). Triode 2 Plate Freq
+    ///     scales the last such stage's, Triode 1 the one before it.
+    /// </summary>
+    public static bool HasPlateCap(AmpStageDesign stage) =>
         stage switch {
-            TriodeStageDesign => true,
-            ToneStackStageDesign s => s.Driver == StackDriver.CommonCathode,
-            NetworkStageDesign n => n.Netlist.Elements.Any(static e => e.Cathode),
+            TriodeStageDesign triode => triode.PlateBypass > 0,
+            NetworkStageDesign network => network.Netlist.Elements.Any(static e => e.CapacitorRole == CapacitorRole.Plate),
+            ChannelSwitchStageDesign channels => channels.Off.Any(HasPlateCap) || channels.On.Any(HasPlateCap),
             _ => false
         };
 

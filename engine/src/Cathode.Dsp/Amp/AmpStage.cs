@@ -117,7 +117,7 @@ public readonly record struct AmpControls(
 /// </param>
 /// <param name="PlateFrequency">
 ///     A plate-bypass cap's corner as a multiple of stock (the cap divided by it); the channel applies it per stage
-///     (Triode 1 and 2 Plate Freq on the last two gain stages), 1 elsewhere.
+///     (Triode 1 and 2 Plate Freq on the last two stages with such a cap), 1 elsewhere.
 /// </param>
 /// <param name="MasterCap">The bright cap across a master pot, as a multiple of stock.</param>
 /// <param name="FollowerGrid">

@@ -239,6 +239,9 @@ public sealed class PowerAmp {
 
     public (double A, double B) ScreenCurrents => (root.Device.ScreenCurrentA, root.Device.ScreenCurrentB);
 
+    /// <summary>All the output tubes' grid currents at the last sample (their bias excursion's cause).</summary>
+    public double GridCurrents => root.Device.GridCurrents;
+
     /// <summary>Plate voltages (relative to ground) at the last sample.</summary>
     public (double A, double B) PlateVoltages {
         get {
