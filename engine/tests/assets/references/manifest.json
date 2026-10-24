@@ -1453,6 +1453,220 @@
         "notes": "Amp only per docs/06 section 4.2; verify"
       },
       "notes": "Each model has a pedal in front: usable only with that pedal modelled."
+    },
+    {
+      "id": "t3k-prometheus-01-modern-vanilla-bite-up",
+      "amp": "Lichtlaerm Audio Prometheus (100-140 W, EL34 quad stock; tubes in this capture not stated)",
+      "family": "high-gain",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/lichtlaerm-audio-prometheus-teaser-pack-100836",
+      "author": "pipppriss",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "Prom01-ModernVanillaBiteUp",
+      "settings": {
+        "channel": "Lead",
+        "voicing": "Modern",
+        "bite": "Up",
+        "knobs": "not stated (name: 'Vanilla')"
+      },
+      "rig": {
+        "output": "direct",
+        "inputDbu": 18,
+        "notes": "Amp head D.I. (no cab), load not stated. +18 dBu input calibration per the Tone3000 page. NAM 0.7 SlimmableContainer (WaveNet), 48 kHz. From the user's TEASER-PACK download: local-only."
+      },
+      "sha256": "3f47ddd0a696f4e20c55abbd8a12875aefef71726780f77bb3fc181a2b8ded0c",
+      "size": 294382,
+      "circuit": {
+        "type": "Prometheus",
+        "params": {
+          "switch1": 1,
+          "switch2": 1,
+          "gain": 4.87,
+          "bass": 5.72,
+          "middle": 10,
+          "treble": 4.66,
+          "presence": 0.89,
+          "depth": 6.67,
+          "master": 4.66,
+          "control1": 10
+        }
+      },
+      "targets": {
+        "esr": 1.0,
+        "mrstft": 2.2
+      },
+      "notes": "Knob settings not stated: all eight knobs fitted to the capture (docs/07); several end at a bound, so the residual is structural. The Prometheus circuit is inferred, not from a schematic."
+    },
+    {
+      "id": "t3k-prometheus-06-modern-wooly-high-gain",
+      "amp": "Lichtlaerm Audio Prometheus (100-140 W, EL34 quad stock; tubes in this capture not stated)",
+      "family": "high-gain",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/lichtlaerm-audio-prometheus-teaser-pack-100836",
+      "author": "pipppriss",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "Prom06-ModernWoolyHighGain",
+      "settings": {
+        "channel": "Lead",
+        "voicing": "Modern",
+        "bite": "not stated",
+        "knobs": "not stated (name: 'Wooly High Gain')"
+      },
+      "rig": {
+        "output": "direct",
+        "inputDbu": 18,
+        "notes": "Amp head D.I. (no cab), load not stated. +18 dBu input calibration per the Tone3000 page. NAM 0.7 SlimmableContainer (WaveNet), 48 kHz. From the user's TEASER-PACK download: local-only."
+      },
+      "sha256": "f708b0279efa8a604f2c69957dcb88f9f68c77c80733bce736462710dbd6f508",
+      "size": 293721,
+      "circuit": {
+        "type": "Prometheus",
+        "params": {
+          "switch1": 1,
+          "gain": 6.6,
+          "bass": 2.96,
+          "middle": 10,
+          "treble": 2.83,
+          "presence": 0.79,
+          "depth": 6.03,
+          "master": 4.88,
+          "control1": 10
+        }
+      },
+      "targets": {
+        "esr": 1.0,
+        "mrstft": 2.2
+      },
+      "notes": "Knob settings not stated: all eight knobs fitted to the capture (docs/07); several end at a bound, so the residual is structural. The Prometheus circuit is inferred, not from a schematic."
+    },
+    {
+      "id": "t3k-prometheus-12-vintage-high-crunch-bite-off",
+      "amp": "Lichtlaerm Audio Prometheus (100-140 W, EL34 quad stock; tubes in this capture not stated)",
+      "family": "high-gain",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/lichtlaerm-audio-prometheus-teaser-pack-100836",
+      "author": "pipppriss",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "Prom12-VintageHighCrunch-BiteOff",
+      "settings": {
+        "channel": "Lead",
+        "voicing": "Vintage",
+        "bite": "Off",
+        "knobs": "not stated (name: 'High Crunch')"
+      },
+      "rig": {
+        "output": "direct",
+        "inputDbu": 18,
+        "notes": "Amp head D.I. (no cab), load not stated. +18 dBu input calibration per the Tone3000 page. NAM 0.7 SlimmableContainer (WaveNet), 48 kHz. From the user's TEASER-PACK download: local-only."
+      },
+      "sha256": "3415a56fe0fc4f73534fd5e96650a0bf16f6e51a0607391ab03166e9d93fd7db",
+      "size": 294903,
+      "circuit": {
+        "type": "Prometheus",
+        "params": {
+          "gain": 2.35,
+          "bass": 0.92,
+          "middle": 5.72,
+          "treble": 0,
+          "presence": 4.9,
+          "depth": 5.91,
+          "master": 5.95,
+          "control1": 8.01
+        }
+      },
+      "targets": {
+        "esr": 1.0,
+        "mrstft": 2.2
+      },
+      "notes": "Knob settings not stated: all eight knobs fitted to the capture (docs/07); several end at a bound, so the residual is structural. The Prometheus circuit is inferred, not from a schematic."
+    },
+    {
+      "id": "t3k-prometheus-15-vintage-rabies",
+      "amp": "Lichtlaerm Audio Prometheus (100-140 W, EL34 quad stock; tubes in this capture not stated)",
+      "family": "high-gain",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/lichtlaerm-audio-prometheus-teaser-pack-100836",
+      "author": "pipppriss",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "Prom15-VintageRabies",
+      "settings": {
+        "channel": "Lead",
+        "voicing": "Vintage",
+        "bite": "not stated",
+        "knobs": "not stated (name: 'Rabies', presumably high gain)"
+      },
+      "rig": {
+        "output": "direct",
+        "inputDbu": 18,
+        "notes": "Amp head D.I. (no cab), load not stated. +18 dBu input calibration per the Tone3000 page. NAM 0.7 SlimmableContainer (WaveNet), 48 kHz. From the user's TEASER-PACK download: local-only."
+      },
+      "sha256": "d9c38473e73354153caf46e9e1ad2ba9baa6e9d9b85e1f015f148ad92b220fc1",
+      "size": 294296,
+      "circuit": {
+        "type": "Prometheus",
+        "params": {
+          "gain": 6.68,
+          "bass": 6.07,
+          "middle": 8.08,
+          "treble": 1.71,
+          "presence": 5.93,
+          "depth": 7.98,
+          "master": 4.95,
+          "control1": 10
+        }
+      },
+      "targets": {
+        "esr": 1.0,
+        "mrstft": 2.2
+      },
+      "notes": "Knob settings not stated: all eight knobs fitted to the capture (docs/07); several end at a bound, so the residual is structural. The Prometheus circuit is inferred, not from a schematic."
+    },
+    {
+      "id": "t3k-prometheus-22-clean-edge-warm",
+      "amp": "Lichtlaerm Audio Prometheus (100-140 W, EL34 quad stock; tubes in this capture not stated)",
+      "family": "high-gain",
+      "format": "nam",
+      "url": "https://www.tone3000.com/tones/lichtlaerm-audio-prometheus-teaser-pack-100836",
+      "author": "pipppriss",
+      "licence": "T3K",
+      "redistributable": false,
+      "sourceName": "Prom22-CleanEdgeWarm",
+      "settings": {
+        "channel": "Clean",
+        "voice": "Warm",
+        "knobs": "not stated (name: 'Edge', edge of breakup)"
+      },
+      "rig": {
+        "output": "direct",
+        "inputDbu": 18,
+        "notes": "Amp head D.I. (no cab), load not stated. +18 dBu input calibration per the Tone3000 page. NAM 0.7 SlimmableContainer (WaveNet), 48 kHz. From the user's TEASER-PACK download: local-only."
+      },
+      "sha256": "d3f46d5c873371eb8d688b79e0a72b828975c0714c6b52a9c1f2ca3fc0852585",
+      "size": 294061,
+      "circuit": {
+        "type": "Prometheus Clean",
+        "params": {
+          "gain": 8.66,
+          "bass": 6.09,
+          "middle": 3.61,
+          "treble": 5.76,
+          "presence": 9.36,
+          "depth": 3.06,
+          "master": 4.24,
+          "bias": 57.2,
+          "prebias": 9,
+          "presfreq": 91
+        }
+      },
+      "targets": {
+        "esr": 0.2,
+        "mrstft": 1.0
+      },
+      "notes": "Knob settings not stated: Volume/EQ/Presence/Depth/Master fitted to the capture, then power-tube bias, Preamp Bias and Presence Freq within tolerance (docs/07). The Prometheus circuit is inferred, not from a schematic."
     }
   ]
 }
