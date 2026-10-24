@@ -97,6 +97,60 @@ static class Ab763 {
     }
 
     /// <summary>
+    ///     The AB763 stack with the mid pot replaced by a fixed 6.8k (Deluxe, Vibroverb, Vibrolux, Bandmaster, Tremolux):
+    ///     here a 13.6k pot left at noon.
+    /// </summary>
+    public static ToneStackDesign FixedMidStack { get; } = new(
+        "Fender AB763 fixed mid",
+        250e-12,
+        100e3,
+        100e-9,
+        47e-9,
+        new(250e3, PotTaper.Audio),
+        new(250e3, PotTaper.Audio),
+        new(13.6e3, PotTaper.Linear)
+    );
+
+    /// <summary>
+    ///     V1A of either channel with the fixed-mid stack, the 1M audio volume and the 120 pF bright switch (34k
+    ///     stopper, 100k plate, 1.5k ‖ 25 µF): the first stage of the AB763 amps without a mid control.
+    /// </summary>
+    public static ToneStackStageDesign FirstStage(double supply) =>
+        new(
+            "V1A",
+            TriodeModel.Ecc83,
+            StackDriver.CommonCathode,
+            Supply: supply,
+            CathodeResistor: 1.5e3,
+            Stack: FixedMidStack,
+            Load: new(1e6, PotTaper.Audio),
+            LoadRole: PotRole.Gain,
+            PlateResistor: 100e3,
+            CathodeBypass: 25e-6,
+            InputResistance: 34e3,
+            BrightCap: 120e-12
+        );
+
+    /// <summary>
+    ///     The mixing network of the AB763 amps without reverb (Bandmaster, Tremolux, Vibrolux): the Normal channel's
+    ///     0.047 µF, the Vibrato channel's 0.1 µF, each into its 220k mixing resistor; the idle channel's second-stage plate
+    ///     (<see cref="IdlePlate" />) loads the mix node through its own. The vibrato's LDR, which shunts the Vibrato
+    ///     channel's cap-resistor junction, is dark with the intensity at 0 and left out.
+    /// </summary>
+    public static NetworkStageDesign VibratoMixer() {
+        var net = new StageNetlist();
+        var (normal, vibrato, mix) = (net.Node(), net.Node(), net.Node());
+        net.SwitchedCapacitor(net.Input, normal, Absent, SwitchRole.Switch1, off: 47e-9);
+        net.SwitchedResistor(normal, StageNetlist.Ground, 0, IdlePlate, SwitchRole.Switch1);
+        net.Resistor(normal, mix, 220e3);
+        net.SwitchedCapacitor(net.Input, vibrato, 0.1e-6, SwitchRole.Switch1, off: Absent);
+        net.SwitchedResistor(vibrato, StageNetlist.Ground, IdlePlate, 0, SwitchRole.Switch1);
+        net.Resistor(vibrato, mix, 220e3);
+        net.Output = mix;
+        return new("Mixer", net);
+    }
+
+    /// <summary>
     ///     The inverter's input: 1 nF from the mix node, the 1M grid resistor returning to the bias junction (which follows
     ///     the input, so the leak is bootstrapped), and the driven grid's own grid current.
     /// </summary>

@@ -23,7 +23,10 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
             var peak = Analysis.ToDb(Analysis.Peak(rendered));
             var rms = Analysis.ToDb(Analysis.Rms(rendered));
             output.WriteLine($"{AmpDesign.All[type].Name} gain {gain}: peak {peak:0.0} dBFS, rms {rms:0.0} dBFS");
-            Assert.InRange(peak, gain == 3f ? -30 : -12, 0.5);
+            // The Princeton AA964 has two stages, the second inside the feedback loop: at 5 it is still clean and
+            // quiet (13 dB under the Princeton Reverb, which has a third), and its trim is held down by full drive.
+            var floor = gain == 3f ? -30 : AmpDesign.All[type] == Amp.Models.PrincetonAA964.Design && gain == 5f ? -18 : -12;
+            Assert.InRange(peak, floor, 0.5);
         }
     }
 

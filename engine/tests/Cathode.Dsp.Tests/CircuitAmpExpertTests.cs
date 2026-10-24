@@ -115,6 +115,10 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                     // And the bright cap of an amp without one (the Laney's drive channel).
                     var audible = !(index == CircuitAmpBlock.CathodeTime && !design.Power.CathodeBias)
                         && !(index == CircuitAmpBlock.BrightCap && design == Amp.Models.LaneyGH100L.Design)
+                        // And the supply's time constants on an amp still clean at gain 7 (the Princeton AA964's two
+                        // stages, the second inside the feedback loop): its 6V6s draw too little extra current to sag.
+                        && !(index is CircuitAmpBlock.PreampSag or CircuitAmpBlock.SupplyTime
+                            && design == Amp.Models.PrincetonAA964.Design)
                         && !(index == CircuitAmpBlock.PowerTube && design.Power.Name.Contains(tube ?? "-", StringComparison.Ordinal))
                         && !(index is CircuitAmpBlock.PresenceFrequency or CircuitAmpBlock.DepthFrequency && !design.Power.HasFeedback)
                         && !(index == CircuitAmpBlock.MasterTrim && design.Panel.Master is null)

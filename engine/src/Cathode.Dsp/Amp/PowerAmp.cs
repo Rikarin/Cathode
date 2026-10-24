@@ -684,16 +684,18 @@ public sealed class PowerAmp {
             return;
         }
 
+        // Single-ended, the idle current's flux sits in the core: the drive moves the knee closer to it, not to zero (a
+        // knee below the idle flux would saturate the core at rest).
+        var idle = design.Topology == PowerTopology.SingleEnded
+            ? ot.PrimaryInductance * design.TubesPerSide * design.IdleCurrent
+            : 0;
         if (stock <= 0) {
             // A core with the knee at eight times the flux of full power at 40 Hz: far out of the way at 0.
             var swing = Math.Sqrt(2 * design.RatedPower * ot.PlateToPlate);
-            stock = 8 * swing / (2 * Math.PI * ReferenceFrequency);
-            if (design.Topology == PowerTopology.SingleEnded) {
-                stock += ot.PrimaryInductance * design.TubesPerSide * design.IdleCurrent;
-            }
+            stock = 8 * swing / (2 * Math.PI * ReferenceFrequency) + idle;
         }
 
-        saturationFlux = stock / Math.Pow(2, 0.5 * Math.Max(drive, 0));
+        saturationFlux = idle + Math.Max(stock - idle, 0) / Math.Pow(2, 0.5 * Math.Max(drive, 0));
         var floor = Math.Min(SaturatedInductance, 0.5 * magnetising);
         saturationGain = (magnetising / floor - 1) / magnetising;
     }
@@ -1359,7 +1361,10 @@ struct PushPullStage : INonlinearDevice {
         var omega = 2 * Math.PI * (design.DepthFrequency * depthFrequency);
         var floor = 1 - 0.9 * Math.Clamp(depth, 0, 1);
         this.depth.Design(floor * omega, 1, omega, 1, rate);
-        feedback = amount * design.TapGain / turns;
+        // Push-pull: the inverter's driven output is its inverted plate, so the primary voltage rises with the input.
+        // Single-ended the input drives the grid directly and the plate falls as it rises: the tap is taken the other way
+        // round (a real amp's secondary is wired for that), or the "feedback" would be positive.
+        feedback = (singleEnded ? -1 : 1) * amount * design.TapGain / turns;
     }
 
     /// <summary>

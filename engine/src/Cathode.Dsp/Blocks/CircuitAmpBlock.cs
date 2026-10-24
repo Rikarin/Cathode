@@ -351,11 +351,11 @@ public sealed class CircuitAmpBlock : DspBlock {
         var design = active.Design;
         var power = design.Power;
         var trim = Decibels.ToGain(design.OutputTrimDb);
-        // Full scale: the largest swing the output stage can make (a tube amp's plates from B+ to 0 V, referred to the
-        // secondary; a solid-state amp's rails less its headroom).
+        // Full scale: the largest swing the output stage can make (a tube amp's primary, about twice B+ plate to plate in
+        // push-pull and B+ single-ended, referred to the secondary; a solid-state amp's rails less its headroom).
         outputScale = design.SolidState is { } solid
             ? trim / solid.Swing
-            : trim * power.Transformer.TurnsRatio / (2 * power.Supply);
+            : trim * power.Transformer.TurnsRatio / (power.Sides * power.Supply);
         // With the power amp off, full scale is its input's: 50 V at a tube amp's inverter, a solid-state amp's swing over
         // its gain.
         preampScale = design.SolidState is { } input ? trim * input.Gain / input.Swing : trim / PreampFullScale;

@@ -37,11 +37,12 @@ Last updated: 2026-10-24 (after the four family streams and the Prometheus merge
 | Princeton Reverb AA1164 | ✅ Done | Princeton Reverb (15) | GPL: Princeton clean (year unknown); T3K: '68 Custom Princeton | Stock AA1164, volume sweep | 1x10 open, Jensen P10R |
 | Bassman 5F6-A | ✅ Done | Bassman 5F6-A (16), Jumped (17) | — | Any 5F6-A / reissue, jumpered and single channel | 4x10 open, Jensen P10Q |
 | Tweed Deluxe 5E3 | ✅ Done | Tweed Deluxe 5E3 (18), Jumped (19) | T3K: 5E3 kit clone | Volume sweep, both inputs | 1x12 open, Jensen P12R/P12Q |
-| Hot Rod Deluxe | ⏸ Waiting | — | — | Readable schematic (tone stack unknown); captures | 1x12 open, Celestion G12P-80 |
-| Champ 5F1 | 💤 Not planned | — | — | Schematic, captures | 1x8 open |
-| Vibrolux / Vibroverb AB763 | 💤 Not planned | — | — | | 2x10 / 1x15 open |
-| Bandmaster AB763 | 💤 Not planned | — | — | | 2x12 closed |
-| Tweed Twin 5F8-A / High Power Tweed Twin | 💤 Not planned | — | — | | 2x12 open |
+| Hot Rod Deluxe (III, Fender drawing 0079604000 rev B) | ✅ Done | Hot Rod Deluxe | — | Any direct-out capture (Drive and Normal, More Drive) | 1x12 open, Celestion G12P-80 |
+| Champ 5F1 | ✅ Done | Champ 5F1 | — | Volume sweep, direct out | 1x8 open |
+| Vibroverb AB763 | ✅ Done | Vibroverb AB763 | — | Direct out, both channels | 1x15 open |
+| Vibrolux Reverb AA964 (there is no AB763 Vibrolux Reverb) | ✅ Done | Vibrolux Reverb AA964 | — | Direct out, both channels | 2x10 open |
+| Bandmaster AB763 | ✅ Done | Bandmaster AB763 | — | Direct out | 2x12 closed |
+| Tweed Twin 5F8-A / High Power Tweed Twin | ✅ Done | Tweed Twin 5F8-A, Jumped | — | Bright, Normal, jumped | 2x12 open |
 
 ## Marshall and British
 
@@ -88,6 +89,9 @@ Last updated: 2026-10-24 (after the four family streams and the Prometheus merge
 | Supro (1960s) | 💤 Not planned | — | — | | 1x12 open |
 | Gibson GA-40 Les Paul | 💤 Not planned | — | — | | 1x12 open |
 | Magnatone (Custom 280 / 15) | 💤 Not planned | — | — | | 2x12 open |
+| Supro 1624T Dual-Tone | ⏸ Waiting (values read from a clean redraw, el34world `Supro_1624t_schematic_263.pdf`, power amp confirmed by AmpBooks; its floating paraphase inverter is not in the library) | — | — | A paraphase inverter in `PowerAmp`; B+ and OT (AmpBooks models 7k) | 1x12 open |
+| Gibson GA-40 Les Paul (5879 version) | ⏸ Waiting (factory drawing with a voltage table, el34world `Gibson_ga_40_les_paul_with_5879.pdf`, read; needs a 5879 pentode table and a self-balancing paraphase inverter) | — | — | 5879 curves; OT primary (about 10k on the 1954 parts list) | 1x12 open, Jensen P12Q |
+| Magnatone Custom 280 (280-A / 280-B) | ⏸ Waiting (factory drawings read, el34world `Magnatone_280a.pdf`, `Magnatone_280b.png`; the dry path runs through the varistor vibrato network, whose static resistance is not given; 6CZ5 curves missing) | — | — | Varistor data; OT primary. Custom 15 drawings exist (`Magnatone_m15a_revf.png`) but are not read | 2x12 open |
 
 ## High gain
 
@@ -203,14 +207,14 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 
 | Amp | Status | Cathode type | Axe models | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Fender Bassman AB165 (blackface) | 💤 Not planned | — | 65 Bassguy Bass / Normal | Both channels, bright on | 2x12 closed |
-| Fender Concert 6G12 (brownface) | 💤 Not planned | — | 6G12 Concert | | 4x10 open |
-| Fender Super 6G4 (brownface) | 💤 Not planned | — | 6G4 Super | | 2x10 open |
-| Fender Tremolux AA763 | 💤 Not planned | — | Tremolo Lux | | 2x10 closed |
-| Fender Vibro-King | 💤 Not planned | — | Vibra-King, Vibra-King Fat | Fat switch | 3x10 open |
-| Fender Blues Junior | 💤 Not planned | — | JR Blues, JR Blues Fat | Fat switch | 1x12 open |
-| Fender Princeton 5F2 / AA964 | 💤 Not planned (variants of the Princeton) | — | Prince Tone 5F2, Prince Tone AA964 | | 1x10 open |
-| Fender Vibro-Champ (Eric Clapton) | 💤 Not planned (5F1 variant with bypassed cathode) | — | 5F1 Tweed EC | | 1x8 open |
+| Fender Bassman AB165 (blackface) | ⏸ Waiting (the only scan, schematicheaven `bassman_ab165_schem.pdf`, is too poor for the Bass channel's stack and the bias network; topology and power section read) | — | 65 Bassguy Bass / Normal | A legible AB165 drawing | 2x12 closed |
+| Fender Concert 6G12 (brownface) | 📋 Planned (factory drawing read, schematicheaven `concert_6g12_schem.pdf`; the dry path runs through the harmonic vibrato's crossover and mixer pair, not built yet) | — | 6G12 Concert | OT primary (45249, 2 Ω secondary) | 4x10 open |
+| Fender Super 6G4 (brownface) | 📋 Planned (as the 6G12: same drawing family, 10k feedback, GZ34) | — | 6G4 Super | OT primary (45216) | 2x10 open |
+| Fender Tremolux AA763 | ✅ Done | Tremolux AA763 | Tremolo Lux | Direct out | 2x10 closed |
+| Fender Vibro-King | ✅ Done (rev F drawing) | Vibro-King | Vibra-King, Vibra-King Fat | Direct out, Fat on and off | 3x10 open |
+| Fender Blues Junior | ✅ Done (III drawing) | Blues Junior | JR Blues, JR Blues Fat | Direct out (GuitarML's Blues Jr files are miked) | 1x12 open |
+| Fender Princeton 5F2 / AA964 | ✅ Done | Princeton 5F2-A, Princeton AA964 | Prince Tone 5F2, Prince Tone AA964 | Direct out | 1x10 open |
+| Fender Vibro-Champ (Eric Clapton) | ⏸ Waiting (no schematic published: Fender's product pages, schematicheaven and the forums searched; Fractal's note says cathode bypass caps were added to the 5F1, but not where) | — | 5F1 Tweed EC | Fender's EC Vibro-Champ schematic | 1x8 open |
 
 ### Marshall and British
 
@@ -291,10 +295,10 @@ models. Against the catalogue above it adds these real amps:
 
 | Amp | Family | Status | Cathode type | Axe models | Typical cab |
 |---|---|---|---|---|---|
-| Fender Deluxe 6G3 (brownface) | Fender | 💤 Not planned | — | Deluxe 6G3 | 1x12 open |
-| Fender Vibrolux 6G11 (brownface, 1962/63) | Fender | 💤 Not planned | — | Vibrato Lux 6G11 | 2x10 open |
-| Supro 1695T Black Magick | US vintage | 💤 Not planned | — | Supremo Black Magick | 1x12 open |
-| Supro 1964T | US vintage | 💤 Not planned | — | Supremo 1964T | 1x12 open |
+| Fender Deluxe 6G3 (brownface) | Fender | 📋 Planned (factory drawing on schematicheaven, `deluxe_6g3_schem.pdf`; not read yet) | — | Deluxe 6G3 | 1x12 open |
+| Fender Vibrolux 6G11 (brownface, 1962/63) | Fender | 📋 Planned (factory drawing on schematicheaven, `vibrolux_6g11_schem.pdf`; not read yet; harmonic vibrato like the 6G12) | — | Vibrato Lux 6G11 | 2x10 open |
+| Supro 1695T Black Magick | US vintage | ⏸ Waiting (a 2016 reissue-era design by Absara; no schematic published: only specifications, 2 × 6973 cathode-biased, 25 W) | — | Supremo Black Magick | 1x12 open |
+| Supro 1964T | US vintage | ⏸ Waiting (no schematic for a "1964T" found; the 2014 reissues' S6420 / S6424 schematics may be related) | — | Supremo 1964T | 1x12 open |
 | Marshall SV20H (Studio Vintage, 20 W Plexi) | Marshall | 💤 Not planned | — | Plexi Studio 20 | 2x12 / 4x12 closed |
 | Marshall SC20H (Studio Classic, 20 W JCM800) | Marshall | 💤 Not planned | — | Brit 800 Studio 20 | 2x12 / 4x12 closed |
 | Diamond Del Fuego | Modern high gain | ⏸ Waiting (nothing found; specs: 3 × 12AX7, 2 × EL84, 6CA4 rectifier, 22 W, designed with Roy Blankenship) | — | Del Fuego | 4x12 closed |

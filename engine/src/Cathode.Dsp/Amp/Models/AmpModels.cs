@@ -46,7 +46,19 @@ public sealed partial record AmpDesign {
         Models.Savage120.Design,
         Models.Svt.Design,
         Models.PortaflexB15.Design,
-        Models.JazzChorus120.Design
+        Models.JazzChorus120.Design,
+        Models.HotRodDeluxe.Design,
+        Models.Champ.Design,
+        Models.Vibroverb.Design,
+        Models.VibroluxReverb.Design,
+        Models.Bandmaster.Design,
+        Models.TweedTwin.Design,
+        Models.TweedTwin.Jumped,
+        Models.Tremolux.Design,
+        Models.Princeton5F2.Design,
+        Models.PrincetonAA964.Design,
+        Models.VibroKing.Design,
+        Models.BluesJunior.Design
     ];
 
     public static AmpDesign Blackface => Models.Blackface.Design;
