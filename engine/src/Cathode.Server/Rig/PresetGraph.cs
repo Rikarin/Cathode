@@ -8,19 +8,23 @@ namespace Cathode.Server.Rig;
 public static class PresetGraph {
     /// <summary>
     ///     <paramref name="held" /> holds the blocks Scene Ignore kept off the scene's state; a modifier scoped to one
-    ///     channel starts enabled only when its block is on that channel.
+    ///     channel starts enabled only when its block is on that channel. <paramref name="oversampling" /> is the global
+    ///     oversampling filters (minimum or linear), which the graph carries because they change block latencies.
     /// </summary>
     public static GraphDefinition Build(
         Preset preset,
         int sceneIndex,
         AssetStore assets,
-        IReadOnlyDictionary<string, SceneBlockState>? held = null
+        IReadOnlyDictionary<string, SceneBlockState>? held = null,
+        string oversampling = "minimum"
     ) {
         var scene = preset.Scenes[sceneIndex];
         SceneBlockState StateOf(string id) =>
             held is not null && held.TryGetValue(id, out var state) ? state : scene.StateOf(id);
 
-        var graph = new GraphDefinition { Rows = preset.Rows, Columns = preset.Columns };
+        var graph = new GraphDefinition {
+            Rows = preset.Rows, Columns = preset.Columns, Oversampling = oversampling
+        };
         foreach (var block in preset.Blocks) {
             var node = new NodeDefinition {
                 Id = block.Id,

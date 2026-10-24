@@ -141,7 +141,7 @@ namespace Cathode.Dsp.Blocks;
 ///         host's block size.
 ///     </para>
 /// </remarks>
-public sealed class CircuitAmpBlock : DspBlock {
+public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock {
     public const int Type = 0;
     public const int Gain = 1;
     public const int Bass = 2;
@@ -226,8 +226,6 @@ public sealed class CircuitAmpBlock : DspBlock {
     /// <summary>Frames per knob reading, on a fixed grid that ignores the host's block boundaries.</summary>
     public const int SubBlock = 64;
 
-    /// <summary>Guitar volts per unit of input.</summary>
-    const double InputVolts = 1;
 
     /// <summary>The phase inverter's input volts at full scale, with the power amp off.</summary>
     const double PreampFullScale = 50;
@@ -278,6 +276,12 @@ public sealed class CircuitAmpBlock : DspBlock {
     double tremoloPhase;
     double outputScale = 1;
     double preampScale = 1;
+
+    /// <summary>
+    ///     Guitar volts per unit of input: the input calibration (<see cref="BlockContext.InputVolts" />), 1 V at full
+    ///     scale unless set.
+    /// </summary>
+    double inputVolts = 1;
 
     public static BlockDescriptor Info { get; } = Describe(
         Labelled(
@@ -374,11 +378,25 @@ public sealed class CircuitAmpBlock : DspBlock {
         )
     );
 
+    /// <summary>
+    ///     The speaker resonance (Hz) at LF Resonance 100 % for amp <paramref name="type" /> with Speaker choice
+    ///     <paramref name="speaker" /> (0 = the model's stock speaker): what the cab resonance helper scales.
+    /// </summary>
+    public static double SpeakerResonanceHz(int type, int speaker) =>
+        speaker > 0
+            ? SpeakerDesign.Presets[Math.Min(speaker, SpeakerDesign.Presets.Count) - 1].Resonance
+            : AmpDesign.All[Math.Clamp(type, 0, AmpDesign.All.Count - 1)].Power.Speaker.Resonance;
+
     /// <summary>The active amp's channel (for tests and diagnostics).</summary>
     public AmpChannel Channel { get; private set; }
 
     /// <summary>The internal processing rate as a multiple of the sample rate.</summary>
     public int Oversampling { get; private set; } = 2;
+
+    /// <summary>The oversampler's filters (the global setting); set before <see cref="IDspBlock.Prepare" />.</summary>
+    public OversamplingPhase OversamplingPhase { get; set; }
+
+    public override int LatencySamples => Oversampling == 2 ? oversampler.LatencySamples : 0;
 
     static CircuitAmpBlock() {
         // Every tube table a setting can ask for, built here (control thread), so that changing one on the audio
@@ -448,7 +466,7 @@ public sealed class CircuitAmpBlock : DspBlock {
         if (saturate || location == EqBeforePowerAmp) {
             var eq = location == EqBeforePowerAmp;
             for (var i = 0; i < inner.Length; i++) {
-                var x = channel.TickPreamp(inner[i] * InputVolts * trim);
+                var x = channel.TickPreamp(inner[i] * inputVolts * trim);
                 if (saturate) {
                     x = saturation.Tick(x, preampScale, satDrive);
                 }
@@ -462,7 +480,7 @@ public sealed class CircuitAmpBlock : DspBlock {
             }
         } else {
             for (var i = 0; i < inner.Length; i++) {
-                var y = channel.Tick(inner[i] * InputVolts * trim) * scale;
+                var y = channel.Tick(inner[i] * inputVolts * trim) * scale;
                 inner[i] = Math.Abs(y) < 1e-30 ? 0f : (float)y;
             }
         }
@@ -664,6 +682,10 @@ public sealed class CircuitAmpBlock : DspBlock {
     protected override void OnPrepare(in ProcessSpec spec) {
         Oversampling = spec.SampleRate < 64_000 ? 2 : 1;
         oversampler.Resize(spec.MaxBlockSize);
+        if (oversampler.Phase != OversamplingPhase) {
+            oversampler.SetPhase(OversamplingPhase);
+        }
+
         foreach (var channel in channels) {
             channel.SetSampleRate(spec.SampleRate * Oversampling);
         }
@@ -694,6 +716,7 @@ public sealed class CircuitAmpBlock : DspBlock {
             Select(type);
         }
 
+        inputVolts = context.InputVolts;
         var select = (int)Params.Current(InputSelect);
         if (select == 1) {
             io.Right.CopyTo(io.Left);

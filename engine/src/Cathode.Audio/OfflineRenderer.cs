@@ -51,6 +51,50 @@ public static class OfflineRenderer {
     }
 
     /// <summary>
+    ///     Renders through every output <paramref name="outputs" /> maps: Output 1's left and right, then Outputs 2-4's,
+    ///     then the DI out's two channels (ten channels; an unmapped output stays silent).
+    /// </summary>
+    public static float[][] RenderOutputs(
+        IAudioProcessor processor,
+        float[] left,
+        float[] right,
+        int blockSize,
+        OutputBus outputs
+    ) {
+        var channels = new float[2 * OutputBus.Count + 2][];
+        for (var c = 0; c < channels.Length; c++) {
+            channels[c] = new float[left.Length];
+        }
+
+        for (var offset = 0; offset < left.Length;) {
+            var frames = Math.Min(blockSize, left.Length - offset);
+            processor.Process(
+                new(
+                    left.AsSpan(offset, frames),
+                    right.AsSpan(offset, frames),
+                    channels[0].AsSpan(offset, frames),
+                    channels[1].AsSpan(offset, frames)
+                ) { Outputs = outputs }
+            );
+            for (var k = 1; k < OutputBus.Count; k++) {
+                if (outputs.IsMapped(k)) {
+                    outputs.Left(k)[..frames].CopyTo(channels[2 * k].AsSpan(offset));
+                    outputs.Right(k)[..frames].CopyTo(channels[2 * k + 1].AsSpan(offset));
+                }
+            }
+
+            if (outputs.HasDi) {
+                outputs.DiLeft[..frames].CopyTo(channels[^2].AsSpan(offset));
+                outputs.DiRight[..frames].CopyTo(channels[^1].AsSpan(offset));
+            }
+
+            offset += frames;
+        }
+
+        return channels;
+    }
+
+    /// <summary>
     ///     Renders with several hardware input sources (<see cref="Dsp.Routing.HardwareInputs" />), as a multi-channel
     ///     device would deliver them: <paramref name="sources" />[s] is source s (Input 1 first, which is also the main
     ///     input), null where the device maps nothing. Every source must be as long as Input 1.

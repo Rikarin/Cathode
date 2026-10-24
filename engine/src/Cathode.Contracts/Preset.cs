@@ -92,7 +92,15 @@ public static class BuiltInTypes {
     public const string Output = "output";
     public const string Shunt = "shunt";
 
-    public static bool IsBuiltIn(string type) => type is Input or Output or Shunt;
+    /// <summary>Outputs 2-4, placeable grid outputs mapped to device channels in the audio settings.</summary>
+    public const string Output2 = "output2";
+
+    public const string Output3 = "output3";
+    public const string Output4 = "output4";
+
+    public static bool IsBuiltIn(string type) => type is Input or Shunt || IsOutput(type);
+
+    public static bool IsOutput(string type) => type is Output or Output2 or Output3 or Output4;
 }
 
 public sealed class PresetBlock {

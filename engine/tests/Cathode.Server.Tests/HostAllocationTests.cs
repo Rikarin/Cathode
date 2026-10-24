@@ -1,5 +1,6 @@
 using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
+using Cathode.Engine;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.EngineHost;
@@ -60,17 +61,67 @@ public sealed class HostAllocationTests : IDisposable {
     }
 
     [Fact]
+    public async Task Multi_output_callbacks_and_their_telemetry_allocate_nothing() {
+        // Outputs 1-4 and the DI out mapped, a grid with an Output 2, Copy Output 1 to Output 2 and the output modes.
+        var token = TestContext.Current.CancellationToken;
+        var graph = Rig();
+        graph.Nodes.Add(new() { Id = "out2", Type = NodeTypes.Output2, Row = 1, Column = 7 });
+        graph.Nodes.Add(new() { Id = "vol2", Type = "volpan", Row = 1, Column = 6 });
+        graph.Cables.Add(new() { From = "reverb1", To = "vol2" });
+        graph.Cables.Add(new() { From = "vol2", To = "out2" });
+        await RoundTripAsync(new() { Type = IpcTypes.LoadGraph, Generation = 1, Graph = graph }, 1);
+        var rig = new IpcMessage {
+            Type = IpcTypes.SetParams,
+            Generation = 1,
+            Params = [
+                new(IpcBlocks.Rig, "copyOut2", 1), new(IpcBlocks.Rig, "out3Mode", 1), new(IpcBlocks.Rig, "out1Level", -3),
+                new(IpcBlocks.GlobalEq(1), "g1k", 3)
+            ]
+        };
+        await RoundTripAsync(rig, 1);
+        using var bus = new OutputBus([0, 2, 4, 6], [8, 9]);
+        var frames = service.Engine.Spec.MaxBlockSize;
+        var input = new float[frames];
+        var left = new float[frames];
+        var right = new float[frames];
+        var telemetry = new HostTelemetry();
+        var push = new IpcMessage { Type = IpcTypes.Telemetry, Telemetry = telemetry };
+
+        async Task<long> CallbacksAsync() {
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < 2_000; i++) {
+                service.Engine.Process(new(input, input, left, right) { Outputs = bus });
+                if (i % 20 == 0) {
+                    output.Position = 0;
+                    service.Telemetry(telemetry);
+                    await writer.WriteAsync(output, push, token);
+                }
+            }
+
+            return GC.GetAllocatedBytesForCurrentThread() - before;
+        }
+
+        await CallbacksAsync(); // warm up
+
+        Assert.Equal(0, await CallbacksAsync());
+        Assert.True(service.Engine.Current!.HasOutput(1));
+    }
+
+    [Fact]
     public async Task Reloading_a_preset_stays_small() {
         // The cab's IR is cached and the convolvers live in native memory; before that a load was about 160 KB. The Drive
         // block builds every component-level network of its catalogue up front, for both channels (about 90 KB of small
         // objects), so that switching its type on the audio thread never allocates. The time-based parity pass added about
         // 6 KB (the Delay's 80 parameters, its diffuser and post-delay lines; the Reverb's extra settings). The Cab block
-        // stream added about 1 KB (16 more Cab parameters: per-slot proximity, smoothing and Auto-Align, Motor Drive).
+        // stream added about 1 KB (16 more Cab parameters: per-slot proximity, smoothing and Auto-Align, Motor Drive), and
+        // the audio I/O pass under 1 KB (the latency path the compiler records, the Input block's pickup load parameters
+        // and the Drive's oversampling setting): 138,008 bytes
+        // measured with both, under a limit that leaves about 2 KB.
         var load = new IpcMessage { Type = IpcTypes.LoadGraph, Generation = 1, Graph = Rig() };
 
         var allocated = await RoundTripAsync(load, 3);
 
-        Assert.True(allocated < 137_500, $"a preset load allocated {allocated} bytes");
+        Assert.True(allocated < 140_000, $"a preset load allocated {allocated} bytes");
     }
 
     [Fact]

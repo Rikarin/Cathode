@@ -19,6 +19,11 @@ export type ParameterInfo = Schemas['ParameterInfo'];
 export type ImportResult = Schemas['ImportResult'];
 export type PresetModifier = Schemas['PresetModifier'];
 export type GlobalSettings = Schemas['GlobalSettings'];
+export type OutputSettings = Schemas['OutputSettings'];
+export type InputSettings = Schemas['InputSettings'];
+export type LatencyInfo = Schemas['LatencyInfo'];
+export type LatencyStepInfo = Schemas['LatencyStepInfo'];
+export type SpeakerResonanceInfo = Schemas['SpeakerResonanceInfo'];
 export type MidiMapping = Schemas['MidiMapping'];
 export type FootswitchLayout = Schemas['FootswitchLayout'];
 export type Footswitch = Schemas['Footswitch'];
@@ -111,7 +116,23 @@ export interface MidiActivity {
 }
 
 /** Built-in grid cells (BuiltInTypes in Cathode.Contracts). */
-export const BuiltInTypes = { input: 'input', output: 'output', shunt: 'shunt' } as const;
+export const BuiltInTypes = {
+  input: 'input',
+  output: 'output',
+  output2: 'output2',
+  output3: 'output3',
+  output4: 'output4',
+  shunt: 'shunt'
+} as const;
+
+/** Output 1 (the main output) and Outputs 2-4. */
+export const OutputTypes: readonly string[] = ['output', 'output2', 'output3', 'output4'];
+
+/** Output modes, as the global settings store them (GlobalValidation.OutputModes on the Server). */
+export const OutputModes = ['stereo', 'sum', 'copyLR', 'dualMono'] as const;
+
+/** The global oversampling filters. */
+export const OversamplingModes = ['minimum', 'linear'] as const;
 
 export const ChannelNames = ['A', 'B', 'C', 'D'] as const;
 export type ChannelName = (typeof ChannelNames)[number];
@@ -152,6 +173,8 @@ export interface Telemetry {
   /** The output's BS.1770 momentary (400 ms) and short-term (3 s) loudness, LUFS. */
   loudnessMomentary?: number;
   loudnessShortTerm?: number;
+  /** Peak of Outputs 1-4 (after their EQ and Boost/Pad), as the slower host telemetry last reported them. */
+  outputPeaks?: number[];
   /** Blocks with meters of their own, about ten times a second. */
   blockMeters?: BlockMeterInfo[];
 }

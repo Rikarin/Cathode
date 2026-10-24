@@ -44,6 +44,7 @@ import { UiStore } from '../state/ui.store';
 import { abbreviate } from './block-info';
 import { BlockPicker } from './block-picker';
 import { Cell, type Point, cablePath, canConnect, cellOrigin, gridSize, inlet, nearestCell, outlet } from './geometry';
+import { monoHintText, monoHints } from './mono-hint';
 
 interface GridCell {
   key: string;
@@ -229,6 +230,16 @@ export function dropAction(
                   [label]="title(block) + ' output level'"
                   [sources]="meterSources(block.id)"
                 />
+                @if (monoHint(block); as hint) {
+                  <span
+                    class="absolute right-1 bottom-3 rounded bg-amber-500/80 px-1 text-[9px] font-bold text-black"
+                    data-testid="mono-hint"
+                    role="img"
+                    [attr.title]="hint"
+                    [attr.aria-label]="hint"
+                    >MONO</span
+                  >
+                }
               </cth-block-tile>
             }
           } @else {
@@ -547,6 +558,25 @@ export class GridEditor {
       observer.disconnect();
       unregister();
     });
+  }
+
+  /** Mono-summing blocks with engaged stereo effects ahead of them (docs/08-blocks-parity.md §2). */
+  private readonly monoSources = computed(() =>
+    monoHints(
+      this.blocks(),
+      this.live.preset()?.cables ?? [],
+      (block, param) =>
+        this.live.valueOf(block, this.live.channelOf(block.id), param) ??
+        this.catalog.info(block.type)?.params.find(p => p.id === param)?.default ??
+        0,
+      block => this.live.isBypassed(block.id)
+    )
+  );
+
+  /** The marker's explanation, or null for a block that keeps the stereo it gets. */
+  protected monoHint(block: PresetBlock): string | null {
+    const sources = this.monoSources().get(block.id);
+    return sources ? monoHintText(sources, b => `${this.title(b)} (${b.id})`) : null;
   }
 
   protected title(block: PresetBlock): string {

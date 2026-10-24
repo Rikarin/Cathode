@@ -5,6 +5,9 @@ import {
   type GlobalSettings,
   MidiActions,
   type MidiActivity,
+  type OutputModes,
+  type OutputSettings,
+  type OversamplingModes,
   type SwitchAction
 } from '@cathode/api-client';
 import { CthKnob } from '@cathode/audio-ui';
@@ -49,7 +52,8 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
 }
 
 /**
- * Global settings: where the tempo comes from, the metronome, the global output EQ, and MIDI: the channel, mappings
+ * Global settings: where the tempo comes from, the metronome, the outputs (mode, global EQ and Boost/Pad each), Input 1
+ * Gain and the oversampling filters, and MIDI: the channel, mappings
  * (with MIDI learn and a live monitor) and footswitch layouts for generic MIDI foot controllers.
  */
 @Component({
@@ -204,8 +208,52 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
           </label>
         </section>
 
-        <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="eq-heading">
-          <h2 xuiHeading id="eq-heading" class="text-sm">Global output EQ</h2>
+        <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="outputs-heading">
+          <h2 xuiHeading id="outputs-heading" class="text-sm">Outputs</h2>
+          <p xuiText class="text-foreground-muted text-xs">
+            Each output has its own mode, global EQ and Boost/Pad, applied to every preset. Outputs 2-4 play what the
+            grid's Output 2-4 blocks get, on the device channels chosen in Setup.
+          </p>
+          <div class="flex flex-wrap items-end gap-6">
+            <div class="flex flex-col gap-1">
+              <span class="text-foreground-muted text-xs">Output</span>
+              <xui-segmented-control
+                size="sm"
+                aria-label="Output to edit"
+                [options]="outputOptions"
+                [value]="output()"
+                (valueChange)="output.set($event ?? 0)"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <span class="text-foreground-muted text-xs">Mode</span>
+              <xui-segmented-control
+                size="sm"
+                aria-label="Output mode"
+                [options]="modeOptions"
+                [value]="s.outputs[output()].mode"
+                (valueChange)="saveOutput(o => (o.mode = $event ?? 'stereo'))"
+              />
+            </div>
+            <cth-knob
+              label="Boost/Pad"
+              unit="dB"
+              [min]="-18"
+              [max]="18"
+              [defaultValue]="0"
+              [value]="s.outputs[output()].boostPad"
+              (committed)="saveOutput(o => (o.boostPad = $event))"
+            />
+            <label class="flex flex-col items-center gap-2">
+              <span class="text-foreground-muted text-xs">Copy Output 1 to 2</span>
+              <xui-switch
+                aria-label="Copy Output 1 to Output 2"
+                [checked]="s.copyOutput1To2"
+                (checkedChange)="save(g => (g.copyOutput1To2 = $event))"
+              />
+            </label>
+          </div>
+          <span class="text-foreground-muted text-xs">Output {{ output() + 1 }} global EQ</span>
           <div class="flex flex-wrap gap-4">
             @for (param of eqParams(); track param.id) {
               <cth-knob
@@ -215,11 +263,48 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                 [min]="param.min"
                 [max]="param.max"
                 [defaultValue]="param.default"
-                [value]="s.eq[param.id] ?? param.default"
-                (committed)="save(g => (g.eq[param.id] = $event))"
+                [value]="s.outputs[output()].eq[param.id] ?? param.default"
+                (committed)="saveOutput(o => (o.eq[param.id] = $event))"
               />
             }
           </div>
+          @if (s.copyOutput1To2) {
+            <xui-callout minimal compact color="primary">
+              Output 2 plays Output 1 (before Output 1's EQ and Boost/Pad) in presets without an Output 2 block.
+            </xui-callout>
+          }
+        </section>
+
+        <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="input-heading">
+          <h2 xuiHeading id="input-heading" class="text-sm">Input and oversampling</h2>
+          <div class="flex flex-wrap items-end gap-6">
+            <cth-knob
+              label="Input 1 Gain"
+              unit="dB"
+              [min]="-20"
+              [max]="20"
+              [defaultValue]="0"
+              [value]="s.inputs[0].gain"
+              (committed)="save(g => (g.inputs[0].gain = $event))"
+            />
+            <div class="flex flex-col gap-1">
+              <span class="text-foreground-muted text-xs">Oversampling (Amp, Drive, Dynamic Distortion)</span>
+              <xui-segmented-control
+                size="sm"
+                aria-label="Oversampling filters"
+                [options]="oversamplingOptions"
+                [value]="s.oversampling"
+                (valueChange)="save(g => (g.oversampling = $event ?? 'minimum'))"
+              />
+            </div>
+            <span class="text-foreground-muted text-xs">
+              Input 1 full scale: {{ s.inputs[0].fullScaleVolts.toFixed(2) }} V (calibrate in Setup)
+            </span>
+          </div>
+          <p xuiText class="text-foreground-muted text-xs">
+            Input 1 Gain trims what every preset gets, after the DI out. Minimum phase adds no latency; linear phase
+            delays every frequency alike, at about 2 ms more latency.
+          </p>
         </section>
 
         <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="midi-heading">
@@ -578,6 +663,18 @@ export class GlobalPage {
   protected readonly eqParams = computed(() =>
     (this.catalog.info('geq')?.params ?? []).filter(p => p.kind === 'float')
   );
+  protected readonly output = signal(0);
+  protected readonly outputOptions = [0, 1, 2, 3].map(k => ({ label: String(k + 1), value: k }));
+  protected readonly modeOptions: { label: string; value: (typeof OutputModes)[number] }[] = [
+    { label: 'Stereo', value: 'stereo' },
+    { label: 'Sum L+R', value: 'sum' },
+    { label: 'Copy L→R', value: 'copyLR' },
+    { label: 'Dual Mono', value: 'dualMono' }
+  ];
+  protected readonly oversamplingOptions: { label: string; value: (typeof OversamplingModes)[number] }[] = [
+    { label: 'Minimum phase', value: 'minimum' },
+    { label: 'Linear phase', value: 'linear' }
+  ];
   protected readonly activeLayout = computed(() => {
     const s = this.settings();
     return s?.footswitches.find(l => l.id === s.activeLayout) ?? null;
@@ -603,6 +700,12 @@ export class GlobalPage {
 
   protected save(change: (g: GlobalSettings) => void): void {
     void this.globals.update(change);
+  }
+
+  /** Changes the output being edited. */
+  protected saveOutput(change: (o: OutputSettings) => void): void {
+    const k = this.output();
+    this.save(g => change(g.outputs[k]));
   }
 
   protected removeMapping(id: string): void {

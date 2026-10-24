@@ -17,6 +17,11 @@ public static class IpcTypes {
     public const string SetMidi = "setMidi";
     public const string MidiOut = "midiOut";
 
+    /// <summary>The device's and the graph's latency (<see cref="LatencyReport" />).</summary>
+    public const string Latency = "latency";
+
+    /// <summary>Starts, retunes or stops the test tone in place of a block's output (Block, Enabled, Frequency, Level).</summary>
+    public const string TestTone = "testTone";
     /// <summary>
     ///     Turns the modifier on <c>Block</c>.<c>Param</c> on or off (<c>Enabled</c>): channel-scoped modifiers. Turning
     ///     it off restores the parameter to the value in <c>Params[0]</c>.
@@ -36,8 +41,22 @@ public static class IpcBlocks {
     /// <summary>The rig parameters (Cathode.Engine.Rig.RigControls): scene level, tempo, controllers, sources.</summary>
     public const string Rig = "rig";
 
-    /// <summary>The global output EQ.</summary>
+    /// <summary>Output 1's global EQ; Outputs 2-4 have <c>global2</c>..<c>global4</c> (<see cref="GlobalEq" />).</summary>
     public const string Global = "global";
+
+    /// <summary>The block id of output <paramref name="output" />'s (0-3) global EQ.</summary>
+    public static string GlobalEq(int output) => output == 0 ? Global : Global + (output + 1);
+
+    /// <summary>Which output's global EQ <paramref name="block" /> names (0-3), or −1.</summary>
+    public static int GlobalEqOutput(ReadOnlySpan<char> block) =>
+        !block.StartsWith(Global) ? -1
+        : block.Length == Global.Length ? 0
+        : block.Length == Global.Length + 1 && block[^1] is >= '2' and <= '4' ? block[^1] - '1'
+        : -1;
+
+    /// <summary>A rig or global EQ id: parameters that need no graph.</summary>
+    public static bool IsEngineWide(ReadOnlySpan<char> block) =>
+        block.SequenceEqual(Rig) || GlobalEqOutput(block) >= 0;
 }
 
 /// <summary>One envelope for every message, so the protocol stays a single source-generated type.</summary>
@@ -92,6 +111,15 @@ public sealed class IpcMessage {
 
     /// <summary>midi: messages received since the previous push.</summary>
     public List<MidiEventMessage>? Midi { get; set; }
+
+    /// <summary>testTone: the sine's frequency in hertz.</summary>
+    public double? Frequency { get; set; }
+
+    /// <summary>testTone: the sine's level in dBFS.</summary>
+    public float? Level { get; set; }
+
+    /// <summary>latency: the reply.</summary>
+    public LatencyReport? Latency { get; set; }
 
     public static IpcMessage Ok(long id) => new() { Type = IpcTypes.Ok, Id = id };
 
@@ -156,6 +184,12 @@ public sealed class HostTelemetry {
 
     public LooperStatus? Looper { get; set; }
 
+    /// <summary>
+    ///     Peak of each output since the previous push (Output 1, then Outputs 2-4; the larger of left and right, after
+    ///     the global EQ and Boost/Pad). Refilled in place.
+    /// </summary>
+    public float[] OutputPeaks { get; set; } = new float[4];
+
     /// <summary>The meters of blocks that have their own (the Cab's preamp input and Motor Drive), or null.</summary>
     public List<HostBlockMeters>? Blocks { get; set; }
 }
@@ -168,6 +202,20 @@ public sealed class HostBlockMeters {
 
     public float[] Values { get; set; } = [];
 }
+
+/// <summary>
+///     Where the time goes between the instrument and the speakers: the device's input and output latency as the
+///     driver reports it (each includes one buffer), the buffer itself, and the graph's latency along its longest path
+///     with the blocks on that path. Frames at <c>SampleRate</c>.
+/// </summary>
+public sealed record LatencyReport(
+    double SampleRate,
+    int BufferFrames,
+    int InputLatencyFrames,
+    int OutputLatencyFrames,
+    int GraphLatencyFrames,
+    List<LatencyStep> Path
+);
 
 /// <summary>A MIDI message as the host forwards it, timed on the engine's sample clock.</summary>
 public sealed record MidiEventMessage(int Status, int Data1, int Data2, long SampleTime, string? Port = null);

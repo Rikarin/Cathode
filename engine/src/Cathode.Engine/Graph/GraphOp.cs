@@ -16,7 +16,7 @@ public enum GraphOpKind {
     /// <summary>Run block slot <c>Index</c> in place on <c>Buffer</c>.</summary>
     Process,
 
-    /// <summary>Add <c>Buffer</c> into the engine output.</summary>
+    /// <summary>Add <c>Buffer</c> into engine output <c>Index</c> (0 = Output 1, 1-3 = Outputs 2-4).</summary>
     WriteOutput,
 
     /// <summary>Silence <c>Buffer</c> (a node whose inputs are all pruned, or a Feedback Return with none).</summary>

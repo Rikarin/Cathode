@@ -117,6 +117,7 @@ public sealed class HalfBandStage {
     readonly AllpassChain upOdd;
     readonly AllpassChain downEven;
     readonly AllpassChain downOdd;
+    LinearPhaseStage? linear;
 
     public HalfBandStage(double[] coefficients) : this(Split(coefficients)) { }
 
@@ -139,8 +140,33 @@ public sealed class HalfBandStage {
         coefficients.Where((_, i) => i % 2 == 1).Select(static c => (float)c).ToArray()
     );
 
+    /// <summary>The filters in use: the IIR design (the default) or a linear-phase FIR of the same band edges.</summary>
+    public OversamplingPhase Phase => linear is null ? OversamplingPhase.Minimum : OversamplingPhase.Linear;
+
+    /// <summary>
+    ///     Delay of an up and down round trip, in low-rate samples: 0 for the IIR filters (reported as none, as
+    ///     always), 2k for a linear-phase kernel.
+    /// </summary>
+    public int RoundTripLatency => linear is null ? 0 : 2 * linear.Kernel.K;
+
+    /// <summary>
+    ///     Control thread: switch to <paramref name="phase" />, with a linear-phase kernel for the band edges of
+    ///     <paramref name="transition" /> (as given to <see cref="HalfBand.Design" />). Clears the filter state.
+    /// </summary>
+    public void SetPhase(OversamplingPhase phase, double transition, double attenuationDb = Oversampler4x.AttenuationDb) {
+        linear = phase == OversamplingPhase.Linear
+            ? new(LinearPhaseKernel.For(attenuationDb, transition))
+            : null;
+        Reset();
+    }
+
     /// <summary>Writes 2 x <paramref name="input" />.Length samples to <paramref name="output" />.</summary>
     public void Up(ReadOnlySpan<float> input, Span<float> output) {
+        if (linear is not null) {
+            linear.Up(input, output);
+            return;
+        }
+
         for (var i = 0; i < input.Length; i++) {
             output[2 * i] = upEven.Process(input[i]);
             output[2 * i + 1] = upOdd.Process(input[i]);
@@ -149,6 +175,11 @@ public sealed class HalfBandStage {
 
     /// <summary>Reads 2 x <paramref name="output" />.Length samples from <paramref name="input" />.</summary>
     public void Down(ReadOnlySpan<float> input, Span<float> output) {
+        if (linear is not null) {
+            linear.Down(input, output);
+            return;
+        }
+
         for (var i = 0; i < output.Length; i++) {
             output[i] = 0.5f * (downEven.Process(input[2 * i + 1]) + downOdd.Process(input[2 * i]));
         }
@@ -159,6 +190,7 @@ public sealed class HalfBandStage {
         upOdd.Reset();
         downEven.Reset();
         downOdd.Reset();
+        linear?.Reset();
     }
 
     public void FlushDenormals() {
@@ -179,10 +211,15 @@ public sealed class Oversampler4x {
 
     // The first stage must keep the full audio band (transition starts near 20 kHz at 48 kHz); the second stage
     // only has to reject images of an already band-limited signal, so it can be much shorter.
-    static readonly double[] FirstStage = HalfBand.Design(AttenuationDb, 0.04);
-    static readonly double[] SecondStage = HalfBand.Design(AttenuationDb, 0.26);
+    static readonly double[] FirstStage = HalfBand.Design(AttenuationDb, FirstTransition);
+    static readonly double[] SecondStage = HalfBand.Design(AttenuationDb, SecondTransition);
     static readonly (float[], float[]) FirstBranches = HalfBandStage.Split(FirstStage);
     static readonly (float[], float[]) SecondBranches = HalfBandStage.Split(SecondStage);
+
+    /// <summary>The transition bands of the two stages.</summary>
+    public const double FirstTransition = 0.04;
+
+    public const double SecondTransition = 0.26;
 
     readonly HalfBandStage first = new(FirstBranches);
     readonly HalfBandStage second = new(SecondBranches);
@@ -190,6 +227,21 @@ public sealed class Oversampler4x {
     float[] four;
 
     public static int CoefficientCount => FirstStage.Length + SecondStage.Length;
+
+    /// <summary>The filters in use (<see cref="OversamplingPhase" />).</summary>
+    public OversamplingPhase Phase => first.Phase;
+
+    /// <summary>
+    ///     Delay of <see cref="Up" /> then <see cref="Down" /> in base-rate samples: the first stage's round trip plus the
+    ///     second's, which runs at twice the rate.
+    /// </summary>
+    public int LatencySamples => first.RoundTripLatency + second.RoundTripLatency / 2;
+
+    /// <summary>Control thread: choose the filters (clears their state).</summary>
+    public void SetPhase(OversamplingPhase phase) {
+        first.SetPhase(phase, FirstTransition);
+        second.SetPhase(phase, SecondTransition);
+    }
 
     public Oversampler4x(int maxBlockSize) {
         twice = new float[maxBlockSize * 2];

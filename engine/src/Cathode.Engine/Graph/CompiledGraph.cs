@@ -38,6 +38,7 @@ public sealed class CompiledGraph : IDisposable {
     readonly float fadeStep;
     readonly ModifierBinding[] modifiers;
     readonly ILooperBlock? looperBlock;
+    readonly bool[] outputs = new bool[NodeTypes.OutputCount];
     readonly float[] peaks;
 
     /// <summary>Identifies this graph; commands addressed to another generation are ignored.</summary>
@@ -71,6 +72,11 @@ public sealed class CompiledGraph : IDisposable {
     /// <summary>The RTA block's tap, when the graph has one: the engine sends what it holds to the analyser.</summary>
     public AnalyzerTap? Analyzer { get; }
 
+    /// <summary>The blocks on the longest input-to-output path, in order, with the latency each adds.</summary>
+    public IReadOnlyList<LatencyStep> LatencyPath { get; init; } = [];
+
+    /// <summary>The engine's test tone (the cab resonance helper), when the compiler was given one.</summary>
+    public TestTone? Tone { get; init; }
     /// <summary>
     ///     The graph's view of the hardware inputs, when the compiler had them and a block reads one: the engine fades it
     ///     out when the graph is replaced.
@@ -112,6 +118,11 @@ public sealed class CompiledGraph : IDisposable {
 
         slotByName = slotById.GetAlternateLookup<ReadOnlySpan<char>>();
         looperBlock = blocks.OfType<ILooperBlock>().FirstOrDefault();
+        foreach (var op in ops) {
+            if (op.Kind == GraphOpKind.WriteOutput) {
+                outputs[Math.Max(op.Index, 0)] = true;
+            }
+        }
 
         // Work buffers in native memory: pinned managed arrays would live on the pinned object heap, which only gen2
         // collections clean up, so every preset load would push the host towards a blocking gen2.
@@ -173,6 +184,9 @@ public sealed class CompiledGraph : IDisposable {
 
     public IDspBlock Block(int slot) => blocks[slot];
 
+    /// <summary>Whether the grid has a live node for output <paramref name="output" /> (0 = Output 1, 1-3 = Outputs 2-4).</summary>
+    public bool HasOutput(int output) => outputs[output];
+
     /// <summary>Audio thread: starts a new peak measurement for <see cref="BlockPeaks" />.</summary>
     public void ClearPeaks() => Array.Clear(peaks);
 
@@ -183,8 +197,11 @@ public sealed class CompiledGraph : IDisposable {
 
     public BypassKind BypassModeOf(int slot) => bypass[slot].Mode;
 
-    /// <summary>Audio thread: runs the plan for one block of at most <see cref="ProcessSpec.MaxBlockSize" /> frames.</summary>
-    public void Process(in AudioIO io, in BlockContext context) {
+    /// <summary>
+    ///     Audio thread: runs the plan for one block of at most <see cref="ProcessSpec.MaxBlockSize" /> frames. Output 1
+    ///     goes to <paramref name="io" />; Outputs 2-4 are added into <paramref name="outputs" /> (dropped without).
+    /// </summary>
+    public void Process(in AudioIO io, in BlockContext context, GraphOutputs? outputs = null) {
         var frames = io.Frames;
         io.OutputLeft.Clear();
         io.OutputRight.Clear();
@@ -210,10 +227,18 @@ public sealed class CompiledGraph : IDisposable {
                     break;
                 case GraphOpKind.Process:
                     RunBlock(op.Index, new(left, right), context);
+                    Tone?.Render(Generation, op.Index, left, right, Spec.SampleRate);
                     break;
-                case GraphOpKind.WriteOutput:
+                case GraphOpKind.WriteOutput when op.Index <= 0:
                     Accumulate(left, io.OutputLeft);
                     Accumulate(right, io.OutputRight);
+                    break;
+                case GraphOpKind.WriteOutput:
+                    if (outputs is not null) {
+                        Accumulate(left, outputs.Left(op.Index, frames));
+                        Accumulate(right, outputs.Right(op.Index, frames));
+                    }
+
                     break;
                 case GraphOpKind.Clear:
                     left.Clear();

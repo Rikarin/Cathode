@@ -66,7 +66,7 @@ namespace Cathode.Dsp.Blocks;
 ///         </item>
 ///     </list>
 /// </summary>
-public sealed class DriveBlock() : DspBlock(Info) {
+public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
     public const int Type = 0;
     public const int Drive = 1;
     public const int Tone = 2;
@@ -101,6 +101,9 @@ public sealed class DriveBlock() : DspBlock(Info) {
     public const int SlewRate = 32;
     public const int BitReduce = 33;
     public const int SampleRate = 34;
+
+    /// <summary>Oversampling: Global (each type's own factor), 1x, 2x or 4x. Changes the latency, so it recompiles.</summary>
+    public const int OversamplingSetting = 35;
 
     public const int EqOff = 0;
     public const int EqPre = 1;
@@ -160,6 +163,10 @@ public sealed class DriveBlock() : DspBlock(Info) {
     float midFrequency;
     int bitReduce;
     float decimateHz;
+    int latency; // what the block reports: its largest factor's round trip, fixed at Prepare
+    float[] padLeft = [];
+    float[] padRight = [];
+    int padAt;
 
     public static BlockDescriptor Info { get; } = new(
         "drive",
@@ -220,7 +227,10 @@ public sealed class DriveBlock() : DspBlock(Info) {
                 Decimator.RateOff,
                 "Hz",
                 ParamTaper.Log
-            )
+            ),
+            ParamDescriptor.Choice("oversampling", "Oversampling", ["Global", "1x", "2x", "4x"]) with {
+                Recompile = true
+            }
         ],
         maxInstances: 4
     );
@@ -230,6 +240,15 @@ public sealed class DriveBlock() : DspBlock(Info) {
 
     /// <summary>Disables oversampling, for measuring what it buys. Set before <see cref="IDspBlock.Prepare" />.</summary>
     public bool Oversample { get; set; } = true;
+
+    /// <summary>The oversamplers' filters (the global setting); set before <see cref="IDspBlock.Prepare" />.</summary>
+    public OversamplingPhase OversamplingPhase { get; set; }
+
+    /// <summary>
+    ///     The round trip of the largest factor the Oversampling setting allows (0 with minimum-phase filters). A type
+    ///     that runs at a smaller factor is delayed to match, so the latency never changes with the type.
+    /// </summary>
+    public override int LatencySamples => latency;
 
     /// <summary>The clipping curve of voicing <paramref name="type" /> under Clip Type <paramref name="clipType" />.</summary>
     public static ClipperShape ShapeOf(int type, int clipType) =>
@@ -275,14 +294,8 @@ public sealed class DriveBlock() : DspBlock(Info) {
     ///     interleaving two independent chains lets the core overlap them. Knobs are read once per sub-block of the grid.
     /// </summary>
     void ProcessCircuits(in StereoBuffer io, int type, DriveCircuit circuit) {
-        var oversampling = Oversample ? circuit.Oversampling : 1;
-        if (!ReferenceEquals(circuit, configured)) {
-            configured = circuit;
-            if (oversampling != factor) {
-                factor = oversampling; // the other factor's filters hold stale state
-                ResetOversamplers();
-            }
-        }
+        configured = circuit;
+        UseFactor(Desired(circuit.Oversampling));
 
         var rate = Spec.SampleRate;
         var innerRate = rate * factor;
@@ -397,12 +410,49 @@ public sealed class DriveBlock() : DspBlock(Info) {
         }
     }
 
-    /// <summary>The voicings' dry signal, through the 4x filters when the wet path is oversampled.</summary>
-    void CopyVoicingDry(ReadOnlySpan<float> samples, Span<float> dry, Oversampler4x four) {
-        samples.CopyTo(dry);
-        if (Oversample) {
-            four.Up(dry);
-            four.Down(dry); // same phase response as the processed path
+    /// <summary>The factor to run at: the Oversampling setting, or <paramref name="natural" /> (the type's own) on Global.</summary>
+    int Desired(int natural) =>
+        !Oversample ? 1 : (int)Params.GetTarget(OversamplingSetting) switch {
+            1 => 1,
+            2 => 2,
+            3 => 4,
+            _ => natural
+        };
+
+    void UseFactor(int wanted) {
+        if (wanted != factor) {
+            factor = wanted; // the other factor's filters hold stale state
+            ResetOversamplers();
+        }
+    }
+
+    /// <summary>The up/down round trip at <paramref name="oversampling" />, in samples.</summary>
+    int RoundTrip(int oversampling) =>
+        oversampling switch {
+            4 => dryLeft.LatencySamples,
+            2 => dryTwiceLeft.RoundTripLatency,
+            _ => 0
+        };
+
+    /// <summary>Delays the output by what the running factor's round trip falls short of <see cref="LatencySamples" />.</summary>
+    void Pad(in StereoBuffer io) {
+        var pad = latency - RoundTrip(factor);
+        if (pad <= 0) {
+            return;
+        }
+
+        var size = padLeft.Length;
+        for (var i = 0; i < io.Length; i++) {
+            padLeft[padAt] = io.Left[i];
+            padRight[padAt] = io.Right[i];
+            var read = padAt - pad;
+            if (read < 0) {
+                read += size;
+            }
+
+            io.Left[i] = padLeft[read];
+            io.Right[i] = padRight[read];
+            padAt = padAt + 1 == size ? 0 : padAt + 1;
         }
     }
 
@@ -443,6 +493,20 @@ public sealed class DriveBlock() : DspBlock(Info) {
         right.Allocate(spec.MaxBlockSize);
         dryLeft.Resize(spec.MaxBlockSize);
         dryRight.Resize(spec.MaxBlockSize);
+        if (dryLeft.Phase != OversamplingPhase) {
+            left.SetPhase(OversamplingPhase);
+            right.SetPhase(OversamplingPhase);
+            dryLeft.SetPhase(OversamplingPhase);
+            dryRight.SetPhase(OversamplingPhase);
+            dryTwiceLeft.SetPhase(OversamplingPhase, Oversampler4x.FirstTransition);
+            dryTwiceRight.SetPhase(OversamplingPhase, Oversampler4x.FirstTransition);
+        }
+
+        latency = RoundTrip(Desired(Factor));
+        if (padLeft.Length != latency + 1) {
+            padLeft = new float[latency + 1];
+            padRight = new float[latency + 1];
+        }
     }
 
     protected override void OnReset() {
@@ -463,9 +527,35 @@ public sealed class DriveBlock() : DspBlock(Info) {
         phase = 0;
         factor = Factor;
         configured = null;
+        Array.Clear(padLeft);
+        Array.Clear(padRight);
+        padAt = 0;
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        // The circuits are modelled in volts: the input calibration scales what they get, and the output comes back
+        // to the graph's units, so the drive follows the guitar and not the interface's gain.
+        var volts = (float)context.InputVolts;
+        if (volts != 1f) {
+            Scale(io, volts);
+        }
+
+        ProcessDrive(io);
+        if (volts != 1f) {
+            Scale(io, 1f / volts);
+        }
+
+        Pad(io);
+    }
+
+    static void Scale(in StereoBuffer io, float gain) {
+        for (var i = 0; i < io.Length; i++) {
+            io.Left[i] *= gain;
+            io.Right[i] *= gain;
+        }
+    }
+
+    void ProcessDrive(in StereoBuffer io) {
         var type = (int)Params.Current(Type);
         if (type >= CircuitTypes) {
             var circuit = DriveCircuits.Variant(
@@ -481,14 +571,11 @@ public sealed class DriveBlock() : DspBlock(Info) {
             configured = null;
             left.Circuit.Release(); // a circuit chosen again later starts discharged
             right.Circuit.Release();
-            if (factor != Factor) {
-                factor = Factor;
-                ResetOversamplers();
-            }
         }
 
+        UseFactor(Desired(Factor));
         var rate = Spec.SampleRate;
-        var innerRate = Oversample ? rate * Factor : rate;
+        var innerRate = rate * factor;
         var shape = ShapeOf(type, (int)Params.Current(ClipType));
         var drive = Params.Advance(Drive, io.Length);
         var toneValue = Params.Advance(Tone, io.Length);
@@ -519,13 +606,13 @@ public sealed class DriveBlock() : DspBlock(Info) {
         var rightDry = secondDry.AsSpan(0, io.Length);
         var blend = this.mix < 1f || mix < 1f;
         if (blend) {
-            CopyVoicingDry(io.Left, leftDry, dryLeft);
-            CopyVoicingDry(io.Right, rightDry, dryRight);
+            CopyDry(io.Left, leftDry, dryLeft, dryTwiceLeft);
+            CopyDry(io.Right, rightDry, dryRight, dryTwiceRight);
         }
 
         Pre(io);
-        left.Process(io.Left, Oversample, type, shape, this.gain, gain, pre, tone, dcBlock, Antialias, advanced);
-        right.Process(io.Right, Oversample, type, shape, this.gain, gain, pre, tone, dcBlock, Antialias, advanced);
+        left.Process(io.Left, factor, type, shape, this.gain, gain, pre, tone, dcBlock, Antialias, advanced);
+        right.Process(io.Right, factor, type, shape, this.gain, gain, pre, tone, dcBlock, Antialias, advanced);
         Post(io);
         if (blend) {
             MixRamp.Blend(leftDry, io.Left, MixLaw.ConstantPower, this.mix, mix);
@@ -572,6 +659,11 @@ public sealed class DriveBlock() : DspBlock(Info) {
             twice.Reset();
         }
 
+        public void SetPhase(OversamplingPhase phase) {
+            oversampler.SetPhase(phase);
+            twice.SetPhase(phase, Oversampler4x.FirstTransition);
+        }
+
         public void Reset() {
             oversampler.Reset();
             twice.Reset();
@@ -585,7 +677,7 @@ public sealed class DriveBlock() : DspBlock(Info) {
 
         public void Process(
             Span<float> samples,
-            bool oversample,
+            int factor,
             int type,
             ClipperShape shape,
             float fromGain,
@@ -596,7 +688,7 @@ public sealed class DriveBlock() : DspBlock(Info) {
             bool antialias,
             in Advanced advanced
         ) {
-            var inner = oversample ? oversampler.Up(samples) : samples;
+            var inner = Up(samples, factor);
             var step = (toGain - fromGain) / inner.Length;
             var bias = advanced.Bias;
             var offset =
@@ -629,11 +721,7 @@ public sealed class DriveBlock() : DspBlock(Info) {
                 inner[i] = y;
             }
 
-            if (oversample) {
-                oversampler.Down(samples);
-                oversampler.FlushDenormals();
-            }
-
+            Down(samples, factor);
             for (var i = 0; i < samples.Length; i++) {
                 samples[i] = (float)this.tone.Tick(tone, samples[i]);
             }

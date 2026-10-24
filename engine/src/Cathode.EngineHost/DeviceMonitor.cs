@@ -12,11 +12,21 @@ public interface IDeviceMonitor {
 
     /// <summary>Returns the window that just ended (overloads are cumulative) and starts a new one.</summary>
     DeviceWindow CloseWindow();
+
+    /// <summary>The device's input and output latency in frames, as the driver reports them (each with one buffer).</summary>
+    (int Input, int Output) Latency { get; }
 }
 
 /// <summary>Reads a <see cref="NativeAudioSession" />'s overload counter and native timing histogram.</summary>
 public sealed class NativeDeviceMonitor(NativeAudioSession session) : IDeviceMonitor {
     public long Overloads => session.Overloads;
+
+    public (int Input, int Output) Latency {
+        get {
+            var stats = session.Stats();
+            return (stats.InputLatencyFrames, stats.OutputLatencyFrames);
+        }
+    }
 
     public DeviceWindow CloseWindow() {
         var timing = session.Timing();

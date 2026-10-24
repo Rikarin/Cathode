@@ -34,8 +34,23 @@ public sealed class GlobalSettings {
     /// </summary>
     public bool CabModelingOff { get; set; }
 
-    /// <summary>The global output EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse.</summary>
-    public Dictionary<string, float> Eq { get; set; } = [];
+    /// <summary>
+    ///     Outputs 1-4 (docs/08-blocks-parity.md §2): each one's mode, Boost/Pad and global EQ. Always four, Output 1
+    ///     first.
+    /// </summary>
+    public List<OutputSettings> Outputs { get; set; } = [new(), new(), new(), new()];
+
+    /// <summary>Plays Output 1 on Output 2 as well, unless the preset has an Output 2 block of its own.</summary>
+    public bool CopyOutput1To2 { get; set; }
+
+    /// <summary>The interface inputs, Input 1 first: each one's calibration and gain trim.</summary>
+    public List<InputSettings> Inputs { get; set; } = [new()];
+
+    /// <summary>
+    ///     The oversamplers' filters in the Amp, Drive and Dynamic Distortion blocks: <c>minimum</c> (IIR, no added
+    ///     latency, the default) or <c>linear</c> (linear-phase FIR, a few milliseconds of latency).
+    /// </summary>
+    public string Oversampling { get; set; } = "minimum";
 
     /// <summary>Manual A-D (0..1): modifier sources a person or pedal sets, shared by every preset.</summary>
     public List<float> Manual { get; set; } = [0, 0, 0, 0];
@@ -80,6 +95,30 @@ public sealed class GlobalSettings {
 
     /// <summary>Whether editors ask before changing presets while the working copy has unsaved edits.</summary>
     public bool ConfirmPresetChange { get; set; } = true;
+}
+
+/// <summary>One of Outputs 1-4.</summary>
+public sealed class OutputSettings {
+    /// <summary><c>stereo</c>, <c>sum</c> (L+R on both), <c>copyLR</c> (left on the right too) or <c>dualMono</c>.</summary>
+    public string Mode { get; set; } = "stereo";
+
+    /// <summary>Level trim after the EQ, −18 to +18 dB.</summary>
+    public float BoostPad { get; set; }
+
+    /// <summary>The output's global EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse.</summary>
+    public Dictionary<string, float> Eq { get; set; } = [];
+}
+
+/// <summary>One interface input.</summary>
+public sealed class InputSettings {
+    /// <summary>
+    ///     The peak volts at the jack that reach 0 dBFS (default 1 V, how Cathode always read its input). The amp and
+    ///     drive models scale their input by it, so changing the interface's gain and this together keeps their drive.
+    /// </summary>
+    public float FullScaleVolts { get; set; } = 1f;
+
+    /// <summary>A trim applied to every preset ahead of the grid, −20 to +20 dB (Input 1 Gain).</summary>
+    public float Gain { get; set; }
 }
 
 /// <summary>

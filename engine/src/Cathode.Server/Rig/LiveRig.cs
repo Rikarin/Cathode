@@ -35,6 +35,7 @@ public sealed partial class LiveRig(
     bool dirty;
     int generation;
     string? coalesceKey;
+    string compiledOversampling = "minimum";
 
     /// <summary>
     ///     Scene Ignore: blocks whose live bypass and channel differ from the active scene's, because their channel
@@ -273,7 +274,7 @@ public sealed partial class LiveRig(
                     throw new RigException(400, "Cables connect a block to one in the next column.");
                 }
 
-                if (from.Type == BuiltInTypes.Output || to.Type == BuiltInTypes.Input) {
+                if (BuiltInTypes.IsOutput(from.Type) || to.Type == BuiltInTypes.Input) {
                     throw new RigException(
                         400,
                         "Cables run from an output side to an input side: nothing leaves an Output block or enters an Input block."
@@ -560,7 +561,10 @@ public sealed partial class LiveRig(
             }
         );
 
-    /// <summary>Everything the global settings put into the engine: tempo (global mode), metronome, Manual A-D, EQ.</summary>
+    /// <summary>
+    ///     Everything the global settings put into the engine: tempo (global mode), metronome, Manual A-D, the outputs'
+    ///     modes, Boost/Pad and EQs, and Input 1's gain and calibration.
+    /// </summary>
     public static List<ParamValue> GlobalValues(GlobalSettings global) {
         var values = new List<ParamValue> {
             new(IpcBlocks.Rig, "metronome", global.Metronome ? 1 : 0),
@@ -577,10 +581,20 @@ public sealed partial class LiveRig(
         values.AddRange(
             global.Manual.Take(4).Select(static (v, i) => new ParamValue(IpcBlocks.Rig, $"manual{(char)('A' + i)}", v))
         );
-        foreach (var param in GraphicEqBlock.Info.Params) {
-            values.Add(new(IpcBlocks.Global, param.Id, global.Eq.GetValueOrDefault(param.Id, param.Default)));
+        values.Add(new(IpcBlocks.Rig, "copyOut2", global.CopyOutput1To2 ? 1 : 0));
+        for (var k = 0; k < 4; k++) {
+            var output = k < global.Outputs.Count ? global.Outputs[k] : new();
+            var mode = Array.IndexOf(Api.GlobalValidation.OutputModes, output.Mode);
+            values.Add(new(IpcBlocks.Rig, $"out{k + 1}Mode", Math.Max(mode, 0)));
+            values.Add(new(IpcBlocks.Rig, $"out{k + 1}Level", output.BoostPad));
+            foreach (var param in GraphicEqBlock.Info.Params) {
+                values.Add(new(IpcBlocks.GlobalEq(k), param.Id, output.Eq.GetValueOrDefault(param.Id, param.Default)));
+            }
         }
 
+        var input = global.Inputs.Count > 0 ? global.Inputs[0] : new();
+        values.Add(new(IpcBlocks.Rig, "in1Gain", input.Gain));
+        values.Add(new(IpcBlocks.Rig, "in1Cal", (float)(20 * Math.Log10(Math.Max(input.FullScaleVolts, 1e-3f)))));
         return values;
     }
 
@@ -674,7 +688,9 @@ public sealed partial class LiveRig(
 
     async Task SyncGraphAsync() {
         generation++;
-        await engine.LoadGraphAsync(PresetGraph.Build(preset, activeScene, assets, held), generation);
+        var oversampling = globals.Get().Oversampling;
+        await engine.LoadGraphAsync(PresetGraph.Build(preset, activeScene, assets, held, oversampling), generation);
+        compiledOversampling = oversampling;
         engine.SetParams(generation, [..RigValues(), ..GlobalValues(globals.Get())]);
     }
 
@@ -811,6 +827,12 @@ public sealed partial class LiveRig(
     }
 
     string NextId(string type) {
+        // Outputs 2-4 are named like Output 1 (out1): out2, out3, out4.
+        if (type is BuiltInTypes.Output2 or BuiltInTypes.Output3 or BuiltInTypes.Output4
+            && preset.Blocks.All(b => b.Id != $"out{type[^1]}")) {
+            return $"out{type[^1]}";
+        }
+
         for (var n = 1;; n++) {
             var id = $"{type}{n}";
             if (preset.Blocks.All(b => b.Id != id)) {

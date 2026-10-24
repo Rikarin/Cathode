@@ -222,7 +222,7 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     [Fact]
     public async Task Global_settings_drive_the_output_eq_metronome_and_manual_and_are_validated() {
         await PutGlobal(g => {
-                g.Eq["g1k"] = 6;
+                g.Outputs[0].Eq["g1k"] = 6;
                 g.Metronome = true;
             }
         );

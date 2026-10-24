@@ -20,6 +20,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/system/latency': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The latency from instrument to speaker: the device's input and output latency, the buffer, and the graph's latency along its longest path, block by block. */
+    get: operations['GetLatency'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/assets/{reference}/metadata': {
     parameters: {
       query?: never;
@@ -1050,6 +1067,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/live/blocks/{id}/test-tone': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Plays a sine in place of the block's output (the cab resonance helper), or stops it. Nothing is stored in the preset, and loading another graph stops it. */
+    put: operations['SetTestTone'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/speaker-resonance': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** A Circuit Amp's speaker resonance: the frequency at LF Resonance 100 % for its model and speaker, the current setting and the frequency it gives. */
+    get: operations['GetSpeakerResonance'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/presets': {
     parameters: {
       query?: never;
@@ -1237,7 +1288,7 @@ export interface paths {
       cookie?: never;
     };
     get: operations['GetGlobal'];
-    /** Replaces the global settings: tempo mode, metronome, EQ, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover. */
+    /** Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover. */
     put: operations['PutGlobal'];
     post?: never;
     delete?: never;
@@ -1899,10 +1950,20 @@ export interface components {
        *     without changing the presets.
        */
       cabModelingOff: boolean;
-      /** @description The global output EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse. */
-      eq: {
-        [key: string]: number;
-      };
+      /**
+       * @description Outputs 1-4 (docs/08-blocks-parity.md §2): each one's mode, Boost/Pad and global EQ. Always four, Output 1
+       *     first.
+       */
+      outputs: components['schemas']['OutputSettings'][];
+      /** @description Plays Output 1 on Output 2 as well, unless the preset has an Output 2 block of its own. */
+      copyOutput1To2: boolean;
+      /** @description The interface inputs, Input 1 first: each one's calibration and gain trim. */
+      inputs: components['schemas']['InputSettings'][];
+      /**
+       * @description The oversamplers' filters in the Amp, Drive and Dynamic Distortion blocks: `minimum` (IIR, no added
+       *     latency, the default) or `linear` (linear-phase FIR, a few milliseconds of latency).
+       */
+      oversampling: string;
       /** @description Manual A-D (0..1): modifier sources a person or pedal sets, shared by every preset. */
       manual: number[];
       /**
@@ -1949,6 +2010,20 @@ export interface components {
       /** Format: int32 */
       assetsAdded: number;
       renamed: boolean;
+    };
+    /** @description One interface input. */
+    InputSettings: {
+      /**
+       * Format: float
+       * @description The peak volts at the jack that reach 0 dBFS (default 1 V, how Cathode always read its input). The amp and
+       *     drive models scale their input by it, so changing the interface's gain and this together keeps their drive.
+       */
+      fullScaleVolts: number;
+      /**
+       * Format: float
+       * @description A trim applied to every preset ahead of the grid, −20 to +20 dB (Input 1 Gain).
+       */
+      gain: number;
     };
     /** @description Mixes impulse responses into a new one (a Cab-Lab-style blend of mics or cabs), stored as a new asset. */
     IrMixRequest: {
@@ -2000,6 +2075,36 @@ export interface components {
        * @default false
        */
       invert: boolean;
+    };
+    /**
+     * @description Where the time goes, instrument to speaker: the device's input and output latency as its driver reports them
+     *     (each includes one buffer), the buffer itself, the graph's latency along its longest path (with the blocks on
+     *     it), and the total of the device and graph latencies.
+     */
+    LatencyInfo: {
+      connected: boolean;
+      /** Format: double */
+      sampleRate: number;
+      /** Format: int32 */
+      bufferFrames: number;
+      /** Format: int32 */
+      inputFrames: number;
+      /** Format: int32 */
+      outputFrames: number;
+      /** Format: int32 */
+      graphFrames: number;
+      path: components['schemas']['LatencyStepInfo'][];
+      /** Format: int32 */
+      totalFrames: number;
+      /** Format: double */
+      totalMs: number;
+    };
+    /** @description One block on the graph's longest path and the latency it adds, in frames. */
+    LatencyStepInfo: {
+      block: string;
+      type: string;
+      /** Format: int32 */
+      frames: number;
     };
     LinkGlobalRequest: {
       name?: null | string;
@@ -2064,6 +2169,20 @@ export interface components {
       from: number;
       /** Format: int32 */
       to: number;
+    };
+    /** @description One of Outputs 1-4. */
+    OutputSettings: {
+      /** @description `stereo`, `sum` (L+R on both), `copyLR` (left on the right too) or `dualMono`. */
+      mode: string;
+      /**
+       * Format: float
+       * @description Level trim after the EQ, −18 to +18 dB.
+       */
+      boostPad: number;
+      /** @description The output's global EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse. */
+      eq: {
+        [key: string]: number;
+      };
     };
     /**
      * @description A block parameter. `TypeLabels`, where present, names the parameter per value of the block's `type`
@@ -2347,6 +2466,18 @@ export interface components {
       /** Format: date-time */
       created: string;
     };
+    /**
+     * @description A Circuit Amp's speaker resonance: the model's (or the chosen speaker's) frequency at LF Resonance 100 %, the
+     *     LF Resonance setting, and the frequency it gives.
+     */
+    SpeakerResonanceInfo: {
+      /** Format: double */
+      baseHz: number;
+      /** Format: float */
+      percent: number;
+      /** Format: double */
+      hz: number;
+    };
     /** Format: binary */
     Stream: string;
     /** @description An action, with the same vocabulary as MidiMapping. */
@@ -2366,6 +2497,20 @@ export interface components {
     TempoRequest: {
       /** Format: double */
       bpm: number;
+    };
+    /** @description The cab resonance helper's sine, in place of a block's output: on or off, its pitch and level (dBFS). */
+    TestToneRequest: {
+      enabled: boolean;
+      /**
+       * Format: double
+       * @default 100
+       */
+      frequency: number;
+      /**
+       * Format: float
+       * @default -20
+       */
+      level: number;
     };
     /**
      * @description Learn a Tone Match: the Server listens to the rig's output for `Seconds` while you play, compares it with the
@@ -2422,6 +2567,26 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['SystemInfo'];
+        };
+      };
+    };
+  };
+  GetLatency: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LatencyInfo'];
         };
       };
     };
@@ -4001,6 +4166,52 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['BlockPreset'][];
+        };
+      };
+    };
+  };
+  SetTestTone: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TestToneRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  GetSpeakerResonance: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SpeakerResonanceInfo'];
         };
       };
     };
