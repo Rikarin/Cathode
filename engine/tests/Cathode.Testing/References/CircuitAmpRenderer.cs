@@ -91,6 +91,7 @@ public sealed class CircuitAmpRenderer : IDisposable {
             }
         }
 
+        block.Refresh(); // as a host does after setting parameters: builds the type's channel (control thread)
         block.Reset();
     }
 }
