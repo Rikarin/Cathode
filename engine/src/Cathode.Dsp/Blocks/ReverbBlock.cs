@@ -157,6 +157,12 @@ public sealed class ReverbBlock : DspBlock {
         [41.3f, 53.9f, 61.7f, 71.9f, 83.3f, 89.9f, 97.3f, 107.1f, 47.9f, 57.7f, 66.1f, 77.3f, 86.1f, 93.7f, 101.9f, 111.3f] // Cathedral
     ];
 
+    /// <summary>The longest <see cref="LineMs" /> entry (Cathedral's), which sizes the lines.</summary>
+    const float LongestLineMs = 111.3f;
+
+    /// <summary>The longest <see cref="EarlyMs" /> entry (Cathedral's last tap), which sizes the reflection line.</summary>
+    const float LongestEarlyMs = 117.7f;
+
     /// <summary>The lines Economy quality keeps, spread across the Normal set.</summary>
     static readonly int[] EconomyLines = [0, 2, 5, 7];
 
@@ -172,8 +178,8 @@ public sealed class ReverbBlock : DspBlock {
 
     readonly DelayBuffer preDelay = new();
     readonly Allpass[] diffusers = [new(), new(), new(), new()];
-    readonly DelayBuffer[] lines = [..Enumerable.Range(0, MaxLines).Select(static _ => new DelayBuffer())];
-    readonly ReverbLine[] walls = [..Enumerable.Range(0, MaxLines).Select(static _ => new ReverbLine())];
+    readonly LineBank lines = new(MaxLines);
+    readonly LineBank walls = new(MaxLines);
     readonly float[] lengths = new float[MaxLines];
     readonly float[] wallLengths = new float[MaxLines];
     readonly float[] gains = new float[MaxLines];
@@ -186,8 +192,7 @@ public sealed class ReverbBlock : DspBlock {
     readonly float[] readLengths = new float[MaxLines];
     readonly float[] signLeft = new float[MaxLines];
     readonly float[] signRight = new float[MaxLines];
-    readonly DelayBuffer[] slots = new DelayBuffer[MaxLines];
-    readonly ReverbLine[] wallSlots = new ReverbLine[MaxLines];
+    readonly int[] slots = new int[MaxLines];
     readonly ReverbLine early = new();
     readonly ReverbLine[] earlyDiffusers = [new(), new(), new(), new()];
     readonly float[] earlyDiffuserLengths = new float[4];
@@ -342,17 +347,9 @@ public sealed class ReverbBlock : DspBlock {
             diffusers[i].Allocate((int)(DiffuserMs[i] * MaxInputDiffusionTime * 0.001 * rate) + 2);
         }
 
-        var longest = LineMs.Max(static l => l.Max());
-        foreach (var line in lines) {
-            line.Allocate((int)((longest * MaxSizeScale + ModulationMs * MaxModDepth * 2) * 0.001 * rate) + 4);
-        }
-
-        foreach (var w in walls) {
-            w.Allocate((int)(longest * MaxSizeScale * MaxWallFraction * 0.001 * rate) + 4);
-        }
-
-        var earliest = EarlyMs.Max(static l => l.Max());
-        early.Allocate((int)(earliest * MaxSizeScale * MaxEarlyTimeScale * 0.001 * rate) + 4);
+        lines.Allocate((int)((LongestLineMs * MaxSizeScale + ModulationMs * MaxModDepth * 2) * 0.001 * rate) + 4);
+        walls.Allocate((int)(LongestLineMs * MaxSizeScale * MaxWallFraction * 0.001 * rate) + 4);
+        early.Allocate((int)(LongestEarlyMs * MaxSizeScale * MaxEarlyTimeScale * 0.001 * rate) + 4);
         for (var i = 0; i < earlyDiffusers.Length; i++) {
             earlyDiffuserLengths[i] = EarlyDiffuserMs[i] * 0.001f * (float)rate;
             earlyDiffusers[i].Allocate((int)earlyDiffuserLengths[i] + 4);
@@ -404,14 +401,8 @@ public sealed class ReverbBlock : DspBlock {
                 diffuser.Dispose();
             }
 
-            foreach (var line in lines) {
-                line.Dispose();
-            }
-
-            foreach (var w in walls) {
-                w.Dispose();
-            }
-
+            lines.Dispose();
+            walls.Dispose();
             early.Dispose();
             foreach (var diffuser in earlyDiffusers) {
                 diffuser.Dispose();
@@ -714,14 +705,8 @@ public sealed class ReverbBlock : DspBlock {
             diffuser.Clear();
         }
 
-        foreach (var line in lines) {
-            line.Clear();
-        }
-
-        foreach (var w in walls) {
-            w.Clear();
-        }
-
+        lines.Clear();
+        walls.Clear();
         Array.Clear(damping);
         Array.Clear(lowStates);
         Array.Clear(highStates);
@@ -770,8 +755,7 @@ public sealed class ReverbBlock : DspBlock {
         // Per-line settings in the order the lines run (slot p holds line i), so the per-sample loop reads them in turn.
         for (var p = 0; p < lineCount; p++) {
             var i = quality == 0 ? EconomyLines[p] : p;
-            slots[p] = lines[i];
-            wallSlots[p] = walls[i];
+            slots[p] = i;
             signLeft[p] = LeftSigns[i];
             signRight[p] = RightSigns[i];
             lengths[p] = LineMs[row][i] * scale * 0.001f * rate;
@@ -856,9 +840,9 @@ public sealed class ReverbBlock : DspBlock {
         float sum = 0;
         for (var p = 0; p < lineCount; p++) {
             var length = readLengths[p] + (p == first ? modulation + modDepth : p == second ? modDepth + opposite : 0f);
-            var y = slots[p].Read(length);
+            var y = lines.Read(slots[p], length);
             if (wall) {
-                y = wallSlots[p].Allpass(y, wallLengths[p], wallGain);
+                y = walls.Allpass(slots[p], y, wallLengths[p], wallGain);
             }
 
             var v = y + (damping[p] - y) * damp;
@@ -881,12 +865,76 @@ public sealed class ReverbBlock : DspBlock {
         float wetLeft = 0, wetRight = 0;
         for (var p = 0; p < lineCount; p++) {
             var value = outputs[p] - reflection + x * injection;
-            slots[p].Write(stack ? Limit(value) : value);
+            lines.Write(slots[p], stack ? Limit(value) : value);
             wetLeft += outputs[p] * signLeft[p];
             wetRight += outputs[p] * signRight[p];
         }
 
         return (wetLeft * outputGain, wetRight * outputGain);
+    }
+
+    /// <summary>
+    ///     Equal-length circular lines in one native buffer (one object for all the network's lines, so a preset load
+    ///     allocates little). Reads match <see cref="DelayBuffer" />; the allpass matches <see cref="ReverbLine" />.
+    /// </summary>
+    sealed class LineBank(int count) : IDisposable {
+        readonly int[] writes = new int[count];
+        NativeBuffer buffer = NativeBuffer.Empty;
+        int length = 1;
+
+        public void Allocate(int lineLength) {
+            buffer.Dispose();
+            length = lineLength;
+            buffer = new(count * lineLength);
+            Array.Clear(writes);
+        }
+
+        public void Clear() {
+            buffer.Clear();
+            Array.Clear(writes);
+        }
+
+        public void Dispose() => buffer.Dispose();
+
+        /// <summary>A linear fractional read <paramref name="delay" /> samples back (1 = the most recent write).</summary>
+        public float Read(int line, float delay) {
+            var position = writes[line] - delay;
+            var index = (int)MathF.Floor(position);
+            var frac = position - index;
+            var a = At(line, index);
+            var b = At(line, index + 1);
+            return a + (b - a) * frac;
+        }
+
+        public void Write(int line, float value) {
+            ref var write = ref writes[line];
+            buffer[line * length + write] = MathF.Abs(value) < 1e-20f ? 0f : value;
+            if (++write == length) {
+                write = 0;
+            }
+        }
+
+        /// <summary>A Schroeder allpass of fractional length <paramref name="delay" /> on line <paramref name="line" />.</summary>
+        public float Allpass(int line, float value, float delay, float gain) {
+            var whole = (int)delay;
+            var frac = delay - whole;
+            var a = Tap(line, whole);
+            var b = Tap(line, whole + 1);
+            var delayed = a + (b - a) * frac;
+            var node = value + gain * delayed;
+            Write(line, node);
+            return delayed - gain * node;
+        }
+
+        float Tap(int line, int delay) {
+            var index = writes[line] - delay;
+            return buffer[line * length + (index < 0 ? index + length : index)];
+        }
+
+        float At(int line, int index) {
+            index %= length;
+            return buffer[line * length + (index < 0 ? index + length : index)];
+        }
     }
 
     /// <summary>Circular buffer with a fractional (linear) read behind the most recent write.</summary>
