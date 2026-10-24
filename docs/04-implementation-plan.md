@@ -36,7 +36,7 @@ Each spike is a throwaway prototype with a written result in `docs/adr/`.
 ## Phase 1: engine core (4–6 weeks) — *in progress*
 
 - [x] Solution scaffold per [02 §3](02-architecture.md#3-repository-layout); CI on Windows, macOS and Linux (GitHub Actions); `Directory.Build.props` with analyzers and `TreatWarningsAsErrors`
-- [ ] Audio backends: **Offline** ✅, **Null** ✅, **Native** ✅ macOS CoreAudio (Windows and Linux still stubs)
+- [ ] Audio backends: **Offline** ✅, **Null** ✅, **Native** ✅ macOS CoreAudio, ✅ Windows WASAPI (ASIO and Linux still to do)
 - [x] `Cathode.Testing` analysis toolkit ([03 §2](03-testing-strategy.md#2-the-analysis-toolkit-build-this-first)) and the `cathode-render` CLI (the `Cathode.Analyze` CLI is still to do)
 - [x] `IDspBlock` contract, `ParamBank` + smoothers, `BlockDescriptor` + catalogue registry
 - [x] Grid model → DAG → **graph compiler**: topological sort, buffer colouring, implicit mixers, latency compensation
@@ -187,7 +187,7 @@ Ordered by value to a guitarist:
   - Editor: right-click any knob to open the modifier dialog with a curve preview. A Controllers page holds every setting.
 - [x] **Tempo:** preset, global or MIDI clock (24 ppqn, averaged in the host). Tap tempo is sample-accurate (MIDI timestamps become engine sample times), and a tapped tempo is taken back into the preset.
 - [x] **MIDI:**
-  - The native shim reads CoreMIDI on macOS. Windows and Linux are stubs, like their audio backends.
+  - The native shim reads CoreMIDI on macOS and WinMM on Windows. Linux is a stub, like its audio backend.
   - Mappings (CC, note or PC) cover scene, preset slot or next/previous, bypass, channel, External, Manual, tap, tuner, metronome and the looper. Actions run strictly in arrival order.
   - MIDI learn works from the Global page or from any knob ("Learn MIDI controller" binds a free External source). There is a live monitor.
 - [x] **Footswitch layouts:** tap and hold (500 ms) actions per switch, LED feedback (CC or note, 127/0, sent only on change), and an editor on the Global page.

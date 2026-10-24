@@ -22,7 +22,7 @@ public static unsafe class NativeAudio {
     /// <summary>True when the native library is present and has a device backend for this platform.</summary>
     public static bool IsAvailable => IsLibraryPresent && Backend != "none";
 
-    /// <summary>"coreaudio", or "none" on platforms whose backend isn't written yet.</summary>
+    /// <summary>"coreaudio", "wasapi", or "none" on platforms whose backend isn't written yet.</summary>
     public static string Backend => Marshal.PtrToStringUTF8((nint)Backend()) ?? "none";
 
     public static IReadOnlyList<AudioDeviceInfo> Devices() {

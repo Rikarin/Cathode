@@ -1,6 +1,6 @@
 # ADR-0002: Native audio shim with a planar C ABI (spike S1, macOS)
 
-- **Status:** accepted for macOS. Windows (ASIO/WASAPI) and Linux (JACK) still need their spikes.
+- **Status:** accepted for macOS. Windows has a WASAPI backend (see [Windows](#windows-wasapi)); ASIO and Linux (JACK) still need their spikes.
 - **Date:** 2026-10-23
 - **Spikes:** S1 (native audio shim) and S5 (FTZ/DAZ), from [04-implementation-plan.md](../04-implementation-plan.md#phase-0-feasibility-spikes-34-weeks--answer-the--items-before-committing)
 
@@ -42,9 +42,21 @@ Managed side: `Cathode.Audio.Native` (`LibraryImport` bindings, `NativeAudioSess
 3. **The interface dominates latency.** The ProFX, a class-compliant USB mixer, adds about 248 frames (5.2 ms) of fixed converter, USB and safety latency. Even at 32 samples the reported round trip is 6.5 ms. The < 6 ms target in the architecture needs a pro interface with low fixed latency, as the plan's hardware rig assumed. This should be stated in user docs, and the editor's audio setup page should show the reported round trip.
 4. **FTZ works from the shim.** `cth_fpu_flush_denormals` sets FPCR.FZ on ARM64 (MXCSR FTZ|DAZ on x86). A unit test shows a subnormal product becomes 0 on a flushed thread. Blocks keep their explicit state flushing as a second line of defence.
 
+## Windows (WASAPI)
+
+`cth_audio_wasapi.c` implements the same ABI, and `cth_midi_winmm.c` the MIDI half:
+- A cth device is a **render endpoint paired with a capture endpoint** of the same hardware (same container id, the default capture endpoint first). A uid `"<render id>|<capture id>"` pairs any two, `"<render id>|"` opens no input, and NULL opens the default render and capture endpoints.
+- Each endpoint opens **exclusive event-driven** when the device allows it, else shared: IAudioClient3's small engine periods at the mix rate, then the classic shared stream (the capture side converts if it must follow another rate). `CTH_WASAPI_SHARED=1` skips exclusive mode so other applications keep playing.
+- One MMCSS "Pro Audio" thread waits on both events. Capture goes through a FIFO primed with one period (counted in the reported input latency); each render event calls the managed callback in chunks of at most one period.
+- Overloads count capture discontinuities, FIFO underruns and overflows, a shared render buffer that ran dry, and 2 s without a device event.
+- MIDI uids are `in:`/`out:` + port name + `#n` (WinMM numbers ports by position, which shifts on hot-plug); events are timestamped on the QueryPerformanceCounter clock.
+
+Verified on Windows 11 x64 over Remote Desktop, whose only endpoint is "Remote Audio" (shared mode only, 10 ms periods, no input): 100 callbacks/s at 480 frames and 48 kHz as expected, 0 overloads, the NativeAOT host at ≤ 2 % of budget, `--self-test` and `--serve` working. Exclusive mode, duplex and the latency test still need a machine with a local interface.
+
 ## Still open
 
 - A **physical** loopback measurement on a real interface (ProFX or better), to compare its reported latency with what is measured.
 - **S2:** callback timing under REST and GC load. This is the process-split decision, ADR-0001.
-- Windows backend (ASIO under GPLv3 plus WASAPI) and Linux backend (JACK/PipeWire). The library currently builds as a stub on both, so the managed code and CI work there.
+- Windows: exclusive mode, duplex and a loopback latency measurement on a local interface; **ASIO** (needs the Steinberg SDK, under GPLv3).
+- Linux backend (JACK/PipeWire). The library builds as a stub there, so the managed code and CI work.
 - Device hot-plug, sample-rate change notifications, and aggregate devices (separate input and output devices).

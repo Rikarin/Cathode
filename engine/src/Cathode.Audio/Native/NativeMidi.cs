@@ -13,7 +13,7 @@ public readonly record struct MidiMessage(ulong TimeNs, byte Status, byte Data1,
 }
 
 /// <summary>
-///     MIDI through the <c>cth_audio</c> shim (CoreMIDI on macOS; other platforms report no ports yet). Input from every
+///     MIDI through the <c>cth_audio</c> shim (CoreMIDI on macOS, WinMM on Windows; Linux reports no ports yet). Input from every
 ///     source is queued natively; <see cref="Read" /> drains it from one thread.
 /// </summary>
 public static unsafe partial class NativeMidi {
