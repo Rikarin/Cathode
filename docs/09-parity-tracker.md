@@ -7,7 +7,7 @@
 - the Axe-Fx III amp list (FW 12.05);
 - the Fractal wiki pages *Amp models*, *Presets*, *Editors*, *Audio I/O and amplification* and *Cab block* (October 2026).
 
-**Status date:** 24 October 2026, round 3 in progress (T, PS, PA, CB, M1, M2 merged and audited) (streams T, M1, M2, PA, PB, PS, ED, IO, CB).
+**Status date:** 24 October 2026, round 3 in progress (T, PS, PA, CB, M1, M2, ED merged and audited; IO and PB merging) (streams T, M1, M2, PA, PB, PS, ED, IO, CB).
 
 ## How to audit
 
@@ -132,27 +132,27 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| ED1 | Shortcuts: presets (P, ⌘PgUp/PgDn, ⌘G, F5), scenes (⌘1–8), channels (A–D, X) | ⬜ | | |
-| ED2 | Shortcuts: blocks (Space, ⇧Space, ⇧⌘Space, ⌘X, ⌘D, ⌘U, ⌘B, G, Q, ⌥/F1), ⌘T, ⌘Y | ⬜ | | ⌘I / ⌘L hook into PS |
-| ED3 | `?` help overlay listing every shortcut | ⬜ | | |
-| ED4 | Preferences: knob mode (linear/circular), wheel (normal/reverse/off), tooltips, meter refresh | ⬜ | | |
-| ED5 | Revert preset; Clear preset | ⬜ | | |
-| ED6 | Snapshots (timestamped, server-side, load/delete) | ⬜ | | |
-| ED7 | Templates: New from template, Save as template | ⬜ | | |
-| ED8 | Replace block type keeping cables | ⬜ | | |
-| ED9 | Drag-onto swap, ⌘-drag replace; move row / column | ⬜ | | |
-| ED10 | Cut; paste onto same-type block copies settings; disconnect all cables | ⬜ | | |
-| ED11 | All-scenes actions: channel, engage, bypass | ⬜ | | |
-| ED12 | Block Info view; amps-in-use summary | ⬜ | | |
-| ED13 | Circuit Amp Ideal / Authentic view | ⬜ | | |
-| ED14 | Library: single channel or whole block (with modifiers); recall into channel or all | ⬜ | | |
-| ED15 | Library: folders, file export/import, drag-and-drop, save all blocks of a preset | ⬜ | | |
-| ED16 | Manage Presets / IRs: multi-select, drag swap/move/copy, pending changes until Save, duplicate/rename/delete | ⬜ | | |
-| ED17 | Reset Amp blocks on selected presets (keeps the real amp's panel controls) | ⬜ | | |
-| ED18 | Parameter Batch Set | ⬜ | | |
-| ED19 | Pickers: colour tags / favourites, keyboard search, pin | ⬜ | | |
-| ED20 | Performance pages: global and per-preset | ⬜ | | |
-| ED21 | Footswitches: layout links, views, per-preset overrides | ⬜ | | |
+| ED1 | Shortcuts: presets (P, ⌘PgUp/PgDn, ⌘G, F5), scenes (⌘1–8), channels (A–D, X) | ✅ | shortcuts.spec (finds the command…, maps each binding…, leaves the menu accelerators alone); E2E step to the next channel | channel B is ⇧B (B stays bypass) |
+| ED2 | Shortcuts: blocks (Space, ⇧Space, ⇧⌘Space, ⌘X, ⌘D, ⌘U, ⌘B, G, Q, ⌥/F1), ⌘T, ⌘Y | ✅ | shortcuts.spec; E2E "? lists the shortcuts, and the block shortcuts bypass, replace, cut and paste" | ⌘L opens Preset Leveling, ⌘I resets the channel (PS endpoints) |
+| ED3 | `?` help overlay listing every shortcut | ✅ | E2E above (now a tab of Settings) | the overlay became the Keyboard shortcuts tab of Settings (⌘, / ?), checked in the browser |
+| ED4 | Preferences: knob mode (linear/circular), wheel (normal/reverse/off), tooltips, meter refresh | ✅ | preferences spec; audio-ui knob and meter preferences; E2E preferences test | now the Preferences tab of Settings |
+| ED5 | Revert preset; Clear preset | ◐ | Revert_goes_back_to_the_saved_version_and_can_be_undone; Clear_empties_the_grid_and_the_name_but_keeps_the_id | menu items seen in the browser; UI not driven in the running editor |
+| ED6 | Snapshots (timestamped, server-side, load/delete) | ✅ | Snapshots_keep_unsaved_edits_and_load_list_and_delete; E2E a snapshot keeps unsaved edits and loads back | Snapshots dialog opened in the browser |
+| ED7 | Templates: New from template, Save as template | ◐ | Templates_are_saved_and_start_new_presets | UI not driven in the running editor |
+| ED8 | Replace block type keeping cables | ✅ | Replacing_a_block_keeps_its_cell_and_cables; E2E Q-replace step |  |
+| ED9 | Drag-onto swap, ⌘-drag replace; move row / column | ◐ | Dropping_swaps_two_blocks_with_the_wiring_in_place_or_replaces_the_target; A_row_moves_with_its_cables_and_a_column_shifts_the_ones_between | moving a column drops cables that end up joining non-adjacent columns; drag-to-swap not driven in E2E |
+| ED10 | Cut; paste onto same-type block copies settings; disconnect all cables | ✅ | Pasting_settings_replaces_every_channel_of_a_same_type_block; Disconnect_removes_every_cable_of_a_block; E2E cut and paste |  |
+| ED11 | All-scenes actions: channel, engage, bypass | ✅ | All_scene_actions_set_the_channel_and_bypass_in_every_scene; E2E ⇧Space |  |
+| ED12 | Block Info view; amps-in-use summary | ✅ | Block Info specs; E2E F1 step |  |
+| ED13 | Circuit Amp Ideal / Authentic view | ◐ | labelledParams › shows every control in the Ideal view… | toggle UI not driven in the running editor |
+| ED14 | Library: single channel or whole block (with modifiers); recall into channel or all | ◐ | Whole_block_entries_recall_every_channel_with_modifiers_and_travel_as_files | UI not driven in the running editor |
+| ED15 | Library: folders, file export/import, drag-and-drop, save all blocks of a preset | ◐ | same server test; folder spec | drag-and-drop not run |
+| ED16 | Manage Presets / IRs: multi-select, drag swap/move/copy, pending changes until Save, duplicate/rename/delete | ◐ | Manage Presets › (5); Manage IRs › holds renames…; metadata server tests | Manage IRs has no drag or duplicate (content-addressed IRs); page UI not driven in the running editor |
+| ED17 | Reset Amp blocks on selected presets (keeps the real amp's panel controls) | ◐ | Reset_amp_blocks_keeps_the_front_panel_and_resets_the_expert_settings | button UI not driven in the running editor |
+| ED18 | Parameter Batch Set | ◐ | Batch_set_writes_one_parameter_into_the_matching_block_of_each_preset | UI not driven in the running editor |
+| ED19 | Pickers: colour tags / favourites, keyboard search, pin | ◐ | pickers specs; metadata server tests | UI not driven in the running editor |
+| ED20 | Performance pages: global and per-preset | ◐ | Performance_pages_live_in_the_preset_and_in_global; performance pages specs | UI not driven in the running editor |
+| ED21 | Footswitches: layout links, views, per-preset overrides | ◐ | Footswitch_views_links_and_preset_overrides_change_what_a_switch_does; footswitch specs | Global page editor UI not driven in the running editor |
 
 ## IO: audio inputs and outputs (wiki *Audio I/O and amplification*)
 
