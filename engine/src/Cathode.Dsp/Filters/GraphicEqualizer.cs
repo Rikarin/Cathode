@@ -9,9 +9,17 @@ namespace Cathode.Dsp.Filters;
 /// <param name="Q">The bands' Q at a Master Q of 1.</param>
 /// <param name="Passive">
 ///     A passive-style layout: broad bands whose Q follows the gain, and shelves at both ends, whatever the Q mode and
-///     shelf switch say.
+///     shelf switch say (the approximation, where the component-level network is not run).
 /// </param>
-public sealed record GraphicEqLayout(string Name, float[] Centers, string[] Labels, float Q, bool Passive = false) {
+/// <param name="Network">The component-level network a <see cref="GraphicEqualizer" /> built with networks runs instead.</param>
+public sealed record GraphicEqLayout(
+    string Name,
+    float[] Centers,
+    string[] Labels,
+    float Q,
+    bool Passive = false,
+    PassiveNetwork Network = PassiveNetwork.None
+) {
     public int Count => Centers.Length;
 }
 
@@ -23,11 +31,11 @@ public sealed record GraphicEqLayout(string Name, float[] Centers, string[] Labe
 ///     as on an analogue graphic. A flat band costs nothing, so a flat EQ is bit-transparent.
 /// </summary>
 /// <remarks>
-///     The passive layouts (Mark, 5-, 4- and 3-band, console) are approximations by broad, overlapping bands and end
-///     shelves at the usual centres of those networks, not component-level models of them: neighbouring bands interact as
-///     their skirts overlap, but a cut does not change the other bands' corners as a real passive network would.
+///     The passive layouts (Mark, 5-, 4- and 3-band, console) run their component-level networks
+///     (<see cref="PassiveGraphicEq" />) in an equaliser built with them (the Graphic EQ block). Elsewhere (the amp's
+///     output EQ) they are approximated by broad, overlapping bands and end shelves at those networks' centres.
 /// </remarks>
-public sealed class GraphicEqualizer {
+public sealed class GraphicEqualizer(bool networks = false) {
     public const int MaxBands = 10;
 
     /// <summary>Q of an octave-wide band.</summary>
@@ -40,6 +48,7 @@ public sealed class GraphicEqualizer {
     const float PassiveQ = 0.7f;
 
     readonly EqBand[] bands = [..Enumerable.Range(0, MaxBands).Select(static _ => new EqBand())];
+    readonly PassiveGraphicEq? passive = networks ? new() : null;
     int layout = -1;
 
     /// <summary>The layouts, in parameter order. The first is the classic ten-band octave EQ.</summary>
@@ -69,11 +78,46 @@ public sealed class GraphicEqualizer {
             OctaveQ
         ),
         new("5 Band", [100f, 300f, 1_000f, 3_000f, 8_000f], ["100", "300", "1k", "3k", "8k"], 1f),
-        new("5 Band Mark", [80f, 240f, 750f, 2_200f, 6_600f], ["80", "240", "750", "2.2k", "6.6k"], PassiveQ, true),
-        new("5 Band Passive", [100f, 400f, 1_000f, 3_000f, 8_000f], ["100", "400", "1k", "3k", "8k"], PassiveQ, true),
-        new("4 Band Passive", [100f, 700f, 2_500f, 6_000f], ["Bass", "Middle", "Treble", "Presence"], PassiveQ, true),
-        new("3 Band Passive", [100f, 700f, 3_000f], ["Bass", "Middle", "Treble"], PassiveQ, true),
-        new("3 Band Console", [100f, 1_000f, 10_000f], ["Low", "Mid", "High"], PassiveQ, true)
+        new(
+            "5 Band Mark",
+            [80f, 240f, 750f, 2_200f, 6_600f],
+            ["80", "240", "750", "2.2k", "6.6k"],
+            PassiveQ,
+            true,
+            PassiveNetwork.Mark
+        ),
+        new(
+            "5 Band Passive",
+            [100f, 400f, 1_000f, 3_000f, 8_000f],
+            ["100", "400", "1k", "3k", "8k"],
+            PassiveQ,
+            true,
+            PassiveNetwork.FiveBand
+        ),
+        new(
+            "4 Band Passive",
+            [100f, 700f, 2_500f, 6_000f],
+            ["Bass", "Middle", "Treble", "Presence"],
+            PassiveQ,
+            true,
+            PassiveNetwork.FourBand
+        ),
+        new(
+            "3 Band Passive",
+            [100f, 700f, 3_000f],
+            ["Bass", "Middle", "Treble"],
+            PassiveQ,
+            true,
+            PassiveNetwork.ThreeBand
+        ),
+        new(
+            "3 Band Console",
+            [100f, 1_000f, 10_000f],
+            ["Low", "Mid", "High"],
+            PassiveQ,
+            true,
+            PassiveNetwork.Console
+        )
     ];
 
     /// <summary>The layout names, for a Type parameter's options.</summary>
@@ -96,10 +140,15 @@ public sealed class GraphicEqualizer {
         : band == layout.Count - 1 ? BiquadType.HighShelf
         : BiquadType.Peak;
 
+    /// <summary>Control thread: readies the passive networks (when built with them) for <paramref name="sampleRate" />.</summary>
+    public void Prepare(double sampleRate) => passive?.Prepare(sampleRate);
+
     public void Reset() {
         foreach (var band in bands) {
             band.Reset();
         }
+
+        passive?.Reset();
     }
 
     /// <summary>
@@ -124,6 +173,11 @@ public sealed class GraphicEqualizer {
         }
 
         var l = Layouts[layoutIndex];
+        if (passive is not null && l.Network != PassiveNetwork.None) {
+            passive.Process(l.Network, io, gains);
+            return;
+        }
+
         var q = l.Q * masterQ;
         var proportional = variableQ || l.Passive;
         for (var b = 0; b < l.Count; b++) {

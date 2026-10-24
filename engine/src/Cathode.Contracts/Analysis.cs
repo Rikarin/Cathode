@@ -57,3 +57,26 @@ public sealed record IrMixRequest(
     int SampleRate = 48_000,
     bool Normalize = true
 );
+
+/// <summary>
+///     The Cab block's Align page (<c>GET /api/v1/live/blocks/{id}/cab/align</c>): each slot's IR head on the active
+///     channel, so slots can be lined up by eye.
+/// </summary>
+/// <param name="SampleRate">The rate the heads are sampled at.</param>
+/// <param name="Slots">The four slots, in order.</param>
+public sealed record CabAlignment(double SampleRate, IReadOnlyList<CabSlotAlignmentInfo> Slots);
+
+/// <summary>
+///     One slot: whether it has something to play and is heard, its onset within its own IR (the first sample within
+///     20 dB of the peak), the delay Auto Delay gives it and its own Delay, in ms, and the first 10 ms of its IR as mixed
+///     (cut and normalised, before level, pan and delay). It is heard at <c>OnsetMs + AutoDelayMs + DelayMs</c>.
+/// </summary>
+public sealed record CabSlotAlignmentInfo(
+    int Slot,
+    bool Plays,
+    bool Audible,
+    double OnsetMs,
+    double AutoDelayMs,
+    double DelayMs,
+    IReadOnlyList<float> Head
+);

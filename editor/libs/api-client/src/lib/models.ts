@@ -27,6 +27,7 @@ export type GlobalBlock = Schemas['GlobalBlock'];
 export type IrMixRequest = Schemas['IrMixRequest'];
 export type IrMixSource = Schemas['IrMixSource'];
 export type ToneMatchRequest = Schemas['ToneMatchRequest'];
+export type ScenePairRequest = Schemas['ScenePairRequest'];
 
 /** Modifier sources (Cathode.Engine.Rig.ModNames). */
 export const ModifierSources = [
@@ -74,7 +75,10 @@ export const MidiActions = [
   'tap',
   'tuner',
   'metronome',
-  'looper'
+  'looper',
+  'sceneLevelUp',
+  'sceneLevelDown',
+  'save'
 ] as const;
 
 export const LooperActions = ['record', 'play', 'stop', 'overdub', 'undo', 'reverse', 'halfSpeed', 'clear'] as const;
@@ -133,8 +137,13 @@ export interface Telemetry {
   tuner?: TunerInfo;
   tempo: number;
   looper?: LooperInfo;
+  /** Each grid block's output peak since the last frame, by block id (absent without shared-memory telemetry). */
+  blocks?: Record<string, number>;
+  /** The output's BS.1770 momentary (400 ms) and short-term (3 s) loudness, LUFS. */
+  loudnessMomentary?: number;
+  loudnessShortTerm?: number;
   /** Blocks with meters of their own, about ten times a second. */
-  blocks?: BlockMeterInfo[];
+  blockMeters?: BlockMeterInfo[];
 }
 
 /**

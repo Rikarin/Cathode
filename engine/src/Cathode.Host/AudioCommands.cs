@@ -27,6 +27,12 @@ static class AudioCommands {
                 json.WriteNumber("inputChannels", d.InputChannels);
                 json.WriteNumber("outputChannels", d.OutputChannels);
                 json.WriteNumber("sampleRate", d.SampleRate);
+                json.WriteStartArray("inputNames");
+                foreach (var name in d.InputNames) {
+                    json.WriteStringValue(name);
+                }
+
+                json.WriteEndArray();
                 json.WriteEndObject();
             }
 

@@ -74,7 +74,8 @@ public sealed class EngineHostService : IDisposable {
         BlockRegistry? registry = null,
         IDeviceMonitor? device = null,
         string? telemetryPath = null,
-        double looperSeconds = Dsp.Looping.Looper.DefaultSeconds
+        double looperSeconds = Dsp.Looping.Looper.DefaultSeconds,
+        int inputSources = 1
     ) {
         this.device = device;
         TelemetryRegion = telemetryPath is null
@@ -86,13 +87,13 @@ public sealed class EngineHostService : IDisposable {
         }
 
         compiler = new(registry ?? BlockRegistry.CreateDefault().AddNativeBlocks()) {
-            HardwareLoop = Engine.HardwareLoop
+            HardwareLoop = Engine.HardwareLoop, HardwareInputs = Engine.Inputs
         };
         tuner = new(spec.SampleRate);
         var version = typeof(EngineHostService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
                 ?.InformationalVersion
             ?? "dev";
-        Info = new(version, backend, spec.SampleRate, spec.MaxBlockSize, TelemetryRegion.Path);
+        Info = new(version, backend, spec.SampleRate, spec.MaxBlockSize, TelemetryRegion.Path, inputSources | 1);
     }
 
     /// <summary>Starts reading MIDI input; <paramref name="forward" /> gets each batch (on the MIDI thread).</summary>
@@ -108,6 +109,7 @@ public sealed class EngineHostService : IDisposable {
                 IpcTypes.LoadGraph => LoadGraph(request),
                 IpcTypes.SetParams => SetParams(request),
                 IpcTypes.SetBypass => SetBypass(request),
+                IpcTypes.SetModifier => SetModifier(request),
                 IpcTypes.SetTuner => SetTuner(request),
                 IpcTypes.Status => new() { Type = IpcTypes.Ok, Id = request.Id, Telemetry = CollectTelemetry(new()) },
                 IpcTypes.Tap => Tap(request),
@@ -234,7 +236,7 @@ public sealed class EngineHostService : IDisposable {
             var graph = compiler.Compile(request.Graph, Engine.Spec, request.Generation);
             Engine.Publish(graph);
             latest = graph;
-            return IpcMessage.Ok(request.Id);
+            return new() { Type = IpcTypes.Ok, Id = request.Id, SlotIds = [..graph.SlotIds] };
         } catch (GraphValidationException e) {
             return IpcMessage.Fail(request.Id, "The graph is invalid.", [..e.Errors]);
         }
@@ -471,6 +473,33 @@ public sealed class EngineHostService : IDisposable {
         }
 
         return Engine.Post(EngineCommand.SetBypass(latest.Generation, slot, request.Bypassed == true))
+            ? IpcMessage.Ok(request.Id)
+            : IpcMessage.Fail(request.Id, "The engine command queue is full.");
+    }
+
+    IpcMessage SetModifier(IpcMessage request) {
+        if (latest is null || request.Generation != latest.Generation) {
+            return IpcMessage.Fail(request.Id, $"Stale graph generation {request.Generation}.");
+        }
+
+        var slot = request.Block is null ? -1 : latest.SlotOf(request.Block);
+        var block = slot < 0 ? null : latest.Block(slot);
+        var param = request.Param == ModNames.EngageParam ? ModifierBinding.Engage
+            : block is null || request.Param is null ? -1
+            : block.Descriptor.IndexOf(request.Param);
+        var index = -1;
+        for (var i = 0; i < latest.Modifiers.Count && param != -1; i++) {
+            if (latest.Modifiers[i].Slot == slot && latest.Modifiers[i].ParamIndex == param) {
+                index = i;
+            }
+        }
+
+        if (index < 0) {
+            return IpcMessage.Fail(request.Id, $"No modifier on '{request.Block}.{request.Param}'.");
+        }
+
+        var baseValue = request.Params is [{ } value, ..] ? value.Value : 0f;
+        return Engine.Post(EngineCommand.SetModifier(latest.Generation, index, request.Enabled == true, baseValue))
             ? IpcMessage.Ok(request.Id)
             : IpcMessage.Fail(request.Id, "The engine command queue is full.");
     }

@@ -1,5 +1,9 @@
 import {
+  MaxDelayMs,
   Source,
+  alignedDelays,
+  arrivalMs,
+  clampDelay,
   coneMics,
   cutDb,
   cutsDb,
@@ -13,7 +17,9 @@ import {
   slotParamId,
   sourceOf,
   takesFile,
-  unmuteOnEdit
+  unmuteOnEdit,
+  waveformPath,
+  type SlotAlignment
 } from './cab';
 
 const Mics = ['Dynamic 57 (SM57)', 'Ribbon 121 (R-121)', 'Measurement Omni'];
@@ -156,5 +162,42 @@ describe('Cab panel helpers', () => {
 
     const empty = relativeLevelsDb(values({ m2mute: 0 }), slot => slot === 0); // slot 2 has nothing to play
     expect(empty[0]).toBeCloseTo(0, 6);
+  });
+});
+
+describe('cab align', () => {
+  const slot = (overrides: Partial<SlotAlignment>): SlotAlignment => ({
+    slot: 0,
+    plays: true,
+    audible: true,
+    onsetMs: 0,
+    autoDelayMs: 0,
+    delayMs: 0,
+    head: [0, 1, -0.5],
+    ...overrides
+  });
+
+  it('adds onset, auto delay and delay into the arrival', () => {
+    expect(arrivalMs(slot({ onsetMs: 0.5, autoDelayMs: 0.2, delayMs: 1 }))).toBeCloseTo(1.7);
+  });
+
+  it('delays every heard slot to the latest onset and leaves the others', () => {
+    const delays = alignedDelays([
+      slot({ slot: 0, onsetMs: 0.2 }),
+      slot({ slot: 1, onsetMs: 1.0, delayMs: 3 }),
+      slot({ slot: 2, onsetMs: 0.1, autoDelayMs: 0.4 }),
+      slot({ slot: 3, onsetMs: 0, audible: false, delayMs: 2 })
+    ]);
+    expect(delays).toEqual([0.8, 0, 0.5, 2]);
+  });
+
+  it('clamps delays to the slot range in 0.01 ms steps', () => {
+    expect(clampDelay(-1)).toBe(0);
+    expect(clampDelay(12)).toBe(Math.floor(MaxDelayMs * 100) / 100);
+    expect(clampDelay(1.23456)).toBe(1.23);
+  });
+
+  it('draws the head shifted by the delay and scaled to the peak', () => {
+    expect(waveformPath([0, 1, -1], 1_000, 1, 10, 100, 20)).toBe('M10.0,10.0 L20.0,2.0 L30.0,18.0');
   });
 });

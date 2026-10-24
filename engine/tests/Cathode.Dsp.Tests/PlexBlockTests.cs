@@ -1,4 +1,5 @@
 using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Pitch;
 using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
@@ -70,6 +71,42 @@ public class PlexBlockTests {
         var output = BlockRender.Mono(plex, Signals.Sine(300, Rate, 48_000, 0.5f), 64);
 
         Assert.Equal(300 * ratio, Frequency(output.AsSpan(24_000, 16_384)), 300 * ratio * 0.01);
+    }
+
+    [Fact]
+    public void Reverse_direction_keeps_the_interval_and_plays_each_grain_backwards() {
+        // The guide's Direction: every granule played backwards, the granules still in order, so the shift is kept.
+        using var plex = Create(
+            [
+                ..Clean,
+                (PlexBlock.Type, PlexBlock.PlexShifter),
+                (PlexBlock.Delays, 1f),
+                (PlexBlock.Decay, 0.1f),
+                (PlexBlock.Granule, 40f),
+                (PlexBlock.Direction, 1f)
+            ]
+        );
+        var output = BlockRender.Mono(plex, Signals.Sine(300, Rate, 48_000, 0.5f), 64);
+        Assert.Equal(600.0, Frequency(output.AsSpan(24_000, 16_384)), 6.0);
+
+        // Within a grain the reversed shifter reads backwards: a rising ramp comes out falling between the splices.
+        using var shifter = new GrainShifter();
+        shifter.Prepare(Rate, 0.04);
+        shifter.SetCrossfade(0.05f); // short splices, so a tap plays alone most of the time
+        var falling = 0;
+        var rising = 0;
+        var previous = 0f;
+        for (var n = 0; n < 9_600; n++) {
+            var y = shifter.Process(n / 9_600f, -1);
+            if (n > 4_800) {
+                falling += y < previous ? 1 : 0;
+                rising += y > previous ? 1 : 0;
+            }
+
+            previous = y;
+        }
+
+        Assert.True(falling > 3 * rising, $"{falling} falling, {rising} rising samples");
     }
 
     [Fact]
