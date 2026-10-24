@@ -20,6 +20,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/assets/{reference}/metadata': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Renames an asset or sets its colour tag or favourite flag. */
+    patch: operations['SetAssetMetadata'];
+    trace?: never;
+  };
   '/api/v1/tuner': {
     parameters: {
       query?: never;
@@ -625,6 +642,261 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/live/revert': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Discards the edits: the working copy goes back to the saved version (undoable). */
+    post: operations['RevertPreset'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/clear': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Empties the grid and the name, keeping the preset's id (undoable). */
+    post: operations['ClearPreset'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/snapshots': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Stores the working copy, unsaved edits included, as a timestamped snapshot. */
+    post: operations['TakeSnapshot'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/snapshots/{id}/load': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Puts a snapshot into the working copy (undoable). */
+    post: operations['LoadSnapshot'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/templates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Saves the working copy as a template. */
+    post: operations['SaveTemplate'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/templates/{id}/new': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Starts a new preset (a fresh id) from a template. */
+    post: operations['NewFromTemplate'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/type': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Replaces a block with a new block of another type in its cell, keeping its cables. */
+    put: operations['ReplaceBlock'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/drop': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Drops a block on another: swap exchanges their cells (the cables stay put), replace takes the target's cell and cables. */
+    post: operations['DropBlock'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/grid/move': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Moves a whole row or column, shifting the ones between. */
+    post: operations['MoveGridLine'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/cables': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Removes every cable into and out of a block. */
+    delete: operations['DisconnectBlock'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/settings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Replaces every channel (and the assets) of a block with another same-type block's. */
+    put: operations['PasteBlockSettings'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/all-scenes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Sets a block's bypass and/or channel in every scene. */
+    put: operations['SetBlockInAllScenes'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/perform': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Replaces the preset's performance page. */
+    put: operations['SetPerformPage'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/footswitch-overrides': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Replaces the preset's own footswitch actions. */
+    put: operations['SetFootswitchOverrides'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/block-presets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Saves every block of the working copy (all channels and modifiers) to the Block Library. */
+    post: operations['SaveAllBlocks'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/presets': {
     parameters: {
       query?: never;
@@ -854,6 +1126,172 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/snapshots': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Snapshots, newest first; of one preset when ?preset= is given. */
+    get: operations['ListSnapshots'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/snapshots/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations['DeleteSnapshot'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/templates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['ListTemplates'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/templates/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations['DeleteTemplate'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/presets/{id}/metadata': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Renames a preset or sets its colour tag or favourite flag, stored and live. */
+    patch: operations['SetPresetMetadata'];
+    trace?: never;
+  };
+  '/api/v1/presets/{id}/duplicate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['DuplicatePreset'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/presets/reset-amps': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Sets every Circuit Amp parameter of the presets back to its default, except the model's front-panel controls. */
+    post: operations['ResetAmpBlocks'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/presets/batch-set': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Sets one parameter on the matching block (same id and type) of each preset. */
+    post: operations['BatchSetParameter'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/block-presets/export': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Block Library entries as a .cthblock file. */
+    post: operations['ExportBlockPresets'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/block-presets/import': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Adds the entries of a .cthblock file as new user entries. */
+    post: operations['ImportBlockPresets'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/assets': {
     parameters: {
       query?: never;
@@ -932,10 +1370,20 @@ export interface components {
       column: number;
       id?: null | string;
     };
-    /** @description Sets a block's channel (default: the one the active scene uses) to a block preset. */
+    /** @description Sets a block's bypass and/or channel in every scene; null leaves that part alone. */
+    AllScenesRequest: {
+      bypassed?: null | boolean;
+      channel?: null | string;
+    };
+    /**
+     * @description Sets a block's channel (default: the one the active scene uses) to a block preset, or with `AllChannels`
+     *     every channel (a whole-block entry's own channels, modifiers and assets).
+     */
     ApplyBlockPresetRequest: {
       preset: string;
       channel?: null | string;
+      /** @default false */
+      allChannels: boolean;
     };
     AssetInfo: {
       ref: string;
@@ -945,6 +1393,15 @@ export interface components {
       size: number;
       /** Format: date-time */
       added: string;
+      color?: null | string;
+      /** @default false */
+      favorite: boolean;
+    };
+    /** @description An asset's metadata; null leaves a field alone, an empty colour clears it. */
+    AssetMetadataRequest: {
+      name?: null | string;
+      color?: null | string;
+      favorite?: null | boolean;
     };
     AssetRequest: {
       asset: string;
@@ -955,6 +1412,24 @@ export interface components {
       name: string;
       /** @description Preset id per slot; null or missing slots are empty. */
       slots: string[];
+    };
+    /** @description Presets changed by a batch operation, and those it left alone (no matching block, or not found). */
+    BatchResult: {
+      changed: string[];
+      skipped: string[];
+    };
+    /**
+     * @description Parameter Batch Set: `Param` = `Value` on the block with id `Block` and type `Type` in each
+     *     preset, on `Channel` (every channel when null).
+     */
+    BatchSetRequest: {
+      presets: string[];
+      block: string;
+      type: string;
+      param: string;
+      /** Format: float */
+      value: number;
+      channel?: null | string;
     };
     /**
      * @description A named setting of one block type, kept in the Block Library: the factory's (the guide's "types" that are
@@ -971,6 +1446,45 @@ export interface components {
       /** @description Parameter values by id. Sparse: anything not listed takes the block type's default. */
       values: {
         [key: string]: number;
+      };
+      /** @description A folder (category) in the Library, or null for the top level. */
+      folder?: null | string;
+      /**
+       * @description A whole-block entry: every channel's values (Dictionary&lt;string, float&gt; BlockPreset.Values is then the channel it was saved from).
+       *     Null for a single-channel entry.
+       */
+      channels?: null | {
+        [key: string]: {
+          [key: string]: number;
+        };
+      };
+      /** @description A whole-block entry's modifiers, with `Block` left empty: recalled onto the target block. */
+      modifiers?: null | components['schemas']['PresetModifier'][];
+      /** @description A whole-block entry's assets (IRs, captures) by slot. */
+      assets?: null | {
+        [key: string]: string;
+      };
+    };
+    BlockPresetExportRequest: {
+      ids: string[];
+    };
+    /** @description A file of Block Library entries, as exported and imported (`.cthblock`). */
+    BlockPresetFile: {
+      format: string;
+      /** Format: int32 */
+      version: number;
+      presets: components['schemas']['BlockPreset'][];
+    };
+    /** @description A block's settings (every channel, and its assets) pasted onto a block of the same type. */
+    BlockSettingsRequest: {
+      type: string;
+      channels: {
+        [key: string]: {
+          [key: string]: number;
+        };
+      };
+      assets?: null | {
+        [key: string]: string;
       };
     };
     /**
@@ -1009,6 +1523,17 @@ export interface components {
     CopyChannelRequest: {
       from: string;
       to: string;
+    };
+    /** @description Drops block `{id}` on `Target`: `swap` exchanges their cells, `replace` takes its place. */
+    DropBlockRequest: {
+      target: string;
+      /** @default swap */
+      mode: string;
+    };
+    /** @description Copies a stored preset under `Id` (a new one when null) and `Name` (the original's plus "copy"). */
+    DuplicatePresetRequest: {
+      id?: null | string;
+      name?: null | string;
     };
     /**
      * @description Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole
@@ -1073,7 +1598,8 @@ export interface components {
     /**
      * @description One switch: the message it sends (a CC or note; value 64 or more is "down"), what a tap does, what holding it for
      *     half a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is
-     *     active, 0 when not).
+     *     active, 0 when not). It answers only while its `View` is the active one, and a `Link` (a layout id)
+     *     switches to that layout after its tap action.
      */
     Footswitch: {
       /** Format: int32 */
@@ -1088,12 +1614,34 @@ export interface components {
       hold: null | components['schemas']['SwitchAction'];
       /** @default true */
       led: boolean;
+      /**
+       * Format: int32
+       * @default 0
+       */
+      view: number;
+      link?: null | string;
     };
-    /** @description A set of footswitches on a generic MIDI foot controller. */
+    /**
+     * @description A set of footswitches on a generic MIDI foot controller. `Views` names its pages of switches (each switch
+     *     says which int Footswitch.View it is on); none means one page.
+     */
     FootswitchLayout: {
       id: string;
       name: string;
       switches: components['schemas']['Footswitch'][];
+      views?: null | string[];
+    };
+    /**
+     * @description A preset's own action for one switch of a footswitch layout: while the preset is loaded, the switch at
+     *     `Index` of layout `Layout` does this instead of what the layout says.
+     */
+    FootswitchOverride: {
+      layout: string;
+      /** Format: int32 */
+      index: number;
+      tap: components['schemas']['SwitchAction'];
+      hold: null | components['schemas']['SwitchAction'];
+      label?: null | string;
     };
     /** @description A block shared by presets: linking a preset block to it makes its settings global. */
     GlobalBlock: {
@@ -1152,7 +1700,14 @@ export interface components {
       footswitches: components['schemas']['FootswitchLayout'][];
       /** @description The layout in use, by id. */
       activeLayout?: null | string;
+      /**
+       * Format: int32
+       * @description The view (page of switches) of the active layout that is in use, 0 for the first.
+       */
+      activeView: number;
       blocks: components['schemas']['GlobalBlock'][];
+      /** @description The global performance page: controls shown in every preset that has their block. */
+      perform: components['schemas']['PerformControl'][];
     };
     ImportResult: {
       preset: components['schemas']['PresetSummary'];
@@ -1237,7 +1792,8 @@ export interface components {
      *     scene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank
      *     id, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,
      *     Value = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,
-     *     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear).
+     *     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), layout (Target =
+     *     layout id), view (Value = view index), viewNext, viewPrevious.
      */
     MidiMapping: {
       id: string;
@@ -1257,6 +1813,14 @@ export interface components {
       /** Format: int32 */
       column: number;
     };
+    /** @description Moves a whole row or column (`Axis`) from one index to another, shifting the ones between. */
+    MoveLineRequest: {
+      axis: string;
+      /** Format: int32 */
+      from: number;
+      /** Format: int32 */
+      to: number;
+    };
     /**
      * @description A block parameter. `TypeLabels`, where present, names the parameter per value of the block's `type`
      *     parameter (an amp model's own name for a generic control), empty where that type lacks the control: hide it there.
@@ -1275,6 +1839,15 @@ export interface components {
       taper: string;
       options?: null | string[];
       typeLabels?: null | string[];
+    };
+    /**
+     * @description One control on a performance page: a parameter of a block, by the block's id (`amp1`) so a global page
+     *     works in every preset that has that block. `Label` overrides the parameter's name.
+     */
+    PerformControl: {
+      block: string;
+      param: string;
+      label?: null | string;
     };
     /**
      * @description A complete rig: grid, blocks with up to four channels each, cables and eight scenes. Parameter values are stored
@@ -1305,6 +1878,16 @@ export interface components {
       controllers: {
         [key: string]: number;
       };
+      /** @description A colour tag for pickers and Manage Presets (a CSS colour name or hex), or null. */
+      color?: null | string;
+      favorite: boolean;
+      /** @description The preset's performance page: the controls it puts in front of a player. */
+      perform: components['schemas']['PerformControl'][];
+      /** @description Switches of the global footswitch layouts that do something else while this preset is loaded. */
+      footswitchOverrides: components['schemas']['FootswitchOverride'][];
+    };
+    PresetBatchRequest: {
+      presets: string[];
     };
     PresetBlock: {
       /** @description Stable instance id such as `amp1`; never an index. */
@@ -1339,6 +1922,12 @@ export interface components {
       from: string;
       to: string;
     };
+    /** @description A preset's metadata, changed in place; null leaves a field alone, an empty colour clears it. */
+    PresetMetadataRequest: {
+      name?: null | string;
+      color?: null | string;
+      favorite?: null | boolean;
+    };
     /** @description One modified parameter; see Cathode.Engine.Graph.ModifierDefinition for the semantics. */
     PresetModifier: {
       block: string;
@@ -1363,6 +1952,13 @@ export interface components {
       tags: string[];
       /** Format: date-time */
       modified: string;
+      color?: null | string;
+      /** @default false */
+      favorite: boolean;
+    };
+    /** @description Replaces a block with a new one of `Type` in the same cell, keeping its cables. */
+    ReplaceBlockRequest: {
+      type: string;
     };
     /**
      * @description Turns the RTA on or off and sets how it analyses: `BandsPerOctave` 3, 6 or 12 (about 30, 60 or 120 bands),
@@ -1383,6 +1979,10 @@ export interface components {
       decayMs: number;
       /** @default hann */
       window: string;
+    };
+    /** @description Saves every block of the working copy (all channels and modifiers) to the Block Library. */
+    SaveAllBlocksRequest: {
+      folder?: null | string;
     };
     SaveRequest: {
       name?: null | string;
@@ -1467,6 +2067,16 @@ export interface components {
       scene: number;
       label?: null | string;
     };
+    SnapshotRequest: {
+      name?: null | string;
+    };
+    SnapshotSummary: {
+      id: string;
+      presetId: string;
+      name: string;
+      /** Format: date-time */
+      created: string;
+    };
     /** Format: binary */
     Stream: string;
     /** @description An action, with the same vocabulary as MidiMapping. */
@@ -1479,6 +2089,9 @@ export interface components {
     SystemInfo: {
       version: string;
       engine: components['schemas']['EngineStatus'];
+    };
+    TemplateRequest: {
+      name: string;
     };
     TempoRequest: {
       /** Format: double */
@@ -1539,6 +2152,32 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['SystemInfo'];
+        };
+      };
+    };
+  };
+  SetAssetMetadata: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        reference: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AssetMetadataRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AssetInfo'];
         };
       };
     };
@@ -2499,6 +3138,360 @@ export interface operations {
       };
     };
   };
+  RevertPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  ClearPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  TakeSnapshot: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SnapshotRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SnapshotSummary'];
+        };
+      };
+    };
+  };
+  LoadSnapshot: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SaveTemplate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TemplateRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PresetSummary'];
+        };
+      };
+    };
+  };
+  NewFromTemplate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  ReplaceBlock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReplaceBlockRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  DropBlock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DropBlockRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  MoveGridLine: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MoveLineRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  DisconnectBlock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  PasteBlockSettings: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BlockSettingsRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetBlockInAllScenes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AllScenesRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetPerformPage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PerformControl'][];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetFootswitchOverrides: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FootswitchOverride'][];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SaveAllBlocks: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SaveAllBlocksRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BlockPreset'][];
+        };
+      };
+    };
+  };
   ListPresets: {
     parameters: {
       query?: never;
@@ -3099,6 +4092,248 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  ListSnapshots: {
+    parameters: {
+      query?: {
+        preset?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SnapshotSummary'][];
+        };
+      };
+    };
+  };
+  DeleteSnapshot: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ListTemplates: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PresetSummary'][];
+        };
+      };
+    };
+  };
+  DeleteTemplate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  SetPresetMetadata: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PresetMetadataRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  DuplicatePreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DuplicatePresetRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PresetSummary'];
+        };
+      };
+    };
+  };
+  ResetAmpBlocks: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PresetBatchRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BatchResult'];
+        };
+      };
+    };
+  };
+  BatchSetParameter: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BatchSetRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BatchResult'];
+        };
+      };
+    };
+  };
+  ExportBlockPresets: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BlockPresetExportRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BlockPresetFile'];
+        };
+      };
+    };
+  };
+  ImportBlockPresets: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BlockPresetFile'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BlockPreset'][];
+        };
       };
     };
   };

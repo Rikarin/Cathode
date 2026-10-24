@@ -27,6 +27,12 @@ export type GlobalBlock = Schemas['GlobalBlock'];
 export type IrMixRequest = Schemas['IrMixRequest'];
 export type IrMixSource = Schemas['IrMixSource'];
 export type ToneMatchRequest = Schemas['ToneMatchRequest'];
+export type PerformControl = Schemas['PerformControl'];
+export type FootswitchOverride = Schemas['FootswitchOverride'];
+export type SnapshotSummary = Schemas['SnapshotSummary'];
+export type BlockPresetFile = Schemas['BlockPresetFile'];
+export type BatchResult = Schemas['BatchResult'];
+export type Bank = Schemas['Bank'];
 
 /** Modifier sources (Cathode.Engine.Rig.ModNames). */
 export const ModifierSources = [
@@ -74,7 +80,11 @@ export const MidiActions = [
   'tap',
   'tuner',
   'metronome',
-  'looper'
+  'looper',
+  'layout',
+  'view',
+  'viewNext',
+  'viewPrevious'
 ] as const;
 
 export const LooperActions = ['record', 'play', 'stop', 'overdub', 'undo', 'reverse', 'halfSpeed', 'clear'] as const;
