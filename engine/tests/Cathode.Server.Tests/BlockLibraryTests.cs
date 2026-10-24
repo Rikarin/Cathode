@@ -52,7 +52,7 @@ public sealed class BlockLibraryTests : IAsyncLifetime {
         Assert.Empty(problems);
         Assert.Equal(FactoryBlockPresets.All.Count, FactoryBlockPresets.All.Select(static p => p.Id).Distinct().Count());
         foreach (var type in new[] {
-                     "chorus", "flanger", "phaser", "delay", "multidelay", "megatap", "reverb", "compressor", "gate",
+                     "chorus", "flanger", "phaser", "delay", "multidelay", "tentap", "plex", "megatap", "reverb", "compressor", "gate",
                      "filter", "geq", "wah", "pitch", "tremolo", "ringmod", "dyndist", "drive"
                  }) {
             Assert.True(FactoryBlockPresets.All.Count(p => p.Type == type) >= 4, $"{type} has fewer than four presets");

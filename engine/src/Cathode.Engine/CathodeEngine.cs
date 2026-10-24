@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Looping;
 using Cathode.Dsp.Parameters;
 using Cathode.Dsp.Routing;
 using Cathode.Engine.Graph;
@@ -93,8 +94,14 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     /// <summary>The global output EQ (block id <c>global</c>), applied to every preset.</summary>
     public GraphicEqBlock GlobalEq { get; } = new();
 
-    /// <summary>The looper, once <see cref="EnableLooper" /> has allocated it.</summary>
-    public Looper? Looper => Volatile.Read(ref looper);
+    /// <summary>The rig looper at the end of the chain, once <see cref="EnableLooper" /> has allocated it.</summary>
+    public Looper? RigLooper => Volatile.Read(ref looper);
+
+    /// <summary>
+    ///     The looper the transport drives: the running graph's Looper block if it has one, otherwise the rig looper.
+    ///     Looper commands, telemetry and export all go to this one.
+    /// </summary>
+    public Looper? Looper => Current?.Looper ?? RigLooper;
 
     /// <summary>Current tempo in BPM (the rig's <c>tempo</c>, which tap tempo also sets).</summary>
     public double Tempo {
@@ -159,9 +166,9 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     }
 
     /// <summary>
-    ///     Control thread, before audio starts: allocate the looper (60 s of stereo is about 46 MB at 48 kHz).
+    ///     Control thread, before audio starts: allocate the rig looper (60 s of stereo is about 46 MB at 48 kHz).
     /// </summary>
-    public void EnableLooper(double seconds = Looper.MaxSeconds) =>
+    public void EnableLooper(double seconds = Dsp.Looping.Looper.DefaultSeconds) =>
         Volatile.Write(ref looper, looper ?? new Looper(Spec.SampleRate, seconds));
 
     /// <summary>True while a replaced graph is still ringing out under the current one.</summary>
@@ -233,6 +240,13 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         if (pending is not null) {
             var previous = current;
             Volatile.Write(ref current, pending);
+            // A grid looper belongs to its preset: the outgoing one stops (it fades out in the spillover), and a
+            // preset that brings its own looper stops the rig's, which no longer gets the transport.
+            previous?.Looper?.Apply(LooperAction.Stop);
+            if (pending.Looper is not null) {
+                looper?.Apply(LooperAction.Stop);
+            }
+
             if (previous is not null) {
                 // The old graph spills over under the new one; a graph still spilling from an earlier swap retires now.
                 Retire(Interlocked.Exchange(ref tail, previous));
@@ -401,7 +415,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                 Tap(command.Time);
                 break;
             case EngineCommandKind.Looper:
-                looper?.Apply((LooperAction)command.Slot);
+                (graph?.Looper ?? looper)?.Apply((LooperAction)command.Slot);
                 break;
             case EngineCommandKind.Note:
                 HeldNotes = HeldNotes.With(command.Slot, command.Value != 0f);

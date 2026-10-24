@@ -42,6 +42,8 @@ public sealed class BlockRegistry {
         registry.Register(FxLoopBlock.Info, static () => new FxLoopBlock());
         registry.Register(MultiDelayBlock.Info, static () => new MultiDelayBlock());
         registry.Register(MegatapBlock.Info, static () => new MegatapBlock());
+        registry.Register(TenTapBlock.Info, static () => new TenTapBlock());
+        registry.Register(PlexBlock.Info, static () => new PlexBlock());
         registry.Register(FormantBlock.Info, static () => new FormantBlock());
         registry.Register(RingModulatorBlock.Info, static () => new RingModulatorBlock());
         registry.Register(EnhancerBlock.Info, static () => new EnhancerBlock());
@@ -55,6 +57,7 @@ public sealed class BlockRegistry {
         registry.Register(PitchBlock.Info, static () => new PitchBlock());
         registry.Register(SynthBlock.Info, static () => new SynthBlock());
         registry.Register(RtaBlock.Info, static () => new RtaBlock());
+        registry.Register(LooperBlock.Info, static () => new LooperBlock());
         return registry;
     }
 

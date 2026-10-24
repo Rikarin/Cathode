@@ -654,7 +654,7 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
         psolaRight.Prepare(rate);
         vocoder.Prepare(rate);
         vocoderRight.Prepare(rate);
-        grains.Prepare(rate, MaxCrystalsSpliceMs * 0.001, CrystalsGrainSeconds);
+        grains.Prepare(rate, CrystalsGrainSeconds, MaxCrystalsSpliceMs * 0.001);
         diffuser.Prepare(rate);
         var voiceCapacity = (int)(MaxVoiceDelayMs * 0.001 * rate) + 8;
         foreach (var delay in delays) {

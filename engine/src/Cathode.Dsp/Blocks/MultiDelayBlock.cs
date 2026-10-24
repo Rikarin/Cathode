@@ -6,160 +6,239 @@ using Cathode.Dsp.Reverb;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     Multi-delay with six types sharing a master Time (tempo-syncable), Feedback, feedback-path low and high cut, the
-///     Axe-Fx mix law and Level. Reads use cubic Hermite interpolation, so integer delays are exact and time changes
-///     glide.
+///     Multitap delay: four delay voices in one of five arrangements, sharing a master Time (tempo-syncable) and Master
+///     Feedback. Each voice has its own time (a percentage of the master time, or its own tempo), feedback, level (either
+///     polarity), pan, filter, chorus, comb and ring modulator; two LFOs move every voice's time, a third the filters.
+///     Reads use cubic Hermite interpolation, so integer delays are exact and time changes glide.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Quad Tap: one line fed by the mono sum, four taps placed at a percentage of Time with their own level and
-///         pan; the feedback re-enters at Time, so the whole pattern repeats. Ten Tap: ten taps evenly spaced across
-///         Time, with shuffle (swing on the off-beat taps), a level taper and alternating pan spread.
+///         Quad Tap: one line fed by the mono sum, read by four taps; each tap's processed signal can feed back into
+///         the line. Quad Tape: the same with a tape transport (wow, flutter, saturation, a darker loop and a Motor
+///         Speed). Quad Parallel: four independent lines, each feeding back into itself and, by its cross feedback, into
+///         the next (1→2→3→4→1). Quad Series: the lines in a chain, each voice sending into the next at the Send
+///         level; the last returns into the first by the Series Feedback, and the first three are heard at the Return
+///         level. Quad Diffusor: four long Schroeder allpasses in parallel, each voice's feedback its allpass gain, so the
+///         echoes smear into a diffuse wash with no colouration.
 ///     </para>
 ///     <para>
-///         Plex: four lines at fixed, mutually prime-ish fractions of Time, cross-fed through an orthogonal 4×4
-///         Hadamard matrix, with a Schroeder allpass in each loop whose gain is the Diffusion. Each repeat passes the
-///         allpasses again, so the echoes smear progressively into a reverb-like wash. Ducking: a ping-pong delay
-///         (feedback applies on every hop) whose wet signal is attenuated while the input is above a threshold and
-///         recovers over the release time once it falls silent. Reverse: each channel's line, with forward feedback at
-///         Time, is played back in reversed chunks of Time by two heads half a chunk apart under complementary sin²
-///         windows, so the repeats stay reversed. Sweep: a stereo delay whose wet output runs through a resonant
-///         band-pass swept logarithmically between two frequencies by a triangle LFO, phase-offset on the right.
+///         Each voice reads its line, then runs its filter (low-pass, high-pass, band-pass or peak, its frequency moved
+///         by the filter LFO in octaves), a normalised feedback comb (peaks at unity, so it never adds gain), and a ring
+///         modulator (a blend towards the signal times a sine). The processed voice is what feeds back, so its
+///         filtering accumulates on every repeat. Every line write goes through the loop's low and high cut, the drive,
+///         and the delay limiter, which is transparent below full scale and keeps resonant or over-unity loops bounded.
+///         The master scalers multiply every voice's filter frequency and Q, chorus depth, comb feedback and ring mix,
+///         and the LFOs' rate and depth.
 ///     </para>
 ///     <para>
-///         Not modelled: the Plex pitch shifters and per-line detune, per-tap filters and feedback, modulation of the
-///         tap times, and the Axe-Fx's many "rhythm" and "band" multi-tap variants (Quad Tap covers them by settings).
+///         The Quad Tap "band" variants are Quad Tap with band-pass voice filters. The ten-tap and rhythm delays are the
+///         <see cref="TenTapBlock" />, the plex delays the <see cref="PlexBlock" />, and the reverse, sweep and ducking
+///         delays types of the <see cref="DelayBlock" />.
 ///     </para>
 /// </remarks>
 public sealed class MultiDelayBlock() : DspBlock(Info) {
     public const int Type = 0;
     public const int Time = 1;
     public const int Tempo = 2;
-    public const int Feedback = 3;
+    public const int MasterFeedback = 3;
     public const int Tap1Time = 4;
-    public const int Tap1Level = 8;
-    public const int Tap1Pan = 12;
-    public const int Shuffle = 16;
-    public const int Taper = 17;
-    public const int Spread = 18;
-    public const int Diffusion = 19;
-    public const int DuckThreshold = 20;
-    public const int DuckAttenuation = 21;
-    public const int DuckRelease = 22;
-    public const int SweepRate = 23;
-    public const int SweepStart = 24;
-    public const int SweepStop = 25;
-    public const int SweepResonance = 26;
-    public const int SweepPhase = 27;
-    public const int LowCut = 28;
-    public const int HighCut = 29;
-    public const int Mix = 30;
-    public const int Level = 31;
-    public const int Balance = 32;
-    public const int InputGain = 33;
-    public const int InputSelect = 34;
-    public const int GlobalMix = 35;
+    public const int Tap1Tempo = 8;
+    public const int Tap1Feedback = 12;
+    public const int Tap1Level = 16;
+    public const int Tap1Pan = 20;
+    public const int Cross1 = 24;
+    public const int Filter1Type = 28;
+    public const int Filter1Frequency = 32;
+    public const int Filter1Q = 36;
+    public const int Filter1Gain = 40;
+    public const int Chorus1Rate = 44;
+    public const int Chorus1Depth = 48;
+    public const int Comb1Time = 52;
+    public const int Comb1Feedback = 56;
+    public const int Ring1Frequency = 60;
+    public const int Ring1Mix = 64;
+    public const int MasterPan = 68;
+    public const int MasterLfoRate = 69;
+    public const int MasterLfoDepth = 70;
+    public const int MasterFilterFrequency = 71;
+    public const int MasterFilterQ = 72;
+    public const int MasterChorus = 73;
+    public const int MasterComb = 74;
+    public const int MasterRing = 75;
+    public const int Drive = 76;
+    public const int LowCut = 77;
+    public const int HighCut = 78;
+    public const int LowCutSlope = 79;
+    public const int HighCutSlope = 80;
+    public const int Lfo1Type = 81;
+    public const int Lfo1Rate = 82;
+    public const int Lfo1Tempo = 83;
+    public const int Lfo1Depth = 84;
+    public const int Lfo1Phase = 85;
+    public const int Lfo2Type = 86;
+    public const int Lfo2Rate = 87;
+    public const int Lfo2Tempo = 88;
+    public const int Lfo2Depth = 89;
+    public const int Lfo2Phase = 90;
+    public const int FilterLfoType = 91;
+    public const int FilterLfoRate = 92;
+    public const int FilterLfoDepth = 93;
+    public const int DiffusionMix = 94;
+    public const int DiffusionTime = 95;
+    public const int DiffusionRate = 96;
+    public const int DiffusionDepth = 97;
+    public const int DuckThreshold = 98;
+    public const int DuckAttenuation = 99;
+    public const int DuckRelease = 100;
+    public const int EnvelopeThreshold = 101;
+    public const int EnvelopeAttack = 102;
+    public const int EnvelopeRelease = 103;
+    public const int SeriesFeedback = 104;
+    public const int SeriesSend = 105;
+    public const int SeriesReturn = 106;
+    public const int MotorSpeed = 107;
+    public const int Mix = 108;
+    public const int Level = 109;
+    public const int Balance = 110;
+    public const int InputGain = 111;
+    public const int InputSelect = 112;
+    public const int GlobalMix = 113;
 
     public const int QuadTap = 0;
-    public const int TenTap = 1;
-    public const int Plex = 2;
-    public const int Ducking = 3;
-    public const int Reverse = 4;
-    public const int Sweep = 5;
+    public const int QuadParallel = 1;
+    public const int QuadSeries = 2;
+    public const int QuadDiffusor = 3;
+    public const int QuadTape = 4;
+    public const int TypeCount = 5;
+
+    /// <summary>Voice filter types.</summary>
+    public const int FilterOff = 0;
+    public const int FilterLowPass = 1;
+    public const int FilterHighPass = 2;
+    public const int FilterBandPass = 3;
+    public const int FilterPeak = 4;
 
     public const float MaxTimeMs = 2_000f;
     public const float LowCutOff = 20f;
     public const float HighCutOff = 20_000f;
-    public const int QuadTaps = 4;
-    public const int TenTaps = 10;
+    public const float MaxCombMs = 20f;
+    public const float MaxCombFeedback = 0.95f;
+    public const float MaxDiffusorGain = 0.9f;
+    public const float MaxDiffusionMs = 100f;
+    public const int Voices = 4;
 
-    const int Lines = 4;
-    const int SweepHop = 16;
-    const float DuckAttackMs = 5f;
-    const float DuckDetectorReleaseMs = 50f;
-    const float MaxDiffusionGain = 0.7f;
+    const int FilterHop = 16;
+    const float MaxChorusMs = 10f;
+    const float MaxLfoMs = 10f;
+    const float MaxScale = 4f;
 
-    /// <summary>Plex line lengths as fractions of Time.</summary>
-    public static readonly float[] PlexRatios = [1f, 0.887f, 0.743f, 0.613f];
-
-    /// <summary>Plex loop allpass lengths in ms; subtracted from the line lengths so each loop is exactly its ratio of Time.</summary>
-    static readonly float[] PlexAllpassMs = [3.7f, 5.3f, 7.9f, 10.1f];
+    static readonly string[] VoiceFilterTypes = ["Off", "Low Pass", "High Pass", "Band Pass", "Peak"];
 
     readonly FractionalDelayLine[] lines = [new(), new(), new(), new()];
-    readonly ReverbLine[] allpasses = [new(), new(), new(), new()];
-    readonly int[] allpassLength = new int[Lines];
-    readonly SvfState[] lowCutState = new SvfState[Lines];
-    readonly SvfState[] highCutState = new SvfState[Lines];
-    readonly float[] tapDelay = new float[TenTaps];
-    readonly float[] tapTarget = new float[TenTaps];
-    readonly float[] tapStep = new float[TenTaps];
-    readonly float[] tapLeft = new float[TenTaps];
-    readonly float[] tapRight = new float[TenTaps];
-    readonly float[] plexOut = new float[Lines];
+    readonly FractionalDelayLine[] combs = [new(), new(), new(), new()];
+    readonly LoopFilterState[] loopState = new LoopFilterState[Voices];
+    readonly SvfState[] filterState = new SvfState[Voices];
+    readonly SvfCoefficients[] filterCoefficients = new SvfCoefficients[Voices];
+    readonly float[] tapDelay = new float[Voices];
+    readonly float[] tapTarget = new float[Voices];
+    readonly float[] tapStep = new float[Voices];
+    readonly float[] tapLeft = new float[Voices];
+    readonly float[] tapRight = new float[Voices];
+    readonly float[] feedback = new float[Voices];
+    readonly float[] cross = new float[Voices];
+    readonly int[] filterType = new int[Voices];
+    readonly float[] filterFrequency = new float[Voices];
+    readonly float[] filterQ = new float[Voices];
+    readonly float[] filterGain = new float[Voices];
+    readonly float[] chorusRate = new float[Voices];
+    readonly float[] chorusDepth = new float[Voices];
+    readonly double[] chorusPhase = new double[Voices];
+    readonly float[] combDelay = new float[Voices];
+    readonly float[] combFeedback = new float[Voices];
+    readonly float[] ringStep = new float[Voices];
+    readonly float[] ringMix = new float[Voices];
+    readonly double[] ringPhase = new double[Voices];
+    readonly float[] voice = new float[Voices];
+    readonly Diffuser diffuser = new();
     int activeType = -1;
-    float delaySamples;
+    int capacity;
     float mix;
+    Lfo lfo1;
+    Lfo lfo2;
+    Lfo filterLfo;
+    int filterCounter;
+    double wowPhase;
+    double flutterPhase;
+    Ducker ducker;
+    SwellEnvelope envelope;
     OutputStage output;
-
-    // Per-callback settings read by the per-sample ticks.
-    float feedback;
-    bool useLowCut;
-    bool useHighCut;
-    SvfCoefficients lowCutCoefficients;
-    SvfCoefficients highCutCoefficients;
-    float diffusionGain;
-    float duckThreshold;
-    float duckFloor;
-    float duckAttack;
-    float duckRelease;
-    float detectorRelease;
-
-    // Running state of the Ducking, Reverse and Sweep types.
-    float duckEnvelope;
-    float duckGain = 1f;
-    float reversePosition;
-    Lfo sweepLfo;
-    int sweepCounter;
-    SvfCoefficients sweepLeftCoefficients;
-    SvfCoefficients sweepRightCoefficients;
-    SvfState sweepLeft;
-    SvfState sweepRight;
 
     public static BlockDescriptor Info { get; } = new(
         "multidelay",
-        "Multi-Delay",
+        "Multitap Delay",
         "Delay",
         [
-            ParamDescriptor.Choice("type", "Type", ["Quad Tap", "Ten Tap", "Plex", "Ducking", "Reverse", "Sweep"]),
-            new("time", "Time", ParamKind.Float, 1f, MaxTimeMs, 400f, "ms", ParamTaper.Log, ParamSmoothing.Linear, 60f),
-            ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
-            ParamDescriptor.Float("feedback", "Feedback", 0f, 100f, 20f, "%"),
-            ParamDescriptor.Float("tap1Time", "Tap 1 Time", 0f, 100f, 25f, "%"),
-            ParamDescriptor.Float("tap2Time", "Tap 2 Time", 0f, 100f, 50f, "%"),
-            ParamDescriptor.Float("tap3Time", "Tap 3 Time", 0f, 100f, 75f, "%"),
-            ParamDescriptor.Float("tap4Time", "Tap 4 Time", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("tap1Level", "Tap 1 Level", Decibels.SilenceDb, 0f, 0f, "dB"),
-            ParamDescriptor.Float("tap2Level", "Tap 2 Level", Decibels.SilenceDb, 0f, -3f, "dB"),
-            ParamDescriptor.Float("tap3Level", "Tap 3 Level", Decibels.SilenceDb, 0f, -6f, "dB"),
-            ParamDescriptor.Float("tap4Level", "Tap 4 Level", Decibels.SilenceDb, 0f, -9f, "dB"),
-            ParamDescriptor.Float("tap1Pan", "Tap 1 Pan", -100f, 100f, -100f, "%"),
-            ParamDescriptor.Float("tap2Pan", "Tap 2 Pan", -100f, 100f, 100f, "%"),
-            ParamDescriptor.Float("tap3Pan", "Tap 3 Pan", -100f, 100f, -50f, "%"),
-            ParamDescriptor.Float("tap4Pan", "Tap 4 Pan", -100f, 100f, 50f, "%"),
-            ParamDescriptor.Float("shuffle", "Shuffle", 0f, 100f, 0f, "%"),
-            ParamDescriptor.Float("taper", "Level Taper", -100f, 100f, 50f, "%"),
-            ParamDescriptor.Float("spread", "Spread", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("diffusion", "Diffusion", 0f, 100f, 50f, "%"),
-            ParamDescriptor.Float("duckThreshold", "Duck Threshold", -60f, 0f, -30f, "dB"),
-            ParamDescriptor.Float("duckAttenuation", "Duck Attenuation", 0f, 40f, 12f, "dB"),
-            ParamDescriptor.Float("duckRelease", "Duck Release", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
-            ParamDescriptor.Float("sweepRate", "Sweep Rate", 0.05f, 10f, 0.5f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("sweepStart", "Sweep Start", 100f, 10_000f, 300f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("sweepStop", "Sweep Stop", 100f, 10_000f, 3_000f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("sweepResonance", "Sweep Resonance", 0.5f, 10f, 3f, "", ParamTaper.Log),
-            ParamDescriptor.Float("sweepPhase", "Sweep Phase", 0f, 180f, 90f, "°"),
+            ParamDescriptor.Choice("type", "Type", ["Quad Tap", "Quad Parallel", "Quad Series", "Quad Diffusor", "Quad Tape"]),
+            new("time", "Master Time", ParamKind.Float, 1f, MaxTimeMs, 400f, "ms", ParamTaper.Log, ParamSmoothing.Linear, 60f),
+            ParamDescriptor.Choice("tempo", "Master Tempo", TempoDivisions.Names),
+            ParamDescriptor.Float("masterFeedback", "Master Feedback", 0f, 200f, 100f, "%"),
+            .. Voice(k => ParamDescriptor.Float($"tap{k + 1}Time", $"Time {k + 1}", 0f, 100f, 25f * (k + 1), "%")),
+            .. Voice(k => ParamDescriptor.Choice($"tap{k + 1}Tempo", $"Tempo {k + 1}", TempoDivisions.Names)),
+            .. Voice(k => ParamDescriptor.Float($"tap{k + 1}Feedback", $"Feedback {k + 1}", -100f, 100f, k == 3 ? 20f : 0f, "%")),
+            .. Voice(k => ParamDescriptor.Float($"tap{k + 1}Level", $"Level {k + 1}", -100f, 100f, 100f * Decibels.ToGain(-3f * k), "%")),
+            .. Voice(k => ParamDescriptor.Float($"tap{k + 1}Pan", $"Pan {k + 1}", -100f, 100f, (k % 2 == 0 ? -1f : 1f) * (k < 2 ? 100f : 50f), "%")),
+            .. Voice(k => ParamDescriptor.Float($"cross{k + 1}", $"Cross Feedback {k + 1}→{(k + 1) % Voices + 1}", -100f, 100f, 0f, "%")
+                .ShownOn(TypeCount, QuadParallel, QuadDiffusor)),
+            .. Voice(k => ParamDescriptor.Choice($"filter{k + 1}Type", $"Filter {k + 1} Type", VoiceFilterTypes)),
+            .. Voice(k => ParamDescriptor.Float($"filter{k + 1}Frequency", $"Filter {k + 1} Freq", 50f, 15_000f, 500f * (1 << k), "Hz", ParamTaper.Log)),
+            .. Voice(k => ParamDescriptor.Float($"filter{k + 1}Q", $"Filter {k + 1} Q", 0.1f, 10f, 0.7071f, "", ParamTaper.Log)),
+            .. Voice(k => ParamDescriptor.Float($"filter{k + 1}Gain", $"Filter {k + 1} Gain", -12f, 12f, 0f, "dB")),
+            .. Voice(k => ParamDescriptor.Float($"chorus{k + 1}Rate", $"Chorus {k + 1} Rate", 0.05f, 10f, 0.5f + 0.13f * k, "Hz", ParamTaper.Log)),
+            .. Voice(k => ParamDescriptor.Float($"chorus{k + 1}Depth", $"Chorus {k + 1} Depth", 0f, MaxChorusMs, 0f, "ms")),
+            .. Voice(k => ParamDescriptor.Float($"comb{k + 1}Time", $"Comb {k + 1} Time", 0.1f, MaxCombMs, 2f + 1.5f * k, "ms", ParamTaper.Log)),
+            .. Voice(k => ParamDescriptor.Float($"comb{k + 1}Feedback", $"Comb {k + 1} Feedback", -95f, 95f, 0f, "%")),
+            .. Voice(k => ParamDescriptor.Float($"ring{k + 1}Frequency", $"Ring Mod {k + 1} Freq", 1f, 5_000f, 100f * (k + 1), "Hz", ParamTaper.Log)),
+            .. Voice(k => ParamDescriptor.Float($"ring{k + 1}Mix", $"Ring Mod {k + 1} Mix", 0f, 100f, 0f, "%")),
+            ParamDescriptor.Float("masterPan", "Master Pan", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Float("masterLfoRate", "Master LFO Rate", 25f, 400f, 100f, "%", ParamTaper.Log),
+            ParamDescriptor.Float("masterLfoDepth", "Master LFO Depth", 0f, 400f, 100f, "%"),
+            ParamDescriptor.Float("masterFilterFrequency", "Master Filter Freq", 25f, 400f, 100f, "%", ParamTaper.Log),
+            ParamDescriptor.Float("masterFilterQ", "Master Filter Q", 25f, 400f, 100f, "%", ParamTaper.Log),
+            ParamDescriptor.Float("masterChorus", "Master Chorus", 0f, 400f, 100f, "%"),
+            ParamDescriptor.Float("masterComb", "Master Comb", 0f, 200f, 100f, "%"),
+            ParamDescriptor.Float("masterRing", "Master Ring Mod", 0f, 200f, 100f, "%"),
+            ParamDescriptor.Float("drive", "Drive", 0f, 10f, 0f),
             ParamDescriptor.Float("lowCut", "Low Cut", LowCutOff, 2_000f, LowCutOff, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("highCut", "High Cut", 500f, HighCutOff, HighCutOff, "Hz", ParamTaper.Log),
+            ParamDescriptor.Choice("lowCutSlope", "Low Cut Slope", [..CutFilter.Slopes], CutFilter.Slope12),
+            ParamDescriptor.Choice("highCutSlope", "High Cut Slope", [..CutFilter.Slopes], CutFilter.Slope12),
+            ParamDescriptor.Choice("lfo1Type", "LFO 1 Type", Lfo.ShapeNames),
+            ParamDescriptor.Float("lfo1Rate", "LFO 1 Rate", 0.05f, 10f, 0.5f, "Hz", ParamTaper.Log),
+            ParamDescriptor.Choice("lfo1Tempo", "LFO 1 Tempo", TempoDivisions.Names),
+            ParamDescriptor.Float("lfo1Depth", "LFO 1 Depth", 0f, MaxLfoMs, 0f, "ms"),
+            ParamDescriptor.Float("lfo1Phase", "LFO 1 Phase", 0f, 180f, 90f, "°"),
+            ParamDescriptor.Choice("lfo2Type", "LFO 2 Type", Lfo.ShapeNames, (int)LfoShape.Triangle),
+            ParamDescriptor.Float("lfo2Rate", "LFO 2 Rate", 0.05f, 10f, 2f, "Hz", ParamTaper.Log),
+            ParamDescriptor.Choice("lfo2Tempo", "LFO 2 Tempo", TempoDivisions.Names),
+            ParamDescriptor.Float("lfo2Depth", "LFO 2 Depth", 0f, MaxLfoMs, 0f, "ms"),
+            ParamDescriptor.Float("lfo2Phase", "LFO 2 Phase", 0f, 180f, 90f, "°"),
+            ParamDescriptor.Choice("filterLfoType", "Filter LFO Type", Lfo.ShapeNames),
+            ParamDescriptor.Float("filterLfoRate", "Filter LFO Rate", 0.05f, 10f, 0.5f, "Hz", ParamTaper.Log),
+            ParamDescriptor.Float("filterLfoDepth", "Filter LFO Depth", 0f, 4f, 0f, "oct"),
+            ParamDescriptor.Float("diffusionMix", "Diffusion Mix", 0f, 100f, 0f, "%"),
+            ParamDescriptor.Float("diffusionTime", "Diffusion Time", 1f, MaxDiffusionMs, 30f, "ms", ParamTaper.Log),
+            ParamDescriptor.Float("diffusionRate", "Diffusion LFO Rate", 0.05f, 5f, 0.4f, "Hz", ParamTaper.Log),
+            ParamDescriptor.Float("diffusionDepth", "Diffusion LFO Depth", 0f, 100f, 0f, "%"),
+            ParamDescriptor.Float("duckThreshold", "Ducker Threshold", -60f, 0f, -30f, "dB"),
+            ParamDescriptor.Float("duckAttenuation", "Ducker Atten", 0f, 40f, 0f, "dB"),
+            ParamDescriptor.Float("duckRelease", "Ducker Release", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
+            ParamDescriptor.Float("envelopeThreshold", "Envelope Threshold", -80f, 0f, -40f, "dB"),
+            ParamDescriptor.Float("envelopeAttack", "Envelope Attack", 0f, 2_000f, 0f, "ms"),
+            ParamDescriptor.Float("envelopeRelease", "Envelope Release", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
+            ParamDescriptor.Float("seriesFeedback", "Series Feedback", -100f, 100f, 0f, "%").ShownOn(TypeCount, QuadSeries),
+            ParamDescriptor.Float("seriesSend", "Series Send", 0f, 100f, 100f, "%").ShownOn(TypeCount, QuadSeries),
+            ParamDescriptor.Float("seriesReturn", "Series Return", 0f, 100f, 100f, "%").ShownOn(TypeCount, QuadSeries),
+            ParamDescriptor.Float("motorSpeed", "Motor Speed", 25f, 200f, 100f, "%").ShownOn(TypeCount, QuadTape),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 25f, "%"),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
@@ -170,33 +249,33 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
         maxInstances: 2
     );
 
+    static IEnumerable<ParamDescriptor> Voice(Func<int, ParamDescriptor> parameter) => Enumerable.Range(0, Voices).Select(parameter);
+
     /// <summary>Gains of the balance pan law: unity on both sides at centre, the far side fading to zero.</summary>
     static (float Left, float Right) Pan(float pan) => (Math.Min(1f, 1f - pan), Math.Min(1f, 1f + pan));
 
-    static float OnePole(float ms, float sampleRate) => MathF.Exp(-1f / (ms * 0.001f * sampleRate));
-
-    float TargetDelaySamples(float timeMs, double tempo) {
-        var division = TempoDivisions.Milliseconds((int)Params.Current(Tempo), tempo);
-        var ms = division > 0 ? Math.Min(MaxTimeMs, (float)division) : timeMs;
-        return (float)(ms * 0.001 * Spec.SampleRate);
+    float Milliseconds(int tempoParam, float timeMs, double tempo) {
+        var division = TempoDivisions.Milliseconds((int)Params.Current(tempoParam), tempo);
+        return division > 0 ? Math.Min(MaxTimeMs, (float)division) : timeMs;
     }
 
     protected override void OnPrepare(in ProcessSpec spec) {
-        // Lines 0 and 1 also serve Reverse, whose heads read up to twice Time back.
-        var time = (int)(spec.SampleRate * MaxTimeMs / 1000) + 8;
-        for (var i = 0; i < Lines; i++) {
-            lines[i].Allocate(i < 2 ? 2 * time : time);
-            allpassLength[i] = (int)MathF.Round(PlexAllpassMs[i] * 0.001f * (float)spec.SampleRate);
-            allpasses[i].Allocate(allpassLength[i] + 2);
+        // The longest voice plus the widest modulation (chorus and both LFOs at the master scalers' top, kept positive).
+        var margin = MaxScale * (MaxChorusMs + 2 * MaxLfoMs) * 2 + 20;
+        capacity = (int)(spec.SampleRate * (MaxTimeMs + margin) / 1000) + 8;
+        for (var i = 0; i < Voices; i++) {
+            lines[i].Allocate(capacity);
+            combs[i].Allocate((int)(spec.SampleRate * MaxCombMs / 1000) + 8);
         }
+
+        diffuser.Allocate(spec.SampleRate, MaxDiffusionMs);
     }
 
     protected override void OnReset() {
         activeType = (int)Params.Current(Type);
         ClearState();
-        delaySamples = TargetDelaySamples(Params.Current(Time), 120);
-        ComputeTapTargets(activeType, delaySamples);
-        Array.Copy(tapTarget, tapDelay, TenTaps);
+        ComputeTapTargets(activeType, Milliseconds(Tempo, Params.Current(Time), 120), 120, 1f);
+        Array.Copy(tapTarget, tapDelay, Voices);
         mix = Params.Current(Mix) / 100f;
         output.Reset(Params.Current(Level), Params.Current(Balance));
     }
@@ -207,291 +286,368 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                 line.Dispose();
             }
 
-            foreach (var allpass in allpasses) {
-                allpass.Dispose();
+            foreach (var comb in combs) {
+                comb.Dispose();
             }
+
+            diffuser.Dispose();
         }
 
         base.Dispose(disposing);
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        var n = io.Length;
         var sampleRate = (float)Spec.SampleRate;
+        var tempo = context.Tempo;
         var type = (int)Params.Current(Type);
-        var targetDelay = TargetDelaySamples(Params.Advance(Time, io.Length), context.Tempo);
-        var mix = EffectsMix.Apply(Params.Advance(Mix, io.Length), Params.Current(GlobalMix), context) / 100f;
-        feedback = Params.Advance(Feedback, io.Length) / 100f;
-        for (var i = Tap1Time; i <= Spread; i++) {
-            Params.Advance(i, io.Length); // tap times, levels and pans are read back by the tap computations below
+        var masterTime = Milliseconds(Tempo, Params.Advance(Time, n), tempo);
+        var mix = EffectsMix.Apply(Params.Advance(Mix, n), Params.Current(GlobalMix), context) / 100f;
+        var masterFeedback = Params.Advance(MasterFeedback, n) / 100f;
+        var motorSpeed = Params.Advance(MotorSpeed, n) / 100f;
+        var motor = type == QuadTape ? motorSpeed : 1f;
+        for (var i = Tap1Time; i < MasterPan; i++) {
+            Params.Advance(i, n); // the voice parameters are read back below
         }
+
+        var masterPan = Params.Advance(MasterPan, n) / 100f;
+        var lfoRateScale = Params.Advance(MasterLfoRate, n) / 100f;
+        var lfoDepthScale = Params.Advance(MasterLfoDepth, n) / 100f;
+        var filterFrequencyScale = Params.Advance(MasterFilterFrequency, n) / 100f;
+        var filterQScale = Params.Advance(MasterFilterQ, n) / 100f;
+        var chorusScale = Params.Advance(MasterChorus, n) / 100f;
+        var combScale = Params.Advance(MasterComb, n) / 100f;
+        var ringScale = Params.Advance(MasterRing, n) / 100f;
 
         if (type != activeType) {
             // The type that takes over starts empty and at its own tap times rather than gliding from the old ones.
             activeType = type;
             ClearState();
-            delaySamples = targetDelay;
-            ComputeTapTargets(type, targetDelay);
-            Array.Copy(tapTarget, tapDelay, TenTaps);
+            ComputeTapTargets(type, masterTime, tempo, motor);
+            Array.Copy(tapTarget, tapDelay, Voices);
         }
 
-        var lowCut = Params.Advance(LowCut, io.Length);
-        var highCut = Params.Advance(HighCut, io.Length);
-        useLowCut = lowCut > LowCutOff;
-        useHighCut = highCut < HighCutOff;
-        lowCutCoefficients = useLowCut ? SvfCoefficients.Design(BiquadType.HighPass, sampleRate, lowCut, 0.7071) : default;
-        highCutCoefficients =
-            useHighCut ? SvfCoefficients.Design(BiquadType.LowPass, sampleRate, highCut, 0.7071) : default;
-
-        ComputeTapTargets(type, targetDelay);
-        ComputeTapGains(type);
-        diffusionGain = Params.Advance(Diffusion, io.Length) / 100f * MaxDiffusionGain;
-        duckThreshold = Decibels.ToGain(Params.Advance(DuckThreshold, io.Length));
-        duckFloor = Decibels.ToGain(-Params.Advance(DuckAttenuation, io.Length));
-        duckRelease = OnePole(Params.Advance(DuckRelease, io.Length), sampleRate);
-        duckAttack = OnePole(DuckAttackMs, sampleRate);
-        detectorRelease = OnePole(DuckDetectorReleaseMs, sampleRate);
-        var sweepRate = Params.Advance(SweepRate, io.Length);
-        var sweepStart = Params.Advance(SweepStart, io.Length);
-        var sweepStop = Params.Advance(SweepStop, io.Length);
-        var sweepQ = Params.Advance(SweepResonance, io.Length);
-        var sweepPhase = Params.Advance(SweepPhase, io.Length) / 360f;
-
-        var delayStep = (targetDelay - delaySamples) / io.Length;
-        for (var k = 0; k < TenTaps; k++) {
-            tapStep[k] = (tapTarget[k] - tapDelay[k]) / io.Length;
+        ComputeTapTargets(type, masterTime, tempo, motor);
+        for (var k = 0; k < Voices; k++) {
+            var (left, right) = Pan(Math.Clamp(Params.Current(Tap1Pan + k) / 100f + masterPan, -1f, 1f));
+            var level = Params.Current(Tap1Level + k) / 100f;
+            tapLeft[k] = level * left;
+            tapRight[k] = level * right;
+            feedback[k] = Params.Current(Tap1Feedback + k) / 100f * masterFeedback;
+            cross[k] = Params.Current(Cross1 + k) / 100f * masterFeedback;
+            filterType[k] = (int)Params.Current(Filter1Type + k);
+            filterFrequency[k] = Params.Current(Filter1Frequency + k) * filterFrequencyScale;
+            filterQ[k] = Params.Current(Filter1Q + k) * filterQScale;
+            filterGain[k] = Params.Current(Filter1Gain + k);
+            chorusRate[k] = Params.Current(Chorus1Rate + k);
+            chorusDepth[k] = Params.Current(Chorus1Depth + k) * chorusScale * 0.001f * sampleRate;
+            combDelay[k] = Params.Current(Comb1Time + k) * 0.001f * sampleRate;
+            combFeedback[k] = Math.Clamp(Params.Current(Comb1Feedback + k) / 100f * combScale, -MaxCombFeedback, MaxCombFeedback);
+            ringStep[k] = 2f * MathF.PI * Params.Current(Ring1Frequency + k) / sampleRate;
+            ringMix[k] = Math.Min(1f, Params.Current(Ring1Mix + k) / 100f * ringScale);
         }
 
-        var inputGain = Params.Advance(InputGain, io.Length) / 100f;
+        var drive = Params.Advance(Drive, n);
+        var tape = type == QuadTape;
+        var loop = LoopFilter.Design(
+            sampleRate,
+            Params.Advance(LowCut, n),
+            (int)Params.Current(LowCutSlope),
+            LoopFilter.ButterworthQ,
+            Math.Min(Params.Advance(HighCut, n), tape ? 6_500f * motor : HighCutOff),
+            (int)Params.Current(HighCutSlope),
+            LoopFilter.ButterworthQ
+        );
+
+        var shape1 = (LfoShape)(int)Params.Current(Lfo1Type);
+        var shape2 = (LfoShape)(int)Params.Current(Lfo2Type);
+        var rate1 = lfoRateScale * TempoDivisions.Rate((int)Params.Current(Lfo1Tempo), tempo, Params.Advance(Lfo1Rate, n));
+        var rate2 = lfoRateScale * TempoDivisions.Rate((int)Params.Current(Lfo2Tempo), tempo, Params.Advance(Lfo2Rate, n));
+        var depth1 = Params.Advance(Lfo1Depth, n) * lfoDepthScale * 0.001f * sampleRate;
+        var depth2 = Params.Advance(Lfo2Depth, n) * lfoDepthScale * 0.001f * sampleRate;
+        var phase1 = Params.Advance(Lfo1Phase, n) / 360.0;
+        var phase2 = Params.Advance(Lfo2Phase, n) / 360.0;
+        var filterShape = (LfoShape)(int)Params.Current(FilterLfoType);
+        var filterRate = Params.Advance(FilterLfoRate, n);
+        var filterDepth = Params.Advance(FilterLfoDepth, n);
+        diffuser.Configure(
+            Params.Advance(DiffusionMix, n) / 100f,
+            Params.Advance(DiffusionTime, n),
+            Params.Advance(DiffusionRate, n),
+            Params.Advance(DiffusionDepth, n) / 100f
+        );
+        ducker.Configure(
+            sampleRate,
+            Params.Advance(DuckAttenuation, n),
+            Params.Advance(DuckThreshold, n),
+            Params.Advance(DuckRelease, n)
+        );
+        envelope.Configure(
+            sampleRate,
+            Params.Advance(EnvelopeThreshold, n),
+            Params.Advance(EnvelopeAttack, n),
+            Params.Advance(EnvelopeRelease, n)
+        );
+        var seriesFeedback = Params.Advance(SeriesFeedback, n) / 100f * masterFeedback;
+        var seriesSend = Params.Advance(SeriesSend, n) / 100f;
+        var seriesReturn = Params.Advance(SeriesReturn, n) / 100f;
+
+        var filterMoving = filterDepth > 0;
+        if (!filterMoving) {
+            DesignFilters(sampleRate, 1f);
+        }
+
+        // Tape transport: slow wow plus faster flutter, a few tenths of a millisecond deep, faster on a faster tape.
+        var wowDepth = tape ? 0.0006f * sampleRate : 0f;
+        var flutterDepth = tape ? 0.00012f * sampleRate : 0f;
+        var wowStep = 2 * Math.PI * 0.55 * motor / sampleRate;
+        var flutterStep = 2 * Math.PI * 6.3 * motor / sampleRate;
+        var anyChorus = false;
+        for (var k = 0; k < Voices; k++) {
+            anyChorus |= chorusDepth[k] > 0;
+        }
+
+        var modulated = anyChorus || depth1 > 0 || depth2 > 0 || tape;
+        var offsetDepth = depth1 + depth2 + wowDepth + flutterDepth;
+
+        for (var k = 0; k < Voices; k++) {
+            tapStep[k] = (tapTarget[k] - tapDelay[k]) / n;
+        }
+
+        var inputGain = Params.Advance(InputGain, n) / 100f;
         var select = (int)Params.Current(InputSelect);
-        var mixStep = (mix - this.mix) / io.Length;
-        var delay = delaySamples;
+        var mixStep = (mix - this.mix) / n;
         var currentMix = this.mix;
-        for (var n = 0; n < io.Length; n++) {
-            delay += delayStep;
-            for (var k = 0; k < TenTaps; k++) {
-                tapDelay[k] += tapStep[k];
+        for (var i = 0; i < n; i++) {
+            currentMix += mixStep;
+            var dryLeft = io.Left[i];
+            var dryRight = io.Right[i];
+            var x = Stereo.Select(select, dryLeft, dryRight) * inputGain;
+            if (envelope.Active) {
+                x *= envelope.Tick(Math.Max(MathF.Abs(dryLeft), MathF.Abs(dryRight)));
             }
 
-            currentMix += mixStep;
-            var dryLeft = io.Left[n];
-            var dryRight = io.Right[n];
-            var mono = Stereo.Select(select, dryLeft, dryRight) * inputGain;
-
-            if (type == Sweep) {
+            lfo1.Advance(rate1, sampleRate);
+            lfo2.Advance(rate2, sampleRate);
+            if (filterMoving) {
                 // Coefficients move on a fixed internal hop, so the output does not depend on the host block size.
-                if (sweepCounter == 0) {
-                    sweepLeftCoefficients = SweepCoefficients(sweepStart, sweepStop, sweepQ, 0, sampleRate);
-                    sweepRightCoefficients = SweepCoefficients(sweepStart, sweepStop, sweepQ, sweepPhase, sampleRate);
+                if (filterCounter == 0) {
+                    DesignFilters(sampleRate, MathF.Pow(2f, filterDepth * filterLfo.Value(filterShape)));
                 }
 
-                sweepCounter = (sweepCounter + 1) % SweepHop;
-                sweepLfo.Advance(sweepRate, sampleRate);
+                filterCounter = (filterCounter + 1) % FilterHop;
+                filterLfo.Advance(filterRate, sampleRate);
             }
 
-            var (wetLeft, wetRight) = type switch {
-                QuadTap => TickTaps(mono, delay, QuadTaps),
-                TenTap => TickTaps(mono, delay, TenTaps),
-                Plex => TickPlex(mono),
-                Ducking => TickDucking(mono, delay),
-                Reverse => TickReverse(dryLeft * inputGain, dryRight * inputGain, delay),
-                _ => TickSweep(dryLeft * inputGain, dryRight * inputGain, delay)
-            };
+            var tapeModulation = 0f;
+            if (tape) {
+                tapeModulation = wowDepth * (float)Math.Sin(wowPhase) + flutterDepth * (float)Math.Sin(flutterPhase);
+                wowPhase = Wrap(wowPhase + wowStep);
+                flutterPhase = Wrap(flutterPhase + flutterStep);
+            }
 
-            io.Left[n] = dryLeft * (1f - currentMix) + wetLeft * currentMix;
-            io.Right[n] = dryRight * (1f - currentMix) + wetRight * currentMix;
+            // Read and process every voice.
+            float wetLeft = 0, wetRight = 0;
+            for (var k = 0; k < Voices; k++) {
+                tapDelay[k] += tapStep[k];
+                var delay = tapDelay[k];
+                if (modulated) {
+                    var modulation = tapeModulation + offsetDepth;
+                    if (depth1 > 0) {
+                        modulation += depth1 * lfo1.Value(shape1, k * phase1);
+                    }
+
+                    if (depth2 > 0) {
+                        modulation += depth2 * lfo2.Value(shape2, k * phase2);
+                    }
+
+                    if (chorusDepth[k] > 0) {
+                        modulation += chorusDepth[k] * (1f + (float)Math.Sin(chorusPhase[k]));
+                    }
+
+                    delay += modulation;
+                }
+
+                if (anyChorus) {
+                    chorusPhase[k] = Wrap(chorusPhase[k] + 2 * Math.PI * chorusRate[k] * lfoRateScale / sampleRate);
+                }
+
+                var line = type is QuadTap or QuadTape ? lines[0] : lines[k];
+                voice[k] = Process(k, line.Read(delay));
+                if (type == QuadDiffusor) {
+                    continue; // heard once the allpass has been applied, below
+                }
+
+                // Quad Series: the first three voices are heard at the Return level.
+                var gain = type == QuadSeries && k < Voices - 1 ? seriesReturn : 1f;
+                wetLeft += voice[k] * tapLeft[k] * gain;
+                wetRight += voice[k] * tapRight[k] * gain;
+            }
+
+            // Write the lines.
+            switch (type) {
+                case QuadParallel:
+                    for (var k = 0; k < Voices; k++) {
+                        var previous = (k + Voices - 1) % Voices;
+                        Write(k, x + feedback[k] * voice[k] + cross[previous] * voice[previous], loop, drive, false);
+                    }
+
+                    break;
+                case QuadSeries:
+                    Write(0, x + feedback[0] * voice[0] + seriesFeedback * voice[Voices - 1], loop, drive, false);
+                    for (var k = 1; k < Voices; k++) {
+                        Write(k, seriesSend * voice[k - 1] + feedback[k] * voice[k], loop, drive, false);
+                    }
+
+                    break;
+                case QuadDiffusor:
+                    // Each line is a Schroeder allpass: the voice heard is delayed - g · node, the node written is input + g · delayed.
+                    for (var k = 0; k < Voices; k++) {
+                        var previous = (k + Voices - 1) % Voices;
+                        var gain = Math.Clamp(feedback[k], -MaxDiffusorGain, MaxDiffusorGain);
+                        var delayed = voice[k];
+                        var node = x + cross[previous] * voice[previous] + gain * delayed;
+                        Write(k, node, loop, drive, false);
+                        voice[k] = delayed - gain * node;
+                    }
+
+                    break;
+                default: {
+                    var fed = x;
+                    for (var k = 0; k < Voices; k++) {
+                        if (feedback[k] != 0) {
+                            fed += feedback[k] * voice[k];
+                        }
+                    }
+
+                    Write(0, fed, loop, drive, tape);
+                    break;
+                }
+            }
+
+            if (type == QuadDiffusor) {
+                // The allpass outputs replace the plain reads in the wet sum.
+                wetLeft = 0;
+                wetRight = 0;
+                for (var k = 0; k < Voices; k++) {
+                    wetLeft += voice[k] * tapLeft[k];
+                    wetRight += voice[k] * tapRight[k];
+                }
+            }
+
+            diffuser.Tick(ref wetLeft, ref wetRight);
+            if (ducker.Active) {
+                var duck = ducker.Tick(Math.Max(MathF.Abs(dryLeft), MathF.Abs(dryRight)));
+                wetLeft *= duck;
+                wetRight *= duck;
+            }
+
+            io.Left[i] = dryLeft * (1f - currentMix) + wetLeft * currentMix;
+            io.Right[i] = dryRight * (1f - currentMix) + wetRight * currentMix;
         }
 
-        delaySamples = targetDelay;
-        Array.Copy(tapTarget, tapDelay, TenTaps);
+        Array.Copy(tapTarget, tapDelay, Voices);
         this.mix = mix;
         FlushDenormals();
 
-        output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
+        output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
+    }
+
+    static double Wrap(double phase) => phase >= 2 * Math.PI ? phase - 2 * Math.PI : phase;
+
+    /// <summary>A voice's filter, comb and ring modulator.</summary>
+    float Process(int k, float y) {
+        if (filterType[k] != FilterOff) {
+            y = (float)filterState[k].Tick(filterCoefficients[k], y);
+        }
+
+        if (combFeedback[k] != 0) {
+            // Normalised feedback comb: the peaks stay at unity whatever the feedback.
+            var g = combFeedback[k];
+            y = (1f - MathF.Abs(g)) * y + g * combs[k].Read(combDelay[k]);
+            combs[k].Write(y);
+        }
+
+        if (ringMix[k] > 0) {
+            y *= 1f - ringMix[k] + ringMix[k] * (float)Math.Sin(ringPhase[k]);
+            ringPhase[k] = Wrap(ringPhase[k] + ringStep[k]);
+        }
+
+        return y;
+    }
+
+    void Write(int line, float value, in LoopFilter loop, float drive, bool tape) {
+        if (loop.Active) {
+            value = loopState[line].Tick(loop, value);
+        }
+
+        if (drive > 0) {
+            var gain = 1f + drive;
+            value = MathF.Tanh(value * gain) / gain;
+        }
+
+        if (tape) {
+            value = MathF.Tanh(value * 0.8f) / 0.8f; // tape headroom: repeats compress instead of building up
+        }
+
+        lines[line].Write(DelayBlock.Limit(value));
+    }
+
+    void DesignFilters(float sampleRate, float frequencyScale) {
+        for (var k = 0; k < Voices; k++) {
+            if (filterType[k] == FilterOff) {
+                continue;
+            }
+
+            var type = filterType[k] switch {
+                FilterLowPass => BiquadType.LowPass,
+                FilterHighPass => BiquadType.HighPass,
+                FilterBandPass => BiquadType.BandPass,
+                _ => BiquadType.Peak
+            };
+            filterCoefficients[k] = SvfCoefficients.Design(type, sampleRate, filterFrequency[k] * frequencyScale, filterQ[k], filterGain[k]);
+        }
     }
 
     void ClearState() {
-        for (var i = 0; i < Lines; i++) {
-            lines[i].Reset();
-            allpasses[i].Clear();
-            lowCutState[i].Reset();
-            highCutState[i].Reset();
+        for (var k = 0; k < Voices; k++) {
+            lines[k].Reset();
+            combs[k].Reset();
+            loopState[k].Reset();
+            filterState[k].Reset();
+            chorusPhase[k] = 0;
+            ringPhase[k] = 0;
+            voice[k] = 0;
         }
 
-        duckEnvelope = 0;
-        duckGain = 1f;
-        reversePosition = 0;
-        sweepLfo.Reset();
-        sweepCounter = 0;
-        sweepLeft.Reset();
-        sweepRight.Reset();
+        diffuser.Clear();
+        ducker.Reset();
+        envelope.Reset();
+        lfo1.Reset();
+        lfo2.Reset();
+        filterLfo.Reset();
+        filterCounter = 0;
+        wowPhase = 0;
+        flutterPhase = 0;
     }
 
-    /// <summary>Tap (or Plex line) read delays in samples for master delay <paramref name="time" />.</summary>
-    void ComputeTapTargets(int type, float time) {
-        switch (type) {
-            case QuadTap:
-                for (var k = 0; k < QuadTaps; k++) {
-                    tapTarget[k] = time * Params.Current(Tap1Time + k) / 100f;
-                }
-
-                break;
-            case TenTap:
-                // Shuffle delays the off-beat taps (1, 3, 5, ... counting the dry note as beat 0) by up to half a step.
-                var swing = Params.Current(Shuffle) / 100f * 0.5f;
-                for (var k = 0; k < TenTaps; k++) {
-                    tapTarget[k] = time * (k + 1 + (k % 2 == 0 ? swing : 0f)) / TenTaps;
-                }
-
-                break;
-            case Plex:
-                for (var i = 0; i < Lines; i++) {
-                    tapTarget[i] = time * PlexRatios[i] - allpassLength[i];
-                }
-
-                break;
+    /// <summary>The voices' read delays in samples: a percentage of the master time, or the voice's own tempo.</summary>
+    void ComputeTapTargets(int type, float masterTimeMs, double tempo, float motor) {
+        var longest = capacity - 8 - (MaxScale * (MaxChorusMs + 2 * MaxLfoMs) * 2 + 20) * 0.001f * (float)Spec.SampleRate;
+        for (var k = 0; k < Voices; k++) {
+            var ms = Milliseconds(Tap1Tempo + k, masterTimeMs * Params.Current(Tap1Time + k) / 100f, tempo);
+            var samples = ms * 0.001f * (float)Spec.SampleRate;
+            tapTarget[k] = Math.Min(longest, type == QuadTape && motor != 1f ? samples / motor : samples);
         }
-    }
-
-    void ComputeTapGains(int type) {
-        if (type == QuadTap) {
-            for (var k = 0; k < QuadTaps; k++) {
-                var level = Decibels.ToGain(Params.Current(Tap1Level + k));
-                var (left, right) = Pan(Params.Current(Tap1Pan + k) / 100f);
-                tapLeft[k] = level * left;
-                tapRight[k] = level * right;
-            }
-        } else if (type == TenTap) {
-            // Positive taper fades the taps out across the pattern, negative fades them in.
-            var taper = Params.Current(Taper) / 100f;
-            var spread = Params.Current(Spread) / 100f;
-            for (var k = 0; k < TenTaps; k++) {
-                var u = k / (TenTaps - 1f);
-                var level = taper >= 0 ? 1f - taper * u : 1f + taper * (1f - u);
-                var (left, right) = Pan(k % 2 == 0 ? -spread : spread);
-                tapLeft[k] = level * left;
-                tapRight[k] = level * right;
-            }
-        }
-    }
-
-    float Damp(int line, float x) {
-        if (useLowCut) {
-            x = (float)lowCutState[line].Tick(lowCutCoefficients, x);
-        }
-
-        if (useHighCut) {
-            x = (float)highCutState[line].Tick(highCutCoefficients, x);
-        }
-
-        return x;
-    }
-
-    (float Left, float Right) TickTaps(float x, float delay, int taps) {
-        var line = lines[0];
-        var echo = line.Read(delay);
-        float left = 0, right = 0;
-        for (var k = 0; k < taps; k++) {
-            var tap = line.Read(tapDelay[k]);
-            left += tap * tapLeft[k];
-            right += tap * tapRight[k];
-        }
-
-        line.Write(Damp(0, x + feedback * echo));
-        return (left, right);
-    }
-
-    (float Left, float Right) TickPlex(float x) {
-        for (var i = 0; i < Lines; i++) {
-            plexOut[i] = lines[i].Read(tapDelay[i]);
-        }
-
-        // Feedback through the orthogonal Hadamard matrix H4 / 2 (a butterfly), scaled by the feedback amount.
-        var a = plexOut[0] + plexOut[1];
-        var b = plexOut[0] - plexOut[1];
-        var c = plexOut[2] + plexOut[3];
-        var d = plexOut[2] - plexOut[3];
-        var g = 0.5f * feedback;
-        FeedPlex(0, 0.5f * x + g * (a + c));
-        FeedPlex(1, 0.5f * x + g * (b + d));
-        FeedPlex(2, 0.5f * x + g * (a - c));
-        FeedPlex(3, 0.5f * x + g * (b - d));
-        return (plexOut[0] + plexOut[2], plexOut[1] + plexOut[3]);
-    }
-
-    void FeedPlex(int line, float value) =>
-        lines[line].Write(allpasses[line].Allpass(Damp(line, value), allpassLength[line], diffusionGain));
-
-    (float Left, float Right) TickDucking(float x, float delay) {
-        var left = lines[0].Read(delay);
-        var right = lines[1].Read(delay);
-        lines[0].Write(Damp(0, x + feedback * right));
-        lines[1].Write(Damp(1, feedback * left));
-
-        // Peak detector with instant attack, then a gain that falls fast and recovers over the release time.
-        var level = MathF.Abs(x);
-        duckEnvelope = level > duckEnvelope ? level : duckEnvelope * detectorRelease;
-        var target = duckEnvelope > duckThreshold ? duckFloor : 1f;
-        duckGain = target + (duckGain - target) * (target < duckGain ? duckAttack : duckRelease);
-        return (left * duckGain, right * duckGain);
-    }
-
-    (float Left, float Right) TickReverse(float xLeft, float xRight, float delay) {
-        // Head A starts a chunk every `delay` samples, head B half a chunk later. Reading 2p + 3 samples back at
-        // position p plays the previous chunk backwards; sin² + cos² windows cross-fade the heads to unity.
-        var positionA = reversePosition;
-        var positionB = positionA + 0.5f * delay;
-        if (positionB >= delay) {
-            positionB -= delay;
-        }
-
-        var window = MathF.Sin(MathF.PI * positionA / delay);
-        var weightA = window * window;
-        var left = ReverseHeads(0, positionA, positionB, weightA);
-        var right = ReverseHeads(1, positionA, positionB, weightA);
-
-        // Forward feedback inside each line, so every repeat is also played reversed.
-        lines[0].Write(Damp(0, xLeft + feedback * lines[0].Read(delay)));
-        lines[1].Write(Damp(1, xRight + feedback * lines[1].Read(delay)));
-
-        reversePosition += 1f;
-        if (reversePosition >= delay) {
-            reversePosition -= delay * MathF.Floor(reversePosition / delay);
-        }
-
-        return (left, right);
-    }
-
-    float ReverseHeads(int line, float positionA, float positionB, float weightA) =>
-        weightA * lines[line].Read(2f * positionA + 3f) + (1f - weightA) * lines[line].Read(2f * positionB + 3f);
-
-    (float Left, float Right) TickSweep(float xLeft, float xRight, float delay) {
-        var left = lines[0].Read(delay);
-        var right = lines[1].Read(delay);
-        lines[0].Write(Damp(0, xLeft + feedback * left));
-        lines[1].Write(Damp(1, xRight + feedback * right));
-        return (
-            (float)sweepLeft.Tick(sweepLeftCoefficients, left),
-            (float)sweepRight.Tick(sweepRightCoefficients, right)
-        );
-    }
-
-    /// <summary>The band-pass at the LFO's position, swept logarithmically from start (LFO -1) to stop (LFO +1).</summary>
-    SvfCoefficients SweepCoefficients(float start, float stop, float q, float phase, float sampleRate) {
-        var position = 0.5f * (sweepLfo.Value(LfoShape.Triangle, phase) + 1f);
-        var frequency = start * MathF.Pow(stop / start, position);
-        return SvfCoefficients.Design(BiquadType.BandPass, sampleRate, frequency, q);
     }
 
     void FlushDenormals() {
-        for (var i = 0; i < Lines; i++) {
-            lowCutState[i].FlushDenormals();
-            highCutState[i].FlushDenormals();
+        for (var k = 0; k < Voices; k++) {
+            loopState[k].FlushDenormals();
+            filterState[k].FlushDenormals();
         }
 
-        sweepLeft.FlushDenormals();
-        sweepRight.FlushDenormals();
-        if (duckEnvelope < 1e-20f) {
-            duckEnvelope = 0;
-        }
+        ducker.FlushDenormals();
+        envelope.FlushDenormals();
     }
 }

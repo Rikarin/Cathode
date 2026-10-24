@@ -29,6 +29,7 @@ import { LiveStore } from '../state/live.store';
 
 const LooperColors: Record<string, 'error' | 'warning' | 'success' | 'none'> = {
   recording: 'error',
+  armed: 'warning',
   overdubbing: 'warning',
   playing: 'success'
 };

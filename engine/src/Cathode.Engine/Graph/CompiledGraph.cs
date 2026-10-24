@@ -1,6 +1,7 @@
 using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Routing;
+using Cathode.Dsp.Looping;
 using Cathode.Engine.Rig;
 
 namespace Cathode.Engine.Graph;
@@ -36,6 +37,7 @@ public sealed class CompiledGraph : IDisposable {
     readonly BypassState[] bypass;
     readonly float fadeStep;
     readonly ModifierBinding[] modifiers;
+    readonly ILooperBlock? looperBlock;
 
     /// <summary>Identifies this graph; commands addressed to another generation are ignored.</summary>
     public int Generation { get; }
@@ -50,6 +52,9 @@ public sealed class CompiledGraph : IDisposable {
     public IReadOnlyList<GraphOp> Ops => ops;
 
     public IReadOnlyList<string> SlotIds => slotIds;
+
+    /// <summary>The looper of the graph's Looper block, or null: while it runs, the engine's looper transport drives it.</summary>
+    public Looper? Looper => looperBlock?.Looper;
 
     internal CompiledGraph(
         int generation,
@@ -80,6 +85,7 @@ public sealed class CompiledGraph : IDisposable {
         }
 
         slotByName = slotById.GetAlternateLookup<ReadOnlySpan<char>>();
+        looperBlock = blocks.OfType<ILooperBlock>().FirstOrDefault();
 
         // Work buffers in native memory: pinned managed arrays would live on the pinned object heap, which only gen2
         // collections clean up, so every preset load would push the host towards a blocking gen2.
