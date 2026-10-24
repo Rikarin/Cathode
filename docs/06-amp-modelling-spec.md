@@ -373,6 +373,64 @@ Matching: the gain staging was checked stage by stage against Robinette's AB763 
 
 **Hiwatt DR103** (tier 2) — PI: https://ampbooks.com/mobile/classic-circuits/hiwatt-phase-inverter; stack (CP103): https://ampbooks.com/mobile/classic-circuits/cp103-tonestack/; https://hiwatt.org/tech2.html. PI is an LTP with **fixed bias from a CF** (220k cathode, about 70 V at the PI grids), about 87k plates, 2.2k bias, 22k tail [src]. NFB 10k from the 16Ω tap; presence 470Ω, 1000 pF, 0.1 µ; fixed treble boost 470Ω + 0.01 µ [src]. 4 × EL34, −36 V, about 496 V plates [src]. Whether the DR103 uses the CP103 stack is *(unverified)*.
 
+**As built (stream F2b, Marshall and British, phase 7 second pass).** Five types appended to `AmpDesign.All`; each file
+cites its drawing and marks its guesses (mostly the rails, idle currents, output transformers and feedback taps, which
+none of the drawings give):
+- **BE-100** and **BE-100 HBE** (`FriedmanBE100.cs`), from the rev 1.5 "BE-100 v2" trace (2014). Read from it, against the
+  unverified list above: V1A and V2A have **220k plus 100k with 500 pF across the 100k**, not a plain 100k; the "C45"
+  switch chooses 68k series with 68k to ground or 560k ‖ 680 pF series with 220k to ground before V2B's 33k stopper; the
+  Fat switch adds 22 nF to V2A's 2.2 nF; V3A has 100k with 500 pF from the rail and 820 ‖ 0.68 µF, plus 470 µF with
+  Voice (a two-way switch on this trace; later amps have three positions); V3B follows into a 500 pF / 33k / 22 nF /
+  22 nF stack (250k-B, 1M-A, 25k-B) and 220k into 1M and the master. HBE adds V1A through 2.2 nF into a 1M/68k divider.
+  Sat is 100 nF and 10k from the follower's cathode onto two MPSA06 used as zeners (a symmetric clamp of about 6.8 V
+  here; the trace's wiring would clamp one polarity: unsettled). The feedback is 47k in series with 220k ‖ 4.7 nF into
+  the 5k presence pot. The loop (two LND150 followers) is taken as transparent.
+- **Silver Jubilee** (`SilverJubilee.cs`), from 2555 STD issue 3. The relay contact L either grounds V1B's 220k grid
+  leak and 220k plate load (Boost, the relay at rest: full gain into the clipping network) or joins them to the
+  clipping network's top T, which makes the 220k shunt feedback around V1B and feeds V2A's grid through 10k + 100k beside
+  the Lead Master (rhythm). The LED strings at T are an LED and two 1N4007 one way, an LED and one 1N4007 the other.
+  "Rhythm Clip" joins L to the 1N4007 pair that otherwise hangs on V2A's grid through 47k and 2.2 nF. V2A has 1M of AC
+  shunt feedback from its coupled plate; a 100k/10k send divider; V2B (220k, 470) drives the Jubilee's own tone network
+  (a tandem Bass pot, 220 pF / 470 pF / 4.7 nF / 10 nF / 0.1 µF / 2.2 nF; values in the file) and the Output Master.
+  High/Low is the power amp's triode switch.
+- **18 W 1974X** (`Marshall18W.cs`), PedalMonkey's rev 5 drawing with its node voltages: the Normal channel's two
+  paralleled triodes into its tone and volume network, or the Tremolo channel with the tremolo off (the footswitch
+  grounds the oscillator's grid, so it idles on the shared cathode and its plate current sets the input triode's supply);
+  the 47k-tail long-tail pair is the mixer; two EL84 on 125 Ω, no feedback, an EZ81.
+- **Hiwatt DR103** (`HiwattDR103.cs`), Mark Huss's hiwatt.org redraws (mid-70s four-input preamp rev 1.4, 100 W output
+  v1.1): V1 with 220k plates on a shared 1k1 ‖ 47 nF (both channels, jumper and normal input as on the Marshalls), V2A
+  (100k, 1k ‖ 47 nF) driving the Hiwatt network from its plate (1 nF, 220 pF, 220k, 22k, Middle 100k ‖ 1 nF, Bass 470k-A,
+  100k with 47 nF and 47 nF), 22k into the 220k-A master, V2B (100k, 1k5), a 12AT7 long-tail pair (82k/91k) biased by a
+  cathode follower at about 50 V (here the library pair with the same rest point: 22.6k tail, 1.6k bias), four EL34 with
+  22k stoppers and 100 Ω screens, 10k of feedback from the 16 Ω tap into 2k2 and the presence.
+- **JCM900 4100/4500**: not built. The vector reissue of drawing JMP52-02 (issue 11, 1997) is fully legible and was
+  read: input 10k, 100 pF, 0.1 µF, 1M; IC1 (M5201, a dual op-amp whose sections the channel switch mutes) channel A
+  non-inverting 1 + 100k ‖ 22 pF over 15k + 0.1 µF, channel B 1 + 100k ‖ 470 pF over 4k7 + 47 nF; channel A: 47 nF, 22k
+  to ground, 12k into IC4a, an inverting stage whose feedback is the 220k-B Preamp pot's lower part with 47 pF and two
+  LEDs each way (the upper part with 1 nF is its input arm); channel B: 0.22 µF, 10k into IC6b, inverting, the 1M-A Gain
+  rheostat with 220 pF as feedback, 0.22 µF and 4k7 onto a W005F bridge with a 1N4007 across its AC terminals (an
+  asymmetric clamp to ground), then a pre-EQ ladder (4k7, 4.7 nF, 0.22 µF, 0.22 µF, 10k, 10k, 100k, 4k7) into IC4b
+  (1 + 10k/22k); both into 2k2 and 68k to V1a (150k, 1k5, 22 pF grid to cathode) with **220k of shunt feedback** from the
+  stack's input; the V1b follower (100k) through 0.1 µF onto a 470 pF / 33k / 22 nF / 22 nF stack (220k-B, 1M-A, 22k-B);
+  470k into the send buffer; the return op-amp into V2a (100k, 2k2 with the 10k-B Presence and 470 Ω + 0.22 µF across
+  it); V2b (100k, 1k2) with 470k shunt feedback mixing the reverb; the two masters are op-amp stages (220k in, 1M-A
+  rheostat feedback). It needs an op-amp element in `StageNetlist` (the `OpAmp` device at a network stage's root) and the
+  return op-amp's input resistor, which is not on the sheet. The pelennor captures stay on the Plexi stand-in.
+- **Library changes** (small): `FeedbackDesign.LowFeedback`, a fixed low shelf in the global feedback (default 1, no
+  change for the other models), for the BE-100's 220k ‖ 4.7 nF; network stages accept two diode clippers beside a triode
+  or two triodes ("DD", "TDD", "TTDD"), for the Jubilee.
+- **Validation**: the preamp chains against the reference simulator with no cuts (`British_chains_match_the_reference`):
+  BE-100 −41 dB at 2 mV and −19 dB at 50 mV, BE-100 HBE −71 dB, Hiwatt −59 dB at 2 mV and 50 mV, Jubilee −14 dB at 2 mV
+  (the cut at V2A's grid against its 1M feedback; with V2A inside the clipping circuit it was −27 dB at half again the
+  cost; at higher drive the reference simulator itself fails to converge on the LED strings). Knob sweeps at full drive
+  converge, every panel control moves the sound, gain and master are monotonic (`BritishAmpTests`).
+- **CPU** (48 kHz, guitar / loud noise, `Gain` 7, `Master` 6, measured beside other streams on a loaded machine where
+  Plexi read 8.9–11.0 / 14.9–21.3 %): BE-100 15.9 / 25.3, BE-100 HBE 16.6 / 26.7 (high-gain budget); 18 W 10.0 / 13.5,
+  Tremolo channel 16.5 / 25.4; Hiwatt DR103 12.8 / 31.7; Silver Jubilee 24–31 / 39–56. The Jubilee is over budget: its
+  V1B circuit (a triode and two clippers in the relay's feedback loop) takes about 6.5 Newton iterations a sample on
+  noise. The Hiwatt is over on noise (the 0.25 feedback fraction and the two-triode input).
+- **References**: none of the four amps has a GPL direct-out capture; the JCM900 captures stay on the Plexi stand-in.
+
 ### 3.3 Vox and class-A boutique
 
 **AC30 Top Boost** — https://www.ampbooks.com/mobile/classic-circuits/vox-ac30/, https://www.voxac30.org.uk/vox_ac30_top_boost_circuit.html (JMI OS/010 drawing images on that site)

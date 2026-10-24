@@ -52,21 +52,21 @@ Last updated: 2026-10-24 (after the four family streams and the Prometheus merge
 | JTM45 | ✅ Done | JTM45 (9) | — | Any JTM45 / reissue | 4x12 or 2x12 (Bluesbreaker), Greenback / Alnico |
 | JCM800 2203 | ✅ Done | JCM800 2203 (7) | T3K: 2203 (modified) | Stock 2203, gain sweep | 4x12 closed, G12T-75 / Vintage 30 |
 | JCM800 2204 | ✅ Done | JCM800 2204 (8) | — | Stock 2204 | 4x12 closed, G12T-75 |
-| Silver Jubilee 2555 | ⏸ Waiting (relay and diode networks need a closer read) | — | — | Rhythm clip and lead modes | 4x12 closed, G12T-75 / Vintage 30 |
-| Friedman BE-100 | 📋 Planned (readable trace found; next Marshall-family model) | — | — | BE and HBE channels, Fat/Tight settings | 4x12 closed, Vintage 30 / Greenback |
-| JCM900 4100 / 4502 | ⏸ Waiting (op-amp values unreadable in the scan) | — | GPL: JCM900 4502 channel A gain 4–10, channel B gain 8–20 | | 4x12 closed, G12T-75 / Vintage 30 |
+| Silver Jubilee 2555 | ✅ Done (factory drawing 2555 STD iss 3; relay, shunt feedback and both clippers modelled) | Silver Jubilee | — | Rhythm clip and lead (Boost) modes | 4x12 closed, G12T-75 / Vintage 30 |
+| Friedman BE-100 | ✅ Done (rev 1.5 "BE-100 v2" trace, 2014; two-way Voice as traced, later amps have three) | BE-100, BE-100 HBE | — | BE and HBE channels, Fat/C45/Sat settings | 4x12 closed, Vintage 30 / Greenback |
+| JCM900 4100 / 4502 | 📋 Planned (vector factory drawing JMP52-02 iss 11 is fully legible, values read into docs/06 §3.2; needs op-amp elements in network stages) | — | GPL: JCM900 4502 channel A gain 4–10, channel B gain 8–20 (still on the Plexi stand-in) | | 4x12 closed, G12T-75 / Vintage 30 |
 | Laney GH100L | ✅ Done | Laney GH100L (11) | GPL: Laney GH100S ×3 | | 4x12 closed, G12H-100 |
-| Hiwatt DR103 | ⏸ Waiting (partial data) | — | — | Normal/Brilliant, jumpered | 4x12 closed, Fane |
-| Orange OR50 / Rockerverb | ⏸ Waiting | — | — | Reliable schematic (MkI only found) | 2x12 / 4x12 closed, Vintage 30 |
-| Marshall JVM410H (OD) | ⏸ Waiting | — | — | Readable factory values | 4x12 closed, Vintage 30 |
-| Splawn Quickrod | ⏸ Waiting | — | — | Schematic | 4x12 closed, Vintage 30 |
-| Suhr Badger / SL68 | ⏸ Waiting | — | — | Schematic | 2x12 / 4x12 |
-| Marshall JMP 2204 / 2203 (1970s) | 💤 Not planned | — | — | | 4x12 closed |
-| Marshall 18 W (1974X) | 💤 Not planned | — | — | | 2x10 / 1x12 open |
-| Marshall Major 1967 | 💤 Not planned | — | — | | 4x12 closed |
-| Marshall DSL / JCM2000 | 💤 Not planned | — | — | | 4x12 closed |
-| Marshall Bluesbreaker 1962 | 💤 Not planned | — | — | | 2x12 open |
-| Hiwatt Custom 50 / DR504 | 💤 Not planned | — | — | | 4x12 closed, Fane |
+| Hiwatt DR103 | ✅ Done (Mark Huss's hiwatt.org redraws: mid-70s four-input preamp, 100 W output) | Hiwatt DR103 | — (T3K: DR103 1974, local only, not mapped) | Normal/Brilliant, jumpered | 4x12 closed, Fane |
+| Orange OR50 / Rockerverb | ⏸ Waiting (only the Rockerverb 50 MkI factory sheet, 2004, marginal scan; nothing for MkII/MkIII or the OR50 reissue, MEF requests unanswered; Orange gives schematics to authorised techs only) | — | — | Reliable schematic (MkI only found) | 2x12 / 4x12 closed, Vintage 30 |
+| Marshall JVM410H (OD) | 📋 Planned (el34world `Marshall_jvm410_sch.pdf` is vector: JVM410-60-02 iss 2 and the front-panel board JVM410-61-02 with the OD tone stacks render crisp at 600 dpi; DrTube has the sheets separately) | — | GPL: pelennor "Phillipe P JVM-OD1/OD2 ... NoDrive" (not added: amp and rig not stated) | | 4x12 closed, Vintage 30 |
+| Splawn Quickrod | ⏸ Waiting (no schematic: the schems.com link is dead, an elektrotanya file is said to be the 4 × 12AX7 version; Splawn reportedly has none) | — | — | Schematic | 4x12 closed, Vintage 30 |
+| Suhr Badger / SL68 | ⏸ Waiting (an unofficial Badger 18 drawing on MEF is called inaccurate there: the real amp has a dual-ganged gain pot and a plate-driven loop; nothing for the SL68) | — | — | Schematic | 2x12 / 4x12 |
+| Marshall JMP 2204 / 2203 (1970s) | ✅ Covered by JCM800 2203 / 2204 (Marshall's 1978 drawing 78331-1, master-volume column, lists the JCM800 preamp's values) | JCM800 2203 (7), JCM800 2204 (8) | — | US (Unicord, 6550) versions | 4x12 closed |
+| Marshall 18 W (1974X) | ✅ Done (PedalMonkey rev 5 drawing with voltages; tremolo off) | 18 W 1974X | — | Both channels, volume sweep | 2x10 / 1x12 open |
+| Marshall Major 1967 | 📋 Planned (Unicord drawing c.1970: el34world `Marshall_Unicord_Model_1967_circa1970.jpg`, plus layout) | — | — | | 4x12 closed |
+| Marshall DSL / JCM2000 | 📋 Planned (factory DSL100 main board JCM2-60-02 iss 3–9 and DSL50 DL50-60-02 on drtube.com; TSL100 TL10-60-02 vector on el34world) | — | GPL: pelennor "Tim R JCM2000 Clean / Crunch / L2 G6 / L2 G8" (DSL or TSL not stated; not added) | | 4x12 closed |
+| Marshall Bluesbreaker 1962 | 📋 Planned (reissue drawings on el34world and DrTube `1962ri89.gif`; the JTM45 circuit with a tremolo channel) | — | — | | 2x12 open |
+| Hiwatt Custom 50 / DR504 | 📋 Planned (hiwatt.org redraws `DR_50wOutput.pdf`, `DR504OL.gif` and a traced layout; shares the DR103 preamp) | — | — | | 4x12 closed, Fane |
 
 ## Vox, class A and boutique
 
@@ -209,18 +209,18 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 
 | Amp | Status | Cathode type | Axe models | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Marshall 1959SLP reissue | 💤 Not planned (Plexi reissue) | — | 1959SLP Jump / Normal / Treble | | 4x12 closed, Greenback |
-| Marshall 1987X reissue | 💤 Not planned (50 W Plexi reissue) | — | 1987X Jump / Normal / Treble | | 4x12 closed |
-| Marshall JMP 1959T Super Lead (Tremolo) | 💤 Not planned | — | Brit Super | | 4x12 closed |
-| Marshall JMP-1 preamp | 💤 Not planned (op-amp/tube MIDI preamp) | — | Brit Pre, JMPRE-1 OD1 / OD2 (+ bass) | | 4x12 closed |
-| Marshall AFD100 (Slash) | 💤 Not planned | — | Brit AFS100 1 / 2 | | 4x12 closed |
-| Marshall JVM410HJS (Satriani) | 💤 Not planned (JVM variant) | — | JS410 Crunch / Lead | | 4x12 closed, Vintage 30 |
-| Friedman Small Box | 💤 Not planned | — | Friedman Small Box | | 2x12 / 4x12 closed |
-| Cornford MK50H II | 💤 Not planned | — | Corncob M50 | Overdrive channel | 4x12 closed |
-| Orange A30 / AD30 | 💤 Not planned | — | Citrus A30 Clean / Dirty | | 2x12 closed |
-| Orange Tiny Terror | 💤 Not planned | — | Citrus Terrier | | 1x12 / 2x12 closed |
+| Marshall 1959SLP reissue | 📋 Planned (factory reissue drawing 1959-01-60-02, scanned; el34world and DrTube) | — | 1959SLP Jump / Normal / Treble | | 4x12 closed, Greenback |
+| Marshall 1987X reissue | 📋 Planned (factory drawing 1987-01-60-02 iss 4; the "tone-stack mod" is not documented anywhere found, forums only argue 33k against 56k slope) | — | 1987X Jump / Normal / Treble | | 4x12 closed |
+| Marshall JMP 1959T Super Lead (Tremolo) | 📋 Planned (Unicord 1959T drawing c.1970, el34world JPG; also DrTube `1959tu.gif`) | — | Brit Super | | 4x12 closed |
+| Marshall JMP-1 preamp | 📋 Planned (DrTube `jmp1-61-04.pdf`, 6 sheets, vector; op-amp/tube: needs op-amp elements) | — | Brit Pre, JMPRE-1 OD1 / OD2 (+ bass) | | 4x12 closed |
+| Marshall AFD100 (Slash) | ⏸ Waiting (no public schematic; only the manual) | — | Brit AFS100 1 / 2 | | 4x12 closed |
+| Marshall JVM410HJS (Satriani) | 📋 Planned (factory vector sheets on DrTube: jvm410hjs-60-02 iss 2, -61-02, -62-02; after the JVM410H) | — | JS410 Crunch / Lead | | 4x12 closed, Vintage 30 |
+| Friedman Small Box | ⏸ Waiting (nothing found; GuitarML's `FriedmanSmallBox_GainKnob` may be the pedal and is undocumented) | — | Friedman Small Box | | 2x12 / 4x12 closed |
+| Cornford MK50H II | 📋 Planned (the designer Martin Kidd's own drawing, 2011, 5 sheets, vector with text: el34world `Cornford/Cornford_mk50hii.pdf`) | — | Corncob M50 | Overdrive channel | 4x12 closed |
+| Orange A30 / AD30 | 📋 Planned (factory vector sheet cd0115, 2001: el34world `Orange/Orange_ad30.pdf`) | — | Citrus A30 Clean / Dirty | | 2x12 closed |
+| Orange Tiny Terror | 📋 Planned (vector redraw, not a factory sheet: el34world `Orange/Orange_tiny_terror.pdf`) | — | Citrus Terrier | | 1x12 / 2x12 closed |
 | Orange AD200B (bass) | 💤 Not planned | — | Citrus Bass 200 | | 4x10 / 8x10 closed |
-| Blankenship Leeds 21 | 💤 Not planned | — | Blanknshp Leeds | | 1x12 / 2x12 |
+| Blankenship Leeds 21 | ⏸ Waiting (nothing found) | — | Blanknshp Leeds | | 1x12 / 2x12 |
 | Vox AC30HW (hand-wired) | 💤 Not planned (AC30 variant) | — | Class-A 30w, 30W Bright, 30w Hot | | 2x12 open, Alnico Blue |
 
 ### Boutique and class A
@@ -288,8 +288,8 @@ models. Against the catalogue above it adds these real amps:
 | Fender Vibrolux 6G11 (brownface, 1962/63) | Fender | 💤 Not planned | — | Vibrato Lux 6G11 | 2x10 open |
 | Supro 1695T Black Magick | US vintage | 💤 Not planned | — | Supremo Black Magick | 1x12 open |
 | Supro 1964T | US vintage | 💤 Not planned | — | Supremo 1964T | 1x12 open |
-| Marshall SV20H (Studio Vintage, 20 W Plexi) | Marshall | 💤 Not planned | — | Plexi Studio 20 | 2x12 / 4x12 closed |
-| Marshall SC20H (Studio Classic, 20 W JCM800) | Marshall | 💤 Not planned | — | Brit 800 Studio 20 | 2x12 / 4x12 closed |
+| Marshall SV20H (Studio Vintage, 20 W Plexi) | Marshall | 💤 Not planned (not searched yet) | — | Plexi Studio 20 | 2x12 / 4x12 closed |
+| Marshall SC20H (Studio Classic, 20 W JCM800) | Marshall | 💤 Not planned (not searched yet) | — | Brit 800 Studio 20 | 2x12 / 4x12 closed |
 | Diamond Del Fuego | Modern high gain | 💤 Not planned | — | Del Fuego | 4x12 closed |
 
 The wiki also names variants of amps already listed, which can be covered by switches or extra types once the base amp
