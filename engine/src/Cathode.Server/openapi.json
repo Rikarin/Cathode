@@ -896,6 +896,47 @@
         }
       }
     },
+    "/api/v1/live/blocks/{id}/preset": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Sets a channel of the block (default: the active scene\u0027s) to a block preset from the Block Library.",
+        "operationId": "ApplyBlockPreset",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyBlockPresetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/live/blocks/{id}/bypass-mode": {
       "put": {
         "tags": [
@@ -1432,6 +1473,135 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/block-presets": {
+      "get": {
+        "tags": [
+          "Block Library"
+        ],
+        "summary": "The factory and user block presets, of one block type when ?type= is given.",
+        "operationId": "ListBlockPresets",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BlockPreset"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/block-presets/{id}": {
+      "get": {
+        "tags": [
+          "Block Library"
+        ],
+        "operationId": "GetBlockPreset",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockPreset"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Block Library"
+        ],
+        "summary": "Saves a user block preset (factory ones cannot be changed).",
+        "operationId": "PutBlockPreset",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlockPreset"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockPreset"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Block Library"
+        ],
+        "operationId": "DeleteBlockPreset",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
           }
         }
       }
@@ -1993,6 +2163,24 @@
           }
         }
       },
+      "ApplyBlockPresetRequest": {
+        "required": [
+          "preset"
+        ],
+        "type": "object",
+        "properties": {
+          "preset": {
+            "type": "string"
+          },
+          "channel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Sets a block\u0027s channel (default: the one the active scene uses) to a block preset."
+      },
       "AssetInfo": {
         "required": [
           "ref",
@@ -2056,6 +2244,41 @@
           }
         },
         "description": "Numbered preset slots, as a MIDI program change addresses them (0-127)."
+      },
+      "BlockPreset": {
+        "required": [
+          "id",
+          "type",
+          "name",
+          "factory",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "The block type id it is for, e.g. \u0060chorus\u0060."
+          },
+          "name": {
+            "type": "string"
+          },
+          "factory": {
+            "type": "boolean",
+            "description": "A factory preset ships with Cathode and cannot be changed or deleted."
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number",
+              "format": "float"
+            },
+            "description": "Parameter values by id. Sparse: anything not listed takes the block type\u0027s default."
+          }
+        },
+        "description": "A named setting of one block type, kept in the Block Library: the factory\u0027s (the guide\u0027s \u0022types\u0022 that are\npresets of the same algorithm, such as the many choruses, flangers and reverbs) and the user\u0027s own. Applying one\nsets a channel of a block to it; it never adds a Type parameter that would fight the knobs."
       },
       "BlockTypeInfo": {
         "required": [
@@ -3370,6 +3593,9 @@
     },
     {
       "name": "Presets"
+    },
+    {
+      "name": "Block Library"
     },
     {
       "name": "Setlists"

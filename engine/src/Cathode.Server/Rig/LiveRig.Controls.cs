@@ -156,6 +156,53 @@ public sealed partial class LiveRig {
             }
         );
 
+    /// <summary>
+    ///     Sets <paramref name="channel" /> (default: the one the active scene uses) of a block to a block preset: its
+    ///     values, and every other parameter back to its default.
+    /// </summary>
+    public Task<LiveState> ApplyBlockPresetAsync(string id, BlockPreset source, string? channel, long? expected) =>
+        Locked(async () => {
+                Check(expected);
+                var block = Find(id);
+                var descriptor = catalog.Descriptor(block.Type)
+                    ?? throw new RigException(400, $"'{id}' has no parameters.");
+                if (source.Type != block.Type) {
+                    throw new RigException(400, $"'{source.Name}' is a {source.Type} preset; '{id}' is a {block.Type}.");
+                }
+
+                var state = preset.Scenes[activeScene].StateOf(id);
+                var target = channel ?? state.Channel;
+                CheckChannel(target, descriptor.Channels);
+                PushUndo(null);
+                var before = block.Channels.GetValueOrDefault(target) ?? [];
+                var values = source.Values
+                    .Where(v => descriptor.IndexOf(v.Key) >= 0)
+                    .ToDictionary(static v => v.Key, v => descriptor.Params[descriptor.IndexOf(v.Key)].Sanitize(v.Value));
+                block.Channels[target] = values;
+                if (block.Global is { } link) {
+                    globals.Update(g => {
+                            if (g.Blocks.FirstOrDefault(b => b.Id == link) is { } shared) {
+                                shared.Channels[target] = new(values);
+                            }
+                        }
+                    );
+                }
+
+                if (target == state.Channel) {
+                    var recompile = descriptor.Params.Any(p => p.Recompile
+                        && before.GetValueOrDefault(p.Id, p.Default) != values.GetValueOrDefault(p.Id, p.Default)
+                    );
+                    if (recompile) {
+                        await SyncGraphAsync();
+                    } else {
+                        engine.SetParams(generation, ChannelValues(block, target));
+                    }
+                }
+
+                return Changed("blockPresetApplied", id, target);
+            }
+        );
+
     /// <summary>Makes a block global: its settings move to the global library and follow it from then on.</summary>
     public Task<LiveState> LinkGlobalAsync(string id, string? name, long? expected) =>
         Locked(() => {

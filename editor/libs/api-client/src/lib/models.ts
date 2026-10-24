@@ -8,6 +8,7 @@ export type PresetCable = Schemas['PresetCable'];
 export type Scene = Schemas['Scene'];
 export type SceneBlockState = Schemas['SceneBlockState'];
 export type SceneMidiMessage = Schemas['SceneMidiMessage'];
+export type BlockPreset = Schemas['BlockPreset'];
 export type LiveState = Schemas['LiveState'];
 export type PresetSummary = Schemas['PresetSummary'];
 export type AssetInfo = Schemas['AssetInfo'];

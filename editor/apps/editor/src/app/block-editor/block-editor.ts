@@ -8,11 +8,15 @@ import {
   matLinkRound,
   matMoreHorizRound,
   matPublicRound,
+  matSaveRound,
   matTuneRound
 } from '@ng-icons/material-icons/round';
 import { XuiButtonImports } from '@xui/button';
 import { XuiContextMenuImports } from '@xui/context-menu';
+import { XuiDialogImports } from '@xui/dialog';
+import { XuiFormFieldImports } from '@xui/form-field';
 import { XuiIconImports } from '@xui/icon';
+import { XuiInputImports } from '@xui/input';
 import { XuiMenuImports } from '@xui/menu';
 import { XuiNonIdealStateImports } from '@xui/non-ideal-state';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
@@ -21,6 +25,7 @@ import { XuiSwitchImports } from '@xui/switch';
 import { XuiTagImports } from '@xui/tag';
 import { XuiTextImports } from '@xui/text';
 import { ModifierDialog } from '../controls/modifier-dialog';
+import { BlockPresetsStore } from '../state/block-presets.store';
 import { CatalogStore } from '../state/catalog.store';
 import { GlobalStore } from '../state/global.store';
 import { LiveStore } from '../state/live.store';
@@ -53,6 +58,9 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
     IrPlayerPanel,
     ModifierDialog,
     XuiContextMenuImports,
+    XuiDialogImports,
+    XuiFormFieldImports,
+    XuiInputImports,
     ParamControl,
     PeqPanel,
     PitchPanel,
@@ -74,6 +82,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
       matLinkRound,
       matMoreHorizRound,
       matPublicRound,
+      matSaveRound,
       matTuneRound
     })
   ],
@@ -163,6 +172,27 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             <cth-param-control variant="sidebar" [block]="block" [param]="type" />
           }
 
+          @if (libraryPresets().length > 0) {
+            <div class="flex flex-col gap-1.5">
+              <span
+                class="text-foreground-muted text-[11px] font-semibold tracking-wide uppercase"
+                id="block-library-label"
+              >
+                Block Library
+              </span>
+              <xui-select
+                class="w-full"
+                data-testid="block-library"
+                aria-labelledby="block-library-label"
+                placeholder="Load a preset…"
+                [items]="libraryIds()"
+                [itemText]="libraryName"
+                [value]="null"
+                (valueChange)="$event && blockPresets.apply(block.id, $event)"
+              />
+            </div>
+          }
+
           @if (!isIo()) {
             <div class="flex flex-col gap-1.5">
               <span
@@ -185,6 +215,10 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
 
           <ng-template #blockMenu>
             <xui-menu>
+              <button xuiMenuItem icon="matSaveRound" (click)="openSavePreset()">
+                Save channel {{ live.channelOf(block.id) }} to the Block Library…
+              </button>
+              <xui-menu-divider />
               @if ((info()?.channels ?? 0) > 1) {
                 <xui-menu-divider [title]="'Copy channel ' + live.channelOf(block.id) + ' to'" />
                 @for (channel of channels; track channel.value) {
@@ -223,6 +257,24 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             </xui-menu>
           </ng-template>
         </aside>
+
+        <xui-dialog title="Save to the Block Library" icon="matSaveRound" [(open)]="savingPreset">
+          <xui-dialog-body>
+            <xui-form-field label="Name">
+              <input
+                xuiInput
+                data-testid="block-preset-name"
+                [value]="presetName()"
+                (input)="presetName.set($any($event.target).value)"
+                (keydown.enter)="savePreset()"
+              />
+            </xui-form-field>
+          </xui-dialog-body>
+          <xui-dialog-footer>
+            <button xuiButton variant="ghost" type="button" (click)="savingPreset.set(false)">Cancel</button>
+            <button xuiButton type="button" [disabled]="!presetName().trim()" (click)="savePreset()">Save</button>
+          </xui-dialog-footer>
+        </xui-dialog>
 
         <div class="flex min-w-0 flex-1 flex-col gap-4">
           @switch (block.type) {
@@ -311,6 +363,18 @@ export class BlockEditor {
     taper: 'linear'
   };
   protected readonly editingEngage = signal(false);
+  protected readonly blockPresets = inject(BlockPresetsStore);
+  protected readonly savingPreset = signal(false);
+  protected readonly presetName = signal('');
+  protected readonly libraryPresets = computed(() => {
+    const block = this.block();
+    return block ? this.blockPresets.forType(block.type) : [];
+  });
+  protected readonly libraryIds = computed(() => this.libraryPresets().map(p => p.id));
+  protected readonly libraryName = (id: string) => {
+    const preset = this.libraryPresets().find(p => p.id === id);
+    return preset ? (preset.factory ? preset.name : `${preset.name} (mine)`) : id;
+  };
   protected readonly engageModifier = computed(() => {
     const block = this.block();
     return block ? this.live.modifierOf(block.id, 'engage') : undefined;
@@ -340,6 +404,27 @@ export class BlockEditor {
   protected readonly isIo = computed(
     () => this.block()?.type === BuiltInTypes.input || this.block()?.type === BuiltInTypes.output
   );
+  constructor() {
+    void this.blockPresets.refresh();
+  }
+
+  protected openSavePreset(): void {
+    this.presetName.set('');
+    this.savingPreset.set(true);
+  }
+
+  protected async savePreset(): Promise<void> {
+    const block = this.block();
+    const name = this.presetName().trim();
+    if (!block || !name) {
+      return;
+    }
+
+    const values = block.channels[this.live.channelOf(block.id)] ?? {};
+    await this.blockPresets.save(block.type, name, { ...values });
+    this.savingPreset.set(false);
+  }
+
   protected removeEngageModifier(): void {
     const block = this.block();
     if (block) {

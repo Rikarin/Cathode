@@ -442,6 +442,23 @@ export interface paths {
     patch: operations['UpdateScene'];
     trace?: never;
   };
+  '/api/v1/live/blocks/{id}/preset': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Sets a channel of the block (default: the active scene's) to a block preset from the Block Library. */
+    post: operations['ApplyBlockPreset'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/live/blocks/{id}/bypass-mode': {
     parameters: {
       query?: never;
@@ -672,6 +689,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/block-presets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The factory and user block presets, of one block type when ?type= is given. */
+    get: operations['ListBlockPresets'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/block-presets/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['GetBlockPreset'];
+    /** Saves a user block preset (factory ones cannot be changed). */
+    put: operations['PutBlockPreset'];
+    post?: never;
+    delete: operations['DeleteBlockPreset'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/setlists': {
     parameters: {
       query?: never;
@@ -881,6 +932,11 @@ export interface components {
       column: number;
       id?: null | string;
     };
+    /** @description Sets a block's channel (default: the one the active scene uses) to a block preset. */
+    ApplyBlockPresetRequest: {
+      preset: string;
+      channel?: null | string;
+    };
     AssetInfo: {
       ref: string;
       name: string;
@@ -899,6 +955,23 @@ export interface components {
       name: string;
       /** @description Preset id per slot; null or missing slots are empty. */
       slots: string[];
+    };
+    /**
+     * @description A named setting of one block type, kept in the Block Library: the factory's (the guide's "types" that are
+     *     presets of the same algorithm, such as the many choruses, flangers and reverbs) and the user's own. Applying one
+     *     sets a channel of a block to it; it never adds a Type parameter that would fight the knobs.
+     */
+    BlockPreset: {
+      id: string;
+      /** @description The block type id it is for, e.g. `chorus`. */
+      type: string;
+      name: string;
+      /** @description A factory preset ships with Cathode and cannot be changed or deleted. */
+      factory: boolean;
+      /** @description Parameter values by id. Sparse: anything not listed takes the block type's default. */
+      values: {
+        [key: string]: number;
+      };
     };
     /**
      * @description A block type the editor can place. `CpuCost` is its measured cost in percent of one core at 48 kHz
@@ -2123,6 +2196,32 @@ export interface operations {
       };
     };
   };
+  ApplyBlockPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ApplyBlockPresetRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
   SetBypassMode: {
     parameters: {
       query?: never;
@@ -2541,6 +2640,110 @@ export interface operations {
         content: {
           'application/json': components['schemas']['ImportResult'];
         };
+      };
+    };
+  };
+  ListBlockPresets: {
+    parameters: {
+      query?: {
+        type?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BlockPreset'][];
+        };
+      };
+    };
+  };
+  GetBlockPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BlockPreset'];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  PutBlockPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BlockPreset'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BlockPreset'];
+        };
+      };
+    };
+  };
+  DeleteBlockPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
