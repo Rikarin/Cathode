@@ -1,36 +1,118 @@
 # Cathode
 
-An open-source software guitar processor in the Axe-Fx III class. Licensed GPL-3.0-or-later.
+**A guitar processor for your computer, in the spirit of the Axe-Fx III.** Plug your guitar into an audio interface and
+build a rig from circuit-modelled amps, cabinets, drives and effects on a grid, with scenes, channels and modifiers for
+playing live. It runs on your Mac or PC, or on a small Linux computer in your rig that you control from any browser.
 
-Planning package for a hardware-free, Axe-Fx III–class guitar processor:
-- **C# (.NET 10) engine** configured through a **REST API**
-- **Electron + Angular 22 + Tailwind 4 + xUI** editor
+Cathode is free and open source (GPL-3.0-or-later).
 
-| Doc | What's inside |
+> **Status: early.** Cathode is under active development and has no stable release yet. Expect rough edges and changes
+> to the preset format.
+
+## What it does
+
+- **86 amp models**, each built from its schematic: stage by stage, with the tone stack, power amp, transformer and
+  speaker load, and the amp's own front-panel controls. Plus expert settings (tubes, bias, sag, supply) behind them.
+- **Neural captures:** load NAM (`.nam`) and AIDA-X models in the Amp NAM block.
+- **Cabinets:** a Cab block that builds the response from 10 speakers, 11 microphones and 7 cabinets, with mic
+  position, distance and angle. Load your own impulse responses (`.wav`, `.cabgrid`) too, mix them, trim them, or
+  capture one with a sine sweep.
+- **49 block types:** drives, delays (including multi-tap, ten-tap and plex delays), reverbs, chorus, flanger, phaser,
+  rotary, tremolo, wah, pitch and harmonisers, synth, vocoder, compressors and gates, EQs, filters, a looper, a
+  tuner, mixers and FX loops.
+- **A grid like the hardware's:** six rows of fourteen cells, parallel paths, mixers and feedback loops.
+- **Built for playing live:**
+  - eight scenes per preset, and four channels per block;
+  - modifiers driven by LFOs, envelopes, a sequencer or MIDI controllers;
+  - a Perform page with big controls;
+  - MIDI control and footswitch layouts;
+  - a metronome and tap tempo.
+- **A library:**
+  - presets with banks and setlists, snapshots and templates;
+  - block presets;
+  - NAM amps and IR cabs, all in one place.
+- **Several inputs and outputs:** up to six inputs, four stereo outputs with their own EQ, an FX loop, and a DI out
+  for reamping.
+
+## Download
+
+Get the latest build from the [Releases page](https://github.com/Rikarin/cathode/releases).
+
+| Package | For | Notes |
+|---|---|---|
+| `Cathode-<version>-mac-arm64.dmg` | macOS on Apple Silicon | Not notarised yet: on first launch, right-click the app and choose Open. |
+| `Cathode-<version>-win-x64.exe` | Windows 10 and 11 | Not signed yet: SmartScreen asks you to confirm. |
+| `Cathode-<version>-linux-x86_64.AppImage` | Linux desktops | Make it executable (`chmod +x`) and run it. |
+| `cathode-server-<version>-linux-<x64\|arm64>.tar.gz` | A small Linux computer in your rig, with no display | See [the headless rig](#a-headless-rig). |
+
+Each release lists `SHA256SUMS` to check the downloads against.
+
+### Where it plays sound today
+
+| Platform | Audio and MIDI |
 |---|---|
-| [01 — Axe-Fx III feature audit](docs/01-axe-fx-iii-audit.md) | Hardware, grid, all ~44 block types with counts and limits, amp parameter surface, scenes/channels/modifiers, utilities, editor/FC, firmware history through 33.00β; each mapped to a software requirement; MVP cut |
-| [02 — Architecture](docs/02-architecture.md) | Process model, repo layout, preset domain model, engine internals (graph compiler, threads, params, switching, I/O, NAM), REST/WS API, editor design with xUI component map |
-| [03 — Testing strategy](docs/03-testing-strategy.md) | Test tiers, analysis toolkit, DSP unit/property tests, golden renders, model accuracy (ESR/MRSTFT/ABX), real-time safety, API contracts, presets, frontend, HIL |
-| [04 — Implementation plan](docs/04-implementation-plan.md) | Phases 0–9 with exit criteria, Phase 0 feasibility spikes, risk register, open questions, first two weeks |
-| [05 — DSP and runtime research](docs/05-dsp-and-runtime-research.md) | Modelling approaches, NAM ecosystem, anti-aliasing, convolution, real-time .NET, audio I/O, latency, sources |
+| macOS | ✅ CoreAudio and CoreMIDI |
+| Linux | 🚧 ALSA (and JACK) in progress |
+| Windows | 🚧 Not yet (ASIO planned); the app runs, but without audio |
 
-## Key decisions at a glance
-1. **Two processes:**
-   - an allocation-free **NativeAOT engine host** that owns the audio thread
-   - a separate **ASP.NET Core gateway** for REST and WebSocket, so control-plane GCs can't cause dropouts (confirmed in spike S2)
-2. **Native audio shim** (ASIO, CoreAudio, JACK) with a single C ABI. Target: **64 samples at 48 kHz, < 6 ms round trip**.
-3. **Three-tier amp strategy:**
-   - **Capture** (hosted NeuralAmpModelerCore, so Tone3000 NAM A1/A2 models work out of the box). Fractal itself added a NAM block in fw 33β.
-   - **Circuit** (our own WDF/DK component models, a multi-month research track)
-   - **Hybrid** (neural preamp with parametric power amp)
-4. **Grid → compiled DAG** with buffer colouring and latency compensation. Knob, scene and channel changes never recompile. Presets swap RCU-style with spillover.
-5. **Metadata-driven blocks:** one descriptor feeds the DSP, REST validation, the generated editor UI and the tests.
-6. **Testing foundation:** an offline renderer plus an analysis toolkit (THD, aliasing, null, ESR/MRSTFT). Every block gets a generated suite, including a zero-allocation check.
-7. **Editor** built from xUI (dock-manager, omnibar, data-table, echarts, konva, node-graph) plus new `cth-knob` and `cth-meter` components to upstream into xUI.
+Without a working audio driver, Cathode runs on a silent "null" backend: you can build and edit presets, but you will
+not hear them.
 
 ## Getting started
 
-You need the .NET 10 SDK, Node with pnpm, and CMake with a C and C++20 compiler. Build once:
+1. Connect your audio interface and open Cathode.
+2. Open **Settings** (⌘, on a Mac, Ctrl+, elsewhere), go to **Audio setup**, and choose your interface, its sample
+   rate and buffer size. 64 samples at 48 kHz is the target. A loopback test there measures your real latency.
+3. Double-click an empty cell on the grid to add a block. An Amp and a Cab between Input and Output make a rig.
+4. Select a block to edit it in the drawer below the grid. Right-click a knob to add a modifier or put it on the
+   Perform page.
+5. Save with ⌘S. Press `?` to see every keyboard shortcut.
+
+Your presets and assets are stored in Cathode's data folder (`~/Library/Application Support/Cathode` on a Mac).
+
+## A headless rig
+
+The `cathode-server` package runs the engine and the server on a small Linux computer (a Raspberry Pi 5 or a mini PC)
+with your audio interface, and serves the editor to the network. You play and edit from a phone, a tablet or a
+laptop's browser, or from the desktop app's remote-server connection.
+
+```sh
+tar xzf cathode-server-<version>-linux-arm64.tar.gz
+cd cathode-server-<version>-linux-arm64
+sudo ./install.sh
+```
+
+The installer starts Cathode at every boot and prints the address to open and an access token. See
+[packaging/headless/README.md](packaging/headless/README.md) for choosing the audio interface, updates and logs.
+
+## Licence and trademarks
+
+Cathode is free software: you can redistribute it and modify it under the terms of the GNU General Public License,
+version 3 or (at your option) any later version. See [LICENSE](LICENSE).
+
+Cathode is not affiliated with or endorsed by Fractal Audio Systems. Axe-Fx is their trademark. Amplifier, speaker and
+microphone names belong to their owners and are used only to say which equipment a model is based on.
+
+---
+
+## Development
+
+### Repository layout
+
+| Folder | What's in it |
+|---|---|
+| [`engine/`](engine) | The C# (.NET 10) engine: the DSP library, the NativeAOT real-time host (`cathode-host`), the ASP.NET Core server (`cathode-server`, REST and WebSocket API), the native audio and NAM shims (`engine/native`), tests and tools. See [engine/README.md](engine/README.md). |
+| [`editor/`](editor) | The Angular editor and the Electron desktop app (an Nx workspace). See [editor/README.md](editor/README.md). |
+| [`packaging/`](packaging) | The headless rig package: build script, installer and systemd services. |
+| [`docs/`](docs) | The design: [architecture](docs/02-architecture.md), [testing](docs/03-testing-strategy.md), [plan](docs/04-implementation-plan.md), [amp modelling](docs/06-amp-modelling-spec.md), [amp catalogue](docs/07-amp-catalogue.md), [block parity](docs/08-blocks-parity.md), [parity tracker](docs/09-parity-tracker.md), [releases](docs/10-releases.md) and the [ADRs](docs/adr). |
+
+The engine runs as two processes: an allocation-free NativeAOT host that owns the audio thread, and a server that holds
+presets and serves the API, so its garbage collection never touches the audio. Blocks are described once (a descriptor
+of parameters and pages) and that drives the DSP, the API's validation, the editor's generated controls and the tests.
+
+### Build
+
+You need the .NET 10 SDK, Node with pnpm, and CMake with a C and C++20 compiler (on Linux, also `libasound2-dev`).
 
 ```bash
 cd engine && native/build.sh && dotnet build -c Release
@@ -40,19 +122,15 @@ cd engine && native/build.sh && dotnet build -c Release
 cd editor && pnpm install
 ```
 
-The native libraries provide audio devices, MIDI and NAM. Without them, Cathode still runs on the null audio backend.
+### Run
 
-### Desktop app
-
-The Electron app starts the engine host and the Server itself, with a token per run. It starts on the null audio backend. Pick your interface in its audio settings, which also run the loopback latency test.
+The desktop app starts the engine host and the server itself:
 
 ```bash
 cd editor && pnpm exec nx serve desktop
 ```
 
-### Browser, no audio
-
-This is the quickest loop for UI work. The Server runs the engine in-process:
+For quick UI work in a browser, run the server with the engine in-process (no audio) and the editor's dev server:
 
 ```bash
 cd engine && dotnet run -c Release --project src/Cathode.Server -- --Cathode:Engine:Mode=inprocess
@@ -62,22 +140,29 @@ cd engine && dotnet run -c Release --project src/Cathode.Server -- --Cathode:Eng
 cd editor && pnpm exec nx serve editor
 ```
 
-### Two processes on a real device
+The server listens on `http://127.0.0.1:5180`, with OpenAPI at `/openapi/v1.json`;
+[`cathode.http`](engine/src/Cathode.Server/cathode.http) walks through the API. To run the host on a real device as a
+separate process, see [engine/README.md](engine/README.md).
 
-List the audio devices, then start the host on one of them and the Server against its socket:
+### Test
 
 ```bash
-cd engine && dotnet run -c Release --project src/Cathode.Host -- --devices
+cd engine && dotnet test -c Release
 ```
 
 ```bash
-cd engine && dotnet run -c Release --project src/Cathode.Host -- --serve --socket /tmp/cathode-host.sock --device "<uid>"
+cd editor && pnpm exec nx run-many -t test
 ```
 
 ```bash
-cd engine && dotnet run -c Release --project src/Cathode.Server -- --Cathode:Engine:SocketPath=/tmp/cathode-host.sock
+cd editor && pnpm exec nx e2e desktop
 ```
 
-Then run `pnpm exec nx serve editor` as above. The Server listens on `http://127.0.0.1:5180`, with OpenAPI at `/openapi/v1.json`. [`cathode.http`](engine/src/Cathode.Server/cathode.http) walks through the API without the editor.
+The engine suite covers every block (generated conformance tests, zero allocation on the audio thread), the amp
+models against circuit simulations of their schematics, golden renders and the API. The desktop end-to-end tests drive
+the real Electron app with the engine on the null backend.
 
-More detail is in [engine/README.md](engine/README.md) (tests, soak, tokens) and [editor/README.md](editor/README.md) (tests, Storybook, client generation).
+### Release
+
+Push a version tag (`v1.2.3`) and [release.yml](.github/workflows/release.yml) builds every package on its own OS and
+publishes a GitHub release. See [docs/10-releases.md](docs/10-releases.md).
