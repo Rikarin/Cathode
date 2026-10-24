@@ -243,7 +243,7 @@ Chosen from the amps Fractal models (the Axe-Fx III list is built on the same re
 | Bad Cat Hot Cat / Black Cat | Class A boutique | Power amp data only |
 | Two-Rock (Dumble-style) | Boutique | Use the ODS work |
 | Carvin Legacy | US high gain | Legacy V3 redraw only |
-| Splawn Quickrod | Marshall-derived | No schematic found |
+| Splawn Quickrod | Marshall-derived | Built from the preamp drawing (§3.4); power amp guessed |
 | Suhr Badger / SL68 | Marshall-derived | No schematic found |
 | Revv Generator 120 | Modern high gain | No schematic found |
 | Morgan (AC20 / SW) | Boutique | No schematic found |
@@ -852,6 +852,36 @@ additions (new types; every existing inverter and power amp renders bit-identica
 - **CPU** (48 kHz, best of three, Plexi 8.4 / 15.0 % in the same passes): Major 10.0 / 16.5 %, Bass 400 13.0 / 21.4 % (over
   the clean budget, within crunch: five triodes, a twelve-reactance EQ and six output tubes; a looser Newton tolerance
   did not help).
+
+**As built: Splawn Quick Rod** (`QuickRod.cs`, type "Quick Rod"), from the preamp drawing "Splawn QuickRod" sheet 1/1
+(file `Splawn Quickrod Preamp Schematic.pdf`, a clean CAD drawing). It is the two-channel amp: three 12AX7s in the
+preamp (four with the inverter), a clean channel switched in at the inverter's input, and no Nitro circuit, so the
+Splawn Nitro row stays waiting.
+- **Circuit as drawn**: V1A (68k, 220k, 1k5 ‖ 1 µF) feeds both channels through one 22 nF. Overdrive: 470k ‖ 1 nF into
+  the 1M Gain, 47k to ground in OD1; V1B (100k); 470k ‖ 1 nF into V2A's grid (220k, 1 nF, 68k in 1st gear); V2A (100k ‖
+  1 nF, 2k7, 1 µF in 3rd gear); 330k / 150k into V2B (100k, 2k7 ‖ 1 µF); 100 nF into the 1M Master, whose foot the boost
+  switch lifts onto the 1M Solo Boost rheostat; the stack on the Master's wiper (470 pF with 1 nF from the treble's top to
+  ground, 47k, 220 nF to the bass, 22 nF to the 25k middle's wiper; 250k / 1M / 25k); 100k from the treble's wiper to the
+  inverter. Clean: 470 pF / 47k / 220 nF / 22 nF with 6k8 for the middle, 250k treble and 1M bass, the 1M Clean Gain with
+  1 nF across its top half, both V3 halves in parallel (100k), 22 nF into the 1M Volume. V1B and V3 share one 1k5 ‖ 1 µF
+  cathode, so each channel's first netlist holds V1A, V1B and the paralleled V3 (the idle channel's pots at noon), and
+  the overdrive channel's holds V2A too (four triodes; `NetworkStage` gained a `TTTT` device set for it). Rails
+  from the drawing's 420 V through two 10k droppers: 386 V and 371 V at the triodes' own 4.6 mA.
+- **Panel**: Switch 1 Clean, Bright OD2, Switch 2 and 3 the 2nd and 3rd gear switches (drawn as two independent
+  switches), Control 1 Solo Boost (0 is the boost off: the switch grounds the Master's foot where the pot at 0 does);
+  Gain, Bass and Treble the playing channel's, Master also the clean Volume, Middle the overdrive channel's.
+- **Guessed**: the power amp (the JCM800 2203's: four EL34, 470 V, 1.7k, 100k feedback with the 22k presence), the
+  inverter on the 420 V node, the dropper to it, the switch positions (OD1 and 1st gear the grounded ones) and the tapers.
+- **Validation** (`Quick_rod_chains_match_the_reference`, each channel's chain as one circuit): clean −64 dB, overdrive
+  −55 dB in 1st gear and with OD2, −56 dB in 2nd, −58 dB in 3rd. Cut at V2A's grid instead (three triodes) it was −45 /
+  −37 / −29 dB: V2A's Miller capacitance against that node's reactive source.
+  `QuickRodTests`: OD2 and each gear raise the gain (1st 6.0, 2nd 14.4, 3rd 22.4, OD2 10.0, clean −20.5 dB at 440 Hz),
+  the Solo Boost lifts the level, sweeps at full drive converge under +1 dBFS, every knob is audible, Gain and Master are
+  monotonic.
+- **CPU** (48 kHz, Gain 7, Master 6, best of five, Plexi 8.8–8.9 / 15.5–15.6 % in the same passes): overdrive 17.6 /
+  35.0 % (2.0 / 2.25 × Plexi), 3rd gear with OD2 19.7 / 34.0 %, clean 11.1 / 24.3 %. **Over the high-gain budget by
+  choice** (16 / 28 %): the three-triode cut fitted it (15.0 / 25.8 %) at −29 dB in 3rd gear, and the user chose
+  accuracy, as for the Silver Jubilee's noise case. Both first netlists take chord steps and a 1e-5 tolerance.
 
 ### 3.5 Bass and solid state (tier 2)
 
