@@ -1356,7 +1356,7 @@ struct PushPullStage : INonlinearDevice {
         var tau2 = c * (rf * (rx + rp) + rx * rp) / (rf + rx);
         this.presence.Design(design.Beta, design.Beta * tau1, 1, tau2, rate);
         var omega = 2 * Math.PI * (design.DepthFrequency * depthFrequency);
-        var floor = 1 - 0.9 * Math.Clamp(depth, 0, 1);
+        var floor = design.LowFeedback * (1 - 0.9 * Math.Clamp(depth, 0, 1));
         this.depth.Design(floor * omega, 1, omega, 1, rate);
         feedback = amount * design.TapGain / turns;
     }
