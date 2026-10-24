@@ -33,6 +33,8 @@ public static class RigControls {
             // Global settings the blocks read through BlockContext: Global Mix and the Input gate's offset.
             ParamDescriptor.Float("effectsMix", "Effects Mix", -50f, 50f, 0f, "%"),
             ParamDescriptor.Float("gateOffset", "Noise Gate Offset", -20f, 20f, 0f, "dB"),
+            // Preset-change spillover: on, the outgoing preset's tails ring out; off, it fades out in the swap fade.
+            ParamDescriptor.Switch("spillover", "Preset Spillover", true),
             ..Names("manual", ["A", "B", "C", "D"], "Manual "),
             ..Names("scene", ["1", "2", "3", "4"], "Scene Controller "),
             ..Names("ext", ["1", "2", "3", "4", "5", "6", "7", "8"], "External "),

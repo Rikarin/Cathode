@@ -7,7 +7,8 @@ public enum EngineCommandKind {
     TapTempo,
     Looper,
     Note,
-    AllNotesOff
+    AllNotesOff,
+    SetModifier
 }
 
 /// <summary>
@@ -34,6 +35,10 @@ public readonly record struct EngineCommand(
 
     /// <summary>A MIDI note pressed (<paramref name="held" />) or released, for blocks that follow the keyboard.</summary>
     public static EngineCommand Note(int note, bool held) => new(EngineCommandKind.Note, 0, note, held ? 1f : 0f);
+
+    /// <summary>Turns modifier <paramref name="index" /> of a graph on or off (a modifier scoped to one channel).</summary>
+    public static EngineCommand SetModifier(int generation, int index, bool enabled) =>
+        new(EngineCommandKind.SetModifier, generation, index, enabled ? 1f : 0f);
 
     /// <summary>Releases every held MIDI note (All Notes Off, All Sound Off).</summary>
     public static EngineCommand AllNotesOff() => new(EngineCommandKind.AllNotesOff, 0, 0, 0f);

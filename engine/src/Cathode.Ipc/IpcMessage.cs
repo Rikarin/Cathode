@@ -17,6 +17,9 @@ public static class IpcTypes {
     public const string SetMidi = "setMidi";
     public const string MidiOut = "midiOut";
 
+    /// <summary>Turns the modifier on <c>Block</c>.<c>Param</c> on or off (<c>Enabled</c>): channel-scoped modifiers.</summary>
+    public const string SetModifier = "setModifier";
+
     public const string Ok = "ok";
     public const string Error = "error";
     public const string Telemetry = "telemetry";
@@ -47,6 +50,12 @@ public sealed class IpcMessage {
     public List<ParamValue>? Params { get; set; }
 
     public string? Block { get; set; }
+
+    /// <summary>setModifier: the modified parameter.</summary>
+    public string? Param { get; set; }
+
+    /// <summary>The reply to loadGraph: the block id of each graph slot, the order block meters come in.</summary>
+    public List<string>? SlotIds { get; set; }
 
     public bool? Bypassed { get; set; }
 
