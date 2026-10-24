@@ -5,10 +5,11 @@
   "license": "GPL-3.0-or-later",
   "type": "module",
   "scripts": {
-    "build": "ng build",
+    "build": "ng build && node -e \"require('node:fs').copyFileSync('dist/website/browser/404/index.html', 'dist/website/browser/404.html')\"",
+    "deploy": "pnpm build && wrangler deploy",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "preview": "npx --yes serve dist/website/browser",
+    "preview": "pnpm build && wrangler dev",
     "start": "ng serve"
   },
   "dependencies": {
@@ -37,7 +38,8 @@
     "prettier-plugin-packagejson": "^3.0.2",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4.3.3",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "wrangler": "^4.152.0"
   },
   "packageManager": "pnpm@12.9.1"
 }

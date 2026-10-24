@@ -14,6 +14,26 @@ pnpm start
 `pnpm build` prerenders every route into `dist/website/browser`, ready for any static host; `404/index.html` is the
 page for unknown paths. `pnpm format` uses the same Prettier settings as the editor and the desktop app.
 
+## Deploy (Cloudflare Workers)
+
+`wrangler.jsonc` deploys the prerendered pages as a Worker with static assets only (no Worker code). Unknown paths get
+`404.html` with a real 404 status.
+
+To connect the repository from the Cloudflare dashboard: **Workers & Pages → Create → Import a repository**, pick the
+repository, then set
+
+| Setting        | Value                 |
+| -------------- | --------------------- |
+| Root directory | `website`             |
+| Build command  | `pnpm build`          |
+| Deploy command | `npx wrangler deploy` |
+
+The project name in the dashboard must match `name` in `wrangler.jsonc` (`cathode-website`). Every push to the
+production branch then builds and deploys; other branches get preview URLs.
+
+From a terminal instead: `pnpm exec wrangler login` once, then `pnpm deploy`. `pnpm preview` serves the build locally
+the way Cloudflare does.
+
 ## Content
 
 - `src/app/content.ts`: every figure and list on the page (amps, blocks, platforms). Keep it in step with the README
