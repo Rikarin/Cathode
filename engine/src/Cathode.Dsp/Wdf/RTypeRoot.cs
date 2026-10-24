@@ -288,6 +288,12 @@ public struct RTypeRoot<TPorts, TDevice>
         var (v, h, p, current, jacobian) = (s.voltages, s.history, s.prediction, s.deviceCurrents, s.jacobian);
         var (gc, absolute, relative) = (s.conductances[0], s.AbsoluteTolerance, s.RelativeTolerance);
         var (entry, previous) = (v[0], h[0]);
+        // The spans once (in the power amp's tick the JIT may run out of inlining budget for AsSpan).
+        var voltages = v.AsSpan(0, 1);
+        var starts = s.start.AsSpan(0, 1);
+        var proposals = s.proposed.AsSpan(0, 1);
+        var currents = current.AsSpan(0, 1);
+        var slopes = jacobian.AsSpan(0, 1);
         var x = entry;
         if (s is { Linearise: true, primed: true }) {
             // One Newton step on the last sample's Jacobian for the change in p: x = v + M⁻¹ Δp.
@@ -295,12 +301,12 @@ public struct RTypeRoot<TPorts, TDevice>
             m -= f * (jacobian[0] - gc);
             s.start[0] = entry;
             s.proposed[0] = Math.Abs(m) > 1e-300 ? entry + (p[0] - s.previousPrediction[0]) / m : entry;
-            Device.Limit(s.start.AsSpan(0, 1), s.proposed.AsSpan(0, 1));
+            Device.Limit(starts, proposals);
             x = s.proposed[0];
         } else if (s.Extrapolate) {
             s.start[0] = entry;
             s.proposed[0] = 2 * entry - previous;
-            Device.Limit(s.start.AsSpan(0, 1), s.proposed.AsSpan(0, 1));
+            Device.Limit(starts, proposals);
             x = s.proposed[0];
         }
 
@@ -310,7 +316,7 @@ public struct RTypeRoot<TPorts, TDevice>
         // The residual at x: the device's current and slope, r = i - G_c v, g = v - p - F r.
         v[0] = x;
         jacobian[0] = 0;
-        Device.Evaluate(v.AsSpan(0, 1), current.AsSpan(0, 1), jacobian.AsSpan(0, 1), 1);
+        Device.Evaluate(voltages, currents, slopes, 1);
         var trial = current[0] - gc * x;
         var g = x - p[0];
         g -= f * trial;
@@ -334,7 +340,7 @@ public struct RTypeRoot<TPorts, TDevice>
 
             var proposed = x + -g / a;
             s.proposed[0] = proposed;
-            Device.Limit(v.AsSpan(0, 1), s.proposed.AsSpan(0, 1));
+            Device.Limit(voltages, proposals);
             proposed = s.proposed[0];
             var bracketed = double.IsFinite(below) && double.IsFinite(above);
             if (iterations >= s.SafeguardAfter
@@ -363,7 +369,7 @@ public struct RTypeRoot<TPorts, TDevice>
             x += 1.0 * step;
             v[0] = x;
             jacobian[0] = 0;
-            Device.Evaluate(v.AsSpan(0, 1), current.AsSpan(0, 1), jacobian.AsSpan(0, 1), 1);
+            Device.Evaluate(voltages, currents, slopes, 1);
             trial = current[0] - gc * x;
             g = x - p[0];
             g -= f * trial;
@@ -390,6 +396,11 @@ public struct RTypeRoot<TPorts, TDevice>
         var (gc0, gc1) = (s.conductances[0], s.conductances[1]);
         var (absolute, relative) = (s.AbsoluteTolerance, s.RelativeTolerance);
         var (entry0, entry1, previous0, previous1) = (v[0], v[1], h[0], h[1]);
+        var voltages = v.AsSpan(0, 2);
+        var starts = s.start.AsSpan(0, 2);
+        var proposals = s.proposed.AsSpan(0, 2);
+        var currents = current.AsSpan(0, 2);
+        var slopes = jacobian.AsSpan(0, 4);
         var (x0, x1) = (entry0, entry1);
         if (s is { Linearise: true, primed: true }) {
             // One Newton step on the last sample's Jacobian for the change in p: x = v + M⁻¹ Δp.
@@ -404,12 +415,12 @@ public struct RTypeRoot<TPorts, TDevice>
             (s.proposed[0], s.proposed[1]) = Math.Abs(determinant) > 1e-300
                 ? (entry0 + (d0 * m11 - d1 * m01) / determinant, entry1 + (m00 * d1 - m10 * d0) / determinant)
                 : (entry0, entry1);
-            Device.Limit(s.start.AsSpan(0, 2), s.proposed.AsSpan(0, 2));
+            Device.Limit(starts, proposals);
             (x0, x1) = (s.proposed[0], s.proposed[1]);
         } else if (s.Extrapolate) {
             (s.start[0], s.start[1]) = (entry0, entry1);
             (s.proposed[0], s.proposed[1]) = (2 * entry0 - previous0, 2 * entry1 - previous1);
-            Device.Limit(s.start.AsSpan(0, 2), s.proposed.AsSpan(0, 2));
+            Device.Limit(starts, proposals);
             (x0, x1) = (s.proposed[0], s.proposed[1]);
         }
 
@@ -419,7 +430,7 @@ public struct RTypeRoot<TPorts, TDevice>
             // The residual at (x0, x1): the device's currents and Jacobian, r = i - G_c v, g = v - p - F r.
             (v[0], v[1]) = (x0, x1);
             (jacobian[0], jacobian[1], jacobian[2], jacobian[3]) = (0.0, 0.0, 0.0, 0.0);
-            Device.Evaluate(v.AsSpan(0, 2), current.AsSpan(0, 2), jacobian.AsSpan(0, 4), 2);
+            Device.Evaluate(voltages, currents, slopes, 2);
             var trial0 = current[0] - gc0 * x0;
             var trial1 = current[1] - gc1 * x1;
             var g0 = x0 - p[0];
@@ -460,13 +471,13 @@ public struct RTypeRoot<TPorts, TDevice>
             var u1 = (a00 * b1 - a10 * b0) / determinant;
             var (proposed0, proposed1) = (x0 + u0, x1 + u1);
             (s.proposed[0], s.proposed[1]) = (proposed0, proposed1);
-            Device.Limit(v.AsSpan(0, 2), s.proposed.AsSpan(0, 2));
+            Device.Limit(voltages, proposals);
             if (s.proposed[0] != proposed0 || s.proposed[1] != proposed1) {
                 // A port was limited: re-solve the other with it held, as the general solver does.
                 (s.systemCopy[0], s.systemCopy[1], s.systemCopy[2], s.systemCopy[3]) = (a00, a01, a10, a11);
                 (s.rhsCopy[0], s.rhsCopy[1]) = (b0, b1);
                 (s.step[0], s.step[1]) = (u0, u1);
-                Constrain(2, v.AsSpan(0, 2), s.step.AsSpan(0, 2), s.proposed.AsSpan(0, 2));
+                Constrain(2, voltages, s.step.AsSpan(0, 2), proposals);
             }
 
             (proposed0, proposed1) = (s.proposed[0], s.proposed[1]);

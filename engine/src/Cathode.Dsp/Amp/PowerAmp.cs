@@ -1827,8 +1827,11 @@ struct PushPullStage : INonlinearDevice {
         return outputs;
     }
 
-    /// <summary>The general path's port current and its slope (see the remarks).</summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <summary>
+    ///     The general path's port current and its slope (see the remarks); not inlined, which leaves the plain path's
+    ///     callers the JIT's inlining budget for its own.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     readonly void EvaluateGeneral(double v, out double current, out double slope) {
         var fed = depth.Peek(presence.Peek(feedback * v));
         var fedSlope = feedback * presence.B0 * depth.B0;
