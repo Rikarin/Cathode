@@ -314,6 +314,37 @@ public static class FactoryBlockPresets {
         P("compressor", "Studio Sustainer", ("type", 3), ("threshold", -40), ("ratio", 4), ("release", 300)),
         P(
             "compressor",
+            "JFET Compressor",
+            ("type", 6),
+            ("threshold", -24),
+            ("ratio", 8),
+            ("attack", 0.5f),
+            ("release", 100),
+            ("autoMakeup", 1)
+        ),
+        P(
+            "compressor",
+            "Tube Compressor",
+            ("type", 7),
+            ("threshold", -24),
+            ("ratio", 3),
+            ("attack", 20),
+            ("release", 400),
+            ("autoMakeup", 1)
+        ),
+        P(
+            "compressor",
+            "Compander",
+            ("type", 8),
+            ("threshold", -24),
+            ("ratio", 4),
+            ("expThreshold", -55),
+            ("expRatio", 2),
+            ("autoMakeup", 1)
+        ),
+        P("compressor", "Pedal 1", ("type", 0), ("controls", 1), ("compression", 60), ("attack", 5), ("autoMakeup", 1)),
+        P(
+            "compressor",
             "Optical",
             ("type", 2),
             ("threshold", -20),

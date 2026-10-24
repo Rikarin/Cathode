@@ -18,6 +18,8 @@ namespace Cathode.Dsp.Amp;
 ///     The gain of a master moved after the phase inverter (the Circuit Amp's Master Location, Post PI): a dual-gang
 ///     divider on both inverter outputs, ahead of the coupling caps; 1 for none.
 /// </param>
+/// <param name="TremoloRate">The bias tremolo's rate in hertz (<see cref="PowerAmpDesign.BiasTremolo" />).</param>
+/// <param name="TremoloDepth">The bias tremolo's Intensity rotation, 0..1 (0 stops it).</param>
 public readonly record struct PowerControls(
     double Presence,
     double Depth,
@@ -26,7 +28,9 @@ public readonly record struct PowerControls(
     double Bias,
     double Feedback,
     double Master = 1,
-    double PostMaster = 1
+    double PostMaster = 1,
+    double TremoloRate = 0,
+    double TremoloDepth = 0
 );
 
 /// <summary>How the supply's rectifier is fed.</summary>
@@ -199,6 +203,7 @@ public sealed class PowerAmp {
     double chokeCurrent;
     PowerControls controls = Unset;
     PowerSettings settings = PowerSettings.Stock;
+    readonly BiasTremolo? tremolo;
 
     public PowerAmpDesign Design { get; }
 
@@ -224,6 +229,15 @@ public sealed class PowerAmp {
 
     /// <summary>The grids' DC voltage relative to ground (negative for fixed bias).</summary>
     public double GridBias { get; private set; }
+
+    /// <summary>The bias tremolo's rate in hertz (0 without one).</summary>
+    public double TremoloFrequency => tremolo?.Frequency ?? 0;
+
+    /// <summary>Whether the bias tremolo is swinging the bias.</summary>
+    public bool TremoloRunning => tremolo?.Running ?? false;
+
+    /// <summary>The bias tremolo's swing of the grid leaks' return at the last sample, volts.</summary>
+    public double BiasSwing => root.Device.BiasSwing;
 
     /// <summary>The output tube in use.</summary>
     public PentodeModel Tube => tube;
@@ -303,6 +317,7 @@ public sealed class PowerAmp {
         net.CurrentSource(primary, WdfNetlist.Ground); // the core's saturation current
 
         var stage = new PushPullStage(design, PhaseInverter, sampleRate);
+        tremolo = design.BiasTremolo is { } bias ? new(bias, design, sampleRate) : null;
         root = new(net, Network(sampleRate), stage);
         root.Newton.RelativeTolerance = 1e-7;
         root.Newton.Linearise = true;
@@ -334,6 +349,7 @@ public sealed class PowerAmp {
         root.Device.SetSampleRate(sampleRate, sourceResistance);
         inverterHalfStep = Design.InverterInput is { } input ? 0.5 / (input.CouplingCap * sampleRate) : 0;
         DesignChoke();
+        tremolo?.SetSampleRate(sampleRate);
         var c = controls;
         controls = Unset;
         Configure(c);
@@ -388,6 +404,11 @@ public sealed class PowerAmp {
 
         if (controls.PostMaster != previous.PostMaster) {
             root.Device.PostMaster = controls.PostMaster;
+        }
+
+        if (tremolo is { } t
+            && (controls.TremoloRate != previous.TremoloRate || controls.TremoloDepth != previous.TremoloDepth)) {
+            t.Configure(controls.TremoloRate, controls.TremoloDepth);
         }
 
         if (controls.Sag != previous.Sag) {
@@ -515,6 +536,8 @@ public sealed class PowerAmp {
         root.SetInitialVoltages([0]);
         ref var stage = ref root.Device;
         stage.Reset();
+        stage.BiasSwing = 0;
+        tremolo?.Reset();
         var idle = IdlePerTube(Supply, ScreenSupply);
         stage.SetIdle(idle.Plate, idle.Screen);
         if (Design.Topology == PowerTopology.SingleEnded) {
@@ -540,6 +563,10 @@ public sealed class PowerAmp {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Tick(double input) {
         ref var stage = ref root.Device;
+        if (tremolo is { } t) {
+            stage.BiasSwing = t.Tick();
+        }
+
         stage.Input = Design.InverterInput is null ? input : DriveInverter(input);
         Prime(ref stage);
         root.Tick();
@@ -1326,6 +1353,12 @@ struct PushPullStage : INonlinearDevice {
 
     public double GridOffsetB;
 
+    /// <summary>
+    ///     A bias tremolo's swing of the grid leaks' common return, set per sample: the grids take it through their
+    ///     coupling caps and leaks (the inverter's sources are referred to the return, the offsets carry it).
+    /// </summary>
+    public double BiasSwing;
+
     /// <summary>Per main tube, at the last committed sample.</summary>
     public double PlateA;
 
@@ -1581,7 +1614,12 @@ struct PushPullStage : INonlinearDevice {
         }
 
         (ea, eb, slopeA, slopeB) = (PostMaster * ea, PostMaster * eb, PostMaster * slopeA, PostMaster * slopeB);
-        var (vgA, vgB) = grids.Peek(ea, eb, GridOffsetA, GridOffsetB, out var g, out _);
+        var (vgA, vgB) = grids.Peek(
+            ea - BiasSwing,
+            eb - BiasSwing,
+            GridOffsetA + BiasSwing,
+            GridOffsetB + BiasSwing,
+            out var g, out _);
         var gridDriveA = g.AA * slopeA + g.AB * slopeB; // d(V_g1k) / dv on each side
         var gridDriveB = g.BA * slopeA + g.BB * slopeB;
         var ia = tube.PlateCurrent(factorA, vgA, ScreenA, SupplyA + 0.5 * v, kp, kneeScale, out var gridSlopeA, out var plateSlopeA);
@@ -1665,7 +1703,12 @@ struct PushPullStage : INonlinearDevice {
             (ea, eb) = (PostMaster * ea, PostMaster * eb);
         }
 
-        (GridA, GridB) = grids.Peek(ea, eb, GridOffsetA, GridOffsetB, out _, out var nodes);
+        (GridA, GridB) = grids.Peek(
+            ea - BiasSwing,
+            eb - BiasSwing,
+            GridOffsetA + BiasSwing,
+            GridOffsetB + BiasSwing,
+            out _, out var nodes);
         grids.Commit(nodes);
         GridCurrents = tubes * (nodes.CurrentA + nodes.CurrentB);
         if (!General) {
@@ -1755,7 +1798,12 @@ struct PushPullStage : INonlinearDevice {
             (ea, eb, slopeA, slopeB) = (PostMaster * ea, PostMaster * eb, PostMaster * slopeA, PostMaster * slopeB);
         }
 
-        var (vgA, vgB) = grids.Peek(ea, eb, GridOffsetA, GridOffsetB, out var g, out _);
+        var (vgA, vgB) = grids.Peek(
+            ea - BiasSwing,
+            eb - BiasSwing,
+            GridOffsetA + BiasSwing,
+            GridOffsetB + BiasSwing,
+            out var g, out _);
         var gridDriveA = g.AA * slopeA + g.AB * slopeB;
         if (singleEnded) {
             current = Side(vgA, ScreenA, factorA, SupplyA, SupplyA + v, 1, gridDriveA, out slope);

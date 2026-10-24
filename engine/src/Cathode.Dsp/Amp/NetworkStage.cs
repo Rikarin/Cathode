@@ -291,7 +291,16 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
     /// </summary>
     public double Tolerance { get; init; } = 1e-6;
 
-    public override AmpStage Create(double sampleRate) {
+    /// <summary>A tremolo of the model's own on this stage (the stage built is wrapped in it); null for none.</summary>
+    public StageTremoloDesign? Tremolo { get; init; }
+
+    public override bool HasTremolo => Tremolo is not null;
+
+    public override AmpStage Create(double sampleRate) =>
+        Tremolo is { } tremolo ? tremolo.Wrap(this, CreateNetwork(sampleRate), sampleRate) : CreateNetwork(sampleRate);
+
+    /// <summary>The stage itself, without <see cref="Tremolo" />.</summary>
+    AmpStage CreateNetwork(double sampleRate) {
         var devices = Netlist.Elements
             .Where(static e => e.Kind is ElementKind.Triode
                     or ElementKind.Pentode

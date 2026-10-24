@@ -103,6 +103,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
     public const int InputGain = 111;
     public const int InputSelect = 112;
     public const int GlobalMix = 113;
+    public const int KillDry = 114;
 
     public const int QuadTap = 0;
     public const int QuadParallel = 1;
@@ -346,7 +347,8 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
             ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
-            EffectsMix.Param
+            EffectsMix.Param,
+            MixLaws.KillDryParam
         ],
         maxInstances: 2
     );
@@ -631,10 +633,9 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
 
         var inputGain = Params.Advance(InputGain, n) / 100f;
         var select = (int)Params.Current(InputSelect);
-        var mixStep = (mix - this.mix) / n;
-        var currentMix = this.mix;
+        var gains = new MixRamp(MixLaw.ConstantPower, this.mix, mix, n, Params.Current(KillDry) >= 0.5f);
         for (var i = 0; i < n; i++) {
-            currentMix += mixStep;
+            gains.Advance();
             var dryLeft = io.Left[i];
             var dryRight = io.Right[i];
             var x = Stereo.Select(select, dryLeft, dryRight) * inputGain;
@@ -757,8 +758,8 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                 wetRight *= duck;
             }
 
-            io.Left[i] = dryLeft * (1f - currentMix) + wetLeft * currentMix;
-            io.Right[i] = dryRight * (1f - currentMix) + wetRight * currentMix;
+            io.Left[i] = dryLeft * gains.Dry + wetLeft * gains.Wet;
+            io.Right[i] = dryRight * gains.Dry + wetRight * gains.Wet;
         }
 
         Array.Copy(tapTarget, tapDelay, Voices);

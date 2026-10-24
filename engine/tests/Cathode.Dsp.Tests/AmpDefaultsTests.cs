@@ -6,9 +6,10 @@ namespace Cathode.Dsp.Tests;
 /// <summary>
 ///     Every Circuit Amp model, Drive type and Dynamic Distortion type at its defaults (at two gains) renders
 ///     bit-identical to master before the advanced-page and Drive parity work (stream PB): the SHA-256 of each render
-///     must match <c>tests/assets/defaults/master.sha256</c>, which was generated from master (commit 49fe687 with its
-///     static-initialisation fix). New controls must default to stock, so this only changes when a model itself does;
-///     regenerate then with <c>CATHODE_UPDATE_DEFAULTS=1 dotnet test</c> on the commit that changes it, and review.
+///     must match <c>tests/assets/defaults/master.sha256</c>, which was generated from master (commit 976c7b8, after its
+///     static-initialisation fixes and the tremolo circuits). New controls must default to stock, so this only changes
+///     when a model itself does; regenerate then with <c>CATHODE_UPDATE_DEFAULTS=1 dotnet test</c> on the commit that
+///     changes it, and review.
 /// </summary>
 public class AmpDefaultsTests {
     static readonly string[] Blocks = ["circuitamp", "drive", "dyndist"];

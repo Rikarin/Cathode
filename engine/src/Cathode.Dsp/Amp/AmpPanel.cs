@@ -43,6 +43,15 @@ public sealed record AmpPanel {
 
     public string? Bright { get; init; } = "Bright";
 
+    /// <summary>
+    ///     The name of the Circuit Amp's tremolo rate on a model with a tremolo of its own ("Speed"); null keeps the
+    ///     generic bias tremolo's name.
+    /// </summary>
+    public string? TremoloRate { get; init; }
+
+    /// <summary>The tremolo depth's name on a model with a tremolo of its own ("Intensity", "Depth").</summary>
+    public string? TremoloDepth { get; init; }
+
     /// <summary>A model-specific switch (<see cref="SwitchRole.Switch1" />).</summary>
     public string? Switch1 { get; init; }
 
@@ -92,6 +101,8 @@ public sealed record AmpPanel {
                 "switch3" => Switch3,
                 "control1" => Control1,
                 "control2" => Control2,
+                "tremrate" => TremoloRate ?? fallback,
+                "tremdepth" => TremoloDepth ?? fallback,
                 ['e', 'q', var band] when band is >= '1' and <= '5' => Equalizer is { } bands
                     && band - '1' < bands.Count
                         ? bands[band - '1']

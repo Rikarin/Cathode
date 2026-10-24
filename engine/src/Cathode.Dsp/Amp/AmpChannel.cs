@@ -72,6 +72,12 @@ public sealed class AmpChannel {
     /// <summary>The solid-state power amp that runs in place of <see cref="Power" />, or null for a tube amp.</summary>
     public SolidStatePowerAmp? SolidState { get; }
 
+    /// <summary>
+    ///     Whether the model has a tremolo of its own (a bias tremolo in its power amp or one on a preamp stage), which the
+    ///     Circuit Amp's tremolo parameters then drive.
+    /// </summary>
+    public bool HasTremolo { get; }
+
     /// <summary>Whether the power amp is modelled (the Power Amp Modeling switch); otherwise the output is the preamp's.</summary>
     public bool PowerAmpEnabled => channelSettings.PowerAmp;
 
@@ -93,6 +99,7 @@ public sealed class AmpChannel {
         restInputs = new double[stages.Length];
         Power = new(design.Power, sampleRate);
         SolidState = design.SolidState is { } solid ? new(solid, sampleRate) : null;
+        HasTremolo = design.Power.BiasTremolo is not null || design.Preamp.Any(static s => s.HasTremolo);
         Reset();
     }
 

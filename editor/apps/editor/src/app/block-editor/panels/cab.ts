@@ -159,3 +159,66 @@ export function relativeLevelsDb(value: (id: string) => number, plays: (slot: nu
   const total = gains.reduce((sum, g) => sum + g, 0);
   return gains.map(g => (g > 0 && total > 0 ? 20 * Math.log10(g / total) : -Infinity));
 }
+
+/** The Cab's longest slot Delay, ms (the engine's `CabBlock.MaxDelayMs`). */
+export const MaxDelayMs = 5;
+
+/** One slot on the Align page, as `GET /api/v1/live/blocks/{id}/cab/align` reports it. */
+export interface SlotAlignment {
+  slot: number;
+  plays: boolean;
+  audible: boolean;
+  onsetMs: number;
+  autoDelayMs: number;
+  delayMs: number;
+  head: readonly number[];
+}
+
+/** When a slot's onset is heard, in ms: its onset in its IR, plus Auto Delay's share, plus its own Delay. */
+export const arrivalMs = (slot: SlotAlignment, delayMs = slot.delayMs): number =>
+  slot.onsetMs + slot.autoDelayMs + delayMs;
+
+/** A Delay clamped to the slot's range and rounded to the 0.01 ms the Align page nudges by. */
+export const clampDelay = (ms: number): number => Math.round(Math.min(MaxDelayMs, Math.max(0, ms)) * 100) / 100;
+
+/**
+ * The Delay each slot needs so every heard slot's onset lands with the latest one, as lining up the peaks by eye
+ * does: the latest keeps its Delay at zero. Slots that are not heard or have nothing to play keep their Delay.
+ */
+export function alignedDelays(slots: readonly SlotAlignment[]): number[] {
+  const heard = slots.filter(s => s.plays && s.audible);
+  if (heard.length === 0) {
+    return slots.map(s => s.delayMs);
+  }
+
+  const latest = Math.max(...heard.map(s => arrivalMs(s, 0)));
+  return slots.map(s => (s.plays && s.audible ? clampDelay(latest - arrivalMs(s, 0)) : s.delayMs));
+}
+
+/**
+ * An SVG path of a slot's IR head, normalised to its peak, `delayMs` late on a time axis of `spanMs` across `width`
+ * and `height` pixels (centred vertically).
+ */
+export function waveformPath(
+  head: readonly number[],
+  sampleRate: number,
+  delayMs: number,
+  spanMs: number,
+  width: number,
+  height: number
+): string {
+  const peak = head.reduce((m, v) => Math.max(m, Math.abs(v)), 0) || 1;
+  const x = (ms: number) => (ms / spanMs) * width;
+  const parts: string[] = [];
+  for (let i = 0; i < head.length; i++) {
+    const ms = delayMs + (i * 1_000) / sampleRate;
+    if (ms > spanMs) {
+      break;
+    }
+
+    const y = height / 2 - (head[i] / peak) * (height / 2 - 2);
+    parts.push(`${i === 0 ? 'M' : 'L'}${x(ms).toFixed(1)},${y.toFixed(1)}`);
+  }
+
+  return parts.join(' ');
+}

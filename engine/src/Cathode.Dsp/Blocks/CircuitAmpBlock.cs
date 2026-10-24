@@ -128,7 +128,12 @@ namespace Cathode.Dsp.Blocks;
 ///             <b>Output Comp</b> (Off, Output, Feedback) with amount, threshold and clarity (<see cref="AmpCompressor" />
 ///             ).
 ///         </item>
-///         <item><b>Bias Trem Rate</b>, <b>Bias Trem Depth</b> (0 %): an LFO on the output tubes' bias, per sub-block.</item>
+///         <item>
+///             <b>Bias Trem Rate</b>, <b>Bias Trem Depth</b> (0 %): on a model with a tremolo of its own
+///             (<see cref="AmpChannel.HasTremolo" />: a bias tremolo in its power amp, an optical vibrato, the 18 W's
+///             oscillating tube), that tremolo's Speed in hertz (held to its knob's range) and its Intensity (the knob's
+///             rotation; the panel names them); elsewhere an LFO on the output tubes' bias, per sub-block.
+///         </item>
 ///         <item><b>Balance</b> (0 %) on the stereo output.</item>
 ///     </list>
 ///     <para>
@@ -659,12 +664,11 @@ public sealed class CircuitAmpBlock : DspBlock, ICabFollower {
     }
 
     /// <summary>
-    ///     Bias tremolo: the output tubes' bias swung by a sine at Trem Rate, Trem Depth 100 % taking it the whole way
-    ///     from cold to hot (the Bias control's range) around the knob's setting. Read once per sub-block.
+    ///     Bias tremolo on a model without one of its own: the output tubes' bias swung by a sine at Trem Rate, Trem Depth
+    ///     100 % taking it the whole way from cold to hot (the Bias control's range) around the knob's setting. Read once
+    ///     per sub-block.
     /// </summary>
-    double Tremolo(double bias, int frames) {
-        var depth = Params.Advance(TremoloDepth, frames) / 100.0;
-        var rate = Params.Advance(TremoloRate, frames);
+    double Tremolo(double bias, double rate, double depth, int frames) {
         if (depth == 0) {
             tremoloPhase = 0;
             return bias;
@@ -712,6 +716,15 @@ public sealed class CircuitAmpBlock : DspBlock, ICabFollower {
                 Params.Advance(Eq1 + 4, frames)
             )
         );
+        // The tremolo: the model's own oscillator where it has one (Speed in hertz, Intensity as the knob's rotation),
+        // else the generic bias tremolo.
+        var tremoloRate = (double)Params.Advance(TremoloRate, frames);
+        var tremoloDepth = Percent(Params.Advance(TremoloDepth, frames));
+        var ownTremolo = Channel.HasTremolo;
+        if (ownTremolo) {
+            preamp = preamp with { TremoloRate = tremoloRate, TremoloDepth = tremoloDepth };
+        }
+
         var feedback = Knob(Params.Advance(Feedback, frames));
         if (design.Power.FeedbackOffSwitch is { } off && preamp.IsOn(off)) {
             feedback = 0;
@@ -722,10 +735,14 @@ public sealed class CircuitAmpBlock : DspBlock, ICabFollower {
             Knob(Params.Advance(Depth, frames)),
             Knob(Params.Advance(Cut, frames)),
             Knob(Params.Advance(Sag, frames)),
-            Tremolo(Params.Advance(Bias, frames) / 100.0, frames),
+            ownTremolo
+                ? Params.Advance(Bias, frames) / 100.0
+                : Tremolo(Params.Advance(Bias, frames) / 100.0, tremoloRate, tremoloDepth, frames),
             feedback,
             preamp.Master,
-            postInverter ? postMaster.Fraction(masterRotation) : 1
+            postInverter ? postMaster.Fraction(masterRotation) : 1,
+            ownTremolo ? tremoloRate : 0,
+            ownTremolo ? tremoloDepth : 0
         );
 
         var excursion = Percent(Params.Current(MasterExcursion));

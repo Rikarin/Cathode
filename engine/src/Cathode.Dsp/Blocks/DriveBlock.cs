@@ -350,8 +350,8 @@ public sealed class DriveBlock() : DspBlock(Info) {
             Post(chunk);
 
             if (blend) {
-                GainRamp.Mix(leftDry, chunk.Left, this.mix, mix);
-                GainRamp.Mix(rightDry, chunk.Right, this.mix, mix);
+                MixRamp.Blend(leftDry, chunk.Left, MixLaw.ConstantPower, this.mix, mix);
+                MixRamp.Blend(rightDry, chunk.Right, MixLaw.ConstantPower, this.mix, mix);
             }
 
             output.Apply(chunk, level, balance);
@@ -549,8 +549,8 @@ public sealed class DriveBlock() : DspBlock(Info) {
         right.Process(io.Right, Oversample, type, shape, this.gain, gain, pre, tone, dcBlock, Antialias, advanced);
         Post(io);
         if (blend) {
-            GainRamp.Mix(leftDry, io.Left, this.mix, mix);
-            GainRamp.Mix(rightDry, io.Right, this.mix, mix);
+            MixRamp.Blend(leftDry, io.Left, MixLaw.ConstantPower, this.mix, mix);
+            MixRamp.Blend(rightDry, io.Right, MixLaw.ConstantPower, this.mix, mix);
         }
 
         this.gain = gain;
