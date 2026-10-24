@@ -17,9 +17,7 @@ public partial class AmpStageTests {
             { "JCM900 4502", false, 0.002, -30 },
             { "JCM900 4502", true, 0.0005, -30 },
             { "Valvestate 8080", false, 0.001, -24 },
-            { "Valvestate 8080", true, 0.002, -30 },
-            { "JVM410H OD", false, 0.0001, -30 },
-            { "JVM410H OD", true, 0.0001, -30 }
+            { "Valvestate 8080", true, 0.002, -30 }
         };
 
     [Theory]
@@ -83,7 +81,7 @@ public partial class AmpStageTests {
 public class ModernMarshallTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
-    static readonly string[] Models = ["JCM900 4502", "JCM900 4100", "Valvestate 8080", "JVM410H OD"];
+    static readonly string[] Models = ["JCM900 4502", "JCM900 4100", "Valvestate 8080"];
 
     public static TheoryData<string> Types => [..Models];
 
@@ -98,8 +96,6 @@ public class ModernMarshallTests(ITestOutputHelper output) {
         );
         Assert.Equal("Contour", Label("control1", "Valvestate 8080"));
         Assert.Empty(Label("bias", "Valvestate 8080"));
-        Assert.Equal("Resonance", Label("depth", "JVM410H OD"));
-        Assert.Equal("Volume", Label("control1", "JVM410H OD"));
         foreach (var type in Models) {
             Assert.Empty(Label("cut", type));
         }

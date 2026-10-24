@@ -587,6 +587,66 @@ transformers and the feedback taps):
   A (the V1 pair with its 220k feedback around the stack is 6–10 % of it); Valvestate 8080 boost 15.3 / 24.2 %, Normal
   11.4 / 16.5 %; JVM410H OD 17.2 / 24.7 %, a little over on guitar.
 
+**As built (stream M1, the remaining Marshalls).** Two types appended to `AmpDesign.All` and one extended; each file
+cites its drawings and marks what is read, inferred or guessed:
+- **JVM410H**, all four channels and their three modes: `JVM410H OD` (OD1, OD2 on Switch 1) and the new
+  `JVM410H Clean/Crunch` (Crunch on Switch 1); Switch 2 is Orange and Switch 3 Red, both off Green. From the JVM410H's
+  own sheets (main board JVM410-60-02 iss 2, front panels -61-02 iss 1, footswitch -67-02 iss 2; DrTube): the channel
+  network's output (connector pin 3) always reaches V6a through 220k, and relays RL3 and RL4 (latch outputs A2, A3)
+  give three cascades, V6b-V7a (RL4 on), V6b-V7b-V7a (both off) or V6b-V6a-V7b-V7a (RL3 on); RL2 (A1) grounds V7b's
+  82k/22k junction (gain about 2 against 9). Read newly: the Clean channel's pre-gain stack (220 pF, 56k, 100 nF, 47 nF;
+  200k-B, 200k-A, 20k-B) into the 1M-A Clean Gain with 220 pF; the Crunch network (10 nF, 470k ‖ 470 pF, 1 nF top to
+  wiper); RL204 puts the line on the OD stacks or on the Crunch stack and Clean volume network (10k, 4.7 nF + 220k onto
+  the 1M Volume, or 47k past it in Clean Green: RL205). The modes' relay states are firmware (an ATmega8 on the main
+  board); no drawing, forum trace or measurement gives them, so they are deduced from the handbook's gain-structure
+  descriptions: Clean 2 / 3 / 4 triodes with RL2 on in Red, Crunch 2 / 3 (RL2 on) / 3, OD 3 / 4 (RL2 on) / 4. Each mode
+  is its own chain of stages under nested `ChannelSwitchStageDesign`s (no library change).
+- **DSL100** (`Dsl100.cs`), both channels: Classic Gain (Clean / Crunch on Switch 2) and Ultra Gain (Switch 1; Lead 1 /
+  Lead 2 on Switch 2), Tone Shift on Switch 3, Deep as the Depth control. The previous blocker, the missing wiring
+  drawing JCM2-68-02, is not needed: both boards print their connectors' partners (main CON3 to front CON2 and so on),
+  and the 1997 issue-1 main board (JCM2-60-00, a scan) agrees. V1B into relay RL1, which feeds one channel's network
+  and grounds the other's input; Classic's wiper and Ultra's V1A path (4.7 nF, 10k, 1k ‖ 470 pF) meet through 470k each
+  (the 1997 sheet's LDR1/LDR2, resistors by issue 9) at V2B (4k7 unbypassed), V2A (2k2, 470k/470k in), V3B (the reverb
+  mixer's 100k / 47k / 47k + 2k2), V3A follower straight into the stack; Tone Shift adds 470 pF, 68k and 22 nF in series
+  with the treble cap, slope and middle cap. Which switch position is which mode follows the handbook (Lead 2 "mid-boosted
+  ... even higher gain": the lifted bridge and the full V1A bypass; read the other way it had 3 dB less gain than Lead 1).
+  Guessed: rails, idle current, OT, and the feedback resistor (47k from 16 Ω; it is on the jack wiring).
+- **JMP-1** (`Jmp1.cs`), Clean I/II and OD I/II (Switch 1 OD, Switch 2 II, Switch 3 Bass Shift), from JMP1-61-04
+  iss 10 (six vector sheets): IC34's switched sections, the TC9176 Gain (two cascaded sections with a follower: each a
+  10k linear pot, so the pair follows a square law; the part's value is not drawn), the clean VB1a/VB1b with their
+  voicing network, the OD path's ×196 TL072 into the W005F/1N4007 clamp and VB2a/VB2b, OD II's fixed voicing network,
+  the active tone circuit (four band filters returned through TC9170 pots between an inverting input stage's and output
+  stage's summing nodes; flat at the centre, each band +4 to +9 dB at full), IC17, the Volume, the output mixer and
+  driver. Every op-amp but the OD's inverting stage is a linear amplifier. Its line output drives the JCM900 4100's
+  documented EL34 power amp (4100-60-02); presence and depth hidden, Control 1 the Output level, Control 2 the preamp's
+  Presence band.
+- **Not built: JVM410HJS.** Its sheets (-60-02 iss 2, -61-02 iss 1, -62-02 iss 1) carry the JVM410H's channel networks
+  and three-path cascade with other values, plus the input buffer, the THAT4301 gate and mid-shift relays, but five
+  main-board relays (RL101, RL103 B/C, RL104, RL105) where the JVM410H has three, and its handbook describes the modes'
+  voicings, not their gain stages, so the relay states of its nine gain structures cannot be deduced as the JVM410H's
+  were.
+- **Library**: no shared code changed. The JVM tests moved from `ModernMarshallTests` to `RemainingMarshallTests`,
+  whose chain test resolves nested channel switches.
+- **Validation** (`Remaining_marshall_chains_match_the_reference`, the playing chain of every channel and mode as one
+  circuit): JVM410H every mode −44 to −47 dB, DSL100 −46 to −63 dB, JMP-1 Clean −37 to −49 dB and OD −25 dB (the
+  TL072 model's 3 MHz gain-bandwidth against the reference's ideal op-amp, at a closed-loop gain of 196). Knob sweeps at
+  full drive converge in every channel and mode, every control is audible, gain and master are monotonic, peaks stay
+  under +6 dBFS; the modes raise the gain in order, Tone Shift scoops the middle, the JMP-1's tone circuit is flat at the
+  centre (`RemainingMarshallTests`).
+- **References**: no GPL direct-out capture of these amps with stated settings was found (pelennor's "Tim R JCM2000"
+  files do not say DSL or TSL; the JVM files state neither amp nor rig); all ship schematic-only.
+- **CPU** (48 kHz, guitar chord / loud noise, Gain 7, Master 6, minimum of five passes, `Cathode.Bench --amps`):
+machine at a load average of 150–210, where the Plexi read 8.4–10.7 / 15.0–18.0 % across the runs (each figure
+  below with the Plexi of its own run): JVM410H OD Green 15.8 / 23.1 (Plexi 8.4 / 15.0), Orange 19.0 / 28.5 (10.3 /
+  17.3), Red 18.6 / 28.2 (10.1 / 17.8), OD2 Green 17.5 / 25.6 (10.7 / 18.0), OD2 Red 16.8 / 25.3 (8.4 / 15.1); JVM410H
+  Clean Green 12.9 / 26.5, Orange 16.1 / 27.8, Red 19.6 / 30.4, Crunch Green 15.1 / 26.3, Orange 14.3 / 26.1, Red 15.3 /
+  24.0; DSL100 Classic Clean 11.6 / 26.2, Crunch 15.2 / 28.6, Ultra Lead 1 17.4 / 26.9, Lead 2 15.6 / 24.9 (Tone Shift
+  13.2 / 29.6 on Clean); JMP-1 Clean I 10.7 / 16.6, Clean II 12.0 / 19.7, OD I 19.0 / 25.1, OD II 16.9 / 22.6, OD I with
+  Bass Shift 17.0 / 22.4. Relative to the Plexi of the same run (1.3–2.0 × on guitar, 1.1–1.8 × on noise) the clean
+  modes of the JVM and the DSL are over the clean noise budget (their noise figures are high-gain cascades' figures:
+  every triode of the clean chains clips on loud noise), and the JVM's Orange/Red and the JMP-1's OD a little over the
+  high-gain guitar budget; no solver shortcut was tried (each needs a −60 dB golden comparison).
+
 ### 3.3 Vox and class-A boutique
 
 **AC30 Top Boost** — https://www.ampbooks.com/mobile/classic-circuits/vox-ac30/, https://www.voxac30.org.uk/vox_ac30_top_boost_circuit.html (JMI OS/010 drawing images on that site)
