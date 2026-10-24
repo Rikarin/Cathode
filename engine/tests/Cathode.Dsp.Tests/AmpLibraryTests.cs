@@ -1,4 +1,5 @@
 using Cathode.Dsp.Amp;
+using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Tests.Circuits;
 using Cathode.Dsp.Wdf;
 using Cathode.Testing;
@@ -365,8 +366,8 @@ public partial class AmpStageTests {
     [MemberData(nameof(PowerVariants))]
     public void Power_amp_variants_match_the_reference_in_the_time_domain(string name) {
         var stiff = new PowerSupplyDesign(1e-3, 1, 1e-3, 1, 1e3, 1, 0);
-        var plexi = AmpDesign.Plexi.Power with { PowerSupply = stiff };
-        var sixV6 = AmpDesign.AC30.Power with {
+        var plexi = Plexi.Design.Power with { PowerSupply = stiff };
+        var sixV6 = AC30.Design.Power with {
             Name = "2 x 6V6",
             Tube = PentodeModel.SixV6GT,
             TubesPerSide = 1,
@@ -387,12 +388,12 @@ public partial class AmpStageTests {
             }, 6.0, 40e3, false),
             "ultralinear EL34" => (plexi with { UltralinearTap = 0.43, ScreenResistor = 1 }, 0.4, 0.0, false),
             "triode switch" => (plexi with { TriodeSwitch = SwitchRole.Switch1, ScreenResistor = 1 }, 0.6, 0.0, true),
-            "simul-class" => (AmpDesign.Blackface.Power with {
+            "simul-class" => (Blackface.Design.Power with {
                 Strapped = PentodeModel.EL34,
                 StrappedPerSide = 1,
                 PowerSupply = stiff
             }, 0.6, 0.0, false),
-            "separate cathodes" => (AmpDesign.AC30.Power with {
+            "separate cathodes" => (AC30.Design.Power with {
                 SeparateCathodes = true,
                 PowerSupply = stiff,
                 InverterInput = null

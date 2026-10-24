@@ -89,10 +89,4 @@ public sealed partial record AmpDesign {
         Models.Bassman135.Design,
         Models.GibsonScout.Design
     ];
-
-    public static AmpDesign Blackface => Models.Blackface.Design;
-
-    public static AmpDesign Plexi => Models.Plexi.Design;
-
-    public static AmpDesign AC30 => Models.AC30.Design;
 }

@@ -41,8 +41,8 @@ public partial class AmpStageTests {
         double bass
     ) {
         var (design, on) = name switch {
-            _ when name.StartsWith("AC30 normal", StringComparison.Ordinal) => (AmpDesign.AC30, true),
-            _ when name.StartsWith("AC30", StringComparison.Ordinal) => (AmpDesign.AC30, false),
+            _ when name.StartsWith("AC30 normal", StringComparison.Ordinal) => (AC30.Design, true),
+            _ when name.StartsWith("AC30", StringComparison.Ordinal) => (AC30.Design, false),
             _ when name.StartsWith("AC15", StringComparison.Ordinal) => (AC15.Design, false),
             "DC-30 EF86" => (DC30.Design, true),
             _ => (DC30.Design, false)
@@ -132,12 +132,12 @@ public partial class AmpStageTests {
     public void Class_a_operating_points_match_the_schematics() {
         var controls = new AmpControls(0.5, 0.5, 0.5, 0.5, 1, false);
         (string Name, double Volts, double Expected, double Tolerance)[] points = [
-            ("AC30 V1 plate", Rest(AmpDesign.AC30, false, 0, 1), 170, 0.08),
-            ("AC30 top boost plate", Rest(AmpDesign.AC30, false, 1, 3), 180, 0.10),
-            ("AC30 top boost cathode", Rest(AmpDesign.AC30, false, 1, 4), 1.65, 0.20),
-            ("AC30 follower cathode", Rest(AmpDesign.AC30, false, 2, 3), 180, 0.08),
-            ("AC30 inverter grids", LongTailPair.For((LongTailPairDesign)AmpDesign.AC30.Power.PhaseInverter).RestGrid, 55, 0.05),
-            ("AC30 inverter plates", LongTailPair.For((LongTailPairDesign)AmpDesign.AC30.Power.PhaseInverter).RestPlateA, 230, 0.03),
+            ("AC30 V1 plate", Rest(AC30.Design, false, 0, 1), 170, 0.08),
+            ("AC30 top boost plate", Rest(AC30.Design, false, 1, 3), 180, 0.10),
+            ("AC30 top boost cathode", Rest(AC30.Design, false, 1, 4), 1.65, 0.20),
+            ("AC30 follower cathode", Rest(AC30.Design, false, 2, 3), 180, 0.08),
+            ("AC30 inverter grids", LongTailPair.For((LongTailPairDesign)AC30.Design.Power.PhaseInverter).RestGrid, 55, 0.05),
+            ("AC30 inverter plates", LongTailPair.For((LongTailPairDesign)AC30.Design.Power.PhaseInverter).RestPlateA, 230, 0.03),
             ("AC15 EF86 plate", Rest(AC15.Design, false, 0, 3), 90, 0.02),
             ("AC15 EF86 screen", Rest(AC15.Design, false, 0, 4), 105, 0.02),
             ("AC15 EF86 cathode", Rest(AC15.Design, false, 0, 5), 2.4, 0.02),
@@ -179,7 +179,7 @@ public partial class AmpStageTests {
 
     [Fact]
     public void Channel_switch_plays_one_channel_and_settles_the_other() {
-        var stage = (ChannelSwitchStage)AmpDesign.AC30.Preamp[1].Create(Rate);
+        var stage = (ChannelSwitchStage)AC30.Design.Preamp[1].Create(Rate);
         stage.SetSourceResistance(50e3);
         stage.Update(new(0.5, 0.5, 0.5, 0.5, 1, false));
         stage.Reset(180);

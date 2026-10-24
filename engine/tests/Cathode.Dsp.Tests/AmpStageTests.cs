@@ -1,5 +1,6 @@
 using System.Numerics;
 using Cathode.Dsp.Amp;
+using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Tests.Circuits;
 using Cathode.Dsp.Wdf;
 using Cathode.Testing;
@@ -200,8 +201,8 @@ public partial class AmpStageTests(ITestOutputHelper output) {
     [InlineData("blackface V1A", 0.5)]
     public void Tone_stack_stages_match_the_reference_in_the_time_domain(string name, double amplitude) {
         var (design, rest, sourceResistance) = name switch {
-            "plexi V2B" => ((ToneStackStageDesign)AmpDesign.Plexi.Preamp[2], 175.1, 30.7e3),
-            _ => ((ToneStackStageDesign)AmpDesign.Blackface.Preamp[0], 0.0, 0.0)
+            "plexi V2B" => ((ToneStackStageDesign)Plexi.Design.Preamp[2], 175.1, 30.7e3),
+            _ => ((ToneStackStageDesign)Blackface.Design.Preamp[0], 0.0, 0.0)
         };
         var controls = new AmpControls(0.7, 0.3, 0.6, 0.8, 0.6, true);
         var stage = new ToneStackStage(design, Rate);
@@ -303,10 +304,10 @@ public partial class AmpStageTests(ITestOutputHelper output) {
 
     static TriodeStageDesign TriodeDesign(string name) => name switch {
         "textbook" => Textbook,
-        "blackface V2A" => (TriodeStageDesign)AmpDesign.Blackface.Preamp[1],
-        "plexi V1A" => (TriodeStageDesign)AmpDesign.Plexi.Preamp[0],
-        "plexi V2A" => (TriodeStageDesign)AmpDesign.Plexi.Preamp[1],
-        _ => (TriodeStageDesign)AmpDesign.AC30.Preamp[0]
+        "blackface V2A" => (TriodeStageDesign)Blackface.Design.Preamp[1],
+        "plexi V1A" => (TriodeStageDesign)Plexi.Design.Preamp[0],
+        "plexi V2A" => (TriodeStageDesign)Plexi.Design.Preamp[1],
+        _ => (TriodeStageDesign)AC30.Design.Preamp[0]
     };
 
     /// <summary>1 kHz with a 220 Hz component, so the stage sees a changing slope as well as a level.</summary>

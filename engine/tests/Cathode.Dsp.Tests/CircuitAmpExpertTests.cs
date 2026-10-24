@@ -1,4 +1,5 @@
 using Cathode.Dsp.Amp;
+using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Blocks;
 using Cathode.Testing;
 
@@ -28,8 +29,8 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         Assert.Equal(AmpDesign.All.Count, Labels("control1")!.Count);
 
         // Channel switches and the class-A family's own controls.
-        Assert.Equal("Normal Ch", Label(AmpDesign.AC30, "switch1"));
-        Assert.Equal("", Label(AmpDesign.AC30, "master"));
+        Assert.Equal("Normal Ch", Label(AC30.Design, "switch1"));
+        Assert.Equal("", Label(AC30.Design, "master"));
         Assert.Equal("Brilliance", Label(Amp.Models.AC15.Design, "bright"));
         Assert.Equal("", Label(Amp.Models.AC15.Design, "treble"));
         Assert.Equal("Volume", Label(Amp.Models.DC30.Design, "gain"));
@@ -248,7 +249,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     [InlineData(SupplyMode.Ac60, 120)]
     [InlineData(SupplyMode.Ac50, 100)]
     public void Ac_supply_ripples_at_twice_the_line_frequency(SupplyMode mode, double ripple) {
-        var power = new PowerAmp(AmpDesign.Plexi.Power, InnerRate);
+        var power = new PowerAmp(Plexi.Design.Power, InnerRate);
         var dc = power.Supply;
         power.Apply(PowerSettings.Stock with { Supply = mode });
         power.Reset();
@@ -274,7 +275,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     [Fact]
     public void Variac_and_rectifiers_set_the_supply() {
         double Settled(PowerSettings settings, bool loud) {
-            var power = new PowerAmp(AmpDesign.AC30.Power, InnerRate);
+            var power = new PowerAmp(AC30.Design.Power, InnerRate);
             power.Apply(settings);
             power.Reset();
             for (var i = 0; i < 48_000; i++) {
@@ -300,7 +301,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     public void Transformer_drive_saturates_low_notes() {
         const int Length = 65_536;
         double Thd(double drive, int bin) {
-            var power = new PowerAmp(AmpDesign.Plexi.Power, InnerRate);
+            var power = new PowerAmp(Plexi.Design.Power, InnerRate);
             power.Apply(PowerSettings.Stock with { Drive = drive });
             power.Reset();
             var y = new float[Length];
