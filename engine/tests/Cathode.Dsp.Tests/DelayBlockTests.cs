@@ -454,6 +454,67 @@ public class DelayBlockTests {
         Assert.Equal(0.25f, output[1_000 + 480 * 5], 1e-5f);
     }
 
+    [Fact]
+    public void Hold_through_a_boosting_feedback_eq_stays_bounded() {
+        // Hold loops at unity; a +12 dB band and a resonant high cut in the loop then add gain on every pass. The
+        // limiter must take over, or the repeats grow until they overflow.
+        using var delay = Create(
+            (DelayBlock.Time, 5f),
+            (DelayBlock.Mix, 50f),
+            (DelayBlock.HighCut, 1_000f),
+            (DelayBlock.HighCutQ, 3f),
+            (DelayBlock.Eq1Frequency, 8_000f),
+            (DelayBlock.Eq1Q, 4f),
+            (DelayBlock.Eq1Gain, 12f)
+        );
+        BlockRender.Mono(delay, Signals.Noise(4_800, 1, 0.5f), 64);
+        delay.Params.SetTarget(DelayBlock.Hold, DelayBlock.HoldOn);
+
+        var output = BlockRender.Mono(delay, new float[48_000], 64);
+
+        Assert.True(Analysis.AllFinite(output));
+        Assert.True(Analysis.Peak(output) < 3, $"peak {Analysis.Peak(output)}");
+    }
+
+    [Fact]
+    public void Conformance_case_13QvSe6CE2ha_stays_finite() {
+        // The parameters (start, then a jump mid-stream) of the CsCheck case that overflowed: Vintage Digital jumping to
+        // Hold with a +12 dB band and a Q 3 high cut in the loop.
+        float[] start = [
+            2.1818182f, 11515.689f, 21f, 100f, 100f, 1125.1163f, 9402.439f, 0.05f, 6.6252065f, -71.2763f, -31.64711f,
+            17.045454f, 1f, 6.737446f, 8.339896f, 100f, 24.444445f, -60f, 2000f, 0.23252869f, 1.6764705f, 113.74173f, 100f,
+            88.2353f, 1f, 1.2179918f, 100f, -80f, -10.978172f, -100f, -21.052628f, 83.33334f, -100f, 2855.67f, 10000f,
+            4.7222223f, 1.0974838f, 8.190909f, 12.46875f, 79.97551f, 110.832344f, 0f, -56.90077f, 0f, -78.125f,
+            41.935486f, -100f, 0.05993545f, 6.466E-34f, 50f, 2.0084997E-34f, 0.87974954f, 1.6428572f, 2.2762651f,
+            320.4382f, 10f, -11.999998f, 3502.041f, 4.4785604f, -3.7792997f, 0.26865673f, 5.7756567f, 0f, 180f, 2f, 0f,
+            0.05f, 8.82f, 0f, 7.497E-11f, 0.52459013f, 0.7619048f, 0f, 3.0673144f, 1.3501235f, 4.9459998E-12f, 5.012E-24f,
+            85.28378f, 1.2748142f, 0f
+        ];
+        float[] jump = [
+            3.649126f, 1f, 0f, -100f, 44.144737f, 433.13007f, 1013.1579f, 7.505862f, 0f, -68.96673f, -54.166664f, 0f,
+            97.614456f, 6.333333f, 5.375068f, -72.70429f, 33.333332f, -10f, 361.17648f, 1.3031688f, 2.256557f, 200f,
+            -78.57143f, 1000f, 2571.1062f, 8.042554f, 100f, 0f, -36.61017f, -30.769226f, -20f, -100f, -100f, 3437.0789f,
+            4204.6406f, 0.5f, 5.7654E-10f, 9.381221f, 16.79341f, 44.829647f, 25f, 0f, 0f, -80f, -10.637756f, 100f, -100f,
+            1f, 0.64285713f, 43.333332f, 2.1058621f, 1.2906522f, 1.9285715f, 3f, 7871.1343f, 3.9556558f, 12f, 50f,
+            4.798007f, -12f, 2f, 0f, 1.8000001f, 180f, 2f, 7.7727275f, 2.451724f, 0f, 0f, 90f, 1f, 0f, 9f, 10f, 21f, 0f, 0f,
+            96.01496f, 4.4305105f, 0f
+        ];
+        using var delay = Create([..start.Select(static (v, i) => (i, v))]);
+        var input = Signals.Noise(9_600, 0);
+
+        var (left, right) = BlockRender.Stereo(delay, input, input, _ => 64);
+        for (var i = 0; i < jump.Length; i++) {
+            delay.Params.SetTarget(i, jump[i]);
+        }
+
+        var (left2, right2) = BlockRender.Stereo(delay, input, input, _ => 64);
+
+        foreach (var output in new[] { left, right, left2, right2 }) {
+            Assert.True(Analysis.AllFinite(output), "non-finite output");
+            Assert.True(Analysis.Peak(output) < 10, $"peak {Analysis.Peak(output)}");
+        }
+    }
+
     static DelayBlock Create(params (int Index, float Value)[] settings) {
         var delay = new DelayBlock();
         foreach (var (index, value) in settings) {
