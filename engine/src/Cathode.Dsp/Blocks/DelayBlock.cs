@@ -463,7 +463,9 @@ public sealed class DelayBlock() : DspBlock(Info) {
             type is Analog or Tape or MonoTape && !hold,
             hold ? 0f : drive,
             Quantum(type == VintageDigital ? VintageBits : 24 - bits),
-            stack || loopGain > 1f || filter.Active // a boosting feedback EQ can lift the loop past unity too
+            // A boosting band or a resonant cut adds gain in the loop: with Hold's unity feedback or a high feedback the
+            // repeats would then grow without bound, so the limiter takes over whenever the loop could pass unity.
+            stack || loopGain * filter.MaxGain > 1
         );
 
         ducker.Configure(
