@@ -264,13 +264,23 @@ public sealed class LongTailPair : PhaseInverter {
         Design = design;
         var triode = new Triode(design.Tube);
 
-        // The rest point: the grids return to the bias/tail junction, which depends on the tail current.
-        var grid = 0.0;
+        // The rest point: the grids return to the bias/tail junction, which depends on the tail current. The junction
+        // follows the grids almost one to one (R_tail / (R_tail + R_bias + 1/g_m), 0.96 with a 47k tail), so iterating
+        // grid = I R_tail converges too slowly; bisect on I(grid) R_tail - grid, which falls with the grid voltage.
+        var (low, high) = (0.0, design.Supply);
         var (ia, ib, vk) = (0.0, 0.0, 0.0);
-        for (var i = 0; i < 60; i++) {
-            (ia, ib, vk) = Solve(triode, design, grid, grid);
-            grid = (ia + ib) * design.TailResistor;
+        for (var i = 0; i < 80; i++) {
+            var middle = 0.5 * (low + high);
+            (ia, ib, vk) = Solve(triode, design, middle, middle);
+            if ((ia + ib) * design.TailResistor > middle) {
+                low = middle;
+            } else {
+                high = middle;
+            }
         }
+
+        var grid = 0.5 * (low + high);
+        (ia, ib, vk) = Solve(triode, design, grid, grid);
 
         RestGrid = grid;
         RestCathode = vk;

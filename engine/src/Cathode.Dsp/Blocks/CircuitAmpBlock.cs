@@ -384,7 +384,8 @@ public sealed class CircuitAmpBlock : DspBlock {
             Knob(Params.Advance(Cut, frames)),
             Knob(Params.Advance(Sag, frames)),
             Params.Advance(Bias, frames) / 100.0,
-            Knob(Params.Advance(Feedback, frames))
+            Knob(Params.Advance(Feedback, frames)),
+            preamp.Master
         );
 
         var preampSettings = new PreampSettings(

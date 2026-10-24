@@ -14,6 +14,8 @@ export class LibraryStore {
   readonly assets = signal<readonly AssetInfo[]>([]);
   readonly models = computed(() => this.assets().filter(a => a.kind === 'nam' || a.kind === 'aidax'));
   readonly impulseResponses = computed(() => this.assets().filter(a => a.kind === 'ir'));
+  /** What a DynaCab mic slot takes: a multi-position IR pack (.cabgrid) or a single IR. */
+  readonly cabGrids = computed(() => this.assets().filter(a => a.kind === 'cabgrid' || a.kind === 'ir'));
 
   constructor() {
     const events = inject(EventStream);

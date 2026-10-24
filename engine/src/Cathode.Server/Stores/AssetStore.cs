@@ -7,8 +7,8 @@ using Microsoft.Extensions.Options;
 namespace Cathode.Server.Stores;
 
 /// <summary>
-///     Content-addressed store for impulse responses (.wav) and amp captures (NAM .nam, AIDA-X .aidax/.json) in
-///     <c>&lt;data&gt;/assets</c>.
+///     Content-addressed store for impulse responses (.wav), DynaCab IR grid packs (.cabgrid: a zip with a manifest)
+///     and amp captures (NAM .nam, AIDA-X .aidax/.json) in <c>&lt;data&gt;/assets</c>.
 ///     Presets reference assets as <c>sha256:&lt;hex&gt;</c>, so the same file uploaded twice is stored once and a
 ///     preset always gets exactly the file it was made with.
 /// </summary>
@@ -56,9 +56,10 @@ public sealed class AssetStore {
             ".nam" => "nam",
             ".aidax" or ".json" => "aidax",
             ".wav" => "ir",
+            ".cabgrid" => "cabgrid",
             _ => throw new RigException(
                 415,
-                $"Unsupported asset '{name}': upload a .nam or .aidax model or a .wav impulse response."
+                $"Unsupported asset '{name}': upload a .nam or .aidax model, a .wav impulse response or a .cabgrid IR pack."
             )
         };
 
@@ -117,12 +118,24 @@ public sealed class AssetStore {
     public static bool IsModel(string kind) => kind is "nam" or "aidax";
 
     /// <summary>
+    ///     True when an asset of <paramref name="kind" /> can go into <paramref name="slot" />: models into
+    ///     <c>model</c>, IR packs (or single IRs) into DynaCab's <c>grid</c> slots, impulse responses elsewhere.
+    /// </summary>
+    public static bool Fits(string slot, string kind) =>
+        slot == "model"
+            ? IsModel(kind)
+            : slot.StartsWith("grid", StringComparison.Ordinal)
+                ? kind is "ir" or "cabgrid"
+                : kind == "ir";
+
+    /// <summary>
     ///     The extension a stored asset of <paramref name="kind" /> gets. The amp picks the model runtime by extension.
     /// </summary>
     public static string Extension(string kind) =>
         kind switch {
             "nam" => ".nam",
             "aidax" => ".aidax",
+            "cabgrid" => ".cabgrid",
             _ => ".wav"
         };
 

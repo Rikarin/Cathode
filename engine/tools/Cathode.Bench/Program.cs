@@ -36,6 +36,25 @@ foreach (var descriptor in registry.Descriptors) {
     Console.WriteLine($"{descriptor.TypeId,-12} {worst,6:0.00} %");
 }
 
+// DynaCab's IR synthesis runs on the control thread, so it is not part of the block's audio cost: report it apart.
+using (var cab = new Cathode.Dsp.Blocks.DynaCabBlock()) {
+    cab.Prepare(new(Rate, Frames));
+    var position = Cathode.Dsp.Blocks.DynaCabBlock.SlotParam(0, Cathode.Dsp.Blocks.DynaCabBlock.Position);
+    var level = Cathode.Dsp.Blocks.DynaCabBlock.SlotParam(0, Cathode.Dsp.Blocks.DynaCabBlock.SlotLevel);
+    double Time(int param, int runs) {
+        var start = Stopwatch.GetTimestamp();
+        for (var i = 0; i < runs; i++) {
+            cab.Params.SetTarget(param, i % 2 == 0 ? 10f : 20f);
+            cab.Refresh();
+        }
+
+        return Stopwatch.GetElapsedTime(start).TotalMilliseconds / runs;
+    }
+
+    Time(position, 20); // warm up
+    Console.WriteLine($"dynacab IR synthesis (one slot moved, control thread): {Time(position, 100):0.00} ms; remix only (a level): {Time(level, 100):0.00} ms");
+}
+
 if (args.Contains("--write")) {
     var path = Path.Combine(FindEngineRoot(), "src", "Cathode.Dsp", "BlockCosts.cs");
     var code = new StringBuilder();
