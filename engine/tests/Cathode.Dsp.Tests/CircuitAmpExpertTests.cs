@@ -18,10 +18,15 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         var parameters = CircuitAmpBlock.Info.Params;
         IReadOnlyList<string>? Labels(string id) => parameters.Single(p => p.Id == id).TypeLabels;
 
-        Assert.Null(Labels("gain"));
-        Assert.Equal(["", "", "Cut"], Labels("cut"));
-        Assert.Equal(["Middle", "Middle", ""], Labels("middle"));
-        Assert.All(Labels("switch1")!, static l => Assert.Empty(l));
+        Assert.Null(Labels("bass"));
+        Assert.Equal(["Gain", "Gain", "Gain", "Preamp"], Labels("gain")!.Take(4));
+        Assert.Equal(["", "", "Cut"], Labels("cut")!.Take(3));
+        Assert.Equal(["Middle", "Middle", ""], Labels("middle")!.Take(3));
+        Assert.All(Labels("switch1")!.Take(3), static l => Assert.Empty(l));
+        var types = AmpDesign.All.ToList();
+        Assert.Equal("Low Input", Labels("switch1")![types.IndexOf(Amp.Models.JCM2203.Design)]);
+        Assert.Equal("Jumper", Labels("switch1")![types.IndexOf(Amp.Models.JTM45.Design)]);
+        Assert.Equal("", Labels("master")![types.IndexOf(Amp.Models.JTM45.Design)]);
         Assert.All(Labels("eq1")!, static l => Assert.Empty(l));
         Assert.Null(Labels("variac"));
         Assert.Equal(AmpDesign.All.Count, Labels("control1")!.Count);
@@ -91,7 +96,12 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                     // or EL84 in place of itself, the presence and depth frequencies of an amp without feedback.
                     var tube = new[] { null, "6L6GC", "EL34", "EL84", "6V6GT", "KT66", "KT88", "6550" }[
                         index == CircuitAmpBlock.PowerTube ? (int)value : 0];
+                    // Also: a speaker preset that is the model's own speaker, the master trim of an amp without a master,
+                    // the bright cap of an amp without one.
                     var audible = !(index == CircuitAmpBlock.CathodeTime && !design.Power.CathodeBias)
+                        && !(index == CircuitAmpBlock.SpeakerCurve && SpeakerDesign.Presets[(int)value - 1] == design.Power.Speaker)
+                        && !(index == CircuitAmpBlock.MasterTrim && design.Panel.Master is null)
+                        && !(index == CircuitAmpBlock.BrightCap && design == Amp.Models.LaneyGH100L.Design)
                         && !(index == CircuitAmpBlock.PowerTube && design.Power.Name.Contains(tube ?? "-", StringComparison.Ordinal))
                         && !(index is CircuitAmpBlock.PresenceFrequency or CircuitAmpBlock.DepthFrequency && !design.Power.HasFeedback);
                     data.Add(type, index, value, audible);
