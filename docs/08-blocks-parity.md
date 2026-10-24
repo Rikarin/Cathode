@@ -891,18 +891,35 @@ Verdict: **complete**.
 
 ### 6.37 Wah (p. 98) → `wah`
 
-Types: FAS Wah, Clyde, Cry Babe, VX846, Color-Tone, Funk Wah, Mortal, VX845, Paragon → Cathode Classic, Vox, Wide, 🆕 Clyde, Colorsound, Morley, V845, Parapedal (filter voicings) and Cry Baby, V846 (component-level circuits). The five new voicings follow the pedals' known character (range and how vocal the peak is), not measurements; component-level circuits for them remain **medium** each.
+Types: FAS Wah, Clyde, Cry Babe, VX846, Color-Tone, Funk Wah, Mortal, VX845, Paragon → Cathode Classic, Vox, Wide (filter voicings) and, at component level, 🆕 Clyde, Colorsound, Morley, V845, Parapedal, Cry Baby, V846.
+
+🆕 **The five newer types are circuits now (stream W).** Clyde, Colorsound, Morley, V845 and Parapedal were filter voicings drawn from each pedal's reputation. They are now modelled from their circuits and **replace the voicings in place**: each keeps its type index (3 to 7) and its name, so a preset that chose one keeps it but now hears the circuit. Each circuit lands near the range its voicing had (table below), so no new types were added. The sound does change: these are real circuits, with the inductor wahs' loop-gain sweep (the Q falls toward the toe), transistor or op-amp clipping under Drive, and the Morley's photocell lag. The factory presets "Vocal" (Clyde) and "Funk Quack" (Colorsound) now play the circuits. The default type is Classic, so the golden render does not change.
+
+- **Clyde, Colorsound, V845** are the Thomas Organ two-transistor inductor circuit, which Vox drew the same for the Clyde and the V846. Each is a `WahCircuit` with its own parts (`WahBlock.Circuits`), checked against the reference simulator like the Cry Baby and the V846.
+- **Morley** is optical and has no inductor: a lamp behind a vane on the treadle lights a CdS cell, and the cell is the shunt resistor of a one-op-amp multiple-feedback band-pass, followed by a make-up stage. The bandwidth stays constant, so the Q rises toward the toe. The cell's resistance follows the vane's opening log-linearly and lags the treadle, faster as the light rises (4 ms) than as it falls (40 ms).
+- **Parapedal** has no inductor either: two op-amps in a two-integrator loop, tuned together by the two gangs of a dual pot. Its Q comes from a fixed resistor ratio, so it stays the same over the whole sweep.
+- Morley and Parapedal are `ActiveWahCircuit`s (`WahBlock.ActiveCircuits`). The linear circuit is solved exactly, as a trapezoidal two-integrator loop whose centre, Q and gain come from the parts. Each op-amp's output saturates softly at its rail, and the capacitors charge from that limited voltage. Each costs about a tenth of the Cry Baby. Inductor Bias has no inductor to act on in them, so it gives the shift it would give (up to 1.6×) through their capacitors. Min/Max Frequency also scales the capacitors. Resonance Q scales the Parapedal's damping resistor; on the Morley it scales R1 and R3 by its square and the capacitors by its inverse, which keeps the centre and the gain in place.
+
+| Type | Old voicing (heel–toe, Q) | Circuit (heel–toe, Q heel → toe) | Parts (*guessed* in italics) |
+|---|---|---|---|
+| Clyde | 420 Hz–2.4 kHz, 7 | 454 Hz–2.31 kHz, 20 → 4.6 | V846 circuit, 100k across L1 (reported on originals; 33k and 68k were also fitted), *Halo inductor 450 mH / 30 Ω*, BC108 |
+| Colorsound | 380 Hz–2.6 kHz, 4 | 378 Hz–2.46 kHz, 14 → 2.1 | Thomas circuit, BC108; *C3 8.2 nF, L1 470 mH, R3 220 Ω, R7 27k* (no traced values to hand; chosen for a wide, smooth sweep) |
+| Morley | 320 Hz–3.4 kHz, 3 | 330 Hz–3.37 kHz, 0.8 → 8 | One-op-amp MFB band-pass with a CdS shunt; *R1 33k, R3 75k, C 10 nF, cell 300 Ω lit to 500k dark, vane law, cell time constants, make-up gain 1.5, 9 V* |
+| V845 | 480 Hz–1.9 kHz, 4 | 464 Hz–1.92 kHz, 8 → 2.2 | Thomas circuit, BC108; *L1 660 mH / 60 Ω, R3 820 Ω, R7 27k* (cheaper parts, a narrower and milder sweep) |
+| Parapedal | 280 Hz–2.2 kHz, 5.5 | 257 Hz–2.18 kHz, 4.7 throughout | Two op-amps, dual-gang pot; *25k gangs + 3.3k, 22 nF, damping 47k / 10k, input 22k, 9 V* |
+
+Guessed beyond the table: the op-amps (4558-class, saturating 1.5 V below each rail, otherwise ideal), the Morley's light law and the Parapedal's damping network. The sources (forum traces, vintage-pedal histories and Morley's manuals) establish the topologies but give no complete value list for the Colorsound, V845, Morley or Parapedal. Tests: `WahPedalCircuitTests` (range and Q per pedal, the inductor circuits against 1 / 2π√(LC) and the loop-gain Q ratio, the op-amp circuits against their closed form, Min/Max, Inductor Bias, Resonance, EQ, Drive, the cell lag, and cost against the Cry Baby), plus the new entries in `WahCircuitTests` and `WahBlockTests`.
 
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
 | Wah Control | ✅ | Position |  |
 | Control Taper | ✅ | Linear, log, reverse log |  |
-| Resonance Q | 🆕 ✅ | Filter types scale their Q; 🆕 the circuits scale R7, the resistor that damps the resonator |  |
+| Resonance Q | 🆕 ✅ | Filter types scale their Q; 🆕 the inductor circuits scale R7, the resistor that damps the resonator; 🆕 the Morley and Parapedal their damping (see above) |  |
 | Q Tracking | 🆕 ✅ | Less peak toward the toe; 🆕 on the circuits too, through R7 |  |
 | Low Cut Frequency | ✅ |  |  |
 | Minimum / Maximum Frequency | 🆕 ✅ | 50–200 % of the heel and toe frequencies: the filter voicings' directly, 🆕 the circuits' through their inductor, scaled per pedal position (Min at the heel, Max at the toe, geometrically between) |  |
 | Drive | 🆕 ✅ | Filter types saturate ahead of the filter; circuits get up to 18 dB more input (and as much less output), so their transistors clip |  |
-| Inductor Bias | 🆕 ✅ | DC through the winding lowers the inductance (to 40 % at full bias), raising the sweep by up to 1.6×: L1 on the circuits (`WahCircuit.Trim`), the matching shift on the filter types. The core's saturation curve is not modelled |  |
+| Inductor Bias | 🆕 ✅ | DC through the winding lowers the inductance (to 40 % at full bias), raising the sweep by up to 1.6×: L1 on the inductor circuits (`WahCircuit.Trim`), the matching shift on the filter types and, through their capacitors, on the inductor-less Morley and Parapedal. The core's saturation curve is not modelled |  |
 | Fat (dry blend up to 50/50) | ✅ | Mix |  |
 | EQ page (8-band graphic) | 🆕 ✅ | Octave bands 63 Hz–8 kHz, ±12 dB; flat bands cost nothing |  |
 

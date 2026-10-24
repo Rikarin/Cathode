@@ -226,12 +226,19 @@ public sealed class WahCircuit {
     ///     Pot setting for a pedal position, 0 (heel) to 1 (toe): the fraction of the pot between wiper and ground.
     /// </summary>
     public static double WiperFraction(WahVoicing voicing, double toe) {
-        var rotation = 1 - Math.Clamp(toe, 0, 1);
-        var m = voicing.TaperMidpoint;
-        var taper = Math.Abs(m - 0.5) < 1e-9
+        var taper = Taper(voicing.TaperMidpoint, 1 - Math.Clamp(toe, 0, 1));
+        return voicing.ToeWiper + (voicing.HeelWiper - voicing.ToeWiper) * taper;
+    }
+
+    /// <summary>
+    ///     A pot's taper: the fraction of its track at <paramref name="rotation" /> (0 … 1), exponential so that half
+    ///     travel reaches <paramref name="midpoint" /> (0.5 is linear).
+    /// </summary>
+    public static double Taper(double midpoint, double rotation) {
+        var m = midpoint;
+        return Math.Abs(m - 0.5) < 1e-9
             ? rotation
             : (Math.Pow((1 - m) / m, 2 * rotation) - 1) / (Math.Pow((1 - m) / m, 2) - 1);
-        return voicing.ToeWiper + (voicing.HeelWiper - voicing.ToeWiper) * taper;
     }
 
     /// <summary>

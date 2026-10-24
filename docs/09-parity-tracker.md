@@ -82,7 +82,20 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | PA12 | Plex: Shift Direction per the guide's meaning | ✅ | Reverse_direction_keeps_the_interval_and_plays_each_grain_backwards | the existing behaviour matched the guide |
 | PA13 | Rotary: Low Rate Multiplier | ✅ | Low_rate_multiplier_scales_the_drum_speed |  |
 | PA14 | Wah: Min/Max Frequency on the circuit types | ✅ | Min_and_max_frequency_move_the_circuits_resonance |  |
-| PA15 | Any other ◐ / ❌ in 08 §2, §3, §5, §6 not owned by PB | ◐ | — | closed: Gate/Vocoder/Pitch hardware sources, §7 rows. Left: five newer wah voicings as circuits, classic digital reverb types, Pitch formant correction, legacy factory cab banks (licensing) |
+| PA15 | Any other ◐ / ❌ in 08 §2, §3, §5, §6 not owned by PB | ◐ | — | closed: Gate/Vocoder/Pitch hardware sources, §7 rows; the five newer wah voicings as circuits went to stream W (below). Left: classic digital reverb types, Pitch formant correction, legacy factory cab banks (licensing) |
+
+## W: the five newer wah types as circuits (08 §6.37)
+
+They replace the filter voicings in place (same type index and name). Defaults unchanged: the default type is Classic, a filter voicing, so the golden render still matches.
+
+| ID | Item | Status | Evidence | Notes |
+|---|---|---|---|---|
+| W1 | Clyde (Vox Clyde McCoy): Thomas inductor circuit, 100k across L1, Halo inductor | 🟡 | WahPedalCircuitTests (Each_pedal_sweeps_its_range, Inductor_circuits_resonate_where_their_parts_put_them, Min_and_max…, Inductor_bias…, Resonance…, Drive…); WahCircuitTests (operating point, small signal, hot signal against the reference) | 454 Hz–2.31 kHz, Q 20 → 4.6; inductor 450 mH / 30 Ω guessed. Resonance raises its Q least (×1.17 at 2×): the 100k already leaves the Q to the other losses |
+| W2 | Colorsound (Sola Sound, the inductor version): Thomas inductor circuit | 🟡 | same tests | 378 Hz–2.46 kHz, Q 14 → 2.1; C3, L1, R3 and R7 guessed (no traced values) |
+| W3 | Morley optical wah: CdS cell as the shunt of a one-op-amp MFB band-pass, make-up stage, cell lag | 🟡 | WahPedalCircuitTests (Op_amp_circuits_match_their_closed_form, The_morley_cell_lags_the_treadle_faster_up_than_down, and the per-pedal tests) | 330 Hz–3.37 kHz, Q 0.8 → 8 (constant bandwidth); every value guessed; Inductor Bias acts through the capacitors |
+| W4 | V845 (Vox): Thomas inductor circuit with cheaper parts | 🟡 | as W1 | 464 Hz–1.92 kHz, Q 8 → 2.2; L1 660 mH / 60 Ω, R3 820 Ω, R7 27k guessed |
+| W5 | Parapedal (Tycobrahe / Dunlop): two op-amps, dual-gang pot, constant Q | 🟡 | as W3 | 257 Hz–2.18 kHz, Q 4.7 throughout; the damping network and every value guessed |
+| W6 | No allocation, determinism, decay, no clicks, CPU | 🟡 | WahBlockTests (Component_types_* for types 3–7, Sweeping_the_pedal_does_not_click); Each_pedal_costs_no_more_than_the_cry_baby | inductor types 1.0× the Cry Baby per block, Morley and Parapedal about 0.1× |
 
 ## PB: Drive and the Amp block's advanced page
 

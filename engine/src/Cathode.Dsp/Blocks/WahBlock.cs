@@ -5,19 +5,23 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     Wah. The first types are filter approximations: a resonant band-pass swept exponentially over the voicing's range
-///     by the pedal position, with some low-pass "body" mixed in as in the inductor circuit. The types after them model
-///     the inductor circuit itself at component level (a <see cref="WahCircuit" /> per channel, voiced by one of
-///     <see cref="Circuits" />), the pedal turning its pot. Either way the filter follows the smoothed position every
-///     <see cref="SubBlock" /> samples, so an expression pedal or modifier can drive it smoothly.
+///     Wah. The first three types are filter approximations: a resonant band-pass swept exponentially over the voicing's
+///     range by the pedal position, with some low-pass "body" mixed in as in the inductor circuit. Every other type models
+///     a pedal at component level: the inductor wahs as their circuit (a <see cref="WahCircuit" /> per channel, voiced by
+///     one of <see cref="Circuits" />, the pedal turning its pot), the inductor-less Morley and Parapedal as their op-amp
+///     band-pass (an <see cref="ActiveWahCircuit" />, voiced by one of <see cref="ActiveCircuits" />). Either way the
+///     filter follows the smoothed position every <see cref="SubBlock" /> samples, so an expression pedal or modifier can
+///     drive it smoothly.
 /// </summary>
 /// <remarks>
 ///     <list type="bullet">
 ///         <item>
 ///             Min and Max Frequency scale the heel and toe frequencies (100 % is the voicing's own): the filter
 ///             voicings' directly, the circuits' through their inductor, scaled at each pedal position so the resonance
-///             moves by Min at the heel and Max at the toe (<see cref="SweepScale" />). Resonance Q and Q Tracking reshape their peak; on the circuits they scale R7, the resistor across the
-///             inductor that damps the resonator.
+///             moves by Min at the heel and Max at the toe (<see cref="SweepScale" />); the inductor-less circuits take
+///             the same scale through their capacitors. Resonance Q and Q Tracking reshape their peak; on the inductor
+///             circuits they scale R7, the resistor across the inductor that damps the resonator, on the inductor-less
+///             ones their damping (see <see cref="ActiveWahCircuit.Trim" />).
 ///         </item>
 ///         <item>
 ///             Drive: the filter types saturate (<see cref="SoftDrive" />) ahead of the filter; the circuits are driven
@@ -26,8 +30,8 @@ namespace Cathode.Dsp.Blocks;
 ///         <item>
 ///             Inductor Bias: a DC current through the winding lowers the core's permeability, and so the inductance,
 ///             to 40 % at full bias; the sweep moves up by up to 1.6 times. Modelled as a linear inductance (the core's
-///             saturation curve is not), on the circuits as their L1 and on the filter types as the frequency shift
-///             it gives.
+///             saturation curve is not), on the inductor circuits as their L1, on the filter types and the
+///             inductor-less circuits (which have no inductor to bias) as the frequency shift it would give.
 ///         </item>
 ///         <item>An 8-band octave graphic EQ (63 Hz to 8 kHz, ±12 dB) follows; flat bands cost nothing.</item>
 ///     </list>
@@ -50,7 +54,10 @@ public sealed class WahBlock() : DspBlock(Info) {
 
     public const int EqBands = 8;
 
-    /// <summary>The first type modelled at component level: type <c>FirstCircuit + i</c> is <see cref="Circuits" />[i].</summary>
+    /// <summary>
+    ///     The first type added as a component-level circuit (the Cry Baby; the V846 follows). The five types before it
+    ///     from Clyde on were filter voicings first and are circuits now, in place, so <see cref="IsCircuit" /> is the test.
+    /// </summary>
     public const int FirstCircuit = 8;
 
     const int SubBlock = 16;
@@ -63,23 +70,38 @@ public sealed class WahBlock() : DspBlock(Info) {
     /// <summary>Volts at the circuit's input for a full-scale sample: a hot pickup, enough to push the transistors.</summary>
     const double InputVolts = 1;
 
-    /// <summary>Heel-down frequency, toe-down frequency and Q per voicing.</summary>
-    /// <remarks>
-    ///     The later five are voicings of the McCoy "Clyde", the Colorsound, an optical Morley, the Vox V845 and the
-    ///     Maestro Parapedal from the character those pedals are known for (sweep range and how vocal the peak is), not
-    ///     from measurements: the Clyde peaky and high, the Colorsound wide and smooth, the Morley very wide and gentle,
-    ///     the V845 narrower than its sibling and the Parapedal low and throaty.
-    /// </remarks>
+    /// <summary>Heel-down frequency, toe-down frequency and Q per filter voicing (types 0 to 2).</summary>
     static readonly (float Low, float High, float Q)[] Voicings = [
         (350f, 2_200f, 5f), // Classic (Cry Baby style)
         (450f, 2_000f, 4.5f), // Vox style
-        (300f, 3_000f, 6f), // Wide
-        (420f, 2_400f, 7f), // Clyde
-        (380f, 2_600f, 4f), // Colorsound
-        (320f, 3_400f, 3f), // Morley
-        (480f, 1_900f, 4f), // V845
-        (280f, 2_200f, 5.5f) // Parapedal
+        (300f, 3_000f, 6f) // Wide
     ];
+
+    enum Kind : byte {
+        Filter,
+        Inductor,
+        Active
+    }
+
+    /// <summary>
+    ///     What each type is, in type order (presets store the index): a filter voicing, an inductor circuit
+    ///     (<see cref="Circuits" />) or an inductor-less one (<see cref="ActiveCircuits" />), and its index in that list.
+    ///     Clyde to Parapedal were filter voicings until they became circuits in place.
+    /// </summary>
+    static readonly (Kind Kind, int Index)[] Types = [
+        (Kind.Filter, 0), // Classic
+        (Kind.Filter, 1), // Vox
+        (Kind.Filter, 2), // Wide
+        (Kind.Inductor, 2), // Clyde
+        (Kind.Inductor, 3), // Colorsound
+        (Kind.Active, 0), // Morley
+        (Kind.Inductor, 4), // V845
+        (Kind.Active, 1), // Parapedal
+        (Kind.Inductor, 0), // Cry Baby
+        (Kind.Inductor, 1) // V846
+    ];
+
+    static readonly string[] FilterNames = ["Classic", "Vox", "Wide"];
 
     static readonly float[] EqFrequencies = [63f, 125f, 250f, 500f, 1_000f, 2_000f, 4_000f, 8_000f];
 
@@ -87,15 +109,13 @@ public sealed class WahBlock() : DspBlock(Info) {
     SvfState bandLeft, bandRight, lowLeft, lowRight;
     WetCuts lowCut;
     WahCircuit? circuitLeft, circuitRight;
+    ActiveWahCircuit? activeLeft, activeRight;
     int configured = -1;
     int countdown;
     float mix = 1f;
     OutputStage output;
 
-    /// <summary>
-    ///     The component-level voicings, in type order after the filter approximations. Append only: presets store the
-    ///     type index.
-    /// </summary>
+    /// <summary>The inductor circuits. Append only: the type table refers to them by index.</summary>
     public static IReadOnlyList<WahVoicing> Circuits { get; } = [
         // Dunlop GCB-95 as analysed by Holters and Zölzer (DAFx-11): their component values, supply and fitted 2N5089;
         // the inductor is a red Fasel toroid (563 mH, 17.5 Ω as sold).
@@ -119,6 +139,69 @@ public sealed class WahBlock() : DspBlock(Info) {
             InductorResistance = 29,
             Transistor = BjtModel.BC108,
             OutputDb = -12
+        },
+        // Vox Clyde McCoy: the V846's schematic (Vox used one drawing for both), with the "nasal" Halo inductor (its
+        // inductance guessed at 450 mH, 30 Ω) and the 100k across it that original Clydes are reported with (33k and
+        // 68k were also fitted): a higher sweep and the most vocal peak of the family.
+        new("Clyde", "Vox Clyde McCoy") {
+            Supply = 9,
+            Emitter1 = 470,
+            BiasGround = 100e3,
+            QResistor = 100e3,
+            Inductance = 0.45,
+            InductorResistance = 30,
+            Transistor = BjtModel.BC108,
+            OutputDb = -15
+        },
+        // Sola Sound Colorsound wah, the original inductor version: the Thomas Organ circuit with BC10x transistors. No
+        // traced values to hand, so guessed to its character, wide and smooth: a smaller tuning capacitor (8.2 nF) and a
+        // 470 mH inductor lift the toe, a 220 Ω emitter resistor gives more loop gain (a deeper heel) and a 27k across
+        // the inductor keeps the peak broad.
+        new("Colorsound", "Sola Sound Colorsound wah") {
+            Supply = 9,
+            Emitter1 = 220,
+            BiasGround = 100e3,
+            QResistor = 27e3,
+            Tuning = 8.2e-9,
+            Inductance = 0.47,
+            InductorResistance = 29,
+            Transistor = BjtModel.BC108,
+            OutputDb = -16
+        },
+        // Vox V845, the budget sibling: the same two-transistor circuit with cheaper parts. Guessed: a 660 mH inductor
+        // with a thinner, more resistive winding (60 Ω), an 820 Ω emitter resistor (less loop gain: a narrower sweep)
+        // and a 27k across the inductor (a milder peak).
+        new("V845", "Vox V845") {
+            Supply = 9,
+            Emitter1 = 820,
+            BiasGround = 100e3,
+            QResistor = 27e3,
+            Inductance = 0.66,
+            InductorResistance = 60,
+            Transistor = BjtModel.BC108,
+            OutputDb = -5
+        }
+    ];
+
+    /// <summary>The inductor-less circuits. Append only: the type table refers to them by index.</summary>
+    public static IReadOnlyList<ActiveWahVoicing> ActiveCircuits { get; } = [
+        // Morley optical wah: a lamp behind a vane on the treadle lights a CdS cell, the shunt resistor of a one-op-amp
+        // multiple-feedback band-pass, then a make-up stage. Values guessed for its known range (about 330 Hz to
+        // 3.4 kHz): 33k into the band-pass, 75k feedback and 10 nF capacitors (constant bandwidth, so the Q rises with
+        // the frequency), a cell of 300 ohms lit to 500k dark, gain 1.5 after it, a 9 V supply.
+        new("Morley", "Morley optical (power) wah", ActiveWahTopology.Optical) {
+            OutputFeedback = 4.7e3,
+            OutputGround = 10e3,
+            OutputDb = 2
+        },
+        // Tycobrahe / Dunlop Parapedal: inductor-less, two op-amps tuned together by a dual-gang pot. The loop is a
+        // two-integrator band-pass; each gang 25k plus 3.3k in series with 22 nF integrating capacitors (about
+        // 260 Hz to 2.2 kHz), the damping set by a 47k / 10k ratio (Q 4.7 over the whole sweep) and the gain by 47k
+        // over 22k.
+        new("Parapedal", "Tycobrahe Parapedal", ActiveWahTopology.DualGang) {
+            InputResistor = 22e3,
+            Capacitor = 22e-9,
+            OutputDb = 1
         }
     ];
 
@@ -131,15 +214,12 @@ public sealed class WahBlock() : DspBlock(Info) {
                 "type",
                 "Type",
                 [
-                    "Classic",
-                    "Vox",
-                    "Wide",
-                    "Clyde",
-                    "Colorsound",
-                    "Morley",
-                    "V845",
-                    "Parapedal",
-                    ..Circuits.Select(static c => c.Name)
+                    ..Types.Select(static t => t.Kind switch {
+                            Kind.Filter => FilterNames[t.Index],
+                            Kind.Inductor => Circuits[t.Index].Name,
+                            _ => ActiveCircuits[t.Index].Name
+                        }
+                    )
                 ]
             ),
             new(
@@ -187,8 +267,22 @@ public sealed class WahBlock() : DspBlock(Info) {
         ]
     );
 
-    /// <summary>The number of filter-approximation voicings, which come before the circuits.</summary>
+    /// <summary>The number of filter-approximation voicings, types 0 to <c>FilterVoicings - 1</c>.</summary>
     public static int FilterVoicings => Voicings.Length;
+
+    /// <summary>The number of types.</summary>
+    public static int TypeCount => Types.Length;
+
+    /// <summary>Whether <paramref name="type" /> is modelled at component level (an inductor or inductor-less circuit).</summary>
+    public static bool IsCircuit(int type) => Types[type].Kind != Kind.Filter;
+
+    /// <summary>The inductor circuit of <paramref name="type" />, or null.</summary>
+    public static WahVoicing? InductorCircuit(int type) =>
+        Types[type].Kind == Kind.Inductor ? Circuits[Types[type].Index] : null;
+
+    /// <summary>The inductor-less circuit of <paramref name="type" />, or null.</summary>
+    public static ActiveWahVoicing? ActiveCircuit(int type) =>
+        Types[type].Kind == Kind.Active ? ActiveCircuits[Types[type].Index] : null;
 
     /// <summary>
     ///     Resonant frequency for a pedal position (0..100 %) of one of the filter-approximation voicings, its heel and
@@ -242,6 +336,12 @@ public sealed class WahBlock() : DspBlock(Info) {
         return x * (1 - mix) + wet * mix;
     }
 
+    /// <summary>One sample of an inductor-less circuit: its inverting band-pass's output, polarity restored and trimmed.</summary>
+    static float Voice(float x, ActiveWahCircuit circuit, float trim, float drive, float mix) {
+        var wet = (float)(-trim * circuit.Tick(x * InputVolts * drive));
+        return x * (1 - mix) + wet * mix;
+    }
+
     void ProcessFilter(in StereoBuffer io, int type) {
         var taper = (int)Params.Current(Taper);
         var baseQ = Voicings[type].Q * Params.Advance(Resonance, io.Length);
@@ -280,18 +380,19 @@ public sealed class WahBlock() : DspBlock(Info) {
     }
 
     /// <summary>
-    ///     The component-level types. The pot moves on a fixed grid of <see cref="SubBlock" /> samples counted across
-    ///     audio blocks, so the output does not depend on how the host slices them.
+    ///     The component-level types. The pot (or the optical wah's vane) moves on a fixed grid of
+    ///     <see cref="SubBlock" /> samples counted across audio blocks, so the output does not depend on how the host
+    ///     slices them.
     /// </summary>
     void ProcessCircuit(in StereoBuffer io, int type) {
         if (type != configured) {
             Configure(type);
         }
 
-        var left = circuitLeft!;
-        var right = circuitRight!;
+        var active = Types[type].Kind == Kind.Active;
         var drive = 1f + (MaxCircuitDrive - 1f) * Params.Advance(Drive, io.Length) / 100f;
-        var trim = (float)Decibels.ToGain(Circuits[type - FirstCircuit].OutputDb) / drive;
+        var outputDb = active ? ActiveCircuits[Types[type].Index].OutputDb : Circuits[Types[type].Index].OutputDb;
+        var trim = (float)Decibels.ToGain(outputDb) / drive;
         var inductance = BiasedInductance(Params.Advance(InductorBias, io.Length) / 100f);
         var minScale = Params.Advance(MinFrequency, io.Length) / 100.0;
         var maxScale = Params.Advance(MaxFrequency, io.Length) / 100.0;
@@ -307,18 +408,38 @@ public sealed class WahBlock() : DspBlock(Info) {
                 var toe = Tapered((int)Params.Current(Taper), Params.Current(Position)) / 100.0;
                 var q = resonance * (1 - 0.5 * tracking * toe); // less peaky toward the toe, as on the filter types
                 var scaled = inductance / Square(SweepScale(minScale, maxScale, toe));
-                left.Trim(scaled, q);
-                right.Trim(scaled, q);
-                left.SetPosition(toe);
-                right.SetPosition(toe);
+                if (active) {
+                    activeLeft!.Trim(scaled, q);
+                    activeRight!.Trim(scaled, q);
+                    activeLeft.SetPosition(toe);
+                    activeRight.SetPosition(toe);
+                } else {
+                    circuitLeft!.Trim(scaled, q);
+                    circuitRight!.Trim(scaled, q);
+                    circuitLeft.SetPosition(toe);
+                    circuitRight.SetPosition(toe);
+                }
+
                 countdown = SubBlock;
             }
 
             var length = Math.Min(countdown, io.Length - start);
-            for (var i = start; i < start + length; i++) {
-                currentMix += mixStep;
-                io.Left[i] = Voice(io.Left[i], left, trim, drive, currentMix);
-                io.Right[i] = Voice(io.Right[i], right, trim, drive, currentMix);
+            if (active) {
+                var left = activeLeft!;
+                var right = activeRight!;
+                for (var i = start; i < start + length; i++) {
+                    currentMix += mixStep;
+                    io.Left[i] = Voice(io.Left[i], left, trim, drive, currentMix);
+                    io.Right[i] = Voice(io.Right[i], right, trim, drive, currentMix);
+                }
+            } else {
+                var left = circuitLeft!;
+                var right = circuitRight!;
+                for (var i = start; i < start + length; i++) {
+                    currentMix += mixStep;
+                    io.Left[i] = Voice(io.Left[i], left, trim, drive, currentMix);
+                    io.Right[i] = Voice(io.Right[i], right, trim, drive, currentMix);
+                }
             }
 
             Params.Advance(Position, length);
@@ -340,12 +461,20 @@ public sealed class WahBlock() : DspBlock(Info) {
     static double Square(double x) => x * x;
 
     void Configure(int type) {
-        var voicing = Circuits[type - FirstCircuit];
-        circuitLeft!.Configure(voicing);
-        circuitRight!.Configure(voicing);
         var toe = Tapered((int)Params.Current(Taper), Params.Current(Position)) / 100.0;
-        circuitLeft.SetPosition(toe);
-        circuitRight.SetPosition(toe);
+        var (kind, index) = Types[type];
+        if (kind == Kind.Active) {
+            activeLeft!.Configure(ActiveCircuits[index]);
+            activeRight!.Configure(ActiveCircuits[index]);
+            activeLeft.SetPosition(toe);
+            activeRight.SetPosition(toe);
+        } else {
+            circuitLeft!.Configure(Circuits[index]);
+            circuitRight!.Configure(Circuits[index]);
+            circuitLeft.SetPosition(toe);
+            circuitRight.SetPosition(toe);
+        }
+
         configured = type;
         countdown = SubBlock;
     }
@@ -353,6 +482,8 @@ public sealed class WahBlock() : DspBlock(Info) {
     protected override void OnPrepare(in ProcessSpec spec) {
         circuitLeft = new(Circuits[0], spec.SampleRate);
         circuitRight = new(Circuits[0], spec.SampleRate);
+        activeLeft = new(ActiveCircuits[0], spec.SampleRate, SubBlock);
+        activeRight = new(ActiveCircuits[0], spec.SampleRate, SubBlock);
         configured = FirstCircuit;
     }
 
@@ -373,11 +504,13 @@ public sealed class WahBlock() : DspBlock(Info) {
             return;
         }
 
-        if (type >= FirstCircuit) {
+        if (IsCircuit(type)) {
             Configure(type);
         } else {
             circuitLeft.Reset();
             circuitRight!.Reset();
+            activeLeft!.Reset();
+            activeRight!.Reset();
             countdown = 0;
         }
     }
@@ -394,7 +527,7 @@ public sealed class WahBlock() : DspBlock(Info) {
             lowCut.FlushDenormals();
         }
 
-        if (type >= FirstCircuit) {
+        if (IsCircuit(type)) {
             ProcessCircuit(io, type);
         } else {
             ProcessFilter(io, type);
