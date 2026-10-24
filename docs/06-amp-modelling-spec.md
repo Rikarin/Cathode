@@ -435,6 +435,18 @@ none of the drawings give):
   iterations on noise. Its LED strings are three and two fitted junctions (3.0 V and 2.0 V): five and four silicon
   junctions fit the parts better but left Newton unconverged on a few dozen samples at full drive. The Hiwatt is over
   on noise (the 0.25 feedback fraction and the two-triode input).
+- **CPU pass (stream P; §5.3 has the general findings).** Interleaved with the old code, minimum of three passes,
+  thread CPU time on a loaded machine where the Plexi read 8.4–8.5 / 14.5–14.9 %, guitar chord / loud noise at the
+  default panel: Hiwatt DR103 13.1 / 26.9 → 10.2 / 19.5 (Jumper 10.9 / 19.0), inside the crunch budget: the one-port
+  safeguard takes its power amp from 8.1 to 6.0 iterations a sample on noise. 18 W Tremolo channel 11.7 / 18.6 → 9.0 /
+  14.4 (Normal 7.3 / 10.3, unchanged), crunch: its two-triode V3 runs the cheaper multi-port Newton. Silver Jubilee, high
+  gain: Boost 16.4 / 38.4 → 13.9 / 31.5, Rhythm 19.1 / 35.0 → 15.6 / 28.2 (Boost Clip 14.6 / 29.0, Rhythm Clip 15.2 /
+  28.2): inside on guitar, still 0.2–3.5 over on noise. Only bit-exact changes reach its V1B: that stage leaves about 45
+  samples a second of loud noise unconverged at its 32-iteration limit in Boost, and letting them converge moves the
+  output by −29 dB, so any Newton shortcut there fails the −60 dB comparison against the old renders. The next step for
+  the Jubilee is to make that stage converge (and accept the change of sound), then use chord steps there. Residual
+  against the old renders (every channel, five knob settings, DI, hot DI, chord, noise, sweep): Hiwatt −140 dB, Jubilee
+  −165 dB, 18 W bit-exact.
 - **References**: none of the four amps has a GPL direct-out capture; the JCM900 captures stay on the Plexi stand-in.
 
 ### 3.3 Vox and class-A boutique
@@ -588,6 +600,8 @@ Library changes (all additive):
 
 Tests: `BassAmpTests` (panels, sweeps converging, volume monotonic, the SVT's Ultra switches and midrange against the manual, the B-15's switches, the JC-120 against Roland's annotations, the solid-state amp's load independence, sag and clipping), and the three preamps as whole chains against the reference simulator (−37 to −42 dB). CPU (48 kHz, 64-frame blocks, guitar chord / loud noise, a quiet machine): B-15N 7.6 % / 10.2 %, JC-120 11.0 % / 16.0 %, **SVT 23.4 % / 44.6 %, over budget**: its midrange loop (three triodes and four reactances in one six-port Newton solve) is 60 % of it. Next for the SVT: a cheaper loop (one triode linearised, or the resonant network folded into the adaptor) and channel two; captures with settings for any of the three.
 
+**SVT CPU pass (stream P; §5.3 has the general findings).** Interleaved with the old code, minimum of three passes, thread CPU time on a loaded machine where the Plexi read 8.4–8.5 / 14.5–14.9 %: **24.0 / 44.8 → 13.9 / 28.8 %** at the default panel (1.64 / 1.93 × the Plexi), and 23.6 / 57.6 → 13.7 / 37.0 % with Ultra Hi, Ultra Lo and Bass Cut on. Class: high gain (16 / 28): inside on guitar, at the noise budget within the machine's spread (28.0 % scaled to the old Plexi figure). The midrange loop went from 13–14 / 25 % to about 4 / 11 %: the cheaper multi-port Newton (bit-exact), chord steps on the last factorisation (`ReuseFactors`) and a step tolerance of 1e-5 in every preamp stage; the power amp gains from the one-port safeguard. Residual against the old renders (both switch sets, five knob settings and three midrange settings, DI, hot DI, chord, noise, sweep): **−100 dB** at worst. What is left: with the Ultra switches on, loud noise drives the loop into samples that take 9 to 70 Newton iterations (a grid jumps a hundred volts positive in the first step and Newton wanders back); limiting the grid's rise turned those into cycles. Source stepping (splitting a struggling sample's input change in halves) is the next thing to try there.
+
 ### 3.6 Data gaps to close by reading scans by eye
 
 Automated reading of schematic images failed in most cases. Before each model is built, someone reads the factory scan and fills its table. The highest-value reads:
@@ -731,6 +745,33 @@ These are proposals, not measurements; they keep two Circuit Amp instances (the 
 - offer a "lite" variant (Phase 7 R5 hybrid or a NAM capture) as the risk register already plans.
 
 Every model gets a row in the existing benchmark, and the block's CPU estimate (Phase 8) reads from it.
+`dotnet run -c Release --project tools/Cathode.Bench -- --amps [model ...] [--set index=value ...]` times models one by
+one on the chord and on noise, with the Plexi in the same passes as a yardstick; on a loaded machine compare the ratios
+to the Plexi, not the raw percentages.
+
+**What the CPU pass over the SVT, Jubilee, Hiwatt and 18 W found** (stream P, all within −60 dB of the code before it):
+- *Where a network stage's time goes.* Device evaluations are a small part (a FastTriode is about 20 ns); with three or
+  more ports the linear algebra around them is most of it: building J = I − F (∂i/∂v − G_c), factoring it and solving.
+  Bit-exact changes that paid: the system built over the devices' Jacobian blocks only (`INonlinearDevice.BlockStart`),
+  F copied when the matrix changes instead of every sample, the last converged sample's factors reused for the next
+  sample's linearised start, the unfactored system rebuilt only when `Constrain` needs it, `DenseLu` on references with a
+  one-column solve (twice as fast at 6 × 6), and the supply rails of a network stage applied from a list (the sag moves
+  them every sample). Together about a third off a six-port stage, every model rendering the same to the bit.
+- *Chord steps* (`NewtonSolver.ReuseFactors`, opt-in per stage): try the last factorisation before building a new one,
+  accepting the step only when it converges unlimited and |g| is already within ten tolerances. On guitar most samples of
+  the SVT's loop then skip the factorisation. It moves the solution within the tolerance, so it is not on by default.
+- *Looser tolerances* (`NetworkStageDesign.Tolerance`): 1e-5 instead of 1e-6 saves a fraction of an iteration a sample
+  and stayed below −100 dB on the SVT; 1e-4 was −74 dB.
+- *One-port safeguard* (`NewtonSolver.SafeguardAfter`, 8, library-wide): after eight plain iterations a step that would
+  leave the bracket of the iterates bisects it instead, and the sample carries on rather than restarting in the general
+  solver. Power amps under deep feedback cycled across the grid-conduction kink on a few samples in a hundred for 25 to
+  60 iterations (the Hiwatt: 8.1 → 6.0 iterations a sample on noise). Every model stays within −139 dB.
+- *What did not help:* limiting a triode grid's rise per Newton step (fewer wild iterates in the SVT loop but cycles
+  instead), lower line-search thresholds, starting from extrapolation instead of the linearised step, and expanding a
+  junction's downward steps (the Jubilee's LED string comes down one n V_t per iteration, but expanding overshoots).
+- *An unconverged stage cannot be tuned against its own goldens.* The Jubilee's V1B leaves about 45 samples a second of
+  loud noise unconverged at its 32-iteration limit (Boost); their fallback values differ by −30 dB from the converged
+  solution, so any change to that stage's Newton path other than a bit-exact one moves the output by −30 to −40 dB.
 
 ### 5.4 Matching method
 
