@@ -17,11 +17,15 @@ public readonly record struct ProcessSpec(double SampleRate, int MaxBlockSize) {
 ///     (<see cref="EffectsMix" />).
 /// </param>
 /// <param name="GateOffsetDb">The global noise gate offset, added to the Input node's gate threshold.</param>
+/// <param name="CabsOff">
+///     The global cab modelling switch is off (a player using a real cab): Cab and IR Player blocks pass audio through.
+/// </param>
 public readonly record struct BlockContext(
     double SampleRate,
     double Tempo,
     long SampleTime,
     HeldNotes Notes = default,
     float MixOffset = 0f,
-    float GateOffsetDb = 0f
+    float GateOffsetDb = 0f,
+    bool CabsOff = false
 );

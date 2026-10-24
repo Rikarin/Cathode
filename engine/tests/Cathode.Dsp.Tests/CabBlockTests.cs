@@ -56,7 +56,10 @@ public sealed class CabBlockTests : IDisposable {
         var a = CabLikeIr(800, 2);
         var b = CabLikeIr(1_200, 3);
         using var cab = Create(
-            c => c.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.SlotLevel), -6.0206f),
+            static c => {
+                c.Params.SetTarget(CabBlock.Input, CabBlock.InputSum); // both inputs reach every slot
+                c.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.SlotLevel), -6.0206f);
+            },
             ("slot1", WriteIr("a.wav", a, 48_000)),
             ("slot2", WriteIr("b.wav", b, 48_000))
         );
@@ -86,7 +89,7 @@ public sealed class CabBlockTests : IDisposable {
 
     [Fact]
     public void Long_irs_are_truncated_with_a_fade() {
-        using var cab = Create(null, ("slot1", WriteIr("long.wav", Signals.Noise(20_000, 5), 48_000)));
+        using var cab = Create(null, ("slot1", WriteIr("long.wav", Signals.Noise(70_000, 5), 48_000)));
 
         var prepared = cab.PreparedImpulseResponse(0)!;
 
@@ -217,6 +220,7 @@ public sealed class CabBlockTests : IDisposable {
         both.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Mute), 0f);
         both.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Pan), 50f);
         both.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Delay), 1f);
+        both.Params.SetTarget(CabBlock.Input, CabBlock.InputSum); // slots 1 and 2 hear the same signal
         both.Prepare(Spec);
 
         var (dynaLeft, dynaRight) = dynaCab.ImpulseResponse();
@@ -281,6 +285,7 @@ public sealed class CabBlockTests : IDisposable {
         );
         using var blend = Create(
             static c => {
+                c.Params.SetTarget(CabBlock.Input, CabBlock.InputSum);
                 c.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.SlotLevel), 6f);
                 c.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.SlotLevel), 6f);
             },
@@ -333,7 +338,10 @@ public sealed class CabBlockTests : IDisposable {
         comb[96] = 0.5f;
         var path = WriteIr("comb.wav", comb, 48_000);
         using var plain = Create(null, ("slot1", path));
-        using var smooth = Create(static c => c.Params.SetTarget(CabBlock.Smoothing, 100f), ("slot1", path));
+        using var smooth = Create(
+            static c => c.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Smoothing), 100f),
+            ("slot1", path)
+        );
 
         var (sharp, _) = plain.ImpulseResponse();
         var (smoothed, _) = smooth.ImpulseResponse();
@@ -408,6 +416,12 @@ public sealed class CabBlockTests : IDisposable {
     [InlineData(3)]
     [InlineData(4)]
     [InlineData(5)]
+    [InlineData(6)]
+    [InlineData(7)]
+    [InlineData(8)]
+    [InlineData(9)]
+    [InlineData(10)]
+    [InlineData(11)]
     public void The_mic_preamp_keeps_quiet_signals_and_saturates_loud_ones(int type) {
         using var quiet = Create(c => {
                 c.Params.SetTarget(CabBlock.Preamp, type);
