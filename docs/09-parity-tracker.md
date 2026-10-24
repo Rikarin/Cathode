@@ -7,7 +7,7 @@
 - the Axe-Fx III amp list (FW 12.05);
 - the Fractal wiki pages *Amp models*, *Presets*, *Editors*, *Audio I/O and amplification* and *Cab block* (October 2026).
 
-**Status date:** 24 October 2026, round 3 started (streams T, M1, M2, PA, PB, PS, ED, IO, CB).
+**Status date:** 24 October 2026, round 3 in progress (T merged and audited) (streams T, M1, M2, PA, PB, PS, ED, IO, CB).
 
 ## How to audit
 
