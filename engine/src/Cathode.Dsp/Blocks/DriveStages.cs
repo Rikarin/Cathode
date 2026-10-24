@@ -87,6 +87,8 @@ public sealed class OpAmpStage {
     double drive = double.NaN;
     double source = double.NaN;
     double slewRate; // V/s in place of the op-amp's own; 0 for its own
+    double voice; // ohms added in series with the first ground leg (a Voice pot)
+    double bass; // a Bass pot across the first leg's capacitor, 0..1 (0 = out)
     double limit; // a slew limit on the output where the solve has none, volts per sample; 0 for none
     double held;
 
@@ -171,19 +173,27 @@ public sealed class OpAmpStage {
     ///     full device (<see cref="OpAmpSolve.Device" />) takes it as its own; the linear solves, which model none, limit
     ///     the stage's output to it.
     /// </param>
+    /// <param name="voice">Ohms added in series with the first ground leg (<see cref="DriveStage.VoicePot" />).</param>
+    /// <param name="bass">
+    ///     A Bass pot across the first ground leg's capacitor (<see cref="DriveStage.BassShunt" />), 0..1; 0 leaves the
+    ///     leg as listed.
+    /// </param>
     public void Configure(
         DriveStage stage,
         double drive,
         double sourceResistance,
         double rate,
         bool antialias,
-        double slewRate = 0
+        double slewRate = 0,
+        double voice = 0,
+        double bass = 0
     ) {
         var fresh = !ReferenceEquals(stage, this.stage) || rate != this.rate;
         diodes.Root.Antialiased = antialias;
         rails.Root.Antialiased = antialias;
         var slewed = slewRate != this.slewRate;
-        if (!fresh && !slewed && drive == this.drive && sourceResistance == source) {
+        if (!fresh && !slewed && drive == this.drive && sourceResistance == source && voice == this.voice
+            && bass == this.bass) {
             return;
         }
 
@@ -214,19 +224,27 @@ public sealed class OpAmpStage {
 
         this.drive = drive;
         source = sourceResistance;
+        this.voice = voice;
+        this.bass = bass;
         var second = stage.GroundResistance2 > 0;
         var feedback = stage.Feedback + stage.FeedbackPot * DriveCircuits.AudioTaper(drive);
-        var leg = stage.GroundResistance + stage.GroundPot * DriveCircuits.AudioTaper(1 - drive);
+        var leg = stage.GroundResistance + stage.GroundPot * DriveCircuits.AudioTaper(1 - drive) + voice;
+        var (legCapacitance, secondLeg, secondCapacitance) = second
+            ? (stage.GroundCapacitance, stage.GroundResistance2, stage.GroundCapacitance2)
+            : (stage.GroundCapacitance, Absent, 1e-12);
+        if (bass > 0 && !second) {
+            (leg, legCapacitance, secondLeg, secondCapacitance) = Shunted(leg, stage.GroundCapacitance, bass);
+        }
         if (Solve == OpAmpSolve.Device) {
             Device.Source.Value = sourceResistance;
             Device.SetResistance(InputBias, stage.InputBias);
             Device.SetResistance(Feedback, feedback);
             Device.SetResistance(Leg, leg);
-            Device.SetResistance(SecondLeg, second ? stage.GroundResistance2 : Absent);
+            Device.SetResistance(SecondLeg, secondLeg);
             Device.SetResistance(Load, stage.Load);
             Device.Capacitor(0).Configure(Math.Max(stage.FeedbackCapacitance, 1e-15), rate);
-            Device.Capacitor(1).Configure(stage.GroundCapacitance, rate);
-            Device.Capacitor(2).Configure(second ? stage.GroundCapacitance2 : 1e-12, rate);
+            Device.Capacitor(1).Configure(legCapacitance, rate);
+            Device.Capacitor(2).Configure(secondCapacitance, rate);
             Device.Propagate();
         } else {
             ref var circuit = ref Solve == OpAmpSolve.FeedbackDiodes ? ref diodes : ref rails;
@@ -236,12 +254,12 @@ public sealed class OpAmpStage {
             tree.SetResistance(InputBias, stage.InputBias);
             tree.SetResistance(Feedback, feedback);
             tree.SetResistance(Leg, leg);
-            tree.SetResistance(SecondLeg, second ? stage.GroundResistance2 : Absent);
+            tree.SetResistance(SecondLeg, secondLeg);
             tree.SetGain(0, model.OpenLoopGain);
             tree.SetResistance(Output, model.OutputResistance);
             tree.Ports.C.Configure(Math.Max(stage.FeedbackCapacitance, 1e-15), rate);
-            tree.Ports.D.Configure(stage.GroundCapacitance, rate);
-            tree.Ports.E.Configure(second ? stage.GroundCapacitance2 : 1e-12, rate);
+            tree.Ports.D.Configure(legCapacitance, rate);
+            tree.Ports.E.Configure(secondCapacitance, rate);
             var pole = 2 * Math.PI * model.GainBandwidth / model.OpenLoopGain;
             tree.Ports.F.Configure(1 / (pole * PoleResistance), rate);
             circuit.Propagate();
@@ -295,6 +313,29 @@ public sealed class OpAmpStage {
     double TickDevice(double x) {
         Device.Source.Volts = x;
         return Device.Tick();
+    }
+
+    /// <summary>
+    ///     A ground leg of <paramref name="resistance" /> in series with <paramref name="capacitance" /> shunted by a Bass
+    ///     pot at <paramref name="bass" /> (0..1, more bass as it rises: the pot's resistance is the leg's times
+    ///     (1 - bass) / bass, open at 0 and a short at 1), as the two series RC legs the netlist has. The shunted leg's
+    ///     admittance is first order, so it is fixed by its DC and high-frequency conductances and its pole: an RC leg of
+    ///     R (R + Rb) / Rb and C Rb² / (R + Rb)² beside a resistor leg of R + Rb (behind a capacitor large enough to pass
+    ///     DC) has all three. The RC leg stays first, so it carries the capacitor's charge on from the leg as listed.
+    /// </summary>
+    static (double Leg, double Capacitance, double Second, double SecondCapacitance) Shunted(
+        double resistance,
+        double capacitance,
+        double bass
+    ) {
+        const double Passing = 1; // farads: a DC path
+        var pot = resistance * (1 - bass) / bass;
+        if (pot < 1e-6 * resistance) {
+            return (resistance, Passing, Absent, 1e-12); // a short across the capacitor
+        }
+
+        var total = resistance + pot;
+        return (resistance * total / pot, capacitance * pot * pot / (total * total), total, Passing);
     }
 
     public void Reset() {
