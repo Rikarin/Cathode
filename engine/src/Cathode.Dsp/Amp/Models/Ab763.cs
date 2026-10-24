@@ -26,6 +26,12 @@ static class Ab763 {
     /// <summary>The idle Normal channel's V1B plate as seen through its coupling cap: r_p ‖ 100k at its operating point.</summary>
     const double IdlePlate = 38e3;
 
+    /// <summary>
+    ///     The vibrato's Intensity pot (50k reverse audio), whose whole track loads the Vibrato channel's junction of its
+    ///     0.1 µF and 220k mixing resistor (the drawings: the pot's top on the junction, its bottom grounded).
+    /// </summary>
+    const double IntensityTrack = 50e3;
+
     /// <summary>A capacitor switched out (open at audio).</summary>
     const double Absent = 1e-15;
 
@@ -111,6 +117,7 @@ static class Ab763 {
         var coupled = net.Node();
         net.Capacitor(plate, coupled, 0.1e-6);
         net.Resistor(coupled, mix, 220e3);
+        net.Resistor(coupled, StageNetlist.Ground, IntensityTrack); // the vibrato's Intensity pot (<see cref="Vibrato" />)
 
         // The mix node drives the inverter's 1 nF input cap and 1M grid resistor (<see cref="InverterInput" />).
         net.Output = mix;
@@ -152,6 +159,7 @@ static class Ab763 {
         net.SwitchedCapacitor(net.Input, vibrato, 0.1e-6, SwitchRole.Switch1, off: Absent);
         net.SwitchedResistor(vibrato, StageNetlist.Ground, IdlePlate, 0, SwitchRole.Switch1);
         net.Resistor(vibrato, mix, 220e3);
+        net.Resistor(vibrato, StageNetlist.Ground, IntensityTrack); // the vibrato's Intensity pot (<see cref="Vibrato" />)
         net.Output = mix;
         return new("Mixer", net);
     }
@@ -191,9 +199,8 @@ static class Ab763 {
     ///     (<see cref="SwitchRole.Switch1" />).
     /// </summary>
     /// <remarks>
-    ///     The Intensity pot's track (50k from the junction to ground, whatever the cell does) is not in the mixing
-    ///     networks (<see cref="Mixer" />, <see cref="VibratoMixer" />): the vibrato's gain is relative to the dark cell
-    ///     (see <see cref="OpticalTremoloDesign" />), so with the intensity at 0 the model is what it was.
+    ///     The Intensity pot's track (50k from the junction to ground) is in the mixing networks (<see cref="Mixer" />,
+    ///     <see cref="VibratoMixer" />), on whichever channel plays: the cell's shunt acts against it.
     /// </remarks>
     public static OpticalTremoloDesign Vibrato(double supply, double driverCathode = 100e3) =>
         new(
@@ -201,7 +208,7 @@ static class Ab763 {
             supply,
             driverCathode,
             100e3,
-            new(50e3, PotTaper.ReverseAudio),
+            new(IntensityTrack, PotTaper.ReverseAudio),
             35e3,
             SwitchRole.Switch1
         );
