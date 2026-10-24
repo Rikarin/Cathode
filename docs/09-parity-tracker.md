@@ -5,9 +5,9 @@
 **Sources** (paraphrased, never quoted):
 - Fractal's *Blocks Guide* (June 2023);
 - the Axe-Fx III amp list (FW 12.05);
-- the Fractal wiki pages *Amp models*, *Presets* and *Editors* (October 2026).
+- the Fractal wiki pages *Amp models*, *Presets*, *Editors* and *Audio I/O and amplification* (October 2026).
 
-**Status date:** 24 October 2026, round 3 started (streams T, M1, M2, PA, PB, PS, ED).
+**Status date:** 24 October 2026, round 3 started (streams T, M1, M2, PA, PB, PS, ED, IO).
 
 ## How to audit
 
@@ -153,6 +153,24 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | ED19 | Pickers: colour tags / favourites, keyboard search, pin | ⬜ | | |
 | ED20 | Performance pages: global and per-preset | ⬜ | | |
 | ED21 | Footswitches: layout links, views, per-preset overrides | ⬜ | | |
+
+## IO: audio inputs and outputs (wiki *Audio I/O and amplification*)
+
+| ID | Item | Status | Evidence | Notes |
+|---|---|---|---|---|
+| IO1 | Output 2–4 blocks on the grid, each mapped to device output channels | ⬜ | | today there is one output |
+| IO2 | Copy Output 1 → Output 2 setting; an Output block on the grid overrides it | ⬜ | | |
+| IO3 | Per-output mode: Stereo / Sum L+R / Copy L→R / Dual Mono | ⬜ | | |
+| IO4 | Per-output global EQ and level trim (Boost/Pad) | ⬜ | | today one global EQ |
+| IO5 | Input calibration: full-scale volts or dBu per input, so amp gain doesn't depend on the interface gain | ⬜ | | Circuit Amp treats 0 dBFS as 1 V |
+| IO6 | Input clip warning (within 0.5 dB of full scale) and a global Input 1 Gain trim for all presets | ⬜ | | |
+| IO7 | Input impedance on the Input block: pickup resonance loaded by the chosen impedance and cable capacitance | ⬜ | | |
+| IO8 | Dry DI out: the unprocessed input on spare device channels for re-amping | ⬜ | | |
+| IO9 | Oversampling mode: linear-phase (current) or minimum-phase for Amp and Drive; a Drive per-block setting | ⬜ | | |
+| IO10 | Latency report in Setup: converters, buffer and per-block latency | ⬜ | | |
+| IO11 | Output clip warning at −1 dBFS | ⬜ | | |
+| IO12 | Editor hint when stereo effects sit before a mono-summing block | ⬜ | | |
+| IO13 | Cab resonance helper: guided sine sweep that writes the amp's LF Resonance | ⬜ | | |
 
 ## Known open items from earlier rounds
 
