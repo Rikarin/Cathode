@@ -66,7 +66,8 @@ public sealed partial record AmpDesign {
         Models.HiwattDR103.Design,
         Models.JCM900.Design,
         Models.JCM900.Head100,
-        Models.Valvestate8080.Design
+        Models.Valvestate8080.Design,
+        Models.JVM410H.Design
     ];
 
     public static AmpDesign Blackface => Models.Blackface.Design;
