@@ -392,13 +392,18 @@ public sealed class CircuitAmpBlock : DspBlock {
                 Params.Advance(Eq1 + 4, frames)
             )
         );
+        var feedback = Knob(Params.Advance(Feedback, frames));
+        if (design.Power.FeedbackOffSwitch is { } off && preamp.IsOn(off)) {
+            feedback = 0;
+        }
+
         var power = new PowerControls(
             Knob(Params.Advance(Presence, frames)),
             Knob(Params.Advance(Depth, frames)),
             Knob(Params.Advance(Cut, frames)),
             Knob(Params.Advance(Sag, frames)),
             Params.Advance(Bias, frames) / 100.0,
-            Knob(Params.Advance(Feedback, frames)),
+            feedback,
             preamp.Master
         );
 
