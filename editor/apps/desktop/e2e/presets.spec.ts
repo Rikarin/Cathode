@@ -9,7 +9,8 @@ test('a saved preset reloads with its blocks, channels and values', async ({ win
   await editor.addBlock(0, 3, 'Delay');
   await editor.setKnob('Time', '420 ms');
 
-  await window.getByRole('button', { name: 'Save as…' }).click();
+  await window.getByTestId('preset-menu').click();
+  await window.getByRole('menuitem', { name: /Save as…/ }).click();
   await window.getByTestId('save-as-name').fill('Round Trip');
   await window.getByTestId('save-as-confirm').click();
   await expect(window.getByTestId('preset-name')).toHaveText('Round Trip');

@@ -14,7 +14,7 @@ import { LiveStore } from '../state/live.store';
   selector: 'cth-engine-meters',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CthMeter, XuiStatusImports, XuiTooltipImports],
-  host: { class: 'flex h-8 items-center gap-3' },
+  host: { class: 'flex h-8 items-center gap-2' },
   template: `
     <div class="flex flex-col justify-center gap-1">
       @for (meter of meters; track meter.label) {
@@ -22,12 +22,12 @@ import { LiveStore } from '../state/live.store';
           <span class="text-foreground-muted w-6 text-[10px] font-semibold tracking-wide" aria-hidden="true">
             {{ meter.caption }}
           </span>
-          <cth-meter class="w-28" orientation="horizontal" [label]="meter.label" [sources]="meter.sources" />
+          <cth-meter class="w-24" orientation="horizontal" [label]="meter.label" [sources]="meter.sources" />
         </div>
       }
     </div>
     <span
-      class="text-foreground-muted w-20 text-xs whitespace-nowrap tabular-nums"
+      class="text-foreground-muted w-16 text-xs whitespace-nowrap tabular-nums"
       [xuiTooltip]="'Engine CPU, 99.9th percentile of callbacks'"
     >
       CPU {{ cpu() }} %

@@ -53,6 +53,7 @@ test('a snapshot keeps unsaved edits and loads back', async ({ window, editor })
 });
 
 test('preferences are kept and Block Info shows abbreviations', async ({ window, editor }) => {
+  await window.getByTestId('more-menu').click();
   await window.getByTestId('preferences-button').click();
   await editor.segment('Mouse wheel', 'Off').click();
   await window.keyboard.press('Escape');

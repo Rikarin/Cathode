@@ -6,6 +6,7 @@ import {
   matGraphicEqRound,
   matHistoryRound,
   matKeyboardRound,
+  matMoreHorizRound,
   matRedoRound,
   matSaveRound,
   matSettingsRound,
@@ -80,6 +81,7 @@ import { UiStore } from './state/ui.store';
       matGraphicEqRound,
       matHistoryRound,
       matKeyboardRound,
+      matMoreHorizRound,
       matRedoRound,
       matSaveRound,
       matSettingsRound,
@@ -110,7 +112,7 @@ import { UiStore } from './state/ui.store';
       }
       @default {
         <nav xuiNavbar class="gap-3" [class.window-drag]="macWindow" [class.ps-21]="trafficLights()">
-          <div xuiNavbarGroup class="gap-1">
+          <div xuiNavbarGroup class="no-scrollbar min-w-0 gap-1 overflow-x-auto">
             @if (!macWindow) {
               <span xuiNavbarHeading>Cathode</span>
               <div xuiNavbarDivider></div>
@@ -137,7 +139,71 @@ import { UiStore } from './state/ui.store';
             <a xuiButton variant="ghost" size="sm" routerLink="/irs" routerLinkActive="bg-active-overlay">IRs</a>
             <a xuiButton variant="ghost" size="sm" routerLink="/global" routerLinkActive="bg-active-overlay">Global</a>
             <a xuiButton variant="ghost" size="sm" routerLink="/setup" routerLinkActive="bg-active-overlay">Setup</a>
-            <div xuiNavbarDivider></div>
+          </div>
+          <div xuiNavbarGroup align="end" class="shrink-0 gap-2">
+            <cth-transport />
+            <button
+              xuiButton
+              variant="ghost"
+              size="sm"
+              aria-label="Tuner"
+              [xuiTooltip]="'Tuner (⌘T)'"
+              (click)="ui.tunerOpen.set(true)"
+            >
+              <ng-icon xui name="matTuneRound" size="sm" />
+            </button>
+            <button
+              xuiButton
+              variant="ghost"
+              size="sm"
+              aria-label="Analyser"
+              [xuiTooltip]="'Scope and RTA'"
+              (click)="scopeOpen.set(true)"
+            >
+              <ng-icon xui name="matShowChartRound" size="sm" />
+            </button>
+            <button
+              xuiButton
+              variant="ghost"
+              size="sm"
+              aria-label="Preset Leveling"
+              data-testid="leveling"
+              [xuiTooltip]="'Preset Leveling (loudness)'"
+              (click)="levelingOpen.set(true)"
+            >
+              <ng-icon xui name="matGraphicEqRound" size="sm" />
+            </button>
+            <cth-engine-meters />
+            <button
+              xuiButton
+              variant="ghost"
+              size="sm"
+              aria-label="More"
+              data-testid="more-menu"
+              [xuiTooltip]="'More'"
+              [xuiMenuTriggerFor]="moreMenu"
+            >
+              <ng-icon xui name="matMoreHorizRound" size="sm" />
+            </button>
+            <ng-template #moreMenu>
+              <xui-menu>
+                <button xuiMenuItem icon="matKeyboardRound" (click)="shortcuts.helpOpen.set(true)">
+                  Keyboard shortcuts<span menuItemLabel>?</span>
+                </button>
+                <button
+                  xuiMenuItem
+                  icon="matSettingsRound"
+                  data-testid="preferences-button"
+                  (click)="ui.preferencesOpen.set(true)"
+                >
+                  Preferences
+                </button>
+              </xui-menu>
+            </ng-template>
+          </div>
+        </nav>
+        <div class="bg-surface border-border flex items-center gap-6 border-b px-4 py-1.5">
+          <div class="flex min-w-0 items-center gap-1" aria-label="Preset">
             <button
               type="button"
               class="hover:bg-active-overlay max-w-56 truncate rounded px-1 text-sm font-medium"
@@ -191,8 +257,7 @@ import { UiStore } from './state/ui.store';
             >
               <ng-icon xui name="matSaveRound" size="sm" />
             </button>
-            <button xuiButton variant="ghost" size="sm" (click)="openSaveAs()">Save as…</button>
-            <cth-preset-menu />
+            <cth-preset-menu (saveAs)="openSaveAs()" />
             <button
               xuiButton
               variant="ghost"
@@ -216,64 +281,6 @@ import { UiStore } from './state/ui.store';
               <ng-icon xui name="matRedoRound" size="sm" />
             </button>
           </div>
-          <div xuiNavbarGroup align="end" class="gap-3">
-            <cth-transport />
-            <button
-              xuiButton
-              variant="ghost"
-              size="sm"
-              aria-label="Tuner"
-              [xuiTooltip]="'Tuner (⌘T)'"
-              (click)="ui.tunerOpen.set(true)"
-            >
-              <ng-icon xui name="matTuneRound" size="sm" />
-            </button>
-            <button
-              xuiButton
-              variant="ghost"
-              size="sm"
-              aria-label="Analyser"
-              [xuiTooltip]="'Scope and RTA'"
-              (click)="scopeOpen.set(true)"
-            >
-              <ng-icon xui name="matShowChartRound" size="sm" />
-            </button>
-            <button
-              xuiButton
-              variant="ghost"
-              size="sm"
-              aria-label="Preset Leveling"
-              data-testid="leveling"
-              [xuiTooltip]="'Preset Leveling (loudness)'"
-              (click)="levelingOpen.set(true)"
-            >
-              <ng-icon xui name="matGraphicEqRound" size="sm" />
-            </button>
-            <cth-engine-meters />
-            <button
-              xuiButton
-              variant="ghost"
-              size="sm"
-              aria-label="Keyboard shortcuts"
-              [xuiTooltip]="'Keyboard shortcuts (?)'"
-              (click)="shortcuts.helpOpen.set(true)"
-            >
-              <ng-icon xui name="matKeyboardRound" size="sm" />
-            </button>
-            <button
-              xuiButton
-              variant="ghost"
-              size="sm"
-              aria-label="Preferences"
-              data-testid="preferences-button"
-              [xuiTooltip]="'Preferences'"
-              (click)="ui.preferencesOpen.set(true)"
-            >
-              <ng-icon xui name="matSettingsRound" size="sm" />
-            </button>
-          </div>
-        </nav>
-        <div class="bg-surface border-border flex items-center gap-6 border-b px-4 py-1.5">
           <div class="flex items-center gap-2">
             <span class="text-foreground-muted text-xs font-medium" aria-hidden="true">Compare</span>
             <xui-segmented-control

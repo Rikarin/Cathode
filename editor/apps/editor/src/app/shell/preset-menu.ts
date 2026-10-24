@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { type PresetSummary, type SnapshotSummary, unwrap } from '@cathode/api-client';
 import { provideIcons } from '@ng-icons/core';
@@ -10,6 +10,7 @@ import {
   matExpandMoreRound,
   matHistoryRound,
   matRestoreRound,
+  matSaveAsRound,
   matViewQuiltRound
 } from '@ng-icons/material-icons/round';
 import { XuiAlertDialogImports } from '@xui/alert-dialog';
@@ -53,6 +54,7 @@ import { PresetSwitcher, needsConfirm } from '../state/preset-switcher';
       matExpandMoreRound,
       matHistoryRound,
       matRestoreRound,
+      matSaveAsRound,
       matViewQuiltRound
     })
   ],
@@ -63,6 +65,10 @@ import { PresetSwitcher, needsConfirm } from '../state/preset-switcher';
     </button>
     <ng-template #menu>
       <xui-menu>
+        <button xuiMenuItem icon="matSaveAsRound" (click)="saveAs.emit()">
+          Save as…<span menuItemLabel>⇧⌘S</span>
+        </button>
+        <xui-menu-divider />
         <button xuiMenuItem icon="matViewQuiltRound" (click)="openTemplates()">New from template…</button>
         <button xuiMenuItem icon="matAddRound" (click)="openSaveTemplate()">Save as template…</button>
         <xui-menu-divider />
@@ -91,80 +97,84 @@ import { PresetSwitcher, needsConfirm } from '../state/preset-switcher';
       (confirmed)="live.clear()"
     />
 
-    <xui-dialog
-      title="Snapshots"
-      icon="matHistoryRound"
-      class="w-[min(36rem,calc(100vw-2rem))] max-w-none"
-      [(open)]="snapshotsOpen"
-    >
-      <xui-dialog-body>
-        @if (snapshots().length === 0) {
-          <p class="text-foreground-muted py-6 text-center text-sm">No snapshots of this preset yet.</p>
-        } @else {
-          <xui-table>
-            @for (s of snapshots(); track s.id) {
-              <xui-tr>
-                <xui-td class="w-full">{{ s.name }}</xui-td>
-                <xui-td>
-                  <button xuiButton size="sm" variant="outline" (click)="loadSnapshot(s)">Load</button>
-                </xui-td>
-                <xui-td>
-                  <button
-                    xuiButton
-                    size="sm"
-                    variant="ghost"
-                    color="error"
-                    [attr.aria-label]="'Delete snapshot ' + s.name"
-                    (click)="deleteSnapshot(s)"
-                  >
-                    <ng-icon xui name="matDeleteRound" size="sm" />
-                  </button>
-                </xui-td>
-              </xui-tr>
-            }
-          </xui-table>
-        }
-      </xui-dialog-body>
-      <xui-dialog-footer>
-        <button xuiButton variant="outline" type="button" (click)="snapshot()">Take a snapshot</button>
-      </xui-dialog-footer>
-    </xui-dialog>
+    @if (snapshotsOpen()) {
+      <xui-dialog
+        title="Snapshots"
+        icon="matHistoryRound"
+        class="w-[min(36rem,calc(100vw-2rem))] max-w-none"
+        [(open)]="snapshotsOpen"
+      >
+        <xui-dialog-body>
+          @if (snapshots().length === 0) {
+            <p class="text-foreground-muted py-6 text-center text-sm">No snapshots of this preset yet.</p>
+          } @else {
+            <xui-table>
+              @for (s of snapshots(); track s.id) {
+                <xui-tr>
+                  <xui-td class="w-full">{{ s.name }}</xui-td>
+                  <xui-td>
+                    <button xuiButton size="sm" variant="outline" (click)="loadSnapshot(s)">Load</button>
+                  </xui-td>
+                  <xui-td>
+                    <button
+                      xuiButton
+                      size="sm"
+                      variant="ghost"
+                      color="error"
+                      [attr.aria-label]="'Delete snapshot ' + s.name"
+                      (click)="deleteSnapshot(s)"
+                    >
+                      <ng-icon xui name="matDeleteRound" size="sm" />
+                    </button>
+                  </xui-td>
+                </xui-tr>
+              }
+            </xui-table>
+          }
+        </xui-dialog-body>
+        <xui-dialog-footer>
+          <button xuiButton variant="outline" type="button" (click)="snapshot()">Take a snapshot</button>
+        </xui-dialog-footer>
+      </xui-dialog>
+    }
 
-    <xui-dialog
-      title="New from template"
-      icon="matViewQuiltRound"
-      class="w-[min(32rem,calc(100vw-2rem))] max-w-none"
-      [(open)]="templatesOpen"
-    >
-      <xui-dialog-body>
-        @if (templates().length === 0) {
-          <p class="text-foreground-muted py-6 text-center text-sm">
-            No templates yet: build a starting point and choose Save as template.
-          </p>
-        } @else {
-          <xui-table>
-            @for (t of templates(); track t.id) {
-              <xui-tr>
-                <xui-td class="w-full">{{ t.name }}</xui-td>
-                <xui-td><button xuiButton size="sm" (click)="fromTemplate(t)">New</button></xui-td>
-                <xui-td>
-                  <button
-                    xuiButton
-                    size="sm"
-                    variant="ghost"
-                    color="error"
-                    [attr.aria-label]="'Delete template ' + t.name"
-                    (click)="deleteTemplate(t)"
-                  >
-                    <ng-icon xui name="matDeleteRound" size="sm" />
-                  </button>
-                </xui-td>
-              </xui-tr>
-            }
-          </xui-table>
-        }
-      </xui-dialog-body>
-    </xui-dialog>
+    @if (templatesOpen()) {
+      <xui-dialog
+        title="New from template"
+        icon="matViewQuiltRound"
+        class="w-[min(32rem,calc(100vw-2rem))] max-w-none"
+        [(open)]="templatesOpen"
+      >
+        <xui-dialog-body>
+          @if (templates().length === 0) {
+            <p class="text-foreground-muted py-6 text-center text-sm">
+              No templates yet: build a starting point and choose Save as template.
+            </p>
+          } @else {
+            <xui-table>
+              @for (t of templates(); track t.id) {
+                <xui-tr>
+                  <xui-td class="w-full">{{ t.name }}</xui-td>
+                  <xui-td><button xuiButton size="sm" (click)="fromTemplate(t)">New</button></xui-td>
+                  <xui-td>
+                    <button
+                      xuiButton
+                      size="sm"
+                      variant="ghost"
+                      color="error"
+                      [attr.aria-label]="'Delete template ' + t.name"
+                      (click)="deleteTemplate(t)"
+                    >
+                      <ng-icon xui name="matDeleteRound" size="sm" />
+                    </button>
+                  </xui-td>
+                </xui-tr>
+              }
+            </xui-table>
+          }
+        </xui-dialog-body>
+      </xui-dialog>
+    }
 
     <xui-dialog title="Save as template" icon="matAddRound" [(open)]="saveTemplateOpen">
       <xui-dialog-body>
@@ -185,6 +195,9 @@ import { PresetSwitcher, needsConfirm } from '../state/preset-switcher';
   `
 })
 export class PresetMenu {
+  /** Save as… lives in this menu; the shell owns its dialog. */
+  readonly saveAs = output<void>();
+
   protected readonly live = inject(LiveStore);
   protected readonly router = inject(Router);
   private readonly compare = inject(CompareStore);

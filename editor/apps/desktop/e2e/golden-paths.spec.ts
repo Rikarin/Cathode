@@ -23,7 +23,8 @@ test('a guitarist builds a preset from scratch and saves it', async ({ window })
   await expect(drive).not.toHaveAccessibleName(/bypassed/);
 
   // Save it under a name and find it in the library.
-  await window.getByRole('button', { name: 'Save as…' }).click();
+  await window.getByTestId('preset-menu').click();
+  await window.getByRole('menuitem', { name: /Save as…/ }).click();
   await window.getByTestId('save-as-name').fill('First Rig');
   await window.getByTestId('save-as-confirm').click();
   await expect(window.getByTestId('preset-name')).toHaveText('First Rig');

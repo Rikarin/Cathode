@@ -45,3 +45,12 @@ textarea,
 .cth-no-tooltips xui-tooltip-panel {
   display: none !important;
 }
+
+/* The top bar's page links scroll sideways rather than push the meters and tools off the end; no scrollbar. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
