@@ -1,5 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { BuiltInTypes, BypassModes, type ChannelName, ChannelNames, type ParameterInfo } from '@cathode/api-client';
+import {
+  BuiltInTypes,
+  BypassModes,
+  type ChannelName,
+  ChannelNames,
+  OutputTypes,
+  type ParameterInfo
+} from '@cathode/api-client';
 import { CthBlockTile, blockAccent } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import {
@@ -32,6 +39,7 @@ import { LiveStore } from '../state/live.store';
 import { AmpPanel } from './panels/amp-panel';
 import { isCabSlotParam } from './panels/cab';
 import { CabPanel } from './panels/cab-panel';
+import { CabResonanceHelper } from './panels/cab-resonance-helper';
 import { isCustomTableParam } from './panels/custom-shifter';
 import { IrPlayerPanel } from './panels/ir-player-panel';
 import { PeqPanel } from './panels/peq-panel';
@@ -53,6 +61,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AmpPanel,
+    CabResonanceHelper,
     CthBlockTile,
     CabPanel,
     IrPlayerPanel,
@@ -296,6 +305,9 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             @case ('pitch') {
               <cth-pitch-panel [block]="block" />
             }
+            @case ('circuitamp') {
+              <cth-cab-resonance-helper [block]="block" />
+            }
           }
 
           @if (mainParams().length > 0 || outputParams().length > 0) {
@@ -402,7 +414,7 @@ export class BlockEditor {
   });
   /** The grid's Input and Output: they have parameters and channels, but no bypass and no global link. */
   protected readonly isIo = computed(
-    () => this.block()?.type === BuiltInTypes.input || this.block()?.type === BuiltInTypes.output
+    () => this.block()?.type === BuiltInTypes.input || OutputTypes.includes(this.block()?.type ?? '')
   );
   constructor() {
     void this.blockPresets.refresh();

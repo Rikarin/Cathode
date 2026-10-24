@@ -276,7 +276,9 @@ export class Sidecars {
     const audio = this.audio.device ? ['--device', this.audio.device] : ['--null-audio'];
     const loop = [
       ...(this.audio.loopIn.length ? ['--loop-in', this.audio.loopIn.join(',')] : []),
-      ...(this.audio.loopOut.length ? ['--loop-out', this.audio.loopOut.join(',')] : [])
+      ...(this.audio.loopOut.length ? ['--loop-out', this.audio.loopOut.join(',')] : []),
+      ...(this.audio.outputs?.length ? ['--outputs', this.audio.outputs.join(',')] : []),
+      ...(this.audio.diOut?.length ? ['--di-out', this.audio.diOut.join(',')] : [])
     ];
     return {
       command: host.command,

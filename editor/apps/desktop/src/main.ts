@@ -169,7 +169,19 @@ function validAudio(audio: AudioSettings): AudioSettings {
   const bufferFrames = [32, 64, 128, 256, 512].includes(audio?.bufferFrames) ? audio.bufferFrames : 64;
   const channels = (list: unknown) =>
     Array.isArray(list) ? list.filter(c => Number.isInteger(c) && c >= 1 && c <= 64).slice(0, 2) : [];
-  return { device, sampleRate, bufferFrames, loopIn: channels(audio?.loopIn), loopOut: channels(audio?.loopOut) };
+  // Outputs 1-4: the first channel of each pair, 0 for unmapped.
+  const outputs = Array.isArray(audio?.outputs)
+    ? audio.outputs.map(c => (Number.isInteger(c) && c >= 0 && c <= 63 ? c : 0)).slice(0, 4)
+    : [1];
+  return {
+    device,
+    sampleRate,
+    bufferFrames,
+    loopIn: channels(audio?.loopIn),
+    loopOut: channels(audio?.loopOut),
+    outputs,
+    diOut: channels(audio?.diOut)
+  };
 }
 
 function validCapture(options: IrCaptureOptions): IrCaptureOptions {
