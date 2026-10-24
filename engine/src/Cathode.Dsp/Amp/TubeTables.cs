@@ -103,7 +103,8 @@ public sealed class TriodeTables {
         );
         lowestGrid = -20 / model.GridSharpness; // where Tube.GridCurrent switches off
         grid = new(
-            v => (Tube.GridCurrent(v, model.GridConductance, model.GridSharpness, model.GridExponent, out var slope), slope),
+            v => (Tube.GridCurrent(v, model.GridConductance, model.GridSharpness, model.GridExponent, out var slope),
+                slope),
             lowestGrid,
             HighestGrid,
             8_193

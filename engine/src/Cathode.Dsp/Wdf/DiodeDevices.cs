@@ -37,7 +37,12 @@ public struct Diode : INonlinearDevice {
     public readonly double Conductance(int port) => 1e-3;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void Evaluate(ReadOnlySpan<double> voltages, Span<double> currents, Span<double> jacobian, int stride) {
+    public readonly void Evaluate(
+        ReadOnlySpan<double> voltages,
+        Span<double> currents,
+        Span<double> jacobian,
+        int stride
+    ) {
         var v = voltages[0];
         if (seriesResistance > 0) {
             var i = vt / seriesResistance * WrightOmega.Fast(omegaBase + v / vt) - saturationCurrent;
@@ -92,7 +97,12 @@ public struct DiodeClipper : INonlinearDevice {
     public readonly double Conductance(int port) => 1e-3;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void Evaluate(ReadOnlySpan<double> voltages, Span<double> currents, Span<double> jacobian, int stride) {
+    public readonly void Evaluate(
+        ReadOnlySpan<double> voltages,
+        Span<double> currents,
+        Span<double> jacobian,
+        int stride
+    ) {
         var v = voltages[0];
         var forward = DeviceMath.LimitedExp(v / forwardVt, out var forwardSlope);
         var reverse = DeviceMath.LimitedExp(-v / reverseVt, out var reverseSlope);

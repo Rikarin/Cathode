@@ -12,11 +12,8 @@ namespace Cathode.Dsp.Tests;
 ///     but for a gain of 10⁵, so the comparison stays below clipping).
 /// </summary>
 public partial class AmpStageTests {
-    public static TheoryData<string, double, double> BassChains => new() {
-        { "SVT", 0.001, -30 },
-        { "Portaflex B-15N", 0.01, -30 },
-        { "JC-120", 0.02, -40 }
-    };
+    public static TheoryData<string, double, double> BassChains =>
+        new() { { "SVT", 0.001, -30 }, { "Portaflex B-15N", 0.01, -30 }, { "JC-120", 0.02, -40 } };
 
     [Theory]
     [MemberData(nameof(BassChains))]
@@ -71,12 +68,14 @@ public partial class AmpStageTests {
         var b15 = (FloatingParaphase)PhaseInverter.For(
             AmpDesign.All.Single(static a => a.Name == "Portaflex B-15N").Power.PhaseInverter
         );
-        foreach (var (name, inverter, vd) in new (string, PhaseInverter, double)[] { ("SVT", svt, 0.05), ("B-15N", b15, 0.2) }) {
+        foreach (var (name, inverter, vd) in new (string, PhaseInverter, double)[] {
+                     ("SVT", svt, 0.05), ("B-15N", b15, 0.2)
+                 }) {
             var (a, b) = inverter.Evaluate(vd, out _, out _);
             var (a2, _) = inverter.Evaluate(-vd, out _, out _);
             output.WriteLine(
-                $"{name}: +{vd} V -> {a:0.00} / {b:0.00} V, -{vd} V -> {a2:0.00} V, rest outputs " +
-                $"{inverter.RestPlateA:0.0} / {inverter.RestPlateB:0.0} V"
+                $"{name}: +{vd} V -> {a:0.00} / {b:0.00} V, -{vd} V -> {a2:0.00} V, rest outputs "
+                + $"{inverter.RestPlateA:0.0} / {inverter.RestPlateB:0.0} V"
             );
             Assert.True(a < 0 && b > 0, $"{name}: the outputs are in antiphase");
             Assert.InRange(-b / a, 0.9, 1.1);
@@ -131,10 +130,16 @@ public class BassAmpTests(ITestOutputHelper output) {
 
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {
-        Assert.Equal(["Ultra Hi", "Ultra Lo", "Bass Cut"], new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "SVT")));
+        Assert.Equal(
+            ["Ultra Hi", "Ultra Lo", "Bass Cut"],
+            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "SVT"))
+        );
         Assert.Equal("Mid Freq", Label("control1", "SVT"));
         Assert.Equal("Bright Input", Label("bright", "SVT"));
-        Assert.Equal(["Ultra Hi", "Ultra Lo"], new[] { "switch1", "switch2" }.Select(id => Label(id, "Portaflex B-15N")));
+        Assert.Equal(
+            ["Ultra Hi", "Ultra Lo"],
+            new[] { "switch1", "switch2" }.Select(id => Label(id, "Portaflex B-15N"))
+        );
         Assert.Equal("Hi Treble", Label("control1", "JC-120"));
         foreach (var type in Models) {
             Assert.Equal("Volume", Label("gain", type));
@@ -159,7 +164,10 @@ public class BassAmpTests(ITestOutputHelper output) {
     [MemberData(nameof(Types))]
     public void Knob_sweeps_at_full_drive_stay_finite_and_converge(string type) {
         using var block = Create(type, (CircuitAmpBlock.Gain, 10f));
-        int[] knobs = [CircuitAmpBlock.Gain, CircuitAmpBlock.Bass, CircuitAmpBlock.Middle, CircuitAmpBlock.Treble, CircuitAmpBlock.Control1];
+        int[] knobs = [
+            CircuitAmpBlock.Gain, CircuitAmpBlock.Bass, CircuitAmpBlock.Middle, CircuitAmpBlock.Treble,
+            CircuitAmpBlock.Control1
+        ];
         var chord = Signals.Sine(41.2, Rate, 9_600, 0.5f)
             .Zip(Signals.Sine(61.7, Rate, 9_600, 0.5f), static (a, b) => a + b)
             .ToArray();
@@ -173,7 +181,8 @@ public class BassAmpTests(ITestOutputHelper output) {
             }
         }
 
-        int[] toggles = [CircuitAmpBlock.Switch1, CircuitAmpBlock.Switch2, CircuitAmpBlock.Switch3, CircuitAmpBlock.Bright];
+        int[] toggles =
+            [CircuitAmpBlock.Switch1, CircuitAmpBlock.Switch2, CircuitAmpBlock.Switch3, CircuitAmpBlock.Bright];
         foreach (var toggle in toggles) {
             block.Params.SetTarget(toggle, 1f);
             var rendered = BlockRender.Mono(block, chord, 64);
@@ -184,11 +193,16 @@ public class BassAmpTests(ITestOutputHelper output) {
         var channel = block.Channel;
         foreach (var newton in channel.Stages.Where(static s => s.Newton is not null).Select(static s => s.Newton!)) {
             Assert.Equal(0, newton.NonFinite);
-            Assert.True(newton.Unconverged <= newton.Samples / 10_000, $"{type}: {newton.Unconverged} of {newton.Samples}");
+            Assert.True(
+                newton.Unconverged <= newton.Samples / 10_000,
+                $"{type}: {newton.Unconverged} of {newton.Samples}"
+            );
         }
 
         if (channel.SolidState is { } solid) {
-            output.WriteLine($"{type}: power amp {solid.MeanIterations:0.00} iterations per sample (most {solid.MostIterations})");
+            output.WriteLine(
+                $"{type}: power amp {solid.MeanIterations:0.00} iterations per sample (most {solid.MostIterations})"
+            );
             Assert.Equal(0, solid.NonFinite);
             Assert.True(solid.Unconverged <= solid.Samples / 10_000, $"{type}: {solid.Unconverged} of {solid.Samples}");
         } else {
@@ -204,7 +218,9 @@ public class BassAmpTests(ITestOutputHelper output) {
     [Theory]
     [MemberData(nameof(Types))]
     public void Volume_raises_the_level_monotonically(string type) {
-        var levels = new[] { 0.5f, 2.5f, 5f, 7.5f, 10f }.Select(v => Level(type, 1_000, 1e-4f, (CircuitAmpBlock.Gain, v))).ToArray();
+        var levels = new[] { 0.5f, 2.5f, 5f, 7.5f, 10f }
+            .Select(v => Level(type, 1_000, 1e-4f, (CircuitAmpBlock.Gain, v)))
+            .ToArray();
         output.WriteLine($"{type} volume: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB");
         for (var i = 1; i < levels.Length; i++) {
             Assert.True(levels[i] > levels[i - 1] - 0.1, $"{type}: not monotonic at step {i}");
@@ -266,7 +282,9 @@ public class BassAmpTests(ITestOutputHelper output) {
         double At(double frequency, params (int Index, float Value)[] settings) =>
             Level("Portaflex B-15N", frequency, 1e-3f, [(CircuitAmpBlock.Gain, 3f), ..settings]);
 
-        var low = At(60, (CircuitAmpBlock.Switch2, 1f)) - At(60) - (At(1_000, (CircuitAmpBlock.Switch2, 1f)) - At(1_000));
+        var low = At(60, (CircuitAmpBlock.Switch2, 1f))
+            - At(60)
+            - (At(1_000, (CircuitAmpBlock.Switch2, 1f)) - At(1_000));
         var high = At(8_000, (CircuitAmpBlock.Switch1, 1f)) - At(8_000);
         output.WriteLine($"Ultra Lo: lows {low:0.0} dB over 1 kHz; Ultra Hi {high:0.0} dB at 8 kHz");
         Assert.InRange(low, 3, 15);
@@ -299,8 +317,8 @@ public class BassAmpTests(ITestOutputHelper output) {
 
         var rms = squares.Select(static s => Math.Sqrt(s / (Samples / 2))).ToArray();
         output.WriteLine(
-            $"IC2b {rms[0] * 1e3:0} mV, IC2a {rms[1] * 1e3:0} mV, stack {rms[2] * 1e3:0.0} mV, IC3a {rms[3] * 1e3:0} mV, " +
-            $"IC3b {rms[5] * 1e3:0} mV, IC1a {rms[6] * 1e3:0} mV, speaker {rms[7]:0.00} V"
+            $"IC2b {rms[0] * 1e3:0} mV, IC2a {rms[1] * 1e3:0} mV, stack {rms[2] * 1e3:0.0} mV, IC3a {rms[3] * 1e3:0} mV, "
+            + $"IC3b {rms[5] * 1e3:0} mV, IC1a {rms[6] * 1e3:0} mV, speaker {rms[7]:0.00} V"
         );
         Assert.InRange(Db(rms[0] / 0.072), -1, 1);
         Assert.InRange(Db(rms[1] / 0.130), -1, 1);

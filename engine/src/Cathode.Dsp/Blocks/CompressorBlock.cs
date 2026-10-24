@@ -144,8 +144,14 @@ public sealed class CompressorBlock() : DspBlock(Info), ISidechainBlock {
             ParamDescriptor.Float("scGain", "Sidechain Gain", -24f, 24f, 0f, "dB"),
             ParamDescriptor.Choice("inputLevel", "Input Level", ["Instrument", "Line"]),
             SidechainSource.Param(),
-            ParamDescriptor.Choice("lookAhead", "Look Ahead", ["Off", "0.5 ms", "1 ms", "2 ms", "3 ms", "5 ms", "10 ms"])
-                with { Recompile = true }
+            ParamDescriptor.Choice(
+                "lookAhead",
+                "Look Ahead",
+                ["Off", "0.5 ms", "1 ms", "2 ms", "3 ms", "5 ms", "10 ms"]
+            )
+                with {
+                Recompile = true
+            }
         ],
         maxInstances: 4
     );
@@ -178,7 +184,10 @@ public sealed class CompressorBlock() : DspBlock(Info), ISidechainBlock {
         return threshold + over / ratio;
     }
 
-    /// <summary>The Dynamics type's ratio for <paramref name="dynamics" /> (-100..100 %): the slope over the threshold is 1 - it.</summary>
+    /// <summary>
+    ///     The Dynamics type's ratio for <paramref name="dynamics" /> (-100..100 %): the slope over the threshold is 1 -
+    ///     it.
+    /// </summary>
     public static float DynamicsRatio(float dynamics) {
         var slope = 1f - dynamics / 100f;
         return slope <= 1f / InfiniteRatio ? InfiniteRatio : 1f / slope;

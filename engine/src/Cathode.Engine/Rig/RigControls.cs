@@ -1,4 +1,3 @@
-using Cathode.Dsp;
 using Cathode.Dsp.Modulation;
 using Cathode.Dsp.Parameters;
 
@@ -48,7 +47,15 @@ public static class RigControls {
             ParamDescriptor.Float("envAttack", "Envelope Attack", 0.1f, 500f, 5f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("envRelease", "Envelope Release", 1f, 5_000f, 150f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("envGain", "Envelope Sensitivity", 0f, 40f, 12f, "dB"),
-            new("seqStages", "Sequencer Stages", ParamKind.Float, 2f, SequencerStages, 8f, Smoothing: ParamSmoothing.Step),
+            new(
+                "seqStages",
+                "Sequencer Stages",
+                ParamKind.Float,
+                2f,
+                SequencerStages,
+                8f,
+                Smoothing: ParamSmoothing.Step
+            ),
             ParamDescriptor.Float("seqRate", "Sequencer Rate", 0.1f, 20f, 2f, "Hz", ParamTaper.Log),
             ParamDescriptor.Choice("seqTempo", "Sequencer Tempo", Divisions),
             ..Enumerable.Range(1, SequencerStages)

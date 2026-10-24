@@ -133,7 +133,8 @@ public sealed class HalfBandStage {
     }
 
     /// <summary>The even- and odd-indexed coefficients, which run the two allpass branches.</summary>
-    public static (float[] Even, float[] Odd) Split(double[] coefficients) => (
+    public static (float[] Even, float[] Odd) Split(double[] coefficients) =>
+    (
         coefficients.Where((_, i) => i % 2 == 0).Select(static c => (float)c).ToArray(),
         coefficients.Where((_, i) => i % 2 == 1).Select(static c => (float)c).ToArray()
     );

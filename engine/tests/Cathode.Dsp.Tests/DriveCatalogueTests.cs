@@ -11,7 +11,8 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
     public static TheoryData<int> CircuitTypes =>
         [..Enumerable.Range(DriveBlock.CircuitTypes, DriveCircuits.All.Count)];
 
-    public static TheoryData<int> AllTypes => [..Enumerable.Range(0, DriveBlock.CircuitTypes + DriveCircuits.All.Count)];
+    public static TheoryData<int> AllTypes =>
+        [..Enumerable.Range(0, DriveBlock.CircuitTypes + DriveCircuits.All.Count)];
 
     [Fact]
     public void Original_types_keep_their_indices_and_the_catalogue_follows() {
@@ -112,11 +113,17 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
         var extreme = Measure(FundamentalBin, 0.5f, true);
         var (musicalFloor, extremeFloor) = AliasingFloors(circuit);
         output.WriteLine(
-            $"{Name(type)}: signal-to-aliasing {musical:0.0} dB at 770 Hz / 0.1 V; at 2.5 kHz / 0.5 V {exact:0.0} dB exact " +
-            $"solve, {extreme:0.0} dB antialiased (floors {musicalFloor} / {extremeFloor} dB)"
+            $"{Name(type)}: signal-to-aliasing {musical:0.0} dB at 770 Hz / 0.1 V; at 2.5 kHz / 0.5 V {exact:0.0} dB exact "
+            + $"solve, {extreme:0.0} dB antialiased (floors {musicalFloor} / {extremeFloor} dB)"
         );
-        Assert.True(musical >= musicalFloor, $"signal-to-aliasing {musical:0.0} dB at 770 Hz (floor {musicalFloor} dB)");
-        Assert.True(extreme >= extremeFloor, $"signal-to-aliasing {extreme:0.0} dB at 2.5 kHz (floor {extremeFloor} dB)");
+        Assert.True(
+            musical >= musicalFloor,
+            $"signal-to-aliasing {musical:0.0} dB at 770 Hz (floor {musicalFloor} dB)"
+        );
+        Assert.True(
+            extreme >= extremeFloor,
+            $"signal-to-aliasing {extreme:0.0} dB at 2.5 kHz (floor {extremeFloor} dB)"
+        );
     }
 
     [Theory]
@@ -219,7 +226,9 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
         }
 
         for (var type = 0; type < types; type++) {
-            output.WriteLine($"{type,2} {Name(type),-16} {load[type]:P2} of one core (stereo, 48 kHz, {Frames} frames)");
+            output.WriteLine(
+                $"{type,2} {Name(type),-16} {load[type]:P2} of one core (stereo, 48 kHz, {Frames} frames)"
+            );
         }
 
         Assert.True(load.Max() < 1, $"worst type uses {load.Max():P1} of a core");
@@ -229,7 +238,8 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
 
     /// <summary>Signal-to-aliasing floors (770 Hz / 0.1 V, 2.5 kHz / 0.5 V) by the hardest clipping in the circuit.</summary>
     static (double Musical, double Extreme) AliasingFloors(DriveCircuit circuit) {
-        static bool Railing(DriveStage s) => s.Kind == StageKind.OpAmp && s.Diodes.ForwardCount + s.Diodes.ReverseCount == 0;
+        static bool Railing(DriveStage s) =>
+            s.Kind == StageKind.OpAmp && s.Diodes.ForwardCount + s.Diodes.ReverseCount == 0;
 
         if (circuit.Stages.Any(static s => s.Kind is StageKind.Transistor or StageKind.FuzzPair)) {
             return (25, 12); // 2x, Newton, hard switching

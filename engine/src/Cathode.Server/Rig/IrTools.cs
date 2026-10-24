@@ -18,7 +18,11 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
     ///     block's <c>match</c>. If the block already has a match, the rig was heard through it, so the new filter
     ///     replaces it instead of stacking on it.
     /// </summary>
-    public async Task<LiveState> ToneMatchAsync(string blockId, ToneMatchRequest request, CancellationToken cancellationToken) {
+    public async Task<LiveState> ToneMatchAsync(
+        string blockId,
+        ToneMatchRequest request,
+        CancellationToken cancellationToken
+    ) {
         var block = (await rig.StateAsync()).Preset.Blocks.FirstOrDefault(b => b.Id == blockId)
             ?? throw RigException.NotFound($"No block '{blockId}'.");
         if (block.Type != ToneMatchBlock.Info.TypeId) {
@@ -26,7 +30,10 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
         }
 
         if (request.Seconds is < 3 or > 60 || request.Amount is < 0 or > 100 || request.Smoothing is < 0.1 or > 1) {
-            throw new RigException(400, "Listen for 3 to 60 seconds, with an amount of 0 to 100 % and smoothing of 0.1 to 1 octave.");
+            throw new RigException(
+                400,
+                "Listen for 3 to 60 seconds, with an amount of 0 to 100 % and smoothing of 0.1 to 1 octave."
+            );
         }
 
         var referenceAudio = ReadWav(request.Reference);
@@ -76,13 +83,16 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
         }
 
         var inputs = request.Sources.Select(source => {
-                var audio = ReadWav(source.Asset);
-                return new IrMixInput(Mono(audio), audio.SampleRate, source.LevelDb, source.DelayMs, source.Invert);
-            }
-        ).ToList();
+                    var audio = ReadWav(source.Asset);
+                    return new IrMixInput(Mono(audio), audio.SampleRate, source.LevelDb, source.DelayMs, source.Invert);
+                }
+            )
+            .ToList();
         var length = (int)Math.Round(request.LengthMs * 0.001 * request.SampleRate);
         var mixed = IrMix.Mix(inputs, request.SampleRate, length, request.Align, request.Normalize);
-        var name = request.Name.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) ? request.Name : request.Name + ".wav";
+        var name = request.Name.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)
+            ? request.Name
+            : request.Name + ".wav";
         return await StoreAsync(new(request.SampleRate, [mixed]), name, cancellationToken);
     }
 

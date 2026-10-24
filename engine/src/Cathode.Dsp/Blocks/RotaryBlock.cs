@@ -218,7 +218,8 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         var length = Params.Advance(RotorLength, n) / 100f;
         var hornExcursion = Params.Advance(HornDepth, n) / 100f * MaxHornExcursionMs * 0.001f * (float)rate * length;
         var drumExcursion = Params.Advance(DrumDepth, n) / 100f * MaxDrumExcursionMs * 0.001f * (float)rate;
-        var hornCentre = Math.Max(1f, length) * MaxHornExcursionMs * 0.001f * (float)rate + FractionalDelayLine.MinDelay;
+        var hornCentre = Math.Max(1f, length) * MaxHornExcursionMs * 0.001f * (float)rate
+            + FractionalDelayLine.MinDelay;
         var drumCentre = MaxDrumExcursionMs * 0.001f * (float)rate + FractionalDelayLine.MinDelay;
         var am = Params.Advance(AmDepth, n) / 100f;
         var hornAm = am * HornAmScale;

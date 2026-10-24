@@ -86,7 +86,11 @@ sealed class ReferenceSimulator {
 
     public ReferenceSimulator(ReferenceCircuit circuit) {
         this.circuit = circuit;
-        size = circuit.Nodes + circuit.Sources.Count + circuit.Controlled.Count + circuit.Inductors.Count + circuit.Windings;
+        size = circuit.Nodes
+            + circuit.Sources.Count
+            + circuit.Controlled.Count
+            + circuit.Inductors.Count
+            + circuit.Windings;
         x = new double[size];
         capacitorCurrents = new double[circuit.Capacitors.Count];
         inductorCurrents = new double[circuit.Inductors.Count];
@@ -105,7 +109,7 @@ sealed class ReferenceSimulator {
         Array.Clear(x);
         Array.Clear(capacitorCurrents);
         for (var s = 1; s <= steps; s++) {
-            Newton(0, 0, (double)s / steps, transient: false);
+            Newton(0, 0, (double)s / steps, false);
         }
 
         SyncDevices();
@@ -128,7 +132,7 @@ sealed class ReferenceSimulator {
             previous[i] = Voltage(a) - Voltage(b);
         }
 
-        Newton(time, step, 1, transient: true, previous);
+        Newton(time, step, 1, true, previous);
         for (var i = 0; i < previous.Length; i++) {
             var (a, b, c) = circuit.Capacitors[i];
             var g = 2 * c / step;

@@ -11,7 +11,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     way. Channel B: 0.22 µF and 10k into IC6b, inverting, the 1M audio Gain pot as a rheostat with 220 pF as its
 ///     feedback; 0.22 µF and 4k7 onto a W005F bridge with a 1N4007 across its DC terminals (a symmetric clamp of three
 ///     junctions each way to ground); the "Boost Pre-EQ" ladder (4.7 nF and 4k7 from the clamp, 10k, 10k, 100k, 4k7 with
-///     0.22 µF and 0.22 µF from the 4k7) into IC4b (1 + 10k ‖ 100 pF over 22k). Both: 2k2 and 68k into V1a (150k plate, 1k5
+///     0.22 µF and 0.22 µF from the 4k7) into IC4b (1 + 10k ‖ 100 pF over 22k). Both: 2k2 and 68k into V1a (150k plate,
+///     1k5
 ///     unbypassed, 22 pF grid to cathode) with 220k of shunt feedback from the tone stack's input, the V1b follower
 ///     (100k) through 0.1 µF into a 470 pF / 33k / 22 nF / 22 nF stack (220k linear treble, 1M audio bass, 22k linear
 ///     middle with the middle cap on its wiper), 470k into the 470k-loaded send buffer (IC5b); the loop's return op-amp
@@ -70,30 +71,28 @@ public static class JCM900 {
         new(
             "2 x EL34",
             PentodeModel.EL34,
-            TubesPerSide: 1,
-            Supply: 460,
-            ScreenResistor: 2.2e3,
-            IdleCurrent: 0.040,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 50,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 15e3, 1e3),
-            CouplingCap: 22e-9,
-            GridLeak: 150e3,
-            GridStopper: 1.5e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(Math.Sqrt(0.5), 100e3, 4.7e3, new(22e3, PotTaper.Linear), 1e-12),
-            HasFeedback: true,
-            Transformer: new(3.2e3),
-            Speaker: SpeakerDesign.Closed4x12,
-            PowerSupply: new(40, 50e-6, 100, 50e-6, 22e3, 50e-6),
+            1,
+            460,
+            2.2e3,
+            0.040,
+            false,
+            0,
+            50,
+            new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 15e3, 1e3),
+            22e-9,
+            150e3,
+            1.5e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(Math.Sqrt(0.5), 100e3, 4.7e3, new(22e3, PotTaper.Linear), 1e-12),
+            true,
+            new(3.2e3),
+            SpeakerDesign.Closed4x12,
+            new(40, 50e-6, 100, 50e-6, 22e3, 50e-6),
             InverterInput: new(22e-9, 1e6)
         ),
         -7
-    ) {
-        Panel = Panel()
-    };
+    ) { Panel = Panel() };
 
     /// <summary>The 4100 head: four EL34 (the export version).</summary>
     public static AmpDesign Head100 { get; } = new(
@@ -108,9 +107,7 @@ public static class JCM900 {
             PowerSupply = new(25, 100e-6, 100, 50e-6, 22e3, 50e-6)
         },
         -7
-    ) {
-        Panel = Panel()
-    };
+    ) { Panel = Panel() };
 
     static AmpPanel Panel() =>
         AmpPanel.Standard with {
@@ -204,7 +201,8 @@ public static class JCM900 {
     static StageNetlist PreEqStage() {
         var net = new StageNetlist();
         var (a, clamp, top, plus, middle, lower, low, minus, output) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(),
+                net.Node());
         net.Capacitor(net.Input, a, 0.22e-6);
         net.Resistor(a, clamp, 4.7e3);
         net.Diodes(clamp, StageNetlist.Ground, DiodeModel.Rectifier, 3, 3);
@@ -290,7 +288,7 @@ public static class JCM900 {
         net.Resistor(cathode, StageNetlist.Ground, 2.2e3);
         net.Resistor(cathode, a, 470);
         net.Capacitor(a, b, 0.22e-6);
-        net.Rheostat(b, StageNetlist.Ground, new(10e3, PotTaper.Linear), PotRole.Control1, falling: true);
+        net.Rheostat(b, StageNetlist.Ground, new(10e3, PotTaper.Linear), PotRole.Control1, true);
         net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
         net.Output = plate;
         return net;
@@ -305,7 +303,8 @@ public static class JCM900 {
     static StageNetlist MasterStage() {
         var net = new StageNetlist();
         var (a, grid, rail, plate, cathode, m, minus, idle, output) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(),
+                net.Node());
         net.Capacitor(net.Input, a, 47e-9);
         net.Resistor(a, StageNetlist.Ground, 690e3);
         net.Resistor(a, grid, 2.2e6);

@@ -321,8 +321,12 @@ public sealed class LongTailPair : PhaseInverter {
         if (load > 0) {
             var (ra, rb) = (Parallel(design.PlateResistorA, load), Parallel(design.PlateResistorB, load));
             loaded = design with { PlateResistorA = ra, PlateResistorB = rb };
-            drawA = (design.Supply - (design.Supply * load + RestPlateA * design.PlateResistorA) / (design.PlateResistorA + load)) / ra;
-            drawB = (design.Supply - (design.Supply * load + RestPlateB * design.PlateResistorB) / (design.PlateResistorB + load)) / rb;
+            drawA = (design.Supply
+                    - (design.Supply * load + RestPlateA * design.PlateResistorA) / (design.PlateResistorA + load))
+                / ra;
+            drawB = (design.Supply
+                    - (design.Supply * load + RestPlateB * design.PlateResistorB) / (design.PlateResistorB + load))
+                / rb;
         }
 
         for (var n = 0; n < Points; n++) {
@@ -438,7 +442,9 @@ public sealed class Cathodyne : PhaseInverter {
         if (load > 0) {
             var r = design.PlateResistor * load / (design.PlateResistor + load);
             loaded = design with { PlateResistor = r };
-            drawA = (design.Supply - (design.Supply * load + RestPlateA * design.PlateResistor) / (design.PlateResistor + load)) / r;
+            drawA = (design.Supply
+                    - (design.Supply * load + RestPlateA * design.PlateResistor) / (design.PlateResistor + load))
+                / r;
         }
 
         for (var n = 0; n < Points; n++) {
@@ -450,7 +456,7 @@ public sealed class Cathodyne : PhaseInverter {
             gridVoltages[n] = grid + vd - held * (design.CathodeResistor + design.BiasResistor);
             leakReturns[n] = held * design.CathodeResistor - grid;
             var injected = Solve(triode, loaded, grid + vd, drawA, 0, Probe);
-            cathodeResistances[n] = ((injected + Probe - held) * (design.CathodeResistor + design.BiasResistor)) / Probe;
+            cathodeResistances[n] = (injected + Probe - held) * (design.CathodeResistor + design.BiasResistor) / Probe;
         }
 
         Differentiate();
@@ -477,7 +483,8 @@ public sealed class Cathodyne : PhaseInverter {
         for (var n = 0; n < 100; n++) {
             var current = 0.5 * (low + high);
             var plate = design.Supply - (current + drawA) * design.PlateResistor;
-            var cathode = (current - drawB + inject) * design.CathodeResistor + (current + inject) * design.BiasResistor;
+            var cathode = (current - drawB + inject) * design.CathodeResistor
+                + (current + inject) * design.BiasResistor;
             v[0] = grid - cathode;
             v[1] = plate - cathode;
             j.Clear();

@@ -17,7 +17,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         (the 1M audio Tone pot's wiper on the Volume's top, one end through 0.01 µF (Normal) or 0.02 µF (Bright) to
 ///         ground, the other through 500 pF to the Volume's wiper); the 220k mixing resistors into V2A's grid; V2A
 ///         (100k + 15k, 1500 Ω with 25 + 25 µF, 165 V at the plate) and 0.01 µF into the inverter (82k / 100k, 6.8k tail,
-///         820 Ω, 1M grids, the second grid on 0.1 µF to the tail's bottom, 1.5k there to ground); 0.1 µF and 220k into the
+///         820 Ω, 1M grids, the second grid on 0.1 µF to the tail's bottom, 1.5k there to ground); 0.1 µF and 220k into
+///         the
 ///         6V6s, −26 V; the supply (GZ34, 16 µF, 1k 2 W to the 365 V screens, 10k to the inverter's 325 V, 27k to 270 V);
 ///         the 125A1A, whose 6.6k : 8 Ω docs/06 §3.1 sources for the AB763 Deluxe.
 ///     </para>
@@ -39,32 +40,32 @@ public static class Deluxe6G3 {
             new ChannelSwitchStageDesign(
                 "Channel",
                 SwitchRole.Switch1,
-                [FirstStage("V1A", normal: true)],
-                [FirstStage("V1B", normal: false)]
+                [FirstStage("V1A", true)],
+                [FirstStage("V1B", false)]
             ),
             SecondStage()
         ],
         new(
             "2 x 6V6GT",
             PentodeModel.SixV6GT,
-            TubesPerSide: 1,
-            Supply: 375,
-            ScreenResistor: 1,
-            IdleCurrent: 0.03,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 20,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 325, 82e3, 100e3, 6.8e3, 820),
-            CouplingCap: 0.1e-6,
-            GridLeak: 220e3,
-            GridStopper: 1,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(1, 56e3, 1.5e3, new(1e3, PotTaper.Linear), 1e-12),
-            HasFeedback: true,
-            Transformer: new(6.6e3),
-            Speaker: SpeakerDesign.OpenBack1x12,
-            PowerSupply: new(100, 16e-6, 1e3, 16e-6, 10e3, 16e-6, 4.4e-3, RectifierModel.GZ34),
+            1,
+            375,
+            1,
+            0.03,
+            false,
+            0,
+            20,
+            new LongTailPairDesign(TriodeModel.Ecc83, 325, 82e3, 100e3, 6.8e3, 820),
+            0.1e-6,
+            220e3,
+            1,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(1, 56e3, 1.5e3, new(1e3, PotTaper.Linear), 1e-12),
+            true,
+            new(6.6e3),
+            SpeakerDesign.OpenBack1x12,
+            new(100, 16e-6, 1e3, 16e-6, 10e3, 16e-6, 4.4e-3, RectifierModel.GZ34),
             InverterInput: new(0.01e-6, 1e6)
         ),
         -6

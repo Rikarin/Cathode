@@ -43,7 +43,8 @@ public enum OpAmpSolve {
 ///     <para>
 ///         With diodes across the feedback (the Tube Screamer family) the output never gets further than a diode drop
 ///         from the input: far from the rails, and far below the slew rate (1 V at 20 kHz is 0.13 V/µs against the
-///         JRC4558's 1 V/µs). There the op-amp is its linear single-pole model from its <see cref="OpAmpModel" />, exact in
+///         JRC4558's 1 V/µs). There the op-amp is its linear single-pole model from its <see cref="OpAmpModel" />, exact
+///         in
 ///         gain-bandwidth: a VCVS of the open-loop gain into an RC at the dominant pole, buffered through the output
 ///         resistance, all inside an R-type adaptor. The diodes are then the only nonlinearity, and the adaptor is adapted
 ///         towards them: a <see cref="DiodePair" /> root solves them in closed form, with antiderivative antialiasing
@@ -60,7 +61,8 @@ public enum OpAmpSolve {
 ///     <para>
 ///         Nodes: non-inverting input, inverting input, output, first leg, second leg (then, for the linear model, the
 ///         open-loop output, the pole and the buffer). Ports: the input source (the guitar or the previous stage, behind
-///         its resistance); for the device root the feedback capacitor and the two leg capacitors; for the linear model the
+///         its resistance); for the device root the feedback capacitor and the two leg capacitors; for the linear model
+///         the
 ///         load (a resistor port, whose voltage is the output), the feedback capacitor, the two leg capacitors and the
 ///         pole capacitor, with the diodes or the rail clamp at the parent port.
 ///     </para>
@@ -99,8 +101,7 @@ public sealed class OpAmpStage {
         var amplifier = new OpAmp(OpAmpModel.JRC4558, -4.5, 4.5, 48_000);
         device = new(DeviceNetlist, new(1e3), Capacitors(3), amplifier) {
             // 100 µV steps: the op-amp is linear inside its window, so only its knees are approximate.
-            AbsoluteTolerance = 1e-4,
-            RelativeTolerance = 1e-4
+            AbsoluteTolerance = 1e-4, RelativeTolerance = 1e-4
         };
         var c = new Capacitor(1e-9, 48_000);
         diodes = new(
@@ -211,7 +212,7 @@ public sealed class OpAmpStage {
             device.Capacitor(2).Configure(second ? stage.GroundCapacitance2 : 1e-12, rate);
             device.Propagate();
         } else {
-            ref var circuit = ref (solve == OpAmpSolve.FeedbackDiodes ? ref diodes : ref rails);
+            ref var circuit = ref solve == OpAmpSolve.FeedbackDiodes ? ref diodes : ref rails;
             ref var tree = ref circuit.Tree;
             tree.Ports.A.Value = sourceResistance;
             tree.Ports.B.Value = stage.Load;
@@ -286,7 +287,8 @@ public sealed class OpAmpStage {
 
 /// <summary>
 ///     A single bipolar transistor in common emitter (<see cref="StageKind.Transistor" />) for one channel: the
-///     Rangemaster treble booster, or the first stage of a Tone Bender. Base bias from a divider and/or from the collector,
+///     Rangemaster treble booster, or the first stage of a Tone Bender. Base bias from a divider and/or from the
+///     collector,
 ///     emitter resistor with its bypass capacitor, collector load, coupling capacitors in and out. The source is a
 ///     <see cref="StageSource" />: the guitar (pickup resistance and inductance, volume pot) for a first stage. It starts
 ///     at its DC operating point, computed once per stage (<see cref="OperatingPoint" />).
@@ -327,8 +329,7 @@ public sealed class TransistorStage {
         ) {
             // The start carried along the last Jacobian is close enough that a 1 mV step still converges quadratically
             // to within microvolts; the reference tests match to -94 dB either way, and a confirming iteration is saved.
-            AbsoluteTolerance = 1e-3,
-            RelativeTolerance = 1e-5
+            AbsoluteTolerance = 1e-3, RelativeTolerance = 1e-5
         };
     }
 
@@ -463,8 +464,7 @@ public sealed class FuzzPairStage {
         ) {
             // The start carried along the last Jacobian is close enough that a 1 mV step still converges quadratically
             // to within microvolts; the reference tests match to -94 dB either way, and a confirming iteration is saved.
-            AbsoluteTolerance = 1e-3,
-            RelativeTolerance = 1e-5
+            AbsoluteTolerance = 1e-3, RelativeTolerance = 1e-5
         };
     }
 
@@ -630,7 +630,8 @@ public sealed class ToneStage {
     /// <summary>Open-loop gain of a tone network's op-amp (a VCVS).</summary>
     public const double OpenLoopGain = 1e5;
 
-    static readonly WdfNetlist[] Netlists = [..Enumerable.Range(0, (int)ToneKind.Range).Select(static k => Netlist((ToneKind)k))];
+    static readonly WdfNetlist[] Netlists =
+        [..Enumerable.Range(0, (int)ToneKind.Range).Select(static k => Netlist((ToneKind)k))];
 
     readonly CircuitRoot<ResistiveVoltageSource, NoDevice>[] roots;
     ToneNetwork? network;
@@ -643,7 +644,12 @@ public sealed class ToneStage {
         roots = new CircuitRoot<ResistiveVoltageSource, NoDevice>[Netlists.Length];
         for (var kind = 0; kind < roots.Length; kind++) {
             var capacitors = Netlists[kind].Count(NetlistElementKind.Port) - 1;
-            roots[kind] = new(Netlists[kind], new(1e3), [..Enumerable.Repeat(new Capacitor(1e-9, 48_000), capacitors)], default);
+            roots[kind] = new(
+                Netlists[kind],
+                new(1e3),
+                [..Enumerable.Repeat(new Capacitor(1e-9, 48_000), capacitors)],
+                default
+            );
         }
     }
 

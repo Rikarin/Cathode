@@ -53,41 +53,34 @@ public static class Chieftain {
         new(
             "2 x EL34",
             PentodeModel.EL34,
-            TubesPerSide: 1,
-            Supply: 415,
-            ScreenResistor: 1e3,
-            IdleCurrent: 0.08,
-            CathodeBias: true,
-            CathodeBypass: 250e-6,
-            RatedPower: 40,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 355, 100e3, 100e3, 47e3, 1.2e3),
-            CouplingCap: 22e-9,
-            GridLeak: 220e3,
-            GridStopper: 10e3,
-            CutCap: 4.7e-9,
-            CutPot: new(500e3, PotTaper.ReverseAudio),
-            Feedback: new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6, 90),
-            HasFeedback: false,
-            Transformer: new(4e3),
-            Speaker: SpeakerDesign.OpenBack2x12,
+            1,
+            415,
+            1e3,
+            0.08,
+            true,
+            250e-6,
+            40,
+            new LongTailPairDesign(TriodeModel.Ecc83, 355, 100e3, 100e3, 47e3, 1.2e3),
+            22e-9,
+            220e3,
+            10e3,
+            4.7e-9,
+            new(500e3, PotTaper.ReverseAudio),
+            new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6, 90),
+            false,
+            new(4e3),
+            SpeakerDesign.OpenBack2x12,
             // The plates on the rectifier's 33 µF (the trace: B+ from the rectifier's pin 8); the 20 H choke (about 200 Ω)
             // and R35 1k to the screens' node (33 µF), which also feeds the inverter (6.8k), the reverb (47k) and V1/V2
             // (22k): about 8 mA in all, drawn here through the inverter's 6.8k.
-            PowerSupply: new(80, 33e-6, 1.2e3, 33e-6, 6.8e3, 22e-6, 8e-3, RectifierModel.GZ34),
+            new(80, 33e-6, 1.2e3, 33e-6, 6.8e3, 22e-6, 8e-3, RectifierModel.GZ34),
             SeparateCathodes: true,
             InverterInput: new(22e-9, 1e6),
             ShuntMaster: new Pot(500e3, PotTaper.Audio),
             CathodeResistor: 135 // 270 Ω per tube: half of each side's, as the power amp counts it
         ),
         -8
-    ) {
-        Panel = AmpPanel.Standard with {
-            Gain = "Volume",
-            Presence = null,
-            Depth = null,
-            Bright = null
-        }
-    };
+    ) { Panel = AmpPanel.Standard with { Gain = "Volume", Presence = null, Depth = null, Bright = null } };
 
     /// <summary>
     ///     V1: both halves of a 12AX7 as one triode of twice the current (100k plate, 1.5k unbypassed, 1M leak).
@@ -115,7 +108,7 @@ public static class Chieftain {
         var (coupled, bass, joined) = (net.Node(), net.Node(), net.Node());
         net.Capacitor(net.Input, coupled, 10e-9);
         net.Capacitor(coupled, joined, 2.2e-9, CapacitorRole.Stack);
-        net.Rheostat(coupled, bass, new(1e6, PotTaper.ReverseAudio), PotRole.Bass, falling: true);
+        net.Rheostat(coupled, bass, new(1e6, PotTaper.ReverseAudio), PotRole.Bass, true);
         net.Resistor(bass, joined, 10e3);
         net.Resistor(bass, StageNetlist.Ground, 100e3);
         net.Resistor(joined, StageNetlist.Ground, 220e3);

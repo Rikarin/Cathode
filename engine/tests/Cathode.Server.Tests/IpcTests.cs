@@ -66,7 +66,16 @@ public sealed class IpcTests : IDisposable {
         var token = TestContext.Current.CancellationToken;
         using var writer = new IpcFrameWriter();
         var stream = new MemoryStream(1 << 22);
-        var message = new IpcMessage { Type = IpcTypes.Telemetry, Telemetry = new() { InputPeak = 0.1f, OutputPeakLeft = 0.2f, OutputPeakRight = 0.3f, CpuP999 = 4, CpuMax = 5 } };
+        var message = new IpcMessage {
+            Type = IpcTypes.Telemetry,
+            Telemetry = new() {
+                InputPeak = 0.1f,
+                OutputPeakLeft = 0.2f,
+                OutputPeakRight = 0.3f,
+                CpuP999 = 4,
+                CpuMax = 5
+            }
+        };
 
         async Task<double> PerFrame(Func<Task> write) {
             for (var i = 0; i < 100; i++) {

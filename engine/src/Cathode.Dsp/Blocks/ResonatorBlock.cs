@@ -140,7 +140,12 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
             ..Enumerable.Range(1, Voices)
                 .Select(static v => ParamDescriptor.Float($"feedback{v}", $"Feedback {v}", 0f, 100f, 100f, "%")),
             ..Enumerable.Range(1, Voices)
-                .Select(static v => ParamDescriptor.Choice($"filterLocation{v}", $"Filter Location {v}", FilterLocations)),
+                .Select(static v => ParamDescriptor.Choice(
+                        $"filterLocation{v}",
+                        $"Filter Location {v}",
+                        FilterLocations
+                    )
+                ),
             ..Enumerable.Range(1, Voices)
                 .Select(static v =>
                     ParamDescriptor.Float($"filterQ{v}", $"Filter Q {v}", 0.5f, 20f, 4f, string.Empty, ParamTaper.Log)

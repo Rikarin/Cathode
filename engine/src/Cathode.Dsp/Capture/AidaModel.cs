@@ -57,15 +57,16 @@ public sealed class AidaModel : ICaptureModel {
     }
 
     /// <summary>True for file names AIDA-X uses for its models (<c>.aidax</c>, <c>.json</c>).</summary>
-    public static bool IsAidaFile(string path) =>
-        Path.GetExtension(path).ToLowerInvariant() is ".aidax" or ".json";
+    public static bool IsAidaFile(string path) => Path.GetExtension(path).ToLowerInvariant() is ".aidax" or ".json";
 
     public static AidaModel Load(string path) {
         try {
             using var stream = File.OpenRead(path);
             using var document = JsonDocument.Parse(stream);
             return Parse(document.RootElement);
-        } catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException
+        } catch (Exception e) when (e is JsonException
+                                        or KeyNotFoundException
+                                        or InvalidOperationException
                                         or FormatException) {
             throw new InvalidDataException($"Could not load AIDA-X model '{path}': {e.Message}", e);
         }
@@ -105,7 +106,8 @@ public sealed class AidaModel : ICaptureModel {
                 layers,
                 head,
                 bias,
-                root.TryGetProperty("in_skip", out var skip) && skip.ValueKind == JsonValueKind.Number
+                root.TryGetProperty("in_skip", out var skip)
+                && skip.ValueKind == JsonValueKind.Number
                 && skip.GetDouble() != 0,
                 Number(root, "samplerate") ?? 48_000,
                 Number(root, "out_gain") is { } outGain ? -18 - outGain : null,
@@ -203,13 +205,13 @@ public sealed class AidaModel : ICaptureModel {
     static float Dot(ReadOnlySpan<float> a, ReadOnlySpan<float> b) {
         var sum = 0f;
         var i = 0;
-        if (System.Numerics.Vector.IsHardwareAccelerated) {
+        if (Vector.IsHardwareAccelerated) {
             var acc = Vector<float>.Zero;
             for (; i <= a.Length - Vector<float>.Count; i += Vector<float>.Count) {
                 acc += new Vector<float>(a[i..]) * new Vector<float>(b[i..]);
             }
 
-            sum = System.Numerics.Vector.Sum(acc);
+            sum = Vector.Sum(acc);
         }
 
         for (; i < a.Length; i++) {
@@ -222,7 +224,7 @@ public sealed class AidaModel : ICaptureModel {
     /// <summary><paramref name="y" /> += <paramref name="a" /> · <paramref name="x" />.</summary>
     static void Accumulate(Span<float> y, float a, ReadOnlySpan<float> x) {
         var i = 0;
-        if (System.Numerics.Vector.IsHardwareAccelerated) {
+        if (Vector.IsHardwareAccelerated) {
             var scale = new Vector<float>(a);
             for (; i <= y.Length - Vector<float>.Count; i += Vector<float>.Count) {
                 (new Vector<float>(y[i..]) + scale * new Vector<float>(x[i..])).CopyTo(y[i..]);

@@ -15,7 +15,8 @@ namespace Cathode.Dsp.Amp;
 ///         (as a source behind <paramref name="PlateResistance" />, with <paramref name="PlateShunt" /> to ground), then
 ///         <paramref name="Ladder1" /> to a node grounded through the Speed rheostat and <paramref name="SpeedSeries" />,
 ///         <paramref name="Ladder2" /> to a node with <paramref name="LadderResistor2" /> to the (bypassed) cathode, and
-///         <paramref name="Ladder3" /> to the grid with <paramref name="LadderResistor3" />. This is solved here, so the rate
+///         <paramref name="Ladder3" /> to the grid with <paramref name="LadderResistor3" />. This is solved here, so the
+///         rate
 ///         follows from the drawing's values (2.6 to 9.4 Hz on the 6G12).
 ///     </para>
 ///     <para>
@@ -23,7 +24,8 @@ namespace Cathode.Dsp.Amp;
 ///         <paramref name="CouplingCap" /> into the Intensity pot's top, which <paramref name="PotCap" /> filters to
 ///         ground; the wiper (filtered by <paramref name="WiperCap" />) feeds one grid line through
 ///         <paramref name="GridFeed" />, which a second <paramref name="GridFeed" /> ties to the paraphase splitter's grid
-///         (an AC ground). The splitter drives the other grid line in antiphase through its own feed. This network is solved
+///         (an AC ground). The splitter drives the other grid line in antiphase through its own feed. This network is
+///         solved
 ///         at the rate for the wiper's amplitude, with the wiper loaded by the two feeds. What is not solved is the
 ///         oscillator's own amplitude: it oscillates until its triode clips, and <paramref name="PlateSwing" /> (the
 ///         fundamental of that clipped wave at the plate) is an estimate. The splitter is taken as exact (the two lines
@@ -154,13 +156,16 @@ public sealed record VibratoOscillatorDesign(
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The netlist, from the input (the vibrato channel's second stage, through <paramref name="InputCap" />): the bass
+///         The netlist, from the input (the vibrato channel's second stage, through <paramref name="InputCap" />): the
+///         bass
 ///         band through <paramref name="LowResistor" /> into <paramref name="LowCap" /> to ground, then
 ///         <paramref name="BassCoupling" /> to the bass grid line; the treble band from the divider
-///         <paramref name="DividerTop" /> / <paramref name="DividerBottom" /> through <paramref name="TrebleCoupling" /> to
+///         <paramref name="DividerTop" /> / <paramref name="DividerBottom" /> through <paramref name="TrebleCoupling" />
+///         to
 ///         the treble grid line. Each grid line returns through one <see cref="VibratoOscillatorDesign.GridFeed" /> to its
 ///         LFO source (the Intensity wiper, the splitter's plate: here ideal sources moving in antiphase, at rest 0 V) and
-///         through another to the splitter's grid node, which is AC-grounded by <paramref name="SplitterCap" /> and held by
+///         through another to the splitter's grid node, which is AC-grounded by <paramref name="SplitterCap" /> and held
+///         by
 ///         a third feed to ground. The triodes' plates have <paramref name="PlateResistor" /> each from
 ///         <paramref name="Supply" />, the shared cathode <paramref name="CathodeResistor" /> ‖
 ///         <paramref name="CathodeBypass" />; each plate feeds the output through <paramref name="MixResistor" />, and the
@@ -209,11 +214,12 @@ public sealed record HarmonicVibratoStageDesign(
     public NetworkStageDesign Network => Build();
 
     public override AmpStage Create(double sampleRate) =>
-        new HarmonicVibratoStage(this, Band(bass: true).Create(sampleRate), Band(bass: false).Create(sampleRate), sampleRate);
+        new HarmonicVibratoStage(this, Band(true).Create(sampleRate), Band(false).Create(sampleRate), sampleRate);
 
     /// <summary>
     ///     One band as a stage of its own: the input cap, the band's filter (the other band's branch, as its resistance,
-    ///     loading the split node), the grid line with its feed to the LFO source (the netlist's first element, <see cref="BandSource" />)
+    ///     loading the split node), the grid line with its feed to the LFO source (the netlist's first element,
+    ///     <see cref="BandSource" />)
     ///     and its feed to the splitter's grid (an AC ground: the LFO moves the two lines in antiphase, and the splitter's
     ///     own cap holds it at audio), and the triode with its plate resistor; its cathode is twice the shared resistor
     ///     (each half draws its operating point through it) with a bypass that also holds it still at the LFO's rate (the
@@ -355,7 +361,12 @@ public sealed class HarmonicVibratoStage : AmpStage {
 
     public override bool IsGainStage => true;
 
-    internal HarmonicVibratoStage(HarmonicVibratoStageDesign design, AmpStage bass, AmpStage treble, double sampleRate) {
+    internal HarmonicVibratoStage(
+        HarmonicVibratoStageDesign design,
+        AmpStage bass,
+        AmpStage treble,
+        double sampleRate
+    ) {
         this.design = design;
         lfo = design.Lfo;
         this.bass = bass;

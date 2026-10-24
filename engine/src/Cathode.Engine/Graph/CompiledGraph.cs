@@ -1,7 +1,7 @@
 using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
-using Cathode.Dsp.Routing;
 using Cathode.Dsp.Looping;
+using Cathode.Dsp.Routing;
 using Cathode.Engine.Rig;
 
 namespace Cathode.Engine.Graph;
@@ -383,7 +383,10 @@ public struct ModifierBinding(
     bool log,
     float attackMs,
     float releaseMs) {
-    /// <summary>The <see cref="ParamIndex" /> of a modifier that engages and bypasses its block (<see cref="ModNames.EngageParam" />).</summary>
+    /// <summary>
+    ///     The <see cref="ParamIndex" /> of a modifier that engages and bypasses its block
+    ///     (<see cref="ModNames.EngageParam" />).
+    /// </summary>
     public const int Engage = -2;
 
     public int Slot { get; } = slot;

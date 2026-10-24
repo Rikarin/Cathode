@@ -140,7 +140,8 @@ public sealed class AssetStore {
             _ => ".wav"
         };
 
-    string FilePath(string reference, string kind) => Path.Combine(folder, reference[Prefix.Length..] + Extension(kind));
+    string FilePath(string reference, string kind) =>
+        Path.Combine(folder, reference[Prefix.Length..] + Extension(kind));
 
     void SaveIndex() =>
         File.WriteAllText(

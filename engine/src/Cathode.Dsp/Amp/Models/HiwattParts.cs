@@ -47,7 +47,9 @@ public static class HiwattParts {
         var normalJack = net.Node();
         net.SwitchedResistor(net.Input, normalJack, 0, Closed, SwitchRole.Switch1);
         net.SwitchedResistor(net.Input, normalJack, 0, Closed, SwitchRole.Switch2);
-        foreach (var (jack, coupling, volume) in new[] { (brilliantJack, 1e-9, PotRole.Gain), (normalJack, 22e-9, PotRole.Control1) }) {
+        foreach (var (jack, coupling, volume) in new[] {
+                     (brilliantJack, 1e-9, PotRole.Gain), (normalJack, 22e-9, PotRole.Control1)
+                 }) {
             var (grid, plate, top) = (net.Node(), net.Node(), net.Node());
             net.Resistor(jack, StageNetlist.Ground, 1e6);
             net.Resistor(jack, grid, 34e3);
@@ -71,7 +73,8 @@ public static class HiwattParts {
     /// </summary>
     public static NetworkStageDesign V2A(double supply) {
         var net = new StageNetlist();
-        var (rail, plate, cathode, a, trebleTop, trebleFoot) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (rail, plate, cathode, a, trebleTop, trebleFoot) = (net.Node(), net.Node(), net.Node(), net.Node(),
+            net.Node(), net.Node());
         var (middleTop, bassTop, shunt, master) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Supply(rail, supply);
         net.Resistor(rail, plate, 100e3);

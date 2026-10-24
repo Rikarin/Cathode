@@ -142,7 +142,10 @@ public sealed class ChorusBlock() : DspBlock(Info) {
         var lfo2Rate = Params.Advance(Lfo2Rate, n);
         var lfo2Depth = Params.Advance(Lfo2Depth, n) / 100.0;
         var samplesPerMs = 0.001f * (float)rate;
-        var depth = Params.Advance(Depth, n) / 100f * MaxDepthMs * samplesPerMs
+        var depth = Params.Advance(Depth, n)
+            / 100f
+            * MaxDepthMs
+            * samplesPerMs
             * LfoConditioner.AutoDepth((int)Params.Current(AutoDepth), lfoRate);
         var depthRight = depth * Params.Advance(RightDepth, n) / 100f;
         var baseDelay = Params.Advance(Delay, n) * samplesPerMs;
@@ -180,7 +183,9 @@ public sealed class ChorusBlock() : DspBlock(Info) {
                 for (var v = 0; v < voices; v++) {
                     var offset = (double)v / voices;
                     wetLeft += left.Read(baseDelay + depth * 0.5f * (1 + lfo.Value(shape, offset)));
-                    wetRight += right.Read(rightDelay + depthRight * 0.5f * (1 + lfoRight.Value(shape, offset + spread)));
+                    wetRight += right.Read(
+                        rightDelay + depthRight * 0.5f * (1 + lfoRight.Value(shape, offset + spread))
+                    );
                 }
 
                 wetLeft *= voiceGain;

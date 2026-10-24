@@ -45,16 +45,21 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
     static IEnumerable<int> Controls(string type) {
         (string Id, int Index)[] all = [
             ("gain", CircuitAmpBlock.Gain), ("bass", CircuitAmpBlock.Bass), ("middle", CircuitAmpBlock.Middle),
-            ("treble", CircuitAmpBlock.Treble), ("presence", CircuitAmpBlock.Presence), ("depth", CircuitAmpBlock.Depth),
+            ("treble", CircuitAmpBlock.Treble), ("presence", CircuitAmpBlock.Presence),
+            ("depth", CircuitAmpBlock.Depth),
             ("cut", CircuitAmpBlock.Cut), ("master", CircuitAmpBlock.Master), ("bright", CircuitAmpBlock.Bright),
-            ("switch1", CircuitAmpBlock.Switch1), ("switch2", CircuitAmpBlock.Switch2), ("switch3", CircuitAmpBlock.Switch3),
+            ("switch1", CircuitAmpBlock.Switch1), ("switch2", CircuitAmpBlock.Switch2),
+            ("switch3", CircuitAmpBlock.Switch3),
             ("control1", CircuitAmpBlock.Control1), ("control2", CircuitAmpBlock.Control2)
         ];
         return all.Where(c => !string.IsNullOrEmpty(Label(c.Id, type))).Select(static c => c.Index);
     }
 
     static bool IsSwitch(int index) =>
-        index is CircuitAmpBlock.Bright or CircuitAmpBlock.Switch1 or CircuitAmpBlock.Switch2 or CircuitAmpBlock.Switch3;
+        index is CircuitAmpBlock.Bright
+            or CircuitAmpBlock.Switch1
+            or CircuitAmpBlock.Switch2
+            or CircuitAmpBlock.Switch3;
 
     /// <summary>
     ///     The channel a control belongs to: the vibrato's controls play on the brownface Vibrato channel with the pedal
@@ -64,24 +69,29 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
         (type, control) switch {
             ("Concert 6G12" or "Super 6G4", CircuitAmpBlock.Control1 or CircuitAmpBlock.Control2) =>
                 [(CircuitAmpBlock.Switch1, 1), (CircuitAmpBlock.Switch2, 1)],
-            ("Concert 6G12" or "Super 6G4", CircuitAmpBlock.Switch2) => [(CircuitAmpBlock.Switch1, 1), (CircuitAmpBlock.Control2, 10)],
+            ("Concert 6G12" or "Super 6G4", CircuitAmpBlock.Switch2) => [
+                (CircuitAmpBlock.Switch1, 1), (CircuitAmpBlock.Control2, 10)
+            ],
             ("Bassman 135", CircuitAmpBlock.Bright) => [(CircuitAmpBlock.Switch1, 1)],
             _ => []
         };
 
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {
-        Assert.Equal(["Vibrato Ch", "Vibrato", ""], Switches("Concert 6G12"));
+        Assert.Equal(["Vibrato Ch", "Vibrato", string.Empty], Switches("Concert 6G12"));
         Assert.Equal("Speed", Label("control1", "Super 6G4"));
         Assert.Equal("Intensity", Label("control2", "Concert 6G12"));
         Assert.Equal("Presence", Label("presence", "Concert 6G12"));
         Assert.Equal("Tone", Label("treble", "Deluxe 6G3"));
         Assert.Empty(Label("bass", "Deluxe 6G3"));
-        Assert.Equal(["Bright Ch", "", ""], Switches("Vibrolux 6G11"));
-        Assert.Equal(["Normal Ch", "Deep", ""], Switches("Bassman 135"));
+        Assert.Equal(["Bright Ch", string.Empty, string.Empty], Switches("Vibrolux 6G11"));
+        Assert.Equal(["Normal Ch", "Deep", string.Empty], Switches("Bassman 135"));
         Assert.Equal("Master", Label("master", "Bassman 135"));
-        Assert.Equal(["gain"], new[] { "gain", "bass", "middle", "treble", "master", "presence", "bright" }
-            .Where(id => !string.IsNullOrEmpty(Label(id, "Scout GA-17RVT"))));
+        Assert.Equal(
+            ["gain"],
+            new[] { "gain", "bass", "middle", "treble", "master", "presence", "bright" }
+                .Where(id => !string.IsNullOrEmpty(Label(id, "Scout GA-17RVT")))
+        );
         foreach (var type in Models) {
             Assert.Empty(Label("cut", type));
             Assert.Empty(Label("depth", type));
@@ -114,7 +124,7 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
         var solvers = channel.Stages
             .SelectMany(static s => s is ChannelSwitchStage c ? c.Active : [s])
             .SelectMany(static s => s is HarmonicVibratoStage v ? new[] { v.Newton, v.TrebleNewton } : [s.Newton])
-            .OfType<Wdf.NewtonSolver>()
+            .OfType<NewtonSolver>()
             .Append(channel.Power.Newton);
         foreach (var newton in solvers) {
             Assert.Equal(0, newton.NonFinite);
@@ -160,7 +170,10 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
             );
             var difference = Analysis.NullResidualDb(a, b) - Analysis.ToDb(Analysis.Rms(a));
             output.WriteLine($"{type} control {control}: {change:0.00} dB at a tone, {difference:0.0} dB apart");
-            Assert.True(change > 0.2 || difference > -20, $"{type}: control {control} moves the sound by only {change:0.00} dB");
+            Assert.True(
+                change > 0.2 || difference > -20,
+                $"{type}: control {control} moves the sound by only {change:0.00} dB"
+            );
         }
     }
 
@@ -182,7 +195,9 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
         }
 
         foreach (var second in Controls(type).Contains(CircuitAmpBlock.Switch1) ? new[] { false, true } : [false]) {
-            foreach (var knob in new[] { CircuitAmpBlock.Gain, CircuitAmpBlock.Master }.Where(k => Controls(type).Contains(k))) {
+            foreach (var knob in new[] { CircuitAmpBlock.Gain, CircuitAmpBlock.Master }.Where(k =>
+                         Controls(type).Contains(k)
+                     )) {
                 var levels = new[] { 0f, 2.5f, 5f, 7.5f, 10f }.Select(v => Level(knob, v, second)).ToArray();
                 var text = string.Join(" ", levels.Select(static l => $"{l:0.0}"));
                 output.WriteLine($"{type} channel {(second ? 2 : 1)} knob {knob}: {text} dB");
@@ -192,7 +207,10 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
                     }
                 }
 
-                Assert.True(levels[^1] - levels[0] > 10, $"{type}: knob {knob} spans only {levels[^1] - levels[0]:0.0} dB");
+                Assert.True(
+                    levels[^1] - levels[0] > 10,
+                    $"{type}: knob {knob} spans only {levels[^1] - levels[0]:0.0} dB"
+                );
             }
         }
     }
@@ -206,7 +224,9 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
     public void The_vibrato_rate_follows_the_ladder_and_its_depth_the_intensity() {
         var lfo = new VibratoOscillatorDesign();
         var rates = new[] { 0.0, 0.25, 0.5, 0.75, 1.0 }.Select(lfo.Rate).ToArray();
-        output.WriteLine($"rate {string.Join(", ", rates.Select(static r => $"{r:0.00}"))} Hz at speed 0, 2.5, 5, 7.5, 10");
+        output.WriteLine(
+            $"rate {string.Join(", ", rates.Select(static r => $"{r:0.00}"))} Hz at speed 0, 2.5, 5, 7.5, 10"
+        );
         Assert.InRange(rates[0], 2.4, 2.8);
         Assert.InRange(rates[^1], 9.0, 9.8);
         for (var i = 1; i < rates.Length; i++) {
@@ -214,7 +234,9 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
         }
 
         var depths = new[] { 0.0, 0.25, 0.5, 0.75, 1.0 }.Select(i => lfo.Depth(rates[2], i)).ToArray();
-        output.WriteLine($"depth {string.Join(", ", depths.Select(static d => $"{d:0.00}"))} V at intensity 0, 2.5, 5, 7.5, 10");
+        output.WriteLine(
+            $"depth {string.Join(", ", depths.Select(static d => $"{d:0.00}"))} V at intensity 0, 2.5, 5, 7.5, 10"
+        );
         Assert.Equal(0, depths[0]);
         for (var i = 1; i < depths.Length; i++) {
             Assert.True(depths[i] > depths[i - 1]);
@@ -272,8 +294,8 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
         var (offLow, offHigh) = Envelopes(false);
         var correlation = Correlation(onLow, onHigh);
         output.WriteLine(
-            $"{type}: pedal on, 100 Hz swings {Swing(onLow):0.0} dB and 3 kHz {Swing(onHigh):0.0} dB, correlation " +
-            $"{correlation:0.00}; pedal off, {Swing(offLow):0.00} dB and {Swing(offHigh):0.00} dB"
+            $"{type}: pedal on, 100 Hz swings {Swing(onLow):0.0} dB and 3 kHz {Swing(onHigh):0.0} dB, correlation "
+            + $"{correlation:0.00}; pedal off, {Swing(offLow):0.00} dB and {Swing(offHigh):0.00} dB"
         );
         Assert.True(Swing(onLow) > 3, "the bass band hardly moves");
         Assert.True(Swing(onHigh) > 3, "the treble band hardly moves");
@@ -343,7 +365,9 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
         var eu7 = new Triode(TriodeModel.SixEU7);
         foreach (var (vp, vg, ip, gm) in triode) {
             var i = OperatingPoint.PlateCurrent(eu7, vg, vp) * 1e3;
-            var g = (OperatingPoint.PlateCurrent(eu7, vg + 1e-3, vp) - OperatingPoint.PlateCurrent(eu7, vg - 1e-3, vp)) / 2e-3 * 1e3;
+            var g = (OperatingPoint.PlateCurrent(eu7, vg + 1e-3, vp) - OperatingPoint.PlateCurrent(eu7, vg - 1e-3, vp))
+                / 2e-3
+                * 1e3;
             output.WriteLine($"6EU7 {vp} V {vg} V: {i:0.000} mA ({ip}), {g:0.000} mS ({gm})");
             Assert.InRange(i / ip, 0.8, 1.25);
             Assert.InRange(g / gm, 0.85, 1.15);
@@ -375,6 +399,7 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
         var left = new float[64];
         var right = new float[64];
         var chord = CircuitAmpBlockTests.Chord(64 * 40, 0.25f);
+
         void Play(int blocks) {
             for (var b = 0; b < blocks; b++) {
                 chord.AsSpan(b % 40 * 64, 64).CopyTo(left);
@@ -383,6 +408,7 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
         }
 
         int[] types = [..Models.Select(TypeOf)];
+
         void Round() {
             foreach (var type in types) {
                 block.Params.SetTarget(CircuitAmpBlock.Type, type);

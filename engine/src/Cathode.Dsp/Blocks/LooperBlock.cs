@@ -48,8 +48,16 @@ public sealed class LooperBlock() : DspBlock(Info), ILooperBlock {
         "Looper",
         "Utility",
         [
-            new("maxTime", "Max Loop Time", ParamKind.Float, 1f, (float)Looping.Looper.MaxSeconds, 60f, "s",
-                Smoothing: ParamSmoothing.Step),
+            new(
+                "maxTime",
+                "Max Loop Time",
+                ParamKind.Float,
+                1f,
+                (float)Looping.Looper.MaxSeconds,
+                60f,
+                "s",
+                Smoothing: ParamSmoothing.Step
+            ),
             ParamDescriptor.Switch("once", "Once"),
             ParamDescriptor.Float("trimStart", "Trim Start", 0f, 100f, 0f, "%"),
             ParamDescriptor.Float("trimEnd", "Trim End", 0f, 100f, 100f, "%"),
@@ -75,7 +83,7 @@ public sealed class LooperBlock() : DspBlock(Info), ILooperBlock {
 
     protected override void OnPrepare(in ProcessSpec spec) {
         looper?.Dispose();
-        Volatile.Write(ref looper, new Looper(spec.SampleRate, Looping.Looper.MaxSeconds));
+        Volatile.Write(ref looper, new(spec.SampleRate, Looping.Looper.MaxSeconds));
     }
 
     protected override void OnReset() {

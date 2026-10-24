@@ -18,7 +18,8 @@ public enum SpectrumWindow {
 }
 
 /// <summary>
-///     Long-term average power spectrum (Welch's method: windowed frames, Hann by default, power averaged). Used off the audio thread
+///     Long-term average power spectrum (Welch's method: windowed frames, Hann by default, power averaged). Used off the
+///     audio thread
 ///     by the RTA and Tone Match. Frames below <see cref="SilenceDb" /> are skipped, so pauses in a performance do not
 ///     pull the average towards the noise floor.
 /// </summary>
@@ -58,10 +59,15 @@ public sealed class PowerSpectrum {
     /// <summary>The window at phase <paramref name="x" /> (0..2π across the frame).</summary>
     static double Window(SpectrumWindow shape, double x) =>
         shape switch {
-            SpectrumWindow.BlackmanHarris => 0.35875 - 0.48829 * Math.Cos(x) + 0.14128 * Math.Cos(2 * x)
+            SpectrumWindow.BlackmanHarris => 0.35875
+                - 0.48829 * Math.Cos(x)
+                + 0.14128 * Math.Cos(2 * x)
                 - 0.01168 * Math.Cos(3 * x),
-            SpectrumWindow.FlatTop => 0.21557895 - 0.41663158 * Math.Cos(x) + 0.277263158 * Math.Cos(2 * x)
-                - 0.083578947 * Math.Cos(3 * x) + 0.006947368 * Math.Cos(4 * x),
+            SpectrumWindow.FlatTop => 0.21557895
+                - 0.41663158 * Math.Cos(x)
+                + 0.277263158 * Math.Cos(2 * x)
+                - 0.083578947 * Math.Cos(3 * x)
+                + 0.006947368 * Math.Cos(4 * x),
             SpectrumWindow.Rectangular => 1,
             _ => 0.5 * (1 - Math.Cos(x))
         };
@@ -118,7 +124,10 @@ public sealed class PowerSpectrum {
 
 /// <summary>Fractional-octave views of a power spectrum: RTA bands and smoothing.</summary>
 public static class FractionalOctave {
-    /// <summary>Band centres from <paramref name="low" /> to <paramref name="high" /> Hz, <paramref name="perOctave" /> per octave, anchored at 1 kHz.</summary>
+    /// <summary>
+    ///     Band centres from <paramref name="low" /> to <paramref name="high" /> Hz, <paramref name="perOctave" /> per
+    ///     octave, anchored at 1 kHz.
+    /// </summary>
     public static double[] Centers(int perOctave, double low = 20, double high = 20_000) {
         var first = (int)Math.Ceiling(perOctave * Math.Log2(low / 1_000));
         var last = (int)Math.Floor(perOctave * Math.Log2(high / 1_000));
@@ -131,7 +140,12 @@ public static class FractionalOctave {
     }
 
     /// <summary>Band levels in dB (power summed across each band's bins; bands narrower than a bin take the nearest bin).</summary>
-    public static float[] Bands(ReadOnlySpan<double> power, double sampleRate, ReadOnlySpan<double> centers, int perOctave) {
+    public static float[] Bands(
+        ReadOnlySpan<double> power,
+        double sampleRate,
+        ReadOnlySpan<double> centers,
+        int perOctave
+    ) {
         var size = 2 * (power.Length - 1);
         var binHz = sampleRate / size;
         var half = Math.Pow(2, 0.5 / perOctave);

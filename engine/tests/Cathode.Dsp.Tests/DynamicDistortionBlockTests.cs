@@ -17,15 +17,15 @@ public class DynamicDistortionBlockTests {
 
     [Fact]
     public void Negative_dynamics_clean_up_loud_playing() {
-        var staticThd = Thd(-6, 0f, drive: 5f);
-        var cleaningThd = Thd(-6, -100f, drive: 5f);
+        var staticThd = Thd(-6, 0f, 5f);
+        var cleaningThd = Thd(-6, -100f, 5f);
 
         Assert.True(cleaningThd < staticThd / 4, $"THD {cleaningThd:0.000} vs static {staticThd:0.000}");
     }
 
     [Fact]
     public void Below_threshold_it_matches_the_static_drive() {
-        Assert.Equal(Thd(-50, 0f, drive: 5f), Thd(-50, 100f, drive: 5f), 1e-4);
+        Assert.Equal(Thd(-50, 0f, 5f), Thd(-50, 100f, 5f), 1e-4);
     }
 
     /// <summary>How many times larger the THD is at -12 dBFS than at -30 dBFS.</summary>

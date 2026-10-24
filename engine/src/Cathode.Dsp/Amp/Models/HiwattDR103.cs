@@ -51,24 +51,24 @@ public static class HiwattDR103 {
         new(
             "4 x EL34",
             PentodeModel.EL34,
-            TubesPerSide: 2,
-            Supply: 496,
-            ScreenResistor: 100,
-            IdleCurrent: 0.030,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 100,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc81, 450, 82e3, 91e3, 22.6e3, 1.6e3),
-            CouplingCap: 47e-9,
-            GridLeak: 100e3,
-            GridStopper: 22e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(Math.Sqrt(2), 10e3, 2.2e3, new(100e3, PotTaper.Linear), 0.1e-6),
-            HasFeedback: true,
-            Transformer: new(1.7e3),
-            Speaker: SpeakerDesign.Closed4x12,
-            PowerSupply: new(25, 100e-6, 100, 50e-6, 32e3, 16e-6, 6e-3),
+            2,
+            496,
+            100,
+            0.030,
+            false,
+            0,
+            100,
+            new LongTailPairDesign(TriodeModel.Ecc81, 450, 82e3, 91e3, 22.6e3, 1.6e3),
+            47e-9,
+            100e3,
+            22e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(Math.Sqrt(2), 10e3, 2.2e3, new(100e3, PotTaper.Linear), 0.1e-6),
+            true,
+            new(1.7e3),
+            SpeakerDesign.Closed4x12,
+            new(25, 100e-6, 100, 50e-6, 32e3, 16e-6, 6e-3),
             InverterInput: null
         ),
         -6
@@ -105,7 +105,9 @@ public static class HiwattDR103 {
         var normalJack = net.Node();
         net.SwitchedResistor(net.Input, normalJack, 0, Closed, SwitchRole.Switch1);
         net.SwitchedResistor(net.Input, normalJack, 0, Closed, SwitchRole.Switch2);
-        foreach (var (jack, coupling, volume) in new[] { (brilliantJack, 1e-9, PotRole.Gain), (normalJack, 22e-9, PotRole.Control1) }) {
+        foreach (var (jack, coupling, volume) in new[] {
+                     (brilliantJack, 1e-9, PotRole.Gain), (normalJack, 22e-9, PotRole.Control1)
+                 }) {
             var (grid, plate, top) = (net.Node(), net.Node(), net.Node());
             net.Resistor(jack, StageNetlist.Ground, 1e6);
             net.Resistor(jack, grid, 34e3);
@@ -126,7 +128,8 @@ public static class HiwattDR103 {
     /// </summary>
     static NetworkStageDesign V2A() {
         var net = new StageNetlist();
-        var (rail, plate, cathode, a, trebleTop, trebleFoot) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (rail, plate, cathode, a, trebleTop, trebleFoot) = (net.Node(), net.Node(), net.Node(), net.Node(),
+            net.Node(), net.Node());
         var (middleTop, bassTop, shunt, master) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Supply(rail, V2ASupply);
         net.Resistor(rail, plate, 100e3);

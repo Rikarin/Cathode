@@ -49,7 +49,8 @@ public class NonlinearRootTests(ITestOutputHelper output) {
     [InlineData("pentode", 3.0)]
     public void Moderate_drive_matches_the_reference_in_the_time_domain(string name, double amplitude) {
         // 1 kHz with a 220 Hz component, so the stage sees a changing slope as well as a level.
-        double Input(double t) => amplitude * (0.7 * Math.Sin(2 * Math.PI * 1_000 * t) + 0.3 * Math.Sin(2 * Math.PI * 220 * t));
+        double Input(double t) =>
+            amplitude * (0.7 * Math.Sin(2 * Math.PI * 1_000 * t) + 0.3 * Math.Sin(2 * Math.PI * 220 * t));
 
         var stage = Create(name, Rate);
         var reference = new ReferenceSimulator(stage.Reference(Input, Rate * Oversampling));
@@ -84,8 +85,8 @@ public class NonlinearRootTests(ITestOutputHelper output) {
 
         var errorDb = 10 * Math.Log10(error / energy);
         output.WriteLine(
-            $"{name}: output {peak:0.000} V peak, error {errorDb:0.0} dB, Newton {stage.Newton.MeanIterations:0.00} " +
-            $"iterations per sample (most {stage.Newton.MostIterations}), reference most {reference.MostIterations}"
+            $"{name}: output {peak:0.000} V peak, error {errorDb:0.0} dB, Newton {stage.Newton.MeanIterations:0.00} "
+            + $"iterations per sample (most {stage.Newton.MostIterations}), reference most {reference.MostIterations}"
         );
         Assert.Equal(0, reference.NewtonFailures);
         Assert.Equal(0, stage.Newton.Unconverged);
@@ -119,8 +120,8 @@ public class NonlinearRootTests(ITestOutputHelper output) {
 
         var newton = stage.Newton;
         output.WriteLine(
-            $"{name}: mean {newton.MeanIterations:0.00} iterations, most {newton.MostIterations}, " +
-            $"unconverged {newton.Unconverged}, non-finite {newton.NonFinite}, output peak {peak:0.0} V"
+            $"{name}: mean {newton.MeanIterations:0.00} iterations, most {newton.MostIterations}, "
+            + $"unconverged {newton.Unconverged}, non-finite {newton.NonFinite}, output peak {peak:0.0} V"
         );
         Assert.True(finite, "non-finite output");
         Assert.Equal(0, newton.NonFinite);
@@ -138,7 +139,9 @@ public class NonlinearRootTests(ITestOutputHelper output) {
             finite &= double.IsFinite(stage.Tick(n / 48 % 2 == 0 ? 2 : -2));
         }
 
-        output.WriteLine($"{name}: {stage.Newton.Unconverged} of {stage.Newton.Samples} samples unconverged at one iteration");
+        output.WriteLine(
+            $"{name}: {stage.Newton.Unconverged} of {stage.Newton.Samples} samples unconverged at one iteration"
+        );
         Assert.True(finite);
         Assert.Equal(0, stage.Newton.NonFinite);
     }
@@ -185,11 +188,12 @@ public class NonlinearRootTests(ITestOutputHelper output) {
         Assert.Equal(
             0,
             AllocationProbe.Measure(() => {
-                for (var i = 0; i < 1_000; i++, n++) {
-                    stage.Tick(Math.Sin(n * 0.05));
-                    triode.Tick(Math.Sin(n * 0.05));
+                    for (var i = 0; i < 1_000; i++, n++) {
+                        stage.Tick(Math.Sin(n * 0.05));
+                        triode.Tick(Math.Sin(n * 0.05));
+                    }
                 }
-            })
+            )
         );
     }
 
@@ -248,35 +252,47 @@ public class NonlinearRootTests(ITestOutputHelper output) {
         }
 
         var rows = new (string Name, double Ns)[] {
-            ("DiodePair root, exact (K = 1, closed form + Newton)", Measure(x => {
-                exact.Tree.A.Volts = x;
-                return exact.Tick();
-            }, 3)),
-            ("DiodePair root, antialiased", Measure(x => {
-                antialiased.Tree.A.Volts = x;
-                return antialiased.Tick();
-            }, 3)),
+            ("DiodePair root, exact (K = 1, closed form + Newton)", Measure(
+                x => {
+                    exact.Tree.A.Volts = x;
+                    return exact.Tick();
+                },
+                3
+            )),
+            ("DiodePair root, antialiased", Measure(
+                x => {
+                    antialiased.Tree.A.Volts = x;
+                    return antialiased.Tick();
+                },
+                3
+            )),
             ("R-type root, linear (tone stack, 4 ports)", Measure(stack.Tick, 1)),
-            ("R-type root, diode pair (K = 1)", Measure(x => {
-                clipper.Ports.A.Volts = x;
-                return clipper.Tick();
-            }, 3)),
+            ("R-type root, diode pair (K = 1)", Measure(
+                x => {
+                    clipper.Ports.A.Volts = x;
+                    return clipper.Tick();
+                },
+                3
+            )),
             ("R-type root, BJT common emitter (K = 2)", Measure(bjt.Tick, 0.01)),
             ("R-type root, 12AX7 common cathode (K = 2)", Measure(triode.Tick, 1)),
             ("R-type root, op-amp + diodes (K = 3)", Measure(opamp.Tick, 0.1)),
             ("R-type root, EL84 single-ended (K = 3)", Measure(pentode.Tick, 3))
         };
         foreach (var (name, ns) in rows) {
-            output.WriteLine($"{name,-52} {ns,7:0.0} ns/sample, {ns * 48_000 * 4 / 1e9:P2} of a core per channel at 4x 48 kHz");
+            output.WriteLine(
+                $"{name,-52} {ns,7:0.0} ns/sample, {ns * 48_000 * 4 / 1e9:P2} of a core per channel at 4x 48 kHz"
+            );
         }
 
         Assert.All(rows, static r => Assert.True(r.Ns < 20_000, $"{r.Name}: {r.Ns:0} ns"));
     }
 
-    static ITestStage Create(string name, double rate) => name switch {
-        "bjt" => new CommonEmitterStage(rate, BjtModel.Q2N3904),
-        "triode" => new CommonCathodeStage(rate, TriodeModel.Ecc83),
-        "opamp" => new OpAmpClipperStage(rate, OpAmpModel.JRC4558),
-        _ => new PentodeStage(rate, PentodeModel.EL84)
-    };
+    static ITestStage Create(string name, double rate) =>
+        name switch {
+            "bjt" => new CommonEmitterStage(rate, BjtModel.Q2N3904),
+            "triode" => new CommonCathodeStage(rate, TriodeModel.Ecc83),
+            "opamp" => new OpAmpClipperStage(rate, OpAmpModel.JRC4558),
+            _ => new PentodeStage(rate, PentodeModel.EL84)
+        };
 }

@@ -3,12 +3,14 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Fender Concert 6G12 (brownface, 40 W, 4 × 10): the Normal or Vibrato channel (<see cref="AmpPanel.Switch1" />), each
+///     Fender Concert 6G12 (brownface, 40 W, 4 × 10): the Normal or Vibrato channel (<see cref="AmpPanel.Switch1" />),
+///     each
 ///     a 7025 stage into the brownface tone network and the Volume, a second 7025 stage, then on the Vibrato channel the
 ///     harmonic vibrato's crossover and mixer pair (the dry sound runs through them too), with Speed, Intensity and the
 ///     vibrato pedal (<see cref="AmpPanel.Switch2" />); a 7025 long-tail pair, two 6L6GC in fixed bias at 460 V on a
 ///     silicon rectifier, and 6.8k of feedback from the 2 Ω tap into 1.5k with the 5k Presence and 0.1 µF across it.
-///     Sources: the Fender drawing and layout "Concert 6G12" (A-FJ; schematicheaven.net/fenderamps/concert_6g12_schem.pdf);
+///     Sources: the Fender drawing and layout "Concert 6G12" (A-FJ;
+///     schematicheaven.net/fenderamps/concert_6g12_schem.pdf);
 ///     <see cref="Brownface" /> and <see cref="HarmonicVibratoStageDesign" /> for the shared circuit and its readings.
 /// </summary>
 /// <remarks>
@@ -26,28 +28,26 @@ public static class Concert6G12 {
         new(
             "2 x 6L6GC",
             PentodeModel.SixL6GC,
-            TubesPerSide: 1,
-            Supply: 460,
-            ScreenResistor: 470,
-            IdleCurrent: 0.035,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 40,
-            PhaseInverter: Brownface.PhaseInverter,
-            CouplingCap: 0.05e-6,
-            GridLeak: 220e3,
-            GridStopper: 1,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(0.5, 6.8e3, 1.5e3, new(5e3, PotTaper.Linear), 0.1e-6),
-            HasFeedback: true,
-            Transformer: new(4.2e3),
-            Speaker: SpeakerDesign.OpenBack4x10,
-            PowerSupply: new(40, 40e-6, 100, 20e-6, 4.7e3, 20e-6, 6e-3, RectifierModel.Silicon),
+            1,
+            460,
+            470,
+            0.035,
+            false,
+            0,
+            40,
+            Brownface.PhaseInverter,
+            0.05e-6,
+            220e3,
+            1,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(0.5, 6.8e3, 1.5e3, new(5e3, PotTaper.Linear), 0.1e-6),
+            true,
+            new(4.2e3),
+            SpeakerDesign.OpenBack4x10,
+            new(40, 40e-6, 100, 20e-6, 4.7e3, 20e-6, 6e-3, RectifierModel.Silicon),
             InverterInput: new(1e-9, 1e6)
         ),
         -5
-    ) {
-        Panel = Brownface.Panel
-    };
+    ) { Panel = Brownface.Panel };
 }

@@ -5,7 +5,8 @@ namespace Cathode.Dsp.Filters;
 /// <summary>
 ///     Coefficients for a 4th-order Linkwitz–Riley crossover built from trapezoidal state-variable filters (see
 ///     <see cref="SvfCoefficients" />): each band is a 2nd-order Butterworth section squared, so both bands are -6 dB at
-///     the crossover frequency and in phase, and their sum is the 2nd-order allpass <c>(s² - √2 s + 1) / (s² + √2 s + 1)</c>,
+///     the crossover frequency and in phase, and their sum is the 2nd-order allpass
+///     <c>(s² - √2 s + 1) / (s² + √2 s + 1)</c>,
 ///     flat in magnitude. The bilinear transform preserves that identity exactly.
 /// </summary>
 public readonly record struct LinkwitzRileyCoefficients(double A1, double A2, double A3) {

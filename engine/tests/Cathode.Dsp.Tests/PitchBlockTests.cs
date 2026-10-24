@@ -257,7 +257,9 @@ public class PitchBlockTests(ITestOutputHelper output) {
 
     [Fact]
     public void Custom_tables_default_to_major_key_harmony() {
-        var table = Enumerable.Range(0, 48).Select(i => PitchBlock.Info.Params[PitchBlock.CustomTable + i].Default).ToArray();
+        var table = Enumerable.Range(0, 48)
+            .Select(i => PitchBlock.Info.Params[PitchBlock.CustomTable + i].Default)
+            .ToArray();
 
         Assert.Equal((float[])[4, 4, 3, 3, 3, 4, 4, 4, 4, 3, 3, 3], table[..12]); // a third: C-E, D-F, E-G, ...
         Assert.Equal((float[])[7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 6], table[12..24]); // a fifth, B-F diminished

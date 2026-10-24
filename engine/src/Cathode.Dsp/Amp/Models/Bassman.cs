@@ -16,7 +16,8 @@ namespace Cathode.Dsp.Amp.Models;
 /// <remarks>
 ///     <para>
 ///         Sources: AmpBooks "Fender Bassman 5F6-A" (12AY7 at 325 V with 820 Ω ‖ 250 µF and 34k stoppers; 0.02 µF; 1M
-///         volume; V2A 100k / 820 Ω unbypassed; the inverter's 470 Ω, 10k + 5k tail, 82k plates, 0.1 µF out; 470 Ω screens;
+///         volume; V2A 100k / 820 Ω unbypassed; the inverter's 470 Ω, 10k + 5k tail, 82k plates, 0.1 µF out; 470 Ω
+///         screens;
 ///         GZ34); Rob Robinette's 5F6-A page (100 pF bright cap, 270k mixers, 100k cathode follower, 2 × 5881 at −48 V,
 ///         220k grid leaks, B+ 442 V unloaded and 411 V loaded, 4.7k to the preamp, 27k feedback from the 2 Ω tap, a 5k
 ///         presence pot); Yeh and Smith, DAFx-06, for the stack (the schematic's 56k slope and 0.02 µF bass cap; Robinette
@@ -26,13 +27,15 @@ namespace Cathode.Dsp.Amp.Models;
 ///         With one input played, the other half of V1 has its grid at rest, and with its cathode bypassed (250 µF, a
 ///         corner near 1 Hz) it is linear: its plate is its r_p in parallel with its 100k, about 21k (behind its coupling
 ///         cap, from its own DC plate voltage), the load that the channel not played puts on the one played through the
-///         volumes. The played half gets the shared cathode's per-tube equivalent (1.64k ‖ 125 µF). Jumped, both halves are
+///         volumes. The played half gets the shared cathode's per-tube equivalent (1.64k ‖ 125 µF). Jumped, both halves
+///         are
 ///         driven and the stage holds both triodes exactly, at about 5 % more CPU.
 ///     </para>
 ///     <para>
 ///         Unverified: the pot tapers (treble and mid linear, bass and volumes audio, as on the JTM45 drawing that copied
 ///         this circuit), the presence cap (0.1 µF), the output transformer (about 4k), the 5881 idle current (35 mA), no
-///         grid stoppers, the inverter's supply (330 V), and the supply's source resistance and reservoir. Jumpered, each grid
+///         grid stoppers, the inverter's supply (330 V), and the supply's source resistance and reservoir. Jumpered, each
+///         grid
 ///         sees about 68k (the two input jacks' resistors in series).
 ///     </para>
 /// </remarks>
@@ -72,34 +75,34 @@ public static class Bassman {
                     "V2B",
                     TriodeModel.Ecc83,
                     StackDriver.CathodeFollower,
-                    Supply: 325,
-                    CathodeResistor: 100e3,
-                    Stack: Stack,
-                    Load: new(1e6, PotTaper.Linear),
-                    LoadRole: PotRole.Master
+                    325,
+                    100e3,
+                    Stack,
+                    new(1e6, PotTaper.Linear),
+                    PotRole.Master
                 )
             ],
             new(
                 "2 x 5881",
                 PentodeModel.SixL6GC,
-                TubesPerSide: 1,
-                Supply: 430,
-                ScreenResistor: 470,
-                IdleCurrent: 0.035,
-                CathodeBias: false,
-                CathodeBypass: 0,
-                RatedPower: 45,
-                PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 10e3, 470),
-                CouplingCap: 0.1e-6,
-                GridLeak: 220e3,
-                GridStopper: 1,
-                CutCap: 0,
-                CutPot: new(1e6, PotTaper.Linear),
-                Feedback: new(0.5, 27e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6),
-                HasFeedback: true,
-                Transformer: new(4e3),
-                Speaker: SpeakerDesign.OpenBack4x10,
-                PowerSupply: new(100, 32e-6, 100, 16e-6, 4.7e3, 16e-6, 6e-3, RectifierModel.GZ34)
+                1,
+                430,
+                470,
+                0.035,
+                false,
+                0,
+                45,
+                new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 10e3, 470),
+                0.1e-6,
+                220e3,
+                1,
+                0,
+                new(1e6, PotTaper.Linear),
+                new(0.5, 27e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6),
+                true,
+                new(4e3),
+                SpeakerDesign.OpenBack4x10,
+                new(100, 32e-6, 100, 16e-6, 4.7e3, 16e-6, 6e-3, RectifierModel.GZ34)
             ),
             -11
         ) {

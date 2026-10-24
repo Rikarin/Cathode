@@ -26,15 +26,15 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help") {
 }
 
 try {
-    var options = new Options(args[1..], new HashSet<string>(StringComparer.Ordinal) {
-        "force",
-        "json",
-        "html",
-        "synthetic"
-    });
+    var options = new Options(
+        args[1..],
+        new HashSet<string>(StringComparer.Ordinal) { "force", "json", "html", "synthetic" }
+    );
     var manifestPath = options.Value("manifest") ?? ReferenceManifest.Locate(Directory.GetCurrentDirectory());
     var manifest = ReferenceManifest.Load(manifestPath);
-    var cache = options.Value("cache") is { } root ? new ReferenceCache(Path.GetFullPath(root)) : ReferenceCache.Default;
+    var cache = options.Value("cache") is { } root
+        ? new ReferenceCache(Path.GetFullPath(root))
+        : ReferenceCache.Default;
 
     return args[0] switch {
         "status" => Status(manifest, cache),
@@ -44,8 +44,13 @@ try {
         "fit" => Fit(manifest, cache, options),
         _ => Unknown(args[0])
     };
-} catch (Exception e) when (e is ArgumentException or FileNotFoundException or KeyNotFoundException
-                                or InvalidDataException or JsonException or FormatException or NotSupportedException) {
+} catch (Exception e) when (e is ArgumentException
+                                or FileNotFoundException
+                                or KeyNotFoundException
+                                or InvalidDataException
+                                or JsonException
+                                or FormatException
+                                or NotSupportedException) {
     Console.Error.WriteLine($"error: {e.Message}");
     return 1;
 }
@@ -57,7 +62,8 @@ static int Unknown(string command) {
 }
 
 static void PrintUsage() =>
-    Console.WriteLine("""
+    Console.WriteLine(
+        """
         Usage: cathode-references <command> [options]
           status                         cache contents; local-only references to fetch by hand
           fetch [--force]                download the redistributable references (GPL-compatible only)
@@ -67,7 +73,8 @@ static void PrintUsage() =>
           fit --id <id> --tol <param>:<min>:<max>[:<nominal>]... [--max-evals <n>] [--input-dbu <dBu>]
           fit --synthetic [--type <Type>]
         Common: --manifest <path>, --cache <dir> (default $CATHODE_REFERENCES or ~/.cache/cathode/references)
-        """);
+        """
+    );
 
 static int Status(ReferenceManifest manifest, ReferenceCache cache) {
     Console.WriteLine($"Cache: {cache.Root}{(cache.Exists ? string.Empty : " (does not exist)")}");
@@ -141,7 +148,9 @@ static int Match(ReferenceManifest manifest, ReferenceCache cache, Options optio
         }
 
         if (cache.TryLocate(entry) is not { } path) {
-            Console.WriteLine($"{entry.Id,-36} skipped: {cache.StateOf(entry).ToString().ToLowerInvariant()} in the cache");
+            Console.WriteLine(
+                $"{entry.Id,-36} skipped: {cache.StateOf(entry).ToString().ToLowerInvariant()} in the cache"
+            );
             continue;
         }
 
@@ -152,7 +161,7 @@ static int Match(ReferenceManifest manifest, ReferenceCache cache, Options optio
         Console.WriteLine(
             $"{entry.Id,-36} {Truncate(report.Circuit, 28),-28} {report.InputDbu,5:0.0}{(report.InputDbuFitted ? "*" : " ")} "
             + $"{report.Esr,7:0.000} {report.EsrPreEmphasis,7:0.000} {report.Mrstft,7:0.000} {report.HarmonicDistanceDb,8:0.0} "
-            + $"{report.ResponseRmsDb,8:0.0} {(report.Pass switch { true => "yes", false => "NO", null => "-" }),5}"
+            + $"{report.ResponseRmsDb,8:0.0} {report.Pass switch { true => "yes", false => "NO", null => "-" },5}"
             + $"  ({watch.Elapsed.TotalSeconds:0}s)"
         );
         foreach (var warning in report.Warnings) {
@@ -199,8 +208,11 @@ static int Fit(ReferenceManifest manifest, ReferenceCache cache, Options options
 
     using var reference = ReferenceModels.Open(entry, path);
     using var circuit = new CircuitAmpRenderer(reference.SampleRate);
-    var dbu = options.Number("input-dbu") ?? entry.Rig.InputDbu ?? ReferenceMatcher.FitInputDbu(reference, circuit, settings);
-    Console.WriteLine($"{id}: input calibration {dbu:0.0} dBu; fitting {string.Join(", ", tolerances.Select(static t => t.Name))}");
+    var dbu = options.Number("input-dbu")
+        ?? entry.Rig.InputDbu ?? ReferenceMatcher.FitInputDbu(reference, circuit, settings);
+    Console.WriteLine(
+        $"{id}: input calibration {dbu:0.0} dBu; fitting {string.Join(", ", tolerances.Select(static t => t.Name))}"
+    );
     var fit = ToleranceFit.AgainstReference(reference, circuit, settings, tolerances, dbu);
     var result = fit.Run(maxEvaluations);
     PrintFit(tolerances, result, null);
@@ -214,9 +226,7 @@ static int FitSynthetic(string type, int maxEvaluations) {
     var settings = new CircuitSettings(type, new Dictionary<string, double> { ["gain"] = 6 });
     var truth = new Dictionary<string, double> { ["gain"] = 6.8, ["bias"] = 58, ["feedback"] = 4.2 };
     var tolerances = new List<Tolerance> {
-        new("gain", 6, 4.5, 7.5),
-        new("bias", 50, 35, 65),
-        new("feedback", 5, 3, 7)
+        new("gain", 6, 4.5, 7.5), new("bias", 50, 35, 65), new("feedback", 5, 3, 7)
     };
     using var circuit = new CircuitAmpRenderer(Rate);
     var volts = MatchSignals.Performance(Rate, [0.05, 0.3], 0.25);
@@ -227,8 +237,14 @@ static int FitSynthetic(string type, int maxEvaluations) {
     return 0;
 }
 
-static void PrintFit(IReadOnlyList<Tolerance> tolerances, FitResult result, IReadOnlyDictionary<string, double>? truth) {
-    Console.WriteLine($"{"tolerance",-12} {"nominal",8} {"min",8} {"max",8} {"fitted",8}{(truth is null ? string.Empty : $" {"truth",8}")}");
+static void PrintFit(
+    IReadOnlyList<Tolerance> tolerances,
+    FitResult result,
+    IReadOnlyDictionary<string, double>? truth
+) {
+    Console.WriteLine(
+        $"{"tolerance",-12} {"nominal",8} {"min",8} {"max",8} {"fitted",8}{(truth is null ? string.Empty : $" {"truth",8}")}"
+    );
     foreach (var t in tolerances) {
         Console.WriteLine(
             $"{t.Name,-12} {t.Nominal,8:0.###} {t.Min,8:0.###} {t.Max,8:0.###} {result.Values[t.Name],8:0.###}"
@@ -240,7 +256,9 @@ static void PrintFit(IReadOnlyList<Tolerance> tolerances, FitResult result, IRea
         $"score {result.NominalScore:0.0000} at nominal -> {result.Score:0.0000} fitted, {result.Evaluations} renders"
     );
     if (result.AtBound.Count > 0) {
-        Console.WriteLine($"at a bound: {string.Join(", ", result.AtBound)} (the cause may lie outside the tolerances)");
+        Console.WriteLine(
+            $"at a bound: {string.Join(", ", result.AtBound)} (the cause may lie outside the tolerances)"
+        );
     }
 }
 

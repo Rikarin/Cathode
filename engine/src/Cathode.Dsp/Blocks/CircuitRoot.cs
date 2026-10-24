@@ -137,7 +137,10 @@ public sealed class CircuitRoot<TSource, TDevice>
     public CircuitRoot(WdfNetlist netlist, TSource source, Capacitor[] capacitors, TDevice device) {
         scattering = new(netlist);
         if (scattering.HasUp || scattering.PortCount != capacitors.Length + 1 || capacitors.Length > MaxCapacitors) {
-            throw new ArgumentException("A circuit root has a source port, then one port per capacitor.", nameof(netlist));
+            throw new ArgumentException(
+                "A circuit root has a source port, then one port per capacitor.",
+                nameof(netlist)
+            );
         }
 
         if (netlist.Count(NetlistElementKind.CurrentSource) > 0) {
@@ -431,7 +434,7 @@ public sealed class CircuitRoot<TSource, TDevice>
                 }
 
                 hasFactors = true;
-                Record(count, converged: true);
+                Record(count, true);
                 return;
             }
 
@@ -474,7 +477,7 @@ public sealed class CircuitRoot<TSource, TDevice>
         }
 
         hasFactors = false;
-        Record(count, converged: false);
+        Record(count, false);
     }
 
     /// <summary>

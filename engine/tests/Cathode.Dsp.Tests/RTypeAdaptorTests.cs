@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Numerics;
 using Cathode.Dsp.Tests.Circuits;
 using Cathode.Dsp.Wdf;
 using Cathode.Testing;
@@ -89,6 +88,7 @@ public class RTypeAdaptorTests(ITestOutputHelper output) {
     public void Recomputing_the_tone_stack_is_allocation_free_and_cheap() {
         var stack = new FenderToneStack(Rate);
         var position = 0.0;
+
         void Turn() {
             for (var i = 0; i < 1_000; i++) {
                 position = position > 0.99 ? 0 : position + 0.013;
@@ -108,8 +108,8 @@ public class RTypeAdaptorTests(ITestOutputHelper output) {
 
         var recompute = watch.Elapsed.TotalNanoseconds / Count;
         output.WriteLine(
-            $"tone stack recompute ({stack.Size}-unknown MNA, {stack.Columns} columns): {recompute:0} ns, " +
-            $"{recompute / (64 / Rate * 1e9):P3} of a 64-frame block at 48 kHz"
+            $"tone stack recompute ({stack.Size}-unknown MNA, {stack.Columns} columns): {recompute:0} ns, "
+            + $"{recompute / (64 / Rate * 1e9):P3} of a 64-frame block at 48 kHz"
         );
         Assert.True(recompute < 50_000, $"{recompute:0} ns per recompute");
     }
@@ -164,7 +164,10 @@ public class RTypeAdaptorTests(ITestOutputHelper output) {
     [InlineData(1e12)]
     public void Fast_wright_omega_is_accurate_to_1e_11_across_its_segments(double x) {
         var precise = WrightOmega.Precise(x);
-        Assert.True(Math.Abs(WrightOmega.Fast(x) - precise) <= 1e-11 * precise, $"ω({x}) = {WrightOmega.Fast(x)}, not {precise}");
+        Assert.True(
+            Math.Abs(WrightOmega.Fast(x) - precise) <= 1e-11 * precise,
+            $"ω({x}) = {WrightOmega.Fast(x)}, not {precise}"
+        );
         var worst = 0.0;
         for (var i = -200; i <= 200; i++) {
             var y = x * (1 + i * 1e-4) + i * 1e-3;
@@ -280,7 +283,11 @@ sealed class FenderToneStack {
         return root.Tick();
     }
 
-    public static (ReferenceCircuit Circuit, int Source, int Probe) Reference(double treble, double bass, double middle) {
+    public static (ReferenceCircuit Circuit, int Source, int Probe) Reference(
+        double treble,
+        double bass,
+        double middle
+    ) {
         const double Floor = 1e-6; // the adaptor's minimum resistance for a pot at its end stop
         var c = new ReferenceCircuit();
         var source = c.Node();

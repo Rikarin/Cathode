@@ -37,7 +37,11 @@ public static class MatchSignals {
     ///     A phrase of plucks and chords at each of <paramref name="peaks" /> (volts), <paramref name="noteSeconds" />
     ///     per event.
     /// </summary>
-    public static float[] Performance(double sampleRate, IReadOnlyList<double>? peaks = null, double noteSeconds = 0.45) {
+    public static float[] Performance(
+        double sampleRate,
+        IReadOnlyList<double>? peaks = null,
+        double noteSeconds = 0.45
+    ) {
         peaks ??= PerformancePeaks;
         var lead = (int)(LeadInSeconds * sampleRate);
         var note = (int)(noteSeconds * sampleRate);
@@ -50,7 +54,13 @@ public static class MatchSignals {
                 for (var s = 0; s < Phrase[e].Length; s++) {
                     // A strum: strings 12 ms apart, slightly softer towards the top.
                     var start = e * note + (int)(s * 0.012 * sampleRate);
-                    Pluck(phrase.AsSpan(start, note - (start - e * note)), Phrase[e][s], sampleRate, ref seed, 1 - 0.1 * s);
+                    Pluck(
+                        phrase.AsSpan(start, note - (start - e * note)),
+                        Phrase[e][s],
+                        sampleRate,
+                        ref seed,
+                        1 - 0.1 * s
+                    );
                 }
             }
 

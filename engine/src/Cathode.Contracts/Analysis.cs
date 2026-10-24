@@ -22,7 +22,11 @@ public sealed record RtaRequest(bool Enabled, int BandsPerOctave = 6, float Deca
 /// <param name="Seconds">How long to listen to the rig, 3 to 60 seconds.</param>
 /// <param name="Amount">How much of the correction to apply, 0 to 100 %.</param>
 /// <param name="Smoothing">Smoothing width in octaves, 0.1 to 1.</param>
-public sealed record ToneMatchRequest(string Reference, double Seconds = 10, double Amount = 100, double Smoothing = 1.0 / 3);
+public sealed record ToneMatchRequest(
+    string Reference,
+    double Seconds = 10,
+    double Amount = 100,
+    double Smoothing = 1.0 / 3);
 
 /// <summary>One impulse response in an IR mix.</summary>
 /// <param name="Asset">An asset reference of a .wav IR.</param>

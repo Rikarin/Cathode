@@ -143,7 +143,8 @@ public sealed class StageNetlist {
     public void Resistor(int a, int b, double ohms) => Add(new(ElementKind.Resistor, a, b, ohms));
 
     /// <summary>A cathode resistor: the one <see cref="PreampSettings.CathodeResistor" /> scales (Preamp Bias).</summary>
-    public void CathodeResistor(int a, int b, double ohms) => Add(new(ElementKind.Resistor, a, b, ohms) { Cathode = true });
+    public void CathodeResistor(int a, int b, double ohms) =>
+        Add(new(ElementKind.Resistor, a, b, ohms) { Cathode = true });
 
     /// <summary>
     ///     A resistor of <paramref name="on" /> ohms while <paramref name="role" /> is on, else <paramref name="off" />;
@@ -203,9 +204,7 @@ public sealed class StageNetlist {
     public void Rheostat(int a, int b, Pot pot, PotRole role, bool falling = false) =>
         Add(
             new(ElementKind.Resistor, a, b, pot.Ohms) {
-                Pot = pot,
-                Part = falling ? PotPart.Upper : PotPart.Lower,
-                Role = role
+                Pot = pot, Part = falling ? PotPart.Upper : PotPart.Lower, Role = role
             }
         );
 
@@ -273,7 +272,8 @@ public sealed class StageNetlist {
 /// <param name="Name">A label.</param>
 /// <param name="Netlist">The circuit.</param>
 /// <param name="InputResistance">In series with the source (a grid stopper, an input-jack resistor).</param>
-public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, double InputResistance = 0) : AmpStageDesign(Name) {
+public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, double InputResistance = 0)
+    : AmpStageDesign(Name) {
     /// <summary>
     ///     The Newton iterations a sample may take before it counts as unconverged (the solver's default, 32, unless a
     ///     stage needs more: three triodes in a feedback loop driven into hard clipping).
@@ -291,15 +291,22 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
 
     public override AmpStage Create(double sampleRate) {
         var devices = Netlist.Elements
-            .Where(static e => e.Kind is ElementKind.Triode or ElementKind.Pentode or ElementKind.Diodes or ElementKind.OpAmp)
+            .Where(static e => e.Kind is ElementKind.Triode
+                    or ElementKind.Pentode
+                    or ElementKind.Diodes
+                    or ElementKind.OpAmp
+            )
             .OrderBy(static e => e.Kind)
             .ToArray();
-        var kinds = string.Concat(devices.Select(static e => e.Kind switch {
-            ElementKind.Triode => 'T',
-            ElementKind.Pentode => 'P',
-            ElementKind.Diodes => 'D',
-            _ => 'O'
-        }));
+        var kinds = string.Concat(
+            devices.Select(static e => e.Kind switch {
+                    ElementKind.Triode => 'T',
+                    ElementKind.Pentode => 'P',
+                    ElementKind.Diodes => 'D',
+                    _ => 'O'
+                }
+            )
+        );
         return kinds switch {
             "" => new NetworkStage<NoDevice>(this, devices, static (_, _) => default, sampleRate),
             "T" => new NetworkStage<FastTriode>(this, devices, (s, _) => new(s.TubeFor(devices[0].Triode)), sampleRate),
@@ -318,7 +325,7 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
                 ),
                 sampleRate
             ),
-            "P" => new NetworkStage<Wdf.Pentode>(this, devices, (_, _) => new(devices[0].Pentode), sampleRate),
+            "P" => new NetworkStage<Pentode>(this, devices, (_, _) => new(devices[0].Pentode), sampleRate),
             "D" => new NetworkStage<DiodeClipper>(this, devices, (_, _) => Clipper(devices[0]), sampleRate),
             "TD" => new NetworkStage<Devices<FastTriode, DiodeClipper>>(
                 this,
@@ -326,14 +333,14 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
                 (s, _) => new(new(s.TubeFor(devices[0].Triode)), Clipper(devices[1])),
                 sampleRate
             ),
-            "O" => new NetworkStage<Wdf.OpAmp>(this, devices, (_, rate) => OpAmp(devices[0], rate), sampleRate),
-            "OO" => new NetworkStage<Devices<Wdf.OpAmp, Wdf.OpAmp>>(
+            "O" => new NetworkStage<OpAmp>(this, devices, (_, rate) => OpAmp(devices[0], rate), sampleRate),
+            "OO" => new NetworkStage<Devices<OpAmp, OpAmp>>(
                 this,
                 devices,
                 (_, rate) => new(OpAmp(devices[0], rate), OpAmp(devices[1], rate)),
                 sampleRate
             ),
-            "DO" => new NetworkStage<Devices<DiodeClipper, Wdf.OpAmp>>(
+            "DO" => new NetworkStage<Devices<DiodeClipper, OpAmp>>(
                 this,
                 devices,
                 (_, rate) => new(Clipper(devices[0]), OpAmp(devices[1], rate)),
@@ -369,7 +376,7 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
 
     static DiodeClipper Clipper(StageElement e) => new(e.Diode, e.Forward, e.Diode, e.Reverse);
 
-    static Wdf.OpAmp OpAmp(StageElement e, double sampleRate) => new(e.OpAmp, -e.Value, e.Value, sampleRate);
+    static OpAmp OpAmp(StageElement e, double sampleRate) => new(e.OpAmp, -e.Value, e.Value, sampleRate);
 }
 
 /// <summary>A stage whose supply rails another part of the amp moves per sample (an oscillator on a bias line).</summary>
@@ -399,7 +406,9 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
 
     readonly NetworkStageDesign design;
     readonly StageElement[] elements;
-    readonly int[] index; // per element: its port (reactive), resistor or supply index in the WDF netlist; -1 for devices
+
+    readonly int[]
+        index; // per element: its port (reactive), resistor or supply index in the WDF netlist; -1 for devices
     readonly double[] values; // per element: its value as the knobs, switches and settings have it
     readonly (int Plus, int Minus)[] devicePorts;
     readonly Func<PreampSettings, double, TDevice> make; // the devices for the settings and the sample rate
@@ -717,7 +726,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         for (var s = 1; s <= Steps; s++) {
             var scale = (double)s / Steps;
             for (var iteration = 0; iteration < 100; iteration++) {
-                Stamp(restInput * scale, scale, dc: true);
+                Stamp(restInput * scale, scale, true);
                 if (!DenseLu.SolveInPlace(matrix.AsSpan(0, size * size), size, pivots, vector.AsSpan(0, size))) {
                     return;
                 }
@@ -856,7 +865,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
 
     /// <summary>The output's resistance to ground with the sources off, linearised at the operating point.</summary>
     double SmallSignalOutputResistance() {
-        Stamp(0, 0, dc: false);
+        Stamp(0, 0, false);
         var output = design.Netlist.Output;
         if (output == StageNetlist.Ground) {
             return 0;

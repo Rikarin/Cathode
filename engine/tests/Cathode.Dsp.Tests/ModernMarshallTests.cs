@@ -12,18 +12,24 @@ namespace Cathode.Dsp.Tests;
 ///     op-amp master ("TO"). The reference's op-amps are ideal but for their gain, so the drive stays below clipping.
 /// </summary>
 public partial class AmpStageTests {
-    public static TheoryData<string, bool, double, double> ModernMarshallChains => new() {
-        { "JCM900 4502", false, 0.002, -30 },
-        { "JCM900 4502", true, 0.0005, -30 },
-        { "Valvestate 8080", false, 0.001, -24 },
-        { "Valvestate 8080", true, 0.002, -30 },
-        { "JVM410H OD", false, 0.0001, -30 },
-        { "JVM410H OD", true, 0.0001, -30 }
-    };
+    public static TheoryData<string, bool, double, double> ModernMarshallChains =>
+        new() {
+            { "JCM900 4502", false, 0.002, -30 },
+            { "JCM900 4502", true, 0.0005, -30 },
+            { "Valvestate 8080", false, 0.001, -24 },
+            { "Valvestate 8080", true, 0.002, -30 },
+            { "JVM410H OD", false, 0.0001, -30 },
+            { "JVM410H OD", true, 0.0001, -30 }
+        };
 
     [Theory]
     [MemberData(nameof(ModernMarshallChains))]
-    public void Modern_marshall_chains_match_the_reference(string type, bool switch1, double amplitude, double limitDb) {
+    public void Modern_marshall_chains_match_the_reference(
+        string type,
+        bool switch1,
+        double amplitude,
+        double limitDb
+    ) {
         var design = AmpDesign.All.Single(a => a.Name == type);
         var designs = design.Preamp
             .SelectMany(d => d is ChannelSwitchStageDesign channel ? switch1 ? channel.On : channel.Off : [d])
@@ -104,23 +110,31 @@ public class ModernMarshallTests(ITestOutputHelper output) {
     static IEnumerable<int> Controls(string type) {
         (string Id, int Index)[] all = [
             ("gain", CircuitAmpBlock.Gain), ("bass", CircuitAmpBlock.Bass), ("middle", CircuitAmpBlock.Middle),
-            ("treble", CircuitAmpBlock.Treble), ("presence", CircuitAmpBlock.Presence), ("depth", CircuitAmpBlock.Depth),
+            ("treble", CircuitAmpBlock.Treble), ("presence", CircuitAmpBlock.Presence),
+            ("depth", CircuitAmpBlock.Depth),
             ("cut", CircuitAmpBlock.Cut), ("master", CircuitAmpBlock.Master), ("bright", CircuitAmpBlock.Bright),
-            ("switch1", CircuitAmpBlock.Switch1), ("switch2", CircuitAmpBlock.Switch2), ("switch3", CircuitAmpBlock.Switch3),
+            ("switch1", CircuitAmpBlock.Switch1), ("switch2", CircuitAmpBlock.Switch2),
+            ("switch3", CircuitAmpBlock.Switch3),
             ("control1", CircuitAmpBlock.Control1), ("control2", CircuitAmpBlock.Control2)
         ];
         return all.Where(c => !string.IsNullOrEmpty(Label(c.Id, type))).Select(static c => c.Index);
     }
 
     static bool IsSwitch(int index) =>
-        index is CircuitAmpBlock.Bright or CircuitAmpBlock.Switch1 or CircuitAmpBlock.Switch2 or CircuitAmpBlock.Switch3;
+        index is CircuitAmpBlock.Bright
+            or CircuitAmpBlock.Switch1
+            or CircuitAmpBlock.Switch2
+            or CircuitAmpBlock.Switch3;
 
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {
         Assert.Equal("Channel B", Label("switch1", "JCM900 4502"));
         Assert.Equal("Presence", Label("control1", "JCM900 4100"));
         Assert.Empty(Label("presence", "JCM900 4502"));
-        Assert.Equal(["Normal", "OD2", "Crunch"], new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "Valvestate 8080")));
+        Assert.Equal(
+            ["Normal", "OD2", "Crunch"],
+            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "Valvestate 8080"))
+        );
         Assert.Equal("Contour", Label("control1", "Valvestate 8080"));
         Assert.Empty(Label("bias", "Valvestate 8080"));
         Assert.Equal("Resonance", Label("depth", "JVM410H OD"));
@@ -201,7 +215,9 @@ public class ModernMarshallTests(ITestOutputHelper output) {
             var (low, high) = IsSwitch(control) ? (0f, 1f) : (0f, 10f);
             var (a, b) = (Bands(control, low), Bands(control, high));
             var change = Math.Max(Math.Abs(a[0] - b[0]), Math.Abs(a[1] - b[1]));
-            output.WriteLine($"{type} control {control}: 110 Hz {b[0] - a[0]:+0.0;-0.0} dB, 2.5 kHz {b[1] - a[1]:+0.0;-0.0} dB");
+            output.WriteLine(
+                $"{type} control {control}: 110 Hz {b[0] - a[0]:+0.0;-0.0} dB, 2.5 kHz {b[1] - a[1]:+0.0;-0.0} dB"
+            );
             Assert.True(change > 0.2, $"{type}: control {control} moves the sound by only {change:0.00} dB");
         }
     }
@@ -226,14 +242,19 @@ public class ModernMarshallTests(ITestOutputHelper output) {
 
             foreach (var knob in new[] { CircuitAmpBlock.Gain, CircuitAmpBlock.Master }) {
                 var levels = new[] { 0f, 2.5f, 5f, 7.5f, 10f }.Select(v => Level(knob, v)).ToArray();
-                output.WriteLine($"{type} channel {channel} knob {knob}: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB");
+                output.WriteLine(
+                    $"{type} channel {channel} knob {knob}: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB"
+                );
                 for (var i = 1; i < levels.Length; i++) {
                     if (levels[i - 1] > -100) {
                         Assert.True(levels[i] > levels[i - 1] - 0.1, $"{type}: knob {knob} not monotonic at step {i}");
                     }
                 }
 
-                Assert.True(levels[^1] - levels[0] > 10, $"{type}: knob {knob} spans only {levels[^1] - levels[0]:0.0} dB");
+                Assert.True(
+                    levels[^1] - levels[0] > 10,
+                    $"{type}: knob {knob} spans only {levels[^1] - levels[0]:0.0} dB"
+                );
             }
         }
     }

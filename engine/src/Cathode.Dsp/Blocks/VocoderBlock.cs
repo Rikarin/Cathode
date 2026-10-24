@@ -138,7 +138,15 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
                 ["Block Input", ..Enumerable.Range(1, SourceRows).Select(static r => $"Row {r}")]
             ),
             ..Enumerable.Range(1, MaxBands)
-                .Select(static b => ParamDescriptor.Float($"bandLevel{b}", $"Level {b}", Decibels.SilenceDb, 12f, 0f, "dB")),
+                .Select(static b => ParamDescriptor.Float(
+                        $"bandLevel{b}",
+                        $"Level {b}",
+                        Decibels.SilenceDb,
+                        12f,
+                        0f,
+                        "dB"
+                    )
+                ),
             ..Enumerable.Range(1, MaxBands)
                 .Select(static b => ParamDescriptor.Float($"bandPan{b}", $"Pan {b}", -100f, 100f, 0f, "%"))
         ],
@@ -242,6 +250,7 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
         if (channel == 0 && !fromRow && source is CarrierLeftInput or CarrierRightInput) {
             channel = source == CarrierLeftInput ? 2 : 1; // the carrier has one side: analyse the other
         }
+
         var side = fromRow && sideFrames == n;
 
         var mix = Params.Advance(Mix, n) / 100f;

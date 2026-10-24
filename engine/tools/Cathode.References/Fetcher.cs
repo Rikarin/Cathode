@@ -21,7 +21,8 @@ sealed class Fetcher(ReferenceCache cache, HttpClient http) {
         "CC-BY-SA-4.0"
     };
 
-    public static bool MayFetch(ReferenceEntry entry) => entry.Redistributable && Redistributable.Contains(entry.Licence);
+    public static bool MayFetch(ReferenceEntry entry) =>
+        entry.Redistributable && Redistributable.Contains(entry.Licence);
 
     /// <summary>Fetches every missing (or, with <paramref name="force" />, every) redistributable reference.</summary>
     public async Task<int> FetchAllAsync(IEnumerable<ReferenceEntry> entries, bool force) {
@@ -37,7 +38,9 @@ sealed class Fetcher(ReferenceCache cache, HttpClient http) {
             try {
                 await FetchAsync(entry);
                 Console.WriteLine($"  fetched  {entry.Id} ({entry.Licence}, {entry.Author})");
-            } catch (Exception e) when (e is HttpRequestException or InvalidDataException or IOException
+            } catch (Exception e) when (e is HttpRequestException
+                                            or InvalidDataException
+                                            or IOException
                                             or TaskCanceledException) {
                 failures++;
                 Console.Error.WriteLine($"  FAILED   {entry.Id}: {e.Message}");

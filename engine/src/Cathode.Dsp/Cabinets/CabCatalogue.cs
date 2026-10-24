@@ -98,62 +98,142 @@ public static class CabCatalogue {
         // rise to a broad 2 kHz presence hump, a dip near 3 kHz, a small 4 kHz peak, steep fall above 5 kHz.
         // Qts/Vas typ. for a light-cone ceramic 12".
         new(
-            "Celestion Greenback (G12M)", 0.125, 0.030, 75, 0.95, 50, 1_100, 5_000, 3,
+            "Celestion Greenback (G12M)",
+            0.125,
+            0.030,
+            75,
+            0.95,
+            50,
+            1_100,
+            5_000,
+            3,
             [new(800, 2.0, 0.7), new(2_000, 4.5, 1.6), new(3_100, -3.0, 3), new(4_000, 2.0, 3), new(6_500, -4, 2)]
         ),
         // Celestion G12H Anniversary (30 W), datasheet "G12H Anniversary": Fs about 85 Hz, 75 Hz-5 kHz, 100 dB. Heavier
         // magnet: tighter bass (lower Qts), brighter 2.5 kHz and 4.5 kHz peaks than the Greenback. Qts/Vas typ.
         new(
-            "Celestion G12H30 Anniversary", 0.125, 0.030, 85, 0.55, 40, 1_300, 5_500, 3,
+            "Celestion G12H30 Anniversary",
+            0.125,
+            0.030,
+            85,
+            0.55,
+            40,
+            1_300,
+            5_500,
+            3,
             [new(900, 1.5, 0.8), new(2_500, 5.0, 1.8), new(3_400, -2.5, 3), new(4_500, 3.0, 2.5), new(7_000, -3, 2)]
         ),
         // Celestion G12T-75, datasheet "G12T-75": Fs 80 Hz, 70 Hz-5.5 kHz, 97 dB. Chart: scooped 1-1.5 kHz,
         // pronounced 3 kHz and 5 kHz peaks (the "sizzle"). Qts/Vas typ.
         new(
-            "Celestion G12T-75", 0.125, 0.032, 80, 0.60, 45, 1_400, 6_000, 3,
+            "Celestion G12T-75",
+            0.125,
+            0.032,
+            80,
+            0.60,
+            45,
+            1_400,
+            6_000,
+            3,
             [new(1_300, -3.0, 1.2), new(3_000, 4.0, 2.5), new(5_200, 5.0, 2.5), new(7_500, -4, 2)]
         ),
         // Celestion Vintage 30, datasheet "Vintage 30": Fs 75 Hz, 70 Hz-5 kHz, 100 dB. Chart: the strong upper-mid
         // peak (about +6 dB near 2.5 kHz), a notch near 3.5 kHz, a second peak at 4.5 kHz, steep fall above 5 kHz.
         // Qts/Vas typ.
         new(
-            "Celestion Vintage 30", 0.125, 0.032, 75, 0.50, 45, 1_200, 5_200, 4,
+            "Celestion Vintage 30",
+            0.125,
+            0.032,
+            75,
+            0.50,
+            45,
+            1_200,
+            5_200,
+            4,
             [new(1_100, 1.5, 1.0), new(2_600, 6.0, 2.0), new(3_500, -4.0, 3.5), new(4_600, 3.5, 3), new(6_000, -3, 2)]
         ),
         // Celestion G12M-65 Creamback, datasheet "G12M-65 Creamback": Fs 85 Hz, 75 Hz-5 kHz, 97 dB. A Greenback
         // voicing with more power handling: tighter low end, the same 2 kHz hump, smoother top. Qts/Vas typ.
         new(
-            "Celestion Creamback (G12M-65)", 0.125, 0.030, 85, 0.70, 45, 1_150, 5_000, 3,
+            "Celestion Creamback (G12M-65)",
+            0.125,
+            0.030,
+            85,
+            0.70,
+            45,
+            1_150,
+            5_000,
+            3,
             [new(800, 1.5, 0.7), new(2_100, 4.0, 1.5), new(3_300, -2.5, 3), new(4_200, 1.5, 3), new(6_500, -4, 2)]
         ),
         // Celestion Alnico Blue, datasheet "Alnico Blue": Fs 75 Hz, 75 Hz-5 kHz, 100 dB. Light cone, high Q: loose
         // bass, chiming 2.5 kHz and 4 kHz peaks, more top than the ceramics. Qts typ. (alnico, light cone).
         new(
-            "Celestion Alnico Blue", 0.125, 0.030, 75, 1.30, 60, 1_500, 6_500, 2,
+            "Celestion Alnico Blue",
+            0.125,
+            0.030,
+            75,
+            1.30,
+            60,
+            1_500,
+            6_500,
+            2,
             [new(1_000, 1.5, 1), new(2_500, 5.0, 2), new(4_000, 5.0, 2.5), new(5_500, -2, 3), new(8_000, -4, 2)]
         ),
         // Jensen P10R (alnico 10"), Jensen Vintage datasheet: Fs about 90 Hz, 80 Hz-6 kHz. Small cone: less low end,
         // early breakup at 1.5 kHz, a bright 3 kHz peak. Qts/Vas typ. for a vintage 10".
         new(
-            "Jensen P10R", 0.105, 0.025, 90, 1.20, 25, 1_500, 6_000, 2,
+            "Jensen P10R",
+            0.105,
+            0.025,
+            90,
+            1.20,
+            25,
+            1_500,
+            6_000,
+            2,
             [new(1_500, 3.0, 1.5), new(3_000, 4.0, 2), new(4_200, -3, 3), new(5_500, 2, 3)]
         ),
         // Jensen C12N (ceramic 12"), Jensen Vintage datasheet: Fs about 70 Hz, 60 Hz-6 kHz. Fender's clean voice:
         // flatter mids than the Celestions, 2 kHz and 4 kHz peaks, an extended top. Qts/Vas typ.
         new(
-            "Jensen C12N", 0.125, 0.030, 70, 0.90, 55, 1_400, 7_000, 2,
+            "Jensen C12N",
+            0.125,
+            0.030,
+            70,
+            0.90,
+            55,
+            1_400,
+            7_000,
+            2,
             [new(2_000, 3.0, 1.5), new(3_000, -2, 3), new(4_000, 4.0, 2.5), new(6_000, 2, 3)]
         ),
         // Electro-Voice EVM12L, EV datasheet: Fs about 55 Hz, a flat 100 Hz-5 kHz with a small 3 kHz rise: the clean,
         // hi-fi option. Qts/Vas typ. for its heavy magnet.
         new(
-            "Electro-Voice EVM12L", 0.122, 0.035, 55, 0.40, 70, 1_800, 6_500, 3,
+            "Electro-Voice EVM12L",
+            0.122,
+            0.035,
+            55,
+            0.40,
+            70,
+            1_800,
+            6_500,
+            3,
             [new(3_000, 2.0, 1.5), new(4_500, -1.5, 3), new(5_500, 1.5, 3)]
         ),
         // JBL D120F, JBL datasheet: Fs about 60 Hz, very low Qts (a heavy magnet and light cone), the aluminium
         // dust cap adding a 6 kHz peak; response to about 8-9 kHz. Qts/Vas typ.
         new(
-            "JBL D120F", 0.122, 0.050, 60, 0.30, 70, 2_000, 9_000, 2,
+            "JBL D120F",
+            0.122,
+            0.050,
+            60,
+            0.30,
+            70,
+            2_000,
+            9_000,
+            2,
             [new(1_500, 1.0, 1), new(3_000, 3.0, 2), new(6_000, 4.5, 2.5), new(7_500, -3, 3)]
         )
     ];
@@ -162,7 +242,12 @@ public static class CabCatalogue {
         // Shure SM57 user guide, "Typical frequency response" (far field): falls below 200 Hz, presence rise to about
         // +5 dB at 5-6 kHz, a dip near 9 kHz, rolls off above 12 kHz. Cardioid.
         new(
-            "Dynamic 57 (SM57)", 0.5, 0.009, 140, 13_500, 2,
+            "Dynamic 57 (SM57)",
+            0.5,
+            0.009,
+            140,
+            13_500,
+            2,
             [new(2_200, 1.5, 1), new(5_600, 5.0, 1.4), new(9_000, -3.5, 3)]
         ),
         // Sennheiser MD 421-II product sheet, bass switch at "M": 30 Hz-17 kHz, a gentle 4-5 kHz lift. Cardioid,
@@ -202,12 +287,26 @@ public static class CabCatalogue {
         new("2x12 Open Back", true, 0, 0.50, 0.95, 0.42, 0.035, [(0.36, 0)], [new(120, 1.5, 3)]),
         new("2x12 Closed Back", false, 36, 0, 0, 0.28, 0.035, [(0.34, 0)], [new(250, 1.0, 5), new(560, 1.0, 6)]),
         new(
-            "4x10 Open Back", true, 0, 0.55, 0.95, 0.62, 0.032,
-            [(0.28, 0), (0, -0.28), (0.28, -0.28)], [new(110, 1.5, 3)]
+            "4x10 Open Back",
+            true,
+            0,
+            0.55,
+            0.95,
+            0.62,
+            0.032,
+            [(0.28, 0), (0, -0.28), (0.28, -0.28)],
+            [new(110, 1.5, 3)]
         ),
         new(
-            "4x12 Closed Back", false, 36, 0, 0, 0.56, 0.035,
-            [(0.34, 0), (0, -0.34), (0.34, -0.34)], [new(245, 1.5, 6), new(520, 1.0, 6)]
+            "4x12 Closed Back",
+            false,
+            36,
+            0,
+            0,
+            0.56,
+            0.035,
+            [(0.34, 0), (0, -0.34), (0.34, -0.34)],
+            [new(245, 1.5, 6), new(520, 1.0, 6)]
         ),
         new("1x10 Open Back", true, 0, 0.40, 0.95, 0.32, 0.030, [], [new(160, 1.5, 3)])
     ];

@@ -181,7 +181,10 @@ public sealed class FlangerBlock() : DspBlock(Info), IEngageAware {
         cuts.Design(rate, Params.Advance(LowCut, n), Params.Advance(HighCut, n));
         focus.Design(rate, Params.Advance(BassFocus, n), WetCuts.HighOff);
         conditioner.Design(rate, Params.Advance(LfoHicut, n), (int)Params.Current(LfoQuantize));
-        var sweep = Params.Advance(Depth, n) / 100f * MaxSweepMs * samplesPerMs
+        var sweep = Params.Advance(Depth, n)
+            / 100f
+            * MaxSweepMs
+            * samplesPerMs
             * LfoConditioner.AutoDepth((int)Params.Current(AutoDepth), lfoRate);
         var low = Params.Advance(Delay, n) * samplesPerMs;
 

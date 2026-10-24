@@ -12,7 +12,8 @@ static class HtmlReport {
 
     public static string Render(IReadOnlyList<MatchReport> reports) {
         var html = new StringBuilder();
-        html.Append("""
+        html.Append(
+            """
             <!doctype html>
             <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
             <title>Cathode amp references</title>
@@ -30,7 +31,8 @@ static class HtmlReport {
             <p class="muted">ESR pre-emphasised (1 − 0.95 z⁻¹); MRSTFT averaged over 256/1024/4096; response and harmonics level-matched.
             <span style="color:var(--ref)">Reference</span> vs <span style="color:var(--amp)">circuit amp</span>.</p>
             <table><tr><th>Reference</th><th>Circuit</th><th>Input dBu</th><th>ESR</th><th>ESR (pre)</th><th>MRSTFT</th><th>Harm. dB</th><th>Resp. dB</th><th>Pass</th></tr>
-            """);
+            """
+        );
         foreach (var r in reports) {
             html.Append(
                 CultureInfo.InvariantCulture,
@@ -58,19 +60,28 @@ static class HtmlReport {
             var offset = r.ReferenceResponse.Zip(r.CircuitResponse, static (a, b) => a - b)
                 .Where((_, i) => r.ResponseCenters[i] is >= 80 and <= 8_000)
                 .Average();
-            html.Append(Chart(
-                r.ResponseCenters.Select(static f => Math.Log10(f)).ToArray(),
-                [r.ReferenceResponse.ToArray(), r.CircuitResponse.Select(v => v + offset).ToArray()]
-            ));
-            html.Append("<h3>Harmonics 2–9 (dB re fundamental) at each input level</h3><table><tr><th>Level</th><th>Model</th>");
+            html.Append(
+                Chart(
+                    r.ResponseCenters.Select(static f => Math.Log10(f)).ToArray(),
+                    [r.ReferenceResponse.ToArray(), r.CircuitResponse.Select(v => v + offset).ToArray()]
+                )
+            );
+            html.Append(
+                "<h3>Harmonics 2–9 (dB re fundamental) at each input level</h3><table><tr><th>Level</th><th>Model</th>"
+            );
             for (var h = 1; h <= MatchMetrics.Harmonics; h++) {
                 html.Append(CultureInfo.InvariantCulture, $"<th>H{h}</th>");
             }
 
             html.Append("</tr>");
             for (var l = 0; l < r.HarmonicLevels.Count; l++) {
-                foreach (var (name, profile) in new[] { ("reference", r.ReferenceHarmonics[l]), ("circuit", r.CircuitHarmonics[l]) }) {
-                    html.Append(CultureInfo.InvariantCulture, $"<tr><td>{r.HarmonicLevels[l]:0.###} V</td><td class=\"text\">{name}</td>");
+                foreach (var (name, profile) in new[] {
+                             ("reference", r.ReferenceHarmonics[l]), ("circuit", r.CircuitHarmonics[l])
+                         }) {
+                    html.Append(
+                        CultureInfo.InvariantCulture,
+                        $"<tr><td>{r.HarmonicLevels[l]:0.###} V</td><td class=\"text\">{name}</td>"
+                    );
                     foreach (var value in profile) {
                         html.Append(CultureInfo.InvariantCulture, $"<td>{value:0.0}</td>");
                     }
@@ -124,7 +135,10 @@ static class HtmlReport {
 
         var classes = new[] { "ref", "amp" };
         for (var s = 0; s < series.Length; s++) {
-            var points = string.Join(' ', x.Select((v, i) => string.Create(CultureInfo.InvariantCulture, $"{X(v):0.0},{Y(series[s][i]):0.0}")));
+            var points = string.Join(
+                ' ',
+                x.Select((v, i) => string.Create(CultureInfo.InvariantCulture, $"{X(v):0.0},{Y(series[s][i]):0.0}"))
+            );
             svg.Append(CultureInfo.InvariantCulture, $"<polyline class=\"{classes[s % 2]}\" points=\"{points}\"/>");
         }
 

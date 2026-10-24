@@ -20,7 +20,10 @@ public enum PotTaper {
 ///     30 %; 10 % is the usual A taper).
 /// </summary>
 public readonly record struct Pot(double Ohms, PotTaper Taper, double Midpoint = 0.1) {
-    /// <summary>The fraction of the track between the wiper and the bottom end for rotation <paramref name="rotation" /> (0..1).</summary>
+    /// <summary>
+    ///     The fraction of the track between the wiper and the bottom end for rotation <paramref name="rotation" />
+    ///     (0..1).
+    /// </summary>
     public double Fraction(double rotation) {
         var p = Math.Clamp(rotation, 0, 1);
         return Taper switch {

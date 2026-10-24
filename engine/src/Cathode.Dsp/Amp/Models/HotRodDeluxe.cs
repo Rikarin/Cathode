@@ -7,7 +7,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     "Hot Rod Deluxe/DeVille III" combined schematic, Deluxe values): V1A (100k, 1.5k ‖ 47 µF) feeding both the Normal
 ///     channel's 0.022 µF and 270k into the 250k Volume and the Drive channel's 560 pF and 240k into the 250k Drive pot;
 ///     a relay picks a wiper into V1B (10k stopper, 56k to ground; 100k, 1.5k ‖ 47 µF), the Fender stack on V1B's plate
-///     (250 pF, 130k slope, 0.1 µF bass, 0.022 µF mid; treble 250k linear, bass 250k 15 % audio, mid 25k linear; 220k from the
+///     (250 pF, 130k slope, 0.1 µF bass, 0.022 µF mid; treble 250k linear, bass 250k 15 % audio, mid 25k linear; 220k from
+///     the
 ///     treble pot's bottom to ground), 100k into V2A (100k, 1.5k). On the Normal channel V2A's 0.047 µF and 130k go
 ///     straight to the effects loop; on the Drive channel they go through 100k into V2B (100k, 1.5k unbypassed), its 100k
 ///     and 0.047 µF into the 100k Master (1 nF across it) and 47k to the effects loop. After the loop, 47k
@@ -20,8 +21,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Panel: Drive (the Drive channel's gain, on the Gain knob), Volume (the Normal channel's), Bass, Middle,
 ///         Treble, Master (Drive channel only, as on the amp), Presence; <b>Normal Ch</b> selects the Normal channel (the
 ///         Drive channel is the default, so that Gain and Master act on it); <b>Bright</b> is the Normal channel's bright
-///         switch (it bypasses V2A's cathode with 0.068 µF, a treble boost; the relay disconnects it on the Drive channel);
-///         <b>More Drive</b> (Drive channel only) switches J111s that bypass V2A's cathode with 1 µF and V2B's with 22 µF (the
+///         switch (it bypasses V2A's cathode with 0.068 µF, a treble boost; the relay disconnects it on the Drive
+///         channel);
+///         <b>More Drive</b> (Drive channel only) switches J111s that bypass V2A's cathode with 1 µF and V2B's with 22 µF
+///         (the
 ///         drawing: "More Drive adds 12.7 dB of gain to the Drive mode"). On the Drive channel a relay grounds V2A's grid
 ///         through 250 pF.
 ///     </para>
@@ -29,9 +32,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Source: "Service diagram, combined (schematic) Hot Rod Deluxe/DeVille III", drawing 0079604000 rev B,
 ///         sheets 1–2 (thetubestore.com/lib/thetubestore/schematics/Fender/Fender-Hotrod-Deluxe-III-Schematic-Rev-B.pdf):
 ///         every value above, the supply (431 V B+ on 47 µF, a choke to 430 V on 22 µF, 4.7k to 392 V for the inverter,
-///         10k to 345 V for the preamp), the Deluxe's 0.005 µF … 560 pF and 1000 pF variants, the 4 Ω feedback tap, the bias
+///         10k to 345 V for the preamp), the Deluxe's 0.005 µF … 560 pF and 1000 pF variants, the 4 Ω feedback tap, the
+///         bias
 ///         (60 mV across 1 Ω for both tubes). The test points (1 kHz, 4 mV in, Drive mode, controls at noon: 180 mV at
-///         V1A's plate, 13 mV at V1B's grid, 1.0 V at V2B's grid, 23.6 V at its plate, 1.45 V into the loop) check the gain
+///         V1A's plate, 13 mV at V1B's grid, 1.0 V at V2B's grid, 23.6 V at its plate, 1.45 V into the loop) check the
+///         gain
 ///         staging (<c>FenderUsAmpTests</c>). The output transformer (4.25k : 4/8 Ω) is from the replacement listings of
 ///         Fender part 005-0438 (amplifiedparts.com); the original 1996 Hot Rod Deluxe (drawing 050397) has the same
 ///         topology.
@@ -39,10 +44,13 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         The pots' tapers are from Fender's part numbers: the Volume, Drive and Bass "250k15A" (15 % at half
 ///         rotation), the Master "100k30A" (30 %), the Treble and Middle "B" (linear); the Presence's "25k30C" is taken as
-///         linear. Simplified: the effects loop's op-amps (a 47k / 2.7k divider into a TL072 follower, then a non-inverting
+///         linear. Simplified: the effects loop's op-amps (a 47k / 2.7k divider into a TL072 follower, then a
+///         non-inverting
 ///         TL072 stage of gain 19.9 and 47k out) are a gain of about 1.06 and are a wire here, so the return network
-///         (0.47 µF, 47k) hangs on the send, which carries its 49.7k divider: about 0.5 dB apart. The reverb (at 0: its pot's
-///         wiper grounds the 470k mixing resistor, which is kept) and the reverb send's 470 pF / 1M load are left out, as are
+///         (0.47 µF, 47k) hangs on the send, which carries its 49.7k divider: about 0.5 dB apart. The reverb (at 0: its
+///         pot's
+///         wiper grounds the 470k mixing resistor, which is kept) and the reverb send's 470 pF / 1M load are left out, as
+///         are
 ///         the 47 pF across the inverter's plates and the two 15 V zeners (1N5245B) that clamp the Drive channel's output
 ///         at about ±16 V, which only the Master near full on More Drive reaches (a diode clipper beside V2B doubled that
 ///         stage's cost). The J111's on-resistance (30 Ω) is the datasheet maximum.
@@ -77,24 +85,24 @@ public static class HotRodDeluxe {
         new(
             "2 x 6L6GC",
             PentodeModel.SixL6GC,
-            TubesPerSide: 1,
-            Supply: 431,
-            ScreenResistor: 470,
-            IdleCurrent: 0.030,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 40,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 392, 82e3, 100e3, 6.8e3, 470),
-            CouplingCap: 0.1e-6,
-            GridLeak: 220e3,
-            GridStopper: 1.5e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(1 / Math.Sqrt(2), 47e3, 4.7e3, new(25e3, PotTaper.Linear), 0.1e-6),
-            HasFeedback: true,
-            Transformer: new(4.25e3),
-            Speaker: SpeakerDesign.OpenBack1x12,
-            PowerSupply: new(40, 47e-6, 100, 22e-6, 14.7e3, 22e-6, 5.8e-3, RectifierModel.Silicon),
+            1,
+            431,
+            470,
+            0.030,
+            false,
+            0,
+            40,
+            new LongTailPairDesign(TriodeModel.Ecc83, 392, 82e3, 100e3, 6.8e3, 470),
+            0.1e-6,
+            220e3,
+            1.5e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(1 / Math.Sqrt(2), 47e3, 4.7e3, new(25e3, PotTaper.Linear), 0.1e-6),
+            true,
+            new(4.25e3),
+            SpeakerDesign.OpenBack1x12,
+            new(40, 47e-6, 100, 22e-6, 14.7e3, 22e-6, 5.8e-3, RectifierModel.Silicon),
             InverterInput: new(22e-9, 1e6)
         ),
         -6
@@ -111,7 +119,8 @@ public static class HotRodDeluxe {
 
     /// <summary>
     ///     V1A with both channels' networks on its plate: 0.022 µF and 270k into the Volume, 560 pF and 240k into the Drive
-    ///     pot; the relay (<see cref="SwitchRole.Switch1" />: on is the Normal channel) takes one wiper to the output, which has the 56k to ground.
+    ///     pot; the relay (<see cref="SwitchRole.Switch1" />: on is the Normal channel) takes one wiper to the output, which
+    ///     has the 56k to ground.
     /// </summary>
     static NetworkStageDesign InputStage() {
         var net = new StageNetlist();

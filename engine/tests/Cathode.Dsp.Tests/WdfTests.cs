@@ -72,7 +72,10 @@ public class WdfTests {
     public void Series_rc_current_decays_and_rl_current_rises() {
         const double R = 1e3, C = 1e-6, L = 1, Fast = 4_800_000;
         var rc = new WdfCircuit<Series<Resistor, Capacitor>, IdealVoltageSource>(new(new(R), new(C, Fast)), default);
-        var rl = new WdfCircuit<Series<ResistiveVoltageSource, Inductor>, ShortCircuit>(new(new(R), new(L, Fast)), default);
+        var rl = new WdfCircuit<Series<ResistiveVoltageSource, Inductor>, ShortCircuit>(
+            new(new(R), new(L, Fast)),
+            default
+        );
         rc.Propagate();
         rl.Propagate();
         rc.Root.Volts = 1;
@@ -159,7 +162,14 @@ public class WdfTests {
     }
 
     /// <summary>The root of the monotonic (a - v) / R - i(v) by bisection, to double precision.</summary>
-    static double Bisect(double a, double r, DiodeModel forward, int forwardCount, DiodeModel reverse, int reverseCount) {
+    static double Bisect(
+        double a,
+        double r,
+        DiodeModel forward,
+        int forwardCount,
+        DiodeModel reverse,
+        int reverseCount
+    ) {
         double low = -Math.Abs(a) - 1, high = Math.Abs(a) + 1;
         for (var i = 0; i < 200; i++) {
             var v = 0.5 * (low + high);

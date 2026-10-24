@@ -72,11 +72,11 @@ public sealed class GrainShifter : IDisposable {
     public void Dispose() => line.Dispose();
 
     static float Window(float p, float fade) {
+        return p < 0.5f ? Rise(p) : 1f - Rise(p - 0.5f);
+
         float Rise(float t) {
             var s = MathF.Sin(0.5f * MathF.PI * Math.Min(1f, t / (0.5f * fade)));
             return s * s;
         }
-
-        return p < 0.5f ? Rise(p) : 1f - Rise(p - 0.5f);
     }
 }

@@ -1,5 +1,3 @@
-using Cathode.Dsp.Wdf;
-
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
@@ -24,7 +22,5 @@ public static class Super6G4 {
             PowerSupply = new(100, 40e-6, 100, 20e-6, 4.7e3, 20e-6, 6e-3, RectifierModel.GZ34)
         },
         -5
-    ) {
-        Panel = Brownface.Panel
-    };
+    ) { Panel = Brownface.Panel };
 }

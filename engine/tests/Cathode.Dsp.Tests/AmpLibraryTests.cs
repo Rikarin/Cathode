@@ -63,7 +63,14 @@ public partial class AmpStageTests {
                 v[2] = 900 * random.NextDouble();
                 j.Clear();
                 exact.Evaluate(v, i, j, 3);
-                var plate = tables.PlateCurrent(v[0], v[1], v[2], out var gridSlope, out var screenSlope, out var plateSlope);
+                var plate = tables.PlateCurrent(
+                    v[0],
+                    v[1],
+                    v[2],
+                    out var gridSlope,
+                    out var screenSlope,
+                    out var plateSlope
+                );
                 var screen = tables.ScreenCurrent(v[0], v[1], out var screenGridSlope);
                 worst = Math.Max(worst, Math.Abs(plate - i[2]) / (i[2] + 1e-9));
                 worst = Math.Max(worst, Math.Abs(screen - i[1]) / (i[1] + 1e-9));
@@ -99,8 +106,10 @@ public partial class AmpStageTests {
             ("EF86 screen", KorenPentode.Screen(PentodeModel.EF86, -2, 140), 0.6e-3, 0, 0)
         ];
         foreach (var (name, current, expected, slope, expectedSlope) in points) {
-            output.WriteLine($"{name}: {current * 1e3:0.000} mA (datasheet {expected * 1e3:0.000})" +
-                (expectedSlope > 0 ? $", {slope * 1e3:0.000} mS ({expectedSlope * 1e3:0.000})" : ""));
+            output.WriteLine(
+                $"{name}: {current * 1e3:0.000} mA (datasheet {expected * 1e3:0.000})"
+                + (expectedSlope > 0 ? $", {slope * 1e3:0.000} mS ({expectedSlope * 1e3:0.000})" : string.Empty)
+            );
             Assert.InRange(current, 0.98 * expected, 1.02 * expected);
             if (expectedSlope > 0) {
                 Assert.InRange(slope, 0.95 * expectedSlope, 1.05 * expectedSlope);
@@ -123,8 +132,8 @@ public partial class AmpStageTests {
         }
 
         output.WriteLine(
-            $"{name}: plate {stage.RestOutput:0.000} V / {network.RestOutput:0.000} V, output resistance " +
-            $"{stage.OutputResistance / 1e3:0.00}k / {network.OutputResistance / 1e3:0.00}k"
+            $"{name}: plate {stage.RestOutput:0.000} V / {network.RestOutput:0.000} V, output resistance "
+            + $"{stage.OutputResistance / 1e3:0.00}k / {network.OutputResistance / 1e3:0.00}k"
         );
         Assert.Equal(stage.RestOutput, network.RestOutput, 1e-6 * stage.RestOutput);
         // The network stage reads each capacitor at its 1 kHz reactance; the triode stage takes a bypass cap as a short.
@@ -175,14 +184,15 @@ public partial class AmpStageTests {
         return new("resonant", net);
     }
 
-    public static TheoryData<string, double, double, bool> NetworkSettings => new() {
-        { "blend", 0.5, 0.5, false },
-        { "blend", 0.1, 0.9, true },
-        { "blend", 0.9, 0.2, true },
-        { "resonant", 0.0, 0.5, false },
-        { "resonant", 0.3, 0.5, false },
-        { "resonant", 1.0, 0.5, false }
-    };
+    public static TheoryData<string, double, double, bool> NetworkSettings =>
+        new() {
+            { "blend", 0.5, 0.5, false },
+            { "blend", 0.1, 0.9, true },
+            { "blend", 0.9, 0.2, true },
+            { "resonant", 0.0, 0.5, false },
+            { "resonant", 0.3, 0.5, false },
+            { "resonant", 1.0, 0.5, false }
+        };
 
     [Theory]
     [MemberData(nameof(NetworkSettings))]
@@ -306,8 +316,8 @@ public partial class AmpStageTests {
         var reference = new ReferenceSimulator(circuit);
         reference.OperatingPoint(40);
         output.WriteLine(
-            $"{name}: rest output {stage.RestOutput:0.000} V (reference {reference.Voltage(node):0.000} V), output " +
-            $"resistance {stage.OutputResistance / 1e3:0.0}k"
+            $"{name}: rest output {stage.RestOutput:0.000} V (reference {reference.Voltage(node):0.000} V), output "
+            + $"resistance {stage.OutputResistance / 1e3:0.0}k"
         );
         Assert.Equal(reference.Voltage(node), stage.RestOutput, 0.002 * Math.Abs(reference.Voltage(node)) + 1e-6);
 
@@ -320,10 +330,10 @@ public partial class AmpStageTests {
         var design = new CathodyneDesign(TriodeModel.Ecc83, 330, 56e3, 56e3, 1.5e3);
         var inverter = (Cathodyne)PhaseInverter.For(design);
         output.WriteLine(
-            $"cathodyne: grid {inverter.RestGrid:0.00} V, cathode {inverter.RestCathode:0.00} V, plate " +
-            $"{inverter.RestPlateA:0.00} V, junction {inverter.RestPlateB:0.00} V, output impedance " +
-            $"{inverter.OutputImpedance.Zaa / 1e3:0.0}k, {inverter.OutputImpedance.Zab / 1e3:0.0}k, " +
-            $"{inverter.OutputImpedance.Zba / 1e3:0.00}k, {inverter.OutputImpedance.Zbb / 1e3:0.00}k"
+            $"cathodyne: grid {inverter.RestGrid:0.00} V, cathode {inverter.RestCathode:0.00} V, plate "
+            + $"{inverter.RestPlateA:0.00} V, junction {inverter.RestPlateB:0.00} V, output impedance "
+            + $"{inverter.OutputImpedance.Zaa / 1e3:0.0}k, {inverter.OutputImpedance.Zab / 1e3:0.0}k, "
+            + $"{inverter.OutputImpedance.Zba / 1e3:0.00}k, {inverter.OutputImpedance.Zbb / 1e3:0.00}k"
         );
         var worst = 0.0;
         foreach (var vd in new[] { -40.0, -20, -6, -1, 0, 1, 6, 20, 40 }) {
@@ -332,8 +342,8 @@ public partial class AmpStageTests {
             reference.OperatingPoint(40);
             var (ea, eb) = inverter.Evaluate(vd, out _, out _);
             output.WriteLine(
-                $"  vd {vd,5:0.0}: plate {inverter.RestPlateA + ea:0.00} V, junction {inverter.RestPlateB + eb:0.00} V, " +
-                $"reference {reference.Voltage(a):0.00}/{reference.Voltage(b):0.00} V"
+                $"  vd {vd,5:0.0}: plate {inverter.RestPlateA + ea:0.00} V, junction {inverter.RestPlateB + eb:0.00} V, "
+                + $"reference {reference.Voltage(a):0.00}/{reference.Voltage(b):0.00} V"
             );
 
             // The table leaves out grid current, which flows once the plate has fallen to meet the cathode.
@@ -389,25 +399,21 @@ public partial class AmpStageTests {
             "ultralinear EL34" => (plexi with { UltralinearTap = 0.43, ScreenResistor = 1 }, 0.4, 0.0, false),
             "triode switch" => (plexi with { TriodeSwitch = SwitchRole.Switch1, ScreenResistor = 1 }, 0.6, 0.0, true),
             "simul-class" => (Blackface.Design.Power with {
-                Strapped = PentodeModel.EL34,
-                StrappedPerSide = 1,
-                PowerSupply = stiff
+                Strapped = PentodeModel.EL34, StrappedPerSide = 1, PowerSupply = stiff
             }, 0.6, 0.0, false),
             "separate cathodes" => (AC30.Design.Power with {
-                SeparateCathodes = true,
-                PowerSupply = stiff,
-                InverterInput = null
+                SeparateCathodes = true, PowerSupply = stiff, InverterInput = null
             }, 0.15, 0.0, false),
             "cathodyne 6V6" => (sixV6 with {
-                PhaseInverter = new CathodyneDesign(TriodeModel.Ecc83, 330, 56e3, 56e3, 1.5e3),
-                CutCap = 0
+                PhaseInverter = new CathodyneDesign(TriodeModel.Ecc83, 330, 56e3, 56e3, 1.5e3), CutCap = 0
             }, 2.0, 0.0, false),
-            "inverter grid current" => (plexi with { InverterInput = new(22e-9, 1e6), HasFeedback = false }, 7.0, 30e3, false),
+            "inverter grid current" => (plexi with { InverterInput = new(22e-9, 1e6), HasFeedback = false }, 7.0, 30e3,
+                false),
             _ => (plexi with { InverterInput = new(22e-9, 1e6) }, 7.0, 30e3, false)
         };
         var power = new PowerAmp(design, Rate);
         power.SetSourceResistance(Math.Max(sourceResistance, 1));
-        power.Configure(new PowerControls(0.5, 0, 0, 0.5, 0.5, 0.5));
+        power.Configure(new(0.5, 0, 0, 0.5, 0.5, 0.5));
         power.Apply(PowerSettings.Stock with { Triode = triode });
         power.Reset();
         var (circuit, speaker, grid) = AmpReferences.PowerAmp(
@@ -423,8 +429,8 @@ public partial class AmpStageTests {
             triode
         );
         output.WriteLine(
-            $"{name}: B+ {power.Supply:0.0} V, grid bias {power.GridBias:0.00} V, cathode {power.CathodeVoltage:0.00} V, " +
-            $"idle {power.PlateCurrents.A * 1e3:0.0} mA per tube"
+            $"{name}: B+ {power.Supply:0.0} V, grid bias {power.GridBias:0.00} V, cathode {power.CathodeVoltage:0.00} V, "
+            + $"idle {power.PlateCurrents.A * 1e3:0.0} mA per tube"
         );
         var errorDb = CompareInTime(name, power.Tick, power.Newton, circuit, speaker, amplitude, 8);
         if (design.InverterInput is null) {
@@ -437,7 +443,7 @@ public partial class AmpStageTests {
         var rest = power.PhaseInverter.RestGrid;
         var fresh = new PowerAmp(design, Rate);
         fresh.SetSourceResistance(sourceResistance);
-        fresh.Configure(new PowerControls(0.5, 0, 0, 0.5, 0.5, 0.5));
+        fresh.Configure(new(0.5, 0, 0, 0.5, 0.5, 0.5));
         fresh.Reset();
         var gridDb = CompareInTime(
             "inverter grid",

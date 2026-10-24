@@ -75,6 +75,7 @@ public sealed class DriveBlock() : DspBlock(Info) {
 
     /// <summary>The guitar's volume knob, appended after the original parameters (presets store indices).</summary>
     public const int InputVolume = 5;
+
     public const int Balance = 6;
     public const int LowCut = 7;
     public const int HighCut = 8;
@@ -128,7 +129,8 @@ public sealed class DriveBlock() : DspBlock(Info) {
     static readonly (float[], float[]) TwiceBranches =
         HalfBandStage.Split(HalfBand.Design(Oversampler4x.AttenuationDb, 0.04));
 
-    static readonly string[] TypeNames = ["Overdrive", "Distortion", "Fuzz", ..DriveCircuits.All.Select(static c => c.Name)];
+    static readonly string[] TypeNames =
+        ["Overdrive", "Distortion", "Fuzz", ..DriveCircuits.All.Select(static c => c.Name)];
 
     readonly Channel left = new();
     readonly Channel right = new();
@@ -180,7 +182,15 @@ public sealed class DriveBlock() : DspBlock(Info) {
             ParamDescriptor.Float("treble", "Treble", -12f, 12f, 0f, "dB"),
             ParamDescriptor.Choice("eq2", "EQ 2", ["Off", "Pre", "Post"]),
             ..GraphicEqualizer.Layouts[Eq2Layout]
-                .Labels.Select(static (l, b) => ParamDescriptor.Float($"geq{b + 1}", $"EQ 2 {l} Hz", -12f, 12f, 0f, "dB")),
+                .Labels.Select(static (l, b) => ParamDescriptor.Float(
+                        $"geq{b + 1}",
+                        $"EQ 2 {l} Hz",
+                        -12f,
+                        12f,
+                        0f,
+                        "dB"
+                    )
+                ),
             ForTypes(
                 ParamDescriptor.Choice(
                     "clipType",
@@ -189,15 +199,28 @@ public sealed class DriveBlock() : DspBlock(Info) {
                 ),
                 static t => t < CircuitTypes
             ),
-            ForTypes(ParamDescriptor.Float("clipShape", "Clip Shape", -100f, 100f, 0f, "%"), static t => t < CircuitTypes),
+            ForTypes(
+                ParamDescriptor.Float("clipShape", "Clip Shape", -100f, 100f, 0f, "%"),
+                static t => t < CircuitTypes
+            ),
             ForTypes(ParamDescriptor.Choice("diodeType", "Diode Type", DriveCircuits.DiodeTypes), HasDiodes),
             ForTypes(ParamDescriptor.Choice("diodeCount", "Diode Count", DriveCircuits.DiodeCounts), HasDiodes),
             ParamDescriptor.Float("bassResponse", "Bass Response", 25f, 400f, 100f, "%", ParamTaper.Log),
             ParamDescriptor.Float("dryLevel", "Dry Level", Decibels.SilenceDb, 12f, Decibels.SilenceDb, "dB"),
             ParamDescriptor.Float("bias", "Bias", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float("slewRate", "Slew Rate", 0.01f, SlewOff, SlewOff, "V/µs", ParamTaper.Log),
-            ParamDescriptor.Float("bitReduce", "Bit Reduce", 0f, 20f, 0f, "bits") with { Smoothing = ParamSmoothing.Step },
-            ParamDescriptor.Float("sampleRate", "Sample Rate", 500f, Decimator.RateOff, Decimator.RateOff, "Hz", ParamTaper.Log)
+            ParamDescriptor.Float("bitReduce", "Bit Reduce", 0f, 20f, 0f, "bits") with {
+                Smoothing = ParamSmoothing.Step
+            },
+            ParamDescriptor.Float(
+                "sampleRate",
+                "Sample Rate",
+                500f,
+                Decimator.RateOff,
+                Decimator.RateOff,
+                "Hz",
+                ParamTaper.Log
+            )
         ],
         maxInstances: 4
     );
@@ -210,16 +233,19 @@ public sealed class DriveBlock() : DspBlock(Info) {
 
     /// <summary>The clipping curve of voicing <paramref name="type" /> under Clip Type <paramref name="clipType" />.</summary>
     public static ClipperShape ShapeOf(int type, int clipType) =>
-        clipType > 0 ? (ClipperShape)(clipType - 1) : type switch {
-            0 => ClipperShape.Soft,
-            1 => ClipperShape.Hard,
-            _ => ClipperShape.Asymmetric
-        };
+        clipType > 0
+            ? (ClipperShape)(clipType - 1)
+            : type switch {
+                0 => ClipperShape.Soft,
+                1 => ClipperShape.Hard,
+                _ => ClipperShape.Asymmetric
+            };
 
     /// <summary><paramref name="descriptor" /> shown only on the types <paramref name="shown" /> accepts.</summary>
     static ParamDescriptor ForTypes(ParamDescriptor descriptor, Func<int, bool> shown) =>
         descriptor with {
-            TypeLabels = [..Enumerable.Range(0, TypeNames.Length).Select(t => shown(t) ? descriptor.Name : string.Empty)]
+            TypeLabels =
+                [..Enumerable.Range(0, TypeNames.Length).Select(t => shown(t) ? descriptor.Name : string.Empty)]
         };
 
     static bool HasDiodes(int type) =>
@@ -573,7 +599,8 @@ public sealed class DriveBlock() : DspBlock(Info) {
             var inner = oversample ? oversampler.Up(samples) : samples;
             var step = (toGain - fromGain) / inner.Length;
             var bias = advanced.Bias;
-            var offset = bias == 0f ? 0f : (float)AdaaClipper.Function(shape, bias); // the bias's own DC, removed at once
+            var offset =
+                bias == 0f ? 0f : (float)AdaaClipper.Function(shape, bias); // the bias's own DC, removed at once
             var biased = bias != 0f;
             for (var i = 0; i < inner.Length; i++) {
                 var x = inner[i];
@@ -589,6 +616,7 @@ public sealed class DriveBlock() : DspBlock(Info) {
                 if (type == 2 || biased) {
                     y = (float)dc.Tick(dcBlock, y); // fuzz (or a Bias): remove the offset
                 }
+
                 if (advanced.Dry > 0f) {
                     y += advanced.Dry * x;
                 }

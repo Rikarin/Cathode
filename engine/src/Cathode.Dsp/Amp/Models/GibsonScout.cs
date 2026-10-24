@@ -24,7 +24,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         As the tables give it the stages sit at 119 V (V2A) and 122 V (V2B) against 120 V and 130 V, and the 6AQ5s at
 ///         16 V of cathode (the drawing: 17 V). Assumed: the reverb's footswitch closed (R15 to ground) and its drive at
-///         0 (the 2M pot's whole track across the Volume), the recovery plate as 100k ‖ r_p (about 37k); the output transformer TF 18-01
+///         0 (the 2M pot's whole track across the Volume), the recovery plate as 100k ‖ r_p (about 37k); the output
+///         transformer TF 18-01
 ///         at the 6AQ5 datasheet's 10k plate to plate for push-pull class AB1; the supply's source resistance; the 1 × 12
 ///         open-back preset for the 1 × 10. The two 330k-returned grid leaks act as 220k for the push-pull signal. Not
 ///         modelled: the reverb (at 0) and the tremolo (its bias modulation through R34 1M into the grid leaks' return,
@@ -44,24 +45,24 @@ public static class GibsonScout {
         new(
             "2 x 6AQ5",
             PentodeModel.SixAQ5,
-            TubesPerSide: 1,
-            Supply: 305,
-            ScreenResistor: 1,
-            IdleCurrent: 0.03,
-            CathodeBias: true,
-            CathodeBypass: 20e-6,
-            RatedPower: 10,
-            PhaseInverter: new CathodyneDesign(TriodeModel.SixEU7, 263, 100e3, 100e3, 2.7e3),
-            CouplingCap: 0.01e-6,
-            GridLeak: 220e3,
-            GridStopper: 1,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(1, 10e3, 100, new(1e3, PotTaper.Linear), 1e-12),
-            HasFeedback: false,
-            Transformer: new(10e3),
-            Speaker: SpeakerDesign.OpenBack1x12,
-            PowerSupply: new(150, 20e-6, 3.9e3, 20e-6, 4.7e3, 20e-6, 7.9e-3, RectifierModel.EZ81),
+            1,
+            305,
+            1,
+            0.03,
+            true,
+            20e-6,
+            10,
+            new CathodyneDesign(TriodeModel.SixEU7, 263, 100e3, 100e3, 2.7e3),
+            0.01e-6,
+            220e3,
+            1,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(1, 10e3, 100, new(1e3, PotTaper.Linear), 1e-12),
+            false,
+            new(10e3),
+            SpeakerDesign.OpenBack1x12,
+            new(150, 20e-6, 3.9e3, 20e-6, 4.7e3, 20e-6, 7.9e-3, RectifierModel.EZ81),
             InverterInput: new(0.005e-6, 470e3),
             CathodeResistor: 270
         ),

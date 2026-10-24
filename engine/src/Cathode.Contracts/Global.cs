@@ -101,7 +101,12 @@ public sealed class GlobalBlock {
 public sealed record MidiActivity(string Type, int Status, int Data1, int Data2);
 
 /// <summary>The looper's transport, as the editor shows it.</summary>
-public sealed record LooperInfo(string State, double LengthSeconds, double PositionSeconds, bool Reversed, bool HalfSpeed);
+public sealed record LooperInfo(
+    string State,
+    double LengthSeconds,
+    double PositionSeconds,
+    bool Reversed,
+    bool HalfSpeed);
 
 // Request bodies.
 public sealed record BypassModeRequest(string Mode);

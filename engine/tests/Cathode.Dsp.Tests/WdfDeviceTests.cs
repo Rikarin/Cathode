@@ -67,7 +67,12 @@ public class WdfDeviceTests(ITestOutputHelper output) {
     [InlineData("12AX7", -2.0, 250.0, 1.2e-3)] // datasheet 1.2 mA; Koren's fit gives about 1.0 mA
     [InlineData("12AT7", -2.0, 250.0, 10e-3)]
     [InlineData("12AU7", -8.5, 250.0, 10.5e-3)]
-    public void Triode_presets_land_near_the_datasheet_operating_point(string tube, double vgk, double vpk, double amps) {
+    public void Triode_presets_land_near_the_datasheet_operating_point(
+        string tube,
+        double vgk,
+        double vpk,
+        double amps
+    ) {
         var model = tube switch {
             "12AX7" => TriodeModel.Ecc83,
             "12AT7" => TriodeModel.Ecc81,
@@ -188,7 +193,11 @@ public class WdfDeviceTests(ITestOutputHelper output) {
     static string Format(double[] v) =>
         string.Join(", ", v.Select(static x => x.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)));
 
-    static RTypeRoot<Ports<ResistiveVoltageSource>, OpAmp> NonInverting(OpAmpModel model, double feedback, double ground) {
+    static RTypeRoot<Ports<ResistiveVoltageSource>, OpAmp> NonInverting(
+        OpAmpModel model,
+        double feedback,
+        double ground
+    ) {
         var net = new WdfNetlist();
         var (plus, minus, outputNode) = (net.Node(), net.Node(), net.Node());
         net.Port(plus, WdfNetlist.Ground);
@@ -199,22 +208,22 @@ public class WdfDeviceTests(ITestOutputHelper output) {
         return new(net, new(new(1e3)), new(model, -4.5, 4.5, Rate));
     }
 
-    static INonlinearDevice Create(string name) => name switch {
-        "diode" => new Diode(DiodeModel.Silicon),
-        "diode-rs" => new Diode(DiodeModel.Led, 1, 15),
-        "clipper" => new DiodeClipper(DiodeModel.Germanium, 1, DiodeModel.Silicon, 2),
-        "npn" => new Bjt(BjtModel.Q2N3904),
-        "pnp" => new Bjt(BjtModel.Q2N3904 with { Polarity = BjtPolarity.Pnp }),
-        "germanium" => new Bjt(BjtModel.AC128),
-        "triode" => new Triode(TriodeModel.Ecc83),
-        "pentode" => new Pentode(PentodeModel.EL34),
-        "opamp" => new OpAmp(OpAmpModel.TL072, -4.5, 4.5, Rate),
-        _ => new Devices<Diode, Triode>(new(DiodeModel.Schottky), new(TriodeModel.Ecc82))
-    };
+    static INonlinearDevice Create(string name) =>
+        name switch {
+            "diode" => new Diode(DiodeModel.Silicon),
+            "diode-rs" => new Diode(DiodeModel.Led, 1, 15),
+            "clipper" => new DiodeClipper(DiodeModel.Germanium, 1, DiodeModel.Silicon, 2),
+            "npn" => new Bjt(BjtModel.Q2N3904),
+            "pnp" => new Bjt(BjtModel.Q2N3904 with { Polarity = BjtPolarity.Pnp }),
+            "germanium" => new Bjt(BjtModel.AC128),
+            "triode" => new Triode(TriodeModel.Ecc83),
+            "pentode" => new Pentode(PentodeModel.EL34),
+            "opamp" => new OpAmp(OpAmpModel.TL072, -4.5, 4.5, Rate),
+            _ => new Devices<Diode, Triode>(new(DiodeModel.Schottky), new(TriodeModel.Ecc82))
+        };
 
     /// <summary>Port voltages in each device's working range, avoiding the kinks (cut-off, zero plate voltage).</summary>
     static double Sample(string name, int port, Random random) {
-        double Uniform(double low, double high) => low + (high - low) * random.NextDouble();
         return name switch {
             "diode" or "clipper" => Uniform(-0.8, 0.8),
             "diode-rs" => Uniform(-1, 3),
@@ -230,5 +239,6 @@ public class WdfDeviceTests(ITestOutputHelper output) {
             "opamp" => port == 0 ? Uniform(-0.05, 0.05) : Uniform(-4, 4),
             _ => port == 0 ? Uniform(-0.5, 0.3) : port == 1 ? Uniform(-4, 1) : Uniform(20, 300)
         };
+        double Uniform(double low, double high) => low + (high - low) * random.NextDouble();
     }
 }

@@ -68,7 +68,7 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
     /// <summary>Fade at a Length cut, samples.</summary>
     const int LengthFade = 64;
 
-    static readonly IrShape Shape = new(MaxIrLength, UnitEnergy: false);
+    static readonly IrShape Shape = new(MaxIrLength, false);
     static readonly string[] SlotAssets = ["ir", "ir2"];
 
     readonly Lock sync = new();
@@ -103,8 +103,24 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
         "Cab",
         [
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("lowcut", "Low Cut", CabBlock.LowCutOff, 500f, CabBlock.LowCutOff, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("highcut", "High Cut", 1_000f, CabBlock.HighCutOff, CabBlock.HighCutOff, "Hz", ParamTaper.Log),
+            ParamDescriptor.Float(
+                "lowcut",
+                "Low Cut",
+                CabBlock.LowCutOff,
+                500f,
+                CabBlock.LowCutOff,
+                "Hz",
+                ParamTaper.Log
+            ),
+            ParamDescriptor.Float(
+                "highcut",
+                "High Cut",
+                1_000f,
+                CabBlock.HighCutOff,
+                CabBlock.HighCutOff,
+                "Hz",
+                ParamTaper.Log
+            ),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
             ParamDescriptor.Choice("lowslope", "Low Cut Slope", CutFilter.Slopes, CutFilter.Slope12),
@@ -304,7 +320,8 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
         return 1;
     }
 
-    static float[] Used(ReadOnlySpan<float> side, ReadOnlySpan<float> other) => side[..UsedLength(side, other)].ToArray();
+    static float[] Used(ReadOnlySpan<float> side, ReadOnlySpan<float> other) =>
+        side[..UsedLength(side, other)].ToArray();
 
     static void Add(ReadOnlySpan<float> source, Span<float> destination, float gain) {
         for (var i = 0; i < source.Length; i++) {
@@ -388,7 +405,9 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
     /// </summary>
     ReadOnlySpan<float> Shaped(int slot, float[] ir, bool upper = false) {
         var lengthMs = SlotTarget(slot, Length);
-        var length = lengthMs >= FullLengthMs ? ir.Length : Math.Min(ir.Length, Math.Max(1, (int)(lengthMs / 1_000.0 * Spec.SampleRate)));
+        var length = lengthMs >= FullLengthMs
+            ? ir.Length
+            : Math.Min(ir.Length, Math.Max(1, (int)(lengthMs / 1_000.0 * Spec.SampleRate)));
         if (length == ir.Length) {
             return ir;
         }
@@ -411,7 +430,10 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
         readonly NativeBuffer re2 = new(size);
         readonly NativeBuffer im2 = new(size);
 
-        /// <summary>Adds <paramref name="a" /> ⊛ <paramref name="b" /> × <paramref name="gain" /> into <paramref name="destination" />, cut to its length.</summary>
+        /// <summary>
+        ///     Adds <paramref name="a" /> ⊛ <paramref name="b" /> × <paramref name="gain" /> into
+        ///     <paramref name="destination" />, cut to its length.
+        /// </summary>
         public void Convolve(ReadOnlySpan<float> a, ReadOnlySpan<float> b, Span<float> destination, float gain) {
             var ar = re1.Span;
             var ai = im1.Span;

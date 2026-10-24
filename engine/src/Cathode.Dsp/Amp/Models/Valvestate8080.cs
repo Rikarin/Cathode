@@ -12,7 +12,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     22k linear middle with the middle cap on its wiper), 47k into a follower's 470k (IC4), then 4k7 and 220 nF into
 ///     the Contour network (1 nF, 33k + 47k, 47 nF and 10 nF, the 100k linear Contour pot's wiper grounded between them,
 ///     22 nF), the 100k log Volume and IC5b (1 + 47k / 4k7). Normal (Switch 1): IC1b (1 + 100k ‖ 47 pF over 22k + 47 nF;
-///     Crunch adds 4.7 nF + 4k7 from the 47 nF's foot to ground), 47 nF and 10k into IC2, whose input arm and feedback are the 220k linear Gain
+///     Crunch adds 4.7 nF + 4k7 from the 47 nF's foot to ground), 47 nF and 10k into IC2, whose input arm and feedback are
+///     the 220k linear Gain
 ///     pot's two parts with 1 nF and 100 pF (Crunch adds two LEDs each way with 1 nF), 220 Ω into a 4.7 nF / 3k3 /
 ///     220 nF / 220 nF stack (22k linear treble, 100k log bass, 4k7 linear middle on the wiper, 22 nF from the slope to
 ///     ground) and IC5a (×2). Both: 10 µF, the effects loop (21k to ground, the send tapped at 1k, the return's IC6a
@@ -81,22 +82,22 @@ public static class Valvestate8080 {
     ) {
         SolidState = new(
             "BDV65/BDV64 class AB",
-            InputCap: 0.22e-6,
-            InputResistor: 33e3,
-            FeedbackResistor: 33e3,
-            ShuntResistor: 1e3,
-            ShuntCap: 100e-6,
-            OpenLoopGain: 1e4,
-            GainBandwidth: 2e6,
-            Rail: 39,
-            RailResistance: 1,
-            Reservoir: 2200e-6,
-            Headroom: 3,
-            Junctions: 2,
-            EmitterResistor: 0.33,
-            IdleCurrent: 0.03,
-            Load: 8,
-            RatedPower: 80
+            0.22e-6,
+            33e3,
+            33e3,
+            1e3,
+            100e-6,
+            1e4,
+            2e6,
+            39,
+            1,
+            2200e-6,
+            3,
+            2,
+            0.33,
+            0.03,
+            8,
+            80
         ),
         Panel = AmpPanel.Standard with {
             Presence = null,
@@ -170,7 +171,8 @@ public static class Valvestate8080 {
         net.Resistor(follower, back, 220e3);
         net.Capacitor(back, grid, 100e-9);
 
-        var (trebleTop, slope, bassTop, middleTop, output) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (trebleTop, slope, bassTop, middleTop, output) = (net.Node(), net.Node(), net.Node(), net.Node(),
+            net.Node());
         net.Capacitor(follower, trebleTop, 470e-12, CapacitorRole.Stack);
         net.Resistor(follower, slope, 33e3);
         net.Capacitor(slope, bassTop, 22e-9, CapacitorRole.Stack);
@@ -192,7 +194,8 @@ public static class Valvestate8080 {
     static StageNetlist ContourStage() {
         var net = new StageNetlist();
         var (a, y, z, k, w, j, plus, minus, output) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(),
+                net.Node());
         net.Resistor(net.Input, a, 4.7e3);
         net.Capacitor(a, y, 220e-9);
         net.Capacitor(y, z, 1e-9);
@@ -219,7 +222,8 @@ public static class Valvestate8080 {
     /// </summary>
     static StageNetlist NormalInput() {
         var net = new StageNetlist();
-        var (plus, minus, leg, bright, crunch, output) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (plus, minus, leg, bright, crunch, output) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(),
+            net.Node());
         net.Capacitor(net.Input, plus, 10e-9);
         net.Resistor(plus, StageNetlist.Ground, 1e6);
         net.Resistor(output, minus, 100e3);

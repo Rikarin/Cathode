@@ -50,10 +50,13 @@ public sealed class BlockLibraryTests : IAsyncLifetime {
         }
 
         Assert.Empty(problems);
-        Assert.Equal(FactoryBlockPresets.All.Count, FactoryBlockPresets.All.Select(static p => p.Id).Distinct().Count());
+        Assert.Equal(
+            FactoryBlockPresets.All.Count,
+            FactoryBlockPresets.All.Select(static p => p.Id).Distinct().Count()
+        );
         foreach (var type in new[] {
-                     "chorus", "flanger", "phaser", "delay", "multidelay", "tentap", "plex", "megatap", "reverb", "compressor", "gate",
-                     "filter", "geq", "wah", "pitch", "tremolo", "ringmod", "dyndist", "drive"
+                     "chorus", "flanger", "phaser", "delay", "multidelay", "tentap", "plex", "megatap", "reverb",
+                     "compressor", "gate", "filter", "geq", "wah", "pitch", "tremolo", "ringmod", "dyndist", "drive"
                  }) {
             Assert.True(FactoryBlockPresets.All.Count(p => p.Type == type) >= 4, $"{type} has fewer than four presets");
         }
@@ -65,15 +68,25 @@ public sealed class BlockLibraryTests : IAsyncLifetime {
         var analog = presets.Single(p => p.Name == "Analog Stereo");
 
         await Read(
-            await client.PatchAsJsonAsync("/api/v1/live/blocks/chorus1/params", new Dictionary<string, float> { ["mix"] = 80 }, Token)
+            await client.PatchAsJsonAsync(
+                "/api/v1/live/blocks/chorus1/params",
+                new Dictionary<string, float> { ["mix"] = 80 },
+                Token
+            )
         );
         var live = await Read(
-            await client.PostAsJsonAsync("/api/v1/live/blocks/chorus1/preset", new ApplyBlockPresetRequest(analog.Id), Token)
+            await client.PostAsJsonAsync(
+                "/api/v1/live/blocks/chorus1/preset",
+                new ApplyBlockPresetRequest(analog.Id),
+                Token
+            )
         );
 
         Assert.All(presets, static p => Assert.Equal("chorus", p.Type));
         Assert.Equal(analog.Values, live.Preset.Blocks.Single(b => b.Id == "chorus1").Channels["A"]);
-        await ServerFixture.Eventually(() => server.Target("chorus1", "highCut") == 6_000 && server.Target("chorus1", "mix") == 50);
+        await ServerFixture.Eventually(() =>
+            server.Target("chorus1", "highCut") == 6_000 && server.Target("chorus1", "mix") == 50
+        );
     }
 
     [Fact]

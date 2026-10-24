@@ -18,9 +18,7 @@ public class NativeBufferTests {
 
     [Fact]
     public void Allocating_does_not_touch_the_managed_heap_beyond_the_handle() {
-        var allocated = Cathode.Testing.AllocationProbe.Measure(
-            static () => new NativeBuffer(1_000_000).Dispose()
-        );
+        var allocated = Cathode.Testing.AllocationProbe.Measure(static () => new NativeBuffer(1_000_000).Dispose());
 
         Assert.True(allocated < 200, $"{allocated} managed bytes for a 4 MB buffer");
     }

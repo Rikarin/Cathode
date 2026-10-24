@@ -53,8 +53,17 @@ public struct HilbertPair {
         }
 
         public void Flush() {
-            if (Math.Abs(y1a) + Math.Abs(y2a) + Math.Abs(y1b) + Math.Abs(y2b) + Math.Abs(y1c) + Math.Abs(y2c)
-                + Math.Abs(y1d) + Math.Abs(y2d) + Math.Abs(x1a) + Math.Abs(x2a) < 1e-30) {
+            if (Math.Abs(y1a)
+                + Math.Abs(y2a)
+                + Math.Abs(y1b)
+                + Math.Abs(y2b)
+                + Math.Abs(y1c)
+                + Math.Abs(y2c)
+                + Math.Abs(y1d)
+                + Math.Abs(y2d)
+                + Math.Abs(x1a)
+                + Math.Abs(x2a)
+                < 1e-30) {
                 this = default;
             }
         }

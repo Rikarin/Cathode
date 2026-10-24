@@ -4,10 +4,12 @@ namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
 ///     Ampeg SVT (1970, 6550 version, about 300 W), channel one: the 12DW7 input stage (its 12AX7 half, 220k plate,
-///     3.3k unbypassed) DC-coupled to its 12AU7 half as a cathode follower; the Bass Cut / Ultra Lo network (a bridged pair of 2 nF
+///     3.3k unbypassed) DC-coupled to its 12AU7 half as a cathode follower; the Bass Cut / Ultra Lo network (a bridged
+///     pair of 2 nF
 ///     caps for the cut, a 150k / 2 nF / 68k twin-T notch near 500 Hz for Ultra Lo) into the 1M volume with its 500 pF
 ///     Ultra Hi cap; V3A (12AU7 half, 47k, 1.5k unbypassed); a passive Baxandall (1M bass and treble pots); the midrange
-///     loop: V3B (12AX7 half) into V4A (12AX7 half, 470k) DC-coupled to the V4B follower (12AU7 half), whose output returns to V3B's
+///     loop: V3B (12AX7 half) into V4A (12AX7 half, 470k) DC-coupled to the V4B follower (12AU7 half), whose output
+///     returns to V3B's
 ///     cathode through 56k, with the Mid-Range pot between the two ends of the loop and a series resonant circuit at its
 ///     wiper; the 6C4 cathode follower and the power amp's input clamp. The power amp: a 12DW7 input stage taking the
 ///     feedback at its cathode, a cathodyne, 12BH7 voltage amplifiers and 12BH7 cathode followers DC-coupled through 47k
@@ -36,7 +38,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         curves: the library has no 12BH7), the 6C4 (one 12AU7 half), the output transformer (2k plate to plate, from
 ///         300 W at 680 V), the feedback tap (the 4 Ω one), the supply's source resistance and the reservoir (100 µF and
 ///         70 µF stacked: 41 µF). The separate screen winding is a stand-in: a dropping resistor from B+ into a very large
-///         cap, which holds 350 V through a note as the real winding would. Channel two (12AX7 stages, its own stack, mixed
+///         cap, which holds 350 V through a note as the real winding would. Channel two (12AX7 stages, its own stack,
+///         mixed
 ///         after the midrange loop) loads the mix node as 100k into 150k and is not modelled; nor is the input jacks'
 ///         switching beyond Bright.
 ///     </para>
@@ -64,14 +67,14 @@ public static class Svt {
         new(
             "6 x 6550",
             PentodeModel.SixtyFiveFifty,
-            TubesPerSide: 3,
-            Supply: 680,
-            ScreenResistor: 22,
-            IdleCurrent: 0.024,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 300,
-            PhaseInverter: new DriverChainDesign(
+            3,
+            680,
+            22,
+            0.024,
+            false,
+            0,
+            300,
+            new DriverChainDesign(
                 TriodeModel.Ecc83,
                 330,
                 220e3,
@@ -86,16 +89,16 @@ public static class Svt {
                 -120,
                 -55
             ),
-            CouplingCap: 1, // DC-coupled from the followers
-            GridLeak: 10e6, // none: the followers' cathodes hold the grids
-            GridStopper: 47e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(1 / Math.Sqrt(2), 47e3, 220, new(1e3, PotTaper.Linear), 1e-15),
-            HasFeedback: true,
-            Transformer: new(2e3, 15, 4e-3, 60, 2e-9, 100e3),
-            Speaker: SpeakerDesign.Closed8x10,
-            PowerSupply: new(40, 41e-6, 50e3, 0.5, 8.2e3, 40e-6, 6e-3, RectifierModel.Silicon),
+            1, // DC-coupled from the followers
+            10e6, // none: the followers' cathodes hold the grids
+            47e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(1 / Math.Sqrt(2), 47e3, 220, new(1e3, PotTaper.Linear), 1e-15),
+            true,
+            new(2e3, 15, 4e-3, 60, 2e-9, 100e3),
+            SpeakerDesign.Closed8x10,
+            new(40, 41e-6, 50e3, 0.5, 8.2e3, 40e-6, 6e-3, RectifierModel.Silicon),
             ScreenSupply: 350
         ),
         -5
@@ -155,7 +158,8 @@ public static class Svt {
     /// </summary>
     static NetworkStageDesign VolumeStage() {
         var net = new StageNetlist();
-        var (x, direct, y, z, w, arm, top) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (x, direct, y, z, w, arm, top) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(),
+            net.Node());
         net.Capacitor(net.Input, x, 0.1e-6);
         net.Resistor(x, StageNetlist.Ground, 100e3);
         net.SwitchedResistor(x, direct, Wire, Open, SwitchRole.Switch2);
@@ -188,7 +192,8 @@ public static class Svt {
     /// </summary>
     static NetworkStageDesign ToneStack() {
         var net = new StageNetlist();
-        var (input, bassTop, bassBottom, trebleTop, trebleBottom) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (input, bassTop, bassBottom, trebleTop, trebleBottom) = (net.Node(), net.Node(), net.Node(), net.Node(),
+            net.Node());
         net.Capacitor(net.Input, input, 0.1e-6);
         net.Resistor(input, bassTop, 220e3);
         net.Capacitor(input, trebleTop, 47e-12, CapacitorRole.Stack);

@@ -46,7 +46,9 @@ public static class CathodeApi {
                     Respond(http, await rig.PutAsync(preset, Expected(http)))
             )
             .WithName("PutLive")
-            .WithSummary("Replaces the working copy's content (undoable; the preset keeps its id). Used for A/B compare.");
+            .WithSummary(
+                "Replaces the working copy's content (undoable; the preset keeps its id). Used for A/B compare."
+            );
         live.MapPost("/new", async (LiveRig rig, HttpContext http) => Respond(http, await rig.NewAsync()))
             .WithName("NewPreset");
         live.MapPut(
@@ -216,7 +218,12 @@ public static class CathodeApi {
                     store.Get(id) is { } found ? TypedResults.Ok(found) : TypedResults.NotFound()
             )
             .WithName("GetBlockPreset");
-        blockPresets.MapPut("/{id}", (string id, BlockPreset blockPreset, BlockPresetStore store) => TypedResults.Ok(store.Save(id, blockPreset)))
+        blockPresets.MapPut(
+                "/{id}",
+                (string id, BlockPreset blockPreset, BlockPresetStore store) => TypedResults.Ok(
+                    store.Save(id, blockPreset)
+                )
+            )
             .WithName("PutBlockPreset")
             .WithSummary("Saves a user block preset (factory ones cannot be changed).");
         blockPresets.MapDelete(
@@ -227,13 +234,22 @@ public static class CathodeApi {
             .WithName("DeleteBlockPreset");
         live.MapPost(
                 "/blocks/{id}/preset",
-                async (string id, ApplyBlockPresetRequest request, BlockPresetStore store, LiveRig rig, HttpContext http) => {
-                    var source = store.Get(request.Preset) ?? throw RigException.NotFound($"No block preset '{request.Preset}'.");
+                async (
+                    string id,
+                    ApplyBlockPresetRequest request,
+                    BlockPresetStore store,
+                    LiveRig rig,
+                    HttpContext http
+                ) => {
+                    var source = store.Get(request.Preset)
+                        ?? throw RigException.NotFound($"No block preset '{request.Preset}'.");
                     return Respond(http, await rig.ApplyBlockPresetAsync(id, source, request.Channel, Expected(http)));
                 }
             )
             .WithName("ApplyBlockPreset")
-            .WithSummary("Sets a channel of the block (default: the active scene's) to a block preset from the Block Library.");
+            .WithSummary(
+                "Sets a channel of the block (default: the active scene's) to a block preset from the Block Library."
+            );
 
         var setlists = api.MapGroup("/setlists").WithTags("Setlists");
         setlists.MapGet("/", (Library books) => TypedResults.Ok(books.Setlists())).WithName("ListSetlists");
@@ -498,7 +514,8 @@ public static class CathodeApi {
                 "/",
                 (GlobalSettings settings, GlobalStore store) => {
                     GlobalValidation.Check(settings);
-                    return TypedResults.Ok(store.Update(g => {
+                    return TypedResults.Ok(
+                        store.Update(g => {
                                 g.TempoMode = settings.TempoMode;
                                 g.Tempo = Math.Clamp(settings.Tempo, 30, 300);
                                 g.Metronome = settings.Metronome;
@@ -516,7 +533,9 @@ public static class CathodeApi {
                 }
             )
             .WithName("PutGlobal")
-            .WithSummary("Replaces the global settings: tempo mode, metronome, EQ, Manual A-D, MIDI, footswitches, global blocks.");
+            .WithSummary(
+                "Replaces the global settings: tempo mode, metronome, EQ, Manual A-D, MIDI, footswitches, global blocks."
+            );
 
         var looper = api.MapGroup("/looper").WithTags("Looper");
         looper.MapPost(
@@ -543,8 +562,14 @@ public static class CathodeApi {
                         throw new RigException(409, e.Message);
                     }
 
-                    var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920,
-                        FileOptions.DeleteOnClose | FileOptions.Asynchronous);
+                    var file = new FileStream(
+                        path,
+                        FileMode.Open,
+                        FileAccess.Read,
+                        FileShare.Read,
+                        81_920,
+                        FileOptions.DeleteOnClose | FileOptions.Asynchronous
+                    );
                     return Results.File(file, "audio/wav", "loop.wav");
                 }
             )
@@ -562,7 +587,9 @@ public static class CathodeApi {
                 }
             )
             .WithName("StartMidiLearn")
-            .WithSummary("The next CC, note or program change received is mapped to this action ('midiLearned' event).");
+            .WithSummary(
+                "The next CC, note or program change received is mapped to this action ('midiLearned' event)."
+            );
         midi.MapDelete(
                 "/learn",
                 (MidiRouter router) => {

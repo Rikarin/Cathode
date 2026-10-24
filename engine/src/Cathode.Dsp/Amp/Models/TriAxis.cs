@@ -4,7 +4,8 @@ namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
 ///     Mesa/Boogie TriAxis preamp (1992, rev. 1.08), as three types: the Rhythm modes (Green, or Yellow on Switch 1), Lead
-///     1 and Lead 2 (Green, Yellow on Switch 1, Red on Switch 2), each into a generic power amp (the Dual Rectifier model's
+///     1 and Lead 2 (Green, Yellow on Switch 1, Red on Switch 2), each into a generic power amp (the Dual Rectifier
+///     model's
 ///     four 6L6GC). The modes are the drawing's light-dependent
 ///     resistors (LDRs) as switches, set per mode as its LDR table says.
 /// </summary>
@@ -65,9 +66,7 @@ public static class TriAxis {
     ///     stage would be (Mesa's own TriAxis power amps are Simul-Class; the plain pentode quad costs less).
     /// </summary>
     static PowerAmpDesign PowerAmp { get; } = DualRectifier.Design.Power with {
-        Name = "4 x 6L6GC (Dual Rectifier power amp)",
-        SupplySwitches = null,
-        FeedbackOffSwitch = null
+        Name = "4 x 6L6GC (Dual Rectifier power amp)", SupplySwitches = null, FeedbackOffSwitch = null
     };
 
     public static AmpDesign Rhythm { get; } = Create(
@@ -127,20 +126,19 @@ public static class TriAxis {
         LeadTwo
     }
 
-    static AmpPanel LeadPanel(string drive) => AmpPanel.Standard with {
-        Depth = null,
-        Cut = null,
-        Bright = null,
-        Switch1 = "Yellow",
-        Switch2 = "Red",
-        Control1 = drive,
-        Control2 = "Dynamic Voice"
-    };
+    static AmpPanel LeadPanel(string drive) =>
+        AmpPanel.Standard with {
+            Depth = null,
+            Cut = null,
+            Bright = null,
+            Switch1 = "Yellow",
+            Switch2 = "Red",
+            Control1 = drive,
+            Control2 = "Dynamic Voice"
+        };
 
     static AmpDesign Create(string name, double trim, IReadOnlyList<AmpStageDesign> preamp, AmpPanel panel) =>
-        new(name, preamp, PowerAmp, trim) {
-            Panel = panel
-        };
+        new(name, preamp, PowerAmp, trim) { Panel = panel };
 
     /// <summary>
     ///     An LDR contact between <paramref name="a" /> and <paramref name="b" />: lit in every voicing of the mode when
@@ -417,7 +415,7 @@ public static class TriAxis {
         Branch(net, n, common, 33e-3, 33e-9, 7.5e3);
         Branch(net, n, common, 68e-3, 0.15e-6, 7.5e3);
         Branch(net, p, common, 220e-3, 0.22e-6, 220);
-        net.Rheostat(common, StageNetlist.Ground, new(10e3, PotTaper.ReverseAudio), PotRole.Control2, falling: true);
+        net.Rheostat(common, StageNetlist.Ground, new(10e3, PotTaper.ReverseAudio), PotRole.Control2, true);
         net.Resistor(common, StageNetlist.Ground, 10e6);
         net.OpAmp(p, n, output, OpAmpModel.TL072, 16);
         net.Output = output;

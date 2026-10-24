@@ -112,6 +112,7 @@ public sealed class FloatingParaphase : PhaseInverter {
         var (ia, ib) = (0.5e-3, 0.5e-3);
         Span<double> residual = stackalloc double[2];
         Span<double> shifted = stackalloc double[2];
+
         (double, double, double, double) Evaluate(double ia, double ib, Span<double> r) {
             var (pa, pb, gridB) = Plates(design, ia + drawA, ib + drawB, dc, junction);
             var ka = shared + ia * design.CathodeA;

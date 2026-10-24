@@ -43,7 +43,8 @@ public sealed class EqParityTests : IDisposable {
             );
             var response = BlockRender.Mono(peq, Signals.Impulse(65_536), 64);
             Assert.Equal(gain, Analysis.ToDb(Analysis.MagnitudeAt(response, 1_000, Rate)), 0.1);
-            return (float)(Analysis.ToDb(Analysis.MagnitudeAt(response, 1_500, Rate)) / gain); // share kept half an octave up
+            return (float)(Analysis.ToDb(Analysis.MagnitudeAt(response, 1_500, Rate))
+                / gain); // share kept half an octave up
         }
 
         Assert.True(Width(3f) > Width(12f) + 0.1f, "a small boost is broader");
@@ -96,7 +97,10 @@ public sealed class EqParityTests : IDisposable {
             var ir = Signals.Impulse(16_384);
             state.Process(c, ir);
             foreach (var f in new[] { 500.0, 2_000, 4_000 }) {
-                var expected = -10 * Math.Log10(1 + Math.Pow(Math.Tan(Math.PI * f / Rate) / Math.Tan(Math.PI * 2_000 / Rate), 2 * order));
+                var expected = -10
+                    * Math.Log10(
+                        1 + Math.Pow(Math.Tan(Math.PI * f / Rate) / Math.Tan(Math.PI * 2_000 / Rate), 2 * order)
+                    );
                 Assert.Equal(expected, Analysis.ToDb(Analysis.MagnitudeAt(ir, f, Rate)), 0.05);
             }
         }
@@ -228,7 +232,10 @@ public sealed class EqParityTests : IDisposable {
 
     [Fact]
     public void Ir_player_input_select_feeds_one_side() {
-        using var block = Create(("ir", Write("a.wav", Signals.Impulse(16, 1f))), (IrPlayerBlock.Input, IrPlayerBlock.InputLeft));
+        using var block = Create(
+            ("ir", Write("a.wav", Signals.Impulse(16, 1f))),
+            (IrPlayerBlock.Input, IrPlayerBlock.InputLeft)
+        );
         var left = Signals.Impulse(100);
         var right = new float[100];
 

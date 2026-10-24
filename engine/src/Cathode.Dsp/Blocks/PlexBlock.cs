@@ -119,7 +119,9 @@ public sealed class PlexBlock() : DspBlock(Info) {
     static readonly float[] DefaultDetune = [-11f, 9f, -7f, 5f, -5f, 7f, -9f, 11f];
     static readonly float[] DefaultShifts = [12f, -12f, 7f, -5f, 12f, 19f, -7f, 5f];
 
-    readonly FractionalDelayLine[] lines = [..Enumerable.Range(0, MaxLines).Select(static _ => new FractionalDelayLine())];
+    readonly FractionalDelayLine[] lines =
+        [..Enumerable.Range(0, MaxLines).Select(static _ => new FractionalDelayLine())];
+
     readonly ReverbLine[] allpasses = [..Enumerable.Range(0, MaxLines).Select(static _ => new ReverbLine())];
     readonly ReverbLine[] inputDiffusers = [new(), new(), new(), new()];
     readonly GrainShifter[] shifters = [..Enumerable.Range(0, MaxLines).Select(static _ => new GrainShifter())];
@@ -152,9 +154,14 @@ public sealed class PlexBlock() : DspBlock(Info) {
         "Plex Delay",
         "Delay",
         [
-            ParamDescriptor.Choice("type", "Type", ["Plex Delay", "Plex Detune", "Plex Shifter", "Plex Verb", "Shimmer Verb"]),
+            ParamDescriptor.Choice(
+                "type",
+                "Type",
+                ["Plex Delay", "Plex Detune", "Plex Shifter", "Plex Verb", "Shimmer Verb"]
+            ),
             new("delays", "Number of Delays", ParamKind.Float, 1f, MaxLines, MaxLines, Smoothing: ParamSmoothing.Step),
-            ParamDescriptor.Float("masterTime", "Master Time", 10f, 200f, 100f, "%").HiddenOn(TypeCount, PlexVerb, ShimmerVerb),
+            ParamDescriptor.Float("masterTime", "Master Time", 10f, 200f, 100f, "%")
+                .HiddenOn(TypeCount, PlexVerb, ShimmerVerb),
             ParamDescriptor.Float("decay", "Decay Time", 0.1f, 30f, 2f, "s", ParamTaper.Log),
             ParamDescriptor.Float("diffusion", "Diffusion", 0f, 100f, 40f, "%"),
             ParamDescriptor.Float("inputDiffusion", "Input Diffusion", 0f, 100f, 0f, "%"),
@@ -163,14 +170,28 @@ public sealed class PlexBlock() : DspBlock(Info) {
             ParamDescriptor.Float("highCut", "High Cut", 500f, HighCutOff, 8_000f, "Hz", ParamTaper.Log),
             ParamDescriptor.Choice("hold", "Stack/Hold", ["Off", "Hold", "Stack"]),
             ParamDescriptor.Float("masterPan", "Master Pan", -100f, 100f, 0f, "%"),
-            .. Line(i => new ParamDescriptor($"time{i + 1}", $"Delay Time {i + 1}", ParamKind.Float, 1f, MaxLineMs, DefaultTimes[i], "ms", ParamTaper.Log, ParamSmoothing.Linear, 60f)
-                .HiddenOn(TypeCount, PlexVerb, ShimmerVerb)),
-            .. Line(i => ParamDescriptor.Choice($"tempo{i + 1}", $"Tempo {i + 1}", TempoDivisions.Names).HiddenOn(TypeCount, PlexVerb, ShimmerVerb)),
-            .. Line(i => ParamDescriptor.Float($"level{i + 1}", $"Level {i + 1}", 0f, 100f, 100f, "%")),
-            .. Line(i => ParamDescriptor.Float($"pan{i + 1}", $"Pan {i + 1}", -100f, 100f, DefaultPans[i], "%")),
+            ..Line(i => new ParamDescriptor(
+                    $"time{i + 1}",
+                    $"Delay Time {i + 1}",
+                    ParamKind.Float,
+                    1f,
+                    MaxLineMs,
+                    DefaultTimes[i],
+                    "ms",
+                    ParamTaper.Log,
+                    ParamSmoothing.Linear,
+                    60f
+                )
+                    .HiddenOn(TypeCount, PlexVerb, ShimmerVerb)
+            ),
+            ..Line(i => ParamDescriptor.Choice($"tempo{i + 1}", $"Tempo {i + 1}", TempoDivisions.Names)
+                .HiddenOn(TypeCount, PlexVerb, ShimmerVerb)
+            ),
+            ..Line(i => ParamDescriptor.Float($"level{i + 1}", $"Level {i + 1}", 0f, 100f, 100f, "%")),
+            ..Line(i => ParamDescriptor.Float($"pan{i + 1}", $"Pan {i + 1}", -100f, 100f, DefaultPans[i], "%")),
             ParamDescriptor.Choice("filterType", "Filter Type", ["Off", "Low Pass", "High Pass", "Band Pass", "Peak"]),
             ParamDescriptor.Float("filterFrequency", "Filter Freq", 50f, 15_000f, 2_000f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("filterQ", "Filter Q", 0.1f, 10f, 0.7071f, "", ParamTaper.Log),
+            ParamDescriptor.Float("filterQ", "Filter Q", 0.1f, 10f, 0.7071f, string.Empty, ParamTaper.Log),
             ParamDescriptor.Float("filterGain", "Filter Gain", -12f, 12f, 0f, "dB"),
             ParamDescriptor.Float("filterLfoRate", "Filter LFO Rate", 0.05f, 10f, 0.5f, "Hz", ParamTaper.Log),
             ParamDescriptor.Choice("filterLfoTempo", "Filter LFO Tempo", TempoDivisions.Names),
@@ -178,15 +199,22 @@ public sealed class PlexBlock() : DspBlock(Info) {
             ParamDescriptor.Float("envelopeThreshold", "Envelope Threshold", -80f, 0f, -40f, "dB"),
             ParamDescriptor.Float("envelopeAttack", "Envelope Attack", 0f, 2_000f, 0f, "ms"),
             ParamDescriptor.Float("envelopeRelease", "Envelope Release", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
-            .. Line(i => ParamDescriptor.Float($"detune{i + 1}", $"Detune {i + 1}", -50f, 50f, DefaultDetune[i], "ct").ShownOn(TypeCount, PlexDetune)),
+            ..Line(i => ParamDescriptor.Float($"detune{i + 1}", $"Detune {i + 1}", -50f, 50f, DefaultDetune[i], "ct")
+                .ShownOn(TypeCount, PlexDetune)
+            ),
             ParamDescriptor.Float("masterDetune", "Master Detune", 0f, 200f, 100f, "%").ShownOn(TypeCount, PlexDetune),
             ParamDescriptor.Float("granule", "Granule Length", 10f, MaxGranuleMs, 60f, "ms", ParamTaper.Log)
                 .ShownOn(TypeCount, PlexDetune, PlexShifter, ShimmerVerb),
-            .. Line(i => ParamDescriptor.Float($"shift{i + 1}", $"Shift {i + 1}", -24f, 24f, DefaultShifts[i], "st").ShownOn(TypeCount, PlexShifter)),
-            ParamDescriptor.Choice("direction", "Direction", ["Forward", "Reverse"]).ShownOn(TypeCount, PlexDetune, PlexShifter, ShimmerVerb),
-            ParamDescriptor.Float("crossfade", "Crossfade", 2f, 100f, 100f, "%").ShownOn(TypeCount, PlexDetune, PlexShifter, ShimmerVerb),
+            ..Line(i => ParamDescriptor.Float($"shift{i + 1}", $"Shift {i + 1}", -24f, 24f, DefaultShifts[i], "st")
+                .ShownOn(TypeCount, PlexShifter)
+            ),
+            ParamDescriptor.Choice("direction", "Direction", ["Forward", "Reverse"])
+                .ShownOn(TypeCount, PlexDetune, PlexShifter, ShimmerVerb),
+            ParamDescriptor.Float("crossfade", "Crossfade", 2f, 100f, 100f, "%")
+                .ShownOn(TypeCount, PlexDetune, PlexShifter, ShimmerVerb),
             ParamDescriptor.Float("verbSize", "Size", 0f, 100f, 50f, "%").ShownOn(TypeCount, PlexVerb, ShimmerVerb),
-            ParamDescriptor.Float("shimmerIntensity", "Shimmer Intensity", 0f, 100f, 50f, "%").ShownOn(TypeCount, ShimmerVerb),
+            ParamDescriptor.Float("shimmerIntensity", "Shimmer Intensity", 0f, 100f, 50f, "%")
+                .ShownOn(TypeCount, ShimmerVerb),
             ParamDescriptor.Float("lfoRate", "LFO Rate", 0.05f, 10f, 0.3f, "Hz", ParamTaper.Log),
             ParamDescriptor.Choice("lfoTempo", "LFO Tempo", TempoDivisions.Names),
             ParamDescriptor.Float("lfoDepth", "LFO Depth", 0f, MaxLfoMs, 0f, "ms"),
@@ -203,7 +231,8 @@ public sealed class PlexBlock() : DspBlock(Info) {
         maxInstances: 2
     );
 
-    static IEnumerable<ParamDescriptor> Line(Func<int, ParamDescriptor> parameter) => Enumerable.Range(0, MaxLines).Select(parameter);
+    static IEnumerable<ParamDescriptor> Line(Func<int, ParamDescriptor> parameter) =>
+        Enumerable.Range(0, MaxLines).Select(parameter);
 
     /// <summary>Gains of the balance pan law: unity on both sides at centre, the far side fading to zero.</summary>
     static (float Left, float Right) Pan(float pan) => (Math.Min(1f, 1f - pan), Math.Min(1f, 1f + pan));
@@ -333,7 +362,12 @@ public sealed class PlexBlock() : DspBlock(Info) {
 
         var lfoDepth = Params.Current(LfoDepth) * 0.001f * sampleRate;
         var lfoRate = TempoDivisions.Rate((int)Params.Current(LfoTempo), tempo, Params.Current(LfoRate));
-        ducker.Configure(sampleRate, Params.Current(DuckAttenuation), Params.Current(DuckThreshold), Params.Current(DuckRelease));
+        ducker.Configure(
+            sampleRate,
+            Params.Current(DuckAttenuation),
+            Params.Current(DuckThreshold),
+            Params.Current(DuckRelease)
+        );
         envelope.Configure(
             sampleRate,
             Params.Current(EnvelopeThreshold),
@@ -376,7 +410,11 @@ public sealed class PlexBlock() : DspBlock(Info) {
             if (filterType != FilterOff && modDepth > 0) {
                 // Coefficients move on a fixed internal hop, so the output does not depend on the host block size.
                 if (filterCounter == 0) {
-                    filterCoefficients = DesignFilter(filterType, sampleRate, MathF.Pow(2f, modDepth * filterLfo.Value(LfoShape.Sine)));
+                    filterCoefficients = DesignFilter(
+                        filterType,
+                        sampleRate,
+                        MathF.Pow(2f, modDepth * filterLfo.Value(LfoShape.Sine))
+                    );
                 }
 
                 filterCounter = (filterCounter + 1) % FilterHop;

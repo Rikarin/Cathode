@@ -6,14 +6,13 @@ namespace Cathode.Dsp.Tests;
 public class MultiDelayBlockTests {
     const double Rate = 48_000;
 
-    public static TheoryData<int> MultiDelayTypes =>
-        [
-            MultiDelayBlock.QuadTap,
-            MultiDelayBlock.QuadParallel,
-            MultiDelayBlock.QuadSeries,
-            MultiDelayBlock.QuadDiffusor,
-            MultiDelayBlock.QuadTape
-        ];
+    public static TheoryData<int> MultiDelayTypes => [
+        MultiDelayBlock.QuadTap,
+        MultiDelayBlock.QuadParallel,
+        MultiDelayBlock.QuadSeries,
+        MultiDelayBlock.QuadDiffusor,
+        MultiDelayBlock.QuadTape
+    ];
 
     [Fact]
     public void Quad_taps_land_at_their_time_level_and_pan() {
@@ -209,8 +208,16 @@ public class MultiDelayBlockTests {
     [Fact]
     public void Voice_chorus_and_lfo_move_the_tap_time() {
         using var plain = Create((MultiDelayBlock.Time, 100f), (MultiDelayBlock.Mix, 100f));
-        using var chorus = Create((MultiDelayBlock.Time, 100f), (MultiDelayBlock.Mix, 100f), (MultiDelayBlock.Chorus1Depth, 2f));
-        using var lfo = Create((MultiDelayBlock.Time, 100f), (MultiDelayBlock.Mix, 100f), (MultiDelayBlock.Lfo1Depth, 2f));
+        using var chorus = Create(
+            (MultiDelayBlock.Time, 100f),
+            (MultiDelayBlock.Mix, 100f),
+            (MultiDelayBlock.Chorus1Depth, 2f)
+        );
+        using var lfo = Create(
+            (MultiDelayBlock.Time, 100f),
+            (MultiDelayBlock.Mix, 100f),
+            (MultiDelayBlock.Lfo1Depth, 2f)
+        );
         var input = Signals.Sine(300, Rate, 48_000, 0.5f);
 
         var a = BlockRender.Mono(plain, input, 64);
@@ -254,7 +261,11 @@ public class MultiDelayBlockTests {
         var a = BlockRender.Mono(ducked, input, 64);
         var b = BlockRender.Mono(open, input, 64);
 
-        Assert.Equal(-20, Analysis.ToDb(Analysis.Rms(a.AsSpan(12_000, 9_600)) / Analysis.Rms(b.AsSpan(12_000, 9_600))), 0.2);
+        Assert.Equal(
+            -20,
+            Analysis.ToDb(Analysis.Rms(a.AsSpan(12_000, 9_600)) / Analysis.Rms(b.AsSpan(12_000, 9_600))),
+            0.2
+        );
     }
 
     [Fact]
@@ -288,7 +299,10 @@ public class MultiDelayBlockTests {
 
         Assert.True(Analysis.NullResidualDb(reference, varied) < -140);
         Assert.False(Analysis.AnySubnormal(reference), "subnormal samples in output");
-        Assert.True(Analysis.ToDb(Analysis.Peak(reference.AsSpan(reference.Length - 4_800))) < -120, "tail did not decay");
+        Assert.True(
+            Analysis.ToDb(Analysis.Peak(reference.AsSpan(reference.Length - 4_800))) < -120,
+            "tail did not decay"
+        );
     }
 
     /// <summary>The signal holds exactly these taps (to float precision) and nothing else.</summary>
@@ -303,5 +317,6 @@ public class MultiDelayBlockTests {
         Assert.Equal(energy, total, 1e-6);
     }
 
-    static MultiDelayBlock Create(params (int Index, float Value)[] settings) => TestBlocks.Create<MultiDelayBlock>(settings);
+    static MultiDelayBlock Create(params (int Index, float Value)[] settings) =>
+        TestBlocks.Create<MultiDelayBlock>(settings);
 }

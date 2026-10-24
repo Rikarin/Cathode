@@ -1,5 +1,4 @@
 using System.Globalization;
-using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
 
 namespace Cathode.Testing.References;

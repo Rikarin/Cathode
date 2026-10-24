@@ -26,7 +26,8 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
             // The Princeton AA964 has two stages, the second inside the feedback loop: at 5 it is still clean and
             // quiet (13 dB under the Princeton Reverb, which has a third), and its trim is held down by full drive. So is
             // the Gibson Scout's (two stages after an audio-taper volume, no feedback, a class-A pair).
-            var quiet = AmpDesign.All[type] == Amp.Models.PrincetonAA964.Design || AmpDesign.All[type] == Amp.Models.GibsonScout.Design;
+            var quiet = AmpDesign.All[type] == Amp.Models.PrincetonAA964.Design
+                || AmpDesign.All[type] == Amp.Models.GibsonScout.Design;
             var floor = gain == 3f ? -30 : quiet && gain == 5f ? -18 : -12;
             Assert.InRange(peak, floor, 0.5);
         }
@@ -51,9 +52,9 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
             : design.Tube == Wdf.PentodeModel.SixAQ5 ? 12
             : 30;
         output.WriteLine(
-            $"{design.Name}: B+ {power.Supply:0.0} V, screen node {power.ScreenSupply:0.0} V, preamp node " +
-            $"{power.PreampVoltage:0.0} V, grid bias {power.GridBias:0.00} V, cathode {power.CathodeVoltage:0.00} V, " +
-            $"{plate * 1e3:0.0} mA plate + {screen * 1e3:0.00} mA screen per tube, {dissipation:0.0} W of {rating} W"
+            $"{design.Name}: B+ {power.Supply:0.0} V, screen node {power.ScreenSupply:0.0} V, preamp node "
+            + $"{power.PreampVoltage:0.0} V, grid bias {power.GridBias:0.00} V, cathode {power.CathodeVoltage:0.00} V, "
+            + $"{plate * 1e3:0.0} mA plate + {screen * 1e3:0.00} mA screen per tube, {dissipation:0.0} W of {rating} W"
         );
         // Vox-style class-A amps idle their EL84s past the rating: the AC30's drawing has 10 V across 50 Ω for four
         // (AmpBooks: about 17 W of plate dissipation each), the DC-30 runs as hot. An amp biased cold by design (the
@@ -71,7 +72,12 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
     [Theory]
     [MemberData(nameof(Types))]
     public void Newton_converges_under_full_scale_drive_at_full_gain(int type) {
-        using var block = Create(type, (CircuitAmpBlock.Gain, 10f), (CircuitAmpBlock.Bias, 100f), (CircuitAmpBlock.Sag, 10f));
+        using var block = Create(
+            type,
+            (CircuitAmpBlock.Gain, 10f),
+            (CircuitAmpBlock.Bias, 100f),
+            (CircuitAmpBlock.Sag, 10f)
+        );
         var square = Signals.Sine(110, Rate, 48_000).Select(static s => s >= 0 ? 1f : -1f).ToArray();
         var rendered = BlockRender.Mono(block, Signals.Concat(square, Signals.Noise(48_000, 4)), 64);
         var channel = block.Channel;
@@ -80,15 +86,18 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
             .Select(static s => s.Newton!);
         if (channel.SolidState is { } solid) {
             Assert.Equal(0, solid.NonFinite);
-            Assert.True(solid.Unconverged <= solid.Samples / 10_000, $"{solid.Unconverged} unconverged power amp samples");
+            Assert.True(
+                solid.Unconverged <= solid.Samples / 10_000,
+                $"{solid.Unconverged} unconverged power amp samples"
+            );
         } else {
             stages = stages.Append(channel.Power.Newton);
         }
 
         foreach (var newton in stages) {
             output.WriteLine(
-                $"{newton.MeanIterations:0.00} iterations per sample (most {newton.MostIterations}), unconverged " +
-                $"{newton.Unconverged}, non-finite {newton.NonFinite}"
+                $"{newton.MeanIterations:0.00} iterations per sample (most {newton.MostIterations}), unconverged "
+                + $"{newton.Unconverged}, non-finite {newton.NonFinite}"
             );
             Assert.Equal(0, newton.NonFinite);
             Assert.True(newton.Unconverged <= newton.Samples / 10_000, $"{newton.Unconverged} unconverged samples");

@@ -99,12 +99,33 @@ public sealed class MegatapBlock() : DspBlock(Info) {
         "Megatap Delay",
         "Delay",
         [
-            new("time", "Time", ParamKind.Float, 10f, MaxTimeMs, 1_000f, "ms", ParamTaper.Log, ParamSmoothing.Linear, 60f),
+            new(
+                "time",
+                "Time",
+                ParamKind.Float,
+                10f,
+                MaxTimeMs,
+                1_000f,
+                "ms",
+                ParamTaper.Log,
+                ParamSmoothing.Linear,
+                60f
+            ),
             ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
             new("taps", "Taps", ParamKind.Float, 1f, MaxTaps, 16f, Smoothing: ParamSmoothing.Step),
             ParamDescriptor.Float("timeAlpha", "Time Alpha", -100f, 100f, 0f, "%"),
-            ParamDescriptor.Choice("levelShape", "Level Shape", ["Flat", "Fade Out", "Fade In", "Swell", "Exponential"], 1),
-            ParamDescriptor.Choice("panShape", "Pan Shape", ["Center", "Alternate", "Left to Right", "Right to Left"], 1),
+            ParamDescriptor.Choice(
+                "levelShape",
+                "Level Shape",
+                ["Flat", "Fade Out", "Fade In", "Swell", "Exponential"],
+                1
+            ),
+            ParamDescriptor.Choice(
+                "panShape",
+                "Pan Shape",
+                ["Center", "Alternate", "Left to Right", "Right to Left"],
+                1
+            ),
             ParamDescriptor.Float("spread", "Spread", -100f, 100f, 100f, "%"),
             ParamDescriptor.Float("lowCut", "Low Cut", LowCutOff, 2_000f, LowCutOff, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("highCut", "High Cut", 500f, HighCutOff, HighCutOff, "Hz", ParamTaper.Log),
@@ -154,7 +175,7 @@ public sealed class MegatapBlock() : DspBlock(Info) {
 
     /// <summary>A repeatable pseudo-random value in [0, 1) for tap <paramref name="k" /> and stream <paramref name="salt" />.</summary>
     public static float Jitter(int k, uint salt) {
-        var x = (uint)k * 0x9E3779B9u ^ salt * 0x85EBCA6Bu;
+        var x = ((uint)k * 0x9E3779B9u) ^ (salt * 0x85EBCA6Bu);
         x ^= x >> 16;
         x *= 0x7FEB352Du;
         x ^= x >> 15;

@@ -29,8 +29,7 @@ public readonly record struct HeldNotes(ulong Low, ulong High) {
         return set;
     }
 
-    public bool Contains(int note) =>
-        (uint)note < 128 && ((note < 64 ? Low >> note : High >> (note - 64)) & 1) != 0;
+    public bool Contains(int note) => (uint)note < 128 && ((note < 64 ? Low >> note : High >> (note - 64)) & 1) != 0;
 
     /// <summary>This set with <paramref name="note" /> pressed (<paramref name="held" />) or released.</summary>
     public HeldNotes With(int note, bool held) {

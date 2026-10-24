@@ -357,6 +357,5 @@ public sealed class TriodeStage : AmpStage {
 
     static double Capacitance(double farads) => farads > 0 ? farads : 1e-9;
 
-    static double Parallel(double a, double b) =>
-        double.IsInfinity(a) ? b : double.IsInfinity(b) ? a : a * b / (a + b);
+    static double Parallel(double a, double b) => double.IsInfinity(a) ? b : double.IsInfinity(b) ? a : a * b / (a + b);
 }

@@ -20,8 +20,10 @@ namespace Cathode.Dsp.Wdf;
 ///     </para>
 ///     <list type="bullet">
 ///         <item>port rows: b = M_port [u; r] (that is, 2 v - a);</item>
-///         <item>device rows: the device port voltages, v = M_dev [u; r] = E u + F r, where F is the K × K network
-///             impedance the devices see;</item>
+///         <item>
+///             device rows: the device port voltages, v = M_dev [u; r] = E u + F r, where F is the K × K network
+///             impedance the devices see;
+///         </item>
 ///         <item>probe rows: the probed voltages.</item>
 ///     </list>
 ///     <para>

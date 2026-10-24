@@ -39,28 +39,26 @@ public static class Marshall1987X {
         new(
             "2 x EL34",
             PentodeModel.EL34,
-            TubesPerSide: 1,
-            Supply: 460,
-            ScreenResistor: 1e3,
-            IdleCurrent: 0.035,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 50,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 375, 82e3, 100e3, 10e3, 470),
-            CouplingCap: 22e-9,
-            GridLeak: 220e3,
-            GridStopper: 1.5e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(Math.Sqrt(2), 100e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 80),
-            HasFeedback: true,
-            Transformer: new(3.4e3),
-            Speaker: SpeakerDesign.Closed4x12,
-            PowerSupply: new(40, 100e-6, 200, 50e-6, 10e3, 32e-6),
+            1,
+            460,
+            1e3,
+            0.035,
+            false,
+            0,
+            50,
+            new LongTailPairDesign(TriodeModel.Ecc83, 375, 82e3, 100e3, 10e3, 470),
+            22e-9,
+            220e3,
+            1.5e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(Math.Sqrt(2), 100e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 80),
+            true,
+            new(3.4e3),
+            SpeakerDesign.Closed4x12,
+            new(40, 100e-6, 200, 50e-6, 10e3, 32e-6),
             InverterInput: null
         ),
         -5
-    ) {
-        Panel = MarshallParts.TwoChannelPanel with { Gain = "Loudness 1", Control1 = "Loudness 2" }
-    };
+    ) { Panel = MarshallParts.TwoChannelPanel with { Gain = "Loudness 1", Control1 = "Loudness 2" } };
 }

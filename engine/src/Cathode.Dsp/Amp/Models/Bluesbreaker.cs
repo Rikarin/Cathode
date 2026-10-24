@@ -24,7 +24,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         The presence pot is drawn as the tail's shunt to ground with 0.1 µF from its wiper: here the library's shunt of
 ///         4k7 with the pot and cap across it. The inverter's 47 pF and its grid-current network are left out (as on the
-///         JTM45, <see cref="JTM45" />). Not on the drawing (guesses): the rails (B+ 440 V, 330 V at the inverter, 300 V at
+///         JTM45, <see cref="JTM45" />). Not on the drawing (guesses): the rails (B+ 440 V, 330 V at the inverter, 300 V
+///         at
 ///         V2 and 280 V at V1, as the JTM45 model), the 5881s' 35 mA and the output transformer's primary (784-389:
 ///         3.4k plate to plate, as the JTM45 model). The 2 × 12 speaker load is the open-back preset.
 ///     </para>
@@ -40,32 +41,28 @@ public static class Bluesbreaker {
         new(
             "2 x 5881",
             PentodeModel.SixL6GC,
-            TubesPerSide: 1,
-            Supply: 440,
-            ScreenResistor: 470,
-            IdleCurrent: 0.035,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 30,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 10e3, 470),
-            CouplingCap: 0.1e-6,
-            GridLeak: 220e3,
-            GridStopper: 0,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(Math.Sqrt(2), 27e3, 4.7e3, new(4.7e3, PotTaper.Linear), 0.1e-6, 80),
-            HasFeedback: true,
-            Transformer: new(3.4e3),
-            Speaker: SpeakerDesign.OpenBack2x12,
-            PowerSupply: new(60, 50e-6, 200, 50e-6, 20e3, 50e-6, Rectifier: RectifierModel.GZ34),
+            1,
+            440,
+            470,
+            0.035,
+            false,
+            0,
+            30,
+            new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 10e3, 470),
+            0.1e-6,
+            220e3,
+            0,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(Math.Sqrt(2), 27e3, 4.7e3, new(4.7e3, PotTaper.Linear), 0.1e-6, 80),
+            true,
+            new(3.4e3),
+            SpeakerDesign.OpenBack2x12,
+            new(60, 50e-6, 200, 50e-6, 20e3, 50e-6, Rectifier: RectifierModel.GZ34),
             InverterInput: null
         ),
         -5
     ) {
-        Panel = MarshallParts.TwoChannelPanel with {
-            Gain = "Volume I",
-            Control1 = "Volume II",
-            Switch2 = "Channel II"
-        }
+        Panel = MarshallParts.TwoChannelPanel with { Gain = "Volume I", Control1 = "Volume II", Switch2 = "Channel II" }
     };
 }

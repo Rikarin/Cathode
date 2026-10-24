@@ -57,8 +57,11 @@ public class InputOutputBlockTests {
         var hum = new float[48_000];
         for (var i = 0; i < hum.Length; i++) {
             var t = i / (double)Rate;
-            hum[i] = (float)(Decibels.ToGain(-45.0) * (Math.Sin(2 * Math.PI * 50 * t) + 0.5 * Math.Sin(2 * Math.PI * 100 * t)
-                + 0.3 * Math.Sin(2 * Math.PI * 150 * t)) / 1.8);
+            hum[i] = (float)(Decibels.ToGain(-45.0)
+                * (Math.Sin(2 * Math.PI * 50 * t)
+                    + 0.5 * Math.Sin(2 * Math.PI * 100 * t)
+                    + 0.3 * Math.Sin(2 * Math.PI * 150 * t))
+                / 1.8);
         }
 
         using var classic = TestBlocks.Create<InputBlock>(
@@ -127,8 +130,14 @@ public class InputOutputBlockTests {
 
     [Fact]
     public void A_single_output_row_scales_in_place_like_the_mix() {
-        using var mixed = TestBlocks.Create<OutputBlock>((OutputBlock.RowLevel(2), -6.0206f), (OutputBlock.RowBalance(2), -50f));
-        using var scaled = TestBlocks.Create<OutputBlock>((OutputBlock.RowLevel(2), -6.0206f), (OutputBlock.RowBalance(2), -50f));
+        using var mixed = TestBlocks.Create<OutputBlock>(
+            (OutputBlock.RowLevel(2), -6.0206f),
+            (OutputBlock.RowBalance(2), -50f)
+        );
+        using var scaled = TestBlocks.Create<OutputBlock>(
+            (OutputBlock.RowLevel(2), -6.0206f),
+            (OutputBlock.RowBalance(2), -50f)
+        );
         var signal = Signals.Sine(300, Rate, 64);
         var (mixLeft, mixRight) = (new float[64], new float[64]);
         var (inLeft, inRight) = ((float[])signal.Clone(), (float[])signal.Clone());

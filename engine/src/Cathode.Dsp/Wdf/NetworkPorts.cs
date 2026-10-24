@@ -30,7 +30,10 @@ public struct NetworkPorts : IWdfPortList {
         }
     }
 
-    /// <summary>Reactive port <paramref name="index" /> (0-based, after the source) at <paramref name="value" /> farads or henries.</summary>
+    /// <summary>
+    ///     Reactive port <paramref name="index" /> (0-based, after the source) at <paramref name="value" /> farads or
+    ///     henries.
+    /// </summary>
     public readonly void Configure(int index, double value, double sampleRate) =>
         resistance[index] = sign[index] > 0 ? 0.5 / (value * sampleRate) : 2 * value * sampleRate;
 

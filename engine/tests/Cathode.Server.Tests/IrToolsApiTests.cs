@@ -30,13 +30,20 @@ public sealed class IrToolsApiTests : IAsyncLifetime {
 
         using var response = await client.PostAsJsonAsync(
             "/api/v1/assets/mix",
-            new IrMixRequest("Blend", [new(near.Ref), new(far.Ref, -6.0206, Invert: true)], LengthMs: 10, Normalize: false),
+            new IrMixRequest(
+                "Blend",
+                [new(near.Ref), new(far.Ref, -6.0206, Invert: true)],
+                LengthMs: 10,
+                Normalize: false
+            ),
             Token
         );
         response.EnsureSuccessStatusCode();
         var mixed = (await response.Content.ReadFromJsonAsync<AssetInfo>(Token))!;
 
-        var audio = WavFile.Read(new MemoryStream(await client.GetByteArrayAsync($"/api/v1/assets/{mixed.Ref}/content", Token)));
+        var audio = WavFile.Read(
+            new MemoryStream(await client.GetByteArrayAsync($"/api/v1/assets/{mixed.Ref}/content", Token))
+        );
         Assert.Equal("Blend.wav", mixed.Name);
         Assert.Equal(480, audio.Frames);
         Assert.Equal(0.5f, audio.Channels[0][30], 1e-4f); // both peaks moved to the later one: 1 - 0.5
@@ -47,7 +54,11 @@ public sealed class IrToolsApiTests : IAsyncLifetime {
     public async Task Mixing_a_model_is_refused() {
         var model = await Upload("amp.nam", "{}"u8.ToArray());
 
-        using var response = await client.PostAsJsonAsync("/api/v1/assets/mix", new IrMixRequest("x", [new(model.Ref)]), Token);
+        using var response = await client.PostAsJsonAsync(
+            "/api/v1/assets/mix",
+            new IrMixRequest("x", [new(model.Ref)]),
+            Token
+        );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -93,7 +104,8 @@ public sealed class IrToolsApiTests : IAsyncLifetime {
     }
 
     async Task<AssetInfo> Upload(string name, byte[] content) {
-        using var response = await client.PostAsync($"/api/v1/assets?name={name}", new ByteArrayContent(content), Token);
+        using var response =
+            await client.PostAsync($"/api/v1/assets?name={name}", new ByteArrayContent(content), Token);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<AssetInfo>(Token))!;
     }

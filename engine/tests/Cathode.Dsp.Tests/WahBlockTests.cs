@@ -60,12 +60,16 @@ public class WahBlockTests(ITestOutputHelper output) {
         }
 
         var bandwidth = 0.0;
-        for (var f = peak; f < 2 * peak && Analysis.MagnitudeAt(response, f, 48_000) > best / Math.Sqrt(2); f *= 1.002) {
+        for (var f = peak;
+             f < 2 * peak && Analysis.MagnitudeAt(response, f, 48_000) > best / Math.Sqrt(2);
+             f *= 1.002) {
             bandwidth = f - peak;
         }
 
         var q = peak / (2 * bandwidth); // twice the upper half-bandwidth: the peak is nearly symmetric in log frequency
-        output.WriteLine($"type {type} at {position} %: {peak:0} Hz, Q about {q:0.0}, {Analysis.ToDb(best / 1e-3):0.0} dB");
+        output.WriteLine(
+            $"type {type} at {position} %: {peak:0} Hz, Q about {q:0.0}, {Analysis.ToDb(best / 1e-3):0.0} dB"
+        );
         Assert.InRange(peak, low, high);
         Assert.True(q > minimumQ, $"Q {q:0.0}");
     }

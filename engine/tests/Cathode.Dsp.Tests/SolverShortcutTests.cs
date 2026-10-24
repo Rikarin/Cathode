@@ -13,16 +13,17 @@ namespace Cathode.Dsp.Tests;
 public class SolverShortcutTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
-    public static TheoryData<string, int[]> Settings => new() {
-        { "SVT", [] },
-        { "SVT", [CircuitAmpBlock.Switch1, CircuitAmpBlock.Switch2, CircuitAmpBlock.Switch3] },
-        { "Silver Jubilee", [] },
-        { "Silver Jubilee", [CircuitAmpBlock.Switch1, CircuitAmpBlock.Switch2] },
-        { "Hiwatt DR103", [] },
-        { "Hiwatt DR103", [CircuitAmpBlock.Switch1] },
-        { "18 W 1974X", [CircuitAmpBlock.Switch1] },
-        { "Plexi", [] }
-    };
+    public static TheoryData<string, int[]> Settings =>
+        new() {
+            { "SVT", [] },
+            { "SVT", [CircuitAmpBlock.Switch1, CircuitAmpBlock.Switch2, CircuitAmpBlock.Switch3] },
+            { "Silver Jubilee", [] },
+            { "Silver Jubilee", [CircuitAmpBlock.Switch1, CircuitAmpBlock.Switch2] },
+            { "Hiwatt DR103", [] },
+            { "Hiwatt DR103", [CircuitAmpBlock.Switch1] },
+            { "18 W 1974X", [CircuitAmpBlock.Switch1] },
+            { "Plexi", [] }
+        };
 
     [Theory]
     [MemberData(nameof(Settings))]
@@ -31,8 +32,8 @@ public class SolverShortcutTests(ITestOutputHelper output) {
         var chord = CircuitAmpBlockTests.Chord(9_600, 0.5f);
         foreach (var gain in new[] { 5f, 10f }) {
             foreach (var (name, input) in new[] { ("noise", noise), ("chord", chord) }) {
-                var fast = Render(type, switches, gain, input, exact: false);
-                var exact = Render(type, switches, gain, input, exact: true);
+                var fast = Render(type, switches, gain, input, false);
+                var exact = Render(type, switches, gain, input, true);
                 double energy = 0, residual = 0;
                 for (var i = 0; i < exact.Length; i++) {
                     energy += (double)exact[i] * exact[i];

@@ -62,7 +62,5 @@ public static class DualRectifier3Channel {
             PowerSupply = new(30, 110e-6, 100, 30e-6, 2.7e3, 20e-6, 6e-3, RectifierModel.Silicon)
         },
         -7
-    ) {
-        Panel = DualRectifier.Design.Panel with { Bright = "Raw" }
-    };
+    ) { Panel = DualRectifier.Design.Panel with { Bright = "Raw" } };
 }

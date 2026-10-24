@@ -129,16 +129,19 @@ public sealed class DelayBlock() : DspBlock(Info) {
 
     /// <summary>Hold choices.</summary>
     public const int HoldOff = 0;
+
     public const int HoldOn = 1;
     public const int Stack = 2;
 
     /// <summary>LFO 1/2 targets: which line's time they move.</summary>
     public const int TargetBoth = 0;
+
     public const int TargetLeft = 1;
     public const int TargetRight = 2;
 
     /// <summary>LFO 3 targets.</summary>
     public const int Lfo3Level = 0;
+
     public const int Lfo3Pan = 1;
     public const int Lfo3Spread = 2;
 
@@ -201,7 +204,18 @@ public sealed class DelayBlock() : DspBlock(Info) {
                 "Type",
                 ["Digital", "Analog", "Tape", "Ping-Pong", "Vintage Digital", "Dual", "Mono Tape", "Reverse", "Sweep"]
             ),
-            new ParamDescriptor("time", "Time", ParamKind.Float, 1f, MaxTimeMs, 375f, "ms", ParamTaper.Log, ParamSmoothing.Linear, 60f)
+            new ParamDescriptor(
+                    "time",
+                    "Time",
+                    ParamKind.Float,
+                    1f,
+                    MaxTimeMs,
+                    375f,
+                    "ms",
+                    ParamTaper.Log,
+                    ParamSmoothing.Linear,
+                    60f
+                )
                 .RenamedOn(TypeCount, Dual, "Left Time")
                 .RenamedOn(TypeCount, MonoTape, "Head 1 Time"),
             ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names)
@@ -245,37 +259,62 @@ public sealed class DelayBlock() : DspBlock(Info) {
             ParamDescriptor.Choice("tempoRight", "Right Tempo", TempoDivisions.Names).ShownOn(TypeCount, Dual),
             ParamDescriptor.Float("feedbackRight", "Right Feedback", -100f, 100f, 30f, "%").ShownOn(TypeCount, Dual),
             ParamDescriptor.Float("levelLeft", "Left Level", Decibels.SilenceDb, 0f, 0f, "dB").ShownOn(TypeCount, Dual),
-            ParamDescriptor.Float("levelRight", "Right Level", Decibels.SilenceDb, 0f, 0f, "dB").ShownOn(TypeCount, Dual),
+            ParamDescriptor.Float("levelRight", "Right Level", Decibels.SilenceDb, 0f, 0f, "dB")
+                .ShownOn(TypeCount, Dual),
             ParamDescriptor.Float("panLeft", "Left Pan", -100f, 100f, -100f, "%").ShownOn(TypeCount, Dual),
             ParamDescriptor.Float("panRight", "Right Pan", -100f, 100f, 100f, "%").ShownOn(TypeCount, Dual),
             ParamDescriptor.Float("crossLeftToRight", "Cross Feed L→R", -100f, 100f, 0f, "%").ShownOn(TypeCount, Dual),
             ParamDescriptor.Float("crossRightToLeft", "Cross Feed R→L", -100f, 100f, 0f, "%").ShownOn(TypeCount, Dual),
-            ParamDescriptor.Float("sweepStart", "Sweep Start", 100f, 10_000f, 300f, "Hz", ParamTaper.Log).ShownOn(TypeCount, Sweep),
-            ParamDescriptor.Float("sweepStop", "Sweep Stop", 100f, 10_000f, 3_000f, "Hz", ParamTaper.Log).ShownOn(TypeCount, Sweep),
-            ParamDescriptor.Float("sweepResonance", "Sweep Resonance", 0.5f, 10f, 3f, "", ParamTaper.Log).ShownOn(TypeCount, Sweep),
-            ParamDescriptor.Choice("sweepShape", "Sweep Type", Lfo.ShapeNames, (int)LfoShape.Triangle).ShownOn(TypeCount, Sweep),
-            ParamDescriptor.Float("sweepRate", "Sweep Rate", 0.05f, 10f, 0.5f, "Hz", ParamTaper.Log).ShownOn(TypeCount, Sweep),
+            ParamDescriptor.Float("sweepStart", "Sweep Start", 100f, 10_000f, 300f, "Hz", ParamTaper.Log)
+                .ShownOn(TypeCount, Sweep),
+            ParamDescriptor.Float("sweepStop", "Sweep Stop", 100f, 10_000f, 3_000f, "Hz", ParamTaper.Log)
+                .ShownOn(TypeCount, Sweep),
+            ParamDescriptor.Float("sweepResonance", "Sweep Resonance", 0.5f, 10f, 3f, string.Empty, ParamTaper.Log)
+                .ShownOn(TypeCount, Sweep),
+            ParamDescriptor.Choice("sweepShape", "Sweep Type", Lfo.ShapeNames, (int)LfoShape.Triangle)
+                .ShownOn(TypeCount, Sweep),
+            ParamDescriptor.Float("sweepRate", "Sweep Rate", 0.05f, 10f, 0.5f, "Hz", ParamTaper.Log)
+                .ShownOn(TypeCount, Sweep),
             ParamDescriptor.Choice("sweepTempo", "Sweep Tempo", TempoDivisions.Names).ShownOn(TypeCount, Sweep),
             ParamDescriptor.Float("sweepPhase", "Sweep Phase", 0f, 180f, 90f, "°").ShownOn(TypeCount, Sweep),
             ParamDescriptor.Float("motorSpeed", "Motor Speed", 25f, 200f, 100f, "%").ShownOn(TypeCount, Tape, MonoTape),
             ParamDescriptor.Float("head2Ratio", "Head 2 Ratio", 0f, 100f, 50f, "%").ShownOn(TypeCount, MonoTape),
-            ParamDescriptor.Float("head1Level", "Head 1 Level", Decibels.SilenceDb, 0f, 0f, "dB").ShownOn(TypeCount, MonoTape),
-            ParamDescriptor.Float("head2Level", "Head 2 Level", Decibels.SilenceDb, 0f, -3f, "dB").ShownOn(TypeCount, MonoTape),
+            ParamDescriptor.Float("head1Level", "Head 1 Level", Decibels.SilenceDb, 0f, 0f, "dB")
+                .ShownOn(TypeCount, MonoTape),
+            ParamDescriptor.Float("head2Level", "Head 2 Level", Decibels.SilenceDb, 0f, -3f, "dB")
+                .ShownOn(TypeCount, MonoTape),
             ParamDescriptor.Float("head1Pan", "Head 1 Pan", -100f, 100f, -50f, "%").ShownOn(TypeCount, MonoTape),
             ParamDescriptor.Float("head2Pan", "Head 2 Pan", -100f, 100f, 50f, "%").ShownOn(TypeCount, MonoTape),
-            ParamDescriptor.Float("head2Feedback", "Head 2 Feedback", -100f, 100f, 0f, "%").ShownOn(TypeCount, MonoTape),
+            ParamDescriptor.Float("head2Feedback", "Head 2 Feedback", -100f, 100f, 0f, "%")
+                .ShownOn(TypeCount, MonoTape),
             ParamDescriptor.Switch("reverseRun", "Run", true).ShownOn(TypeCount, Reverse),
             ParamDescriptor.Switch("reverseRestart", "Trigger Restart").ShownOn(TypeCount, Reverse),
             ParamDescriptor.Float("reverseCrossfade", "Crossfade", 0f, 50f, 20f, "%").ShownOn(TypeCount, Reverse),
             ParamDescriptor.Choice("lowCutSlope", "Low Cut Slope", [..CutFilter.Slopes], CutFilter.Slope12),
             ParamDescriptor.Choice("highCutSlope", "High Cut Slope", [..CutFilter.Slopes], CutFilter.Slope12),
-            ParamDescriptor.Float("lowCutQ", "Low Cut Q", 0.5f, 3f, LoopFilter.ButterworthQ, "", ParamTaper.Log),
-            ParamDescriptor.Float("highCutQ", "High Cut Q", 0.5f, 3f, LoopFilter.ButterworthQ, "", ParamTaper.Log),
+            ParamDescriptor.Float(
+                "lowCutQ",
+                "Low Cut Q",
+                0.5f,
+                3f,
+                LoopFilter.ButterworthQ,
+                string.Empty,
+                ParamTaper.Log
+            ),
+            ParamDescriptor.Float(
+                "highCutQ",
+                "High Cut Q",
+                0.5f,
+                3f,
+                LoopFilter.ButterworthQ,
+                string.Empty,
+                ParamTaper.Log
+            ),
             ParamDescriptor.Float("eq1Frequency", "EQ 1 Freq", 50f, 10_000f, 400f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("eq1Q", "EQ 1 Q", 0.1f, 10f, 0.7071f, "", ParamTaper.Log),
+            ParamDescriptor.Float("eq1Q", "EQ 1 Q", 0.1f, 10f, 0.7071f, string.Empty, ParamTaper.Log),
             ParamDescriptor.Float("eq1Gain", "EQ 1 Gain", -12f, 12f, 0f, "dB"),
             ParamDescriptor.Float("eq2Frequency", "EQ 2 Freq", 50f, 10_000f, 2_000f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("eq2Q", "EQ 2 Q", 0.1f, 10f, 0.7071f, "", ParamTaper.Log),
+            ParamDescriptor.Float("eq2Q", "EQ 2 Q", 0.1f, 10f, 0.7071f, string.Empty, ParamTaper.Log),
             ParamDescriptor.Float("eq2Gain", "EQ 2 Gain", -12f, 12f, 0f, "dB"),
             ParamDescriptor.Choice("depthRange", "LFO Depth Range", ["Low (×0.1)", "Normal", "High (×10)"], 1),
             ParamDescriptor.Choice("lfo1Type", "LFO 1 Type", Lfo.ShapeNames),
@@ -628,7 +667,8 @@ public sealed class DelayBlock() : DspBlock(Info) {
                         right.Write(dryRight * inputGain + fedRight * feedbackRight + fedLeft * crossToRight, loop);
                         wetLeft *= levelLeft;
                         wetRight *= levelRight;
-                        (wetLeft, wetRight) = (wetLeft * l1Left + wetRight * l2Left, wetLeft * l1Right + wetRight * l2Right);
+                        (wetLeft, wetRight) = (wetLeft * l1Left + wetRight * l2Left,
+                            wetLeft * l1Right + wetRight * l2Right);
                     } else {
                         left.Write(dryLeft * inputGain + fedLeft * feedback, loop);
                         right.Write(dryRight * inputGain + fedRight * feedback, loop);
@@ -637,7 +677,14 @@ public sealed class DelayBlock() : DspBlock(Info) {
                     if (type == Sweep) {
                         // Coefficients move on a fixed internal hop, so the output does not depend on the host block size.
                         if (sweepCounter == 0) {
-                            sweepLeftCoefficients = SweepCoefficients(sweepShape, sweepStart, sweepStop, sweepQ, 0, sampleRate);
+                            sweepLeftCoefficients = SweepCoefficients(
+                                sweepShape,
+                                sweepStart,
+                                sweepStop,
+                                sweepQ,
+                                0,
+                                sampleRate
+                            );
                             sweepRightCoefficients =
                                 SweepCoefficients(sweepShape, sweepStart, sweepStop, sweepQ, sweepPhase, sampleRate);
                         }
@@ -755,7 +802,8 @@ public sealed class DelayBlock() : DspBlock(Info) {
         }
 
         /// <summary>The repeat through the feedback path's filters.</summary>
-        public float Feedback(float wet, in LoopSettings loop) => loop.Filter.Active ? filter.Tick(loop.Filter, wet) : wet;
+        public float Feedback(float wet, in LoopSettings loop) =>
+            loop.Filter.Active ? filter.Tick(loop.Filter, wet) : wet;
 
         public void Write(float value, in LoopSettings loop) {
             if (loop.Drive > 0) {
@@ -768,7 +816,7 @@ public sealed class DelayBlock() : DspBlock(Info) {
             }
 
             if (loop.Limit) {
-                value = DelayBlock.Limit(value);
+                value = Limit(value);
             }
 
             delay.Write(value);

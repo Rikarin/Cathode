@@ -54,7 +54,8 @@ public enum PitchKeySource {
 ///     </para>
 ///     <para>
 ///         Key Source sets where Diatonic and Custom Shifter take their key. Fixed: Key and Scale. MIDI: the chord held on
-///         the rig's MIDI input (<see cref="BlockContext.Notes" />, any channel); its lowest note is the root, the scale is
+///         the rig's MIDI input (<see cref="BlockContext.Notes" />, any channel); its lowest note is the root, the scale
+///         is
 ///         Scale when that holds every chord tone and otherwise the first scale that does
 ///         (<see cref="Scales.ChordScale" />: Am gives Minor, G7 Mixolydian), and diatonic voices snap to the nearest
 ///         chord tone (<see cref="Scales.HarmonySemitones(int, int, int, int, int)" />). Releasing the keys keeps the
@@ -85,7 +86,8 @@ public enum PitchKeySource {
 ///     <para>
 ///         <see cref="IDspBlock.LatencySamples" /> is 0 for every type, so the graph compiler's compensation never
 ///         changes with Type: the dry path is undelayed and each type's wet delay is part of its sound. Wet path delays
-///         at 48 kHz: Octave Divider none; Detune, Whammy, Arpeggiator and Virtual Capo 5-15 ms on average (a few to 50 ms,
+///         at 48 kHz: Octave Divider none; Detune, Whammy, Arpeggiator and Virtual Capo 5-15 ms on average (a few to 50
+///         ms,
 ///         see <see cref="SpliceShifter" />), polyphonic Whammy 43 ms; Chromatic, Diatonic and Custom Shifter a fixed
 ///         ~29 ms plus the voice delay; Crystals up to 200 ms of grain plus the delay time.
 ///     </para>
@@ -398,7 +400,13 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
                 (float)(SpliceShifter.MinSpliceSeconds * 1_000),
                 "ms"
             ) with {
-                TypeLabels = For("Splice Length", PitchType.Detune, PitchType.Whammy, PitchType.Arpeggiator, PitchType.VirtualCapo)
+                TypeLabels = For(
+                    "Splice Length",
+                    PitchType.Detune,
+                    PitchType.Whammy,
+                    PitchType.Arpeggiator,
+                    PitchType.VirtualCapo
+                )
             },
             ParamDescriptor.Choice("temperament", "Temperament", ["Equal", "Just"]) with {
                 TypeLabels = For("Temperament", PitchType.Diatonic, PitchType.CustomShifter)
@@ -412,14 +420,22 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
                     }
                 ),
             ..Enumerable.Range(1, VoiceCount)
-                .Select(static v => ParamDescriptor.Choice($"delayTempo{v}", $"Delay Tempo {v}", TempoDivisions.Names) with {
+                .Select(static v => ParamDescriptor.Choice(
+                        $"delayTempo{v}",
+                        $"Delay Tempo {v}",
+                        TempoDivisions.Names
+                    ) with {
                         TypeLabels = For($"Delay Tempo {v}", VoiceTypes)
                     }
                 ),
             ParamDescriptor.Float("glide", "Glide Time", 0f, 1_000f, 0f, "ms") with {
                 TypeLabels = For("Glide Time", PitchType.Diatonic, PitchType.CustomShifter)
             },
-            ParamDescriptor.Choice("arpRepeats", "Arp Repeats", ["Infinite", "1", "2", "3", "4", "5", "6", "7", "8"]) with {
+            ParamDescriptor.Choice(
+                "arpRepeats",
+                "Arp Repeats",
+                ["Infinite", "1", "2", "3", "4", "5", "6", "7", "8"]
+            ) with {
                 TypeLabels = For("Arp Repeats", PitchType.Arpeggiator)
             },
             ParamDescriptor.Choice("arpAmpShape", "Arp Amp Shape", ["Flat", "Decay", "Swell", "Triangle"]) with {
@@ -484,13 +500,14 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
     public int HarmonyScale { get; private set; }
 
     /// <summary>The types with per-voice levels, pans, delays and feedback.</summary>
-    static PitchType[] VoiceTypes => [PitchType.Detune, PitchType.Chromatic, PitchType.Diatonic, PitchType.CustomShifter];
+    static PitchType[] VoiceTypes =>
+        [PitchType.Detune, PitchType.Chromatic, PitchType.Diatonic, PitchType.CustomShifter];
 
     static string Invariant(int value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>Type labels that show a parameter as <paramref name="name" /> on <paramref name="types" /> only.</summary>
     static string[] For(string name, params PitchType[] types) =>
-        [..Enum.GetValues<PitchType>().Select(t => types.Contains(t) ? name : "")];
+        [..Enum.GetValues<PitchType>().Select(t => types.Contains(t) ? name : string.Empty)];
 
     static ParamDescriptor ArpStep(int step) =>
         new(
@@ -519,7 +536,14 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
         );
 
     static ParamDescriptor DetuneParam(int voice) =>
-        ParamDescriptor.Float($"detune{voice}", $"Detune {voice}", -50f, 50f, DetuneVoices[voice - 1].Cents, "cents") with {
+        ParamDescriptor.Float(
+            $"detune{voice}",
+            $"Detune {voice}",
+            -50f,
+            50f,
+            DetuneVoices[voice - 1].Cents,
+            "cents"
+        ) with {
             TypeLabels = For($"Detune {voice}", PitchType.Detune)
         };
 
@@ -583,7 +607,8 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
         return (gain * MathF.Sqrt(2) * MathF.Cos(angle), gain * MathF.Sqrt(2) * MathF.Sin(angle));
     }
 
-    static bool IsHarmony(PitchType type) => type is PitchType.Chromatic or PitchType.Diatonic or PitchType.CustomShifter;
+    static bool IsHarmony(PitchType type) =>
+        type is PitchType.Chromatic or PitchType.Diatonic or PitchType.CustomShifter;
 
     static bool HasVoices(PitchType type) => IsHarmony(type) || type == PitchType.Detune;
 
@@ -731,7 +756,7 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
         }
 
         // Smoothed values read through Params.Current further down.
-        foreach (var index in (ReadOnlySpan<int>)[
+        foreach (var index in (ReadOnlySpan<int>) [
                      Voice1Level,
                      Voice2Level,
                      Voice3Level,
@@ -773,7 +798,11 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
             delayTargets[v] = delayMs * masterDelay * 0.001f * (float)rate;
             shifts[v] = Ratio(Params.Advance(ShiftParams[v], frames) * masterPitch);
             detuneCents[v] = Params.Advance(DetuneParams[v], frames) * masterPitch;
-            feedbacks[v] = Math.Clamp(Params.Advance(Feedback1 + v, frames) / 100f * masterFeedback, -MaxFeedback, MaxFeedback);
+            feedbacks[v] = Math.Clamp(
+                Params.Advance(Feedback1 + v, frames) / 100f * masterFeedback,
+                -MaxFeedback,
+                MaxFeedback
+            );
             stepsLeft[v] = (targetsLeft[v] - gainsLeft[v]) / frames;
             stepsRight[v] = (targetsRight[v] - gainsRight[v]) / frames;
 
@@ -798,7 +827,8 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
             feedbackSum += MathF.Abs(feedbacks[v]);
         }
 
-        var sharedFeedbackScale = harmony && shifterFeedback && feedbackSum > MaxFeedback ? MaxFeedback / feedbackSum : 1f;
+        var sharedFeedbackScale =
+            harmony && shifterFeedback && feedbackSum > MaxFeedback ? MaxFeedback / feedbackSum : 1f;
         var lfoRate = TempoDivisions.Rate(
             (int)Params.Current(DetuneLfoTempo),
             context.Tempo,
@@ -884,7 +914,8 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
                             cents += lfoDepth * detuneLfo.Value(LfoShape.Sine, DetuneVoices[v].LfoOffset);
                         }
 
-                        var input = (stereo && v % 2 == 1 ? inRight : inLeft) + (shifterFeedback ? feedbacks[v] * lastOut[v] : 0f);
+                        var input = (stereo && v % 2 == 1 ? inRight : inLeft)
+                            + (shifterFeedback ? feedbacks[v] * lastOut[v] : 0f);
                         var shifted = shifters[v].Process(input, Math.Pow(2, cents / 1_200), period);
                         var voice = Delayed(delays[v], shifted, delayTargets[v], shifterFeedback ? 0f : feedbacks[v]);
                         lastOut[v] = voice;
@@ -996,7 +1027,8 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
                     arpGate += ((running ? 1f : 0f) - arpGate) * arpGateRate;
                     var level = arpGate * ArpAmplitude(arpAmpShape, arpAmpAlpha, arpPhase);
                     var shiftedLeft = shifters[0].Process(inLeft, arpSpeeds[arpStep], period) * level;
-                    var shiftedRight = stereo ? shifters[1].Process(inRight, arpSpeeds[arpStep], period) * level : shiftedLeft;
+                    var shiftedRight =
+                        stereo ? shifters[1].Process(inRight, arpSpeeds[arpStep], period) * level : shiftedLeft;
                     var pan = ArpPan(arpPanShape, arpPanWidth, arpStep, arpCount);
                     if (pan == 0) {
                         (one, oneRight) = (shiftedLeft, shiftedRight);
@@ -1141,7 +1173,13 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
         for (var v = 0; v < VoiceCount; v++) {
             var semitones = activeType == PitchType.CustomShifter
                 ? Params.Current(CustomTable + 12 * v + degree)
-                : Scales.HarmonySemitones(note, key, scale, (int)Params.Current(HarmonyParams[v]) - MaxHarmonySteps, chord);
+                : Scales.HarmonySemitones(
+                    note,
+                    key,
+                    scale,
+                    (int)Params.Current(HarmonyParams[v]) - MaxHarmonySteps,
+                    chord
+                );
             harmonies[v] = just ? Scales.JustRatio(note, key, semitones) : Ratio(semitones);
         }
     }
@@ -1163,7 +1201,10 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock {
         var voices = HasVoices(type) ? VoiceCount : 0;
         for (var v = 0; v < VoiceCount; v++) {
             (targetsLeft[v], targetsRight[v]) = v < voices
-                ? Pan(Decibels.ToGain(Params.Current(LevelParams[v])) * master, Params.Current(PanParams[v]) * masterPan)
+                ? Pan(
+                    Decibels.ToGain(Params.Current(LevelParams[v])) * master,
+                    Params.Current(PanParams[v]) * masterPan
+                )
                 : (0f, 0f);
         }
 

@@ -55,7 +55,7 @@ public sealed class CabIrSynthesizer : IDisposable {
     /// </summary>
     public static double LoudnessWeight(double hz) {
         var highPass = Math.Pow(hz / 38, 4) / (1 + Math.Pow(hz / 38, 4));
-        var shelf = (1 + Math.Pow(10, 0.4) * (hz / 1_500) * (hz / 1_500)) / (1 + (hz / 1_500) * (hz / 1_500));
+        var shelf = (1 + Math.Pow(10, 0.4) * (hz / 1_500) * (hz / 1_500)) / (1 + hz / 1_500 * (hz / 1_500));
         return highPass * shelf / hz;
     }
 

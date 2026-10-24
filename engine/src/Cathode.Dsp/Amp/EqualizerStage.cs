@@ -14,7 +14,8 @@ namespace Cathode.Dsp.Amp;
 ///     <see cref="NetworkStageDesign" /> with inductors instead. With every band at 0 dB the stage is exactly bypassed.
 ///     It passes the previous stage's output resistance through to the next.
 /// </remarks>
-public sealed record EqualizerStageDesign(string Name, IReadOnlyList<double> Frequencies, double Q = 1.2) : AmpStageDesign(Name) {
+public sealed record EqualizerStageDesign(string Name, IReadOnlyList<double> Frequencies, double Q = 1.2)
+    : AmpStageDesign(Name) {
     /// <summary>The Mark IIC+ panel's centres: 80, 240, 750, 2200 and 6600 Hz.</summary>
     public static IReadOnlyList<double> MarkBands { get; } = [80, 240, 750, 2_200, 6_600];
 

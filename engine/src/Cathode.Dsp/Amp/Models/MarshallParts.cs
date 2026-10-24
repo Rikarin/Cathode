@@ -70,7 +70,8 @@ public static class MarshallParts {
     ///     The JCM800's power-amp feedback (2203/2204 STD output stage): 100k from the 4 Ω tap into 4k7, presence 22k
     ///     linear with 0.1 µF.
     /// </summary>
-    public static FeedbackDesign JCM800Feedback { get; } = new(Math.Sqrt(0.5), 100e3, 4.7e3, new(22e3, PotTaper.Linear), 0.1e-6, 80);
+    public static FeedbackDesign JCM800Feedback { get; } =
+        new(Math.Sqrt(0.5), 100e3, 4.7e3, new(22e3, PotTaper.Linear), 0.1e-6, 80);
 
     /// <summary>The panel of a JCM800-style master-volume amp: no Cut, Depth or Bright; the Low input on switch 1.</summary>
     public static AmpPanel MasterVolumePanel { get; } = AmpPanel.Standard with {
@@ -95,7 +96,8 @@ public static class MarshallParts {
         double load
     ) {
         var net = new StageNetlist();
-        var (rail, cathode, top, slope, bottom, middle) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (rail, cathode, top, slope, bottom, middle) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(),
+            net.Node());
         net.Supply(rail, supply);
         net.Triode(rail, net.Input, cathode, TriodeModel.Ecc83);
         net.Resistor(cathode, StageNetlist.Ground, cathodeResistor);
@@ -174,11 +176,11 @@ public static class MarshallParts {
             "V2B",
             TriodeModel.Ecc83,
             StackDriver.CathodeFollower,
-            Supply: supply,
-            CathodeResistor: 100e3,
-            Stack: JCM800Stack,
-            Load: new(1e6, PotTaper.Audio),
-            LoadRole: PotRole.Master
+            supply,
+            100e3,
+            JCM800Stack,
+            new(1e6, PotTaper.Audio),
+            PotRole.Master
         )
     ];
 
@@ -231,7 +233,8 @@ public static class MarshallParts {
         ChannelDesign bright,
         ChannelDesign normal
     ) {
-        var (_, restPlate, restCathode) = OperatingPoint.CommonCathode(TriodeModel.Ecc83, 0, supply, 100e3, 2 * cathodeResistor);
+        var (_, restPlate, restCathode) =
+            OperatingPoint.CommonCathode(TriodeModel.Ecc83, 0, supply, 100e3, 2 * cathodeResistor);
         var (rp, _) = OperatingPoint.SmallSignal(TriodeModel.Ecc83, -restCathode, restPlate - restCathode);
         var idle = 100e3 * rp / (100e3 + rp);
         var net = new StageNetlist();

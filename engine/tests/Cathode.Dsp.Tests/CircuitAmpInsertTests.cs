@@ -46,9 +46,7 @@ public class CircuitAmpInsertTests {
     public void A_clean_boost_raises_the_level_into_the_amp() {
         var input = Signals.Sine(330, Rate, 19_200, 0.02f);
         var stock = SteadyRmsDb(Render(input));
-        var boosted = SteadyRmsDb(
-            Render(input, (CircuitAmpBlock.BoostType, 5f), (CircuitAmpBlock.BoostLevel, 12f))
-        );
+        var boosted = SteadyRmsDb(Render(input, (CircuitAmpBlock.BoostType, 5f), (CircuitAmpBlock.BoostLevel, 12f)));
 
         Assert.True(boosted > stock + 3, $"boosted {boosted:0.0} dB against {stock:0.0} dB");
     }
@@ -132,6 +130,7 @@ public class CircuitAmpInsertTests {
     public void Saturation_is_transparent_when_quiet_and_clips_when_driven() {
         const int length = 8_192;
         var drive = (float)Decibels.ToGain(AmpSaturation.MaxDriveDb);
+
         float[] Shape(float amplitude) {
             var saturation = new AmpSaturation();
             var sine = Signals.CoherentSine(100, length, amplitude);
@@ -254,6 +253,7 @@ public class CircuitAmpInsertTests {
             .Select(w => Analysis.Rms(output.AsSpan(48_000 + w * window, window)))
             .ToArray();
         var mean = envelope.Average();
+
         double Component(double hz) {
             double re = 0, im = 0;
             for (var n = 0; n < envelope.Length; n++) {

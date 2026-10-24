@@ -11,7 +11,10 @@ namespace Cathode.Dsp.Tests.Circuits;
 static class AmpReferences {
     const double Floor = 1e-6; // RTypeScattering's smallest resistance: a pot at its end stop
 
-    /// <summary>A <see cref="TriodeStage" /> driven through <paramref name="sourceResistance" /> (plus its own input resistance).</summary>
+    /// <summary>
+    ///     A <see cref="TriodeStage" /> driven through <paramref name="sourceResistance" /> (plus its own input
+    ///     resistance).
+    /// </summary>
     public static (ReferenceCircuit Circuit, int Plate, int Grid, int Cathode) Triode(
         TriodeStageDesign d,
         double rotation,
@@ -62,7 +65,7 @@ static class AmpReferences {
         }
 
         c.Source(supply, 0, _ => d.Supply);
-        c.Device(new Wdf.Triode(d.Tube), (grid, cathode), (plate, cathode));
+        c.Device(new Triode(d.Tube), (grid, cathode), (plate, cathode));
         return (c, plate, grid, cathode);
     }
 
@@ -87,7 +90,7 @@ static class AmpReferences {
         int driven;
         if (d.Driver == StackDriver.CathodeFollower) {
             driven = cathode;
-            c.Device(new Wdf.Triode(d.Tube), (grid, cathode), (supply, cathode));
+            c.Device(new Triode(d.Tube), (grid, cathode), (supply, cathode));
         } else {
             driven = c.Node();
             c.Resistor(supply, driven, d.PlateResistor);
@@ -95,7 +98,7 @@ static class AmpReferences {
                 c.Capacitor(cathode, 0, d.CathodeBypass);
             }
 
-            c.Device(new Wdf.Triode(d.Tube), (grid, cathode), (driven, cathode));
+            c.Device(new Triode(d.Tube), (grid, cathode), (driven, cathode));
         }
 
         var output = Stack(c, driven, d.Stack, controls.Bass, controls.Middle, controls.Treble);
@@ -112,7 +115,14 @@ static class AmpReferences {
     }
 
     /// <summary>A tone stack fed from <paramref name="input" />; returns the treble wiper.</summary>
-    public static int Stack(ReferenceCircuit c, int input, ToneStackDesign d, double bass, double middle, double treble) {
+    public static int Stack(
+        ReferenceCircuit c,
+        int input,
+        ToneStackDesign d,
+        double bass,
+        double middle,
+        double treble
+    ) {
         var (top, bottom, slope, mid, output) = (c.Node(), c.Node(), c.Node(), c.Node(), c.Node());
         var t = d.Treble.Fraction(treble);
         c.Capacitor(input, top, d.TrebleCap);
@@ -145,8 +155,8 @@ static class AmpReferences {
         c.Resistor(supply, b, d.PlateResistorB);
         c.Resistor(cathode, junction, d.BiasResistor);
         c.Resistor(junction, 0, d.TailResistor);
-        c.Device(new Wdf.Triode(d.Tube), (ga, cathode), (a, cathode));
-        c.Device(new Wdf.Triode(d.Tube), (gb, cathode), (b, cathode));
+        c.Device(new Triode(d.Tube), (ga, cathode), (a, cathode));
+        c.Device(new Triode(d.Tube), (gb, cathode), (b, cathode));
         return (c, a, b);
     }
 
@@ -161,7 +171,7 @@ static class AmpReferences {
         c.Resistor(supply, plate, d.PlateResistor);
         c.Resistor(cathode, junction, d.BiasResistor);
         c.Resistor(junction, 0, d.CathodeResistor);
-        c.Device(new Wdf.Triode(d.Tube), (g, cathode), (plate, cathode));
+        c.Device(new Triode(d.Tube), (g, cathode), (plate, cathode));
         return (c, plate, junction);
     }
 
@@ -227,7 +237,8 @@ static class AmpReferences {
             var on = e.Switch is not { } role || controls.IsOn(role);
             switch (e.Kind) {
                 case ElementKind.Resistor: {
-                    var ohms = on ? e.Switch is null || e.Value > 0 ? e.Value : 1e12 : e.OffValue > 0 ? e.OffValue : 1e12;
+                    var ohms = on ? e.Switch is null || e.Value > 0 ? e.Value : 1e12 :
+                        e.OffValue > 0 ? e.OffValue : 1e12;
                     if (e.Part != PotPart.None) {
                         var fraction = e.Pot.Fraction(controls.Rotation(e.Role));
                         ohms = (e.Part == PotPart.Upper ? 1 - fraction : fraction) * e.Pot.Ohms;
@@ -239,11 +250,15 @@ static class AmpReferences {
                 case ElementKind.Capacitor: {
                     var farads = e.ValueAt(controls);
                     if (farads > 0) {
-                        c.Capacitor(e.A, e.B, e.CapacitorRole switch {
-                            CapacitorRole.Bright => farads * settings.BrightCap,
-                            CapacitorRole.Stack => farads / settings.StackFrequency,
-                            _ => farads
-                        });
+                        c.Capacitor(
+                            e.A,
+                            e.B,
+                            e.CapacitorRole switch {
+                                CapacitorRole.Bright => farads * settings.BrightCap,
+                                CapacitorRole.Stack => farads / settings.StackFrequency,
+                                _ => farads
+                            }
+                        );
                     }
 
                     break;
@@ -255,7 +270,7 @@ static class AmpReferences {
                     c.Source(e.A, 0, _ => e.Value);
                     break;
                 case ElementKind.Triode:
-                    c.Device(new Wdf.Triode(settings.TubeFor(e.Triode)), (e.B, e.C), (e.A, e.C));
+                    c.Device(new Triode(settings.TubeFor(e.Triode)), (e.B, e.C), (e.A, e.C));
                     break;
                 case ElementKind.Pentode:
                     c.Device(new Pentode(e.Pentode), (e.C, e.D), (e.B, e.D), (e.A, e.D));
@@ -310,7 +325,9 @@ static class AmpReferences {
         // The input network: the inverter's own (with grid current) or a large cap.
         int ga;
         var driven = c.Node();
-        var (inputCap, inputLeak) = d.InverterInput is { } network ? (network.CouplingCap, network.GridLeak) : (10e-6, 1e6);
+        var (inputCap, inputLeak) = d.InverterInput is { } network
+            ? (network.CouplingCap, network.GridLeak)
+            : (10e-6, 1e6);
         c.Resistor(source, driven, Math.Max(sourceResistance, 1e-3));
         ga = c.Node();
         c.Capacitor(driven, ga, inputCap);
@@ -326,7 +343,7 @@ static class AmpReferences {
             c.Resistor(cathode, junction, cathodyne.BiasResistor);
             c.Resistor(junction, 0, cathodyne.CathodeResistor);
             c.Resistor(ga, junction, inputLeak);
-            c.Device(new Wdf.Triode(cathodyne.Tube), (ga, cathode), (plate, cathode));
+            c.Device(new Triode(cathodyne.Tube), (ga, cathode), (plate, cathode));
             (a, b) = (plate, junction);
         } else {
             var pi = (LongTailPairDesign)d.PhaseInverter;
@@ -338,8 +355,8 @@ static class AmpReferences {
             c.Resistor(ga, junction, inputLeak);
             c.Resistor(gb, junction, 1e6);
             c.Capacitor(gb, feedback, 10e-6);
-            c.Device(new Wdf.Triode(pi.Tube), (ga, cathode), (piA, cathode));
-            c.Device(new Wdf.Triode(pi.Tube), (gb, cathode), (piB, cathode));
+            c.Device(new Triode(pi.Tube), (ga, cathode), (piA, cathode));
+            c.Device(new Triode(pi.Tube), (gb, cathode), (piB, cathode));
             (a, b) = (piA, piB);
         }
 
@@ -399,7 +416,7 @@ static class AmpReferences {
         // Grid networks and output tubes.
         var outputs = new[] { a, b };
         var shared = 0;
-        if (d.CathodeBias && !d.SeparateCathodes) {
+        if (d is { CathodeBias: true, SeparateCathodes: false }) {
             shared = c.Node();
             c.Resistor(shared, 0, cathodeResistor);
             c.Capacitor(shared, 0, d.CathodeBypass);
@@ -408,7 +425,7 @@ static class AmpReferences {
         var count = d.TubesPerSide + (d.Strapped is not null ? d.StrappedPerSide : 0);
         for (var side = 0; side < sides; side++) {
             var tubeCathode = shared;
-            if (d.CathodeBias && d.SeparateCathodes) {
+            if (d is { CathodeBias: true, SeparateCathodes: true }) {
                 tubeCathode = c.Node();
                 c.Resistor(tubeCathode, 0, 2 * cathodeResistor);
                 c.Capacitor(tubeCathode, 0, d.CathodeBypass);
@@ -421,14 +438,24 @@ static class AmpReferences {
             for (var t = 0; t < d.TubesPerSide; t++) {
                 var screenPin = c.Node();
                 c.Resistor(taps[side], screenPin, tap > 0 ? 1 : d.ScreenResistor);
-                c.Device(new Pentode(d.Tube), (grid, tubeCathode), (screenPin, tubeCathode), (plates[side], tubeCathode));
+                c.Device(
+                    new Pentode(d.Tube),
+                    (grid, tubeCathode),
+                    (screenPin, tubeCathode),
+                    (plates[side], tubeCathode)
+                );
             }
 
             if (d.Strapped is { } strapped) {
                 for (var t = 0; t < d.StrappedPerSide; t++) {
                     var screenPin = c.Node();
                     c.Resistor(plates[side], screenPin, 1);
-                    c.Device(new Pentode(strapped), (grid, tubeCathode), (screenPin, tubeCathode), (plates[side], tubeCathode));
+                    c.Device(
+                        new Pentode(strapped),
+                        (grid, tubeCathode),
+                        (screenPin, tubeCathode),
+                        (plates[side], tubeCathode)
+                    );
                 }
             }
         }
@@ -460,5 +487,4 @@ static class AmpReferences {
 
         return (c, speaker, ga);
     }
-
 }

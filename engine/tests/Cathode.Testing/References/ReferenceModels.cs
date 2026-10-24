@@ -52,7 +52,8 @@ public static class ReferenceModels {
         entry.Format switch {
             "nam" when !NamReferenceModel.IsAvailable => "cth_nam is not built (run engine/native/build.sh)",
             "nam" or "guitarml-lstm" => null,
-            "measured-response" => "a measured response has no model to render (only its frequency response is compared)",
+            "measured-response" =>
+                "a measured response has no model to render (only its frequency response is compared)",
             _ => $"unknown format '{entry.Format}'"
         };
 

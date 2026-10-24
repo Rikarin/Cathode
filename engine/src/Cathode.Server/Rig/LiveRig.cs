@@ -41,7 +41,8 @@ public sealed partial class LiveRig(
                 || id.StartsWith("adsr", StringComparison.Ordinal)
                 || id.StartsWith("env", StringComparison.Ordinal)
                 || id.StartsWith("seq", StringComparison.Ordinal)
-                || id is "pitchLow" or "pitchHigh")
+                || id is "pitchLow" or "pitchHigh"
+            )
     ];
 
     /// <summary>Raised (inside the rig's lock) for every change, like the WebSocket events: for in-process listeners.</summary>
@@ -210,8 +211,9 @@ public sealed partial class LiveRig(
                 Check(expected);
                 Find(id);
                 CheckCell(request.Row, request.Column);
-                var occupant = preset.Blocks.FirstOrDefault(
-                    b => b.Id != id && b.Row == request.Row && b.Column == request.Column
+                var occupant = preset.Blocks.FirstOrDefault(b => b.Id != id
+                    && b.Row == request.Row
+                    && b.Column == request.Column
                 );
                 if (occupant is not null && occupant.Type != BuiltInTypes.Shunt) {
                     throw RigException.Conflict($"Cell ({request.Row},{request.Column}) is occupied.");
@@ -225,8 +227,9 @@ public sealed partial class LiveRig(
                         block.Row = request.Row;
                         block.Column = request.Column;
                         // Dropped onto a shunt, the block takes its place and its cables, as adding one does.
-                        var shunt = p.Blocks.FirstOrDefault(
-                            b => b.Id != id && b.Row == request.Row && b.Column == request.Column
+                        var shunt = p.Blocks.FirstOrDefault(b => b.Id != id
+                            && b.Row == request.Row
+                            && b.Column == request.Column
                         );
                         if (shunt is not null) {
                             p.Blocks.Remove(shunt);
@@ -326,14 +329,17 @@ public sealed partial class LiveRig(
                 var stored = block.Channel(target);
                 var sent = new List<ParamValue>();
                 var recompile = false;
-                var typeParam = descriptor.IndexOf("type") is var typeIndex and >= 0 ? descriptor.Params[typeIndex] : null;
+                var typeParam = descriptor.IndexOf("type") is var typeIndex and >= 0
+                    ? descriptor.Params[typeIndex]
+                    : null;
                 var typeChanged = typeParam is not null
                     && values.TryGetValue("type", out var type)
                     && typeParam.Sanitize(type) != stored.GetValueOrDefault("type", typeParam.Default);
                 foreach (var (param, raw) in values) {
                     var descriptorParam = descriptor.Params[descriptor.IndexOf(param)];
                     var value = descriptorParam.Sanitize(raw);
-                    recompile |= descriptorParam.Recompile && stored.GetValueOrDefault(param, descriptorParam.Default) != value;
+                    recompile |= descriptorParam.Recompile
+                        && stored.GetValueOrDefault(param, descriptorParam.Default) != value;
                     stored[param] = value;
                     sent.Add(new(id, param, value));
                 }
@@ -481,7 +487,10 @@ public sealed partial class LiveRig(
             }
         );
 
-    /// <summary>Whether channels <paramref name="from" /> and <paramref name="to" /> differ in a parameter only a recompile applies.</summary>
+    /// <summary>
+    ///     Whether channels <paramref name="from" /> and <paramref name="to" /> differ in a parameter only a recompile
+    ///     applies.
+    /// </summary>
     bool NeedsRecompile(PresetBlock block, string from, string to) {
         if (from == to || catalog.Descriptor(block.Type) is not { } descriptor) {
             return false;
@@ -490,7 +499,8 @@ public sealed partial class LiveRig(
         var a = block.Channels.GetValueOrDefault(from);
         var b = block.Channels.GetValueOrDefault(to);
         return descriptor.Params.Any(p => p.Recompile
-            && (a?.GetValueOrDefault(p.Id, p.Default) ?? p.Default) != (b?.GetValueOrDefault(p.Id, p.Default) ?? p.Default)
+            && (a?.GetValueOrDefault(p.Id, p.Default) ?? p.Default)
+            != (b?.GetValueOrDefault(p.Id, p.Default) ?? p.Default)
         );
     }
 
@@ -602,7 +612,9 @@ public sealed partial class LiveRig(
             values.Add(new(IpcBlocks.Rig, "tempo", (float)global.Tempo));
         }
 
-        values.AddRange(global.Manual.Take(4).Select(static (v, i) => new ParamValue(IpcBlocks.Rig, $"manual{(char)('A' + i)}", v)));
+        values.AddRange(
+            global.Manual.Take(4).Select(static (v, i) => new ParamValue(IpcBlocks.Rig, $"manual{(char)('A' + i)}", v))
+        );
         foreach (var param in GraphicEqBlock.Info.Params) {
             values.Add(new(IpcBlocks.Global, param.Id, global.Eq.GetValueOrDefault(param.Id, param.Default)));
         }
@@ -615,7 +627,10 @@ public sealed partial class LiveRig(
         var library = globals.Get().Blocks;
         foreach (var block in target.Blocks.Where(static b => b.Global is not null)) {
             if (library.FirstOrDefault(g => g.Id == block.Global && g.Type == block.Type) is { } shared) {
-                block.Channels = shared.Channels.ToDictionary(static c => c.Key, static c => new Dictionary<string, float>(c.Value));
+                block.Channels = shared.Channels.ToDictionary(
+                    static c => c.Key,
+                    static c => new Dictionary<string, float>(c.Value)
+                );
                 block.Assets = new(shared.Assets);
             }
         }

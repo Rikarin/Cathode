@@ -8,7 +8,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     V1A (0.047 µF in, 1M, 68k; 100k, 2k7 with 0.68 µF, 47 pF plate to cathode), 0.022 µF into the 1M log Input Gain
 ///     with its 1 nF bright cap; 100k to V1B (100k with 470 pF from the rail, 1k5 with 10 µF), 0.022 µF and 47k onto the
 ///     LED clipping network (1 nF and the 220k Lead Master across it), the relay's shunt feedback, 47k from the Lead
-///     Master's wiper to V2A (100k, 1k5 unbypassed, 1M from its coupled plate to its grid) with the 1N4007 pair and 2.2 nF on its grid; the
+///     Master's wiper to V2A (100k, 1k5 unbypassed, 1M from its coupled plate to its grid) with the 1N4007 pair and 2.2 nF
+///     on its grid; the
 ///     100k/10k send divider and 0.1 µF into V2B (220k, 470 unbypassed) on the Jubilee's own tone network and the 1M log
 ///     Output Master; a 12AX7 long-tail pair (0.022 µF in, 1M, 470, 10k, 82k/100k, 22 nF out to 220k), four EL34 (5k6
 ///     stoppers, 1k5 screens) with the High/Low (pentode/triode) switch, 100k feedback with 4k7 and the 22k presence
@@ -26,7 +27,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         directly. The LED strings (an LED and two 1N4007 one way, an LED and one 1N4007 the other) are three and two
 ///         fitted junctions here (1.0 V at 1 mA each, n = 1.9, the strings' slope): 3.0 V and 2.0 V against about 3.0
 ///         and 2.4 V for the parts (LED colour not stated). Five and four silicon junctions fit both thresholds but left
-///         Newton unconverged on a few dozen samples at full drive in the rhythm setting. C21 reads "1n" at the scan's resolution (1 µF would short the signal).
+///         Newton unconverged on a few dozen samples at full drive in the rhythm setting. C21 reads "1n" at the scan's
+///         resolution (1 µF would short the signal).
 ///     </para>
 ///     <para>
 ///         The tone network, from V2B's plate: 0.1 µF to the back gang of the tandem 1M log Bass pot (100k to ground at
@@ -65,24 +67,24 @@ public static class SilverJubilee {
         new(
             "4 x EL34",
             PentodeModel.EL34,
-            TubesPerSide: 2,
-            Supply: 470,
-            ScreenResistor: 1.5e3,
-            IdleCurrent: 0.035,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 100,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 10e3, 470),
-            CouplingCap: 22e-9,
-            GridLeak: 220e3,
-            GridStopper: 5.6e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: MarshallParts.JCM800Feedback,
-            HasFeedback: true,
-            Transformer: new(1.7e3),
-            Speaker: SpeakerDesign.Closed4x12,
-            PowerSupply: new(25, 100e-6, 100, 50e-6, 10e3, 50e-6),
+            2,
+            470,
+            1.5e3,
+            0.035,
+            false,
+            0,
+            100,
+            new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 10e3, 470),
+            22e-9,
+            220e3,
+            5.6e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            MarshallParts.JCM800Feedback,
+            true,
+            new(1.7e3),
+            SpeakerDesign.Closed4x12,
+            new(25, 100e-6, 100, 50e-6, 10e3, 50e-6),
             TriodeSwitch: SwitchRole.Switch3,
             InverterInput: new(22e-9, 1e6)
         ),
@@ -128,7 +130,8 @@ public static class SilverJubilee {
     /// </summary>
     static NetworkStageDesign V1B() {
         var net = new StageNetlist();
-        var (top, grid, rail, plate, cathode, coupled) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (top, grid, rail, plate, cathode, coupled) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(),
+            net.Node());
         var (clip, relay, rhythm, v2Grid, clamp) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Capacitor(net.Input, top, 22e-9);
         var wiper = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);

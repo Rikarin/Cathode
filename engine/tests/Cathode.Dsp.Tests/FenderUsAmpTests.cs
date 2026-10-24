@@ -54,12 +54,23 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
             model == "Hot Rod Deluxe" && index is CircuitAmpBlock.Control1 or CircuitAmpBlock.Bright
                 ? (CircuitAmpBlock.Switch1, 1f)
                 : (CircuitAmpBlock.Level, 0f);
+
         foreach (var (index, label) in knobs.Where(static k => k.Label is not null)) {
-            Check(model, label!, Render(model, Channel(index), (index, 2f)), Render(model, Channel(index), (index, 8f)));
+            Check(
+                model,
+                label!,
+                Render(model, Channel(index), (index, 2f)),
+                Render(model, Channel(index), (index, 8f))
+            );
         }
 
         foreach (var (index, label) in switches.Where(static s => s.Label is not null)) {
-            Check(model, label!, Render(model, Channel(index), (index, 0f)), Render(model, Channel(index), (index, 1f)));
+            Check(
+                model,
+                label!,
+                Render(model, Channel(index), (index, 0f)),
+                Render(model, Channel(index), (index, 1f))
+            );
         }
     }
 
@@ -70,18 +81,30 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
         var rms = new[] { 1f, 3f, 5f, 8f }
             .Select(g => Analysis.ToDb(Analysis.Rms(Render(model, 0.03f, (CircuitAmpBlock.Gain, g)).AsSpan(4_800))))
             .ToArray();
-        output.WriteLine($"{model}: rms {string.Join(", ", rms.Select(static r => r.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)))} dBFS at gain 1, 3, 5, 8");
+        output.WriteLine(
+            $"{model}: rms {string.Join(", ", rms.Select(static r => r.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)))} dBFS at gain 1, 3, 5, 8"
+        );
         for (var i = 1; i < rms.Length; i++) {
             Assert.True(rms[i] > rms[i - 1] + 0.5, $"gain step {i}: {rms[i]:0.0} dB after {rms[i - 1]:0.0} dB");
         }
 
         if (design.Panel.Master is not null) {
             var masters = new[] { 1f, 3f, 5f, 8f }
-                .Select(m => Analysis.ToDb(Analysis.Rms(Render(model, 0.03f, (CircuitAmpBlock.Gain, 5f), (CircuitAmpBlock.Master, m)).AsSpan(4_800))))
+                .Select(m => Analysis.ToDb(
+                        Analysis.Rms(
+                            Render(model, 0.03f, (CircuitAmpBlock.Gain, 5f), (CircuitAmpBlock.Master, m)).AsSpan(4_800)
+                        )
+                    )
+                )
                 .ToArray();
-            output.WriteLine($"{model}: rms {string.Join(", ", masters.Select(static r => r.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)))} dBFS at master 1, 3, 5, 8");
+            output.WriteLine(
+                $"{model}: rms {string.Join(", ", masters.Select(static r => r.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)))} dBFS at master 1, 3, 5, 8"
+            );
             for (var i = 1; i < masters.Length; i++) {
-                Assert.True(masters[i] > masters[i - 1] + 0.5, $"master step {i}: {masters[i]:0.0} dB after {masters[i - 1]:0.0} dB");
+                Assert.True(
+                    masters[i] > masters[i - 1] + 0.5,
+                    $"master step {i}: {masters[i]:0.0} dB after {masters[i - 1]:0.0} dB"
+                );
             }
         }
 
@@ -126,7 +149,12 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
     [InlineData("Hot Rod Deluxe", 0.004, "V1A=0.013,V1B=0.058,V2A=1.49")]
     [InlineData("Blues Junior", 0.010, "V1B=0.042,V1A=0.162,V2B=0.114")]
     public void Gain_staging_follows_the_test_points_on_the_drawing(string model, double input, string points) {
-        var expected = points.Split(',').Select(static p => p.Split('=')).ToDictionary(static p => p[0], static p => double.Parse(p[1], System.Globalization.CultureInfo.InvariantCulture));
+        var expected = points.Split(',')
+            .Select(static p => p.Split('='))
+            .ToDictionary(
+                static p => p[0],
+                static p => double.Parse(p[1], System.Globalization.CultureInfo.InvariantCulture)
+            );
         var controls = new AmpControls(0.5, 0.5, 0.5, 0.5, 0.5, false, 0.5);
         const double rate = 96_000;
         var stages = Design(model).Preamp.Select(s => s.Create(rate)).ToArray();
@@ -161,7 +189,9 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
             var name = Design(model).Preamp[s].Name;
             if (expected.TryGetValue(name, out var target)) {
                 var error = Analysis.ToDb(rms / target);
-                output.WriteLine($"{model} {name}: {rms * 1e3:0.0} mV (drawing {target * 1e3:0.0} mV, {error:+0.0;-0.0} dB)");
+                output.WriteLine(
+                    $"{model} {name}: {rms * 1e3:0.0} mV (drawing {target * 1e3:0.0} mV, {error:+0.0;-0.0} dB)"
+                );
                 errors.Add(error);
             } else {
                 output.WriteLine($"{model} {name}: {rms * 1e3:0.0} mV");
@@ -178,6 +208,7 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
         var left = new float[64];
         var right = new float[64];
         var chord = CircuitAmpBlockTests.Chord(64 * 40, 0.25f);
+
         void Play(int blocks) {
             for (var b = 0; b < blocks; b++) {
                 chord.AsSpan(b % 40 * 64, 64).CopyTo(left);
@@ -186,6 +217,7 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
         }
 
         int[] types = [..Names.Select(static n => AmpDesign.All.ToList().FindIndex(a => a.Name == n))];
+
         void Round() {
             foreach (var type in types) {
                 block.Params.SetTarget(CircuitAmpBlock.Type, type);
@@ -225,6 +257,8 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
 
     /// <summary>The level of a quiet sine at <paramref name="high" /> hertz over one at <paramref name="low" />, in dB.</summary>
     static double Tilt(string model, double high, double low, (int Index, float Value) knob) {
+        return Analysis.ToDb(Level(high) / Level(low));
+
         double Level(double frequency) {
             using var block = new CircuitAmpBlock();
             block.Params.SetTarget(CircuitAmpBlock.Type, AmpDesign.All.ToList().FindIndex(a => a.Name == model));
@@ -241,8 +275,6 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
             var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 19_200, 0.01f), 64);
             return Analysis.Rms(rendered.AsSpan(9_600));
         }
-
-        return Analysis.ToDb(Level(high) / Level(low));
     }
 
     void Check(string model, string control, float[] low, float[] high) {

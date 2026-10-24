@@ -68,7 +68,11 @@ public sealed class ParametricEqBlock : DspBlock {
                         ParamDescriptor.Float($"q{b}", $"Q {b}", 0.1f, 10f, 0.7071f, string.Empty, ParamTaper.Log)
                     }
                 ),
-            ParamDescriptor.Choice("lowtype", "Band 1 Type", ["Low Shelf", "Peak", "Blocking", "Shelving 2", "Peaking 2"]),
+            ParamDescriptor.Choice(
+                "lowtype",
+                "Band 1 Type",
+                ["Low Shelf", "Peak", "Blocking", "Shelving 2", "Peaking 2"]
+            ),
             ParamDescriptor.Choice(
                 "hightype",
                 "Band 5 Type",

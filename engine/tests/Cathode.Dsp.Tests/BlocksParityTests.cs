@@ -49,12 +49,13 @@ public class BlocksParityTests {
         }
 
         lfo.Reset();
-        var second = Enumerable.Range(0, 4_000).Select(_ => {
-                var v = lfo.Value(LfoShape.Random);
-                lfo.Advance(48, Rate);
-                return v;
-            }
-        );
+        var second = Enumerable.Range(0, 4_000)
+            .Select(_ => {
+                    var v = lfo.Value(LfoShape.Random);
+                    lfo.Advance(48, Rate);
+                    return v;
+                }
+            );
 
         Assert.Equal(first, second);
         Assert.Equal(first[10], first[900]);
@@ -63,7 +64,10 @@ public class BlocksParityTests {
 
     [Fact]
     public void Tempo_divisions_keep_their_first_indices_and_convert_to_time_and_rate() {
-        Assert.Equal(["Off", "1/1", "1/2", "1/4", "1/4.", "1/4T", "1/8", "1/8.", "1/8T", "1/16"], TempoDivisions.Names[..10]);
+        Assert.Equal(
+            ["Off", "1/1", "1/2", "1/4", "1/4.", "1/4T", "1/8", "1/8.", "1/8T", "1/16"],
+            TempoDivisions.Names[..10]
+        );
         Assert.Equal(TempoDivisions.Names.Length, TempoDivisions.Beats.Length);
         Assert.Equal(500, TempoDivisions.Milliseconds(3, 120), 1e-9);
         Assert.Equal(2, TempoDivisions.Rate(3, 120, 5), 1e-9);
@@ -74,7 +78,8 @@ public class BlocksParityTests {
 
     [Fact]
     public void Balance_turns_the_far_side_down_and_leaves_the_centre_at_unity() {
-        using var block = TestBlocks.Create<FilterBlock>((FilterBlock.Type, FilterBlock.Null), (FilterBlock.Balance, -50f));
+        using var block =
+            TestBlocks.Create<FilterBlock>((FilterBlock.Type, FilterBlock.Null), (FilterBlock.Balance, -50f));
         var input = Signals.Step(256);
 
         var (left, right) = BlockRender.Stereo(block, input, input, _ => 64);
@@ -148,7 +153,9 @@ public class BlocksParityTests {
         using var free = TestBlocks.Create<TremoloBlock>((TremoloBlock.Rate, 2f), (TremoloBlock.Depth, 100f));
         var input = Signals.Step(24_000);
 
-        Assert.True(Analysis.NullResidualDb(BlockRender.Mono(free, input, 64), BlockRender.Mono(synced, input, 64)) < -100);
+        Assert.True(
+            Analysis.NullResidualDb(BlockRender.Mono(free, input, 64), BlockRender.Mono(synced, input, 64)) < -100
+        );
     }
 
     // Chorus and flanger
@@ -213,8 +220,12 @@ public class BlocksParityTests {
         Assert.Equal(0, Analysis.ToDb(Analysis.MagnitudeAt(flat, 300, Rate)), 0.05);
         Assert.Equal(0, Analysis.ToDb(Analysis.MagnitudeAt(flat, 5_000, Rate)), 0.05);
 
-        var at4k2 = Analysis.ToDb(Analysis.MagnitudeAt(BlockRender.Mono(second, Signals.Impulse(16_384), 64), 4_000, Rate));
-        var at4k4 = Analysis.ToDb(Analysis.MagnitudeAt(BlockRender.Mono(fourth, Signals.Impulse(16_384), 64), 4_000, Rate));
+        var at4k2 = Analysis.ToDb(
+            Analysis.MagnitudeAt(BlockRender.Mono(second, Signals.Impulse(16_384), 64), 4_000, Rate)
+        );
+        var at4k4 = Analysis.ToDb(
+            Analysis.MagnitudeAt(BlockRender.Mono(fourth, Signals.Impulse(16_384), 64), 4_000, Rate)
+        );
         Assert.Equal(2 * at4k2, at4k4, 0.1);
     }
 
@@ -317,7 +328,11 @@ public class BlocksParityTests {
         var output = BlockRender.Mono(block, input, 64);
 
         // Halfway up to the threshold: about +11.5 dB on the RMS level.
-        Assert.Equal(11.5, Analysis.ToDb(Analysis.Rms(output.AsSpan(24_000)) / Analysis.Rms(input.AsSpan(24_000))), 0.5);
+        Assert.Equal(
+            11.5,
+            Analysis.ToDb(Analysis.Rms(output.AsSpan(24_000)) / Analysis.Rms(input.AsSpan(24_000))),
+            0.5
+        );
     }
 
     // Delay
@@ -459,7 +474,9 @@ public class BlocksParityTests {
         using var direct = TestBlocks.Create<RingModulatorBlock>((RingModulatorBlock.Frequency, 440f));
         var input = Signals.Noise(4_800, 6);
 
-        Assert.True(Analysis.NullResidualDb(BlockRender.Mono(direct, input, 64), BlockRender.Mono(doubled, input, 64)) < -100);
+        Assert.True(
+            Analysis.NullResidualDb(BlockRender.Mono(direct, input, 64), BlockRender.Mono(doubled, input, 64)) < -100
+        );
     }
 
     [Fact]

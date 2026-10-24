@@ -86,7 +86,7 @@ public readonly record struct PowerSettings(
     double CathodeTimeConstant = 1,
     bool Triode = false
 ) {
-    public static PowerSettings Stock => new(Tube: null);
+    public static PowerSettings Stock => new(null);
 }
 
 /// <summary>
@@ -134,6 +134,7 @@ public sealed class PowerAmp {
         double.NaN,
         double.NaN
     );
+
     static readonly Dictionary<PowerAmpDesign, double> AcResistances = [];
 
     readonly PowerAmpDesign design;
@@ -238,7 +239,9 @@ public sealed class PowerAmp {
         tube = design.Tube;
         phaseInverter = PhaseInverter.For(design.PhaseInverter);
         inverterTube = TriodeTables.For(design.PhaseInverter.Tube);
-        inverterGridTables = design.InverterInput is null ? phaseInverter : PhaseInverter.For(design.PhaseInverter, design.GridLeak);
+        inverterGridTables = design.InverterInput is null
+            ? phaseInverter
+            : PhaseInverter.For(design.PhaseInverter, design.GridLeak);
         turns = design.Transformer.TurnsRatio;
         magnetising = design.Transformer.PrimaryInductance;
         reservoirCap = design.PowerSupply.Reservoir;
@@ -249,7 +252,8 @@ public sealed class PowerAmp {
         var (rm, _, _) = design.Speaker.Motional;
 
         var net = new WdfNetlist();
-        var (primary, leakage, secondary, coil, motional) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (primary, leakage, secondary, coil, motional) = (net.Node(), net.Node(), net.Node(), net.Node(),
+            net.Node());
         net.Port(primary, WdfNetlist.Ground);
         net.Port(primary, WdfNetlist.Ground);
         net.Resistor(primary, WdfNetlist.Ground, design.Transformer.CoreLoss);
@@ -338,7 +342,8 @@ public sealed class PowerAmp {
 
         var previous = this.controls;
         this.controls = controls;
-        if (controls.Presence != previous.Presence || controls.Depth != previous.Depth
+        if (controls.Presence != previous.Presence
+            || controls.Depth != previous.Depth
             || controls.Feedback != previous.Feedback) {
             var amount = design.HasFeedback ? 2 * controls.Feedback : Math.Max(0, 2 * controls.Feedback - 1);
             // The secondary is the primary less the copper's drop into the nominal load (see the remarks).
@@ -396,10 +401,14 @@ public sealed class PowerAmp {
             reset = true;
         }
 
-        if (settings.Match != previous.Match || settings.LowFrequency != previous.LowFrequency
-            || settings.HighFrequency != previous.HighFrequency || settings.Speaker != previous.Speaker
-            || settings.Resonance != previous.Resonance || settings.ResonanceQ != previous.ResonanceQ
-            || settings.ResonancePeak != previous.ResonancePeak || settings.VoiceCoil != previous.VoiceCoil
+        if (settings.Match != previous.Match
+            || settings.LowFrequency != previous.LowFrequency
+            || settings.HighFrequency != previous.HighFrequency
+            || settings.Speaker != previous.Speaker
+            || settings.Resonance != previous.Resonance
+            || settings.ResonanceQ != previous.ResonanceQ
+            || settings.ResonancePeak != previous.ResonancePeak
+            || settings.VoiceCoil != previous.VoiceCoil
             || settings.Impedance != previous.Impedance) {
             turns = Math.Sqrt(design.Transformer.PlateToPlate * settings.Match / SpeakerDesign.Nominal);
             ApplyNetwork();
@@ -478,7 +487,7 @@ public sealed class PowerAmp {
         inverterRest = design.InverterInput is null ? 0 : SolveInverterGrid(0, 0, 0, 0);
         inverterGrid = inverterRest;
         inverterHistory = -inverterRest;
-        excess =saturationFlux > 0 ? Excess(Flux) : 0;
+        excess = saturationFlux > 0 ? Excess(Flux) : 0;
         root.SetCurrent(0, -excess);
         Prime(ref stage);
     }
@@ -854,7 +863,9 @@ public sealed class PowerAmp {
     }
 
     /// <summary>Whether the tubes' wiring leaves the plain push-pull pentode case (see <see cref="PushPullStage" />).</summary>
-    bool IsGeneral => design.Topology == PowerTopology.SingleEnded || ScreenTap(settings.Triode) > 0
+    bool IsGeneral =>
+        design.Topology == PowerTopology.SingleEnded
+        || ScreenTap(settings.Triode) > 0
         || (design.Strapped is not null && design.StrappedPerSide > 0);
 
     /// <summary>
@@ -1005,7 +1016,8 @@ public sealed class PowerAmp {
 /// <summary>Koren's pentode equations (see <see cref="Pentode" />) for one tube, with the slopes the power stage needs.</summary>
 public static class KorenPentode {
     /// <summary>Plate current at (V_g1k, V_g2k, V_pk).</summary>
-    public static double Plate(in PentodeModel m, double vg1, double vg2, double vp) => Plate(m, vg1, vg2, vp, out _, out _);
+    public static double Plate(in PentodeModel m, double vg1, double vg2, double vp) =>
+        Plate(m, vg1, vg2, vp, out _, out _);
 
     /// <summary>Plate current and its slopes with respect to the control grid and the plate.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1416,7 +1428,12 @@ struct PushPullStage : INonlinearDevice {
     public readonly double Conductance(int port) => 1e-4;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void Evaluate(ReadOnlySpan<double> voltages, Span<double> currents, Span<double> jacobian, int stride) {
+    public readonly void Evaluate(
+        ReadOnlySpan<double> voltages,
+        Span<double> currents,
+        Span<double> jacobian,
+        int stride
+    ) {
         if (General) {
             EvaluateGeneral(voltages[0], out currents[0], out jacobian[0]);
             return;
@@ -1446,7 +1463,8 @@ struct PushPullStage : INonlinearDevice {
         var ia = tube.PlateCurrent(factorA, vgA, ScreenA, SupplyA + 0.5 * v, out var gridSlopeA, out var plateSlopeA);
         var ib = tube.PlateCurrent(factorB, vgB, ScreenB, SupplyB - 0.5 * v, out var gridSlopeB, out var plateSlopeB);
         currents[0] = 0.5 * tubes * (ia - ib);
-        jacobian[0] = 0.5 * tubes
+        jacobian[0] = 0.5
+            * tubes
             * (0.5 * plateSlopeA + gridSlopeA * gridDriveA + 0.5 * plateSlopeB - gridSlopeB * gridDriveB);
     }
 
@@ -1500,7 +1518,15 @@ struct PushPullStage : INonlinearDevice {
         }
 
         var half = singleEnded ? 1 : 0.5;
-        var (reservoirA, screenA) = CommitSide(GridA, ScreenA, factorA, SupplyA, SupplyA + half * v, out PlateA, out ScreenCurrentA);
+        var (reservoirA, screenA) = CommitSide(
+            GridA,
+            ScreenA,
+            factorA,
+            SupplyA,
+            SupplyA + half * v,
+            out PlateA,
+            out ScreenCurrentA
+        );
         CathodeCurrentA = reservoirA + screenA + tubes * nodes.CurrentA;
         ReservoirCurrent = reservoirA;
         ScreenNodeCurrent = screenA;
@@ -1512,7 +1538,15 @@ struct PushPullStage : INonlinearDevice {
             return;
         }
 
-        var (reservoirB, screenB) = CommitSide(GridB, ScreenB, factorB, SupplyB, SupplyB - half * v, out PlateB, out ScreenCurrentB);
+        var (reservoirB, screenB) = CommitSide(
+            GridB,
+            ScreenB,
+            factorB,
+            SupplyB,
+            SupplyB - half * v,
+            out PlateB,
+            out ScreenCurrentB
+        );
         CathodeCurrentB = reservoirB + screenB + tubes * nodes.CurrentB;
         ReservoirCurrent += reservoirB;
         ScreenNodeCurrent += screenB;
@@ -1595,8 +1629,11 @@ struct PushPullStage : INonlinearDevice {
             var ig2 = tube.ScreenCurrent(vg, vs, out var screenSlope);
             var screenDrive = screenTap * plateDrive;
             total = tubes * (ip + screenTap * ig2);
-            slope = tubes * (gs * gridDrive + ss * screenDrive + ps * plateDrive
-                + screenTap * screenSlope * (gridDrive + screenDrive / tube.Model.Mu));
+            slope = tubes
+                * (gs * gridDrive
+                    + ss * screenDrive
+                    + ps * plateDrive
+                    + screenTap * screenSlope * (gridDrive + screenDrive / tube.Model.Mu));
         } else {
             var ip = tube.PlateCurrent(factor, vg, screenNode, plate, out var gs, out var ps);
             total = tubes * ip;
@@ -1607,8 +1644,9 @@ struct PushPullStage : INonlinearDevice {
             var ip = second.PlateCurrent(vg, plate, plate, out var gs, out var ss, out var ps);
             var ig2 = second.ScreenCurrent(vg, plate, out var screenSlope);
             total += strappedTubes * (ip + ig2);
-            slope += strappedTubes * (gs * gridDrive + (ss + ps) * plateDrive
-                + screenSlope * (gridDrive + plateDrive / second.Model.Mu));
+            slope += strappedTubes
+                * (gs * gridDrive + (ss + ps) * plateDrive
+                    + screenSlope * (gridDrive + plateDrive / second.Model.Mu));
         }
 
         return total;
@@ -1642,8 +1680,9 @@ struct PushPullStage : INonlinearDevice {
         }
 
         if (strapped is { } second) {
-            fromReservoir += strappedTubes * (second.PlateCurrent(vg, plate, plate, out _, out _, out _)
-                + second.ScreenCurrent(vg, plate));
+            fromReservoir += strappedTubes
+                * (second.PlateCurrent(vg, plate, plate, out _, out _, out _)
+                    + second.ScreenCurrent(vg, plate));
         }
 
         return (fromReservoir, fromScreen);

@@ -138,7 +138,8 @@ public sealed class Modulation(ParamBank rig, double sampleRate) {
         };
     }
 
-    float Coefficient(float milliseconds) => (float)(1 - Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate)));
+    float Coefficient(float milliseconds) =>
+        (float)(1 - Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate)));
 
     static int Index(string id) => RigControls.Descriptor.IndexOf(id);
 

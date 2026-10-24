@@ -13,21 +13,76 @@ namespace Cathode.Dsp.Tests;
 ///     Chieftain's paralleled stages and bridged-T middle, the Express's plate-driven stack and cold V3.
 /// </summary>
 public partial class AmpStageTests {
-    public static TheoryData<string, int, bool, double, double> BoutiqueChains => new() {
-        // Model, stages, overdrive or second channel, amplitude in volts, limit in dB.
-        { "Chieftain", 2, false, 0.01, -45 },
-        { "Chieftain", 2, false, 0.3, -45 },
-        { "Hot Cat 30", 4, false, 0.002, -30 },
-        { "Hot Cat 30", 4, false, 0.05, -28 },
-        { "ODS 97", 2, false, 0.05, -30 },
-        { "ODS 97", 3, true, 0.05, -20 },
-        { "Express", 3, false, 0.01, -30 },
-        { "Express", 3, false, 0.2, -15 }
-    };
+    public static TheoryData<string, int, bool, double, double> BoutiqueChains =>
+        new() {
+            // Model, stages, overdrive or second channel, amplitude in volts, limit in dB.
+            {
+                "Chieftain",
+                2,
+                false,
+                0.01,
+                -45
+            },
+            {
+                "Chieftain",
+                2,
+                false,
+                0.3,
+                -45
+            },
+            {
+                "Hot Cat 30",
+                4,
+                false,
+                0.002,
+                -30
+            },
+            {
+                "Hot Cat 30",
+                4,
+                false,
+                0.05,
+                -28
+            },
+            {
+                "ODS 97",
+                2,
+                false,
+                0.05,
+                -30
+            },
+            {
+                "ODS 97",
+                3,
+                true,
+                0.05,
+                -20
+            },
+            {
+                "Express",
+                3,
+                false,
+                0.01,
+                -30
+            },
+            {
+                "Express",
+                3,
+                false,
+                0.2,
+                -15
+            }
+        };
 
     [Theory]
     [MemberData(nameof(BoutiqueChains))]
-    public void Boutique_chains_match_the_reference(string type, int count, bool switched, double amplitude, double limitDb) {
+    public void Boutique_chains_match_the_reference(
+        string type,
+        int count,
+        bool switched,
+        double amplitude,
+        double limitDb
+    ) {
         var designs = BoutiqueAmpTests.Chain(AmpDesign.All.Single(a => a.Name == type), switched).Take(count).ToArray();
         var controls = new AmpControls(0.5, 0.5, 0.5, 0.5, 1, false, Switch1: switched);
 
@@ -80,22 +135,24 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
 
     static readonly string[] Models = ["Chieftain", "Hot Cat 30", "ODS 97", "Express"];
 
-    public static TheoryData<string, bool> Channels => new() {
-        { "Chieftain", false },
-        { "Hot Cat 30", false },
-        { "Hot Cat 30", true },
-        { "ODS 97", false },
-        { "ODS 97", true },
-        { "Express", false }
-    };
+    public static TheoryData<string, bool> Channels =>
+        new() {
+            { "Chieftain", false },
+            { "Hot Cat 30", false },
+            { "Hot Cat 30", true },
+            { "ODS 97", false },
+            { "ODS 97", true },
+            { "Express", false }
+        };
 
-    public static TheoryData<string, bool> ToneChannels => new() {
-        { "Chieftain", false },
-        { "Hot Cat 30", false },
-        { "ODS 97", false },
-        { "ODS 97", true },
-        { "Express", false }
-    };
+    public static TheoryData<string, bool> ToneChannels =>
+        new() {
+            { "Chieftain", false },
+            { "Hot Cat 30", false },
+            { "ODS 97", false },
+            { "ODS 97", true },
+            { "Express", false }
+        };
 
     /// <summary>The preamp's stage designs in signal order, with the channel switch's chain for <paramref name="on" />.</summary>
     internal static IEnumerable<AmpStageDesign> Chain(AmpDesign design, bool on) =>
@@ -188,7 +245,9 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
                 stages[i].SetSourceResistance(resistance);
                 stages[i].Reset(rest);
                 (rest, resistance) = (stages[i].RestOutput, stages[i].OutputResistance);
-                found = Chain(AmpDesign.All.Single(a => a.Name == type), on).ElementAt(i).Name == name ? stages[i] : found;
+                found = Chain(AmpDesign.All.Single(a => a.Name == type), on).ElementAt(i).Name == name
+                    ? stages[i]
+                    : found;
             }
 
             Assert.NotNull(found);
@@ -280,14 +339,19 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
                     )
                 )
                 .ToArray();
-            output.WriteLine($"{type} ch{(channel ? 2 : 1)} knob {knob}: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB");
+            output.WriteLine(
+                $"{type} ch{(channel ? 2 : 1)} knob {knob}: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB"
+            );
             for (var i = 1; i < levels.Length; i++) {
                 Assert.True(levels[i] > levels[i - 1] - 0.1, $"{type}: knob {knob} not monotonic at step {i}");
             }
 
             // The Hot Cat's master, as drawn, is a 100k rheostat behind 220k across the treble pot's wiper: about 1 dB.
             var span = type == "Hot Cat 30" && knob == CircuitAmpBlock.Master ? 0.5 : 10;
-            Assert.True(levels[^1] - levels[0] > span, $"{type}: knob {knob} spans only {levels[^1] - levels[0]:0.0} dB");
+            Assert.True(
+                levels[^1] - levels[0] > span,
+                $"{type}: knob {knob} spans only {levels[^1] - levels[0]:0.0} dB"
+            );
         }
     }
 
@@ -307,8 +371,8 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
         var treble = new[] { 0f, 5f, 10f }.Select(v => Tilt(CircuitAmpBlock.Treble, v, 4_000, 400)).ToArray();
         var bass = new[] { 0f, 5f, 10f }.Select(v => Tilt(CircuitAmpBlock.Bass, v, 80, 1_000)).ToArray();
         output.WriteLine(
-            $"{type} ch{(channel ? 2 : 1)}: 4 kHz over 400 Hz {string.Join(" ", treble.Select(static l => $"{l:0.0}"))}; " +
-            $"80 Hz over 1 kHz {string.Join(" ", bass.Select(static l => $"{l:0.0}"))}"
+            $"{type} ch{(channel ? 2 : 1)}: 4 kHz over 400 Hz {string.Join(" ", treble.Select(static l => $"{l:0.0}"))}; "
+            + $"80 Hz over 1 kHz {string.Join(" ", bass.Select(static l => $"{l:0.0}"))}"
         );
         Assert.True(treble[1] > treble[0] - 0.1 && treble[2] > treble[1] - 0.1 && treble[2] - treble[0] > 3);
         Assert.True(bass[1] > bass[0] - 0.1 && bass[2] > bass[1] - 0.1 && bass[2] - bass[0] > 3);
@@ -324,7 +388,9 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
             var levels = new[] { 0f, 5f, 10f }
                 .Select(v => Level(type, frequency, 1e-4f, [..settings, (knob, v)]))
                 .ToArray();
-            output.WriteLine($"{type} knob {knob} at {frequency} Hz: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB");
+            output.WriteLine(
+                $"{type} knob {knob} at {frequency} Hz: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB"
+            );
             return levels;
         }
 

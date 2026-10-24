@@ -22,7 +22,10 @@ public sealed class CabBlockTests : IDisposable {
             Assert.Equal(1f, info.Params[CabBlock.SlotParam(s, CabBlock.Mute)].Default);
         }
 
-        string Choice(int offset) => info.Params[CabBlock.SlotParam(0, offset)].Options![(int)info.Params[CabBlock.SlotParam(0, offset)].Default];
+        string Choice(int offset) =>
+            info.Params[CabBlock.SlotParam(0, offset)].Options![(int)info.Params[CabBlock.SlotParam(0, offset)]
+                .Default];
+
         Assert.Equal("4x12 Closed Back", Choice(CabBlock.Cab));
         Assert.Equal("Celestion Vintage 30", Choice(CabBlock.Speaker));
         Assert.Equal("Dynamic 57 (SM57)", Choice(CabBlock.Mic));
@@ -108,8 +111,14 @@ public sealed class CabBlockTests : IDisposable {
     [Fact]
     public void Output_does_not_depend_on_block_size_and_does_not_allocate() {
         var ir = CabLikeIr(3_000, 8);
-        using var a = Create(static c => c.Params.SetTarget(CabBlock.LowCut, 80), ("slot1", WriteIr("a.wav", ir, 48_000)));
-        using var b = Create(static c => c.Params.SetTarget(CabBlock.LowCut, 80), ("slot1", WriteIr("b.wav", ir, 48_000)));
+        using var a = Create(
+            static c => c.Params.SetTarget(CabBlock.LowCut, 80),
+            ("slot1", WriteIr("a.wav", ir, 48_000))
+        );
+        using var b = Create(
+            static c => c.Params.SetTarget(CabBlock.LowCut, 80),
+            ("slot1", WriteIr("b.wav", ir, 48_000))
+        );
         var input = Signals.Noise(9_600, 9);
         var random = new Random(1);
 
@@ -171,8 +180,7 @@ public sealed class CabBlockTests : IDisposable {
     [Fact]
     public void An_empty_ir_slot_contributes_nothing_to_the_others() {
         using var alone = Prepared();
-        using var withEmpty = Prepared(
-            c => {
+        using var withEmpty = Prepared(c => {
                 c.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Source), CabBlock.SourceIr);
                 c.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Mute), 0f);
             }
@@ -227,7 +235,10 @@ public sealed class CabBlockTests : IDisposable {
     [Fact]
     public void A_wav_in_an_ir_pack_slot_plays_as_a_one_point_pack() {
         var path = WriteIr("a.wav", CabLikeIr(1_500, 16), 48_000);
-        using var pack = Create(static c => c.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Source), CabBlock.SourcePack), ("slot1", path));
+        using var pack = Create(
+            static c => c.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Source), CabBlock.SourcePack),
+            ("slot1", path)
+        );
         using var file = Create(null, ("slot1", path));
 
         var (packIr, _) = pack.ImpulseResponse();
@@ -260,8 +271,14 @@ public sealed class CabBlockTests : IDisposable {
     public void Slot_levels_are_relative_and_only_set_the_blend() {
         var a = WriteIr("a.wav", CabLikeIr(800, 20), 48_000);
         var b = WriteIr("b.wav", CabLikeIr(800, 21), 48_000);
-        using var quiet = Create(static c => c.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.SlotLevel), -12f), ("slot1", a));
-        using var loud = Create(static c => c.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.SlotLevel), 6f), ("slot1", a));
+        using var quiet = Create(
+            static c => c.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.SlotLevel), -12f),
+            ("slot1", a)
+        );
+        using var loud = Create(
+            static c => c.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.SlotLevel), 6f),
+            ("slot1", a)
+        );
         using var blend = Create(
             static c => {
                 c.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.SlotLevel), 6f);
@@ -291,7 +308,10 @@ public sealed class CabBlockTests : IDisposable {
             },
             ("slot1", path)
         );
-        using var shortened = Create(static c => c.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Length), 20f), ("slot1", path));
+        using var shortened = Create(
+            static c => c.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Length), 20f),
+            ("slot1", path)
+        );
 
         var (before, _) = plain.ImpulseResponse();
         var (after, _) = cut.ImpulseResponse();
@@ -318,7 +338,10 @@ public sealed class CabBlockTests : IDisposable {
         var (sharp, _) = plain.ImpulseResponse();
         var (smoothed, _) = smooth.ImpulseResponse();
 
-        Assert.True(Ripple(smoothed) < 0.25 * Ripple(sharp), $"ripple {Ripple(sharp):0.0} dB, smoothed {Ripple(smoothed):0.0} dB");
+        Assert.True(
+            Ripple(smoothed) < 0.25 * Ripple(sharp),
+            $"ripple {Ripple(sharp):0.0} dB, smoothed {Ripple(smoothed):0.0} dB"
+        );
         Assert.Equal(0, Analysis.PeakIndex(smoothed));
         Assert.Equal(Analysis.Rms(sharp), Analysis.Rms(smoothed), 0.2 * Analysis.Rms(sharp));
 
@@ -354,6 +377,7 @@ public sealed class CabBlockTests : IDisposable {
     public void Input_mode_feeds_the_cab_left_right_or_their_sum() {
         var left = Signals.Noise(1_000, 23);
         var right = Signals.Noise(1_000, 24);
+
         float[] Render(int mode) {
             using var cab = Create(c => c.Params.SetTarget(CabBlock.Input, mode));
             return BlockRender.Stereo(cab, left, right, _ => 64).Right;

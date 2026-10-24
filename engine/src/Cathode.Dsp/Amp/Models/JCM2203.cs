@@ -22,28 +22,26 @@ public static class JCM2203 {
         new(
             "4 x EL34",
             PentodeModel.EL34,
-            TubesPerSide: 2,
-            Supply: 470,
-            ScreenResistor: 1e3,
-            IdleCurrent: 0.035,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 100,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 310, 82e3, 100e3, 10e3, 470),
-            CouplingCap: 22e-9,
-            GridLeak: 220e3,
-            GridStopper: 5.6e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: MarshallParts.JCM800Feedback,
-            HasFeedback: true,
-            Transformer: new(1.7e3),
-            Speaker: SpeakerDesign.Closed4x12,
-            PowerSupply: new(25, 100e-6, 100, 100e-6, 10e3, 50e-6),
+            2,
+            470,
+            1e3,
+            0.035,
+            false,
+            0,
+            100,
+            new LongTailPairDesign(TriodeModel.Ecc83, 310, 82e3, 100e3, 10e3, 470),
+            22e-9,
+            220e3,
+            5.6e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            MarshallParts.JCM800Feedback,
+            true,
+            new(1.7e3),
+            SpeakerDesign.Closed4x12,
+            new(25, 100e-6, 100, 100e-6, 10e3, 50e-6),
             InverterInput: new(22e-9, 1e6)
         ),
         -8
-    ) {
-        Panel = MarshallParts.MasterVolumePanel
-    };
+    ) { Panel = MarshallParts.MasterVolumePanel };
 }

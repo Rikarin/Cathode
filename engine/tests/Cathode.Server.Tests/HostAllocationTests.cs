@@ -94,7 +94,8 @@ public sealed class HostAllocationTests : IDisposable {
 
     [Fact]
     public void Fast_path_sets_rig_parameters_without_a_current_generation() {
-        var frame = """{"type":"setParams","id":5,"generation":99,"params":[{"block":"rig","param":"tempo","value":90}]}"""u8;
+        var frame =
+            """{"type":"setParams","id":5,"generation":99,"params":[{"block":"rig","param":"tempo","value":90}]}"""u8;
 
         Assert.True(service.TryHandle(frame, out var reply));
 

@@ -81,7 +81,8 @@ sealed class CommonEmitterStage : ITestStage {
 
     public ReferenceCircuit Reference(Func<double, double> input, double rate) {
         var c = new ReferenceCircuit();
-        var (inputNode, @base, collector, emitter, supply, output) = (c.Node(), c.Node(), c.Node(), c.Node(), c.Node(), c.Node());
+        var (inputNode, @base, collector, emitter, supply, output) = (c.Node(), c.Node(), c.Node(), c.Node(), c.Node(),
+            c.Node());
         var source = c.Node();
         c.Source(source, 0, input);
         c.Resistor(source, inputNode, 1e3);
@@ -154,7 +155,8 @@ sealed class CommonCathodeStage : ITestStage {
 
     public ReferenceCircuit Reference(Func<double, double> input, double rate) {
         var c = new ReferenceCircuit();
-        var (inputNode, grid, plate, cathode, supply, output) = (c.Node(), c.Node(), c.Node(), c.Node(), c.Node(), c.Node());
+        var (inputNode, grid, plate, cathode, supply, output) = (c.Node(), c.Node(), c.Node(), c.Node(), c.Node(),
+            c.Node());
         var source = c.Node();
         c.Source(source, 0, input);
         c.Resistor(source, inputNode, 1e3);

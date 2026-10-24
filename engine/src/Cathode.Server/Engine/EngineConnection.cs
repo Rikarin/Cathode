@@ -124,7 +124,9 @@ public sealed partial class EngineConnection(
     public void SetMidi(bool followClock) => Enqueue(new() { Type = IpcTypes.SetMidi, FollowClock = followClock });
 
     public void MidiOut(string? destination, IReadOnlyList<byte> bytes) =>
-        Enqueue(new() { Type = IpcTypes.MidiOut, Destination = destination, Bytes = [..bytes.Select(static b => (int)b)] });
+        Enqueue(
+            new() { Type = IpcTypes.MidiOut, Destination = destination, Bytes = [..bytes.Select(static b => (int)b)] }
+        );
 
     /// <summary>MIDI from the host's devices (or injected in process).</summary>
     public event Action<IReadOnlyList<MidiEventMessage>>? MidiReceived;
@@ -185,7 +187,7 @@ public sealed partial class EngineConnection(
         current.TelemetryReceived += OnTelemetry;
         current.MidiReceived += OnMidi;
         TelemetryRegion? mapped = null;
-        Task meters = Task.CompletedTask;
+        var meters = Task.CompletedTask;
         try {
             DiscardQueued("The engine host restarted.");
             link = current;
@@ -257,7 +259,7 @@ public sealed partial class EngineConnection(
                 }
 
                 hub.Publish(
-                    new ScopeFrame("scope", source.Region.SampleRate / ScopeDecimation, points),
+                    new("scope", source.Region.SampleRate / ScopeDecimation, points),
                     ContractsJsonContext.Default.ScopeFrame
                 );
             }

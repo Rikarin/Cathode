@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using Cathode.Contracts;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
-using Cathode.EngineHost;
 using Cathode.Ipc;
 using Cathode.Server.Engine;
 using Cathode.Server.Midi;
@@ -33,7 +32,15 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         await Put("/api/v1/live/blocks/delay1/bypass-mode", new BypassModeRequest("muteFxIn"));
         var live = await Put(
             "/api/v1/live/modifiers",
-            new List<PresetModifier> { new() { Block = "delay1", Param = "mix", Source = "lfo1", Min = 10, Max = 60 } }
+            new List<PresetModifier> {
+                new() {
+                    Block = "delay1",
+                    Param = "mix",
+                    Source = "lfo1",
+                    Min = 10,
+                    Max = 60
+                }
+            }
         );
         using var invalid = await client.PutAsJsonAsync(
             "/api/v1/live/modifiers",
@@ -196,7 +203,10 @@ public sealed class ControlsApiTests : IAsyncLifetime {
 
         Assert.Single(live.Preset.Modifiers);
         Assert.Equal(HttpStatusCode.BadRequest, input.StatusCode);
-        await ServerFixture.Eventually(() => server.Graph!.Modifiers.Any(static m => m.ParamIndex == ModifierBinding.Engage));
+        await ServerFixture.Eventually(() => server.Graph!.Modifiers.Any(static m =>
+                m.ParamIndex == ModifierBinding.Engage
+            )
+        );
     }
 
     [Fact]
@@ -287,14 +297,18 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     static async Task Ok(Task<HttpResponseMessage> call) {
         using var response = await call;
         if (!response.IsSuccessStatusCode) {
-            Assert.Fail($"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync(Token)}");
+            Assert.Fail(
+                $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync(Token)}"
+            );
         }
     }
 
     static async Task<LiveState> Read(HttpResponseMessage response) {
         using (response) {
             if (!response.IsSuccessStatusCode) {
-                Assert.Fail($"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync(Token)}");
+                Assert.Fail(
+                    $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync(Token)}"
+                );
             }
 
             return (await response.Content.ReadFromJsonAsync<LiveState>(Token))!;

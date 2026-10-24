@@ -37,7 +37,9 @@ public class WahCircuitTests(ITestOutputHelper output) {
 
         for (var node = 1; node <= WahCircuit.Nodes; node++) {
             var expected = simulator.Voltage(nodes[node]);
-            output.WriteLine($"node {node,2}: {circuit.OperatingPoint[node - 1],9:0.0000} V (reference {expected,9:0.0000} V)");
+            output.WriteLine(
+                $"node {node,2}: {circuit.OperatingPoint[node - 1],9:0.0000} V (reference {expected,9:0.0000} V)"
+            );
             Assert.Equal(expected, circuit.OperatingPoint[node - 1], 1e-4);
         }
     }
@@ -54,11 +56,11 @@ public class WahCircuitTests(ITestOutputHelper output) {
         var outputNode = nodes[WahCircuit.OutputNode];
 
         var wdf = Resonance(f => Magnitude(response, f));
-        var analog = Resonance(f => simulator.Ac(new(0, 2 * Math.PI * f), input, outputNode, 0, linearised: true).Magnitude);
+        var analog = Resonance(f => simulator.Ac(new(0, 2 * Math.PI * f), input, outputNode, 0, true).Magnitude);
 
         output.WriteLine(
-            $"{voicing.Name} toe {toe:0.0}: WDF {wdf.Frequency:0.0} Hz {Db(wdf.Gain):0.00} dB Q {wdf.Q:0.00}; " +
-            $"reference {analog.Frequency:0.0} Hz {Db(analog.Gain):0.00} dB Q {analog.Q:0.00}"
+            $"{voicing.Name} toe {toe:0.0}: WDF {wdf.Frequency:0.0} Hz {Db(wdf.Gain):0.00} dB Q {wdf.Q:0.00}; "
+            + $"reference {analog.Frequency:0.0} Hz {Db(analog.Gain):0.00} dB Q {analog.Q:0.00}"
         );
         Assert.InRange(wdf.Frequency / analog.Frequency, 0.98, 1.02);
         Assert.InRange(Db(wdf.Gain) - Db(analog.Gain), -1, 1);
@@ -105,8 +107,8 @@ public class WahCircuitTests(ITestOutputHelper output) {
         var (wdfFundamental, wdfThd) = Harmonics(wdf.AsSpan(Length - Window), frequency);
         var (analogFundamental, analogThd) = Harmonics(analog.AsSpan(Length - Window), frequency);
         output.WriteLine(
-            $"{voicing.Name} toe {toe} {amplitude} V: WDF {wdfFundamental:0.000} V THD {100 * wdfThd:0.00} %, " +
-            $"reference {analogFundamental:0.000} V THD {100 * analogThd:0.00} % (fallbacks {circuit.Fallbacks})"
+            $"{voicing.Name} toe {toe} {amplitude} V: WDF {wdfFundamental:0.000} V THD {100 * wdfThd:0.00} %, "
+            + $"reference {analogFundamental:0.000} V THD {100 * analogThd:0.00} % (fallbacks {circuit.Fallbacks})"
         );
         Assert.Equal(0, simulator.NewtonFailures);
         Assert.InRange(Db(wdfFundamental / analogFundamental), -0.5, 0.5);
@@ -198,7 +200,10 @@ public class WahCircuitTests(ITestOutputHelper output) {
         return (peak, best, peak / (above - below));
     }
 
-    /// <summary>Bisects for the frequency between <paramref name="inside" /> and <paramref name="outside" /> where the magnitude falls to <paramref name="target" />.</summary>
+    /// <summary>
+    ///     Bisects for the frequency between <paramref name="inside" /> and <paramref name="outside" /> where the
+    ///     magnitude falls to <paramref name="target" />.
+    /// </summary>
     static double Crossing(Func<double, double> magnitude, double inside, double outside, double target) {
         for (var i = 0; i < 40; i++) {
             var middle = Math.Sqrt(inside * outside);

@@ -227,10 +227,11 @@ public sealed record DriveStage(StageKind Kind) {
     public double BaseToGround { get; init; }
 
     /// <summary>True when the stage's transfer curve is odd-symmetric.</summary>
-    public bool IsSymmetric => Kind switch {
-        StageKind.Rectifier or StageKind.Transistor or StageKind.FuzzPair => false,
-        _ => Diodes.IsSymmetric
-    };
+    public bool IsSymmetric =>
+        Kind switch {
+            StageKind.Rectifier or StageKind.Transistor or StageKind.FuzzPair => false,
+            _ => Diodes.IsSymmetric
+        };
 }
 
 /// <summary>
@@ -307,7 +308,8 @@ public static class DriveCircuits {
     public static IReadOnlyList<DriveCircuit> All { get; } = Catalogue();
 
     /// <summary>The Drive block's Diode Type choices: the circuit's own, then a model for every clipping diode.</summary>
-    public static IReadOnlyList<string> DiodeTypes { get; } = ["Stock", "Silicon", "Germanium", "Schottky", "LED", "MOSFET"];
+    public static IReadOnlyList<string> DiodeTypes { get; } =
+        ["Stock", "Silicon", "Germanium", "Schottky", "LED", "MOSFET"];
 
     /// <summary>The Drive block's Diode Count choices: the circuit's own, then 1 to 4 in series on each side.</summary>
     public static IReadOnlyList<string> DiodeCounts { get; } = ["Stock", "1", "2", "3", "4"];
@@ -332,7 +334,8 @@ public static class DriveCircuits {
     /// </summary>
     public static DriveCircuit Variant(int index, int type, int count) {
         var variants = DiodeVariants[index];
-        var at = Math.Clamp(type, 0, DiodeTypes.Count - 1) * DiodeCounts.Count + Math.Clamp(count, 0, DiodeCounts.Count - 1);
+        var at = Math.Clamp(type, 0, DiodeTypes.Count - 1) * DiodeCounts.Count
+            + Math.Clamp(count, 0, DiodeCounts.Count - 1);
         return variants[at];
     }
 
@@ -351,7 +354,12 @@ public static class DriveCircuits {
                 }
 
                 variants[at] = circuit with {
-                    Stages = [..circuit.Stages.Select(s => HasDiodes(s) ? s with { Diodes = Override(s.Diodes, type, count) } : s)]
+                    Stages = [
+                        ..circuit.Stages.Select(s => HasDiodes(s)
+                                ? s with { Diodes = Override(s.Diodes, type, count) }
+                                : s
+                        )
+                    ]
                 };
             }
         }
@@ -395,22 +403,22 @@ public static class DriveCircuits {
 
     static DriveCircuit[] Catalogue() {
         DriveCircuit[] all = [
-            new("TS808 OD", "Ibanez TS808: JRC4558 with silicon diodes across its feedback, 720 Hz bass cut, active tone stage") {
-                Stages = [ScreamerStage(DiodeStacks.Pair(Si))],
-                Tone = ScreamerTone,
-                OutputDb = -2.8
-            },
+            new(
+                "TS808 OD",
+                "Ibanez TS808: JRC4558 with silicon diodes across its feedback, 720 Hz bass cut, active tone stage"
+            ) { Stages = [ScreamerStage(DiodeStacks.Pair(Si))], Tone = ScreamerTone, OutputDb = -2.8 },
             new("TS9 OD", "Ibanez TS9: the TS808 circuit with the TS9's output section") {
                 Stages = [ScreamerStage(DiodeStacks.Pair(Si))],
                 Tone = ScreamerTone with { Load = 100e3 },
                 OutputDb = -2.8
             },
             new("TS Mod OD", "Modded TS: 1 + 2 asymmetric diodes, more bass into the clipper, more gain") {
-                Stages = [ScreamerStage(new(Si, 1, Si, 2), 100e-9, 1e6)],
-                Tone = ScreamerTone,
-                OutputDb = -6.6
+                Stages = [ScreamerStage(new(Si, 1, Si, 2), 100e-9, 1e6)], Tone = ScreamerTone, OutputDb = -6.6
             },
-            new("Super OD", "Boss SD-1: asymmetric 1 + 2 silicon diodes across the op-amp's feedback, TS-type tone stage") {
+            new(
+                "Super OD",
+                "Boss SD-1: asymmetric 1 + 2 silicon diodes across the op-amp's feedback, TS-type tone stage"
+            ) {
                 Stages = [
                     new(StageKind.OpAmp) {
                         GroundResistance = 4.7e3,
@@ -439,7 +447,10 @@ public static class DriveCircuits {
                 Tone = TrebleTone with { Capacitor1 = 4.7e-9, Capacitor2 = 4.7e-9, Pot = 50e3, Resistor3 = 3.3e3 },
                 OutputDb = -10.9
             },
-            new("Chiron OD", "Klon Centaur: TL072 gain stage on 18 V, germanium diodes to ground, clean blend, active treble") {
+            new(
+                "Chiron OD",
+                "Klon Centaur: TL072 gain stage on 18 V, germanium diodes to ground, clean blend, active treble"
+            ) {
                 Stages = [
                     new(StageKind.OpAmp) {
                         Amplifier = OpAmpModel.TL072,
@@ -456,7 +467,10 @@ public static class DriveCircuits {
                 Tone = TrebleTone,
                 OutputDb = -2.4
             },
-            new("Transparent OD", "Paul Cochrane Timmy: TL072 with diodes across its feedback, bass cut ahead, passive treble cut") {
+            new(
+                "Transparent OD",
+                "Paul Cochrane Timmy: TL072 with diodes across its feedback, bass cut ahead, passive treble cut"
+            ) {
                 Stages = [
                     new(StageKind.OpAmp) {
                         Amplifier = OpAmpModel.TL072,
@@ -478,7 +492,10 @@ public static class DriveCircuits {
                 },
                 OutputDb = -4.7
             },
-            new("Blues OD", "Marshall Bluesbreaker: full-range op-amp stage with diodes across its feedback, passive treble cut") {
+            new(
+                "Blues OD",
+                "Marshall Bluesbreaker: full-range op-amp stage with diodes across its feedback, passive treble cut"
+            ) {
                 Stages = [
                     new(StageKind.OpAmp) {
                         Amplifier = OpAmpModel.TL072,
@@ -523,7 +540,10 @@ public static class DriveCircuits {
                 },
                 OutputDb = 1.5
             },
-            new("Obsessive OD", "Fulltone OCD: hot op-amp stage into its rails, then asymmetric germanium/silicon to ground") {
+            new(
+                "Obsessive OD",
+                "Fulltone OCD: hot op-amp stage into its rails, then asymmetric germanium/silicon to ground"
+            ) {
                 Stages = [
                     new(StageKind.OpAmp) {
                         GroundResistance = 3.3e3,
@@ -545,7 +565,9 @@ public static class DriveCircuits {
             },
             new("Rodent Dist", "ProCo RAT: slew-limited LM308 gain stage, silicon pair to ground, RC filter") {
                 Oversampling = 2,
-                Stages = [RatStage(), new(StageKind.Clipper) { Series = 1e3, Shunt = 1e-9, Diodes = DiodeStacks.Pair(Si) }],
+                Stages = [
+                    RatStage(), new(StageKind.Clipper) { Series = 1e3, Shunt = 1e-9, Diodes = DiodeStacks.Pair(Si) }
+                ],
                 Tone = RatFilter,
                 OutputDb = -8.4
             },
@@ -604,7 +626,10 @@ public static class DriveCircuits {
                 },
                 OutputDb = 0
             },
-            new("Pi Fuzz", "Electro-Harmonix Big Muff Pi: sustain stage, two diode-feedback clipping stages, mid-scoop tone stack") {
+            new(
+                "Pi Fuzz",
+                "Electro-Harmonix Big Muff Pi: sustain stage, two diode-feedback clipping stages, mid-scoop tone stack"
+            ) {
                 InputResistance = 100e3,
                 Stages = [
                     new(StageKind.Gain) {
@@ -662,7 +687,10 @@ public static class DriveCircuits {
                 Tone = FuzzTone,
                 OutputDb = -24
             },
-            new("Treble Booster", "Dallas Rangemaster: one germanium PNP, 5 nF input; Tone sweeps the input capacitor") {
+            new(
+                "Treble Booster",
+                "Dallas Rangemaster: one germanium PNP, 5 nF input; Tone sweeps the input capacitor"
+            ) {
                 Oversampling = 2,
                 MinGainDb = 0,
                 MaxGainDb = 20,
@@ -685,15 +713,16 @@ public static class DriveCircuits {
                 Tone = new(ToneKind.Range) { Capacitor1 = 100e-9, Capacitor2 = 5e-9 },
                 OutputDb = -24
             },
-            new("FET Boost", "JFET clean boost: wide band, soft asymmetric compression when pushed, passive treble cut") {
+            new(
+                "FET Boost",
+                "JFET clean boost: wide band, soft asymmetric compression when pushed, passive treble cut"
+            ) {
                 MinGainDb = 0,
                 MaxGainDb = 20,
                 Bias = 0.3,
                 Stages = [
                     new(StageKind.Clipper) {
-                        Series = 100e3,
-                        Shunt = 47e-12,
-                        Diodes = new(DiodeModel.Mosfet, 1, DiodeModel.Mosfet, 3)
+                        Series = 100e3, Shunt = 47e-12, Diodes = new(DiodeModel.Mosfet, 1, DiodeModel.Mosfet, 3)
                     }
                 ],
                 Tone = new(ToneKind.HighCut) {
@@ -705,7 +734,10 @@ public static class DriveCircuits {
                 },
                 OutputDb = -9
             },
-            new("Octave Fuzz", "Tycobrahe Octavia: diode-feedback fuzz stage into a soft full-wave rectifier (octave up)") {
+            new(
+                "Octave Fuzz",
+                "Tycobrahe Octavia: diode-feedback fuzz stage into a soft full-wave rectifier (octave up)"
+            ) {
                 MaxGainDb = 12,
                 Stages = [
                     new(StageKind.Gain) {
@@ -720,7 +752,10 @@ public static class DriveCircuits {
                 Tone = FuzzTone,
                 OutputDb = 2
             },
-            new("Shred Distortion", "Modern high-gain pedal: tight pre-cut, two diode-feedback gain stages, active treble") {
+            new(
+                "Shred Distortion",
+                "Modern high-gain pedal: tight pre-cut, two diode-feedback gain stages, active treble"
+            ) {
                 InputHighPassHz = 150,
                 Stages = [
                     new(StageKind.Gain) {
@@ -782,46 +817,50 @@ public static class DriveCircuits {
     }
 
     /// <summary>The TS808 tone stage: 1k into 220 nF, 20k Tone pot, 220 Ω + 220 nF from its wiper, 1k feedback.</summary>
-    static ToneNetwork ScreamerTone => new(ToneKind.Screamer) {
-        Source = 75,
-        Resistor1 = 1e3,
-        Capacitor1 = 220e-9,
-        Pot = 20e3,
-        Resistor2 = 220,
-        Capacitor2 = 220e-9,
-        Resistor3 = 1e3,
-        Load = 10e3
-    };
+    static ToneNetwork ScreamerTone =>
+        new(ToneKind.Screamer) {
+            Source = 75,
+            Resistor1 = 1e3,
+            Capacitor1 = 220e-9,
+            Pot = 20e3,
+            Resistor2 = 220,
+            Capacitor2 = 220e-9,
+            Resistor3 = 1e3,
+            Load = 10e3
+        };
 
     /// <summary>A Baxandall treble control (Klon-style): 10k in and out, 10 nF to a 10k pot, 1.8k from its wiper.</summary>
-    static ToneNetwork TrebleTone => new(ToneKind.Treble) {
-        Source = 100,
-        Resistor1 = 10e3,
-        Resistor2 = 10e3,
-        Capacitor1 = 10e-9,
-        Capacitor2 = 10e-9,
-        Pot = 10e3,
-        Resistor3 = 1.8e3,
-        Load = 100e3
-    };
+    static ToneNetwork TrebleTone =>
+        new(ToneKind.Treble) {
+            Source = 100,
+            Resistor1 = 10e3,
+            Resistor2 = 10e3,
+            Capacitor1 = 10e-9,
+            Capacitor2 = 10e-9,
+            Pot = 10e3,
+            Resistor3 = 1.8e3,
+            Load = 100e3
+        };
 
     /// <summary>The RAT's filter: 1.5k and the 100k Filter pot into 3.3 nF (Tone 10 is the Filter knob fully down).</summary>
-    static ToneNetwork RatFilter => new(ToneKind.HighCut) {
-        Source = 1e3,
-        Resistor1 = 1.5e3,
-        Pot = 100e3,
-        AudioTaper = true,
-        Capacitor1 = 3.3e-9
-    };
+    static ToneNetwork RatFilter =>
+        new(ToneKind.HighCut) {
+            Source = 1e3,
+            Resistor1 = 1.5e3,
+            Pot = 100e3,
+            AudioTaper = true,
+            Capacitor1 = 3.3e-9
+        };
 
     /// <summary>A passive treble cut after a fuzz with no tone control of its own (the common tone mod).</summary>
-    static ToneNetwork FuzzTone => new(ToneKind.HighCut) {
-        Source = 1e3,
-        Resistor1 = 1e3,
-        Pot = 100e3,
-        AudioTaper = true,
-        Capacitor1 = 1e-9
-    };
+    static ToneNetwork FuzzTone =>
+        new(ToneKind.HighCut) {
+            Source = 1e3,
+            Resistor1 = 1e3,
+            Pot = 100e3,
+            AudioTaper = true,
+            Capacitor1 = 1e-9
+        };
 
     /// <summary>
     ///     The TS clipping amp: JRC4558 on 9 V, 510k input bias, 4.7k + 47n to ground (720 Hz), 51k + Drive in feedback
@@ -933,8 +972,12 @@ struct CircuitStage {
                 // A finite gain-bandwidth product limits the closed-loop bandwidth to GBW / gain: model it as the
                 // smallest feedback capacitance that places the feedback pole there.
                 var rf = stage.Feedback + stage.FeedbackPot * DriveCircuits.AudioTaper(drive);
-                var ground = second ? Math.Min(stage.GroundResistance, stage.GroundResistance2) : stage.GroundResistance;
-                var cf = Math.Max(stage.FeedbackCapacitance, (1 + rf / ground) / (2 * Math.PI * stage.GainBandwidth * rf));
+                var ground =
+                    second ? Math.Min(stage.GroundResistance, stage.GroundResistance2) : stage.GroundResistance;
+                var cf = Math.Max(
+                    stage.FeedbackCapacitance,
+                    (1 + rf / ground) / (2 * Math.PI * stage.GainBandwidth * rf)
+                );
                 feedback.Tree.A.Value = rf;
                 feedback.Tree.B.Configure(cf, sampleRate);
                 feedback.Root.Configure(d.Forward, d.ForwardCount, d.Reverse, d.ReverseCount);
@@ -1186,7 +1229,8 @@ sealed class CircuitChannel {
     }
 
     /// <summary>
-    ///     <see cref="ProcessInner(CircuitChannel, CircuitChannel, Span{float}, Span{float}, float, float, in SvfCoefficients)" />
+    ///     <see
+    ///         cref="ProcessInner(CircuitChannel, CircuitChannel, Span{float}, Span{float}, float, float, in SvfCoefficients)" />
     ///     for one channel: the Circuit Amp's input boost, a mono pedal ahead of a mono amp.
     /// </summary>
     public void ProcessInner(Span<float> samples, float fromGain, float toGain, in SvfCoefficients dcBlock) {

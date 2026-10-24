@@ -13,18 +13,24 @@ namespace Cathode.Dsp.Amp.Models;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Source: the Fender drawing 041253 (thetubestore.com/lib/thetubestore/schematics/Fender/Fender-Vibro-King-Schematic.pdf),
+///         Source: the Fender drawing 041253
+///         (thetubestore.com/lib/thetubestore/schematics/Fender/Fender-Vibro-King-Schematic.pdf),
 ///         revision F (EC1907, 17 May 1997), with revision A (1993) agreeing on the stack, V4B, the inverter and the power
 ///         stage: every value above, the supply (465 V on 2 × 220 µF in series, a choke to 464 V for the screens, 1.2k and
 ///         10k to 392 V for the preamp and the inverter), the screens' 470 Ω, 1.5k grid stoppers, 220k grid leaks,
-///         0.047 µF coupling caps, the −46 V bias, the tail returning to ground (no feedback, no presence). Revision A's Fat
+///         0.047 µF coupling caps, the −46 V bias, the tail returning to ground (no feedback, no presence). Revision A's
+///         Fat
 ///         switch has 100k where revision F has 22k (both leave the cathode effectively unbypassed with Fat off).
 ///     </para>
 ///     <para>
-///         With the Mix control at its dry end the follower drives V4A directly; the reverb's wet network on the pot's other
-///         end and the vibrato's LDR (about 5M with the intensity at 0) on the stack's 100k are left out. Unverified: the pot
-///         tapers (not on the drawing: volume, treble and bass audio, mid linear, as on the AB763s), the output transformer
-///         (Fender 036485; Hammond's replacement 1750KA lists 4.15k : 2 Ω), the 6L6 idle current (35 mA), the supply's source
+///         With the Mix control at its dry end the follower drives V4A directly; the reverb's wet network on the pot's
+///         other
+///         end and the vibrato's LDR (about 5M with the intensity at 0) on the stack's 100k are left out. Unverified: the
+///         pot
+///         tapers (not on the drawing: volume, treble and bass audio, mid linear, as on the AB763s), the output
+///         transformer
+///         (Fender 036485; Hammond's replacement 1750KA lists 4.15k : 2 Ω), the 6L6 idle current (35 mA), the supply's
+///         source
 ///         resistance; the 3 × 10 is the 4 × 10 preset.
 ///     </para>
 /// </remarks>
@@ -41,24 +47,24 @@ public static class VibroKing {
         new(
             "2 x 6L6GC",
             PentodeModel.SixL6GC,
-            TubesPerSide: 1,
-            Supply: 465,
-            ScreenResistor: 470,
-            IdleCurrent: 0.035,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 60,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, Preamp, 91e3, 100e3, 39e3, 820),
-            CouplingCap: 47e-9,
-            GridLeak: 220e3,
-            GridStopper: 1.5e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(1, 820, 100, new(1e3, PotTaper.Linear), 1e-12),
-            HasFeedback: false,
-            Transformer: new(4.15e3),
-            Speaker: SpeakerDesign.OpenBack4x10,
-            PowerSupply: new(40, 110e-6, 100, 47e-6, 11.2e3, 47e-6, 6.4e-3, RectifierModel.Silicon),
+            1,
+            465,
+            470,
+            0.035,
+            false,
+            0,
+            60,
+            new LongTailPairDesign(TriodeModel.Ecc83, Preamp, 91e3, 100e3, 39e3, 820),
+            47e-9,
+            220e3,
+            1.5e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(1, 820, 100, new(1e3, PotTaper.Linear), 1e-12),
+            false,
+            new(4.15e3),
+            SpeakerDesign.OpenBack4x10,
+            new(40, 110e-6, 100, 47e-6, 11.2e3, 47e-6, 6.4e-3, RectifierModel.Silicon),
             InverterInput: new(10e-9, 1e6)
         ),
         -6

@@ -7,7 +7,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     Fender stack with its fixed 6.8k mid and the 1M volume, V1B, the 3.3M ‖ 10 pF reverb mix resistor into V3B's 470k
 ///     grid leak (an 88 % loss the third stage makes up), V3B (100k, 1.5k ‖ 25 µF over the 47 Ω the feedback returns to),
 ///     0.1 µF into a cathodyne phase inverter on half a 12AX7 (56k plate, 56k cathode, 1k bias), two 6V6GT in fixed bias
-///     with no grid stoppers or screen resistors, on a 5U4GB and a 20 µF can with no choke, 2.7k feedback from the speaker.
+///     with no grid stoppers or screen resistors, on a 5U4GB and a 20 µF can with no choke, 2.7k feedback from the
+///     speaker.
 ///     No bright, middle, master or presence; reverb and the bias tremolo are not modelled. Sources: Rob Robinette,
 ///     "AA1164 Princeton Reverb" (robrobinette.com): three fully bypassed stages, the cathodyne's 56k/56k/1k, 0.1 µF in,
 ///     the 3.3M/470k divider, 2.7k feedback, the 20/20/20/20 µF can; music-electronics-forum (2.7k into 47 Ω under the
@@ -49,14 +50,14 @@ public static class PrincetonReverb {
                 "V1A",
                 TriodeModel.Ecc83,
                 StackDriver.CommonCathode,
-                Supply: 250,
-                CathodeResistor: 1.5e3,
-                Stack: Stack,
-                Load: new(1e6, PotTaper.Audio),
-                LoadRole: PotRole.Gain,
-                PlateResistor: 100e3,
-                CathodeBypass: 25e-6,
-                InputResistance: 34e3
+                250,
+                1.5e3,
+                Stack,
+                new(1e6, PotTaper.Audio),
+                PotRole.Gain,
+                100e3,
+                25e-6,
+                34e3
             ),
             SecondStage(),
             Mixer()
@@ -64,24 +65,24 @@ public static class PrincetonReverb {
         new(
             "2 x 6V6GT",
             PentodeModel.SixV6GT,
-            TubesPerSide: 1,
-            Supply: 410,
-            ScreenResistor: 1,
-            IdleCurrent: 0.022,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 15,
-            PhaseInverter: new CathodyneDesign(TriodeModel.Ecc83, 320, 56e3, 56e3, 1e3),
-            CouplingCap: 0.1e-6,
-            GridLeak: 220e3,
-            GridStopper: 1,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(MixerGain, 2.7e3, 47, new(1e3, PotTaper.Linear), 1e-12),
-            HasFeedback: true,
-            Transformer: new(6.6e3),
-            Speaker: SpeakerDesign.OpenBack1x12,
-            PowerSupply: new(150, 20e-6, 1e3, 20e-6, 10e3, 20e-6, 5e-3, RectifierModel.FiveU4)
+            1,
+            410,
+            1,
+            0.022,
+            false,
+            0,
+            15,
+            new CathodyneDesign(TriodeModel.Ecc83, 320, 56e3, 56e3, 1e3),
+            0.1e-6,
+            220e3,
+            1,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(MixerGain, 2.7e3, 47, new(1e3, PotTaper.Linear), 1e-12),
+            true,
+            new(6.6e3),
+            SpeakerDesign.OpenBack1x12,
+            new(150, 20e-6, 1e3, 20e-6, 10e3, 20e-6, 5e-3, RectifierModel.FiveU4)
         ),
         -9
     ) {

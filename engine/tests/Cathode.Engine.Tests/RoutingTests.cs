@@ -100,7 +100,10 @@ public class RoutingTests {
 
         var error = Assert.Throws<GraphValidationException>(() => Compiler.Compile(definition, Spec));
 
-        Assert.Contains(error.Errors, static e => e.Contains("at most one Feedback Send per pair", StringComparison.Ordinal));
+        Assert.Contains(
+            error.Errors,
+            static e => e.Contains("at most one Feedback Send per pair", StringComparison.Ordinal)
+        );
     }
 
     [Fact]
@@ -204,7 +207,13 @@ public class RoutingTests {
             ("return", "out")
         );
 
-    static NodeDefinition Node(string id, string type, int row, int column, params (string Id, float Value)[] parameters) {
+    static NodeDefinition Node(
+        string id,
+        string type,
+        int row,
+        int column,
+        params (string Id, float Value)[] parameters
+    ) {
         var node = new NodeDefinition { Id = id, Type = type, Row = row, Column = column };
         foreach (var (paramId, value) in parameters) {
             node.Parameters[paramId] = value;

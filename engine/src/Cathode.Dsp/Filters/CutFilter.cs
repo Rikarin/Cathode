@@ -27,7 +27,6 @@ public readonly record struct CutFilter(
         var f0 = Math.Clamp(frequency, 1.0, sampleRate * 0.49);
         var g = Math.Tan(Math.PI * f0 / sampleRate);
         var onePole = g / (1 + g);
-        SvfCoefficients Section(double q) => SvfCoefficients.Design(type, sampleRate, f0, q);
         return slope switch {
             0 => new(default, default, default, onePole, 0, true, highPass),
             2 => new(Section(1.0), default, default, onePole, 1, true, highPass),
@@ -36,6 +35,7 @@ public readonly record struct CutFilter(
             5 => new(Section(0.5176), Section(0.7071), Section(1.9319), onePole, 3, false, highPass),
             _ => new(Section(0.7071), default, default, onePole, 1, false, highPass)
         };
+        SvfCoefficients Section(double q) => SvfCoefficients.Design(type, sampleRate, f0, q);
     }
 }
 

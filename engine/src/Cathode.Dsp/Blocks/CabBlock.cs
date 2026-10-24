@@ -138,6 +138,7 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
 
     /// <summary>The preamp tone controls' bands: a bass shelf, a broad mid peak and a treble shelf.</summary>
     const float PreampBassHz = 120f;
+
     const float PreampMidHz = 800f;
     const float PreampTrebleHz = 4_000f;
 
@@ -182,7 +183,10 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     bool passThrough;
     bool disposed;
 
-    /// <summary>A slot's Source choices, in order (<see cref="SourceIr" />, <see cref="SourceDynaCab" />, <see cref="SourcePack" />).</summary>
+    /// <summary>
+    ///     A slot's Source choices, in order (<see cref="SourceIr" />, <see cref="SourceDynaCab" />,
+    ///     <see cref="SourcePack" />).
+    /// </summary>
     public static IReadOnlyList<string> Sources { get; } = ["IR", "DynaCab", "IR Pack"];
 
     /// <summary>Input choices, in order (<see cref="InputLeft" /> … <see cref="InputStereo" />).</summary>
@@ -331,7 +335,9 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             var taps = synthesizer.Taps;
             slotIrs = new(Slots * taps);
             slotScratch = new(Math.Max(MaxIrLength, taps));
-            var length = Math.Max(MaxIrLength, taps) + (int)Math.Ceiling(MaxShiftSeconds() * spec.SampleRate) + 2 * SincHalf;
+            var length = Math.Max(MaxIrLength, taps)
+                + (int)Math.Ceiling(MaxShiftSeconds() * spec.SampleRate)
+                + 2 * SincHalf;
             smoother = new(length);
             mixLeft = new(length);
             mixRight = new(length);
@@ -479,17 +485,43 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         var id = $"m{n}";
         return [
             ParamDescriptor.Choice(id + "source", name + "Source", Sources, SourceDynaCab),
-            ParamDescriptor.Choice(id + "cab", name + "Cab", [..CabCatalogue.Enclosures.Select(static e => e.Name)], cab),
-            ParamDescriptor.Choice(id + "speaker", name + "Speaker", [..CabCatalogue.Speakers.Select(static s => s.Name)], speaker),
+            ParamDescriptor.Choice(
+                id + "cab",
+                name + "Cab",
+                [..CabCatalogue.Enclosures.Select(static e => e.Name)],
+                cab
+            ),
+            ParamDescriptor.Choice(
+                id + "speaker",
+                name + "Speaker",
+                [..CabCatalogue.Speakers.Select(static s => s.Name)],
+                speaker
+            ),
             ParamDescriptor.Choice(id + "mic", name + "Mic", [..CabCatalogue.Mics.Select(static m => m.Name)], mic),
             ParamDescriptor.Float(id + "position", name + "Position", 0f, 100f, position, "%"),
             ParamDescriptor.Float(id + "distance", name + "Distance", 0f, MaxDistance, distance, "in"),
             ParamDescriptor.Float(id + "angle", name + "Angle", 0f, 60f, 0f, "°"),
             ParamDescriptor.Float(id + "lowcut", name + "Low Cut", LowCutOff, 500f, LowCutOff, "Hz", ParamTaper.Log),
             ParamDescriptor.Choice(id + "lowslope", name + "Low Cut Slope", CutFilter.Slopes, CutFilter.Slope12),
-            ParamDescriptor.Float(id + "highcut", name + "High Cut", 1_000f, HighCutOff, HighCutOff, "Hz", ParamTaper.Log),
+            ParamDescriptor.Float(
+                id + "highcut",
+                name + "High Cut",
+                1_000f,
+                HighCutOff,
+                HighCutOff,
+                "Hz",
+                ParamTaper.Log
+            ),
             ParamDescriptor.Choice(id + "highslope", name + "High Cut Slope", CutFilter.Slopes, CutFilter.Slope12),
-            ParamDescriptor.Float(id + "length", name + "IR Length", 5f, FullLengthMs, FullLengthMs, "ms", ParamTaper.Log),
+            ParamDescriptor.Float(
+                id + "length",
+                name + "IR Length",
+                5f,
+                FullLengthMs,
+                FullLengthMs,
+                "ms",
+                ParamTaper.Log
+            ),
             ParamDescriptor.Float(id + "level", name + "Level", Decibels.SilenceDb, 12f, 0f, "dB"),
             ParamDescriptor.Float(id + "pan", name + "Pan", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float(id + "delay", name + "Delay", 0f, MaxDelayMs, 0f, "ms"),
@@ -517,11 +549,15 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     }
 
     /// <summary>The most a slot's IR can be shifted: its delay plus the longest auto delay (12 in plus recess).</summary>
-    static double MaxShiftSeconds() => MaxDelayMs / 1_000.0 + (MaxDistance * MetresPerInch + 0.1) / CabAcoustics.SpeedOfSound;
+    static double MaxShiftSeconds() =>
+        MaxDelayMs / 1_000.0 + (MaxDistance * MetresPerInch + 0.1) / CabAcoustics.SpeedOfSound;
 
     static float Sinc(double x) => x == 0 ? 1f : (float)(Math.Sin(Math.PI * x) / (Math.PI * x));
 
-    /// <summary>Adds <paramref name="ir" /> × <paramref name="gain" /> into <paramref name="mix" />, <paramref name="shift" /> samples late.</summary>
+    /// <summary>
+    ///     Adds <paramref name="ir" /> × <paramref name="gain" /> into <paramref name="mix" />, <paramref name="shift" />
+    ///     samples late.
+    /// </summary>
     static void AddShifted(ReadOnlySpan<float> ir, Span<float> mix, double shift, float gain) {
         var whole = (int)Math.Floor(shift);
         var fraction = shift - whole;
@@ -607,6 +643,7 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         for (var i = Proximity; i < AutoDelay; i++) {
             globalsChanged |= targets[i] != built[i];
         }
+
         for (var s = 0; s < Slots; s++) {
             var source = SourceOf(s);
             var changed = stale[s] || globalsChanged;
@@ -633,7 +670,10 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         var length = UsedLength(mixLeft.Span, mixRight.Span);
         var octaves = targets[Smoothing] / 100.0 * FullSmoothing;
         if (octaves > 0) {
-            length = Math.Max(smoother!.Smooth(mixLeft.Span, length, octaves), smoother.Smooth(mixRight.Span, length, octaves));
+            length = Math.Max(
+                smoother!.Smooth(mixLeft.Span, length, octaves),
+                smoother.Smooth(mixRight.Span, length, octaves)
+            );
         }
 
         return new(mixLeft.Span[..length], mixRight.Span[..length]);
@@ -745,7 +785,9 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         var lowCut = SlotTarget(slot, SlotLowCut);
         var highCut = SlotTarget(slot, SlotHighCut);
         var lengthMs = SlotTarget(slot, Length);
-        var length = lengthMs >= FullLengthMs ? ir.Length : Math.Min(ir.Length, (int)(lengthMs / 1_000.0 * Spec.SampleRate));
+        var length = lengthMs >= FullLengthMs
+            ? ir.Length
+            : Math.Min(ir.Length, (int)(lengthMs / 1_000.0 * Spec.SampleRate));
         if (lowCut <= LowCutOff && highCut >= HighCutOff && length == ir.Length) {
             return ir;
         }
@@ -759,7 +801,10 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
 
         if (highCut < HighCutOff) {
             var state = new CutState();
-            state.Process(CutFilter.Design(false, Spec.SampleRate, highCut, (int)SlotTarget(slot, SlotHighSlope)), shaped);
+            state.Process(
+                CutFilter.Design(false, Spec.SampleRate, highCut, (int)SlotTarget(slot, SlotHighSlope)),
+                shaped
+            );
         }
 
         if (length < ir.Length) {

@@ -82,7 +82,12 @@ public struct Bjt(BjtModel model) : INonlinearDevice {
     public readonly double Conductance(int port) => 1e-4;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void Evaluate(ReadOnlySpan<double> voltages, Span<double> currents, Span<double> jacobian, int stride) {
+    public readonly void Evaluate(
+        ReadOnlySpan<double> voltages,
+        Span<double> currents,
+        Span<double> jacobian,
+        int stride
+    ) {
         // In NPN orientation: a PNP's currents are the negated NPN currents at negated voltages, its Jacobian unchanged.
         var ef = DeviceMath.LimitedExp(sign * voltages[0] / vt, out var df);
         var er = DeviceMath.LimitedExp(sign * voltages[1] / vt, out var dr);

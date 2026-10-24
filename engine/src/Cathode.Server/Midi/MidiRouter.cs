@@ -98,7 +98,7 @@ public sealed partial class MidiRouter : IDisposable {
         var settings = globals.Get();
         foreach (var message in messages) {
             hub.Publish(
-                new MidiActivity("midi", message.Status, message.Data1, message.Data2),
+                new("midi", message.Status, message.Data1, message.Data2),
                 ContractsJsonContext.Default.MidiActivity
             );
             var channel = message.Status < 0xF0 ? (message.Status & 0x0F) + 1 : 0;
@@ -118,7 +118,8 @@ public sealed partial class MidiRouter : IDisposable {
             var down = kind == "pc" || message.Data2 >= 64 && (message.Status & 0xF0) != 0x80;
             var layout = settings.Footswitches.FirstOrDefault(l => l.Id == settings.ActiveLayout);
             foreach (var footswitch in layout?.Switches ?? []) {
-                if (footswitch.Message == kind && footswitch.Number == message.Data1
+                if (footswitch.Message == kind
+                    && footswitch.Number == message.Data1
                     && (footswitch.Channel == 0 || footswitch.Channel == channel)) {
                     Footswitch(footswitch, down, message.SampleTime);
                 }
@@ -132,7 +133,13 @@ public sealed partial class MidiRouter : IDisposable {
                     && (kind == "pc" && mapping.Action == "presetSlot" || mapping.Number == message.Data1);
                 if (matches) {
                     var data = kind == "pc" ? message.Data1 : message.Data2;
-                    Run(new(mapping.Action, mapping.Target, mapping.Value), data, kind == "cc", down, message.SampleTime);
+                    Run(
+                        new(mapping.Action, mapping.Target, mapping.Value),
+                        data,
+                        kind == "cc",
+                        down,
+                        message.SampleTime
+                    );
                 }
             }
         }
@@ -174,8 +181,10 @@ public sealed partial class MidiRouter : IDisposable {
                 g.MidiMappings.Add(mapping);
             }
         );
-        hub.Publish(new MidiActivity("midiLearned", message.Status, message.Data1, message.Data2),
-            ContractsJsonContext.Default.MidiActivity);
+        hub.Publish(
+            new("midiLearned", message.Status, message.Data1, message.Data2),
+            ContractsJsonContext.Default.MidiActivity
+        );
         return true;
     }
 

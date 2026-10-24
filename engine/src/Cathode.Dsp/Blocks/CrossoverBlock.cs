@@ -112,9 +112,13 @@ public sealed class CrossoverBlock() : DspBlock(Info) {
                 } else {
                     left.Tick(c, l[i], out var lowLeft, out var highLeft);
                     right.Tick(c, r[i], out var lowRight, out var highRight);
-                    l[i] = (float)(g.LowLToLeft * lowLeft + g.LowRToLeft * lowRight + g.HighLToLeft * highLeft
+                    l[i] = (float)(g.LowLToLeft * lowLeft
+                        + g.LowRToLeft * lowRight
+                        + g.HighLToLeft * highLeft
                         + g.HighRToLeft * highRight);
-                    r[i] = (float)(g.LowLToRight * lowLeft + g.LowRToRight * lowRight + g.HighLToRight * highLeft
+                    r[i] = (float)(g.LowLToRight * lowLeft
+                        + g.LowRToRight * lowRight
+                        + g.HighLToRight * highLeft
                         + g.HighRToRight * highRight);
                 }
             }
@@ -137,15 +141,16 @@ public sealed class CrossoverBlock() : DspBlock(Info) {
         float HighRToLeft,
         float HighRToRight
     ) {
-        public static Gains Lerp(in Gains a, in Gains b, float t) => new(
-            a.LowLToLeft + (b.LowLToLeft - a.LowLToLeft) * t,
-            a.LowLToRight + (b.LowLToRight - a.LowLToRight) * t,
-            a.LowRToLeft + (b.LowRToLeft - a.LowRToLeft) * t,
-            a.LowRToRight + (b.LowRToRight - a.LowRToRight) * t,
-            a.HighLToLeft + (b.HighLToLeft - a.HighLToLeft) * t,
-            a.HighLToRight + (b.HighLToRight - a.HighLToRight) * t,
-            a.HighRToLeft + (b.HighRToLeft - a.HighRToLeft) * t,
-            a.HighRToRight + (b.HighRToRight - a.HighRToRight) * t
-        );
+        public static Gains Lerp(in Gains a, in Gains b, float t) =>
+            new(
+                a.LowLToLeft + (b.LowLToLeft - a.LowLToLeft) * t,
+                a.LowLToRight + (b.LowLToRight - a.LowLToRight) * t,
+                a.LowRToLeft + (b.LowRToLeft - a.LowRToLeft) * t,
+                a.LowRToRight + (b.LowRToRight - a.LowRToRight) * t,
+                a.HighLToLeft + (b.HighLToLeft - a.HighLToLeft) * t,
+                a.HighLToRight + (b.HighLToRight - a.HighLToRight) * t,
+                a.HighRToLeft + (b.HighRToLeft - a.HighRToLeft) * t,
+                a.HighRToRight + (b.HighRToRight - a.HighRToRight) * t
+            );
     }
 }

@@ -53,7 +53,10 @@ public class VibeBlockTests {
         var levels = Enumerable.Range(1, 18)
             .Select(k => Analysis.ToDb(Analysis.Rms(swept.AsSpan(k * 4_800, 960))))
             .ToArray();
-        Assert.True(levels.Max() - levels.Min() > 6, $"sweep moves the level only {levels.Max() - levels.Min():0.0} dB");
+        Assert.True(
+            levels.Max() - levels.Min() > 6,
+            $"sweep moves the level only {levels.Max() - levels.Min():0.0} dB"
+        );
 
         // Vibrato: an allpass never changes a steady tone's level much, but it smears the line into sidebands.
         var spectrum = Fft.Magnitudes(wobbled.AsSpan(24_000, 65_536));

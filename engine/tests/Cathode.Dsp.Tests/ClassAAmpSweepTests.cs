@@ -14,14 +14,15 @@ public class ClassAAmpSweepTests(ITestOutputHelper output) {
     const double Rate = 48_000;
     const float Quiet = 0.003f; // well below clipping at any gain, so levels compare as small-signal gains
 
-    public static TheoryData<string, bool> Channels => new() {
-        { "AC30", false },
-        { "AC30", true },
-        { "AC15", false },
-        { "AC15", true },
-        { "DC-30", false },
-        { "DC-30", true }
-    };
+    public static TheoryData<string, bool> Channels =>
+        new() {
+            { "AC30", false },
+            { "AC30", true },
+            { "AC15", false },
+            { "AC15", true },
+            { "DC-30", false },
+            { "DC-30", true }
+        };
 
     [Theory]
     [MemberData(nameof(Channels))]
@@ -43,7 +44,10 @@ public class ClassAAmpSweepTests(ITestOutputHelper output) {
         var treble = trebleHigh.Zip(trebleMid, static (h, m) => h - m).ToArray();
         var bass = bassLow.Zip(bassMid, static (l, m) => l - m).ToArray();
         // With the DC-30's middle at zero the treble pot's first turn moves the 400 Hz a little more than the 4 kHz.
-        Assert.True(Increasing(treble, 1), "4 kHz over 400 Hz: " + string.Join(", ", treble.Select(static l => $"{l:0.0}")));
+        Assert.True(
+            Increasing(treble, 1),
+            "4 kHz over 400 Hz: " + string.Join(", ", treble.Select(static l => $"{l:0.0}"))
+        );
         Assert.True(Increasing(bass), "80 Hz over 1 kHz: " + string.Join(", ", bass.Select(static l => $"{l:0.0}")));
         Assert.True(treble[^1] - treble[0] > 6 && bass[^1] - bass[0] > 6);
     }
@@ -88,7 +92,13 @@ public class ClassAAmpSweepTests(ITestOutputHelper output) {
     [Theory]
     [MemberData(nameof(Channels))]
     public void Full_drive_stays_finite_and_bounded(string type, bool channel) {
-        using var block = Create(type, channel, (CircuitAmpBlock.Gain, 10f), (CircuitAmpBlock.Treble, 10f), (CircuitAmpBlock.Bass, 10f));
+        using var block = Create(
+            type,
+            channel,
+            (CircuitAmpBlock.Gain, 10f),
+            (CircuitAmpBlock.Treble, 10f),
+            (CircuitAmpBlock.Bass, 10f)
+        );
         var square = Signals.Sine(82, Rate, 24_000).Select(static s => s >= 0 ? 1f : -1f).ToArray();
         var rendered = BlockRender.Mono(block, Signals.Concat(square, Signals.Noise(24_000, 3)), 64);
         var peak = Analysis.ToDb(Analysis.Peak(rendered));
@@ -107,7 +117,8 @@ public class ClassAAmpSweepTests(ITestOutputHelper output) {
             new float[3_000]
         );
         var rendered = BlockRender.Mono(block, stimulus, 64);
-        var name = $"circuitamp-{type.ToLowerInvariant().Replace("-", "", StringComparison.Ordinal)}-ch{(channel ? 2 : 1)}.wav";
+        var name =
+            $"circuitamp-{type.ToLowerInvariant().Replace("-", string.Empty, StringComparison.Ordinal)}-ch{(channel ? 2 : 1)}.wav";
         var path = Path.Combine(GoldenFolder(), name);
         if (Environment.GetEnvironmentVariable("CATHODE_UPDATE_GOLDEN") == "1"
             || (!File.Exists(path) && Environment.GetEnvironmentVariable("CI") is null)) {
@@ -137,8 +148,8 @@ public class ClassAAmpSweepTests(ITestOutputHelper output) {
             )
             .ToArray();
         output.WriteLine(
-            $"{type} ch{(channel ? 2 : 1)} {CircuitAmpBlock.Info.Params[knob].Id} at {frequency} Hz: " +
-            string.Join(", ", values.Zip(levels, static (v, l) => $"{v}: {l:0.0}"))
+            $"{type} ch{(channel ? 2 : 1)} {CircuitAmpBlock.Info.Params[knob].Id} at {frequency} Hz: "
+            + string.Join(", ", values.Zip(levels, static (v, l) => $"{v}: {l:0.0}"))
         );
         return levels;
     }
@@ -165,7 +176,8 @@ public class ClassAAmpSweepTests(ITestOutputHelper output) {
         levels.Zip(levels.Skip(1), (a, b) => b >= a - slack).All(static x => x);
 
     // The cut's last step can lift 5 kHz by a few tenths: the shorted cut cap and the power stage's loading interact.
-    static bool Decreasing(double[] levels) => levels.Zip(levels.Skip(1), static (a, b) => b <= a + 0.3).All(static x => x);
+    static bool Decreasing(double[] levels) =>
+        levels.Zip(levels.Skip(1), static (a, b) => b <= a + 0.3).All(static x => x);
 
     static string GoldenFolder() {
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent) {

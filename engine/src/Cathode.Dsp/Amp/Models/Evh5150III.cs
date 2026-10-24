@@ -58,34 +58,27 @@ public static class Evh5150III {
         new(
             "4 x 6L6GC",
             PentodeModel.SixL6GC,
-            TubesPerSide: 2,
-            Supply: 485,
-            ScreenResistor: 100,
-            IdleCurrent: 0.035,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 100,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 402, 82e3, 100e3, 10e3, 470),
-            CouplingCap: 47e-9,
-            GridLeak: 220e3,
-            GridStopper: 1.5e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(1, 39e3, 4.7e3, new(10e3, PotTaper.Audio), 68e-9, 90),
-            HasFeedback: true,
-            Transformer: new(1.9e3),
-            Speaker: new(Inductance: 1.4e-3, EddyResistance: 22, Resonance: 95, PeakImpedance: 30, Q: 2.2),
-            PowerSupply: new(25, 100e-6, 100, 47e-6, 10e3, 22e-6, 6e-3)
+            2,
+            485,
+            100,
+            0.035,
+            false,
+            0,
+            100,
+            new LongTailPairDesign(TriodeModel.Ecc83, 402, 82e3, 100e3, 10e3, 470),
+            47e-9,
+            220e3,
+            1.5e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(1, 39e3, 4.7e3, new(10e3, PotTaper.Audio), 68e-9, 90),
+            true,
+            new(1.9e3),
+            new(Inductance: 1.4e-3, EddyResistance: 22, Resonance: 95, PeakImpedance: 30, Q: 2.2),
+            new(25, 100e-6, 100, 47e-6, 10e3, 22e-6, 6e-3)
         ),
         -7
-    ) {
-        Panel = AmpPanel.Standard with {
-            Master = "Volume",
-            Depth = "Resonance",
-            Cut = null,
-            Bright = null
-        }
-    };
+    ) { Panel = AmpPanel.Standard with { Master = "Volume", Depth = "Resonance", Cut = null, Bright = null } };
 
     /// <summary>
     ///     V1A: 39 pF and 1M at the jack, 68k stopper; 220k plate, 1.8k ‖ 1 µF; 68k + 830 pF from the plate to B+.

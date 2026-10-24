@@ -100,7 +100,9 @@ public sealed class CabIrSwitcher : IDisposable {
 
     /// <summary>Audio thread: convolves left with the left IR and right with the right IR, in place.</summary>
     public void Process(Span<float> left, Span<float> right) {
-        if (fading is null && Volatile.Read(ref retired) is null && Interlocked.Exchange(ref pending, null) is { } next) {
+        if (fading is null
+            && Volatile.Read(ref retired) is null
+            && Interlocked.Exchange(ref pending, null) is { } next) {
             next.Reset();
             fading = active;
             active = next;

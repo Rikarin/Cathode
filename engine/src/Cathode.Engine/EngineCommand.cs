@@ -13,10 +13,16 @@ public enum EngineCommandKind {
 /// <summary>
 ///     A discrete event for the audio thread. Commands carry the <see cref="Generation" /> of the graph they were
 ///     addressed to; the audio thread drops graph commands aimed at a graph that has since been replaced. Tap tempo and
-///     looper commands, and MIDI notes, belong to the rig and apply whatever graph is running. <see cref="Time" /> is a sample time
+///     looper commands, and MIDI notes, belong to the rig and apply whatever graph is running. <see cref="Time" /> is a
+///     sample time
 ///     (the engine's clock), for events that must be placed exactly, such as taps.
 /// </summary>
-public readonly record struct EngineCommand(EngineCommandKind Kind, int Generation, int Slot, float Value, long Time = 0) {
+public readonly record struct EngineCommand(
+    EngineCommandKind Kind,
+    int Generation,
+    int Slot,
+    float Value,
+    long Time = 0) {
     public static EngineCommand SetBypass(int generation, int slot, bool bypassed) =>
         new(EngineCommandKind.SetBypass, generation, slot, bypassed ? 1f : 0f);
 

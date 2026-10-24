@@ -81,7 +81,7 @@ public sealed class ServerFixture(string? socketPath = null, string? token = nul
             await Task.Delay(20);
         }
 
-        Assert.Fail($"Condition not met within {seconds} s.{(last is null ? "" : $" Last error: {last}")}");
+        Assert.Fail($"Condition not met within {seconds} s.{(last is null ? string.Empty : $" Last error: {last}")}");
     }
 
     public static Task Eventually(Func<bool> condition) => Eventually(() => Task.FromResult(condition()));

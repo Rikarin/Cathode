@@ -20,7 +20,10 @@ namespace Cathode.Dsp.Amp;
 /// <param name="Rail">Each rail's voltage at idle (the supply is symmetric).</param>
 /// <param name="RailResistance">The transformer and rectifier as one resistance per rail (the supply's sag).</param>
 /// <param name="Reservoir">Each rail's reservoir cap.</param>
-/// <param name="Headroom">How far below the rail the voltage amplifier's swing ends (its saturation and the output stage's V_be).</param>
+/// <param name="Headroom">
+///     How far below the rail the voltage amplifier's swing ends (its saturation and the output stage's
+///     V_be).
+/// </param>
 /// <param name="Junctions">Base-emitter junctions per side of the output stage (2 for Darlingtons).</param>
 /// <param name="EmitterResistor">Each output transistor's emitter resistor.</param>
 /// <param name="IdleCurrent">The output stage's quiescent current (class AB bias).</param>
@@ -61,7 +64,8 @@ public sealed record SolidStatePowerDesign(
 ///     <para>
 ///         The voltage amplifier is a one-pole integrator, y[n] = h y[n-1] + g (e[n] + e[n-1]) (trapezoidal), whose output
 ///         saturates smoothly between the rails less the headroom (the op-amp macro-model's limiter, unity within about
-///         80 % of the swing). Each side of the output stage is a junction stack (Ebers-Moll's base-emitter diode, Shockley
+///         80 % of the swing). Each side of the output stage is a junction stack (Ebers-Moll's base-emitter diode,
+///         Shockley
 ///         with series resistance: the emitter resistor) biased by the class-AB bias voltage, so the crossover region and
 ///         the stage's current into the load are physical; the feedback reduces their distortion by the loop gain, as in
 ///         the amp. The load is the nominal resistance: with the loop's gain the output impedance is a few milliohms, so

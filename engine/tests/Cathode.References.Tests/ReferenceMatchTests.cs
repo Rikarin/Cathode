@@ -17,7 +17,10 @@ public class ReferenceMatchTests(ITestOutputHelper output) {
     public void Circuit_amp_meets_its_target_against_the_reference(string id) {
         var entry = Manifest.Find(id);
         var cache = ReferenceCache.Default;
-        Assert.SkipWhen(cache.StateOf(entry) == ReferenceState.Missing, $"{id} is not in the reference cache ({cache.Root})");
+        Assert.SkipWhen(
+            cache.StateOf(entry) == ReferenceState.Missing,
+            $"{id} is not in the reference cache ({cache.Root})"
+        );
         Assert.SkipWhen(ReferenceModels.Unsupported(entry) is not null, $"{id}: {ReferenceModels.Unsupported(entry)}");
         var path = cache.TryLocate(entry);
         Assert.True(path is not null, $"{id} in the cache does not match its SHA-256");
@@ -30,6 +33,9 @@ public class ReferenceMatchTests(ITestOutputHelper output) {
             + $"ESR {report.Esr:0.000}, ESR pre-emphasised {report.EsrPreEmphasis:0.000}, MRSTFT {report.Mrstft:0.000}, "
             + $"harmonics {report.HarmonicDistanceDb:0.0} dB, response {report.ResponseRmsDb:0.0} dB"
         );
-        Assert.True(report.Pass, $"{id}: ESR {report.EsrPreEmphasis:0.000} (target {entry.Targets!.Esr}), MRSTFT {report.Mrstft:0.000} (target {entry.Targets.Mrstft})");
+        Assert.True(
+            report.Pass,
+            $"{id}: ESR {report.EsrPreEmphasis:0.000} (target {entry.Targets!.Esr}), MRSTFT {report.Mrstft:0.000} (target {entry.Targets.Mrstft})"
+        );
     }
 }

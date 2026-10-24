@@ -45,7 +45,9 @@ public sealed partial class LiveRig {
                 foreach (var m in modifiers) {
                     var block = preset.Blocks.FirstOrDefault(b => b.Id == m.Block);
                     var descriptor = block is null ? null : catalog.Descriptor(block.Type);
-                    var engage = m.Param == ModNames.EngageParam && block is not null && !BuiltInTypes.IsBuiltIn(block.Type);
+                    var engage = m.Param == ModNames.EngageParam
+                        && block is not null
+                        && !BuiltInTypes.IsBuiltIn(block.Type);
                     if (descriptor is null || (!engage && descriptor.IndexOf(m.Param) < 0)) {
                         errors.Add($"No parameter '{m.Param}' on block '{m.Block}'.");
                     } else if (!ModNames.TryParseSource(m.Source, out _)) {
@@ -117,28 +119,29 @@ public sealed partial class LiveRig {
         DateTime.UtcNow.Ticks > Volatile.Read(ref tapFollowUntil)
             ? Task.CompletedTask
             : Locked(() => {
-                var global = globals.Get();
-                var stored = global.TempoMode == "global" ? global.Tempo : preset.Tempo;
-                if (global.TempoMode == "midiClock" || Math.Abs(stored - bpm) < 0.05) {
-                    return Task.FromResult(State());
-                }
+                    var global = globals.Get();
+                    var stored = global.TempoMode == "global" ? global.Tempo : preset.Tempo;
+                    if (global.TempoMode == "midiClock" || Math.Abs(stored - bpm) < 0.05) {
+                        return Task.FromResult(State());
+                    }
 
-                var rounded = Math.Round(bpm, 1);
-                if (global.TempoMode == "global") {
-                    globals.Update(g => g.Tempo = rounded);
-                    return Task.FromResult(Changed("tempoChanged", markDirty: false));
-                }
+                    var rounded = Math.Round(bpm, 1);
+                    if (global.TempoMode == "global") {
+                        globals.Update(g => g.Tempo = rounded);
+                        return Task.FromResult(Changed("tempoChanged", markDirty: false));
+                    }
 
-                preset.Tempo = rounded;
-                return Task.FromResult(Changed("tempoChanged"));
-            }
-        );
+                    preset.Tempo = rounded;
+                    return Task.FromResult(Changed("tempoChanged"));
+                }
+            );
 
     public Task<LiveState> CopyChannelAsync(string id, CopyChannelRequest request, long? expected) =>
         Locked(async () => {
                 Check(expected);
                 var block = Find(id);
-                var descriptor = catalog.Descriptor(block.Type) ?? throw new RigException(400, $"'{id}' has no channels.");
+                var descriptor = catalog.Descriptor(block.Type)
+                    ?? throw new RigException(400, $"'{id}' has no channels.");
                 CheckChannel(request.From, descriptor.Channels);
                 CheckChannel(request.To, descriptor.Channels);
                 PushUndo(null);
@@ -167,7 +170,10 @@ public sealed partial class LiveRig {
                 var descriptor = catalog.Descriptor(block.Type)
                     ?? throw new RigException(400, $"'{id}' has no parameters.");
                 if (source.Type != block.Type) {
-                    throw new RigException(400, $"'{source.Name}' is a {source.Type} preset; '{id}' is a {block.Type}.");
+                    throw new RigException(
+                        400,
+                        $"'{source.Name}' is a {source.Type} preset; '{id}' is a {block.Type}."
+                    );
                 }
 
                 var state = preset.Scenes[activeScene].StateOf(id);
@@ -177,7 +183,10 @@ public sealed partial class LiveRig {
                 var before = block.Channels.GetValueOrDefault(target) ?? [];
                 var values = source.Values
                     .Where(v => descriptor.IndexOf(v.Key) >= 0)
-                    .ToDictionary(static v => v.Key, v => descriptor.Params[descriptor.IndexOf(v.Key)].Sanitize(v.Value));
+                    .ToDictionary(
+                        static v => v.Key,
+                        v => descriptor.Params[descriptor.IndexOf(v.Key)].Sanitize(v.Value)
+                    );
                 block.Channels[target] = values;
                 if (block.Global is { } link) {
                     globals.Update(g => {
@@ -216,7 +225,10 @@ public sealed partial class LiveRig {
                 var shared = new GlobalBlock {
                     Name = string.IsNullOrWhiteSpace(name) ? $"{preset.Name} {id}" : name.Trim(),
                     Type = block.Type,
-                    Channels = block.Channels.ToDictionary(static c => c.Key, static c => new Dictionary<string, float>(c.Value)),
+                    Channels = block.Channels.ToDictionary(
+                        static c => c.Key,
+                        static c => new Dictionary<string, float>(c.Value)
+                    ),
                     Assets = new(block.Assets)
                 };
                 globals.Update(g => g.Blocks.Add(shared));
@@ -235,7 +247,10 @@ public sealed partial class LiveRig {
                 await StructuralAsync(p => {
                         var target = p.Blocks.Single(b => b.Id == id);
                         target.Global = shared.Id;
-                        target.Channels = shared.Channels.ToDictionary(static c => c.Key, static c => new Dictionary<string, float>(c.Value));
+                        target.Channels = shared.Channels.ToDictionary(
+                            static c => c.Key,
+                            static c => new Dictionary<string, float>(c.Value)
+                        );
                         target.Assets = new(shared.Assets);
                     }
                 );

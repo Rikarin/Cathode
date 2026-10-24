@@ -23,7 +23,8 @@ namespace Cathode.Dsp.Blocks;
 ///     </list>
 ///     <b>Depth</b> (Modern, Stereoizer) is the allpasses' sharpness: higher depth turns the phase more abruptly, for
 ///     stronger, narrower alternations; 50 % is the original Modern voicing.
-///     Modern, Classic and Stereoizer add the derived side as <c>L + s</c>, <c>R - s</c>, so the mono sum L + R is untouched. The
+///     Modern, Classic and Stereoizer add the derived side as <c>L + s</c>, <c>R - s</c>, so the mono sum L + R is
+///     untouched. The
 ///     side is band-limited by <b>Low Cut</b> (keeping the bass centred) and <b>High Cut</b>. Then either side can be
 ///     phase-inverted and each panned, as a channel converter (merge to mono, swap or narrow).
 /// </summary>
@@ -55,7 +56,8 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
     static readonly double[] AllpassFrequencies = [220, 760, 2_300, 6_400];
 
     /// <summary>The Stereoizer's allpasses: third-octave steps from 100 Hz.</summary>
-    static readonly double[] StereoizerFrequencies = [..Enumerable.Range(0, StereoizerStages).Select(static i => 100 * Math.Pow(2, i / 3.0))];
+    static readonly double[] StereoizerFrequencies =
+        [..Enumerable.Range(0, StereoizerStages).Select(static i => 100 * Math.Pow(2, i / 3.0))];
 
     readonly SvfState[] allpasses = new SvfState[StereoizerStages];
     readonly SvfCoefficients[] allpassCoefficients = new SvfCoefficients[StereoizerStages];
@@ -82,12 +84,17 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
             ParamDescriptor.Choice("invert", "Invert", ChorusBlock.PhaseOptions),
             ParamDescriptor.Float("panLeft", "Pan Left", -100f, 100f, -100f, "%"),
             ParamDescriptor.Float("panRight", "Pan Right", -100f, 100f, 100f, "%"),
-            ParamDescriptor.Float("depth", "Depth", 0f, 100f, 50f, "%") with { TypeLabels = ["Depth", "", "", "Depth"] }
+            ParamDescriptor.Float("depth", "Depth", 0f, 100f, 50f, "%") with {
+                TypeLabels = ["Depth", string.Empty, string.Empty, "Depth"]
+            }
         ],
         maxInstances: 2
     );
 
-    /// <summary>The allpasses' Q for <paramref name="depth" /> (0..1): a quarter to four times the Modern voicing's, 0.5 is it.</summary>
+    /// <summary>
+    ///     The allpasses' Q for <paramref name="depth" /> (0..1): a quarter to four times the Modern voicing's, 0.5 is
+    ///     it.
+    /// </summary>
     public static double AllpassQFor(float depth) => depth == 0.5f ? AllpassQ : AllpassQ * Math.Pow(4, 2 * depth - 1);
 
     protected override void OnPrepare(in ProcessSpec spec) {

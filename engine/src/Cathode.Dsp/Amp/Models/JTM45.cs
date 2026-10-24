@@ -12,7 +12,8 @@ namespace Cathode.Dsp.Amp.Models;
 /// </summary>
 /// <remarks>
 ///     Not on the drawing (unverified): the KT66 (historical), B+ 440 V and the preamp nodes (330 V, 300 V), the output
-///     transformer's 3.4k. The presence is a 5k pot from the tail's foot to ground with 0.1 µF on its wiper; here it is the
+///     transformer's 3.4k. The presence is a 5k pot from the tail's foot to ground with 0.1 µF on its wiper; here it is
+///     the
 ///     usual 5k shunt with the pot and cap across it, which has the same ends. The 47 pF between the inverter's plates is
 ///     left out (a pole near 50 kHz). The inverter's input is its 1M grid leak on the stack, without the grid-current
 ///     network (<see cref="InverterInputDesign" />): with it and the 0.1 µF output caps, the power amp's Newton solve
@@ -36,28 +37,26 @@ public static class JTM45 {
         new(
             "2 x KT66",
             PentodeModel.KT66,
-            TubesPerSide: 1,
-            Supply: 440,
-            ScreenResistor: 470,
-            IdleCurrent: 0.035,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 45,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 10e3, 470),
-            CouplingCap: 0.1e-6,
-            GridLeak: 220e3,
-            GridStopper: 0,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(Math.Sqrt(2), 27e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 80),
-            HasFeedback: true,
-            Transformer: new(3.4e3),
-            Speaker: SpeakerDesign.Closed4x12,
-            PowerSupply: new(60, 32e-6, 200, 32e-6, 18.2e3, 16e-6, Rectifier: RectifierModel.GZ34),
+            1,
+            440,
+            470,
+            0.035,
+            false,
+            0,
+            45,
+            new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 10e3, 470),
+            0.1e-6,
+            220e3,
+            0,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(Math.Sqrt(2), 27e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 80),
+            true,
+            new(3.4e3),
+            SpeakerDesign.Closed4x12,
+            new(60, 32e-6, 200, 32e-6, 18.2e3, 16e-6, Rectifier: RectifierModel.GZ34),
             InverterInput: null
         ),
         -5
-    ) {
-        Panel = MarshallParts.TwoChannelPanel
-    };
+    ) { Panel = MarshallParts.TwoChannelPanel };
 }

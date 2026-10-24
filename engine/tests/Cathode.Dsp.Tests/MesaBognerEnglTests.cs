@@ -16,16 +16,17 @@ namespace Cathode.Dsp.Tests;
 ///     clipper with a plate bypass cap is (-13 dB).
 /// </remarks>
 public partial class AmpStageTests {
-    public static TheoryData<string, double, double> MesaEnglChains => new() {
-        { "Mark V", 0.002, -16 },
-        { "Mark V", 0.05, -16 },
-        { "Rect-o-Verb", 0.002, -15 },
-        { "Rect-o-Verb", 0.05, -9 },
-        { "Powerball", 0.0005, -25 },
-        { "Powerball", 0.05, -10 },
-        { "Savage 120", 0.002, -80 },
-        { "Savage 120", 0.05, -5 }
-    };
+    public static TheoryData<string, double, double> MesaEnglChains =>
+        new() {
+            { "Mark V", 0.002, -16 },
+            { "Mark V", 0.05, -16 },
+            { "Rect-o-Verb", 0.002, -15 },
+            { "Rect-o-Verb", 0.05, -9 },
+            { "Powerball", 0.0005, -25 },
+            { "Powerball", 0.05, -10 },
+            { "Savage 120", 0.002, -80 },
+            { "Savage 120", 0.05, -5 }
+        };
 
     [Theory]
     [MemberData(nameof(MesaEnglChains))]
@@ -81,20 +82,21 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
     /// <summary>Each model with the switch settings that select each of its channels or modes.</summary>
-    public static TheoryData<string, float, float, float> Channels => new() {
-        { "Lone Star", 0, 0, 0 },
-        { "Lone Star", 1, 0, 0 },
-        { "Lone Star", 1, 1, 0 },
-        { "Mark V", 0, 0, 0 },
-        { "Mark V", 1, 0, 1 },
-        { "Mark V", 0, 1, 0 },
-        { "Rect-o-Verb", 0, 0, 0 },
-        { "Triple Rectifier", 1, 1, 1 },
-        { "Powerball", 0, 0, 0 },
-        { "Powerball", 1, 1, 0 },
-        { "Savage 120", 0, 0, 0 },
-        { "Savage 120", 1, 1, 0 }
-    };
+    public static TheoryData<string, float, float, float> Channels =>
+        new() {
+            { "Lone Star", 0, 0, 0 },
+            { "Lone Star", 1, 0, 0 },
+            { "Lone Star", 1, 1, 0 },
+            { "Mark V", 0, 0, 0 },
+            { "Mark V", 1, 0, 1 },
+            { "Mark V", 0, 1, 0 },
+            { "Rect-o-Verb", 0, 0, 0 },
+            { "Triple Rectifier", 1, 1, 1 },
+            { "Powerball", 0, 0, 0 },
+            { "Powerball", 1, 1, 0 },
+            { "Savage 120", 0, 0, 0 },
+            { "Savage 120", 1, 1, 0 }
+        };
 
     static readonly int[] Knobs = [
         CircuitAmpBlock.Gain, CircuitAmpBlock.Bass, CircuitAmpBlock.Middle, CircuitAmpBlock.Treble,
@@ -146,16 +148,25 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
 
     [Fact]
     public void Panels_name_the_real_controls() {
-        Assert.Equal(["Channel 2", "Drive Mode", "Tube Rectifier"], new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "Lone Star")));
+        Assert.Equal(
+            ["Channel 2", "Drive Mode", "Tube Rectifier"],
+            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "Lone Star"))
+        );
         Assert.Equal("Drive", Label("control1", "Lone Star"));
         Assert.Equal("Presence", Label("control2", "Lone Star"));
         Assert.Equal("Thick", Label("bright", "Lone Star"));
         Assert.Empty(Label("presence", "Lone Star")!);
-        Assert.Equal(["IIC+ Mode", "Mark IV Mode", "Bright"], new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "Mark V")));
+        Assert.Equal(
+            ["IIC+ Mode", "Mark IV Mode", "Bright"],
+            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "Mark V"))
+        );
         Assert.Equal("Output", Label("master", "Mark V"));
         Assert.Equal("80", Label("eq1", "Mark V"));
         Assert.Equal("Presence", Label("control2", "Rect-o-Verb"));
-        Assert.Equal(["Modern", "Tube Rectifier", "Spongy"], new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "Triple Rectifier")));
+        Assert.Equal(
+            ["Modern", "Tube Rectifier", "Spongy"],
+            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "Triple Rectifier"))
+        );
         Assert.Equal(["Focused", "Hi Lead"], new[] { "switch1", "switch2" }.Select(id => Label(id, "Powerball")));
         Assert.Equal("Mid Open", Label("middle", "Powerball"));
         Assert.Equal("Mid Focused", Label("control1", "Powerball"));
@@ -187,7 +198,13 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
     [Theory]
     [MemberData(nameof(Channels))]
     public void Knob_sweeps_at_full_drive_stay_finite_and_converge(string type, float s1, float s2, float s3) {
-        using var block = Create(type, [..Switches(s1, s2, s3), (CircuitAmpBlock.Gain, 10f), (CircuitAmpBlock.Master, 10f), (CircuitAmpBlock.Control1, 10f)]);
+        using var block = Create(
+            type,
+            [
+                ..Switches(s1, s2, s3), (CircuitAmpBlock.Gain, 10f), (CircuitAmpBlock.Master, 10f),
+                (CircuitAmpBlock.Control1, 10f)
+            ]
+        );
         var chord = Signals.Sine(82.4, Rate, 9_600, 0.8f)
             .Zip(Signals.Sine(123.5, Rate, 9_600, 0.8f), static (a, b) => a + b)
             .ToArray();
@@ -230,13 +247,18 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         double At(int knob, float value) {
             var gain = knob == CircuitAmpBlock.Gain ? value : 3f;
             var master = knob == CircuitAmpBlock.Master ? value : 3f;
-            using var block = Create(type, [..Switches(s1, s2, s3), (CircuitAmpBlock.Gain, gain), (CircuitAmpBlock.Master, master)]);
+            using var block = Create(
+                type,
+                [..Switches(s1, s2, s3), (CircuitAmpBlock.Gain, gain), (CircuitAmpBlock.Master, master)]
+            );
             return Level(block, 1_000, SmallSignal(type));
         }
 
         foreach (var knob in new[] { CircuitAmpBlock.Gain, CircuitAmpBlock.Master }) {
             var levels = new[] { 0f, 2.5f, 5f, 7.5f, 10f }.Select(v => At(knob, v)).ToArray();
-            output.WriteLine($"{type} {s1}{s2}{s3} knob {knob}: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB");
+            output.WriteLine(
+                $"{type} {s1}{s2}{s3} knob {knob}: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB"
+            );
             for (var i = 1; i < levels.Length; i++) {
                 Assert.True(levels[i] > levels[i - 1] - 0.1, $"{type}: knob {knob} not monotonic at step {i}");
             }
@@ -251,9 +273,15 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
     public void Every_panel_knob_is_audible(string type, float s1, float s2, float s3) {
         var design = AmpDesign.All[TypeOf(type)];
         var ids = new Dictionary<int, string> {
-            [CircuitAmpBlock.Gain] = "gain", [CircuitAmpBlock.Bass] = "bass", [CircuitAmpBlock.Middle] = "middle",
-            [CircuitAmpBlock.Treble] = "treble", [CircuitAmpBlock.Presence] = "presence", [CircuitAmpBlock.Depth] = "depth",
-            [CircuitAmpBlock.Master] = "master", [CircuitAmpBlock.Control1] = "control1", [CircuitAmpBlock.Control2] = "control2"
+            [CircuitAmpBlock.Gain] = "gain",
+            [CircuitAmpBlock.Bass] = "bass",
+            [CircuitAmpBlock.Middle] = "middle",
+            [CircuitAmpBlock.Treble] = "treble",
+            [CircuitAmpBlock.Presence] = "presence",
+            [CircuitAmpBlock.Depth] = "depth",
+            [CircuitAmpBlock.Master] = "master",
+            [CircuitAmpBlock.Control1] = "control1",
+            [CircuitAmpBlock.Control2] = "control2"
         };
         foreach (var (knob, id) in ids) {
             if (design.Panel.Label(id, id) is null) {
@@ -267,7 +295,13 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             var change = 0.0;
             foreach (var frequency in new[] { 80.0, 200.0, 3_000.0, 6_000.0 }) {
                 double At(float value) {
-                    using var block = Create(type, [..Switches(s1, s2, s3), (CircuitAmpBlock.Gain, 2f), (CircuitAmpBlock.Master, 3f), (knob, value)]);
+                    using var block = Create(
+                        type,
+                        [
+                            ..Switches(s1, s2, s3), (CircuitAmpBlock.Gain, 2f), (CircuitAmpBlock.Master, 3f),
+                            (knob, value)
+                        ]
+                    );
                     return Level(block, frequency, 3 * SmallSignal(type));
                 }
 

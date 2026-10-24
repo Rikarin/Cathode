@@ -9,7 +9,7 @@ namespace Cathode.Dsp.Amp;
 /// <param name="PreampSag">How much of the power supply's sag reaches the preamp: 1 stock, 0 a stiff preamp supply.</param>
 /// <param name="PowerAmp">False to leave the power amp out: the output is then the phase inverter's input.</param>
 public readonly record struct ChannelSettings(double LowCut = 0, double PreampSag = 1, bool PowerAmp = true) {
-    public static ChannelSettings Stock => new(LowCut: 0);
+    public static ChannelSettings Stock => new(0);
 }
 
 /// <summary>

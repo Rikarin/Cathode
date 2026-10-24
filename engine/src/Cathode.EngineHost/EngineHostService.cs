@@ -3,12 +3,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json;
 using Cathode.Dsp;
-using Cathode.Dsp.Native;
-using Cathode.Dsp.Tuning;
-using Cathode.Engine;
 using Cathode.Dsp.IO;
 using Cathode.Dsp.Looping;
+using Cathode.Dsp.Native;
 using Cathode.Dsp.Parameters;
+using Cathode.Dsp.Tuning;
+using Cathode.Engine;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.Engine.Telemetry;
@@ -86,7 +86,10 @@ public sealed class EngineHostService : IDisposable {
         if (looperSeconds > 0) {
             Engine.EnableLooper(looperSeconds);
         }
-        compiler = new(registry ?? BlockRegistry.CreateDefault().AddNativeBlocks()) { HardwareLoop = Engine.HardwareLoop };
+
+        compiler = new(registry ?? BlockRegistry.CreateDefault().AddNativeBlocks()) {
+            HardwareLoop = Engine.HardwareLoop
+        };
         tuner = new(spec.SampleRate);
         var version = typeof(EngineHostService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
                 ?.InformationalVersion
@@ -327,8 +330,12 @@ public sealed class EngineHostService : IDisposable {
                     }
                 }
 
-                if (blockLength < 0 || paramLength < 0 || !SetParameter(block[..blockLength], param[..paramLength], value)) {
-                    (errors ??= []).Add(NoParameter(param[..Math.Max(paramLength, 0)], block[..Math.Max(blockLength, 0)]));
+                if (blockLength < 0
+                    || paramLength < 0
+                    || !SetParameter(block[..blockLength], param[..paramLength], value)) {
+                    (errors ??= []).Add(
+                        NoParameter(param[..Math.Max(paramLength, 0)], block[..Math.Max(blockLength, 0)])
+                    );
                 }
             }
         }
@@ -370,7 +377,9 @@ public sealed class EngineHostService : IDisposable {
             (bank, index) = (Engine.GlobalEq.Params, Engine.GlobalEq.Descriptor.IndexOf(param));
         } else {
             var slot = latest?.SlotOf(block) ?? -1;
-            (bank, index) = slot < 0 ? (null, -1) : (latest!.Block(slot).Params, latest.Block(slot).Descriptor.IndexOf(param));
+            (bank, index) = slot < 0
+                ? (null, -1)
+                : (latest!.Block(slot).Params, latest.Block(slot).Descriptor.IndexOf(param));
         }
 
         if (bank is null || index < 0) {
@@ -402,7 +411,9 @@ public sealed class EngineHostService : IDisposable {
 
     /// <summary>Copies a string token into <paramref name="destination" />; -1 if it is not a string or too long.</summary>
     static int ReadId(ref Utf8JsonReader reader, scoped Span<char> destination) =>
-        reader.TokenType == JsonTokenType.String && !reader.HasValueSequence && reader.ValueSpan.Length <= destination.Length
+        reader.TokenType == JsonTokenType.String
+        && !reader.HasValueSequence
+        && reader.ValueSpan.Length <= destination.Length
             ? reader.CopyString(destination)
             : -1;
 
@@ -512,6 +523,7 @@ public sealed class EngineHostService : IDisposable {
         } else {
             target.Looper = null;
         }
+
         if (Stopwatch.GetElapsedTime(windowStarted) >= StatsWindow) {
             stats.RequestReset();
             overrunsSeen = 0;

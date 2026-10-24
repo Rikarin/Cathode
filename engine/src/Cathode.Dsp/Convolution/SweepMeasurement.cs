@@ -9,7 +9,11 @@ namespace Cathode.Dsp.Convolution;
 /// <param name="seconds">Sweep length; longer sweeps raise the signal-to-noise ratio (3 dB per doubling).</param>
 /// <param name="startHz">Lowest frequency.</param>
 /// <param name="endHz">Highest frequency (clamped below Nyquist).</param>
-public sealed class SweepMeasurement(double sampleRate, double seconds = 5, double startHz = 20, double endHz = 20_000) {
+public sealed class SweepMeasurement(
+    double sampleRate,
+    double seconds = 5,
+    double startHz = 20,
+    double endHz = 20_000) {
     /// <summary>Fade at each end of the sweep, so it starts and stops without clicks.</summary>
     const double FadeSeconds = 0.05;
 

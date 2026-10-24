@@ -11,14 +11,15 @@ namespace Cathode.Dsp.Tests;
 ///     a follower with a diode clamp on the stack, op-amp and diode front ends) checked in one go.
 /// </summary>
 public partial class AmpStageTests {
-    public static TheoryData<string, int, double, double> BritishChains => new() {
-        { "BE-100", 4, 0.002, -36 },
-        { "BE-100", 4, 0.05, -16 },
-        { "BE-100 HBE", 3, 0.01, -60 },
-        { "Silver Jubilee", 3, 0.002, -12 },
-        { "Hiwatt DR103", 3, 0.002, -25 },
-        { "Hiwatt DR103", 3, 0.05, -15 }
-    };
+    public static TheoryData<string, int, double, double> BritishChains =>
+        new() {
+            { "BE-100", 4, 0.002, -36 },
+            { "BE-100", 4, 0.05, -16 },
+            { "BE-100 HBE", 3, 0.01, -60 },
+            { "Silver Jubilee", 3, 0.002, -12 },
+            { "Hiwatt DR103", 3, 0.002, -25 },
+            { "Hiwatt DR103", 3, 0.05, -15 }
+        };
 
     [Theory]
     [MemberData(nameof(BritishChains))]
@@ -100,16 +101,21 @@ public class BritishAmpTests(ITestOutputHelper output) {
     static IEnumerable<int> Controls(string type) {
         (string Id, int Index)[] all = [
             ("gain", CircuitAmpBlock.Gain), ("bass", CircuitAmpBlock.Bass), ("middle", CircuitAmpBlock.Middle),
-            ("treble", CircuitAmpBlock.Treble), ("presence", CircuitAmpBlock.Presence), ("depth", CircuitAmpBlock.Depth),
+            ("treble", CircuitAmpBlock.Treble), ("presence", CircuitAmpBlock.Presence),
+            ("depth", CircuitAmpBlock.Depth),
             ("cut", CircuitAmpBlock.Cut), ("master", CircuitAmpBlock.Master), ("bright", CircuitAmpBlock.Bright),
-            ("switch1", CircuitAmpBlock.Switch1), ("switch2", CircuitAmpBlock.Switch2), ("switch3", CircuitAmpBlock.Switch3),
+            ("switch1", CircuitAmpBlock.Switch1), ("switch2", CircuitAmpBlock.Switch2),
+            ("switch3", CircuitAmpBlock.Switch3),
             ("control1", CircuitAmpBlock.Control1), ("control2", CircuitAmpBlock.Control2)
         ];
         return all.Where(c => !string.IsNullOrEmpty(Label(c.Id, type))).Select(static c => c.Index);
     }
 
     static bool IsSwitch(int index) =>
-        index is CircuitAmpBlock.Bright or CircuitAmpBlock.Switch1 or CircuitAmpBlock.Switch2 or CircuitAmpBlock.Switch3;
+        index is CircuitAmpBlock.Bright
+            or CircuitAmpBlock.Switch1
+            or CircuitAmpBlock.Switch2
+            or CircuitAmpBlock.Switch3;
 
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {
@@ -195,7 +201,9 @@ public class BritishAmpTests(ITestOutputHelper output) {
             var (low, high) = IsSwitch(control) ? (0f, 1f) : (0f, 10f);
             var (a, b) = (Bands(control, low), Bands(control, high));
             var change = Math.Max(Math.Abs(a[0] - b[0]), Math.Abs(a[1] - b[1]));
-            output.WriteLine($"{type} control {control}: 110 Hz {b[0] - a[0]:+0.0;-0.0} dB, 2.5 kHz {b[1] - a[1]:+0.0;-0.0} dB");
+            output.WriteLine(
+                $"{type} control {control}: 110 Hz {b[0] - a[0]:+0.0;-0.0} dB, 2.5 kHz {b[1] - a[1]:+0.0;-0.0} dB"
+            );
             Assert.True(change > 0.2, $"{type}: control {control} moves the sound by only {change:0.00} dB");
         }
     }
@@ -212,7 +220,9 @@ public class BritishAmpTests(ITestOutputHelper output) {
             return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)));
         }
 
-        foreach (var knob in new[] { CircuitAmpBlock.Gain, CircuitAmpBlock.Master }.Where(k => Controls(type).Contains(k))) {
+        foreach (var knob in new[] { CircuitAmpBlock.Gain, CircuitAmpBlock.Master }.Where(k =>
+                     Controls(type).Contains(k)
+                 )) {
             var levels = new[] { 0f, 2.5f, 5f, 7.5f, 10f }.Select(v => Level(knob, v)).ToArray();
             output.WriteLine($"{type} knob {knob}: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB");
             // Near silence the order may break: on the Hiwatt the idle channel's triode, driven through the shared,

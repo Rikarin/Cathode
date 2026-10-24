@@ -22,7 +22,8 @@ namespace Cathode.Dsp.Amp.Models;
 /// </summary>
 /// <remarks>
 ///     A redraw by a third party, not a factory drawing; the model's plates sit within 3-8 % of its DC voltages, except
-///     the zero-bias V1a (88 V against 99 V: it rests on the triode's contact potential). Assumed, not drawn: the output transformer's primary (4k plate to plate; the drawing names
+///     the zero-bias V1a (88 V against 99 V: it rests on the triode's contact potential). Assumed, not drawn: the output
+///     transformer's primary (4k plate to plate; the drawing names
 ///     "TDS 1163" only), the Edge rheostat's direction (more resistance, less treble bled away, as the knob turns up),
 ///     the preamp nodes taken as fixed rails behind one 22k dropper for the sag. Not modelled: the Mid-range switch
 ///     on the panel (not on the drawing). The panel's Brilliance is the block's Cut, which runs the other way (Fractal
@@ -52,25 +53,25 @@ public static class HotCat {
         new(
             "2 x EL34",
             PentodeModel.EL34,
-            TubesPerSide: 1,
-            Supply: 382,
-            ScreenResistor: 1e3,
-            IdleCurrent: 0.08,
-            CathodeBias: true,
-            CathodeBypass: 220e-6,
-            RatedPower: 30,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 341, 100e3, 100e3, 47e3, 1.2e3),
-            CouplingCap: 33e-9,
-            GridLeak: 220e3,
-            GridStopper: 10e3,
-            CutCap: 4.7e-9,
-            CutPot: new(1e6, PotTaper.ReverseAudio),
-            Feedback: new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6, 90),
-            HasFeedback: false,
-            Transformer: new(4e3),
-            Speaker: SpeakerDesign.OpenBack2x12,
+            1,
+            382,
+            1e3,
+            0.08,
+            true,
+            220e-6,
+            30,
+            new LongTailPairDesign(TriodeModel.Ecc83, 341, 100e3, 100e3, 47e3, 1.2e3),
+            33e-9,
+            220e3,
+            10e3,
+            4.7e-9,
+            new(1e6, PotTaper.ReverseAudio),
+            new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6, 90),
+            false,
+            new(4e3),
+            SpeakerDesign.OpenBack2x12,
             // The screens hang on the rectifier's 33 µF node; the choke (450 Ω) and 33 µF, then a 22k dropper per node.
-            PowerSupply: new(60, 33e-6, 10, 33e-6, 22e3 + 450, 22e-6, 2.5e-3, RectifierModel.GZ34),
+            new(60, 33e-6, 10, 33e-6, 22e3 + 450, 22e-6, 2.5e-3, RectifierModel.GZ34),
             SeparateCathodes: true,
             InverterInput: new(10e-9, 1e6),
             CathodeResistor: 135, // 270 Ω per tube: half of each side's, as the power amp counts it

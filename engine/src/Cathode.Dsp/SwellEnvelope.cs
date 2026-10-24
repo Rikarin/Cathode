@@ -2,7 +2,8 @@ namespace Cathode.Dsp;
 
 /// <summary>
 ///     The Envelope page of the delays: a volume swell on what enters the lines. Once the input's peak crosses the
-///     threshold, the gain rises from silence to unity over the attack along an S-curve, like a hand on a volume knob; once
+///     threshold, the gain rises from silence to unity over the attack along an S-curve, like a hand on a volume knob;
+///     once
 ///     the input falls 6 dB below the threshold, the next note is armed and the gain falls back over the release.
 /// </summary>
 public struct SwellEnvelope {

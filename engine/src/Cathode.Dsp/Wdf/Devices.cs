@@ -51,7 +51,12 @@ public struct NoDevice : INonlinearDevice {
 
     public readonly double Conductance(int port) => 0;
 
-    public readonly void Evaluate(ReadOnlySpan<double> voltages, Span<double> currents, Span<double> jacobian, int stride) { }
+    public readonly void Evaluate(
+        ReadOnlySpan<double> voltages,
+        Span<double> currents,
+        Span<double> jacobian,
+        int stride
+    ) { }
 
     public readonly void Limit(ReadOnlySpan<double> previous, Span<double> proposed) { }
 
@@ -73,10 +78,16 @@ public struct Devices<TA, TB>(TA a, TB b) : INonlinearDevice
 
     public readonly int Ports => A.Ports + B.Ports;
 
-    public readonly double Conductance(int port) => port < A.Ports ? A.Conductance(port) : B.Conductance(port - A.Ports);
+    public readonly double Conductance(int port) =>
+        port < A.Ports ? A.Conductance(port) : B.Conductance(port - A.Ports);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void Evaluate(ReadOnlySpan<double> voltages, Span<double> currents, Span<double> jacobian, int stride) {
+    public readonly void Evaluate(
+        ReadOnlySpan<double> voltages,
+        Span<double> currents,
+        Span<double> jacobian,
+        int stride
+    ) {
         var k = A.Ports;
         A.Evaluate(voltages[..k], currents[..k], jacobian, stride);
         B.Evaluate(voltages[k..], currents[k..], jacobian[(k * stride + k)..], stride);

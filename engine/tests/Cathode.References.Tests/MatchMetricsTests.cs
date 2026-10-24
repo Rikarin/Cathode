@@ -22,7 +22,14 @@ public class MatchMetricsTests {
 
         Assert.Equal(lag, alignment.Lag);
         Assert.Equal(gain, alignment.Gain, 3);
-        Assert.True(Analysis.Esr(target.AsSpan(1_000, target.Length - 2_000), alignment.Apply(prediction).AsSpan(1_000, target.Length - 2_000), 0) < 1e-6);
+        Assert.True(
+            Analysis.Esr(
+                target.AsSpan(1_000, target.Length - 2_000),
+                alignment.Apply(prediction).AsSpan(1_000, target.Length - 2_000),
+                0
+            )
+            < 1e-6
+        );
     }
 
     [Fact]

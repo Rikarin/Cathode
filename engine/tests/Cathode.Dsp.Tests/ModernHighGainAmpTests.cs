@@ -13,11 +13,8 @@ public class ModernHighGainAmpTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
     /// <summary>Each model with Switch 1 off and on (its two channels).</summary>
-    public static TheoryData<string, bool> Channels => new() {
-        { "Legacy VL100", false },
-        { "Legacy VL100", true },
-        { "SLO-100", true }
-    };
+    public static TheoryData<string, bool> Channels =>
+        new() { { "Legacy VL100", false }, { "Legacy VL100", true }, { "SLO-100", true } };
 
     static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);
 
@@ -126,19 +123,22 @@ public class ModernHighGainAmpTests(ITestOutputHelper output) {
     public void Volumes_raise_the_level_monotonically(string type, bool switched, int knob) {
         var levels = new[] { 0f, 2.5f, 5f, 7.5f, 10f }
             .Select(v => {
-                float Knob(int index) => index == knob ? v : 3f;
-                return Level(
-                    type,
-                    1_000,
-                    1e-4,
-                    (CircuitAmpBlock.Gain, Knob(CircuitAmpBlock.Gain)),
-                    (CircuitAmpBlock.Master, Knob(CircuitAmpBlock.Master)),
-                    (CircuitAmpBlock.Control2, Knob(CircuitAmpBlock.Control2)),
-                    (CircuitAmpBlock.Switch1, switched ? 1f : 0f)
-                );
-            })
+                    return Level(
+                        type,
+                        1_000,
+                        1e-4,
+                        (CircuitAmpBlock.Gain, Knob(CircuitAmpBlock.Gain)),
+                        (CircuitAmpBlock.Master, Knob(CircuitAmpBlock.Master)),
+                        (CircuitAmpBlock.Control2, Knob(CircuitAmpBlock.Control2)),
+                        (CircuitAmpBlock.Switch1, switched ? 1f : 0f)
+                    );
+                    float Knob(int index) => index == knob ? v : 3f;
+                }
+            )
             .ToArray();
-        output.WriteLine($"{type} switch 1 {switched} knob {knob}: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB");
+        output.WriteLine(
+            $"{type} switch 1 {switched} knob {knob}: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB"
+        );
         for (var i = 1; i < levels.Length; i++) {
             Assert.True(levels[i] > levels[i - 1] - 0.1, $"{type}: knob {knob} not monotonic at step {i}");
         }
@@ -186,7 +186,9 @@ public class ModernHighGainAmpTests(ITestOutputHelper output) {
                 )
             )
             .ToArray();
-        output.WriteLine($"5 kHz relative to 500 Hz at Presence 0/5/10: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB");
+        output.WriteLine(
+            $"5 kHz relative to 500 Hz at Presence 0/5/10: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB"
+        );
         Assert.True(levels[1] > levels[0] + 1 && levels[2] > levels[1] + 1);
     }
 
@@ -196,15 +198,16 @@ public class ModernHighGainAmpTests(ITestOutputHelper output) {
     /// </summary>
     [Fact]
     public void Slo_crunch_raises_the_normal_channel_gain() {
-        double Normal(bool crunch) => Level(
-            "SLO-100",
-            1_000,
-            1e-4,
-            (CircuitAmpBlock.Switch1, 1f),
-            (CircuitAmpBlock.Switch2, crunch ? 1f : 0f),
-            (CircuitAmpBlock.Gain, 10f),
-            (CircuitAmpBlock.Master, 3f)
-        );
+        double Normal(bool crunch) =>
+            Level(
+                "SLO-100",
+                1_000,
+                1e-4,
+                (CircuitAmpBlock.Switch1, 1f),
+                (CircuitAmpBlock.Switch2, crunch ? 1f : 0f),
+                (CircuitAmpBlock.Gain, 10f),
+                (CircuitAmpBlock.Master, 3f)
+            );
 
         var lift = Normal(true) - Normal(false);
         output.WriteLine($"Crunch: {lift:0.0} dB");

@@ -11,23 +11,24 @@ namespace Cathode.Dsp.Tests;
 ///     jumpered).
 /// </summary>
 public partial class AmpStageTests {
-    public static TheoryData<string, string, double> FenderNetworks => new() {
-        // Model, stage and its switches ("v": Switch1, "b": bright), amplitude in volts.
-        { "Twin Reverb", "Mixer", 0.3 },
-        { "Twin Reverb", "Mixer v", 0.3 },
-        { "Twin Reverb", "Mixer v", 8 },
-        { "Super Reverb", "V1A", 0.05 },
-        { "Super Reverb", "V1A vb", 0.05 },
-        { "Princeton Reverb", "V3B", 2 },
-        { "Bassman 5F6-A", "V1", 0.1 },
-        { "Bassman 5F6-A", "V1 v", 1 },
-        { "Bassman 5F6-A Jumped", "V1", 1 },
-        { "Bassman 5F6-A", "V2A", 1 },
-        { "Tweed Deluxe 5E3", "V1", 0.1 },
-        { "Tweed Deluxe 5E3", "V1 v", 1 },
-        { "Tweed Deluxe 5E3 Jumped", "V1", 1 },
-        { "Tweed Deluxe 5E3", "V2A", 0.5 }
-    };
+    public static TheoryData<string, string, double> FenderNetworks =>
+        new() {
+            // Model, stage and its switches ("v": Switch1, "b": bright), amplitude in volts.
+            { "Twin Reverb", "Mixer", 0.3 },
+            { "Twin Reverb", "Mixer v", 0.3 },
+            { "Twin Reverb", "Mixer v", 8 },
+            { "Super Reverb", "V1A", 0.05 },
+            { "Super Reverb", "V1A vb", 0.05 },
+            { "Princeton Reverb", "V3B", 2 },
+            { "Bassman 5F6-A", "V1", 0.1 },
+            { "Bassman 5F6-A", "V1 v", 1 },
+            { "Bassman 5F6-A Jumped", "V1", 1 },
+            { "Bassman 5F6-A", "V2A", 1 },
+            { "Tweed Deluxe 5E3", "V1", 0.1 },
+            { "Tweed Deluxe 5E3", "V1 v", 1 },
+            { "Tweed Deluxe 5E3 Jumped", "V1", 1 },
+            { "Tweed Deluxe 5E3", "V2A", 0.5 }
+        };
 
     [Theory]
     [MemberData(nameof(FenderNetworks))]
@@ -73,8 +74,8 @@ public partial class AmpStageTests {
         var reference = new ReferenceSimulator(circuit);
         reference.OperatingPoint(40);
         output.WriteLine(
-            $"{model} {stage}: rest output {wdf.RestOutput:0.000} V (reference {reference.Voltage(node):0.000} V), " +
-            $"output resistance {wdf.OutputResistance / 1e3:0.0}k"
+            $"{model} {stage}: rest output {wdf.RestOutput:0.000} V (reference {reference.Voltage(node):0.000} V), "
+            + $"output resistance {wdf.OutputResistance / 1e3:0.0}k"
         );
         Assert.Equal(reference.Voltage(node), wdf.RestOutput, 0.002 * Math.Abs(reference.Voltage(node)) + 1e-6);
 

@@ -90,7 +90,7 @@ public class EqBlockTests {
     [Fact]
     public void Graphic_bands_a_layout_lacks_are_hidden_and_silent() {
         var fiveBand = GraphicEqualizer.LayoutNames.ToList().IndexOf("5 Band");
-        Assert.Equal("", GraphicEqBlock.Info.Params[7].TypeLabels![fiveBand]);
+        Assert.Equal(string.Empty, GraphicEqBlock.Info.Params[7].TypeLabels![fiveBand]);
         Assert.Equal("1k Hz", GraphicEqBlock.Info.Params[2].TypeLabels![fiveBand]);
         Assert.Equal("31 Hz", GraphicEqBlock.Info.Params[0].TypeLabels![0]);
 
@@ -106,7 +106,10 @@ public class EqBlockTests {
         var peaked = BlockRender.Mono(peak, Signals.Impulse(65_536), 64);
         var shelved = BlockRender.Mono(shelf, Signals.Impulse(65_536), 64);
 
-        Assert.True(Analysis.ToDb(Analysis.MagnitudeAt(peaked, 5, Rate)) < 3, "a peak falls back to flat below its band");
+        Assert.True(
+            Analysis.ToDb(Analysis.MagnitudeAt(peaked, 5, Rate)) < 3,
+            "a peak falls back to flat below its band"
+        );
         Assert.Equal(12.0, Analysis.ToDb(Analysis.MagnitudeAt(shelved, 5, Rate)), 0.5);
     }
 }

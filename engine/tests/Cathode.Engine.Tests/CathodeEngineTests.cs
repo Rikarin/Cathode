@@ -58,7 +58,13 @@ public class CathodeEngineTests {
             new() {
                 Nodes = [
                     new() { Id = "in", Type = NodeTypes.Input, Row = 0, Column = 0 },
-                    new() { Id = "fx", Type = "test-engage", Row = 0, Column = 1, Bypassed = true },
+                    new() {
+                        Id = "fx",
+                        Type = "test-engage",
+                        Row = 0,
+                        Column = 1,
+                        Bypassed = true
+                    },
                     new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 }
                 ],
                 Cables = [new() { From = "in", To = "fx" }, new() { From = "fx", To = "out" }]

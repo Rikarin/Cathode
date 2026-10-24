@@ -1,4 +1,3 @@
-using System.Numerics;
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Tests.Circuits;
@@ -16,17 +15,18 @@ public partial class AmpStageTests(ITestOutputHelper output) {
     const double Rate = 96_000; // the circuit amp's rate at 48 kHz
     const int Oversampling = 16;
 
-    public static TheoryData<int, double, double, double> ToneStackSettings => new() {
-        { 0, 0.5, 0.5, 0.5 },
-        { 0, 0.0, 1.0, 0.2 },
-        { 0, 1.0, 0.0, 1.0 },
-        { 1, 0.5, 0.5, 0.5 },
-        { 1, 0.1, 0.9, 0.8 },
-        { 1, 0.9, 0.1, 0.0 },
-        { 2, 0.5, 0.5, 0.5 },
-        { 2, 1.0, 0.3, 0.1 },
-        { 2, 0.0, 0.7, 1.0 }
-    };
+    public static TheoryData<int, double, double, double> ToneStackSettings =>
+        new() {
+            { 0, 0.5, 0.5, 0.5 },
+            { 0, 0.0, 1.0, 0.2 },
+            { 0, 1.0, 0.0, 1.0 },
+            { 1, 0.5, 0.5, 0.5 },
+            { 1, 0.1, 0.9, 0.8 },
+            { 1, 0.9, 0.1, 0.0 },
+            { 2, 0.5, 0.5, 0.5 },
+            { 2, 1.0, 0.3, 0.1 },
+            { 2, 0.0, 0.7, 1.0 }
+        };
 
     [Theory]
     [MemberData(nameof(ToneStackSettings))]
@@ -138,12 +138,13 @@ public partial class AmpStageTests(ITestOutputHelper output) {
         300,
         100e3,
         1.5e3,
-        CathodeBypass: 22e-6,
+        22e-6,
         CouplingCap: 22e-9,
         GridLeak: 1e6
     );
 
-    public static TheoryData<string> TriodeStages => ["textbook", "blackface V2A", "plexi V1A", "plexi V2A", "ac30 V1A"];
+    public static TheoryData<string> TriodeStages =>
+        ["textbook", "blackface V2A", "plexi V1A", "plexi V2A", "ac30 V1A"];
 
     [Theory]
     [MemberData(nameof(TriodeStages))]
@@ -156,9 +157,9 @@ public partial class AmpStageTests(ITestOutputHelper output) {
         var reference = new ReferenceSimulator(circuit);
         reference.OperatingPoint();
         output.WriteLine(
-            $"{name}: plate {stage.RestOutput:0.00} V (reference {reference.Voltage(plate):0.00}), cathode " +
-            $"{stage.RestCathode:0.000} V ({reference.Voltage(cathode):0.000}), {stage.RestCurrent * 1e3:0.000} mA, " +
-            $"output resistance {stage.OutputResistance / 1e3:0.0}k"
+            $"{name}: plate {stage.RestOutput:0.00} V (reference {reference.Voltage(plate):0.00}), cathode "
+            + $"{stage.RestCathode:0.000} V ({reference.Voltage(cathode):0.000}), {stage.RestCurrent * 1e3:0.000} mA, "
+            + $"output resistance {stage.OutputResistance / 1e3:0.0}k"
         );
         Assert.Equal(reference.Voltage(plate), stage.RestOutput, 0.002 * reference.Voltage(plate));
         Assert.Equal(reference.Voltage(cathode), stage.RestCathode, 0.002 * reference.Voltage(cathode));
@@ -191,7 +192,13 @@ public partial class AmpStageTests(ITestOutputHelper output) {
         stage.SetSourceResistance(SourceResistance);
         stage.Update(new(0.6, 0.5, 0.5, 0.5, 1, true));
         stage.Reset(0);
-        var (circuit, plate, _, _) = AmpReferences.Triode(design, 0.6, true, SourceResistance, t => Drive(amplitude, t));
+        var (circuit, plate, _, _) = AmpReferences.Triode(
+            design,
+            0.6,
+            true,
+            SourceResistance,
+            t => Drive(amplitude, t)
+        );
         var errorDb = CompareInTime(name, stage.Tick, stage.Newton, circuit, plate, amplitude);
         Assert.True(errorDb < -40, $"{name}: {errorDb:0.0} dB from the reference");
     }
@@ -219,7 +226,9 @@ public partial class AmpStageTests(ITestOutputHelper output) {
         stage.Reset(rest);
         var reference = new ReferenceSimulator(circuit);
         reference.OperatingPoint();
-        output.WriteLine($"{name}: driven node {stage.RestDriven:0.00} V (reference {reference.Voltage(driven):0.00} V)");
+        output.WriteLine(
+            $"{name}: driven node {stage.RestDriven:0.00} V (reference {reference.Voltage(driven):0.00} V)"
+        );
         Assert.Equal(reference.Voltage(driven), stage.RestDriven, 0.002 * reference.Voltage(driven));
 
         var errorDb = CompareInTime(name, x => stage.Tick(rest + x), stage.Newton, circuit, wiper, amplitude);
@@ -234,10 +243,10 @@ public partial class AmpStageTests(ITestOutputHelper output) {
         var design = (LongTailPairDesign)AmpDesign.All[index].Power.PhaseInverter;
         var pair = LongTailPair.For(design);
         output.WriteLine(
-            $"{AmpDesign.All[index].Name} inverter: grids {pair.RestGrid:0.00} V, cathode {pair.RestCathode:0.00} V, plates " +
-            $"{pair.RestPlateA:0.00}/{pair.RestPlateB:0.00} V, output impedance {pair.OutputImpedance.Zaa / 1e3:0.0}k, " +
-            $"{pair.OutputImpedance.Zab / 1e3:0.0}k, " +
-            $"{pair.OutputImpedance.Zba / 1e3:0.0}k, {pair.OutputImpedance.Zbb / 1e3:0.0}k"
+            $"{AmpDesign.All[index].Name} inverter: grids {pair.RestGrid:0.00} V, cathode {pair.RestCathode:0.00} V, plates "
+            + $"{pair.RestPlateA:0.00}/{pair.RestPlateB:0.00} V, output impedance {pair.OutputImpedance.Zaa / 1e3:0.0}k, "
+            + $"{pair.OutputImpedance.Zab / 1e3:0.0}k, "
+            + $"{pair.OutputImpedance.Zba / 1e3:0.0}k, {pair.OutputImpedance.Zbb / 1e3:0.0}k"
         );
         var worst = 0.0;
         foreach (var vd in new[] { -20.0, -6, -3, -1, -0.3, 0, 0.3, 1, 2 }) {
@@ -248,8 +257,8 @@ public partial class AmpStageTests(ITestOutputHelper output) {
             var errorA = pair.RestPlateA + ea - reference.Voltage(a);
             var errorB = pair.RestPlateB + eb - reference.Voltage(b);
             output.WriteLine(
-                $"  vd {vd,5:0.0}: plates {pair.RestPlateA + ea:0.00}/{pair.RestPlateB + eb:0.00} V, reference " +
-                $"{reference.Voltage(a):0.00}/{reference.Voltage(b):0.00} V"
+                $"  vd {vd,5:0.0}: plates {pair.RestPlateA + ea:0.00}/{pair.RestPlateB + eb:0.00} V, reference "
+                + $"{reference.Voltage(a):0.00}/{reference.Voltage(b):0.00} V"
             );
             if (vd >= -6) {
                 worst = Math.Max(worst, Math.Max(Math.Abs(errorA), Math.Abs(errorB)));
@@ -266,8 +275,14 @@ public partial class AmpStageTests(ITestOutputHelper output) {
         for (var vd = -30.0; vd < 30; vd += 0.0731) {
             var (ia, ib, _) = LongTailPair.Solve(triode, design, pair.RestGrid + vd, pair.RestGrid);
             var (ea, eb) = pair.Evaluate(vd, out _, out _);
-            interpolation = Math.Max(interpolation, Math.Abs(design.Supply - ia * design.PlateResistorA - pair.RestPlateA - ea));
-            interpolation = Math.Max(interpolation, Math.Abs(design.Supply - ib * design.PlateResistorB - pair.RestPlateB - eb));
+            interpolation = Math.Max(
+                interpolation,
+                Math.Abs(design.Supply - ia * design.PlateResistorA - pair.RestPlateA - ea)
+            );
+            interpolation = Math.Max(
+                interpolation,
+                Math.Abs(design.Supply - ib * design.PlateResistorB - pair.RestPlateB - eb)
+            );
         }
 
         output.WriteLine($"  interpolation error {interpolation:E2} V");
@@ -295,20 +310,21 @@ public partial class AmpStageTests(ITestOutputHelper output) {
             t => Drive(amplitude, t)
         );
         output.WriteLine(
-            $"{design.Name}: B+ {power.Supply:0.0} V, screen {power.ScreenSupply:0.0} V, grid bias {power.GridBias:0.00} V, " +
-            $"cathode {power.CathodeVoltage:0.00} V, idle {power.PlateCurrents.A * 1e3:0.0} mA per tube"
+            $"{design.Name}: B+ {power.Supply:0.0} V, screen {power.ScreenSupply:0.0} V, grid bias {power.GridBias:0.00} V, "
+            + $"cathode {power.CathodeVoltage:0.00} V, idle {power.PlateCurrents.A * 1e3:0.0} mA per tube"
         );
         var errorDb = CompareInTime(design.Name, power.Tick, power.Newton, circuit, speaker, amplitude, 8);
         Assert.True(errorDb < -30, $"{design.Name}: {errorDb:0.0} dB from the reference");
     }
 
-    static TriodeStageDesign TriodeDesign(string name) => name switch {
-        "textbook" => Textbook,
-        "blackface V2A" => (TriodeStageDesign)Blackface.Design.Preamp[1],
-        "plexi V1A" => (TriodeStageDesign)Plexi.Design.Preamp[0],
-        "plexi V2A" => (TriodeStageDesign)Plexi.Design.Preamp[1],
-        _ => (TriodeStageDesign)AC30.Design.Preamp[0]
-    };
+    static TriodeStageDesign TriodeDesign(string name) =>
+        name switch {
+            "textbook" => Textbook,
+            "blackface V2A" => (TriodeStageDesign)Blackface.Design.Preamp[1],
+            "plexi V1A" => (TriodeStageDesign)Plexi.Design.Preamp[0],
+            "plexi V2A" => (TriodeStageDesign)Plexi.Design.Preamp[1],
+            _ => (TriodeStageDesign)AC30.Design.Preamp[0]
+        };
 
     /// <summary>1 kHz with a 220 Hz component, so the stage sees a changing slope as well as a level.</summary>
     static double Drive(double amplitude, double t) =>
@@ -354,8 +370,8 @@ public partial class AmpStageTests(ITestOutputHelper output) {
 
         var errorDb = 10 * Math.Log10(error / energy);
         output.WriteLine(
-            $"{name}: output {peak:0.000} V peak, error {errorDb:0.0} dB, Newton {newton?.MeanIterations:0.00} iterations " +
-            $"per sample (unconverged {newton?.Unconverged}), reference failures {reference.NewtonFailures}"
+            $"{name}: output {peak:0.000} V peak, error {errorDb:0.0} dB, Newton {newton?.MeanIterations:0.00} iterations "
+            + $"per sample (unconverged {newton?.Unconverged}), reference failures {reference.NewtonFailures}"
         );
         Assert.Equal(0, reference.NewtonFailures);
         return errorDb;

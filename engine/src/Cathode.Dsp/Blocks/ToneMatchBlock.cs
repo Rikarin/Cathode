@@ -17,7 +17,7 @@ public sealed class ToneMatchBlock() : DspBlock(Info), IAssetConsumer {
     /// <summary>Longest correction filter kept; the Server designs 2048 taps (43 ms at 48 kHz).</summary>
     public const int FilterLength = 4_096;
 
-    static readonly IrShape Shape = new(FilterLength, UnitEnergy: false);
+    static readonly IrShape Shape = new(FilterLength, false);
 
     readonly StereoConvolver convolver = new(Shape);
     NativeBuffer wetLeft = NativeBuffer.Empty;

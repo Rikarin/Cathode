@@ -4,7 +4,8 @@ namespace Cathode.Dsp.Wdf;
 
 /// <summary>
 ///     An R-type adaptor inside a tree: any linear topology (bridges, tone stacks, feedback networks) joining its child
-///     ports, described by a <see cref="WdfNetlist" /> with one <see cref="WdfNetlist.Up" /> port towards its parent, where
+///     ports, described by a <see cref="WdfNetlist" /> with one <see cref="WdfNetlist.Up" /> port towards its parent,
+///     where
 ///     it is adapted (reflection-free). The scattering matrix comes from <see cref="RTypeScattering" />.
 /// </summary>
 /// <remarks>

@@ -62,7 +62,10 @@ public class CrossoverBlockTests {
 
         var (left, right) = BlockRender.Stereo(block, impulse, impulse, _ => 64);
 
-        Assert.True(Analysis.ToDb(Analysis.MagnitudeAt(left, 100, Rate)) < -40, "the left low band leaves the left side");
+        Assert.True(
+            Analysis.ToDb(Analysis.MagnitudeAt(left, 100, Rate)) < -40,
+            "the left low band leaves the left side"
+        );
         Assert.Equal(0, Analysis.ToDb(Analysis.MagnitudeAt(left, 8_000, Rate)), 0.05);
         Assert.Equal(6.02, Analysis.ToDb(Analysis.MagnitudeAt(right, 100, Rate)), 0.05); // both low bands on the right
         Assert.Equal(0, Analysis.ToDb(Analysis.MagnitudeAt(right, 8_000, Rate)), 0.05);

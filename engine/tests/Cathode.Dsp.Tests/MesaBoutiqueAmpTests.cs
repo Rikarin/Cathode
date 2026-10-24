@@ -11,20 +11,93 @@ namespace Cathode.Dsp.Tests;
 ///     networks, plate-to-cathode caps, LDR-switched Mesa voicings, the op-amp Dynamic Voice) checked in one go.
 /// </summary>
 public partial class AmpStageTests {
-    public static TheoryData<string, bool, int, double, double> MesaBoutiqueChains => new() {
-        { "Liverpool", false, 3, 0.002, -30 },
-        { "Liverpool", false, 3, 0.05, -20 },
-        { "ODS 70s", false, 2, 0.01, -30 },
-        { "ODS 70s", true, 4, 0.002, -20 },
-        { "Dual Rectifier", false, 4, 0.002, -15 },
-        { "Dual Rectifier 3-Ch", false, 4, 0.002, -15 },
-        { "Subway Blues", false, 3, 0.002, -30 },
-        { "Subway Blues", false, 3, 0.05, -20 },
-        { "TriAxis Rhythm", false, 3, 0.002, -30 },
-        { "TriAxis Lead 1", false, 4, 0.002, -25 },
-        { "TriAxis Lead 2", false, 5, 0.002, -15 },
-        { "TriAxis Lead 2", false, 5, 0.05, -10 }
-    };
+    public static TheoryData<string, bool, int, double, double> MesaBoutiqueChains =>
+        new() {
+            {
+                "Liverpool",
+                false,
+                3,
+                0.002,
+                -30
+            },
+            {
+                "Liverpool",
+                false,
+                3,
+                0.05,
+                -20
+            },
+            {
+                "ODS 70s",
+                false,
+                2,
+                0.01,
+                -30
+            },
+            {
+                "ODS 70s",
+                true,
+                4,
+                0.002,
+                -20
+            },
+            {
+                "Dual Rectifier",
+                false,
+                4,
+                0.002,
+                -15
+            },
+            {
+                "Dual Rectifier 3-Ch",
+                false,
+                4,
+                0.002,
+                -15
+            },
+            {
+                "Subway Blues",
+                false,
+                3,
+                0.002,
+                -30
+            },
+            {
+                "Subway Blues",
+                false,
+                3,
+                0.05,
+                -20
+            },
+            {
+                "TriAxis Rhythm",
+                false,
+                3,
+                0.002,
+                -30
+            },
+            {
+                "TriAxis Lead 1",
+                false,
+                4,
+                0.002,
+                -25
+            },
+            {
+                "TriAxis Lead 2",
+                false,
+                5,
+                0.002,
+                -15
+            },
+            {
+                "TriAxis Lead 2",
+                false,
+                5,
+                0.05,
+                -10
+            }
+        };
 
     /// <summary>
     ///     The first <paramref name="count" /> stages of the channel <paramref name="switched" /> selects (Switch 1 on: a
@@ -68,7 +141,7 @@ public partial class AmpStageTests {
         }
 
         var errorDb = CompareInTime(
-            $"{type}{(switched ? " (switched)" : "")} {string.Join(" > ", designs.Select(static d => d.Name))}",
+            $"{type}{(switched ? " (switched)" : string.Empty)} {string.Join(" > ", designs.Select(static d => d.Name))}",
             x => {
                 foreach (var stage in stages) {
                     x = stage.Tick(x);
@@ -92,7 +165,10 @@ public partial class AmpStageTests {
 public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
-    static readonly string[] Models = ["Liverpool", "ODS 70s", "Dual Rectifier", "Dual Rectifier 3-Ch", "Subway Blues", "TriAxis Rhythm", "TriAxis Lead 1", "TriAxis Lead 2"];
+    static readonly string[] Models = [
+        "Liverpool", "ODS 70s", "Dual Rectifier", "Dual Rectifier 3-Ch", "Subway Blues", "TriAxis Rhythm",
+        "TriAxis Lead 1", "TriAxis Lead 2"
+    ];
 
     public static TheoryData<string> Types => [..Models];
 
@@ -119,36 +195,42 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
     static IEnumerable<int> Controls(string type) {
         (string Id, int Index)[] all = [
             ("gain", CircuitAmpBlock.Gain), ("bass", CircuitAmpBlock.Bass), ("middle", CircuitAmpBlock.Middle),
-            ("treble", CircuitAmpBlock.Treble), ("presence", CircuitAmpBlock.Presence), ("depth", CircuitAmpBlock.Depth),
+            ("treble", CircuitAmpBlock.Treble), ("presence", CircuitAmpBlock.Presence),
+            ("depth", CircuitAmpBlock.Depth),
             ("cut", CircuitAmpBlock.Cut), ("master", CircuitAmpBlock.Master), ("bright", CircuitAmpBlock.Bright),
-            ("switch1", CircuitAmpBlock.Switch1), ("switch2", CircuitAmpBlock.Switch2), ("switch3", CircuitAmpBlock.Switch3),
+            ("switch1", CircuitAmpBlock.Switch1), ("switch2", CircuitAmpBlock.Switch2),
+            ("switch3", CircuitAmpBlock.Switch3),
             ("control1", CircuitAmpBlock.Control1), ("control2", CircuitAmpBlock.Control2)
         ];
         return all.Where(c => !string.IsNullOrEmpty(Label(c.Id, type))).Select(static c => c.Index);
     }
 
     static bool IsSwitch(int index) =>
-        index is CircuitAmpBlock.Bright or CircuitAmpBlock.Switch1 or CircuitAmpBlock.Switch2 or CircuitAmpBlock.Switch3;
+        index is CircuitAmpBlock.Bright
+            or CircuitAmpBlock.Switch1
+            or CircuitAmpBlock.Switch2
+            or CircuitAmpBlock.Switch3;
 
     /// <summary>
     ///     The settings at which a control is checked for being audible: the channel or mode it belongs to (the
     ///     overdrive's knobs do nothing while the clean channel plays).
     /// </summary>
-    static (int Index, float Value)[] Context(string type, int control) => (type, control) switch {
-        ("ODS 70s", CircuitAmpBlock.Control1 or CircuitAmpBlock.Control2) => [(CircuitAmpBlock.Switch1, 1f)],
-        _ => []
-    };
+    static (int Index, float Value)[] Context(string type, int control) =>
+        (type, control) switch {
+            ("ODS 70s", CircuitAmpBlock.Control1 or CircuitAmpBlock.Control2) => [(CircuitAmpBlock.Switch1, 1f)],
+            _ => []
+        };
 
     static IEnumerable<string> Switches(string type) =>
         new[] { "bright", "switch1", "switch2", "switch3" }.Select(id => Label(id, type));
 
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {
-        Assert.Equal(["Bright", "Clarity", "", ""], Switches("Liverpool"));
+        Assert.Equal(["Bright", "Clarity", string.Empty, string.Empty], Switches("Liverpool"));
         Assert.Empty(Label("master", "Liverpool"));
         Assert.Equal(["Bright", "Overdrive", "Jazz", "Deep"], Switches("ODS 70s"));
         Assert.Equal("Accent", Label("presence", "ODS 70s"));
-        Assert.Equal(["", "Modern", "Tube Rectifier", "Spongy"], Switches("Dual Rectifier"));
+        Assert.Equal([string.Empty, "Modern", "Tube Rectifier", "Spongy"], Switches("Dual Rectifier"));
         Assert.Equal(["Raw", "Modern", "Tube Rectifier", "Spongy"], Switches("Dual Rectifier 3-Ch"));
         Assert.Equal("Presence", Label("control2", "Dual Rectifier"));
         foreach (var type in Models) {
@@ -248,7 +330,9 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
             return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)));
         }
 
-        foreach (var knob in new[] { CircuitAmpBlock.Gain, CircuitAmpBlock.Master }.Where(k => Controls(type).Contains(k))) {
+        foreach (var knob in new[] { CircuitAmpBlock.Gain, CircuitAmpBlock.Master }.Where(k =>
+                     Controls(type).Contains(k)
+                 )) {
             var levels = new[] { 0f, 2.5f, 5f, 7.5f, 10f }.Select(v => Level(knob, v)).ToArray();
             output.WriteLine($"{type} knob {knob}: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB");
             for (var i = 1; i < levels.Length; i++) {

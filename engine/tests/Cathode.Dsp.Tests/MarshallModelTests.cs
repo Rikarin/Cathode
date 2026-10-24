@@ -13,19 +13,86 @@ namespace Cathode.Dsp.Tests;
 ///     following its knobs.
 /// </summary>
 public partial class AmpStageTests {
-    public static TheoryData<string, bool, bool, double, double> MarshallStages => new() {
-        { "jcm800 input", false, false, 0.5, -40 },
-        { "jcm800 input", false, false, 3.0, -35 },
-        { "jcm800 input", true, false, 3.0, -40 },
-        { "jtm45 input", false, false, 0.5, -40 },
-        { "jtm45 input", true, false, 3.0, -35 },
-        { "jtm45 input", false, true, 3.0, -35 },
-        { "plexi 100w input", false, false, 3.0, -35 },
-        { "plexi 100w input", true, false, 3.0, -35 },
-        { "follower stack", false, false, 30.0, -40 },
-        { "laney input", false, false, 2.0, -35 },
-        { "laney input", true, false, 2.0, -35 }
-    };
+    public static TheoryData<string, bool, bool, double, double> MarshallStages =>
+        new() {
+            {
+                "jcm800 input",
+                false,
+                false,
+                0.5,
+                -40
+            },
+            {
+                "jcm800 input",
+                false,
+                false,
+                3.0,
+                -35
+            },
+            {
+                "jcm800 input",
+                true,
+                false,
+                3.0,
+                -40
+            },
+            {
+                "jtm45 input",
+                false,
+                false,
+                0.5,
+                -40
+            },
+            {
+                "jtm45 input",
+                true,
+                false,
+                3.0,
+                -35
+            },
+            {
+                "jtm45 input",
+                false,
+                true,
+                3.0,
+                -35
+            },
+            {
+                "plexi 100w input",
+                false,
+                false,
+                3.0,
+                -35
+            },
+            {
+                "plexi 100w input",
+                true,
+                false,
+                3.0,
+                -35
+            },
+            {
+                "follower stack",
+                false,
+                false,
+                30.0,
+                -40
+            },
+            {
+                "laney input",
+                false,
+                false,
+                2.0,
+                -35
+            },
+            {
+                "laney input",
+                true,
+                false,
+                2.0,
+                -35
+            }
+        };
 
     [Theory]
     [MemberData(nameof(MarshallStages))]
@@ -59,8 +126,8 @@ public partial class AmpStageTests {
         var reference = new ReferenceSimulator(circuit);
         reference.OperatingPoint(40);
         output.WriteLine(
-            $"{name} switches {switch1}/{switch2}: rest output {stage.RestOutput:0.000} V (reference " +
-            $"{reference.Voltage(node):0.000} V), output resistance {stage.OutputResistance / 1e3:0.0}k"
+            $"{name} switches {switch1}/{switch2}: rest output {stage.RestOutput:0.000} V (reference "
+            + $"{reference.Voltage(node):0.000} V), output resistance {stage.OutputResistance / 1e3:0.0}k"
         );
         Assert.Equal(reference.Voltage(node), stage.RestOutput, 0.002 * Math.Abs(reference.Voltage(node)) + 1e-3);
 
@@ -76,16 +143,15 @@ public partial class AmpStageTests {
         moved.Reset(0);
         var before = moved.OutputResistance;
         foreach (var controls in new AmpControls[] {
-                     new(0.8, 0.5, 0.5, 0.5, 1, false),
-                     new(0.8, 0.5, 0.5, 0.5, 1, false, Switch1: true)
+                     new(0.8, 0.5, 0.5, 0.5, 1, false), new(0.8, 0.5, 0.5, 0.5, 1, false, Switch1: true)
                  }) {
             moved.Update(controls);
             var fresh = design.Create(Rate);
             fresh.Update(controls);
             fresh.Reset(0);
             output.WriteLine(
-                $"gain {controls.Gain} low {controls.Switch1}: {moved.OutputResistance / 1e3:0.00}k after the knob, " +
-                $"{fresh.OutputResistance / 1e3:0.00}k from a reset (gain 0.2: {before / 1e3:0.00}k)"
+                $"gain {controls.Gain} low {controls.Switch1}: {moved.OutputResistance / 1e3:0.00}k after the knob, "
+                + $"{fresh.OutputResistance / 1e3:0.00}k from a reset (gain 0.2: {before / 1e3:0.00}k)"
             );
             Assert.Equal(fresh.OutputResistance, moved.OutputResistance, 1e-9 * fresh.OutputResistance);
         }
@@ -141,12 +207,20 @@ public class MarshallModelTests(ITestOutputHelper output) {
                 levels.Add(Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000))));
             }
 
-            output.WriteLine($"{model} {CircuitAmpBlock.Info.Params[knob].Id}: {string.Join(", ", levels.Select(static l => $"{l:0.0}"))} dB");
+            output.WriteLine(
+                $"{model} {CircuitAmpBlock.Info.Params[knob].Id}: {string.Join(", ", levels.Select(static l => $"{l:0.0}"))} dB"
+            );
             for (var i = 1; i < levels.Count; i++) {
-                Assert.True(levels[i] > levels[i - 1] - 0.1, $"{model}: level fell from {levels[i - 1]:0.0} to {levels[i]:0.0} dB");
+                Assert.True(
+                    levels[i] > levels[i - 1] - 0.1,
+                    $"{model}: level fell from {levels[i - 1]:0.0} to {levels[i]:0.0} dB"
+                );
             }
 
-            Assert.True(levels[^1] - levels[0] > 6, $"{model}: the knob moves the level by {levels[^1] - levels[0]:0.0} dB");
+            Assert.True(
+                levels[^1] - levels[0] > 6,
+                $"{model}: the knob moves the level by {levels[^1] - levels[0]:0.0} dB"
+            );
         }
     }
 
@@ -158,8 +232,7 @@ public class MarshallModelTests(ITestOutputHelper output) {
         var chord = CircuitAmpBlockTests.Chord(14_400, 0.1f);
         var stock = Render(type, chord);
         foreach (var (index, label) in new[] {
-                     (CircuitAmpBlock.Switch1, design.Panel.Switch1),
-                     (CircuitAmpBlock.Switch2, design.Panel.Switch2),
+                     (CircuitAmpBlock.Switch1, design.Panel.Switch1), (CircuitAmpBlock.Switch2, design.Panel.Switch2),
                      (CircuitAmpBlock.Switch3, design.Panel.Switch3)
                  }) {
             if (label is null) {
@@ -168,7 +241,9 @@ public class MarshallModelTests(ITestOutputHelper output) {
 
             var switched = Render(type, chord, (index, 1f));
             var difference = Analysis.NullResidualDb(stock, switched) - Analysis.ToDb(Analysis.Rms(stock));
-            output.WriteLine($"{model} {label}: {difference:0.0} dB from stock, peak {Analysis.ToDb(Analysis.Peak(switched)):0.0} dBFS");
+            output.WriteLine(
+                $"{model} {label}: {difference:0.0} dB from stock, peak {Analysis.ToDb(Analysis.Peak(switched)):0.0} dBFS"
+            );
             Assert.True(Analysis.AllFinite(switched));
             Assert.True(difference > -30, $"{model} {label}: {difference:0.0} dB from stock");
         }

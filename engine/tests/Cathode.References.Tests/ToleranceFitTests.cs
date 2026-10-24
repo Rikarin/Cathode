@@ -26,10 +26,7 @@ public class ToleranceFitTests {
         const double Rate = 48_000;
         var settings = new CircuitSettings("Plexi", new Dictionary<string, double> { ["gain"] = 6 });
         var truth = new Dictionary<string, double> { ["gain"] = 6.8, ["feedback"] = 4.2 };
-        var tolerances = new[] {
-            Tolerance.Absolute("gain", 6, 1.5),
-            Tolerance.Absolute("feedback", 5, 2)
-        };
+        var tolerances = new[] { Tolerance.Absolute("gain", 6, 1.5), Tolerance.Absolute("feedback", 5, 2) };
         using var circuit = new CircuitAmpRenderer(Rate);
         var volts = MatchSignals.Performance(Rate, [0.3], 0.15);
         var target = circuit.Render(volts, settings, truth);

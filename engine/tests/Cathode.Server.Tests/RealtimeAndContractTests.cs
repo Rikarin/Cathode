@@ -113,7 +113,8 @@ public sealed class RealtimeAndContractTests : IAsyncLifetime {
 
     /// <summary>Canonical form; XML doc text carries the platform's line endings into descriptions, so unify them.</summary>
     static string Normalise(string json) =>
-        JsonNode.Parse(json)!.ToJsonString(new() { WriteIndented = true }).Replace("\\r\\n", "\\n", StringComparison.Ordinal)
+        JsonNode.Parse(json)!.ToJsonString(new() { WriteIndented = true })
+            .Replace("""\r\n""", """\n""", StringComparison.Ordinal)
         + "\n";
 
     static string EngineRoot() {

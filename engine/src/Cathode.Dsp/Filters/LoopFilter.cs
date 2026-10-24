@@ -51,14 +51,25 @@ public readonly record struct LoopFilter(
             useLow ? Cut.Design(true, sampleRate, lowCut, lowSlope, lowQ) : default,
             useHigh ? Cut.Design(false, sampleRate, highCut, highSlope, highQ) : default,
             peak1.GainDb != 0,
-            peak1.GainDb != 0 ? SvfCoefficients.Design(BiquadType.Peak, sampleRate, peak1.Frequency, peak1.Q, peak1.GainDb) : default,
+            peak1.GainDb != 0
+                ? SvfCoefficients.Design(BiquadType.Peak, sampleRate, peak1.Frequency, peak1.Q, peak1.GainDb)
+                : default,
             peak2.GainDb != 0,
-            peak2.GainDb != 0 ? SvfCoefficients.Design(BiquadType.Peak, sampleRate, peak2.Frequency, peak2.Q, peak2.GainDb) : default
+            peak2.GainDb != 0
+                ? SvfCoefficients.Design(BiquadType.Peak, sampleRate, peak2.Frequency, peak2.Q, peak2.GainDb)
+                : default
         ) { MaxGain = gain };
     }
 
     /// <summary>One cut: an optional TPT one-pole and up to two state-variable sections.</summary>
-    public readonly record struct Cut(bool Use, bool HighPass, bool HasOnePole, double OnePole, int Sections, SvfCoefficients First, SvfCoefficients Second) {
+    public readonly record struct Cut(
+        bool Use,
+        bool HighPass,
+        bool HasOnePole,
+        double OnePole,
+        int Sections,
+        SvfCoefficients First,
+        SvfCoefficients Second) {
         /// <summary>
         ///     The largest gain of a cut of <paramref name="slope" /> and resonance <paramref name="q" />: the peak of its
         ///     resonant section, <c>Q / √(1 - 1/(4Q²))</c> above a Q of 1/√2, else unity.
@@ -82,7 +93,15 @@ public readonly record struct LoopFilter(
             var resonance = q / ButterworthQ; // scales the last section's Q; 1 keeps the Butterworth alignment
             return slope switch {
                 0 => new(true, highPass, true, onePole, 0, default, default),
-                2 => new(true, highPass, true, onePole, 1, SvfCoefficients.Design(type, sampleRate, f0, resonance), default),
+                2 => new(
+                    true,
+                    highPass,
+                    true,
+                    onePole,
+                    1,
+                    SvfCoefficients.Design(type, sampleRate, f0, resonance),
+                    default
+                ),
                 3 => new(
                     true,
                     highPass,

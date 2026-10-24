@@ -120,14 +120,14 @@ static class Ab763 {
             "V1A",
             TriodeModel.Ecc83,
             StackDriver.CommonCathode,
-            Supply: supply,
-            CathodeResistor: 1.5e3,
-            Stack: FixedMidStack,
-            Load: new(1e6, PotTaper.Audio),
-            LoadRole: PotRole.Gain,
-            PlateResistor: 100e3,
-            CathodeBypass: 25e-6,
-            InputResistance: 34e3,
+            supply,
+            1.5e3,
+            FixedMidStack,
+            new(1e6, PotTaper.Audio),
+            PotRole.Gain,
+            100e3,
+            25e-6,
+            34e3,
             BrightCap: 120e-12
         );
 
@@ -157,7 +157,8 @@ static class Ab763 {
     public static InverterInputDesign InverterInput { get; } = new(1e-9, 1e6);
 
     /// <summary>The AB763 long-tail pair: a 12AT7, 82k and 100k plates, 22k tail, 470 Ω bias.</summary>
-    public static LongTailPairDesign PhaseInverter(double supply) => new(TriodeModel.Ecc81, supply, 82e3, 100e3, 22e3, 470);
+    public static LongTailPairDesign PhaseInverter(double supply) =>
+        new(TriodeModel.Ecc81, supply, 82e3, 100e3, 22e3, 470);
 
     /// <summary>
     ///     The AB763 feedback: 820 Ω from a speaker tap into the tail's bottom resistor (<paramref name="shunt" />: 47 Ω

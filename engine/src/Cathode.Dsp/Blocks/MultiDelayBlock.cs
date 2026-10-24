@@ -113,6 +113,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
 
     /// <summary>Voice filter types.</summary>
     public const int FilterOff = 0;
+
     public const int FilterLowPass = 1;
     public const int FilterHighPass = 2;
     public const int FilterBandPass = 3;
@@ -178,27 +179,127 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
         "Multitap Delay",
         "Delay",
         [
-            ParamDescriptor.Choice("type", "Type", ["Quad Tap", "Quad Parallel", "Quad Series", "Quad Diffusor", "Quad Tape"]),
-            new("time", "Master Time", ParamKind.Float, 1f, MaxTimeMs, 400f, "ms", ParamTaper.Log, ParamSmoothing.Linear, 60f),
+            ParamDescriptor.Choice(
+                "type",
+                "Type",
+                ["Quad Tap", "Quad Parallel", "Quad Series", "Quad Diffusor", "Quad Tape"]
+            ),
+            new(
+                "time",
+                "Master Time",
+                ParamKind.Float,
+                1f,
+                MaxTimeMs,
+                400f,
+                "ms",
+                ParamTaper.Log,
+                ParamSmoothing.Linear,
+                60f
+            ),
             ParamDescriptor.Choice("tempo", "Master Tempo", TempoDivisions.Names),
             ParamDescriptor.Float("masterFeedback", "Master Feedback", 0f, 200f, 100f, "%"),
-            .. Voice(k => ParamDescriptor.Float($"tap{k + 1}Time", $"Time {k + 1}", 0f, 100f, 25f * (k + 1), "%")),
-            .. Voice(k => ParamDescriptor.Choice($"tap{k + 1}Tempo", $"Tempo {k + 1}", TempoDivisions.Names)),
-            .. Voice(k => ParamDescriptor.Float($"tap{k + 1}Feedback", $"Feedback {k + 1}", -100f, 100f, k == 3 ? 20f : 0f, "%")),
-            .. Voice(k => ParamDescriptor.Float($"tap{k + 1}Level", $"Level {k + 1}", -100f, 100f, 100f * Decibels.ToGain(-3f * k), "%")),
-            .. Voice(k => ParamDescriptor.Float($"tap{k + 1}Pan", $"Pan {k + 1}", -100f, 100f, (k % 2 == 0 ? -1f : 1f) * (k < 2 ? 100f : 50f), "%")),
-            .. Voice(k => ParamDescriptor.Float($"cross{k + 1}", $"Cross Feedback {k + 1}→{(k + 1) % Voices + 1}", -100f, 100f, 0f, "%")
-                .ShownOn(TypeCount, QuadParallel, QuadDiffusor)),
-            .. Voice(k => ParamDescriptor.Choice($"filter{k + 1}Type", $"Filter {k + 1} Type", VoiceFilterTypes)),
-            .. Voice(k => ParamDescriptor.Float($"filter{k + 1}Frequency", $"Filter {k + 1} Freq", 50f, 15_000f, 500f * (1 << k), "Hz", ParamTaper.Log)),
-            .. Voice(k => ParamDescriptor.Float($"filter{k + 1}Q", $"Filter {k + 1} Q", 0.1f, 10f, 0.7071f, "", ParamTaper.Log)),
-            .. Voice(k => ParamDescriptor.Float($"filter{k + 1}Gain", $"Filter {k + 1} Gain", -12f, 12f, 0f, "dB")),
-            .. Voice(k => ParamDescriptor.Float($"chorus{k + 1}Rate", $"Chorus {k + 1} Rate", 0.05f, 10f, 0.5f + 0.13f * k, "Hz", ParamTaper.Log)),
-            .. Voice(k => ParamDescriptor.Float($"chorus{k + 1}Depth", $"Chorus {k + 1} Depth", 0f, MaxChorusMs, 0f, "ms")),
-            .. Voice(k => ParamDescriptor.Float($"comb{k + 1}Time", $"Comb {k + 1} Time", 0.1f, MaxCombMs, 2f + 1.5f * k, "ms", ParamTaper.Log)),
-            .. Voice(k => ParamDescriptor.Float($"comb{k + 1}Feedback", $"Comb {k + 1} Feedback", -95f, 95f, 0f, "%")),
-            .. Voice(k => ParamDescriptor.Float($"ring{k + 1}Frequency", $"Ring Mod {k + 1} Freq", 1f, 5_000f, 100f * (k + 1), "Hz", ParamTaper.Log)),
-            .. Voice(k => ParamDescriptor.Float($"ring{k + 1}Mix", $"Ring Mod {k + 1} Mix", 0f, 100f, 0f, "%")),
+            ..Voice(k => ParamDescriptor.Float($"tap{k + 1}Time", $"Time {k + 1}", 0f, 100f, 25f * (k + 1), "%")),
+            ..Voice(k => ParamDescriptor.Choice($"tap{k + 1}Tempo", $"Tempo {k + 1}", TempoDivisions.Names)),
+            ..Voice(k => ParamDescriptor.Float(
+                    $"tap{k + 1}Feedback",
+                    $"Feedback {k + 1}",
+                    -100f,
+                    100f,
+                    k == 3 ? 20f : 0f,
+                    "%"
+                )
+            ),
+            ..Voice(k => ParamDescriptor.Float(
+                    $"tap{k + 1}Level",
+                    $"Level {k + 1}",
+                    -100f,
+                    100f,
+                    100f * Decibels.ToGain(-3f * k),
+                    "%"
+                )
+            ),
+            ..Voice(k => ParamDescriptor.Float(
+                    $"tap{k + 1}Pan",
+                    $"Pan {k + 1}",
+                    -100f,
+                    100f,
+                    (k % 2 == 0 ? -1f : 1f) * (k < 2 ? 100f : 50f),
+                    "%"
+                )
+            ),
+            ..Voice(k => ParamDescriptor.Float(
+                $"cross{k + 1}",
+                $"Cross Feedback {k + 1}→{(k + 1) % Voices + 1}",
+                -100f,
+                100f,
+                0f,
+                "%"
+                )
+                .ShownOn(TypeCount, QuadParallel, QuadDiffusor)
+            ),
+            ..Voice(k => ParamDescriptor.Choice($"filter{k + 1}Type", $"Filter {k + 1} Type", VoiceFilterTypes)),
+            ..Voice(k => ParamDescriptor.Float(
+                    $"filter{k + 1}Frequency",
+                    $"Filter {k + 1} Freq",
+                    50f,
+                    15_000f,
+                    500f * (1 << k),
+                    "Hz",
+                    ParamTaper.Log
+                )
+            ),
+            ..Voice(k => ParamDescriptor.Float(
+                    $"filter{k + 1}Q",
+                    $"Filter {k + 1} Q",
+                    0.1f,
+                    10f,
+                    0.7071f,
+                    string.Empty,
+                    ParamTaper.Log
+                )
+            ),
+            ..Voice(k => ParamDescriptor.Float($"filter{k + 1}Gain", $"Filter {k + 1} Gain", -12f, 12f, 0f, "dB")),
+            ..Voice(k => ParamDescriptor.Float(
+                    $"chorus{k + 1}Rate",
+                    $"Chorus {k + 1} Rate",
+                    0.05f,
+                    10f,
+                    0.5f + 0.13f * k,
+                    "Hz",
+                    ParamTaper.Log
+                )
+            ),
+            ..Voice(k => ParamDescriptor.Float(
+                    $"chorus{k + 1}Depth",
+                    $"Chorus {k + 1} Depth",
+                    0f,
+                    MaxChorusMs,
+                    0f,
+                    "ms"
+                )
+            ),
+            ..Voice(k => ParamDescriptor.Float(
+                    $"comb{k + 1}Time",
+                    $"Comb {k + 1} Time",
+                    0.1f,
+                    MaxCombMs,
+                    2f + 1.5f * k,
+                    "ms",
+                    ParamTaper.Log
+                )
+            ),
+            ..Voice(k => ParamDescriptor.Float($"comb{k + 1}Feedback", $"Comb {k + 1} Feedback", -95f, 95f, 0f, "%")),
+            ..Voice(k => ParamDescriptor.Float(
+                    $"ring{k + 1}Frequency",
+                    $"Ring Mod {k + 1} Freq",
+                    1f,
+                    5_000f,
+                    100f * (k + 1),
+                    "Hz",
+                    ParamTaper.Log
+                )
+            ),
+            ..Voice(k => ParamDescriptor.Float($"ring{k + 1}Mix", $"Ring Mod {k + 1} Mix", 0f, 100f, 0f, "%")),
             ParamDescriptor.Float("masterPan", "Master Pan", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float("masterLfoRate", "Master LFO Rate", 25f, 400f, 100f, "%", ParamTaper.Log),
             ParamDescriptor.Float("masterLfoDepth", "Master LFO Depth", 0f, 400f, 100f, "%"),
@@ -235,7 +336,8 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("envelopeThreshold", "Envelope Threshold", -80f, 0f, -40f, "dB"),
             ParamDescriptor.Float("envelopeAttack", "Envelope Attack", 0f, 2_000f, 0f, "ms"),
             ParamDescriptor.Float("envelopeRelease", "Envelope Release", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
-            ParamDescriptor.Float("seriesFeedback", "Series Feedback", -100f, 100f, 0f, "%").ShownOn(TypeCount, QuadSeries),
+            ParamDescriptor.Float("seriesFeedback", "Series Feedback", -100f, 100f, 0f, "%")
+                .ShownOn(TypeCount, QuadSeries),
             ParamDescriptor.Float("seriesSend", "Series Send", 0f, 100f, 100f, "%").ShownOn(TypeCount, QuadSeries),
             ParamDescriptor.Float("seriesReturn", "Series Return", 0f, 100f, 100f, "%").ShownOn(TypeCount, QuadSeries),
             ParamDescriptor.Float("motorSpeed", "Motor Speed", 25f, 200f, 100f, "%").ShownOn(TypeCount, QuadTape),
@@ -249,7 +351,8 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
         maxInstances: 2
     );
 
-    static IEnumerable<ParamDescriptor> Voice(Func<int, ParamDescriptor> parameter) => Enumerable.Range(0, Voices).Select(parameter);
+    static IEnumerable<ParamDescriptor> Voice(Func<int, ParamDescriptor> parameter) =>
+        Enumerable.Range(0, Voices).Select(parameter);
 
     /// <summary>Gains of the balance pan law: unity on both sides at centre, the far side fading to zero.</summary>
     static (float Left, float Right) Pan(float pan) => (Math.Min(1f, 1f - pan), Math.Min(1f, 1f + pan));
@@ -342,7 +445,11 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
             chorusRate[k] = Params.Current(Chorus1Rate + k);
             chorusDepth[k] = Params.Current(Chorus1Depth + k) * chorusScale * 0.001f * sampleRate;
             combDelay[k] = Params.Current(Comb1Time + k) * 0.001f * sampleRate;
-            combFeedback[k] = Math.Clamp(Params.Current(Comb1Feedback + k) / 100f * combScale, -MaxCombFeedback, MaxCombFeedback);
+            combFeedback[k] = Math.Clamp(
+                Params.Current(Comb1Feedback + k) / 100f * combScale,
+                -MaxCombFeedback,
+                MaxCombFeedback
+            );
             ringStep[k] = 2f * MathF.PI * Params.Current(Ring1Frequency + k) / sampleRate;
             ringMix[k] = Math.Min(1f, Params.Current(Ring1Mix + k) / 100f * ringScale);
         }
@@ -361,8 +468,10 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
 
         var shape1 = (LfoShape)(int)Params.Current(Lfo1Type);
         var shape2 = (LfoShape)(int)Params.Current(Lfo2Type);
-        var rate1 = lfoRateScale * TempoDivisions.Rate((int)Params.Current(Lfo1Tempo), tempo, Params.Advance(Lfo1Rate, n));
-        var rate2 = lfoRateScale * TempoDivisions.Rate((int)Params.Current(Lfo2Tempo), tempo, Params.Advance(Lfo2Rate, n));
+        var rate1 = lfoRateScale
+            * TempoDivisions.Rate((int)Params.Current(Lfo1Tempo), tempo, Params.Advance(Lfo1Rate, n));
+        var rate2 = lfoRateScale
+            * TempoDivisions.Rate((int)Params.Current(Lfo2Tempo), tempo, Params.Advance(Lfo2Rate, n));
         var depth1 = Params.Advance(Lfo1Depth, n) * lfoDepthScale * 0.001f * sampleRate;
         var depth2 = Params.Advance(Lfo2Depth, n) * lfoDepthScale * 0.001f * sampleRate;
         var phase1 = Params.Advance(Lfo1Phase, n) / 360.0;
@@ -605,7 +714,13 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                 FilterBandPass => BiquadType.BandPass,
                 _ => BiquadType.Peak
             };
-            filterCoefficients[k] = SvfCoefficients.Design(type, sampleRate, filterFrequency[k] * frequencyScale, filterQ[k], filterGain[k]);
+            filterCoefficients[k] = SvfCoefficients.Design(
+                type,
+                sampleRate,
+                filterFrequency[k] * frequencyScale,
+                filterQ[k],
+                filterGain[k]
+            );
         }
     }
 
@@ -633,7 +748,9 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
 
     /// <summary>The voices' read delays in samples: a percentage of the master time, or the voice's own tempo.</summary>
     void ComputeTapTargets(int type, float masterTimeMs, double tempo, float motor) {
-        var longest = capacity - 8 - (MaxScale * (MaxChorusMs + 2 * MaxLfoMs) * 2 + 20) * 0.001f * (float)Spec.SampleRate;
+        var longest = capacity
+            - 8
+            - (MaxScale * (MaxChorusMs + 2 * MaxLfoMs) * 2 + 20) * 0.001f * (float)Spec.SampleRate;
         for (var k = 0; k < Voices; k++) {
             var ms = Milliseconds(Tap1Tempo + k, masterTimeMs * Params.Current(Tap1Time + k) / 100f, tempo);
             var samples = ms * 0.001f * (float)Spec.SampleRate;

@@ -8,7 +8,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     at V2A's grid (wired "backwards": the volumes are V2A's grid leak, and the channel not played loads the one played,
 ///     about 1M with its volume at 0 down to its V1 plate with it at 10), the 500 pF bright cap across the Instrument
 ///     volume, the tone control, V2A (12AX7, 100k, 1.5k ‖ 25 µF), 0.1 µF into a cathodyne on V2B (56k plate, 56k cathode,
-///     1.5k bias), two 6V6GT cathode-biased on a shared 250 Ω with no screen resistors, an 8k : 8 Ω transformer, a 5Y3, and
+///     1.5k bias), two 6V6GT cathode-biased on a shared 250 Ω with no screen resistors, an 8k : 8 Ω transformer, a 5Y3,
+///     and
 ///     no feedback. Panel: Instrument and Mic volumes, Tone; <b>Mic Input</b> plays the Microphone channel.
 ///     <see cref="Jumped" /> is the same amp with the channels jumpered.
 /// </summary>
@@ -62,24 +63,24 @@ public static class TweedDeluxe {
             new(
                 "2 x 6V6GT",
                 PentodeModel.SixV6GT,
-                TubesPerSide: 1,
-                Supply: 370,
-                ScreenResistor: 1,
-                IdleCurrent: 0.047,
-                CathodeBias: true,
-                CathodeBypass: 25e-6,
-                RatedPower: 15,
-                PhaseInverter: new CathodyneDesign(TriodeModel.Ecc83, 250, 56e3, 56e3, 1.5e3),
-                CouplingCap: 0.1e-6,
-                GridLeak: 220e3,
-                GridStopper: 1,
-                CutCap: 0,
-                CutPot: new(1e6, PotTaper.Linear),
-                Feedback: new(1, 22e3, 100, new(1e3, PotTaper.Linear), 1e-12),
-                HasFeedback: false,
-                Transformer: new(8e3),
-                Speaker: SpeakerDesign.OpenBack1x12,
-                PowerSupply: new(150, 16e-6, 10e3, 16e-6, 18e3, 16e-6, 2.5e-3, RectifierModel.FiveY3)
+                1,
+                370,
+                1,
+                0.047,
+                true,
+                25e-6,
+                15,
+                new CathodyneDesign(TriodeModel.Ecc83, 250, 56e3, 56e3, 1.5e3),
+                0.1e-6,
+                220e3,
+                1,
+                0,
+                new(1e6, PotTaper.Linear),
+                new(1, 22e3, 100, new(1e3, PotTaper.Linear), 1e-12),
+                false,
+                new(8e3),
+                SpeakerDesign.OpenBack1x12,
+                new(150, 16e-6, 10e3, 16e-6, 18e3, 16e-6, 2.5e-3, RectifierModel.FiveY3)
             ),
             -9
         ) {

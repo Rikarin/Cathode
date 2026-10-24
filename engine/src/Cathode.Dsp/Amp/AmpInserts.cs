@@ -14,7 +14,8 @@ public sealed class AmpBoost {
         "TS808 OD", "Super OD", "Chiron OD", "Treble Booster", "Esoteric Boost", "FET Boost"
     ];
 
-    static readonly DriveCircuit[] Resolved = [..Circuits.Select(static n => DriveCircuits.All.Single(c => c.Name == n))];
+    static readonly DriveCircuit[] Resolved =
+        [..Circuits.Select(static n => DriveCircuits.All.Single(c => c.Name == n))];
 
     readonly CircuitChannel channel = new();
     DriveCircuit? circuit;
@@ -94,7 +95,8 @@ public struct AmpInputFilter {
     bool useDefinition;
 
     /// <summary>Input Filter options.</summary>
-    public static IReadOnlyList<string> Types { get; } = ["Off", "Low Shelf", "High Shelf", "Peak", "High Pass", "Low Pass"];
+    public static IReadOnlyList<string> Types { get; } =
+        ["Off", "Low Shelf", "High Shelf", "Peak", "High Pass", "Low Pass"];
 
     public void Reset() {
         filter.Reset();

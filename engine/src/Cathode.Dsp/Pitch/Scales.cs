@@ -3,7 +3,8 @@ namespace Cathode.Dsp.Pitch;
 /// <summary>Keys, scales and diatonic intervals for the intelligent harmonizer.</summary>
 public static class Scales {
     /// <summary>Key names, C first. A key is the pitch class of the scale's root.</summary>
-    public static IReadOnlyList<string> Keys { get; } = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    public static IReadOnlyList<string> Keys { get; } =
+        ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
     /// <summary>Scale names, in the order of <see cref="Intervals" />.</summary>
     public static IReadOnlyList<string> Names { get; } = [
@@ -38,10 +39,12 @@ public static class Scales {
     ];
 
     /// <summary>Each scale's pitch classes above its root as a 12-bit mask, bit 0 = the root.</summary>
-    static readonly int[] Masks = [..Intervals.Select(static degrees => degrees.Aggregate(0, static (mask, d) => mask | 1 << d))];
+    static readonly int[] Masks =
+        [..Intervals.Select(static degrees => degrees.Aggregate(0, static (mask, d) => mask | 1 << d))];
 
     /// <summary>Five-limit just intonation: the ratio of each semitone above the key's root.</summary>
-    static readonly double[] Just = [1, 16 / 15.0, 9 / 8.0, 6 / 5.0, 5 / 4.0, 4 / 3.0, 45 / 32.0, 3 / 2.0, 8 / 5.0, 5 / 3.0, 9 / 5.0, 15 / 8.0];
+    static readonly double[] Just =
+        [1, 16 / 15.0, 9 / 8.0, 6 / 5.0, 5 / 4.0, 4 / 3.0, 45 / 32.0, 3 / 2.0, 8 / 5.0, 5 / 3.0, 9 / 5.0, 15 / 8.0];
 
     /// <summary>
     ///     The pitch ratio that moves <paramref name="note" /> by <paramref name="semitones" /> in just intonation on
@@ -134,9 +137,11 @@ public static class Scales {
         var direction = Math.Sign(semitones);
         var minimum = Math.Min(3, Math.Abs(semitones));
         for (var distance = 1; distance < 12; distance++) {
-            foreach (var candidate in (ReadOnlySpan<int>)[target - direction * distance, target + direction * distance]) {
+            foreach (var candidate in (ReadOnlySpan<int>)
+                     [target - direction * distance, target + direction * distance]) {
                 var interval = candidate - note;
-                if ((chord >> PitchClass(candidate) & 1) != 0 && Math.Sign(interval) == direction
+                if ((chord >> PitchClass(candidate) & 1) != 0
+                    && Math.Sign(interval) == direction
                     && Math.Abs(interval) >= minimum) {
                     return interval;
                 }

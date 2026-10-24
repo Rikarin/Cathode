@@ -76,7 +76,8 @@ public sealed record SpeakerDesign(
     public static SpeakerDesign Closed8x10 { get; } = new(6.2, 1.0e-3, 28, 60, 24, 1.8);
 
     /// <summary>The presets, in the order of the Circuit Amp's Speaker choice (after Stock).</summary>
-    public static IReadOnlyList<SpeakerDesign> Presets { get; } = [OpenBack1x12, OpenBack2x12, OpenBack4x10, Closed4x12, Closed8x10];
+    public static IReadOnlyList<SpeakerDesign> Presets { get; } =
+        [OpenBack1x12, OpenBack2x12, OpenBack4x10, Closed4x12, Closed8x10];
 
     /// <summary>The motional resistance, inductance and capacitance of the resonance.</summary>
     public (double Resistance, double Inductance, double Capacitance) Motional =>

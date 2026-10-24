@@ -342,7 +342,13 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
         ///     One LR2 split: the first one-pole gives the low and high halves, each squared by a second one-pole; the high
         ///     band is inverted so the two sum to an allpass.
         /// </summary>
-        static (double Low, double High) Split(ref double first, ref double low, ref double high, double pole, double x) {
+        static (double Low, double High) Split(
+            ref double first,
+            ref double low,
+            ref double high,
+            double pole,
+            double x
+        ) {
             var lp = LowPass(ref first, pole, x);
             var hp = x - lp;
             return (LowPass(ref low, pole, lp), -(hp - LowPass(ref high, pole, hp)));

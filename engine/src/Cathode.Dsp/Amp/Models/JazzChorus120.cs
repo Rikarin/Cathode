@@ -8,7 +8,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     distortion at its minimum, 1.9×), a Fender-type tone stack (150 pF, 100k slope, 82 nF bass, 47 nF mid; treble
 ///     250k linear, bass 250k audio, middle 10k linear, with a 1k between the bass and middle pots), 100k into the 1M
 ///     linear volume with the Hi-Treble pot (1M linear in series with 470 pF from the treble wiper to the volume wiper),
-///     IC3a (270k / 22k, 13×), the 33k / 270k pad and the IC3b follower (an ideal buffer here), the IC1a mixer (47k against the silent reverb
+///     IC3a (270k / 22k, 13×), the 33k / 270k pad and the IC3b follower (an ideal buffer here), the IC1a mixer (47k
+///     against the silent reverb
 ///     return's 100k, then 100k / 33k), and one channel of the discrete power amp: a differential pair and voltage
 ///     amplifier with 27k / 1k feedback (28×, 1k through 10 µF), Darlington outputs with 0.33 Ω emitter resistors on
 ///     ±40 V rails.
@@ -48,22 +49,22 @@ public static class JazzChorus120 {
     ) {
         SolidState = new(
             "2 x 60 W class AB",
-            InputCap: 0.082e-6,
-            InputResistor: 56e3,
-            FeedbackResistor: 27e3,
-            ShuntResistor: 1e3,
-            ShuntCap: 10e-6,
-            OpenLoopGain: 1e4,
-            GainBandwidth: 2e6,
-            Rail: 40,
-            RailResistance: 4,
-            Reservoir: 3300e-6,
-            Headroom: 2.5,
-            Junctions: 2,
-            EmitterResistor: 0.33,
-            IdleCurrent: 0.03,
-            Load: 8,
-            RatedPower: 60
+            0.082e-6,
+            56e3,
+            27e3,
+            1e3,
+            10e-6,
+            1e4,
+            2e6,
+            40,
+            4,
+            3300e-6,
+            2.5,
+            2,
+            0.33,
+            0.03,
+            8,
+            60
         ),
         Panel = new() {
             Gain = "Volume",

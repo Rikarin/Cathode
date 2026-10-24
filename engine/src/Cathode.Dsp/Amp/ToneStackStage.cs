@@ -205,7 +205,10 @@ public sealed class ToneStackStage : AmpStage {
     public override void Update(in AmpControls controls) {
         var turn = controls.Rotation(design.LoadRole);
         var brightOn = controls.IsOn(design.BrightSwitch) && design.BrightCap > 0;
-        if (controls.Bass == bass && controls.Middle == middle && controls.Treble == treble && turn == rotation
+        if (controls.Bass == bass
+            && controls.Middle == middle
+            && controls.Treble == treble
+            && turn == rotation
             && brightOn == bright) {
             return;
         }

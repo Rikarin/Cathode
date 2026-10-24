@@ -32,7 +32,11 @@ public class ResonatorBlockTests {
     [Fact]
     public void Chord_mode_tunes_the_voices_to_the_chord_on_the_root() {
         // A2 major: A2, C#3, E3, A3.
-        using var resonator = Create((ResonatorBlock.Root, 45f), (ResonatorBlock.Chord, 3f), (ResonatorBlock.Mix, 100f));
+        using var resonator = Create(
+            (ResonatorBlock.Root, 45f),
+            (ResonatorBlock.Chord, 3f),
+            (ResonatorBlock.Mix, 100f)
+        );
 
         var response = BlockRender.Mono(resonator, Signals.Impulse(65_536), 64);
 

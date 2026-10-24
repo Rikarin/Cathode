@@ -5,7 +5,8 @@ namespace Cathode.Dsp.Amp.Models;
 /// <summary>
 ///     What the Fender brownface amps with the harmonic vibrato share (the 6G12 Concert and 6G4 Super, read from their
 ///     factory drawings; the 6G5 Pro and 6G7 Bandmaster are the same circuit family): two channels of two 7025 stages,
-///     the brownface tone network, and, on the Vibrato channel, the harmonic vibrato (<see cref="HarmonicVibratoStageDesign" />)
+///     the brownface tone network, and, on the Vibrato channel, the harmonic vibrato
+///     (<see cref="HarmonicVibratoStageDesign" />)
 ///     whose mixer pair the dry signal also runs through; the Normal channel joins at the inverter's grid.
 /// </summary>
 /// <remarks>
@@ -15,8 +16,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///         triodes on one 820 Ω ‖ 25 µF cathode, "C"), 0.05 µF into the tone network (250 pF to the 250k linear Treble,
 ///         100k to its far end, which has the 250k audio Bass to ground with its wiper on 0.01 µF from that end and 10k to
 ///         ground) and the 500k linear Volume from the treble wiper (47 pF across it on the Vibrato channel only); the
-///         second triodes on one 820 Ω ‖ 25 µF ("D"): the Normal channel's with 220k, 0.05 µF and 1M to the inverter's grid;
-///         the Vibrato channel's with a split load, 100k over 6.8k, the signal taken at the junction (Fender's "split plate
+///         second triodes on one 820 Ω ‖ 25 µF ("D"): the Normal channel's with 220k, 0.05 µF and 1M to the inverter's
+///         grid;
+///         the Vibrato channel's with a split load, 100k over 6.8k, the signal taken at the junction (Fender's "split
+///         plate
 ///         load": it gives up most of the stage's gain, which the vibrato's mixer pair makes up); then the crossover and
 ///         the mixer pair (values in <see cref="HarmonicVibratoStageDesign" />, whose defaults are these drawings').
 ///     </para>

@@ -221,7 +221,13 @@ public class RigTests {
     }
 
     static ModifierDefinition Modifier(string source, float min, float max) =>
-        new() { Block = "vol", Param = "level", Source = source, Min = min, Max = max };
+        new() {
+            Block = "vol",
+            Param = "level",
+            Source = source,
+            Min = min,
+            Max = max
+        };
 
     static void Set(CathodeEngine engine, string id, float value) =>
         engine.Rig.SetTarget(RigControls.Descriptor.IndexOf(id), value);

@@ -4,9 +4,11 @@ namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
 ///     Fender Blues Junior III (15 W, 1 × 12): V1B (10k and 1M at the jack; 100k, 1.5k ‖ 47 µF), 0.0022 µF into the 1M
-///     volume with 100 pF across its upper part and 130k from its wiper to ground; 10k into V1A (100k, 1.5k with 22 µF over
+///     volume with 100 pF across its upper part and 130k from its wiper to ground; 10k into V1A (100k, 1.5k with 22 µF
+///     over
 ///     100k, which the <b>Fat</b> switch's J111 grounds) with the Fender stack on its plate (250 pF, 100k slope, 0.022 µF
-///     bass and mid caps, the mid cap on the mid pot's wiper; treble 250k linear, bass 250k audio, mid 25k linear); 10k into
+///     bass and mid caps, the mid cap on the mid pot's wiper; treble 250k linear, bass 250k audio, mid 25k linear); 10k
+///     into
 ///     V2B (100k, 1.5k unbypassed), 0.0022 µF and 430k into the 50k master (1500 pF and the reverb's 100k beside it), 220k
 ///     and 0.0077 µF into a 12AX7 long-tail pair (91k / 100k, 820 Ω, a 33k + 4.7k tail), two EL84 in fixed bias at 329 V
 ///     with 100 Ω screen resistors, 75k feedback from the 8 Ω tap into the tail's 4.7k with a fixed 7.5k and 0.1 µF across
@@ -26,10 +28,14 @@ namespace Cathode.Dsp.Amp.Models;
 ///         return on the master's top, which is kept) is not modelled.
 ///     </para>
 ///     <para>
-///         Simplified: the driven inverter triode's load is 91k + 9.1k with the output taken between them; here a 91k plate
-///         resistor (the same swing, a 9 % lower plate impedance). The tail's 4.7k is in the inverter's DC tail (37.7k) and
-///         is also the feedback's shunt. The fixed 7.5k + 0.1 µF across that shunt is the presence network with its 15k pot
-///         at noon; the panel hides it. Unverified: the output transformer (Fender 0049969000; about 7k : 8 Ω per a vendor,
+///         Simplified: the driven inverter triode's load is 91k + 9.1k with the output taken between them; here a 91k
+///         plate
+///         resistor (the same swing, a 9 % lower plate impedance). The tail's 4.7k is in the inverter's DC tail (37.7k)
+///         and
+///         is also the feedback's shunt. The fixed 7.5k + 0.1 µF across that shunt is the presence network with its 15k
+///         pot
+///         at noon; the panel hides it. Unverified: the output transformer (Fender 0049969000; about 7k : 8 Ω per a
+///         vendor,
 ///         tubeampdoctor.com), the EL84s' idle current (30 mA; the bias is fixed, not adjustable), the supply's source
 ///         resistance.
 ///     </para>
@@ -50,24 +56,24 @@ public static class BluesJunior {
         new(
             "2 x EL84",
             PentodeModel.EL84,
-            TubesPerSide: 1,
-            Supply: 329,
-            ScreenResistor: 100,
-            IdleCurrent: 0.030,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 15,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 265, 91e3, 100e3, 37.7e3, 820),
-            CouplingCap: 22e-9,
-            GridLeak: 220e3,
-            GridStopper: 1.5e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(1, 75e3, 4.7e3, new(15e3, PotTaper.Linear), 0.1e-6),
-            HasFeedback: true,
-            Transformer: new(7e3),
-            Speaker: SpeakerDesign.OpenBack1x12,
-            PowerSupply: new(40, 47e-6, 2.2e3, 22e-6, 20e3, 22e-6, 3.5e-3, RectifierModel.Silicon),
+            1,
+            329,
+            100,
+            0.030,
+            false,
+            0,
+            15,
+            new LongTailPairDesign(TriodeModel.Ecc83, 265, 91e3, 100e3, 37.7e3, 820),
+            22e-9,
+            220e3,
+            1.5e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(1, 75e3, 4.7e3, new(15e3, PotTaper.Linear), 0.1e-6),
+            true,
+            new(7e3),
+            SpeakerDesign.OpenBack1x12,
+            new(40, 47e-6, 2.2e3, 22e-6, 20e3, 22e-6, 3.5e-3, RectifierModel.Silicon),
             InverterInput: new(7.7e-9, 1e6)
         ),
         -6

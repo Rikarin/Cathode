@@ -171,7 +171,8 @@ public static class ReferenceMatcher {
         File.ReadLines(path)
             .Select(static line => line.Split(',', StringSplitOptions.TrimEntries))
             .Where(static parts => parts.Length >= 2
-                && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out _))
+                && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out _)
+            )
             .Select(static parts => (
                     double.Parse(parts[0], CultureInfo.InvariantCulture),
                     double.Parse(parts[1], CultureInfo.InvariantCulture)

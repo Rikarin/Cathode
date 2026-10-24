@@ -314,7 +314,7 @@ public sealed class SynthBlock() : DspBlock(Info) {
 
         public void Reset() {
             phase = 0;
-            noise = seed * 0x9E3779B9u | 1;
+            noise = (seed * 0x9E3779B9u) | 1;
             held = 0;
             (pink0, pink1, pink2) = (0, 0, 0);
         }

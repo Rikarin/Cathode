@@ -6,7 +6,8 @@ namespace Cathode.Dsp.Wdf;
 /// <summary>
 ///     The root of a wave digital filter whose top is an R-type adaptor holding K nonlinear device ports, after Werner,
 ///     Nangia, Smith and Abel, "Resolving wave digital filters with multiple/multiport nonlinearities" (DAFx-15). Use
-///     <see cref="NoDevice" /> for a linear circuit: the root then only scatters. A complete circuit: set the sources, call
+///     <see cref="NoDevice" /> for a linear circuit: the root then only scatters. A complete circuit: set the sources,
+///     call
 ///     <see cref="Tick" /> once per sample, read <see cref="Probe" /> and the children's voltages and currents.
 /// </summary>
 /// <remarks>
@@ -186,7 +187,11 @@ public struct RTypeRoot<TPorts, TDevice>
             (scattering.ProbeRow + index) * scattering.Columns
         );
         return Dot(ref row, ref MemoryMarshal.GetArrayDataReference(inputs), count)
-            + Dot(ref Unsafe.Add(ref row, count), ref MemoryMarshal.GetArrayDataReference(newton.currents), Device.Ports);
+            + Dot(
+                ref Unsafe.Add(ref row, count),
+                ref MemoryMarshal.GetArrayDataReference(newton.currents),
+                Device.Ports
+            );
     }
 
     /// <summary><see cref="RTypeScattering.Dot" /> on references: the same sum, in the same order.</summary>
@@ -245,7 +250,7 @@ public struct RTypeRoot<TPorts, TDevice>
         var (gc, absolute, relative) = (s.conductances[0], s.AbsoluteTolerance, s.RelativeTolerance);
         var (entry, previous) = (v[0], h[0]);
         var x = entry;
-        if (s.Linearise && s.primed) {
+        if (s is { Linearise: true, primed: true }) {
             // One Newton step on the last sample's Jacobian for the change in p: x = v + M⁻¹ Δp.
             var m = 1.0;
             m -= f * (jacobian[0] - gc);
@@ -293,7 +298,8 @@ public struct RTypeRoot<TPorts, TDevice>
             Device.Limit(v.AsSpan(0, 1), s.proposed.AsSpan(0, 1));
             proposed = s.proposed[0];
             var bracketed = double.IsFinite(below) && double.IsFinite(above);
-            if (iterations >= s.SafeguardAfter && bracketed
+            if (iterations >= s.SafeguardAfter
+                && bracketed
                 && !(proposed > Math.Min(below, above) && proposed < Math.Max(below, above))) {
                 // Newton is cycling across a kink: bisect the bracket instead of leaving it.
                 proposed = 0.5 * (below + above);
@@ -305,7 +311,7 @@ public struct RTypeRoot<TPorts, TDevice>
                 r += (j - gc) * step;
                 s.currents[0] = r;
                 v[0] = proposed;
-                s.Record(iterations, converged: true, finite: true);
+                s.Record(iterations, true, true);
                 return true;
             }
 
@@ -346,7 +352,7 @@ public struct RTypeRoot<TPorts, TDevice>
         var (absolute, relative) = (s.AbsoluteTolerance, s.RelativeTolerance);
         var (entry0, entry1, previous0, previous1) = (v[0], v[1], h[0], h[1]);
         var (x0, x1) = (entry0, entry1);
-        if (s.Linearise && s.primed) {
+        if (s is { Linearise: true, primed: true }) {
             // One Newton step on the last sample's Jacobian for the change in p: x = v + M⁻¹ Δp.
             var (j00, j01, j10, j11) = (jacobian[0], jacobian[1], jacobian[2], jacobian[3]);
             var m00 = 1 - f00 * (j00 - gc0) - f01 * j10;
@@ -438,7 +444,7 @@ public struct RTypeRoot<TPorts, TDevice>
                 r1 += (j11 - gc1) * step1;
                 (s.currents[0], s.currents[1]) = (r0, r1);
                 (v[0], v[1]) = (proposed0, proposed1);
-                s.Record(iterations, converged: true, finite: true);
+                s.Record(iterations, true, true);
                 return true;
             }
 
@@ -476,7 +482,7 @@ public struct RTypeRoot<TPorts, TDevice>
         var history = s.history.AsSpan(0, k);
         var best = s.best.AsSpan(0, k);
         v.CopyTo(start);
-        if (s.Linearise && s.primed) {
+        if (s is { Linearise: true, primed: true }) {
             // One Newton step on the last sample's Jacobian for the change in p: v + M⁻¹ Δp, limited. When the last
             // sample converged, that Jacobian's system is still factored.
             for (var d = 0; d < k; d++) {
@@ -521,7 +527,7 @@ public struct RTypeRoot<TPorts, TDevice>
         Bracket(k, v, ref below, ref above);
         while (double.IsFinite(norm)) {
             if (chord && s.factored && norm <= NewtonSolver.ChordNorm * k && Chord(k)) {
-                s.Record(iterations, converged: true, finite: true);
+                s.Record(iterations, true, true);
                 return;
             }
 
@@ -539,7 +545,7 @@ public struct RTypeRoot<TPorts, TDevice>
 
             Device.Limit(v, proposed);
             if (k > 1) {
-                Constrain(k, v, step, proposed, rebuild: true);
+                Constrain(k, v, step, proposed, true);
             }
 
             var converged = true;
@@ -560,7 +566,7 @@ public struct RTypeRoot<TPorts, TDevice>
                 }
 
                 proposed.CopyTo(v);
-                s.Record(iterations, converged: true, finite: true);
+                s.Record(iterations, true, true);
                 return;
             }
 
@@ -600,16 +606,18 @@ public struct RTypeRoot<TPorts, TDevice>
 
         s.factored = false; // the fallbacks borrow the buffers
         if (k == 1 && Bisect(below, above, ref iterations)) {
-            s.Record(iterations, converged: true, finite: true);
+            s.Record(iterations, true, true);
         } else if (bestNorm <= NewtonSolver.AcceptableNorm) {
             Fallback(k);
-            s.Record(iterations, converged: false, finite: true);
+            s.Record(iterations, false, true);
         } else if (double.IsFinite(bestNorm)) {
-            best.CopyTo(v); // hold the previous currents (bounded, unlike a wild iterate's); start next time from the best
-            s.Record(iterations, converged: false, finite: true);
+            best.CopyTo(
+                v
+            ); // hold the previous currents (bounded, unlike a wild iterate's); start next time from the best
+            s.Record(iterations, false, true);
         } else {
             start.CopyTo(v); // repeat the previous sample's solution, whose currents r still hold
-            s.Record(iterations, converged: false, finite: false);
+            s.Record(iterations, false, false);
         }
     }
 

@@ -18,8 +18,11 @@ public sealed class KeyEstimator {
     public const double MinSeconds = 0.75;
     public const double Hysteresis = 0.08;
 
-    static readonly double[] MajorProfile = Normalise([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88]);
-    static readonly double[] MinorProfile = Normalise([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17]);
+    static readonly double[] MajorProfile =
+        Normalise([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88]);
+
+    static readonly double[] MinorProfile =
+        Normalise([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17]);
 
     readonly double[] histogram = new double[12];
     readonly double[] centred = new double[12];
@@ -45,7 +48,7 @@ public sealed class KeyEstimator {
             total += histogram[i];
         }
 
-        histogram[((pitchClass % 12) + 12) % 12] += seconds;
+        histogram[(pitchClass % 12 + 12) % 12] += seconds;
         total += seconds;
         if (Key < 0 && total < MinSeconds) {
             return;
@@ -75,7 +78,7 @@ public sealed class KeyEstimator {
                     (bestKey, bestMinor, best) = (key, mode == 1, fit);
                 }
 
-                if (key == Key && (mode == 1) == Minor) {
+                if (key == Key && mode == 1 == Minor) {
                     current = fit;
                 }
             }

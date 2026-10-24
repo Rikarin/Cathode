@@ -21,8 +21,8 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         string Label(AmpDesign design, string id) => Labels(id)![AmpDesign.All.ToList().IndexOf(design)];
 
         Assert.Equal(["Gain", "Gain", "Gain"], Labels("gain")!.Take(3));
-        Assert.Equal(["", "", "Cut"], Labels("cut")!.Take(3));
-        Assert.Equal(["Middle", "Middle", ""], Labels("middle")!.Take(3));
+        Assert.Equal([string.Empty, string.Empty, "Cut"], Labels("cut")!.Take(3));
+        Assert.Equal(["Middle", "Middle", string.Empty], Labels("middle")!.Take(3));
         Assert.All(Labels("switch1")!.Take(2), static l => Assert.Empty(l));
         Assert.All(Labels("eq1")!.Take(3), static l => Assert.Empty(l));
         Assert.Null(Labels("variac"));
@@ -30,26 +30,28 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
 
         // Channel switches and the class-A family's own controls.
         Assert.Equal("Normal Ch", Label(AC30.Design, "switch1"));
-        Assert.Equal("", Label(AC30.Design, "master"));
-        Assert.Equal("Brilliance", Label(Amp.Models.AC15.Design, "bright"));
-        Assert.Equal("", Label(Amp.Models.AC15.Design, "treble"));
-        Assert.Equal("Volume", Label(Amp.Models.DC30.Design, "gain"));
-        Assert.Equal("Tone (Ch 2)", Label(Amp.Models.DC30.Design, "control1"));
-        Assert.Equal("Master", Label(Amp.Models.DC30.Design, "master"));
+        Assert.Equal(string.Empty, Label(AC30.Design, "master"));
+        Assert.Equal("Brilliance", Label(AC15.Design, "bright"));
+        Assert.Equal(string.Empty, Label(AC15.Design, "treble"));
+        Assert.Equal("Volume", Label(DC30.Design, "gain"));
+        Assert.Equal("Tone (Ch 2)", Label(DC30.Design, "control1"));
+        Assert.Equal("Master", Label(DC30.Design, "master"));
 
         // The Marshall family's.
-        Assert.Equal("Preamp", Label(Amp.Models.JCM2203.Design, "gain"));
-        Assert.Equal("Low Input", Label(Amp.Models.JCM2203.Design, "switch1"));
-        Assert.Equal("Jumper", Label(Amp.Models.JTM45.Design, "switch1"));
-        Assert.Equal("", Label(Amp.Models.JTM45.Design, "master"));
-        Assert.Equal("Drive", Label(Amp.Models.LaneyGH100L.Design, "control1"));
+        Assert.Equal("Preamp", Label(JCM2203.Design, "gain"));
+        Assert.Equal("Low Input", Label(JCM2203.Design, "switch1"));
+        Assert.Equal("Jumper", Label(JTM45.Design, "switch1"));
+        Assert.Equal(string.Empty, Label(JTM45.Design, "master"));
+        Assert.Equal("Drive", Label(LaneyGH100L.Design, "control1"));
     }
 
     [Fact]
     public void Parameters_after_level_are_appended_with_stock_defaults() {
         var parameters = CircuitAmpBlock.Info.Params;
-        string[] first = ["type", "gain", "bass", "middle", "treble", "presence", "depth", "cut", "master", "sag", "bias",
-            "feedback", "bright", "level"];
+        string[] first = [
+            "type", "gain", "bass", "middle", "treble", "presence", "depth", "cut", "master", "sag", "bias",
+            "feedback", "bright", "level"
+        ];
         Assert.Equal(first, parameters.Take(first.Length).Select(static p => p.Id));
         Assert.Equal(88, parameters.Count);
         Assert.Equal(CircuitAmpBlock.Balance, parameters.Count - 1);
@@ -115,20 +117,23 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                         index == CircuitAmpBlock.PowerTube ? (int)value : 0];
                     // And the bright cap of an amp without one (the Laney's drive channel).
                     var audible = !(index == CircuitAmpBlock.CathodeTime && !design.Power.CathodeBias)
-                        && !(index == CircuitAmpBlock.BrightCap && design == Amp.Models.LaneyGH100L.Design)
+                        && !(index == CircuitAmpBlock.BrightCap && design == LaneyGH100L.Design)
                         // And the supply's time constants on an amp still clean at gain 7 (the Princeton AA964's two
                         // stages, the second inside the feedback loop; the Scout's two, with no feedback, into a class-A
                         // pair on one cathode): its output tubes draw too little extra current to sag.
                         && !(index is CircuitAmpBlock.PreampSag or CircuitAmpBlock.SupplyTime
-                            && (design == Amp.Models.PrincetonAA964.Design || design == Amp.Models.GibsonScout.Design))
-                        && !(index == CircuitAmpBlock.PowerTube && design.Power.Name.Contains(tube ?? "-", StringComparison.Ordinal))
-                        && !(index is CircuitAmpBlock.PresenceFrequency or CircuitAmpBlock.DepthFrequency && !design.Power.HasFeedback)
+                            && (design == PrincetonAA964.Design || design == GibsonScout.Design))
+                        && !(index == CircuitAmpBlock.PowerTube
+                            && design.Power.Name.Contains(tube ?? "-", StringComparison.Ordinal))
+                        && !(index is CircuitAmpBlock.PresenceFrequency or CircuitAmpBlock.DepthFrequency
+                            && !design.Power.HasFeedback)
                         && !(index == CircuitAmpBlock.MasterTrim && design.Panel.Master is null)
                         && !(index == CircuitAmpBlock.PreampTube && !StockPath(design).Any(HasTwelveAX7))
                         && !(index == CircuitAmpBlock.StackFrequency && !StockPath(design).Any(HasStack))
                         && !(index == CircuitAmpBlock.BrightCap && design.Panel.Bright is null)
                         && !(index == CircuitAmpBlock.PresenceFrequency && design.Panel.Presence is null)
-                        && !(index == CircuitAmpBlock.SpeakerCurve && SpeakerDesign.Presets[(int)value - 1] == design.Power.Speaker)
+                        && !(index == CircuitAmpBlock.SpeakerCurve
+                            && SpeakerDesign.Presets[(int)value - 1] == design.Power.Speaker)
                         && !(index == CircuitAmpBlock.Rectifier
                             && RectifierModel.All[(int)value - 1] == design.Power.PowerSupply.Rectifier)
                         && !(index == CircuitAmpBlock.BrightCap && !HasBrightCap(design))
@@ -183,8 +188,8 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         var difference = Analysis.NullResidualDb(stock, changed) - Analysis.ToDb(Analysis.Rms(stock));
         var peak = Analysis.ToDb(Analysis.Peak(changed));
         output.WriteLine(
-            $"{AmpDesign.All[type].Name} {CircuitAmpBlock.Info.Params[index].Id} = {value}: {difference:0.0} dB from stock, " +
-            $"peak {peak:0.0} dBFS"
+            $"{AmpDesign.All[type].Name} {CircuitAmpBlock.Info.Params[index].Id} = {value}: {difference:0.0} dB from stock, "
+            + $"peak {peak:0.0} dBFS"
         );
         Assert.True(Analysis.AllFinite(changed));
         Assert.True(peak < 6, $"peak {peak:0.0} dBFS");
@@ -266,7 +271,9 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         var magnitudes = Fft.Magnitudes(supply.Select(v => (float)(v - mean)).ToArray());
         var peak = Array.IndexOf(magnitudes, magnitudes.Max()) * InnerRate / Length;
         var swing = supply.Max() - supply.Min();
-        output.WriteLine($"{mode}: mean B+ {mean:0.0} V (DC supply {dc:0.0} V), ripple {swing:0.00} V p-p at {peak:0.0} Hz");
+        output.WriteLine(
+            $"{mode}: mean B+ {mean:0.0} V (DC supply {dc:0.0} V), ripple {swing:0.00} V p-p at {peak:0.0} Hz"
+        );
         Assert.InRange(peak, ripple - 3, ripple + 3);
         Assert.InRange(mean, 0.97 * dc, 1.03 * dc);
         Assert.InRange(swing, 0.1, 20);
@@ -300,6 +307,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     [Fact]
     public void Transformer_drive_saturates_low_notes() {
         const int Length = 65_536;
+
         double Thd(double drive, int bin) {
             var power = new PowerAmp(Plexi.Design.Power, InnerRate);
             power.Apply(PowerSettings.Stock with { Drive = drive });
@@ -320,8 +328,8 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         var (low0, low10) = (Thd(0, 29), Thd(10, 29));
         var (high0, high10) = (Thd(0, 703), Thd(10, 703));
         output.WriteLine(
-            $"THD at 42 Hz: drive 0 {Analysis.ToDb(low0):0.0} dB, drive 10 {Analysis.ToDb(low10):0.0} dB; at 1 kHz " +
-            $"{Analysis.ToDb(high0):0.0} dB, {Analysis.ToDb(high10):0.0} dB"
+            $"THD at 42 Hz: drive 0 {Analysis.ToDb(low0):0.0} dB, drive 10 {Analysis.ToDb(low10):0.0} dB; at 1 kHz "
+            + $"{Analysis.ToDb(high0):0.0} dB, {Analysis.ToDb(high10):0.0} dB"
         );
         Assert.True(Analysis.ToDb(low10) - Analysis.ToDb(low0) > 6, "the core saturates on low notes");
         Assert.True(Math.Abs(Analysis.ToDb(high10) - Analysis.ToDb(high0)) < 2, "and leaves the mids alone");
@@ -365,18 +373,22 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     static IEnumerable<AmpStageDesign> StockPath(AmpDesign design) =>
         design.Preamp.SelectMany(static s => s is ChannelSwitchStageDesign channels ? channels.Off : [s]);
 
-    static bool HasTwelveAX7(AmpStageDesign stage) => stage switch {
-        TriodeStageDesign triode => triode.Tube == Wdf.TriodeModel.Ecc83,
-        ToneStackStageDesign stack => stack.Tube == Wdf.TriodeModel.Ecc83,
-        NetworkStageDesign network => network.Netlist.Elements.Any(static e =>
-            e.Kind == ElementKind.Triode && e.Triode == Wdf.TriodeModel.Ecc83
-        ),
-        _ => false
-    };
+    static bool HasTwelveAX7(AmpStageDesign stage) =>
+        stage switch {
+            TriodeStageDesign triode => triode.Tube == Wdf.TriodeModel.Ecc83,
+            ToneStackStageDesign stack => stack.Tube == Wdf.TriodeModel.Ecc83,
+            NetworkStageDesign network => network.Netlist.Elements.Any(static e =>
+                e.Kind == ElementKind.Triode && e.Triode == Wdf.TriodeModel.Ecc83
+            ),
+            _ => false
+        };
 
-    static bool HasStack(AmpStageDesign stage) => stage switch {
-        ToneStackStageDesign => true,
-        NetworkStageDesign network => network.Netlist.Elements.Any(static e => e.CapacitorRole == CapacitorRole.Stack),
-        _ => false
-    };
+    static bool HasStack(AmpStageDesign stage) =>
+        stage switch {
+            ToneStackStageDesign => true,
+            NetworkStageDesign network => network.Netlist.Elements.Any(static e => e.CapacitorRole
+                == CapacitorRole.Stack
+            ),
+            _ => false
+        };
 }

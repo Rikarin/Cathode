@@ -39,7 +39,8 @@ public static class Access {
 
         var expected = Encoding.UTF8.GetBytes(token);
         app.Use(async (context, next) => {
-                if (HttpMethods.IsOptions(context.Request.Method) || Presented(context.Request) is { } presented
+                if (HttpMethods.IsOptions(context.Request.Method)
+                    || Presented(context.Request) is { } presented
                     && CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(presented), expected)) {
                     await next(context);
                     return;
@@ -58,8 +59,14 @@ public static class Access {
         }
 
         foreach (var url in urls.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) {
-            var host = new Uri(url.Replace("*", "0.0.0.0", StringComparison.Ordinal).Replace("+", "0.0.0.0",
-                StringComparison.Ordinal)).Host;
+            var host = new Uri(
+                url.Replace("*", "0.0.0.0", StringComparison.Ordinal)
+                    .Replace(
+                        "+",
+                        "0.0.0.0",
+                        StringComparison.Ordinal
+                    )
+            ).Host;
             if (host != "localhost" && !(IPAddress.TryParse(host, out var address) && IPAddress.IsLoopback(address))) {
                 throw new InvalidOperationException(
                     $"Listening on {url} needs an access token: set Cathode:Token (or the CATHODE__TOKEN variable)."

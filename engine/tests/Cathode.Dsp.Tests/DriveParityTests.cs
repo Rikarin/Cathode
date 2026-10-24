@@ -48,8 +48,16 @@ public class DriveParityTests {
         var band = Array.IndexOf(GraphicEqualizer.Layouts[DriveBlock.Eq2Layout].Labels, "1k");
         var lifted = CleanResponse((DriveBlock.Eq2Location, location), (DriveBlock.Eq2Band + band, 9f));
 
-        Assert.Equal(9, Analysis.ToDb(Analysis.MagnitudeAt(lifted, 1_000, Rate) / Analysis.MagnitudeAt(flat, 1_000, Rate)), 0.3);
-        Assert.Equal(0, Analysis.ToDb(Analysis.MagnitudeAt(lifted, 100, Rate) / Analysis.MagnitudeAt(flat, 100, Rate)), 0.3);
+        Assert.Equal(
+            9,
+            Analysis.ToDb(Analysis.MagnitudeAt(lifted, 1_000, Rate) / Analysis.MagnitudeAt(flat, 1_000, Rate)),
+            0.3
+        );
+        Assert.Equal(
+            0,
+            Analysis.ToDb(Analysis.MagnitudeAt(lifted, 100, Rate) / Analysis.MagnitudeAt(flat, 100, Rate)),
+            0.3
+        );
     }
 
     [Fact]
@@ -61,8 +69,13 @@ public class DriveParityTests {
 
     [Fact]
     public void Bit_reduce_quantises_and_sample_rate_holds() {
-        using var block = Create((DriveBlock.Type, 1f), (DriveBlock.ClipType, Clean), (DriveBlock.Drive, 0f),
-            (DriveBlock.BitReduce, 16f), (DriveBlock.SampleRate, 6_000f));
+        using var block = Create(
+            (DriveBlock.Type, 1f),
+            (DriveBlock.ClipType, Clean),
+            (DriveBlock.Drive, 0f),
+            (DriveBlock.BitReduce, 16f),
+            (DriveBlock.SampleRate, 6_000f)
+        );
         var output = BlockRender.Mono(block, Signals.Sine(220, Rate, 4_800, 0.2f), 64);
 
         Assert.All(output, y => Assert.Equal(0, y * 128 - MathF.Round(y * 128), 3)); // 8 bits: steps of 1/128
@@ -77,8 +90,13 @@ public class DriveParityTests {
     [Fact]
     public void Slew_rate_bounds_the_steepest_step() {
         static double Steepest(float slew) {
-            using var block = Create((DriveBlock.Type, 1f), (DriveBlock.ClipType, Clean), (DriveBlock.Drive, 0f),
-                (DriveBlock.Tone, 10f), (DriveBlock.SlewRate, slew));
+            using var block = Create(
+                (DriveBlock.Type, 1f),
+                (DriveBlock.ClipType, Clean),
+                (DriveBlock.Drive, 0f),
+                (DriveBlock.Tone, 10f),
+                (DriveBlock.SlewRate, slew)
+            );
             var square = Signals.Sine(200, Rate, 9_600).Select(static s => s >= 0 ? 2f : -2f).ToArray();
             var output = BlockRender.Mono(block, square, 64);
             return Enumerable.Range(1, output.Length - 1).Max(i => Math.Abs(output[i] - output[i - 1]));
@@ -93,7 +111,12 @@ public class DriveParityTests {
     [Fact]
     public void Bias_adds_even_harmonics_to_a_symmetric_clipper() {
         static double Second(float bias) {
-            using var block = Create((DriveBlock.Type, 1f), (DriveBlock.Drive, 3f), (DriveBlock.Tone, 10f), (DriveBlock.Bias, bias));
+            using var block = Create(
+                (DriveBlock.Type, 1f),
+                (DriveBlock.Drive, 3f),
+                (DriveBlock.Tone, 10f),
+                (DriveBlock.Bias, bias)
+            );
             var input = Signals.CoherentSine(32, 8_192, 0.3f);
             var rendered = BlockRender.Mono(block, Signals.Concat(input, input, input), 64).AsSpan(16_384);
             var magnitudes = Fft.Magnitudes(rendered);
@@ -105,7 +128,11 @@ public class DriveParityTests {
 
     [Fact]
     public void Clip_shape_moves_the_curve_towards_a_hard_clip_or_a_soft_knee() {
-        Assert.Equal(AdaaClipper.Function(ClipperShape.Hard, 1.7), AdaaClipper.Blend(ClipperShape.Soft, ClipperShape.Hard, 1, 1.7));
+        Assert.Equal(
+            AdaaClipper.Function(ClipperShape.Hard, 1.7),
+            AdaaClipper.Blend(ClipperShape.Soft, ClipperShape.Hard, 1, 1.7)
+        );
+
         static float[] Render(float shape, float clipType) {
             using var block = Create(
                 (DriveBlock.Type, 0f),
@@ -124,7 +151,8 @@ public class DriveParityTests {
 
     [Fact]
     public void Diode_overrides_replace_the_clipping_diodes() {
-        var index = Enumerable.Range(0, DriveCircuits.All.Count).First(i => DriveCircuits.HasDiodes(DriveCircuits.All[i]));
+        var index = Enumerable.Range(0, DriveCircuits.All.Count)
+            .First(i => DriveCircuits.HasDiodes(DriveCircuits.All[i]));
         Assert.Same(DriveCircuits.All[index], DriveCircuits.Variant(index, 0, 0));
         var led = DriveCircuits.Variant(index, 4, 0);
         Assert.Same(led, DriveCircuits.Variant(index, 4, 0)); // built once: no allocation when chosen
@@ -145,11 +173,14 @@ public class DriveParityTests {
     [Fact]
     public void Diode_controls_are_hidden_where_they_do_nothing() {
         var labels = DriveBlock.Info.Params[DriveBlock.DiodeType].TypeLabels!;
-        Assert.Equal("", labels[0]);
+        Assert.Equal(string.Empty, labels[0]);
         Assert.Equal("Clip Type", DriveBlock.Info.Params[DriveBlock.ClipType].TypeLabels![1]);
-        Assert.Equal("", DriveBlock.Info.Params[DriveBlock.ClipType].TypeLabels![DriveBlock.CircuitTypes]);
+        Assert.Equal(string.Empty, DriveBlock.Info.Params[DriveBlock.ClipType].TypeLabels![DriveBlock.CircuitTypes]);
         for (var i = 0; i < DriveCircuits.All.Count; i++) {
-            Assert.Equal(DriveCircuits.HasDiodes(DriveCircuits.All[i]), labels[DriveBlock.CircuitTypes + i] != "");
+            Assert.Equal(
+                DriveCircuits.HasDiodes(DriveCircuits.All[i]),
+                labels[DriveBlock.CircuitTypes + i] != string.Empty
+            );
         }
     }
 
@@ -158,7 +189,9 @@ public class DriveParityTests {
         var index = Enumerable.Range(0, DriveCircuits.All.Count).First(i => DriveCircuits.All[i].InputHighPassHz > 0);
 
         double LowEnd(params (int, float)[] settings) {
-            using var block = Create([(DriveBlock.Type, DriveBlock.CircuitTypes + index), (DriveBlock.Drive, 2f), ..settings]);
+            using var block = Create(
+                [(DriveBlock.Type, DriveBlock.CircuitTypes + index), (DriveBlock.Drive, 2f), ..settings]
+            );
             return Analysis.Rms(BlockRender.Mono(block, Signals.Sine(60, Rate, 19_200, 0.05f), 64).AsSpan(9_600));
         }
 
@@ -182,7 +215,10 @@ public class DriveParityTests {
         }
 
         const int AtPeak = 341; // about 2 kHz
-        Assert.True(Thd(-12, DynamicDistortionBlock.FilterPeak, AtPeak) > 2 * Thd(-12, DynamicDistortionBlock.FilterNone, AtPeak));
+        Assert.True(
+            Thd(-12, DynamicDistortionBlock.FilterPeak, AtPeak)
+            > 2 * Thd(-12, DynamicDistortionBlock.FilterNone, AtPeak)
+        );
 
         using var quiet = TestBlocks.Create<DynamicDistortionBlock>(
             (DynamicDistortionBlock.Drive, 0f),
@@ -219,7 +255,12 @@ public class DriveParityTests {
     }
 
     static float[] CleanResponse(params (int Index, float Value)[] settings) {
-        using var block = Create([(DriveBlock.Type, 1f), (DriveBlock.ClipType, Clean), (DriveBlock.Drive, 0f), (DriveBlock.Tone, 10f), ..settings]);
+        using var block = Create(
+            [
+                (DriveBlock.Type, 1f), (DriveBlock.ClipType, Clean), (DriveBlock.Drive, 0f), (DriveBlock.Tone, 10f),
+                ..settings
+            ]
+        );
         return BlockRender.Mono(block, Signals.Impulse(16_384, 0.1f), 64);
     }
 

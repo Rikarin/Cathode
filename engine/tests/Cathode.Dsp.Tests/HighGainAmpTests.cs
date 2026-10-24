@@ -11,7 +11,8 @@ namespace Cathode.Dsp.Tests;
 ///     cold clipper's grid current from the previous stage and Newton on cascaded clipping stages are all checked.
 /// </summary>
 /// <remarks>
-///     What the limits record (measured, with a few dB of margin): in the linear range two stages agree to -29 dB where the
+///     What the limits record (measured, with a few dB of margin): in the linear range two stages agree to -29 dB where
+///     the
 ///     first is a <see cref="TriodeStage" />, whose Thévenin resistance treats a partly bypassed cathode (1.8k ‖ 1 µF) as
 ///     grounded, and to -60 dB where it is a network stage, which uses the 1 kHz impedance. Driven hard, the cut's
 ///     linearised plate is the main error, worst behind a cold clipper with a plate bypass cap (SLO-100, 5150III) whose
@@ -19,19 +20,20 @@ namespace Cathode.Dsp.Tests;
 ///     was -60 dB while it followed a redraw without the plate cap; the factory drawing has 1 nF there, and it is -8 dB.
 /// </remarks>
 public partial class AmpStageTests {
-    public static TheoryData<string, bool, double, double> ColdClipperChains => new() {
-        { "SLO-100", false, 0.002, -22 },
-        { "SLO-100", false, 0.05, -14 },
-        { "SLO-100", true, 0.002, -28 },
-        { "SLO-100", true, 0.05, -28 },
-        { "5150", false, 0.002, -25 },
-        { "5150", false, 0.05, -20 },
-        { "Dual Rectifier", false, 0.05, -5 },
-        { "5150III", false, 0.05, -6 },
-        { "Legacy VL100", false, 0.002, -21 },
-        { "Legacy VL100", false, 0.05, -14 },
-        { "Legacy VL100", true, 0.05, -45 }
-    };
+    public static TheoryData<string, bool, double, double> ColdClipperChains =>
+        new() {
+            { "SLO-100", false, 0.002, -22 },
+            { "SLO-100", false, 0.05, -14 },
+            { "SLO-100", true, 0.002, -28 },
+            { "SLO-100", true, 0.05, -28 },
+            { "5150", false, 0.002, -25 },
+            { "5150", false, 0.05, -20 },
+            { "Dual Rectifier", false, 0.05, -5 },
+            { "5150III", false, 0.05, -6 },
+            { "Legacy VL100", false, 0.002, -21 },
+            { "Legacy VL100", false, 0.05, -14 },
+            { "Legacy VL100", true, 0.05, -45 }
+        };
 
     /// <summary>
     ///     The first four stages of the channel <paramref name="switched" /> selects (Switch 1 on: a channel switch's
@@ -69,7 +71,7 @@ public partial class AmpStageTests {
         }
 
         var errorDb = CompareInTime(
-            $"{type}{(switched ? " (switched)" : "")} {string.Join(" > ", designs.Select(static d => d.Name))}",
+            $"{type}{(switched ? " (switched)" : string.Empty)} {string.Join(" > ", designs.Select(static d => d.Name))}",
             x => {
                 foreach (var stage in stages) {
                     x = stage.Tick(x);
@@ -166,7 +168,8 @@ public class HighGainAmpTests(ITestOutputHelper output) {
             }
         }
 
-        int[] toggles = [CircuitAmpBlock.Switch1, CircuitAmpBlock.Switch2, CircuitAmpBlock.Switch3, CircuitAmpBlock.Bright];
+        int[] toggles =
+            [CircuitAmpBlock.Switch1, CircuitAmpBlock.Switch2, CircuitAmpBlock.Switch3, CircuitAmpBlock.Bright];
         foreach (var toggle in toggles) {
             block.Params.SetTarget(toggle, 1f);
             var rendered = BlockRender.Mono(block, chord, 64);
@@ -231,7 +234,9 @@ public class HighGainAmpTests(ITestOutputHelper output) {
 
         var (silicon, tube) = (Supply(false, false), Supply(true, false));
         var (spongy, both) = (Supply(false, true), Supply(true, true));
-        output.WriteLine($"B+ under drive: silicon {silicon:0.0} V, 5U4 {tube:0.0} V, Spongy {spongy:0.0} V, both {both:0.0} V");
+        output.WriteLine(
+            $"B+ under drive: silicon {silicon:0.0} V, 5U4 {tube:0.0} V, Spongy {spongy:0.0} V, both {both:0.0} V"
+        );
         Assert.True(tube < silicon - 10);
         Assert.True(spongy < silicon - 20);
         Assert.True(both < Math.Min(tube, spongy));

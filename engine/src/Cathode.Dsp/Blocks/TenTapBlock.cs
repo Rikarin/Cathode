@@ -95,7 +95,18 @@ public sealed class TenTapBlock() : DspBlock(Info) {
         "Delay",
         [
             ParamDescriptor.Choice("type", "Type", ["Ten Tap", "Rhythm Tap"]),
-            new("time", "Time", ParamKind.Float, 10f, MaxTimeMs, 1_000f, "ms", ParamTaper.Log, ParamSmoothing.Linear, 60f),
+            new(
+                "time",
+                "Time",
+                ParamKind.Float,
+                10f,
+                MaxTimeMs,
+                1_000f,
+                "ms",
+                ParamTaper.Log,
+                ParamSmoothing.Linear,
+                60f
+            ),
             ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
             ParamDescriptor.Float("feedback", "Feedback", 0f, 100f, 0f, "%"),
             new("taps", "Number of Taps", ParamKind.Float, 1f, MaxTaps, MaxTaps, Smoothing: ParamSmoothing.Step),
@@ -108,9 +119,20 @@ public sealed class TenTapBlock() : DspBlock(Info) {
             ParamDescriptor.Float("panAlpha", "Pan Alpha", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float("lowCut", "Low Cut", LowCutOff, 2_000f, LowCutOff, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("highCut", "High Cut", 500f, HighCutOff, HighCutOff, "Hz", ParamTaper.Log),
-            .. Enumerable.Range(0, MaxTaps).Select(static k => ParamDescriptor.Float($"tap{k + 1}Level", $"Tap {k + 1} Level", 0f, 100f, 100f, "%")),
-            .. Enumerable.Range(0, MaxTaps)
-                .Select(static k => ParamDescriptor.Float($"tap{k + 1}Time", $"Tap {k + 1} Time", 0f, 100f, 10f * (k + 1), "%").ShownOn(TypeCount, RhythmTap)),
+            ..Enumerable.Range(0, MaxTaps)
+                .Select(static k => ParamDescriptor.Float($"tap{k + 1}Level", $"Tap {k + 1} Level", 0f, 100f, 100f, "%")
+                ),
+            ..Enumerable.Range(0, MaxTaps)
+                .Select(static k => ParamDescriptor.Float(
+                    $"tap{k + 1}Time",
+                    $"Tap {k + 1} Time",
+                    0f,
+                    100f,
+                    10f * (k + 1),
+                    "%"
+                    )
+                    .ShownOn(TypeCount, RhythmTap)
+                ),
             ParamDescriptor.Choice("quantize", "Quantize", TempoDivisions.Names).ShownOn(TypeCount, RhythmTap),
             ParamDescriptor.Choice("learn", "Learn", ["Off", "Listen", "Hold"]).ShownOn(TypeCount, RhythmTap),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 25f, "%"),
@@ -134,7 +156,8 @@ public sealed class TenTapBlock() : DspBlock(Info) {
         return (float)(ms * 0.001 * Spec.SampleRate);
     }
 
-    protected override void OnPrepare(in ProcessSpec spec) => line.Allocate((int)(spec.SampleRate * MaxTimeMs / 1000) + 8);
+    protected override void OnPrepare(in ProcessSpec spec) =>
+        line.Allocate((int)(spec.SampleRate * MaxTimeMs / 1000) + 8);
 
     protected override void OnReset() {
         line.Reset();
@@ -294,7 +317,9 @@ public sealed class TenTapBlock() : DspBlock(Info) {
         var spread = Params.Current(Spread) / 100f;
         var shape = (int)Params.Current(PanShape);
         var power = MathF.Pow(2f, 2f * Params.Current(PanAlpha) / 100f);
-        var learnedTaps = (int)Params.Current(Type) == RhythmTap && (int)Params.Current(Learn) != LearnOff && learnedCount > 0;
+        var learnedTaps = (int)Params.Current(Type) == RhythmTap
+            && (int)Params.Current(Learn) != LearnOff
+            && learnedCount > 0;
         for (var k = 0; k < MaxTaps; k++) {
             var u = taps > 1 ? k / (taps - 1f) : 0f;
             var level = decay >= 0 ? 1f - decay * u : 1f + decay * (1f - u);

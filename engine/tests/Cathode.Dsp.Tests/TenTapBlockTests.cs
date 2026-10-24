@@ -7,7 +7,12 @@ public class TenTapBlockTests {
     [Fact]
     public void Ten_taps_are_evenly_spaced_with_a_linear_decay() {
         // Time 200 ms: ten taps every 960 samples, full decay fades them from 1 down to 0.
-        using var delay = Create((TenTapBlock.Time, 200f), (TenTapBlock.Mix, 50f), (TenTapBlock.Decay, 100f), (TenTapBlock.Spread, 0f));
+        using var delay = Create(
+            (TenTapBlock.Time, 200f),
+            (TenTapBlock.Mix, 50f),
+            (TenTapBlock.Decay, 100f),
+            (TenTapBlock.Spread, 0f)
+        );
 
         var output = BlockRender.Mono(delay, Signals.Impulse(10_000), 64);
 
@@ -70,7 +75,13 @@ public class TenTapBlockTests {
 
     [Fact]
     public void Feedback_repeats_the_pattern_at_time() {
-        using var delay = Create((TenTapBlock.Time, 100f), (TenTapBlock.Taps, 1f), (TenTapBlock.Mix, 100f), (TenTapBlock.Feedback, 50f), (TenTapBlock.PanShape, TenTapBlock.Center));
+        using var delay = Create(
+            (TenTapBlock.Time, 100f),
+            (TenTapBlock.Taps, 1f),
+            (TenTapBlock.Mix, 100f),
+            (TenTapBlock.Feedback, 50f),
+            (TenTapBlock.PanShape, TenTapBlock.Center)
+        );
 
         var output = BlockRender.Mono(delay, Signals.Impulse(15_000), 64);
 

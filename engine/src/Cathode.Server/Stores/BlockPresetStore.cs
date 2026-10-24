@@ -38,7 +38,11 @@ public sealed class BlockPresetStore(IOptions<ServerOptions> options, BlockCatal
             ?? throw new RigException(400, $"'{preset.Type}' is not a block type with parameters.");
         var unknown = preset.Values.Keys.Where(k => descriptor.IndexOf(k) < 0).ToList();
         if (unknown.Count > 0) {
-            throw new RigException(400, $"{descriptor.Name} has no parameter(s) {string.Join(", ", unknown)}.", unknown);
+            throw new RigException(
+                400,
+                $"{descriptor.Name} has no parameter(s) {string.Join(", ", unknown)}.",
+                unknown
+            );
         }
 
         if (string.IsNullOrWhiteSpace(preset.Name)) {

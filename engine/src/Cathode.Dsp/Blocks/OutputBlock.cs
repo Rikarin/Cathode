@@ -27,7 +27,15 @@ public sealed class OutputBlock() : DspBlock(Info), IRowInputBlock {
         "I/O",
         [
             ..Enumerable.Range(1, Rows)
-                .Select(static r => ParamDescriptor.Float($"level{r}", $"Row {r} Level", Decibels.SilenceDb, 20f, 0f, "dB")),
+                .Select(static r => ParamDescriptor.Float(
+                        $"level{r}",
+                        $"Row {r} Level",
+                        Decibels.SilenceDb,
+                        20f,
+                        0f,
+                        "dB"
+                    )
+                ),
             ..Enumerable.Range(1, Rows)
                 .Select(static r => ParamDescriptor.Float($"balance{r}", $"Row {r} Balance", -100f, 100f, 0f, "%")),
             ParamDescriptor.Float("level", "Main Level", Decibels.SilenceDb, 20f, 0f, "dB"),

@@ -50,7 +50,8 @@ public sealed record DriverChainDesign(
 ///         The coupling caps between the stages are taken as shorts for the signal (each stage's grid at its own rest
 ///         voltage plus the previous stage's AC output), so the chain is a memoryless map like the other inverters; what
 ///         that leaves out is their low-frequency roll-off and the voltage amplifiers' grid current, which charges them
-///         under hard drive (blocking). The loads between the stages (the cathodyne's grid leak, the amplifiers' 470k leaks,
+///         under hard drive (blocking). The loads between the stages (the cathodyne's grid leak, the amplifiers' 470k
+///         leaks,
 ///         the followers' grids) are small beside the plate resistors driving them and are left out too.
 ///     </para>
 ///     <para>
@@ -70,7 +71,7 @@ public sealed class DriverChain : PhaseInverter {
         var input = new Triode(design.Tube);
         var splitter = new Triode(design.Splitter.Tube);
         var driver = new Triode(design.DriverTube);
-        var splitterRest = PhaseInverter.For(design.Splitter);
+        var splitterRest = For(design.Splitter);
 
         var restInput = InputPlate(input, design, 0, out _);
         var restSplitterGrid = splitterRest.RestGrid;

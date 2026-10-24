@@ -15,7 +15,8 @@ public class DriveCircuitSolveTests(ITestOutputHelper output) {
     const int Frames = 2_048;
     const double NullDb = -100;
 
-    static readonly string Path = System.IO.Path.Combine(FindEngineRoot(), "tests", "assets", "golden", "drive-circuits.wav");
+    static readonly string Path =
+        System.IO.Path.Combine(FindEngineRoot(), "tests", "assets", "golden", "drive-circuits.wav");
 
     [Fact]
     public void Circuit_types_null_against_their_committed_renders() {
@@ -39,7 +40,9 @@ public class DriveCircuitSolveTests(ITestOutputHelper output) {
             var reference = golden.Channels[c];
             var residual = Analysis.NullResidualDb(reference, renders[c]) - Analysis.ToDb(Analysis.Rms(reference));
             var name = DriveCircuits.All[c % DriveCircuits.All.Count].Name;
-            output.WriteLine($"{name,-16} {(c < DriveCircuits.All.Count ? "antialiased" : "exact"),-11} null {residual:0.0} dB");
+            output.WriteLine(
+                $"{name,-16} {(c < DriveCircuits.All.Count ? "antialiased" : "exact"),-11} null {residual:0.0} dB"
+            );
             worst = Math.Max(worst, residual);
             Assert.True(residual < NullDb, $"{name}: null {residual:0.0} dB against the committed render");
         }

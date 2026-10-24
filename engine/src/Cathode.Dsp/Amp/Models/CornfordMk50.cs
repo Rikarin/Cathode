@@ -23,8 +23,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///         <item>
 ///             Relay 1A puts either channel on V4 (220k, 1k5 unbypassed), DC-coupled to the V5 cathode follower
 ///             (100k), which drives the Overdrive's stack (220 pF in series with 100k to the 250k-L treble's top; 43k;
-///             0.1 µF to the treble's foot, which is the top of the 1M-A bass, a variable resistor with 1 nF from its top to
-///             ground; 0.033 µF to the 25k-L middle's wiper) with 470k into the 25k-L Volume, and the Clean channel's fixed 0.1 µF, 100k
+///             0.1 µF to the treble's foot, which is the top of the 1M-A bass, a variable resistor with 1 nF from its top
+///             to
+///             ground; 0.033 µF to the 25k-L middle's wiper) with 470k into the 25k-L Volume, and the Clean channel's
+///             fixed 0.1 µF, 100k
 ///             over 15k divider; relay 1B sends one of the two to the loop.
 ///         </item>
 ///         <item>
@@ -69,7 +71,7 @@ public static class CornfordMk50 {
                 SwitchRole.Switch1,
                 [
                     V1(false),
-                    new TriodeStageDesign("V2", TriodeModel.Ecc83, V2Supply, 100e3, 1.5e3, CathodeBypass: 2.2e-6),
+                    new TriodeStageDesign("V2", TriodeModel.Ecc83, V2Supply, 100e3, 1.5e3, 2.2e-6),
                     V3(),
                     V4(),
                     Follower(false)
@@ -81,24 +83,24 @@ public static class CornfordMk50 {
         new(
             "2 x EL34",
             PentodeModel.EL34,
-            TubesPerSide: 1,
-            Supply: 470,
-            ScreenResistor: 1e3,
-            IdleCurrent: 0.035,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 50,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, InverterSupply, 91e3, 100e3, 10e3, 470),
-            CouplingCap: 33e-9,
-            GridLeak: 220e3,
-            GridStopper: 10e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(1, 47e3, 4.7e3, new(25e3, PotTaper.Linear), 0.1e-6, 400),
-            HasFeedback: true,
-            Transformer: new(3.4e3),
-            Speaker: SpeakerDesign.Closed4x12,
-            PowerSupply: new(25, 25e-6, 100, 25e-6, 30e3, 47e-6, 6e-3),
+            1,
+            470,
+            1e3,
+            0.035,
+            false,
+            0,
+            50,
+            new LongTailPairDesign(TriodeModel.Ecc83, InverterSupply, 91e3, 100e3, 10e3, 470),
+            33e-9,
+            220e3,
+            10e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(1, 47e3, 4.7e3, new(25e3, PotTaper.Linear), 0.1e-6, 400),
+            true,
+            new(3.4e3),
+            SpeakerDesign.Closed4x12,
+            new(25, 25e-6, 100, 25e-6, 30e3, 47e-6, 6e-3),
             InverterInput: new(22e-9, 1e6)
         ),
         -6
@@ -122,7 +124,8 @@ public static class CornfordMk50 {
     /// </summary>
     static NetworkStageDesign V1(bool clean) {
         var net = new StageNetlist();
-        var (jack, grid, rail, tap, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (jack, grid, rail, tap, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(),
+            net.Node());
         net.Capacitor(net.Input, jack, 0.033e-6);
         net.Resistor(jack, StageNetlist.Ground, 1e6);
         net.Resistor(jack, grid, 68e3);
@@ -148,7 +151,8 @@ public static class CornfordMk50 {
         net.Resistor(gainFoot, StageNetlist.Ground, 100);
 
         // The Clean channel's stack and volume, on the 39k / 180k junction.
-        var (trebleTop, slope, bassTop, middleTop, volumeTop) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (trebleTop, slope, bassTop, middleTop, volumeTop) = (net.Node(), net.Node(), net.Node(), net.Node(),
+            net.Node());
         net.Capacitor(tap, trebleTop, 330e-12, CapacitorRole.Stack);
         net.Resistor(tap, slope, 68e3);
         net.Capacitor(slope, bassTop, 0.1e-6, CapacitorRole.Stack);

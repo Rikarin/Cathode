@@ -49,7 +49,7 @@ public readonly record struct CabRoom(
     double LowDamping = 0,
     double Diffusion = 0
 ) {
-    public static CabRoom Default { get; } = new(Size: 1);
+    public static CabRoom Default { get; } = new(1);
 }
 
 /// <summary>
@@ -223,7 +223,10 @@ public readonly struct CabAcoustics {
             var shading = 1 / Math.Sqrt(1 + Square(hz * Math.PI * enclosure.DipolePath / SpeedOfSound));
             var rho = Math.Sqrt(path * path + Square(Curvature * radius));
             var cos = depth / Math.Sqrt(depth * depth + Square(enclosure.DipolePath / 2));
-            sum -= enclosure.BackWave * shading * (curvature / rho) * Pattern(omega, rho, cos)
+            sum -= enclosure.BackWave
+                * shading
+                * (curvature / rho)
+                * Pattern(omega, rho, cos)
                 * Complex.FromPolarCoordinates(1, -omega * enclosure.DipolePath / SpeedOfSound);
         }
 
@@ -234,16 +237,27 @@ public readonly struct CabAcoustics {
             var walls = level * lowCut * Coherence(omega, room.Diffusion);
 
             // Floor: the image speaker 2h below, reflected at 0.8, softened above 6 kHz. Only the walls diffuse.
-            sum += level * lowCut * room.Floor * 0.8 * Absorb(hz, 6_000 / damping)
+            sum += level
+                * lowCut
+                * room.Floor
+                * 0.8
+                * Absorb(hz, 6_000 / damping)
                 * Source(omega, k, effective, 2 * height, depth);
 
             // Ceiling, side wall and the wall behind the mic (arriving from behind: a cardioid rejects it, a
             // figure-8 hears it inverted).
-            sum += walls * 0.6 * Absorb(hz, 4_000 / damping) * Source(omega, k, effective, 2 * (ceiling - height), depth);
+            sum += walls
+                * 0.6
+                * Absorb(hz, 4_000 / damping)
+                * Source(omega, k, effective, 2 * (ceiling - height), depth);
             sum += walls * 0.6 * Absorb(hz, 4_000 / damping) * Source(omega, k, effective, 2 * sideWall, depth);
             var back = 2 * backWall - depth;
             var backRho = Math.Sqrt(back * back + Square(Curvature * radius));
-            sum += walls * 0.5 * Absorb(hz, 3_000 / damping) * (curvature / backRho) * Pattern(omega, backRho, -1)
+            sum += walls
+                * 0.5
+                * Absorb(hz, 3_000 / damping)
+                * (curvature / backRho)
+                * Pattern(omega, backRho, -1)
                 * Complex.FromPolarCoordinates(1, -omega * (back - depth) / SpeedOfSound);
         }
 
@@ -257,7 +271,9 @@ public readonly struct CabAcoustics {
         var height = placement.Enclosure.Height;
         var back = 2 * backWall - depth;
         var backRho = Math.Sqrt(back * back + Square(Curvature * radius));
-        var a = 0.6 * Absorb(hz, 4_000 / damping) * Source(omega, k, effective, 2 * (ceiling - height), depth).Magnitude;
+        var a = 0.6
+            * Absorb(hz, 4_000 / damping)
+            * Source(omega, k, effective, 2 * (ceiling - height), depth).Magnitude;
         var b = 0.6 * Absorb(hz, 4_000 / damping) * Source(omega, k, effective, 2 * sideWall, depth).Magnitude;
         var c = 0.5 * Absorb(hz, 3_000 / damping) * (curvature / backRho) * Pattern(omega, backRho, -1).Magnitude;
         return Square(level * lowCut) * (a * a + b * b + c * c);
@@ -332,8 +348,7 @@ public readonly struct CabAcoustics {
     static Complex HighPass(double hz, double corner) => new Complex(0, hz) / new Complex(corner, hz);
 
     /// <summary>The coherent share of a reflection whose arrival is spread by <paramref name="spread" /> seconds.</summary>
-    static double Coherence(double omega, double spread) =>
-        spread <= 0 ? 1 : Math.Exp(-0.5 * Square(omega * spread));
+    static double Coherence(double omega, double spread) => spread <= 0 ? 1 : Math.Exp(-0.5 * Square(omega * spread));
 
     /// <summary>First-order HF absorption of a reflecting surface.</summary>
     static double Absorb(double hz, double corner) => 1 / Math.Sqrt(1 + Square(hz / corner));
@@ -371,9 +386,12 @@ public readonly struct CabAcoustics {
         var rho = Math.Sqrt(distance * distance + Square(Curvature * radius));
         var sine = side / distance;
         var cos = front / distance;
-        var level = curvature / rho * PistonGain(k * effective * sine)
+        var level = curvature
+            / rho
+            * PistonGain(k * effective * sine)
             * PistonGain(k * placement.Mic.DiaphragmRadius * sine);
-        return level * Pattern(omega, rho, cos)
+        return level
+            * Pattern(omega, rho, cos)
             * Complex.FromPolarCoordinates(1, -omega * (distance - depth) / SpeedOfSound);
     }
 }

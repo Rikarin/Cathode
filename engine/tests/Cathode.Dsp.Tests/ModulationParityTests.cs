@@ -22,7 +22,10 @@ public class ModulationParityTests {
         Assert.Equal(0f, LfoConditioner.Quantize(0.2f, 3));
         Assert.Equal(1f, LfoConditioner.Quantize(0.8f, 3));
         Assert.Equal(0.37f, LfoConditioner.Quantize(0.37f, 0));
-        Assert.Equal(4, Enumerable.Range(0, 1_000).Select(i => LfoConditioner.Quantize(i / 500f - 1, 4)).Distinct().Count());
+        Assert.Equal(
+            4,
+            Enumerable.Range(0, 1_000).Select(i => LfoConditioner.Quantize(i / 500f - 1, 4)).Distinct().Count()
+        );
     }
 
     [Fact]
@@ -140,7 +143,11 @@ public class ModulationParityTests {
     public void Vcr_laws_map_the_lfo_position() {
         Assert.Equal(550f, PhaserBlock.VcrFrequency(PhaserBlock.VcrLinear, 100, 1_000, 0.5f), 1e-3f);
         Assert.Equal(325f, PhaserBlock.VcrFrequency(PhaserBlock.VcrJfet, 100, 1_000, 0.5f), 1e-3f);
-        Assert.Equal(MathF.Sqrt(100_000), PhaserBlock.VcrFrequency(PhaserBlock.VcrExponential, 100, 1_000, 0.5f), 1e-2f);
+        Assert.Equal(
+            MathF.Sqrt(100_000),
+            PhaserBlock.VcrFrequency(PhaserBlock.VcrExponential, 100, 1_000, 0.5f),
+            1e-2f
+        );
     }
 
     [Fact]
@@ -186,7 +193,8 @@ public class ModulationParityTests {
                 (FilterBlock.Frequency, 500f)
             );
             var response = BlockRender.Mono(block, Signals.Impulse(16_384), 64);
-            return Enumerable.Range(0, 200).Max(i => Analysis.ToDb(Analysis.MagnitudeAt(response, 20 * Math.Pow(1.04, i), Rate)));
+            return Enumerable.Range(0, 200)
+                .Max(i => Analysis.ToDb(Analysis.MagnitudeAt(response, 20 * Math.Pow(1.04, i), Rate)));
         }
 
         // The plain shelf's Q stops at 1, a slight bump; Shelf 2 takes the Q of 3.
@@ -207,18 +215,22 @@ public class ModulationParityTests {
 
     [Fact]
     public void Allpass_feedback_turns_the_flat_response_into_peaks() {
-        using var block = TestBlocks.Create<FilterBlock>((FilterBlock.Type, FilterBlock.AllPass), (FilterBlock.Feedback, 80f));
+        using var block =
+            TestBlocks.Create<FilterBlock>((FilterBlock.Type, FilterBlock.AllPass), (FilterBlock.Feedback, 80f));
 
         var response = BlockRender.Mono(block, Signals.Impulse(16_384), 64);
 
-        var magnitudes = Enumerable.Range(0, 200).Select(i => Analysis.MagnitudeAt(response, 20 * Math.Pow(1.04, i), Rate)).ToArray();
+        var magnitudes = Enumerable.Range(0, 200)
+            .Select(i => Analysis.MagnitudeAt(response, 20 * Math.Pow(1.04, i), Rate))
+            .ToArray();
         Assert.True(magnitudes.Max() > 3, $"max {magnitudes.Max()}");
         Assert.True(Analysis.AllFinite(response));
     }
 
     [Fact]
     public void Filter_cuts_are_first_order() {
-        using var block = TestBlocks.Create<FilterBlock>((FilterBlock.Type, FilterBlock.Null), (FilterBlock.LowCut, 1_000f));
+        using var block =
+            TestBlocks.Create<FilterBlock>((FilterBlock.Type, FilterBlock.Null), (FilterBlock.LowCut, 1_000f));
 
         var response = BlockRender.Mono(block, Signals.Impulse(16_384), 64);
 
@@ -290,7 +302,10 @@ public class ModulationParityTests {
         var output = BlockRender.Mono(block, Signals.Sine(1_000, Rate, 48_000, 0.5f), 64)[4_800..];
 
         Assert.Equal(0.5, Level(output, kept), 0.03);
-        Assert.True(Level(output, cancelled) < 0.01 * Level(output, kept), $"other sideband {Level(output, cancelled):0.0000}");
+        Assert.True(
+            Level(output, cancelled) < 0.01 * Level(output, kept),
+            $"other sideband {Level(output, cancelled):0.0000}"
+        );
     }
 
     [Fact]
@@ -331,7 +346,9 @@ public class ModulationParityTests {
         var output = BlockRender.Mono(block, tone, 64);
 
         // Parked: every later stretch has the same level.
-        var levels = Enumerable.Range(0, 8).Select(i => Analysis.Rms(output.AsSpan(48_000 + 6_000 * i, 6_000))).ToArray();
+        var levels = Enumerable.Range(0, 8)
+            .Select(i => Analysis.Rms(output.AsSpan(48_000 + 6_000 * i, 6_000)))
+            .ToArray();
         Assert.True(levels.Max() - levels.Min() < 0.01 * levels.Max(), $"levels {string.Join(", ", levels)}");
     }
 
@@ -382,7 +399,10 @@ public class ModulationParityTests {
         var output = BlockRender.Mono(block, Signals.Noise(48_000, 6, 0.3f), 64)[4_800..];
 
         // The comb alone rings every harmonic about equally; the band-pass keeps the fundamental.
-        Assert.True(Band(output, 110) > 4 * Band(output, 330), $"{Band(output, 110):0.0000} vs {Band(output, 330):0.0000}");
+        Assert.True(
+            Band(output, 110) > 4 * Band(output, 330),
+            $"{Band(output, 110):0.0000} vs {Band(output, 330):0.0000}"
+        );
     }
 
     /// <summary>The level around a harmonic, summed over a few cents either side, so a noise-driven ring reads steadily.</summary>
@@ -587,7 +607,9 @@ public class ModulationParityTests {
             (PitchBlock.WhammyTracking, PitchBlock.WhammyPoly),
             (PitchBlock.Pedal, 100f)
         );
-        var chord = Signals.Sine(220, Rate, 48_000, 0.25f).Zip(Signals.Sine(330, Rate, 48_000, 0.25f), static (a, b) => a + b).ToArray();
+        var chord = Signals.Sine(220, Rate, 48_000, 0.25f)
+            .Zip(Signals.Sine(330, Rate, 48_000, 0.25f), static (a, b) => a + b)
+            .ToArray();
 
         var output = BlockRender.Mono(pitch, chord, 64)[12_000..];
 
@@ -628,7 +650,10 @@ public class ModulationParityTests {
         var output = BlockRender.Mono(pitch, Signals.Sine(220, Rate, 48_000, 0.3f), 64);
 
         Assert.True(Analysis.Peak(output.AsSpan(2_000, 8_000)) > 0.1);
-        Assert.True(Analysis.Peak(output.AsSpan(14_000)) < 1e-3, $"still playing at {Analysis.Peak(output.AsSpan(14_000))}");
+        Assert.True(
+            Analysis.Peak(output.AsSpan(14_000)) < 1e-3,
+            $"still playing at {Analysis.Peak(output.AsSpan(14_000))}"
+        );
     }
 
     [Fact]
@@ -691,5 +716,6 @@ public class ModulationParityTests {
         Assert.True(Analysis.Rms(output.AsSpan(4_800)) > 0.1);
     }
 
-    static PitchBlock CreatePitch(params (int Index, float Value)[] settings) => TestBlocks.Create<PitchBlock>(settings);
+    static PitchBlock CreatePitch(params (int Index, float Value)[] settings) =>
+        TestBlocks.Create<PitchBlock>(settings);
 }

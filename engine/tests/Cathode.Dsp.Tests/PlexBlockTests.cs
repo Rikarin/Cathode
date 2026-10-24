@@ -76,9 +76,14 @@ public class PlexBlockTests {
     public void Shimmer_adds_the_octave_above_by_its_intensity() {
         double Octave(float intensity) {
             using var plex = Create(
-                [..Clean, (PlexBlock.Type, PlexBlock.ShimmerVerb), (PlexBlock.ShimmerIntensity, intensity), (PlexBlock.Decay, 2f)]
+                [
+                    ..Clean, (PlexBlock.Type, PlexBlock.ShimmerVerb), (PlexBlock.ShimmerIntensity, intensity),
+                    (PlexBlock.Decay, 2f)
+                ]
             );
-            var output = BlockRender.Mono(plex, Signals.Sine(330, Rate, 48_000, 0.5f), 64).AsSpan(16_384, 16_384).ToArray();
+            var output = BlockRender.Mono(plex, Signals.Sine(330, Rate, 48_000, 0.5f), 64)
+                .AsSpan(16_384, 16_384)
+                .ToArray();
             var magnitudes = Fft.Magnitudes(output);
             return magnitudes[(int)Math.Round(660 * 16_384 / Rate)] / magnitudes[(int)Math.Round(330 * 16_384 / Rate)];
         }

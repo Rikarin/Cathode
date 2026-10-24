@@ -101,7 +101,8 @@ sealed class DattorroPlate : IDisposable {
             scale = sizeScale;
             var r = rate / PaperRate * sizeScale;
             int Length(int paper) => Math.Max(1, (int)Math.Round(paper * r));
-            (lAp1, lD1, lAp2, lD2) = (Length(LeftAllpass1), Length(LeftDelay1), Length(LeftAllpass2), Length(LeftDelay2));
+            (lAp1, lD1, lAp2, lD2) = (Length(LeftAllpass1), Length(LeftDelay1), Length(LeftAllpass2),
+                Length(LeftDelay2));
             (rAp1, rD1, rAp2, rD2) =
                 (Length(RightAllpass1), Length(RightDelay1), Length(RightAllpass2), Length(RightDelay2));
             for (var i = 0; i < taps.Length; i++) {
@@ -130,7 +131,11 @@ sealed class DattorroPlate : IDisposable {
         }
 
         // Left half, fed by the right half's previous output.
-        var left = leftAllpass1.Allpass(diffused + decay * rightFeedback, lAp1 + excursion * (1 + lfo), -DecayDiffusion1);
+        var left = leftAllpass1.Allpass(
+            diffused + decay * rightFeedback,
+            lAp1 + excursion * (1 + lfo),
+            -DecayDiffusion1
+        );
         left = leftDelay1.Delay(left, lD1);
         leftDamping = left + (leftDamping - left) * damping;
         left = leftAllpass2.Allpass(leftDamping * decay, lAp2, decayDiffusion2);

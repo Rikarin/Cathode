@@ -1,5 +1,3 @@
-using Cathode.Dsp.Wdf;
-
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
@@ -9,7 +7,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     grid). Treble up turns the wiper toward the 500 pF end. Panel: Volume and Tone (on the Treble knob).
 /// </summary>
 /// <remarks>
-///     Source: the Fender drawing "Princeton Amp 5F2-A" with its layout (schematicheaven.net/fenderamps/princeton_5f2a_schem.pdf,
+///     Source: the Fender drawing "Princeton Amp 5F2-A" with its layout
+///     (schematicheaven.net/fenderamps/princeton_5f2a_schem.pdf,
 ///     code K-EG): every passive value, both pots linear, the tone network's wiring, the supply chain (2 × 16 µF, 10k,
 ///     8 µF, 22k, 8 µF), 470 Ω ‖ 25 µF, 22k feedback into V1B's 1.5k. The drawing prints no voltages, so B+ and the nodes
 ///     are taken as the 5F1's (the same supply chain); the output transformer (Fender 265) is taken as the Champ's

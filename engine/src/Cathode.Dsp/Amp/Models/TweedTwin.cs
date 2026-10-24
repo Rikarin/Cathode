@@ -15,11 +15,15 @@ namespace Cathode.Dsp.Amp.Models;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Source: the Fender drawing "Twin Amp 5F8-A" with its layout (schematicheaven.net/fenderamps/twin_5f8a_schem.pdf,
-///         code I-EG): every value above and the DC voltages (V1 plates 145 V, cathodes 2.2 V; V2A plate 165 V, cathode 1 V;
-///         the follower's cathode 165 V; inverter plates 230/225 V; the supply 397 V on two 20 µF, a choke to 395 V for the
+///         Source: the Fender drawing "Twin Amp 5F8-A" with its layout
+///         (schematicheaven.net/fenderamps/twin_5f8a_schem.pdf,
+///         code I-EG): every value above and the DC voltages (V1 plates 145 V, cathodes 2.2 V; V2A plate 165 V, cathode 1
+///         V;
+///         the follower's cathode 165 V; inverter plates 230/225 V; the supply 397 V on two 20 µF, a choke to 395 V for
+///         the
 ///         screens, 4.7k to 355 V for the inverter, 10k to 295 V for the preamp; bias −41 V). The mid cap goes to the mid
-///         pot's wiper on both factory pages (at full mid the classic stack, at zero the cap is grounded while the bass pot
+///         pot's wiper on both factory pages (at full mid the classic stack, at zero the cap is grounded while the bass
+///         pot
 ///         still sees the mid pot's 25k). The output transformer (Fender 45268, 2.1k : 4 Ω) is from replacement listings
 ///         (tubeampdoctor.com); the speakers (two 8 Ω in parallel on the 4 Ω secondary) are inferred from the drawing.
 ///     </para>
@@ -48,24 +52,24 @@ public static class TweedTwin {
             new(
                 "4 x 5881",
                 PentodeModel.SixL6GC,
-                TubesPerSide: 2,
-                Supply: 397,
-                ScreenResistor: 470,
-                IdleCurrent: 0.035,
-                CathodeBias: false,
-                CathodeBypass: 0,
-                RatedPower: 80,
-                PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 355, 82e3, 100e3, 10e3, 470),
-                CouplingCap: 0.1e-6,
-                GridLeak: 220e3,
-                GridStopper: 1.5e3,
-                CutCap: 0,
-                CutPot: new(1e6, PotTaper.Linear),
-                Feedback: new(1 / Math.Sqrt(2), 56e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6),
-                HasFeedback: true,
-                Transformer: new(2.1e3, 10, 5e-3, 75, 2e-9, 100e3),
-                Speaker: SpeakerDesign.OpenBack2x12,
-                PowerSupply: new(60, 40e-6, 100, 20e-6, 14.7e3, 20e-6, 6.8e-3, RectifierModel.GZ34),
+                2,
+                397,
+                470,
+                0.035,
+                false,
+                0,
+                80,
+                new LongTailPairDesign(TriodeModel.Ecc83, 355, 82e3, 100e3, 10e3, 470),
+                0.1e-6,
+                220e3,
+                1.5e3,
+                0,
+                new(1e6, PotTaper.Linear),
+                new(1 / Math.Sqrt(2), 56e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6),
+                true,
+                new(2.1e3, 10, 5e-3, 75, 2e-9, 100e3),
+                SpeakerDesign.OpenBack2x12,
+                new(60, 40e-6, 100, 20e-6, 14.7e3, 20e-6, 6.8e-3, RectifierModel.GZ34),
                 InverterInput: new(20e-9, 1e6)
             ),
             -6

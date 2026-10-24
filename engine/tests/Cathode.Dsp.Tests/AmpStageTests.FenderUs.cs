@@ -10,32 +10,37 @@ namespace Cathode.Dsp.Tests;
 ///     Vibro-King's input follower, Fat stage and stack; the Blues Junior's stages; the non-reverb AB763 mixer.
 /// </summary>
 public partial class AmpStageTests {
-    public static TheoryData<string, string, double> FenderUsNetworks => new() {
-        // Model, stage and its switches ("v": Switch1, "m": Switch2, "b": bright), amplitude in volts.
-        { "Hot Rod Deluxe", "V1A", 0.1 },
-        { "Hot Rod Deluxe", "V1A v", 0.1 },
-        { "Hot Rod Deluxe", "V1B", 0.2 },
-        { "Hot Rod Deluxe", "V2A m", 0.5 },
-        { "Hot Rod Deluxe", "V2A vb", 0.5 },
-        { "Hot Rod Deluxe", "V2B m", 2 },
-        { "Hot Rod Deluxe", "V2B", 8 },
-        { "Hot Rod Deluxe", "Normal v", 5 },
-        { "Champ 5F1", "V1A", 0.3 },
-        { "Princeton 5F2-A", "V1A", 0.3 },
-        { "Tweed Twin 5F8-A", "V2B", 5 },
-        { "Bandmaster AB763", "Mixer v", 5 },
-        { "Princeton AA964", "V1B", 1 },
-        { "Vibro-King", "V1A", 1 },
-        { "Vibro-King", "V4A v", 0.3 },
-        { "Vibro-King", "V4B", 1 },
-        { "Blues Junior", "V1B", 0.1 },
-        { "Blues Junior", "V1A v", 0.3 },
-        { "Blues Junior", "V2B", 1 }
-    };
+    public static TheoryData<string, string, double> FenderUsNetworks =>
+        new() {
+            // Model, stage and its switches ("v": Switch1, "m": Switch2, "b": bright), amplitude in volts.
+            { "Hot Rod Deluxe", "V1A", 0.1 },
+            { "Hot Rod Deluxe", "V1A v", 0.1 },
+            { "Hot Rod Deluxe", "V1B", 0.2 },
+            { "Hot Rod Deluxe", "V2A m", 0.5 },
+            { "Hot Rod Deluxe", "V2A vb", 0.5 },
+            { "Hot Rod Deluxe", "V2B m", 2 },
+            { "Hot Rod Deluxe", "V2B", 8 },
+            { "Hot Rod Deluxe", "Normal v", 5 },
+            { "Champ 5F1", "V1A", 0.3 },
+            { "Princeton 5F2-A", "V1A", 0.3 },
+            { "Tweed Twin 5F8-A", "V2B", 5 },
+            { "Bandmaster AB763", "Mixer v", 5 },
+            { "Princeton AA964", "V1B", 1 },
+            { "Vibro-King", "V1A", 1 },
+            { "Vibro-King", "V4A v", 0.3 },
+            { "Vibro-King", "V4B", 1 },
+            { "Blues Junior", "V1B", 0.1 },
+            { "Blues Junior", "V1A v", 0.3 },
+            { "Blues Junior", "V2B", 1 }
+        };
 
     [Theory]
     [MemberData(nameof(FenderUsNetworks))]
-    public void Fender_and_us_stages_match_the_reference_in_the_time_domain(string model, string stage, double amplitude) {
+    public void Fender_and_us_stages_match_the_reference_in_the_time_domain(
+        string model,
+        string stage,
+        double amplitude
+    ) {
         var parts = stage.Split(' ');
         var flags = parts.Length > 1 ? parts[1] : string.Empty;
         var controls = new AmpControls(
@@ -51,7 +56,8 @@ public partial class AmpStageTests {
         );
 
         // The playing chain, with the channel switch's chosen path in place of the switch.
-        var chain = AmpDesign.All.Single(a => a.Name == model).Preamp
+        var chain = AmpDesign.All.Single(a => a.Name == model)
+            .Preamp
             .SelectMany(s => s is ChannelSwitchStageDesign c ? controls.IsOn(c.Switch) ? c.On : c.Off : [s])
             .ToList();
         var index = chain.FindIndex(s => s.Name == parts[0]);
@@ -83,8 +89,8 @@ public partial class AmpStageTests {
         var reference = new ReferenceSimulator(circuit);
         reference.OperatingPoint(40);
         output.WriteLine(
-            $"{model} {stage}: rest output {wdf.RestOutput:0.000} V (reference {reference.Voltage(node):0.000} V), " +
-            $"output resistance {wdf.OutputResistance / 1e3:0.0}k"
+            $"{model} {stage}: rest output {wdf.RestOutput:0.000} V (reference {reference.Voltage(node):0.000} V), "
+            + $"output resistance {wdf.OutputResistance / 1e3:0.0}k"
         );
         Assert.Equal(reference.Voltage(node), wdf.RestOutput, 0.002 * Math.Abs(reference.Voltage(node)) + 1e-6);
 

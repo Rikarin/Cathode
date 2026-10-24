@@ -53,7 +53,8 @@ public readonly record struct NetlistElement(
 ///         can live inside the adaptor instead, which saves ports; changing one recomputes the matrix, which is cheap
 ///         enough to do every audio block. Ideal sources (supply rails, bias voltages) and controlled sources also live
 ///         inside. Nonlinear devices are declared with <see cref="Device" /> or the helpers (<see cref="Diode" />,
-///         <see cref="Transistor" />, <see cref="Triode" />, <see cref="Pentode" />, <see cref="OpAmp" />), in the order of
+///         <see cref="Transistor" />, <see cref="Triode" />, <see cref="Pentode" />, <see cref="OpAmp" />), in the order
+///         of
 ///         the device's ports.
 ///     </para>
 ///     <para>
@@ -187,7 +188,11 @@ public sealed class WdfNetlist {
 
     void Check(int node) {
         if (node < 0 || node > nodes) {
-            throw new ArgumentOutOfRangeException(nameof(node), node, $"Node {node} does not exist; call Node() first.");
+            throw new ArgumentOutOfRangeException(
+                nameof(node),
+                node,
+                $"Node {node} does not exist; call Node() first."
+            );
         }
     }
 }

@@ -14,8 +14,12 @@ public class GuitarMlLstmModelTests {
         // bias) in AidaModel. Same gate order (i, f, g, o), so transposing the weights must give the same output.
         const int Hidden = 8;
         var random = new Random(3);
-        float[][] Matrix(int rows, int columns) =>
-            [..Enumerable.Range(0, rows).Select(_ => Enumerable.Range(0, columns).Select(_ => (float)(random.NextDouble() - 0.5)).ToArray())];
+
+        float[][] Matrix(int rows, int columns) => [
+            ..Enumerable.Range(0, rows)
+                .Select(_ => Enumerable.Range(0, columns).Select(_ => (float)(random.NextDouble() - 0.5)).ToArray())
+        ];
+
         var weightIh = Matrix(4 * Hidden, 1);
         var weightHh = Matrix(4 * Hidden, Hidden);
         var biasIh = Matrix(1, 4 * Hidden)[0];
@@ -86,7 +90,8 @@ public class GuitarMlLstmModelTests {
         var entry = ReferenceManifest.Load(ReferenceManifest.Locate()).Find(id);
         var path = ReferenceCache.Default.TryLocate(entry);
         Assert.SkipWhen(path is null, $"{id} is not in the reference cache (run cathode-references fetch)");
-        var golden = File.ReadAllLines(Path.Combine(Path.GetDirectoryName(ReferenceManifest.Locate())!, $"{id}.golden.txt"))
+        var golden = File
+            .ReadAllLines(Path.Combine(Path.GetDirectoryName(ReferenceManifest.Locate())!, $"{id}.golden.txt"))
             .Select(static line => float.Parse(line, CultureInfo.InvariantCulture))
             .ToArray();
         var input = new float[4_000];
@@ -104,10 +109,10 @@ public class GuitarMlLstmModelTests {
     [Fact]
     public void A_conditioned_model_insists_on_its_knob_values() {
         var json = """
-            {"model_data": {"unit_type": "LSTM", "input_size": 2, "hidden_size": 1, "num_layers": 1, "skip": 0},
-             "state_dict": {"rec.weight_ih_l0": [[0, 0], [0, 0], [0, 0], [0, 0]], "rec.weight_hh_l0": [[0], [0], [0], [0]],
-                            "rec.bias_ih_l0": [0, 0, 0, 0], "rec.bias_hh_l0": [0, 0, 0, 0], "lin.weight": [[1]], "lin.bias": [0]}}
-            """;
+                   {"model_data": {"unit_type": "LSTM", "input_size": 2, "hidden_size": 1, "num_layers": 1, "skip": 0},
+                    "state_dict": {"rec.weight_ih_l0": [[0, 0], [0, 0], [0, 0], [0, 0]], "rec.weight_hh_l0": [[0], [0], [0], [0]],
+                                   "rec.bias_ih_l0": [0, 0, 0, 0], "rec.bias_hh_l0": [0, 0, 0, 0], "lin.weight": [[1]], "lin.bias": [0]}}
+                   """;
         using var model = GuitarMlLstmModel.Parse(JsonDocument.Parse(json).RootElement);
 
         Assert.Throws<ArgumentException>(() => model.SetConditioning([]));

@@ -27,7 +27,8 @@ namespace Cathode.Engine;
 ///         repeat), or after <see cref="TailCapSeconds" />.
 ///     </para>
 ///     <para>
-///         Around the graph sits the rig (Cathode.Engine.Rig), which outlives preset changes: per sub-block the controllers
+///         Around the graph sits the rig (Cathode.Engine.Rig), which outlives preset changes: per sub-block the
+///         controllers
 ///         advance and drive the graph's modifiers; after the graph come the scene level, the looper, the global EQ and
 ///         the metronome.
 ///     </para>
@@ -36,11 +37,13 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     public const double SwapFadeMs = 20;
     public const double TailCapSeconds = 12;
     const float TailSilence = 3.2e-5f; // -90 dBFS
+
     /// <summary>
     ///     How long a spilling graph must stay silent before it retires. A delay is silent between repeats, so this has
     ///     to outlast the longest delay time (DelayBlock.MaxTimeMs, 4 s), or a tail would be cut between two echoes.
     /// </summary>
     const double TailQuietMs = 4_100;
+
     const int RetiredSlots = 4;
     const double TapWindowSeconds = 2.5;
     const int TapHistory = 4;
@@ -294,6 +297,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                         analysis.WriteAnalyzer(tapped);
                     }
                 }
+
                 if (swapGain < 1f) {
                     swapGain = Ramp(slice.OutputLeft, slice.OutputRight, swapGain, 1f);
                 }
@@ -432,7 +436,8 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     /// </summary>
     void Tap(long time) {
         var window = (long)(TapWindowSeconds * Spec.SampleRate);
-        if (tapCount > 0 && (time - taps[(tapCount - 1) % TapHistory] > window || time <= taps[(tapCount - 1) % TapHistory])) {
+        if (tapCount > 0
+            && (time - taps[(tapCount - 1) % TapHistory] > window || time <= taps[(tapCount - 1) % TapHistory])) {
             tapCount = 0; // too long since the last tap (or out of order): start a new count
         }
 

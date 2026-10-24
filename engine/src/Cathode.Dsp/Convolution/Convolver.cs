@@ -97,7 +97,7 @@ public sealed class Convolver : IDisposable {
     }
 
     public void Dispose() {
-        foreach (var buffer in (ReadOnlySpan<NativeBuffer>)[
+        foreach (var buffer in (ReadOnlySpan<NativeBuffer>) [
                      impulse, history, irRe, irIm, inRe, inIm, frame, tailOut, re, im, accRe, accIm
                  ]) {
             buffer.Dispose();

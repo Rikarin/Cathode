@@ -61,46 +61,45 @@ public static class FriedmanBE100 {
     };
 
     /// <summary>The BE channel: the guitar straight into V2A's stopper.</summary>
-    public static AmpDesign Design { get; } = Build("BE-100", [V2A(jack: true)]);
+    public static AmpDesign Design { get; } = Build("BE-100", [V2A(true)]);
 
     /// <summary>The HBE channel: V1A and its 1M/68k divider ahead of V2A.</summary>
-    public static AmpDesign Hbe { get; } = Build("BE-100 HBE", [V1A(), V2A(jack: false)]);
+    public static AmpDesign Hbe { get; } = Build("BE-100 HBE", [V1A(), V2A(false)]);
 
-    static AmpDesign Build(string name, AmpStageDesign[] front) => new(
-        name,
-        [
-            ..front,
-            new TriodeStageDesign("V2B", TriodeModel.Ecc83, V2Supply, 100e3, 2.7e3, CathodeBypass: 0.68e-6, InputResistance: 33e3),
-            V3A(),
-            Follower()
-        ],
+    static AmpDesign Build(string name, AmpStageDesign[] front) =>
         new(
-            "4 x EL34",
-            PentodeModel.EL34,
-            TubesPerSide: 2,
-            Supply: 470,
-            ScreenResistor: 1e3,
-            IdleCurrent: 0.035,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 100,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 425, 82e3, 100e3, 10e3, 470),
-            CouplingCap: 22e-9,
-            GridLeak: 220e3,
-            GridStopper: 1.5e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(Math.Sqrt(0.5), 47e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 805, 52.0 / 272),
-            HasFeedback: true,
-            Transformer: new(1.7e3),
-            Speaker: SpeakerDesign.Closed4x12,
-            PowerSupply: new(25, 50e-6, 100, 16.5e-6, 14.7e3, 22e-6),
-            InverterInput: new(22e-9, 1e6)
-        ),
-        -9
-    ) {
-        Panel = Panel
-    };
+            name,
+            [
+                ..front,
+                new TriodeStageDesign("V2B", TriodeModel.Ecc83, V2Supply, 100e3, 2.7e3, 0.68e-6, 33e3),
+                V3A(),
+                Follower()
+            ],
+            new(
+                "4 x EL34",
+                PentodeModel.EL34,
+                2,
+                470,
+                1e3,
+                0.035,
+                false,
+                0,
+                100,
+                new LongTailPairDesign(TriodeModel.Ecc83, 425, 82e3, 100e3, 10e3, 470),
+                22e-9,
+                220e3,
+                1.5e3,
+                0,
+                new(1e6, PotTaper.Linear),
+                new(Math.Sqrt(0.5), 47e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 805, 52.0 / 272),
+                true,
+                new(1.7e3),
+                SpeakerDesign.Closed4x12,
+                new(25, 50e-6, 100, 16.5e-6, 14.7e3, 22e-6),
+                InverterInput: new(22e-9, 1e6)
+            ),
+            -9
+        ) { Panel = Panel };
 
     /// <summary>
     ///     A BE-100 gain stage's plate load: 220k from the rail to a junction, then 100k to the plate with 500 pF across
@@ -197,7 +196,8 @@ public static class FriedmanBE100 {
     /// </summary>
     static NetworkStageDesign Follower() {
         var net = new StageNetlist();
-        var (rail, cathode, top, slope, bottom, middle) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (rail, cathode, top, slope, bottom, middle) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(),
+            net.Node());
         var (sat, satResistor, clamp, load) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Supply(rail, V3Supply);
         net.Triode(rail, net.Input, cathode, TriodeModel.Ecc83);

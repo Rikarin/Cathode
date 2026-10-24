@@ -111,7 +111,9 @@ public sealed class CabGrid : IDisposable {
             ".wav" => Single(Path.GetFileNameWithoutExtension(path), WavFile.Read(path)),
             ".json" => FromManifest(path),
             ".cabgrid" or ".zip" => FromArchive(path),
-            _ => throw new InvalidDataException($"'{path}' is not a cab grid: use a .cabgrid, a manifest.json or a .wav.")
+            _ => throw new InvalidDataException(
+                $"'{path}' is not a cab grid: use a .cabgrid, a manifest.json or a .wav."
+            )
         };
     }
 
@@ -153,8 +155,10 @@ public sealed class CabGrid : IDisposable {
             destination[k] = (float)(weights.A * va + weights.B * vb + weights.C * vc + weights.D * vd);
         }
 
-        return weights.A * onsets[d0 * count + p0] + weights.B * onsets[d0 * count + p1]
-            + weights.C * onsets[d1 * count + p0] + weights.D * onsets[d1 * count + p1];
+        return weights.A * onsets[d0 * count + p0]
+            + weights.B * onsets[d0 * count + p1]
+            + weights.C * onsets[d1 * count + p0]
+            + weights.D * onsets[d1 * count + p1];
     }
 
     public void Dispose() => logMagnitude.Dispose();
@@ -245,16 +249,18 @@ public sealed class CabGrid : IDisposable {
 
         var name = json.TryGetProperty("name", out var named) ? named.GetString() ?? fallbackName : fallbackName;
         if (!json.TryGetProperty("irs", out var list) || list.ValueKind != JsonValueKind.Array) {
-            throw new InvalidDataException("A cab grid manifest needs an \"irs\" array.");
+            throw new InvalidDataException("""A cab grid manifest needs an "irs" array.""");
         }
 
         var points = new List<(double Position, double Distance, string File)>();
         foreach (var item in list.EnumerateArray()) {
-            points.Add((
-                item.GetProperty("position").GetDouble(),
-                item.GetProperty("distance").GetDouble(),
-                item.GetProperty("file").GetString() ?? throw new InvalidDataException("A grid point has no file.")
-            ));
+            points.Add(
+                (
+                    item.GetProperty("position").GetDouble(),
+                    item.GetProperty("distance").GetDouble(),
+                    item.GetProperty("file").GetString() ?? throw new InvalidDataException("A grid point has no file.")
+                )
+            );
         }
 
         var positions = points.Select(static p => p.Position).Distinct().Order().ToArray();

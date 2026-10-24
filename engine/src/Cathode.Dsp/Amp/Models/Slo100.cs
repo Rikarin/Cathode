@@ -4,7 +4,8 @@ namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
 ///     Soldano SLO-100, overdrive and normal channels. Overdrive: V1A (220k, 1.8k ‖ 1 µF), the OD preamp gain (500k
-///     audio, 1 nF bright cap, 470k ‖ 2 nF ahead of it and 470k after it) into V1B, a 470k/1M divider into the V2A cold clipper (39k unbypassed,
+///     audio, 1 nF bright cap, 470k ‖ 2 nF ahead of it and 470k after it) into V1B, a 470k/1M divider into the V2A cold
+///     clipper (39k unbypassed,
 ///     100k plate with a 1 nF plate bypass), V2B (220k) DC-coupled to a cathode follower whose 100k + 1k cathode load
 ///     is the effects-loop send (about -40 dB), the loop return stage, and a second cathode follower driving a
 ///     Marshall-topology stack (47k slope, 470 pF, 22 nF, 22 nF) and the OD master; a 12AX7 long-tail pair, four 6L6GC
@@ -70,8 +71,8 @@ public static class Slo100 {
                 360,
                 220e3,
                 1.8e3,
-                CathodeBypass: 1e-6,
-                InputResistance: 68e3,
+                1e-6,
+                68e3,
                 GridLeak: 1e6
             ),
             new ChannelSwitchStageDesign(
@@ -96,7 +97,7 @@ public static class Slo100 {
                         380,
                         220e3,
                         1.8e3,
-                        CathodeBypass: 1e-6,
+                        1e-6,
                         CouplingCap: 20e-9,
                         SeriesResistor: 220e3,
                         GridLeak: 2.2e6
@@ -110,7 +111,7 @@ public static class Slo100 {
                         380,
                         220e3,
                         1.8e3,
-                        CathodeBypass: 1e-6,
+                        1e-6,
                         SeriesResistor: 220e3
                     )
                 ]
@@ -122,7 +123,7 @@ public static class Slo100 {
                 380,
                 220e3,
                 2.2e3,
-                CathodeBypass: 25e-6,
+                25e-6,
                 CouplingCap: 1e-6,
                 GridLeak: 1e6
             ),
@@ -130,44 +131,38 @@ public static class Slo100 {
                 "V4B",
                 TriodeModel.Ecc83,
                 StackDriver.CathodeFollower,
-                Supply: 380,
-                CathodeResistor: 100e3,
-                Stack: Stack,
-                Load: new(1e6, PotTaper.Audio),
-                LoadRole: PotRole.Master
+                380,
+                100e3,
+                Stack,
+                new(1e6, PotTaper.Audio),
+                PotRole.Master
             )
         ],
         new(
             "4 x 6L6GC",
             PentodeModel.SixL6GC,
-            TubesPerSide: 2,
-            Supply: 470,
-            ScreenResistor: 1e3,
-            IdleCurrent: 0.04,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 100,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 380, 82e3, 100e3, 10e3, 470),
-            CouplingCap: 22e-9,
-            GridLeak: 220e3,
-            GridStopper: 1e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(1 / Math.Sqrt(2), 39e3, 4.7e3, new(25e3, PotTaper.Linear), 0.1e-6, 90),
-            HasFeedback: true,
-            Transformer: new(2.2e3),
-            Speaker: new(Inductance: 1.4e-3, EddyResistance: 22, Resonance: 95, PeakImpedance: 30, Q: 2.2),
-            PowerSupply: new(30, 110e-6, 100, 47e-6, 10e3, 22e-6, 6e-3),
+            2,
+            470,
+            1e3,
+            0.04,
+            false,
+            0,
+            100,
+            new LongTailPairDesign(TriodeModel.Ecc83, 380, 82e3, 100e3, 10e3, 470),
+            22e-9,
+            220e3,
+            1e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(1 / Math.Sqrt(2), 39e3, 4.7e3, new(25e3, PotTaper.Linear), 0.1e-6, 90),
+            true,
+            new(2.2e3),
+            new(Inductance: 1.4e-3, EddyResistance: 22, Resonance: 95, PeakImpedance: 30, Q: 2.2),
+            new(30, 110e-6, 100, 47e-6, 10e3, 22e-6, 6e-3),
             InverterInput: null
         ),
         -7.5
-    ) {
-        Panel = AmpPanel.Standard with {
-            Cut = null,
-            Switch1 = "Normal Ch",
-            Switch2 = "Crunch"
-        }
-    };
+    ) { Panel = AmpPanel.Standard with { Cut = null, Switch1 = "Normal Ch", Switch2 = "Crunch" } };
 
     /// <summary>
     ///     V1B with the OD gain network: 20 nF from V1A, 470k ‖ 2 nF, the 500k audio OD gain with a fixed 1 nF across

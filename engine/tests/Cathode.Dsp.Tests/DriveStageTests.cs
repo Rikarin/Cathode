@@ -22,7 +22,9 @@ public class DriveStageTests(ITestOutputHelper output) {
     public static TheoryData<string, double> ToneSettings {
         get {
             var data = new TheoryData<string, double>();
-            foreach (var name in new[] { "TS808 OD", "Rodent Dist", "DS1 Distortion", "Pi Fuzz", "Chiron OD", "Governor Dist" }) {
+            foreach (var name in new[] {
+                         "TS808 OD", "Rodent Dist", "DS1 Distortion", "Pi Fuzz", "Chiron OD", "Governor Dist"
+                     }) {
                 foreach (var tone in new[] { 0.0, 0.3, 0.7, 1.0 }) {
                     data.Add(name, tone);
                 }
@@ -32,7 +34,8 @@ public class DriveStageTests(ITestOutputHelper output) {
         }
     }
 
-    public static TheoryData<int> CircuitTypes => [..Enumerable.Range(DriveBlock.CircuitTypes, DriveCircuits.All.Count)];
+    public static TheoryData<int> CircuitTypes =>
+        [..Enumerable.Range(DriveBlock.CircuitTypes, DriveCircuits.All.Count)];
 
     [Theory]
     [MemberData(nameof(ToneSettings))]
@@ -74,10 +77,11 @@ public class DriveStageTests(ITestOutputHelper output) {
         const int Oversampling = 16;
         var values = Circuit(name).Stages[0];
         var stage = new OpAmpStage();
-        stage.Configure(values, drive, 1e3, StageRate, antialias: false);
+        stage.Configure(values, drive, 1e3, StageRate, false);
         Assert.Equal(OpAmpSolve.FeedbackDiodes, stage.Solve);
 
-        double Input(double t) => amplitude * (0.7 * Math.Sin(2 * Math.PI * 1_000 * t) + 0.3 * Math.Sin(2 * Math.PI * 220 * t));
+        double Input(double t) =>
+            amplitude * (0.7 * Math.Sin(2 * Math.PI * 1_000 * t) + 0.3 * Math.Sin(2 * Math.PI * 220 * t));
 
         var (circuit, outputNode) = ScreamerReference(values, drive, Input, StageRate * Oversampling);
         var reference = new ReferenceSimulator(circuit);
@@ -100,7 +104,8 @@ public class DriveStageTests(ITestOutputHelper output) {
         var stage = new FuzzPairStage();
         stage.Configure(values, fuzz, StageSource.Driven(8e3), StageRate);
 
-        double Input(double t) => amplitude * (0.7 * Math.Sin(2 * Math.PI * 1_000 * t) + 0.3 * Math.Sin(2 * Math.PI * 220 * t));
+        double Input(double t) =>
+            amplitude * (0.7 * Math.Sin(2 * Math.PI * 1_000 * t) + 0.3 * Math.Sin(2 * Math.PI * 220 * t));
 
         var (circuit, outputNode, junctions) = FaceReference(values, fuzz, Input);
         var reference = new ReferenceSimulator(circuit);
@@ -115,9 +120,9 @@ public class DriveStageTests(ITestOutputHelper output) {
         stage.Root.ResetStatistics();
         var errorDb = Compare(stage.Tick, Input, reference, outputNode, StageRate, Oversampling, 3_840, out var peak);
         output.WriteLine(
-            $"{name} fuzz {fuzz}, {amplitude * 1e3} mV: output {peak:0.000} V peak, error {errorDb:0.0} dB, " +
-            $"{stage.Root.MeanIterations:0.00} iterations per sample, {stage.Root.Unconverged} unconverged; reference " +
-            $"{reference.NewtonFailures} Newton failures"
+            $"{name} fuzz {fuzz}, {amplitude * 1e3} mV: output {peak:0.000} V peak, error {errorDb:0.0} dB, "
+            + $"{stage.Root.MeanIterations:0.00} iterations per sample, {stage.Root.Unconverged} unconverged; reference "
+            + $"{reference.NewtonFailures} Newton failures"
         );
         Assert.Equal(0, reference.NewtonFailures);
         Assert.Equal(0, stage.Root.Unconverged);
@@ -150,8 +155,14 @@ public class DriveStageTests(ITestOutputHelper output) {
             ratios[name] = Measure(name, 7f, 8f).Thd / full.Thd;
         }
 
-        Assert.True(ratios["Face Fuzz"] < 0.25, $"the Fuzz Face keeps {ratios["Face Fuzz"]:P0} of its distortion at volume 8");
-        Assert.True(ratios["TS808 OD"] > 0.25, $"the TS808 keeps only {ratios["TS808 OD"]:P0} of its distortion at volume 8");
+        Assert.True(
+            ratios["Face Fuzz"] < 0.25,
+            $"the Fuzz Face keeps {ratios["Face Fuzz"]:P0} of its distortion at volume 8"
+        );
+        Assert.True(
+            ratios["TS808 OD"] > 0.25,
+            $"the TS808 keeps only {ratios["TS808 OD"]:P0} of its distortion at volume 8"
+        );
         Assert.True(ratios["Face Fuzz"] < ratios["TS808 OD"], "the Fuzz Face should clean up more than the TS808");
     }
 
@@ -185,7 +196,7 @@ public class DriveStageTests(ITestOutputHelper output) {
                 if (i % 20 == 0) {
                     step++;
                     block.Params.SetTarget(DriveBlock.Drive, step % 11);
-                    block.Params.SetTarget(DriveBlock.Tone, (step * 3) % 11);
+                    block.Params.SetTarget(DriveBlock.Tone, step * 3 % 11);
                     block.Params.SetTarget(DriveBlock.InputVolume, 10 - step % 7);
                 }
 

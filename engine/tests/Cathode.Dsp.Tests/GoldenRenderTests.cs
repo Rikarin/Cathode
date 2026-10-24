@@ -46,7 +46,9 @@ public class GoldenRenderTests {
     /// <summary>A noise burst, a decaying 220 Hz tone, then silence for the tails: different on each side.</summary>
     static float[] Stimulus(int seed) {
         var noise = Signals.Noise(1_500, seed, 0.25f);
-        var tone = Signals.Sine(220 * seed, Spec.SampleRate, 1_500, 0.5f).Select(static (v, i) => v * MathF.Exp(-i / 500f)).ToArray();
+        var tone = Signals.Sine(220 * seed, Spec.SampleRate, 1_500, 0.5f)
+            .Select(static (v, i) => v * MathF.Exp(-i / 500f))
+            .ToArray();
         return Signals.Concat(noise, tone, new float[Frames - 3_000]);
     }
 

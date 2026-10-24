@@ -4,7 +4,8 @@ namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
 ///     Fender Tremolux AA763 (35 W head, usually into a closed 2 × 10): the Normal or Vibrato channel
-///     (<see cref="AmpPanel.Switch1" />), each V1A into the fixed-mid Fender stack and the 1M volume with its 120 pF bright
+///     (<see cref="AmpPanel.Switch1" />), each V1A into the fixed-mid Fender stack and the 1M volume with its 120 pF
+///     bright
 ///     switch, V1B, the Normal channel's 0.047 µF and the Vibrato channel's 0.1 µF into their 220k mixing resistors, a
 ///     12AT7 long-tail pair with equal 100k plates, a 27k tail and a 500 pF input cap, two 6L6GC in fixed bias at 415 V on
 ///     a GZ34, the 125A6A transformer (4k : 4 Ω), and 820 Ω / 100 Ω feedback from the 4 Ω tap. Sources: the Fender
@@ -28,24 +29,24 @@ public static class Tremolux {
         new(
             "2 x 6L6GC",
             PentodeModel.SixL6GC,
-            TubesPerSide: 1,
-            Supply: 415,
-            ScreenResistor: 470,
-            IdleCurrent: 0.035,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 35,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc81, 340, 100e3, 100e3, 27e3, 470),
-            CouplingCap: 0.1e-6,
-            GridLeak: 220e3,
-            GridStopper: 1,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: Ab763.Feedback(1 / Math.Sqrt(2), 100),
-            HasFeedback: true,
-            Transformer: new(4e3),
-            Speaker: SpeakerDesign.OpenBack4x10,
-            PowerSupply: new(100, 32e-6, 100, 16e-6, 20e3, 16e-6, 5.5e-3, RectifierModel.GZ34),
+            1,
+            415,
+            470,
+            0.035,
+            false,
+            0,
+            35,
+            new LongTailPairDesign(TriodeModel.Ecc81, 340, 100e3, 100e3, 27e3, 470),
+            0.1e-6,
+            220e3,
+            1,
+            0,
+            new(1e6, PotTaper.Linear),
+            Ab763.Feedback(1 / Math.Sqrt(2), 100),
+            true,
+            new(4e3),
+            SpeakerDesign.OpenBack4x10,
+            new(100, 32e-6, 100, 16e-6, 20e3, 16e-6, 5.5e-3, RectifierModel.GZ34),
             InverterInput: new(500e-12, 1e6)
         ),
         -5

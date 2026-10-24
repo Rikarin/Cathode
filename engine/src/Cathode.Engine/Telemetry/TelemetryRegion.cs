@@ -64,7 +64,12 @@ public sealed unsafe class TelemetryRegion : IDisposable {
     /// <summary>Creates (or truncates) <paramref name="path" /> and maps it for writing.</summary>
     public static TelemetryRegion CreateFile(string path, double sampleRate) {
         var size = sizeof(TelemetryLayout);
-        var stream = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete);
+        var stream = new FileStream(
+            path,
+            FileMode.Create,
+            FileAccess.ReadWrite,
+            FileShare.ReadWrite | FileShare.Delete
+        );
         stream.SetLength(size);
         var file = MemoryMappedFile.CreateFromFile(
             stream,

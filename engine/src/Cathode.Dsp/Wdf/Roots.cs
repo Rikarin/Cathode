@@ -127,8 +127,9 @@ public struct DiodePair : IWdfRoot {
 
     public readonly double Voltage => voltage;
 
-    public DiodePair(DiodeModel forward, int forwardCount, DiodeModel reverse, int reverseCount) =>
+    public DiodePair(DiodeModel forward, int forwardCount, DiodeModel reverse, int reverseCount) {
         Configure(forward, forwardCount, reverse, reverseCount);
+    }
 
     public static DiodePair Symmetric(DiodeModel model, int count = 1) => new(model, count, model, count);
 
@@ -224,7 +225,10 @@ public struct DiodePair : IWdfRoot {
         }
 
         var sign = forward ? 1.0 : -1.0;
-        var w = WrightOmega.Fast((forward ? forwardBase : reverseBase) + sign * a * (forward ? forwardInverse : reverseInverse));
+        var w =
+            WrightOmega.Fast(
+                (forward ? forwardBase : reverseBase) + sign * a * (forward ? forwardInverse : reverseInverse)
+            );
         return a + sign * (forward ? forwardRIs : reverseRIs) - sign * (forward ? forwardVt : reverseVt) * w;
     }
 
@@ -237,9 +241,11 @@ public struct DiodePair : IWdfRoot {
 
         var sign = forward ? 1.0 : -1.0;
         var vt = forward ? forwardVt : reverseVt;
-        var w = WrightOmega.Fast((forward ? forwardBase : reverseBase) + sign * a * (forward ? forwardInverse : reverseInverse));
+        var w =
+            WrightOmega.Fast(
+                (forward ? forwardBase : reverseBase) + sign * a * (forward ? forwardInverse : reverseInverse)
+            );
         var offset = forward ? forwardOffset : reverseOffset;
         return a * (0.5 * a + 2 * (sign * (forward ? forwardRIs : reverseRIs))) - vt * vt * w * (w + 2) + offset;
     }
 }
-

@@ -8,7 +8,8 @@ namespace Cathode.Dsp.Wdf;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <see cref="Fast" /> is a piecewise polynomial: degree-7 Chebyshev interpolants of <see cref="Precise" />, fitted
+///         <see cref="Fast" /> is a piecewise polynomial: degree-7 Chebyshev interpolants of <see cref="Precise" />,
+///         fitted
 ///         once at start-up and stored in monomial form in t ∈ [-1, 1]. Below <see cref="UniformHigh" /> the segments
 ///         are uniform in x (half a unit wide), where ω still bends like e^x; above it they are a quarter of an octave
 ///         wide, indexed straight from the exponent and the top two mantissa bits of x, because ω(x) ≈ x - ln x is
@@ -82,7 +83,9 @@ public static class WrightOmega {
         ref var c = ref Coefficients[segment * Stride];
         var t2 = t * t;
         var low = c + Unsafe.Add(ref c, 1) * t + t2 * (Unsafe.Add(ref c, 2) + Unsafe.Add(ref c, 3) * t);
-        var high = Unsafe.Add(ref c, 4) + Unsafe.Add(ref c, 5) * t + t2 * (Unsafe.Add(ref c, 6) + Unsafe.Add(ref c, 7) * t);
+        var high = Unsafe.Add(ref c, 4)
+            + Unsafe.Add(ref c, 5) * t
+            + t2 * (Unsafe.Add(ref c, 6) + Unsafe.Add(ref c, 7) * t);
         return low + t2 * t2 * high;
     }
 

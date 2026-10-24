@@ -90,11 +90,11 @@ public sealed class TremoloBlock() : DspBlock(Info), IEngageAware {
             ParamDescriptor.Float("phase", "LFO Phase", 0f, 180f, 0f, "°"),
             ParamDescriptor.Float("panCenter", "Pan Center", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float("crossover", "Crossover Freq", 100f, 3_000f, 700f, "Hz", ParamTaper.Log) with {
-                TypeLabels = ["", "", "", "Crossover Freq", ""]
+                TypeLabels = [string.Empty, string.Empty, string.Empty, "Crossover Freq", string.Empty]
             },
             ParamDescriptor.Float("trigger", "Trigger Level", Decibels.SilenceDb, 0f, Decibels.SilenceDb, "dB"),
             ParamDescriptor.Choice("crossoverSlope", "Crossover Slope", ["6 dB/oct", "12 dB/oct", "24 dB/oct"]) with {
-                TypeLabels = ["", "", "", "Crossover Slope", ""]
+                TypeLabels = [string.Empty, string.Empty, string.Empty, "Crossover Slope", string.Empty]
             },
             ParamDescriptor.Float("startPhase", "Start Phase", 0f, 360f, 0f, "°")
         ],
@@ -163,7 +163,9 @@ public sealed class TremoloBlock() : DspBlock(Info), IEngageAware {
             var right = io.Right[i];
             switch (type) {
                 case Panner: {
-                    var angle = Math.Clamp(depth * lfoLeft + center + 1, 0f, 2f) * MathF.PI / 4; // 0 = left, pi/2 = right
+                    var angle = Math.Clamp(depth * lfoLeft + center + 1, 0f, 2f)
+                        * MathF.PI
+                        / 4; // 0 = left, pi/2 = right
                     var mono = 0.5f * (left + right);
                     io.Left[i] = mono * MathF.Sqrt(2) * MathF.Cos(angle);
                     io.Right[i] = mono * MathF.Sqrt(2) * MathF.Sin(angle);

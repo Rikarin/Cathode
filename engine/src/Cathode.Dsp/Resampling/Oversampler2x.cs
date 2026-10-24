@@ -6,7 +6,8 @@ namespace Cathode.Dsp.Resampling;
 ///     returned span, then <see cref="Down" />. Allocation-free after construction.
 /// </summary>
 public sealed class Oversampler2x {
-    static readonly (float[], float[]) Branches = HalfBandStage.Split(HalfBand.Design(Oversampler4x.AttenuationDb, 0.04));
+    static readonly (float[], float[]) Branches =
+        HalfBandStage.Split(HalfBand.Design(Oversampler4x.AttenuationDb, 0.04));
 
     readonly HalfBandStage stage = new(Branches);
     float[] twice;

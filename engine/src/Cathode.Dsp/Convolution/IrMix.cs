@@ -1,7 +1,12 @@
 namespace Cathode.Dsp.Convolution;
 
 /// <summary>One impulse response going into <see cref="IrMix.Mix" />, at its own rate.</summary>
-public sealed record IrMixInput(float[] Samples, double SampleRate, double LevelDb = 0, double DelayMs = 0, bool Invert = false);
+public sealed record IrMixInput(
+    float[] Samples,
+    double SampleRate,
+    double LevelDb = 0,
+    double DelayMs = 0,
+    bool Invert = false);
 
 /// <summary>
 ///     Blends impulse responses into one (Cab-Lab style): each is resampled to the target rate, optionally aligned on its
@@ -10,7 +15,13 @@ public sealed record IrMixInput(float[] Samples, double SampleRate, double Level
 public static class IrMix {
     const int FadeLength = 64;
 
-    public static float[] Mix(IReadOnlyList<IrMixInput> inputs, double sampleRate, int length, bool align, bool normalize) {
+    public static float[] Mix(
+        IReadOnlyList<IrMixInput> inputs,
+        double sampleRate,
+        int length,
+        bool align,
+        bool normalize
+    ) {
         if (inputs.Count == 0 || length <= 0) {
             throw new ArgumentException("Mix at least one IR into a non-empty result.");
         }

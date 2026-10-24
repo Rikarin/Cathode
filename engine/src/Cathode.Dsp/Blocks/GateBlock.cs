@@ -83,7 +83,7 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
             ParamDescriptor.Choice("knee", "Knee", ["Hard", "Soft", "Softer"]) with {
-                TypeLabels = ["Knee", "", "Knee", ""]
+                TypeLabels = ["Knee", string.Empty, "Knee", string.Empty]
             },
             SidechainSource.Param()
         ],
@@ -186,7 +186,10 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
             } else {
                 open = false;
                 targetDb = envelope <= 0 ? FloorDb
-                    : knee > 0 ? Math.Max(FloorDb, ExpanderGainDb(20f * MathF.Log10(envelope) - thresholdDb, slope, knee))
+                    : knee > 0 ? Math.Max(
+                        FloorDb,
+                        ExpanderGainDb(20f * MathF.Log10(envelope) - thresholdDb, slope, knee)
+                    )
                     : Math.Max(FloorDb, slope * (20f * MathF.Log10(envelope) - thresholdDb));
             }
 

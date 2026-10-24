@@ -38,7 +38,13 @@ public class TelemetryRegionTests {
                 new() {
                     Nodes = [
                         new() { Id = "in", Type = NodeTypes.Input, Row = 0, Column = 0 },
-                        new() { Id = "rta", Type = "rta", Row = 0, Column = 1, Parameters = { ["inputSelect"] = 2 } },
+                        new() {
+                            Id = "rta",
+                            Type = "rta",
+                            Row = 0,
+                            Column = 1,
+                            Parameters = { ["inputSelect"] = 2 }
+                        },
                         new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 }
                     ],
                     Cables = [new() { From = "in", To = "rta" }, new() { From = "rta", To = "out" }]
@@ -121,7 +127,8 @@ public class TelemetryRegionTests {
     public async Task Concurrent_reads_always_see_a_consistent_snapshot() {
         using var region = TelemetryRegion.CreateInMemory(48_000);
         using var stop = new CancellationTokenSource(TimeSpan.FromMilliseconds(400));
-        var writer = Task.Run(() => {
+        var writer = Task.Run(
+            () => {
                 var i = 0;
                 while (!stop.IsCancellationRequested) {
                     region.RecordCallback(64, i++ % 150, 0.5f, 0.25f, 0.125f);

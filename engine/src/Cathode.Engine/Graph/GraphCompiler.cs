@@ -71,7 +71,8 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             blocks.Add(block);
             slotIds.Add(node.Id);
             bypassed.Add(node.Bypassed && !builtIn);
-            bypassModes.Add((builtIn ? BypassModes.Thru : node.BypassMode) switch {
+            bypassModes.Add(
+                (builtIn ? BypassModes.Thru : node.BypassMode) switch {
                     BypassModes.Mute => BypassKind.Mute,
                     BypassModes.MuteIn => BypassKind.MuteIn,
                     BypassModes.MuteFxIn => BypassKind.MuteFxIn,
@@ -90,7 +91,8 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             var engage = modifier.Param == ModNames.EngageParam
                 && slot >= 0
                 && !NodeTypes.IsBuiltIn(blocks[slot].Descriptor.TypeId);
-            var index = slot < 0 ? -1 : engage ? ModifierBinding.Engage : blocks[slot].Descriptor.IndexOf(modifier.Param);
+            var index = slot < 0 ? -1 :
+                engage ? ModifierBinding.Engage : blocks[slot].Descriptor.IndexOf(modifier.Param);
             if (index == -1) {
                 errors.Add($"Modifier: no parameter '{modifier.Param}' on block '{modifier.Block}'.");
             } else if (!ModNames.TryParseSource(modifier.Source, out var source)) {

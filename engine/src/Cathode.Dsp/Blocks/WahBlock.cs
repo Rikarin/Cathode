@@ -202,8 +202,9 @@ public sealed class WahBlock : DspBlock {
     /// <summary>The inductance left by Inductor Bias <paramref name="bias" /> (0..1), as a fraction of the unbiased.</summary>
     public static float BiasedInductance(float bias) => 1f - MaxBiasDrop * Math.Clamp(bias, 0f, 1f);
 
-    static string[] FilterOnly(string name) =>
-        [..Enumerable.Range(0, Voicings.Length + Circuits.Count).Select(t => t < Voicings.Length ? name : "")];
+    static string[] FilterOnly(string name) => [
+        ..Enumerable.Range(0, Voicings.Length + Circuits.Count).Select(t => t < Voicings.Length ? name : string.Empty)
+    ];
 
     static float Voice(
         float x,
@@ -265,11 +266,12 @@ public sealed class WahBlock : DspBlock {
     /// <summary>The pedal position (0..100 %) through the Control Taper: linear, or bunched toward heel or toe.</summary>
     public static float Tapered(int taper, float position) {
         var p = Math.Clamp(position, 0f, 100f) / 100f;
-        return 100f * taper switch {
-            1 => p * p,
-            2 => 1 - (1 - p) * (1 - p),
-            _ => p
-        };
+        return 100f
+            * taper switch {
+                1 => p * p,
+                2 => 1 - (1 - p) * (1 - p),
+                _ => p
+            };
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -307,7 +309,8 @@ public sealed class WahBlock : DspBlock {
         var maxScale = Params.Advance(MaxFrequency, io.Length) / 100f;
         var drive = Params.Advance(Drive, io.Length) / 100f;
         var bias = Params.Advance(InductorBias, io.Length) / 100f;
-        var biasShift = bias > 0 ? 1f / MathF.Sqrt(BiasedInductance(bias)) : 1f; // the frequency goes as one over root L
+        var biasShift =
+            bias > 0 ? 1f / MathF.Sqrt(BiasedInductance(bias)) : 1f; // the frequency goes as one over root L
         var mix = Params.Advance(Mix, io.Length) / 100f;
         var mixStep = (mix - this.mix) / io.Length;
         var currentMix = this.mix;

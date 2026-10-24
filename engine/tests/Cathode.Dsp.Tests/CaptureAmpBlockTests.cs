@@ -33,13 +33,13 @@ public class CaptureAmpBlockTests : IDisposable {
             Assert.True(Math.Abs(actual[i] - expected[i]) < 1e-4, $"sample {i}: {actual[i]} vs {expected[i]}");
         }
 
-        Assert.Equal($"{type.ToUpperInvariant()}-8{(depth > 1 ? "x2" : "")}", model.Architecture);
+        Assert.Equal($"{type.ToUpperInvariant()}-8{(depth > 1 ? "x2" : string.Empty)}", model.Architecture);
     }
 
     [Fact]
     public void Aida_metadata_sets_loudness_and_input_level() {
         var json = SyntheticModel.Create("lstm", 4, 1, false, 1).Json.TrimEnd('}')
-            + ",\"in_gain\":-6.5,\"out_gain\":4,\"samplerate\":44100}";
+            + ""","in_gain":-6.5,"out_gain":4,"samplerate":44100}""";
         using var model = AidaModel.Parse(JsonDocument.Parse(json).RootElement);
 
         Assert.Equal(-22, model.Loudness);
@@ -50,12 +50,18 @@ public class CaptureAmpBlockTests : IDisposable {
 
     [Theory]
     [InlineData("""{"in_shape":[null,null,2],"layers":[]}""", "conditioned")]
-    [InlineData("""{"in_shape":[null,null,1],"layers":[{"type":"dense","shape":[null,null,1],"weights":[[[1]],[0]]}]}""",
-        "dense output")]
-    [InlineData("""{"in_shape":[null,null,1],"layers":[{"type":"conv1d","shape":[null,null,4],"weights":[]},{"type":"dense","shape":[null,null,1],"weights":[[[1]],[0]]}]}""",
-        "conv1d")]
-    [InlineData("""{"in_shape":[null,null,1],"layers":[{"type":"lstm","shape":[null,null,2],"weights":[[[1,2,3]],[[0],[0]],[0]]},{"type":"dense","shape":[null,null,1],"weights":[[[1],[1]],[0]]}]}""",
-        "weights per row")]
+    [InlineData(
+        """{"in_shape":[null,null,1],"layers":[{"type":"dense","shape":[null,null,1],"weights":[[[1]],[0]]}]}""",
+        "dense output"
+    )]
+    [InlineData(
+        """{"in_shape":[null,null,1],"layers":[{"type":"conv1d","shape":[null,null,4],"weights":[]},{"type":"dense","shape":[null,null,1],"weights":[[[1]],[0]]}]}""",
+        "conv1d"
+    )]
+    [InlineData(
+        """{"in_shape":[null,null,1],"layers":[{"type":"lstm","shape":[null,null,2],"weights":[[[1,2,3]],[[0],[0]],[0]]},{"type":"dense","shape":[null,null,1],"weights":[[[1],[1]],[0]]}]}""",
+        "weights per row"
+    )]
     public void Malformed_models_are_rejected_with_a_reason(string json, string reason) {
         var path = Path.Combine(folder, "bad.aidax");
         File.WriteAllText(path, json);
@@ -80,7 +86,7 @@ public class CaptureAmpBlockTests : IDisposable {
     public void Block_loads_an_aida_model_normalises_it_and_copies_mono_to_both_channels() {
         var spec = SyntheticModel.Create("gru", 8, 1, false, 5);
         var path = Path.Combine(folder, "amp.aidax");
-        File.WriteAllText(path, spec.Json.TrimEnd('}') + ",\"out_gain\":6}");
+        File.WriteAllText(path, spec.Json.TrimEnd('}') + ""","out_gain":6}""");
         using var block = new CaptureAmpBlock();
         block.LoadAsset(CaptureAmpBlock.ModelSlot, path);
         block.Prepare(new(48_000, 64));
@@ -128,7 +134,7 @@ public class CaptureAmpBlockTests : IDisposable {
             var random = new Random(seed);
             var gates = type == "lstm" ? 4 : 3;
             var layers = new List<(double[,] Kernel, double[,] Recurrent, double[,] Bias)>();
-            var json = new StringBuilder("{\"in_shape\":[null,null,1],");
+            var json = new StringBuilder("""{"in_shape":[null,null,1],""");
             json.Append(CultureInfo.InvariantCulture, $"\"in_skip\":{(skip ? 1 : 0)},\"layers\":[");
             var size = 1;
             for (var l = 0; l < depth; l++) {
@@ -145,7 +151,7 @@ public class CaptureAmpBlockTests : IDisposable {
 
             var head = Random(random, hidden, 1, 0.5);
             var headBias = random.NextDouble() * 0.1;
-            json.Append("{\"type\":\"dense\",\"activation\":\"\",\"shape\":[null,null,1],\"weights\":[");
+            json.Append("""{"type":"dense","activation":"","shape":[null,null,1],"weights":[""");
             json.Append(Array2D(head)).Append(CultureInfo.InvariantCulture, $",[{headBias:R}]]}}]}}");
 
             return new(json.ToString(), input => Evaluate(input, type, hidden, layers, head, headBias, skip));
@@ -167,6 +173,7 @@ public class CaptureAmpBlockTests : IDisposable {
                 double[] x = [input[n]];
                 for (var l = 0; l < layers.Count; l++) {
                     var (w, u, b) = layers[l];
+
                     double In(int g, int i) {
                         var sum = 0.0;
                         for (var j = 0; j < x.Length; j++) {
@@ -235,16 +242,20 @@ public class CaptureAmpBlockTests : IDisposable {
         }
 
         static string Array2D(double[,] m) =>
-            "[" + string.Join(
+            "["
+            + string.Join(
                 ",",
                 Enumerable.Range(0, m.GetLength(0)).Select(r => Array1D(m, r))
-            ) + "]";
+            )
+            + "]";
 
         static string Array1D(double[,] m, int row) =>
-            "[" + string.Join(
+            "["
+            + string.Join(
                 ",",
                 Enumerable.Range(0, m.GetLength(1))
                     .Select(c => ((float)m[row, c]).ToString("R", CultureInfo.InvariantCulture))
-            ) + "]";
+            )
+            + "]";
     }
 }

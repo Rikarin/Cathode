@@ -3,8 +3,12 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Lichtlaerm Audio Prometheus, lead channel (Berlin, 2023-24; 100-140 W, four EL34 stock). <b>The topology is
-///     inferred, not read from a schematic</b>: none is published. What is documented (the maker's page, owners'
+///     Lichtlaerm Audio Prometheus, lead channel (Berlin, 2023-24; 100-140 W, four EL34 stock).
+///     <b>
+///         The topology is
+///         inferred, not read from a schematic
+///     </b>
+///     : none is published. What is documented (the maker's page, owners'
 ///     reports) is a lead channel with Gain, Bass, Middle, Treble, a Vintage/Modern voicing switch, a three-way "Bite"
 ///     switch (high-mid bump / off / low-mid bump), a "Cut" knob (a low cut ahead of the gain stages), and global
 ///     Presence, Depth and Master into a fixed-bias EL34 quad. Players compare it with Soldano, Driftwood and Diezel
@@ -64,8 +68,8 @@ public static class Prometheus {
                 Preamp,
                 220e3,
                 2.7e3,
-                CathodeBypass: 0.68e-6,
-                InputResistance: 68e3,
+                0.68e-6,
+                68e3,
                 GridLeak: 1e6
             ),
             new NetworkStageDesign("V1B", GainStage()),
@@ -75,34 +79,34 @@ public static class Prometheus {
                 "V3A",
                 TriodeModel.Ecc83,
                 StackDriver.CathodeFollower,
-                Supply: Preamp,
-                CathodeResistor: 100e3,
-                Stack: Stack,
-                Load: new(1e6, PotTaper.Audio),
-                LoadRole: PotRole.Master
+                Preamp,
+                100e3,
+                Stack,
+                new(1e6, PotTaper.Audio),
+                PotRole.Master
             )
         ],
         new(
             "4 x EL34",
             PentodeModel.EL34,
-            TubesPerSide: 2,
-            Supply: 470,
-            ScreenResistor: 1e3,
-            IdleCurrent: 0.035,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 100,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 340, 82e3, 100e3, 10e3, 1e3),
-            CouplingCap: 22e-9,
-            GridLeak: 220e3,
-            GridStopper: 5.6e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(Math.Sqrt(2), 100e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6, 90),
-            HasFeedback: true,
-            Transformer: new(1.7e3),
-            Speaker: new(Resonance: 95, PeakImpedance: 30, Q: 2.5),
-            PowerSupply: new(25, 100e-6, 100, 50e-6, 10e3, 22e-6)
+            2,
+            470,
+            1e3,
+            0.035,
+            false,
+            0,
+            100,
+            new LongTailPairDesign(TriodeModel.Ecc83, 340, 82e3, 100e3, 10e3, 1e3),
+            22e-9,
+            220e3,
+            5.6e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(Math.Sqrt(2), 100e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6, 90),
+            true,
+            new(1.7e3),
+            new(Resonance: 95, PeakImpedance: 30, Q: 2.5),
+            new(25, 100e-6, 100, 50e-6, 10e3, 22e-6)
         ),
         -10
     ) {
@@ -164,7 +168,13 @@ public static class Prometheus {
     ///     A 12AX7 with its plate resistor (and optional plate bypass) from the preamp rail, its cathode resistor and its
     ///     grid-plate capacitance; the plate is the output. Returns the cathode.
     /// </summary>
-    static int Triode(StageNetlist net, int grid, double plateResistor, double cathodeResistor, double plateBypass = 0) {
+    static int Triode(
+        StageNetlist net,
+        int grid,
+        double plateResistor,
+        double cathodeResistor,
+        double plateBypass = 0
+    ) {
         var (plate, cathode, supply) = (net.Node(), net.Node(), net.Node());
         net.Supply(supply, Preamp);
         net.Resistor(supply, plate, plateResistor);

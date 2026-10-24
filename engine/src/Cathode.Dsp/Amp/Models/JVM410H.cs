@@ -29,7 +29,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Guessed: the rails (HT1 to HT5 are named on the drawings but their voltages are not: 420 V for the inverter,
 ///         330 / 310 / 290 / 270 V down the preamp's 10k / 22 µF chain, 470 V B+), the idle current (35 mA a tube), the
 ///         output transformer (1.7k), the feedback tap (16 Ω), which state of the channel and mode relays each mode
-///         selects (here: V7b's 82k / 22k junction left on its 1 µF and 1M, as the relay rests; V6a, V7b and V7a all in the
+///         selects (here: V7b's 82k / 22k junction left on its 1 µF and 1M, as the relay rests; V6a, V7b and V7a all in
+///         the
 ///         path, the Red mode's cascade). Simplified: the loop bypassed with nothing plugged in, the reverb at zero (its
 ///         return's injection not modelled), the presence and resonance networks as the library's presence pot (10k with
 ///         100 nF) and depth, 120 pF across the feedback resistor and from the power grids to ground left out, the idle
@@ -71,24 +72,24 @@ public static class JVM410H {
         new(
             "4 x EL34",
             PentodeModel.EL34,
-            TubesPerSide: 2,
-            Supply: 470,
-            ScreenResistor: 1e3,
-            IdleCurrent: 0.035,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 100,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 420, 82e3, 100e3, 10e3, 470),
-            CouplingCap: 47e-9,
-            GridLeak: 220e3,
-            GridStopper: 5.6e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(Math.Sqrt(2), 82e3, 4.7e3, new(10e3, PotTaper.Linear), 0.1e-6, 90),
-            HasFeedback: true,
-            Transformer: new(1.7e3),
-            Speaker: SpeakerDesign.Closed4x12,
-            PowerSupply: new(25, 100e-6, 470, 50e-6, 10e3, 22e-6),
+            2,
+            470,
+            1e3,
+            0.035,
+            false,
+            0,
+            100,
+            new LongTailPairDesign(TriodeModel.Ecc83, 420, 82e3, 100e3, 10e3, 470),
+            47e-9,
+            220e3,
+            5.6e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(Math.Sqrt(2), 82e3, 4.7e3, new(10e3, PotTaper.Linear), 0.1e-6, 90),
+            true,
+            new(1.7e3),
+            SpeakerDesign.Closed4x12,
+            new(25, 100e-6, 470, 50e-6, 10e3, 22e-6),
             InverterInput: new(22e-9, 1e6)
         ),
         -7
@@ -111,7 +112,8 @@ public static class JVM410H {
     /// </summary>
     static StageNetlist FirstStage() {
         var net = new StageNetlist();
-        var (b, grid, rail, plate, cathode, coupled) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (b, grid, rail, plate, cathode, coupled) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(),
+            net.Node());
         net.Capacitor(net.Input, b, 47e-9);
         net.Capacitor(b, StageNetlist.Ground, 100e-12);
         net.Resistor(b, StageNetlist.Ground, 1e6);
@@ -235,7 +237,8 @@ public static class JVM410H {
     ///     grounded while the channel is idle (switch 1 not <paramref name="od2" />).
     /// </summary>
     static void Stack(StageNetlist net, int line, int bus, double slope, bool od2) {
-        var (trebleTop, slopeNode, bassTop, middleTop, volumeTop) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (trebleTop, slopeNode, bassTop, middleTop, volumeTop) = (net.Node(), net.Node(), net.Node(), net.Node(),
+            net.Node());
         net.Capacitor(line, trebleTop, 470e-12, CapacitorRole.Stack);
         net.Resistor(line, slopeNode, slope);
         net.Capacitor(slopeNode, bassTop, 22e-9, CapacitorRole.Stack);

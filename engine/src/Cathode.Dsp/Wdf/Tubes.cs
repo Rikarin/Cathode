@@ -34,7 +34,8 @@ public readonly record struct TriodeModel(
     ///     currents scale with the count at the same voltages, which Koren's and Dempwolf's laws take exactly through
     ///     K_g1 and G_g.
     /// </summary>
-    public TriodeModel Paralleled(int count) => this with { Kg1 = Kg1 / count, GridConductance = GridConductance * count };
+    public TriodeModel Paralleled(int count) =>
+        this with { Kg1 = Kg1 / count, GridConductance = GridConductance * count };
 
     /// <summary>ECC83 / 12AX7: μ 100, the high-gain preamp triode (about 1.0 mA at 250 V, -2 V).</summary>
     public static TriodeModel Ecc83 { get; } = new(100, 1.4, 1_060, 600, 300);
@@ -168,10 +169,16 @@ public struct Triode(TriodeModel model) : INonlinearDevice {
     public readonly double Conductance(int port) => 1e-5;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void Evaluate(ReadOnlySpan<double> voltages, Span<double> currents, Span<double> jacobian, int stride) {
+    public readonly void Evaluate(
+        ReadOnlySpan<double> voltages,
+        Span<double> currents,
+        Span<double> jacobian,
+        int stride
+    ) {
         var vgk = voltages[0];
         var vpk = voltages[1];
-        currents[0] = Tube.GridCurrent(vgk, model.GridConductance, model.GridSharpness, model.GridExponent, out jacobian[0]);
+        currents[0] =
+            Tube.GridCurrent(vgk, model.GridConductance, model.GridSharpness, model.GridExponent, out jacobian[0]);
 
         var root = Math.Sqrt(model.Kvb + vpk * vpk);
         var softplus = DeviceMath.Softplus(model.Kp * (1 / model.Mu + vgk / root), out var logistic);
@@ -216,11 +223,17 @@ public struct Pentode(PentodeModel model) : INonlinearDevice {
     public readonly double Conductance(int port) => 1e-4;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void Evaluate(ReadOnlySpan<double> voltages, Span<double> currents, Span<double> jacobian, int stride) {
+    public readonly void Evaluate(
+        ReadOnlySpan<double> voltages,
+        Span<double> currents,
+        Span<double> jacobian,
+        int stride
+    ) {
         var vg1 = voltages[0];
         var vg2 = voltages[1];
         var vp = voltages[2];
-        currents[0] = Tube.GridCurrent(vg1, model.GridConductance, model.GridSharpness, model.GridExponent, out jacobian[0]);
+        currents[0] =
+            Tube.GridCurrent(vg1, model.GridConductance, model.GridSharpness, model.GridExponent, out jacobian[0]);
         currents[1] = 0;
         currents[2] = 0;
 
@@ -278,7 +291,13 @@ static class Tube {
 
     /// <summary>Dempwolf's grid current G_g (ln(1 + e^(C_g v)) / C_g)^ξ, and its slope.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static double GridCurrent(double vgk, double conductance, double sharpness, double exponent, out double slope) {
+    public static double GridCurrent(
+        double vgk,
+        double conductance,
+        double sharpness,
+        double exponent,
+        out double slope
+    ) {
         if (sharpness * vgk < -20) {
             slope = 0; // below about 1e-16 A: skip the exponential, logarithm and power
             return 0;

@@ -15,21 +15,94 @@ public partial class AmpStageTests {
     static IReadOnlyList<AmpStageDesign> Chain(AmpDesign design, bool on) =>
         [..design.Preamp.SelectMany(s => s is ChannelSwitchStageDesign c ? on ? c.On : c.Off : [s])];
 
-    public static TheoryData<string, int, double, double, double> ClassAStages => new() {
-        // name, stage index in the chain, amplitude, knob (gain/treble/tone), bass
-        { "AC30 top boost V1A", 1, 0.3, 0.6, 0.5 },
-        { "AC30 top boost V1A", 1, 3.0, 0.9, 0.5 },
-        { "AC30 top boost V1B", 2, 10.0, 0.8, 0.3 },
-        { "AC30 top boost V1B", 2, 60.0, 0.2, 0.9 },
-        { "AC30 normal volume", 1, 10.0, 0.5, 0.5 },
-        { "AC15 EF86", 0, 0.05, 0.6, 0.5 },
-        { "AC15 EF86", 0, 0.5, 1.0, 0.5 },
-        { "DC-30 V1", 0, 0.3, 0.5, 0.5 },
-        { "DC-30 V1", 0, 3.0, 0.5, 0.5 },
-        { "DC-30 V2B", 2, 40.0, 0.7, 0.2 },
-        { "DC-30 EF86", 0, 0.05, 0.0, 0.5 },
-        { "DC-30 EF86", 0, 0.25, 1.0, 0.5 }
-    };
+    public static TheoryData<string, int, double, double, double> ClassAStages =>
+        new() {
+            // name, stage index in the chain, amplitude, knob (gain/treble/tone), bass
+            {
+                "AC30 top boost V1A",
+                1,
+                0.3,
+                0.6,
+                0.5
+            },
+            {
+                "AC30 top boost V1A",
+                1,
+                3.0,
+                0.9,
+                0.5
+            },
+            {
+                "AC30 top boost V1B",
+                2,
+                10.0,
+                0.8,
+                0.3
+            },
+            {
+                "AC30 top boost V1B",
+                2,
+                60.0,
+                0.2,
+                0.9
+            },
+            {
+                "AC30 normal volume",
+                1,
+                10.0,
+                0.5,
+                0.5
+            },
+            {
+                "AC15 EF86",
+                0,
+                0.05,
+                0.6,
+                0.5
+            },
+            {
+                "AC15 EF86",
+                0,
+                0.5,
+                1.0,
+                0.5
+            },
+            {
+                "DC-30 V1",
+                0,
+                0.3,
+                0.5,
+                0.5
+            },
+            {
+                "DC-30 V1",
+                0,
+                3.0,
+                0.5,
+                0.5
+            },
+            {
+                "DC-30 V2B",
+                2,
+                40.0,
+                0.7,
+                0.2
+            },
+            {
+                "DC-30 EF86",
+                0,
+                0.05,
+                0.0,
+                0.5
+            },
+            {
+                "DC-30 EF86",
+                0,
+                0.25,
+                1.0,
+                0.5
+            }
+        };
 
     [Theory]
     [MemberData(nameof(ClassAStages))]
@@ -76,8 +149,8 @@ public partial class AmpStageTests {
         var reference = new ReferenceSimulator(circuit);
         reference.OperatingPoint(40);
         output.WriteLine(
-            $"{name}: rest output {stage.RestOutput:0.000} V (reference {reference.Voltage(node):0.000} V), source " +
-            $"{rest:0.00} V behind {sourceResistance / 1e3:0.0}k, output resistance {stage.OutputResistance / 1e3:0.0}k"
+            $"{name}: rest output {stage.RestOutput:0.000} V (reference {reference.Voltage(node):0.000} V), source "
+            + $"{rest:0.00} V behind {sourceResistance / 1e3:0.0}k, output resistance {stage.OutputResistance / 1e3:0.0}k"
         );
         Assert.Equal(reference.Voltage(node), stage.RestOutput, 0.002 * Math.Abs(reference.Voltage(node)) + 1e-6);
 
@@ -116,8 +189,8 @@ public partial class AmpStageTests {
             master: master
         );
         output.WriteLine(
-            $"{name}: B+ {power.Supply:0.0} V, cathode {power.CathodeVoltage:0.00} V across {power.CathodeResistor:0} Ω, " +
-            $"idle {power.PlateCurrents.A * 1e3:0.0} mA per tube, inverter grids {power.PhaseInverter.RestGrid:0.00} V"
+            $"{name}: B+ {power.Supply:0.0} V, cathode {power.CathodeVoltage:0.00} V across {power.CathodeResistor:0} Ω, "
+            + $"idle {power.PlateCurrents.A * 1e3:0.0} mA per tube, inverter grids {power.PhaseInverter.RestGrid:0.00} V"
         );
         var errorDb = CompareInTime(name, power.Tick, power.Newton, circuit, speaker, amplitude, 8);
         Assert.True(errorDb < -35, $"{name}: {errorDb:0.0} dB from the reference");
@@ -136,12 +209,15 @@ public partial class AmpStageTests {
             ("AC30 top boost plate", Rest(AC30.Design, false, 1, 3), 180, 0.10),
             ("AC30 top boost cathode", Rest(AC30.Design, false, 1, 4), 1.65, 0.20),
             ("AC30 follower cathode", Rest(AC30.Design, false, 2, 3), 180, 0.08),
-            ("AC30 inverter grids", LongTailPair.For((LongTailPairDesign)AC30.Design.Power.PhaseInverter).RestGrid, 55, 0.05),
-            ("AC30 inverter plates", LongTailPair.For((LongTailPairDesign)AC30.Design.Power.PhaseInverter).RestPlateA, 230, 0.03),
+            ("AC30 inverter grids", LongTailPair.For((LongTailPairDesign)AC30.Design.Power.PhaseInverter).RestGrid, 55,
+                0.05),
+            ("AC30 inverter plates", LongTailPair.For((LongTailPairDesign)AC30.Design.Power.PhaseInverter).RestPlateA,
+                230, 0.03),
             ("AC15 EF86 plate", Rest(AC15.Design, false, 0, 3), 90, 0.02),
             ("AC15 EF86 screen", Rest(AC15.Design, false, 0, 4), 105, 0.02),
             ("AC15 EF86 cathode", Rest(AC15.Design, false, 0, 5), 2.4, 0.02),
-            ("AC15 inverter plates", LongTailPair.For((LongTailPairDesign)AC15.Design.Power.PhaseInverter).RestPlateA, 220, 0.06),
+            ("AC15 inverter plates", LongTailPair.For((LongTailPairDesign)AC15.Design.Power.PhaseInverter).RestPlateA,
+                220, 0.06),
             ("DC-30 EF86 plate", Rest(DC30.Design, true, 0, 3), 125, 0.08),
             ("DC-30 EF86 screen", Rest(DC30.Design, true, 0, 4), 60, 0.15)
         ];
@@ -150,7 +226,10 @@ public partial class AmpStageTests {
         }
 
         foreach (var (name, volts, expected, tolerance) in points) {
-            Assert.True(Math.Abs(volts - expected) <= tolerance * expected, $"{name}: {volts:0.00} V against {expected} V");
+            Assert.True(
+                Math.Abs(volts - expected) <= tolerance * expected,
+                $"{name}: {volts:0.00} V against {expected} V"
+            );
         }
 
         double Rest(AmpDesign design, bool on, int index, int node) {

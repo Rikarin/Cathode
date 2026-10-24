@@ -18,7 +18,8 @@ namespace Cathode.Dsp.Blocks;
 ///             and third harmonics, so a buzzing single-coil does not hold the gate open.
 ///         </item>
 ///         <item>
-///             Noise Reducer: the same gain computer acts only above a 2 kHz two-pole split, so hiss fades with the note while
+///             Noise Reducer: the same gain computer acts only above a 2 kHz two-pole split, so hiss fades with the note
+///             while
 ///             the body of the sound is never cut.
 ///         </item>
 ///     </list>

@@ -16,7 +16,10 @@ public readonly record struct Alignment(int Lag, double Gain, double Fraction = 
 
     public double GainDb => Analysis.ToDb(Math.Abs(Gain));
 
-    /// <summary>The prediction shifted by <see cref="Lag" /> (and <see cref="Fraction" />) and scaled by <see cref="Gain" />, as long as the input.</summary>
+    /// <summary>
+    ///     The prediction shifted by <see cref="Lag" /> (and <see cref="Fraction" />) and scaled by <see cref="Gain" />,
+    ///     as long as the input.
+    /// </summary>
     public float[] Apply(ReadOnlySpan<float> prediction) {
         var result = new float[prediction.Length];
         if (Fraction == 0) {

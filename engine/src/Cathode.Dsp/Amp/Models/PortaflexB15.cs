@@ -15,13 +15,15 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         Sources: Joe Piazza's redraw of the 1968 B-15-N (drtube.com/schematics/ampeg/b15n68-jp.gif, also at
 ///         schematicheaven.net/ampegamps), read by eye at 4×: every value in the signal path, the −50 V bias node, the
-///         5AR4 with 30 µF, 1k 10 W and 40 µF, the 22k / 40 µF preamp filters. The OT-214's 6.5k primary (and 290 Ω DCR) is
+///         5AR4 with 30 µF, 1k 10 W and 40 µF, the 22k / 40 µF preamp filters. The OT-214's 6.5k primary (and 290 Ω DCR)
+///         is
 ///         from Ampeg's 4/69 B-15-N service manual as quoted by Rob Mercure (Music Electronics Forum, "Primary Z early
 ///         Portaflexes"); plates near 450 V and screens near 445 V from builders on the same forum.
 ///     </para>
 ///     <para>
 ///         Assumptions: the 6SL7 runs on the 5751's curves (μ 70; the library has no 6SL7, whose plate resistance is a
-///         little lower); the pot tapers (the volume audio, the Baxandall's linear); the idle current (38 mA a tube, which gives about −50 V of bias at
+///         little lower); the pot tapers (the volume audio, the Baxandall's linear); the idle current (38 mA a tube, which
+///         gives about −50 V of bias at
 ///         450 V); the supply's source resistance (60 Ω); the idle channel two, which loads the mix node through its 270k
 ///         as about 150k more; and the cab: the B-15's closed 1 × 15 runs on the closed 8 × 10 preset, the library's only
 ///         bass cabinet. The screens have no resistors on the drawing (1 Ω here).
@@ -38,24 +40,24 @@ public static class PortaflexB15 {
         new(
             "2 x 6L6GC",
             PentodeModel.SixL6GC,
-            TubesPerSide: 1,
-            Supply: 450,
-            ScreenResistor: 1,
-            IdleCurrent: 0.038,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 30,
-            PhaseInverter: new FloatingParaphaseDesign(TriodeModel.FiveSevenFiveOne, 445, 120e3, 220, 1e3, 470e3, 510e3, 470e3),
-            CouplingCap: 0.022e-6,
-            GridLeak: 270e3,
-            GridStopper: 1e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(Math.Sqrt(2), 10e3, 220, new(1e3, PotTaper.Linear), 1e-15),
-            HasFeedback: true,
-            Transformer: new(6.5e3, 25, 12e-3, 290, 0.8e-9, 250e3),
-            Speaker: SpeakerDesign.Closed8x10,
-            PowerSupply: new(60, 30e-6, 1e3, 40e-6, 22e3, 40e-6, 2e-3, RectifierModel.GZ34)
+            1,
+            450,
+            1,
+            0.038,
+            false,
+            0,
+            30,
+            new FloatingParaphaseDesign(TriodeModel.FiveSevenFiveOne, 445, 120e3, 220, 1e3, 470e3, 510e3, 470e3),
+            0.022e-6,
+            270e3,
+            1e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(Math.Sqrt(2), 10e3, 220, new(1e3, PotTaper.Linear), 1e-15),
+            true,
+            new(6.5e3, 25, 12e-3, 290, 0.8e-9, 250e3),
+            SpeakerDesign.Closed8x10,
+            new(60, 30e-6, 1e3, 40e-6, 22e3, 40e-6, 2e-3, RectifierModel.GZ34)
         ),
         -5
     ) {

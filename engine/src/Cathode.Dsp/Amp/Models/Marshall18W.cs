@@ -39,24 +39,24 @@ public static class Marshall18W {
         new(
             "2 x EL84",
             PentodeModel.EL84,
-            TubesPerSide: 1,
-            Supply: 325,
-            ScreenResistor: 100,
-            IdleCurrent: 0.034,
-            CathodeBias: true,
-            CathodeBypass: 250e-6,
-            RatedPower: 18,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 300, 100e3, 100e3, 47e3, 820),
-            CouplingCap: 0.01e-6,
-            GridLeak: 470e3,
-            GridStopper: 8.2e3,
-            CutCap: 0,
-            CutPot: new(250e3, PotTaper.Linear),
-            Feedback: new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6, 90),
-            HasFeedback: false,
-            Transformer: new(8e3),
-            Speaker: SpeakerDesign.OpenBack2x12,
-            PowerSupply: new(80, 32e-6, 1.5e3, 16e-6, 8.2e3, 32e-6, 3e-3, RectifierModel.EZ81),
+            1,
+            325,
+            100,
+            0.034,
+            true,
+            250e-6,
+            18,
+            new LongTailPairDesign(TriodeModel.Ecc83, 300, 100e3, 100e3, 47e3, 820),
+            0.01e-6,
+            470e3,
+            8.2e3,
+            0,
+            new(250e3, PotTaper.Linear),
+            new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6, 90),
+            false,
+            new(8e3),
+            SpeakerDesign.OpenBack2x12,
+            new(80, 32e-6, 1.5e3, 16e-6, 8.2e3, 32e-6, 3e-3, RectifierModel.EZ81),
             InverterInput: new(0.01e-6, 470e3),
             CathodeResistor: 125
         ),
@@ -82,7 +82,8 @@ public static class Marshall18W {
     /// </summary>
     static NetworkStageDesign Normal() {
         var net = new StageNetlist();
-        var (rail, plate, cathode, toneTop, toneFoot, top) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (rail, plate, cathode, toneTop, toneFoot, top) = (net.Node(), net.Node(), net.Node(), net.Node(),
+            net.Node(), net.Node());
         net.Resistor(net.Input, StageNetlist.Ground, 1e6);
         net.Supply(rail, PreampSupply);
         net.Resistor(rail, plate, 100e3);

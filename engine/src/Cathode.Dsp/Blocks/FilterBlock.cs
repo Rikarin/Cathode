@@ -13,7 +13,8 @@ namespace Cathode.Dsp.Blocks;
 ///         <item>Null: no filter, for the gain, pan and phase controls alone.</item>
 ///         <item>All Pass can have feedback around it (one sample later), which turns its phase sweep into peaks.</item>
 ///         <item>
-///             Low and High Shelf 2: shelves whose Q may rise to <see cref="MaxShelf2Q" />, so they overshoot at the corner
+///             Low and High Shelf 2: shelves whose Q may rise to <see cref="MaxShelf2Q" />, so they overshoot at the
+///             corner
 ///             as passive shelving networks do. Peaking 2: the peak narrows as its gain grows (proportional Q: Q times
 ///             the square root of the linear gain).
 ///         </item>
@@ -189,7 +190,13 @@ public sealed class FilterBlock() : DspBlock(Info) {
             first = SvfCoefficients.Design(Response(type)!.Value, rate, frequency, q, gain, MaxShelf2Q);
             second = first;
         } else if (type == Peaking2) {
-            first = SvfCoefficients.Design(BiquadType.Peak, rate, frequency, q * Math.Sqrt(Decibels.ToGain(Math.Abs(gain))), gain);
+            first = SvfCoefficients.Design(
+                BiquadType.Peak,
+                rate,
+                frequency,
+                q * Math.Sqrt(Decibels.ToGain(Math.Abs(gain))),
+                gain
+            );
             second = first;
         } else if (Response(type) is { } response) {
             first = SvfCoefficients.Design(response, rate, frequency, q, gain);

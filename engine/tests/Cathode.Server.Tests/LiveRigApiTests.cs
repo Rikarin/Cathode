@@ -36,7 +36,10 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         var blocks = await client.GetFromJsonAsync<BlockTypeInfo[]>("/api/v1/catalog/blocks", Token);
 
         Assert.Contains(blocks!, b => b.TypeId == "nam" && b.AssetSlots.Contains("model"));
-        Assert.Contains(blocks!, b => b.TypeId == "cab" && b.AssetSlots.SequenceEqual(["slot1", "slot2", "slot3", "slot4"]));
+        Assert.Contains(
+            blocks!,
+            b => b.TypeId == "cab" && b.AssetSlots.SequenceEqual(["slot1", "slot2", "slot3", "slot4"])
+        );
         Assert.DoesNotContain(blocks!, b => b.TypeId == "dynacab");
         Assert.Contains(blocks!.Single(b => b.TypeId == "delay").Params, p => p.Id == "time" && p.Unit == "ms");
     }
@@ -68,7 +71,10 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task The_input_and_output_take_parameters_and_channels_but_no_bypass() {
-        await Patch("/api/v1/live/blocks/in1/params", new Dictionary<string, float> { ["type"] = 1, ["threshold"] = -50 });
+        await Patch(
+            "/api/v1/live/blocks/in1/params",
+            new Dictionary<string, float> { ["type"] = 1, ["threshold"] = -50 }
+        );
         await Patch("/api/v1/live/blocks/out1/params?channel=B", new Dictionary<string, float> { ["level1"] = -6 });
         await ServerFixture.Eventually(() => server.Target("in1", "threshold") == -50);
 
@@ -84,9 +90,13 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         await ServerFixture.Eventually(() => server.Graph?.SlotOf("compressor1") >= 0);
         var generation = server.Graph!.Generation;
 
-        await Patch("/api/v1/live/blocks/compressor1/params", new Dictionary<string, float> { ["lookAhead"] = 5 }); // 5 ms
+        await Patch(
+            "/api/v1/live/blocks/compressor1/params",
+            new Dictionary<string, float> { ["lookAhead"] = 5 }
+        ); // 5 ms
 
-        await ServerFixture.Eventually(() => server.Graph!.Generation > generation && server.Graph.LatencySamples == 240);
+        await ServerFixture.Eventually(() => server.Graph!.Generation > generation && server.Graph.LatencySamples == 240
+        );
         generation = server.Graph!.Generation;
         await Patch("/api/v1/live/blocks/compressor1/params", new Dictionary<string, float> { ["threshold"] = -10 });
         await ServerFixture.Eventually(() => server.Target("compressor1", "threshold") == -10);
@@ -213,7 +223,11 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
             new(48_000, [Signals.Noise(512, 1).Select((v, i) => v * MathF.Exp(-i / 80f)).ToArray()])
         );
         var pack = new MemoryStream();
-        using (var zip = new System.IO.Compression.ZipArchive(pack, System.IO.Compression.ZipArchiveMode.Create, true)) {
+        using (var zip = new System.IO.Compression.ZipArchive(
+                   pack,
+                   System.IO.Compression.ZipArchiveMode.Create,
+                   true
+               )) {
             await using (var wav = await zip.CreateEntry("a.wav").OpenAsync(Token)) {
                 await wav.WriteAsync(ir.ToArray(), Token);
             }
@@ -240,9 +254,10 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         Assert.Equal("cabgrid", asset.Kind);
         Assert.Equal(asset.Ref, live.Preset.Blocks.Single(b => b.Id == "cab1").Assets["slot2"]);
         Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
-        await ServerFixture.Eventually(
-            () => (server.Block("cab1") as Cathode.Dsp.Blocks.CabBlock)?.Grid(1)?.Distances.Count == 1
-                && server.Target("cab1", "m2source") == Cathode.Dsp.Blocks.CabBlock.SourcePack
+        await ServerFixture.Eventually(() => (server.Block("cab1") as Cathode.Dsp.Blocks.CabBlock)?.Grid(1)
+            ?.Distances.Count
+            == 1
+            && server.Target("cab1", "m2source") == Cathode.Dsp.Blocks.CabBlock.SourcePack
         );
     }
 
@@ -259,7 +274,9 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         );
 
         Assert.Equal(80, state.Preset.Blocks.Single(b => b.Id == "cab1").Channels["A"]["m1position"]);
-        await ServerFixture.Eventually(() => server.Target("cab1", "m1position") == 80 && server.Target("cab1", "m1distance") == 6);
+        await ServerFixture.Eventually(() =>
+            server.Target("cab1", "m1position") == 80 && server.Target("cab1", "m1distance") == 6
+        );
         Assert.Same(cab, server.Block("cab1")); // a parameter, not a rebuild of the graph
         var after = cab.ImpulseResponse().Left;
         var change = Analysis.NullResidualDb(before, after) - Analysis.NullResidualDb(before, new float[before.Length]);
@@ -271,7 +288,13 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         await Post("/api/v1/live/blocks", new AddBlockRequest("circuitamp", 0, 4));
         await Patch(
             "/api/v1/live/blocks/circuitamp1/params",
-            new Dictionary<string, float> { ["gain"] = 9, ["switch1"] = 1, ["bias"] = 80, ["level"] = -6, ["inputsel"] = 2 }
+            new Dictionary<string, float> {
+                ["gain"] = 9,
+                ["switch1"] = 1,
+                ["bias"] = 80,
+                ["level"] = -6,
+                ["inputsel"] = 2
+            }
         );
 
         var state = await Patch(
@@ -301,13 +324,13 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     [Fact]
     public async Task An_aida_x_model_uploads_as_a_model_and_runs_in_the_capture_amp() {
         const string model = """
-            {"in_shape":[null,null,1],"in_skip":1,"out_gain":2,"layers":[
-              {"type":"lstm","activation":"","shape":[null,null,2],"weights":[
-                [[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]],
-                [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]],
-                [0,0,0,0,0,0,0,0]]},
-              {"type":"dense","activation":"","shape":[null,null,1],"weights":[[[0.5],[0.5]],[0]]}]}
-            """;
+                             {"in_shape":[null,null,1],"in_skip":1,"out_gain":2,"layers":[
+                               {"type":"lstm","activation":"","shape":[null,null,2],"weights":[
+                                 [[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]],
+                                 [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]],
+                                 [0,0,0,0,0,0,0,0]]},
+                               {"type":"dense","activation":"","shape":[null,null,1],"weights":[[[0.5],[0.5]],[0]]}]}
+                             """;
         var asset = await Upload("crunch.json", System.Text.Encoding.UTF8.GetBytes(model));
         await Post("/api/v1/live/blocks", new AddBlockRequest("nam", 0, 3));
 
@@ -315,8 +338,9 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
         Assert.Equal("aidax", asset.Kind);
         Assert.Equal(asset.Ref, live.Preset.Blocks.Single(b => b.Id == "nam1").Assets["model"]);
-        await ServerFixture.Eventually(
-            () => (server.Block("nam1") as Cathode.Dsp.Blocks.CaptureAmpBlock)?.CaptureModel?.Format == "AIDA-X"
+        await ServerFixture.Eventually(() => (server.Block("nam1") as Cathode.Dsp.Blocks.CaptureAmpBlock)?.CaptureModel
+            ?.Format
+            == "AIDA-X"
         );
     }
 

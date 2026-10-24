@@ -9,7 +9,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     No Triple Rectifier schematic was found (docs/07). Music Electronics Forum service threads on it (10035, 45273,
 ///     47453 in https://music-electronics-forum.com/forum/amplification/guitar-amps/) point to the three-channel Dual
 ///     Rectifier drawing and name only supply-side differences. Guesses, marked: the 1.3k primary (two thirds of the
-///     three-channel model's, for three tubes a side), a larger reservoir (160 µF), the same B+, idle current and inverter,
+///     three-channel model's, for three tubes a side), a larger reservoir (160 µF), the same B+, idle current and
+///     inverter,
 ///     and three 5U4GB in parallel for the tube rectifier.
 /// </remarks>
 public static class TripleRectifier {

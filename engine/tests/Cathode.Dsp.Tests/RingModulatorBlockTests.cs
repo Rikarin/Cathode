@@ -22,7 +22,10 @@ public class RingModulatorBlockTests {
         // sin(a) sin(b) = (cos(a - b) - cos(a + b)) / 2
         Assert.Equal(0.5, spectrum[InputBin - CarrierBin], 0.01);
         Assert.Equal(0.5, spectrum[InputBin + CarrierBin], 0.01);
-        Assert.True(Analysis.ToDb(spectrum[CarrierBin]) < -100, $"carrier at {Analysis.ToDb(spectrum[CarrierBin]):0} dB");
+        Assert.True(
+            Analysis.ToDb(spectrum[CarrierBin]) < -100,
+            $"carrier at {Analysis.ToDb(spectrum[CarrierBin]):0} dB"
+        );
         Assert.True(Analysis.ToDb(spectrum[InputBin]) < -100, $"input at {Analysis.ToDb(spectrum[InputBin]):0} dB");
     }
 

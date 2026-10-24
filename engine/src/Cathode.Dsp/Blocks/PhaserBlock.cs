@@ -117,10 +117,17 @@ public sealed class PhaserBlock() : DspBlock(Info), IEngageAware {
             },
             ParamDescriptor.Float("minFreq", "Min Frequency", 20f, 20_000f, 20f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("maxFreq", "Max Frequency", 20f, 20_000f, 20_000f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Choice("vcrType", "VCR Type", ["Linear", "Exponential", "JFET", "Photocell"], VcrExponential) with {
+            ParamDescriptor.Choice(
+                "vcrType",
+                "VCR Type",
+                ["Linear", "Exponential", "JFET", "Photocell"],
+                VcrExponential
+            ) with {
                 TypeLabels = ClassicOnly("VCR Type")
             },
-            ParamDescriptor.Float("vcrBias", "VCR Bias", -100f, 100f, 0f, "%") with { TypeLabels = ClassicOnly("VCR Bias") },
+            ParamDescriptor.Float("vcrBias", "VCR Bias", -100f, 100f, 0f, "%") with {
+                TypeLabels = ClassicOnly("VCR Bias")
+            },
             ParamDescriptor.Float("exponent", "Exponent", 0.25f, 4f, 1f, string.Empty, ParamTaper.Log) with {
                 TypeLabels = ClassicOnly("Exponent")
             },
@@ -132,10 +139,10 @@ public sealed class PhaserBlock() : DspBlock(Info), IEngageAware {
             },
             ParamDescriptor.Choice("type", "Type", ["Classic", "Barberpole"]),
             ParamDescriptor.Choice("direction", "Sweep Direction", ["Up", "Down"]) with {
-                TypeLabels = ["", "Sweep Direction"]
+                TypeLabels = [string.Empty, "Sweep Direction"]
             },
             ParamDescriptor.Float("filterQ", "Filter Q", 0.3f, 10f, 0.7071f, string.Empty, ParamTaper.Log) with {
-                TypeLabels = ["", "Filter Q"]
+                TypeLabels = [string.Empty, "Filter Q"]
             },
             ParamDescriptor.Switch("lfoReset", "LFO Bypass Reset"),
             EffectsMix.Param,
@@ -144,7 +151,7 @@ public sealed class PhaserBlock() : DspBlock(Info), IEngageAware {
         maxInstances: 2
     );
 
-    static string[] ClassicOnly(string name) => [name, ""];
+    static string[] ClassicOnly(string name) => [name, string.Empty];
 
     /// <summary>TPT one-pole gain G = g / (1 + g) with g = tan(pi f / fs).</summary>
     static float Gain(float frequency, double sampleRate) {

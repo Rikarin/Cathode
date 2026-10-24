@@ -21,29 +21,23 @@ public static class PrometheusClean {
                 "V1A",
                 TriodeModel.Ecc83,
                 StackDriver.CommonCathode,
-                Supply: Preamp,
-                CathodeResistor: 1.5e3,
-                Stack: ToneStackDesign.Fender,
-                Load: new(1e6, PotTaper.Audio),
-                LoadRole: PotRole.Gain,
-                PlateResistor: 100e3,
-                CathodeBypass: 25e-6,
-                InputResistance: 68e3,
-                GridLeak: 1e6,
-                BrightCap: 120e-12
+                Preamp,
+                1.5e3,
+                ToneStackDesign.Fender,
+                new(1e6, PotTaper.Audio),
+                PotRole.Gain,
+                100e3,
+                25e-6,
+                68e3,
+                1e6,
+                120e-12
             ),
             new NetworkStageDesign("V2A", SecondStage()),
             new CouplingStageDesign("Master", 22e-9, new(1e6, PotTaper.Audio), PotRole.Master)
         ],
         Prometheus.Design.Power,
         -3
-    ) {
-        Panel = AmpPanel.Standard with {
-            Gain = "Volume",
-            Cut = null,
-            Bright = "Brilliant"
-        }
-    };
+    ) { Panel = AmpPanel.Standard with { Gain = "Volume", Cut = null, Bright = "Brilliant" } };
 
     /// <summary>
     ///     V2A, its grid on the volume's wiper, with the 12AX7's grid-plate capacitance: its Miller effect against the

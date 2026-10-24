@@ -11,8 +11,10 @@ namespace Cathode.Dsp.Amp.Models;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Sources: the Fender drawing "Champ Amp 5F1" with its layout (schematicheaven.net/fenderamps/champ_5f1_schem.pdf,
-///         code K-EE; the same file on el34world): every value, the supply chain (16 µF, 10k to the screen node, 22k to the
+///         Sources: the Fender drawing "Champ Amp 5F1" with its layout
+///         (schematicheaven.net/fenderamps/champ_5f1_schem.pdf,
+///         code K-EE; the same file on el34world): every value, the supply chain (16 µF, 10k to the screen node, 22k to
+///         the
 ///         preamp, 8 µF each) and the layout's voltages (340 / 295 / 250 V, V1A's plate 160 V, cathodes 1.5 V, the 6V6's
 ///         cathode 18 V); Rob Robinette, "How amps work" (the 5F1 walk-through: 68k / 1M input, 470 Ω, 10k).
 ///     </para>
@@ -53,25 +55,25 @@ public static class Champ {
             new(
                 "6V6GT",
                 PentodeModel.SixV6GT,
-                TubesPerSide: 1,
-                Supply: 340,
-                ScreenResistor: 1,
-                IdleCurrent: 0.035,
-                CathodeBias: true,
-                CathodeBypass: 25e-6,
-                RatedPower: 5,
-                PhaseInverter: new CathodyneDesign(TriodeModel.Ecc83, 250, 56e3, 56e3, 1.5e3),
-                CouplingCap: 20e-9,
-                GridLeak: 220e3,
-                GridStopper: 1,
-                CutCap: 0,
-                CutPot: new(1e6, PotTaper.Linear),
-                Feedback: new(CathodeGain / Math.Sqrt(2), 22e3, 1.5e3, new(1e3, PotTaper.Linear), 1e-12),
-                HasFeedback: true,
-                Transformer: new(8e3),
-                Speaker: speaker,
-                PowerSupply: new(150, 16e-6, 10e3, 8e-6, 22e3, 8e-6, 2e-3, RectifierModel.FiveY3),
-                Topology: PowerTopology.SingleEnded,
+                1,
+                340,
+                1,
+                0.035,
+                true,
+                25e-6,
+                5,
+                new CathodyneDesign(TriodeModel.Ecc83, 250, 56e3, 56e3, 1.5e3),
+                20e-9,
+                220e3,
+                1,
+                0,
+                new(1e6, PotTaper.Linear),
+                new(CathodeGain / Math.Sqrt(2), 22e3, 1.5e3, new(1e3, PotTaper.Linear), 1e-12),
+                true,
+                new(8e3),
+                speaker,
+                new(150, 16e-6, 10e3, 8e-6, 22e3, 8e-6, 2e-3, RectifierModel.FiveY3),
+                PowerTopology.SingleEnded,
                 CathodeResistor: 470
             ),
             trim

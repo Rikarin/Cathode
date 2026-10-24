@@ -5,7 +5,8 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 /// <summary>
-///     The Fender family (docs/06 §3.1): knob sweeps on each model through the block: every knob and switch on its panel audible, the volume raising the level, treble and
+///     The Fender family (docs/06 §3.1): knob sweeps on each model through the block: every knob and switch on its panel
+///     audible, the volume raising the level, treble and
 ///     bass doing what they say, the 5E3's channel interaction, levels bounded, no allocation on the audio thread.
 /// </summary>
 public class FenderAmpTests(ITestOutputHelper output) {
@@ -65,7 +66,9 @@ public class FenderAmpTests(ITestOutputHelper output) {
         var rms = new[] { 1f, 3f, 5f, 8f }
             .Select(g => Analysis.ToDb(Analysis.Rms(Render(model, 0.03f, (CircuitAmpBlock.Gain, g)).AsSpan(4_800))))
             .ToArray();
-        output.WriteLine($"{model}: rms {string.Join(", ", rms.Select(static r => r.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)))} dBFS at volume 1, 3, 5, 8");
+        output.WriteLine(
+            $"{model}: rms {string.Join(", ", rms.Select(static r => r.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)))} dBFS at volume 1, 3, 5, 8"
+        );
         for (var i = 1; i < rms.Length; i++) {
             Assert.True(rms[i] > rms[i - 1] + 0.5, $"volume {i}: {rms[i]:0.0} dB after {rms[i - 1]:0.0} dB");
         }
@@ -90,9 +93,15 @@ public class FenderAmpTests(ITestOutputHelper output) {
     public void Tweed_deluxe_unused_volume_loads_the_one_played() {
         // Robinette: the unused channel's volume loads the one played from about its V1 plate at 10 to 1M at 0, so
         // turning it down gives the most gain.
-        var down = Analysis.Rms(Render("Tweed Deluxe 5E3", 0.02f, (CircuitAmpBlock.Gain, 3f), (CircuitAmpBlock.Control1, 0f)));
-        var up = Analysis.Rms(Render("Tweed Deluxe 5E3", 0.02f, (CircuitAmpBlock.Gain, 3f), (CircuitAmpBlock.Control1, 10f)));
-        output.WriteLine($"Instrument channel: {Analysis.ToDb(down):0.0} dBFS with the Mic volume at 0, {Analysis.ToDb(up):0.0} at 10");
+        var down = Analysis.Rms(
+            Render("Tweed Deluxe 5E3", 0.02f, (CircuitAmpBlock.Gain, 3f), (CircuitAmpBlock.Control1, 0f))
+        );
+        var up = Analysis.Rms(
+            Render("Tweed Deluxe 5E3", 0.02f, (CircuitAmpBlock.Gain, 3f), (CircuitAmpBlock.Control1, 10f))
+        );
+        output.WriteLine(
+            $"Instrument channel: {Analysis.ToDb(down):0.0} dBFS with the Mic volume at 0, {Analysis.ToDb(up):0.0} at 10"
+        );
         Assert.True(down > 1.5 * up);
     }
 
@@ -103,6 +112,7 @@ public class FenderAmpTests(ITestOutputHelper output) {
         var left = new float[64];
         var right = new float[64];
         var chord = CircuitAmpBlockTests.Chord(64 * 40, 0.25f);
+
         void Play(int blocks) {
             for (var b = 0; b < blocks; b++) {
                 chord.AsSpan(b % 40 * 64, 64).CopyTo(left);
@@ -111,6 +121,7 @@ public class FenderAmpTests(ITestOutputHelper output) {
         }
 
         int[] types = [..Names.Select(static n => AmpDesign.All.ToList().FindIndex(a => a.Name == n))];
+
         void Round() {
             foreach (var type in types) {
                 block.Params.SetTarget(CircuitAmpBlock.Type, type);
@@ -146,6 +157,8 @@ public class FenderAmpTests(ITestOutputHelper output) {
 
     /// <summary>The level of a quiet sine at <paramref name="high" /> hertz over one at <paramref name="low" />, in dB.</summary>
     static double Tilt(string model, double high, double low, (int Index, float Value) knob) {
+        return Analysis.ToDb(Level(high) / Level(low));
+
         double Level(double frequency) {
             using var block = new CircuitAmpBlock();
             block.Params.SetTarget(CircuitAmpBlock.Type, AmpDesign.All.ToList().FindIndex(a => a.Name == model));
@@ -155,8 +168,6 @@ public class FenderAmpTests(ITestOutputHelper output) {
             var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 19_200, 0.01f), 64);
             return Analysis.Rms(rendered.AsSpan(9_600));
         }
-
-        return Analysis.ToDb(Level(high) / Level(low));
     }
 
     void Check(string model, string control, float[] low, float[] high) {

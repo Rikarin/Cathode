@@ -28,7 +28,7 @@ public static class MarkIV {
         "Mark IV",
         [
             new NetworkStageDesign("V1A", InputAndStack()),
-            new TriodeStageDesign("V1B", TriodeModel.Ecc83, 425, 100e3, 1.5e3, CathodeBypass: 15e-6),
+            new TriodeStageDesign("V1B", TriodeModel.Ecc83, 425, 100e3, 1.5e3, 15e-6),
             new NetworkStageDesign("V2A", LeadDrive()),
             new NetworkStageDesign("V2B", LeadStage()),
             new NetworkStageDesign("V3A", LeadReturn()),
@@ -37,10 +37,7 @@ public static class MarkIV {
             new EqualizerStageDesign("GEQ", EqualizerStageDesign.MarkBands)
         ],
         MarkIIC.Design.Power with {
-            Name = "4 x 6L6GC (Simul-Class)",
-            RatedPower = 85,
-            Transformer = new(2.2e3),
-            Strapped = PentodeModel.SixL6GC
+            Name = "4 x 6L6GC (Simul-Class)", RatedPower = 85, Transformer = new(2.2e3), Strapped = PentodeModel.SixL6GC
         },
         -7
     ) {

@@ -197,7 +197,8 @@ public class ReverbBlockTests {
 
     [Fact]
     public void Low_mid_band_boosts_its_frequency_only() {
-        (int, float)[] settings = [(ReverbBlock.Decay, 0.3f), (ReverbBlock.LowCut, ReverbBlock.LowCutOff), (ReverbBlock.Mix, 100f)];
+        (int, float)[] settings =
+            [(ReverbBlock.Decay, 0.3f), (ReverbBlock.LowCut, ReverbBlock.LowCutOff), (ReverbBlock.Mix, 100f)];
         using var flat = Create(settings);
         using var boosted = Create([..settings, (ReverbBlock.LowMidFrequency, 400f), (ReverbBlock.LowMidGain, 12f)]);
 
@@ -235,8 +236,16 @@ public class ReverbBlockTests {
 
     [Fact]
     public void Stack_keeps_the_input_open_while_hold_closes_it() {
-        using var held = Create((ReverbBlock.Decay, 0.5f), (ReverbBlock.Hold, ReverbBlock.HoldOn), (ReverbBlock.Mix, 100f));
-        using var stacked = Create((ReverbBlock.Decay, 0.5f), (ReverbBlock.Hold, ReverbBlock.Stack), (ReverbBlock.Mix, 100f));
+        using var held = Create(
+            (ReverbBlock.Decay, 0.5f),
+            (ReverbBlock.Hold, ReverbBlock.HoldOn),
+            (ReverbBlock.Mix, 100f)
+        );
+        using var stacked = Create(
+            (ReverbBlock.Decay, 0.5f),
+            (ReverbBlock.Hold, ReverbBlock.Stack),
+            (ReverbBlock.Mix, 100f)
+        );
         var input = Signals.Concat(Signals.Noise(24_000, 9, 0.5f), new float[96_000]);
 
         var closed = BlockRender.Mono(held, input, 64);
@@ -323,9 +332,21 @@ public class ReverbBlockTests {
 
     [Fact]
     public void One_spring_is_mono_and_tone_darkens_the_springs() {
-        using var one = Create((ReverbBlock.Type, ReverbBlock.Spring), (ReverbBlock.Springs, 1f), (ReverbBlock.Mix, 100f));
-        using var dark = Create((ReverbBlock.Type, ReverbBlock.Spring), (ReverbBlock.SpringTone, 0f), (ReverbBlock.Mix, 100f));
-        using var bright = Create((ReverbBlock.Type, ReverbBlock.Spring), (ReverbBlock.SpringTone, 100f), (ReverbBlock.Mix, 100f));
+        using var one = Create(
+            (ReverbBlock.Type, ReverbBlock.Spring),
+            (ReverbBlock.Springs, 1f),
+            (ReverbBlock.Mix, 100f)
+        );
+        using var dark = Create(
+            (ReverbBlock.Type, ReverbBlock.Spring),
+            (ReverbBlock.SpringTone, 0f),
+            (ReverbBlock.Mix, 100f)
+        );
+        using var bright = Create(
+            (ReverbBlock.Type, ReverbBlock.Spring),
+            (ReverbBlock.SpringTone, 100f),
+            (ReverbBlock.Mix, 100f)
+        );
 
         var (left, right) = BlockRender.Stereo(one, Signals.Impulse(9_600), Signals.Impulse(9_600), _ => 64);
         var darkOut = BlockRender.Mono(dark, Signals.Impulse(9_600), 64);
@@ -340,11 +361,16 @@ public class ReverbBlockTests {
     [Fact]
     public void Boing_drives_the_springs_harder_on_attacks_only() {
         using var plain = Create((ReverbBlock.Type, ReverbBlock.Spring), (ReverbBlock.Mix, 100f));
-        using var boing = Create((ReverbBlock.Type, ReverbBlock.Spring), (ReverbBlock.Boing, 100f), (ReverbBlock.Mix, 100f));
+        using var boing = Create(
+            (ReverbBlock.Type, ReverbBlock.Spring),
+            (ReverbBlock.Boing, 100f),
+            (ReverbBlock.Mix, 100f)
+        );
         var pluck = Signals.Concat(new float[4_800], Signals.Sine(196, 48_000, 2_400, 0.3f), new float[4_800]);
         var steady = Signals.Sine(196, 48_000, 96_000, 0.3f);
 
-        var attackGain = Analysis.Rms(BlockRender.Mono(boing, pluck, 64)) / Analysis.Rms(BlockRender.Mono(plain, pluck, 64));
+        var attackGain = Analysis.Rms(BlockRender.Mono(boing, pluck, 64))
+            / Analysis.Rms(BlockRender.Mono(plain, pluck, 64));
         boing.Reset();
         plain.Reset();
         var sustainGain = Analysis.Rms(BlockRender.Mono(boing, steady, 64).AsSpan(72_000))

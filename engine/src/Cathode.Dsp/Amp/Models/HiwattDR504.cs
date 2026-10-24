@@ -39,28 +39,26 @@ public static class HiwattDR504 {
         new(
             "2 x EL34",
             PentodeModel.EL34,
-            TubesPerSide: 1,
-            Supply: 460,
-            ScreenResistor: 1.5e3,
-            IdleCurrent: 0.035,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 50,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc81, 450, 82e3, 91e3, 22.6e3, 1.6e3),
-            CouplingCap: 47e-9,
-            GridLeak: 100e3,
-            GridStopper: 22e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(Math.Sqrt(2), 10e3, 2.2e3, new(100e3, PotTaper.Linear), 0.1e-6),
-            HasFeedback: true,
-            Transformer: new(3.4e3),
-            Speaker: SpeakerDesign.Closed4x12,
-            PowerSupply: new(40, 110e-6, 100, 70e-6, 32e3, 16e-6, 6e-3),
+            1,
+            460,
+            1.5e3,
+            0.035,
+            false,
+            0,
+            50,
+            new LongTailPairDesign(TriodeModel.Ecc81, 450, 82e3, 91e3, 22.6e3, 1.6e3),
+            47e-9,
+            100e3,
+            22e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(Math.Sqrt(2), 10e3, 2.2e3, new(100e3, PotTaper.Linear), 0.1e-6),
+            true,
+            new(3.4e3),
+            SpeakerDesign.Closed4x12,
+            new(40, 110e-6, 100, 70e-6, 32e3, 16e-6, 6e-3),
             InverterInput: null
         ),
         -6
-    ) {
-        Panel = HiwattParts.Panel
-    };
+    ) { Panel = HiwattParts.Panel };
 }

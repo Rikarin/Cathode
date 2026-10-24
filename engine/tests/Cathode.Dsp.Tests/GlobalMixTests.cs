@@ -5,18 +5,19 @@ namespace Cathode.Dsp.Tests;
 
 /// <summary>Global Mix: the rig's Effects Mix offset reaches the blocks whose Global Mix switch is on.</summary>
 public class GlobalMixTests {
-    public static TheoryData<string, int, int> Blocks => new() {
-        { "chorus", ChorusBlock.Mix, ChorusBlock.GlobalMix },
-        { "delay", DelayBlock.Mix, DelayBlock.GlobalMix },
-        { "flanger", FlangerBlock.Mix, FlangerBlock.GlobalMix },
-        { "megatap", MegatapBlock.Mix, MegatapBlock.GlobalMix },
-        { "multidelay", MultiDelayBlock.Mix, MultiDelayBlock.GlobalMix },
-        { "phaser", PhaserBlock.Mix, PhaserBlock.GlobalMix },
-        { "pitch", PitchBlock.Mix, PitchBlock.GlobalMix },
-        { "resonator", ResonatorBlock.Mix, ResonatorBlock.GlobalMix },
-        { "reverb", ReverbBlock.Mix, ReverbBlock.GlobalMix },
-        { "synth", SynthBlock.Mix, SynthBlock.GlobalMix }
-    };
+    public static TheoryData<string, int, int> Blocks =>
+        new() {
+            { "chorus", ChorusBlock.Mix, ChorusBlock.GlobalMix },
+            { "delay", DelayBlock.Mix, DelayBlock.GlobalMix },
+            { "flanger", FlangerBlock.Mix, FlangerBlock.GlobalMix },
+            { "megatap", MegatapBlock.Mix, MegatapBlock.GlobalMix },
+            { "multidelay", MultiDelayBlock.Mix, MultiDelayBlock.GlobalMix },
+            { "phaser", PhaserBlock.Mix, PhaserBlock.GlobalMix },
+            { "pitch", PitchBlock.Mix, PitchBlock.GlobalMix },
+            { "resonator", ResonatorBlock.Mix, ResonatorBlock.GlobalMix },
+            { "reverb", ReverbBlock.Mix, ReverbBlock.GlobalMix },
+            { "synth", SynthBlock.Mix, SynthBlock.GlobalMix }
+        };
 
     [Theory]
     [InlineData(30f, 0f, 1f, 30f)]
@@ -25,7 +26,7 @@ public class GlobalMixTests {
     [InlineData(80f, 50f, 1f, 100f)]
     [InlineData(20f, -50f, 1f, 0f)]
     public void The_offset_is_added_and_clamped(float mix, float offset, float on, float expected) =>
-        Assert.Equal(expected, EffectsMix.Apply(mix, on, new BlockContext(48_000, 120, 0, MixOffset: offset)));
+        Assert.Equal(expected, EffectsMix.Apply(mix, on, new(48_000, 120, 0, MixOffset: offset)));
 
     [Theory]
     [MemberData(nameof(Blocks))]

@@ -137,6 +137,7 @@ public sealed class ReverbBlock : DspBlock {
 
     /// <summary>The decay time Hold and Stack use: the tail is held, yet every loop stays below unity gain.</summary>
     const float HoldDecaySeconds = 600f;
+
     const float MaxSizeScale = 1.5f;
     const float MaxEarlyTimeScale = 2f;
     const float ModulationMs = 0.35f;
@@ -151,11 +152,26 @@ public sealed class ReverbBlock : DspBlock {
 
     /// <summary>Line lengths in ms at size 50 % (scale 1), per FDN row. Normal quality uses the first eight.</summary>
     static readonly float[][] LineMs = [
-        [9.1f, 11.3f, 13.7f, 15.9f, 18.1f, 21.7f, 24.3f, 27.1f, 10.3f, 12.7f, 14.9f, 17.3f, 19.9f, 22.9f, 25.7f, 28.3f], // Room
-        [29.7f, 37.1f, 41.1f, 43.7f, 53.3f, 59.9f, 67.1f, 71.3f, 31.3f, 34.7f, 39.1f, 47.3f, 50.9f, 57.1f, 63.7f, 69.1f], // Hall
-        [17.3f, 19.1f, 23.3f, 27.7f, 31.1f, 35.9f, 39.7f, 43.1f, 18.3f, 21.1f, 25.3f, 29.3f, 33.7f, 37.3f, 41.9f, 45.1f], // Plate
-        [13.3f, 16.1f, 19.7f, 22.9f, 26.3f, 29.9f, 33.1f, 36.7f, 14.7f, 17.9f, 21.1f, 24.7f, 27.9f, 31.7f, 34.9f, 38.3f], // Chamber
-        [41.3f, 53.9f, 61.7f, 71.9f, 83.3f, 89.9f, 97.3f, 107.1f, 47.9f, 57.7f, 66.1f, 77.3f, 86.1f, 93.7f, 101.9f, 111.3f] // Cathedral
+        [
+            9.1f, 11.3f, 13.7f, 15.9f, 18.1f, 21.7f, 24.3f, 27.1f, 10.3f, 12.7f, 14.9f, 17.3f, 19.9f, 22.9f, 25.7f,
+            28.3f
+        ], // Room
+        [
+            29.7f, 37.1f, 41.1f, 43.7f, 53.3f, 59.9f, 67.1f, 71.3f, 31.3f, 34.7f, 39.1f, 47.3f, 50.9f, 57.1f, 63.7f,
+            69.1f
+        ], // Hall
+        [
+            17.3f, 19.1f, 23.3f, 27.7f, 31.1f, 35.9f, 39.7f, 43.1f, 18.3f, 21.1f, 25.3f, 29.3f, 33.7f, 37.3f, 41.9f,
+            45.1f
+        ], // Plate
+        [
+            13.3f, 16.1f, 19.7f, 22.9f, 26.3f, 29.9f, 33.1f, 36.7f, 14.7f, 17.9f, 21.1f, 24.7f, 27.9f, 31.7f, 34.9f,
+            38.3f
+        ], // Chamber
+        [
+            41.3f, 53.9f, 61.7f, 71.9f, 83.3f, 89.9f, 97.3f, 107.1f, 47.9f, 57.7f, 66.1f, 77.3f, 86.1f, 93.7f, 101.9f,
+            111.3f
+        ] // Cathedral
     ];
 
     /// <summary>The longest <see cref="LineMs" /> entry (Cathedral's), which sizes the lines.</summary>
@@ -262,7 +278,9 @@ public sealed class ReverbBlock : DspBlock {
             Network(ParamDescriptor.Choice("quality", "Quality", ["Economy", "Normal", "High", "Ultra High"], 1)),
             Network(ParamDescriptor.Float("lowCrossover", "Low Crossover", 50f, 1_000f, 250f, "Hz", ParamTaper.Log)),
             Network(ParamDescriptor.Float("lowTime", "Low Freq Time", 25f, 400f, 100f, "%", ParamTaper.Log)),
-            Network(ParamDescriptor.Float("highCrossover", "High Crossover", 1_000f, 12_000f, 4_000f, "Hz", ParamTaper.Log)),
+            Network(
+                ParamDescriptor.Float("highCrossover", "High Crossover", 1_000f, 12_000f, 4_000f, "Hz", ParamTaper.Log)
+            ),
             Network(ParamDescriptor.Float("highTime", "High Freq Time", 10f, 200f, 100f, "%", ParamTaper.Log)),
             Reflecting(ParamDescriptor.Float("earlyLevel", "Early Level", 0f, 100f, 0f, "%")),
             ParamDescriptor.Float("lateLevel", "Late Level", 0f, 100f, 100f, "%"),
@@ -271,10 +289,10 @@ public sealed class ReverbBlock : DspBlock {
             Reflecting(ParamDescriptor.Float("earlyDecay", "Early Decay", 0f, 100f, 50f, "%")),
             Reflecting(ParamDescriptor.Float("lateInputMix", "Late Input Mix", 0f, 100f, 0f, "%")),
             ParamDescriptor.Float("lowMidFrequency", "Low Mid Freq", 100f, 2_000f, 400f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("lowMidQ", "Low Mid Q", 0.1f, 10f, 0.7f, "", ParamTaper.Log),
+            ParamDescriptor.Float("lowMidQ", "Low Mid Q", 0.1f, 10f, 0.7f, string.Empty, ParamTaper.Log),
             ParamDescriptor.Float("lowMidGain", "Low Mid Gain", -12f, 12f, 0f, "dB"),
             ParamDescriptor.Float("highMidFrequency", "High Mid Freq", 500f, 10_000f, 2_500f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("highMidQ", "High Mid Q", 0.1f, 10f, 0.7f, "", ParamTaper.Log),
+            ParamDescriptor.Float("highMidQ", "High Mid Q", 0.1f, 10f, 0.7f, string.Empty, ParamTaper.Log),
             ParamDescriptor.Float("highMidGain", "High Mid Gain", -12f, 12f, 0f, "dB"),
             ParamDescriptor.Choice("preDelayTempo", "Pre-Delay Tempo", TempoDivisions.Names),
             ParamDescriptor.Float("preDelayFeedback", "Pre-Delay Feedback", 0f, 90f, 0f, "%"),
@@ -282,10 +300,28 @@ public sealed class ReverbBlock : DspBlock {
             Network(ParamDescriptor.Float("echoDensity", "Echo Density", 0f, 100f, 50f, "%")),
             Network(ParamDescriptor.Float("wallDiffusion", "Wall Diffusion", 0f, 100f, 0f, "%")),
             Network(ParamDescriptor.Float("inputDiffusion", "Input Diffusion", 0f, 120f, 100f, "%")),
-            Network(ParamDescriptor.Float("inputDiffusionTime", "Input Diffusion Time", 25f, 200f, 100f, "%", ParamTaper.Log)),
+            Network(
+                ParamDescriptor.Float(
+                    "inputDiffusionTime",
+                    "Input Diffusion Time",
+                    25f,
+                    200f,
+                    100f,
+                    "%",
+                    ParamTaper.Log
+                )
+            ),
             ParamDescriptor.Float("micSpacing", "Mic Spacing", 0f, MaxMicSpacingMs, 0f, "ms"),
             SpringOnly(
-                new("springs", "Number of Springs", ParamKind.Float, 1f, SpringTank.MaxSprings, 2f, Smoothing: ParamSmoothing.Step)
+                new(
+                    "springs",
+                    "Number of Springs",
+                    ParamKind.Float,
+                    1f,
+                    SpringTank.MaxSprings,
+                    2f,
+                    Smoothing: ParamSmoothing.Step
+                )
             ),
             SpringOnly(ParamDescriptor.Float("springTone", "Spring Tone", 0f, 100f, 50f, "%")),
             SpringOnly(ParamDescriptor.Float("springDrive", "Spring Drive", 0f, 10f, 0f)),
@@ -331,7 +367,9 @@ public sealed class ReverbBlock : DspBlock {
 
     /// <summary>The type labels that show a parameter on <paramref name="types" /> and hide it on the others.</summary>
     static ParamDescriptor ShownOn(ParamDescriptor p, params int[] types) =>
-        p with { TypeLabels = [..Enumerable.Range(0, Cathedral + 1).Select(t => types.Contains(t) ? p.Name : "")] };
+        p with {
+            TypeLabels = [..Enumerable.Range(0, Cathedral + 1).Select(t => types.Contains(t) ? p.Name : string.Empty)]
+        };
 
     static ParamDescriptor Network(ParamDescriptor p) => ShownOn(p, Room, Hall, Plate, Chamber, Cathedral);
 

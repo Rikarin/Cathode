@@ -10,38 +10,40 @@ namespace Cathode.Dsp.Tests;
 ///     stages with the bridged T. Each preamp is also run as a whole chain, joined in one circuit with no Thévenin cut.
 /// </summary>
 public partial class AmpStageTests {
-    public static TheoryData<string, string, double> StreamCNetworks => new() {
-        // Model, stage and its switches ("v": Switch1, "m": Switch2, "b": bright), amplitude in volts.
-        { "Concert 6G12", "V1B", 0.3 },
-        { "Concert 6G12", "V2B", 1 },
-        { "Concert 6G12", "V1A v", 0.3 },
-        { "Concert 6G12", "V2A v", 1 },
-        { "Concert 6G12", "Vibrato v", 0.3 },
-        { "Concert 6G12", "Vibrato v", 3 },
-        { "Deluxe 6G3", "V1A", 0.3 },
-        { "Deluxe 6G3", "V1B v", 0.3 },
-        { "Deluxe 6G3", "V2A", 1 },
-        { "Vibrolux 6G11", "V1A", 0.3 },
-        { "Vibrolux 6G11", "V2B v", 1 },
-        { "Bassman 135", "V1A", 0.3 },
-        { "Bassman 135", "V1A m", 0.3 },
-        { "Bassman 135", "V2A vb", 0.3 },
-        { "Bassman 135", "V1B", 1 },
-        { "Scout GA-17RVT", "V2A", 0.1 },
-        { "Scout GA-17RVT", "V2B", 1 }
-    };
+    public static TheoryData<string, string, double> StreamCNetworks =>
+        new() {
+            // Model, stage and its switches ("v": Switch1, "m": Switch2, "b": bright), amplitude in volts.
+            { "Concert 6G12", "V1B", 0.3 },
+            { "Concert 6G12", "V2B", 1 },
+            { "Concert 6G12", "V1A v", 0.3 },
+            { "Concert 6G12", "V2A v", 1 },
+            { "Concert 6G12", "Vibrato v", 0.3 },
+            { "Concert 6G12", "Vibrato v", 3 },
+            { "Deluxe 6G3", "V1A", 0.3 },
+            { "Deluxe 6G3", "V1B v", 0.3 },
+            { "Deluxe 6G3", "V2A", 1 },
+            { "Vibrolux 6G11", "V1A", 0.3 },
+            { "Vibrolux 6G11", "V2B v", 1 },
+            { "Bassman 135", "V1A", 0.3 },
+            { "Bassman 135", "V1A m", 0.3 },
+            { "Bassman 135", "V2A vb", 0.3 },
+            { "Bassman 135", "V1B", 1 },
+            { "Scout GA-17RVT", "V2A", 0.1 },
+            { "Scout GA-17RVT", "V2B", 1 }
+        };
 
-    public static TheoryData<string, bool, double, double> StreamCChains => new() {
-        // Model, the second channel (Switch1), amplitude, limit in dB.
-        { "Concert 6G12", false, 0.01, -35 },
-        { "Concert 6G12", true, 0.01, -35 },
-        { "Concert 6G12", true, 0.1, -30 },
-        { "Deluxe 6G3", false, 0.01, -35 },
-        { "Vibrolux 6G11", true, 0.01, -35 },
-        { "Bassman 135", false, 0.01, -35 },
-        { "Bassman 135", true, 0.01, -35 },
-        { "Scout GA-17RVT", false, 0.01, -35 }
-    };
+    public static TheoryData<string, bool, double, double> StreamCChains =>
+        new() {
+            // Model, the second channel (Switch1), amplitude, limit in dB.
+            { "Concert 6G12", false, 0.01, -35 },
+            { "Concert 6G12", true, 0.01, -35 },
+            { "Concert 6G12", true, 0.1, -30 },
+            { "Deluxe 6G3", false, 0.01, -35 },
+            { "Vibrolux 6G11", true, 0.01, -35 },
+            { "Bassman 135", false, 0.01, -35 },
+            { "Bassman 135", true, 0.01, -35 },
+            { "Scout GA-17RVT", false, 0.01, -35 }
+        };
 
     static AmpControls StreamCControls(string flags) =>
         new(
@@ -59,18 +61,20 @@ public partial class AmpStageTests {
     /// <summary>The playing chain, with the channel switch's chosen path in place of the switch.</summary>
     static List<AmpStageDesign> PlayingChain(string model, in AmpControls controls) {
         var on = controls.Switch1;
-        return AmpDesign.All.Single(a => a.Name == model).Preamp
+        return AmpDesign.All.Single(a => a.Name == model)
+            .Preamp
             .SelectMany(s => s is ChannelSwitchStageDesign c ? on ? c.On : c.Off : [s])
             .ToList();
     }
 
     /// <summary>A stage as the netlist the reference simulator runs (the vibrato's network with its sources at rest).</summary>
-    static NetworkStageDesign AsNetwork(AmpStageDesign stage) => stage switch {
-        NetworkStageDesign network => network,
-        HarmonicVibratoStageDesign vibrato => vibrato.Network,
-        TriodeStageDesign triode => triode.ToNetwork(),
-        _ => throw new InvalidOperationException(stage.Name)
-    };
+    static NetworkStageDesign AsNetwork(AmpStageDesign stage) =>
+        stage switch {
+            NetworkStageDesign network => network,
+            HarmonicVibratoStageDesign vibrato => vibrato.Network,
+            TriodeStageDesign triode => triode.ToNetwork(),
+            _ => throw new InvalidOperationException(stage.Name)
+        };
 
     [Theory]
     [MemberData(nameof(StreamCNetworks))]
@@ -107,8 +111,8 @@ public partial class AmpStageTests {
         var reference = new ReferenceSimulator(circuit);
         reference.OperatingPoint(40);
         output.WriteLine(
-            $"{model} {stage}: rest output {wdf.RestOutput:0.000} V (reference {reference.Voltage(node):0.000} V), " +
-            $"output resistance {wdf.OutputResistance / 1e3:0.0}k"
+            $"{model} {stage}: rest output {wdf.RestOutput:0.000} V (reference {reference.Voltage(node):0.000} V), "
+            + $"output resistance {wdf.OutputResistance / 1e3:0.0}k"
         );
         Assert.Equal(reference.Voltage(node), wdf.RestOutput, 0.002 * Math.Abs(reference.Voltage(node)) + 1e-6);
 

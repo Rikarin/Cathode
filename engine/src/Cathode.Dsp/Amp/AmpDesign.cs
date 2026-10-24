@@ -10,8 +10,12 @@ namespace Cathode.Dsp.Amp;
 ///     <para>Adding an amp:</para>
 ///     <list type="number">
 ///         <item>
-///             Add <c>Amp/Models/MyAmp.cs</c> with <c>public static class MyAmp { public static AmpDesign Design { get; } =
-///             new(...); }</c>, built from <see cref="TriodeStageDesign" />, <see cref="ToneStackStageDesign" />,
+///             Add <c>Amp/Models/MyAmp.cs</c> with
+///             <c>
+///                 public static class MyAmp { public static AmpDesign Design { get; } =
+///                 new(...); }
+///             </c>
+///             , built from <see cref="TriodeStageDesign" />, <see cref="ToneStackStageDesign" />,
 ///             <see cref="CouplingStageDesign" />, <see cref="NetworkStageDesign" /> (any netlist, with pots, switches
 ///             and devices) and <see cref="EqualizerStageDesign" />, and a <see cref="PowerAmpDesign" />.
 ///         </item>

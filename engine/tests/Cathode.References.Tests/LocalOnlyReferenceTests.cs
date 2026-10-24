@@ -31,7 +31,10 @@ public class LocalOnlyReferenceTests {
         var root = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(manifestPath)!, "..", "..", "..", ".."));
         var local = Manifest.References.Where(static r => !r.Redistributable).ToList();
         var names = local.Select(static r => r.FileName)
-            .Concat(local.Where(static r => r.SourceName is not null).Select(r => Path.GetFileName(r.SourceName!) + Extension(r)))
+            .Concat(
+                local.Where(static r => r.SourceName is not null)
+                    .Select(r => Path.GetFileName(r.SourceName!) + Extension(r))
+            )
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var bySize = local.Where(static r => r.Sha256 is not null && r.Size is not null)
             .ToLookup(static r => r.Size!.Value);

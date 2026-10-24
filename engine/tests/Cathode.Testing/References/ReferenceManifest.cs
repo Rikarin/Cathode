@@ -85,12 +85,14 @@ public sealed record ReferenceEntry(
     string? Notes
 ) {
     /// <summary>The file name in the cache.</summary>
-    public string FileName => Id + Format switch {
-        "nam" => ".nam",
-        "guitarml-lstm" => ".json",
-        "measured-response" => ".csv",
-        _ => throw new InvalidDataException($"Unknown reference format '{Format}' ({Id}).")
-    };
+    public string FileName =>
+        Id
+        + Format switch {
+            "nam" => ".nam",
+            "guitarml-lstm" => ".json",
+            "measured-response" => ".csv",
+            _ => throw new InvalidDataException($"Unknown reference format '{Format}' ({Id}).")
+        };
 
     public double EffectiveSampleRate => SampleRate ?? (Format == "guitarml-lstm" ? 44_100 : 48_000);
 }

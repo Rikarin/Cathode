@@ -70,7 +70,8 @@ public static unsafe partial class NativeMidi {
         }
     }
 
-    static string Text(byte* text, int size) => Marshal.PtrToStringUTF8((nint)text, Math.Max(0, IndexOfZero(text, size))) ?? string.Empty;
+    static string Text(byte* text, int size) =>
+        Marshal.PtrToStringUTF8((nint)text, Math.Max(0, IndexOfZero(text, size))) ?? string.Empty;
 
     static int IndexOfZero(byte* text, int size) {
         for (var i = 0; i < size; i++) {

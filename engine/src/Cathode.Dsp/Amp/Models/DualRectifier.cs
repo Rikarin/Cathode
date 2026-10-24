@@ -55,25 +55,25 @@ public static class DualRectifier {
         new(
             "4 x 6L6GC",
             PentodeModel.SixL6GC,
-            TubesPerSide: 2,
-            Supply: 460,
-            ScreenResistor: 1e3,
-            IdleCurrent: 0.04,
-            CathodeBias: false,
-            CathodeBypass: 0,
-            RatedPower: 100,
-            PhaseInverter: new LongTailPairDesign(TriodeModel.Ecc83, 422, 82e3, 91e3, 14.7e3, 470),
-            CouplingCap: 47e-9,
-            GridLeak: 220e3,
-            GridStopper: 1.5e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
-            Feedback: new(1, 47e3, 4.7e3, new(25e3, PotTaper.Linear), 0.1e-6, 90),
-            HasFeedback: true,
-            Transformer: new(1.9e3),
-            Speaker: new(Inductance: 1.4e-3, EddyResistance: 22, Resonance: 95, PeakImpedance: 30, Q: 2.2),
+            2,
+            460,
+            1e3,
+            0.04,
+            false,
+            0,
+            100,
+            new LongTailPairDesign(TriodeModel.Ecc83, 422, 82e3, 91e3, 14.7e3, 470),
+            47e-9,
+            220e3,
+            1.5e3,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(1, 47e3, 4.7e3, new(25e3, PotTaper.Linear), 0.1e-6, 90),
+            true,
+            new(1.9e3),
+            new(Inductance: 1.4e-3, EddyResistance: 22, Resonance: 95, PeakImpedance: 30, Q: 2.2),
             // 220 + 220 µF stacked, the choke to B's 30 µF, 2.7k to C's 30 µF.
-            PowerSupply: new(30, 110e-6, 100, 30e-6, 2.7e3, 30e-6, 6e-3, RectifierModel.Silicon),
+            new(30, 110e-6, 100, 30e-6, 2.7e3, 30e-6, 6e-3, RectifierModel.Silicon),
             InverterInput: new(20e-9, 1e6),
             SupplySwitches: [
                 new(SwitchRole.Switch2, FiveU4Pair),
@@ -128,7 +128,13 @@ public static class DualRectifier {
     ///     while <paramref name="raw" /> is on) to the gain pot's top, 1 nF across its upper part, the wiper through
     ///     <paramref name="stopper" /> to the grid with 20 pF to ground; 100k plate, 1.8k with 1 µF.
     /// </summary>
-    internal static StageNetlist GainStage(Pot gain, double stopper, double supply, double bypassSeries, SwitchRole? raw) {
+    internal static StageNetlist GainStage(
+        Pot gain,
+        double stopper,
+        double supply,
+        double bypassSeries,
+        SwitchRole? raw
+    ) {
         var net = new StageNetlist();
         var (coupled, top, grid, rail, plate, cathode) =
             (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());

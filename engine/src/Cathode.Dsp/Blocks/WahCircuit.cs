@@ -154,8 +154,10 @@ public sealed class WahCircuit {
     readonly double[] voltages = new double[Devices];
     readonly double[] previous = new double[Devices];
     readonly double[] residuals = new double[Devices]; // r = i - G_c v
+
     RTypeRoot<Ports<ResistiveVoltageSource, Capacitor, Capacitor, Capacitor, Capacitor, Capacitor, Inductor>,
         Devices<Bjt, Bjt>> root;
+
     RTypeRoot<Ports<ResistiveVoltageSource>, Devices<Bjt, Bjt>> dc;
     WahVoicing voicing;
     double inductorCurrent;
@@ -188,12 +190,18 @@ public sealed class WahCircuit {
     public WahCircuit(WahVoicing voicing, double sampleRate) {
         this.sampleRate = sampleRate;
         this.voicing = voicing;
-        var net = Build(dcOnly: false);
+        var net = Build(false);
         net.Probe(OutputNode);
         root = new(
             net,
-            new(new(1e3), new(1e-9, sampleRate), new(1e-9, sampleRate), new(1e-9, sampleRate), new(1e-9, sampleRate),
-                new(1e-9, sampleRate), new(1, sampleRate)
+            new(
+                new(1e3),
+                new(1e-9, sampleRate),
+                new(1e-9, sampleRate),
+                new(1e-9, sampleRate),
+                new(1e-9, sampleRate),
+                new(1e-9, sampleRate),
+                new(1, sampleRate)
             ),
             new(new(voicing.Transistor), new(voicing.Transistor))
         );
@@ -206,7 +214,7 @@ public sealed class WahCircuit {
         waves = new double[scattering.PortCount];
         companion = root.Device.A.Conductance(0);
 
-        var dcNet = Build(dcOnly: true);
+        var dcNet = Build(true);
         for (var node = 1; node <= Nodes; node++) {
             dcNet.Probe(node);
         }
@@ -278,7 +286,7 @@ public sealed class WahCircuit {
         dc.SetVoltage(0, v.Supply);
         inputs[^1] = v.Supply;
         wiper = double.NaN;
-        SetPot(0.5, propagate: false);
+        SetPot(0.5, false);
         dc.SetResistance(PotUpper, 0.5 * v.Pot);
         dc.SetResistance(PotLower, 0.5 * v.Pot);
         dc.Propagate();
@@ -288,7 +296,7 @@ public sealed class WahCircuit {
     }
 
     /// <summary>Moves the pot to pedal position <paramref name="toe" /> (0 heel, 1 toe) and refactors the adaptor.</summary>
-    public void SetPosition(double toe) => SetPot(WiperFraction(voicing, toe), propagate: true);
+    public void SetPosition(double toe) => SetPot(WiperFraction(voicing, toe), true);
 
     /// <summary>
     ///     Scales the inductance and R7 (which sets the resonator's Q) against the voicing's values, refactoring the
@@ -483,8 +491,10 @@ public sealed class WahCircuit {
             var step2 = limited2 - x2;
             x0 = limited0;
             x2 = limited2;
-            if (limited0 == proposed0 && limited2 == proposed2 &&
-                Math.Abs(step0) <= 1e-6 + 1e-6 * Math.Abs(x0) && Math.Abs(step2) <= 1e-6 + 1e-6 * Math.Abs(x2)) {
+            if (limited0 == proposed0
+                && limited2 == proposed2
+                && Math.Abs(step0) <= 1e-6 + 1e-6 * Math.Abs(x0)
+                && Math.Abs(step2) <= 1e-6 + 1e-6 * Math.Abs(x2)) {
                 // The currents at the new voltages, to second order in the final step.
                 i0 += di0 * step0;
                 i1 += di1 * step0;
@@ -500,8 +510,11 @@ public sealed class WahCircuit {
         }
 
         var x1 = RTypeScattering.Dot(e.Slice(Stride, u.Length), u) + f[4] * i0 + f[5] * i1 + f[6] * i2 + f[7] * i3;
-        var x3 = RTypeScattering.Dot(e.Slice(3 * Stride, u.Length), u) + f[12] * i0 + f[13] * i1 + f[14] * i2 +
-            f[15] * i3;
+        var x3 = RTypeScattering.Dot(e.Slice(3 * Stride, u.Length), u)
+            + f[12] * i0
+            + f[13] * i1
+            + f[14] * i2
+            + f[15] * i3;
         if (!(x1 < ReverseBiased && x3 < ReverseBiased)) {
             return false;
         }
@@ -531,7 +544,10 @@ public sealed class WahCircuit {
         return output;
     }
 
-    /// <summary>Gauss-Jordan inverse of a 4 × 4 matrix with partial pivoting, in place of <paramref name="a" />; false if singular.</summary>
+    /// <summary>
+    ///     Gauss-Jordan inverse of a 4 × 4 matrix with partial pivoting, in place of <paramref name="a" />; false if
+    ///     singular.
+    /// </summary>
     static bool Invert(Span<double> a, Span<double> inverse) {
         inverse.Clear();
         for (var i = 0; i < Devices; i++) {
@@ -552,7 +568,8 @@ public sealed class WahCircuit {
 
             if (pivot != column) {
                 for (var k = 0; k < Devices; k++) {
-                    (a[pivot * Devices + k], a[column * Devices + k]) = (a[column * Devices + k], a[pivot * Devices + k]);
+                    (a[pivot * Devices + k], a[column * Devices + k]) = (a[column * Devices + k],
+                        a[pivot * Devices + k]);
                     (inverse[pivot * Devices + k], inverse[column * Devices + k]) =
                         (inverse[column * Devices + k], inverse[pivot * Devices + k]);
                 }

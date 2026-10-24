@@ -118,7 +118,7 @@ public sealed class PhaseVocoderShifter : IDisposable {
     }
 
     public void Dispose() {
-        foreach (var buffer in (ReadOnlySpan<NativeBuffer>)[
+        foreach (var buffer in (ReadOnlySpan<NativeBuffer>) [
                      input,
                      output,
                      window,
@@ -134,7 +134,8 @@ public sealed class PhaseVocoderShifter : IDisposable {
             buffer.Dispose();
         }
 
-        input = output = window = re = im = lastPhase = sumPhase = magnitude = frequency = synthesisPhase = peaks = NativeBuffer.Empty;
+        input = output = window = re = im =
+            lastPhase = sumPhase = magnitude = frequency = synthesisPhase = peaks = NativeBuffer.Empty;
     }
 
     /// <summary>Analyses the last frame, moves its partials by <paramref name="ratio" /> and overlap-adds the result.</summary>

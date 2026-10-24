@@ -79,7 +79,12 @@ public sealed class EngineHostServer(EngineHostService service, string socketPat
     }
 
     /// <summary>Forwards MIDI as soon as it arrives: a footswitch should not wait for the next telemetry tick.</summary>
-    async Task PushMidiAsync(Stream stream, IpcFrameWriter writer, SemaphoreSlim writeLock, CancellationToken cancellationToken) {
+    async Task PushMidiAsync(
+        Stream stream,
+        IpcFrameWriter writer,
+        SemaphoreSlim writeLock,
+        CancellationToken cancellationToken
+    ) {
         await foreach (var batch in midi.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false)) {
             await writeLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try {

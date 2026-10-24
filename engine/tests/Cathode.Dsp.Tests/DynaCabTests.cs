@@ -27,11 +27,17 @@ public sealed class DynaCabTests : IDisposable {
     [MemberData(nameof(DirectionalMics))]
     public void Proximity_boost_grows_as_a_directional_mic_closes_in(int mic) {
         double[] distances = [12, 8, 4, 2, 1, 0];
-        var boosts = distances.Select(d => BassBoost(Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[mic], 0.25, d * Inch, 0, true, 0))))
+        var boosts = distances.Select(d => BassBoost(
+                    Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[mic], 0.25, d * Inch, 0, true, 0))
+                )
+            )
             .ToArray();
 
         for (var i = 1; i < boosts.Length; i++) {
-            Assert.True(boosts[i] > boosts[i - 1], $"{CabCatalogue.Mics[mic].Name}: boost {boosts[i]:0.0} dB at {distances[i]} in, {boosts[i - 1]:0.0} dB at {distances[i - 1]} in");
+            Assert.True(
+                boosts[i] > boosts[i - 1],
+                $"{CabCatalogue.Mics[mic].Name}: boost {boosts[i]:0.0} dB at {distances[i]} in, {boosts[i - 1]:0.0} dB at {distances[i - 1]} in"
+            );
         }
 
         // Cardioids gain about 6-9 dB from a foot to the grille, figure-8 ribbons more.
@@ -59,14 +65,20 @@ public sealed class DynaCabTests : IDisposable {
     [Fact]
     public void Proximity_amount_scales_the_boost_and_its_frequency_moves_it_up() {
         double Boost(double amount, double frequency) =>
-            BassBoost(Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[0], 0.25, Inch, 0, amount > 0, 0, amount, frequency)));
+            BassBoost(
+                Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[0], 0.25, Inch, 0, amount > 0, 0, amount, frequency))
+            );
 
         var none = Boost(0, 1);
         var stock = Boost(1, 1);
         var twice = Boost(2, 1);
         Assert.True(stock - none > 3, $"stock proximity adds {stock - none:0.0} dB");
         Assert.True(twice - stock > 2, $"twice the amount adds {twice - stock:0.0} dB more");
-        Assert.Equal(stock, BassBoost(Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[0], 0.25, Inch, 0, true, 0))), 1e-9);
+        Assert.Equal(
+            stock,
+            BassBoost(Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[0], 0.25, Inch, 0, true, 0))),
+            1e-9
+        );
 
         // A higher corner lifts the low mids too, not only the lows.
         double LowMids(double frequency) {
@@ -82,7 +94,19 @@ public sealed class DynaCabTests : IDisposable {
         // What the room adds, as an IR: its energy arrives later in a bigger room.
         double Centroid(double size) {
             var dry = Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[10], 0.25, Inch, 0, true, 0));
-            var wet = Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[10], 0.25, Inch, 0, true, 1, RoomShape: new CabRoom(Size: size, Floor: 0)));
+            var wet = Synthesize(
+                new(
+                    V30,
+                    Closed1x12,
+                    CabCatalogue.Mics[10],
+                    0.25,
+                    Inch,
+                    0,
+                    true,
+                    1,
+                    RoomShape: new CabRoom(size, Floor: 0)
+                )
+            );
             double moment = 0, energy = 0;
             for (var i = 0; i < dry.Length; i++) {
                 var d = (double)wet[i] - dry[i] * (Rms(wet) / Rms(dry));
@@ -95,7 +119,10 @@ public sealed class DynaCabTests : IDisposable {
 
         var small = Centroid(1);
         var big = Centroid(2);
-        Assert.True(big > small + 0.002, $"room energy centre {small * 1_000:0.0} ms at 1x, {big * 1_000:0.0} ms at 2x");
+        Assert.True(
+            big > small + 0.002,
+            $"room energy centre {small * 1_000:0.0} ms at 1x, {big * 1_000:0.0} ms at 2x"
+        );
 
         static double Rms(float[] x) => Math.Sqrt(x.Sum(static v => (double)v * v));
     }
@@ -105,7 +132,9 @@ public sealed class DynaCabTests : IDisposable {
         // The room's comb, as the spread of the levels against the anechoic IR over a band (finely sampled).
         double Ripple(CabRoom room, double low, double high) {
             var dry = Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[10], 0.25, 6 * Inch, 0, true, 0));
-            var wet = Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[10], 0.25, 6 * Inch, 0, true, 1, RoomShape: room));
+            var wet = Synthesize(
+                new(V30, Closed1x12, CabCatalogue.Mics[10], 0.25, 6 * Inch, 0, true, 1, RoomShape: room)
+            );
             var levels = new List<double>();
             for (var hz = low; hz <= high; hz *= 1.01) {
                 levels.Add(20 * Math.Log10(Analysis.MagnitudeAt(wet, hz, Rate) / Analysis.MagnitudeAt(dry, hz, Rate)));
@@ -129,11 +158,17 @@ public sealed class DynaCabTests : IDisposable {
     [Fact]
     public void Moving_from_the_cap_to_the_edge_darkens() {
         double[] positions = [0, 0.25, 0.5, 0.75, 1];
-        var treble = positions.Select(p => Brightness(Synthesize(new(V30, Closed4x12, CabCatalogue.Mics[0], p, Inch, 0, true, 0))))
+        var treble = positions.Select(p => Brightness(
+                    Synthesize(new(V30, Closed4x12, CabCatalogue.Mics[0], p, Inch, 0, true, 0))
+                )
+            )
             .ToArray();
 
         for (var i = 1; i < treble.Length; i++) {
-            Assert.True(treble[i] < treble[i - 1] + 0.5, $"treble {treble[i]:0.0} dB at {positions[i]}, {treble[i - 1]:0.0} dB at {positions[i - 1]}");
+            Assert.True(
+                treble[i] < treble[i - 1] + 0.5,
+                $"treble {treble[i]:0.0} dB at {positions[i]}, {treble[i - 1]:0.0} dB at {positions[i - 1]}"
+            );
         }
 
         Assert.True(treble[0] - treble[^1] > 6, $"edge only {treble[0] - treble[^1]:0.0} dB darker than the cap");
@@ -145,7 +180,10 @@ public sealed class DynaCabTests : IDisposable {
             Brightness(Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[0], 0, distance, 0, true, 0)))
             - Brightness(Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[0], 1, distance, 0, true, 0)));
 
-        Assert.True(Spread(0) > 2 * Spread(12 * Inch), $"cap-edge {Spread(0):0.0} dB at the grille, {Spread(12 * Inch):0.0} dB at a foot");
+        Assert.True(
+            Spread(0) > 2 * Spread(12 * Inch),
+            $"cap-edge {Spread(0):0.0} dB at the grille, {Spread(12 * Inch):0.0} dB at a foot"
+        );
     }
 
     [Fact]
@@ -153,7 +191,10 @@ public sealed class DynaCabTests : IDisposable {
         var dynamics = new[] { 0, 1, 2, 3, 4 }.Select(Brightness).ToArray();
         var ribbons = new[] { 5, 6 }.Select(Brightness).ToArray();
 
-        Assert.True(ribbons.Max() < dynamics.Min() - 3, $"ribbons up to {ribbons.Max():0.0} dB, dynamics from {dynamics.Min():0.0} dB");
+        Assert.True(
+            ribbons.Max() < dynamics.Min() - 3,
+            $"ribbons up to {ribbons.Max():0.0} dB, dynamics from {dynamics.Min():0.0} dB"
+        );
 
         static double Brightness(int mic) =>
             DynaCabTests.Brightness(Synthesize(new(V30, Closed4x12, CabCatalogue.Mics[mic], 0.25, Inch, 0, true, 0)));
@@ -168,8 +209,15 @@ public sealed class DynaCabTests : IDisposable {
             return BandDb(ir, 100, 200) - BandDb(ir, 40, 70);
         }
 
-        Assert.True(Tightness(Closed4x12) > Tightness(Open1x12) + 3, $"closed {Tightness(Closed4x12):0.0} dB, open {Tightness(Open1x12):0.0} dB");
-        Assert.InRange(new CabAcoustics(new(V30, Closed4x12, CabCatalogue.Mics[0], 0, 0, 0, true, 0)).SystemResonance, 90, 130);
+        Assert.True(
+            Tightness(Closed4x12) > Tightness(Open1x12) + 3,
+            $"closed {Tightness(Closed4x12):0.0} dB, open {Tightness(Open1x12):0.0} dB"
+        );
+        Assert.InRange(
+            new CabAcoustics(new(V30, Closed4x12, CabCatalogue.Mics[0], 0, 0, 0, true, 0)).SystemResonance,
+            90,
+            130
+        );
     }
 
     [Fact]
@@ -179,11 +227,16 @@ public sealed class DynaCabTests : IDisposable {
         // more bass with distance from proximity, in both cabs alike.
         static double Loss(EnclosureModel cab) {
             var omni = CabCatalogue.Mics[10];
-            return BandDb(Synthesize(new(V30, cab, omni, 0.25, 0, 0, true, 0)), 60, 150) - BandDb(Synthesize(new(V30, cab, omni, 0.25, 12 * Inch, 0, true, 0)), 60, 150)
-                - (BandDb(Synthesize(new(V30, cab, omni, 0.25, 0, 0, true, 0)), 800, 1_600) - BandDb(Synthesize(new(V30, cab, omni, 0.25, 12 * Inch, 0, true, 0)), 800, 1_600));
+            return BandDb(Synthesize(new(V30, cab, omni, 0.25, 0, 0, true, 0)), 60, 150)
+                - BandDb(Synthesize(new(V30, cab, omni, 0.25, 12 * Inch, 0, true, 0)), 60, 150)
+                - (BandDb(Synthesize(new(V30, cab, omni, 0.25, 0, 0, true, 0)), 800, 1_600)
+                    - BandDb(Synthesize(new(V30, cab, omni, 0.25, 12 * Inch, 0, true, 0)), 800, 1_600));
         }
 
-        Assert.True(Loss(Open1x12) > Loss(Closed1x12) + 0.75, $"open {Loss(Open1x12):0.0} dB, closed {Loss(Closed1x12):0.0} dB");
+        Assert.True(
+            Loss(Open1x12) > Loss(Closed1x12) + 0.75,
+            $"open {Loss(Open1x12):0.0} dB, closed {Loss(Closed1x12):0.0} dB"
+        );
     }
 
     [Fact]
@@ -334,7 +387,10 @@ public sealed class DynaCabTests : IDisposable {
             ideal[i] = a[SwapAt + i] + (b[SwapAt + i] - a[SwapAt + i]) * w;
         }
 
-        Assert.True(Analysis.NullResidualDb(ideal, output.AsSpan(SwapAt, fade)) < -30, $"fade residual {Analysis.NullResidualDb(ideal, output.AsSpan(SwapAt, fade)):0.0} dB");
+        Assert.True(
+            Analysis.NullResidualDb(ideal, output.AsSpan(SwapAt, fade)) < -30,
+            $"fade residual {Analysis.NullResidualDb(ideal, output.AsSpan(SwapAt, fade)):0.0} dB"
+        );
 
         // No step: the largest sample-to-sample change around the swap is no bigger than the steady signal's.
         static double MaxStep(ReadOnlySpan<float> x) {
@@ -530,7 +586,13 @@ public sealed class DynaCabTests : IDisposable {
 
     /// <summary>RMS through ITU-R BS.1770-4's K filter (its published 48 kHz coefficients), skipping the first 0.25 s.</summary>
     static double KWeightedDb(float[] signal) {
-        var shelf = new BiquadCoefficients(1.53512485958697, -2.69169618940638, 1.19839281085285, -1.69065929318241, 0.73248077421585);
+        var shelf = new BiquadCoefficients(
+            1.53512485958697,
+            -2.69169618940638,
+            1.19839281085285,
+            -1.69065929318241,
+            0.73248077421585
+        );
         var highPass = new BiquadCoefficients(1.0, -2.0, 1.0, -1.99004745483398, 0.99007225036621);
         double x1 = 0, x2 = 0, y1 = 0, y2 = 0, u1 = 0, u2 = 0, z1 = 0, z2 = 0, sum = 0;
         var n = 0;

@@ -11,20 +11,75 @@ namespace Cathode.Dsp.Tests;
 ///     the Cornford's channels (a channel switch's chain is checked through its stages).
 /// </summary>
 public partial class AmpStageTests {
-    public static TheoryData<string, bool, int, double, double> BritishVintageChains => new() {
-        { "1959SLP", false, 3, 0.002, -30 },
-        { "1959T Tremolo", false, 3, 0.002, -30 },
-        { "Bluesbreaker 1962", false, 3, 0.002, -30 },
-        { "Bluesbreaker 1962", false, 3, 0.05, -20 },
-        { "Tiny Terror", false, 2, 0.002, -30 },
-        { "Tiny Terror", false, 2, 0.05, -20 },
-        { "Cornford MK50H II", false, 5, 0.002, -20 },
-        { "Cornford MK50H II", true, 3, 0.002, -30 }
-    };
+    public static TheoryData<string, bool, int, double, double> BritishVintageChains =>
+        new() {
+            {
+                "1959SLP",
+                false,
+                3,
+                0.002,
+                -30
+            },
+            {
+                "1959T Tremolo",
+                false,
+                3,
+                0.002,
+                -30
+            },
+            {
+                "Bluesbreaker 1962",
+                false,
+                3,
+                0.002,
+                -30
+            },
+            {
+                "Bluesbreaker 1962",
+                false,
+                3,
+                0.05,
+                -20
+            },
+            {
+                "Tiny Terror",
+                false,
+                2,
+                0.002,
+                -30
+            },
+            {
+                "Tiny Terror",
+                false,
+                2,
+                0.05,
+                -20
+            },
+            {
+                "Cornford MK50H II",
+                false,
+                5,
+                0.002,
+                -20
+            },
+            {
+                "Cornford MK50H II",
+                true,
+                3,
+                0.002,
+                -30
+            }
+        };
 
     [Theory]
     [MemberData(nameof(BritishVintageChains))]
-    public void British_vintage_chains_match_the_reference(string type, bool on, int count, double amplitude, double limitDb) {
+    public void British_vintage_chains_match_the_reference(
+        string type,
+        bool on,
+        int count,
+        double amplitude,
+        double limitDb
+    ) {
         var design = AmpDesign.All.Single(a => a.Name == type);
         var all = design.Preamp[0] is ChannelSwitchStageDesign channel ? on ? channel.On : channel.Off : design.Preamp;
         var designs = all.Take(count).ToArray();
@@ -105,16 +160,21 @@ public class BritishVintageAmpTests(ITestOutputHelper output) {
     static IEnumerable<int> Controls(string type) {
         (string Id, int Index)[] all = [
             ("gain", CircuitAmpBlock.Gain), ("bass", CircuitAmpBlock.Bass), ("middle", CircuitAmpBlock.Middle),
-            ("treble", CircuitAmpBlock.Treble), ("presence", CircuitAmpBlock.Presence), ("depth", CircuitAmpBlock.Depth),
+            ("treble", CircuitAmpBlock.Treble), ("presence", CircuitAmpBlock.Presence),
+            ("depth", CircuitAmpBlock.Depth),
             ("cut", CircuitAmpBlock.Cut), ("master", CircuitAmpBlock.Master), ("bright", CircuitAmpBlock.Bright),
-            ("switch1", CircuitAmpBlock.Switch1), ("switch2", CircuitAmpBlock.Switch2), ("switch3", CircuitAmpBlock.Switch3),
+            ("switch1", CircuitAmpBlock.Switch1), ("switch2", CircuitAmpBlock.Switch2),
+            ("switch3", CircuitAmpBlock.Switch3),
             ("control1", CircuitAmpBlock.Control1), ("control2", CircuitAmpBlock.Control2)
         ];
         return all.Where(c => !string.IsNullOrEmpty(Label(c.Id, type))).Select(static c => c.Index);
     }
 
     static bool IsSwitch(int index) =>
-        index is CircuitAmpBlock.Bright or CircuitAmpBlock.Switch1 or CircuitAmpBlock.Switch2 or CircuitAmpBlock.Switch3;
+        index is CircuitAmpBlock.Bright
+            or CircuitAmpBlock.Switch1
+            or CircuitAmpBlock.Switch2
+            or CircuitAmpBlock.Switch3;
 
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {
@@ -205,7 +265,8 @@ public class BritishVintageAmpTests(ITestOutputHelper output) {
         float[] channels = type == "Cornford MK50H II" ? [0f, 1f] : [0f];
         foreach (var channel in channels) {
             foreach (var control in Controls(type)) {
-                if (channel > 0 && control is CircuitAmpBlock.Gain or CircuitAmpBlock.Control1 or CircuitAmpBlock.Switch1) {
+                if (channel > 0
+                    && control is CircuitAmpBlock.Gain or CircuitAmpBlock.Control1 or CircuitAmpBlock.Switch1) {
                     continue;
                 }
 
@@ -234,7 +295,9 @@ public class BritishVintageAmpTests(ITestOutputHelper output) {
             return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)));
         }
 
-        foreach (var knob in new[] { CircuitAmpBlock.Gain, CircuitAmpBlock.Master }.Where(k => Controls(type).Contains(k))) {
+        foreach (var knob in new[] { CircuitAmpBlock.Gain, CircuitAmpBlock.Master }.Where(k =>
+                     Controls(type).Contains(k)
+                 )) {
             var levels = new[] { 0f, 2.5f, 5f, 7.5f, 10f }.Select(v => Level(knob, v)).ToArray();
             output.WriteLine($"{type} knob {knob}: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB");
             for (var i = 1; i < levels.Length; i++) {
@@ -255,7 +318,7 @@ public class BritishVintageAmpTests(ITestOutputHelper output) {
     public void The_tremolo_load_lowers_the_1959Ts_normal_channel() {
         double Level(AmpStageDesign design) {
             var stage = design.Create(Rate);
-            stage.Update(new(0.5, 0.5, 0.5, 0.5, 1, false, Control1: 0.5, Switch2: true));
+            stage.Update(new(0.5, 0.5, 0.5, 0.5, 1, false, 0.5, Switch2: true));
             stage.SetSourceResistance(0);
             stage.Reset(0);
             var sine = Signals.Sine(1_000, Rate, 24_000, 1e-3f);

@@ -23,7 +23,8 @@ public static class ImpulseResponses {
         lock (Cache) {
             var index = Cache.FindIndex(c => c.Path == file.FullName
                 && c.Length == file.Length
-                && c.Written == file.LastWriteTimeUtc);
+                && c.Written == file.LastWriteTimeUtc
+            );
             if (index >= 0) {
                 var hit = Cache[index];
                 Cache.RemoveAt(index);

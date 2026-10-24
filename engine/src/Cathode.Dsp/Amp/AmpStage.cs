@@ -50,13 +50,14 @@ public abstract record AmpStageDesign(string Name) {
 /// <summary>The gains of a graphic equaliser's five bands, in decibels.</summary>
 public readonly record struct EqualizerGains(double Band1, double Band2, double Band3, double Band4, double Band5) {
     /// <summary>Band <paramref name="index" /> (0..4).</summary>
-    public double this[int index] => index switch {
-        0 => Band1,
-        1 => Band2,
-        2 => Band3,
-        3 => Band4,
-        _ => Band5
-    };
+    public double this[int index] =>
+        index switch {
+            0 => Band1,
+            1 => Band2,
+            2 => Band3,
+            3 => Band4,
+            _ => Band5
+        };
 }
 
 /// <summary>
@@ -78,22 +79,24 @@ public readonly record struct AmpControls(
     bool Switch3 = false,
     EqualizerGains Equalizer = default
 ) {
-    public double Rotation(PotRole role) => role switch {
-        PotRole.Gain => Gain,
-        PotRole.Master => Master,
-        PotRole.Bass => Bass,
-        PotRole.Middle => Middle,
-        PotRole.Treble => Treble,
-        PotRole.Control1 => Control1,
-        _ => Control2
-    };
+    public double Rotation(PotRole role) =>
+        role switch {
+            PotRole.Gain => Gain,
+            PotRole.Master => Master,
+            PotRole.Bass => Bass,
+            PotRole.Middle => Middle,
+            PotRole.Treble => Treble,
+            PotRole.Control1 => Control1,
+            _ => Control2
+        };
 
-    public bool IsOn(SwitchRole role) => role switch {
-        SwitchRole.Bright => Bright,
-        SwitchRole.Switch1 => Switch1,
-        SwitchRole.Switch2 => Switch2,
-        _ => Switch3
-    };
+    public bool IsOn(SwitchRole role) =>
+        role switch {
+            SwitchRole.Bright => Bright,
+            SwitchRole.Switch1 => Switch1,
+            SwitchRole.Switch2 => Switch2,
+            _ => Switch3
+        };
 }
 
 /// <summary>The preamp's expert settings, as the Circuit Amp's expert parameters set them; the defaults are stock.</summary>
@@ -113,7 +116,7 @@ public readonly record struct PreampSettings(
     double StackFrequency = 1,
     double CathodeResistor = 1
 ) {
-    public static PreampSettings Stock => new(Tube: null);
+    public static PreampSettings Stock => new(null);
 
     /// <summary>
     ///     The triode a stage built with <paramref name="stock" /> runs: <see cref="Tube" /> in place of a 12AX7, the

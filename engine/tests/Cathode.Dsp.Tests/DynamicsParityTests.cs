@@ -19,7 +19,11 @@ public class DynamicsParityTests {
     [InlineData(-30f, -20f, 0f, -30f)] // below: untouched
     [InlineData(-20f, -20f, 8f, -21f)] // the knee: -W / 8
     public void Infinite_ratio_limits(float input, float threshold, float knee, float expected) =>
-        Assert.Equal(expected, CompressorBlock.StaticCurve(input, threshold, CompressorBlock.InfiniteRatio, knee), 1e-4f);
+        Assert.Equal(
+            expected,
+            CompressorBlock.StaticCurve(input, threshold, CompressorBlock.InfiniteRatio, knee),
+            1e-4f
+        );
 
     [Theory]
     [InlineData(50f, 2f)] // half the slope over the threshold: 2:1
@@ -269,7 +273,8 @@ public class DynamicsParityTests {
     [Fact]
     public void Multiband_rms_detector_compresses_a_sine_less_than_peak() {
         float Reduction(int detector) {
-            using var block = TestBlocks.Create<MultibandCompressorBlock>((MultibandCompressorBlock.Detector, detector));
+            using var block =
+                TestBlocks.Create<MultibandCompressorBlock>((MultibandCompressorBlock.Detector, detector));
             BlockRender.Mono(block, Signals.Sine(700, Rate, 24_000), 64);
             return block.GainReductionDb(1);
         }

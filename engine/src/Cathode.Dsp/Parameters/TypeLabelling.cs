@@ -10,7 +10,7 @@ public static class TypeLabelling {
         var labels = Labels(p, typeCount);
         for (var t = 0; t < typeCount; t++) {
             if (!types.Contains(t)) {
-                labels[t] = "";
+                labels[t] = string.Empty;
             }
         }
 
@@ -21,7 +21,7 @@ public static class TypeLabelling {
     public static ParamDescriptor HiddenOn(this ParamDescriptor p, int typeCount, params int[] types) {
         var labels = Labels(p, typeCount);
         foreach (var t in types) {
-            labels[t] = "";
+            labels[t] = string.Empty;
         }
 
         return p with { TypeLabels = labels };
@@ -30,7 +30,7 @@ public static class TypeLabelling {
     /// <summary><paramref name="p" />, called <paramref name="name" /> on <paramref name="type" />.</summary>
     public static ParamDescriptor RenamedOn(this ParamDescriptor p, int typeCount, int type, string name) {
         var labels = Labels(p, typeCount);
-        if (labels[type] != "") {
+        if (labels[type] != string.Empty) {
             labels[type] = name;
         }
 

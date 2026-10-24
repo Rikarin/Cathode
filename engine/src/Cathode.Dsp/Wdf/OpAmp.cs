@@ -102,7 +102,12 @@ public struct OpAmp : INonlinearDevice {
     public readonly double Conductance(int port) => port == 0 ? Math.Max(inputConductance, 1e-9) : outputConductance;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void Evaluate(ReadOnlySpan<double> voltages, Span<double> currents, Span<double> jacobian, int stride) {
+    public readonly void Evaluate(
+        ReadOnlySpan<double> voltages,
+        Span<double> currents,
+        Span<double> jacobian,
+        int stride
+    ) {
         var vd = voltages[0];
         var output = Output(vd, out var slope);
         currents[0] = vd * inputConductance;
