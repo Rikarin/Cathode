@@ -135,6 +135,7 @@ public sealed class WahCircuit {
     // Internal resistor indices, in netlist order (see Build).
     const int PotUpper = 10;
     const int PotLower = 11;
+    const int QResistorIndex = 5;
 
     const int Devices = 4; // Q1 base-emitter, Q1 base-collector, Q2 base-emitter, Q2 base-collector
     const int Stride = 8; // row length of the reduced input matrix: at least the root's input count
@@ -159,6 +160,8 @@ public sealed class WahCircuit {
     WahVoicing voicing;
     double inductorCurrent;
     double wiper = double.NaN;
+    double inductanceScale = 1;
+    double qScale = 1;
     double saturationCurrent;
     double forwardLeak;
     double reverseLeak;
@@ -236,6 +239,7 @@ public sealed class WahCircuit {
         }
 
         this.voicing = voicing;
+        (inductanceScale, qScale) = (1, 1);
         var v = voicing;
         var model = v.Transistor;
         saturationCurrent = model.SaturationCurrent;
@@ -285,6 +289,22 @@ public sealed class WahCircuit {
 
     /// <summary>Moves the pot to pedal position <paramref name="toe" /> (0 heel, 1 toe) and refactors the adaptor.</summary>
     public void SetPosition(double toe) => SetPot(WiperFraction(voicing, toe), propagate: true);
+
+    /// <summary>
+    ///     Scales the inductance and R7 (which sets the resonator's Q) against the voicing's values, refactoring the
+    ///     adaptor when either changes. Neither moves the DC operating point (the inductor is a short at DC). Allocation
+    ///     free; <see cref="Configure" /> returns both to 1.
+    /// </summary>
+    public void Trim(double inductanceScale, double qScale) {
+        if (inductanceScale == this.inductanceScale && qScale == this.qScale) {
+            return;
+        }
+
+        (this.inductanceScale, this.qScale) = (inductanceScale, qScale);
+        root.Ports.G.Configure(voicing.Inductance * inductanceScale, sampleRate);
+        root.SetResistance(QResistorIndex, voicing.QResistor * qScale);
+        Propagate();
+    }
 
     /// <summary>One sample: the input in volts at the source, returns the output (the top of the pot) in volts.</summary>
     public double Tick(double volts) {
