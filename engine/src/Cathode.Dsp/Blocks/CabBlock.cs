@@ -63,25 +63,28 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     public const int Air = 5;
     public const int AirFreq = 6;
     public const int Preamp = 7;
-    public const int PreampMode = 8;
-    public const int Drive = 9;
-    public const int Saturation = 10;
-    public const int PreampBass = 11;
-    public const int PreampMid = 12;
-    public const int PreampTreble = 13;
-    public const int Level = 14;
-    public const int Proximity = 15;
-    public const int ProximityFreq = 16;
-    public const int Room = 17;
-    public const int RoomSize = 18;
-    public const int RoomShape = 19;
-    public const int Floor = 20;
-    public const int HighDamping = 21;
-    public const int LowDamping = 22;
-    public const int Diffusion = 23;
-    public const int MicSpacing = 24;
-    public const int AutoDelay = 25;
-    public const int Smoothing = 26;
+    public const int Drive = 8;
+    public const int Saturation = 9;
+    public const int PreampBass = 10;
+    public const int PreampMid = 11;
+    public const int PreampTreble = 12;
+    public const int Level = 13;
+    public const int Proximity = 14;
+    public const int ProximityFreq = 15;
+    public const int Room = 16;
+    public const int RoomSize = 17;
+    public const int RoomShape = 18;
+    public const int Floor = 19;
+    public const int HighDamping = 20;
+    public const int LowDamping = 21;
+    public const int Diffusion = 22;
+    public const int AutoDelay = 23;
+    public const int Smoothing = 24;
+
+    // Appended after the first parity pass: Preamp Mode runs on the audio thread, Room Mic Spacing resynthesises the
+    // modelled slots.
+    public const int PreampMode = 25;
+    public const int MicSpacing = 26;
 
     /// <summary>Index of slot 1's first parameter; slot n's are at <c>SlotBase + n * SlotStride</c>.</summary>
     public const int SlotBase = 27;
@@ -224,7 +227,6 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             ParamDescriptor.Float("air", "Air", 0f, 100f, 0f, "%"),
             ParamDescriptor.Float("airfreq", "Air Freq", 1_000f, 20_000f, 6_000f, "Hz", ParamTaper.Log),
             ParamDescriptor.Choice("preamp", "Preamp Type", MicPreamp.Types),
-            ParamDescriptor.Choice("preampMode", "Preamp Mode", ["Economy", "High Quality"]),
             ParamDescriptor.Float("drive", "Preamp Drive", 0f, MicPreamp.MaxDriveDb, 0f, "dB"),
             ParamDescriptor.Float("saturation", "Preamp Saturation", 0f, 100f, 0f, "%"),
             ParamDescriptor.Float("prebass", "Preamp Bass", -12f, 12f, 0f, "dB"),
@@ -240,9 +242,10 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             IrParam(ParamDescriptor.Float("hfdamp", "Room HF Damping", 0f, 100f, 50f, "%")),
             IrParam(ParamDescriptor.Float("lfdamp", "Room LF Damping", 0f, 500f, 0f, "Hz")),
             IrParam(ParamDescriptor.Float("diffusion", "Room Diffusion", 0f, 100f, 0f, "%")),
-            IrParam(ParamDescriptor.Float("micspacing", "Room Mic Spacing", 0f, MaxMicSpacing, 0f, "cm")),
             ParamDescriptor.Switch("autodelay", "Auto Delay"),
             IrParam(ParamDescriptor.Float("smoothing", "Smoothing", 0f, 100f, 0f, "%")),
+            ParamDescriptor.Choice("preampMode", "Preamp Mode", ["Economy", "High Quality"]),
+            IrParam(ParamDescriptor.Float("micspacing", "Room Mic Spacing", 0f, MaxMicSpacing, 0f, "cm")),
             ..Slot(1, 5, 3, 0, 25, 1, false),
             ..Slot(2, 5, 3, 5, 50, 4, true),
             ..Slot(3, 5, 0, 1, 35, 2, true),
@@ -552,6 +555,10 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         }
 
         for (var i = Proximity; i < targets.Length; i++) {
+            if (i == PreampMode) {
+                continue; // the audio thread's
+            }
+
             if (targets[i] != built[i]) {
                 return true;
             }
@@ -580,6 +587,8 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         for (var i = Proximity; i < AutoDelay; i++) {
             globalsChanged |= targets[i] != built[i];
         }
+
+        globalsChanged |= targets[MicSpacing] != built[MicSpacing];
 
         for (var s = 0; s < Slots; s++) {
             var source = SourceOf(s);
