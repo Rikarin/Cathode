@@ -650,6 +650,122 @@ public sealed class FuzzPairStage {
     double[] Settle() => OperatingPoints.Settle(Root, start, Tick, rate);
 }
 
+/// <summary>
+///     One triode in common cathode (<see cref="StageKind.Triode" />) for one channel: a Tube Driver's 12AX7 on its low
+///     plate supply. Input coupling capacitor into the grid with its grid leak, plate load to the supply, cathode resistor
+///     with its bypass capacitor, output coupling capacitor into the next stage. The grid draws current when driven
+///     positive (<see cref="Triode" />), so the input capacitor charges and the stage bias-shifts as a real one does. It
+///     starts at its DC operating point, computed once per stage (<see cref="OperatingPoint" />).
+/// </summary>
+/// <remarks>
+///     Nodes: input, grid, plate, cathode, output, supply. Ports: the source (the previous stage behind its resistance),
+///     the input capacitor (input to grid), the cathode bypass, the output capacitor (plate to output). Resistors, in
+///     index order: grid leak, plate load, cathode, load.
+/// </remarks>
+public sealed class DriveTriodeStage {
+    const int GridLeak = 0;
+    const int Plate = 1;
+    const int Cathode = 2;
+    const int Load = 3;
+
+    static readonly WdfNetlist Circuit = Netlist();
+
+    readonly double[] start = new double[5];
+    DriveStage? stage;
+    double rate;
+    double source = double.NaN;
+
+    public CircuitRoot<ResistiveVoltageSource, Triode> Root { get; }
+
+    public DriveTriodeStage() {
+        Root = new(
+            Circuit,
+            new(1e3),
+            [new(22e-9, 48_000), new(22e-6, 48_000), new(100e-9, 48_000)],
+            new(TriodeModel.Ecc83)
+        ) {
+            // As the transistor stages: the start carried along the last Jacobian converges in one or two steps.
+            AbsoluteTolerance = 1e-3, RelativeTolerance = 1e-5
+        };
+    }
+
+    public static WdfNetlist Netlist() {
+        var net = new WdfNetlist();
+        var (input, grid, plate, cathode, output, supply) =
+            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        net.Port(input, WdfNetlist.Ground);
+        net.Port(input, grid);
+        net.Port(cathode, WdfNetlist.Ground);
+        net.Port(plate, output);
+        net.Resistor(grid, WdfNetlist.Ground, 1e6);
+        net.Resistor(plate, supply, 100e3);
+        net.Resistor(cathode, WdfNetlist.Ground, 1.5e3);
+        net.Resistor(output, WdfNetlist.Ground, 1e6);
+        net.VoltageSource(supply, WdfNetlist.Ground);
+        net.Triode(plate, grid, cathode);
+        net.Probe(output);
+        return net;
+    }
+
+    /// <summary>The DC operating point of <paramref name="stage" />; see <see cref="TransistorStage.OperatingPoint" />.</summary>
+    public static double[] OperatingPoint(DriveStage stage) {
+        var settling = new DriveTriodeStage();
+        settling.Configure(stage, stage.SourceResistance, 48_000);
+        return settling.Settle();
+    }
+
+    /// <summary>Sets the components and the source resistance; a new stage or rate starts at its operating point.</summary>
+    public void Configure(DriveStage stage, double sourceResistance, double rate) {
+        var fresh = !ReferenceEquals(stage, this.stage) || rate != this.rate;
+        if (!fresh && sourceResistance == source) {
+            return;
+        }
+
+        if (fresh) {
+            this.stage = stage;
+            this.rate = rate;
+            Root.Device = new(stage.Tube);
+            Root.SetSupply(0, stage.Supply);
+            Root.SetResistance(GridLeak, stage.GridLeak);
+            Root.SetResistance(Plate, stage.Plate);
+            Root.SetResistance(Cathode, stage.Cathode);
+            Root.SetResistance(Load, stage.Load);
+            Root.Capacitor(0).Configure(stage.InputCapacitance, rate);
+            Root.Capacitor(1).Configure(stage.CathodeCapacitance, rate);
+            Root.Capacitor(2).Configure(stage.OutputCapacitance, rate);
+        }
+
+        source = sourceResistance;
+        Root.Source.Value = sourceResistance;
+        Root.Propagate();
+        if (fresh) {
+            Reset();
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public double Tick(double x) {
+        Root.Source.Volts = x;
+        return Root.Tick();
+    }
+
+    /// <summary>Back to the operating point.</summary>
+    public void Reset() {
+        Root.Reset();
+        if (stage is not null && DriveCircuits.TryGetOperatingPoint(stage, out var point)) {
+            Root.StartAt(point);
+        }
+    }
+
+    public void FlushDenormals() {
+        if (stage is not null) {
+            Root.FlushDenormals();
+        }
+    }
+
+    double[] Settle() => OperatingPoints.Settle(Root, start, Tick, rate);
+}
+
 /// <summary>The DC operating point of a transistor stage's root.</summary>
 static class OperatingPoints {
     /// <summary>
@@ -715,24 +831,33 @@ public sealed class ToneStage {
     /// <summary>Open-loop gain of a tone network's op-amp (a VCVS).</summary>
     public const double OpenLoopGain = 1e5;
 
-    static readonly WdfNetlist[] Netlists =
-        [..Enumerable.Range(0, (int)ToneKind.Range).Select(static k => Netlist((ToneKind)k))];
+    /// <summary>The gyrators' resistor to ground (an active EQ's simulated inductors).</summary>
+    const double GyratorResistance = 100e3;
 
-    readonly CircuitRoot<ResistiveVoltageSource, NoDevice>[] roots;
+    // Indexed by kind; a range control has no network.
+    static readonly WdfNetlist?[] Netlists =
+        [..Enum.GetValues<ToneKind>().Select(static k => k == ToneKind.Range ? null : Netlist(k))];
+
+    readonly CircuitRoot<ResistiveVoltageSource, NoDevice>?[] roots;
     ToneNetwork? network;
     CircuitRoot<ResistiveVoltageSource, NoDevice>? root;
     double rate;
     double position = double.NaN;
     double bass = 0.5;
     double middle = 0.5;
+    double midHz;
     double sign = 1;
 
     public ToneStage() {
-        roots = new CircuitRoot<ResistiveVoltageSource, NoDevice>[Netlists.Length];
+        roots = new CircuitRoot<ResistiveVoltageSource, NoDevice>?[Netlists.Length];
         for (var kind = 0; kind < roots.Length; kind++) {
-            var capacitors = Netlists[kind].Count(NetlistElementKind.Port) - 1;
+            if (Netlists[kind] is not { } netlist) {
+                continue;
+            }
+
+            var capacitors = netlist.Count(NetlistElementKind.Port) - 1;
             roots[kind] = new(
-                Netlists[kind],
+                netlist,
                 new(1e3),
                 [..Enumerable.Repeat(new Capacitor(1e-9, 48_000), capacitors)],
                 default
@@ -824,6 +949,50 @@ public sealed class ToneStage {
                 break;
             }
 
+            case ToneKind.ActiveEq: {
+                var (source, plus, minus, output) = (net.Node(), net.Node(), net.Node(), net.Node());
+                net.Port(source, Ground);
+                net.Resistor(source, plus, 10e3); // Resistor1
+                net.Resistor(output, minus, 10e3); // Resistor1 plus the source: flat with every band at noon
+                net.Resistor(output, Ground, 1e6); // load
+                net.Vcvs(output, Ground, plus, minus, OpenLoopGain);
+
+                // Low band: the pot, then a gyrator inductor from its wiper: a capacitor into a follower's input (a
+                // resistor to ground there), the follower's output back to the wiper through the series resistance.
+                Gyrator(net, Band(net, plus, minus));
+
+                // Two mid bands: a series capacitor into a gyrator inductor.
+                for (var b = 0; b < 2; b++) {
+                    var wiper = Band(net, plus, minus);
+                    var inductor = net.Node();
+                    net.Port(wiper, inductor);
+                    Gyrator(net, inductor);
+                }
+
+                // Treble band: the series resistance into a capacitor to ground.
+                var high = Band(net, plus, minus);
+                var shunt = net.Node();
+                net.Resistor(high, shunt, 1e3);
+                net.Port(shunt, Ground);
+                net.Probe(output);
+                break;
+
+                static int Band(WdfNetlist net, int plus, int minus) {
+                    var wiper = net.Node();
+                    net.Resistor(plus, wiper, 1e3); // pot, cut side
+                    net.Resistor(wiper, minus, 1e3); // pot, boost side
+                    return wiper;
+                }
+
+                static void Gyrator(WdfNetlist net, int terminal) {
+                    var (input, follower) = (net.Node(), net.Node());
+                    net.Port(terminal, input);
+                    net.Resistor(input, Ground, GyratorResistance);
+                    net.Vcvs(follower, Ground, input, Ground, 1);
+                    net.Resistor(follower, terminal, 1e3); // the series resistance
+                }
+            }
+
             default:
                 throw new ArgumentOutOfRangeException(nameof(kind), kind, "A range control has no network.");
         }
@@ -840,9 +1009,17 @@ public sealed class ToneStage {
     /// <param name="rate">The base rate.</param>
     /// <param name="bass">A stack's bass pot (<see cref="ToneKind.Stack" />), 0..1; noon is the pedal as built.</param>
     /// <param name="middle">A stack's middle pot.</param>
-    public void Configure(ToneNetwork network, double tone, double rate, double bass = 0.5, double middle = 0.5) {
+    /// <param name="midHz">An active EQ's Middle Freq where its mid sweeps (0 = the network's own).</param>
+    public void Configure(
+        ToneNetwork network,
+        double tone,
+        double rate,
+        double bass = 0.5,
+        double middle = 0.5,
+        double midHz = 0
+    ) {
         var fresh = !ReferenceEquals(network, this.network) || rate != this.rate;
-        if (!fresh && tone == position && bass == this.bass && middle == this.middle) {
+        if (!fresh && tone == position && bass == this.bass && middle == this.middle && midHz == this.midHz) {
             return;
         }
 
@@ -851,13 +1028,14 @@ public sealed class ToneStage {
         position = tone;
         this.bass = bass;
         this.middle = middle;
+        this.midHz = midHz;
         sign = network.Kind == ToneKind.Treble ? -1 : 1; // the Baxandall amp inverts; keep the pedal's polarity
         root = network.Kind == ToneKind.Range ? null : roots[(int)network.Kind];
         if (root is null) {
             return;
         }
 
-        Set(root, network, tone, bass, middle, rate);
+        Set(root, network, tone, bass, middle, midHz, rate);
         if (fresh) {
             root.Reset();
         }
@@ -875,7 +1053,7 @@ public sealed class ToneStage {
 
     public void Reset() {
         foreach (var root in roots) {
-            root.Reset();
+            root?.Reset();
         }
     }
 
@@ -892,9 +1070,15 @@ public sealed class ToneStage {
         double tone,
         double bass,
         double middle,
+        double midHz,
         double rate
     ) {
         var n = network;
+        if (n.Kind == ToneKind.ActiveEq) {
+            SetActiveEq(root, n, tone, bass, middle, midHz, rate);
+            return;
+        }
+
         var amount = n.AudioTaper ? DriveCircuits.AudioTaper(tone) : tone;
         root.Source.Value = n.Source;
         root.Capacitor(0).Configure(n.Capacitor1, rate);
@@ -946,5 +1130,70 @@ public sealed class ToneStage {
         }
 
         root.Propagate();
+    }
+
+    /// <summary>
+    ///     The active EQ's components (see <see cref="ToneKind.ActiveEq" />), in netlist order. Each band's shunt is
+    ///     designed from its frequency: the low band's inductance meets the series resistance at its corner, a mid band
+    ///     resonates at its centre with <see cref="ToneNetwork.BandQ" /> (both its reactances scale, as a dual-gang
+    ///     frequency pot does, so the Q holds across the sweep), the treble capacitor meets the series resistance at its
+    ///     corner. An absent band sits at noon, where it does nothing.
+    /// </summary>
+    static void SetActiveEq(
+        CircuitRoot<ResistiveVoltageSource, NoDevice> root,
+        ToneNetwork n,
+        double tone,
+        double bass,
+        double middle,
+        double midHz,
+        double rate
+    ) {
+        var rs = n.BandResistance;
+        root.Source.Value = n.Source;
+        root.SetResistance(0, n.Resistor1);
+        root.SetResistance(1, n.Resistor1 + n.Source);
+        root.SetResistance(2, n.Load);
+
+        // Low: L = Rs / ω, as the gyrator's Rs R C.
+        var low = n.LowHz > 0 ? n.LowHz : 100;
+        Pot(root, 3, n.Pot, n.LowHz > 0 ? bass : 0.5);
+        root.SetResistance(5, GyratorResistance);
+        root.SetResistance(6, rs);
+        root.Capacitor(0).Configure(1 / (2 * Math.PI * low * GyratorResistance), rate);
+
+        var mid = n.MidSweep && midHz > 0 ? midHz : n.MidHz;
+        Mid(root, 7, 1, n.Pot, mid > 0 ? mid : 1_000, n.MidHz > 0 ? middle : 0.5, n.BandQ, rs, rate);
+        Mid(root, 11, 3, n.Pot, n.Mid2Hz > 0 ? n.Mid2Hz : 1_000, 0.5, n.BandQ, rs, rate);
+
+        var high = n.HighHz > 0 ? n.HighHz : 5_000;
+        Pot(root, 15, n.Pot, n.HighHz > 0 ? tone : 0.5);
+        root.SetResistance(17, rs);
+        root.Capacitor(5).Configure(1 / (2 * Math.PI * high * rs), rate);
+        root.Propagate();
+
+        static void Pot(CircuitRoot<ResistiveVoltageSource, NoDevice> root, int at, double pot, double boost) {
+            root.SetResistance(at, pot * boost); // input side: the shunt there cuts
+            root.SetResistance(at + 1, pot * (1 - boost)); // feedback side: the shunt there boosts
+        }
+
+        static void Mid(
+            CircuitRoot<ResistiveVoltageSource, NoDevice> root,
+            int at,
+            int capacitor,
+            double pot,
+            double hz,
+            double boost,
+            double q,
+            double rs,
+            double rate
+        ) {
+            var w = 2 * Math.PI * hz;
+            var inductance = q * rs / w;
+            Pot(root, at, pot, boost);
+            root.SetResistance(at + 2, GyratorResistance);
+            root.SetResistance(at + 3, rs);
+            root.Capacitor(capacitor).Configure(1 / (w * w * inductance), rate); // the series capacitor
+            root.Capacitor(capacitor + 1).Configure(inductance / (rs * GyratorResistance), rate); // the gyrator's
+        }
     }
 }

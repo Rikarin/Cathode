@@ -27,7 +27,10 @@ public enum StageKind {
     Transistor,
 
     /// <summary>The Fuzz Face's direct-coupled transistor pair; see <see cref="FuzzPairStage" />.</summary>
-    FuzzPair
+    FuzzPair,
+
+    /// <summary>One triode in common cathode (a Tube Driver's 12AX7); see <see cref="DriveTriodeStage" />.</summary>
+    Triode
 }
 
 /// <summary>The topology of a pedal's tone network; see <see cref="ToneNetwork" /> for the component roles.</summary>
@@ -75,7 +78,19 @@ public enum ToneKind {
     ///     No network: Tone sweeps the first stage's input capacitor from <see cref="ToneNetwork.Capacitor1" /> (Tone 0,
     ///     full range) to <see cref="ToneNetwork.Capacitor2" /> (Tone 10), logarithmically: a treble booster's range.
     /// </summary>
-    Range
+    Range,
+
+    /// <summary>
+    ///     An active band EQ around one non-inverting op-amp (the graphic-EQ topology of the Metal Zone, the B7K and the
+    ///     Xotic boosters): <see cref="ToneNetwork.Resistor1" /> from the source into the non-inverting input and the same
+    ///     from the output back to the inverting input; per band a pot (<see cref="ToneNetwork.Pot" />) between the two
+    ///     inputs, its wiper through the band's shunt to ground, which cuts on the input side and boosts on the feedback
+    ///     side. The shunts are series RL (low shelf, a gyrator inductor), series RLC (the mid bands) and series RC (the
+    ///     treble), each with <see cref="ToneNetwork.BandResistance" /> setting the range. Tone works the treble band, the
+    ///     Bass Pot the low band, the Middle Pot the first mid band (at the Middle Freq where it sweeps); a band at 0 Hz
+    ///     is absent. See <see cref="ToneStage.Netlist" />.
+    /// </summary>
+    ActiveEq
 }
 
 /// <summary>
@@ -107,6 +122,30 @@ public sealed record ToneNetwork(ToneKind Kind) {
 
     /// <summary>What the network drives (the next stage's input).</summary>
     public double Load { get; init; } = 1e6;
+
+    /// <summary>ActiveEq: the low band's corner, in hertz (0 = no low band).</summary>
+    public double LowHz { get; init; }
+
+    /// <summary>ActiveEq: the first mid band's centre (0 = none); the Middle Freq control replaces it where it sweeps.</summary>
+    public double MidHz { get; init; }
+
+    /// <summary>ActiveEq: the second mid band's centre (0 = none), fixed at noon.</summary>
+    public double Mid2Hz { get; init; }
+
+    /// <summary>ActiveEq: the treble band's corner (0 = none).</summary>
+    public double HighHz { get; init; }
+
+    /// <summary>ActiveEq: the mid bands' quality factor.</summary>
+    public double BandQ { get; init; } = 1;
+
+    /// <summary>
+    ///     ActiveEq: each shunt's series resistance, which sets the range: a band at either end moves its frequencies
+    ///     by about 1 + <see cref="Resistor1" /> / this.
+    /// </summary>
+    public double BandResistance { get; init; } = 2.2e3;
+
+    /// <summary>ActiveEq: the first mid band follows the Middle Freq control (a semi-parametric mid).</summary>
+    public bool MidSweep { get; init; }
 }
 
 /// <summary>Two antiparallel diode stacks; see <see cref="DiodePair" />.</summary>
@@ -221,6 +260,18 @@ public sealed record DriveStage(StageKind Kind) {
 
     public double EmitterCapacitance { get; init; } = 20e-6;
 
+    /// <summary>Triode: the tube.</summary>
+    public TriodeModel Tube { get; init; } = TriodeModel.Ecc83;
+
+    /// <summary>Triode: plate load to <see cref="Supply" />, grid leak, cathode resistor and its bypass.</summary>
+    public double Plate { get; init; } = 100e3;
+
+    public double GridLeak { get; init; } = 1e6;
+
+    public double Cathode { get; init; } = 1.5e3;
+
+    public double CathodeCapacitance { get; init; } = 22e-6;
+
     /// <summary>Transistor: base bias divider (0 = none).</summary>
     public double BaseToSupply { get; init; }
 
@@ -249,7 +300,7 @@ public sealed record DriveStage(StageKind Kind) {
     /// <summary>True when the stage's transfer curve is odd-symmetric.</summary>
     public bool IsSymmetric =>
         Kind switch {
-            StageKind.Rectifier or StageKind.Transistor or StageKind.FuzzPair => false,
+            StageKind.Rectifier or StageKind.Transistor or StageKind.FuzzPair or StageKind.Triode => false,
             _ => Diodes.IsSymmetric
         };
 }
@@ -294,6 +345,9 @@ public sealed record DriveCircuit(string Name, string ModelledAfter) {
     ///     closed form at 4x.
     /// </summary>
     public int Oversampling { get; init; } = 4;
+
+    /// <summary>The circuit has the B7K's Grunt and Attack switches (<see cref="DriveBlock.Grunt" />).</summary>
+    public bool GruntAndAttack { get; init; }
 
     /// <summary>True when the transfer curve is odd-symmetric, so the circuit makes (almost) only odd harmonics.</summary>
     public bool IsSymmetric => Bias == 0 && Stages.All(static s => s.IsSymmetric);
@@ -877,7 +931,8 @@ public static partial class DriveCircuits {
                 Tone = FuzzTone,
                 OutputDb = -25
             },
-            ..Round4Overdrives()
+            ..Round4Overdrives(),
+            ..Round4Distortions()
         ];
 
         foreach (var circuit in all) {
@@ -886,6 +941,8 @@ public static partial class DriveCircuits {
                     OperatingPoints[stage] = TransistorStage.OperatingPoint(stage);
                 } else if (stage.Kind == StageKind.FuzzPair) {
                     OperatingPoints[stage] = FuzzPairStage.OperatingPoint(stage);
+                } else if (stage.Kind == StageKind.Triode) {
+                    OperatingPoints[stage] = DriveTriodeStage.OperatingPoint(stage);
                 }
             }
         }
@@ -1142,6 +1199,15 @@ struct CircuitStage {
 ///     listed).
 /// </param>
 /// <param name="HighPeak">The HP/LP switch in its HP position, on a clipper with <see cref="DriveStage.HighPeak" />.</param>
+/// <param name="MidHz">An active EQ's Middle Freq, where its mid sweeps (0 = the network's own).</param>
+/// <param name="Grunt">
+///     The B7K's Grunt switch: 0 as built, 1 Fat (four times the bass into the clipping), 2 Raw (a quarter); it scales
+///     the input coupling corner.
+/// </param>
+/// <param name="Attack">
+///     The B7K's Attack switch: 0 flat, 1 Boost, 2 Cut: a first-order treble shelf (above
+///     <see cref="CircuitChannel.AttackHz" />) ahead of the clipping, +6 dB or -6 dB.
+/// </param>
 readonly record struct CircuitTweaks(
     double BassScale = 1,
     double Bias = 0,
@@ -1151,20 +1217,29 @@ readonly record struct CircuitTweaks(
     double StackMiddle = 0.5,
     double PedalBass = 0,
     double VoiceCut = 0,
-    bool HighPeak = false
+    bool HighPeak = false,
+    double MidHz = 0,
+    int Grunt = 0,
+    int Attack = 0
 ) {
     public static CircuitTweaks Stock => new(1);
 }
 
 /// <summary>Per-channel state of the circuit voicings: everything except the oversampler, which the block shares.</summary>
 sealed class CircuitChannel {
+    /// <summary>The corner of the B7K's Attack shelf.</summary>
+    public const double AttackHz = 1_500;
+
     readonly CircuitStage[] stages = new CircuitStage[DriveCircuits.MaxStages];
     readonly StageKind[] kinds = new StageKind[DriveCircuits.MaxStages];
     readonly OpAmpStage opAmp = new();
     readonly TransistorStage transistor = new();
     readonly FuzzPairStage fuzz = new();
+    readonly DriveTriodeStage triode = new();
     readonly ToneStage tone = new();
     RcLowPass input = new();
+    RcLowPass attackFilter = new();
+    double attack; // the B7K's Attack: gain of the treble added ahead of the clipping (0 = off)
     SvfState dc;
     DriveCircuit? circuit;
     int count;
@@ -1243,6 +1318,9 @@ sealed class CircuitChannel {
                 case StageKind.FuzzPair:
                     fuzz.Configure(stage, position, driven, innerRate);
                     break;
+                case StageKind.Triode:
+                    triode.Configure(stage, resistance, innerRate);
+                    break;
                 default:
                     stages[i].Configure(stage, position, innerRate, antialias, tweaks.HighPeak);
                     break;
@@ -1258,6 +1336,19 @@ sealed class CircuitChannel {
             _ => guitar.Level * circuit.InputResistance / (circuit.InputResistance + guitar.Resistance)
         };
         var bassScale = tweaks.BassScale == 0 ? 1 : tweaks.BassScale;
+        if (tweaks.Grunt != 0) {
+            bassScale *= tweaks.Grunt == 1 ? 0.25 : 4;
+        }
+
+        attack = tweaks.Attack switch {
+            1 => 1, // +6 dB above the corner
+            2 => -0.5, // -6 dB
+            _ => 0
+        };
+        if (attack != 0) {
+            attackFilter.SetCutoff(AttackHz, innerRate);
+        }
+
         var corner = circuit.InputHighPassHz > 0 ? circuit.InputHighPassHz * bassScale
             : bassScale != 1 ? 10 * bassScale
             : 0;
@@ -1268,7 +1359,7 @@ sealed class CircuitChannel {
 
         clean = circuit.CleanMix * (1 - 0.75 * position) + tweaks.DryLevel;
         trim = Decibels.ToGain(circuit.OutputDb) * (circuit.InvertOutput ? -1 : 1);
-        this.tone.Configure(circuit.Tone, tone / 10, rate, tweaks.StackBass, tweaks.StackMiddle);
+        this.tone.Configure(circuit.Tone, tone / 10, rate, tweaks.StackBass, tweaks.StackMiddle, tweaks.MidHz);
         if (fresh) {
             Reset(); // a new circuit starts discharged, or at its operating point
         }
@@ -1330,8 +1421,10 @@ sealed class CircuitChannel {
         opAmp.Reset();
         transistor.Reset();
         fuzz.Reset();
+        triode.Reset();
         tone.Reset();
         input.Reset();
+        attackFilter.Reset();
         dc.Reset();
         slewed = 0;
     }
@@ -1343,13 +1436,16 @@ sealed class CircuitChannel {
             x -= input.Tick(x);
         }
 
-        var v = x * gain * level + bias;
+        // The Attack shelf shapes only what the clipping hears; the clean blend stays flat.
+        var driven = attack != 0 ? x + attack * (x - attackFilter.Tick(x)) : x;
+        var v = driven * gain * level + bias;
         var stages = this.stages.AsSpan(0, count);
         for (var s = 0; s < stages.Length; s++) {
             v = kinds[s] switch {
                 StageKind.OpAmp => opAmp.Tick(v),
                 StageKind.Transistor => transistor.Tick(v),
                 StageKind.FuzzPair => fuzz.Tick(v),
+                StageKind.Triode => triode.Tick(v),
                 _ => stages[s].Tick(v)
             };
         }
@@ -1364,8 +1460,10 @@ sealed class CircuitChannel {
 
     void FlushDenormals() {
         input.FlushDenormals();
+        attackFilter.FlushDenormals();
         dc.FlushDenormals();
         opAmp.FlushDenormals();
+        triode.FlushDenormals();
         foreach (ref var stage in stages.AsSpan(0, count)) {
             stage.FlushDenormals();
         }

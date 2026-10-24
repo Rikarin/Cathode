@@ -241,6 +241,27 @@ New Reverb types appended after Cathedral (indices 7–10), so stored presets ke
 | PF4 | Formant Shift per voice, ±12 st | 🟡 | Formant_shift_moves_the_formants_by_its_interval; Psola_voices_keep_their_formants_and_take_the_shift | PSOLA types: grains resampled per voice (PSOLA keeps the formants already); voice 1's is the single-voice types' "Formant Shift" |
 | PF5 | Bounded, allocation-free, decays | 🟡 | Correction_is_bounded_allocation_free_and_decays (six types) | an octave up with correction is 5–6 dB quieter than without (half as many harmonics under the same envelope) |
 
+## D2: Drive round 4, distortions and amp-in-a-box
+
+New Drive circuits (docs/08 §6.5), appended after group D1 (types 37–51) in this order. Every one is also in the generic catalogue tests (`DriveCatalogueTests`: gain range, symmetry, tone tilt, aliasing, decay, latency, partial mix; `DriveStageTests`: block size, allocation). Existing types render bit-identical at defaults (`AmpDefaultsTests`: all 254 existing renders unchanged on Windows x64, the same 99 lines as before differ from the macOS hashes). Evidence names are in `DriveRound4DistortionTests` unless stated.
+
+| ID | Pedal | Status | Evidence | Notes (what was guessed) |
+|---|---|---|---|---|
+| D2.1 | M-Zone Distortion (Boss MT-2), with its active EQ | 🟡 | Metal_zone_eq_boosts_and_cuts_its_bands_and_the_mid_sweeps; Metal_zone_middle_freq_and_pots_reach_the_block; Drive_raises_the_distortion | Transistor pre-gain as a fixed 14 dB; the M5218 as a JRC4558; second gain stage simplified (Gain stage); EQ values designed from Boss's published ranges (±15 dB, mid 200 Hz–5 kHz), treble corner 4 kHz and mid Q 1.2 guessed; constant-Q sweep |
+| D2.2 | Fat Rat | 🟡 | Fat_rat_has_more_bass_into_its_clipping_than_the_rat | Not in the June 2023 guide; modelled as the Pro Co Fat Rat with Fat on (gain leg 47 Ω + 10 µF, guessed) and MOSFET clipping |
+| D2.3 | Suhr Riot Ge / LED / LED/Si | 🟡 | Riot_voicings_clip_in_the_order_of_their_diodes | Three types as in the guide; gain-stage legs, clipper series resistor and tone capacitor guessed from descriptions (no verified schematic); Riot Reloaded's Voice knob not modelled |
+| D2.4 | MCMLXXXI Drive (1981 Inventions DRV) | 🟡 | Mcmlxxxi_drive_has_a_wide_gain_range | The guide's DRV, not a Dumble-style pedal; no schematic found: RAT-family op-amp stage on 18 V, silicon to ground, active treble, all values guessed |
+| D2.5 | Box O' Crunch (MI Audio Crunch Box) | 🟡 | Crunch_box_pushes_the_mids_into_its_clipping | The guide's Crunch Box, not a Throttle Box; mid-voiced op-amp stage into silicon, passive treble cut; values guessed |
+| D2.6 | Blackglass 7K (Darkglass B7K) | 🟡 | B7k_grunt_sets_the_bass_and_attack_the_treble_into_its_clipping | CMOS inverters as inverting gain stages with soft rails; Blend fixed at noon (CleanMix 0.5), hi-mid band fixed at noon; Grunt as ×¼ / ×4 of the coupling corner and Attack as a ±6 dB shelf at 1.5 kHz (switch values guessed) |
+| D2.7 | Esoteric ACB (Xotic AC Booster) | 🟡 | Acb_soft_clips_where_the_esoteric_boost_stays_clean; Bass_pot_boosts_and_cuts_the_lows | Op-amp with silicon across the feedback; Baxandall bass/treble modelled with the active band EQ (120 Hz / 3 kHz, ±15 dB) |
+| D2.8 | Esoteric Bass RCB (Xotic Bass RC Booster) | 🟡 | Bass_rcb_is_full_range_and_clean_at_low_gain; Bass_pot_boosts_and_cuts_the_lows | Full-range clean boost; 12 dB input gain range added as on the Esoteric Boost so it reaches its rails; internal DIP switches not modelled |
+| D2.9 | FAS LED-Drive | 🟡 | Led_drive_clips_higher_than_with_silicon | Fractal design, no schematic: a design (TL072, red LEDs across the feedback, passive treble cut), not a model |
+| D2.10 | Ruckus | 🟡 | Ruckus_is_the_riot_core_with_silicon | Not in the June 2023 guide; Fractal's forum says it is the original Suhr Riot: the Riot core with silicon to ground and an LP/HP tone blend (guessed) |
+| D2.11 | Shimmer Drive | 🟡 | Shimmer_drive_is_a_bright_clean_boost_at_low_drive | Fractal original (a boost for amps without master volume): a design, bright TL072 boost into its rails, Baxandall treble |
+| D2.12 | Tube Drive 3-Knob (Chandler Tube Driver) | 🟡 | Tube_drivers_clip_asymmetrically_in_their_triode_and_recover | New triode stage (12AX7, Wdf `Triode` read-only); 40 V plate supply, 100k plate, 1.5k bypassed cathode and op-amp gain range guessed; runs at 4x (21–34 % of a core); own aliasing floor (60 / 30 dB) |
+| D2.13 | Tube Drive 4-Knob (B.K. Butler Tube Driver) | 🟡 | Tube_drivers_clip_asymmetrically_in_their_triode_and_recover; Bass_pot_boosts_and_cuts_the_lows | As D2.12 with bass and treble (active band EQ, 100 Hz / 3 kHz); the bias trim fixed at its stock point |
+| D2.14 | Per-type controls: Middle Freq, Grunt, Attack; Bass/Middle Pot on active EQs | 🟡 | Metal_zone_middle_freq_and_pots_reach_the_block; B7k_grunt_…; Bass_pot_boosts_and_cuts_the_lows | Appended as Drive parameters 38–40; shown only on their types; stock at default |
+
 ## Known open items from earlier rounds
 
 These were reported as left over or deliberately deferred, and are not assigned to a stream yet.
