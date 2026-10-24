@@ -187,6 +187,7 @@ The **parameter set is not part of compilation**. Changing a knob, a scene or a 
 **As built.**
 - The Input and Output cells run blocks of their own (`input`: noise gate and input level; `output`: a row mixer with main level and balance). The Output takes each input with its grid row, like the Mixer (`MuxInput`); a single row is scaled in place (`ScaleRow`), so a plain chain still needs one buffer. Neither can be bypassed.
 - A sidechain block (`ISidechainBlock`: Compressor, Gate) is offered, before it runs, the grid input and the output of the last live node on each row to its left (`SidechainInput` ops). Each such source counts as one more reader of its buffer, so it is neither freed nor processed over in place first. Sidechains are not latency-aligned.
+- A block that follows a Cab (`ICabFollower`: the Circuit Amp, for its Auto speaker load) is handed, at every compile, the first live `cab` block reached breadth-first through its outputs, or null. It reads that block's DynaCab enclosure and speaker (`CabBlock.DynaCab`) on the audio thread; nothing is copied or scheduled.
 - Feedback Send/Return come in up to two pairs, matched by the number their ids end in.
 - An RTA block gets the graph's `AnalyzerTap`; the engine moves what it holds into the telemetry region after each sub-block.
 
@@ -215,6 +216,7 @@ Other optional interfaces a block may add:
 - `IControlRefresh`: derived state rebuilt on the control thread (§5.4).
 - `IRowInputBlock`: takes each cabled input by grid row (above).
 - `ISidechainBlock`: offered other signals for its detector (§5.2).
+- `ICabFollower`: linked at compile time to the next Cab block downstream (§5.2).
 - `IEngageAware`: told on the audio thread when its bypass target turns from bypassed to active, before the bypass fade starts, so an LFO can restart from a set phase (Flanger and Phaser LFO Bypass Reset, Tremolo Start Phase). A block that starts engaged is not told.
 
 - DSP state lives in `NativeMemory.AlignedAlloc` buffers (64-byte aligned) or pinned arrays.
