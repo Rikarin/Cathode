@@ -267,7 +267,8 @@ public sealed class PlexBlock() : DspBlock(Info) {
         var tempo = context.Tempo;
         var type = (int)Params.Current(Type);
         var count = LineCount();
-        for (var p = MasterTime; p < Type + Info.Params.Count; p++) {
+        for (var p = MasterTime; p < Info.Params.Count; p++) {
+            // Every smoothed parameter moves on once per block; the reads below take the current values.
             if (Info.Params[p].Smoothing == ParamSmoothing.Linear) {
                 Params.Advance(p, n);
             }
