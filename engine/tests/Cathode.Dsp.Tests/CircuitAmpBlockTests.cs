@@ -30,6 +30,10 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
     [Theory]
     [MemberData(nameof(Types))]
     public void Output_tubes_idle_inside_their_ratings(int type) {
+        if (AmpDesign.All[type].SolidState is not null) {
+            return; // no output tubes: the solid-state power amp's own tests cover it (BassAmpTests)
+        }
+
         var channel = new AmpChannel(AmpDesign.All[type], 96_000);
         var power = channel.Power;
         var design = power.Design;
@@ -67,8 +71,14 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         var channel = block.Channel;
         var stages = channel.Stages
             .Where(static s => s.Newton is not null)
-            .Select(static s => s.Newton!)
-            .Append(channel.Power.Newton);
+            .Select(static s => s.Newton!);
+        if (channel.SolidState is { } solid) {
+            Assert.Equal(0, solid.NonFinite);
+            Assert.True(solid.Unconverged <= solid.Samples / 10_000, $"{solid.Unconverged} unconverged power amp samples");
+        } else {
+            stages = stages.Append(channel.Power.Newton);
+        }
+
         foreach (var newton in stages) {
             output.WriteLine(
                 $"{newton.MeanIterations:0.00} iterations per sample (most {newton.MostIterations}), unconverged " +

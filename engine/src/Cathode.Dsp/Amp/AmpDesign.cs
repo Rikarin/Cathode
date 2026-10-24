@@ -30,4 +30,18 @@ public sealed partial record AmpDesign(
 ) {
     /// <summary>What the block's generic controls are called on this model, and which it lacks.</summary>
     public AmpPanel Panel { get; init; } = AmpPanel.Standard;
+
+    /// <summary>
+    ///     A solid-state power amp in place of the tube one (the Roland JC-120): the channel runs it instead of
+    ///     <see cref="Power" />, which such a model sets to <see cref="SolidStateTubePlaceholder" /> and never runs. Its
+    ///     tube expert parameters then do nothing (see <see cref="SolidStatePowerAmp" /> for those that apply). Null for a
+    ///     tube amp.
+    /// </summary>
+    public SolidStatePowerDesign? SolidState { get; init; }
+
+    /// <summary>
+    ///     The <see cref="Power" /> of a model with a <see cref="SolidState" /> power amp: a tube power amp the channel
+    ///     builds (so that every model has one to inspect) but never runs.
+    /// </summary>
+    public static PowerAmpDesign SolidStateTubePlaceholder => Models.Blackface.Design.Power;
 }

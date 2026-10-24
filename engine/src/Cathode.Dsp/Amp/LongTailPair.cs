@@ -59,7 +59,6 @@ public sealed record CathodyneDesign(
 /// </remarks>
 public abstract class PhaseInverter {
     protected const int Points = 1_025;
-    protected const double Range = 60; // ± volts of input; both sides are saturated or cut off beyond
 
     static readonly Dictionary<(PhaseInverterDesign, double), PhaseInverter> Cache = [];
 
@@ -70,8 +69,11 @@ public abstract class PhaseInverter {
     internal readonly double[] gridVoltages = new double[Points];
     internal readonly double[] leakReturns = new double[Points];
     internal readonly double[] cathodeResistances = new double[Points];
-    internal readonly double step = 2 * Range / (Points - 1);
-    internal readonly double inverseStep = (Points - 1) / (2 * Range);
+    internal readonly double step;
+    internal readonly double inverseStep;
+
+    /// <summary>± volts of input the table spans; flat beyond.</summary>
+    public double Range { get; }
 
     /// <summary>The driven grid's DC voltage, where its grid leak returns.</summary>
     public double RestGrid { get; protected init; }
@@ -90,6 +92,16 @@ public abstract class PhaseInverter {
     /// </summary>
     public (double Zaa, double Zab, double Zba, double Zbb) OutputImpedance { get; protected init; }
 
+    /// <param name="range">
+    ///     The table's span, ± volts of input: both sides are saturated or cut off beyond it (60 V for a single inverter
+    ///     stage; less for a chain with gain ahead of its splitter, whose linear region is narrower).
+    /// </param>
+    protected PhaseInverter(double range = 60) {
+        Range = range;
+        step = 2 * range / (Points - 1);
+        inverseStep = (Points - 1) / (2 * range);
+    }
+
     /// <summary>
     ///     The (cached) table for <paramref name="design" />. Control thread: builds it on first use. With a
     ///     <paramref name="load" />, the driven grid's tables (<see cref="GridToCathode" />, <see cref="LeakReturn" />,
@@ -104,6 +116,8 @@ public abstract class PhaseInverter {
                 inverter = design switch {
                     LongTailPairDesign pair => new LongTailPair(pair, load),
                     CathodyneDesign cathodyne => new Cathodyne(cathodyne, load),
+                    DriverChainDesign chain => new DriverChain(chain),
+                    FloatingParaphaseDesign paraphase => new FloatingParaphase(paraphase),
                     _ => throw new ArgumentException($"Unknown phase inverter {design}.", nameof(design))
                 };
                 Cache[(design, load)] = inverter;
@@ -115,7 +129,7 @@ public abstract class PhaseInverter {
 
     /// <summary>
     ///     The outputs' AC open-circuit voltages for the driven grid's AC voltage <paramref name="vd" />, and their
-    ///     slopes d/d<paramref name="vd" />. Flat beyond ±60 V.
+    ///     slopes d/d<paramref name="vd" />. Flat beyond ±<see cref="Range" />.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public (double A, double B) Evaluate(double vd, out double slopeA, out double slopeB) {

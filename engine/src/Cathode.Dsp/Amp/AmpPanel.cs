@@ -9,6 +9,16 @@ namespace Cathode.Dsp.Amp;
 ///     here: "Fat", "Lead Drive", "Jumper", "Bright Input" and so on.
 /// </summary>
 public sealed record AmpPanel {
+    /// <summary>
+    ///     The Circuit Amp parameters that only mean something on a tube amp: its power tubes, transformer, speaker load
+    ///     (which a solid-state amp's feedback holds flat), bias, feedback knob, rectifier, preamp tubes and bright caps.
+    /// </summary>
+    static readonly string[] TubeOnly = [
+        "bias", "feedback", "pretube", "brightcap", "prebias", "presag", "powertube", "xfmrmatch", "xfmrlf", "xfmrhf",
+        "xfmrdrive", "speaker", "spkres", "spkq", "spkpeak", "spkhf", "spkimp", "presfreq", "depthfreq", "supply",
+        "rectifier", "katc"
+    ];
+
     /// <summary>Every standard knob under its usual name, no model-specific controls.</summary>
     public static AmpPanel Standard { get; } = new();
 
@@ -49,11 +59,17 @@ public sealed record AmpPanel {
     public IReadOnlyList<string>? Equalizer { get; init; }
 
     /// <summary>
+    ///     False for a solid-state amp (<see cref="AmpDesign.SolidState" />): the tube-only parameters are then absent
+    ///     from its panel (and do nothing).
+    /// </summary>
+    public bool HasTubes { get; init; } = true;
+
+    /// <summary>
     ///     The label of the Circuit Amp parameter <paramref name="id" /> on this panel: its name, null where absent, or
     ///     <paramref name="fallback" /> for a parameter the panel does not cover (the expert parameters).
     /// </summary>
     public string? Label(string id, string fallback) =>
-        id switch {
+        !HasTubes && TubeOnly.Contains(id) ? null : id switch {
             "gain" => Gain,
             "bass" => Bass,
             "middle" => Middle,

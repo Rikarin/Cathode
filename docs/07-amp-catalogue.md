@@ -160,11 +160,16 @@ built from the documented features and fitted to captures.
 
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Ampeg SVT | 📋 Planned (tier 2, later) | — | — | Direct-out captures, Ultra Hi/Lo switches | 8x10 closed |
-| Roland JC-120 | 📋 Planned (needs a transistor/op-amp model) | — | — | Direct-out captures | 2x12 open |
-| Ampeg B-15 | 💤 Not planned | — | — | | 1x15 closed |
-| Fender Bassman 100 / 135 (bass) | 💤 Not planned | — | — | | 4x12 / 2x15 |
-| Marshall Valvestate | 💤 Not planned | — | — | | 4x12 closed |
+| Ampeg SVT (1970, 6550) | ✅ Done (channel one; power-amp nodes and OT assumed) | SVT (26) | — (no free capture found) | Direct-out captures with settings, Ultra Lo, each Mid Freq | 8x10 closed |
+| Ampeg B-15-N Portaflex (1968) | ✅ Done (channel one) | Portaflex B-15N (27) | — | Direct-out captures, Ultra Lo / Hi | 1x15 closed |
+| Roland JC-120 (1984 board) | ✅ Done (effect channel, effects off; solid state) | JC-120 (28) | — | Direct-out captures, volume sweep | 2x12 open |
+| Fender Bassman 100 / 135 (bass) | 📋 Planned (CBS factory drawing 014283 of the 135 found and readable: Bass and Normal channels with Deep and Bright, 12AT7 LTP, 4 × 6L6GC ultralinear; not built for time) | — | — | Schematic of the 100; captures | 4x12 / 2x15 |
+| Marshall Valvestate 8080 / 8100 | 📋 Planned (Marshall drawings PC0689 issue 5 and PC0689P issue 9, vector PDFs at schematicheaven: every value readable; op-amp and LED-clipper front end, one ECC83, a TL072-driven class-AB power amp with current feedback; not built for time) | — | — | Captures | 1x12 / 4x12 closed |
+
+No free (GPL / CC) direct-out capture of any of these was found: GuitarML ToneLibrary and pelennor2170/NAM_models
+hold none (searched October 2026), so the three models are schematic-only. Sources, readings and guesses are in
+`docs/06-amp-modelling-spec.md` §3.5 and in each model file. The bass cabs (8 × 10, 1 × 15) are not Cab-block IRs yet:
+the B-15 runs on the Circuit Amp's closed 8 × 10 speaker curve.
 
 ---
 
@@ -221,7 +226,7 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 | Cornford MK50H II | 💤 Not planned | — | Corncob M50 | Overdrive channel | 4x12 closed |
 | Orange A30 / AD30 | 💤 Not planned | — | Citrus A30 Clean / Dirty | | 2x12 closed |
 | Orange Tiny Terror | 💤 Not planned | — | Citrus Terrier | | 1x12 / 2x12 closed |
-| Orange AD200B (bass) | 💤 Not planned | — | Citrus Bass 200 | | 4x10 / 8x10 closed |
+| Orange AD200B (bass) | ⏸ Waiting (no schematic found: searched schematicheaven, el34world, MEF and retailer pages; the MkIII is 2 × ECC83, 1 × ECC81, 4 × 6550, Gain/Bass/Middle/Treble/Volume) | — | Citrus Bass 200 | Any schematic or trace | 4x10 / 8x10 closed |
 | Blankenship Leeds 21 | 💤 Not planned | — | Blanknshp Leeds | | 1x12 / 2x12 |
 | Vox AC30HW (hand-wired) | ⏸ Waiting (no service schematic found, only the owner's manual; the AC30 (2) is the JMI circuit it reissues) | — | Class-A 30w, 30W Bright, 30w Hot | Service schematic | 2x12 open, Alnico Blue |
 
@@ -270,7 +275,7 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 
 | Amp | Status | Cathode type | Axe models | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Mesa/Boogie Bass 400 | 💤 Not planned | — | USA Bass 400 1 / 2 | | 8x10 / 4x10 closed |
+| Mesa/Boogie Bass 400 | 📋 Planned (Mesa's 1982 factory schematic found: el34world Boogie_bass400.pdf, a 149 dpi scan, values partly readable by eye; 4 × 12AX7, 6 × 6550 or 6L6; not built for time) | — | USA Bass 400 1 / 2 | Captures; a sharper scan | 8x10 / 4x10 closed |
 
 Already in the catalogue and in the Axe list (no row added): Bassman 5F6-A, Champ 5F1, Tweed Twin 5F8, Bandmaster,
 Tweed Deluxe 5E3, Deluxe Reverb, Twin Reverb, Super Reverb, Princeton Reverb, Vibrolux, Vibroverb, Supro 1624T, JTM45,

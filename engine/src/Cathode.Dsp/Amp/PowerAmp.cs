@@ -958,9 +958,10 @@ public sealed class PowerAmp {
     double StockBias() {
         var (low, high) = (0.0, design.Supply);
         var tapped = ScreenTap(settings.Triode) > 0;
+        var screenNode = design.ScreenSupply > 0 ? design.ScreenSupply : design.Supply;
         for (var i = 0; i < 80; i++) {
             var bias = 0.5 * (low + high);
-            var vs = tapped ? design.Supply : ScreenAtIdle(tube, -bias, design.Supply);
+            var vs = tapped ? design.Supply : ScreenAtIdle(tube, -bias, screenNode);
             if (KorenPentode.Plate(tube, -bias, vs, design.Supply) > design.IdleCurrent) {
                 low = bias;
             } else {

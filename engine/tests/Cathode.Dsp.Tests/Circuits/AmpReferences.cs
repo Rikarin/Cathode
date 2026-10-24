@@ -263,6 +263,10 @@ static class AmpReferences {
                 case ElementKind.Diodes:
                     c.Device(new DiodeClipper(e.Diode, e.Forward, e.Diode, e.Reverse), (e.A, e.B));
                     break;
+                case ElementKind.OpAmp:
+                    // Linear and ideal but for a finite gain: valid below clipping, which the comparisons stay under.
+                    c.Vcvs(e.C, 0, e.A, e.B, 1e5);
+                    break;
             }
         }
     }
