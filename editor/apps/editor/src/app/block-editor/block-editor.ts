@@ -89,26 +89,28 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             </xui-tag>
           }
 
-          <label
-            class="bg-surface-raised border-border flex items-center justify-between gap-3 rounded-lg border px-3 py-1.5 text-sm"
-          >
-            <span class="flex items-center gap-2">
-              <span
-                class="size-2 rounded-full"
-                [class]="
-                  live.isBypassed(block.id) ? 'bg-surface-sunken' : 'bg-success shadow-[0_0_6px_var(--color-success)]'
-                "
-                aria-hidden="true"
-              ></span>
-              {{ live.isBypassed(block.id) ? 'Bypassed' : 'Engaged' }}
-            </span>
-            <xui-switch
-              data-testid="engage"
-              aria-label="Engaged"
-              [checked]="!live.isBypassed(block.id)"
-              (checkedChange)="live.setBypass(block.id, !$event)"
-            />
-          </label>
+          @if (!isIo()) {
+            <label
+              class="bg-surface-raised border-border flex items-center justify-between gap-3 rounded-lg border px-3 py-1.5 text-sm"
+            >
+              <span class="flex items-center gap-2">
+                <span
+                  class="size-2 rounded-full"
+                  [class]="
+                    live.isBypassed(block.id) ? 'bg-surface-sunken' : 'bg-success shadow-[0_0_6px_var(--color-success)]'
+                  "
+                  aria-hidden="true"
+                ></span>
+                {{ live.isBypassed(block.id) ? 'Bypassed' : 'Engaged' }}
+              </span>
+              <xui-switch
+                data-testid="engage"
+                aria-label="Engaged"
+                [checked]="!live.isBypassed(block.id)"
+                (checkedChange)="live.setBypass(block.id, !$event)"
+              />
+            </label>
+          }
 
           @if ((info()?.channels ?? 0) > 1) {
             <div class="flex flex-col gap-1.5">
@@ -130,23 +132,25 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             <cth-param-control variant="sidebar" [block]="block" [param]="type" />
           }
 
-          <div class="flex flex-col gap-1.5">
-            <span
-              class="text-foreground-muted text-[11px] font-semibold tracking-wide uppercase"
-              id="bypass-mode-label"
-            >
-              Bypass mode
-            </span>
-            <xui-select
-              class="w-full"
-              aria-labelledby="bypass-mode-label"
-              [filterable]="false"
-              [items]="bypassModes"
-              [itemText]="bypassModeName"
-              [value]="block.bypassMode"
-              (valueChange)="$event && live.setBypassMode(block.id, $event)"
-            />
-          </div>
+          @if (!isIo()) {
+            <div class="flex flex-col gap-1.5">
+              <span
+                class="text-foreground-muted text-[11px] font-semibold tracking-wide uppercase"
+                id="bypass-mode-label"
+              >
+                Bypass mode
+              </span>
+              <xui-select
+                class="w-full"
+                aria-labelledby="bypass-mode-label"
+                [filterable]="false"
+                [items]="bypassModes"
+                [itemText]="bypassModeName"
+                [value]="block.bypassMode"
+                (valueChange)="$event && live.setBypassMode(block.id, $event)"
+              />
+            </div>
+          }
 
           <ng-template #blockMenu>
             <xui-menu>
@@ -165,7 +169,9 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                 }
                 <xui-menu-divider />
               }
-              @if (block.global) {
+              @if (isIo()) {
+                <!-- The grid's Input and Output cannot be global. -->
+              } @else if (block.global) {
                 <button xuiMenuItem icon="matLinkOffRound" (click)="live.unlinkGlobal(block.id)">
                   Unlink from global
                 </button>
@@ -281,8 +287,12 @@ export class BlockEditor {
   );
   protected readonly block = computed(() => {
     const block = this.live.selected();
-    return block && !BuiltInTypes[block.type as keyof typeof BuiltInTypes] ? block : null;
+    return block && block.type !== BuiltInTypes.shunt ? block : null;
   });
+  /** The grid's Input and Output: they have parameters and channels, but no bypass and no global link. */
+  protected readonly isIo = computed(
+    () => this.block()?.type === BuiltInTypes.input || this.block()?.type === BuiltInTypes.output
+  );
   protected readonly info = computed(() => (this.block() ? this.catalog.info(this.block()!.type) : undefined));
   protected readonly title = computed(() => this.info()?.name ?? this.block()?.type ?? '');
   protected readonly typeParam = computed(() => this.info()?.params.find(p => p.id === 'type') ?? null);

@@ -181,6 +181,9 @@ public sealed class CompiledGraph : IDisposable {
                         new(left, right)
                     );
                     break;
+                case GraphOpKind.ScaleRow:
+                    ((OutputBlock)blocks[op.Index]).ScaleInput(op.Row, new(left, right));
+                    break;
             }
         }
     }

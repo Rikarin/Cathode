@@ -67,16 +67,17 @@ public class CathodeEngineTests {
             1
         );
         engine.Publish(graph);
-        var block = (EngageCountingBlock)graph.Block(graph.SlotOf("fx"));
+        var slot = graph.SlotOf("fx");
+        var block = (EngageCountingBlock)graph.Block(slot);
 
-        engine.Post(EngineCommand.SetBypass(1, 0, true)); // already bypassed: no engage
-        engine.Post(EngineCommand.SetBypass(1, 0, false));
-        engine.Post(EngineCommand.SetBypass(1, 0, false)); // already engaged: no second call
+        engine.Post(EngineCommand.SetBypass(1, slot, true)); // already bypassed: no engage
+        engine.Post(EngineCommand.SetBypass(1, slot, false));
+        engine.Post(EngineCommand.SetBypass(1, slot, false)); // already engaged: no second call
         OfflineRenderer.Render(engine, new float[64], new float[64], 64);
         Assert.Equal(1, block.Engaged);
 
-        engine.Post(EngineCommand.SetBypass(1, 0, true));
-        engine.Post(EngineCommand.SetBypass(1, 0, false));
+        engine.Post(EngineCommand.SetBypass(1, slot, true));
+        engine.Post(EngineCommand.SetBypass(1, slot, false));
         OfflineRenderer.Render(engine, new float[64], new float[64], 64);
         Assert.Equal(2, block.Engaged);
     }

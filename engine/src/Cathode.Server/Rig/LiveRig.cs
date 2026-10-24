@@ -392,14 +392,14 @@ public sealed partial class LiveRig(
                 CheckScene(scene);
                 var from = preset.Scenes[activeScene];
                 var to = preset.Scenes[scene];
-                foreach (var block in preset.Blocks.Where(static b => !BuiltInTypes.IsBuiltIn(b.Type))) {
+                foreach (var block in preset.Blocks.Where(b => catalog.Descriptor(b.Type) is not null)) {
                     var before = from.StateOf(block.Id);
                     var after = to.StateOf(block.Id);
                     if (before.Channel != after.Channel) {
                         engine.SetParams(generation, ChannelValues(block, after.Channel));
                     }
 
-                    if (before.Bypassed != after.Bypassed) {
+                    if (before.Bypassed != after.Bypassed && !BuiltInTypes.IsBuiltIn(block.Type)) {
                         engine.SetBypass(generation, block.Id, after.Bypassed);
                     }
                 }

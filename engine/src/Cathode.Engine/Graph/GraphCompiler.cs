@@ -35,7 +35,9 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         for (var n = 0; n < nodes.Count; n++) {
             slotOfNode[n] = -1;
             var node = nodes[n];
-            if (NodeTypes.IsBuiltIn(node.Type)) {
+            // Input and Output run their own block (gate, row mixer) when the registry has one; shunts never do.
+            var builtIn = NodeTypes.IsBuiltIn(node.Type);
+            if (node.Type == NodeTypes.Shunt || (builtIn && !registry.Contains(node.Type))) {
                 continue;
             }
 
@@ -63,8 +65,8 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             slotOfNode[n] = blocks.Count;
             blocks.Add(block);
             slotIds.Add(node.Id);
-            bypassed.Add(node.Bypassed);
-            bypassModes.Add(node.BypassMode switch {
+            bypassed.Add(node.Bypassed && !builtIn);
+            bypassModes.Add((builtIn ? BypassModes.Thru : node.BypassMode) switch {
                     BypassModes.Mute => BypassKind.Mute,
                     BypassModes.MuteIn => BypassKind.MuteIn,
                     BypassModes.MuteFxIn => BypassKind.MuteFxIn,
@@ -176,12 +178,20 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             int buffer;
 
             var mux = slotOfNode[n] >= 0 && blocks[slotOfNode[n]] is IRowInputBlock;
+            var soleReader = liveInputs.Count == 1 && readersLeft[liveInputs[0]] == 1;
             if (node.Type == NodeTypes.Input) {
                 buffer = emitter.Allocate();
                 emitter.Emit(new(GraphOpKind.ReadInput, buffer));
             } else if (liveInputs.Count == 0) {
                 buffer = emitter.Allocate(); // a Feedback Return fed only by its send
                 emitter.Emit(new(GraphOpKind.Clear, buffer));
+            } else if (soleReader && slotOfNode[n] >= 0 && blocks[slotOfNode[n]] is OutputBlock) {
+                // An Output fed by one row scales it in place rather than mixing it into a second buffer.
+                var source = liveInputs[0];
+                buffer = bufferOf[source];
+                readersLeft[source] = 0;
+                emitter.EmitDelay(buffer, arrival - latency[source]);
+                emitter.Emit(new(GraphOpKind.ScaleRow, buffer, Index: slotOfNode[n], Row: nodes[source].Row));
             } else if (mux) {
                 // Each input goes through the multiplexer's selection fade instead of a plain sum.
                 buffer = emitter.Allocate();
@@ -206,7 +216,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                         emitter.Free(bufferOf[source]);
                     }
                 }
-            } else if (liveInputs.Count == 1 && readersLeft[liveInputs[0]] == 1) {
+            } else if (soleReader) {
                 // Sole remaining reader: take over the upstream buffer and process in place.
                 var source = liveInputs[0];
                 buffer = bufferOf[source];
@@ -239,7 +249,9 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             bufferOf[n] = buffer;
             if (slotOfNode[n] >= 0) {
                 emitter.Emit(new(GraphOpKind.Process, buffer, Index: slotOfNode[n]));
-            } else if (node.Type == NodeTypes.Output) {
+            }
+
+            if (node.Type == NodeTypes.Output) {
                 emitter.EmitDelay(buffer, graphLatency - latency[n]);
                 emitter.Emit(new(GraphOpKind.WriteOutput, buffer));
             }

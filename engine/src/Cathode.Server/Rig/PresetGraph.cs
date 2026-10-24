@@ -17,9 +17,10 @@ public static class PresetGraph {
                 Column = block.Column,
                 BypassMode = block.BypassMode
             };
-            if (!BuiltInTypes.IsBuiltIn(block.Type)) {
+            if (block.Type != BuiltInTypes.Shunt) {
+                // Input and Output have parameters and channels (the gate, the row mixer) but no bypass.
                 var state = scene.StateOf(block.Id);
-                node.Bypassed = state.Bypassed;
+                node.Bypassed = state.Bypassed && !BuiltInTypes.IsBuiltIn(block.Type);
                 node.Parameters = new(block.Channels.GetValueOrDefault(state.Channel) ?? []);
                 foreach (var (slot, reference) in block.Assets) {
                     node.Assets[slot] = assets.PathOf(reference)

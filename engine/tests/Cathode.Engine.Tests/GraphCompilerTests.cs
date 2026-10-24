@@ -50,6 +50,42 @@ public class GraphCompilerTests {
     }
 
     [Fact]
+    public void The_output_mixes_each_row_at_its_own_level() {
+        var definition = Graph(
+            [
+                Node("in", NodeTypes.Input, 0, 0, ("level", -6.0206f)),
+                Node("a", "volpan", 0, 1),
+                Node("b", "volpan", 1, 1),
+                Node("out", NodeTypes.Output, 0, 2, ("level2", -6.0206f), ("level", 6.0206f))
+            ],
+            ("in", "a"),
+            ("in", "b"),
+            ("a", "out"),
+            ("b", "out")
+        );
+
+        var output = Run(definition, Signals.Step(4_800));
+
+        // Input at half; row 1 at unity and row 2 at half sum to 0.75, then the main level doubles it.
+        Assert.Equal(1.5f, output[^1], 1e-3f);
+    }
+
+    [Fact]
+    public void An_output_on_one_row_scales_it_in_place() {
+        var definition = Graph(
+            [Node("in", NodeTypes.Input, 2, 0), Node("out", NodeTypes.Output, 2, 1, ("level3", -6.0206f))],
+            ("in", "out")
+        );
+
+        using var graph = Compiler.Compile(definition, Spec);
+        var output = Run(definition, Signals.Step(4_800));
+
+        Assert.Equal(1, graph.BufferCount);
+        Assert.Contains(graph.Ops, static op => op.Kind == GraphOpKind.ScaleRow && op.Row == 2);
+        Assert.Equal(0.5f, output[^1], 1e-3f);
+    }
+
+    [Fact]
     public void Buffers_are_reused_down_a_long_parallel_grid() {
         var nodes = new List<NodeDefinition> { Node("in", NodeTypes.Input, 0, 0) };
         var cables = new List<(string, string)>();
@@ -111,8 +147,9 @@ public class GraphCompilerTests {
 
         using var graph = Compiler.Compile(definition, Spec);
 
-        Assert.Equal(1, graph.Ops.Count(static op => op.Kind == GraphOpKind.Process));
+        Assert.Equal(1, graph.Ops.Count(op => op.Kind == GraphOpKind.Process && op.Index == graph.SlotOf("used")));
         Assert.True(graph.SlotOf("dangling") >= 0);
+        Assert.DoesNotContain(graph.Ops, op => op.Kind == GraphOpKind.Process && op.Index == graph.SlotOf("dangling"));
     }
 
     [Fact]

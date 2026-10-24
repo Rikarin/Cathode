@@ -13,6 +13,8 @@ public sealed class BlockRegistry {
     /// <summary>A registry pre-populated with every built-in block.</summary>
     public static BlockRegistry CreateDefault() {
         var registry = new BlockRegistry();
+        registry.Register(InputBlock.Info, static () => new InputBlock());
+        registry.Register(OutputBlock.Info, static () => new OutputBlock());
         registry.Register(VolumePanBlock.Info, static () => new VolumePanBlock());
         registry.Register(FilterBlock.Info, static () => new FilterBlock());
         registry.Register(CabBlock.Info, static () => new CabBlock());

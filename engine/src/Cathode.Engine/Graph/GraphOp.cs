@@ -26,7 +26,13 @@ public enum GraphOpKind {
     ///     Let row-input block slot <c>Index</c> (a multiplexer or mixer) add buffer <c>Source</c>, from grid row
     ///     <c>Row</c>, into <c>Buffer</c>.
     /// </summary>
-    MuxInput
+    MuxInput,
+
+    /// <summary>
+    ///     Let Output block slot <c>Index</c> scale <c>Buffer</c>, its only input, by the level and balance of grid row
+    ///     <c>Row</c>, in place (the single-input case of <see cref="MuxInput" />, without a second buffer).
+    /// </summary>
+    ScaleRow
 }
 
 /// <summary>One step of a compiled execution plan. A plan is a flat array walked once per callback.</summary>
