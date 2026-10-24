@@ -187,10 +187,18 @@ public sealed class StageNetlist {
     }
 
     /// <summary>
-    ///     A pot wired as a variable resistor: the track's fraction at the knob's rotation (a TMB stack's bass pot).
+    ///     A pot wired as a variable resistor: the track's fraction at the knob's rotation (a TMB stack's bass pot), or
+    ///     with <paramref name="falling" /> the rest of the track, so that turning the knob up takes resistance out (the
+    ///     Matchless Chieftain's bass pot, in series with its bass path).
     /// </summary>
-    public void Rheostat(int a, int b, Pot pot, PotRole role) =>
-        Add(new(ElementKind.Resistor, a, b, pot.Ohms) { Pot = pot, Part = PotPart.Lower, Role = role });
+    public void Rheostat(int a, int b, Pot pot, PotRole role, bool falling = false) =>
+        Add(
+            new(ElementKind.Resistor, a, b, pot.Ohms) {
+                Pot = pot,
+                Part = falling ? PotPart.Upper : PotPart.Lower,
+                Role = role
+            }
+        );
 
     /// <summary>A supply rail at <paramref name="volts" /> (nominal; it follows the preamp's sag).</summary>
     public void Supply(int node, double volts) => Add(new(ElementKind.Supply, node, Ground, volts));

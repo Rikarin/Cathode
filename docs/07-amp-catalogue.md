@@ -76,15 +76,15 @@ Last updated: 2026-10-24 (after the four family streams and the Prometheus merge
 | AC30 Normal channel | ✅ Done | AC30 (2), Switch 1 "Normal Ch" | — | | 2x12 open, Blue |
 | AC15 (EF86) | ✅ Done (mixing and cut assumed) | AC15 (3) | GPL: AC15 Top Boost; T3K: AC15C1 Normal (6 settings) and Top Boost | Vintage EF86 channel captures | 1x12 open, Blue / G12M |
 | Matchless DC-30 | ✅ Done | DC-30 (4) | GPL: Matchless SC30 channel 1 | DC-30 both channels | 2x12 open, G12H30 / Vintage 30 |
-| Dumble Overdrive Special | ⏸ Waiting (only partial, error-prone traces) | — | GPL: Dumble kit low/high, Dumble clone clean/medium/high | Real ODS or Two-Rock, settings stated | 1x12 / 2x12 open, EV12L |
-| Two-Rock (Dumble-style) | ⏸ Waiting (needs the ODS work) | — | (Dumble captures above) | | 1x12 / 2x12 open |
-| Bad Cat Hot Cat / Black Cat | ⏸ Waiting | — | — | Preamp schematic (only power amp found) | 2x12 open |
-| Dr Z Maz 18 | ⏸ Waiting | — | — | Schematic | 1x12 / 2x12 open |
-| Morgan AC20 / SW | ⏸ Waiting | — | — | Schematic | 1x12 open |
-| Matchless Chieftain | 💤 Not planned | — | — | | 2x12 open |
-| Divided by 13 | 💤 Not planned | — | — | | 1x12 / 2x12 |
-| Budda Superdrive | 💤 Not planned | — | — | | 2x12 |
-| Trainwreck Express | 💤 Not planned | — | — | | 2x12 / 4x12 |
+| Dumble Overdrive Special | ✅ Done (a 1997 ODS 100, traced: clean and overdrive) | ODS 97 (28) | GPL: Dumble kit low/high, Dumble clone clean/medium/high (all mapped, knobs fitted) | Real ODS captures with settings; the 1970s ODS (Rock/Jazz, Deep) and HRM circuits | 1x12 / 2x12 open, EV12L |
+| Two-Rock (Dumble-style) | ⏸ Waiting (no schematic published; the ODS work does not carry over without one) | — | (Dumble captures above) | Schematic or trace | 1x12 / 2x12 open |
+| Bad Cat Hot Cat / Black Cat | ✅ Done (Hot Cat 30, both inputs; Black Cat ⏸: no schematic, Bad Cat never published one) | Hot Cat 30 (27) | — | Hot Cat 30 captures, Gain and Clean inputs | 2x12 open |
+| Dr Z Maz 18 | ⏸ Waiting (searched 2026-10: no schematic or trace; specs only: 2 x EL84 cathode bias, 5AR4) | — | — | Schematic | 1x12 / 2x12 open |
+| Morgan AC20 / SW | ⏸ Waiting (searched 2026-10: no schematic; specs only: EF86 or 12AX7 channel, 2 x EL84, GZ34) | — | — | Schematic | 1x12 open |
+| Matchless Chieftain | ✅ Done (factory drawing 1994 plus a measured trace) | Chieftain (26) | — | Captures with settings | 2x12 open, G12H30 |
+| Divided by 13 | ⏸ Waiting (searched 2026-10: no schematic or trace for the JRT 9/15, CJ 11 or FTR 37) | — | — | Schematic | 1x12 / 2x12 |
+| Budda Superdrive | ⏸ Waiting (searched 2026-10: no schematic or trace) | — | — | Schematic | 2x12 |
+| Trainwreck Express | ✅ Done (redraw A1a of the schematicheaven collection, hearsay: medium confidence) | Express (29) | — | Captures with settings; a measured trace | 2x12 / 4x12 |
 | Supro (1960s) | 💤 Not planned | — | — | | 1x12 open |
 | Gibson GA-40 Les Paul | 💤 Not planned | — | — | | 1x12 open |
 | Magnatone (Custom 280 / 15) | 💤 Not planned | — | — | | 2x12 open |
@@ -221,30 +221,30 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 | Orange Tiny Terror | 💤 Not planned | — | Citrus Terrier | | 1x12 / 2x12 closed |
 | Orange AD200B (bass) | 💤 Not planned | — | Citrus Bass 200 | | 4x10 / 8x10 closed |
 | Blankenship Leeds 21 | 💤 Not planned | — | Blanknshp Leeds | | 1x12 / 2x12 |
-| Vox AC30HW (hand-wired) | 💤 Not planned (AC30 variant) | — | Class-A 30w, 30W Bright, 30w Hot | | 2x12 open, Alnico Blue |
+| Vox AC30HW (hand-wired) | ⏸ Waiting (no service schematic found, only the owner's manual; the AC30 (2) is the JMI circuit it reissues) | — | Class-A 30w, 30W Bright, 30w Hot | Service schematic | 2x12 open, Alnico Blue |
 
 ### Boutique and class A
 
 | Amp | Status | Cathode type | Axe models | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Dumble ODS (HRM and Robben Ford versions) | ⏸ Waiting (see the Dumble ODS row) | — | ODS-100 Clean / HRM / HRM Mid / Ford 1, 2, Mid | | 1x12 / 2x12 open |
-| Fuchs Overdrive Supreme | 💤 Not planned | — | Fox ODS, Fox ODS Deep | | 1x12 / 2x12 open |
-| Two-Rock Jet 35 | 💤 Not planned | — | Two Stone J35 1 / 2 | | 1x12 open |
-| Bludotone Ojai | 💤 Not planned | — | Bludojai Clean / Lead 1 / Lead 2 | | 1x12 / 2x12 open |
-| Carr Rambler | 💤 Not planned | — | Car Roamer, FAS Class-A | | 1x12 / 2x12 open |
-| Budda Twinmaster | 💤 Not planned | — | Buttery | | 2x12 open |
-| Divided by 13 CJ 11 / FTR 37 | 💤 Not planned (see Divided by 13 row) | — | Div/13 CJ, CJ Boost, FT37 High / Low | | 1x12 / 2x12 |
-| Dr Z Route 66 / MAZ 8 / MAZ 38 SR | 💤 Not planned (see Dr Z row) | — | Mr Z Hwy 66, MZ-8, MZ-38 | | 1x12 / 2x12 open |
-| Morgan AC20 Deluxe | 💤 Not planned (see Morgan row) | — | AC-20 12AX7 / EF86, Bass / Treble | | 1x12 open |
-| Bad Cat Hot Cat 30 | 💤 Not planned (see Bad Cat row) | — | Hot Kitty | | 2x12 open |
-| Matchless Chieftain | 💤 Not planned (see Matchless Chieftain row) | — | Boutique 1 / 2 | | 2x12 open |
-| Trainwreck Liverpool | 💤 Not planned | — | Wrecker Liverpool | | 2x12 |
-| Trainwreck Rocket | 💤 Not planned | — | Wrecker Rocket | | 1x12 / 2x12 |
-| Komet 60 / Concorde | 💤 Not planned | — | Comet 60, Comet Concourse | | 2x12 / 4x12 |
-| Swart Atomic Space Tone | 💤 Not planned | — | Nuclear-Tone | | 1x12 open |
-| Paul Ruby Rocket | 💤 Not planned | — | Ruby Rocket, Ruby Rocket Bright | | 1x12 open |
-| Carol-Ann OD-2 / Triptik / Tucana 3 | 💤 Not planned | — | Carol-Ann OD-2, Triptik, Tucana | | 2x12 / 4x12 |
-| Gibson Scout | 💤 Not planned | — | Gibtone Scout | | 1x10 / 1x12 open |
+| Dumble ODS (HRM and Robben Ford versions) | 📋 Planned (1970s ODS preamp, overdrive and power redraws on schematicheaven `dumbleamps/`, with Rock/Jazz and Deep; no HRM drawing found) | ODS 97 (28) is a 1997 ODS 100 | ODS-100 Clean / HRM / HRM Mid / Ford 1, 2, Mid | HRM schematic | 1x12 / 2x12 open |
+| Fuchs Overdrive Supreme | ⏸ Waiting (searched 2026-10: no schematic) | — | Fox ODS, Fox ODS Deep | Schematic | 1x12 / 2x12 open |
+| Two-Rock Jet 35 | ⏸ Waiting (searched 2026-10: no schematic) | — | Two Stone J35 1 / 2 | Schematic | 1x12 open |
+| Bludotone Ojai | ⏸ Waiting (searched 2026-10: no schematic; said to follow Robben Ford's "Tan" Dumble) | — | Bludojai Clean / Lead 1 / Lead 2 | Schematic | 1x12 / 2x12 open |
+| Carr Rambler | ⏸ Waiting (searched 2026-10: no schematic) | — | Car Roamer, FAS Class-A | Schematic | 1x12 / 2x12 open |
+| Budda Twinmaster | ⏸ Waiting (searched 2026-10: no schematic) | — | Buttery | Schematic | 2x12 open |
+| Divided by 13 CJ 11 / FTR 37 | ⏸ Waiting (see the Divided by 13 row) | — | Div/13 CJ, CJ Boost, FT37 High / Low | Schematic | 1x12 / 2x12 |
+| Dr Z Route 66 / MAZ 8 / MAZ 38 SR | ⏸ Waiting (see the Dr Z row) | — | Mr Z Hwy 66, MZ-8, MZ-38 | Schematic | 1x12 / 2x12 open |
+| Morgan AC20 Deluxe | ⏸ Waiting (see the Morgan row) | — | AC-20 12AX7 / EF86, Bass / Treble | Schematic | 1x12 open |
+| Bad Cat Hot Cat 30 | ✅ Done | Hot Cat 30 (27) | Hot Kitty | Captures | 2x12 open |
+| Matchless Chieftain | ✅ Done | Chieftain (26) | Boutique 1 / 2 | Captures | 2x12 open |
+| Trainwreck Liverpool | 📋 Planned (schematicheaven `newamps/trainwreck_liverpool.pdf`: a builder's drawing of two amps, the Express preamp with 4 x EL84 and feedback; two coupling values were "tuned" per amp) | — | Wrecker Liverpool | | 2x12 |
+| Trainwreck Rocket | ⏸ Waiting (only DIY drafts behind the ampgarage login) | — | Wrecker Rocket | Schematic | 1x12 / 2x12 |
+| Komet 60 / Concorde | ⏸ Waiting (drawings only behind the ampgarage login; Komet restricts them) | — | Comet 60, Comet Concourse | Schematic | 2x12 / 4x12 |
+| Swart Atomic Space Tone | ⏸ Waiting (searched 2026-10: no schematic) | — | Nuclear-Tone | Schematic | 1x12 open |
+| Paul Ruby Rocket | ⏸ Waiting (searched 2026-10: no schematic) | — | Ruby Rocket, Ruby Rocket Bright | Schematic | 1x12 open |
+| Carol-Ann OD-2 / Triptik / Tucana 3 | ⏸ Waiting (searched 2026-10: no schematic) | — | Carol-Ann OD-2, Triptik, Tucana | Schematic | 2x12 / 4x12 |
+| Gibson Scout | 📋 Planned (factory GA-17RVT drawing with voltages: schematicheaven `gibsonamps/ga17rvt.pdf`; needs 6EU7 and 6AQ5 tube tables) | — | Gibtone Scout | Captures | 1x10 / 1x12 open |
 
 ### High gain
 
