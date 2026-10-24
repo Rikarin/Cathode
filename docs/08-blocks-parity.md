@@ -630,28 +630,28 @@ Types: Plex Delay, Plex Detune, Plex Shifter, Plex Verb, Shimmer Verb + 39 varia
 
 ### 6.26 Reverb (pp. 82–85) → `reverb`
 
-Types: 66+ (halls, chambers, rooms, cathedrals, studios, plates, springs, classic digital) → Cathode 5 (Room, Hall, Plate on an FDN; Dattorro Plate; Spring). Most named types are presets of the FDN; missing algorithms: chamber/cathedral early-reflection sets, the classic digital reverbs, multi-spring variants.
+Types: 66+ (halls, chambers, rooms, cathedrals, studios, plates, springs, classic digital) → Cathode 🆕 7 (Room, Hall, Plate, 🆕 Chamber, 🆕 Cathedral on an FDN of 4–16 lines with per-type early reflections; Dattorro Plate; Spring with one to six springs). Most named types are presets of these; still missing as algorithms: the classic digital reverbs (their sound comes from specific old hardware topologies).
 
 | Page | Parameter | Cathode | Note | Effort |
 |---|---|---|---|---|
 | Basic | Time | ✅ | Decay |  |
-| Basic | Predelay | ✅ |  |  |
+| Basic | Predelay | ✅ | 🆕 Up to 1 s |  |
 | Basic | Size | ✅ |  |  |
-| Basic | Crossover Frequency, Low/High Freq Time | ◐ | High Cut damps the tail | cheap |
-| Basic | Early Level, Late Level | ❌ | No separate early reflections | medium |
+| Basic | Crossover Frequency, Low/High Freq Time | 🆕 ✅ | Low and High Crossover with Low/High Freq Time (% of Decay) in every FDN line (one-pole splits); High Cut still damps the tail. FDN types only |  |
+| Basic | Early Level, Late Level | 🆕 ✅ | A 12-tap reflection pattern per type, scaled by Size; Early Level defaults to 0 so the earlier sound is kept. Not on Spring |  |
 | EQ | Low Cut, High Cut | ✅ | High Cut = damping |  |
-| EQ | Low Mid and High Mid peaking EQ | ❌ |  | cheap |
-| Advanced | Pre-Delay Tempo, Feedback, Mix | ❌ |  | cheap |
-| Advanced | Echo Density, Early Diffusion and Time, Early Decay, Late Input Mix | ❌ |  | medium |
-| Advanced | Quality (economy … ultra-high) | ❌ |  | medium |
-| Advanced | Stack/Hold | 🆕 ◐ | Hold (a 600 s decay); no Stack | cheap |
-| Advanced | Wall Diffusion, Input Diffusion and Time | ◐ | Fixed diffusers | cheap |
-| Advanced | Mic Spacing | ❌ |  | cheap |
-| Spring | Number of Springs, Spring Tone, Drive, Boiiinnng | ◐ | Two springs, size and decay | cheap |
-| Modulation | Mod Depth, Rate, LFO Phase | ◐ | Fixed internal modulation | cheap |
-| Pitch | Pitch mix, shift 1/2, voice balance, splice, feedback, direction, position | ❌ | Shimmer | medium |
+| EQ | Low Mid and High Mid peaking EQ | 🆕 ✅ | Frequency, Q, gain on the wet; 0 dB is skipped |  |
+| Advanced | Pre-Delay Tempo, Feedback, Mix | 🆕 ✅ | Feedback repeats the pre-delay into the tank (to 90 %); Mix blends the direct input into the tank's input |  |
+| Advanced | Echo Density, Early Diffusion and Time, Early Decay, Late Input Mix | 🆕 ✅ | Echo Density sets the length of the wall allpasses; Early Time scales the pattern, Early Decay tapers it (100 %: last tap −60 dB), Late Input Mix feeds the reflections into the tank |  |
+| Advanced | Quality (economy … ultra-high) | 🆕 ✅ | Economy 4, Normal 8 (default), High 12, Ultra High 16 lines, level-matched |  |
+| Advanced | Stack/Hold | 🆕 ✅ | Hold closes the input; Stack keeps it open (the FDN's line writes pass a soft limit near +12 dBFS) |  |
+| Advanced | Wall Diffusion, Input Diffusion and Time | 🆕 ✅ | Wall Diffusion: an allpass in every loop, taken out of the line so the decay is kept (default off); Input Diffusion and Time scale the type's diffusers |  |
+| Advanced | Mic Spacing | 🆕 ✅ | Delays the right wet by up to 20 ms |  |
+| Spring | Number of Springs, Spring Tone, Drive, Boiiinnng | 🆕 ✅ | 1–6 springs (even ones left, odd right); Tone moves the springs' low-pass an octave either way; Drive saturates the springs' input; Boing drives them up to 5× harder on attacks (a fast-against-slow envelope transient detector), our reading of the control |  |
+| Modulation | Mod Depth, Rate, LFO Phase | 🆕 ✅ | Depth as % of the former fixed 0.35 ms, rate, and the phase between the two modulated lines (default 180°, the former setting). FDN types; Dattorro keeps its own fixed modulation |  |
+| Pitch | Pitch mix, shift 1/2, voice balance, splice, feedback, direction, position | 🆕 ✅ | Two granular shifters (±24 st, grain = splice, Reverse plays the grains backwards); position Input, Output or Tank Feedback (shimmer: the pitched wet feeds the tank and climbs on each pass) |  |
 | Ducker | Attenuation, Threshold, Release | 🆕 ✅ |  |  |
-| Mix | Stereo Spread | 🆕 ◐ | ±100 % | cheap |
+| Mix | Stereo Spread | 🆕 ✅ | −200 … 200 %: beyond ±100 % the wet's side signal is raised (M/S widening), not a psychoacoustic model |  |
 | Mix | Input Gain, Input Select | 🆕 ✅ |  |  |
 | Mix | Global Mix | ❌ | §3 | medium |
 
