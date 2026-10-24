@@ -1102,6 +1102,19 @@ sealed class CircuitChannel {
         right.FlushDenormals();
     }
 
+    /// <summary>
+    ///     <see cref="ProcessInner(CircuitChannel, CircuitChannel, Span{float}, Span{float}, float, float, in SvfCoefficients)" />
+    ///     for one channel: the Circuit Amp's input boost, a mono pedal ahead of a mono amp.
+    /// </summary>
+    public void ProcessInner(Span<float> samples, float fromGain, float toGain, in SvfCoefficients dcBlock) {
+        var step = (toGain - fromGain) / samples.Length;
+        for (var i = 0; i < samples.Length; i++) {
+            samples[i] = Tick(samples[i], fromGain + step * (i + 1), dcBlock);
+        }
+
+        FlushDenormals();
+    }
+
     /// <summary>The base-rate part: tone network and output trim.</summary>
     public void ProcessOuter(Span<float> samples) {
         for (var i = 0; i < samples.Length; i++) {
