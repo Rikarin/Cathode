@@ -214,7 +214,7 @@ public sealed class CircuitAmpBlock : DspBlock {
     public const int EqAtInput = 2;
 
     /// <summary>Frames per knob reading, on a fixed grid that ignores the host's block boundaries.</summary>
-    public const int SubBlock = 32;
+    public const int SubBlock = 64;
 
     /// <summary>Guitar volts per unit of input.</summary>
     const double InputVolts = 1;
