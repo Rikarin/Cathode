@@ -149,13 +149,32 @@ Cathode's `input` and `output` are built-in grid cells that the graph compiler r
 | Gate Threshold, Ratio, Attack, Release, Output Level | 🆕 ✅ | Output Level is the Input Level |  |
 | Global noisegate offset | 🆕 ✅ | Global page, ±20 dB, added to every Input gate threshold |  |
 | Input bypass behaves as a shunt | — | No bypass on built-ins |  |
-| Instrument impedance (1 MΩ … 22 kΩ ± cap, Auto) | — | Analogue circuitry; see [01 §1](01-axe-fx-iii-audit.md#1-hardware-and-dsp-what-the-computer-and-interface-must-replace). A pickup-load EQ is possible | medium (optional) |
+| Instrument impedance (1 MΩ … 22 kΩ ± cap, Auto) | 🆕 ✅ | A pickup-load filter rather than analogue circuitry: §2.1 |  |
 | Output: Main level and balance | 🆕 ✅ | On the Output block, before the scene level |  |
 | Output: per-row Level and Balance mixer | 🆕 ✅ | Six rows (rows below take the sixth's); a single row is scaled in place, so a plain chain still uses one buffer |  |
 | Output: 8 scene levels | ✅ | `Scene.Level` |  |
 | Output bypass = mute | — | Built-ins cannot be bypassed |  |
 | In/Out as an FX send/return loop | ✅ | `fxloop` block, with loop latency compensation (better than the guide's two-block arrangement) |  |
 | Four channels on In/Out | 🆕 ✅ | Switched by scenes like any block |  |
+| Output 2–4 blocks | 🆕 ✅ | `output2`..`output4`: §2.1 |  |
+
+### 2.1 Audio I/O (wiki: "Audio I/O and amplification")
+
+The wiki page covers what the hardware does around the grid: its outputs, converters, input level and impedance, oversampling and latency. Cathode's answers, all defaulting to how it behaved before (one stereo output on device channels 1–2, 1 V at full scale, IIR oversampling), so existing rigs sound the same:
+
+- 🆕 **Outputs 2–4** are grid blocks (`output2`..`output4`, category I/O, one each) beside the main Output. The audio settings map each output to a pair of device channels (`--outputs 1,3,5,7` on the host, the Setup page in the desktop app; 0 or nothing leaves it unmapped). An unmapped output is not rendered. Every output is delayed to the slowest path, so outputs played side by side stay in time. The shim already opens every device output channel; the host's `OutputBus` carries Outputs 2–4 and the DI out from the engine to the mapped channels.
+- 🆕 **Copy Output 1 to Output 2** (global): Output 2 plays Output 1 (after the scene level and the looper, before Output 1's EQ, mode and Boost/Pad) unless the preset has an Output 2 block.
+- 🆕 **Output mode** per output (global): Stereo, Sum L+R (½(L+R) on both, so a mono source keeps its level), Copy L→R and Dual Mono. As the brief defines them, Copy L→R and Dual Mono both put the left channel on both sides, so in Cathode they render identically; the two names are kept for familiarity.
+- 🆕 **Per-output global EQ and Boost/Pad** (−18 to +18 dB): each output has its own ten-band EQ (IPC blocks `global`, `global2`..`global4`; Output 1 keeps the old global EQ) and trim, after its mode. Global settings: `outputs[0..3]` with `mode`, `boostPad` and `eq`.
+- 🆕 **Input calibration**: `inputs[0].fullScaleVolts`, the peak volts at the jack that reach 0 dBFS (default 1 V, as the Circuit Amp always assumed). It reaches blocks as `BlockContext.InputCalibrationDb`; the Circuit Amp scales its input by it, and the Drive scales its input by it and its output back, so turning the interface down 6 dB and doubling the calibration gives the amp and drive exactly the same volts (tested to −60 dB residual through a Drive into an Amp). Dynamic Distortion clips in full-scale units, not volts, so it is not scaled. The Setup page converts an interface's documented maximum input level (dBu, or V peak) or measures it: play a sine of known RMS volts into input 1 for 2 s.
+- 🆕 **Input clip warning** within 0.5 dB of full scale (Setup page callout and a CLIP mark by the input meter, held 1.5 s), and a global **Input 1 Gain** trim (−20 to +20 dB, rig parameter `in1Gain`) ahead of the grid for every preset. Both are for input 1; with multi-channel input (stream PA) they extend per input: `inputs` is a list and the rig names its parameters by input.
+- 🆕 **Input impedance** on the Input block: a pickup (Single Coil 2.5 H / 6 kΩ / 100 pF, Humbucker 4.5 H / 8.5 kΩ / 150 pF, P90 7 H / 8 kΩ / 110 pF, or Custom L, R, C) with Cable Capacitance (500 pF), loaded by the Input Impedance (Auto = 1M, 1M, 470k, 230k, 90k, 70k, 32k, 22k) or by a Pickup Buffer (the pickup sees 1 MΩ and none of the cable). The loaded pickup is a second-order low-pass, `1 / (LC s² + (RC + L/R_L) s + 1 + R/R_L)`. A DI was already recorded through the real pickup into a high-impedance input, so the block applies the change from that reference (1 MΩ, same cable) to the chosen load, as one biquad with each quadratic warped at its own resonance. Pickup Off (the default) or Auto without the buffer is bit-exact passthrough. Tests: f₀ and Q against the RLC formula, the block's response against the analytic ratio. *Not modelled:* the guitar's volume and tone pots, which load the pickup too.
+- 🆕 **Dry DI out**: the input as the converter gave it (before Input 1 Gain) on one or two spare device channels (`--di-out 5,6`), for re-amping.
+- 🆕 **Oversampling mode** (global `oversampling`): **Minimum phase** is Cathode's existing polyphase IIR half-bands, causal with no reported latency (the default). Contrary to the brief's premise, the current half-band was not linear phase, so the new mode is **Linear phase**: Kaiser-windowed FIR half-bands with the same band edges and 100 dB stop band (matching the IIR magnitude within 0.01 dB in the pass band), a pure delay of 86 samples at 2x and 93 at 4x (1.8–1.9 ms at 48 kHz). It applies to the Circuit Amp, Drive and Dynamic Distortion (`IOversampledBlock`), which report the delay as their `LatencySamples`; the graph carries the mode, so a change recompiles and parallel paths stay aligned. 🆕 The Drive's own **Oversampling** (Global, 1x, 2x, 4x; `Recompile`) forces a factor; on Global a type that runs at 2x is delayed to the 4x latency, so the latency never changes with the type.
+- 🆕 **Latency report** (`GET /api/v1/system/latency`, Setup page): the device's input and output latency from the shim (each including one buffer), the buffer, and the graph's latency along its longest path with the blocks on it, and the total.
+- 🆕 **Output clip warning** at −1 dBFS per output: the host reports each output's peak after its EQ and Boost/Pad (`outputPeaks` in telemetry), and the meters' CLIP mark names the outputs.
+- 🆕 **Stereo-into-mono hint**: the grid marks a block that sums to mono (Circuit Amp, capture amp, a Cab, IR Player or Volume/Pan on one side or the sum, a Dynamic Distortion or Mixer in mono) when an engaged stereo effect (Chorus, Flanger, Phaser, the delays, Plex, Reverb, Rotary, Pitch, Enhancer, Tremolo, Crossover) feeds it on the same path, with a tooltip naming them. The Drive runs left and right through separate circuits in Cathode, so it does not sum to mono and is not marked.
+- 🆕 **Cab resonance helper** on the Circuit Amp: a sine (40–250 Hz, logarithmic slider) replaces the amp's output (`PUT /api/v1/live/blocks/{id}/test-tone`, an engine-side `TestTone`, faded over 10 ms) and plays through the cab; sweep to where the cab booms and Apply writes the frequency as LF Resonance, in percent of the model's speaker resonance (`GET .../speaker-resonance`). Nothing is stored in the preset, and a graph change or closing the helper stops the tone.
 
 ## 3. Common mix and level parameters (pp. 7–8)
 
@@ -329,6 +348,7 @@ Types: guide about 60 named pedals → Cathode 27 (3 voicings + 24 WDF circuits;
 | Advanced | Slew Rate | 🆕 ◐ | A generic slew limiter after the clipping on every type; the RAT's op-amp keeps its modelled slew | medium (per op-amp model) |
 | Advanced | Bit Reduce, Sample Rate | 🆕 ✅ | Word length and sample-and-hold rate on the driven signal | |
 | — | Input Vol (guitar volume knob) | ✅ | Cathode extra |  |
+| Advanced | Oversampling (Global, 1x, 2x, 4x) | 🆕 ✅ | With the global linear-phase mode it sets the latency (§2.1) |  |
 
 ### 6.6 Dynamic Distortion (p. 40) → `dyndist`
 
