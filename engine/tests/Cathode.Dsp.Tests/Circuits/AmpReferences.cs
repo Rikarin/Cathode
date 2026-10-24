@@ -267,6 +267,9 @@ static class AmpReferences {
                     // Linear and ideal but for a finite gain: valid below clipping, which the comparisons stay under.
                     c.Vcvs(e.C, 0, e.A, e.B, 1e5);
                     break;
+                case ElementKind.Amplifier:
+                    c.Vcvs(e.C, 0, e.A, e.B, e.Value);
+                    break;
             }
         }
     }
