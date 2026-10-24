@@ -9,7 +9,8 @@ namespace Cathode.Dsp.Tests;
 ///     must match <c>tests/assets/defaults/master.sha256</c>, which was generated from master (commit 599ae30, after its
 ///     static-initialisation fixes and the tremolo circuits). New controls must default to stock, so this only changes
 ///     when a model itself does; regenerate then with <c>CATHODE_UPDATE_DEFAULTS=1 dotnet test</c> on the commit that
-///     changes it, and review.
+///     changes it, and review. The hashes are macOS ARM64 renders, so the test runs there only
+///     (<see cref="BaselinePlatform" />).
 /// </summary>
 public class AmpDefaultsTests {
     static readonly string[] Blocks = ["circuitamp", "drive", "dyndist"];
@@ -18,6 +19,7 @@ public class AmpDefaultsTests {
 
     [Fact]
     public void Every_model_and_type_renders_bit_identical_to_master_at_defaults() {
+        BaselinePlatform.Require();
         var renders = Render();
         if (Environment.GetEnvironmentVariable("CATHODE_UPDATE_DEFAULTS") == "1") {
             File.WriteAllLines(Path, renders);

@@ -94,6 +94,8 @@ public sealed partial record AmpDesign {
         MesaBass400.Design,
         JVM410H.CleanCrunch,
         Dsl100.Design,
-        Jmp1.Design
+        Jmp1.Design,
+        QuickRod.Design,
+        MarshallAfd100.Design
     ];
 }

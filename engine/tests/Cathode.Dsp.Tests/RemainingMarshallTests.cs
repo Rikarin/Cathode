@@ -34,7 +34,15 @@ public partial class AmpStageTests {
             { "JMP-1", 2, 0.002, -30 },
             { "JMP-1", 4, 0.005, -30 },
             { "JMP-1", 1, 0.0001, -20 },
-            { "JMP-1", 3, 0.0001, -20 }
+            { "JMP-1", 3, 0.0001, -20 },
+            // The AFD100's cuts: #34 at V6A's and V6B's plates and at the send, AFD at the send only (its five triodes
+            // up to V8A are one circuit: the bypassed cathodes of V5 and V6A make a poor Thévenin resistor).
+            { "AFD100", 0, 0.002, -41 },
+            { "AFD100", 2, 0.002, -41 },
+            { "AFD100", 0, 0.05, -37 },
+            { "AFD100", 1, 0.002, -42 },
+            { "AFD100", 3, 0.002, -42 },
+            { "AFD100", 1, 0.05, -39 }
         };
 
     /// <summary>The stages <paramref name="controls" /> play, nested channel switches resolved.</summary>
@@ -118,7 +126,8 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
         ("JVM410H OD", [0, 2, 4, 1, 3, 5]),
         ("JVM410H Clean/Crunch", [0, 2, 4, 1, 3, 5]),
         ("DSL100", [0, 2, 1, 3, 4]),
-        ("JMP-1", [0, 2, 1, 3, 4])
+        ("JMP-1", [0, 2, 1, 3, 4]),
+        ("AFD100", [0, 1, 2, 3])
     ];
 
     public static TheoryData<string, int> Settings {
@@ -168,6 +177,47 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
         Assert.Equal(["Output", "Presence"], new[] { "control1", "control2" }.Select(id => Label(id, "JMP-1")));
         Assert.Empty(Label("presence", "JMP-1"));
         Assert.Empty(Label("depth", "JMP-1"));
+
+        Assert.Equal(
+            ["AFD", "Low Input", ""],
+            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "AFD100"))
+        );
+        Assert.Equal(
+            ["Gain", "Bass", "Middle", "Treble", "Presence", "Master"],
+            new[] { "gain", "bass", "middle", "treble", "presence", "master" }.Select(id => Label(id, "AFD100"))
+        );
+        foreach (var id in new[] { "depth", "cut", "bright", "control1", "control2" }) {
+            Assert.Empty(Label(id, "AFD100"));
+        }
+    }
+
+    /// <summary>
+    ///     The AFD100's modes and inputs, below clipping: #34 (V6B in the chain, V6A unbypassed) has more gain than AFD
+    ///     (V6B skipped, V6A's cathode bypassed above 160 Hz, 150k on the Gain's wiper), and AFD's partial bypass tilts it
+    ///     toward the treble (1 kHz against 110 Hz); the Low input is about 6 dB down in both.
+    /// </summary>
+    [Fact]
+    public void Afd100_modes_and_inputs_set_the_gain() {
+        double Level(float hz, params (int, float)[] switches) {
+            using var block = Create("AFD100", [(CircuitAmpBlock.Gain, 3f), (CircuitAmpBlock.Master, 3f), ..switches]);
+            var rendered = BlockRender.Mono(block, Signals.Sine(hz, Rate, 24_000, 0.0002f), 64);
+            return Analysis.ToDb(Analysis.MagnitudeAt(rendered.AsSpan(12_000).ToArray(), hz, Rate));
+        }
+
+        var number34 = Level(1_000);
+        var afd = Level(1_000, (CircuitAmpBlock.Switch1, 1f));
+        var low34 = Level(1_000, (CircuitAmpBlock.Switch2, 1f));
+        var lowAfd = Level(1_000, (CircuitAmpBlock.Switch1, 1f), (CircuitAmpBlock.Switch2, 1f));
+        var tilt34 = number34 - Level(110);
+        var tiltAfd = afd - Level(110, (CircuitAmpBlock.Switch1, 1f));
+        output.WriteLine(
+            $"#34 {number34:0.0}, AFD {afd:0.0}, Low #34 {low34:0.0}, Low AFD {lowAfd:0.0} dB; "
+            + $"1 kHz over 110 Hz: #34 {tilt34:0.0}, AFD {tiltAfd:0.0} dB"
+        );
+        Assert.True(number34 > afd + 2);
+        Assert.InRange(number34 - low34, 4, 8);
+        Assert.InRange(afd - lowAfd, 4, 8);
+        Assert.True(tiltAfd > tilt34);
     }
 
     /// <summary>

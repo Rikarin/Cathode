@@ -1,0 +1,3 @@
+# The editor follows xUI: 2-space indentation. The engine keeps the repository's 4 (../.editorconfig).
+[*]
+indent_size = 2

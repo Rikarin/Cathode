@@ -437,7 +437,7 @@ public static class CathodeApi {
             )
             .WithName("GetSpeakerResonance")
             .WithSummary(
-                "A Circuit Amp's speaker resonance: the frequency at LF Resonance 100 % for its model and speaker, the current setting and the frequency it gives."
+                "A Circuit Amp's speaker load resonance: the frequency at Load resonance 100 % for its model and Speaker load (with Follow Cab, the followed Cab's speaker), the current setting and the frequency it gives."
             );
 
         api.MapPut(

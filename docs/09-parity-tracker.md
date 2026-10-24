@@ -52,6 +52,8 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | M1.3 | JVM410HJS (Satriani) as its own model | ⏸ | — | 5 relays, 9 gain structures; no published relay table per mode |
 | M1.4 | JVM410H Clean and Crunch channels | ✅ | Remaining_marshall_chains_match_the_reference (JVM, 6 settings) | type `JVM410H Clean/Crunch` |
 | M1.5 | JVM410H Green / Orange / Red modes per channel | ◐ | The_modes_raise_the_gain_in_order | relay states deduced from the handbook (firmware sets them); Clean modes partly guessed |
+| M1.6 | Marshall AFD100 (Slash): AFD and #34 modes, High/Low input | 🟡 | Afd100_modes_and_inputs_set_the_gain; Remaining_marshall_chains_match_the_reference (AFD100, 6 settings: #34 −43 / −38 dB, AFD −44 / −41 dB at 2 / 50 mV; −27 / −24 and −23 / −20 dB with one stage per tube); sweeps, audibility, monotonic gain and master, panel labels (`RemainingMarshallTests`) | type `AFD100`, from AFD100-60-02 iss 1. Which relay state is AFD is inferred (energised = AFD; the CTL1 controller is not drawn); B+, idle, OT, feedback tap guessed; Power control and loop not modelled |
+| M1.7 | AFD100 CPU | ◐ | `Cathode.Bench --amps AFD100` (`--set 14=1` for AFD) | Over the high-gain budget (16 / 28 %) by the user's choice of accuracy, as the Quick Rod: #34 18.8 / 38.6 %, AFD 22.2 / 52.0 % (Plexi 8.3 / 14.7 %); AFD runs five triodes in one circuit (the library's new largest, `TTTTT`). One stage per tube fitted at 17.4 / 29.0 and 16.4 / 25.5 % but was −27 / −23 dB; V5 split from the AFD circuit saves a sixth and costs 11 dB |
 
 ## M2: power-amp driver variants
 
@@ -200,7 +202,7 @@ Ten overdrives from the guide's Drive list (pp. 37–38), appended after the ear
 | IO10 | Latency report in Setup: converters, buffer and per-block latency | ✅ | Linear_phase_oversampling_recompiles_and_the_latency_report_names_the_drive | GET /api/v1/system/latency; Setup tab of Settings shows it (checked in the browser by the stream) |
 | IO11 | Output clip warning at −1 dBFS | ✅ | Output_peaks_follow_each_output_after_its_trim | CLIP badge forced and seen in the browser by the stream |
 | IO12 | Editor hint when stereo effects sit before a mono-summing block | ◐ | mono-hint spec | Drive not flagged (it never sums to mono); UI not driven in the running editor |
-| IO13 | Cab resonance helper: guided sine sweep that writes the amp's LF Resonance | ◐ | The_test_tone_replaces_a_blocks_output…; The_test_tone_plays_for_a_block_without_touching_the_preset | helper UI not driven in the running editor |
+| IO13 | Cab resonance helper: guided sine sweep that writes the amp's Load resonance | ◐ | The_test_tone_replaces_a_blocks_output…; The_test_tone_plays_for_a_block_without_touching_the_preset | helper UI not driven in the running editor |
 
 ## CB: Cab block (wiki *Cab block*)
 
@@ -281,6 +283,16 @@ Twelve types appended after group D2 (`DriveCircuits.Round4Fuzz`, types 52–63)
 | D3.11 | Bosom Boost (Friedman Buxom Boost) | 🟡 | Bosom_boost_gain_spans_about_27_db_and_its_treble_cuts_and_boosts; Clean_types_clip_on_their_rails_when_hit_hard | No schematic consulted: TL072 on 18 V, 1k / 22k gain, active treble; its Bass knob and Tight switch are not modelled (EQ 1 stands in) |
 | D3.12 | FAS Boost | 🟡 | Fas_boost_gain_spans_about_21_db_with_a_gentle_presence_lift; Clean_types_clip_on_their_rails_when_hit_hard | Fractal's own, no schematic: a design, flat TL072 boost on 18 V to 21 dB with a second ground leg (4.7k + 4.7 nF) for about +2 dB at 8 kHz, active treble |
 | D3.13 | Existing Drive types unchanged | 🟡 | AmpDefaultsTests; DriveCircuitSolveTests.Circuit_types_null_against_their_committed_renders | The committed render and master.sha256 are not regenerated: both tests now skip types they have no reference for |
+
+## QR: Splawn Quick Rod
+
+| ID | Item | Status | Evidence | Notes |
+|---|---|---|---|---|
+| QR1 | Quick Rod from the user's preamp drawing ("Splawn QuickRod" sheet 1/1): both channels, OD1/OD2, 1st/2nd and 3rd gear, solo boost, V1B and V3 on their shared cathode | 🟡 | Quick_rod_chains_match_the_reference (7 settings: clean −64, overdrive −55 / −56 / −58 dB in 1st / 2nd / 3rd gear); Od2_and_the_gears_raise_the_gain_in_order; Solo_boost_lifts_the_master | type `Quick Rod`; power amp (JCM800 2203's), switch positions and tapers guessed; the overdrive channel's V1A, V1B, V3 and V2A in one netlist (`NetworkStage` `TTTT`, which leaves every other model bit-identical: AmpDefaultsTests) |
+| QR2 | Panel names the amp's controls | 🟡 | Panel_names_the_real_controls_and_hides_the_rest | Clean (Switch 1), OD2 (Bright), 2nd / 3rd Gear (Switch 2 / 3), Solo Boost (Control 1, 0 = off) |
+| QR3 | Sweeps converge, every knob audible, Gain and Master monotonic, peaks under +6 dBFS | 🟡 | Knob_sweeps_at_full_drive_stay_finite_and_converge; Every_knob_is_audible; Gain_and_master_raise_the_level_monotonically | Middle and Solo Boost skipped on the clean channel (not in its circuit) |
+| QR4 | CPU | ◐ | `Cathode.Bench --amps "Quick Rod"` | Over the high-gain budget (16 / 28 %) by the user's choice of accuracy, like the Silver Jubilee's noise case: overdrive 17.6 / 35.0 %, 3rd gear with OD2 19.7 / 34.0 %, clean 11.1 / 24.3 % (Plexi 8.8 / 15.5 %); the three-triode cut fitted at 15.0 / 25.8 % but was −29 dB in 3rd gear |
+| QR5 | Splawn Nitro | ⏸ | — | the drawing is the Quick Rod only; no Nitro circuit on it |
 
 ## Known open items from earlier rounds
 

@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Placeholder for platforms whose backend is not written yet (JACK on Linux). */
+ * Placeholder for platforms whose backend is not written yet (none of macOS, Windows and Linux uses it). */
 #include <stddef.h>
 #include "cth_audio.h"
 

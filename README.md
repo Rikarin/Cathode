@@ -52,7 +52,7 @@ Each release lists `SHA256SUMS` to check the downloads against.
 | Platform | Audio and MIDI |
 |---|---|
 | macOS | ✅ CoreAudio and CoreMIDI |
-| Linux | 🚧 ALSA (and JACK) in progress |
+| Linux | ◐ ALSA (direct, no sound server) and JACK or PipeWire, with ALSA sequencer MIDI, early: tested in containers, not yet on a real interface |
 | Windows | ◐ WASAPI and WinMM MIDI, early: tested on shared-mode output only (exclusive mode and inputs still need a real interface); ASIO planned |
 
 Without a working audio driver, Cathode runs on a silent "null" backend: you can build and edit presets, but you will
@@ -103,6 +103,7 @@ microphone names belong to their owners and are used only to say which equipment
 |---|---|
 | [`engine/`](engine) | The C# (.NET 10) engine: the DSP library, the NativeAOT real-time host (`cathode-host`), the ASP.NET Core server (`cathode-server`, REST and WebSocket API), the native audio and NAM shims (`engine/native`), tests and tools. See [engine/README.md](engine/README.md). |
 | [`editor/`](editor) | The Angular editor and the Electron desktop app (an Nx workspace). See [editor/README.md](editor/README.md). |
+| [`website/`](website) | The project's website: an Angular page prerendered to static HTML. See [website/README.md](website/README.md). |
 | [`packaging/`](packaging) | The headless rig package: build script, installer and systemd services. |
 | [`docs/`](docs) | The design: [architecture](docs/02-architecture.md), [testing](docs/03-testing-strategy.md), [plan](docs/04-implementation-plan.md), [amp modelling](docs/06-amp-modelling-spec.md), [amp catalogue](docs/07-amp-catalogue.md), [block parity](docs/08-blocks-parity.md), [parity tracker](docs/09-parity-tracker.md), [releases](docs/10-releases.md) and the [ADRs](docs/adr). |
 

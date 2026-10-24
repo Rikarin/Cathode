@@ -79,13 +79,18 @@ namespace Cathode.Dsp.Blocks;
 ///             power saturate the core.
 ///         </item>
 ///         <item>
-///             <b>Speaker</b> (Stock): an impedance curve preset: open-back 1x12, 2x12 or 4x10, closed 4x12, closed 8x10.
+///             <b>Speaker load</b> (Stock): the speaker as the electrical load on the power amp, not its sound. A
+///             speaker's impedance peaks at the cone's resonance and rises with the voice coil's inductance, and a tube
+///             power amp's output (most of all with little feedback) follows it: more thump and more treble, and
+///             different clipping and sag. That happens inside the amp; the cone's breakup, the cabinet's acoustics and
+///             the mic are the Cab block's. Stock is the model's own load; then an impedance curve preset (open-back
+///             1x12, 2x12 or 4x10, closed 4x12, closed 8x10), or <b>Follow Cab</b>: the load of the speaker and cabinet
+///             the next Cab block synthesises, from that speaker's own Thiele-Small data (<see cref="AutoSpeaker" />).
 ///         </item>
 ///         <item>
-///             <b>LF Resonance</b>, <b>LF Q</b>, <b>LF Amount</b> (100 %): the speaker's resonance frequency, sharpness
-///             and
-///             peak height; <b>Speaker HF</b> (100 %) its voice-coil inductance; <b>Speaker Imp</b> (100 %) the whole
-///             load against the tap (50 % is a 4 Ω cab on the 8 Ω tap).
+///             <b>Load resonance</b>, <b>Load Q</b>, <b>Load peak</b> (100 %): the load's resonance frequency,
+///             sharpness and peak height; <b>Load HF</b> (100 %) its voice-coil inductance; <b>Load impedance</b>
+///             (100 %) the whole load against the tap (50 % is a 4 Ω cab on the 8 Ω tap). All scale the chosen curve.
 ///         </item>
 ///         <item><b>Presence Freq</b>, <b>Depth Freq</b> (100 %): the presence and depth controls' frequencies.</item>
 ///         <item><b>Variac</b> (100 %): the mains voltage: every supply node, and a fixed bias with them ("brown sound").</item>
@@ -169,9 +174,11 @@ namespace Cathode.Dsp.Blocks;
 ///             <b>Master Cap</b> (a cap across the master's upper half).
 ///         </item>
 ///         <item>
-///             <b>Output Mode</b> (FRFR; SS Power Amp + Cab leaves the speaker stages to the real cab), Speaker
-///             <b>Auto (Cab)</b> (the next Cab block's cabinet, <see cref="AutoSpeaker" />), <b>Screen Freq</b> and
-///             <b>Screen Q</b> (the screen node's filter; Q above 0 makes its feed a choke).
+///             <b>Output Mode</b> (FRFR; SS Power Amp + Cab leaves the speaker stages to the real cab), Speaker load
+///             <b>Follow Cab</b> (the next Cab block's cabinet and speaker, <see cref="AutoSpeaker" />: the nearest Cab
+///             block downstream, breadth first through the grid's cables, so on a split the first branch's; in it the
+///             first unmuted DynaCab slot. With no Cab downstream, or one playing only IRs, the load is Stock),
+///             <b>Screen Freq</b> and <b>Screen Q</b> (the screen node's filter; Q above 0 makes its feed a choke).
 ///         </item>
 ///     </list>
 ///     <para>
@@ -421,14 +428,14 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
                 Expert(ParamDescriptor.Float("xfmrdrive", "Xfmr Drive", 0f, 10f, 0f)),
                 ParamDescriptor.Choice(
                     "speaker",
-                    "Speaker",
-                    ["Stock", "1x12 Open", "2x12 Open", "4x10 Open", "4x12 Closed", "8x10 Closed", "Auto (Cab)"]
+                    "Speaker load",
+                    ["Stock", "1x12 Open", "2x12 Open", "4x10 Open", "4x12 Closed", "8x10 Closed", "Follow Cab"]
                 ),
-                Expert(ParamDescriptor.Float("spkres", "LF Resonance", 25f, 400f, 100f, "%", ParamTaper.Log)),
-                Expert(ParamDescriptor.Float("spkq", "LF Q", 25f, 400f, 100f, "%", ParamTaper.Log)),
-                Expert(ParamDescriptor.Float("spkpeak", "LF Amount", 25f, 400f, 100f, "%", ParamTaper.Log)),
-                Expert(ParamDescriptor.Float("spkhf", "Speaker HF", 25f, 400f, 100f, "%", ParamTaper.Log)),
-                Expert(ParamDescriptor.Float("spkimp", "Speaker Imp", 50f, 200f, 100f, "%", ParamTaper.Log)),
+                Expert(ParamDescriptor.Float("spkres", "Load resonance", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(ParamDescriptor.Float("spkq", "Load Q", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(ParamDescriptor.Float("spkpeak", "Load peak", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(ParamDescriptor.Float("spkhf", "Load HF", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(ParamDescriptor.Float("spkimp", "Load impedance", 50f, 200f, 100f, "%", ParamTaper.Log)),
                 ParamDescriptor.Float("presfreq", "Presence Freq", 25f, 400f, 100f, "%", ParamTaper.Log),
                 ParamDescriptor.Float("depthfreq", "Depth Freq", 25f, 400f, 100f, "%", ParamTaper.Log),
                 ParamDescriptor.Float("variac", "Variac", 50f, 130f, 100f, "%"),
@@ -494,13 +501,25 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
     );
 
     /// <summary>
-    ///     The speaker resonance (Hz) at LF Resonance 100 % for amp <paramref name="type" /> with Speaker choice
-    ///     <paramref name="speaker" /> (0 = the model's stock speaker): what the cab resonance helper scales.
+    ///     The speaker load's resonance (Hz) at Load resonance 100 % for amp <paramref name="type" /> with Speaker load
+    ///     choice <paramref name="speaker" /> (0 = the model's stock load), following the DynaCab enclosure and speaker
+    ///     <paramref name="cab" /> for Follow Cab (null: none, so Stock): what the cab resonance helper scales.
     /// </summary>
-    public static double SpeakerResonanceHz(int type, int speaker) =>
-        speaker > 0
-            ? SpeakerDesign.Presets[Math.Min(speaker, SpeakerDesign.Presets.Count) - 1].Resonance
-            : AmpDesign.All[Math.Clamp(type, 0, AmpDesign.All.Count - 1)].Power.Speaker.Resonance;
+    public static double SpeakerResonanceHz(int type, int speaker, (int Enclosure, int Speaker)? cab = null) =>
+        (LoadFor(speaker, cab ?? (-1, -1))
+            ?? AmpDesign.All[Math.Clamp(type, 0, AmpDesign.All.Count - 1)].Power.Speaker).Resonance;
+
+    /// <summary>
+    ///     The load Speaker load choice <paramref name="speaker" /> picks in place of the model's (null: Stock), with
+    ///     <paramref name="cab" /> the followed Cab's DynaCab enclosure and speaker ((-1, -1) for none).
+    ///     Allocation-free.
+    /// </summary>
+    public static SpeakerDesign? LoadFor(int speaker, (int Enclosure, int Speaker) cab) =>
+        speaker switch {
+            SpeakerAuto => AutoSpeaker.For(cab.Enclosure, cab.Speaker),
+            > 0 and < SpeakerAuto => SpeakerDesign.Presets[speaker - 1],
+            _ => null
+        };
 
     /// <summary>The active amp's channel (for tests and diagnostics).</summary>
     public AmpChannel Channel { get; private set; }
@@ -835,11 +854,7 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
             stackType > 0 ? AmpStacks.All[Math.Min(stackType, AmpStacks.All.Count) - 1] : null
         );
         var speaker = (int)Params.Current(SpeakerCurve);
-        var speakerDesign = speaker switch {
-            SpeakerAuto => cab?.DynaCab is var (enclosure, model) ? AutoSpeaker.For(enclosure, model) : null,
-            > 0 => SpeakerDesign.Presets[Math.Min(speaker, SpeakerDesign.Presets.Count) - 1],
-            _ => null
-        };
+        var speakerDesign = LoadFor(speaker, speaker == SpeakerAuto && cab is not null ? cab.DynaCab : (-1, -1));
         var rectifier = (int)Params.Current(Rectifier);
         var variac = Percent(Params.Advance(Variac, frames));
         var switched = default(RectifierModel);

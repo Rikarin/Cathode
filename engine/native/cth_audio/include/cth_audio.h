@@ -2,8 +2,9 @@
  * cth_audio: the C ABI between Cathode's managed engine and the platform audio APIs.
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
- * The OS driver owns the callback thread. The shim deinterleaves device buffers into planar float
- * channels, enables flush-to-zero for the thread, and calls the registered process function.
+ * The OS driver owns the callback thread (CoreAudio, JACK), or the shim runs its own real-time thread (ALSA). The shim
+ * deinterleaves device buffers into planar float channels, enables flush-to-zero for the thread, and calls the
+ * registered process function.
  */
 #ifndef CTH_AUDIO_H
 #define CTH_AUDIO_H
@@ -87,7 +88,8 @@ CTH_API const char *cth_audio_last_error(void);
  * Channel messages and system real-time (clock, start, stop) are delivered; SysEx is dropped. */
 
 typedef struct cth_midi_port {
-    char uid[64];   /* stable across runs (CoreMIDI unique id; WinMM "in:"/"out:" + name + "#n") */
+    char uid[64];   /* stable across runs (CoreMIDI unique id; WinMM "in:"/"out:" + name + "#n";
+                       "<client name>:<port>" on the ALSA sequencer) */
     char name[256];
     int32_t is_input;
 } cth_midi_port;
