@@ -98,27 +98,29 @@ Last updated: 2026-10-24 (after the four family streams and the Prometheus merge
 | Peavey 5150 / 6505 | ✅ Done (lead); rhythm ⏸ | 5150 (22), lead | GPL: 5150 block letter, 6505+ red (two sources) | Rhythm channel: its network is on the factory "Initial Preamp Stage" page, but the relay states (K1, K2, K4) per channel and crunch setting are on a page the excerpts lack; a full factory set or a trace of the switching logic | 4x12 closed, Sheffield / Vintage 30 |
 | EVH 5150III | ✅ Done | 5150III (24), red | T3K: 5150III OB1 v2 | Blue and red channels | 4x12 closed, G12EVH / Vintage 30 |
 | Mesa/Boogie Dual Rectifier | ✅ Done | Dual Rectifier (23), red | GPL: Mini Rectifier (not the same amp) | Dual/Triple Rec, modern and vintage modes, tube vs SS rectifier | 4x12 closed, Vintage 30 |
-| Bogner Ecstasy | ⏸ Waiting (only a modded-amp redraw) | — | — | Blue/red channels; a better schematic | 4x12 closed, Vintage 30 / Greenback |
-| Diezel VH4 (ch 3) | ⏸ Waiting (redraws disagree) | — | — | Channel 3 and 4 | 4x12 closed, Vintage 30 |
+| Bogner Ecstasy | ⏸ Waiting (only a modded "83K" redraw and an OD-channel-only redraw of unknown version; no 100B/101B or 20th Anniversary drawing found) | — | GPL: Ecstasy Blue *pedal* (not the amp) | Blue/red channels; a stock 100B/101B schematic | 4x12 closed, Vintage 30 / Greenback |
+| Diezel VH4 (ch 3) | ⏸ Waiting (a 2005 factory sheet gives the topology but no values; an owner's trace gives the stacks only; the clone redraws disagree) | — | — | Channel 3 and 4 values | 4x12 closed, Vintage 30 |
 | Mesa/Boogie Mark IV (lead) | ✅ Done | Mark IV (25), lead | GPL: Mark IV | Settings stated | 1x12 / 4x12 closed |
 | Carvin Legacy VL100 | ✅ Done (factory schematic) | Legacy VL100 (26): lead; Switch 1 the clean channel | — | Any VL100 capture, settings stated (Vai: Drive 7.5, Bass 6, Mid 4, Treble 8, Presence 8) | 4x12 / 2x12 closed, Vintage 30 |
-| Mesa/Boogie Lone Star | 📋 Planned | — | — | Clean/edge channels | 1x12 / 2x12 open |
-| Bogner Uberschall | ⏸ Waiting | — | — | Schematic | 4x12 closed |
-| Diezel Herbert | ⏸ Waiting | — | — | Schematic | 4x12 closed |
-| Engl Powerball | ⏸ Waiting | — | — | Schematic | 4x12 closed, Vintage 30 |
-| Engl Savage 120 | ⏸ Waiting | — | — | Schematic | 4x12 closed |
+| Mesa/Boogie Lone Star | ✅ Done (factory drawing) | Lone Star, both channels (Switch 1 "Channel 2", Switch 2 "Drive Mode") | — | Clean/edge channels, 50 W mode | 1x12 / 2x12 open |
+| Bogner Uberschall | ⏸ Waiting (two redraws that disagree on the stack topology and several caps) | — | — | A factory drawing or a third trace | 4x12 closed |
+| Diezel Herbert | ⏸ Waiting (nothing found; the service manual gives only the tube functions) | — | — | Schematic | 4x12 closed |
+| Engl Powerball | ✅ Done (factory drawing E645-1), channel 2 Lo/Hi | Powerball | — | Channel 1 clean/crunch; Powerball II | 4x12 closed, Vintage 30 |
+| Engl Savage 120 | ✅ Done (factory drawing E610-2), lead channel | Savage 120 | — | Captures with settings (the pelennor "Savage" file is an Axe-Fx capture: never use it) | 4x12 closed |
 | Revv Generator 120 | ⏸ Waiting (nothing published: no schematic, trace or redraw found; specs only, 5 × 12AX7, 4 × EL34) | — | — | Schematic | 4x12 closed |
-| Mesa/Boogie Mark V / Triple Rectifier / Rect-o-Verb | 💤 Not planned | — | — | | 4x12 / 2x12 closed |
 | Fryette (VHT) Deliverance / Sig:X | ⏸ Waiting (Fryette releases no schematics; only a modified 2-channel D60 drawing as a PedalPCB forum attachment of unknown origin, and a "retro-engineered Deliverance" mentioned on MEF whose file was not found; nothing for the 120 or Sig:X) | — | — | Schematic or trace | 4x12 closed |
 | Friedman Dirty Shirley | ⏸ Waiting (a hand-drawn layout and a corrected schematic exist as ampgarage forum attachments, login only; not read) | — | — | Read the ampgarage trace (viewtopic.php?p=397086); NAM captures of a Dirty Shirley Mini exist in pelennor2170/NAM_models | 4x12 closed |
 | Cameron CCV | ⏸ Waiting (gut photos only; no schematic or trace found) | — | — | Schematic or trace | 4x12 closed |
-| Bogner Shiva / XTC | 💤 Not planned | — | — | | 4x12 closed |
+| Bogner Shiva / XTC | ⏸ Waiting (only hobbyist traces, behind a CAPTCHA on elektrotanya; the Music Electronics Forum XTC attachments need a login) | — | — | Download those traces by hand and compare | 4x12 closed |
 | PRS Archon | ⏸ Waiting (no service schematic found on PRS's site or elsewhere; specs only, 6 × 12AX7, 4 × 6L6 or 2 × 6CA7) | — | — | Schematic; the Clean/Lead/Bright variants | 4x12 closed |
 | Krank Revolution | ⏸ Waiting (a reverse-engineered Rev 1 preamp and power amp are MEF attachments, thread 987426, login only; not read, and not factory) | — | — | Read the MEF trace | 4x12 closed |
 | Victory Kraken / Sheriff | ⏸ Waiting (nothing found; Victory publishes none) | — | — | Schematic | 4x12 closed |
 | Randall Satan / RG100 | ⏸ Waiting (Satan: nothing found. RG100: a legible factory scan of the solid-state RG80/RG100 on el34world, but it is 4558 op-amps and JFETs, which the stage library cannot build yet) | — | — | Satan schematic; op-amp and JFET network stages for the RG100 | 4x12 closed |
 | Hughes & Kettner TriAmp | ⏸ Waiting (owner manuals only; a MkII service manual is mentioned on forums but not found) | — | — | Service manual | 4x12 closed |
 | Wizard Modern Classic | ⏸ Waiting (an MCII schematic and turret layout by a forum member are ampgarage attachments, login only, viewtopic.php?p=398776; the thread text gives only the inverter and feedback values) | — | — | Read the ampgarage trace | 4x12 closed |
+| Mesa/Boogie Mark V | ✅ Done (factory drawing), channel 3 with its IIC+ / Mark IV / Extreme modes | Mark V | GPL (not usable): ToneLibrary SmartAmp Mark 5 high gain (WaveNet format the harness does not run; settings and rig unstated) | Channels 1 and 2; 45 W / 10 W modes | 4x12 / 1x12 closed |
+| Mesa/Boogie Triple Rectifier | ✅ Done as a variant (no schematic; the Dual Rectifier preamp with six 6L6) | Triple Rectifier | — | A Triple Rectifier drawing | 4x12 closed, Vintage 30 |
+| Mesa/Boogie Rect-o-Verb | ✅ Done (factory Solo 50 / Rectoverb drawing, first series), lead channel | Rect-o-Verb | — | Rhythm channel; Series II drawing | 1x12 / 2x12 closed |
 | Lichtlaerm Audio Prometheus (lead and clean channels) | ✅ Done, **topology inferred** (no schematic published) | Prometheus, Prometheus Clean | T3K: Prometheus TEASER-PACK (pipppriss; 5 captures, +18 dBu, knob settings not stated) | A schematic or gut shots; captures with knob settings | 4x12 closed, Mesa OS / Vintage 30 |
 
 ### Lichtlaerm Audio Prometheus: what is known and what is guessed
@@ -250,15 +252,15 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 
 | Amp | Status | Cathode type | Axe models | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Mesa/Boogie TriAxis preamp | 💤 Not planned | — | USA Pre Clean / LD1 / LD2 | Lead 1 and Lead 2 modes | 4x12 closed |
-| Mesa/Boogie JP-2C | 💤 Not planned (IIC+ reissue) | — | USA JP IIC+ Green / Yellow / Red | | 4x12 closed |
-| Mesa/Boogie Triple Crown TC-100 | 💤 Not planned | — | Triple Crest 2 / 3 | | 4x12 closed |
-| Mesa/Boogie Subway Blues | 💤 Not planned | — | USA Sub Blues | | 1x10 open |
-| Mesa/Boogie Dual Rectifier, 2- and 3-channel revisions | 💤 Not planned (variants of Dual Rectifier) | Dual Rectifier (23) covers one | Recto1 / Recto2 Orange / Red, Thordendal | | 4x12 closed, Vintage 30 |
+| Mesa/Boogie TriAxis preamp | 📋 Planned (factory drawing on el34world: Boogie_triaxis.pdf; not read yet) | — | USA Pre Clean / LD1 / LD2 | Lead 1 and Lead 2 modes | 4x12 closed |
+| Mesa/Boogie JP-2C | ⏸ Waiting (no drawing found; the Mark IIC+ model covers its channel 3 circuit) | — | USA JP IIC+ Green / Yellow / Red | | 4x12 closed |
+| Mesa/Boogie Triple Crown TC-100 | ⏸ Waiting (no drawing found) | — | Triple Crest 2 / 3 | | 4x12 closed |
+| Mesa/Boogie Subway Blues | 📋 Planned (factory drawing on el34world: Boogie_subwayblues.pdf; not read yet) | — | USA Sub Blues | | 1x10 open |
+| Mesa/Boogie Dual Rectifier, 2- and 3-channel revisions | 📋 Planned (factory scans of both on el34world; the current model follows a redraw of the 2-channel one) | Dual Rectifier (23) covers one; Triple Rectifier | Recto1 / Recto2 Orange / Red, Thordendal | | 4x12 closed, Vintage 30 |
 | Soldano X88R preamp | ⏸ Waiting (a legible single-sheet redraw, "SOLDANO X88R" 13 Jul 2002, on el34world, Soldano_x88r.pdf; its origin is unknown and owners doubt it; not built) | — | Solo 88 Clean / Rhythm / Lead | A second source to confirm the redraw | 4x12 closed |
 | Soldano/Caswell X99 preamp | ⏸ Waiting (a legible scan of a hand-labelled drawing on el34world, Soldano_x99.pdf, no title block; Fractal says its rhythm channel is the SLO-100's; not built) | — | Solo 99 Clean / Lead | Confirm the drawing; a power amp to pair it with (Fractal uses the SLO's) | 4x12 closed |
 | CAE 3+ SE preamp | ⏸ Waiting (a schematic of unknown origin is a GroupDIY attachment, thread 51582, which refused automated access; not read) | — | CA3+ Clean / Rhythm / Lead | Read the GroupDIY drawing | 4x12 closed |
-| Bogner Fish preamp | 💤 Not planned | — | Bogfish Brown / Strato | | 4x12 closed |
+| Bogner Fish preamp | ⏸ Waiting (not on el34world or schematicheaven, which hold only the Ecstasy OD, Triple Giant and Uberschall redraws) | — | Bogfish Brown / Strato | | 4x12 closed |
 | Cameron Atomica | ⏸ Waiting (descriptions only: a Super Lead with a Jose-style master and a diode-clipping switch; the Ceriatone Molecular is a clone, also without a schematic) | — | Atomica High / Low | Schematic | 4x12 closed |
 | Hook Captain 34 | ⏸ Waiting (nothing found) | — | Capt Hook 1A–3B | Schematic | 4x12 closed |
 | Splawn Nitro | ⏸ Waiting (nothing for the Nitro; Splawn says it has no schematics; a Quick Rod schematic circulates behind member-only sites) | — | Spawn Nitrous 1 / 2 | Schematic | 4x12 closed |
@@ -298,8 +300,10 @@ exists:
 - **Marshall:** Plexis dated 1967, 1969, 1970 and 1972, a 50 W Plexi with 6CA7 tubes, and JCM800 2203/2204 High and Low inputs.
 - **High gain:**
   - EVH: the 5150III Stealth (100S).
-  - Mesa: Mark IIC+ Bright/Deep, the Mark IV rhythm and mid-gain voicings, the Mark V IIC+/MKIV/XT modes, and JP-2C Shred.
-  - Others: Ecstasy 20th Anniversary, Diezel Herbert MkIII, Carvin VL300, Revv Generator Green/Purple/Red, PRS Archon Clean/Lead/Bright, Fryette D60 Less/More.
+  - Mesa: Mark IIC+ Bright/Deep, the Mark IV rhythm and mid-gain voicings, the Mark V IIC+/MKIV/XT modes (now the
+    Mark V type's mode switches), and JP-2C Shred. The IIC+ and Mark IV rhythm channels are on the factory scans
+    (Boogie_mkiic_plus.pdf, Boogie_mkiv.pdf) but not modelled yet.
+  - Others: Ecstasy 20th Anniversary (no drawing found), Diezel Herbert MkIII (no drawing found), Carvin VL300, Revv Generator Green/Purple/Red, PRS Archon Clean/Lead/Bright, Fryette D60 Less/More.
 - **Boutique:** Two-Rock and ODS PAB switch variants.
 
 For each model the wiki page also gives the original amp's controls, power tubes, matching speakers and Fractal's comments.

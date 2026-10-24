@@ -37,7 +37,13 @@ public sealed partial record AmpDesign {
         Models.Chieftain.Design,
         Models.HotCat.Design,
         Models.OverdriveSpecial.Design,
-        Models.Express.Design
+        Models.Express.Design,
+        Models.LoneStar.Design,
+        Models.MarkV.Design,
+        Models.RectoVerb.Design,
+        Models.TripleRectifier.Design,
+        Models.Powerball.Design,
+        Models.Savage120.Design
     ];
 
     public static AmpDesign Blackface => Models.Blackface.Design;
