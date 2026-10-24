@@ -69,7 +69,8 @@ public static class TwinReverb {
             HasFeedback: true,
             Transformer: new(2e3, 10, 5e-3, 75, 2e-9, 100e3),
             Speaker: SpeakerDesign.OpenBack2x12,
-            PowerSupply: new(40, 50e-6, 100, 20e-6, 10e3, 20e-6, 8e-3, RectifierModel.Silicon)
+            PowerSupply: new(40, 50e-6, 100, 20e-6, 10e3, 20e-6, 8e-3, RectifierModel.Silicon),
+            InverterInput: Ab763.InverterInput
         ),
         -3
     ) {

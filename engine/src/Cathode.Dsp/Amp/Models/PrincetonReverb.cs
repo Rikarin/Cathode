@@ -58,7 +58,7 @@ public static class PrincetonReverb {
                 CathodeBypass: 25e-6,
                 InputResistance: 34e3
             ),
-            new TriodeStageDesign("V1B", TriodeModel.Ecc83, 250, 100e3, 1.5e3, CathodeBypass: 25e-6),
+            SecondStage(),
             Mixer()
         ],
         new(
@@ -96,10 +96,25 @@ public static class PrincetonReverb {
         }
     };
 
+    /// <summary>V1B: 100k, 1.5k ‖ 25 µF, with its grid-plate capacitance (see <see cref="Ab763.GridPlate" />).</summary>
+    static NetworkStageDesign SecondStage() {
+        var net = new StageNetlist();
+        var (plate, cathode, rail) = (net.Node(), net.Node(), net.Node());
+        net.Supply(rail, 250);
+        net.Resistor(rail, plate, 100e3);
+        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
+        net.Capacitor(cathode, StageNetlist.Ground, 25e-6);
+        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
+        net.Capacitor(net.Input, plate, Ab763.GridPlate);
+        net.Output = plate;
+        return new("V1B", net);
+    }
+
     /// <summary>
     ///     From V1B's plate: 0.02 µF, the reverb driver's grid leak, the 3.3M ‖ 10 pF mix resistor into V3B's 470k grid
     ///     leak; V3B (100k plate, 1.5k ‖ 25 µF above the 47 Ω feedback resistor), and its 0.1 µF into the cathodyne's
-    ///     1M grid leak (bootstrapped in the amp, so higher still; 1M here).
+    ///     1M grid leak, which returns to the cathodyne's bias junction: that follows the grid at about 0.93, so the
+    ///     signal sees about 14M (10M here).
     /// </summary>
     static NetworkStageDesign Mixer() {
         var net = new StageNetlist();
@@ -117,10 +132,11 @@ public static class PrincetonReverb {
         net.Capacitor(cathode, feedback, 25e-6);
         net.Resistor(feedback, StageNetlist.Ground, 47);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
+        net.Capacitor(grid, plate, Ab763.GridPlate);
 
         var output = net.Node();
         net.Capacitor(plate, output, 0.1e-6);
-        net.Resistor(output, StageNetlist.Ground, 1e6);
+        net.Resistor(output, StageNetlist.Ground, 10e6);
         net.Output = output;
         return new("V3B", net);
     }

@@ -70,7 +70,8 @@ public static class DeluxeReverb {
             HasFeedback: true,
             Transformer: new(6.6e3),
             Speaker: SpeakerDesign.OpenBack1x12,
-            PowerSupply: new(100, 32e-6, 100, 16e-6, 20e3, 16e-6, 6e-3, RectifierModel.GZ34)
+            PowerSupply: new(100, 32e-6, 100, 16e-6, 20e3, 16e-6, 6e-3, RectifierModel.GZ34),
+            InverterInput: Ab763.InverterInput
         ),
         -7
     ) {

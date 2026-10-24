@@ -43,7 +43,8 @@ public static class SuperReverb {
             HasFeedback: true,
             Transformer: new(4.2e3),
             Speaker: SpeakerDesign.OpenBack4x10,
-            PowerSupply: new(100, 40e-6, 100, 20e-6, 10e3, 20e-6, 6e-3, RectifierModel.GZ34)
+            PowerSupply: new(100, 40e-6, 100, 20e-6, 10e3, 20e-6, 6e-3, RectifierModel.GZ34),
+            InverterInput: Ab763.InverterInput
         ),
         -6
     ) {

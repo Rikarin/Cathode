@@ -5,18 +5,58 @@ namespace Cathode.Testing.References;
 /// <summary>Latency and gain that best align a prediction to a target.</summary>
 /// <param name="Lag">Samples the prediction is delayed relative to the target (positive: the prediction is late).</param>
 /// <param name="Gain">Least-squares output gain applied to the prediction (negative if the polarity is inverted).</param>
-public readonly record struct Alignment(int Lag, double Gain) {
+/// <param name="Fraction">
+///     A further delay of the prediction, in samples (-0.5 to 0.5), removed by band-limited interpolation: latencies are
+///     rarely whole samples (an oversampler's filters, a capture's interface), and half a sample is a large error at high
+///     frequencies, where the pre-emphasised ESR looks.
+/// </param>
+public readonly record struct Alignment(int Lag, double Gain, double Fraction = 0) {
+    /// <summary>Half-length of the interpolator's windowed sinc, in samples.</summary>
+    public const int InterpolatorTaps = 32;
+
     public double GainDb => Analysis.ToDb(Math.Abs(Gain));
 
-    /// <summary>The prediction shifted by <see cref="Lag" /> and scaled by <see cref="Gain" />, as long as the input.</summary>
+    /// <summary>The prediction shifted by <see cref="Lag" /> (and <see cref="Fraction" />) and scaled by <see cref="Gain" />, as long as the input.</summary>
     public float[] Apply(ReadOnlySpan<float> prediction) {
         var result = new float[prediction.Length];
+        if (Fraction == 0) {
+            for (var i = 0; i < result.Length; i++) {
+                var j = i + Lag;
+                result[i] = j >= 0 && j < prediction.Length ? (float)(prediction[j] * Gain) : 0f;
+            }
+
+            return result;
+        }
+
+        var kernel = Interpolator(Fraction);
         for (var i = 0; i < result.Length; i++) {
-            var j = i + Lag;
-            result[i] = j >= 0 && j < prediction.Length ? (float)(prediction[j] * Gain) : 0f;
+            double sum = 0;
+            for (var k = -InterpolatorTaps; k <= InterpolatorTaps; k++) {
+                var j = i + Lag + k;
+                if (j >= 0 && j < prediction.Length) {
+                    sum += kernel[k + InterpolatorTaps] * prediction[j];
+                }
+            }
+
+            result[i] = (float)(sum * Gain);
         }
 
         return result;
+    }
+
+    /// <summary>
+    ///     The Hann-windowed sinc that reads a signal <paramref name="fraction" /> samples later:
+    ///     y[i] = Σ h[k] x[i + k], k = -<see cref="InterpolatorTaps" /> … <see cref="InterpolatorTaps" />.
+    /// </summary>
+    public static double[] Interpolator(double fraction) {
+        var kernel = new double[2 * InterpolatorTaps + 1];
+        for (var k = -InterpolatorTaps; k <= InterpolatorTaps; k++) {
+            var t = k - fraction;
+            var window = 0.5 + 0.5 * Math.Cos(Math.PI * t / (InterpolatorTaps + 1));
+            kernel[k + InterpolatorTaps] = (Math.Abs(t) < 1e-12 ? 1 : Math.Sin(Math.PI * t) / (Math.PI * t)) * window;
+        }
+
+        return kernel;
     }
 }
 
@@ -41,8 +81,9 @@ public static class MatchMetrics {
     public static readonly double[] ResponseCenters = FractionalOctaveCenters(40, 16_000);
 
     /// <summary>
-    ///     The lag within ±<paramref name="maxLag" /> maximising |cross-correlation|, then the least-squares gain at that
-    ///     lag.
+    ///     The lag within ±<paramref name="maxLag" /> maximising |cross-correlation|, refined to a fraction of a sample
+    ///     (the delay maximising the normalised correlation of the interpolated prediction), then the least-squares gain
+    ///     there.
     /// </summary>
     public static Alignment Align(ReadOnlySpan<float> target, ReadOnlySpan<float> prediction, int maxLag = 512) {
         var length = Math.Min(target.Length, prediction.Length);
@@ -62,13 +103,75 @@ public static class MatchMetrics {
             }
         }
 
-        double cross = 0, energy = 0;
-        for (var i = Math.Max(0, -best); i < Math.Min(length, length - best); i++) {
-            cross += target[i] * (double)prediction[i + best];
-            energy += prediction[i + best] * (double)prediction[i + best];
+        // The cross-correlation r(m) = Σ t[i] p[i + m] around the lag and the prediction's autocorrelation a(m): with
+        // them, the shifted prediction's correlation with the target and its energy are short sums over the kernel.
+        const int Taps = Alignment.InterpolatorTaps;
+        var cross = new double[2 * Taps + 1];
+        for (var k = -Taps; k <= Taps; k++) {
+            var lag = best + k;
+            double sum = 0;
+            for (var i = Math.Max(0, -lag); i < Math.Min(length, length - lag); i++) {
+                sum += target[i] * (double)prediction[i + lag];
+            }
+
+            cross[k + Taps] = sum;
         }
 
-        return new(best, energy > 0 ? cross / energy : 0);
+        var auto = new double[2 * Taps + 1];
+        for (var m = 0; m <= 2 * Taps; m++) {
+            double sum = 0;
+            for (var i = 0; i + m < length; i++) {
+                sum += prediction[i] * (double)prediction[i + m];
+            }
+
+            auto[m] = sum;
+        }
+
+        (double Cross, double Energy) At(double fraction) {
+            if (fraction == 0) {
+                return (cross[Taps], auto[0]);
+            }
+
+            var h = Alignment.Interpolator(fraction);
+            double c = 0, e = 0;
+            for (var k = 0; k < h.Length; k++) {
+                c += h[k] * cross[k];
+                for (var l = 0; l < h.Length; l++) {
+                    e += h[k] * h[l] * auto[Math.Abs(k - l)];
+                }
+            }
+
+            return (c, e);
+        }
+
+        double Score(double fraction) {
+            var (c, e) = At(fraction);
+            return e > 0 ? Math.Abs(c) / Math.Sqrt(e) : 0;
+        }
+
+        var fraction = 0.0;
+        var score = Score(0);
+        for (var d = -0.5; d <= 0.5 + 1e-9; d += 0.05) {
+            if (Score(d) > score) {
+                (fraction, score) = (d, Score(d));
+            }
+        }
+
+        for (var step = 0.025; step > 1e-4; step /= 2) {
+            foreach (var d in new[] { fraction - step, fraction + step }) {
+                if (Math.Abs(d) <= 0.5 && Score(d) > score) {
+                    (fraction, score) = (d, Score(d));
+                }
+            }
+        }
+
+        // A whole-sample latency stays exact: keep no fraction unless it measurably helps.
+        if (score <= Score(0) * (1 + 1e-9)) {
+            fraction = 0;
+        }
+
+        var (crossAt, energyAt) = At(fraction);
+        return new(best, energyAt > 0 ? crossAt / energyAt : 0, fraction);
     }
 
     /// <summary>

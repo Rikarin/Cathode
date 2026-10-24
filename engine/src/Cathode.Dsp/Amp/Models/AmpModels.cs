@@ -15,7 +15,9 @@ public sealed partial record AmpDesign {
         Models.SuperReverb.Design,
         Models.PrincetonReverb.Design,
         Models.Bassman.Design,
-        Models.TweedDeluxe.Design
+        Models.Bassman.Jumped,
+        Models.TweedDeluxe.Design,
+        Models.TweedDeluxe.Jumped
     ];
 
     public static AmpDesign Blackface => Models.Blackface.Design;

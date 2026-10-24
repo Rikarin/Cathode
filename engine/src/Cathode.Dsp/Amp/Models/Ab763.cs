@@ -26,16 +26,33 @@ static class Ab763 {
     /// <summary>A capacitor switched out (open at audio).</summary>
     const double Absent = 1e-15;
 
+    /// <summary>A 12AX7's grid-to-plate capacitance (datasheet: 1.7 pF).</summary>
+    public const double GridPlate = 1.7e-12;
+
     /// <summary>
     ///     V1B/V2B: the two second stages share one 820 Ω ‖ 25 µF cathode, so each draws its current through what is, for
     ///     its own operating point, twice that resistor; at audio the cap shorts it either way.
     /// </summary>
-    public static TriodeStageDesign SecondStage(double supply) =>
-        new("V1B", TriodeModel.Ecc83, supply, 100e3, 2 * 820, CathodeBypass: 25e-6);
+    /// <remarks>
+    ///     With the 12AX7's grid-plate capacitance (1.7 pF, datasheet), whose Miller multiple (about 100 pF) against the
+    ///     volume pot and stack ahead of it is the AB763's top-end roll-off above 10 kHz.
+    /// </remarks>
+    public static NetworkStageDesign SecondStage(double supply) {
+        var net = new StageNetlist();
+        var (plate, cathode, rail) = (net.Node(), net.Node(), net.Node());
+        net.Supply(rail, supply);
+        net.Resistor(rail, plate, 100e3);
+        net.CathodeResistor(cathode, StageNetlist.Ground, 2 * 820);
+        net.Capacitor(cathode, StageNetlist.Ground, 25e-6);
+        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
+        net.Capacitor(net.Input, plate, GridPlate);
+        net.Output = plate;
+        return new("V1B", net);
+    }
 
     /// <summary>
-    ///     The mixing network from the second stage's plate to the phase inverter's grid, with V4B and the reverb mix
-    ///     divider on the Vibrato channel (see the type's remarks).
+    ///     The mixing network from the second stage's plate to the mix node, with V4B and the reverb mix divider on the
+    ///     Vibrato channel (see the type's remarks); the mix node drives <see cref="InverterInput" />.
     /// </summary>
     /// <param name="supply">The preamp node (V4B's plate resistor).</param>
     /// <param name="normalCap">The Normal channel's coupling cap after V1B (0.047 µF).</param>
@@ -69,17 +86,21 @@ static class Ab763 {
         net.CathodeResistor(cathode, StageNetlist.Ground, 2 * 820);
         net.Capacitor(cathode, StageNetlist.Ground, 25e-6);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
+        net.Capacitor(grid, plate, GridPlate);
         var coupled = net.Node();
         net.Capacitor(plate, coupled, 0.1e-6);
         net.Resistor(coupled, mix, 220e3);
 
-        // The mix node into the inverter's 1 nF input cap and 1M grid resistor.
-        var output = net.Node();
-        net.Capacitor(mix, output, 1e-9);
-        net.Resistor(output, StageNetlist.Ground, 1e6);
-        net.Output = output;
+        // The mix node drives the inverter's 1 nF input cap and 1M grid resistor (<see cref="InverterInput" />).
+        net.Output = mix;
         return new("Mixer", net);
     }
+
+    /// <summary>
+    ///     The inverter's input: 1 nF from the mix node, the 1M grid resistor returning to the bias junction (which follows
+    ///     the input, so the leak is bootstrapped), and the driven grid's own grid current.
+    /// </summary>
+    public static InverterInputDesign InverterInput { get; } = new(1e-9, 1e6);
 
     /// <summary>The AB763 long-tail pair: a 12AT7, 82k and 100k plates, 22k tail, 470 Ω bias.</summary>
     public static LongTailPairDesign PhaseInverter(double supply) => new(TriodeModel.Ecc81, supply, 82e3, 100e3, 22e3, 470);
