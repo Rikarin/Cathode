@@ -9,8 +9,8 @@ using Cathode.Server.Stores;
 namespace Cathode.Server.Rig;
 
 /// <summary>
-///     Impulse response tools (docs/04 Phase 6 items 6 and 8): Tone Match learning and the IR mixer. Results are new
-///     assets, so presets keep referring to exactly the filter or IR they were made with.
+///     Impulse response tools (docs/04 Phase 6 items 6 and 8): Tone Match learning, the IR mixer and a Cab block's
+///     export. Results are new assets, so presets keep referring to exactly the filter or IR they were made with.
 /// </summary>
 public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection engine) {
     /// <summary>
@@ -68,6 +68,50 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
         return await rig.SetAssetAsync(blockId, "match", new(asset.Ref), null);
     }
 
+    /// <summary>
+    ///     The Cab block's Align page: a copy of the block on its active channel, built here on the Server (the slots'
+    ///     synthesis is the engine's own code), reports each slot's IR head and onset.
+    /// </summary>
+    public async Task<CabAlignment> CabAlignmentAsync(string blockId) {
+        var state = await rig.StateAsync();
+        var block = state.Preset.Blocks.FirstOrDefault(b => b.Id == blockId)
+            ?? throw RigException.NotFound($"No block '{blockId}'.");
+        if (block.Type != CabBlock.Info.TypeId) {
+            throw new RigException(400, $"'{blockId}' is not a Cab block.");
+        }
+
+        const double rate = 48_000;
+        var channel = state.Preset.Scenes[state.ActiveScene].StateOf(block.Id).Channel;
+        using var cab = new CabBlock();
+        foreach (var (param, value) in block.Channels.GetValueOrDefault(channel) ?? []) {
+            var index = CabBlock.Info.IndexOf(param);
+            if (index >= 0) {
+                cab.Params.SetTarget(index, value);
+            }
+        }
+
+        foreach (var (slot, reference) in block.Assets) {
+            if (assets.PathOf(reference) is { } path) {
+                cab.LoadAsset(slot, path);
+            }
+        }
+
+        cab.Prepare(new(rate, 64));
+        var slots = cab.Alignment()
+            .Select(static s => new CabSlotAlignmentInfo(
+                    s.Slot,
+                    s.Plays,
+                    s.Audible,
+                    s.OnsetMs,
+                    s.AutoDelayMs,
+                    s.DelayMs,
+                    s.Head
+                )
+            )
+            .ToArray();
+        return new(rate, slots);
+    }
+
     /// <summary>Blends IRs into a new IR asset.</summary>
     public async Task<AssetInfo> MixAsync(IrMixRequest request, CancellationToken cancellationToken) {
         if (request.Sources.Count is < 1 or > 8) {
@@ -94,6 +138,57 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
             ? request.Name
             : request.Name + ".wav";
         return await StoreAsync(new(request.SampleRate, [mixed]), name, cancellationToken);
+    }
+
+    /// <summary>
+    ///     A Cab block's current mixed IR (left and right, every slot that plays, DynaCab and IR pack slots included,
+    ///     with the slots' and master cuts, proximity and smoothing baked in) at the engine's rate, as a stereo WAV. The
+    ///     block is rebuilt here from the active scene's channel and its assets, so it is exactly what the engine
+    ///     convolves.
+    /// </summary>
+    public async Task<byte[]> ExportCabAsync(string blockId) {
+        var state = await rig.StateAsync();
+        var block = state.Preset.Blocks.FirstOrDefault(b => b.Id == blockId)
+            ?? throw RigException.NotFound($"No block '{blockId}'.");
+        if (block.Type != CabBlock.Info.TypeId) {
+            throw new RigException(400, $"'{blockId}' is not a Cab block.");
+        }
+
+        var channel = state.Preset.Scenes[state.ActiveScene].StateOf(blockId).Channel;
+        var rate = engine.Status().SampleRate is > 0 and var r ? r : 48_000;
+        using var cab = new CabBlock();
+        foreach (var (id, value) in block.Channels.GetValueOrDefault(channel) ?? []) {
+            var index = CabBlock.Info.IndexOf(id);
+            if (index >= 0) {
+                cab.Params.SetTarget(index, value);
+            }
+        }
+
+        foreach (var (slot, reference) in block.Assets) {
+            if (cab.AssetSlots.Contains(slot) && assets.PathOf(reference) is { } path) {
+                cab.LoadAsset(slot, path);
+            }
+        }
+
+        cab.Prepare(new(rate, 64));
+        var (left, right) = cab.ExportImpulseResponse();
+        using var stream = new MemoryStream();
+        WavFile.Write(stream, new((int)rate, [left, right]));
+        return stream.ToArray();
+    }
+
+    /// <summary>Saves a Cab block's current mixed IR (<see cref="ExportCabAsync" />) as a new IR asset.</summary>
+    public async Task<AssetInfo> SaveCabAsync(string blockId, CabExportRequest request, CancellationToken cancellationToken) {
+        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) {
+            throw new RigException(400, "Give the IR a file name.");
+        }
+
+        var wav = await ExportCabAsync(blockId);
+        var name = request.Name.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)
+            ? request.Name
+            : request.Name + ".wav";
+        using var stream = new MemoryStream(wav);
+        return await assets.AddAsync(stream, name, cancellationToken);
     }
 
     AudioData ReadWav(string reference) {

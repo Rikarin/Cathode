@@ -54,6 +54,10 @@ public sealed partial class LiveRig {
                         errors.Add($"Unknown modifier source '{m.Source}'.");
                     } else if (!ModNames.TryParseCurve(m.Curve, out _)) {
                         errors.Add($"Unknown curve '{m.Curve}'.");
+                    } else if (m.Channel is { } scope
+                        && Array.IndexOf(Preset.ChannelNames, scope) is var index
+                        && (index < 0 || index >= descriptor.Channels)) {
+                        errors.Add($"Block '{m.Block}' has no channel '{scope}'.");
                     }
                 }
 
@@ -147,7 +151,7 @@ public sealed partial class LiveRig {
                 PushUndo(null);
                 var recompile = NeedsRecompile(block, request.From, request.To);
                 block.Channels[request.To] = new(block.Channels.GetValueOrDefault(request.From) ?? []);
-                if (preset.Scenes[activeScene].StateOf(id).Channel == request.To) {
+                if (Live(id).Channel == request.To) {
                     if (recompile) {
                         await SyncGraphAsync();
                     } else {
@@ -176,7 +180,7 @@ public sealed partial class LiveRig {
                     );
                 }
 
-                var state = preset.Scenes[activeScene].StateOf(id);
+                var state = Live(id);
                 var target = channel ?? state.Channel;
                 CheckChannel(target, descriptor.Channels);
                 PushUndo(null);
@@ -288,5 +292,10 @@ public sealed partial class LiveRig {
 
         engine.SetParams(generation, values);
         engine.SetMidi(global.TempoMode == "midiClock");
+        if (global.Oversampling != Volatile.Read(ref compiledOversampling)) {
+            // The filters change the blocks' latency, so the graph is compiled again (gaplessly).
+            _ = ResyncAsync()
+                .ContinueWith(static t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
+        }
     }
 }

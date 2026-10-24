@@ -44,7 +44,7 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
 
     public static BlockDescriptor Info { get; } = new(
         "nam",
-        "Amp (capture)",
+        "Amp NAM",
         "Amp",
         [
             ParamDescriptor.Float("input", "Input", -24f, 24f, 0f, "dB"),

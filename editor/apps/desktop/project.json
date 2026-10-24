@@ -34,7 +34,7 @@
       "executor": "nx:run-commands",
       "dependsOn": ["build"],
       "continuous": true,
-      "options": { "command": "electron dist/apps/desktop/main.js" }
+      "options": { "command": "node apps/desktop/scripts/serve.mjs" }
     },
     "e2e": {
       "executor": "nx:run-commands",

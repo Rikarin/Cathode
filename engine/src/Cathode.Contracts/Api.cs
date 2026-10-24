@@ -1,21 +1,44 @@
 namespace Cathode.Contracts;
 
-/// <summary>The rig as it is running: the working copy, which scene is active, and whether it differs from the library.</summary>
-public sealed record LiveState(Preset Preset, int ActiveScene, long Revision, bool Dirty, bool CanUndo, bool CanRedo);
+/// <summary>
+///     The rig as it is running: the working copy, which scene is active, and whether it differs from the library.
+///     <c>Held</c> lists the blocks whose bypass and channel differ from the active scene's because Scene Ignore kept
+///     them as they were: what they are running now.
+/// </summary>
+public sealed record LiveState(
+    Preset Preset,
+    int ActiveScene,
+    long Revision,
+    bool Dirty,
+    bool CanUndo,
+    bool CanRedo,
+    Dictionary<string, SceneBlockState>? Held = null
+);
 
 public sealed record PresetSummary(
     string Id,
     string Name,
     string? Author,
     IReadOnlyList<string> Tags,
-    DateTimeOffset Modified
+    DateTimeOffset Modified,
+    string? Color = null,
+    bool Favorite = false
 );
 
-public sealed record AssetInfo(string Ref, string Name, string Kind, long Size, DateTimeOffset Added);
+public sealed record AssetInfo(
+    string Ref,
+    string Name,
+    string Kind,
+    long Size,
+    DateTimeOffset Added,
+    string? Color = null,
+    bool Favorite = false
+);
 
 /// <summary>
 ///     Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole
-///     driver callback); overloads and the host's GC counts are cumulative since the host started.
+///     driver callback); overloads and the host's GC counts are cumulative since the host started. <c>Inputs</c> names
+///     the hardware input sources the device maps (Input 1–4, USB 5/6, USB 7/8); the others are silent.
 /// </summary>
 public sealed record EngineStatus(
     bool Connected,
@@ -34,10 +57,40 @@ public sealed record EngineStatus(
     int HostGen1 = 0,
     int HostGen2 = 0,
     double HostGcPauseMs = 0,
-    long HostAllocatedBytes = 0
+    long HostAllocatedBytes = 0,
+    IReadOnlyList<string>? Inputs = null
 );
 
 public sealed record SystemInfo(string Version, EngineStatus Engine);
+
+/// <summary>One block on the graph's longest path and the latency it adds, in frames.</summary>
+public sealed record LatencyStepInfo(string Block, string Type, int Frames);
+
+/// <summary>
+///     Where the time goes, instrument to speaker: the device's input and output latency as its driver reports them
+///     (each includes one buffer), the buffer itself, the graph's latency along its longest path (with the blocks on
+///     it), and the total of the device and graph latencies.
+/// </summary>
+public sealed record LatencyInfo(
+    bool Connected,
+    double SampleRate,
+    int BufferFrames,
+    int InputFrames,
+    int OutputFrames,
+    int GraphFrames,
+    IReadOnlyList<LatencyStepInfo> Path,
+    int TotalFrames,
+    double TotalMs
+);
+
+/// <summary>The cab resonance helper's sine, in place of a block's output: on or off, its pitch and level (dBFS).</summary>
+public sealed record TestToneRequest(bool Enabled, double Frequency = 100, float Level = -20);
+
+/// <summary>
+///     A Circuit Amp's speaker resonance: the model's (or the chosen speaker's) frequency at LF Resonance 100 %, the
+///     LF Resonance setting, and the frequency it gives.
+/// </summary>
+public sealed record SpeakerResonanceInfo(double BaseHz, float Percent, double Hz);
 
 /// <summary>
 ///     A block parameter. <c>TypeLabels</c>, where present, names the parameter per value of the block's <c>type</c>
@@ -53,12 +106,14 @@ public sealed record ParameterInfo(
     string Unit,
     string Taper,
     IReadOnlyList<string>? Options,
-    IReadOnlyList<string>? TypeLabels = null
+    IReadOnlyList<string>? TypeLabels = null,
+    string? Page = null
 );
 
 /// <summary>
 ///     A block type the editor can place. <c>CpuCost</c> is its measured cost in percent of one core at 48 kHz
-///     (64-frame blocks, its most expensive type), for the editor's CPU estimate; 0 for built-in cells.
+///     (64-frame blocks, its most expensive type), for the editor's CPU estimate; 0 for built-in cells. <c>Pages</c>
+///     names the editor pages its parameters sit on (each <see cref="ParameterInfo.Page" />), in order; empty for one.
 /// </summary>
 public sealed record BlockTypeInfo(
     string TypeId,
@@ -68,7 +123,8 @@ public sealed record BlockTypeInfo(
     int Channels,
     IReadOnlyList<string> AssetSlots,
     IReadOnlyList<ParameterInfo> Params,
-    double CpuCost = 0
+    double CpuCost = 0,
+    IReadOnlyList<string>? Pages = null
 );
 
 // Request bodies.
@@ -94,6 +150,9 @@ public sealed record SceneUpdateRequest(
     List<SceneMidiMessage>? Midi = null
 );
 
+/// <summary>Changes to the working copy's name, author and tags; null leaves a field as it is.</summary>
+public sealed record PresetInfoRequest(string? Name = null, string? Author = null, List<string>? Tags = null);
+
 public sealed record SaveRequest(string? Name = null, bool AsNew = false);
 
 /// <summary>Pushed over the WebSocket after every change, whatever its source (REST, MIDI later, another editor).</summary>
@@ -107,7 +166,12 @@ public sealed record RigEvent(
     int? Scene = null
 );
 
-/// <summary>Pushed over the WebSocket about 30 times a second.</summary>
+/// <summary>
+///     Pushed over the WebSocket about 30 times a second. <c>Blocks</c> is each grid block's output peak since the last
+///     frame, by block id; the loudness is the output's ITU-R BS.1770 momentary (400 ms) and short-term (3 s) level in
+///     LUFS. Both come from the shared-memory telemetry and are absent without it. <c>BlockMeters</c> are the meters
+///     blocks keep of their own (<see cref="BlockMeterInfo" />), about ten times a second.
+/// </summary>
 public sealed record Telemetry(
     string Type,
     float InputPeak,
@@ -117,8 +181,19 @@ public sealed record Telemetry(
     long Overloads,
     TunerInfo? Tuner,
     double Tempo = 120,
-    LooperInfo? Looper = null
+    LooperInfo? Looper = null,
+    Dictionary<string, float>? Blocks = null,
+    float? LoudnessMomentary = null,
+    float? LoudnessShortTerm = null,
+    float[]? OutputPeaks = null,
+    IReadOnlyList<BlockMeterInfo>? BlockMeters = null
 );
+
+/// <summary>
+///     A block's own meters by id, in dB: the Cab's <c>preampIn</c> (the level into the mic preamp, 0 at the onset of
+///     clipping) and <c>motorReduction</c> (Motor Drive's gain reduction). About ten times a second.
+/// </summary>
+public sealed record BlockMeterInfo(string Block, IReadOnlyDictionary<string, float> Meters);
 
 /// <summary>
 ///     Pushed about 30 times a second while the scope is on (<c>PUT /api/v1/scope</c>): the most recent output samples

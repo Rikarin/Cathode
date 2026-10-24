@@ -3,7 +3,15 @@ import type { PresetBlock } from '@cathode/api-client';
 import { XuiInputImports } from '@xui/input';
 import { CatalogStore } from '../../state/catalog.store';
 import { LiveStore } from '../../state/live.store';
-import { CustomShifterType, NoteNames, customParamId, noteAbove } from './custom-shifter';
+import {
+  CustomScale,
+  CustomShifterType,
+  DiatonicType,
+  NoteNames,
+  customParamId,
+  customScaleNotes,
+  noteAbove
+} from './custom-shifter';
 
 const Voices = [1, 2, 3, 4] as const;
 
@@ -18,6 +26,11 @@ const Voices = [1, 2, 3, 4] as const;
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [XuiInputImports],
   template: `
+    @if (customScale(); as notes) {
+      <p class="text-foreground-muted text-xs" data-testid="custom-scale">
+        Custom scale in {{ tonic() }}: <span class="text-foreground">{{ notes.join(' ') }}</span>
+      </p>
+    }
     @if (custom()) {
       <section class="flex flex-col gap-2" aria-label="Custom shifter">
         <span class="text-foreground-muted text-xs">Custom shifter: semitones for each note of the key</span>
@@ -69,6 +82,18 @@ export class PitchPanel {
 
   protected readonly custom = computed(() => this.value('type') === CustomShifterType);
   private readonly key = computed(() => this.value('key'));
+  protected readonly tonic = computed(() => NoteNames[Math.round(this.value('customTonic'))] ?? 'C');
+
+  /** The Diatonic type's custom scale, named in its Tonic, when Scale is Custom. */
+  protected readonly customScale = computed(() =>
+    this.value('type') === DiatonicType && Math.round(this.value('scale')) === CustomScale
+      ? customScaleNotes(
+          Math.round(this.value('customTonic')),
+          4 + Math.round(this.value('customNotes')),
+          Array.from({ length: 8 }, (_, n) => this.value(`customNote${n + 1}`))
+        )
+      : null
+  );
 
   protected readonly columns = computed(() =>
     NoteNames.map((_, degree) => ({ degree, name: noteAbove(this.key(), degree) }))

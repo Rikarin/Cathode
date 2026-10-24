@@ -7,7 +7,7 @@ namespace Cathode.Dsp.Resampling;
 /// </summary>
 public sealed class Oversampler2x {
     static readonly (float[], float[]) Branches =
-        HalfBandStage.Split(HalfBand.Design(Oversampler4x.AttenuationDb, 0.04));
+        HalfBandStage.Split(HalfBand.Design(Oversampler4x.AttenuationDb, Oversampler4x.FirstTransition));
 
     readonly HalfBandStage stage = new(Branches);
     float[] twice;
@@ -15,6 +15,15 @@ public sealed class Oversampler2x {
     public Oversampler2x(int maxBlockSize) {
         twice = new float[maxBlockSize * 2];
     }
+
+    /// <summary>The filters in use (<see cref="OversamplingPhase" />).</summary>
+    public OversamplingPhase Phase => stage.Phase;
+
+    /// <summary>Delay of <see cref="Up" /> then <see cref="Down" />, in base-rate samples.</summary>
+    public int LatencySamples => stage.RoundTripLatency;
+
+    /// <summary>Control thread: choose the filters (clears their state).</summary>
+    public void SetPhase(OversamplingPhase phase) => stage.SetPhase(phase, Oversampler4x.FirstTransition);
 
     /// <summary>Makes room for blocks of <paramref name="maxBlockSize" />, keeping the filters. Control thread only.</summary>
     public void Resize(int maxBlockSize) {

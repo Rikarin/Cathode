@@ -4,6 +4,7 @@ import {
   ElementRef,
   booleanAttribute,
   computed,
+  inject,
   input,
   model,
   numberAttribute,
@@ -11,6 +12,7 @@ import {
   signal,
   viewChild
 } from '@angular/core';
+import { CTH_KNOB_PREFERENCES, circularNormal } from './preferences';
 import { type Taper, formatValue, fromNormal, parseValue, toNormal } from './values';
 
 /** Pixels of vertical drag for the whole range; ⇧ makes it ten times finer. */
@@ -20,7 +22,8 @@ const StartAngle = 135; // degrees clockwise from 3 o'clock: the 7:30 position
 
 /**
  * A rotary control (docs/02-architecture.md §7.3: xUI has none yet). It is an ARIA slider: arrows step by 1 % of
- * the travel (⇧: 0.1 %), Page keys by 10 %, Home/End go to the ends. Drag vertically (⇧ for fine), use the wheel,
+ * the travel (⇧: 0.1 %), Page keys by 10 %, Home/End go to the ends. Drag vertically (⇧ for fine), or around it in
+ * circular mode, and use the wheel (both per the app's {@link CTH_KNOB_PREFERENCES}),
  * double-click the knob or its readout to type a value with its unit, ⌥-click to reset to the default. It reads like
  * hardware: the value in a recessed readout above, a machined cap whose pointer shows the position, the travel as an
  * arc in `color`, and the name below.
@@ -64,7 +67,7 @@ const StartAngle = 135; // degrees clockwise from 3 o'clock: the 7:30 position
       [attr.aria-valuenow]="value()"
       [attr.aria-valuetext]="display()"
       [attr.aria-disabled]="disabled() || null"
-      [attr.title]="label() + ': ' + display() + ' (double-click to type, ⌥-click to reset)'"
+      [attr.title]="tooltips() ? label() + ': ' + display() + ' (double-click to type, ⌥-click to reset)' : null"
       (pointerdown)="grab($event)"
       (pointermove)="drag($event)"
       (pointerup)="release($event)"
@@ -126,6 +129,7 @@ export class CthKnob {
   private readonly dial = viewChild.required<ElementRef<HTMLElement>>('dial');
   private readonly editor = viewChild<ElementRef<HTMLInputElement>>('editor');
   private dragStart: { y: number; normal: number } | null = null;
+  private readonly preferences = inject(CTH_KNOB_PREFERENCES, { optional: true });
 
   readonly value = model(0);
   readonly min = input(0, { transform: numberAttribute });
@@ -144,7 +148,12 @@ export class CthKnob {
   /** Emitted when an interaction ends (drag release, typed value, key, reset): a good moment for an undo point. */
   readonly committed = output<number>();
 
+  /** Linear or circular dragging; the app's preference unless set here. */
+  readonly mode = input<'linear' | 'circular' | null>(null);
+
   protected readonly typing = signal(false);
+  protected readonly dragMode = computed(() => this.mode() ?? this.preferences?.mode() ?? 'linear');
+  protected readonly tooltips = computed(() => this.preferences?.tooltips() ?? true);
   protected readonly pixels = computed(() => ({ sm: 40, md: 52, lg: 68 })[this.size()]);
   protected readonly normal = computed(() => toNormal(this.value(), this.range()));
   protected readonly display = computed(() => formatValue(this.value(), this.unit()));
@@ -173,10 +182,18 @@ export class CthKnob {
     this.dial().nativeElement.setPointerCapture(event.pointerId);
     this.dial().nativeElement.focus();
     this.dragStart = { y: event.clientY, normal: this.normal() };
+    if (this.dragMode() === 'circular') {
+      this.turnTo(event);
+    }
   }
 
   protected drag(event: PointerEvent): void {
     if (!this.dragStart) {
+      return;
+    }
+
+    if (this.dragMode() === 'circular') {
+      this.turnTo(event);
       return;
     }
 
@@ -221,12 +238,14 @@ export class CthKnob {
   }
 
   protected wheel(event: WheelEvent): void {
-    if (this.disabled() || event.deltaY === 0) {
-      return;
+    const wheel = this.preferences?.wheel() ?? 'normal';
+    if (this.disabled() || event.deltaY === 0 || wheel === 'off') {
+      return; // off: the wheel scrolls the page, as over anything else
     }
 
     event.preventDefault();
-    this.setNormal(this.normal() - Math.sign(event.deltaY) * (event.shiftKey ? 0.002 : 0.01));
+    const direction = wheel === 'reverse' ? -1 : 1;
+    this.setNormal(this.normal() - direction * Math.sign(event.deltaY) * (event.shiftKey ? 0.002 : 0.01));
   }
 
   protected startTyping(): void {
@@ -251,6 +270,18 @@ export class CthKnob {
     }
 
     this.dial().nativeElement.focus();
+  }
+
+  /** Circular mode: the knob points where the pointer is, seen from its centre. */
+  private turnTo(event: PointerEvent): void {
+    const rect = this.dial().nativeElement.getBoundingClientRect();
+    const normal = circularNormal(
+      event.clientX - (rect.left + rect.width / 2),
+      event.clientY - (rect.top + rect.height / 2)
+    );
+    if (normal !== null) {
+      this.setNormal(normal);
+    }
   }
 
   private reset(): void {

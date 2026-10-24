@@ -23,13 +23,28 @@ export const SlotKeys = [
   'delay',
   'invert',
   'mute',
-  'solo'
+  'solo',
+  'proximity',
+  'proxfreq',
+  'smoothing',
+  'align'
 ] as const;
 
 export type SlotKey = (typeof SlotKeys)[number];
 
-/** A slot's Source values, as the engine's `CabBlock.SourceIr`, `SourceDynaCab` and `SourcePack`. */
-export const Source = { ir: 0, dynaCab: 1, pack: 2 } as const;
+/** A slot's Source values, as the engine's `CabBlock.SourceIr`, `SourceDynaCab`, `SourcePack` and `SourceFlat`. */
+export const Source = { ir: 0, dynaCab: 1, pack: 2, flat: 3 } as const;
+
+/** The speed of sound the engine uses (`CabAcoustics.SpeedOfSound`), m/s: a slot's delay as a mic distance. */
+export const SpeedOfSound = 343;
+
+/** A slot delay in ms as the mic distance that gives it, e.g. "1.00 ms · 343 mm". */
+export function delayLabel(ms: number): string {
+  return `${ms.toFixed(2)} ms · ${Math.round(ms * SpeedOfSound)} mm`;
+}
+
+/** Whether a slot's source takes a file: an IR, or an IR pack (a DynaCab and Flat do not). */
+export const takesFile = (source: SourceValue): boolean => source === Source.ir || source === Source.pack;
 
 export type SourceValue = (typeof Source)[keyof typeof Source];
 
@@ -38,7 +53,7 @@ export const slotParamId = (slot: number, key: SlotKey): string => `m${slot + 1}
 
 const SlotParam = new RegExp(`^m[1-${CabSlots}](${SlotKeys.join('|')})$`);
 
-/** True for a slot's parameters, which the Cab panel shows per slot instead of as 72 knobs. */
+/** True for a slot's parameters, which the Cab panel shows per slot instead of as 88 knobs. */
 export const isCabSlotParam = (id: string): boolean => SlotParam.test(id);
 
 /** The asset slot of slot `slot` (0-based): an IR for an IR slot, a pack (or one IR) for an IR Pack slot. */
@@ -83,7 +98,7 @@ export function coneMics(
   packName: (slot: number) => string | undefined
 ): ConeMic[] {
   return Array.from({ length: CabSlots }, (_, slot) => slot)
-    .filter(slot => sourceOf(slot, value) !== Source.ir)
+    .filter(slot => sourceOf(slot, value) === Source.dynaCab || sourceOf(slot, value) === Source.pack)
     .map(slot => ({
       slot,
       name:
@@ -158,4 +173,67 @@ export function relativeLevelsDb(value: (id: string) => number, plays: (slot: nu
   });
   const total = gains.reduce((sum, g) => sum + g, 0);
   return gains.map(g => (g > 0 && total > 0 ? 20 * Math.log10(g / total) : -Infinity));
+}
+
+/** The Cab's longest slot Delay, ms (the engine's `CabBlock.MaxDelayMs`: 3.4 m at the speed of sound). */
+export const MaxDelayMs = 9.9125;
+
+/** One slot on the Align page, as `GET /api/v1/live/blocks/{id}/cab/align` reports it. */
+export interface SlotAlignment {
+  slot: number;
+  plays: boolean;
+  audible: boolean;
+  onsetMs: number;
+  autoDelayMs: number;
+  delayMs: number;
+  head: readonly number[];
+}
+
+/** When a slot's onset is heard, in ms: its onset in its IR, plus the delay Auto-Align off adds, plus its own Delay. */
+export const arrivalMs = (slot: SlotAlignment, delayMs = slot.delayMs): number =>
+  slot.onsetMs + slot.autoDelayMs + delayMs;
+
+/** A Delay clamped to the slot's range and rounded to the 0.01 ms the Align page nudges by. */
+export const clampDelay = (ms: number): number => Math.round(Math.min(MaxDelayMs, Math.max(0, ms)) * 100) / 100;
+
+/**
+ * The Delay each slot needs so every heard slot's onset lands with the latest one, as lining up the peaks by eye
+ * does: the latest keeps its Delay at zero. Slots that are not heard or have nothing to play keep their Delay.
+ */
+export function alignedDelays(slots: readonly SlotAlignment[]): number[] {
+  const heard = slots.filter(s => s.plays && s.audible);
+  if (heard.length === 0) {
+    return slots.map(s => s.delayMs);
+  }
+
+  const latest = Math.max(...heard.map(s => arrivalMs(s, 0)));
+  return slots.map(s => (s.plays && s.audible ? clampDelay(latest - arrivalMs(s, 0)) : s.delayMs));
+}
+
+/**
+ * An SVG path of a slot's IR head, normalised to its peak, `delayMs` late on a time axis of `spanMs` across `width`
+ * and `height` pixels (centred vertically).
+ */
+export function waveformPath(
+  head: readonly number[],
+  sampleRate: number,
+  delayMs: number,
+  spanMs: number,
+  width: number,
+  height: number
+): string {
+  const peak = head.reduce((m, v) => Math.max(m, Math.abs(v)), 0) || 1;
+  const x = (ms: number) => (ms / spanMs) * width;
+  const parts: string[] = [];
+  for (let i = 0; i < head.length; i++) {
+    const ms = delayMs + (i * 1_000) / sampleRate;
+    if (ms > spanMs) {
+      break;
+    }
+
+    const y = height / 2 - (head[i] / peak) * (height / 2 - 2);
+    parts.push(`${i === 0 ? 'M' : 'L'}${x(ms).toFixed(1)},${y.toFixed(1)}`);
+  }
+
+  return parts.join(' ');
 }

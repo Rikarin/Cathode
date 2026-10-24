@@ -20,6 +20,57 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/system/latency': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The latency from instrument to speaker: the device's input and output latency, the buffer, and the graph's latency along its longest path, block by block. */
+    get: operations['GetLatency'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/assets/{reference}/metadata': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Renames an asset or sets its colour tag or favourite flag. */
+    patch: operations['SetAssetMetadata'];
+    trace?: never;
+  };
+  '/api/v1/assets/usage': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Which stored presets use each asset, so a library can say what deleting one would break. */
+    get: operations['GetAssetUsage'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tuner': {
     parameters: {
       query?: never;
@@ -394,6 +445,41 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/live/blocks/{id}/ir': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** A Cab block's current mixed IR (every slot that plays, DynaCab and IR pack slots included, cuts and smoothing baked in) as a stereo .wav at the engine's rate. */
+    get: operations['ExportCabIr'];
+    put?: never;
+    /** Saves a Cab block's current mixed IR as a new IR asset. */
+    post: operations['SaveCabIr'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/cab/align': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The Cab block's slots for its Align page: each slot's IR head, onset and delays. */
+    get: operations['GetCabAlignment'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/live/cables': {
     parameters: {
       query?: never;
@@ -420,6 +506,141 @@ export interface paths {
     get?: never;
     put: operations['SelectScene'];
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/info': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Renames the working copy and sets its author and tags (undoable). */
+    patch: operations['UpdatePresetInfo'];
+    trace?: never;
+  };
+  '/api/v1/live/scenes/copy': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Copies scene From onto scene To: name, block states, level, controllers and MIDI. */
+    post: operations['CopyScene'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/scenes/swap': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Swaps two scenes; the active scene moves with its content. */
+    post: operations['SwapScenes'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/scenes/{scene}/blocks/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** A block's bypass and channel in one scene (the Scene Manager). */
+    put: operations['SetSceneBlock'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/channels/{channel}/scene-ignore': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Scene Ignore for one channel: while on it, scene changes leave the block's bypass and channel. */
+    put: operations['SetSceneIgnore'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/channels/swap': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['SwapChannels'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/channels/{channel}/reset': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Puts one channel back to the block type's defaults. */
+    post: operations['ResetChannel'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/reset': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Puts every channel of the block back to its type's defaults. */
+    post: operations['ResetBlock'];
     delete?: never;
     options?: never;
     head?: never;
@@ -625,6 +846,295 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/live/revert': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Discards the edits: the working copy goes back to the saved version (undoable). */
+    post: operations['RevertPreset'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/clear': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Empties the grid and the name, keeping the preset's id (undoable). */
+    post: operations['ClearPreset'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/snapshots': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Stores the working copy, unsaved edits included, as a timestamped snapshot. */
+    post: operations['TakeSnapshot'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/snapshots/{id}/load': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Puts a snapshot into the working copy (undoable). */
+    post: operations['LoadSnapshot'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/templates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Saves the working copy as a template. */
+    post: operations['SaveTemplate'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/templates/{id}/new': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Starts a new preset (a fresh id) from a template. */
+    post: operations['NewFromTemplate'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/type': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Replaces a block with a new block of another type in its cell, keeping its cables. */
+    put: operations['ReplaceBlock'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/drop': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Drops a block on another: swap exchanges their cells (the cables stay put), replace takes the target's cell and cables. */
+    post: operations['DropBlock'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/grid/move': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Moves a whole row or column, shifting the ones between. */
+    post: operations['MoveGridLine'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/cables': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Removes every cable into and out of a block. */
+    delete: operations['DisconnectBlock'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/settings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Replaces every channel (and the assets) of a block with another same-type block's. */
+    put: operations['PasteBlockSettings'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/all-scenes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Sets a block's bypass and/or channel in every scene. */
+    put: operations['SetBlockInAllScenes'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/perform': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Replaces the preset's performance page. */
+    put: operations['SetPerformPage'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/footswitch-overrides': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Replaces the preset's own footswitch actions. */
+    put: operations['SetFootswitchOverrides'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/block-presets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Saves every block of the working copy (all channels and modifiers) to the Block Library. */
+    post: operations['SaveAllBlocks'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/test-tone': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Plays a sine in place of the block's output (the cab resonance helper), or stops it. Nothing is stored in the preset, and loading another graph stops it. */
+    put: operations['SetTestTone'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/blocks/{id}/speaker-resonance': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** A Circuit Amp's speaker resonance: the frequency at LF Resonance 100 % for its model and speaker, the current setting and the frequency it gives. */
+    get: operations['GetSpeakerResonance'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/presets': {
     parameters: {
       query?: never;
@@ -633,6 +1143,23 @@ export interface paths {
       cookie?: never;
     };
     get: operations['ListPresets'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/presets/list.txt': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The preset list as plain text, alphabetical, with each preset's scene names. */
+    get: operations['ExportPresetList'];
     put?: never;
     post?: never;
     delete?: never;
@@ -795,7 +1322,7 @@ export interface paths {
       cookie?: never;
     };
     get: operations['GetGlobal'];
-    /** Replaces the global settings: tempo mode, metronome, EQ, Manual A-D, MIDI, footswitches, global blocks. */
+    /** Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover. */
     put: operations['PutGlobal'];
     post?: never;
     delete?: never;
@@ -854,6 +1381,172 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/snapshots': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Snapshots, newest first; of one preset when ?preset= is given. */
+    get: operations['ListSnapshots'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/snapshots/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations['DeleteSnapshot'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/templates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['ListTemplates'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/templates/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations['DeleteTemplate'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/presets/{id}/metadata': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Renames a preset or sets its colour tag or favourite flag, stored and live. */
+    patch: operations['SetPresetMetadata'];
+    trace?: never;
+  };
+  '/api/v1/presets/{id}/duplicate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['DuplicatePreset'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/presets/reset-amps': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Sets every Circuit Amp parameter of the presets back to its default, except the model's front-panel controls. */
+    post: operations['ResetAmpBlocks'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/presets/batch-set': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Sets one parameter on the matching block (same id and type) of each preset. */
+    post: operations['BatchSetParameter'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/block-presets/export': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Block Library entries as a .cthblock file. */
+    post: operations['ExportBlockPresets'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/block-presets/import': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Adds the entries of a .cthblock file as new user entries. */
+    post: operations['ImportBlockPresets'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/assets': {
     parameters: {
       query?: never;
@@ -863,6 +1556,7 @@ export interface paths {
     };
     get: operations['ListAssets'];
     put?: never;
+    /** Uploads an asset. A .wav IR can be processed on import: processing (asIs, autoTrim, minimumPhase), polarity (make the main peak positive), channels (both, left, right, sum) and maxLengthMs. */
     post: operations['UploadAsset'];
     delete?: never;
     options?: never;
@@ -932,10 +1626,20 @@ export interface components {
       column: number;
       id?: null | string;
     };
-    /** @description Sets a block's channel (default: the one the active scene uses) to a block preset. */
+    /** @description Sets a block's bypass and/or channel in every scene; null leaves that part alone. */
+    AllScenesRequest: {
+      bypassed?: null | boolean;
+      channel?: null | string;
+    };
+    /**
+     * @description Sets a block's channel (default: the one the active scene uses) to a block preset, or with `AllChannels`
+     *     every channel (a whole-block entry's own channels, modifiers and assets).
+     */
     ApplyBlockPresetRequest: {
       preset: string;
       channel?: null | string;
+      /** @default false */
+      allChannels: boolean;
     };
     AssetInfo: {
       ref: string;
@@ -945,9 +1649,22 @@ export interface components {
       size: number;
       /** Format: date-time */
       added: string;
+      color?: null | string;
+      /** @default false */
+      favorite: boolean;
+    };
+    AssetMetadataRequest: {
+      name?: null | string;
+      color?: null | string;
+      favorite?: null | boolean;
     };
     AssetRequest: {
       asset: string;
+    };
+    /** @description An asset's metadata; null leaves a field alone, an empty colour clears it. */
+    AssetUsage: {
+      ref: string;
+      presets: string[];
     };
     /** @description Numbered preset slots, as a MIDI program change addresses them (0-127). */
     Bank: {
@@ -955,6 +1672,24 @@ export interface components {
       name: string;
       /** @description Preset id per slot; null or missing slots are empty. */
       slots: string[];
+    };
+    /** @description Presets changed by a batch operation, and those it left alone (no matching block, or not found). */
+    BatchResult: {
+      changed: string[];
+      skipped: string[];
+    };
+    /**
+     * @description Parameter Batch Set: `Param` = `Value` on the block with id `Block` and type `Type` in each
+     *     preset, on `Channel` (every channel when null).
+     */
+    BatchSetRequest: {
+      presets: string[];
+      block: string;
+      type: string;
+      param: string;
+      /** Format: float */
+      value: number;
+      channel?: null | string;
     };
     /**
      * @description A named setting of one block type, kept in the Block Library: the factory's (the guide's "types" that are
@@ -972,10 +1707,50 @@ export interface components {
       values: {
         [key: string]: number;
       };
+      /** @description A folder (category) in the Library, or null for the top level. */
+      folder?: null | string;
+      /**
+       * @description A whole-block entry: every channel's values (Dictionary&lt;string, float&gt; BlockPreset.Values is then the channel it was saved from).
+       *     Null for a single-channel entry.
+       */
+      channels?: null | {
+        [key: string]: {
+          [key: string]: number;
+        };
+      };
+      /** @description A whole-block entry's modifiers, with `Block` left empty: recalled onto the target block. */
+      modifiers?: null | components['schemas']['PresetModifier'][];
+      /** @description A whole-block entry's assets (IRs, captures) by slot. */
+      assets?: null | {
+        [key: string]: string;
+      };
+    };
+    BlockPresetExportRequest: {
+      ids: string[];
+    };
+    /** @description A file of Block Library entries, as exported and imported (`.cthblock`). */
+    BlockPresetFile: {
+      format: string;
+      /** Format: int32 */
+      version: number;
+      presets: components['schemas']['BlockPreset'][];
+    };
+    /** @description A block's settings (every channel, and its assets) pasted onto a block of the same type. */
+    BlockSettingsRequest: {
+      type: string;
+      channels: {
+        [key: string]: {
+          [key: string]: number;
+        };
+      };
+      assets?: null | {
+        [key: string]: string;
+      };
     };
     /**
      * @description A block type the editor can place. `CpuCost` is its measured cost in percent of one core at 48 kHz
-     *     (64-frame blocks, its most expensive type), for the editor's CPU estimate; 0 for built-in cells.
+     *     (64-frame blocks, its most expensive type), for the editor's CPU estimate; 0 for built-in cells. `Pages`
+     *     names the editor pages its parameters sit on (each string? ParameterInfo.Page), in order; empty for one.
      */
     BlockTypeInfo: {
       typeId: string;
@@ -992,6 +1767,7 @@ export interface components {
        * @default 0
        */
       cpuCost: number;
+      pages?: null | string[];
     };
     BypassModeRequest: {
       mode: string;
@@ -999,9 +1775,45 @@ export interface components {
     BypassRequest: {
       bypassed: boolean;
     };
+    /**
+     * @description The Cab block's Align page (`GET /api/v1/live/blocks/{id}/cab/align`): each slot's IR head on the active
+     *     channel, so slots can be lined up by eye.
+     */
+    CabAlignment: {
+      /**
+       * Format: double
+       * @description The rate the heads are sampled at.
+       */
+      sampleRate: number;
+      /** @description The four slots, in order. */
+      slots: components['schemas']['CabSlotAlignmentInfo'][];
+    };
+    /** @description Saves a Cab block's current mixed IR as a new IR asset. */
+    CabExportRequest: {
+      /** @description File name for the result (".wav" is added). */
+      name: string;
+    };
     CableRequest: {
       from: string;
       to: string;
+    };
+    /**
+     * @description One slot: whether it has something to play and is heard, its onset within its own IR (the first sample within
+     *     20 dB of the peak), the delay Auto Delay gives it and its own Delay, in ms, and the first 10 ms of its IR as mixed
+     *     (cut and normalised, before level, pan and delay). It is heard at `OnsetMs + AutoDelayMs + DelayMs`.
+     */
+    CabSlotAlignmentInfo: {
+      /** Format: int32 */
+      slot: number;
+      plays: boolean;
+      audible: boolean;
+      /** Format: double */
+      onsetMs: number;
+      /** Format: double */
+      autoDelayMs: number;
+      /** Format: double */
+      delayMs: number;
+      head: number[];
     };
     ChannelRequest: {
       channel: string;
@@ -1010,9 +1822,21 @@ export interface components {
       from: string;
       to: string;
     };
+    /** @description Drops block `{id}` on `Target`: `swap` exchanges their cells, `replace` takes its place. */
+    DropBlockRequest: {
+      target: string;
+      /** @default swap */
+      mode: string;
+    };
+    /** @description Copies a stored preset under `Id` (a new one when null) and `Name` (the original's plus "copy"). */
+    DuplicatePresetRequest: {
+      id?: null | string;
+      name?: null | string;
+    };
     /**
      * @description Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole
-     *     driver callback); overloads and the host's GC counts are cumulative since the host started.
+     *     driver callback); overloads and the host's GC counts are cumulative since the host started. `Inputs` names
+     *     the hardware input sources the device maps (Input 1–4, USB 5/6, USB 7/8); the others are silent.
      */
     EngineStatus: {
       connected: boolean;
@@ -1069,11 +1893,13 @@ export interface components {
        * @default 0
        */
       hostAllocatedBytes: number;
+      inputs?: null | string[];
     };
     /**
      * @description One switch: the message it sends (a CC or note; value 64 or more is "down"), what a tap does, what holding it for
      *     half a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is
-     *     active, 0 when not).
+     *     active, 0 when not). It answers only while its `View` is the active one, and a `Link` (a layout id)
+     *     switches to that layout after its tap action.
      */
     Footswitch: {
       /** Format: int32 */
@@ -1088,12 +1914,34 @@ export interface components {
       hold: null | components['schemas']['SwitchAction'];
       /** @default true */
       led: boolean;
+      /**
+       * Format: int32
+       * @default 0
+       */
+      view: number;
+      link?: null | string;
     };
-    /** @description A set of footswitches on a generic MIDI foot controller. */
+    /**
+     * @description A set of footswitches on a generic MIDI foot controller. `Views` names its pages of switches (each switch
+     *     says which int Footswitch.View it is on); none means one page.
+     */
     FootswitchLayout: {
       id: string;
       name: string;
       switches: components['schemas']['Footswitch'][];
+      views?: null | string[];
+    };
+    /**
+     * @description A preset's own action for one switch of a footswitch layout: while the preset is loaded, the switch at
+     *     `Index` of layout `Layout` does this instead of what the layout says.
+     */
+    FootswitchOverride: {
+      layout: string;
+      /** Format: int32 */
+      index: number;
+      tap: components['schemas']['SwitchAction'];
+      hold: null | components['schemas']['SwitchAction'];
+      label?: null | string;
     };
     /** @description A block shared by presets: linking a preset block to it makes its settings global. */
     GlobalBlock: {
@@ -1137,10 +1985,25 @@ export interface components {
        * @description Noise gate offset in dB (−20..20), added to every Input block's gate threshold.
        */
       noiseGateOffset: number;
-      /** @description The global output EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse. */
-      eq: {
-        [key: string]: number;
-      };
+      /**
+       * @description Cab modeling off: every Cab and IR Player block passes audio through, for playing into a real speaker cabinet
+       *     without changing the presets.
+       */
+      cabModelingOff: boolean;
+      /**
+       * @description Outputs 1-4 (docs/08-blocks-parity.md §2): each one's mode, Boost/Pad and global EQ. Always four, Output 1
+       *     first.
+       */
+      outputs: components['schemas']['OutputSettings'][];
+      /** @description Plays Output 1 on Output 2 as well, unless the preset has an Output 2 block of its own. */
+      copyOutput1To2: boolean;
+      /** @description The interface inputs, Input 1 first: each one's calibration and gain trim. */
+      inputs: components['schemas']['InputSettings'][];
+      /**
+       * @description The oversamplers' filters in the Amp, Drive and Dynamic Distortion blocks: `minimum` (IIR, no added
+       *     latency, the default) or `linear` (linear-phase FIR, a few milliseconds of latency).
+       */
+      oversampling: string;
       /** @description Manual A-D (0..1): modifier sources a person or pedal sets, shared by every preset. */
       manual: number[];
       /**
@@ -1152,13 +2015,55 @@ export interface components {
       footswitches: components['schemas']['FootswitchLayout'][];
       /** @description The layout in use, by id. */
       activeLayout?: null | string;
+      /**
+       * Format: int32
+       * @description The view (page of switches) of the active layout that is in use, 0 for the first.
+       */
+      activeView: number;
       blocks: components['schemas']['GlobalBlock'][];
+      /** @description The global performance page: controls shown in every preset that has their block. */
+      perform: components['schemas']['PerformControl'][];
+      /**
+       * @description Scene Revert: off, changes made while playing (a bypass, a channel) stay with their scene when you come back
+       *     to it; on, selecting a scene always recalls it as it was last saved.
+       */
+      sceneRevert: boolean;
+      /**
+       * Format: int32
+       * @description The scene a preset starts on when it loads: −1 for As Saved (the scene it was saved on), or 0-7.
+       */
+      defaultScene: number;
+      /** @description The preset loaded when the server starts, by id; null starts with an empty preset. */
+      startupPreset?: null | string;
+      /** @description Ignore Redundant PC: a program change that selects the preset already loaded does nothing. */
+      ignoreRedundantPc: boolean;
+      /**
+       * @description Preset-change spillover: on, the outgoing preset's delay and reverb tails ring out under the new one; off, it
+       *     stops with the swap fade (a clean cut).
+       */
+      presetSpillover: boolean;
+      /** @description Whether editors ask before changing presets while the working copy has unsaved edits. */
+      confirmPresetChange: boolean;
     };
     ImportResult: {
       preset: components['schemas']['PresetSummary'];
       /** Format: int32 */
       assetsAdded: number;
       renamed: boolean;
+    };
+    /** @description One interface input. */
+    InputSettings: {
+      /**
+       * Format: float
+       * @description The peak volts at the jack that reach 0 dBFS (default 1 V, how Cathode always read its input). The amp and
+       *     drive models scale their input by it, so changing the interface's gain and this together keeps their drive.
+       */
+      fullScaleVolts: number;
+      /**
+       * Format: float
+       * @description A trim applied to every preset ahead of the grid, −20 to +20 dB (Input 1 Gain).
+       */
+      gain: number;
     };
     /** @description Mixes impulse responses into a new one (a Cab-Lab-style blend of mics or cabs), stored as a new asset. */
     IrMixRequest: {
@@ -1211,10 +2116,44 @@ export interface components {
        */
       invert: boolean;
     };
+    /**
+     * @description Where the time goes, instrument to speaker: the device's input and output latency as its driver reports them
+     *     (each includes one buffer), the buffer itself, the graph's latency along its longest path (with the blocks on
+     *     it), and the total of the device and graph latencies.
+     */
+    LatencyInfo: {
+      connected: boolean;
+      /** Format: double */
+      sampleRate: number;
+      /** Format: int32 */
+      bufferFrames: number;
+      /** Format: int32 */
+      inputFrames: number;
+      /** Format: int32 */
+      outputFrames: number;
+      /** Format: int32 */
+      graphFrames: number;
+      path: components['schemas']['LatencyStepInfo'][];
+      /** Format: int32 */
+      totalFrames: number;
+      /** Format: double */
+      totalMs: number;
+    };
+    /** @description One block on the graph's longest path and the latency it adds, in frames. */
+    LatencyStepInfo: {
+      block: string;
+      type: string;
+      /** Format: int32 */
+      frames: number;
+    };
     LinkGlobalRequest: {
       name?: null | string;
     };
-    /** @description The rig as it is running: the working copy, which scene is active, and whether it differs from the library. */
+    /**
+     * @description The rig as it is running: the working copy, which scene is active, and whether it differs from the library.
+     *     `Held` lists the blocks whose bypass and channel differ from the active scene's because Scene Ignore kept
+     *     them as they were: what they are running now.
+     */
     LiveState: {
       preset: components['schemas']['Preset'];
       /** Format: int32 */
@@ -1224,6 +2163,9 @@ export interface components {
       dirty: boolean;
       canUndo: boolean;
       canRedo: boolean;
+      held?: null | {
+        [key: string]: components['schemas']['SceneBlockState'];
+      };
     };
     /** @description Arms MIDI learn: the next CC, note or program change received is bound to this action. */
     MidiLearnRequest: {
@@ -1237,7 +2179,10 @@ export interface components {
      *     scene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank
      *     id, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,
      *     Value = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,
-     *     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear).
+     *     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), sceneLevelUp and
+     *     sceneLevelDown (the active scene's level by ±1 dB, then save the preset), save (save the preset), layout
+     *     (Target = layout id), view (Value = view index), viewNext, viewPrevious. A CC mapped to scene without a Value
+     *     selects the scene its value names (0-7), and a value above 63 steps to the next scene.
      */
     MidiMapping: {
       id: string;
@@ -1257,6 +2202,28 @@ export interface components {
       /** Format: int32 */
       column: number;
     };
+    /** @description Moves a whole row or column (`Axis`) from one index to another, shifting the ones between. */
+    MoveLineRequest: {
+      axis: string;
+      /** Format: int32 */
+      from: number;
+      /** Format: int32 */
+      to: number;
+    };
+    /** @description One of Outputs 1-4. */
+    OutputSettings: {
+      /** @description `stereo`, `sum` (L+R on both), `copyLR` (left on the right too) or `dualMono`. */
+      mode: string;
+      /**
+       * Format: float
+       * @description Level trim after the EQ, −18 to +18 dB.
+       */
+      boostPad: number;
+      /** @description The output's global EQ by parameter id (graphic EQ bands g31...g16k and level). Sparse. */
+      eq: {
+        [key: string]: number;
+      };
+    };
     /**
      * @description A block parameter. `TypeLabels`, where present, names the parameter per value of the block's `type`
      *     parameter (an amp model's own name for a generic control), empty where that type lacks the control: hide it there.
@@ -1275,6 +2242,16 @@ export interface components {
       taper: string;
       options?: null | string[];
       typeLabels?: null | string[];
+      page?: null | string;
+    };
+    /**
+     * @description One control on a performance page: a parameter of a block, by the block's id (`amp1`) so a global page
+     *     works in every preset that has that block. `Label` overrides the parameter's name.
+     */
+    PerformControl: {
+      block: string;
+      param: string;
+      label?: null | string;
     };
     /**
      * @description A complete rig: grid, blocks with up to four channels each, cables and eight scenes. Parameter values are stored
@@ -1305,6 +2282,21 @@ export interface components {
       controllers: {
         [key: string]: number;
       };
+      /** @description A colour tag for pickers and Manage Presets (a CSS colour name or hex), or null. */
+      color?: null | string;
+      favorite: boolean;
+      /** @description The preset's performance page: the controls it puts in front of a player. */
+      perform: components['schemas']['PerformControl'][];
+      /** @description Switches of the global footswitch layouts that do something else while this preset is loaded. */
+      footswitchOverrides: components['schemas']['FootswitchOverride'][];
+      /**
+       * Format: int32
+       * @description The scene that was active when the preset was saved: where it starts when the global Default Scene is As Saved.
+       */
+      savedScene: number;
+    };
+    PresetBatchRequest: {
+      presets: string[];
     };
     PresetBlock: {
       /** @description Stable instance id such as `amp1`; never an index. */
@@ -1334,10 +2326,28 @@ export interface components {
        *     editing them edits every linked preset.
        */
       global?: null | string;
+      /**
+       * @description Scene Ignore: the channels (A-D) on which the block ignores scene changes. While its current channel is one
+       *     of them, selecting a scene leaves the block's bypass and channel as they are; the editor, footswitches and
+       *     MIDI still change them, and a channel not listed makes it follow the scenes again.
+       */
+      sceneIgnore: string[];
     };
     PresetCable: {
       from: string;
       to: string;
+    };
+    /** @description Changes to the working copy's name, author and tags; null leaves a field as it is. */
+    PresetInfoRequest: {
+      name?: null | string;
+      author?: null | string;
+      tags?: null | string[];
+    };
+    /** @description A preset's metadata, changed in place; null leaves a field alone, an empty colour clears it. */
+    PresetMetadataRequest: {
+      name?: null | string;
+      color?: null | string;
+      favorite?: null | boolean;
     };
     /** @description One modified parameter; see Cathode.Engine.Graph.ModifierDefinition for the semantics. */
     PresetModifier: {
@@ -1355,6 +2365,11 @@ export interface components {
       attackMs: number;
       /** Format: float */
       releaseMs: number;
+      /**
+       * @description The channel (A-D) the modifier applies on, or null for every channel of its block. On another channel the
+       *     parameter keeps that channel's own value.
+       */
+      channel?: null | string;
     };
     PresetSummary: {
       id: string;
@@ -1363,6 +2378,13 @@ export interface components {
       tags: string[];
       /** Format: date-time */
       modified: string;
+      color?: null | string;
+      /** @default false */
+      favorite: boolean;
+    };
+    /** @description Replaces a block with a new one of `Type` in the same cell, keeping its cables. */
+    ReplaceBlockRequest: {
+      type: string;
     };
     /**
      * @description Turns the RTA on or off and sets how it analyses: `BandsPerOctave` 3, 6 or 12 (about 30, 60 or 120 bands),
@@ -1383,6 +2405,10 @@ export interface components {
       decayMs: number;
       /** @default hann */
       window: string;
+    };
+    /** @description Saves every block of the working copy (all channels and modifiers) to the Block Library. */
+    SaveAllBlocksRequest: {
+      folder?: null | string;
     };
     SaveRequest: {
       name?: null | string;
@@ -1414,6 +2440,9 @@ export interface components {
       /** @default A */
       channel: string;
     };
+    SceneIgnoreRequest: {
+      enabled: boolean;
+    };
     /**
      * @description One scene MIDI message: a program change (`pc`: int SceneMidiMessage.Number is the program) or a control change
      *     (`cc`: controller int SceneMidiMessage.Number, value int SceneMidiMessage.Value), on MIDI channel 1-16.
@@ -1436,6 +2465,13 @@ export interface components {
        * @default 0
        */
       value: number;
+    };
+    /** @description Two scenes (0-7): copy `From` onto `To`, or swap them. */
+    ScenePairRequest: {
+      /** Format: int32 */
+      from: number;
+      /** Format: int32 */
+      to: number;
     };
     SceneSelectRequest: {
       /** Format: int32 */
@@ -1467,6 +2503,28 @@ export interface components {
       scene: number;
       label?: null | string;
     };
+    SnapshotRequest: {
+      name?: null | string;
+    };
+    SnapshotSummary: {
+      id: string;
+      presetId: string;
+      name: string;
+      /** Format: date-time */
+      created: string;
+    };
+    /**
+     * @description A Circuit Amp's speaker resonance: the model's (or the chosen speaker's) frequency at LF Resonance 100 %, the
+     *     LF Resonance setting, and the frequency it gives.
+     */
+    SpeakerResonanceInfo: {
+      /** Format: double */
+      baseHz: number;
+      /** Format: float */
+      percent: number;
+      /** Format: double */
+      hz: number;
+    };
     /** Format: binary */
     Stream: string;
     /** @description An action, with the same vocabulary as MidiMapping. */
@@ -1480,9 +2538,26 @@ export interface components {
       version: string;
       engine: components['schemas']['EngineStatus'];
     };
+    TemplateRequest: {
+      name: string;
+    };
     TempoRequest: {
       /** Format: double */
       bpm: number;
+    };
+    /** @description The cab resonance helper's sine, in place of a block's output: on or off, its pitch and level (dBFS). */
+    TestToneRequest: {
+      enabled: boolean;
+      /**
+       * Format: double
+       * @default 100
+       */
+      frequency: number;
+      /**
+       * Format: float
+       * @default -20
+       */
+      level: number;
     };
     /**
      * @description Learn a Tone Match: the Server listens to the rig's output for `Seconds` while you play, compares it with the
@@ -1539,6 +2614,72 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['SystemInfo'];
+        };
+      };
+    };
+  };
+  GetLatency: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LatencyInfo'];
+        };
+      };
+    };
+  };
+  SetAssetMetadata: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        reference: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AssetMetadataRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AssetInfo'];
+        };
+      };
+    };
+  };
+  GetAssetUsage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AssetUsage'][];
         };
       };
     };
@@ -2099,6 +3240,76 @@ export interface operations {
       };
     };
   };
+  ExportCabIr: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'audio/wav': string;
+        };
+      };
+    };
+  };
+  SaveCabIr: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CabExportRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AssetInfo'];
+        };
+      };
+    };
+  };
+  GetCabAlignment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CabAlignment'];
+        };
+      };
+    };
+  };
   AddCable: {
     parameters: {
       query?: never;
@@ -2158,6 +3369,203 @@ export interface operations {
         'application/json': components['schemas']['SceneSelectRequest'];
       };
     };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  UpdatePresetInfo: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PresetInfoRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  CopyScene: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ScenePairRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SwapScenes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ScenePairRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetSceneBlock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scene: number;
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SceneBlockState'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetSceneIgnore: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        channel: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SceneIgnoreRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SwapChannels: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CopyChannelRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  ResetChannel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        channel: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  ResetBlock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
     responses: {
       /** @description OK */
       200: {
@@ -2499,6 +3907,406 @@ export interface operations {
       };
     };
   };
+  RevertPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  ClearPreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  TakeSnapshot: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SnapshotRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SnapshotSummary'];
+        };
+      };
+    };
+  };
+  LoadSnapshot: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SaveTemplate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TemplateRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PresetSummary'];
+        };
+      };
+    };
+  };
+  NewFromTemplate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  ReplaceBlock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReplaceBlockRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  DropBlock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DropBlockRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  MoveGridLine: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MoveLineRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  DisconnectBlock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  PasteBlockSettings: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BlockSettingsRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetBlockInAllScenes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AllScenesRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetPerformPage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PerformControl'][];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetFootswitchOverrides: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FootswitchOverride'][];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SaveAllBlocks: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SaveAllBlocksRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BlockPreset'][];
+        };
+      };
+    };
+  };
+  SetTestTone: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TestToneRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  GetSpeakerResonance: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SpeakerResonanceInfo'];
+        };
+      };
+    };
+  };
   ListPresets: {
     parameters: {
       query?: never;
@@ -2515,6 +4323,26 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['PresetSummary'][];
+        };
+      };
+    };
+  };
+  ExportPresetList: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/plain': string;
         };
       };
     };
@@ -3102,6 +4930,248 @@ export interface operations {
       };
     };
   };
+  ListSnapshots: {
+    parameters: {
+      query?: {
+        preset?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SnapshotSummary'][];
+        };
+      };
+    };
+  };
+  DeleteSnapshot: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ListTemplates: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PresetSummary'][];
+        };
+      };
+    };
+  };
+  DeleteTemplate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  SetPresetMetadata: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PresetMetadataRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  DuplicatePreset: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DuplicatePresetRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PresetSummary'];
+        };
+      };
+    };
+  };
+  ResetAmpBlocks: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PresetBatchRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BatchResult'];
+        };
+      };
+    };
+  };
+  BatchSetParameter: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BatchSetRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BatchResult'];
+        };
+      };
+    };
+  };
+  ExportBlockPresets: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BlockPresetExportRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BlockPresetFile'];
+        };
+      };
+    };
+  };
+  ImportBlockPresets: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BlockPresetFile'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BlockPreset'][];
+        };
+      };
+    };
+  };
   ListAssets: {
     parameters: {
       query?: never;
@@ -3126,6 +5196,10 @@ export interface operations {
     parameters: {
       query: {
         name: string;
+        processing?: string;
+        polarity?: boolean;
+        channels?: string;
+        maxLengthMs?: number;
       };
       header?: never;
       path?: never;

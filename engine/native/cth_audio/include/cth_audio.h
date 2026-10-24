@@ -65,6 +65,11 @@ typedef struct cth_device_info {
 /* 0 on success, negative on failure (see cth_audio_last_error). */
 CTH_API int32_t cth_audio_device_count(void);
 CTH_API int32_t cth_audio_device_info(int32_t index, cth_device_info *info);
+/* The driver's name for one channel of a device (channel 0-based; input or output side), for labelling an input
+ * map: a user label from Audio MIDI Setup or the driver's own ("Mic/Inst 1"). Writes an empty string when the
+ * driver names none. 0 on success. */
+CTH_API int32_t cth_audio_channel_name(int32_t device_index, int32_t is_input, int32_t channel, char *name,
+                                       int32_t size);
 CTH_API int32_t cth_audio_open(const char *device_uid, cth_stream_config *config,
                                cth_process_fn process, void *user, cth_stream **stream);
 CTH_API int32_t cth_audio_start(cth_stream *stream);

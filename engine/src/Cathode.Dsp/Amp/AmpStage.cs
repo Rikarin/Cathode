@@ -23,7 +23,26 @@ public enum PotRole {
     Control1,
 
     /// <summary>The model's second extra pot (<see cref="AmpPanel.Control2" />).</summary>
-    Control2
+    Control2,
+
+    /// <summary>
+    ///     A graphic equaliser's first slider in a model's own circuit (a <see cref="NetworkStageDesign" /> pot; the
+    ///     band gains of <see cref="AmpControls.Equalizer" /> as slider positions: −12 dB at the bottom, +12 dB at the
+    ///     top, flat in the middle).
+    /// </summary>
+    Equalizer1,
+
+    /// <summary>The second slider (see <see cref="Equalizer1" />).</summary>
+    Equalizer2,
+
+    /// <summary>The third slider.</summary>
+    Equalizer3,
+
+    /// <summary>The fourth slider.</summary>
+    Equalizer4,
+
+    /// <summary>The fifth slider.</summary>
+    Equalizer5
 }
 
 /// <summary>Which front-panel switch engages a switched element of a stage.</summary>
@@ -43,6 +62,9 @@ public enum SwitchRole {
 
 /// <summary>The design of one preamp stage; <see cref="Create" /> builds it.</summary>
 public abstract record AmpStageDesign(string Name) {
+    /// <summary>Whether the stage carries a tremolo of the model's own (<see cref="StageTremoloDesign" />).</summary>
+    public virtual bool HasTremolo => false;
+
     /// <summary>A new stage for this design at <paramref name="sampleRate" />, at its operating point.</summary>
     public abstract AmpStage Create(double sampleRate);
 }
@@ -63,7 +85,9 @@ public readonly record struct EqualizerGains(double Band1, double Band2, double 
 /// <summary>
 ///     The preamp knobs, as rotations 0..1, and the switches: the bright switch, the model's extra pots
 ///     (<paramref name="Control1" />, <paramref name="Control2" />) and switches (<paramref name="Switch1" /> to
-///     <paramref name="Switch3" />), and a graphic equaliser's band gains.
+///     <paramref name="Switch3" />), a graphic equaliser's band gains, and the model's own tremolo
+///     (<see cref="StageTremoloDesign" />): <paramref name="TremoloRate" /> in hertz, <paramref name="TremoloDepth" /> its
+///     Intensity knob's rotation (0 stops it).
 /// </summary>
 public readonly record struct AmpControls(
     double Gain,
@@ -77,7 +101,9 @@ public readonly record struct AmpControls(
     bool Switch1 = false,
     bool Switch2 = false,
     bool Switch3 = false,
-    EqualizerGains Equalizer = default
+    EqualizerGains Equalizer = default,
+    double TremoloRate = 0,
+    double TremoloDepth = 0
 ) {
     public double Rotation(PotRole role) =>
         role switch {
@@ -87,8 +113,16 @@ public readonly record struct AmpControls(
             PotRole.Middle => Middle,
             PotRole.Treble => Treble,
             PotRole.Control1 => Control1,
+            PotRole.Equalizer1 => Slider(Equalizer.Band1),
+            PotRole.Equalizer2 => Slider(Equalizer.Band2),
+            PotRole.Equalizer3 => Slider(Equalizer.Band3),
+            PotRole.Equalizer4 => Slider(Equalizer.Band4),
+            PotRole.Equalizer5 => Slider(Equalizer.Band5),
             _ => Control2
         };
+
+    /// <summary>A band gain (±12 dB) as a slider position, 0..1.</summary>
+    static double Slider(double gain) => Math.Clamp(0.5 + gain / 24, 0, 1);
 
     public bool IsOn(SwitchRole role) =>
         role switch {
@@ -110,13 +144,56 @@ public readonly record struct AmpControls(
 ///     The cathode resistor as a multiple of stock: the channel applies it to its last gain stage only (the Axe-Fx's
 ///     Preamp Bias), 1 elsewhere.
 /// </param>
+/// <param name="Hardness">Every preamp triode's cut-off knee (<see cref="TriodeModel.Hardened" />): 1 stock.</param>
+/// <param name="GridCurrent">
+///     Every preamp triode's grid current as a multiple of stock: how far a driven stage charges its coupling cap and
+///     shifts its bias (the Axe-Fx's Preamp Bias Excursion); cathode followers take <paramref name="FollowerGrid" />.
+/// </param>
+/// <param name="PlateFrequency">
+///     A plate-bypass cap's corner as a multiple of stock (the cap divided by it); the channel applies it per stage
+///     (Triode 1 and 2 Plate Freq on the last two stages with such a cap), 1 elsewhere.
+/// </param>
+/// <param name="MasterCap">The bright cap across a master pot, as a multiple of stock.</param>
+/// <param name="FollowerGrid">
+///     A cathode follower's grid current as a multiple of stock: its compression when the previous plate drives its
+///     grid above its cathode.
+/// </param>
+/// <param name="FollowerBias">
+///     A cathode follower's cathode resistor as a multiple of stock: its idle current, so how early and how
+///     asymmetrically it clips (its harmonics).
+/// </param>
+/// <param name="Stack">A tone stack in place of a <see cref="ToneStackStage" />'s own; null for stock.</param>
 public readonly record struct PreampSettings(
     TriodeModel? Tube = null,
     double BrightCap = 1,
     double StackFrequency = 1,
-    double CathodeResistor = 1
+    double CathodeResistor = 1,
+    double Hardness = 1,
+    double GridCurrent = 1,
+    double PlateFrequency = 1,
+    double MasterCap = 1,
+    double FollowerGrid = 1,
+    double FollowerBias = 1,
+    ToneStackDesign? Stack = null
 ) {
     public static PreampSettings Stock => new(null);
+
+    /// <summary>The tabulated device for a triode built with <paramref name="stock" />, with these settings.</summary>
+    public FastTriode Triode(TriodeModel stock) => new(TubeFor(stock), Hardness, GridCurrent);
+
+    /// <summary>The exact model of that device, for operating points.</summary>
+    public TriodeModel Law(TriodeModel stock) => TubeFor(stock).Hardened(Hardness);
+
+    /// <summary>Whether a change from <paramref name="previous" /> moves an operating point (the channel resets).</summary>
+    public bool MovesOperatingPoint(in PreampSettings previous) =>
+        Tube != previous.Tube
+        || CathodeResistor != previous.CathodeResistor
+        || Hardness != previous.Hardness
+        || FollowerBias != previous.FollowerBias;
+
+    /// <summary>Whether a stage must rebuild its devices for a change from <paramref name="previous" />.</summary>
+    public bool ChangesDevices(in PreampSettings previous) =>
+        Tube != previous.Tube || Hardness != previous.Hardness || GridCurrent != previous.GridCurrent;
 
     /// <summary>
     ///     The triode a stage built with <paramref name="stock" /> runs: <see cref="Tube" /> in place of a 12AX7, the

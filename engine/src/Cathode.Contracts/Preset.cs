@@ -42,17 +42,33 @@ public sealed class Preset {
     /// </summary>
     public Dictionary<string, float> Controllers { get; set; } = [];
 
+    /// <summary>A colour tag for pickers and Manage Presets (a CSS colour name or hex), or null.</summary>
+    public string? Color { get; set; }
+
+    public bool Favorite { get; set; }
+
+    /// <summary>The preset's performance page: the controls it puts in front of a player.</summary>
+    public List<PerformControl> Perform { get; set; } = [];
+
+    /// <summary>Switches of the global footswitch layouts that do something else while this preset is loaded.</summary>
+    public List<FootswitchOverride> FootswitchOverrides { get; set; } = [];
+    /// <summary>The scene that was active when the preset was saved: where it starts when the global Default Scene is As Saved.</summary>
+    public int SavedScene { get; set; }
+
     public static string NewId() => Guid.NewGuid().ToString("n");
 
-    /// <summary>The smallest working rig: Input 1 straight to Output 1 across the first row.</summary>
+    /// <summary>The row an empty preset's Input-to-Output line runs on: the third, leaving two free above it.</summary>
+    public const int DefaultRow = 2;
+
+    /// <summary>The smallest working rig: Input 1 straight to Output 1 across <see cref="DefaultRow" />.</summary>
     public static Preset CreateDefault() =>
         new Preset {
             Blocks = [
-                new() { Id = "in1", Type = BuiltInTypes.Input, Row = 0, Column = 0 },
-                new() { Id = "out1", Type = BuiltInTypes.Output, Row = 0, Column = 13 }
+                new() { Id = "in1", Type = BuiltInTypes.Input, Row = DefaultRow, Column = 0 },
+                new() { Id = "out1", Type = BuiltInTypes.Output, Row = DefaultRow, Column = 13 }
             ],
             Cables = []
-        }.WithShuntRow(0, "in1", "out1");
+        }.WithShuntRow(DefaultRow, "in1", "out1");
 
     /// <summary>Fills the cells between two blocks on one row with shunts and cables.</summary>
     public Preset WithShuntRow(int row, string from, string to) {
@@ -76,7 +92,15 @@ public static class BuiltInTypes {
     public const string Output = "output";
     public const string Shunt = "shunt";
 
-    public static bool IsBuiltIn(string type) => type is Input or Output or Shunt;
+    /// <summary>Outputs 2-4, placeable grid outputs mapped to device channels in the audio settings.</summary>
+    public const string Output2 = "output2";
+
+    public const string Output3 = "output3";
+    public const string Output4 = "output4";
+
+    public static bool IsBuiltIn(string type) => type is Input or Shunt || IsOutput(type);
+
+    public static bool IsOutput(string type) => type is Output or Output2 or Output3 or Output4;
 }
 
 public sealed class PresetBlock {
@@ -106,6 +130,16 @@ public sealed class PresetBlock {
     ///     editing them edits every linked preset.
     /// </summary>
     public string? Global { get; set; }
+
+    /// <summary>
+    ///     Scene Ignore: the channels (A-D) on which the block ignores scene changes. While its current channel is one
+    ///     of them, selecting a scene leaves the block's bypass and channel as they are; the editor, footswitches and
+    ///     MIDI still change them, and a channel not listed makes it follow the scenes again.
+    /// </summary>
+    public List<string> SceneIgnore { get; set; } = [];
+
+    /// <summary>Whether the block ignores scene changes on <paramref name="channel" />.</summary>
+    public bool IgnoresScenes(string channel) => SceneIgnore.Contains(channel);
 
     /// <summary>Parameter values of <paramref name="channel" />, creating the map if needed.</summary>
     public Dictionary<string, float> Channel(string channel) {
@@ -213,4 +247,10 @@ public sealed class PresetModifier {
     public float AttackMs { get; set; }
 
     public float ReleaseMs { get; set; }
+
+    /// <summary>
+    ///     The channel (A-D) the modifier applies on, or null for every channel of its block. On another channel the
+    ///     parameter keeps that channel's own value.
+    /// </summary>
+    public string? Channel { get; set; }
 }

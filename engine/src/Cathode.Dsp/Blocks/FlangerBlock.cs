@@ -116,7 +116,18 @@ public sealed class FlangerBlock() : DspBlock(Info), IEngageAware {
             ParamDescriptor.Switch("lfoReset", "LFO Bypass Reset"),
             EffectsMix.Param
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new("Basic", ["rate", "tempo", "depth", "delay", "feedback", "spread", "thruZero", "lfoType"]),
+            new(
+                "Advanced",
+                [
+                    "lowCut", "highCut", "phaseReverse", "bassFocus", "drive", "minTime", "maxTime", "dryDelay",
+                    "lfoHicut", "lfoQuantize", "autoDepth", "vcoResponse", "exponent", "stereoSpread", "lfoReset",
+                    "globalMix"
+                ]
+            )
+        ]
     );
 
     /// <summary>
@@ -215,8 +226,7 @@ public sealed class FlangerBlock() : DspBlock(Info), IEngageAware {
             ? manualDry
             : SweptDelay(low, sweep, 0.5f, exponential, 1f); // Auto: the middle of the sweep
         var mix = EffectsMix.Apply(Params.Advance(Mix, n), Params.Current(GlobalMix), context) / 100f;
-        var mixStep = (mix - this.mix) / n;
-        var currentMix = this.mix;
+        var gains = new MixRamp(MixLaw.ConstantPower, this.mix, mix, n);
         var conditioned = !conditioner.IsOff;
 
         for (var i = 0; i < n; i++) {
@@ -236,7 +246,7 @@ public sealed class FlangerBlock() : DspBlock(Info), IEngageAware {
             }
 
             lfo.Advance(lfoRate, rate);
-            currentMix += mixStep;
+            gains.Advance();
 
             var inLeft = io.Left[i];
             var inRight = io.Right[i];
@@ -258,8 +268,8 @@ public sealed class FlangerBlock() : DspBlock(Info), IEngageAware {
                 (inLeft, inRight) = (delayedLeft, delayedRight);
             }
 
-            io.Left[i] = inLeft * (1 - currentMix) + polarityLeft * wetLeft * currentMix;
-            io.Right[i] = inRight * (1 - currentMix) + polarityRight * wetRight * currentMix;
+            io.Left[i] = inLeft * gains.Dry + polarityLeft * wetLeft * gains.Wet;
+            io.Right[i] = inRight * gains.Dry + polarityRight * wetRight * gains.Wet;
         }
 
         cuts.FlushDenormals();

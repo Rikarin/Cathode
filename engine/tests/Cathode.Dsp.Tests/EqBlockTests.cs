@@ -73,6 +73,10 @@ public class EqBlockTests {
     public void Every_graphic_layout_puts_each_band_at_its_centre() {
         for (var type = 0; type < GraphicEqualizer.Layouts.Count; type++) {
             var layout = GraphicEqualizer.Layouts[type];
+            if (layout.Network != PassiveNetwork.None) {
+                continue; // component-level networks: their bands are slider positions (PassiveGraphicEqTests)
+            }
+
             for (var band = 0; band < layout.Count; band++) {
                 using var geq = TestBlocks.Create<GraphicEqBlock>((GraphicEqBlock.Type, type), (band, 9f));
                 var response = BlockRender.Mono(geq, Signals.Impulse(48_000), 64);

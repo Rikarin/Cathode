@@ -314,6 +314,18 @@ int32_t cth_audio_device_info(int32_t index, cth_device_info *info)
     return result;
 }
 
+int32_t cth_audio_channel_name(int32_t device_index, int32_t is_input, int32_t channel, char *name, int32_t size)
+{
+    if (!name || size <= 0) return fail("invalid arguments", 0);
+    name[0] = 0;
+    cth_device_info info;
+    if (cth_audio_device_info(device_index, &info) != 0) return -1;
+    if (channel < 0 || channel >= (is_input ? info.input_channels : info.output_channels))
+        return fail("channel out of range", 0);
+    /* WASAPI endpoints carry no per-channel names, so every channel reads as unnamed. */
+    return 0;
+}
+
 static IMMDevice *device_by_id(IMMDeviceEnumerator *e, const char *id, size_t length)
 {
     wchar_t *wide = from_utf8(id, length);

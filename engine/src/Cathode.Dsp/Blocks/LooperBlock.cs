@@ -13,8 +13,8 @@ namespace Cathode.Dsp.Blocks;
 ///     The Config page: Max Loop Time (up to 300 s; the memory is committed only as it is recorded), Once, Trim Start and
 ///     End, threshold recording, Playback and Dry Level, Overdub Level (each pass scales what the loop held), the seam
 ///     Crossfade, Loop Quantize (the length rounded to whole beats of the tempo), what a second Record press does, Speed,
-///     and Low and High Cut on the playback. The loop belongs to the preset: a preset change stops and drops it, where
-///     the rig looper keeps playing.
+///     and Low and High Cut on the playback. A preset change to another preset with a Looper block hands the loop over
+///     (<see cref="TakeLoop" />), so it keeps playing; to a preset without one, the loop stops and is dropped.
 /// </remarks>
 public sealed class LooperBlock() : DspBlock(Info), ILooperBlock {
     public const int MaxTime = 0;
@@ -76,10 +76,29 @@ public sealed class LooperBlock() : DspBlock(Info), ILooperBlock {
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
         ],
         maxInstances: 1,
-        channels: 2
+        channels: 2,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "playbackLevel", "dryLevel", "overdubLevel", "speed", "threshold", "thresholdLevel", "once",
+                    "lowCut", "highCut"
+                ]
+            ),
+            new("Advanced", ["maxTime", "trimStart", "trimEnd", "crossfade", "quantize", "secondPress"])
+        ]
     );
 
     public Looper? Looper => Volatile.Read(ref looper);
+
+    public bool TakeLoop(ILooperBlock outgoing) {
+        if (outgoing is not LooperBlock other || other.looper is null || looper is null) {
+            return false;
+        }
+
+        (looper, other.looper) = (other.looper, looper);
+        return true;
+    }
 
     /// <summary>The Config page as the looper takes it, at <paramref name="tempo" /> BPM (0: no quantising).</summary>
     LooperSettings Settings(double tempo) {

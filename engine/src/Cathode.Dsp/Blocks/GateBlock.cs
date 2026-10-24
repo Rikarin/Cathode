@@ -1,5 +1,6 @@
 using Cathode.Dsp.Filters;
 using Cathode.Dsp.Parameters;
+using Cathode.Dsp.Routing;
 
 namespace Cathode.Dsp.Blocks;
 
@@ -16,10 +17,11 @@ namespace Cathode.Dsp.Blocks;
 ///         across the threshold never chatters. <b>Knee</b> (expanders) rounds the corner over 6 or 12 dB around the
 ///         threshold.
 ///     </para>
-///     Sidechain picks what the detector hears: the block's input, the grid input or another grid row
-///     (<see cref="ISidechainBlock" />), so a gate late in the chain can follow the clean guitar.
+///     Sidechain picks what the detector hears: the block's input, the grid input, another grid row
+///     (<see cref="ISidechainBlock" />) or one of the interface's inputs (<see cref="HardwareInputs" />), so a gate late
+///     in the chain can follow the clean guitar.
 /// </summary>
-public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
+public sealed class GateBlock() : DspBlock(Info), ISidechainBlock, IHardwareInputBlock {
     public const int Threshold = 0;
     public const int Ratio = 1;
     public const int Attack = 2;
@@ -87,8 +89,14 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
             },
             SidechainSource.Param()
         ],
-        maxInstances: 4
+        maxInstances: 4,
+        pages: [
+            new("Basic", ["threshold", "ratio", "attack", "hold", "release", "attenuation", "knee", "detector"]),
+            new("Sidechain", ["scSource", "scLowCut", "scHighCut"])
+        ]
     );
+
+    public InputPort? Inputs { get; set; }
 
     /// <summary>Current gain applied by the gate (1 = open). For meters and tests.</summary>
     public float CurrentGain => MathF.Pow(10f, gainDb / 20f);
@@ -134,6 +142,7 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock {
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        sidechainSource.OfferHardware(Inputs, (int)Params.GetTarget(Sidechain), io.Length);
         var sampleRate = Spec.SampleRate;
         var thresholdDb = Params.Advance(Threshold, io.Length);
         var threshold = MathF.Pow(10f, thresholdDb / 20f);

@@ -80,6 +80,7 @@ public sealed class PlexBlock() : DspBlock(Info) {
     public const int Balance = 84;
     public const int InputGain = 85;
     public const int InputSelect = 86;
+    public const int KillDry = 87;
 
     public const int PlexDelay = 0;
     public const int PlexDetune = 1;
@@ -226,9 +227,55 @@ public sealed class PlexBlock() : DspBlock(Info) {
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions)
+            ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
+            MixLaws.KillDryParam
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "delays", "masterTime", "decay", "diffusion", "inputDiffusion", "preDelay", "lowCut", "highCut",
+                    "hold", "masterPan", "masterDetune", "spread"
+                ]
+            ),
+            new(
+                "Times",
+                [
+                    "time1", "time2", "time3", "time4", "time5", "time6", "time7", "time8", "tempo1", "tempo2",
+                    "tempo3", "tempo4", "tempo5", "tempo6", "tempo7", "tempo8"
+                ]
+            ),
+            new(
+                "Levels",
+                [
+                    "level1", "level2", "level3", "level4", "level5", "level6", "level7", "level8", "pan1", "pan2",
+                    "pan3", "pan4", "pan5", "pan6", "pan7", "pan8"
+                ]
+            ),
+            new(
+                "Pitch",
+                [
+                    "detune1", "detune2", "detune3", "detune4", "detune5", "detune6", "detune7", "detune8", "shift1",
+                    "shift2", "shift3", "shift4", "shift5", "shift6", "shift7", "shift8", "granule", "direction",
+                    "crossfade", "verbSize", "shimmerIntensity"
+                ]
+            ),
+            new(
+                "Modulation",
+                [
+                    "filterType", "filterFrequency", "filterQ", "filterGain", "filterLfoRate", "filterLfoTempo",
+                    "modFrequency", "lfoRate", "lfoTempo", "lfoDepth"
+                ]
+            ),
+            new("Ducking", ["duckThreshold", "duckAttenuation", "duckRelease"]),
+            new(
+                "Advanced",
+                [
+                    "envelopeThreshold", "envelopeAttack", "envelopeRelease", "inputGain", "inputSelect", "killDry"
+                ]
+            )
+        ]
     );
 
     static IEnumerable<ParamDescriptor> Line(Func<int, ParamDescriptor> parameter) =>
@@ -437,10 +484,9 @@ public sealed class PlexBlock() : DspBlock(Info) {
 
         var select = (int)Params.Current(InputSelect);
         var mix = Params.Current(Mix) / 100f;
-        var mixStep = (mix - this.mix) / n;
-        var currentMix = this.mix;
+        var mixGains = new MixRamp(MixLaw.Linear, this.mix, mix, n, Params.Current(KillDry) >= 0.5f);
         for (var s = 0; s < n; s++) {
-            currentMix += mixStep;
+            mixGains.Advance();
             var dryLeft = io.Left[s];
             var dryRight = io.Right[s];
             var x = Stereo.Select(select, dryLeft, dryRight) * inputGain;
@@ -524,8 +570,8 @@ public sealed class PlexBlock() : DspBlock(Info) {
             }
 
             Stereo.Spread(ref wetLeft, ref wetRight, spread);
-            io.Left[s] = dryLeft * (1f - currentMix) + wetLeft * currentMix;
-            io.Right[s] = dryRight * (1f - currentMix) + wetRight * currentMix;
+            io.Left[s] = dryLeft * mixGains.Dry + wetLeft * mixGains.Wet;
+            io.Right[s] = dryRight * mixGains.Dry + wetRight * mixGains.Wet;
         }
 
         Array.Copy(lineTarget, lineDelay, MaxLines);

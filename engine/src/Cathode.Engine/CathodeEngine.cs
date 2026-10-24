@@ -47,6 +47,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     const int RetiredSlots = 4;
     const double TapWindowSeconds = 2.5;
     const int TapHistory = 4;
+    const int Outputs = NodeTypes.OutputCount;
 
     readonly SpscRing<EngineCommand> commands;
     readonly CompiledGraph?[] retiredGraphs = new CompiledGraph?[RetiredSlots];
@@ -65,12 +66,34 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     readonly int metroLevelIndex = RigControls.Descriptor.IndexOf("metroLevel");
     readonly int effectsMixIndex = RigControls.Descriptor.IndexOf("effectsMix");
     readonly int gateOffsetIndex = RigControls.Descriptor.IndexOf("gateOffset");
+    readonly int inputGainIndex = RigControls.Descriptor.IndexOf("in1Gain");
+    readonly int calibrationIndex = RigControls.Descriptor.IndexOf("in1Cal");
+    readonly int copyIndex = RigControls.Descriptor.IndexOf("copyOut2");
+    readonly int[] modeIndex = [..Enumerable.Range(1, Outputs).Select(static k => RigControls.Descriptor.IndexOf($"out{k}Mode"))];
+    readonly int[] trimIndex = [..Enumerable.Range(1, Outputs).Select(static k => RigControls.Descriptor.IndexOf($"out{k}Level"))];
+    readonly GraphicEqBlock[] outputEqs = [new(), new(), new(), new()];
+    readonly float[] trims = [1f, 1f, 1f, 1f];
+    readonly bool[] active = new bool[Outputs];
+    readonly float[] outputPeak = new float[Outputs];
+    readonly float[] publishedPeak = new float[Outputs];
+    readonly GraphOutputs graphOutputs;
+    readonly GraphOutputs tailOutputs;
+    readonly NativeBuffer gainedLeft;
+    readonly NativeBuffer gainedRight;
+    float inputGain = 1f;
+    bool copyToSecond;
+    int outputPeakReset;
+    readonly int cabsOffIndex = RigControls.Descriptor.IndexOf("cabsOff");
+    readonly int spilloverIndex = RigControls.Descriptor.IndexOf("spillover");
+    readonly LoudnessMeter loudness;
     int tapCount;
     float levelGain = 1f;
     Looper? looper;
     CompiledGraph? tail;
     float tailInput; // gain into the spilling graph: 1 at the swap, falling to 0
     float swapGain = 1f; // gain on the new graph: 0 at the swap, rising to 1
+    float tailOutput = 1f; // gain on the spilling graph's output: 1, or fading to 0 with spillover off
+    bool tailCut; // spillover off: the old graph fades out with the swap instead of ringing out
     long tailAge;
     long tailQuietFor;
     readonly Lock postLock = new();
@@ -94,8 +117,14 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     /// </summary>
     public ParamBank Rig { get; }
 
-    /// <summary>The global output EQ (block id <c>global</c>), applied to every preset.</summary>
-    public GraphicEqBlock GlobalEq { get; } = new();
+    /// <summary>Output 1's global EQ (block id <c>global</c>), applied to every preset.</summary>
+    public GraphicEqBlock GlobalEq => outputEqs[0];
+
+    /// <summary>
+    ///     The cab resonance helper's sine: the host points it at a block of the running graph, whose output it then
+    ///     replaces. Never part of a preset.
+    /// </summary>
+    public TestTone TestTone { get; } = new();
 
     /// <summary>The rig looper at the end of the chain, once <see cref="EnableLooper" /> has allocated it.</summary>
     public Looper? RigLooper => Volatile.Read(ref looper);
@@ -133,6 +162,12 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     /// </summary>
     public HardwareLoop HardwareLoop { get; } = new();
 
+    /// <summary>
+    ///     The device's input sources (Input 1–4, USB 5/6 and 7/8). Pass it to the <see cref="Graph.GraphCompiler" /> so
+    ///     blocks with a hardware input choice reach them.
+    /// </summary>
+    public HardwareInputs Inputs { get; } = new();
+
     public SampleRing InputTap { get; } = new(16_384);
 
     /// <summary>Any thread: start or stop feeding <see cref="InputTap" />.</summary>
@@ -149,6 +184,9 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         get => Volatile.Read(ref telemetry);
         set => Volatile.Write(ref telemetry, value);
     }
+
+    /// <summary>The output's BS.1770 loudness (momentary and short-term), measured after the global EQ.</summary>
+    public LoudnessMeter Loudness => loudness;
 
     /// <summary>True while a replaced graph is still ringing out under the current one.</summary>
     public bool IsSpilling => Volatile.Read(ref tail) is not null;
@@ -168,8 +206,19 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         Rig.SnapToTargets();
         modulation = new(Rig, spec.SampleRate);
         metronome = new(spec.SampleRate);
-        GlobalEq.Prepare(spec);
+        foreach (var eq in outputEqs) {
+            eq.Prepare(spec);
+        }
+
+        loudness = new(spec.SampleRate);
+        graphOutputs = new(spec.MaxBlockSize);
+        tailOutputs = new(spec.MaxBlockSize);
+        gainedLeft = new(spec.MaxBlockSize);
+        gainedRight = new(spec.MaxBlockSize);
     }
+
+    /// <summary>Output <paramref name="output" />'s global EQ (0 = Output 1, block id <c>global</c>; 1-3 = <c>global2</c>..).</summary>
+    public GraphicEqBlock OutputEq(int output) => outputEqs[output];
 
     /// <summary>
     ///     Control thread, before audio starts: allocate the rig looper (60 s of stereo is about 46 MB at 48 kHz).
@@ -209,8 +258,16 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
 
         Interlocked.Exchange(ref tail, null)?.Dispose();
         looper?.Dispose();
-        GlobalEq.Dispose();
+        foreach (var eq in outputEqs) {
+            eq.Dispose();
+        }
+
+        graphOutputs.Dispose();
+        tailOutputs.Dispose();
+        gainedLeft.Dispose();
+        gainedRight.Dispose();
         HardwareLoop.Dispose();
+        Inputs.Dispose();
         tailInLeft.Dispose();
         tailInRight.Dispose();
         tailOutLeft.Dispose();
@@ -243,17 +300,29 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         if (pending is not null) {
             var previous = current;
             Volatile.Write(ref current, pending);
-            // A grid looper belongs to its preset: the outgoing one stops (it fades out in the spillover), and a
-            // preset that brings its own looper stops the rig's, which no longer gets the transport.
-            previous?.Looper?.Apply(LooperAction.Stop);
+            // A grid loop moves on to the next preset when that has a Looper block too, and keeps playing; otherwise it
+            // belongs to its preset and stops (fading out in the spillover). A preset that brings its own looper stops
+            // the rig's, which no longer gets the transport.
+            var handedOver = previous?.LooperBlock is { } outgoing
+                && outgoing.Looper is { State: not LooperState.Empty }
+                && pending.LooperBlock is { } incoming
+                && incoming.TakeLoop(outgoing);
+            if (!handedOver) {
+                previous?.Looper?.Apply(LooperAction.Stop);
+            }
+
             if (pending.Looper is not null) {
                 looper?.Apply(LooperAction.Stop);
             }
 
             if (previous is not null) {
+                previous.Inputs?.FadeOut(); // like the grid input below, the hardware inputs fade out of the old graph
                 // The old graph spills over under the new one; a graph still spilling from an earlier swap retires now.
+                // With spillover off it only fades out over the swap, a clean cut without tails.
                 Retire(Interlocked.Exchange(ref tail, previous));
                 tailInput = 1f;
+                tailOutput = 1f;
+                tailCut = Rig.GetTarget(spilloverIndex) < 0.5f;
                 tailAge = 0;
                 tailQuietFor = 0;
                 swapGain = 0f;
@@ -265,6 +334,11 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         }
 
         HardwareLoop.BeginCallback(io.ReturnLeft, io.ReturnRight, io.Frames);
+        Inputs.BeginCallback(io.InputLeft, io.InputRight, io.Sources, io.SourceMask, io.Frames);
+        var bus = io.Outputs;
+        if (bus is not null) {
+            BeginOutputs(io, bus);
+        }
 
         var graph = current;
         while (commands.TryDequeue(out var command)) {
@@ -278,8 +352,9 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
             var maxBlock = Spec.MaxBlockSize;
             for (var offset = 0; offset < io.Frames; offset += maxBlock) {
                 var length = Math.Min(maxBlock, io.Frames - offset);
-                var slice = io.Slice(offset, length);
+                var slice = Gained(io.Slice(offset, length));
                 HardwareLoop.Offset = offset;
+                Inputs.Offset = offset;
                 modulation.Advance(slice.InputLeft, sampleTime);
                 var context = new BlockContext(
                     Spec.SampleRate,
@@ -287,10 +362,18 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                     sampleTime,
                     HeldNotes,
                     Rig.GetTarget(effectsMixIndex),
-                    Rig.GetTarget(gateOffsetIndex)
+                    Rig.GetTarget(gateOffsetIndex),
+                    Rig.GetTarget(cabsOffIndex) >= 0.5f,
+                    Rig.GetTarget(calibrationIndex)
                 );
+                FindActiveOutputs(graph, bus);
+                graphOutputs.Clear(length);
                 graph.ApplyModifiers(modulation, length);
-                graph.Process(slice, context);
+                if (offset == 0) {
+                    graph.ClearPeaks();
+                }
+
+                graph.Process(slice, context, graphOutputs);
                 if (graph.Analyzer is { } analyzer) {
                     var tapped = analyzer.Take();
                     if (!tapped.IsEmpty && Volatile.Read(ref telemetry) is { } analysis) {
@@ -299,19 +382,49 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                 }
 
                 if (swapGain < 1f) {
-                    swapGain = Ramp(slice.OutputLeft, slice.OutputRight, swapGain, 1f);
+                    var from = swapGain;
+                    swapGain = Ramp(slice.OutputLeft, slice.OutputRight, from, 1f);
+                    for (var k = 1; k < Outputs; k++) {
+                        if (active[k]) {
+                            Ramp(graphOutputs.Left(k, length), graphOutputs.Right(k, length), from, 1f);
+                        }
+                    }
                 }
 
                 if (tail is not null) {
                     Spill(slice, context);
                 }
 
-                levelGain = RampTo(slice.OutputLeft, slice.OutputRight, levelGain, modulation.LevelGain);
+                var level = levelGain;
+                levelGain = RampTo(slice.OutputLeft, slice.OutputRight, level, modulation.LevelGain);
+                for (var k = 1; k < Outputs; k++) {
+                    if (active[k]) {
+                        RampTo(graphOutputs.Left(k, length), graphOutputs.Right(k, length), level, levelGain);
+                    }
+                }
+
                 looper?.Process(slice.OutputLeft, slice.OutputRight);
-                GlobalEq.Process(new(slice.OutputLeft, slice.OutputRight), context);
+                if (active[1] && copyToSecond) {
+                    slice.OutputLeft.CopyTo(graphOutputs.Left(1, length));
+                    slice.OutputRight.CopyTo(graphOutputs.Right(1, length));
+                }
+
+                FinishOutput(0, slice.OutputLeft, slice.OutputRight, context);
+                loudness.Process(slice.OutputLeft, slice.OutputRight);
                 if (Rig.Current(metronomeIndex) >= 0.5f) {
                     var click = MathF.Pow(10f, Rig.GetTarget(metroLevelIndex) / 20f);
                     metronome.Process(slice.OutputLeft, slice.OutputRight, sampleTime, modulation.Tempo, click);
+                }
+
+                for (var k = 1; k < Outputs; k++) {
+                    if (active[k]) {
+                        var auxLeft = graphOutputs.Left(k, length);
+                        var auxRight = graphOutputs.Right(k, length);
+                        FinishOutput(k, auxLeft, auxRight, context);
+                        auxLeft.CopyTo(bus!.Left(k).Slice(offset, length));
+                        auxRight.CopyTo(bus.Right(k).Slice(offset, length));
+                        outputPeak[k] = Math.Max(outputPeak[k], Math.Max(Peak(auxLeft), Peak(auxRight)));
+                    }
                 }
 
                 Volatile.Write(ref sampleTime, sampleTime + length);
@@ -326,14 +439,118 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         var left = Peak(io.OutputLeft);
         var right = Peak(io.OutputRight);
         UpdateMeters(input, left, right);
+        outputPeak[0] = Math.Max(outputPeak[0], Math.Max(left, right));
+        PublishOutputPeaks();
         var percent = Stats.Record(start, io.Frames, Spec.SampleRate);
         if (Volatile.Read(ref telemetry) is { } region) {
             region.WriteScope(io.OutputLeft);
-            region.RecordCallback(io.Frames, percent, input, left, right);
+            region.RecordCallback(
+                io.Frames,
+                percent,
+                input,
+                left,
+                right,
+                graph is null ? default : graph.BlockPeaks,
+                graph?.Generation ?? -1,
+                loudness.Momentary,
+                loudness.ShortTerm
+            );
         }
     }
 
-    /// <summary>Runs the replaced graph on a fading copy of the input and adds its output (the tails).</summary>
+    /// <summary>
+    ///     Control side: the peak of each output (Output 1, then Outputs 2-4, the larger of left and right, after the
+    ///     global EQ and Boost/Pad) since the previous call, into <paramref name="peaks" /> (at least four).
+    /// </summary>
+    public void ReadOutputPeaks(Span<float> peaks) {
+        for (var k = 0; k < Outputs; k++) {
+            peaks[k] = Volatile.Read(ref publishedPeak[k]);
+        }
+
+        Volatile.Write(ref outputPeakReset, 1);
+    }
+
+    /// <summary>The DI out (the input as the converter gave it) and silence on Outputs 2-4 until they are rendered.</summary>
+    static void BeginOutputs(in AudioIO io, OutputBus bus) {
+        var frames = io.Frames;
+        if (bus.HasDi) {
+            io.InputLeft.CopyTo(bus.DiLeft);
+            io.InputRight.CopyTo(bus.DiRight);
+        }
+
+        for (var k = 1; k < Outputs; k++) {
+            if (bus.IsMapped(k)) {
+                bus.Left(k)[..frames].Clear();
+                bus.Right(k)[..frames].Clear();
+            }
+        }
+    }
+
+    /// <summary>The sub-block with Input 1 Gain applied to its input (the DI out and the input meter are before it).</summary>
+    AudioIO Gained(in AudioIO slice) {
+        var length = slice.Frames;
+        var left = gainedLeft.Span[..length];
+        var right = gainedRight.Span[..length];
+        slice.InputLeft.CopyTo(left);
+        slice.InputRight.CopyTo(right);
+        var target = Decibels.ToGain(Rig.GetTarget(inputGainIndex));
+        GainRamp.Apply(left, inputGain, target);
+        GainRamp.Apply(right, inputGain, target);
+        inputGain = target;
+        return new(left, right, slice.OutputLeft, slice.OutputRight);
+    }
+
+    /// <summary>
+    ///     Which of Outputs 2-4 to render this sub-block: those the device plays that the running or spilling graph
+    ///     feeds, and Output 2 when it copies Output 1 (unless the grid has an Output 2 of its own).
+    /// </summary>
+    void FindActiveOutputs(CompiledGraph graph, OutputBus? bus) {
+        var spilling = tail;
+        copyToSecond = Rig.GetTarget(copyIndex) >= 0.5f && !graph.HasOutput(1);
+        for (var k = 1; k < Outputs; k++) {
+            active[k] = bus is not null
+                && bus.IsMapped(k)
+                && (graph.HasOutput(k) || spilling?.HasOutput(k) == true || (k == 1 && copyToSecond));
+        }
+    }
+
+    /// <summary>Output <paramref name="output" />'s mode, global EQ and Boost/Pad.</summary>
+    void FinishOutput(int output, Span<float> left, Span<float> right, in BlockContext context) {
+        switch ((int)Rig.GetTarget(modeIndex[output])) {
+            case RigControls.SumLeftRight:
+                for (var i = 0; i < left.Length; i++) {
+                    var mono = 0.5f * (left[i] + right[i]);
+                    left[i] = mono;
+                    right[i] = mono;
+                }
+
+                break;
+            case RigControls.CopyLeftToRight or RigControls.DualMono:
+                left.CopyTo(right);
+                break;
+        }
+
+        outputEqs[output].Process(new(left, right), context);
+        var trim = Decibels.ToGain(Rig.GetTarget(trimIndex[output]));
+        trims[output] = RampTo(left, right, trims[output], trim);
+    }
+
+    void PublishOutputPeaks() {
+        if (Volatile.Read(ref outputPeakReset) != 0) {
+            Volatile.Write(ref outputPeakReset, 0);
+            for (var k = 0; k < Outputs; k++) {
+                Volatile.Write(ref publishedPeak[k], outputPeak[k]);
+            }
+        } else {
+            for (var k = 0; k < Outputs; k++) {
+                Volatile.Write(ref publishedPeak[k], Math.Max(publishedPeak[k], outputPeak[k]));
+            }
+        }
+
+        Array.Clear(outputPeak);
+    }
+
+    /// <summary>Runs the replaced graph on a fading copy of the input and adds its outputs (the tails).</summary>
     void Spill(in AudioIO io, in BlockContext context) {
         var length = io.Frames;
         var inLeft = tailInLeft.Span[..length];
@@ -349,7 +566,18 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
             inRight.Clear();
         }
 
-        tail!.Process(new(inLeft, inRight, outLeft, outRight), context);
+        tailOutputs.Clear(length);
+        tail!.Process(new(inLeft, inRight, outLeft, outRight), context, tailOutputs);
+        var cutFrom = tailOutput;
+        if (tailCut) {
+            tailOutput = Ramp(outLeft, outRight, tailOutput, 0f);
+            for (var k = 1; k < Outputs; k++) {
+                if (active[k] && tail.HasOutput(k)) {
+                    Ramp(tailOutputs.Left(k, length), tailOutputs.Right(k, length), cutFrom, 0f);
+                }
+            }
+        }
+
         var peak = 0f;
         for (var i = 0; i < length; i++) {
             io.OutputLeft[i] += outLeft[i];
@@ -357,10 +585,23 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
             peak = Math.Max(peak, Math.Max(Math.Abs(outLeft[i]), Math.Abs(outRight[i])));
         }
 
+        for (var k = 1; k < Outputs; k++) {
+            if (active[k] && tail.HasOutput(k)) {
+                Add(tailOutputs.Left(k, length), graphOutputs.Left(k, length));
+                Add(tailOutputs.Right(k, length), graphOutputs.Right(k, length));
+            }
+        }
+
         tailAge += length;
         tailQuietFor = tailInput <= 0f && peak < TailSilence ? tailQuietFor + length : 0;
-        if (tailQuietFor >= tailQuiet || tailAge >= tailCap) {
+        if (tailQuietFor >= tailQuiet || tailAge >= tailCap || (tailCut && tailOutput <= 0f)) {
             Retire(Interlocked.Exchange(ref tail, null));
+        }
+    }
+
+    static void Add(ReadOnlySpan<float> source, Span<float> destination) {
+        for (var i = 0; i < source.Length; i++) {
+            destination[i] += source[i];
         }
     }
 
@@ -414,6 +655,9 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         switch (command.Kind) {
             case EngineCommandKind.SetBypass when graph is not null && command.Generation == graph.Generation:
                 graph.SetBypass(command.Slot, command.Value != 0f);
+                break;
+            case EngineCommandKind.SetModifier when graph is not null && command.Generation == graph.Generation:
+                graph.SetModifierEnabled(command.Slot, float.IsNaN(command.Value), command.Value);
                 break;
             case EngineCommandKind.TapTempo:
                 Tap(command.Time);

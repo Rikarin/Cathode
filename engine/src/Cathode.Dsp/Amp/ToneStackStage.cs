@@ -57,14 +57,15 @@ public sealed record ToneStackStageDesign(
 public sealed class ToneStackStage : AmpStage {
     const double Off = 1e-15;
 
-    readonly ToneStackNetwork stack;
+    ToneStackNetwork stack; // its design is the Tonestack Type's (the stock one by default)
     readonly PotDivider load;
     readonly int drivenProbe;
     readonly int gridProbe;
     readonly int cathodeProbe;
     readonly int cathodeIndex;
     RTypeRoot<Ports<ResistiveVoltageSource, Capacitor, Capacitor, Capacitor, Capacitor, Capacitor>, FastTriode> root;
-    TriodeModel tube;
+    TriodeModel tube; // as the operating point sees it (with the hardness)
+    PreampSettings applied = PreampSettings.Stock;
     double cathodeResistor;
     double brightScale = 1;
     double stackScale = 1;
@@ -83,7 +84,7 @@ public sealed class ToneStackStage : AmpStage {
     public override double OutputResistance {
         get {
             var a = load.Pot.Fraction(rotation);
-            return a * (1 - a) * load.Pot.Ohms + a * a * Design.Stack.SlopeResistor;
+            return a * (1 - a) * load.Pot.Ohms + a * a * stack.Design.SlopeResistor;
         }
     }
 
@@ -174,9 +175,9 @@ public sealed class ToneStackStage : AmpStage {
     public override void SetSampleRate(double sampleRate) {
         this.sampleRate = sampleRate;
         root.Ports.B.Configure(Design.CathodeBypass > 0 ? Design.CathodeBypass : 1e-9, sampleRate);
-        root.Ports.C.Configure(Design.Stack.TrebleCap / stackScale, sampleRate);
-        root.Ports.D.Configure(Design.Stack.BassCap / stackScale, sampleRate);
-        root.Ports.E.Configure(Design.Stack.MiddleCap / stackScale, sampleRate);
+        root.Ports.C.Configure(stack.Design.TrebleCap / stackScale, sampleRate);
+        root.Ports.D.Configure(stack.Design.BassCap / stackScale, sampleRate);
+        root.Ports.E.Configure(stack.Design.MiddleCap / stackScale, sampleRate);
         root.Ports.F.Configure(bright && Design.BrightCap > 0 ? Design.BrightCap * brightScale : Off, sampleRate);
         root.Propagate();
     }
@@ -227,18 +228,30 @@ public sealed class ToneStackStage : AmpStage {
     }
 
     public override void Apply(in PreampSettings settings) {
-        var model = settings.TubeFor(Design.Tube);
-        if (model != tube) {
-            tube = model;
-            root.Device = new(model);
+        var follower = Design.Driver == StackDriver.CathodeFollower;
+        var previous = applied;
+        applied = settings;
+        if (settings.ChangesDevices(previous) || settings.FollowerGrid != previous.FollowerGrid) {
+            var model = settings.TubeFor(Design.Tube);
+            root.Device = new(model, settings.Hardness, follower ? settings.FollowerGrid : settings.GridCurrent);
         }
 
-        var rk = Design.CathodeResistor * settings.CathodeResistor;
-        if (settings.BrightCap == brightScale && settings.StackFrequency == stackScale && rk == cathodeResistor) {
+        tube = settings.Law(Design.Tube);
+        var design = settings.Stack ?? Design.Stack;
+        var substituted = design != stack.Design;
+        if (substituted) {
+            stack = stack with { Design = design };
+            root.SetResistance(stack.SlopeResistor, design.SlopeResistor);
+            bass = double.NaN; // the pots are the new stack's: recompute them on the next update
+        }
+
+        var rk = Design.CathodeResistor * settings.CathodeResistor * (follower ? settings.FollowerBias : 1);
+        var brightCap = Design.LoadRole == PotRole.Master ? settings.MasterCap : settings.BrightCap;
+        if (!substituted && brightCap == brightScale && settings.StackFrequency == stackScale && rk == cathodeResistor) {
             return;
         }
 
-        brightScale = settings.BrightCap;
+        brightScale = brightCap;
         stackScale = settings.StackFrequency;
         cathodeResistor = rk;
         root.SetResistance(cathodeIndex, rk);

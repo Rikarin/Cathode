@@ -17,7 +17,9 @@ public sealed record AmpPanel {
     static readonly string[] TubeOnly = [
         "bias", "feedback", "pretube", "brightcap", "prebias", "presag", "powertube", "xfmrmatch", "xfmrlf", "xfmrhf",
         "xfmrdrive", "speaker", "spkres", "spkq", "spkpeak", "spkhf", "spkimp", "presfreq", "depthfreq", "supply",
-        "rectifier", "katc", "tremrate", "tremdepth"
+        "rectifier", "katc", "tremrate", "tremdepth", "pthard", "prehard", "t1plate", "t2plate", "cfcomp", "cfharm",
+        "prebiasx", "pibiasx", "ptbiasx", "ptbiastime", "ptrecovery", "masterbiasx", "suppressor", "mvloc", "mvcap",
+        "screenfreq", "screenq", "stacktype"
     ];
 
     /// <summary>Every standard knob under its usual name, no model-specific controls.</summary>
@@ -40,6 +42,15 @@ public sealed record AmpPanel {
     public string? Master { get; init; } = "Master";
 
     public string? Bright { get; init; } = "Bright";
+
+    /// <summary>
+    ///     The name of the Circuit Amp's tremolo rate on a model with a tremolo of its own ("Speed"); null keeps the
+    ///     generic bias tremolo's name.
+    /// </summary>
+    public string? TremoloRate { get; init; }
+
+    /// <summary>The tremolo depth's name on a model with a tremolo of its own ("Intensity", "Depth").</summary>
+    public string? TremoloDepth { get; init; }
 
     /// <summary>A model-specific switch (<see cref="SwitchRole.Switch1" />).</summary>
     public string? Switch1 { get; init; }
@@ -65,6 +76,9 @@ public sealed record AmpPanel {
     /// </summary>
     public bool HasTubes { get; init; } = true;
 
+    /// <summary>Whether one of the model's own switches is called <paramref name="name" />.</summary>
+    public bool HasSwitch(string name) => Switch1 == name || Switch2 == name || Switch3 == name;
+
     /// <summary>
     ///     The label of the Circuit Amp parameter <paramref name="id" /> on this panel: its name, null where absent, or
     ///     <paramref name="fallback" /> for a parameter the panel does not cover (the expert parameters).
@@ -87,6 +101,8 @@ public sealed record AmpPanel {
                 "switch3" => Switch3,
                 "control1" => Control1,
                 "control2" => Control2,
+                "tremrate" => TremoloRate ?? fallback,
+                "tremdepth" => TremoloDepth ?? fallback,
                 ['e', 'q', var band] when band is >= '1' and <= '5' => Equalizer is { } bands
                     && band - '1' < bands.Count
                         ? bands[band - '1']

@@ -22,7 +22,8 @@ namespace Cathode.Dsp.Blocks;
 ///         As in the Cab block, the slots are baked into one left and one right IR on the control thread (in
 ///         <see cref="IDspBlock.Prepare" /> and <see cref="Refresh" />) and crossfaded in by
 ///         <see cref="CabIrSwitcher" />, so the block convolves twice whatever the slots. Input Select feeds the IRs
-///         the stereo input, its sum, or one side.
+///         the stereo input, its sum, or one side. With the global cab modelling off (<see cref="BlockContext.CabsOff" />)
+///         the block passes audio through untouched, as the Cab does.
 ///     </para>
 /// </remarks>
 public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh {
@@ -59,11 +60,11 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
     public const int InputLeft = 2;
     public const int InputRight = 3;
 
-    /// <summary>Longest IR kept, in samples at the engine rate (about 680 ms at 48 kHz).</summary>
-    public const int MaxIrLength = 32_768;
+    /// <summary>Longest IR kept, in samples at the engine rate (about 1.37 s at 48 kHz, as the Cab's FullRes).</summary>
+    public const int MaxIrLength = CabBlock.MaxIrLength;
 
     /// <summary>A slot's Length at or above this keeps the whole IR.</summary>
-    public const float FullLengthMs = 680f;
+    public const float FullLengthMs = CabBlock.FullLengthMs;
 
     /// <summary>Fade at a Length cut, samples.</summary>
     const int LengthFade = 64;
@@ -81,11 +82,14 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
     bool ready;
     volatile bool playing;
     bool disposed;
+    bool cabsOff;
     NativeBuffer mixLeft = NativeBuffer.Empty;
     NativeBuffer mixRight = NativeBuffer.Empty;
     NativeBuffer scratch = NativeBuffer.Empty;
     NativeBuffer wetLeft = NativeBuffer.Empty;
     NativeBuffer wetRight = NativeBuffer.Empty;
+    NativeBuffer bypassLeft = NativeBuffer.Empty;
+    NativeBuffer bypassRight = NativeBuffer.Empty;
     SeriesConvolution? series;
     CutState lowCutLeft, lowCutRight, highCutLeft, highCutRight;
     float mix;
@@ -130,7 +134,11 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
             ..Slot(1),
             ..Slot(2)
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new("Basic", ["input", "mode", "length1", "level1", "pan1", "length2", "level2", "pan2"]),
+            new("EQ", ["lowcut", "lowslope", "highcut", "highslope"])
+        ]
     );
 
     public IReadOnlyList<string> AssetSlots => SlotAssets;
@@ -333,6 +341,10 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
             scratch = new(2 * MaxIrLength);
             wetLeft = new(spec.MaxBlockSize);
             wetRight = new(spec.MaxBlockSize);
+            bypassLeft.Dispose();
+            bypassRight.Dispose();
+            bypassLeft = new(spec.MaxBlockSize);
+            bypassRight = new(spec.MaxBlockSize);
             for (var s = 0; s < Slots; s++) {
                 prepared[s] = files[s]?.Prepare(spec.SampleRate, Shape);
             }
@@ -351,10 +363,44 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
         highCutLeft.Reset();
         highCutRight.Reset();
         mix = Params.Current(Mix) / 100f;
+        cabsOff = false;
         output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
+        // Cab modelling off: pass through, crossfading over the callback where it changes (as the Cab does).
+        var off = context.CabsOff;
+        if (off && cabsOff) {
+            return;
+        }
+
+        var changing = off != cabsOff;
+        if (changing) {
+            io.Left.CopyTo(bypassLeft.Span);
+            io.Right.CopyTo(bypassRight.Span);
+            if (!off) {
+                switcher.Reset();
+                lowCutLeft.Reset();
+                lowCutRight.Reset();
+                highCutLeft.Reset();
+                highCutRight.Reset();
+            }
+        }
+
+        Play(io);
+        if (changing) {
+            var step = 1f / io.Length;
+            for (var i = 0; i < io.Length; i++) {
+                var wet = off ? 1f - (i + 1) * step : (i + 1) * step;
+                io.Left[i] = bypassLeft[i] + (io.Left[i] - bypassLeft[i]) * wet;
+                io.Right[i] = bypassRight[i] + (io.Right[i] - bypassRight[i]) * wet;
+            }
+
+            cabsOff = off;
+        }
+    }
+
+    void Play(in StereoBuffer io) {
         var mix = Params.Advance(Mix, io.Length) / 100f;
         var lowCut = Params.Advance(LowCut, io.Length);
         var highCut = Params.Advance(HighCut, io.Length);
@@ -416,6 +462,8 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
                 scratch.Dispose();
                 wetLeft.Dispose();
                 wetRight.Dispose();
+                bypassLeft.Dispose();
+                bypassRight.Dispose();
             }
         }
 

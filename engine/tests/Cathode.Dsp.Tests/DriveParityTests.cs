@@ -10,7 +10,7 @@ public class DriveParityTests {
     const double Rate = 48_000;
 
     /// <summary>Clip Type None: the Distortion voicing is then a linear chain, so EQ responses can be measured.</summary>
-    const float Clean = 8f;
+    const float Clean = (float)ClipperShape.Linear + 1;
 
     [Theory]
     [InlineData(DriveBlock.Bass, BiquadType.LowShelf, 100f)]

@@ -151,7 +151,28 @@ public sealed class MegatapBlock() : DspBlock(Info) {
             EffectsMix.Param
         ],
         maxInstances: 2,
-        channels: 2
+        channels: 2,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "time", "tempo", "taps", "preDelay", "feedback", "feedbackTap", "spread", "lowCut", "highCut"
+                ]
+            ),
+            new(
+                "Shape",
+                [
+                    "timeAlpha", "timeRandom", "levelShape", "levelAlpha", "levelRandom", "panShape", "panAlpha"
+                ]
+            ),
+            new("Diffusion", ["diffusionMix", "diffusionTime", "diffusionRate", "diffusionDepth"]),
+            new(
+                "Advanced",
+                [
+                    "envelopeThreshold", "envelopeAttack", "envelopeRelease", "inputGain", "inputSelect", "globalMix"
+                ]
+            )
+        ]
     );
 
     /// <summary>The fraction of Time at which tap <paramref name="k" /> (0-based) of <paramref name="taps" /> sits.</summary>

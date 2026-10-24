@@ -1,11 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
-import type { AssetInfo, ParameterInfo, PresetBlock } from '@cathode/api-client';
-import { type ConeMove, CthSpeakerCone, MicColors } from '@cathode/audio-ui';
+import { type AssetInfo, type ParameterInfo, type PresetBlock, unwrap } from '@cathode/api-client';
+import { type ConeMove, CthMeter, CthSpeakerCone, MicColors, onAnimationFrame } from '@cathode/audio-ui';
 import { XuiButtonImports } from '@xui/button';
 import { XuiCalloutImports } from '@xui/callout';
 import { XuiEChartImports } from '@xui/echarts';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import type { EChartsOption } from 'echarts';
+import { ConnectionService } from '../../core/connection';
+import { EventStream } from '../../core/events';
+import { Notify } from '../../core/notify';
 import { decodeWav, impulseResponseDb, logFrequencies } from '../../dsp/response';
 import { CatalogStore } from '../../state/catalog.store';
 import { LibraryStore } from '../../state/library.store';
@@ -18,20 +21,27 @@ import {
   Source,
   coneMics,
   cutsDb,
+  delayLabel,
   isAudible,
   isMuted,
   relativeLevelsDb,
   slotAsset,
   slotParamId,
   sourceOf,
+  takesFile,
   unmuteOnEdit
 } from './cab';
+import { CabAlign } from './cab-align';
 
 const Choices: readonly SlotKey[] = ['cab', 'speaker', 'mic'];
 const Placement: readonly SlotKey[] = ['position', 'distance', 'angle'];
 const PackPlacement: readonly SlotKey[] = ['position', 'distance'];
 const Filters: readonly SlotKey[] = ['lowcut', 'lowslope', 'highcut', 'highslope', 'length'];
+/** A DynaCab's Distance sets its proximity, so it shows smoothing alone. */
+const Shaping: readonly SlotKey[] = ['proximity', 'proxfreq', 'smoothing'];
 const Mixer: readonly SlotKey[] = ['level', 'pan', 'delay', 'mute', 'solo', 'invert'];
+/** Motor Drive's gain-reduction bar spans this many dB. */
+const ReductionSpanDb = 12;
 const Frequencies = logFrequencies(160);
 
 /** Decoded responses are cached per asset: an IR never changes under its hash. */
@@ -39,18 +49,23 @@ const responses = new Map<string, Promise<number[]>>();
 
 /**
  * The Cab's four slots, as the Axe-Fx III mixes Legacy IRs and DynaCabs: pick Mic 1-4, then its Source (an IR file, a
- * modelled DynaCab cab, speaker and mic, or the user's multi-position IR pack), its placement on the speaker cone and
- * its mixer controls. DynaCab and IR Pack slots are dragged across the cone (cap to edge) and away from the grille; IR
- * and IR Pack slots take a file. Each slot has its own cuts and IR length, and a relative level (the slots' levels set
- * the blend). Editing a muted slot unmutes it, so the edit is heard. The plot shows the IR files' responses with their
- * levels and the block's cuts; the global controls (input, air, mic preamp and its tone, master cuts, proximity and its
- * frequency, the room page, auto delay, smoothing, level) stay on the rack below.
+ * modelled DynaCab cab, speaker and mic, the user's multi-position IR pack, or Flat), its placement on the speaker cone
+ * and its mixer controls. DynaCab and IR Pack slots are dragged across the cone (cap to edge) and away from the grille;
+ * IR and IR Pack slots take a file. Each slot has its own cuts, IR length, proximity (not on a DynaCab, whose Distance
+ * sets it) and smoothing, a delay shown as time and mic distance, Auto-Align on the modelled slots, and a relative
+ * level (the slots' levels set the blend). Editing a muted slot unmutes it, so the edit is heard. Above the slot: the
+ * preamp's input meter (0 dB is where the chosen type starts to clip), Motor Drive's gain reduction, and exporting the
+ * block's mixed IR as a file or into the IR library. The plot shows the IR files' responses with their levels and the
+ * block's cuts; the global controls (input, Motor Drive, air, mic preamp and its tone, master cuts, the room page,
+ * level) stay on the rack below.
  */
 @Component({
   selector: 'cth-cab-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AssetPicker,
+    CthMeter,
+    CabAlign,
     CthSpeakerCone,
     ParamControl,
     XuiButtonImports,
@@ -73,7 +88,17 @@ const responses = new Map<string, Promise<number[]>>();
             (selectedChange)="selected.set($event)"
           />
         </div>
-        @if (plotted()) {
+        <xui-segmented-control
+          size="sm"
+          aria-label="Cab view"
+          data-testid="cab-view"
+          [options]="viewOptions"
+          [value]="view()"
+          (valueChange)="view.set($event ?? 'response')"
+        />
+        @if (view() === 'align') {
+          <cth-cab-align [block]="block()" [selected]="selected()" (selectedChange)="selected.set($event)" />
+        } @else if (plotted()) {
           <xui-echart
             class="h-48 w-full"
             aria-label="IR frequency response"
@@ -84,6 +109,43 @@ const responses = new Map<string, Promise<number[]>>();
       </div>
 
       <div class="flex min-w-80 flex-1 flex-col gap-4">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2" data-testid="cab-meters">
+          <span class="text-foreground-muted text-xs">Preamp in</span>
+          <cth-meter
+            class="w-32"
+            orientation="horizontal"
+            label="Preamp input, 0 dB at the onset of clipping"
+            [sources]="preampSources"
+          />
+          <span class="text-foreground-muted text-xs">Motor</span>
+          <div
+            class="bg-surface-sunken ring-border h-1.5 w-20 overflow-hidden rounded-full ring-1 ring-inset"
+            role="meter"
+            aria-label="Motor Drive gain reduction"
+            aria-valuemin="0"
+            [attr.aria-valuemax]="reductionSpan"
+            [attr.aria-valuenow]="reduction()"
+          >
+            <div class="bg-warning h-full" [style.width.%]="reductionPercent()"></div>
+          </div>
+          <span class="text-foreground-muted w-14 text-xs tabular-nums">-{{ reduction() }} dB</span>
+          <span class="flex-1"></span>
+          <button xuiButton size="sm" variant="ghost" type="button" data-testid="cab-export" (click)="exportIr()">
+            Export IR
+          </button>
+          <button
+            xuiButton
+            size="sm"
+            variant="outline"
+            type="button"
+            data-testid="cab-save-ir"
+            [loading]="saving()"
+            (click)="saveIr()"
+          >
+            Save as IR
+          </button>
+        </div>
+
         <div class="flex flex-wrap items-center gap-3">
           <xui-segmented-control
             size="sm"
@@ -116,7 +178,7 @@ const responses = new Map<string, Promise<number[]>>();
           }
         </div>
 
-        @if (source() !== Source.dynaCab) {
+        @if (takesFile(source())) {
           <cth-asset-picker
             data-testid="cab-asset"
             [label]="assetLabel()"
@@ -131,7 +193,7 @@ const responses = new Map<string, Promise<number[]>>();
         }
 
         <div class="flex flex-wrap gap-x-3 gap-y-5" role="group" aria-label="Slot filters">
-          @for (key of filters; track key) {
+          @for (key of filters(); track key) {
             @if (param(key); as p) {
               <cth-param-control [block]="block()" [param]="p" [accent]="color()" (edited)="edited(key)" />
             }
@@ -139,12 +201,15 @@ const responses = new Map<string, Promise<number[]>>();
         </div>
 
         <div class="flex flex-wrap gap-x-3 gap-y-5">
-          @for (key of mixer; track key) {
+          @for (key of mixer(); track key) {
             @if (param(key); as p) {
               <cth-param-control [block]="block()" [param]="p" [accent]="color()" (edited)="edited(key)" />
             }
           }
         </div>
+        <p class="text-foreground-muted text-xs tabular-nums" data-testid="cab-delay">
+          Delay {{ delay() }}{{ unaligned() ? ', plus the mic’s distance (Auto-Align off)' : '' }}
+        </p>
       </div>
     </div>
   `
@@ -153,13 +218,30 @@ export class CabPanel {
   protected readonly live = inject(LiveStore);
   protected readonly library = inject(LibraryStore);
   private readonly catalog = inject(CatalogStore);
+  private readonly events = inject(EventStream);
+  private readonly connection = inject(ConnectionService);
+  private readonly notify = inject(Notify);
 
   readonly block = input.required<PresetBlock>();
 
   protected readonly Source = Source;
-  protected readonly filters = Filters;
-  protected readonly mixer = Mixer;
+  protected readonly takesFile = takesFile;
+  protected readonly reductionSpan = ReductionSpanDb;
   protected readonly selected = signal(0);
+  protected readonly saving = signal(false);
+
+  /** The preamp's input level as a linear peak for the meter: its 0 dB mark is the type's onset of clipping. */
+  protected readonly preampSources = [() => 10 ** (this.meter('preampIn', -96) / 20)];
+
+  /** Motor Drive's gain reduction, dB, to one decimal: read from telemetry on animation frames. */
+  protected readonly reduction = signal(0);
+  protected readonly reductionPercent = computed(() => Math.min(100, (this.reduction() / ReductionSpanDb) * 100));
+  /** The plot under the cone: the IR files' responses, or the Align page (every slot's onset in time). */
+  protected readonly view = signal<'response' | 'align'>('response');
+  protected readonly viewOptions = [
+    { label: 'Response', value: 'response' as const },
+    { label: 'Align', value: 'align' as const }
+  ];
   protected readonly loading = signal(false);
   private readonly measured = signal<Partial<Record<string, number[]>>>({});
 
@@ -180,6 +262,24 @@ export class CabPanel {
 
   protected readonly source = computed(() => sourceOf(this.selected(), this.value()));
   protected readonly muted = computed(() => isMuted(this.selected(), this.value()));
+
+  /** The cuts and IR length, then proximity (not on a DynaCab, whose Distance sets it) and smoothing. */
+  protected readonly filters = computed<readonly SlotKey[]>(() => [
+    ...Filters,
+    ...(this.source() === Source.dynaCab ? Shaping.slice(2) : Shaping)
+  ]);
+
+  /** The mixer, plus Auto-Align on the slots that have a mic distance to align (DynaCab and IR pack). */
+  protected readonly mixer = computed<readonly SlotKey[]>(() =>
+    this.source() === Source.dynaCab || this.source() === Source.pack ? [...Mixer, 'align'] : Mixer
+  );
+
+  protected readonly delay = computed(() => delayLabel(this.value()(slotParamId(this.selected(), 'delay'))));
+  protected readonly unaligned = computed(
+    () =>
+      (this.source() === Source.dynaCab || this.source() === Source.pack) &&
+      this.value()(slotParamId(this.selected(), 'align')) < 0.5
+  );
 
   /** Mic 1-4, with each slot's state, so a muted slot is plain before it is picked. */
   protected readonly slotOptions = computed(() => {
@@ -262,6 +362,44 @@ export class CabPanel {
       const assets = this.block().assets;
       void this.measure(this.irSlots().map(slot => assets[slotAsset(slot)]!));
     });
+    onAnimationFrame(() => {
+      const reduction = Math.round(this.meter('motorReduction', 0) * 10) / 10;
+      if (reduction !== this.reduction()) {
+        this.reduction.set(reduction);
+      }
+    });
+  }
+
+  /** Downloads the block's current mixed IR (every slot that plays, cuts and smoothing baked in) as a .wav. */
+  protected exportIr(): void {
+    const id = this.block().id;
+    void this.library.download(`/api/v1/live/blocks/${encodeURIComponent(id)}/ir`, `${id}.wav`);
+  }
+
+  /** Saves the block's current mixed IR into the asset store, to load in any IR slot. */
+  protected async saveIr(): Promise<void> {
+    const id = this.block().id;
+    const stamp = new Date().toISOString().slice(0, 19).replace('T', ' ').replaceAll(':', '.');
+    this.saving.set(true);
+    const asset = await this.notify.run(async () =>
+      unwrap(
+        await this.connection.client.POST('/api/v1/live/blocks/{id}/ir', {
+          params: { path: { id } },
+          body: { name: `${id} mix ${stamp}` }
+        })
+      )
+    );
+    this.saving.set(false);
+    if (asset) {
+      await this.library.refreshAssets();
+      this.notify.success(`Saved “${asset.name}”: pick it in an IR slot.`);
+    }
+  }
+
+  /** One of the block's own meters from the latest telemetry, dB, or `fallback` before any arrives. */
+  private meter(id: string, fallback: number): number {
+    const block = this.block().id;
+    return this.events.latest?.blockMeters?.find(b => b.block === block)?.meters[id] ?? fallback;
   }
 
   protected param(key: SlotKey): ParameterInfo | undefined {
@@ -296,9 +434,9 @@ export class CabPanel {
     this.edited('asset', slot);
   }
 
-  /** Whether a slot's source has something to play: a DynaCab always, an IR or IR pack once it has a file. */
+  /** Whether a slot's source has something to play: a DynaCab or Flat always, an IR or IR pack once it has a file. */
   private plays(slot: number): boolean {
-    return sourceOf(slot, this.value()) === Source.dynaCab || this.block().assets[slotAsset(slot)] !== undefined;
+    return !takesFile(sourceOf(slot, this.value())) || this.block().assets[slotAsset(slot)] !== undefined;
   }
 
   private assetInfo(slot: number): AssetInfo | undefined {

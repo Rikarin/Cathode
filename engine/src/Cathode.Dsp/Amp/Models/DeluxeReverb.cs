@@ -48,7 +48,7 @@ public static class DeluxeReverb {
                 BrightSwitch: SwitchRole.Switch1
             ),
             Ab763.SecondStage(280),
-            Ab763.Mixer(280)
+            Ab763.Mixer(280) with { Tremolo = Ab763.Vibrato(415) }
         ],
         new(
             "2 x 6V6GT",
@@ -83,7 +83,9 @@ public static class DeluxeReverb {
             Cut = null,
             Master = null,
             Bright = null,
-            Switch1 = "Vibrato Ch"
+            Switch1 = "Vibrato Ch",
+            TremoloRate = "Speed",
+            TremoloDepth = "Intensity"
         }
     };
 }

@@ -7,15 +7,11 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./pages/library-page').then(m => m.LibraryPage),
     title: 'Library · Cathode'
   },
+  { path: 'irs', redirectTo: () => '/library?view=cabs' },
   {
-    path: 'irs',
-    loadComponent: () => import('./pages/irs-page').then(m => m.IrsPage),
-    title: 'Impulse responses · Cathode'
-  },
-  {
-    path: 'setup',
-    loadComponent: () => import('./pages/setup-page').then(m => m.SetupPage),
-    title: 'Setup · Cathode'
+    path: 'scenes',
+    loadComponent: () => import('./pages/scene-manager').then(m => m.SceneManagerPage),
+    title: 'Scenes · Cathode'
   },
   {
     path: 'controllers',
@@ -26,6 +22,16 @@ export const appRoutes: Route[] = [
     path: 'global',
     loadComponent: () => import('./pages/global-page').then(m => m.GlobalPage),
     title: 'Global · Cathode'
+  },
+  {
+    path: 'perform',
+    loadComponent: () => import('./pages/perform-page').then(m => m.PerformPage),
+    title: 'Perform · Cathode'
+  },
+  {
+    path: 'manage',
+    loadComponent: () => import('./pages/manage-page').then(m => m.ManagePage),
+    title: 'Manage presets · Cathode'
   },
   { path: '**', redirectTo: '' }
 ];

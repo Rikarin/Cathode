@@ -314,6 +314,37 @@ public static class FactoryBlockPresets {
         P("compressor", "Studio Sustainer", ("type", 3), ("threshold", -40), ("ratio", 4), ("release", 300)),
         P(
             "compressor",
+            "JFET Compressor",
+            ("type", 6),
+            ("threshold", -24),
+            ("ratio", 8),
+            ("attack", 0.5f),
+            ("release", 100),
+            ("autoMakeup", 1)
+        ),
+        P(
+            "compressor",
+            "Tube Compressor",
+            ("type", 7),
+            ("threshold", -24),
+            ("ratio", 3),
+            ("attack", 20),
+            ("release", 400),
+            ("autoMakeup", 1)
+        ),
+        P(
+            "compressor",
+            "Compander",
+            ("type", 8),
+            ("threshold", -24),
+            ("ratio", 4),
+            ("expThreshold", -55),
+            ("expRatio", 2),
+            ("autoMakeup", 1)
+        ),
+        P("compressor", "Pedal 1", ("type", 0), ("controls", 1), ("compression", 60), ("attack", 5), ("autoMakeup", 1)),
+        P(
+            "compressor",
             "Optical",
             ("type", 2),
             ("threshold", -20),
@@ -473,6 +504,23 @@ public static class FactoryBlockPresets {
         P("dyndist", "Hard Clip Bloom", ("type", 1), ("drive", 6), ("dynamics", 50)),
         P("dyndist", "Asymmetric Crunch", ("type", 2), ("drive", 4), ("dynamics", 30)),
         P("dyndist", "Inverse (Softer Picks Dirtier)", ("type", 0), ("drive", 5), ("dynamics", -60)),
+        // The guide's types are settings of the frequency-shaped filter ahead of the clipper (paraphrased, not named).
+        P("dyndist", "Treble Edge", ("type", 0), ("drive", 4), ("filterType", 2), ("filterFreq", 2_500), ("filterGain", 12)),
+        P("dyndist", "Bass Bloom", ("type", 5), ("drive", 4), ("filterType", 1), ("filterFreq", 200), ("filterGain", 12)),
+        P(
+            "dyndist",
+            "Mid Honk",
+            ("type", 7),
+            ("drive", 5),
+            ("filterType", 3),
+            ("filterFreq", 900),
+            ("filterQ", 1.5f),
+            ("filterGain", 15)
+        ),
+        P("dyndist", "Fuzzy Octave", ("type", 8), ("drive", 7), ("dynamics", 40), ("bias", 20)),
+        P("dyndist", "Hot Plate", ("type", 11), ("drive", 6), ("filterType", 2), ("filterFreq", 1_500), ("filterGain", 6)),
+        P("dyndist", "Silicon Bite", ("type", 12), ("drive", 6), ("filterType", 3), ("filterFreq", 1_800), ("filterGain", 9)),
+        P("dyndist", "Screamer Push", ("type", 13), ("drive", 5), ("filterType", 3), ("filterFreq", 720), ("filterGain", 12)),
 
         // Drive: the circuits are types already; these are settings of them.
         P("drive", "Clean Boost", ("type", 22), ("drive", 2), ("tone", 5), ("level", 6)),

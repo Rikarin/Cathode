@@ -17,22 +17,34 @@ import {
   type PresetBlock,
   type PresetCable
 } from '@cathode/api-client';
-import { CthBlockTile } from '@cathode/audio-ui';
+import { CthBlockTile, CthMeter } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import {
   matAddRound,
   matCableRound,
   matContentCopyRound,
+  matContentCutRound,
   matContentPasteRound,
   matDeleteRound,
-  matPowerSettingsNewRound
+  matFindReplaceRound,
+  matLinkOffRound,
+  matPowerSettingsNewRound,
+  matPublicRound,
+  matSaveRound,
+  matSwapVertRound
 } from '@ng-icons/material-icons/round';
 import { XuiContextMenuImports } from '@xui/context-menu';
 import { XuiMenuImports } from '@xui/menu';
+import { EventStream } from '../core/events';
+import { ShortcutService } from '../shell/shortcuts';
+import { BlockFileExtension, BlockPresetsStore } from '../state/block-presets.store';
 import { CatalogStore } from '../state/catalog.store';
 import { LiveStore } from '../state/live.store';
+import { UiStore } from '../state/ui.store';
+import { abbreviate } from './block-info';
 import { BlockPicker } from './block-picker';
 import { Cell, type Point, cablePath, canConnect, cellOrigin, gridSize, inlet, nearestCell, outlet } from './geometry';
+import { monoHintText, monoHints } from './mono-hint';
 
 interface GridCell {
   key: string;
@@ -50,7 +62,7 @@ interface DrawnCable {
 }
 
 /** A block's type, parameters and assets, as copied to the clipboard. */
-interface CopiedBlock {
+export interface CopiedBlock {
   type: string;
   channels: PresetBlock['channels'];
   assets: PresetBlock['assets'];
@@ -60,24 +72,72 @@ const BlockMime = 'application/x-cathode-block';
 const MinScale = 0.6;
 const MaxScale = 2;
 
+function isIo(block: PresetBlock): boolean {
+  return block.type === BuiltInTypes.input || block.type === BuiltInTypes.output;
+}
+
+/** What pasting does on a cell: place a copy (empty or shunt), copy the settings across (same type), or nothing. */
+export function pasteAction(copied: CopiedBlock | null, target: PresetBlock | null): 'place' | 'settings' | null {
+  if (!copied) {
+    return null;
+  }
+
+  if (!target || target.type === BuiltInTypes.shunt) {
+    return 'place';
+  }
+
+  return target.type === copied.type ? 'settings' : null;
+}
+
+/**
+ * What dropping a dragged block on a cell does: onto an empty cell or a shunt it moves (⌥ copies), onto another
+ * block it swaps the two (⌘ replaces the target). The grid's Input and Output never copy or replace.
+ */
+export function dropAction(
+  dragged: PresetBlock,
+  target: PresetBlock | null,
+  keys: { altKey: boolean; metaKey: boolean; ctrlKey: boolean }
+): 'move' | 'copy' | 'swap' | 'replace' | null {
+  if (target?.id === dragged.id) {
+    return null;
+  }
+
+  if (!target || target.type === BuiltInTypes.shunt) {
+    return keys.altKey && !isIo(dragged) ? 'copy' : 'move';
+  }
+
+  if (keys.metaKey || keys.ctrlKey) {
+    return isIo(dragged) || isIo(target) ? null : 'replace';
+  }
+
+  return 'swap';
+}
+
 /**
  * The 6 x 14 grid (docs/02-architecture.md §7.3): CSS-positioned cells with an SVG cable layer. Keyboard: arrows move
- * the focus, Enter opens the block palette on an empty cell, Delete removes the focused block or selected cable,
- * B bypasses, ⌘C/⌘V copy and paste. Drag a block to move it (⌥ to copy); drag from a block's outlet to a block in
- * the next column to cable them.
+ * the focus and Enter opens the block palette on an empty cell; the block commands (cut, copy, paste, delete,
+ * disconnect, shunt, replace) are app-wide shortcuts that act on the focused cell (shell/shortcuts.ts). Drag a block
+ * to move it (⌥ copies), onto another to swap them (⌘ replaces); drag from a block's outlet to a block in the next
+ * column to cable them. Library files dropped on a cell are imported and recalled there.
  */
 @Component({
   selector: 'cth-grid-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BlockPicker, CthBlockTile, XuiContextMenuImports, XuiMenuImports],
+  imports: [BlockPicker, CthBlockTile, CthMeter, XuiContextMenuImports, XuiMenuImports],
   providers: [
     provideIcons({
       matAddRound,
       matCableRound,
       matContentCopyRound,
+      matContentCutRound,
       matContentPasteRound,
       matDeleteRound,
-      matPowerSettingsNewRound
+      matFindReplaceRound,
+      matLinkOffRound,
+      matPowerSettingsNewRound,
+      matPublicRound,
+      matSaveRound,
+      matSwapVertRound
     })
   ],
   host: { class: 'block' },
@@ -140,13 +200,45 @@ const MaxScale = 2;
                 [bypassed]="live.isBypassed(block.id)"
                 (dragstart)="dragStart($event, block)"
               >
-                @if (instance(block); as n) {
+                @if (ui.blockInfo()) {
+                  <span
+                    class="absolute inset-0 grid place-items-center bg-black/55 text-base font-bold tracking-wide"
+                    [attr.data-testid]="'info-' + block.id"
+                  >
+                    {{ abbreviation(block) }}
+                  </span>
+                  @if (block.global) {
+                    <span class="absolute bottom-1 left-1.5 rounded bg-white/85 px-1 text-[9px] font-bold text-black">
+                      GLOBAL
+                    </span>
+                  }
+                } @else if (instance(block); as n) {
                   <span class="absolute top-1 left-1.5 text-[10px] font-semibold opacity-80">{{ n }}</span>
                 }
                 @if (hasChannels(block)) {
-                  <span class="absolute top-1 right-1 rounded bg-black/35 px-1 text-[10px] font-semibold">
+                  <span
+                    class="absolute top-1 right-1 rounded px-1 text-[10px] font-semibold"
+                    [class]="ui.blockInfo() ? 'bg-white/85 text-black' : 'bg-black/35'"
+                  >
                     {{ live.channelOf(block.id) }}
                   </span>
+                }
+                <cth-meter
+                  class="pointer-events-none absolute right-1 bottom-0.5 left-1"
+                  orientation="horizontal"
+                  [attr.data-testid]="'meter-' + block.id"
+                  [label]="title(block) + ' output level'"
+                  [sources]="meterSources(block.id)"
+                />
+                @if (monoHint(block); as hint) {
+                  <span
+                    class="absolute right-1 bottom-3 rounded bg-amber-500/80 px-1 text-[9px] font-bold text-black"
+                    data-testid="mono-hint"
+                    role="img"
+                    [attr.title]="hint"
+                    [attr.aria-label]="hint"
+                    >MONO</span
+                  >
                 }
               </cth-block-tile>
             }
@@ -209,29 +301,74 @@ const MaxScale = 2;
     <ng-template #blockMenu>
       <xui-menu>
         @if (focusedBlock(); as block) {
-          <button
-            xuiMenuItem
-            icon="matPowerSettingsNewRound"
-            (click)="live.setBypass(block.id, !live.isBypassed(block.id))"
-          >
-            {{ live.isBypassed(block.id) ? 'Engage' : 'Bypass' }}<span menuItemLabel>B</span>
-          </button>
+          @if (!isIo(block) && block.type !== 'shunt') {
+            <button
+              xuiMenuItem
+              icon="matPowerSettingsNewRound"
+              (click)="live.setBypass(block.id, !live.isBypassed(block.id))"
+            >
+              {{ live.isBypassed(block.id) ? 'Engage' : 'Bypass' }}<span menuItemLabel>Space</span>
+            </button>
+          }
           @if (hasChannels(block)) {
             <xui-menu-divider title="Channel" />
-            @for (channel of channelNames; track channel) {
+            @for (channel of channelNames.slice(0, channelCount(block)); track channel) {
               <button
                 xuiMenuItem
                 [selected]="live.channelOf(block.id) === channel"
                 (click)="live.setChannel(block.id, channel)"
               >
-                Channel {{ channel }}
+                Channel {{ channel }}<span menuItemLabel>{{ channel }}</span>
               </button>
             }
           }
+          @if (!isIo(block) && block.type !== 'shunt') {
+            <xui-menu-divider title="All scenes" />
+            <button xuiMenuItem (click)="ui.allScenes({ bypassed: false }, block)">
+              Engage in all scenes<span menuItemLabel>⇧Space</span>
+            </button>
+            <button xuiMenuItem (click)="ui.allScenes({ bypassed: true }, block)">
+              Bypass in all scenes<span menuItemLabel>⇧⌘Space</span>
+            </button>
+          }
+          @if (hasChannels(block)) {
+            <button xuiMenuItem [xuiMenuTriggerFor]="allChannels" [xuiMenuTriggerData]="{ block }">
+              Channel in all scenes
+            </button>
+          }
           <xui-menu-divider />
-          <button xuiMenuItem icon="matContentCopyRound" (click)="copy(block)">
-            Copy<span menuItemLabel>⌘C</span>
+          @if (!isIo(block) && block.type !== 'shunt') {
+            <button xuiMenuItem icon="matContentCutRound" (click)="cut(block)">Cut<span menuItemLabel>⌘X</span></button>
+            <button xuiMenuItem icon="matContentCopyRound" (click)="copy(block)">
+              Copy<span menuItemLabel>⌘C</span>
+            </button>
+          }
+          @if (pasteAction(block) !== null) {
+            <button xuiMenuItem icon="matContentPasteRound" (click)="paste()">
+              {{ pasteAction(block) === 'settings' ? 'Paste settings (all channels)' : 'Paste' }}
+              <span menuItemLabel>⌘V</span>
+            </button>
+          }
+          @if (!isIo(block)) {
+            <button xuiMenuItem icon="matFindReplaceRound" (click)="openPalette(true)">
+              Replace with…<span menuItemLabel>Q</span>
+            </button>
+          }
+          <button xuiMenuItem icon="matLinkOffRound" (click)="live.disconnect(block.id)">
+            Disconnect all cables<span menuItemLabel>⌘D</span>
           </button>
+          @if (!isIo(block) && block.type !== 'shunt') {
+            <button xuiMenuItem icon="matSaveRound" (click)="ui.saveBlockOpen.set(true)">
+              Save to the Library…<span menuItemLabel>⌘B</span>
+            </button>
+            <button xuiMenuItem icon="matPublicRound" (click)="ui.toggleGlobal(block)">
+              {{ block.global ? 'Unlink from global' : 'Make global' }}<span menuItemLabel>G</span>
+            </button>
+          }
+          <button xuiMenuItem icon="matSwapVertRound" [xuiMenuTriggerFor]="moveLines" [xuiMenuTriggerData]="{ block }">
+            Move row or column
+          </button>
+          <xui-menu-divider />
           <button xuiMenuItem icon="matDeleteRound" color="error" (click)="live.removeBlock(block.id)">
             Remove<span menuItemLabel>⌫</span>
           </button>
@@ -239,12 +376,56 @@ const MaxScale = 2;
       </xui-menu>
     </ng-template>
 
+    <ng-template #allChannels let-block="block">
+      <xui-menu>
+        @for (channel of channelNames.slice(0, channelCount(block)); track channel) {
+          <button xuiMenuItem (click)="ui.allScenes({ channel }, block)">Channel {{ channel }}</button>
+        }
+      </xui-menu>
+    </ng-template>
+
+    <ng-template #moveLines let-block="block">
+      <xui-menu>
+        <button xuiMenuItem [disabled]="block.row === 0" (click)="moveLine('row', block.row, block.row - 1)">
+          Row up
+        </button>
+        <button xuiMenuItem [disabled]="block.row === rows() - 1" (click)="moveLine('row', block.row, block.row + 1)">
+          Row down
+        </button>
+        <button
+          xuiMenuItem
+          [disabled]="block.column === 0"
+          (click)="moveLine('column', block.column, block.column - 1)"
+        >
+          Column left
+        </button>
+        <button
+          xuiMenuItem
+          [disabled]="block.column === columns() - 1"
+          (click)="moveLine('column', block.column, block.column + 1)"
+        >
+          Column right
+        </button>
+      </xui-menu>
+    </ng-template>
+
     <ng-template #emptyMenu>
       <xui-menu>
         <button xuiMenuItem icon="matAddRound" (click)="openPalette()">Add block…<span menuItemLabel>↵</span></button>
-        <button xuiMenuItem icon="matCableRound" (click)="addShunt()">Add shunt</button>
+        <button xuiMenuItem icon="matCableRound" (click)="addShunt()">Add shunt<span menuItemLabel>⌘U</span></button>
         <button xuiMenuItem icon="matContentPasteRound" [disabled]="!clipboard()" (click)="paste()">
           Paste<span menuItemLabel>⌘V</span>
+        </button>
+        <xui-menu-divider />
+        <button xuiMenuItem [disabled]="focus().row === 0" (click)="moveLine('row', focus().row, focus().row - 1)">
+          Move row up
+        </button>
+        <button
+          xuiMenuItem
+          [disabled]="focus().row === rows() - 1"
+          (click)="moveLine('row', focus().row, focus().row + 1)"
+        >
+          Move row down
         </button>
       </xui-menu>
     </ng-template>
@@ -252,6 +433,7 @@ const MaxScale = 2;
     <cth-block-picker
       [types]="catalog.placeable()"
       [isFull]="atLimit"
+      [title]="replacing() ? 'Replace ' + title(replacing()!) + ' with' : 'Add a block'"
       [(open)]="paletteOpen"
       (picked)="place($event)"
     />
@@ -259,14 +441,32 @@ const MaxScale = 2;
 })
 export class GridEditor {
   protected readonly live = inject(LiveStore);
+  private readonly events = inject(EventStream);
+  private readonly meters = new Map<string, ReadonlyArray<() => number>>();
+
+  /** A block tile's meter source: its output peak from the latest telemetry frame. One array per block, kept. */
+  protected meterSources(id: string): ReadonlyArray<() => number> {
+    let sources = this.meters.get(id);
+    if (!sources) {
+      sources = [() => this.events.latest?.blocks?.[id] ?? 0];
+      this.meters.set(id, sources);
+    }
+
+    return sources;
+  }
   protected readonly catalog = inject(CatalogStore);
+  protected readonly ui = inject(UiStore);
+  private readonly blockPresets = inject(BlockPresetsStore);
   private readonly surface = viewChild.required<ElementRef<HTMLElement>>('surface');
 
   protected readonly width = Cell.width;
   protected readonly height = Cell.height;
   protected readonly channelNames = ChannelNames;
+  protected readonly isIo = isIo;
   protected readonly focus = signal({ row: 0, column: 1 });
   protected readonly paletteOpen = signal(false);
+  /** The block the palette replaces, or null when it adds one. */
+  protected readonly replacing = signal<PresetBlock | null>(null);
   protected readonly selectedCable = signal<string | null>(null);
   protected readonly clipboard = signal<CopiedBlock | null>(null);
   protected readonly wire = signal<string | null>(null);
@@ -338,7 +538,45 @@ export class GridEditor {
     const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
     const observer = new ResizeObserver(([entry]) => this.available.set(entry.contentRect.width));
     afterNextRender(() => observer.observe(host));
-    inject(DestroyRef).onDestroy(() => observer.disconnect());
+    const withBlock = (action: (block: PresetBlock) => void) => () => {
+      const block = this.focusedBlock();
+      if (block) {
+        action(block);
+      }
+    };
+    const unregister = inject(ShortcutService).register({
+      addBlock: () => this.openPalette(true),
+      cut: withBlock(block => this.cut(block)),
+      copy: withBlock(block => this.copy(block)),
+      paste: () => void this.paste(),
+      disconnect: withBlock(block => void this.live.disconnect(block.id)),
+      shunt: () => this.addShunt(),
+      remove: () => this.remove(),
+      removeBackspace: () => this.remove()
+    });
+    inject(DestroyRef).onDestroy(() => {
+      observer.disconnect();
+      unregister();
+    });
+  }
+
+  /** Mono-summing blocks with engaged stereo effects ahead of them (docs/08-blocks-parity.md §2). */
+  private readonly monoSources = computed(() =>
+    monoHints(
+      this.blocks(),
+      this.live.preset()?.cables ?? [],
+      (block, param) =>
+        this.live.valueOf(block, this.live.channelOf(block.id), param) ??
+        this.catalog.info(block.type)?.params.find(p => p.id === param)?.default ??
+        0,
+      block => this.live.isBypassed(block.id)
+    )
+  );
+
+  /** The marker's explanation, or null for a block that keeps the stereo it gets. */
+  protected monoHint(block: PresetBlock): string | null {
+    const sources = this.monoSources().get(block.id);
+    return sources ? monoHintText(sources, b => `${this.title(b)} (${b.id})`) : null;
   }
 
   protected title(block: PresetBlock): string {
@@ -349,14 +587,26 @@ export class GridEditor {
     return this.catalog.info(block.type)?.category ?? block.type;
   }
 
+  protected abbreviation(block: PresetBlock): string {
+    return abbreviate(this.title(block), block.id);
+  }
+
   /** The instance number when there is more than one of a type (drive2), so tiles of one type tell apart. */
   protected instance(block: PresetBlock): string | null {
     const n = /\d+$/.exec(block.id)?.[0] ?? null;
     return n !== null && n !== '1' ? n : null;
   }
 
+  protected channelCount(block: PresetBlock): number {
+    return this.catalog.info(block.type)?.channels ?? 0;
+  }
+
   protected hasChannels(block: PresetBlock): boolean {
-    return (this.catalog.info(block.type)?.channels ?? 0) > 1;
+    return this.channelCount(block) > 1;
+  }
+
+  protected pasteAction(target: PresetBlock | null): 'place' | 'settings' | null {
+    return pasteAction(this.clipboard(), target);
   }
 
   protected outletOf(block: PresetBlock): Point {
@@ -389,13 +639,29 @@ export class GridEditor {
     this.live.selectedId.set(cell.block && cell.block.type !== BuiltInTypes.shunt ? cell.block.id : null);
   }
 
-  protected openPalette(): void {
-    if (!this.focusedBlock() || this.focusedBlock()?.type === BuiltInTypes.shunt) {
+  /** Opens the palette on an empty cell (or a shunt); with `replace`, on a block too, to replace it. */
+  protected openPalette(replace = false): void {
+    const block = this.focusedBlock();
+    if (!block || block.type === BuiltInTypes.shunt) {
+      this.replacing.set(null);
+      this.paletteOpen.set(true);
+    } else if (replace && !isIo(block)) {
+      this.replacing.set(block);
       this.paletteOpen.set(true);
     }
   }
 
   protected async place(type: BlockTypeInfo): Promise<void> {
+    const replacing = this.replacing();
+    if (replacing) {
+      this.replacing.set(null);
+      if (await this.live.replaceBlock(replacing.id, type.typeId)) {
+        this.live.selectedId.set(this.cellBlock(replacing.row, replacing.column)?.id ?? null);
+      }
+
+      return;
+    }
+
     const { row, column } = this.focus();
     if (await this.live.addBlock(type.typeId, row, column)) {
       this.live.selectedId.set(this.cellBlock(row, column)?.id ?? null);
@@ -404,11 +670,18 @@ export class GridEditor {
 
   protected addShunt(): void {
     const { row, column } = this.focus();
-    void this.live.addBlock(BuiltInTypes.shunt, row, column);
+    if (!this.cellBlock(row, column)) {
+      void this.live.addBlock(BuiltInTypes.shunt, row, column);
+    }
+  }
+
+  protected moveLine(axis: 'row' | 'column', from: number, to: number): void {
+    void this.live.moveLine(axis, from, to);
+    this.focus.update(f => (axis === 'row' ? { ...f, row: to } : { ...f, column: to }));
   }
 
   protected copy(block: PresetBlock): void {
-    if (block.type !== BuiltInTypes.input && block.type !== BuiltInTypes.output) {
+    if (!isIo(block) && block.type !== BuiltInTypes.shunt) {
       this.clipboard.set({
         type: block.type,
         channels: structuredClone(block.channels),
@@ -417,10 +690,22 @@ export class GridEditor {
     }
   }
 
+  protected cut(block: PresetBlock): void {
+    if (!isIo(block) && block.type !== BuiltInTypes.shunt) {
+      this.copy(block);
+      void this.live.removeBlock(block.id);
+    }
+  }
+
+  /** Pastes on the focused cell: a copy of the block on an empty cell, its settings onto a block of its type. */
   protected async paste(): Promise<void> {
     const copied = this.clipboard();
-    if (copied) {
+    const target = this.focusedBlock();
+    const action = pasteAction(copied, target);
+    if (copied && action === 'place') {
       await this.placeCopy(copied, this.focus().row, this.focus().column);
+    } else if (copied && target && action === 'settings') {
+      await this.live.pasteSettings(target.id, copied.type, copied.channels, copied.assets);
     }
   }
 
@@ -432,9 +717,8 @@ export class GridEditor {
       ArrowLeft: [0, -1],
       ArrowRight: [0, 1]
     };
-    const block = this.focusedBlock();
     const command = event.metaKey || event.ctrlKey;
-    if (event.key in moves) {
+    if (event.key in moves && !command) {
       const [dr, dc] = moves[event.key];
       const next = {
         row: Math.max(0, Math.min(this.rows() - 1, row + dr)),
@@ -443,24 +727,10 @@ export class GridEditor {
       this.focus.set(next);
       const at = this.cellBlock(next.row, next.column);
       this.live.selectedId.set(at && at.type !== BuiltInTypes.shunt ? at.id : null);
-    } else if (event.key === 'Enter') {
+    } else if (event.key === 'Enter' && !command) {
       this.openPalette();
-    } else if (event.key === 'Delete' || event.key === 'Backspace') {
-      const cable = this.drawnCables().find(c => c.key === this.selectedCable());
-      if (cable) {
-        void this.live.removeCable(cable.cable.from, cable.cable.to);
-        this.selectedCable.set(null);
-      } else if (block) {
-        void this.live.removeBlock(block.id);
-      }
-    } else if (event.key.toLowerCase() === 'b' && !command && block && block.type !== BuiltInTypes.shunt) {
-      void this.live.setBypass(block.id, !this.live.isBypassed(block.id));
-    } else if (command && event.key.toLowerCase() === 'c' && block) {
-      this.copy(block);
-    } else if (command && event.key.toLowerCase() === 'v') {
-      void this.paste();
     } else {
-      return;
+      return; // the rest are app-wide shortcuts (shell/shortcuts.ts)
     }
 
     event.preventDefault();
@@ -469,29 +739,45 @@ export class GridEditor {
   protected dragStart(event: DragEvent, block: PresetBlock): void {
     event.dataTransfer?.setData(BlockMime, block.id);
     if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'copyMove';
+      event.dataTransfer.effectAllowed = 'all';
     }
   }
 
   protected dragOver(event: DragEvent, cell: GridCell): void {
-    if (event.dataTransfer?.types.includes(BlockMime) && (!cell.block || cell.block.type === BuiltInTypes.shunt)) {
+    const types = event.dataTransfer?.types ?? [];
+    if (types.includes('Files')) {
       event.preventDefault();
-      event.dataTransfer.dropEffect = event.altKey ? 'copy' : 'move';
+      event.dataTransfer!.dropEffect = 'copy';
+    } else if (types.includes(BlockMime)) {
+      // The dragged id cannot be read before the drop: any cell accepts it, and drop() decides what it does.
+      event.preventDefault();
+      const onBlock = cell.block !== null && cell.block.type !== BuiltInTypes.shunt;
+      event.dataTransfer!.dropEffect =
+        onBlock && !(event.metaKey || event.ctrlKey) ? 'link' : event.altKey || onBlock ? 'copy' : 'move';
     }
   }
 
   protected async drop(event: DragEvent, cell: GridCell): Promise<void> {
     event.preventDefault();
-    const block = this.blocks().find(b => b.id === event.dataTransfer?.getData(BlockMime));
-    if (!block) {
+    this.focus.set({ row: cell.row, column: cell.column });
+    const files = [...(event.dataTransfer?.files ?? [])].filter(f => f.name.endsWith(BlockFileExtension));
+    if (files.length > 0) {
+      await this.dropLibraryFiles(files, cell);
       return;
     }
 
-    this.focus.set({ row: cell.row, column: cell.column });
-    if (event.altKey && block.type !== BuiltInTypes.input && block.type !== BuiltInTypes.output) {
+    const block = this.blocks().find(b => b.id === event.dataTransfer?.getData(BlockMime));
+    const action = block ? dropAction(block, cell.block, event) : null;
+    if (!block || !action) {
+      return;
+    }
+
+    if (action === 'copy') {
       await this.placeCopy({ type: block.type, channels: block.channels, assets: block.assets }, cell.row, cell.column);
-    } else {
+    } else if (action === 'move') {
       await this.live.moveBlock(block.id, cell.row, cell.column);
+    } else {
+      await this.live.dropBlock(block.id, cell.block!.id, action);
     }
   }
 
@@ -540,6 +826,39 @@ export class GridEditor {
     this.wireHover.set(null);
     if (to) {
       void this.live.addCable(from.id, to.id);
+    }
+  }
+
+  private remove(): void {
+    const cable = this.drawnCables().find(c => c.key === this.selectedCable());
+    const block = this.focusedBlock();
+    if (cable) {
+      void this.live.removeCable(cable.cable.from, cable.cable.to);
+      this.selectedCable.set(null);
+    } else if (block) {
+      void this.live.removeBlock(block.id);
+    }
+  }
+
+  /**
+   * Library files dropped on the grid are imported; the first entry then lands on the cell: recalled into a block of
+   * its type (all channels), or added as a new block on an empty cell.
+   */
+  private async dropLibraryFiles(files: File[], cell: GridCell): Promise<void> {
+    const added = (await Promise.all(files.map(f => this.blockPresets.import(f)))).flat();
+    const entry = added[0];
+    if (!entry) {
+      return;
+    }
+
+    let target = cell.block && cell.block.type !== BuiltInTypes.shunt ? cell.block : null;
+    if (!target && (await this.live.addBlock(entry.type, cell.row, cell.column))) {
+      target = this.cellBlock(cell.row, cell.column);
+    }
+
+    if (target?.type === entry.type) {
+      await this.blockPresets.apply(target.id, entry.id, { all: true });
+      this.live.selectedId.set(target.id);
     }
   }
 

@@ -148,7 +148,18 @@ public sealed class PhaserBlock() : DspBlock(Info), IEngageAware {
             EffectsMix.Param,
             Stereo.SpreadParam()
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new("Basic", ["rate", "tempo", "depth", "center", "stages", "feedback", "spread", "tone"]),
+            new("Modulation", ["lfoType", "lfoDuty", "lfoHicut", "lfoQuantize", "lfoReset", "direction"]),
+            new(
+                "Advanced",
+                [
+                    "feedbackPoint", "minFreq", "maxFreq", "filterQ", "vcrType", "vcrBias", "exponent", "photoAttack",
+                    "photoRelease", "stereoSpread", "globalMix"
+                ]
+            )
+        ]
     );
 
     /// <summary>
@@ -314,8 +325,7 @@ public sealed class PhaserBlock() : DspBlock(Info), IEngageAware {
         var downward = (int)Params.Current(Direction) == 1;
         var toneSplit = 1f - MathF.Exp(-2f * MathF.PI * ToneHinge / (float)rate);
         var (toneLow, toneHigh) = (MathF.Pow(2f, -ToneMaxOctaves * tone), MathF.Pow(2f, ToneMaxOctaves * tone));
-        var mixStep = (mix - this.mix) / n;
-        var currentMix = this.mix;
+        var gains = new MixRamp(MixLaw.ConstantPower, this.mix, mix, n);
         var stereoSpread = Params.Advance(StereoSpread, n) / 100f;
 
         for (var i = 0; i < n; i++) {
@@ -373,9 +383,9 @@ public sealed class PhaserBlock() : DspBlock(Info), IEngageAware {
             }
 
             Stereo.Spread(ref wetLeft, ref wetRight, stereoSpread);
-            currentMix += mixStep;
-            io.Left[i] = left * (1 - currentMix) + wetLeft * currentMix;
-            io.Right[i] = right * (1 - currentMix) + wetRight * currentMix;
+            gains.Advance();
+            io.Left[i] = left * gains.Dry + wetLeft * gains.Wet;
+            io.Right[i] = right * gains.Dry + wetRight * gains.Wet;
         }
 
         Flush(stateLeft);

@@ -1,5 +1,6 @@
 using Cathode.Dsp.Filters;
 using Cathode.Dsp.Parameters;
+using Cathode.Dsp.Routing;
 
 namespace Cathode.Dsp.Blocks;
 
@@ -17,7 +18,8 @@ namespace Cathode.Dsp.Blocks;
 ///         Source set to a row, whatever is cabled in from that grid row. The block then takes its inputs by row
 ///         (<see cref="IRowInputBlock" />): the chosen row feeds the analysis alone and every other row is summed into
 ///         the block input as usual, which is where an input carrier comes from. With the row not cabled the analysis
-///         is silent.
+///         is silent. Analysis Source can also name one of the interface's inputs (<see cref="HardwareInputs" />): a
+///         microphone on Input 2 talking through the guitar, the classic vocoder rig.
 ///     </para>
 ///     <para>
 ///         Bands: 4 to 24 filters spaced logarithmically from Min to Max Frequency, each two cascaded constant-peak
@@ -28,7 +30,7 @@ namespace Cathode.Dsp.Blocks;
 ///         Freeze holds the band envelopes where they are, so the carrier keeps the last spectrum.
 ///     </para>
 /// </remarks>
-public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
+public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock, IHardwareInputBlock {
     public const int Carrier = 0;
     public const int Note = 1;
     public const int Chord = 2;
@@ -135,7 +137,11 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
             ParamDescriptor.Choice(
                 "analysisSource",
                 "Analysis Source",
-                ["Block Input", ..Enumerable.Range(1, SourceRows).Select(static r => $"Row {r}")]
+                [
+                    "Block Input",
+                    ..Enumerable.Range(1, SourceRows).Select(static r => $"Row {r}"),
+                    ..HardwareInputs.Names
+                ]
             ),
             ..Enumerable.Range(1, MaxBands)
                 .Select(static b => ParamDescriptor.Float(
@@ -151,8 +157,38 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
                 .Select(static b => ParamDescriptor.Float($"bandPan{b}", $"Pan {b}", -100f, 100f, 0f, "%"))
         ],
         maxInstances: 1,
-        channels: 1
+        channels: 1,
+        pages: [
+            new("Basic", ["carrier", "note", "chord", "attack", "release", "bands", "minFreq", "maxFreq", "resonance"]),
+            new(
+                "Advanced",
+                [
+                    "emphasis", "freqShift", "freeze", "hpMix", "masterPan", "inputGain", "analysisChannel",
+                    "analysisSource"
+                ]
+            ),
+            new(
+                "Band Levels",
+                [
+                    "bandLevel1", "bandLevel2", "bandLevel3", "bandLevel4", "bandLevel5", "bandLevel6", "bandLevel7",
+                    "bandLevel8", "bandLevel9", "bandLevel10", "bandLevel11", "bandLevel12", "bandLevel13",
+                    "bandLevel14", "bandLevel15", "bandLevel16", "bandLevel17", "bandLevel18", "bandLevel19",
+                    "bandLevel20", "bandLevel21", "bandLevel22", "bandLevel23", "bandLevel24"
+                ]
+            ),
+            new(
+                "Band Pans",
+                [
+                    "bandPan1", "bandPan2", "bandPan3", "bandPan4", "bandPan5", "bandPan6", "bandPan7", "bandPan8",
+                    "bandPan9", "bandPan10", "bandPan11", "bandPan12", "bandPan13", "bandPan14", "bandPan15",
+                    "bandPan16", "bandPan17", "bandPan18", "bandPan19", "bandPan20", "bandPan21", "bandPan22",
+                    "bandPan23", "bandPan24"
+                ]
+            )
+        ]
     );
+
+    public InputPort? Inputs { get; set; }
 
     /// <summary>
     ///     Centre frequency of band <paramref name="band" /> of <paramref name="count" />, spaced logarithmically from
@@ -166,6 +202,25 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
 
     /// <summary>The number of bands for option <paramref name="option" /> of the Bands parameter.</summary>
     public static int BandCount(int option) => BandCounts[Math.Clamp(option, 0, BandCounts.Length - 1)];
+
+    /// <summary>
+    ///     Hardware input <paramref name="source" /> (<see cref="HardwareInputs" />) into the side buffer, as a chosen row
+    ///     would arrive there; silence without the graph's inputs.
+    /// </summary>
+    void LoadHardwareSource(int source, int frames) {
+        if (frames > sideLeft.Length) {
+            return;
+        }
+
+        if (Inputs is { } port) {
+            port.Read(source, sideLeft.AsSpan(0, frames), sideRight.AsSpan(0, frames));
+        } else {
+            Array.Clear(sideLeft, 0, frames);
+            Array.Clear(sideRight, 0, frames);
+        }
+
+        sideFrames = frames;
+    }
 
     public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) {
         var analysisRow = (int)Params.GetTarget(AnalysisSource) - 1;
@@ -322,7 +377,12 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
         var highpassMix = Params.Advance(HighpassMix, n) / 100f;
         var inputGain = Params.Advance(InputGain, n) / 100f;
         var channel = (int)Params.Current(AnalysisChannel);
-        var fromRow = (int)Params.Current(AnalysisSource) > 0;
+        var sourceChoice = (int)Params.Current(AnalysisSource);
+        if (sourceChoice > SourceRows) {
+            LoadHardwareSource(sourceChoice - SourceRows - 1, n);
+        }
+
+        var fromRow = sourceChoice > 0;
         if (channel == 0 && !fromRow && source is CarrierLeftInput or CarrierRightInput) {
             channel = source == CarrierLeftInput ? 2 : 1; // the carrier has one side: analyse the other
         }
@@ -330,8 +390,7 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
         var side = fromRow && sideFrames == n;
 
         var mix = Params.Advance(Mix, n) / 100f;
-        var mixStep = (mix - this.mix) / n;
-        var currentMix = this.mix;
+        var gains = new MixRamp(MixLaw.DryUnity, this.mix, mix, n);
         var voices = intervals.Length;
         var voiceGain = 1 / Math.Sqrt(voices);
 
@@ -368,9 +427,9 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock {
                 wetRight += air;
             }
 
-            currentMix += mixStep;
-            io.Left[i] = left + ((float)wetLeft - left) * currentMix;
-            io.Right[i] = right + ((float)wetRight - right) * currentMix;
+            gains.Advance();
+            io.Left[i] = left * gains.Dry + (float)wetLeft * gains.Wet;
+            io.Right[i] = right * gains.Dry + (float)wetRight * gains.Wet;
         }
 
         for (var k = 0; k < MaxBands; k++) {

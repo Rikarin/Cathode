@@ -44,6 +44,9 @@ builder.Services.AddSingleton<GlobalStore>();
 builder.Services.AddSingleton<LiveRig>();
 builder.Services.AddSingleton<IrTools>();
 builder.Services.AddSingleton<MidiRouter>();
+builder.Services.AddSingleton<SnapshotStore>();
+builder.Services.AddSingleton<TemplateStore>();
+builder.Services.AddSingleton<PresetTools>();
 
 var app = builder.Build();
 app.UseCathodeAccess(token);
@@ -57,6 +60,7 @@ engine.Connected += () => rig.ResyncAsync();
 engine.TelemetryUpdated += t => _ = rig.FollowEngineTempoAsync(t.Tempo);
 app.Services.GetRequiredService<GlobalStore>().Changed += rig.ApplyGlobalSettings;
 app.Services.GetRequiredService<MidiRouter>(); // listens from the start
+await rig.LoadStartupAsync();
 
 app.Run();
 

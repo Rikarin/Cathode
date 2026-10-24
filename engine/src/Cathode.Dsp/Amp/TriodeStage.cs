@@ -87,7 +87,7 @@ public sealed record TriodeStageDesign(
         net.Supply(supply, Supply);
         net.Resistor(supply, plate, PlateResistor);
         if (PlateBypass > 0) {
-            net.Capacitor(supply, plate, PlateBypass);
+            net.Capacitor(supply, plate, PlateBypass, CapacitorRole.Plate);
         }
 
         net.CathodeResistor(cathode, StageNetlist.Ground, CathodeResistor);
@@ -115,7 +115,8 @@ public sealed class TriodeStage : AmpStage {
     readonly int cathodeProbe;
     readonly int cathodeIndex;
     RTypeRoot<Ports<ResistiveVoltageSource, Capacitor, Capacitor, Capacitor, Capacitor>, FastTriode> root;
-    TriodeModel tube;
+    TriodeModel tube; // as the operating point sees it (with the hardness)
+    PreampSettings applied = PreampSettings.Stock;
     double cathodeResistor;
     double brightScale = 1;
     double sourceResistance;
@@ -275,15 +276,16 @@ public sealed class TriodeStage : AmpStage {
     }
 
     public override void Apply(in PreampSettings settings) {
-        var model = settings.TubeFor(Design.Tube);
-        if (model != tube) {
-            tube = model;
-            root.Device = new(model);
+        if (settings.ChangesDevices(applied)) {
+            root.Device = settings.Triode(Design.Tube);
         }
 
+        applied = settings;
+        tube = settings.Law(Design.Tube);
         var changed = false;
-        if (settings.BrightCap != brightScale) {
-            brightScale = settings.BrightCap;
+        var brightCap = Design.VolumeRole == PotRole.Master ? settings.MasterCap : settings.BrightCap;
+        if (brightCap != brightScale) {
+            brightScale = brightCap;
             root.Ports.C.Configure(bright ? Capacitance(Design.BrightCap * brightScale) : Off, sampleRate);
             changed = true;
         }

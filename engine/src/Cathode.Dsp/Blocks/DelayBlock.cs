@@ -115,6 +115,7 @@ public sealed class DelayBlock() : DspBlock(Info) {
     public const int DiffusionRate = 78;
     public const int DiffusionDepth = 79;
     public const int GlobalMix = 80;
+    public const int KillDry = 81;
 
     public const int Digital = 0;
     public const int Analog = 1;
@@ -336,13 +337,58 @@ public sealed class DelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("diffusionTime", "Diffusion Time", 1f, MaxDiffusionMs, 30f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("diffusionRate", "Diffusion LFO Rate", 0.05f, 5f, 0.4f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("diffusionDepth", "Diffusion LFO Depth", 0f, 100f, 0f, "%"),
-            EffectsMix.Param
+            EffectsMix.Param,
+            MixLaws.KillDryParam
         ],
-        maxInstances: 4
+        maxInstances: 4,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "time", "tempo", "feedback", "lowcut", "highcut", "drive", "spread", "ratio", "echoPan", "hold"
+                ]
+            ),
+            new(
+                "Stereo",
+                [
+                    "timeRight", "tempoRight", "feedbackRight", "levelLeft", "levelRight", "panLeft", "panRight",
+                    "crossLeftToRight", "crossRightToLeft", "rightPostDelay", "phaseReverse", "masterFeedback"
+                ]
+            ),
+            new(
+                "Modulation",
+                [
+                    "depthRange", "lfo1Type", "lfo1Rate", "lfo1Tempo", "lfo1Depth", "lfo1Phase", "lfo1Target",
+                    "lfo2Type", "lfo2Rate", "lfo2Tempo", "lfo2Depth", "lfo2Phase", "lfo2Target", "lfo3Type", "lfo3Rate",
+                    "lfo3Tempo", "lfo3Depth", "lfo3Target"
+                ]
+            ),
+            new("Diffusion", ["diffusionMix", "diffusionTime", "diffusionRate", "diffusionDepth"]),
+            new(
+                "EQ",
+                [
+                    "lowCutSlope", "lowCutQ", "highCutSlope", "highCutQ", "eq1Frequency", "eq1Q", "eq1Gain",
+                    "eq2Frequency", "eq2Q", "eq2Gain"
+                ]
+            ),
+            new("Ducking", ["duckThreshold", "duckAttenuation", "duckRelease"]),
+            new(
+                "Sweep",
+                [
+                    "sweepStart", "sweepStop", "sweepResonance", "sweepShape", "sweepRate", "sweepTempo", "sweepPhase"
+                ]
+            ),
+            new(
+                "Advanced",
+                [
+                    "motorSpeed", "head2Ratio", "head1Level", "head2Level", "head1Pan", "head2Pan", "head2Feedback",
+                    "reverseRun", "reverseRestart", "reverseCrossfade", "bitReduction", "inputGain", "globalMix",
+                    "killDry"
+                ]
+            )
+        ]
     );
 
-    /// <summary>Dry and wet gains for a mix of 0..1 under the delay law: each is at full level up to 50 %.</summary>
-    public static (float Dry, float Wet) MixGains(float mix) => (Math.Min(1f, 2f * (1f - mix)), Math.Min(1f, 2f * mix));
 
     /// <summary>
     ///     The loop limiter: transparent up to full scale, then a tanh knee that never passes 2, so feedback above unity
@@ -590,16 +636,15 @@ public sealed class DelayBlock() : DspBlock(Info) {
 
         var delayStep = (targetDelay - delaySamples) / n;
         var rightStep = (targetRight - rightSamples) / n;
-        var mixStep = (mix - this.mix) / n;
+        var gains = new MixRamp(MixLaw.Sweetened, this.mix, mix, n, Params.Current(KillDry) >= 0.5f);
         var delay = delaySamples;
         var delayRight = rightSamples;
-        var currentMix = this.mix;
         var pingPong = type == PingPong;
         var offsetDepth = Math.Max(left1, right1) + Math.Max(left2, right2) + wowDepth + flutterDepth;
         for (var i = 0; i < n; i++) {
             delay += delayStep;
             delayRight += rightStep;
-            currentMix += mixStep;
+            gains.Advance();
             lfo1.Advance(rate1, sampleRate);
             lfo2.Advance(rate2, sampleRate);
             lfo3.Advance(rate3, sampleRate);
@@ -759,9 +804,8 @@ public sealed class DelayBlock() : DspBlock(Info) {
                 wetRight = postRight.Read(postDelay + 1f); // a delay of 1 is the sample just written
             }
 
-            var (dryGain, wetGain) = MixGains(currentMix);
-            io.Left[i] = dryLeft * dryGain + polarityLeft * wetLeft * wetGain;
-            io.Right[i] = dryRight * dryGain + polarityRight * wetRight * wetGain;
+            io.Left[i] = dryLeft * gains.Dry + polarityLeft * wetLeft * gains.Wet;
+            io.Right[i] = dryRight * gains.Dry + polarityRight * wetRight * gains.Wet;
         }
 
         delaySamples = targetDelay;

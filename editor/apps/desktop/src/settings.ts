@@ -11,6 +11,18 @@ export interface AudioSettings {
   loopIn: number[];
   /** Device output channels (1-based, up to two) that feed an external effects loop; empty for none. */
   loopOut: number[];
+  /**
+   * The first device channel (1-based) of Outputs 1-4, each a pair; 0 leaves an output unmapped. Missing entries are
+   * unmapped, and an empty list keeps the default: Output 1 on channels 1-2.
+   */
+  outputs: number[];
+  /** Device output channels (1-based, one or two) for the dry DI out, the input before Input 1 Gain; empty for none. */
+  diOut: number[];
+  /**
+   * Device input channels (1-based, up to two each) for the hardware input sources in order: Input 1–4, USB 5/6,
+   * USB 7/8. One channel feeds both sides; an empty list leaves the source silent. Input 1 defaults to channel 1.
+   */
+  inputs: number[][];
 }
 
 export type ServerTarget = { mode: 'local' } | { mode: 'remote'; baseUrl: string; token: string };
@@ -21,7 +33,16 @@ export interface Settings {
 }
 
 const Defaults: Settings = {
-  audio: { device: null, sampleRate: 48_000, bufferFrames: 64, loopIn: [], loopOut: [] },
+  audio: {
+    device: null,
+    sampleRate: 48_000,
+    bufferFrames: 64,
+    loopIn: [],
+    loopOut: [],
+    outputs: [1],
+    diOut: [],
+    inputs: [[1]]
+  },
   target: { mode: 'local' }
 };
 

@@ -21,7 +21,7 @@ namespace Cathode.Dsp.Blocks;
 ///         offsets the clipper for even harmonics; <b>Mono</b> sums the input and runs one channel to both outputs.
 ///     </para>
 /// </summary>
-public sealed class DynamicDistortionBlock() : DspBlock(Info) {
+public sealed class DynamicDistortionBlock() : DspBlock(Info), IOversampledBlock {
     public const int Type = 0;
     public const int Drive = 1;
     public const int Dynamics = 2;
@@ -72,7 +72,10 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
             ParamDescriptor.Choice(
                 "type",
                 "Type",
-                ["Soft", "Hard", "Asymmetric", "Germanium", "LED", "Tube", "Op-Amp"]
+                [
+                    "Soft", "Hard", "Asymmetric", "Germanium", "LED", "Tube", "Op-Amp", "FET", "Rectifier", "Variable",
+                    "HV Tube", "LV Tube", "Silicon", "4558 Diode"
+                ]
             ),
             ParamDescriptor.Float("drive", "Drive", 0f, 10f, 3f),
             ParamDescriptor.Float("dynamics", "Dynamics", -100f, 100f, 50f, "%"),
@@ -89,8 +92,17 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
             ParamDescriptor.Float("bias", "Bias", -100f, 100f, 0f, "%"),
             ParamDescriptor.Choice("mode", "Mode", ["Stereo", "Mono"])
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new("Basic", ["drive", "dynamics", "threshold", "attack", "release", "bias", "mode"]),
+            new("Filter", ["filterType", "filterFreq", "filterQ", "filterGain"])
+        ]
     );
+
+    /// <summary>The oversamplers' filters (the global setting); set before <see cref="IDspBlock.Prepare" />.</summary>
+    public OversamplingPhase OversamplingPhase { get; set; }
+
+    public override int LatencySamples => dryLeft.LatencySamples;
 
     /// <summary>The emphasis filter's type for Filter Type <paramref name="filter" />.</summary>
     public static BiquadType EmphasisType(int filter) =>
@@ -165,6 +177,12 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
         right.Allocate(spec.MaxBlockSize);
         dryLeft.Resize(spec.MaxBlockSize);
         dryRight.Resize(spec.MaxBlockSize);
+        if (dryLeft.Phase != OversamplingPhase) {
+            left.SetPhase(OversamplingPhase);
+            right.SetPhase(OversamplingPhase);
+            dryLeft.SetPhase(OversamplingPhase);
+            dryRight.SetPhase(OversamplingPhase);
+        }
     }
 
     protected override void OnReset() {
@@ -236,6 +254,8 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info) {
         AdaaClipper clipper;
 
         public void Allocate(int maxBlockSize) => oversampler.Resize(maxBlockSize);
+
+        public void SetPhase(OversamplingPhase phase) => oversampler.SetPhase(phase);
 
         public void Reset() {
             oversampler.Reset();

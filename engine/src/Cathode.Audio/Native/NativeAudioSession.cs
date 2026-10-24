@@ -69,9 +69,59 @@ public sealed record LoopChannels(int[] Returns, int[] Sends) {
 }
 
 /// <summary>
+///     Device channels (0-based) for each hardware input source (<see cref="Dsp.Routing.HardwareInputs" />: Input 1–4,
+///     USB 5/6, USB 7/8): one channel feeds both sides of a source (a guitar DI is mono), two make a stereo pair, none
+///     leaves the source silent. The default maps only Input 1, to the device's first channel.
+/// </summary>
+public sealed record InputMap(int[][] Sources) {
+    public static InputMap Default { get; } = new([[0]]);
+
+    /// <summary>One bit per source with device channels (bit 0 = Input 1).</summary>
+    public int Mask {
+        get {
+            var mask = 0;
+            for (var s = 0; s < Sources.Length; s++) {
+                mask |= Sources[s].Length > 0 ? 1 << s : 0;
+            }
+
+            return mask;
+        }
+    }
+
+    /// <summary>How many device input channels the map needs opened.</summary>
+    public int Channels => Sources.Select(static s => s.Length == 0 ? 0 : s.Max() + 1).DefaultIfEmpty(0).Max();
+
+    /// <summary>Whether a source other than Input 1 is mapped, so callbacks must carry every source.</summary>
+    public bool HasExtraSources => Sources.Skip(1).Any(static s => s.Length > 0);
+
+    /// <summary>
+    ///     Parses 1-based channel lists, one per source in order, separated by semicolons: <c>1;3,4;;5,6</c> maps Input
+    ///     1 to channel 1, Input 2 to channels 3 and 4, leaves Input 3 empty and puts Input 4 on 5 and 6. Null or empty
+    ///     text, or an empty Input 1, keeps Input 1 on channel 1.
+    /// </summary>
+    public static InputMap Parse(string? text) {
+        if (string.IsNullOrWhiteSpace(text)) {
+            return Default;
+        }
+
+        var sources = text.Split(';')
+            .Take(Dsp.Routing.HardwareInputs.Count)
+            .Select(static s => LoopChannels.Parse(s, null).Returns)
+            .ToArray();
+        if (sources[0].Length == 0) {
+            sources[0] = [0];
+        }
+
+        return new(sources);
+    }
+}
+
+/// <summary>
 ///     A running device stream that calls an <see cref="IAudioProcessor" /> on the driver's real-time thread.
-///     Input channel 1 feeds both engine channels (a guitar DI is mono); engine L/R go to output channels 1 and 2.
-///     Optional <see cref="LoopChannels" /> carry an external effects loop.
+///     The <see cref="InputMap" />'s Input 1 is the engine's main input (by default channel 1 on both sides: a guitar DI
+///     is mono), and its other sources travel in <see cref="AudioIO.Sources" />. An <see cref="OutputBus" /> maps
+///     Output 1 (by default to channels 1 and 2), Outputs 2-4 and the DI out to device channels; an output mapped past
+///     the device's last channel is dropped. Optional <see cref="LoopChannels" /> carry an external effects loop.
 /// </summary>
 public sealed unsafe class NativeAudioSession : IDisposable {
     const int MaxFrames = 4096; // CTH_MAX_FRAMES
@@ -81,6 +131,10 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     readonly float[] scratchLeft = GC.AllocateArray<float>(MaxFrames, true);
     readonly float[] scratchRight = GC.AllocateArray<float>(MaxFrames, true);
     readonly LoopChannels loop;
+    readonly OutputBus outputs;
+    readonly InputMap inputs;
+    readonly float[] sources;
+    readonly int sourceMask;
     GCHandle self;
     nint stream;
     long exceptions;
@@ -104,10 +158,19 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         }
     }
 
-    NativeAudioSession(IAudioProcessor processor, LoopChannels? loop) {
+    NativeAudioSession(IAudioProcessor processor, LoopChannels? loop, InputMap? inputs, OutputBus? outputs) {
         this.processor = processor;
         this.loop = loop ?? new([], []);
+        this.outputs = outputs ?? new();
+        this.inputs = inputs ?? InputMap.Default;
+        sourceMask = this.inputs.Mask;
+        sources = this.inputs.HasExtraSources
+            ? GC.AllocateArray<float>(Dsp.Routing.HardwareInputs.Count * 2 * MaxFrames, true)
+            : [];
     }
+
+    /// <summary>The input map the session was opened with.</summary>
+    public InputMap Inputs => inputs;
 
     /// <summary>Opens <paramref name="deviceUid" /> (null for the default output device) without starting it.</summary>
     public static NativeAudioSession Open(
@@ -116,12 +179,16 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         double sampleRate,
         int bufferFrames,
         int inputChannels,
-        LoopChannels? loop = null
+        LoopChannels? loop = null,
+        InputMap? inputs = null,
+        OutputBus? outputs = null
     ) {
-        var stream = new NativeAudioSession(processor, loop);
+        var stream = new NativeAudioSession(processor, loop, inputs, outputs);
         if (loop is { Returns.Length: > 0 }) {
             inputChannels = Math.Max(inputChannels, loop.Returns.Max() + 1);
         }
+
+        inputChannels = Math.Max(inputChannels, stream.inputs.Channels);
 
         stream.self = GCHandle.Alloc(stream);
         var config = new StreamConfigNative {
@@ -193,6 +260,8 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         if (self.IsAllocated) {
             self.Free();
         }
+
+        outputs.Dispose();
     }
 
     [UnmanagedCallersOnly]
@@ -217,28 +286,99 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     }
 
     void Process(float** inputs, int inputChannels, float** outputs, int outputChannels, int frames) {
-        var input =
-            inputChannels > 0 ? new ReadOnlySpan<float>(inputs[0], frames) : silence.AsSpan(0, frames);
-        var left = outputChannels > 0 ? new(outputs[0], frames) : scratchLeft.AsSpan(0, frames);
-        var right = outputChannels > 1 ? new(outputs[1], frames) : scratchRight.AsSpan(0, frames);
+        var source = this.inputs.Sources[0];
+        var inputLeft = Input(inputs, inputChannels, source, 0, frames);
+        var inputRight = Input(inputs, inputChannels, source, 1, frames);
+        var main = this.outputs.Pair(0);
+        var left = main >= 0 && main < outputChannels ? new(outputs[main], frames) : scratchLeft.AsSpan(0, frames);
+        var right = main >= 0 && main + 1 < outputChannels
+            ? new(outputs[main + 1], frames)
+            : scratchRight.AsSpan(0, frames);
 
-        if (loop.Returns.Length == 0 && loop.Sends.Length == 0) {
-            processor.Process(new(input, input, left, right));
+        if (sources.Length > 0) {
+            FillSources(inputs, inputChannels, frames);
+        }
+
+        if (loop.Returns.Length == 0 && loop.Sends.Length == 0 && sources.Length == 0) {
+            processor.Process(new(inputLeft, inputRight, left, right) { Outputs = this.outputs });
         } else {
             var returnLeft = Channel(inputs, inputChannels, loop.Returns, 0, frames);
             var returnRight = Channel(inputs, inputChannels, loop.Returns, 1, frames);
             var sendLeft = Channel(outputs, outputChannels, loop.Sends, 0, frames);
             var sendRight = Channel(outputs, outputChannels, loop.Sends, 1, frames);
-            processor.Process(new(input, input, left, right, returnLeft, returnRight, sendLeft, sendRight));
+            processor.Process(
+                new(
+                    inputLeft,
+                    inputRight,
+                    left,
+                    right,
+                    returnLeft,
+                    returnRight,
+                    sendLeft,
+                    sendRight,
+                    sources.AsSpan(0, sources.Length == 0 ? 0 : Dsp.Routing.HardwareInputs.Count * 2 * frames),
+                    sourceMask
+                ) { Outputs = this.outputs }
+            );
         }
 
+        // the loop's send channels stay live: muting is for the speakers
         var gain = OutputGain;
-        if (gain != 1f) {
-            // the loop's send channels stay live: muting is for the speakers
-            for (var i = 0; i < frames; i++) {
-                left[i] *= gain;
-                right[i] *= gain;
+        Scale(left, gain);
+        Scale(right, gain);
+        for (var k = 1; k < OutputBus.Count; k++) {
+            var pair = this.outputs.Pair(k);
+            if (pair >= 0) {
+                Write(outputs, outputChannels, pair, this.outputs.Left(k)[..frames], gain);
+                Write(outputs, outputChannels, pair + 1, this.outputs.Right(k)[..frames], gain);
             }
+        }
+
+        var di = this.outputs.DiChannels;
+        if (di.Length > 0) {
+            Write(outputs, outputChannels, di[0], this.outputs.DiLeft[..frames], gain);
+            if (di.Length > 1) {
+                Write(outputs, outputChannels, di[1], this.outputs.DiRight[..frames], gain);
+            }
+        }
+    }
+
+    static void Scale(Span<float> samples, float gain) {
+        if (gain == 1f) {
+            return;
+        }
+
+        for (var i = 0; i < samples.Length; i++) {
+            samples[i] *= gain;
+        }
+    }
+
+    /// <summary>Copies <paramref name="samples" /> to device channel <paramref name="channel" />, if the device has it.</summary>
+    static void Write(float** outputs, int count, int channel, ReadOnlySpan<float> samples, float gain) {
+        if (channel >= count) {
+            return;
+        }
+
+        var destination = new Span<float>(outputs[channel], samples.Length);
+        samples.CopyTo(destination);
+        Scale(destination, gain);
+    }
+
+    /// <summary>Side <paramref name="side" /> of an input source: its second channel, or its first again when mono.</summary>
+    ReadOnlySpan<float> Input(float** channels, int count, int[] map, int side, int frames) {
+        var channel = map.Length == 0 ? -1 : map[Math.Min(side, map.Length - 1)];
+        return channel >= 0 && channel < count
+            ? new ReadOnlySpan<float>(channels[channel], frames)
+            : silence.AsSpan(0, frames);
+    }
+
+    /// <summary>Copies every mapped source into <see cref="sources" />, planar, as <see cref="AudioIO.Sources" /> wants.</summary>
+    void FillSources(float** channels, int count, int frames) {
+        var map = this.inputs.Sources;
+        for (var s = 0; s < Dsp.Routing.HardwareInputs.Count; s++) {
+            var source = s < map.Length ? map[s] : [];
+            Input(channels, count, source, 0, frames).CopyTo(sources.AsSpan(2 * s * frames, frames));
+            Input(channels, count, source, 1, frames).CopyTo(sources.AsSpan((2 * s + 1) * frames, frames));
         }
     }
 

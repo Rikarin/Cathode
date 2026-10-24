@@ -9,7 +9,8 @@ using Cathode.Dsp.IO;
 using Cathode.Dsp.Parameters;
 
 // Measures each registered block at 48 kHz in 64-frame blocks on noise, as a percentage of one core in real time:
-// the default settings, and the worst of each value of the block's type/mode choice (for the Cab, slot 1's Source).
+// the default settings, and the worst of each value of the block's type/mode choice (for the Cab, slot 1's Source, and
+// its Stereo worst case: all four slots playing FullRes IRs, two from each input, so four convolutions).
 // With --write it regenerates src/Cathode.Dsp/BlockCosts.cs, which the catalog serves to the editor's CPU estimate
 // (docs/03 §12). --only <typeId> measures one block (and never writes). --amps times Circuit Amp models one by one (see
 // MeasureAmps).
@@ -22,7 +23,10 @@ var irPath = Path.Combine(Path.GetTempPath(), "cathode-bench-ir.wav");
 var noise = new Random(7);
 WavFile.Write(
     irPath,
-    new((int)Rate, [Enumerable.Range(0, 32_768).Select(_ => (float)(noise.NextDouble() - 0.5)).ToArray()])
+    new(
+        (int)Rate,
+        [Enumerable.Range(0, CabBlock.MaxIrLength).Select(_ => (float)(noise.NextDouble() - 0.5)).ToArray()]
+    )
 );
 
 var registry = BlockRegistry.CreateDefault();
@@ -41,8 +45,30 @@ foreach (var descriptor in registry.Descriptors.Where(d => only is null || d.Typ
     var worst = Measure(registry, descriptor.TypeId, -1, 0, irPath);
     if (variants.p is { } choice) {
         for (var option = 0; option <= (int)choice.Max; option++) {
-            worst = Math.Max(worst, Measure(registry, descriptor.TypeId, variants.i, option, irPath));
+            var cost = Measure(registry, descriptor.TypeId, variants.i, option, irPath);
+            worst = Math.Max(worst, cost);
+            if (only is not null) {
+                Console.WriteLine($"  {choice.Id} = {choice.Options![option]}: {cost:0.00} %");
+            }
         }
+    }
+
+    if (descriptor.TypeId == CabBlock.Info.TypeId) {
+        // Every slot an IR, unmuted: with the Stereo input, slots 1 and 3 hear the left and 2 and 4 the right.
+        (int, float)[] four = [
+            ..Enumerable.Range(0, CabBlock.Slots)
+                .SelectMany(static s => new[] {
+                        (CabBlock.SlotParam(s, CabBlock.Source), (float)CabBlock.SourceIr),
+                        (CabBlock.SlotParam(s, CabBlock.Mute), 0f)
+                    }
+                )
+        ];
+        var stereo = Measure(registry, descriptor.TypeId, -1, 0, irPath, four);
+        var mono = Measure(registry, descriptor.TypeId, CabBlock.Input, CabBlock.InputSum, irPath, four);
+        Console.WriteLine(
+            $"cab: four FullRes IR slots, Stereo input (4 convolutions) {stereo:0.00} %, Sum input (2) {mono:0.00} %"
+        );
+        worst = Math.Max(worst, stereo);
     }
 
     results[descriptor.TypeId] = worst;
@@ -109,10 +135,21 @@ if (args.Contains("--write") && only is null) {
 
 return 0;
 
-static double Measure(BlockRegistry registry, string typeId, int param, int value, string irPath) {
+static double Measure(
+    BlockRegistry registry,
+    string typeId,
+    int param,
+    int value,
+    string irPath,
+    (int Param, float Value)[]? extra = null
+) {
     using var block = registry.Create(typeId);
     if (param >= 0) {
         block.Params.SetTarget(param, value);
+    }
+
+    foreach (var (index, setting) in extra ?? []) {
+        block.Params.SetTarget(index, setting);
     }
 
     if (block is IAssetConsumer consumer) {

@@ -99,6 +99,7 @@ public sealed class ReverbBlock : DspBlock {
     public const int PitchDirection = 54;
     public const int PitchPosition = 55;
     public const int GlobalMix = 56;
+    public const int KillDry = 57;
 
     public const int Room = 0;
     public const int Hall = 1;
@@ -337,9 +338,39 @@ public sealed class ReverbBlock : DspBlock {
             ParamDescriptor.Float("pitchFeedback", "Pitch Feedback", 0f, 100f, 0f, "%"),
             ParamDescriptor.Choice("pitchDirection", "Pitch Direction", ["Forward", "Reverse"]),
             ParamDescriptor.Choice("pitchPosition", "Pitch Position", ["Input", "Output", "Tank Feedback"], 1),
-            EffectsMix.Param
+            EffectsMix.Param,
+            MixLaws.KillDryParam
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "decay", "size", "predelay", "preDelayTempo", "lowcut", "damping", "spread", "earlyLevel",
+                    "lateLevel", "quality"
+                ]
+            ),
+            new(
+                "Advanced",
+                [
+                    "lowCrossover", "lowTime", "highCrossover", "highTime", "earlyDiffusion", "earlyTime", "earlyDecay",
+                    "lateInputMix", "echoDensity", "wallDiffusion", "inputDiffusion", "inputDiffusionTime",
+                    "micSpacing", "preDelayFeedback", "preDelayMix", "hold", "inputGain", "inputSelect", "globalMix",
+                    "killDry"
+                ]
+            ),
+            new("EQ", ["lowMidFrequency", "lowMidQ", "lowMidGain", "highMidFrequency", "highMidQ", "highMidGain"]),
+            new("Modulation", ["modDepth", "modRate", "modPhase"]),
+            new("Spring", ["springs", "springTone", "springDrive", "boing"]),
+            new(
+                "Pitch",
+                [
+                    "pitchMix", "shift1", "shift2", "voiceBalance", "splice", "pitchFeedback", "pitchDirection",
+                    "pitchPosition"
+                ]
+            ),
+            new("Ducking", ["duckThreshold", "duckAttenuation", "duckRelease"])
+        ]
     );
 
     public ReverbBlock()
@@ -816,8 +847,7 @@ public sealed class ReverbBlock : DspBlock {
         var selfFeedback = position == PitchInTank ? 0f : 0.9f * pitchFeedback;
         var tankFeedback = position == PitchInTank ? pitchFeedback : 0f;
 
-        var mixStep = (mix - this.mix) / n;
-        var currentMix = this.mix;
+        var gains = new MixRamp(MixLaw.ConstantPower, this.mix, mix, n, Params.Current(KillDry) >= 0.5f);
 
         for (var i = 0; i < n; i++) {
             var dryLeft = io.Left[i];
@@ -903,9 +933,9 @@ public sealed class ReverbBlock : DspBlock {
 
             Stereo.Spread(ref wetLeft, ref wetRight, spread);
 
-            currentMix += mixStep;
-            io.Left[i] = dryLeft * (1f - currentMix) + wetLeft * currentMix;
-            io.Right[i] = dryRight * (1f - currentMix) + wetRight * currentMix;
+            gains.Advance();
+            io.Left[i] = dryLeft * gains.Dry + wetLeft * gains.Wet;
+            io.Right[i] = dryRight * gains.Dry + wetRight * gains.Wet;
         }
 
         this.mix = mix;

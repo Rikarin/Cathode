@@ -103,6 +103,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
     public const int InputGain = 111;
     public const int InputSelect = 112;
     public const int GlobalMix = 113;
+    public const int KillDry = 114;
 
     public const int QuadTap = 0;
     public const int QuadParallel = 1;
@@ -346,9 +347,64 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
             ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
-            EffectsMix.Param
+            EffectsMix.Param,
+            MixLaws.KillDryParam
         ],
-        maxInstances: 2
+        maxInstances: 2,
+        pages: [
+            new(
+                "Basic",
+                [
+                    "time", "tempo", "masterFeedback", "masterPan", "masterLfoRate", "masterLfoDepth",
+                    "masterFilterFrequency", "masterFilterQ", "masterChorus", "masterComb", "masterRing", "drive",
+                    "lowCut", "highCut"
+                ]
+            ),
+            new(
+                "Taps",
+                [
+                    "tap1Time", "tap1Tempo", "tap1Feedback", "tap1Level", "tap1Pan", "cross1", "tap2Time", "tap2Tempo",
+                    "tap2Feedback", "tap2Level", "tap2Pan", "cross2", "tap3Time", "tap3Tempo", "tap3Feedback",
+                    "tap3Level", "tap3Pan", "cross3", "tap4Time", "tap4Tempo", "tap4Feedback", "tap4Level", "tap4Pan",
+                    "cross4"
+                ]
+            ),
+            new(
+                "Filters",
+                [
+                    "filter1Type", "filter1Frequency", "filter1Q", "filter1Gain", "filter2Type", "filter2Frequency",
+                    "filter2Q", "filter2Gain", "filter3Type", "filter3Frequency", "filter3Q", "filter3Gain",
+                    "filter4Type", "filter4Frequency", "filter4Q", "filter4Gain", "filterLfoType", "filterLfoRate",
+                    "filterLfoDepth"
+                ]
+            ),
+            new(
+                "Modulation",
+                [
+                    "chorus1Rate", "chorus1Depth", "chorus2Rate", "chorus2Depth", "chorus3Rate", "chorus3Depth",
+                    "chorus4Rate", "chorus4Depth", "lfo1Type", "lfo1Rate", "lfo1Tempo", "lfo1Depth", "lfo1Phase",
+                    "lfo2Type", "lfo2Rate", "lfo2Tempo", "lfo2Depth", "lfo2Phase"
+                ]
+            ),
+            new(
+                "Comb/Ring",
+                [
+                    "comb1Time", "comb1Feedback", "ring1Frequency", "ring1Mix", "comb2Time", "comb2Feedback",
+                    "ring2Frequency", "ring2Mix", "comb3Time", "comb3Feedback", "ring3Frequency", "ring3Mix",
+                    "comb4Time", "comb4Feedback", "ring4Frequency", "ring4Mix"
+                ]
+            ),
+            new("Diffusion", ["diffusionMix", "diffusionTime", "diffusionRate", "diffusionDepth"]),
+            new("Ducking", ["duckThreshold", "duckAttenuation", "duckRelease"]),
+            new(
+                "Advanced",
+                [
+                    "lowCutSlope", "highCutSlope", "envelopeThreshold", "envelopeAttack", "envelopeRelease",
+                    "seriesFeedback", "seriesSend", "seriesReturn", "motorSpeed", "inputGain", "inputSelect",
+                    "globalMix", "killDry"
+                ]
+            )
+        ]
     );
 
     static IEnumerable<ParamDescriptor> Voice(Func<int, ParamDescriptor> parameter) =>
@@ -631,10 +687,9 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
 
         var inputGain = Params.Advance(InputGain, n) / 100f;
         var select = (int)Params.Current(InputSelect);
-        var mixStep = (mix - this.mix) / n;
-        var currentMix = this.mix;
+        var gains = new MixRamp(MixLaw.ConstantPower, this.mix, mix, n, Params.Current(KillDry) >= 0.5f);
         for (var i = 0; i < n; i++) {
-            currentMix += mixStep;
+            gains.Advance();
             var dryLeft = io.Left[i];
             var dryRight = io.Right[i];
             var x = Stereo.Select(select, dryLeft, dryRight) * inputGain;
@@ -757,8 +812,8 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                 wetRight *= duck;
             }
 
-            io.Left[i] = dryLeft * (1f - currentMix) + wetLeft * currentMix;
-            io.Right[i] = dryRight * (1f - currentMix) + wetRight * currentMix;
+            io.Left[i] = dryLeft * gains.Dry + wetLeft * gains.Wet;
+            io.Right[i] = dryRight * gains.Dry + wetRight * gains.Wet;
         }
 
         Array.Copy(tapTarget, tapDelay, Voices);

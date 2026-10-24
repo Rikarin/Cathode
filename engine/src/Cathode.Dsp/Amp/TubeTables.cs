@@ -138,7 +138,24 @@ public sealed class TriodeTables {
 
     /// <summary>Plate current at (<paramref name="vgk" />, <paramref name="vpk" />) and its two slopes.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double PlateCurrent(double vgk, double vpk, out double gridSlope, out double plateSlope) {
+    public double PlateCurrent(double vgk, double vpk, out double gridSlope, out double plateSlope) =>
+        PlateCurrent(vgk, vpk, Model.Kp, 1, out gridSlope, out plateSlope);
+
+    /// <summary>
+    ///     <see cref="PlateCurrent(double, double, out double, out double)" /> for the model with its cut-off knee K_p
+    ///     replaced by <paramref name="kp" />, where <paramref name="plateScale" /> is (K_p / <paramref name="kp" />)^Ex:
+    ///     G(u) does not depend on K_p, and P(v) only scales with it, so the same tables serve every hardness
+    ///     (<see cref="TriodeModel.Hardened" />).
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public double PlateCurrent(
+        double vgk,
+        double vpk,
+        double kp,
+        double plateScale,
+        out double gridSlope,
+        out double plateSlope
+    ) {
         if (!(vpk > 0)) {
             gridSlope = 0;
             plateSlope = 0;
@@ -148,7 +165,7 @@ public sealed class TriodeTables {
         var m = Model;
         var squared = m.Kvb + vpk * vpk;
         var root = Math.Sqrt(squared);
-        var u = m.Kp * (1 / m.Mu + vgk / root);
+        var u = kp * (1 / m.Mu + vgk / root);
         if (!(u > LowestU)) {
             gridSlope = 0;
             plateSlope = 0;
@@ -171,9 +188,9 @@ public sealed class TriodeTables {
             dv = m.Exponent * pv / vpk;
         }
 
-        var scale = 2 / m.Kg1;
-        gridSlope = scale * pv * du * m.Kp / root;
-        plateSlope = scale * (dv * gu - pv * du * m.Kp * vgk * vpk / (squared * root));
+        var scale = 2 / m.Kg1 * plateScale;
+        gridSlope = scale * pv * du * kp / root;
+        plateSlope = scale * (dv * gu - pv * du * kp * vgk * vpk / (squared * root));
         return scale * pv * gu;
     }
 }
@@ -182,8 +199,15 @@ public sealed class TriodeTables {
 ///     <see cref="Triode" /> with tabulated equations (<see cref="TriodeTables" />): the same device to about 1e-9
 ///     relative, at a third of the cost.
 /// </summary>
-public readonly struct FastTriode(TriodeModel model) : INonlinearDevice {
+/// <param name="model">The stock triode (its tables are cached per model).</param>
+/// <param name="hardness">
+///     The cut-off knee's sharpness as a multiple of stock (<see cref="TriodeModel.Hardened" />); 1 is the model.
+/// </param>
+/// <param name="gridCurrent">The grid current as a multiple of Dempwolf's law (the stage's bias excursion); 1 is stock.</param>
+public readonly struct FastTriode(TriodeModel model, double hardness = 1, double gridCurrent = 1) : INonlinearDevice {
     readonly TriodeTables tables = TriodeTables.For(model);
+    readonly double kp = model.Kp * hardness;
+    readonly double plateScale = Math.Pow(hardness, -model.Exponent);
 
     public int Ports => 2;
 
@@ -192,8 +216,16 @@ public readonly struct FastTriode(TriodeModel model) : INonlinearDevice {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Evaluate(ReadOnlySpan<double> voltages, Span<double> currents, Span<double> jacobian, int stride) {
         var vgk = voltages[0];
-        currents[0] = tables.GridCurrent(vgk, out jacobian[0]);
-        currents[1] = tables.PlateCurrent(vgk, voltages[1], out jacobian[stride], out jacobian[stride + 1]);
+        currents[0] = gridCurrent * tables.GridCurrent(vgk, out jacobian[0]);
+        jacobian[0] *= gridCurrent;
+        currents[1] = tables.PlateCurrent(
+            vgk,
+            voltages[1],
+            kp,
+            plateScale,
+            out jacobian[stride],
+            out jacobian[stride + 1]
+        );
     }
 
     /// <summary>The plate voltage may fall to a tenth per Newton step (<see cref="TubeLimit.Plate" />).</summary>
@@ -224,7 +256,7 @@ public static class TubeLimit {
 /// <summary>
 ///     Koren's pentode law in tabulated pieces, for the power stage: with u = K_p (1/μ + V_g1k / V_g2k),
 ///     I_p = (2 / K_g1) (V_g2k / K_p)^Ex G(u) atan(V_pk / K_vb), where the screen factor changes slowly (it is computed
-///     once per sample, <see cref="ScreenFactor" />) and G and the arctangent knee are tables. The screen current
+///     once per sample, <see cref="ScreenFactor(double)" />) and G and the arctangent knee are tables. The screen current
 ///     (V_g2k / μ + V_g1k)^Ex / K_g2 is a table of its one argument.
 /// </summary>
 public sealed class PentodeTables {
@@ -279,10 +311,14 @@ public sealed class PentodeTables {
     }
 
     /// <summary>(2 / K_g1) (V_g2k / K_p)^Ex, the plate current's dependence on the screen voltage.</summary>
-    public double ScreenFactor(double vg2) => vg2 > 1e-3 ? 2 * Math.Pow(vg2 / Model.Kp, Model.Exponent) / Model.Kg1 : 0;
+    public double ScreenFactor(double vg2) => ScreenFactor(vg2, Model.Kp);
+
+    /// <summary><see cref="ScreenFactor(double)" /> with the cut-off knee K_p replaced by <paramref name="kp" />.</summary>
+    public double ScreenFactor(double vg2, double kp) =>
+        vg2 > 1e-3 ? 2 * Math.Pow(vg2 / kp, Model.Exponent) / Model.Kg1 : 0;
 
     /// <summary>
-    ///     Plate current for screen factor <paramref name="factor" /> (from <see cref="ScreenFactor" /> at
+    ///     Plate current for screen factor <paramref name="factor" /> (from <see cref="ScreenFactor(double)" /> at
     ///     <paramref name="vg2" />), and its slopes with respect to the control grid and the plate.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -293,6 +329,25 @@ public sealed class PentodeTables {
         double vp,
         out double gridSlope,
         out double plateSlope
+    ) =>
+        PlateCurrent(factor, vg1, vg2, vp, Model.Kp, 1, out gridSlope, out plateSlope);
+
+    /// <summary>
+    ///     <see cref="PlateCurrent(double, double, double, double, out double, out double)" /> for the model with its
+    ///     cut-off knee K_p replaced by <paramref name="kp" /> and its plate knee K_vb divided by
+    ///     <paramref name="kneeScale" /> (G(u) does not depend on K_p, and atan(V_pk / K_vb) is read at the scaled plate
+    ///     voltage), so the same tables serve every hardness (<see cref="PentodeModel.Hardened" />).
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public double PlateCurrent(
+        double factor,
+        double vg1,
+        double vg2,
+        double vp,
+        double kp,
+        double kneeScale,
+        out double gridSlope,
+        out double plateSlope
     ) {
         gridSlope = 0;
         plateSlope = 0;
@@ -301,7 +356,7 @@ public sealed class PentodeTables {
         }
 
         var m = Model;
-        var u = m.Kp * (1 / m.Mu + vg1 / vg2);
+        var u = kp * (1 / m.Mu + vg1 / vg2);
         if (!(u > LowestU)) {
             return 0;
         }
@@ -315,16 +370,17 @@ public sealed class PentodeTables {
         }
 
         double k, dk;
-        if (vp < HighestPlate) {
-            k = knee.Evaluate(vp, out dk);
+        var scaled = vp * kneeScale;
+        if (scaled < HighestPlate) {
+            k = knee.Evaluate(scaled, out dk);
         } else {
-            var ratio = vp / m.Kvb;
+            var ratio = scaled / m.Kvb;
             k = Math.Atan(ratio);
             dk = 1 / (m.Kvb * (1 + ratio * ratio));
         }
 
-        gridSlope = factor * du * m.Kp / vg2 * k;
-        plateSlope = factor * gu * dk;
+        gridSlope = factor * du * kp / vg2 * k;
+        plateSlope = factor * gu * dk * kneeScale;
         return factor * gu * k;
     }
 
@@ -374,9 +430,26 @@ public sealed class PentodeTables {
         out double gridSlope,
         out double screenSlope,
         out double plateSlope
+    ) =>
+        PlateCurrent(vg1, vg2, vp, Model.Kp, 1, out gridSlope, out screenSlope, out plateSlope);
+
+    /// <summary>
+    ///     <see cref="PlateCurrent(double, double, double, out double, out double, out double)" /> with the knees
+    ///     scaled as in <see cref="PlateCurrent(double, double, double, double, double, double, out double, out double)" />.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public double PlateCurrent(
+        double vg1,
+        double vg2,
+        double vp,
+        double kp,
+        double kneeScale,
+        out double gridSlope,
+        out double screenSlope,
+        out double plateSlope
     ) {
-        var factor = ScreenFactor(vg2);
-        var current = PlateCurrent(factor, vg1, vg2, vp, out gridSlope, out plateSlope);
+        var factor = ScreenFactor(vg2, kp);
+        var current = PlateCurrent(factor, vg1, vg2, vp, kp, kneeScale, out gridSlope, out plateSlope);
         if (!(current > 0)) {
             screenSlope = 0;
             return current;

@@ -27,6 +27,12 @@ public static class CathodeApi {
         api.MapGet("/system", (EngineConnection engine) => TypedResults.Ok(new SystemInfo(Version, engine.Status())))
             .WithName("GetSystem");
 
+        api.MapGet("/system/latency", async (EngineConnection engine) => TypedResults.Ok(await engine.LatencyAsync()))
+            .WithName("GetLatency")
+            .WithSummary(
+                "The latency from instrument to speaker: the device's input and output latency, the buffer, and the graph's latency along its longest path, block by block."
+            );
+
         var catalog = api.MapGroup("/catalog").WithTags("Catalog");
         catalog.MapGet("/blocks", (BlockCatalog blocks) => TypedResults.Ok(blocks.All.ToArray()))
             .WithName("ListBlockTypes");
@@ -143,6 +149,30 @@ public static class CathodeApi {
             .WithSummary(
                 "Listens to the rig while you play, then sets a Tone Match block's correction towards a reference .wav."
             );
+        live.MapGet(
+                "/blocks/{id}/ir",
+                async (string id, IrTools tools) =>
+                    TypedResults.File(await tools.ExportCabAsync(id), "audio/wav", $"{id}.wav")
+            )
+            .Produces<byte[]>(200, "audio/wav")
+            .WithName("ExportCabIr")
+            .WithSummary(
+                "A Cab block's current mixed IR (every slot that plays, DynaCab and IR pack slots included, cuts and smoothing baked in) as a stereo .wav at the engine's rate."
+            );
+        live.MapPost(
+                "/blocks/{id}/ir",
+                async (string id, CabExportRequest request, IrTools tools, HttpContext http) =>
+                    TypedResults.Ok(await tools.SaveCabAsync(id, request, http.RequestAborted))
+            )
+            .WithName("SaveCabIr")
+            .WithSummary("Saves a Cab block's current mixed IR as a new IR asset.");
+
+        live.MapGet(
+                "/blocks/{id}/cab/align",
+                async (string id, IrTools tools) => TypedResults.Ok(await tools.CabAlignmentAsync(id))
+            )
+            .WithName("GetCabAlignment")
+            .WithSummary("The Cab block's slots for its Align page: each slot's IR head, onset and delays.");
 
         live.MapPost(
                 "/cables",
@@ -164,6 +194,14 @@ public static class CathodeApi {
             )
             .WithName("SelectScene");
         live.MapPatch(
+                "/info",
+                async (PresetInfoRequest request, LiveRig rig, HttpContext http) =>
+                    Respond(http, await rig.UpdateInfoAsync(request, Expected(http)))
+            )
+            .WithName("UpdatePresetInfo")
+            .WithSummary("Renames the working copy and sets its author and tags (undoable).");
+        MapScenes(live);
+        live.MapPatch(
                 "/scenes/{scene:int}",
                 async (int scene, SceneUpdateRequest request, LiveRig rig, HttpContext http) =>
                     Respond(http, await rig.UpdateSceneAsync(scene, request, Expected(http)))
@@ -172,6 +210,13 @@ public static class CathodeApi {
 
         var library = api.MapGroup("/presets").WithTags("Presets");
         library.MapGet("/", (PresetStore store) => TypedResults.Ok(store.List().ToArray())).WithName("ListPresets");
+        library.MapGet(
+                "/list.txt",
+                (PresetStore store) => TypedResults.Text(PresetListText.Build(store), "text/plain; charset=utf-8")
+            )
+            .Produces<string>(200, "text/plain")
+            .WithName("ExportPresetList")
+            .WithSummary("The preset list as plain text, alphabetical, with each preset's scene names.");
         library.MapGet(
                 "/{id}",
                 Results<Ok<Preset>, NotFound>(string id, PresetStore store) =>
@@ -247,7 +292,12 @@ public static class CathodeApi {
                 ) => {
                     var source = store.Get(request.Preset)
                         ?? throw RigException.NotFound($"No block preset '{request.Preset}'.");
-                    return Respond(http, await rig.ApplyBlockPresetAsync(id, source, request.Channel, Expected(http)));
+                    return Respond(
+                        http,
+                        request.AllChannels
+                            ? await rig.ApplyBlockPresetAllAsync(id, source, Expected(http))
+                            : await rig.ApplyBlockPresetAsync(id, source, request.Channel, Expected(http))
+                    );
                 }
             )
             .WithName("ApplyBlockPreset")
@@ -304,16 +354,36 @@ public static class CathodeApi {
             .WithName("DeleteBank");
 
         MapControls(api, live);
+        WorkflowApi.MapWorkflow(api, live);
 
         var assets = api.MapGroup("/assets").WithTags("Assets");
         assets.MapGet("/", (AssetStore store) => TypedResults.Ok(store.List().ToArray())).WithName("ListAssets");
         assets.MapPost(
                 "/",
-                async (string name, HttpRequest request, AssetStore store, CancellationToken cancellationToken) =>
-                    TypedResults.Ok(await store.AddAsync(request.Body, name, cancellationToken))
+                async (
+                        string name,
+                        HttpRequest request,
+                        AssetStore store,
+                        CancellationToken cancellationToken,
+                        string? processing,
+                        bool? polarity,
+                        string? channels,
+                        double? maxLengthMs
+                    ) =>
+                    TypedResults.Ok(
+                        await store.AddAsync(
+                            request.Body,
+                            name,
+                            AssetStore.ImportSettings(processing, polarity, channels, maxLengthMs),
+                            cancellationToken
+                        )
+                    )
             )
             .Accepts<Stream>("application/octet-stream")
-            .WithName("UploadAsset");
+            .WithName("UploadAsset")
+            .WithSummary(
+                "Uploads an asset. A .wav IR can be processed on import: processing (asIs, autoTrim, minimumPhase), polarity (make the main peak positive), channels (both, left, right, sum) and maxLengthMs."
+            );
         assets.MapPost(
                 "/mix",
                 async (IrMixRequest request, IrTools tools, CancellationToken cancellationToken) =>
@@ -344,6 +414,31 @@ public static class CathodeApi {
             )
             .WithName("GetAssetContent")
             .WithSummary("The asset's file, e.g. an impulse response for the editor's frequency-response plot.");
+
+        live.MapPut(
+                "/blocks/{id}/test-tone",
+                async Task<IResult> (string id, TestToneRequest request, LiveRig rig, EngineConnection engine) => {
+                    if (request.Enabled) {
+                        await rig.CheckBlockAsync(id);
+                    }
+
+                    await engine.TestToneAsync(id, request);
+                    return TypedResults.NoContent();
+                }
+            )
+            .WithName("SetTestTone")
+            .WithSummary(
+                "Plays a sine in place of the block's output (the cab resonance helper), or stops it. Nothing is stored in the preset, and loading another graph stops it."
+            );
+
+        live.MapGet(
+                "/blocks/{id}/speaker-resonance",
+                async (string id, LiveRig rig) => TypedResults.Ok(await rig.SpeakerResonanceAsync(id))
+            )
+            .WithName("GetSpeakerResonance")
+            .WithSummary(
+                "A Circuit Amp's speaker resonance: the frequency at LF Resonance 100 % for its model and speaker, the current setting and the frequency it gives."
+            );
 
         api.MapPut(
                 "/tuner",
@@ -520,13 +615,28 @@ public static class CathodeApi {
                                 g.Tempo = Math.Clamp(settings.Tempo, 30, 300);
                                 g.Metronome = settings.Metronome;
                                 g.MetronomeLevel = Math.Clamp(settings.MetronomeLevel, -60, 0);
-                                g.Eq = settings.Eq;
+                                g.Outputs = settings.Outputs;
+                                g.CopyOutput1To2 = settings.CopyOutput1To2;
+                                g.Inputs = settings.Inputs;
+                                g.Oversampling = settings.Oversampling;
                                 g.Manual = settings.Manual;
                                 g.MidiChannel = settings.MidiChannel;
                                 g.MidiMappings = settings.MidiMappings;
                                 g.Footswitches = settings.Footswitches;
                                 g.ActiveLayout = settings.ActiveLayout;
+                                g.ActiveView = Math.Max(0, settings.ActiveView);
                                 g.Blocks = settings.Blocks;
+                                g.Perform = settings.Perform;
+                                g.EffectsMix = settings.EffectsMix;
+                                g.NoiseGateOffset = settings.NoiseGateOffset;
+                                g.SceneRevert = settings.SceneRevert;
+                                g.DefaultScene = settings.DefaultScene;
+                                g.StartupPreset = string.IsNullOrWhiteSpace(settings.StartupPreset)
+                                    ? null
+                                    : settings.StartupPreset;
+                                g.IgnoreRedundantPc = settings.IgnoreRedundantPc;
+                                g.PresetSpillover = settings.PresetSpillover;
+                                g.ConfirmPresetChange = settings.ConfirmPresetChange;
                             }
                         )
                     );
@@ -534,7 +644,8 @@ public static class CathodeApi {
             )
             .WithName("PutGlobal")
             .WithSummary(
-                "Replaces the global settings: tempo mode, metronome, EQ, Manual A-D, MIDI, footswitches, global blocks."
+                "Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, Manual A-D, MIDI, footswitches, global blocks, "
+                + "scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover."
             );
 
         var looper = api.MapGroup("/looper").WithTags("Looper");
@@ -600,13 +711,65 @@ public static class CathodeApi {
             .WithName("CancelMidiLearn");
     }
 
-    static Ok<LiveState> Respond(HttpContext http, LiveState state) {
+    /// <summary>Scene and channel tools: the Scene Manager, copy and swap, Scene Ignore, channel swap and reset.</summary>
+    static void MapScenes(RouteGroupBuilder live) {
+        live.MapPost(
+                "/scenes/copy",
+                async (ScenePairRequest request, LiveRig rig, HttpContext http) =>
+                    Respond(http, await rig.CopySceneAsync(request, Expected(http)))
+            )
+            .WithName("CopyScene")
+            .WithSummary("Copies scene From onto scene To: name, block states, level, controllers and MIDI.");
+        live.MapPost(
+                "/scenes/swap",
+                async (ScenePairRequest request, LiveRig rig, HttpContext http) =>
+                    Respond(http, await rig.SwapScenesAsync(request, Expected(http)))
+            )
+            .WithName("SwapScenes")
+            .WithSummary("Swaps two scenes; the active scene moves with its content.");
+        live.MapPut(
+                "/scenes/{scene:int}/blocks/{id}",
+                async (int scene, string id, SceneBlockState state, LiveRig rig, HttpContext http) =>
+                    Respond(http, await rig.SetSceneBlockAsync(scene, id, state, Expected(http)))
+            )
+            .WithName("SetSceneBlock")
+            .WithSummary("A block's bypass and channel in one scene (the Scene Manager).");
+        live.MapPut(
+                "/blocks/{id}/channels/{channel}/scene-ignore",
+                async (string id, string channel, SceneIgnoreRequest request, LiveRig rig, HttpContext http) =>
+                    Respond(http, await rig.SetSceneIgnoreAsync(id, channel, request.Enabled, Expected(http)))
+            )
+            .WithName("SetSceneIgnore")
+            .WithSummary("Scene Ignore for one channel: while on it, scene changes leave the block's bypass and channel.");
+        live.MapPost(
+                "/blocks/{id}/channels/swap",
+                async (string id, CopyChannelRequest request, LiveRig rig, HttpContext http) =>
+                    Respond(http, await rig.SwapChannelsAsync(id, request, Expected(http)))
+            )
+            .WithName("SwapChannels");
+        live.MapPost(
+                "/blocks/{id}/channels/{channel}/reset",
+                async (string id, string channel, LiveRig rig, HttpContext http) =>
+                    Respond(http, await rig.ResetChannelAsync(id, channel, Expected(http)))
+            )
+            .WithName("ResetChannel")
+            .WithSummary("Puts one channel back to the block type's defaults.");
+        live.MapPost(
+                "/blocks/{id}/reset",
+                async (string id, LiveRig rig, HttpContext http) =>
+                    Respond(http, await rig.ResetBlockAsync(id, Expected(http)))
+            )
+            .WithName("ResetBlock")
+            .WithSummary("Puts every channel of the block back to its type's defaults.");
+    }
+
+    internal static Ok<LiveState> Respond(HttpContext http, LiveState state) {
         http.Response.Headers.ETag = $"\"{state.Revision.ToString(CultureInfo.InvariantCulture)}\"";
         return TypedResults.Ok(state);
     }
 
     /// <summary>The revision from <c>If-Match</c>, if the client sent one.</summary>
-    static long? Expected(HttpContext http) {
+    internal static long? Expected(HttpContext http) {
         var header = http.Request.Headers.IfMatch.ToString().Trim().Trim('"');
         return long.TryParse(header, NumberStyles.Integer, CultureInfo.InvariantCulture, out var revision)
             ? revision

@@ -8,6 +8,13 @@ static const char *const not_supported = "no audio backend for this platform yet
 int32_t cth_audio_device_count(void) { return 0; }
 int32_t cth_audio_device_info(int32_t index, cth_device_info *info) { (void)index; (void)info; return -1; }
 
+int32_t cth_audio_channel_name(int32_t device_index, int32_t is_input, int32_t channel, char *name, int32_t size)
+{
+    (void)device_index; (void)is_input; (void)channel;
+    if (name && size > 0) name[0] = 0;
+    return -1;
+}
+
 int32_t cth_audio_open(const char *device_uid, cth_stream_config *config, cth_process_fn process, void *user, cth_stream **stream)
 {
     (void)device_uid; (void)config; (void)process; (void)user;

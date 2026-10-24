@@ -7,6 +7,8 @@ export interface AudioDevice {
   inputChannels: number;
   outputChannels: number;
   sampleRate: number;
+  /** The driver's name for each input channel (empty where it names none). */
+  inputNames?: string[];
 }
 
 export interface AudioSettings {
@@ -18,6 +20,15 @@ export interface AudioSettings {
   loopIn: number[];
   /** Device output channels (1-based, up to two) that feed an external effects loop; empty for none. */
   loopOut: number[];
+  /**
+   * The first device channel (1-based) of Outputs 1-4, each a pair; 0 leaves an output unmapped. Missing entries are
+   * unmapped, and an empty list keeps the default: Output 1 on channels 1-2.
+   */
+  outputs: number[];
+  /** Device output channels (1-based, one or two) for the dry DI out, the input before Input 1 Gain; empty for none. */
+  diOut: number[];
+  /** Device input channels (1-based, up to two each) for Input 1–4, USB 5/6 and USB 7/8; empty leaves one silent. */
+  inputs?: number[][];
 }
 
 export interface LatencyResult {
@@ -52,6 +63,8 @@ export interface CathodeDesktop {
   platform: string;
   /** Called when the window enters or leaves full screen. */
   onFullScreen(listener: (fullScreen: boolean) => void): void;
+  /** Called when the app menu's Settings… (⌘,) is chosen. */
+  onOpenSettings?(listener: () => void): void;
   /** The Server to use; in local mode it resolves once the sidecars answer. */
   connection(): Promise<Connection>;
   target(): Promise<ServerTarget>;

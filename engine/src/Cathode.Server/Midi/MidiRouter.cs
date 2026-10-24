@@ -17,7 +17,8 @@ namespace Cathode.Server.Midi;
 ///     Footswitches: a switch without a hold action acts on press. One with a hold action acts on release (a tap), or
 ///     after <see cref="HoldTime" /> held (the hold action, then nothing on release). Toggles (bypass, tuner,
 ///     metronome) flip on a press; a CC mapping sets them from its value instead (64 and up means on/engaged), and a
-///     CC mapped to a scene selects the scene its value names.
+///     CC mapped to a scene selects the scene its value names (0-7), or steps to the next one, wrapping, for a value
+///     above 63. With Ignore Redundant PC on, a program change for the preset already loaded does nothing.
 /// </remarks>
 public sealed partial class MidiRouter : IDisposable {
     public static readonly TimeSpan HoldTime = TimeSpan.FromMilliseconds(500);
@@ -41,6 +42,7 @@ public sealed partial class MidiRouter : IDisposable {
     readonly Task worker;
     MidiLearnRequest? learning;
     bool tunerOn;
+    string? ledPage;
 
     /// <summary>The armed MIDI learn request, if any.</summary>
     public MidiLearnRequest? Learning {
@@ -118,7 +120,7 @@ public sealed partial class MidiRouter : IDisposable {
 
             var down = kind == "pc" || (message.Data2 >= 64 && (message.Status & 0xF0) != 0x80);
             var layout = settings.Footswitches.FirstOrDefault(l => l.Id == settings.ActiveLayout);
-            foreach (var footswitch in layout?.Switches ?? []) {
+            foreach (var footswitch in ActiveSwitches(settings, layout)) {
                 if (footswitch.Message == kind
                     && footswitch.Number == message.Data1
                     && (footswitch.Channel == 0 || footswitch.Channel == channel)) {
@@ -193,7 +195,7 @@ public sealed partial class MidiRouter : IDisposable {
         lock (gate) {
             if (down) {
                 if (footswitch.Hold is null) {
-                    Run(footswitch.Tap, 127, false, true, sampleTime);
+                    Tap(footswitch, sampleTime);
                     return;
                 }
 
@@ -214,8 +216,33 @@ public sealed partial class MidiRouter : IDisposable {
                     );
             } else if (held.Remove(footswitch.Index, out var timer)) {
                 timer.Cancel(); // released before the hold time: a tap
-                Run(footswitch.Tap, 127, false, true, sampleTime);
+                Tap(footswitch, sampleTime);
             }
+        }
+    }
+
+    /// <summary>A switch's tap action, then the jump to its linked layout, if any.</summary>
+    void Tap(Footswitch footswitch, long sampleTime) {
+        Run(footswitch.Tap, 127, false, true, sampleTime);
+        if (footswitch.Link is { } link) {
+            Run(new("layout", link), 127, false, true, sampleTime);
+        }
+    }
+
+    /// <summary>
+    ///     The switches of the layout's active view, each with the loaded preset's override (if it has one) in place of
+    ///     its own actions.
+    /// </summary>
+    IEnumerable<Footswitch> ActiveSwitches(GlobalSettings settings, FootswitchLayout? layout) {
+        if (layout is null) {
+            yield break;
+        }
+
+        var view = Math.Clamp(settings.ActiveView, 0, Math.Max(1, layout.Views?.Count ?? 0) - 1);
+        foreach (var footswitch in layout.Switches.Where(s => s.View == view)) {
+            yield return rig.FootswitchOverrideFor(layout.Id, footswitch.Index) is { } own
+                ? footswitch with { Tap = own.Tap, Hold = own.Hold, Label = own.Label ?? footswitch.Label }
+                : footswitch;
         }
     }
 
@@ -236,8 +263,17 @@ public sealed partial class MidiRouter : IDisposable {
     async Task ExecuteAsync(SwitchAction action, int data, bool continuous, bool down, long sampleTime) {
         var scenes = Preset.SceneCount;
         switch (action.Action) {
+            case "scene" when continuous && action.Value is null && data > 63: // the top half of a CC steps on
+                await rig.SelectSceneAsync((rig.ActiveScene + 1) % scenes);
+                break;
             case "scene" when down || continuous: // a CC's value is the scene number, whatever it is
                 await rig.SelectSceneAsync(Math.Clamp(action.Value ?? data, 0, scenes - 1));
+                break;
+            case "sceneLevelUp" or "sceneLevelDown" when down:
+                await rig.StepSceneLevelAsync(action.Action == "sceneLevelUp" ? 1f : -1f);
+                break;
+            case "save" when down:
+                await rig.SaveAsync(new(), null);
                 break;
             case "sceneNext" when down:
                 await rig.SelectSceneAsync((rig.ActiveScene + 1) % scenes);
@@ -246,7 +282,11 @@ public sealed partial class MidiRouter : IDisposable {
                 await rig.SelectSceneAsync((rig.ActiveScene + scenes - 1) % scenes);
                 break;
             case "presetSlot" when down && action.Target is { } bank:
-                await rig.LoadAsync(library.Slot(bank, action.Value ?? data));
+                var slot = library.Slot(bank, action.Value ?? data);
+                if (!(globals.Get().IgnoreRedundantPc && slot == rig.PresetId)) {
+                    await rig.LoadAsync(slot);
+                }
+
                 break;
             case "presetNext" or "presetPrevious" when down:
                 var all = presets.List().OrderBy(static p => p.Name, StringComparer.OrdinalIgnoreCase).ToList();
@@ -291,6 +331,26 @@ public sealed partial class MidiRouter : IDisposable {
             case "looper" when down && action.Target is { } looper:
                 engine.Looper(looper);
                 break;
+            case "layout" when down && action.Target is { } target:
+                globals.Update(g => {
+                        if (g.Footswitches.Any(l => l.Id == target)) {
+                            g.ActiveLayout = target;
+                            g.ActiveView = 0;
+                        }
+                    }
+                );
+                break;
+            case "view" or "viewNext" or "viewPrevious" when down:
+                globals.Update(g => {
+                        var views = Math.Max(1, g.Footswitches.FirstOrDefault(l => l.Id == g.ActiveLayout)?.Views?.Count ?? 0);
+                        g.ActiveView = action.Action switch {
+                            "view" => Math.Clamp(action.Value ?? 0, 0, views - 1),
+                            "viewNext" => (g.ActiveView + 1) % views,
+                            _ => (g.ActiveView + views - 1) % views
+                        };
+                    }
+                );
+                break;
         }
     }
 
@@ -320,7 +380,16 @@ public sealed partial class MidiRouter : IDisposable {
         }
 
         var looper = engine.LastTelemetry?.Looper?.State;
-        foreach (var footswitch in layout.Switches.Where(static s => s.Led)) {
+        lock (gate) {
+            // Another layout or view puts other switches under the same indexes: send every LED again.
+            var page = $"{layout.Id}/{settings.ActiveView}";
+            if (page != ledPage) {
+                ledPage = page;
+                leds.Clear();
+            }
+        }
+
+        foreach (var footswitch in ActiveSwitches(settings, layout).Where(static s => s.Led)) {
             var on = footswitch.Tap.Action switch {
                 "scene" => rig.ActiveScene == footswitch.Tap.Value,
                 "bypass" when footswitch.Tap.Target is { } block => !rig.IsBypassed(block),

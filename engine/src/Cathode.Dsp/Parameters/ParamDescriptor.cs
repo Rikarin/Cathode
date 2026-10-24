@@ -32,6 +32,10 @@ public enum ParamSmoothing {
 ///         (a gapless swap) when one changes, instead of only setting the target; the block keeps the value it was
 ///         compiled with until then.
 ///     </para>
+///     <para>
+///         <see cref="Page" />: the editor page the parameter sits on (Basic, Tone, Advanced, ...), set by the block's
+///         <see cref="BlockDescriptor" /> from its page list; null for a block with one page.
+///     </para>
 /// </remarks>
 public sealed record ParamDescriptor(
     string Id,
@@ -46,7 +50,8 @@ public sealed record ParamDescriptor(
     float SmoothingMs = 20f,
     IReadOnlyList<string>? Options = null,
     IReadOnlyList<string>? TypeLabels = null,
-    bool Recompile = false
+    bool Recompile = false,
+    string? Page = null
 ) {
     public static ParamDescriptor Float(
         string id,

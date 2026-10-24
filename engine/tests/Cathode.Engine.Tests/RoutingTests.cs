@@ -1,5 +1,6 @@
 using Cathode.Audio;
 using Cathode.Dsp;
+using Cathode.Dsp.Blocks;
 using Cathode.Engine.Graph;
 using Cathode.Testing;
 
@@ -60,6 +61,33 @@ public class RoutingTests {
 
         Assert.Equal(0.25f, left[^1], 1e-4f);
         Assert.Equal(0.5f, right[^1], 1e-4f);
+    }
+
+    [Fact]
+    public void Compiler_links_an_amp_to_the_next_cab_downstream() {
+        // Row 0: amp, volume, cab. Row 1: a second amp beside the cab, fed from the volume, with no cab after it.
+        var definition = Graph(
+            [
+                Node("in", NodeTypes.Input, 0, 0),
+                Node("amp", "circuitamp", 0, 1, ("speaker", CircuitAmpBlock.SpeakerAuto)),
+                Node("other", "circuitamp", 1, 3),
+                Node("vol", "volpan", 0, 2),
+                Node("cab", "cab", 0, 3),
+                Node("out", NodeTypes.Output, 0, 4)
+            ],
+            ("in", "amp"),
+            ("amp", "vol"),
+            ("vol", "other"),
+            ("vol", "cab"),
+            ("cab", "out"),
+            ("other", "out")
+        );
+        using var graph = Compiler.Compile(definition, Spec, 1);
+
+        var amp = (CircuitAmpBlock)graph.Block(graph.SlotOf("amp"));
+        var other = (CircuitAmpBlock)graph.Block(graph.SlotOf("other"));
+        Assert.Same(graph.Block(graph.SlotOf("cab")), amp.FollowedCab);
+        Assert.Null(other.FollowedCab);
     }
 
     [Fact]

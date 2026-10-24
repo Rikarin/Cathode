@@ -24,6 +24,33 @@ public enum ClipperShape {
     /// <summary>x / sqrt(1 + x²): soft rails, between tanh and a hard clip (an op-amp running out of supply).</summary>
     OpAmp,
 
+    /// <summary>
+    ///     A JFET's square-law stage: tanh on the positive half, a gentler 2 tanh(x / 2) on the negative (the drain
+    ///     approaching pinch-off rounds slowly), so even harmonics with a soft onset.
+    /// </summary>
+    Fet,
+
+    /// <summary>A leaky half-wave rectifier: tanh on the positive half, a fifth of it on the negative (octave-rich).</summary>
+    Rectifier,
+
+    /// <summary>
+    ///     A sine knee, sin(x) to ±π/2 and flat beyond: harder than tanh, softer than a hard clip, the curve Clip Shape
+    ///     varies furthest.
+    /// </summary>
+    Variable,
+
+    /// <summary>A high-voltage triode: 1.5 tanh(x / 1.5) on the positive half (more headroom), tanh on the negative.</summary>
+    HvTube,
+
+    /// <summary>A starved-plate triode: tanh on the positive half, a hard tanh(2 x) / 2 on the negative.</summary>
+    LvTube,
+
+    /// <summary>A silicon diode pair's exponential knee: sign(x) (1 - e^-|x|).</summary>
+    Silicon,
+
+    /// <summary>A 4558 with diodes in its feedback (the Tube Screamer's): tanh plus a twentieth of the input.</summary>
+    OpAmpDiode,
+
     /// <summary>No clipping: a clean gain stage.</summary>
     Linear
 }
@@ -98,6 +125,13 @@ public struct AdaaClipper {
             ClipperShape.Led => 2 * Math.Tanh(0.5 * x),
             ClipperShape.Tube => x >= 0 ? Math.Tanh(x) : Math.Tanh(1.5 * x) / 1.5,
             ClipperShape.OpAmp => x / Math.Sqrt(1 + x * x),
+            ClipperShape.Fet => x >= 0 ? Math.Tanh(x) : 2 * Math.Tanh(0.5 * x),
+            ClipperShape.Rectifier => x >= 0 ? Math.Tanh(x) : 0.2 * Math.Tanh(x),
+            ClipperShape.Variable => Math.Abs(x) < 0.5 * Math.PI ? Math.Sin(x) : Math.Sign(x),
+            ClipperShape.HvTube => x >= 0 ? 1.5 * Math.Tanh(x / 1.5) : Math.Tanh(x),
+            ClipperShape.LvTube => x >= 0 ? Math.Tanh(x) : 0.5 * Math.Tanh(2 * x),
+            ClipperShape.Silicon => Math.Sign(x) * (1 - Math.Exp(-Math.Abs(x))),
+            ClipperShape.OpAmpDiode => Math.Tanh(x) + 0.05 * x,
             ClipperShape.Linear => x,
             _ => Math.Tanh(x + Bias) - TanhBias
         };
@@ -114,6 +148,13 @@ public struct AdaaClipper {
             ClipperShape.Led => 4 * LogCosh(0.5 * x),
             ClipperShape.Tube => x >= 0 ? LogCosh(x) : LogCosh(1.5 * x) / 2.25,
             ClipperShape.OpAmp => Math.Sqrt(1 + x * x) - 1,
+            ClipperShape.Fet => x >= 0 ? LogCosh(x) : 4 * LogCosh(0.5 * x),
+            ClipperShape.Rectifier => x >= 0 ? LogCosh(x) : 0.2 * LogCosh(x),
+            ClipperShape.Variable => Math.Abs(x) < 0.5 * Math.PI ? 1 - Math.Cos(x) : Math.Abs(x) - 0.5 * Math.PI + 1,
+            ClipperShape.HvTube => x >= 0 ? 2.25 * LogCosh(x / 1.5) : LogCosh(x),
+            ClipperShape.LvTube => x >= 0 ? LogCosh(x) : 0.25 * LogCosh(2 * x),
+            ClipperShape.Silicon => Math.Abs(x) + Math.Exp(-Math.Abs(x)) - 1,
+            ClipperShape.OpAmpDiode => LogCosh(x) + 0.025 * x * x,
             ClipperShape.Linear => 0.5 * x * x,
             _ => LogCosh(x + Bias) - TanhBias * x
         };
