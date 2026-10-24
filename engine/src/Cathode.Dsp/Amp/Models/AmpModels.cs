@@ -32,7 +32,10 @@ public sealed partial record AmpDesign {
         Models.Peavey5150.Design,
         Models.DualRectifier.Design,
         Models.Evh5150III.Design,
-        Models.MarkIV.Design
+        Models.MarkIV.Design,
+        Models.Svt.Design,
+        Models.PortaflexB15.Design,
+        Models.JazzChorus120.Design
     ];
 
     public static AmpDesign Blackface => Models.Blackface.Design;

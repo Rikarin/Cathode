@@ -92,3 +92,36 @@ public sealed class CouplingStage(CouplingStageDesign design) : AmpStage {
 
     static double Parallel(double a, double b) => a * b / (a + b);
 }
+
+/// <summary>
+///     An ideal unity-gain buffer: an op-amp follower whose input draws nothing and whose output has no resistance, at
+///     levels where it cannot clip (its input is a few volts at most on ±15 V rails). It joins two networks without a
+///     device to solve.
+/// </summary>
+public sealed record BufferStageDesign(string Name) : AmpStageDesign(Name) {
+    public override AmpStage Create(double sampleRate) => new BufferStage();
+}
+
+/// <summary>A <see cref="BufferStageDesign" />: the output is the input.</summary>
+public sealed class BufferStage : AmpStage {
+    double rest;
+
+    public override double OutputResistance => 0;
+
+    public override double RestOutput => rest;
+
+    public override void SetSampleRate(double sampleRate) { }
+
+    public override void SetSourceResistance(double ohms) { }
+
+    public override void SetSupply(double scale) { }
+
+    public override void Update(in AmpControls controls) { }
+
+    public override void Reset(double restInput) => rest = restInput;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public override double Tick(double input) => input;
+
+    public override void FlushDenormals() { }
+}

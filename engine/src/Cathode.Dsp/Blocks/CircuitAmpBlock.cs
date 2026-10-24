@@ -26,6 +26,10 @@ namespace Cathode.Dsp.Blocks;
 ///         so a power amp driven into clipping peaks a few decibels under full scale.
 ///     </para>
 ///     <para>
+///         A solid-state model (<see cref="AmpDesign.SolidState" />, the JC-120) runs a <see cref="SolidStatePowerAmp" />
+///         instead: full scale is its rails less their headroom, and its panel hides the tube-only parameters.
+///     </para>
+///     <para>
 ///         Front panel: Gain, Bass, Middle, Treble, Presence, Depth, Cut, Master and Bright, and the model-specific
 ///         <b>Switch 1-3</b> and <b>Control 1-2</b> and <b>EQ 1-5</b>, which each model names in its
 ///         <see cref="AmpPanel" /> (a Fat switch, a lead drive, the bands of a Mark-style EQ); the descriptor carries the
@@ -347,8 +351,14 @@ public sealed class CircuitAmpBlock : DspBlock {
         var design = active.Design;
         var power = design.Power;
         var trim = Decibels.ToGain(design.OutputTrimDb);
-        outputScale = trim * power.Transformer.TurnsRatio / (2 * power.Supply);
-        preampScale = trim / PreampFullScale;
+        // Full scale: the largest swing the output stage can make (a tube amp's plates from B+ to 0 V, referred to the
+        // secondary; a solid-state amp's rails less its headroom).
+        outputScale = design.SolidState is { } solid
+            ? trim / solid.Swing
+            : trim * power.Transformer.TurnsRatio / (2 * power.Supply);
+        // With the power amp off, full scale is its input's: 50 V at a tube amp's inverter, a solid-state amp's swing over
+        // its gain.
+        preampScale = design.SolidState is { } input ? trim * input.Gain / input.Swing : trim / PreampFullScale;
         Configure(0);
         active.Reset();
     }

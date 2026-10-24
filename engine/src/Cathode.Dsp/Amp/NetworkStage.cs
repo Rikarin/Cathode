@@ -35,13 +35,15 @@ public enum ElementKind {
     Supply,
     Triode,
     Pentode,
-    Diodes
+    Diodes,
+    OpAmp
 }
 
 /// <summary>
 ///     One element of a <see cref="StageNetlist" />; the optional properties apply to the kinds that use them. Nodes: a
 ///     two-terminal element or a supply (to ground) is A-B; a triode is plate A, grid B, cathode C; a pentode plate A,
-///     screen B, grid C, cathode D; a diode clipper anode A, cathode B.
+///     screen B, grid C, cathode D; a diode clipper anode A, cathode B; an op-amp non-inverting input A, inverting input
+///     B, output C (its rails ± <see cref="Value" /> volts, about ground).
 /// </summary>
 public sealed record StageElement(ElementKind Kind, int A, int B, double Value) {
     public int C { get; init; }
@@ -74,6 +76,8 @@ public sealed record StageElement(ElementKind Kind, int A, int B, double Value) 
 
     public int Reverse { get; init; }
 
+    public OpAmpModel OpAmp { get; init; }
+
     /// <summary>
     ///     A rotary selector's values (<see cref="StageNetlist.SelectedCapacitor" />), the first at the knob's zero and
     ///     the last at ten; null for none.
@@ -96,8 +100,8 @@ public sealed record StageElement(ElementKind Kind, int A, int B, double Value) 
 /// <summary>
 ///     The circuit of a <see cref="NetworkStageDesign" />, written like a SPICE netlist: nodes, passive elements
 ///     (resistors, capacitors, inductors), pots turned by front-panel knobs, elements switched by front-panel switches,
-///     supply rails that follow the preamp's sag, and up to two triodes, or a pentode, or a diode clipper (a triode and a
-///     diode clipper together also work). The source drives <see cref="Input" /> through the previous stage's output
+///     supply rails that follow the preamp's sag, and up to three triodes, or a pentode, or a diode clipper (a triode and
+///     a diode clipper together also work), or one or two op-amps. The source drives <see cref="Input" /> through the previous stage's output
 ///     resistance; the stage's output is the voltage at <see cref="Output" />.
 /// </summary>
 /// <remarks>
@@ -208,6 +212,13 @@ public sealed class StageNetlist {
     public void Diodes(int anode, int cathode, DiodeModel model, int forward, int reverse) =>
         Add(new(ElementKind.Diodes, anode, cathode, 0) { Diode = model, Forward = forward, Reverse = reverse });
 
+    /// <summary>
+    ///     An op-amp (<see cref="Wdf.OpAmp" />) on symmetric rails of ± <paramref name="rails" /> volts, its output's
+    ///     reference ground. Its rails are regulated: they do not follow the preamp's sag.
+    /// </summary>
+    public void OpAmp(int nonInverting, int inverting, int output, OpAmpModel model, double rails) =>
+        Add(new(ElementKind.OpAmp, nonInverting, inverting, rails) { C = output, OpAmp = model });
+
     void Add(StageElement element) {
         if (element.A > nodes || element.B > nodes || element.C > nodes || element.D > nodes) {
             throw new ArgumentException("Unknown node.", nameof(element));
@@ -228,38 +239,65 @@ public sealed class StageNetlist {
 /// <param name="Netlist">The circuit.</param>
 /// <param name="InputResistance">In series with the source (a grid stopper, an input-jack resistor).</param>
 public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, double InputResistance = 0) : AmpStageDesign(Name) {
+    /// <summary>
+    ///     The Newton iterations a sample may take before it counts as unconverged (the solver's default, 32, unless a
+    ///     stage needs more: three triodes in a feedback loop driven into hard clipping).
+    /// </summary>
+    public int MaxIterations { get; init; } = 32;
+
     public override AmpStage Create(double sampleRate) {
         var devices = Netlist.Elements
-            .Where(static e => e.Kind is ElementKind.Triode or ElementKind.Pentode or ElementKind.Diodes)
+            .Where(static e => e.Kind is ElementKind.Triode or ElementKind.Pentode or ElementKind.Diodes or ElementKind.OpAmp)
             .OrderBy(static e => e.Kind)
             .ToArray();
         var kinds = string.Concat(devices.Select(static e => e.Kind switch {
             ElementKind.Triode => 'T',
             ElementKind.Pentode => 'P',
-            _ => 'D'
+            ElementKind.Diodes => 'D',
+            _ => 'O'
         }));
         return kinds switch {
-            "" => new NetworkStage<NoDevice>(this, devices, static _ => default, sampleRate),
-            "T" => new NetworkStage<FastTriode>(this, devices, s => new(s.TubeFor(devices[0].Triode)), sampleRate),
+            "" => new NetworkStage<NoDevice>(this, devices, static (_, _) => default, sampleRate),
+            "T" => new NetworkStage<FastTriode>(this, devices, (s, _) => new(s.TubeFor(devices[0].Triode)), sampleRate),
             "TT" => new NetworkStage<Devices<FastTriode, FastTriode>>(
                 this,
                 devices,
-                s => new(new(s.TubeFor(devices[0].Triode)), new(s.TubeFor(devices[1].Triode))),
+                (s, _) => new(new(s.TubeFor(devices[0].Triode)), new(s.TubeFor(devices[1].Triode))),
                 sampleRate
             ),
-            "P" => new NetworkStage<Wdf.Pentode>(this, devices, _ => new(devices[0].Pentode), sampleRate),
-            "D" => new NetworkStage<DiodeClipper>(this, devices, _ => Clipper(devices[0]), sampleRate),
+            "TTT" => new NetworkStage<Devices<FastTriode, Devices<FastTriode, FastTriode>>>(
+                this,
+                devices,
+                (s, _) => new(
+                    new(s.TubeFor(devices[0].Triode)),
+                    new(new(s.TubeFor(devices[1].Triode)), new(s.TubeFor(devices[2].Triode)))
+                ),
+                sampleRate
+            ),
+            "P" => new NetworkStage<Wdf.Pentode>(this, devices, (_, _) => new(devices[0].Pentode), sampleRate),
+            "D" => new NetworkStage<DiodeClipper>(this, devices, (_, _) => Clipper(devices[0]), sampleRate),
             "TD" => new NetworkStage<Devices<FastTriode, DiodeClipper>>(
                 this,
                 devices,
-                s => new(new(s.TubeFor(devices[0].Triode)), Clipper(devices[1])),
+                (s, _) => new(new(s.TubeFor(devices[0].Triode)), Clipper(devices[1])),
                 sampleRate
             ),
-            _ => throw new NotSupportedException($"{Name}: a network stage takes up to two triodes, a pentode or a diode clipper.")
+            "O" => new NetworkStage<Wdf.OpAmp>(this, devices, (_, rate) => OpAmp(devices[0], rate), sampleRate),
+            "OO" => new NetworkStage<Devices<Wdf.OpAmp, Wdf.OpAmp>>(
+                this,
+                devices,
+                (_, rate) => new(OpAmp(devices[0], rate), OpAmp(devices[1], rate)),
+                sampleRate
+            ),
+            _ => throw new NotSupportedException(
+                $"{Name}: a network stage takes up to three triodes, a pentode, a diode clipper or up to two op-amps."
+            )
         };
     }
 
     static DiodeClipper Clipper(StageElement e) => new(e.Diode, e.Forward, e.Diode, e.Reverse);
+
+    static Wdf.OpAmp OpAmp(StageElement e, double sampleRate) => new(e.OpAmp, -e.Value, e.Value, sampleRate);
 }
 
 /// <summary>
@@ -282,7 +320,7 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
     readonly int[] index; // per element: its port (reactive), resistor or supply index in the WDF netlist; -1 for devices
     readonly double[] values; // per element: its value as the knobs, switches and settings have it
     readonly (int Plus, int Minus)[] devicePorts;
-    readonly Func<PreampSettings, TDevice> make;
+    readonly Func<PreampSettings, double, TDevice> make; // the devices for the settings and the sample rate
     readonly int size; // DC unknowns: nodes and supply currents
     readonly double[] matrix;
     readonly double[] vector;
@@ -293,6 +331,7 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
     readonly int[] pivots;
     readonly int supplies;
     readonly bool hasGainStage;
+    readonly bool hasMemory; // a device with state of its own (an op-amp's pole)
     RTypeRoot<NetworkPorts, TDevice> root;
     AmpControls controls;
     PreampSettings settings = PreampSettings.Stock;
@@ -316,7 +355,7 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
     internal NetworkStage(
         NetworkStageDesign design,
         StageElement[] devices,
-        Func<PreampSettings, TDevice> make,
+        Func<PreampSettings, double, TDevice> make,
         double sampleRate
     ) {
         this.design = design;
@@ -327,6 +366,7 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
         index = new int[elements.Length];
         values = new double[elements.Length];
         hasGainStage = elements.Any(static e => e.Cathode);
+        hasMemory = devices.Any(static e => e.Kind == ElementKind.OpAmp);
         controls = new(0.5, 0.5, 0.5, 0.5, 1, false);
 
         var net = new WdfNetlist();
@@ -368,9 +408,14 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
                     ports.Add((d.B, d.D));
                     ports.Add((d.A, d.D));
                     break;
-                default:
+                case ElementKind.Diodes:
                     net.Diode(d.A, d.B);
                     ports.Add((d.A, d.B));
+                    break;
+                default:
+                    net.OpAmp(d.A, d.B, d.C);
+                    ports.Add((d.A, d.B));
+                    ports.Add((d.C, StageNetlist.Ground));
                     break;
             }
         }
@@ -382,7 +427,7 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
         }
 
         sourceResistance = Math.Max(design.InputResistance, 1);
-        root = new(net, new(sourceResistance, [..inductors]), make(settings));
+        root = new(net, new(sourceResistance, [..inductors]), make(settings, sampleRate));
         for (var i = 0; i < elements.Length; i++) {
             if (elements[i].Kind is ElementKind.Capacitor or ElementKind.Inductor) {
                 root.Ports.Configure(index[i], values[i], sampleRate);
@@ -392,6 +437,7 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
         root.Propagate();
         ApplySupplies();
         root.Newton.Linearise = true;
+        root.Newton.MaxIterations = design.MaxIterations;
 
         size = netlist.Nodes + supplies;
         matrix = new double[size * size];
@@ -413,6 +459,11 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
 
     public override void SetSampleRate(double sampleRate) {
         this.sampleRate = sampleRate;
+        if (hasMemory) {
+            // An op-amp's pole and slew rate are per sample: a new device for the rate (the channel resets after).
+            root.Device = make(settings, sampleRate);
+        }
+
         for (var i = 0; i < elements.Length; i++) {
             if (elements[i].Kind is ElementKind.Capacitor or ElementKind.Inductor) {
                 root.Ports.Configure(index[i], values[i], sampleRate);
@@ -450,7 +501,7 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
 
     public override void Apply(in PreampSettings settings) {
         if (settings.Tube != this.settings.Tube) {
-            root.Device = make(settings);
+            root.Device = make(settings, sampleRate);
         }
 
         this.settings = settings;

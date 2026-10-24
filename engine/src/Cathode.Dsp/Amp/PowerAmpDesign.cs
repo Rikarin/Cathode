@@ -274,6 +274,13 @@ public enum PowerTopology {
 ///     in the amp); 0 to derive it from <paramref name="IdleCurrent" />.
 /// </param>
 /// <param name="SupplySwitches">Front-panel switches on the supply (a rectifier switch, Bold/Spongy); null for none.</param>
+/// <param name="ScreenSupply">
+///     The screen node's idle voltage where the amp runs its screens far below B+ from a winding of their own (the
+///     Ampeg SVT: 350 V screens under 680 V plates), for the stock bias, which gives <paramref name="IdleCurrent" /> at
+///     B+ with the screens there; set <see cref="PowerSupplyDesign.ChokeResistance" /> and a large
+///     <see cref="PowerSupplyDesign.ScreenCap" /> so that the node rests there. 0 for screens near B+ (the bias is then
+///     found with the screens at B+).
+/// </param>
 public sealed record PowerAmpDesign(
     string Name,
     PentodeModel Tube,
@@ -304,7 +311,8 @@ public sealed record PowerAmpDesign(
     InverterInputDesign? InverterInput = null,
     Pot? ShuntMaster = null,
     double CathodeResistor = 0,
-    IReadOnlyList<SupplySwitchDesign>? SupplySwitches = null
+    IReadOnlyList<SupplySwitchDesign>? SupplySwitches = null,
+    double ScreenSupply = 0
 ) {
     /// <summary>1 when single-ended, else 2.</summary>
     public int Sides => Topology == PowerTopology.SingleEnded ? 1 : 2;

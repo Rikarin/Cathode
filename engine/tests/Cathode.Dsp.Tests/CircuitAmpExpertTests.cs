@@ -125,7 +125,10 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                         && !(index == CircuitAmpBlock.SpeakerCurve && SpeakerDesign.Presets[(int)value - 1] == design.Power.Speaker)
                         && !(index == CircuitAmpBlock.Rectifier
                             && RectifierModel.All[(int)value - 1] == design.Power.PowerSupply.Rectifier)
-                        && !(index == CircuitAmpBlock.BrightCap && !HasBrightCap(design));
+                        && !(index == CircuitAmpBlock.BrightCap && !HasBrightCap(design))
+                        && !(design.SolidState is not null && !SolidStateAudible(design, index))
+                        // A preamp fed from a separate screen winding (the SVT) sees no sag to scale.
+                        && !(index == CircuitAmpBlock.PreampSag && design.Power.ScreenSupply > 0);
                     data.Add(type, index, value, audible);
                 }
             }
@@ -133,6 +136,14 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
             return data;
         }
     }
+
+    /// <summary>
+    ///     Whether an expert parameter reaches a solid-state amp: not where its panel hides it (the tube parameters); the
+    ///     supply's (Variac, B+ Time Const) only once the rails are loaded hard, which this test's chord does not do.
+    /// </summary>
+    static bool SolidStateAudible(AmpDesign design, int index) =>
+        design.Panel.Label(CircuitAmpBlock.Info.Params[index].Id, "-") is not null
+        && index is not (CircuitAmpBlock.Variac or CircuitAmpBlock.SupplyTime);
 
     /// <summary>Whether a model has a bright cap for the Bright Cap setting to scale (the Mark IV's lead channel has none).</summary>
     static bool HasBrightCap(AmpDesign design) =>

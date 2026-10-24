@@ -32,6 +32,12 @@ public sealed class AmpChannel {
 
     public PowerAmp Power { get; }
 
+    /// <summary>The solid-state power amp that runs in place of <see cref="Power" />, or null for a tube amp.</summary>
+    public SolidStatePowerAmp? SolidState { get; }
+
+    /// <summary>The preamp's supply as a fraction of nominal: a solid-state amp's preamp rails are regulated.</summary>
+    double PreampSupply => SolidState is null ? Power.PreampSupply : 1;
+
     /// <summary>Whether the power amp is modelled (the Power Amp Modeling switch); otherwise the output is the preamp's.</summary>
     public bool PowerAmpEnabled => channelSettings.PowerAmp;
 
@@ -41,6 +47,7 @@ public sealed class AmpChannel {
         stages = [..design.Preamp.Select(d => d.Create(sampleRate))];
         lastGainStage = Array.FindLastIndex(stages, static s => s.IsGainStage);
         Power = new(design.Power, sampleRate);
+        SolidState = design.SolidState is { } solid ? new(solid, sampleRate) : null;
         Reset();
     }
 
@@ -51,6 +58,7 @@ public sealed class AmpChannel {
         }
 
         Power.SetSampleRate(sampleRate);
+        SolidState?.SetSampleRate(sampleRate);
         DesignLowCut();
     }
 
@@ -68,6 +76,7 @@ public sealed class AmpChannel {
         }
 
         Power.Configure(power);
+        SolidState?.Configure(power);
     }
 
     /// <summary>
@@ -85,6 +94,7 @@ public sealed class AmpChannel {
         }
 
         reset |= Power.Apply(power);
+        SolidState?.Apply(power);
         if (channel != channelSettings) {
             var cut = channel.LowCut != channelSettings.LowCut;
             channelSettings = channel;
@@ -101,11 +111,12 @@ public sealed class AmpChannel {
     /// <summary>Every stage at its operating point, in signal order (each stage's rest output feeds the next).</summary>
     public void Reset() {
         Power.Reset();
+        SolidState?.Reset();
         var rest = 0.0;
         var resistance = 0.0;
         foreach (var stage in stages) {
             stage.SetSourceResistance(resistance);
-            stage.SetSupply(Power.PreampSupply);
+            stage.SetSupply(PreampSupply);
             stage.Reset(rest);
             rest = stage.RestOutput;
             resistance = stage.OutputResistance;
@@ -125,14 +136,19 @@ public sealed class AmpChannel {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Tick(double input) {
         var sag = channelSettings.PreampSag;
-        var supply = sag == 1 ? Power.PreampSupply : 1 + sag * (Power.PreampSupply - 1);
+        var preampSupply = PreampSupply;
+        var supply = sag == 1 ? preampSupply : 1 + sag * (preampSupply - 1);
         var x = channelSettings.LowCut > 0 ? lowCut.Process(input) : input;
         foreach (var stage in stages) {
             stage.SetSupply(supply);
             x = stage.Tick(x);
         }
 
-        return channelSettings.PowerAmp ? Power.Tick(x) : x;
+        if (!channelSettings.PowerAmp) {
+            return x;
+        }
+
+        return SolidState is { } solid ? solid.Tick(x) : Power.Tick(x);
     }
 
     public void FlushDenormals() {
@@ -141,6 +157,7 @@ public sealed class AmpChannel {
         }
 
         Power.FlushDenormals();
+        SolidState?.FlushDenormals();
         lowCut.FlushDenormals();
     }
 
