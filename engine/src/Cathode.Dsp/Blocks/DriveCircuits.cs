@@ -27,7 +27,21 @@ public enum StageKind {
     Transistor,
 
     /// <summary>The Fuzz Face's direct-coupled transistor pair; see <see cref="FuzzPairStage" />.</summary>
-    FuzzPair
+    FuzzPair,
+
+    /// <summary>
+    ///     A tape machine: the record amplifier's treble pre-emphasis (<see cref="DriveStage.TapeType" />), the tape's
+    ///     soft saturation <c>r tanh(x / r)</c> at <see cref="DriveStage.Rail" /> volts (antiderivative antialiased), and
+    ///     playback de-emphasis, the exact inverse of the record curve.
+    /// </summary>
+    Tape,
+
+    /// <summary>
+    ///     A digital bit crusher: sample-and-hold at a reduced rate, then quantisation to a reduced word length, both swept
+    ///     by Drive from transparent (16 bits, every sample) to <see cref="DriveStage.Bits" /> bits held at
+    ///     <see cref="DriveStage.HoldRate" /> Hz.
+    /// </summary>
+    Crusher
 }
 
 /// <summary>The topology of a pedal's tone network; see <see cref="ToneNetwork" /> for the component roles.</summary>
@@ -226,6 +240,17 @@ public sealed record DriveStage(StageKind Kind) {
 
     public double BaseToGround { get; init; }
 
+    /// <summary>Tape: the record/playback equalisation, a tape type of <see cref="Cathode.Dsp.Cabinets.MicPreampTypes" />.</summary>
+    public int TapeType { get; init; } = Cabinets.MicPreampTypes.Tape50;
+
+    /// <summary>
+    ///     Crusher: the word length at full Drive (16 bits at zero, swept geometrically), in bits; one volt is full scale.
+    /// </summary>
+    public double Bits { get; init; } = 4;
+
+    /// <summary>Crusher: the sample-and-hold rate at full Drive, in hertz (every sample at zero).</summary>
+    public double HoldRate { get; init; } = 2_000;
+
     /// <summary>True when the stage's transfer curve is odd-symmetric.</summary>
     public bool IsSymmetric =>
         Kind switch {
@@ -290,7 +315,7 @@ public sealed record DriveCircuit(string Name, string ModelledAfter) {
 public readonly record struct GuitarSource(double Series, double Shunt, double Resistance, double Level, double Emf);
 
 /// <summary>The circuit catalogue appended after the three original <see cref="DriveBlock" /> voicings.</summary>
-public static class DriveCircuits {
+public static partial class DriveCircuits {
     public const int MaxStages = 4;
 
     /// <summary>The guitar's pickup resistance and volume pot, which form the source the first stage sees.</summary>
@@ -852,7 +877,8 @@ public static class DriveCircuits {
                 Oversampling = 2,
                 Tone = FuzzTone,
                 OutputDb = -25
-            }
+            },
+            ..Round4Fuzz()
         ];
 
         foreach (var circuit in all) {
@@ -943,6 +969,16 @@ struct CircuitStage {
     double previous; // antiderivative antialiasing state of the rails or the rectifier
     double previousIntegral;
 
+    // Tape: the record emphasis and playback de-emphasis, first-order sections (transposed direct form II).
+    double emphasisB0, emphasisB1, emphasisA1;
+    double emphasisState, deemphasisState;
+
+    // Crusher: quantisation levels per volt (0 = none), hold step per sample, its phase and the held sample.
+    double levels;
+    double holdStep;
+    double holdPhase;
+    double held;
+
     // Gain: the input voltage across the two RC legs; their current is forced through the feedback network.
     WdfCircuit<Parallel<Series<Resistor, Capacitor>, Series<Resistor, Capacitor>>, IdealVoltageSource> legs;
     WdfCircuit<Parallel<ResistiveCurrentSource, Capacitor>, DiodePair> feedback;
@@ -1000,6 +1036,25 @@ struct CircuitStage {
                 clipper.Root.Antialiased = antialias;
                 clipper.Propagate();
                 break;
+
+            case StageKind.Tape: {
+                // The analog shelf (b1 s + b0) / (a1 s + a0) through the bilinear transform; de-emphasis is its inverse.
+                Cabinets.MicPreampTypes.Emphasis(stage.TapeType, out var b1, out var b0, out var a1, out var a0);
+                var k = 2 * sampleRate;
+                var norm = a1 * k + a0;
+                emphasisB0 = (b1 * k + b0) / norm;
+                emphasisB1 = (b0 - b1 * k) / norm;
+                emphasisA1 = (a0 - a1 * k) / norm;
+                break;
+            }
+
+            case StageKind.Crusher: {
+                // Geometric sweeps, so that the middle of the knob is already audibly crushed.
+                var bits = 16 * Math.Pow(stage.Bits / 16, drive);
+                levels = Math.Pow(2, bits - 1);
+                holdStep = Math.Pow(Math.Min(stage.HoldRate / sampleRate, 1), drive);
+                break;
+            }
         }
     }
 
@@ -1019,6 +1074,24 @@ struct CircuitStage {
                 clipper.Tree.A.Volts = x;
                 return clipper.Tick();
 
+            case StageKind.Tape: {
+                var recorded = emphasisB0 * x + emphasisState;
+                emphasisState = emphasisB1 * x - emphasisA1 * recorded;
+                var saturated = Antialiased(recorded);
+                var played = (saturated + deemphasisState) / emphasisB0;
+                deemphasisState = emphasisA1 * saturated - emphasisB1 * played;
+                return played;
+            }
+
+            case StageKind.Crusher:
+                holdPhase += holdStep;
+                if (holdPhase >= 1) {
+                    holdPhase -= Math.Floor(holdPhase);
+                    held = Math.Round(x * levels, MidpointRounding.AwayFromZero) / levels;
+                }
+
+                return held;
+
             default:
                 return Antialiased(x);
         }
@@ -1030,6 +1103,10 @@ struct CircuitStage {
         clipper.Reset();
         previous = 0;
         previousIntegral = Integral(0);
+        emphasisState = 0;
+        deemphasisState = 0;
+        holdPhase = 1; // the first sample is taken at once
+        held = 0;
     }
 
     /// <summary>Clears capacitor charge that has decayed into the subnormal range.</summary>
@@ -1038,6 +1115,13 @@ struct CircuitStage {
         Flush(ref legs.Tree.B.B);
         Flush(ref feedback.Tree.B);
         Flush(ref clipper.Tree.B);
+        if (Math.Abs(emphasisState) < 1e-30) {
+            emphasisState = 0;
+        }
+
+        if (Math.Abs(deemphasisState) < 1e-30) {
+            deemphasisState = 0;
+        }
     }
 
     /// <summary>
@@ -1058,8 +1142,14 @@ struct CircuitStage {
         return y;
     }
 
-    /// <summary>Gain: soft rails x / sqrt(1 + x² / r²). Rectifier: x blended towards sqrt(x² + k²) - k.</summary>
+    /// <summary>
+    ///     Gain: soft rails x / sqrt(1 + x² / r²). Rectifier: x blended towards sqrt(x² + k²) - k. Tape: r tanh(x / r).
+    /// </summary>
     readonly double Function(double x) {
+        if (kind == StageKind.Tape) {
+            return rail * Math.Tanh(x / rail);
+        }
+
         if (kind != StageKind.Rectifier) {
             return x / Math.Sqrt(1 + x * x / (rail * rail));
         }
@@ -1068,6 +1158,12 @@ struct CircuitStage {
     }
 
     readonly double Integral(double x) {
+        if (kind == StageKind.Tape) {
+            // r² ln cosh(x / r), written so that it cannot overflow.
+            var u = Math.Abs(x / rail);
+            return rail * rail * (u + Math.Log(1 + Math.Exp(-2 * u)) - Math.Log(2));
+        }
+
         if (kind != StageKind.Rectifier) {
             return rail * Math.Sqrt(rail * rail + x * x);
         }

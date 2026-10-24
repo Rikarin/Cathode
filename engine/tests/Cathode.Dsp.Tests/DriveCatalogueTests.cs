@@ -11,6 +11,13 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
     public static TheoryData<int> CircuitTypes =>
         [..Enumerable.Range(DriveBlock.CircuitTypes, DriveCircuits.All.Count)];
 
+    /// <summary>
+    ///     Clean boosts and preamps, which a firmly picked note does not drive into their rails even at full gain (as on
+    ///     the real pedals): they are held to staying clean there instead, and to clipping when hit hard
+    ///     (<see cref="DriveRound4FuzzTests" />).
+    /// </summary>
+    static readonly string[] CleanTypes = ["Micro Boost", "Bosom Boost", "FAS Boost", "Integral Pre"];
+
     public static TheoryData<int> AllTypes =>
         [..Enumerable.Range(0, DriveBlock.CircuitTypes + DriveCircuits.All.Count)];
 
@@ -55,6 +62,11 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
         );
         Assert.InRange(low.GainDb, -20, 20);
         Assert.InRange(full.GainDb, -12, 24);
+        if (CleanTypes.Contains(Name(type))) {
+            Assert.True(full.Thd < 0.01, "a clean boost distorts a picked note");
+            return;
+        }
+
         Assert.True(full.Thd > 0.01, "full drive barely distorts");
         if (DriveCircuits.All[type - DriveBlock.CircuitTypes].Stages.All(static s => s.Kind != StageKind.Rectifier)) {
             Assert.True(full.Thd > low.Thd, "full drive is not more distorted"); // an octave is all "distortion"
@@ -152,9 +164,13 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
         var third = Analysis.ToDb(magnitudes[96] / magnitudes[32]);
 
         output.WriteLine($"{Name(type)}: H2 {second:0.0} dBc, H3 {third:0.0} dBc, symmetric {circuit.IsSymmetric}");
-        if (circuit.IsSymmetric) {
+        if (circuit.Stages.Any(static s => s.Kind == StageKind.Crusher)) {
+            // The Bit Crusher's sample-and-hold images land between the harmonics: it has no harmonic signature.
+        } else if (circuit.IsSymmetric) {
             Assert.True(second < -80, $"H2 at {second:0.0} dBc from a symmetric circuit");
-            Assert.True(third > -60, $"H3 at {third:0.0} dBc");
+            // A clean boost or preamp still linear at this level has no harmonics to show.
+            var linear = second < -120 && third < -120;
+            Assert.True(third > -60 || linear, $"H3 at {third:0.0} dBc");
         } else {
             Assert.True(second > -40, $"H2 at {second:0.0} dBc from an asymmetric circuit");
         }
@@ -240,6 +256,10 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
     static (double Musical, double Extreme) AliasingFloors(DriveCircuit circuit) {
         static bool Railing(DriveStage s) =>
             s.Kind == StageKind.OpAmp && s.Diodes.ForwardCount + s.Diodes.ReverseCount == 0;
+
+        if (circuit.Stages.Any(static s => s.Kind == StageKind.Crusher)) {
+            return (double.NegativeInfinity, double.NegativeInfinity); // the Bit Crusher: aliasing is the effect
+        }
 
         if (circuit.Stages.Any(static s => s.Kind is StageKind.Transistor or StageKind.FuzzPair)) {
             return (25, 12); // 2x, Newton, hard switching
