@@ -37,8 +37,7 @@ public sealed class BlockCatalog {
         }
 
         foreach (var descriptor in registry.Descriptors) {
-            using var block = registry.Create(descriptor.TypeId);
-            var slots = block is IAssetConsumer consumer ? consumer.AssetSlots : [];
+            var slots = registry.AssetSlots(descriptor.TypeId);
             descriptors[descriptor.TypeId] = descriptor;
             infos[descriptor.TypeId] = new(
                 descriptor.TypeId,

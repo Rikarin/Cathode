@@ -49,6 +49,10 @@ builder.Services.AddSingleton<TemplateStore>();
 builder.Services.AddSingleton<PresetTools>();
 
 var app = builder.Build();
+if (builder.Configuration["Cathode:EditorDirectory"] is { Length: > 0 } editor) {
+    app.UseCathodeEditor(editor);
+}
+
 app.UseCathodeAccess(token);
 app.UseWebSockets();
 app.MapOpenApi();

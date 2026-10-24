@@ -106,6 +106,30 @@ import { UiStore } from './state/ui.store';
           <button action xuiButton type="button" (click)="startup.start()">Try again</button>
         </xui-non-ideal-state>
       }
+      @case ('token') {
+        <xui-non-ideal-state
+          class="h-full"
+          title="Access token needed"
+          description="This Cathode server asks for its access token. It is Cathode__Token in /etc/cathode/cathode.env on the rig, or ask whoever set it up."
+        >
+          <form
+            action
+            class="flex items-center gap-2"
+            (submit)="$event.preventDefault(); startup.useToken(tokenInput.value)"
+          >
+            <input
+              #tokenInput
+              xuiInput
+              type="password"
+              class="w-72"
+              aria-label="Access token"
+              data-testid="access-token"
+              autocomplete="current-password"
+            />
+            <button xuiButton type="submit">Connect</button>
+          </form>
+        </xui-non-ideal-state>
+      }
       @default {
         <nav xuiNavbar class="gap-3" [class.window-drag]="macWindow" [class.ps-21]="trafficLights()">
           <div xuiNavbarGroup class="no-scrollbar min-w-0 gap-1 overflow-x-auto">
