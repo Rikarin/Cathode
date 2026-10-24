@@ -40,6 +40,21 @@ public sealed class JsonFileStoreTests : IDisposable {
     }
 
     [Fact]
+    public void A_save_replaces_a_file_a_reader_holds_open_and_the_reader_keeps_the_old_content() {
+        var preset = Preset.CreateDefault();
+        preset.Name = "Before";
+        store.Save(preset);
+        var path = Path.Combine(folder, preset.Id + ".json");
+        using var reader = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+
+        preset.Name = "After";
+        store.Save(preset);
+
+        Assert.Equal("After", store.Get(preset.Id)!.Name);
+        Assert.Contains("Before", new StreamReader(reader).ReadToEnd());
+    }
+
+    [Fact]
     public void A_save_waits_out_a_short_lock_by_another_program() {
         var preset = Preset.CreateDefault();
         store.Save(preset);

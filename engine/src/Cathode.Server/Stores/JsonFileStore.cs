@@ -10,9 +10,9 @@ namespace Cathode.Server.Stores;
 ///     half-written file. Ids become file names and are restricted to safe characters.
 /// </summary>
 /// <remarks>
-///     On Windows a rename over a file fails while anyone has it open without delete sharing, so reads share delete
-///     (a save can replace the file under a reader, who keeps the old content), and a save or read that still meets a
-///     sharing violation (an indexer or a virus scanner holding the file a moment) is retried briefly.
+///     Reads share delete, and a save renames with POSIX semantics on Windows (<see cref="AtomicRename" />), so a save
+///     replaces the file under a reader, who keeps the old content. A save or read that still meets a sharing violation
+///     (an indexer or a virus scanner holding the file without delete sharing a moment) is retried briefly.
 /// </remarks>
 public sealed class JsonFileStore<T>
     where T : class {
@@ -46,7 +46,7 @@ public sealed class JsonFileStore<T>
         var json = JsonSerializer.Serialize(item, typeInfo);
         Retrying(() => {
                 File.WriteAllText(temporary, json);
-                File.Move(temporary, path, true);
+                AtomicRename.Replace(temporary, path);
             }
         );
     }
