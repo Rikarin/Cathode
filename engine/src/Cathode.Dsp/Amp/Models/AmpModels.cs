@@ -10,6 +10,8 @@ public sealed partial record AmpDesign {
         Models.Blackface.Design,
         Models.Plexi.Design,
         Models.AC30.Design,
+        Models.AC15.Design,
+        Models.DC30.Design,
         Models.Slo100.Design,
         Models.MarkIIC.Design,
         Models.Peavey5150.Design,

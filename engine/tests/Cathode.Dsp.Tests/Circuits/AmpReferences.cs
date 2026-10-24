@@ -237,7 +237,7 @@ static class AmpReferences {
                     break;
                 }
                 case ElementKind.Capacitor: {
-                    var farads = on ? e.Value : e.OffValue;
+                    var farads = e.ValueAt(controls);
                     if (farads > 0) {
                         c.Capacitor(e.A, e.B, e.CapacitorRole switch {
                             CapacitorRole.Bright => farads * settings.BrightCap,
@@ -291,7 +291,8 @@ static class AmpReferences {
         double cut,
         Func<double, double> input,
         double sourceResistance = 0,
-        bool triode = false
+        bool triode = false,
+        double master = 1
     ) {
         var c = new ReferenceCircuit();
         var singleEnded = d.Topology == PowerTopology.SingleEnded;
@@ -340,6 +341,11 @@ static class AmpReferences {
             var middle = c.Node();
             c.Resistor(a, middle, Math.Max(d.CutPot.Ohms * (1 - d.CutPot.Fraction(cut)), Floor));
             c.Capacitor(middle, b, d.CutCap);
+        }
+
+        // A master wired as a rheostat across the outputs.
+        if (d.ShuntMaster is { } pot && !singleEnded) {
+            c.Resistor(a, b, Math.Max(pot.Ohms * pot.Fraction(master), 1));
         }
 
         // The transformer's primary: centre-tapped (with ultralinear taps), or single from B+ to the plate.
