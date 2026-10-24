@@ -1,6 +1,7 @@
 using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Parameters;
+using Cathode.Dsp.Resampling;
 using Cathode.Dsp.Routing;
 using Cathode.Engine.Rig;
 
@@ -17,10 +18,22 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
     /// <summary>The audio interface's effects-loop channels, handed to FX Loop blocks (the engine's own).</summary>
     public HardwareLoop? HardwareLoop { get; init; }
 
+    /// <summary>The engine's test tone, handed to every graph (the cab resonance helper).</summary>
+    public TestTone? TestTone { get; init; }
+
     public CompiledGraph Compile(GraphDefinition definition, ProcessSpec spec, int generation = 0) {
         var errors = new List<string>();
         var nodes = definition.Nodes;
         var indexById = IndexNodes(definition, errors);
+        var oversampling = definition.Oversampling switch {
+            "minimum" or "" => OversamplingPhase.Minimum,
+            "linear" => OversamplingPhase.Linear,
+            _ => (OversamplingPhase)(-1)
+        };
+        if ((int)oversampling < 0) {
+            errors.Add($"Unknown oversampling '{definition.Oversampling}' (minimum or linear).");
+        }
+
         var (inputs, consumers) = ResolveCables(definition, indexById, errors);
         if (errors.Count > 0) {
             throw new GraphValidationException(errors);
@@ -64,6 +77,10 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
 
             if (block is RtaBlock rta) {
                 rta.Tap = analyzer ??= new(spec.MaxBlockSize);
+            }
+
+            if (block is IOversampledBlock oversampled) {
+                oversampled.OversamplingPhase = oversampling;
             }
 
             block.Prepare(spec);
@@ -169,12 +186,22 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
 
         // Path latency: the latest-arriving input defines each node's start time.
         var latency = new int[nodes.Count];
+        var latest = new int[nodes.Count]; // the input that arrives last, for the latency report
         var graphLatency = 0;
+        var slowestOutput = -1;
         foreach (var n in order) {
+            latest[n] = -1;
+            foreach (var i in inputs[n]) {
+                if (live[i] && (latest[n] < 0 || latency[i] > latency[latest[n]])) {
+                    latest[n] = i;
+                }
+            }
+
             latency[n] = Arrival(inputs[n], live, latency)
                 + (slotOfNode[n] >= 0 ? blocks[slotOfNode[n]].LatencySamples : 0);
-            if (nodes[n].Type == NodeTypes.Output) {
-                graphLatency = Math.Max(graphLatency, latency[n]);
+            if (NodeTypes.IsOutput(nodes[n].Type) && (slowestOutput < 0 || latency[n] > graphLatency)) {
+                graphLatency = latency[n];
+                slowestOutput = n;
             }
         }
 
@@ -201,7 +228,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 foreach (var m in order) {
                     if (nodes[m].Row == row
                         && nodes[m].Column < nodes[n].Column
-                        && nodes[m].Type != NodeTypes.Output
+                        && !NodeTypes.IsOutput(nodes[m].Type)
                         && (best < 0 || nodes[m].Column > nodes[best].Column)) {
                         best = m;
                     }
@@ -313,9 +340,10 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 emitter.Emit(new(GraphOpKind.Process, buffer, Index: slotOfNode[n]));
             }
 
-            if (node.Type == NodeTypes.Output) {
+            if (NodeTypes.IsOutput(node.Type)) {
+                // Every output is aligned to the slowest, so outputs played side by side stay in time.
                 emitter.EmitDelay(buffer, graphLatency - latency[n]);
-                emitter.Emit(new(GraphOpKind.WriteOutput, buffer));
+                emitter.Emit(new(GraphOpKind.WriteOutput, buffer, Index: NodeTypes.OutputIndex(node.Type)));
             }
 
             if (readersLeft[n] == 0) {
@@ -323,6 +351,14 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             }
         }
 
+        var path = new List<LatencyStep>();
+        for (var n = slowestOutput; n >= 0; n = latest[n]) {
+            if (slotOfNode[n] >= 0) {
+                path.Add(new(nodes[n].Id, nodes[n].Type, blocks[slotOfNode[n]].LatencySamples));
+            }
+        }
+
+        path.Reverse();
         return new(
             generation,
             spec,
@@ -336,7 +372,10 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             graphLatency,
             [..modifiers],
             analyzer
-        );
+        ) {
+            LatencyPath = path,
+            Tone = TestTone
+        };
     }
 
     /// <summary>The feedback pair an instance id names: its trailing number, or 1.</summary>
@@ -475,7 +514,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 errors.Add(
                     $"Cable '{cable.From}' -> '{cable.To}' must connect adjacent columns (use shunts to bridge gaps)."
                 );
-            } else if (source.Type == NodeTypes.Output) {
+            } else if (NodeTypes.IsOutput(source.Type)) {
                 errors.Add($"Cable '{cable.From}' -> '{cable.To}' starts at an output.");
             } else if (target.Type == NodeTypes.Input) {
                 errors.Add($"Cable '{cable.From}' -> '{cable.To}' ends at an input.");
@@ -499,7 +538,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             count
         );
         var toOutput = Flood(
-            Enumerable.Range(0, count).Where(n => definition.Nodes[n].Type == NodeTypes.Output),
+            Enumerable.Range(0, count).Where(n => NodeTypes.IsOutput(definition.Nodes[n].Type)),
             inputs,
             count
         );

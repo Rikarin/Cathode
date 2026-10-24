@@ -112,6 +112,8 @@ public sealed class EngineHostService : IDisposable {
                 IpcTypes.ExportLooper => ExportLooper(request),
                 IpcTypes.SetMidi => SetMidi(request),
                 IpcTypes.MidiOut => MidiOut(request),
+                IpcTypes.Latency => new() { Type = IpcTypes.Ok, Id = request.Id, Latency = Latency() },
+                IpcTypes.TestTone => TestTone(request),
                 _ => IpcMessage.Fail(request.Id, $"Unknown request type '{request.Type}'.")
             };
         }
@@ -240,7 +242,7 @@ public sealed class EngineHostService : IDisposable {
     IpcMessage SetParams(IpcMessage request) {
         var values = request.Params ?? [];
         // Rig and global parameters need no graph; anything else (or an empty update) is checked against it.
-        var forGraph = values.Count == 0 || values.Any(static v => v.Block is not (IpcBlocks.Rig or IpcBlocks.Global));
+        var forGraph = values.Count == 0 || values.Any(static v => !IpcBlocks.IsEngineWide(v.Block));
         if (forGraph && (latest is null || request.Generation != latest.Generation)) {
             return IpcMessage.Fail(request.Id, $"Stale graph generation {request.Generation}.");
         }
@@ -287,6 +289,37 @@ public sealed class EngineHostService : IDisposable {
 
     IpcMessage SetMidi(IpcMessage request) {
         midi?.SetFollowClock(request.FollowClock == true);
+        return IpcMessage.Ok(request.Id);
+    }
+
+    LatencyReport Latency() {
+        var (input, output) = device?.Latency ?? (0, 0);
+        return new(
+            Engine.Spec.SampleRate,
+            Engine.Spec.MaxBlockSize,
+            input,
+            output,
+            latest?.LatencySamples ?? 0,
+            [..latest?.LatencyPath ?? []]
+        );
+    }
+
+    /// <summary>The cab resonance helper's sine in place of a block's output; never stored with the preset.</summary>
+    IpcMessage TestTone(IpcMessage request) {
+        var tone = Engine.TestTone;
+        if (request.Enabled != true) {
+            tone.Stop();
+            return IpcMessage.Ok(request.Id);
+        }
+
+        var slot = request.Block is null || latest is null ? -1 : latest.SlotOf(request.Block);
+        if (slot < 0) {
+            return IpcMessage.Fail(request.Id, $"No block '{request.Block}'.");
+        }
+
+        var frequency = Math.Clamp(request.Frequency ?? 100, 20, 2_000);
+        var level = Decibels.ToGain(Math.Clamp(request.Level ?? -20f, -60f, 0f));
+        tone.Start(latest!.Generation, slot, frequency, level);
         return IpcMessage.Ok(request.Id);
     }
 
@@ -354,9 +387,7 @@ public sealed class EngineHostService : IDisposable {
                 while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName) {
                     var isBlock = reader.ValueTextEquals("block"u8);
                     reader.Read();
-                    if (isBlock
-                        && !reader.ValueTextEquals(IpcBlocks.Rig)
-                        && !reader.ValueTextEquals(IpcBlocks.Global)) {
+                    if (isBlock && !IsEngineWide(ref reader)) {
                         return true;
                     }
 
@@ -368,14 +399,22 @@ public sealed class EngineHostService : IDisposable {
         return empty;
     }
 
-    /// <summary>Sets one target on the rig, the global EQ or a block of the current graph.</summary>
+    /// <summary>Whether the string token under <paramref name="reader" /> is a rig or global EQ id (without allocating).</summary>
+    static bool IsEngineWide(ref Utf8JsonReader reader) {
+        Span<char> id = stackalloc char[MaxIdLength];
+        var length = ReadId(ref reader, id);
+        return length >= 0 && IpcBlocks.IsEngineWide(id[..length]);
+    }
+
+    /// <summary>Sets one target on the rig, an output's global EQ or a block of the current graph.</summary>
     bool SetParameter(ReadOnlySpan<char> block, ReadOnlySpan<char> param, float value) {
         ParamBank? bank;
         int index;
+        var eq = IpcBlocks.GlobalEqOutput(block);
         if (block.SequenceEqual(IpcBlocks.Rig)) {
             (bank, index) = (Engine.Rig, RigControls.Descriptor.IndexOf(param));
-        } else if (block.SequenceEqual(IpcBlocks.Global)) {
-            (bank, index) = (Engine.GlobalEq.Params, Engine.GlobalEq.Descriptor.IndexOf(param));
+        } else if (eq >= 0) {
+            (bank, index) = (Engine.OutputEq(eq).Params, Engine.OutputEq(eq).Descriptor.IndexOf(param));
         } else {
             var slot = latest?.SlotOf(block) ?? -1;
             (bank, index) = slot < 0
@@ -479,6 +518,7 @@ public sealed class EngineHostService : IDisposable {
         }
 
         var (input, left, right) = Engine.ReadMeters();
+        Engine.ReadOutputPeaks(target.OutputPeaks);
         var stats = Engine.Stats;
         overloads += stats.Overruns - overrunsSeen;
         overrunsSeen = stats.Overruns;

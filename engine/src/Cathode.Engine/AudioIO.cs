@@ -23,6 +23,12 @@ public readonly ref struct AudioIO {
 
     public Span<float> SendRight { get; }
 
+    /// <summary>
+    ///     Outputs 2-4 and the DI out, with the device channels they are mapped to; null when the backend has only the
+    ///     main output (the engine then renders nothing for the others).
+    /// </summary>
+    public OutputBus? Outputs { get; init; }
+
     public int Frames => OutputLeft.Length;
 
     public AudioIO(

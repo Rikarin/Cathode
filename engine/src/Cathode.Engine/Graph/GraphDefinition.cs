@@ -9,7 +9,28 @@ public static class NodeTypes {
     public const string Output = "output";
     public const string Shunt = "shunt";
 
-    public static bool IsBuiltIn(string type) => type is Input or Output or Shunt;
+    /// <summary>Outputs 2-4: grid outputs of their own, each mapped to a device channel pair in the audio settings.</summary>
+    public const string Output2 = "output2";
+
+    public const string Output3 = "output3";
+    public const string Output4 = "output4";
+
+    /// <summary>Output 1 (the main output) and Outputs 2-4.</summary>
+    public const int OutputCount = 4;
+
+    public static bool IsBuiltIn(string type) => type is Input or Shunt || IsOutput(type);
+
+    public static bool IsOutput(string type) => OutputIndex(type) >= 0;
+
+    /// <summary>0 for the main Output, 1-3 for Outputs 2-4, −1 for anything else.</summary>
+    public static int OutputIndex(string type) =>
+        type switch {
+            Output => 0,
+            Output2 => 1,
+            Output3 => 2,
+            Output4 => 3,
+            _ => -1
+        };
 }
 
 /// <summary>
@@ -55,6 +76,12 @@ public sealed class GraphDefinition {
 
     /// <summary>Parameters driven by a controller (docs/02-architecture.md §5.4).</summary>
     public List<ModifierDefinition> Modifiers { get; set; } = [];
+
+    /// <summary>
+    ///     The global oversampling filters (<c>minimum</c> or <c>linear</c>, Cathode.Dsp.Resampling.OversamplingPhase).
+    ///     A rig setting, carried with the graph because it changes block latencies, so it recompiles.
+    /// </summary>
+    public string Oversampling { get; set; } = "minimum";
 }
 
 /// <summary>

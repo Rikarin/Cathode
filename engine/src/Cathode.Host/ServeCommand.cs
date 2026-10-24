@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using Cathode.Audio;
 using Cathode.Audio.Native;
 using Cathode.Dsp;
+using Cathode.Engine;
 using Cathode.EngineHost;
 
 namespace Cathode.Host;
@@ -40,7 +41,8 @@ static class ServeCommand {
         if (options.Flag("null-audio")) {
             var spec = new ProcessSpec(rate, buffer);
             using var service = new EngineHostService(spec, "null", telemetryPath: telemetry);
-            using var backend = new NullBackend((int)rate, buffer);
+            using var nullOutputs = OutputBus.Parse(options.Text("outputs"), options.Text("di-out"));
+            using var backend = new NullBackend((int)rate, buffer, nullOutputs);
             backend.Start(service.Engine);
             return Serve(service, socketPath, stop.Token);
         }
@@ -58,7 +60,8 @@ static class ServeCommand {
             rate,
             buffer,
             1,
-            LoopChannels.Parse(options.Text("loop-in"), options.Text("loop-out"))
+            LoopChannels.Parse(options.Text("loop-in"), options.Text("loop-out")),
+            OutputBus.Parse(options.Text("outputs"), options.Text("di-out"))
         );
         using var deviceService = new EngineHostService(
             new(session.SampleRate, session.BufferFrames),
