@@ -37,6 +37,39 @@ namespace Cathode.Dsp.Amp.Models;
 public static class VibroKing {
     const double Preamp = 392;
 
+    /// <summary>
+    ///     The vibrato, from revision A of the drawing: V5A (½ 12AX7, R48 220k from the "Z" node, taken as the 392 V preamp
+    ///     node; R55 2.7k with C24 22 µF; C36 220 pF from the plate to the cathode's return) with C27 0.022 µF from its
+    ///     plate to R53 270k and the 5M Speed rheostat R8 to ground, C39 0.01 µF to a node with R52 1M to the pedal's
+    ///     return (R54 470k with C23 10 µF: an AC ground), C38 0.01 µF to the grid with R51 1M to the same return; V5B as
+    ///     the lamp driver on that node (R56 100k with C25 22 µF), the neon lamp and R49 100k from "Z" to its plate, R50 10M
+    ///     across them; the two photocells of the optocoupler, in parallel, from the 250k Intensity pot R9's wiper to
+    ///     ground, the pot's top on the output of the stack's 100k (the inverter's input). Not on the drawing (guesses):
+    ///     the Speed and Intensity tapers (reverse audio and linear) and the "Z" node's voltage.
+    /// </summary>
+    static OpticalTremoloDesign Vibrato { get; } = new(
+        new(
+            TriodeModel.Ecc83,
+            Preamp,
+            220e3,
+            2.7e3,
+            0.022e-6,
+            0.01e-6,
+            0.01e-6,
+            270e3,
+            1e6,
+            1e6,
+            new(5e6, PotTaper.ReverseAudio),
+            PlateShunt: 220e-12
+        ),
+        Preamp,
+        100e3,
+        100e3,
+        new(250e3, PotTaper.Linear),
+        0,
+        DownstreamLoad: 1e6
+    );
+
     public static AmpDesign Design { get; } = new(
         "Vibro-King",
         [
@@ -76,7 +109,9 @@ public static class VibroKing {
             Cut = null,
             Master = null,
             Bright = null,
-            Switch1 = "Fat"
+            Switch1 = "Fat",
+            TremoloRate = "Speed",
+            TremoloDepth = "Intensity"
         }
     };
 
@@ -147,6 +182,6 @@ public static class VibroKing {
         net.Rheostat(middle, StageNetlist.Ground, new(25e3, PotTaper.Linear), PotRole.Middle);
         net.Resistor(treble, output, 100e3);
         net.Output = output;
-        return new("V4B", net);
+        return new("V4B", net) { Tremolo = Vibrato };
     }
 }

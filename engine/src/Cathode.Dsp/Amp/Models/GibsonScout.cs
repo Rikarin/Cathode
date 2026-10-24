@@ -36,6 +36,36 @@ public static class GibsonScout {
     /// <summary>The 6EU7's grid-to-plate capacitance (RCA: 1.5 pF).</summary>
     const double GridPlate = 1.5e-12;
 
+    /// <summary>
+    ///     The tremolo, from the drawing: a bias tremolo. V3B (½ 6EU7: R29 150k from the 263 V node, its cathode grounded,
+    ///     118 V at the plate, its grid at −0.6 V on R32 4.7M) with C14 0.022 µF from its plate to R30 330k, C15 0.022 µF to
+    ///     R31 150k and the Speed rheostat R33 (1.5M reverse audio; the tremolo footswitch closes it to ground, open it
+    ///     stops the oscillator), C16 0.01 µF to the grid; from the plate C13 0.047 µF and R34 1M into the 6AQ5 grid
+    ///     leaks' junction, which R25 330k returns to the cathode's 20 µF (an AC ground). There is no Intensity control:
+    ///     the depth scales the swing, 100 % the amp's own.
+    /// </summary>
+    internal static BiasTremoloDesign Tremolo { get; } = new(
+        new(
+            TriodeModel.SixEU7,
+            263,
+            150e3,
+            0,
+            0.022e-6,
+            0.022e-6,
+            0.01e-6,
+            330e3,
+            150e3,
+            4.7e6,
+            new(1.5e6, PotTaper.ReverseAudio),
+            2,
+            PlateLoad: 1.1e6
+        ),
+        1e6,
+        0.047e-6,
+        null,
+        ReturnResistor: 330e3
+    );
+
     public static AmpDesign Design { get; } = new(
         "Scout GA-17RVT",
         [
@@ -65,10 +95,12 @@ public static class GibsonScout {
             new(150, 20e-6, 3.9e3, 20e-6, 4.7e3, 20e-6, 7.9e-3, RectifierModel.EZ81),
             InverterInput: new(0.005e-6, 470e3),
             CathodeResistor: 270
-        ),
+        ) { BiasTremolo = Tremolo },
         1.5
     ) {
         Panel = new() {
+            TremoloRate = "Speed",
+            TremoloDepth = "Depth",
             Gain = "Volume",
             Bass = null,
             Middle = null,

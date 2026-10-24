@@ -31,6 +31,30 @@ namespace Cathode.Dsp.Amp.Models;
 public static class Marshall18W {
     const double PreampSupply = 280;
 
+    /// <summary>
+    ///     The tremolo's oscillator, V3B, from the drawing: R11 100k from the 280 V node to its plate (shared with V3A's
+    ///     220k), C7 0.05 µF from the plate to ground, C10 0.01 µF to R24 470k and the 2M audio Speed rheostat R33 to
+    ///     ground, C9 0.01 µF to R26 1M, C8 0.01 µF to the grid with R10 2.2M to the cathode's foot (between R14 820 and
+    ///     the 1k Intensity rheostat R32; the footswitch grounds the grid, stopping it). Approximations: the shared
+    ///     cathode (820 with 50 µF, the Intensity at half) as V3B's own 1.32k, bypassed; V3A's path (220k and its plate)
+    ///     as a 280k load on the plate; which way the Speed rheostat turns (up is faster).
+    /// </summary>
+    static PhaseShiftOscillatorDesign Oscillator { get; } = new(
+        TriodeModel.Ecc83,
+        PreampSupply,
+        100e3,
+        1.32e3,
+        0.01e-6,
+        0.01e-6,
+        0.01e-6,
+        470e3,
+        1e6,
+        2.2e6,
+        new(2e6, PotTaper.Audio),
+        PlateShunt: 0.05e-6,
+        PlateLoad: 280e3
+    );
+
     public static AmpDesign Design { get; } = new(
         "18 W 1974X",
         [
@@ -72,7 +96,9 @@ public static class Marshall18W {
             Cut = null,
             Master = null,
             Bright = null,
-            Switch1 = "Tremolo Ch"
+            Switch1 = "Tremolo Ch",
+            TremoloRate = "Speed",
+            TremoloDepth = "Depth"
         }
     };
 
@@ -106,8 +132,23 @@ public static class Marshall18W {
     ///     ground, 0.005 µF to the Volume's top and through 470 pF to the Tone, whose foot has 0.005 µF to ground; the
     ///     Tone's and the Volume's wipers are joined (the output).
     /// </summary>
-    static NetworkStageDesign Tremolo() {
+    static NetworkStageDesign Tremolo() =>
+        TremoloChannel(false) with {
+            Tremolo = new GridDriveTremoloDesign(TremoloChannel(true), 0, Oscillator)
+        };
+
+    /// <summary>
+    ///     The Tremolo channel's netlist (see <see cref="Tremolo" />); <paramref name="oscillating" /> puts V3B's grid on
+    ///     a source (the netlist's first element) for the tremolo to swing.
+    /// </summary>
+    static NetworkStageDesign TremoloChannel(bool oscillating) {
         var net = new StageNetlist();
+        var drive = StageNetlist.Ground;
+        if (oscillating) {
+            drive = net.Node();
+            net.Supply(drive, 0);
+        }
+
         var (grid, rail, shared, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         var (coupled, top, toneTop, toneFoot) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Resistor(net.Input, StageNetlist.Ground, 1e6);
@@ -117,7 +158,7 @@ public static class Marshall18W {
         net.Capacitor(shared, StageNetlist.Ground, 0.05e-6);
         net.Resistor(shared, plate, 220e3);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Triode(shared, StageNetlist.Ground, cathode, TriodeModel.Ecc83);
+        net.Triode(shared, drive, cathode, TriodeModel.Ecc83);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.32e3);
         net.Capacitor(cathode, StageNetlist.Ground, 50e-6);
         net.Capacitor(plate, coupled, 0.005e-6);

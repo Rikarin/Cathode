@@ -23,7 +23,7 @@ public static class Bandmaster {
         [
             Ab763.FirstStage(375),
             Ab763.SecondStage(375),
-            Ab763.VibratoMixer()
+            Ab763.VibratoMixer() with { Tremolo = Ab763.Vibrato(440) }
         ],
         new(
             "2 x 6L6GC",
@@ -57,7 +57,9 @@ public static class Bandmaster {
             Depth = null,
             Cut = null,
             Master = null,
-            Switch1 = "Vibrato Ch"
+            Switch1 = "Vibrato Ch",
+            TremoloRate = "Speed",
+            TremoloDepth = "Intensity"
         }
     };
 }

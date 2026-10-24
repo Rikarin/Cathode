@@ -43,6 +43,35 @@ public static class PrincetonReverb {
         new(13.6e3, PotTaper.Linear)
     );
 
+    /// <summary>
+    ///     The bias tremolo, from the Fender drawing "Princeton Reverb-Amp AA1164" (045427,
+    ///     schematicheaven.net/fenderamps/princeton_reverb_aa1164_schem.pdf; the Princeton AA964's circuit): a 12AX7 half (220k from the "B" node, 410 V here, 3300 Ω with 25 µF) with
+    ///     0.02 µF from its plate to the Speed rheostat (3M reverse audio, 100k in series), 0.01 µF to a node with 1M to
+    ///     the cathode (the pedal's jack on it), 0.01 µF to the grid with 1M to ground; the plate through 1M (0.02 µF to
+    ///     ground after it) and 0.1 µF to the 250k linear Intensity pot, whose far end is the bias supply (25 µF and 27k),
+    ///     its wiper on the 6V6 grid leaks' return. The plate's load from that network at the rate is about 1.2M.
+    /// </summary>
+    internal static BiasTremoloDesign Tremolo { get; } = new(
+        new(
+            TriodeModel.Ecc83,
+            410,
+            220e3,
+            3.3e3,
+            0.02e-6,
+            0.01e-6,
+            0.01e-6,
+            100e3,
+            1e6,
+            1e6,
+            new(3e6, PotTaper.ReverseAudio),
+            PlateLoad: 1.2e6
+        ),
+        1e6,
+        0.1e-6,
+        new Pot(250e3, PotTaper.Linear),
+        0.02e-6
+    );
+
     public static AmpDesign Design { get; } = new(
         "Princeton Reverb",
         [
@@ -83,10 +112,12 @@ public static class PrincetonReverb {
             new(6.6e3),
             SpeakerDesign.OpenBack1x12,
             new(150, 20e-6, 1e3, 20e-6, 10e3, 20e-6, 5e-3, RectifierModel.FiveU4)
-        ),
+        ) { BiasTremolo = Tremolo },
         -9
     ) {
         Panel = new() {
+            TremoloRate = "Speed",
+            TremoloDepth = "Intensity",
             Gain = "Volume",
             Middle = null,
             Presence = null,
