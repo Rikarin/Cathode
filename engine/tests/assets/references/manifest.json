@@ -245,7 +245,20 @@
       },
       "sha256": "3326fe5644411271c4c38353eb495096b9bbe4312258d81010964179eaf38b00",
       "size": 151695,
-      "notes": "A kit build, not an original Dumble (stream F3)."
+      "circuit": {
+        "type": "ODS 97",
+        "params": {
+          "gain": 8.3,
+          "treble": 4.7,
+          "bass": 4.0,
+          "master": 4.8
+        }
+      },
+      "targets": {
+        "esr": 0.7,
+        "mrstft": 2.2
+      },
+      "notes": "A kit build, not an original Dumble (stream F3). Low gain taken as the ODS 97's clean channel driven hard; knobs fitted (gain, treble, bass, master). ESR (pre-emphasised) 1.152 and MRSTFT 2.190 at noon, 0.642 and 2.082 fitted; the calibration fit sits at its -20 dBu edge, so the kit's level or channel may differ."
     },
     {
       "id": "tl-dumble-kit-high",
@@ -266,7 +279,21 @@
       },
       "sha256": "a56d344eabe68b3946c3070b7fd5882c97e0bfb2958abbfd88aa5691baaab94c",
       "size": 151233,
-      "notes": "A kit build, not an original Dumble (stream F3)."
+      "circuit": {
+        "type": "ODS 97",
+        "params": {
+          "switch1": 1,
+          "gain": 5.6,
+          "treble": 4.3,
+          "control1": 6.2,
+          "control2": 5.5
+        }
+      },
+      "targets": {
+        "esr": 1.15,
+        "mrstft": 2.6
+      },
+      "notes": "A kit build, not an original Dumble (stream F3). The ODS 97's overdrive; volume, treble, drive and OD level fitted. ESR (pre-emphasised) 0.862 and MRSTFT 2.566 at the starting settings, 1.077 and 2.490 fitted (the fit's score weighs the spectrum)."
     },
     {
       "id": "tl-dumble-clone-clean",
@@ -288,7 +315,20 @@
       },
       "sha256": "32c03f091263f9cfe729b45d432fcd38a9892128dc82fc0c715591cac2af4a19",
       "size": 40261,
-      "notes": "Clone (stream F3)."
+      "circuit": {
+        "type": "ODS 97",
+        "params": {
+          "gain": 4.5,
+          "treble": 0,
+          "bass": 4.6,
+          "master": 9.9
+        }
+      },
+      "targets": {
+        "esr": 0.9,
+        "mrstft": 1.55
+      },
+      "notes": "Clone (stream F3). The ODS 97's clean channel (a traced 1997 ODS 100; the clone's circuit is not stated). Knobs not stated: gain, treble, bass and master fitted (ToleranceFit, 61 renders; treble and master end at their bounds). ESR (pre-emphasised) 1.110 and MRSTFT 1.756 at noon, 0.840 and 1.446 fitted."
     },
     {
       "id": "tl-dumble-clone-medium",
@@ -310,7 +350,21 @@
       },
       "sha256": "5dbe594b1c0d43853354b54927040fb9319443192ac287db8e713b2bf3caa6a4",
       "size": 40515,
-      "notes": "Clone (stream F3)."
+      "circuit": {
+        "type": "ODS 97",
+        "params": {
+          "switch1": 1,
+          "gain": 10,
+          "treble": 0.6,
+          "control1": 2.0,
+          "control2": 6.2
+        }
+      },
+      "targets": {
+        "esr": 1.05,
+        "mrstft": 2.25
+      },
+      "notes": "Clone (stream F3). The ODS 97's overdrive; volume, treble, drive and OD level fitted (the volume ends at 10). ESR (pre-emphasised) 1.057 and MRSTFT 2.328 at the starting settings, 1.001 and 2.127 fitted."
     },
     {
       "id": "tl-dumble-clone-high",
@@ -332,7 +386,21 @@
       },
       "sha256": "c0811ec44ff3876a740c28c850a2507f790ef1fc10faf3fdf962892f94e86d03",
       "size": 40352,
-      "notes": "Clone (stream F3)."
+      "circuit": {
+        "type": "ODS 97",
+        "params": {
+          "switch1": 1,
+          "gain": 7.5,
+          "treble": 2.2,
+          "control1": 5.9,
+          "control2": 5.6
+        }
+      },
+      "targets": {
+        "esr": 1.05,
+        "mrstft": 2.05
+      },
+      "notes": "Clone (stream F3). The ODS 97's overdrive; volume, treble, drive and OD level fitted. ESR (pre-emphasised) 0.973 and MRSTFT 1.986 at the starting settings, 0.986 and 1.931 fitted: the fit trades ESR for spectrum."
     },
     {
       "id": "tl-mesa-mini-rectifier-high",

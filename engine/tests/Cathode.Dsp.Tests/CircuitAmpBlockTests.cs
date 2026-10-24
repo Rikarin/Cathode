@@ -48,7 +48,11 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         // Vox-style class-A amps idle their EL84s past the rating: the AC30's drawing has 10 V across 50 Ω for four
         // (AmpBooks: about 17 W of plate dissipation each), the DC-30 runs as hot. An amp biased cold by design (the
         // 5150's fixed bias: 11-14 mA a tube) idles well under half its rating.
-        var hot = design.CathodeBias && design.Tube == Wdf.PentodeModel.EL84 ? 1.45 : 0.9;
+        // So do the class-A EL34 pairs on a resistor each: the Chieftain's and the Hot Cat's drawings both measure 24 V
+        // across 270 Ω (89 mA a tube, about 31 W of plate dissipation at 390 V).
+        var hot = design.CathodeBias && design.Tube == Wdf.PentodeModel.EL84 ? 1.45
+            : design.CathodeBias && design.Tube == Wdf.PentodeModel.EL34 ? 1.5
+            : 0.9;
         var coldest = design.IdleCurrent < 0.02 ? 0.15 : 0.4;
         Assert.InRange(dissipation, coldest * rating, hot * rating);
         Assert.InRange(power.Supply, 0.97 * design.Supply, 1.03 * design.Supply);
