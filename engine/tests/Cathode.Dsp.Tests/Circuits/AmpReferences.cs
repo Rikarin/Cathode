@@ -186,7 +186,44 @@ static class AmpReferences {
         var source = c.Node();
         c.Source(source, 0, input);
         c.Resistor(source, net.Input, Math.Max(sourceResistance + d.InputResistance, 1));
-        foreach (var e in net.Elements) {
+        Elements(c, d, controls, settings, static n => n);
+        return (c, net.Output);
+    }
+
+    /// <summary>
+    ///     Appends <paramref name="d" />'s netlist to <paramref name="c" />, driven from node <paramref name="source" />
+    ///     through the design's input resistance (directly where it has none): the whole circuit of a chain of stages,
+    ///     with no Thévenin cut between them. Returns the stage's output node in <paramref name="c" />.
+    /// </summary>
+    public static int Append(
+        ReferenceCircuit c,
+        NetworkStageDesign d,
+        AmpControls controls,
+        PreampSettings settings,
+        int source
+    ) {
+        var net = d.Netlist;
+        var first = c.Nodes + 1;
+        for (var n = 0; n < net.Nodes; n++) {
+            c.Node();
+        }
+
+        int Map(int n) => n == 0 ? 0 : first + n - 1;
+        c.Resistor(source, Map(net.Input), Math.Max(d.InputResistance, 1)); // 1 Ω for a direct join: well conditioned
+        Elements(c, d, controls, settings, Map);
+        return Map(net.Output);
+    }
+
+    /// <summary>The netlist's elements into <paramref name="c" />, its node n at <paramref name="map" />(n).</summary>
+    static void Elements(
+        ReferenceCircuit c,
+        NetworkStageDesign d,
+        AmpControls controls,
+        PreampSettings settings,
+        Func<int, int> map
+    ) {
+        foreach (var raw in d.Netlist.Elements) {
+            var e = raw with { A = map(raw.A), B = map(raw.B), C = map(raw.C), D = map(raw.D) };
             var on = e.Switch is not { } role || controls.IsOn(role);
             switch (e.Kind) {
                 case ElementKind.Resistor: {
@@ -228,8 +265,6 @@ static class AmpReferences {
                     break;
             }
         }
-
-        return (c, net.Output);
     }
 
     /// <summary>

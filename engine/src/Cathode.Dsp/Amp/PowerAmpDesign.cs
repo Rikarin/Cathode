@@ -194,6 +194,17 @@ public sealed record PowerSupplyDesign(
 /// </summary>
 public sealed record InverterInputDesign(double CouplingCap, double GridLeak);
 
+/// <summary>
+///     A front-panel switch on the power supply, which while it is on puts <paramref name="Rectifier" /> in place of the
+///     design's rectifier (Mesa's tube/silicon rectifier switch) and scales the mains by <paramref name="Variac" />
+///     (Mesa's Bold/Spongy, a lower primary tap). The Rectifier and Variac expert parameters apply on top: a rectifier
+///     chosen there wins, and the variacs multiply.
+/// </summary>
+/// <param name="Role">The switch.</param>
+/// <param name="Rectifier">The rectifier while it is on; null to keep the design's.</param>
+/// <param name="Variac">The mains while it is on, as a fraction of nominal.</param>
+public sealed record SupplySwitchDesign(SwitchRole Role, RectifierModel? Rectifier = null, double Variac = 1);
+
 /// <summary>How the output tubes drive the transformer.</summary>
 public enum PowerTopology {
     /// <summary>Two sides in push-pull across a centre-tapped primary.</summary>
@@ -262,6 +273,7 @@ public enum PowerTopology {
 ///     then sets the idle current in place of <paramref name="IdleCurrent" /> (a replacement tube keeps it, as it would
 ///     in the amp); 0 to derive it from <paramref name="IdleCurrent" />.
 /// </param>
+/// <param name="SupplySwitches">Front-panel switches on the supply (a rectifier switch, Bold/Spongy); null for none.</param>
 public sealed record PowerAmpDesign(
     string Name,
     PentodeModel Tube,
@@ -291,7 +303,8 @@ public sealed record PowerAmpDesign(
     bool SeparateCathodes = false,
     InverterInputDesign? InverterInput = null,
     Pot? ShuntMaster = null,
-    double CathodeResistor = 0
+    double CathodeResistor = 0,
+    IReadOnlyList<SupplySwitchDesign>? SupplySwitches = null
 ) {
     /// <summary>1 when single-ended, else 2.</summary>
     public int Sides => Topology == PowerTopology.SingleEnded ? 1 : 2;

@@ -132,7 +132,20 @@
       "conditioning": [
         0.5
       ],
-      "notes": "Conditioned model: the second input is the Drive knob (0-1); conditioning 0.5 = Drive 5. No IIC+ type yet (stream F4)."
+      "circuit": {
+        "type": "Mark IIC+",
+        "params": {
+          "control1": 5,
+          "gain": 4.7,
+          "control2": 8,
+          "master": 8
+        }
+      },
+      "targets": {
+        "esr": 0.95,
+        "mrstft": 1.4
+      },
+      "notes": "Conditioning 0.5 = Drive 5; the other knobs are not stated: Volume 4.7, Lead Master 8 and Master 8 fitted (the masters at the fit bound)."
     },
     {
       "id": "tl-mesa-iicplus-drive8",
@@ -159,7 +172,24 @@
       },
       "sha256": "df6fa24ef4c9b5a30bccc6ed21e07eec53ec286df61baa725a199e5250ed86f9",
       "size": 151725,
-      "notes": "No IIC+ type yet (stream F4)."
+      "circuit": {
+        "type": "Mark IIC+",
+        "params": {
+          "gain": 5,
+          "bass": 7,
+          "middle": 5,
+          "treble": 9,
+          "presence": 4,
+          "control1": 8,
+          "control2": 5,
+          "master": 7.4
+        }
+      },
+      "targets": {
+        "esr": 1.2,
+        "mrstft": 1.5
+      },
+      "notes": "Stated knobs (Volume 5, Drive 8, Bass 7, Middle 5, Treble 9, Presence 4, EQ off); Lead Master and Master are not stated: fitted (5, 7.4)."
     },
     {
       "id": "tl-6505plus-red",
@@ -180,7 +210,21 @@
       },
       "sha256": "29b203caa824d209603b4e47bc25cb0e2736f94cb3d2165c4275980c2be200e3",
       "size": 150170,
-      "notes": "No 5150/6505 type yet (stream F4)."
+      "circuit": {
+        "type": "5150",
+        "params": {
+          "gain": 3,
+          "master": 7,
+          "bass": 3,
+          "treble": 8,
+          "bias": 35
+        }
+      },
+      "targets": {
+        "esr": 1.3,
+        "mrstft": 1.9
+      },
+      "notes": "Knobs not stated: fitted, most at the fit bounds, and the calibration pinned at -20 dBu: weak evidence. The 6505+ adds a few changes to the 5150 circuit modelled here."
     },
     {
       "id": "tl-dumble-kit-low",
@@ -309,7 +353,7 @@
       },
       "sha256": "83f6b792b57e335d98580c7eefe15660389b90fbc5e3e45b8212f0d1c1e4ee8f",
       "size": 153135,
-      "notes": "Rectifier family, 2 x 6V6 Mini (stream F4)."
+      "notes": "A Mini Rectifier (2 x 6V6, its own preamp) is not the Dual Rectifier modelled by stream F4: no circuit mapping."
     },
     {
       "id": "tl-soldano-crunch",
@@ -330,7 +374,22 @@
       },
       "sha256": "41d0f47483fa98a135795b418211dbacd811dd79c3ee70f1c95a7f87d9adb4b5",
       "size": 40460,
-      "notes": "Stream F4; rig not stated."
+      "circuit": {
+        "type": "SLO-100",
+        "params": {
+          "gain": 1.8,
+          "master": 5,
+          "bass": 7.2,
+          "treble": 3,
+          "presence": 2,
+          "bias": 65
+        }
+      },
+      "targets": {
+        "esr": 1.2,
+        "mrstft": 2.15
+      },
+      "notes": "Soldano model, knobs and rig not stated: fitted, the calibration pinned at -20 dBu. Weak evidence."
     },
     {
       "id": "tl-soldano-high",
@@ -351,7 +410,22 @@
       },
       "sha256": "3aee97be3300e8e8d05177388e7ebe2bdcf006f85140950d8551e1215ba41fbc",
       "size": 40152,
-      "notes": "Stream F4; rig not stated."
+      "circuit": {
+        "type": "SLO-100",
+        "params": {
+          "gain": 2,
+          "master": 3.9,
+          "bass": 8,
+          "treble": 3,
+          "presence": 2,
+          "bias": 65
+        }
+      },
+      "targets": {
+        "esr": 1.2,
+        "mrstft": 2.5
+      },
+      "notes": "Soldano model, knobs and rig not stated: fitted, most at the fit bounds, the calibration pinned at -20 dBu, a strong low-frequency bump: probably not a direct SLO-100 output. Weak evidence."
     },
     {
       "id": "pel-twin-normal-bright",
@@ -850,7 +924,21 @@
       },
       "sha256": "eb5074a3288d214bc446d526c1e636271aec587b0c64009538be037b62e7ab9e",
       "size": 407066,
-      "notes": "Stream F4."
+      "circuit": {
+        "type": "5150",
+        "params": {
+          "gain": 6.8,
+          "master": 7.3,
+          "bass": 6.4,
+          "treble": 4.5,
+          "bias": 58
+        }
+      },
+      "targets": {
+        "esr": 1.0,
+        "mrstft": 1.1
+      },
+      "notes": "Knobs not stated: Pre Gain, Post Gain, Bass and Treble fitted, the bias within tolerance."
     },
     {
       "id": "pel-6505plus-red",
@@ -872,7 +960,21 @@
       },
       "sha256": "f389f5fcd4675cb7d8ec5134bea4d080fe12cac57839545a8f226f8f8797379b",
       "size": 407335,
-      "notes": "Stream F4."
+      "circuit": {
+        "type": "5150",
+        "params": {
+          "gain": 5.9,
+          "master": 7.1,
+          "bass": 5.5,
+          "treble": 8,
+          "bias": 42.5
+        }
+      },
+      "targets": {
+        "esr": 1.0,
+        "mrstft": 1.25
+      },
+      "notes": "Knobs not stated: Pre Gain, Post Gain, Bass and Treble fitted, the bias within tolerance. The 6505+ adds a few changes to the 5150 circuit modelled here."
     },
     {
       "id": "pel-mesa-mark-iv",
@@ -893,7 +995,22 @@
       },
       "sha256": "f4c06c5f01f1af7a6243c4fc2a1480bbed9036295735b99e9d20842b7dd23431",
       "size": 407625,
-      "notes": "Tier 2, stream F4."
+      "circuit": {
+        "type": "Mark IV",
+        "params": {
+          "gain": 8,
+          "control1": 6,
+          "control2": 3,
+          "master": 4.5,
+          "bass": 8,
+          "treble": 8
+        }
+      },
+      "targets": {
+        "esr": 0.95,
+        "mrstft": 1.65
+      },
+      "notes": "Knobs not stated: Lead Gain, Lead Drive, Lead Master, Master, Bass and Treble fitted (several at the fit bounds 3 and 8); the channel is assumed to be the lead."
     },
     {
       "id": "t3k-ac15c1-normal-v9-cmin",

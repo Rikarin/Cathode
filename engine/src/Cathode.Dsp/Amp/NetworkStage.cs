@@ -275,6 +275,7 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
     const double Open = 1e12; // a switched-off resistor
     const double Gmin = 1e-12;
     const double Short = 1e3; // siemens: an inductor at DC
+    const double EndStop = 1e-6; // ohms: a pot's half at an end stop, as the scattering's own floor
 
     readonly NetworkStageDesign design;
     readonly StageElement[] elements;
@@ -340,7 +341,7 @@ public sealed class NetworkStage<TDevice> : AmpStage where TDevice : struct, INo
             values[i] = Value(e);
             index[i] = e.Kind switch {
                 ElementKind.Capacitor or ElementKind.Inductor => net.Port(e.A, e.B) - 1,
-                ElementKind.Resistor => net.Resistor(e.A, e.B, values[i]),
+                ElementKind.Resistor => net.Resistor(e.A, e.B, Math.Max(values[i], EndStop)), // a pot at an end stop
                 ElementKind.Supply => net.VoltageSource(e.A, WdfNetlist.Ground),
                 _ => -1
             };

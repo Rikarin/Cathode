@@ -124,7 +124,8 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                         && !(index == CircuitAmpBlock.PresenceFrequency && design.Panel.Presence is null)
                         && !(index == CircuitAmpBlock.SpeakerCurve && SpeakerDesign.Presets[(int)value - 1] == design.Power.Speaker)
                         && !(index == CircuitAmpBlock.Rectifier
-                            && RectifierModel.All[(int)value - 1] == design.Power.PowerSupply.Rectifier);
+                            && RectifierModel.All[(int)value - 1] == design.Power.PowerSupply.Rectifier)
+                        && !(index == CircuitAmpBlock.BrightCap && !HasBrightCap(design));
                     data.Add(type, index, value, audible);
                 }
             }
@@ -132,6 +133,16 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
             return data;
         }
     }
+
+    /// <summary>Whether a model has a bright cap for the Bright Cap setting to scale (the Mark IV's lead channel has none).</summary>
+    static bool HasBrightCap(AmpDesign design) =>
+        design.Preamp.Any(static s => s switch {
+                TriodeStageDesign t => t.BrightCap > 0,
+                ToneStackStageDesign t => t.BrightCap > 0,
+                NetworkStageDesign n => n.Netlist.Elements.Any(static e => e.CapacitorRole == CapacitorRole.Bright),
+                _ => false
+            }
+        );
 
     [Theory]
     [MemberData(nameof(ExpertSettings))]

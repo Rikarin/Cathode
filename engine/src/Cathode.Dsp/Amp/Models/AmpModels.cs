@@ -26,7 +26,13 @@ public sealed partial record AmpDesign {
         Models.Bassman.Design,
         Models.Bassman.Jumped,
         Models.TweedDeluxe.Design,
-        Models.TweedDeluxe.Jumped
+        Models.TweedDeluxe.Jumped,
+        Models.Slo100.Design,
+        Models.MarkIIC.Design,
+        Models.Peavey5150.Design,
+        Models.DualRectifier.Design,
+        Models.Evh5150III.Design,
+        Models.MarkIV.Design
     ];
 
     public static AmpDesign Blackface => Models.Blackface.Design;

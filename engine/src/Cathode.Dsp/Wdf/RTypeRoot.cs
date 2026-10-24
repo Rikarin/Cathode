@@ -30,8 +30,10 @@ namespace Cathode.Dsp.Wdf;
 ///         which saves a device evaluation.
 ///     </para>
 ///     <para>
-///         If Newton has not converged after <see cref="NewtonSolver.MaxIterations" />, the sample is counted in
-///         <see cref="NewtonSolver.Unconverged" />: a nearly converged best iterate is linearised once more and used;
+///         If Newton has not converged after <see cref="NewtonSolver.MaxIterations" /> on a single port and its
+///         iterates bracket the root, the bracket is bisected to the tolerance (Newton can cycle across a kink).
+///         Otherwise the sample is counted in <see cref="NewtonSolver.Unconverged" />: a nearly converged best iterate
+///         is linearised once more and used;
 ///         otherwise the previous sample's currents are held (bounded, where a wild iterate's might not be) and the next
 ///         sample starts from the best point. If the devices return a non-finite value, the previous solution is repeated
 ///         and the sample counted in <see cref="NewtonSolver.NonFinite" />. Either way the output stays finite.
@@ -482,6 +484,8 @@ public struct RTypeRoot<TPorts, TDevice>
         var bestNorm = double.PositiveInfinity;
         var iterations = 1;
         var norm = Residual(k, v, ref bestNorm);
+        var (below, above) = (double.NaN, double.NaN); // one port: points where g < 0 and g > 0, for the bracket
+        Bracket(k, v, ref below, ref above);
         while (double.IsFinite(norm)) {
             // J = I - F (∂i/∂v - G_c), solved for the step -J⁻¹ g (the step buffer holds -g).
             for (var d = 0; d < k; d++) {
@@ -544,6 +548,7 @@ public struct RTypeRoot<TPorts, TDevice>
                 }
 
                 var candidate = Residual(k, proposed, ref bestNorm);
+                Bracket(k, proposed, ref below, ref above);
                 var plain = iterations <= s.LineSearchAfter || lambda <= ShortestStep;
                 if (candidate < norm || (plain && double.IsFinite(candidate))) {
                     proposed.CopyTo(v);
@@ -563,7 +568,9 @@ public struct RTypeRoot<TPorts, TDevice>
             }
         }
 
-        if (bestNorm <= NewtonSolver.AcceptableNorm) {
+        if (k == 1 && Bisect(below, above, ref iterations)) {
+            s.Record(iterations, converged: true, finite: true);
+        } else if (bestNorm <= NewtonSolver.AcceptableNorm) {
             Fallback(k);
             s.Record(iterations, converged: false, finite: true);
         } else if (double.IsFinite(bestNorm)) {
@@ -622,6 +629,63 @@ public struct RTypeRoot<TPorts, TDevice>
         }
 
         Device.Limit(v, proposed);
+    }
+
+    /// <summary>
+    ///     Remembers, for one port, the last point <paramref name="v" /> where g (as <see cref="Residual" /> left it, -g in
+    ///     the step buffer) was negative and where it was positive.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    readonly void Bracket(int k, ReadOnlySpan<double> v, ref double below, ref double above) {
+        if (k != 1) {
+            return;
+        }
+
+        var g = -newton.step[0];
+        if (g < 0) {
+            below = v[0];
+        } else if (g > 0) {
+            above = v[0];
+        }
+    }
+
+    /// <summary>
+    ///     Newton cycled on one port (a kink in the device, such as grid conduction under deep global feedback, can
+    ///     make it bounce between two points): if its iterates bracket the root, bisects the bracket to the tolerance.
+    ///     g is continuous, so this always converges. Leaves the solution and its currents as a converged Newton
+    ///     step would, and returns false when there is no bracket.
+    /// </summary>
+    bool Bisect(double below, double above, ref int iterations) {
+        const int MostBisections = 80;
+        if (!double.IsFinite(below) || !double.IsFinite(above)) {
+            return false;
+        }
+
+        var s = newton;
+        var v = s.voltages.AsSpan(0, 1);
+        var ignored = double.PositiveInfinity;
+        for (var n = 0; n < MostBisections; n++) {
+            v[0] = 0.5 * (below + above);
+            iterations++;
+            Residual(1, v, ref ignored);
+            var g = -s.step[0];
+            if (!double.IsFinite(g)) {
+                return false;
+            }
+
+            if (g < 0) {
+                below = v[0];
+            } else {
+                above = v[0];
+            }
+
+            if (g == 0 || Math.Abs(above - below) <= s.AbsoluteTolerance + s.RelativeTolerance * Math.Abs(v[0])) {
+                s.currents[0] = s.residual[0];
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
