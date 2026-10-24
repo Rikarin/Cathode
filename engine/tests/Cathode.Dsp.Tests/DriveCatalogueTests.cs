@@ -245,6 +245,10 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
             return (25, 12); // 2x, Newton, hard switching
         }
 
+        if (circuit.Stages.Any(static s => s.Kind == StageKind.Triode)) {
+            return (60, 30); // a Tube Driver: grid conduction and cut-off at a Newton root, no antiderivative
+        }
+
         if (circuit.Stages.Any(static s => Railing(s) && s.SlewLimited)) {
             return (55, 30); // the RAT: 2x, Newton
         }

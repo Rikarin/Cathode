@@ -66,7 +66,10 @@ namespace Cathode.Dsp.Blocks;
 ///         </item>
 ///         <item>
 ///             <b>Bass Pot</b>, <b>Middle Pot</b> (5, the pedal as built): the bass and middle pots of a circuit with a
-///             real tone stack (the Guv'nor's), which its Tone (treble) pot works with.
+///             real tone stack (the Guv'nor's), which its Tone (treble) pot works with; on an active band EQ
+///             (<see cref="ToneKind.ActiveEq" />: the Metal Zone, the B7K, the Xotic boosters, the 4-knob Tube Driver)
+///             its low and first mid bands. <b>Middle Freq</b> sweeps the Metal Zone's mid; <b>Grunt</b> and
+///             <b>Attack</b> are the B7K's switches. All stock at their defaults.
 ///         </item>
 ///         <item>
 ///             <b>Bit Reduce</b> and <b>Sample Rate</b>: a lo-fi word length and sample-and-hold rate on the driven signal
@@ -114,6 +117,15 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
 
     /// <summary>Oversampling: Global (each type's own factor), 1x, 2x or 4x. Changes the latency, so it recompiles.</summary>
     public const int OversamplingSetting = 37;
+
+    /// <summary>The Metal Zone's Middle Freq: where an active EQ's sweepable mid sits (types with one only).</summary>
+    public const int PedalMidFreq = 38;
+
+    /// <summary>The B7K's Grunt switch (Stock, Fat, Raw): how much bass goes into the clipping.</summary>
+    public const int Grunt = 39;
+
+    /// <summary>The B7K's Attack switch (Flat, Boost, Cut): treble into the clipping.</summary>
+    public const int Attack = 40;
 
     public const int EqOff = 0;
     public const int EqPre = 1;
@@ -241,15 +253,27 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
                 "Hz",
                 ParamTaper.Log
             ),
-            ForTypes(ParamDescriptor.Float("stackBass", "Bass Pot", 0f, 10f, 5f), HasStack),
-            ForTypes(ParamDescriptor.Float("stackMid", "Middle Pot", 0f, 10f, 5f), HasStack),
+            ForTypes(ParamDescriptor.Float("stackBass", "Bass Pot", 0f, 10f, 5f), HasBassPot),
+            ForTypes(ParamDescriptor.Float("stackMid", "Middle Pot", 0f, 10f, 5f), HasMiddlePot),
             ParamDescriptor.Choice("oversampling", "Oversampling", ["Global", "1x", "2x", "4x"]) with {
                 Recompile = true
-            }
+            },
+            ForTypes(
+                ParamDescriptor.Float("pedalMidFreq", "Middle Freq", 200f, 5_000f, 1_000f, "Hz", ParamTaper.Log),
+                HasMidSweep
+            ),
+            ForTypes(ParamDescriptor.Choice("grunt", "Grunt", ["Stock", "Fat", "Raw"]), HasGruntAttack),
+            ForTypes(ParamDescriptor.Choice("attack", "Attack", ["Flat", "Boost", "Cut"]), HasGruntAttack)
         ],
         maxInstances: 4,
         pages: [
-            new("Basic", ["drive", "tone", "inputVol", "stackBass", "stackMid", "lowCut", "highCut"]),
+            new(
+                "Basic",
+                [
+                    "drive", "tone", "inputVol", "stackBass", "stackMid", "pedalMidFreq", "grunt", "attack", "lowCut",
+                    "highCut"
+                ]
+            ),
             new("Tone", ["bass", "mid", "midFreq", "highMid", "treble", "bassResponse"]),
             new("Graphic EQ", ["eq2", "geq1", "geq2", "geq3", "geq4", "geq5", "geq6", "geq7", "geq8", "geq9", "geq10"]),
             new(
@@ -294,9 +318,26 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
                 [..Enumerable.Range(0, TypeNames.Length).Select(t => shown(t) ? descriptor.Name : string.Empty)]
         };
 
-    /// <summary>Whether circuit type <paramref name="type" /> has a bass/middle/treble stack with real bass and middle pots.</summary>
-    static bool HasStack(int type) =>
-        type >= CircuitTypes && DriveCircuits.All[type - CircuitTypes].Tone.Kind == ToneKind.Stack;
+    /// <summary>
+    ///     Whether circuit type <paramref name="type" /> has a real bass pot: a bass/middle/treble stack, or an active EQ
+    ///     with a low band.
+    /// </summary>
+    static bool HasBassPot(int type) =>
+        type >= CircuitTypes
+        && DriveCircuits.All[type - CircuitTypes].Tone is { } tone
+        && (tone.Kind == ToneKind.Stack || (tone.Kind == ToneKind.ActiveEq && tone.LowHz > 0));
+
+    /// <summary>Whether circuit type <paramref name="type" /> has a real middle pot (a stack, or an EQ's mid band).</summary>
+    static bool HasMiddlePot(int type) =>
+        type >= CircuitTypes
+        && DriveCircuits.All[type - CircuitTypes].Tone is { } tone
+        && (tone.Kind == ToneKind.Stack || (tone.Kind == ToneKind.ActiveEq && tone.MidHz > 0));
+
+    static bool HasMidSweep(int type) =>
+        type >= CircuitTypes && DriveCircuits.All[type - CircuitTypes].Tone is { Kind: ToneKind.ActiveEq, MidSweep: true };
+
+    static bool HasGruntAttack(int type) =>
+        type >= CircuitTypes && DriveCircuits.All[type - CircuitTypes].GruntAndAttack;
 
     static bool HasDiodes(int type) =>
         type >= CircuitTypes && DriveCircuits.HasDiodes(DriveCircuits.All[type - CircuitTypes]);
@@ -346,7 +387,10 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
                 Decibels.ToGain(Params.Advance(DryLevel, length)),
                 SlewStep(Params.Advance(SlewRate, length), innerRate),
                 Params.Advance(StackBass, length) / 10.0,
-                Params.Advance(StackMiddle, length) / 10.0
+                Params.Advance(StackMiddle, length) / 10.0,
+                Params.Advance(PedalMidFreq, length),
+                (int)Params.Current(Grunt),
+                (int)Params.Current(Attack)
             );
             ReadPage(length);
             var gain = InputGain(type, drive);

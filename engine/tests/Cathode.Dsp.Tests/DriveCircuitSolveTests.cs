@@ -33,16 +33,20 @@ public class DriveCircuitSolveTests(ITestOutputHelper output) {
             return;
         }
 
+        // Circuits appended since the renders were committed have none: the catalogue only grows at its end, so the
+        // golden file holds the first circuits, antialiased then exact.
         var golden = WavFile.Read(Path);
-        Assert.Equal(renders.Count, golden.Channels.Length);
+        var known = golden.Channels.Length / 2;
+        Assert.InRange(known, 1, DriveCircuits.All.Count);
         var worst = double.NegativeInfinity;
-        for (var c = 0; c < renders.Count; c++) {
-            var reference = golden.Channels[c];
-            var residual = Analysis.NullResidualDb(reference, renders[c]) - Analysis.ToDb(Analysis.Rms(reference));
-            var name = DriveCircuits.All[c % DriveCircuits.All.Count].Name;
-            output.WriteLine(
-                $"{name,-16} {(c < DriveCircuits.All.Count ? "antialiased" : "exact"),-11} null {residual:0.0} dB"
-            );
+        for (var g = 0; g < golden.Channels.Length; g++) {
+            var reference = golden.Channels[g];
+            var exact = g >= known;
+            var circuit = g % known;
+            var render = renders[circuit + (exact ? DriveCircuits.All.Count : 0)];
+            var residual = Analysis.NullResidualDb(reference, render) - Analysis.ToDb(Analysis.Rms(reference));
+            var name = DriveCircuits.All[circuit].Name;
+            output.WriteLine($"{name,-16} {(exact ? "exact" : "antialiased"),-11} null {residual:0.0} dB");
             worst = Math.Max(worst, residual);
             Assert.True(residual < NullDb, $"{name}: null {residual:0.0} dB against the committed render");
         }
