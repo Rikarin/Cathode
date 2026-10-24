@@ -5,9 +5,9 @@
 **Sources** (paraphrased, never quoted):
 - Fractal's *Blocks Guide* (June 2023);
 - the Axe-Fx III amp list (FW 12.05);
-- the Fractal wiki pages *Amp models*, *Presets*, *Editors* and *Audio I/O and amplification* (October 2026).
+- the Fractal wiki pages *Amp models*, *Presets*, *Editors*, *Audio I/O and amplification* and *Cab block* (October 2026).
 
-**Status date:** 24 October 2026, round 3 started (streams T, M1, M2, PA, PB, PS, ED, IO).
+**Status date:** 24 October 2026, round 3 started (streams T, M1, M2, PA, PB, PS, ED, IO, CB).
 
 ## How to audit
 
@@ -171,6 +171,22 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | IO11 | Output clip warning at −1 dBFS | ⬜ | | |
 | IO12 | Editor hint when stereo effects sit before a mono-summing block | ⬜ | | |
 | IO13 | Cab resonance helper: guided sine sweep that writes the amp's LF Resonance | ⬜ | | |
+
+## CB: Cab block (wiki *Cab block*)
+
+| ID | Item | Status | Evidence | Notes |
+|---|---|---|---|---|
+| CB1 | Stereo input: slots 1 and 3 read the left input, 2 and 4 the right | ⬜ | | today every slot hears both sides |
+| CB2 | Preamp types to 11 (FET 1/2, Tape 70/50/35 µs, Vintage, Modern, Exciter) | ⬜ | | PA7 owns the High Quality mode |
+| CB3 | Preamp input VU (0 = onset of clipping) | ⬜ | | |
+| CB4 | Smoothing and Proximity per slot | ⬜ | | today both are global |
+| CB5 | Mic distance up to 3.4 m, shown in mm and ms; Auto-Align switch | ⬜ | | today the delay stops at 5 ms |
+| CB6 | Motor Drive (voice-coil thermal compression) with time constant and gain-reduction meter | ⬜ | | |
+| CB7 | IR import: minimum-phase / auto-trim / as-is, peak-positive polarity, stereo channel choice, length | ⬜ | | |
+| CB8 | FullRes IRs (~1.4 s) in the Cab block via partitioned convolution | ⬜ | | today 8,192 samples |
+| CB9 | Flat slot source | ⬜ | | |
+| CB10 | Global "cab modelling off" switch | ⬜ | | |
+| CB11 | Export the block's current mix (DynaCab slots included) as an IR file | ⬜ | | |
 
 ## Known open items from earlier rounds
 
