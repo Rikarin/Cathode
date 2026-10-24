@@ -87,7 +87,7 @@ CTH_API const char *cth_audio_last_error(void);
  * Channel messages and system real-time (clock, start, stop) are delivered; SysEx is dropped. */
 
 typedef struct cth_midi_port {
-    char uid[64];   /* stable across runs (CoreMIDI unique id) */
+    char uid[64];   /* stable across runs (CoreMIDI unique id; WinMM "in:"/"out:" + name + "#n") */
     char name[256];
     int32_t is_input;
 } cth_midi_port;
