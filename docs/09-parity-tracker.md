@@ -188,6 +188,16 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | CB10 | Global "cab modelling off" switch | ✅ | Cab_modelling_off_passes_audio_through_and_fades_back_in | GlobalSettings.CabModelingOff; Cab and IR Player |
 | CB11 | Export the block's current mix (DynaCab slots included) as an IR file | ✅ | Export_bakes_the_master_cuts_into_the_mixed_ir; A_cab_exports_its_mixed_ir_and_saves_it_as_an_asset | GET/POST /live/blocks/{id}/ir |
 
+## QR: Splawn Quick Rod
+
+| ID | Item | Status | Evidence | Notes |
+|---|---|---|---|---|
+| QR1 | Quick Rod from the user's preamp drawing ("Splawn QuickRod" sheet 1/1): both channels, OD1/OD2, 1st/2nd and 3rd gear, solo boost, V1B and V3 on their shared cathode | 🟡 | Quick_rod_chains_match_the_reference (7 settings: clean −64, overdrive −45 / −37 / −29 dB in 1st / 2nd / 3rd gear); Od2_and_the_gears_raise_the_gain_in_order; Solo_boost_lifts_the_master | type `Quick Rod`; power amp (JCM800 2203's), switch positions and tapers guessed; the 3rd-gear residue is the cut at V2A's grid (four triodes in one netlist: −57 dB, over the CPU budget) |
+| QR2 | Panel names the amp's controls | 🟡 | Panel_names_the_real_controls_and_hides_the_rest | Clean (Switch 1), OD2 (Bright), 2nd / 3rd Gear (Switch 2 / 3), Solo Boost (Control 1, 0 = off) |
+| QR3 | Sweeps converge, every knob audible, Gain and Master monotonic, peaks under +6 dBFS | 🟡 | Knob_sweeps_at_full_drive_stay_finite_and_converge; Every_knob_is_audible; Gain_and_master_raise_the_level_monotonically | Middle and Solo Boost skipped on the clean channel (not in its circuit) |
+| QR4 | CPU within the high-gain budget | 🟡 | `Cathode.Bench --amps "Quick Rod"` | 15.0 / 25.8 % overdrive, 11.1 / 24.1 % clean (Plexi 8.8 / 15.4 %) |
+| QR5 | Splawn Nitro | ⏸ | — | the drawing is the Quick Rod only; no Nitro circuit on it |
+
 ## Known open items from earlier rounds
 
 These were reported as left over or deliberately deferred, and are not assigned to a stream yet.
