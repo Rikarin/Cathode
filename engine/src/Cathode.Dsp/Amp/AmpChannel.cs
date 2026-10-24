@@ -74,6 +74,7 @@ public sealed class AmpChannel {
         }
 
         Power.Configure(power);
+        Power.ConfigureLoop(preamp);
         SolidState?.Configure(power);
     }
 

@@ -23,7 +23,26 @@ public enum PotRole {
     Control1,
 
     /// <summary>The model's second extra pot (<see cref="AmpPanel.Control2" />).</summary>
-    Control2
+    Control2,
+
+    /// <summary>
+    ///     A graphic equaliser's first slider in a model's own circuit (a <see cref="NetworkStageDesign" /> pot; the
+    ///     band gains of <see cref="AmpControls.Equalizer" /> as slider positions: −12 dB at the bottom, +12 dB at the
+    ///     top, flat in the middle).
+    /// </summary>
+    Equalizer1,
+
+    /// <summary>The second slider (see <see cref="Equalizer1" />).</summary>
+    Equalizer2,
+
+    /// <summary>The third slider.</summary>
+    Equalizer3,
+
+    /// <summary>The fourth slider.</summary>
+    Equalizer4,
+
+    /// <summary>The fifth slider.</summary>
+    Equalizer5
 }
 
 /// <summary>Which front-panel switch engages a switched element of a stage.</summary>
@@ -87,8 +106,16 @@ public readonly record struct AmpControls(
             PotRole.Middle => Middle,
             PotRole.Treble => Treble,
             PotRole.Control1 => Control1,
+            PotRole.Equalizer1 => Slider(Equalizer.Band1),
+            PotRole.Equalizer2 => Slider(Equalizer.Band2),
+            PotRole.Equalizer3 => Slider(Equalizer.Band3),
+            PotRole.Equalizer4 => Slider(Equalizer.Band4),
+            PotRole.Equalizer5 => Slider(Equalizer.Band5),
             _ => Control2
         };
+
+    /// <summary>A band gain (±12 dB) as a slider position, 0..1.</summary>
+    static double Slider(double gain) => Math.Clamp(0.5 + gain / 24, 0, 1);
 
     public bool IsOn(SwitchRole role) =>
         role switch {

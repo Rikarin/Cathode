@@ -316,6 +316,15 @@ public sealed class PowerAmp {
         }
     }
 
+    /// <summary>The preamp stage inside the feedback loop (<see cref="PowerAmpDesign.Loop" />), or null.</summary>
+    public LoopStage? Loop => root.Device.Loop;
+
+    /// <summary>
+    ///     The preamp knobs and switches a stage inside the feedback loop uses (its tone stack); nothing without one.
+    ///     Allocation-free; rebuilds the loop's network only when a control moved.
+    /// </summary>
+    public void ConfigureLoop(in AmpControls controls) => root.Device.Loop?.Configure(controls);
+
     /// <summary>Applies the power-amp knobs; recomputes only what changed.</summary>
     public void Configure(in PowerControls controls) {
         if (controls == this.controls) {
@@ -1266,6 +1275,7 @@ struct PushPullStage : INonlinearDevice {
     public double Fed;
 
     readonly PhaseInverter phaseInverter;
+    readonly LoopStage? loop; // a preamp stage inside the feedback loop, ahead of the inverter (null for none)
     readonly PentodeTables? strapped;
     readonly double tubes;
     readonly double strappedTubes;
@@ -1290,12 +1300,16 @@ struct PushPullStage : INonlinearDevice {
 
     public readonly int Ports => 1;
 
+    /// <summary>The preamp stage inside the feedback loop (<see cref="PowerAmpDesign.Loop" />), or null.</summary>
+    public readonly LoopStage? Loop => loop;
+
     /// <summary>Whether the general path is in use.</summary>
     public readonly bool General => singleEnded || screenTap > 0 || strappedTubes > 0;
 
     public PushPullStage(PowerAmpDesign design, PhaseInverter phaseInverter, double rate) {
         tube = PentodeTables.For(design.Tube);
         this.phaseInverter = phaseInverter;
+        loop = design.Loop is { } stage && design.Topology == PowerTopology.PushPull ? new LoopStage(stage, rate) : null;
         tubes = design.TubesPerSide;
         singleEnded = design.Topology == PowerTopology.SingleEnded;
         if (design.Strapped is { } second && design.StrappedPerSide > 0) {
@@ -1326,6 +1340,7 @@ struct PushPullStage : INonlinearDevice {
     public void SetSampleRate(double rate, double source) {
         var z = singleEnded ? (source, 0, 0, 1) : phaseInverter.OutputImpedance;
         grids.Configure(z, coupling, gridLeak, gridStopper, rate);
+        loop?.SetSampleRate(rate);
     }
 
     public void SetSampleRate(double rate) => SetSampleRate(rate, 30e3);
@@ -1366,7 +1381,8 @@ struct PushPullStage : INonlinearDevice {
         // Push-pull: the inverter's driven output is its inverted plate, so the primary voltage rises with the input.
         // Single-ended the input drives the grid directly and the plate falls as it rises: the tap is taken the other way
         // round (a real amp's secondary is wired for that), or the "feedback" would be positive.
-        feedback = (singleEnded ? -1 : 1) * amount * design.TapGain / turns;
+        // A loop stage inverts too (see LoopStage).
+        feedback = (singleEnded != (loop is not null) ? -1 : 1) * amount * design.TapGain / turns;
     }
 
     /// <summary>
@@ -1435,7 +1451,10 @@ struct PushPullStage : INonlinearDevice {
         var tap = feedback * v;
         var fed = depth.Peek(presence.Peek(tap));
         var fedSlope = feedback * presence.B0 * depth.B0;
-        var (ea, eb) = phaseInverter.Evaluate(Input - fed, out var slopeA, out var slopeB);
+        double slopeA, slopeB;
+        var (ea, eb) = loop is null
+            ? phaseInverter.Evaluate(Input - fed, out slopeA, out slopeB)
+            : ThroughLoop(Input - fed, out slopeA, out slopeB);
         slopeA *= -fedSlope;
         slopeB *= -fedSlope;
         if (hasCut) {
@@ -1486,7 +1505,7 @@ struct PushPullStage : INonlinearDevice {
         if (singleEnded) {
             (ea, eb) = (Input - fed, 0);
         } else {
-            (ea, eb) = phaseInverter.Evaluate(Input - fed, out _, out _);
+            (ea, eb) = phaseInverter.Evaluate(loop is null ? Input - fed : loop.Process(Input - fed), out _, out _);
             if (hasCut) {
                 var common = 0.5 * (ea + eb);
                 var difference = cut.Process(ea - eb);
@@ -1543,6 +1562,7 @@ struct PushPullStage : INonlinearDevice {
     }
 
     public void Reset() {
+        loop?.Reset();
         presence.Reset();
         depth.Reset();
         cut.Reset();
@@ -1554,10 +1574,24 @@ struct PushPullStage : INonlinearDevice {
     }
 
     public void FlushDenormals() {
+        loop?.FlushDenormals();
         presence.FlushDenormals();
         depth.FlushDenormals();
         cut.FlushDenormals();
         grids.FlushDenormals();
+    }
+
+    /// <summary>
+    ///     The loop stage and the inverter for the loop stage's input <paramref name="vd" />: the inverter's outputs and
+    ///     their slopes with respect to <paramref name="vd" />.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    readonly (double A, double B) ThroughLoop(double vd, out double slopeA, out double slopeB) {
+        var grid = loop!.Peek(vd, out var slope);
+        var outputs = phaseInverter.Evaluate(grid, out slopeA, out slopeB);
+        slopeA *= slope;
+        slopeB *= slope;
+        return outputs;
     }
 
     /// <summary>The general path's port current and its slope (see the remarks).</summary>
@@ -1569,7 +1603,9 @@ struct PushPullStage : INonlinearDevice {
         if (singleEnded) {
             (ea, eb, slopeA, slopeB) = (Input - fed, 0, -fedSlope, 0);
         } else {
-            (ea, eb) = phaseInverter.Evaluate(Input - fed, out slopeA, out slopeB);
+            (ea, eb) = loop is null
+                ? phaseInverter.Evaluate(Input - fed, out slopeA, out slopeB)
+                : ThroughLoop(Input - fed, out slopeA, out slopeB);
             slopeA *= -fedSlope;
             slopeB *= -fedSlope;
             if (hasCut) {

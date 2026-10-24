@@ -249,7 +249,8 @@ static class AmpReferences {
         Func<double, double> input,
         double sourceResistance = 0,
         bool triode = false,
-        double master = 1
+        double master = 1,
+        AmpControls? loopControls = null
     ) {
         var c = new ReferenceCircuit();
         var singleEnded = d.Topology == PowerTopology.SingleEnded;
@@ -267,11 +268,84 @@ static class AmpReferences {
         ga = c.Node();
         c.Capacitor(driven, ga, inputCap);
 
+        // A preamp stage inside the loop: its triode (the feedback at the bottom of its cathode circuit, the bypassed
+        // part on a large cap), its network from the plate, and a large cap into the inverter's grid, whose own leak
+        // follows below.
+        var loopGrid = ga;
+        if (d.Loop is { } loop && !singleEnded) {
+            var (loopSupply, plate, cathode) = (c.Node(), c.Node(), c.Node());
+            c.Resistor(ga, 0, inputLeak);
+            c.Source(loopSupply, 0, _ => loop.Supply);
+            c.Resistor(loopSupply, plate, loop.PlateResistor);
+            if (loop.BypassedCathode > 0) {
+                c.Resistor(cathode, feedback, loop.BypassedCathode);
+                c.Capacitor(cathode, feedback, 0.1);
+            } else {
+                c.Resistor(cathode, feedback, Floor);
+            }
+
+            c.Device(new Triode(loop.Tube), (ga, cathode), (plate, cathode));
+            var net = loop.Network;
+            var first = c.Nodes + 1;
+            for (var k = 0; k < net.Nodes; k++) {
+                c.Node();
+            }
+
+            int Map(int k) => k == 0 ? 0 : first + k - 1;
+            c.Resistor(plate, Map(net.Input), Floor);
+            Elements(c, new("loop", net), loopControls ?? new(0.5, 0.5, 0.5, 0.5, 0.5, false), PreampSettings.Stock, Map);
+            loopGrid = c.Node();
+            c.Capacitor(Map(net.Output), loopGrid, 10e-6);
+        }
+
         // Phase inverter: outputs a and b.
         int a, b;
         if (singleEnded) {
             (a, b) = (ga, 0);
             c.Resistor(ga, 0, 1e9);
+        } else if (d.PhaseInverter is CathodyneDriverDesign driver) {
+            var (plate, cathode, junction, ia, ib, pa, pb, tail, driverSupply) = (c.Node(), c.Node(), c.Node(),
+                c.Node(), c.Node(), c.Node(), c.Node(), c.Node(), c.Node());
+            c.Resistor(piSupply, plate, driver.PlateResistor);
+            c.Resistor(cathode, junction, driver.BiasResistor);
+            c.Resistor(junction, 0, driver.CathodeResistor);
+            c.Resistor(loopGrid, junction, d.Loop is null ? inputLeak : 1e6);
+            c.Device(new Triode(driver.Tube), (loopGrid, cathode), (plate, cathode));
+            c.Capacitor(junction, ia, 10e-6);
+            c.Resistor(ia, 0, driver.DriverGridLeak);
+            c.Capacitor(plate, ib, 10e-6);
+            c.Resistor(ib, 0, driver.DriverGridLeak);
+            c.Source(driverSupply, 0, _ => driver.DriverSupply);
+            c.Resistor(driverSupply, pa, driver.DriverPlate);
+            c.Resistor(driverSupply, pb, driver.DriverPlate);
+            c.Resistor(tail, 0, driver.DriverCathode);
+            c.Device(new Triode(driver.DriverTube), (ia, tail), (pa, tail));
+            c.Device(new Triode(driver.DriverTube), (ib, tail), (pb, tail));
+            (a, b) = (pa, pb);
+        } else if (d.PhaseInverter is DifferentialDriverDesign pairs) {
+            var (pa, pb, tail, ret, na, nb, ga2, gb2, qa, qb, joined, driverSupply) = (c.Node(), c.Node(), c.Node(),
+                c.Node(), c.Node(), c.Node(), c.Node(), c.Node(), c.Node(), c.Node(), c.Node(), c.Node());
+            c.Resistor(ga, 0, inputLeak);
+            c.Resistor(piSupply, pa, pairs.PlateResistor);
+            c.Resistor(piSupply, pb, pairs.PlateResistor);
+            c.Source(ret, 0, _ => pairs.TailReturn);
+            c.Resistor(tail, ret, pairs.TailResistor);
+            c.Device(new Triode(pairs.Tube), (ga, tail), (pa, tail));
+            c.Device(new Triode(pairs.Tube), (0, tail), (pb, tail));
+            foreach (var (from, node, grid) in new[] { (pa, na, ga2), (pb, nb, gb2) }) {
+                c.Capacitor(from, node, 10e-6);
+                c.Resistor(node, 0, pairs.CouplingLoad);
+                c.Resistor(node, grid, pairs.DividerSeries);
+                c.Resistor(grid, 0, pairs.DividerShunt);
+            }
+
+            c.Source(driverSupply, 0, _ => pairs.DriverSupply);
+            c.Resistor(driverSupply, qa, pairs.DriverPlate);
+            c.Resistor(driverSupply, qb, pairs.DriverPlate);
+            c.Resistor(joined, 0, pairs.DriverCathode);
+            c.Device(new Triode(pairs.DriverTube), (ga2, joined), (qa, joined));
+            c.Device(new Triode(pairs.DriverTube), (gb2, joined), (qb, joined));
+            (a, b) = (qb, qa);
         } else if (d.PhaseInverter is CathodyneDesign cathodyne) {
             var (plate, cathode, junction) = (c.Node(), c.Node(), c.Node());
             c.Resistor(piSupply, plate, cathodyne.PlateResistor);
@@ -408,10 +482,11 @@ static class AmpReferences {
         c.Resistor(motional, 0, rm);
 
         // Feedback from the tap into the second grid's AC ground.
-        if (d.HasFeedback && !singleEnded && d.PhaseInverter is LongTailPairDesign) {
+        if (d.HasFeedback && !singleEnded && (d.PhaseInverter is LongTailPairDesign || d.Loop is not null)) {
             var f = d.Feedback;
             var (tapNode, presenceNode) = (c.Node(), c.Node());
-            c.Vcvs(tapNode, 0, speaker, 0, f.TapGain);
+            // A loop stage inverts: the tap is the other end of the secondary.
+            c.Vcvs(tapNode, 0, speaker, 0, d.Loop is null ? f.TapGain : -f.TapGain);
             c.Resistor(tapNode, feedback, f.FeedbackResistor);
             c.Resistor(feedback, 0, f.ShuntResistor);
             c.Resistor(feedback, presenceNode, Math.Max(f.Presence.Ohms * (1 - f.Presence.Fraction(presence)), Floor));
