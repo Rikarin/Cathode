@@ -71,6 +71,15 @@ test('the IRs page mixes impulse responses', async ({ window }) => {
   await window.getByRole('link', { name: 'Editor' }).click();
 });
 
+test('reloading the window brings the editor back on the same page', async ({ window }) => {
+  await window.getByRole('link', { name: 'IRs' }).click();
+  await expect(window).toHaveURL(/#\/irs$/);
+  await window.reload();
+  await expect(window.getByRole('heading', { name: 'IR mixer' })).toBeVisible();
+  // A chunk the build no longer has is not found, rather than answered with the app shell.
+  expect(await window.evaluate(() => fetch('/chunk-gone.js').then(response => response.status))).toBe(404);
+});
+
 test('a knob gets a modifier, taps set the tempo, and the looper records', async ({ window }) => {
   await window.getByTestId('cell-0-2').dblclick();
   await window.getByRole('combobox', { name: 'Search blocks' }).fill('Delay');
