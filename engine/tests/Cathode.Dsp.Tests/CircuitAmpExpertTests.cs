@@ -50,8 +50,8 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         string[] first = ["type", "gain", "bass", "middle", "treble", "presence", "depth", "cut", "master", "sag", "bias",
             "feedback", "bright", "level"];
         Assert.Equal(first, parameters.Take(first.Length).Select(static p => p.Id));
-        Assert.Equal(52, parameters.Count);
-        Assert.Equal(CircuitAmpBlock.CathodeTime, parameters.Count - 1);
+        Assert.Equal(88, parameters.Count);
+        Assert.Equal(CircuitAmpBlock.Balance, parameters.Count - 1);
         foreach (var p in parameters.Skip(first.Length)) {
             output.WriteLine($"{p.Id,-10} {p.Name,-20} {p.Min,8} .. {p.Max,-8} default {p.Default} {p.Unit}");
         }
