@@ -5,7 +5,7 @@ namespace Cathode.Dsp;
 ///     threshold, the gain rises from silence to unity over the attack along an S-curve, like a hand on a volume knob; once
 ///     the input falls 6 dB below the threshold, the next note is armed and the gain falls back over the release.
 /// </summary>
-public struct Swell {
+public struct SwellEnvelope {
     const float RearmRatio = 0.5f;
     const double DetectorReleaseMs = 50;
 
