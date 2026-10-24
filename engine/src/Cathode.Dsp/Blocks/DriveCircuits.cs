@@ -306,6 +306,67 @@ public static class DriveCircuits {
 
     public static IReadOnlyList<DriveCircuit> All { get; } = Catalogue();
 
+    /// <summary>The Drive block's Diode Type choices: the circuit's own, then a model for every clipping diode.</summary>
+    public static IReadOnlyList<string> DiodeTypes { get; } = ["Stock", "Silicon", "Germanium", "Schottky", "LED", "MOSFET"];
+
+    /// <summary>The Drive block's Diode Count choices: the circuit's own, then 1 to 4 in series on each side.</summary>
+    public static IReadOnlyList<string> DiodeCounts { get; } = ["Stock", "1", "2", "3", "4"];
+
+    static readonly DiodeModel[] DiodeModels = [
+        DiodeModel.Silicon, DiodeModel.Germanium, DiodeModel.Schottky, DiodeModel.Led, DiodeModel.Mosfet
+    ];
+
+    /// <summary>
+    ///     Every circuit with every diode override, built once when the catalogue loads so that choosing one on the audio
+    ///     thread only looks it up: <c>[circuit][type * DiodeCounts.Count + count]</c>. A choice that changes nothing (a
+    ///     circuit without clipping diodes, or both Stock) is the circuit itself.
+    /// </summary>
+    static readonly DriveCircuit[][] DiodeVariants = [..All.Select(BuildVariants)];
+
+    /// <summary>True when <paramref name="circuit" /> has clipping diodes the Diode Type and Count can replace.</summary>
+    public static bool HasDiodes(DriveCircuit circuit) => circuit.Stages.Any(HasDiodes);
+
+    /// <summary>
+    ///     Circuit <paramref name="index" /> of <see cref="All" /> with its clipping diodes replaced: Diode Type
+    ///     <paramref name="type" /> and Count <paramref name="count" /> (0 = Stock for either). Allocation-free.
+    /// </summary>
+    public static DriveCircuit Variant(int index, int type, int count) {
+        var variants = DiodeVariants[index];
+        var at = Math.Clamp(type, 0, DiodeTypes.Count - 1) * DiodeCounts.Count + Math.Clamp(count, 0, DiodeCounts.Count - 1);
+        return variants[at];
+    }
+
+    static bool HasDiodes(DriveStage stage) =>
+        stage.Kind is StageKind.Gain or StageKind.OpAmp or StageKind.Clipper
+        && stage.Diodes.ForwardCount + stage.Diodes.ReverseCount > 0;
+
+    static DriveCircuit[] BuildVariants(DriveCircuit circuit) {
+        var variants = new DriveCircuit[DiodeTypes.Count * DiodeCounts.Count];
+        for (var type = 0; type < DiodeTypes.Count; type++) {
+            for (var count = 0; count < DiodeCounts.Count; count++) {
+                var at = type * DiodeCounts.Count + count;
+                if ((type == 0 && count == 0) || !HasDiodes(circuit)) {
+                    variants[at] = circuit;
+                    continue;
+                }
+
+                variants[at] = circuit with {
+                    Stages = [..circuit.Stages.Select(s => HasDiodes(s) ? s with { Diodes = Override(s.Diodes, type, count) } : s)]
+                };
+            }
+        }
+
+        return variants;
+    }
+
+    static DiodeStacks Override(DiodeStacks stacks, int type, int count) {
+        var forward = type > 0 ? DiodeModels[type - 1] : stacks.Forward;
+        var reverse = type > 0 ? DiodeModels[type - 1] : stacks.Reverse;
+        var forwardCount = count > 0 && stacks.ForwardCount > 0 ? count : stacks.ForwardCount;
+        var reverseCount = count > 0 && stacks.ReverseCount > 0 ? count : stacks.ReverseCount;
+        return new(forward, forwardCount, reverse, reverseCount);
+    }
+
     /// <summary>The DC operating point of a transistor stage of the catalogue, computed once when it loads.</summary>
     public static bool TryGetOperatingPoint(DriveStage stage, out double[] point) =>
         OperatingPoints.TryGetValue(stage, out point!);
@@ -982,6 +1043,20 @@ struct CircuitStage {
 }
 
 
+/// <summary>
+///     The Drive block's Advanced page, applied on top of a circuit's own values; <see cref="Stock" /> changes nothing.
+/// </summary>
+/// <param name="BassScale">
+///     Scales the input coupling corner (1 stock); a circuit coupled in its first stage's netlist gets an extra
+///     first-order high-pass at 10 Hz times it instead.
+/// </param>
+/// <param name="Bias">Volts added to the circuit's own bias ahead of the first stage.</param>
+/// <param name="DryLevel">Clean signal summed after the stages, on top of the circuit's own clean blend (linear).</param>
+/// <param name="Slew">Largest change per oversampled sample after the stages, in volts (0 = no limit).</param>
+readonly record struct CircuitTweaks(double BassScale = 1, double Bias = 0, double DryLevel = 0, double Slew = 0) {
+    public static CircuitTweaks Stock => new(1);
+}
+
 /// <summary>Per-channel state of the circuit voicings: everything except the oversampler, which the block shares.</summary>
 sealed class CircuitChannel {
     readonly CircuitStage[] stages = new CircuitStage[DriveCircuits.MaxStages];
@@ -999,6 +1074,8 @@ sealed class CircuitChannel {
     double clean;
     double level; // the guitar's volume, and its loading of an input that is not modelled at component level
     double trim;
+    double slew;
+    double slewed;
 
     public CircuitChannel() {
         for (var i = 0; i < stages.Length; i++) {
@@ -1020,14 +1097,16 @@ sealed class CircuitChannel {
         double volume,
         double innerRate,
         double rate,
-        bool antialias
+        bool antialias,
+        in CircuitTweaks tweaks = default
     ) {
         var fresh = !ReferenceEquals(circuit, this.circuit);
         this.circuit = circuit;
         var position = drive / 10;
         var guitar = DriveCircuits.Guitar(volume);
         count = circuit.Stages.Count;
-        bias = circuit.Bias;
+        bias = circuit.Bias + tweaks.Bias;
+        slew = tweaks.Slew;
         for (var i = 0; i < count; i++) {
             var stage = circuit.Stages[i];
             var resistance = i == 0 ? guitar.Resistance : stage.SourceResistance;
@@ -1065,12 +1144,16 @@ sealed class CircuitChannel {
             StageKind.OpAmp => guitar.Level,
             _ => guitar.Level * circuit.InputResistance / (circuit.InputResistance + guitar.Resistance)
         };
-        highPass = circuit.InputHighPassHz > 0;
+        var bassScale = tweaks.BassScale == 0 ? 1 : tweaks.BassScale;
+        var corner = circuit.InputHighPassHz > 0 ? circuit.InputHighPassHz * bassScale
+            : bassScale != 1 ? 10 * bassScale
+            : 0;
+        highPass = corner > 0;
         if (highPass) {
-            input.SetCutoff(circuit.InputHighPassHz, innerRate);
+            input.SetCutoff(corner, innerRate);
         }
 
-        clean = circuit.CleanMix * (1 - 0.75 * position);
+        clean = circuit.CleanMix * (1 - 0.75 * position) + tweaks.DryLevel;
         trim = Decibels.ToGain(circuit.OutputDb) * (circuit.InvertOutput ? -1 : 1);
         this.tone.Configure(circuit.Tone, tone / 10, rate);
         if (fresh) {
@@ -1123,6 +1206,7 @@ sealed class CircuitChannel {
         tone.Reset();
         input.Reset();
         dc.Reset();
+        slewed = 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1141,6 +1225,11 @@ sealed class CircuitChannel {
                 StageKind.FuzzPair => fuzz.Tick(v),
                 _ => stages[s].Tick(v)
             };
+        }
+
+        if (slew > 0) {
+            v = slewed + Math.Clamp(v - slewed, -slew, slew);
+            slewed = v;
         }
 
         return (float)dc.Tick(dcBlock, v + clean * x * level);
