@@ -387,15 +387,7 @@ export class App {
       handlers[`channel${channel}`] = () => ui.setChannel(channel);
     }
 
-    // B keeps its old meaning, bypass, on a block that has no channels to pick.
-    handlers['channelB'] = () => {
-      const selected = block();
-      if (selected && ui.channels(selected) > 1) {
-        ui.setChannel('B');
-      } else {
-        ui.toggleBypass();
-      }
-    };
+    handlers['bypassAlias'] = () => ui.toggleBypass();
 
     for (let scene = 0; scene < 8; scene++) {
       handlers[`scene${scene + 1}`] = () => {

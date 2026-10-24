@@ -29,6 +29,8 @@ import { BlockPresetsStore } from '../state/block-presets.store';
 import { CatalogStore } from '../state/catalog.store';
 import { GlobalStore } from '../state/global.store';
 import { LiveStore } from '../state/live.store';
+import { PreferencesStore } from '../state/preferences.store';
+import { UiStore } from '../state/ui.store';
 import { AmpPanel } from './panels/amp-panel';
 import { isCabSlotParam } from './panels/cab';
 import { CabPanel } from './panels/cab-panel';
@@ -172,6 +174,23 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             <cth-param-control variant="sidebar" [block]="block" [param]="type" />
           }
 
+          @if (block.type === 'circuitamp') {
+            <div class="flex flex-col gap-1.5">
+              <span class="text-foreground-muted text-[11px] font-semibold tracking-wide uppercase" id="amp-view-label">
+                Controls
+              </span>
+              <xui-segmented-control
+                size="sm"
+                fill
+                aria-labelledby="amp-view-label"
+                data-testid="amp-view"
+                [options]="ampViews"
+                [value]="ampView()"
+                (valueChange)="$event && ampViewOverride.set($event)"
+              />
+            </div>
+          }
+
           @if (libraryPresets().length > 0) {
             <div class="flex flex-col gap-1.5">
               <span
@@ -184,12 +203,22 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                 class="w-full"
                 data-testid="block-library"
                 aria-labelledby="block-library-label"
-                placeholder="Load a preset…"
+                placeholder="Recall an entry…"
                 [items]="libraryIds()"
                 [itemText]="libraryName"
                 [value]="null"
-                (valueChange)="$event && blockPresets.apply(block.id, $event)"
+                (valueChange)="$event && blockPresets.apply(block.id, $event, { all: recallAll() })"
               />
+              @if ((info()?.channels ?? 0) > 1) {
+                <label class="text-foreground-muted flex items-center justify-between text-xs">
+                  Into all channels
+                  <xui-switch
+                    aria-label="Recall into all channels"
+                    [checked]="recallAll()"
+                    (checkedChange)="recallAll.set($event)"
+                  />
+                </label>
+              }
             </div>
           }
 
@@ -215,8 +244,8 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
 
           <ng-template #blockMenu>
             <xui-menu>
-              <button xuiMenuItem icon="matSaveRound" (click)="openSavePreset()">
-                Save channel {{ live.channelOf(block.id) }} to the Block Library…
+              <button xuiMenuItem icon="matSaveRound" (click)="ui.saveBlockOpen.set(true)">
+                Save to the Block Library…
               </button>
               <xui-menu-divider />
               @if ((info()?.channels ?? 0) > 1) {
@@ -257,24 +286,6 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             </xui-menu>
           </ng-template>
         </aside>
-
-        <xui-dialog title="Save to the Block Library" icon="matSaveRound" [(open)]="savingPreset">
-          <xui-dialog-body>
-            <xui-form-field label="Name">
-              <input
-                xuiInput
-                data-testid="block-preset-name"
-                [value]="presetName()"
-                (input)="presetName.set($any($event.target).value)"
-                (keydown.enter)="savePreset()"
-              />
-            </xui-form-field>
-          </xui-dialog-body>
-          <xui-dialog-footer>
-            <button xuiButton variant="ghost" type="button" (click)="savingPreset.set(false)">Cancel</button>
-            <button xuiButton type="button" [disabled]="!presetName().trim()" (click)="savePreset()">Save</button>
-          </xui-dialog-footer>
-        </xui-dialog>
 
         <div class="flex min-w-0 flex-1 flex-col gap-4">
           @switch (block.type) {
@@ -364,8 +375,17 @@ export class BlockEditor {
   };
   protected readonly editingEngage = signal(false);
   protected readonly blockPresets = inject(BlockPresetsStore);
-  protected readonly savingPreset = signal(false);
-  protected readonly presetName = signal('');
+  protected readonly ui = inject(UiStore);
+  private readonly preferences = inject(PreferencesStore);
+  /** Recall Library entries into every channel rather than the current one. */
+  protected readonly recallAll = signal(false);
+  /** The Circuit Amp's Ideal or Authentic view on this page; the preference until changed here. */
+  protected readonly ampViewOverride = signal<'authentic' | 'ideal' | null>(null);
+  protected readonly ampView = computed(() => this.ampViewOverride() ?? this.preferences.ampView());
+  protected readonly ampViews = [
+    { label: 'Authentic', value: 'authentic' as const },
+    { label: 'Ideal', value: 'ideal' as const }
+  ];
   protected readonly libraryPresets = computed(() => {
     const block = this.block();
     return block ? this.blockPresets.forType(block.type) : [];
@@ -408,23 +428,6 @@ export class BlockEditor {
     void this.blockPresets.refresh();
   }
 
-  protected openSavePreset(): void {
-    this.presetName.set('');
-    this.savingPreset.set(true);
-  }
-
-  protected async savePreset(): Promise<void> {
-    const block = this.block();
-    const name = this.presetName().trim();
-    if (!block || !name) {
-      return;
-    }
-
-    const values = block.channels[this.live.channelOf(block.id)] ?? {};
-    await this.blockPresets.save(block.type, name, { ...values });
-    this.savingPreset.set(false);
-  }
-
   protected removeEngageModifier(): void {
     const block = this.block();
     if (block) {
@@ -449,7 +452,8 @@ export class BlockEditor {
           !(this.block()?.type === 'pitch' && isCustomTableParam(p.id)) &&
           !(this.block()?.type === 'cab' && isCabSlotParam(p.id))
       ) ?? [],
-      this.typeValue()
+      this.typeValue(),
+      this.block()?.type === 'circuitamp' && this.ampView() === 'ideal'
     )
   );
   /** The block's own controls, and its output stage (level, mix, balance, pan) set apart on the right. */

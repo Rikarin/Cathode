@@ -35,7 +35,8 @@ describe('keyboard shortcuts', () => {
     expect(findShortcut(key(' ', { code: 'Space' }))?.id).toBe('bypass');
     expect(findShortcut(key(' ', { code: 'Space', shiftKey: true }))?.id).toBe('engageAll');
     expect(findShortcut(key(' ', { code: 'Space', shiftKey: true, metaKey: true }))?.id).toBe('bypassAll');
-    expect(findShortcut(key('b'))?.id).toBe('channelB'); // which bypasses a block without channels
+    expect(findShortcut(key('b'))?.id).toBe('bypassAlias');
+    expect(findShortcut(key('B', { shiftKey: true }))?.id).toBe('channelB');
     expect(findShortcut(key('b', { metaKey: true }))?.id).toBe('saveBlock');
     expect(findShortcut(key('d', { metaKey: true }))?.id).toBe('disconnect');
     expect(findShortcut(key('u', { metaKey: true }))?.id).toBe('shunt');
