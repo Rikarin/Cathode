@@ -65,7 +65,7 @@ public sealed class InputBlock() : DspBlock(Info) {
         "Input",
         "I/O",
         [
-            ParamDescriptor.Choice("gateType", "Gate Type", ["Off", "Classic", "Intelligent", "Noise Reducer"]),
+            ParamDescriptor.Choice("type", "Gate Type", ["Off", "Classic", "Intelligent", "Noise Reducer"]),
             ParamDescriptor.Float("threshold", "Threshold", -100f, 0f, -60f, "dB"),
             ParamDescriptor.Float("ratio", "Ratio", 1f, 20f, 2f, ":1", ParamTaper.Log),
             ParamDescriptor.Float("attack", "Attack", 0.1f, 50f, 1f, "ms", ParamTaper.Log),

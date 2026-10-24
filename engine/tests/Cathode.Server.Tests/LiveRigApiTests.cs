@@ -68,7 +68,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task The_input_and_output_take_parameters_and_channels_but_no_bypass() {
-        await Patch("/api/v1/live/blocks/in1/params", new Dictionary<string, float> { ["gateType"] = 1, ["threshold"] = -50 });
+        await Patch("/api/v1/live/blocks/in1/params", new Dictionary<string, float> { ["type"] = 1, ["threshold"] = -50 });
         await Patch("/api/v1/live/blocks/out1/params?channel=B", new Dictionary<string, float> { ["level1"] = -6 });
         await ServerFixture.Eventually(() => server.Target("in1", "threshold") == -50);
 

@@ -182,7 +182,13 @@ The grid is **edited** as cells and cables, then **compiled** to a flat executio
 4. **Latency compensation:** if a parallel path contains a latent block (for example a linear-phase EQ), the other paths get matching delays. The default chain has 0 latency.
 5. Emit a `CompiledGraph`: an array of `Op` structs (`Process(block, inBuf, outBuf)`, `Mix(a,b,dst,gains)`, `Copy`, `Delay`). The audio thread walks it with **no virtual-dispatch surprises and no allocation**.
 
-The **parameter set is not part of compilation**. Changing a knob, a scene or a channel never recompiles. Only grid or block-type changes do.
+The **parameter set is not part of compilation**. Changing a knob, a scene or a channel never recompiles. Only grid or block-type changes do, and the few parameters flagged `Recompile` because they change a block's latency (the Compressor's Look Ahead): the server rebuilds the graph, a gapless swap, when one of those changes by a knob, a channel or a scene.
+
+**As built.**
+- The Input and Output cells run blocks of their own (`input`: noise gate and input level; `output`: a row mixer with main level and balance). The Output takes each input with its grid row, like the Mixer (`MuxInput`); a single row is scaled in place (`ScaleRow`), so a plain chain still needs one buffer. Neither can be bypassed.
+- A sidechain block (`ISidechainBlock`: Compressor, Gate) is offered, before it runs, the grid input and the output of the last live node on each row to its left (`SidechainInput` ops). Each such source counts as one more reader of its buffer, so it is neither freed nor processed over in place first. Sidechains are not latency-aligned.
+- Feedback Send/Return come in up to two pairs, matched by the number their ids end in.
+- An RTA block gets the graph's `AnalyzerTap`; the engine moves what it holds into the telemetry region after each sub-block.
 
 ### 5.3 Block contract
 
@@ -198,7 +204,7 @@ public interface IDspBlock : IDisposable
 }
 ```
 
-`BlockContext` carries the sample rate, tempo, sample time and the MIDI notes currently held (`HeldNotes`). The host's MIDI input posts note on/off straight to the engine as `EngineCommand.Note`, so the Pitch block can take its key and chord from a keyboard or DAW.
+`BlockContext` carries the sample rate, tempo, sample time, the MIDI notes currently held (`HeldNotes`), and two global settings from the rig bank: the Effects Mix offset that blocks with Global Mix on add to their Mix, and the noise gate offset the Input gate adds to its threshold. The host's MIDI input posts note on/off straight to the engine as `EngineCommand.Note`, so the Pitch block can take its key and chord from a keyboard or DAW.
 
 Processing is **in place**: the compiler hands each block one buffer that holds its input and receives its output. That is what lets a series chain run in a single buffer.
 
@@ -206,6 +212,7 @@ Optional interfaces a block may add:
 - `IAssetConsumer`: files (a NAM model, an IR) loaded by the compiler before `Prepare`.
 - `IControlRefresh`: derived state rebuilt on the control thread (§5.4).
 - `IRowInputBlock`: takes each cabled input by grid row instead of their sum (Multiplexer, Mixer).
+- `ISidechainBlock`: offered other signals for its detector (§5.2).
 - `IEngageAware`: told on the audio thread when its bypass target turns from bypassed to active, before the bypass fade starts, so an LFO can restart from a set phase (Flanger and Phaser LFO Bypass Reset, Tremolo Start Phase). A block that starts engaged is not told.
 
 - DSP state lives in `NativeMemory.AlignedAlloc` buffers (64-byte aligned) or pinned arrays.
@@ -316,8 +323,10 @@ The Server publishes meters at 30 Hz, still as JSON. IPC telemetry, which carrie
 
 Version 3 adds an output scope ring of 16,384 samples, outside the seqlock (the reader checks that the writer did not lap it). The Server reads it for three things:
 - scope frames, while the scope is on
-- RTA frames: sixth-octave bands of a 4096-point Hann window at 15 Hz, while the RTA is on
+- RTA frames: 3, 6 or 12 bands per octave of a 4096-point window (Hann, Blackman-Harris, flat top or rectangular) at 15 Hz, with an optional decay, while the RTA is on
 - Tone Match's long-term average spectrum
+
+Version 4 adds a second ring of the same size for the RTA block: while it keeps growing, RTA frames come from it (`source: block`) instead of the output.
 
 Still to come: RMS, per-block CPU, scene state, and binary frames.
 
