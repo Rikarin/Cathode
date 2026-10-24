@@ -309,6 +309,6 @@ These were reported as left over or deliberately deferred, and are not assigned 
 | Library-wide open issues: TriodeStage output resistance with a partly bypassed cathode; Thévenin cut behind plate-bypass cold clippers; JC-120 tone-stack level | ⬜ | docs/06 |
 | Windows `HostAllocationTests` intermittent 4-byte allocation | ⬜ | Per-thread allocation measured across awaits |
 | Load-sensitive tests (cab crossfade, CPU-per-type) | ⬜ | Pass alone; flaky under heavy load (the tremolo one is fixed) |
-| Preset-load allocation budget raised 128 → 136 → 137.5 → 140 KB as blocks grew (HostAllocationTests) | ⬜ | Keeps creeping; find what a load allocates per parameter and cut it |
+| Preset-load allocation budget raised 128 → 136 → 137.5 → 140 → 170 KB as blocks grew (HostAllocationTests) | ⬜ | Keeps creeping; find what a load allocates per parameter and cut it. The jump to 170 KB is Drive round 4: every circuit's networks are prebuilt for both channels (≈750 B each, 61 circuits), so building them lazily or sharing the immutable parts would win most of it back |
 | Two block-meter telemetry paths (`Telemetry.blocks` peaks, `Telemetry.BlockMeters` named meters) | ⬜ | Could be unified |
 | 18 W Intensity rheostat R32 (1k) fixed at mid-travel | ⬜ | Drawing doesn't show which end is 0; link it to `tremdepth` once the orientation is known |

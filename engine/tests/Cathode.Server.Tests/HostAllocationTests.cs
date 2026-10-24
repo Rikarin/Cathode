@@ -115,13 +115,14 @@ public sealed class HostAllocationTests : IDisposable {
         // 6 KB (the Delay's 80 parameters, its diffuser and post-delay lines; the Reverb's extra settings). The Cab block
         // stream added about 1 KB (16 more Cab parameters: per-slot proximity, smoothing and Auto-Align, Motor Drive), and
         // the audio I/O pass under 1 KB (the latency path the compiler records, the Input block's pickup load parameters
-        // and the Drive's oversampling setting): 138,008 bytes
-        // measured with both, under a limit that leaves about 2 KB.
+        // and the Drive's oversampling setting): 138,008 bytes measured with both. Round 4 of the Drive grew its catalogue
+        // from 24 circuits to 61, each prebuilt for both channels (about 750 bytes a circuit), and added the classic
+        // reverbs and the Pitch formant parameters: 168,240 bytes, under a limit that leaves about 2 KB.
         var load = new IpcMessage { Type = IpcTypes.LoadGraph, Generation = 1, Graph = Rig() };
 
         var allocated = await RoundTripAsync(load, 3);
 
-        Assert.True(allocated < 140_000, $"a preset load allocated {allocated} bytes");
+        Assert.True(allocated < 170_000, $"a preset load allocated {allocated} bytes");
     }
 
     [Fact]
