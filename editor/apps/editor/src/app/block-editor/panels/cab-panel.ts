@@ -43,8 +43,8 @@ const responses = new Map<string, Promise<number[]>>();
  * its mixer controls. DynaCab and IR Pack slots are dragged across the cone (cap to edge) and away from the grille; IR
  * and IR Pack slots take a file. Each slot has its own cuts and IR length, and a relative level (the slots' levels set
  * the blend). Editing a muted slot unmutes it, so the edit is heard. The plot shows the IR files' responses with their
- * levels and the block's cuts; the global controls (input, air, mic preamp, master cuts, proximity, room, auto delay,
- * level) stay on the rack below.
+ * levels and the block's cuts; the global controls (input, air, mic preamp and its tone, master cuts, proximity and its
+ * frequency, the room page, auto delay, smoothing, level) stay on the rack below.
  */
 @Component({
   selector: 'cth-cab-panel',

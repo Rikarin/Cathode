@@ -44,7 +44,8 @@ namespace Cathode.Dsp.Blocks;
 ///     </para>
 /// </remarks>
 public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh {
-    // Global parameters run on the audio thread up to Level; from Proximity on they change the IRs.
+    // Global parameters run on the audio thread up to Level; from Proximity on they change the IRs: up to Diffusion
+    // they resynthesise the modelled slots, AutoDelay and Smoothing only remix.
     public const int LowCut = 0;
     public const int LowSlope = 1;
     public const int HighCut = 2;
@@ -55,13 +56,24 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     public const int Preamp = 7;
     public const int Drive = 8;
     public const int Saturation = 9;
-    public const int Level = 10;
-    public const int Proximity = 11;
-    public const int Room = 12;
-    public const int AutoDelay = 13;
+    public const int PreampBass = 10;
+    public const int PreampMid = 11;
+    public const int PreampTreble = 12;
+    public const int Level = 13;
+    public const int Proximity = 14;
+    public const int ProximityFreq = 15;
+    public const int Room = 16;
+    public const int RoomSize = 17;
+    public const int RoomShape = 18;
+    public const int Floor = 19;
+    public const int HighDamping = 20;
+    public const int LowDamping = 21;
+    public const int Diffusion = 22;
+    public const int AutoDelay = 23;
+    public const int Smoothing = 24;
 
     /// <summary>Index of slot 1's first parameter; slot n's are at <c>SlotBase + n * SlotStride</c>.</summary>
-    public const int SlotBase = 14;
+    public const int SlotBase = 25;
 
     public const int SlotStride = 18;
     public const int Slots = 4;
@@ -118,6 +130,17 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     /// <summary>Air at 100 %: the high-passed dry signal at -12 dB.</summary>
     const float FullAir = 0.25f;
 
+    /// <summary>Smoothing at 100 %, octaves.</summary>
+    const double FullSmoothing = 1;
+
+    /// <summary>Diffusion at 100 %: a wall reflection's arrival spread by 0.2 ms, coherent only below about 1 kHz.</summary>
+    const double FullDiffusion = 0.2e-3;
+
+    /// <summary>The preamp tone controls' bands: a bass shelf, a broad mid peak and a treble shelf.</summary>
+    const float PreampBassHz = 120f;
+    const float PreampMidHz = 800f;
+    const float PreampTrebleHz = 4_000f;
+
     const double MetresPerInch = 0.0254;
 
     /// <summary>Half-length of the windowed-sinc fractional delay used when mixing slots.</summary>
@@ -138,7 +161,11 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     readonly float[] built = new float[SlotBase + Slots * SlotStride];
     readonly double[] slotDelays = new double[Slots];
     readonly bool[] stale = new bool[Slots];
+    readonly EqBand preampBass = new();
+    readonly EqBand preampMid = new();
+    readonly EqBand preampTreble = new();
     CabIrSynthesizer? synthesizer;
+    IrSmoother? smoother;
     NativeBuffer slotIrs = NativeBuffer.Empty;
     NativeBuffer slotScratch = NativeBuffer.Empty;
     NativeBuffer mixLeft = NativeBuffer.Empty;
@@ -176,10 +203,21 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             ParamDescriptor.Choice("preamp", "Preamp Type", MicPreamp.Types, MicPreamp.None),
             ParamDescriptor.Float("drive", "Preamp Drive", 0f, MicPreamp.MaxDriveDb, 0f, "dB"),
             ParamDescriptor.Float("saturation", "Preamp Saturation", 0f, 100f, 0f, "%"),
+            ParamDescriptor.Float("prebass", "Preamp Bass", -12f, 12f, 0f, "dB"),
+            ParamDescriptor.Float("premid", "Preamp Mid", -12f, 12f, 0f, "dB"),
+            ParamDescriptor.Float("pretreble", "Preamp Treble", -12f, 12f, 0f, "dB"),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Switch("proximity", "Proximity", true),
-            ParamDescriptor.Float("room", "Room", 0f, 100f, 0f, "%"),
+            IrParam(ParamDescriptor.Float("proximity", "Proximity", 0f, 200f, 100f, "%")),
+            IrParam(ParamDescriptor.Float("proxfreq", "Proximity Freq", 25f, 400f, 100f, "%", ParamTaper.Log)),
+            IrParam(ParamDescriptor.Float("room", "Room", 0f, 100f, 0f, "%")),
+            IrParam(ParamDescriptor.Float("roomsize", "Room Size", 50f, 200f, 100f, "%", ParamTaper.Log)),
+            IrParam(ParamDescriptor.Float("roomshape", "Room Shape", -100f, 100f, 0f, "%")),
+            IrParam(ParamDescriptor.Float("floor", "Floor Reflection", 0f, 200f, 100f, "%")),
+            IrParam(ParamDescriptor.Float("hfdamp", "Room HF Damping", 0f, 100f, 50f, "%")),
+            IrParam(ParamDescriptor.Float("lfdamp", "Room LF Damping", 0f, 500f, 0f, "Hz")),
+            IrParam(ParamDescriptor.Float("diffusion", "Room Diffusion", 0f, 100f, 0f, "%")),
             ParamDescriptor.Switch("autodelay", "Auto Delay"),
+            IrParam(ParamDescriptor.Float("smoothing", "Smoothing", 0f, 100f, 0f, "%")),
             ..Slot(1, 5, 3, 0, 25, 1, false),
             ..Slot(2, 5, 3, 5, 50, 4, true),
             ..Slot(3, 5, 0, 1, 35, 2, true),
@@ -288,11 +326,13 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             mixRight.Dispose();
             dryLeft.Dispose();
             dryRight.Dispose();
+            smoother?.Dispose();
             synthesizer = new(spec.SampleRate);
             var taps = synthesizer.Taps;
             slotIrs = new(Slots * taps);
             slotScratch = new(Math.Max(MaxIrLength, taps));
             var length = Math.Max(MaxIrLength, taps) + (int)Math.Ceiling(MaxShiftSeconds() * spec.SampleRate) + 2 * SincHalf;
+            smoother = new(length);
             mixLeft = new(length);
             mixRight = new(length);
             dryLeft = new(spec.MaxBlockSize);
@@ -317,6 +357,9 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         airRight.Reset();
         preampLeft.Reset();
         preampRight.Reset();
+        preampBass.Reset();
+        preampMid.Reset();
+        preampTreble.Reset();
         outputGain = Decibels.ToGain(Params.Current(Level));
         airGain = AirGain(Params.Current(Air));
         drive = Params.Current(Drive);
@@ -373,6 +416,9 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         preampRight.Process(type, Spec.SampleRate, this.drive, drive, this.saturation, saturation, io.Right);
         this.drive = drive;
         this.saturation = saturation;
+        Tone(io, preampBass, BiquadType.LowShelf, PreampBassHz, 0.7071f, PreampBass);
+        Tone(io, preampMid, BiquadType.Peak, PreampMidHz, 0.7f, PreampMid);
+        Tone(io, preampTreble, BiquadType.HighShelf, PreampTrebleHz, 0.7071f, PreampTreble);
 
         var lowCut = Params.Advance(LowCut, io.Length);
         var lowSlope = (int)Params.Advance(LowSlope, io.Length);
@@ -403,6 +449,8 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
                 switcher.Dispose();
                 synthesizer?.Dispose();
                 synthesizer = null;
+                smoother?.Dispose();
+                smoother = null;
                 slotIrs.Dispose();
                 slotScratch.Dispose();
                 mixLeft.Dispose();
@@ -452,6 +500,15 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     }
 
     static float AirGain(float percent) => FullAir * percent / 100f;
+
+    /// <summary>A parameter that rebuilds the IRs: applied as a step, as a rebuild is not ramped.</summary>
+    static ParamDescriptor IrParam(ParamDescriptor descriptor) => descriptor with { Smoothing = ParamSmoothing.Step };
+
+    /// <summary>One preamp tone band; at 0 dB and still, it is skipped.</summary>
+    void Tone(in StereoBuffer io, EqBand band, BiquadType type, float frequency, float q, int param) {
+        var moving = Params.IsRamping(param);
+        band.Process(io, type, Spec.SampleRate, frequency, q, Params.Advance(param, io.Length), moving);
+    }
 
     static void Accumulate(ReadOnlySpan<float> source, Span<float> destination) {
         for (var i = 0; i < source.Length; i++) {
@@ -546,7 +603,10 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     StereoIr Build() {
         var synthesizer = this.synthesizer!;
         var taps = synthesizer.Taps;
-        var globalsChanged = targets[Proximity] != built[Proximity] || targets[Room] != built[Room];
+        var globalsChanged = false;
+        for (var i = Proximity; i < AutoDelay; i++) {
+            globalsChanged |= targets[i] != built[i];
+        }
         for (var s = 0; s < Slots; s++) {
             var source = SourceOf(s);
             var changed = stale[s] || globalsChanged;
@@ -571,6 +631,11 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         }
 
         var length = UsedLength(mixLeft.Span, mixRight.Span);
+        var octaves = targets[Smoothing] / 100.0 * FullSmoothing;
+        if (octaves > 0) {
+            length = Math.Max(smoother!.Smooth(mixLeft.Span, length, octaves), smoother.Smooth(mixRight.Span, length, octaves));
+        }
+
         return new(mixLeft.Span[..length], mixRight.Span[..length]);
     }
 
@@ -582,8 +647,18 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             SlotTarget(slot, Position) / 100.0,
             SlotTarget(slot, Distance) * MetresPerInch,
             SlotTarget(slot, Angle) * Math.PI / 180,
-            targets[Proximity] >= 0.5f,
-            targets[Room] / 100.0
+            targets[Proximity] > 0f,
+            targets[Room] / 100.0,
+            targets[Proximity] / 100.0,
+            targets[ProximityFreq] / 100.0,
+            new CabRoom(
+                targets[RoomSize] / 100.0,
+                targets[RoomShape] / 100.0,
+                targets[Floor] / 100.0,
+                Math.Pow(4, (targets[HighDamping] - 50) / 50.0),
+                targets[LowDamping],
+                targets[Diffusion] / 100.0 * FullDiffusion
+            )
         );
 
     void Mix() {
