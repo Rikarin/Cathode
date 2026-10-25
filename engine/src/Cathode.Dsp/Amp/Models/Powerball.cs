@@ -36,6 +36,12 @@ namespace Cathode.Dsp.Amp.Models;
 ///         of the real amp's preamp filtering.
 ///     </para>
 ///     <para>
+///         <b>Assumption, not on 645-1:</b> the model adds two RC nodes below CE3, each 10k into 22 µF (the generic
+///         chain's step): V5B and V6A on the first, V5A on the second, V6B left on CE3. They are the smallest values
+///         that a search (docs/06 §3.7) found silent in every case of the after-the-stop test and at gain 1 with
+///         master 5, with room to spare.
+///     </para>
+///     <para>
 ///         Guesses and simplifications, marked: the preamp rails carry no voltages on the drawing (here 400 V for V5 and
 ///         V6, 410 V for V7, 420 V for the inverter, from the chain above); Hi mode is
 ///         taken as the energised position of the "Gain" relays RE3 and RE4 (the hotter divider and the Hi Lead volume;
@@ -54,9 +60,9 @@ public static class Powerball {
     public static AmpDesign Design { get; } = new(
         "Powerball",
         [
-            new NetworkStageDesign("V5A", InputAndGain()) { SupplyNode = 1 },
-            new TriodeStageDesign("V5B", TriodeModel.Ecc83, 400, 100e3, 1.5e3, 22e-6) { SupplyNode = 1 },
-            new NetworkStageDesign("V6A", ThirdStage()) { SupplyNode = 1 },
+            new NetworkStageDesign("V5A", InputAndGain()) { SupplyNode = 3 },
+            new TriodeStageDesign("V5B", TriodeModel.Ecc83, 400, 100e3, 1.5e3, 22e-6) { SupplyNode = 2 },
+            new NetworkStageDesign("V6A", ThirdStage()) { SupplyNode = 2 },
             new NetworkStageDesign("V6B", FourthStage()) { SupplyNode = 1 },
             new NetworkStageDesign("Stack", LeadStack()) { SupplyNode = 1 },
             new NetworkStageDesign("V7A", Follower()),
@@ -97,9 +103,16 @@ public static class Powerball {
             Switch1 = "Focused",
             Switch2 = "Hi Lead"
         },
-        // From CE10 (V7 and the inverter): R26 4.7k to CE3 10 µF (V5, V6). The drawing prints no voltages, so CE3
-        // draws an equal share of the preamp's 6 mA per triode on it: four of eight, 3 mA.
-        PreampSupply = new([new(4.7e3, 10e-6, 3e-3)])
+        // From CE10 (V7 and the inverter): R26 4.7k to CE3 10 µF (V5, V6 as drawn). The drawing prints no voltages,
+        // so each of the four triodes below CE3 draws an equal share of the preamp's 6 mA, 0.75 mA.
+        // ASSUMPTION, not on Engl 645-1: two more nodes, 10k into 22 µF under CE3 for V5B and V6A, and 10k into
+        // 22 µF under that for V5A (CE3 keeps V6B). As drawn, with all four on CE3, the model motorboats after loud
+        // playing down to gain 1, and no drawn part can stop it (docs/06 §3.7), so the real amp must filter its first
+        // stages more than the drawing shows. 10k / 22 µF is the generic chain's step and the smallest search value
+        // with a margin: 18 µF still passes, 15 µF and 10 µF fail; one extra node fails or passes erratically.
+        PreampSupply = new([
+            new(4.7e3, 10e-6, 0.75e-3), new(10e3, 22e-6, 1.5e-3, 1), new(10e3, 22e-6, 0.75e-3, 2)
+        ])
     };
 
     /// <summary>

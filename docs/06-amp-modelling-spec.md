@@ -796,7 +796,7 @@ machine at a load average of 150–210, where the Plexi read 8.4–10.7 / 15.0�
 - **Mark V**: channel 3 from the factory set (Mar 2009, MARKV-1). The supply sheet names the relays (M7 IIC+, M8 Mark IV, M9 Extreme): Mark IV mode adds a 4.7k pad at V6A's grid, IIC+ mode puts 4.4 µF on V6A's cathode in place of 15 µF. The JFET bypasses on V3A are not mapped to modes on the drawing; the model guesses IIC+ unbypassed, Mark IV 2.2 µF, Extreme 100 µF. Panel: IIC+ Mode and Mark IV Mode switches (both off is Extreme), Bright, channel master on Control 1, Output on Master, the graphic EQ.
 - **Rect-o-Verb**: the lead channel of the factory "Solo 50 / Rectoverb" set (first series). It is the Dual Rectifier recipe with readable values: V1A 220k/1.8k‖1 µF, 680k‖2 nF into the 250k-A gain, V1B with 15 µF through 22k, a 39k cold clipper with 100k‖1 nF, V3A 220k, a CF into a 500 pF/47k/20 nF/20 nF stack, a preamp presence shunt (22k + 3 nF + rheostat) on the treble wiper; 2 × 6L6 at 454 V.
 - **Triple Rectifier**: the Dual Rectifier model with six 6L6 (no Triple drawing exists online; forum service threads point to the three-channel Dual Rectifier drawing).
-- **Powerball**: channel 2, Lo/Hi and Open/Focused, from the Engl drawing E645-1. V5A, V5B, V6A (330k plate) and V6B are all fully bypassed (very high gain: the chain clips below 1 mV at full gain). The stack has 470 pF (+470 pF Focused), 100k slope, a 220 nF bass cap and separate Open (22 nF, 20k) and Focused (47 nF, 20k) middle pots (bass on the top, the mid cap on the wiper); a CF loop send and a return stage follow; the inverter's grid leak is R53 100k. Not modelled: the lead channel's noise gate (IC4, J175 T8). As drawn it motorboats after loud playing (§3.7).
+- **Powerball**: channel 2, Lo/Hi and Open/Focused, from the Engl drawing E645-1. V5A, V5B, V6A (330k plate) and V6B are all fully bypassed (very high gain: the chain clips below 1 mV at full gain). The stack has 470 pF (+470 pF Focused), 100k slope, a 220 nF bass cap and separate Open (22 nF, 20k) and Focused (47 nF, 20k) middle pots (bass on the top, the mid cap on the wiper); a CF loop send and a return stage follow; the inverter's grid leak is R53 100k. Not modelled: the lead channel's noise gate (IC4, J175 T8). As drawn it motorboats after loud playing; an **assumed** extra filter, not on the drawing (two 10k / 22 µF nodes below CE3: V5B and V6A on the first, V5A on the second), stops it (§3.7).
 - **Savage 120**: the lead channel from the Engl drawing E610-2. V2B is 330k with 3.3k unbypassed unless Lead Boost; the stack is 470 pF (+220 pF Contour), 47k, 47 nF, 22 nF; 2 × 6550. Neither Engl drawing prints rail voltages, so B+ and the preamp rails are typical values.
 
 Each file marks its guesses (mostly OT primaries, idle currents, and the Engl rails). Simplified feedback networks: the Mark V's (relay-switched presence per channel) and the Savage's (presence in series with the feedback) are folded into the standard shunt network.
@@ -967,7 +967,7 @@ voltages):
 | Rect-o-Verb | C: 5.6k, 10 µF, 6.4 mA | C → 15k → D, 10 µF (V1B, V2B); C → 22k → E, 10 µF (V1A); F (47k, the loop) not modelled | Solo 50 / Rectoverb supply sheet; its wiring at B is ambiguous (two resistors, one labelled), the tree is the one the printed voltages fit |
 | SLO-100 | B2: 10k 2 W, 40 µF, 11.7 mA | B2 → 15k → B4, 10 µF (input stage, normal channel's first); B2 → 15k → B3, 10 µF (OD gain, cold clipper) | revised 1996 drawing, sheet 1 (el34world `Soldano_slo100.pdf`), 495 / 378 / 359 / 350 V |
 | Savage 120 | CE21: 2 × 2.2k, 22 µF (screens' CE20 100 µF) | CE21 → 1k + 2.2k → CE4 10 µF (V3) → 2.2k → CE9 10 µF (V2) → 2.2k → CE6 10 µF (V1B) | Engl 610-2; no voltages printed, so each node draws an equal share per triode (0.5 mA); V5 sits behind R107 with no cap of its own (here on CE21) |
-| Powerball | CE10: 2 × 2.2k, 22 µF | CE10 → 4.7k → CE3 10 µF (V5, V6) | Engl 645-1; no voltages, equal shares (3 mA) |
+| Powerball | CE10: 2 × 2.2k, 22 µF | CE10 → 4.7k → CE3 10 µF (V6B); **assumed, not drawn:** CE3 → 10k → 22 µF (V5B, V6A) → 10k → 22 µF (V5A) | Engl 645-1; no voltages, equal shares (0.75 mA a triode); the two extra nodes are an assumption (below) |
 | 5150 | V3 (inverter): 10k, 22 µF | V3 → V2 (V2B, V5, V3A) → V1 (V1A, V1B, V2A), each generic 10k / 22 µF | the factory pages name the three rails but not the supply page: **resistors and caps not read** |
 | TriAxis (all three types) | its own supply | none | a rack preamp |
 
@@ -988,9 +988,9 @@ Mesa and Soldano preamp draws (node 0's current from its drawn voltages) and nod
 −7.5 dB (was −7). The Preamp Sag audibility test allows −70 dB for a model whose preamp node alone is 0.3 s or slower
 (Deluxe Reverb, both Hiwatts): with the chain below it, little sag reaches the stages within its short render. With every model at gains 5, 8 and 10, 0.1 V and
 0.4 V chords stopped at three points of the waveform, the output above 10 Hz two seconds after the stop is below −120 dB
-(`PreampSupplyTests`), except:
+(`PreampSupplyTests`), with two notes:
 
-- **Powerball**: still oscillates (16–20 Hz, about −16 dB) with the drawing's single 4.7k / 10 µF node under V5 and V6.
+- **Powerball**: oscillated (16–20 Hz, about −16 dB) with the drawing's single 4.7k / 10 µF node under V5 and V6.
   Its input stage's supply sensitivity is 18–64 times the other high-gain models' (85 mV at the inverter's input for a
   1e-7 ripple on V5A's node at 18 Hz, against 4.8 mV for the Savage and 1.3 mV for the 5150), because its preamp's
   small-signal gain is 123 dB at 1 kHz against 87–99 dB for the Dual Rectifier, 5150, Savage, SLO-100 and Legacy
@@ -1016,8 +1016,37 @@ Mesa and Soldano preamp draws (node 0's current from its drawn voltages) and nod
   at 3 Hz and up), a 145 Ω source resistance (what 460 V in standby and 440 V running imply; no change), and the
   drawing's noise gate (IC4 and J175 T8, not modelled: it shunts the lead volume's wiper only below its threshold,
   while the oscillation keeps V6B, its detector's source, in full swing). Conclusion: the drawing's preamp supply
-  cannot hold a preamp of this gain; the real amp very likely filters V5 and V6 more than 645-1 shows. The model keeps
-  the drawing, and the Powerball rows of `PreampSupplyTests` stay skipped until a better source turns up.
+  cannot hold a preamp of this gain; the real amp very likely filters V5 and V6 more than 645-1 shows.
+
+  **Assumption (not on 645-1):** the model adds the smallest realistic filter that makes it stable with a margin:
+  two nodes below CE3, each 10k into 22 µF (the generic chain's step), V5B and V6A on the first, V5A on the second,
+  V6B left on CE3; the four triodes draw 0.75 mA each. The search ran the `PreampSupplyTests` cases through the
+  renderer (gains 5, 8, 10; 0.1 and 0.4 V; three stop points; gain 10 with master 8; gain 1 with master 5 at 0.1
+  and 0.4 V), worst level two seconds after the stop, above 10 Hz (pass: below −120 dB):
+
+  | Arrangement (below CE3) | Values | Worst | Gain 1, master 5 |
+  |---|---|---|---|
+  | None (as drawn) | — | −17.6 | −23.6 |
+  | One node: V5A | 10k–47k, 10–100 µF (12 pairs) | about +20 (fails) | about +18 (fails) |
+  | One node: V5A, V5B | 47k / 100 µF | −157.1 | −185.3 |
+  | One node: V5A, V5B, V6A | 10k / 100 µF; 22k / 47 µF; 22k / 68 µF | −22.2; −22.1; −106.1 (fail) | −198; −194; −193 |
+  | One node: V5A, V5B, V6A | 22k / 100 µF; 47k / 47 µF; 47k / 100 µF | −178.9; −166.4; −177.8 | −193; −190; −189 |
+  | One node: all four | 22k / 47 µF | −22.0 (fails) | −194 |
+  | Two nodes (V5B, V6A; then V5A) | 10k / 10 µF each | −22.3 (fails) | −192 |
+  | Two nodes | 10k / 22 µF, then 10k / 10 µF | −29.4 (fails) | −196 |
+  | Two nodes | 10k / 15 µF each | −34.7 (fails) | −193 |
+  | Two nodes | 10k / 18 µF each | −154.0 | −193 |
+  | **Two nodes (chosen)** | **10k / 22 µF each** | **−181.9** | **−191.7** |
+  | Two nodes | 10k / 33 µF, 10k / 47 µF, 12k / 22 µF, 15k / 22 µF each | −180.4, −181.1, −180.2, −178.9 | −188 to −190 |
+  | Two nodes (V5B; then V5A), V6A on CE3 | 10k / 22 µF each | −160.3 | −191 |
+
+  One extra node passes only with long time constants and not monotonically (22k / 47 µF and 22k / 68 µF fail where
+  22k / 100 µF passes), so it is a knife-edge; two 10k / 22 µF nodes pass by 62 dB, every larger value passes, 18 µF
+  still passes and 15 µF fails. Against master (the corrected drawing, still motorboating), a plucked phrase nulls at
+  −23 dB over 4 s (−14 to −15 dB in its first 0.3 s) at stock, gain 2, Hi, Focused and middle 0 and 10, with the level
+  within ±0.06 dB; CPU 14.9–15.0 / 25.5–25.6 % before, 15.3 / 25.9–26.0 % after (two interleaved runs, Plexi 8.0–8.1 /
+  14.1–14.3 %; the Savage 120 15.1–15.2 / 26.9–27.0 %), inside the high-gain class. The Powerball rows of
+  `PreampSupplyTests` run again, with a gain-1, master-5 case added.
 - **SVT**: a decaying wobble of about 1 Hz (−105 dB above 10 Hz two seconds after a 0.4 V chord at gain 10), which
   Preamp Sag 0, Sag 0 and the power amp off leave as it is: its preamp's own settling, not the supply.
 

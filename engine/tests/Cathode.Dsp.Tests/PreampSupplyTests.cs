@@ -14,15 +14,6 @@ public class PreampSupplyTests {
     const double Rate = 48_000;
 
     /// <summary>
-    ///     Still motorboats with its drawing's chain (one 4.7k / 10 µF node under V5 and V6): its gain staging matches
-    ///     the drawing (four fully bypassed stages, 123 dB at 1 kHz), and that one node cannot hold it (about +14 dB of
-    ///     loop gain through the supply at 18 Hz, gain 10); the real amp likely filters V5 and V6 more than drawn.
-    /// </summary>
-    const string PowerballGain =
-        "Powerball still motorboats: its drawn gain staging is right, its drawn preamp supply cannot hold it "
-        + "(docs/06 §3.7).";
-
-    /// <summary>
     ///     The models whose tail is slow for reasons of their own, with the level they reach: the SVT's preamp settles
     ///     with a decaying wobble of about 1 Hz that the supply does not cause (Preamp Sag 0, Sag 0 and the power amp
     ///     off leave it as it is).
@@ -52,10 +43,6 @@ public class PreampSupplyTests {
     [Theory]
     [MemberData(nameof(Types))]
     public void Every_model_goes_silent_after_a_loud_input_stops(string type) {
-        if (type == "Powerball") {
-            Assert.Skip(PowerballGain);
-        }
-
         (double Gain, double Volts, double Stop)[] cases = [
             ..from gain in new[] { 5.0, 8, 10 }
             from volts in new[] { 0.1, 0.4 }
@@ -77,17 +64,19 @@ public class PreampSupplyTests {
     }
 
     /// <summary>
-    ///     The nine at the settings that showed it (gain 10, master 8, 0.1 V), and the user's 5150 settings.
+    ///     The nine at the settings that showed it (gain 10, master 8, 0.1 V), and the user's 5150 settings; the
+    ///     Powerball also at gain 1 and master 5 after a 0.4 V chord, where its drawn supply latched.
     /// </summary>
     [Theory]
     [MemberData(nameof(Motorboating))]
     public void The_motorboating_models_stay_silent(string type) {
-        if (type == "Powerball") {
-            Assert.Skip(PowerballGain);
-        }
-
         var level = TailDb(type, new() { ["gain"] = 10, ["master"] = 8 }, 0.1, 0.5);
         Assert.True(level < -120, $"{type}: {level:0.0} dB two seconds after the stop");
+        if (type == "Powerball") {
+            var low = TailDb(type, new() { ["gain"] = 1, ["master"] = 5 }, 0.4, 0.5);
+            Assert.True(low < -120, $"Powerball at gain 1, master 5: {low:0.0} dB two seconds after the stop");
+        }
+
         if (type == "5150") {
             var user = new[] { 0.5, 0.503, 0.507 }.Max(stop => TailDb(type, User5150, 0.1, stop));
             Assert.True(user < -120, $"5150 at the user's settings: {user:0.0} dB two seconds after the stop");
