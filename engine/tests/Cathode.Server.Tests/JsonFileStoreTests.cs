@@ -60,10 +60,21 @@ public sealed class JsonFileStoreTests : IDisposable {
         store.Save(preset);
         var path = Path.Combine(folder, preset.Id + ".json");
         var held = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read); // no delete sharing
-        _ = Task.Delay(100, TestContext.Current.CancellationToken).ContinueWith(_ => held.Dispose(), TaskScheduler.Default);
+        // A thread of its own lets go after 100 ms: a thread-pool continuation can wait seconds on a busy runner,
+        // longer than the store retries.
+        var release = new Thread(() => {
+                Thread.Sleep(100);
+                held.Dispose();
+            }
+        );
+        release.Start();
 
         preset.Name = "After";
-        store.Save(preset);
+        try {
+            store.Save(preset);
+        } finally {
+            release.Join();
+        }
 
         Assert.Equal("After", store.Get(preset.Id)!.Name);
     }

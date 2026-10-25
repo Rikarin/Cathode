@@ -45,9 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v6
-        with:
-          global-json-file: engine/global.json
+      - uses: ./.github/actions/setup-dotnet
       - name: Build the engine
         working-directory: engine
         run: dotnet build Cathode.slnx -c Release

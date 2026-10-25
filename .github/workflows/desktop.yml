@@ -29,9 +29,7 @@ jobs:
         working-directory: editor
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v6
-        with:
-          global-json-file: engine/global.json
+      - uses: ./.github/actions/setup-dotnet
       - name: Cache native dependencies
         uses: actions/cache@v6
         with:

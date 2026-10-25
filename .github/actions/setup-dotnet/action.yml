@@ -1,0 +1,26 @@
+name: Set up .NET
+description: >
+  Installs the .NET SDK that engine/global.json names, from builds.dotnet.microsoft.com, with the official
+  dotnet-install script. Used in place of actions/setup-dotnet, whose installs go through aka.ms links to the old
+  dotnetorigin storage account, which has refused public downloads since 2026-10-25 (actions/setup-dotnet#794,
+  dotnet/core#10660).
+runs:
+  using: composite
+  steps:
+    - if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        curl -fsSL --retry 3 https://builds.dotnet.microsoft.com/dotnet/scripts/v1/dotnet-install.sh -o "$RUNNER_TEMP/dotnet-install.sh"
+        bash "$RUNNER_TEMP/dotnet-install.sh" --jsonfile engine/global.json --install-dir "$HOME/.dotnet" \
+          --azure-feed https://builds.dotnet.microsoft.com/dotnet
+        echo "DOTNET_ROOT=$HOME/.dotnet" >> "$GITHUB_ENV"
+        echo "$HOME/.dotnet" >> "$GITHUB_PATH"
+    - if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $script = Join-Path $env:RUNNER_TEMP 'dotnet-install.ps1'
+        Invoke-WebRequest https://builds.dotnet.microsoft.com/dotnet/scripts/v1/dotnet-install.ps1 -OutFile $script
+        $dir = Join-Path $env:USERPROFILE '.dotnet'
+        & $script -JsonFile engine/global.json -InstallDir $dir -AzureFeed https://builds.dotnet.microsoft.com/dotnet
+        "DOTNET_ROOT=$dir" >> $env:GITHUB_ENV
+        $dir >> $env:GITHUB_PATH

@@ -41,9 +41,7 @@ jobs:
         working-directory: engine
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v6
-        with:
-          global-json-file: engine/global.json
+      - uses: ./.github/actions/setup-dotnet
       - name: Install NativeAOT prerequisites and ALSA headers
         run: sudo apt-get update -q && sudo apt-get install -y -q clang zlib1g-dev libasound2-dev
       - name: Cache native dependencies
@@ -80,9 +78,7 @@ jobs:
         working-directory: engine
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v6
-        with:
-          global-json-file: engine/global.json
+      - uses: ./.github/actions/setup-dotnet
       - name: Cache native dependencies
         uses: actions/cache@v6
         with:
