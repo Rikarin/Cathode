@@ -237,17 +237,17 @@ export const PLATFORMS = [
     name: 'Linux',
     package: 'Cathode-<version>-linux-x86_64.AppImage',
     for: 'Linux desktops',
-    audio: 'ALSA and JACK in progress',
-    status: 'progress' as const,
-    note: 'Make it executable (chmod +x) and run it.'
+    audio: 'ALSA, JACK or PipeWire, and ALSA MIDI',
+    status: 'early' as const,
+    note: 'Make it executable (chmod +x) and run it. Audio is new: tested in containers, not yet on a real interface.'
   },
   {
     name: 'Windows',
     package: 'Cathode-<version>-win-x64.exe',
     for: 'Windows 10 and 11',
-    audio: 'Not yet: ASIO is planned',
-    status: 'pending' as const,
-    note: 'Not signed yet: SmartScreen asks you to confirm. Edits presets, without sound for now.'
+    audio: 'WASAPI and WinMM MIDI; ASIO planned',
+    status: 'early' as const,
+    note: 'Not signed yet: SmartScreen asks you to confirm. Audio is new: tested on shared-mode output so far.'
   }
 ];
 

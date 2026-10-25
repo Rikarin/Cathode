@@ -18,19 +18,19 @@ import { REPOSITORY, SECTIONS } from '../site';
       </a>
 
       <nav
-        class="absolute start-1/2 hidden -translate-x-1/2 items-center gap-0.5 rounded-full border border-white/10 bg-white/5 p-1 lg:flex"
+        class="absolute start-1/2 hidden -translate-x-1/2 items-center gap-0.5 rounded-full border border-white/10 bg-white/5 p-1 xl:flex"
         aria-label="Main"
       >
         @for (item of sections; track item.id) {
           <a
-            class="text-foreground-muted hover:text-foreground rounded-full px-3 py-1.5 text-sm font-medium transition-colors hover:bg-white/10"
+            class="text-foreground-muted hover:text-foreground rounded-full px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors hover:bg-white/10"
             routerLink="/"
             [fragment]="item.id"
             >{{ item.label }}</a
           >
         }
         <a
-          class="text-foreground-muted hover:text-foreground rounded-full px-3 py-1.5 text-sm font-medium transition-colors hover:bg-white/10"
+          class="text-foreground-muted hover:text-foreground rounded-full px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors hover:bg-white/10"
           routerLink="/catalog"
           routerLinkActive="text-foreground bg-white/10"
           >Catalogue</a
@@ -55,7 +55,7 @@ import { REPOSITORY, SECTIONS } from '../site';
     <!-- Below the desktop breakpoint the pill nav has no room, so the same links run as a scrollable row of their own
          under the bar. -->
     <nav
-      class="flex [scrollbar-width:none] gap-1 overflow-x-auto px-3 pb-2 lg:hidden [&::-webkit-scrollbar]:hidden"
+      class="flex [scrollbar-width:none] gap-1 overflow-x-auto px-3 pb-2 xl:hidden [&::-webkit-scrollbar]:hidden"
       aria-label="Sections"
     >
       @for (item of sections; track item.id) {

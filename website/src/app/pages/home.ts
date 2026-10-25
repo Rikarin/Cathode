@@ -45,8 +45,7 @@ const GRID = { cols: 14, rows: 6 };
 
 const STATUS = {
   ready: { label: 'Plays sound', dot: 'bg-emerald-400' },
-  progress: { label: 'Audio in progress', dot: 'bg-amber-400' },
-  pending: { label: 'No audio yet', dot: 'bg-zinc-500' }
+  early: { label: 'Plays sound, early', dot: 'bg-amber-400' }
 };
 
 @Component({
