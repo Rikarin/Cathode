@@ -185,7 +185,7 @@ export const MODIFIER_SOURCES = ['LFO', 'Envelope', 'Sequencer', 'MIDI controlle
 export const LIVE_FEATURES = [
   {
     title: 'Perform page',
-    body: 'Big scene buttons and the handful of controls you picked for the song, readable from where you stand.'
+    body: 'The handful of controls you picked for the song, big and on one page: knobs, switches and choices from any block, for this preset or for all of them.'
   },
   {
     title: 'MIDI and footswitches',

@@ -69,7 +69,16 @@ export const SHOTS = {
     src: 'screenshots/effects.webp',
     window: true
   },
-  perform: shot('perform.png', 'Perform', 'The Perform page: big scene buttons and the controls picked for the song.'),
+  perform: {
+    ...shot(
+      'perform.webp',
+      'Cathode — Perform',
+      "The Perform page for this preset: the drive's Drive and Tone, the amp's Gain and Fat, the compressor's threshold, the reverb's decay and pre-delay, the gate's threshold and attack, and the cab's Mic 1 microphone and position, each as a large control.",
+      '1856 / 1392'
+    ),
+    src: 'screenshots/perform.webp',
+    window: true
+  },
   modifiers: shot('modifiers.png', 'Modifier', 'A knob driven by an LFO, with the modifier dialog open.', '4 / 3'),
   library: shot(
     'library.png',
