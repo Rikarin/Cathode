@@ -52,13 +52,23 @@ export const SHOTS = {
   cab: {
     ...shot(
       'cab.webp',
-      'Cab',
-      'The Cab block: four microphones placed across the speaker, from the cap to the edge and at a distance from the grille, with the cabinet, speaker and microphone for Mic 1 and its position, distance and angle.',
-      '1838 / 470'
+      'Cathode — Cab',
+      "The main window with the Cab block open in the drawer: four microphones placed across the speaker, from the cap to the edge and at a distance from the grille, and Mic 1's cabinet, speaker, microphone, position, distance and angle.",
+      '1856 / 1392'
     ),
-    src: 'screenshots/cab.webp'
+    src: 'screenshots/cab.webp',
+    window: true
   },
-  effects: shot('effects.png', 'Block picker', 'Adding a block: every block type, grouped, with a search field.'),
+  effects: {
+    ...shot(
+      'effects.webp',
+      'Block picker',
+      'Adding a block: the block picker over the grid, with a search field and the block types grouped as Filter, EQ, Pitch and Modulation, each in its own colour.',
+      '1856 / 1392'
+    ),
+    src: 'screenshots/effects.webp',
+    window: true
+  },
   perform: shot('perform.png', 'Perform', 'The Perform page: big scene buttons and the controls picked for the song.'),
   modifiers: shot('modifiers.png', 'Modifier', 'A knob driven by an LFO, with the modifier dialog open.', '4 / 3'),
   library: shot(

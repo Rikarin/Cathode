@@ -222,7 +222,7 @@ const STATUS = {
         </div>
 
         <div class="mt-12 grid gap-4">
-          <cw-screenshot [shot]="shots.cab" />
+          <cw-screenshot class="mx-auto w-full max-w-6xl" [shot]="shots.cab" />
 
           <div class="grid gap-4">
             <dl class="grid grid-cols-3 gap-4">
