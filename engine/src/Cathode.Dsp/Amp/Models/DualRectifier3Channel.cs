@@ -22,6 +22,12 @@ namespace Cathode.Dsp.Amp.Models;
 ///         voltages: A 475, B 471, C 435, D 394, E 413 V; bias -52 V.
 ///     </para>
 ///     <para>
+///         The supply's decoupling, from the power supplies sheet: the choke to B (30 µF), 2.7k 2 W to C (three of the
+///         seven 10 µF 450 V parts: V3, the loop, the inverter), and from C both 15k to D (two parts: V2) and 22k to E
+///         (two parts: V1a); each node's draw is what its drawn voltage drops across its resistor (C 13.3 mA in all,
+///         D 2.7 mA, E 1.0 mA).
+///     </para>
+///     <para>
 ///         Against the two-channel drawing (<see cref="DualRectifier" />): the gain pot is 250k (not 1M), the cathodes
 ///         carry 100 Ω in series with their 1 µF bypasses, the grid stoppers are 475k, the stack's treble cap is 500 pF
 ///         with 180 pF added in Modern (RY7a), Modern takes the feedback out (RY7b) and moves the presence pot from the
@@ -42,12 +48,12 @@ public static class DualRectifier3Channel {
     public static AmpDesign Design { get; } = new(
         "Dual Rectifier 3-Ch",
         [
-            new NetworkStageDesign("V1a", DualRectifier.InputStage(413, 100)),
+            new NetworkStageDesign("V1a", DualRectifier.InputStage(413, 100)) { SupplyNode = 2 },
             new NetworkStageDesign(
                 "V2a",
                 DualRectifier.GainStage(new(250e3, PotTaper.Audio), 475e3, 394, 100, SwitchRole.Bright)
-            ),
-            new NetworkStageDesign("V2b", DualRectifier.ColdClipper(475e3, 394)),
+            ) { SupplyNode = 1 },
+            new NetworkStageDesign("V2b", DualRectifier.ColdClipper(475e3, 394)) { SupplyNode = 1 },
             new NetworkStageDesign("V3a", DualRectifier.FourthStage(435, 100)),
             new NetworkStageDesign(
                 "V3b",
@@ -58,9 +64,13 @@ public static class DualRectifier3Channel {
             Supply = 475,
             PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 435, 82e3, 91e3, 14.7e3, 470),
             Feedback = new(1, 47e3, 4.7e3, new(100e3, PotTaper.Linear), 0.1e-6),
-            // 220 + 220 µF stacked, the choke to B's 30 µF, 2.7k to C (10 µF parts, about 20 µF on the node).
-            PowerSupply = new(30, 110e-6, 100, 30e-6, 2.7e3, 20e-6, 6e-3, RectifierModel.Silicon)
+            // 220 + 220 µF stacked, the choke to B's 30 µF, 2.7k to C's three 10 µF parts: 471 V to 435 V is 13.3 mA.
+            PowerSupply = new(30, 110e-6, 100, 30e-6, 2.7e3, 30e-6, 13.3e-3, RectifierModel.Silicon)
         },
         -7
-    ) { Panel = DualRectifier.Design.Panel with { Bright = "Raw" } };
+    ) {
+        Panel = DualRectifier.Design.Panel with { Bright = "Raw" },
+        // From C: 15k to D (V2) and 22k to E (V1a), two 10 µF parts on each.
+        PreampSupply = DualRectifier.Decoupling(394, 413, 20e-6, 435)
+    };
 }

@@ -50,7 +50,21 @@ public enum StackLocation {
 ///     supply follows the power amp's sag one sample behind (the dropping network's time constants are tens of
 ///     milliseconds).
 /// </summary>
+/// <remarks>
+///     Each preamp stage runs on its own node of the preamp supply's decoupling chain
+///     (<see cref="PreampSupplyDesign" />), so a stage further down the chain sees the sag and ripple filtered once
+///     more per node. A model that does not transcribe its chain gets the generic one: its gain stages in pairs (one
+///     12AX7 each) from the input, the last pair on the preamp node and each earlier pair one node further down, every
+///     node <see cref="GenericResistance" /> into <see cref="GenericCap" />, each gain stage drawing an equal share of
+///     the preamp's current (the phase inverter's two triodes taking theirs on the preamp node).
+/// </remarks>
 public sealed class AmpChannel {
+    /// <summary>The generic chain's dropping resistor per node (see the remarks).</summary>
+    public const double GenericResistance = 10e3;
+
+    /// <summary>The generic chain's filter cap per node.</summary>
+    public const double GenericCap = 22e-6;
+
     readonly AmpStage[] stages;
     readonly int lastGainStage;
     readonly int lastPlateStage; // the last stage with a plate-bypass cap (Triode 2), or -1
@@ -59,6 +73,8 @@ public sealed class AmpChannel {
     readonly int[] order; // the stages in running order
     readonly double[] offsets; // per position in the running order: the level shift that keeps each stage's rest input
     readonly double[] restInputs; // per stage: its rest input in the circuit's own order
+    readonly double[] supplies; // per supply node: its supply as a fraction of nominal, with the preamp sag applied
+    readonly bool separateSupply; // the preamp's own supply (a rack preamp): no sag reaches it
     bool reordered;
     FirstOrder lowCut = FirstOrder.Unity;
     double sampleRate;
@@ -81,8 +97,10 @@ public sealed class AmpChannel {
     /// <summary>Whether the power amp is modelled (the Power Amp Modeling switch); otherwise the output is the preamp's.</summary>
     public bool PowerAmpEnabled => channelSettings.PowerAmp;
 
-    /// <summary>The preamp's supply as a fraction of nominal: a solid-state amp's preamp rails are regulated.</summary>
-    double PreampSupply => SolidState is null ? Power.PreampSupply : 1;
+    /// <summary>
+    ///     Per preamp supply node, the supply its stages run on as a fraction of nominal (the preamp sag applied).
+    /// </summary>
+    public IReadOnlyList<double> Supplies => supplies;
 
     public AmpChannel(AmpDesign design, double sampleRate) {
         Design = design;
@@ -100,6 +118,13 @@ public sealed class AmpChannel {
         Power = new(design.Power, sampleRate);
         SolidState = design.SolidState is { } solid ? new(solid, sampleRate) : null;
         HasTremolo = design.Power.BiasTremolo is not null || design.Preamp.Any(static s => s.HasTremolo);
+        separateSupply = design.PreampSupply?.Separate ?? false;
+        var nodes = design.PreampSupply is { } own
+            ? Assign(own)
+            : AssignGeneric(design.Power.PowerSupply.PreampCurrent);
+        Power.Decouple(nodes);
+        supplies = new double[nodes.Count + 1];
+        Array.Fill(supplies, 1);
         Reset();
     }
 
@@ -112,6 +137,60 @@ public sealed class AmpChannel {
         Power.SetSampleRate(sampleRate);
         SolidState?.SetSampleRate(sampleRate);
         DesignLowCut();
+    }
+
+    /// <summary>Puts each stage on its design's supply node (0 where it names none).</summary>
+    IReadOnlyList<DecouplingNode> Assign(PreampSupplyDesign supply) {
+        for (var i = 0; i < stages.Length; i++) {
+            var node = Design.Preamp[i].SupplyNode ?? 0;
+            if (node < 0 || node > supply.Nodes.Count) {
+                throw new ArgumentException($"{Design.Name}: stage {Design.Preamp[i].Name} is on node {node}, which "
+                    + $"the preamp supply does not have.");
+            }
+
+            stages[i].AssignSupplyNode(node);
+        }
+
+        return supply.Nodes;
+    }
+
+    /// <summary>
+    ///     The generic chain (see the remarks) for a preamp drawing <paramref name="preampCurrent" /> in all, and each
+    ///     stage on its pair's node. A channel switch counts with its longer channel's gain stages, all on one node.
+    /// </summary>
+    DecouplingNode[] AssignGeneric(double preampCurrent) {
+        var gains = new int[stages.Length];
+        for (var i = 0; i < stages.Length; i++) {
+            gains[i] = stages[i] switch {
+                ChannelSwitchStage channel => channel.GainStages,
+                { IsGainStage: true } => 1,
+                _ => 0
+            };
+        }
+
+        var total = gains.Sum();
+        var pairs = (total + 1) / 2;
+        var seen = 0;
+        var group = 0;
+        for (var i = 0; i < stages.Length; i++) {
+            if (gains[i] > 0) {
+                group = seen / 2;
+                seen += gains[i];
+            }
+
+            stages[i].AssignSupplyNode(Math.Max(pairs - 1 - group, 0));
+        }
+
+        // Node k feeds pair (pairs - 1 - k), hanging from node k - 1; the pair's draw is its gain stages' share.
+        var share = preampCurrent / (total + 2);
+        var nodes = new DecouplingNode[Math.Max(pairs - 1, 0)];
+        for (var k = 1; k <= nodes.Length; k++) {
+            var pair = pairs - 1 - k;
+            var draw = Math.Min(total - 2 * pair, 2) * share;
+            nodes[k - 1] = new(GenericResistance, GenericCap, draw, k - 1);
+        }
+
+        return nodes;
     }
 
     /// <summary>Whether the channel has a tone stack it can move (<see cref="ChannelSettings.StackLocation" />).</summary>
@@ -189,9 +268,10 @@ public sealed class AmpChannel {
         SolidState?.Reset();
         var rest = 0.0;
         var resistance = 0.0;
+        UpdateSupplies();
         foreach (var stage in stages) {
             stage.SetSourceResistance(resistance);
-            stage.SetSupply(PreampSupply);
+            stage.SetSupplies(supplies);
             stage.Reset(rest);
             rest = stage.RestOutput;
             resistance = stage.OutputResistance;
@@ -265,20 +345,18 @@ public sealed class AmpChannel {
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Tick(double input) {
-        var sag = channelSettings.PreampSag;
-        var preampSupply = PreampSupply;
-        var supply = sag == 1 ? preampSupply : 1 + sag * (preampSupply - 1);
+        UpdateSupplies();
         var x = channelSettings.LowCut > 0 ? lowCut.Process(input) : input;
         if (reordered || channelSettings.Overdrive != 1) {
-            x = RunStages(x, supply);
+            x = RunStages(x);
         } else {
             foreach (var stage in stages) {
-                stage.SetSupply(supply);
+                stage.SetSupplies(supplies);
                 x = stage.Tick(x);
             }
         }
 
-        Power.SetLoopSupply(supply);
+        Power.SetLoopSupply(supplies[0]);
 
         if (!channelSettings.PowerAmp) {
             return x;
@@ -294,20 +372,18 @@ public sealed class AmpChannel {
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double TickPreamp(double input) {
-        var sag = channelSettings.PreampSag;
-        var preampSupply = PreampSupply;
-        var supply = sag == 1 ? preampSupply : 1 + sag * (preampSupply - 1);
+        UpdateSupplies();
         var x = channelSettings.LowCut > 0 ? lowCut.Process(input) : input;
         if (reordered || channelSettings.Overdrive != 1) {
-            x = RunStages(x, supply);
+            x = RunStages(x);
         } else {
             foreach (var stage in stages) {
-                stage.SetSupply(supply);
+                stage.SetSupplies(supplies);
                 x = stage.Tick(x);
             }
         }
 
-        Power.SetLoopSupply(supply);
+        Power.SetLoopSupply(supplies[0]);
 
         return x;
     }
@@ -327,12 +403,12 @@ public sealed class AmpChannel {
     ///     last gain stage's input swing.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    double RunStages(double x, double supply) {
+    double RunStages(double x) {
         var overdrive = channelSettings.Overdrive;
         for (var k = 0; k < order.Length; k++) {
             var i = order[k];
             var stage = stages[i];
-            stage.SetSupply(supply);
+            stage.SetSupplies(supplies);
             x += offsets[k];
             if (i == lastGainStage && overdrive != 1) {
                 x = restInputs[i] + overdrive * (x - restInputs[i]);
@@ -342,6 +418,23 @@ public sealed class AmpChannel {
         }
 
         return x;
+    }
+
+    /// <summary>
+    ///     Each supply node's supply from the power amp's (a solid-state amp's preamp rails are regulated, a rack
+    ///     preamp's are its own), with the Preamp Sag applied: 1 as the circuit, 0 a stiff preamp supply.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    void UpdateSupplies() {
+        if (SolidState is not null || separateSupply) {
+            return;
+        }
+
+        var sag = channelSettings.PreampSag;
+        var nodes = Power.PreampSupplies;
+        for (var k = 0; k < supplies.Length; k++) {
+            supplies[k] = sag == 1 ? nodes[k] : 1 + sag * (nodes[k] - 1);
+        }
     }
 
     public void FlushDenormals() {

@@ -99,6 +99,8 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                         // render, and its only preamp stage before the loop is V1 at small signal.
                         && !(index == CircuitAmpBlock.PreampSag
                             && design.Power.PowerSupply.PreampResistance * design.Power.PowerSupply.PreampCap > 1)
+                        // A rack preamp on its own supply (the TriAxis) sees no sag to scale.
+                        && !(index == CircuitAmpBlock.PreampSag && design.PreampSupply is { Separate: true })
                         // A 400 W bass amp at this level is far below the core's knee (−65 dB at drive 10).
                         && !(index == CircuitAmpBlock.TransformerDrive && design.Power.RatedPower >= 400);
                     data.Add(type, index, value, audible);
@@ -184,7 +186,13 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         Assert.True(peak < 6, $"peak {peak:0.0} dBFS");
         if (audible) {
             // A class-A amp (cathode bias, EL84) draws nearly the same current loud or quiet: its preamp sees little sag.
-            var limit = index == CircuitAmpBlock.PreampSag && AmpDesign.All[type].Power.CathodeBias ? -80 : -60;
+            // Behind a slow preamp node (0.3 s or more) and the decoupling chain below it, little of the sag reaches the
+            // stages within the render.
+            var supply = AmpDesign.All[type].Power.PowerSupply;
+            var limit = index != CircuitAmpBlock.PreampSag ? -60
+                : AmpDesign.All[type].Power.CathodeBias ? -80
+                : supply.PreampResistance * supply.PreampCap >= 0.3 ? -70
+                : -60;
             Assert.True(difference > limit, $"{difference:0.0} dB from stock");
         }
     }

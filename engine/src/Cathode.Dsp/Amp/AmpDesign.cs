@@ -38,6 +38,12 @@ public sealed partial record AmpDesign(
     public AmpPanel Panel { get; init; } = AmpPanel.Standard;
 
     /// <summary>
+    ///     The preamp supply's decoupling chain as the schematic draws it, with each stage's node on its design
+    ///     (<see cref="AmpStageDesign.SupplyNode" />); null for the generic chain (<see cref="AmpChannel" />).
+    /// </summary>
+    public PreampSupplyDesign? PreampSupply { get; init; }
+
+    /// <summary>
     ///     A solid-state power amp in place of the tube one (the Roland JC-120): the channel runs it instead of
     ///     <see cref="Power" />, which such a model sets to <see cref="SolidStateTubePlaceholder" /> and never runs. Its
     ///     tube expert parameters then do nothing (see <see cref="SolidStatePowerAmp" /> for those that apply). Null for a

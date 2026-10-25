@@ -20,10 +20,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         Read with doubt from the scan: the pre gain pot's value (printed "1M5A3", read as 1M audio), the middle pot
 ///         (read as 50k linear), a 100 pF beside the 470 pF treble cap (C60, whose wiring could not be read; left out).
-///         Not on the pages read: the preamp rails (taken as 340 V and 320 V, the inverter's as 430 V), B+ (490 V,
-///         docs/06 gives 485-500 V), the idle current (13 mA, docs/06 gives 11-14 mA), the output transformer (1.9k
-///         assumed), the resonance network (the depth control's generic shelf stands in for it), the feedback tap
-///         (8 Ω assumed).
+///         The pages name three preamp rails: V3 (the inverter), V2 (V2B, V5, V3A) and V1 (V1A, V1B, V2A). Not on the
+///         pages read: the supply page, so the rails' dropping resistors and caps (the generic chain's here, V3 to V2
+///         to V1), the preamp rails' voltages (taken as 340 V and 320 V, the inverter's as 430 V), B+ (490 V, docs/06
+///         gives 485-500 V), the idle current (13 mA, docs/06 gives 11-14 mA), the output transformer (1.9k assumed),
+///         the resonance network (the depth control's generic shelf stands in for it), the feedback tap (8 Ω assumed).
 ///     </para>
 ///     <para>
 ///         Simplified: the send follower V3B and the loop are a unity buffer (V3A's grid leak is 1M, so the post
@@ -44,8 +45,8 @@ public static class Peavey5150 {
                 1e-6,
                 68e3,
                 GridLeak: 1e6
-            ),
-            new NetworkStageDesign("V1B", PreGain()),
+            ) { SupplyNode = 2 },
+            new NetworkStageDesign("V1B", PreGain()) { SupplyNode = 2 },
             new TriodeStageDesign(
                 "V2A",
                 TriodeModel.Ecc83,
@@ -55,8 +56,8 @@ public static class Peavey5150 {
                 CouplingCap: 22e-9,
                 SeriesResistor: 470e3,
                 GridLeak: 1e6
-            ),
-            new NetworkStageDesign("V2B", ThirdGain()),
+            ) { SupplyNode = 2 },
+            new NetworkStageDesign("V2B", ThirdGain()) { SupplyNode = 1 },
             new TriodeStageDesign(
                 "V5B",
                 TriodeModel.Ecc83,
@@ -66,10 +67,10 @@ public static class Peavey5150 {
                 InputResistance: 1e6,
                 CouplingCap: 22e-9,
                 GridLeak: 100e3
-            ),
-            new NetworkStageDesign("V5A", FeedbackStage()),
-            new NetworkStageDesign("Stack", Stack()),
-            new NetworkStageDesign("V3A", PostStage())
+            ) { SupplyNode = 1 },
+            new NetworkStageDesign("V5A", FeedbackStage()) { SupplyNode = 1 },
+            new NetworkStageDesign("Stack", Stack()) { SupplyNode = 1 },
+            new NetworkStageDesign("V3A", PostStage()) { SupplyNode = 1 }
         ],
         new(
             "4 x 6L6GC",
@@ -101,7 +102,14 @@ public static class Peavey5150 {
             Depth = "Resonance",
             Cut = null,
             Bright = null
-        }
+        },
+        // The drawing's rails: V3 (the inverter) is the preamp node, V2 feeds V2B, V5 and V3A, V1 feeds V1 and V2A.
+        // The supply page is not among those read, so the droppers are the generic chain's (V3 to V2 to V1, 10k into
+        // 22 µF each) and each node draws an equal share of the preamp's 6 mA per triode on it (ten in all): 0.6 mA.
+        PreampSupply = new([
+            new(AmpChannel.GenericResistance, AmpChannel.GenericCap, 3e-3),
+            new(AmpChannel.GenericResistance, AmpChannel.GenericCap, 1.8e-3, 1)
+        ])
     };
 
     /// <summary>

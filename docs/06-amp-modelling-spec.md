@@ -162,7 +162,7 @@ no Cab, or one playing only IRs, the load is Stock. The load expert knobs scale 
 | Tonestack Type | enum (any model's stack, ACTIVE) | model | Swap stacks | **E** later; easy since stacks are data (`ToneStackDesign`) |
 | Tonestack Frequency | Hz | model | Stack centre frequency | **E** (scale stack caps) |
 | Tonestack Location | PRE / MID / POST / END | model | Where the stack sits | **M** (fixed by the circuit; END has no circuit meaning) |
-| Preamp Sag | off/on | model | Preamp sees B+ sag (integrated head) | **E** (preamp node already exists in the supply) |
+| Preamp Sag | off/on | model | Preamp sees B+ sag (integrated head) | **✓** Preamp Sag (0–200 %: scales the sag reaching every node of the decoupling chain, §3.7) |
 | Preamp Tube Hardness | 0–10 | model | Triode saturation sharpness | **S** (as Power Tube Hardness) |
 | Triode 1 / Triode 2 Plate Freq | Hz | model | Corner of a cap across the plate resistor of the last two triodes | **M** (a plate-bypass cap in `TriodeStageDesign`, e.g. 1 nF on the SLO cold clipper) |
 | Preamp Bias | bipolar | model | Bias of the last triode (even harmonics) | **E** (scale the cathode resistor of the last gain stage) |
@@ -932,6 +932,72 @@ Automated reading of schematic images failed in most cases. Before each model is
 4. Peavey 5150 stack, presence and resonance values.
 5. AB763 pot values and PI output caps.
 6. Output transformer primary impedances: only the 2204 (3.2k), AB763 Deluxe (6.6k), Twin (2k), Super (4.2k), Bassman (about 4k), 5E3 (8k), AC15 (8k), AC30 (about 4k) are sourced. For the rest, transformer vendors' replacement catalogues (Mercury Magnetics, Heyboer, Classic Tone) list the primary of each "replacement for" part and are the best next source.
+
+### 3.7 The preamp supply's decoupling chain
+
+A real amp feeds each preamp stage, or each pair, from its own RC node down a chain of dropping resistors and filter caps
+below the inverter's node, so the high-gain input stages see the supply's sag and ripple filtered several times more
+than the inverter. Until this was modelled, `PowerAmp` had one preamp node (`PowerSupplyDesign.PreampResistance` and
+`PreampCap` off the screen node) and every stage ran on it. That loop (power current → B+ → screen node → preamp node
+→ the high-gain stages → power amp) had too much gain at low frequencies: after a loud input stopped, nine models
+oscillated for ever at 35–70 Hz, −13 to −18 dB at the output (5150, SLO-100, Dual Rectifier, Dual Rectifier 3-Ch,
+Triple Rectifier, Rect-o-Verb, TriAxis Rhythm, Savage 120, Powerball).
+
+**The model.** `AmpDesign.PreampSupply` (`PreampSupplyDesign`) lists the nodes below the preamp node: each a
+`DecouplingNode` (dropping resistor from its parent, filter cap, its stages' draw), hanging from the preamp node (node 0)
+or an earlier node, so both chains and branches are drawn. Each preamp stage names its node
+(`AmpStageDesign.SupplyNode`; a channel switch's stages may name their own, else they take the switch's). The draws are
+constant currents and part of `PreampCurrent`, so the supply's operating point does not move. `DecouplingChain` steps
+the nodes once per sample with the rest of the supply (explicit, like the reservoir and screen nodes; the shortest
+time constant used is 22 ms against a 10 µs step) and holds every node's voltage as a fraction of its nominal; each
+stage scales its rails by its node's (a network stage scales every rail of its netlist by it, as before: a netlist that
+draws `net.Supply(…, PreampSupply)` rails, the AC30's or the Chieftain's, runs on whichever node its stage is put on).
+Preamp Sag scales each node's deviation from nominal, as it did the one node's; Sag, B+ Time Constant, Variac and Supply
+Type act on the supply above node 0 and so reach every node. A rack preamp (the TriAxis) has a supply of its own
+(`PreampSupplyDesign.OwnSupply`): its stages never sag. The chain is allocation-free after construction and costs a few
+multiplies per node per sample (no measurable CPU change: Plexi-relative figures within ±0.1 ×).
+
+**Transcribed chains** (each node's draw is what its drawn voltage drops across its resistor, where the drawing prints
+voltages):
+
+| Model | Node 0 (preamp node) | Chain | Source |
+|---|---|---|---|
+| Dual Rectifier | C: 2.7k, 30 µF, 11.9 mA in all (V3, inverter) | C → 15k → D, 30 µF (V2A, V2B); C → 22k → E, 30 µF (V1A) | factory supply sheet (el34world `Boogie_dualrectifier.pdf`), A 460 / B 454 / C 422 / D 406 / E 402 V |
+| Dual Rectifier 3-Ch, Triple Rectifier | C: 2.7k, 3 × 10 µF, 13.3 mA | C → 15k → D, 2 × 10 µF (V2a, V2b); C → 22k → E, 2 × 10 µF (V1a) | 3-channel supply sheet, A 475 / B 471 / C 435 / D 394 / E 413 V (the Triple: no drawing, inherits) |
+| Rect-o-Verb | C: 5.6k, 10 µF, 6.4 mA | C → 15k → D, 10 µF (V1B, V2B); C → 22k → E, 10 µF (V1A); F (47k, the loop) not modelled | Solo 50 / Rectoverb supply sheet; its wiring at B is ambiguous (two resistors, one labelled), the tree is the one the printed voltages fit |
+| SLO-100 | B2: 10k 2 W, 40 µF, 11.7 mA | B2 → 15k → B4, 10 µF (input stage, normal channel's first); B2 → 15k → B3, 10 µF (OD gain, cold clipper) | revised 1996 drawing, sheet 1 (el34world `Soldano_slo100.pdf`), 495 / 378 / 359 / 350 V |
+| Savage 120 | CE21: 2 × 2.2k, 22 µF (screens' CE20 100 µF) | CE21 → 1k + 2.2k → CE4 10 µF (V3) → 2.2k → CE9 10 µF (V2) → 2.2k → CE6 10 µF (V1B) | Engl 610-2; no voltages printed, so each node draws an equal share per triode (0.5 mA); V5 sits behind R107 with no cap of its own (here on CE21) |
+| Powerball | CE10: 2 × 2.2k, 22 µF | CE10 → 4.7k → CE3 10 µF (V5, V6) | Engl 645-1; no voltages, equal shares (3 mA) |
+| 5150 | V3 (inverter): 10k, 22 µF | V3 → V2 (V2B, V5, V3A) → V1 (V1A, V1B, V2A), each generic 10k / 22 µF | the factory pages name the three rails but not the supply page: **resistors and caps not read** |
+| TriAxis (all three types) | its own supply | none | a rack preamp |
+
+**The generic chain** (every other model): the gain stages in pairs from the input (a 12AX7 each), the last pair on
+node 0 and each earlier pair one node further down, every node 10k into 22 µF, each gain stage drawing an equal share
+of `PreampCurrent` (the inverter's two triodes keep theirs on node 0); a channel switch counts with its longer
+channel's gain stages, all on one node. A model with one or two gain stages has no chain (the low-gain models already
+take node 0 as their preamp node, often several droppers lumped, so they are bit-identical). The values are the typical
+step of the drawings read so far: 10k–22k into 8–50 µF (Deluxe 6G3 10k / 16 µF, Champ 22k / 8 µF, AC30 22k / 8 µF,
+JCM800 10k / 50 µF, SLO-100 15k / 10 µF, Dual Rectifier 15k–22k / 30 µF, Rect-o-Verb 15k–22k / 10 µF), a time constant
+of 0.15–0.66 s; 10k / 22 µF (0.22 s, corner 0.7 Hz) is the middle of it.
+
+**Effect** (stock settings, a plucked-note phrase, old against new): nulls −26 to −71 dB where a chain was added
+(deepest: Powerball −26, TriAxis Rhythm −27, Triple Rectifier −28, Dual Rectifier 3-Ch −30, JVM410H OD −30, 5150 −31);
+loudness within ±0.13 dB; the models without a chain bit-identical. Also taken from the drawings with the chains: the
+Mesa and Soldano preamp draws (node 0's current from its drawn voltages) and node caps, and the Savage's screen cap
+(CE20, 100 µF where 47 µF was assumed); the Savage then peaked 0.6 dB hotter on the level test, so its output trim is
+−7.5 dB (was −7). The Preamp Sag audibility test allows −70 dB for a model whose preamp node alone is 0.3 s or slower
+(Deluxe Reverb, both Hiwatts): with the chain below it, little sag reaches the stages within its short render. With every model at gains 5, 8 and 10, 0.1 V and
+0.4 V chords stopped at three points of the waveform, the output above 10 Hz two seconds after the stop is below −120 dB
+(`PreampSupplyTests`), except:
+
+- **Powerball**: still oscillates (16–20 Hz, about −16 dB) with the drawing's single 4.7k / 10 µF node under V5 and V6.
+  Its input stage's supply sensitivity is 18–64 times the other high-gain models' (85 mV at the inverter's input for a
+  1e-7 ripple on V5A's node at 18 Hz, against 4.8 mV for the Savage and 1.3 mV for the 5150), because its preamp's
+  small-signal gain is 123 dB at 1 kHz against 87–99 dB for the Dual Rectifier, 5150, Savage, SLO-100 and Legacy
+  (Mark V 105 dB): the model's gain staging, not its supply, is the next thing to check. Made stiff (10 mF), that node
+  stops it.
+- **SVT**: a decaying wobble of about 1 Hz (−105 dB above 10 Hz two seconds after a 0.4 V chord at gain 10), which
+  Preamp Sag 0, Sag 0 and the power amp off leave as it is: its preamp's own settling, not the supply.
 
 ---
 

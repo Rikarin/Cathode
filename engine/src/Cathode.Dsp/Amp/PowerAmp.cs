@@ -178,6 +178,8 @@ public sealed class PowerAmp {
     double magnetising; // the magnetising inductance as set
     readonly double unloadedSupply; // the rectifier's open-circuit voltage at stock mains
     readonly double nominalPreamp; // the preamp node at idle with every knob at noon
+    DecouplingChain chain = DecouplingChain.None;
+    double preampDraw; // what node 0's own stages draw (the chain's draw comes through its first resistors)
     double cathodeB;
     double sagScale = 1;
     double stockBias; // the fixed bias that gives the design's idle current at the design's supply
@@ -214,6 +216,15 @@ public sealed class PowerAmp {
 
     /// <summary>The preamp node as a fraction of its nominal voltage (the preamp's sag), after the last sample.</summary>
     public double PreampSupply => PreampVoltage / nominalPreamp;
+
+    /// <summary>
+    ///     Every preamp supply node's voltage as a fraction of nominal after the last sample, indexed by node: 0 the
+    ///     preamp node (<see cref="PreampSupply" />), then the decoupling chain's (<see cref="Decouple" />).
+    /// </summary>
+    public double[] PreampSupplies => chain.Supplies;
+
+    /// <summary>The preamp's decoupling chain below the preamp node (none until <see cref="Decouple" />).</summary>
+    public DecouplingChain Decoupling => chain;
 
     /// <summary>B+ at the centre tap, in volts.</summary>
     public double Supply { get; private set; }
@@ -340,8 +351,32 @@ public sealed class PowerAmp {
         var draw = total.Plates + total.Screens + supply.PreampCurrent;
         unloadedSupply = design.Supply + supply.SourceResistance * draw + (rectifier?.Drop(draw) ?? 0);
         acResistance = CalibrateAc(draw);
+        preampDraw = supply.PreampCurrent;
         Reset();
         nominalPreamp = PreampVoltage;
+        chain.Calibrate(nominalPreamp);
+    }
+
+    /// <summary>
+    ///     Hangs the preamp's decoupling nodes below the preamp node (construction, control thread): their stages' draw
+    ///     is part of <see cref="PowerSupplyDesign.PreampCurrent" />, so the supply's operating point stays where it
+    ///     was.
+    /// </summary>
+    public void Decouple(IReadOnlyList<DecouplingNode> nodes) {
+        var next = new DecouplingChain(nodes);
+        var own = Design.PowerSupply.PreampCurrent - next.Current;
+        if (own < -1e-12) {
+            throw new ArgumentException(
+                $"{Design.Name}: the decoupling nodes draw {next.Current * 1e3:0.##} mA, more than the preamp's "
+                + $"{Design.PowerSupply.PreampCurrent * 1e3:0.##} mA.",
+                nameof(nodes)
+            );
+        }
+
+        chain = next;
+        preampDraw = Math.Max(own, 0);
+        chain.Calibrate(nominalPreamp);
+        chain.Reset(PreampVoltage, nominalPreamp);
     }
 
     public void SetSampleRate(double sampleRate) {
@@ -545,6 +580,10 @@ public sealed class PowerAmp {
         }
 
         PreampVoltage = ScreenSupply - supply.PreampResistance * supply.PreampCurrent;
+        if (nominalPreamp > 0) {
+            chain.Reset(PreampVoltage, nominalPreamp);
+        }
+
         chokeCurrent = (Supply - ScreenSupply) / supply.ChokeResistance;
         root.Reset();
         root.SetInitialVoltages([0]);
@@ -611,9 +650,11 @@ public sealed class PowerAmp {
         }
 
         var toPreamp = (ScreenSupply - PreampVoltage) / supply.PreampResistance;
+        var toChain = chain.Tick(PreampVoltage, dt);
         Supply += dt / reservoirCap * (Math.Max(fromRectifier, 0) - plates - toScreen);
         ScreenSupply += dt / screenCap * (toScreen - screens - toPreamp);
-        PreampVoltage += dt / supply.PreampCap * (toPreamp - supply.PreampCurrent);
+        PreampVoltage += dt / supply.PreampCap * (toPreamp - preampDraw - toChain);
+        chain.Supplies[0] = PreampVoltage / nominalPreamp;
         if (Design.CathodeBias) {
             if (Design.SeparateCathodes) {
                 var side = 2 * CathodeResistor;

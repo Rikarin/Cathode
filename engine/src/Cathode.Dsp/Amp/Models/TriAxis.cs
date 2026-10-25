@@ -131,8 +131,12 @@ public static class TriAxis {
             Control2 = "Dynamic Voice"
         };
 
+    /// <summary>
+    ///     A type: the preamp on its own supply (the TriAxis is a rack unit with its own transformer and rails; its
+    ///     current is steady, so the power amp's sag never reaches it).
+    /// </summary>
     static AmpDesign Create(string name, double trim, IReadOnlyList<AmpStageDesign> preamp, AmpPanel panel) =>
-        new(name, preamp, PowerAmp, trim) { Panel = panel };
+        new(name, preamp, PowerAmp, trim) { Panel = panel, PreampSupply = PreampSupplyDesign.OwnSupply };
 
     /// <summary>
     ///     An LDR contact between <paramref name="a" /> and <paramref name="b" />: lit in every voicing of the mode when
