@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Cathode.Dsp.Wdf;
 
 namespace Cathode.Dsp.Amp;
@@ -64,6 +65,12 @@ public enum SwitchRole {
 public abstract record AmpStageDesign(string Name) {
     /// <summary>Whether the stage carries a tremolo of the model's own (<see cref="StageTremoloDesign" />).</summary>
     public virtual bool HasTremolo => false;
+
+    /// <summary>
+    ///     The preamp supply node the stage runs on (<see cref="PreampSupplyDesign" />: 0 the power supply's preamp
+    ///     node, k the chain's k-th); null for the channel's choice (a channel switch's stage: the switch's node).
+    /// </summary>
+    public int? SupplyNode { get; init; }
 
     /// <summary>A new stage for this design at <paramref name="sampleRate" />, at its operating point.</summary>
     public abstract AmpStage Create(double sampleRate);
@@ -229,6 +236,22 @@ public abstract class AmpStage {
 
     /// <summary>Supply voltage as a fraction of the nominal one (power-supply sag), per sample.</summary>
     public abstract void SetSupply(double scale);
+
+    /// <summary>The preamp supply node the stage runs on (<see cref="AmpStageDesign.SupplyNode" />).</summary>
+    public int SupplyNode { get; protected set; }
+
+    /// <summary>
+    ///     Puts the stage on supply node <paramref name="node" /> (construction); a stage holding others puts each on
+    ///     its design's node, or on this one.
+    /// </summary>
+    public virtual void AssignSupplyNode(int node) => SupplyNode = node;
+
+    /// <summary>
+    ///     Each node's supply as a fraction of nominal (indexed by node), per sample: the stage takes its own node's.
+    ///     The array stays the caller's, so a stage holding others may keep it.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public virtual void SetSupplies(double[] scales) => SetSupply(scales[SupplyNode]);
 
     /// <summary>Applies the knobs; recomputes the circuit only when a pot this stage owns has moved.</summary>
     public abstract void Update(in AmpControls controls);

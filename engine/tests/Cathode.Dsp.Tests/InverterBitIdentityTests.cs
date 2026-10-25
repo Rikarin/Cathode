@@ -6,7 +6,8 @@ namespace Cathode.Dsp.Tests;
 ///     Stream M2's guard that the driver variants and the loop stage leave every other model as it was: each model's
 ///     phase-inverter table and its power amp, rendered alone, hash to the same bits as on the commit before them
 ///     (49fe687). An intended change to an inverter or to <see cref="PowerAmp" /> regenerates the table from this
-///     test's output. The hashes are macOS ARM64 renders, so the test runs there only
+///     test's output (the power-amp renders of the Mesa, Soldano and Engl models were regenerated when their supplies
+///     took their drawings' preamp draws and filter caps; their inverter tables did not move). The hashes are macOS ARM64 renders, so the test runs there only
 ///     (<see cref="BaselinePlatform" />).
 /// </summary>
 public class InverterBitIdentityTests(ITestOutputHelper output) {
@@ -32,10 +33,10 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
             { "Bassman 5F6-A Jumped", (0x1B1B8E057D99CEB1, 0x0C5B1B42CCC82609) },
             { "Tweed Deluxe 5E3", (0xF5C3E39B9328521D, 0xFEB8AE264447133F) },
             { "Tweed Deluxe 5E3 Jumped", (0xF5C3E39B9328521D, 0xFEB8AE264447133F) },
-            { "SLO-100", (0x2122E94E9BE46B97, 0x59E849BD5938B28F) },
+            { "SLO-100", (0x2122E94E9BE46B97, 0x3D7BFAC29405109B) },
             { "Mark IIC+", (0xC319317C6737374F, 0x90DC463583EBF3AE) },
             { "5150", (0xB8C651357C57AF18, 0x22C1E4B1BF3B5301) },
-            { "Dual Rectifier", (0xE3C04F0D7552081C, 0x1ADE0BE9D5598793) },
+            { "Dual Rectifier", (0xE3C04F0D7552081C, 0x79690993F86C879B) },
             { "5150III", (0x97357C54684DA6D6, 0xAAA4C09AE06966CA) },
             { "Mark IV", (0xC319317C6737374F, 0x45C57F283D25825B) },
             { "Legacy VL100", (0xE3B2347B457F82A4, 0xC3005B8335AAA05B) },
@@ -45,10 +46,10 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
             { "Express", (0x33E114ABA558BE40, 0xCCF8DBE491C0847C) },
             { "Lone Star", (0x32A9FEF035830863, 0x13BFA3AC44B7A1E5) },
             { "Mark V", (0xDF1CAB4F1DEFDA37, 0x6A8AAE370B74788F) },
-            { "Rect-o-Verb", (0xB22F9C680150E717, 0xDAE1EC851FCC884A) },
-            { "Triple Rectifier", (0xB62E07BDCA98538F, 0xFC5AD77F8539028D) },
+            { "Rect-o-Verb", (0xB22F9C680150E717, 0xD3B352D480C8E18C) },
+            { "Triple Rectifier", (0xB62E07BDCA98538F, 0x6163FB5C4347AFF8) },
             { "Powerball", (0x11BDB1BD4DDE23FD, 0x7263D23D98AF28CC) },
-            { "Savage 120", (0x2206D57787839850, 0x61C5B1EA51A04996) },
+            { "Savage 120", (0x2206D57787839850, 0xEB0C9D830A4EF358) },
             { "SVT", (0xF51AE03F1F289260, 0x792236633D0D1D4A) },
             { "Portaflex B-15N", (0x76788BF6655480E6, 0x375A6E0DDFCC5DBB) },
             { "JC-120", (0x73F1EB592475C752, 0x0B945E6E906D3EBB) },
@@ -78,11 +79,11 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
             { "Tiny Terror", (0xF58B6FB9872C2273, 0xF06F1AE45DA9BFB8) },
             { "Liverpool", (0xB972F6CE371901EB, 0xD0EF3A068E4DB682) },
             { "ODS 70s", (0x32BBEA98F056FDC9, 0x96C32A454B7E5F89) },
-            { "Dual Rectifier 3-Ch", (0xB62E07BDCA98538F, 0xFF0338DF358B0054) },
+            { "Dual Rectifier 3-Ch", (0xB62E07BDCA98538F, 0xC763E93541F199EF) },
             { "Subway Blues", (0x223A8A7C87B73259, 0xAA01EA0A1472716A) },
-            { "TriAxis Rhythm", (0xE3C04F0D7552081C, 0x1ADE0BE9D5598793) },
-            { "TriAxis Lead 1", (0xE3C04F0D7552081C, 0x1ADE0BE9D5598793) },
-            { "TriAxis Lead 2", (0xE3C04F0D7552081C, 0x1ADE0BE9D5598793) },
+            { "TriAxis Rhythm", (0xE3C04F0D7552081C, 0x79690993F86C879B) },
+            { "TriAxis Lead 1", (0xE3C04F0D7552081C, 0x79690993F86C879B) },
+            { "TriAxis Lead 2", (0xE3C04F0D7552081C, 0x79690993F86C879B) },
             { "JCM900 4502", (0x97055A1174EFEE0A, 0x899DB8DF21B6DFF8) },
             { "JCM900 4100", (0x97055A1174EFEE0A, 0xD41BC65E9B4531FA) },
             { "Valvestate 8080", (0x73F1EB592475C752, 0x0B945E6E906D3EBB) },

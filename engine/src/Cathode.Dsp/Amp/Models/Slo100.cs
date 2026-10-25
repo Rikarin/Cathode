@@ -32,6 +32,14 @@ namespace Cathode.Dsp.Amp.Models;
 ///         of a core.
 ///     </para>
 ///     <para>
+///         The supply's decoupling, from the revised 1996 drawing (sheet 1, "Pwr Supply"): R60 10k 2 W from the 495 V
+///         screens to B2 (378 V, 40 µF: the stage after the cold clipper, the followers, the return stage and the
+///         inverter), and from B2 R61 15k to B4 (359 V, 10 µF: the input stage, and the normal channel's first) and R62
+///         15k to B3 (350 V, 10 µF: the overdrive gain stage and the cold clipper). Each node draws what its drawn
+///         voltage drops across its resistor (B2 11.7 mA in all). That drawing puts the plates at 497 V; the model
+///         keeps 470 V.
+///     </para>
+///     <para>
 ///         The normal channel (Switch 1, with Switch 2 for Crunch and the Bright switch) is read from the
 ///         "Soldano Super Lead Overdrive 100W" drawing of 15 March 1996 (el34world, Soldano_slo100.pdf, a clean CAD
 ///         redraw of unknown origin with optocoupler channel switching): V1A's 20 nF output feeds both channels; the
@@ -74,12 +82,12 @@ public static class Slo100 {
                 1e-6,
                 68e3,
                 GridLeak: 1e6
-            ),
+            ) { SupplyNode = 1 },
             new ChannelSwitchStageDesign(
                 "Channel",
                 SwitchRole.Switch1,
                 [
-                    new NetworkStageDesign("V1B", OverdriveGain()),
+                    new NetworkStageDesign("V1B", OverdriveGain()) { SupplyNode = 2 },
                     new TriodeStageDesign(
                         "V2A",
                         TriodeModel.Ecc83,
@@ -90,7 +98,7 @@ public static class Slo100 {
                         SeriesResistor: 470e3,
                         GridLeak: 1e6,
                         PlateBypass: 1e-9
-                    ),
+                    ) { SupplyNode = 2 },
                     new TriodeStageDesign(
                         "V2B",
                         TriodeModel.Ecc83,
@@ -104,7 +112,7 @@ public static class Slo100 {
                     )
                 ],
                 [
-                    new NetworkStageDesign("Normal V1B", NormalChannel()),
+                    new NetworkStageDesign("Normal V1B", NormalChannel()) { SupplyNode = 1 },
                     new TriodeStageDesign(
                         "Normal V2B",
                         TriodeModel.Ecc83,
@@ -158,11 +166,17 @@ public static class Slo100 {
             true,
             new(2.2e3),
             new(Inductance: 1.4e-3, EddyResistance: 22, Resonance: 95, PeakImpedance: 30, Q: 2.2),
-            new(30, 110e-6, 100, 47e-6, 10e3, 22e-6, 6e-3),
+            // R60 10k 2 W from the screens to B2's 40 µF: 495 V to 378 V is 11.7 mA.
+            new(30, 110e-6, 100, 47e-6, 10e3, 40e-6, 11.7e-3),
             InverterInput: null
         ),
         -7.5
-    ) { Panel = AmpPanel.Standard with { Cut = null, Switch1 = "Normal Ch", Switch2 = "Crunch" } };
+    ) {
+        Panel = AmpPanel.Standard with { Cut = null, Switch1 = "Normal Ch", Switch2 = "Crunch" },
+        // From B2: R61 15k to B4 (359 V: V1A and the normal channel's first stage) and R62 15k to B3 (350 V: the
+        // overdrive V1B and the cold clipper), 10 µF each, drawing what the drawn voltages drop across them.
+        PreampSupply = new([new(15e3, 10e-6, (378 - 359) / 15e3), new(15e3, 10e-6, (378 - 350) / 15e3)])
+    };
 
     /// <summary>
     ///     V1B with the OD gain network: 20 nF from V1A, 470k ‖ 2 nF, the 500k audio OD gain with a fixed 1 nF across

@@ -20,6 +20,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///         (https://el34world.com/charts/Schematics/files/Engl/Engl_savage_120.pdf) was not compared value by value.
 ///     </para>
 ///     <para>
+///         The supply's decoupling as drawn: R108 470 Ω 5 W to the screens' CE20 100 µF, R106 and R105 (2.2k each) to
+///         CE21 22 µF (the inverter), R107 1k to V5 (no cap of its own: here on CE21), R56 2.2k 1 W to CE4 10 µF (V3,
+///         V4), R55 2.2k to CE9 10 µF (V2), R54 2.2k to CE6 10 µF (V1).
+///     </para>
+///     <para>
 ///         Guesses and simplifications, marked: the drawing prints no rail voltages (preamp 380 V, B+ 560 V, idle 50 mA
 ///         a tube and a 3.4k primary are typical values for two 6550 at 120 W); Rough/Smooth is at Smooth, which
 ///         bypasses V3A (Rough puts V3A and its 100k/4.7k pad in the path), and the high-balance network is off; the
@@ -34,11 +39,11 @@ public static class Savage120 {
     public static AmpDesign Design { get; } = new(
         "Savage 120",
         [
-            new NetworkStageDesign("V1B", InputAndGain()),
-            new NetworkStageDesign("V2A", SecondStage()),
-            new NetworkStageDesign("V2B", ThirdStage()),
-            new TriodeStageDesign("V3B", TriodeModel.Ecc83, 380, 100e3, 1.5e3, 22e-6),
-            new NetworkStageDesign("Stack", LeadStack()),
+            new NetworkStageDesign("V1B", InputAndGain()) { SupplyNode = 3 },
+            new NetworkStageDesign("V2A", SecondStage()) { SupplyNode = 2 },
+            new NetworkStageDesign("V2B", ThirdStage()) { SupplyNode = 2 },
+            new TriodeStageDesign("V3B", TriodeModel.Ecc83, 380, 100e3, 1.5e3, 22e-6) { SupplyNode = 1 },
+            new NetworkStageDesign("Stack", LeadStack()) { SupplyNode = 1 },
             new NetworkStageDesign("V5A", Follower()),
             new NetworkStageDesign("V5B", ReturnAndMaster())
         ],
@@ -62,10 +67,11 @@ public static class Savage120 {
             true,
             new(3.4e3),
             SpeakerDesign.Closed4x12,
-            new(35, 220e-6, 470, 47e-6, 4.4e3, 22e-6, 6e-3, RectifierModel.Silicon),
+            // R108 470 Ω 5 W to the screens' CE20 100 µF, R106 + R105 (2.2k each) to CE21 22 µF.
+            new(35, 220e-6, 470, 100e-6, 4.4e3, 22e-6, 6e-3, RectifierModel.Silicon),
             InverterInput: new(100e-9, 100e3)
         ),
-        -7
+        -7.5
     ) {
         Panel = AmpPanel.Standard with {
             Depth = "Depth Boost",
@@ -75,8 +81,18 @@ public static class Savage120 {
             Control2 = "Lead Volume",
             Switch1 = "Contour",
             Switch2 = "Lead Boost"
-        }
+        },
+        PreampSupply = Decoupling
     };
+
+    /// <summary>
+    ///     The drawing's chain below CE21 (the inverter, and V5 behind R107 1k with no cap of its own, here on CE21):
+    ///     R107 + R56 (3.2k) to CE4 10 µF (V3, V4), R55 2.2k to CE9 10 µF (V2), R54 2.2k to CE6 10 µF (V1). The drawing
+    ///     prints no voltages, so each node draws an equal share of the preamp's 6 mA per triode on it (twelve in all,
+    ///     the inverter's two included): 0.5 mA each.
+    /// </summary>
+    static PreampSupplyDesign Decoupling =>
+        new([new(3.2e3, 10e-6, 2e-3), new(2.2e3, 10e-6, 1e-3, 1), new(2.2e3, 10e-6, 1e-3, 2)]);
 
     /// <summary>V1B and the gain: 1M grid leak; 100k plate; 1.5k ‖ 22 µF; 10 nF, 100k into the 1M audio gain.</summary>
     static StageNetlist InputAndGain() {

@@ -207,6 +207,40 @@ public sealed record PowerSupplyDesign(
 );
 
 /// <summary>
+///     One RC decoupling node of the preamp's supply: a dropping resistor from <paramref name="Parent" />'s node into
+///     this node's filter cap, and the stages on it drawing <paramref name="Current" />. Each node filters the supply's
+///     ripple and sag once more, so the stages furthest down the chain (a high-gain amp's input stages) see the least
+///     of it.
+/// </summary>
+/// <param name="Resistance">The dropping resistor from the parent node.</param>
+/// <param name="Cap">The node's filter cap.</param>
+/// <param name="Current">What the stages on this node draw (its children's draw passes through it as well).</param>
+/// <param name="Parent">
+///     The node it hangs from: 0 for the power supply's preamp node
+///     (<see cref="PowerSupplyDesign.PreampResistance" />), k for the k-th node of the chain (an earlier one).
+/// </param>
+public sealed record DecouplingNode(double Resistance, double Cap, double Current, int Parent = 0);
+
+/// <summary>
+///     The preamp's supply below the power supply's preamp node: its decoupling nodes, and on each preamp stage the
+///     node it runs on (<see cref="AmpStageDesign.SupplyNode" />). A model without one gets the generic chain
+///     (<see cref="AmpChannel" />).
+/// </summary>
+/// <param name="Nodes">
+///     The nodes in order: node k is <c>Nodes[k - 1]</c>; each hangs from node 0 or an earlier one.
+/// </param>
+public sealed record PreampSupplyDesign(IReadOnlyList<DecouplingNode> Nodes) {
+    /// <summary>
+    ///     The preamp has a supply of its own, which the power amp's current does not move (a rack preamp in front of
+    ///     a separate power amp): every stage runs at its nominal rails.
+    /// </summary>
+    public bool Separate { get; init; }
+
+    /// <summary>A rack preamp's own supply (see <see cref="Separate" />).</summary>
+    public static PreampSupplyDesign OwnSupply { get; } = new([]) { Separate = true };
+}
+
+/// <summary>
 ///     The phase inverter's input network: the coupling cap from the preamp's last stage into the driven grid, and the
 ///     grid leak to the bias junction (which follows the input: the leak is bootstrapped). With it, the driven grid draws
 ///     grid current (Dempwolf's law, at the grid-cathode voltage of the inverter's tables, which include the plates' load

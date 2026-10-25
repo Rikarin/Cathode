@@ -20,6 +20,13 @@ namespace Cathode.Dsp.Amp.Models;
 ///         B 451 V, bias -48 V). The supply sheet is titled Solo 50 (silicon rectifier).
 ///     </para>
 ///     <para>
+///         The supply's decoupling, from that sheet: the choke to B (30 µF), 5.6k to C (10 µF: V3, the inverter), and
+///         15k to D (10 µF: V1B, V2B), 22k to E (10 µF: V1A) and 47k to F (10 µF: the loop's V4, not modelled; its draw
+///         stays on C). The sheet draws two resistors side by side from B, only one labelled (5K6); the tree here is
+///         the one the drawn voltages fit (D and E hang from C: 39 V across 15k and 21 V across 22k, which V1A's 220k
+///         plate load draws). Each node's draw is what its voltage drops across its resistor (C 6.4 mA in all).
+///     </para>
+///     <para>
 ///         Guesses and simplifications, marked: the presence rheostat's value is not printed (250k linear here); the
 ///         effects-loop stage V4 and the output level control are left out (the lead master feeds the inverter, here the
 ///         Master knob); the reverb is at zero (its send, a 475k from the treble wiper, is left out); in the lead channel
@@ -34,9 +41,9 @@ public static class RectoVerb {
     public static AmpDesign Design { get; } = new(
         "Rect-o-Verb",
         [
-            new NetworkStageDesign("V1A", InputAndGain()),
-            new NetworkStageDesign("V1B", SecondStage()),
-            new NetworkStageDesign("V2B", ColdClipper()),
+            new NetworkStageDesign("V1A", InputAndGain()) { SupplyNode = 2 },
+            new NetworkStageDesign("V1B", SecondStage()) { SupplyNode = 1 },
+            new NetworkStageDesign("V2B", ColdClipper()) { SupplyNode = 1 },
             new NetworkStageDesign("V3A", FourthStage()),
             new NetworkStageDesign("V3B", FollowerAndStack())
         ],
@@ -60,7 +67,8 @@ public static class RectoVerb {
             true,
             new(4e3),
             new(Inductance: 1.4e-3, EddyResistance: 22, Resonance: 95, PeakImpedance: 30, Q: 2.2),
-            new(30, 110e-6, 100, 30e-6, 5.6e3, 10e-6, 5e-3, RectifierModel.Silicon)
+            // The choke to B's 30 µF, 5.6k to C's 10 µF: 451 V to 415 V is 6.4 mA.
+            new(30, 110e-6, 100, 30e-6, 5.6e3, 10e-6, 6.4e-3, RectifierModel.Silicon)
         ),
         -6
     ) {
@@ -70,7 +78,9 @@ public static class RectoVerb {
             Cut = null,
             Bright = null,
             Control2 = "Presence"
-        }
+        },
+        // From C: 15k to D (V1B, V2B) and 22k to E (V1A), 10 µF each, drawing what the drawn voltages drop across them.
+        PreampSupply = new([new(15e3, 10e-6, (415 - 376) / 15e3), new(22e3, 10e-6, (415 - 394) / 22e3)])
     };
 
     /// <summary>

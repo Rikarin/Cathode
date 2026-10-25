@@ -40,6 +40,7 @@ public sealed class ChannelSwitchStage : AmpStage {
     double sourceResistance;
     double restInput;
     double supply = 1;
+    double[]? supplies; // the channel's per-node supplies, once it hands them over (SetSupplies)
 
     public ChannelSwitchStageDesign Design { get; }
 
@@ -67,6 +68,9 @@ public sealed class ChannelSwitchStage : AmpStage {
     }
 
     public override bool IsGainStage => offGainStage >= 0 || onGainStage >= 0;
+
+    /// <summary>The gain stages of the channel that has more of them.</summary>
+    public int GainStages => Math.Max(off.Count(static s => s.IsGainStage), on.Count(static s => s.IsGainStage));
 
     public ChannelSwitchStage(ChannelSwitchStageDesign design, double sampleRate) {
         if (design.Off.Count == 0 || design.On.Count == 0) {
@@ -97,6 +101,24 @@ public sealed class ChannelSwitchStage : AmpStage {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override void SetSupply(double scale) => supply = scale;
 
+    /// <summary>Each channel's stages on their designs' nodes, or on the switch's.</summary>
+    public override void AssignSupplyNode(int node) {
+        SupplyNode = node;
+        for (var i = 0; i < off.Length; i++) {
+            off[i].AssignSupplyNode(Design.Off[i].SupplyNode ?? node);
+        }
+
+        for (var i = 0; i < on.Length; i++) {
+            on[i].AssignSupplyNode(Design.On[i].SupplyNode ?? node);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public override void SetSupplies(double[] scales) {
+        supplies = scales;
+        supply = scales[SupplyNode];
+    }
+
     public override void Update(in AmpControls controls) {
         Configure(off, controls);
         Configure(on, controls);
@@ -123,7 +145,7 @@ public sealed class ChannelSwitchStage : AmpStage {
     public override double Tick(double input) {
         var x = input;
         foreach (var stage in active) {
-            stage.SetSupply(supply);
+            Supply(stage);
             x = stage.Tick(x);
         }
 
@@ -133,6 +155,18 @@ public sealed class ChannelSwitchStage : AmpStage {
     public override void FlushDenormals() {
         foreach (var stage in active) {
             stage.FlushDenormals();
+        }
+    }
+
+    /// <summary>
+    ///     A stage's supply: its own node's once the channel has handed the nodes over, else the switch's.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    void Supply(AmpStage stage) {
+        if (supplies is { } scales) {
+            stage.SetSupplies(scales);
+        } else {
+            stage.SetSupply(supply);
         }
     }
 
@@ -157,7 +191,7 @@ public sealed class ChannelSwitchStage : AmpStage {
         var resistance = sourceResistance;
         foreach (var stage in chain) {
             stage.SetSourceResistance(resistance);
-            stage.SetSupply(supply);
+            Supply(stage);
             stage.Reset(rest);
             rest = stage.RestOutput;
             resistance = stage.OutputResistance;

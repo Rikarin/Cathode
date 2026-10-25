@@ -22,6 +22,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///         voltages: A 460, B 454, C 422, D 406, E 402 V; bias -51 V.
 ///     </para>
 ///     <para>
+///         The supply's decoupling, from the power supplies sheet: the choke to B (30 µF), R602 2.7k to C (30 µF: V3,
+///         the loop, the inverter), and from C both R261 15k to D (30 µF: V2) and R252 22k to E (30 µF: V1A); each
+///         node's draw is what its drawn voltage drops across its resistor (C 11.9 mA in all, D 1.1 mA, E 0.9 mA).
+///     </para>
+///     <para>
 ///         The drawing corrects the earlier model, which followed the Yahiake LiveSPICE redraw: in both red modes the
 ///         LDR table has V1A's, V2A's and V3A's cathodes fully bypassed (LDR3, LDR10 on) and the 680k ‖ 2 nF branch in
 ///         (LDR4 on); Modern and Vintage differ only in LDR19, the global feedback (on in Vintage, off in Modern), and
@@ -46,9 +51,9 @@ public static class DualRectifier {
     public static AmpDesign Design { get; } = new(
         "Dual Rectifier",
         [
-            new NetworkStageDesign("V1A", InputStage(402, 0)),
-            new NetworkStageDesign("V2A", GainStage(new(1e6, PotTaper.Audio), 470e3, 406, 0, null)),
-            new NetworkStageDesign("V2B", ColdClipper(470e3, 406)),
+            new NetworkStageDesign("V1A", InputStage(402, 0)) { SupplyNode = 2 },
+            new NetworkStageDesign("V2A", GainStage(new(1e6, PotTaper.Audio), 470e3, 406, 0, null)) { SupplyNode = 1 },
+            new NetworkStageDesign("V2B", ColdClipper(470e3, 406)) { SupplyNode = 1 },
             new NetworkStageDesign("V3A", FourthStage(422, 0)),
             new NetworkStageDesign("V3B", FollowerAndStack(422, 680e-12, null, new(25e3, PotTaper.Linear)))
         ],
@@ -72,8 +77,8 @@ public static class DualRectifier {
             true,
             new(1.9e3),
             new(Inductance: 1.4e-3, EddyResistance: 22, Resonance: 95, PeakImpedance: 30, Q: 2.2),
-            // 220 + 220 µF stacked, the choke to B's 30 µF, 2.7k to C's 30 µF.
-            new(30, 110e-6, 100, 30e-6, 2.7e3, 30e-6, 6e-3, RectifierModel.Silicon),
+            // 220 + 220 µF stacked, the choke to B's 30 µF, R602 2.7k to C's 30 µF: 454 V to 422 V is 11.9 mA.
+            new(30, 110e-6, 100, 30e-6, 2.7e3, 30e-6, 11.9e-3, RectifierModel.Silicon),
             InverterInput: new(20e-9, 1e6),
             SupplySwitches: [
                 new(SwitchRole.Switch2, FiveU4Pair),
@@ -92,8 +97,16 @@ public static class DualRectifier {
             Switch1 = "Modern",
             Switch2 = "Tube Rectifier",
             Switch3 = "Spongy"
-        }
+        },
+        PreampSupply = Decoupling(406, 402, 30e-6)
     };
+
+    /// <summary>
+    ///     The supply sheet's nodes below C (the preamp node, V3 and the inverter): R261 15k to D (V2) and R252 22k to
+    ///     E (V1A), each on its own filter cap, drawing what the drawn voltages drop across them from C's 422 V.
+    /// </summary>
+    internal static PreampSupplyDesign Decoupling(double d, double e, double cap, double c = 422) =>
+        new([new(15e3, cap, (c - d) / 15e3), new(22e3, cap, (c - e) / 22e3)]);
 
     /// <summary>
     ///     A cathode: 1.8k to ground with 1 µF across it, through <paramref name="series" /> ohms (the three-channel's

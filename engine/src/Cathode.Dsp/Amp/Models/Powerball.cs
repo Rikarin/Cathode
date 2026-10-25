@@ -23,8 +23,13 @@ namespace Cathode.Dsp.Amp.Models;
 ///         say Engl's published drawings have omissions; this one is internally consistent for channel 2.
 ///     </para>
 ///     <para>
+///         The supply's decoupling as drawn: R136 470 Ω to the 430 V screens' CE9 47 µF, R137 and R138 (2.2k each) to
+///         CE10 22 µF (V7, the inverter; three ZY150 zeners across it hold it under 450 V in standby), R26 4.7k 1 W to
+///         CE3 10 µF (V5, V6).
+///     </para>
+///     <para>
 ///         Guesses and simplifications, marked: the preamp rails carry no voltages on the drawing (here 400 V for V5 and
-///         V6, 410 V for V7, 420 V for the inverter, from the 430 V screen node through 2.2k, 2.2k and 4.7k); Hi mode is
+///         V6, 410 V for V7, 420 V for the inverter, from the chain above); Hi mode is
 ///         taken as the energised position of the "Gain" relays RE3 and RE4 (the hotter divider and the Hi Lead volume;
 ///         one Lead Volume knob here for both); the low/high lead bright switches S3/S4 (330k + 680k from the bass pot's
 ///         top into the volume) are off; the parallel loop is empty with its balance fully dry (the 10k series only);
@@ -37,11 +42,11 @@ public static class Powerball {
     public static AmpDesign Design { get; } = new(
         "Powerball",
         [
-            new NetworkStageDesign("V5A", InputAndGain()),
-            new TriodeStageDesign("V5B", TriodeModel.Ecc83, 400, 100e3, 1.5e3, 22e-6),
-            new NetworkStageDesign("V6A", ThirdStage()),
-            new NetworkStageDesign("V6B", FourthStage()),
-            new NetworkStageDesign("Stack", LeadStack()),
+            new NetworkStageDesign("V5A", InputAndGain()) { SupplyNode = 1 },
+            new TriodeStageDesign("V5B", TriodeModel.Ecc83, 400, 100e3, 1.5e3, 22e-6) { SupplyNode = 1 },
+            new NetworkStageDesign("V6A", ThirdStage()) { SupplyNode = 1 },
+            new NetworkStageDesign("V6B", FourthStage()) { SupplyNode = 1 },
+            new NetworkStageDesign("Stack", LeadStack()) { SupplyNode = 1 },
             new NetworkStageDesign("V7A", Follower()),
             new NetworkStageDesign("V7B", ReturnAndMaster())
         ],
@@ -79,7 +84,10 @@ public static class Powerball {
             Control2 = "Lead Volume",
             Switch1 = "Focused",
             Switch2 = "Hi Lead"
-        }
+        },
+        // From CE10 (V7 and the inverter): R26 4.7k to CE3 10 µF (V5, V6). The drawing prints no voltages, so CE3
+        // draws an equal share of the preamp's 6 mA per triode on it: four of eight, 3 mA.
+        PreampSupply = new([new(4.7e3, 10e-6, 3e-3)])
     };
 
     /// <summary>
