@@ -89,7 +89,7 @@ public static partial class FactoryRecipes {
                 "1980s",
                 "Clean"
             )
-            .Amp("JC-120", "gain=4 bass=5 middle=5 treble=6 control1=5")
+            .Amp("JC-120", "gain=2.25 bass=5 middle=5 treble=6 control1=5")
             .Cab("2x12 Open", "D120F", "SM57", "m1position=35 m1distance=2")
             .Add("chorus", "rate=0.5 depth=45 mix=50 spread=180")
             .Add("delay", "type=Digital time=450 feedback=25 mix=14")

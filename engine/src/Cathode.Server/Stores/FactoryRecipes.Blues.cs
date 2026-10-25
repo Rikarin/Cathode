@@ -93,7 +93,7 @@ public static partial class FactoryRecipes {
             )
             .Amp(
                 "ODS 70s",
-                "gain=4 bass=4 middle=5 treble=5.5 presence=4",
+                "gain=2.25 bass=4 middle=5 treble=5.5 presence=4",
                 "gain=4 bass=4 middle=6 treble=5 presence=4 switch1=1 control1=5.5 control2=5"
             )
             .Cab("2x12 Open", "EVM12L", "SM57", "m1position=30 m1distance=2")
@@ -112,7 +112,7 @@ public static partial class FactoryRecipes {
             )
             .Drive("Chiron OD", "drive=3 tone=6 level=4")
             .Off()
-            .Amp("ODS 97", "gain=5 bass=4.5 middle=5 treble=6 presence=5")
+            .Amp("ODS 97", "gain=2.25 bass=4.5 middle=5 treble=6 presence=5")
             .Cab("2x12 Open", "EVM12L", "SM57", "m1position=35 m1distance=2 m2mute=0 m2mic=R-121 m2level=-4")
             .Add("delay", "type=Analog time=400 feedback=18 mix=12")
             .Off()

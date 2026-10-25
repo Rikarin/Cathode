@@ -16,7 +16,7 @@ public static partial class FactoryRecipes {
             .Amp(
                 "Plexi 100W",
                 "gain=7 bass=5 middle=6 treble=7 presence=5 switch1=1 control1=4",
-                "gain=4 bass=5 middle=6 treble=7 presence=5 switch1=1 control1=2"
+                "gain=0.5 bass=5 middle=6 treble=7 presence=5 switch1=1 control1=0.5"
             )
             .Cab("4x12 Closed", "Greenback", "SM57", "m1position=25 m1distance=1")
             .Add("reverb", "type=Room decay=0.9 size=45 mix=10")
@@ -30,7 +30,7 @@ public static partial class FactoryRecipes {
                 + "the thumb.",
                 "Classic Rock",
                 "1960s",
-                "Clean"
+                "Crunch"
             )
             .Amp(
                 "Plexi 100W",
@@ -57,7 +57,7 @@ public static partial class FactoryRecipes {
             .Amp(
                 "Plexi 100W",
                 "gain=7 bass=5 middle=6 treble=6.5 presence=5 switch1=1 control1=4",
-                "gain=7 bass=5 middle=6 treble=6.5 presence=5 switch1=1 control1=4"
+                "gain=0.5 bass=5 middle=6 treble=6.5 presence=5 switch1=1 control1=0.5"
             )
             .Cab("4x12 Closed", "Greenback", "SM57", "m1position=25 m1distance=1")
             .Add("reverb", "type=Room decay=1 size=50 mix=12")
@@ -212,7 +212,7 @@ public static partial class FactoryRecipes {
                 "1970s",
                 "Clean"
             )
-            .Amp("Vibrolux Reverb AA964", "gain=5 bass=4 treble=7 bright=1", "gain=6.5 bass=4 treble=6.5 bright=1")
+            .Amp("Vibrolux Reverb AA964", "gain=4 bass=4 treble=7 bright=1", "gain=6.5 bass=4 treble=6.5 bright=1")
             .Cab("4x10 Open", "P10R", "SM57", "m1position=30 m1distance=2")
             .Add("reverb", "type=Spring springs=2 decay=1.6 mix=14")
             .Scene("Verse")
@@ -241,7 +241,7 @@ public static partial class FactoryRecipes {
             .Amp(
                 "1987X",
                 "gain=8 bass=4.5 middle=7 treble=6 presence=5 switch1=1 control1=5",
-                "gain=2.5 bass=5 middle=5 treble=6 presence=5 switch1=1 control1=1"
+                "gain=0.5 bass=5 middle=5 treble=6 presence=5 switch1=1 control1=0.5"
             )
             .Cab("4x12 Closed", "Greenback", "SM57", "m1position=25 m1distance=1")
             .Add("chorus", "rate=0.6 depth=40 mix=35")

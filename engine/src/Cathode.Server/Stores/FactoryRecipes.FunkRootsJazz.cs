@@ -64,7 +64,7 @@ public static partial class FactoryRecipes {
                 "Clean"
             )
             .Add("compressor", "type=Pedal threshold=-32 ratio=6 attack=3 release=120 makeup=8")
-            .Amp("Deluxe Reverb", "gain=4.5 bass=4 treble=7", "gain=6 bass=4 treble=6.5")
+            .Amp("Deluxe Reverb", "gain=3.5 bass=4 treble=7", "gain=6 bass=4 treble=6.5")
             .Cab("1x12 Open", "C12N", "SM57", "m1position=25 m1distance=1")
             .Add("delay", "type=Analog time=110 feedback=0 mix=20")
             .Add("reverb", "type=Spring springs=2 decay=1.4 mix=12")
@@ -78,7 +78,7 @@ public static partial class FactoryRecipes {
                 "1960s",
                 "Clean"
             )
-            .Amp("Deluxe 6G3", "gain=4 treble=6")
+            .Amp("Deluxe 6G3", "gain=1.5 treble=6")
             .Cab("1x12 Open", "C12N", "SM57", "m1position=30 m1distance=2")
             .Add("reverb", "type=Room decay=1 size=50 mix=12")
             .Scene("Boom-Chicka"),
@@ -90,7 +90,7 @@ public static partial class FactoryRecipes {
                 "1950s",
                 "Clean"
             )
-            .Amp("Tweed Deluxe 5E3", "gain=5 treble=6")
+            .Amp("Tweed Deluxe 5E3", "gain=0.5 treble=6")
             .Cab("1x12 Open", "C12N", "SM57", "m1position=30 m1distance=2")
             .Add("delay", "type=Mono_Tape time=120 feedback=8 mix=32")
             .Scene("Slapback"),
@@ -102,7 +102,7 @@ public static partial class FactoryRecipes {
                 "1960s",
                 "Clean"
             )
-            .Amp("Bandmaster AB763", "gain=5 bass=3 treble=8 bright=1")
+            .Amp("Bandmaster AB763", "gain=4.5 bass=3 treble=8 bright=1")
             .Cab("1x12 Closed", "D120F", "SM57", "m1position=25 m1distance=1")
             .Add("reverb", "type=Spring springs=3 decay=2.6 mix=34 springDrive=6 boing=45")
             .Scene("Surf"),
@@ -114,7 +114,7 @@ public static partial class FactoryRecipes {
                 "1960s",
                 "Clean"
             )
-            .Amp("AC15", "gain=6 cut=4 bright=1")
+            .Amp("AC15", "gain=1 cut=4")
             .Cab("1x12 Open", "Alnico Blue", "SM57", "m1position=30 m1distance=2")
             .Add("delay", "type=Mono_Tape time=300 feedback=30 head2Ratio=50 head2Level=-4 mix=28")
             .Scene("Echo")
@@ -129,7 +129,7 @@ public static partial class FactoryRecipes {
                 "1960s",
                 "Clean"
             )
-            .Amp("Super Reverb", "gain=3.5 bass=6 middle=5 treble=3")
+            .Amp("Super Reverb", "gain=2.5 bass=6 middle=5 treble=3")
             .Cab("4x10 Open", "P10R", "R-121", "m1position=40 m1distance=3")
             .Add("reverb", "type=Room decay=1 size=50 mix=10")
             .Scene("Thumb"),
@@ -141,7 +141,7 @@ public static partial class FactoryRecipes {
                 "1970s",
                 "Clean"
             )
-            .Amp("JC-120", "gain=4 bass=6 middle=5 treble=4 control1=3")
+            .Amp("JC-120", "gain=1.75 bass=6 middle=5 treble=4 control1=3")
             .Cab("4x10 Open", "P10R", "SM57", "m1position=35 m1distance=2")
             .Add(
                 "delay",

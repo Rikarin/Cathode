@@ -6,6 +6,7 @@ using Cathode.Dsp.Blocks;
 using Cathode.Engine.Graph;
 using Cathode.Server.Rig;
 using Cathode.Server.Stores;
+using Cathode.Testing.References;
 
 namespace Cathode.Server.Tests;
 
@@ -110,6 +111,42 @@ public sealed class FactoryPresetTests : IAsyncLifetime {
             )
             .ToList();
         Assert.Empty(late);
+    }
+
+    [Fact]
+    public void Clean_scenes_play_clean_at_a_hot_pickups_level() {
+        // A Clean scene (or a Clean preset's first scene) must not break up with a hot pickup: a 0.5 V peak sine
+        // through its amp channel, power amp included, stays under 8 % THD, which leaves a tube input stage's own
+        // few percent (a tweed's, a Marshall's), and under 1 % on the solid-state JC-120, whose power amp clips hard
+        // (at volume 4 it does near 0.4 V, which the levels' 0.35 V test signal never showed).
+        using var amp = new CircuitAmpRenderer(Rate);
+        var types = amp.Types.ToList();
+        var dirty = new List<string>();
+        foreach (var preset in Presets) {
+            if (preset.Blocks.FirstOrDefault(static b => b.Type == "circuitamp") is not { } block) {
+                continue;
+            }
+
+            for (var s = 0; s < preset.Scenes.Count; s++) {
+                var scene = preset.Scenes[s];
+                var clean = scene.Name.StartsWith("Clean", StringComparison.Ordinal)
+                    || s == 0 && preset.Tags.Contains("Clean");
+                if (!clean) {
+                    continue;
+                }
+
+                var values = block.Channels.GetValueOrDefault(scene.StateOf(block.Id).Channel) ?? [];
+                var type = types[(int)values.GetValueOrDefault("type", block.Channel("A").GetValueOrDefault("type"))];
+                var settings = values.Where(static v => v.Key != "type")
+                    .ToDictionary(static v => v.Key, static v => (double)v.Value);
+                var thd = Thd(amp.Render(Sine(0.5), new(type, settings)));
+                if (thd > (type == "JC-120" ? 1 : 8)) {
+                    dirty.Add($"{preset.Name} / {scene.Name} ({type}): {thd:0.0} % THD");
+                }
+            }
+        }
+
+        Assert.Empty(dirty);
     }
 
     [Fact]
@@ -263,5 +300,37 @@ public sealed class FactoryPresetTests : IAsyncLifetime {
         using var response = await call;
         Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync(Token));
         return (await response.Content.ReadFromJsonAsync<T>(Token))!;
+    }
+
+    const double Rate = 48_000;
+    const double Hz = 196;
+
+    /// <summary>One second of G3 at <paramref name="peak" /> volts.</summary>
+    static float[] Sine(double peak) =>
+        [..Enumerable.Range(0, (int)Rate).Select(i => (float)(peak * Math.Sin(2 * Math.PI * Hz * i / Rate)))];
+
+    /// <summary>THD in % of a steady sine's second half: everything but the fundamental and DC, over the fundamental.</summary>
+    static double Thd(float[] y) {
+        var start = y.Length / 2;
+        var count = y.Length - start;
+        double c = 0, q = 0, mean = 0;
+        for (var i = start; i < y.Length; i++) {
+            var t = 2 * Math.PI * Hz * i / Rate;
+            c += y[i] * Math.Cos(t);
+            q += y[i] * Math.Sin(t);
+            mean += y[i];
+        }
+
+        c *= 2.0 / count;
+        q *= 2.0 / count;
+        mean /= count;
+        var rest = 0.0;
+        for (var i = start; i < y.Length; i++) {
+            var t = 2 * Math.PI * Hz * i / Rate;
+            var r = y[i] - mean - c * Math.Cos(t) - q * Math.Sin(t);
+            rest += r * r;
+        }
+
+        return 100 * Math.Sqrt(rest / count / ((c * c + q * q) / 2));
     }
 }

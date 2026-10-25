@@ -29,7 +29,7 @@ public static partial class FactoryRecipes {
                 "Fuzz"
             )
             .Drive("Pi Fuzz", "drive=7 tone=5 level=0")
-            .Amp("JCM800 2203", "gain=4 bass=5 middle=6 treble=6 presence=5 master=7")
+            .Amp("JCM800 2203", "gain=1 bass=5 middle=6 treble=6 presence=5 master=7")
             .Cab("4x12 Closed", "G12T-75", "SM57", "m1position=25 m1distance=1")
             .Add("reverb", "type=Room decay=1 size=50 mix=10")
             .Scene("Fuzz Wall")
@@ -44,7 +44,7 @@ public static partial class FactoryRecipes {
                 "Clean"
             )
             .Tempo(126)
-            .Amp("AC30", "gain=6 bass=4 treble=7 cut=3")
+            .Amp("AC30", "gain=1.25 bass=4 treble=7 cut=3")
             .Cab("2x12 Open", "Alnico Blue", "SM57", "m1position=30 m1distance=1")
             .Add("delay", "type=Analog tempo=1/8. feedback=35 mix=40")
             .Add("reverb", "type=Hall decay=2.4 mix=15")
@@ -175,7 +175,7 @@ public static partial class FactoryRecipes {
             )
             .Amp(
                 "JCM800 2203",
-                "gain=3 bass=5 middle=6 treble=6 presence=5 master=7",
+                "gain=1 bass=5 middle=6 treble=6 presence=5 master=7",
                 "gain=6 bass=5 middle=6 treble=6 presence=5 master=7"
             )
             .Cab("4x12 Closed", "G12T-75", "SM57", "m1position=30 m1distance=1")
@@ -196,7 +196,7 @@ public static partial class FactoryRecipes {
                 "Fuzz"
             )
             .Drive("Pi Fuzz", "drive=8 tone=5 level=0")
-            .Amp("AC30", "gain=6 bass=5 treble=6 cut=4")
+            .Amp("AC30", "gain=1 bass=5 treble=6 cut=4")
             .Cab("2x12 Open", "Alnico Blue", "SM57", "m1position=30 m1distance=2")
             .Add("delay", "type=Reverse time=420 feedback=20 mix=35")
             .Add("reverb", "type=Hall decay=5 size=90 mix=35")

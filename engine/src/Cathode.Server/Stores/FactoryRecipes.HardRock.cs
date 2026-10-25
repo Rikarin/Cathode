@@ -114,7 +114,7 @@ public static partial class FactoryRecipes {
             .Amp(
                 "1987X",
                 "gain=6 bass=4 middle=7 treble=6 presence=4 switch1=1 control1=4",
-                "gain=2.5 bass=4.5 middle=6 treble=6 presence=4 switch1=1 control1=1"
+                "gain=0.5 bass=4.5 middle=6 treble=6 presence=4 switch1=1 control1=0.5"
             )
             .Cab("4x12 Closed", "Greenback", "SM57", "m1position=35 m1distance=2")
             .Add("delay", "type=Tape time=375 feedback=15 mix=15")
