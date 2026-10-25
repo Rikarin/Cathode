@@ -99,14 +99,22 @@ public class RTypeAdaptorTests(ITestOutputHelper output) {
 
         Assert.Equal(0, AllocationProbe.Measure(Turn));
 
-        const int Count = 100_000;
-        var watch = Stopwatch.StartNew();
-        for (var i = 0; i < Count; i++) {
-            position = position > 0.99 ? 0 : position + 0.013;
-            stack.Set(position, 1 - position, 0.5);
+        // Timed in batches, the median batch taken: a busy machine pre-empts a few batches, not the median one.
+        const int Batches = 100;
+        const int PerBatch = 1_000;
+        var batches = new double[Batches];
+        for (var batch = 0; batch < Batches; batch++) {
+            var start = Stopwatch.GetTimestamp();
+            for (var i = 0; i < PerBatch; i++) {
+                position = position > 0.99 ? 0 : position + 0.013;
+                stack.Set(position, 1 - position, 0.5);
+            }
+
+            batches[batch] = Stopwatch.GetElapsedTime(start).TotalNanoseconds / PerBatch;
         }
 
-        var recompute = watch.Elapsed.TotalNanoseconds / Count;
+        Array.Sort(batches);
+        var recompute = batches[Batches / 2];
         output.WriteLine(
             $"tone stack recompute ({stack.Size}-unknown MNA, {stack.Columns} columns): {recompute:0} ns, "
             + $"{recompute / (64 / Rate * 1e9):P3} of a 64-frame block at 48 kHz"

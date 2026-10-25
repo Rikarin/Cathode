@@ -21,7 +21,9 @@ public sealed class InProcessEngineLink : IEngineLink {
         var processSpec = spec ?? ProcessSpec.Default;
         // A short looper: tests and development need it to work, not to hold a minute of audio.
         Service = new(processSpec, "in-process (null)", registry, looperSeconds: 5);
-        backend = new((int)processSpec.SampleRate, processSpec.MaxBlockSize);
+        // Normal priority: a server's engine shares the process with the server itself (and in tests with other
+        // servers); at the highest priority, engines that fall behind on a busy machine starve the server's threads.
+        backend = new((int)processSpec.SampleRate, processSpec.MaxBlockSize, priority: ThreadPriority.Normal);
         backend.Start(Service.Engine);
         telemetry = new(
             _ => TelemetryReceived?.Invoke(Service.Telemetry()),

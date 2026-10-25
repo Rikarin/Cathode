@@ -49,7 +49,7 @@ public sealed class RealtimeAndContractTests : IAsyncLifetime {
 
         var seen = new HashSet<string>();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Token);
-        deadline.CancelAfter(TimeSpan.FromSeconds(10));
+        deadline.CancelAfter(TimeSpan.FromSeconds(30)); // generous: a busy machine; frames come every 33 ms
         while (!(seen.Contains("blockAdded") && seen.Contains("paramChanged") && seen.Contains("telemetry"))) {
             var result = await socket.ReceiveAsync(buffer, deadline.Token);
             var message = JsonNode.Parse(Encoding.UTF8.GetString(buffer, 0, result.Count))!;
@@ -67,7 +67,7 @@ public sealed class RealtimeAndContractTests : IAsyncLifetime {
         (await client.PutAsJsonAsync("/api/v1/scope", new ScopeRequest(true), Token)).EnsureSuccessStatusCode();
 
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Token);
-        deadline.CancelAfter(TimeSpan.FromSeconds(10));
+        deadline.CancelAfter(TimeSpan.FromSeconds(30)); // generous: a busy machine; frames come every 33 ms
         JsonNode frame;
         do {
             var result = await socket.ReceiveAsync(buffer, deadline.Token);

@@ -40,10 +40,23 @@ public sealed partial class EngineConnection(
     string? lastError;
     volatile bool scopeEnabled;
 
+    /// <summary>True once the <see cref="Connected" /> handlers (the rig's resync) have run on the current link.</summary>
+    volatile bool synced;
+
+    /// <summary>
+    ///     Whether the current link's host has been sent a graph. Until it has, graph-scoped commands are dropped: a fresh
+    ///     host would reject them as stale, and the resync that follows carries the rig's whole state anyway. Read and
+    ///     written only by the pump.
+    /// </summary>
+    bool graphSent;
+
     /// <summary>The live link, for diagnostics and tests (an <see cref="InProcessEngineLink" /> in in-process mode).</summary>
     public IEngineLink? Link { get; private set; }
 
     public bool IsConnected => info is not null && Link?.IsConnected == true;
+
+    /// <summary>Connected, and the rig has been resent to the host since it (re)connected.</summary>
+    public bool IsSynced => synced && IsConnected;
 
     /// <summary>Whether WebSocket clients get scope frames. Off by default: they are the largest messages by far.</summary>
     public bool ScopeEnabled {
@@ -60,8 +73,10 @@ public sealed partial class EngineConnection(
     public EngineStatus Status() {
         var t = LastTelemetry;
         var i = info;
+        // Reported as connected once the host has the rig: a client that edits it the moment it sees "connected" must not
+        // reach a host that still has no graph.
         return new(
-            IsConnected,
+            IsSynced,
             options.Value.Engine.Mode,
             i?.Backend,
             i?.SampleRate ?? 0,
@@ -244,6 +259,8 @@ public sealed partial class EngineConnection(
         var meters = Task.CompletedTask;
         try {
             DiscardQueued("The engine host restarted.");
+            synced = false;
+            graphSent = false;
             Link = current;
             info = (await current.SendAsync(new() { Type = IpcTypes.Hello }, stoppingToken)).Host;
             lastError = null;
@@ -272,6 +289,7 @@ public sealed partial class EngineConnection(
                 }
             }
 
+            synced = true;
             await pump;
         } catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested) {
             // the link dropped; the outer loop reconnects
@@ -279,6 +297,7 @@ public sealed partial class EngineConnection(
             current.TelemetryReceived -= OnTelemetry;
             current.MidiReceived -= OnMidi;
             monitor = null;
+            synced = false;
             await lost.CancelAsync();
             await meters.ContinueWith(static _ => { }, TaskScheduler.Default);
             mapped?.Dispose();
@@ -395,7 +414,16 @@ public sealed partial class EngineConnection(
 
     async Task SendAsync(IEngineLink current, Work work, CancellationToken cancellationToken) {
         try {
+            if (!graphSent && WithoutGraph(work.Message) is var message && message != work.Message) {
+                if (message is null) {
+                    return; // only graph-scoped work, queued between the hello and the resync's loadGraph
+                }
+
+                work = work with { Message = message };
+            }
+
             var reply = await current.SendAsync(work.Message, cancellationToken);
+            graphSent |= work.Message.Type == IpcTypes.LoadGraph;
             work.Reply?.TrySetResult(reply);
         } catch (IpcException e) {
             lastError = e.Errors.Count > 0 ? string.Join("; ", e.Errors) : e.Message;
@@ -404,6 +432,28 @@ public sealed partial class EngineConnection(
             }
 
             work.Reply?.TrySetException(e);
+        }
+    }
+
+    /// <summary>
+    ///     <paramref name="message" /> without what needs a graph: null for a bypass or modifier, the engine-wide values of
+    ///     a parameter update (null when none), the message itself for anything else.
+    /// </summary>
+    static IpcMessage? WithoutGraph(IpcMessage message) {
+        switch (message.Type) {
+            case IpcTypes.SetBypass or IpcTypes.SetModifier:
+                return null;
+            case IpcTypes.SetParams when message.Params is { } values:
+                if (values.All(static v => IpcBlocks.IsEngineWide(v.Block))) {
+                    return message;
+                }
+
+                List<ParamValue> wide = [..values.Where(static v => IpcBlocks.IsEngineWide(v.Block))];
+                return wide.Count == 0
+                    ? null
+                    : new() { Type = message.Type, Id = message.Id, Generation = message.Generation, Params = wide };
+            default:
+                return message;
         }
     }
 

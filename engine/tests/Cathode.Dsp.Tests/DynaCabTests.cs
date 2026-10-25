@@ -353,34 +353,47 @@ public sealed class DynaCabTests : IDisposable {
         var input = Signals.Sine(220, Rate, 24_000, 0.5f);
         using var before = Prepared();
         using var after = Prepared(CabBlock.SlotParam(0, CabBlock.Mic), 5); // R-121
-        using var switched = Prepared();
         var a = BlockRender.Mono(before, input, 64);
         var b = BlockRender.Mono(after, input, 64);
 
         const int SwapAt = 12_032;
-        var output = (float[])input.Clone();
         var context = new BlockContext(Rate, 120, 0);
-        long allocated = 0;
-        for (var offset = 0; offset < output.Length; offset += 64) {
-            if (offset == SwapAt) {
-                switched.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Mic), 5);
-                switched.Refresh(); // control thread
+
+        // One run: a fresh block, the change on the control thread at SwapAt, every callback's allocation counted.
+        (float[] Output, long Allocated) Run() {
+            using var switched = Prepared();
+            var output = (float[])input.Clone();
+            long allocated = 0;
+            for (var offset = 0; offset < output.Length; offset += 64) {
+                if (offset == SwapAt) {
+                    switched.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Mic), 5);
+                    switched.Refresh(); // control thread
+                }
+
+                var io = new StereoBuffer(output.AsSpan(offset, 64), new float[64]);
+                var bytes = GC.GetAllocatedBytesForCurrentThread();
+                switched.Process(io, context);
+                allocated += GC.GetAllocatedBytesForCurrentThread() - bytes;
             }
 
-            var io = new StereoBuffer(output.AsSpan(offset, 64), new float[64]);
-            var bytes = GC.GetAllocatedBytesForCurrentThread();
-            switched.Process(io, context);
-            allocated += GC.GetAllocatedBytesForCurrentThread() - bytes;
+            Assert.Equal(1, switched.IrSwaps);
+            Assert.False(switched.IsFading);
+            return (output, allocated);
         }
 
-        Assert.Equal(1, switched.IrSwaps);
-        Assert.False(switched.IsFading);
+        // As AllocationProbe does, the least of up to three runs: the runtime now and then does one-off work on the
+        // measuring thread (a tier-1 rejit, on-stack replacement, a cold type load), more often on a busy machine, where
+        // the background compiler runs late; an allocation in the swap or the fade shows up in every run.
+        var (output, allocated) = Run();
+        for (var retry = 0; retry < 2 && allocated > 0; retry++) {
+            allocated = Math.Min(allocated, Run().Allocated);
+        }
 
         // Before the swap: exactly A; after the fade: B (the new IR has heard everything since the swap); during it, an
         // equal-gain blend of the two.
         var fade = (int)(0.02 * Rate);
         Assert.True(Analysis.NullResidualDb(a.AsSpan(0, SwapAt), output.AsSpan(0, SwapAt)) < -140);
-        var end = SwapAt + fade + switched.Taps + 512;
+        var end = SwapAt + fade + before.Taps + 512;
         Assert.True(Analysis.NullResidualDb(b.AsSpan(end), output.AsSpan(end)) < -100);
         var ideal = new float[fade];
         for (var i = 0; i < fade; i++) {
