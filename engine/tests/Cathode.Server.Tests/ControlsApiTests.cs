@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Cathode.Contracts;
+using Cathode.Dsp.Looping;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.Server.Engine;
@@ -74,10 +75,15 @@ public sealed class ControlsApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Tempo_is_stored_with_the_preset_and_sent_to_the_engine() {
+        var host = server.Host;
         var live = await Put("/api/v1/live/tempo", new TempoRequest(97));
 
         Assert.Equal(97, live.Preset.Tempo);
-        await ServerFixture.Eventually(() => Rig("tempo") == 97f);
+        await ServerFixture.Eventually(
+            () => Rig("tempo") == 97f,
+            () => $"engine tempo {Rig("tempo")} (same engine: {ReferenceEquals(host, server.Host)}), "
+                + $"status {server.Services.GetRequiredService<EngineConnection>().Status()}\n{server.Log}"
+        );
     }
 
     [Fact]
@@ -139,11 +145,14 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         await ServerFixture.Eventually(async () => (await Live()).ActiveScene == 1);
         await ServerFixture.Eventually(() => Sent(sent, [0xB0, 30, 127])); // its LED: scene 2 is active
 
+        // Held: the hold action fires once the switch has been down for the hold time. Waited for, not slept past: on a
+        // busy machine the hold timer can run late, and a release before it fires is a tap.
         router.OnMidi([new(0xB0, 30, 127, 0)]);
-        await Task.Delay(MidiRouter.HoldTime + TimeSpan.FromMilliseconds(300), Token);
-        router.OnMidi([new(0xB0, 30, 0, 0)]); // held: the hold action, nothing on release
         await ServerFixture.Eventually(async () => (await Live()).ActiveScene == 4);
+        router.OnMidi([new(0xB0, 30, 0, 0)]); // nothing on release
         await ServerFixture.Eventually(() => Sent(sent, [0xB0, 30, 0]));
+        await Task.Delay(300, Token);
+        Assert.Equal(4, (await Live()).ActiveScene); // a tap would have gone back to scene 2
     }
 
     [Fact]
@@ -241,9 +250,11 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     [Fact]
     public async Task The_looper_records_and_exports_a_wav() {
         await Ok(client.PostAsync("/api/v1/looper/record", null, Token));
-        await Task.Delay(300, Token);
-        await Ok(client.PostAsync("/api/v1/looper/stop", null, Token));
+        // Stop once the audio thread has recorded something, rather than after a fixed time: on a busy machine the null
+        // backend can take both commands in one callback, which records nothing.
         await ServerFixture.Eventually(() => server.Host.Engine.Looper!.Length > 0);
+        await Ok(client.PostAsync("/api/v1/looper/stop", null, Token));
+        await ServerFixture.Eventually(() => server.Host.Engine.Looper!.State != LooperState.Recording);
 
         using var export = await client.GetAsync("/api/v1/looper/export", Token);
         var wav = await export.Content.ReadAsByteArrayAsync(Token);

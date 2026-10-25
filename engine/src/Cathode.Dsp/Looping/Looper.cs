@@ -101,6 +101,7 @@ public sealed unsafe class Looper : IDisposable {
     readonly float fadeStep;
     LooperSettings settings = LooperSettings.Default;
     int extent; // samples [0, extent) may be non-zero
+    int disposed;
     int start;
     int end;
     bool layerUndoable;
@@ -343,7 +344,12 @@ public sealed unsafe class Looper : IDisposable {
         return (left, right);
     }
 
+    /// <summary>Frees the loop memory once: a second call (a host disposed twice on shutdown) must not free it again.</summary>
     public void Dispose() {
+        if (Interlocked.Exchange(ref disposed, 1) != 0) {
+            return;
+        }
+
         NativeMemory.Free(baseLeft);
         NativeMemory.Free(baseRight);
         NativeMemory.Free(layerLeft);

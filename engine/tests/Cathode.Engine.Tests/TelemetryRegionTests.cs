@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Cathode.Audio;
 using Cathode.Dsp;
 using Cathode.Engine.Graph;
@@ -125,12 +126,16 @@ public class TelemetryRegionTests {
 
     [Fact]
     public async Task Concurrent_reads_always_see_a_consistent_snapshot() {
+        // The writer runs until the reader has checked enough snapshots taken while it was writing, not for a fixed
+        // time: on a busy machine the writer's task can start late, or either thread be descheduled for much of a
+        // short window, which left too few reads (or none) to count.
+        const int Wanted = 1_000;
         using var region = TelemetryRegion.CreateInMemory(48_000);
-        using var stop = new CancellationTokenSource(TimeSpan.FromMilliseconds(400));
+        var done = 0;
         var writer = Task.Run(
             () => {
                 var i = 0;
-                while (!stop.IsCancellationRequested) {
+                while (Volatile.Read(ref done) == 0) {
                     region.RecordCallback(64, i++ % 150, 0.5f, 0.25f, 0.125f);
                 }
             },
@@ -139,18 +144,23 @@ public class TelemetryRegionTests {
 
         var snapshot = new TelemetrySnapshot();
         var reads = 0;
-        while (!writer.IsCompleted) {
-            if (!region.TryRead(snapshot)) {
-                continue;
-            }
+        var deadline = Stopwatch.StartNew();
+        try {
+            while (reads < Wanted && !writer.IsCompleted && deadline.Elapsed < TimeSpan.FromSeconds(60)) {
+                if (!region.TryRead(snapshot) || snapshot.Callbacks == 0) {
+                    continue; // busy every attempt, or the writer has not started yet
+                }
 
-            reads++;
-            Assert.Equal(snapshot.Callbacks, snapshot.Histogram.Sum());
-            Assert.Equal(snapshot.Callbacks * 64, snapshot.Frames);
+                reads++;
+                Assert.Equal(snapshot.Callbacks, snapshot.Histogram.Sum());
+                Assert.Equal(snapshot.Callbacks * 64, snapshot.Frames);
+            }
+        } finally {
+            Volatile.Write(ref done, 1);
         }
 
         await writer;
-        Assert.True(reads > 100, $"only {reads} consistent reads");
+        Assert.True(reads >= Wanted, $"only {reads} consistent reads");
     }
 
     [Fact]

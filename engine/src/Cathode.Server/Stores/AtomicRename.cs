@@ -32,7 +32,10 @@ static partial class AtomicRename {
     static unsafe bool TryPosixRename(string source, string destination) {
         using var handle = CreateFileW(source, Delete | Synchronize, ShareAll, 0, OpenExisting, 0, 0);
         if (handle.IsInvalid) {
-            throw new Win32Exception(Marshal.GetLastPInvokeError(), $"Could not open '{source}' to rename it.");
+            // An IOException, so the store retries it: a scanner or indexer that opened the fresh temporary file without
+            // delete sharing refuses this open for a moment, as it would a plain rename.
+            var openError = Marshal.GetLastPInvokeError();
+            throw new IOException($"Could not open '{source}' to rename it.", new Win32Exception(openError));
         }
 
         // FILE_RENAME_INFO: Flags (4 bytes, padded to 8), RootDirectory (a handle), FileNameLength, then the name.

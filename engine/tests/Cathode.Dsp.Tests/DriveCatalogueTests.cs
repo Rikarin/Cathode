@@ -215,39 +215,48 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
 
     /// <summary>
     ///     A rough per-type report, fresh noise in every block as tools/Cathode.Bench feeds it (the bench's numbers, on a
-    ///     quiet machine, are the ones that count). The bound only catches a runaway: tests run in parallel here, so each
-    ///     type keeps its quickest of three timed passes and only has to run in real time.
+    ///     quiet machine, are the ones that count). The bound only catches a runaway: each type has to run in real time.
+    ///     Every 64-frame block is timed on its own and a type's cost is its median block: tests run in parallel here,
+    ///     and on a busy machine a pass of a whole second is pre-empted many times over, a single block of about a
+    ///     hundred microseconds rarely, so the median of three passes' blocks is the type's own cost, not the machine's
+    ///     load.
     /// </summary>
     [Fact]
     public void Cpu_per_type_is_reported() {
         const int Frames = 64;
         const int Blocks = 48_000 / Frames; // one second of audio
+        const int TimedPasses = 3;
         var noise = Signals.Noise(48_000, 1, 0.25f);
         var left = new float[Frames];
         var right = new float[Frames];
         var context = new BlockContext(48_000, 120, 0);
         var types = DriveBlock.CircuitTypes + DriveCircuits.All.Count;
-        var load = new double[types];
-        Array.Fill(load, double.MaxValue);
+        var ticks = new long[types][];
+        for (var type = 0; type < types; type++) {
+            ticks[type] = new long[TimedPasses * Blocks];
+        }
 
         // The first pass lets tiered compilation settle on the shared code paths; the other three are timed.
-        for (var pass = 0; pass < 4; pass++) {
+        for (var pass = 0; pass <= TimedPasses; pass++) {
             for (var type = 0; type < types; type++) {
                 using var block = Create(type, 5f, 5f);
-                var watch = Stopwatch.StartNew();
                 for (var i = 0; i < Blocks; i++) {
                     noise.AsSpan(i * Frames, Frames).CopyTo(left);
                     left.CopyTo(right);
+                    var start = Stopwatch.GetTimestamp();
                     block.Process(new(left, right), context);
-                }
-
-                if (pass > 0) {
-                    load[type] = Math.Min(load[type], watch.Elapsed.TotalSeconds);
+                    if (pass > 0) {
+                        ticks[type][(pass - 1) * Blocks + i] = Stopwatch.GetTimestamp() - start;
+                    }
                 }
             }
         }
 
+        var load = new double[types];
         for (var type = 0; type < types; type++) {
+            Array.Sort(ticks[type]);
+            var median = ticks[type][ticks[type].Length / 2];
+            load[type] = (double)median * Blocks / Stopwatch.Frequency; // seconds of CPU per second of audio
             output.WriteLine(
                 $"{type,2} {Name(type),-16} {load[type]:P2} of one core (stereo, 48 kHz, {Frames} frames)"
             );

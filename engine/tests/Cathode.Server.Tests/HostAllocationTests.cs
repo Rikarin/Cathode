@@ -5,6 +5,7 @@ using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.EngineHost;
 using Cathode.Ipc;
+using Cathode.Testing;
 
 namespace Cathode.Server.Tests;
 
@@ -12,6 +13,14 @@ namespace Cathode.Server.Tests;
 ///     The host must not collect during a session (docs/adr/0001-process-model.md), so what it does at a steady rate
 ///     (knob drags, scene bypasses, telemetry pushes) must not allocate, and a preset load must stay small.
 /// </summary>
+/// <remarks>
+///     Allocation is counted per thread, so the measured code runs synchronously on the test's thread: the framing's
+///     awaits on a <see cref="MemoryStream" /> complete at once, and <see cref="Run(ValueTask)" /> fails the test if one
+///     ever did not (a continuation on another thread would hide its allocations, or count someone else's). Each
+///     steady-rate figure is the least of up to three measurements (<see cref="AllocationProbe" />): the runtime now and
+///     then does one-off work on the measuring thread (a tier-1 rejit, on-stack replacement, a cold type load), which
+///     shows up in one measurement, while an allocation in the code under test shows up in all three.
+/// </remarks>
 public sealed class HostAllocationTests : IDisposable {
     static readonly string EngineRoot = FindEngineRoot();
 
@@ -26,9 +35,9 @@ public sealed class HostAllocationTests : IDisposable {
     }
 
     [Fact]
-    public async Task Parameter_and_bypass_commands_and_telemetry_allocate_nothing() {
+    public void Parameter_and_bypass_commands_and_telemetry_allocate_nothing() {
         var token = TestContext.Current.CancellationToken;
-        await RoundTripAsync(new() { Type = IpcTypes.LoadGraph, Generation = 1, Graph = Rig() }, 1);
+        RoundTrip(new() { Type = IpcTypes.LoadGraph, Generation = 1, Graph = Rig() }, 1);
         var knob = new IpcMessage {
             Type = IpcTypes.SetParams, Generation = 1, Params = [new("drive1", "drive", 3.5f)]
         };
@@ -41,27 +50,23 @@ public sealed class HostAllocationTests : IDisposable {
         var telemetry = new HostTelemetry();
         var push = new IpcMessage { Type = IpcTypes.Telemetry, Telemetry = telemetry };
 
-        async Task<long> PushesAsync() {
-            var before = GC.GetAllocatedBytesForCurrentThread();
+        void Pushes() {
             for (var i = 0; i < 1_000; i++) {
                 output.Position = 0;
                 service.Telemetry(telemetry);
-                await writer.WriteAsync(output, push, token);
+                Run(writer.WriteAsync(output, push, token));
             }
-
-            return GC.GetAllocatedBytesForCurrentThread() - before;
         }
 
-        await PushesAsync(); // warm up
-
-        Assert.Equal(0, await RoundTripAsync(knob, 1_000));
-        Assert.Equal(0, await RoundTripAsync(scene, 1_000));
-        Assert.Equal(0, await RoundTripAsync(bypass, 500)); // no audio thread drains the 1,024-command queue
-        Assert.Equal(0, await PushesAsync());
+        Assert.Equal(0, RoundTrip(knob, 1_000));
+        Assert.Equal(0, RoundTrip(scene, 1_000));
+        // No audio thread drains the 1,024-command queue: a bypass's 100 warm-ups and up to three measurements fit.
+        Assert.Equal(0, RoundTrip(bypass, 300));
+        Assert.Equal(0, AllocationProbe.Measure(Pushes));
     }
 
     [Fact]
-    public async Task Multi_output_callbacks_and_their_telemetry_allocate_nothing() {
+    public void Multi_output_callbacks_and_their_telemetry_allocate_nothing() {
         // Outputs 1-4 and the DI out mapped, a grid with an Output 2, Copy Output 1 to Output 2 and the output modes.
         var token = TestContext.Current.CancellationToken;
         var graph = Rig();
@@ -69,7 +74,7 @@ public sealed class HostAllocationTests : IDisposable {
         graph.Nodes.Add(new() { Id = "vol2", Type = "volpan", Row = 1, Column = 6 });
         graph.Cables.Add(new() { From = "reverb1", To = "vol2" });
         graph.Cables.Add(new() { From = "vol2", To = "out2" });
-        await RoundTripAsync(new() { Type = IpcTypes.LoadGraph, Generation = 1, Graph = graph }, 1);
+        RoundTrip(new() { Type = IpcTypes.LoadGraph, Generation = 1, Graph = graph }, 1);
         var rig = new IpcMessage {
             Type = IpcTypes.SetParams,
             Generation = 1,
@@ -78,7 +83,7 @@ public sealed class HostAllocationTests : IDisposable {
                 new(IpcBlocks.GlobalEq(1), "g1k", 3)
             ]
         };
-        await RoundTripAsync(rig, 1);
+        RoundTrip(rig, 1);
         using var bus = new OutputBus([0, 2, 4, 6], [8, 9]);
         var frames = service.Engine.Spec.MaxBlockSize;
         var input = new float[frames];
@@ -87,28 +92,23 @@ public sealed class HostAllocationTests : IDisposable {
         var telemetry = new HostTelemetry();
         var push = new IpcMessage { Type = IpcTypes.Telemetry, Telemetry = telemetry };
 
-        async Task<long> CallbacksAsync() {
-            var before = GC.GetAllocatedBytesForCurrentThread();
+        void Callbacks() {
             for (var i = 0; i < 2_000; i++) {
                 service.Engine.Process(new(input, input, left, right) { Outputs = bus });
                 if (i % 20 == 0) {
                     output.Position = 0;
                     service.Telemetry(telemetry);
-                    await writer.WriteAsync(output, push, token);
+                    Run(writer.WriteAsync(output, push, token));
                 }
             }
-
-            return GC.GetAllocatedBytesForCurrentThread() - before;
         }
 
-        await CallbacksAsync(); // warm up
-
-        Assert.Equal(0, await CallbacksAsync());
+        Assert.Equal(0, AllocationProbe.Measure(Callbacks));
         Assert.True(service.Engine.Current!.HasOutput(1));
     }
 
     [Fact]
-    public async Task Reloading_a_preset_stays_small() {
+    public void Reloading_a_preset_stays_small() {
         // The cab's IR is cached and the convolvers live in native memory; before that a load was about 160 KB. The Drive
         // block builds every component-level network of its catalogue up front, for both channels (about 90 KB of small
         // objects), so that switching its type on the audio thread never allocates. The time-based parity pass added about
@@ -121,7 +121,7 @@ public sealed class HostAllocationTests : IDisposable {
         // per-pedal knobs (12 parameters, a noise gate's sub-block of gains per channel) took it to 169,480 bytes.
         var load = new IpcMessage { Type = IpcTypes.LoadGraph, Generation = 1, Graph = Rig() };
 
-        var allocated = await RoundTripAsync(load, 3);
+        var allocated = RoundTrip(load, 3);
 
         Assert.True(allocated < 170_000, $"a preset load allocated {allocated} bytes");
     }
@@ -199,38 +199,64 @@ public sealed class HostAllocationTests : IDisposable {
         return service.Engine.Current!;
     }
 
-    /// <summary>Frames <paramref name="request" /> once, then reads, handles and answers it as the server does.</summary>
-    async Task<long> RoundTripAsync(IpcMessage request, int count) {
+    /// <summary>
+    ///     Frames <paramref name="request" /> once, then reads, handles and answers it as the server does, and returns
+    ///     the bytes allocated per round trip: as <see cref="AllocationProbe" /> measures, the least of up to three
+    ///     batches of <paramref name="count" />, so a one-off of the runtime's is not counted while what the request
+    ///     itself allocates (a preset load's graph) is, in every batch.
+    /// </summary>
+    long RoundTrip(IpcMessage request, int count) {
         var token = TestContext.Current.CancellationToken;
         var framed = new MemoryStream();
-        await IpcFraming.WriteAsync(framed, request, token);
+        IpcFraming.WriteAsync(framed, request, token).GetAwaiter().GetResult();
         var input = new MemoryStream(framed.ToArray(), false);
         var failures = 0;
 
-        async Task RunAsync() {
+        void Once() {
             input.Position = 0;
             output.Position = 0;
-            await reader.ReadFrameAsync(input, token);
+            Run(reader.ReadFrameAsync(input, token));
             if (!service.TryHandle(reader.Frame, out var reply)) {
                 reply = service.Handle(reader.Deserialize());
             }
 
             failures += reply.Type == IpcTypes.Ok ? 0 : 1; // asserted outside the measurement: Assert allocates
-            await writer.WriteAsync(output, reply, token);
+            Run(writer.WriteAsync(output, reply, token));
+        }
+
+        void Batch() {
+            for (var i = 0; i < count; i++) {
+                Once();
+            }
         }
 
         for (var i = 0; i < 100; i++) {
-            await RunAsync(); // warm up: tiered JIT and the pooled async state machines
+            Once(); // warm up: tiered JIT and the reused buffers
         }
 
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < count; i++) {
-            await RunAsync();
-        }
-
-        var allocated = (GC.GetAllocatedBytesForCurrentThread() - before) / count;
+        var allocated = AllocationProbe.Measure(Batch, static () => { });
         Assert.Equal(0, failures);
-        return allocated;
+        return allocated / count;
+    }
+
+    /// <summary>
+    ///     Finishes framing that has already completed, as it does over a <see cref="MemoryStream" />, so the measured
+    ///     code never leaves the measuring thread; throws if it has not.
+    /// </summary>
+    static void Run(ValueTask task) {
+        if (!task.IsCompletedSuccessfully) {
+            throw new InvalidOperationException("The framing went asynchronous: the measurement would leave the thread.");
+        }
+
+        task.GetAwaiter().GetResult();
+    }
+
+    static void Run<T>(ValueTask<T> task) {
+        if (!task.IsCompletedSuccessfully) {
+            throw new InvalidOperationException("The framing went asynchronous: the measurement would leave the thread.");
+        }
+
+        task.GetAwaiter().GetResult();
     }
 
     /// <summary>The soak's high-gain rig without the NAM amp, whose native library a test run may not have.</summary>

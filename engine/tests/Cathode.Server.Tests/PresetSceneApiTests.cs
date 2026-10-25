@@ -300,7 +300,7 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
             .ConnectAsync(new(server.Server.BaseAddress, "ws"), Token);
         var buffer = new byte[256 * 1024];
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Token);
-        deadline.CancelAfter(TimeSpan.FromSeconds(10));
+        deadline.CancelAfter(TimeSpan.FromSeconds(30)); // generous: a busy machine; frames come every 33 ms
         JsonNode? blocks = null;
         JsonNode? frame = null;
         while (blocks?["delay1"] is null) {
