@@ -202,10 +202,7 @@ public sealed partial class LiveRig {
                 }
 
                 if (target == state.Channel) {
-                    var recompile = descriptor.Params.Any(p => p.Recompile
-                        && before.GetValueOrDefault(p.Id, p.Default) != values.GetValueOrDefault(p.Id, p.Default)
-                    );
-                    if (recompile) {
+                    if (RecompileDiffers(descriptor, before, values)) {
                         await SyncGraphAsync();
                     } else {
                         engine.SetParams(generation, ChannelValues(block, target));
