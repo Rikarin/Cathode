@@ -68,6 +68,9 @@ public abstract class PhaseInverter {
     internal readonly double[] leakReturns = new double[Points];
     internal readonly double[] cathodeResistances = new double[Points];
     internal readonly double step;
+
+    // Per point: a, b and their slopes times the step, side by side for Evaluate (packed by Differentiate).
+    readonly double[] outputs = new double[4 * Points];
     internal readonly double inverseStep;
 
     static readonly Dictionary<(PhaseInverterDesign, double), PhaseInverter> Cache = [];
@@ -160,12 +163,22 @@ public abstract class PhaseInverter {
         var d10 = (3 * t2 - 4 * t + 1) * inverseStep;
         var d01 = -d00;
         var d11 = (3 * t2 - 2 * t) * inverseStep;
-        var (a0, a1, b0, b1) = (a[i], a[i + 1], b[i], b[i + 1]);
-        var (ma0, ma1) = (this.slopeA[i] * step, this.slopeA[i + 1] * step);
-        var (mb0, mb1) = (this.slopeB[i] * step, this.slopeB[i + 1] * step);
+        var point = outputs.AsSpan(4 * i, 8);
+        var (a0, b0, ma0, mb0) = (point[0], point[1], point[2], point[3]);
+        var (a1, b1, ma1, mb1) = (point[4], point[5], point[6], point[7]);
         slopeA = d00 * a0 + d10 * ma0 + d01 * a1 + d11 * ma1;
         slopeB = d00 * b0 + d10 * mb0 + d01 * b1 + d11 * mb1;
         return (h00 * a0 + h10 * ma0 + h01 * a1 + h11 * ma1, h00 * b0 + h10 * mb0 + h01 * b1 + h11 * mb1);
+    }
+
+    /// <summary>The output tables side by side, as <see cref="Evaluate" /> reads them (each slope times the step).</summary>
+    void Pack() {
+        for (var i = 0; i < Points; i++) {
+            outputs[4 * i] = a[i];
+            outputs[4 * i + 1] = b[i];
+            outputs[4 * i + 2] = slopeA[i] * step;
+            outputs[4 * i + 3] = slopeB[i] * step;
+        }
     }
 
     /// <summary>
@@ -255,13 +268,18 @@ public abstract class PhaseInverter {
         return current;
     }
 
-    /// <summary>Central-difference slopes of the tables (for the Hermite reads).</summary>
+    /// <summary>
+    ///     Central-difference slopes of the tables (for the Hermite reads), and the output tables packed for
+    ///     <see cref="Evaluate" />: the last step of building every table.
+    /// </summary>
     protected void Differentiate() {
         for (var n = 0; n < Points; n++) {
             var (lo, hi) = (Math.Max(n - 1, 0), Math.Min(n + 1, Points - 1));
             slopeA[n] = (a[hi] - a[lo]) / ((hi - lo) * step);
             slopeB[n] = (b[hi] - b[lo]) / ((hi - lo) * step);
         }
+
+        Pack();
     }
 }
 

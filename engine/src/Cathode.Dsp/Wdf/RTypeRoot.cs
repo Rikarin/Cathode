@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace Cathode.Dsp.Wdf;
 
@@ -99,6 +100,11 @@ public struct RTypeRoot<TPorts, TDevice>
             Newton.blockEnd[k] = end;
         }
 
+        Newton.pairs = device.Ports % 2 == 0;
+        for (var k = 0; k < device.Ports; k++) {
+            Newton.pairs &= Newton.blockStart[k] == (k & ~1) && Newton.blockEnd[k] == (k | 1) + 1;
+        }
+
         inputs = new double[Scattering.Inputs];
         outputs = new double[Scattering.PortCount];
         Propagate();
@@ -146,7 +152,12 @@ public struct RTypeRoot<TPorts, TDevice>
         ref var matrix = ref MemoryMarshal.GetReference(Scattering.Matrix);
         ref var input = ref MemoryMarshal.GetArrayDataReference(inputs);
         if (k == 0) {
-            for (var j = 0; j < waves.Length; j++) {
+            var j = 0;
+            for (; j + 2 <= waves.Length; j += 2) {
+                (waves[j], waves[j + 1]) = DotTwo(ref Unsafe.Add(ref matrix, j * columns), columns, ref input, count);
+            }
+
+            if (j < waves.Length) {
                 waves[j] = Dot(ref Unsafe.Add(ref matrix, j * columns), ref input, count);
             }
         } else {
@@ -156,7 +167,12 @@ public struct RTypeRoot<TPorts, TDevice>
             }
 
             var deviceRow = Scattering.DeviceRow;
-            for (var d = 0; d < k; d++) {
+            var d = 0;
+            for (; d + 2 <= k; d += 2) {
+                (p[d], p[d + 1]) = DotTwo(ref Unsafe.Add(ref matrix, (deviceRow + d) * columns), columns, ref input, count);
+            }
+
+            if (d < k) {
                 p[d] = Dot(ref Unsafe.Add(ref matrix, (deviceRow + d) * columns), ref input, count);
             }
 
@@ -165,7 +181,15 @@ public struct RTypeRoot<TPorts, TDevice>
             }
 
             ref var r = ref MemoryMarshal.GetArrayDataReference(Newton.currents);
-            for (var j = 0; j < waves.Length; j++) {
+            var j = 0;
+            for (; j + 2 <= waves.Length; j += 2) {
+                ref var row = ref Unsafe.Add(ref matrix, j * columns);
+                var (fromInputs, nextFromInputs) = DotTwo(ref row, columns, ref input, count);
+                var (fromDevices, nextFromDevices) = DotTwo(ref Unsafe.Add(ref row, count), columns, ref r, k);
+                (waves[j], waves[j + 1]) = (fromInputs + fromDevices, nextFromInputs + nextFromDevices);
+            }
+
+            if (j < waves.Length) {
                 ref var row = ref Unsafe.Add(ref matrix, j * columns);
                 waves[j] = Dot(ref row, ref input, count) + Dot(ref Unsafe.Add(ref row, count), ref r, k);
             }
@@ -232,6 +256,23 @@ public struct RTypeRoot<TPorts, TDevice>
     }
 
     /// <summary>
+    ///     <see cref="Dot" /> on two consecutive rows (<paramref name="columns" /> apart) at once: each its own sum in
+    ///     its own order, so the same results, with the vector read once for both.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static (double First, double Second) DotTwo(ref double row, int columns, ref double u, int count) {
+        ref var next = ref Unsafe.Add(ref row, columns);
+        var (first, second) = (0.0, 0.0);
+        for (var j = 0; j < count; j++) {
+            var x = Unsafe.Add(ref u, j);
+            first += Unsafe.Add(ref row, j) * x;
+            second += Unsafe.Add(ref next, j) * x;
+        }
+
+        return (first, second);
+    }
+
+    /// <summary>
     ///     <see cref="Solve" /> for one device port, written out: the same arithmetic in the same order (so the same
     ///     result to the last bit) without the general case's loops and spans. It covers the common case, plain limited
     ///     Newton steps converging within <see cref="NewtonSolver.LineSearchAfter" /> iterations, or with the bracket
@@ -247,6 +288,12 @@ public struct RTypeRoot<TPorts, TDevice>
         var (v, h, p, current, jacobian) = (s.voltages, s.history, s.prediction, s.deviceCurrents, s.jacobian);
         var (gc, absolute, relative) = (s.conductances[0], s.AbsoluteTolerance, s.RelativeTolerance);
         var (entry, previous) = (v[0], h[0]);
+        // The spans once (in the power amp's tick the JIT may run out of inlining budget for AsSpan).
+        var voltages = v.AsSpan(0, 1);
+        var starts = s.start.AsSpan(0, 1);
+        var proposals = s.proposed.AsSpan(0, 1);
+        var currents = current.AsSpan(0, 1);
+        var slopes = jacobian.AsSpan(0, 1);
         var x = entry;
         if (s is { Linearise: true, primed: true }) {
             // One Newton step on the last sample's Jacobian for the change in p: x = v + M⁻¹ Δp.
@@ -254,12 +301,12 @@ public struct RTypeRoot<TPorts, TDevice>
             m -= f * (jacobian[0] - gc);
             s.start[0] = entry;
             s.proposed[0] = Math.Abs(m) > 1e-300 ? entry + (p[0] - s.previousPrediction[0]) / m : entry;
-            Device.Limit(s.start.AsSpan(0, 1), s.proposed.AsSpan(0, 1));
+            Device.Limit(starts, proposals);
             x = s.proposed[0];
         } else if (s.Extrapolate) {
             s.start[0] = entry;
             s.proposed[0] = 2 * entry - previous;
-            Device.Limit(s.start.AsSpan(0, 1), s.proposed.AsSpan(0, 1));
+            Device.Limit(starts, proposals);
             x = s.proposed[0];
         }
 
@@ -269,7 +316,7 @@ public struct RTypeRoot<TPorts, TDevice>
         // The residual at x: the device's current and slope, r = i - G_c v, g = v - p - F r.
         v[0] = x;
         jacobian[0] = 0;
-        Device.Evaluate(v.AsSpan(0, 1), current.AsSpan(0, 1), jacobian.AsSpan(0, 1), 1);
+        Device.Evaluate(voltages, currents, slopes, 1);
         var trial = current[0] - gc * x;
         var g = x - p[0];
         g -= f * trial;
@@ -293,7 +340,7 @@ public struct RTypeRoot<TPorts, TDevice>
 
             var proposed = x + -g / a;
             s.proposed[0] = proposed;
-            Device.Limit(v.AsSpan(0, 1), s.proposed.AsSpan(0, 1));
+            Device.Limit(voltages, proposals);
             proposed = s.proposed[0];
             var bracketed = double.IsFinite(below) && double.IsFinite(above);
             if (iterations >= s.SafeguardAfter
@@ -322,7 +369,7 @@ public struct RTypeRoot<TPorts, TDevice>
             x += 1.0 * step;
             v[0] = x;
             jacobian[0] = 0;
-            Device.Evaluate(v.AsSpan(0, 1), current.AsSpan(0, 1), jacobian.AsSpan(0, 1), 1);
+            Device.Evaluate(voltages, currents, slopes, 1);
             trial = current[0] - gc * x;
             g = x - p[0];
             g -= f * trial;
@@ -479,6 +526,8 @@ public struct RTypeRoot<TPorts, TDevice>
         var direction = s.direction.AsSpan(0, k);
         var history = s.history.AsSpan(0, k);
         var best = s.best.AsSpan(0, k);
+        var (absolute, relative) = (s.AbsoluteTolerance, s.RelativeTolerance); // read once: the JIT may not inline them
+        var (most, lineSearch, reuse) = (s.MaxIterations, s.LineSearchAfter, s.ReuseFactors);
         v.CopyTo(start);
         if (s is { Linearise: true, primed: true }) {
             // One Newton step on the last sample's Jacobian for the change in p: v + M⁻¹ Δp, limited. When the last
@@ -515,7 +564,7 @@ public struct RTypeRoot<TPorts, TDevice>
             proposed.CopyTo(v);
         }
 
-        var chord = s.ReuseFactors && k > 2;
+        var chord = reuse && k > 2;
         s.factored &= chord;
         start.CopyTo(history);
         var bestNorm = double.PositiveInfinity;
@@ -549,7 +598,7 @@ public struct RTypeRoot<TPorts, TDevice>
             var converged = true;
             for (var d = 0; d < k; d++) {
                 step[d] = proposed[d] - v[d];
-                converged &= Math.Abs(step[d]) <= s.AbsoluteTolerance + s.RelativeTolerance * Math.Abs(v[d]);
+                converged &= Math.Abs(step[d]) <= absolute + relative * Math.Abs(v[d]);
             }
 
             if (converged) {
@@ -568,14 +617,14 @@ public struct RTypeRoot<TPorts, TDevice>
                 return;
             }
 
-            s.factored &= s.ReuseFactors;
+            s.factored &= reuse;
 
             // Backtrack until |g| decreases: the first try is the full (limited) step. Residual overwrites the step
             // buffer, so the direction is kept apart.
             step.CopyTo(direction);
             var lambda = 1.0;
             var accepted = false;
-            while (iterations < s.MaxIterations) {
+            while (iterations < most) {
                 iterations++;
                 for (var d = 0; d < k; d++) {
                     proposed[d] = v[d] + lambda * direction[d];
@@ -583,7 +632,7 @@ public struct RTypeRoot<TPorts, TDevice>
 
                 var candidate = Residual(k, proposed, ref bestNorm);
                 Bracket(k, proposed, ref below, ref above);
-                var plain = iterations <= s.LineSearchAfter || lambda <= ShortestStep;
+                var plain = iterations <= lineSearch || lambda <= ShortestStep;
                 if (candidate < norm || (plain && double.IsFinite(candidate))) {
                     proposed.CopyTo(v);
                     norm = candidate;
@@ -632,6 +681,7 @@ public struct RTypeRoot<TPorts, TDevice>
         var proposed = s.proposed.AsSpan(0, k);
         var jacobian = s.jacobian.AsSpan(0, k * k);
         var gc = s.conductances.AsSpan(0, k);
+        var (absolute, relative) = (s.AbsoluteTolerance, s.RelativeTolerance);
         step.CopyTo(s.rhsCopy);
         DenseLu.Solve(s.system.AsSpan(0, k * k), k, s.pivots, step, 1);
         for (var d = 0; d < k; d++) {
@@ -643,7 +693,7 @@ public struct RTypeRoot<TPorts, TDevice>
         for (var d = 0; d < k; d++) {
             converged &= proposed[d] == v[d] + step[d];
             step[d] = proposed[d] - v[d];
-            converged &= Math.Abs(step[d]) <= s.AbsoluteTolerance + s.RelativeTolerance * Math.Abs(v[d]);
+            converged &= Math.Abs(step[d]) <= absolute + relative * Math.Abs(v[d]);
         }
 
         if (!converged) {
@@ -686,16 +736,21 @@ public struct RTypeRoot<TPorts, TDevice>
         bool rebuild = false
     ) {
         var s = Newton;
+        var held = 0; // usually none: then there is nothing to re-solve
+        for (var d = 0; d < k; d++) {
+            held += proposed[d] == v[d] + unlimited[d] ? 0 : 1;
+        }
+
+        if (held == 0 || held == k) {
+            return;
+        }
+
         Span<int> free = stackalloc int[k];
         var count = 0;
         for (var d = 0; d < k; d++) {
             if (proposed[d] == v[d] + unlimited[d]) {
                 free[count++] = d;
             }
-        }
-
-        if (count == k || count == 0) {
-            return;
         }
 
         s.factored = false; // the system and pivot buffers are borrowed
@@ -846,6 +901,11 @@ public struct RTypeRoot<TPorts, TDevice>
         ref var jacobian = ref MemoryMarshal.GetArrayDataReference(s.jacobian);
         ref var gc = ref MemoryMarshal.GetArrayDataReference(s.conductances);
         ref var system = ref MemoryMarshal.GetArrayDataReference(target ?? s.system);
+        if (s.pairs && Vector128.IsHardwareAccelerated) {
+            BuildPairs(k, ref f, ref jacobian, ref gc, ref system);
+            return;
+        }
+
         ref var first = ref MemoryMarshal.GetArrayDataReference(s.blockStart);
         ref var end = ref MemoryMarshal.GetArrayDataReference(s.blockEnd);
         for (var d = 0; d < k; d++) {
@@ -864,6 +924,35 @@ public struct RTypeRoot<TPorts, TDevice>
     }
 
     /// <summary>
+    ///     <see cref="BuildSystem" /> when every device block is a pair of ports: both columns of a block at once, each
+    ///     lane the same subtractions in the same order as the scalar sum (the slope's diagonal less G_c, the other
+    ///     entries less 0, which leaves them as they are), so the same bits.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static void BuildPairs(int k, ref double f, ref double jacobian, ref double gc, ref double system) {
+        var identity0 = Vector128.Create(1.0, 0.0);
+        var identity1 = Vector128.Create(0.0, 1.0);
+        for (var b = 0; b < k; b += 2) {
+            // The block's two slope rows, (∂i_b/∂v_b - G_c, ∂i_b/∂v_b+1) and (∂i_b+1/∂v_b, ∂i_b+1/∂v_b+1 - G_c).
+            var upper = Vector128.Subtract(
+                Vector128.LoadUnsafe(ref Unsafe.Add(ref jacobian, b * k + b)),
+                Vector128.Create(Unsafe.Add(ref gc, b), 0.0)
+            );
+            var lower = Vector128.Subtract(
+                Vector128.LoadUnsafe(ref Unsafe.Add(ref jacobian, (b + 1) * k + b)),
+                Vector128.Create(0.0, Unsafe.Add(ref gc, b + 1))
+            );
+            for (var d = 0; d < k; d++) {
+                ref var row = ref Unsafe.Add(ref f, d * k + b);
+                var sum = d == b ? identity0 : d == b + 1 ? identity1 : Vector128<double>.Zero;
+                sum = Vector128.Subtract(sum, Vector128.Multiply(Vector128.Create(row), upper));
+                sum = Vector128.Subtract(sum, Vector128.Multiply(Vector128.Create(Unsafe.Add(ref row, 1)), lower));
+                sum.StoreUnsafe(ref Unsafe.Add(ref system, d * k + b));
+            }
+        }
+    }
+
+    /// <summary>
     ///     Evaluates the devices at <paramref name="v" />: currents, Jacobian, residual currents r = i - G_c v, and -g into
     ///     the step buffer. Returns |g|² scaled by the tolerances, and remembers the best point seen.
     /// </summary>
@@ -877,7 +966,14 @@ public struct RTypeRoot<TPorts, TDevice>
         var step = s.step.AsSpan(0, k);
         var p = s.prediction.AsSpan(0, k);
         var f = s.impedance.AsSpan(0, k * k);
-        jacobian.Clear();
+        // The devices only write their own blocks, and only blocks are read: the entries between them stay 0.
+        ref var entries = ref MemoryMarshal.GetReference(jacobian);
+        for (var d = 0; d < k; d++) {
+            for (var l = s.blockStart[d]; l < s.blockEnd[d]; l++) {
+                Unsafe.Add(ref entries, d * k + l) = 0;
+            }
+        }
+
         Device.Evaluate(v, current, jacobian, k);
         for (var d = 0; d < k; d++) {
             trial[d] = current[d] - gc[d] * v[d];
@@ -886,15 +982,35 @@ public struct RTypeRoot<TPorts, TDevice>
         var norm = 0.0;
         var (absolute, relative) = (s.AbsoluteTolerance, s.RelativeTolerance);
         ref var r = ref MemoryMarshal.GetReference(trial);
-        for (var d = 0; d < k; d++) {
-            var g = v[d] - p[d];
-            ref var row = ref MemoryMarshal.GetReference(f[(d * k)..]);
+        ref var rows = ref MemoryMarshal.GetReference(f);
+        var port = 0;
+        for (; port + 2 <= k; port += 2) {
+            // Two rows at once, each its own sum in its own order (the currents read once for both).
+            var (g, next) = (v[port] - p[port], v[port + 1] - p[port + 1]);
+            ref var row = ref Unsafe.Add(ref rows, port * k);
+            ref var below = ref Unsafe.Add(ref row, k);
+            for (var e = 0; e < k; e++) {
+                var drawn = Unsafe.Add(ref r, e);
+                g -= Unsafe.Add(ref row, e) * drawn;
+                next -= Unsafe.Add(ref below, e) * drawn;
+            }
+
+            (step[port], step[port + 1]) = (-g, -next);
+            var scaled = g / (absolute + relative * Math.Abs(v[port]));
+            var nextScaled = next / (absolute + relative * Math.Abs(v[port + 1]));
+            norm += scaled * scaled;
+            norm += nextScaled * nextScaled;
+        }
+
+        for (; port < k; port++) {
+            var g = v[port] - p[port];
+            ref var row = ref Unsafe.Add(ref rows, port * k);
             for (var e = 0; e < k; e++) {
                 g -= Unsafe.Add(ref row, e) * Unsafe.Add(ref r, e);
             }
 
-            step[d] = -g;
-            var scaled = g / (absolute + relative * Math.Abs(v[d]));
+            step[port] = -g;
+            var scaled = g / (absolute + relative * Math.Abs(v[port]));
             norm += scaled * scaled;
         }
 
@@ -977,6 +1093,7 @@ public sealed class NewtonSolver {
     internal readonly int[] blockStart; // per port: the first port of its device block
     internal readonly int[] blockEnd; // per port: one past the last port of its device block
     internal bool factored; // whether the system and pivot buffers hold the factors of the last Jacobian's system
+    internal bool pairs; // whether the device blocks are all two ports (triodes, op-amps)
 
     /// <summary>Iterations per sample before giving up and keeping the best iterate.</summary>
     public int MaxIterations { get; set; } = 32;

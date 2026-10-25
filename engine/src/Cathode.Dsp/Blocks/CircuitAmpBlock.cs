@@ -185,8 +185,14 @@ namespace Cathode.Dsp.Blocks;
 ///         The knobs are read on a fixed grid of <see cref="SubBlock" /> frames, so the output does not depend on the
 ///         host's block size.
 ///     </para>
+///     <para>
+///         A model's channel is built when it is first chosen, on the control thread: the type the block is prepared
+///         with, and any other the host asks for after setting it (<see cref="IControlRefresh.Refresh" />, after
+///         parameters are set and periodically for modifiers). The audio thread never builds one: until the chosen
+///         type's channel exists it plays the one it has. A channel built stays built, as all of them used to be.
+///     </para>
 /// </remarks>
-public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower {
+public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower, IControlRefresh {
     public const int Type = 0;
     public const int Gain = 1;
     public const int Bass = 2;
@@ -353,7 +359,8 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
     /// </summary>
     static readonly string[] KeptOnTypeChange = ["type", "level", "balance", "inputsel"];
 
-    readonly AmpChannel[] channels;
+    readonly AmpChannel?[] channels = new AmpChannel?[AmpDesign.All.Count]; // built on first use (control thread)
+    readonly Lock building = new();
     readonly Oversampler2x oversampler = new(1);
     readonly AmpBoost boost = new();
     readonly AmpEqualizer equalizer = new();
@@ -369,6 +376,7 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
     SpeakerStage speaker;
     OutputStage output;
     int activeType = -1;
+    bool prepared;
     int phase; // position on the sub-block grid
     double tremoloPhase;
     double outputScale = 1;
@@ -552,8 +560,7 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
     }
 
     public CircuitAmpBlock() : base(Info) {
-        channels = [..AmpDesign.All.Select(static a => new AmpChannel(a, 96_000))];
-        Channel = channels[0];
+        Channel = Build(0);
     }
 
     /// <summary>
@@ -735,11 +742,43 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
     /// <summary>The Cab block whose cabinet the Auto speaker load follows (<see cref="ICabFollower" />).</summary>
     public void FollowCab(CabBlock? cab) => this.cab = cab;
 
-    /// <summary>Switches to amp <paramref name="type" />, which starts at its operating point.</summary>
+    /// <summary>Control thread: builds the channel of the type the parameters now ask for, if it is new.</summary>
+    public void Refresh() => Build(TypeIndex(Params.GetTarget(Type)));
+
+    /// <summary>
+    ///     Control thread: the channel of <paramref name="type" />, built (and set to the block's rate once it is
+    ///     prepared) if it is the first time, then handed to the audio thread.
+    /// </summary>
+    AmpChannel Build(int type) {
+        lock (building) {
+            if (Volatile.Read(ref channels[type]) is { } built) {
+                return built;
+            }
+
+            var channel = new AmpChannel(AmpDesign.All[type], 96_000);
+            if (prepared) {
+                channel.SetSampleRate(Spec.SampleRate * Oversampling);
+            }
+
+            Volatile.Write(ref channels[type], channel);
+            return channel;
+        }
+    }
+
+    static int TypeIndex(float type) => Math.Clamp((int)type, 0, AmpDesign.All.Count - 1);
+
+    /// <summary>
+    ///     Switches to amp <paramref name="type" />, which starts at its operating point; until its channel is built (on
+    ///     the control thread) the amp stays as it is and the next block tries again.
+    /// </summary>
     void Select(int type) {
+        if (Volatile.Read(ref channels[TypeIndex(type)]) is not { } channel) {
+            return;
+        }
+
         activeType = type;
-        Channel = channels[Math.Clamp(type, 0, channels.Length - 1)];
-        features = Features[Math.Clamp(type, 0, channels.Length - 1)];
+        Channel = channel;
+        features = Features[TypeIndex(type)];
         var design = Channel.Design;
         var power = design.Power;
         var trim = Decibels.ToGain(design.OutputTrimDb);
@@ -924,8 +963,15 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower 
             oversampler.SetPhase(OversamplingPhase);
         }
 
-        foreach (var channel in channels) {
-            channel.SetSampleRate(spec.SampleRate * Oversampling);
+        lock (building) {
+            // The prepared type's channel first (if it is new), then every built one at the rate, once each.
+            prepared = false;
+            Build(TypeIndex(Params.GetTarget(Type)));
+            foreach (var channel in channels) {
+                channel?.SetSampleRate(spec.SampleRate * Oversampling);
+            }
+
+            prepared = true;
         }
 
         dynamics.Prepare(spec.SampleRate * Oversampling);

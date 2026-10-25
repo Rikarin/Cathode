@@ -53,7 +53,7 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 | M1.4 | JVM410H Clean and Crunch channels | ✅ | Remaining_marshall_chains_match_the_reference (JVM, 6 settings) | type `JVM410H Clean/Crunch` |
 | M1.5 | JVM410H Green / Orange / Red modes per channel | ◐ | The_modes_raise_the_gain_in_order | relay states deduced from the handbook (firmware sets them); Clean modes partly guessed |
 | M1.6 | Marshall AFD100 (Slash): AFD and #34 modes, High/Low input | 🟡 | Afd100_modes_and_inputs_set_the_gain; Remaining_marshall_chains_match_the_reference (AFD100, 6 settings: #34 −43 / −38 dB, AFD −44 / −41 dB at 2 / 50 mV; −27 / −24 and −23 / −20 dB with one stage per tube); sweeps, audibility, monotonic gain and master, panel labels (`RemainingMarshallTests`) | type `AFD100`, from AFD100-60-02 iss 1. Which relay state is AFD is inferred (energised = AFD; the CTL1 controller is not drawn); B+, idle, OT, feedback tap guessed; Power control and loop not modelled |
-| M1.7 | AFD100 CPU | ◐ | `Cathode.Bench --amps AFD100` (`--set 14=1` for AFD) | Over the high-gain budget (16 / 28 %) by the user's choice of accuracy, as the Quick Rod: #34 18.8 / 38.6 %, AFD 22.2 / 52.0 % (Plexi 8.3 / 14.7 %); AFD runs five triodes in one circuit (the library's new largest, `TTTTT`). One stage per tube fitted at 17.4 / 29.0 and 16.4 / 25.5 % but was −27 / −23 dB; V5 split from the AFD circuit saves a sixth and costs 11 dB |
+| M1.7 | AFD100 CPU | ◐ | `Cathode.Bench --amps AFD100` (`--set 14=1` for AFD) | Over the high-gain budget (16 / 28 %) by the user's choice of accuracy, as the Quick Rod: #34 18.8 / 38.6 %, AFD 22.2 / 52.0 % (Plexi 8.3 / 14.7 %); after the bit-identical solver speed-up (paired Newton-system build and LU, 2026-10) #34 17.2 / 31.4 %, AFD 18.0 / 35.5 % (Plexi 7.8–8.0 / 13.6 %), still over; AFD runs five triodes in one circuit (the library's new largest, `TTTTT`). One stage per tube fitted at 17.4 / 29.0 and 16.4 / 25.5 % but was −27 / −23 dB; V5 split from the AFD circuit saves a sixth and costs 11 dB |
 
 ## M2: power-amp driver variants
 
@@ -291,7 +291,7 @@ Twelve types appended after group D2 (`DriveCircuits.Round4Fuzz`, types 52–63)
 | QR1 | Quick Rod from the user's preamp drawing ("Splawn QuickRod" sheet 1/1): both channels, OD1/OD2, 1st/2nd and 3rd gear, solo boost, V1B and V3 on their shared cathode | 🟡 | Quick_rod_chains_match_the_reference (7 settings: clean −64, overdrive −55 / −56 / −58 dB in 1st / 2nd / 3rd gear); Od2_and_the_gears_raise_the_gain_in_order; Solo_boost_lifts_the_master | type `Quick Rod`; power amp (JCM800 2203's), switch positions and tapers guessed; the overdrive channel's V1A, V1B, V3 and V2A in one netlist (`NetworkStage` `TTTT`, which leaves every other model bit-identical: AmpDefaultsTests) |
 | QR2 | Panel names the amp's controls | 🟡 | Panel_names_the_real_controls_and_hides_the_rest | Clean (Switch 1), OD2 (Bright), 2nd / 3rd Gear (Switch 2 / 3), Solo Boost (Control 1, 0 = off) |
 | QR3 | Sweeps converge, every knob audible, Gain and Master monotonic, peaks under +6 dBFS | 🟡 | Knob_sweeps_at_full_drive_stay_finite_and_converge; Every_knob_is_audible; Gain_and_master_raise_the_level_monotonically | Middle and Solo Boost skipped on the clean channel (not in its circuit) |
-| QR4 | CPU | ◐ | `Cathode.Bench --amps "Quick Rod"` | Over the high-gain budget (16 / 28 %) by the user's choice of accuracy, like the Silver Jubilee's noise case: overdrive 17.6 / 35.0 %, 3rd gear with OD2 19.7 / 34.0 %, clean 11.1 / 24.3 % (Plexi 8.8 / 15.5 %); the three-triode cut fitted at 15.0 / 25.8 % but was −29 dB in 3rd gear |
+| QR4 | CPU | ✅ | `Cathode.Bench --amps "Quick Rod"` | Within the high-gain budget (16 / 28 %) since the bit-identical solver speed-up: overdrive 14.7 / 27.5 %, 3rd gear with OD2 15.4 / 27.5 % (Plexi 7.8–8.0 / 13.4–13.6 %; before it, on the same machine, 16.6 / 34.3 and 17.4 / 34.8 %). Earlier: overdrive 17.6 / 35.0 %, 3rd gear with OD2 19.7 / 34.0 %, clean 11.1 / 24.3 % (Plexi 8.8 / 15.5 %); the three-triode cut fitted at 15.0 / 25.8 % but was −29 dB in 3rd gear |
 | QR5 | Splawn Nitro | ⏸ | — | the drawing is the Quick Rod only; no Nitro circuit on it |
 
 ## Known open items from earlier rounds
@@ -300,8 +300,8 @@ These were reported as left over or deliberately deferred, and are not assigned 
 
 | Item | Status | Notes |
 |---|---|---|
-| Silver Jubilee over the high-gain CPU budget on loud noise (28–31.5 %) | ⏸ | Kept by decision (docs/06 §5.3): its sound wins |
-| SVT with Ultra switches on: 37 % on noise | ⬜ | Next idea: source stepping on hard samples |
+| Silver Jubilee over the high-gain CPU budget on loud noise (28–31.5 %) | ⏸ | Kept by decision (docs/06 §5.3): its sound wins. Still 30 % after the solver speed-up (its cost is two-port and 4-port Newton iterations, which the paired LU barely touches) |
+| SVT with Ultra switches on: 37 % on noise | ⬜ | Next idea: source stepping on hard samples. At defaults the solver speed-up took it from 27.6 to 23.7 % on noise |
 | TriAxis Lead 2 over budget (19 / 32 %); Rhythm over the clean budget | ⬜ | Dynamic Voice op-amp stage ≈ 2.4 %; could become a linear network |
 | JVM410H Orange/Red, JMP-1 OD over on guitar (17–19.6 %); JVM/DSL clean modes over on noise (26–30 %) | ⬜ | No solver shortcuts tried yet |
 | Bass 400 bias: drawing's −63 V needs 65 mA (35 W) on the library 6550 | ⬜ | Check the 6550 tube fit against a datasheet; the model runs 45 mA |
