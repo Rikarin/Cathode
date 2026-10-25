@@ -119,11 +119,18 @@ jobs:
           ./bin/cathode-host --self-test
           sudo ./install.sh
           token=$(sudo sed -n 's/^Cathode__Token=//p' /etc/cathode/cathode.env)
-          # Up to three minutes: a runner is slower than a desktop, and the server unpacks itself on its first start.
-          for _ in $(seq 1 90); do
+          # A minute at most: it starts in seconds, and unpacks itself on its first start. A slow start fails here.
+          for i in $(seq 1 30); do
             curl -fs -H "Authorization: Bearer $token" http://127.0.0.1:5180/api/v1/system > /tmp/system.json && break
+            if [ "$i" = 10 ]; then
+              # Not up after 20 s, when it starts in a few: show where it waits.
+              echo "The server has not answered in 20 s; its threads:"
+              dotnet tool install --tool-path /tmp/tools dotnet-stack > /dev/null
+              sudo /tmp/tools/dotnet-stack report -p "$(pgrep -x cathode-server)" || true
+            fi
             sleep 2
           done
+          echo "The server answered after about $((i * 2)) s."
           cat /tmp/system.json
           grep -q '"connected":true' /tmp/system.json
           curl -fs http://127.0.0.1:5180/ | grep -q 'name="cathode-server" content="same-origin"'

@@ -14,7 +14,16 @@ using Cathode.Server.Stores;
 // Unix domain socket (docs/adr/0001-process-model.md, docs/adr/0004-state-ownership.md). Listens on localhost unless
 // given other URLs, which then need an access token (Api/Access.cs).
 
-var builder = WebApplication.CreateSlimBuilder(args);
+var startup = System.Diagnostics.Stopwatch.StartNew();
+// Rooted at the program's own folder, with no configuration reload: the default roots it at the working directory and
+// watches it recursively for appsettings.json changes, and under systemd that is / (the whole disk, minutes on a big
+// one). Cathode has no appsettings.json; its settings come from the environment and the command line.
+var builder = WebApplication.CreateSlimBuilder(
+    new WebApplicationOptions {
+        Args = [..args, "--hostBuilder:reloadConfigOnChange=false"],
+        ContentRootPath = AppContext.BaseDirectory
+    }
+);
 var urls = builder.Configuration["urls"] ?? "http://127.0.0.1:5180";
 var token = builder.Configuration["Cathode:Token"] is { Length: > 0 } configured ? configured : null;
 Access.RequireTokenBeyondLoopback(urls, token);
@@ -50,6 +59,7 @@ builder.Services.AddSingleton<TemplateStore>();
 builder.Services.AddSingleton<PresetTools>();
 
 var app = builder.Build();
+StartupLog.Phase(app.Logger, "services built", startup.ElapsedMilliseconds);
 if (builder.Configuration["Cathode:EditorDirectory"] is { Length: > 0 } editor) {
     app.UseCathodeEditor(editor);
 }
@@ -65,9 +75,17 @@ engine.Connected += () => rig.ResyncAsync();
 engine.TelemetryUpdated += t => _ = rig.FollowEngineTempoAsync(t.Tempo);
 app.Services.GetRequiredService<GlobalStore>().Changed += rig.ApplyGlobalSettings;
 app.Services.GetRequiredService<MidiRouter>(); // listens from the start
+StartupLog.Phase(app.Logger, "rig ready", startup.ElapsedMilliseconds);
 await rig.LoadStartupAsync();
+StartupLog.Phase(app.Logger, "start-up preset loaded", startup.ElapsedMilliseconds);
 
 app.Run();
 
 /// <summary>Entry point, public for integration tests.</summary>
 public partial class Program;
+
+/// <summary>How long start-up took to each phase, before the server listens (a slow start shows where it went).</summary>
+static partial class StartupLog {
+    [LoggerMessage(Level = LogLevel.Information, Message = "Start-up: {Phase} after {Ms} ms")]
+    public static partial void Phase(ILogger logger, string phase, long ms);
+}
