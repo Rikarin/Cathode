@@ -846,6 +846,9 @@ public sealed class ToneStage {
     double bass = 0.5;
     double middle = 0.5;
     double midHz;
+    double middle2 = 0.5;
+    double lowHz;
+    double highHz;
     double sign = 1;
 
     public ToneStage() {
@@ -1010,18 +1013,29 @@ public sealed class ToneStage {
     /// <param name="bass">A stack's bass pot (<see cref="ToneKind.Stack" />), 0..1; noon is the pedal as built.</param>
     /// <param name="middle">A stack's middle pot.</param>
     /// <param name="midHz">An active EQ's Middle Freq where its mid sweeps (0 = the network's own).</param>
+    /// <param name="middle2">An active EQ's second mid band's pot (<see cref="ToneNetwork.Mid2Hz" />), 0..1; noon as built.</param>
+    /// <param name="lowHz">An active EQ's low band corner in place of the network's (0 = its own): a DIP switch.</param>
+    /// <param name="highHz">An active EQ's treble corner in place of the network's (0 = its own).</param>
     public void Configure(
         ToneNetwork network,
         double tone,
         double rate,
         double bass = 0.5,
         double middle = 0.5,
-        double midHz = 0
+        double midHz = 0,
+        double middle2 = 0.5,
+        double lowHz = 0,
+        double highHz = 0
     ) {
         var fresh = !ReferenceEquals(network, this.network) || rate != this.rate;
-        if (!fresh && tone == position && bass == this.bass && middle == this.middle && midHz == this.midHz) {
+        if (!fresh && tone == position && bass == this.bass && middle == this.middle && midHz == this.midHz
+            && middle2 == this.middle2 && lowHz == this.lowHz && highHz == this.highHz) {
             return;
         }
+
+        this.middle2 = middle2;
+        this.lowHz = lowHz;
+        this.highHz = highHz;
 
         this.network = network;
         this.rate = rate;
@@ -1035,7 +1049,7 @@ public sealed class ToneStage {
             return;
         }
 
-        Set(root, network, tone, bass, middle, midHz, rate);
+        Set(root, network, tone, bass, middle, midHz, middle2, lowHz, highHz, rate);
         if (fresh) {
             root.Reset();
         }
@@ -1071,11 +1085,14 @@ public sealed class ToneStage {
         double bass,
         double middle,
         double midHz,
+        double middle2,
+        double lowHz,
+        double highHz,
         double rate
     ) {
         var n = network;
         if (n.Kind == ToneKind.ActiveEq) {
-            SetActiveEq(root, n, tone, bass, middle, midHz, rate);
+            SetActiveEq(root, n, tone, bass, middle, midHz, middle2, lowHz, highHz, rate);
             return;
         }
 
@@ -1146,6 +1163,9 @@ public sealed class ToneStage {
         double bass,
         double middle,
         double midHz,
+        double middle2,
+        double lowHz,
+        double highHz,
         double rate
     ) {
         var rs = n.BandResistance;
@@ -1155,7 +1175,7 @@ public sealed class ToneStage {
         root.SetResistance(2, n.Load);
 
         // Low: L = Rs / ω, as the gyrator's Rs R C.
-        var low = n.LowHz > 0 ? n.LowHz : 100;
+        var low = n.LowHz > 0 ? lowHz > 0 ? lowHz : n.LowHz : 100;
         Pot(root, 3, n.Pot, n.LowHz > 0 ? bass : 0.5);
         root.SetResistance(5, GyratorResistance);
         root.SetResistance(6, rs);
@@ -1163,9 +1183,9 @@ public sealed class ToneStage {
 
         var mid = n.MidSweep && midHz > 0 ? midHz : n.MidHz;
         Mid(root, 7, 1, n.Pot, mid > 0 ? mid : 1_000, n.MidHz > 0 ? middle : 0.5, n.BandQ, rs, rate);
-        Mid(root, 11, 3, n.Pot, n.Mid2Hz > 0 ? n.Mid2Hz : 1_000, 0.5, n.BandQ, rs, rate);
+        Mid(root, 11, 3, n.Pot, n.Mid2Hz > 0 ? n.Mid2Hz : 1_000, n.Mid2Hz > 0 ? middle2 : 0.5, n.BandQ, rs, rate);
 
-        var high = n.HighHz > 0 ? n.HighHz : 5_000;
+        var high = n.HighHz > 0 ? highHz > 0 ? highHz : n.HighHz : 5_000;
         Pot(root, 15, n.Pot, n.HighHz > 0 ? tone : 0.5);
         root.SetResistance(17, rs);
         root.Capacitor(5).Configure(1 / (2 * Math.PI * high * rs), rate);

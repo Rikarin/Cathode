@@ -49,46 +49,7 @@ public static partial class DriveCircuits {
             Tone = FuzzTone,
             OutputDb = -14
         },
-        new(
-            "Super Fuzz",
-            "Univox Super-Fuzz: a silicon gain stage, a phase splitter and two diodes rectifying (octave up), clipped "
-            + "output stage; Tone sweeps the tone switch's mid scoop"
-        ) {
-            Stages = [
-                new(StageKind.Transistor) {
-                    Transistor = BjtModel.BC108,
-                    Supply = 9,
-                    InputCapacitance = 100e-9,
-                    Feedback = 470e3,
-                    Collector = 10e3,
-                    Emitter = 1e3,
-                    EmitterCapacitance = 1e-9, // unbypassed: the first stage's gain is about Rc / Re
-                    OutputCapacitance = 100e-9,
-                    Load = 100e3
-                },
-                new(StageKind.Rectifier) { Knee = 0.05, Blend = 0.9 },
-                new(StageKind.Gain) {
-                    GroundResistance = 4.7e3,
-                    GroundCapacitance = 1e-6,
-                    Feedback = 4.7e3,
-                    FeedbackPot = 100e3,
-                    FeedbackCapacitance = 1e-9,
-                    Diodes = DiodeStacks.Pair(Si)
-                }
-            ],
-            InputHighPassHz = 0,
-            Oversampling = 2,
-            Tone = new(ToneKind.Blend) {
-                Source = 10e3,
-                Resistor1 = 39e3,
-                Capacitor1 = 10e-9,
-                Capacitor2 = 3.9e-9,
-                Resistor2 = 22e3,
-                Pot = 100e3,
-                Load = 100e3
-            },
-            OutputDb = 10
-        },
+        SuperFuzz(),
         new(
             "Hard Fuzz",
             "Hard-clipping 60s-style fuzz (a design): transistor gain slamming its rails, 1 + 2 silicon to ground"
@@ -253,8 +214,11 @@ public static partial class DriveCircuits {
         },
         new(
             "Bosom Boost",
-            "Friedman Buxom Boost: clean op-amp boost to about 27 dB on 18 V, active treble (bass at noon)"
+            "Friedman Buxom Boost: clean op-amp boost to about 27 dB on 18 V, active bass and treble, Tight switch"
         ) {
+            // Tight raises the input coupling corner; Bass is a ±15 dB shelf at 100 Hz after the treble (both guessed).
+            TightHz = 150,
+            BassShelfHz = 100,
             Stages = [
                 new(StageKind.OpAmp) {
                     Amplifier = OpAmpModel.TL072,
@@ -290,4 +254,59 @@ public static partial class DriveCircuits {
             OutputDb = -10
         }
     ];
+
+    /// <summary>
+    ///     The Super-Fuzz: a silicon gain stage, a phase splitter and two diodes rectifying (octave up), a clipped output
+    ///     stage. Its tone switch: Scoop (the passive low-pass/high-pass network at noon: the mid scoop) or Flat (the
+    ///     filter switched out: the output stage straight into the 100k Balance pot, a little stray capacitance). The
+    ///     networks' values are guessed (39k + 10 nF, 3.9 nF + 22k; 100 pF).
+    /// </summary>
+    static DriveCircuit SuperFuzz() {
+        var scoop = new DriveCircuit(
+            "Super Fuzz",
+            "Univox Super-Fuzz: a silicon gain stage, a phase splitter and two diodes rectifying (octave up), clipped "
+            + "output stage; the tone switch scoops the mids or switches the filter out"
+        ) {
+            Switch = PedalSwitch.ToneSwitch,
+            ToneKnob = false,
+            Stages = [
+                new(StageKind.Transistor) {
+                    Transistor = BjtModel.BC108,
+                    Supply = 9,
+                    InputCapacitance = 100e-9,
+                    Feedback = 470e3,
+                    Collector = 10e3,
+                    Emitter = 1e3,
+                    EmitterCapacitance = 1e-9, // unbypassed: the first stage's gain is about Rc / Re
+                    OutputCapacitance = 100e-9,
+                    Load = 100e3
+                },
+                new(StageKind.Rectifier) { Knee = 0.05, Blend = 0.9 },
+                new(StageKind.Gain) {
+                    GroundResistance = 4.7e3,
+                    GroundCapacitance = 1e-6,
+                    Feedback = 4.7e3,
+                    FeedbackPot = 100e3,
+                    FeedbackCapacitance = 1e-9,
+                    Diodes = DiodeStacks.Pair(Si)
+                }
+            ],
+            InputHighPassHz = 0,
+            Oversampling = 2,
+            Tone = new(ToneKind.Blend) {
+                Source = 10e3,
+                Resistor1 = 39e3,
+                Capacitor1 = 10e-9,
+                Capacitor2 = 3.9e-9,
+                Resistor2 = 22e3,
+                Pot = 100e3,
+                Load = 100e3
+            },
+            OutputDb = 10
+        };
+        var flat = new ToneNetwork(ToneKind.HighCut) {
+            Source = 10e3, Resistor1 = 100, Pot = 1, Capacitor1 = 100e-12, Load = 100e3
+        };
+        return scoop with { Modes = [scoop with { Tone = flat }] };
+    }
 }

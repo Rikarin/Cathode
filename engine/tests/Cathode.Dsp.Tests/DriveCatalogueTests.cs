@@ -203,6 +203,12 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
 
         var dark = Tilt(0f);
         var bright = Tilt(10f);
+        if (!DriveCircuits.All[type - DriveBlock.CircuitTypes].ToneKnob) {
+            // A switch in the knob's place (the Super-Fuzz): Tone is hidden and does nothing.
+            Assert.Equal(dark, bright);
+            return;
+        }
+
         output.WriteLine($"{Name(type)}: treble/bass {dark:0.0} dB at tone 0, {bright:0.0} dB at tone 10");
         Assert.True(bright - dark > 3, $"tone moves the tilt by {bright - dark:0.0} dB");
     }
