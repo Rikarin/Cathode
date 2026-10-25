@@ -4,6 +4,23 @@ Cathode follows [semantic versioning](https://semver.org). From 1.0 on, a preset
 in every later one: the preset format carries a schema version (`schemaVersion`, now 1), and a release that changes
 the format upgrades older presets as it reads them.
 
+## 1.0.0-rc.2 — 2026-10-25
+
+### Fixed
+
+- **High-gain amps no longer hum after you stop playing.** Nine amps could lock into a 35-70 Hz oscillation once a
+  loud chord stopped, depending on the moment the playing stopped: the 5150, the SLO-100, the Dual, Triple and
+  3-Channel Rectifiers, the Rect-o-Verb, the TriAxis Rhythm, the Savage 120 and the Powerball. Every preamp stage
+  now runs on its own filtered supply node, as in the real circuits (read from the schematics for these nine; a
+  typical 10k / 22 µF chain elsewhere). Amps with three or more gain stages sound subtly different (at most a
+  -26 dB difference, under 0.15 dB in level); the others are unchanged.
+  - The Powerball's supply as drawn cannot hold its gain, so it has two extra filter nodes for V5 and V6 that are
+    not on the drawing: an assumption, documented in the model.
+  - The Powerball's inverter grid leak, its Open and Focused middle controls and two loads are corrected from the
+    drawing; the middle control changes its tone at the mid settings.
+- **The headless server starts in seconds.** Under systemd it took one to three minutes before the editor answered:
+  it watched the whole disk for a settings file Cathode does not have.
+
 ## 1.0.0-rc.1 — 2026-10-25
 
 The first release candidate: everything below is new.
