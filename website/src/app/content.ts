@@ -185,7 +185,7 @@ export const MODIFIER_SOURCES = ['LFO', 'Envelope', 'Sequencer', 'MIDI controlle
 export const LIVE_FEATURES = [
   {
     title: 'Perform page',
-    body: 'Big scene buttons and the handful of controls you picked for the song, readable from where you stand.'
+    body: 'The handful of controls you picked for the song, big and on one page: knobs, switches and choices from any block, for this preset or for all of them.'
   },
   {
     title: 'MIDI and footswitches',
@@ -201,8 +201,9 @@ export const LIBRARY_ITEMS = [
   'Presets, in banks and setlists',
   'Snapshots and templates',
   'Block presets, to reuse a drive or a delay',
+  'Global blocks: one amp or reverb shared by every preset that links it, edited once',
   'NAM amps and IR cabs, in the same place',
-  'Preset info: a name, an author and tags to find it by'
+  'Favourites, colours, and a name, an author and tags to search by'
 ];
 
 export const IO_FEATURES = [
@@ -237,17 +238,17 @@ export const PLATFORMS = [
     name: 'Linux',
     package: 'Cathode-<version>-linux-x86_64.AppImage',
     for: 'Linux desktops',
-    audio: 'ALSA and JACK in progress',
-    status: 'progress' as const,
-    note: 'Make it executable (chmod +x) and run it.'
+    audio: 'ALSA, JACK or PipeWire, and ALSA MIDI',
+    status: 'early' as const,
+    note: 'Make it executable (chmod +x) and run it. Audio is new: tested in containers, not yet on a real interface.'
   },
   {
     name: 'Windows',
     package: 'Cathode-<version>-win-x64.exe',
     for: 'Windows 10 and 11',
-    audio: 'Not yet: ASIO is planned',
-    status: 'pending' as const,
-    note: 'Not signed yet: SmartScreen asks you to confirm. Edits presets, without sound for now.'
+    audio: 'WASAPI and WinMM MIDI; ASIO planned',
+    status: 'early' as const,
+    note: 'Not signed yet: SmartScreen asks you to confirm. Audio is new: tested on shared-mode output so far.'
   }
 ];
 

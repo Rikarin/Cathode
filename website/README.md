@@ -43,7 +43,9 @@ the way Cloudflare does.
   what each is modelled after, and the Cab block's speakers, microphones and cabinets. Run it after the engine gains a
   block, a type or a model, and commit the result. What each amp is based on is kept by hand in `amp-models.ts` from
   `docs/07-amp-catalogue.md`; a model missing there shows under "Other". The home page's counts come from here too.
-- `src/app/screenshots.ts`: the screenshots. Save a picture as `public/screenshots/<file>` and set its `src` to
-  `screenshots/<file>`; until then the page shows a placeholder that names the file it expects.
+- `src/app/screenshots.ts`: the screenshots, as WebP in `public/screenshots`. Set a shot's `src` and its `aspect`
+  (width / height) when its picture arrives; until then the page shows a placeholder that names the file it expects.
+  A whole macOS window capture (title bar and rounded corners, the shadow margin cropped off) is marked `window` and
+  shown as it is; a crop of part of the app gets the glass frame.
 - `public/icon.png` is the desktop app's icon (`editor/apps/desktop/assets/icon.png`); `logo.png`, `favicon-64.png`
   and `apple-touch-icon.png` are made from it.

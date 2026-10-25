@@ -45,8 +45,7 @@ const GRID = { cols: 14, rows: 6 };
 
 const STATUS = {
   ready: { label: 'Plays sound', dot: 'bg-emerald-400' },
-  progress: { label: 'Audio in progress', dot: 'bg-amber-400' },
-  pending: { label: 'No audio yet', dot: 'bg-zinc-500' }
+  early: { label: 'Plays sound, early', dot: 'bg-amber-400' }
 };
 
 @Component({
@@ -156,10 +155,10 @@ const STATUS = {
           </p>
         </div>
 
-        <div class="mt-12 grid gap-4 lg:grid-cols-3">
-          <cw-screenshot class="lg:col-span-2" [shot]="shots.amp" />
+        <div class="mt-12 grid gap-4">
+          <cw-screenshot [shot]="shots.amp" />
 
-          <div class="grid gap-4">
+          <div class="grid gap-4 md:grid-cols-2">
             <div class="card p-6 sm:p-8">
               <h3 class="text-xl font-semibold">Behind the front panel</h3>
               <p class="text-foreground-muted mt-2 text-sm leading-relaxed">
@@ -222,8 +221,8 @@ const STATUS = {
           </p>
         </div>
 
-        <div class="mt-12 grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-          <cw-screenshot [shot]="shots.cab" />
+        <div class="mt-12 grid gap-4">
+          <cw-screenshot class="mx-auto w-full max-w-6xl" [shot]="shots.cab" />
 
           <div class="grid gap-4">
             <dl class="grid grid-cols-3 gap-4">
@@ -235,19 +234,21 @@ const STATUS = {
               }
             </dl>
 
-            @for (feature of cabFeatures; track feature.title; let i = $index) {
-              <div class="card flex gap-4 p-6">
-                <ng-icon
-                  [name]="i === 0 ? 'matMicRound' : i === 1 ? 'matWavesRound' : 'matSpeakerRound'"
-                  size="1.25rem"
-                  class="text-signal mt-0.5 shrink-0"
-                />
-                <div>
-                  <h3 class="font-semibold">{{ feature.title }}</h3>
-                  <p class="text-foreground-muted mt-1.5 text-sm leading-relaxed">{{ feature.body }}</p>
+            <div class="grid gap-4 md:grid-cols-3">
+              @for (feature of cabFeatures; track feature.title; let i = $index) {
+                <div class="card flex gap-4 p-6">
+                  <ng-icon
+                    [name]="i === 0 ? 'matMicRound' : i === 1 ? 'matWavesRound' : 'matSpeakerRound'"
+                    size="1.25rem"
+                    class="text-signal mt-0.5 shrink-0"
+                  />
+                  <div>
+                    <h3 class="font-semibold">{{ feature.title }}</h3>
+                    <p class="text-foreground-muted mt-1.5 text-sm leading-relaxed">{{ feature.body }}</p>
+                  </div>
                 </div>
-              </div>
-            }
+              }
+            </div>
           </div>
         </div>
       </section>
@@ -423,7 +424,8 @@ const STATUS = {
             <h3 class="text-xl font-semibold">Modifiers on any knob</h3>
             <p class="text-foreground-muted mt-2 text-sm leading-relaxed">
               Right-click a control and drive it from a source: a filter that breathes with an LFO, a wah on your
-              picking, a delay mix on an expression pedal.
+              picking, a delay mix on an expression pedal. Set its range, attack and release, its curve, and the
+              channels it applies on.
             </p>
             <svg
               class="mt-6 h-24 w-full"
@@ -449,8 +451,9 @@ const STATUS = {
           </div>
 
           <cw-screenshot [shot]="shots.perform" />
+          <cw-screenshot [shot]="shots.modifiers" />
 
-          <div class="grid gap-4">
+          <div class="grid gap-4 md:grid-cols-3 lg:col-span-2">
             @for (feature of liveFeatures; track feature.title) {
               <div class="card p-6">
                 <h3 class="font-semibold">{{ feature.title }}</h3>
@@ -494,8 +497,9 @@ const STATUS = {
         <div class="mx-auto max-w-3xl text-center">
           <h2 class="display gradient text-4xl sm:text-5xl md:text-6xl">Ins and outs for a real rig</h2>
           <p class="text-foreground-muted mx-auto mt-5 max-w-2xl text-lg">
-            Use every channel your interface has. Cathode measures your round-trip latency with a loopback test, and
-            aims for 64 samples at 48 kHz.
+            Use every channel your interface has. Audio setup shows where the latency goes, from the interface to the
+            buffer and the preset, and calibrates the input so the amp and drive models read your guitar in volts. 64
+            samples at 48 kHz is the target.
           </p>
         </div>
 
