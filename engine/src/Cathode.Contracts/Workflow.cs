@@ -105,3 +105,9 @@ public sealed record BlockPresetExportRequest(List<string> Ids);
 
 /// <summary>Saves every block of the working copy (all channels and modifiers) to the Block Library.</summary>
 public sealed record SaveAllBlocksRequest(string? Folder = null);
+
+/// <summary>
+///     The user's colour tag and favourite flag for a factory preset, which is read-only itself: kept beside it in the
+///     data folder.
+/// </summary>
+public sealed record FactoryPresetMark(string Id, string? Color = null, bool Favorite = false);

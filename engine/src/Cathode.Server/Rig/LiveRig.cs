@@ -149,6 +149,7 @@ public sealed partial class LiveRig(
                 await StructuralAsync(p => {
                         p.Name = next.Name;
                         p.Author = next.Author;
+                        p.Description = next.Description;
                         p.Tags = next.Tags;
                         p.Tempo = next.Tempo;
                         p.Rows = next.Rows;
@@ -581,8 +582,16 @@ public sealed partial class LiveRig(
         }
     }
 
-    /// <summary>Stores the working copy in the library, remembering the scene it is on and the copy for Scene Revert.</summary>
+    /// <summary>
+    ///     Stores the working copy in the library, remembering the scene it is on and the copy for Scene Revert. A
+    ///     factory preset cannot be overwritten: saving one stores the user's own copy, under a new id.
+    /// </summary>
     LiveState SaveWorkingCopy() {
+        if (preset.Factory == true || FactoryPresets.IsFactoryId(preset.Id)) {
+            preset.Id = Preset.NewId();
+            preset.Factory = null;
+        }
+
         preset.SavedScene = activeScene;
         presets.Save(preset);
         Remember();
@@ -594,8 +603,8 @@ public sealed partial class LiveRig(
     void Remember() => savedJson = JsonSerializer.Serialize(preset, ContractsJsonContext.Default.Preset);
 
     /// <summary>
-    ///     Renames the working copy and sets its author and tags, as one undoable edit. Nothing reaches the engine.
-    ///     Blank tags are dropped; an empty author clears it.
+    ///     Renames the working copy and sets its author, tags and description, as one undoable edit. Nothing reaches
+    ///     the engine. Blank tags are dropped; an empty author or description clears it.
     /// </summary>
     public Task<LiveState> UpdateInfoAsync(PresetInfoRequest request, long? expected) =>
         Locked(() => {
@@ -611,6 +620,10 @@ public sealed partial class LiveRig(
 
                 if (request.Tags is { } tags) {
                     preset.Tags = [..tags.Select(static t => t.Trim()).Where(static t => t.Length > 0).Distinct()];
+                }
+
+                if (request.Description is { } description) {
+                    preset.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
                 }
 
                 return Task.FromResult(Changed("presetInfoUpdated"));

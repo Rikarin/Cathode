@@ -18,7 +18,16 @@ public sealed class Preset {
 
     public string? Author { get; set; }
 
+    /// <summary>A sentence or two on what the preset is and how to play it, or null.</summary>
+    public string? Description { get; set; }
+
     public List<string> Tags { get; set; } = [];
+
+    /// <summary>
+    ///     True for a preset of the factory bank, which ships with Cathode and cannot be overwritten, renamed or deleted
+    ///     (saving one stores a copy); null for the user's own.
+    /// </summary>
+    public bool? Factory { get; set; }
 
     public double Tempo { get; set; } = 120;
 
@@ -223,6 +232,9 @@ public sealed class Bank {
     public string Id { get; set; } = Preset.NewId();
 
     public string Name { get; set; } = "New Bank";
+
+    /// <summary>True for the factory bank, which lists the factory presets and cannot be changed; null otherwise.</summary>
+    public bool? Factory { get; set; }
 
     /// <summary>Preset id per slot; null or missing slots are empty.</summary>
     public List<string?> Slots { get; set; } = [];

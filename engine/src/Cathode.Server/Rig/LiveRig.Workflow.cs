@@ -410,6 +410,21 @@ public sealed partial class LiveRig {
                     throw RigException.NotFound($"No preset '{id}'.");
                 }
 
+                if (stored?.Factory == true) {
+                    // Read-only: only the user's own colour tag and favourite flag go beside it.
+                    if (change.Name is not null && change.Name.Trim() != stored.Name) {
+                        throw RigException.Conflict("Factory presets cannot be renamed; save a copy to rename it.");
+                    }
+
+                    Apply(stored, change with { Name = null });
+                    presets.Mark(id, stored.Color, stored.Favorite);
+                    if (preset.Id == id) {
+                        Apply(preset, change with { Name = null });
+                    }
+
+                    return Task.FromResult(Changed("presetMetadataChanged", markDirty: false));
+                }
+
                 if (stored is not null) {
                     Apply(stored, change);
                     presets.Save(stored);

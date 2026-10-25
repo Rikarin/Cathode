@@ -31,6 +31,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddCathodeCors();
 builder.Services.AddOpenApi(static o => o.MarkNonNullablePropertiesRequired());
 builder.Services.AddSingleton(new BlockCatalog(BlockRegistry.CreateDefault().AddNativeBlocks()));
+builder.Services.AddSingleton<FactoryPresets>();
 builder.Services.AddSingleton<PresetStore>();
 builder.Services.AddSingleton<BlockPresetStore>();
 builder.Services.AddSingleton<Library>();

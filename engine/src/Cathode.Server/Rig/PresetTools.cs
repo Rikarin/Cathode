@@ -99,7 +99,8 @@ public sealed class PresetTools(PresetStore presets, BlockCatalog catalog) {
         List<string> skipped = [];
         foreach (var id in ids.Distinct()) {
             var preset = StoreIds.IsValid(id) ? presets.Get(id) : null;
-            if (preset is not null && change(preset)) {
+            // Factory presets are read-only: Reset Amp blocks and Batch Set leave them alone.
+            if (preset is not null && preset.Factory != true && change(preset)) {
                 presets.Save(preset);
                 changed.Add(id);
             } else {
