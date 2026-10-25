@@ -90,11 +90,15 @@ export const SHOTS = {
     src: 'screenshots/library.webp',
     window: true
   },
-  setup: shot(
-    'setup.png',
-    'Audio setup',
-    'Settings: the audio interface, sample rate and buffer, and the measured latency.',
-    '4 / 3'
-  ),
+  setup: {
+    ...shot(
+      'setup.webp',
+      'Cathode — Audio setup',
+      'Settings, Audio setup: the latency of the device input and output, the buffer and the preset, 11.56 ms in all; the input level calibration; and the interface, its sample rate and buffer size.',
+      '1856 / 1392'
+    ),
+    src: 'screenshots/setup.webp',
+    window: true
+  },
   remote: shot('remote.png', 'Phone', 'The editor in a phone browser, connected to a headless rig.', '9 / 16')
 } satisfies Record<string, Shot>;

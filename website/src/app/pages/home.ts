@@ -495,8 +495,9 @@ const STATUS = {
         <div class="mx-auto max-w-3xl text-center">
           <h2 class="display gradient text-4xl sm:text-5xl md:text-6xl">Ins and outs for a real rig</h2>
           <p class="text-foreground-muted mx-auto mt-5 max-w-2xl text-lg">
-            Use every channel your interface has. Cathode measures your round-trip latency with a loopback test, and
-            aims for 64 samples at 48 kHz.
+            Use every channel your interface has. Audio setup shows where the latency goes, from the interface to the
+            buffer and the preset, and calibrates the input so the amp and drive models read your guitar in volts. 64
+            samples at 48 kHz is the target.
           </p>
         </div>
 
