@@ -39,7 +39,14 @@ public sealed class CompiledGraph : IDisposable {
     readonly ModifierBinding[] modifiers;
     readonly ILooperBlock? looperBlock;
     readonly bool[] outputs = new bool[NodeTypes.OutputCount];
-    readonly float[] peaks;
+    readonly float[] meters;
+    readonly int[] meterOffsets;
+    readonly string[] meterLayout;
+    readonly IBlockMeters[] ownMeters;
+    readonly int[] ownOffsets;
+
+    /// <summary>The standard meter every block has, first in its <see cref="MeterIds" />: its output peak (linear).</summary>
+    public const string PeakMeter = "peak";
 
     /// <summary>Identifies this graph; commands addressed to another generation are ignored.</summary>
     public int Generation { get; }
@@ -62,10 +69,15 @@ public sealed class CompiledGraph : IDisposable {
     public ILooperBlock? LooperBlock => looperBlock;
 
     /// <summary>
-    ///     Audio thread: each slot's output peak since <see cref="ClearPeaks" /> (0 for a block that did not run, such as
-    ///     a bypassed Thru block).
+    ///     Audio thread: every block meter, slot by slot (<see cref="MeterOffset" />), each slot's <see cref="MeterIds" />
+    ///     in order. The first of each slot is <see cref="PeakMeter" />, its output peak since <see cref="ClearPeaks" />
+    ///     (0 for a block that did not run, such as a bypassed Thru block); the rest are the block's own
+    ///     (<see cref="IBlockMeters" />) as of the last <see cref="CaptureMeters" />.
     /// </summary>
-    public ReadOnlySpan<float> BlockPeaks => peaks;
+    public ReadOnlySpan<float> Meters => meters;
+
+    /// <summary>How many values <see cref="Meters" /> holds.</summary>
+    public int MeterCount => meters.Length;
 
     public IReadOnlyList<ModifierBinding> Modifiers => modifiers;
 
@@ -136,7 +148,34 @@ public sealed class CompiledGraph : IDisposable {
         dryLeft = new(spec.MaxBlockSize);
         dryRight = new(spec.MaxBlockSize);
         fadeStep = (float)(1.0 / Math.Max(1.0, BypassFadeMs * 0.001 * spec.SampleRate));
-        peaks = new float[blocks.Length];
+        // Few arrays and no per-slot ones: a preset load's allocation is budgeted (HostAllocationTests).
+        meterOffsets = new int[blocks.Length];
+        var meterCount = 0;
+        var metered = 0;
+        for (var i = 0; i < blocks.Length; i++) {
+            meterOffsets[i] = meterCount;
+            meterCount++;
+            if (blocks[i] is IBlockMeters own) {
+                meterCount += own.MeterIds.Count;
+                metered++;
+            }
+        }
+
+        meters = new float[meterCount];
+        meterLayout = new string[meterCount];
+        ownMeters = new IBlockMeters[metered];
+        ownOffsets = new int[metered];
+        metered = 0;
+        for (var i = 0; i < blocks.Length; i++) {
+            meterLayout[meterOffsets[i]] = PeakMeter;
+            if (blocks[i] is IBlockMeters own) {
+                ownMeters[metered] = own;
+                ownOffsets[metered++] = meterOffsets[i] + 1;
+                for (var m = 0; m < own.MeterIds.Count; m++) {
+                    meterLayout[meterOffsets[i] + 1 + m] = own.MeterIds[m];
+                }
+            }
+        }
         bypass = new BypassState[blocks.Length];
         for (var i = 0; i < blocks.Length; i++) {
             bypass[i] = new(bypassed[i], bypassModes[i]);
@@ -187,8 +226,43 @@ public sealed class CompiledGraph : IDisposable {
     /// <summary>Whether the grid has a live node for output <paramref name="output" /> (0 = Output 1, 1-3 = Outputs 2-4).</summary>
     public bool HasOutput(int output) => outputs[output];
 
-    /// <summary>Audio thread: starts a new peak measurement for <see cref="BlockPeaks" />.</summary>
-    public void ClearPeaks() => Array.Clear(peaks);
+    /// <summary>
+    ///     The id of each value in <see cref="Meters" />: slot by slot, <see cref="PeakMeter" /> and then the block's own,
+    ///     so each <see cref="PeakMeter" /> starts the next slot's meters. The host sends it with the slot ids.
+    /// </summary>
+    public string[] MeterLayout => meterLayout;
+
+    /// <summary>The ids of slot <paramref name="slot" />'s meters: <see cref="PeakMeter" />, then the block's own.</summary>
+    public ArraySegment<string> MeterIds(int slot) =>
+        new(
+            meterLayout,
+            meterOffsets[slot],
+            (slot + 1 < meterOffsets.Length ? meterOffsets[slot + 1] : meterLayout.Length) - meterOffsets[slot]
+        );
+
+    /// <summary>Where slot <paramref name="slot" />'s meters start in <see cref="Meters" />.</summary>
+    public int MeterOffset(int slot) => meterOffsets[slot];
+
+    /// <summary>The index in <see cref="Meters" /> of block <paramref name="instanceId" />'s meter <paramref name="meter" />, or -1.</summary>
+    public int MeterIndex(string instanceId, string meter = PeakMeter) {
+        var slot = SlotOf(instanceId);
+        var index = slot < 0 ? -1 : MeterIds(slot).AsSpan().IndexOf(meter);
+        return index < 0 ? -1 : meterOffsets[slot] + index;
+    }
+
+    /// <summary>Audio thread: starts a new peak measurement for the <see cref="PeakMeter" />s.</summary>
+    public void ClearPeaks() {
+        for (var i = 0; i < meterOffsets.Length; i++) {
+            meters[meterOffsets[i]] = 0f;
+        }
+    }
+
+    /// <summary>Audio thread, once per callback after <see cref="Process" />: reads the blocks' own meters into <see cref="Meters" />.</summary>
+    public void CaptureMeters() {
+        for (var i = 0; i < ownMeters.Length; i++) {
+            ownMeters[i].ReadMeters(meters.AsSpan(ownOffsets[i], ownMeters[i].MeterIds.Count));
+        }
+    }
 
     /// <summary>Any thread: set a parameter target. Continuous values need no command queue.</summary>
     public void SetParameter(int slot, int paramIndex, float value) => blocks[slot].Params.SetTarget(paramIndex, value);
@@ -288,12 +362,13 @@ public sealed class CompiledGraph : IDisposable {
 
     void RunBlock(int slot, in StereoBuffer io, in BlockContext context) {
         RunBypassed(slot, io, context);
-        var peak = peaks[slot];
+        var offset = meterOffsets[slot];
+        var peak = meters[offset];
         for (var i = 0; i < io.Length; i++) {
             peak = Math.Max(peak, Math.Max(Math.Abs(io.Left[i]), Math.Abs(io.Right[i])));
         }
 
-        peaks[slot] = peak;
+        meters[offset] = peak;
     }
 
     void RunBypassed(int slot, in StereoBuffer io, in BlockContext context) {

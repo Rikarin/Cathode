@@ -398,8 +398,7 @@ export class CabPanel {
 
   /** One of the block's own meters from the latest telemetry, dB, or `fallback` before any arrives. */
   private meter(id: string, fallback: number): number {
-    const block = this.block().id;
-    return this.events.latest?.blockMeters?.find(b => b.block === block)?.meters[id] ?? fallback;
+    return this.events.blockMeter(this.block().id, id) ?? fallback;
   }
 
   protected param(key: SlotKey): ParameterInfo | undefined {

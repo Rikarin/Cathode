@@ -448,7 +448,7 @@ export class GridEditor {
   protected meterSources(id: string): ReadonlyArray<() => number> {
     let sources = this.meters.get(id);
     if (!sources) {
-      sources = [() => this.events.latest?.blocks?.[id] ?? 0];
+      sources = [() => this.events.blockMeter(id, 'peak') ?? 0];
       this.meters.set(id, sources);
     }
 

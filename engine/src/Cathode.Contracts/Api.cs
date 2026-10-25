@@ -167,10 +167,12 @@ public sealed record RigEvent(
 );
 
 /// <summary>
-///     Pushed over the WebSocket about 30 times a second. <c>Blocks</c> is each grid block's output peak since the last
-///     frame, by block id; the loudness is the output's ITU-R BS.1770 momentary (400 ms) and short-term (3 s) level in
-///     LUFS. Both come from the shared-memory telemetry and are absent without it. <c>BlockMeters</c> are the meters
-///     blocks keep of their own (<see cref="BlockMeterInfo" />), about ten times a second.
+///     Pushed over the WebSocket about 30 times a second. <c>Blocks</c> holds every block meter since the last frame,
+///     by block id and then meter id: each grid block's <c>peak</c> (its output peak, linear) and the meters some blocks
+///     keep of their own, in dB: the Cab's <c>preampIn</c> (the level into the mic preamp, 0 at the onset of clipping)
+///     and <c>motorReduction</c> (Motor Drive's gain reduction). Each is the highest value since the previous frame. The
+///     loudness is the output's ITU-R BS.1770 momentary (400 ms) and short-term (3 s) level in LUFS. Both come from the
+///     shared-memory telemetry and are absent without it.
 /// </summary>
 public sealed record Telemetry(
     string Type,
@@ -182,18 +184,11 @@ public sealed record Telemetry(
     TunerInfo? Tuner,
     double Tempo = 120,
     LooperInfo? Looper = null,
-    Dictionary<string, float>? Blocks = null,
+    Dictionary<string, Dictionary<string, float>>? Blocks = null,
     float? LoudnessMomentary = null,
     float? LoudnessShortTerm = null,
-    float[]? OutputPeaks = null,
-    IReadOnlyList<BlockMeterInfo>? BlockMeters = null
+    float[]? OutputPeaks = null
 );
-
-/// <summary>
-///     A block's own meters by id, in dB: the Cab's <c>preampIn</c> (the level into the mic preamp, 0 at the onset of
-///     clipping) and <c>motorReduction</c> (Motor Drive's gain reduction). About ten times a second.
-/// </summary>
-public sealed record BlockMeterInfo(string Block, IReadOnlyDictionary<string, float> Meters);
 
 /// <summary>
 ///     Pushed about 30 times a second while the scope is on (<c>PUT /api/v1/scope</c>): the most recent output samples

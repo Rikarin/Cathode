@@ -29,10 +29,10 @@ public sealed class TelemetrySnapshot {
 
     public int[] BlockGenerations { get; } = new int[TelemetryLayout.MeterSlots];
 
-    public int[] BlockCounts { get; } = new int[TelemetryLayout.MeterSlots];
+    public int[] BlockMeterCounts { get; } = new int[TelemetryLayout.MeterSlots];
 
-    /// <summary>Block peaks, <see cref="TelemetryLayout.BlockMeters" /> per meter slot.</summary>
-    public float[] BlockPeaks { get; } = new float[TelemetryLayout.MeterSlots * TelemetryLayout.BlockMeters];
+    /// <summary>Block meters, <see cref="TelemetryLayout.BlockMeters" /> per meter slot.</summary>
+    public float[] BlockMeters { get; } = new float[TelemetryLayout.MeterSlots * TelemetryLayout.BlockMeters];
 
     public float LoudnessMomentary { get; set; }
 
@@ -58,11 +58,12 @@ public sealed class TelemetrySnapshot {
     }
 
     /// <summary>
-    ///     The highest peak of each grid block over the slots after <paramref name="slot" /> up to
+    ///     The highest value of each block meter over the slots after <paramref name="slot" /> up to
     ///     <see cref="CurrentSlot" />, for the newest graph generation among them, into <paramref name="destination" />
-    ///     (by graph slot). Returns that generation and how many blocks it has, or (-1, 0) when no slot is new.
+    ///     (in the graph's meter order). Returns that generation and how many meters it has, or (-1, 0) when no slot is
+    ///     new.
     /// </summary>
-    public (int Generation, int Count) BlockPeaksSince(long slot, Span<float> destination) {
+    public (int Generation, int Count) BlockMetersSince(long slot, Span<float> destination) {
         var current = CurrentSlot;
         long newest = -1;
         var generation = -1;
@@ -84,11 +85,16 @@ public sealed class TelemetrySnapshot {
                 continue;
             }
 
-            count = Math.Max(count, BlockCounts[i]);
-            var row = BlockPeaks.AsSpan(i * TelemetryLayout.BlockMeters, Math.Min(BlockCounts[i], destination.Length));
+            // The first row to hold a meter copies it, later ones take the maximum: own meters in dB are below 0.
+            var row = BlockMeters.AsSpan(
+                i * TelemetryLayout.BlockMeters,
+                Math.Min(BlockMeterCounts[i], destination.Length)
+            );
             for (var b = 0; b < row.Length; b++) {
-                destination[b] = Math.Max(destination[b], row[b]);
+                destination[b] = b < count ? Math.Max(destination[b], row[b]) : row[b];
             }
+
+            count = Math.Max(count, row.Length);
         }
 
         return (generation, count);
@@ -108,8 +114,8 @@ public sealed class TelemetrySnapshot {
         OutputLeftPeaks.CopyTo(other.OutputLeftPeaks, 0);
         OutputRightPeaks.CopyTo(other.OutputRightPeaks, 0);
         BlockGenerations.CopyTo(other.BlockGenerations, 0);
-        BlockCounts.CopyTo(other.BlockCounts, 0);
-        BlockPeaks.CopyTo(other.BlockPeaks, 0);
+        BlockMeterCounts.CopyTo(other.BlockMeterCounts, 0);
+        BlockMeters.CopyTo(other.BlockMeters, 0);
         other.LoudnessMomentary = LoudnessMomentary;
         other.LoudnessShortTerm = LoudnessShortTerm;
     }
@@ -142,19 +148,23 @@ public sealed class TelemetryMonitor(TelemetryRegion region) {
     readonly TelemetrySnapshot current = new();
     readonly TelemetrySnapshot older = new();
     readonly TelemetrySnapshot newer = new();
-    readonly float[] blockPeaks = new float[TelemetryLayout.BlockMeters];
+    readonly float[] blockMeters = new float[TelemetryLayout.BlockMeters];
     long lastSlot = -1;
     bool started;
 
     public TelemetryRegion Region => region;
 
-    /// <summary>Each grid block's peak since the previous poll, by graph slot (<see cref="BlockCount" /> of them).</summary>
-    public ReadOnlySpan<float> BlockPeaks => blockPeaks.AsSpan(0, BlockCount);
+    /// <summary>
+    ///     The highest value of every block meter since the previous poll, in the graph's meter order
+    ///     (<c>CompiledGraph.Meters</c>: each slot's output peak, then its own meters; <see cref="BlockMeterCount" />
+    ///     of them).
+    /// </summary>
+    public ReadOnlySpan<float> BlockMeters => blockMeters.AsSpan(0, BlockMeterCount);
 
-    /// <summary>The graph generation <see cref="BlockPeaks" /> belong to, or -1.</summary>
+    /// <summary>The graph generation <see cref="BlockMeters" /> belong to, or -1.</summary>
     public int BlockGeneration { get; private set; } = -1;
 
-    public int BlockCount { get; private set; }
+    public int BlockMeterCount { get; private set; }
 
     /// <summary>The output's momentary loudness (400 ms), LUFS, as of the last poll.</summary>
     public float LoudnessMomentary { get; private set; }
@@ -176,7 +186,7 @@ public sealed class TelemetryMonitor(TelemetryRegion region) {
         }
 
         var (input, left, right) = current.PeaksSince(lastSlot);
-        (BlockGeneration, BlockCount) = current.BlockPeaksSince(lastSlot, blockPeaks);
+        (BlockGeneration, BlockMeterCount) = current.BlockMetersSince(lastSlot, blockMeters);
         LoudnessMomentary = current.LoudnessMomentary;
         LoudnessShortTerm = current.LoudnessShortTerm;
         lastSlot = current.CurrentSlot;

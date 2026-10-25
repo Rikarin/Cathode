@@ -225,7 +225,7 @@ Other optional interfaces a block may add:
 - `ICabFollower`: linked at compile time to the next Cab block downstream (§5.2).
 - `IHardwareInputBlock`: given the graph's `InputPort` to read the interface's input sources (§5.2).
 - `IEngageAware`: told on the audio thread when its bypass target turns from bypassed to active, before the bypass fade starts, so an LFO can restart from a set phase (Flanger and Phaser LFO Bypass Reset, Tremolo Start Phase). A block that starts engaged is not told.
-- `IBlockMeters`: meters of its own (the Cab's preamp input level and Motor Drive gain reduction), plain fields the audio thread writes. The host reads them on the control thread with each IPC telemetry push (the list is rebuilt only when the graph changes, so a push allocates nothing) and the Server forwards them in the `telemetry` message's `blocks`.
+- `IBlockMeters`: meters of its own (the Cab's `preampIn` level and Motor Drive's `motorReduction`), beside the `peak` meter every block has. They take the one block-meter path (§5.9): the engine reads them into the graph's meters after each callback (`ReadMeters`, on the audio thread, allocation-free), and they reach the editor with the block's peak.
 
 - DSP state lives in `NativeMemory.AlignedAlloc` buffers (64-byte aligned) or pinned arrays.
 - `Process` is `[SkipLocalsInit]` and uses `Span<T>` and `Vector128<T>` (the portable SIMD baseline; on Apple Silicon `Vector256` is emulated).
@@ -339,7 +339,7 @@ Version 1 holds:
 
 Every reader takes the maximum over the slots since its own previous poll. Nothing is ever reset, so any number of readers see every peak once.
 
-The Server publishes meters at 30 Hz, still as JSON. IPC telemetry, which carries the tuner, GC counts, device timing windows and the blocks' own meters (`IBlockMeters`, as `blocks: [{ block, meters: { id: dB } }]` in the `telemetry` message), dropped to 10 Hz.
+The Server publishes meters at 30 Hz, still as JSON. IPC telemetry, which carries the tuner, GC counts and device timing windows, dropped to 10 Hz.
 
 Version 3 adds an output scope ring of 16,384 samples, outside the seqlock (the reader checks that the writer did not lap it). The Server reads it for three things:
 - scope frames, while the scope is on
@@ -349,6 +349,8 @@ Version 3 adds an output scope ring of 16,384 samples, outside the seqlock (the 
 Version 4 adds a second ring of the same size for the RTA block: while it keeps growing, RTA frames come from it (`source: block`) instead of the output.
 
 Version 5 adds, per meter slot, each grid block's output peak (by graph slot, up to 128, tagged with the graph generation) and the output's ITU-R BS.1770 loudness (momentary and short-term, `LoudnessMeter`). The host's `loadGraph` reply lists the slot ids, so the Server publishes the peaks by block id (`Telemetry.blocks`, shunts left out) with `loudnessMomentary` and `loudnessShortTerm`.
+Version 6 makes that section every block meter, one path for all of them. Each graph slot has meters: first `peak` (its output peak, linear), then the block's own (`IBlockMeters`, dB). The compiled graph lays them out slot by slot (`CompiledGraph.Meters`, `MeterIds(slot)`, `MeterOffset(slot)`); the engine writes the peaks while it runs the blocks and reads the own meters after each callback, and the region keeps the highest value of each per meter slot (`BlockMeter`, up to 256 values per slot, `BlockMeterCount` of them, tagged with the graph generation). A reader takes the highest over the slots since its previous poll (`TelemetryMonitor.BlockMeters`), so every meter means "the highest since you last looked". The `loadGraph` reply lists each slot's meter ids (`SlotMeters`) beside the slot ids, and the Server maps the values to ids once, in one section of the `telemetry` message: `blocks: { blockId: { peak, preampIn, motorReduction, ... } }` (shunts left out). The IPC telemetry no longer carries block meters (v5's `blocks` list of own meters is gone, and with it the Server's `blockMeters`).
+
 Each output's peak (after its EQ and Boost/Pad) goes over IPC telemetry (`outputPeaks`, 10 Hz) and on to WebSocket clients in the telemetry frames, for the editor's output clip warning at −1 dBFS; the input clip warning (0.5 dB below full scale) reads the existing input peak.
 
 Still to come: RMS, per-block CPU, scene state, and binary frames.

@@ -319,6 +319,34 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task A_blocks_peak_and_its_own_meters_arrive_together_by_block_id() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("cab", Preset.DefaultRow, 4));
+        using var socket = await server.Server.CreateWebSocketClient()
+            .ConnectAsync(new(server.Server.BaseAddress, "ws"), Token);
+        var buffer = new byte[256 * 1024];
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        deadline.CancelAfter(TimeSpan.FromSeconds(10));
+        JsonNode? blocks = null;
+        JsonNode? frame = null;
+        while (blocks?["cab1"] is null) {
+            var result = await socket.ReceiveAsync(buffer, deadline.Token);
+            frame = JsonNode.Parse(Encoding.UTF8.GetString(buffer, 0, result.Count))!;
+            if (frame["type"]!.GetValue<string>() == "telemetry") {
+                blocks = frame["blocks"];
+            }
+        }
+
+        // One section: the standard peak (linear) beside the Cab's own meters (dB), all under the block's id.
+        var cab = blocks["cab1"]!;
+        Assert.InRange(cab["peak"]!.GetValue<float>(), 0f, 4f);
+        Assert.InRange(cab["preampIn"]!.GetValue<float>(), -96f, 24f);
+        Assert.InRange(cab["motorReduction"]!.GetValue<float>(), 0f, 48f);
+        Assert.Equal(["peak"], blocks["in1"]!.AsObject().Select(static p => p.Key));
+        Assert.Null(frame!["blockMeters"]); // the second path is gone
+        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", Token);
+    }
+
+    [Fact]
     public async Task The_preset_list_exports_as_text_with_scene_names() {
         await Patch("/api/v1/live/scenes/1", new SceneUpdateRequest("Solo"));
         await Post("/api/v1/live/save", new SaveRequest("Zebra", true));

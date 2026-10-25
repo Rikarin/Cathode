@@ -443,6 +443,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         PublishOutputPeaks();
         var percent = Stats.Record(start, io.Frames, Spec.SampleRate);
         if (Volatile.Read(ref telemetry) is { } region) {
+            graph?.CaptureMeters();
             region.WriteScope(io.OutputLeft);
             region.RecordCallback(
                 io.Frames,
@@ -450,7 +451,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                 input,
                 left,
                 right,
-                graph is null ? default : graph.BlockPeaks,
+                graph is null ? default : graph.Meters,
                 graph?.Generation ?? -1,
                 loudness.Momentary,
                 loudness.ShortTerm

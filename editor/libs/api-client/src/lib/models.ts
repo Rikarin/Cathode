@@ -169,24 +169,18 @@ export interface Telemetry {
   tuner?: TunerInfo;
   tempo: number;
   looper?: LooperInfo;
-  /** Each grid block's output peak since the last frame, by block id (absent without shared-memory telemetry). */
-  blocks?: Record<string, number>;
+  /**
+   * Every block meter since the last frame, by block id and then meter id (absent without shared-memory telemetry):
+   * each block's `peak` (its output peak, linear) and the meters some blocks keep of their own, in dB: the Cab's
+   * `preampIn` (the level into its mic preamp, 0 at the onset of clipping) and `motorReduction` (Motor Drive's gain
+   * reduction). Each is the highest value since the previous frame.
+   */
+  blocks?: Record<string, Record<string, number>>;
   /** The output's BS.1770 momentary (400 ms) and short-term (3 s) loudness, LUFS. */
   loudnessMomentary?: number;
   loudnessShortTerm?: number;
   /** Peak of Outputs 1-4 (after their EQ and Boost/Pad), as the slower host telemetry last reported them. */
   outputPeaks?: number[];
-  /** Blocks with meters of their own, about ten times a second. */
-  blockMeters?: BlockMeterInfo[];
-}
-
-/**
- * A block's own meters by id, in dB: the Cab's `preampIn` (the level into its mic preamp, 0 at the onset of clipping)
- * and `motorReduction` (Motor Drive's gain reduction).
- */
-export interface BlockMeterInfo {
-  block: string;
-  meters: Record<string, number>;
 }
 
 /** Pushed about 30 times a second while the scope is on: recent output samples, oldest first. */
