@@ -80,11 +80,16 @@ export const SHOTS = {
     window: true
   },
   modifiers: shot('modifiers.png', 'Modifier', 'A knob driven by an LFO, with the modifier dialog open.', '4 / 3'),
-  library: shot(
-    'library.png',
-    'Library',
-    'The Library: presets in banks and setlists, block presets, NAM amps and IR cabs.'
-  ),
+  library: {
+    ...shot(
+      'library.webp',
+      'Cathode — Library',
+      'The Library on its Presets tab: presets with favourites, colour tags, author and date, a search by name, author or tag, and tabs for the Block Library, global blocks, NAM amps and IR cabs.',
+      '1856 / 1392'
+    ),
+    src: 'screenshots/library.webp',
+    window: true
+  },
   setup: shot(
     'setup.png',
     'Audio setup',

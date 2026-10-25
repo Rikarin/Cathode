@@ -201,8 +201,9 @@ export const LIBRARY_ITEMS = [
   'Presets, in banks and setlists',
   'Snapshots and templates',
   'Block presets, to reuse a drive or a delay',
+  'Global blocks: one amp or reverb shared by every preset that links it, edited once',
   'NAM amps and IR cabs, in the same place',
-  'Preset info: a name, an author and tags to find it by'
+  'Favourites, colours, and a name, an author and tags to search by'
 ];
 
 export const IO_FEATURES = [
