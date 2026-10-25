@@ -1048,7 +1048,7 @@
         "tags": [
           "Live"
         ],
-        "summary": "Renames the working copy and sets its author and tags (undoable).",
+        "summary": "Renames the working copy and sets its author, tags and description (undoable).",
         "operationId": "UpdatePresetInfo",
         "requestBody": {
           "content": {
@@ -2398,6 +2398,7 @@
         "tags": [
           "Presets"
         ],
+        "summary": "The user\u0027s presets by name, then the read-only factory bank\u0027s (factory: true) in bank order.",
         "operationId": "ListPresets",
         "responses": {
           "200": {
@@ -2421,7 +2422,7 @@
         "tags": [
           "Presets"
         ],
-        "summary": "The preset list as plain text, alphabetical, with each preset\u0027s scene names.",
+        "summary": "The user\u0027s presets (not the factory bank) as plain text, alphabetical, with their scene names.",
         "operationId": "ExportPresetList",
         "responses": {
           "200": {
@@ -3750,6 +3751,13 @@
           },
           "name": {
             "type": "string"
+          },
+          "factory": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "True for the factory bank, which lists the factory presets and cannot be changed; null otherwise."
           },
           "slots": {
             "type": "array",
@@ -5160,11 +5168,25 @@
               "string"
             ]
           },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A sentence or two on what the preset is and how to play it, or null."
+          },
           "tags": {
             "type": "array",
             "items": {
               "type": "string"
             }
+          },
+          "factory": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "True for a preset of the factory bank, which ships with Cathode and cannot be overwritten, renamed or deleted\n(saving one stores a copy); null for the user\u0027s own."
           },
           "tempo": {
             "type": "number",
@@ -5361,9 +5383,15 @@
             "items": {
               "type": "string"
             }
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "Changes to the working copy\u0027s name, author and tags; null leaves a field as it is."
+        "description": "Changes to the working copy\u0027s name, author, tags and description; null leaves a field as it is."
       },
       "PresetMetadataRequest": {
         "type": "object",
@@ -5483,6 +5511,18 @@
           "favorite": {
             "type": "boolean",
             "default": false
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "factory": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },

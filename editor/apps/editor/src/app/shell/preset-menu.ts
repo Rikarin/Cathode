@@ -68,7 +68,7 @@ import { PresetSwitcher, needsConfirm } from '../state/preset-switcher';
     <ng-template #menu>
       <xui-menu>
         <button xuiMenuItem icon="matInfoRound" data-testid="preset-info" (click)="openInfo()">
-          Name, author and tags…
+          Name, author, tags and notes…
         </button>
         <button xuiMenuItem icon="matSaveAsRound" (click)="saveAs.emit()">
           Save as…<span menuItemLabel>⇧⌘S</span>
@@ -219,6 +219,15 @@ import { PresetSwitcher, needsConfirm } from '../state/preset-switcher';
               (keydown.enter)="saveInfo()"
             />
           </xui-form-field>
+          <xui-form-field label="Description">
+            <textarea
+              xuiInput
+              class="min-h-20 w-full"
+              data-testid="preset-info-description"
+              [value]="infoDescription()"
+              (input)="infoDescription.set($any($event.target).value)"
+            ></textarea>
+          </xui-form-field>
         </xui-dialog-body>
         <xui-dialog-footer>
           <button xuiButton variant="ghost" type="button" (click)="infoOpen.set(false)">Cancel</button>
@@ -262,6 +271,7 @@ export class PresetMenu {
   protected readonly infoName = signal('');
   protected readonly infoAuthor = signal('');
   protected readonly infoTags = signal('');
+  protected readonly infoDescription = signal('');
   protected readonly snapshotsOpen = signal(false);
   protected readonly templatesOpen = signal(false);
   protected readonly saveTemplateOpen = signal(false);
@@ -275,6 +285,7 @@ export class PresetMenu {
     this.infoName.set(preset?.name ?? '');
     this.infoAuthor.set(preset?.author ?? '');
     this.infoTags.set(preset?.tags.join(', ') ?? '');
+    this.infoDescription.set(preset?.description ?? '');
     this.infoOpen.set(true);
   }
 
@@ -283,7 +294,8 @@ export class PresetMenu {
       .split(',')
       .map(tag => tag.trim())
       .filter(Boolean);
-    if (await this.live.updateInfo({ name: this.infoName().trim(), author: this.infoAuthor(), tags })) {
+    const info = { name: this.infoName().trim(), author: this.infoAuthor(), tags, description: this.infoDescription() };
+    if (await this.live.updateInfo(info)) {
       this.infoOpen.set(false);
     }
   }

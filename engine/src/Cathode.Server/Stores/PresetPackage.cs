@@ -152,7 +152,8 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
             added++;
         }
 
-        var renamed = !StoreIds.IsValid(preset.Id) || presets.Exists(preset.Id);
+        preset.Factory = null; // an exported factory preset comes back as the user's own
+        var renamed = !StoreIds.IsValid(preset.Id) || FactoryPresets.IsFactoryId(preset.Id) || presets.Exists(preset.Id);
         if (renamed) {
             preset.Id = Preset.NewId(); // never overwrite a preset already in the library
         }

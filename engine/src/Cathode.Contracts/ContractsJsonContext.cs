@@ -71,6 +71,7 @@ namespace Cathode.Contracts;
 [JsonSerializable(typeof(FootswitchOverride))]
 [JsonSerializable(typeof(List<FootswitchOverride>))]
 [JsonSerializable(typeof(PresetSnapshot))]
+[JsonSerializable(typeof(FactoryPresetMark))]
 [JsonSerializable(typeof(SnapshotSummary[]))]
 [JsonSerializable(typeof(SnapshotSummary))]
 [JsonSerializable(typeof(BlockPresetFile))]

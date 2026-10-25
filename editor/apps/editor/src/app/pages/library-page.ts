@@ -24,8 +24,8 @@ import { AssetLibrary, AssetList, AssetToolbar } from './asset-library';
 import { GlobalBlocks } from './global-blocks';
 
 /**
- * The Library: presets (search by name, author or tag; double-click or Load opens one in the editor; export, import,
- * delete), the Block Library (folders of block and channel presets), the global blocks (rename, delete), and the NAM amps and IR cabs every Amp NAM, Cab
+ * The Library: presets (search by name, author or tag; show all, your own or the read-only factory bank's; double-click
+ * or Load opens one in the editor; export, import, delete your own), the Block Library (folders of block and channel presets), the global blocks (rename, delete), and the NAM amps and IR cabs every Amp NAM, Cab
  * and IR Player block picks from (upload, rename, tag, delete; the IR tools). `?view=amps` or `?view=cabs` opens
  * those.
  */
@@ -61,7 +61,16 @@ import { GlobalBlocks } from './global-blocks';
         (valueChange)="$event && show($event)"
       />
       @if (view() === 'presets') {
-        <div class="relative ml-auto">
+        <xui-segmented-control
+          class="ml-auto"
+          size="sm"
+          aria-label="Which presets"
+          data-testid="preset-source"
+          [options]="sources"
+          [value]="source()"
+          (valueChange)="$event && source.set($event)"
+        />
+        <div class="relative">
           <ng-icon
             xui
             name="matSearchRound"
@@ -164,13 +173,18 @@ import { GlobalBlocks } from './global-blocks';
                       <span class="size-2.5 shrink-0 rounded-full" [style.background]="preset.color"></span>
                     }
                     <span class="font-medium">{{ preset.name }}</span>
+                    @if (preset.factory) {
+                      <xui-tag minimal round color="primary" data-testid="factory-tag">Factory</xui-tag>
+                    }
                     @for (tag of preset.tags; track tag) {
                       <xui-tag minimal round>{{ tag }}</xui-tag>
                     }
                   </div>
                 </xui-td>
                 <xui-td class="text-foreground-muted w-48">{{ preset.author || '—' }}</xui-td>
-                <xui-td class="text-foreground-muted w-52 justify-end tabular-nums">{{ modified(preset) }}</xui-td>
+                <xui-td class="text-foreground-muted w-52 justify-end tabular-nums">
+                  {{ preset.factory ? 'Factory bank' : modified(preset) }}
+                </xui-td>
               </xui-tr>
             } @empty {
               <xui-tr>
@@ -185,6 +199,9 @@ import { GlobalBlocks } from './global-blocks';
           <span class="text-foreground-muted mr-auto text-sm">
             @if (selected(); as preset) {
               <span class="text-foreground font-medium">{{ preset.name }}</span>
+              @if (preset.description) {
+                <span class="ms-2" data-testid="preset-description">{{ preset.description }}</span>
+              }
             } @else {
               {{ rows().length }} {{ rows().length === 1 ? 'preset' : 'presets' }} · double-click one to load it
             }
@@ -195,7 +212,8 @@ import { GlobalBlocks } from './global-blocks';
             type="button"
             variant="ghost"
             color="error"
-            [disabled]="!selected()"
+            [disabled]="!selected() || selected()?.factory"
+            [attr.title]="selected()?.factory ? 'Factory presets are read-only' : null"
             (click)="confirmDelete.set(true)"
           >
             Delete
@@ -356,6 +374,13 @@ export class LibraryPage {
   private readonly router = inject(Router);
 
   protected readonly query = signal('');
+  /** All presets, the user's own, or the factory bank's. */
+  protected readonly source = signal<'all' | 'mine' | 'factory'>('all');
+  protected readonly sources = [
+    { label: 'All', value: 'all' as const },
+    { label: 'Mine', value: 'mine' as const },
+    { label: 'Factory', value: 'factory' as const }
+  ];
   protected readonly selected = signal<PresetSummary | null>(null);
   protected readonly confirmDelete = signal(false);
   /** Library entries chosen for export. */
@@ -378,13 +403,24 @@ export class LibraryPage {
     { label: 'IR cabs', value: 'cabs' as const }
   ];
 
+  /** Favourites first, then the user's presets by name, then the factory bank in its own order. */
   protected readonly rows = computed(() => {
     const query = this.query().trim().toLowerCase();
-    const all = [...this.library.presets()].sort(
-      (a, b) => Number(b.favorite ?? false) - Number(a.favorite ?? false) || a.name.localeCompare(b.name)
-    );
+    const source = this.source();
+    const order = new Map(this.library.presets().map((p, i) => [p.id, i]));
+    const all = this.library
+      .presets()
+      .filter(p => source === 'all' || (source === 'factory') === (p.factory ?? false))
+      .sort(
+        (a, b) =>
+          Number(b.favorite ?? false) - Number(a.favorite ?? false) ||
+          Number(a.factory ?? false) - Number(b.factory ?? false) ||
+          (a.factory ? order.get(a.id)! - order.get(b.id)! : a.name.localeCompare(b.name))
+      );
     return query
-      ? all.filter(p => [p.name, p.author ?? '', ...p.tags].some(field => field.toLowerCase().includes(query)))
+      ? all.filter(p =>
+          [p.name, p.author ?? '', p.description ?? '', ...p.tags].some(field => field.toLowerCase().includes(query))
+        )
       : all;
   });
 
@@ -436,7 +472,7 @@ export class LibraryPage {
 
   protected async delete(): Promise<void> {
     const preset = this.selected();
-    if (preset) {
+    if (preset && !preset.factory) {
       await this.library.deletePreset(preset.id);
       this.selected.set(null);
     }

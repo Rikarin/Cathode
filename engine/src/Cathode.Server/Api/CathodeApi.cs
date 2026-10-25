@@ -199,7 +199,7 @@ public static class CathodeApi {
                     Respond(http, await rig.UpdateInfoAsync(request, Expected(http)))
             )
             .WithName("UpdatePresetInfo")
-            .WithSummary("Renames the working copy and sets its author and tags (undoable).");
+            .WithSummary("Renames the working copy and sets its author, tags and description (undoable).");
         MapScenes(live);
         live.MapPatch(
                 "/scenes/{scene:int}",
@@ -209,14 +209,16 @@ public static class CathodeApi {
             .WithName("UpdateScene");
 
         var library = api.MapGroup("/presets").WithTags("Presets");
-        library.MapGet("/", (PresetStore store) => TypedResults.Ok(store.List().ToArray())).WithName("ListPresets");
+        library.MapGet("/", (PresetStore store) => TypedResults.Ok(store.List().ToArray()))
+            .WithName("ListPresets")
+            .WithSummary("The user's presets by name, then the read-only factory bank's (factory: true) in bank order.");
         library.MapGet(
                 "/list.txt",
                 (PresetStore store) => TypedResults.Text(PresetListText.Build(store), "text/plain; charset=utf-8")
             )
             .Produces<string>(200, "text/plain")
             .WithName("ExportPresetList")
-            .WithSummary("The preset list as plain text, alphabetical, with each preset's scene names.");
+            .WithSummary("The user's presets (not the factory bank) as plain text, alphabetical, with their scene names.");
         library.MapGet(
                 "/{id}",
                 Results<Ok<Preset>, NotFound>(string id, PresetStore store) =>

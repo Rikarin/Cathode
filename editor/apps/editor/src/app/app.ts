@@ -293,7 +293,7 @@ import { UiStore } from './state/ui.store';
               size="sm"
               aria-label="Save"
               data-testid="save"
-              [xuiTooltip]="'Save (⌘S)'"
+              [xuiTooltip]="live.preset()?.factory ? 'Save a copy (factory presets are read-only, ⌘S)' : 'Save (⌘S)'"
               (click)="save()"
             >
               <ng-icon xui name="matSaveRound" size="sm" />
@@ -325,6 +325,11 @@ import { UiStore } from './state/ui.store';
         <cth-leveling-dialog [(open)]="levelingOpen" />
         <xui-dialog title="Save preset as" icon="matSaveRound" [(open)]="saveAsOpen">
           <xui-dialog-body>
+            @if (live.preset()?.factory) {
+              <p class="text-foreground-muted mb-3 text-sm">
+                Factory presets are read-only: this saves your own copy, which you can change and rename.
+              </p>
+            }
             <xui-form-field label="Name">
               <input
                 xuiInput
@@ -395,8 +400,13 @@ export class App {
     }
   }
 
+  /** A factory preset cannot be overwritten: Save asks for the name of the user's own copy instead. */
   protected save(): void {
-    void this.live.save();
+    if (this.live.preset()?.factory) {
+      this.openSaveAs();
+    } else {
+      void this.live.save();
+    }
   }
 
   protected openSaveAs(): void {

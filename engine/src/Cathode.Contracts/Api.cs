@@ -22,7 +22,9 @@ public sealed record PresetSummary(
     IReadOnlyList<string> Tags,
     DateTimeOffset Modified,
     string? Color = null,
-    bool Favorite = false
+    bool Favorite = false,
+    string? Description = null,
+    bool? Factory = null
 );
 
 public sealed record AssetInfo(
@@ -150,8 +152,13 @@ public sealed record SceneUpdateRequest(
     List<SceneMidiMessage>? Midi = null
 );
 
-/// <summary>Changes to the working copy's name, author and tags; null leaves a field as it is.</summary>
-public sealed record PresetInfoRequest(string? Name = null, string? Author = null, List<string>? Tags = null);
+/// <summary>Changes to the working copy's name, author, tags and description; null leaves a field as it is.</summary>
+public sealed record PresetInfoRequest(
+    string? Name = null,
+    string? Author = null,
+    List<string>? Tags = null,
+    string? Description = null
+);
 
 public sealed record SaveRequest(string? Name = null, bool AsNew = false);
 

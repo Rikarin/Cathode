@@ -6,7 +6,8 @@ namespace Cathode.Server.Stores;
 
 /// <summary>
 ///     Setlists and banks on top of the preset store, keeping references intact: setlists and banks may only point
-///     at presets that exist, and a preset cannot be deleted while something still uses it.
+///     at presets that exist, and a preset cannot be deleted while something still uses it. The factory bank
+///     (<see cref="FactoryPresets.Bank" />) comes first and is read-only.
 /// </summary>
 public sealed class Library(IOptions<ServerOptions> options, PresetStore presets) {
     readonly Lock gate = new();
@@ -30,10 +31,12 @@ public sealed class Library(IOptions<ServerOptions> options, PresetStore presets
 
     public Setlist? Setlist(string id) => setlists.Get(id);
 
-    public Bank[] Banks() =>
-        [..banks.All().Select(static e => e.Item).OrderBy(static b => b.Name, StringComparer.OrdinalIgnoreCase)];
+    public Bank[] Banks() => [
+        presets.Factory.Bank(),
+        ..banks.All().Select(static e => e.Item).OrderBy(static b => b.Name, StringComparer.OrdinalIgnoreCase)
+    ];
 
-    public Bank? Bank(string id) => banks.Get(id);
+    public Bank? Bank(string id) => id == FactoryPresets.BankId ? presets.Factory.Bank() : banks.Get(id);
 
     public void Save(Setlist setlist) {
         lock (gate) {
@@ -55,6 +58,10 @@ public sealed class Library(IOptions<ServerOptions> options, PresetStore presets
     }
 
     public void Save(Bank bank) {
+        if (bank.Id == FactoryPresets.BankId) {
+            throw RigException.Conflict("The factory bank cannot be changed; put its presets in a bank of your own.");
+        }
+
         lock (gate) {
             var problems = new List<string>();
             if (bank.Slots.Count > Contracts.Bank.SlotCount) {
@@ -68,21 +75,34 @@ public sealed class Library(IOptions<ServerOptions> options, PresetStore presets
             }
 
             Reject(problems, "bank");
+            bank.Factory = null;
             banks.Save(bank);
         }
     }
 
     public bool DeleteSetlist(string id) => setlists.Delete(id);
 
-    public bool DeleteBank(string id) => banks.Delete(id);
+    public bool DeleteBank(string id) =>
+        id == FactoryPresets.BankId
+            ? throw RigException.Conflict("The factory bank cannot be deleted.")
+            : banks.Delete(id);
 
     /// <summary>Deletes a preset unless a setlist or bank still uses it (409, naming them).</summary>
     public bool DeletePreset(string id) {
+        if (FactoryPresets.IsFactoryId(id)) {
+            throw RigException.Conflict("Factory presets cannot be deleted.");
+        }
+
         lock (gate) {
             var users = Setlists()
                 .Where(s => s.Entries.Any(e => e.PresetId == id))
                 .Select(static s => $"setlist '{s.Name}'")
-                .Concat(Banks().Where(b => b.Slots.Contains(id)).Select(static b => $"bank '{b.Name}'"))
+                .Concat(
+                    banks.All()
+                        .Select(static e => e.Item)
+                        .Where(b => b.Slots.Contains(id))
+                        .Select(static b => $"bank '{b.Name}'")
+                )
                 .ToList();
             if (users.Count > 0) {
                 throw new RigException(409, $"The preset is still used by {string.Join(", ", users)}.", users);
