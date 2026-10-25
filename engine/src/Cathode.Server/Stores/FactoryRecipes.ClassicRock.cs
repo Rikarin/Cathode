@@ -10,15 +10,15 @@ public static partial class FactoryRecipes {
                 "1960s",
                 "Fuzz"
             )
+            .Drive("Face Fuzz", "drive=8 level=0")
+            .Drive("Octave Fuzz", "drive=7 tone=6 level=0")
+            .Off()
             .Amp(
                 "Plexi 100W",
                 "gain=7 bass=5 middle=6 treble=7 presence=5 switch1=1 control1=4",
                 "gain=4 bass=5 middle=6 treble=7 presence=5 switch1=1 control1=2"
             )
             .Cab("4x12 Closed", "Greenback", "SM57", "m1position=25 m1distance=1")
-            .Drive("Face Fuzz", "drive=8 level=0")
-            .Drive("Octave Fuzz", "drive=7 tone=6 level=0")
-            .Off()
             .Add("reverb", "type=Room decay=0.9 size=45 mix=10")
             .Scene("Rhythm")
             .Scene("Solo", "-drive +drive2", 2)
@@ -52,14 +52,14 @@ public static partial class FactoryRecipes {
                 "1970s",
                 "Fuzz"
             )
+            .Drive("Face Fuzz", "drive=7 level=0")
+            .Add("vibe", "mode=Chorus rate=1.6 intensity=80 mix=50")
             .Amp(
                 "Plexi 100W",
                 "gain=7 bass=5 middle=6 treble=6.5 presence=5 switch1=1 control1=4",
                 "gain=7 bass=5 middle=6 treble=6.5 presence=5 switch1=1 control1=4"
             )
             .Cab("4x12 Closed", "Greenback", "SM57", "m1position=25 m1distance=1")
-            .Drive("Face Fuzz", "drive=7 level=0")
-            .Add("vibe", "mode=Chorus rate=1.6 intensity=80 mix=50")
             .Add("reverb", "type=Room decay=1 size=50 mix=12")
             .Scene("Fuzz Vibe")
             .Scene("Lead", "-vibe", 2)
@@ -73,10 +73,10 @@ public static partial class FactoryRecipes {
                 "1960s",
                 "Crunch"
             )
-            .Amp("1959SLP", "gain=8 bass=5 middle=7 treble=6 presence=5 switch1=1 control1=5")
-            .Cab("4x12 Closed", "Greenback", "SM57", "m1position=25 m1distance=1")
             .Add("filter", "type=Low_Pass freq=900 q=0.9")
             .Off()
+            .Amp("1959SLP", "gain=8 bass=5 middle=7 treble=6 presence=5 switch1=1 control1=5")
+            .Cab("4x12 Closed", "Greenback", "SM57", "m1position=25 m1distance=1")
             .Add("reverb", "type=Room decay=1 size=50 mix=12")
             .Scene("Riff")
             .Scene("Woman Tone", "+filter", 2),
@@ -103,13 +103,13 @@ public static partial class FactoryRecipes {
                 "1970s",
                 "Crunch"
             )
+            .Drive("Treble Booster", "drive=5 tone=6 level=3")
             .Amp(
                 "Major 1967",
                 "gain=7 bass=4 middle=6 treble=7 presence=6 switch1=1 control1=5",
                 "gain=9 bass=4 middle=6.5 treble=7 presence=6 switch1=1 control1=6"
             )
             .Cab("4x12 Closed", "G12H30", "SM57", "m1position=25 m1distance=1")
-            .Drive("Treble Booster", "drive=5 tone=6 level=3")
             .Add("reverb", "type=Room decay=1 size=50 mix=10")
             .Scene("Riff")
             .Scene("Solo", "amp=B", 2),
@@ -139,10 +139,10 @@ public static partial class FactoryRecipes {
                 "1970s",
                 "Lead"
             )
-            .Amp("Hiwatt DR103", "gain=5 bass=5 middle=6 treble=6 presence=5 master=8 switch1=1 control1=4")
-            .Cab("4x12 Closed", "Creamback", "SM57", "m1position=30 m1distance=1.5")
             .Drive("Pi Fuzz", "drive=6 tone=6 level=0")
             .Off()
+            .Amp("Hiwatt DR103", "gain=5 bass=5 middle=6 treble=6 presence=5 master=8 switch1=1 control1=4")
+            .Cab("4x12 Closed", "Creamback", "SM57", "m1position=30 m1distance=1.5")
             .Add("delay", "type=Digital time=440 feedback=30 mix=24")
             .Off()
             .Add("reverb", "type=Hall decay=2.6 mix=18")
@@ -185,10 +185,10 @@ public static partial class FactoryRecipes {
                 "1970s",
                 "Lead"
             )
-            .Amp("AC30", "gain=8 bass=4 treble=7 cut=4")
-            .Cab("2x12 Open", "Alnico Blue", "SM57", "m1position=30 m1distance=1")
             .Drive("Treble Booster", "drive=7 tone=5 level=2")
             .Off()
+            .Amp("AC30", "gain=8 bass=4 treble=7 cut=4")
+            .Cab("2x12 Open", "Alnico Blue", "SM57", "m1position=30 m1distance=1")
             .Add("reverb", "type=Room decay=1.2 size=60 mix=12")
             .Scene("Rhythm")
             .Scene("Solo", "+drive", 2),
@@ -225,9 +225,9 @@ public static partial class FactoryRecipes {
                 "1980s",
                 "Crunch"
             )
+            .Add("wah", "type=Cry_Baby position=55")
             .Amp("Laney GH100L", "gain=6 bass=4 middle=6 treble=6 presence=5 master=6 control1=5")
             .Cab("4x12 Closed", "G12H30", "SM57", "m1position=25 m1distance=1")
-            .Add("wah", "type=Cry_Baby position=55")
             .Add("reverb", "type=Room decay=1 size=50 mix=10")
             .Scene("Riff"),
         Preset(

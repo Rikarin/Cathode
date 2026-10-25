@@ -11,10 +11,10 @@ public static partial class FactoryRecipes {
                 "1980s",
                 "Crunch"
             )
-            .Amp("Vibroverb AB763", "gain=6 bass=3.5 treble=6.5 bright=1")
-            .Cab("1x12 Open", "EVM12L", "SM57", "m1position=20 m1distance=1.5")
             .Drive("TS808 OD", "drive=1.5 tone=6 level=6")
             .Off()
+            .Amp("Vibroverb AB763", "gain=6 bass=3.5 treble=6.5 bright=1")
+            .Cab("1x12 Open", "EVM12L", "SM57", "m1position=20 m1distance=1.5")
             .Add("reverb", "type=Spring springs=3 decay=1.8 mix=16")
             .Scene("Rhythm")
             .Scene("Lead", "+drive", 2),
@@ -74,10 +74,10 @@ public static partial class FactoryRecipes {
                 "Lead"
             )
             .Input("type=Classic threshold=-62")
-            .Amp("JTM45", "gain=6 bass=4 middle=7 treble=6 presence=5 switch1=1 control1=5")
-            .Cab("4x12 Closed", "Greenback", "SM57", "m1position=25 m1distance=1")
             .Drive("Governor Dist", "drive=6 tone=5 level=2 stackBass=5 stackMid=6")
             .Off()
+            .Amp("JTM45", "gain=6 bass=4 middle=7 treble=6 presence=5 switch1=1 control1=5")
+            .Cab("4x12 Closed", "Greenback", "SM57", "m1position=25 m1distance=1")
             .Add("delay", "type=Analog time=420 feedback=25 mix=18")
             .Off()
             .Add("reverb", "type=Hall decay=2.2 mix=15")
@@ -110,10 +110,10 @@ public static partial class FactoryRecipes {
                 "2000s",
                 "Clean"
             )
-            .Amp("ODS 97", "gain=5 bass=4.5 middle=5 treble=6 presence=5")
-            .Cab("2x12 Open", "EVM12L", "SM57", "m1position=35 m1distance=2 m2mute=0 m2mic=R-121 m2level=-4")
             .Drive("Chiron OD", "drive=3 tone=6 level=4")
             .Off()
+            .Amp("ODS 97", "gain=5 bass=4.5 middle=5 treble=6 presence=5")
+            .Cab("2x12 Open", "EVM12L", "SM57", "m1position=35 m1distance=2 m2mute=0 m2mic=R-121 m2level=-4")
             .Add("delay", "type=Analog time=400 feedback=18 mix=12")
             .Off()
             .Add("reverb", "type=Hall decay=2 mix=16")

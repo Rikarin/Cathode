@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Cathode.Contracts;
 using Cathode.Dsp;
+using Cathode.Dsp.Blocks;
 using Cathode.Engine.Graph;
 using Cathode.Server.Rig;
 using Cathode.Server.Stores;
@@ -91,6 +92,24 @@ public sealed class FactoryPresetTests : IAsyncLifetime {
                 using var graph = compiler.Compile(PresetGraph.Build(preset, s, null!), Spec, 1);
             }
         }
+    }
+
+    [Fact]
+    public void Pedals_go_in_front_of_the_amp() {
+        // Drives, fuzzes, boosts and wahs are stompboxes between the guitar and the amp, not after the cabinet.
+        var late = Presets
+            .SelectMany(p => {
+                    var row = p.Blocks.Where(b => b.Row == p.Blocks.Single(i => i.Id == "in1").Row)
+                        .OrderBy(static b => b.Column)
+                        .ToList();
+                    var amp = row.FindIndex(static b => b.Type == CircuitAmpBlock.Info.TypeId);
+                    return row.Skip(amp + 1)
+                        .Where(static b => b.Type is "drive" or "wah")
+                        .Select(b => $"{p.Name}: {b.Id}");
+                }
+            )
+            .ToList();
+        Assert.Empty(late);
     }
 
     [Fact]
