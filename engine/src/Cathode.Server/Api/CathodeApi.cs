@@ -576,6 +576,13 @@ public static class CathodeApi {
                     Respond(http, await rig.UnlinkGlobalAsync(id, Expected(http)))
             )
             .WithName("UnlinkGlobal");
+        live.MapDelete(
+                "/globals/{globalId}",
+                async (string globalId, LiveRig rig, HttpContext http) =>
+                    Respond(http, await rig.DeleteGlobalAsync(globalId, Expected(http)))
+            )
+            .WithName("DeleteGlobalBlock")
+            .WithSummary("Deletes a global block; the blocks linked to it keep its settings as their own.");
         live.MapPut(
                 "/manual/{index:int}",
                 Results<NoContent, BadRequest>(int index, ValueRequest request, LiveRig rig) => {

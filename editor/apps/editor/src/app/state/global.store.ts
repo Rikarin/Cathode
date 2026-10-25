@@ -4,6 +4,8 @@ import { ConnectionService } from '../core/connection';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
 
+const GlobalBlockEvents = new Set(['globalLinked', 'globalUnlinked', 'globalDeleted']);
+
 /** The rig's global settings: tempo mode, metronome, global EQ, Manual A-D, MIDI, footswitches, global blocks. */
 @Injectable({ providedIn: 'root' })
 export class GlobalStore {
@@ -18,7 +20,9 @@ export class GlobalStore {
       events.connected$.subscribe(() => void this.refresh()),
       events.midi$.subscribe(m => m.type === 'midiLearned' && void this.refresh()),
       // A footswitch can toggle the metronome or tap a global tempo: reflect it.
-      events.events$.subscribe(e => e.type === 'tempoChanged' && void this.refresh())
+      events.events$.subscribe(e => e.type === 'tempoChanged' && void this.refresh()),
+      // Making, linking and deleting global blocks changes the library of them.
+      events.events$.subscribe(e => GlobalBlockEvents.has(e.type) && void this.refresh())
     ];
     inject(DestroyRef).onDestroy(() => subscriptions.forEach(s => s.unsubscribe()));
   }

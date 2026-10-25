@@ -429,12 +429,6 @@ public sealed partial class LiveRig(
                     }
                 }
 
-                if (target == state.Channel && recompile) {
-                    await SyncGraphAsync(); // a latency change (look-ahead): the compiler has to see it
-                } else if (target == state.Channel) {
-                    engine.SetParams(generation, sent);
-                }
-
                 if (block.Global is { } link) {
                     globals.Update(g => {
                             if (g.Blocks.FirstOrDefault(b => b.Id == link) is { } shared) {
@@ -444,10 +438,28 @@ public sealed partial class LiveRig(
                     );
                 }
 
+                // The preset's other blocks linked to the same global block follow.
+                var linked = MirrorLinked(block);
+                var running = linked.Where(b => Live(b.Id).Channel == target).ToList();
+                if (recompile && (target == state.Channel || running.Count > 0)) {
+                    await SyncGraphAsync(); // a latency change (look-ahead): the compiler has to see it
+                } else {
+                    if (target == state.Channel) {
+                        engine.SetParams(generation, sent);
+                    }
+
+                    foreach (var other in running) {
+                        engine.SetParams(generation, [..sent.Select(v => v with { Block = other.Id })]);
+                    }
+                }
+
                 revision++;
                 dirty = true;
                 foreach (var value in sent) {
                     Publish(new("paramChanged", revision, id, target, value.Param, value.Value));
+                    foreach (var other in linked) {
+                        Publish(new("paramChanged", revision, other.Id, target, value.Param, value.Value));
+                    }
                 }
 
                 return State();
@@ -810,7 +822,10 @@ public sealed partial class LiveRig(
         ];
     }
 
-    /// <summary>Linked blocks take their settings from the global library (when it still has them).</summary>
+    /// <summary>
+    ///     Linked blocks take their settings from the global library; one whose global block was deleted keeps its own
+    ///     and is unlinked.
+    /// </summary>
     void ApplyGlobals(Preset target) {
         var library = globals.Get().Blocks;
         foreach (var block in target.Blocks.Where(static b => b.Global is not null)) {
@@ -820,6 +835,8 @@ public sealed partial class LiveRig(
                     static c => new Dictionary<string, float>(c.Value)
                 );
                 block.Assets = new(shared.Assets);
+            } else {
+                block.Global = null;
             }
         }
     }

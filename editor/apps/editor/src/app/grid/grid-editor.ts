@@ -28,6 +28,7 @@ import {
   matDeleteRound,
   matFindReplaceRound,
   matLinkOffRound,
+  matLinkRound,
   matPowerSettingsNewRound,
   matPublicRound,
   matSaveRound,
@@ -39,6 +40,7 @@ import { EventStream } from '../core/events';
 import { ShortcutService } from '../shell/shortcuts';
 import { BlockFileExtension, BlockPresetsStore } from '../state/block-presets.store';
 import { CatalogStore } from '../state/catalog.store';
+import { GlobalStore } from '../state/global.store';
 import { LiveStore } from '../state/live.store';
 import { UiStore } from '../state/ui.store';
 import { abbreviate } from './block-info';
@@ -134,6 +136,7 @@ export function dropAction(
       matDeleteRound,
       matFindReplaceRound,
       matLinkOffRound,
+      matLinkRound,
       matPowerSettingsNewRound,
       matPublicRound,
       matSaveRound,
@@ -361,9 +364,20 @@ export function dropAction(
             <button xuiMenuItem icon="matSaveRound" (click)="ui.saveBlockOpen.set(true)">
               Save to the Library…<span menuItemLabel>⌘B</span>
             </button>
-            <button xuiMenuItem icon="matPublicRound" (click)="ui.toggleGlobal(block)">
-              {{ block.global ? 'Unlink from global' : 'Make global' }}<span menuItemLabel>G</span>
-            </button>
+            @if (block.global) {
+              <button xuiMenuItem icon="matLinkOffRound" (click)="live.unlinkGlobal(block.id)">
+                Unlink from global
+              </button>
+            } @else {
+              <button xuiMenuItem icon="matPublicRound" (click)="ui.makeGlobal(block)">
+                Make global<span menuItemLabel>G</span>
+              </button>
+            }
+            @if (globalsOf(block).length > 0) {
+              <button xuiMenuItem icon="matLinkRound" [xuiMenuTriggerFor]="linkGlobal" [xuiMenuTriggerData]="{ block }">
+                Link to global
+              </button>
+            }
           }
           <button xuiMenuItem icon="matSwapVertRound" [xuiMenuTriggerFor]="moveLines" [xuiMenuTriggerData]="{ block }">
             Move row or column
@@ -371,6 +385,21 @@ export function dropAction(
           <xui-menu-divider />
           <button xuiMenuItem icon="matDeleteRound" color="error" (click)="live.removeBlock(block.id)">
             Remove<span menuItemLabel>⌫</span>
+          </button>
+        }
+      </xui-menu>
+    </ng-template>
+
+    <ng-template #linkGlobal let-block="block">
+      <xui-menu>
+        @for (shared of globalsOf(block); track shared.id) {
+          <button
+            xuiMenuItem
+            [selected]="block.global === shared.id"
+            [disabled]="block.global === shared.id"
+            (click)="live.useGlobal(block.id, shared.id)"
+          >
+            {{ shared.name }}
           </button>
         }
       </xui-menu>
@@ -457,6 +486,7 @@ export class GridEditor {
   protected readonly catalog = inject(CatalogStore);
   protected readonly ui = inject(UiStore);
   private readonly blockPresets = inject(BlockPresetsStore);
+  private readonly globals = inject(GlobalStore);
   private readonly surface = viewChild.required<ElementRef<HTMLElement>>('surface');
 
   protected readonly width = Cell.width;
@@ -499,6 +529,11 @@ export class GridEditor {
     return available > 0 ? Math.min(MaxScale, Math.max(MinScale, available / this.size().width)) : 1;
   });
   protected readonly blocks = computed(() => this.live.preset()?.blocks ?? []);
+
+  /** The global blocks a block can link to: those of its type. */
+  protected globalsOf(block: PresetBlock) {
+    return (this.globals.settings()?.blocks ?? []).filter(g => g.type === block.type);
+  }
 
   protected readonly cells = computed<GridCell[]>(() => {
     const byCell = new Map(this.blocks().map(b => [`${b.row}:${b.column}`, b]));

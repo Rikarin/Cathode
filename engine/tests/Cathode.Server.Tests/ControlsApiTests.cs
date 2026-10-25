@@ -282,6 +282,31 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         Assert.Equal(444f, copied.Preset.Blocks.Single(b => b.Id == "delay2").Channels["C"]["time"]);
     }
 
+    [Fact]
+    public async Task A_global_block_is_made_once_and_deleting_it_leaves_the_linked_blocks_their_settings() {
+        await Patch("/api/v1/live/blocks/delay1/params", new Dictionary<string, float> { ["time"] = 444 });
+        await Post("/api/v1/live/blocks/delay1/global", new LinkGlobalRequest("House delay"));
+
+        // Making it global again is refused: no second copy in the library.
+        using var again = await client.PostAsJsonAsync(
+            "/api/v1/live/blocks/delay1/global",
+            new LinkGlobalRequest("House delay"),
+            Token
+        );
+        Assert.Equal(HttpStatusCode.Conflict, again.StatusCode);
+        var shared = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!.Blocks.Single();
+
+        using var response = await client.DeleteAsync($"/api/v1/live/globals/{shared.Id}", Token);
+        var deleted = await Read(response);
+        var delay = deleted.Preset.Blocks.Single(b => b.Id == "delay1");
+        Assert.Null(delay.Global);
+        Assert.Equal(444f, delay.Channels["A"]["time"]);
+        Assert.Empty((await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!.Blocks);
+
+        using var missing = await client.DeleteAsync($"/api/v1/live/globals/{shared.Id}", Token);
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+    }
+
     float Rig(string id) => server.Host.Engine.Rig.GetTarget(RigControls.Descriptor.IndexOf(id));
 
     static bool Sent(List<byte[]> sent, byte[] message) {

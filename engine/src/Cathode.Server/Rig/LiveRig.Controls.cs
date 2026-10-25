@@ -201,11 +201,17 @@ public sealed partial class LiveRig {
                     );
                 }
 
+                var linked = MirrorLinked(block);
+                var running = linked.Where(b => Live(b.Id).Channel == target).ToList();
                 if (target == state.Channel) {
-                    if (RecompileDiffers(descriptor, before, values)) {
-                        await SyncGraphAsync();
-                    } else {
-                        engine.SetParams(generation, ChannelValues(block, target));
+                    running.Insert(0, block);
+                }
+
+                if (running.Count > 0 && RecompileDiffers(descriptor, before, values)) {
+                    await SyncGraphAsync();
+                } else {
+                    foreach (var shown in running) {
+                        engine.SetParams(generation, ChannelValues(shown, target));
                     }
                 }
 
@@ -220,6 +226,10 @@ public sealed partial class LiveRig {
                 var block = Find(id);
                 if (BuiltInTypes.IsBuiltIn(block.Type)) {
                     throw new RigException(400, $"'{id}' cannot be global.");
+                }
+
+                if (block.Global is { } link && globals.Get().Blocks.Any(g => g.Id == link)) {
+                    throw RigException.Conflict($"'{id}' is already global.");
                 }
 
                 PushUndo(null);
@@ -266,6 +276,31 @@ public sealed partial class LiveRig {
                 PushUndo(null);
                 Find(id).Global = null;
                 return Task.FromResult(Changed("globalUnlinked", id));
+            }
+        );
+
+    /// <summary>
+    ///     Deletes a global block from the library. Blocks linked to it (here and in saved presets, as they load) keep
+    ///     its settings as their own.
+    /// </summary>
+    public Task<LiveState> DeleteGlobalAsync(string globalId, long? expected) =>
+        Locked(() => {
+                Check(expected);
+                if (globals.Get().Blocks.All(g => g.Id != globalId)) {
+                    throw RigException.NotFound($"No global block '{globalId}'.");
+                }
+
+                var linked = preset.Blocks.Where(b => b.Global == globalId).ToList();
+                if (linked.Count > 0) {
+                    PushUndo(null);
+                }
+
+                foreach (var block in linked) {
+                    block.Global = null;
+                }
+
+                globals.Update(g => g.Blocks.RemoveAll(b => b.Id == globalId));
+                return Task.FromResult(Changed("globalDeleted", globalId));
             }
         );
 

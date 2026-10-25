@@ -1727,6 +1727,37 @@
         }
       }
     },
+    "/api/v1/live/globals/{globalId}": {
+      "delete": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Deletes a global block; the blocks linked to it keep its settings as their own.",
+        "operationId": "DeleteGlobalBlock",
+        "parameters": [
+          {
+            "name": "globalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/live/manual/{index}": {
       "put": {
         "tags": [

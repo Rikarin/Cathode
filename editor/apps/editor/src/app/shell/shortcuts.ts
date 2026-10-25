@@ -62,7 +62,7 @@ export const Shortcuts: readonly Shortcut[] = [
   { id: 'bypass', group: 'Blocks', label: 'Bypass or engage the selected block', code: 'Space' },
   { id: 'engageAll', group: 'Blocks', label: 'Engage in all scenes', code: 'Space', shift: true },
   { id: 'bypassAll', group: 'Blocks', label: 'Bypass in all scenes', code: 'Space', shift: true, mod: true },
-  { id: 'global', group: 'Blocks', label: 'Make global or unlink', key: 'g' },
+  { id: 'global', group: 'Blocks', label: 'Make the block global', key: 'g' },
   { id: 'saveBlock', group: 'Blocks', label: 'Save the block to the Library', key: 'b', mod: true },
   { id: 'blockInfo', group: 'Blocks', label: 'Block Info (or hold ⌥)', key: 'F1' },
   { id: 'addBlock', group: 'Grid', label: 'Add a block (or replace the selected one)', key: 'q' },

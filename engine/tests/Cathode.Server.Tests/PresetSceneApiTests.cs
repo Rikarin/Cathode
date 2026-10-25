@@ -232,6 +232,40 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Blocks_linked_to_one_global_block_follow_each_others_edits() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 1, 3));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 1, 5));
+        await Post("/api/v1/live/blocks/drive1/global", new LinkGlobalRequest("Both drives"));
+        var shared = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!.Blocks.Single();
+        await Put($"/api/v1/live/blocks/drive2/global/{shared.Id}", new { });
+
+        // A knob on either one moves the other, in the preset and in the engine.
+        var turned = await Patch("/api/v1/live/blocks/drive2/params?channel=A", new Dictionary<string, float> {
+                ["drive"] = 7
+            }
+        );
+        Assert.Equal(7f, turned.Preset.Blocks.Single(b => b.Id == "drive1").Channels["A"]["drive"]);
+        await ServerFixture.Eventually(() => server.Target("drive1", "drive") == 7);
+
+        // So do a channel reset and a block reset.
+        await Patch("/api/v1/live/blocks/drive1/params?channel=B", new Dictionary<string, float> { ["drive"] = 2 });
+        var reset = await Post("/api/v1/live/blocks/drive1/channels/A/reset");
+        Assert.False(reset.Preset.Blocks.Single(b => b.Id == "drive2").Channels.ContainsKey("A"));
+        Assert.Equal(2f, reset.Preset.Blocks.Single(b => b.Id == "drive2").Channels["B"]["drive"]);
+        var defaultDrive = DriveBlock.Info.Params[DriveBlock.Info.IndexOf("drive")].Default;
+        await ServerFixture.Eventually(() => server.Target("drive2", "drive") == defaultDrive);
+
+        // An unlinked block goes its own way.
+        using var unlinked = await client.DeleteAsync("/api/v1/live/blocks/drive2/global", Token);
+        Assert.Equal(HttpStatusCode.OK, unlinked.StatusCode);
+        var apart = await Patch("/api/v1/live/blocks/drive2/params?channel=B", new Dictionary<string, float> {
+                ["drive"] = 9
+            }
+        );
+        Assert.Equal(2f, apart.Preset.Blocks.Single(b => b.Id == "drive1").Channels["B"]["drive"]);
+    }
+
+    [Fact]
     public async Task Midi_steps_the_scene_level_and_saves_and_a_high_scene_cc_steps_to_the_next_scene() {
         var saved = await Post("/api/v1/live/save", new SaveRequest("Levels", true));
         await PutGlobal(g => {

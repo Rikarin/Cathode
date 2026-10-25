@@ -158,6 +158,9 @@ export class LiveStore {
     this.mutate(c => c.PUT('/api/v1/live/blocks/{id}/global/{globalId}', { params: { path: { id, globalId } } }));
   unlinkGlobal = (id: string) =>
     this.mutate(c => c.DELETE('/api/v1/live/blocks/{id}/global', { params: { path: { id } } }));
+  /** Deletes a global block; blocks linked to it keep its settings as their own. */
+  deleteGlobal = (globalId: string) =>
+    this.mutate(c => c.DELETE('/api/v1/live/globals/{globalId}', { params: { path: { globalId } } }));
   setSceneIgnore = (id: string, channel: ChannelName, enabled: boolean) =>
     this.mutate(c =>
       c.PUT('/api/v1/live/blocks/{id}/channels/{channel}/scene-ignore', {

@@ -242,7 +242,7 @@ public sealed partial class LiveRig {
                         }
                     }
                 );
-                ShareWithGlobal(block);
+                await ShareWithLinkedAsync(block);
                 return Changed("blockSettingsPasted", id);
             }
         );
@@ -349,7 +349,7 @@ public sealed partial class LiveRig {
                         }
                     }
                 );
-                ShareWithGlobal(block);
+                await ShareWithLinkedAsync(block);
                 return Changed("blockPresetApplied", id);
             }
         );
@@ -429,8 +429,11 @@ public sealed partial class LiveRig {
         target.Favorite = change.Favorite ?? target.Favorite;
     }
 
-    /// <summary>A linked block's settings belong to its global block: keep that in step.</summary>
-    void ShareWithGlobal(PresetBlock block) {
+    /// <summary>
+    ///     A linked block's settings belong to its global block: keep that in step, and the preset's other blocks linked
+    ///     to it (rebuilt, as the change may be an asset).
+    /// </summary>
+    async Task ShareWithLinkedAsync(PresetBlock block) {
         if (block.Global is not { } link) {
             return;
         }
@@ -446,6 +449,30 @@ public sealed partial class LiveRig {
                 }
             }
         );
+        if (MirrorLinked(current).Count > 0) {
+            await SyncGraphAsync();
+        }
+    }
+
+    /// <summary>The preset's other blocks linked to the same global block as <paramref name="block" />.</summary>
+    List<PresetBlock> Linked(PresetBlock block) =>
+        block.Global is { } link ? [..preset.Blocks.Where(b => b.Global == link && b.Id != block.Id)] : [];
+
+    /// <summary>
+    ///     Gives the preset's other blocks linked to <paramref name="block" />'s global block its settings (linked blocks
+    ///     are one block in several places), and returns them.
+    /// </summary>
+    List<PresetBlock> MirrorLinked(PresetBlock block) {
+        var linked = Linked(block);
+        foreach (var other in linked) {
+            other.Channels = block.Channels.ToDictionary(
+                static c => c.Key,
+                static c => new Dictionary<string, float>(c.Value)
+            );
+            other.Assets = new(block.Assets);
+        }
+
+        return linked;
     }
 
     /// <summary>Replaces the working copy's content with <paramref name="next" /> as one undoable edit, keeping its id.</summary>

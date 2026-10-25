@@ -86,12 +86,12 @@ export class UiStore {
     }
   }
 
-  toggleGlobal(block = this.block()): void {
-    if (!block || isBuiltIn(block.type)) {
+  /** Makes the block global; a linked one stays as it is (unlinking is in the block's menu), so G never piles up copies. */
+  makeGlobal(block = this.block()): void {
+    if (!block || isBuiltIn(block.type) || block.global) {
       return;
     }
 
-    const name = `${this.catalog.info(block.type)?.name ?? block.type} (${block.id})`;
-    void (block.global ? this.live.unlinkGlobal(block.id) : this.live.makeGlobal(block.id, name));
+    void this.live.makeGlobal(block.id, `${this.catalog.info(block.type)?.name ?? block.type} (${block.id})`);
   }
 }

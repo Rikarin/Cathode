@@ -812,6 +812,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/live/globals/{globalId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Deletes a global block; the blocks linked to it keep its settings as their own. */
+    delete: operations['DeleteGlobalBlock'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/live/manual/{index}': {
     parameters: {
       query?: never;
@@ -3828,6 +3845,28 @@ export interface operations {
       header?: never;
       path: {
         id: string;
+        globalId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  DeleteGlobalBlock: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
         globalId: string;
       };
       cookie?: never;

@@ -441,7 +441,7 @@ export class App {
       bypass: () => ui.toggleBypass(),
       engageAll: () => ui.allScenes({ bypassed: false }),
       bypassAll: () => ui.allScenes({ bypassed: true }),
-      global: () => ui.toggleGlobal(),
+      global: () => ui.makeGlobal(),
       saveBlock: () => block() && ui.saveBlockOpen.set(true),
       blockInfo: () => this.shortcuts.blockInfo.update(on => !on),
       undo: () => void this.live.undo(),

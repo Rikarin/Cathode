@@ -184,7 +184,10 @@ public sealed partial class LiveRig {
         }
     }
 
-    /// <summary>Stores <paramref name="values" /> as a block's channel, keeping a linked global block in step.</summary>
+    /// <summary>
+    ///     Stores <paramref name="values" /> as a block's channel, keeping a linked global block and the preset's other
+    ///     blocks linked to it in step.
+    /// </summary>
     void Put(PresetBlock block, string channel, Dictionary<string, float>? values) {
         if (values is null) {
             block.Channels.Remove(channel);
@@ -204,6 +207,8 @@ public sealed partial class LiveRig {
                 }
             );
         }
+
+        MirrorLinked(block);
     }
 
     /// <summary>The block's channels as they are now (<see cref="Put" /> replaces a channel, never edits it).</summary>
@@ -220,17 +225,26 @@ public sealed partial class LiveRig {
         Dictionary<string, Dictionary<string, float>> before,
         params string[] channels
     ) {
-        var live = Live(block.Id).Channel;
-        if (!channels.Contains(live)) {
+        // The block and the preset's other blocks linked to its global block (which had and now have its values).
+        var running = Linked(block)
+            .Prepend(block)
+            .Select(b => (Block: b, Channel: Live(b.Id).Channel))
+            .Where(r => channels.Contains(r.Channel))
+            .ToList();
+        var descriptor = catalog.Descriptor(block.Type)!;
+        if (running.Any(r => RecompileDiffers(
+                    descriptor,
+                    before.GetValueOrDefault(r.Channel),
+                    block.Channels.GetValueOrDefault(r.Channel)
+                )
+            )) {
+            await SyncGraphAsync(); // the compiler has to see the new latency
             return;
         }
 
-        var descriptor = catalog.Descriptor(block.Type)!;
-        if (RecompileDiffers(descriptor, before.GetValueOrDefault(live), block.Channels.GetValueOrDefault(live))) {
-            await SyncGraphAsync(); // the compiler has to see the new latency
-        } else {
-            SyncModifiers(block, live);
-            engine.SetParams(generation, ChannelValues(block, live));
+        foreach (var (shown, live) in running) {
+            SyncModifiers(shown, live);
+            engine.SetParams(generation, ChannelValues(shown, live));
         }
     }
 

@@ -21,10 +21,11 @@ import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { PresetSwitcher } from '../state/preset-switcher';
 import { AssetLibrary, AssetList, AssetToolbar } from './asset-library';
+import { GlobalBlocks } from './global-blocks';
 
 /**
  * The Library: presets (search by name, author or tag; double-click or Load opens one in the editor; export, import,
- * delete), the Block Library (folders of block and channel presets), and the NAM amps and IR cabs every Amp NAM, Cab
+ * delete), the Block Library (folders of block and channel presets), the global blocks (rename, delete), and the NAM amps and IR cabs every Amp NAM, Cab
  * and IR Player block picks from (upload, rename, tag, delete; the IR tools). `?view=amps` or `?view=cabs` opens
  * those.
  */
@@ -34,6 +35,7 @@ import { AssetLibrary, AssetList, AssetToolbar } from './asset-library';
   imports: [
     AssetList,
     AssetToolbar,
+    GlobalBlocks,
     XuiAlertDialogImports,
     XuiButtonImports,
     XuiDialogImports,
@@ -106,7 +108,7 @@ import { AssetLibrary, AssetList, AssetToolbar } from './asset-library';
             Export{{ chosen().size ? ' ' + chosen().size : '' }}
           </button>
         </div>
-      } @else {
+      } @else if (view() !== 'globals') {
         <cth-asset-toolbar />
       }
     </header>
@@ -289,6 +291,8 @@ import { AssetLibrary, AssetList, AssetToolbar } from './asset-library';
           </details>
         }
       </section>
+    } @else if (view() === 'globals') {
+      <cth-global-blocks />
     } @else {
       <cth-asset-list />
     }
@@ -361,7 +365,7 @@ export class LibraryPage {
   protected readonly folderName = signal('');
   private readonly assets = inject(AssetLibrary);
   /** Presets, the Block Library, or the asset views (whose kind the asset state keeps, as an upload can switch it). */
-  private readonly section = signal<'presets' | 'blocks' | 'assets'>('presets');
+  private readonly section = signal<'presets' | 'blocks' | 'globals' | 'assets'>('presets');
   protected readonly view = computed(() => {
     const section = this.section();
     return section === 'assets' ? this.assets.kind() : section;
@@ -369,6 +373,7 @@ export class LibraryPage {
   protected readonly views = [
     { label: 'Presets', value: 'presets' as const },
     { label: 'Block Library', value: 'blocks' as const },
+    { label: 'Global blocks', value: 'globals' as const },
     { label: 'NAM amps', value: 'amps' as const },
     { label: 'IR cabs', value: 'cabs' as const }
   ];
@@ -388,12 +393,12 @@ export class LibraryPage {
     void this.blockPresets.refresh();
     this.assets.refresh();
     const view = inject(ActivatedRoute).snapshot.queryParamMap.get('view');
-    if (view === 'amps' || view === 'cabs' || view === 'blocks') {
+    if (view === 'amps' || view === 'cabs' || view === 'blocks' || view === 'globals') {
       this.show(view);
     }
   }
 
-  protected show(view: 'presets' | 'blocks' | 'amps' | 'cabs'): void {
+  protected show(view: 'presets' | 'blocks' | 'globals' | 'amps' | 'cabs'): void {
     if (view === 'amps' || view === 'cabs') {
       this.assets.show(view);
       this.section.set('assets');
