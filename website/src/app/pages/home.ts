@@ -424,7 +424,8 @@ const STATUS = {
             <h3 class="text-xl font-semibold">Modifiers on any knob</h3>
             <p class="text-foreground-muted mt-2 text-sm leading-relaxed">
               Right-click a control and drive it from a source: a filter that breathes with an LFO, a wah on your
-              picking, a delay mix on an expression pedal.
+              picking, a delay mix on an expression pedal. Set its range, attack and release, its curve, and the
+              channels it applies on.
             </p>
             <svg
               class="mt-6 h-24 w-full"
@@ -450,8 +451,9 @@ const STATUS = {
           </div>
 
           <cw-screenshot [shot]="shots.perform" />
+          <cw-screenshot [shot]="shots.modifiers" />
 
-          <div class="grid gap-4">
+          <div class="grid gap-4 md:grid-cols-3 lg:col-span-2">
             @for (feature of liveFeatures; track feature.title) {
               <div class="card p-6">
                 <h3 class="font-semibold">{{ feature.title }}</h3>

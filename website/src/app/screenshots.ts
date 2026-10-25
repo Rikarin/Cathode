@@ -79,7 +79,16 @@ export const SHOTS = {
     src: 'screenshots/perform.webp',
     window: true
   },
-  modifiers: shot('modifiers.png', 'Modifier', 'A knob driven by an LFO, with the modifier dialog open.', '4 / 3'),
+  modifiers: {
+    ...shot(
+      'modifiers.webp',
+      'Cathode — Modifier',
+      "A modifier on the drive's Drive knob: LFO 1 as the source, its minimum, maximum, attack and release, the channels it applies on, and an exponential curve drawn on a graph.",
+      '1856 / 1392'
+    ),
+    src: 'screenshots/modifiers.webp',
+    window: true
+  },
   library: {
     ...shot(
       'library.webp',
