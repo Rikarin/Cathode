@@ -5,8 +5,9 @@ namespace Cathode.Dsp.Wdf;
 /// <summary>
 ///     The scattering matrix of an R-type adaptor, computed from the modified nodal analysis (MNA) of its
 ///     <see cref="WdfNetlist" />, after Werner, Smith and Abel, "Wave digital filter adaptors for arbitrary topologies and
-///     multiport linear elements" (DAFx-15). Every buffer is allocated once, so <see cref="Recompute" /> can run on the
-///     audio thread whenever a component changes.
+///     multiport linear elements" (DAFx-15). Every buffer is allocated once (a small network solves in stack scratch),
+///     so <see cref="Recompute" /> can run on the audio thread whenever a component changes. The topology arrays are the
+///     netlist's own, shared by every adaptor built from it.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -43,6 +44,7 @@ namespace Cathode.Dsp.Wdf;
 public sealed class RTypeScattering {
     const double MinimumConductance = 1e-15;
     const double MinimumResistance = 1e-6; // a pot turned fully down: never a short, which would make X singular
+    const int MaxStackScratch = 1_024; // doubles (8 KB): larger networks keep their scratch on the heap
 
     readonly NetlistElementKind[] kinds;
     readonly int[] plus;
@@ -58,10 +60,8 @@ public sealed class RTypeScattering {
     readonly int currentSources;
     readonly int vcvsCount;
     readonly int size; // MNA unknowns: node voltages, then voltage-source and VCVS currents
-    readonly double[] mna;
-    readonly double[] solution;
-    readonly double[] upResponse;
-    readonly int[] pivots;
+    readonly double[]? scratch; // the MNA, its solution and the parent response, when too large for the stack
+    readonly int[]? scratchPivots;
     readonly double[] matrix;
     readonly int upElement;
 
@@ -120,23 +120,15 @@ public sealed class RTypeScattering {
     public RTypeScattering(WdfNetlist netlist) {
         ArgumentNullException.ThrowIfNull(netlist);
         var elements = netlist.Elements;
-        kinds = new NetlistElementKind[elements.Count];
-        plus = new int[elements.Count];
-        minus = new int[elements.Count];
-        controlPlus = new int[elements.Count];
-        controlMinus = new int[elements.Count];
-        ordinal = new int[elements.Count];
-        Span<int> counts = stackalloc int[Enum.GetValues<NetlistElementKind>().Length];
-        for (var i = 0; i < elements.Count; i++) {
-            var e = elements[i];
-            kinds[i] = e.Kind;
-            plus[i] = e.Plus;
-            minus[i] = e.Minus;
-            controlPlus[i] = e.ControlPlus;
-            controlMinus[i] = e.ControlMinus;
-            ordinal[i] = counts[(int)e.Kind]++;
-        }
-
+        // The topology is immutable and shared by every adaptor built from the same netlist.
+        var topology = netlist.Topology;
+        kinds = topology.Kinds;
+        plus = topology.Plus;
+        minus = topology.Minus;
+        controlPlus = topology.ControlPlus;
+        controlMinus = topology.ControlMinus;
+        ordinal = topology.Ordinal;
+        var counts = topology.Counts;
         upElement = Array.IndexOf(kinds, NetlistElementKind.Up);
         Nodes = netlist.Nodes;
         PortCount = counts[(int)NetlistElementKind.Port];
@@ -164,12 +156,16 @@ public sealed class RTypeScattering {
         deviceConductances = new double[DeviceCount];
         deviceConductances.AsSpan().Fill(1e-3);
         portResistances = new double[PortCount];
-        mna = new double[size * size];
-        solution = new double[size * Columns];
-        upResponse = new double[size];
-        pivots = new int[size];
+        if (ScratchLength > MaxStackScratch) {
+            scratch = new double[ScratchLength];
+            scratchPivots = new int[size];
+        }
+
         matrix = new double[Rows * Columns];
     }
+
+    /// <summary>Doubles of scratch a <see cref="Recompute" /> needs: the MNA matrix, its solution, the parent response.</summary>
+    int ScratchLength => size * size + size * Columns + size;
 
     /// <summary>One row of <see cref="Matrix" />.</summary>
     public ReadOnlySpan<double> Row(int row) => matrix.AsSpan(row * Columns, Columns);
@@ -192,8 +188,12 @@ public sealed class RTypeScattering {
     public bool Recompute() {
         var n = size;
         var columns = Columns;
-        var a = mna.AsSpan();
-        var rhs = solution.AsSpan();
+        // Scratch for this call only: on the stack when it fits, so a small adaptor holds no buffers it uses only here.
+        var work = scratch is null ? stackalloc double[ScratchLength] : scratch.AsSpan();
+        var pivots = scratchPivots is null ? stackalloc int[n] : scratchPivots.AsSpan();
+        var a = work[..(n * n)];
+        var rhs = work.Slice(n * n, n * columns);
+        var upResponse = work.Slice(n * n + n * columns, n);
         a.Clear();
         rhs.Clear();
         for (var node = 1; node <= Nodes; node++) {
@@ -255,7 +255,6 @@ public sealed class RTypeScattering {
             }
         }
 
-        var pivots = this.pivots.AsSpan(0, n);
         if (!DenseLu.Factor(a, n, pivots)) {
             IsValid = false;
             return false;
@@ -263,7 +262,7 @@ public sealed class RTypeScattering {
 
         DenseLu.Solve(a, n, pivots, rhs, columns);
 
-        if (HasUp && !AdaptUp(rhs, columns)) {
+        if (HasUp && !AdaptUp(rhs, columns, upResponse)) {
             IsValid = false;
             return false;
         }
@@ -277,10 +276,9 @@ public sealed class RTypeScattering {
     ///     R_up = dᵀ X₀⁻¹ d from the parent column, then the Sherman-Morrison update of every column for the parent
     ///     port's conductance G: z = z₀ - w (dᵀ z₀) G / 2, since 1 + G R_up = 2.
     /// </summary>
-    bool AdaptUp(Span<double> z, int columns) {
+    bool AdaptUp(Span<double> z, int columns, Span<double> w) {
         var p = plus[upElement];
         var m = minus[upElement];
-        var w = upResponse.AsSpan(0, size);
         for (var i = 0; i < size; i++) {
             w[i] = z[i * columns + UpColumn];
         }

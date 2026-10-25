@@ -68,6 +68,7 @@ public sealed class WdfNetlist {
     public const int Ground = 0;
 
     readonly List<NetlistElement> elements = [];
+    NetlistTopology? topology;
 
     /// <summary>Number of nodes besides ground.</summary>
     public int Nodes { get; private set; }
@@ -160,6 +161,23 @@ public sealed class WdfNetlist {
     /// <summary>An output, v(plus) - v(minus), read with <c>Probe(index)</c> after each sample. Returns its index.</summary>
     public int Probe(int plus, int minus = Ground) => Add(new(NetlistElementKind.Probe, plus, minus));
 
+    /// <summary>
+    ///     The elements' kinds, nodes and per-kind indices as arrays, built once and shared by every adaptor made from
+    ///     this netlist (the catalogue's netlists are static, so their adaptors need no copy of their own). Rebuilt when
+    ///     elements were added since; never mutated, so publishing it without a lock is safe.
+    /// </summary>
+    internal NetlistTopology Topology {
+        get {
+            var current = topology;
+            if (current is null || current.Kinds.Length != elements.Count) {
+                current = new(elements);
+                topology = current;
+            }
+
+            return current;
+        }
+    }
+
     /// <summary>How many elements of <paramref name="kind" /> the netlist has.</summary>
     public int Count(NetlistElementKind kind) {
         var count = 0;
@@ -195,4 +213,38 @@ public sealed class WdfNetlist {
             );
         }
     }
+}
+
+/// <summary>The immutable arrays an adaptor reads a <see cref="WdfNetlist" /> through (see <c>Topology</c>).</summary>
+sealed class NetlistTopology {
+    public NetlistTopology(List<NetlistElement> elements) {
+        Kinds = new NetlistElementKind[elements.Count];
+        Plus = new int[elements.Count];
+        Minus = new int[elements.Count];
+        ControlPlus = new int[elements.Count];
+        ControlMinus = new int[elements.Count];
+        Ordinal = new int[elements.Count];
+        Counts = new int[Enum.GetValues<NetlistElementKind>().Length];
+        for (var i = 0; i < elements.Count; i++) {
+            var e = elements[i];
+            Kinds[i] = e.Kind;
+            Plus[i] = e.Plus;
+            Minus[i] = e.Minus;
+            ControlPlus[i] = e.ControlPlus;
+            ControlMinus[i] = e.ControlMinus;
+            Ordinal[i] = Counts[(int)e.Kind]++;
+        }
+    }
+
+    public NetlistElementKind[] Kinds { get; }
+    public int[] Plus { get; }
+    public int[] Minus { get; }
+    public int[] ControlPlus { get; }
+    public int[] ControlMinus { get; }
+
+    /// <summary>Each element's index among the elements of its kind.</summary>
+    public int[] Ordinal { get; }
+
+    /// <summary>Elements of each kind.</summary>
+    public int[] Counts { get; }
 }

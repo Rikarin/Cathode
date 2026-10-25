@@ -110,20 +110,18 @@ public sealed class HostAllocationTests : IDisposable {
     [Fact]
     public async Task Reloading_a_preset_stays_small() {
         // The cab's IR is cached and the convolvers live in native memory; before that a load was about 160 KB. The Drive
-        // block builds every component-level network of its catalogue up front, for both channels (about 90 KB of small
-        // objects), so that switching its type on the audio thread never allocates. The time-based parity pass added about
-        // 6 KB (the Delay's 80 parameters, its diffuser and post-delay lines; the Reverb's extra settings). The Cab block
-        // stream added about 1 KB (16 more Cab parameters: per-slot proximity, smoothing and Auto-Align, Motor Drive), and
-        // the audio I/O pass under 1 KB (the latency path the compiler records, the Input block's pickup load parameters
-        // and the Drive's oversampling setting): 138,008 bytes measured with both. Round 4 of the Drive grew its catalogue
-        // from 24 circuits to 61, each prebuilt for both channels (about 750 bytes a circuit), and added the classic
-        // reverbs and the Pitch formant parameters: 168,240 bytes, under a limit that leaves about 2 KB. The Drive's last
-        // per-pedal knobs (12 parameters, a noise gate's sub-block of gains per channel) took it to 169,480 bytes.
+        // block builds every component-level network its catalogue can switch to up front, for both channels, so that
+        // switching its type on the audio thread never allocates; as the catalogue grew to 61 circuits and the other
+        // parity passes added parameters, a load crept to 169,480 bytes. Most of the Drive's networks were overhead, now
+        // gone: an adaptor reads its netlist's topology from arrays the netlist builds once and shares (the catalogue's
+        // netlists are static), a small adaptor solves its MNA in stack scratch instead of holding the buffers, and a
+        // linear root (the tone networks) carries no Newton solver state. That took the Drive from about 130 KB to 74 KB
+        // and a load to 112,664 bytes, under a limit that leaves about 2 KB.
         var load = new IpcMessage { Type = IpcTypes.LoadGraph, Generation = 1, Graph = Rig() };
 
         var allocated = await RoundTripAsync(load, 3);
 
-        Assert.True(allocated < 170_000, $"a preset load allocated {allocated} bytes");
+        Assert.True(allocated < 115_000, $"a preset load allocated {allocated} bytes");
     }
 
     [Fact]
