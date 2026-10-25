@@ -23,22 +23,19 @@ public enum GraphOpKind {
     Clear,
 
     /// <summary>
-    ///     Let row-input block slot <c>Index</c> (a multiplexer or mixer) add buffer <c>Source</c>, from grid row
-    ///     <c>Row</c>, into <c>Buffer</c>.
+    ///     Hand side-input block slot <c>Index</c> (<see cref="Cathode.Dsp.ISideInputBlock" />) the signal on grid row
+    ///     <c>Row</c>, buffer <c>Source</c>. With <c>Buffer</c> ≥ 0 it is a cabled input, which the block adds into
+    ///     <c>Buffer</c>, its own (a Multiplexer, Mixer or Output weighs it, Pitch and Vocoder may keep it aside); with
+    ///     <c>Buffer</c> −1 it is a tap, only offered (a sidechain), and <c>Source</c> −1 (<c>Row</c> −1) is the grid
+    ///     input.
     /// </summary>
-    MuxInput,
+    SideInput,
 
     /// <summary>
     ///     Let Output block slot <c>Index</c> scale <c>Buffer</c>, its only input, by the level and balance of grid row
-    ///     <c>Row</c>, in place (the single-input case of <see cref="MuxInput" />, without a second buffer).
+    ///     <c>Row</c>, in place (the single-input case of <see cref="SideInput" />, without a second buffer).
     /// </summary>
-    ScaleRow,
-
-    /// <summary>
-    ///     Offer sidechain block slot <c>Index</c> buffer <c>Buffer</c>, the signal on grid row <c>Row</c>; with
-    ///     <c>Row</c> −1, the grid input instead (and <c>Buffer</c> is unused).
-    /// </summary>
-    SidechainInput
+    ScaleRow
 }
 
 /// <summary>One step of a compiled execution plan. A plan is a flat array walked once per callback.</summary>

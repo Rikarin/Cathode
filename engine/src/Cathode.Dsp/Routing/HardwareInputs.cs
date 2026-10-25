@@ -94,9 +94,9 @@ public sealed class HardwareInputs : IDisposable {
 
 /// <summary>
 ///     One graph's view of the <see cref="HardwareInputs" />: blocks that read a hardware input
-///     (<see cref="IHardwareInputBlock" />) get it from the graph compiler. When the graph is replaced and spills over
-///     under the next one, the engine fades its port out (<see cref="FadeOut" />), as it fades the grid input, so the
-///     old preset stops hearing the player and its tails can ring out.
+///     (<see cref="ISideInputBlock" /> with <see cref="SideInputs.Hardware" />) get it from the graph compiler. When the
+///     graph is replaced and spills over under the next one, the engine fades its port out (<see cref="FadeOut" />), as
+///     it fades the grid input, so the old preset stops hearing the player and its tails can ring out.
 /// </summary>
 public sealed class InputPort(HardwareInputs inputs, double sampleRate) {
     /// <summary>How long the fade-out of a replaced graph's inputs takes (the engine's swap fade).</summary>

@@ -70,7 +70,7 @@ public enum PitchKeySource {
 ///         The detector: Pitch Tracking Smooth (the default) changes note only past a 0.15-semitone hysteresis, Fast
 ///         past 0.05 and with a shorter hold, and Off stops tracking (the splices run free and the harmony stays put).
 ///         Splice Length sets the shifters' minimum splice. Detector Source can take the tracked signal from another grid
-///         row instead of the block input; the block then takes its inputs by row (<see cref="IRowInputBlock" />), the
+///         row instead of the block input; the block then takes its inputs by row (<see cref="SideInputs.Cables" />), the
 ///         chosen row feeding only the detector. It can also be one of the interface's inputs
 ///         (<see cref="HardwareInputs" />), say a second guitar or a keyboard on Input 2.
 ///     </para>
@@ -106,7 +106,7 @@ public enum PitchKeySource {
 ///     </para>
 ///     <para>Kill Dry mutes the dry signal, so Mix sets the wet level alone.</para>
 /// </remarks>
-public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInputBlock {
+public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
     public const int Type = 0;
     public const int Mix = 1;
     public const int Level = 2;
@@ -714,6 +714,13 @@ public sealed class PitchBlock() : DspBlock(Info), IRowInputBlock, IHardwareInpu
 
         sideFrames = frames;
     }
+
+    /// <summary>Its cabled inputs by row (<see cref="MixInput" />), and the hardware inputs (<see cref="Inputs" />).</summary>
+    public SideInputs SideInputs => SideInputs.Cables | SideInputs.Hardware;
+
+    /// <summary>Audio thread: a cabled input, through <see cref="MixInput" />.</summary>
+    public void SideInput(SideInputKind kind, int row, in StereoBuffer signal, in StereoBuffer destination) =>
+        MixInput(row, signal, destination);
 
     public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) {
         var detectorRow = (int)Params.GetTarget(DetectorSource) - 1;

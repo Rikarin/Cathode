@@ -43,6 +43,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
 
         // Create every block instance (even unconnected ones keep their slot so the API can address them).
         var slotOfNode = new int[nodes.Count];
+        var sideInputs = new SideInputs[nodes.Count]; // what each node's block takes from elsewhere (ISideInputBlock)
         var blocks = new List<IDspBlock>();
         var slotIds = new List<string>();
         var bypassed = new List<bool>();
@@ -78,8 +79,11 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 loop.Port = HardwareLoop;
             }
 
-            if (block is IHardwareInputBlock reader && HardwareInputs is { } hardware) {
-                reader.Inputs = port ??= new(hardware, spec.SampleRate);
+            if (block is ISideInputBlock side) {
+                sideInputs[n] = side.SideInputs;
+                if ((side.SideInputs & SideInputs.Hardware) != 0 && HardwareInputs is { } hardware) {
+                    side.Inputs = port ??= new(hardware, spec.SampleRate);
+                }
             }
 
             if (block is RtaBlock rta) {
@@ -228,11 +232,13 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             }
         }
 
-        // Sidechain sources: per row, the last live node to the left of each sidechain block. Each counts as one more
-        // reader, so its buffer survives (and is not processed over in place) until the block has been offered it.
-        var sidechains = new List<(int Row, int Source)>?[nodes.Count];
+        // Side inputs (ISideInputBlock). Taps: per row, the last live node to the left of the block. Each counts as one
+        // more reader, so its buffer survives (and is not processed over in place) until the block has been offered it.
+        // Cabled inputs by row are handed over below, where the block's input is assembled; hardware inputs went to the
+        // blocks with the graph's InputPort above.
+        var taps = new List<(int Row, int Source)>?[nodes.Count];
         foreach (var n in order) {
-            if (slotOfNode[n] < 0 || blocks[slotOfNode[n]] is not ISidechainBlock) {
+            if ((sideInputs[n] & SideInputs.Taps) == 0) {
                 continue;
             }
 
@@ -254,7 +260,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 }
             }
 
-            sidechains[n] = sources;
+            taps[n] = sources;
         }
 
         var liveInputs = new List<int>();
@@ -270,17 +276,17 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
 
             var arrival = Arrival(inputs[n], live, latency);
             int buffer;
-            if (sidechains[n] is { } sidechainSources) {
-                emitter.Emit(new(GraphOpKind.SidechainInput, 0, Index: slotOfNode[n], Row: -1));
-                foreach (var (row, source) in sidechainSources) {
-                    emitter.Emit(new(GraphOpKind.SidechainInput, bufferOf[source], Index: slotOfNode[n], Row: row));
+            if (taps[n] is { } tapSources) {
+                emitter.EmitSideInput(slotOfNode[n], -1, -1, -1); // the grid input
+                foreach (var (row, source) in tapSources) {
+                    emitter.EmitSideInput(slotOfNode[n], row, bufferOf[source], -1);
                     if (--readersLeft[source] == 0) {
                         emitter.Free(bufferOf[source]);
                     }
                 }
             }
 
-            var mux = slotOfNode[n] >= 0 && blocks[slotOfNode[n]] is IRowInputBlock;
+            var byRow = (sideInputs[n] & SideInputs.Cables) != 0;
             var soleReader = liveInputs.Count == 1 && readersLeft[liveInputs[0]] == 1;
             if (node.Type == NodeTypes.Input) {
                 buffer = emitter.Allocate();
@@ -295,8 +301,9 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 readersLeft[source] = 0;
                 emitter.EmitDelay(buffer, arrival - latency[source]);
                 emitter.Emit(new(GraphOpKind.ScaleRow, buffer, Index: slotOfNode[n], Row: nodes[source].Row));
-            } else if (mux) {
-                // Each input goes through the multiplexer's selection fade instead of a plain sum.
+            } else if (byRow) {
+                // Each cabled input goes to the block by row (a multiplexer's selection fade, a mixer's row gains, a
+                // detector's side buffer) instead of a plain sum.
                 buffer = emitter.Allocate();
                 emitter.Emit(new(GraphOpKind.Clear, buffer));
                 foreach (var source in liveInputs) {
@@ -310,7 +317,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                         from = temp;
                     }
 
-                    emitter.Emit(new(GraphOpKind.MuxInput, buffer, from, slotOfNode[n], nodes[source].Row));
+                    emitter.EmitSideInput(slotOfNode[n], nodes[source].Row, from, buffer);
                     if (temp >= 0) {
                         emitter.Free(temp);
                     }
@@ -619,6 +626,14 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         public void Free(int buffer) => free.Push(buffer);
 
         public void Emit(GraphOp op) => Ops.Add(op);
+
+        /// <summary>
+        ///     A <see cref="GraphOpKind.SideInput" />: buffer <paramref name="source" /> (−1: the grid input), the signal on
+        ///     grid row <paramref name="row" />, to block slot <paramref name="slot" />; a cabled input is added into
+        ///     <paramref name="destination" />, a tap (<paramref name="destination" /> −1) only offered.
+        /// </summary>
+        public void EmitSideInput(int slot, int row, int source, int destination) =>
+            Emit(new(GraphOpKind.SideInput, destination, source, slot, row));
 
         public void EmitDelay(int buffer, int samples) {
             if (samples <= 0) {

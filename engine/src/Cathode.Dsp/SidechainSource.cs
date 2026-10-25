@@ -4,21 +4,11 @@ using Cathode.Dsp.Routing;
 namespace Cathode.Dsp;
 
 /// <summary>
-///     A block whose detector can listen to another signal than its input (docs/08-blocks-parity.md §6.2, §6.11): the
-///     grid input, or the signal on another grid row. The graph compiler offers it, once per sub-block before
-///     <see cref="IDspBlock.Process" />, the grid input and the output of the last live block on each row to its left;
-///     the block keeps the one its Sidechain parameter selects (<see cref="SidechainSource" />).
-/// </summary>
-public interface ISidechainBlock {
-    /// <summary>
-    ///     Audio thread: <paramref name="source" /> is the grid input (<paramref name="row" /> −1) or the signal on grid
-    ///     row <paramref name="row" /> (0-based). No allocation.
-    /// </summary>
-    void SidechainInput(int row, in StereoBuffer source);
-}
-
-/// <summary>
-///     The sidechain a <see cref="ISidechainBlock" /> keeps: the selected source's samples for the coming
+///     The sidechain a Compressor or Gate keeps (docs/08-blocks-parity.md §6.2, §6.11): its detector can listen to
+///     another signal than its input. The block declares <see cref="SideInputs.Taps" /> and
+///     <see cref="SideInputs.Hardware" /> (<see cref="ISideInputBlock" />), so the graph compiler offers it, once per
+///     sub-block, the grid input and the output of the last live block on each row to its left (<see cref="Offer" />).
+///     This holds the selected source's samples for the coming
 ///     <see cref="IDspBlock.Process" />, or nothing, in which case the block listens to its own input. A selected row
 ///     with no block to the left of this one (or nothing at all on it) also falls back to the block's own input. The
 ///     source can also be one of the interface's inputs (<see cref="HardwareInputs" />), which the block offers itself

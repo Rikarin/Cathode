@@ -11,7 +11,7 @@ namespace Cathode.Dsp.Blocks;
 ///     instead of the rows, so a second instrument or a DAW return can be switched in; the block still needs a cable from
 ///     the grid input to be part of the graph.
 /// </summary>
-public sealed class MultiplexerBlock() : DspBlock(Info), IRowInputBlock, IHardwareInputBlock {
+public sealed class MultiplexerBlock() : DspBlock(Info), ISideInputBlock {
     public const int Input = 0;
     public const int Level = 1;
     public const int Balance = 2;
@@ -48,6 +48,13 @@ public sealed class MultiplexerBlock() : DspBlock(Info), IRowInputBlock, IHardwa
     );
 
     public InputPort? Inputs { get; set; }
+
+    /// <summary>Its cabled inputs by row (<see cref="MixInput" />), and the hardware inputs (<see cref="Inputs" />).</summary>
+    public SideInputs SideInputs => SideInputs.Cables | SideInputs.Hardware;
+
+    /// <summary>Audio thread: a cabled input, through <see cref="MixInput" />.</summary>
+    public void SideInput(SideInputKind kind, int row, in StereoBuffer signal, in StereoBuffer destination) =>
+        MixInput(row, signal, destination);
 
     /// <summary>
     ///     Audio thread, once per sub-block for each cabled input, before <see cref="DspBlock.Process" />: adds
