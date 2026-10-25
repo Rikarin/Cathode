@@ -207,6 +207,11 @@ public sealed class CompiledGraph : IDisposable {
         io.OutputRight.Clear();
 
         foreach (ref readonly var op in ops.AsSpan()) {
+            if (op.Kind == GraphOpKind.SideInput) {
+                SideInput(op, io, frames);
+                continue;
+            }
+
             var left = this.left[op.Buffer].Span[..frames];
             var right = this.right[op.Buffer].Span[..frames];
             switch (op.Kind) {
@@ -244,26 +249,6 @@ public sealed class CompiledGraph : IDisposable {
                     left.Clear();
                     right.Clear();
                     break;
-                case GraphOpKind.MuxInput:
-                    ((IRowInputBlock)blocks[op.Index]).MixInput(
-                        op.Row,
-                        new(this.left[op.Source].Span[..frames], this.right[op.Source].Span[..frames]),
-                        new(left, right)
-                    );
-                    break;
-                case GraphOpKind.SidechainInput:
-                    if (op.Row < 0) {
-                        // The grid input; the dry buffers are free between blocks.
-                        var inputLeft = dryLeft.Span[..frames];
-                        var inputRight = dryRight.Span[..frames];
-                        io.InputLeft.CopyTo(inputLeft);
-                        io.InputRight.CopyTo(inputRight);
-                        ((ISidechainBlock)blocks[op.Index]).SidechainInput(-1, new(inputLeft, inputRight));
-                    } else {
-                        ((ISidechainBlock)blocks[op.Index]).SidechainInput(op.Row, new(left, right));
-                    }
-
-                    break;
                 case GraphOpKind.ScaleRow:
                     ((OutputBlock)blocks[op.Index]).ScaleInput(op.Row, new(left, right));
                     break;
@@ -284,6 +269,37 @@ public sealed class CompiledGraph : IDisposable {
 
         dryLeft.Dispose();
         dryRight.Dispose();
+    }
+
+    /// <summary>
+    ///     A <see cref="GraphOpKind.SideInput" />: hands the block buffer <c>Source</c> (or the grid input), as a cabled
+    ///     input to add into <c>Buffer</c> or, without one, as a tap.
+    /// </summary>
+    void SideInput(in GraphOp op, in AudioIO io, int frames) {
+        Span<float> signalLeft;
+        Span<float> signalRight;
+        if (op.Source < 0) {
+            // The grid input; the dry buffers are free between blocks.
+            signalLeft = dryLeft.Span[..frames];
+            signalRight = dryRight.Span[..frames];
+            io.InputLeft.CopyTo(signalLeft);
+            io.InputRight.CopyTo(signalRight);
+        } else {
+            signalLeft = left[op.Source].Span[..frames];
+            signalRight = right[op.Source].Span[..frames];
+        }
+
+        var block = (ISideInputBlock)blocks[op.Index];
+        if (op.Buffer < 0) {
+            block.SideInput(SideInputKind.Tap, op.Row, new(signalLeft, signalRight), default);
+        } else {
+            block.SideInput(
+                SideInputKind.Cable,
+                op.Row,
+                new(signalLeft, signalRight),
+                new(left[op.Buffer].Span[..frames], right[op.Buffer].Span[..frames])
+            );
+        }
     }
 
     void RunBlock(int slot, in StereoBuffer io, in BlockContext context) {

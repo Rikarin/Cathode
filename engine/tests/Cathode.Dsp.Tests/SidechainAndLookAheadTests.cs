@@ -87,12 +87,12 @@ public class SidechainAndLookAheadTests {
 
     /// <summary>Processes <paramref name="main" />, offering <paramref name="side" /> as row <paramref name="row" />.</summary>
     static float[] Run<T>(T block, float[] main, float[] side, int row)
-        where T : IDspBlock, ISidechainBlock {
+        where T : IDspBlock, ISideInputBlock {
         var left = (float[])main.Clone();
         var right = (float[])main.Clone();
         var sideRight = (float[])side.Clone();
         for (var offset = 0; offset < main.Length; offset += 64) {
-            block.SidechainInput(row, new(side.AsSpan(offset, 64), sideRight.AsSpan(offset, 64)));
+            block.SideInput(SideInputKind.Tap, row, new(side.AsSpan(offset, 64), sideRight.AsSpan(offset, 64)), default);
             block.Process(new(left.AsSpan(offset, 64), right.AsSpan(offset, 64)), new(Rate, 120, offset));
         }
 

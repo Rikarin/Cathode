@@ -32,7 +32,7 @@ namespace Cathode.Dsp.Blocks;
 ///     chosen impedance, the cable and the Pickup Buffer shape it, relative to the high-impedance input the DI came
 ///     through. With the pickup Off (the default) or at Auto without the buffer the signal is untouched.
 /// </summary>
-public sealed class InputBlock() : DspBlock(Info), IHardwareInputBlock {
+public sealed class InputBlock() : DspBlock(Info), ISideInputBlock {
     public const int Source = 0;
     public const int GateType = 1;
     public const int Threshold = 2;
@@ -135,6 +135,12 @@ public sealed class InputBlock() : DspBlock(Info), IHardwareInputBlock {
     public float CurrentGain => MathF.Pow(10f, gainDb / 20f);
 
     public InputPort? Inputs { get; set; }
+
+    /// <summary>The hardware inputs (<see cref="Inputs" />) for its Source; nothing from the grid.</summary>
+    public SideInputs SideInputs => SideInputs.Hardware;
+
+    /// <summary>Never called: the Input cell takes no grid signals.</summary>
+    public void SideInput(SideInputKind kind, int row, in StereoBuffer signal, in StereoBuffer destination) { }
 
     static float Coefficient(double milliseconds, double sampleRate) =>
         (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));

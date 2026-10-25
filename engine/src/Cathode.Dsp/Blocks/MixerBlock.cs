@@ -9,7 +9,7 @@ namespace Cathode.Dsp.Blocks;
 ///     row's controls. Row gains glide to new settings at a fixed rate (full scale in 20 ms), so scene changes never
 ///     click.
 /// </summary>
-public sealed class MixerBlock() : DspBlock(Info), IRowInputBlock {
+public sealed class MixerBlock() : DspBlock(Info), ISideInputBlock {
     public const int Rows = 6;
     public const int Mode = 2 * Rows;
     public const int Level = Mode + 1;
@@ -41,6 +41,13 @@ public sealed class MixerBlock() : DspBlock(Info), IRowInputBlock {
     public static int Gain(int row) => row;
 
     public static int RowBalance(int row) => Rows + row;
+
+    /// <summary>Its cabled inputs by row (<see cref="MixInput" />).</summary>
+    public SideInputs SideInputs => SideInputs.Cables;
+
+    /// <summary>Audio thread: a cabled input, through <see cref="MixInput" />.</summary>
+    public void SideInput(SideInputKind kind, int row, in StereoBuffer signal, in StereoBuffer destination) =>
+        MixInput(row, signal, destination);
 
     public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) {
         var slot = Math.Clamp(row, 0, Rows - 1);

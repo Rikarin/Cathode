@@ -125,6 +125,59 @@ public class GraphCompilerTests {
         }
     }
 
+    [Theory]
+    [InlineData("mux", SideInputs.Cables | SideInputs.Hardware)]
+    [InlineData("mixer", SideInputs.Cables)]
+    [InlineData("output", SideInputs.Cables)]
+    [InlineData("output3", SideInputs.Cables)]
+    [InlineData("pitch", SideInputs.Cables | SideInputs.Hardware)]
+    [InlineData("vocoder", SideInputs.Cables | SideInputs.Hardware)]
+    [InlineData("compressor", SideInputs.Taps | SideInputs.Hardware)]
+    [InlineData("gate", SideInputs.Taps | SideInputs.Hardware)]
+    [InlineData("input", SideInputs.Hardware)]
+    [InlineData("volpan", SideInputs.None)]
+    public void Blocks_declare_the_signals_they_take_from_elsewhere(string type, SideInputs expected) {
+        using var block = TestRegistry.Create().Create(type);
+
+        Assert.Equal(expected, block is ISideInputBlock side ? side.SideInputs : SideInputs.None);
+    }
+
+    [Fact]
+    public void Side_inputs_reach_their_blocks_through_one_op_as_cables_or_taps() {
+        var definition = Graph(
+            [
+                Node("in", NodeTypes.Input, 0, 0),
+                Node("a", "volpan", 0, 1),
+                Node("b", "volpan", 1, 1),
+                Node("mux", "mux", 0, 2),
+                Node("comp", "compressor", 0, 3),
+                Node("out", NodeTypes.Output, 0, 4)
+            ],
+            ("in", "a"),
+            ("in", "b"),
+            ("a", "mux"),
+            ("b", "mux"),
+            ("mux", "comp"),
+            ("comp", "out")
+        );
+
+        using var graph = Compiler.Compile(definition, Spec);
+        var mux = graph.SlotOf("mux");
+        var comp = graph.SlotOf("comp");
+
+        Assert.Equal(SideInputs.Cables | SideInputs.Hardware, ((ISideInputBlock)graph.Block(mux)).SideInputs);
+        Assert.Equal(SideInputs.Taps | SideInputs.Hardware, ((ISideInputBlock)graph.Block(comp)).SideInputs);
+        // The multiplexer gets its two cabled rows, each added into its own buffer.
+        var cables = graph.Ops.Where(op => op.Kind == GraphOpKind.SideInput && op.Index == mux).ToArray();
+        Assert.Equal([0, 1], cables.Select(static op => op.Row).Order());
+        Assert.All(cables, static op => Assert.True(op.Buffer >= 0 && op.Source >= 0));
+        // The compressor is offered taps only: the grid input, then the last block on each row to its left.
+        var taps = graph.Ops.Where(op => op.Kind == GraphOpKind.SideInput && op.Index == comp).ToArray();
+        Assert.Equal([-1, 0, 1], taps.Select(static op => op.Row));
+        Assert.All(taps, static op => Assert.Equal(-1, op.Buffer));
+        Assert.Equal(-1, taps[0].Source);
+    }
+
     [Fact]
     public void Buffers_are_reused_down_a_long_parallel_grid() {
         var nodes = new List<NodeDefinition> { Node("in", NodeTypes.Input, 0, 0) };

@@ -11,7 +11,7 @@ namespace Cathode.Dsp.Blocks;
 ///     centre) the rows sum at unity, as a plain Output did. Row gains glide (full scale in 20 ms), so scene and channel
 ///     changes never click. The scene level is applied after it, by the rig.
 /// </summary>
-public sealed class OutputBlock(BlockDescriptor descriptor) : DspBlock(descriptor), IRowInputBlock {
+public sealed class OutputBlock(BlockDescriptor descriptor) : DspBlock(descriptor), ISideInputBlock {
     public const int Rows = 6;
     public const int Level = 2 * Rows;
     public const int Balance = Level + 1;
@@ -61,6 +61,13 @@ public sealed class OutputBlock(BlockDescriptor descriptor) : DspBlock(descripto
     public static int RowLevel(int row) => row;
 
     public static int RowBalance(int row) => Rows + row;
+
+    /// <summary>Its cabled inputs by row (<see cref="MixInput" />).</summary>
+    public SideInputs SideInputs => SideInputs.Cables;
+
+    /// <summary>Audio thread: a cabled input, through <see cref="MixInput" />.</summary>
+    public void SideInput(SideInputKind kind, int row, in StereoBuffer signal, in StereoBuffer destination) =>
+        MixInput(row, signal, destination);
 
     public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) {
         var slot = Math.Clamp(row, 0, Rows - 1);

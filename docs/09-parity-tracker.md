@@ -337,7 +337,7 @@ These were reported as left over or deliberately deferred, and are not assigned 
 | Valvestate current feedback | ⬜ | |
 | JCM900 Output Power Select; 4100 US (4 × 5881) | ⬜ | |
 | Real OT primaries for the brownface/Bassman/Scout models | ⏸ | Need measurements or datasheets |
-| Pitch has two row-input mechanisms (`IRowInputBlock`, `ISidechainBlock`) | ⬜ | Could be unified |
+| Pitch has two row-input mechanisms (`IRowInputBlock`, `ISidechainBlock`) | 🟡 | Unified: one `ISideInputBlock` replaces `IRowInputBlock`, `ISidechainBlock` and `IHardwareInputBlock`. A block declares `SideInputs` (`Cables` by row, `Taps` of the grid input and rows to its left, `Hardware`); the compiler has one op (`SideInput`) and one dispatch for grid signals and hands the `InputPort` to every `Hardware` block. Parameter ids, values and presets unchanged; no sound change (`GoldenRenderTests`, `RoutingTests`, `HardwareInputTests`, `SidechainAndLookAheadTests`, Pitch Detector Source and Vocoder Analysis Source tests unchanged and passing). New: `GraphCompilerTests.Blocks_declare_the_signals_they_take_from_elsewhere`, `Side_inputs_reach_their_blocks_through_one_op_as_cables_or_taps`. Left: Pitch and Vocoder still each keep their side buffer in duplicated code, separate from the sidechain's `SidechainSource` (docs/02 §5.3) |
 | Library-wide open issues: TriodeStage output resistance with a partly bypassed cathode; Thévenin cut behind plate-bypass cold clippers; JC-120 tone-stack level | ⬜ | docs/06 |
 | Windows `HostAllocationTests` intermittent 4-byte allocation | ⬜ | Per-thread allocation measured across awaits |
 | Load-sensitive tests (cab crossfade, CPU-per-type) | ⬜ | Pass alone; flaky under heavy load (the tremolo one is fixed) |

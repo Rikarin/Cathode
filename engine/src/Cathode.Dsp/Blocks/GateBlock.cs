@@ -18,10 +18,10 @@ namespace Cathode.Dsp.Blocks;
 ///         threshold.
 ///     </para>
 ///     Sidechain picks what the detector hears: the block's input, the grid input, another grid row
-///     (<see cref="ISidechainBlock" />) or one of the interface's inputs (<see cref="HardwareInputs" />), so a gate late
+///     (a tap, <see cref="SideInputs.Taps" />) or one of the interface's inputs (<see cref="HardwareInputs" />), so a gate late
 ///     in the chain can follow the clean guitar.
 /// </summary>
-public sealed class GateBlock() : DspBlock(Info), ISidechainBlock, IHardwareInputBlock {
+public sealed class GateBlock() : DspBlock(Info), ISideInputBlock {
     public const int Threshold = 0;
     public const int Ratio = 1;
     public const int Attack = 2;
@@ -101,8 +101,12 @@ public sealed class GateBlock() : DspBlock(Info), ISidechainBlock, IHardwareInpu
     /// <summary>Current gain applied by the gate (1 = open). For meters and tests.</summary>
     public float CurrentGain => MathF.Pow(10f, gainDb / 20f);
 
-    public void SidechainInput(int row, in StereoBuffer source) =>
-        sidechainSource.Offer(row, source, (int)Params.GetTarget(Sidechain));
+    /// <summary>The grid input and the row taps for the sidechain, and the hardware inputs (<see cref="Inputs" />).</summary>
+    public SideInputs SideInputs => SideInputs.Taps | SideInputs.Hardware;
+
+    /// <summary>Audio thread: keeps the tap the Sidechain parameter selects (<see cref="SidechainSource" />).</summary>
+    public void SideInput(SideInputKind kind, int row, in StereoBuffer signal, in StereoBuffer destination) =>
+        sidechainSource.Offer(row, signal, (int)Params.GetTarget(Sidechain));
 
     /// <summary>
     ///     The expander's gain in dB for a level <paramref name="under" /> dB from the threshold (negative below it), with

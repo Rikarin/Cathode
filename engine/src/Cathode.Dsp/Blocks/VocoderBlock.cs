@@ -16,7 +16,7 @@ namespace Cathode.Dsp.Blocks;
 ///         The analysis signal is the block's input (Analysis Channel: both sides, left or right; with a carrier from one
 ///         side of the input, both sides means the other side) or, with Analysis
 ///         Source set to a row, whatever is cabled in from that grid row. The block then takes its inputs by row
-///         (<see cref="IRowInputBlock" />): the chosen row feeds the analysis alone and every other row is summed into
+///         (<see cref="SideInputs.Cables" />): the chosen row feeds the analysis alone and every other row is summed into
 ///         the block input as usual, which is where an input carrier comes from. With the row not cabled the analysis
 ///         is silent. Analysis Source can also name one of the interface's inputs (<see cref="HardwareInputs" />): a
 ///         microphone on Input 2 talking through the guitar, the classic vocoder rig.
@@ -30,7 +30,7 @@ namespace Cathode.Dsp.Blocks;
 ///         Freeze holds the band envelopes where they are, so the carrier keeps the last spectrum.
 ///     </para>
 /// </remarks>
-public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock, IHardwareInputBlock {
+public sealed class VocoderBlock() : DspBlock(Info), ISideInputBlock {
     public const int Carrier = 0;
     public const int Note = 1;
     public const int Chord = 2;
@@ -221,6 +221,13 @@ public sealed class VocoderBlock() : DspBlock(Info), IRowInputBlock, IHardwareIn
 
         sideFrames = frames;
     }
+
+    /// <summary>Its cabled inputs by row (<see cref="MixInput" />), and the hardware inputs (<see cref="Inputs" />).</summary>
+    public SideInputs SideInputs => SideInputs.Cables | SideInputs.Hardware;
+
+    /// <summary>Audio thread: a cabled input, through <see cref="MixInput" />.</summary>
+    public void SideInput(SideInputKind kind, int row, in StereoBuffer signal, in StereoBuffer destination) =>
+        MixInput(row, signal, destination);
 
     public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) {
         var analysisRow = (int)Params.GetTarget(AnalysisSource) - 1;

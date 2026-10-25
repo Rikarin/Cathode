@@ -59,13 +59,13 @@ namespace Cathode.Dsp.Blocks;
 ///     the Axe-Fx law (50 % = -6 dB each) for parallel compression.
 ///     <para>
 ///         Sidechain picks what the detector hears: the block's input, the grid input, another grid row
-///         (<see cref="ISidechainBlock" />) or one of the interface's inputs (<see cref="HardwareInputs" />); the sidechain cuts, emphasis and EQ then filter that signal. Look Ahead
+///         (a tap, <see cref="SideInputs.Taps" />) or one of the interface's inputs (<see cref="HardwareInputs" />); the sidechain cuts, emphasis and EQ then filter that signal. Look Ahead
 ///         delays the audio (wet and dry alike) while the detector hears it undelayed, so the gain is already down when
 ///         a transient arrives; the block reports the delay as latency, so the compiler aligns parallel rows, and
 ///         changing it rebuilds the graph (<see cref="ParamDescriptor.Recompile" />).
 ///     </para>
 /// </summary>
-public sealed class CompressorBlock() : DspBlock(Info), ISidechainBlock, IHardwareInputBlock {
+public sealed class CompressorBlock() : DspBlock(Info), ISideInputBlock {
     public const int Type = 0;
     public const int Threshold = 1;
     public const int Ratio = 2;
@@ -281,8 +281,12 @@ public sealed class CompressorBlock() : DspBlock(Info), ISidechainBlock, IHardwa
     /// </summary>
     public static float JfetColour(float v, float pinch) => (1f - pinch) * v + pinch * MathF.Tanh(v);
 
-    public void SidechainInput(int row, in StereoBuffer source) =>
-        sidechainSource.Offer(row, source, (int)Params.GetTarget(Sidechain));
+    /// <summary>The grid input and the row taps for the sidechain, and the hardware inputs (<see cref="Inputs" />).</summary>
+    public SideInputs SideInputs => SideInputs.Taps | SideInputs.Hardware;
+
+    /// <summary>Audio thread: keeps the tap the Sidechain parameter selects (<see cref="SidechainSource" />).</summary>
+    public void SideInput(SideInputKind kind, int row, in StereoBuffer signal, in StereoBuffer destination) =>
+        sidechainSource.Offer(row, signal, (int)Params.GetTarget(Sidechain));
 
     /// <summary>
     ///     The Tube type's output stage: a biased tanh blended in by <see cref="TubeColour" />, scaled back to unity
