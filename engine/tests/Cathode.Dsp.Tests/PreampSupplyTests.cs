@@ -14,13 +14,13 @@ public class PreampSupplyTests {
     const double Rate = 48_000;
 
     /// <summary>
-    ///     Still motorboats with its drawing's chain (one 4.7k / 10 µF node under V5 and V6): its input stage's supply
-    ///     sensitivity is 18 to 64 times the other high-gain models' (its preamp's small-signal gain, 123 dB, is about
-    ///     30 dB above theirs), so the cause is left to a review of its gain staging.
+    ///     Still motorboats with its drawing's chain (one 4.7k / 10 µF node under V5 and V6): its gain staging matches
+    ///     the drawing (four fully bypassed stages, 123 dB at 1 kHz), and that one node cannot hold it (about +14 dB of
+    ///     loop gain through the supply at 18 Hz, gain 10); the real amp likely filters V5 and V6 more than drawn.
     /// </summary>
     const string PowerballGain =
-        "Powerball still motorboats with the drawing's decoupling: its preamp's gain is about 30 dB above its "
-        + "peers' (docs/06).";
+        "Powerball still motorboats: its drawn gain staging is right, its drawn preamp supply cannot hold it "
+        + "(docs/06 §3.7).";
 
     /// <summary>
     ///     The models whose tail is slow for reasons of their own, with the level they reach: the SVT's preamp settles

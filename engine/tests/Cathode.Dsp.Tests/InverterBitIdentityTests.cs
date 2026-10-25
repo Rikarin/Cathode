@@ -7,7 +7,9 @@ namespace Cathode.Dsp.Tests;
 ///     phase-inverter table and its power amp, rendered alone, hash to the same bits as on the commit before them
 ///     (49fe687). An intended change to an inverter or to <see cref="PowerAmp" /> regenerates the table from this
 ///     test's output (the power-amp renders of the Mesa, Soldano and Engl models were regenerated when their supplies
-///     took their drawings' preamp draws and filter caps; their inverter tables did not move). The hashes are macOS ARM64 renders, so the test runs there only
+///     took their drawings' preamp draws and filter caps; their inverter tables did not move; the Powerball's render
+///     again when its inverter's grid leak was corrected to the drawing's 100k). The hashes are macOS ARM64 renders, so
+///     the test runs there only
 ///     (<see cref="BaselinePlatform" />).
 /// </summary>
 public class InverterBitIdentityTests(ITestOutputHelper output) {
@@ -48,7 +50,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
             { "Mark V", (0xDF1CAB4F1DEFDA37, 0x6A8AAE370B74788F) },
             { "Rect-o-Verb", (0xB22F9C680150E717, 0xD3B352D480C8E18C) },
             { "Triple Rectifier", (0xB62E07BDCA98538F, 0x6163FB5C4347AFF8) },
-            { "Powerball", (0x11BDB1BD4DDE23FD, 0x7263D23D98AF28CC) },
+            { "Powerball", (0x11BDB1BD4DDE23FD, 0x3F3F743CA30D0286) },
             { "Savage 120", (0x2206D57787839850, 0xEB0C9D830A4EF358) },
             { "SVT", (0xF51AE03F1F289260, 0x792236633D0D1D4A) },
             { "Portaflex B-15N", (0x76788BF6655480E6, 0x375A6E0DDFCC5DBB) },
