@@ -8,12 +8,12 @@ playing live. It runs on your Mac or PC, or on a small Linux computer in your ri
 
 Cathode is free and open source (GPL-3.0-or-later).
 
-> **Status: early.** Cathode is under active development and has no stable release yet. Expect rough edges and changes
-> to the preset format.
+> **Status: release candidate.** 1.0.0-rc.1 is the first release candidate; see the [changelog](CHANGELOG.md). Presets
+> saved from 1.0 on keep loading in later releases.
 
 ## What it does
 
-- **86 amp models**, each built from its schematic: stage by stage, with the tone stack, power amp, transformer and
+- **88 amp models**, each built from its schematic: stage by stage, with the tone stack, power amp, transformer and
   speaker load, and the amp's own front-panel controls. Plus expert settings (tubes, bias, sag, supply) behind them.
 - **Neural captures:** load NAM (`.nam`) and AIDA-X models in the Amp NAM block.
 - **Cabinets:** a Cab block that builds the response from 10 speakers, 11 microphones and 7 cabinets, with mic

@@ -11,6 +11,11 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- CS1591: public XML docs are encouraged, not enforced. CA1716/CA1720: DSP vocabulary (Process, Single). -->
     <NoWarn>$(NoWarn);CS1591;CA1716;CA1720;CA1815;CA1819;CA2225;CA1000;CA1062;CA1303</NoWarn>
+    <!-- The release: a tag build sets CATHODE_VERSION (v1.2.3), which wins; local builds take the default, kept equal to
+         editor/package.json's version (a test checks). It reaches the host's `version`, /api/v1/system and the host's
+         hello. -->
+    <Version>1.0.0-rc.1</Version>
+    <Version Condition="'$(CATHODE_VERSION)' != ''">$(CATHODE_VERSION.TrimStart('v'))</Version>
     <Authors>Cathode contributors</Authors>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <IsAotCompatible Condition="'$(IsTestProject)' != 'true'">true</IsAotCompatible>

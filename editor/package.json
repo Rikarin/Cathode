@@ -1,6 +1,6 @@
 {
   "name": "@cathode/editor-workspace",
-  "version": "0.0.0",
+  "version": "1.0.0-rc.1",
   "private": true,
   "license": "GPL-3.0-or-later",
   "scripts": {

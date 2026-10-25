@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
 using System.Text.RegularExpressions;
 using Cathode.Contracts;
@@ -104,7 +105,13 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
             throw new RigException(400, $"Unsupported package format '{manifest.Format}' version {manifest.Version}.");
         }
 
-        var preset = await ReadJsonAsync(zip, "preset.json", ContractsJsonContext.Default.Preset, cancellationToken);
+        var preset = await ReadJsonAsync(
+            zip,
+            "preset.json",
+            ContractsJsonContext.Default.Preset,
+            cancellationToken,
+            PresetMigrations.Upgrade
+        );
         if (preset.SchemaVersion > Preset.CurrentSchemaVersion) {
             throw RigException.Conflict(
                 $"Preset '{preset.Name}' was saved by a newer version of Cathode (schema {preset.SchemaVersion})."
@@ -172,14 +179,19 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
         ZipArchive zip,
         string name,
         JsonTypeInfo<T> typeInfo,
-        CancellationToken cancellationToken
-    ) {
+        CancellationToken cancellationToken,
+        Func<JsonNode?, JsonNode?>? upgrade = null
+    )
+        where T : class {
         var entry = zip.GetEntry(name) ?? throw new RigException(400, $"The package has no {name}.");
         await using var content = await entry.OpenAsync(cancellationToken);
         using var buffer = new MemoryStream();
         await CopyLimitedAsync(content, buffer, MaxPresetBytes, name, cancellationToken);
         try {
-            return JsonSerializer.Deserialize(buffer.GetBuffer().AsSpan(0, (int)buffer.Length), typeInfo)
+            var json = buffer.GetBuffer().AsSpan(0, (int)buffer.Length);
+            return (upgrade is null
+                    ? JsonSerializer.Deserialize(json, typeInfo)
+                    : upgrade(JsonNode.Parse(json))?.Deserialize(typeInfo))
                 ?? throw new RigException(400, $"{name} is empty.");
         } catch (JsonException e) {
             throw new RigException(400, $"{name} is not valid: {e.Message}");

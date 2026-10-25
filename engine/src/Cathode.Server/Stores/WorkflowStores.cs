@@ -13,7 +13,8 @@ public sealed class SnapshotStore(IOptions<ServerOptions> options) {
         Path.Combine(options.Value.DataDirectory, "snapshots"),
         "snapshot",
         ContractsJsonContext.Default.PresetSnapshot,
-        static s => s.Id
+        static s => s.Id,
+        PresetMigrations.UpgradeSnapshot
     );
 
     /// <summary>Newest first; only <paramref name="presetId" />'s when given.</summary>
@@ -51,7 +52,8 @@ public sealed class TemplateStore(IOptions<ServerOptions> options) {
         Path.Combine(options.Value.DataDirectory, "templates"),
         "template",
         ContractsJsonContext.Default.Preset,
-        static p => p.Id
+        static p => p.Id,
+        PresetMigrations.Upgrade
     );
 
     public PresetSummary[] List() => [

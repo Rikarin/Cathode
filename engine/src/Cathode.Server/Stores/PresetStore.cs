@@ -14,7 +14,8 @@ public sealed class PresetStore(IOptions<ServerOptions> options, FactoryPresets 
         Path.Combine(options.Value.DataDirectory, "presets"),
         "preset",
         ContractsJsonContext.Default.Preset,
-        static p => p.Id
+        static p => p.Id,
+        PresetMigrations.Upgrade
     );
 
     readonly JsonFileStore<FactoryPresetMark> marks = new(

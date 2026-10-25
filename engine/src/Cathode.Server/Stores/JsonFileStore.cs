@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
 using System.Text.RegularExpressions;
 using Cathode.Server.Rig;
@@ -7,7 +8,8 @@ namespace Cathode.Server.Stores;
 
 /// <summary>
 ///     One JSON file per item in a folder, written atomically (temp file then rename), so a crash never leaves a
-///     half-written file. Ids become file names and are restricted to safe characters.
+///     half-written file. Ids become file names and are restricted to safe characters. An <c>upgrade</c> rewrites a
+///     file's JSON before it is read (a stored format's migrations, <see cref="PresetMigrations" />).
 /// </summary>
 /// <remarks>
 ///     Reads share delete, and a save renames with POSIX semantics on Windows (<see cref="AtomicRename" />), so a save
@@ -20,12 +22,20 @@ public sealed class JsonFileStore<T>
     readonly string kind;
     readonly JsonTypeInfo<T> typeInfo;
     readonly Func<T, string> idOf;
+    readonly Func<JsonNode?, JsonNode?>? upgrade;
 
-    public JsonFileStore(string folder, string kind, JsonTypeInfo<T> typeInfo, Func<T, string> idOf) {
+    public JsonFileStore(
+        string folder,
+        string kind,
+        JsonTypeInfo<T> typeInfo,
+        Func<T, string> idOf,
+        Func<JsonNode?, JsonNode?>? upgrade = null
+    ) {
         this.folder = folder;
         this.kind = kind;
         this.typeInfo = typeInfo;
         this.idOf = idOf;
+        this.upgrade = upgrade;
         Directory.CreateDirectory(folder);
     }
 
@@ -75,7 +85,9 @@ public sealed class JsonFileStore<T>
                         FileAccess.Read,
                         FileShare.ReadWrite | FileShare.Delete
                     );
-                    return JsonSerializer.Deserialize(stream, typeInfo);
+                    return upgrade is null
+                        ? JsonSerializer.Deserialize(stream, typeInfo)
+                        : upgrade(JsonNode.Parse(stream))?.Deserialize(typeInfo);
                 }
             );
         } catch (JsonException) {

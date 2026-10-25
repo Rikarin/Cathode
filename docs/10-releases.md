@@ -25,6 +25,37 @@ publishing. [`desktop.yml`](../.github/workflows/desktop.yml) still builds the d
 Signing is optional (see the top of `release.yml`): without certificates, macOS builds are signed ad hoc and Windows
 builds are unsigned.
 
+### Versions
+
+The tag is the version. `release.yml` passes it on as `CATHODE_VERSION`, and every build takes it from there:
+
+- the desktop installers: `editor/apps/desktop/scripts/package.mjs`;
+- the headless package: `packaging/headless/build.sh`;
+- the engine's assemblies, which the host's `version`, `/api/v1/system` and the host's hello report:
+  `engine/Directory.Build.props`.
+
+Without a tag, builds use the defaults in `editor/package.json` and `engine/Directory.Build.props`. Keep the two equal
+(`VersioningTests` checks), and move them to the coming release when you tag it.
+
+Before tagging, add the release's section to [`CHANGELOG.md`](../CHANGELOG.md).
+
+### The preset format
+
+Presets carry `schemaVersion` (`Preset.CurrentSchemaVersion`, 1 since 1.0). Every place that reads a stored preset
+passes its JSON through `PresetMigrations` first: the library files, snapshots, templates and `.cthpreset` imports.
+So a preset saved by an earlier release keeps loading.
+
+Parameter values are stored sparsely, so new parameters, block types and amp models need no new schema. Only a change
+that would make an older file read wrongly does. That covers a renamed, re-ranged or re-meant parameter, or a moved
+field. For such a change:
+
+1. Raise the version.
+2. Append the step that upgrades the previous schema.
+3. Add a test with a file of the previous schema.
+
+Released steps are never edited. A preset from a newer release is refused on load and import with a message that
+says so.
+
 ## The headless rig
 
 [`packaging/headless`](../packaging/headless) holds the package: [`README.md`](../packaging/headless/README.md) is the
