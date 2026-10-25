@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SiteFooter } from '../layout/site-footer';
 import { SiteHeader } from '../layout/site-header';
+import { Seo } from '../seo';
 
 @Component({
   selector: 'cw-not-found',
@@ -23,4 +24,13 @@ import { SiteHeader } from '../layout/site-header';
     <cw-site-footer />
   `
 })
-export class NotFound {}
+export class NotFound {
+  constructor() {
+    inject(Seo).set({
+      title: 'Not found — Cathode',
+      description: 'There is no page at this address on the Cathode website.',
+      path: '404',
+      noindex: true
+    });
+  }
+}

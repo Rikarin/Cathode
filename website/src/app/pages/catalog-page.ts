@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { matSearchRound } from '@ng-icons/material-icons/round';
 import {
@@ -16,6 +16,7 @@ import {
 } from '../catalog/catalog';
 import { SiteFooter } from '../layout/site-footer';
 import { SiteHeader } from '../layout/site-header';
+import { Seo } from '../seo';
 
 const matches = (query: string, ...texts: (string | undefined)[]) =>
   !query || texts.some(text => text?.toLowerCase().includes(query));
@@ -240,6 +241,14 @@ const filterGroups = (groups: readonly Group[], query: string): Group[] =>
   `
 })
 export class CatalogPage {
+  constructor() {
+    inject(Seo).set({
+      title: 'Amp and pedal catalogue — Cathode',
+      description: `Every amp, drive, wah, cab and block in Cathode and what it is based on: ${AMP_COUNT} amps from Fender, Marshall, Vox, Mesa/Boogie and more, and ${DRIVE_COUNT} drive pedals.`,
+      path: 'catalog'
+    });
+  }
+
   protected readonly ampCount = AMP_COUNT;
   protected readonly driveCount = DRIVE_COUNT;
 

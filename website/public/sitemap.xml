@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Every page the site has; keep in step with app.routes.server.ts and SITE_URL in app/site.ts. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://cathode.rikarin.io/</loc>
+  </url>
+  <url>
+    <loc>https://cathode.rikarin.io/catalog</loc>
+  </url>
+</urlset>

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -36,8 +36,9 @@ import {
 import { SiteFooter } from '../layout/site-footer';
 import { SiteHeader } from '../layout/site-header';
 import { SHOTS } from '../screenshots';
+import { Seo } from '../seo';
 import { Screenshot } from '../shared/screenshot';
-import { HEADLESS_GUIDE, RELEASES, REPOSITORY } from '../site';
+import { HEADLESS_GUIDE, LICENCE, RELEASES, REPOSITORY, SITE_NAME, SITE_URL } from '../site';
 
 /** The routing diagram's cell size and spacing, in SVG units. */
 const CELL = { w: 60, h: 40, x: 72, y: 54 };
@@ -660,6 +661,35 @@ const STATUS = {
   `
 })
 export class Home {
+  constructor() {
+    inject(Seo).set({
+      title: 'Cathode — a free guitar amp and effects processor',
+      description: `Free, open-source guitar amp and effects software for macOS, Windows and Linux: ${AMP_COUNT} amps modelled from their schematics, cabs, pedals, effects and NAM.`,
+      path: '',
+      structuredData: {
+        '@context': 'https://schema.org',
+        '@graph': [
+          { '@type': 'WebSite', name: SITE_NAME, url: `${SITE_URL}/` },
+          {
+            '@type': 'SoftwareApplication',
+            name: SITE_NAME,
+            description:
+              'A guitar processor for your computer: circuit-modelled amps, cabinets, drives and effects on a grid, with scenes, channels and modifiers for playing live.',
+            url: `${SITE_URL}/`,
+            applicationCategory: 'MultimediaApplication',
+            operatingSystem: 'macOS, Windows, Linux',
+            image: `${SITE_URL}/social.jpg`,
+            screenshot: `${SITE_URL}/screenshots/grid.webp`,
+            downloadUrl: RELEASES,
+            license: LICENCE,
+            isAccessibleForFree: true,
+            offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }
+          }
+        ]
+      }
+    });
+  }
+
   protected readonly repository = REPOSITORY;
   protected readonly releases = RELEASES;
   protected readonly headlessGuide = HEADLESS_GUIDE;

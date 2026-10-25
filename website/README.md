@@ -34,6 +34,13 @@ production branch then builds and deploys; other branches get preview URLs.
 From a terminal instead: `pnpm exec wrangler login` once, then `pnpm deploy`. `pnpm preview` serves the build locally
 the way Cloudflare does.
 
+## Search engines and social cards
+
+Each page writes its own title, description, canonical link, Open Graph and Twitter card tags (and the home page its
+schema.org JSON-LD) through `src/app/seo.ts`, so they are in the prerendered HTML. The site's address is `SITE_URL` in
+`src/app/site.ts`; `public/robots.txt` and `public/sitemap.xml` repeat it, so change all three together, and add a page
+to the sitemap when you add a route. `public/social.jpg` (1200 × 630) is the card image every page shares.
+
 ## Content
 
 - `src/app/content.ts`: every list on the home page (amp families, block groups, platforms). Keep it in step with the README

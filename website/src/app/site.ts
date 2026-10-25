@@ -1,3 +1,7 @@
+/** The site's own address, without a trailing slash: canonical links, social cards and the sitemap are built on it. */
+export const SITE_URL = 'https://cathode.rikarin.io';
+export const SITE_NAME = 'Cathode';
+
 /** Where the project lives. Every outbound link on the site comes from here. */
 export const REPOSITORY = 'https://github.com/Rikarin/cathode';
 export const RELEASES = `${REPOSITORY}/releases`;

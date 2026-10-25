@@ -7,7 +7,10 @@
     "directory": "./dist/website/browser",
     // `404.html` is the prerendered not-found page, copied into place by `pnpm build`. Served with a real 404, it
     // reads without JavaScript, and the router renders the same component over it on boot.
-    "not_found_handling": "404-page"
+    "not_found_handling": "404-page",
+    // `/catalog` serves catalog/index.html as it is, and `/catalog/` redirects to it: one address per page, the one
+    // the canonical links, the sitemap and the router's links all use.
+    "html_handling": "drop-trailing-slash"
   },
   "observability": {
     "enabled": true
