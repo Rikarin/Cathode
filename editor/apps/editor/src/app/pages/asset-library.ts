@@ -130,7 +130,7 @@ function kindName(asset: AssetInfo): string {
     XuiMenuImports
   ],
   providers: [provideIcons({ matExpandMoreRound, matSearchRound, matStarRound, matUploadRound })],
-  host: { class: 'ml-auto flex items-center gap-2' },
+  host: { class: 'ml-auto flex items-center gap-4' },
   template: `
     <div class="relative">
       <ng-icon
@@ -142,7 +142,7 @@ function kindName(asset: AssetInfo): string {
       <input
         xuiInput
         type="search"
-        class="w-64 pl-8"
+        class="w-72 pl-8"
         [placeholder]="assets.kind() === 'amps' ? 'Search amps' : 'Search cabs'"
         aria-label="Search the library"
         [value]="assets.query()"
