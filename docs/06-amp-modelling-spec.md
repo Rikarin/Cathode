@@ -796,7 +796,7 @@ machine at a load average of 150–210, where the Plexi read 8.4–10.7 / 15.0�
 - **Mark V**: channel 3 from the factory set (Mar 2009, MARKV-1). The supply sheet names the relays (M7 IIC+, M8 Mark IV, M9 Extreme): Mark IV mode adds a 4.7k pad at V6A's grid, IIC+ mode puts 4.4 µF on V6A's cathode in place of 15 µF. The JFET bypasses on V3A are not mapped to modes on the drawing; the model guesses IIC+ unbypassed, Mark IV 2.2 µF, Extreme 100 µF. Panel: IIC+ Mode and Mark IV Mode switches (both off is Extreme), Bright, channel master on Control 1, Output on Master, the graphic EQ.
 - **Rect-o-Verb**: the lead channel of the factory "Solo 50 / Rectoverb" set (first series). It is the Dual Rectifier recipe with readable values: V1A 220k/1.8k‖1 µF, 680k‖2 nF into the 250k-A gain, V1B with 15 µF through 22k, a 39k cold clipper with 100k‖1 nF, V3A 220k, a CF into a 500 pF/47k/20 nF/20 nF stack, a preamp presence shunt (22k + 3 nF + rheostat) on the treble wiper; 2 × 6L6 at 454 V.
 - **Triple Rectifier**: the Dual Rectifier model with six 6L6 (no Triple drawing exists online; forum service threads point to the three-channel Dual Rectifier drawing).
-- **Powerball**: channel 2, Lo/Hi and Open/Focused, from the Engl drawing E645-1. V5A, V5B, V6A (330k plate) and V6B are all fully bypassed (very high gain: the chain clips below 1 mV at full gain). The stack has 470 pF (+470 pF Focused), 100k slope, a 220 nF bass cap and separate Open (22 nF, 20k) and Focused (47 nF, 20k) middles; a CF loop send and a return stage follow.
+- **Powerball**: channel 2, Lo/Hi and Open/Focused, from the Engl drawing E645-1. V5A, V5B, V6A (330k plate) and V6B are all fully bypassed (very high gain: the chain clips below 1 mV at full gain). The stack has 470 pF (+470 pF Focused), 100k slope, a 220 nF bass cap and separate Open (22 nF, 20k) and Focused (47 nF, 20k) middle pots (bass on the top, the mid cap on the wiper); a CF loop send and a return stage follow; the inverter's grid leak is R53 100k. Not modelled: the lead channel's noise gate (IC4, J175 T8). As drawn it motorboats after loud playing (§3.7).
 - **Savage 120**: the lead channel from the Engl drawing E610-2. V2B is 330k with 3.3k unbypassed unless Lead Boost; the stack is 470 pF (+220 pF Contour), 47k, 47 nF, 22 nF; 2 × 6550. Neither Engl drawing prints rail voltages, so B+ and the preamp rails are typical values.
 
 Each file marks its guesses (mostly OT primaries, idle currents, and the Engl rails). Simplified feedback networks: the Mark V's (relay-switched presence per channel) and the Savage's (presence in series with the feedback) are folded into the standard shunt network.
@@ -994,8 +994,30 @@ Mesa and Soldano preamp draws (node 0's current from its drawn voltages) and nod
   Its input stage's supply sensitivity is 18–64 times the other high-gain models' (85 mV at the inverter's input for a
   1e-7 ripple on V5A's node at 18 Hz, against 4.8 mV for the Savage and 1.3 mV for the 5150), because its preamp's
   small-signal gain is 123 dB at 1 kHz against 87–99 dB for the Dual Rectifier, 5150, Savage, SLO-100 and Legacy
-  (Mark V 105 dB): the model's gain staging, not its supply, is the next thing to check. Made stiff (10 mF), that node
-  stops it.
+  (Mark V 105 dB). Made stiff (10 mF), that node stops it.
+
+  **Review of the gain staging against 645-1** (re-read at 900–2400 dpi): the four lead stages are as drawn and
+  measure what their values predict (V5A 34.1, V5B 35.9, V6A 32.4 with the Lo divider, V6B 33.7 dB at 1 kHz; 31.8,
+  35.2, 25.6 and 32.9 dB at 18 Hz, V6A's 1 µF bypass then partly open), all fully bypassed, all on CE3. Corrected:
+  the inverter's grid leak is R53 100k to the bias junction (R52 1M is the master's ground return, on the other side
+  of C19; the model had 1M), the middle pots are wired as pots (the bass's bottom on the top, the mid cap on the
+  wiper; the model had both on one node over a rheostat), channel 1's load on V5A's output goes through C2 15 nF, and
+  R25 returns to ground through the noise gate's 82k. None of these moves the 1 kHz gain (123.0 dB in Lo/Open, 124.7
+  Hi, 126.3 Focused, 127.9 both, before and after) or the oscillation (−17 dB at 20–22 Hz after the fix).
+
+  Measured loop: the power amp moves CE3 by 2.3 mV per volt at the inverter's input at 18 Hz (B+ 0.12 V/V, as for the
+  Savage, from the push-pull's imbalance), and CE3 moves the inverter's input by 2230 V per volt of CE3 (relative
+  ripple 1e-7 → 85 mV), a small-signal loop gain of about +14 dB: it starts from a 1e-7 V input. At lower gains it is
+  stable at rest but a loud chord latches it (gain 1 with master 5 sustains −21 dB at 8–12 Hz; Preamp Sag 0 or a
+  10 mF CE3 stops that too). For scale, the Savage 120 latches only with a tenth of its chain's caps; the Powerball
+  needs about 1,000 times its CE3 (470 µF is not enough), or still latches at gain 10 with V5A and V5B moved to an
+  extra 22k / 47 µF node. Ruled out as the real amp's cure: the stages' signal currents in CE3 (a trial with V5B, V6A
+  and V6B drawing their plate currents from the node per sample: stable at rest, but a loud chord still latches it
+  at 3 Hz and up), a 145 Ω source resistance (what 460 V in standby and 440 V running imply; no change), and the
+  drawing's noise gate (IC4 and J175 T8, not modelled: it shunts the lead volume's wiper only below its threshold,
+  while the oscillation keeps V6B, its detector's source, in full swing). Conclusion: the drawing's preamp supply
+  cannot hold a preamp of this gain; the real amp very likely filters V5 and V6 more than 645-1 shows. The model keeps
+  the drawing, and the Powerball rows of `PreampSupplyTests` stay skipped until a better source turns up.
 - **SVT**: a decaying wobble of about 1 Hz (−105 dB above 10 Hz two seconds after a 0.4 V chord at gain 10), which
   Preamp Sag 0, Sag 0 and the power amp off leave as it is: its preamp's own settling, not the supply.
 

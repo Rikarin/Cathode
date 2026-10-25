@@ -4,15 +4,16 @@ namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
 ///     Engl Powerball (E645), channel 2 (lead) in its Lo and Hi modes. V5A (100k, 1k ‖ 22 µF) into 47 nF and 2.2M, the
-///     channel-2 gain (100k into 1M audio; channel 1's 100k + 1M gain network loads the same node) and V5B's 1M grid
-///     leak; V5B (100k, 1.5k ‖ 22 µF); 47 nF and 2.2M, the Lo/Hi divider (220k/470k, or 100k/470k in Hi; channel 1's
-///     1M + 220k and 680k + 330k branches load it) into V6A (330k, 3.3k ‖ 1 µF); 47 nF and 220k into V6B (1M leak; 100k,
-///     1.5k ‖ 22 µF); 100 nF and 1M into the lead stack (470 pF, 940 pF in Focused; 100k slope; 220 nF bass cap,
-///     1M audio bass rheostat; the middle: 22 nF and a 20k rheostat, Open, or 47 nF and its own 20k, Focused; 250k
-///     linear treble), 470k into the 250k linear lead volume, 220k into 100k at the V7A cathode follower (100k ‖ 10 nF
-///     plate, 1k cathode), 4.7 µF and the loop's 10k into V7B (100k leak; 100k, 1.5k ‖ 22 µF), 100 nF and 100k into the
-///     1M linear master, 100 nF into a long-tail pair (82k/100k, 470 Ω, 22k tail, a 4.7k feedback shunt) and four 6L6GC
-///     (2.2k stoppers, 470 Ω screens, 47 nF, 330k bias feeds) at 440 V.
+///     channel-2 gain (100k into 1M audio; channel 1's 15 nF, 100k and 1M gain network loads the same node) and V5B's
+///     1M grid leak; V5B (100k, 1.5k ‖ 22 µF); 47 nF and 2.2M, the Lo/Hi divider (220k/470k, or 100k/470k in Hi;
+///     channel 1's 1M + 220k and 680k + 330k branches load it) into V6A (330k, 3.3k ‖ 1 µF); 47 nF and 220k into V6B
+///     (1M leak; 100k, 1.5k ‖ 22 µF); 100 nF and 1M (into the noise gate's 82k) into the lead stack (470 pF, 940 pF in
+///     Focused; 100k slope; 220 nF bass cap, 1M audio bass rheostat; the middle: a 20k linear pot under the bass with
+///     22 nF on its wiper, Open, or its own 20k with 47 nF, Focused; 250k linear treble), 470k into the 250k linear
+///     lead volume, 220k into 100k at the V7A cathode follower (100k ‖ 10 nF plate, 1k cathode), 4.7 µF and the loop's
+///     10k into V7B (100k leak; 100k, 1.5k ‖ 22 µF), 100 nF and 100k into the 1M linear master (1M from its wiper to
+///     ground), 100 nF into a long-tail pair (100k grid leak to the bias junction; 82k/100k, 470 Ω, 22k tail, a 4.7k
+///     feedback shunt) and four 6L6GC (2.2k stoppers, 470 Ω screens, 47 nF, 330k bias feeds) at 440 V.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -28,14 +29,25 @@ namespace Cathode.Dsp.Amp.Models;
 ///         CE3 10 µF (V5, V6).
 ///     </para>
 ///     <para>
+///         As drawn, the model motorboats (16–22 Hz) after a loud input stops, down to gain 1: four fully bypassed
+///         stages (34, 36, 32 and 34 dB at 1 kHz, as their values predict) share CE3, and the loop through the supply
+///         has about 14 dB of small-signal gain at 18 Hz at gain 10 (the Savage 120 latches only with a tenth of its
+///         chain's caps). Nothing on the drawing breaks that loop (docs/06 §3.7), so the drawing likely leaves out part
+///         of the real amp's preamp filtering.
+///     </para>
+///     <para>
 ///         Guesses and simplifications, marked: the preamp rails carry no voltages on the drawing (here 400 V for V5 and
 ///         V6, 410 V for V7, 420 V for the inverter, from the chain above); Hi mode is
 ///         taken as the energised position of the "Gain" relays RE3 and RE4 (the hotter divider and the Hi Lead volume;
 ///         one Lead Volume knob here for both); the low/high lead bright switches S3/S4 (330k + 680k from the bass pot's
-///         top into the volume) are off; the parallel loop is empty with its balance fully dry (the 10k series only);
-///         the cathode switching of V6B by relay RE1B is not modelled. The feedback network is simplified to 22k + 1.5k
-///         from the speaker into the 4.7k shunt with the 50k presence and 100 nF across it, the depth punch (1M with
-///         10 nF) as the depth control; the tap and primary (1.9k) are typical values.
+///         top into the volume) are off; the parallel loop is empty with its balance fully dry (the 10k series only).
+///         Left out: the lead channel's noise gate (IC4, an LM324 full-wave detector on V6B's output through 1M and
+///         82k, a comparator against the 20k threshold trimmer P20, and the J175 T8 shunting the lead volume's wiper
+///         to ground through 4.7k below the threshold), whose setting the drawing does not give, and the J175 soft
+///         mute T1 on the same node, which acts only while switching channels. Relay RE1B (once read here as switching
+///         V6B's cathode) grounds V6A's output in channel 1 and lights channel 2's LDR. The feedback network is
+///         simplified to 22k + 1.5k from the speaker into the 4.7k shunt with the 50k presence and 100 nF across it,
+///         the depth punch (1M with 10 nF) as the depth control; the tap and primary (1.9k) are typical values.
 ///     </para>
 /// </remarks>
 public static class Powerball {
@@ -71,7 +83,7 @@ public static class Powerball {
             new(1.9e3),
             SpeakerDesign.Closed4x12,
             new(30, 220e-6, 470, 47e-6, 4.4e3, 22e-6, 6e-3, RectifierModel.Silicon),
-            InverterInput: new(100e-9, 1e6)
+            InverterInput: new(100e-9, 100e3)
         ),
         -7
     ) {
@@ -91,12 +103,14 @@ public static class Powerball {
     };
 
     /// <summary>
-    ///     V5A and channel 2's gain: 1M grid leak; 100k plate; 1k ‖ 22 µF; 47 nF, 2.2M to ground, channel 1's 100k + 1M
-    ///     to ground, 100k into the 1M audio gain, its wiper on V5B's grid with 1M to ground.
+    ///     V5A and channel 2's gain: 1M grid leak; 100k plate; 1k ‖ 22 µF; 47 nF, 2.2M to ground, channel 1's C2 15 nF
+    ///     into its 100k + 1M (Bottom off) to ground, 100k into the 1M audio gain, its wiper on V5B's grid with 1M to
+    ///     ground.
     /// </summary>
     static StageNetlist InputAndGain() {
         var net = new StageNetlist();
-        var (supply, plate, cathode, coupled, top) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (supply, plate, cathode, coupled, clean, top) =
+            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Resistor(net.Input, StageNetlist.Ground, 1e6);
         net.Supply(supply, 400);
         net.Resistor(supply, plate, 100e3);
@@ -104,7 +118,9 @@ public static class Powerball {
         net.Capacitor(cathode, StageNetlist.Ground, 22e-6);
         net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
         net.Capacitor(plate, coupled, 47e-9);
-        net.Resistor(coupled, StageNetlist.Ground, 2.2e6 * 1.1e6 / (2.2e6 + 1.1e6));
+        net.Resistor(coupled, StageNetlist.Ground, 2.2e6);
+        net.Capacitor(coupled, clean, 15e-9);
+        net.Resistor(clean, StageNetlist.Ground, 1.1e6);
         net.Resistor(coupled, top, 100e3);
         var wiper = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
         net.Resistor(wiper, StageNetlist.Ground, 1e6);
@@ -154,9 +170,11 @@ public static class Powerball {
     }
 
     /// <summary>
-    ///     The lead stack: 100 nF and 1M to ground; 470 pF (and 470 pF more in Focused) to the 250k linear treble's top;
-    ///     100k slope; 220 nF to the 1M audio bass rheostat's top; the Open middle (22 nF, 20k linear rheostat) or the
-    ///     Focused one (47 nF, its own 20k); 470k from the treble wiper into the 250k linear lead volume.
+    ///     The lead stack: 100 nF, then R25 1M into the noise gate's R76 82k (its 100 nF and 470k across it) to ground;
+    ///     470 pF (and 470 pF more in Focused) to the 250k linear treble's top; 100k slope; 220 nF to the 1M audio bass
+    ///     rheostat's top; the bass's bottom on the top of the Open middle pot (20k linear, 22 nF from the slope on its
+    ///     wiper) or of the Focused one (its own 20k, 47 nF); 470k from the treble wiper into the 250k linear lead
+    ///     volume.
     /// </summary>
     static StageNetlist LeadStack() {
         var net = new StageNetlist();
@@ -165,7 +183,7 @@ public static class Powerball {
             net.Node()
         );
         net.Capacitor(net.Input, coupled, 100e-9);
-        net.Resistor(coupled, StageNetlist.Ground, 1e6);
+        net.Resistor(coupled, StageNetlist.Ground, 1e6 + 82e3 * 470e3 / (82e3 + 470e3));
         net.Capacitor(coupled, trebleTop, 470e-12, CapacitorRole.Stack);
         net.SwitchedCapacitor(coupled, trebleTop, 470e-12, SwitchRole.Switch1, CapacitorRole.Stack);
         net.Resistor(coupled, slope, 100e3);
@@ -177,10 +195,10 @@ public static class Powerball {
         net.SwitchedResistor(middleTop, focused, 0, 1, SwitchRole.Switch1);
         net.SwitchedResistor(slope, openCap, 1, 0, SwitchRole.Switch1);
         net.SwitchedResistor(slope, focusedCap, 0, 1, SwitchRole.Switch1);
-        net.Capacitor(openCap, open, 22e-9, CapacitorRole.Stack);
-        net.Capacitor(focusedCap, focused, 47e-9, CapacitorRole.Stack);
-        net.Rheostat(open, StageNetlist.Ground, new(20e3, PotTaper.Linear), PotRole.Middle);
-        net.Rheostat(focused, StageNetlist.Ground, new(20e3, PotTaper.Linear), PotRole.Control1);
+        var openWiper = net.Pot(open, StageNetlist.Ground, new(20e3, PotTaper.Linear), PotRole.Middle);
+        var focusedWiper = net.Pot(focused, StageNetlist.Ground, new(20e3, PotTaper.Linear), PotRole.Control1);
+        net.Capacitor(openCap, openWiper, 22e-9, CapacitorRole.Stack);
+        net.Capacitor(focusedCap, focusedWiper, 47e-9, CapacitorRole.Stack);
 
         net.Resistor(treble, top, 470e3);
         net.Output = net.Pot(top, StageNetlist.Ground, new(250e3, PotTaper.Linear), PotRole.Control2);
