@@ -73,7 +73,7 @@ test('each scene recalls the channel and bypass state of every block', async ({ 
   await editor.segment('Channel', 'B').click();
   await editor.setKnob('Drive', '9');
   await delay.click();
-  await editor.grid.press('b');
+  await editor.grid.press('Space');
   await expect(drive).toHaveAccessibleName(/channel B/);
   await expect(delay).toHaveAccessibleName(/bypassed/);
 

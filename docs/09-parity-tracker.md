@@ -164,7 +164,7 @@ Ten overdrives from the guide's Drive list (pp. 37–38), appended after the ear
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| ED1 | Shortcuts: presets (P, which also takes a bank slot number; ⌘PgUp/PgDn, F5), scenes (⌘1–8), channels (A–D, X) | ✅ | shortcuts.spec (finds the command…, maps each binding…, leaves the menu accelerators alone); E2E step to the next channel | channel B is ⇧B (B stays bypass) |
+| ED1 | Shortcuts: presets (P, which also takes a bank slot number; ⌘PgUp/PgDn, F5), scenes (⌘1–8), channels (A–D, X) | ✅ | shortcuts.spec (finds the command…, maps each binding…, leaves the menu accelerators alone); E2E step to the next channel |  |
 | ED2 | Shortcuts: blocks (Space, ⇧Space, ⇧⌘Space, ⌘X, ⌘D, ⌘U, ⌘B, G, Q, ⌥/F1), ⌘T, ⌘Y | ✅ | shortcuts.spec; E2E "? lists the shortcuts, and the block shortcuts bypass, replace, cut and paste" | ⌘L opens Preset Leveling, ⌘I resets the channel (PS endpoints) |
 | ED3 | `?` help overlay listing every shortcut | ✅ | E2E above (now a tab of Settings) | the overlay became the Keyboard shortcuts tab of Settings (⌘, / ?), checked in the browser |
 | ED4 | Preferences: knob mode (linear/circular), wheel (normal/reverse/off), tooltips, meter refresh | ✅ | preferences spec; audio-ui knob and meter preferences; E2E preferences test | now the Preferences tab of Settings |

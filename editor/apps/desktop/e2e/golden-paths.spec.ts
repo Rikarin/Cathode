@@ -15,9 +15,9 @@ test('a guitarist builds a preset from scratch and saves it', async ({ window })
   await knob.press('PageUp');
   await expect(knob).not.toHaveAttribute('aria-valuenow', before ?? '');
 
-  // Bypass it from the grid with B, and engage it again from the block page.
+  // Bypass it from the grid with Space, and engage it again from the block page.
   await drive.click();
-  await window.getByRole('grid', { name: 'Signal grid' }).press('b');
+  await window.getByRole('grid', { name: 'Signal grid' }).press('Space');
   await expect(drive).toHaveAccessibleName(/bypassed/);
   await window.getByTestId('engage').click();
   await expect(drive).not.toHaveAccessibleName(/bypassed/);
@@ -47,7 +47,7 @@ test('undo, redo and scenes change the rig', async ({ window }) => {
   // Bypass on scene 2 only: scene 1 keeps it engaged.
   await window.getByTestId('scenes').getByText('2', { exact: true }).click();
   await delay.click();
-  await window.getByRole('grid', { name: 'Signal grid' }).press('b');
+  await window.getByRole('grid', { name: 'Signal grid' }).press('Space');
   await expect(delay).toHaveAccessibleName(/bypassed/);
   await window.getByTestId('scenes').getByText('1', { exact: true }).click();
   await expect(delay).not.toHaveAccessibleName(/bypassed/);

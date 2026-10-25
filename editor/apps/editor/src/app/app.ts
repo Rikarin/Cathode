@@ -455,8 +455,6 @@ export class App {
       handlers[`channel${channel}`] = () => ui.setChannel(channel);
     }
 
-    handlers['bypassAlias'] = () => ui.toggleBypass();
-
     for (let scene = 0; scene < 8; scene++) {
       handlers[`scene${scene + 1}`] = () => {
         if (scene < (this.live.preset()?.scenes.length ?? 0)) {

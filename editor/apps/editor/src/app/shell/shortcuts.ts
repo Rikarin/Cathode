@@ -36,13 +36,11 @@ const scenes: Shortcut[] = [1, 2, 3, 4, 5, 6, 7, 8].map(n => ({
   mod: true
 }));
 
-// B stays the bypass key it has always been, so channel B takes ⇧B.
 const channels: Shortcut[] = ['A', 'B', 'C', 'D'].map(c => ({
   id: `channel${c}`,
   group: 'Channels',
   label: `Channel ${c} on the selected block`,
-  key: c.toLowerCase(),
-  shift: c === 'B'
+  key: c.toLowerCase()
 }));
 
 /**
@@ -62,7 +60,6 @@ export const Shortcuts: readonly Shortcut[] = [
   { id: 'channelNext', group: 'Channels', label: 'Next channel on the selected block', key: 'x' },
   { id: 'channelReset', group: 'Channels', label: 'Reset the channel', key: 'i', mod: true },
   { id: 'bypass', group: 'Blocks', label: 'Bypass or engage the selected block', code: 'Space' },
-  { id: 'bypassAlias', group: 'Blocks', label: 'Bypass or engage (alias)', key: 'b' },
   { id: 'engageAll', group: 'Blocks', label: 'Engage in all scenes', code: 'Space', shift: true },
   { id: 'bypassAll', group: 'Blocks', label: 'Bypass in all scenes', code: 'Space', shift: true, mod: true },
   { id: 'global', group: 'Blocks', label: 'Make global or unlink', key: 'g' },
