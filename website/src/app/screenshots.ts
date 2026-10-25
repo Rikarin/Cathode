@@ -1,6 +1,7 @@
 /**
- * Every screenshot on the site. To add one, save it as `public/screenshots/<file>` and set `src` to
- * `screenshots/<file>`; until then the page shows a placeholder of the same size naming the file it wants.
+ * Every screenshot on the site. To add one, save it as `public/screenshots/<file>`, set `src` to `screenshots/<file>`
+ * and `aspect` to its width / height; until then the page shows a placeholder of the same size naming the file it
+ * wants. WebP, at about twice the width it is shown at.
  */
 export interface Shot {
   readonly file: string;
@@ -10,8 +11,14 @@ export interface Shot {
   readonly title: string;
   /** What the picture shows, for screen readers and for the placeholder. */
   readonly alt: string;
-  /** CSS aspect ratio, so the placeholder holds the picture's space. */
+  /** CSS aspect ratio, so the picture (or the placeholder) holds its space before it loads. */
   readonly aspect: string;
+  /**
+   * A whole window as macOS captures it, with its own title bar and rounded corners (and the shadow margin cropped
+   * off): shown as it is, without the glass frame and window bar, which would draw a second set. A crop of part of a
+   * window leaves this off and gets the frame.
+   */
+  readonly window?: boolean;
 }
 
 const shot = (file: string, title: string, alt: string, aspect = '16 / 10'): Shot => ({
@@ -23,12 +30,25 @@ const shot = (file: string, title: string, alt: string, aspect = '16 / 10'): Sho
 });
 
 export const SHOTS = {
-  grid: shot(
-    'grid.png',
-    'Cathode — Grid',
-    'The main window: a preset on the grid, with the selected block open in the drawer below it.'
-  ),
-  amp: shot('amp.png', 'Amp', "An amp block's front panel: the amp's own controls, with the expert pages behind them."),
+  grid: {
+    ...shot(
+      'grid.webp',
+      'Cathode — Grid',
+      'The main window: a preset on the grid from Input through Drive, Amp, Cab and Reverb to the Output, with the Amp open in the drawer below it.',
+      '1856 / 1392'
+    ),
+    src: 'screenshots/grid.webp',
+    window: true
+  },
+  amp: {
+    ...shot(
+      'amp.webp',
+      'Amp — 5150',
+      'The Amp block on the 5150 model: its own front panel of gain, tone and presence controls, the channel and type on the left, and the expert pages listed beside the knobs.',
+      '1838 / 530'
+    ),
+    src: 'screenshots/amp.webp'
+  },
   cab: shot(
     'cab.png',
     'Cab',

@@ -155,10 +155,10 @@ const STATUS = {
           </p>
         </div>
 
-        <div class="mt-12 grid gap-4 lg:grid-cols-3">
-          <cw-screenshot class="lg:col-span-2" [shot]="shots.amp" />
+        <div class="mt-12 grid gap-4">
+          <cw-screenshot [shot]="shots.amp" />
 
-          <div class="grid gap-4">
+          <div class="grid gap-4 md:grid-cols-2">
             <div class="card p-6 sm:p-8">
               <h3 class="text-xl font-semibold">Behind the front panel</h3>
               <p class="text-foreground-muted mt-2 text-sm leading-relaxed">
