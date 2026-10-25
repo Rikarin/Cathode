@@ -4,6 +4,8 @@
 build a rig from circuit-modelled amps, cabinets, drives and effects on a grid, with scenes, channels and modifiers for
 playing live. It runs on your Mac or PC, or on a small Linux computer in your rig that you control from any browser.
 
+![The Cathode editor: a preset on the grid from Input through Drive, Amp, Cab and Reverb to the Output, with the Amp open in the drawer below it](website/public/screenshots/grid.webp)
+
 Cathode is free and open source (GPL-3.0-or-later).
 
 > **Status: early.** Cathode is under active development and has no stable release yet. Expect rough edges and changes
