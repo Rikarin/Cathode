@@ -71,7 +71,8 @@ public static partial class FactoryRecipes {
                 + "ShredMaster-type distortion that slams in before the chorus. Kick it on hard.",
                 "Alternative",
                 "1990s",
-                "Crunch"
+                "Crunch",
+                "Clean"
             )
             .Drive("Shred Distortion", "drive=7 tone=6 level=0")
             .Off()

@@ -14,7 +14,8 @@ namespace Cathode.Server.Tests;
 
 /// <summary>
 ///     Every scene of every factory preset, rendered through the engine with a guitar-like phrase (and any expression
-///     pedal half way): no NaN, no output at or above -1 dBFS (the editor's clip warning), and a loudness within
+///     pedal half way): no NaN, no output at or above -1 dBFS (the editor's clip warning), even with the phrase
+///     played as hot as an input takes (peaking at full scale), and a loudness within
 ///     <see cref="Tolerance" /> of the bank's target
 ///     plus the scene's lift, measured as the editor's Preset Leveling measures (BS.1770 momentary loudness, gated and
 ///     integrated). With <c>CATHODE_UPDATE_FACTORY_LEVELS=1</c> it writes the trims that bring every scene to its
@@ -25,6 +26,9 @@ public sealed class FactoryPresetLevelTests {
     const int Rate = 48_000;
     const float Tolerance = 1.5f;
     const float ClipDb = -1f;
+
+    /// <summary>The phrase's peak, of full scale (<see cref="Phrase" />).</summary>
+    const float HumbuckerPeak = 0.35f;
 
     static readonly ProcessSpec Spec = new(Rate, 64);
 
@@ -41,6 +45,8 @@ public sealed class FactoryPresetLevelTests {
         var (presets, problems) = FactoryPresets.Build(catalog);
         Assert.Empty(problems);
         var measured = Measure(presets, input);
+        // The hottest a guitar gets: peaking at full scale, about 9 dB over the phrase. It may be louder, never clip.
+        var hot = Measure(presets, [..input.Select(static v => v / HumbuckerPeak)]);
         var failures = new List<string>();
         foreach (var preset in presets) {
             var lifts = recipes[preset.Id].Lifts;
@@ -52,6 +58,10 @@ public sealed class FactoryPresetLevelTests {
                     failures.Add($"{name}: NaN or infinity in the output");
                 } else if (peak >= ClipDb) {
                     failures.Add($"{name}: peaks at {peak:0.0} dBFS");
+                }
+
+                if (hot[(preset.Id, s)].Peak >= ClipDb) {
+                    failures.Add($"{name}: peaks at {hot[(preset.Id, s)].Peak:0.0} dBFS with a guitar at full scale");
                 }
 
                 if (Math.Abs(loudness - target) > Tolerance) {
@@ -159,7 +169,7 @@ public sealed class FactoryPresetLevelTests {
         }
 
         var peak = y.Max(Math.Abs);
-        return [..y.Select(v => (float)(0.35 * v / peak))];
+        return [..y.Select(v => (float)(HumbuckerPeak * v / peak))];
     }
 
     /// <summary>A plucked string: a noise burst, low-passed like a pick, circulating in a damped delay line.</summary>

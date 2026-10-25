@@ -26,6 +26,19 @@ public sealed class FactoryRecipe(string name, string description, params string
     const string InputId = "in1";
     const string OutputId = "out1";
 
+    /// <summary>The noise gate a driven preset gets when its recipe sets none.</summary>
+    const string DrivenGate = "type=Intelligent threshold=-62";
+
+    /// <summary>
+    ///     The studio compressor after the cab of a preset with a clean scene: it leaves the playing alone and only
+    ///     catches a hot pickup's peaks (above -12 dBFS, 20:1 on a peak detector, 1 ms look-ahead so the first instant
+    ///     of a pick attack does not slip through), which a clean amp passes on undamped and which would otherwise clip
+    ///     the output. Driven scenes, already compressed by their amps, peak below it.
+    /// </summary>
+    const string PeakCompressor = "type=Studio detector=Peak lookAhead=1_ms threshold=-12 ratio=20 attack=0.1 release=80 knee=3";
+
+    static readonly string[] DrivenTags = ["Crunch", "Lead", "Fuzz", "High Gain"];
+
     readonly List<Part> parts = [];
     readonly List<SceneSpec> scenes = [];
     string inputSettings = string.Empty;
@@ -117,10 +130,6 @@ public sealed class FactoryRecipe(string name, string description, params string
     public Preset Build(BlockCatalog catalog, FactoryLevels.Trim? level, List<string> problems) {
         void Problem(string text) => problems.Add($"{name}: {text}");
 
-        if (parts.Count > MaxBlocks) {
-            Problem($"{parts.Count} blocks do not fit between Input and Output ({MaxBlocks} cells).");
-        }
-
         if (scenes.Count is 0 or > Preset.SceneCount) {
             Problem($"a preset needs 1 to {Preset.SceneCount} scenes, not {scenes.Count}.");
         }
@@ -138,14 +147,22 @@ public sealed class FactoryRecipe(string name, string description, params string
             Scenes = []
         };
         var input = new PresetBlock { Id = InputId, Type = BuiltInTypes.Input, Row = MainRow, Column = 0 };
-        if (inputSettings.Length > 0) {
-            input.Channels["A"] = Settings(catalog, BuiltInTypes.Input, inputSettings, Problem);
+        var gate = inputSettings.Length > 0 ? inputSettings
+            : tags.Any(DrivenTags.Contains) ? DrivenGate
+            : string.Empty;
+        if (gate.Length > 0) {
+            input.Channels["A"] = Settings(catalog, BuiltInTypes.Input, gate, Problem);
+        }
+
+        var blocks = WithPeakCompressor();
+        if (blocks.Count > MaxBlocks) {
+            Problem($"{blocks.Count} blocks do not fit between Input and Output ({MaxBlocks} cells).");
         }
 
         preset.Blocks.Add(input);
         var previous = InputId;
         for (var column = 1; column <= MaxBlocks; column++) {
-            var part = column - 1 < parts.Count ? parts[column - 1] : null;
+            var part = column - 1 < blocks.Count ? blocks[column - 1] : null;
             var block = part is null
                 ? new PresetBlock { Id = $"shunt-r{MainRow}c{column}", Type = BuiltInTypes.Shunt }
                 : Block(catalog, part, level, Problem);
@@ -170,7 +187,7 @@ public sealed class FactoryRecipe(string name, string description, params string
                 Name = s < scenes.Count ? spec!.Name : $"Scene {s + 1}",
                 Level = level?.Scenes is { } levels && planned >= 0 && planned < levels.Length ? levels[planned] : 0
             };
-            foreach (var part in parts) {
+            foreach (var part in blocks) {
                 scene.Blocks[part.Id] = new(part.Bypassed);
             }
 
@@ -182,6 +199,24 @@ public sealed class FactoryRecipe(string name, string description, params string
         }
 
         return preset;
+    }
+
+    /// <summary>The recipe's blocks, with <see cref="PeakCompressor" /> after the cab when a scene plays clean.</summary>
+    List<Part> WithPeakCompressor() {
+        var clean = tags.Contains("Clean")
+            || tags.Contains("Ambient")
+            || scenes.Any(static s => s.Name.StartsWith("Clean", StringComparison.Ordinal));
+        var cab = parts.FindIndex(static p => p.Type == "cab");
+        if (!clean || cab < 0) {
+            return parts;
+        }
+
+        var number = parts.Count(static p => p.Type == "compressor") + 1;
+        return [
+            ..parts.Take(cab + 1),
+            new("compressor", $"compressor{number}", string.Empty, [PeakCompressor], false, []),
+            ..parts.Skip(cab + 1)
+        ];
     }
 
     static PresetBlock Block(BlockCatalog catalog, Part part, FactoryLevels.Trim? level, Action<string> problem) {
