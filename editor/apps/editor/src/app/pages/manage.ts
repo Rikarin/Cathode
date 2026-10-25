@@ -10,6 +10,8 @@ export interface WorkBank {
   id: string;
   name: string;
   slots: (string | null)[];
+  /** The factory bank: read-only, its presets copied or placed into the user's banks. */
+  factory?: boolean | null;
 }
 
 /** A slot of a bank: which bank, which slot (0-based). */
@@ -64,7 +66,9 @@ export function nextSelection(
 /**
  * Manage Presets' changes, held until Save: banks are edited as working copies (swap, move, copy between slots and
  * banks), and renames, metadata, copies and deletions are queued. Nothing reaches the Server until {@link plan} is
- * carried out; Close discards. Every slot and preset touched is marked changed.
+ * carried out; Close discards. Every slot and preset touched is marked changed. The factory bank and its presets are
+ * read-only: nothing lands in its slots, and its presets are not renamed or deleted (their colour and favourite can
+ * change); they can be placed in, or copied into, the user's banks.
  */
 export class ManageSession {
   readonly banks: WorkBank[];
@@ -99,6 +103,16 @@ export class ManageSession {
     }
 
     return bank;
+  }
+
+  /** Whether a bank is the read-only factory bank. */
+  isFactoryBank(id: string): boolean {
+    return this.banks.find(b => b.id === id)?.factory ?? false;
+  }
+
+  /** Whether a preset is one of the factory's (read-only). */
+  isFactory(id: string): boolean {
+    return this.presets.get(id)?.factory ?? false;
   }
 
   at(ref: SlotRef): string | null {
@@ -139,7 +153,7 @@ export class ManageSession {
   /** ⇧-drag: a copy of the preset (a new one, made on Save) goes to the target slot. */
   copy(from: SlotRef, to: SlotRef): void {
     const id = this.at(from);
-    if (id !== null) {
+    if (id !== null && !this.isFactoryBank(to.bank)) {
       this.put(to, this.duplicate(id));
     }
   }
@@ -151,7 +165,7 @@ export class ManageSession {
 
   /** Copies of the presets in `refs`, each into the next empty slot of the same bank. */
   duplicateSlots(refs: readonly SlotRef[]): void {
-    for (const ref of refs) {
+    for (const ref of refs.filter(r => !this.isFactoryBank(r.bank))) {
       const id = this.at(ref);
       const bank = this.bank(ref.bank);
       const empty = bank.slots.findIndex((s, i) => s === null && i > ref.slot);
@@ -188,6 +202,10 @@ export class ManageSession {
   }
 
   rename(id: string, name: string): void {
+    if (this.isFactory(id)) {
+      return;
+    }
+
     const copy = this.copies.find(c => c.id === id);
     if (copy) {
       copy.name = name;
@@ -202,7 +220,7 @@ export class ManageSession {
 
   /** Deletes presets on Save; they leave every slot now. A pending copy is simply dropped. */
   delete(ids: readonly string[]): void {
-    for (const id of ids) {
+    for (const id of ids.filter(i => !this.isFactory(i))) {
       const copy = this.copies.findIndex(c => c.id === id);
       if (copy >= 0) {
         this.copies.splice(copy, 1);
@@ -243,9 +261,10 @@ export class ManageSession {
     return id;
   }
 
+  /** Sets a slot; the factory bank's stay as they are. */
   private put(ref: SlotRef, id: string | null): void {
     const bank = this.bank(ref.bank);
-    if (bank.slots[ref.slot] !== id) {
+    if (!bank.factory && bank.slots[ref.slot] !== id) {
       bank.slots[ref.slot] = id;
       this.changedSlots.add(`${ref.bank}:${ref.slot}`);
     }

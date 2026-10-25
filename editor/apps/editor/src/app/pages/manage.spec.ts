@@ -85,4 +85,35 @@ describe('Manage Presets', () => {
     expect(m.banks.map(b => b.name)).toEqual(['One', 'Two', 'Three']);
     expect(m.dirty).toBe(false);
   });
+
+  it('keeps the factory bank and its presets read-only, but lets them into user banks', () => {
+    let n = 0;
+    const banks = [
+      { id: 'factory', name: 'Factory', slots: ['f1', 'f2'], factory: true },
+      { id: 'mine', name: 'Mine', slots: ['a'] }
+    ] as Bank[];
+    const m = new ManageSession(
+      banks,
+      [{ ...preset('f1', 'Brown Sound'), factory: true }, { ...preset('f2'), factory: true }, preset('a')],
+      () => `new${++n}`
+    );
+
+    m.swap({ bank: 'factory', slot: 0 }, { bank: 'mine', slot: 0 });
+    m.copy({ bank: 'factory', slot: 1 }, { bank: 'mine', slot: 3 });
+    m.copy({ bank: 'mine', slot: 3 }, { bank: 'factory', slot: 5 });
+    m.duplicateSlots([{ bank: 'factory', slot: 0 }]);
+    m.rename('f1', 'Mine now');
+    m.delete(['f2']);
+
+    expect(m.bank('factory').slots.slice(0, 6)).toEqual(['f1', 'f2', null, null, null, null]);
+    expect(m.bank('mine').slots.slice(0, 4)).toEqual(['f1', null, null, 'new1']);
+    expect(m.nameOf('new1')).toBe('f2 copy');
+    expect(m.nameOf('f1')).toBe('Brown Sound');
+    const plan = m.plan();
+    expect(plan.copies.map(c => c.source)).toEqual(['f2']);
+    expect(plan.banks.map(b => b.id)).toEqual(['mine']);
+    expect(plan.deletes).toEqual([]);
+    expect(m.isFactoryBank('factory')).toBe(true);
+    expect(m.isFactory('a')).toBe(false);
+  });
 });

@@ -91,7 +91,7 @@ export class PresetPicker {
     this.library.presets().map(p => ({
       id: p.id,
       name: p.name || '(untitled)',
-      detail: [p.author ?? '', ...p.tags].filter(Boolean).join(' · '),
+      detail: [p.factory ? 'Factory' : (p.author ?? ''), ...p.tags].filter(Boolean).join(' · '),
       color: p.color ?? null,
       favorite: p.favorite ?? false
     }))

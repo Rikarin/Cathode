@@ -525,7 +525,7 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    /** Renames the working copy and sets its author and tags (undoable). */
+    /** Renames the working copy and sets its author, tags and description (undoable). */
     patch: operations['UpdatePresetInfo'];
     trace?: never;
   };
@@ -1159,6 +1159,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
+    /** The user's presets by name, then the read-only factory bank's (factory: true) in bank order. */
     get: operations['ListPresets'];
     put?: never;
     post?: never;
@@ -1175,7 +1176,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** The preset list as plain text, alphabetical, with each preset's scene names. */
+    /** The user's presets (not the factory bank) as plain text, alphabetical, with their scene names. */
     get: operations['ExportPresetList'];
     put?: never;
     post?: never;
@@ -1687,6 +1688,8 @@ export interface components {
     Bank: {
       id: string;
       name: string;
+      /** @description True for the factory bank, which lists the factory presets and cannot be changed; null otherwise. */
+      factory?: null | boolean;
       /** @description Preset id per slot; null or missing slots are empty. */
       slots: string[];
     };
@@ -2280,7 +2283,14 @@ export interface components {
       id: string;
       name: string;
       author?: null | string;
+      /** @description A sentence or two on what the preset is and how to play it, or null. */
+      description?: null | string;
       tags: string[];
+      /**
+       * @description True for a preset of the factory bank, which ships with Cathode and cannot be overwritten, renamed or deleted
+       *     (saving one stores a copy); null for the user's own.
+       */
+      factory?: null | boolean;
       /** Format: double */
       tempo: number;
       /** Format: int32 */
@@ -2354,11 +2364,12 @@ export interface components {
       from: string;
       to: string;
     };
-    /** @description Changes to the working copy's name, author and tags; null leaves a field as it is. */
+    /** @description Changes to the working copy's name, author, tags and description; null leaves a field as it is. */
     PresetInfoRequest: {
       name?: null | string;
       author?: null | string;
       tags?: null | string[];
+      description?: null | string;
     };
     /** @description A preset's metadata, changed in place; null leaves a field alone, an empty colour clears it. */
     PresetMetadataRequest: {
@@ -2398,6 +2409,8 @@ export interface components {
       color?: null | string;
       /** @default false */
       favorite: boolean;
+      description?: null | string;
+      factory?: null | boolean;
     };
     /** @description Replaces a block with a new one of `Type` in the same cell, keeping its cables. */
     ReplaceBlockRequest: {

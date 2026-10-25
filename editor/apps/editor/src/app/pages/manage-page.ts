@@ -26,7 +26,8 @@ const PresetMime = 'application/x-cathode-preset';
  * slots, ⌘-drag moves, ⇧-drag copies, within a bank or onto another bank in the list (its first empty slot). Rename,
  * duplicate, delete, colour and favourite act on the selection. A bank's right-click menu renames or deletes it
  * (double-click renames). Creating, renaming and deleting banks happen at once rather than on Save. Every change is held, and marked, until Save; Close
- * discards them. Reset Amp blocks acts on the stored presets at once, after a confirmation.
+ * discards them. Reset Amp blocks acts on the stored presets at once, after a confirmation. The factory bank is
+ * read-only: drag its presets onto a bank of your own (⇧ for a copy you can change); they cannot be renamed or deleted.
  */
 @Component({
   selector: 'cth-manage-page',
@@ -71,14 +72,18 @@ const PresetMime = 'application/x-cathode-preset';
               [class.bg-active-overlay]="bank.id === bankId()"
               [attr.data-testid]="'bank-' + bank.id"
               [xuiContextMenuTriggerFor]="bankActions"
+              [xuiContextMenuDisabled]="bank.factory ?? false"
               [xuiContextMenuTriggerData]="{ id: bank.id }"
               (click)="selectBank(bank.id)"
-              (dblclick)="openRenameBank(bank.id)"
+              (dblclick)="!bank.factory && openRenameBank(bank.id)"
               (contextmenu)="selectBank(bank.id)"
               (dragover)="$event.preventDefault()"
               (drop)="dropOnBank($event, bank.id)"
             >
               {{ bank.name }}
+              @if (bank.factory) {
+                <span class="text-foreground-subtle ms-1 text-[10px] uppercase">read-only</span>
+              }
             </li>
           } @empty {
             <li class="text-foreground-muted text-xs">No banks yet: add one.</li>
@@ -101,10 +106,22 @@ const PresetMime = 'application/x-cathode-preset';
       <section class="flex min-w-0 flex-1 flex-col gap-3">
         <div class="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Selected presets">
           <span class="text-foreground-muted text-sm">{{ selectedIds().length }} selected</span>
-          <button xuiButton size="sm" variant="outline" [disabled]="selectedIds().length !== 1" (click)="openRename()">
+          <button
+            xuiButton
+            size="sm"
+            variant="outline"
+            [disabled]="selectedIds().length !== 1 || selectedFactory()"
+            (click)="openRename()"
+          >
             Rename…
           </button>
-          <button xuiButton size="sm" variant="outline" [disabled]="selectedIds().length === 0" (click)="duplicate()">
+          <button
+            xuiButton
+            size="sm"
+            variant="outline"
+            [disabled]="selectedIds().length === 0 || factoryBank()"
+            (click)="duplicate()"
+          >
             Duplicate
           </button>
           <button
@@ -124,7 +141,8 @@ const PresetMime = 'application/x-cathode-preset';
             size="sm"
             variant="outline"
             color="error"
-            [disabled]="selectedIds().length === 0"
+            data-testid="manage-delete"
+            [disabled]="selectedIds().length === 0 || selectedFactory()"
             (click)="remove()"
           >
             Delete
@@ -141,6 +159,12 @@ const PresetMime = 'application/x-cathode-preset';
             Reset Amp blocks…
           </button>
         </div>
+        @if (factoryBank()) {
+          <p class="text-foreground-muted text-xs" data-testid="factory-bank-note">
+            The factory bank is read-only. Drag its presets onto a bank of your own, or ⇧-drag for a copy you can
+            change.
+          </p>
+        }
         @if (bank(); as b) {
           <div
             class="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] content-start gap-1.5 overflow-y-auto"
@@ -277,6 +301,8 @@ export class ManagePage {
     return [...this.session().banks];
   });
   protected readonly bank = computed(() => this.banks().find(b => b.id === this.bankId()) ?? this.banks()[0] ?? null);
+  /** Whether the bank shown is the read-only factory bank. */
+  protected readonly factoryBank = computed(() => this.bank()?.factory ?? false);
   protected readonly slots = computed(() => {
     this.version();
     const bank = this.bank();
@@ -306,8 +332,12 @@ export class ManagePage {
   protected readonly selectedIds = computed(() =>
     [...this.selected()].map(i => this.slots()[i]?.id).filter((id): id is string => !!id)
   );
-  /** The selected presets that exist on the Server already (not copies waiting for Save). */
-  protected readonly storedSelection = computed(() => this.selectedIds().filter(id => this.session().presets.has(id)));
+  /** The selected presets that exist on the Server already (not copies waiting for Save), factory ones left out. */
+  protected readonly storedSelection = computed(() =>
+    this.selectedIds().filter(id => this.session().presets.has(id) && !this.session().isFactory(id))
+  );
+  /** Whether the selection holds a factory preset, which cannot be renamed or deleted. */
+  protected readonly selectedFactory = computed(() => this.selectedIds().some(id => this.session().isFactory(id)));
   constructor() {
     void this.reload();
   }
