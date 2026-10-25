@@ -33,8 +33,8 @@ const PROJECT_LINKS = [
           </p>
         </div>
 
-        <nav aria-label="On this page">
-          <p class="mb-3 text-sm font-medium">On this page</p>
+        <nav aria-label="Site">
+          <p class="mb-3 text-sm font-medium">Cathode</p>
           <ul class="flex flex-col gap-2">
             @for (item of sections; track item.id) {
               <li>
@@ -46,6 +46,11 @@ const PROJECT_LINKS = [
                 >
               </li>
             }
+            <li>
+              <a class="text-foreground-muted hover:text-foreground text-sm hover:underline" routerLink="/catalog"
+                >Catalogue</a
+              >
+            </li>
           </ul>
         </nav>
 

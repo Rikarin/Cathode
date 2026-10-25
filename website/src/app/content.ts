@@ -4,9 +4,11 @@
  * hand, and the page does not invent them.
  */
 
+import { AMP_COUNT, BLOCK_COUNT, DRIVE_COUNT } from './catalog/catalog';
+
 export const FIGURES = [
-  { value: '86', label: 'amp models from schematics' },
-  { value: '49', label: 'block types' },
+  { value: String(AMP_COUNT), label: 'amp models from schematics' },
+  { value: String(BLOCK_COUNT), label: 'block types' },
   { value: '6 × 14', label: 'cells on the grid' },
   { value: '8 + 4', label: 'scenes per preset, channels per block' }
 ];
@@ -76,7 +78,7 @@ export const BLOCK_GROUPS = [
   {
     name: 'Drive',
     blocks: ['Drive', 'Dynamic distortion', 'Enhancer'],
-    note: '27 overdrive, distortion and fuzz circuits, with every clip type'
+    note: `${DRIVE_COUNT} overdrive, distortion, fuzz and boost types, most of them pedal circuits`
   },
   {
     name: 'Delay',

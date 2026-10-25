@@ -36,8 +36,13 @@ the way Cloudflare does.
 
 ## Content
 
-- `src/app/content.ts`: every figure and list on the page (amps, blocks, platforms). Keep it in step with the README
+- `src/app/content.ts`: every list on the home page (amp families, block groups, platforms). Keep it in step with the README
   and `docs/07-amp-catalogue.md` and `docs/08-blocks-parity.md`.
+- `src/app/catalog/`: the `/catalog` page's data. `engine.generated.ts` is written by `pnpm catalog` (needs the
+  .NET 10 SDK), which reads the engine's block registry: every block and its types, the drive and wah circuits with
+  what each is modelled after, and the Cab block's speakers, microphones and cabinets. Run it after the engine gains a
+  block, a type or a model, and commit the result. What each amp is based on is kept by hand in `amp-models.ts` from
+  `docs/07-amp-catalogue.md`; a model missing there shows under "Other". The home page's counts come from here too.
 - `src/app/screenshots.ts`: the screenshots. Save a picture as `public/screenshots/<file>` and set its `src` to
   `screenshots/<file>`; until then the page shows a placeholder that names the file it expects.
 - `public/icon.png` is the desktop app's icon (`editor/apps/desktop/assets/icon.png`); `logo.png`, `favicon-64.png`

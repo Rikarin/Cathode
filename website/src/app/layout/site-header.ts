@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { matDownloadRound } from '@ng-icons/material-icons/round';
 import { REPOSITORY, SECTIONS } from '../site';
@@ -7,7 +7,7 @@ import { REPOSITORY, SECTIONS } from '../site';
 @Component({
   selector: 'cw-site-header',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NgIcon],
+  imports: [RouterLink, RouterLinkActive, NgIcon],
   providers: [provideIcons({ matDownloadRound })],
   host: { class: 'sticky top-0 z-30 block border-b border-white/[0.06] bg-black/60 backdrop-blur-md' },
   template: `
@@ -29,6 +29,12 @@ import { REPOSITORY, SECTIONS } from '../site';
             >{{ item.label }}</a
           >
         }
+        <a
+          class="text-foreground-muted hover:text-foreground rounded-full px-3 py-1.5 text-sm font-medium transition-colors hover:bg-white/10"
+          routerLink="/catalog"
+          routerLinkActive="text-foreground bg-white/10"
+          >Catalogue</a
+        >
       </nav>
 
       <div class="ms-auto flex items-center gap-1">
@@ -60,6 +66,12 @@ import { REPOSITORY, SECTIONS } from '../site';
           >{{ item.label }}</a
         >
       }
+      <a
+        class="text-foreground-muted hover:text-foreground shrink-0 rounded-full px-3 py-1.5 text-sm font-medium hover:bg-white/10"
+        routerLink="/catalog"
+        routerLinkActive="text-foreground bg-white/10"
+        >Catalogue</a
+      >
     </nav>
   `
 })

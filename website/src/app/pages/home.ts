@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   matArrowForwardRound,
@@ -11,6 +12,7 @@ import {
   matTerminalRound,
   matWavesRound
 } from '@ng-icons/material-icons/round';
+import { AMP_COUNT, BLOCK_COUNT } from '../catalog/catalog';
 import {
   AMP_EXPERT,
   AMP_FAMILIES,
@@ -50,7 +52,7 @@ const STATUS = {
 @Component({
   selector: 'cw-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgIcon, SiteHeader, SiteFooter, Screenshot],
+  imports: [RouterLink, NgIcon, SiteHeader, SiteFooter, Screenshot],
   providers: [
     provideIcons({
       matArrowForwardRound,
@@ -148,8 +150,9 @@ const STATUS = {
         <div class="mx-auto max-w-3xl text-center">
           <h2 class="display gradient text-4xl sm:text-5xl md:text-6xl">Amps built from their schematics</h2>
           <p class="text-foreground-muted mx-auto mt-5 max-w-2xl text-lg">
-            Each of the 86 models is the circuit, stage by stage: the preamp, the tone stack, the power amp, the output
-            transformer and the load of the speaker. The front panel is the amp's own, so the knobs do what they did.
+            Each of the {{ ampCount }} models is the circuit, stage by stage: the preamp, the tone stack, the power amp,
+            the output transformer and the load of the speaker. The front panel is the amp's own, so the knobs do what
+            they did.
           </p>
         </div>
 
@@ -200,6 +203,13 @@ const STATUS = {
             </article>
           }
         </div>
+
+        <p class="mt-6 text-center">
+          <a routerLink="/catalog" fragment="amps" class="pill">
+            Every amp and what it is based on
+            <ng-icon name="matChevronRightRound" size="1rem" class="text-foreground-muted" />
+          </a>
+        </p>
       </section>
 
       <!-- ---------------------------------------------------------------- cabs -->
@@ -247,8 +257,8 @@ const STATUS = {
         <div class="mx-auto max-w-3xl text-center">
           <h2 class="display gradient text-4xl sm:text-5xl md:text-6xl">Every effect after the amp, and before it</h2>
           <p class="text-foreground-muted mx-auto mt-5 max-w-2xl text-lg">
-            49 block types, each with four channels and its own pages of controls, and a Block Library of factory
-            presets to start from.
+            {{ blockCount }} block types, each with four channels and its own pages of controls, and a Block Library of
+            factory presets to start from.
           </p>
         </div>
 
@@ -266,6 +276,13 @@ const STATUS = {
         </div>
 
         <cw-screenshot class="mx-auto mt-4 max-w-6xl" [shot]="shots.effects" />
+
+        <p class="mt-6 text-center">
+          <a routerLink="/catalog" fragment="drives" class="pill">
+            Every drive, wah and block in the catalogue
+            <ng-icon name="matChevronRightRound" size="1rem" class="text-foreground-muted" />
+          </a>
+        </p>
       </section>
 
       <!-- ---------------------------------------------------------------- grid -->
@@ -643,6 +660,8 @@ export class Home {
   protected readonly releases = RELEASES;
   protected readonly headlessGuide = HEADLESS_GUIDE;
   protected readonly shots = SHOTS;
+  protected readonly ampCount = AMP_COUNT;
+  protected readonly blockCount = BLOCK_COUNT;
 
   protected readonly figures = FIGURES;
   protected readonly ampFamilies = AMP_FAMILIES;

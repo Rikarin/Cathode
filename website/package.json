@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "ng build && node -e \"require('node:fs').copyFileSync('dist/website/browser/404/index.html', 'dist/website/browser/404.html')\"",
+    "catalog": "dotnet run tools/catalog.cs && prettier --write src/app/catalog/engine.generated.ts",
     "deploy": "pnpm build && wrangler deploy",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
