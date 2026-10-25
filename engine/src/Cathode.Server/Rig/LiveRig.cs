@@ -282,8 +282,17 @@ public sealed partial class LiveRig(
                 Check(expected);
                 var from = Find(request.From);
                 var to = Find(request.To);
-                if (to.Column != from.Column + 1) {
-                    throw new RigException(400, "Cables connect a block to one in the next column.");
+                if (to.Column <= from.Column) {
+                    throw new RigException(400, "Cables run left to right, to a block in a later column.");
+                }
+
+                // Across empty cells, shunts carry the cable on the source's row (or else the target's).
+                var row = new[] { from.Row, to.Row }.Cast<int?>()
+                    .FirstOrDefault(r => Enumerable.Range(from.Column + 1, to.Column - from.Column - 1)
+                        .All(c => BlockAt(preset, r!.Value, c) is null or { Type: BuiltInTypes.Shunt })
+                    );
+                if (row is null) {
+                    throw new RigException(400, "A block is in the way: cables cross only empty cells and shunts.");
                 }
 
                 if (BuiltInTypes.IsOutput(from.Type) || to.Type == BuiltInTypes.Input) {
@@ -297,7 +306,28 @@ public sealed partial class LiveRig(
                     throw RigException.Conflict("That cable already exists.");
                 }
 
-                await StructuralAsync(p => p.Cables.Add(new() { From = request.From, To = request.To }));
+                await StructuralAsync(p => {
+                        var previous = request.From;
+                        for (var column = from.Column + 1; column < to.Column; column++) {
+                            var shunt = BlockAt(p, row.Value, column);
+                            if (shunt is null) {
+                                var id = $"shunt-r{row}c{column}";
+                                shunt = new() {
+                                    Id = p.Blocks.Any(b => b.Id == id) ? NextId(BuiltInTypes.Shunt) : id,
+                                    Type = BuiltInTypes.Shunt,
+                                    Row = row.Value,
+                                    Column = column
+                                };
+                                p.Blocks.Add(shunt);
+                            }
+
+                            Connect(p, previous, shunt.Id);
+                            previous = shunt.Id;
+                        }
+
+                        Connect(p, previous, request.To);
+                    }
+                );
                 return Changed("cableAdded", request.From);
             }
         );

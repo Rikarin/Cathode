@@ -175,7 +175,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Invalid_edits_return_problem_details() {
-        var badCable = await client.PostAsJsonAsync("/api/v1/live/cables", new CableRequest("in1", "out1"), Token);
+        var badCable = await client.PostAsJsonAsync("/api/v1/live/cables", new CableRequest("shunt-r2c3", "shunt-r2c1"), Token);
         var unknownParam = await client.PatchAsJsonAsync(
             "/api/v1/live/blocks/shunt-r2c1/params",
             new Dictionary<string, float> { ["x"] = 1 },
@@ -185,7 +185,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
         Assert.Equal(HttpStatusCode.BadRequest, badCable.StatusCode);
         var problem = await badCable.Content.ReadFromJsonAsync<ProblemDetails>(Token);
-        Assert.Contains("next column", problem!.Detail, StringComparison.Ordinal);
+        Assert.Contains("later column", problem!.Detail, StringComparison.Ordinal);
         Assert.Equal(HttpStatusCode.BadRequest, unknownParam.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, badChannel.StatusCode);
     }
@@ -399,6 +399,36 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         var undone = await Post("/api/v1/live/undo");
         Assert.Contains(undone.Preset.Blocks, b => b.Id == "drive1" && b.Row == 2 && b.Column == 2);
         Assert.DoesNotContain(undone.Preset.Blocks, b => b.Row == 2 && b.Column == 2 && b.Type == BuiltInTypes.Shunt);
+    }
+
+    [Fact]
+    public async Task A_cable_across_empty_cells_is_carried_by_shunts_and_a_block_in_the_way_stops_it() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 0, 2));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 1, 5));
+
+        // Row 0 is empty between them: shunts fill columns 3 and 4 there, then the cable drops to the delay's row.
+        var wired = await Post("/api/v1/live/cables", new CableRequest("drive1", "delay1"));
+        Assert.Contains(wired.Preset.Blocks, b => b.Id == "shunt-r0c3" && b.Type == BuiltInTypes.Shunt);
+        Assert.Contains(wired.Preset.Blocks, b => b.Id == "shunt-r0c4" && b.Type == BuiltInTypes.Shunt);
+        Assert.Contains(wired.Preset.Cables, c => c.From == "drive1" && c.To == "shunt-r0c3");
+        Assert.Contains(wired.Preset.Cables, c => c.From == "shunt-r0c3" && c.To == "shunt-r0c4");
+        Assert.Contains(wired.Preset.Cables, c => c.From == "shunt-r0c4" && c.To == "delay1");
+
+        // One undo takes the shunts and the cables back.
+        var undone = await Post("/api/v1/live/undo");
+        Assert.DoesNotContain(undone.Preset.Blocks, b => b.Row == 0 && b.Column is 3 or 4);
+        Assert.DoesNotContain(undone.Preset.Cables, c => c.From == "drive1");
+
+        // A block on both rows in between: refused, and nothing changes.
+        await Post("/api/v1/live/blocks", new AddBlockRequest("chorus", 0, 3));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("phaser", 1, 4));
+        using var blocked = await client.PostAsJsonAsync(
+            "/api/v1/live/cables",
+            new CableRequest("drive1", "delay1"),
+            Token
+        );
+        Assert.Equal(HttpStatusCode.BadRequest, blocked.StatusCode);
+        Assert.DoesNotContain((await Live()).Preset.Cables, c => c.From == "drive1");
     }
 
     [Fact]

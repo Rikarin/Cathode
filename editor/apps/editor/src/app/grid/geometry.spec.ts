@@ -26,10 +26,12 @@ describe('grid geometry', () => {
     expect(inlet(block('b', 0, 1)).x).toBe(Cell.width + Cell.gap);
   });
 
-  it('only connects to the next column, never into an input or twice', () => {
+  it('connects left to right, across empty cells or shunts, never into an input or twice', () => {
     const a = block('a', 0, 2);
     expect(canConnect(a, block('b', 3, 3), [])).toBe(true);
-    expect(canConnect(a, block('b', 0, 4), [])).toBe(false);
+    expect(canConnect(a, block('b', 0, 4), [], [a, block('x', 0, 3), block('y', 2, 3)])).toBe(false);
+    expect(canConnect(a, block('b', 0, 4), [], [a, block('x', 2, 3)])).toBe(true);
+    expect(canConnect(a, block('b', 1, 5), [], [a, block('x', 0, 3), block('s', 1, 4, 'shunt')])).toBe(true);
     expect(canConnect(a, block('b', 0, 1), [])).toBe(false);
     expect(canConnect(a, block('in', 0, 3, 'input'), [])).toBe(false);
     expect(canConnect(a, block('b', 0, 3), [{ from: 'a', to: 'b' }])).toBe(false);

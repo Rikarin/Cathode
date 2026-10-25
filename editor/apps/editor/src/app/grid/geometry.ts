@@ -37,10 +37,21 @@ export function cablePath(from: Point, to: Point): string {
   return `M ${from.x} ${from.y} C ${from.x + bend} ${from.y}, ${to.x - bend} ${to.y}, ${to.x} ${to.y}`;
 }
 
-/** The engine's rule (GraphCompiler): signal flows left to right, one column at a time. */
-export function canConnect(from: PresetBlock, to: PresetBlock, cables: readonly PresetCable[]): boolean {
+/**
+ * The engine's rule (GraphCompiler): signal flows left to right, one column at a time. A cable dragged further across
+ * empty cells (or shunts) on the source's or the target's row is carried there by shunts the server adds.
+ */
+export function canConnect(
+  from: PresetBlock,
+  to: PresetBlock,
+  cables: readonly PresetCable[],
+  blocks: readonly PresetBlock[] = []
+): boolean {
+  const clear = (row: number) =>
+    blocks.every(b => b.row !== row || b.column <= from.column || b.column >= to.column || b.type === 'shunt');
   return (
-    to.column === from.column + 1 &&
+    to.column > from.column &&
+    (to.column === from.column + 1 || clear(from.row) || clear(to.row)) &&
     to.type !== 'input' &&
     !OutputTypes.includes(from.type) &&
     !cables.some(c => c.from === from.id && c.to === to.id)

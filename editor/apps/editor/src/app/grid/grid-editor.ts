@@ -478,7 +478,7 @@ export class GridEditor {
     return new Set(
       from
         ? this.blocks()
-            .filter(b => canConnect(from, b, cables))
+            .filter(b => canConnect(from, b, cables, this.blocks()))
             .map(b => b.id)
         : []
     );
