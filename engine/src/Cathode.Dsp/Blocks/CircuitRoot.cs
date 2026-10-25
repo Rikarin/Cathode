@@ -31,6 +31,39 @@ struct PortVector {
 }
 
 /// <summary>
+///     The Newton solver state of a <see cref="CircuitRoot{TSource,TDevice}" /> with device ports: its vectors and
+///     matrices, about 1 KB. A linear root (a tone network) has no device ports and shares <see cref="Inert" />, which
+///     nothing writes, so it carries none of the solver's buffers.
+/// </summary>
+sealed class NewtonState {
+    public static readonly NewtonState Inert = new();
+
+    public DeviceVector conductances;
+    public DeviceVector voltages;
+    public DeviceVector history; // the solution before last, for extrapolating before there is a Jacobian
+    public DeviceVector currents; // the solution's residual currents r = i - G_c v
+    public DeviceVector prediction;
+    public DeviceVector lastPrediction;
+    public DeviceVector start;
+    public DeviceVector proposed;
+    public DeviceVector step;
+    public DeviceVector direction;
+    public DeviceVector trial;
+    public DeviceVector deviceCurrents;
+    public DeviceVector best;
+    public DeviceVector bestCurrents;
+    public DeviceVector rhs;
+    public DeviceVector inverses;
+    public DeviceVector lastInverses;
+    public DevicePivots pivots;
+    public DevicePivots lastPivots;
+    public DeviceMatrix identity; // I + F G_c
+    public DeviceMatrix jacobian;
+    public DeviceMatrix system;
+    public DeviceMatrix lastFactors; // LU of the last converged sample's Jacobian of g
+}
+
+/// <summary>
 ///     The root of one drive stage: an R-type adaptor (<see cref="RTypeScattering" />, from a <see cref="WdfNetlist" />)
 ///     whose children are the stage's source (port 0, any adapted one-port: a resistive voltage source, or one in series
 ///     with a guitar pickup's inductance) and up to seven capacitors (ports 1 onwards), with up to four nonlinear device
@@ -76,29 +109,7 @@ public sealed class CircuitRoot<TSource, TDevice>
     TSource source;
     TDevice device;
     PortVector waves;
-    DeviceVector conductances;
-    DeviceVector voltages;
-    DeviceVector history; // the solution before last, for extrapolating before there is a Jacobian
-    DeviceVector currents; // the solution's residual currents r = i - G_c v
-    DeviceVector prediction;
-    DeviceVector lastPrediction;
-    DeviceVector start;
-    DeviceVector proposed;
-    DeviceVector step;
-    DeviceVector direction;
-    DeviceVector trial;
-    DeviceVector deviceCurrents;
-    DeviceVector best;
-    DeviceVector bestCurrents;
-    DeviceVector rhs;
-    DeviceVector inverses;
-    DeviceVector lastInverses;
-    DevicePivots pivots;
-    DevicePivots lastPivots;
-    DeviceMatrix identity; // I + F G_c
-    DeviceMatrix jacobian;
-    DeviceMatrix system;
-    DeviceMatrix lastFactors; // LU of the last converged sample's Jacobian of g
+    readonly NewtonState newton; // the device ports' solver state (a shared, never written one without devices)
     bool hasFactors;
     long iterations;
 
@@ -155,6 +166,7 @@ public sealed class CircuitRoot<TSource, TDevice>
         this.source = source;
         this.capacitors = [..capacitors];
         this.device = device;
+        newton = k > 0 ? new() : NewtonState.Inert;
         ports = capacitors.Length + 1;
         stride = ports + k + 1;
         probes = Scattering.ProbeCount;
@@ -162,7 +174,7 @@ public sealed class CircuitRoot<TSource, TDevice>
         supplies = new double[netlist.Count(NetlistElementKind.VoltageSource)];
         for (var d = 0; d < k; d++) {
             var g = Math.Max(device.Conductance(d), 1e-15);
-            conductances[d] = g;
+            newton.conductances[d] = g;
             Scattering.SetDeviceConductance(d, g);
         }
 
@@ -218,7 +230,7 @@ public sealed class CircuitRoot<TSource, TDevice>
 
         for (var d = 0; d < k; d++) {
             for (var l = 0; l < k; l++) {
-                identity[d * k + l] = (d == l ? 1 : 0) + rows[d * stride + ports + l] * conductances[l];
+                newton.identity[d * k + l] = (d == l ? 1 : 0) + rows[d * stride + ports + l] * newton.conductances[l];
             }
         }
 
@@ -238,7 +250,7 @@ public sealed class CircuitRoot<TSource, TDevice>
 
         var k = device.Ports;
         var m = rows.AsSpan();
-        Span<double> p = prediction;
+        Span<double> p = newton.prediction;
         for (var d = 0; d < k; d++) {
             p[d] = Linear(m.Slice(d * stride, stride), u);
         }
@@ -247,14 +259,14 @@ public sealed class CircuitRoot<TSource, TDevice>
             Solve();
         }
 
-        Span<double> r = currents;
+        Span<double> r = newton.currents;
         source.Incident(Row(m.Slice(k * stride, stride), u, r, k));
         for (var i = 0; i < capacitors.Length; i++) {
             capacitors[i].Incident(Row(m.Slice((k + 1 + i) * stride, stride), u, r, k));
         }
 
         if (k > 0) {
-            Span<double> v = voltages;
+            Span<double> v = newton.voltages;
             device.Commit(v[..k]);
         }
 
@@ -265,11 +277,11 @@ public sealed class CircuitRoot<TSource, TDevice>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Probe(int index) {
         var k = device.Ports;
-        return Row(rows.AsSpan((k + ports + index) * stride, stride), waves, currents, k);
+        return Row(rows.AsSpan((k + ports + index) * stride, stride), waves, newton.currents, k);
     }
 
     /// <summary>Voltage across device port <paramref name="port" /> at the last sample.</summary>
-    public double DeviceVoltage(int port) => voltages[port];
+    public double DeviceVoltage(int port) => newton.voltages[port];
 
     /// <summary>
     ///     Starts from a stored operating point: the capacitor voltages, then the device port voltages, as
@@ -281,9 +293,9 @@ public sealed class CircuitRoot<TSource, TDevice>
         }
 
         for (var d = 0; d < device.Ports; d++) {
-            voltages[d] = state[capacitors.Length + d];
-            history[d] = voltages[d];
-            currents[d] = 0;
+            newton.voltages[d] = state[capacitors.Length + d];
+            newton.history[d] = newton.voltages[d];
+            newton.currents[d] = 0;
         }
 
         hasFactors = false;
@@ -296,7 +308,7 @@ public sealed class CircuitRoot<TSource, TDevice>
         }
 
         for (var d = 0; d < device.Ports; d++) {
-            state[capacitors.Length + d] = voltages[d];
+            state[capacitors.Length + d] = newton.voltages[d];
         }
     }
 
@@ -307,11 +319,14 @@ public sealed class CircuitRoot<TSource, TDevice>
         }
 
         device.Reset();
-        voltages = default;
-        history = default;
-        currents = default;
+        if (device.Ports > 0) { // the shared inert state stays untouched (and zero)
+            newton.voltages = default;
+            newton.history = default;
+            newton.currents = default;
+            newton.lastPrediction = default;
+        }
+
         waves = default;
-        lastPrediction = default;
         hasFactors = false;
     }
 
@@ -328,7 +343,7 @@ public sealed class CircuitRoot<TSource, TDevice>
         }
 
         for (var d = 0; d < device.Ports; d++) {
-            if (Math.Abs(voltages[d]) >= Tiny) {
+            if (Math.Abs(newton.voltages[d]) >= Tiny) {
                 return;
             }
         }
@@ -368,19 +383,19 @@ public sealed class CircuitRoot<TSource, TDevice>
     /// </summary>
     void Solve() {
         var k = device.Ports;
-        Span<double> v = voltages;
-        Span<double> s = start;
-        Span<double> next = proposed;
-        Span<double> delta = step;
-        Span<double> way = direction;
-        Span<double> j = jacobian;
-        Span<double> a = system;
-        Span<double> t = trial;
-        Span<double> gc = conductances;
-        Span<double> r = currents;
-        Span<double> negative = rhs;
-        Span<int> order = pivots;
-        Span<double> reciprocals = inverses;
+        Span<double> v = newton.voltages;
+        Span<double> s = newton.start;
+        Span<double> next = newton.proposed;
+        Span<double> delta = newton.step;
+        Span<double> way = newton.direction;
+        Span<double> j = newton.jacobian;
+        Span<double> a = newton.system;
+        Span<double> t = newton.trial;
+        Span<double> gc = newton.conductances;
+        Span<double> r = newton.currents;
+        Span<double> negative = newton.rhs;
+        Span<int> order = newton.pivots;
+        Span<double> reciprocals = newton.inverses;
 
         Copy(v, s, k);
         Predict(s, next);
@@ -424,10 +439,10 @@ public sealed class CircuitRoot<TSource, TDevice>
                 }
 
                 Copy(next, v, k);
-                Copy(a, lastFactors, k * k); // the next sample predicts with this Jacobian
-                Copy(reciprocals, lastInverses, k);
+                Copy(a, newton.lastFactors, k * k); // the next sample predicts with this Jacobian
+                Copy(reciprocals, newton.lastInverses, k);
                 for (var d = 0; d < k; d++) {
-                    lastPivots[d] = order[d];
+                    newton.lastPivots[d] = order[d];
                 }
 
                 hasFactors = true;
@@ -468,7 +483,7 @@ public sealed class CircuitRoot<TSource, TDevice>
         if (bestNorm <= AcceptableNorm) {
             Fallback();
         } else if (double.IsFinite(bestNorm)) {
-            Copy(best, v, k); // hold the previous currents; start next time from the best point
+            Copy(newton.best, v, k); // hold the previous currents; start next time from the best point
         } else {
             Copy(s, v, k); // repeat the previous sample's solution, whose currents still hold
         }
@@ -484,15 +499,15 @@ public sealed class CircuitRoot<TSource, TDevice>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     void Predict(ReadOnlySpan<double> s, Span<double> next) {
         var k = device.Ports;
-        Span<double> p = prediction;
-        Span<double> last = lastPrediction;
-        Span<double> h = history;
+        Span<double> p = newton.prediction;
+        Span<double> last = newton.lastPrediction;
+        Span<double> h = newton.history;
         if (hasFactors) {
             for (var d = 0; d < k; d++) {
                 next[d] = p[d] - last[d];
             }
 
-            Substitute(lastFactors, lastPivots, lastInverses, k, next);
+            Substitute(newton.lastFactors, newton.lastPivots, newton.lastInverses, k, next);
             for (var d = 0; d < k; d++) {
                 next[d] += s[d];
             }
@@ -514,7 +529,7 @@ public sealed class CircuitRoot<TSource, TDevice>
         ref var f0 = ref MemoryMarshal.GetArrayDataReference(rows);
         ref var j0 = ref MemoryMarshal.GetReference(j);
         ref var a0 = ref MemoryMarshal.GetReference(a);
-        ref var fixedPart = ref Unsafe.As<DeviceMatrix, double>(ref identity);
+        ref var fixedPart = ref Unsafe.As<DeviceMatrix, double>(ref newton.identity);
         for (var d = 0; d < k; d++) {
             ref var f = ref Unsafe.Add(ref f0, d * stride + ports);
             for (var l = 0; l < k; l++) {
@@ -553,10 +568,10 @@ public sealed class CircuitRoot<TSource, TDevice>
         DeviceMatrix fullBuffer = default;
         DeviceMatrix subsystem = default; // the factors in the system buffer must survive for the next prediction
         Span<double> full = fullBuffer;
-        Linearise(jacobian, full);
+        Linearise(newton.jacobian, full);
         Span<double> a = subsystem;
-        Span<double> b = direction;
-        ReadOnlySpan<double> negative = rhs;
+        Span<double> b = newton.direction;
+        ReadOnlySpan<double> negative = newton.rhs;
         for (var i = 0; i < count; i++) {
             var row = free[i];
             var sum = negative[row];
@@ -594,18 +609,18 @@ public sealed class CircuitRoot<TSource, TDevice>
     /// </summary>
     void Fallback() {
         var k = device.Ports;
-        Span<double> v = voltages;
-        Span<double> r = currents;
-        Span<double> delta = step;
-        Span<double> j = jacobian;
-        Span<double> a = system;
-        Span<double> t = trial;
-        Span<double> gc = conductances;
-        Span<double> next = proposed;
-        Span<int> order = pivots;
-        Span<double> reciprocals = inverses;
-        Copy(best, v, k);
-        Copy(bestCurrents, r, k);
+        Span<double> v = newton.voltages;
+        Span<double> r = newton.currents;
+        Span<double> delta = newton.step;
+        Span<double> j = newton.jacobian;
+        Span<double> a = newton.system;
+        Span<double> t = newton.trial;
+        Span<double> gc = newton.conductances;
+        Span<double> next = newton.proposed;
+        Span<int> order = newton.pivots;
+        Span<double> reciprocals = newton.inverses;
+        Copy(newton.best, v, k);
+        Copy(newton.bestCurrents, r, k);
         var ignored = double.PositiveInfinity;
         Residual(v[..k], ref ignored);
         Linearise(j, a);
@@ -639,16 +654,16 @@ public sealed class CircuitRoot<TSource, TDevice>
     /// </summary>
     double Residual(ReadOnlySpan<double> v, ref double bestNorm) {
         var k = device.Ports;
-        Span<double> j = jacobian;
-        Span<double> i = deviceCurrents;
+        Span<double> j = newton.jacobian;
+        Span<double> i = newton.deviceCurrents;
         j[..(k * k)].Clear();
         device.Evaluate(v, i[..k], j, k);
         ref var v0 = ref MemoryMarshal.GetReference(v);
-        ref var i0 = ref Unsafe.As<DeviceVector, double>(ref deviceCurrents);
-        ref var t0 = ref Unsafe.As<DeviceVector, double>(ref trial);
-        ref var gc0 = ref Unsafe.As<DeviceVector, double>(ref conductances);
-        ref var p0 = ref Unsafe.As<DeviceVector, double>(ref prediction);
-        ref var delta0 = ref Unsafe.As<DeviceVector, double>(ref step);
+        ref var i0 = ref Unsafe.As<DeviceVector, double>(ref newton.deviceCurrents);
+        ref var t0 = ref Unsafe.As<DeviceVector, double>(ref newton.trial);
+        ref var gc0 = ref Unsafe.As<DeviceVector, double>(ref newton.conductances);
+        ref var p0 = ref Unsafe.As<DeviceVector, double>(ref newton.prediction);
+        ref var delta0 = ref Unsafe.As<DeviceVector, double>(ref newton.step);
         ref var f0 = ref MemoryMarshal.GetArrayDataReference(rows);
         for (var d = 0; d < k; d++) {
             Unsafe.Add(ref t0, d) = Unsafe.Add(ref i0, d) - Unsafe.Add(ref gc0, d) * Unsafe.Add(ref v0, d);
@@ -670,12 +685,12 @@ public sealed class CircuitRoot<TSource, TDevice>
             norm += scaled * scaled;
         }
 
-        Span<double> t = trial;
+        Span<double> t = newton.trial;
 
         if (norm < bestNorm) {
             bestNorm = norm;
-            Copy(v, best, k);
-            Copy(t, bestCurrents, k);
+            Copy(v, newton.best, k);
+            Copy(t, newton.bestCurrents, k);
         }
 
         return norm;
