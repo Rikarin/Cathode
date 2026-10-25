@@ -221,7 +221,7 @@ const STATUS = {
           </p>
         </div>
 
-        <div class="mt-12 grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div class="mt-12 grid gap-4">
           <cw-screenshot [shot]="shots.cab" />
 
           <div class="grid gap-4">
@@ -234,19 +234,21 @@ const STATUS = {
               }
             </dl>
 
-            @for (feature of cabFeatures; track feature.title; let i = $index) {
-              <div class="card flex gap-4 p-6">
-                <ng-icon
-                  [name]="i === 0 ? 'matMicRound' : i === 1 ? 'matWavesRound' : 'matSpeakerRound'"
-                  size="1.25rem"
-                  class="text-signal mt-0.5 shrink-0"
-                />
-                <div>
-                  <h3 class="font-semibold">{{ feature.title }}</h3>
-                  <p class="text-foreground-muted mt-1.5 text-sm leading-relaxed">{{ feature.body }}</p>
+            <div class="grid gap-4 md:grid-cols-3">
+              @for (feature of cabFeatures; track feature.title; let i = $index) {
+                <div class="card flex gap-4 p-6">
+                  <ng-icon
+                    [name]="i === 0 ? 'matMicRound' : i === 1 ? 'matWavesRound' : 'matSpeakerRound'"
+                    size="1.25rem"
+                    class="text-signal mt-0.5 shrink-0"
+                  />
+                  <div>
+                    <h3 class="font-semibold">{{ feature.title }}</h3>
+                    <p class="text-foreground-muted mt-1.5 text-sm leading-relaxed">{{ feature.body }}</p>
+                  </div>
                 </div>
-              </div>
-            }
+              }
+            </div>
           </div>
         </div>
       </section>
