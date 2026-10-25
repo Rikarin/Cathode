@@ -35,8 +35,8 @@ public sealed partial class EngineConnection(
     HostInfo? info;
     TelemetryMonitor? monitor;
 
-    /// <summary>The block id of each slot of the graph last loaded, for block meters.</summary>
-    SlotMap slots = new(-1, []);
+    /// <summary>The block and meter id of each block meter of the graph last loaded.</summary>
+    MeterMap meterMap = new(-1, [], []);
     string? lastError;
     volatile bool scopeEnabled;
 
@@ -91,7 +91,7 @@ public sealed partial class EngineConnection(
         queue.Writer.TryWrite(new(new() { Type = IpcTypes.LoadGraph, Generation = generation, Graph = graph }, reply));
         var answer = await reply.Task;
         if (answer.SlotIds is { } ids) {
-            Volatile.Write(ref slots, new(generation, [..ids]));
+            Volatile.Write(ref meterMap, MeterMap.Of(generation, ids, answer.MeterIds));
         }
     }
 
@@ -337,30 +337,38 @@ public sealed partial class EngineConnection(
                     BlockMeters(source),
                     source.LoudnessMomentary,
                     source.LoudnessShortTerm,
-                    OutputPeaks: OutputPeaks(LastTelemetry),
-                    BlockMeters: OwnMeters(LastTelemetry)
+                    OutputPeaks(LastTelemetry)
                 ),
                 ContractsJsonContext.Default.Telemetry
             );
         }
     }
 
-    /// <summary>Each block's peak by id, when the meters belong to the graph whose slot ids the host reported.</summary>
-    Dictionary<string, float>? BlockMeters(TelemetryMonitor source) {
-        var (generation, ids) = Volatile.Read(ref slots);
-        if (source.BlockGeneration != generation || generation < 0) {
+    /// <summary>
+    ///     Every block meter by block id and meter id, when the meters belong to the graph whose meters the host
+    ///     reported: the one place block meters are mapped to ids.
+    /// </summary>
+    Dictionary<string, Dictionary<string, float>>? BlockMeters(TelemetryMonitor source) {
+        var map = Volatile.Read(ref meterMap);
+        if (source.BlockGeneration != map.Generation || map.Generation < 0) {
             return null;
         }
 
-        var peaks = source.BlockPeaks;
-        var meters = new Dictionary<string, float>(Math.Min(peaks.Length, ids.Length));
-        for (var i = 0; i < peaks.Length && i < ids.Length; i++) {
-            if (!ids[i].StartsWith("shunt", StringComparison.Ordinal)) {
-                meters[ids[i]] = peaks[i];
+        var values = source.BlockMeters;
+        var blocks = new Dictionary<string, Dictionary<string, float>>(StringComparer.Ordinal);
+        for (var i = 0; i < values.Length && i < map.Blocks.Length; i++) {
+            if (map.Blocks[i] is not { } block) {
+                continue;
             }
+
+            if (!blocks.TryGetValue(block, out var meters)) {
+                blocks[block] = meters = new(1, StringComparer.Ordinal);
+            }
+
+            meters[map.Meters[i]] = values[i];
         }
 
-        return meters;
+        return blocks;
     }
 
     /// <summary>The names of the hardware input sources in <paramref name="mask" /> (bit 0 = Input 1).</summary>
@@ -375,17 +383,6 @@ public sealed partial class EngineConnection(
 
     /// <summary>Outputs 1-4's peaks (a copy: an in-process host refills its telemetry in place).</summary>
     static float[]? OutputPeaks(HostTelemetry? t) => t is null ? null : [..t.OutputPeaks];
-    /// <summary>The meters blocks keep of their own (<c>IBlockMeters</c>), from the host's IPC telemetry.</summary>
-    static IReadOnlyList<BlockMeterInfo>? OwnMeters(HostTelemetry? t) =>
-        t?.Blocks is { Count: > 0 } blocks
-            ? [
-                ..blocks.Select(static b => new BlockMeterInfo(
-                        b.Block,
-                        b.Ids.Zip(b.Values).ToDictionary(static p => p.First, static p => p.Second)
-                    )
-                )
-            ]
-            : null;
 
     static TunerInfo? Tuner(HostTelemetry? t) =>
         t?.Tuner is { } r ? new TunerInfo(r.Frequency, r.Note, r.Octave, r.Cents) : null;
@@ -433,8 +430,7 @@ public sealed partial class EngineConnection(
                     Tuner(t),
                     t.Tempo,
                     Looper(t),
-                    OutputPeaks: OutputPeaks(t),
-                    BlockMeters: OwnMeters(t)
+                    OutputPeaks: OutputPeaks(t)
                 ),
                 ContractsJsonContext.Default.Telemetry
             );
@@ -482,5 +478,29 @@ public sealed partial class EngineConnection(
 
     sealed record Work(IpcMessage Message, TaskCompletionSource<IpcMessage>? Reply);
 
-    sealed record SlotMap(int Generation, string[] Ids);
+    /// <summary>
+    ///     Which block and meter each of a graph's block meters is (the telemetry region's order: slot by slot, each
+    ///     slot's meters as the host listed them). Shunts have a null block: they have no meter.
+    /// </summary>
+    sealed record MeterMap(int Generation, string?[] Blocks, string[] Meters) {
+        const string Peak = "peak";
+
+        /// <summary>Each <c>peak</c> in <paramref name="meterIds" /> starts the next slot's meters.</summary>
+        public static MeterMap Of(int generation, List<string> slotIds, string[]? meterIds) {
+            // A host that does not list its meters has only the peak per slot.
+            var meters = meterIds ?? [..slotIds.Select(static _ => Peak)];
+            var blocks = new string?[meters.Length];
+            var slot = -1;
+            for (var i = 0; i < meters.Length; i++) {
+                if (meters[i] == Peak) {
+                    slot++;
+                }
+
+                var id = slot >= 0 && slot < slotIds.Count ? slotIds[slot] : null;
+                blocks[i] = id is null || id.StartsWith("shunt", StringComparison.Ordinal) ? null : id;
+            }
+
+            return new(generation, blocks, meters);
+        }
+    }
 }

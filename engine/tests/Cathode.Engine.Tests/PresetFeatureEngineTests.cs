@@ -1,5 +1,7 @@
 using Cathode.Audio;
 using Cathode.Dsp;
+using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Cabinets;
 using Cathode.Dsp.Looping;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
@@ -119,12 +121,44 @@ public class PresetFeatureEngineTests {
         monitor.Poll();
 
         Assert.Equal(7, monitor.BlockGeneration);
-        Assert.Equal(graph.SlotIds.Count, monitor.BlockCount);
-        Assert.Equal(0.4, monitor.BlockPeaks[graph.SlotOf("vol")], 0.01);
-        Assert.Equal(0.8, monitor.BlockPeaks[graph.SlotOf("in")], 0.01);
+        Assert.Equal(graph.MeterCount, monitor.BlockMeterCount);
+        Assert.Equal(0.4, monitor.BlockMeters[graph.MeterIndex("vol")], 0.01);
+        Assert.Equal(0.8, monitor.BlockMeters[graph.MeterIndex("in")], 0.01);
         // A 0.4 peak sine on both channels: 20 log10(0.4) - 3 + 3 = -7.96 LUFS.
         Assert.Equal(-7.96, monitor.LoudnessMomentary, 0.15);
         Assert.Equal(engine.Loudness.ShortTerm, monitor.LoudnessShortTerm);
+    }
+
+    [Fact]
+    public void A_blocks_own_meters_reach_the_telemetry_region_beside_its_peak() {
+        using var region = TelemetryRegion.CreateInMemory(Spec.SampleRate);
+        var engine = new CathodeEngine(Spec) { Telemetry = region };
+        var definition = Graph("cab", "cab");
+        var cab = CabBlock.Info.Params;
+        definition.Nodes[1].Parameters[cab[CabBlock.SlotParam(0, CabBlock.Source)].Id] = CabBlock.SourceFlat;
+        definition.Nodes[1].Parameters[cab[CabBlock.Preamp].Id] = MicPreampTypes.Fet1;
+        definition.Nodes[1].Parameters[cab[CabBlock.MotorDrive].Id] = 100;
+        definition.Nodes[1].Parameters[cab[CabBlock.MotorTime].Id] = 0.05f;
+        var graph = Compiler.Compile(definition, Spec, 3);
+        engine.Publish(graph);
+        var monitor = new TelemetryMonitor(region);
+        monitor.Poll();
+
+        var tone = Signals.Sine(997, Spec.SampleRate, 48_000, (float)MicPreampTypes.ClipOnset(MicPreampTypes.Fet1));
+        OfflineRenderer.Render(engine, tone, tone, 64);
+        monitor.Poll();
+
+        var slot = graph.SlotOf("cab");
+        Assert.Equal(["peak", "preampIn", "motorReduction"], graph.MeterIds(slot).ToArray());
+        Assert.Equal(graph.MeterOffset(slot) + 1, graph.MeterIndex("cab", "preampIn"));
+        Assert.Equal(graph.MeterCount, monitor.BlockMeterCount);
+        var own = new float[2];
+        ((IBlockMeters)graph.Block(slot)).ReadMeters(own);
+        Assert.InRange(monitor.BlockMeters[graph.MeterIndex("cab")], 0.1f, 2f); // the standard peak meter
+        Assert.InRange(own[0], -24f, 0f); // driven near the preamp's onset of clipping, less Motor Drive's reduction
+        Assert.Equal(own[0], monitor.BlockMeters[graph.MeterIndex("cab", "preampIn")], 0.5);
+        Assert.True(own[1] > 1f, $"motor reduction {own[1]}");
+        Assert.Equal(own[1], monitor.BlockMeters[graph.MeterIndex("cab", "motorReduction")], 0.5);
     }
 
     /// <summary>Input -> 300 ms delay (50 % mix, feedback 40 %) -> output.</summary>

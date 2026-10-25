@@ -13,6 +13,11 @@ import { ConnectionService } from './connection';
 
 const MaxBackoffMs = 5_000;
 
+/** Block `block`'s meter `meter` in a telemetry frame: every block has `peak`; some have their own meters too. */
+export function blockMeter(frame: Telemetry | null | undefined, block: string, meter: string): number | undefined {
+  return frame?.blocks?.[block]?.[meter];
+}
+
 /**
  * The Server's WebSocket: rig events (signalled to the stores) and telemetry. Telemetry deliberately bypasses
  * change detection: meters read {@link latest} from their own animation frames, about 30 updates a second.
@@ -35,6 +40,14 @@ export class EventStream {
   /** The most recent telemetry frame (null until the first arrives). Not a signal, on purpose. */
   latest: Telemetry | null = null;
   latestAt = 0;
+
+  /**
+   * Block `block`'s meter `meter` from the latest telemetry frame (`peak`, its output peak, linear; or one of the
+   * block's own, in dB), or undefined before one arrives. The one place the editor reads block meters.
+   */
+  blockMeter(block: string, meter: string): number | undefined {
+    return blockMeter(this.latest, block, meter);
+  }
 
   /** The most recent scope frame, while the scope is on. Not a signal either. */
   scope: ScopeFrame | null = null;

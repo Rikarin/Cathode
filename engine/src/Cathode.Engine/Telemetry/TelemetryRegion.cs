@@ -7,7 +7,7 @@ namespace Cathode.Engine.Telemetry;
 ///     Shared-memory telemetry (docs/02-architecture.md, telemetry plane): a fixed-layout region the audio thread writes
 ///     once per callback and any number of readers poll, in this process or another, without a lock and without
 ///     resetting anything. It holds the callback count, a frame clock, the CPU histogram (cumulative, so readers diff
-///     two snapshots for a window), engine overruns, driver overloads and per-slot meter peaks.
+///     two snapshots for a window), engine overruns, driver overloads, per-slot meter peaks and every block meter.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -128,8 +128,9 @@ public sealed unsafe class TelemetryRegion : IDisposable {
         RecordCallback(frames, percent, input, outputLeft, outputRight, default, -1, 0f, 0f);
 
     /// <summary>
-    ///     As above, plus each grid block's output peak (by slot, of graph <paramref name="generation" />; at most
-    ///     <see cref="TelemetryLayout.BlockMeters" />) and the output loudness in LUFS.
+    ///     As above, plus the block meters of graph <paramref name="generation" /> (<c>CompiledGraph.Meters</c>: each
+    ///     slot's output peak and its own meters; at most <see cref="TelemetryLayout.BlockMeters" />) and the output
+    ///     loudness in LUFS. Each meter slot keeps the highest value of every block meter.
     /// </summary>
     public void RecordCallback(
         int frames,
@@ -137,7 +138,7 @@ public sealed unsafe class TelemetryRegion : IDisposable {
         float input,
         float outputLeft,
         float outputRight,
-        ReadOnlySpan<float> blockPeaks,
+        ReadOnlySpan<float> blockMeters,
         int generation,
         float momentary,
         float shortTerm
@@ -160,7 +161,7 @@ public sealed unsafe class TelemetryRegion : IDisposable {
         l->Histogram[Math.Clamp((int)percent, 0, TelemetryLayout.Bins - 1)]++;
         l->LoudnessMomentary = momentary;
         l->LoudnessShortTerm = shortTerm;
-        var blocks = Math.Min(blockPeaks.Length, TelemetryLayout.BlockMeters);
+        var blocks = Math.Min(blockMeters.Length, TelemetryLayout.BlockMeters);
 
         var first = start / TelemetryLayout.FramesPerSlot;
         var last = (start + Math.Max(frames, 1) - 1) / TelemetryLayout.FramesPerSlot;
@@ -170,7 +171,7 @@ public sealed unsafe class TelemetryRegion : IDisposable {
 
         for (var slot = first; slot <= last; slot++) {
             var i = (int)(slot % TelemetryLayout.MeterSlots);
-            var row = new Span<float>(l->BlockPeak + i * TelemetryLayout.BlockMeters, TelemetryLayout.BlockMeters);
+            var row = new Span<float>(l->BlockMeter + i * TelemetryLayout.BlockMeters, TelemetryLayout.BlockMeters);
             if (l->SlotNumber[i] != slot || l->BlockGeneration[i] != generation) {
                 if (l->SlotNumber[i] != slot) {
                     l->InputPeak[i] = input;
@@ -184,14 +185,14 @@ public sealed unsafe class TelemetryRegion : IDisposable {
 
                 l->SlotNumber[i] = slot;
                 l->BlockGeneration[i] = generation;
-                l->BlockCount[i] = blocks;
-                blockPeaks[..blocks].CopyTo(row);
+                l->BlockMeterCount[i] = blocks;
+                blockMeters[..blocks].CopyTo(row);
             } else {
                 l->InputPeak[i] = Math.Max(l->InputPeak[i], input);
                 l->OutputLeftPeak[i] = Math.Max(l->OutputLeftPeak[i], outputLeft);
                 l->OutputRightPeak[i] = Math.Max(l->OutputRightPeak[i], outputRight);
                 for (var b = 0; b < blocks; b++) {
-                    row[b] = Math.Max(row[b], blockPeaks[b]);
+                    row[b] = Math.Max(row[b], blockMeters[b]);
                 }
             }
         }
@@ -247,9 +248,9 @@ public sealed unsafe class TelemetryRegion : IDisposable {
             new ReadOnlySpan<float>(l->OutputLeftPeak, TelemetryLayout.MeterSlots).CopyTo(snapshot.OutputLeftPeaks);
             new ReadOnlySpan<float>(l->OutputRightPeak, TelemetryLayout.MeterSlots).CopyTo(snapshot.OutputRightPeaks);
             new ReadOnlySpan<int>(l->BlockGeneration, TelemetryLayout.MeterSlots).CopyTo(snapshot.BlockGenerations);
-            new ReadOnlySpan<int>(l->BlockCount, TelemetryLayout.MeterSlots).CopyTo(snapshot.BlockCounts);
-            new ReadOnlySpan<float>(l->BlockPeak, TelemetryLayout.MeterSlots * TelemetryLayout.BlockMeters)
-                .CopyTo(snapshot.BlockPeaks);
+            new ReadOnlySpan<int>(l->BlockMeterCount, TelemetryLayout.MeterSlots).CopyTo(snapshot.BlockMeterCounts);
+            new ReadOnlySpan<float>(l->BlockMeter, TelemetryLayout.MeterSlots * TelemetryLayout.BlockMeters)
+                .CopyTo(snapshot.BlockMeters);
             snapshot.LoudnessMomentary = l->LoudnessMomentary;
             snapshot.LoudnessShortTerm = l->LoudnessShortTerm;
 
@@ -341,12 +342,12 @@ public sealed unsafe class TelemetryRegion : IDisposable {
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct TelemetryLayout {
     public const uint MagicValue = 0x54485443; // "CTHT"
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
     public const int Bins = 201;
     public const int MeterSlots = 64;
     public const int FramesPerSlot = 256;
     public const int ScopeLength = 16_384; // a 4096-point RTA window fits with room for the writer
-    public const int BlockMeters = 128; // grid blocks with a meter: more than a 6 x 14 grid holds
+    public const int BlockMeters = 256; // block meter values: a peak per graph slot (a 6 x 14 grid and its shunts) plus own meters
 
     public uint Magic;
     public int Version;
@@ -366,13 +367,17 @@ public unsafe struct TelemetryLayout {
     public fixed float OutputLeftPeak[MeterSlots];
     public fixed float OutputRightPeak[MeterSlots];
 
-    /// <summary>The graph generation each meter slot's block peaks belong to (slots index blocks per graph).</summary>
+    /// <summary>The graph generation each meter slot's block meters belong to (their order is per graph).</summary>
     public fixed int BlockGeneration[MeterSlots];
 
-    public fixed int BlockCount[MeterSlots];
+    /// <summary>How many of <see cref="BlockMeters" /> each meter slot's row holds.</summary>
+    public fixed int BlockMeterCount[MeterSlots];
 
-    /// <summary>Per meter slot, each grid block's output peak by its graph slot.</summary>
-    public fixed float BlockPeak[MeterSlots * BlockMeters];
+    /// <summary>
+    ///     Per meter slot, the highest value of each block meter, in the graph's meter order: graph slot by graph slot,
+    ///     its output peak (linear) and then its own meters (<c>IBlockMeters</c>, dB) - <c>CompiledGraph.Meters</c>.
+    /// </summary>
+    public fixed float BlockMeter[MeterSlots * BlockMeters];
 
     /// <summary>Output loudness (ITU-R BS.1770, LUFS) as of the last callback.</summary>
     public float LoudnessMomentary;
