@@ -42,7 +42,7 @@ Below it, **Latency** breaks the delay down: **Device input** and **Device outpu
 
 **Input 1** shows a warning when the input clips, and the calibration (see [below](#input-level-and-calibration)).
 
-**Audio interface** chooses the device, rate, buffer and channel routing, and runs the latency test. **Server** chooses whether this app uses its own engine or a remote one (see [The headless server](/manual/headless-server)).
+**Audio interface** chooses the device, rate, buffer and channel routing, and runs the latency test. **Server** chooses whether this app uses its own engine or a remote one (see [The headless server](/manual/headless-server)). With a remote one, the rig's interface is set on the rig, so **Audio interface** says so instead of showing its settings.
 
 > **Note:** In a web browser (a headless rig), this page shows the engine figures and the calibration, but not the interface settings. On a rig, the interface is chosen in its settings file instead.
 

@@ -345,25 +345,39 @@ function freePort(): Promise<number> {
   });
 }
 
-export async function waitForServer(connection: Connection | { baseUrl: string; token: string | null }): Promise<void> {
-  const deadline = Date.now() + ReadyTimeoutMs;
+/**
+ * Waits for a Server to answer, for `timeoutMs`. A Server that refuses the token (401) fails at once: waiting will not
+ * change that. `unanswered` is the error when the time runs out.
+ */
+export async function waitForServer(
+  connection: Connection | { baseUrl: string; token: string | null },
+  timeoutMs = ReadyTimeoutMs,
+  unanswered = `The Cathode server did not start within ${timeoutMs / 1000} s.`
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
+    let response: Response | null = null;
     try {
-      const response = await fetch(`${connection.baseUrl}/api/v1/system`, {
+      response = await fetch(`${connection.baseUrl}/api/v1/system`, {
         headers: connection.token ? { Authorization: `Bearer ${connection.token}` } : {},
         signal: AbortSignal.timeout(2_000)
       });
-      if (response.ok) {
-        return;
-      }
     } catch {
       // not up yet
+    }
+
+    if (response?.ok) {
+      return;
+    }
+
+    if (response?.status === 401) {
+      throw new Error(`The Cathode server at ${connection.baseUrl} refused the access token.`);
     }
 
     await new Promise(resolve => setTimeout(resolve, 250));
   }
 
-  throw new Error(`The Cathode server did not start within ${ReadyTimeoutMs / 1000} s.`);
+  throw new Error(unanswered);
 }
 
 /** `--input-map 1;3,4;;5,6` for cathode-host, or nothing when only Input 1 is on channel 1 (the host's default). */

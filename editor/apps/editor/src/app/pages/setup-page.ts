@@ -9,9 +9,10 @@ import { XuiStatisticImports } from '@xui/statistic';
 import { XuiTextImports } from '@xui/text';
 import { InputClipLevel } from '../core/clip';
 import { ConnectionService } from '../core/connection';
-import type { AudioDevice, AudioSettings, LatencyResult, ServerTarget } from '../core/desktop';
+import type { AudioDevice, AudioSettings, LatencyResult } from '../core/desktop';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
+import { ServerTargetForm } from '../shell/server-target';
 import { GlobalStore } from '../state/global.store';
 import { FullScaleRange, dbuFromFullScale, fullScaleFromDbu, fullScaleFromReference } from './calibration';
 
@@ -21,12 +22,14 @@ const BufferSizes = [32, 64, 128, 256, 512];
 /**
  * Audio setup: engine health from the Server (CPU, overloads) and where the latency goes, Input 1's clip warning and
  * calibration, and in the desktop app the interface, sample rate, buffer size, which device channels Outputs 1-4, the
- * FX loop and the DI out use, a loopback latency test, and which Server to use.
+ * FX loop and the DI out use, a loopback latency test, and which Server to use. With a remote Server the interface is
+ * that computer's, set there: the page says so instead of editing this computer's.
  */
 @Component({
   selector: 'cth-setup-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ServerTargetForm,
     XuiButtonImports,
     XuiCalloutImports,
     XuiInputImports,
@@ -142,164 +145,141 @@ const BufferSizes = [32, 64, 128, 256, 512];
       @if (desktop) {
         <section class="flex flex-col gap-4" aria-labelledby="audio-heading">
           <h2 xuiHeading id="audio-heading" class="text-base">Audio interface</h2>
-          <div class="flex flex-wrap items-end gap-4">
-            <label class="flex flex-col gap-1 text-sm">
-              <span class="text-foreground-muted text-xs">Device</span>
-              <xui-select
-                class="w-80"
-                aria-label="Audio device"
-                [items]="deviceChoices()"
-                [itemText]="deviceName"
-                [value]="selectedDevice()"
-                (valueChange)="pickDevice($event)"
-              />
-            </label>
-            <div class="flex flex-col gap-1">
-              <span class="text-foreground-muted text-xs">Sample rate</span>
-              <xui-segmented-control
-                size="sm"
-                aria-label="Sample rate"
-                [options]="rateOptions"
-                [value]="settings()?.sampleRate ?? 48000"
-                (valueChange)="patch({ sampleRate: $event ?? 48000 })"
-              />
-            </div>
-            <div class="flex flex-col gap-1">
-              <span class="text-foreground-muted text-xs">Buffer</span>
-              <xui-segmented-control
-                size="sm"
-                aria-label="Buffer size"
-                [options]="bufferOptions"
-                [value]="settings()?.bufferFrames ?? 64"
-                (valueChange)="patch({ bufferFrames: $event ?? 64 })"
-              />
-            </div>
-            <label class="flex flex-col gap-1 text-sm">
-              <span class="text-foreground-muted text-xs">Outputs 1-4 (first channel each)</span>
-              <input
-                xuiInput
-                class="w-36"
-                placeholder="1,3,0,0"
-                aria-label="First device channel of Outputs 1 to 4"
-                [value]="channels(settings()?.outputs)"
-                (change)="patch({ outputs: parseOutputs($any($event.target).value) })"
-              />
-            </label>
-            <label class="flex flex-col gap-1 text-sm">
-              <span class="text-foreground-muted text-xs">DI out</span>
-              <input
-                xuiInput
-                class="w-28"
-                placeholder="e.g. 5,6"
-                aria-label="DI out channels"
-                [value]="channels(settings()?.diOut)"
-                (change)="patch({ diOut: parseChannels($any($event.target).value) })"
-              />
-            </label>
-            <label class="flex flex-col gap-1 text-sm">
-              <span class="text-foreground-muted text-xs">FX loop send</span>
-              <input
-                xuiInput
-                class="w-28"
-                placeholder="e.g. 3,4"
-                aria-label="FX loop send channels"
-                [value]="channels(settings()?.loopOut)"
-                (change)="patch({ loopOut: parseChannels($any($event.target).value) })"
-              />
-            </label>
-            <label class="flex flex-col gap-1 text-sm">
-              <span class="text-foreground-muted text-xs">FX loop return</span>
-              <input
-                xuiInput
-                class="w-28"
-                placeholder="e.g. 3,4"
-                aria-label="FX loop return channels"
-                [value]="channels(settings()?.loopIn)"
-                (change)="patch({ loopIn: parseChannels($any($event.target).value) })"
-              />
-            </label>
-          </div>
-          <div class="flex flex-wrap items-end gap-3" role="group" aria-label="Input map">
-            @for (source of inputSources; track $index) {
+          @if (remote(); as url) {
+            <xui-callout
+              color="primary"
+              title="The audio interface belongs to the remote server"
+              data-testid="remote-audio"
+            >
+              This app is connected to {{ url }}, which runs the engine on its own interface. Its device, rate, buffer
+              and channels are set on that computer (CATHODE_DEVICE and the host options in its settings file), not from
+              here. To use an interface on this computer, choose This computer under Server.
+            </xui-callout>
+          } @else {
+            <div class="flex flex-wrap items-end gap-4">
               <label class="flex flex-col gap-1 text-sm">
-                <span class="text-foreground-muted text-xs">{{ source }}</span>
-                <input
-                  xuiInput
-                  class="w-20"
-                  [placeholder]="$index === 0 ? '1' : 'off'"
-                  [attr.aria-label]="source + ' device channels'"
-                  [title]="channelNames()"
-                  [value]="channels(settings()?.inputs?.[$index])"
-                  (change)="patchInput($index, $any($event.target).value)"
+                <span class="text-foreground-muted text-xs">Device</span>
+                <xui-select
+                  class="w-80"
+                  aria-label="Audio device"
+                  [items]="deviceChoices()"
+                  [itemText]="deviceName"
+                  [value]="selectedDevice()"
+                  (valueChange)="pickDevice($event)"
                 />
               </label>
+              <div class="flex flex-col gap-1">
+                <span class="text-foreground-muted text-xs">Sample rate</span>
+                <xui-segmented-control
+                  size="sm"
+                  aria-label="Sample rate"
+                  [options]="rateOptions"
+                  [value]="settings()?.sampleRate ?? 48000"
+                  (valueChange)="patch({ sampleRate: $event ?? 48000 })"
+                />
+              </div>
+              <div class="flex flex-col gap-1">
+                <span class="text-foreground-muted text-xs">Buffer</span>
+                <xui-segmented-control
+                  size="sm"
+                  aria-label="Buffer size"
+                  [options]="bufferOptions"
+                  [value]="settings()?.bufferFrames ?? 64"
+                  (valueChange)="patch({ bufferFrames: $event ?? 64 })"
+                />
+              </div>
+              <label class="flex flex-col gap-1 text-sm">
+                <span class="text-foreground-muted text-xs">Outputs 1-4 (first channel each)</span>
+                <input
+                  xuiInput
+                  class="w-36"
+                  placeholder="1,3,0,0"
+                  aria-label="First device channel of Outputs 1 to 4"
+                  [value]="channels(settings()?.outputs)"
+                  (change)="patch({ outputs: parseOutputs($any($event.target).value) })"
+                />
+              </label>
+              <label class="flex flex-col gap-1 text-sm">
+                <span class="text-foreground-muted text-xs">DI out</span>
+                <input
+                  xuiInput
+                  class="w-28"
+                  placeholder="e.g. 5,6"
+                  aria-label="DI out channels"
+                  [value]="channels(settings()?.diOut)"
+                  (change)="patch({ diOut: parseChannels($any($event.target).value) })"
+                />
+              </label>
+              <label class="flex flex-col gap-1 text-sm">
+                <span class="text-foreground-muted text-xs">FX loop send</span>
+                <input
+                  xuiInput
+                  class="w-28"
+                  placeholder="e.g. 3,4"
+                  aria-label="FX loop send channels"
+                  [value]="channels(settings()?.loopOut)"
+                  (change)="patch({ loopOut: parseChannels($any($event.target).value) })"
+                />
+              </label>
+              <label class="flex flex-col gap-1 text-sm">
+                <span class="text-foreground-muted text-xs">FX loop return</span>
+                <input
+                  xuiInput
+                  class="w-28"
+                  placeholder="e.g. 3,4"
+                  aria-label="FX loop return channels"
+                  [value]="channels(settings()?.loopIn)"
+                  (change)="patch({ loopIn: parseChannels($any($event.target).value) })"
+                />
+              </label>
+            </div>
+            <div class="flex flex-wrap items-end gap-3" role="group" aria-label="Input map">
+              @for (source of inputSources; track $index) {
+                <label class="flex flex-col gap-1 text-sm">
+                  <span class="text-foreground-muted text-xs">{{ source }}</span>
+                  <input
+                    xuiInput
+                    class="w-20"
+                    [placeholder]="$index === 0 ? '1' : 'off'"
+                    [attr.aria-label]="source + ' device channels'"
+                    [title]="channelNames()"
+                    [value]="channels(settings()?.inputs?.[$index])"
+                    (change)="patchInput($index, $any($event.target).value)"
+                  />
+                </label>
+              }
+              <span class="text-foreground-muted max-w-80 text-xs">
+                Device channels for each input ("3,4" stereo, "3" mono). Input 1 feeds the grid; blocks with an input
+                choice can pick the others.
+              </span>
+            </div>
+            <div class="flex flex-wrap items-end gap-4">
+              <button xuiButton type="button" [loading]="applying()" [disabled]="!dirty()" (click)="apply()">
+                Apply and restart engine
+              </button>
+            </div>
+            <div class="flex items-center gap-3">
+              <button xuiButton type="button" variant="outline" [loading]="testing()" (click)="latencyTest()">
+                Measure latency…
+              </button>
+              <span class="text-foreground-muted text-sm">
+                Cable output 1 to input 1 first. The test plays clicks; turn monitors down.
+              </span>
+            </div>
+            @if (latency(); as l) {
+              <xui-callout
+                [color]="l.ok ? 'success' : 'warning'"
+                [title]="l.roundTripMs !== null ? 'Round trip: ' + l.roundTripMs.toFixed(2) + ' ms' : 'No measurement'"
+              >
+                <pre class="text-xs whitespace-pre-wrap">{{ l.output }}</pre>
+              </xui-callout>
             }
-            <span class="text-foreground-muted max-w-80 text-xs">
-              Device channels for each input ("3,4" stereo, "3" mono). Input 1 feeds the grid; blocks with an input
-              choice can pick the others.
-            </span>
-          </div>
-          <div class="flex flex-wrap items-end gap-4">
-            <button xuiButton type="button" [loading]="applying()" [disabled]="!dirty()" (click)="apply()">
-              Apply and restart engine
-            </button>
-          </div>
-          <div class="flex items-center gap-3">
-            <button xuiButton type="button" variant="outline" [loading]="testing()" (click)="latencyTest()">
-              Measure latency…
-            </button>
-            <span class="text-foreground-muted text-sm">
-              Cable output 1 to input 1 first. The test plays clicks; turn monitors down.
-            </span>
-          </div>
-          @if (latency(); as l) {
-            <xui-callout
-              [color]="l.ok ? 'success' : 'warning'"
-              [title]="l.roundTripMs !== null ? 'Round trip: ' + l.roundTripMs.toFixed(2) + ' ms' : 'No measurement'"
-            >
-              <pre class="text-xs whitespace-pre-wrap">{{ l.output }}</pre>
-            </xui-callout>
           }
         </section>
 
         <section class="flex flex-col gap-4" aria-labelledby="server-heading">
           <h2 xuiHeading id="server-heading" class="text-base">Server</h2>
-          <xui-segmented-control
-            size="sm"
-            aria-label="Server mode"
-            [options]="modeOptions"
-            [value]="mode()"
-            (valueChange)="mode.set($event ?? 'local')"
-          />
-          @if (mode() === 'remote') {
-            <div class="flex flex-wrap items-end gap-3">
-              <label class="flex flex-col gap-1">
-                <span class="text-foreground-muted text-xs">URL</span>
-                <input
-                  xuiInput
-                  class="w-72"
-                  placeholder="http://192.168.1.20:5180"
-                  [value]="remoteUrl()"
-                  (input)="remoteUrl.set($any($event.target).value)"
-                />
-              </label>
-              <label class="flex flex-col gap-1">
-                <span class="text-foreground-muted text-xs">Access token</span>
-                <input
-                  xuiInput
-                  type="password"
-                  class="w-72"
-                  [value]="remoteToken()"
-                  (input)="remoteToken.set($any($event.target).value)"
-                />
-              </label>
-            </div>
-          }
-          <div>
-            <button xuiButton type="button" variant="outline" (click)="connect()">
-              {{ mode() === 'remote' ? 'Connect' : 'Use this computer' }}
-            </button>
-          </div>
+          <cth-server-target />
         </section>
       } @else {
         <xui-callout color="primary" title="Audio setup is in the desktop app">
@@ -324,9 +304,8 @@ export class SetupPage {
   protected readonly applying = signal(false);
   protected readonly testing = signal(false);
   protected readonly latency = signal<LatencyResult | null>(null);
-  protected readonly mode = signal<'local' | 'remote'>('local');
-  protected readonly remoteUrl = signal('');
-  protected readonly remoteToken = signal('');
+  /** The remote Server's URL when the desktop app uses one, whose audio interface this page cannot set. */
+  protected readonly remote = signal<string | null>(null);
   protected readonly latencyReport = signal<LatencyInfo | null>(null);
   protected readonly inputClipping = signal(false);
   protected readonly maxLevel = signal(4);
@@ -345,10 +324,6 @@ export class SetupPage {
 
   protected readonly rateOptions = SampleRates.map(r => ({ label: `${r / 1000} k`, value: r }));
   protected readonly bufferOptions = BufferSizes.map(b => ({ label: String(b), value: b }));
-  protected readonly modeOptions = [
-    { label: 'This computer', value: 'local' as const },
-    { label: 'Remote', value: 'remote' as const }
-  ];
 
   /** "No audio" is a real choice: the engine then runs on the null backend. */
   protected readonly deviceChoices = computed<(AudioDevice | null)[]>(() => [
@@ -499,14 +474,6 @@ export class SetupPage {
     this.testing.set(false);
   }
 
-  protected async connect(): Promise<void> {
-    const target: ServerTarget =
-      this.mode() === 'remote'
-        ? { mode: 'remote', baseUrl: this.remoteUrl().trim().replace(/\/+$/, ''), token: this.remoteToken() }
-        : { mode: 'local' };
-    await this.notify.run(() => this.desktop!.setTarget(target));
-  }
-
   private async refreshSystem(): Promise<void> {
     try {
       this.system.set(unwrap(await this.connection.client.GET('/api/v1/system')));
@@ -526,11 +493,7 @@ export class SetupPage {
       this.devices.set(devices.devices);
       this.settings.set(settings);
       this.applied.set(settings);
-      this.mode.set(target.mode);
-      if (target.mode === 'remote') {
-        this.remoteUrl.set(target.baseUrl);
-        this.remoteToken.set(target.token);
-      }
+      this.remote.set(target.mode === 'remote' ? target.baseUrl : null);
     });
   }
 }

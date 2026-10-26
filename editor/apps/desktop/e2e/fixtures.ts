@@ -6,7 +6,7 @@ import {
   _electron as electron,
   expect
 } from '@playwright/test';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -64,10 +64,24 @@ export class Editor {
   }
 }
 
-/** Each test gets a fresh app: throwaway settings and data, its own sidecars (null audio). */
-export const test = base.extend<{ app: ElectronApplication; window: Page; editor: Editor }>({
-  app: async ({}, use) => {
+/**
+ * Each test gets a fresh app: throwaway settings and data, its own sidecars (null audio). `desktopSettings` starts it
+ * with that settings.json instead of the defaults (a remote Server, say).
+ */
+export const test = base.extend<{
+  desktopSettings: object | null;
+  app: ElectronApplication;
+  window: Page;
+  editor: Editor;
+}>({
+  desktopSettings: [null, { option: true }],
+  app: async ({ desktopSettings }, use) => {
     const scratch = mkdtempSync(join(tmpdir(), 'cathode-e2e-'));
+    if (desktopSettings) {
+      mkdirSync(join(scratch, 'user-data'), { recursive: true });
+      writeFileSync(join(scratch, 'user-data', 'settings.json'), JSON.stringify(desktopSettings));
+    }
+
     const app = await electron.launch({
       args: [main],
       env: {

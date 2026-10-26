@@ -25,7 +25,9 @@ import { XuiNavbarImports } from '@xui/navbar';
 import { XuiNonIdealStateImports } from '@xui/non-ideal-state';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import { XuiSpinnerImports } from '@xui/spinner';
+import { XuiTextImports } from '@xui/text';
 import { XuiTooltipImports } from '@xui/tooltip';
+import { Notify } from './core/notify';
 import { Startup } from './core/startup';
 import { BatchSetDialog } from './shell/batch-set-dialog';
 import { EngineMeters } from './shell/engine-meters';
@@ -35,6 +37,7 @@ import { PresetPicker } from './shell/preset-picker';
 import { PresetSceneDisplay } from './shell/preset-scene-display';
 import { SaveBlockDialog } from './shell/save-block-dialog';
 import { ScopeDialog } from './shell/scope-dialog';
+import { ServerTargetForm } from './shell/server-target';
 import { SettingsDialog } from './shell/settings-dialog';
 import { ShortcutService } from './shell/shortcuts';
 import { Transport } from './shell/transport';
@@ -60,6 +63,7 @@ import { UiStore } from './state/ui.store';
     RouterOutlet,
     SaveBlockDialog,
     ScopeDialog,
+    ServerTargetForm,
     SettingsDialog,
     Transport,
     TunerDialog,
@@ -74,6 +78,7 @@ import { UiStore } from './state/ui.store';
     XuiNonIdealStateImports,
     XuiSegmentedControlImports,
     XuiSpinnerImports,
+    XuiTextImports,
     XuiTooltipImports
   ],
   providers: [
@@ -100,7 +105,9 @@ import { UiStore } from './state/ui.store';
   template: `
     @switch (startup.state()) {
       @case ('starting') {
-        <div class="grid h-full place-items-center"><xui-spinner aria-label="Starting the engine" /></div>
+        <div class="grid h-full place-items-center">
+          <xui-spinner [attr.aria-label]="remoteUrl() ? 'Connecting to ' + remoteUrl() : 'Starting the engine'" />
+        </div>
       }
       @case ('failed') {
         <xui-non-ideal-state
@@ -108,7 +115,29 @@ import { UiStore } from './state/ui.store';
           title="Cannot reach the Cathode server"
           [description]="startup.error() ?? ''"
         >
-          <button action xuiButton type="button" (click)="startup.start()">Try again</button>
+          <div action class="flex flex-col items-center gap-6">
+            <div class="flex gap-2">
+              <button xuiButton type="button" (click)="startup.start()">Try again</button>
+              @if (remoteUrl()) {
+                <button xuiButton type="button" variant="outline" (click)="useThisComputer()">Use this computer</button>
+              }
+            </div>
+            @if (startup.target()) {
+              <section
+                class="border-border flex flex-col items-start gap-3 border-t pt-6 text-start"
+                aria-labelledby="startup-server-heading"
+              >
+                <h2 xuiHeading id="startup-server-heading" class="text-sm">Server</h2>
+                @if (remoteUrl(); as url) {
+                  <p xuiText class="text-foreground-muted max-w-md text-sm">
+                    This app uses the remote server at {{ url }}. Use this computer to run the engine here again, or
+                    change the address or token.
+                  </p>
+                }
+                <cth-server-target />
+              </section>
+            }
+          </div>
         </xui-non-ideal-state>
       }
       @case ('token') {
@@ -406,6 +435,7 @@ export class App {
   protected readonly saveAsName = signal('');
   protected readonly saveAsFirst = signal(false);
   private readonly library = inject(LibraryStore);
+  private readonly notify = inject(Notify);
   protected readonly abOptions = [
     { label: 'A', value: 'A' as const },
     { label: 'B', value: 'B' as const }
@@ -419,6 +449,17 @@ export class App {
     window.cathode?.onOpenSettings?.(() => this.ui.settings.set('preferences'));
     void this.startup.start();
     inject(DestroyRef).onDestroy(this.registerShortcuts());
+  }
+
+  /** The remote Server's URL when the desktop app uses one. */
+  protected readonly remoteUrl = computed(() => {
+    const target = this.startup.target();
+    return target?.mode === 'remote' ? target.baseUrl : null;
+  });
+
+  /** Back to this computer's own engine (the window reloads on it). */
+  protected async useThisComputer(): Promise<void> {
+    await this.notify.run(() => window.cathode!.setTarget({ mode: 'local' }));
   }
 
   protected newPreset(): void {

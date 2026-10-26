@@ -23,12 +23,7 @@ The editor could not talk to the engine's server.
 - **Desktop app:** quit Cathode completely and open it again.
 - **Connected to a remote rig:** check that the rig is on and on the same network, and that the address is right (see [below](#the-browser-cannot-reach-the-rig)).
 
-If the desktop app was set to a remote rig that no longer exists, it keeps trying to reach it, and Settings is not available on that screen. To go back to the computer's own engine:
-
-1. Quit Cathode.
-2. Open `settings.json` in the app's folder (`~/Library/Application Support/Cathode` on a Mac, `%APPDATA%\Cathode` on Windows, `~/.config/Cathode` on Linux) in a text editor.
-3. Change the `"target"` entry to `"target": { "mode": "local" }` and save.
-4. Open Cathode.
+If the desktop app is set to a remote rig that does not answer within about ten seconds, the screen names the rig's address and offers a way out: **Use this computer** goes back to the computer's own engine, and the **Server** section below it changes the rig's address or access token (**Connect**). A rig that refuses the access token says so at once.
 
 ### The window is bigger than my screen
 

@@ -4,6 +4,7 @@ import { GlobalStore } from '../state/global.store';
 import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { ConnectionService } from './connection';
+import type { ServerTarget } from './desktop';
 import { EventStream } from './events';
 
 /** Connects to the Server, then loads the catalogue, the live rig and the library, and opens the event stream. */
@@ -19,10 +20,13 @@ export class Startup {
   /** `token`: a browser reached a Server that wants an access token it does not have (or has a wrong one). */
   readonly state = signal<'starting' | 'ready' | 'failed' | 'token'>('starting');
   readonly error = signal<string | null>(null);
+  /** In the desktop app, which Server it uses: the startup screen offers a way back to this computer's engine. */
+  readonly target = signal<ServerTarget | null>(null);
 
   async start(): Promise<void> {
     this.state.set('starting');
     try {
+      this.target.set((await this.connection.desktop?.target()) ?? null);
       await this.connection.connect();
       if (!this.connection.desktop && (await this.connection.refused())) {
         this.state.set('token');
@@ -38,7 +42,7 @@ export class Startup {
       this.events.start();
       this.state.set('ready');
     } catch (error) {
-      this.error.set(error instanceof Error ? error.message : String(error));
+      this.error.set(failure(error));
       this.state.set('failed');
     }
   }
@@ -48,4 +52,10 @@ export class Startup {
     this.connection.useToken(token);
     await this.start();
   }
+}
+
+/** What went wrong, without the wrapping Electron adds to an error from the desktop app's main process. */
+export function failure(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.replace(/^Error invoking remote method '[^']*': (?:Error: )?/, '');
 }

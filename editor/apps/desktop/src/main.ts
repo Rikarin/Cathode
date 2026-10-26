@@ -36,6 +36,9 @@ protocol.registerSchemesAsPrivileged([
   { scheme: Scheme, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }
 ]);
 
+/** How long to wait for a remote Server before the editor reports it unreachable. */
+const RemoteTimeoutMs = 10_000;
+
 let settings = loadSettings();
 let sidecars: Sidecars | null = null;
 let window: BrowserWindow | null = null;
@@ -44,7 +47,12 @@ let quitting = false;
 function connection(): Promise<Connection> {
   const target = settings.target;
   if (target.mode === 'remote') {
-    return waitForServer(target).then(() => ({ baseUrl: target.baseUrl, token: target.token }));
+    // A rig on the network answers within a few seconds or not at all: say so, and let the editor offer the way back.
+    return waitForServer(
+      target,
+      RemoteTimeoutMs,
+      `No answer from the Cathode server at ${target.baseUrl}. Check that it is on and on this network.`
+    ).then(() => ({ baseUrl: target.baseUrl, token: target.token }));
   }
 
   sidecars ??= new Sidecars(settings.audio, process.env['CATHODE_DATA_DIR'] ?? null, statuses =>

@@ -108,9 +108,9 @@ The desktop app can edit the rig instead of running its own engine:
 3. Enter the **URL**, for example `http://192.168.1.20:5180`, and the **Access token**.
 4. Click **Connect**. The editor reloads, connected to the rig.
 
-To go back to the computer's own engine, choose **This computer** and click **Use this computer**.
+To go back to the computer's own engine, choose **This computer** and click **Use this computer**. If the rig cannot be reached when the app starts, the startup screen offers **Use this computer** and the same **Server** settings.
 
-> **Note:** While connected to a rig, the **Audio interface** settings on that page still belong to this computer, not to the rig. Change the rig's interface in its settings file.
+> **Note:** While connected to a rig, the **Audio interface** section of that page does not edit anything: it says that the interface belongs to the rig, which sets it in its settings file (see [Choose the audio interface](#choose-the-audio-interface)).
 
 ## MIDI on the rig
 
