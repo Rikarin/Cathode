@@ -63,7 +63,7 @@ export const SHOTS = {
     ...shot(
       'effects.webp',
       'Block picker',
-      'Adding a block: the block picker over the grid, with a search field and the block types grouped as Filter, EQ, Pitch and Modulation, each in its own colour.',
+      "Adding a block: the block picker over the grid, a search field above one grid of every block type, from Compressor, Drive, Amp and Cab through the filters, modulation, delays and Reverb to the routing blocks and the outputs, each tile in its category's colour.",
       '1856 / 1392'
     ),
     src: 'screenshots/effects.webp',
