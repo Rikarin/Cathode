@@ -42,11 +42,29 @@ export class PresetSwitcher {
 
   /** Whether the current preset may be replaced: asks first when it has unsaved changes and the setting says so. */
   mayReplace(name: string): boolean {
+    return this.mayDiscard(`load “${name}”`);
+  }
+
+  /**
+   * Whether the working copy may be thrown away to `then` ("start a new preset"): asks first, as loading does, when it
+   * has unsaved changes and the global setting says so.
+   */
+  mayDiscard(then: string): boolean {
     const current = this.live.preset();
     return (
       !needsConfirm(this.live.state()?.dirty, this.globals.settings()?.confirmPresetChange) ||
-      this.confirm(`“${current?.name ?? 'This preset'}” has unsaved changes. Discard them and load “${name}”?`)
+      this.confirm(`“${current?.name || 'This preset'}” has unsaved changes. Discard them and ${then}?`)
     );
+  }
+
+  /** Starts an empty preset, asking first about unsaved changes. */
+  async newPreset(): Promise<boolean> {
+    if (!this.mayDiscard('start a new preset') || !(await this.live.newPreset())) {
+      return false;
+    }
+
+    this.compare.reset();
+    return true;
   }
 
   /** Loads a preset, asking first about unsaved changes unless the caller already has (`confirmed`). */

@@ -25,9 +25,8 @@ import { XuiTableImports } from '@xui/table';
 import { ConnectionService } from '../core/connection';
 import { Notify } from '../core/notify';
 import { CompareStore } from '../state/compare.store';
-import { GlobalStore } from '../state/global.store';
 import { LiveStore } from '../state/live.store';
-import { PresetSwitcher, needsConfirm } from '../state/preset-switcher';
+import { PresetSwitcher } from '../state/preset-switcher';
 
 /**
  * The preset commands beyond save: revert, clear, snapshots (stored on the Server, so every editor shares them) and
@@ -262,7 +261,6 @@ export class PresetMenu {
   protected readonly router = inject(Router);
   private readonly compare = inject(CompareStore);
   private readonly switcher = inject(PresetSwitcher);
-  private readonly globals = inject(GlobalStore);
   private readonly connection = inject(ConnectionService);
   private readonly notify = inject(Notify);
 
@@ -360,13 +358,7 @@ export class PresetMenu {
 
   protected async fromTemplate(template: PresetSummary): Promise<void> {
     // Starting from a template discards the working copy, as loading a preset does: ask the same way.
-    const current = this.live.preset();
-    if (
-      needsConfirm(this.live.state()?.dirty, this.globals.settings()?.confirmPresetChange) &&
-      !this.switcher.confirm(
-        `“${current?.name || 'This preset'}” has unsaved changes. Discard them and start from “${template.name}”?`
-      )
-    ) {
+    if (!this.switcher.mayDiscard(`start from “${template.name}”`)) {
       return;
     }
 

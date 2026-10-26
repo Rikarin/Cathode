@@ -52,7 +52,7 @@ Under the navigation bar is a second bar for the preset you are playing.
   - The top line shows the preset's number and name. A dot after the name means unsaved changes. Click it (or press **P**) to open the preset picker. The arrows step to the next or previous preset (⌘PgDn, ⌘PgUp).
   - The bottom line shows the scene's number and name. Click the name to rename the scene. The arrows step through the eight scenes.
 - **Recent presets:** the clock icon lists the last presets you loaded in this editor.
-- **New preset** (+): starts an empty preset.
+- **New preset** (+): starts an empty preset. If the working copy has unsaved changes, Cathode asks first.
 - **Save** (⌘S): saves the preset. For a factory preset it asks for a name and saves your own copy.
 - **Preset** menu:
   - **Name, author, tags and notes…**

@@ -412,10 +412,8 @@ export class App {
     inject(DestroyRef).onDestroy(this.registerShortcuts());
   }
 
-  protected async newPreset(): Promise<void> {
-    if (await this.live.newPreset()) {
-      this.compare.reset();
-    }
+  protected newPreset(): void {
+    void this.switcher.newPreset();
   }
 
   /** A factory preset cannot be overwritten: Save asks for the name of the user's own copy instead. */

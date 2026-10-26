@@ -44,9 +44,7 @@ There are several ways to load a preset:
 - **The Library:** double-click a preset, or select it and click **Load**.
 - **MIDI:** a program change or a footswitch. See [MIDI and footswitches](/manual/midi-and-footswitches).
 
-If the working copy has unsaved changes, Cathode asks before replacing it. You can turn this off with **Global ▸ Presets and scenes ▸ Confirm discarding edits**.
-
-> **Warning:** The **New preset** (+) button replaces the working copy with an empty preset without asking. Save first.
+If the working copy has unsaved changes, Cathode asks before replacing it, and so do **New preset** (+) and **New from template…**. You can turn this off with **Global ▸ Presets and scenes ▸ Confirm discarding edits**.
 
 ### Other preset commands
 

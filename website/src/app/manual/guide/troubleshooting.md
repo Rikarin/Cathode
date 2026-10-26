@@ -116,7 +116,7 @@ What you feel is the round trip: interface converters, two buffers, and any late
 
 **I can't delete a preset.** It is in a bank or a setlist: clicking **Delete** lists which ones, and which slots. Remove it from the bank on the Manage presets page first. Factory presets cannot be deleted.
 
-**I lost my changes.** Try **Undo** (⌘Z) first. If you took a snapshot (**Preset ▸ Snapshots…**), load it. The **New preset** button does not ask before replacing unsaved changes.
+**I lost my changes.** Try **Undo** (⌘Z) first. If you took a snapshot (**Preset ▸ Snapshots…**), load it.
 
 **An imported preset is refused.** It was saved by a newer version of Cathode. Update Cathode.
 

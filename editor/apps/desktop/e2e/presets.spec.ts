@@ -35,6 +35,26 @@ test('a saved preset reloads with its blocks, channels and values', async ({ win
   await expect(editor.knob('Time')).toHaveAttribute('aria-valuenow', '420');
 });
 
+test('New preset asks before discarding unsaved edits, as loading does', async ({ window, editor }) => {
+  await editor.addBlock(2, 2, 'Drive');
+  const asked: string[] = [];
+
+  // Cancel: the edits stay.
+  window.once('dialog', dialog => {
+    asked.push(dialog.message());
+    void dialog.dismiss();
+  });
+  await window.getByRole('button', { name: 'New preset', exact: true }).click();
+  await expect.poll(() => asked).toHaveLength(1);
+  expect(asked[0]).toMatch(/has unsaved changes\. Discard them and start a new preset\?$/);
+  await expect(editor.block('Drive', 'drive1')).toBeVisible();
+
+  // OK: an empty preset.
+  window.once('dialog', dialog => void dialog.accept());
+  await window.getByRole('button', { name: 'New preset', exact: true }).click();
+  await expect(editor.block('Drive', 'drive1')).toHaveCount(0);
+});
+
 test('A/B compare keeps two versions of the preset', async ({ editor }) => {
   await editor.addBlock(2, 2, 'Drive');
   await editor.setKnob('Drive', '7');
