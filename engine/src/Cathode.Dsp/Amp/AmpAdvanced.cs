@@ -16,7 +16,6 @@ public static class AmpFeatures {
         return id switch {
             "stacktype" => preamp.Any(static s => s is ToneStackStageDesign),
             "stackloc" => preamp.Any(AmpChannel.IsStack),
-            "t1plate" => HasPlateCap(design, 2),
             "t2plate" => HasPlateCap(design, 1),
             "cfcomp" or "cfharm" => preamp.Any(static s => s is ToneStackStageDesign {
                     Driver: StackDriver.CathodeFollower
@@ -26,7 +25,6 @@ public static class AmpFeatures {
             "mvloc" => HasMaster(design)
                 && design.Power.ShuntMaster is null
                 && design.Power.Topology == PowerTopology.PushPull,
-            "mvcap" => preamp.Any(HasMasterCap),
             "fatsw" => !panel.HasSwitch("Fat"),
             "presshift" => !panel.HasSwitch("Shift") && !panel.HasSwitch("Presence Shift"),
             "overdrive" => !panel.HasSwitch("Overdrive")
@@ -70,18 +68,6 @@ public static class AmpFeatures {
                 _ => false
             }
         );
-
-    static bool HasMasterCap(AmpStageDesign stage) =>
-        stage switch {
-            TriodeStageDesign t => t.VolumeRole == PotRole.Master && t.Volume is not null && t.BrightCap > 0,
-            ToneStackStageDesign t => t.LoadRole == PotRole.Master && t.BrightCap > 0,
-            NetworkStageDesign n => n.Netlist.Elements.Any(cap => cap.Kind == ElementKind.Capacitor
-                && n.Netlist.Elements.Any(pot => pot is { Role: PotRole.Master, Part: PotPart.Upper }
-                    && ((pot.A == cap.A && pot.B == cap.B) || (pot.A == cap.B && pot.B == cap.A))
-                )
-            ),
-            _ => false
-        };
 }
 
 /// <summary>The Circuit Amp's Tonestack Type choices: every distinct stack the models' tone-stack stages use.</summary>

@@ -731,7 +731,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
             case ElementKind.Capacitor: {
                 var farads = e.ValueAt(controls) is var f && f > 0 ? f : Off;
                 if (acrossMaster[i]) {
-                    return farads * settings.MasterCap;
+                    return farads; // a cap across the master is not the Bright Cap control's
                 }
 
                 return e.CapacitorRole switch {

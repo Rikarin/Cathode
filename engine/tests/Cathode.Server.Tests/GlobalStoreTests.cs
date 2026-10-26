@@ -27,7 +27,7 @@ public sealed class GlobalStoreTests : IDisposable {
             Path.Combine(folder, "global.json"),
             """
             { "blocks": [
-              { "id": "g1", "type": "circuitamp", "channels": { "A": { "powertube": 8, "gain": 6 }, "B": { "powertube": 2 } } },
+              { "id": "g1", "type": "circuitamp", "channels": { "A": { "powertube": 8, "gain": 6, "mvcap": 50 }, "B": { "powertube": 2 } } },
               { "id": "g2", "type": "drive", "channels": { "A": { "powertube": 8 } } }
             ] }
             """
@@ -37,6 +37,7 @@ public sealed class GlobalStoreTests : IDisposable {
 
         Assert.Equal(1, settings.Blocks[0].Channels["A"]["powertube"]);
         Assert.Equal(6, settings.Blocks[0].Channels["A"]["gain"]);
+        Assert.False(settings.Blocks[0].Channels["A"].ContainsKey("mvcap"));
         Assert.Equal(2, settings.Blocks[0].Channels["B"]["powertube"]);
         Assert.Equal(8, settings.Blocks[1].Channels["A"]["powertube"]);
     }

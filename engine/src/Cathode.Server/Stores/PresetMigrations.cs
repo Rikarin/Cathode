@@ -36,15 +36,19 @@ public static class PresetMigrations {
     /// <summary>The Amp's Power Tube value for the 6L6GC, which a 5881 is electrically.</summary>
     const float SixL6GC = 1;
 
+    /// <summary>The Amp's parameters removed after 1.0.0-rc.3: no model had the parts they scaled.</summary>
+    static readonly string[] RemovedAmpParams = ["t1plate", "mvcap"];
+
     /// <summary>
     ///     Schema 2 (after 1.0.0-rc.3) drops the Amp's Power Tube choice 5881, which was the 6L6GC under another name:
-    ///     every Amp channel set to it becomes 6L6GC, so it sounds the same.
+    ///     every Amp channel set to it becomes 6L6GC, so it sounds the same. It also drops the values of Triode 1 Plate
+    ///     Freq and Master Cap, which did nothing on any model and are gone.
     /// </summary>
     static JsonObject ToSchema2(JsonObject preset) {
         foreach (var block in preset["blocks"]?.AsArray() ?? []) {
             if (block?["type"]?.GetValue<string>() == "circuitamp" && block["channels"] is JsonObject channels) {
                 foreach (var (_, channel) in channels) {
-                    UpgradePowerTube(channel as JsonObject);
+                    UpgradeAmpChannel(channel as JsonObject);
                 }
             }
         }
@@ -53,20 +57,36 @@ public static class PresetMigrations {
     }
 
     /// <summary>
-    ///     An Amp channel's values with a Power Tube of 5881 (up to 1.0.0-rc.3) set to the 6L6GC. Formats without a
-    ///     schema version (block presets, global blocks) call it on every read; no current value is 8, so it is safe to
-    ///     repeat.
+    ///     An Amp channel's values as schema 2 has them: a Power Tube of 5881 (up to 1.0.0-rc.3) set to the 6L6GC, and
+    ///     the removed parameters' values dropped. Formats without a schema version (block presets, global blocks) call it
+    ///     on every read; no current value is 8 and no current parameter has those ids, so it is safe to repeat.
     /// </summary>
-    public static void UpgradePowerTube(JsonObject? channel) {
-        if (channel?["powertube"] is JsonValue value && value.GetValue<float>() == Schema1FiveEightEightOne) {
+    public static void UpgradeAmpChannel(JsonObject? channel) {
+        if (channel is null) {
+            return;
+        }
+
+        if (channel["powertube"] is JsonValue value && value.GetValue<float>() == Schema1FiveEightEightOne) {
             channel["powertube"] = SixL6GC;
+        }
+
+        foreach (var id in RemovedAmpParams) {
+            channel.Remove(id);
         }
     }
 
-    /// <summary>As <see cref="UpgradePowerTube(JsonObject?)" />, for values already read.</summary>
-    public static void UpgradePowerTube(Dictionary<string, float>? channel) {
-        if (channel is not null && channel.TryGetValue("powertube", out var tube) && tube == Schema1FiveEightEightOne) {
+    /// <summary>As <see cref="UpgradeAmpChannel(JsonObject?)" />, for values already read.</summary>
+    public static void UpgradeAmpChannel(Dictionary<string, float>? channel) {
+        if (channel is null) {
+            return;
+        }
+
+        if (channel.TryGetValue("powertube", out var tube) && tube == Schema1FiveEightEightOne) {
             channel["powertube"] = SixL6GC;
+        }
+
+        foreach (var id in RemovedAmpParams) {
+            channel.Remove(id);
         }
     }
 

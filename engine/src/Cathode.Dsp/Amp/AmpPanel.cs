@@ -17,8 +17,8 @@ public sealed record AmpPanel {
     static readonly string[] TubeOnly = [
         "bias", "feedback", "pretube", "brightcap", "prebias", "presag", "powertube", "xfmrmatch", "xfmrlf", "xfmrhf",
         "xfmrdrive", "speaker", "spkres", "spkq", "spkpeak", "spkhf", "spkimp", "presfreq", "depthfreq", "supply",
-        "rectifier", "katc", "tremrate", "tremdepth", "pthard", "prehard", "t1plate", "t2plate", "cfcomp", "cfharm",
-        "prebiasx", "pibiasx", "ptbiasx", "ptbiastime", "ptrecovery", "masterbiasx", "suppressor", "mvloc", "mvcap",
+        "rectifier", "katc", "tremrate", "tremdepth", "pthard", "prehard", "t2plate", "cfcomp", "cfharm", "prebiasx",
+        "pibiasx", "ptbiasx", "ptbiastime", "ptrecovery", "masterbiasx", "suppressor", "mvloc",
         "screenfreq", "screenq", "stacktype"
     ];
 

@@ -171,7 +171,7 @@ namespace Cathode.Dsp.Blocks;
 ///             (Stock, Pre, Mid, Post: the stack's stage moved, each stage kept at its operating point).
 ///         </item>
 ///         <item>
-///             <b>Triode 1/2 Plate Freq</b> (100 %: the plate-bypass caps of the last two gain stages),
+///             <b>Triode 2 Plate Freq</b> (100 %: the plate-bypass cap of the last gain stage with one),
 ///             <b>
 ///                 CF
 ///                 Compression
@@ -188,8 +188,7 @@ namespace Cathode.Dsp.Blocks;
 ///             over all three, and <b>Plate Suppressor Diodes</b>.
 ///         </item>
 ///         <item>
-///             <b>Master Location</b> (Stock, or Post PI: the master as a divider after the phase inverter) and
-///             <b>Master Cap</b> (a cap across the master's upper half).
+///             <b>Master Location</b> (Stock, or Post PI: the master as a divider after the phase inverter).
 ///         </item>
 ///         <item>
 ///             <b>Output Mode</b> (FRFR; SS Power Amp + Cab leaves the speaker stages to the real cab), Speaker load
@@ -295,22 +294,20 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
     public const int Overdrive = 94;
     public const int StackType = 95;
     public const int StackPlace = 96;
-    public const int Triode1Plate = 97;
-    public const int Triode2Plate = 98;
-    public const int FollowerCompression = 99;
-    public const int FollowerHarmonics = 100;
-    public const int PreampExcursion = 101;
-    public const int InverterExcursion = 102;
-    public const int PowerTubeExcursion = 103;
-    public const int ExcursionTime = 104;
-    public const int RecoveryTime = 105;
-    public const int MasterExcursion = 106;
-    public const int Suppressor = 107;
-    public const int MasterLocation = 108;
-    public const int MasterCap = 109;
-    public const int OutputMode = 110;
-    public const int ScreenFrequency = 111;
-    public const int ScreenQ = 112;
+    public const int Triode2Plate = 97;
+    public const int FollowerCompression = 98;
+    public const int FollowerHarmonics = 99;
+    public const int PreampExcursion = 100;
+    public const int InverterExcursion = 101;
+    public const int PowerTubeExcursion = 102;
+    public const int ExcursionTime = 103;
+    public const int RecoveryTime = 104;
+    public const int MasterExcursion = 105;
+    public const int Suppressor = 106;
+    public const int MasterLocation = 107;
+    public const int OutputMode = 108;
+    public const int ScreenFrequency = 109;
+    public const int ScreenQ = 110;
 
     // Values of Speaker, Master Location and Output Mode.
     public const int SpeakerAuto = 6;
@@ -505,7 +502,6 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
                 ParamDescriptor.Float("overdrive", "Overdrive", 0f, 10f, 0f),
                 ParamDescriptor.Choice("stacktype", "Tonestack Type", AmpStacks.Names),
                 ParamDescriptor.Choice("stackloc", "Tonestack Location", ["Stock", "Pre", "Mid", "Post"]),
-                Expert(ParamDescriptor.Float("t1plate", "Triode 1 Plate Freq", 25f, 400f, 100f, "%", ParamTaper.Log)),
                 Expert(ParamDescriptor.Float("t2plate", "Triode 2 Plate Freq", 25f, 400f, 100f, "%", ParamTaper.Log)),
                 Expert(ParamDescriptor.Float("cfcomp", "CF Compression", 0f, 400f, 100f, "%")),
                 Expert(ParamDescriptor.Float("cfharm", "CF Harmonics", 50f, 200f, 100f, "%", ParamTaper.Log)),
@@ -517,7 +513,6 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
                 Expert(ParamDescriptor.Float("masterbiasx", "Master Bias Excursion", 0f, 200f, 100f, "%")),
                 ParamDescriptor.Switch("suppressor", "Plate Suppressor Diodes"),
                 ParamDescriptor.Choice("mvloc", "Master Location", ["Stock", "Post PI"]),
-                Expert(ParamDescriptor.Float("mvcap", "Master Cap", 25f, 400f, 100f, "%", ParamTaper.Log)),
                 ParamDescriptor.Choice("outmode", "Output Mode", ["FRFR", "SS Power Amp + Cab"]),
                 Expert(ParamDescriptor.Float("screenfreq", "Screen Freq", 25f, 400f, 100f, "%", ParamTaper.Log)),
                 Expert(ParamDescriptor.Float("screenq", "Screen Q", 0f, 5f, 0f))
@@ -752,8 +747,8 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
                 new(
                     "Advanced",
                     [
-                        "brightcap", "prebias", "prehard", "stackfreq", "t1plate", "t2plate", "cfcomp", "cfharm",
-                        "prebiasx", "pibiasx", "pthard", "ptbiasx", "ptbiastime", "ptrecovery", "masterbiasx", "mvcap",
+                        "brightcap", "prebias", "prehard", "stackfreq", "t2plate", "cfcomp", "cfharm", "prebiasx",
+                        "pibiasx", "pthard", "ptbiasx", "ptbiastime", "ptrecovery", "masterbiasx",
                         "screenfreq", "screenq", "xfmrmatch", "xfmrlf", "xfmrhf", "xfmrdrive", "btc", "katc"
                     ]
                 )
@@ -925,7 +920,6 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
             Hardness(Params.Current(PreampHardness)),
             Percent(Params.Current(PreampExcursion)) * excursion,
             1,
-            Percent(Params.Current(MasterCap)),
             Percent(Params.Current(FollowerCompression)),
             Percent(Params.Current(FollowerHarmonics)),
             stackType > 0 ? AmpStacks.All[Math.Min(stackType, AmpStacks.All.Count) - 1] : null
@@ -986,7 +980,6 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
             Params.Current(PowerAmpModel) >= 0.5f,
             (StackLocation)Math.Clamp((int)Params.Current(StackPlace), 0, 3),
             overdrive > 0 && features.Overdrive ? Decibels.ToGain(overdrive * OverdriveDb / 10) : 1,
-            Percent(Params.Current(Triode1Plate)),
             Percent(Params.Current(Triode2Plate))
         );
 

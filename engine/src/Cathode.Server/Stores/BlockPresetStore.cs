@@ -109,12 +109,12 @@ public sealed class BlockPresetStore(IOptions<ServerOptions> options, BlockCatal
             ? throw RigException.Conflict("Factory block presets cannot be deleted.")
             : files.Delete(id);
 
-    /// <summary>A stored block preset brought up to date: an Amp's 5881 Power Tube (up to 1.0.0-rc.3) is the 6L6GC.</summary>
+    /// <summary>A stored block preset brought up to date (<see cref="PresetMigrations.UpgradeAmpChannel(JsonObject?)" />).</summary>
     static JsonNode? Upgrade(JsonNode? node) {
         if (node is JsonObject preset && preset["type"]?.GetValue<string>() == "circuitamp") {
-            PresetMigrations.UpgradePowerTube(preset["values"] as JsonObject);
+            PresetMigrations.UpgradeAmpChannel(preset["values"] as JsonObject);
             foreach (var (_, channel) in preset["channels"] as JsonObject ?? []) {
-                PresetMigrations.UpgradePowerTube(channel as JsonObject);
+                PresetMigrations.UpgradeAmpChannel(channel as JsonObject);
             }
         }
 

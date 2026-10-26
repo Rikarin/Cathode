@@ -246,7 +246,7 @@ public sealed class ToneStackStage : AmpStage {
         }
 
         var rk = Design.CathodeResistor * settings.CathodeResistor * (follower ? settings.FollowerBias : 1);
-        var brightCap = Design.LoadRole == PotRole.Master ? settings.MasterCap : settings.BrightCap;
+        var brightCap = Design.LoadRole == PotRole.Master ? 1 : settings.BrightCap;
         if (!substituted
             && brightCap == brightScale
             && settings.StackFrequency == stackScale

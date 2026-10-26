@@ -41,12 +41,12 @@ public sealed class VersioningTests {
     }
 
     [Fact]
-    public void Schema_2_turns_the_amps_5881_into_the_6L6GC_it_always_was() {
+    public void Schema_2_turns_the_amps_5881_into_the_6L6GC_and_drops_its_removed_controls() {
         var upgraded = PresetMigrations.Upgrade(
             JsonNode.Parse(
                 """
                 {"schemaVersion":1,"blocks":[
-                  {"id":"amp1","type":"circuitamp","channels":{"A":{"powertube":8,"gain":6},"B":{"powertube":7},"C":{}}},
+                  {"id":"amp1","type":"circuitamp","channels":{"A":{"powertube":8,"gain":6,"t1plate":200,"mvcap":50},"B":{"powertube":7},"C":{}}},
                   {"id":"drive1","type":"drive","channels":{"A":{"powertube":8}}}
                 ]}
                 """
@@ -57,6 +57,7 @@ public sealed class VersioningTests {
         Assert.Equal(2, preset.SchemaVersion);
         Assert.Equal(1, preset.Blocks[0].Channels["A"]["powertube"]); // 5881 → 6L6GC
         Assert.Equal(6, preset.Blocks[0].Channels["A"]["gain"]);
+        Assert.Equal(2, preset.Blocks[0].Channels["A"].Count); // Triode 1 Plate Freq and Master Cap are gone
         Assert.Equal(7, preset.Blocks[0].Channels["B"]["powertube"]); // 6550 stays
         Assert.Empty(preset.Blocks[0].Channels["C"]);
         Assert.Equal(8, preset.Blocks[1].Channels["A"]["powertube"]); // not an amp

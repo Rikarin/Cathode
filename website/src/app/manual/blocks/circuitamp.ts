@@ -424,9 +424,6 @@ before the first tube (the stack shapes what the whole preamp distorts: tighter 
 after the first gain stage, *Post* after the last preamp stage (the stack shapes the finished distortion, more like
 an EQ). *Stock* is where the schematic has it.`,
 
-    t1plate: `The corner frequency of the plate-bypass cap on the second-to-last preamp stage that has one, as a percentage
-of stock. No current model has two such stages, so this control is hidden on all of them.`,
-
     t2plate: `The corner of the plate-bypass cap on the last preamp stage that has one (the SLO-100's cold clipper, the
 5150III, the Quick Rod), as a percentage of stock. This cap rolls off that stage's treble: above 100 % the roll-off
 moves up (more fizz and edge), below it the distortion gets smoother and darker.`,
@@ -464,9 +461,6 @@ its hardest distortion.`,
     mvloc: `Moves the master volume. *Stock* is where the circuit has it; *Post PI* makes it a divider after the phase
 inverter, so the inverter is driven fully whatever the Master, and turning the master down keeps the inverter's own
 distortion. Shown on push-pull amps that have a master.`,
-
-    mvcap: `The value of a bright cap across the master volume's upper half, as a percentage of stock. No current model
-has one, so this control is hidden on all of them.`,
 
     outmode: `What the amp's output feeds. *FRFR* is for headphones, studio monitors and full-range speakers through a
 Cab block. *SS Power Amp + Cab* is for a solid-state power amp into a real guitar cabinet: it turns off Speaker Drive,

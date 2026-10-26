@@ -31,7 +31,6 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
         (CircuitAmpBlock.StackPlace, 1),
         (CircuitAmpBlock.StackPlace, 2),
         (CircuitAmpBlock.StackPlace, 3),
-        (CircuitAmpBlock.Triode1Plate, 400),
         (CircuitAmpBlock.Triode2Plate, 25),
         (CircuitAmpBlock.FollowerCompression, 400),
         (CircuitAmpBlock.FollowerHarmonics, 50),
@@ -43,7 +42,6 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
         (CircuitAmpBlock.MasterExcursion, 0),
         (CircuitAmpBlock.Suppressor, 1),
         (CircuitAmpBlock.MasterLocation, 1),
-        (CircuitAmpBlock.MasterCap, 400),
         (CircuitAmpBlock.OutputMode, 1),
         (CircuitAmpBlock.SpeakerCurve, CircuitAmpBlock.SpeakerAuto),
         (CircuitAmpBlock.ScreenFrequency, 25),
@@ -234,10 +232,7 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
         var type = Index(Slo100.Design);
         var tone = Signals.Sine(4_000, Rate, 19_200, 0.002f);
         var stock = SteadyDb(Render(type, tone, (CircuitAmpBlock.Gain, 3f)));
-        var t1 = AmpFeatures.Has(Slo100.Design, "t1plate")
-            ? CircuitAmpBlock.Triode1Plate
-            : CircuitAmpBlock.Triode2Plate;
-        var opened = SteadyDb(Render(type, tone, (CircuitAmpBlock.Gain, 3f), (t1, 400f)));
+        var opened = SteadyDb(Render(type, tone, (CircuitAmpBlock.Gain, 3f), (CircuitAmpBlock.Triode2Plate, 400f)));
         Assert.True(opened > stock + 0.5, $"{opened:0.0} against {stock:0.0} dB");
         Assert.False(AmpFeatures.Has(Blackface.Design, "t2plate"));
     }

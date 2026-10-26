@@ -283,7 +283,7 @@ public sealed class TriodeStage : AmpStage {
         applied = settings;
         tube = settings.Law(Design.Tube);
         var changed = false;
-        var brightCap = Design.VolumeRole == PotRole.Master ? settings.MasterCap : settings.BrightCap;
+        var brightCap = Design.VolumeRole == PotRole.Master ? 1 : settings.BrightCap;
         if (brightCap != brightScale) {
             brightScale = brightCap;
             root.Ports.C.Configure(bright ? Capacitance(Design.BrightCap * brightScale) : Off, sampleRate);

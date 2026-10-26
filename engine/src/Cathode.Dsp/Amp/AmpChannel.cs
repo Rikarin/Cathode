@@ -13,18 +13,17 @@ namespace Cathode.Dsp.Amp;
 ///     The signal into the last gain stage as a multiple of stock (an extra gain stage's worth of drive), applied to
 ///     its swing about the stage's rest input; 1 for none.
 /// </param>
-/// <param name="Plate1">
-///     The plate-bypass corner of the stage before the last with one (<see cref="PreampSettings.PlateFrequency" />).
+/// <param name="Plate">
+///     The last plate-bypass cap's corner (<see cref="AmpFeatures.HasPlateCap(AmpStageDesign)" />,
+///     <see cref="PreampSettings.PlateFrequency" />).
 /// </param>
-/// <param name="Plate2">The last plate-bypass corner (<see cref="AmpFeatures.HasPlateCap(AmpStageDesign)" />).</param>
 public readonly record struct ChannelSettings(
     double LowCut = 0,
     double PreampSag = 1,
     bool PowerAmp = true,
     StackLocation StackLocation = StackLocation.Stock,
     double Overdrive = 1,
-    double Plate1 = 1,
-    double Plate2 = 1
+    double Plate = 1
 ) {
     public static ChannelSettings Stock => new(0);
 }
@@ -68,7 +67,6 @@ public sealed class AmpChannel {
     readonly AmpStage[] stages;
     readonly int lastGainStage;
     readonly int lastPlateStage; // the last stage with a plate-bypass cap (Triode 2), or -1
-    readonly int previousPlateStage; // the one before it (Triode 1), or -1
     readonly int stackStage; // the stage holding the tone stack, or -1
     readonly int[] order; // the stages in running order
     readonly double[] offsets; // per position in the running order: the level shift that keeps each stage's rest input
@@ -108,9 +106,6 @@ public sealed class AmpChannel {
         stages = [..design.Preamp.Select(d => d.Create(sampleRate))];
         lastGainStage = Array.FindLastIndex(stages, static s => s.IsGainStage);
         lastPlateStage = Array.FindLastIndex([..design.Preamp], AmpFeatures.HasPlateCap);
-        previousPlateStage = lastPlateStage > 0
-            ? Array.FindLastIndex([..design.Preamp], lastPlateStage - 1, AmpFeatures.HasPlateCap)
-            : -1;
         stackStage = Array.FindIndex([..design.Preamp], IsStack);
         order = [..Enumerable.Range(0, stages.Length)];
         offsets = new double[stages.Length];
@@ -229,8 +224,7 @@ public sealed class AmpChannel {
     /// </summary>
     public void Apply(in PreampSettings preamp, in PowerSettings power, in ChannelSettings channel) {
         var reset = false;
-        var plates = channel.Plate1 != channelSettings.Plate1 || channel.Plate2 != channelSettings.Plate2;
-        if (preamp != preampSettings || plates) {
+        if (preamp != preampSettings || channel.Plate != channelSettings.Plate) {
             reset = preamp.MovesOperatingPoint(preampSettings);
             preampSettings = preamp;
             for (var i = 0; i < stages.Length; i++) {
@@ -238,8 +232,7 @@ public sealed class AmpChannel {
                     .Apply(
                         preamp with {
                             CathodeResistor = i == lastGainStage ? preamp.CathodeResistor : 1,
-                            PlateFrequency = i == lastPlateStage ? channel.Plate2 :
-                                i == previousPlateStage ? channel.Plate1 : 1
+                            PlateFrequency = i == lastPlateStage ? channel.Plate : 1
                         }
                     );
             }

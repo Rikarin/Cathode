@@ -158,9 +158,8 @@ public readonly record struct AmpControls(
 /// </param>
 /// <param name="PlateFrequency">
 ///     A plate-bypass cap's corner as a multiple of stock (the cap divided by it); the channel applies it per stage
-///     (Triode 1 and 2 Plate Freq on the last two stages with such a cap), 1 elsewhere.
+///     (Triode 2 Plate Freq on the last stage with such a cap), 1 elsewhere.
 /// </param>
-/// <param name="MasterCap">The bright cap across a master pot, as a multiple of stock.</param>
 /// <param name="FollowerGrid">
 ///     A cathode follower's grid current as a multiple of stock: its compression when the previous plate drives its
 ///     grid above its cathode.
@@ -178,7 +177,6 @@ public readonly record struct PreampSettings(
     double Hardness = 1,
     double GridCurrent = 1,
     double PlateFrequency = 1,
-    double MasterCap = 1,
     double FollowerGrid = 1,
     double FollowerBias = 1,
     ToneStackDesign? Stack = null

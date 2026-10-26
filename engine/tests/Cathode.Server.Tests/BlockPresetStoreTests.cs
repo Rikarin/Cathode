@@ -17,7 +17,7 @@ public sealed class BlockPresetStoreTests : IDisposable {
         File.WriteAllText(
             Path.Combine(presets, "b1.json"),
             """
-            {"id":"b1","type":"circuitamp","name":"Old","values":{"powertube":8,"gain":6},
+            {"id":"b1","type":"circuitamp","name":"Old","values":{"powertube":8,"gain":6,"t1plate":200},
              "channels":{"A":{"powertube":8},"B":{"powertube":3}}}
             """
         );
@@ -30,6 +30,7 @@ public sealed class BlockPresetStoreTests : IDisposable {
 
         Assert.Equal(1, preset.Values["powertube"]);
         Assert.Equal(6, preset.Values["gain"]);
+        Assert.False(preset.Values.ContainsKey("t1plate"));
         Assert.Equal(1, preset.Channels!["A"]["powertube"]);
         Assert.Equal(3, preset.Channels["B"]["powertube"]);
     }
