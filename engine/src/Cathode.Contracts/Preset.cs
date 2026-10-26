@@ -61,7 +61,11 @@ public sealed class Preset {
 
     /// <summary>Switches of the global footswitch layouts that do something else while this preset is loaded.</summary>
     public List<FootswitchOverride> FootswitchOverrides { get; set; } = [];
-    /// <summary>The scene that was active when the preset was saved: where it starts when the global Default Scene is As Saved.</summary>
+
+    /// <summary>
+    ///     The scene that was active when the preset was saved: where it starts when the global Default Scene is As
+    ///     Saved.
+    /// </summary>
     public int SavedScene { get; set; }
 
     public static string NewId() => Guid.NewGuid().ToString("n");

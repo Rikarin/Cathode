@@ -1,6 +1,6 @@
+using Cathode.Dsp.Wdf;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using Cathode.Dsp.Wdf;
 
 namespace Cathode.Dsp.Amp;
 
@@ -15,7 +15,8 @@ namespace Cathode.Dsp.Amp;
 ///         <paramref name="PlateShunt" /> and <paramref name="PlateLoad" /> to AC ground), <paramref name="Ladder1" />
 ///         to a node with <paramref name="Leg1" /> to AC ground, <paramref name="Ladder2" /> to a node with
 ///         <paramref name="Leg2" />, <paramref name="Ladder3" /> to the grid with <paramref name="Leg3" />; the Speed
-///         rheostat adds to leg <paramref name="SpeedLeg" /> (turned up, it takes resistance out). The oscillator runs where
+///         rheostat adds to leg <paramref name="SpeedLeg" /> (turned up, it takes resistance out). The oscillator runs
+///         where
 ///         the ladder turns the phase by 180°, found here by bisection, so each drawing's values give its rate range.
 ///     </para>
 ///     <para>
@@ -182,7 +183,8 @@ sealed class OscillatorTable {
     ///     The plate's harmonics (complex amplitudes, the grid swinging as <c>A sin θ</c>), per rotation and harmonic
     ///     (<c>[rotation * Harmonics + k - 1]</c>).
     /// </summary>
-    public readonly Complex[] Plate = new Complex[PhaseShiftOscillatorDesign.Points * PhaseShiftOscillatorDesign.Harmonics];
+    public readonly Complex[] Plate =
+        new Complex[PhaseShiftOscillatorDesign.Points * PhaseShiftOscillatorDesign.Harmonics];
 
     /// <summary>The second ladder node per grid volt at the rate.</summary>
     public readonly Complex[] Second = new Complex[PhaseShiftOscillatorDesign.Points];
@@ -242,7 +244,10 @@ sealed class OscillatorTable {
         First = Array.FindIndex(Amplitudes, static a => a > 0);
         Last = Array.FindLastIndex(Amplitudes, static a => a > 0);
         if (First < 0 || First == Last) {
-            throw new ArgumentException("The oscillator does not oscillate over the Speed knob's travel.", nameof(design));
+            throw new ArgumentException(
+                "The oscillator does not oscillate over the Speed knob's travel.",
+                nameof(design)
+            );
         }
     }
 
@@ -301,7 +306,7 @@ sealed class OscillatorTable {
             for (var i = 0; i < 40; i++) {
                 var middle = 0.5 * (low + high);
                 var vpk = plateVolts - load * (middle - current) - cathode;
-                if (Amp.OperatingPoint.PlateCurrent(triode, grid, vpk) > middle) {
+                if (OperatingPoint.PlateCurrent(triode, grid, vpk) > middle) {
                     low = middle;
                 } else {
                     high = middle;
@@ -335,7 +340,8 @@ sealed class OscillatorTable {
 ///     the cap's far end is the return itself, with <paramref name="ReturnResistor" /> to AC ground.
 /// </summary>
 /// <remarks>
-///     The network is solved at the rate and its first harmonics (<see cref="Return" />), loaded by the grid leaks, each in
+///     The network is solved at the rate and its first harmonics (<see cref="Return" />), loaded by the grid leaks, each
+///     in
 ///     series with its coupling cap and the inverter's plate (<see cref="InverterResistance" />), so the bias line swings
 ///     with the amplitude and phase the parts give. From there the power amp carries it to the grids through the same
 ///     coupling caps and leaks it runs the signal through (<see cref="PowerAmp" />): the swing at the grids lags and falls

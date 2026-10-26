@@ -23,23 +23,26 @@ public class PitchFormantTests(ITestOutputHelper output) {
 
     public static TheoryData<int> Types => [..Enum.GetValues<PitchType>().Select(static t => (int)t)];
 
-    public static TheoryData<int, int> Shifters => new() {
-        { (int)PitchType.Whammy, PitchBlock.WhammyMono },
-        { (int)PitchType.Whammy, PitchBlock.WhammyPoly },
-        { (int)PitchType.VirtualCapo, 0 }
-    };
+    public static TheoryData<int, int> Shifters =>
+        new() {
+            { (int)PitchType.Whammy, PitchBlock.WhammyMono },
+            { (int)PitchType.Whammy, PitchBlock.WhammyPoly },
+            { (int)PitchType.VirtualCapo, 0 }
+        };
 
     [Theory]
     [MemberData(nameof(Shifters))]
     public void Correction_keeps_the_formants_while_the_pitch_moves_an_octave(int type, int tracking) {
-        foreach (var semitones in (int[]) [12, -12]) {
+        foreach (var semitones in (int[])[12, -12]) {
             var ratio = Math.Pow(2, semitones / 12.0);
             var corrected = Render(Shifter(type, tracking, semitones, true));
             var plain = Render(Shifter(type, tracking, semitones, false));
 
             var on = EnvelopeScale(corrected, ratio);
             var off = EnvelopeScale(plain, ratio);
-            output.WriteLine($"{(PitchType)type}/{tracking} {semitones:+0;-0} st: formants x{on:0.00} on, x{off:0.00} off");
+            output.WriteLine(
+                $"{(PitchType)type}/{tracking} {semitones:+0;-0} st: formants x{on:0.00} on, x{off:0.00} off"
+            );
 
             AssertPitchMovedAnOctave(corrected, semitones);
             AssertPitchMovedAnOctave(plain, semitones);
@@ -56,13 +59,15 @@ public class PitchFormantTests(ITestOutputHelper output) {
     [Theory]
     [MemberData(nameof(Shifters))]
     public void Formant_shift_moves_the_formants_by_its_interval(int type, int tracking) {
-        foreach (var (semitones, shift) in ((int, float)[]) [(12, 7f), (-12, -5f), (7, -7f), (0, 5f)]) {
+        foreach (var (semitones, shift) in ((int, float)[])[(12, 7f), (-12, -5f), (7, -7f), (0, 5f)]) {
             var block = Shifter(type, tracking, semitones, true);
             block.Params.SetTarget(PitchBlock.FormantShift1, shift);
             var shifted = Render(block);
 
             var scale = EnvelopeScale(shifted, Math.Pow(2, semitones / 12.0));
-            output.WriteLine($"{(PitchType)type}/{tracking} {semitones:+0;-0} st, formant {shift:+0;-0}: x{scale:0.00}");
+            output.WriteLine(
+                $"{(PitchType)type}/{tracking} {semitones:+0;-0} st, formant {shift:+0;-0}: x{scale:0.00}"
+            );
             var expected = Math.Pow(2, shift / 12);
             Assert.InRange(scale, expected / Tolerance, expected * Tolerance);
         }
@@ -170,7 +175,7 @@ public class PitchFormantTests(ITestOutputHelper output) {
         // A loud vowel, full-scale noise, a step and silence: bounded throughout.
         var loud = Signals.Concat(
             [..Vowel(24_000).Select(static s => 2 * s)],
-            Signals.Noise(24_000, 5, 1f),
+            Signals.Noise(24_000, 5),
             Signals.Step(4_800, 0.9f),
             new float[4_800]
         );
@@ -323,7 +328,9 @@ public class PitchFormantTests(ITestOutputHelper output) {
         }
 
         var spectrum = Spectrum(signal);
-        var low = semitones > 0 ? Fundamental : Fundamental / 2; // the lower series; its odd members are not on the higher
+        var low = semitones > 0
+            ? Fundamental
+            : Fundamental / 2; // the lower series; its odd members are not on the higher
         double odd = 0, even = 0;
         for (var h = 1; h <= 24; h++) {
             var level = Math.Pow(10, HarmonicDb(spectrum, h * low, low) / 20);
@@ -351,7 +358,10 @@ public class PitchFormantTests(ITestOutputHelper output) {
         return Fft.Magnitudes(padded);
     }
 
-    /// <summary>The level in dB of the strongest bin within a quarter of <paramref name="spacing" /> of <paramref name="frequency" />.</summary>
+    /// <summary>
+    ///     The level in dB of the strongest bin within a quarter of <paramref name="spacing" /> of
+    ///     <paramref name="frequency" />.
+    /// </summary>
     static double HarmonicDb(double[] spectrum, double frequency, double spacing) {
         var binHz = Rate / (1 << 17);
         var peak = 1e-12;

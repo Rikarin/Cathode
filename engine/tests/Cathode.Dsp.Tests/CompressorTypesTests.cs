@@ -13,7 +13,7 @@ public class CompressorTypesTests {
     [InlineData(CompressorBlock.Compander)]
     public void Each_type_compresses_a_loud_tone_and_leaves_a_quiet_one(int type) {
         var loud = Steady(type, 0f);
-        var quiet = Steady(type, -40f, expanderThreshold: -90f);
+        var quiet = Steady(type, -40f, -90f);
 
         Assert.True(loud < -6, $"a 0 dBFS tone came out at {loud:0.0} dB");
         Assert.InRange(quiet, -42.5, -39.5); // well under the threshold (the Tube's wide knee bends a little)
@@ -86,7 +86,8 @@ public class CompressorTypesTests {
 
     [Fact]
     public void More_compression_means_a_lower_output() {
-        var levels = new[] { 10f, 40f, 70f, 100f }.Select(knob => Steady(CompressorBlock.Pedal, 0f, compression: knob))
+        var levels = new[] { 10f, 40f, 70f, 100f }
+            .Select(static knob => Steady(CompressorBlock.Pedal, 0f, compression: knob))
             .ToArray();
 
         Assert.True(levels.Zip(levels.Skip(1)).All(static p => p.Second < p.First), string.Join(", ", levels));

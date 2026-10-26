@@ -108,7 +108,8 @@ public class MixLawTests {
         Assert.Equal(input, Render(type, mix, 0f, -1, input)); // and off, Mix 0 is the dry signal exactly
     }
 
-    static float[] Input() => Signals.Concat(Signals.Noise(Length / 2, 7, 0.25f), Signals.Sine(330, 48_000, Length / 2, 0.3f));
+    static float[] Input() =>
+        Signals.Concat(Signals.Noise(Length / 2, 7, 0.25f), Signals.Sine(330, 48_000, Length / 2, 0.3f));
 
     /// <summary>Least squares for <c>half = d · dry + w · wet</c>.</summary>
     static (double Dry, double Wet) Solve(float[] dry, float[] wet, float[] half) {

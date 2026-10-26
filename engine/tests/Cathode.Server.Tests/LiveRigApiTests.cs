@@ -1,12 +1,12 @@
-using System.IO.Compression;
-using System.Net;
-using System.Net.Http.Json;
-using System.Text;
 using Cathode.Contracts;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.IO;
 using Cathode.Testing;
 using Microsoft.AspNetCore.Mvc;
+using System.IO.Compression;
+using System.Net;
+using System.Net.Http.Json;
+using System.Text;
 
 namespace Cathode.Server.Tests;
 
@@ -39,22 +39,25 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     public async Task Catalog_lists_blocks_with_parameters_and_asset_slots() {
         var blocks = await client.GetFromJsonAsync<BlockTypeInfo[]>("/api/v1/catalog/blocks", Token);
 
-        Assert.Contains(blocks!, b => b.TypeId == "nam" && b.AssetSlots.Contains("model"));
+        Assert.Contains(blocks!, static b => b.TypeId == "nam" && b.AssetSlots.Contains("model"));
         Assert.Contains(
             blocks!,
-            b => b.TypeId == "cab" && b.AssetSlots.SequenceEqual(["slot1", "slot2", "slot3", "slot4"])
+            static b => b.TypeId == "cab" && b.AssetSlots.SequenceEqual(["slot1", "slot2", "slot3", "slot4"])
         );
-        Assert.DoesNotContain(blocks!, b => b.TypeId == "dynacab");
-        Assert.Contains(blocks!.Single(b => b.TypeId == "delay").Params, p => p.Id == "time" && p.Unit == "ms");
+        Assert.DoesNotContain(blocks!, static b => b.TypeId == "dynacab");
+        Assert.Contains(
+            blocks!.Single(static b => b.TypeId == "delay").Params,
+            static p => p.Id == "time" && p.Unit == "ms"
+        );
     }
 
     [Fact]
     public async Task Dropping_a_block_on_a_shunt_replaces_it_and_keeps_the_signal_path() {
         var state = await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 2, 3));
 
-        Assert.DoesNotContain(state.Preset.Blocks, b => b is { Row: 2, Column: 3, Type: "shunt" });
-        Assert.Contains(state.Preset.Cables, c => c.To == "drive1");
-        Assert.Contains(state.Preset.Cables, c => c.From == "drive1");
+        Assert.DoesNotContain(state.Preset.Blocks, static b => b is { Row: 2, Column: 3, Type: "shunt" });
+        Assert.Contains(state.Preset.Cables, static c => c.To == "drive1");
+        Assert.Contains(state.Preset.Cables, static c => c.From == "drive1");
         await ServerFixture.Eventually(() => server.Graph?.SlotOf("drive1") >= 0);
     }
 
@@ -67,8 +70,8 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
         await ServerFixture.Eventually(() => server.Target("delay1", "time") == 500);
         var state = await Live();
-        Assert.Equal(500, state.Preset.Blocks.Single(b => b.Id == "delay1").Channels["A"]["time"]);
-        Assert.Equal(120, state.Preset.Blocks.Single(b => b.Id == "delay1").Channels["B"]["time"]);
+        Assert.Equal(500, state.Preset.Blocks.Single(static b => b.Id == "delay1").Channels["A"]["time"]);
+        Assert.Equal(120, state.Preset.Blocks.Single(static b => b.Id == "delay1").Channels["B"]["time"]);
         await Task.Delay(100, Token);
         Assert.Equal(500, server.Target("delay1", "time")); // channel B's edit did not leak into the running sound
     }
@@ -137,8 +140,8 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         await ServerFixture.Eventually(() => server.Graph?.SlotOf("reverb1") < 0);
         var redone = await Post("/api/v1/live/redo");
 
-        Assert.DoesNotContain(undone.Preset.Blocks, b => b.Id == "reverb1");
-        Assert.Contains(redone.Preset.Blocks, b => b.Id == "reverb1");
+        Assert.DoesNotContain(undone.Preset.Blocks, static b => b.Id == "reverb1");
+        Assert.Contains(redone.Preset.Blocks, static b => b.Id == "reverb1");
         await ServerFixture.Eventually(() => server.Graph?.SlotOf("reverb1") >= 0);
     }
 
@@ -153,8 +156,8 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         var undone = await Post("/api/v1/live/undo");
 
         Assert.Equal(
-            before.Preset.Blocks.Single(b => b.Id == "volpan1").Channels.Count,
-            undone.Preset.Blocks.Single(b => b.Id == "volpan1").Channels.Count
+            before.Preset.Blocks.Single(static b => b.Id == "volpan1").Channels.Count,
+            undone.Preset.Blocks.Single(static b => b.Id == "volpan1").Channels.Count
         );
         Assert.True(undone.CanUndo); // the add-block step is still there
     }
@@ -164,9 +167,8 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         var state = await Live();
         await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 2, 1));
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/live/blocks") {
-            Content = JsonContent.Create(new AddBlockRequest("delay", 2, 2))
-        };
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/live/blocks");
+        request.Content = JsonContent.Create(new AddBlockRequest("delay", 2, 2));
         request.Headers.IfMatch.Add(new($"\"{state.Revision}\""));
         using var response = await client.SendAsync(request, Token);
 
@@ -175,7 +177,11 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Invalid_edits_return_problem_details() {
-        var badCable = await client.PostAsJsonAsync("/api/v1/live/cables", new CableRequest("shunt-r2c3", "shunt-r2c1"), Token);
+        var badCable = await client.PostAsJsonAsync(
+            "/api/v1/live/cables",
+            new CableRequest("shunt-r2c3", "shunt-r2c1"),
+            Token
+        );
         var unknownParam = await client.PatchAsJsonAsync(
             "/api/v1/live/blocks/shunt-r2c1/params",
             new Dictionary<string, float> { ["x"] = 1 },
@@ -195,11 +201,11 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         var ir = new MemoryStream();
         WavFile.Write(
             ir,
-            new(48_000, [Signals.Noise(512, 1).Select((v, i) => v * MathF.Exp(-i / 80f)).ToArray()])
+            new(48_000, [Signals.Noise(512, 1).Select(static (v, i) => v * MathF.Exp(-i / 80f)).ToArray()])
         );
         var irAsset = await Upload("cab.wav", ir.ToArray());
         var again = await Upload("same-cab.wav", ir.ToArray());
-        var badModel = await Upload("broken.nam", "{ \"not\": \"a model\" }"u8.ToArray());
+        var badModel = await Upload("broken.nam", [.."{ \"not\": \"a model\" }"u8]);
         await Post("/api/v1/live/blocks", new AddBlockRequest("cab", 2, 4));
         await Post("/api/v1/live/blocks", new AddBlockRequest("nam", 2, 3));
 
@@ -214,9 +220,9 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         Assert.Equal(ir.ToArray(), content);
         Assert.Equal(irAsset.Ref, again.Ref); // stored once
         Assert.StartsWith("sha256:", irAsset.Ref, StringComparison.Ordinal);
-        Assert.Equal(irAsset.Ref, withIr.Preset.Blocks.Single(b => b.Id == "cab1").Assets["slot1"]);
+        Assert.Equal(irAsset.Ref, withIr.Preset.Blocks.Single(static b => b.Id == "cab1").Assets["slot1"]);
         Assert.Equal((HttpStatusCode)422, rejected.StatusCode);
-        Assert.Empty((await Live()).Preset.Blocks.Single(b => b.Id == "nam1").Assets);
+        Assert.Empty((await Live()).Preset.Blocks.Single(static b => b.Id == "nam1").Assets);
     }
 
     [Fact]
@@ -224,7 +230,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         var ir = new MemoryStream();
         WavFile.Write(
             ir,
-            new(48_000, [Signals.Noise(512, 1).Select((v, i) => v * MathF.Exp(-i / 80f)).ToArray()])
+            new(48_000, [Signals.Noise(512, 1).Select(static (v, i) => v * MathF.Exp(-i / 80f)).ToArray()])
         );
         var pack = new MemoryStream();
         using (var zip = new ZipArchive(
@@ -256,7 +262,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         );
 
         Assert.Equal("cabgrid", asset.Kind);
-        Assert.Equal(asset.Ref, live.Preset.Blocks.Single(b => b.Id == "cab1").Assets["slot2"]);
+        Assert.Equal(asset.Ref, live.Preset.Blocks.Single(static b => b.Id == "cab1").Assets["slot2"]);
         Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
         await ServerFixture.Eventually(() => (server.Block("cab1") as CabBlock)?.Grid(1)
             ?.Distances.Count
@@ -277,7 +283,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
             new Dictionary<string, float> { ["m1position"] = 80, ["m1distance"] = 6 }
         );
 
-        Assert.Equal(80, state.Preset.Blocks.Single(b => b.Id == "cab1").Channels["A"]["m1position"]);
+        Assert.Equal(80, state.Preset.Blocks.Single(static b => b.Id == "cab1").Channels["A"]["m1position"]);
         await ServerFixture.Eventually(() =>
             server.Target("cab1", "m1position") == 80 && server.Target("cab1", "m1distance") == 6
         );
@@ -306,7 +312,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
             new Dictionary<string, float> { ["type"] = 3, ["treble"] = 7 }
         );
 
-        var stored = state.Preset.Blocks.Single(b => b.Id == "circuitamp1").Channels["A"];
+        var stored = state.Preset.Blocks.Single(static b => b.Id == "circuitamp1").Channels["A"];
         var info = CircuitAmpBlock.Info;
         Assert.Equal(info.Params[info.IndexOf("gain")].Default, stored["gain"]);
         Assert.Equal(0, stored["switch1"]); // a control the new model may not even have
@@ -322,7 +328,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
             new Dictionary<string, float> { ["gain"] = 8 }
         );
         state = await Patch("/api/v1/live/blocks/circuitamp1/params", new Dictionary<string, float> { ["type"] = 3 });
-        Assert.Equal(8, state.Preset.Blocks.Single(b => b.Id == "circuitamp1").Channels["A"]["gain"]);
+        Assert.Equal(8, state.Preset.Blocks.Single(static b => b.Id == "circuitamp1").Channels["A"]["gain"]);
     }
 
     [Fact]
@@ -341,7 +347,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         var live = await Put("/api/v1/live/blocks/nam1/assets/model", new AssetRequest(asset.Ref));
 
         Assert.Equal("aidax", asset.Kind);
-        Assert.Equal(asset.Ref, live.Preset.Blocks.Single(b => b.Id == "nam1").Assets["model"]);
+        Assert.Equal(asset.Ref, live.Preset.Blocks.Single(static b => b.Id == "nam1").Assets["model"]);
         await ServerFixture.Eventually(() => (server.Block("nam1") as CaptureAmpBlock)?.CaptureModel
             ?.Format
             == "AIDA-X"
@@ -357,9 +363,9 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         var list = await client.GetFromJsonAsync<PresetSummary[]>("/api/v1/presets", Token);
         var loaded = await Put($"/api/v1/live/preset/{saved.Preset.Id}", new { });
 
-        Assert.Contains(list!, p => p.Name == "Clean Chorus");
+        Assert.Contains(list!, static p => p.Name == "Clean Chorus");
         Assert.False(saved.Dirty);
-        Assert.Contains(loaded.Preset.Blocks, b => b.Id == "chorus1");
+        Assert.Contains(loaded.Preset.Blocks, static b => b.Id == "chorus1");
         Assert.False(loaded.CanUndo);
         Assert.False(loaded.Dirty);
         Assert.False((await Live()).Dirty);
@@ -389,16 +395,19 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
         var removed = await Delete("/api/v1/live/blocks/drive1");
 
-        var shunt = Assert.Single(removed.Preset.Blocks, b => b.Row == 2 && b.Column == 2);
+        var shunt = Assert.Single(removed.Preset.Blocks, static b => b.Row == 2 && b.Column == 2);
         Assert.Equal(BuiltInTypes.Shunt, shunt.Type);
         Assert.Contains(removed.Preset.Cables, c => c.From == "shunt-r2c1" && c.To == shunt.Id);
         Assert.Contains(removed.Preset.Cables, c => c.From == shunt.Id && c.To == "shunt-r2c3");
-        Assert.DoesNotContain(removed.Preset.Cables, c => c.From == "drive1" || c.To == "drive1");
+        Assert.DoesNotContain(removed.Preset.Cables, static c => c.From == "drive1" || c.To == "drive1");
         Assert.Equal(13, removed.Preset.Cables.Count); // in to out, unbroken
 
         var undone = await Post("/api/v1/live/undo");
-        Assert.Contains(undone.Preset.Blocks, b => b.Id == "drive1" && b.Row == 2 && b.Column == 2);
-        Assert.DoesNotContain(undone.Preset.Blocks, b => b.Row == 2 && b.Column == 2 && b.Type == BuiltInTypes.Shunt);
+        Assert.Contains(undone.Preset.Blocks, static b => b.Id == "drive1" && b.Row == 2 && b.Column == 2);
+        Assert.DoesNotContain(
+            undone.Preset.Blocks,
+            static b => b.Row == 2 && b.Column == 2 && b.Type == BuiltInTypes.Shunt
+        );
     }
 
     [Fact]
@@ -408,16 +417,16 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
         // Row 0 is empty between them: shunts fill columns 3 and 4 there, then the cable drops to the delay's row.
         var wired = await Post("/api/v1/live/cables", new CableRequest("drive1", "delay1"));
-        Assert.Contains(wired.Preset.Blocks, b => b.Id == "shunt-r0c3" && b.Type == BuiltInTypes.Shunt);
-        Assert.Contains(wired.Preset.Blocks, b => b.Id == "shunt-r0c4" && b.Type == BuiltInTypes.Shunt);
-        Assert.Contains(wired.Preset.Cables, c => c.From == "drive1" && c.To == "shunt-r0c3");
-        Assert.Contains(wired.Preset.Cables, c => c.From == "shunt-r0c3" && c.To == "shunt-r0c4");
-        Assert.Contains(wired.Preset.Cables, c => c.From == "shunt-r0c4" && c.To == "delay1");
+        Assert.Contains(wired.Preset.Blocks, static b => b.Id == "shunt-r0c3" && b.Type == BuiltInTypes.Shunt);
+        Assert.Contains(wired.Preset.Blocks, static b => b.Id == "shunt-r0c4" && b.Type == BuiltInTypes.Shunt);
+        Assert.Contains(wired.Preset.Cables, static c => c.From == "drive1" && c.To == "shunt-r0c3");
+        Assert.Contains(wired.Preset.Cables, static c => c.From == "shunt-r0c3" && c.To == "shunt-r0c4");
+        Assert.Contains(wired.Preset.Cables, static c => c.From == "shunt-r0c4" && c.To == "delay1");
 
         // One undo takes the shunts and the cables back.
         var undone = await Post("/api/v1/live/undo");
-        Assert.DoesNotContain(undone.Preset.Blocks, b => b.Row == 0 && b.Column is 3 or 4);
-        Assert.DoesNotContain(undone.Preset.Cables, c => c.From == "drive1");
+        Assert.DoesNotContain(undone.Preset.Blocks, static b => b.Row == 0 && b.Column is 3 or 4);
+        Assert.DoesNotContain(undone.Preset.Cables, static c => c.From == "drive1");
 
         // A block on both rows in between: refused, and nothing changes.
         await Post("/api/v1/live/blocks", new AddBlockRequest("chorus", 0, 3));
@@ -428,7 +437,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
             Token
         );
         Assert.Equal(HttpStatusCode.BadRequest, blocked.StatusCode);
-        Assert.DoesNotContain((await Live()).Preset.Cables, c => c.From == "drive1");
+        Assert.DoesNotContain((await Live()).Preset.Cables, static c => c.From == "drive1");
     }
 
     [Fact]
@@ -439,13 +448,13 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
         // The delay only takes signal in: it goes, and nothing takes its place.
         var withoutDelay = await Delete("/api/v1/live/blocks/delay1");
-        Assert.DoesNotContain(withoutDelay.Preset.Blocks, b => b.Row == 0 && b.Column == 3);
-        Assert.DoesNotContain(withoutDelay.Preset.Cables, c => c.To == "delay1");
+        Assert.DoesNotContain(withoutDelay.Preset.Blocks, static b => b.Row == 0 && b.Column == 3);
+        Assert.DoesNotContain(withoutDelay.Preset.Cables, static c => c.To == "delay1");
 
         // Deleting a shunt on purpose breaks the path there.
         var withoutShunt = await Delete("/api/v1/live/blocks/shunt-r2c5");
-        Assert.DoesNotContain(withoutShunt.Preset.Blocks, b => b.Row == 2 && b.Column == 5);
-        Assert.DoesNotContain(withoutShunt.Preset.Cables, c => c.From == "shunt-r2c5" || c.To == "shunt-r2c5");
+        Assert.DoesNotContain(withoutShunt.Preset.Blocks, static b => b.Row == 2 && b.Column == 5);
+        Assert.DoesNotContain(withoutShunt.Preset.Cables, static c => c.From == "shunt-r2c5" || c.To == "shunt-r2c5");
     }
 
     [Fact]
@@ -454,22 +463,22 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
 
         // Onto the main row's shunt: the drive takes its place and its cables.
         var inserted = await Put("/api/v1/live/blocks/drive1/position", new MoveBlockRequest(2, 3));
-        Assert.DoesNotContain(inserted.Preset.Blocks, b => b.Id == "shunt-r2c3");
-        Assert.Contains(inserted.Preset.Cables, c => c.From == "shunt-r2c2" && c.To == "drive1");
-        Assert.Contains(inserted.Preset.Cables, c => c.From == "drive1" && c.To == "shunt-r2c4");
+        Assert.DoesNotContain(inserted.Preset.Blocks, static b => b.Id == "shunt-r2c3");
+        Assert.Contains(inserted.Preset.Cables, static c => c.From == "shunt-r2c2" && c.To == "drive1");
+        Assert.Contains(inserted.Preset.Cables, static c => c.From == "drive1" && c.To == "shunt-r2c4");
         Assert.Equal(13, inserted.Preset.Cables.Count);
 
         // Along the row: a shunt fills the cell it left, and it takes over the next one.
         var along = await Put("/api/v1/live/blocks/drive1/position", new MoveBlockRequest(2, 5));
-        Assert.Contains(along.Preset.Cables, c => c.From == "shunt-r2c4" && c.To == "drive1");
-        Assert.Contains(along.Preset.Cables, c => c.From == "drive1" && c.To == "shunt-r2c6");
-        Assert.Equal(BuiltInTypes.Shunt, along.Preset.Blocks.Single(b => b.Row == 2 && b.Column == 3).Type);
+        Assert.Contains(along.Preset.Cables, static c => c.From == "shunt-r2c4" && c.To == "drive1");
+        Assert.Contains(along.Preset.Cables, static c => c.From == "drive1" && c.To == "shunt-r2c6");
+        Assert.Equal(BuiltInTypes.Shunt, along.Preset.Blocks.Single(static b => b.Row == 2 && b.Column == 3).Type);
         Assert.Equal(13, along.Preset.Cables.Count);
 
         // Out of the path: the row stays connected, and the drive keeps no cables.
         var outside = await Put("/api/v1/live/blocks/drive1/position", new MoveBlockRequest(0, 5));
-        Assert.Equal(BuiltInTypes.Shunt, outside.Preset.Blocks.Single(b => b.Row == 2 && b.Column == 5).Type);
-        Assert.DoesNotContain(outside.Preset.Cables, c => c.From == "drive1" || c.To == "drive1");
+        Assert.Equal(BuiltInTypes.Shunt, outside.Preset.Blocks.Single(static b => b.Row == 2 && b.Column == 5).Type);
+        Assert.DoesNotContain(outside.Preset.Cables, static c => c.From == "drive1" || c.To == "drive1");
         Assert.Equal(13, outside.Preset.Cables.Count);
     }
 
@@ -490,8 +499,11 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     [Fact]
     public async Task Each_hardware_input_feeds_one_input_block_and_a_preset_has_one_output_1() {
         var added = await Post("/api/v1/live/blocks", new AddBlockRequest(BuiltInTypes.Input, 0, 0));
-        var second = added.Preset.Blocks.Single(b => b.Id == "input1");
-        Assert.All(Preset.ChannelNames, c => Assert.Equal(1, second.Channels[c]["source"])); // Input 2, on every channel
+        var second = added.Preset.Blocks.Single(static b => b.Id == "input1");
+        Assert.All(
+            Preset.ChannelNames,
+            c => Assert.Equal(1, second.Channels[c]["source"])
+        ); // Input 2, on every channel
 
         using var taken = await client.PatchAsJsonAsync(
             "/api/v1/live/blocks/in1/params",
@@ -506,7 +518,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         );
         Assert.All(
             Preset.ChannelNames,
-            c => Assert.Equal(4, moved.Preset.Blocks.Single(b => b.Id == "input1").Channels[c]["source"])
+            c => Assert.Equal(4, moved.Preset.Blocks.Single(static b => b.Id == "input1").Channels[c]["source"])
         );
 
         foreach (var row in new[] { 1, 3, 4, 5 }) { // row 2 holds in1
@@ -525,7 +537,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         );
         Assert.Equal(HttpStatusCode.Conflict, seventh.StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, output.StatusCode);
-        Assert.Equal(6, (await Live()).Preset.Blocks.Count(b => b.Type == BuiltInTypes.Input));
+        Assert.Equal(6, (await Live()).Preset.Blocks.Count(static b => b.Type == BuiltInTypes.Input));
     }
 
     async Task<LiveState> Delete(string url) => await Read(await client.DeleteAsync(url, Token));

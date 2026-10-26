@@ -7,7 +7,7 @@ namespace Cathode.Dsp.Tests;
 public class EngageTests {
     [Fact]
     public void Flanger_lfo_bypass_reset_restarts_the_sweep() {
-        AssertRestarts(reset => TestBlocks.Create<FlangerBlock>(
+        AssertRestarts(static reset => TestBlocks.Create<FlangerBlock>(
                 (FlangerBlock.LfoReset, reset),
                 (FlangerBlock.Rate, 1.3f)
             )
@@ -16,7 +16,10 @@ public class EngageTests {
 
     [Fact]
     public void Phaser_lfo_bypass_reset_restarts_the_sweep() {
-        AssertRestarts(reset => TestBlocks.Create<PhaserBlock>((PhaserBlock.LfoReset, reset), (PhaserBlock.Rate, 1.3f))
+        AssertRestarts(static reset => TestBlocks.Create<PhaserBlock>(
+                (PhaserBlock.LfoReset, reset),
+                (PhaserBlock.Rate, 1.3f)
+            )
         );
     }
 

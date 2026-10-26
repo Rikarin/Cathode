@@ -52,7 +52,8 @@ public class PickupLoadTests {
 
     [Fact]
     public void Lower_loads_damp_the_peak() {
-        var qs = PickupLoad.Loads.Skip(1).Select(static load => PickupLoad.Resonance(Pickup.Humbucker, load, 500e-12).Q);
+        var qs = PickupLoad.Loads.Skip(1)
+            .Select(static load => PickupLoad.Resonance(Pickup.Humbucker, load, 500e-12).Q);
 
         Assert.True(qs.Zip(qs.Skip(1)).All(static p => p.Second < p.First));
     }
@@ -80,11 +81,16 @@ public class PickupLoadTests {
             var chosen = buffered
                 ? PickupLoad.Magnitude(pickup, PickupLoad.ReferenceLoad, 0, frequency)
                 : PickupLoad.Magnitude(pickup, load, cable, frequency);
-            var expected = Analysis.ToDb(chosen / PickupLoad.Magnitude(pickup, PickupLoad.ReferenceLoad, cable, frequency));
+            var expected = Analysis.ToDb(
+                chosen / PickupLoad.Magnitude(pickup, PickupLoad.ReferenceLoad, cable, frequency)
+            );
             var actual = Analysis.ToDb(Analysis.MagnitudeAt(response, frequency, Rate));
             // The bilinear transform bends the response a little near the resonances and towards Nyquist.
             var tolerance = frequency <= 2_000 ? 0.25 : 1.0;
-            Assert.True(Math.Abs(actual - expected) < tolerance, $"{frequency:0} Hz: {actual:0.00} dB, expected {expected:0.00} dB");
+            Assert.True(
+                Math.Abs(actual - expected) < tolerance,
+                $"{frequency:0} Hz: {actual:0.00} dB, expected {expected:0.00} dB"
+            );
         }
     }
 

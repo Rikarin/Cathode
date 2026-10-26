@@ -1,5 +1,5 @@
-using System.Runtime.CompilerServices;
 using Cathode.Dsp.Wdf;
+using System.Runtime.CompilerServices;
 using LinearOpAmpCircuit = Cathode.Dsp.Wdf.WdfCircuit<Cathode.Dsp.Wdf.RTypeAdaptor<Cathode.Dsp.Wdf.Ports<
     Cathode.Dsp.Wdf.ResistiveVoltageSource,
     Cathode.Dsp.Wdf.Resistor,
@@ -192,7 +192,11 @@ public sealed class OpAmpStage {
         diodes.Root.Antialiased = antialias;
         rails.Root.Antialiased = antialias;
         var slewed = slewRate != this.slewRate;
-        if (!fresh && !slewed && drive == this.drive && sourceResistance == source && voice == this.voice
+        if (!fresh
+            && !slewed
+            && drive == this.drive
+            && sourceResistance == source
+            && voice == this.voice
             && bass == this.bass) {
             return;
         }
@@ -235,6 +239,7 @@ public sealed class OpAmpStage {
         if (bass > 0 && !second) {
             (leg, legCapacitance, secondLeg, secondCapacitance) = Shunted(leg, stage.GroundCapacitance, bass);
         }
+
         if (Solve == OpAmpSolve.Device) {
             Device.Source.Value = sourceResistance;
             Device.SetResistance(InputBias, stage.InputBias);
@@ -1028,8 +1033,14 @@ public sealed class ToneStage {
         double highHz = 0
     ) {
         var fresh = !ReferenceEquals(network, this.network) || rate != this.rate;
-        if (!fresh && tone == position && bass == this.bass && middle == this.middle && midHz == this.midHz
-            && middle2 == this.middle2 && lowHz == this.lowHz && highHz == this.highHz) {
+        if (!fresh
+            && tone == position
+            && bass == this.bass
+            && middle == this.middle
+            && midHz == this.midHz
+            && middle2 == this.middle2
+            && lowHz == this.lowHz
+            && highHz == this.highHz) {
             return;
         }
 

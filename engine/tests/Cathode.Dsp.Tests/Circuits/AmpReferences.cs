@@ -293,7 +293,13 @@ static class AmpReferences {
 
             int Map(int k) => k == 0 ? 0 : first + k - 1;
             c.Resistor(plate, Map(net.Input), 1);
-            Elements(c, new("loop", net), loopControls ?? new(0.5, 0.5, 0.5, 0.5, 0.5, false), PreampSettings.Stock, Map);
+            Elements(
+                c,
+                new("loop", net),
+                loopControls ?? new(0.5, 0.5, 0.5, 0.5, 0.5, false),
+                PreampSettings.Stock,
+                Map
+            );
             loopGrid = c.Node();
             c.Capacitor(Map(net.Output), loopGrid, 10e-6);
         }

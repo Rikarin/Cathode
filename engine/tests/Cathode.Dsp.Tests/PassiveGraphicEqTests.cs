@@ -1,8 +1,8 @@
-using System.Numerics;
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Filters;
 using Cathode.Testing;
+using System.Numerics;
 
 namespace Cathode.Dsp.Tests;
 
@@ -34,8 +34,12 @@ public class PassiveGraphicEqTests {
 
     [Fact]
     public void A_full_slider_boosts_its_resonance_and_the_opposite_end_cuts_it_back_exactly() {
-        var boost = Analysis.ToDb(Analysis.MagnitudeAt(Response(PassiveGraphicEq.Mark, [0.5, 0.5, 1, 0.5, 0.5]), 724, Rate));
-        var cut = Analysis.ToDb(Analysis.MagnitudeAt(Response(PassiveGraphicEq.Mark, [0.5, 0.5, 0, 0.5, 0.5]), 724, Rate));
+        var boost = Analysis.ToDb(
+            Analysis.MagnitudeAt(Response(PassiveGraphicEq.Mark, [0.5, 0.5, 1, 0.5, 0.5]), 724, Rate)
+        );
+        var cut = Analysis.ToDb(
+            Analysis.MagnitudeAt(Response(PassiveGraphicEq.Mark, [0.5, 0.5, 0, 0.5, 0.5]), 724, Rate)
+        );
 
         Assert.InRange(boost, 10, 18);
         Assert.Equal(-boost, cut, 0.05); // swapping the slider's ends inverts the response
@@ -45,7 +49,9 @@ public class PassiveGraphicEqTests {
     public void Neighbouring_bands_interact_as_the_network_does() {
         // Between the second and third resonances, boosting one and cutting the other is not the sum of the two in dB:
         // they share the op-amp's nodes.
-        double At(double[] positions) => Analysis.ToDb(Analysis.MagnitudeAt(Response(PassiveGraphicEq.Mark, positions), 520, Rate));
+        static double At(double[] positions) =>
+            Analysis.ToDb(Analysis.MagnitudeAt(Response(PassiveGraphicEq.Mark, positions), 520, Rate));
+
         var second = At([0.5, 1, 0.5, 0.5, 0.5]);
         var third = At([0.5, 0.5, 1, 0.5, 0.5]);
         var both = At([0.5, 1, 1, 0.5, 0.5]);

@@ -1,5 +1,5 @@
-using System.Runtime.CompilerServices;
 using Cathode.Dsp.Wdf;
+using System.Runtime.CompilerServices;
 
 namespace Cathode.Dsp.Amp;
 
@@ -1512,7 +1512,9 @@ struct PushPullStage : INonlinearDevice {
         leakScale = 1;
         conduction = 1;
         this.phaseInverter = phaseInverter;
-        loop = design.Loop is { } stage && design.Topology == PowerTopology.PushPull ? new LoopStage(stage, rate) : null;
+        loop = design.Loop is { } stage && design.Topology == PowerTopology.PushPull
+            ? new LoopStage(stage, rate)
+            : null;
         tubes = design.TubesPerSide;
         singleEnded = design.Topology == PowerTopology.SingleEnded;
         if (design.Strapped is { } second && design.StrappedPerSide > 0) {
@@ -1608,7 +1610,7 @@ struct PushPullStage : INonlinearDevice {
         // Single-ended the input drives the grid directly and the plate falls as it rises: the tap is taken the other way
         // round (a real amp's secondary is wired for that), or the "feedback" would be positive.
         // A loop stage inverts too (see LoopStage).
-        feedback = (singleEnded != (loop is not null) ? -1 : 1) * amount * design.TapGain / turns;
+        feedback = (singleEnded != loop is not null ? -1 : 1) * amount * design.TapGain / turns;
     }
 
     /// <summary>
@@ -1698,11 +1700,31 @@ struct PushPullStage : INonlinearDevice {
             eb - BiasSwing,
             GridOffsetA + BiasSwing,
             GridOffsetB + BiasSwing,
-            out var g, out _);
+            out var g,
+            out _
+        );
         var gridDriveA = g.AA * slopeA + g.AB * slopeB; // d(V_g1k) / dv on each side
         var gridDriveB = g.BA * slopeA + g.BB * slopeB;
-        var ia = tube.PlateCurrent(factorA, vgA, ScreenA, SupplyA + 0.5 * v, kp, kneeScale, out var gridSlopeA, out var plateSlopeA);
-        var ib = tube.PlateCurrent(factorB, vgB, ScreenB, SupplyB - 0.5 * v, kp, kneeScale, out var gridSlopeB, out var plateSlopeB);
+        var ia = tube.PlateCurrent(
+            factorA,
+            vgA,
+            ScreenA,
+            SupplyA + 0.5 * v,
+            kp,
+            kneeScale,
+            out var gridSlopeA,
+            out var plateSlopeA
+        );
+        var ib = tube.PlateCurrent(
+            factorB,
+            vgB,
+            ScreenB,
+            SupplyB - 0.5 * v,
+            kp,
+            kneeScale,
+            out var gridSlopeB,
+            out var plateSlopeB
+        );
         currents[0] = 0.5 * tubes * (ia - ib);
         jacobian[0] = 0.5
             * tubes
@@ -1787,7 +1809,9 @@ struct PushPullStage : INonlinearDevice {
             eb - BiasSwing,
             GridOffsetA + BiasSwing,
             GridOffsetB + BiasSwing,
-            out _, out var nodes);
+            out _,
+            out var nodes
+        );
         grids.Commit(nodes);
         GridCurrents = tubes * (nodes.CurrentA + nodes.CurrentB);
         if (!General) {
@@ -1902,7 +1926,9 @@ struct PushPullStage : INonlinearDevice {
             eb - BiasSwing,
             GridOffsetA + BiasSwing,
             GridOffsetB + BiasSwing,
-            out var g, out _);
+            out var g,
+            out _
+        );
         var gridDriveA = g.AA * slopeA + g.AB * slopeB;
         if (singleEnded) {
             current = Side(vgA, ScreenA, factorA, SupplyA, SupplyA + v, 1, gridDriveA, out slope);
@@ -1959,7 +1985,16 @@ struct PushPullStage : INonlinearDevice {
         }
 
         if (strapped is { } second) {
-            var ip = second.PlateCurrent(vg, plate, plate, strappedKp, strappedKnee, out var gs, out var ss, out var ps);
+            var ip = second.PlateCurrent(
+                vg,
+                plate,
+                plate,
+                strappedKp,
+                strappedKnee,
+                out var gs,
+                out var ss,
+                out var ps
+            );
             var ig2 = second.ScreenCurrent(vg, plate, out var screenSlope);
             total += strappedTubes * (ip + ig2);
             slope += strappedTubes

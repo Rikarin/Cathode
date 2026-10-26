@@ -112,7 +112,7 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
     [Fact]
     public void Negative_feedback_lowers_the_gain_and_presence_lifts_the_treble() {
         // The Plexi below clipping: master low, a quiet 1 kHz and 6 kHz.
-        double Level(float feedback, float presence, double frequency) {
+        static double Level(float feedback, float presence, double frequency) {
             using var block = Create(
                 1,
                 (CircuitAmpBlock.Gain, 2f),
@@ -139,7 +139,7 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
 
     [Fact]
     public void Sag_and_bias_move_the_supply_and_the_idle_current() {
-        double Idle(float bias) {
+        static double Idle(float bias) {
             using var block = Create(1, (CircuitAmpBlock.Bias, bias));
             return block.Channel.Power.PlateCurrents.A;
         }
@@ -148,7 +148,7 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         output.WriteLine($"Plexi idle: cold {cold * 1e3:0.0} mA, stock {stock * 1e3:0.0} mA, hot {hot * 1e3:0.0} mA");
         Assert.True(cold < 0.5 * stock && hot > 1.5 * stock);
 
-        double Sagged(float sag) {
+        static double Sagged(float sag) {
             using var block = Create(2, (CircuitAmpBlock.Sag, sag), (CircuitAmpBlock.Gain, 8f));
             BlockRender.Mono(block, Chord(24_000, 0.5f), 64);
             return block.Channel.Power.Supply;

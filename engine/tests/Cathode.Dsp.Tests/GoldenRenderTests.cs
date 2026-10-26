@@ -24,7 +24,7 @@ public class GoldenRenderTests {
     public void Default_render_matches_the_committed_reference(string typeId) {
         using var block = Registry.Create(typeId);
         block.Prepare(Spec);
-        var (left, right) = BlockRender.Stereo(block, Stimulus(1), Stimulus(2), _ => Spec.MaxBlockSize);
+        var (left, right) = BlockRender.Stereo(block, Stimulus(1), Stimulus(2), static _ => Spec.MaxBlockSize);
         var path = Path.Combine(Folder, typeId + ".wav");
 
         if (Environment.GetEnvironmentVariable("CATHODE_UPDATE_GOLDEN") == "1"

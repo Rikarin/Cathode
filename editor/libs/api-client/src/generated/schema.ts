@@ -2341,7 +2341,8 @@ export interface components {
       footswitchOverrides: components['schemas']['FootswitchOverride'][];
       /**
        * Format: int32
-       * @description The scene that was active when the preset was saved: where it starts when the global Default Scene is As Saved.
+       * @description The scene that was active when the preset was saved: where it starts when the global Default Scene is As
+       *     Saved.
        */
       savedScene: number;
     };

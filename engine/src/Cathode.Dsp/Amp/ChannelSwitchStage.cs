@@ -1,5 +1,5 @@
-using System.Runtime.CompilerServices;
 using Cathode.Dsp.Wdf;
+using System.Runtime.CompilerServices;
 
 namespace Cathode.Dsp.Amp;
 

@@ -1,6 +1,6 @@
-using System.Text.Json;
 using Cathode.Contracts;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace Cathode.Server.Stores;
 

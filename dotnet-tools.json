@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "rikarin.skala.cli": {
+      "version": "4.4.0",
+      "commands": [
+        "skala"
+      ],
+      "rollForward": false
+    }
+  }
+}

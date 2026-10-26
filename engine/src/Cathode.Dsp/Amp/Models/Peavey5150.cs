@@ -106,10 +106,12 @@ public static class Peavey5150 {
         // The drawing's rails: V3 (the inverter) is the preamp node, V2 feeds V2B, V5 and V3A, V1 feeds V1 and V2A.
         // The supply page is not among those read, so the droppers are the generic chain's (V3 to V2 to V1, 10k into
         // 22 µF each) and each node draws an equal share of the preamp's 6 mA per triode on it (ten in all): 0.6 mA.
-        PreampSupply = new([
-            new(AmpChannel.GenericResistance, AmpChannel.GenericCap, 3e-3),
-            new(AmpChannel.GenericResistance, AmpChannel.GenericCap, 1.8e-3, 1)
-        ])
+        PreampSupply = new(
+            [
+                new(AmpChannel.GenericResistance, AmpChannel.GenericCap, 3e-3),
+                new(AmpChannel.GenericResistance, AmpChannel.GenericCap, 1.8e-3, 1)
+            ]
+        )
     };
 
     /// <summary>

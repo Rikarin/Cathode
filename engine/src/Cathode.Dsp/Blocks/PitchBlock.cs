@@ -1,9 +1,9 @@
-using System.Globalization;
 using Cathode.Dsp.Filters;
 using Cathode.Dsp.Modulation;
 using Cathode.Dsp.Parameters;
-using Cathode.Dsp.Routing;
 using Cathode.Dsp.Pitch;
+using Cathode.Dsp.Routing;
+using System.Globalization;
 
 namespace Cathode.Dsp.Blocks;
 
@@ -246,6 +246,7 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
     const double ArpGateSeconds = 0.003;
     const double OnsetReleaseSeconds = 0.03;
     const float OnsetLevel = 0.01f; // -40 dBFS
+
     /// <summary>The custom scale's notes by default: a major scale (the eighth note unused at 7 notes).</summary>
     static readonly int[] DefaultCustomNotes = [0, 2, 4, 5, 7, 9, 11, 11];
 
@@ -654,8 +655,7 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
         type is not (PitchType.Detune or PitchType.OctaveDivider or PitchType.Crystals);
 
     /// <summary>Formant Shift N on the harmonisers; voice 1's is the single-voice types' "Formant Shift".</summary>
-    static string[] FormantShiftLabels(int voice) =>
-    [
+    static string[] FormantShiftLabels(int voice) => [
         ..Enum.GetValues<PitchType>()
             .Select(t => IsHarmony(t) ? $"Formant Shift {voice}"
                 : voice == 1 && HasFormant(t) ? "Formant Shift"
@@ -982,7 +982,10 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
         return customDegrees.AsSpan(0, Scales.CustomDegrees(customNotes, count, customDegrees));
     }
 
-    /// <summary>Whether every tone of <paramref name="chord" /> is in the scale of <paramref name="degrees" /> on <paramref name="key" />.</summary>
+    /// <summary>
+    ///     Whether every tone of <paramref name="chord" /> is in the scale of <paramref name="degrees" /> on
+    ///     <paramref name="key" />.
+    /// </summary>
     static bool Holds(ReadOnlySpan<int> degrees, int key, int chord) {
         var mask = 0;
         foreach (var d in degrees) {

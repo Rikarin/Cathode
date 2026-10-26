@@ -110,9 +110,11 @@ public static class Powerball {
         // playing down to gain 1, and no drawn part can stop it (docs/06 §3.7), so the real amp must filter its first
         // stages more than the drawing shows. 10k / 22 µF is the generic chain's step and the smallest search value
         // with a margin: 18 µF still passes, 15 µF and 10 µF fail; one extra node fails or passes erratically.
-        PreampSupply = new([
-            new(4.7e3, 10e-6, 0.75e-3), new(10e3, 22e-6, 1.5e-3, 1), new(10e3, 22e-6, 0.75e-3, 2)
-        ])
+        PreampSupply = new(
+            [
+                new(4.7e3, 10e-6, 0.75e-3), new(10e3, 22e-6, 1.5e-3, 1), new(10e3, 22e-6, 0.75e-3, 2)
+            ]
+        )
     };
 
     /// <summary>

@@ -1,7 +1,7 @@
+using Cathode.Dsp.IO;
 using System.IO.Compression;
 using System.Numerics;
 using System.Text.Json;
-using Cathode.Dsp.IO;
 
 namespace Cathode.Dsp.Cabinets;
 

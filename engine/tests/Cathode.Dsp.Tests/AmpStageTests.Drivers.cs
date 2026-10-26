@@ -213,7 +213,7 @@ public partial class AmpStageTests {
         );
         output.WriteLine(
             $"{name}: B+ {power.Supply:0.0} V, grid bias {power.GridBias:0.00} V, idle {power.PlateCurrents.A * 1e3:0.0} mA "
-            + $"per tube"
+            + "per tube"
         );
         var errorDb = CompareInTime(name, power.Tick, power.Newton, circuit, speaker, amplitude, 8);
         Assert.True(errorDb < -30, $"{name}: {errorDb:0.0} dB from the reference");

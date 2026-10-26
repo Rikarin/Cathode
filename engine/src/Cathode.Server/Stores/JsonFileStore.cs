@@ -1,8 +1,8 @@
+using Cathode.Server.Rig;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
 using System.Text.RegularExpressions;
-using Cathode.Server.Rig;
 
 namespace Cathode.Server.Stores;
 
@@ -100,9 +100,11 @@ public sealed class JsonFileStore<T>
         for (var attempt = 1;; attempt++) {
             try {
                 return operation();
-            } catch (Exception e) when (e is IOException and not FileNotFoundException and not DirectoryNotFoundException
-                    or UnauthorizedAccessException
-                && attempt < 20) {
+            } catch (Exception e) when (e is IOException
+                                            and not FileNotFoundException
+                                            and not DirectoryNotFoundException
+                                            or UnauthorizedAccessException
+                                        && attempt < 20) {
                 Thread.Sleep(5 * attempt);
             }
         }

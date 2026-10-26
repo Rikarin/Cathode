@@ -74,9 +74,9 @@ public sealed class PresetStore(IOptions<ServerOptions> options, FactoryPresets 
     public AssetUsage[] AssetUsage() => [
         ..files.All()
             .SelectMany(static e => e.Item.Blocks
-                .SelectMany(static b => b.Assets.Values)
-                .Distinct()
-                .Select(reference => (Reference: reference, e.Item.Name))
+                    .SelectMany(static b => b.Assets.Values)
+                    .Distinct()
+                    .Select(reference => (Reference: reference, e.Item.Name))
             )
             .GroupBy(static use => use.Reference)
             .Select(static g => new AssetUsage(

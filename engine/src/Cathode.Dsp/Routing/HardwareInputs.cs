@@ -107,7 +107,8 @@ public sealed class InputPort(HardwareInputs inputs, double sampleRate) {
     bool fading;
 
     /// <summary>Whether <paramref name="source" /> has device channels (unmapped sources read as silence).</summary>
-    public bool IsConnected(int source) => (uint)source < HardwareInputs.Count && (inputs.Connected & (1 << source)) != 0;
+    public bool IsConnected(int source) =>
+        (uint)source < HardwareInputs.Count && (inputs.Connected & (1 << source)) != 0;
 
     /// <summary>
     ///     Audio thread: adds source <paramref name="source" /> times <paramref name="gain" /> into the buffers (one

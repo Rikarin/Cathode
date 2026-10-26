@@ -1,6 +1,5 @@
-using System.Numerics;
-using System.Runtime.CompilerServices;
 using Cathode.Dsp.Wdf;
+using System.Runtime.CompilerServices;
 
 namespace Cathode.Dsp.Amp;
 
@@ -45,12 +44,14 @@ public sealed record LdrDesign(
 ///     <paramref name="Intensity" /> pot's wiper to ground, shunts the signal at the node the pot's top hangs on
 ///     (<paramref name="NodeResistance" />: that node's Thévenin resistance without the pot; 0 to take the stage's own
 ///     output resistance, less the pot's track, in parallel with <paramref name="DownstreamLoad" />). The stage's
-///     netlist must carry the pot's track (<c>Intensity.Ohms</c>) from that node to ground. <paramref name="Channel" />, when set, is
+///     netlist must carry the pot's track (<c>Intensity.Ohms</c>) from that node to ground. <paramref name="Channel" />,
+///     when set, is
 ///     the switch under which the signal passes that node (the Vibrato channel).
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <b>The lamp.</b> The driver's cathode (<paramref name="DriverCathode" /> with a large cap) charges up to near the
+///         <b>The lamp.</b> The driver's cathode (<paramref name="DriverCathode" /> with a large cap) charges up to near
+///         the
 ///         positive peaks of its grid, so it conducts in pulses near each peak (class C). Its bias is solved where the
 ///         pulses' mean current holds the cathode, each point of the pulse on the tube's Koren curves with the lamp lit
 ///         (its plate at the supply less <paramref name="LampVoltage" /> and the resistor's drop); the drawings' 17 V at
@@ -126,10 +127,14 @@ public sealed record OpticalTremoloDesign(
         new OpticalTremoloStage(this, stage, sampleRate);
 }
 
-/// <summary>An <see cref="OpticalTremoloDesign" />'s lamp current over one cycle and its driver's bias, per Speed rotation.</summary>
+/// <summary>
+///     An <see cref="OpticalTremoloDesign" />'s lamp current over one cycle and its driver's bias, per Speed
+///     rotation.
+/// </summary>
 sealed class LampTable {
     /// <summary><c>[rotation * Samples + n]</c>, amperes.</summary>
-    public readonly double[] Current = new double[PhaseShiftOscillatorDesign.Points * PhaseShiftOscillatorDesign.Samples];
+    public readonly double[] Current =
+        new double[PhaseShiftOscillatorDesign.Points * PhaseShiftOscillatorDesign.Samples];
 
     /// <summary>The cell's light drive, <c>(I / I_ref)^γ</c>, laid out as <see cref="Current" />.</summary>
     public readonly double[] Light = new double[PhaseShiftOscillatorDesign.Points * PhaseShiftOscillatorDesign.Samples];
@@ -160,15 +165,27 @@ sealed class LampTable {
             Pulse(triode, design, swing, Bias[p], pulse);
             for (var n = 0; n < samples; n++) {
                 // What the shunt across the lamp carries (the lamp's voltage plus the resistor's drop) stays dark.
-                var lamp = Math.Max(pulse[n] - (design.LampVoltage + pulse[n] * design.LampResistor) / design.LampShunt, 0);
+                var lamp = Math.Max(
+                    pulse[n] - (design.LampVoltage + pulse[n] * design.LampResistor) / design.LampShunt,
+                    0
+                );
                 Current[p * samples + n] = lamp;
                 Light[p * samples + n] = lamp > 0 ? Math.Pow(lamp / cell.ReferenceCurrent, cell.Exponent) : 0;
             }
         }
     }
 
-    /// <summary>The driver's plate current over a cycle (into <paramref name="current" />) at cathode voltage <paramref name="cathode" />; returns its mean.</summary>
-    static double Pulse(Triode triode, OpticalTremoloDesign design, double swing, double cathode, Span<double> current) {
+    /// <summary>
+    ///     The driver's plate current over a cycle (into <paramref name="current" />) at cathode voltage
+    ///     <paramref name="cathode" />; returns its mean.
+    /// </summary>
+    static double Pulse(
+        Triode triode,
+        OpticalTremoloDesign design,
+        double swing,
+        double cathode,
+        Span<double> current
+    ) {
         var sum = 0.0;
         var most = (design.DriverSupply - design.LampVoltage - cathode) / design.LampResistor;
         for (var n = 0; n < current.Length; n++) {
@@ -281,7 +298,8 @@ public sealed class OpticalTremoloStage : AmpStage {
             var t = position - i;
             const int samples = PhaseShiftOscillatorDesign.Samples;
             for (var n = 0; n < samples; n++) {
-                light[n] = lamp.Light[i * samples + n] + t * (lamp.Light[(i + 1) * samples + n] - lamp.Light[i * samples + n]);
+                light[n] = lamp.Light[i * samples + n]
+                    + t * (lamp.Light[(i + 1) * samples + n] - lamp.Light[i * samples + n]);
             }
 
             Times();
@@ -344,6 +362,7 @@ public sealed class OpticalTremoloStage : AmpStage {
             var without = 1 / Math.Max(inner.OutputResistance, 1) - 1 / Design.Intensity.Ohms;
             node = 1 / (Math.Max(without, 1e-12) + 1 / Design.DownstreamLoad);
         }
+
         var to = channelOn ? Design.Gain(CellResistance, intensity, node) : 1;
         if ((depth == 0 || !channelOn) && to == 1 && Math.Abs(from - 1) < 1e-9) {
             // Off (or its channel idle) and settled: hand the stage back untouched.

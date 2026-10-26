@@ -164,8 +164,9 @@ public static class QuickRod {
         net.Resistor(coupled, gainTop, 470e3);
         net.Capacitor(coupled, gainTop, 1e-9);
         net.SwitchedResistor(coupled, StageNetlist.Ground, 47e3, 0, SwitchRole.Bright);
-        var gain = clean ? Idle(net, gainTop, StageNetlist.Ground, Gain) :
-            net.Pot(gainTop, StageNetlist.Ground, Gain, PotRole.Gain);
+        var gain = clean
+            ? Idle(net, gainTop, StageNetlist.Ground, Gain)
+            : net.Pot(gainTop, StageNetlist.Ground, Gain, PotRole.Gain);
 
         // The clean channel's stack: 470 pF, 47k, 220 nF and 22 nF; 6k8 in the middle's place.
         var (trebleTop, slope, bassTop, bassFoot) = (net.Node(), net.Node(), net.Node(), net.Node());

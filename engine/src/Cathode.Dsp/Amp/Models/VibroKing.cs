@@ -24,7 +24,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     </para>
 ///     <para>
 ///         With the Mix control at its dry end the follower drives V4A directly; the reverb's wet network on the pot's
-///         other end is left out; the vibrato's Intensity pot (R9, 250k) loads the stack's output with its whole track. Unverified: the
+///         other end is left out; the vibrato's Intensity pot (R9, 250k) loads the stack's output with its whole track.
+///         Unverified: the
 ///         pot
 ///         tapers (not on the drawing: volume, treble and bass audio, mid linear, as on the AB763s), the output
 ///         transformer

@@ -1,5 +1,5 @@
-using System.Numerics;
 using Cathode.Dsp.Filters;
+using System.Numerics;
 
 namespace Cathode.Dsp.Pitch;
 

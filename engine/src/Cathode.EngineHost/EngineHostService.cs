@@ -1,7 +1,3 @@
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
-using System.Text.Json;
 using Cathode.Audio.Native;
 using Cathode.Dsp;
 using Cathode.Dsp.IO;
@@ -14,6 +10,10 @@ using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.Engine.Telemetry;
 using Cathode.Ipc;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Text.Json;
 
 namespace Cathode.EngineHost;
 
@@ -427,7 +427,7 @@ public sealed class EngineHostService : IDisposable {
         ParamBank? bank;
         int index;
         var eq = IpcBlocks.GlobalEqOutput(block);
-        if (block.SequenceEqual(IpcBlocks.Rig)) {
+        if (block is IpcBlocks.Rig) {
             (bank, index) = (Engine.Rig, RigControls.Descriptor.IndexOf(param));
         } else if (eq >= 0) {
             (bank, index) = (Engine.OutputEq(eq).Params, Engine.OutputEq(eq).Descriptor.IndexOf(param));

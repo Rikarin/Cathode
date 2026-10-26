@@ -1,6 +1,6 @@
-using System.Text.Json;
 using Cathode.Contracts;
 using Cathode.Server.Rig;
+using System.Text.Json;
 
 namespace Cathode.Server.Stores;
 
@@ -47,10 +47,7 @@ public sealed class FactoryPresets(BlockCatalog catalog) {
     /// <summary>The factory bank: its presets in slot order.</summary>
     public Bank Bank() =>
         new() {
-            Id = BankId,
-            Name = BankName,
-            Factory = true,
-            Slots = [..contents.Value.Summaries.Select(static s => s.Id)]
+            Id = BankId, Name = BankName, Factory = true, Slots = [..contents.Value.Summaries.Select(static s => s.Id)]
         };
 
     /// <summary>

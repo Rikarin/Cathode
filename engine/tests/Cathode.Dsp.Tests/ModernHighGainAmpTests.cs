@@ -127,7 +127,7 @@ public class ModernHighGainAmpTests(ITestOutputHelper output) {
     /// </summary>
     [Fact]
     public void Legacy_clean_presence_switch_lifts_the_top() {
-        double Lift(double frequency) {
+        static double Lift(double frequency) {
             (int, float)[] clean = [(CircuitAmpBlock.Switch1, 1f), (CircuitAmpBlock.Control2, 3f)];
             return Level("Legacy VL100", frequency, 1e-3, [..clean, (CircuitAmpBlock.Switch2, 1f)])
                 - Level("Legacy VL100", frequency, 1e-3, clean);
@@ -143,7 +143,7 @@ public class ModernHighGainAmpTests(ITestOutputHelper output) {
     [Fact]
     public void Legacy_lead_presence_turns_the_treble_up() {
         var levels = new[] { 0f, 5f, 10f }
-            .Select(v => Level(
+            .Select(static v => Level(
                     "Legacy VL100",
                     5_000,
                     1e-4,
@@ -173,7 +173,7 @@ public class ModernHighGainAmpTests(ITestOutputHelper output) {
     /// </summary>
     [Fact]
     public void Slo_crunch_raises_the_normal_channel_gain() {
-        double Normal(bool crunch) =>
+        static double Normal(bool crunch) =>
             Level(
                 "SLO-100",
                 1_000,

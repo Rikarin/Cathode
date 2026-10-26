@@ -232,13 +232,14 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
 
     [Fact]
     public void Input_select_takes_the_chosen_input() {
-        float[] Render(int select, bool silentLeft) {
+        static float[] Render(int select, bool silentLeft) {
             using var block = new CircuitAmpBlock();
             block.Params.SetTarget(CircuitAmpBlock.InputSelect, select);
             block.Prepare(new(Rate, 64));
             var chord = CircuitAmpBlockTests.Chord(4_800, 0.25f);
             var silence = new float[chord.Length];
-            return BlockRender.Stereo(block, silentLeft ? silence : chord, silentLeft ? chord : silence, _ => 64).Left;
+            return BlockRender.Stereo(block, silentLeft ? silence : chord, silentLeft ? chord : silence, static _ => 64)
+                .Left;
         }
 
         Assert.True(Analysis.Rms(Render(0, true)) < 1e-6);
@@ -278,7 +279,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
 
     [Fact]
     public void Variac_and_rectifiers_set_the_supply() {
-        double Settled(PowerSettings settings, bool loud) {
+        static double Settled(PowerSettings settings, bool loud) {
             var power = new PowerAmp(AC30.Design.Power, InnerRate);
             power.Apply(settings);
             power.Reset();

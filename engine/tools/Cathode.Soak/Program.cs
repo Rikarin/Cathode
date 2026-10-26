@@ -1,9 +1,9 @@
-using System.Diagnostics;
-using System.Globalization;
-using System.Text.Json;
 using Cathode.Contracts;
 using Cathode.Dsp.IO;
 using Cathode.Soak;
+using System.Diagnostics;
+using System.Globalization;
+using System.Text.Json;
 
 // cathode-soak: run against a live cathode-server (and cathode-host on a device) for --minutes, doing what an editor
 // and a gig would: knob drags, scene switches, preset loads that recompile the graph, uploads, library reads and a
@@ -15,7 +15,9 @@ var options = Options.Parse(args);
 var server = new Uri(options.Text("server", "http://127.0.0.1:5180"));
 var duration = TimeSpan.FromMinutes(options.Double("minutes", 60));
 var output = options.Text("out", "soak.jsonl");
-using var http = new HttpClient { BaseAddress = server, Timeout = TimeSpan.FromSeconds(60) };
+using var http = new HttpClient();
+http.BaseAddress = server;
+http.Timeout = TimeSpan.FromSeconds(60);
 var api = new Api(http);
 
 await api.WaitForEngineAsync();

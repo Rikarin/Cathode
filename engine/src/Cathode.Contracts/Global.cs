@@ -72,6 +72,7 @@ public sealed class GlobalSettings {
 
     /// <summary>The global performance page: controls shown in every preset that has their block.</summary>
     public List<PerformControl> Perform { get; set; } = [];
+
     /// <summary>
     ///     Scene Revert: off, changes made while playing (a bypass, a channel) stay with their scene when you come back
     ///     to it; on, selecting a scene always recalls it as it was last saved.

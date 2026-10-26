@@ -80,8 +80,8 @@ public sealed class PresetTools(PresetStore presets, BlockCatalog catalog) {
         return Batch(
             request.Presets,
             preset => {
-                if (preset.Blocks.FirstOrDefault(b => b.Id == request.Block && b.Type == request.Type) is not
-                    { } block) {
+                if (preset.Blocks.FirstOrDefault(b => b.Id == request.Block && b.Type == request.Type
+                    ) is not { } block) {
                     return false;
                 }
 

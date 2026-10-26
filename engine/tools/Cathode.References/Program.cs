@@ -1,8 +1,8 @@
+using Cathode.References;
+using Cathode.Testing.References;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
-using Cathode.References;
-using Cathode.Testing.References;
 
 // cathode-references: the amp reference harness (docs/06 §4, §5.4).
 //

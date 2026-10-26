@@ -34,7 +34,7 @@ public sealed class EqParityTests : IDisposable {
 
     [Fact]
     public void Peaking_2_narrows_as_it_is_pushed() {
-        float Width(float gain) {
+        static float Width(float gain) {
             using var peq = TestBlocks.Create<ParametricEqBlock>(
                 (ParametricEqBlock.LowType, ParametricEqBlock.Peak2),
                 (ParametricEqBlock.Frequency(1), 1_000f),
@@ -118,7 +118,7 @@ public sealed class EqParityTests : IDisposable {
         );
         var input = Signals.Noise(9_600, 3);
 
-        var (left, right) = BlockRender.Stereo(block, input, input, _ => 64);
+        var (left, right) = BlockRender.Stereo(block, input, input, static _ => 64);
 
         for (var i = 0; i < input.Length; i++) {
             Assert.Equal(2 * input[i], left[i] + right[i], 1e-4f);
@@ -127,7 +127,7 @@ public sealed class EqParityTests : IDisposable {
 
     [Fact]
     public void Stereoizer_alternates_many_more_bands_than_modern() {
-        int Crossings(int type) {
+        static int Crossings(int type) {
             using var block = TestBlocks.Create<EnhancerBlock>(
                 (EnhancerBlock.Type, type),
                 (EnhancerBlock.Width, 100f),
@@ -135,7 +135,7 @@ public sealed class EqParityTests : IDisposable {
                 (EnhancerBlock.HighCut, 20_000f)
             );
             var impulse = Signals.Impulse(16_384);
-            var (left, right) = BlockRender.Stereo(block, impulse, impulse, _ => 64);
+            var (left, right) = BlockRender.Stereo(block, impulse, impulse, static _ => 64);
             var count = 0;
             var previous = 0.0;
             for (var f = 100.0; f < 16_000; f *= 1.01) {
@@ -181,7 +181,7 @@ public sealed class EqParityTests : IDisposable {
             (IrPlayerBlock.SlotParam(1, IrPlayerBlock.Pan), 100f)
         );
 
-        var (left, right) = BlockRender.Stereo(block, Signals.Impulse(400), Signals.Impulse(400), _ => 64);
+        var (left, right) = BlockRender.Stereo(block, Signals.Impulse(400), Signals.Impulse(400), static _ => 64);
 
         Assert.Equal(0.5f, left[10], 1e-4f);
         Assert.Equal(0f, left[50], 1e-4f); // slot 2 is panned right
@@ -197,7 +197,7 @@ public sealed class EqParityTests : IDisposable {
             (IrPlayerBlock.Mode, IrPlayerBlock.StereoMode)
         );
 
-        var (left, right) = BlockRender.Stereo(block, Signals.Impulse(400), Signals.Impulse(400), _ => 64);
+        var (left, right) = BlockRender.Stereo(block, Signals.Impulse(400), Signals.Impulse(400), static _ => 64);
 
         Assert.Equal(0.5f, left[10], 1e-4f);
         Assert.Equal(0f, left[50], 1e-4f);
@@ -239,7 +239,7 @@ public sealed class EqParityTests : IDisposable {
         var left = Signals.Impulse(100);
         var right = new float[100];
 
-        var (outLeft, outRight) = BlockRender.Stereo(block, left, right, _ => 64);
+        var (outLeft, outRight) = BlockRender.Stereo(block, left, right, static _ => 64);
 
         Assert.Equal(1f, outLeft[0], 1e-5f);
         Assert.Equal(1f, outRight[0], 1e-5f);
@@ -255,7 +255,7 @@ public sealed class EqParityTests : IDisposable {
         Assert.Equal(1, block.IrSwaps);
     }
 
-    IrPlayerBlock Create(params object[] settings) {
+    static IrPlayerBlock Create(params object[] settings) {
         var block = new IrPlayerBlock();
         foreach (var setting in settings) {
             switch (setting) {

@@ -1,6 +1,6 @@
-using System.Globalization;
 using Cathode.Dsp;
 using Cathode.Engine.Graph;
+using System.Globalization;
 
 namespace Cathode.Engine;
 
@@ -32,7 +32,7 @@ public sealed class OutputBus : IDisposable {
     public OutputBus(IReadOnlyList<int>? pairs = null, IReadOnlyList<int>? di = null) {
         this.pairs = new int[NodeTypes.OutputCount];
         for (var k = 0; k < this.pairs.Length; k++) {
-            this.pairs[k] = pairs is null ? (k == 0 ? 0 : -1) : k < pairs.Count ? pairs[k] : -1;
+            this.pairs[k] = pairs is null ? k == 0 ? 0 : -1 : k < pairs.Count ? pairs[k] : -1;
         }
 
         for (var k = 1; k < NodeTypes.OutputCount; k++) {
@@ -55,7 +55,10 @@ public sealed class OutputBus : IDisposable {
     /// </summary>
     public static OutputBus Parse(string? outputs, string? di) {
         var pairs = List(outputs);
-        return new(pairs.Length == 0 ? null : [..pairs.Select(static c => c - 1)], [..List(di).Select(static c => c - 1)]);
+        return new(
+            pairs.Length == 0 ? null : [..pairs.Select(static c => c - 1)],
+            [..List(di).Select(static c => c - 1)]
+        );
     }
 
     static int[] List(string? text) =>

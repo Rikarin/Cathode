@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Looping;
@@ -7,6 +6,7 @@ using Cathode.Dsp.Routing;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.Engine.Telemetry;
+using System.Diagnostics;
 
 namespace Cathode.Engine;
 
@@ -70,8 +70,13 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     readonly int calibrationIndex = RigControls.Descriptor.IndexOf("in1Cal");
     readonly int copyIndex = RigControls.Descriptor.IndexOf("copyOut2");
     readonly int muteIndex = RigControls.Descriptor.IndexOf("mute");
-    readonly int[] modeIndex = [..Enumerable.Range(1, Outputs).Select(static k => RigControls.Descriptor.IndexOf($"out{k}Mode"))];
-    readonly int[] trimIndex = [..Enumerable.Range(1, Outputs).Select(static k => RigControls.Descriptor.IndexOf($"out{k}Level"))];
+
+    readonly int[] modeIndex =
+        [..Enumerable.Range(1, Outputs).Select(static k => RigControls.Descriptor.IndexOf($"out{k}Mode"))];
+
+    readonly int[] trimIndex =
+        [..Enumerable.Range(1, Outputs).Select(static k => RigControls.Descriptor.IndexOf($"out{k}Level"))];
+
     readonly GraphicEqBlock[] outputEqs = [new(), new(), new(), new()];
     readonly float[] trims = [1f, 1f, 1f, 1f];
     readonly bool[] active = new bool[Outputs];
@@ -434,6 +439,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                         if (muting) {
                             Ramp(auxLeft, auxRight, muteFrom, muteTo);
                         }
+
                         auxLeft.CopyTo(bus!.Left(k).Slice(offset, length));
                         auxRight.CopyTo(bus.Right(k).Slice(offset, length));
                         outputPeak[k] = Math.Max(outputPeak[k], Math.Max(Peak(auxLeft), Peak(auxRight)));

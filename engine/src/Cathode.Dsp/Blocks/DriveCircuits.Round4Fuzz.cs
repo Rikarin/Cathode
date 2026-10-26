@@ -305,7 +305,11 @@ public static partial class DriveCircuits {
             OutputDb = 10
         };
         var flat = new ToneNetwork(ToneKind.HighCut) {
-            Source = 10e3, Resistor1 = 100, Pot = 1, Capacitor1 = 100e-12, Load = 100e3
+            Source = 10e3,
+            Resistor1 = 100,
+            Pot = 1,
+            Capacitor1 = 100e-12,
+            Load = 100e3
         };
         return scoop with { Modes = [scoop with { Tone = flat }] };
     }

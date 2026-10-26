@@ -1,6 +1,6 @@
+using Cathode.Contracts;
 using System.Net;
 using System.Net.Http.Json;
-using Cathode.Contracts;
 
 namespace Cathode.Server.Tests;
 

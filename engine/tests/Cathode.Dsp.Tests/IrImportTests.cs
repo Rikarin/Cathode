@@ -1,5 +1,4 @@
 using Cathode.Dsp.Convolution;
-using Cathode.Dsp.IO;
 using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
@@ -31,7 +30,7 @@ public class IrImportTests {
         }
 
         // Minimum phase: every leading part of the IR holds at least as much energy as the original's does.
-        double Energy(float[] x, int n) => x.Take(n).Sum(static v => (double)v * v);
+        static double Energy(float[] x, int n) => x.Take(n).Sum(static v => (double)v * v);
         foreach (var n in (int[])[50, 200, 400, 1_000]) {
             Assert.True(Energy(minimum, n) >= Energy(ir, n) * 0.999, $"first {n} samples");
         }

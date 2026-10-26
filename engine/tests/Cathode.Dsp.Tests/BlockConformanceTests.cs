@@ -44,7 +44,8 @@ public class BlockConformanceTests {
     public void Cpu_cost_is_recorded(string typeId) =>
         Assert.True(
             // Outputs 2-4 are the Output block under other ids: its cost stands for theirs until the bench is rerun.
-            (BlockCosts.Of(typeId) ?? (typeId is "output2" or "output3" or "output4" ? BlockCosts.Of("output") : null)) > 0,
+            (BlockCosts.Of(typeId) ?? (typeId is "output2" or "output3" or "output4" ? BlockCosts.Of("output") : null))
+            > 0,
             $"{typeId} has no measured cost: run dotnet run -c Release --project tools/Cathode.Bench -- --write"
         );
 
@@ -63,11 +64,11 @@ public class BlockConformanceTests {
                 (start, jump, stimulus, seed) => {
                     using var block = Create(typeId, start);
                     var input = Stimulus(stimulus, seed, 9_600);
-                    var (left, right) = BlockRender.Stereo(block, input, input, _ => MaxBlock);
+                    var (left, right) = BlockRender.Stereo(block, input, input, static _ => MaxBlock);
 
                     // Jump every parameter at once mid-stream, as a preset or scene change would.
                     ApplyNormalised(block, jump);
-                    var (left2, right2) = BlockRender.Stereo(block, input, input, _ => MaxBlock);
+                    var (left2, right2) = BlockRender.Stereo(block, input, input, static _ => MaxBlock);
 
                     foreach (var output in new[] { left, right, left2, right2 }) {
                         Assert.True(Analysis.AllFinite(output), "non-finite output");

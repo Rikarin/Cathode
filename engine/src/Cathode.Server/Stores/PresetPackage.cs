@@ -1,11 +1,11 @@
+using Cathode.Contracts;
+using Cathode.Server.Rig;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
 using System.Text.RegularExpressions;
-using Cathode.Contracts;
-using Cathode.Server.Rig;
 
 namespace Cathode.Server.Stores;
 
@@ -88,7 +88,7 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
             throw new RigException(400, $"A package holds at most {MaxEntries} files.");
         }
 
-        var unexpected = zip.Entries.Where(e => !AllowedName().IsMatch(e.FullName))
+        var unexpected = zip.Entries.Where(static e => !AllowedName().IsMatch(e.FullName))
             .Select(static e => e.FullName)
             .ToList();
         if (unexpected.Count > 0) {
@@ -160,7 +160,9 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
         }
 
         preset.Factory = null; // an exported factory preset comes back as the user's own
-        var renamed = !StoreIds.IsValid(preset.Id) || FactoryPresets.IsFactoryId(preset.Id) || presets.Exists(preset.Id);
+        var renamed = !StoreIds.IsValid(preset.Id)
+            || FactoryPresets.IsFactoryId(preset.Id)
+            || presets.Exists(preset.Id);
         if (renamed) {
             preset.Id = Preset.NewId(); // never overwrite a preset already in the library
         }

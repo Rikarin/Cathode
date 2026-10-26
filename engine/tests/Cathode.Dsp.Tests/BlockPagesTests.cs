@@ -1,5 +1,5 @@
-using System.Text.RegularExpressions;
 using Cathode.Dsp.Parameters;
+using System.Text.RegularExpressions;
 
 namespace Cathode.Dsp.Tests;
 
@@ -19,8 +19,7 @@ public class BlockPagesTests {
     ///     block's custom shifter tables.
     /// </summary>
     static readonly Dictionary<string, Regex> OnPanel = new() {
-        ["cab"] = new("^m[1-4][a-z]+$"),
-        ["pitch"] = new("^custom[1-4][A-G]s?$")
+        ["cab"] = new("^m[1-4][a-z]+$"), ["pitch"] = new("^custom[1-4][A-G]s?$")
     };
 
     static readonly BlockRegistry Registry = BlockRegistry.CreateDefault();

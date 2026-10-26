@@ -47,7 +47,7 @@ public class CrossoverBlockTests {
         using var block = TestBlocks.Create<CrossoverBlock>((CrossoverBlock.Mode, 1f));
         var impulse = Signals.Impulse(16_384);
 
-        var (left, right) = BlockRender.Stereo(block, impulse, impulse, _ => 64);
+        var (left, right) = BlockRender.Stereo(block, impulse, impulse, static _ => 64);
 
         Assert.Equal(0, Analysis.ToDb(Analysis.MagnitudeAt(left, 100, Rate)), 0.05);
         Assert.True(Analysis.ToDb(Analysis.MagnitudeAt(left, 8_000, Rate)) < -60);
@@ -60,7 +60,7 @@ public class CrossoverBlockTests {
         using var block = TestBlocks.Create<CrossoverBlock>((CrossoverBlock.LowPanLeft, 100f));
         var impulse = Signals.Impulse(16_384);
 
-        var (left, right) = BlockRender.Stereo(block, impulse, impulse, _ => 64);
+        var (left, right) = BlockRender.Stereo(block, impulse, impulse, static _ => 64);
 
         Assert.True(
             Analysis.ToDb(Analysis.MagnitudeAt(left, 100, Rate)) < -40,
@@ -79,7 +79,7 @@ public class CrossoverBlockTests {
         );
         var impulse = Signals.Impulse(16_384);
 
-        var (left, right) = BlockRender.Stereo(block, impulse, impulse, _ => 64);
+        var (left, right) = BlockRender.Stereo(block, impulse, impulse, static _ => 64);
 
         Assert.Equal(0, Analysis.ToDb(Analysis.MagnitudeAt(left, 100, Rate)), 0.05);
         Assert.Equal(-6.02, Analysis.ToDb(Analysis.MagnitudeAt(left, 8_000, Rate)), 0.05);

@@ -32,7 +32,7 @@ public class TenTapBlockTests {
         );
         var impulse = Signals.Impulse(10_000);
 
-        var (left, right) = BlockRender.Stereo(delay, impulse, impulse, _ => 64);
+        var (left, right) = BlockRender.Stereo(delay, impulse, impulse, static _ => 64);
 
         // Off-beat taps (1st, 3rd, ...) move half a step later and sit left; on-beat taps stay and sit right.
         AssertTaps(left, [..Enumerable.Range(0, 5).Select(static i => (1_920 * i + 1_440, 1f))]);
@@ -52,7 +52,7 @@ public class TenTapBlockTests {
         );
         var impulse = Signals.Impulse(6_000);
 
-        var (left, right) = BlockRender.Stereo(delay, impulse, impulse, _ => 64);
+        var (left, right) = BlockRender.Stereo(delay, impulse, impulse, static _ => 64);
 
         AssertTaps(left, (1_200, 1f), (2_400, 0.5f), (3_600, 1f), (4_800, 0.25f));
         Assert.Equal(left, right);
@@ -69,7 +69,7 @@ public class TenTapBlockTests {
         );
         var impulse = Signals.Impulse(6_000);
 
-        var (left, right) = BlockRender.Stereo(delay, impulse, impulse, _ => 64);
+        var (left, right) = BlockRender.Stereo(delay, impulse, impulse, static _ => 64);
 
         AssertTaps(left, (4_800, 1f));
         AssertTaps(right, (2_400, 1f));
@@ -92,7 +92,7 @@ public class TenTapBlockTests {
 
     [Fact]
     public void Rhythm_taps_sit_at_their_times_and_quantise_to_the_tempo() {
-        float[] Render(float quantize) {
+        static float[] Render(float quantize) {
             using var delay = Create(
                 (TenTapBlock.Type, TenTapBlock.RhythmTap),
                 (TenTapBlock.Time, 1_000f),

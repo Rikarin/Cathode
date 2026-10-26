@@ -16,7 +16,8 @@ public enum ActiveWahTopology {
 }
 
 /// <summary>
-///     Component values of an inductor-less wah (see <see cref="ActiveWahTopology" />). Resistances in ohms, capacitances in
+///     Component values of an inductor-less wah (see <see cref="ActiveWahTopology" />). Resistances in ohms, capacitances
+///     in
 ///     farads. Which fields a topology uses is noted on each.
 /// </summary>
 public sealed record ActiveWahVoicing(string Name, string ModelledAfter, ActiveWahTopology Topology) {
@@ -69,7 +70,10 @@ public sealed record ActiveWahVoicing(string Name, string ModelledAfter, ActiveW
 
     public double ToeWiper { get; init; } = 0.001;
 
-    /// <summary>Dual gang: the pot's taper, the fraction of its track reached at half travel (see <see cref="WahCircuit.Taper" />).</summary>
+    /// <summary>
+    ///     Dual gang: the pot's taper, the fraction of its track reached at half travel (see
+    ///     <see cref="WahCircuit.Taper" />).
+    /// </summary>
     public double TaperMidpoint { get; init; } = 0.24;
 
     /// <summary>
@@ -102,7 +106,8 @@ public sealed record ActiveWahVoicing(string Name, string ModelledAfter, ActiveW
 
     /// <summary>Dual gang: each gang's resistance at pedal position <paramref name="toe" />, series resistor included.</summary>
     public double Gang(double toe) =>
-        SeriesResistor + Pot * (ToeWiper + (HeelWiper - ToeWiper) * WahCircuit.Taper(TaperMidpoint, 1 - Math.Clamp(toe, 0, 1)));
+        SeriesResistor
+        + Pot * (ToeWiper + (HeelWiper - ToeWiper) * WahCircuit.Taper(TaperMidpoint, 1 - Math.Clamp(toe, 0, 1)));
 
     /// <summary>
     ///     The settled small-signal response at a pedal position, from the parts alone: centre frequency (Hz), Q and the
@@ -166,7 +171,10 @@ public sealed class ActiveWahCircuit {
         Configure(voicing);
     }
 
-    /// <summary>Loads <paramref name="voicing" /> and resets; the next <see cref="SetPosition" /> lands at once. Allocation-free.</summary>
+    /// <summary>
+    ///     Loads <paramref name="voicing" /> and resets; the next <see cref="SetPosition" /> lands at once.
+    ///     Allocation-free.
+    /// </summary>
     public void Configure(ActiveWahVoicing voicing) {
         Voicing = voicing;
         (capacitanceScale, qScale) = (1, 1);

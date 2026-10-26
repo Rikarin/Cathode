@@ -84,7 +84,10 @@ public sealed class MultiplexerBlock() : DspBlock(Info), ISideInputBlock {
         gains[slot] = gain;
     }
 
-    /// <summary>Adds hardware source <paramref name="source" /> with a gain ramp from <paramref name="from" /> to <paramref name="to" />.</summary>
+    /// <summary>
+    ///     Adds hardware source <paramref name="source" /> with a gain ramp from <paramref name="from" /> to
+    ///     <paramref name="to" />.
+    /// </summary>
     void AddRamped(InputPort port, int source, in StereoBuffer io, float from, float to) {
         if (from == to) {
             port.Add(source, io.Left, io.Right, from);

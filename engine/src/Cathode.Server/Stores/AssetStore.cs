@@ -1,10 +1,10 @@
-using System.Security.Cryptography;
-using System.Text.Json;
 using Cathode.Contracts;
 using Cathode.Dsp.Convolution;
 using Cathode.Dsp.IO;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.Options;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace Cathode.Server.Stores;
 
@@ -191,7 +191,7 @@ public sealed class AssetStore {
 
             info = info with {
                 Name = change.Name?.Trim() ?? info.Name,
-                Color = change.Color is { } color ? (color.Length == 0 ? null : color) : info.Color,
+                Color = change.Color is { } color ? color.Length == 0 ? null : color : info.Color,
                 Favorite = change.Favorite ?? info.Favorite
             };
             index[reference] = info;
@@ -244,6 +244,6 @@ public sealed class AssetStore {
     void SaveIndex() =>
         File.WriteAllText(
             indexPath,
-            JsonSerializer.Serialize(index.Values.ToArray(), ContractsJsonContext.Default.AssetInfoArray)
+            JsonSerializer.Serialize([..index.Values], ContractsJsonContext.Default.AssetInfoArray)
         );
 }

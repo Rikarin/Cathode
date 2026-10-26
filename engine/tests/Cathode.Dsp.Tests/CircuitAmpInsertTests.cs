@@ -208,7 +208,7 @@ public class CircuitAmpInsertTests {
 
     [Fact]
     public void Speaker_drive_flattens_the_low_band_only() {
-        double Loss(double frequency) {
+        static double Loss(double frequency) {
             var speaker = new SpeakerStage();
             var sine = Signals.Sine(frequency, InnerRate, 48_000);
             speaker.Process(sine, 10, 0, 100, 0, 300, InnerRate);

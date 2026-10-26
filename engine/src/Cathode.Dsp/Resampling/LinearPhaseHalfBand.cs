@@ -83,7 +83,7 @@ public sealed class LinearPhaseKernel {
             var offset = n - centre;
             var ratio = (double)offset / centre;
             var window = BesselI0(beta * Math.Sqrt(Math.Max(0, 1 - ratio * ratio))) / norm;
-            var sinc = offset == 0 ? 0.5 : (offset % 2 == 0 ? 0 : Math.Sin(Math.PI * offset / 2) / (Math.PI * offset));
+            var sinc = offset == 0 ? 0.5 : offset % 2 == 0 ? 0 : Math.Sin(Math.PI * offset / 2) / (Math.PI * offset);
             taps[n] = sinc * window;
         }
 

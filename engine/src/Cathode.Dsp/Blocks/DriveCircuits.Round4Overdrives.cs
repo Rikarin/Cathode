@@ -201,7 +201,9 @@ public static partial class DriveCircuits {
             FeedbackPot = 500e3,
             FeedbackCapacitance = 51e-12
         };
-        var clipper = new DriveStage(StageKind.Clipper) { Series = 4.7e3, Shunt = 10e-9, Diodes = DiodeStacks.Pair(Si) };
+        var clipper = new DriveStage(StageKind.Clipper) {
+            Series = 4.7e3, Shunt = 10e-9, Diodes = DiodeStacks.Pair(Si)
+        };
         var glass = new DriveCircuit(
             "Eternal Love",
             "Lovepedal Eternity: TS-style gain stage with a fuller bass corner into silicon diodes to ground, passive "
@@ -266,7 +268,8 @@ public static partial class DriveCircuits {
             Modes = [
                 overdrive with {
                     Stages = [
-                        open, new(StageKind.Clipper) { Series = 1e3, Shunt = 10e-9, Diodes = DiodeStacks.Pair(Si) }, second
+                        open, new(StageKind.Clipper) { Series = 1e3, Shunt = 10e-9, Diodes = DiodeStacks.Pair(Si) },
+                        second
                     ]
                 },
                 overdrive with { Stages = [open, second with { Diodes = default, Rail = 4 }] }

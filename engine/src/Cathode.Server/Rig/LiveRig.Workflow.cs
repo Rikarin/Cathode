@@ -13,7 +13,8 @@ namespace Cathode.Server.Rig;
 public sealed partial class LiveRig {
     /// <summary>The working copy's override for a footswitch, if any (unlocked read, for the MIDI router).</summary>
     public FootswitchOverride? FootswitchOverrideFor(string layout, int index) =>
-        Volatile.Read(ref preset).FootswitchOverrides.ToArray()
+        Volatile.Read(ref preset)
+            .FootswitchOverrides.ToArray()
             .FirstOrDefault(o => o.Layout == layout && o.Index == index);
 
     /// <summary>Discards the edits: the working copy goes back to the version in the library (undoable).</summary>
@@ -21,7 +22,9 @@ public sealed partial class LiveRig {
         Locked(async () => {
                 Check(expected);
                 var saved = presets.Get(preset.Id)
-                    ?? throw RigException.Conflict("This preset has not been saved yet: there is nothing to revert to.");
+                    ?? throw RigException.Conflict(
+                        "This preset has not been saved yet: there is nothing to revert to."
+                    );
                 ApplyGlobals(saved);
                 await ReplaceUndoableAsync(saved);
                 dirty = false;
@@ -267,8 +270,7 @@ public sealed partial class LiveRig {
                 foreach (var scene in preset.Scenes) {
                     var state = scene.StateOf(id);
                     scene.Blocks[id] = state with {
-                        Bypassed = request.Bypassed ?? state.Bypassed,
-                        Channel = request.Channel ?? state.Channel
+                        Bypassed = request.Bypassed ?? state.Bypassed, Channel = request.Channel ?? state.Channel
                     };
                 }
 
@@ -300,7 +302,10 @@ public sealed partial class LiveRig {
                 var descriptor = catalog.Descriptor(block.Type)
                     ?? throw new RigException(400, $"'{id}' has no parameters.");
                 if (source.Type != block.Type) {
-                    throw new RigException(400, $"'{source.Name}' is a {source.Type} preset; '{id}' is a {block.Type}.");
+                    throw new RigException(
+                        400,
+                        $"'{source.Name}' is a {source.Type} preset; '{id}' is a {block.Type}."
+                    );
                 }
 
                 Dictionary<string, float> Clean(Dictionary<string, float> values) =>
@@ -330,7 +335,8 @@ public sealed partial class LiveRig {
                         if (source.Modifiers is { } modifiers) {
                             p.Modifiers.RemoveAll(m => m.Block == id);
                             p.Modifiers.AddRange(
-                                modifiers.Where(m => (descriptor.IndexOf(m.Param) >= 0 || m.Param == ModNames.EngageParam)
+                                modifiers.Where(m => (descriptor.IndexOf(m.Param) >= 0
+                                            || m.Param == ModNames.EngageParam)
                                         && ModNames.TryParseSource(m.Source, out _)
                                         && ModNames.TryParseCurve(m.Curve, out _)
                                     )
@@ -440,7 +446,7 @@ public sealed partial class LiveRig {
 
     static void Apply(Preset target, PresetMetadataRequest change) {
         target.Name = change.Name?.Trim() ?? target.Name;
-        target.Color = change.Color is { } color ? (color.Length == 0 ? null : color) : target.Color;
+        target.Color = change.Color is { } color ? color.Length == 0 ? null : color : target.Color;
         target.Favorite = change.Favorite ?? target.Favorite;
     }
 

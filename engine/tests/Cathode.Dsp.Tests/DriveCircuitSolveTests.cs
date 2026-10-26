@@ -56,7 +56,8 @@ public class DriveCircuitSolveTests(ITestOutputHelper output) {
 
     /// <summary>A hot noise burst, then a loud decaying chord: every circuit clips hard for part of it.</summary>
     static float[] Render(int type, bool antialias) {
-        using var block = new DriveBlock { Antialias = antialias };
+        using var block = new DriveBlock();
+        block.Antialias = antialias;
         block.Params.SetTarget(DriveBlock.Type, type);
         block.Params.SetTarget(DriveBlock.Drive, 7f);
         block.Params.SetTarget(DriveBlock.Tone, 5f);

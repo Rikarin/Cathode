@@ -116,6 +116,7 @@ public class QuickRodTests(ITestOutputHelper output) {
     [Fact]
     public void Od2_and_the_gears_raise_the_gain_in_order() {
         var tone = Signals.Sine(440, Rate, 24_000, 0.0003f);
+
         double Level(int setting) {
             using var block = Create([(CircuitAmpBlock.Gain, 3f), (CircuitAmpBlock.Master, 2f), ..Switches(setting)]);
             var rendered = BlockRender.Mono(block, tone, 64);
@@ -135,6 +136,7 @@ public class QuickRodTests(ITestOutputHelper output) {
     [Fact]
     public void Solo_boost_lifts_the_master() {
         var tone = Signals.Sine(440, Rate, 24_000, 0.0003f);
+
         double Level(float solo) {
             using var block = Create(
                 (CircuitAmpBlock.Gain, 3f),
@@ -270,6 +272,6 @@ public class QuickRodTests(ITestOutputHelper output) {
 
     static string Label(string id) {
         var parameter = CircuitAmpBlock.Info.Params.Single(p => p.Id == id);
-        return parameter.TypeLabels is { } labels ? labels[Type] ?? "" : parameter.Name;
+        return parameter.TypeLabels is { } labels ? labels[Type] ?? string.Empty : parameter.Name;
     }
 }

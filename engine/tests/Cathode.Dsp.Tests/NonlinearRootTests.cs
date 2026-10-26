@@ -1,7 +1,7 @@
-using System.Diagnostics;
 using Cathode.Dsp.Tests.Circuits;
 using Cathode.Dsp.Wdf;
 using Cathode.Testing;
+using System.Diagnostics;
 
 namespace Cathode.Dsp.Tests;
 

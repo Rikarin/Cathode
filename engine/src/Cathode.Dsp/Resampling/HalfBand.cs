@@ -136,8 +136,8 @@ public sealed class HalfBandStage {
     /// <summary>The even- and odd-indexed coefficients, which run the two allpass branches.</summary>
     public static (float[] Even, float[] Odd) Split(double[] coefficients) =>
     (
-        coefficients.Where((_, i) => i % 2 == 0).Select(static c => (float)c).ToArray(),
-        coefficients.Where((_, i) => i % 2 == 1).Select(static c => (float)c).ToArray()
+        coefficients.Where(static (_, i) => i % 2 == 0).Select(static c => (float)c).ToArray(),
+        coefficients.Where(static (_, i) => i % 2 == 1).Select(static c => (float)c).ToArray()
     );
 
     /// <summary>The filters in use: the IIR design (the default) or a linear-phase FIR of the same band edges.</summary>
@@ -153,7 +153,11 @@ public sealed class HalfBandStage {
     ///     Control thread: switch to <paramref name="phase" />, with a linear-phase kernel for the band edges of
     ///     <paramref name="transition" /> (as given to <see cref="HalfBand.Design" />). Clears the filter state.
     /// </summary>
-    public void SetPhase(OversamplingPhase phase, double transition, double attenuationDb = Oversampler4x.AttenuationDb) {
+    public void SetPhase(
+        OversamplingPhase phase,
+        double transition,
+        double attenuationDb = Oversampler4x.AttenuationDb
+    ) {
         linear = phase == OversamplingPhase.Linear
             ? new(LinearPhaseKernel.For(attenuationDb, transition))
             : null;

@@ -171,7 +171,7 @@ public sealed class PlexBlock() : DspBlock(Info) {
             ParamDescriptor.Float("highCut", "High Cut", 500f, HighCutOff, 8_000f, "Hz", ParamTaper.Log),
             ParamDescriptor.Choice("hold", "Stack/Hold", ["Off", "Hold", "Stack"]),
             ParamDescriptor.Float("masterPan", "Master Pan", -100f, 100f, 0f, "%"),
-            ..Line(i => new ParamDescriptor(
+            ..Line(static i => new ParamDescriptor(
                     $"time{i + 1}",
                     $"Delay Time {i + 1}",
                     ParamKind.Float,
@@ -185,11 +185,11 @@ public sealed class PlexBlock() : DspBlock(Info) {
                 )
                     .HiddenOn(TypeCount, PlexVerb, ShimmerVerb)
             ),
-            ..Line(i => ParamDescriptor.Choice($"tempo{i + 1}", $"Tempo {i + 1}", TempoDivisions.Names)
+            ..Line(static i => ParamDescriptor.Choice($"tempo{i + 1}", $"Tempo {i + 1}", TempoDivisions.Names)
                 .HiddenOn(TypeCount, PlexVerb, ShimmerVerb)
             ),
-            ..Line(i => ParamDescriptor.Float($"level{i + 1}", $"Level {i + 1}", 0f, 100f, 100f, "%")),
-            ..Line(i => ParamDescriptor.Float($"pan{i + 1}", $"Pan {i + 1}", -100f, 100f, DefaultPans[i], "%")),
+            ..Line(static i => ParamDescriptor.Float($"level{i + 1}", $"Level {i + 1}", 0f, 100f, 100f, "%")),
+            ..Line(static i => ParamDescriptor.Float($"pan{i + 1}", $"Pan {i + 1}", -100f, 100f, DefaultPans[i], "%")),
             ParamDescriptor.Choice("filterType", "Filter Type", ["Off", "Low Pass", "High Pass", "Band Pass", "Peak"]),
             ParamDescriptor.Float("filterFrequency", "Filter Freq", 50f, 15_000f, 2_000f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("filterQ", "Filter Q", 0.1f, 10f, 0.7071f, string.Empty, ParamTaper.Log),
@@ -200,13 +200,27 @@ public sealed class PlexBlock() : DspBlock(Info) {
             ParamDescriptor.Float("envelopeThreshold", "Envelope Threshold", -80f, 0f, -40f, "dB"),
             ParamDescriptor.Float("envelopeAttack", "Envelope Attack", 0f, 2_000f, 0f, "ms"),
             ParamDescriptor.Float("envelopeRelease", "Envelope Release", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
-            ..Line(i => ParamDescriptor.Float($"detune{i + 1}", $"Detune {i + 1}", -50f, 50f, DefaultDetune[i], "ct")
+            ..Line(static i => ParamDescriptor.Float(
+                $"detune{i + 1}",
+                $"Detune {i + 1}",
+                -50f,
+                50f,
+                DefaultDetune[i],
+                "ct"
+                )
                 .ShownOn(TypeCount, PlexDetune)
             ),
             ParamDescriptor.Float("masterDetune", "Master Detune", 0f, 200f, 100f, "%").ShownOn(TypeCount, PlexDetune),
             ParamDescriptor.Float("granule", "Granule Length", 10f, MaxGranuleMs, 60f, "ms", ParamTaper.Log)
                 .ShownOn(TypeCount, PlexDetune, PlexShifter, ShimmerVerb),
-            ..Line(i => ParamDescriptor.Float($"shift{i + 1}", $"Shift {i + 1}", -24f, 24f, DefaultShifts[i], "st")
+            ..Line(static i => ParamDescriptor.Float(
+                $"shift{i + 1}",
+                $"Shift {i + 1}",
+                -24f,
+                24f,
+                DefaultShifts[i],
+                "st"
+                )
                 .ShownOn(TypeCount, PlexShifter)
             ),
             ParamDescriptor.Choice("direction", "Direction", ["Forward", "Reverse"])

@@ -1,5 +1,3 @@
-using System.Net;
-using System.Net.Http.Json;
 using Cathode.Contracts;
 using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
@@ -7,6 +5,8 @@ using Cathode.Engine.Graph;
 using Cathode.Server.Rig;
 using Cathode.Server.Stores;
 using Cathode.Testing.References;
+using System.Net;
+using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 
@@ -69,14 +69,18 @@ public sealed class FactoryPresetTests : IAsyncLifetime {
             Assert.Equal(Preset.SceneCount, preset.Scenes.Count);
             Assert.Equal(preset.Blocks.Count, preset.Blocks.Select(static b => b.Id).Distinct().Count());
             Assert.Equal(preset.Blocks.Count, preset.Blocks.Select(static b => (b.Row, b.Column)).Distinct().Count());
-            Assert.All(preset.Blocks, b => Assert.True(b.Row is >= 0 and < 6 && b.Column is >= 0 and < 14, b.Id));
+            Assert.All(
+                preset.Blocks,
+                static b => Assert.True(b.Row is >= 0 and < 6 && b.Column is >= 0 and < 14, b.Id)
+            );
             Assert.All(
                 preset.Blocks.GroupBy(static b => b.Type),
                 g => Assert.True(g.Count() <= Catalog.Info(g.Key)!.MaxInstances, $"{preset.Name}: too many {g.Key}")
             );
 
             // The main row runs Input 1 to Output 1 through every column, block or shunt.
-            var row = preset.Blocks.Where(static b => b.Row == FactoryRecipe.MainRow).OrderBy(static b => b.Column)
+            var row = preset.Blocks.Where(static b => b.Row == FactoryRecipe.MainRow)
+                .OrderBy(static b => b.Column)
                 .ToList();
             Assert.Equal(14, row.Count);
             Assert.Equal(BuiltInTypes.Input, row[0].Type);
@@ -99,8 +103,8 @@ public sealed class FactoryPresetTests : IAsyncLifetime {
     public void Pedals_go_in_front_of_the_amp() {
         // Drives, fuzzes, boosts and wahs are stompboxes between the guitar and the amp, not after the cabinet.
         var late = Presets
-            .SelectMany(p => {
-                    var row = p.Blocks.Where(b => b.Row == p.Blocks.Single(i => i.Id == "in1").Row)
+            .SelectMany(static p => {
+                    var row = p.Blocks.Where(b => b.Row == p.Blocks.Single(static i => i.Id == "in1").Row)
                         .OrderBy(static b => b.Column)
                         .ToList();
                     var amp = row.FindIndex(static b => b.Type == CircuitAmpBlock.Info.TypeId);
@@ -161,9 +165,9 @@ public sealed class FactoryPresetTests : IAsyncLifetime {
 
     [Fact]
     public async Task Every_preset_loads_into_the_live_rig() {
-        foreach (var summary in (await Json<PresetSummary[]>(client.GetAsync("/api/v1/presets", Token))).Where(
-                     static p => p.Factory == true
-                 )) {
+        foreach (var summary in (await Json<PresetSummary[]>(
+                     client.GetAsync("/api/v1/presets", Token)
+                 )).Where(static p => p.Factory == true)) {
             var state = await Json<LiveState>(
                 client.PutAsJsonAsync($"/api/v1/live/preset/{summary.Id}", new { }, Token)
             );
@@ -220,7 +224,11 @@ public sealed class FactoryPresetTests : IAsyncLifetime {
         var id = Presets[0].Id;
 
         await Ok(
-            client.PatchAsJsonAsync($"/api/v1/presets/{id}/metadata", new PresetMetadataRequest(null, "red", true), Token)
+            client.PatchAsJsonAsync(
+                $"/api/v1/presets/{id}/metadata",
+                new PresetMetadataRequest(null, "red", true),
+                Token
+            )
         );
         var bank = new Bank { Name = "Gig", Slots = [null, id] };
         await Ok(client.PutAsJsonAsync($"/api/v1/banks/{bank.Id}", bank, Token));

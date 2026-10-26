@@ -1,5 +1,5 @@
-using System.Runtime.CompilerServices;
 using Cathode.Dsp.Amp;
+using System.Runtime.CompilerServices;
 
 namespace Cathode.Dsp.Tests;
 
@@ -22,8 +22,7 @@ public sealed class StaticInitializationTests {
 
     [Theory]
     [MemberData(nameof(DspTypes))]
-    public void Every_static_initializer_runs(Type type) =>
-        RuntimeHelpers.RunClassConstructor(type.TypeHandle);
+    public void Every_static_initializer_runs(Type type) => RuntimeHelpers.RunClassConstructor(type.TypeHandle);
 
     [Fact]
     public void Every_amp_design_is_complete() {
@@ -31,7 +30,7 @@ public sealed class StaticInitializationTests {
             Assert.True(design.Power is not null, $"{design.Name} has no power amp");
             Assert.True(design.Power!.PhaseInverter is not null, $"{design.Name} has no phase inverter");
             Assert.NotEmpty(design.Preamp);
-            Assert.All(design.Preamp, stage => Assert.NotNull(stage));
+            Assert.All(design.Preamp, static stage => Assert.NotNull(stage));
             Assert.True(design.Panel is not null, $"{design.Name} has no panel");
         }
     }

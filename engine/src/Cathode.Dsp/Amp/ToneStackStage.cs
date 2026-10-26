@@ -1,5 +1,5 @@
-using System.Runtime.CompilerServices;
 using Cathode.Dsp.Wdf;
+using System.Runtime.CompilerServices;
 
 namespace Cathode.Dsp.Amp;
 
@@ -247,7 +247,10 @@ public sealed class ToneStackStage : AmpStage {
 
         var rk = Design.CathodeResistor * settings.CathodeResistor * (follower ? settings.FollowerBias : 1);
         var brightCap = Design.LoadRole == PotRole.Master ? settings.MasterCap : settings.BrightCap;
-        if (!substituted && brightCap == brightScale && settings.StackFrequency == stackScale && rk == cathodeResistor) {
+        if (!substituted
+            && brightCap == brightScale
+            && settings.StackFrequency == stackScale
+            && rk == cathodeResistor) {
             return;
         }
 

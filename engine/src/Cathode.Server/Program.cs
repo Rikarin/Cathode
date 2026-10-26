@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using Cathode.Contracts;
 using Cathode.Dsp;
 using Cathode.Dsp.Native;
@@ -9,6 +8,7 @@ using Cathode.Server.Midi;
 using Cathode.Server.Realtime;
 using Cathode.Server.Rig;
 using Cathode.Server.Stores;
+using System.Text.Json.Serialization;
 
 // Cathode.Server: the REST and WebSocket API. It owns presets, scenes and channels and drives cathode-host over a
 // Unix domain socket (docs/adr/0001-process-model.md, docs/adr/0004-state-ownership.md). Listens on localhost unless
@@ -20,8 +20,7 @@ var startup = System.Diagnostics.Stopwatch.StartNew();
 // one). Cathode has no appsettings.json; its settings come from the environment and the command line.
 var builder = WebApplication.CreateSlimBuilder(
     new WebApplicationOptions {
-        Args = [..args, "--hostBuilder:reloadConfigOnChange=false"],
-        ContentRootPath = AppContext.BaseDirectory
+        Args = [..args, "--hostBuilder:reloadConfigOnChange=false"], ContentRootPath = AppContext.BaseDirectory
     }
 );
 var urls = builder.Configuration["urls"] ?? "http://127.0.0.1:5180";
@@ -29,7 +28,7 @@ var token = builder.Configuration["Cathode:Token"] is { Length: > 0 } configured
 Access.RequireTokenBeyondLoopback(urls, token);
 builder.WebHost.UseUrls(urls);
 builder.Services.Configure<ServerOptions>(builder.Configuration.GetSection("Cathode"));
-builder.Services.ConfigureHttpJsonOptions(o => {
+builder.Services.ConfigureHttpJsonOptions(static o => {
         o.SerializerOptions.TypeInfoResolverChain.Insert(0, ContractsJsonContext.Default);
         // Numbers are numbers: the web default also accepts "1", which turns every number in the OpenAPI document
         // (and so in generated clients) into number | string.

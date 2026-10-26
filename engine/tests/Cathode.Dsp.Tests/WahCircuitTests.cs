@@ -1,7 +1,7 @@
-using System.Numerics;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Tests.Circuits;
 using Cathode.Dsp.Wdf;
+using System.Numerics;
 
 namespace Cathode.Dsp.Tests;
 

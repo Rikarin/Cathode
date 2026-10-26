@@ -1,5 +1,3 @@
-using System.Net;
-using System.Net.Http.Json;
 using Cathode.Contracts;
 using Cathode.Dsp.Looping;
 using Cathode.Engine.Graph;
@@ -7,6 +5,8 @@ using Cathode.Engine.Rig;
 using Cathode.Server.Engine;
 using Cathode.Server.Midi;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net;
+using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 
@@ -88,7 +88,7 @@ public sealed class ControlsApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Midi_taps_set_the_tempo_sample_accurately_and_the_preset_follows() {
-        await PutGlobal(g => g.MidiMappings.Add(new("tap", "cc", 0, 80, "tap")));
+        await PutGlobal(static g => g.MidiMappings.Add(new("tap", "cc", 0, 80, "tap")));
         var router = server.Services.GetRequiredService<MidiRouter>();
 
         // Four taps exactly half a second apart on the engine's clock: 120 BPM, however late they are delivered.
@@ -102,7 +102,7 @@ public sealed class ControlsApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Midi_mappings_change_scenes_toggle_bypass_and_drive_external_controllers() {
-        await PutGlobal(g => {
+        await PutGlobal(static g => {
                 g.MidiMappings.Add(new("s", "cc", 0, 20, "scene"));
                 g.MidiMappings.Add(new("b", "note", 1, 60, "bypass", "delay1"));
                 g.MidiMappings.Add(new("x", "cc", 0, 11, "external", Value: 2));
@@ -127,7 +127,7 @@ public sealed class ControlsApiTests : IAsyncLifetime {
 
             return true;
         };
-        await PutGlobal(g => {
+        await PutGlobal(static g => {
                 g.Footswitches.Add(
                     new(
                         "board",
@@ -224,13 +224,16 @@ public sealed class ControlsApiTests : IAsyncLifetime {
 
         var global = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;
 
-        Assert.Contains(global.MidiMappings, m => m is { Message: "cc", Number: 64, Channel: 3, Action: "tuner" });
+        Assert.Contains(
+            global.MidiMappings,
+            static m => m is { Message: "cc", Number: 64, Channel: 3, Action: "tuner" }
+        );
         Assert.Null(server.Services.GetRequiredService<MidiRouter>().Learning);
     }
 
     [Fact]
     public async Task Global_settings_drive_the_output_eq_metronome_and_manual_and_are_validated() {
-        await PutGlobal(g => {
+        await PutGlobal(static g => {
                 g.Outputs[0].Eq["g1k"] = 6;
                 g.Metronome = true;
             }
@@ -276,10 +279,10 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         var used = await Put($"/api/v1/live/blocks/delay2/global/{shared.Id}", new { });
         var copied = await Post("/api/v1/live/blocks/delay2/channels/copy", new CopyChannelRequest("A", "C"));
 
-        Assert.Equal(shared.Id, linked.Preset.Blocks.Single(b => b.Id == "delay1").Global);
+        Assert.Equal(shared.Id, linked.Preset.Blocks.Single(static b => b.Id == "delay1").Global);
         Assert.Equal(55f, shared.Channels["A"]["feedback"]);
-        Assert.Equal(444f, used.Preset.Blocks.Single(b => b.Id == "delay2").Channels["A"]["time"]);
-        Assert.Equal(444f, copied.Preset.Blocks.Single(b => b.Id == "delay2").Channels["C"]["time"]);
+        Assert.Equal(444f, used.Preset.Blocks.Single(static b => b.Id == "delay2").Channels["A"]["time"]);
+        Assert.Equal(444f, copied.Preset.Blocks.Single(static b => b.Id == "delay2").Channels["C"]["time"]);
     }
 
     [Fact]
@@ -298,7 +301,7 @@ public sealed class ControlsApiTests : IAsyncLifetime {
 
         using var response = await client.DeleteAsync($"/api/v1/live/globals/{shared.Id}", Token);
         var deleted = await Read(response);
-        var delay = deleted.Preset.Blocks.Single(b => b.Id == "delay1");
+        var delay = deleted.Preset.Blocks.Single(static b => b.Id == "delay1");
         Assert.Null(delay.Global);
         Assert.Equal(444f, delay.Channels["A"]["time"]);
         Assert.Empty((await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!.Blocks);

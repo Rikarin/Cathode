@@ -1,9 +1,9 @@
-using System.Numerics;
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Cabinets;
 using Cathode.Testing;
+using System.Numerics;
 
 namespace Cathode.Dsp.Tests;
 
@@ -104,7 +104,7 @@ public class SpeakerLoadTests(ITestOutputHelper output) {
             $"{speaker.Name}: Re {load.Resistance:0.00} Ω, L {load.Inductance * 1e3:0.000} mH, eddy "
             + $"{load.EddyResistance:0.0} Ω, {load.Resonance:0.0} Hz, peak {load.PeakImpedance:0.0} Ω, Q {load.Q:0.00}"
         );
-        foreach (var hz in (double[]) [speaker.Fs, 1_000, 5_000]) {
+        foreach (var hz in (double[])[speaker.Fs, 1_000, 5_000]) {
             Check(hz, 0.02);
         }
 
@@ -128,7 +128,9 @@ public class SpeakerLoadTests(ITestOutputHelper output) {
         var stiffening = Math.Sqrt(1 + v30.Vas / closed.LitresPerSpeaker);
         var (closedHz, closedPeak) = Peak(hz => closed.Impedance(v30, hz).Magnitude / closed.WiringFactor, 20, 500);
         var (openHz, openPeak) = Peak(hz => open.Impedance(v30, hz).Magnitude, 20, 500);
-        output.WriteLine($"V30 open {openHz:0.0} Hz {openPeak:0.0} Ω; 4x12 closed {closedHz:0.0} Hz {closedPeak:0.0} Ω");
+        output.WriteLine(
+            $"V30 open {openHz:0.0} Hz {openPeak:0.0} Ω; 4x12 closed {closedHz:0.0} Hz {closedPeak:0.0} Ω"
+        );
         Assert.InRange(closedHz, v30.Fs * stiffening * 0.98, v30.Fs * stiffening * 1.02);
         Assert.InRange(openHz, v30.Fs * 0.98, v30.Fs * 1.02);
         Assert.Equal(openPeak, closedPeak, openPeak * 0.01);
@@ -157,7 +159,7 @@ public class SpeakerLoadTests(ITestOutputHelper output) {
 
         // The same speaker in the same air would be the same load whatever the wiring: only scaled.
         var openOne = Enclosure("1x12 Open Back");
-        foreach (var hz in (double[]) [50, 75, 200, 1_000, 5_000]) {
+        foreach (var hz in (double[])[50, 75, 200, 1_000, 5_000]) {
             Assert.Equal(0.5, (twin.Impedance(v30, hz) / openOne.Impedance(v30, hz)).Real, 1e-12);
             Assert.Equal(0.25, (four.Impedance(v30, hz) / openOne.Impedance(v30, hz)).Real, 1e-12);
         }

@@ -1,10 +1,10 @@
-using System.Threading.Channels;
 using Cathode.Contracts;
 using Cathode.Ipc;
 using Cathode.Server.Engine;
 using Cathode.Server.Realtime;
 using Cathode.Server.Rig;
 using Cathode.Server.Stores;
+using System.Threading.Channels;
 
 namespace Cathode.Server.Midi;
 
@@ -349,7 +349,10 @@ public sealed partial class MidiRouter : IDisposable {
                 break;
             case "view" or "viewNext" or "viewPrevious" when down:
                 globals.Update(g => {
-                        var views = Math.Max(1, g.Footswitches.FirstOrDefault(l => l.Id == g.ActiveLayout)?.Views?.Count ?? 0);
+                        var views = Math.Max(
+                            1,
+                            g.Footswitches.FirstOrDefault(l => l.Id == g.ActiveLayout)?.Views?.Count ?? 0
+                        );
                         g.ActiveView = action.Action switch {
                             "view" => Math.Clamp(action.Value ?? 0, 0, views - 1),
                             "viewNext" => (g.ActiveView + 1) % views,

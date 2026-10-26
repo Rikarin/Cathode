@@ -61,7 +61,12 @@ sealed class CombReverb : IDisposable {
         }
 
         lines.Allocate(sizes);
-        bandwidth = SvfCoefficients.Design(BiquadType.LowPass, sampleRate, Math.Min(BandwidthHz, 0.45 * sampleRate), 0.7071);
+        bandwidth = SvfCoefficients.Design(
+            BiquadType.LowPass,
+            sampleRate,
+            Math.Min(BandwidthHz, 0.45 * sampleRate),
+            0.7071
+        );
         Clear();
     }
 

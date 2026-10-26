@@ -1,7 +1,7 @@
+using Cathode.Testing.References;
 using System.Globalization;
 using System.Net;
 using System.Text;
-using Cathode.Testing.References;
 
 namespace Cathode.References;
 
@@ -62,7 +62,7 @@ static class HtmlReport {
                 .Average();
             html.Append(
                 Chart(
-                    r.ResponseCenters.Select(static f => Math.Log10(f)).ToArray(),
+                    [..r.ResponseCenters.Select(static f => Math.Log10(f))],
                     [r.ReferenceResponse.ToArray(), r.CircuitResponse.Select(v => v + offset).ToArray()]
                 )
             );

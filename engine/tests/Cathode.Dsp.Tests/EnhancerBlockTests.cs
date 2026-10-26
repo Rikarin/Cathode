@@ -11,7 +11,7 @@ public class EnhancerBlockTests {
         using var block = TestBlocks.Create<EnhancerBlock>((EnhancerBlock.Type, type), (EnhancerBlock.Width, 100f));
         var input = Signals.Noise(48_000, 4, 0.5f);
 
-        var (left, right) = BlockRender.Stereo(block, input, input, _ => 64);
+        var (left, right) = BlockRender.Stereo(block, input, input, static _ => 64);
         var mono = left.Zip(right, static (l, r) => 0.5f * (l + r)).ToArray();
 
         Assert.True(Analysis.NullResidualDb(input, mono) < -130, "mono sum should equal the input");
@@ -23,7 +23,7 @@ public class EnhancerBlockTests {
         using var block = TestBlocks.Create<EnhancerBlock>((EnhancerBlock.Width, 0f));
         var input = Signals.Noise(4_800, 5);
 
-        var (left, right) = BlockRender.Stereo(block, input, input, _ => 64);
+        var (left, right) = BlockRender.Stereo(block, input, input, static _ => 64);
 
         Assert.True(Analysis.NullResidualDb(input, left) < -140);
         Assert.True(Analysis.NullResidualDb(input, right) < -140);
@@ -34,7 +34,7 @@ public class EnhancerBlockTests {
         using var block = TestBlocks.Create<EnhancerBlock>((EnhancerBlock.Width, 100f), (EnhancerBlock.LowCut, 500f));
         var input = Signals.Sine(30, 48_000, 48_000, 0.5f); // 4 octaves below the cut: about -49 dB of side
 
-        var (left, right) = BlockRender.Stereo(block, input, input, _ => 64);
+        var (left, right) = BlockRender.Stereo(block, input, input, static _ => 64);
 
         var side = left.Zip(right, static (l, r) => 0.5f * (l - r)).ToArray();
         Assert.True(Analysis.ToDb(Analysis.Rms(side.AsSpan(24_000)) / Analysis.Rms(input)) < -40);
@@ -49,7 +49,7 @@ public class EnhancerBlockTests {
         );
         var impulse = Signals.Impulse(4_800, 1f, 100);
 
-        var (left, right) = BlockRender.Stereo(block, impulse, impulse, _ => 64);
+        var (left, right) = BlockRender.Stereo(block, impulse, impulse, static _ => 64);
 
         Assert.Equal(100, Analysis.PeakIndex(left));
         Assert.InRange(Analysis.PeakIndex(right), 100 + 478, 100 + 481); // 10 ms

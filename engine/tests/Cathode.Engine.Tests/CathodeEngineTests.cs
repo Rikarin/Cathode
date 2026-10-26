@@ -222,7 +222,7 @@ public class CathodeEngineTests {
     public void Bypass_modes_decide_what_passes_and_whether_tails_continue(string mode, double dry, double tail) {
         var engine = new CathodeEngine(Spec);
         var definition = DelayGraph();
-        definition.Nodes.Single(n => n.Id == "delay").BypassMode = mode;
+        definition.Nodes.Single(static n => n.Id == "delay").BypassMode = mode;
         var graph = Compiler.Compile(definition, Spec, 1);
         engine.Publish(graph);
         OfflineRenderer.Render(engine, Signals.Sine(220, Spec.SampleRate, 4_800, 0.5f), new float[4_800], 64);

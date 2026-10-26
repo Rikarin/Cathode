@@ -230,7 +230,9 @@ public static partial class DriveCircuits {
             "Ruckus",
             "Suhr Riot as Fractal first modelled it (the original Riot): the Riot gain stage, silicon to ground, LP/HP tone"
         ) {
-            Stages = [RiotStage(), new(StageKind.Clipper) { Series = 2.2e3, Shunt = 4.7e-9, Diodes = DiodeStacks.Pair(Si) }],
+            Stages = [
+                RiotStage(), new(StageKind.Clipper) { Series = 2.2e3, Shunt = 4.7e-9, Diodes = DiodeStacks.Pair(Si) }
+            ],
             Tone = new(ToneKind.Blend) {
                 Source = 2.2e3,
                 Resistor1 = 22e3,

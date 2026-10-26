@@ -1,7 +1,7 @@
-using System.Reflection;
 using Cathode.Engine;
 using Cathode.Engine.Graph;
 using Cathode.Host;
+using System.Reflection;
 
 // Cathode engine host: a NativeAOT executable. --serve runs the engine for Cathode.Server over a Unix domain
 // socket (docs/adr/0004-state-ownership.md); the other commands are diagnostics.

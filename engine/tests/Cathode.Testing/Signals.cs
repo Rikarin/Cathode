@@ -8,7 +8,7 @@ public static class Signals {
         return signal;
     }
 
-    public static float[] Step(int length, float amplitude = 1f) => Enumerable.Repeat(amplitude, length).ToArray();
+    public static float[] Step(int length, float amplitude = 1f) => [..Enumerable.Repeat(amplitude, length)];
 
     public static float[] Sine(double frequency, double sampleRate, int length, float amplitude = 1f) {
         var signal = new float[length];
@@ -57,5 +57,5 @@ public static class Signals {
         return signal;
     }
 
-    public static float[] Concat(params float[][] parts) => parts.SelectMany(static p => p).ToArray();
+    public static float[] Concat(params float[][] parts) => [..parts.SelectMany(static p => p)];
 }

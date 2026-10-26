@@ -1,7 +1,7 @@
-using System.Numerics;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Resampling;
 using Cathode.Testing;
+using System.Numerics;
 
 namespace Cathode.Dsp.Tests;
 
@@ -185,10 +185,15 @@ public class OversamplingPhaseTests {
         return sum.Phase;
     }
 
-    /// <summary>The IIR half-band's |H| at <paramref name="f" /> (fraction of the high rate): the average of its allpass branches.</summary>
+    /// <summary>
+    ///     The IIR half-band's |H| at <paramref name="f" /> (fraction of the high rate): the average of its allpass
+    ///     branches.
+    /// </summary>
     static double IirMagnitude(double[] coefficients, double f) {
         var z = Complex.FromPolarCoordinates(1, 2 * Math.PI * f);
         var z2 = z * z;
+        return (0.5 * (Branch(0) + Branch(1) / z)).Magnitude;
+
         Complex Branch(int start) {
             Complex product = 1;
             for (var i = start; i < coefficients.Length; i += 2) {
@@ -197,8 +202,6 @@ public class OversamplingPhaseTests {
 
             return product;
         }
-
-        return (0.5 * (Branch(0) + Branch(1) / z)).Magnitude;
     }
 
     static double Db(double gain) => 20 * Math.Log10(Math.Max(gain, 1e-12));

@@ -137,7 +137,10 @@ public static class DenseLu {
                 return;
             }
 
-            var product = Vector128.Multiply(Vector128.Create(factor), Vector128.LoadUnsafe(ref Unsafe.Add(ref top, k)));
+            var product = Vector128.Multiply(
+                Vector128.Create(factor),
+                Vector128.LoadUnsafe(ref Unsafe.Add(ref top, k))
+            );
             Vector128.Subtract(pair, product).WithElement(0, factor).StoreUnsafe(ref Unsafe.Add(ref row, k));
             j = k + 2;
         } else {

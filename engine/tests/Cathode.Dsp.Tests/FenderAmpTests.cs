@@ -1,7 +1,7 @@
-using System.Globalization;
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Blocks;
 using Cathode.Testing;
+using System.Globalization;
 
 namespace Cathode.Dsp.Tests;
 

@@ -46,7 +46,9 @@ public class DriveRound3Tests {
         Assert.Equal(1, AdaaClipper.Function(ClipperShape.Variable, 3), 1e-12);
         // Asymmetric curves: the rectifier's negative half is a fifth of the positive.
         Assert.Equal(-0.2 * Math.Tanh(2), AdaaClipper.Function(ClipperShape.Rectifier, -2), 1e-12);
-        Assert.True(AdaaClipper.Function(ClipperShape.HvTube, 3) > AdaaClipper.Function(ClipperShape.LvTube, 3) - 1e-12);
+        Assert.True(
+            AdaaClipper.Function(ClipperShape.HvTube, 3) > AdaaClipper.Function(ClipperShape.LvTube, 3) - 1e-12
+        );
         Assert.True(-AdaaClipper.Function(ClipperShape.LvTube, -3) < AdaaClipper.Function(ClipperShape.LvTube, 3));
         Assert.Equal(1 - Math.Exp(-2), AdaaClipper.Function(ClipperShape.Silicon, 2), 1e-12);
     }
@@ -83,7 +85,9 @@ public class DriveRound3Tests {
 
         // Quiet, low drive: the stack's response. Bass lifts and cuts 100 Hz; middle down cuts 700 Hz.
         double Level(double frequency, params (int, float)[] settings) =>
-            SteadyDb(RenderDrive(type, Signals.Sine(frequency, Rate, 19_200, 0.002f), [(DriveBlock.Drive, 0f), ..settings]));
+            SteadyDb(
+                RenderDrive(type, Signals.Sine(frequency, Rate, 19_200, 0.002f), [(DriveBlock.Drive, 0f), ..settings])
+            );
 
         var bass = Level(100);
         Assert.True(Level(100, (DriveBlock.StackBass, 10f)) > bass + 1);
@@ -101,7 +105,10 @@ public class DriveRound3Tests {
         var slower = RenderDrive(type, input, (DriveBlock.Drive, 8f), (DriveBlock.SlewRate, 0.03f));
         Assert.True(Residual(stock, faster) > -40, $"{Residual(stock, faster):0.0} dB");
         // A slower op-amp cannot follow 3 kHz at full swing: a smaller, rounder output.
-        Assert.True(SteadyDb(slower) < SteadyDb(stock) - 0.5, $"{SteadyDb(slower):0.0} against {SteadyDb(stock):0.0} dB");
+        Assert.True(
+            SteadyDb(slower) < SteadyDb(stock) - 0.5,
+            $"{SteadyDb(slower):0.0} against {SteadyDb(stock):0.0} dB"
+        );
         Assert.True(Residual(stock, slower) > -30, $"{Residual(stock, slower):0.0} dB");
     }
 

@@ -132,7 +132,8 @@ public sealed unsafe class TelemetryRegion : IDisposable {
     ///     As above, plus the block meters of graph <paramref name="generation" /> (<c>CompiledGraph.Meters</c>: each
     ///     slot's output peak and its own meters; at most <see cref="TelemetryLayout.BlockMeters" />) and the output
     ///     loudness in LUFS. Each meter slot keeps the highest value of every block meter.
-    ///     <paramref name="modifiers" /> is each modifier's value as of this callback (<c>CompiledGraph.ModifierValues</c>, NaN where it drives
+    ///     <paramref name="modifiers" /> is each modifier's value as of this callback (<c>CompiledGraph.ModifierValues</c>,
+    ///     NaN where it drives
     ///     nothing; at most <see cref="TelemetryLayout.Modifiers" />): the latest, not a peak.
     /// </summary>
     public void RecordCallback(
@@ -360,7 +361,9 @@ public unsafe struct TelemetryLayout {
     public const int MeterSlots = 64;
     public const int FramesPerSlot = 256;
     public const int ScopeLength = 16_384; // a 4096-point RTA window fits with room for the writer
-    public const int BlockMeters = 256; // block meter values: a peak per graph slot (a 6 x 14 grid and its shunts) plus own meters
+
+    public const int BlockMeters =
+        256; // block meter values: a peak per graph slot (a 6 x 14 grid and its shunts) plus own meters
 
     /// <summary>
     ///     Modifier values: presets set no limit (one per parameter), and a rich one has a few dozen; any beyond this

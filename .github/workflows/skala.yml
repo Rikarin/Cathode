@@ -1,0 +1,103 @@
+# Skala (https://github.com/Rikarin/Skala) over the engine: one analysis, one gate, one report.
+#
+# - The gate decides: `skala check --gate=…` exits 1 and that is the verdict; nothing below re-reads severities.
+# - The `pr` gate cares only about the lines a pull request touched; the `ci` gate on master only about what the
+#   committed baseline (.skala/baseline.sarif) has not accepted. Gates are in skala.jsonc.
+# - The report is rendered from the stored SARIF (`skala report`, which runs no analysis), so it shows exactly
+#   what the gate saw.
+
+name: skala
+
+on:
+  pull_request:
+    paths: ["engine/**", "skala.jsonc", ".skala/**", "dotnet-tools.json", ".github/workflows/skala.yml"]
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+  security-events: write # the SARIF upload to code scanning, nothing else
+
+jobs:
+  skala:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # `--since` needs the merge base with origin/master
+      - uses: ./.github/actions/setup-dotnet
+      - run: dotnet tool restore
+      - name: Cache native dependencies
+        uses: actions/cache@v6
+        with:
+          path: engine/artifacts/deps
+          key: native-deps-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
+      - name: Install ALSA headers
+        run: sudo apt-get update -q && sudo apt-get install -y -q libasound2-dev
+      - name: Build native shim
+        working-directory: engine
+        run: ./native/build.sh
+
+      # A real build with a binary log: what the compiler actually saw, generated sources included.
+      - name: Build
+        run: dotnet build engine/Cathode.slnx -c Release -bl:engine/artifacts/skala.binlog
+
+      - name: Check (pull request)
+        if: github.event_name == 'pull_request'
+        run: >
+          dotnet skala check engine
+          --load=binlog --binlog engine/artifacts/skala.binlog --require-fresh-binlog
+          --gate=pr
+          --since origin/${{ github.base_ref }}
+          --no-new-suppressions
+          --duplication
+          --format=github
+          --output .skala/report.sarif
+          --output-unsuppressed .skala/code-scanning.sarif
+
+      - name: Check (master)
+        if: github.event_name == 'push'
+        run: >
+          dotnet skala check engine
+          --load=binlog --binlog engine/artifacts/skala.binlog --require-fresh-binlog
+          --gate=ci
+          --duplication
+          --format=github
+          --output .skala/report.sarif
+          --output-unsuppressed .skala/code-scanning.sarif
+
+      # Everything below runs even when the gate failed (that is when the report matters), but only when the check
+      # got far enough to write its report: an empty upload would tell code scanning "nothing found".
+      - name: Upload SARIF to code scanning
+        if: always() && hashFiles('.skala/code-scanning.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: .skala/code-scanning.sarif
+          category: skala
+
+      - name: Keep the report
+        if: always() && hashFiles('.skala/report.sarif') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: skala-report
+          path: .skala/report.sarif
+
+      # The report as markdown, from the stored SARIF. Exit 1 is the stored verdict the check step already failed
+      # on, so only other codes (an unreadable SARIF) fail this step.
+      - name: Render the report
+        if: always() && hashFiles('.skala/report.sarif') != ''
+        run: |
+          set -uo pipefail
+          status=0
+          dotnet skala report .skala/report.sarif --format=markdown > skala-report.md || status=$?
+          if [ "$status" != 0 ] && [ "$status" != 1 ]; then
+            echo "::error::skala report exited $status: the stored SARIF could not be rendered."
+            exit "$status"
+          fi
+
+      - name: Keep the rendered report
+        if: always() && hashFiles('skala-report.md') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: skala-report-markdown
+          path: skala-report.md

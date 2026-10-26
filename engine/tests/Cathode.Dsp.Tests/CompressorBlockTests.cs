@@ -51,7 +51,7 @@ public class CompressorBlockTests {
 
     [Fact]
     public void Opto_recovers_more_slowly_after_heavy_compression() {
-        float RecoveryDb(float type) {
+        static float RecoveryDb(float type) {
             using var block = Create(type, -30, 10, release: 100);
             BlockRender.Mono(block, Signals.Sine(1_000, 48_000, 24_000), 64);
             BlockRender.Mono(block, new float[4_800], 64); // 100 ms of silence

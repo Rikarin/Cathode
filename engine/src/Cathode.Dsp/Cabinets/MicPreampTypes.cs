@@ -141,6 +141,7 @@ public static class MicPreampTypes {
         }
 
         var limit = Math.Pow(10, OnsetDb / 20);
+
         bool Clips(double x) =>
             Math.Abs(Shape(type, x) / x) is var r && (r < 1 / limit || r > limit)
             || Math.Abs(Shape(type, -x) / -x) is var s && (s < 1 / limit || s > limit);

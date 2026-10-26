@@ -32,7 +32,7 @@ public class MultiDelayBlockTests {
         );
         var impulse = Signals.Impulse(6_000);
 
-        var (left, right) = BlockRender.Stereo(delay, impulse, impulse, _ => 64);
+        var (left, right) = BlockRender.Stereo(delay, impulse, impulse, static _ => 64);
 
         AssertTaps(left, (1_200, 1f), (3_600, -0.25f), (4_800, 0.1f));
         AssertTaps(right, (2_400, 0.5f), (3_600, -0.25f));
@@ -145,7 +145,7 @@ public class MultiDelayBlockTests {
 
     [Fact]
     public void Voice_band_pass_filter_shapes_its_tap_and_the_master_scaler_moves_it() {
-        float Peak(float scale) {
+        static float Peak(float scale) {
             using var delay = Create(
                 (MultiDelayBlock.Time, 100f),
                 (MultiDelayBlock.Tap1Feedback + 3, 0f),

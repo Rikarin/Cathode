@@ -1,8 +1,8 @@
+using Cathode.Contracts;
 using System.Net.Http.Json;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json.Nodes;
-using Cathode.Contracts;
 
 namespace Cathode.Server.Tests;
 

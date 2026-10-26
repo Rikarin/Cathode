@@ -169,7 +169,12 @@ public struct RTypeRoot<TPorts, TDevice>
             var deviceRow = Scattering.DeviceRow;
             var d = 0;
             for (; d + 2 <= k; d += 2) {
-                (p[d], p[d + 1]) = DotTwo(ref Unsafe.Add(ref matrix, (deviceRow + d) * columns), columns, ref input, count);
+                (p[d], p[d + 1]) = DotTwo(
+                    ref Unsafe.Add(ref matrix, (deviceRow + d) * columns),
+                    columns,
+                    ref input,
+                    count
+                );
             }
 
             if (d < k) {
@@ -515,7 +520,7 @@ public struct RTypeRoot<TPorts, TDevice>
         var s = Newton;
         var v = s.voltages.AsSpan(0, k);
         var r = s.currents.AsSpan(0, k);
-        var current = s.deviceCurrents.AsSpan(0, k);
+        _ = s.deviceCurrents.AsSpan(0, k);
         var trial = s.residual.AsSpan(0, k);
         var gc = s.conductances.AsSpan(0, k);
         var jacobian = s.jacobian.AsSpan(0, k * k);

@@ -1,8 +1,8 @@
-using System.IO.Compression;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Cabinets;
 using Cathode.Dsp.IO;
 using Cathode.Testing;
+using System.IO.Compression;
 
 namespace Cathode.Dsp.Tests;
 
@@ -64,7 +64,7 @@ public sealed class DynaCabTests : IDisposable {
 
     [Fact]
     public void Proximity_amount_scales_the_boost_and_its_frequency_moves_it_up() {
-        double Boost(double amount, double frequency) =>
+        static double Boost(double amount, double frequency) =>
             BassBoost(
                 Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[0], 0.25, Inch, 0, amount > 0, 0, amount, frequency))
             );
@@ -81,7 +81,7 @@ public sealed class DynaCabTests : IDisposable {
         );
 
         // A higher corner lifts the low mids too, not only the lows.
-        double LowMids(double frequency) {
+        static double LowMids(double frequency) {
             var ir = Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[0], 0.25, Inch, 0, true, 0, 1, frequency));
             return BandDb(ir, 300, 600) - BandDb(ir, 2_000, 4_000);
         }
@@ -130,7 +130,7 @@ public sealed class DynaCabTests : IDisposable {
     [Fact]
     public void Room_damping_and_diffusion_tame_the_room_comb() {
         // The room's comb, as the spread of the levels against the anechoic IR over a band (finely sampled).
-        double Ripple(CabRoom room, double low, double high) {
+        static double Ripple(CabRoom room, double low, double high) {
             var dry = Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[10], 0.25, 6 * Inch, 0, true, 0));
             var wet = Synthesize(
                 new(V30, Closed1x12, CabCatalogue.Mics[10], 0.25, 6 * Inch, 0, true, 1, RoomShape: room)
@@ -158,7 +158,7 @@ public sealed class DynaCabTests : IDisposable {
     [Fact]
     public void Moving_from_the_cap_to_the_edge_darkens() {
         double[] positions = [0, 0.25, 0.5, 0.75, 1];
-        var treble = positions.Select(p => Brightness(
+        var treble = positions.Select(static p => Brightness(
                     Synthesize(new(V30, Closed4x12, CabCatalogue.Mics[0], p, Inch, 0, true, 0))
                 )
             )
@@ -176,7 +176,7 @@ public sealed class DynaCabTests : IDisposable {
 
     [Fact]
     public void Moving_away_softens_the_position_effect() {
-        double Spread(double distance) =>
+        static double Spread(double distance) =>
             Brightness(Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[0], 0, distance, 0, true, 0)))
             - Brightness(Synthesize(new(V30, Closed1x12, CabCatalogue.Mics[0], 1, distance, 0, true, 0)));
 

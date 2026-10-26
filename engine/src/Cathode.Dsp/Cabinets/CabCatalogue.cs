@@ -136,13 +136,13 @@ public sealed record SpeakerElectrical(
         var y = Math.Log(1 / Math.Sqrt(inverseR2));
 
         (double, double) Error(double lnL, double lnR) {
+            return (At(w1) - t1, At(w2) - t2);
+
             double At(double omega) {
                 var l = new Complex(0, omega * Math.Exp(lnL));
                 var r = Math.Exp(lnR);
                 return Math.Log((Re + l * r / (l + r)).Magnitude);
             }
-
-            return (At(w1) - t1, At(w2) - t2);
         }
 
         const double Step = 1e-6;

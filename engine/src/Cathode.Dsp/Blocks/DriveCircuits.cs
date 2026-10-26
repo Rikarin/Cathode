@@ -1,6 +1,6 @@
-using System.Runtime.CompilerServices;
 using Cathode.Dsp.Filters;
 using Cathode.Dsp.Wdf;
+using System.Runtime.CompilerServices;
 
 namespace Cathode.Dsp.Blocks;
 
@@ -143,7 +143,9 @@ public sealed record ToneNetwork(ToneKind Kind) {
     /// <summary>ActiveEq: the first mid band's centre (0 = none); the Middle Freq control replaces it where it sweeps.</summary>
     public double MidHz { get; init; }
 
-    /// <summary>ActiveEq: the second mid band's centre (0 = none), worked by the Hi Mids pot (<see cref="DriveBlock.HiMid" />).</summary>
+    /// <summary>
+    ///     ActiveEq: the second mid band's centre (0 = none), worked by the Hi Mids pot (<see cref="DriveBlock.HiMid" />).
+    /// </summary>
     public double Mid2Hz { get; init; }
 
     /// <summary>ActiveEq: the treble band's corner (0 = none).</summary>
@@ -436,7 +438,10 @@ public sealed record DriveCircuit(string Name, string ModelledAfter) {
     public bool IsSymmetric => Bias == 0 && Stages.All(static s => s.IsSymmetric);
 }
 
-/// <summary>A pedal switch that changes a circuit's network: its positions are prebuilt circuits (<see cref="DriveCircuit.Modes" />).</summary>
+/// <summary>
+///     A pedal switch that changes a circuit's network: its positions are prebuilt circuits
+///     (<see cref="DriveCircuit.Modes" />).
+/// </summary>
 public enum PedalSwitch {
     None,
 
@@ -1624,7 +1629,9 @@ sealed class CircuitChannel {
         var blend = circuit.BlendKnob ? 0.5 + tweaks.Blend : 0.5;
         wet = Math.Min(1, 2 * blend);
         clean = circuit.CleanMix * (1 - 0.75 * position) * Math.Min(1, 2 * (1 - blend)) + tweaks.DryLevel;
-        boost = circuit.BoostDb > 0 && tweaks.BoostDb > 0 ? Decibels.ToGain(Math.Min(tweaks.BoostDb, circuit.BoostDb)) : 1;
+        boost = circuit.BoostDb > 0 && tweaks.BoostDb > 0
+            ? Decibels.ToGain(Math.Min(tweaks.BoostDb, circuit.BoostDb))
+            : 1;
         trim = Decibels.ToGain(circuit.OutputDb) * (circuit.InvertOutput ? -1 : 1);
         ConfigureShelf(circuit, tweaks.StackBass, rate);
         var wasGated = gated;

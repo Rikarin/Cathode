@@ -1,6 +1,6 @@
+using Cathode.Contracts;
 using System.Globalization;
 using System.Text;
-using Cathode.Contracts;
 
 namespace Cathode.Soak;
 

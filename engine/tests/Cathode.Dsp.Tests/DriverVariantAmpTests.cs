@@ -7,14 +7,28 @@ namespace Cathode.Dsp.Tests;
 
 /// <summary>Stream M2's preamps against the reference MNA simulator as whole chains, every stage in one circuit.</summary>
 public partial class AmpStageTests {
-    public static TheoryData<string, double> DriverVariantChains => new() { { "Major 1967", 0.01 }, { "Bass 400", 0.01 } };
+    public static TheoryData<string, double> DriverVariantChains =>
+        new() { { "Major 1967", 0.01 }, { "Bass 400", 0.01 } };
 
     [Theory]
     [MemberData(nameof(DriverVariantChains))]
     public void Driver_variant_preamps_match_the_reference(string type, double amplitude) {
         var design = AmpDesign.All.Single(a => a.Name == type);
         var designs = design.Preamp.Cast<NetworkStageDesign>().ToArray();
-        var controls = new AmpControls(0.6, 0.7, 0.4, 0.6, 0.8, true, 0.5, 0.7, false, true, true, new(6, -6, 3, 0, -3));
+        var controls = new AmpControls(
+            0.6,
+            0.7,
+            0.4,
+            0.6,
+            0.8,
+            true,
+            0.5,
+            0.7,
+            false,
+            true,
+            true,
+            new(6, -6, 3, 0, -3)
+        );
         var stages = designs.Select(static d => d.Create(Rate)).ToArray();
         var (rest, resistance) = (0.0, 0.0);
         foreach (var stage in stages) {
@@ -65,7 +79,10 @@ public class DriverVariantAmpTests(ITestOutputHelper output) {
     public void Panels_name_the_real_controls_and_hide_the_rest() {
         Assert.Equal("Treble Vol", Label("gain", "Major 1967"));
         Assert.Equal("Normal Vol", Label("control1", "Major 1967"));
-        Assert.Equal(["Jumper", "Normal Input"], new[] { "switch1", "switch2" }.Select(id => Label(id, "Major 1967")));
+        Assert.Equal(
+            ["Jumper", "Normal Input"],
+            new[] { "switch1", "switch2" }.Select(static id => Label(id, "Major 1967"))
+        );
         Assert.Empty(Label("master", "Major 1967"));
         Assert.Equal("Presence", Label("presence", "Major 1967"));
 
@@ -74,11 +91,11 @@ public class DriverVariantAmpTests(ITestOutputHelper output) {
         Assert.Equal("4 kHz", Label("control2", "Bass 400"));
         Assert.Equal(
             ["Input 2", "Bass Shift", "Treble Shift"],
-            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "Bass 400"))
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Bass 400"))
         );
         Assert.Equal(
             ["34 Hz", "107 Hz", "269 Hz", "723 Hz", "1.6 kHz"],
-            new[] { "eq1", "eq2", "eq3", "eq4", "eq5" }.Select(id => Label(id, "Bass 400"))
+            new[] { "eq1", "eq2", "eq3", "eq4", "eq5" }.Select(static id => Label(id, "Bass 400"))
         );
         Assert.Empty(Label("presence", "Bass 400"));
         Assert.Equal("Master", Label("master", "Bass 400"));
@@ -98,8 +115,10 @@ public class DriverVariantAmpTests(ITestOutputHelper output) {
             .ToArray();
         var peak = 0.0;
         foreach (var knob in knobs) {
-            var range = knob >= CircuitAmpBlock.Eq1 && knob < CircuitAmpBlock.Eq1 + 5 ? 12f : 10f;
-            foreach (var value in new[] { knob >= CircuitAmpBlock.Eq1 && knob < CircuitAmpBlock.Eq1 + 5 ? -12f : 0f, range, 5f }) {
+            var range = (knob is >= CircuitAmpBlock.Eq1 and < CircuitAmpBlock.Eq1 + 5) ? 12f : 10f;
+            foreach (var value in new[] {
+                         (knob is >= CircuitAmpBlock.Eq1 and < CircuitAmpBlock.Eq1 + 5) ? -12f : 0f, range, 5f
+                     }) {
                 block.Params.SetTarget(knob, value);
                 var rendered = BlockRender.Mono(block, chord, 64);
                 Assert.True(Analysis.AllFinite(rendered), $"{type}: knob {knob} at {value}");
@@ -119,7 +138,10 @@ public class DriverVariantAmpTests(ITestOutputHelper output) {
         var channel = block.Channel;
         foreach (var newton in channel.Stages.Where(static s => s.Newton is not null).Select(static s => s.Newton!)) {
             Assert.Equal(0, newton.NonFinite);
-            Assert.True(newton.Unconverged <= newton.Samples / 10_000, $"{type}: {newton.Unconverged} of {newton.Samples}");
+            Assert.True(
+                newton.Unconverged <= newton.Samples / 10_000,
+                $"{type}: {newton.Unconverged} of {newton.Samples}"
+            );
         }
 
         var power = channel.Power.Newton;
@@ -197,7 +219,7 @@ public class DriverVariantAmpTests(ITestOutputHelper output) {
     /// </summary>
     [Fact]
     public void Major_feedback_flattens_its_tone_stack() {
-        double Swing(float feedback, int knob, double frequency) =>
+        static double Swing(float feedback, int knob, double frequency) =>
             Level("Major 1967", frequency, 1e-3f, (CircuitAmpBlock.Feedback, feedback), (knob, 10f))
             - Level("Major 1967", frequency, 1e-3f, (CircuitAmpBlock.Feedback, feedback), (knob, 0f));
 

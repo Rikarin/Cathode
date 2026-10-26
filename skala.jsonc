@@ -1,0 +1,26 @@
+{
+  // Skala (https://github.com/Rikarin/Skala): the C# formatter, linter and quality gate, run over the engine with
+  // its default settings. The tool is pinned in dotnet-tools.json; CI runs it in .github/workflows/skala.yml.
+  "gates": {
+    // What a developer runs (`dotnet skala verify engine`): errors stop you, nothing else does.
+    "local": {
+      "maxSeverity": "error"
+    },
+
+    // A pull request: only the lines the branch touched have to be clean, and formatted.
+    "pr": {
+      "since": "origin/master",
+      "newIssues": 0,
+      "maxSeverity": "warning",
+      "formatting": "clean"
+    },
+
+    // Master: nothing outside the committed baseline at warning or above, and the tree formatted.
+    "ci": {
+      "baseline": ".skala/baseline.sarif",
+      "newIssues": 0,
+      "maxSeverity": "warning",
+      "formatting": "clean"
+    }
+  }
+}

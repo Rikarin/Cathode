@@ -1,12 +1,13 @@
+using Microsoft.Win32.SafeHandles;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.Win32.SafeHandles;
 
 namespace Cathode.Server.Stores;
 
 /// <summary>
-///     Renames a finished temporary file over its destination. On Windows a plain rename (<see cref="File.Move(string, string, bool)" />)
+///     Renames a finished temporary file over its destination. On Windows a plain rename
+///     (<see cref="File.Move(string, string, bool)" />)
 ///     is refused while anyone has the destination open, even a reader who shares delete; a rename with POSIX semantics
 ///     (Windows 10 1809 and later, NTFS) replaces it anyway, and the reader keeps the old content. Elsewhere, and where
 ///     POSIX semantics are not supported, it is <see cref="File.Move(string, string, bool)" />.
@@ -47,7 +48,7 @@ static partial class AtomicRename {
         var info = (RenameInfo*)buffer;
         info->Flags = ReplaceIfExists | PosixSemantics;
         info->FileNameLength = (uint)nameBytes;
-        Encoding.Unicode.GetBytes(destination, new Span<byte>(buffer + nameOffset, nameBytes));
+        Encoding.Unicode.GetBytes(destination, new(buffer + nameOffset, nameBytes));
 
         if (SetFileInformationByHandle(handle, FileRenameInfoEx, buffer, (uint)size)) {
             return true;
@@ -82,5 +83,10 @@ static partial class AtomicRename {
 
     [LibraryImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static unsafe partial bool SetFileInformationByHandle(SafeFileHandle file, int infoClass, void* info, uint size);
+    private static unsafe partial bool SetFileInformationByHandle(
+        SafeFileHandle file,
+        int infoClass,
+        void* info,
+        uint size
+    );
 }

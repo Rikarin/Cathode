@@ -1,8 +1,8 @@
+using Cathode.Contracts;
+using Cathode.Server.Api;
 using System.Net;
 using System.Net.Http.Json;
 using System.Net.WebSockets;
-using Cathode.Contracts;
-using Cathode.Server.Api;
 
 namespace Cathode.Server.Tests;
 
@@ -120,10 +120,10 @@ public class AccessTests {
         Assert.Equal(HttpStatusCode.OK, put.StatusCode);
         Assert.Equal(before.Preset.Id, replaced.Preset.Id);
         Assert.Equal("Version B", replaced.Preset.Name);
-        Assert.Contains(replaced.Preset.Blocks, b => b.Id == "delay1");
+        Assert.Contains(replaced.Preset.Blocks, static b => b.Id == "delay1");
         Assert.True(replaced.CanUndo);
         Assert.Equal(before.Preset.Name, undone.Preset.Name);
-        Assert.DoesNotContain(undone.Preset.Blocks, b => b.Id == "delay1");
+        Assert.DoesNotContain(undone.Preset.Blocks, static b => b.Id == "delay1");
     }
 
     static HttpRequestMessage Preflight(string origin) {

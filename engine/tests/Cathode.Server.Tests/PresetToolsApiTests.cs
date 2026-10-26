@@ -1,8 +1,8 @@
-using System.Net;
-using System.Net.Http.Json;
 using Cathode.Contracts;
 using Cathode.Server.Midi;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net;
+using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 
@@ -31,7 +31,13 @@ public sealed class PresetToolsApiTests : IAsyncLifetime {
         var saved = await Live(client.PostAsJsonAsync("/api/v1/live/save", new SaveRequest("Lead"), Token));
         var id = saved.Preset.Id;
 
-        await Ok(client.PatchAsJsonAsync($"/api/v1/presets/{id}/metadata", new PresetMetadataRequest("Solo", "red", true), Token));
+        await Ok(
+            client.PatchAsJsonAsync(
+                $"/api/v1/presets/{id}/metadata",
+                new PresetMetadataRequest("Solo", "red", true),
+                Token
+            )
+        );
         var copy = await Json<PresetSummary>(
             client.PostAsJsonAsync($"/api/v1/presets/{id}/duplicate", new DuplicatePresetRequest("lead-copy"), Token)
         );
@@ -63,7 +69,11 @@ public sealed class PresetToolsApiTests : IAsyncLifetime {
             )
         );
         var cleared = await Json<AssetInfo>(
-            client.PatchAsJsonAsync($"/api/v1/assets/{asset.Ref}/metadata", new AssetMetadataRequest(Color: ""), Token)
+            client.PatchAsJsonAsync(
+                $"/api/v1/assets/{asset.Ref}/metadata",
+                new AssetMetadataRequest(Color: string.Empty),
+                Token
+            )
         );
 
         Assert.Equal(("Room mic", "blue", true), (changed.Name, changed.Color, changed.Favorite));
@@ -76,8 +86,12 @@ public sealed class PresetToolsApiTests : IAsyncLifetime {
         using var upload = new ByteArrayContent(Wav());
         var asset = await Json<AssetInfo>(client.PostAsync("/api/v1/assets?name=room.wav", upload, Token));
         await Live(client.PostAsJsonAsync("/api/v1/live/blocks", new AddBlockRequest("irplayer", 0, 3), Token));
-        await Live(client.PutAsJsonAsync("/api/v1/live/blocks/irplayer1/assets/ir", new AssetRequest(asset.Ref), Token));
-        await Live(client.PutAsJsonAsync("/api/v1/live/blocks/irplayer1/assets/ir2", new AssetRequest(asset.Ref), Token));
+        await Live(
+            client.PutAsJsonAsync("/api/v1/live/blocks/irplayer1/assets/ir", new AssetRequest(asset.Ref), Token)
+        );
+        await Live(
+            client.PutAsJsonAsync("/api/v1/live/blocks/irplayer1/assets/ir2", new AssetRequest(asset.Ref), Token)
+        );
         await Live(client.PostAsJsonAsync("/api/v1/live/save", new SaveRequest("Verse", true), Token));
         await Live(client.PostAsJsonAsync("/api/v1/live/save", new SaveRequest("Chorus", true), Token));
 
@@ -128,7 +142,14 @@ public sealed class PresetToolsApiTests : IAsyncLifetime {
         var result = await Json<BatchResult>(
             client.PostAsJsonAsync(
                 "/api/v1/presets/batch-set",
-                new BatchSetRequest([first.Preset.Id, second.Preset.Id, plain.Preset.Id], "delay1", "delay", "time", 432, "B"),
+                new BatchSetRequest(
+                    [first.Preset.Id, second.Preset.Id, plain.Preset.Id],
+                    "delay1",
+                    "delay",
+                    "time",
+                    432,
+                    "B"
+                ),
                 Token
             )
         );
@@ -191,7 +212,11 @@ public sealed class PresetToolsApiTests : IAsyncLifetime {
         await Live(client.PostAsJsonAsync("/api/v1/live/blocks", new AddBlockRequest("delay", 0, 2), Token));
 
         var live = await Live(
-            client.PutAsJsonAsync("/api/v1/live/perform", new List<PerformControl> { new("delay1", "mix", "Echo") }, Token)
+            client.PutAsJsonAsync(
+                "/api/v1/live/perform",
+                new List<PerformControl> { new("delay1", "mix", "Echo") },
+                Token
+            )
         );
         using var bad = await client.PutAsJsonAsync(
             "/api/v1/live/perform",
@@ -202,10 +227,10 @@ public sealed class PresetToolsApiTests : IAsyncLifetime {
         global.Perform = [new("amp1", "gain")];
         var stored = await Json<GlobalSettings>(client.PutAsJsonAsync("/api/v1/global", global, Token));
 
-        Assert.Equal(new PerformControl("delay1", "mix", "Echo"), Assert.Single(live.Preset.Perform));
+        Assert.Equal(new("delay1", "mix", "Echo"), Assert.Single(live.Preset.Perform));
         Assert.True(live.CanUndo);
         Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
-        Assert.Equal(new PerformControl("amp1", "gain"), Assert.Single(stored.Perform));
+        Assert.Equal(new("amp1", "gain"), Assert.Single(stored.Perform));
     }
 
     [Fact]
@@ -230,11 +255,13 @@ public sealed class PresetToolsApiTests : IAsyncLifetime {
         var router = server.Services.GetRequiredService<MidiRouter>();
 
         router.OnMidi([new(0xB0, 40, 127, 0)]);
-        await ServerFixture.Eventually(async () => (await Live(client.GetAsync("/api/v1/live", Token))).ActiveScene == 1);
+        await ServerFixture.Eventually(async () => (await Live(client.GetAsync("/api/v1/live", Token))).ActiveScene == 1
+        );
         router.OnMidi([new(0xB0, 41, 127, 0)]); // next view
         await ServerFixture.Eventually(async () => (await Global()).ActiveView == 1);
         router.OnMidi([new(0xB0, 40, 127, 0)]); // the same switch on view 2
-        await ServerFixture.Eventually(async () => (await Live(client.GetAsync("/api/v1/live", Token))).ActiveScene == 3);
+        await ServerFixture.Eventually(async () => (await Live(client.GetAsync("/api/v1/live", Token))).ActiveScene == 3
+        );
 
         await Live(
             client.PutAsJsonAsync(
@@ -244,10 +271,11 @@ public sealed class PresetToolsApiTests : IAsyncLifetime {
             )
         );
         router.OnMidi([new(0xB0, 40, 127, 0)]); // overridden by the preset
-        await ServerFixture.Eventually(async () => (await Live(client.GetAsync("/api/v1/live", Token))).ActiveScene == 6);
+        await ServerFixture.Eventually(async () => (await Live(client.GetAsync("/api/v1/live", Token))).ActiveScene == 6
+        );
 
         router.OnMidi([new(0xB0, 42, 127, 0)]); // on view 2 too: its action, then the jump to the FX layout
-        await ServerFixture.Eventually(async () => (await Global()) is { ActiveLayout: "fx", ActiveView: 0 });
+        await ServerFixture.Eventually(async () => await Global() is { ActiveLayout: "fx", ActiveView: 0 });
         Assert.Equal(5, (await Live(client.GetAsync("/api/v1/live", Token))).ActiveScene);
 
         global.Footswitches[0].Switches.Add(new(9, "Bad", "cc", 1, 50, new("tap"), View: 4));

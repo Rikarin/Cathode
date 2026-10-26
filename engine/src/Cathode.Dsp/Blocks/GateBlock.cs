@@ -18,7 +18,8 @@ namespace Cathode.Dsp.Blocks;
 ///         threshold.
 ///     </para>
 ///     Sidechain picks what the detector hears: the block's input, the grid input, another grid row
-///     (a tap, <see cref="SideInputs.Taps" />) or one of the interface's inputs (<see cref="HardwareInputs" />), so a gate late
+///     (a tap, <see cref="SideInputs.Taps" />) or one of the interface's inputs (<see cref="HardwareInputs" />), so a gate
+///     late
 ///     in the chain can follow the clean guitar.
 /// </summary>
 public sealed class GateBlock() : DspBlock(Info), ISideInputBlock {

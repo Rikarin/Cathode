@@ -1,7 +1,7 @@
-using System.Diagnostics;
 using Cathode.Dsp;
 using Cathode.Engine;
 using Cathode.Engine.Graph;
+using System.Diagnostics;
 
 namespace Cathode.Host;
 

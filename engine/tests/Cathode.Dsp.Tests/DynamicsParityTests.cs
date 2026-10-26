@@ -44,7 +44,7 @@ public class DynamicsParityTests {
     [Fact]
     public void Detector_choice_overrides_the_type() {
         // A sine's RMS is 3 dB under its peak: RMS detection compresses it less.
-        float Out(int detector) {
+        static float Out(int detector) {
             using var block = TestBlocks.Create<CompressorBlock>(
                 (CompressorBlock.Type, CompressorBlock.Pedal),
                 (CompressorBlock.Knee, 0f),
@@ -63,7 +63,7 @@ public class DynamicsParityTests {
 
     [Fact]
     public void Line_input_level_moves_the_threshold_12_dB() {
-        float Out(int inputLevel) {
+        static float Out(int inputLevel) {
             using var block = TestBlocks.Create<CompressorBlock>(
                 (CompressorBlock.Knee, 0f),
                 (CompressorBlock.InputLevel, inputLevel)
@@ -77,7 +77,7 @@ public class DynamicsParityTests {
 
     [Fact]
     public void Emphasis_makes_bass_pump_less() {
-        float Reduction(float emphasis) {
+        static float Reduction(float emphasis) {
             using var block = TestBlocks.Create<CompressorBlock>(
                 (CompressorBlock.Emphasis, emphasis),
                 (CompressorBlock.EmphasisFrequency, 1_000f)
@@ -115,7 +115,7 @@ public class DynamicsParityTests {
 
     [Fact]
     public void Feedback_topology_compresses_less_than_feed_forward() {
-        float Out(int type) {
+        static float Out(int type) {
             using var block = TestBlocks.Create<CompressorBlock>(
                 (CompressorBlock.Type, type),
                 (CompressorBlock.Knee, 0f),
@@ -136,7 +136,7 @@ public class DynamicsParityTests {
 
     [Fact]
     public void Auto_attack_reacts_faster_to_a_transient() {
-        float FirstMsReduction(bool auto) {
+        static float FirstMsReduction(bool auto) {
             using var block = TestBlocks.Create<CompressorBlock>(
                 (CompressorBlock.Attack, 30f),
                 (CompressorBlock.AutoTime, auto ? 1f : 0f)
@@ -163,7 +163,7 @@ public class DynamicsParityTests {
 
     [Fact]
     public void Light_types_change_the_opto_release() {
-        float Recovery(int light) {
+        static float Recovery(int light) {
             using var block = TestBlocks.Create<CompressorBlock>(
                 (CompressorBlock.Type, CompressorBlock.Opto),
                 (CompressorBlock.Threshold, -30f),
@@ -182,7 +182,7 @@ public class DynamicsParityTests {
 
     [Fact]
     public void Modern_gate_holds_open_through_its_hysteresis() {
-        float Gain(int type) {
+        static float Gain(int type) {
             using var block = TestBlocks.Create<GateBlock>(
                 (GateBlock.Type, type),
                 (GateBlock.Threshold, -40f),
@@ -267,7 +267,7 @@ public class DynamicsParityTests {
 
     [Fact]
     public void Multiband_rms_detector_compresses_a_sine_less_than_peak() {
-        float Reduction(int detector) {
+        static float Reduction(int detector) {
             using var block =
                 TestBlocks.Create<MultibandCompressorBlock>((MultibandCompressorBlock.Detector, detector));
             BlockRender.Mono(block, Signals.Sine(700, Rate, 24_000), 64);

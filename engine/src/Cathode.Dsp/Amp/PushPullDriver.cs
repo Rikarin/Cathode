@@ -228,15 +228,33 @@ public sealed class DifferentialDriver : PhaseInverter {
         var second = new Triode(design.DriverTube);
         var rp = design.PlateResistor;
 
-        var (ia, ib, vk) = SolvePair(first, 0, 0, design.Supply, rp, design.Supply, rp, design.TailResistor,
-            design.TailReturn);
+        var (ia, ib, vk) = SolvePair(
+            first,
+            0,
+            0,
+            design.Supply,
+            rp,
+            design.Supply,
+            rp,
+            design.TailResistor,
+            design.TailReturn
+        );
         RestFirstPlate = design.Supply - ia * rp;
         var restFirstB = design.Supply - ib * rp;
         RestGrid = 0;
         RestCathode = vk;
 
-        var (ja, jb, jk) = SolvePair(second, 0, 0, design.DriverSupply, design.DriverPlate, design.DriverSupply,
-            design.DriverPlate, design.DriverCathode, 0);
+        var (ja, jb, jk) = SolvePair(
+            second,
+            0,
+            0,
+            design.DriverSupply,
+            design.DriverPlate,
+            design.DriverSupply,
+            design.DriverPlate,
+            design.DriverCathode,
+            0
+        );
         RestDriverCathode = jk;
         RestCurrents = (ia, ja);
 
@@ -244,10 +262,28 @@ public sealed class DifferentialDriver : PhaseInverter {
         RestPlateA = design.DriverSupply - jb * design.DriverPlate;
         RestPlateB = design.DriverSupply - ja * design.DriverPlate;
         const double Probe = 1e-6;
-        var withA = SolvePair(second, 0, 0, design.DriverSupply - Probe * design.DriverPlate, design.DriverPlate,
-            design.DriverSupply, design.DriverPlate, design.DriverCathode, 0);
-        var withB = SolvePair(second, 0, 0, design.DriverSupply, design.DriverPlate,
-            design.DriverSupply - Probe * design.DriverPlate, design.DriverPlate, design.DriverCathode, 0);
+        var withA = SolvePair(
+            second,
+            0,
+            0,
+            design.DriverSupply - Probe * design.DriverPlate,
+            design.DriverPlate,
+            design.DriverSupply,
+            design.DriverPlate,
+            design.DriverCathode,
+            0
+        );
+        var withB = SolvePair(
+            second,
+            0,
+            0,
+            design.DriverSupply,
+            design.DriverPlate,
+            design.DriverSupply - Probe * design.DriverPlate,
+            design.DriverPlate,
+            design.DriverCathode,
+            0
+        );
         // A draw from output A is a draw from the second pair's B plate (and the other way round).
         OutputImpedance = (
             (RestPlateA - (design.DriverSupply - (withB.B + Probe) * design.DriverPlate)) / Probe,
@@ -264,12 +300,30 @@ public sealed class DifferentialDriver : PhaseInverter {
         var ratio = design.DividerShunt / (design.DividerSeries + design.DividerShunt);
         for (var n = 0; n < Points; n++) {
             var vd = -Range + n * step;
-            var (pa, pb, cathode) = SolvePair(first, vd, 0, sourceA, loaded, sourceB, loaded, design.TailResistor,
-                design.TailReturn);
+            var (pa, pb, cathode) = SolvePair(
+                first,
+                vd,
+                0,
+                sourceA,
+                loaded,
+                sourceB,
+                loaded,
+                design.TailResistor,
+                design.TailReturn
+            );
             var gridA = (sourceA - pa * loaded - RestFirstPlate) * ratio;
             var gridB = (sourceB - pb * loaded - restFirstB) * ratio;
-            var (qa, qb, _) = SolvePair(second, gridA, gridB, design.DriverSupply, design.DriverPlate,
-                design.DriverSupply, design.DriverPlate, design.DriverCathode, 0);
+            var (qa, qb, _) = SolvePair(
+                second,
+                gridA,
+                gridB,
+                design.DriverSupply,
+                design.DriverPlate,
+                design.DriverSupply,
+                design.DriverPlate,
+                design.DriverCathode,
+                0
+            );
             a[n] = design.DriverSupply - qb * design.DriverPlate - RestPlateA;
             b[n] = design.DriverSupply - qa * design.DriverPlate - RestPlateB;
             gridVoltages[n] = vd - cathode;

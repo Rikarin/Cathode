@@ -106,13 +106,13 @@ public class BassAmpTests(ITestOutputHelper output) {
     public void Panels_name_the_real_controls_and_hide_the_rest() {
         Assert.Equal(
             ["Ultra Hi", "Ultra Lo", "Bass Cut"],
-            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "SVT"))
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "SVT"))
         );
         Assert.Equal("Mid Freq", Label("control1", "SVT"));
         Assert.Equal("Bright Input", Label("bright", "SVT"));
         Assert.Equal(
             ["Ultra Hi", "Ultra Lo"],
-            new[] { "switch1", "switch2" }.Select(id => Label(id, "Portaflex B-15N"))
+            new[] { "switch1", "switch2" }.Select(static id => Label(id, "Portaflex B-15N"))
         );
         Assert.Equal("Hi Treble", Label("control1", "JC-120"));
         foreach (var type in Models) {
@@ -211,7 +211,7 @@ public class BassAmpTests(ITestOutputHelper output) {
     /// </summary>
     [Fact]
     public void Svt_ultra_switches_shape_as_the_manual_says() {
-        double At(double frequency, params (int Index, float Value)[] settings) =>
+        static double At(double frequency, params (int Index, float Value)[] settings) =>
             Level("SVT", frequency, 1e-3f, [(CircuitAmpBlock.Gain, 3f), ..settings]);
 
         var notch = At(500, (CircuitAmpBlock.Switch2, 1f)) - At(500);
@@ -253,7 +253,7 @@ public class BassAmpTests(ITestOutputHelper output) {
 
     [Fact]
     public void Portaflex_ultra_switches_lift_the_lows_and_highs() {
-        double At(double frequency, params (int Index, float Value)[] settings) =>
+        static double At(double frequency, params (int Index, float Value)[] settings) =>
             Level("Portaflex B-15N", frequency, 1e-3f, [(CircuitAmpBlock.Gain, 3f), ..settings]);
 
         var low = At(60, (CircuitAmpBlock.Switch2, 1f))
@@ -321,7 +321,7 @@ public class BassAmpTests(ITestOutputHelper output) {
         );
         Assert.Equal(stock, speaker, 6);
 
-        double Rail(float sag) {
+        static double Rail(float sag) {
             using var block = Create("JC-120", (CircuitAmpBlock.Gain, 10f), (CircuitAmpBlock.Sag, sag));
             BlockRender.Mono(block, Signals.Sine(110, Rate, 24_000, 0.5f), 64);
             return block.Channel.SolidState!.Rails.Positive;

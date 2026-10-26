@@ -38,7 +38,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Guessed: the digital pots' resistances (TC9176 and TC9170 taken as 10k: the drawing names the parts but not
 ///         their values; each TC9176 section as a linear pot at the knob's position, so that the cascaded pair follows a
 ///         square law, about −12 dB at the centre (two audio-taper sections would put the centre near −40 dB); the
-///         TC9170 bands as linear pots, centre flat), the HT (230 V after the 47k dropper; the transformer's HT winding voltage is not given), the effects mix
+///         TC9170 bands as linear pots, centre flat), the HT (230 V after the 47k dropper; the transformer's HT winding
+///         voltage is not given), the effects mix
 ///         (its pot at the centre), the output level switch at +4 (the 10k / 2k7 pad out). Simplified: every op-amp but
 ///         the OD channel's inverting stage (which swings to its ±15 V rails into the clamp) as a linear amplifier; the
 ///         effects loop and speaker emulator outputs left out; the 4053s and JFETs as ideal switches.

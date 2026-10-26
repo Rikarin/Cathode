@@ -1,8 +1,8 @@
-using System.Text.Json;
 using Cathode.Audio;
 using Cathode.Dsp;
 using Cathode.Engine.Graph;
 using Cathode.Testing;
+using System.Text.Json;
 
 namespace Cathode.Engine.Tests;
 
@@ -195,7 +195,7 @@ public class GraphCompilerTests {
         }
 
         nodes.Add(Node("out", NodeTypes.Output, 0, 13));
-        cables.AddRange(previous.Select(p => (p, "out")));
+        cables.AddRange(previous.Select(static p => (p, "out")));
 
         using var graph = Compiler.Compile(Graph([..nodes], [..cables]), Spec);
 

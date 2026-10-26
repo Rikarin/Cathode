@@ -51,10 +51,10 @@ public sealed class BlockPresetStore(IOptions<ServerOptions> options, BlockCatal
         }
 
         var channels = preset.Channels?.Where(c => Array.IndexOf(Preset.ChannelNames, c.Key) is var i
-                    && i >= 0
-                    && i < descriptor.Channels
-                )
-                .ToDictionary(static c => c.Key, c => Sanitize(descriptor, c.Value));
+            && i >= 0
+            && i < descriptor.Channels
+            )
+            .ToDictionary(static c => c.Key, c => Sanitize(descriptor, c.Value));
         var saved = new BlockPreset {
             Id = id,
             Type = preset.Type,

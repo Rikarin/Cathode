@@ -34,7 +34,7 @@ public class NamAmpBlockTests {
         var reference = WavFile.Read(NamAssets.Golden($"{referenceName}.ref.wav")).Channels[0];
 
         using var block = CreateBlock(model, false, size);
-        var output = Render(block, input, _ => Block);
+        var output = Render(block, input, static _ => Block);
 
         var relativeDb = Analysis.NullResidualDb(output, reference) - Analysis.ToDb(Analysis.Rms(reference));
         Assert.True(relativeDb < -80, $"{referenceName}: residual {relativeDb:0.0} dB relative to the reference");
@@ -49,9 +49,9 @@ public class NamAmpBlockTests {
         var reference = WavFile.Read(NamAssets.Golden("wavenet_a1_standard.ref.wav")).Channels[0];
 
         using var block = CreateBlock("wavenet_a1_standard", false);
-        block.Params.SetTarget(NamAmpBlock.Input, 0.1f);
+        block.Params.SetTarget(Cathode.Dsp.Blocks.CaptureAmpBlock.Input, 0.1f);
         block.Reset();
-        var output = Render(block, input, _ => Block);
+        var output = Render(block, input, static _ => Block);
 
         var relativeDb = Analysis.NullResidualDb(output, reference) - Analysis.ToDb(Analysis.Rms(reference));
         Assert.True(relativeDb > -60, $"a 0.1 dB input change only produced {relativeDb:0.0} dB of residual");
@@ -65,7 +65,7 @@ public class NamAmpBlockTests {
         try {
             NamModel.SetFastTanh(true);
             using var block = CreateBlock("wavenet_a1_standard", false);
-            var output = Render(block, input, _ => Block);
+            var output = Render(block, input, static _ => Block);
 
             Assert.True(Analysis.Esr(reference, output) < 1e-3, $"ESR {Analysis.Esr(reference, output):E2}");
         } finally {
@@ -81,7 +81,7 @@ public class NamAmpBlockTests {
         using var fixedSize = CreateBlock("wavenet_a1_standard", false);
         using var variableSize = CreateBlock("wavenet_a1_standard", false);
 
-        var a = Render(fixedSize, input, _ => Block);
+        var a = Render(fixedSize, input, static _ => Block);
         var b = Render(variableSize, input, _ => random.Next(1, Block + 1));
 
         Assert.True(Analysis.NullResidualDb(a, b) < -120);
@@ -112,9 +112,10 @@ public class NamAmpBlockTests {
         using var plain = CreateBlock("A2", false);
         using var normalized = CreateBlock("A2", true);
 
-        var gain = Analysis.Rms(Render(normalized, input, _ => Block)) / Analysis.Rms(Render(plain, input, _ => Block));
+        var gain = Analysis.Rms(Render(normalized, input, static _ => Block))
+            / Analysis.Rms(Render(plain, input, static _ => Block));
 
-        var expected = NamAmpBlock.TargetLoudnessDb - normalized.Model!.Loudness!.Value;
+        var expected = Cathode.Dsp.Blocks.CaptureAmpBlock.TargetLoudnessDb - normalized.Model!.Loudness!.Value;
         Assert.Equal(expected, Analysis.ToDb(gain), 0.01);
     }
 
@@ -203,12 +204,15 @@ public class NamAmpBlockTests {
 
     static NamAmpBlock CreateBlock(string model, bool normalize, double? size = null) {
         var block = new NamAmpBlock();
-        block.LoadAsset(NamAmpBlock.ModelSlot, Path.Combine(NamAssets.ModelsDirectory, model + ".nam"));
+        block.LoadAsset(
+            Cathode.Dsp.Blocks.CaptureAmpBlock.ModelSlot,
+            Path.Combine(NamAssets.ModelsDirectory, model + ".nam")
+        );
         if (size is double s) {
             block.SetModelSize(s);
         }
 
-        block.Params.SetTarget(NamAmpBlock.Normalize, normalize ? 1 : 0);
+        block.Params.SetTarget(Cathode.Dsp.Blocks.CaptureAmpBlock.Normalize, normalize ? 1 : 0);
         block.Prepare(Spec);
         return block;
     }

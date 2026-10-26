@@ -117,7 +117,11 @@ static class Ab763 {
         var coupled = net.Node();
         net.Capacitor(plate, coupled, 0.1e-6);
         net.Resistor(coupled, mix, 220e3);
-        net.Resistor(coupled, StageNetlist.Ground, IntensityTrack); // the vibrato's Intensity pot (<see cref="Vibrato" />)
+        net.Resistor(
+            coupled,
+            StageNetlist.Ground,
+            IntensityTrack
+        ); // the vibrato's Intensity pot (<see cref="Vibrato" />)
 
         // The mix node drives the inverter's 1 nF input cap and 1M grid resistor (<see cref="InverterInput" />).
         net.Output = mix;
@@ -159,7 +163,11 @@ static class Ab763 {
         net.SwitchedCapacitor(net.Input, vibrato, 0.1e-6, SwitchRole.Switch1, off: Absent);
         net.SwitchedResistor(vibrato, StageNetlist.Ground, IdlePlate, 0, SwitchRole.Switch1);
         net.Resistor(vibrato, mix, 220e3);
-        net.Resistor(vibrato, StageNetlist.Ground, IntensityTrack); // the vibrato's Intensity pot (<see cref="Vibrato" />)
+        net.Resistor(
+            vibrato,
+            StageNetlist.Ground,
+            IntensityTrack
+        ); // the vibrato's Intensity pot (<see cref="Vibrato" />)
         net.Output = mix;
         return new("Mixer", net);
     }

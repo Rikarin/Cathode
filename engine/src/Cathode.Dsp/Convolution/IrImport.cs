@@ -1,6 +1,6 @@
-using System.Numerics;
 using Cathode.Dsp.Cabinets;
 using Cathode.Dsp.IO;
+using System.Numerics;
 
 namespace Cathode.Dsp.Convolution;
 
@@ -82,7 +82,7 @@ public static class IrImport {
             channels = [..channels.Select(c => Truncate(c, length))];
         }
 
-        return new(audio.SampleRate, channels);
+        return audio with { Channels = channels };
     }
 
     /// <summary>The first sample of any channel within 60 dB of the IR's peak.</summary>
@@ -161,7 +161,7 @@ public static class IrImport {
         fft.Forward(re, im);
         for (var k = 0; k <= half; k++) {
             var magnitude = Math.Exp(re[k]);
-            var phase = (double)im[k];
+            double phase = im[k];
             re[k] = (float)(magnitude * Math.Cos(phase));
             im[k] = (float)(magnitude * Math.Sin(phase));
         }
@@ -174,7 +174,7 @@ public static class IrImport {
         }
 
         fft.Inverse(re, im);
-        return re[..ir.Length].ToArray();
+        return [..re[..ir.Length]];
     }
 
     static float[][] Select(float[][] channels, IrChannels choice) {

@@ -60,7 +60,7 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
             ParamDescriptor.Float("lowFreq", "Low Freq", 40f, 1_000f, 200f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("highFreq", "High Freq", 1_000f, 12_000f, 2_500f, "Hz", ParamTaper.Log),
             ..Enumerable.Range(0, Bands)
-                .SelectMany(b => {
+                .SelectMany(static b => {
                         var id = BandNames[b];
                         var name = char.ToUpperInvariant(id[0]) + id[1..];
                         return new[] {

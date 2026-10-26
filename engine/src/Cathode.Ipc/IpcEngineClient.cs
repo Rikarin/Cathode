@@ -41,7 +41,7 @@ public sealed class IpcEngineClient(string socketPath) : IEngineLink {
         }
     }
 
-    /// <summary>Sends a request and waits for its reply. Throws <see cref="IpcException" /> on an error reply.</summary>
+    /// <inheritdoc />
     public async Task<IpcMessage> SendAsync(IpcMessage request, CancellationToken cancellationToken = default) {
         var connected = stream ?? throw new InvalidOperationException("Not connected to the engine host.");
         request.Id = Interlocked.Increment(ref nextId);

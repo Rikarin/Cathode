@@ -1,9 +1,9 @@
-using System.Globalization;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Cathode.Dsp.Capture;
 using Cathode.Testing;
 using Cathode.Testing.References;
+using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Cathode.References.Tests;
 
@@ -58,7 +58,7 @@ public class GuitarMlLstmModelTests {
                     ["weights"] = new JsonArray(
                         Json(Transpose(weightIh)),
                         Json(Transpose(weightHh)),
-                        Json(biasIh.Zip(biasHh, static (a, b) => a + b).ToArray())
+                        Json([..biasIh.Zip(biasHh, static (a, b) => a + b)])
                     )
                 },
                 new JsonObject {

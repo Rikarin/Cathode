@@ -1,9 +1,9 @@
-using System.IO.Compression;
-using System.Net;
-using System.Net.Http.Json;
 using Cathode.Contracts;
 using Cathode.Dsp.IO;
 using Cathode.Testing;
+using System.IO.Compression;
+using System.Net;
+using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 
@@ -60,7 +60,7 @@ public sealed class PresetPackageTests : IAsyncLifetime {
         var id = await SaveRigWithCab(from, "Tampered");
         var package = Rewrite(
             await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token),
-            entry => entry.StartsWith("assets/", StringComparison.Ordinal),
+            static entry => entry.StartsWith("assets/", StringComparison.Ordinal),
             [1, 2, 3, 4]
         );
 
@@ -81,7 +81,7 @@ public sealed class PresetPackageTests : IAsyncLifetime {
         var package = AddEntry(
             await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token),
             name,
-            "x"u8.ToArray()
+            [.."x"u8]
         );
 
         var (status, body) = await TryImport(to, package);
@@ -114,7 +114,7 @@ public sealed class PresetPackageTests : IAsyncLifetime {
         );
 
         var (missingStatus, missingBody) = await TryImport(to, withoutAssets);
-        var (garbageStatus, _) = await TryImport(to, "definitely not a zip"u8.ToArray());
+        var (garbageStatus, _) = await TryImport(to, [.."definitely not a zip"u8]);
 
         Assert.Equal(HttpStatusCode.BadRequest, missingStatus);
         Assert.Contains("neither in the package nor in this library", missingBody, StringComparison.Ordinal);
@@ -123,7 +123,10 @@ public sealed class PresetPackageTests : IAsyncLifetime {
 
     async Task<string> SaveRigWithCab(HttpClient client, string name) {
         using var ir = new MemoryStream();
-        WavFile.Write(ir, new(48_000, [Signals.Noise(400, 3).Select((v, i) => v * MathF.Exp(-i / 60f)).ToArray()]));
+        WavFile.Write(
+            ir,
+            new(48_000, [Signals.Noise(400, 3).Select(static (v, i) => v * MathF.Exp(-i / 60f)).ToArray()])
+        );
         using var upload = await client.PostAsync(
             "/api/v1/assets?name=room.wav",
             new ByteArrayContent(ir.ToArray()),

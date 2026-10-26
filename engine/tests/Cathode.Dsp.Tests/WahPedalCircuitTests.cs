@@ -1,7 +1,7 @@
-using System.Diagnostics;
-using System.Numerics;
 using Cathode.Dsp.Blocks;
 using Cathode.Testing;
+using System.Diagnostics;
+using System.Numerics;
 
 namespace Cathode.Dsp.Tests;
 
@@ -52,7 +52,14 @@ public class WahPedalCircuitTests(ITestOutputHelper output) {
     [InlineData(V845, 100f, 1_800, 2_050, 1.6, 3)]
     [InlineData(Parapedal, 0f, 240, 290, 4, 5.5)]
     [InlineData(Parapedal, 100f, 2_000, 2_400, 4, 5.5)]
-    public void Each_pedal_sweeps_its_range(int type, float position, double low, double high, double minQ, double maxQ) {
+    public void Each_pedal_sweeps_its_range(
+        int type,
+        float position,
+        double low,
+        double high,
+        double minQ,
+        double maxQ
+    ) {
         var (frequency, q, gain) = Peak(type, position);
         output.WriteLine($"type {type} at {position} %: {frequency:0} Hz, Q {q:0.0}, {Analysis.ToDb(gain):0.0} dB");
         Assert.InRange(frequency, low, high);
@@ -141,7 +148,11 @@ public class WahPedalCircuitTests(ITestOutputHelper output) {
         var stock = Peak(type, 50f);
         var sharp = Peak(type, 50f, (WahBlock.Resonance, 2f));
         output.WriteLine($"type {type}: Q {stock.Q:0.0} -> {sharp.Q:0.0}");
-        Assert.InRange(sharp.Q / stock.Q, 1.1, 2.5); // the Clyde least: its 100k already leaves the Q to the other losses
+        Assert.InRange(
+            sharp.Q / stock.Q,
+            1.1,
+            2.5
+        ); // the Clyde least: its 100k already leaves the Q to the other losses
         Assert.InRange(sharp.Frequency / stock.Frequency, 0.9, 1.1);
     }
 
@@ -178,6 +189,7 @@ public class WahPedalCircuitTests(ITestOutputHelper output) {
         var voicing = WahBlock.ActiveCircuits[0];
         var circuit = new ActiveWahCircuit(voicing, Rate, 16);
         circuit.SetPosition(0);
+
         int Steps(double toe, double settle) {
             var target = Math.Log(voicing.Cell(toe));
             var start = Math.Log(circuit.CellResistance);

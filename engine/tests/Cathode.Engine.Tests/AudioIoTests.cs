@@ -1,6 +1,5 @@
 using Cathode.Audio;
 using Cathode.Dsp;
-using Cathode.Dsp.Blocks;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.Testing;
@@ -109,7 +108,11 @@ public class AudioIoTests {
 
         var channels = OfflineRenderer.RenderOutputs(engine, input, input, 64, bus);
 
-        Assert.Equal(input.Skip(64).Select(static s => s * 2f), channels[0].Skip(64), new Near(1e-5f)); // after the ramp in
+        Assert.Equal(
+            input.Skip(64).Select(static s => s * 2f),
+            channels[0].Skip(64),
+            new Near(1e-5f)
+        ); // after the ramp in
         Assert.Equal(input, channels[^2]);
         Assert.Equal(input, channels[^1]);
     }
@@ -182,7 +185,8 @@ public class AudioIoTests {
         definition.Nodes.Insert(2, new() { Id = "amp", Type = "circuitamp", Row = 0, Column = 2 });
         definition.Nodes[^1].Column = 3;
         definition.Cables = [
-            new() { From = "in", To = "block" }, new() { From = "block", To = "amp" }, new() { From = "amp", To = "out" }
+            new() { From = "in", To = "block" }, new() { From = "block", To = "amp" },
+            new() { From = "amp", To = "out" }
         ];
         using var reference = Engine(definition);
         using var calibrated = Engine(definition);

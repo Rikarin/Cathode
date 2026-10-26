@@ -79,7 +79,7 @@ public class DriveParityTests {
         );
         var output = BlockRender.Mono(block, Signals.Sine(220, Rate, 4_800, 0.2f), 64);
 
-        Assert.All(output, y => Assert.Equal(0, y * 128 - MathF.Round(y * 128), 3)); // 8 bits: steps of 1/128
+        Assert.All(output, static y => Assert.Equal(0, y * 128 - MathF.Round(y * 128), 3)); // 8 bits: steps of 1/128
         var changes = 0;
         for (var i = 1; i < output.Length; i++) {
             changes += output[i] != output[i - 1] ? 1 : 0;
@@ -153,7 +153,7 @@ public class DriveParityTests {
     [Fact]
     public void Diode_overrides_replace_the_clipping_diodes() {
         var index = Enumerable.Range(0, DriveCircuits.All.Count)
-            .First(i => DriveCircuits.HasDiodes(DriveCircuits.All[i]));
+            .First(static i => DriveCircuits.HasDiodes(DriveCircuits.All[i]));
         Assert.Same(DriveCircuits.All[index], DriveCircuits.Variant(index, 0, 0));
         var led = DriveCircuits.Variant(index, 4, 0);
         Assert.Same(led, DriveCircuits.Variant(index, 4, 0)); // built once: no allocation when chosen
@@ -187,7 +187,8 @@ public class DriveParityTests {
 
     [Fact]
     public void Bass_response_tightens_a_circuit_and_dry_level_blends_the_clean_input() {
-        var index = Enumerable.Range(0, DriveCircuits.All.Count).First(i => DriveCircuits.All[i].InputHighPassHz > 0);
+        var index = Enumerable.Range(0, DriveCircuits.All.Count)
+            .First(static i => DriveCircuits.All[i].InputHighPassHz > 0);
 
         double LowEnd(params (int, float)[] settings) {
             using var block = Create(
@@ -202,7 +203,7 @@ public class DriveParityTests {
 
     [Fact]
     public void Dynamic_distortion_emphasis_is_flat_when_clean_and_shapes_the_clipping() {
-        double Thd(float levelDb, int filter, int bin) {
+        static double Thd(float levelDb, int filter, int bin) {
             using var block = TestBlocks.Create<DynamicDistortionBlock>(
                 (DynamicDistortionBlock.Drive, 4f),
                 (DynamicDistortionBlock.Dynamics, 0f),
@@ -237,11 +238,11 @@ public class DriveParityTests {
     [Fact]
     public void Dynamic_distortion_mono_sums_and_bias_adds_even_harmonics() {
         using var mono = TestBlocks.Create<DynamicDistortionBlock>((DynamicDistortionBlock.Mode, 1f));
-        var (left, right) = BlockRender.Stereo(mono, Signals.Noise(4_800, 3), new float[4_800], _ => 64);
+        var (left, right) = BlockRender.Stereo(mono, Signals.Noise(4_800, 3), new float[4_800], static _ => 64);
         Assert.Equal(left, right);
         Assert.True(Analysis.Rms(right) > 0.01);
 
-        double Second(float bias) {
+        static double Second(float bias) {
             using var block = TestBlocks.Create<DynamicDistortionBlock>(
                 (DynamicDistortionBlock.Drive, 4f),
                 (DynamicDistortionBlock.Dynamics, 0f),

@@ -48,8 +48,8 @@ public partial class AmpStageTests {
     /// <summary>The stages <paramref name="controls" /> play, nested channel switches resolved.</summary>
     internal static IEnumerable<AmpStageDesign> Playing(IEnumerable<AmpStageDesign> stages, AmpControls controls) =>
         stages.SelectMany(d => d is ChannelSwitchStageDesign channel
-            ? Playing(controls.IsOn(channel.Switch) ? channel.On : channel.Off, controls)
-            : [d]
+                ? Playing(controls.IsOn(channel.Switch) ? channel.On : channel.Off, controls)
+                : [d]
         );
 
     [Theory]
@@ -149,11 +149,11 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
     public void Panels_name_the_real_controls_and_hide_the_rest() {
         Assert.Equal(
             ["OD2", "Orange", "Red"],
-            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "JVM410H OD"))
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "JVM410H OD"))
         );
         Assert.Equal(
             ["Crunch", "Orange", "Red"],
-            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "JVM410H Clean/Crunch"))
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "JVM410H Clean/Crunch"))
         );
         foreach (var type in new[] { "JVM410H OD", "JVM410H Clean/Crunch" }) {
             Assert.Equal("Resonance", Label("depth", type));
@@ -164,7 +164,7 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
 
         Assert.Equal(
             ["Ultra Gain", "Crunch / Lead 2", "Tone Shift"],
-            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "DSL100"))
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "DSL100"))
         );
         Assert.Equal("Volume", Label("master", "DSL100"));
         Assert.Equal("Deep", Label("depth", "DSL100"));
@@ -172,19 +172,19 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
 
         Assert.Equal(
             ["OD", "Clean II / OD II", "Bass Shift"],
-            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "JMP-1"))
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "JMP-1"))
         );
-        Assert.Equal(["Output", "Presence"], new[] { "control1", "control2" }.Select(id => Label(id, "JMP-1")));
+        Assert.Equal(["Output", "Presence"], new[] { "control1", "control2" }.Select(static id => Label(id, "JMP-1")));
         Assert.Empty(Label("presence", "JMP-1"));
         Assert.Empty(Label("depth", "JMP-1"));
 
         Assert.Equal(
-            ["AFD", "Low Input", ""],
-            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "AFD100"))
+            ["AFD", "Low Input", string.Empty],
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "AFD100"))
         );
         Assert.Equal(
             ["Gain", "Bass", "Middle", "Treble", "Presence", "Master"],
-            new[] { "gain", "bass", "middle", "treble", "presence", "master" }.Select(id => Label(id, "AFD100"))
+            new[] { "gain", "bass", "middle", "treble", "presence", "master" }.Select(static id => Label(id, "AFD100"))
         );
         foreach (var id in new[] { "depth", "cut", "bright", "control1", "control2" }) {
             Assert.Empty(Label(id, "AFD100"));
@@ -198,7 +198,7 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
     /// </summary>
     [Fact]
     public void Afd100_modes_and_inputs_set_the_gain() {
-        double Level(float hz, params (int, float)[] switches) {
+        static double Level(float hz, params (int, float)[] switches) {
             using var block = Create("AFD100", [(CircuitAmpBlock.Gain, 3f), (CircuitAmpBlock.Master, 3f), ..switches]);
             var rendered = BlockRender.Mono(block, Signals.Sine(hz, Rate, 24_000, 0.0002f), 64);
             return Analysis.ToDb(Analysis.MagnitudeAt(rendered.AsSpan(12_000).ToArray(), hz, Rate));
@@ -226,7 +226,7 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
     /// </summary>
     [Fact]
     public void Jmp1_switches_change_the_gain_and_the_bass() {
-        double Level(float hz, params (int, float)[] switches) {
+        static double Level(float hz, params (int, float)[] switches) {
             using var block = Create("JMP-1", [(CircuitAmpBlock.Gain, 5f), (CircuitAmpBlock.Master, 5f), ..switches]);
             var rendered = BlockRender.Mono(block, Signals.Sine(hz, Rate, 24_000, 0.0005f), 64);
             return Analysis.ToDb(Analysis.MagnitudeAt(rendered.AsSpan(12_000).ToArray(), hz, Rate));
@@ -242,10 +242,13 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
         Assert.True(Math.Abs(odTwo - od) > 1);
 
         foreach (var channel in new[] { 0f, 1f }) {
-            var tilt = Level(110, (CircuitAmpBlock.Switch1, channel)) - Level(1_000, (CircuitAmpBlock.Switch1, channel));
+            var tilt = Level(110, (CircuitAmpBlock.Switch1, channel))
+                - Level(1_000, (CircuitAmpBlock.Switch1, channel));
             var shifted = Level(110, (CircuitAmpBlock.Switch1, channel), (CircuitAmpBlock.Switch3, 1f))
                 - Level(1_000, (CircuitAmpBlock.Switch1, channel), (CircuitAmpBlock.Switch3, 1f));
-            output.WriteLine($"channel {channel}: 110 Hz against 1 kHz {tilt:0.0} dB, with Bass Shift {shifted:0.0} dB");
+            output.WriteLine(
+                $"channel {channel}: 110 Hz against 1 kHz {tilt:0.0} dB, with Bass Shift {shifted:0.0} dB"
+            );
             Assert.True(Math.Abs(shifted - tilt) > 1);
         }
     }
@@ -256,8 +259,8 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
     /// </summary>
     [Fact]
     public void Jmp1_active_tone_is_flat_at_the_centre_and_each_band_boosts_its_region() {
-        var design = AmpDesign.All.Single(a => a.Name == "JMP-1");
-        var tone = (NetworkStageDesign)design.Preamp.Single(d => d.Name == "Active tone");
+        var design = AmpDesign.All.Single(static a => a.Name == "JMP-1");
+        var tone = (NetworkStageDesign)design.Preamp.Single(static d => d.Name == "Active tone");
 
         double Gain(double hz, AmpControls controls) {
             var stage = tone.Create(96_000);
@@ -297,7 +300,7 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
     /// </summary>
     [Fact]
     public void Dsl100_modes_and_tone_shift_do_what_the_handbook_says() {
-        double Level(float hz, params (int, float)[] switches) {
+        static double Level(float hz, params (int, float)[] switches) {
             using var block = Create("DSL100", [(CircuitAmpBlock.Gain, 5f), (CircuitAmpBlock.Master, 3f), ..switches]);
             var rendered = BlockRender.Mono(block, Signals.Sine(hz, Rate, 24_000, 0.0005f), 64);
             return Analysis.ToDb(Analysis.MagnitudeAt(rendered.AsSpan(12_000).ToArray(), hz, Rate));
@@ -329,6 +332,7 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
     [InlineData("JVM410H Clean/Crunch", 1)]
     public void The_modes_raise_the_gain_in_order(string type, int channel) {
         var tone = Signals.Sine(440, Rate, 24_000, 0.001f);
+
         double Level(int mode) {
             using var block = Create(
                 type,
@@ -344,7 +348,9 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
         }
 
         var levels = new[] { 0, 1, 2 }.Select(Level).ToArray();
-        output.WriteLine($"{type} channel {channel}: green {levels[0]:0.0}, orange {levels[1]:0.0}, red {levels[2]:0.0} dB");
+        output.WriteLine(
+            $"{type} channel {channel}: green {levels[0]:0.0}, orange {levels[1]:0.0}, red {levels[2]:0.0} dB"
+        );
         Assert.True(levels[1] > levels[0] + 1, "orange louder than green below clipping");
         Assert.True(levels[2] > levels[1] + 1, "red louder than orange below clipping");
     }
@@ -353,7 +359,10 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
     [Theory]
     [MemberData(nameof(Settings))]
     public void Knob_sweeps_at_full_drive_stay_finite_and_converge(string type, int setting) {
-        using var block = Create(type, [(CircuitAmpBlock.Gain, 10f), (CircuitAmpBlock.Master, 10f), ..Switches(setting)]);
+        using var block = Create(
+            type,
+            [(CircuitAmpBlock.Gain, 10f), (CircuitAmpBlock.Master, 10f), ..Switches(setting)]
+        );
         var chord = Signals.Sine(82.4, Rate, 9_600, 0.8f)
             .Zip(Signals.Sine(123.5, Rate, 9_600, 0.8f), static (a, b) => a + b)
             .ToArray();
@@ -405,7 +414,8 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
         }
 
         foreach (var control in Controls(type)) {
-            if (IsSwitch(control) || (type == "JVM410H Clean/Crunch" && setting == 0 && control == CircuitAmpBlock.Control1)) {
+            if (IsSwitch(control)
+                || (type == "JVM410H Clean/Crunch" && setting == 0 && control == CircuitAmpBlock.Control1)) {
                 continue;
             }
 
@@ -414,7 +424,10 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
             output.WriteLine(
                 $"{type} [{setting}] control {control}: 110 Hz {b[0] - a[0]:+0.0;-0.0} dB, 2.5 kHz {b[1] - a[1]:+0.0;-0.0} dB"
             );
-            Assert.True(change > 0.2, $"{type} [{setting}]: control {control} moves the sound by only {change:0.00} dB");
+            Assert.True(
+                change > 0.2,
+                $"{type} [{setting}]: control {control} moves the sound by only {change:0.00} dB"
+            );
         }
     }
 
@@ -440,7 +453,10 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
             );
             for (var i = 1; i < levels.Length; i++) {
                 if (levels[i - 1] > -100) {
-                    Assert.True(levels[i] > levels[i - 1] - 0.1, $"{type} [{setting}]: knob {knob} not monotonic at {i}");
+                    Assert.True(
+                        levels[i] > levels[i - 1] - 0.1,
+                        $"{type} [{setting}]: knob {knob} not monotonic at {i}"
+                    );
                 }
             }
 
@@ -473,7 +489,7 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
 
     static string Label(string id, string type) {
         var parameter = CircuitAmpBlock.Info.Params.Single(p => p.Id == id);
-        return parameter.TypeLabels is { } labels ? labels[TypeOf(type)] ?? "" : parameter.Name;
+        return parameter.TypeLabels is { } labels ? labels[TypeOf(type)] ?? string.Empty : parameter.Name;
     }
 
     /// <summary>The knobs and switches a model's panel shows, as block parameter indices.</summary>

@@ -1,10 +1,10 @@
-using System.Net;
-using System.Net.Http.Json;
 using Cathode.Contracts;
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Cabinets;
 using Cathode.Engine.Rig;
+using System.Net;
+using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 
@@ -27,7 +27,7 @@ public sealed class AudioIoApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Output_and_input_settings_reach_the_engine_and_are_validated() {
-        await PutGlobal(g => {
+        await PutGlobal(static g => {
                 g.Outputs[1].Mode = "sum";
                 g.Outputs[1].BoostPad = 6;
                 g.Outputs[2].Eq["g1k"] = 3;
@@ -52,16 +52,16 @@ public sealed class AudioIoApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Linear_phase_oversampling_recompiles_and_the_latency_report_names_the_drive() {
-        await PutGlobal(g => g.Oversampling = "linear");
+        await PutGlobal(static g => g.Oversampling = "linear");
 
         await ServerFixture.Eventually(() => server.Graph?.LatencySamples > 0);
         var report = (await client.GetFromJsonAsync<LatencyInfo>("/api/v1/system/latency", Token))!;
         Assert.True(report.Connected);
         Assert.Equal(server.Graph!.LatencySamples, report.GraphFrames);
-        Assert.Contains(report.Path, s => s is { Block: "drive1", Frames: > 0 });
+        Assert.Contains(report.Path, static s => s is { Block: "drive1", Frames: > 0 });
         Assert.Equal(report.InputFrames + report.OutputFrames + report.GraphFrames, report.TotalFrames);
 
-        await PutGlobal(g => g.Oversampling = "minimum");
+        await PutGlobal(static g => g.Oversampling = "minimum");
         await ServerFixture.Eventually(() => server.Graph?.LatencySamples == 0);
     }
 
@@ -85,7 +85,9 @@ public sealed class AudioIoApiTests : IAsyncLifetime {
         await Post("/api/v1/live/blocks", new AddBlockRequest("circuitamp", Preset.DefaultRow, 3));
         var before = (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!;
 
-        await Ok(client.PutAsJsonAsync("/api/v1/live/blocks/circuitamp1/test-tone", new TestToneRequest(true, 110), Token));
+        await Ok(
+            client.PutAsJsonAsync("/api/v1/live/blocks/circuitamp1/test-tone", new TestToneRequest(true, 110), Token)
+        );
         await ServerFixture.Eventually(() => server.Host.Engine.TestTone.Enabled);
         using var missing = await client.PutAsJsonAsync(
             "/api/v1/live/blocks/ghost/test-tone",

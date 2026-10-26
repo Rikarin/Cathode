@@ -19,7 +19,7 @@ public class PlexBlockTests {
         using var plex = Create([..Clean, (PlexBlock.Delays, 4f), (PlexBlock.PreDelay, 10f)]);
         var impulse = Signals.Impulse(20_000);
 
-        var (left, right) = BlockRender.Stereo(plex, impulse, impulse, _ => 64);
+        var (left, right) = BlockRender.Stereo(plex, impulse, impulse, static _ => 64);
 
         // Four lines (143, 197, 263, 331 ms) after a 10 ms pre-delay, each carrying 1/√4 of the input; line 1 is hard left,
         // line 2 hard right, line 3 at -75 % (right side 0.25), line 4 at +75 %.
@@ -111,7 +111,7 @@ public class PlexBlockTests {
 
     [Fact]
     public void Shimmer_adds_the_octave_above_by_its_intensity() {
-        double Octave(float intensity) {
+        static double Octave(float intensity) {
             using var plex = Create(
                 [
                     ..Clean, (PlexBlock.Type, PlexBlock.ShimmerVerb), (PlexBlock.ShimmerIntensity, intensity),
@@ -145,7 +145,7 @@ public class PlexBlockTests {
 
     [Fact]
     public void Plex_verb_size_scales_its_lines() {
-        float First(float size) {
+        static float First(float size) {
             using var plex = Create([..Clean, (PlexBlock.Type, PlexBlock.PlexVerb), (PlexBlock.VerbSize, size)]);
             var output = BlockRender.Mono(plex, Signals.Impulse(10_000), 64);
             return Array.FindIndex(output, static s => MathF.Abs(s) > 1e-6f);

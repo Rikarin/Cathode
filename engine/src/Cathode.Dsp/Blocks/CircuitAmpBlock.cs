@@ -161,13 +161,21 @@ namespace Cathode.Dsp.Blocks;
 ///             (Stock, Pre, Mid, Post: the stack's stage moved, each stage kept at its operating point).
 ///         </item>
 ///         <item>
-///             <b>Triode 1/2 Plate Freq</b> (100 %: the plate-bypass caps of the last two gain stages), <b>CF
-///             Compression</b> (a cathode follower's grid current) and <b>CF Harmonics</b> (its cathode resistor).
+///             <b>Triode 1/2 Plate Freq</b> (100 %: the plate-bypass caps of the last two gain stages),
+///             <b>
+///                 CF
+///                 Compression
+///             </b>
+///             (a cathode follower's grid current) and <b>CF Harmonics</b> (its cathode resistor).
 ///         </item>
 ///         <item>
 ///             <b>Preamp</b>, <b>PI</b> and <b>Power Tube Bias Excursion</b> (100 %: their grid current), the power
-///             grids' <b>Excursion Time</b> (coupling caps) and <b>Recovery Time</b> (grid leaks), <b>Master Bias
-///             Excursion</b> over all three, and <b>Plate Suppressor Diodes</b>.
+///             grids' <b>Excursion Time</b> (coupling caps) and <b>Recovery Time</b> (grid leaks),
+///             <b>
+///                 Master Bias
+///                 Excursion
+///             </b>
+///             over all three, and <b>Plate Suppressor Diodes</b>.
 ///         </item>
 ///         <item>
 ///             <b>Master Location</b> (Stock, or Post PI: the master as a divider after the phase inverter) and
@@ -729,7 +737,10 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
     static IReadOnlyList<ParamDescriptor> Labelled(IReadOnlyList<ParamDescriptor> parameters) => [
         ..parameters.Select(static p => {
                 string[] labels = [
-                    ..AmpDesign.All.Select(a => AmpFeatures.Has(a, p.Id) ? a.Panel.Label(p.Id, p.Name) ?? string.Empty : string.Empty)
+                    ..AmpDesign.All.Select(a => AmpFeatures.Has(a, p.Id)
+                            ? a.Panel.Label(p.Id, p.Name) ?? string.Empty
+                            : string.Empty
+                    )
                 ];
                 return labels.All(l => l == p.Name) ? p : p with { TypeLabels = labels };
             }
@@ -849,7 +860,7 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
         );
         // The tremolo: the model's own oscillator where it has one (Speed in hertz, Intensity as the knob's rotation),
         // else the generic bias tremolo.
-        var tremoloRate = (double)Params.Advance(TremoloRate, frames);
+        double tremoloRate = Params.Advance(TremoloRate, frames);
         var tremoloDepth = Percent(Params.Advance(TremoloDepth, frames));
         var ownTremolo = Channel.HasTremolo;
         if (ownTremolo) {

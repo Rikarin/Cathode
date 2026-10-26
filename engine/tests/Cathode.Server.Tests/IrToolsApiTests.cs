@@ -1,8 +1,8 @@
-using System.Net;
-using System.Net.Http.Json;
 using Cathode.Contracts;
 using Cathode.Dsp.IO;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
+using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 
@@ -52,7 +52,7 @@ public sealed class IrToolsApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Mixing_a_model_is_refused() {
-        var model = await Upload("amp.nam", "{}"u8.ToArray());
+        var model = await Upload("amp.nam", [.."{}"u8]);
 
         using var response = await client.PostAsJsonAsync(
             "/api/v1/assets/mix",
@@ -157,7 +157,7 @@ public sealed class IrToolsApiTests : IAsyncLifetime {
         Assert.Equal(48_000, alignment.SampleRate);
         Assert.Equal(4, alignment.Slots.Count);
         var slot = alignment.Slots[1];
-        Assert.True(slot.Plays && slot.Audible);
+        Assert.True(slot is { Plays: true, Audible: true });
         Assert.Equal(1.0, slot.OnsetMs, 3);
         Assert.Equal(0.5, slot.DelayMs, 3);
         Assert.Equal(256, slot.Head.Count); // a 10 ms head, cut to the 256-sample IR

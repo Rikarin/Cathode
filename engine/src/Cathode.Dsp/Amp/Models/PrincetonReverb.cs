@@ -46,7 +46,8 @@ public static class PrincetonReverb {
 
     /// <summary>
     ///     The bias tremolo, from the Fender drawing "Princeton Reverb-Amp AA1164" (045427,
-    ///     schematicheaven.net/fenderamps/princeton_reverb_aa1164_schem.pdf; the Princeton AA964's circuit): a 12AX7 half (220k from the "B" node, 410 V here, 3300 Ω with 25 µF) with
+    ///     schematicheaven.net/fenderamps/princeton_reverb_aa1164_schem.pdf; the Princeton AA964's circuit): a 12AX7 half
+    ///     (220k from the "B" node, 410 V here, 3300 Ω with 25 µF) with
     ///     0.02 µF from its plate to the Speed rheostat (3M reverse audio, 100k in series), 0.01 µF to a node with 1M to
     ///     the cathode (the pedal's jack on it), 0.01 µF to the grid with 1M to ground; the plate through 1M (0.02 µF to
     ///     ground after it) and 0.1 µF to the 250k linear Intensity pot, whose far end is the bias supply (25 µF and 27k),

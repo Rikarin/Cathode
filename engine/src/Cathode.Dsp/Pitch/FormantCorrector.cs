@@ -1,5 +1,5 @@
-using System.Numerics;
 using Cathode.Dsp.Convolution;
+using System.Numerics;
 
 namespace Cathode.Dsp.Pitch;
 
@@ -67,7 +67,10 @@ public sealed class FormantCorrector : IDisposable {
     /// <summary>The all-pole envelope's order.</summary>
     public int Order { get; private set; }
 
-    /// <summary>Control thread: sizes the frame (1024 samples up to 50 kHz, then doubled) and the order for <paramref name="sampleRate" />.</summary>
+    /// <summary>
+    ///     Control thread: sizes the frame (1024 samples up to 50 kHz, then doubled) and the order for
+    ///     <paramref name="sampleRate" />.
+    /// </summary>
     public void Prepare(double sampleRate) {
         Dispose();
         size = (int)BitOperations.RoundUpToPowerOf2((uint)Math.Max(256, 0.02 * sampleRate));
@@ -102,7 +105,10 @@ public sealed class FormantCorrector : IDisposable {
         Reset();
     }
 
-    /// <summary>Audio thread: the formant shift as a frequency ratio (1 = keep the formants, 2 = an octave up), from the next hop.</summary>
+    /// <summary>
+    ///     Audio thread: the formant shift as a frequency ratio (1 = keep the formants, 2 = an octave up), from the next
+    ///     hop.
+    /// </summary>
     public void SetShift(double ratio) => shift = Math.Clamp(ratio, 0.25, 4);
 
     public void Reset() {
@@ -151,7 +157,10 @@ public sealed class FormantCorrector : IDisposable {
         return MathF.Abs(forward) < 1e-20f ? 0f : forward;
     }
 
-    /// <summary>The shifter's output through the envelope (the all-pole lattice), with the formant shift's gain and the level guard.</summary>
+    /// <summary>
+    ///     The shifter's output through the envelope (the all-pole lattice), with the formant shift's gain and the level
+    ///     guard.
+    /// </summary>
     public float Color(float sample) {
         var forward = sample * gain;
         for (var m = Order - 1; m >= 0; m--) {
@@ -192,7 +201,7 @@ public sealed class FormantCorrector : IDisposable {
     }
 
     public void Dispose() {
-        foreach (var buffer in (ReadOnlySpan<NativeBuffer>) [input, window, re, im, power]) {
+        foreach (var buffer in (ReadOnlySpan<NativeBuffer>)[input, window, re, im, power]) {
             buffer.Dispose();
         }
 

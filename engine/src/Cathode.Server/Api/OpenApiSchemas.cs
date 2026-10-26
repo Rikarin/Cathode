@@ -10,7 +10,7 @@ namespace Cathode.Server.Api;
 /// </summary>
 static class OpenApiSchemas {
     public static void MarkNonNullablePropertiesRequired(this OpenApiOptions options) =>
-        options.AddSchemaTransformer((schema, _, _) => {
+        options.AddSchemaTransformer(static (schema, _, _) => {
                 if (schema.Properties is { Count: > 0 } properties) {
                     foreach (var (name, property) in properties) {
                         if (property is OpenApiSchemaReference

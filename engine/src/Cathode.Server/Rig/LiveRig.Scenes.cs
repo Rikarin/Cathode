@@ -1,5 +1,5 @@
-using System.Text.Json;
 using Cathode.Contracts;
+using System.Text.Json;
 
 namespace Cathode.Server.Rig;
 

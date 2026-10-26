@@ -50,7 +50,7 @@ public class ModulationBlockTests {
         var input = Signals.Noise(9_600, 1);
 
         Assert.Equal(input, BlockRender.Mono(dry, input, 64));
-        var (left, right) = BlockRender.Stereo(wide, input, input, _ => 64);
+        var (left, right) = BlockRender.Stereo(wide, input, input, static _ => 64);
         Assert.True(Analysis.NullResidualDb(left, right) > -40, "left and right should differ");
     }
 
@@ -74,7 +74,7 @@ public class ModulationBlockTests {
             (TremoloBlock.Rate, 3f)
         );
 
-        var (left, right) = BlockRender.Stereo(panner, Signals.Step(24_000), Signals.Step(24_000), _ => 64);
+        var (left, right) = BlockRender.Stereo(panner, Signals.Step(24_000), Signals.Step(24_000), static _ => 64);
 
         for (var i = 0; i < left.Length; i += 97) {
             Assert.Equal(2f, left[i] * left[i] + right[i] * right[i], 1e-3f);

@@ -86,7 +86,10 @@ public sealed class InputBlock() : DspBlock(Info), ISideInputBlock {
     float sourceStep = 1f;
     PickupFilter pickupLeft;
     PickupFilter pickupRight;
-    (int Impedance, int Type, float L, float R, float C, float Cable, bool Buffer) pickupDesigned = (-1, 0, 0, 0, 0, 0, false);
+
+    (int Impedance, int Type, float L, float R, float C, float Cable, bool Buffer) pickupDesigned =
+        (-1, 0, 0, 0, 0, 0, false);
+
     (double B0, double B1, double B2, double A1, double A2) pickupCoefficients;
     bool pickupActive;
 
@@ -313,7 +316,10 @@ public sealed class InputBlock() : DspBlock(Info), ISideInputBlock {
         }
     }
 
-    /// <summary>Source <paramref name="source" /> into the scratch buffers (Input 1 from the grid input in <paramref name="io" />).</summary>
+    /// <summary>
+    ///     Source <paramref name="source" /> into the scratch buffers (Input 1 from the grid input in
+    ///     <paramref name="io" />).
+    /// </summary>
     void Load(int source, in StereoBuffer io, Span<float> left, Span<float> right) {
         if (source == HardwareInputs.Input1) {
             io.Left.CopyTo(left);

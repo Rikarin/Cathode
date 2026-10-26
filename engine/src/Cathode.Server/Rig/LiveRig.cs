@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-using System.Text.Json;
 using Cathode.Contracts;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Parameters;
@@ -8,6 +6,8 @@ using Cathode.Ipc;
 using Cathode.Server.Engine;
 using Cathode.Server.Realtime;
 using Cathode.Server.Stores;
+using System.Collections.Concurrent;
+using System.Text.Json;
 
 namespace Cathode.Server.Rig;
 
@@ -102,9 +102,10 @@ public sealed partial class LiveRig(
                     );
                 }
 
-                var start = scene ?? (globals.Get().DefaultScene is var fixedScene and >= 0 and < Preset.SceneCount
-                    ? fixedScene
-                    : Math.Clamp(loaded.SavedScene, 0, Preset.SceneCount - 1));
+                var start = scene
+                    ?? (globals.Get().DefaultScene is var fixedScene and >= 0 and < Preset.SceneCount
+                        ? fixedScene
+                        : Math.Clamp(loaded.SavedScene, 0, Preset.SceneCount - 1));
                 CheckScene(start);
                 ApplyGlobals(loaded);
                 await ReplaceAsync(loaded, start);
@@ -200,10 +201,7 @@ public sealed partial class LiveRig(
                         }
 
                         var added = new PresetBlock {
-                            Id = id,
-                            Type = request.Type,
-                            Row = request.Row,
-                            Column = request.Column
+                            Id = id, Type = request.Type, Row = request.Row, Column = request.Column
                         };
                         if (source > 0) {
                             SetSource(added, source, info.Channels);

@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using Cathode.Dsp.Blocks;
 using Cathode.Testing;
+using System.Diagnostics;
 
 namespace Cathode.Dsp.Tests;
 

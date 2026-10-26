@@ -97,6 +97,7 @@ public sealed class CompiledGraph : IDisposable {
 
     /// <summary>The engine's test tone (the cab resonance helper), when the compiler was given one.</summary>
     public TestTone? Tone { get; init; }
+
     /// <summary>
     ///     The graph's view of the hardware inputs, when the compiler had them and a block reads one: the engine fades it
     ///     out when the graph is replaced.
@@ -186,6 +187,7 @@ public sealed class CompiledGraph : IDisposable {
                 }
             }
         }
+
         bypass = new BypassState[blocks.Length];
         for (var i = 0; i < blocks.Length; i++) {
             bypass[i] = new(bypassed[i], bypassModes[i]);
@@ -257,7 +259,10 @@ public sealed class CompiledGraph : IDisposable {
     /// <summary>Where slot <paramref name="slot" />'s meters start in <see cref="Meters" />.</summary>
     public int MeterOffset(int slot) => meterOffsets[slot];
 
-    /// <summary>The index in <see cref="Meters" /> of block <paramref name="instanceId" />'s meter <paramref name="meter" />, or -1.</summary>
+    /// <summary>
+    ///     The index in <see cref="Meters" /> of block <paramref name="instanceId" />'s meter <paramref name="meter" />,
+    ///     or -1.
+    /// </summary>
     public int MeterIndex(string instanceId, string meter = PeakMeter) {
         var slot = SlotOf(instanceId);
         var index = slot < 0 ? -1 : MeterIds(slot).AsSpan().IndexOf(meter);
@@ -271,7 +276,10 @@ public sealed class CompiledGraph : IDisposable {
         }
     }
 
-    /// <summary>Audio thread, once per callback after <see cref="Process" />: reads the blocks' own meters into <see cref="Meters" />.</summary>
+    /// <summary>
+    ///     Audio thread, once per callback after <see cref="Process" />: reads the blocks' own meters into
+    ///     <see cref="Meters" />.
+    /// </summary>
     public void CaptureMeters() {
         for (var i = 0; i < ownMeters.Length; i++) {
             ownMeters[i].ReadMeters(meters.AsSpan(ownOffsets[i], ownMeters[i].MeterIds.Count));

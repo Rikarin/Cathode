@@ -1,5 +1,5 @@
-using System.Numerics;
 using Cathode.Dsp.Wdf;
+using System.Numerics;
 
 namespace Cathode.Dsp.Amp;
 

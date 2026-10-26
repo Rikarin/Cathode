@@ -928,7 +928,7 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         }
 
         // The SincHalf lead-in is silence at an integer shift; drop it so the block keeps zero latency.
-        foreach (var mix in (ReadOnlySpan<NativeBuffer>) [mixLeft, mixRight, mixLeft2, mixRight2]) {
+        foreach (var mix in (ReadOnlySpan<NativeBuffer>)[mixLeft, mixRight, mixLeft2, mixRight2]) {
             var span = mix.Span;
             span[SincHalf..].CopyTo(span);
             span[^SincHalf..].Clear();
@@ -1012,7 +1012,7 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         var a1 = (floor - c) / (c + floor);
         double x1 = 0, y1 = 0;
         for (var i = 0; i < ir.Length; i++) {
-            var x = (double)ir[i];
+            double x = ir[i];
             var y = b0 * x + b1 * x1 - a1 * y1;
             x1 = x;
             y1 = y;

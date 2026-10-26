@@ -199,9 +199,10 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
             ),
             ParamDescriptor.Choice("tempo", "Master Tempo", TempoDivisions.Names),
             ParamDescriptor.Float("masterFeedback", "Master Feedback", 0f, 200f, 100f, "%"),
-            ..Voice(k => ParamDescriptor.Float($"tap{k + 1}Time", $"Time {k + 1}", 0f, 100f, 25f * (k + 1), "%")),
-            ..Voice(k => ParamDescriptor.Choice($"tap{k + 1}Tempo", $"Tempo {k + 1}", TempoDivisions.Names)),
-            ..Voice(k => ParamDescriptor.Float(
+            ..Voice(static k => ParamDescriptor.Float($"tap{k + 1}Time", $"Time {k + 1}", 0f, 100f, 25f * (k + 1), "%")
+            ),
+            ..Voice(static k => ParamDescriptor.Choice($"tap{k + 1}Tempo", $"Tempo {k + 1}", TempoDivisions.Names)),
+            ..Voice(static k => ParamDescriptor.Float(
                     $"tap{k + 1}Feedback",
                     $"Feedback {k + 1}",
                     -100f,
@@ -210,7 +211,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                     "%"
                 )
             ),
-            ..Voice(k => ParamDescriptor.Float(
+            ..Voice(static k => ParamDescriptor.Float(
                     $"tap{k + 1}Level",
                     $"Level {k + 1}",
                     -100f,
@@ -219,7 +220,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                     "%"
                 )
             ),
-            ..Voice(k => ParamDescriptor.Float(
+            ..Voice(static k => ParamDescriptor.Float(
                     $"tap{k + 1}Pan",
                     $"Pan {k + 1}",
                     -100f,
@@ -228,7 +229,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                     "%"
                 )
             ),
-            ..Voice(k => ParamDescriptor.Float(
+            ..Voice(static k => ParamDescriptor.Float(
                 $"cross{k + 1}",
                 $"Cross Feedback {k + 1}→{(k + 1) % Voices + 1}",
                 -100f,
@@ -238,8 +239,8 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                 )
                 .ShownOn(TypeCount, QuadParallel, QuadDiffusor)
             ),
-            ..Voice(k => ParamDescriptor.Choice($"filter{k + 1}Type", $"Filter {k + 1} Type", VoiceFilterTypes)),
-            ..Voice(k => ParamDescriptor.Float(
+            ..Voice(static k => ParamDescriptor.Choice($"filter{k + 1}Type", $"Filter {k + 1} Type", VoiceFilterTypes)),
+            ..Voice(static k => ParamDescriptor.Float(
                     $"filter{k + 1}Frequency",
                     $"Filter {k + 1} Freq",
                     50f,
@@ -249,7 +250,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                     ParamTaper.Log
                 )
             ),
-            ..Voice(k => ParamDescriptor.Float(
+            ..Voice(static k => ParamDescriptor.Float(
                     $"filter{k + 1}Q",
                     $"Filter {k + 1} Q",
                     0.1f,
@@ -259,8 +260,9 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                     ParamTaper.Log
                 )
             ),
-            ..Voice(k => ParamDescriptor.Float($"filter{k + 1}Gain", $"Filter {k + 1} Gain", -12f, 12f, 0f, "dB")),
-            ..Voice(k => ParamDescriptor.Float(
+            ..Voice(static k => ParamDescriptor.Float($"filter{k + 1}Gain", $"Filter {k + 1} Gain", -12f, 12f, 0f, "dB")
+            ),
+            ..Voice(static k => ParamDescriptor.Float(
                     $"chorus{k + 1}Rate",
                     $"Chorus {k + 1} Rate",
                     0.05f,
@@ -270,7 +272,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                     ParamTaper.Log
                 )
             ),
-            ..Voice(k => ParamDescriptor.Float(
+            ..Voice(static k => ParamDescriptor.Float(
                     $"chorus{k + 1}Depth",
                     $"Chorus {k + 1} Depth",
                     0f,
@@ -279,7 +281,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                     "ms"
                 )
             ),
-            ..Voice(k => ParamDescriptor.Float(
+            ..Voice(static k => ParamDescriptor.Float(
                     $"comb{k + 1}Time",
                     $"Comb {k + 1} Time",
                     0.1f,
@@ -289,8 +291,16 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                     ParamTaper.Log
                 )
             ),
-            ..Voice(k => ParamDescriptor.Float($"comb{k + 1}Feedback", $"Comb {k + 1} Feedback", -95f, 95f, 0f, "%")),
-            ..Voice(k => ParamDescriptor.Float(
+            ..Voice(static k => ParamDescriptor.Float(
+                    $"comb{k + 1}Feedback",
+                    $"Comb {k + 1} Feedback",
+                    -95f,
+                    95f,
+                    0f,
+                    "%"
+                )
+            ),
+            ..Voice(static k => ParamDescriptor.Float(
                     $"ring{k + 1}Frequency",
                     $"Ring Mod {k + 1} Freq",
                     1f,
@@ -300,7 +310,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                     ParamTaper.Log
                 )
             ),
-            ..Voice(k => ParamDescriptor.Float($"ring{k + 1}Mix", $"Ring Mod {k + 1} Mix", 0f, 100f, 0f, "%")),
+            ..Voice(static k => ParamDescriptor.Float($"ring{k + 1}Mix", $"Ring Mod {k + 1} Mix", 0f, 100f, 0f, "%")),
             ParamDescriptor.Float("masterPan", "Master Pan", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float("masterLfoRate", "Master LFO Rate", 25f, 400f, 100f, "%", ParamTaper.Log),
             ParamDescriptor.Float("masterLfoDepth", "Master LFO Depth", 0f, 400f, 100f, "%"),

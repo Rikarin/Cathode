@@ -126,7 +126,7 @@ public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage
             }
 
             if (ticks.Count == TicksPerBeat + 1) {
-                var beatNs = (double)(timeNs - ticks.Peek());
+                double beatNs = (timeNs - ticks.Peek());
                 engine.Tempo = Math.Clamp(60e9 / beatNs, 30, 300);
             }
         }

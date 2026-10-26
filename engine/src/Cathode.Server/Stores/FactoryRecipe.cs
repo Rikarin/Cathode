@@ -1,7 +1,7 @@
-using System.Globalization;
 using Cathode.Contracts;
 using Cathode.Dsp.Parameters;
 using Cathode.Server.Rig;
+using System.Globalization;
 
 namespace Cathode.Server.Stores;
 
@@ -35,7 +35,8 @@ public sealed class FactoryRecipe(string name, string description, params string
     ///     of a pick attack does not slip through), which a clean amp passes on undamped and which would otherwise clip
     ///     the output. Driven scenes, already compressed by their amps, peak below it.
     /// </summary>
-    const string PeakCompressor = "type=Studio detector=Peak lookAhead=1_ms threshold=-12 ratio=20 attack=0.1 release=80 knee=3";
+    const string PeakCompressor =
+        "type=Studio detector=Peak lookAhead=1_ms threshold=-12 ratio=20 attack=0.1 release=80 knee=3";
 
     static readonly string[] DrivenTags = ["Crunch", "Lead", "Fuzz", "High Gain"];
 
@@ -99,9 +100,17 @@ public sealed class FactoryRecipe(string name, string description, params string
     ///     (<paramref name="source" />, ext1-ext8).
     /// </summary>
     public FactoryRecipe Pedal(string param, float min, float max, string source = "ext1") {
-        parts[^1].Modifiers.Add(
-            new() { Block = parts[^1].Id, Param = param, Source = source, Min = min, Max = max, Curve = "linear" }
-        );
+        parts[^1]
+            .Modifiers.Add(
+                new() {
+                    Block = parts[^1].Id,
+                    Param = param,
+                    Source = source,
+                    Min = min,
+                    Max = max,
+                    Curve = "linear"
+                }
+            );
         return this;
     }
 
@@ -282,9 +291,11 @@ public sealed class FactoryRecipe(string name, string description, params string
 
     /// <summary>A block by its id, or the first of a type by the type's id (<c>amp</c> is the Circuit Amp).</summary>
     string? Resolve(string token) {
-        var type = token == "amp" ? "circuitamp" : token.StartsWith("amp", StringComparison.Ordinal)
-            ? "circuitamp" + token[3..]
-            : token;
+        var type = token == "amp"
+            ? "circuitamp"
+            : token.StartsWith("amp", StringComparison.Ordinal)
+                ? "circuitamp" + token[3..]
+                : token;
         return parts.FirstOrDefault(p => p.Id == type)?.Id ?? parts.FirstOrDefault(p => p.Id == type + "1")?.Id;
     }
 

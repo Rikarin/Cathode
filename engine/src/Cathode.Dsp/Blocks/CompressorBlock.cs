@@ -59,7 +59,8 @@ namespace Cathode.Dsp.Blocks;
 ///     the Axe-Fx law (50 % = -6 dB each) for parallel compression.
 ///     <para>
 ///         Sidechain picks what the detector hears: the block's input, the grid input, another grid row
-///         (a tap, <see cref="SideInputs.Taps" />) or one of the interface's inputs (<see cref="HardwareInputs" />); the sidechain cuts, emphasis and EQ then filter that signal. Look Ahead
+///         (a tap, <see cref="SideInputs.Taps" />) or one of the interface's inputs (<see cref="HardwareInputs" />); the
+///         sidechain cuts, emphasis and EQ then filter that signal. Look Ahead
 ///         delays the audio (wet and dry alike) while the detector hears it undelayed, so the gain is already down when
 ///         a transient arrives; the block reports the delay as latency, so the compiler aligns parallel rows, and
 ///         changing it rebuilds the graph (<see cref="ParamDescriptor.Recompile" />).

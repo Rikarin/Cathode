@@ -36,7 +36,7 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
         Assert.Equal(
             ["gain"],
             new[] { "gain", "bass", "middle", "treble", "master", "presence", "bright" }
-                .Where(id => !string.IsNullOrEmpty(Label(id, "Scout GA-17RVT")))
+                .Where(static id => !string.IsNullOrEmpty(Label(id, "Scout GA-17RVT")))
         );
         foreach (var type in Models) {
             Assert.Empty(Label("cut", type));

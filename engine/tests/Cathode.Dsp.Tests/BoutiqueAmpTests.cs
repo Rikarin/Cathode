@@ -377,7 +377,7 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
         Rising(Sweep("ODS 97", CircuitAmpBlock.Control2, 1_000, (CircuitAmpBlock.Switch1, 1f)), 10);
         var middle = Sweep("Chieftain", CircuitAmpBlock.Middle, 600);
         var middleLow = Sweep("Chieftain", CircuitAmpBlock.Middle, 80);
-        Rising(middle.Zip(middleLow, static (m, l) => m - l).ToArray(), 3);
+        Rising([..middle.Zip(middleLow, static (m, l) => m - l)], 3);
         foreach (var type in new[] { "Chieftain", "Hot Cat 30" }) {
             var cut = Sweep(type, CircuitAmpBlock.Cut, 5_000);
             Assert.True(cut[0] - cut[2] > 6, $"{type}: cut takes {cut[0] - cut[2]:0.0} dB");
@@ -387,7 +387,7 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
     /// <summary>The Hot Cat's Solid State switch lifts B+ under load, as the silicon bridge in place of the GZ34 does.</summary>
     [Fact]
     public void Hot_cat_solid_state_switch_raises_the_supply() {
-        double Supply(bool silicon) {
+        static double Supply(bool silicon) {
             using var block = Create(
                 "Hot Cat 30",
                 (CircuitAmpBlock.Gain, 8f),

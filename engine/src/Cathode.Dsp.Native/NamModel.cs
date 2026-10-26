@@ -1,5 +1,5 @@
-using System.Runtime.InteropServices;
 using Cathode.Dsp.Capture;
+using System.Runtime.InteropServices;
 
 namespace Cathode.Dsp.Native;
 

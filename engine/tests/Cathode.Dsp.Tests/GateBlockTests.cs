@@ -50,7 +50,7 @@ public class GateBlockTests {
 
         // A DC input makes any gain step visible directly as a step in the output.
         var steps = output.Zip(output.Skip(1), static (a, b) => Math.Abs(b - a)).ToArray();
-        var worstExceptInputEdges = steps.Where((_, i) => i != 4_799 && i != 14_399).Max();
+        var worstExceptInputEdges = steps.Where(static (_, i) => i != 4_799 && i != 14_399).Max();
         Assert.True(worstExceptInputEdges < 0.02f, $"largest step {worstExceptInputEdges}");
     }
 

@@ -15,7 +15,7 @@ public class VocoderBlockTests {
     public void Silent_modulator_gives_silence_from_the_internal_carrier(int carrier) {
         using var vocoder = Create((VocoderBlock.Carrier, carrier), (VocoderBlock.Chord, 6f));
 
-        var (left, right) = BlockRender.Stereo(vocoder, new float[48_000], new float[48_000], _ => 64);
+        var (left, right) = BlockRender.Stereo(vocoder, new float[48_000], new float[48_000], static _ => 64);
 
         Assert.Equal(0, Analysis.Peak(left));
         Assert.Equal(0, Analysis.Peak(right));
@@ -26,7 +26,7 @@ public class VocoderBlockTests {
         using var vocoder = Create((VocoderBlock.Carrier, VocoderBlock.CarrierRightInput));
         var noise = Signals.Noise(48_000, 4);
 
-        var (left, right) = BlockRender.Stereo(vocoder, new float[48_000], noise, _ => 64);
+        var (left, right) = BlockRender.Stereo(vocoder, new float[48_000], noise, static _ => 64);
 
         Assert.Equal(0, Analysis.Peak(left));
         Assert.Equal(0, Analysis.Peak(right));
@@ -53,7 +53,7 @@ public class VocoderBlockTests {
         var noise = Signals.Noise(Settle + Length, 9);
         var input = carrier == VocoderBlock.CarrierRightInput ? noise : modulator;
 
-        var output = BlockRender.Stereo(vocoder, modulator, input, _ => 64).Left[Settle..];
+        var output = BlockRender.Stereo(vocoder, modulator, input, static _ => 64).Left[Settle..];
 
         var spectrum = Fft.Magnitudes(output);
         var expected = 20 * Math.Log10(0.5 / 0.05) - 10 * Math.Log10(high / low);
@@ -90,7 +90,7 @@ public class VocoderBlockTests {
         return 10 * Math.Log10(energy + 1e-30);
     }
 
-    static float[] Mix(float[] a, float[] b) => a.Zip(b, static (x, y) => x + y).ToArray();
+    static float[] Mix(float[] a, float[] b) => [..a.Zip(b, static (x, y) => x + y)];
 
     static VocoderBlock Create(params (int Index, float Value)[] settings) {
         var block = new VocoderBlock();

@@ -1,8 +1,8 @@
-using System.Net;
-using System.Net.Http.Json;
 using Cathode.Contracts;
 using Cathode.Dsp;
 using Cathode.Server.Stores;
+using System.Net;
+using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 
@@ -65,7 +65,7 @@ public sealed class BlockLibraryTests : IAsyncLifetime {
     [Fact]
     public async Task A_factory_preset_sets_the_channel_and_the_running_block() {
         var presets = (await client.GetFromJsonAsync<BlockPreset[]>("/api/v1/block-presets?type=chorus", Token))!;
-        var analog = presets.Single(p => p.Name == "Analog Stereo");
+        var analog = presets.Single(static p => p.Name == "Analog Stereo");
 
         await Read(
             await client.PatchAsJsonAsync(
@@ -83,7 +83,7 @@ public sealed class BlockLibraryTests : IAsyncLifetime {
         );
 
         Assert.All(presets, static p => Assert.Equal("chorus", p.Type));
-        Assert.Equal(analog.Values, live.Preset.Blocks.Single(b => b.Id == "chorus1").Channels["A"]);
+        Assert.Equal(analog.Values, live.Preset.Blocks.Single(static b => b.Id == "chorus1").Channels["A"]);
         await ServerFixture.Eventually(() =>
             server.Target("chorus1", "highCut") == 6_000 && server.Target("chorus1", "mix") == 50
         );

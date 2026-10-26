@@ -56,7 +56,12 @@ public class ClassicReverbTests {
     public void The_tail_is_stereo_and_decorrelated(int type) {
         using var reverb = Create((ReverbBlock.Type, type), (ReverbBlock.Mix, 100f));
 
-        var (left, right) = BlockRender.Stereo(reverb, Signals.Impulse(48_000), Signals.Impulse(48_000), _ => 64);
+        var (left, right) = BlockRender.Stereo(
+            reverb,
+            Signals.Impulse(48_000),
+            Signals.Impulse(48_000),
+            static _ => 64
+        );
 
         double dot = 0, ll = 0, rr = 0;
         for (var i = 2_400; i < left.Length; i++) {
@@ -229,7 +234,10 @@ public class ClassicReverbTests {
         Assert.NotEqual(string.Empty, Label("inputDiffusion", ReverbBlock.VintageDigital));
         Assert.Equal(string.Empty, Label("inputDiffusion", ReverbBlock.ClassicRoom));
         Assert.Equal(string.Empty, Label("modDepth", ReverbBlock.ClassicRoom));
-        Assert.All(parameters, static p => Assert.True(p.TypeLabels is null || p.TypeLabels.Count ==ReverbBlock.TypeCount));
+        Assert.All(
+            parameters,
+            static p => Assert.True(p.TypeLabels is null || p.TypeLabels.Count == ReverbBlock.TypeCount)
+        );
     }
 
     static float[] Band(float[] response, double frequency) {

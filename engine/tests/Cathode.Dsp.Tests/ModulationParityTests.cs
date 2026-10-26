@@ -24,7 +24,7 @@ public class ModulationParityTests {
         Assert.Equal(0.37f, LfoConditioner.Quantize(0.37f, 0));
         Assert.Equal(
             4,
-            Enumerable.Range(0, 1_000).Select(i => LfoConditioner.Quantize(i / 500f - 1, 4)).Distinct().Count()
+            Enumerable.Range(0, 1_000).Select(static i => LfoConditioner.Quantize(i / 500f - 1, 4)).Distinct().Count()
         );
     }
 
@@ -68,7 +68,7 @@ public class ModulationParityTests {
             (ChorusBlock.Width, 100f)
         );
 
-        var (left, right) = BlockRender.Stereo(chorus, Signals.Impulse(2_000), Signals.Impulse(2_000), _ => 64);
+        var (left, right) = BlockRender.Stereo(chorus, Signals.Impulse(2_000), Signals.Impulse(2_000), static _ => 64);
 
         Assert.Equal(480, Analysis.PeakIndex(left));
         Assert.Equal(48, Analysis.PeakIndex(right));
@@ -80,7 +80,7 @@ public class ModulationParityTests {
     public void Dimension_cancels_the_common_part_of_the_two_wets(int mode, float expected) {
         using var chorus = TestBlocks.Create<ChorusBlock>((ChorusBlock.Dimension, mode), (ChorusBlock.Mix, 100f));
 
-        var (left, right) = BlockRender.Stereo(chorus, Signals.Step(9_600), Signals.Step(9_600), _ => 64);
+        var (left, right) = BlockRender.Stereo(chorus, Signals.Step(9_600), Signals.Step(9_600), static _ => 64);
 
         Assert.Equal(expected, left[^1], 1e-4f);
         Assert.Equal(expected, right[^1], 1e-4f);
@@ -185,7 +185,7 @@ public class ModulationParityTests {
 
     [Fact]
     public void Shelf_two_overshoots_its_gain_and_the_plain_shelf_does_not() {
-        double Peak(int type) {
+        static double Peak(int type) {
             using var block = TestBlocks.Create<FilterBlock>(
                 (FilterBlock.Type, type),
                 (FilterBlock.Gain, 12f),
@@ -204,7 +204,7 @@ public class ModulationParityTests {
 
     [Fact]
     public void Peaking_two_narrows_as_it_boosts() {
-        double At(int type, double frequency) {
+        static double At(int type, double frequency) {
             using var block = TestBlocks.Create<FilterBlock>((FilterBlock.Type, type), (FilterBlock.Gain, 12f));
             return Analysis.MagnitudeAt(BlockRender.Mono(block, Signals.Impulse(16_384), 64), frequency, Rate);
         }
@@ -242,13 +242,13 @@ public class ModulationParityTests {
 
     [Fact]
     public void Panner_width_past_one_hundred_dwells_at_the_sides() {
-        double SidesShare(float width) {
+        static double SidesShare(float width) {
             using var block = TestBlocks.Create<TremoloBlock>(
                 (TremoloBlock.Type, TremoloBlock.Panner),
                 (TremoloBlock.Depth, width),
                 (TremoloBlock.Rate, 2f)
             );
-            var (_, right) = BlockRender.Stereo(block, Signals.Step(48_000), Signals.Step(48_000), _ => 64);
+            var (_, right) = BlockRender.Stereo(block, Signals.Step(48_000), Signals.Step(48_000), static _ => 64);
             return right.Count(static s => s < 1e-3f) / (double)right.Length;
         }
 
@@ -258,7 +258,7 @@ public class ModulationParityTests {
 
     [Fact]
     public void Trigger_restarts_the_lfo_when_the_playing_starts() {
-        float[] After(int silence) {
+        static float[] After(int silence) {
             using var block = TestBlocks.Create<TremoloBlock>(
                 (TremoloBlock.Depth, 100f),
                 (TremoloBlock.Rate, 3f),
@@ -362,7 +362,7 @@ public class ModulationParityTests {
         }
 
         block.Reset();
-        var (left, right) = BlockRender.Stereo(block, Signals.Noise(9_600, 2, 0.5f), new float[9_600], _ => 64);
+        var (left, right) = BlockRender.Stereo(block, Signals.Noise(9_600, 2, 0.5f), new float[9_600], static _ => 64);
 
         Assert.True(Analysis.Rms(left) > 0.01);
         Assert.All(right, static s => Assert.Equal(0f, s));
@@ -370,7 +370,7 @@ public class ModulationParityTests {
 
     [Fact]
     public void Voice_feedback_shortens_its_ring() {
-        double Tail(float feedback) {
+        static double Tail(float feedback) {
             using var block = TestBlocks.Create<ResonatorBlock>(
                 (ResonatorBlock.Mix, 100f),
                 (ResonatorBlock.Feedback1, feedback),
@@ -463,7 +463,7 @@ public class ModulationParityTests {
             (SynthBlock.VoiceParam(0, SynthBlock.Pan), -100f)
         );
 
-        var (left, right) = BlockRender.Stereo(synth, new float[4_800], new float[4_800], _ => 64);
+        var (left, right) = BlockRender.Stereo(synth, new float[4_800], new float[4_800], static _ => 64);
 
         Assert.True(Analysis.Rms(left) > 0.05);
         Assert.True(Analysis.Peak(right) < 1e-6);
@@ -549,7 +549,7 @@ public class ModulationParityTests {
 
     [Fact]
     public void Inductor_bias_raises_the_circuit_sweep() {
-        double Peak(float bias) {
+        static double Peak(float bias) {
             using var wah = TestBlocks.Create<WahBlock>(
                 (WahBlock.Type, WahBlock.FirstCircuit),
                 (WahBlock.Position, 50f),
@@ -558,7 +558,7 @@ public class ModulationParityTests {
             BlockRender.Mono(wah, new float[4_800], 64); // settle
             var response = BlockRender.Mono(wah, Signals.Impulse(16_384, 0.01f), 64);
             return Enumerable.Range(0, 300)
-                .Select(i => 200 * Math.Pow(1.01, i))
+                .Select(static i => 200 * Math.Pow(1.01, i))
                 .MaxBy(f => Analysis.MagnitudeAt(response, f, Rate));
         }
 
@@ -674,7 +674,12 @@ public class ModulationParityTests {
             (PitchBlock.InputMode, 1f)
         );
 
-        var (left, right) = BlockRender.Stereo(capo, Signals.Sine(220, Rate, 9_600, 0.3f), new float[9_600], _ => 64);
+        var (left, right) = BlockRender.Stereo(
+            capo,
+            Signals.Sine(220, Rate, 9_600, 0.3f),
+            new float[9_600],
+            static _ => 64
+        );
 
         Assert.True(Analysis.Rms(left.AsSpan(4_800)) > 0.05);
         Assert.True(Analysis.Peak(right) < 1e-6);

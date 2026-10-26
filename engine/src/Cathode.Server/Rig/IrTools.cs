@@ -178,7 +178,11 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
     }
 
     /// <summary>Saves a Cab block's current mixed IR (<see cref="ExportCabAsync" />) as a new IR asset.</summary>
-    public async Task<AssetInfo> SaveCabAsync(string blockId, CabExportRequest request, CancellationToken cancellationToken) {
+    public async Task<AssetInfo> SaveCabAsync(
+        string blockId,
+        CabExportRequest request,
+        CancellationToken cancellationToken
+    ) {
         if (string.IsNullOrWhiteSpace(request.Name) || request.Name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) {
             throw new RigException(400, "Give the IR a file name.");
         }

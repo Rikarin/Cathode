@@ -1,5 +1,5 @@
-using System.Text.Json.Serialization;
 using Cathode.Engine.Graph;
+using System.Text.Json.Serialization;
 
 namespace Cathode.Ipc;
 
@@ -22,6 +22,7 @@ public static class IpcTypes {
 
     /// <summary>Starts, retunes or stops the test tone in place of a block's output (Block, Enabled, Frequency, Level).</summary>
     public const string TestTone = "testTone";
+
     /// <summary>
     ///     Turns the modifier on <c>Block</c>.<c>Param</c> on or off (<c>Enabled</c>): channel-scoped modifiers. Turning
     ///     it off restores the parameter to the value in <c>Params[0]</c>.
@@ -55,8 +56,7 @@ public static class IpcBlocks {
         : -1;
 
     /// <summary>A rig or global EQ id: parameters that need no graph.</summary>
-    public static bool IsEngineWide(ReadOnlySpan<char> block) =>
-        block.SequenceEqual(Rig) || GlobalEqOutput(block) >= 0;
+    public static bool IsEngineWide(ReadOnlySpan<char> block) => block is Rig || GlobalEqOutput(block) >= 0;
 }
 
 /// <summary>One envelope for every message, so the protocol stays a single source-generated type.</summary>

@@ -1,13 +1,13 @@
-using System.Diagnostics;
-using System.Globalization;
-using System.Runtime;
-using System.Security.Cryptography;
-using System.Text.Json;
 using Cathode.Audio.Native;
 using Cathode.Dsp;
 using Cathode.Dsp.Native;
 using Cathode.Engine;
 using Cathode.Engine.Graph;
+using System.Diagnostics;
+using System.Globalization;
+using System.Runtime;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 // Spike S2 harness. Modes:
 //   audio  --device <uid> --nam <file> [--buffer 64] [--warmup 5] [--seconds 20] [--server] [--port 5199]
@@ -252,8 +252,8 @@ static class Preset {
                     column = b % 14,
                     channels = Enumerable.Range(0, 4)
                         .ToDictionary(
-                            c => ((char)('A' + c)).ToString(),
-                            _ => Enumerable.Range(0, 30).ToDictionary(p => $"param{p}", _ => random.NextSingle())
+                            static c => ((char)('A' + c)).ToString(),
+                            _ => Enumerable.Range(0, 30).ToDictionary(static p => $"param{p}", _ => random.NextSingle())
                         )
                 }
             )
@@ -261,7 +261,10 @@ static class Preset {
         var scenes = Enumerable.Range(0, 8)
             .Select(s => new {
                     name = $"Scene {s + 1}",
-                    state = blocks.ToDictionary(b => b.id, _ => new { bypassed = random.Next(2) == 0, channel = "A" })
+                    state = blocks.ToDictionary(
+                        static b => b.id,
+                        _ => new { bypassed = random.Next(2) == 0, channel = "A" }
+                    )
                 }
             )
             .ToList();
@@ -338,7 +341,8 @@ static class LoadMode {
         var rate = o.Int("rate", 0);
         var seconds = o.Int("seconds", 25);
         using var client =
-            new HttpClient(new SocketsHttpHandler { MaxConnectionsPerServer = concurrency }) { BaseAddress = new(url) };
+            new HttpClient(new SocketsHttpHandler { MaxConnectionsPerServer = concurrency });
+        client.BaseAddress = new(url);
         var upload = new byte[2 * 1024 * 1024];
         new Random(5).NextBytes(upload);
         long ok = 0, failed = 0;

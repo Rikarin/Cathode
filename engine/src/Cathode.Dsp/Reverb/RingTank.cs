@@ -37,7 +37,10 @@ sealed class RingTank : IDisposable {
 
     /// <summary>The concert hall: sections of about 125 ms, a 0.5 s ring.</summary>
     public static readonly Voicing Hall = new(
-        [22.6f, 47.3f, 13.1f, 39.7f, 30.4f, 43.9f, 17.9f, 34.1f, 25.1f, 51.7f, 11.3f, 37.3f, 33.7f, 41.3f, 15.7f, 31.9f],
+        [
+            22.6f, 47.3f, 13.1f, 39.7f, 30.4f, 43.9f, 17.9f, 34.1f, 25.1f, 51.7f, 11.3f, 37.3f, 33.7f, 41.3f, 15.7f,
+            31.9f
+        ],
         [4.77f, 3.59f, 12.73f, 9.30f],
         0.75f,
         0.625f,
@@ -185,7 +188,7 @@ sealed class RingTank : IDisposable {
 
         for (var s = 0; s < Sections; s++) {
             var k = 4 * s;
-            ap1[s] = Math.Max(1f, voicing.SectionMs[k + Ap1] * scale * ms);
+            ap1[s] = Math.Max(1f, voicing.SectionMs[k] * scale * ms);
             d1[s] = Math.Max(1, (int)MathF.Round(voicing.SectionMs[k + D1] * scale * ms));
             ap2[s] = Math.Max(1f, MathF.Round(voicing.SectionMs[k + Ap2] * scale * ms));
             d2[s] = Math.Max(1, (int)MathF.Round(voicing.SectionMs[k + D2] * scale * ms));

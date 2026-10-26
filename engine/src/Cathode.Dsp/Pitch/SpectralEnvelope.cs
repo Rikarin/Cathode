@@ -9,7 +9,10 @@ public static class SpectralEnvelope {
     /// <summary>White-noise correction: the envelope spans at most about 50 dB below the frame's power.</summary>
     public const double NoiseFloor = 1e-5;
 
-    /// <summary>The lag window's bandwidth: the envelope does not resolve detail finer than this, so it passes over single harmonics.</summary>
+    /// <summary>
+    ///     The lag window's bandwidth: the envelope does not resolve detail finer than this, so it passes over single
+    ///     harmonics.
+    /// </summary>
     public const double LagBandwidthHz = 120;
 
     /// <summary>The largest reflection coefficient, keeping the all-pole filter clear of instability.</summary>

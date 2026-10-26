@@ -48,7 +48,7 @@ public class PrometheusTests(ITestOutputHelper output) {
     [Fact]
     public void Cut_removes_bass_and_gain_adds_drive() {
         // Below clipping, so the knobs' linear effect shows: Cut lowers 82 Hz against 1 kHz, gain raises the level.
-        double Ratio(float cut) {
+        static double Ratio(float cut) {
             var low = Analysis.Rms(
                 Render(Lead, 0.0005f, 82.4, (CircuitAmpBlock.Gain, 1f), (CircuitAmpBlock.Control1, cut))
             );
@@ -65,7 +65,7 @@ public class PrometheusTests(ITestOutputHelper output) {
         Assert.True(ratios[0] > ratios[1] && ratios[1] > ratios[2] && ratios[0] - ratios[2] > 6);
 
         var levels = new[] { 0f, 3f, 6f }
-            .Select(g => Analysis.ToDb(Analysis.Rms(Render(Lead, 0.0005f, 1_000, (CircuitAmpBlock.Gain, g)))))
+            .Select(static g => Analysis.ToDb(Analysis.Rms(Render(Lead, 0.0005f, 1_000, (CircuitAmpBlock.Gain, g)))))
             .ToArray();
         output.WriteLine($"1 kHz level at gain 0/3/6: {string.Join(" / ", levels.Select(static l => $"{l:0.0}"))} dB");
         Assert.True(levels[0] < levels[1] && levels[1] < levels[2]);
@@ -117,6 +117,6 @@ public class PrometheusTests(ITestOutputHelper output) {
         var input = frequency > 0
             ? Signals.Sine(frequency, Rate, 24_000, peak)
             : CircuitAmpBlockTests.Chord(14_400, peak);
-        return BlockRender.Mono(block, input, 64).AsSpan(input.Length / 2).ToArray();
+        return [..BlockRender.Mono(block, input, 64).AsSpan(input.Length / 2)];
     }
 }

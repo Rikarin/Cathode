@@ -19,12 +19,11 @@ public static class PresetGraph {
         string oversampling = "minimum"
     ) {
         var scene = preset.Scenes[sceneIndex];
+
         SceneBlockState StateOf(string id) =>
             held is not null && held.TryGetValue(id, out var state) ? state : scene.StateOf(id);
 
-        var graph = new GraphDefinition {
-            Rows = preset.Rows, Columns = preset.Columns, Oversampling = oversampling
-        };
+        var graph = new GraphDefinition { Rows = preset.Rows, Columns = preset.Columns, Oversampling = oversampling };
         foreach (var block in preset.Blocks) {
             var node = new NodeDefinition {
                 Id = block.Id,

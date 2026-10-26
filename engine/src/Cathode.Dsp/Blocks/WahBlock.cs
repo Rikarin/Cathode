@@ -190,18 +190,14 @@ public sealed class WahBlock() : DspBlock(Info) {
         // 3.4 kHz): 33k into the band-pass, 75k feedback and 10 nF capacitors (constant bandwidth, so the Q rises with
         // the frequency), a cell of 300 ohms lit to 500k dark, gain 1.5 after it, a 9 V supply.
         new("Morley", "Morley optical (power) wah", ActiveWahTopology.Optical) {
-            OutputFeedback = 4.7e3,
-            OutputGround = 10e3,
-            OutputDb = 2
+            OutputFeedback = 4.7e3, OutputGround = 10e3, OutputDb = 2
         },
         // Tycobrahe / Dunlop Parapedal: inductor-less, two op-amps tuned together by a dual-gang pot. The loop is a
         // two-integrator band-pass; each gang 25k plus 3.3k in series with 22 nF integrating capacitors (about
         // 260 Hz to 2.2 kHz), the damping set by a 47k / 10k ratio (Q 4.7 over the whole sweep) and the gain by 47k
         // over 22k.
         new("Parapedal", "Tycobrahe Parapedal", ActiveWahTopology.DualGang) {
-            InputResistor = 22e3,
-            Capacitor = 22e-9,
-            OutputDb = 1
+            InputResistor = 22e3, Capacitor = 22e-9, OutputDb = 1
         }
     ];
 

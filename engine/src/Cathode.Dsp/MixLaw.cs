@@ -34,13 +34,13 @@ public static class MixLaws {
     /// <summary>Dry and wet gains for <paramref name="mix" /> (0..1). <paramref name="killDry" /> mutes the dry.</summary>
     public static (float Dry, float Wet) Gains(MixLaw law, float mix, bool killDry = false) {
         var (dry, wet) = mix <= 0f ? (1f, 0f)
-            : mix >= 1f ? (0f, 1f)
-            : law switch {
-                MixLaw.ConstantPower => (MathF.Cos(mix * MathF.PI / 2f), MathF.Sin(mix * MathF.PI / 2f)),
-                MixLaw.Sweetened => (Math.Min(1f, 2f * (1f - mix)), Math.Min(1f, 4f * mix * mix)),
-                MixLaw.DryUnity => (Math.Min(1f, 2f * (1f - mix)), Math.Min(1f, 2f * mix)),
-                _ => (1f - mix, mix)
-            };
+        : mix >= 1f ? (0f, 1f)
+        : law switch {
+            MixLaw.ConstantPower => (MathF.Cos(mix * MathF.PI / 2f), MathF.Sin(mix * MathF.PI / 2f)),
+            MixLaw.Sweetened => (Math.Min(1f, 2f * (1f - mix)), Math.Min(1f, 4f * mix * mix)),
+            MixLaw.DryUnity => (Math.Min(1f, 2f * (1f - mix)), Math.Min(1f, 2f * mix)),
+            _ => (1f - mix, mix)
+        };
         return (killDry ? 0f : dry, wet);
     }
 }

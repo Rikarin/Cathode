@@ -125,7 +125,7 @@ public sealed class IpcTests : IDisposable {
         );
 
         Assert.Equal(IpcTypes.Error, invalid.Type);
-        Assert.Contains(invalid.Errors!, e => e.Contains("unknown type", StringComparison.Ordinal));
+        Assert.Contains(invalid.Errors!, static e => e.Contains("unknown type", StringComparison.Ordinal));
         Assert.Equal(IpcTypes.Error, stale.Type);
         Assert.Equal(IpcTypes.Error, unknown.Type);
     }

@@ -90,7 +90,10 @@ public sealed class LoopStage {
         output = net.Output - 1;
         foreach (var e in net.Elements) {
             if (e.Kind is not (ElementKind.Resistor or ElementKind.Capacitor)) {
-                throw new ArgumentException("A loop stage's network takes resistors and capacitors only.", nameof(design));
+                throw new ArgumentException(
+                    "A loop stage's network takes resistors and capacitors only.",
+                    nameof(design)
+                );
             }
         }
 

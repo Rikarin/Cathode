@@ -19,7 +19,7 @@ public static partial class FactoryRecipes {
             .Add("reverb", "type=Room decay=0.9 size=45 mix=8")
             .Scene("Chorus")
             .Scene("Verse", "-drive +chorus")
-            .Scene("Solo", "", 1),
+            .Scene("Solo", string.Empty, 1),
         Preset(
                 "Cherub Rock",
                 "Billy Corgan in 1993: a Strat into an op-amp Big Muff and a Marshall, layered into a fuzz wall. The "

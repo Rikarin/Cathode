@@ -77,7 +77,9 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
         foreach (var model in new[] { PentodeModel.EL34, PentodeModel.SixL6GC, PentodeModel.EL84 }) {
             var tables = PentodeTables.For(model);
             var law = model.Hardened(hardness);
-            foreach (var (vg1, vg2, vp) in new[] { (-30.0, 350.0, 400.0), (-45, 400, 60), (-5, 300, 20), (-60, 420, 500) }) {
+            foreach (var (vg1, vg2, vp) in new[] {
+                         (-30.0, 350.0, 400.0), (-45, 400, 60), (-5, 300, 20), (-60, 420, 500)
+                     }) {
                 var factor = tables.ScreenFactor(vg2, model.Kp * hardness);
                 var fast = tables.PlateCurrent(factor, vg1, vg2, vp, model.Kp * hardness, hardness, out _, out _);
                 var exact = KorenPentode.Plate(law, vg1, vg2, vp);
@@ -170,7 +172,7 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
 
     [Fact]
     public void Generic_switches_hide_where_the_model_has_its_own() {
-        var labels = CircuitAmpBlock.Info.Params.Single(p => p.Id == "fatsw").TypeLabels!;
+        var labels = CircuitAmpBlock.Info.Params.Single(static p => p.Id == "fatsw").TypeLabels!;
         for (var type = 0; type < AmpDesign.All.Count; type++) {
             Assert.Equal(AmpDesign.All[type].Panel.HasSwitch("Fat"), labels[type] == string.Empty);
         }
@@ -220,7 +222,9 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
         var type = Index(Slo100.Design);
         var tone = Signals.Sine(4_000, Rate, 19_200, 0.002f);
         var stock = SteadyDb(Render(type, tone, (CircuitAmpBlock.Gain, 3f)));
-        var t1 = AmpFeatures.Has(Slo100.Design, "t1plate") ? CircuitAmpBlock.Triode1Plate : CircuitAmpBlock.Triode2Plate;
+        var t1 = AmpFeatures.Has(Slo100.Design, "t1plate")
+            ? CircuitAmpBlock.Triode1Plate
+            : CircuitAmpBlock.Triode2Plate;
         var opened = SteadyDb(Render(type, tone, (CircuitAmpBlock.Gain, 3f), (t1, 400f)));
         Assert.True(opened > stock + 0.5, $"{opened:0.0} against {stock:0.0} dB");
         Assert.False(AmpFeatures.Has(Blackface.Design, "t2plate"));
@@ -258,7 +262,7 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
         using var stock = TestBlocks.Create<CircuitAmpBlock>((CircuitAmpBlock.Type, type), (CircuitAmpBlock.Gain, 10f));
         var conducted = 0.0;
         for (var offset = 0; offset < input.Length; offset += 64) {
-            BlockRender.Mono(stock, input.AsSpan(offset, 64).ToArray(), 64);
+            BlockRender.Mono(stock, [..input.AsSpan(offset, 64)], 64);
             conducted = Math.Max(conducted, stock.Channel.Power.GridCurrents);
         }
 
@@ -280,7 +284,7 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
             );
             var lowest = double.MaxValue;
             for (var offset = 0; offset < input.Length; offset += 16) {
-                BlockRender.Mono(block, input.AsSpan(offset, 16).ToArray(), 16);
+                BlockRender.Mono(block, [..input.AsSpan(offset, 16)], 16);
                 var (a, b) = block.Channel.Power.PlateVoltages;
                 lowest = Math.Min(lowest, Math.Min(a, b) - block.Channel.Power.CathodeVoltage);
             }
@@ -381,7 +385,9 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
 
         var (rest, damped) = Recovery(0);
         var (_, ringing) = Recovery(4);
-        output.WriteLine($"screen at rest {rest:0.00} V; highest on recovery {damped:0.00} V (Q 0), {ringing:0.00} V (Q 4)");
+        output.WriteLine(
+            $"screen at rest {rest:0.00} V; highest on recovery {damped:0.00} V (Q 0), {ringing:0.00} V (Q 4)"
+        );
         Assert.True(damped <= rest + 0.05, $"{damped:0.00} V against {rest:0.00} V");
         Assert.True(ringing > rest + 0.1, $"{ringing:0.00} V against {rest:0.00} V");
     }

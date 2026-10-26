@@ -1,12 +1,12 @@
-using System.Diagnostics;
-using System.Globalization;
-using System.Runtime.InteropServices;
-using System.Text;
 using Cathode.Dsp;
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.IO;
 using Cathode.Dsp.Parameters;
+using System.Diagnostics;
+using System.Globalization;
+using System.Runtime.InteropServices;
+using System.Text;
 
 // Measures each registered block at 48 kHz in 64-frame blocks on noise, as a percentage of one core in real time:
 // the default settings, and the worst of each value of the block's type/mode choice (for the Cab, slot 1's Source, and
@@ -40,7 +40,7 @@ if (ampsAt >= 0) {
 
 foreach (var descriptor in registry.Descriptors.Where(d => only is null || d.TypeId == only)) {
     var variants = descriptor.Params
-        .Select((p, i) => (p, i))
+        .Select(static (p, i) => (p, i))
         .FirstOrDefault(static x => x.p.Kind == ParamKind.Enum && x.p.Id is "type" or "mode" or "model" or "m1source");
     var worst = Measure(registry, descriptor.TypeId, -1, 0, irPath);
     if (variants.p is { } choice) {
@@ -117,7 +117,9 @@ if (args.Contains("--write") && only is null) {
     code.AppendLine("/// </summary>");
     code.AppendLine("public static class BlockCosts {");
     code.AppendLine("    static readonly Dictionary<string, double> Percent = new(StringComparer.Ordinal) {");
-    var lines = results.Select(r => $"        [\"{r.Key}\"] = {r.Value.ToString("0.00", CultureInfo.InvariantCulture)}")
+    var lines = results.Select(static r =>
+            $"        [\"{r.Key}\"] = {r.Value.ToString("0.00", CultureInfo.InvariantCulture)}"
+        )
         .ToList();
     code.AppendLine(string.Join(",\n", lines));
     code.AppendLine("    };");

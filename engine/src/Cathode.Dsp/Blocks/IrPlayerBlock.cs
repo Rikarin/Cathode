@@ -217,8 +217,7 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
         return 1;
     }
 
-    static float[] Used(ReadOnlySpan<float> side, ReadOnlySpan<float> other) =>
-        side[..UsedLength(side, other)].ToArray();
+    static float[] Used(ReadOnlySpan<float> side, ReadOnlySpan<float> other) => [..side[..UsedLength(side, other)]];
 
     static void Add(ReadOnlySpan<float> source, Span<float> destination, float gain) {
         for (var i = 0; i < source.Length; i++) {

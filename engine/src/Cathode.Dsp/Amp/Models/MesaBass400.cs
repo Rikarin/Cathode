@@ -33,7 +33,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Guessed (not printed): V4's plate resistors (no value on the sheet: 47k, which with 12AX7s puts the plates at
 ///         279 V and the cathodes at 1.8 V against the marked 276 V and 2 V; 100k gave 221 V), the 6550s' idle current
 ///         (45 mA, inside the tube's dissipation; the library's 6550 then wants -67 V of bias where the sheet marks -63 V,
-///         and 65 mA would match the mark at 35 W a tube), the equaliser's input and feedback resistors (10k each, as in the TriAxis Dynamic
+///         and 65 mA would match the mark at 35 W a tube), the equaliser's input and feedback resistors (10k each, as in
+///         the TriAxis Dynamic
 ///         Voice; unlabelled), the tapers (volumes and master audio, sliders and treble linear; treble 250k), the
 ///         reservoir (ten 220 µF in series pairs: 550 µF), the output transformer (1.2k plate to plate, about 400 W at
 ///         540 V), the supply's source resistance, the choke's resistance and the rated power. Simplified: the

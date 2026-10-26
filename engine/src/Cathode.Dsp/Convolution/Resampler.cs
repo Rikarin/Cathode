@@ -13,7 +13,7 @@ public static class Resampler {
         }
 
         if (fromRate == toRate) {
-            return input.ToArray();
+            return [..input];
         }
 
         var ratio = toRate / fromRate;

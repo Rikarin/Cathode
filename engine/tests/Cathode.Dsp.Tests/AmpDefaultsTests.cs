@@ -1,5 +1,5 @@
-using System.Security.Cryptography;
 using Cathode.Testing;
+using System.Security.Cryptography;
 
 namespace Cathode.Dsp.Tests;
 

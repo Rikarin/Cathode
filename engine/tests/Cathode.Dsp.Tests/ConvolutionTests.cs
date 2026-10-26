@@ -34,12 +34,12 @@ public class ConvolutionTests {
     [InlineData(1_000)]
     [InlineData(4_096)]
     public void Matches_direct_convolution_for_any_ir_length_and_block_sizes(int irLength) {
-        var ir = Signals.Noise(irLength, irLength).Select((v, i) => v * MathF.Exp(-i / 800f)).ToArray();
+        var ir = Signals.Noise(irLength, irLength).Select(static (v, i) => v * MathF.Exp(-i / 800f)).ToArray();
         var input = Signals.Noise(6_000, 1, 0.5f);
         var expected = Direct(input, ir);
         var random = new Random(irLength);
 
-        var convolver = new Convolver(ir);
+        using var convolver = new Convolver(ir);
         var output = (float[])input.Clone();
         for (var offset = 0; offset < output.Length;) {
             var frames = Math.Min(random.Next(1, 300), output.Length - offset);
@@ -54,7 +54,7 @@ public class ConvolutionTests {
     [Fact]
     public void Has_zero_latency() {
         var ir = Signals.Noise(500, 2);
-        var convolver = new Convolver(ir);
+        using var convolver = new Convolver(ir);
         var output = Signals.Impulse(600);
 
         convolver.Process(output);
@@ -96,11 +96,11 @@ public class ConvolutionTests {
             .Array[300]
             .Select(Gen.Float[-2f, 2f])
             .Sample(
-                (x, a) => {
+                static (x, a) => {
                     var ir = Signals.Noise(200, 7);
                     var scaled = x.Select(v => v * a).ToArray();
-                    var c1 = new Convolver(ir);
-                    var c2 = new Convolver(ir);
+                    using var c1 = new Convolver(ir);
+                    using var c2 = new Convolver(ir);
                     var y = (float[])x.Clone();
                     c1.Process(y);
                     c2.Process(scaled);

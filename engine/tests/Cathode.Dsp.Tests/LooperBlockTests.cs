@@ -108,7 +108,7 @@ public class LooperBlockTests {
 
     [Fact]
     public void Crossfade_carries_the_playing_across_the_loop_seam() {
-        double SeamStep(float crossfadeMs) {
+        static double SeamStep(float crossfadeMs) {
             using var block = Create((LooperBlock.Crossfade, crossfadeMs));
             const int length = 4_850; // 44.6 periods: a hard cut lands mid-cycle
             var sine = Signals.Sine(441, 48_000, 2 * length, 0.5f);

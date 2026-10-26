@@ -79,7 +79,7 @@ public class ClassAAmpSweepTests(ITestOutputHelper output) {
 
     [Fact]
     public void Ac15_brilliance_cuts_the_bass_of_the_ef86_channel() {
-        double Tilt(bool on) {
+        static double Tilt(bool on) {
             var settings = new[] { (CircuitAmpBlock.Bright, on ? 1f : 0f) };
             return Level("AC15", false, 100, settings) - Level("AC15", false, 2_000, settings);
         }
@@ -113,7 +113,7 @@ public class ClassAAmpSweepTests(ITestOutputHelper output) {
         using var block = Create(type, channel);
         var stimulus = Signals.Concat(
             Signals.Noise(1_500, 1, 0.25f),
-            Signals.Sine(220, Rate, 1_500, 0.5f).Select(static (v, i) => v * MathF.Exp(-i / 500f)).ToArray(),
+            [..Signals.Sine(220, Rate, 1_500, 0.5f).Select(static (v, i) => v * MathF.Exp(-i / 500f))],
             new float[3_000]
         );
         var rendered = BlockRender.Mono(block, stimulus, 64);

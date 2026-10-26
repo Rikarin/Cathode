@@ -1,13 +1,12 @@
+using Cathode.Contracts;
 using System.Globalization;
 using System.Text;
-using Cathode.Contracts;
 
 namespace Cathode.Server.Stores;
 
 /// <summary>The preset list as plain text, for printing or a set list: name, author, tags and the scene names.</summary>
 public static class PresetListText {
-    public static string Build(PresetStore store) =>
-        Build(store.User().Select(s => store.Get(s.Id)).OfType<Preset>());
+    public static string Build(PresetStore store) => Build(store.User().Select(s => store.Get(s.Id)).OfType<Preset>());
 
     public static string Build(IEnumerable<Preset> presets) {
         var sorted = presets.OrderBy(static p => p.Name, StringComparer.OrdinalIgnoreCase).ToList();

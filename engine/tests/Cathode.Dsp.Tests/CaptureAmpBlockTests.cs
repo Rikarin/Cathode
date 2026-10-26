@@ -1,9 +1,9 @@
-using System.Globalization;
-using System.Text;
-using System.Text.Json;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Capture;
 using Cathode.Testing;
+using System.Globalization;
+using System.Text;
+using System.Text.Json;
 
 namespace Cathode.Dsp.Tests;
 
@@ -92,7 +92,7 @@ public class CaptureAmpBlockTests : IDisposable {
         block.Prepare(new(48_000, 64));
         var input = Signals.Noise(4_800, 9, 0.3f);
 
-        var (left, right) = BlockRender.Stereo(block, input, input, _ => 64);
+        var (left, right) = BlockRender.Stereo(block, input, input, static _ => 64);
 
         // Loudness = -18 - 6 = -24 dB, so normalisation adds +6 dB on top of the model's own output.
         using var reference = AidaModel.Load(path);

@@ -1,6 +1,6 @@
-using System.Numerics;
 using Cathode.Dsp.Blocks;
 using Cathode.Testing;
+using System.Numerics;
 
 namespace Cathode.Dsp.Tests;
 
@@ -24,18 +24,19 @@ public class DriveRound4OverdriveTests(ITestOutputHelper output) {
     ///     (the pots at their ends), its feedback and ground-leg capacitors, whether it is symmetric, and whether its diodes
     ///     go to ground.
     /// </summary>
-    public static TheoryData<string, Stage, bool, bool> Pedals => new() {
-        { "Full OD", new(47e3, 547e3, 2.2e3, 2.2e3, 47e-12, 220e-9), true, false },
-        { "OD-One Overdrive", new(10e3, 1.01e6, 4.7e3, 4.7e3, 47e-12, 47e-9), false, false },
-        { "OD 250", new(1e6, 1e6, 504.7e3, 4.7e3, 0, 100e-9), true, true },
-        { "Sonic Drive", new(51e3, 551e3, 4.7e3, 4.7e3, 51e-12, 47e-9), true, true },
-        { "Eternal Love", new(51e3, 551e3, 4.7e3, 4.7e3, 51e-12, 100e-9), true, true },
-        { "Jam Ray", new(10e3, 510e3, 4.7e3, 4.7e3, 47e-12, 100e-9), true, false },
-        { "Horizon Precision Drive", new(1e3, 501e3, 1e3, 1e3, 100e-12, 1e-6), true, true },
-        { "Tone of Kings", new(10e3, 110e3, 6.8e3, 6.8e3, 1e-9, 1e-6), true, false },
-        { "Hoodoo Drive", new(51e3, 551e3, 4.7e3, 4.7e3, 51e-12, 100e-9), true, false },
-        { "Valve Screamer VS9", new(51e3, 551e3, 4.7e3, 4.7e3, 51e-12, 47e-9), true, false }
-    };
+    public static TheoryData<string, Stage, bool, bool> Pedals =>
+        new() {
+            { "Full OD", new(47e3, 547e3, 2.2e3, 2.2e3, 47e-12, 220e-9), true, false },
+            { "OD-One Overdrive", new(10e3, 1.01e6, 4.7e3, 4.7e3, 47e-12, 47e-9), false, false },
+            { "OD 250", new(1e6, 1e6, 504.7e3, 4.7e3, 0, 100e-9), true, true },
+            { "Sonic Drive", new(51e3, 551e3, 4.7e3, 4.7e3, 51e-12, 47e-9), true, true },
+            { "Eternal Love", new(51e3, 551e3, 4.7e3, 4.7e3, 51e-12, 100e-9), true, true },
+            { "Jam Ray", new(10e3, 510e3, 4.7e3, 4.7e3, 47e-12, 100e-9), true, false },
+            { "Horizon Precision Drive", new(1e3, 501e3, 1e3, 1e3, 100e-12, 1e-6), true, true },
+            { "Tone of Kings", new(10e3, 110e3, 6.8e3, 6.8e3, 1e-9, 1e-6), true, false },
+            { "Hoodoo Drive", new(51e3, 551e3, 4.7e3, 4.7e3, 51e-12, 100e-9), true, false },
+            { "Valve Screamer VS9", new(51e3, 551e3, 4.7e3, 4.7e3, 51e-12, 47e-9), true, false }
+        };
 
     [Fact]
     public void Round_four_overdrives_are_appended_in_order_after_the_earlier_catalogue() {
@@ -54,8 +55,11 @@ public class DriveRound4OverdriveTests(ITestOutputHelper output) {
         bool toGround
     ) {
         _ = (symmetric, toGround);
+
         // Quiet enough that no diode conducts: the ratio is the drive stage's gain swing.
-        double Level(float drive) => SteadyDb(Render(name, Signals.Sine(500, Rate, 19_200, 3e-4f), (DriveBlock.Drive, drive)));
+        double Level(float drive) =>
+            SteadyDb(Render(name, Signals.Sine(500, Rate, 19_200, 3e-4f), (DriveBlock.Drive, drive)));
+
         var swing = Level(10f) - Level(0f);
         var expected = stage.SwingDb(500);
         output.WriteLine($"{name}: Drive swings {swing:0.0} dB (netlist {expected:0.0} dB)");
@@ -66,9 +70,14 @@ public class DriveRound4OverdriveTests(ITestOutputHelper output) {
     [MemberData(nameof(Pedals))]
     public void Tone_brightens_steadily(string name, Stage stage, bool symmetric, bool toGround) {
         _ = (stage, symmetric, toGround);
+
         double Treble(float tone) {
-            var at4k = SteadyDb(Render(name, Signals.Sine(4_000, Rate, 19_200, 1e-3f), (DriveBlock.Drive, 0f), (DriveBlock.Tone, tone)));
-            var at300 = SteadyDb(Render(name, Signals.Sine(300, Rate, 19_200, 1e-3f), (DriveBlock.Drive, 0f), (DriveBlock.Tone, tone)));
+            var at4k = SteadyDb(
+                Render(name, Signals.Sine(4_000, Rate, 19_200, 1e-3f), (DriveBlock.Drive, 0f), (DriveBlock.Tone, tone))
+            );
+            var at300 = SteadyDb(
+                Render(name, Signals.Sine(300, Rate, 19_200, 1e-3f), (DriveBlock.Drive, 0f), (DriveBlock.Tone, tone))
+            );
             return at4k - at300;
         }
 
@@ -89,6 +98,7 @@ public class DriveRound4OverdriveTests(ITestOutputHelper output) {
         // leave its input in the output, so it keeps growing.
         double Level(float amplitude) =>
             SteadyDb(Render(name, Signals.Sine(500, Rate, 19_200, amplitude), (DriveBlock.Drive, 10f)));
+
         var growth = Level(0.48f) - Level(0.03f);
         output.WriteLine($"{name}: +24 dB in gives {growth:0.0} dB out at full drive");
         if (toGround) {
@@ -124,7 +134,7 @@ public class DriveRound4OverdriveTests(ITestOutputHelper output) {
         Assert.Equal("Tone", DriveBlock.Info.Params[DriveBlock.Tone].TypeLabels![TypeOf("Zen OD")]);
 
         // Drive at noon, quiet: the gain stage's response. Bass up lets the ground leg pass the lows.
-        double Level(double frequency, float bass) =>
+        static double Level(double frequency, float bass) =>
             SteadyDb(
                 Render(
                     "Transparent OD",
@@ -149,16 +159,23 @@ public class DriveRound4OverdriveTests(ITestOutputHelper output) {
         Assert.Equal("Voice", DriveBlock.Info.Params[DriveBlock.Voice].TypeLabels![type]);
         Assert.Equal(string.Empty, DriveBlock.Info.Params[DriveBlock.Voice].TypeLabels![TypeOf("TS808 OD")]);
 
-        double Level(double frequency, float voice) =>
+        static double Level(double frequency, float voice) =>
             SteadyDb(
-                Render("Zen OD", Signals.Sine(frequency, Rate, 19_200, 3e-4f), (DriveBlock.Drive, 5f), (DriveBlock.Voice, voice))
+                Render(
+                    "Zen OD",
+                    Signals.Sine(frequency, Rate, 19_200, 3e-4f),
+                    (DriveBlock.Drive, 5f),
+                    (DriveBlock.Voice, voice)
+                )
             );
 
         var midStock = Level(1_000, 10f);
         var midDown = Level(1_000, 0f);
         var tiltStock = Level(150, 10f) - midStock;
         var tiltDown = Level(150, 0f) - midDown;
-        output.WriteLine($"1 kHz {midStock:0.0} -> {midDown:0.0} dB; 150 Hz against 1 kHz {tiltStock:0.0} -> {tiltDown:0.0} dB");
+        output.WriteLine(
+            $"1 kHz {midStock:0.0} -> {midDown:0.0} dB; 150 Hz against 1 kHz {tiltStock:0.0} -> {tiltDown:0.0} dB"
+        );
         Assert.True(midDown < midStock - 3, "Voice down does not lower the gain");
         Assert.True(tiltDown > tiltStock + 2, "Voice down does not lower the bass corner");
     }
@@ -169,7 +186,7 @@ public class DriveRound4OverdriveTests(ITestOutputHelper output) {
         Assert.Equal("HP/LP", DriveBlock.Info.Params[DriveBlock.HighPeak].TypeLabels![type]);
         Assert.Equal(string.Empty, DriveBlock.Info.Params[DriveBlock.HighPeak].TypeLabels![TypeOf("TS808 OD")]);
 
-        double Level(double frequency, float peak) =>
+        static double Level(double frequency, float peak) =>
             SteadyDb(
                 Render(
                     "Obsessive OD",
@@ -208,7 +225,8 @@ public class DriveRound4OverdriveTests(ITestOutputHelper output) {
         }
     }
 
-    static double Peak(double[] magnitudes, int bin) => Math.Max(magnitudes[bin - 1], Math.Max(magnitudes[bin], magnitudes[bin + 1]));
+    static double Peak(double[] magnitudes, int bin) =>
+        Math.Max(magnitudes[bin - 1], Math.Max(magnitudes[bin], magnitudes[bin + 1]));
 
     static double Crest(float[] signal) {
         var tail = signal.AsSpan(signal.Length / 2);

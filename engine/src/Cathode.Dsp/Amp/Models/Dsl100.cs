@@ -11,7 +11,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     the Gain's top to its wiper in both; the wiper's 470k into V2B's grid. Ultra Gain: 4.7 nF, then 470k ‖ (2.2 nF +
 ///     47k) onto the 1M audio Gain, 470 pF from its top to its wiper; Lead 1 grounds the junction of 150k from its top and
 ///     470 pF from its wiper, Lead 2 lifts it (the two then bridge the pot, 10M at their junction) and fully bypasses
-///     V1A's cathode; the wiper drives V1A (100k, 1k8, 1 µF + 10k to ground, or 1 µF in Lead 2; 470 pF from the plate to the
+///     V1A's cathode; the wiper drives V1A (100k, 1k8, 1 µF + 10k to ground, or 1 µF in Lead 2; 470 pF from the plate to
+///     the
 ///     rail), 4.7 nF (1M to ground), 10k, 1k with 470 pF to ground and 470k into V2B's grid (2M2 to ground), where the
 ///     channels mix. V2B (100k, 4k7 unbypassed), 22 nF, 470k into V2A (470k leak; 100k, 2k2 unbypassed), 22 nF, 220k,
 ///     100k into V3B's grid (47k and 47k + 2k2 to ground: the reverb return's mixer), V3B (100k, 1k unbypassed),
@@ -47,7 +48,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         (1.7k), the feedback resistor and tap (47k from the 16 Ω tap: the resistor is on the speaker-jack wiring, not
 ///         drawn). Simplified: the stack's foot (an elevated node on 1k, 22 µF and 220 nF, so that the DC-coupled follower
 ///         puts no DC across the pots) as ground, with 22 µF coupling the follower to the stack; the reverb at zero (its
-///         return's driver as ground behind the 47k + 2k2; the send's 2M2 + 680k as a load); the switching-mute JFETs (TR1,
+///         return's driver as ground behind the 47k + 2k2; the send's 2M2 + 680k as a load); the switching-mute JFETs
+///         (TR1,
 ///         TR3) off; LDR3 as open in the Ultra channel and the Ultra path's 470k as grounded in the Classic one; the
 ///         Classic network's grounded wiper, in the Ultra channel, as 470k to ground; the Deep switch's gyrator as the
 ///         library's depth control (Depth, labelled Deep).

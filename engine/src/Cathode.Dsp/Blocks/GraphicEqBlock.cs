@@ -25,7 +25,7 @@ public sealed class GraphicEqBlock : DspBlock {
 
     public static readonly float[] Centers = GraphicEqualizer.Layouts[0].Centers;
 
-    readonly GraphicEqualizer equalizer = new(networks: true);
+    readonly GraphicEqualizer equalizer = new(true);
     readonly float[] gains = new float[Bands];
     readonly bool[] moving = new bool[Bands];
     OutputStage output;

@@ -1,9 +1,9 @@
-using System.Diagnostics;
-using System.Numerics;
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Wdf;
 using Cathode.Testing;
+using System.Diagnostics;
+using System.Numerics;
 
 namespace Cathode.Dsp.Tests;
 
@@ -167,7 +167,9 @@ public class TremoloTests(ITestOutputHelper output) {
             var track = ((OpticalTremoloDesign)stage.Tremolo!).Intensity.Ohms;
             Assert.Contains(
                 stage.Netlist.Elements,
-                e => e.Kind == ElementKind.Resistor && e.Value == track && (e.A == StageNetlist.Ground || e.B == StageNetlist.Ground)
+                e => e.Kind == ElementKind.Resistor
+                    && e.Value == track
+                    && (e.A == StageNetlist.Ground || e.B == StageNetlist.Ground)
             );
         }
     }
@@ -204,7 +206,9 @@ public class TremoloTests(ITestOutputHelper output) {
         var before = MaxStep(rendered.AsSpan(Switch - 9_600, 9_600));
         var onset = MaxStep(rendered.AsSpan(Switch - 1, 4_800));
         var steady = MaxStep(rendered.AsSpan(input.Length - 24_000));
-        output.WriteLine($"{model}: largest step {before:0.0000} before, {onset:0.0000} at the onset, {steady:0.0000} after");
+        output.WriteLine(
+            $"{model}: largest step {before:0.0000} before, {onset:0.0000} at the onset, {steady:0.0000} after"
+        );
         Assert.True(Analysis.AllFinite(rendered));
         Assert.True(onset <= 1.05 * Math.Max(before, steady), $"a step of {onset:0.0000} at the onset");
     }
@@ -227,7 +231,7 @@ public class TremoloTests(ITestOutputHelper output) {
     /// <summary>Running and turning the tremolos allocates nothing on the audio thread.</summary>
     [Fact]
     public void The_tremolos_do_not_allocate() {
-        var blocks = KindNames.Select(k => Create(k, (CircuitAmpBlock.Switch1, 1f))).ToArray();
+        var blocks = KindNames.Select(static k => Create(k, (CircuitAmpBlock.Switch1, 1f))).ToArray();
         var input = Signals.Sine(220, Rate, 64, 0.1f);
         var buffer = new float[64];
 
@@ -300,9 +304,7 @@ public class TremoloTests(ITestOutputHelper output) {
 
     /// <summary>The model without its tremolo: the power amp's and every stage's taken out.</summary>
     static AmpDesign Strip(AmpDesign design) =>
-        design with {
-            Power = design.Power with { BiasTremolo = null }, Preamp = [..design.Preamp.Select(Strip)]
-        };
+        design with { Power = design.Power with { BiasTremolo = null }, Preamp = [..design.Preamp.Select(Strip)] };
 
     static AmpStageDesign Strip(AmpStageDesign stage) =>
         stage switch {

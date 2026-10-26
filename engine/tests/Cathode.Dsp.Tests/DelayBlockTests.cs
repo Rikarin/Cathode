@@ -141,8 +141,8 @@ public class DelayBlockTests {
         );
         var impulse = Signals.Impulse(2_000);
 
-        var (left, right) = BlockRender.Stereo(panned, impulse, impulse, _ => 64);
-        var (left2, right2) = BlockRender.Stereo(posted, impulse, impulse, _ => 64);
+        var (left, right) = BlockRender.Stereo(panned, impulse, impulse, static _ => 64);
+        var (left2, right2) = BlockRender.Stereo(posted, impulse, impulse, static _ => 64);
 
         Assert.Equal(1f, left[480], 1e-6f);
         Assert.Equal(0f, right.Max(MathF.Abs));
@@ -164,7 +164,7 @@ public class DelayBlockTests {
         );
         var impulse = Signals.Impulse(4_000);
 
-        var (left, right) = BlockRender.Stereo(delay, impulse, new float[4_000], _ => 64);
+        var (left, right) = BlockRender.Stereo(delay, impulse, new float[4_000], static _ => 64);
 
         // Left: one echo at 10 ms. Right: the cross-fed left echo 15 ms later (0.5), then its own repeat (0.25).
         Assert.Equal(1f, left[480], 1e-5f);
@@ -175,7 +175,7 @@ public class DelayBlockTests {
 
     [Fact]
     public void Mono_tape_heads_play_at_their_ratio_and_motor_speed_stretches_the_time() {
-        float[] Render(float speed, out float[] right) {
+        static float[] Render(float speed, out float[] right) {
             using var delay = Create(
                 (DelayBlock.Type, DelayBlock.MonoTape),
                 (DelayBlock.Time, 100f),
@@ -187,7 +187,7 @@ public class DelayBlockTests {
                 (DelayBlock.Head2Pan, 100f)
             );
             var impulse = Signals.Impulse(20_000);
-            (var left, right) = BlockRender.Stereo(delay, impulse, impulse, _ => 64);
+            (var left, right) = BlockRender.Stereo(delay, impulse, impulse, static _ => 64);
             return left;
         }
 
@@ -253,7 +253,7 @@ public class DelayBlockTests {
     public void Reverse_trigger_restart_starts_a_chunk_on_a_new_note() {
         // With a 1 s chunk and no restart, a note 0.3 s into the first chunk comes out 0.3 s before the end of the
         // second; with Trigger Restart a chunk starts on the note, so it comes out at the very end of the next chunk.
-        float[] Render(float restart) {
+        static float[] Render(float restart) {
             using var delay = Create(
                 (DelayBlock.Type, DelayBlock.Reverse),
                 (DelayBlock.Time, 1_000f),
@@ -381,7 +381,7 @@ public class DelayBlockTests {
                 (DelayBlock.Lfo1Target, target),
                 (DelayBlock.DepthRange, range)
             );
-            (var left, right) = BlockRender.Stereo(delay, dry, dry, _ => 64);
+            (var left, right) = BlockRender.Stereo(delay, dry, dry, static _ => 64);
             return left;
         }
 
@@ -509,12 +509,12 @@ public class DelayBlockTests {
         using var delay = Create([..start.Select(static (v, i) => (i, v))]);
         var input = Signals.Noise(9_600, 0);
 
-        var (left, right) = BlockRender.Stereo(delay, input, input, _ => 64);
+        var (left, right) = BlockRender.Stereo(delay, input, input, static _ => 64);
         for (var i = 0; i < jump.Length; i++) {
             delay.Params.SetTarget(i, jump[i]);
         }
 
-        var (left2, right2) = BlockRender.Stereo(delay, input, input, _ => 64);
+        var (left2, right2) = BlockRender.Stereo(delay, input, input, static _ => 64);
 
         foreach (var output in new[] { left, right, left2, right2 }) {
             Assert.True(Analysis.AllFinite(output), "non-finite output");

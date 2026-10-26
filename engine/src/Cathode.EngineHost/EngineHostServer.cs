@@ -1,6 +1,6 @@
+using Cathode.Ipc;
 using System.Net.Sockets;
 using System.Threading.Channels;
-using Cathode.Ipc;
 
 namespace Cathode.EngineHost;
 

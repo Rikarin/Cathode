@@ -269,17 +269,79 @@ public static class FactoryBlockPresets {
         P("reverb", "Vintage Spring", ("type", 4), ("decay", 2), ("damping", 5_000), ("mix", 25)),
         P("reverb", "Long Spring", ("type", 4), ("decay", 3.5f), ("size", 80), ("mix", 25)),
         // The classic digital types (docs/08 §6.26): settings of the ring (7, 8), the combs (9) and the nested room (10).
-        P("reverb", "Classic Concert Hall", ("type", 7), ("decay", 2.8f), ("size", 70), ("predelay", 20), ("damping", 7_000), ("lowTime", 120)),
-        P("reverb", "Classic Large Hall", ("type", 7), ("decay", 4.5f), ("size", 95), ("predelay", 30), ("damping", 5_500), ("lowTime", 130)),
-        P("reverb", "Random Hall", ("type", 7), ("decay", 2.5f), ("size", 60), ("predelay", 15), ("modDepth", 200), ("modRate", 0.5f)),
+        P(
+            "reverb",
+            "Classic Concert Hall",
+            ("type", 7),
+            ("decay", 2.8f),
+            ("size", 70),
+            ("predelay", 20),
+            ("damping", 7_000),
+            ("lowTime", 120)
+        ),
+        P(
+            "reverb",
+            "Classic Large Hall",
+            ("type", 7),
+            ("decay", 4.5f),
+            ("size", 95),
+            ("predelay", 30),
+            ("damping", 5_500),
+            ("lowTime", 130)
+        ),
+        P(
+            "reverb",
+            "Random Hall",
+            ("type", 7),
+            ("decay", 2.5f),
+            ("size", 60),
+            ("predelay", 15),
+            ("modDepth", 200),
+            ("modRate", 0.5f)
+        ),
         P("reverb", "Rich Plate", ("type", 8), ("decay", 2.2f), ("size", 50), ("predelay", 8), ("damping", 9_000)),
         P("reverb", "Small Plate", ("type", 8), ("decay", 1.2f), ("size", 25), ("damping", 11_000)),
-        P("reverb", "Vocal Plate", ("type", 8), ("decay", 1.8f), ("size", 40), ("predelay", 25), ("damping", 8_000), ("lowcut", 180)),
+        P(
+            "reverb",
+            "Vocal Plate",
+            ("type", 8),
+            ("decay", 1.8f),
+            ("size", 40),
+            ("predelay", 25),
+            ("damping", 8_000),
+            ("lowcut", 180)
+        ),
         P("reverb", "Early Digital Hall", ("type", 9), ("decay", 2.5f), ("size", 70), ("damping", 6_000)),
         P("reverb", "Early Digital Room", ("type", 9), ("decay", 0.9f), ("size", 25), ("damping", 5_000)),
-        P("reverb", "Ambience", ("type", 10), ("decay", 0.5f), ("size", 40), ("damping", 8_000), ("earlyLevel", 50), ("mix", 25)),
-        P("reverb", "Small Ambience", ("type", 10), ("decay", 0.3f), ("size", 10), ("damping", 9_000), ("earlyLevel", 60), ("mix", 25)),
-        P("reverb", "Recording Studio", ("type", 10), ("decay", 0.7f), ("size", 55), ("damping", 7_000), ("lowcut", 120)),
+        P(
+            "reverb",
+            "Ambience",
+            ("type", 10),
+            ("decay", 0.5f),
+            ("size", 40),
+            ("damping", 8_000),
+            ("earlyLevel", 50),
+            ("mix", 25)
+        ),
+        P(
+            "reverb",
+            "Small Ambience",
+            ("type", 10),
+            ("decay", 0.3f),
+            ("size", 10),
+            ("damping", 9_000),
+            ("earlyLevel", 60),
+            ("mix", 25)
+        ),
+        P(
+            "reverb",
+            "Recording Studio",
+            ("type", 10),
+            ("decay", 0.7f),
+            ("size", 55),
+            ("damping", 7_000),
+            ("lowcut", 120)
+        ),
         P("reverb", "Bright Room", ("type", 10), ("decay", 1), ("size", 70), ("damping", 12_000)),
         P(
             "reverb",
@@ -518,8 +580,24 @@ public static class FactoryBlockPresets {
         P("dyndist", "Asymmetric Crunch", ("type", 2), ("drive", 4), ("dynamics", 30)),
         P("dyndist", "Inverse (Softer Picks Dirtier)", ("type", 0), ("drive", 5), ("dynamics", -60)),
         // The guide's types are settings of the frequency-shaped filter ahead of the clipper (paraphrased, not named).
-        P("dyndist", "Treble Edge", ("type", 0), ("drive", 4), ("filterType", 2), ("filterFreq", 2_500), ("filterGain", 12)),
-        P("dyndist", "Bass Bloom", ("type", 5), ("drive", 4), ("filterType", 1), ("filterFreq", 200), ("filterGain", 12)),
+        P(
+            "dyndist",
+            "Treble Edge",
+            ("type", 0),
+            ("drive", 4),
+            ("filterType", 2),
+            ("filterFreq", 2_500),
+            ("filterGain", 12)
+        ),
+        P(
+            "dyndist",
+            "Bass Bloom",
+            ("type", 5),
+            ("drive", 4),
+            ("filterType", 1),
+            ("filterFreq", 200),
+            ("filterGain", 12)
+        ),
         P(
             "dyndist",
             "Mid Honk",
@@ -531,9 +609,33 @@ public static class FactoryBlockPresets {
             ("filterGain", 15)
         ),
         P("dyndist", "Fuzzy Octave", ("type", 8), ("drive", 7), ("dynamics", 40), ("bias", 20)),
-        P("dyndist", "Hot Plate", ("type", 11), ("drive", 6), ("filterType", 2), ("filterFreq", 1_500), ("filterGain", 6)),
-        P("dyndist", "Silicon Bite", ("type", 12), ("drive", 6), ("filterType", 3), ("filterFreq", 1_800), ("filterGain", 9)),
-        P("dyndist", "Screamer Push", ("type", 13), ("drive", 5), ("filterType", 3), ("filterFreq", 720), ("filterGain", 12)),
+        P(
+            "dyndist",
+            "Hot Plate",
+            ("type", 11),
+            ("drive", 6),
+            ("filterType", 2),
+            ("filterFreq", 1_500),
+            ("filterGain", 6)
+        ),
+        P(
+            "dyndist",
+            "Silicon Bite",
+            ("type", 12),
+            ("drive", 6),
+            ("filterType", 3),
+            ("filterFreq", 1_800),
+            ("filterGain", 9)
+        ),
+        P(
+            "dyndist",
+            "Screamer Push",
+            ("type", 13),
+            ("drive", 5),
+            ("filterType", 3),
+            ("filterFreq", 720),
+            ("filterGain", 12)
+        ),
 
         // Drive: the circuits are types already; these are settings of them.
         P("drive", "Clean Boost", ("type", 22), ("drive", 2), ("tone", 5), ("level", 6)),

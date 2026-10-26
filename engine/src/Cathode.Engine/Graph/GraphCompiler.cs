@@ -20,6 +20,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
 
     /// <summary>The engine's test tone, handed to every graph (the cab resonance helper).</summary>
     public TestTone? TestTone { get; init; }
+
     /// <summary>The audio interface's input sources, handed to blocks that can read one (the engine's own).</summary>
     public HardwareInputs? HardwareInputs { get; init; }
 
@@ -394,10 +395,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             [..modifiers],
             analyzer,
             port
-        ) {
-            LatencyPath = path,
-            Tone = TestTone
-        };
+        ) { LatencyPath = path, Tone = TestTone };
     }
 
     /// <summary>The feedback pair an instance id names: its trailing number, or 1.</summary>
@@ -521,8 +519,8 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         List<string> errors
     ) {
         var count = definition.Nodes.Count;
-        var inputs = Enumerable.Range(0, count).Select(_ => new List<int>()).ToArray();
-        var consumers = Enumerable.Range(0, count).Select(_ => new List<int>()).ToArray();
+        var inputs = Enumerable.Range(0, count).Select(static _ => new List<int>()).ToArray();
+        var consumers = Enumerable.Range(0, count).Select(static _ => new List<int>()).ToArray();
         var seen = new HashSet<(int, int)>();
         foreach (var cable in definition.Cables) {
             if (!indexById.TryGetValue(cable.From, out var from) || !indexById.TryGetValue(cable.To, out var to)) {
@@ -592,7 +590,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             inputs,
             count
         );
-        return Enumerable.Range(0, count).Select(n => fromInput[n] && toOutput[n]).ToArray();
+        return [..Enumerable.Range(0, count).Select(n => fromInput[n] && toOutput[n])];
     }
 
     static bool[] Flood(IEnumerable<int> seeds, List<int>[] edges, int count) {

@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Reflection;
 using Cathode.Contracts;
 using Cathode.Ipc;
 using Cathode.Server.Engine;
@@ -9,6 +7,8 @@ using Cathode.Server.Rig;
 using Cathode.Server.Stores;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using System.Globalization;
+using System.Reflection;
 
 namespace Cathode.Server.Api;
 
@@ -211,14 +211,18 @@ public static class CathodeApi {
         var library = api.MapGroup("/presets").WithTags("Presets");
         library.MapGet("/", (PresetStore store) => TypedResults.Ok(store.List().ToArray()))
             .WithName("ListPresets")
-            .WithSummary("The user's presets by name, then the read-only factory bank's (factory: true) in bank order.");
+            .WithSummary(
+                "The user's presets by name, then the read-only factory bank's (factory: true) in bank order."
+            );
         library.MapGet(
                 "/list.txt",
                 (PresetStore store) => TypedResults.Text(PresetListText.Build(store), "text/plain; charset=utf-8")
             )
             .Produces<string>(200, "text/plain")
             .WithName("ExportPresetList")
-            .WithSummary("The user's presets (not the factory bank) as plain text, alphabetical, with their scene names.");
+            .WithSummary(
+                "The user's presets (not the factory bank) as plain text, alphabetical, with their scene names."
+            );
         library.MapGet(
                 "/{id}",
                 Results<Ok<Preset>, NotFound>(string id, PresetStore store) =>
@@ -363,15 +367,15 @@ public static class CathodeApi {
         assets.MapPost(
                 "/",
                 async (
-                        string name,
-                        HttpRequest request,
-                        AssetStore store,
-                        CancellationToken cancellationToken,
-                        string? processing,
-                        bool? polarity,
-                        string? channels,
-                        double? maxLengthMs
-                    ) =>
+                    string name,
+                    HttpRequest request,
+                    AssetStore store,
+                    CancellationToken cancellationToken,
+                    string? processing,
+                    bool? polarity,
+                    string? channels,
+                    double? maxLengthMs
+                ) =>
                     TypedResults.Ok(
                         await store.AddAsync(
                             request.Body,
@@ -419,7 +423,7 @@ public static class CathodeApi {
 
         live.MapPut(
                 "/blocks/{id}/test-tone",
-                async Task<IResult> (string id, TestToneRequest request, LiveRig rig, EngineConnection engine) => {
+                async Task<IResult>(string id, TestToneRequest request, LiveRig rig, EngineConnection engine) => {
                     if (request.Enabled) {
                         await rig.CheckBlockAsync(id);
                     }
@@ -749,7 +753,9 @@ public static class CathodeApi {
                     Respond(http, await rig.SetSceneIgnoreAsync(id, channel, request.Enabled, Expected(http)))
             )
             .WithName("SetSceneIgnore")
-            .WithSummary("Scene Ignore for one channel: while on it, scene changes leave the block's bypass and channel.");
+            .WithSummary(
+                "Scene Ignore for one channel: while on it, scene changes leave the block's bypass and channel."
+            );
         live.MapPut(
                 "/mute",
                 async (MuteRequest request, LiveRig rig, HttpContext http) =>

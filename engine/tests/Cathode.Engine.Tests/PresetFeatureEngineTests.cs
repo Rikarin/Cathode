@@ -168,9 +168,28 @@ public class PresetFeatureEngineTests {
         var definition = Graph("volpan", "vol");
         definition.Modifiers.AddRange(
             [
-                new() { Block = "vol", Param = "level", Source = "manualA", Min = -6f, Max = -6f },
-                new() { Block = "vol", Param = ModNames.EngageParam, Source = "manualB", Min = 1f, Max = 1f },
-                new() { Block = "vol", Param = "balance", Source = "manualC", Min = 25f, Max = 25f, Enabled = false }
+                new() {
+                    Block = "vol",
+                    Param = "level",
+                    Source = "manualA",
+                    Min = -6f,
+                    Max = -6f
+                },
+                new() {
+                    Block = "vol",
+                    Param = ModNames.EngageParam,
+                    Source = "manualB",
+                    Min = 1f,
+                    Max = 1f
+                },
+                new() {
+                    Block = "vol",
+                    Param = "balance",
+                    Source = "manualC",
+                    Min = 25f,
+                    Max = 25f,
+                    Enabled = false
+                }
             ]
         );
         var graph = Compiler.Compile(definition, Spec, 5);
@@ -188,7 +207,7 @@ public class PresetFeatureEngineTests {
         Assert.True(float.IsNaN(monitor.ModifierValues[2]), "a disabled modifier drives no value");
 
         engine.Post(EngineCommand.SetModifier(5, 2, true));
-        engine.Post(EngineCommand.SetModifier(5, 0, false, 0f));
+        engine.Post(EngineCommand.SetModifier(5, 0, false));
         OfflineRenderer.Render(engine, new float[640], new float[640], 64);
         monitor.Poll();
 

@@ -1,6 +1,3 @@
-using System.Collections.Concurrent;
-using System.Globalization;
-using System.Text;
 using Cathode.Audio;
 using Cathode.Contracts;
 using Cathode.Dsp;
@@ -9,6 +6,9 @@ using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.Server.Rig;
 using Cathode.Server.Stores;
+using System.Collections.Concurrent;
+using System.Globalization;
+using System.Text;
 
 namespace Cathode.Server.Tests;
 
@@ -78,7 +78,7 @@ public sealed class FactoryPresetLevelTests {
         List<Preset> presets,
         float[] input
     ) {
-        var jobs = presets.SelectMany(p => FactoryRecipes.All.First(r => r.Id == p.Id)
+        var jobs = presets.SelectMany(static p => FactoryRecipes.All.First(r => r.Id == p.Id)
                 .Lifts.Select((_, s) => (Preset: p, Scene: s))
             )
             .ToList();

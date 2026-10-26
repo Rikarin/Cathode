@@ -1,6 +1,6 @@
+using Cathode.Contracts;
 using System.Net.Http.Json;
 using System.Net.WebSockets;
-using Cathode.Contracts;
 
 namespace Cathode.Soak;
 

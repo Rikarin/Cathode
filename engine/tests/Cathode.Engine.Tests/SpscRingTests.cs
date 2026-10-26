@@ -21,7 +21,7 @@ public class SpscRingTests {
 
     [Fact]
     public void Rejects_non_power_of_two_capacity() =>
-        Assert.Throws<ArgumentOutOfRangeException>(() => new SpscRing<int>(6));
+        Assert.Throws<ArgumentOutOfRangeException>(static () => new SpscRing<int>(6));
 
     [Fact]
     public async Task Preserves_order_across_threads() {

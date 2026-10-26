@@ -35,28 +35,29 @@ public sealed class OutputBlock(BlockDescriptor descriptor) : DspBlock(descripto
         Describe("output4", "Output 4", 1)
     ];
 
-    static BlockDescriptor Describe(string typeId, string name, int maxInstances) => new(
-        typeId,
-        name,
-        "I/O",
-        [
-            ..Enumerable.Range(1, Rows)
-                .Select(static r => ParamDescriptor.Float(
-                        $"level{r}",
-                        $"Row {r} Level",
-                        Decibels.SilenceDb,
-                        20f,
-                        0f,
-                        "dB"
-                    )
-                ),
-            ..Enumerable.Range(1, Rows)
-                .Select(static r => ParamDescriptor.Float($"balance{r}", $"Row {r} Balance", -100f, 100f, 0f, "%")),
-            ParamDescriptor.Float("level", "Main Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Main Balance", -100f, 100f, 0f, "%")
-        ],
-        maxInstances: maxInstances
-    );
+    static BlockDescriptor Describe(string typeId, string name, int maxInstances) =>
+        new(
+            typeId,
+            name,
+            "I/O",
+            [
+                ..Enumerable.Range(1, Rows)
+                    .Select(static r => ParamDescriptor.Float(
+                            $"level{r}",
+                            $"Row {r} Level",
+                            Decibels.SilenceDb,
+                            20f,
+                            0f,
+                            "dB"
+                        )
+                    ),
+                ..Enumerable.Range(1, Rows)
+                    .Select(static r => ParamDescriptor.Float($"balance{r}", $"Row {r} Balance", -100f, 100f, 0f, "%")),
+                ParamDescriptor.Float("level", "Main Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+                ParamDescriptor.Float("balance", "Main Balance", -100f, 100f, 0f, "%")
+            ],
+            maxInstances: maxInstances
+        );
 
     public static int RowLevel(int row) => row;
 

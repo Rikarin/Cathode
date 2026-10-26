@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using Cathode.Engine;
+using System.Diagnostics;
 
 namespace Cathode.Audio;
 
@@ -55,9 +55,7 @@ public sealed class NullBackend : IDisposable {
         }
 
         running = true;
-        thread = new(() => Run(processor)) {
-            IsBackground = true, Name = "cathode-null-audio", Priority = priority
-        };
+        thread = new(() => Run(processor)) { IsBackground = true, Name = "cathode-null-audio", Priority = priority };
         thread.Start();
     }
 

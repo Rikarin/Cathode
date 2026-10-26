@@ -98,7 +98,7 @@ public class RotaryBlockTests {
         using var rotary = Create();
         var input = Signals.Sine(Tone, Rate, 48_000, 0.5f);
 
-        var (left, right) = BlockRender.Stereo(rotary, input, input, _ => 64);
+        var (left, right) = BlockRender.Stereo(rotary, input, input, static _ => 64);
 
         Assert.True(Analysis.NullResidualDb(left, right) > -20, "left and right mics should differ");
     }

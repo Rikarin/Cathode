@@ -15,7 +15,8 @@ public class DriveRound4DistortionTests(ITestOutputHelper output) {
 
     static readonly string[] Names = [
         "M-Zone Distortion", "Fat Rat", "Suhr Riot Ge", "Suhr Riot LED", "Suhr Riot LED/Si", "MCMLXXXI Drive",
-        "Box O' Crunch", "Blackglass 7K", "Esoteric ACB", "Esoteric Bass RCB", "FAS LED-Drive", "Ruckus", "Shimmer Drive",
+        "Box O' Crunch", "Blackglass 7K", "Esoteric ACB", "Esoteric Bass RCB", "FAS LED-Drive", "Ruckus",
+        "Shimmer Drive",
         "Tube Drive 3-Knob", "Tube Drive 4-Knob"
     ];
 
@@ -52,13 +53,15 @@ public class DriveRound4DistortionTests(ITestOutputHelper output) {
 
         Assert.InRange(Response(network, 50, bass: 1), 10, 16);
         Assert.InRange(Response(network, 50, bass: 0), -16, -10);
-        Assert.InRange(Response(network, 8_000, tone: 1), 9, 16);
-        Assert.InRange(Response(network, 8_000, tone: 0), -16, -9);
+        Assert.InRange(Response(network, 8_000, 1), 9, 16);
+        Assert.InRange(Response(network, 8_000, 0), -16, -9);
         Assert.True(Response(network, 8_000, bass: 1) < 1, "the low band reaches the treble");
 
         // Middle at full on a 400 Hz centre peaks there, not at 3 kHz; swept to 3 kHz, the other way round.
-        var low = (At400: Response(network, 400, middle: 1, midHz: 400), At3k: Response(network, 3_000, middle: 1, midHz: 400));
-        var high = (At400: Response(network, 400, middle: 1, midHz: 3_000), At3k: Response(network, 3_000, middle: 1, midHz: 3_000));
+        var low = (At400: Response(network, 400, middle: 1, midHz: 400),
+            At3k: Response(network, 3_000, middle: 1, midHz: 400));
+        var high = (At400: Response(network, 400, middle: 1, midHz: 3_000),
+            At3k: Response(network, 3_000, middle: 1, midHz: 3_000));
         output.WriteLine($"mid at 400 Hz: {low}; at 3 kHz: {high}");
         Assert.True(low.At400 > 10 && low.At3k < 4, $"{low}");
         Assert.True(high.At3k > 10 && high.At400 < 4, $"{high}");
@@ -74,19 +77,35 @@ public class DriveRound4DistortionTests(ITestOutputHelper output) {
         Assert.Equal(string.Empty, DriveBlock.Info.Params[DriveBlock.PedalMidFreq].TypeLabels![TypeOf("Rodent Dist")]);
 
         // Full drive squares everything up, so compare spectra of a two-tone chord: the swept mid lifts its region.
-        var chord = Signals.Concat(Mix(Signals.Sine(400, Rate, 19_200, 0.02f), Signals.Sine(2_500, Rate, 19_200, 0.02f)));
-        var lowMid = Render(type, chord, (DriveBlock.Drive, 3f), (DriveBlock.StackMiddle, 10f), (DriveBlock.PedalMidFreq, 400f));
-        var highMid = Render(type, chord, (DriveBlock.Drive, 3f), (DriveBlock.StackMiddle, 10f), (DriveBlock.PedalMidFreq, 2_500f));
+        var chord = Signals.Concat(
+            Mix(Signals.Sine(400, Rate, 19_200, 0.02f), Signals.Sine(2_500, Rate, 19_200, 0.02f))
+        );
+        var lowMid = Render(
+            type,
+            chord,
+            (DriveBlock.Drive, 3f),
+            (DriveBlock.StackMiddle, 10f),
+            (DriveBlock.PedalMidFreq, 400f)
+        );
+        var highMid = Render(
+            type,
+            chord,
+            (DriveBlock.Drive, 3f),
+            (DriveBlock.StackMiddle, 10f),
+            (DriveBlock.PedalMidFreq, 2_500f)
+        );
         var ratioLow = Band(lowMid, 400) - Band(lowMid, 2_500);
         var ratioHigh = Band(highMid, 400) - Band(highMid, 2_500);
-        output.WriteLine($"400 Hz over 2.5 kHz: {ratioLow:0.0} dB with the mid at 400 Hz, {ratioHigh:0.0} dB at 2.5 kHz");
+        output.WriteLine(
+            $"400 Hz over 2.5 kHz: {ratioLow:0.0} dB with the mid at 400 Hz, {ratioHigh:0.0} dB at 2.5 kHz"
+        );
         Assert.True(ratioLow - ratioHigh > 10, $"{ratioLow:0.0} against {ratioHigh:0.0} dB");
     }
 
     [Fact]
     public void Fat_rat_has_more_bass_into_its_clipping_than_the_rat() {
         // Quiet and low: the gain stage's own response, before anything clips.
-        double Bass(string name) =>
+        static double Bass(string name) =>
             SteadyDb(Render(TypeOf(name), Signals.Sine(80, Rate, 19_200, 0.001f), (DriveBlock.Drive, 6f)))
             - SteadyDb(Render(TypeOf(name), Signals.Sine(2_000, Rate, 19_200, 0.001f), (DriveBlock.Drive, 6f)));
 
@@ -111,7 +130,10 @@ public class DriveRound4DistortionTests(ITestOutputHelper output) {
     [Fact]
     public void Crunch_box_pushes_the_mids_into_its_clipping() {
         var type = TypeOf("Box O' Crunch");
-        double Level(double hz) => SteadyDb(Render(type, Signals.Sine(hz, Rate, 19_200, 0.0005f), (DriveBlock.Drive, 5f)));
+
+        double Level(double hz) =>
+            SteadyDb(Render(type, Signals.Sine(hz, Rate, 19_200, 0.0005f), (DriveBlock.Drive, 5f)));
+
         var mids = Level(1_000) - Level(100);
         output.WriteLine($"1 kHz over 100 Hz: {mids:0.0} dB");
         Assert.True(mids > 6, $"{mids:0.0} dB");
@@ -120,8 +142,10 @@ public class DriveRound4DistortionTests(ITestOutputHelper output) {
     [Fact]
     public void Mcmlxxxi_drive_has_a_wide_gain_range() {
         var type = TypeOf("MCMLXXXI Drive");
+
         double Level(float drive) =>
             SteadyDb(Render(type, Signals.Sine(1_000, Rate, 19_200, 0.0005f), (DriveBlock.Drive, drive)));
+
         var range = Level(10f) - Level(0f);
         output.WriteLine($"small-signal gain range {range:0.0} dB");
         Assert.InRange(range, 25, 45);
@@ -163,8 +187,17 @@ public class DriveRound4DistortionTests(ITestOutputHelper output) {
         var type = TypeOf(name);
         Assert.Equal("Bass Pot", DriveBlock.Info.Params[DriveBlock.StackBass].TypeLabels![type]);
         Assert.Equal(string.Empty, DriveBlock.Info.Params[DriveBlock.StackMiddle].TypeLabels![type]);
+
         double Level(float bass) =>
-            SteadyDb(Render(type, Signals.Sine(hz, Rate, 19_200, 0.0005f), (DriveBlock.Drive, 0f), (DriveBlock.StackBass, bass)));
+            SteadyDb(
+                Render(
+                    type,
+                    Signals.Sine(hz, Rate, 19_200, 0.0005f),
+                    (DriveBlock.Drive, 0f),
+                    (DriveBlock.StackBass, bass)
+                )
+            );
+
         var (cut, flat, boost) = (Level(0f), Level(5f), Level(10f));
         output.WriteLine($"{name} at {hz} Hz: {cut:0.0} / {flat:0.0} / {boost:0.0} dB");
         Assert.True(boost > flat + 6 && cut < flat - 6, $"{cut:0.0} / {flat:0.0} / {boost:0.0}");
@@ -173,7 +206,10 @@ public class DriveRound4DistortionTests(ITestOutputHelper output) {
     [Fact]
     public void Bass_rcb_is_full_range_and_clean_at_low_gain() {
         var type = TypeOf("Esoteric Bass RCB");
-        double Level(double hz) => SteadyDb(Render(type, Signals.Sine(hz, Rate, 19_200, 0.01f), (DriveBlock.Drive, 2f)));
+
+        double Level(double hz) =>
+            SteadyDb(Render(type, Signals.Sine(hz, Rate, 19_200, 0.01f), (DriveBlock.Drive, 2f)));
+
         Assert.InRange(Level(40) - Level(1_000), -3, 3);
         Assert.True(Thd(type, 2f, 0.05f) < 0.005);
     }
@@ -208,7 +244,10 @@ public class DriveRound4DistortionTests(ITestOutputHelper output) {
     [Fact]
     public void Shimmer_drive_is_a_bright_clean_boost_at_low_drive() {
         var type = TypeOf("Shimmer Drive");
-        double Level(double hz) => SteadyDb(Render(type, Signals.Sine(hz, Rate, 19_200, 0.005f), (DriveBlock.Drive, 5f)));
+
+        double Level(double hz) =>
+            SteadyDb(Render(type, Signals.Sine(hz, Rate, 19_200, 0.005f), (DriveBlock.Drive, 5f)));
+
         var tilt = Level(4_000) - Level(200);
         output.WriteLine($"4 kHz over 200 Hz: {tilt:0.0} dB; THD at drive 0 {Thd(type, 0f, 0.1f):P2}");
         Assert.True(tilt > 3, $"{tilt:0.0} dB");

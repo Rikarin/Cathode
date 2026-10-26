@@ -5307,7 +5307,7 @@
           },
           "savedScene": {
             "type": "integer",
-            "description": "The scene that was active when the preset was saved: where it starts when the global Default Scene is As Saved.",
+            "description": "The scene that was active when the preset was saved: where it starts when the global Default Scene is As\nSaved.",
             "format": "int32"
           }
         },

@@ -54,10 +54,11 @@ public class DriveRound4FuzzTests(ITestOutputHelper output) {
         Assert.True(octave > Analysis.ToDb(face[2 * LowBin] / face[LowBin]) + 6);
 
         // The tone switch's scoop: the low-pass and high-pass halves cancel around 1 kHz; Flat switches the filter out.
-        double Mid(float position) =>
+        static double Mid(float position) =>
             Analysis.ToDb(
                 Analysis.MagnitudeAt(Impulse("Super Fuzz", 5f, 5f, (DriveBlock.ToneSwitch, position)), 1_000, Rate)
             );
+
         var (scoop, flat) = (Mid(0f), Mid(1f));
         output.WriteLine($"Super Fuzz small-signal 1 kHz: {scoop:0.0} dB scooped, {flat:0.0} dB flat");
         Assert.True(scoop < flat - 3, "no mid scoop");
@@ -91,7 +92,7 @@ public class DriveRound4FuzzTests(ITestOutputHelper output) {
         const int Bass = 34; // about 200 Hz
         const int Treble = 853; // about 5 kHz
 
-        double Gain(int bin, float drive, float amplitude) {
+        static double Gain(int bin, float drive, float amplitude) {
             var input = Signals.CoherentSine(bin, Length, amplitude);
             return Analysis.ToDb(Spectrum("Tape Distortion", drive, 10f, input)[bin] / Fft.Magnitudes(input)[bin]);
         }
@@ -163,7 +164,7 @@ public class DriveRound4FuzzTests(ITestOutputHelper output) {
 
     [Fact]
     public void Integral_pre_eq_moves_bass_and_middle() {
-        double At(double hz, int pot, float value) =>
+        static double At(double hz, int pot, float value) =>
             Analysis.ToDb(Analysis.MagnitudeAt(Impulse("Integral Pre", 5f, 5f, (pot, value)), hz, Rate));
 
         var bass = At(80, DriveBlock.StackBass, 10f) - At(80, DriveBlock.StackBass, 0f);
@@ -277,7 +278,11 @@ public class DriveRound4FuzzTests(ITestOutputHelper output) {
     static float[] Impulse(string name, float drive, float tone, params (int Index, float Value)[] extra) {
         const float Amplitude = 1e-3f;
         using var block = Create(name, drive, tone, extra);
-        var rendered = BlockRender.Mono(block, Signals.Concat(new float[Length], Signals.Impulse(Length, Amplitude)), 64);
+        var rendered = BlockRender.Mono(
+            block,
+            Signals.Concat(new float[Length], Signals.Impulse(Length, Amplitude)),
+            64
+        );
         using var reference = Create(name, drive, tone, extra);
         var silent = BlockRender.Mono(reference, new float[2 * Length], 64);
         return [..rendered.Zip(silent, static (a, b) => (a - b) / Amplitude).Skip(Length)];

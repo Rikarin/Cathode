@@ -107,11 +107,11 @@ public sealed class AmpChannel {
         this.sampleRate = sampleRate;
         stages = [..design.Preamp.Select(d => d.Create(sampleRate))];
         lastGainStage = Array.FindLastIndex(stages, static s => s.IsGainStage);
-        lastPlateStage = Array.FindLastIndex(design.Preamp.ToArray(), AmpFeatures.HasPlateCap);
+        lastPlateStage = Array.FindLastIndex([..design.Preamp], AmpFeatures.HasPlateCap);
         previousPlateStage = lastPlateStage > 0
-            ? Array.FindLastIndex(design.Preamp.ToArray(), lastPlateStage - 1, AmpFeatures.HasPlateCap)
+            ? Array.FindLastIndex([..design.Preamp], lastPlateStage - 1, AmpFeatures.HasPlateCap)
             : -1;
-        stackStage = Array.FindIndex(design.Preamp.ToArray(), IsStack);
+        stackStage = Array.FindIndex([..design.Preamp], IsStack);
         order = [..Enumerable.Range(0, stages.Length)];
         offsets = new double[stages.Length];
         restInputs = new double[stages.Length];
@@ -144,8 +144,10 @@ public sealed class AmpChannel {
         for (var i = 0; i < stages.Length; i++) {
             var node = Design.Preamp[i].SupplyNode ?? 0;
             if (node < 0 || node > supply.Nodes.Count) {
-                throw new ArgumentException($"{Design.Name}: stage {Design.Preamp[i].Name} is on node {node}, which "
-                    + $"the preamp supply does not have.");
+                throw new ArgumentException(
+                    $"{Design.Name}: stage {Design.Preamp[i].Name} is on node {node}, which "
+                    + "the preamp supply does not have."
+                );
             }
 
             stages[i].AssignSupplyNode(node);
@@ -232,12 +234,14 @@ public sealed class AmpChannel {
             reset = preamp.MovesOperatingPoint(preampSettings);
             preampSettings = preamp;
             for (var i = 0; i < stages.Length; i++) {
-                stages[i].Apply(
-                    preamp with {
-                        CathodeResistor = i == lastGainStage ? preamp.CathodeResistor : 1,
-                        PlateFrequency = i == lastPlateStage ? channel.Plate2 : i == previousPlateStage ? channel.Plate1 : 1
-                    }
-                );
+                stages[i]
+                    .Apply(
+                        preamp with {
+                            CathodeResistor = i == lastGainStage ? preamp.CathodeResistor : 1,
+                            PlateFrequency = i == lastPlateStage ? channel.Plate2 :
+                                i == previousPlateStage ? channel.Plate1 : 1
+                        }
+                    );
             }
         }
 
@@ -315,7 +319,9 @@ public sealed class AmpChannel {
         var firstGain = Array.FindIndex(stages, static s => s.IsGainStage);
         var target = location switch {
             StackLocation.Pre => 0,
-            StackLocation.Mid => firstGain < 0 || firstGain == stackStage ? 0 : firstGain + (firstGain < stackStage ? 1 : 0),
+            StackLocation.Mid => firstGain < 0 || firstGain == stackStage
+                ? 0
+                : firstGain + (firstGain < stackStage ? 1 : 0),
             _ => order.Length - 1
         };
         // Remove the stack's stage and insert it at the target position.

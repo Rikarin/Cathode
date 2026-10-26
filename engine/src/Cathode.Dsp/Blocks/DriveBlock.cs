@@ -46,7 +46,8 @@ namespace Cathode.Dsp.Blocks;
 ///         </item>
 ///         <item>
 ///             <b>Clip Type</b> (original voicings): another clipping curve in place of the type's (Soft, Hard,
-///             Asymmetric, Germanium, LED, Tube, Op-Amp, FET, Rectifier, Variable, HV or LV Tube, Silicon, 4558 Diode or none); the type's filtering and clean blend stay.
+///             Asymmetric, Germanium, LED, Tube, Op-Amp, FET, Rectifier, Variable, HV or LV Tube, Silicon, 4558 Diode or
+///             none); the type's filtering and clean blend stay.
 ///             <b>Clip Shape</b> bends the curve towards a soft knee (−) or a hard clip (+).
 ///         </item>
 ///         <item>
@@ -257,7 +258,10 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
             ParamDescriptor.Float("drive", "Drive", 0f, 10f, 5f),
             ParamDescriptor.Float("tone", "Tone", 0f, 10f, 5f)
                 .RenamedOn(TypeNames.Length, TypeIndex("Transparent OD"), "Treble")
-                .HiddenOn(TypeNames.Length, [..Enumerable.Range(0, TypeNames.Length).Where(static t => !HasToneKnob(t))]),
+                .HiddenOn(
+                    TypeNames.Length,
+                    [..Enumerable.Range(0, TypeNames.Length).Where(static t => !HasToneKnob(t))]
+                ),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
             ParamDescriptor.Float("inputVol", "Input Vol", 0f, 10f, 10f),
@@ -285,7 +289,8 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
                     "clipType",
                     "Clip Type",
                     [
-                        "Default", "Soft", "Hard", "Asymmetric", "Germanium", "LED", "Tube", "Op-Amp", "FET", "Rectifier",
+                        "Default", "Soft", "Hard", "Asymmetric", "Germanium", "LED", "Tube", "Op-Amp", "FET",
+                        "Rectifier",
                         "Variable", "HV Tube", "LV Tube", "Silicon", "4558 Diode", "None"
                     ]
                 ),
@@ -319,11 +324,17 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
             ParamDescriptor.Choice("oversampling", "Oversampling", ["Global", "1x", "2x", "4x"]) with {
                 Recompile = true
             },
-            ForTypes(ParamDescriptor.Float("pedalBass", "Bass", 0f, 10f, 0f), t => HasStage(t, static s => s.BassShunt)),
-            ForTypes(ParamDescriptor.Float("voice", "Voice", 0f, 10f, 10f), t => HasStage(t, static s => s.VoicePot > 0)),
+            ForTypes(
+                ParamDescriptor.Float("pedalBass", "Bass", 0f, 10f, 0f),
+                static t => HasStage(t, static s => s.BassShunt)
+            ),
+            ForTypes(
+                ParamDescriptor.Float("voice", "Voice", 0f, 10f, 10f),
+                static t => HasStage(t, static s => s.VoicePot > 0)
+            ),
             ForTypes(
                 ParamDescriptor.Choice("peak", "HP/LP", ["LP", "HP"]),
-                t => HasStage(t, static s => s.HighPeak > 0)
+                static t => HasStage(t, static s => s.HighPeak > 0)
             ),
             ForTypes(
                 ParamDescriptor.Float("pedalMidFreq", "Middle Freq", 200f, 5_000f, 1_000f, "Hz", ParamTaper.Log),
@@ -332,38 +343,47 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
             ForTypes(ParamDescriptor.Choice("grunt", "Grunt", ["Stock", "Fat", "Raw"]), HasGruntAttack),
             ForTypes(ParamDescriptor.Choice("attack", "Attack", ["Flat", "Boost", "Cut"]), HasGruntAttack),
             ForTypes(ParamDescriptor.Float("hiMid", "Hi Mids", 0f, 10f, 5f), HasHiMid),
-            ForTypes(ParamDescriptor.Float("blend", "Blend", 0f, 10f, 5f), t => Has(t, static c => c.BlendKnob)),
+            ForTypes(ParamDescriptor.Float("blend", "Blend", 0f, 10f, 5f), static t => Has(t, static c => c.BlendKnob)),
             ForTypes(
                 ParamDescriptor.Choice("kingMode", "Mode", ["OD", "Distortion", "Boost"]),
-                t => Has(t, static c => c.Switch == PedalSwitch.KingMode)
+                static t => Has(t, static c => c.Switch == PedalSwitch.KingMode)
             ),
             ForTypes(
                 ParamDescriptor.Choice("fullMode", "Mode", ["Flat-Mids", "Comp-Cut", "Vintage"]),
-                t => Has(t, static c => c.Switch == PedalSwitch.FullDriveMode)
+                static t => Has(t, static c => c.Switch == PedalSwitch.FullDriveMode)
             ),
             ForTypes(
                 ParamDescriptor.Choice("boostOn", "Boost Switch", ["Off", "On"]),
-                t => Has(t, static c => c.BoostDb > 0)
+                static t => Has(t, static c => c.BoostDb > 0)
             ),
-            ForTypes(ParamDescriptor.Float("boostLevel", "Boost", 0f, 10f, 5f), t => Has(t, static c => c.BoostDb > 0)),
+            ForTypes(
+                ParamDescriptor.Float("boostLevel", "Boost", 0f, 10f, 5f),
+                static t => Has(t, static c => c.BoostDb > 0)
+            ),
             ForTypes(
                 ParamDescriptor.Choice("glow", "Glow", ["Off", "On"]),
-                t => Has(t, static c => c.Switch == PedalSwitch.Glow)
+                static t => Has(t, static c => c.Switch == PedalSwitch.Glow)
             ),
-            ForTypes(ParamDescriptor.Float("pedalAttack", "Attack", 0f, 10f, 5f), t => Has(t, static c => c.AttackKnob)),
-            ForTypes(ParamDescriptor.Float("gate", "Gate", 0f, 10f, 0f), t => Has(t, static c => c.Gate)),
-            ForTypes(ParamDescriptor.Choice("tight", "Tight", ["Off", "On"]), t => Has(t, static c => c.TightHz > 0)),
+            ForTypes(
+                ParamDescriptor.Float("pedalAttack", "Attack", 0f, 10f, 5f),
+                static t => Has(t, static c => c.AttackKnob)
+            ),
+            ForTypes(ParamDescriptor.Float("gate", "Gate", 0f, 10f, 0f), static t => Has(t, static c => c.Gate)),
+            ForTypes(
+                ParamDescriptor.Choice("tight", "Tight", ["Off", "On"]),
+                static t => Has(t, static c => c.TightHz > 0)
+            ),
             ForTypes(
                 ParamDescriptor.Choice(
                     "dip",
                     "DIP Switches",
                     ["Stock", "Bass Up", "Treble Up", "Bass + Treble Up"]
                 ),
-                t => Has(t, static c => c.DipLowHz > 0 || c.DipHighHz > 0)
+                static t => Has(t, static c => c.DipLowHz > 0 || c.DipHighHz > 0)
             ),
             ForTypes(
                 ParamDescriptor.Choice("toneSwitch", "Tone", ["Scoop", "Flat"]),
-                t => Has(t, static c => c.Switch == PedalSwitch.ToneSwitch)
+                static t => Has(t, static c => c.Switch == PedalSwitch.ToneSwitch)
             )
         ],
         maxInstances: 4,
@@ -427,7 +447,9 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
     static bool HasBassPot(int type) =>
         type >= CircuitTypes
         && DriveCircuits.All[type - CircuitTypes] is { Tone: var tone } circuit
-        && (tone.Kind == ToneKind.Stack || (tone.Kind == ToneKind.ActiveEq && tone.LowHz > 0) || circuit.BassShelfHz > 0);
+        && (tone.Kind == ToneKind.Stack
+            || (tone.Kind == ToneKind.ActiveEq && tone.LowHz > 0)
+            || circuit.BassShelfHz > 0);
 
     /// <summary>Whether circuit type <paramref name="type" /> has a real middle pot (a stack, or an EQ's mid band).</summary>
     static bool HasMiddlePot(int type) =>
@@ -436,7 +458,8 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
         && (tone.Kind == ToneKind.Stack || (tone.Kind == ToneKind.ActiveEq && tone.MidHz > 0));
 
     static bool HasMidSweep(int type) =>
-        type >= CircuitTypes && DriveCircuits.All[type - CircuitTypes].Tone is { Kind: ToneKind.ActiveEq, MidSweep: true };
+        type >= CircuitTypes
+        && DriveCircuits.All[type - CircuitTypes].Tone is { Kind: ToneKind.ActiveEq, MidSweep: true };
 
     static bool HasHiMid(int type) =>
         type >= CircuitTypes && DriveCircuits.All[type - CircuitTypes].Tone is { Kind: ToneKind.ActiveEq, Mid2Hz: > 0 };
@@ -632,12 +655,14 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
 
     /// <summary>The factor to run at: the Oversampling setting, or <paramref name="natural" /> (the type's own) on Global.</summary>
     int Desired(int natural) =>
-        !Oversample ? 1 : (int)Params.GetTarget(OversamplingSetting) switch {
-            1 => 1,
-            2 => 2,
-            3 => 4,
-            _ => natural
-        };
+        !Oversample
+            ? 1
+            : (int)Params.GetTarget(OversamplingSetting) switch {
+                1 => 1,
+                2 => 2,
+                3 => 4,
+                _ => natural
+            };
 
     void UseFactor(int wanted) {
         if (wanted != factor) {

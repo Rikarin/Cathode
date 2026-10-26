@@ -1,7 +1,7 @@
+using Cathode.Engine;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Cathode.Engine;
 using static Cathode.Audio.Native.NativeMethods;
 
 namespace Cathode.Audio.Native;
@@ -374,7 +374,7 @@ public sealed unsafe class NativeAudioSession : IDisposable {
 
     /// <summary>Copies every mapped source into <see cref="sources" />, planar, as <see cref="AudioIO.Sources" /> wants.</summary>
     void FillSources(float** channels, int count, int frames) {
-        var map = this.inputs.Sources;
+        var map = inputs.Sources;
         for (var s = 0; s < Dsp.Routing.HardwareInputs.Count; s++) {
             var source = s < map.Length ? map[s] : [];
             Input(channels, count, source, 0, frames).CopyTo(sources.AsSpan(2 * s * frames, frames));

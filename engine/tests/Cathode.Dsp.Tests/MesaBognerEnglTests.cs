@@ -108,7 +108,7 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
     public void Panels_name_the_real_controls() {
         Assert.Equal(
             ["Channel 2", "Drive Mode", "Tube Rectifier"],
-            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "Lone Star"))
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Lone Star"))
         );
         Assert.Equal("Drive", Label("control1", "Lone Star"));
         Assert.Equal("Presence", Label("control2", "Lone Star"));
@@ -116,27 +116,33 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         Assert.Empty(Label("presence", "Lone Star")!);
         Assert.Equal(
             ["IIC+ Mode", "Mark IV Mode", "Bright"],
-            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "Mark V"))
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Mark V"))
         );
         Assert.Equal("Output", Label("master", "Mark V"));
         Assert.Equal("80", Label("eq1", "Mark V"));
         Assert.Equal("Presence", Label("control2", "Rect-o-Verb"));
         Assert.Equal(
             ["Modern", "Tube Rectifier", "Spongy"],
-            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "Triple Rectifier"))
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Triple Rectifier"))
         );
-        Assert.Equal(["Focused", "Hi Lead"], new[] { "switch1", "switch2" }.Select(id => Label(id, "Powerball")));
+        Assert.Equal(
+            ["Focused", "Hi Lead"],
+            new[] { "switch1", "switch2" }.Select(static id => Label(id, "Powerball"))
+        );
         Assert.Equal("Mid Open", Label("middle", "Powerball"));
         Assert.Equal("Mid Focused", Label("control1", "Powerball"));
-        Assert.Equal(["Contour", "Lead Boost"], new[] { "switch1", "switch2" }.Select(id => Label(id, "Savage 120")));
+        Assert.Equal(
+            ["Contour", "Lead Boost"],
+            new[] { "switch1", "switch2" }.Select(static id => Label(id, "Savage 120"))
+        );
         Assert.Equal("Lead", Label("control1", "Savage 120"));
-        Assert.Equal(6, AmpDesign.All.Single(a => a.Name == "Triple Rectifier").Power.TubesPerSide * 2);
+        Assert.Equal(6, AmpDesign.All.Single(static a => a.Name == "Triple Rectifier").Power.TubesPerSide * 2);
     }
 
     /// <summary>The Lone Star's rectifier switch puts a 5U4G in place of silicon: B+ sags further under drive.</summary>
     [Fact]
     public void Lone_Star_tube_rectifier_lowers_the_supply() {
-        double Supply(bool tube) {
+        static double Supply(bool tube) {
             using var block = Create(
                 "Lone Star",
                 (CircuitAmpBlock.Gain, 8f),

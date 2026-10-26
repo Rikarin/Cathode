@@ -55,7 +55,12 @@ public class ReverbBlockTests {
     [InlineData(ReverbBlock.Spring)]
     public void New_tanks_are_stereo_and_switch_types_without_replaying_old_tails(int type) {
         using var reverb = Create((ReverbBlock.Type, type), (ReverbBlock.Mix, 100f));
-        var (left, right) = BlockRender.Stereo(reverb, Signals.Impulse(48_000), Signals.Impulse(48_000), _ => 64);
+        var (left, right) = BlockRender.Stereo(
+            reverb,
+            Signals.Impulse(48_000),
+            Signals.Impulse(48_000),
+            static _ => 64
+        );
 
         double dot = 0, ll = 0, rr = 0;
         for (var i = 2_400; i < left.Length; i++) {
@@ -92,7 +97,12 @@ public class ReverbBlockTests {
     public void Left_and_right_are_decorrelated() {
         using var reverb = Create((ReverbBlock.Mix, 100f));
 
-        var (left, right) = BlockRender.Stereo(reverb, Signals.Impulse(48_000), Signals.Impulse(48_000), _ => 64);
+        var (left, right) = BlockRender.Stereo(
+            reverb,
+            Signals.Impulse(48_000),
+            Signals.Impulse(48_000),
+            static _ => 64
+        );
 
         double dot = 0, ll = 0, rr = 0;
         for (var i = 2_400; i < left.Length; i++) {
@@ -178,7 +188,7 @@ public class ReverbBlockTests {
             (ReverbBlock.Mix, 100f)
         );
 
-        var (left, right) = BlockRender.Stereo(reverb, Signals.Impulse(4_800), Signals.Impulse(4_800), _ => 64);
+        var (left, right) = BlockRender.Stereo(reverb, Signals.Impulse(4_800), Signals.Impulse(4_800), static _ => 64);
 
         var gain = 1 / Math.Sqrt(12);
         var total = 0.0;
@@ -261,8 +271,13 @@ public class ReverbBlockTests {
         using var plain = Create((ReverbBlock.Mix, 100f));
         using var spaced = Create((ReverbBlock.Mix, 100f), (ReverbBlock.MicSpacing, 10f));
 
-        var (left, right) = BlockRender.Stereo(plain, Signals.Impulse(9_600), Signals.Impulse(9_600), _ => 64);
-        var (left2, right2) = BlockRender.Stereo(spaced, Signals.Impulse(9_600), Signals.Impulse(9_600), _ => 64);
+        var (left, right) = BlockRender.Stereo(plain, Signals.Impulse(9_600), Signals.Impulse(9_600), static _ => 64);
+        var (left2, right2) = BlockRender.Stereo(
+            spaced,
+            Signals.Impulse(9_600),
+            Signals.Impulse(9_600),
+            static _ => 64
+        );
 
         Assert.Equal(left, left2);
         for (var i = 480; i < right.Length; i++) {
@@ -348,7 +363,7 @@ public class ReverbBlockTests {
             (ReverbBlock.Mix, 100f)
         );
 
-        var (left, right) = BlockRender.Stereo(one, Signals.Impulse(9_600), Signals.Impulse(9_600), _ => 64);
+        var (left, right) = BlockRender.Stereo(one, Signals.Impulse(9_600), Signals.Impulse(9_600), static _ => 64);
         var darkOut = BlockRender.Mono(dark, Signals.Impulse(9_600), 64);
         var brightOut = BlockRender.Mono(bright, Signals.Impulse(9_600), 64);
 

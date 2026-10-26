@@ -198,7 +198,7 @@ public class HighGainAmpTests(ITestOutputHelper output) {
     /// <summary>The Rectifier's tube rectifier and Spongy each lower B+ under load; together, more.</summary>
     [Fact]
     public void Rectifier_switches_lower_the_supply() {
-        double Supply(bool tube, bool spongy) {
+        static double Supply(bool tube, bool spongy) {
             using var block = Create(
                 "Dual Rectifier",
                 (CircuitAmpBlock.Gain, 8f),
@@ -223,7 +223,7 @@ public class HighGainAmpTests(ITestOutputHelper output) {
     /// <summary>The Mark's graphic EQ: a band at +12 dB lifts its frequency, at 0 dB the path is untouched.</summary>
     [Fact]
     public void Mark_graphic_equaliser_lifts_its_band() {
-        double Level(float band, double frequency) {
+        static double Level(float band, double frequency) {
             using var block = Create(
                 "Mark IIC+",
                 (CircuitAmpBlock.Gain, 1f),

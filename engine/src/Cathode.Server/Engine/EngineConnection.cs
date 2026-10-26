@@ -1,4 +1,3 @@
-using System.Threading.Channels;
 using Cathode.Contracts;
 using Cathode.Dsp.Routing;
 using Cathode.Engine.Graph;
@@ -9,6 +8,7 @@ using Cathode.Ipc;
 using Cathode.Server.Realtime;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.Options;
+using System.Threading.Channels;
 
 namespace Cathode.Server.Engine;
 
@@ -41,6 +41,7 @@ public sealed partial class EngineConnection(
 
     /// <summary>The block and parameter each modifier of the graph last loaded drives.</summary>
     ModifierMap modifierMap = new(-1, []);
+
     string? lastError;
     volatile bool scopeEnabled;
 
@@ -190,15 +191,15 @@ public sealed partial class EngineConnection(
     /// <summary>Starts, retunes or stops the test tone in place of <paramref name="block" />'s output.</summary>
     public async Task TestToneAsync(string block, TestToneRequest request) {
         if (await RequestAsync(
-                new() {
-                    Type = IpcTypes.TestTone,
-                    Block = block,
-                    Enabled = request.Enabled,
-                    Frequency = request.Frequency,
-                    Level = request.Level
-                }
-            )
-            is null
+                    new() {
+                        Type = IpcTypes.TestTone,
+                        Block = block,
+                        Enabled = request.Enabled,
+                        Frequency = request.Frequency,
+                        Level = request.Level
+                    }
+                )
+                is null
             && request.Enabled) {
             throw new RigException(503, "The engine is not connected.");
         }
@@ -426,11 +427,11 @@ public sealed partial class EngineConnection(
     }
 
     /// <summary>The names of the hardware input sources in <paramref name="mask" /> (bit 0 = Input 1).</summary>
-    static string[] InputNames(int mask) =>
-        Enumerable.Range(0, HardwareInputs.Count)
+    static string[] InputNames(int mask) => [
+        ..Enumerable.Range(0, HardwareInputs.Count)
             .Where(s => (mask & (1 << s)) != 0)
             .Select(static s => HardwareInputs.Names[s])
-            .ToArray();
+    ];
 
     static LooperInfo? Looper(HostTelemetry? t) =>
         t?.Looper is { } l ? new(l.State, l.LengthSeconds, l.PositionSeconds, l.Reversed, l.HalfSpeed) : null;

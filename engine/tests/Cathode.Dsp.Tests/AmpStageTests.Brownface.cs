@@ -146,10 +146,11 @@ public partial class AmpStageTests {
     /// <summary>The playing chain, with the channel switch's chosen path in place of the switch.</summary>
     static List<AmpStageDesign> PlayingChain(string model, in AmpControls controls) {
         var on = controls.Switch1;
-        return AmpDesign.All.Single(a => a.Name == model)
-            .Preamp
-            .SelectMany(s => s is ChannelSwitchStageDesign c ? on ? c.On : c.Off : [s])
-            .ToList();
+        return [
+            ..AmpDesign.All.Single(a => a.Name == model)
+                .Preamp
+                .SelectMany(s => s is ChannelSwitchStageDesign c ? on ? c.On : c.Off : [s])
+        ];
     }
 
     /// <summary>A stage as the netlist the reference simulator runs (the vibrato's network with its sources at rest).</summary>

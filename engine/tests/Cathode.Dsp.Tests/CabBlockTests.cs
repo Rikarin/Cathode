@@ -105,7 +105,7 @@ public sealed class CabBlockTests : IDisposable {
         WavFile.Write(path, new(48_000, [left, right]));
         using var cab = Create(null, ("slot1", path));
 
-        var (outLeft, outRight) = BlockRender.Stereo(cab, Signals.Impulse(500), Signals.Impulse(500), _ => 64);
+        var (outLeft, outRight) = BlockRender.Stereo(cab, Signals.Impulse(500), Signals.Impulse(500), static _ => 64);
 
         Assert.True(Analysis.NullResidualDb(outLeft, outRight) > -40, "left and right should differ");
         Assert.Equal(cab.PreparedImpulseResponse(0, 1)![10], outRight[10], 1e-5f);
@@ -173,7 +173,7 @@ public sealed class CabBlockTests : IDisposable {
         var left = Signals.Noise(4_000, 12);
         var right = Signals.Noise(4_000, 13);
 
-        var (outLeft, outRight) = BlockRender.Stereo(cab, left, right, _ => 64);
+        var (outLeft, outRight) = BlockRender.Stereo(cab, left, right, static _ => 64);
 
         Assert.True(cab.IsPassThrough);
         Assert.Equal(left, outLeft);
@@ -183,7 +183,7 @@ public sealed class CabBlockTests : IDisposable {
     [Fact]
     public void An_empty_ir_slot_contributes_nothing_to_the_others() {
         using var alone = Prepared();
-        using var withEmpty = Prepared(c => {
+        using var withEmpty = Prepared(static c => {
                 c.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Source), CabBlock.SourceIr);
                 c.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Mute), 0f);
             }
@@ -388,7 +388,7 @@ public sealed class CabBlockTests : IDisposable {
 
         float[] Render(int mode) {
             using var cab = Create(c => c.Params.SetTarget(CabBlock.Input, mode));
-            return BlockRender.Stereo(cab, left, right, _ => 64).Right;
+            return BlockRender.Stereo(cab, left, right, static _ => 64).Right;
         }
 
         Assert.Equal(left, Render(CabBlock.InputLeft));
@@ -453,7 +453,7 @@ public sealed class CabBlockTests : IDisposable {
     }
 
     /// <summary>A cab whose slot 1 plays an IR file; each loaded slot is set to IR and unmuted.</summary>
-    CabBlock Create(Action<CabBlock>? configure, params (string Slot, string Path)[] irs) {
+    static CabBlock Create(Action<CabBlock>? configure, params (string Slot, string Path)[] irs) {
         var cab = new CabBlock();
         cab.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Source), CabBlock.SourceIr);
         foreach (var (slot, path) in irs) {

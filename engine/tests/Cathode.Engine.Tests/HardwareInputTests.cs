@@ -216,7 +216,7 @@ public class HardwareInputTests {
         Assert.Equal(5, map.Channels);
         Assert.True(map.HasExtraSources);
         Assert.Equal([0], InputMap.Parse(null).Sources.Single());
-        Assert.False(InputMap.Parse("").HasExtraSources);
+        Assert.False(InputMap.Parse(string.Empty).HasExtraSources);
         Assert.Equal([0], InputMap.Parse(";3").Sources[0]); // an empty Input 1 stays on channel 1
     }
 

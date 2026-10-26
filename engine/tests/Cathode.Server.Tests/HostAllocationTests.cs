@@ -44,7 +44,7 @@ public sealed class HostAllocationTests : IDisposable {
         var scene = new IpcMessage {
             Type = IpcTypes.SetParams,
             Generation = 1,
-            Params = [..Enumerable.Range(0, 8).Select(i => new ParamValue("drive1", "drive", i))]
+            Params = [..Enumerable.Range(0, 8).Select(static i => new ParamValue("drive1", "drive", i))]
         };
         var bypass = new IpcMessage { Type = IpcTypes.SetBypass, Generation = 1, Block = "delay1", Bypassed = true };
         var telemetry = new HostTelemetry();
@@ -79,7 +79,8 @@ public sealed class HostAllocationTests : IDisposable {
             Type = IpcTypes.SetParams,
             Generation = 1,
             Params = [
-                new(IpcBlocks.Rig, "copyOut2", 1), new(IpcBlocks.Rig, "out3Mode", 1), new(IpcBlocks.Rig, "out1Level", -3),
+                new(IpcBlocks.Rig, "copyOut2", 1), new(IpcBlocks.Rig, "out3Mode", 1),
+                new(IpcBlocks.Rig, "out1Level", -3),
                 new(IpcBlocks.GlobalEq(1), "g1k", 3)
             ]
         };
@@ -243,7 +244,9 @@ public sealed class HostAllocationTests : IDisposable {
     /// </summary>
     static void Run(ValueTask task) {
         if (!task.IsCompletedSuccessfully) {
-            throw new InvalidOperationException("The framing went asynchronous: the measurement would leave the thread.");
+            throw new InvalidOperationException(
+                "The framing went asynchronous: the measurement would leave the thread."
+            );
         }
 
         task.GetAwaiter().GetResult();
@@ -251,7 +254,9 @@ public sealed class HostAllocationTests : IDisposable {
 
     static void Run<T>(ValueTask<T> task) {
         if (!task.IsCompletedSuccessfully) {
-            throw new InvalidOperationException("The framing went asynchronous: the measurement would leave the thread.");
+            throw new InvalidOperationException(
+                "The framing went asynchronous: the measurement would leave the thread."
+            );
         }
 
         task.GetAwaiter().GetResult();

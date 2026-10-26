@@ -1,9 +1,9 @@
-using System.Reflection;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Cathode.Contracts;
 using Cathode.Server.Api;
 using Cathode.Server.Stores;
+using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Cathode.Server.Tests;
 
@@ -37,12 +37,12 @@ public sealed class VersioningTests {
     [Fact]
     public void Steps_run_in_order_from_the_files_schema_and_a_newer_schema_is_left_alone() {
         Func<JsonObject, JsonObject>[] steps = [
-            p => {
+            static p => {
                 p["name"] = p["title"]!.GetValue<string>(); // schema 2 renamed "title" to "name"
                 p.Remove("title");
                 return p;
             },
-            p => {
+            static p => {
                 p["tempo"] = p["tempo"]!.GetValue<double>() * 2; // schema 3 doubled the tempo's meaning
                 return p;
             }

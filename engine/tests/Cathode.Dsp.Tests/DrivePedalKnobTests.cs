@@ -54,7 +54,10 @@ public class DrivePedalKnobTests(ITestOutputHelper output) {
     [Fact]
     public void B7k_hi_mids_boosts_and_cuts_its_band() {
         var type = TypeOf("Blackglass 7K");
-        double Level(double hz, float hiMid) => SteadyDb(Render(type, Sine(hz, 0.0005f), (DriveBlock.Drive, 0f), (DriveBlock.HiMid, hiMid)));
+
+        double Level(double hz, float hiMid) =>
+            SteadyDb(Render(type, Sine(hz, 0.0005f), (DriveBlock.Drive, 0f), (DriveBlock.HiMid, hiMid)));
+
         var (cut, flat, boost) = (Level(1_500, 0f), Level(1_500, 5f), Level(1_500, 10f));
         output.WriteLine($"1.5 kHz: {cut:0.0} / {flat:0.0} / {boost:0.0} dB");
         Assert.True(boost > flat + 6 && cut < flat - 6, $"{cut:0.0} / {flat:0.0} / {boost:0.0}");
@@ -77,9 +80,14 @@ public class DrivePedalKnobTests(ITestOutputHelper output) {
         var type = TypeOf("Tone of Kings");
         var (od, distortion, boost) = (Thd(type, 5f, 0.3f), Thd(type, 5f, 0.3f, (DriveBlock.KingMode, 1f)),
             Thd(type, 5f, 0.3f, (DriveBlock.KingMode, 2f)));
-        double Level(float mode) => SteadyDb(Render(type, Sine(1_000, 0.3f), (DriveBlock.Drive, 5f), (DriveBlock.KingMode, mode)));
+
+        double Level(float mode) =>
+            SteadyDb(Render(type, Sine(1_000, 0.3f), (DriveBlock.Drive, 5f), (DriveBlock.KingMode, mode)));
+
         var (odLevel, boostLevel) = (Level(0f), Level(2f));
-        output.WriteLine($"300 mV at drive 5: THD OD {od:P1}, Distortion {distortion:P1}, Boost {boost:P1}; level OD {odLevel:0.0}, Boost {boostLevel:0.0} dB");
+        output.WriteLine(
+            $"300 mV at drive 5: THD OD {od:P1}, Distortion {distortion:P1}, Boost {boost:P1}; level OD {odLevel:0.0}, Boost {boostLevel:0.0} dB"
+        );
         Assert.True(distortion > od, $"{distortion:P1} against {od:P1}");
         Assert.True(boost < od / 2, $"{boost:P1} against {od:P1}");
         Assert.True(boostLevel > odLevel + 6, $"{boostLevel:0.0} against {odLevel:0.0} dB");
@@ -88,8 +96,10 @@ public class DrivePedalKnobTests(ITestOutputHelper output) {
     [Fact]
     public void Full_drive_comp_cut_is_louder_and_vintage_humps_the_mids() {
         var type = TypeOf("Full OD");
+
         double Level(double hz, float amplitude, float mode) =>
             SteadyDb(Render(type, Sine(hz, amplitude), (DriveBlock.Drive, 5f), (DriveBlock.FullMode, mode)));
+
         var (flatMids, compCut) = (Level(1_000, 0.2f, 0f), Level(1_000, 0.2f, 1f));
         output.WriteLine($"200 mV: Flat-Mids {flatMids:0.0}, Comp-Cut {compCut:0.0} dB");
         Assert.True(compCut > flatMids + 3, $"{compCut:0.0} against {flatMids:0.0} dB");
@@ -105,35 +115,57 @@ public class DrivePedalKnobTests(ITestOutputHelper output) {
         var type = TypeOf("Full OD");
         var input = Sine(1_000, 0.01f);
         var off = Render(type, input, (DriveBlock.Drive, 2f), (DriveBlock.BoostLevel, 10f));
-        var on = Render(type, input, (DriveBlock.Drive, 2f), (DriveBlock.BoostSwitch, 1f), (DriveBlock.BoostLevel, 10f));
-        var none = Render(type, input, (DriveBlock.Drive, 2f), (DriveBlock.BoostSwitch, 1f), (DriveBlock.BoostLevel, 0f));
+        var on = Render(
+            type,
+            input,
+            (DriveBlock.Drive, 2f),
+            (DriveBlock.BoostSwitch, 1f),
+            (DriveBlock.BoostLevel, 10f)
+        );
+        var none = Render(
+            type,
+            input,
+            (DriveBlock.Drive, 2f),
+            (DriveBlock.BoostSwitch, 1f),
+            (DriveBlock.BoostLevel, 0f)
+        );
         output.WriteLine($"10 mV at drive 2: {SteadyDb(off):0.0} dB off, {SteadyDb(on):0.0} dB boosted");
         Assert.True(SteadyDb(on) > SteadyDb(off) + 6);
-        Assert.True(Thd(type, 2f, 0.01f, (DriveBlock.BoostSwitch, 1f), (DriveBlock.BoostLevel, 10f)) > 2 * Thd(type, 2f, 0.01f));
+        Assert.True(
+            Thd(type, 2f, 0.01f, (DriveBlock.BoostSwitch, 1f), (DriveBlock.BoostLevel, 10f)) > 2 * Thd(type, 2f, 0.01f)
+        );
         Assert.Equal(off, none); // the knob at 0 adds nothing
     }
 
     [Fact]
     public void Eternity_glow_compresses_with_diodes_across_its_gain() {
         var type = TypeOf("Eternal Love");
+
         double Swing(float glow) {
-            double Level(float amplitude) => SteadyDb(Render(type, Sine(1_000, amplitude), (DriveBlock.Drive, 5f), (DriveBlock.Glow, glow)));
             return Level(0.3f) - Level(0.003f);
+
+            double Level(float amplitude) =>
+                SteadyDb(Render(type, Sine(1_000, amplitude), (DriveBlock.Drive, 5f), (DriveBlock.Glow, glow)));
         }
 
         var (glass, glow) = (Swing(0f), Swing(1f));
         output.WriteLine($"output from 3 mV to 300 mV (40 dB in): Glass {glass:0.0} dB, Glow {glow:0.0} dB");
         Assert.True(glow < glass - 1.5, $"{glow:0.0} against {glass:0.0} dB");
-        Assert.Equal(SteadyDb(Render(type, Sine(1_000, 0.003f), (DriveBlock.Drive, 5f))),
-            SteadyDb(Render(type, Sine(1_000, 0.003f), (DriveBlock.Drive, 5f), (DriveBlock.Glow, 1f))), 0.5); // quiet: the same
+        Assert.Equal(
+            SteadyDb(Render(type, Sine(1_000, 0.003f), (DriveBlock.Drive, 5f))),
+            SteadyDb(Render(type, Sine(1_000, 0.003f), (DriveBlock.Drive, 5f), (DriveBlock.Glow, 1f))),
+            0.5
+        ); // quiet: the same
     }
 
     [Fact]
     public void Precision_attack_tightens_the_lows_into_the_gain() {
         var type = TypeOf("Horizon Precision Drive");
+
         double Bass(float attack) =>
             SteadyDb(Render(type, Sine(80, 0.0003f), (DriveBlock.Drive, 3f), (DriveBlock.PedalAttack, attack)))
             - SteadyDb(Render(type, Sine(1_000, 0.0003f), (DriveBlock.Drive, 3f), (DriveBlock.PedalAttack, attack)));
+
         var (loose, noon, tight) = (Bass(0f), Bass(5f), Bass(10f));
         output.WriteLine($"80 Hz under 1 kHz: {loose:0.0} / {noon:0.0} / {tight:0.0} dB");
         Assert.True(loose > noon + 3 && tight < noon - 3, $"{loose:0.0} / {noon:0.0} / {tight:0.0}");
@@ -146,10 +178,12 @@ public class DrivePedalKnobTests(ITestOutputHelper output) {
         var input = Signals.Concat(Sine(220, 0.1f, 24_000), Sine(220, 0.0005f, 24_000));
         float[] Gated(float gate) => Render(type, input, (DriveBlock.Drive, 5f), (DriveBlock.Gate, gate));
         var (open, shut) = (Gated(0f), Gated(6f));
-        double Db(float[] s, int from, int to) => Analysis.ToDb(Analysis.Rms(s.AsSpan(from, to - from)));
+        static double Db(float[] s, int from, int to) => Analysis.ToDb(Analysis.Rms(s.AsSpan(from, to - from)));
         var note = (Db(open, 12_000, 24_000), Db(shut, 12_000, 24_000));
         var tail = (Db(open, 36_000, 48_000), Db(shut, 36_000, 48_000));
-        output.WriteLine($"note {note.Item1:0.0} / {note.Item2:0.0} dB, tail {tail.Item1:0.0} / {tail.Item2:0.0} dB (off / Gate 6)");
+        output.WriteLine(
+            $"note {note.Item1:0.0} / {note.Item2:0.0} dB, tail {tail.Item1:0.0} / {tail.Item2:0.0} dB (off / Gate 6)"
+        );
         Assert.InRange(note.Item2 - note.Item1, -1, 1);
         Assert.True(tail.Item2 < tail.Item1 - 20, $"{tail.Item2:0.0} against {tail.Item1:0.0} dB");
     }
@@ -157,9 +191,12 @@ public class DrivePedalKnobTests(ITestOutputHelper output) {
     [Fact]
     public void Bosom_bass_shelves_the_lows_and_tight_cuts_them_ahead_of_the_boost() {
         var type = TypeOf("Bosom Boost");
+
         double Level(double hz, params (int, float)[] settings) =>
             SteadyDb(Render(type, Sine(hz, 0.001f), [(DriveBlock.Drive, 3f), ..settings]));
-        var (cut, flat, boost) = (Level(50, (DriveBlock.StackBass, 0f)), Level(50), Level(50, (DriveBlock.StackBass, 10f)));
+
+        var (cut, flat, boost) = (Level(50, (DriveBlock.StackBass, 0f)), Level(50),
+            Level(50, (DriveBlock.StackBass, 10f)));
         output.WriteLine($"50 Hz: Bass {cut:0.0} / {flat:0.0} / {boost:0.0} dB");
         Assert.True(boost > flat + 8 && cut < flat - 8, $"{cut:0.0} / {flat:0.0} / {boost:0.0}");
         Assert.InRange(Level(3_000, (DriveBlock.StackBass, 10f)) - Level(3_000), -1, 1);
@@ -173,12 +210,18 @@ public class DrivePedalKnobTests(ITestOutputHelper output) {
     [Fact]
     public void Bass_rcb_dip_switches_move_its_bands_up() {
         var type = TypeOf("Esoteric Bass RCB");
+
         double Level(double hz, float dip, params (int, float)[] settings) =>
-            SteadyDb(Render(type, Sine(hz, 0.0005f), [(DriveBlock.Drive, 0f), (DriveBlock.DipSwitches, dip), ..settings]));
+            SteadyDb(
+                Render(type, Sine(hz, 0.0005f), [(DriveBlock.Drive, 0f), (DriveBlock.DipSwitches, dip), ..settings])
+            );
+
         // A low shelf moved up reaches higher; a treble shelf moved up boosts less below its new corner.
         var bass = (Level(200, 0f, (DriveBlock.StackBass, 10f)), Level(200, 1f, (DriveBlock.StackBass, 10f)));
         var treble = (Level(3_000, 0f, (DriveBlock.Tone, 10f)), Level(3_000, 2f, (DriveBlock.Tone, 10f)));
-        output.WriteLine($"200 Hz with Bass full: {bass.Item1:0.0} stock, {bass.Item2:0.0} Bass Up; 3 kHz with Treble full: {treble.Item1:0.0}, {treble.Item2:0.0} Treble Up");
+        output.WriteLine(
+            $"200 Hz with Bass full: {bass.Item1:0.0} stock, {bass.Item2:0.0} Bass Up; 3 kHz with Treble full: {treble.Item1:0.0}, {treble.Item2:0.0} Treble Up"
+        );
         Assert.True(bass.Item2 > bass.Item1 + 3, $"{bass}");
         Assert.True(treble.Item2 < treble.Item1 - 3, $"{treble}");
         // Each switch moves its own band only; both together are both.
@@ -190,6 +233,7 @@ public class DrivePedalKnobTests(ITestOutputHelper output) {
     public void Super_fuzz_tone_switch_scoops_or_switches_the_filter_out_and_the_tone_knob_does_nothing() {
         var type = TypeOf("Super Fuzz");
         var noise = Signals.Noise(48_000, 5, 0.002f);
+
         double Tilt(params (int, float)[] settings) {
             var rendered = Render(type, noise, [(DriveBlock.Drive, 0f), ..settings]);
             return Band(rendered, 700, 1_400) - Band(rendered, 100, 300);
@@ -201,7 +245,8 @@ public class DrivePedalKnobTests(ITestOutputHelper output) {
         Assert.Equal(Render(type, noise, (DriveBlock.Tone, 0f)), Render(type, noise, (DriveBlock.Tone, 10f)));
     }
 
-    static int TypeOf(string name) => DriveBlock.CircuitTypes + DriveCircuits.All.ToList().FindIndex(c => c.Name == name);
+    static int TypeOf(string name) =>
+        DriveBlock.CircuitTypes + DriveCircuits.All.ToList().FindIndex(c => c.Name == name);
 
     static float[] Sine(double hz, float amplitude, int length = 19_200) => Signals.Sine(hz, Rate, length, amplitude);
 

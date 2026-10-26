@@ -92,7 +92,7 @@ public class ModernMarshallTests(ITestOutputHelper output) {
         Assert.Empty(Label("presence", "JCM900 4502"));
         Assert.Equal(
             ["Normal", "OD2", "Crunch"],
-            new[] { "switch1", "switch2", "switch3" }.Select(id => Label(id, "Valvestate 8080"))
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Valvestate 8080"))
         );
         Assert.Equal("Contour", Label("control1", "Valvestate 8080"));
         Assert.Empty(Label("bias", "Valvestate 8080"));

@@ -277,7 +277,7 @@ public class BritishVintageAmpTests(ITestOutputHelper output) {
     /// </summary>
     [Fact]
     public void The_tremolo_load_lowers_the_1959Ts_normal_channel() {
-        double Level(AmpStageDesign design) {
+        static double Level(AmpStageDesign design) {
             var stage = design.Create(Rate);
             stage.Update(new(0.5, 0.5, 0.5, 0.5, 1, false, Switch2: true));
             stage.SetSourceResistance(0);

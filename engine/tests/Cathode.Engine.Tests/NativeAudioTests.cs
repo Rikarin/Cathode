@@ -1,5 +1,5 @@
-using System.Runtime.CompilerServices;
 using Cathode.Audio.Native;
+using System.Runtime.CompilerServices;
 
 namespace Cathode.Engine.Tests;
 

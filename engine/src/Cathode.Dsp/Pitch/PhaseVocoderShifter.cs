@@ -309,7 +309,10 @@ public sealed class PhaseVocoderShifter : IDisposable {
         }
     }
 
-    /// <summary>The gain that gives bin <paramref name="from" />, moved to <paramref name="to" />, the envelope there (shifted by <paramref name="formantRatio" />).</summary>
+    /// <summary>
+    ///     The gain that gives bin <paramref name="from" />, moved to <paramref name="to" />, the envelope there (shifted
+    ///     by <paramref name="formantRatio" />).
+    /// </summary>
     float Correction(int from, int to, double formantRatio, int bins) {
         var source = Math.Min(to / formantRatio, bins - 1);
         var index = (int)source;

@@ -1,6 +1,6 @@
+using Cathode.Dsp.Wdf;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using Cathode.Dsp.Wdf;
 
 namespace Cathode.Dsp.Amp;
 

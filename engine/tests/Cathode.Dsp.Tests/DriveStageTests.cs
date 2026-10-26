@@ -251,7 +251,7 @@ public class DriveStageTests(ITestOutputHelper output) {
         c.Source(source, 0, static _ => 0);
         c.Resistor(source, input, n.Source);
         var amount = n.AudioTaper ? DriveCircuits.AudioTaper(tone) : tone;
-        double Pot(double ohms) => Math.Max(ohms, Floor);
+        static double Pot(double ohms) => Math.Max(ohms, Floor);
         switch (n.Kind) {
             case ToneKind.HighCut: {
                 var (mid, output) = (c.Node(), c.Node());

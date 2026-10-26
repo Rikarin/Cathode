@@ -11,8 +11,9 @@ public sealed class JsonFileStoreTests : IDisposable {
     readonly string folder = Directory.CreateTempSubdirectory("cathode-store-").FullName;
     readonly JsonFileStore<Preset> store;
 
-    public JsonFileStoreTests() =>
+    public JsonFileStoreTests() {
         store = new(folder, "preset", ContractsJsonContext.Default.Preset, static p => p.Id);
+    }
 
     public void Dispose() => Directory.Delete(folder, true);
 
@@ -21,7 +22,8 @@ public sealed class JsonFileStoreTests : IDisposable {
         var preset = Preset.CreateDefault();
         store.Save(preset);
         using var stop = new CancellationTokenSource();
-        var reader = Task.Run(() => {
+        var reader = Task.Run(
+            () => {
                 while (!stop.IsCancellationRequested) {
                     Assert.NotNull(store.Get(preset.Id));
                 }

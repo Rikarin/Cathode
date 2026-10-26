@@ -74,7 +74,7 @@ public class VibeBlockTests {
     ///     stage lags <c>2 atan(tan(pi f / fs) / tan(pi fc / fs))</c>, with the stages at the capacitor ratios.
     /// </summary>
     static double PhaseCrossing(double phase) {
-        double Lag(double f) {
+        static double Lag(double f) {
             double sum = 0;
             foreach (var ratio in VibeBlock.StageRatios) {
                 var fc = Math.Min(Rate * 0.45, VibeBlock.RestFrequency * ratio);

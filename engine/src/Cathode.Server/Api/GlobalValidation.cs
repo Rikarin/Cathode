@@ -94,7 +94,9 @@ static class GlobalValidation {
             var views = Math.Max(1, layout.Views?.Count ?? 0);
             foreach (var footswitch in layout.Switches) {
                 if (footswitch.View < 0 || footswitch.View >= views) {
-                    errors.Add($"Switch {footswitch.Index} of '{layout.Name}' is on view {footswitch.View}; the layout has {views}.");
+                    errors.Add(
+                        $"Switch {footswitch.Index} of '{layout.Name}' is on view {footswitch.View}; the layout has {views}."
+                    );
                 }
 
                 if (footswitch.Link is { } link && settings.Footswitches.All(l => l.Id != link)) {

@@ -1,7 +1,7 @@
-using System.Security.Cryptography;
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Blocks;
 using Cathode.Testing;
+using System.Security.Cryptography;
 
 namespace Cathode.Dsp.Tests;
 
@@ -20,7 +20,7 @@ public class CircuitAmpBitIdentityTests {
     static readonly float[] Input = Signals.Concat(
         Signals.Noise(2_000, 3, 0.3f),
         Signals.Sine(110, 48_000, 4_000, 0.5f),
-        Signals.Noise(2_000, 5, 1f),
+        Signals.Noise(2_000, 5),
         new float[1_000]
     );
 
@@ -59,7 +59,8 @@ public class CircuitAmpBitIdentityTests {
                     var c = combination;
                     cases.Add(
                         ($"s{c}", [
-                            (CircuitAmpBlock.Gain, 7f), (CircuitAmpBlock.Switch1, c & 1), (CircuitAmpBlock.Switch2, c >> 1 & 1),
+                            (CircuitAmpBlock.Gain, 7f), (CircuitAmpBlock.Switch1, c & 1),
+                            (CircuitAmpBlock.Switch2, c >> 1 & 1),
                             (CircuitAmpBlock.Switch3, c >> 2 & 1), (CircuitAmpBlock.Bright, c >> 3 & 1)
                         ])
                     );

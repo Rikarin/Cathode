@@ -1,14 +1,14 @@
-using System.Net;
-using System.Net.Http.Json;
-using System.Net.WebSockets;
-using System.Text;
-using System.Text.Json.Nodes;
 using Cathode.Contracts;
 using Cathode.Dsp.Blocks;
 using Cathode.Engine.Rig;
 using Cathode.Server.Midi;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net;
+using System.Net.Http.Json;
+using System.Net.WebSockets;
+using System.Text;
+using System.Text.Json.Nodes;
 
 namespace Cathode.Server.Tests;
 
@@ -37,14 +37,17 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task The_name_author_and_tags_are_set_as_one_undoable_edit_that_survives_save() {
-        var info = await Patch("/api/v1/live/info", new PresetInfoRequest(" Lead ", " Jiu ", ["solo", " ", "solo", "lead"]));
+        var info = await Patch(
+            "/api/v1/live/info",
+            new PresetInfoRequest(" Lead ", " Jiu ", ["solo", " ", "solo", "lead"])
+        );
         Assert.Equal(("Lead", "Jiu"), (info.Preset.Name, info.Preset.Author));
         Assert.Equal(["solo", "lead"], info.Preset.Tags);
         Assert.True(info.Dirty);
 
         var saved = await Post("/api/v1/live/save", new SaveRequest(AsNew: true));
         Assert.Equal("Jiu", saved.Preset.Author);
-        var cleared = await Patch("/api/v1/live/info", new PresetInfoRequest(Author: ""));
+        var cleared = await Patch("/api/v1/live/info", new PresetInfoRequest(Author: string.Empty));
         Assert.Null(cleared.Preset.Author);
         Assert.Equal("Lead", cleared.Preset.Name); // a null field is left as it is
 
@@ -59,12 +62,12 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
             "/api/v1/live/blocks/delay1/channels/A/scene-ignore",
             new SceneIgnoreRequest(true)
         );
-        Assert.Equal(["A"], ignoring.Preset.Blocks.Single(b => b.Id == "delay1").SceneIgnore);
+        Assert.Equal(["A"], ignoring.Preset.Blocks.Single(static b => b.Id == "delay1").SceneIgnore);
 
         var held = await Put("/api/v1/live/scenes/active", new SceneSelectRequest(1));
 
-        Assert.Equal(new SceneBlockState(false, "A"), held.Held!["delay1"]);
-        Assert.Equal(new SceneBlockState(true, "B"), held.Preset.Scenes[1].StateOf("delay1")); // the scene is untouched
+        Assert.Equal(new(false, "A"), held.Held!["delay1"]);
+        Assert.Equal(new(true, "B"), held.Preset.Scenes[1].StateOf("delay1")); // the scene is untouched
         await Task.Delay(100, Token);
         Assert.False(server.IsBypassed("delay1"));
         Assert.Equal(500, server.Target("delay1", "time"));
@@ -88,7 +91,7 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         var kept = await Put("/api/v1/live/scenes/active", new SceneSelectRequest(0));
         Assert.True(kept.Preset.Scenes[0].StateOf("delay1").Bypassed);
 
-        await PutGlobal(g => g.SceneRevert = true);
+        await PutGlobal(static g => g.SceneRevert = true);
         await Put("/api/v1/live/scenes/active", new SceneSelectRequest(1));
         var reverted = await Put("/api/v1/live/scenes/active", new SceneSelectRequest(0));
 
@@ -104,7 +107,7 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         await Post("/api/v1/live/new");
 
         var asSaved = await Put($"/api/v1/live/preset/{saved.Preset.Id}", new { });
-        await PutGlobal(g => g.DefaultScene = 5);
+        await PutGlobal(static g => g.DefaultScene = 5);
         var fixedScene = await Put($"/api/v1/live/preset/{saved.Preset.Id}", new { });
 
         Assert.Equal(3, asSaved.ActiveScene);
@@ -149,7 +152,7 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         await Task.Delay(300, Token);
         Assert.True((await Live()).Dirty); // not reloaded
 
-        await PutGlobal(g => g.IgnoreRedundantPc = false);
+        await PutGlobal(static g => g.IgnoreRedundantPc = false);
         router.OnMidi([new(0xC0, 0, 0, 0)]);
         await ServerFixture.Eventually(async () => !(await Live()).Dirty); // reloaded: the edit is gone
     }
@@ -162,7 +165,7 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         var copied = await Post("/api/v1/live/scenes/copy", new ScenePairRequest(2, 5));
         Assert.Equal("Lead", copied.Preset.Scenes[5].Name);
         Assert.Equal(3f, copied.Preset.Scenes[5].Level);
-        Assert.Equal(new SceneBlockState(true, "B"), copied.Preset.Scenes[5].StateOf("delay1"));
+        Assert.Equal(new(true, "B"), copied.Preset.Scenes[5].StateOf("delay1"));
 
         await Put("/api/v1/live/scenes/active", new SceneSelectRequest(2));
         var swapped = await Post("/api/v1/live/scenes/swap", new ScenePairRequest(2, 0));
@@ -183,22 +186,22 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         await Put("/api/v1/live/blocks/delay1/channels/A/scene-ignore", new SceneIgnoreRequest(true));
 
         var swapped = await Post("/api/v1/live/blocks/delay1/channels/swap", new CopyChannelRequest("A", "B"));
-        var block = swapped.Preset.Blocks.Single(b => b.Id == "delay1");
+        var block = swapped.Preset.Blocks.Single(static b => b.Id == "delay1");
         Assert.Equal(120, block.Channels["A"]["time"]);
         Assert.Equal(500, block.Channels["B"]["time"]);
         Assert.Equal(["B"], block.SceneIgnore);
         await ServerFixture.Eventually(() => server.Target("delay1", "time") == 120);
 
         var reset = await Post("/api/v1/live/blocks/delay1/channels/A/reset");
-        Assert.False(reset.Preset.Blocks.Single(b => b.Id == "delay1").Channels.ContainsKey("A"));
+        Assert.False(reset.Preset.Blocks.Single(static b => b.Id == "delay1").Channels.ContainsKey("A"));
         var defaultTime = DelayBlock.Info.Params[DelayBlock.Time].Default;
         await ServerFixture.Eventually(() => server.Target("delay1", "time") == defaultTime);
 
         var all = await Post("/api/v1/live/blocks/delay1/reset");
-        Assert.Empty(all.Preset.Blocks.Single(b => b.Id == "delay1").Channels);
-        Assert.Empty(all.Preset.Blocks.Single(b => b.Id == "delay1").SceneIgnore);
+        Assert.Empty(all.Preset.Blocks.Single(static b => b.Id == "delay1").Channels);
+        Assert.Empty(all.Preset.Blocks.Single(static b => b.Id == "delay1").SceneIgnore);
         var undone = await Post("/api/v1/live/undo");
-        Assert.Equal(500, undone.Preset.Blocks.Single(b => b.Id == "delay1").Channels["B"]["time"]);
+        Assert.Equal(500, undone.Preset.Blocks.Single(static b => b.Id == "delay1").Channels["B"]["time"]);
     }
 
     [Fact]
@@ -240,35 +243,35 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         await Put($"/api/v1/live/blocks/drive2/global/{shared.Id}", new { });
 
         // A knob on either one moves the other, in the preset and in the engine.
-        var turned = await Patch("/api/v1/live/blocks/drive2/params?channel=A", new Dictionary<string, float> {
-                ["drive"] = 7
-            }
+        var turned = await Patch(
+            "/api/v1/live/blocks/drive2/params?channel=A",
+            new Dictionary<string, float> { ["drive"] = 7 }
         );
-        Assert.Equal(7f, turned.Preset.Blocks.Single(b => b.Id == "drive1").Channels["A"]["drive"]);
+        Assert.Equal(7f, turned.Preset.Blocks.Single(static b => b.Id == "drive1").Channels["A"]["drive"]);
         await ServerFixture.Eventually(() => server.Target("drive1", "drive") == 7);
 
         // So do a channel reset and a block reset.
         await Patch("/api/v1/live/blocks/drive1/params?channel=B", new Dictionary<string, float> { ["drive"] = 2 });
         var reset = await Post("/api/v1/live/blocks/drive1/channels/A/reset");
-        Assert.False(reset.Preset.Blocks.Single(b => b.Id == "drive2").Channels.ContainsKey("A"));
-        Assert.Equal(2f, reset.Preset.Blocks.Single(b => b.Id == "drive2").Channels["B"]["drive"]);
+        Assert.False(reset.Preset.Blocks.Single(static b => b.Id == "drive2").Channels.ContainsKey("A"));
+        Assert.Equal(2f, reset.Preset.Blocks.Single(static b => b.Id == "drive2").Channels["B"]["drive"]);
         var defaultDrive = DriveBlock.Info.Params[DriveBlock.Info.IndexOf("drive")].Default;
         await ServerFixture.Eventually(() => server.Target("drive2", "drive") == defaultDrive);
 
         // An unlinked block goes its own way.
         using var unlinked = await client.DeleteAsync("/api/v1/live/blocks/drive2/global", Token);
         Assert.Equal(HttpStatusCode.OK, unlinked.StatusCode);
-        var apart = await Patch("/api/v1/live/blocks/drive2/params?channel=B", new Dictionary<string, float> {
-                ["drive"] = 9
-            }
+        var apart = await Patch(
+            "/api/v1/live/blocks/drive2/params?channel=B",
+            new Dictionary<string, float> { ["drive"] = 9 }
         );
-        Assert.Equal(2f, apart.Preset.Blocks.Single(b => b.Id == "drive1").Channels["B"]["drive"]);
+        Assert.Equal(2f, apart.Preset.Blocks.Single(static b => b.Id == "drive1").Channels["B"]["drive"]);
     }
 
     [Fact]
     public async Task Midi_steps_the_scene_level_and_saves_and_a_high_scene_cc_steps_to_the_next_scene() {
         var saved = await Post("/api/v1/live/save", new SaveRequest("Levels", true));
-        await PutGlobal(g => {
+        await PutGlobal(static g => {
                 g.MidiMappings.Add(new("up", "cc", 0, 40, "sceneLevelUp"));
                 g.MidiMappings.Add(new("down", "cc", 0, 41, "sceneLevelDown"));
                 g.MidiMappings.Add(new("save", "cc", 0, 42, "save"));
@@ -300,7 +303,14 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         await Put(
             "/api/v1/live/modifiers",
             new List<PresetModifier> {
-                new() { Block = "delay1", Param = "feedback", Source = "manualA", Min = 80, Max = 80, Channel = "B" }
+                new() {
+                    Block = "delay1",
+                    Param = "feedback",
+                    Source = "manualA",
+                    Min = 80,
+                    Max = 80,
+                    Channel = "B"
+                }
             }
         );
         await Task.Delay(150, Token);
@@ -323,7 +333,7 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
     [Fact]
     public async Task The_spillover_setting_reaches_the_rig() {
         Assert.Equal(1f, Rig("spillover"));
-        await PutGlobal(g => g.PresetSpillover = false);
+        await PutGlobal(static g => g.PresetSpillover = false);
         await ServerFixture.Eventually(() => Rig("spillover") == 0f);
         Assert.False((await Global()).PresetSpillover);
     }
@@ -414,7 +424,14 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
             "/api/v1/live/modifiers",
             new List<PresetModifier> {
                 new() { Block = "delay1", Param = "engage", Source = "manualB" },
-                new() { Block = "delay1", Param = "feedback", Source = "lfo1", Min = 0, Max = 100, Channel = "B" }
+                new() {
+                    Block = "delay1",
+                    Param = "feedback",
+                    Source = "lfo1",
+                    Min = 0,
+                    Max = 100,
+                    Channel = "B"
+                }
             }
         );
         await ServerFixture.Eventually(() => server.Graph?.Modifiers.Count == 2);
@@ -425,7 +442,15 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         // An LFO on the mix: its value moves from frame to frame, within the modifier's range.
         await Put(
             "/api/v1/live/modifiers",
-            new List<PresetModifier> { new() { Block = "delay1", Param = "mix", Source = "lfo1", Min = 10, Max = 90 } }
+            new List<PresetModifier> {
+                new() {
+                    Block = "delay1",
+                    Param = "mix",
+                    Source = "lfo1",
+                    Min = 10,
+                    Max = 90
+                }
+            }
         );
         var mix = await ValuesOf("mix", 20);
         Assert.All(mix, static v => Assert.InRange(v, 10f, 90f));
@@ -436,7 +461,13 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         await Put(
             "/api/v1/live/modifiers",
             new List<PresetModifier> {
-                new() { Block = "delay1", Param = "feedback", Source = "manualA", Min = 42, Max = 42 }
+                new() {
+                    Block = "delay1",
+                    Param = "feedback",
+                    Source = "manualA",
+                    Min = 42,
+                    Max = 42
+                }
             }
         );
         await ServerFixture.Eventually(async () =>

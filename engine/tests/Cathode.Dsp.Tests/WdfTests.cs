@@ -1,6 +1,6 @@
-using System.Numerics;
 using Cathode.Dsp.Wdf;
 using Cathode.Testing;
+using System.Numerics;
 
 namespace Cathode.Dsp.Tests;
 

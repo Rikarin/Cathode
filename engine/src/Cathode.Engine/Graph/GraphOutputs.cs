@@ -7,8 +7,11 @@ namespace Cathode.Engine.Graph;
 ///     output). The engine owns one for the running graph and one for the graph spilling over under it.
 /// </summary>
 public sealed class GraphOutputs(int maxBlockSize) : IDisposable {
-    readonly NativeBuffer[] left = [..Enumerable.Range(0, NodeTypes.OutputCount).Select(_ => new NativeBuffer(maxBlockSize))];
-    readonly NativeBuffer[] right = [..Enumerable.Range(0, NodeTypes.OutputCount).Select(_ => new NativeBuffer(maxBlockSize))];
+    readonly NativeBuffer[] left =
+        [..Enumerable.Range(0, NodeTypes.OutputCount).Select(_ => new NativeBuffer(maxBlockSize))];
+
+    readonly NativeBuffer[] right =
+        [..Enumerable.Range(0, NodeTypes.OutputCount).Select(_ => new NativeBuffer(maxBlockSize))];
 
     /// <summary>Output <paramref name="output" /> (1-3), the first <paramref name="frames" /> frames.</summary>
     public Span<float> Left(int output, int frames) => left[output].Span[..frames];
@@ -50,7 +53,10 @@ public sealed class TestTone {
 
     public bool Enabled => enabled;
 
-    /// <summary>Control thread: play <paramref name="hertz" /> at <paramref name="level" /> in place of slot <paramref name="slotIndex" />'s output.</summary>
+    /// <summary>
+    ///     Control thread: play <paramref name="hertz" /> at <paramref name="level" /> in place of slot
+    ///     <paramref name="slotIndex" />'s output.
+    /// </summary>
     public void Start(int graphGeneration, int slotIndex, double hertz, float level) {
         Volatile.Write(ref frequency, hertz);
         Volatile.Write(ref gain, level);

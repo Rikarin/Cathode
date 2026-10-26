@@ -67,8 +67,10 @@ public class PitchLearnAndCustomScaleTests {
     [Fact]
     public void The_default_custom_scale_is_the_major_scale() {
         Span<int> degrees = stackalloc int[12];
-        int[] notes = [..Enumerable.Range(0, PitchBlock.MaxCustomNotes)
-            .Select(n => (int)PitchBlock.Info.Params[PitchBlock.CustomNote1 + n].Default)];
+        int[] notes = [
+            ..Enumerable.Range(0, PitchBlock.MaxCustomNotes)
+                .Select(static n => (int)PitchBlock.Info.Params[PitchBlock.CustomNote1 + n].Default)
+        ];
         var count = 4 + (int)PitchBlock.Info.Params[PitchBlock.CustomNoteCount].Default;
 
         var length = Scales.CustomDegrees(notes, count, degrees);
@@ -78,7 +80,7 @@ public class PitchLearnAndCustomScaleTests {
 
     static PitchBlock Diatonic(params (int Index, float Value)[] settings) {
         var block = new PitchBlock();
-        foreach (var (index, value) in (ReadOnlySpan<(int, float)>)[
+        foreach (var (index, value) in (ReadOnlySpan<(int, float)>) [
                      (PitchBlock.Type, (float)PitchType.Diatonic),
                      (PitchBlock.Key, 0f),
                      (PitchBlock.Scale, 0f),

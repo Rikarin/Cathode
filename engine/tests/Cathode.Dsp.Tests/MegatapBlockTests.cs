@@ -66,7 +66,7 @@ public class MegatapBlockTests {
 
     [Fact]
     public void Time_randomize_moves_each_tap_within_half_a_spacing_repeatably() {
-        float[] Render() {
+        static float[] Render() {
             using var megatap = Create(
                 (MegatapBlock.Time, 400f),
                 (MegatapBlock.Taps, 10f),
@@ -119,7 +119,7 @@ public class MegatapBlockTests {
 
     [Fact]
     public void Pan_alpha_curves_the_pan_positions_and_negative_spread_mirrors_them() {
-        float Pan(float alpha, float spread) {
+        static float Pan(float alpha, float spread) {
             using var megatap = Create(
                 (MegatapBlock.Time, 400f),
                 (MegatapBlock.Taps, 5f),
@@ -130,7 +130,7 @@ public class MegatapBlockTests {
                 (MegatapBlock.Mix, 100f)
             );
             var impulse = Signals.Impulse(20_000);
-            var (left, right) = BlockRender.Stereo(megatap, impulse, impulse, _ => 64);
+            var (left, right) = BlockRender.Stereo(megatap, impulse, impulse, static _ => 64);
 
             // Tap 4 of 5 sits at +0.5 with alpha 0; with alpha 50 % (power 2) at +0.25. Balance law: left = 1 - pan.
             return 1f - left[15_360] / right[15_360];
@@ -213,7 +213,7 @@ public class MegatapBlockTests {
         );
         var impulse = Signals.Impulse(20_000);
 
-        var (left, right) = BlockRender.Stereo(megatap, impulse, impulse, _ => 64);
+        var (left, right) = BlockRender.Stereo(megatap, impulse, impulse, static _ => 64);
 
         Assert.Equal(-40, Analysis.ToDb(right[19_200] / left[2_400]), 1e-3);
         Assert.Equal(0f, right[2_400]);

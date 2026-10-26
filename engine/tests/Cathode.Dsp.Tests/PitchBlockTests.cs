@@ -182,7 +182,7 @@ public class PitchBlockTests(ITestOutputHelper output) {
             detune,
             Signals.Sine(440, Rate, 96_000, 0.3f),
             Signals.Sine(440, Rate, 96_000, 0.3f),
-            _ => 64
+            static _ => 64
         );
 
         // Voice 1 (+50 cents) is panned left, voice 2 (-50 cents) right.
@@ -263,7 +263,7 @@ public class PitchBlockTests(ITestOutputHelper output) {
     [Fact]
     public void Custom_tables_default_to_major_key_harmony() {
         var table = Enumerable.Range(0, 48)
-            .Select(i => PitchBlock.Info.Params[PitchBlock.CustomTable + i].Default)
+            .Select(static i => PitchBlock.Info.Params[PitchBlock.CustomTable + i].Default)
             .ToArray();
 
         Assert.Equal((float[])[4, 4, 3, 3, 3, 4, 4, 4, 4, 3, 3, 3], table[..12]); // a third: C-E, D-F, E-G, ...

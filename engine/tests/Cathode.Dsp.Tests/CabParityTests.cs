@@ -1,6 +1,5 @@
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Cabinets;
-using Cathode.Dsp.Convolution;
 using Cathode.Dsp.IO;
 using Cathode.Testing;
 
@@ -32,7 +31,7 @@ public sealed class CabParityTests : IDisposable {
 
         // A left-only input reaches only slots 1 and 3, whose levels are relative between themselves.
         var silence = new float[1_200];
-        var (left, right) = BlockRender.Stereo(cab, Signals.Impulse(1_200), silence, _ => 64);
+        var (left, right) = BlockRender.Stereo(cab, Signals.Impulse(1_200), silence, static _ => 64);
         var expected = Blend(irs[0], irs[2]);
         for (var i = 0; i < expected.Length; i++) {
             Assert.Equal(expected[i], left[i], 1e-5f);
@@ -40,7 +39,7 @@ public sealed class CabParityTests : IDisposable {
         }
 
         cab.Reset();
-        (left, _) = BlockRender.Stereo(cab, silence, Signals.Impulse(1_200), _ => 64);
+        (left, _) = BlockRender.Stereo(cab, silence, Signals.Impulse(1_200), static _ => 64);
         expected = Blend(irs[1], irs[3]);
         for (var i = 0; i < expected.Length; i++) {
             Assert.Equal(expected[i], left[i], 1e-5f);
@@ -60,7 +59,7 @@ public sealed class CabParityTests : IDisposable {
         Assert.Equal(IrFeed.Left, cab.Feed);
 
         // Only the left input is heard: the right one does not leak in.
-        var (left, _) = BlockRender.Stereo(cab, new float[2_000], Signals.Noise(2_000, 6), _ => 64);
+        var (left, _) = BlockRender.Stereo(cab, new float[2_000], Signals.Noise(2_000, 6), static _ => 64);
         Assert.All(left, static v => Assert.Equal(0f, v));
 
         cab.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Mute), 0f); // slot 2: a DynaCab, on the right
@@ -76,7 +75,7 @@ public sealed class CabParityTests : IDisposable {
     [Fact]
     public void A_flat_slot_and_a_cab_slot_split_a_stereo_input_into_a_di_and_a_cab() {
         // The split-output trick: slot 1 (left input) a DynaCab hard left, slot 2 (right input) Flat hard right.
-        using var split = Prepared(c => {
+        using var split = Prepared(static c => {
                 c.Params.SetTarget(CabBlock.SlotParam(0, CabBlock.Pan), -100f);
                 c.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Source), CabBlock.SourceFlat);
                 c.Params.SetTarget(CabBlock.SlotParam(1, CabBlock.Mute), 0f);
@@ -87,8 +86,8 @@ public sealed class CabParityTests : IDisposable {
         var guitar = Signals.Noise(4_800, 7);
         var bass = Signals.Noise(4_800, 8);
 
-        var (left, right) = BlockRender.Stereo(split, guitar, bass, _ => 64);
-        var cabbed = BlockRender.Stereo(cabOnly, guitar, guitar, _ => 64).Left;
+        var (left, right) = BlockRender.Stereo(split, guitar, bass, static _ => 64);
+        var cabbed = BlockRender.Stereo(cabOnly, guitar, guitar, static _ => 64).Left;
 
         Assert.Equal(bass, right); // the DI, untouched
         Assert.True(Analysis.NullResidualDb(cabbed, left) < -120, "the left output is the cab alone");
@@ -119,7 +118,7 @@ public sealed class CabParityTests : IDisposable {
 
     [Fact]
     public void Tape_emphasis_saturates_the_treble_first_and_vintage_the_lows() {
-        double Compression(int type, double hz) {
+        static double Compression(int type, double hz) {
             using var cab = Flat(c => {
                     c.Params.SetTarget(CabBlock.Preamp, type);
                     c.Params.SetTarget(CabBlock.Drive, 12f);
@@ -143,8 +142,8 @@ public sealed class CabParityTests : IDisposable {
 
     [Fact]
     public void The_exciter_adds_harmonics_to_the_treble_and_leaves_the_bass_clean() {
-        double Harmonic(double hz) {
-            using var cab = Flat(c => {
+        static double Harmonic(double hz) {
+            using var cab = Flat(static c => {
                     c.Params.SetTarget(CabBlock.Preamp, MicPreampTypes.Exciter);
                     c.Params.SetTarget(CabBlock.Drive, 18f);
                     c.Params.SetTarget(CabBlock.Saturation, 50f);
@@ -189,7 +188,9 @@ public sealed class CabParityTests : IDisposable {
         var (near, _) = cab.ImpulseResponse();
 
         // (s + ω_f + ω_c) / (s + ω_f): +3 dB at the corner, unity in the treble, about +6 dB/oct below.
-        double Gain(double hz) => Analysis.ToDb(Analysis.MagnitudeAt(near, hz, Rate) / Analysis.MagnitudeAt(plain, hz, Rate));
+        double Gain(double hz) =>
+            Analysis.ToDb(Analysis.MagnitudeAt(near, hz, Rate) / Analysis.MagnitudeAt(plain, hz, Rate));
+
         Assert.Equal(0, Gain(8_000), 0.2);
         Assert.Equal(Analysis.ToDb(Math.Sqrt(1 + Math.Pow(212 / 200.0, 2))), Gain(200), 0.5);
         Assert.InRange(Gain(50) - Gain(100), 4, 6.5);

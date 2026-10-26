@@ -224,7 +224,7 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         var n = io.Length;
         var speed = (int)Params.Current(Speed);
         var fast = speed == Fast;
-        var hornTarget = (double)Params.Advance(fast ? HornFast : HornSlow, n);
+        double hornTarget = Params.Advance(fast ? HornFast : HornSlow, n);
         var drumTarget = (double)Params.Advance(fast ? DrumFast : DrumSlow, n)
             * Params.Advance(LowRateMultiplier, n);
         Params.Advance(fast ? HornSlow : HornFast, n);
@@ -280,7 +280,7 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         for (var i = 0; i < n; i++) {
             var left = io.Left[i];
             var right = io.Right[i];
-            var input = (double)SoftDrive.Apply(Stereo.Select(select, left, right), drive);
+            double input = SoftDrive.Apply(Stereo.Select(select, left, right), drive);
             var bass = low2.Tick(lowPass, low1.Tick(lowPass, input));
             var treble = high2.Tick(highPass, high1.Tick(highPass, input));
 

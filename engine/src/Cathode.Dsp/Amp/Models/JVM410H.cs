@@ -169,12 +169,11 @@ public static class JVM410H {
         );
 
     /// <summary>The loop follower, the mixer and the master stage, which every channel and mode shares.</summary>
-    static AmpStageDesign[] SharedStages() =>
-        [
-            new NetworkStageDesign("V8a", LoopFollower()),
-            new NetworkStageDesign("V9b", LoopMixer()),
-            new NetworkStageDesign("V9a", MasterStage())
-        ];
+    static AmpStageDesign[] SharedStages() => [
+        new NetworkStageDesign("V8a", LoopFollower()),
+        new NetworkStageDesign("V9b", LoopMixer()),
+        new NetworkStageDesign("V9a", MasterStage())
+    ];
 
     /// <summary>
     ///     A channel's three modes as chains of stages from V6b to the bus: Switch 3 selects the Red mode, else Switch 2

@@ -23,7 +23,7 @@ public static class Access {
 
         if (token is null) {
             // Browsers apply no CORS to WebSockets, so check the origin here: no foreign page may listen in.
-            app.Use(async (context, next) => {
+            app.Use(static async (context, next) => {
                     if (context.Request.Path.StartsWithSegments("/ws")
                         && context.Request.Headers.Origin.ToString() is { Length: > 0 } origin
                         && !IsLoopbackOrigin(origin)) {

@@ -1,6 +1,6 @@
-using System.Runtime.CompilerServices;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Filters;
+using System.Runtime.CompilerServices;
 
 namespace Cathode.Dsp.Amp;
 

@@ -121,7 +121,7 @@ public sealed class RingModulatorBlock() : DspBlock(Info) {
         var phase = this.phase;
         var type = (int)Params.Current(Type);
         var tracking = Params.Current(Tracking) >= 0.5f;
-        var multiplier = (double)Params.Current(Multiplier);
+        double multiplier = Params.Current(Multiplier);
 
         for (var i = 0; i < io.Length; i++) {
             var angle = 2 * Math.PI * phase;

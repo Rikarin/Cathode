@@ -23,7 +23,8 @@ public static class AmpFeatures {
                 }
             ),
             "pibiasx" => design.Power.InverterInput is not null,
-            "mvloc" => HasMaster(design) && design.Power.ShuntMaster is null
+            "mvloc" => HasMaster(design)
+                && design.Power.ShuntMaster is null
                 && design.Power.Topology == PowerTopology.PushPull,
             "mvcap" => preamp.Any(HasMasterCap),
             "fatsw" => !panel.HasSwitch("Fat"),
@@ -50,7 +51,9 @@ public static class AmpFeatures {
     public static bool HasPlateCap(AmpStageDesign stage) =>
         stage switch {
             TriodeStageDesign triode => triode.PlateBypass > 0,
-            NetworkStageDesign network => network.Netlist.Elements.Any(static e => e.CapacitorRole == CapacitorRole.Plate),
+            NetworkStageDesign network => network.Netlist.Elements.Any(static e => e.CapacitorRole
+                == CapacitorRole.Plate
+            ),
             ChannelSwitchStageDesign channels => channels.Off.Any(HasPlateCap) || channels.On.Any(HasPlateCap),
             _ => false
         };

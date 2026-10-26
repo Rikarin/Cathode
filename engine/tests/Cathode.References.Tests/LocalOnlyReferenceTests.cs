@@ -33,7 +33,7 @@ public class LocalOnlyReferenceTests {
         var names = local.Select(static r => r.FileName)
             .Concat(
                 local.Where(static r => r.SourceName is not null)
-                    .Select(r => Path.GetFileName(r.SourceName!) + Extension(r))
+                    .Select(static r => Path.GetFileName(r.SourceName!) + Extension(r))
             )
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var bySize = local.Where(static r => r.Sha256 is not null && r.Size is not null)

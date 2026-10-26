@@ -43,7 +43,7 @@ public sealed class LatencyProbe : IAudioProcessor {
     }
 
     /// <summary>Snapshot of the measured lags in samples.</summary>
-    public int[] Measurements() => lags.AsSpan(0, Count).ToArray();
+    public int[] Measurements() => [..lags.AsSpan(0, Count)];
 
     public void Process(in AudioIO io) {
         for (var i = 0; i < io.Frames; i++) {

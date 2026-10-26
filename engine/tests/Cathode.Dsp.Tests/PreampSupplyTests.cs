@@ -22,10 +22,25 @@ public class PreampSupplyTests {
 
     /// <summary>The user's 5150 settings, which motorboated with every stage on the one preamp node.</summary>
     static readonly Dictionary<string, double> User5150 = new() {
-        ["gain"] = 7.15625, ["middle"] = 2.94375, ["treble"] = 9.0375, ["bass"] = 7.8875, ["presence"] = 6.1375,
-        ["depth"] = 7.175, ["bright"] = 1, ["spkimp"] = 95.926414, ["rectifier"] = 2, ["speaker"] = 5, ["pretube"] = 4,
-        ["prebias"] = 41.875, ["brightcap"] = 89.65774, ["supply"] = 1, ["spkpeak"] = 111.728714, ["control1"] = 4.7,
-        ["depthfreq"] = 124.83305, ["stackfreq"] = 101.39595, ["master"] = 8.25
+        ["gain"] = 7.15625,
+        ["middle"] = 2.94375,
+        ["treble"] = 9.0375,
+        ["bass"] = 7.8875,
+        ["presence"] = 6.1375,
+        ["depth"] = 7.175,
+        ["bright"] = 1,
+        ["spkimp"] = 95.926414,
+        ["rectifier"] = 2,
+        ["speaker"] = 5,
+        ["pretube"] = 4,
+        ["prebias"] = 41.875,
+        ["brightcap"] = 89.65774,
+        ["supply"] = 1,
+        ["spkpeak"] = 111.728714,
+        ["control1"] = 4.7,
+        ["depthfreq"] = 124.83305,
+        ["stackfreq"] = 101.39595,
+        ["master"] = 8.25
     };
 
     public static TheoryData<string> Types => [..AmpDesign.All.Select(static a => a.Name)];
@@ -45,15 +60,19 @@ public class PreampSupplyTests {
     public void Every_model_goes_silent_after_a_loud_input_stops(string type) {
         (double Gain, double Volts, double Stop)[] cases = [
             ..from gain in new[] { 5.0, 8, 10 }
-            from volts in new[] { 0.1, 0.4 }
-            from stop in new[] { 0.5, 0.503, 0.507 }
-            select (gain, volts, stop)
+                from volts in new[] { 0.1, 0.4 }
+                from stop in new[] { 0.5, 0.503, 0.507 }
+                select (gain, volts, stop)
         ];
         var levels = new double[cases.Length];
-        Parallel.For(0, cases.Length, i => {
-            var (gain, volts, stop) = cases[i];
-            levels[i] = TailDb(type, new() { ["gain"] = gain }, volts, stop);
-        });
+        Parallel.For(
+            0,
+            cases.Length,
+            i => {
+                var (gain, volts, stop) = cases[i];
+                levels[i] = TailDb(type, new() { ["gain"] = gain }, volts, stop);
+            }
+        );
 
         var worst = Array.IndexOf(levels, levels.Max());
         Assert.True(
@@ -144,7 +163,7 @@ public class PreampSupplyTests {
         Assert.Equal([2, 2, 0], switched.Active.Select(static s => s.SupplyNode)); // V2a, V2b on B3; V3b on B2
         Assert.All(channel.Stages.Skip(2), static s => Assert.Equal(0, s.SupplyNode));
 
-        channel.Configure(Controls(switch1: true), Power);
+        channel.Configure(Controls(true), Power);
         Assert.Equal([1, 0], switched.Active.Select(static s => s.SupplyNode)); // the normal channel's V1a on B4
     }
 
@@ -235,7 +254,8 @@ public class PreampSupplyTests {
         for (var n = 0; n < (int)(stop * Rate); n++) {
             var t = n / Rate;
             input[n] = (float)(volts
-                * (Math.Sin(2 * Math.PI * 82.4 * t) + Math.Sin(2 * Math.PI * 123.5 * t)
+                * (Math.Sin(2 * Math.PI * 82.4 * t)
+                    + Math.Sin(2 * Math.PI * 123.5 * t)
                     + Math.Sin(2 * Math.PI * 164.8 * t))
                 / 3);
         }

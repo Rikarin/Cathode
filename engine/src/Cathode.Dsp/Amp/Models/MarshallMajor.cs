@@ -11,7 +11,8 @@ namespace Cathode.Dsp.Amp.Models;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Source: the Unicord drawing 70-02-12 "Marshall 1967", July 1970, http://www.drtube.com/schematics/marshall/1967u.gif
+///         Source: the Unicord drawing 70-02-12 "Marshall 1967", July 1970,
+///         http://www.drtube.com/schematics/marshall/1967u.gif
 ///         (2098 × 1354, read by eye at 2-4×; the el34world JPG is a photo of the same sheet). Read from it: the inputs
 ///         (68k, 68k, 1M per channel), V1's 100k plates, 820 ‖ 250 µF and 2.7k ‖ 0.68 µF, the 22 nF and 2.2 nF coupling
 ///         caps, the two 1M volumes, 470k from the Normal volume's wiper and 470k ‖ 500 pF from the Treble volume's
@@ -124,7 +125,10 @@ public static class MarshallMajor {
         return net;
     }
 
-    /// <summary>One V1 triode from its jack (34k, 1M), 100k plate, its cathode, through its coupling cap to <paramref name="output" />.</summary>
+    /// <summary>
+    ///     One V1 triode from its jack (34k, 1M), 100k plate, its cathode, through its coupling cap to
+    ///     <paramref name="output" />.
+    /// </summary>
     static void Channel(
         StageNetlist net,
         int rail,

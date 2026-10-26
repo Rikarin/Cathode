@@ -1,6 +1,6 @@
+using Cathode.Contracts;
 using System.Net;
 using System.Net.Http.Json;
-using Cathode.Contracts;
 
 namespace Cathode.Server.Tests;
 
@@ -48,16 +48,20 @@ public sealed class WorkflowApiTests : IAsyncLifetime {
         Assert.Equal(before.Preset.Id, cleared.Preset.Id);
         Assert.Equal(string.Empty, cleared.Preset.Name);
         Assert.Equal(14, cleared.Preset.Blocks.Count); // in, 12 shunts, out
-        Assert.True(cleared.Dirty && cleared.CanUndo);
+        Assert.True(cleared is { Dirty: true, CanUndo: true });
     }
 
     [Fact]
     public async Task Snapshots_keep_unsaved_edits_and_load_list_and_delete() {
         await Post("/api/v1/live/blocks", new AddBlockRequest("chorus", 2, 2));
-        var taken = await Json<SnapshotSummary>(client.PostAsJsonAsync("/api/v1/live/snapshots", new SnapshotRequest(), Token));
+        var taken = await Json<SnapshotSummary>(
+            client.PostAsJsonAsync("/api/v1/live/snapshots", new SnapshotRequest(), Token)
+        );
         await Delete("/api/v1/live/blocks/chorus1");
         var loaded = await Post($"/api/v1/live/snapshots/{taken.Id}/load", new { });
-        var listed = await Json<SnapshotSummary[]>(client.GetAsync($"/api/v1/snapshots?preset={taken.PresetId}", Token));
+        var listed = await Json<SnapshotSummary[]>(
+            client.GetAsync($"/api/v1/snapshots?preset={taken.PresetId}", Token)
+        );
         using var deleted = await client.DeleteAsync($"/api/v1/snapshots/{taken.Id}", Token);
         using var gone = await client.PostAsJsonAsync($"/api/v1/live/snapshots/{taken.Id}/load", new { }, Token);
 
@@ -82,7 +86,7 @@ public sealed class WorkflowApiTests : IAsyncLifetime {
 
         Assert.Contains(started.Preset.Blocks, static b => b.Id == "reverb1");
         Assert.NotEqual(template.Id, started.Preset.Id);
-        Assert.Contains(listed, t => t is { Name: "Ambient" });
+        Assert.Contains(listed, static t => t is { Name: "Ambient" });
         Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
     }
 
@@ -141,7 +145,11 @@ public sealed class WorkflowApiTests : IAsyncLifetime {
                 column.Preset.Blocks.Single(b => b.Id == c.To).Column
             )
         );
-        using var outside = await client.PostAsJsonAsync("/api/v1/live/grid/move", new MoveLineRequest("row", 2, 9), Token);
+        using var outside = await client.PostAsJsonAsync(
+            "/api/v1/live/grid/move",
+            new MoveLineRequest("row", 2, 9),
+            Token
+        );
         Assert.Equal(HttpStatusCode.BadRequest, outside.StatusCode);
     }
 
@@ -189,7 +197,8 @@ public sealed class WorkflowApiTests : IAsyncLifetime {
             Assert.Equal(Blocks(expected), Blocks(OnPath(preset)));
         }
 
-        static string[] Blocks(IEnumerable<string> ids) => [..ids.Where(static id => !id.StartsWith("shunt", StringComparison.Ordinal)).Order()];
+        static string[] Blocks(IEnumerable<string> ids) =>
+            [..ids.Where(static id => !id.StartsWith("shunt", StringComparison.Ordinal)).Order()];
 
         static IEnumerable<string> Order(Preset preset) =>
             preset.Blocks.OrderBy(static b => b.Column).Select(static b => b.Id);
@@ -265,7 +274,7 @@ public sealed class WorkflowApiTests : IAsyncLifetime {
         await Put("/api/v1/live/blocks/delay1/all-scenes", new AllScenesRequest(Channel: "C"));
         var state = await Put("/api/v1/live/blocks/delay1/all-scenes", new AllScenesRequest(true));
 
-        Assert.All(state.Preset.Scenes, static s => Assert.Equal(new SceneBlockState(true, "C"), s.StateOf("delay1")));
+        Assert.All(state.Preset.Scenes, static s => Assert.Equal(new(true, "C"), s.StateOf("delay1")));
         await ServerFixture.Eventually(() => server.IsBypassed("delay1"));
         using var bad = await client.PutAsJsonAsync(
             "/api/v1/live/blocks/delay1/all-scenes",

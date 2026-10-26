@@ -36,7 +36,7 @@ public class BlocksParityTests {
 
     [Fact]
     public void Square_duty_sets_the_share_of_the_cycle_spent_high() {
-        var high = Enumerable.Range(0, 1_000).Count(i => Lfo.Shape(LfoShape.Square, i / 1_000.0, 0.25) > 0);
+        var high = Enumerable.Range(0, 1_000).Count(static i => Lfo.Shape(LfoShape.Square, i / 1_000.0, 0.25) > 0);
 
         Assert.InRange(high, 240, 260);
     }
@@ -84,7 +84,7 @@ public class BlocksParityTests {
             TestBlocks.Create<FilterBlock>((FilterBlock.Type, FilterBlock.Null), (FilterBlock.Balance, -50f));
         var input = Signals.Step(256);
 
-        var (left, right) = BlockRender.Stereo(block, input, input, _ => 64);
+        var (left, right) = BlockRender.Stereo(block, input, input, static _ => 64);
 
         Assert.Equal(1f, left[^1], 1e-6f);
         Assert.Equal(0.5f, right[^1], 1e-6f);
@@ -256,7 +256,7 @@ public class BlocksParityTests {
         var left = Signals.Step(256, 0.5f);
         var right = Signals.Step(256, 0.25f);
 
-        var (outLeft, outRight) = BlockRender.Stereo(block, left, right, _ => 64);
+        var (outLeft, outRight) = BlockRender.Stereo(block, left, right, static _ => 64);
 
         Assert.Equal(-0.25f, outLeft[^1], 1e-6f);
         Assert.Equal(0.5f, outRight[^1], 1e-6f);
@@ -293,7 +293,12 @@ public class BlocksParityTests {
     [Fact]
     public void Input_select_feeds_one_side_to_both() {
         using var block = TestBlocks.Create<VolumePanBlock>((VolumePanBlock.InputSelect, 2f));
-        var (left, right) = BlockRender.Stereo(block, Signals.Step(128, 0.5f), Signals.Step(128, 0.25f), _ => 64);
+        var (left, right) = BlockRender.Stereo(
+            block,
+            Signals.Step(128, 0.5f),
+            Signals.Step(128, 0.25f),
+            static _ => 64
+        );
 
         Assert.Equal(0.25f, left[^1]);
         Assert.Equal(0.25f, right[^1]);
@@ -348,7 +353,7 @@ public class BlocksParityTests {
             (DelayBlock.Mix, 50f)
         );
 
-        var (left, right) = BlockRender.Stereo(block, Signals.Impulse(2_000), Signals.Impulse(2_000), _ => 64);
+        var (left, right) = BlockRender.Stereo(block, Signals.Impulse(2_000), Signals.Impulse(2_000), static _ => 64);
 
         Assert.Equal(1f, left[480], 1e-5f); // the mono input (1) enters the left line
         Assert.Equal(0f, right[480], 1e-6f);
@@ -365,7 +370,7 @@ public class BlocksParityTests {
             (DelayBlock.Mix, 100f)
         );
 
-        var (left, right) = BlockRender.Stereo(block, Signals.Impulse(1_000), Signals.Impulse(1_000), _ => 64);
+        var (left, right) = BlockRender.Stereo(block, Signals.Impulse(1_000), Signals.Impulse(1_000), static _ => 64);
 
         Assert.Equal(1f, left[480], 1e-5f);
         Assert.Equal(1f, right[240], 1e-5f);
@@ -491,7 +496,7 @@ public class BlocksParityTests {
     [Fact]
     public void Enhancer_pans_can_fold_the_image_to_mono() {
         using var block = TestBlocks.Create<EnhancerBlock>((EnhancerBlock.PanLeft, 0f), (EnhancerBlock.PanRight, 0f));
-        var (left, right) = BlockRender.Stereo(block, Signals.Noise(4_800, 7), Signals.Noise(4_800, 8), _ => 64);
+        var (left, right) = BlockRender.Stereo(block, Signals.Noise(4_800, 7), Signals.Noise(4_800, 8), static _ => 64);
 
         Assert.Equal(left, right);
     }

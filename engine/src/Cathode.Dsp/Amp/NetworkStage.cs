@@ -1,5 +1,5 @@
-using System.Runtime.CompilerServices;
 using Cathode.Dsp.Wdf;
+using System.Runtime.CompilerServices;
 
 namespace Cathode.Dsp.Amp;
 
@@ -347,14 +347,14 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
             ),
             "TTTTT" => new NetworkStage<
                 Devices<Devices<FastTriode, FastTriode>, Devices<FastTriode, Devices<FastTriode, FastTriode>>>>(
-                this,
-                devices,
-                (s, _) => new(
-                    new(s.Triode(devices[0].Triode), s.Triode(devices[1].Triode)),
-                    new(s.Triode(devices[2].Triode), new(s.Triode(devices[3].Triode), s.Triode(devices[4].Triode)))
+                    this,
+                    devices,
+                    (s, _) => new(
+                        new(s.Triode(devices[0].Triode), s.Triode(devices[1].Triode)),
+                        new(s.Triode(devices[2].Triode), new(s.Triode(devices[3].Triode), s.Triode(devices[4].Triode)))
+                    ),
+                    sampleRate
                 ),
-                sampleRate
-            ),
             "P" => new NetworkStage<Pentode>(this, devices, (_, _) => new(devices[0].Pentode), sampleRate),
             "D" => new NetworkStage<DiodeClipper>(this, devices, (_, _) => Clipper(devices[0]), sampleRate),
             "TD" => new NetworkStage<Devices<FastTriode, DiodeClipper>>(

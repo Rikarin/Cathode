@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using Cathode.Contracts;
 using Cathode.Dsp;
 using Cathode.Engine.Graph;
@@ -8,6 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Net.Http.Json;
 using Xunit.Sdk;
 
 namespace Cathode.Server.Tests;
@@ -133,7 +133,8 @@ sealed class TestOutputLoggerProvider(ITestOutputHelper? output, Action<string> 
 
     sealed class Logger(ITestOutputHelper? output, Action<string> keep, string category) : ILogger {
         public IDisposable? BeginScope<TState>(TState state)
-            where TState : notnull => null;
+            where TState : notnull =>
+            null;
 
         public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Warning;
 

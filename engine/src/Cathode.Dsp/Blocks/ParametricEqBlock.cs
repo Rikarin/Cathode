@@ -54,7 +54,7 @@ public sealed class ParametricEqBlock : DspBlock {
         "EQ",
         [
             ..Enumerable.Range(1, Bands)
-                .SelectMany(b => new[] {
+                .SelectMany(static b => new[] {
                         ParamDescriptor.Float(
                             $"freq{b}",
                             $"Frequency {b}",

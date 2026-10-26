@@ -38,7 +38,7 @@ public struct VoiceCoil {
         var lowest = 1.0;
         for (var i = 0; i < samples.Length; i++) {
             var k = FullHeating * (fromDrive + (toDrive - fromDrive) * (i + 1) * step);
-            var x = (double)samples[i];
+            double x = samples[i];
             var gain = 1 / (1 + theta);
             lowest = Math.Min(lowest, gain);
             samples[i] = (float)(x * gain);

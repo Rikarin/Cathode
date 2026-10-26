@@ -1,6 +1,6 @@
-using System.Globalization;
 using Cathode.Dsp.Wdf;
 using Cathode.Testing;
+using System.Globalization;
 
 namespace Cathode.Dsp.Tests;
 
@@ -143,7 +143,7 @@ public class WdfDeviceTests(ITestOutputHelper output) {
     [Fact]
     public void Op_amp_closed_loop_gain_follows_the_gain_bandwidth_product() {
         // Non-inverting, gain 101, LM741 (1 MHz): flat at 1 kHz, -3 dB near GBW / 101 ≈ 9.9 kHz.
-        double Gain(double frequency) {
+        static double Gain(double frequency) {
             var amp = NonInverting(OpAmpModel.LM741, 100e3, 1e3);
             var peak = 0.0;
             for (var n = 0; n < 19_200; n++) {

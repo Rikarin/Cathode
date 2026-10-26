@@ -17,7 +17,7 @@ public class VolumePanTests {
         using var block = Create(-6.0206f, -100);
         var input = Signals.Step(256);
 
-        var (left, right) = BlockRender.Stereo(block, input, input, _ => 64);
+        var (left, right) = BlockRender.Stereo(block, input, input, static _ => 64);
 
         Assert.All(left, static s => Assert.Equal(0.5f, s, 1e-4f));
         Assert.All(right, static s => Assert.Equal(0f, s));
