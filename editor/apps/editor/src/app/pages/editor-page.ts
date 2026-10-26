@@ -18,7 +18,7 @@ import { UiStore } from '../state/ui.store';
   host: { class: 'block h-full' },
   template: `
     <xui-splitter orientation="vertical" class="h-full">
-      <xui-splitter-panel [defaultSize]="52" [min]="25">
+      <xui-splitter-panel [defaultSize]="50" [min]="25">
         <div class="h-full [scrollbar-gutter:stable] overflow-auto p-6">
           <cth-grid-editor />
           @if (ui.blockInfo()) {

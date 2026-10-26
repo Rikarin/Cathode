@@ -99,11 +99,12 @@ function isFile(path: string): boolean {
 
 function createWindow(): void {
   window = new BrowserWindow({
-    // The editor's grid, its block page and both bars fit without scrolling at 1440 x 1080; smaller hides them.
+    // The editor's grid, its block page and both bars fit without scrolling at 1440 x 1094, the drawer half the height
+    // below the bars (the amp's Basic page with the cab resonance helper under it); smaller hides them.
     width: 1440,
-    height: 1080,
+    height: 1094,
     minWidth: 1440,
-    minHeight: 1080,
+    minHeight: 1094,
     title: 'Cathode',
     backgroundColor: '#111113',
     show: false,

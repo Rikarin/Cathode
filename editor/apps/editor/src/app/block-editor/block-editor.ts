@@ -101,11 +101,12 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
       matTuneRound
     })
   ],
-  host: { class: 'block h-full overflow-auto p-4' },
+  host: { class: 'flex h-full flex-col p-4' },
   template: `
     @if (block(); as block) {
-      <section class="flex min-h-full gap-5" [attr.aria-label]="title() + ' settings'">
-        <aside class="flex w-56 shrink-0 flex-col gap-3">
+      <!-- The block's own column and its controls scroll apart, so a long left column never moves the knobs. -->
+      <section class="flex min-h-0 flex-1 gap-5" [attr.aria-label]="title() + ' settings'">
+        <aside class="-me-2 flex min-h-0 w-58 shrink-0 flex-col gap-3 overflow-y-auto pe-2">
           <cth-block-tile
             class="h-20 w-full"
             size="lg"
@@ -332,7 +333,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
           </ng-template>
         </aside>
 
-        <div class="flex min-w-0 flex-1 flex-col gap-4">
+        <div class="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
           @switch (block.type) {
             @case ('nam') {
               <cth-amp-panel [block]="block" />
@@ -351,9 +352,6 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             }
             @case ('pitch') {
               <cth-pitch-panel [block]="block" />
-            }
-            @case ('circuitamp') {
-              <cth-cab-resonance-helper [block]="block" />
             }
           }
 
@@ -422,6 +420,11 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                 </div>
               }
             </div>
+          }
+
+          <!-- Below the controls: an occasional tool, not part of the amp's panel. -->
+          @if (block.type === 'circuitamp') {
+            <cth-cab-resonance-helper [block]="block" />
           }
         </div>
       </section>
