@@ -106,7 +106,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
     @if (block(); as block) {
       <!-- The block's own column and its controls scroll apart, so a long left column never moves the knobs. -->
       <section class="flex min-h-0 flex-1 gap-5" [attr.aria-label]="title() + ' settings'">
-        <aside class="-me-2 flex min-h-0 w-58 shrink-0 flex-col gap-3 overflow-y-auto pe-2">
+        <aside class="-me-2 flex min-h-0 w-58 shrink-0 flex-col gap-3 overflow-y-auto pe-2 *:shrink-0">
           <cth-block-tile
             class="h-20 w-full"
             size="lg"
