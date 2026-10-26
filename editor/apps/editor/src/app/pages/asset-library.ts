@@ -20,7 +20,7 @@ import { XuiTableImports } from '@xui/table';
 import { XuiTooltipImports } from '@xui/tooltip';
 import { ConnectionService } from '../core/connection';
 import { Notify } from '../core/notify';
-import { TagColors } from '../shell/picker-list';
+import { TagColors, tagColorName } from '../shell/picker-list';
 import { LibraryStore } from '../state/library.store';
 import { IrCaptureDialog, IrImportDialog, IrImportSettings, IrMixerDialog } from './ir-tools';
 import { nextSelection } from './manage';
@@ -379,7 +379,7 @@ export class AssetToolbar {
         <button xuiMenuItem (click)="color('')">No colour</button>
         @for (c of tagColors; track c) {
           <button xuiMenuItem (click)="color(c)">
-            <span class="me-2 inline-block size-3 rounded-full" [style.background]="c"></span>{{ c }}
+            <span class="me-2 inline-block size-3 rounded-full" [style.background]="c"></span>{{ tagColorName(c) }}
           </button>
         }
       </xui-menu>
@@ -423,6 +423,7 @@ export class AssetToolbar {
 export class AssetList {
   protected readonly assets = inject(AssetLibrary);
   protected readonly tagColors = TagColors;
+  protected readonly tagColorName = tagColorName;
   protected readonly dropping = signal(false);
   protected readonly renaming = signal<AssetInfo | null>(null);
   protected readonly newName = signal('');

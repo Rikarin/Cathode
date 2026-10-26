@@ -19,6 +19,19 @@ export interface PickerEntry {
 /** Colour tags a preset or IR can carry (CSS colours that read on both themes). */
 export const TagColors = ['red', 'orange', 'gold', 'limegreen', 'deepskyblue', 'violet'] as const;
 
+/** What the colour menus call each tag colour (the stored value stays the CSS colour). */
+const TagColorNames: Record<string, string> = {
+  red: 'Red',
+  orange: 'Orange',
+  gold: 'Yellow',
+  limegreen: 'Green',
+  deepskyblue: 'Blue',
+  violet: 'Purple'
+};
+
+/** A colour tag as people say it: "Green" for limegreen; an unknown colour as it is stored. */
+export const tagColorName = (color: string): string => TagColorNames[color] ?? color;
+
 /**
  * What a picker lists: entries matching every word of the query (in name or detail), favourites only when asked,
  * favourites first, then by name.
@@ -151,7 +164,7 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
         <button xuiMenuItem (click)="color.emit({ entry, color: '' })">No colour</button>
         @for (c of tagColors; track c) {
           <button xuiMenuItem (click)="color.emit({ entry, color: c })">
-            <span class="me-2 inline-block size-3 rounded-full" [style.background]="c"></span>{{ c }}
+            <span class="me-2 inline-block size-3 rounded-full" [style.background]="c"></span>{{ tagColorName(c) }}
           </button>
         }
       </xui-menu>
@@ -162,6 +175,7 @@ export class PickerList {
   private static next = 0;
   protected readonly listId = `picker-list-${PickerList.next++}`;
   protected readonly tagColors = TagColors;
+  protected readonly tagColorName = tagColorName;
 
   readonly entries = input.required<readonly PickerEntry[]>();
   readonly noun = input('presets');

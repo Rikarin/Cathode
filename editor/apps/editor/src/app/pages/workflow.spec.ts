@@ -1,5 +1,5 @@
 import type { BlockPreset, FootswitchLayout } from '@cathode/api-client';
-import { pickerEntries } from '../shell/picker-list';
+import { TagColors, pickerEntries, tagColorName } from '../shell/picker-list';
 import { parseSlot } from '../shell/preset-picker';
 import { libraryFolders, wholeBlock } from '../state/block-presets.store';
 import { nextChannel } from '../state/ui.store';
@@ -124,6 +124,11 @@ describe('pickers', () => {
     expect(parseSlot('0')).toBeNull();
     expect(parseSlot('129')).toBeNull();
     expect(parseSlot('lead')).toBeNull();
+  });
+
+  it('name the colour tags as people say them', () => {
+    expect(TagColors.map(tagColorName)).toEqual(['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple']);
+    expect(tagColorName('teal')).toBe('teal');
   });
 });
 

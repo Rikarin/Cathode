@@ -13,7 +13,7 @@ import { XuiInputImports } from '@xui/input';
 import { XuiMenuImports } from '@xui/menu';
 import { ConnectionService } from '../core/connection';
 import { Notify } from '../core/notify';
-import { TagColors } from '../shell/picker-list';
+import { TagColors, tagColorName } from '../shell/picker-list';
 import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { ManageSession, type SlotRef, nextSelection } from './manage';
@@ -216,7 +216,7 @@ const PresetMime = 'application/x-cathode-preset';
         <button xuiMenuItem (click)="color('')">No colour</button>
         @for (c of tagColors; track c) {
           <button xuiMenuItem (click)="color(c)">
-            <span class="me-2 inline-block size-3 rounded-full" [style.background]="c"></span>{{ c }}
+            <span class="me-2 inline-block size-3 rounded-full" [style.background]="c"></span>{{ tagColorName(c) }}
           </button>
         }
       </xui-menu>
@@ -276,6 +276,7 @@ export class ManagePage {
   private readonly router = inject(Router);
 
   protected readonly tagColors = TagColors;
+  protected readonly tagColorName = tagColorName;
   /** Bumped after every change to the (mutable) sessions, so the view recomputes. */
   private readonly version = signal(0);
   private readonly session = signal(new ManageSession([], []));

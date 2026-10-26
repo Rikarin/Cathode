@@ -31,7 +31,7 @@ Factory presets are **read-only**. You can load them, change them and play them,
 
 ### Colours and favourites
 
-Favourites and colour tags help you find presets fast. Set a favourite with the star in the Library or in the preset picker. Set colours in the preset picker (each entry has a colour menu) or on the Manage presets page. The colours are listed by their names: red, orange, gold, limegreen, deepskyblue and violet. Factory presets can take favourites and colours too.
+Favourites and colour tags help you find presets fast. Set a favourite with the star in the Library or in the preset picker. Set colours in the preset picker (each entry has a colour menu) or on the Manage presets page. The colours are Red, Orange, Yellow, Green, Blue and Purple. Factory presets can take favourites and colours too.
 
 ## Exporting and importing presets
 
