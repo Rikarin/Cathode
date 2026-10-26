@@ -49,4 +49,49 @@ public class MultibandCompressorBlockTests {
         Assert.Equal(-60, Analysis.ToDb(Analysis.MagnitudeAt(response, 60, 48_000)), 0.1);
         Assert.Equal(-72, Analysis.ToDb(Analysis.MagnitudeAt(response, 15_000, 48_000)), 0.1);
     }
+
+    [Theory]
+    [InlineData(0f)]
+    [InlineData(50f)]
+    [InlineData(100f)]
+    public void Muting_two_bands_solos_the_third_at_any_mix(float mix) {
+        const int LowBin = 34; // ~100 Hz, low band
+        const int HighBin = 1_707; // ~5 kHz, high band
+        using var block = TestBlocks.Create<MultibandCompressorBlock>(
+            (MultibandCompressorBlock.Mute(0), 1f),
+            (MultibandCompressorBlock.Mute(1), 1f),
+            (MultibandCompressorBlock.Mix, mix)
+        );
+        var low = Signals.Sine(LowBin * BinHz, 48_000, 3 * Length, 0.01f);
+        var high = Signals.Sine(HighBin * BinHz, 48_000, 3 * Length, 0.01f);
+
+        var output = BlockRender.Mono(block, [..low.Zip(high, static (a, b) => a + b)], 64);
+        var spectrum = Fft.Magnitudes(output.AsSpan(2 * Length));
+
+        Assert.True(Analysis.ToDb(spectrum[LowBin] / 0.01) < -60, "the muted low band is heard");
+        Assert.InRange(Analysis.ToDb(spectrum[HighBin] / 0.01), -0.6, 0.1); // the high band alone at 5 kHz
+    }
+
+    [Fact]
+    public void Mix_blends_compression_and_keeps_the_band_levels() {
+        const int LowBin = 11; // ~32 Hz, well inside the low band
+
+        double[] Render(float mix) {
+            using var block = TestBlocks.Create<MultibandCompressorBlock>(
+                (MultibandCompressorBlock.Ratio(0), 4f),
+                (MultibandCompressorBlock.BandLevel(0), -6f),
+                (MultibandCompressorBlock.Mix, mix)
+            );
+            var output = BlockRender.Mono(block, Signals.Sine(LowBin * BinHz, 48_000, 3 * Length, 0.5f), 64);
+            return Fft.Magnitudes(output.AsSpan(2 * Length));
+        }
+
+        var dry = Analysis.ToDb(Render(0f)[LowBin] / 0.5);
+        var half = Analysis.ToDb(Render(50f)[LowBin] / 0.5);
+        var wet = Analysis.ToDb(Render(100f)[LowBin] / 0.5);
+
+        Assert.Equal(-6, dry, 0.2); // uncompressed, at the band's level
+        Assert.True(wet < dry - 6, $"compressed {wet:0.0} dB");
+        Assert.InRange(half, wet, dry);
+    }
 }

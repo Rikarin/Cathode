@@ -8,8 +8,9 @@ namespace Cathode.Dsp.Blocks;
 ///     <b>High Freq</b>; the low band also runs through the second crossover's allpass, so the three bands sum flat when
 ///     nothing is compressed. Each band has its own feed-forward compressor (the soft-knee static curve of
 ///     <see cref="CompressorBlock" />, peak detection linked across channels, decoupled attack/release on the gain) and
-///     output level. The mix blends against the uncompressed band sum, which has the same phase response, so parallel
-///     compression does not comb.
+///     output level. The mix blends each band against its uncompressed self, which has the same phase response, so
+///     parallel compression does not comb; the band's level and mute come after it, so a muted band is silent at any
+///     mix and a band's level sets its dry part too.
 ///     <para>
 ///         <b>Crossover Slope</b> 12 dB/oct uses second-order Linkwitz–Riley splits instead (two one-poles squared; the
 ///         high band is inverted so the bands still sum to an allpass). <b>Detector</b> picks peak or RMS (5 ms) level,
@@ -210,7 +211,9 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
                     right.Split(lowSplit, highSplit, io.Right[i], band[Bands..]);
                 }
 
-                double wetLeft = 0, wetRight = 0, dryLeft = 0, dryRight = 0;
+                // The mix is per band, before the band's level and mute, so those apply to the dry band too.
+                var m = this.mix + mixStep * (i + 1);
+                double outLeft = 0, outRight = 0;
                 for (var b = 0; b < Bands; b++) {
                     var l = band[b];
                     var r = band[Bands + b];
@@ -234,16 +237,14 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
                     }
 
                     reduction[b] = target + (reduction[b] - target) * coefficient;
-                    var gain = MathF.Pow(10f, reduction[b] / 20f) * (fromGain[b] + gainStep[b] * (j + 1)) * mute[b];
-                    wetLeft += gain * l;
-                    wetRight += gain * r;
-                    dryLeft += l;
-                    dryRight += r;
+                    var compressed = 1f + (MathF.Pow(10f, reduction[b] / 20f) - 1f) * m;
+                    var gain = compressed * (fromGain[b] + gainStep[b] * (j + 1)) * mute[b];
+                    outLeft += gain * l;
+                    outRight += gain * r;
                 }
 
-                var m = this.mix + mixStep * (i + 1);
-                io.Left[i] = (float)(dryLeft + (wetLeft - dryLeft) * m);
-                io.Right[i] = (float)(dryRight + (wetRight - dryRight) * m);
+                io.Left[i] = (float)outLeft;
+                io.Right[i] = (float)outRight;
             }
         }
 

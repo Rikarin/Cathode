@@ -47,9 +47,9 @@ their slow waveforms; the default is 20 ms.`,
 
     knee: `How gradually compression starts around each band's threshold, in dB, for all three bands. 0 is a hard knee.`,
 
-    mix: `Blends the uncompressed band sum with the compressed one, for parallel compression. Both sides have the same
-phase response, so they do not comb. Mutes and band levels only affect the compressed side, so at less than 100 % a
-muted band is still heard through the dry part.`,
+    mix: `Blends each band's uncompressed signal with its compressed one, for parallel compression. Both sides have the
+same phase response, so they do not comb. The band levels and mutes come after the blend, so they act at any Mix: a
+muted band stays silent, and at 0 % the block is a three-band EQ set by the levels.`,
 
     level: `The block's output level in dB. −80 dB is silent.`,
 
