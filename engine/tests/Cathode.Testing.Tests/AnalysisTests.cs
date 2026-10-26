@@ -25,7 +25,7 @@ public class AnalysisTests {
         var magnitudes = Fft.Magnitudes(Signals.CoherentSine(10, 1024, 0.5f));
 
         Assert.Equal(0.5, magnitudes[10], 1e-6);
-        Assert.True(magnitudes.Where((_, k) => k != 10).Max() < 1e-6);
+        Assert.True(magnitudes.Where(static (_, k) => k != 10).Max() < 1e-6);
     }
 
     [Fact]

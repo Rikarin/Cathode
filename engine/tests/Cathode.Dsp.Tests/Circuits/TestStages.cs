@@ -42,19 +42,19 @@ sealed class CommonEmitterStage : ITestStage {
     public CommonEmitterStage(double rate, BjtModel model) {
         this.model = model;
         var net = new WdfNetlist();
-        var (input, @base, collector, emitter, supply, output) =
+        var (input, baseNode, collector, emitter, supply, output) =
             (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Port(input, WdfNetlist.Ground);
-        net.Port(input, @base);
+        net.Port(input, baseNode);
         net.Port(emitter, WdfNetlist.Ground);
         net.Port(collector, output);
-        net.Resistor(supply, @base, 47e3);
-        net.Resistor(@base, WdfNetlist.Ground, 10e3);
+        net.Resistor(supply, baseNode, 47e3);
+        net.Resistor(baseNode, WdfNetlist.Ground, 10e3);
         net.Resistor(supply, collector, 4.7e3);
         net.Resistor(emitter, WdfNetlist.Ground, 1e3);
         net.Resistor(output, WdfNetlist.Ground, 100e3);
         net.VoltageSource(supply, WdfNetlist.Ground);
-        net.Transistor(collector, @base, emitter);
+        net.Transistor(collector, baseNode, emitter);
         for (var node = 1; node <= net.Nodes; node++) {
             net.Probe(node);
         }
@@ -81,21 +81,22 @@ sealed class CommonEmitterStage : ITestStage {
 
     public ReferenceCircuit Reference(Func<double, double> input, double rate) {
         var c = new ReferenceCircuit();
-        var (inputNode, @base, collector, emitter, supply, output) = (c.Node(), c.Node(), c.Node(), c.Node(), c.Node(),
+        var (inputNode, baseNode, collector, emitter, supply, output) = (c.Node(), c.Node(), c.Node(), c.Node(),
+            c.Node(),
             c.Node());
         var source = c.Node();
         c.Source(source, 0, input);
         c.Resistor(source, inputNode, 1e3);
-        c.Capacitor(inputNode, @base, 1e-6);
+        c.Capacitor(inputNode, baseNode, 1e-6);
         c.Capacitor(emitter, 0, 47e-6);
         c.Capacitor(collector, output, 1e-6);
-        c.Resistor(supply, @base, 47e3);
-        c.Resistor(@base, 0, 10e3);
+        c.Resistor(supply, baseNode, 47e3);
+        c.Resistor(baseNode, 0, 10e3);
         c.Resistor(supply, collector, 4.7e3);
         c.Resistor(emitter, 0, 1e3);
         c.Resistor(output, 0, 100e3);
         c.Source(supply, 0, static _ => Supply);
-        c.Device(new Bjt(model), (@base, emitter), (@base, collector));
+        c.Device(new Bjt(model), (baseNode, emitter), (baseNode, collector));
         return c;
     }
 }

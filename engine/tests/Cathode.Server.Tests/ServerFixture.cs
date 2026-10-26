@@ -41,7 +41,10 @@ public sealed class ServerFixture(string? socketPath = null, string? token = nul
         // Generous: a loaded CI runner can take a while to start a separate host process and connect to it, and
         // "connected" includes resending the rig (compiling its graph) to the host.
         await Eventually(
-            async () => (await client.GetFromJsonAsync<SystemInfo>("/api/v1/system"))!.Engine.Connected,
+            async () => (await client.GetFromJsonAsync<SystemInfo>(
+                "/api/v1/system",
+                TestContext.Current.CancellationToken
+            ))!.Engine.Connected,
             60
         );
         return client;
@@ -80,7 +83,7 @@ public sealed class ServerFixture(string? socketPath = null, string? token = nul
                 last = e;
             }
 
-            await Task.Delay(20);
+            await Task.Delay(20, TestContext.Current.CancellationToken);
         }
 
         Assert.Fail(

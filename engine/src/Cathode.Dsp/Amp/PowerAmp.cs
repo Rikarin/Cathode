@@ -1541,11 +1541,11 @@ struct PushPullStage : INonlinearDevice {
         presence = FirstOrder.Unity;
         depth = FirstOrder.Unity;
         cut = FirstOrder.Unity;
-        SetSampleRate(rate, 30e3);
+        SetSampleRate(rate);
     }
 
     /// <summary>The grid networks for <paramref name="rate" />; single-ended, driven from <paramref name="source" /> ohms.</summary>
-    public void SetSampleRate(double rate, double source) {
+    public void SetSampleRate(double rate, double source = 30e3) {
         var z = singleEnded ? (source, 0, 0, 1) : phaseInverter.OutputImpedance;
         grids.Configure(z, coupling * couplingScale, gridLeak * leakScale, gridStopper, rate, conduction);
         loop?.SetSampleRate(rate);
@@ -1562,7 +1562,6 @@ struct PushPullStage : INonlinearDevice {
         SetSampleRate(rate, source);
     }
 
-    public void SetSampleRate(double rate) => SetSampleRate(rate, 30e3);
 
     /// <summary>Single-ended: the driving stage's output resistance into the grid network.</summary>
     public void SetSourceResistance(double ohms, double rate) => SetSampleRate(rate, ohms);

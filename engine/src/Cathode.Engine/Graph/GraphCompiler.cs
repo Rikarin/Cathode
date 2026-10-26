@@ -128,7 +128,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown source '{modifier.Source}'.");
             } else if (!ModNames.TryParseCurve(modifier.Curve, out var curve)) {
                 errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown curve '{modifier.Curve}'.");
-            } else if (modifiers.Any(m => m.Slot == slot && m.ParamIndex == index)) {
+            } else if (modifiers.Exists(m => m.Slot == slot && m.ParamIndex == index)) {
                 errors.Add($"Parameter '{modifier.Block}.{modifier.Param}' has more than one modifier.");
             } else if (engage) {
                 modifiers.Add(

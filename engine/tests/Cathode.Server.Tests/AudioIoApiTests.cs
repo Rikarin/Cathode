@@ -157,7 +157,7 @@ public sealed class AudioIoApiTests : IAsyncLifetime {
         await Ok(client.PutAsJsonAsync("/api/v1/global", global, Token));
     }
 
-    async Task Post(string url, object body) => await Ok(client.PostAsJsonAsync(url, body, Token));
+    Task Post(string url, object body) => Ok(client.PostAsJsonAsync(url, body, Token));
 
     static async Task Ok(Task<HttpResponseMessage> call) {
         using var response = await call;

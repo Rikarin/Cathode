@@ -214,7 +214,7 @@ public sealed class FactoryRecipe(string name, string description, params string
     List<Part> WithPeakCompressor() {
         var clean = tags.Contains("Clean")
             || tags.Contains("Ambient")
-            || scenes.Any(static s => s.Name.StartsWith("Clean", StringComparison.Ordinal));
+            || scenes.Exists(static s => s.Name.StartsWith("Clean", StringComparison.Ordinal));
         var cab = parts.FindIndex(static p => p.Type == "cab");
         if (!clean || cab < 0) {
             return parts;
@@ -296,7 +296,7 @@ public sealed class FactoryRecipe(string name, string description, params string
             : token.StartsWith("amp", StringComparison.Ordinal)
                 ? "circuitamp" + token[3..]
                 : token;
-        return parts.FirstOrDefault(p => p.Id == type)?.Id ?? parts.FirstOrDefault(p => p.Id == type + "1")?.Id;
+        return parts.Find(p => p.Id == type)?.Id ?? parts.Find(p => p.Id == type + "1")?.Id;
     }
 
     static Dictionary<string, float> Settings(BlockCatalog catalog, string type, string text, Action<string> problem) {

@@ -124,9 +124,9 @@ public sealed class WdfNetlist {
     public int Diode(int anode, int cathode) => Device(anode, cathode);
 
     /// <summary>The two ports of a <see cref="Bjt" />: (base, emitter) then (base, collector). Returns the first.</summary>
-    public int Transistor(int collector, int @base, int emitter) {
-        var first = Device(@base, emitter);
-        Device(@base, collector);
+    public int Transistor(int collector, int baseNode, int emitter) {
+        var first = Device(baseNode, emitter);
+        Device(baseNode, collector);
         return first;
     }
 

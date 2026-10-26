@@ -165,8 +165,8 @@ public class WahCircuitTests(ITestOutputHelper output) {
         var rotation = Complex.FromPolarCoordinates(1, -2 * Math.PI * frequency / Rate);
         var phasor = Complex.One;
         var sum = Complex.Zero;
-        for (var n = 0; n < response.Length; n++) {
-            sum += response[n] * phasor;
+        foreach (var sample in response) {
+            sum += sample * phasor;
             phasor *= rotation;
         }
 
