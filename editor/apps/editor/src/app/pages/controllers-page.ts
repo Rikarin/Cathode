@@ -183,21 +183,24 @@ export function scopeName(channel: string | null | undefined): string {
         </div>
       </section>
 
-      @for (group of groups; track group.title) {
-        <section xuiCard class="flex flex-col gap-3 p-4" [attr.aria-label]="group.title">
-          <h2 xuiHeading class="text-sm">{{ group.title }}</h2>
-          <div class="flex flex-wrap items-start gap-6">
-            @for (id of group.ids; track id) {
-              <cth-rig-control
-                [id]="id"
-                [label]="group.labels[$index]"
-                [stored]="stored(id)"
-                (changed)="set(id, $event)"
-              />
-            }
-          </div>
-        </section>
-      }
+      <!-- Pairs side by side: LFO 1 and 2, ADSR 1 and 2, then the envelope and pitch followers. -->
+      <div class="grid gap-6 lg:grid-cols-2">
+        @for (group of groups; track group.title) {
+          <section xuiCard class="flex flex-col gap-3 p-4" [attr.aria-label]="group.title">
+            <h2 xuiHeading class="text-sm">{{ group.title }}</h2>
+            <div class="flex flex-wrap items-start gap-6">
+              @for (id of group.ids; track id) {
+                <cth-rig-control
+                  [id]="id"
+                  [label]="group.labels[$index]"
+                  [stored]="stored(id)"
+                  (changed)="set(id, $event)"
+                />
+              }
+            </div>
+          </section>
+        }
+      </div>
 
       <section xuiCard class="flex flex-col gap-3 p-4" aria-labelledby="sequencer-heading">
         <h2 xuiHeading id="sequencer-heading" class="text-sm">Sequencer</h2>
