@@ -851,7 +851,24 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 1000,
         unit: 'Hz',
         taper: 'log',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: [
+          'Frequency',
+          'Frequency',
+          'Frequency',
+          'Frequency',
+          'Frequency',
+          'Frequency',
+          'Frequency',
+          '',
+          'Frequency',
+          'Frequency',
+          '',
+          '',
+          'Frequency',
+          'Frequency',
+          'Frequency'
+        ]
       },
       {
         id: 'q',
@@ -861,7 +878,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 18,
         default: 0.7071,
         taper: 'log',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['Q', 'Q', 'Q', 'Q', 'Q', 'Q', 'Q', '', 'Q', '', '', '', 'Q', 'Q', 'Q']
       },
       {
         id: 'gain',
@@ -871,7 +889,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 0,
         unit: 'dB',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', 'Gain', 'Gain', 'Gain', '', '', 'Gain', '', '', 'Gain', 'Gain', 'Gain']
       },
       {
         id: 'level',
@@ -901,7 +920,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 1,
         default: 0,
         page: 'Basic',
-        options: ['2nd', '4th']
+        options: ['2nd', '4th'],
+        typeLabels: ['Order', 'Order', 'Order', 'Order', '', '', '', '', 'Order', '', '', '', '', '', '']
       },
       {
         id: 'lowCut',
@@ -985,7 +1005,24 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         min: 0,
         max: 1,
         default: 0,
-        page: 'Modulation'
+        page: 'Modulation',
+        typeLabels: [
+          'LFO Enable',
+          'LFO Enable',
+          'LFO Enable',
+          'LFO Enable',
+          'LFO Enable',
+          'LFO Enable',
+          'LFO Enable',
+          '',
+          'LFO Enable',
+          'LFO Enable',
+          '',
+          '',
+          'LFO Enable',
+          'LFO Enable',
+          'LFO Enable'
+        ]
       },
       {
         id: 'lfoType',
@@ -1006,6 +1043,23 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Exponential',
           'Trapezoid',
           'Astable'
+        ],
+        typeLabels: [
+          'LFO Type',
+          'LFO Type',
+          'LFO Type',
+          'LFO Type',
+          'LFO Type',
+          'LFO Type',
+          'LFO Type',
+          '',
+          'LFO Type',
+          'LFO Type',
+          '',
+          '',
+          'LFO Type',
+          'LFO Type',
+          'LFO Type'
         ]
       },
       {
@@ -1017,7 +1071,24 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 1,
         unit: 'Hz',
         taper: 'log',
-        page: 'Modulation'
+        page: 'Modulation',
+        typeLabels: [
+          'LFO Rate',
+          'LFO Rate',
+          'LFO Rate',
+          'LFO Rate',
+          'LFO Rate',
+          'LFO Rate',
+          'LFO Rate',
+          '',
+          'LFO Rate',
+          'LFO Rate',
+          '',
+          '',
+          'LFO Rate',
+          'LFO Rate',
+          'LFO Rate'
+        ]
       },
       {
         id: 'lfoTempo',
@@ -1050,6 +1121,23 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '2/1',
           '3/1',
           '4/1'
+        ],
+        typeLabels: [
+          'LFO Tempo',
+          'LFO Tempo',
+          'LFO Tempo',
+          'LFO Tempo',
+          'LFO Tempo',
+          'LFO Tempo',
+          'LFO Tempo',
+          '',
+          'LFO Tempo',
+          'LFO Tempo',
+          '',
+          '',
+          'LFO Tempo',
+          'LFO Tempo',
+          'LFO Tempo'
         ]
       },
       {
@@ -1061,7 +1149,24 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 4000,
         unit: 'Hz',
         taper: 'log',
-        page: 'Modulation'
+        page: 'Modulation',
+        typeLabels: [
+          'Mod Frequency',
+          'Mod Frequency',
+          'Mod Frequency',
+          'Mod Frequency',
+          'Mod Frequency',
+          'Mod Frequency',
+          'Mod Frequency',
+          '',
+          'Mod Frequency',
+          'Mod Frequency',
+          '',
+          '',
+          'Mod Frequency',
+          'Mod Frequency',
+          'Mod Frequency'
+        ]
       },
       {
         id: 'feedback',
@@ -1082,7 +1187,24 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 100,
         default: 50,
         unit: '%',
-        page: 'Modulation'
+        page: 'Modulation',
+        typeLabels: [
+          'LFO Duty',
+          'LFO Duty',
+          'LFO Duty',
+          'LFO Duty',
+          'LFO Duty',
+          'LFO Duty',
+          'LFO Duty',
+          '',
+          'LFO Duty',
+          'LFO Duty',
+          '',
+          '',
+          'LFO Duty',
+          'LFO Duty',
+          'LFO Duty'
+        ]
       },
       {
         id: 'lfoQuantize',
@@ -1092,7 +1214,24 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 7,
         default: 0,
         page: 'Modulation',
-        options: ['Off', '2', '3', '4', '6', '8', '12', '16']
+        options: ['Off', '2', '3', '4', '6', '8', '12', '16'],
+        typeLabels: [
+          'LFO Quantize',
+          'LFO Quantize',
+          'LFO Quantize',
+          'LFO Quantize',
+          'LFO Quantize',
+          'LFO Quantize',
+          'LFO Quantize',
+          '',
+          'LFO Quantize',
+          'LFO Quantize',
+          '',
+          '',
+          'LFO Quantize',
+          'LFO Quantize',
+          'LFO Quantize'
+        ]
       }
     ]
   },

@@ -10,7 +10,7 @@ namespace Cathode.Dsp.Blocks;
 ///     <list type="bullet">
 ///         <item>Order 4th cascades two identical sections (pass, stop and all-pass types).</item>
 ///         <item>Tilt EQ: a low shelf cut and a high shelf boost of half the gain each, hinged at the frequency.</item>
-///         <item>Null: no filter, for the gain, pan and phase controls alone.</item>
+///         <item>Null: no filter, for the level, pan and phase controls alone.</item>
 ///         <item>All Pass can have feedback around it (one sample later), which turns its phase sweep into peaks.</item>
 ///         <item>
 ///             Low and High Shelf 2: shelves whose Q may rise to <see cref="MaxShelf2Q" />, so they overshoot at the
@@ -67,6 +67,20 @@ public sealed class FilterBlock() : DspBlock(Info) {
     public const double MaxShelf2Q = 4;
 
     const int TypeCount = 15;
+
+    /// <summary>The types that filter at Frequency (all but Null and the combs), which Q and the LFO act on.</summary>
+    static readonly int[] Filters = [..Enumerable.Range(0, TypeCount).Except([Null, FeedForwardComb, FeedbackComb])];
+
+    /// <summary>The types with a gain: the peaks and shelves, and Tilt EQ.</summary>
+    static readonly int[] Boosts = [
+        (int)BiquadType.Peak, (int)BiquadType.LowShelf, (int)BiquadType.HighShelf, Tilt, LowShelf2, HighShelf2, Peaking2
+    ];
+
+    /// <summary>The types Order can cascade (Tilt EQ is always two sections).</summary>
+    static readonly int[] Cascadable = [
+        (int)BiquadType.LowPass, (int)BiquadType.HighPass, (int)BiquadType.BandPass, (int)BiquadType.Notch, AllPass
+    ];
+
     const int SubBlock = 32;
     const float MaxCombMs = 20f;
     const float MaxCombFeedback = 0.98f;
@@ -112,12 +126,14 @@ public sealed class FilterBlock() : DspBlock(Info) {
                     "Peaking 2"
                 ]
             ),
-            ParamDescriptor.Float("freq", "Frequency", 20f, 20_000f, 1_000f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("q", "Q", 0.1f, 18f, 0.7071f, string.Empty, ParamTaper.Log),
-            ParamDescriptor.Float("gain", "Gain", -24f, 24f, 0f, "dB"),
+            ParamDescriptor.Float("freq", "Frequency", 20f, 20_000f, 1_000f, "Hz", ParamTaper.Log)
+                .ShownOn(TypeCount, Filters),
+            ParamDescriptor.Float("q", "Q", 0.1f, 18f, 0.7071f, string.Empty, ParamTaper.Log)
+                .ShownOn(TypeCount, [..Filters.Where(static t => t != Tilt)]),
+            ParamDescriptor.Float("gain", "Gain", -24f, 24f, 0f, "dB").ShownOn(TypeCount, Boosts),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
-            ParamDescriptor.Choice("order", "Order", ["2nd", "4th"]),
+            ParamDescriptor.Choice("order", "Order", ["2nd", "4th"]).ShownOn(TypeCount, Cascadable),
             WetCuts.LowCutParam("lowCut", "Low Cut"),
             WetCuts.HighCutParam("highCut", "High Cut"),
             ParamDescriptor.Float("panLeft", "Pan Left", -100f, 100f, -100f, "%"),
@@ -127,14 +143,16 @@ public sealed class FilterBlock() : DspBlock(Info) {
                 .ShownOn(TypeCount, FeedForwardComb, FeedbackComb),
             ParamDescriptor.Float("depth", "Depth", -100f, 100f, 50f, "%")
                 .ShownOn(TypeCount, FeedForwardComb, FeedbackComb),
-            ParamDescriptor.Switch("lfoOn", "LFO Enable"),
-            ParamDescriptor.Choice("lfoType", "LFO Type", Lfo.ShapeNames),
-            ParamDescriptor.Float("lfoRate", "LFO Rate", 0.05f, 20f, 1f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Choice("lfoTempo", "LFO Tempo", TempoDivisions.Names),
-            ParamDescriptor.Float("modFreq", "Mod Frequency", 20f, 20_000f, 4_000f, "Hz", ParamTaper.Log),
+            ParamDescriptor.Switch("lfoOn", "LFO Enable").ShownOn(TypeCount, Filters),
+            ParamDescriptor.Choice("lfoType", "LFO Type", Lfo.ShapeNames).ShownOn(TypeCount, Filters),
+            ParamDescriptor.Float("lfoRate", "LFO Rate", 0.05f, 20f, 1f, "Hz", ParamTaper.Log)
+                .ShownOn(TypeCount, Filters),
+            ParamDescriptor.Choice("lfoTempo", "LFO Tempo", TempoDivisions.Names).ShownOn(TypeCount, Filters),
+            ParamDescriptor.Float("modFreq", "Mod Frequency", 20f, 20_000f, 4_000f, "Hz", ParamTaper.Log)
+                .ShownOn(TypeCount, Filters),
             ParamDescriptor.Float("feedback", "Feedback", -95f, 95f, 0f, "%").ShownOn(TypeCount, AllPass),
-            ParamDescriptor.Float("lfoDuty", "LFO Duty", 0f, 100f, 50f, "%"),
-            LfoConditioner.QuantizeParam()
+            ParamDescriptor.Float("lfoDuty", "LFO Duty", 0f, 100f, 50f, "%").ShownOn(TypeCount, Filters),
+            LfoConditioner.QuantizeParam().ShownOn(TypeCount, Filters)
         ],
         maxInstances: 4,
         pages: [

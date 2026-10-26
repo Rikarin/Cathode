@@ -242,6 +242,43 @@ public class ModulationParityTests {
         Assert.Equal("Basic", Param("depth").Page);
     }
 
+    public static TheoryData<int> FilterTypes => [..Enumerable.Range(0, FilterBlock.Info.Params[0].Options!.Count)];
+
+    [Theory]
+    [MemberData(nameof(FilterTypes))]
+    public void A_filter_type_hides_exactly_the_controls_it_ignores(int type) {
+        // Each control moved well off its starting point (the LFO switched on and swept; the gain starts at +6 dB, so
+        // that a peak or shelf is not flat): a hidden one must not change the sound, a shown one must.
+        (string Id, float Value)[] moves = [
+            ("freq", 300f),
+            ("q", 4f),
+            ("gain", 12f),
+            ("order", 1f),
+            ("lfoOn", 1f)
+        ];
+        var reference = Render(type);
+
+        foreach (var (id, value) in moves) {
+            var param = FilterBlock.Info.Params.Single(p => p.Id == id);
+            var shown = param.TypeLabels is not { } labels || labels[type] != string.Empty;
+            var changed = !Render(type, (FilterBlock.Info.IndexOf(id), value)).SequenceEqual(reference);
+            Assert.True(shown == changed, $"type {type}: {id} is {(shown ? "shown" : "hidden")} but changed={changed}");
+        }
+
+        static float[] Render(int type, params (int Index, float Value)[] settings) {
+            using var block = TestBlocks.Create<FilterBlock>(
+                [
+                    (FilterBlock.Type, type),
+                    (FilterBlock.Gain, 6f),
+                    (FilterBlock.ModFrequency, 200f),
+                    (FilterBlock.LfoRate, 5f),
+                    ..settings
+                ]
+            );
+            return BlockRender.Mono(block, Signals.Noise(9_600, 3, 0.25f), 64);
+        }
+    }
+
     [Fact]
     public void Filter_cuts_are_first_order() {
         using var block =

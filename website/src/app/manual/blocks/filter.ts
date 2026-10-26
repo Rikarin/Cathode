@@ -24,22 +24,23 @@ Because its parameters glide smoothly, it is also a good target for an expressio
     type: `The filter's response. See the options below.`,
 
     freq: `The filter's frequency: the cut-off of a low- or high-pass, the centre of a band-pass, notch or peak, the corner
-of a shelf, the hinge of the tilt EQ. With the LFO on, it is one end of the sweep. The comb types ignore it.`,
+of a shelf, the hinge of the tilt EQ. With the LFO on, it is one end of the sweep. Hidden on Null and the comb types, which have no such filter.`,
 
     q: `The resonance or width. On a low- or high-pass, Q above 0.707 adds a resonant peak at the cut-off (the classic
 synth-filter "wow"); on a band-pass, notch or peak, higher Q is narrower. On the standard shelves it is limited to 1;
-Low and High Shelf 2 allow up to 4, so they overshoot at the corner.`,
+Low and High Shelf 2 allow up to 4, so they overshoot at the corner. Hidden on Tilt EQ (a fixed gentle slope), Null
+and the comb types.`,
 
-    gain: `The boost or cut, in dB, of the Peaking, shelf and Tilt EQ types. The pass, notch, all-pass and comb types
-ignore it.`,
+    gain: `The boost or cut, in dB, of the Peaking, shelf and Tilt EQ types; the other types hide it (use Level to
+change their volume).`,
 
     level: `The block's output level in dB. −80 dB is silent.`,
 
     balance: `Left/right balance of the output. Turning it one way turns the other side down.`,
 
     order: `**2nd** is one filter section (12 dB/oct for low- and high-pass). **4th** cascades two identical sections for
-a steeper 24 dB/oct cut and a sharper resonance. It applies to Low Pass, High Pass, Band Pass, Notch and All Pass; the
-other types ignore it.`,
+a steeper 24 dB/oct cut and a sharper resonance. It shows on Low Pass, High Pass, Band Pass, Notch and All Pass only;
+Tilt EQ is always two sections.`,
 
     lowCut: `A gentle 6 dB/oct high-pass after the filter (20 Hz is off).`,
 
@@ -63,7 +64,8 @@ values put the peaks and notches in opposite places. On FB Comb it is the feedba
 ring. It is not an LFO depth: the sweep always runs the full way between Frequency and Mod Frequency.`,
 
     lfoOn: `Modulation page: switches the built-in LFO on. It sweeps the filter's frequency between Frequency and Mod
-Frequency (spaced logarithmically, so the sweep sounds even). It does not move the comb types.`,
+Frequency (spaced logarithmically, so the sweep sounds even). Null and the comb types have no filter frequency to
+sweep, so the Modulation page is not shown on them.`,
 
     lfoType: `Modulation page: the LFO's waveform. See the options below.`,
 
