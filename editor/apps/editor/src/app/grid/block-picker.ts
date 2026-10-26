@@ -10,7 +10,7 @@ import {
   untracked
 } from '@angular/core';
 import type { BlockTypeInfo } from '@cathode/api-client';
-import { BlockCategories, CthBlockTile, blockColor } from '@cathode/audio-ui';
+import { BlockCategories, CthBlockTile } from '@cathode/audio-ui';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { matAddRound, matSearchRound } from '@ng-icons/material-icons/round';
 import { XuiDialogImports } from '@xui/dialog';
@@ -78,9 +78,10 @@ export function bestMatch(items: readonly PickerItem[], query: string): PickerIt
 }
 
 /**
- * The block palette: every placeable type as a coloured tile, grouped by category in signal-chain order (categories
- * the editor does not know yet follow, alphabetically). Typing filters by name, category or type id; the arrow keys
- * move through the tiles while the search field keeps focus, Enter adds the highlighted block and Escape closes.
+ * The block palette: every placeable type as a small coloured tile in one grid that fits without scrolling, in
+ * signal-chain order by category (categories the editor does not know yet follow, alphabetically); the tile's colour
+ * and its tooltip tell the category. Typing filters by name, category or type id; the arrow keys move through the
+ * tiles while the search field keeps focus, Enter adds the highlighted block and Escape closes.
  */
 @Component({
   selector: 'cth-block-picker',
@@ -88,7 +89,12 @@ export function bestMatch(items: readonly PickerItem[], query: string): PickerIt
   imports: [CthBlockTile, NgIcon, XuiDialogImports, XuiInputImports, XuiKbdImports],
   providers: [provideIcons({ matAddRound, matSearchRound })],
   template: `
-    <xui-dialog icon="matAddRound" [title]="title()" class="w-[min(48rem,calc(100vw-2rem))] max-w-none" [(open)]="open">
+    <xui-dialog
+      icon="matAddRound"
+      [title]="title()"
+      class="max-h-[94vh] w-[min(64rem,calc(100vw-2rem))] max-w-none"
+      [(open)]="open"
+    >
       <xui-dialog-body class="flex min-h-0 flex-col gap-4">
         <xui-input-group class="w-full">
           <ng-icon xuiInputLeftElement name="matSearchRound" />
@@ -116,46 +122,38 @@ export function bestMatch(items: readonly PickerItem[], query: string): PickerIt
           id="block-picker-list"
           role="listbox"
           aria-label="Blocks"
-          class="-mx-1 flex h-[min(60vh,32rem)] flex-col gap-4 overflow-y-auto px-1 pt-1 pb-2"
+          class="-mx-1 grid min-h-0 grid-cols-[repeat(auto-fill,minmax(6.75rem,1fr))] content-start gap-1 overflow-y-auto px-1 pt-1.5 pb-2"
         >
-          @for (group of groups(); track group.category) {
-            <div role="group" class="flex flex-col gap-2" [attr.aria-label]="group.category">
-              <div class="text-foreground-muted flex items-center gap-2 text-xs font-semibold" aria-hidden="true">
-                <span class="size-2 rounded-full" [style.background]="color(group.category)"></span>
-                {{ group.category }}
-                <span class="text-foreground-subtle font-normal">{{ group.items.length }}</span>
-              </div>
-              <div class="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-2">
-                @for (item of group.items; track item.type.typeId) {
-                  <cth-block-tile
-                    role="option"
-                    class="outline-foreground h-24 cursor-pointer outline-offset-2 hover:-translate-y-0.5 hover:brightness-110"
-                    [class.outline-2]="item.index === active()"
-                    [class.cursor-not-allowed]="item.full"
-                    [class.opacity-40]="item.full"
-                    [id]="optionId(item)"
-                    [attr.data-testid]="'pick-' + item.type.typeId"
-                    [attr.aria-label]="item.type.name + (item.full ? ', limit reached' : '')"
-                    [attr.aria-selected]="item.index === active()"
-                    [attr.aria-disabled]="item.full"
-                    [name]="item.type.name"
-                    [category]="item.type.category"
-                    [typeId]="item.type.typeId"
-                    size="lg"
-                    (pointerenter)="active.set(item.index)"
-                    (click)="choose(item)"
-                  >
-                    @if (item.full) {
-                      <span class="absolute top-1 right-1 rounded bg-black/40 px-1 text-[10px]">
-                        max {{ item.type.maxInstances }}
-                      </span>
-                    }
-                  </cth-block-tile>
-                }
-              </div>
-            </div>
+          @for (item of items(); track item.type.typeId) {
+            <cth-block-tile
+              role="option"
+              class="outline-foreground h-[4.75rem] cursor-pointer outline-offset-1 hover:-translate-y-0.5 hover:brightness-110"
+              [class.outline-2]="item.index === active()"
+              [class.cursor-not-allowed]="item.full"
+              [class.opacity-40]="item.full"
+              [id]="optionId(item)"
+              [attr.data-testid]="'pick-' + item.type.typeId"
+              [attr.aria-label]="item.type.name + (item.full ? ', limit reached' : '')"
+              [attr.aria-selected]="item.index === active()"
+              [attr.aria-disabled]="item.full"
+              [attr.title]="item.type.name + ' · ' + item.type.category"
+              [name]="item.type.name"
+              [category]="item.type.category"
+              [typeId]="item.type.typeId"
+              size="lg"
+              (pointerenter)="active.set(item.index)"
+              (click)="choose(item)"
+            >
+              @if (item.full) {
+                <span class="absolute top-0.5 right-0.5 rounded bg-black/40 px-1 text-[10px]">
+                  max {{ item.type.maxInstances }}
+                </span>
+              }
+            </cth-block-tile>
           } @empty {
-            <p class="text-foreground-muted py-10 text-center text-sm">No blocks match “{{ query() }}”.</p>
+            <p class="text-foreground-muted col-span-full py-10 text-center text-sm">
+              No blocks match “{{ query() }}”.
+            </p>
           }
         </div>
 
@@ -191,10 +189,6 @@ export class BlockPicker {
         untracked(() => this.search(''));
       }
     });
-  }
-
-  protected color(category: string): string {
-    return blockColor(category);
   }
 
   protected optionId(item: PickerItem): string {
@@ -238,7 +232,7 @@ export class BlockPicker {
     }
   }
 
-  /** The tile in the nearest row above or below (rows wrap across categories), closest to the current column. */
+  /** The tile in the nearest row above or below, closest to the current column. */
   private vertical(direction: 1 | -1): number | null {
     const items = this.items();
     const current = this.activeItem();
