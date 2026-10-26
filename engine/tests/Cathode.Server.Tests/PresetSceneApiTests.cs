@@ -381,6 +381,73 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Telemetry_carries_each_modified_parameters_live_value_by_block_and_parameter() {
+        using var socket = await server.Server.CreateWebSocketClient()
+            .ConnectAsync(new(server.Server.BaseAddress, "ws"), Token);
+        var buffer = new byte[256 * 1024];
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        deadline.CancelAfter(TimeSpan.FromSeconds(30));
+
+        async Task<JsonNode> NextTelemetry() {
+            while (true) {
+                var result = await socket.ReceiveAsync(buffer, deadline.Token);
+                var frame = JsonNode.Parse(Encoding.UTF8.GetString(buffer, 0, result.Count))!;
+                if (frame["type"]!.GetValue<string>() == "telemetry" && frame["blocks"] is not null) {
+                    return frame;
+                }
+            }
+        }
+
+        async Task<List<float>> ValuesOf(string param, int count) {
+            var values = new List<float>();
+            while (values.Count < count) {
+                if ((await NextTelemetry())["modulation"]?["delay1"]?[param] is { } value) {
+                    values.Add(value.GetValue<float>());
+                }
+            }
+
+            return values;
+        }
+
+        // None while no modifier drives a value: an engage modifier and one scoped to a channel the block is not on.
+        await Put(
+            "/api/v1/live/modifiers",
+            new List<PresetModifier> {
+                new() { Block = "delay1", Param = "engage", Source = "manualB" },
+                new() { Block = "delay1", Param = "feedback", Source = "lfo1", Min = 0, Max = 100, Channel = "B" }
+            }
+        );
+        await ServerFixture.Eventually(() => server.Graph?.Modifiers.Count == 2);
+        for (var i = 0; i < 10; i++) {
+            Assert.Null((await NextTelemetry())["modulation"]);
+        }
+
+        // An LFO on the mix: its value moves from frame to frame, within the modifier's range.
+        await Put(
+            "/api/v1/live/modifiers",
+            new List<PresetModifier> { new() { Block = "delay1", Param = "mix", Source = "lfo1", Min = 10, Max = 90 } }
+        );
+        var mix = await ValuesOf("mix", 20);
+        Assert.All(mix, static v => Assert.InRange(v, 10f, 90f));
+        Assert.True(mix.Distinct().Count() > 5, $"the LFO moves: {string.Join(", ", mix)}");
+
+        // The mapping follows a reload: the modifier moves to another parameter (and the grid recompiles).
+        await Post("/api/v1/live/blocks", new AddBlockRequest("cab", Preset.DefaultRow, 4));
+        await Put(
+            "/api/v1/live/modifiers",
+            new List<PresetModifier> {
+                new() { Block = "delay1", Param = "feedback", Source = "manualA", Min = 42, Max = 42 }
+            }
+        );
+        await ServerFixture.Eventually(async () =>
+            (await NextTelemetry())["modulation"]?["delay1"] is { } delay
+            && delay["mix"] is null
+            && delay["feedback"]?.GetValue<float>() == 42f
+        );
+        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", Token);
+    }
+
+    [Fact]
     public async Task The_preset_list_exports_as_text_with_scene_names() {
         await Patch("/api/v1/live/scenes/1", new SceneUpdateRequest("Solo"));
         await Post("/api/v1/live/save", new SaveRequest("Zebra", true));

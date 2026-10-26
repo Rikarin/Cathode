@@ -15,6 +15,7 @@ import { XuiSelectImports } from '@xui/select';
 import { XuiTooltipImports } from '@xui/tooltip';
 import { ModifierDialog } from '../controls/modifier-dialog';
 import { ConnectionService } from '../core/connection';
+import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
 import { withControl } from '../pages/perform';
 import { GlobalStore } from '../state/global.store';
@@ -25,7 +26,7 @@ import { UiStore } from '../state/ui.store';
  * One parameter of the selected block, generated from its descriptor: a knob for continuous values, a select for
  * choices, a switch for on/off. Edits go to the channel the block uses in the active scene.
  * Right-click a continuous parameter to give it a modifier or learn a MIDI controller for it; a dot marks a modified
- * parameter, whose value then follows its controller.
+ * parameter. While its modifier runs, the control follows the live value (a knob marks the value set on its track).
  */
 @Component({
   selector: 'cth-param-control',
@@ -70,6 +71,7 @@ import { UiStore } from '../state/ui.store';
             [taper]="param().taper === 'log' ? 'log' : 'linear'"
             [color]="accent()"
             [value]="value()"
+            [modulated]="modulated()"
             (valueChange)="set($event)"
           />
         </div>
@@ -107,7 +109,7 @@ import { UiStore } from '../state/ui.store';
               [aria-labelledby]="labelId()"
               [filterable]="false"
               [items]="options()"
-              [value]="options()[value()] ?? null"
+              [value]="options()[shown()] ?? null"
               (valueChange)="set(Math.max(0, options().indexOf($event ?? '')))"
             />
           </div>
@@ -122,7 +124,7 @@ import { UiStore } from '../state/ui.store';
                 [matchTargetWidth]="false"
                 [filterable]="false"
                 [items]="options()"
-                [value]="options()[value()] ?? null"
+                [value]="options()[shown()] ?? null"
                 (valueChange)="set(Math.max(0, options().indexOf($event ?? '')))"
               />
             </div>
@@ -138,7 +140,7 @@ import { UiStore } from '../state/ui.store';
           [xuiContextMenuTriggerFor]="settingMenu"
           [label]="param().name"
           [color]="accent()"
-          [checked]="value() >= 0.5"
+          [checked]="shown() >= 0.5"
           (checkedChange)="set($event ? 1 : 0)"
         />
       }
@@ -163,6 +165,7 @@ export class ParamControl {
   private readonly notify = inject(Notify);
   private readonly ui = inject(UiStore);
   private readonly globals = inject(GlobalStore);
+  private readonly events = inject(EventStream);
 
   readonly block = input.required<PresetBlock>();
   readonly param = input.required<ParameterInfo>();
@@ -183,6 +186,13 @@ export class ParamControl {
 
   protected readonly editing = signal(false);
   protected readonly modifier = computed(() => this.live.modifierOf(this.block().id, this.param().id));
+  /** The live value while a modifier drives this parameter (telemetry), else undefined. */
+  protected readonly modulated = computed(() => this.events.modulatedValue(this.block().id, this.param().id));
+  /** What a switch or choice shows: the modulated value, rounded to a step, or the value set. */
+  protected readonly shown = computed(() => {
+    const modulated = this.modulated();
+    return modulated === undefined ? this.value() : Math.round(modulated);
+  });
 
   /** Puts this control on a Perform page: the preset's, or the global one shown in every preset with this block. */
   protected addToPerform(page: 'preset' | 'global'): void {

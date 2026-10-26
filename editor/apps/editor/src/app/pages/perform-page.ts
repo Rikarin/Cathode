@@ -7,6 +7,7 @@ import { XuiIconImports } from '@xui/icon';
 import { XuiNonIdealStateImports } from '@xui/non-ideal-state';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import { XuiSelectImports } from '@xui/select';
+import { EventStream } from '../core/events';
 import { CatalogStore } from '../state/catalog.store';
 import { GlobalStore } from '../state/global.store';
 import { LiveStore } from '../state/live.store';
@@ -14,7 +15,8 @@ import { type ResolvedControl, resolveControls, withoutControl } from './perform
 
 /**
  * Perform: big controls for playing live. The preset's page travels with the preset; the global page shows in every
- * preset that has its blocks. Add a control from any knob's context menu.
+ * preset that has its blocks. Add a control from any knob's context menu. A control a modifier drives follows its
+ * live value.
  */
 @Component({
   selector: 'cth-perform-page',
@@ -69,7 +71,7 @@ import { type ResolvedControl, resolveControls, withoutControl } from './perform
                   <cth-toggle
                     [label]="c.label"
                     [color]="accent(c)"
-                    [checked]="value(c) >= 0.5"
+                    [checked]="shown(c) >= 0.5"
                     (checkedChange)="set(c, $event ? 1 : 0)"
                   />
                 }
@@ -80,7 +82,7 @@ import { type ResolvedControl, resolveControls, withoutControl } from './perform
                     [attr.aria-label]="c.label"
                     [filterable]="false"
                     [items]="param.options ?? []"
-                    [value]="(param.options ?? [])[value(c)] ?? null"
+                    [value]="(param.options ?? [])[shown(c)] ?? null"
                     (valueChange)="set(c, Math.max(0, (param.options ?? []).indexOf($event ?? '')))"
                   />
                 }
@@ -95,6 +97,7 @@ import { type ResolvedControl, resolveControls, withoutControl } from './perform
                     [taper]="param.taper === 'log' ? 'log' : 'linear'"
                     [color]="accent(c)"
                     [value]="value(c)"
+                    [modulated]="modulated(c)"
                     (valueChange)="set(c, $event)"
                   />
                 }
@@ -112,6 +115,7 @@ export class PerformPage {
   private readonly live = inject(LiveStore);
   private readonly globals = inject(GlobalStore);
   private readonly catalog = inject(CatalogStore);
+  private readonly events = inject(EventStream);
 
   protected readonly Math = Math;
   protected readonly pages = [
@@ -131,6 +135,17 @@ export class PerformPage {
     return c.block && c.param
       ? (this.live.valueOf(c.block, this.live.channelOf(c.block.id), c.param.id) ?? c.param.default)
       : 0;
+  }
+
+  /** The live value while a modifier drives the control's parameter, else undefined. */
+  protected modulated(c: ResolvedControl): number | undefined {
+    return c.block && c.param ? this.events.modulatedValue(c.block.id, c.param.id) : undefined;
+  }
+
+  /** What a switch or choice shows: the modulated value, rounded to a step, or the value set. */
+  protected shown(c: ResolvedControl): number {
+    const modulated = this.modulated(c);
+    return modulated === undefined ? this.value(c) : Math.round(modulated);
   }
 
   protected set(c: ResolvedControl, value: number): void {

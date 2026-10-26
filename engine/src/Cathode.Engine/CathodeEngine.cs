@@ -452,6 +452,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                 left,
                 right,
                 graph is null ? default : graph.Meters,
+                graph is null ? default : graph.ModifierValues,
                 graph?.Generation ?? -1,
                 loudness.Momentary,
                 loudness.ShortTerm

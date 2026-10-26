@@ -7,7 +7,8 @@ namespace Cathode.Engine.Telemetry;
 ///     Shared-memory telemetry (docs/02-architecture.md, telemetry plane): a fixed-layout region the audio thread writes
 ///     once per callback and any number of readers poll, in this process or another, without a lock and without
 ///     resetting anything. It holds the callback count, a frame clock, the CPU histogram (cumulative, so readers diff
-///     two snapshots for a window), engine overruns, driver overloads, per-slot meter peaks and every block meter.
+///     two snapshots for a window), engine overruns, driver overloads, per-slot meter peaks, every block meter and each
+///     modifier's current value.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -125,12 +126,14 @@ public sealed unsafe class TelemetryRegion : IDisposable {
     ///     budget, with the peaks it saw. Lock-free and allocation-free.
     /// </summary>
     public void RecordCallback(int frames, double percent, float input, float outputLeft, float outputRight) =>
-        RecordCallback(frames, percent, input, outputLeft, outputRight, default, -1, 0f, 0f);
+        RecordCallback(frames, percent, input, outputLeft, outputRight, default, default, -1, 0f, 0f);
 
     /// <summary>
     ///     As above, plus the block meters of graph <paramref name="generation" /> (<c>CompiledGraph.Meters</c>: each
     ///     slot's output peak and its own meters; at most <see cref="TelemetryLayout.BlockMeters" />) and the output
     ///     loudness in LUFS. Each meter slot keeps the highest value of every block meter.
+    ///     <paramref name="modifiers" /> is each modifier's value as of this callback (<c>CompiledGraph.ModifierValues</c>, NaN where it drives
+    ///     nothing; at most <see cref="TelemetryLayout.Modifiers" />): the latest, not a peak.
     /// </summary>
     public void RecordCallback(
         int frames,
@@ -139,6 +142,7 @@ public sealed unsafe class TelemetryRegion : IDisposable {
         float outputLeft,
         float outputRight,
         ReadOnlySpan<float> blockMeters,
+        ReadOnlySpan<float> modifiers,
         int generation,
         float momentary,
         float shortTerm
@@ -162,6 +166,10 @@ public sealed unsafe class TelemetryRegion : IDisposable {
         l->LoudnessMomentary = momentary;
         l->LoudnessShortTerm = shortTerm;
         var blocks = Math.Min(blockMeters.Length, TelemetryLayout.BlockMeters);
+        var modified = Math.Min(modifiers.Length, TelemetryLayout.Modifiers);
+        l->ModifierGeneration = generation;
+        l->ModifierCount = modified;
+        modifiers[..modified].CopyTo(new(l->Modifier, TelemetryLayout.Modifiers));
 
         var first = start / TelemetryLayout.FramesPerSlot;
         var last = (start + Math.Max(frames, 1) - 1) / TelemetryLayout.FramesPerSlot;
@@ -253,6 +261,9 @@ public sealed unsafe class TelemetryRegion : IDisposable {
                 .CopyTo(snapshot.BlockMeters);
             snapshot.LoudnessMomentary = l->LoudnessMomentary;
             snapshot.LoudnessShortTerm = l->LoudnessShortTerm;
+            snapshot.ModifierGeneration = l->ModifierGeneration;
+            snapshot.ModifierCount = l->ModifierCount;
+            new ReadOnlySpan<float>(l->Modifier, TelemetryLayout.Modifiers).CopyTo(snapshot.Modifiers);
 
             Interlocked.MemoryBarrier(); // the copies above must complete before the sequence is checked again
             if (Volatile.Read(ref l->Sequence) == before) {
@@ -333,6 +344,8 @@ public sealed unsafe class TelemetryRegion : IDisposable {
             memory->SlotNumber[i] = -1;
         }
 
+        memory->ModifierGeneration = -1;
+
         // Last, so a reader that checks the magic never sees a half-initialised region.
         Volatile.Write(ref memory->Magic, TelemetryLayout.MagicValue);
     }
@@ -342,12 +355,18 @@ public sealed unsafe class TelemetryRegion : IDisposable {
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct TelemetryLayout {
     public const uint MagicValue = 0x54485443; // "CTHT"
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
     public const int Bins = 201;
     public const int MeterSlots = 64;
     public const int FramesPerSlot = 256;
     public const int ScopeLength = 16_384; // a 4096-point RTA window fits with room for the writer
     public const int BlockMeters = 256; // block meter values: a peak per graph slot (a 6 x 14 grid and its shunts) plus own meters
+
+    /// <summary>
+    ///     Modifier values: presets set no limit (one per parameter), and a rich one has a few dozen; any beyond this
+    ///     run but are not shown.
+    /// </summary>
+    public const int Modifiers = 256;
 
     public uint Magic;
     public int Version;
@@ -378,6 +397,18 @@ public unsafe struct TelemetryLayout {
     ///     its output peak (linear) and then its own meters (<c>IBlockMeters</c>, dB) - <c>CompiledGraph.Meters</c>.
     /// </summary>
     public fixed float BlockMeter[MeterSlots * BlockMeters];
+
+    /// <summary>The graph generation <see cref="Modifier" /> belongs to, or -1.</summary>
+    public int ModifierGeneration;
+
+    /// <summary>How many of <see cref="Modifiers" /> values <see cref="Modifier" /> holds.</summary>
+    public int ModifierCount;
+
+    /// <summary>
+    ///     Each modifier's value as of the last callback, in its parameter's units, by index in the graph's modifiers
+    ///     (<c>CompiledGraph.ModifierValues</c>): NaN for one that is disabled, has not run yet or engages its block.
+    /// </summary>
+    public fixed float Modifier[Modifiers];
 
     /// <summary>Output loudness (ITU-R BS.1770, LUFS) as of the last callback.</summary>
     public float LoudnessMomentary;

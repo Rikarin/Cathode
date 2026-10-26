@@ -179,7 +179,9 @@ public sealed record RigEvent(
 ///     keep of their own, in dB: the Cab's <c>preampIn</c> (the level into the mic preamp, 0 at the onset of clipping)
 ///     and <c>motorReduction</c> (Motor Drive's gain reduction). Each is the highest value since the previous frame. The
 ///     loudness is the output's ITU-R BS.1770 momentary (400 ms) and short-term (3 s) level in LUFS. Both come from the
-///     shared-memory telemetry and are absent without it.
+///     shared-memory telemetry and are absent without it. <c>Modulation</c> is the current value of every parameter a
+///     modifier drives, in the parameter's units, by block id and then parameter id, as of the frame (not a peak); it
+///     is absent when no modifier is driving a parameter.
 /// </summary>
 public sealed record Telemetry(
     string Type,
@@ -194,7 +196,8 @@ public sealed record Telemetry(
     Dictionary<string, Dictionary<string, float>>? Blocks = null,
     float? LoudnessMomentary = null,
     float? LoudnessShortTerm = null,
-    float[]? OutputPeaks = null
+    float[]? OutputPeaks = null,
+    Dictionary<string, Dictionary<string, float>>? Modulation = null
 );
 
 /// <summary>

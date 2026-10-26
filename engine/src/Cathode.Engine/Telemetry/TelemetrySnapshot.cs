@@ -38,6 +38,15 @@ public sealed class TelemetrySnapshot {
 
     public float LoudnessShortTerm { get; set; }
 
+    /// <summary>The graph generation <see cref="Modifiers" /> belongs to, or -1.</summary>
+    public int ModifierGeneration { get; set; } = -1;
+
+    /// <summary>How many of <see cref="Modifiers" /> are the graph's.</summary>
+    public int ModifierCount { get; set; }
+
+    /// <summary>Each modifier's latest value, by index in the graph's modifiers (NaN where it drives none).</summary>
+    public float[] Modifiers { get; } = new float[TelemetryLayout.Modifiers];
+
     /// <summary>The meter slot that holds frame <see cref="Frames" /> - 1, or -1 before the first callback.</summary>
     public long CurrentSlot => Frames == 0 ? -1 : (Frames - 1) / TelemetryLayout.FramesPerSlot;
 
@@ -118,6 +127,9 @@ public sealed class TelemetrySnapshot {
         BlockMeters.CopyTo(other.BlockMeters, 0);
         other.LoudnessMomentary = LoudnessMomentary;
         other.LoudnessShortTerm = LoudnessShortTerm;
+        other.ModifierGeneration = ModifierGeneration;
+        other.ModifierCount = ModifierCount;
+        Modifiers.CopyTo(other.Modifiers, 0);
     }
 }
 
@@ -165,6 +177,15 @@ public sealed class TelemetryMonitor(TelemetryRegion region) {
     public int BlockGeneration { get; private set; } = -1;
 
     public int BlockMeterCount { get; private set; }
+
+    /// <summary>
+    ///     Each modifier's value as of the last poll, in its parameter's units, by index in the graph's modifiers
+    ///     (<c>CompiledGraph.ModifierValues</c>): the latest, not a peak; NaN where it drives nothing.
+    /// </summary>
+    public ReadOnlySpan<float> ModifierValues => current.Modifiers.AsSpan(0, current.ModifierCount);
+
+    /// <summary>The graph generation <see cref="ModifierValues" /> belong to, or -1.</summary>
+    public int ModifierGeneration => current.ModifierGeneration;
 
     /// <summary>The output's momentary loudness (400 ms), LUFS, as of the last poll.</summary>
     public float LoudnessMomentary { get; private set; }
