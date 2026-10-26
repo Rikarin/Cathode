@@ -59,6 +59,8 @@ jobs:
           cache-dependency-path: editor/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec nx build desktop
+      # The network tests open the editor in a browser too, as a tablet on the same Wi-Fi would.
+      - run: pnpm exec playwright install --with-deps chromium
       - name: Playwright (Electron)
         run: xvfb-run --auto-servernum pnpm exec playwright test --config apps/desktop/e2e/playwright.config.ts
       - if: failure()
