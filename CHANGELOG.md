@@ -4,6 +4,29 @@ Cathode follows [semantic versioning](https://semver.org). From 1.0 on, a preset
 in every later one: the preset format carries a schema version (`schemaVersion`, now 1), and a release that changes
 the format upgrades older presets as it reads them.
 
+## 1.0.0-rc.3 — 2026-10-26
+
+### Added
+
+- **Global mute.** Every output fades out, from the mute button in the navbar, the M key or a footswitch (the MIDI
+  action "Mute", with its LED). The mute is kept across preset changes.
+- **Knobs follow their modifiers live**, as in Axe-Edit: a knob driven by an LFO, an envelope or an expression
+  pedal turns with the value it is getting.
+
+### Changed
+
+- **The block picker is one grid** of every block, without category headings, sized so you can pick a block
+  without scrolling.
+- **The editor window** opens at 1440 × 1094 (also its minimum), and the bottom drawer takes half the height.
+- **The block page:** the left column and the controls scroll on their own, and "Find the cab resonance" sits below
+  the amp's controls.
+- **Controllers:** LFO 1 and 2, ADSR 1 and 2 and the two envelope followers sit side by side.
+
+### Internal
+
+- The engine is checked by [Skala](https://github.com/Rikarin/Skala) in CI: formatting, analysis and duplication,
+  with its findings in GitHub code scanning. Its 139 errors are fixed; no sound changes.
+
 ## 1.0.0-rc.2 — 2026-10-25
 
 ### Fixed

@@ -14,7 +14,7 @@
     <!-- The release: a tag build sets CATHODE_VERSION (v1.2.3), which wins; local builds take the default, kept equal to
          editor/package.json's version (a test checks). It reaches the host's `version`, /api/v1/system and the host's
          hello. -->
-    <Version>1.0.0-rc.2</Version>
+    <Version>1.0.0-rc.3</Version>
     <Version Condition="'$(CATHODE_VERSION)' != ''">$(CATHODE_VERSION.TrimStart('v'))</Version>
     <Authors>Cathode contributors</Authors>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
