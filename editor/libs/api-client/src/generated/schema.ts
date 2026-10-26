@@ -597,6 +597,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/live/mute': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Mutes or unmutes every output, the metronome and looper included; not saved anywhere. */
+    put: operations['SetMute'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/live/blocks/{id}/channels/swap': {
     parameters: {
       query?: never;
@@ -2186,6 +2203,8 @@ export interface components {
       held?: null | {
         [key: string]: components['schemas']['SceneBlockState'];
       };
+      /** @default false */
+      muted: boolean;
     };
     /** @description Arms MIDI learn: the next CC, note or program change received is bound to this action. */
     MidiLearnRequest: {
@@ -2229,6 +2248,10 @@ export interface components {
       from: number;
       /** Format: int32 */
       to: number;
+    };
+    /** @description Mutes or unmutes every output (`PUT /live/mute`). */
+    MuteRequest: {
+      muted: boolean;
     };
     /** @description One of Outputs 1-4. */
     OutputSettings: {
@@ -3523,6 +3546,30 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['SceneIgnoreRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  SetMute: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MuteRequest'];
       };
     };
     responses: {

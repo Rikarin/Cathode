@@ -332,6 +332,9 @@ public sealed partial class MidiRouter : IDisposable {
             case "metronome" when down || continuous:
                 globals.Update(g => g.Metronome = continuous ? data >= 64 : !g.Metronome);
                 break;
+            case "mute" when down || continuous:
+                _ = rig.SetMutedAsync(continuous ? data >= 64 : !rig.Muted);
+                break;
             case "looper" when down && action.Target is { } looper:
                 engine.Looper(looper);
                 break;
@@ -399,6 +402,7 @@ public sealed partial class MidiRouter : IDisposable {
                 "bypass" when footswitch.Tap.Target is { } block => !rig.IsBypassed(block),
                 "tuner" => tunerOn,
                 "metronome" => settings.Metronome,
+                "mute" => rig.Muted,
                 "looper" => footswitch.Tap.Target switch {
                     "record" => looper == "recording",
                     "play" => looper is "playing" or "overdubbing",

@@ -1235,6 +1235,37 @@
         }
       }
     },
+    "/api/v1/live/mute": {
+      "put": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Mutes or unmutes every output, the metronome and looper included; not saved anywhere.",
+        "operationId": "SetMute",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MuteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/live/blocks/{id}/channels/swap": {
       "post": {
         "tags": [
@@ -4871,7 +4902,8 @@
           "revision",
           "dirty",
           "canUndo",
-          "canRedo"
+          "canRedo",
+          "muted"
         ],
         "type": "object",
         "properties": {
@@ -4903,6 +4935,10 @@
             "additionalProperties": {
               "$ref": "#/components/schemas/SceneBlockState"
             }
+          },
+          "muted": {
+            "type": "boolean",
+            "default": false
           }
         },
         "description": "The rig as it is running: the working copy, which scene is active, and whether it differs from the library.\n\u0060Held\u0060 lists the blocks whose bypass and channel differ from the active scene\u0027s because Scene Ignore kept\nthem as they were: what they are running now."
@@ -5013,6 +5049,18 @@
           }
         },
         "description": "Moves a whole row or column (\u0060Axis\u0060) from one index to another, shifting the ones between."
+      },
+      "MuteRequest": {
+        "required": [
+          "muted"
+        ],
+        "type": "object",
+        "properties": {
+          "muted": {
+            "type": "boolean"
+          }
+        },
+        "description": "Mutes or unmutes every output (\u0060PUT /live/mute\u0060)."
       },
       "OutputSettings": {
         "required": [

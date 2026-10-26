@@ -15,6 +15,21 @@ public sealed partial class LiveRig {
     /// <summary>The working copy's id (unlocked read, for "next preset" from a footswitch).</summary>
     public string PresetId => Volatile.Read(ref preset).Id;
 
+    /// <summary>
+    ///     Whether every output is muted. Live only: not part of the preset or the global settings, so Cathode never
+    ///     starts silent.
+    /// </summary>
+    public bool Muted { get; private set; }
+
+    /// <summary>Mutes or unmutes every output (from the editor, a footswitch or a MIDI message).</summary>
+    public Task<LiveState> SetMutedAsync(bool muted) =>
+        Locked(() => {
+                Muted = muted;
+                engine.SetParams(generation, [new(IpcBlocks.Rig, "mute", muted ? 1 : 0)]);
+                return Task.FromResult(Changed("muteChanged", markDirty: false));
+            }
+        );
+
     /// <summary>A tap (from the editor or a MIDI switch); the engine averages taps, sample-accurately.</summary>
     public void Tap(long? sampleTime = null) {
         Volatile.Write(ref tapFollowUntil, DateTime.UtcNow.Add(TapFollowWindow).Ticks);

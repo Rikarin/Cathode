@@ -15,7 +15,7 @@ static class GlobalValidation {
 
     static readonly string[] Actions = [
         "scene", "sceneNext", "scenePrevious", "presetSlot", "presetNext", "presetPrevious", "bypass", "channel",
-        "external", "manual", "tap", "tuner", "metronome", "looper", "sceneLevelUp", "sceneLevelDown", "save",
+        "external", "manual", "tap", "tuner", "metronome", "mute", "looper", "sceneLevelUp", "sceneLevelDown", "save",
         "layout", "view", "viewNext", "viewPrevious"
     ];
 

@@ -595,7 +595,7 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
             </div>
             <xui-callout minimal compact color="primary">
               Actions are written as "action target value": scene 2, sceneNext, bypass delay1, channel amp1 1, looper
-              record, tap, tuner, metronome, presetNext, viewNext, layout &lt;id&gt;. A switch with a hold action acts
+              record, tap, tuner, metronome, mute, presetNext, viewNext, layout &lt;id&gt;. A switch with a hold action acts
               on release; hold it for half a second for the hold action. A switch can also jump to another layout after
               its action, and the loaded preset can give it an action of its own (In this preset), saved with the
               preset.

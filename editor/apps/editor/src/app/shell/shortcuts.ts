@@ -77,6 +77,7 @@ export const Shortcuts: readonly Shortcut[] = [
   { id: 'redo', group: 'Edit', label: 'Redo', key: 'z', mod: true, shift: true },
   { id: 'redoAlias', group: 'Edit', label: 'Redo (alias)', key: 'y', mod: true },
   { id: 'tuner', group: 'Other', label: 'Tuner', key: 't', mod: true },
+  { id: 'mute', group: 'Other', label: 'Mute or unmute every output', key: 'm' },
   { id: 'settings', group: 'Other', label: 'Settings', key: ',', mod: true },
   { id: 'help', group: 'Other', label: 'Keyboard shortcuts', key: '?', shift: true }
 ];

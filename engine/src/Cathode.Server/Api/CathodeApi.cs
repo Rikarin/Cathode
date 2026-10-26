@@ -750,6 +750,13 @@ public static class CathodeApi {
             )
             .WithName("SetSceneIgnore")
             .WithSummary("Scene Ignore for one channel: while on it, scene changes leave the block's bypass and channel.");
+        live.MapPut(
+                "/mute",
+                async (MuteRequest request, LiveRig rig, HttpContext http) =>
+                    Respond(http, await rig.SetMutedAsync(request.Muted))
+            )
+            .WithName("SetMute")
+            .WithSummary("Mutes or unmutes every output, the metronome and looper included; not saved anywhere.");
         live.MapPost(
                 "/blocks/{id}/channels/swap",
                 async (string id, CopyChannelRequest request, LiveRig rig, HttpContext http) =>

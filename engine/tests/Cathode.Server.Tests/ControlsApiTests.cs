@@ -307,6 +307,19 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
     }
 
+    [Fact]
+    public async Task Mute_silences_the_rig_live_without_touching_the_preset() {
+        var before = await Live();
+        var muted = await Put("/api/v1/live/mute", new MuteRequest(true));
+        Assert.True(muted.Muted);
+        Assert.Equal(before.Dirty, muted.Dirty);
+        await ServerFixture.Eventually(() => Rig("mute") == 1f);
+
+        var unmuted = await Put("/api/v1/live/mute", new MuteRequest(false));
+        Assert.False(unmuted.Muted);
+        await ServerFixture.Eventually(() => Rig("mute") == 0f);
+    }
+
     float Rig(string id) => server.Host.Engine.Rig.GetTarget(RigControls.Descriptor.IndexOf(id));
 
     static bool Sent(List<byte[]> sent, byte[] message) {

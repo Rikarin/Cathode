@@ -77,7 +77,9 @@ public static class RigControls {
             ..Enumerable.Range(1, SequencerStages)
                 .Select(static i => ParamDescriptor.Float($"seq{i}", $"Stage {i}", 0f, 1f, i % 2 == 0 ? 0f : 1f)),
             // Global: Cab and IR Player blocks pass audio through (BlockContext.CabsOff), for a real cab.
-            ParamDescriptor.Switch("cabsOff", "Cab Modeling Off")
+            ParamDescriptor.Switch("cabsOff", "Cab Modeling Off"),
+            // Live only (never saved): silences every output, after the metronome and the looper.
+            ParamDescriptor.Switch("mute", "Mute")
         ],
         maxInstances: 1,
         channels: 1

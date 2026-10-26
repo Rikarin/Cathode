@@ -10,7 +10,9 @@ import {
   matSettingsRound,
   matShowChartRound,
   matTuneRound,
-  matUndoRound
+  matUndoRound,
+  matVolumeOffRound,
+  matVolumeUpRound
 } from '@ng-icons/material-icons/round';
 import { XuiButtonImports } from '@xui/button';
 import { XuiDialogImports } from '@xui/dialog';
@@ -83,7 +85,9 @@ import { UiStore } from './state/ui.store';
       matSettingsRound,
       matShowChartRound,
       matTuneRound,
-      matUndoRound
+      matUndoRound,
+      matVolumeOffRound,
+      matVolumeUpRound
     })
   ],
   host: {
@@ -214,6 +218,20 @@ import { UiStore } from './state/ui.store';
               (click)="levelingOpen.set(true)"
             >
               <ng-icon xui name="matGraphicEqRound" size="sm" />
+            </button>
+            <button
+              xuiButton
+              variant="ghost"
+              size="sm"
+              data-testid="mute"
+              [attr.aria-label]="live.state()?.muted ? 'Unmute' : 'Mute'"
+              [attr.aria-pressed]="live.state()?.muted ?? false"
+              [class.text-error]="live.state()?.muted"
+              [class.bg-error/15]="live.state()?.muted"
+              [xuiTooltip]="live.state()?.muted ? 'Muted: every output is silent (M)' : 'Mute every output (M)'"
+              (click)="toggleMute()"
+            >
+              <ng-icon xui [name]="live.state()?.muted ? 'matVolumeOffRound' : 'matVolumeUpRound'" size="sm" />
             </button>
             <cth-engine-meters />
             @if (settingsButton) {
@@ -401,6 +419,11 @@ export class App {
   }
 
   /** A factory preset cannot be overwritten: Save asks for the name of the user's own copy instead. */
+  /** Mutes or unmutes every output (the navbar button, M, or a footswitch on the rig). */
+  protected toggleMute(): void {
+    void this.live.setMuted(!this.live.state()?.muted);
+  }
+
   protected save(): void {
     if (this.live.preset()?.factory) {
       this.openSaveAs();
@@ -457,6 +480,7 @@ export class App {
       undo: () => void this.live.undo(),
       redo: () => void this.live.redo(),
       redoAlias: () => void this.live.redo(),
+      mute: () => this.toggleMute(),
       tuner: () => ui.tunerOpen.update(open => !open),
       settings: () => ui.settings.update(tab => (tab === null ? 'preferences' : null)),
       help: () => ui.settings.update(tab => (tab === 'shortcuts' ? null : 'shortcuts'))

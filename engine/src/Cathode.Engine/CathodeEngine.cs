@@ -69,6 +69,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     readonly int inputGainIndex = RigControls.Descriptor.IndexOf("in1Gain");
     readonly int calibrationIndex = RigControls.Descriptor.IndexOf("in1Cal");
     readonly int copyIndex = RigControls.Descriptor.IndexOf("copyOut2");
+    readonly int muteIndex = RigControls.Descriptor.IndexOf("mute");
     readonly int[] modeIndex = [..Enumerable.Range(1, Outputs).Select(static k => RigControls.Descriptor.IndexOf($"out{k}Mode"))];
     readonly int[] trimIndex = [..Enumerable.Range(1, Outputs).Select(static k => RigControls.Descriptor.IndexOf($"out{k}Level"))];
     readonly GraphicEqBlock[] outputEqs = [new(), new(), new(), new()];
@@ -88,6 +89,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     readonly LoudnessMeter loudness;
     int tapCount;
     float levelGain = 1f;
+    float muteGain = 1f; // the mute's fade, 0 when muted
     Looper? looper;
     CompiledGraph? tail;
     float tailInput; // gain into the spilling graph: 1 at the swap, falling to 0
@@ -416,11 +418,22 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                     metronome.Process(slice.OutputLeft, slice.OutputRight, sampleTime, modulation.Tempo, click);
                 }
 
+                // Mute: every output fades out (and back in) as a graph swap does, metronome and looper included.
+                var muteFrom = muteGain;
+                var muteTo = Rig.GetTarget(muteIndex) >= 0.5f ? 0f : 1f;
+                var muting = muteFrom != 1f || muteTo != 1f;
+                if (muting) {
+                    muteGain = Ramp(slice.OutputLeft, slice.OutputRight, muteFrom, muteTo);
+                }
+
                 for (var k = 1; k < Outputs; k++) {
                     if (active[k]) {
                         var auxLeft = graphOutputs.Left(k, length);
                         var auxRight = graphOutputs.Right(k, length);
                         FinishOutput(k, auxLeft, auxRight, context);
+                        if (muting) {
+                            Ramp(auxLeft, auxRight, muteFrom, muteTo);
+                        }
                         auxLeft.CopyTo(bus!.Left(k).Slice(offset, length));
                         auxRight.CopyTo(bus.Right(k).Slice(offset, length));
                         outputPeak[k] = Math.Max(outputPeak[k], Math.Max(Peak(auxLeft), Peak(auxRight)));

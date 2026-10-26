@@ -175,6 +175,24 @@ public class RigTests {
     }
 
     [Fact]
+    public void Mute_fades_every_output_out_and_back_in_metronome_included() {
+        var engine = Engine();
+        Set(engine, "metronome", 1f);
+        Set(engine, "tempo", 120f);
+        var input = Signals.Sine(220, 48_000, 48_000, 0.5f);
+
+        Set(engine, "mute", 1f);
+        var (muted, _) = OfflineRenderer.Render(engine, input, input, 64);
+        Set(engine, "mute", 0f);
+        var (unmuted, _) = OfflineRenderer.Render(engine, input, input, 64);
+
+        // Silent once the fade is done (a beat's click at 24,000 included), and back to full level after it.
+        Assert.True(Analysis.Peak(muted.AsSpan(4_800)) < 1e-6, "silent while muted");
+        Assert.True(Analysis.Peak(unmuted.AsSpan(4_800, 4_800)) > 0.4, "back after unmuting");
+        Assert.True(Analysis.Peak(muted.AsSpan(0, 32)) > 0, "fades rather than cuts");
+    }
+
+    [Fact]
     public void Modifiers_with_unknown_sources_or_parameters_are_rejected() {
         var definition = Graph();
         definition.Modifiers.Add(new() { Block = "vol", Param = "nope", Source = "lfo1" });

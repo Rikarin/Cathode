@@ -19,6 +19,7 @@ namespace Cathode.Contracts;
 [JsonSerializable(typeof(ValueRequest))]
 [JsonSerializable(typeof(ScenePairRequest))]
 [JsonSerializable(typeof(SceneIgnoreRequest))]
+[JsonSerializable(typeof(MuteRequest))]
 [JsonSerializable(typeof(SceneBlockState))]
 [JsonSerializable(typeof(MidiLearnRequest))]
 [JsonSerializable(typeof(List<MidiMapping>))]

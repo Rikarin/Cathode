@@ -808,7 +808,10 @@ public sealed partial class LiveRig(
         var oversampling = globals.Get().Oversampling;
         await engine.LoadGraphAsync(PresetGraph.Build(preset, activeScene, assets, held, oversampling), generation);
         compiledOversampling = oversampling;
-        engine.SetParams(generation, [..RigValues(), ..GlobalValues(globals.Get())]);
+        engine.SetParams(
+            generation,
+            [..RigValues(), ..GlobalValues(globals.Get()), new(IpcBlocks.Rig, "mute", Muted ? 1 : 0)]
+        );
     }
 
     /// <summary>The rig bank as this preset and scene set it: controllers, tempo, scene level and controllers.</summary>
@@ -911,7 +914,8 @@ public sealed partial class LiveRig(
             dirty,
             undo.Count > 0,
             redo.Count > 0,
-            held.IsEmpty ? null : new(held, StringComparer.Ordinal)
+            held.IsEmpty ? null : new(held, StringComparer.Ordinal),
+            Muted
         );
     }
 

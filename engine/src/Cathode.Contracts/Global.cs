@@ -210,5 +210,8 @@ public sealed record ScenePairRequest(int From, int To);
 
 public sealed record SceneIgnoreRequest(bool Enabled);
 
+/// <summary>Mutes or unmutes every output (<c>PUT /live/mute</c>).</summary>
+public sealed record MuteRequest(bool Muted);
+
 /// <summary>Arms MIDI learn: the next CC, note or program change received is bound to this action.</summary>
 public sealed record MidiLearnRequest(string Action, string? Target = null, int? Value = null);

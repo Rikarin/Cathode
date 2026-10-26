@@ -12,7 +12,8 @@ public sealed record LiveState(
     bool Dirty,
     bool CanUndo,
     bool CanRedo,
-    Dictionary<string, SceneBlockState>? Held = null
+    Dictionary<string, SceneBlockState>? Held = null,
+    bool Muted = false
 );
 
 public sealed record PresetSummary(
