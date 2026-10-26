@@ -239,12 +239,21 @@ public sealed class EngineHostService : IDisposable {
                 Type = IpcTypes.Ok,
                 Id = request.Id,
                 SlotIds = [..graph.SlotIds],
-                MeterIds = graph.MeterLayout
+                MeterIds = graph.MeterLayout,
+                ModifierTargets = [..graph.Modifiers.Select(m => ModifierTargetOf(graph, m))]
             };
         } catch (GraphValidationException e) {
             return IpcMessage.Fail(request.Id, "The graph is invalid.", [..e.Errors]);
         }
     }
+
+    static ModifierTarget ModifierTargetOf(CompiledGraph graph, ModifierBinding modifier) =>
+        new(
+            graph.SlotIds[modifier.Slot],
+            modifier.ParamIndex == ModifierBinding.Engage
+                ? ModNames.EngageParam
+                : graph.Block(modifier.Slot).Descriptor.Params[modifier.ParamIndex].Id
+        );
 
     IpcMessage SetParams(IpcMessage request) {
         var values = request.Params ?? [];

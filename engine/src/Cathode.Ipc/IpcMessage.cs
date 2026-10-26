@@ -85,6 +85,12 @@ public sealed class IpcMessage {
     /// </summary>
     public string[]? MeterIds { get; set; }
 
+    /// <summary>
+    ///     The reply to loadGraph: the parameter each modifier drives, in the order the telemetry region's modifier
+    ///     values come in (an engage modifier's parameter is <c>engage</c>).
+    /// </summary>
+    public List<ModifierTarget>? ModifierTargets { get; set; }
+
     public bool? Bypassed { get; set; }
 
     public bool? Enabled { get; set; }
@@ -134,6 +140,9 @@ public sealed class IpcMessage {
 }
 
 public sealed record ParamValue(string Block, string Param, float Value);
+
+/// <summary>The block and parameter a modifier drives.</summary>
+public sealed record ModifierTarget(string Block, string Param);
 
 /// <summary>
 ///     The host's answer to <c>hello</c>. <c>TelemetryPath</c> names its shared-memory telemetry file (meters, CPU

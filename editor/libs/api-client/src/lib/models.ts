@@ -181,7 +181,15 @@ export interface Telemetry {
   loudnessShortTerm?: number;
   /** Peak of Outputs 1-4 (after their EQ and Boost/Pad), as the slower host telemetry last reported them. */
   outputPeaks?: number[];
+  /**
+   * The current value of every parameter a modifier drives, in the parameter's units, by block id and then parameter
+   * id (the latest, not a peak). Absent when no modifier is driving a parameter, or without shared-memory telemetry.
+   */
+  modulation?: Modulation;
 }
+
+/** Live modulated values by block id and then parameter id (`Telemetry.modulation`). */
+export type Modulation = Record<string, Record<string, number>>;
 
 /** Pushed about 30 times a second while the scope is on: recent output samples, oldest first. */
 export interface ScopeFrame {

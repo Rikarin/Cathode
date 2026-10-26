@@ -37,6 +37,7 @@ public sealed class CompiledGraph : IDisposable {
     readonly BypassState[] bypass;
     readonly float fadeStep;
     readonly ModifierBinding[] modifiers;
+    readonly float[] modifierValues;
     readonly ILooperBlock? looperBlock;
     readonly bool[] outputs = new bool[NodeTypes.OutputCount];
     readonly float[] meters;
@@ -81,6 +82,13 @@ public sealed class CompiledGraph : IDisposable {
 
     public IReadOnlyList<ModifierBinding> Modifiers => modifiers;
 
+    /// <summary>
+    ///     Audio thread: each modifier's value in its parameter's units, by index in <see cref="Modifiers" />, as of
+    ///     the last <see cref="ApplyModifiers" />: NaN for one that is disabled or has not run yet, and for an engage
+    ///     modifier (it drives the bypass, not a value). The telemetry region shows it, so knobs follow their modifier.
+    /// </summary>
+    public ReadOnlySpan<float> ModifierValues => modifierValues;
+
     /// <summary>The RTA block's tap, when the graph has one: the engine sends what it holds to the analyser.</summary>
     public AnalyzerTap? Analyzer { get; }
 
@@ -114,6 +122,8 @@ public sealed class CompiledGraph : IDisposable {
         InputPort? inputs = null
     ) {
         this.modifiers = modifiers ?? [];
+        modifierValues = new float[this.modifiers.Length];
+        modifierValues.AsSpan().Fill(float.NaN);
         Analyzer = analyzer;
         Inputs = inputs;
         Generation = generation;
@@ -188,8 +198,10 @@ public sealed class CompiledGraph : IDisposable {
     /// </summary>
     public void ApplyModifiers(Modulation modulation, int frames) {
         var seconds = frames / Spec.SampleRate;
-        foreach (ref var modifier in modifiers.AsSpan()) {
+        for (var i = 0; i < modifiers.Length; i++) {
+            ref var modifier = ref modifiers[i];
             if (!modifier.Enabled) {
+                modifierValues[i] = float.NaN;
                 continue;
             }
 
@@ -205,11 +217,13 @@ public sealed class CompiledGraph : IDisposable {
                 ? target
                 : modifier.Value + (target - modifier.Value) * (float)(1 - Math.Exp(-seconds / (ms * 0.001)));
             if (modifier.ParamIndex == ModifierBinding.Engage) {
+                modifierValues[i] = float.NaN;
                 var bypassed = modifier.Value < 0.5f;
                 if (bypass[modifier.Slot].Target != bypassed) {
                     SetBypass(modifier.Slot, bypassed);
                 }
             } else {
+                modifierValues[i] = modifier.Value;
                 blocks[modifier.Slot].Params.Modulate(modifier.ParamIndex, modifier.Value, frames);
             }
         }
@@ -517,6 +531,7 @@ public sealed class CompiledGraph : IDisposable {
         ref var modifier = ref modifiers[index];
         modifier.Enabled = enabled;
         modifier.Value = float.NaN;
+        modifierValues[index] = float.NaN;
         if (!enabled && modifier.ParamIndex != ModifierBinding.Engage) {
             blocks[modifier.Slot].Params.SetTarget(modifier.ParamIndex, baseValue);
         }

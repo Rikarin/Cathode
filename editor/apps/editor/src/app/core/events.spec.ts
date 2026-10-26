@@ -1,5 +1,8 @@
+import { computed } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import type { Telemetry } from '@cathode/api-client';
-import { blockMeter } from './events';
+import { ConnectionService } from './connection';
+import { EventStream, blockMeter, modulatedValue } from './events';
 
 describe('blockMeter', () => {
   const frame = {
@@ -18,5 +21,41 @@ describe('blockMeter', () => {
     expect(blockMeter(null, 'cab1', 'peak')).toBeUndefined();
     expect(blockMeter(frame, 'delay1', 'peak')).toBeUndefined();
     expect(blockMeter(frame, 'in1', 'preampIn')).toBeUndefined();
+  });
+});
+
+describe('modulatedValue', () => {
+  const modulation = { delay1: { mix: 42.5, feedback: 10 }, amp1: { gain: 0 } };
+
+  it('reads a modulated parameter by block and parameter id', () => {
+    expect(modulatedValue(modulation, 'delay1', 'mix')).toBe(42.5);
+    expect(modulatedValue(modulation, 'amp1', 'gain')).toBe(0);
+  });
+
+  it('is undefined when nothing modulates the parameter or the value is not finite', () => {
+    expect(modulatedValue(null, 'delay1', 'mix')).toBeUndefined();
+    expect(modulatedValue(modulation, 'delay1', 'time')).toBeUndefined();
+    expect(modulatedValue(modulation, 'reverb1', 'mix')).toBeUndefined();
+    expect(modulatedValue({ delay1: { mix: Number.NaN } }, 'delay1', 'mix')).toBeUndefined();
+  });
+});
+
+describe('EventStream.modulation', () => {
+  function receive(stream: EventStream, message: object): void {
+    (stream as unknown as { receive(data: unknown): void }).receive(JSON.stringify(message));
+  }
+
+  it('follows the telemetry frames and clears when no parameter is modulated any more', () => {
+    TestBed.configureTestingModule({ providers: [{ provide: ConnectionService, useValue: {} }] });
+    const stream = TestBed.inject(EventStream);
+    const mix = TestBed.runInInjectionContext(() => computed(() => stream.modulatedValue('delay1', 'mix')));
+
+    receive(stream, { type: 'telemetry', modulation: { delay1: { mix: 30 } } });
+    expect(mix()).toBe(30);
+    receive(stream, { type: 'telemetry', modulation: { delay1: { mix: 31.5 } } });
+    expect(mix()).toBe(31.5);
+    receive(stream, { type: 'telemetry' });
+    expect(mix()).toBeUndefined();
+    expect(stream.modulation()).toBeNull();
   });
 });

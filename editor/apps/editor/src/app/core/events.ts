@@ -2,6 +2,7 @@ import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import {
   eventsUrl,
   type MidiActivity,
+  type Modulation,
   type RigEvent,
   type RtaFrame,
   type ScopeFrame,
@@ -16,6 +17,15 @@ const MaxBackoffMs = 5_000;
 /** Block `block`'s meter `meter` in a telemetry frame: every block has `peak`; some have their own meters too. */
 export function blockMeter(frame: Telemetry | null | undefined, block: string, meter: string): number | undefined {
   return frame?.blocks?.[block]?.[meter];
+}
+
+/**
+ * The live value of block `block`'s parameter `param` while a modifier drives it, or undefined when none does (or
+ * before telemetry arrives).
+ */
+export function modulatedValue(modulation: Modulation | null | undefined, block: string, param: string) {
+  const value = modulation?.[block]?.[param];
+  return value !== undefined && Number.isFinite(value) ? value : undefined;
 }
 
 /**
@@ -47,6 +57,18 @@ export class EventStream {
    */
   blockMeter(block: string, meter: string): number | undefined {
     return blockMeter(this.latest, block, meter);
+  }
+
+  /**
+   * The modulated parameters of the latest telemetry frame (null when none is modulated). A signal, unlike
+   * {@link latest}: knobs follow their modifier through it. It changes only while something is modulated, about 30
+   * times a second, and a control's `computed` over it only marks its view when its own value moved.
+   */
+  readonly modulation = signal<Modulation | null>(null);
+
+  /** The live value of `block`'s parameter `param` while a modifier drives it; reactive (see {@link modulation}). */
+  modulatedValue(block: string, param: string): number | undefined {
+    return modulatedValue(this.modulation(), block, param);
   }
 
   /** The most recent scope frame, while the scope is on. Not a signal either. */
@@ -91,6 +113,7 @@ export class EventStream {
 
       this.status.set('closed');
       this.socket = null;
+      this.modulation.set(null);
       if (!this.stopped) {
         const delay = Math.min(MaxBackoffMs, 250 * 2 ** this.attempts++);
         this.retry = setTimeout(() => this.open(), delay);
@@ -117,6 +140,10 @@ export class EventStream {
     } else if (message.type === 'telemetry') {
       this.latest = message as Telemetry;
       this.latestAt = performance.now();
+      const modulation = this.latest.modulation ?? null;
+      if (modulation || this.modulation()) {
+        this.modulation.set(modulation);
+      }
     } else {
       this.events$.next(message as RigEvent);
     }

@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using Cathode.Contracts;
 using Cathode.Dsp.Routing;
 using Cathode.Engine.Graph;
+using Cathode.Engine.Rig;
 using Cathode.Engine.Telemetry;
 using Cathode.EngineHost;
 using Cathode.Ipc;
@@ -37,6 +38,9 @@ public sealed partial class EngineConnection(
 
     /// <summary>The block and meter id of each block meter of the graph last loaded.</summary>
     MeterMap meterMap = new(-1, [], []);
+
+    /// <summary>The block and parameter each modifier of the graph last loaded drives.</summary>
+    ModifierMap modifierMap = new(-1, []);
     string? lastError;
     volatile bool scopeEnabled;
 
@@ -107,6 +111,7 @@ public sealed partial class EngineConnection(
         var answer = await reply.Task;
         if (answer.SlotIds is { } ids) {
             Volatile.Write(ref meterMap, MeterMap.Of(generation, ids, answer.MeterIds));
+            Volatile.Write(ref modifierMap, new(generation, answer.ModifierTargets ?? []));
         }
     }
 
@@ -356,7 +361,8 @@ public sealed partial class EngineConnection(
                     BlockMeters(source),
                     source.LoudnessMomentary,
                     source.LoudnessShortTerm,
-                    OutputPeaks(LastTelemetry)
+                    OutputPeaks(LastTelemetry),
+                    Modulation(source)
                 ),
                 ContractsJsonContext.Default.Telemetry
             );
@@ -385,6 +391,35 @@ public sealed partial class EngineConnection(
             }
 
             meters[map.Meters[i]] = values[i];
+        }
+
+        return blocks;
+    }
+
+    /// <summary>
+    ///     The value of every parameter a modifier drives, by block id and parameter id, when the values belong to the
+    ///     graph whose modifiers the host reported; null when none is driving one (disabled, engage or not yet run).
+    /// </summary>
+    Dictionary<string, Dictionary<string, float>>? Modulation(TelemetryMonitor source) {
+        var map = Volatile.Read(ref modifierMap);
+        if (source.ModifierGeneration != map.Generation || map.Generation < 0) {
+            return null;
+        }
+
+        var values = source.ModifierValues;
+        Dictionary<string, Dictionary<string, float>>? blocks = null;
+        for (var i = 0; i < values.Length && i < map.Targets.Count; i++) {
+            var target = map.Targets[i];
+            if (!float.IsFinite(values[i]) || target.Param == ModNames.EngageParam) {
+                continue;
+            }
+
+            blocks ??= new(StringComparer.Ordinal);
+            if (!blocks.TryGetValue(target.Block, out var parameters)) {
+                blocks[target.Block] = parameters = new(1, StringComparer.Ordinal);
+            }
+
+            parameters[target.Param] = values[i];
         }
 
         return blocks;
@@ -527,6 +562,9 @@ public sealed partial class EngineConnection(
     public event Action<HostTelemetry>? TelemetryUpdated;
 
     sealed record Work(IpcMessage Message, TaskCompletionSource<IpcMessage>? Reply);
+
+    /// <summary>Which block and parameter each modifier of a graph drives (the telemetry region's order).</summary>
+    sealed record ModifierMap(int Generation, List<ModifierTarget> Targets);
 
     /// <summary>
     ///     Which block and meter each of a graph's block meters is (the telemetry region's order: slot by slot, each

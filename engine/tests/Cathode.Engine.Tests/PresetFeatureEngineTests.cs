@@ -161,6 +161,48 @@ public class PresetFeatureEngineTests {
         Assert.Equal(own[1], monitor.BlockMeters[graph.MeterIndex("cab", "motorReduction")], 0.5);
     }
 
+    [Fact]
+    public void Each_modifiers_value_reaches_the_telemetry_region_for_its_generation() {
+        using var region = TelemetryRegion.CreateInMemory(Spec.SampleRate);
+        var engine = new CathodeEngine(Spec) { Telemetry = region };
+        var definition = Graph("volpan", "vol");
+        definition.Modifiers.AddRange(
+            [
+                new() { Block = "vol", Param = "level", Source = "manualA", Min = -6f, Max = -6f },
+                new() { Block = "vol", Param = ModNames.EngageParam, Source = "manualB", Min = 1f, Max = 1f },
+                new() { Block = "vol", Param = "balance", Source = "manualC", Min = 25f, Max = 25f, Enabled = false }
+            ]
+        );
+        var graph = Compiler.Compile(definition, Spec, 5);
+        engine.Publish(graph);
+        var monitor = new TelemetryMonitor(region);
+        Assert.Equal(-1, monitor.ModifierGeneration);
+
+        OfflineRenderer.Render(engine, new float[640], new float[640], 64);
+        monitor.Poll();
+
+        Assert.Equal(5, monitor.ModifierGeneration);
+        Assert.Equal(3, monitor.ModifierValues.Length);
+        Assert.Equal(-6f, monitor.ModifierValues[0], 1e-4f);
+        Assert.True(float.IsNaN(monitor.ModifierValues[1]), "an engage modifier drives no value");
+        Assert.True(float.IsNaN(monitor.ModifierValues[2]), "a disabled modifier drives no value");
+
+        engine.Post(EngineCommand.SetModifier(5, 2, true));
+        engine.Post(EngineCommand.SetModifier(5, 0, false, 0f));
+        OfflineRenderer.Render(engine, new float[640], new float[640], 64);
+        monitor.Poll();
+
+        Assert.True(float.IsNaN(monitor.ModifierValues[0]), "turned off");
+        Assert.Equal(25f, monitor.ModifierValues[2], 1e-4f);
+
+        engine.Publish(Compiler.Compile(Graph("volpan", "vol"), Spec, 6));
+        OfflineRenderer.Render(engine, new float[640], new float[640], 64);
+        monitor.Poll();
+
+        Assert.Equal(6, monitor.ModifierGeneration);
+        Assert.Equal(0, monitor.ModifierValues.Length);
+    }
+
     /// <summary>Input -> 300 ms delay (50 % mix, feedback 40 %) -> output.</summary>
     static GraphDefinition DelayGraph() {
         var graph = Graph("delay", "delay");
