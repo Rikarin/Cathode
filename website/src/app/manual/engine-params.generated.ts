@@ -81,7 +81,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         min: 0,
         max: 1,
         default: 0,
-        page: 'Input',
+        page: 'Gate',
         options: ['50 Hz', '60 Hz']
       },
       {
@@ -92,7 +92,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 20,
         default: 0,
         unit: 'dB',
-        page: 'Gate'
+        page: 'Input'
       },
       {
         id: 'impedance',

@@ -41,7 +41,7 @@ softened.`,
     release: `Gate page: how fast the gate closes once you stop, after a short 15 ms hold. Short is tight and abrupt; long
 lets notes die naturally.`,
 
-    mains: `Input page: your country's mains frequency, used by the Intelligent gate to ignore hum. 50 Hz in Europe and most
+    mains: `Gate page: your country's mains frequency, used by the Intelligent gate to ignore hum. 50 Hz in Europe and most
 of the world, 60 Hz in North America and parts of South America and Asia.`,
 
     level: `The input level, in dB, after the gate. A trim for everything that follows. −80 dB is silent.`,

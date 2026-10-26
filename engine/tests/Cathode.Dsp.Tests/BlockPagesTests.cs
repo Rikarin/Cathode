@@ -62,6 +62,17 @@ public class BlockPagesTests {
         }
     }
 
+    [Theory]
+    [InlineData("type", "Gate")]
+    [InlineData("mains", "Gate")]
+    [InlineData("source", "Input")]
+    [InlineData("level", "Input")]
+    public void The_input_block_puts_the_gate_and_the_input_on_their_pages(string id, string page) {
+        var descriptor = Registry.GetDescriptor("input");
+
+        Assert.Equal(page, descriptor.Params[descriptor.IndexOf(id)].Page);
+    }
+
     static IEnumerable<ParamDescriptor> Controls(BlockDescriptor descriptor) =>
         descriptor.Params.Where(p =>
             !ShownElsewhere.Contains(p.Id)

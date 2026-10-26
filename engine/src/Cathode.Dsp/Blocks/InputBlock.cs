@@ -116,8 +116,8 @@ public sealed class InputBlock() : DspBlock(Info), ISideInputBlock {
         ],
         maxInstances: HardwareInputs.Names.Length,
         pages: [
-            new("Gate", ["threshold", "ratio", "attack", "release"]),
-            new("Input", ["source", "mains", "impedance", "pickup", "pickupL", "pickupR", "pickupC", "cable", "buffer"])
+            new("Gate", ["type", "threshold", "ratio", "attack", "release", "mains"]),
+            new("Input", ["source", "level", "impedance", "pickup", "pickupL", "pickupR", "pickupC", "cable", "buffer"])
         ]
     );
 
