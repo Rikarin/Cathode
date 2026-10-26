@@ -56,7 +56,9 @@ as loud on as off.`,
     balance: `Left/right balance of the output. Turning it one way turns the other side down.`,
 
     autoMakeup: `Adds makeup gain automatically: half the reduction a full-scale (0 dBFS) signal would get with the current
-threshold, ratio and knee. It is added on top of the Makeup knob.`,
+threshold, ratio and knee (with Input Level at Line, as the detector reads it, 12 dB lower). It is added on top of the
+Makeup knob. The Sustainer, and the Dynamics type at negative values, never turn a loud signal down, so they get
+none.`,
 
     scLowCut: `Sidechain page: a high-pass on what the detector hears (20 Hz is off). Raise it to 100 to 200 Hz so low notes
 and palm mutes do not trigger heavy compression and pumping.`,

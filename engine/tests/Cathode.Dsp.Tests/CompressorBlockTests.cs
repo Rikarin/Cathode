@@ -64,6 +64,35 @@ public class CompressorBlockTests {
         );
     }
 
+    [Theory]
+    [InlineData(CompressorBlock.Pedal, 4f, 0f, 7.5f)] // 0 dBFS comes out at -15: half of 15 dB
+    [InlineData(CompressorBlock.Pedal, 4f, CompressorBlock.LineLevelDb, 3f)] // read at -12: 6 dB of reduction
+    [InlineData(CompressorBlock.Sustainer, 4f, 0f, 0f)] // raises quiet signals only
+    [InlineData(CompressorBlock.DynamicsProcessor, 2f, 0f, 5f)] // Dynamics 50 %
+    [InlineData(CompressorBlock.DynamicsProcessor, 2f / 3, 0f, 0f)] // Dynamics -50 %: expands upwards
+    public void Auto_makeup_is_half_the_reduction_of_a_full_scale_signal(
+        int type,
+        float ratio,
+        float lineDb,
+        float expected
+    ) =>
+        Assert.Equal(expected, CompressorBlock.AutoMakeupDb(type, -20f, ratio, 0f, lineDb), 1e-4f);
+
+    [Theory]
+    [InlineData(CompressorBlock.Sustainer, 50f)]
+    [InlineData(CompressorBlock.DynamicsProcessor, -50f)]
+    public void Auto_makeup_leaves_types_that_do_not_reduce_loud_signals_alone(int type, float dynamics) {
+        float[] Render(bool autoMakeup) {
+            using var block = Create(type);
+            block.Params.SetTarget(CompressorBlock.Dynamics, dynamics);
+            block.Params.SetTarget(CompressorBlock.AutoMakeup, autoMakeup ? 1f : 0f);
+            block.Reset();
+            return BlockRender.Mono(block, Signals.Sine(1_000, 48_000, 24_000, Db(-6)), 64);
+        }
+
+        Assert.Equal(Render(false), Render(true));
+    }
+
     static float Db(double db) => (float)Math.Pow(10, db / 20);
 
     static CompressorBlock Create(

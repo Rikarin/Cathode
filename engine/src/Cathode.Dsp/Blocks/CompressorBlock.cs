@@ -55,8 +55,9 @@ namespace Cathode.Dsp.Blocks;
 ///     <see cref="InfiniteRatio" /> is ∞:1, a limiter. <b>Auto Attack/Release</b> scales both times by the crest factor
 ///     (<see cref="CrestFactor" />). The detector can be fed through a sidechain low and high cut, an <b>Emphasis</b>
 ///     high shelf (so the bass pumps less) and a sidechain EQ band; <b>Input Level</b> Line takes 12 dB off the detector
-///     for line-level sources. Auto Makeup adds back half the gain reduction a 0 dBFS signal would get. The mix follows
-///     the Axe-Fx law (50 % = -6 dB each) for parallel compression.
+///     for line-level sources. Auto Makeup adds back half the gain reduction a 0 dBFS signal would get, none on the
+///     types that do not reduce a loud signal (<see cref="AutoMakeupDb" />). The mix follows the Axe-Fx law (50 % =
+///     -6 dB each) for parallel compression.
 ///     <para>
 ///         Sidechain picks what the detector hears: the block's input, the grid input, another grid row
 ///         (a tap, <see cref="SideInputs.Taps" />) or one of the interface's inputs (<see cref="HardwareInputs" />); the
@@ -267,6 +268,21 @@ public sealed class CompressorBlock() : DspBlock(Info), ISideInputBlock {
     }
 
     /// <summary>
+    ///     Auto Makeup for <paramref name="type" />, in dB: half the reduction the static curve gives a 0 dBFS signal
+    ///     (which the detector reads <paramref name="lineDb" /> lower with Input Level at Line). The Sustainer only
+    ///     raises quiet signals and the Dynamics type at negative values only raises loud ones, so a loud signal loses
+    ///     nothing to make up and they get none.
+    /// </summary>
+    public static float AutoMakeupDb(int type, float threshold, float ratio, float knee, float lineDb = 0f) {
+        if (type == Sustainer) {
+            return 0f;
+        }
+
+        var level = -lineDb;
+        return Math.Max(0f, -0.5f * (StaticCurve(level, threshold, ratio, knee) - level));
+    }
+
+    /// <summary>
     ///     The single Compression knob (0–100 %) as a threshold and ratio: −6 dB and 1:1 at 0, −50 dB and 20:1 at 100,
     ///     the ratio rising with the square so the first half stays gentle.
     /// </summary>
@@ -387,9 +403,10 @@ public sealed class CompressorBlock() : DspBlock(Info), ISideInputBlock {
 
         var attack = Coefficient(attackMs, rate);
         var release = Coefficient(releaseMs, rate);
+        var lineDb = Params.Current(InputLevel) >= 0.5f ? LineLevelDb : 0f;
         var makeup = Params.Advance(Makeup, io.Length);
         if (Params.Current(AutoMakeup) >= 0.5f) {
-            makeup -= 0.5f * StaticCurve(0f, threshold, ratio, knee); // half the reduction at 0 dBFS
+            makeup += AutoMakeupDb(type, threshold, ratio, knee, lineDb);
         }
 
         var upward = type == Sustainer;
@@ -413,7 +430,6 @@ public sealed class CompressorBlock() : DspBlock(Info), ISideInputBlock {
         };
         var auto = Params.Current(AutoTime) >= 0.5f;
         var crestCoefficient = CrestFactor.Coefficient(rate);
-        var lineDb = Params.Current(InputLevel) >= 0.5f ? LineLevelDb : 0f;
         sidechain.Design(rate, Params.Advance(SidechainLowCut, io.Length), Params.Advance(SidechainHighCut, io.Length));
         var emphasisDb = Params.Advance(Emphasis, io.Length) / 100f * MaxEmphasisDb;
         var emphasisHz = Params.Advance(EmphasisFrequency, io.Length);
