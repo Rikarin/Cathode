@@ -70,3 +70,49 @@ test('select-all selects nothing on the page but still works in text fields', as
     0, 6
   ]);
 });
+
+test('a preset a bank holds is not deleted: the Library says which bank, then deletes it once it is free', async ({
+  window
+}) => {
+  await window.getByTestId('preset-menu').click();
+  await window.getByRole('menuitem', { name: /Save as…/ }).click();
+  await window.getByTestId('save-as-name').fill('Gig Rig');
+  await window.getByTestId('save-as-confirm').click();
+  await expect(window.getByTestId('preset-name')).toHaveText('Gig Rig');
+
+  // Put it in slot 2 of a bank through the Server, as Manage presets would.
+  await window.evaluate(async () => {
+    const { baseUrl, token } = await (window as unknown as CathodeWindow).cathode.connection();
+    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    const presets: { id: string; name: string }[] = await (
+      await fetch(`${baseUrl}/api/v1/presets`, { headers })
+    ).json();
+    const id = presets.find(p => p.name === 'Gig Rig')!.id;
+    await fetch(`${baseUrl}/api/v1/banks/gig`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ id: 'gig', name: 'Gig', slots: [null, id] })
+    });
+  });
+
+  await window.getByRole('link', { name: 'Library' }).click();
+  await window.getByTestId('preset-list').getByText('Gig Rig').click();
+  await window.getByRole('button', { name: 'Delete', exact: true }).click();
+  const inUse = window.getByRole('dialog', { name: 'This preset is in use' });
+  await expect(inUse.getByTestId('preset-uses')).toHaveText('bank “Gig”, slot 2');
+  await inUse.getByRole('button', { name: 'OK' }).click();
+  await expect(window.getByTestId('preset-list').getByText('Gig Rig')).toBeVisible();
+
+  // Out of the bank, it can go.
+  await window.evaluate(async () => {
+    const { baseUrl, token } = await (window as unknown as CathodeWindow).cathode.connection();
+    await fetch(`${baseUrl}/api/v1/banks/gig`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+  });
+  await window.getByRole('button', { name: 'Delete', exact: true }).click();
+  await window.getByRole('alertdialog', { name: 'Delete preset?' }).getByRole('button', { name: 'Delete' }).click();
+  await expect(window.getByTestId('preset-list').getByText('Gig Rig')).toHaveCount(0);
+});
+
+interface CathodeWindow {
+  cathode: { connection(): Promise<{ baseUrl: string; token: string | null }> };
+}

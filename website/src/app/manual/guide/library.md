@@ -17,7 +17,7 @@ Click a preset to select it. The bar at the bottom shows its name and descriptio
 - **Export**: saves it as a `.cthpreset` file (see [below](#exporting-and-importing-presets)).
 - **Delete**: removes one of your presets, after a confirmation. Factory presets cannot be deleted.
 
-> **Note:** A preset that sits in a bank cannot be deleted from here: Cathode refuses and names the bank. Remove it from the bank in Manage presets first, or delete it there.
+> **Note:** A preset that sits in a bank (or a setlist) cannot be deleted from here, so that no program change or setlist entry is left pointing at nothing. Instead of asking to delete it, Cathode lists where it is used, for example "bank “Gig”, slot 3", and **Manage presets** takes you to its banks. Remove it from them there first, or delete it there.
 
 At the top right, **Import…** adds a `.cthpreset` file, and **Export list…** saves a text file listing your presets.
 

@@ -39,6 +39,7 @@ export type SnapshotSummary = Schemas['SnapshotSummary'];
 export type BlockPresetFile = Schemas['BlockPresetFile'];
 export type BatchResult = Schemas['BatchResult'];
 export type Bank = Schemas['Bank'];
+export type Setlist = Schemas['Setlist'];
 export type ScenePairRequest = Schemas['ScenePairRequest'];
 
 /** Modifier sources (Cathode.Engine.Rig.ModNames). */

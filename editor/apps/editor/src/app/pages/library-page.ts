@@ -214,7 +214,7 @@ import { GlobalBlocks } from './global-blocks';
             color="error"
             [disabled]="!selected() || selected()?.factory"
             [attr.title]="selected()?.factory ? 'Factory presets are read-only' : null"
-            (click)="confirmDelete.set(true)"
+            (click)="askDelete()"
           >
             Delete
           </button>
@@ -346,13 +346,32 @@ import { GlobalBlocks } from './global-blocks';
     <xui-alert-dialog
       destructive
       title="Delete preset?"
-      [description]="
-        '“' + (selected()?.name ?? '') + '” will be removed from the library and from any setlist or bank.'
-      "
+      [description]="'“' + (selected()?.name ?? '') + '” will be deleted from the library.'"
       confirmText="Delete"
       [(open)]="confirmDelete"
       (confirmed)="delete()"
     />
+
+    <xui-dialog title="This preset is in use" [(open)]="inUse">
+      <xui-dialog-body class="flex flex-col gap-2">
+        <p xuiText>
+          “{{ selected()?.name }}” cannot be deleted while a bank or setlist holds it: a program change or setlist entry
+          would load nothing there. It is used by:
+        </p>
+        <ul class="list-disc ps-5 text-sm" data-testid="preset-uses">
+          @for (use of uses(); track use) {
+            <li>{{ use }}</li>
+          }
+        </ul>
+        <p xuiText class="text-foreground-muted text-sm">
+          Take it out of its banks in Manage presets first (or delete it there), then delete it here.
+        </p>
+      </xui-dialog-body>
+      <xui-dialog-footer>
+        <button xuiButton variant="ghost" type="button" (click)="inUse.set(false)">OK</button>
+        <button xuiButton type="button" (click)="manage()">Manage presets</button>
+      </xui-dialog-footer>
+    </xui-dialog>
   `
 })
 export class LibraryPage {
@@ -383,6 +402,9 @@ export class LibraryPage {
   ];
   protected readonly selected = signal<PresetSummary | null>(null);
   protected readonly confirmDelete = signal(false);
+  /** Where the selected preset is used, which keeps it from being deleted (the in-use dialog lists them). */
+  protected readonly uses = signal<readonly string[]>([]);
+  protected readonly inUse = signal(false);
   /** Library entries chosen for export. */
   protected readonly chosen = signal<ReadonlySet<string>>(new Set());
   protected readonly dropping = signal(false);
@@ -470,12 +492,32 @@ export class LibraryPage {
     }
   }
 
+  /** Asks before deleting the selected preset, or says where it is used if a bank or setlist holds it. */
+  protected async askDelete(): Promise<void> {
+    const preset = this.selected();
+    if (!preset || preset.factory) {
+      return;
+    }
+
+    const uses = await this.library.usesOf(preset.id);
+    if (uses === undefined) {
+      return;
+    }
+
+    this.uses.set(uses);
+    (uses.length > 0 ? this.inUse : this.confirmDelete).set(true);
+  }
+
   protected async delete(): Promise<void> {
     const preset = this.selected();
-    if (preset && !preset.factory) {
-      await this.library.deletePreset(preset.id);
+    if (preset && !preset.factory && (await this.library.deletePreset(preset.id))) {
       this.selected.set(null);
     }
+  }
+
+  protected manage(): void {
+    this.inUse.set(false);
+    void this.router.navigateByUrl('/manage');
   }
 
   protected toggleChosen(id: string): void {

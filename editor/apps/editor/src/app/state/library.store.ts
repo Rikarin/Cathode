@@ -1,5 +1,12 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
-import { type AssetInfo, type AssetUsage, type Bank, type PresetSummary, unwrap } from '@cathode/api-client';
+import {
+  type AssetInfo,
+  type AssetUsage,
+  type Bank,
+  type PresetSummary,
+  type Setlist,
+  unwrap
+} from '@cathode/api-client';
 import { ConnectionService } from '../core/connection';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
@@ -12,6 +19,28 @@ export interface IrImportOptions {
   /** For a stereo file. */
   channels?: 'both' | 'left' | 'right' | 'sum';
   maxLengthMs?: number;
+}
+
+/**
+ * Where a preset is used, as people read it: “bank “Gig”, slot 3”, “setlist “Friday”, entry 2” (both counted from 1).
+ * The Server refuses to delete a preset while a bank or setlist holds it: taking it out of them would leave a gap where
+ * a program change or setlist entry used to load it.
+ */
+export function presetUses(id: string, banks: readonly Bank[], setlists: readonly Setlist[]): string[] {
+  const where = (kind: string, name: string, place: string, at: number[]) =>
+    `${kind} “${name}”, ${place}${at.length > 1 ? 's' : ''} ${at.map(i => i + 1).join(', ')}`;
+  const indexes = <T>(items: readonly T[], match: (item: T) => boolean) =>
+    items.flatMap((item, i) => (match(item) ? [i] : []));
+  return [
+    ...banks
+      .map(b => ({ name: b.name, at: indexes(b.slots, slot => slot === id) }))
+      .filter(b => b.at.length > 0)
+      .map(b => where('bank', b.name, 'slot', b.at)),
+    ...setlists
+      .map(s => ({ name: s.name, at: indexes(s.entries, e => e.presetId === id) }))
+      .filter(s => s.at.length > 0)
+      .map(s => where('setlist', s.name, 'entry', s.at))
+  ];
 }
 
 /** The preset library and the asset store (captures and impulse responses). */
@@ -108,11 +137,25 @@ export class LibraryStore {
   /** The library's presets in "next preset" order (by name, as the MIDI router steps through them). */
   readonly ordered = computed(() => [...this.presets()].sort((a, b) => a.name.localeCompare(b.name)));
 
-  async deletePreset(id: string): Promise<void> {
-    await this.notify.run(async () => {
-      unwrap(await this.connection.client.DELETE('/api/v1/presets/{id}', { params: { path: { id } } }));
-      await this.refreshPresets();
+  /** Where a stored preset is used (see {@link presetUses}), read fresh from the Server; undefined if that failed. */
+  async usesOf(id: string): Promise<string[] | undefined> {
+    return this.notify.run(async () => {
+      const [banks, setlists] = await Promise.all([
+        this.connection.client.GET('/api/v1/banks').then(unwrap),
+        this.connection.client.GET('/api/v1/setlists').then(unwrap)
+      ]);
+      return presetUses(id, banks, setlists);
     });
+  }
+
+  /** Deletes a preset no bank or setlist uses (the Server refuses one that is used); false if it failed. */
+  async deletePreset(id: string): Promise<boolean> {
+    const done = await this.notify.run(async () => {
+      unwrap(await this.connection.client.DELETE('/api/v1/presets/{id}', { params: { path: { id } } }));
+      return true;
+    });
+    await this.refreshPresets();
+    return done ?? false;
   }
 
   /**

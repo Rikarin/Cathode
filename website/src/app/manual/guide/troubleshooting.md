@@ -114,7 +114,7 @@ What you feel is the round trip: interface converters, two buffers, and any late
 
 **My new preset is called "(untitled)".** ⌘S saved it before it had a name. Rename it with **Preset ▸ Name, author, tags and notes…** and save again.
 
-**I can't delete a preset.** It is in a bank. Remove it from the bank on the Manage presets page first. Factory presets cannot be deleted.
+**I can't delete a preset.** It is in a bank or a setlist: clicking **Delete** lists which ones, and which slots. Remove it from the bank on the Manage presets page first. Factory presets cannot be deleted.
 
 **I lost my changes.** Try **Undo** (⌘Z) first. If you took a snapshot (**Preset ▸ Snapshots…**), load it. The **New preset** button does not ask before replacing unsaved changes.
 
