@@ -197,7 +197,7 @@ public sealed partial class LiveRig {
 
         if (block.Global is { } link) {
             globals.Update(g => {
-                    if (g.Blocks.FirstOrDefault(b => b.Id == link) is { } shared) {
+                    if (g.Blocks.Find(b => b.Id == link) is { } shared) {
                         if (values is null) {
                             shared.Channels.Remove(channel);
                         } else {

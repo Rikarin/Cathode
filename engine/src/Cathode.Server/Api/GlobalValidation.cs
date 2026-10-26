@@ -100,13 +100,13 @@ static class GlobalValidation {
                     );
                 }
 
-                if (footswitch.Link is { } link && settings.Footswitches.All(l => l.Id != link)) {
+                if (footswitch.Link is { } link && settings.Footswitches.TrueForAll(l => l.Id != link)) {
                     errors.Add($"Switch {footswitch.Index} of '{layout.Name}' links to no layout '{link}'.");
                 }
             }
         }
 
-        if (settings.ActiveLayout is { } active && settings.Footswitches.All(l => l.Id != active)) {
+        if (settings.ActiveLayout is { } active && settings.Footswitches.TrueForAll(l => l.Id != active)) {
             errors.Add($"No footswitch layout '{active}'.");
         }
 

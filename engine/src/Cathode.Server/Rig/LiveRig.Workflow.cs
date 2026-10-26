@@ -363,7 +363,7 @@ public sealed partial class LiveRig {
         Locked(() => {
                 Check(expected);
                 var errors = controls
-                    .Where(c => preset.Blocks.FirstOrDefault(b => b.Id == c.Block) is not { } block
+                    .Where(c => preset.Blocks.Find(b => b.Id == c.Block) is not { } block
                         || catalog.Descriptor(block.Type)?.IndexOf(c.Param) is null or < 0
                     )
                     .Select(static c => $"No parameter '{c.Param}' on block '{c.Block}'.")
@@ -459,7 +459,7 @@ public sealed partial class LiveRig {
 
         var current = preset.Blocks.Single(b => b.Id == block.Id);
         globals.Update(g => {
-                if (g.Blocks.FirstOrDefault(b => b.Id == link) is { } shared) {
+                if (g.Blocks.Find(b => b.Id == link) is { } shared) {
                     shared.Channels = current.Channels.ToDictionary(
                         static c => c.Key,
                         static c => new Dictionary<string, float>(c.Value)
@@ -645,13 +645,13 @@ public sealed partial class LiveRig {
             }
         }
 
-        foreach (var end in fedEnds.Where(e => p.Cables.All(c => c.To != e.Id))) {
+        foreach (var end in fedEnds.Where(e => p.Cables.TrueForAll(c => c.To != e.Id))) {
             if (BlockAt(p, end.Row, to - 1) is { } neighbour) {
                 Connect(p, neighbour.Id, end.Id);
             }
         }
 
-        foreach (var end in feedingEnds.Where(e => p.Cables.All(c => c.From != e.Id))) {
+        foreach (var end in feedingEnds.Where(e => p.Cables.TrueForAll(c => c.From != e.Id))) {
             if (BlockAt(p, end.Row, to + 1) is { } neighbour) {
                 Connect(p, end.Id, neighbour.Id);
             }
@@ -659,7 +659,7 @@ public sealed partial class LiveRig {
 
         return;
 
-        bool Wired(string id) => p.Cables.Any(c => c.From == id) && p.Cables.Any(c => c.To == id);
+        bool Wired(string id) => p.Cables.Exists(c => c.From == id) && p.Cables.Exists(c => c.To == id);
 
         void Splice(PresetCable cable, string via) {
             p.Cables.Remove(cable);
@@ -681,7 +681,7 @@ public sealed partial class LiveRig {
             }
 
             var id = $"shunt-r{row}c{to}";
-            for (var n = 1; p.Blocks.Any(b => b.Id == id); n++) {
+            for (var n = 1; p.Blocks.Exists(b => b.Id == id); n++) {
                 id = $"{BuiltInTypes.Shunt}{n}";
             }
 
@@ -701,7 +701,7 @@ public sealed partial class LiveRig {
     }
 
     static PresetBlock? BlockAt(Preset p, int row, int column) =>
-        p.Blocks.FirstOrDefault(b => b.Row == row && b.Column == column);
+        p.Blocks.Find(b => b.Row == row && b.Column == column);
 
     /// <summary>Adds a cable unless it exists or would leave an Output or enter an Input.</summary>
     static void Connect(Preset p, string from, string to) {
@@ -709,7 +709,7 @@ public sealed partial class LiveRig {
         var target = p.Blocks.First(b => b.Id == to);
         if (BuiltInTypes.IsOutput(source.Type)
             || target.Type == BuiltInTypes.Input
-            || p.Cables.Any(c => c.From == from && c.To == to)) {
+            || p.Cables.Exists(c => c.From == from && c.To == to)) {
             return;
         }
 

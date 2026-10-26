@@ -153,6 +153,6 @@ public static class OfflineRenderer {
         var left = input.Channels[0];
         var right = input.Channels.Length > 1 ? input.Channels[1] : left;
         var (outLeft, outRight) = Render(processor, left, right, blockSize);
-        return new(input.SampleRate, [outLeft, outRight]);
+        return input with { Channels = [outLeft, outRight] };
     }
 }

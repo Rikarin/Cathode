@@ -21,7 +21,7 @@ public sealed partial class LiveRig {
     /// </summary>
     public async Task<SpeakerResonanceInfo> SpeakerResonanceAsync(string id) {
         var state = await StateAsync();
-        var block = state.Preset.Blocks.FirstOrDefault(b => b.Id == id)
+        var block = state.Preset.Blocks.Find(b => b.Id == id)
             ?? throw new RigException(404, $"No block '{id}'.");
         if (block.Type != CircuitAmpBlock.Info.TypeId) {
             throw new RigException(400, $"'{id}' is not a Circuit Amp.");
@@ -53,7 +53,7 @@ public sealed partial class LiveRig {
                         continue;
                     }
 
-                    var next = preset.Blocks.FirstOrDefault(b => b.Id == cable.To);
+                    var next = preset.Blocks.Find(b => b.Id == cable.To);
                     if (next?.Type == CabBlock.Info.TypeId) {
                         for (var slot = 0; slot < CabBlock.Slots; slot++) {
                             if ((int)Value(next, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Source))

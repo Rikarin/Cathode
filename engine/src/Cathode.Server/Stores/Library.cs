@@ -95,7 +95,7 @@ public sealed class Library(IOptions<ServerOptions> options, PresetStore presets
 
         lock (gate) {
             var users = Setlists()
-                .Where(s => s.Entries.Any(e => e.PresetId == id))
+                .Where(s => s.Entries.Exists(e => e.PresetId == id))
                 .Select(static s => $"setlist '{s.Name}'")
                 .Concat(
                     banks.All()

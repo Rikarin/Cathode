@@ -119,7 +119,7 @@ public sealed partial class MidiRouter : IDisposable {
             }
 
             var down = kind == "pc" || (message.Data2 >= 64 && (message.Status & 0xF0) != 0x80);
-            var layout = settings.Footswitches.FirstOrDefault(l => l.Id == settings.ActiveLayout);
+            var layout = settings.Footswitches.Find(l => l.Id == settings.ActiveLayout);
             foreach (var footswitch in ActiveSwitches(settings, layout)) {
                 if (footswitch.Message == kind
                     && footswitch.Number == message.Data1
@@ -340,7 +340,7 @@ public sealed partial class MidiRouter : IDisposable {
                 break;
             case "layout" when down && action.Target is { } target:
                 globals.Update(g => {
-                        if (g.Footswitches.Any(l => l.Id == target)) {
+                        if (g.Footswitches.Exists(l => l.Id == target)) {
                             g.ActiveLayout = target;
                             g.ActiveView = 0;
                         }
@@ -351,7 +351,7 @@ public sealed partial class MidiRouter : IDisposable {
                 globals.Update(g => {
                         var views = Math.Max(
                             1,
-                            g.Footswitches.FirstOrDefault(l => l.Id == g.ActiveLayout)?.Views?.Count ?? 0
+                            g.Footswitches.Find(l => l.Id == g.ActiveLayout)?.Views?.Count ?? 0
                         );
                         g.ActiveView = action.Action switch {
                             "view" => Math.Clamp(action.Value ?? 0, 0, views - 1),
@@ -384,7 +384,7 @@ public sealed partial class MidiRouter : IDisposable {
         }
 
         var settings = globals.Get();
-        var layout = settings.Footswitches.FirstOrDefault(l => l.Id == settings.ActiveLayout);
+        var layout = settings.Footswitches.Find(l => l.Id == settings.ActiveLayout);
         if (layout is null) {
             return;
         }

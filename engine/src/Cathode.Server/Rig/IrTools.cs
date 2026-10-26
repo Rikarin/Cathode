@@ -23,7 +23,7 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
         ToneMatchRequest request,
         CancellationToken cancellationToken
     ) {
-        var block = (await rig.StateAsync()).Preset.Blocks.FirstOrDefault(b => b.Id == blockId)
+        var block = (await rig.StateAsync()).Preset.Blocks.Find(b => b.Id == blockId)
             ?? throw RigException.NotFound($"No block '{blockId}'.");
         if (block.Type != ToneMatchBlock.Info.TypeId) {
             throw new RigException(400, $"'{blockId}' is not a Tone Match block.");
@@ -74,7 +74,7 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
     /// </summary>
     public async Task<CabAlignment> CabAlignmentAsync(string blockId) {
         var state = await rig.StateAsync();
-        var block = state.Preset.Blocks.FirstOrDefault(b => b.Id == blockId)
+        var block = state.Preset.Blocks.Find(b => b.Id == blockId)
             ?? throw RigException.NotFound($"No block '{blockId}'.");
         if (block.Type != CabBlock.Info.TypeId) {
             throw new RigException(400, $"'{blockId}' is not a Cab block.");
@@ -148,7 +148,7 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
     /// </summary>
     public async Task<byte[]> ExportCabAsync(string blockId) {
         var state = await rig.StateAsync();
-        var block = state.Preset.Blocks.FirstOrDefault(b => b.Id == blockId)
+        var block = state.Preset.Blocks.Find(b => b.Id == blockId)
             ?? throw RigException.NotFound($"No block '{blockId}'.");
         if (block.Type != CabBlock.Info.TypeId) {
             throw new RigException(400, $"'{blockId}' is not a Cab block.");

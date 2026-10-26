@@ -127,7 +127,7 @@ public sealed class FactoryPresetTests : IAsyncLifetime {
         var types = amp.Types.ToList();
         var dirty = new List<string>();
         foreach (var preset in Presets) {
-            if (preset.Blocks.FirstOrDefault(static b => b.Type == "circuitamp") is not { } block) {
+            if (preset.Blocks.Find(static b => b.Type == "circuitamp") is not { } block) {
                 continue;
             }
 

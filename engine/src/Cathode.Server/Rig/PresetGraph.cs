@@ -51,7 +51,7 @@ public static class PresetGraph {
 
         graph.Cables.AddRange(preset.Cables.Select(static c => new CableDefinition { From = c.From, To = c.To }));
         graph.Modifiers.AddRange(
-            preset.Modifiers.Where(m => preset.Blocks.Any(b => b.Id == m.Block))
+            preset.Modifiers.Where(m => preset.Blocks.Exists(b => b.Id == m.Block))
                 .Select(m => new ModifierDefinition {
                         Block = m.Block,
                         Param = m.Param,

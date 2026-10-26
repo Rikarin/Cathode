@@ -115,7 +115,7 @@ public sealed class AudioIoApiTests : IAsyncLifetime {
         await Post("/api/v1/live/blocks", new AddBlockRequest("circuitamp", Preset.DefaultRow, 3));
         await Post("/api/v1/live/blocks", new AddBlockRequest("cab", Preset.DefaultRow, 4));
         var live = (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!;
-        if (!live.Preset.Cables.Any(static c => c is { From: "circuitamp1", To: "cab1" })) {
+        if (!live.Preset.Cables.Exists(static c => c is { From: "circuitamp1", To: "cab1" })) {
             await Post("/api/v1/live/cables", new CableRequest("circuitamp1", "cab1"));
         }
 

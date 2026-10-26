@@ -58,7 +58,7 @@ public sealed partial class LiveRig {
                 Check(expected);
                 var errors = new List<string>();
                 foreach (var m in modifiers) {
-                    var block = preset.Blocks.FirstOrDefault(b => b.Id == m.Block);
+                    var block = preset.Blocks.Find(b => b.Id == m.Block);
                     var descriptor = block is null ? null : catalog.Descriptor(block.Type);
                     var engage = m.Param == ModNames.EngageParam
                         && block is not null
@@ -209,7 +209,7 @@ public sealed partial class LiveRig {
                 block.Channels[target] = values;
                 if (block.Global is { } link) {
                     globals.Update(g => {
-                            if (g.Blocks.FirstOrDefault(b => b.Id == link) is { } shared) {
+                            if (g.Blocks.Find(b => b.Id == link) is { } shared) {
                                 shared.Channels[target] = new(values);
                             }
                         }
@@ -243,7 +243,7 @@ public sealed partial class LiveRig {
                     throw new RigException(400, $"'{id}' cannot be global.");
                 }
 
-                if (block.Global is { } link && globals.Get().Blocks.Any(g => g.Id == link)) {
+                if (block.Global is { } link && globals.Get().Blocks.Exists(g => g.Id == link)) {
                     throw RigException.Conflict($"'{id}' is already global.");
                 }
 
@@ -268,7 +268,7 @@ public sealed partial class LiveRig {
         Locked(async () => {
                 Check(expected);
                 var block = Find(id);
-                var shared = globals.Get().Blocks.FirstOrDefault(g => g.Id == globalId && g.Type == block.Type)
+                var shared = globals.Get().Blocks.Find(g => g.Id == globalId && g.Type == block.Type)
                     ?? throw RigException.NotFound($"No global {block.Type} block '{globalId}'.");
                 await StructuralAsync(p => {
                         var target = p.Blocks.Single(b => b.Id == id);
@@ -301,7 +301,7 @@ public sealed partial class LiveRig {
     public Task<LiveState> DeleteGlobalAsync(string globalId, long? expected) =>
         Locked(() => {
                 Check(expected);
-                if (globals.Get().Blocks.All(g => g.Id != globalId)) {
+                if (globals.Get().Blocks.TrueForAll(g => g.Id != globalId)) {
                     throw RigException.NotFound($"No global block '{globalId}'.");
                 }
 

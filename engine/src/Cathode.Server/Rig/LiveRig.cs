@@ -179,7 +179,7 @@ public sealed partial class LiveRig(
                 }
 
                 var id = request.Id ?? NextId(request.Type);
-                if (preset.Blocks.Any(b => b.Id == id)) {
+                if (preset.Blocks.Exists(b => b.Id == id)) {
                     throw RigException.Conflict($"Block id '{id}' is taken.");
                 }
 
@@ -188,7 +188,7 @@ public sealed partial class LiveRig(
 
                 await StructuralAsync(p => {
                         // Dropping a block onto a shunt replaces it and keeps its cables, as on the Axe-Fx.
-                        var occupant = p.Blocks.FirstOrDefault(b => b.Row == request.Row && b.Column == request.Column);
+                        var occupant = p.Blocks.Find(b => b.Row == request.Row && b.Column == request.Column);
                         if (occupant is not null && occupant.Type != BuiltInTypes.Shunt) {
                             throw RigException.Conflict(
                                 $"Cell ({request.Row},{request.Column}) holds '{occupant.Id}'."
@@ -243,7 +243,7 @@ public sealed partial class LiveRig(
                 Check(expected);
                 Find(id);
                 CheckCell(request.Row, request.Column);
-                var occupant = preset.Blocks.FirstOrDefault(b => b.Id != id
+                var occupant = preset.Blocks.Find(b => b.Id != id
                     && b.Row == request.Row
                     && b.Column == request.Column
                 );
@@ -259,7 +259,7 @@ public sealed partial class LiveRig(
                         block.Row = request.Row;
                         block.Column = request.Column;
                         // Dropped onto a shunt, the block takes its place and its cables, as adding one does.
-                        var shunt = p.Blocks.FirstOrDefault(b => b.Id != id
+                        var shunt = p.Blocks.Find(b => b.Id != id
                             && b.Row == request.Row
                             && b.Column == request.Column
                         );
@@ -301,7 +301,7 @@ public sealed partial class LiveRig(
                     );
                 }
 
-                if (preset.Cables.Any(c => c.From == request.From && c.To == request.To)) {
+                if (preset.Cables.Exists(c => c.From == request.From && c.To == request.To)) {
                     throw RigException.Conflict("That cable already exists.");
                 }
 
@@ -312,7 +312,7 @@ public sealed partial class LiveRig(
                             if (shunt is null) {
                                 var id = $"shunt-r{row}c{column}";
                                 shunt = new() {
-                                    Id = p.Blocks.Any(b => b.Id == id) ? NextId(BuiltInTypes.Shunt) : id,
+                                    Id = p.Blocks.Exists(b => b.Id == id) ? NextId(BuiltInTypes.Shunt) : id,
                                     Type = BuiltInTypes.Shunt,
                                     Row = row.Value,
                                     Column = column
@@ -334,7 +334,7 @@ public sealed partial class LiveRig(
     public Task<LiveState> RemoveCableAsync(CableRequest request, long? expected) =>
         Locked(async () => {
                 Check(expected);
-                if (!preset.Cables.Any(c => c.From == request.From && c.To == request.To)) {
+                if (!preset.Cables.Exists(c => c.From == request.From && c.To == request.To)) {
                     throw RigException.NotFound("No such cable.");
                 }
 
@@ -430,7 +430,7 @@ public sealed partial class LiveRig(
 
                 if (block.Global is { } link) {
                     globals.Update(g => {
-                            if (g.Blocks.FirstOrDefault(b => b.Id == link) is { } shared) {
+                            if (g.Blocks.Find(b => b.Id == link) is { } shared) {
                                 shared.Channels[target] = new(stored);
                             }
                         }
@@ -843,7 +843,7 @@ public sealed partial class LiveRig(
     void ApplyGlobals(Preset target) {
         var library = globals.Get().Blocks;
         foreach (var block in target.Blocks.Where(static b => b.Global is not null)) {
-            if (library.FirstOrDefault(g => g.Id == block.Global && g.Type == block.Type) is { } shared) {
+            if (library.Find(g => g.Id == block.Global && g.Type == block.Type) is { } shared) {
                 block.Channels = shared.Channels.ToDictionary(
                     static c => c.Key,
                     static c => new Dictionary<string, float>(c.Value)
@@ -882,7 +882,7 @@ public sealed partial class LiveRig(
     void Restore(Snapshot snapshot) {
         preset = JsonSerializer.Deserialize(snapshot.Json, ContractsJsonContext.Default.Preset)!;
         activeScene = snapshot.ActiveScene;
-        foreach (var id in held.Keys.Where(id => preset.Blocks.All(b => b.Id != id))) {
+        foreach (var id in held.Keys.Where(id => preset.Blocks.TrueForAll(b => b.Id != id))) {
             held.TryRemove(id, out _);
         }
     }
@@ -918,7 +918,7 @@ public sealed partial class LiveRig(
     }
 
     PresetBlock Find(string id) =>
-        preset.Blocks.FirstOrDefault(b => b.Id == id) ?? throw RigException.NotFound($"No block '{id}'.");
+        preset.Blocks.Find(b => b.Id == id) ?? throw RigException.NotFound($"No block '{id}'.");
 
     /// <summary>
     ///     Puts a shunt in a block's cell and hands it the block's cables, when the block sits in a signal path (cables
@@ -926,14 +926,14 @@ public sealed partial class LiveRig(
     /// </summary>
     bool LeaveShunt(Preset p, PresetBlock block, int row, int column) {
         var inPath = block.Type != BuiltInTypes.Shunt
-            && p.Cables.Any(c => c.To == block.Id)
-            && p.Cables.Any(c => c.From == block.Id);
+            && p.Cables.Exists(c => c.To == block.Id)
+            && p.Cables.Exists(c => c.From == block.Id);
         if (!inPath) {
             return false;
         }
 
         var shunt = $"shunt-r{row}c{column}";
-        if (p.Blocks.Any(b => b.Id == shunt)) {
+        if (p.Blocks.Exists(b => b.Id == shunt)) {
             shunt = NextId(BuiltInTypes.Shunt);
         }
 
@@ -959,7 +959,7 @@ public sealed partial class LiveRig(
 
         for (var n = 1;; n++) {
             var id = $"{type}{n}";
-            if (preset.Blocks.All(b => b.Id != id)) {
+            if (preset.Blocks.TrueForAll(b => b.Id != id)) {
                 return id;
             }
         }
