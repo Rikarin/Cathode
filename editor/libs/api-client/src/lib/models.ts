@@ -87,6 +87,7 @@ export const MidiActions = [
   'tap',
   'tuner',
   'metronome',
+  'mute',
   'looper',
   'sceneLevelUp',
   'sceneLevelDown',
