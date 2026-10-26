@@ -2,7 +2,7 @@ import { expect, test } from './fixtures';
 
 // Building a signal chain on the grid: the block picker, moving, copying and removing blocks, and cabling.
 
-test('the picker groups blocks by category, filters them and adds one from the keyboard', async ({
+test('the picker shows every block in one grid, filters them and adds one from the keyboard', async ({
   window,
   editor
 }) => {
@@ -13,8 +13,10 @@ test('the picker groups blocks by category, filters them and adds one from the k
   const picker = window.getByRole('dialog', { name: 'Add a block' });
   await expect(picker).toBeVisible();
   const list = picker.getByRole('listbox', { name: 'Blocks' });
-  for (const category of ['Drive', 'Amp', 'Delay', 'Reverb']) {
-    await expect(list.getByRole('group', { name: category })).toBeVisible();
+  // One grid, no category groups: every block is a tile in it.
+  await expect(list.getByRole('group')).toHaveCount(0);
+  for (const name of ['Drive', 'Amp', 'Delay', 'Reverb']) {
+    await expect(list.getByRole('option', { name, exact: true })).toBeVisible();
   }
 
   // Search narrows it down; Escape leaves the grid as it was.
