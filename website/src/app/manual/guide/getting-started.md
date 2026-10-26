@@ -130,7 +130,7 @@ Now shape the sound:
 
 From then on, **⌘S** (or the save button) saves your changes to the same preset. A dot after the preset's name means it has unsaved changes.
 
-> **Note:** **⌘S** on a brand-new preset saves it straight away without asking for a name, and it appears as "(untitled)". Use **Save as…** the first time, or set the name in **Preset ▸ Name, author, tags and notes…** before saving.
+> **Note:** **⌘S** on a brand-new preset asks for a name too, the first time: it opens the same dialog as **Save as…**.
 
 If you change a factory preset, saving it never overwrites the original: Cathode asks for a name and saves your own copy.
 

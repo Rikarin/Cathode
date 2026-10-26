@@ -55,6 +55,25 @@ test('New preset asks before discarding unsaved edits, as loading does', async (
   await expect(editor.block('Drive', 'drive1')).toHaveCount(0);
 });
 
+test('⌘S on a new preset asks for its name, then saves it in place', async ({ window, editor }) => {
+  await editor.addBlock(2, 2, 'Drive');
+  await editor.grid.press('ControlOrMeta+s');
+  const dialog = window.getByRole('dialog', { name: 'Save preset' });
+  await expect(dialog.getByText('This preset has not been saved yet')).toBeVisible();
+  await expect(window.getByTestId('save-as-name')).toHaveValue('New Preset');
+  await window.getByTestId('save-as-name').fill('My Crunch Rig');
+  await window.getByTestId('save-as-confirm').click();
+  await expect(window.getByTestId('preset-name')).toHaveText('My Crunch Rig');
+
+  // Now stored, ⌘S saves without asking.
+  await editor.setKnob('Drive', '6');
+  await editor.grid.press('ControlOrMeta+s');
+  await expect(window.getByTestId('preset-name')).toHaveText('My Crunch Rig');
+  await expect(dialog).toBeHidden();
+  await window.getByRole('link', { name: 'Library' }).click();
+  await expect(window.getByTestId('preset-list').getByText('My Crunch Rig', { exact: true })).toHaveCount(1);
+});
+
 test('A/B compare keeps two versions of the preset', async ({ editor }) => {
   await editor.addBlock(2, 2, 'Drive');
   await editor.setKnob('Drive', '7');

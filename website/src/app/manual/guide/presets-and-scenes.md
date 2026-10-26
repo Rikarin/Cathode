@@ -18,12 +18,10 @@ What you hear is the **working copy** of the loaded preset. Every edit changes t
 
 ### Saving
 
-- **Save** (⌘S, or the save button): stores the working copy over the preset.
+- **Save** (⌘S, or the save button): stores the working copy over the preset. A preset that has never been saved (a new one) has nothing to store over yet, so Save asks for its name first, as **Save as…** does.
 - **Save as…** (⇧⌘S, or **Preset ▸ Save as…**): stores it as a new preset under a name you type, and keeps working on the new one.
 
 The scene you are on when you save is remembered: by default, the preset loads on that scene next time.
-
-> **Note:** **⌘S** on a new preset saves it without asking for a name, and it is then listed as "(untitled)". Name it first with **Save as…** or **Preset ▸ Name, author, tags and notes…**.
 
 ### Factory presets are read-only
 

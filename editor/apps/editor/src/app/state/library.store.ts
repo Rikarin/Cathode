@@ -137,6 +137,12 @@ export class LibraryStore {
   /** The library's presets in "next preset" order (by name, as the MIDI router steps through them). */
   readonly ordered = computed(() => [...this.presets()].sort((a, b) => a.name.localeCompare(b.name)));
 
+  /** Whether the library holds a preset with this id: false for a new one that has never been saved. */
+  async isStored(id: string): Promise<boolean> {
+    const { response } = await this.connection.client.GET('/api/v1/presets/{id}', { params: { path: { id } } });
+    return response.status !== 404;
+  }
+
   /** Where a stored preset is used (see {@link presetUses}), read fresh from the Server; undefined if that failed. */
   async usesOf(id: string): Promise<string[] | undefined> {
     return this.notify.run(async () => {

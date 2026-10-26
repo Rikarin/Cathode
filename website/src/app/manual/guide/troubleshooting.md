@@ -112,7 +112,7 @@ What you feel is the round trip: interface converters, two buffers, and any late
 
 **I can't save over a factory preset.** That is by design: Cathode saves your own copy under a new name.
 
-**My new preset is called "(untitled)".** ⌘S saved it before it had a name. Rename it with **Preset ▸ Name, author, tags and notes…** and save again.
+**A preset is called "(untitled)".** Its name is empty. Give it one in **Preset ▸ Name, author, tags and notes…** and save again.
 
 **I can't delete a preset.** It is in a bank or a setlist: clicking **Delete** lists which ones, and which slots. Remove it from the bank on the Manage presets page first. Factory presets cannot be deleted.
 

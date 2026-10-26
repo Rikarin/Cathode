@@ -40,6 +40,7 @@ import { ShortcutService } from './shell/shortcuts';
 import { Transport } from './shell/transport';
 import { TunerDialog } from './shell/tuner-dialog';
 import { CompareStore } from './state/compare.store';
+import { LibraryStore } from './state/library.store';
 import { LiveStore } from './state/live.store';
 import { PresetSwitcher } from './state/preset-switcher';
 import { UiStore } from './state/ui.store';
@@ -341,12 +342,18 @@ import { UiStore } from './state/ui.store';
         <cth-batch-set-dialog />
         <cth-scope-dialog [(open)]="scopeOpen" />
         <cth-leveling-dialog [(open)]="levelingOpen" />
-        <xui-dialog title="Save preset as" icon="matSaveRound" [(open)]="saveAsOpen">
+        <xui-dialog
+          [title]="saveAsFirst() ? 'Save preset' : 'Save preset as'"
+          icon="matSaveRound"
+          [(open)]="saveAsOpen"
+        >
           <xui-dialog-body>
             @if (live.preset()?.factory) {
               <p class="text-foreground-muted mb-3 text-sm">
                 Factory presets are read-only: this saves your own copy, which you can change and rename.
               </p>
+            } @else if (saveAsFirst()) {
+              <p class="text-foreground-muted mb-3 text-sm">This preset has not been saved yet: give it a name.</p>
             }
             <xui-form-field label="Name">
               <input
@@ -397,6 +404,8 @@ export class App {
   protected readonly levelingOpen = signal(false);
   protected readonly saveAsOpen = signal(false);
   protected readonly saveAsName = signal('');
+  protected readonly saveAsFirst = signal(false);
+  private readonly library = inject(LibraryStore);
   protected readonly abOptions = [
     { label: 'A', value: 'A' as const },
     { label: 'B', value: 'B' as const }
@@ -416,21 +425,33 @@ export class App {
     void this.switcher.newPreset();
   }
 
-  /** A factory preset cannot be overwritten: Save asks for the name of the user's own copy instead. */
   /** Mutes or unmutes every output (the navbar button, M, or a footswitch on the rig). */
   protected toggleMute(): void {
     void this.live.setMuted(!this.live.state()?.muted);
   }
 
-  protected save(): void {
-    if (this.live.preset()?.factory) {
+  /**
+   * Save asks for a name, as Save as… does, when the preset has none to keep: a factory preset (read-only, so the user
+   * names their own copy), and a preset never saved before or without a name (a new one).
+   */
+  protected async save(): Promise<void> {
+    const preset = this.live.preset();
+    if (!preset) {
+      return;
+    }
+
+    if (preset.factory) {
       this.openSaveAs();
+    } else if (!preset.name.trim() || !(await this.library.isStored(preset.id))) {
+      this.openSaveAs(true);
     } else {
       void this.live.save();
     }
   }
 
-  protected openSaveAs(): void {
+  /** Opens Save as… with the preset's name; `first` when it has never been saved, which the dialog says. */
+  protected openSaveAs(first = false): void {
+    this.saveAsFirst.set(first);
     this.saveAsName.set(this.live.preset()?.name ?? '');
     this.saveAsOpen.set(true);
   }
