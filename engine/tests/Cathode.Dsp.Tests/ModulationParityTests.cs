@@ -272,6 +272,24 @@ public class ModulationParityTests {
     }
 
     [Theory]
+    [InlineData(90f)]
+    [InlineData(270f)]
+    public void Trigger_restarts_the_lfo_at_its_start_phase(float startPhase) {
+        using var block = TestBlocks.Create<TremoloBlock>(
+            (TremoloBlock.Depth, 100f),
+            (TremoloBlock.Rate, 3f),
+            (TremoloBlock.Trigger, -30f),
+            (TremoloBlock.StartPhase, startPhase)
+        );
+
+        var output = BlockRender.Mono(block, Signals.Concat(new float[7_777], Signals.Step(4_800, 0.5f)), 64);
+
+        // A sine LFO at phase p gives the gain 1 - (1 - sin(2 pi p)) / 2 at full depth.
+        var expected = 0.5f * 0.5f * (1 + MathF.Sin(2 * MathF.PI * startPhase / 360f));
+        Assert.Equal(expected, output[7_777], 1e-3f);
+    }
+
+    [Theory]
     [InlineData(1)]
     [InlineData(2)]
     public void Linkwitz_riley_harmonic_split_sums_flat_without_depth(int slope) {

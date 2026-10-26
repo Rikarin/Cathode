@@ -25,7 +25,7 @@ namespace Cathode.Dsp.Blocks;
 ///         </item>
 ///     </list>
 ///     The right channel's LFO is offset by LFO Phase (tremolo types only), and Tempo locks the rate to the rig tempo.
-///     With a Trigger level set, the LFO restarts from its start each time the playing rises through it (with 6 dB of
+///     With a Trigger level set, the LFO restarts at Start Phase each time the playing rises through it (with 6 dB of
 ///     hysteresis), so the pulse locks to the picking.
 /// </summary>
 public sealed class TremoloBlock() : DspBlock(Info), IEngageAware {
@@ -159,7 +159,7 @@ public sealed class TremoloBlock() : DspBlock(Info), IEngageAware {
                 var magnitude = 0.5f * (MathF.Abs(io.Left[i]) + MathF.Abs(io.Right[i]));
                 envelope = magnitude > envelope ? magnitude : envelope * envelopeRelease;
                 if (armed && envelope > trigger) {
-                    lfo.Reset();
+                    lfo.Reset(Params.GetTarget(StartPhase) / 360.0);
                     armed = false;
                 } else if (!armed && envelope < trigger * TriggerHysteresis) {
                     armed = true;

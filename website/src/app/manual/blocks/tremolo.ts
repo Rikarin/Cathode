@@ -27,9 +27,9 @@ There is no dry/wet mix here: the effect works on the whole signal, and **Depth*
     phase: `Offsets the right channel's LFO from the left's (tremolo types only). At 0° both sides pulse together; at 180° one side is loud while the other is quiet, a stereo tremolo that seems to bounce between speakers. Panner ignores it.`,
     panCenter: `For Panner: moves the middle of the swing to the left (negative) or right (positive), so the sound pans around an off-centre point.`,
     crossover: `For Harmonic Trem: the frequency that splits the signal into a low and a high band, which then pulse in opposite directions. Around 500–800 Hz is typical of the vintage amps.`,
-    trigger: `When set above its minimum, the LFO restarts from the beginning of its cycle every time your playing rises above this level (it re-arms once the signal falls 6 dB below it). Set it just below your picking level and each new strum starts the pulse in time with you. At the minimum it is off.`,
+    trigger: `When set above its minimum, the LFO restarts at its Start Phase every time your playing rises above this level (it re-arms once the signal falls 6 dB below it). Set it just below your picking level and each new strum starts the pulse in time with you. At the minimum it is off.`,
     crossoverSlope: `For Harmonic Trem: how steep the split between the two bands is. 6 dB/oct overlaps the bands a lot, for a softer effect; 24 dB/oct separates them sharply, for a clearer high-against-low throb.`,
-    startPhase: `Where in its cycle the LFO starts when you engage the block. Set it so the first pulse lands where you want it, for example 90° to start on a peak with a Sine.`
+    startPhase: `Where in its cycle the LFO starts when you engage the block, and each time the Trigger restarts it. Set it so the first pulse lands where you want it, for example 90° to start on a peak with a Sine.`
   },
 
   options: {
@@ -58,6 +58,6 @@ There is no dry/wet mix here: the effect works on the whole signal, and **Depth*
   tips: `- **Depth over 100 %** only does something on the Panner. For the tremolo types, 100 % already dips to silence.
 - **Square at 100 % Depth with Tempo** is an instant rhythmic gate (stutter) effect.
 - **Stereo tremolo:** LFO Phase at 180° with Tremolo or Optical Trem gives a lush throb that bounces between the speakers; the overall level stays steadier than with a mono tremolo.
-- The Trigger restarts the cycle at its beginning, not at **Start Phase**. If your pulse starts on a dip, try a different LFO Type or Duty.
+- The Trigger restarts the cycle at **Start Phase**, as engaging the block does: 90° makes every strum start on a peak with a Sine.
 - Want the tremolo or pan to follow an expression pedal or a scene? Drive **Rate** or **Depth** with a [modifier](/manual/modifiers).`
 };
