@@ -8,7 +8,8 @@ static class BlockRender {
         float[] right,
         Func<int, int> blockSize,
         long startSample = 0,
-        HeldNotes notes = default
+        HeldNotes notes = default,
+        float inputCalibrationDb = 0f
     ) {
         var outLeft = (float[])left.Clone();
         var outRight = (float[])right.Clone();
@@ -16,7 +17,7 @@ static class BlockRender {
         for (var offset = 0; offset < left.Length;) {
             var frames = Math.Clamp(blockSize(callback++), 1, left.Length - offset);
             var io = new StereoBuffer(outLeft.AsSpan(offset, frames), outRight.AsSpan(offset, frames));
-            block.Process(io, new(48_000, 120, startSample + offset, notes));
+            block.Process(io, new(48_000, 120, startSample + offset, notes, InputCalibrationDb: inputCalibrationDb));
             offset += frames;
         }
 

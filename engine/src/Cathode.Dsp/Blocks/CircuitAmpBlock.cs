@@ -46,7 +46,10 @@ namespace Cathode.Dsp.Blocks;
 ///         Level (Axe-Fx III parity, docs/06 §1.4):
 ///     </para>
 ///     <list type="bullet">
-///         <item><b>Input Trim</b> (dB, 0): gain at the input jack, no tone change.</item>
+///         <item>
+///             <b>Input Trim</b> (dB, 0): gain at the input jack, no tone change. It comes before the input stages
+///             below, so it also sets how hard the boost and Input Dynamics are hit.
+///         </item>
 ///         <item><b>Input Select</b> (Left): which input the mono amp takes: left, right, or their average.</item>
 ///         <item><b>Low Cut</b> (Hz, 0 = off): a first-order high-pass before the first stage ("tightening").</item>
 ///         <item>
@@ -105,13 +108,19 @@ namespace Cathode.Dsp.Blocks;
 ///     </list>
 ///     <para>
 ///         Then the stages around the circuit (docs/08 §4), each off or neutral at its default and skipped while it is
-///         (helpers in <c>Amp/AmpInserts.cs</c>), all at the inner rate:
+///         (helpers in <c>Amp/AmpInserts.cs</c>), all at the inner rate. The input stages work in guitar volts: the
+///         input calibration (<see cref="BlockContext.InputVolts" />) and Input Trim scale the signal before them, as
+///         the Drive block scales its own.
 ///     </para>
 ///     <list type="bullet">
-///         <item><b>Input Dynamics</b> (0 %): expands (positive) or compresses (negative) the input by its envelope.</item>
+///         <item>
+///             <b>Input Dynamics</b> (0 %): expands (positive) or compresses (negative) the input by its envelope,
+///             around -20 dBV.
+///         </item>
 ///         <item>
 ///             <b>Boost Type</b> (Off), <b>Boost Drive</b>, <b>Boost Tone</b>, <b>Boost Level</b>: a drive pedal from
-///             <see cref="DriveCircuits" /> in front of the amp (<see cref="AmpBoost" />).
+///             <see cref="DriveCircuits" /> in front of the amp (<see cref="AmpBoost" />), hit by the guitar's volts as
+///             the same pedal in a Drive block is.
 ///         </item>
 ///         <item>
 ///             <b>Input Filter</b> (Off: shelves, peak, high- or low-pass) with its frequency, Q and gain, and
@@ -612,19 +621,13 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
         }
 
         var inner = Oversampling == 2 ? oversampler.Up(samples) : samples;
-        dynamics.Process(inner, Params.Advance(InputDynamics, length) / 100f);
-        boost.Process(inner);
-        inputFilter.Process(inner);
-        if (location == EqAtInput) {
-            equalizer.Process(inner);
-        }
-
+        var (volts, jack) = ProcessInput(inner, trim, Params.Advance(InputDynamics, length) / 100f, location);
         var channel = Channel;
         var scale = channel.PowerAmpEnabled ? outputScale : preampScale;
         if (saturate || location == EqBeforePowerAmp || treble) {
             var eq = location == EqBeforePowerAmp;
             for (var i = 0; i < inner.Length; i++) {
-                var x = channel.TickPreamp(inner[i] * inputVolts * trim);
+                var x = channel.TickPreamp(inner[i] * volts * jack);
                 if (treble) {
                     x = highTreble.Tick(x);
                 }
@@ -642,7 +645,7 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
             }
         } else {
             for (var i = 0; i < inner.Length; i++) {
-                var y = channel.Tick(inner[i] * inputVolts * trim) * scale;
+                var y = channel.Tick(inner[i] * volts * jack) * scale;
                 inner[i] = Math.Abs(y) < 1e-30 ? 0f : (float)y;
             }
         }
@@ -674,6 +677,30 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
         if (Oversampling == 2) {
             oversampler.Down(samples);
         }
+    }
+
+    /// <summary>
+    ///     The input stages (dynamics, boost, filter and Definition, the EQ at the input), in guitar volts after the
+    ///     trim at the jack. Returns the calibration and trim still to apply at the circuit's input: both 1 once the
+    ///     stages have scaled <paramref name="inner" />. With all of them off it is left alone and the scaling stays
+    ///     in the circuit's (double) input, so an amp without them renders as before.
+    /// </summary>
+    (double Volts, double Trim) ProcessInput(Span<float> inner, float trim, float dynamicsAmount, int location) {
+        if (dynamicsAmount == 0 && !boost.IsOn && !inputFilter.IsActive && location != EqAtInput) {
+            dynamics.Process(inner, 0);
+            return (inputVolts, trim);
+        }
+
+        var gain = (float)(inputVolts * trim);
+        GainRamp.Apply(inner, gain, gain);
+        dynamics.Process(inner, dynamicsAmount);
+        boost.Process(inner);
+        inputFilter.Process(inner);
+        if (location == EqAtInput) {
+            equalizer.Process(inner);
+        }
+
+        return (1, 1);
     }
 
     static BlockDescriptor Describe(IReadOnlyList<ParamDescriptor> parameters) =>

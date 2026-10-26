@@ -99,6 +99,9 @@ public struct AmpInputFilter {
     public static IReadOnlyList<string> Types { get; } =
         ["Off", "Low Shelf", "High Shelf", "Peak", "High Pass", "Low Pass"];
 
+    /// <summary>True while the filter or Definition changes the signal.</summary>
+    public readonly bool IsActive => useFilter || useDefinition;
+
     public void Reset() {
         filter.Reset();
         low.Reset();

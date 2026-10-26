@@ -209,9 +209,10 @@ dark guitar and keeps the low end from smearing high-gain sounds. Hidden on the 
 
     intrim: `Gain at the input jack, in dB, before the first tube, with no change to the tone. It is like using a hotter
 or weaker pickup: +6 dB drives every stage harder, -6 dB cleans the amp up. Use it to match single coils and
-humbuckers on the same preset, or when an amp feels too clean or too hot at the gain you like. It acts after the
-built-in boost and input filter. The amp also reads your interface's input calibration, so a correctly set
-[audio setup](/manual/audio-setup) means 0 dB here behaves like a real guitar into the real amp.`,
+humbuckers on the same preset, or when an amp feels too clean or too hot at the gain you like. It acts before the
+built-in boost, input filter and Input Dynamics, so it also sets how hard the boost is hit, as a hotter pickup would.
+The amp also reads your interface's input calibration, so a correctly set [audio setup](/manual/audio-setup) means
+0 dB here behaves like a real guitar into the real amp.`,
 
     inputsel: `Which input the mono amp listens to: Left, Right, or the average of both. Use Right or Left + Right when
 the block before it is stereo or your guitar comes in on the second input.`,
@@ -325,7 +326,9 @@ shifts when the amp is driven hard: larger is slower, so the amp keeps pumping a
     boost: `A drive pedal built into the amp's input, run inside the amp's own oversampled circuit. *TS808 OD* is an
 Ibanez Tube Screamer, *Super OD* a Boss SD-1, *Chiron OD* a Klon Centaur, *Treble Booster* a Dallas Rangemaster,
 *Esoteric Boost* an Xotic RC Booster and *FET Boost* a JFET clean boost. Classic use: Drive low, Level up, to tighten
-and push a high-gain amp. For the full pedal with all its knobs, use a [Drive](/manual/blocks/drive) block in front.`,
+and push a high-gain amp. It gets your guitar's signal after *Input Trim* and the input calibration, so it is hit
+exactly as the same pedal in a [Drive](/manual/blocks/drive) block in front would be; use that block for the full
+pedal with all its knobs.`,
 
     boostdrive: `The boost pedal's drive (its gain). Low settings keep the pedal clean and let the amp do the distortion.`,
 
@@ -365,7 +368,8 @@ nothing.`,
 
     indyn: `An expander or compressor on the amp's input, following your picking. Positive values expand: soft playing
 gets softer and cleaner, hard playing hotter, for a more touch-sensitive amp. Negative values compress: a more even
-drive whatever your attack. The change is held within ±12 dB; 0 is off.`,
+drive whatever your attack. It pivots around -20 dBV at the input jack (a firmly picked note, after *Input Trim*
+and the input calibration), and the change is held within ±12 dB; 0 is off.`,
 
     comptype: `A compressor on the amp's output. *Output* detects the amp's output and compresses it (feed-forward,
 firmer); *Feedback* detects its own compressed output (smoother, with a lower effective ratio).`,

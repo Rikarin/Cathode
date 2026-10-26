@@ -45,6 +45,33 @@ public class CircuitAmpInsertTests {
     }
 
     [Theory]
+    [InlineData(1f)] // TS808 OD
+    [InlineData(4f)] // Treble Booster
+    public void Input_trim_and_calibration_set_how_hard_the_boost_is_hit(float boostType) {
+        // The boost sits behind the jack: a guitar 12 dB quieter with the trim or the calibration 12 dB up hits it (and
+        // Input Dynamics) as hard as the louder guitar does, so the renders match.
+        var loud = Signals.Concat(Signals.Noise(4_800, 3, 0.2f), Signals.Sine(196, Rate, 9_600, 0.2f));
+        var quiet = loud.Select(static s => s / 4).ToArray();
+        (int, float)[] boost = [
+            (CircuitAmpBlock.BoostType, boostType), (CircuitAmpBlock.BoostDrive, 8f),
+            (CircuitAmpBlock.InputDynamics, 40f)
+        ];
+        var reference = Render(loud, boost);
+        var trimmed = Render(quiet, [..boost, (CircuitAmpBlock.InputTrim, 12.0412f)]);
+        var calibrated = Render(quiet, 12.0412f, boost);
+        var untrimmed = Render(quiet, boost);
+
+        var level = Analysis.ToDb(Analysis.Rms(reference));
+        var trimDb = Analysis.NullResidualDb(reference, trimmed) - level;
+        var calibrationDb = Analysis.NullResidualDb(reference, calibrated) - level;
+        var untrimmedDb = Analysis.NullResidualDb(reference, untrimmed) - level;
+
+        Assert.True(trimDb < -60, $"the trim does not reach the boost: null {trimDb:0.0} dB");
+        Assert.True(calibrationDb < -60, $"the calibration does not reach the boost: null {calibrationDb:0.0} dB");
+        Assert.True(untrimmedDb > -20, $"untrimmed null {untrimmedDb:0.0} dB");
+    }
+
+    [Theory]
     [InlineData(CircuitAmpBlock.EqAtOutput)]
     [InlineData(CircuitAmpBlock.EqBeforePowerAmp)]
     [InlineData(CircuitAmpBlock.EqAtInput)]
@@ -272,9 +299,11 @@ public class CircuitAmpInsertTests {
         Assert.True(Analysis.Rms(right) > 0);
     }
 
-    static float[] Render(float[] input, params (int Index, float Value)[] settings) {
+    static float[] Render(float[] input, params (int Index, float Value)[] settings) => Render(input, 0f, settings);
+
+    static float[] Render(float[] input, float calibrationDb, params (int Index, float Value)[] settings) {
         using var block = TestBlocks.Create<CircuitAmpBlock>([(CircuitAmpBlock.Gain, 2f), ..settings]);
-        return BlockRender.Stereo(block, input, input, static _ => 64).Left;
+        return BlockRender.Stereo(block, input, input, static _ => 64, inputCalibrationDb: calibrationDb).Left;
     }
 
     static double SteadyRmsDb(float[] signal) => Analysis.ToDb(Analysis.Rms(signal.AsSpan(signal.Length / 2)));
