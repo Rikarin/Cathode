@@ -56,13 +56,14 @@ feedback; on Mono Tape, Head 1's.`,
 rise on a squared curve (about −16 dB at 20 %, −12 dB at 25 %, 0 dB at 50 %). 20 to 30 % suits most rhythm and lead
 playing. Use 100 % with **Kill Dry**, or in a parallel path, when the dry already reaches the output another way.`,
 
-    lowcut: `A high-pass filter in the feedback loop. It thins the low end of the repeats so they don't muddy your bass
-notes and chords. Because it sits in the loop, the first repeat is full range and each later repeat is filtered once
-more, so the trail gets thinner as it fades. 150 to 300 Hz is a good range for most guitar delays. At its lowest
+    lowcut: `A high-pass filter in the delay loop. It thins the low end of the repeats so they don't muddy your bass
+notes and chords. Because it sits in the loop, the first repeat is filtered once and each later repeat once more, so the
+trail gets thinner as it fades. 150 to 300 Hz is a good range for most guitar delays. At its lowest
 setting it's off. The slope and resonance are on the EQ page.`,
 
-    highcut: `A low-pass filter in the feedback loop. It darkens the repeats so they sit behind the dry note. Like Low Cut,
-it acts from the second repeat on, and each pass is darker than the last, which is how real analog and tape echoes behave.
+    highcut: `A low-pass filter in the delay loop. It darkens the repeats so they sit behind the dry note. Like Low Cut,
+it already shapes the first repeat, and each pass is darker than the last, which is how real analog and tape echoes
+behave.
 2 to 5 kHz is typical. At its highest setting it's off.
 
 Analog, Tape, Mono Tape and Vintage Digital add their own fixed darkening (about 2.8 kHz, 6.5 kHz × Motor Speed and
@@ -212,14 +213,14 @@ could pass unity.`,
     highCutQ: `The resonance at the High Cut corner. Raising it adds a peak just below the cutoff, which accumulates over
 the repeats into a ringing, resonant tone.`,
 
-    eq1Frequency: `The centre frequency of the first peaking EQ band in the feedback loop.`,
+    eq1Frequency: `The centre frequency of the first peaking EQ band in the delay loop.`,
 
     eq1Q: `The width of the first EQ band. Low Q is broad; high Q is narrow.`,
 
     eq1Gain: `Boosts or cuts the first EQ band. It acts on every pass, so the effect builds up: a 3 dB cut at 400 Hz is a
-mild change on the second repeat and a big one by the fifth. 0 dB turns the band off.`,
+mild change on the first repeat and a big one by the fifth. 0 dB turns the band off.`,
 
-    eq2Frequency: `The centre frequency of the second peaking EQ band in the feedback loop.`,
+    eq2Frequency: `The centre frequency of the second peaking EQ band in the delay loop.`,
 
     eq2Q: `The width of the second EQ band.`,
 
@@ -291,8 +292,8 @@ path whose dry already reaches the output.`
     type: {
       Digital: `Clean, full-range repeats that stay exactly like your playing unless you filter them. The most
 transparent choice and the best start for rhythmic and dotted-eighth parts.`,
-      Analog: `Bucket-brigade style: the feedback loop is darkened at about 2.8 kHz and softly saturated, so the repeats
-get warmer, darker and more compressed as they fade. Great for leads and for high feedback, since the trail never gets
+      Analog: `Bucket-brigade style: the loop is darkened at about 2.8 kHz and softly saturated, so the first repeat is
+already warm and the later ones get darker and more compressed as they fade. Great for leads and for high feedback, since the trail never gets
 harsh.`,
       Tape: `A tape echo: gentle saturation, a loop darkened at about 6.5 kHz, and constant wow (about 0.55 Hz) and
 flutter (about 6.3 Hz) that make the repeats drift slightly in pitch. **Motor Speed** changes the tape speed.`,
@@ -352,10 +353,11 @@ pick Ping-Pong or Dual.
 into a roaring, saturated swell; the limiter keeps it from clipping. With Analog or Tape it also darkens as it grows.
 - **Ambient pads.** Long Time (700 ms to 1.5 s), Feedback 60 to 75 %, **Diffusion Mix** 70 to 100 % with a long
 Diffusion Time, a little LFO depth, and a Reverb after it.
-- **Expert note on the filters.** Low Cut, High Cut, both EQ bands and the type darkening all sit in the feedback path.
-The first repeat is as bright and full as your input (bit reduction and drive still apply); every later repeat passes
-the filters once more. If you want the first repeat shaped too, run the delay in a parallel row with **Kill Dry** on
-and put a [Filter](/manual/blocks/filter) or [Parametric EQ](/manual/blocks/peq) after it in that row.
+- **Expert note on the filters.** Low Cut, High Cut, both EQ bands and the type darkening all sit in the loop, where
+the line is written: what you play and the fed-back repeats pass them together, then drive and saturation. So the first
+repeat is filtered once, the second twice, and so on, like a bucket-brigade delay's filters or a tape's head losses. If
+you want the repeats shaped only once, leave these filters off and put a [Filter](/manual/blocks/filter) or [Parametric
+EQ](/manual/blocks/peq) after the delay in a parallel row with **Kill Dry** on.
 - **Expert note on modulation.** To keep the modulated read behind the write, LFO and tape modulation add a small fixed
 offset (the sum of the depths) to the delay time. With large depths the delay is slightly longer than Time.`
 };

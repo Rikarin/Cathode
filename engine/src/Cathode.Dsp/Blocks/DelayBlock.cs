@@ -19,12 +19,13 @@ namespace Cathode.Dsp.Blocks;
 ///         <item>Sweep: a stereo delay whose repeats pass a resonant band-pass swept by an LFO.</item>
 ///     </list>
 ///     Up to 16 s, tempo sync, a right time as a ratio of the left, a Master Feedback that scales every feedback up to
-///     200 % (a limiter then keeps the loop bounded), feedback of either polarity, a feedback-path EQ (low and high cut
-///     with slope and resonance, two peaking bands), drive and bit reduction, two time LFOs and a level/pan/spread LFO, a
-///     diffuser, a ducker on the wet signal, echo pan, a right post delay, input gain (what the lines hear, not the dry)
-///     and Hold or Stack, which loop the repeats at unity with the input closed or open. The mix follows the Axe-Fx delay
-///     law: the wet reaches full level at 50 % while the dry stays at full level, then the dry fades out. Reads use cubic
-///     Hermite interpolation, so integer delays are exact and time changes glide instead of clicking.
+///     200 % (a limiter then keeps the loop bounded), feedback of either polarity, a loop EQ (low and high cut with
+///     slope and resonance, two peaking bands) that filters every repeat, the first included, drive and bit reduction,
+///     two time LFOs and a level/pan/spread LFO, a diffuser, a ducker on the wet signal, echo pan, a right post delay,
+///     input gain (what the lines hear, not the dry) and Hold or Stack, which loop the repeats at unity with the input
+///     closed or open. The mix follows the Axe-Fx delay law: the wet reaches full level at 50 % while the dry stays at
+///     full level, then the dry fades out. Reads use cubic Hermite interpolation, so integer delays are exact and time
+///     changes glide instead of clicking.
 /// </summary>
 /// <remarks>
 ///     Reverse: a new chunk starts every Time (or on a new note with Trigger Restart); the head reading
@@ -532,8 +533,9 @@ public sealed class DelayBlock() : DspBlock(Info) {
         var shape3 = (LfoShape)(int)Params.Current(Lfo3Type);
         var lfo3Target = (int)Params.Current(Lfo3Target);
 
-        // Feedback-path filters. Analog, Tape and Vintage Digital add their own fixed darkening to the user's high cut;
-        // a slower tape is darker still.
+        // Loop filters, at the line's write: every repeat, the first included, passes them once more than the one
+        // before, like a BBD's anti-alias filter or a tape's record and playback losses. Analog, Tape and Vintage
+        // Digital add their own fixed darkening to the user's high cut; a slower tape is darker still.
         var lowCut = Params.Advance(LowCut, n);
         var highCut = Math.Min(
             Params.Advance(HighCut, n),
@@ -678,7 +680,7 @@ public sealed class DelayBlock() : DspBlock(Info) {
                 case MonoTape: {
                     var head1 = left.Read(dl, loop);
                     var head2 = head2Ratio > 0 ? left.Read(Math.Max(3f, dl * head2Ratio), loop) : 0f;
-                    var fed = left.Feedback(feedback * head1 + head2Feedback * head2, loop);
+                    var fed = feedback * head1 + head2Feedback * head2;
                     left.Write(0.5f * (dryLeft + dryRight) * inputGain + fed, loop);
                     head1 *= levelLeft;
                     head2 *= levelRight;
@@ -716,28 +718,26 @@ public sealed class DelayBlock() : DspBlock(Info) {
                     reverseOutgoing += 1f;
                     reverseFade = Math.Max(0f, reverseFade - 1f);
 
-                    left.Write(dryLeft * inputGain + left.Feedback(left.Read(chunk, loop), loop) * feedback, loop);
-                    right.Write(dryRight * inputGain + right.Feedback(right.Read(chunk, loop), loop) * feedback, loop);
+                    left.Write(dryLeft * inputGain + left.Read(chunk, loop) * feedback, loop);
+                    right.Write(dryRight * inputGain + right.Read(chunk, loop) * feedback, loop);
                     break;
                 }
                 default: {
                     wetLeft = left.Read(dl, loop);
                     wetRight = right.Read(dr, loop);
-                    var fedLeft = left.Feedback(wetLeft, loop);
-                    var fedRight = right.Feedback(wetRight, loop);
                     if (pingPong) {
-                        left.Write(0.5f * (dryLeft + dryRight) * inputGain + fedRight * feedback, loop);
-                        right.Write(fedLeft * feedback, loop);
+                        left.Write(0.5f * (dryLeft + dryRight) * inputGain + wetRight * feedback, loop);
+                        right.Write(wetLeft * feedback, loop);
                     } else if (dual) {
-                        left.Write(dryLeft * inputGain + fedLeft * feedback + fedRight * crossToLeft, loop);
-                        right.Write(dryRight * inputGain + fedRight * feedbackRight + fedLeft * crossToRight, loop);
+                        left.Write(dryLeft * inputGain + wetLeft * feedback + wetRight * crossToLeft, loop);
+                        right.Write(dryRight * inputGain + wetRight * feedbackRight + wetLeft * crossToRight, loop);
                         wetLeft *= levelLeft;
                         wetRight *= levelRight;
                         (wetLeft, wetRight) = (wetLeft * l1Left + wetRight * l2Left,
                             wetLeft * l1Right + wetRight * l2Right);
                     } else {
-                        left.Write(dryLeft * inputGain + fedLeft * feedback, loop);
-                        right.Write(dryRight * inputGain + fedRight * feedback, loop);
+                        left.Write(dryLeft * inputGain + wetLeft * feedback, loop);
+                        right.Write(dryRight * inputGain + wetRight * feedback, loop);
                     }
 
                     if (type == Sweep) {
@@ -823,7 +823,7 @@ public sealed class DelayBlock() : DspBlock(Info) {
         output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
     }
 
-    /// <summary>What the lines' feedback paths do this block.</summary>
+    /// <summary>What the lines' loops do this block.</summary>
     readonly record struct LoopSettings(LoopFilter Filter, bool Saturate, float Drive, float Quantum, bool Limit);
 
     sealed class Line : IDisposable {
@@ -845,11 +845,15 @@ public sealed class DelayBlock() : DspBlock(Info) {
             return loop.Quantum > 0 ? MathF.Round(wet / loop.Quantum) * loop.Quantum : wet;
         }
 
-        /// <summary>The repeat through the feedback path's filters.</summary>
-        public float Feedback(float wet, in LoopSettings loop) =>
-            loop.Filter.Active ? filter.Tick(loop.Filter, wet) : wet;
-
+        /// <summary>
+        ///     Writes what enters the line, the input plus the fed-back repeats, through the loop's filters, then
+        ///     drive, saturation and the limiter: every pass, the first included, is filtered once.
+        /// </summary>
         public void Write(float value, in LoopSettings loop) {
+            if (loop.Filter.Active) {
+                value = filter.Tick(loop.Filter, value);
+            }
+
             if (loop.Drive > 0) {
                 var gain = 1f + loop.Drive;
                 value = MathF.Tanh(value * gain) / gain;

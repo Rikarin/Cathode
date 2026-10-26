@@ -194,8 +194,9 @@ public class DelayBlockTests {
         var left = Render(100f, out var right);
         var slowLeft = Render(50f, out var slowRight);
 
-        // Wow and flutter move the heads by a fraction of a millisecond.
-        Assert.InRange(Analysis.PeakIndex(left), 4_800 - 40, 4_800 + 40);
+        // Wow and flutter move the heads by a fraction of a millisecond, and the loop's tape darkening delays the peak
+        // by a few samples.
+        Assert.InRange(Analysis.PeakIndex(left), 4_800 - 48, 4_800 + 48);
         Assert.InRange(Analysis.PeakIndex(right), 2_400 - 40, 2_400 + 40);
         Assert.InRange(Analysis.PeakIndex(slowLeft), 9_600 - 60, 9_600 + 60);
         Assert.InRange(Analysis.PeakIndex(slowRight), 4_800 - 60, 4_800 + 60);
@@ -351,7 +352,7 @@ public class DelayBlockTests {
     }
 
     [Fact]
-    public void Feedback_eq_shapes_each_repeat_but_not_the_first() {
+    public void Loop_eq_shapes_every_repeat_once_more_than_the_last() {
         using var delay = Create(
             (DelayBlock.Time, 100f),
             (DelayBlock.Feedback, 100f),
@@ -362,9 +363,40 @@ public class DelayBlockTests {
 
         var output = BlockRender.Mono(delay, Signals.Impulse(4_800 * 3), 64);
 
-        Assert.Equal(1f, output[4_800], 1e-6f);
+        var first = output.AsSpan(4_800 - 100, 4_800).ToArray();
         var second = output.AsSpan(9_600 - 100, 4_800).ToArray();
-        Assert.Equal(-6, Analysis.ToDb(Analysis.MagnitudeAt(second, 1_000, 48_000)), 0.2);
+        Assert.Equal(-6, Analysis.ToDb(Analysis.MagnitudeAt(first, 1_000, 48_000)), 0.2);
+        Assert.Equal(-12, Analysis.ToDb(Analysis.MagnitudeAt(second, 1_000, 48_000)), 0.3);
+    }
+
+    [Theory]
+    [InlineData(DelayBlock.Digital, 2_000f, 2_000f)]
+    [InlineData(DelayBlock.Analog, DelayBlock.HighCutOff, 2_800f)]
+    [InlineData(DelayBlock.Analog, 1_000f, 1_000f)]
+    [InlineData(DelayBlock.Reverse, 2_000f, 2_000f)]
+    public void High_cut_and_type_darkening_filter_the_first_repeat(int type, float highCut, float cutoff) {
+        // The loop's filters sit before the output tap, so the first repeat is already 3 dB down at the cut-off (a
+        // Butterworth corner) and the second, one pass later, 6 dB. A quiet impulse keeps Analog's saturation linear.
+        using var delay = Create(
+            (DelayBlock.Type, type),
+            (DelayBlock.Time, 100f),
+            (DelayBlock.Feedback, 100f),
+            (DelayBlock.Mix, 100f),
+            (DelayBlock.HighCut, highCut),
+            (DelayBlock.ReverseCrossfade, 0f)
+        );
+        var input = new float[4_800 * 3];
+        input[0] = 0.01f;
+
+        var output = BlockRender.Mono(delay, input, 64);
+
+        // Reverse plays each chunk backwards, so a repeat ends at the end of its chunk instead of starting at its start;
+        // a time-reversed response has the same magnitude.
+        var start = type == DelayBlock.Reverse ? 4_900 : 4_700;
+        var first = output.AsSpan(start, 4_700).ToArray();
+        var second = output.AsSpan(start + 4_800, 4_700).ToArray();
+        Assert.Equal(-3.01, Analysis.ToDb(Analysis.MagnitudeAt(first, cutoff, 48_000) / 0.01), 0.15);
+        Assert.Equal(-6.02, Analysis.ToDb(Analysis.MagnitudeAt(second, cutoff, 48_000) / 0.01), 0.3);
     }
 
     [Fact]
