@@ -3,6 +3,7 @@ using Cathode.Dsp.Modulation;
 using Cathode.Dsp.Parameters;
 using Cathode.Dsp.Pitch;
 using Cathode.Dsp.Reverb;
+using System.Collections.Immutable;
 
 namespace Cathode.Dsp.Blocks;
 
@@ -156,10 +157,10 @@ public sealed class ReverbBlock : DspBlock {
     const float LongestEarlyMs = 117.7f;
 
     /// <summary>Line counts of the Quality choices.</summary>
-    public static readonly int[] QualityLines = [4, 8, 12, 16];
+    public static ReadOnlySpan<int> QualityLines => [4, 8, 12, 16];
 
     /// <summary>Early reflection tap times in ms at size 50 % and Early Time 100 %, per ER row (see <see cref="ErRow" />).</summary>
-    public static readonly float[][] EarlyMs = [
+    public static readonly ImmutableArray<ImmutableArray<float>> EarlyMs = [
         [3.1f, 5.3f, 7.9f, 10.1f, 12.7f, 15.1f, 18.3f, 21.1f, 24.7f, 28.3f, 32.9f, 37.1f], // Room
         [7.3f, 11.9f, 17.1f, 21.7f, 26.3f, 31.9f, 37.7f, 43.1f, 49.3f, 56.9f, 63.1f, 71.3f], // Hall
         [1.3f, 2.9f, 4.1f, 5.7f, 7.3f, 8.9f, 10.7f, 12.1f, 14.3f, 16.1f, 18.7f, 21.3f], // Plate (and Dattorro)

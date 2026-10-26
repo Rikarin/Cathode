@@ -279,7 +279,7 @@ public sealed class FactoryRecipe(string name, string description, params string
         var equals = change.IndexOf('=', StringComparison.Ordinal);
         var target = equals > 0 ? Resolve(change[..equals]) : null;
         var channel = equals > 0 ? change[(equals + 1)..] : string.Empty;
-        var index = Array.IndexOf(Preset.ChannelNames, channel);
+        var index = Preset.ChannelNames.IndexOf(channel);
         if (target is null || index < 0) {
             problem($"scene '{scene.Name}' has a change '{change}' that is not +block, -block or block=A-D.");
         } else if (index >= parts.First(p => p.Id == target).Channels.Length) {

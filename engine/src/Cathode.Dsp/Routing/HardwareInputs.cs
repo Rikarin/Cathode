@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Cathode.Dsp.Routing;
 
 /// <summary>
@@ -19,7 +21,8 @@ public sealed class HardwareInputs : IDisposable {
     public const int Input1 = 0;
 
     /// <summary>The sources' names, in order: what an input choice lists after its other options.</summary>
-    public static readonly string[] Names = ["Input 1", "Input 2", "Input 3", "Input 4", "USB 5/6", "USB 7/8"];
+    public static readonly ImmutableArray<string> Names =
+        ["Input 1", "Input 2", "Input 3", "Input 4", "USB 5/6", "USB 7/8"];
 
     readonly NativeBuffer[] left = new NativeBuffer[Count];
     readonly NativeBuffer[] right = new NativeBuffer[Count];

@@ -60,13 +60,13 @@ public sealed record CathodyneDesign(
 public abstract class PhaseInverter {
     protected const int Points = 1_025;
 
-    internal readonly double[] a = new double[Points];
-    internal readonly double[] b = new double[Points];
-    internal readonly double[] slopeA = new double[Points];
-    internal readonly double[] slopeB = new double[Points];
-    internal readonly double[] gridVoltages = new double[Points];
-    internal readonly double[] leakReturns = new double[Points];
-    internal readonly double[] cathodeResistances = new double[Points];
+    internal double[] a = new double[Points];
+    internal double[] b = new double[Points];
+    internal double[] slopeA = new double[Points];
+    internal double[] slopeB = new double[Points];
+    internal double[] gridVoltages = new double[Points];
+    internal double[] leakReturns = new double[Points];
+    internal double[] cathodeResistances = new double[Points];
     internal readonly double step;
 
     // Per point: a, b and their slopes times the step, side by side for Evaluate (packed by Differentiate).

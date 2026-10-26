@@ -73,7 +73,10 @@ public class MatchMetricsTests {
 
         var flat = MatchMetrics.FrequencyResponse(sweep, sweep, Rate);
         var response = MatchMetrics.FrequencyResponse(sweep, output, Rate);
-        var at = (double f) => response[Array.FindIndex(MatchMetrics.ResponseCenters, c => Math.Abs(c / f - 1) < 0.05)];
+        var at = (double f) => response[Array.FindIndex(
+            [..MatchMetrics.ResponseCenters],
+            c => Math.Abs(c / f - 1) < 0.05
+        )];
 
         Assert.All(flat, static db => Assert.Equal(0, db, 6));
         Assert.Equal(0, at(100), 0);

@@ -310,14 +310,16 @@ public sealed class PhaserBlock() : DspBlock(Info), IEngageAware {
         var q = Params.Advance(FilterQ, n);
 
         // The sweep's ends, kept within Min and Max Frequency.
-        var low = Math.Clamp(center * MathF.Pow(2f, -octaves), minFrequency, maxFrequency);
-        var high = Math.Clamp(center * MathF.Pow(2f, octaves), minFrequency, maxFrequency);
+        var lowEnd = center * MathF.Pow(2f, -octaves);
+        var highEnd = center * MathF.Pow(2f, octaves);
+        var low = Math.Clamp(lowEnd, minFrequency, maxFrequency);
+        var high = Math.Clamp(highEnd, minFrequency, maxFrequency);
         var vcr = (int)Params.Current(VcrType);
         var plain = vcr == VcrExponential
             && bias == 0
             && exponent == 1f
-            && low == center * MathF.Pow(2f, -octaves)
-            && high == center * MathF.Pow(2f, octaves);
+            && low == lowEnd // neither end clamped
+            && high == highEnd;
         var shape = (LfoShape)(int)Params.Current(LfoType);
         var conditioned = !conditioner.IsOff;
         var middleFeedback = (int)Params.Current(FeedbackPoint) == 1;

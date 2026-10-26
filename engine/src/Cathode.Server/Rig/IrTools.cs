@@ -172,7 +172,7 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
 
         cab.Prepare(new(rate, 64));
         var (left, right) = cab.ExportImpulseResponse();
-        using var stream = new MemoryStream();
+        await using var stream = new MemoryStream();
         WavFile.Write(stream, new((int)rate, [left, right]));
         return stream.ToArray();
     }
@@ -191,7 +191,7 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
         var name = request.Name.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)
             ? request.Name
             : request.Name + ".wav";
-        using var stream = new MemoryStream(wav);
+        await using var stream = new MemoryStream(wav);
         return await assets.AddAsync(stream, name, cancellationToken);
     }
 
@@ -209,7 +209,7 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
     }
 
     async Task<AssetInfo> StoreAsync(AudioData audio, string name, CancellationToken cancellationToken) {
-        using var stream = new MemoryStream();
+        await using var stream = new MemoryStream();
         WavFile.Write(stream, audio);
         stream.Position = 0;
         return await assets.AddAsync(stream, name, cancellationToken);

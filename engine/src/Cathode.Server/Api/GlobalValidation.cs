@@ -1,5 +1,6 @@
 using Cathode.Contracts;
 using Cathode.Server.Rig;
+using System.Collections.Immutable;
 
 namespace Cathode.Server.Api;
 
@@ -9,9 +10,9 @@ static class GlobalValidation {
     static readonly string[] Messages = ["cc", "note", "pc"];
 
     /// <summary>The output modes, in the order of the engine's Output Mode choice.</summary>
-    public static readonly string[] OutputModes = ["stereo", "sum", "copyLR", "dualMono"];
+    public static readonly ImmutableArray<string> OutputModes = ["stereo", "sum", "copyLR", "dualMono"];
 
-    public static readonly string[] Oversampling = ["minimum", "linear"];
+    public static readonly ImmutableArray<string> Oversampling = ["minimum", "linear"];
 
     static readonly string[] Actions = [
         "scene", "sceneNext", "scenePrevious", "presetSlot", "presetNext", "presetPrevious", "bypass", "channel",

@@ -1,11 +1,12 @@
 using Cathode.Dsp.Parameters;
+using System.Collections.Immutable;
 
 namespace Cathode.Dsp;
 
 /// <summary>Small stereo helpers shared by the blocks' common parameters.</summary>
 public static class Stereo {
     /// <summary>The options of an Input Select parameter: how a mono effect hears a stereo input.</summary>
-    public static readonly string[] InputSelectOptions = ["L+R", "Left", "Right"];
+    public static readonly ImmutableArray<string> InputSelectOptions = ["L+R", "Left", "Right"];
 
     /// <summary>The mono signal an effect hears for Input Select <paramref name="select" />.</summary>
     public static float Select(int select, float left, float right) =>

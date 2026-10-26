@@ -278,18 +278,19 @@ public class BassAmpTests(ITestOutputHelper output) {
         channel.Configure(new(1, 1, 1, 1, 1, false, 1), new(0.5, 0, 0, 0.5, 0.5, 0.5));
         channel.Reset();
         const int Samples = 96_000;
+        const int Settled = Samples / 2; // the second half, measured
         var squares = new double[channel.Stages.Count + 1];
         for (var n = 0; n < Samples; n++) {
             var x = 0.021 * Math.Sqrt(2) * Math.Sin(2 * Math.PI * 1_000 * n / 96_000.0);
             for (var k = 0; k <= channel.Stages.Count; k++) {
                 x = k < channel.Stages.Count ? channel.Stages[k].Tick(x) : channel.SolidState!.Tick(x);
-                if (n >= Samples / 2) {
+                if (n >= Settled) {
                     squares[k] += x * x;
                 }
             }
         }
 
-        var rms = squares.Select(static s => Math.Sqrt(s / (Samples / 2))).ToArray();
+        var rms = squares.Select(static s => Math.Sqrt(s / Settled)).ToArray();
         output.WriteLine(
             $"IC2b {rms[0] * 1e3:0} mV, IC2a {rms[1] * 1e3:0} mV, stack {rms[2] * 1e3:0.0} mV, IC3a {rms[3] * 1e3:0} mV, "
             + $"IC3b {rms[5] * 1e3:0} mV, IC1a {rms[6] * 1e3:0} mV, speaker {rms[7]:0.00} V"

@@ -43,6 +43,7 @@ public sealed class DecouplingChain {
         flow = new double[n];
         load = new double[n];
         Supplies = new double[n];
+        var total = 0.0;
         for (var k = 1; k < n; k++) {
             var node = nodes[k - 1];
             if (node.Parent < 0 || node.Parent >= k) {
@@ -63,8 +64,10 @@ public sealed class DecouplingChain {
             resistance[k] = node.Resistance;
             cap[k] = node.Cap;
             current[k] = node.Current;
-            Current += node.Current;
+            total += node.Current;
         }
+
+        Current = total;
 
         Array.Fill(nominal, 1);
         Array.Fill(voltage, 1);

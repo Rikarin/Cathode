@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 
 namespace Cathode.Ipc;
@@ -7,6 +8,11 @@ namespace Cathode.Ipc;
 ///     Server side of the IPC link: connects to the Host's Unix domain socket (retrying until it appears), correlates
 ///     replies with requests, and raises <see cref="TelemetryReceived" /> for pushed telemetry.
 /// </summary>
+[SuppressMessage(
+    "Skala",
+    "SK3502",
+    Justification = "False positive: DisposeAsync disposes both, and IAsyncDisposable comes through IEngineLink."
+)]
 public sealed class IpcEngineClient(string socketPath) : IEngineLink {
     readonly ConcurrentDictionary<long, TaskCompletionSource<IpcMessage>> pending = new();
     readonly SemaphoreSlim writeLock = new(1, 1);
@@ -66,7 +72,9 @@ public sealed class IpcEngineClient(string socketPath) : IEngineLink {
         if (readLoop is not null) {
             try {
                 await readLoop.ConfigureAwait(false);
-            } catch (OperationCanceledException) { }
+            } catch (OperationCanceledException) {
+                // The read loop ends by cancellation, which is what stop just asked of it.
+            }
         }
 
         stream?.Dispose();

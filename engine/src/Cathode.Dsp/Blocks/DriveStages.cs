@@ -1155,6 +1155,9 @@ public sealed class ToneStage {
                 root.SetResistance(4, n.Resistor3 * middle);
                 root.SetResistance(5, n.Load);
                 break;
+            case ToneKind.Range or ToneKind.ActiveEq:
+                // A Range has no tone network, and the active EQ was set above.
+                break;
         }
 
         root.Propagate();

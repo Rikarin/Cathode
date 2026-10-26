@@ -170,13 +170,14 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
         }
 
         var n = (int)rate;
+        var settled = n / 2; // the second half, measured
         var sums = new double[stages.Length];
         var means = new double[stages.Length];
         for (var i = 0; i < n; i++) {
             var x = input * Math.Sqrt(2) * Math.Sin(2 * Math.PI * 1_000 * i / rate);
             for (var s = 0; s < stages.Length; s++) {
                 x = stages[s].Tick(x + (s == 0 ? 0 : stages[s - 1].RestOutput)) - stages[s].RestOutput;
-                if (i >= n / 2) {
+                if (i >= settled) {
                     sums[s] += x * x;
                     means[s] += x;
                 }
@@ -185,8 +186,8 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
 
         var errors = new List<double>();
         for (var s = 0; s < stages.Length; s++) {
-            var mean = means[s] / (n / 2);
-            var rms = Math.Sqrt(sums[s] / (n / 2) - mean * mean);
+            var mean = means[s] / settled;
+            var rms = Math.Sqrt(sums[s] / settled - mean * mean);
             var name = Design(model).Preamp[s].Name;
             if (expected.TryGetValue(name, out var target)) {
                 var error = Analysis.ToDb(rms / target);

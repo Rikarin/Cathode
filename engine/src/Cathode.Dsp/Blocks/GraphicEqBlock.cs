@@ -23,7 +23,7 @@ public sealed class GraphicEqBlock : DspBlock {
     public const int Level = Bands;
     public const float BandQ = GraphicEqualizer.OctaveQ;
 
-    public static readonly float[] Centers = GraphicEqualizer.Layouts[0].Centers;
+    public static ReadOnlySpan<float> Centers => GraphicEqualizer.Layouts[0].Centers;
 
     readonly GraphicEqualizer equalizer = new(true);
     readonly float[] gains = new float[Bands];

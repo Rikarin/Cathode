@@ -174,20 +174,28 @@ public sealed record PhaseShiftOscillatorDesign(
 ///     rotations: the rate, the grid's swing and bias, the plate's harmonics and the ladder's second node, per rotation.
 /// </summary>
 sealed class OscillatorTable {
-    public readonly double[] Rates = new double[PhaseShiftOscillatorDesign.Points];
+    readonly double[] rates = new double[PhaseShiftOscillatorDesign.Points];
+    readonly double[] amplitudes = new double[PhaseShiftOscillatorDesign.Points];
+
+    readonly Complex[] plateHarmonics =
+        new Complex[PhaseShiftOscillatorDesign.Points * PhaseShiftOscillatorDesign.Harmonics];
+
+    readonly Complex[] second = new Complex[PhaseShiftOscillatorDesign.Points];
+
+    /// <summary>The oscillator's rate per rotation, hertz.</summary>
+    public ReadOnlySpan<double> Rates => rates;
 
     /// <summary>The grid's peak swing, volts.</summary>
-    public readonly double[] Amplitudes = new double[PhaseShiftOscillatorDesign.Points];
+    public ReadOnlySpan<double> Amplitudes => amplitudes;
 
     /// <summary>
     ///     The plate's harmonics (complex amplitudes, the grid swinging as <c>A sin θ</c>), per rotation and harmonic
     ///     (<c>[rotation * Harmonics + k - 1]</c>).
     /// </summary>
-    public readonly Complex[] Plate =
-        new Complex[PhaseShiftOscillatorDesign.Points * PhaseShiftOscillatorDesign.Harmonics];
+    public ReadOnlySpan<Complex> Plate => plateHarmonics;
 
     /// <summary>The second ladder node per grid volt at the rate.</summary>
-    public readonly Complex[] Second = new Complex[PhaseShiftOscillatorDesign.Points];
+    public ReadOnlySpan<Complex> Second => second;
 
     /// <summary>The cathode's bias voltage at the operating point.</summary>
     public readonly double Bias;
@@ -207,9 +215,9 @@ sealed class OscillatorTable {
         for (var p = 0; p < PhaseShiftOscillatorDesign.Points; p++) {
             var speed = p / (double)(PhaseShiftOscillatorDesign.Points - 1);
             var rate = design.Rate(speed);
-            Rates[p] = rate;
+            rates[p] = rate;
             var ladder = design.Ladder(rate, speed, source);
-            Second[p] = ladder.Second;
+            second[p] = ladder.Second;
             var loss = 1 / ladder.Plate.Magnitude; // grid volts per plate volt at the rate
             var load = 1 / (1 / design.PlateResistor + ladder.Admittance.Magnitude);
 
@@ -234,15 +242,15 @@ sealed class OscillatorTable {
             }
 
             var amplitude = Math.Sqrt(low * high);
-            Amplitudes[p] = amplitude;
+            amplitudes[p] = amplitude;
             Fundamental(triode, amplitude, cathode, plateVolts, current, load, wave);
             for (var k = 1; k <= PhaseShiftOscillatorDesign.Harmonics; k++) {
-                Plate[p * PhaseShiftOscillatorDesign.Harmonics + k - 1] = Harmonic(wave, k);
+                plateHarmonics[p * PhaseShiftOscillatorDesign.Harmonics + k - 1] = Harmonic(wave, k);
             }
         }
 
-        First = Array.FindIndex(Amplitudes, static a => a > 0);
-        Last = Array.FindLastIndex(Amplitudes, static a => a > 0);
+        First = Array.FindIndex(amplitudes, static a => a > 0);
+        Last = Array.FindLastIndex(amplitudes, static a => a > 0);
         if (First < 0 || First == Last) {
             throw new ArgumentException(
                 "The oscillator does not oscillate over the Speed knob's travel.",
@@ -270,7 +278,7 @@ sealed class OscillatorTable {
     }
 
     /// <summary>A table column interpolated at <paramref name="position" />.</summary>
-    public static double At(double[] column, double position) {
+    public static double At(ReadOnlySpan<double> column, double position) {
         var i = Math.Min((int)position, column.Length - 2);
         var t = position - i;
         return column[i] + t * (column[i + 1] - column[i]);

@@ -264,7 +264,7 @@ public sealed record EnclosureModel(
 /// </summary>
 public static class CabCatalogue {
     /// <summary>Radial mode constants: the zeros of J0, so mode n of a clamped disc has n - 1 nodal circles inside.</summary>
-    public static readonly double[] RadialModes = [2.4048, 5.5201, 8.6537, 11.7915, 14.9309, 18.0711];
+    public static ReadOnlySpan<double> RadialModes => [2.4048, 5.5201, 8.6537, 11.7915, 14.9309, 18.0711];
 
     // Electrical data (SpeakerElectrical), 8 Ω versions. Celestion publishes only Fs and Re for its guitar speakers
     // (product brochures and the Guitar Catalogue 2026 spec tables, celestion.com); their Qms, Le and Vas are typical

@@ -555,6 +555,7 @@ public sealed class CircuitRoot<TSource, TDevice>
         DevicePivots freeBuffer = default;
         Span<int> free = freeBuffer;
         var count = 0;
+#pragma warning disable SK2003 // Exact by design: the limiter leaves a free port's step bit for bit, so equality is "not limited".
         for (var d = 0; d < k; d++) {
             if (next[d] == v[d] + unlimited[d]) {
                 free[count++] = d;
@@ -577,6 +578,7 @@ public sealed class CircuitRoot<TSource, TDevice>
             var sum = negative[row];
             for (var d = 0; d < k; d++) {
                 if (next[d] != v[d] + unlimited[d]) {
+#pragma warning restore SK2003
                     sum -= full[row * k + d] * (next[d] - v[d]);
                 }
             }

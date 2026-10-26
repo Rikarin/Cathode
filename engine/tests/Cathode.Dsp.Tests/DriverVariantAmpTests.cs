@@ -115,9 +115,9 @@ public class DriverVariantAmpTests(ITestOutputHelper output) {
             .ToArray();
         var peak = 0.0;
         foreach (var knob in knobs) {
-            var range = (knob is >= CircuitAmpBlock.Eq1 and < CircuitAmpBlock.Eq1 + 5) ? 12f : 10f;
+            var range = knob is >= CircuitAmpBlock.Eq1 and < CircuitAmpBlock.Eq1 + 5 ? 12f : 10f;
             foreach (var value in new[] {
-                         (knob is >= CircuitAmpBlock.Eq1 and < CircuitAmpBlock.Eq1 + 5) ? -12f : 0f, range, 5f
+                         knob is >= CircuitAmpBlock.Eq1 and < CircuitAmpBlock.Eq1 + 5 ? -12f : 0f, range, 5f
                      }) {
                 block.Params.SetTarget(knob, value);
                 var rendered = BlockRender.Mono(block, chord, 64);

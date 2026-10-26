@@ -137,7 +137,7 @@ public sealed class HalfBandStage {
     public static (float[] Even, float[] Odd) Split(double[] coefficients) =>
     (
         coefficients.Where(static (_, i) => i % 2 == 0).Select(static c => (float)c).ToArray(),
-        coefficients.Where(static (_, i) => i % 2 == 1).Select(static c => (float)c).ToArray()
+        coefficients.Where(static (_, i) => i % 2 != 0).Select(static c => (float)c).ToArray()
     );
 
     /// <summary>The filters in use: the IIR design (the default) or a linear-phase FIR of the same band edges.</summary>

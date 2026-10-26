@@ -122,7 +122,7 @@ public sealed class PresetPackageTests : IAsyncLifetime {
     }
 
     async Task<string> SaveRigWithCab(HttpClient client, string name) {
-        using var ir = new MemoryStream();
+        await using var ir = new MemoryStream();
         WavFile.Write(
             ir,
             new(48_000, [Signals.Noise(400, 3).Select(static (v, i) => v * MathF.Exp(-i / 60f)).ToArray()])

@@ -1,6 +1,7 @@
 using Cathode.Dsp.Filters;
 using Cathode.Dsp.Modulation;
 using Cathode.Dsp.Parameters;
+using System.Collections.Immutable;
 
 namespace Cathode.Dsp.Blocks;
 
@@ -57,7 +58,7 @@ public sealed class ChorusBlock() : DspBlock(Info) {
     const float WidthTargetMs = 1f;
 
     /// <summary>Wet polarity per side for each Phase Reverse option (None, Left, Right, Both).</summary>
-    public static readonly string[] PhaseOptions = ["None", "Left", "Right", "Both"];
+    public static readonly ImmutableArray<string> PhaseOptions = ["None", "Left", "Right", "Both"];
 
     /// <summary>The inverted cross-mix of each Dimension mode (Off, Low, Medium, High).</summary>
     static readonly float[] DimensionCross = [0f, 0.3f, 0.5f, 0.7f];

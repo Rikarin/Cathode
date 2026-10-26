@@ -70,7 +70,9 @@ var activities = new[] {
 
 try {
     await Task.WhenAll(activities);
-} catch (OperationCanceledException) { }
+} catch (OperationCanceledException) {
+    // The soak's duration is up: every activity stops on the same token.
+}
 
 var last = (await api.SystemAsync()).Engine;
 var report = Report.Build(first, last, api, Stopwatch.GetElapsedTime(started), (int)options.Double("max-host-gcs", -1));
@@ -95,7 +97,9 @@ async Task Sample() {
                 );
             }
         }
-    } catch (OperationCanceledException) { }
+    } catch (OperationCanceledException) {
+        // The soak's duration is up.
+    }
 }
 
 static byte[] SyntheticIr(int seed) {

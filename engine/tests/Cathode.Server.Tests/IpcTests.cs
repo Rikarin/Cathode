@@ -24,7 +24,7 @@ public sealed class IpcTests : IDisposable {
             Params = [new("amp1", "input", -3.5f)],
             Graph = GraphTemplates.Basic()
         };
-        using var stream = new MemoryStream();
+        await using var stream = new MemoryStream();
 
         await IpcFraming.WriteAsync(stream, message, TestContext.Current.CancellationToken);
         stream.Position = 0;
@@ -42,7 +42,7 @@ public sealed class IpcTests : IDisposable {
         var token = TestContext.Current.CancellationToken;
         using var writer = new IpcFrameWriter();
         var reader = new IpcFrameReader();
-        using var stream = new MemoryStream();
+        await using var stream = new MemoryStream();
         var big = new IpcMessage { Type = IpcTypes.LoadGraph, Id = 1, Graph = GraphTemplates.Basic() };
         var small = new IpcMessage { Type = IpcTypes.SetParams, Id = 2, Params = [new("a", "b", 1)] };
 

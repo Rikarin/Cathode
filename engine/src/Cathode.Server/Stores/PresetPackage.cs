@@ -75,7 +75,7 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
                 throw new RigException(400, "This is not a .cthpreset package (not a zip file).");
             }
 
-            using (zip) {
+            await using (zip) {
                 return await ImportAsync(zip, cancellationToken);
             }
         } finally {
@@ -187,7 +187,7 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
         where T : class {
         var entry = zip.GetEntry(name) ?? throw new RigException(400, $"The package has no {name}.");
         await using var content = await entry.OpenAsync(cancellationToken);
-        using var buffer = new MemoryStream();
+        await using var buffer = new MemoryStream();
         await CopyLimitedAsync(content, buffer, MaxPresetBytes, name, cancellationToken);
         try {
             var json = buffer.GetBuffer().AsSpan(0, (int)buffer.Length);

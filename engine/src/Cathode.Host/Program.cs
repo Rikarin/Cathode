@@ -20,7 +20,7 @@ try {
         "latency-test" => AudioCommands.LatencyTest(options),
         "ir-capture" => AudioCommands.IrCapture(options),
         "bench-nam" => NamBenchmark.Run(options),
-        "serve" => ServeCommand.Run(options),
+        "serve" => await ServeCommand.RunAsync(options).ConfigureAwait(false),
         _ => Usage()
     };
 } catch (Exception e) when (e is InvalidOperationException

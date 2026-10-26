@@ -67,6 +67,9 @@ public static class IrImport {
             case IrProcessing.MinimumPhase:
                 channels = [..channels.Select(MinimumPhase)];
                 break;
+            case IrProcessing.AsIs:
+                // The response is kept as recorded.
+                break;
         }
 
         if (settings.Polarity && MainPeak(channels) < 0) {

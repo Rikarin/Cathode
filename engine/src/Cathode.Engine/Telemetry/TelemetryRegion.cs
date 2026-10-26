@@ -289,7 +289,11 @@ public sealed unsafe class TelemetryRegion : IDisposable {
             if (owner && Path is not null) {
                 try {
                     File.Delete(Path);
-                } catch (IOException) { } catch (UnauthorizedAccessException) { }
+                } catch (IOException) {
+                    // Best effort: the view is already unmapped, and a file left behind costs only its disk space.
+                } catch (UnauthorizedAccessException) {
+                    // As above: a region file this process may not delete is left for its owner to clean up.
+                }
             }
         } else {
             NativeMemory.AlignedFree(layout);

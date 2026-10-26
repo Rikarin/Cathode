@@ -50,7 +50,7 @@ public sealed class BlockPresetStore(IOptions<ServerOptions> options, BlockCatal
             throw new RigException(400, "A block preset needs a name.");
         }
 
-        var channels = preset.Channels?.Where(c => Array.IndexOf(Preset.ChannelNames, c.Key) is var i
+        var channels = preset.Channels?.Where(c => Preset.ChannelNames.IndexOf(c.Key) is var i
             && i >= 0
             && i < descriptor.Channels
             )

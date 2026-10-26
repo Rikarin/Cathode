@@ -100,6 +100,9 @@ public sealed class StereoIr : IDisposable {
 
                 return;
             }
+            case IrFeed.Both:
+                // Each side keeps its own input.
+                break;
         }
 
         this.left.Process(left);

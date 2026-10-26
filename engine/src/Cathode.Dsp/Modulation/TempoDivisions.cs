@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Cathode.Dsp.Modulation;
 
 /// <summary>
@@ -6,13 +8,13 @@ namespace Cathode.Dsp.Modulation;
 ///     keep their meaning; the rest were appended.
 /// </summary>
 public static class TempoDivisions {
-    public static readonly string[] Names = [
+    public static readonly ImmutableArray<string> Names = [
         "Off", "1/1", "1/2", "1/4", "1/4.", "1/4T", "1/8", "1/8.", "1/8T", "1/16",
         "1/2.", "1/2T", "1/16.", "1/16T", "1/32", "1/32.", "1/32T", "1/64", "1/64T", "2/1", "3/1", "4/1"
     ];
 
     /// <summary>Length of each <see cref="Names" /> entry in quarter notes (index 0 unused).</summary>
-    public static readonly double[] Beats = [
+    public static ReadOnlySpan<double> Beats => [
         0, 4, 2, 1, 1.5, 2.0 / 3, 0.5, 0.75, 1.0 / 3, 0.25,
         3, 4.0 / 3, 0.375, 1.0 / 6, 0.125, 0.1875, 1.0 / 12, 0.0625, 1.0 / 24, 8, 12, 16
     ];

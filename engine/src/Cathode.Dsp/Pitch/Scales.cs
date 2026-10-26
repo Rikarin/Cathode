@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Cathode.Dsp.Pitch;
 
 /// <summary>Keys, scales and diatonic intervals for the intelligent harmonizer.</summary>
@@ -6,7 +8,8 @@ public static class Scales {
     public const int Custom = 12;
 
     /// <summary>The intervals a custom note can take above the tonic, as degree names.</summary>
-    public static readonly string[] Degrees = ["1", "b2", "2", "b3", "3", "4", "b5", "5", "b6", "6", "b7", "7"];
+    public static readonly ImmutableArray<string> Degrees =
+        ["1", "b2", "2", "b3", "3", "4", "b5", "5", "b6", "6", "b7", "7"];
 
     /// <summary>Semitones of each scale degree above the root.</summary>
     static readonly int[][] Intervals = [

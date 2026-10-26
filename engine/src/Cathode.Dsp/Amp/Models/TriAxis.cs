@@ -249,6 +249,9 @@ public static class TriAxis {
                 // LDR34 (bass shift): 82k beside the slope.
                 Contact(net, x, slope, false);
                 break;
+            case Mode.LeadTwo:
+                // Neither the tone pad nor the bass shift is lit.
+                break;
         }
 
         var gain = net.Pot(wiper, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);

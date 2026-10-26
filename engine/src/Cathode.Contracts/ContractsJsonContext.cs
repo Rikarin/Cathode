@@ -66,7 +66,6 @@ namespace Cathode.Contracts;
 [JsonSerializable(typeof(SaveRequest))]
 [JsonSerializable(typeof(RigEvent))]
 [JsonSerializable(typeof(Telemetry))]
-[JsonSerializable(typeof(Dictionary<string, float>))]
 [JsonSerializable(typeof(PerformControl))]
 [JsonSerializable(typeof(List<PerformControl>))]
 [JsonSerializable(typeof(FootswitchOverride))]

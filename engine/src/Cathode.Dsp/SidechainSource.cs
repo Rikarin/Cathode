@@ -1,5 +1,6 @@
 using Cathode.Dsp.Parameters;
 using Cathode.Dsp.Routing;
+using System.Collections.Immutable;
 
 namespace Cathode.Dsp;
 
@@ -21,7 +22,7 @@ public sealed class SidechainSource {
     /// <summary>
     ///     The Sidechain parameter's options: the block's own input, the grid input, a grid row, or a hardware input.
     /// </summary>
-    public static readonly string[] Options = [
+    public static readonly ImmutableArray<string> Options = [
         "Block", "Grid Input", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", ..HardwareInputs.Names
     ];
 

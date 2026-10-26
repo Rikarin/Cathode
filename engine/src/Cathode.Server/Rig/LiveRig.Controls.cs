@@ -70,7 +70,7 @@ public sealed partial class LiveRig {
                     } else if (!ModNames.TryParseCurve(m.Curve, out _)) {
                         errors.Add($"Unknown curve '{m.Curve}'.");
                     } else if (m.Channel is { } scope
-                               && Array.IndexOf(Preset.ChannelNames, scope) is var index
+                               && Preset.ChannelNames.IndexOf(scope) is var index
                                && (index < 0 || index >= descriptor.Channels)) {
                         errors.Add($"Block '{m.Block}' has no channel '{scope}'.");
                     }

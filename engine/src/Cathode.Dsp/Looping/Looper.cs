@@ -271,6 +271,9 @@ public sealed unsafe class Looper : IDisposable {
                 return Record(left, right);
             case LooperState.Stopped when fade <= 0f:
                 return (0f, 0f);
+            case LooperState.Playing or LooperState.Overdubbing:
+                // The loop plays, below.
+                break;
         }
 
         var playing = State != LooperState.Stopped;

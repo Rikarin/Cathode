@@ -95,7 +95,9 @@ public sealed unsafe class NamModel : ICaptureModel {
     }
 
     /// <summary>Audio thread. <paramref name="input" /> and <paramref name="output" /> may be the same span.</summary>
+#pragma warning disable SK2142 // False positive: `fixed` pins the spans and reads them; it does not overwrite the parameters.
     public void Process(ReadOnlySpan<float> input, Span<float> output) {
+#pragma warning restore SK2142
         fixed (float* i = input) {
             fixed (float* o = output) {
                 NamNative.Process(handle, i, o, output.Length);

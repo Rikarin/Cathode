@@ -2,6 +2,7 @@ using Cathode.Contracts;
 using Cathode.Dsp.Spectrum;
 using Cathode.Engine.Telemetry;
 using Cathode.Server.Rig;
+using System.Collections.Immutable;
 
 namespace Cathode.Server.Engine;
 
@@ -11,10 +12,10 @@ public sealed partial class EngineConnection {
     const int AnalysisWindow = ToneMatchDesign.GridSize;
 
     /// <summary>The RTA's band resolutions, in bands per octave.</summary>
-    public static readonly int[] RtaResolutions = [3, 6, 12];
+    public static ReadOnlySpan<int> RtaResolutions => [3, 6, 12];
 
     /// <summary>The RTA's windows, by their API names.</summary>
-    public static readonly string[] RtaWindows = ["hann", "blackmanHarris", "flatTop", "rectangular"];
+    public static readonly ImmutableArray<string> RtaWindows = ["hann", "blackmanHarris", "flatTop", "rectangular"];
 
     volatile bool rtaEnabled;
     volatile RtaSettings rtaSettings = new(6, 0, SpectrumWindow.Hann);
@@ -33,7 +34,7 @@ public sealed partial class EngineConnection {
 
     /// <summary>Applies an RTA request: on or off, and its resolution, decay and window. Throws on invalid settings.</summary>
     public void SetRta(RtaRequest request) {
-        var window = Array.IndexOf(RtaWindows, request.Window);
+        var window = RtaWindows.IndexOf(request.Window);
         if (!RtaResolutions.Contains(request.BandsPerOctave) || window < 0 || request.DecayMs is < 0 or > 10_000) {
             throw new RigException(
                 400,
@@ -58,7 +59,7 @@ public sealed partial class EngineConnection {
         var window = new float[AnalysisWindow];
 
         // Half-overlapping frames: a new one every half window.
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(AnalysisWindow / 2 / region.SampleRate));
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(AnalysisWindow / 2.0 / region.SampleRate));
         var end = DateTime.UtcNow + duration;
         while (DateTime.UtcNow < end && await timer.WaitForNextTickAsync(cancellationToken)) {
             if (region.ReadScope(window)) {

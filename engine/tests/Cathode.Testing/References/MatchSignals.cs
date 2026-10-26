@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Cathode.Testing.References;
 
 /// <summary>
@@ -18,10 +20,10 @@ public static class MatchSignals {
     const double HarmonicSeconds = 0.4;
 
     /// <summary>Peak volts of the three dynamics in <see cref="Performance" />: soft single-coil to hard humbucker.</summary>
-    public static readonly double[] PerformancePeaks = [0.05, 0.2, 0.6];
+    public static readonly ImmutableArray<double> PerformancePeaks = [0.05, 0.2, 0.6];
 
     /// <summary>Peak volts of the sines in the harmonic profile.</summary>
-    public static readonly double[] HarmonicLevels = [0.03, 0.1, 0.3, 1.0];
+    public static readonly ImmutableArray<double> HarmonicLevels = [0.03, 0.1, 0.3, 1.0];
 
     /// <summary>Notes (Hz) and chords of one phrase.</summary>
     static readonly double[][] Phrase = [

@@ -36,7 +36,9 @@ public sealed class EngineHostServer(EngineHostService service, string socketPat
                 await ServeAsync(client, cancellationToken).ConfigureAwait(false);
                 log?.Invoke("client disconnected");
             }
-        } catch (OperationCanceledException) { } finally {
+        } catch (OperationCanceledException) {
+            // The host is shutting down: stop accepting clients and remove the socket.
+        } finally {
             File.Delete(socketPath);
         }
     }

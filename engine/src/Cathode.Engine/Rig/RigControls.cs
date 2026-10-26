@@ -1,5 +1,6 @@
 using Cathode.Dsp.Modulation;
 using Cathode.Dsp.Parameters;
+using System.Collections.Immutable;
 
 namespace Cathode.Engine.Rig;
 
@@ -19,16 +20,16 @@ public static class RigControls {
     public const int CopyLeftToRight = 2;
     public const int DualMono = 3;
 
-    public static readonly string[] LfoShapes = Dsp.Modulation.Lfo.ShapeNames;
+    public static readonly ImmutableArray<string> LfoShapes = Dsp.Modulation.Lfo.ShapeNames;
 
     /// <summary>Output Mode choices (<c>out1Mode</c>..<c>out4Mode</c>).</summary>
-    public static readonly string[] OutputModes = ["Stereo", "Sum L+R", "Copy L>R", "Dual Mono"];
+    public static readonly ImmutableArray<string> OutputModes = ["Stereo", "Sum L+R", "Copy L>R", "Dual Mono"];
 
     /// <summary>Tempo divisions for synced controllers; "Off" uses the rate in Hz.</summary>
-    public static readonly string[] Divisions = TempoDivisions.Names;
+    public static readonly ImmutableArray<string> Divisions = TempoDivisions.Names;
 
     /// <summary>Length of each <see cref="Divisions" /> entry in quarter notes (index 0 unused).</summary>
-    public static readonly double[] DivisionBeats = TempoDivisions.Beats;
+    public static ReadOnlySpan<double> DivisionBeats => TempoDivisions.Beats;
 
     public static BlockDescriptor Descriptor { get; } = new(
         BlockId,
@@ -151,21 +152,21 @@ public static class ModNames {
     /// </summary>
     public const string EngageParam = "engage";
 
-    public static readonly string[] Sources = [
+    public static readonly ImmutableArray<string> Sources = [
         "lfo1", "lfo2", "adsr1", "adsr2", "seq", "env", "pitch", "manualA", "manualB", "manualC", "manualD", "scene1",
         "scene2", "scene3", "scene4", "ext1", "ext2", "ext3", "ext4", "ext5", "ext6", "ext7", "ext8"
     ];
 
-    public static readonly string[] Curves = ["linear", "exp", "log", "scurve"];
+    public static readonly ImmutableArray<string> Curves = ["linear", "exp", "log", "scurve"];
 
     public static bool TryParseSource(string name, out ModSource source) {
-        var index = Array.IndexOf(Sources, name);
+        var index = Sources.IndexOf(name);
         source = (ModSource)Math.Max(index, 0);
         return index >= 0;
     }
 
     public static bool TryParseCurve(string name, out ModCurve curve) {
-        var index = Array.IndexOf(Curves, name);
+        var index = Curves.IndexOf(name);
         curve = (ModCurve)Math.Max(index, 0);
         return index >= 0;
     }

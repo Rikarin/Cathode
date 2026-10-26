@@ -1,5 +1,6 @@
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Filters;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
 namespace Cathode.Dsp.Amp;
@@ -10,7 +11,7 @@ namespace Cathode.Dsp.Amp;
 /// </summary>
 public sealed class AmpBoost {
     /// <summary>The Boost Type choices after Off: drive circuits by name.</summary>
-    public static readonly string[] Circuits = [
+    public static readonly ImmutableArray<string> Circuits = [
         "TS808 OD", "Super OD", "Chiron OD", "Treble Booster", "Esoteric Boost", "FET Boost"
     ];
 

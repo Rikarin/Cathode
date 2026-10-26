@@ -685,7 +685,7 @@ public sealed partial class LiveRig(
         values.Add(new(IpcBlocks.Rig, "copyOut2", global.CopyOutput1To2 ? 1 : 0));
         for (var k = 0; k < 4; k++) {
             var output = k < global.Outputs.Count ? global.Outputs[k] : new();
-            var mode = Array.IndexOf(Api.GlobalValidation.OutputModes, output.Mode);
+            var mode = Api.GlobalValidation.OutputModes.IndexOf(output.Mode);
             values.Add(new(IpcBlocks.Rig, $"out{k + 1}Mode", Math.Max(mode, 0)));
             values.Add(new(IpcBlocks.Rig, $"out{k + 1}Level", output.BoostPad));
             foreach (var param in GraphicEqBlock.Info.Params) {
@@ -981,7 +981,7 @@ public sealed partial class LiveRig(
     }
 
     static void CheckChannel(string channel, int channels) {
-        var index = Array.IndexOf(Preset.ChannelNames, channel);
+        var index = Preset.ChannelNames.IndexOf(channel);
         if (index < 0 || index >= channels) {
             throw new RigException(
                 400,

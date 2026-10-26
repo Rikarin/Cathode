@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Numerics;
 
 namespace Cathode.Testing.References;
@@ -78,10 +79,10 @@ public static class MatchMetrics {
     public const double HarmonicFloorDb = -80;
 
     /// <summary>STFT sizes of <see cref="Mrstft" />.</summary>
-    public static readonly int[] StftSizes = [256, 1_024, 4_096];
+    public static readonly ImmutableArray<int> StftSizes = [256, 1_024, 4_096];
 
     /// <summary>Third-octave band centres of the frequency response.</summary>
-    public static readonly double[] ResponseCenters = FractionalOctaveCenters(40, 16_000);
+    public static readonly ImmutableArray<double> ResponseCenters = [..FractionalOctaveCenters(40, 16_000)];
 
     /// <summary>
     ///     The lag within ±<paramref name="maxLag" /> maximising |cross-correlation|, refined to a fraction of a sample

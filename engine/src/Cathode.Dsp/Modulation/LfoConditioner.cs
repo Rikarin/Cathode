@@ -1,4 +1,5 @@
 using Cathode.Dsp.Parameters;
+using System.Collections.Immutable;
 
 namespace Cathode.Dsp.Modulation;
 
@@ -12,10 +13,10 @@ public struct LfoConditioner {
     public const float HicutOff = 50f;
 
     /// <summary>The options of a Quantize parameter; index 0 is off.</summary>
-    public static readonly string[] QuantizeOptions = ["Off", "2", "3", "4", "6", "8", "12", "16"];
+    public static readonly ImmutableArray<string> QuantizeOptions = ["Off", "2", "3", "4", "6", "8", "12", "16"];
 
     /// <summary>The options of an Auto Depth parameter.</summary>
-    public static readonly string[] AutoDepthOptions = ["Off", "Low", "High"];
+    public static readonly ImmutableArray<string> AutoDepthOptions = ["Off", "Low", "High"];
 
     static readonly int[] LevelCounts = [0, 2, 3, 4, 6, 8, 12, 16];
 

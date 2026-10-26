@@ -95,8 +95,11 @@ sealed class SpringTank : IDisposable {
             }
 
             count = springCount;
-            leftNorm = 1f / MathF.Sqrt((count + 1) / 2);
-            rightNorm = count == 1 ? leftNorm : 1f / MathF.Sqrt(count / 2);
+            // The springs split between the sides, the odd one to the left.
+            var leftSprings = (count + 1) / 2;
+            var rightSprings = count / 2;
+            leftNorm = 1f / MathF.Sqrt(leftSprings);
+            rightNorm = count == 1 ? leftNorm : 1f / MathF.Sqrt(rightSprings);
         }
 
         if (toneScale != tone) {

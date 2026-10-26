@@ -269,9 +269,7 @@ public sealed partial class LiveRig {
                 var before = preset.Scenes[activeScene].StateOf(id);
                 foreach (var scene in preset.Scenes) {
                     var state = scene.StateOf(id);
-                    scene.Blocks[id] = state with {
-                        Bypassed = request.Bypassed ?? state.Bypassed, Channel = request.Channel ?? state.Channel
-                    };
+                    scene.Blocks[id] = new(request.Bypassed ?? state.Bypassed, request.Channel ?? state.Channel);
                 }
 
                 var after = preset.Scenes[activeScene].StateOf(id);
@@ -677,20 +675,21 @@ public sealed partial class LiveRig {
 
         // A new shunt in an empty cell of the landed column.
         string? FreeCell(int sourceRow, int targetRow) {
-            foreach (var row in Rows(sourceRow, targetRow).Where(r => BlockAt(p, r, to) is null)) {
-                var id = $"shunt-r{row}c{to}";
-                for (var n = 1; p.Blocks.Any(b => b.Id == id); n++) {
-                    id = $"{BuiltInTypes.Shunt}{n}";
-                }
-
-                var shunt = new PresetBlock { Id = id, Type = BuiltInTypes.Shunt, Row = row, Column = to };
-                p.Blocks.Add(shunt);
-                at[id] = shunt;
-                through.Add(id);
-                return id;
+            var row = Rows(sourceRow, targetRow).FirstOrDefault(r => BlockAt(p, r, to) is null, -1);
+            if (row < 0) {
+                return null;
             }
 
-            return null;
+            var id = $"shunt-r{row}c{to}";
+            for (var n = 1; p.Blocks.Any(b => b.Id == id); n++) {
+                id = $"{BuiltInTypes.Shunt}{n}";
+            }
+
+            var shunt = new PresetBlock { Id = id, Type = BuiltInTypes.Shunt, Row = row, Column = to };
+            p.Blocks.Add(shunt);
+            at[id] = shunt;
+            through.Add(id);
+            return id;
         }
 
         // Any block of the landed column that can carry a path, nearest first.

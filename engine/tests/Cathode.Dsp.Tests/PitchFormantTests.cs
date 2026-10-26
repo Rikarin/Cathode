@@ -334,7 +334,7 @@ public class PitchFormantTests(ITestOutputHelper output) {
         double odd = 0, even = 0;
         for (var h = 1; h <= 24; h++) {
             var level = Math.Pow(10, HarmonicDb(spectrum, h * low, low) / 20);
-            if (h % 2 == 1) {
+            if (h % 2 != 0) {
                 odd += level;
             } else {
                 even += level;

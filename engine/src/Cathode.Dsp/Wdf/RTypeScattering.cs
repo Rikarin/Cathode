@@ -252,6 +252,10 @@ public sealed class RTypeScattering {
                     Conductance(a, n, p, m, deviceConductances[k]);
                     Inject(rhs, columns, p, m, Inputs + k, -1); // the residual current leaves the plus node
                     break;
+
+                case NetlistElementKind.Probe:
+                    // Not stamped: a probe reads the solution and adds nothing to the system.
+                    break;
             }
         }
 

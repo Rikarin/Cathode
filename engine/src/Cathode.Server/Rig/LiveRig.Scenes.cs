@@ -157,7 +157,7 @@ public sealed partial class LiveRig {
                 }
 
                 block.SceneIgnore.Clear();
-                await RefreshChannelAsync(block, before, Preset.ChannelNames[..descriptor.Channels]);
+                await RefreshChannelAsync(block, before, [..Preset.ChannelNames[..descriptor.Channels]]);
                 return Changed("blockReset", id);
             }
         );

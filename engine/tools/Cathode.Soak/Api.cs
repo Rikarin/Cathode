@@ -43,7 +43,9 @@ sealed class Api(HttpClient http) {
                 if ((await SystemAsync()).Engine.Connected) {
                     return;
                 }
-            } catch (HttpRequestException) { }
+            } catch (HttpRequestException) {
+                // The server is not listening yet: keep polling until it is.
+            }
 
             await Task.Delay(500);
         }
@@ -122,7 +124,9 @@ sealed class Api(HttpClient http) {
                     Fail(e.Message);
                 }
             }
-        } catch (OperationCanceledException) { }
+        } catch (OperationCanceledException) {
+            // The soak's duration is up.
+        }
     }
 
     public async Task WatchTelemetryAsync(CancellationToken cancellationToken) {
@@ -142,7 +146,9 @@ sealed class Api(HttpClient http) {
 
                 Interlocked.Increment(ref telemetryMessages);
             }
-        } catch (OperationCanceledException) { } catch (WebSocketException e) {
+        } catch (OperationCanceledException) {
+            // The soak's duration is up.
+        } catch (WebSocketException e) {
             Fail("WebSocket: " + e.Message);
         }
     }

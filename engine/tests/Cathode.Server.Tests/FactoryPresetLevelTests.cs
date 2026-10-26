@@ -219,7 +219,7 @@ public sealed class FactoryPresetLevelTests {
                 worst = Math.Max(worst, error.Max(Math.Abs));
                 var trim = trims[preset.Id];
                 var channel = lifts.Select((_, s) =>
-                        Array.IndexOf(Preset.ChannelNames, preset.Scenes[s].StateOf("circuitamp1").Channel)
+                        Preset.ChannelNames.IndexOf(preset.Scenes[s].StateOf("circuitamp1").Channel)
                     )
                     .ToArray();
                 var amp = trim.Amp.ToArray();

@@ -18,7 +18,7 @@ static class ServeCommand {
     /// </summary>
     public const string Gen0Budget = "10000000"; // 256 MB
 
-    public static int Run(CommandLine options) {
+    public static async Task<int> RunAsync(CommandLine options) {
         var socketPath = options.Text("socket") ?? throw new InvalidOperationException("--socket <path> is required.");
         var rate = options.Double("rate", 48_000);
         var buffer = options.Int("buffer", 64);
@@ -44,7 +44,7 @@ static class ServeCommand {
             using var nullOutputs = OutputBus.Parse(options.Text("outputs"), options.Text("di-out"));
             using var backend = new NullBackend((int)rate, buffer, nullOutputs);
             backend.Start(service.Engine);
-            return Serve(service, socketPath, stop.Token);
+            return await ServeAsync(service, socketPath, stop.Token).ConfigureAwait(false);
         }
 
         if (!NativeAudio.IsAvailable) {
@@ -78,13 +78,17 @@ static class ServeCommand {
 
         session.Start();
         try {
-            return Serve(deviceService, socketPath, stop.Token);
+            return await ServeAsync(deviceService, socketPath, stop.Token).ConfigureAwait(false);
         } finally {
             session.Stop();
         }
     }
 
-    static int Serve(EngineHostService service, string socketPath, CancellationToken cancellationToken) {
+    static async Task<int> ServeAsync(
+        EngineHostService service,
+        string socketPath,
+        CancellationToken cancellationToken
+    ) {
         if (Environment.GetEnvironmentVariable("DOTNET_GCgen0size") is null) {
             Console.Error.WriteLine(
                 $"warning: DOTNET_GCgen0size is not set; start the host with DOTNET_GCgen0size={Gen0Budget} so garbage collections cannot interrupt playing"
@@ -95,14 +99,13 @@ static class ServeCommand {
         Console.WriteLine(
             $"cathode-host {info.Version} serving on {socketPath} ({info.Backend}, {info.SampleRate / 1000:0.#} kHz, {info.BufferFrames} frames)"
         );
-        new EngineHostServer(
+        await new EngineHostServer(
                 service,
                 socketPath,
                 static message => Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} {message}")
             )
             .RunAsync(cancellationToken)
-            .GetAwaiter()
-            .GetResult();
+            .ConfigureAwait(false);
         Console.WriteLine("cathode-host stopped");
         return 0;
     }

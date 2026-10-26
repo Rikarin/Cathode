@@ -133,13 +133,17 @@ public sealed record OpticalTremoloDesign(
 /// </summary>
 sealed class LampTable {
     /// <summary><c>[rotation * Samples + n]</c>, amperes.</summary>
-    public readonly double[] Current =
-        new double[PhaseShiftOscillatorDesign.Points * PhaseShiftOscillatorDesign.Samples];
+    public ReadOnlySpan<double> Current => current;
 
     /// <summary>The cell's light drive, <c>(I / I_ref)^γ</c>, laid out as <see cref="Current" />.</summary>
-    public readonly double[] Light = new double[PhaseShiftOscillatorDesign.Points * PhaseShiftOscillatorDesign.Samples];
+    public ReadOnlySpan<double> Light => light;
 
-    public readonly double[] Bias = new double[PhaseShiftOscillatorDesign.Points];
+    /// <summary>The driver's grid bias per rotation, volts.</summary>
+    public ReadOnlySpan<double> Bias => bias;
+
+    readonly double[] current = new double[PhaseShiftOscillatorDesign.Points * PhaseShiftOscillatorDesign.Samples];
+    readonly double[] light = new double[PhaseShiftOscillatorDesign.Points * PhaseShiftOscillatorDesign.Samples];
+    readonly double[] bias = new double[PhaseShiftOscillatorDesign.Points];
 
     public LampTable(OpticalTremoloDesign design) {
         var oscillator = design.Oscillator.Table;
@@ -161,16 +165,16 @@ sealed class LampTable {
                 }
             }
 
-            Bias[p] = 0.5 * (low + high);
-            Pulse(triode, design, swing, Bias[p], pulse);
+            bias[p] = 0.5 * (low + high);
+            Pulse(triode, design, swing, bias[p], pulse);
             for (var n = 0; n < samples; n++) {
                 // What the shunt across the lamp carries (the lamp's voltage plus the resistor's drop) stays dark.
                 var lamp = Math.Max(
                     pulse[n] - (design.LampVoltage + pulse[n] * design.LampResistor) / design.LampShunt,
                     0
                 );
-                Current[p * samples + n] = lamp;
-                Light[p * samples + n] = lamp > 0 ? Math.Pow(lamp / cell.ReferenceCurrent, cell.Exponent) : 0;
+                current[p * samples + n] = lamp;
+                light[p * samples + n] = lamp > 0 ? Math.Pow(lamp / cell.ReferenceCurrent, cell.Exponent) : 0;
             }
         }
     }

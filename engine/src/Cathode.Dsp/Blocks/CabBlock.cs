@@ -382,7 +382,9 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
 
         ImpulseResponseFile? file = null;
         CabGrid grid;
+#pragma warning disable SK2152 // An extension test, not path identity: a .WAV file is a wave file on every file system.
         if (string.Equals(Path.GetExtension(path), ".wav", StringComparison.OrdinalIgnoreCase)) {
+#pragma warning restore SK2152
             file = ImpulseResponses.Load(path);
             grid = CabGrid.Single(Path.GetFileNameWithoutExtension(path), file.Source);
         } else {

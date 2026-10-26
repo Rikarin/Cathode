@@ -696,7 +696,9 @@ public struct RTypeRoot<TPorts, TDevice>
         Device.Limit(v, proposed);
         var converged = true;
         for (var d = 0; d < k; d++) {
+#pragma warning disable SK2003 // Exact by design: the limiter leaves a free port's proposal bit for bit, so equality is "not limited".
             converged &= proposed[d] == v[d] + step[d];
+#pragma warning restore SK2003
             step[d] = proposed[d] - v[d];
             converged &= Math.Abs(step[d]) <= absolute + relative * Math.Abs(v[d]);
         }
@@ -742,6 +744,7 @@ public struct RTypeRoot<TPorts, TDevice>
     ) {
         var s = Newton;
         var held = 0; // usually none: then there is nothing to re-solve
+#pragma warning disable SK2003 // Exact by design: the limiter leaves a free port's proposal bit for bit, so equality is "not limited".
         for (var d = 0; d < k; d++) {
             held += proposed[d] == v[d] + unlimited[d] ? 0 : 1;
         }
@@ -771,6 +774,7 @@ public struct RTypeRoot<TPorts, TDevice>
             var rhs = s.rhsCopy[row];
             for (var d = 0; d < k; d++) {
                 if (proposed[d] != v[d] + unlimited[d]) {
+#pragma warning restore SK2003
                     rhs -= full[row * k + d] * (proposed[d] - v[d]);
                 }
             }
@@ -1074,29 +1078,29 @@ public sealed class NewtonSolver {
     /// </summary>
     internal const double ChordNorm = 100;
 
-    internal readonly double[] voltages;
-    internal readonly double[] currents; // the solution's residual currents r = i - G_c v
-    internal readonly double[] prediction;
-    internal readonly double[] conductances;
-    internal readonly double[] deviceCurrents;
-    internal readonly double[] residual;
-    internal readonly double[] jacobian;
-    internal readonly double[] system;
-    internal readonly double[] step;
-    internal readonly double[] proposed;
-    internal readonly double[] start;
-    internal readonly double[] best;
-    internal readonly double[] bestCurrents;
-    internal readonly double[] direction;
-    internal readonly double[] systemCopy;
-    internal readonly double[] rhsCopy;
-    internal readonly double[] history; // the solution before last, for the extrapolated start
-    internal readonly double[] previousPrediction; // the last sample's p, for the linearised start
+    internal double[] voltages;
+    internal double[] currents; // the solution's residual currents r = i - G_c v
+    internal double[] prediction;
+    internal double[] conductances;
+    internal double[] deviceCurrents;
+    internal double[] residual;
+    internal double[] jacobian;
+    internal double[] system;
+    internal double[] step;
+    internal double[] proposed;
+    internal double[] start;
+    internal double[] best;
+    internal double[] bestCurrents;
+    internal double[] direction;
+    internal double[] systemCopy;
+    internal double[] rhsCopy;
+    internal double[] history; // the solution before last, for the extrapolated start
+    internal double[] previousPrediction; // the last sample's p, for the linearised start
     internal bool primed; // whether the last sample's solution, Jacobian and p are there to start from
-    internal readonly double[] impedance; // F, copied out of the scattering matrix when it changes
-    internal readonly int[] pivots;
-    internal readonly int[] blockStart; // per port: the first port of its device block
-    internal readonly int[] blockEnd; // per port: one past the last port of its device block
+    internal double[] impedance; // F, copied out of the scattering matrix when it changes
+    internal int[] pivots;
+    internal int[] blockStart; // per port: the first port of its device block
+    internal int[] blockEnd; // per port: one past the last port of its device block
     internal bool factored; // whether the system and pivot buffers hold the factors of the last Jacobian's system
     internal bool pairs; // whether the device blocks are all two ports (triodes, op-amps)
 

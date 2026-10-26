@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Cathode.Dsp.Modulation;
 
 /// <summary>The waveforms every modulation block offers (docs/08-blocks-parity.md, "LFO waveforms").</summary>
@@ -36,7 +38,7 @@ public enum LfoShape {
 /// <summary>Low-frequency oscillator with a phase in [0, 1). Allocation-free; one instance drives both channels.</summary>
 public struct Lfo {
     /// <summary>Display names for <see cref="LfoShape" />, in order, for a block's LFO type parameter.</summary>
-    public static readonly string[] ShapeNames =
+    public static readonly ImmutableArray<string> ShapeNames =
         ["Sine", "Triangle", "Square", "Saw Up", "Saw Down", "Random", "Log", "Exponential", "Trapezoid", "Astable"];
 
     long cycle;

@@ -869,6 +869,9 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
                     b[row] = dc ? e.Value * supplyScale * scale : 0;
                     break;
                 }
+                case ElementKind.Triode or ElementKind.Pentode or ElementKind.Diodes or ElementKind.OpAmp:
+                    // The devices: linearised through their ports below.
+                    break;
             }
         }
 

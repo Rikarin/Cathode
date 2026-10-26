@@ -109,7 +109,9 @@ static int Status(ReferenceManifest manifest, ReferenceCache cache) {
 }
 
 static async Task<int> Fetch(ReferenceManifest manifest, ReferenceCache cache, bool force) {
+#pragma warning disable SK3541 // Fetch runs once per process, so this client already lives as long as the command.
     using var http = new HttpClient();
+#pragma warning restore SK3541
     http.DefaultRequestHeaders.UserAgent.ParseAdd("cathode-references/1");
     http.Timeout = TimeSpan.FromMinutes(2);
     Console.WriteLine($"Fetching redistributable references into {cache.Root}");

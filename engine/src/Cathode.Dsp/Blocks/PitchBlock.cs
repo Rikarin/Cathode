@@ -949,6 +949,9 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
                 }
 
                 break;
+            case PitchKeySource.Fixed:
+                // The Key and Scale parameters stand as set.
+                break;
         }
 
         (HarmonyKey, HarmonyScale) = (key, scale);
@@ -1342,7 +1345,7 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
                             cents += lfoDepth * detuneLfo.Value(LfoShape.Sine, DetuneVoices[v].LfoOffset);
                         }
 
-                        var input = (stereo && v % 2 == 1 ? inRight : inLeft)
+                        var input = (stereo && v % 2 != 0 ? inRight : inLeft)
                             + (shifterFeedback ? feedbacks[v] * lastOut[v] : 0f);
                         var shifted = shifters[v].Process(input, Math.Pow(2, cents / 1_200), period);
                         var voice = Delayed(delays[v], shifted, delayTargets[v], shifterFeedback ? 0f : feedbacks[v]);
@@ -1360,7 +1363,7 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
                     if (shifterFeedback) {
                         for (var v = 0; v < VoiceCount; v++) {
                             var back = feedbacks[v] * sharedFeedbackScale * lastOut[v];
-                            if (stereo && v % 2 == 1) {
+                            if (stereo && v % 2 != 0) {
                                 backRight += back;
                             } else {
                                 backLeft += back;
@@ -1385,7 +1388,7 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
                             ratio = Math.Pow(2, glidedLog[v]);
                         }
 
-                        var engine = stereo && v % 2 == 1 ? psolaRight : psola;
+                        var engine = stereo && v % 2 != 0 ? psolaRight : psola;
                         var shifted = engine.Read(v, ratio, period, formantRatios[v]);
                         var voice = Delayed(delays[v], shifted, delayTargets[v], shifterFeedback ? 0f : feedbacks[v]);
                         lastOut[v] = voice;

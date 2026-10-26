@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Cathode.Contracts;
 
 /// <summary>
@@ -8,7 +10,7 @@ public sealed class Preset {
     public const int CurrentSchemaVersion = 1;
     public const int SceneCount = 8;
 
-    public static readonly string[] ChannelNames = ["A", "B", "C", "D"];
+    public static readonly ImmutableArray<string> ChannelNames = ["A", "B", "C", "D"];
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 

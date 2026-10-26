@@ -233,11 +233,11 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
             new(48_000, [Signals.Noise(512, 1).Select(static (v, i) => v * MathF.Exp(-i / 80f)).ToArray()])
         );
         var pack = new MemoryStream();
-        using (var zip = new ZipArchive(
-                   pack,
-                   ZipArchiveMode.Create,
-                   true
-               )) {
+        await using (var zip = new ZipArchive(
+                         pack,
+                         ZipArchiveMode.Create,
+                         true
+                     )) {
             await using (var wav = await zip.CreateEntry("a.wav").OpenAsync(Token)) {
                 await wav.WriteAsync(ir.ToArray(), Token);
             }

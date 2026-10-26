@@ -109,10 +109,10 @@ public sealed class PlexBlock() : DspBlock(Info) {
     const int FilterHop = 16;
 
     /// <summary>Loop allpass lengths in ms; taken out of the line lengths.</summary>
-    public static readonly float[] AllpassMs = [3.7f, 5.3f, 7.9f, 10.1f, 4.3f, 6.1f, 8.9f, 11.3f];
+    public static ReadOnlySpan<float> AllpassMs => [3.7f, 5.3f, 7.9f, 10.1f, 4.3f, 6.1f, 8.9f, 11.3f];
 
     /// <summary>Plex Verb line lengths in ms at Size 50 %.</summary>
-    public static readonly float[] VerbMs = [31.1f, 37.3f, 41.9f, 47.3f, 53.9f, 59.3f, 64.7f, 71.9f];
+    public static ReadOnlySpan<float> VerbMs => [31.1f, 37.3f, 41.9f, 47.3f, 53.9f, 59.3f, 64.7f, 71.9f];
 
     static readonly float[] InputDiffuserMs = [4.77f, 3.59f, 12.73f, 9.30f];
     static readonly float[] DefaultTimes = [143f, 197f, 263f, 331f, 389f, 457f, 521f, 587f];

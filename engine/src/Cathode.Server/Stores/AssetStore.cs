@@ -97,11 +97,13 @@ public sealed class AssetStore {
         IrImportSettings import,
         CancellationToken cancellationToken
     ) {
+#pragma warning disable SK2152 // An extension test, not path identity: a .WAV file is a wave file on every file system.
         if (import.IsDefault || !string.Equals(Path.GetExtension(name), ".wav", StringComparison.OrdinalIgnoreCase)) {
+#pragma warning restore SK2152
             return await AddAsync(content, name, cancellationToken);
         }
 
-        using var original = new MemoryStream();
+        await using var original = new MemoryStream();
         var buffer = new byte[81_920];
         int read;
         while ((read = await content.ReadAsync(buffer, cancellationToken)) > 0) {
@@ -124,7 +126,7 @@ public sealed class AssetStore {
             throw new RigException(400, $"{name} is empty.");
         }
 
-        using var processed = new MemoryStream();
+        await using var processed = new MemoryStream();
         WavFile.Write(processed, IrImport.Process(audio, import));
         processed.Position = 0;
         return await AddAsync(processed, name, cancellationToken);

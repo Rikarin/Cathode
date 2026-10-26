@@ -144,7 +144,7 @@ public sealed class CompressorBlock() : DspBlock(Info), ISideInputBlock {
     const float ExpanderFloorDb = -80f;
 
     /// <summary>The Look Ahead choices, in ms (a choice, not a knob: each change rebuilds the graph).</summary>
-    public static readonly float[] LookAheadMs = [0f, 0.5f, 1f, 2f, 3f, 5f, 10f];
+    public static ReadOnlySpan<float> LookAheadMs => [0f, 0.5f, 1f, 2f, 3f, 5f, 10f];
 
     readonly SidechainSource sidechainSource = new();
     float[] aheadLeft = [];
