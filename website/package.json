@@ -5,13 +5,15 @@
   "license": "GPL-3.0-or-later",
   "type": "module",
   "scripts": {
-    "build": "ng build && node -e \"require('node:fs').copyFileSync('dist/website/browser/404/index.html', 'dist/website/browser/404.html')\"",
+    "build": "node tools/manual-index.mjs && ng build && node tools/postbuild.mjs",
     "catalog": "dotnet run tools/catalog.cs && prettier --write src/app/catalog/engine.generated.ts",
     "deploy": "pnpm build && wrangler deploy",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "manual": "dotnet run tools/manual.cs && prettier --write src/app/manual/engine-params.generated.ts",
+    "manual:check": "node tools/manual-check.mjs",
     "preview": "pnpm build && wrangler dev",
-    "start": "ng serve"
+    "start": "node tools/manual-index.mjs && ng serve"
   },
   "dependencies": {
     "@angular/common": "~22.2.0",
@@ -24,6 +26,7 @@
     "@fontsource-variable/inter": "^5.2.8",
     "@ng-icons/core": "^35.1.0",
     "@ng-icons/material-icons": "^35.1.0",
+    "marked": "18.1.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

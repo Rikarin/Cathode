@@ -1,0 +1,1 @@
+export { doc } from './output';

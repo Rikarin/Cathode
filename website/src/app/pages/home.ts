@@ -634,6 +634,13 @@ const STATUS = {
               </li>
             }
           </ol>
+          <p class="text-foreground-muted mt-6 text-sm">
+            The manual takes it from there: setting up your audio, building a rig, and what every knob does.
+            <a routerLink="/manual/getting-started" class="text-foreground underline-offset-2 hover:underline"
+              >Read Getting started</a
+            >
+            or <a routerLink="/manual" class="text-foreground underline-offset-2 hover:underline">browse the manual</a>.
+          </p>
         </div>
       </section>
 

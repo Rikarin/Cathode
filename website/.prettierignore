@@ -3,3 +3,5 @@
 /.angular
 
 pnpm-lock.yaml
+
+/src/app/manual/content.generated.ts

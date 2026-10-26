@@ -38,8 +38,8 @@ the way Cloudflare does.
 
 Each page writes its own title, description, canonical link, Open Graph and Twitter card tags (and the home page its
 schema.org JSON-LD) through `src/app/seo.ts`, so they are in the prerendered HTML. The site's address is `SITE_URL` in
-`src/app/site.ts`; `public/robots.txt` and `public/sitemap.xml` repeat it, so change all three together, and add a page
-to the sitemap when you add a route. `public/social.jpg` (1200 × 630) is the card image every page shares.
+`src/app/site.ts`; `public/robots.txt` repeats it, so change both together. `pnpm build` writes `sitemap.xml` from
+every route it prerendered (`tools/postbuild.mjs`), so a new prerendered page is listed without further work. `public/social.jpg` (1200 × 630) is the card image every page shares.
 
 ## Content
 
@@ -50,6 +50,18 @@ to the sitemap when you add a route. `public/social.jpg` (1200 × 630) is the ca
   what each is modelled after, and the Cab block's speakers, microphones and cabinets. Run it after the engine gains a
   block, a type or a model, and commit the result. What each amp is based on is kept by hand in `amp-models.ts` from
   `docs/07-amp-catalogue.md`; a model missing there shows under "Other". The home page's counts come from here too.
+- `src/app/manual/`: the manual at `/manual`. Its guide is Markdown, one `guide/<slug>.md` per chapter, listed in reading
+  order in `guide/chapters.ts`; its block reference has one `blocks/<typeId>.ts` per block, which says what the block
+  and each of its knobs do (`types.ts` is the shape of both). Everything else about a knob (its name, range, default,
+  unit, page, choices, and its name on each Amp model) is read from the engine into `engine-params.generated.ts` by
+  `pnpm manual` (needs the .NET 10 SDK); run it when a block gains or changes a parameter, and commit the result.
+  `pnpm build` and `pnpm start` first write `content.generated.ts` (not committed), an import of every chapter and
+  block page that exists, so one that is not written yet only leaves a gap; after adding a file while `pnpm start` is
+  running, run `node tools/manual-index.mjs`. `pnpm manual:check` lists what is missing (blocks with no page, knobs with
+  no description, chapters with no Markdown, text for knobs the engine no longer has); `--strict` makes it fail, and
+  `--verbose` adds undescribed choices. In Markdown, link pages as `/manual/<slug>`, `/manual/blocks/<typeId>` and
+  `/manual/blocks/<typeId>#knob-<id>`, put screenshots in as `![…](screenshots/<file>.webp)`, and start a quote with
+  `**Tip:**`, `**Note:**` or `**Warning:**` for a callout.
 - `src/app/screenshots.ts`: the screenshots, as WebP in `public/screenshots`. Set a shot's `src` and its `aspect`
   (width / height) when its picture arrives; until then the page shows a placeholder that names the file it expects.
   A whole macOS window capture (title bar and rounded corners, the shadow margin cropped off) is marked `window` and

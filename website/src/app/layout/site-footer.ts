@@ -51,6 +51,11 @@ const PROJECT_LINKS = [
                 >Catalogue</a
               >
             </li>
+            <li>
+              <a class="text-foreground-muted hover:text-foreground text-sm hover:underline" routerLink="/manual"
+                >Manual</a
+              >
+            </li>
           </ul>
         </nav>
 

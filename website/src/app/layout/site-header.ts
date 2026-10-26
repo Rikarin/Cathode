@@ -35,6 +35,12 @@ import { REPOSITORY, SECTIONS } from '../site';
           routerLinkActive="text-foreground bg-white/10"
           >Catalogue</a
         >
+        <a
+          class="text-foreground-muted hover:text-foreground rounded-full px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors hover:bg-white/10"
+          routerLink="/manual"
+          routerLinkActive="text-foreground bg-white/10"
+          >Manual</a
+        >
       </nav>
 
       <div class="ms-auto flex items-center gap-1">
@@ -71,6 +77,12 @@ import { REPOSITORY, SECTIONS } from '../site';
         routerLink="/catalog"
         routerLinkActive="text-foreground bg-white/10"
         >Catalogue</a
+      >
+      <a
+        class="text-foreground-muted hover:text-foreground shrink-0 rounded-full px-3 py-1.5 text-sm font-medium hover:bg-white/10"
+        routerLink="/manual"
+        routerLinkActive="text-foreground bg-white/10"
+        >Manual</a
       >
     </nav>
   `

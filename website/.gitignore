@@ -2,3 +2,6 @@ dist
 node_modules
 .angular
 .wrangler
+
+# Written by tools/manual-index.mjs on every build
+/src/app/manual/content.generated.ts

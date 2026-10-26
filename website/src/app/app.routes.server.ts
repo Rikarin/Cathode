@@ -7,6 +7,23 @@ import { RenderMode, type ServerRoute } from '@angular/ssr';
 export const serverRoutes: ServerRoute[] = [
   { path: '', renderMode: RenderMode.Prerender },
   { path: 'catalog', renderMode: RenderMode.Prerender },
+  { path: 'manual', renderMode: RenderMode.Prerender },
+  {
+    path: 'manual/blocks/:typeId',
+    renderMode: RenderMode.Prerender,
+    getPrerenderParams: async () => {
+      const { MANUAL_BLOCKS } = await import('./manual/manual');
+      return MANUAL_BLOCKS.map(block => ({ typeId: block.typeId }));
+    }
+  },
+  {
+    path: 'manual/:slug',
+    renderMode: RenderMode.Prerender,
+    getPrerenderParams: async () => {
+      const { MANUAL_CHAPTERS } = await import('./manual/manual');
+      return MANUAL_CHAPTERS.map(chapter => ({ slug: chapter.slug }));
+    }
+  },
   { path: '404', renderMode: RenderMode.Prerender },
   { path: '**', renderMode: RenderMode.Client }
 ];
