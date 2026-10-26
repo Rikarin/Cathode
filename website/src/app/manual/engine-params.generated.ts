@@ -11847,10 +11847,10 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         name: 'Power Tube',
         kind: 'choice',
         min: 0,
-        max: 8,
+        max: 7,
         default: 0,
         page: 'Power Amp',
-        options: ['Stock', '6L6GC', 'EL34', 'EL84', '6V6GT', 'KT66', 'KT88', '6550', '5881'],
+        options: ['Stock', '6L6GC', 'EL34', 'EL84', '6V6GT', 'KT66', 'KT88', '6550'],
         typeLabels: [
           'Power Tube',
           'Power Tube',

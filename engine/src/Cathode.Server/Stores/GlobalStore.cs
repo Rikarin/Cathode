@@ -55,12 +55,20 @@ public sealed class GlobalStore {
 
     /// <summary>
     ///     Settings saved by an earlier Cathode, brought up to date: the output mode <c>dualMono</c> (up to
-    ///     1.0.0-rc.3) did what <c>copyLR</c> does and is now that.
+    ///     1.0.0-rc.3) did what <c>copyLR</c> does and is now that, and a global Amp's 5881 Power Tube is the 6L6GC.
     /// </summary>
     public static GlobalSettings? Upgrade(GlobalSettings? settings) {
         foreach (var output in settings?.Outputs ?? []) {
             if (output.Mode == "dualMono") {
                 output.Mode = "copyLR";
+            }
+        }
+
+        foreach (var block in settings?.Blocks ?? []) {
+            if (block.Type == "circuitamp") {
+                foreach (var channel in block.Channels.Values) {
+                    PresetMigrations.UpgradePowerTube(channel);
+                }
             }
         }
 

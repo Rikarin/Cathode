@@ -62,7 +62,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
             for (var type = 0; type < AmpDesign.All.Count; type++) {
                 var design = AmpDesign.All[type];
                 foreach (var (index, value) in settings) {
-                    // Known no-ops: the cathode time constant of a fixed-bias amp, a 6L6GC (the 5881's curves) or EL34
+                    // Known no-ops: the cathode time constant of a fixed-bias amp, a 6L6GC or EL34
                     // or EL84 in place of itself, the presence and depth frequencies of an amp without feedback; the
                     // master trim of an amp without a master, the preamp tube and stack frequency of a (stock) channel
                     // without a 12AX7 or a tone stack (the AC15's EF86 channel), the speaker preset or rectifier the amp

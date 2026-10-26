@@ -7,7 +7,7 @@ namespace Cathode.Contracts;
 ///     sparsely; anything not listed takes the block type's default, so new parameters need no migration.
 /// </summary>
 public sealed class Preset {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
     public const int SceneCount = 8;
 
     public static readonly ImmutableArray<string> ChannelNames = ["A", "B", "C", "D"];

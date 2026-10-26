@@ -1,7 +1,7 @@
 # Changelog
 
 Cathode follows [semantic versioning](https://semver.org). From 1.0 on, a preset saved by any release keeps loading
-in every later one: the preset format carries a schema version (`schemaVersion`, now 1), and a release that changes
+in every later one: the preset format carries a schema version (`schemaVersion`, now 2), and a release that changes
 the format upgrades older presets as it reads them.
 
 ## 1.0.0-rc.3 — 2026-10-26

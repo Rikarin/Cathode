@@ -2,6 +2,7 @@ using Cathode.Contracts;
 using Cathode.Dsp.Parameters;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.Options;
+using System.Text.Json.Nodes;
 
 namespace Cathode.Server.Stores;
 
@@ -14,7 +15,8 @@ public sealed class BlockPresetStore(IOptions<ServerOptions> options, BlockCatal
         Path.Combine(options.Value.DataDirectory, "block-presets"),
         "block preset",
         ContractsJsonContext.Default.BlockPreset,
-        static p => p.Id
+        static p => p.Id,
+        Upgrade
     );
 
     /// <summary>Factory presets first, then the user's, each by name; only <paramref name="type" />'s when given.</summary>
@@ -106,4 +108,16 @@ public sealed class BlockPresetStore(IOptions<ServerOptions> options, BlockCatal
         FactoryBlockPresets.All.Any(p => p.Id == id)
             ? throw RigException.Conflict("Factory block presets cannot be deleted.")
             : files.Delete(id);
+
+    /// <summary>A stored block preset brought up to date: an Amp's 5881 Power Tube (up to 1.0.0-rc.3) is the 6L6GC.</summary>
+    static JsonNode? Upgrade(JsonNode? node) {
+        if (node is JsonObject preset && preset["type"]?.GetValue<string>() == "circuitamp") {
+            PresetMigrations.UpgradePowerTube(preset["values"] as JsonObject);
+            foreach (var (_, channel) in preset["channels"] as JsonObject ?? []) {
+                PresetMigrations.UpgradePowerTube(channel as JsonObject);
+            }
+        }
+
+        return node;
+    }
 }

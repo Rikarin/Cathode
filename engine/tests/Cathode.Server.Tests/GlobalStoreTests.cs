@@ -20,4 +20,24 @@ public sealed class GlobalStoreTests : IDisposable {
 
         Assert.Equal(["copyLR", "sum", "stereo", "copyLR"], settings.Outputs.Select(static o => o.Mode));
     }
+
+    [Fact]
+    public void A_global_amp_with_the_5881_from_an_earlier_release_reads_as_the_6L6GC() {
+        File.WriteAllText(
+            Path.Combine(folder, "global.json"),
+            """
+            { "blocks": [
+              { "id": "g1", "type": "circuitamp", "channels": { "A": { "powertube": 8, "gain": 6 }, "B": { "powertube": 2 } } },
+              { "id": "g2", "type": "drive", "channels": { "A": { "powertube": 8 } } }
+            ] }
+            """
+        );
+
+        var settings = new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder })).Get();
+
+        Assert.Equal(1, settings.Blocks[0].Channels["A"]["powertube"]);
+        Assert.Equal(6, settings.Blocks[0].Channels["A"]["gain"]);
+        Assert.Equal(2, settings.Blocks[0].Channels["B"]["powertube"]);
+        Assert.Equal(8, settings.Blocks[1].Channels["A"]["powertube"]);
+    }
 }

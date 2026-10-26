@@ -24,14 +24,42 @@ public sealed class VersioningTests {
     }
 
     [Fact]
-    public void A_preset_of_the_current_schema_or_without_one_reads_unchanged() {
-        var json = """{"name":"Old","blocks":[]}""";
+    public void A_preset_of_the_current_schema_reads_unchanged() {
+        var json = $$"""{"schemaVersion":{{Preset.CurrentSchemaVersion}},"name":"New","blocks":[]}""";
         var upgraded = PresetMigrations.Upgrade(JsonNode.Parse(json))!;
+
+        Assert.Equal(json, upgraded.ToJsonString());
+    }
+
+    [Fact]
+    public void A_preset_without_a_schema_is_schema_1_and_upgrades_to_the_current_one() {
+        var upgraded = PresetMigrations.Upgrade(JsonNode.Parse("""{"name":"Old","blocks":[]}"""))!;
         var preset = upgraded.Deserialize(ContractsJsonContext.Default.Preset)!;
 
         Assert.Equal(Preset.CurrentSchemaVersion, preset.SchemaVersion);
         Assert.Equal("Old", preset.Name);
-        Assert.Equal(json, upgraded.ToJsonString());
+    }
+
+    [Fact]
+    public void Schema_2_turns_the_amps_5881_into_the_6L6GC_it_always_was() {
+        var upgraded = PresetMigrations.Upgrade(
+            JsonNode.Parse(
+                """
+                {"schemaVersion":1,"blocks":[
+                  {"id":"amp1","type":"circuitamp","channels":{"A":{"powertube":8,"gain":6},"B":{"powertube":7},"C":{}}},
+                  {"id":"drive1","type":"drive","channels":{"A":{"powertube":8}}}
+                ]}
+                """
+            )
+        )!;
+        var preset = upgraded.Deserialize(ContractsJsonContext.Default.Preset)!;
+
+        Assert.Equal(2, preset.SchemaVersion);
+        Assert.Equal(1, preset.Blocks[0].Channels["A"]["powertube"]); // 5881 → 6L6GC
+        Assert.Equal(6, preset.Blocks[0].Channels["A"]["gain"]);
+        Assert.Equal(7, preset.Blocks[0].Channels["B"]["powertube"]); // 6550 stays
+        Assert.Empty(preset.Blocks[0].Channels["C"]);
+        Assert.Equal(8, preset.Blocks[1].Channels["A"]["powertube"]); // not an amp
     }
 
     [Fact]

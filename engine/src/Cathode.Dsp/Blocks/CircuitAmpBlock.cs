@@ -69,8 +69,9 @@ namespace Cathode.Dsp.Blocks;
 ///             phase inverter's input (1.0 is 50 V, less the model's trim).
 ///         </item>
 ///         <item>
-///             <b>Power Tube</b> (Stock): 6L6GC, EL34, EL84, 6V6GT, KT66, KT88, 6550 or 5881 (6L6GC curves) in place of
-///             the stock tubes, rebiased to the design's idle current.
+///             <b>Power Tube</b> (Stock): 6L6GC, EL34, EL84, 6V6GT, KT66, KT88 or 6550 in place of the stock tubes,
+///             rebiased to the design's idle current. A 5881 is a 6L6 electrically (it differs only in its ratings, which
+///             the model does not limit), so it is the 6L6GC; up to 1.0.0-rc.3 it was a choice of its own.
 ///         </item>
 ///         <item><b>Xfmr Match</b> (100 %): the output transformer's primary impedance (its impedance ratio).</item>
 ///         <item>
@@ -365,8 +366,7 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
         PentodeModel.SixV6GT,
         PentodeModel.KT66,
         PentodeModel.KT88,
-        PentodeModel.SixtyFiveFifty,
-        PentodeModel.SixL6GC
+        PentodeModel.SixtyFiveFifty
     ];
 
     /// <summary>
@@ -445,7 +445,7 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
                 ParamDescriptor.Choice(
                     "powertube",
                     "Power Tube",
-                    ["Stock", "6L6GC", "EL34", "EL84", "6V6GT", "KT66", "KT88", "6550", "5881"]
+                    ["Stock", "6L6GC", "EL34", "EL84", "6V6GT", "KT66", "KT88", "6550"]
                 ),
                 Expert(ParamDescriptor.Float("xfmrmatch", "Xfmr Match", 50f, 200f, 100f, "%", ParamTaper.Log)),
                 Expert(ParamDescriptor.Float("xfmrlf", "Xfmr Low Freq", 25f, 400f, 100f, "%", ParamTaper.Log)),

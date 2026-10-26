@@ -253,8 +253,8 @@ including the Master still does.`,
 
     powertube: `Replaces the power tubes with another type, using that tube's own curves, rebiased to the model's stock
 idle current. The usual reputations: 6L6GC big and clean (American), EL34 crunchy with strong mids (British), EL84
-small, chimey and early to break up, 6V6GT small and sweet, KT66 smooth, KT88 and 6550 big and tight. 5881 uses the
-6L6GC's curves here, so it sounds the same as 6L6GC. The rest of the circuit (transformer, supply voltage, tube count)
+small, chimey and early to break up, 6V6GT small and sweet, KT66 smooth, KT88 and 6550 big and tight. For a 5881 pick
+6L6GC: the 5881 is a 6L6 electrically, built for higher ratings that the model doesn't limit. The rest of the circuit (transformer, supply voltage, tube count)
 stays the model's, so this tells you what that amp would do with those tubes, not what a different amp would do, and
 the difference is clearest with the power amp driven.`,
 
@@ -594,8 +594,7 @@ at its resonance, as on choke-filtered supplies: the screen voltage can bounce a
       '6V6GT': 'The small American beam tetrode of the Deluxe and Princeton.',
       KT66: "The JTM45 and Bluesbreaker's tube.",
       KT88: 'A large beam tetrode, as in high-power amps such as the Major.',
-      '6550': 'A large beam tetrode, as in the SVT and US-market Marshalls.',
-      '5881': "Uses the 6L6GC's curves, so it sounds the same as 6L6GC."
+      '6550': 'A large beam tetrode, as in the SVT and US-market Marshalls.'
     },
     speaker: {
       Stock: "The model's own speaker load.",

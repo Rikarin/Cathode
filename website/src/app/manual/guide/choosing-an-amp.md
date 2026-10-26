@@ -151,7 +151,7 @@ Behind the front panel, the expert pages hold the components of the circuit. Eve
 
 **Feedback.** Negative feedback takes some of the output back to the phase inverter to flatten the response and tighten the low end. 5 is stock, 0 is none, 10 is twice stock. Less feedback sounds looser, rawer, louder and brighter in the upper mids, and breaks up earlier; more is tighter and cleaner. Some models switch feedback themselves (the Rectifiers' **Modern** removes it).
 
-**Power Tube.** Replace the output tubes with **6L6GC**, **EL34**, **EL84**, **6V6GT**, **KT66**, **KT88**, **6550** or **5881**, rebiased to the design's idle current. Broadly: 6L6 and 5881 are clean and full with a firm low end (the American sound); EL34 is mid-forward and crunchy (the British sound); EL84 is chimey and compresses early; 6V6 is sweet and breaks up early; KT88 and 6550 have huge headroom and a tight, big low end; KT66 is warm and round.
+**Power Tube.** Replace the output tubes with **6L6GC**, **EL34**, **EL84**, **6V6GT**, **KT66**, **KT88** or **6550**, rebiased to the design's idle current (for a 5881, pick 6L6GC: electrically it is the same tube). Broadly: 6L6 and 5881 are clean and full with a firm low end (the American sound); EL34 is mid-forward and crunchy (the British sound); EL84 is chimey and compresses early; 6V6 is sweet and breaks up early; KT88 and 6550 have huge headroom and a tight, big low end; KT66 is warm and round.
 
 **Presence Freq** and **Depth Freq** move the presence and depth controls' frequencies.
 
