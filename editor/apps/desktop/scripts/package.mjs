@@ -81,6 +81,9 @@ await build({
     electronVersion: require('electron/package.json').version,
     directories: { app: stage, output: join(dist, 'release'), buildResources: join(workspace, 'apps/desktop/assets') },
     files: ['**/*', '!**/*.map'],
+    // cathode-server serves the editor to other devices on the network (Settings ▸ Audio setup) and cannot read the
+    // asar archive: keep the editor beside it as plain files (main.ts points the Server at app.asar.unpacked).
+    asarUnpack: ['editor/**'],
     extraResources: [{ from: engine, to: 'engine' }],
     npmRebuild: false,
     icon: join(workspace, 'apps/desktop/assets/icon.png'),

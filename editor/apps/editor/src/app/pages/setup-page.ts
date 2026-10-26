@@ -12,6 +12,7 @@ import { ConnectionService } from '../core/connection';
 import type { AudioDevice, AudioSettings, LatencyResult } from '../core/desktop';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
+import { NetworkAccess } from '../shell/network-access';
 import { ServerTargetForm } from '../shell/server-target';
 import { GlobalStore } from '../state/global.store';
 import { FullScaleRange, dbuFromFullScale, fullScaleFromDbu, fullScaleFromReference } from './calibration';
@@ -29,6 +30,7 @@ const BufferSizes = [32, 64, 128, 256, 512];
   selector: 'cth-setup-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    NetworkAccess,
     ServerTargetForm,
     XuiButtonImports,
     XuiCalloutImports,
@@ -281,6 +283,13 @@ const BufferSizes = [32, 64, 128, 256, 512];
           <h2 xuiHeading id="server-heading" class="text-base">Server</h2>
           <cth-server-target />
         </section>
+
+        @if (!remote() && desktop.network) {
+          <section class="flex flex-col gap-4" aria-labelledby="network-heading">
+            <h2 xuiHeading id="network-heading" class="text-base">Other devices</h2>
+            <cth-network-access />
+          </section>
+        }
       } @else {
         <xui-callout color="primary" title="Audio setup is in the desktop app">
           This editor is running in a browser, connected to {{ connection.connection()?.baseUrl }}. Choose the

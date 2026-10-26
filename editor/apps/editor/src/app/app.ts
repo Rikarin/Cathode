@@ -144,7 +144,7 @@ import { UiStore } from './state/ui.store';
         <xui-non-ideal-state
           class="h-full"
           title="Access token needed"
-          description="This Cathode server asks for its access token. It is Cathode__Token in /etc/cathode/cathode.env on the rig, or ask whoever set it up."
+          description="This Cathode server asks for its access token. The Cathode desktop app shows it in Settings ▸ Audio setup ▸ Other devices; a headless rig keeps it as Cathode__Token in /etc/cathode/cathode.env. Or ask whoever set it up."
         >
           <form
             action
@@ -165,11 +165,17 @@ import { UiStore } from './state/ui.store';
         </xui-non-ideal-state>
       }
       @default {
-        <nav xuiNavbar class="gap-3" [class.window-drag]="macWindow" [class.ps-21]="trafficLights()">
-          <div xuiNavbarGroup class="no-scrollbar min-w-0 gap-1 overflow-x-auto">
+        <!-- Narrower than a laptop (an iPad in portrait), the pages and the tools take a row each. -->
+        <nav
+          xuiNavbar
+          class="gap-3 max-lg:h-auto max-lg:flex-wrap max-lg:py-1"
+          [class.window-drag]="macWindow"
+          [class.ps-21]="trafficLights()"
+        >
+          <div xuiNavbarGroup class="no-scrollbar min-w-0 gap-1 overflow-x-auto max-lg:h-10 max-lg:w-full">
             @if (!macWindow) {
-              <span xuiNavbarHeading>Cathode</span>
-              <div xuiNavbarDivider></div>
+              <span xuiNavbarHeading class="max-xl:hidden">Cathode</span>
+              <div xuiNavbarDivider class="max-xl:hidden"></div>
             }
             <a
               xuiButton
@@ -192,7 +198,7 @@ import { UiStore } from './state/ui.store';
             >
             <a xuiButton variant="ghost" size="sm" routerLink="/global" routerLinkActive="bg-active-overlay">Global</a>
           </div>
-          <div xuiNavbarGroup align="end" class="shrink-0 gap-2">
+          <div xuiNavbarGroup align="end" class="shrink-0 gap-2 max-lg:ms-auto max-lg:h-10">
             <div class="flex items-center">
               <button
                 xuiButton

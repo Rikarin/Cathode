@@ -47,6 +47,7 @@ import { abbreviate } from './block-info';
 import { BlockPicker } from './block-picker';
 import { Cell, type Point, cablePath, canConnect, cellOrigin, gridSize, inlet, nearestCell, outlet } from './geometry';
 import { monoHintText, monoHints } from './mono-hint';
+import { TouchGestures } from './touch-gestures';
 
 interface GridCell {
   key: string;
@@ -147,7 +148,7 @@ export function dropAction(
   template: `
     <div
       #surface
-      class="group/grid relative rounded-lg outline-none"
+      class="group/grid relative touch-manipulation rounded-lg outline-none select-none [-webkit-touch-callout:none]"
       role="grid"
       tabindex="0"
       aria-label="Signal grid"
@@ -158,8 +159,9 @@ export function dropAction(
       [style.height.px]="size().height"
       [style.zoom]="scale()"
       (keydown)="key($event)"
-      (pointermove)="moveWire($event)"
-      (pointerup)="endWire($event)"
+      (pointermove)="moveWire($event); touches.move($event)"
+      (pointerup)="endWire($event); touches.cancel()"
+      (pointercancel)="touches.cancel()"
     >
       @for (cell of cells(); track cell.key) {
         <div
@@ -176,7 +178,7 @@ export function dropAction(
           [style.width.px]="width"
           [style.height.px]="height"
           [xuiContextMenuTriggerFor]="cell.block ? blockMenu : emptyMenu"
-          (pointerdown)="pick(cell)"
+          (pointerdown)="pick(cell); touches.down($event, $any($event.currentTarget))"
           (dblclick)="openPalette()"
           (dragover)="dragOver($event, cell)"
           (drop)="drop($event, cell)"
@@ -667,6 +669,13 @@ export class GridEditor {
     const channel = this.hasChannels(block) ? `, channel ${this.live.channelOf(block.id)}` : '';
     return `${this.title(block)} ${block.id}${state}${channel}, ${place}`;
   }
+
+  /** A double tap adds a block like a double click; a long press opens the cell's menu like a right click. */
+  protected readonly touches = new TouchGestures<HTMLElement>(
+    () => this.openPalette(),
+    (cell, x, y) =>
+      cell.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: x, clientY: y }))
+  );
 
   protected pick(cell: GridCell): void {
     this.focus.set({ row: cell.row, column: cell.column });

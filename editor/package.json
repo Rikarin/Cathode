@@ -60,6 +60,7 @@
     "konva": "^10.9.0",
     "luxon": "^3.7.2",
     "openapi-fetch": "^0.17.0",
+    "qrcode-generator": "1.4.4",
     "rxjs": "~7.8.0",
     "tailwind-merge": "^3.7.0"
   },

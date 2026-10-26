@@ -5,7 +5,8 @@ import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { type Command, engine } from './engine';
-import type { AudioSettings } from './settings';
+import { portFree } from './network';
+import type { AudioSettings, NetworkSettings } from './settings';
 
 export interface SidecarStatus {
   name: 'host' | 'server';
@@ -130,17 +131,25 @@ class Sidecar {
   }
 }
 
-/** The local engine: cathode-host on the chosen interface and cathode-server in front of it, on loopback only. */
+/**
+ * The local engine: cathode-host on the chosen interface and cathode-server in front of it, on loopback, and with
+ * control from other devices on, also on every interface at the network port, serving the web editor there.
+ */
 export class Sidecars {
   private readonly socket = join(tmpdir(), `cathode-${process.pid}.sock`);
-  private readonly token = randomBytes(32).toString('base64url');
+  /** A token for this run only, while the Server is on loopback alone. */
+  private readonly runToken = randomBytes(32).toString('base64url');
   private port = 0;
   private ready: Promise<Connection> | null = null;
   private readonly host: Sidecar;
   private readonly server: Sidecar;
+  /** Why the Server is not on the network although the setting asks for it, or null. */
+  networkError: string | null = null;
 
   constructor(
     private audio: AudioSettings,
+    private network: NetworkSettings,
+    private readonly editorDirectory: string,
     private readonly dataDirectory: string | null,
     onStatus: (statuses: SidecarStatus[]) => void
   ) {
@@ -162,17 +171,53 @@ export class Sidecars {
     this.ready ??= (async () => {
       this.port = await freePort();
       this.host.start();
-      this.server.start();
-      const connection = { baseUrl: `http://127.0.0.1:${this.port}`, token: this.token };
-      await waitForServer(connection);
+      const connection = await this.serve();
       this.host.healthy();
-      this.server.healthy();
       return connection;
     })().catch(error => {
       this.ready = null;
       throw error;
     });
     return this.ready;
+  }
+
+  /**
+   * Restarts only the Server with new network settings; the host keeps playing. Resolves with the new connection
+   * (its token changes when the network does).
+   */
+  async applyNetwork(network: NetworkSettings): Promise<Connection> {
+    await this.start();
+    this.network = network;
+    await this.server.stop();
+    this.ready = this.serve().catch(error => {
+      this.ready = null;
+      throw error;
+    });
+    return this.ready;
+  }
+
+  /** Starts the Server and waits for it. A network port in use leaves it on loopback, with the reason kept. */
+  private async serve(): Promise<Connection> {
+    const wanted = this.network.enabled && this.network.token.length > 0;
+    this.networkError =
+      wanted && !(await portFree(this.network.port))
+        ? `Port ${this.network.port} is in use by another program. Choose another port.`
+        : null;
+    this.server.start();
+    const connection = { baseUrl: `http://127.0.0.1:${this.port}`, token: this.token() };
+    await waitForServer(connection);
+    this.server.healthy();
+    return connection;
+  }
+
+  /** Whether the Server listens on the network: the setting is on and its port was free. */
+  private onNetwork(): boolean {
+    return this.network.enabled && this.network.token.length > 0 && this.networkError === null;
+  }
+
+  /** The network's token while the Server is on the network (both editors use it), else this run's. */
+  private token(): string {
+    return this.onNetwork() ? this.network.token : this.runToken;
   }
 
   async stop(): Promise<void> {
@@ -305,9 +350,10 @@ export class Sidecars {
       command: server.command,
       args: [
         ...server.args,
-        `--urls=http://127.0.0.1:${this.port}`,
+        `--urls=http://127.0.0.1:${this.port}${this.onNetwork() ? `;http://0.0.0.0:${this.network.port}` : ''}`,
         `--Cathode:Engine:SocketPath=${this.socket}`,
-        `--Cathode:Token=${this.token}`,
+        `--Cathode:Token=${this.token()}`,
+        ...(this.onNetwork() ? [`--Cathode:EditorDirectory=${this.editorDirectory}`] : []),
         ...(this.dataDirectory ? [`--Cathode:DataDirectory=${this.dataDirectory}`] : [])
       ]
     };

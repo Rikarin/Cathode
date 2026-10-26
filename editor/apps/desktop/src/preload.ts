@@ -13,6 +13,10 @@ contextBridge.exposeInMainWorld('cathode', {
   target: () => ipcRenderer.invoke('cathode:target'),
   setTarget: (target: unknown) => ipcRenderer.invoke('cathode:setTarget', target),
   sidecars: () => ipcRenderer.invoke('cathode:sidecars'),
+  network: {
+    status: () => ipcRenderer.invoke('cathode:network:status'),
+    apply: (network: unknown) => ipcRenderer.invoke('cathode:network:apply', network)
+  },
   audio: {
     devices: () => ipcRenderer.invoke('cathode:audio:devices'),
     settings: () => ipcRenderer.invoke('cathode:audio:settings'),

@@ -12,11 +12,13 @@ import {
 import { existsSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { type AudioSettings, type ServerTarget, loadSettings, saveSettings } from './settings';
+import { networkStatus, newToken, portFree } from './network';
+import { type AudioSettings, type NetworkSettings, type ServerTarget, loadSettings, saveSettings } from './settings';
 import { type Connection, type IrCaptureOptions, Sidecars, listDevices, waitForServer } from './sidecars';
 
 // Cathode desktop: the editor in a sandboxed window, and the engine (cathode-host + cathode-server) as supervised
-// sidecars on loopback, or a remote Server (docs/02-architecture.md §7).
+// sidecars on loopback (and, when the user allows control from other devices, on the network too), or a remote Server
+// (docs/02-architecture.md §7).
 
 app.setName('Cathode');
 if (process.env['CATHODE_USER_DATA']) {
@@ -31,6 +33,8 @@ const editorRoot = resolve(
   process.env['CATHODE_EDITOR_DIR'] ?? join(__dirname, app.isPackaged ? 'editor' : '../editor/browser')
 );
 const devServer = process.env['CATHODE_EDITOR_URL']; // `nx serve editor` during development
+/** The same build for cathode-server to serve on the network: it cannot read inside the asar archive. */
+const editorFiles = editorRoot.replace(`${sep}app.asar${sep}`, `${sep}app.asar.unpacked${sep}`);
 
 protocol.registerSchemesAsPrivileged([
   { scheme: Scheme, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }
@@ -55,8 +59,12 @@ function connection(): Promise<Connection> {
     ).then(() => ({ baseUrl: target.baseUrl, token: target.token }));
   }
 
-  sidecars ??= new Sidecars(settings.audio, process.env['CATHODE_DATA_DIR'] ?? null, statuses =>
-    window?.webContents.send('cathode:sidecars', statuses)
+  sidecars ??= new Sidecars(
+    settings.audio,
+    settings.network,
+    editorFiles,
+    process.env['CATHODE_DATA_DIR'] ?? null,
+    statuses => window?.webContents.send('cathode:sidecars', statuses)
   );
   return sidecars.start();
 }
@@ -175,6 +183,19 @@ function handleIpc(): void {
   ipcMain.handle('cathode:audio:latencyTest', () =>
     sidecars ? sidecars.latencyTest() : { ok: false, output: 'Not running a local engine.', roundTripMs: null }
   );
+  ipcMain.handle('cathode:network:status', () => networkStatus(settings.network, sidecars?.networkError ?? null));
+  ipcMain.handle('cathode:network:apply', async (_event, network: NetworkRequest) => {
+    const next = await validNetwork(network);
+    settings = { ...settings, network: next };
+    saveSettings(settings);
+    // The Server restarts with the new listeners and token; the window reloads to take the token.
+    if (sidecars && settings.target.mode === 'local') {
+      await sidecars.applyNetwork(settings.network);
+      window?.reload();
+    }
+
+    return networkStatus(settings.network, sidecars?.networkError ?? null);
+  });
   ipcMain.handle('cathode:audio:irCapture', (_event, options: IrCaptureOptions) =>
     sidecars
       ? sidecars.irCapture(validCapture(options))
@@ -214,6 +235,30 @@ function validCapture(options: IrCaptureOptions): IrCaptureOptions {
     levelDb: clamp(options?.levelDb, -60, 0, -18),
     lengthMs: clamp(options?.lengthMs, 20, 2_000, 500)
   };
+}
+
+/** What the renderer asks for: on or off, the port, and optionally a new token. */
+type NetworkRequest = Pick<NetworkSettings, 'enabled' | 'port'> & { renewToken?: boolean };
+
+/**
+ * A port of 1024 and up, and a token made the first time the setting goes on, or anew when asked (`renewToken`), which
+ * signs every other device out. A port that is taken now is refused here, so the setting cannot be saved broken.
+ */
+async function validNetwork(network: NetworkRequest): Promise<NetworkSettings> {
+  const enabled = network?.enabled === true;
+  const port = Number.isInteger(network?.port) && network.port >= 1024 && network.port <= 65_535 ? network.port : null;
+  if (port === null) {
+    throw new Error('The port must be a whole number from 1024 to 65535.');
+  }
+
+  const current = settings.network;
+  const listening = current.enabled && current.port === port && sidecars?.networkError === null;
+  if (enabled && !listening && !(await portFree(port))) {
+    throw new Error(`Port ${port} is in use by another program. Choose another port.`);
+  }
+
+  const token = network?.renewToken === true || !current.token ? newToken() : current.token;
+  return { enabled, port, token };
 }
 
 function validTarget(target: ServerTarget): ServerTarget {
@@ -278,8 +323,11 @@ app.whenReady().then(() => {
     app.dock?.setIcon(Icon);
   }
 
-  // No camera, microphone, notifications or anything else: the editor needs none of it.
-  session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
+  // No camera, microphone, notifications or anything else: the editor needs none of it. Writing the clipboard (Copy
+  // the access token) is the one exception; reading it stays denied.
+  session.defaultSession.setPermissionRequestHandler((_contents, permission, callback) =>
+    callback(permission === 'clipboard-sanitized-write')
+  );
   serveEditor();
   handleIpc();
   buildMenu();

@@ -32,6 +32,7 @@ export class ConnectionService {
       : fromLocation(window.location, servedByServer(document), storedToken);
     if (!this.desktop && connection.token) {
       rememberToken(connection.baseUrl, connection.token);
+      forgetTokenInAddress(window);
     }
 
     this.api = createCathodeClient(connection);
@@ -78,6 +79,18 @@ export function fromLocation(
 /** The Server marks the editor it serves, so the page talks to the origin it came from. */
 function servedByServer(document: Document): boolean {
   return document.querySelector('meta[name="cathode-server"]')?.getAttribute('content') === 'same-origin';
+}
+
+/**
+ * Takes a `token` query parameter (a scanned QR code's) out of the address bar once it is remembered, so it is not
+ * left in the history, a bookmark or a shared link.
+ */
+function forgetTokenInAddress(window: Window): void {
+  const url = new URL(window.location.href);
+  if (url.searchParams.has('token')) {
+    url.searchParams.delete('token');
+    window.history.replaceState(window.history.state, '', url);
+  }
 }
 
 function storedToken(baseUrl: string): string | null {

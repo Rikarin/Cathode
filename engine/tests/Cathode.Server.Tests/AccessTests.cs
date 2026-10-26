@@ -96,6 +96,9 @@ public class AccessTests {
     [InlineData("http://0.0.0.0:5180", null, false)]
     [InlineData("http://*:5180", null, false)]
     [InlineData("http://192.168.1.20:5180", "token", true)]
+    // The desktop app with control from other devices on: loopback for itself, every interface for a tablet.
+    [InlineData("http://127.0.0.1:51234;http://0.0.0.0:5180", null, false)]
+    [InlineData("http://127.0.0.1:51234;http://0.0.0.0:5180", "token", true)]
     public void Listening_beyond_loopback_needs_a_token(string urls, string? token, bool ok) {
         var error = Record.Exception(() => Access.RequireTokenBeyondLoopback(urls, token));
 

@@ -97,7 +97,7 @@ If you lose the token, it is the `Cathode__Token` line in `/etc/cathode/cathode.
 sudo grep Cathode__Token /etc/cathode/cathode.env
 ```
 
-> **Tip:** The editor also reads a `server` and a `token` from its address, for example `?server=http://192.168.1.20:5180`, which lets an editor served from one place talk to a server somewhere else. Avoid putting the token in the address: it ends up in your browser's history.
+> **Tip:** The editor also reads a `server` and a `token` from its address, for example `?server=http://192.168.1.20:5180`, which lets an editor served from one place talk to a server somewhere else. A token in the address is remembered and then taken out of it, so it does not stay in your browser's history.
 
 ## Connect from the desktop app
 

@@ -39,13 +39,13 @@ import { LiveStore } from '../state/live.store';
       }
     </div>
     <span
-      class="text-foreground-muted w-16 text-xs whitespace-nowrap tabular-nums"
+      class="text-foreground-muted w-16 text-xs whitespace-nowrap tabular-nums max-xl:hidden"
       [xuiTooltip]="'Engine CPU, 99.9th percentile of callbacks'"
     >
       CPU {{ cpu() }} %
     </span>
     <span
-      class="text-foreground-muted text-xs whitespace-nowrap tabular-nums"
+      class="text-foreground-muted text-xs whitespace-nowrap tabular-nums max-xl:hidden"
       data-testid="cpu-estimate"
       [xuiTooltip]="'Estimated DSP load of this preset, from its blocks’ measured costs at 48 kHz'"
     >

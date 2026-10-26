@@ -24,7 +24,7 @@ If no device is chosen, or the chosen one cannot be opened, the engine runs on t
 
 ## The Audio setup page
 
-The page has four parts.
+The page has five parts.
 
 **Engine** shows how the engine is doing, refreshed every two seconds:
 
@@ -42,7 +42,7 @@ Below it, **Latency** breaks the delay down: **Device input** and **Device outpu
 
 **Input 1** shows a warning when the input clips, and the calibration (see [below](#input-level-and-calibration)).
 
-**Audio interface** chooses the device, rate, buffer and channel routing, and runs the latency test. **Server** chooses whether this app uses its own engine or a remote one (see [The headless server](/manual/headless-server)). With a remote one, the rig's interface is set on the rig, so **Audio interface** says so instead of showing its settings.
+**Audio interface** chooses the device, rate, buffer and channel routing, and runs the latency test. **Server** chooses whether this app uses its own engine or a remote one (see [The headless server](/manual/headless-server)). **Other devices** lets a tablet or another computer edit this app's engine over the network (see [below](#control-from-other-devices)). With a remote one, the rig's interface is set on the rig, so **Audio interface** says so instead of showing its settings.
 
 > **Note:** In a web browser (a headless rig), this page shows the engine figures and the calibration, but not the interface settings. On a rig, the interface is chosen in its settings file instead.
 
@@ -179,6 +179,25 @@ Cathode's amp blocks model the amp, and its Cab blocks model the speaker cabinet
 ### Stereo or mono
 
 Many effects (stereo delays, reverbs, chorus, rotary) spread across left and right. They only sound right on two speakers. Into a single speaker, use the output's **Sum L+R** mode. Some blocks sum to mono themselves (an Amp block always does): stereo effects placed before them lose their width. The grid warns about this with a **MONO** tag; see [The grid](/manual/the-grid#stereo-and-mono).
+
+## Control from other devices
+
+The desktop app can also serve the editor to other devices on the same network, so you can sit on the couch with an iPad and shape the sound while the Mac plays. Both edit the same live rig at the same time: turn a knob on the iPad and it moves in the app, and the reverse.
+
+1. Open **Settings ▸ Audio setup**.
+2. Under **Other devices**, turn on **Allow control from other devices on this network**. The default port, 5180, is fine unless another program uses it; then type another port (1024 or higher) first. The app's window reloads.
+3. The section now shows the addresses to open, the **access token** and a QR code.
+4. On the iPad, point the Camera at the QR code and tap the link. Safari opens the editor, already signed in. Without a camera, type one of the addresses into the browser and paste the token when the editor asks for it.
+
+The browser remembers the token, so next time the address alone is enough. In Safari, **Share ▸ Add to Home Screen** gives the editor an icon and the full screen.
+
+The first time you turn it on, macOS may ask whether **cathode-server** may accept incoming network connections. Choose **Allow**; if you chose Deny, allow it in **System Settings ▸ Network ▸ Firewall ▸ Options**. If the iPad still cannot connect, check that both are on the same Wi-Fi (not a guest network, which often keeps devices apart) and try the address with the numbers rather than the `.local` name.
+
+On a touch screen, double-tap an empty cell to add a block, touch and hold a block for its menu, and drag knobs up and down. Interface settings, the latency test and IR capture stay in the desktop app.
+
+- **New token** makes a new token and signs every other device out.
+- The setting stays on until you turn it off, also after a restart of the app. It is off by default, and it applies only while the app uses its own engine (not a remote one).
+- Anyone on the network who has the token can change your rig, and the connection is not encrypted. Turn it on at home, not on venue or public Wi-Fi.
 
 ## Oversampling
 
