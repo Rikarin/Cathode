@@ -6,6 +6,15 @@ namespace Cathode.Contracts;
 ///     sets a channel of a block to it; it never adds a Type parameter that would fight the knobs.
 /// </summary>
 public sealed class BlockPreset {
+    /// <summary>
+    ///     2 after 1.0.0-rc.3, when an Amp's changed as a preset's schema 2; a file without one is schema 1 (the
+    ///     Block Library's store upgrades it as it reads).
+    /// </summary>
+    public const int CurrentSchemaVersion = 2;
+
+    /// <summary>The schema it was stored with. The store sets it on save, so a client may leave it out.</summary>
+    public int? SchemaVersion { get; set; } = CurrentSchemaVersion;
+
     public string Id { get; set; } = Preset.NewId();
 
     /// <summary>The block type id it is for, e.g. <c>chorus</c>.</summary>

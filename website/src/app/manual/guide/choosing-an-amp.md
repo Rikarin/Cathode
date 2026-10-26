@@ -193,7 +193,7 @@ The Advanced page scales component values the model already has, and hides any t
 
 A tube power amp has a fairly high output impedance, so its response follows the speaker's impedance: more output at the speaker's low resonance (thump) and at the top, where the voice coil's inductance raises the impedance. Less feedback makes this stronger. This happens inside the amp; the sound of the cone and the mic are the Cab block's.
 
-- **Speaker load**: **Stock** is the model's own load; then curves for **1x12 Open**, **2x12 Open**, **4x10 Open**, **4x12 Closed** and **8x10 Closed**; and **Follow Cab**, which takes the load of the speaker and cabinet in the next Cab block, from that speaker's own data. Use Follow Cab: the amp and cab then agree. The Factory presets do.
+- **Speaker load**: **Stock** is the model's own load; then curves for **1x12 Open**, **2x12 Open**, **4x10 Open**, **4x12 Closed** and **8x10 Closed**; and **Follow Cab**, which takes the load of the speaker and cabinet in the next Cab block, from that speaker's own data. Follow Cab is where a new amp starts, and what the Factory presets use: the amp and cab then agree.
 - **Load resonance**, **Load Q**, **Load peak**, **Load HF** and **Load impedance** scale that curve: the resonance frequency, its sharpness, its height, the top-end rise and the overall impedance (50 % is like a 4 Ω cab on an 8 Ω output).
 - **Find the cab resonance…**, below the amp's controls, plays a test tone through the cab while you sweep it to where the low end booms loudest, then sets **Load resonance** to match.
 - **Speaker Drive**, **Speaker Thump** (at **Cab Resonance**) and **Speaker Compression** add the speaker's own breakup, low-end thump and compression.

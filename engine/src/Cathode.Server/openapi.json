@@ -3870,6 +3870,14 @@
         ],
         "type": "object",
         "properties": {
+          "schemaVersion": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "The schema it was stored with. The store sets it on save, so a client may leave it out.",
+            "format": "int32"
+          },
           "id": {
             "type": "string"
           },

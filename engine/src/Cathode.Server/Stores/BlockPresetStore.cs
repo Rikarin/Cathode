@@ -2,6 +2,7 @@ using Cathode.Contracts;
 using Cathode.Dsp.Parameters;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Cathode.Server.Stores;
@@ -109,15 +110,30 @@ public sealed class BlockPresetStore(IOptions<ServerOptions> options, BlockCatal
             ? throw RigException.Conflict("Factory block presets cannot be deleted.")
             : files.Delete(id);
 
-    /// <summary>A stored block preset brought up to date (<see cref="PresetMigrations.UpgradeAmpChannel(JsonObject?)" />).</summary>
+    /// <summary>
+    ///     A stored block preset taken to <see cref="BlockPreset.CurrentSchemaVersion" />. Schema 2 (after 1.0.0-rc.3):
+    ///     an Amp's values and channels as a preset's (<see cref="PresetMigrations.UpgradeAmpChannel" />). A file without
+    ///     a version is schema 1.
+    /// </summary>
     static JsonNode? Upgrade(JsonNode? node) {
-        if (node is JsonObject preset && preset["type"]?.GetValue<string>() == "circuitamp") {
-            PresetMigrations.UpgradeAmpChannel(preset["values"] as JsonObject);
-            foreach (var (_, channel) in preset["channels"] as JsonObject ?? []) {
-                PresetMigrations.UpgradeAmpChannel(channel as JsonObject);
+        if (node is not JsonObject preset
+            || (preset["schemaVersion"]?.GetValueKind() == JsonValueKind.Number
+                && preset["schemaVersion"]!.GetValue<int>() >= BlockPreset.CurrentSchemaVersion)) {
+            return node;
+        }
+
+        if (preset["type"]?.GetValue<string>() == "circuitamp") {
+            if (preset["values"] is not JsonObject values) {
+                preset["values"] = values = [];
+            }
+
+            PresetMigrations.UpgradeAmpChannel(values);
+            if (preset["channels"] is JsonObject) {
+                PresetMigrations.UpgradeAmpBlock(preset);
             }
         }
 
-        return node;
+        preset["schemaVersion"] = BlockPreset.CurrentSchemaVersion;
+        return preset;
     }
 }

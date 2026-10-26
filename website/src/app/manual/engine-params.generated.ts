@@ -10113,7 +10113,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         kind: 'float',
         min: 0,
         max: 10,
-        default: 10,
+        default: 5,
         page: 'Basic',
         typeLabels: [
           'Master',
@@ -12487,7 +12487,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         kind: 'choice',
         min: 0,
         max: 6,
-        default: 0,
+        default: 6,
         page: 'Speaker',
         options: ['Stock', '1x12 Open', '2x12 Open', '4x10 Open', '4x12 Closed', '8x10 Closed', 'Follow Cab'],
         typeLabels: [

@@ -5,7 +5,8 @@ namespace Cathode.Contracts;
 ///     Manual A-D, MIDI mappings, footswitch layouts and the global block library. Stored as one document.
 /// </summary>
 public sealed class GlobalSettings {
-    public const int CurrentSchemaVersion = 1;
+    /// <summary>2 after 1.0.0-rc.3: the global blocks' Amps as presets' schema 2.</summary>
+    public const int CurrentSchemaVersion = 2;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 

@@ -83,7 +83,8 @@ namespace Cathode.Dsp.Blocks;
 ///             power saturate the core.
 ///         </item>
 ///         <item>
-///             <b>Speaker load</b> (Stock): the speaker as the electrical load on the power amp, not its sound. A
+///             <b>Speaker load</b> (Follow Cab; Stock up to 1.0.0-rc.3): the speaker as the electrical load on the power
+///             amp, not its sound. A
 ///             speaker's impedance peaks at the cone's resonance and rises with the voice coil's inductance, and a tube
 ///             power amp's output (most of all with little feedback) follows it: more thump and more treble, and
 ///             different clipping and sag. That happens inside the amp; the cone's breakup, the cabinet's acoustics and
@@ -413,7 +414,7 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
                 ParamDescriptor.Float("presence", "Presence", 0f, 10f, 5f),
                 ParamDescriptor.Float("depth", "Depth", 0f, 10f, 0f),
                 ParamDescriptor.Float("cut", "Cut", 0f, 10f, 0f),
-                ParamDescriptor.Float("master", "Master", 0f, 10f, 10f),
+                ParamDescriptor.Float("master", "Master", 0f, 10f, 5f),
                 ParamDescriptor.Float("sag", "Sag", 0f, 10f, 5f),
                 ParamDescriptor.Float("bias", "Bias", 0f, 100f, 50f, "%"),
                 ParamDescriptor.Float("feedback", "Feedback", 0f, 10f, 5f),
@@ -451,7 +452,8 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
                 ParamDescriptor.Choice(
                     "speaker",
                     "Speaker load",
-                    ["Stock", "1x12 Open", "2x12 Open", "4x10 Open", "4x12 Closed", "8x10 Closed", "Follow Cab"]
+                    ["Stock", "1x12 Open", "2x12 Open", "4x10 Open", "4x12 Closed", "8x10 Closed", "Follow Cab"],
+                    SpeakerAuto
                 ),
                 Expert(ParamDescriptor.Float("spkres", "Load resonance", 25f, 400f, 100f, "%", ParamTaper.Log)),
                 Expert(ParamDescriptor.Float("spkq", "Load Q", 25f, 400f, 100f, "%", ParamTaper.Log)),

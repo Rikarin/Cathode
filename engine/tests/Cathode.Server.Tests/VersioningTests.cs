@@ -41,7 +41,7 @@ public sealed class VersioningTests {
     }
 
     [Fact]
-    public void Schema_2_turns_the_amps_5881_into_the_6L6GC_and_drops_its_removed_controls() {
+    public void Schema_2_keeps_an_old_amp_sounding_the_same() {
         var upgraded = PresetMigrations.Upgrade(
             JsonNode.Parse(
                 """
@@ -55,12 +55,24 @@ public sealed class VersioningTests {
         var preset = upgraded.Deserialize(ContractsJsonContext.Default.Preset)!;
 
         Assert.Equal(2, preset.SchemaVersion);
-        Assert.Equal(1, preset.Blocks[0].Channels["A"]["powertube"]); // 5881 → 6L6GC
-        Assert.Equal(6, preset.Blocks[0].Channels["A"]["gain"]);
-        Assert.Equal(2, preset.Blocks[0].Channels["A"].Count); // Triode 1 Plate Freq and Master Cap are gone
-        Assert.Equal(7, preset.Blocks[0].Channels["B"]["powertube"]); // 6550 stays
-        Assert.Empty(preset.Blocks[0].Channels["C"]);
+        var amp = preset.Blocks[0].Channels;
+        Assert.Equal(1, amp["A"]["powertube"]); // 5881 → 6L6GC
+        Assert.Equal(6, amp["A"]["gain"]);
+        Assert.False(amp["A"].ContainsKey("t1plate") || amp["A"].ContainsKey("mvcap")); // gone
+        Assert.Equal(7, amp["B"]["powertube"]); // 6550 stays
+        // Master 10 and Speaker load Stock were the defaults, so not stored: every channel gets them written in,
+        // the ones the preset left at their defaults too.
+        Assert.Equal(["A", "B", "C", "D"], amp.Keys.Order());
+        Assert.All(amp.Values, static c => Assert.Equal((10f, 0f), (c["master"], c["speaker"])));
         Assert.Equal(8, preset.Blocks[1].Channels["A"]["powertube"]); // not an amp
+        Assert.False(preset.Blocks[1].Channels["A"].ContainsKey("master"));
+    }
+
+    [Fact]
+    public void A_schema_2_amp_keeps_the_new_defaults() {
+        var json = """{"schemaVersion":2,"blocks":[{"id":"amp1","type":"circuitamp","channels":{"A":{"gain":6}}}]}""";
+
+        Assert.Equal(json, PresetMigrations.Upgrade(JsonNode.Parse(json))!.ToJsonString());
     }
 
     [Fact]

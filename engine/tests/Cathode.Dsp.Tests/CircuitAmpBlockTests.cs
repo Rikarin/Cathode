@@ -175,6 +175,7 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
     static CircuitAmpBlock Create(int type, params (int Index, float Value)[] settings) {
         var block = new CircuitAmpBlock();
         block.Params.SetTarget(CircuitAmpBlock.Type, type);
+        block.Params.SetTarget(CircuitAmpBlock.Master, 10); // the levels and limits here are a fully driven power amp's
         foreach (var (index, value) in settings) {
             block.Params.SetTarget(index, value);
         }

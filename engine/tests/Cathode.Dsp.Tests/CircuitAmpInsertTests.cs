@@ -302,7 +302,9 @@ public class CircuitAmpInsertTests {
     static float[] Render(float[] input, params (int Index, float Value)[] settings) => Render(input, 0f, settings);
 
     static float[] Render(float[] input, float calibrationDb, params (int Index, float Value)[] settings) {
-        using var block = TestBlocks.Create<CircuitAmpBlock>([(CircuitAmpBlock.Gain, 2f), ..settings]);
+        using var block = TestBlocks.Create<CircuitAmpBlock>(
+            [(CircuitAmpBlock.Gain, 2f), (CircuitAmpBlock.Master, 10f), ..settings]
+        );
         return BlockRender.Stereo(block, input, input, static _ => 64, inputCalibrationDb: calibrationDb).Left;
     }
 

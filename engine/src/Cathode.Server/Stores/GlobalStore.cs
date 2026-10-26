@@ -1,6 +1,7 @@
 using Cathode.Contracts;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Cathode.Server.Stores;
 
@@ -45,7 +46,8 @@ public sealed class GlobalStore {
         try {
             return File.Exists(path)
                 ? Upgrade(
-                    JsonSerializer.Deserialize(File.ReadAllText(path), ContractsJsonContext.Default.GlobalSettings)
+                    UpgradeJson(JsonNode.Parse(File.ReadAllText(path)))
+                        ?.Deserialize(ContractsJsonContext.Default.GlobalSettings)
                 )
                 : null;
         } catch (JsonException) {
@@ -54,22 +56,35 @@ public sealed class GlobalStore {
     }
 
     /// <summary>
+    ///     The settings file's JSON taken to <see cref="GlobalSettings.CurrentSchemaVersion" />. Schema 2 (after
+    ///     1.0.0-rc.3): a global Amp block as a preset's (<see cref="PresetMigrations.UpgradeAmpBlock" />). A file without
+    ///     a version is schema 1.
+    /// </summary>
+    public static JsonNode? UpgradeJson(JsonNode? node) {
+        if (node is not JsonObject settings
+            || (settings["schemaVersion"]?.GetValueKind() == JsonValueKind.Number
+                && settings["schemaVersion"]!.GetValue<int>() >= GlobalSettings.CurrentSchemaVersion)) {
+            return node;
+        }
+
+        foreach (var block in settings["blocks"]?.AsArray() ?? []) {
+            if (block is JsonObject amp && amp["type"]?.GetValue<string>() == "circuitamp") {
+                PresetMigrations.UpgradeAmpBlock(amp);
+            }
+        }
+
+        settings["schemaVersion"] = GlobalSettings.CurrentSchemaVersion;
+        return settings;
+    }
+
+    /// <summary>
     ///     Settings saved by an earlier Cathode, brought up to date: the output mode <c>dualMono</c> (up to
-    ///     1.0.0-rc.3) did what <c>copyLR</c> does and is now that, and a global Amp's channels are brought up to date
-    ///     (<see cref="PresetMigrations.UpgradeAmpChannel(Dictionary{string, float}?)" />).
+    ///     1.0.0-rc.3) did what <c>copyLR</c> does and is now that.
     /// </summary>
     public static GlobalSettings? Upgrade(GlobalSettings? settings) {
         foreach (var output in settings?.Outputs ?? []) {
             if (output.Mode == "dualMono") {
                 output.Mode = "copyLR";
-            }
-        }
-
-        foreach (var block in settings?.Blocks ?? []) {
-            if (block.Type == "circuitamp") {
-                foreach (var channel in block.Channels.Values) {
-                    PresetMigrations.UpgradeAmpChannel(channel);
-                }
             }
         }
 

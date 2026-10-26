@@ -107,7 +107,7 @@ works backwards to a treble knob). Use it to tame the top end of a bright class-
     master: `The master volume, on models that have one, at its real place in the circuit (on most amps between the
 preamp and the phase inverter). It sets how hard the phase inverter and the power tubes are driven. At high settings
 the power amp clips and compresses and the sag comes in; at low settings the power amp stays clean and the distortion
-comes from the preamp alone.
+comes from the preamp alone. A new amp starts at 5, half driven; turn it up for power-amp breakup.
 
 On amps without a master (Plexis, Tweeds, blackface Fenders) the control is hidden: the power amp is always fully
 driven, as on the original, and the volume knobs set both loudness and drive. Use *Level* for the block's loudness.
@@ -276,8 +276,8 @@ thickens the bass. Only heard with the power amp working hard.`,
     speaker: `The speaker as the electrical load on the power amp, not its sound. A real speaker's impedance peaks at the
 cone's resonance and rises with frequency, and a tube power amp's output follows it, especially with little
 feedback: more thump and more treble, and different clipping and sag. *Stock* is the model's own load; the presets
-are typical open-back and closed cabinets; *Follow Cab* takes the load of the speaker and cabinet chosen in the next
-Cab block. The Cab block still provides the speaker's sound (the cone, box and mic); this only changes how the amp
+are typical open-back and closed cabinets; *Follow Cab*, where a new amp starts, takes the load of the speaker and cabinet chosen in the
+next Cab block (with no Cab after the amp it is the model's own load). The Cab block still provides the speaker's sound (the cone, box and mic); this only changes how the amp
 behaves driving it.`,
 
     spkres: `The load's bass resonance frequency, as a percentage of the chosen curve's. It moves the low-end impedance

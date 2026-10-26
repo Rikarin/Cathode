@@ -38,7 +38,22 @@ public sealed class GlobalStoreTests : IDisposable {
         Assert.Equal(1, settings.Blocks[0].Channels["A"]["powertube"]);
         Assert.Equal(6, settings.Blocks[0].Channels["A"]["gain"]);
         Assert.False(settings.Blocks[0].Channels["A"].ContainsKey("mvcap"));
+        Assert.Equal(10, settings.Blocks[0].Channels["A"]["master"]); // the default up to 1.0.0-rc.3
+        Assert.Equal(0, settings.Blocks[0].Channels["D"]["speaker"]);
+        Assert.Equal(2, settings.SchemaVersion);
         Assert.Equal(2, settings.Blocks[0].Channels["B"]["powertube"]);
         Assert.Equal(8, settings.Blocks[1].Channels["A"]["powertube"]);
+    }
+
+    [Fact]
+    public void A_schema_2_global_amp_keeps_the_new_defaults() {
+        File.WriteAllText(
+            Path.Combine(folder, "global.json"),
+            """{ "schemaVersion": 2, "blocks": [ { "id": "g1", "type": "circuitamp", "channels": { "A": { "gain": 6 } } } ] }"""
+        );
+
+        var settings = new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder })).Get();
+
+        Assert.Equal(["gain"], settings.Blocks[0].Channels["A"].Keys);
     }
 }

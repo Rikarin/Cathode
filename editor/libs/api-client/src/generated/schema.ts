@@ -1734,6 +1734,11 @@ export interface components {
      *     sets a channel of a block to it; it never adds a Type parameter that would fight the knobs.
      */
     BlockPreset: {
+      /**
+       * Format: int32
+       * @description The schema it was stored with. The store sets it on save, so a client may leave it out.
+       */
+      schemaVersion?: null | number;
       id: string;
       /** @description The block type id it is for, e.g. `chorus`. */
       type: string;

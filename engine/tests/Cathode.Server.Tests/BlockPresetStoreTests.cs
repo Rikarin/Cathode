@@ -31,6 +31,8 @@ public sealed class BlockPresetStoreTests : IDisposable {
         Assert.Equal(1, preset.Values["powertube"]);
         Assert.Equal(6, preset.Values["gain"]);
         Assert.False(preset.Values.ContainsKey("t1plate"));
+        Assert.Equal(10, preset.Values["master"]); // the default up to 1.0.0-rc.3
+        Assert.Equal(10, preset.Channels!["C"]["master"]);
         Assert.Equal(1, preset.Channels!["A"]["powertube"]);
         Assert.Equal(3, preset.Channels["B"]["powertube"]);
     }

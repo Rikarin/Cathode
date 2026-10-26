@@ -143,6 +143,7 @@ public class ClassAAmpSweepTests(ITestOutputHelper output) {
                     channel,
                     frequency,
                     (CircuitAmpBlock.Gain, knob == CircuitAmpBlock.Gain ? (float)v : 3f),
+                    (CircuitAmpBlock.Master, 10f), // the power amp as these sweeps were measured: fully driven
                     (knob, (float)v)
                 )
             )

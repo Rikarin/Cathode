@@ -242,12 +242,18 @@ public sealed class FactoryRecipe(string name, string description, params string
         for (var c = 0; c < Math.Min(part.Channels.Length, descriptor.Channels); c++) {
             var values = Settings(catalog, part.Type, $"{part.Common} {part.Channels[c]}", problem);
             if (part.Type == "circuitamp") {
-                // The speaker load follows the Cab, on a model that has one (a solid-state amp has none).
+                // The speaker load follows the Cab, on a model that has one (a solid-state amp has none, and keeps
+                // Stock). The recipes were voiced at Master 10, the default up to 1.0.0-rc.3: one that does not set it
+                // keeps it.
                 var speaker = descriptor.Params[descriptor.IndexOf("speaker")];
                 var model = (int)values.GetValueOrDefault("type");
-                if (!values.ContainsKey("speaker") && speaker.TypeLabels?[model] is { Length: > 0 }) {
-                    values["speaker"] = Value(speaker, "Follow_Cab") ?? speaker.Default;
+                if (!values.ContainsKey("speaker")) {
+                    values["speaker"] = speaker.TypeLabels?[model] is { Length: > 0 }
+                        ? Value(speaker, "Follow_Cab") ?? speaker.Default
+                        : 0;
                 }
+
+                values.TryAdd("master", 10);
 
                 if (level is not null && c < level.Amp.Length) {
                     var output = descriptor.Params[descriptor.IndexOf("level")];

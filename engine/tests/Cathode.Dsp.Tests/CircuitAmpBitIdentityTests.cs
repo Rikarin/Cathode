@@ -70,6 +70,7 @@ public class CircuitAmpBitIdentityTests {
             foreach (var (name, settings) in cases) {
                 using var block = new CircuitAmpBlock();
                 block.Params.SetTarget(CircuitAmpBlock.Type, type);
+                block.Params.SetTarget(CircuitAmpBlock.Master, 10); // the default when the baseline was made
                 foreach (var (param, value) in settings) {
                     block.Params.SetTarget(param, value);
                 }
