@@ -66,6 +66,7 @@ public sealed class FilterBlock() : DspBlock(Info) {
 
     public const double MaxShelf2Q = 4;
 
+    const int TypeCount = 15;
     const int SubBlock = 32;
     const float MaxCombMs = 20f;
     const float MaxCombFeedback = 0.98f;
@@ -122,26 +123,23 @@ public sealed class FilterBlock() : DspBlock(Info) {
             ParamDescriptor.Float("panLeft", "Pan Left", -100f, 100f, -100f, "%"),
             ParamDescriptor.Float("panRight", "Pan Right", -100f, 100f, 100f, "%"),
             ParamDescriptor.Choice("phaseInvert", "Phase Invert", ChorusBlock.PhaseOptions),
-            ParamDescriptor.Float("combTime", "Comb Time", 0.1f, MaxCombMs, 1f, "ms", ParamTaper.Log),
-            ParamDescriptor.Float("depth", "Depth", -100f, 100f, 50f, "%"),
+            ParamDescriptor.Float("combTime", "Comb Time", 0.1f, MaxCombMs, 1f, "ms", ParamTaper.Log)
+                .ShownOn(TypeCount, FeedForwardComb, FeedbackComb),
+            ParamDescriptor.Float("depth", "Depth", -100f, 100f, 50f, "%")
+                .ShownOn(TypeCount, FeedForwardComb, FeedbackComb),
             ParamDescriptor.Switch("lfoOn", "LFO Enable"),
             ParamDescriptor.Choice("lfoType", "LFO Type", Lfo.ShapeNames),
             ParamDescriptor.Float("lfoRate", "LFO Rate", 0.05f, 20f, 1f, "Hz", ParamTaper.Log),
             ParamDescriptor.Choice("lfoTempo", "LFO Tempo", TempoDivisions.Names),
             ParamDescriptor.Float("modFreq", "Mod Frequency", 20f, 20_000f, 4_000f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("feedback", "Feedback", -95f, 95f, 0f, "%"),
+            ParamDescriptor.Float("feedback", "Feedback", -95f, 95f, 0f, "%").ShownOn(TypeCount, AllPass),
             ParamDescriptor.Float("lfoDuty", "LFO Duty", 0f, 100f, 50f, "%"),
             LfoConditioner.QuantizeParam()
         ],
         maxInstances: 4,
         pages: [
-            new("Basic", ["freq", "q", "gain", "order", "lowCut", "highCut", "combTime", "feedback"]),
-            new(
-                "Modulation",
-                [
-                    "lfoOn", "lfoType", "lfoRate", "lfoTempo", "depth", "modFreq", "lfoDuty", "lfoQuantize"
-                ]
-            ),
+            new("Basic", ["freq", "q", "gain", "order", "lowCut", "highCut", "combTime", "depth", "feedback"]),
+            new("Modulation", ["lfoOn", "lfoType", "lfoRate", "lfoTempo", "modFreq", "lfoDuty", "lfoQuantize"]),
             new("Stereo", ["panLeft", "panRight", "phaseInvert"])
         ]
     );

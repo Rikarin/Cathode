@@ -910,7 +910,7 @@ public sealed class ReverbBlock : DspBlock {
                     Params.Advance(SpringDrive, n),
                     Params.Advance(Boing, n) / 100f
                 );
-                spring.Configure(decay, scale);
+                spring.Configure(decay, scale, dampingHz);
                 break;
             case ClassicHall or ClassicPlate or VintageDigital or ClassicRoom:
                 ConfigureClassic(type, decay, scale, dampingHz, rate, n);

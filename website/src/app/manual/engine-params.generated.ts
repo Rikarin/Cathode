@@ -964,7 +964,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 1,
         unit: 'ms',
         taper: 'log',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', '', '', 'Comb Time', 'Comb Time', '', '', '']
       },
       {
         id: 'depth',
@@ -974,7 +975,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 100,
         default: 50,
         unit: '%',
-        page: 'Modulation'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', '', '', 'Depth', 'Depth', '', '', '']
       },
       {
         id: 'lfoOn',
@@ -1069,7 +1071,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 95,
         default: 0,
         unit: '%',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'Feedback', '', '', '', '', '', '']
       },
       {
         id: 'lfoDuty',
@@ -2402,7 +2405,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 4,
         unit: ':1',
         taper: 'log',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['Ratio', '', 'Ratio', '']
       },
       {
         id: 'attack',
@@ -2454,7 +2458,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 100,
         default: 60,
         unit: 'dB',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', 'Attenuation', '', 'Attenuation']
       },
       {
         id: 'scLowCut',
@@ -2672,7 +2677,18 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 0.5,
         unit: 'Hz',
         taper: 'log',
-        page: 'Modulation'
+        page: 'Modulation',
+        typeLabels: [
+          'LFO 1 Rate',
+          'LFO 1 Rate',
+          'LFO 1 Rate',
+          'LFO 1 Rate',
+          'LFO 1 Rate',
+          'LFO 1 Rate',
+          'LFO 1 Rate',
+          '',
+          'LFO 1 Rate'
+        ]
       },
       {
         id: 'lfo1Depth',
@@ -2682,7 +2698,18 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 10,
         default: 0,
         unit: 'ms',
-        page: 'Modulation'
+        page: 'Modulation',
+        typeLabels: [
+          'LFO 1 Depth',
+          'LFO 1 Depth',
+          'LFO 1 Depth',
+          'LFO 1 Depth',
+          'LFO 1 Depth',
+          'LFO 1 Depth',
+          'LFO 1 Depth',
+          '',
+          'LFO 1 Depth'
+        ]
       },
       {
         id: 'level',
@@ -2731,7 +2758,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'L/R Time Ratio',
           '',
           '',
-          'L/R Time Ratio',
+          '',
           'L/R Time Ratio'
         ]
       },
@@ -3300,7 +3327,18 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 2,
         default: 1,
         page: 'Modulation',
-        options: ['Low (×0.1)', 'Normal', 'High (×10)']
+        options: ['Low (×0.1)', 'Normal', 'High (×10)'],
+        typeLabels: [
+          'LFO Depth Range',
+          'LFO Depth Range',
+          'LFO Depth Range',
+          'LFO Depth Range',
+          'LFO Depth Range',
+          'LFO Depth Range',
+          'LFO Depth Range',
+          '',
+          'LFO Depth Range'
+        ]
       },
       {
         id: 'lfo1Type',
@@ -3321,6 +3359,17 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Exponential',
           'Trapezoid',
           'Astable'
+        ],
+        typeLabels: [
+          'LFO 1 Type',
+          'LFO 1 Type',
+          'LFO 1 Type',
+          'LFO 1 Type',
+          'LFO 1 Type',
+          'LFO 1 Type',
+          'LFO 1 Type',
+          '',
+          'LFO 1 Type'
         ]
       },
       {
@@ -3354,6 +3403,17 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '2/1',
           '3/1',
           '4/1'
+        ],
+        typeLabels: [
+          'LFO 1 Tempo',
+          'LFO 1 Tempo',
+          'LFO 1 Tempo',
+          'LFO 1 Tempo',
+          'LFO 1 Tempo',
+          'LFO 1 Tempo',
+          'LFO 1 Tempo',
+          '',
+          'LFO 1 Tempo'
         ]
       },
       {
@@ -3364,7 +3424,18 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 180,
         default: 0,
         unit: '°',
-        page: 'Modulation'
+        page: 'Modulation',
+        typeLabels: [
+          'LFO 1 Phase',
+          'LFO 1 Phase',
+          'LFO 1 Phase',
+          'LFO 1 Phase',
+          'LFO 1 Phase',
+          'LFO 1 Phase',
+          'LFO 1 Phase',
+          '',
+          'LFO 1 Phase'
+        ]
       },
       {
         id: 'lfo1Target',
@@ -3374,7 +3445,18 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 2,
         default: 0,
         page: 'Modulation',
-        options: ['Both', 'Left', 'Right']
+        options: ['Both', 'Left', 'Right'],
+        typeLabels: [
+          'LFO 1 Target',
+          'LFO 1 Target',
+          'LFO 1 Target',
+          'LFO 1 Target',
+          'LFO 1 Target',
+          'LFO 1 Target',
+          'LFO 1 Target',
+          '',
+          'LFO 1 Target'
+        ]
       },
       {
         id: 'lfo2Type',
@@ -3395,6 +3477,17 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Exponential',
           'Trapezoid',
           'Astable'
+        ],
+        typeLabels: [
+          'LFO 2 Type',
+          'LFO 2 Type',
+          'LFO 2 Type',
+          'LFO 2 Type',
+          'LFO 2 Type',
+          'LFO 2 Type',
+          'LFO 2 Type',
+          '',
+          'LFO 2 Type'
         ]
       },
       {
@@ -3406,7 +3499,18 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 2,
         unit: 'Hz',
         taper: 'log',
-        page: 'Modulation'
+        page: 'Modulation',
+        typeLabels: [
+          'LFO 2 Rate',
+          'LFO 2 Rate',
+          'LFO 2 Rate',
+          'LFO 2 Rate',
+          'LFO 2 Rate',
+          'LFO 2 Rate',
+          'LFO 2 Rate',
+          '',
+          'LFO 2 Rate'
+        ]
       },
       {
         id: 'lfo2Tempo',
@@ -3439,6 +3543,17 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '2/1',
           '3/1',
           '4/1'
+        ],
+        typeLabels: [
+          'LFO 2 Tempo',
+          'LFO 2 Tempo',
+          'LFO 2 Tempo',
+          'LFO 2 Tempo',
+          'LFO 2 Tempo',
+          'LFO 2 Tempo',
+          'LFO 2 Tempo',
+          '',
+          'LFO 2 Tempo'
         ]
       },
       {
@@ -3449,7 +3564,18 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 10,
         default: 0,
         unit: 'ms',
-        page: 'Modulation'
+        page: 'Modulation',
+        typeLabels: [
+          'LFO 2 Depth',
+          'LFO 2 Depth',
+          'LFO 2 Depth',
+          'LFO 2 Depth',
+          'LFO 2 Depth',
+          'LFO 2 Depth',
+          'LFO 2 Depth',
+          '',
+          'LFO 2 Depth'
+        ]
       },
       {
         id: 'lfo2Phase',
@@ -3459,7 +3585,18 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 180,
         default: 90,
         unit: '°',
-        page: 'Modulation'
+        page: 'Modulation',
+        typeLabels: [
+          'LFO 2 Phase',
+          'LFO 2 Phase',
+          'LFO 2 Phase',
+          'LFO 2 Phase',
+          'LFO 2 Phase',
+          'LFO 2 Phase',
+          'LFO 2 Phase',
+          '',
+          'LFO 2 Phase'
+        ]
       },
       {
         id: 'lfo2Target',
@@ -3469,7 +3606,18 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 2,
         default: 0,
         page: 'Modulation',
-        options: ['Both', 'Left', 'Right']
+        options: ['Both', 'Left', 'Right'],
+        typeLabels: [
+          'LFO 2 Target',
+          'LFO 2 Target',
+          'LFO 2 Target',
+          'LFO 2 Target',
+          'LFO 2 Target',
+          'LFO 2 Target',
+          'LFO 2 Target',
+          '',
+          'LFO 2 Target'
+        ]
       },
       {
         id: 'lfo3Target',
@@ -6788,7 +6936,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 4,
         unit: ':1',
         taper: 'log',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['Ratio', 'Ratio', 'Ratio', 'Ratio', '', 'Ratio', 'Ratio', 'Ratio', 'Ratio']
       },
       {
         id: 'attack',
@@ -14373,7 +14522,97 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         min: 0,
         max: 10,
         default: 5,
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: [
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          '',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble'
+        ]
       },
       {
         id: 'overdrive',

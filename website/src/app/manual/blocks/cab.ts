@@ -168,8 +168,8 @@ were cancelling.`,
     'm#solo': `Plays only the soloed slots, for checking each mic on its own.`,
 
     'm#proximity': `Adds a mic's proximity bass boost to an IR, IR Pack or Flat slot: 100 % is about +3 dB at *Proximity
-Freq*, rising toward the low end; 200 % twice that. It does nothing on a DynaCab slot, where the proximity effect is
-already modelled from the mic and its Distance.`,
+Freq*, rising toward the low end; 200 % twice that. A DynaCab slot hides it and *Proximity Freq*: there the proximity
+effect is already modelled from the mic and its Distance.`,
 
     'm#proxfreq': `Where the proximity boost reaches: higher frequencies make it sound like a closer mic.`,
 

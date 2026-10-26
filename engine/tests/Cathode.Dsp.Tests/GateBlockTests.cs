@@ -57,6 +57,23 @@ public class GateBlockTests {
     /// <summary>Exact dB to gain (Decibels.ToGain treats -80 dB and below as "off").</summary>
     static float Db(double db) => (float)Math.Pow(10, db / 20);
 
+    [Fact]
+    public void Ratio_and_knee_show_on_the_expanders_and_attenuation_on_the_gates() {
+        static string Label(string id, int type) => GateBlock.Info.Params.Single(p => p.Id == id).TypeLabels![type];
+
+        foreach (var type in (int[])[GateBlock.Expander, GateBlock.ModernExpander]) {
+            Assert.Equal("Ratio", Label("ratio", type));
+            Assert.Equal("Knee", Label("knee", type));
+            Assert.Empty(Label("attenuation", type));
+        }
+
+        foreach (var type in (int[])[GateBlock.Gate, GateBlock.ModernGate]) {
+            Assert.Empty(Label("ratio", type));
+            Assert.Empty(Label("knee", type));
+            Assert.Equal("Attenuation", Label("attenuation", type));
+        }
+    }
+
     static GateBlock Create(float threshold = -60, float ratio = 4, float holdMs = 20, float releaseMs = 100) {
         var gate = new GateBlock();
         gate.Params.SetTarget(GateBlock.Threshold, threshold);

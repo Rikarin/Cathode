@@ -28,11 +28,12 @@ compressed layer under it.`,
 
     threshold: `The level above which the compressor starts working. Lower means more of your playing is compressed. As a guide,
 a threshold that takes 3 to 6 dB off your normal picking is gentle; 10 dB or more is obvious squash. Bypass the block now
-and then to hear how much it is doing.`,
+and then to hear how much it is doing. With **Controls** on Compression it is still shown but ignored.`,
 
     ratio: `How much the level over the threshold is reduced. At 4:1, a note 8 dB over the threshold comes out only 2 dB
 over. 2:1 is gentle, 4:1 to 8:1 is a typical guitar compressor, and at the top of the range (100) it is ∞:1, a limiter.
-The Dynamics type sets its own ratio from its Dynamics knob and ignores this one.`,
+Hidden on the Dynamics type, which sets its own ratio from its Dynamics knob. With **Controls** on Compression it is
+still shown but ignored.`,
 
     attack: `How fast the compressor reacts when the level rises. Short attacks (under 2 ms) clamp down on the pick attack,
 which softens and flattens it; longer attacks (10 to 30 ms) let the pick "click" through before the compression grabs,

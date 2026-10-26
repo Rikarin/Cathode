@@ -554,6 +554,20 @@ public class DelayBlockTests {
         }
     }
 
+    [Fact]
+    public void Reverse_hides_the_time_ratio_and_the_time_lfos() {
+        static string Label(string id, int type) => DelayBlock.Info.Params.Single(p => p.Id == id).TypeLabels![type];
+        string[] hidden = [
+            "ratio", "depthRange", "lfo1Type", "lfo1Rate", "lfo1Tempo", "lfo1Depth", "lfo1Phase", "lfo1Target",
+            "lfo2Type", "lfo2Rate", "lfo2Tempo", "lfo2Depth", "lfo2Phase", "lfo2Target"
+        ];
+
+        Assert.All(hidden, id => Assert.Empty(Label(id, DelayBlock.Reverse)));
+        Assert.All(hidden.Skip(1), id => Assert.NotEmpty(Label(id, DelayBlock.Digital)));
+        Assert.Equal("L/R Time Ratio", Label("ratio", DelayBlock.PingPong));
+        Assert.Null(DelayBlock.Info.Params.Single(static p => p.Id == "lfo3Depth").TypeLabels);
+    }
+
     static DelayBlock Create(params (int Index, float Value)[] settings) {
         var delay = new DelayBlock();
         foreach (var (index, value) in settings) {

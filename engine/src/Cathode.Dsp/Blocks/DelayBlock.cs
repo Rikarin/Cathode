@@ -229,12 +229,13 @@ public sealed class DelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("mix", "Mix", 0f, 100f, 25f, "%"),
             ParamDescriptor.Float("lowcut", "Low Cut", LowCutOff, 2_000f, LowCutOff, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("highcut", "High Cut", 500f, HighCutOff, HighCutOff, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("lfo1Rate", "LFO 1 Rate", 0.05f, 10f, 0.5f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("lfo1Depth", "LFO 1 Depth", 0f, MaxDepthMs, 0f, "ms"),
+            TimeLfo(ParamDescriptor.Float("lfo1Rate", "LFO 1 Rate", 0.05f, 10f, 0.5f, "Hz", ParamTaper.Log)),
+            TimeLfo(ParamDescriptor.Float("lfo1Depth", "LFO 1 Depth", 0f, MaxDepthMs, 0f, "ms")),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
             ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("ratio", "L/R Time Ratio", 1f, 100f, 100f, "%").HiddenOn(TypeCount, Dual, MonoTape),
+            ParamDescriptor.Float("ratio", "L/R Time Ratio", 1f, 100f, 100f, "%")
+                .HiddenOn(TypeCount, Dual, MonoTape, Reverse),
             ParamDescriptor.Float("drive", "Drive", 0f, 10f, 0f),
             ParamDescriptor.Float("bitReduction", "Bit Reduction", 0f, 20f, 0f, "bits"),
             Stereo.SpreadParam("spread", "Spread"),
@@ -318,17 +319,17 @@ public sealed class DelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("eq2Frequency", "EQ 2 Freq", 50f, 10_000f, 2_000f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("eq2Q", "EQ 2 Q", 0.1f, 10f, 0.7071f, string.Empty, ParamTaper.Log),
             ParamDescriptor.Float("eq2Gain", "EQ 2 Gain", -12f, 12f, 0f, "dB"),
-            ParamDescriptor.Choice("depthRange", "LFO Depth Range", ["Low (×0.1)", "Normal", "High (×10)"], 1),
-            ParamDescriptor.Choice("lfo1Type", "LFO 1 Type", Lfo.ShapeNames),
-            ParamDescriptor.Choice("lfo1Tempo", "LFO 1 Tempo", TempoDivisions.Names),
-            ParamDescriptor.Float("lfo1Phase", "LFO 1 Phase", 0f, 180f, 0f, "°"),
-            ParamDescriptor.Choice("lfo1Target", "LFO 1 Target", ["Both", "Left", "Right"]),
-            ParamDescriptor.Choice("lfo2Type", "LFO 2 Type", Lfo.ShapeNames),
-            ParamDescriptor.Float("lfo2Rate", "LFO 2 Rate", 0.05f, 10f, 2f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Choice("lfo2Tempo", "LFO 2 Tempo", TempoDivisions.Names),
-            ParamDescriptor.Float("lfo2Depth", "LFO 2 Depth", 0f, MaxDepthMs, 0f, "ms"),
-            ParamDescriptor.Float("lfo2Phase", "LFO 2 Phase", 0f, 180f, 90f, "°"),
-            ParamDescriptor.Choice("lfo2Target", "LFO 2 Target", ["Both", "Left", "Right"]),
+            TimeLfo(ParamDescriptor.Choice("depthRange", "LFO Depth Range", ["Low (×0.1)", "Normal", "High (×10)"], 1)),
+            TimeLfo(ParamDescriptor.Choice("lfo1Type", "LFO 1 Type", Lfo.ShapeNames)),
+            TimeLfo(ParamDescriptor.Choice("lfo1Tempo", "LFO 1 Tempo", TempoDivisions.Names)),
+            TimeLfo(ParamDescriptor.Float("lfo1Phase", "LFO 1 Phase", 0f, 180f, 0f, "°")),
+            TimeLfo(ParamDescriptor.Choice("lfo1Target", "LFO 1 Target", ["Both", "Left", "Right"])),
+            TimeLfo(ParamDescriptor.Choice("lfo2Type", "LFO 2 Type", Lfo.ShapeNames)),
+            TimeLfo(ParamDescriptor.Float("lfo2Rate", "LFO 2 Rate", 0.05f, 10f, 2f, "Hz", ParamTaper.Log)),
+            TimeLfo(ParamDescriptor.Choice("lfo2Tempo", "LFO 2 Tempo", TempoDivisions.Names)),
+            TimeLfo(ParamDescriptor.Float("lfo2Depth", "LFO 2 Depth", 0f, MaxDepthMs, 0f, "ms")),
+            TimeLfo(ParamDescriptor.Float("lfo2Phase", "LFO 2 Phase", 0f, 180f, 90f, "°")),
+            TimeLfo(ParamDescriptor.Choice("lfo2Target", "LFO 2 Target", ["Both", "Left", "Right"])),
             ParamDescriptor.Choice("lfo3Target", "LFO 3 Target", ["Level", "Pan", "Spread"]),
             ParamDescriptor.Choice("lfo3Type", "LFO 3 Type", Lfo.ShapeNames),
             ParamDescriptor.Float("lfo3Rate", "LFO 3 Rate", 0.05f, 10f, 1f, "Hz", ParamTaper.Log),
@@ -390,6 +391,9 @@ public sealed class DelayBlock() : DspBlock(Info) {
         ]
     );
 
+
+    /// <summary>A control of the time LFOs (1 and 2), hidden on Reverse, whose heads read whole chunks.</summary>
+    static ParamDescriptor TimeLfo(ParamDescriptor p) => p.HiddenOn(TypeCount, Reverse);
 
     /// <summary>
     ///     The loop limiter: transparent up to full scale, then a tanh knee that never passes 2, so feedback above unity

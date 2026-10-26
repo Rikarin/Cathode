@@ -74,8 +74,8 @@ rates (0.3 to 1 Hz) give a gentle, tape-like drift; faster ones a more obvious w
 set.`,
 
     lfo1Depth: `How far LFO 1 moves the delay time, in milliseconds (times the **LFO Depth Range**). A few tenths of a
-millisecond gives a subtle chorus on the repeats; 2 to 5 ms a clear pitch wobble. 0 turns LFO 1 off. Not used by the
-Reverse type.`,
+millisecond gives a subtle chorus on the repeats; 2 to 5 ms a clear pitch wobble. 0 turns LFO 1 off. LFO 1 and 2 are
+hidden on Reverse, whose chunks are read whole.`,
 
     level: `The block's output level, wet and dry together. Use it to match the volume with the block on and off.`,
 
@@ -87,8 +87,7 @@ repeats quieter without changing the Mix law's dry level, or modulate it to send
 
     ratio: `Sets the right line's time as a percentage of the left's. At 100 % both sides repeat together. At 75 % the
 right repeats come earlier, so the echoes bounce between the speakers in an uneven pattern; small changes (90 to 98 %)
-just widen the sound. On Ping-Pong it shortens the hop to the right side. Hidden on Dual and Mono Tape, and it has no
-effect on Reverse.`,
+just widen the sound. On Ping-Pong it shortens the hop to the right side. Hidden on Dual, Mono Tape and Reverse.`,
 
     drive: `Saturates what goes into the delay line with a soft tanh curve. Light settings add warmth and keep a high
 feedback from getting harsh; higher settings make the repeats grittier the more they build up. 0 is clean. Bypassed

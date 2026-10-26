@@ -33,6 +33,7 @@ public static class AmpFeatures {
                 && panel.Control1 is not ("Overdrive" or "Drive" or "Lead Drive")
                 && panel.Control2 is not ("Overdrive" or "Drive" or "Lead Drive"),
             "cutsw" => !panel.HasSwitch("Bass Cut"),
+            "hitreble" => panel.Control1 is not "Hi Treble" && panel.Control2 is not "Hi Treble",
             _ => true
         };
     }

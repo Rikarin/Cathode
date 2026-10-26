@@ -179,6 +179,18 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
     }
 
     [Fact]
+    public void High_treble_hides_and_does_nothing_on_a_model_with_its_own() {
+        var labels = CircuitAmpBlock.Info.Params.Single(static p => p.Id == "hitreble").TypeLabels!;
+        var type = Index(JazzChorus120.Design);
+        Assert.Equal("Hi Treble", JazzChorus120.Design.Panel.Control1);
+        Assert.Equal(string.Empty, labels[type]);
+        Assert.Equal("High Treble", labels[Index(Blackface.Design)]);
+
+        var input = CircuitAmpBlockTests.Chord(9_600, 0.1f);
+        Assert.Equal(Render(type, input), Render(type, input, (CircuitAmpBlock.HighTrebleKnob, 10f)));
+    }
+
+    [Fact]
     public void Fat_and_presence_shift_are_audible() {
         var type = Index(Plexi.Design);
         var input = CircuitAmpBlockTests.Chord(9_600, 0.1f);

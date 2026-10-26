@@ -173,7 +173,8 @@ public sealed class CompressorBlock() : DspBlock(Info), ISideInputBlock {
                 ["Pedal", "Studio", "Opto", "Sustainer", "Dynamics", "Feedback", "JFET", "Tube", "Compander"]
             ),
             ParamDescriptor.Float("threshold", "Threshold", -60f, 0f, -20f, "dB"),
-            ParamDescriptor.Float("ratio", "Ratio", 1f, InfiniteRatio, 4f, ":1", ParamTaper.Log),
+            ParamDescriptor.Float("ratio", "Ratio", 1f, InfiniteRatio, 4f, ":1", ParamTaper.Log)
+                .HiddenOn(TypeCount, DynamicsProcessor),
             ParamDescriptor.Float("attack", "Attack", 0.1f, 100f, 5f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("release", "Release", 10f, 2_000f, 150f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("knee", "Knee", 0f, 24f, 6f, "dB"),

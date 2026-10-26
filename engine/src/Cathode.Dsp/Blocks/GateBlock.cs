@@ -45,6 +45,8 @@ public sealed class GateBlock() : DspBlock(Info), ISideInputBlock {
     public const int Peak = 0;
     public const int Rms = 1;
 
+    const int TypeCount = 4;
+
     /// <summary>How far below the threshold a Modern type closes, in dB.</summary>
     public const float HysteresisDb = 6f;
 
@@ -74,20 +76,21 @@ public sealed class GateBlock() : DspBlock(Info), ISideInputBlock {
         "Dynamics",
         [
             ParamDescriptor.Float("threshold", "Threshold", -100f, 0f, -60f, "dB"),
-            ParamDescriptor.Float("ratio", "Ratio", 1f, 20f, 4f, ":1", ParamTaper.Log),
+            ParamDescriptor.Float("ratio", "Ratio", 1f, 20f, 4f, ":1", ParamTaper.Log)
+                .ShownOn(TypeCount, Expander, ModernExpander),
             ParamDescriptor.Float("attack", "Attack", 0.05f, 50f, 0.5f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("hold", "Hold", 0f, 500f, 20f, "ms"),
             ParamDescriptor.Float("release", "Release", 5f, 2_000f, 100f, "ms", ParamTaper.Log),
             ParamDescriptor.Choice("type", "Type", ["Expander", "Gate", "Modern Expander", "Modern Gate"]),
-            ParamDescriptor.Float("attenuation", "Attenuation", 0f, 100f, 60f, "dB"),
+            ParamDescriptor.Float("attenuation", "Attenuation", 0f, 100f, 60f, "dB")
+                .ShownOn(TypeCount, Gate, ModernGate),
             WetCuts.LowCutParam("scLowCut", "Sidechain Low Cut"),
             WetCuts.HighCutParam("scHighCut", "Sidechain High Cut"),
             ParamDescriptor.Choice("detector", "Detector", ["Peak", "RMS"]),
             ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
-            ParamDescriptor.Choice("knee", "Knee", ["Hard", "Soft", "Softer"]) with {
-                TypeLabels = ["Knee", string.Empty, "Knee", string.Empty]
-            },
+            ParamDescriptor.Choice("knee", "Knee", ["Hard", "Soft", "Softer"])
+                .ShownOn(TypeCount, Expander, ModernExpander),
             SidechainSource.Param()
         ],
         maxInstances: 4,

@@ -1,6 +1,7 @@
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Filters;
 using Cathode.Dsp.Modulation;
+using Cathode.Dsp.Parameters;
 using Cathode.Dsp.Pitch;
 using Cathode.Testing;
 using static Cathode.Dsp.Tests.PitchBlockTests;
@@ -225,6 +226,20 @@ public class ModulationParityTests {
             .ToArray();
         Assert.True(magnitudes.Max() > 3, $"max {magnitudes.Max()}");
         Assert.True(Analysis.AllFinite(response));
+    }
+
+    [Fact]
+    public void Comb_and_all_pass_controls_show_only_on_their_types_and_depth_sits_on_basic() {
+        static ParamDescriptor Param(string id) => FilterBlock.Info.Params.Single(p => p.Id == id);
+
+        for (var type = 0; type < Param("type").Options!.Count; type++) {
+            var comb = type is FilterBlock.FeedForwardComb or FilterBlock.FeedbackComb;
+            Assert.Equal(comb, Param("depth").TypeLabels![type] != string.Empty);
+            Assert.Equal(comb, Param("combTime").TypeLabels![type] != string.Empty);
+            Assert.Equal(type == FilterBlock.AllPass, Param("feedback").TypeLabels![type] != string.Empty);
+        }
+
+        Assert.Equal("Basic", Param("depth").Page);
     }
 
     [Fact]

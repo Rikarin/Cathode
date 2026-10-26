@@ -191,7 +191,7 @@ down gives the classic Mark "V" curve.`,
 
     hitreble: `A high-treble shelf at 3 kHz between the preamp and the power amp, ±12 dB across the knob; 5 is flat
 (and the shelf is then switched out). Use it to add sparkle or take fizz off the preamp's distortion before it hits
-the power amp, which a cab-block EQ after the amp cannot do.`,
+the power amp, which a cab-block EQ after the amp cannot do. Hidden on the JC-120, which has its own *Hi Treble*.`,
 
     overdrive: `An extra gain stage's worth of drive for models that have no drive knob of their own: up to 20 dB more
 swing into the last gain stage at 10; 0 is off. It turns a crunch amp into a lead amp without changing the tone stack,

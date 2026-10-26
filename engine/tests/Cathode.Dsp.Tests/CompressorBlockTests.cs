@@ -93,6 +93,15 @@ public class CompressorBlockTests {
         Assert.Equal(Render(false), Render(true));
     }
 
+    [Fact]
+    public void Ratio_is_hidden_on_the_dynamics_type_whose_dynamics_knob_sets_it() {
+        var labels = CompressorBlock.Info.Params[CompressorBlock.Ratio].TypeLabels!;
+
+        for (var type = 0; type < CompressorBlock.TypeCount; type++) {
+            Assert.Equal(type == CompressorBlock.DynamicsProcessor ? string.Empty : "Ratio", labels[type]);
+        }
+    }
+
     static float Db(double db) => (float)Math.Pow(10, db / 20);
 
     static CompressorBlock Create(

@@ -30,7 +30,7 @@ expander starts turning down). Too high and it cuts sustain and soft notes; too 
 
     ratio: `Expander types only: how fast the level falls below the threshold. With a ratio of 4, every dB the input drops
 below the threshold takes 3 dB more off. Low ratios (1.5 to 3) are a gentle noise reducer; high ratios behave almost
-like a gate. The Gate types ignore it.`,
+like a gate. Hidden on the Gate types.`,
 
     attack: `How fast the gate opens when you play. Very short times (under 1 ms) let pick attacks through intact; longer
 times soften them into a fade-in.`,
@@ -45,8 +45,8 @@ depth.`,
     type: `**Expander** and **Gate**, and their **Modern** versions. See the list below.`,
 
     attenuation: `Gate types only: how far the gate turns the signal down when closed, in dB. 100 dB is effectively
-silence; 20 to 40 dB takes the noise down without the sudden, unnatural silence of a full gate. The expander types ignore
-it: their depth is set by Ratio (down to −100 dB at most).`,
+silence; 20 to 40 dB takes the noise down without the sudden, unnatural silence of a full gate. Hidden on the expander
+types: their depth is set by Ratio (down to −100 dB at most).`,
 
     scLowCut: `Sidechain page: a high-pass on what the detector hears (20 Hz is off). Raise it so low-string thumps or hum
 do not hold the gate open.`,

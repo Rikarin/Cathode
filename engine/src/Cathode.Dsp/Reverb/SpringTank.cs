@@ -17,6 +17,11 @@ namespace Cathode.Dsp.Reverb;
 ///         mean group delay. The paper's separate high-chirp branch is not modelled.
 ///     </para>
 ///     <para>
+///         Damping (the block's High Cut) is a one-pole low-pass in each spring's feedback, as in the other tanks: a
+///         spring's losses grow with frequency, so the highs of the tail die away faster than its lows while the first
+///         chirp keeps its full band. It has unity gain at DC, so the decay time is unchanged.
+///     </para>
+///     <para>
 ///         Tone moves the springs' low-pass an octave either way of its natural 4.1 kHz. Drive saturates what enters
 ///         the springs (tanh, unity for small signals). Boing makes the tank react to attacks as a kicked spring does: a
 ///         fast peak envelope against a slow average detects transients and drives the springs up to 5× harder while they
@@ -75,10 +80,14 @@ sealed class SpringTank : IDisposable {
         }
     }
 
-    /// <summary>Once per block: decay time in seconds and the spring length scale.</summary>
-    public void Configure(float decaySeconds, float sizeScale) {
+    /// <summary>
+    ///     Once per block: decay time in seconds, the spring length scale and the damping low-pass's corner in Hz.
+    /// </summary>
+    public void Configure(float decaySeconds, float sizeScale, float dampingHz) {
+        // The one-pole coefficient that puts its -3 dB point near the chosen frequency, as in the network.
+        var damp = MathF.Exp(-2f * MathF.PI * dampingHz / (float)rate);
         for (var s = 0; s < count; s++) {
-            springs[s].Configure(Dispersion[s], (int)(LoopMs[s] * sizeScale * 0.001 * rate), decaySeconds, rate);
+            springs[s].Configure(Dispersion[s], (int)(LoopMs[s] * sizeScale * 0.001 * rate), decaySeconds, damp, rate);
         }
     }
 
@@ -163,6 +172,8 @@ sealed class SpringTank : IDisposable {
         int loopLength = 1;
         float a;
         float feedback;
+        float damp;
+        float damped;
 
         public void Allocate(int stretch, int maxLoop) {
             this.stretch = stretch;
@@ -179,6 +190,7 @@ sealed class SpringTank : IDisposable {
             outputs.Clear();
             loop.Clear();
             filter.Reset();
+            damped = 0;
             position = 0;
         }
 
@@ -188,9 +200,14 @@ sealed class SpringTank : IDisposable {
             loop.Dispose();
         }
 
-        public void Configure(float dispersion, int length, float decaySeconds, double rate) {
+        public void Configure(float dispersion, int length, float decaySeconds, float damping, double rate) {
             filter.FlushDenormals();
+            if (MathF.Abs(damped) < 1e-20f) {
+                damped = 0;
+            }
+
             a = dispersion;
+            damp = damping;
             loopLength = Math.Clamp(length, 1, loop.Length - 1);
 
             // Mean group delay of the cascade across the passband, between its DC and cut-off values.
@@ -218,7 +235,8 @@ sealed class SpringTank : IDisposable {
             }
 
             var output = (float)filter.Tick(lowPass, v);
-            loop.Write(output);
+            damped = output + (damped - output) * damp;
+            loop.Write(damped);
             return output;
         }
     }

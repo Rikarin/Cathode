@@ -615,7 +615,7 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
         }
 
         highTreble.Design(Params.Advance(HighTrebleKnob, length) / 10.0, innerRate);
-        var treble = highTreble.IsActive;
+        var treble = highTreble.IsActive && features.HighTreble;
         if (!treble) {
             highTreble.Reset();
         }
@@ -1069,13 +1069,21 @@ public sealed class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower,
 }
 
 /// <summary>Which of the Circuit Amp's generic advanced controls a model takes (<see cref="AmpFeatures.Has" />).</summary>
-readonly record struct AdvancedFeatures(bool PostMaster, bool Fat, bool PresenceShift, bool InputCut, bool Overdrive) {
+readonly record struct AdvancedFeatures(
+    bool PostMaster,
+    bool Fat,
+    bool PresenceShift,
+    bool InputCut,
+    bool Overdrive,
+    bool HighTreble
+) {
     public static AdvancedFeatures Of(AmpDesign design) =>
         new(
             AmpFeatures.Has(design, "mvloc"),
             AmpFeatures.Has(design, "fatsw"),
             AmpFeatures.Has(design, "presshift"),
             AmpFeatures.Has(design, "cutsw"),
-            AmpFeatures.Has(design, "overdrive")
+            AmpFeatures.Has(design, "overdrive"),
+            AmpFeatures.Has(design, "hitreble")
         );
 }

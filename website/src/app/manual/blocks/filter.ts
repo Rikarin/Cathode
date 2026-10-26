@@ -58,9 +58,9 @@ two paths, or for wide, phasey stereo tricks.`,
 gives 1 kHz, 2 kHz, 3 kHz and so on. Short times sound metallic and flanger-like; longer times are more like a very
 short slapback.`,
 
-    depth: `Modulation page, but it is the comb types' amount: how much of the delayed signal is added. Positive and negative
+    depth: `FF Comb and FB Comb only: the comb's amount, how much of the delayed signal is added. Positive and negative
 values put the peaks and notches in opposite places. On FB Comb it is the feedback, limited to ±98 %, so high values
-ring. The LFO does not use it: the sweep always runs the full way between Frequency and Mod Frequency.`,
+ring. It is not an LFO depth: the sweep always runs the full way between Frequency and Mod Frequency.`,
 
     lfoOn: `Modulation page: switches the built-in LFO on. It sweeps the filter's frequency between Frequency and Mod
 Frequency (spaced logarithmically, so the sweep sounds even). It does not move the comb types.`,

@@ -94,6 +94,33 @@ public class ReverbBlockTests {
     }
 
     [Fact]
+    public void Spring_damping_shortens_the_high_frequency_decay_but_not_the_first_chirp() {
+        using var bright = Create(
+            (ReverbBlock.Type, ReverbBlock.Spring),
+            (ReverbBlock.Damping, 20_000f),
+            (ReverbBlock.Mix, 100f)
+        );
+        using var dark = Create(
+            (ReverbBlock.Type, ReverbBlock.Spring),
+            (ReverbBlock.Damping, 2_000f),
+            (ReverbBlock.Mix, 100f)
+        );
+        var impulse = Signals.Impulse(48_000);
+
+        var brightOut = BlockRender.Mono(bright, impulse, 64);
+        var darkOut = BlockRender.Mono(dark, impulse, 64);
+
+        // The first pass through the springs (the shortest loop is about 50 ms with the cascade) is not damped.
+        Assert.Equal(brightOut[..1_200], darkOut[..1_200]);
+        var hf = Analysis.MagnitudeAt(brightOut.AsSpan(24_000), 3_000, 48_000);
+        var hfDark = Analysis.MagnitudeAt(darkOut.AsSpan(24_000), 3_000, 48_000);
+        var lf = Analysis.MagnitudeAt(brightOut.AsSpan(24_000), 300, 48_000);
+        var lfDark = Analysis.MagnitudeAt(darkOut.AsSpan(24_000), 300, 48_000);
+        Assert.True(hfDark < hf * 0.1, $"3 kHz tail: bright {hf:E2}, dark {hfDark:E2}");
+        Assert.True(lfDark > lf * 0.5, $"300 Hz tail: bright {lf:E2}, dark {lfDark:E2}");
+    }
+
+    [Fact]
     public void Left_and_right_are_decorrelated() {
         using var reverb = Create((ReverbBlock.Mix, 100f));
 

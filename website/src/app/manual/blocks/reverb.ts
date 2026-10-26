@@ -42,7 +42,9 @@ slap followed by the reverb.`,
 
     damping: `How fast the high frequencies die away in the tail. It's a filter inside the reverb's loops, so the tail
 gets darker the longer it rings, the way sound behaves in a real room. 4 to 6 kHz suits most guitar tones; lower gives a
-warm, distant sound; higher a bright, airy one. On Spring it has no effect (use **Spring Tone**).`,
+warm, distant sound; higher a bright, airy one. On Spring it damps each pass around the springs, so the drip keeps
+its bite while the highs of the tail die away faster than the lows, as a real tank's do; **Spring Tone** sets how bright
+the springs are to begin with.`,
 
     lowcut: `A high-pass (12 dB/oct) on the reverb's output. It removes the low end from the wet only, so the reverb
 doesn't muddy your low notes or the bass player. 100 to 200 Hz is common; up to 400 Hz for a thin, airy reverb behind
@@ -219,7 +221,7 @@ clean arpeggios and stays clear in a mix.`,
       'Dattorro Plate': `Jon Dattorro's published plate algorithm, with its own built-in modulation. Smooth, lush and
 slightly chorused; a different flavour of plate. The modulation, decay-band and diffusion controls aren't used.`,
       Spring: `A tank of one to six springs, with the characteristic drip, chirp and boing of a guitar amp's reverb. Surf,
-rockabilly, blues and country. Has its own Spring page; no early reflections, and High Cut has no effect.`,
+rockabilly, blues and country. Has its own Spring page and no early reflections; High Cut damps the springs' tail.`,
       Chamber: `An echo chamber: between a room and a hall, warm and dense. A natural, slightly vintage studio sound.`,
       Cathedral: `A huge, stone space with long reflections and a slow build. Use with long decays for ambient and
 worship-style swells.`,
