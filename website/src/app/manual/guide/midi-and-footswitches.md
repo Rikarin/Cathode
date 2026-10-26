@@ -99,9 +99,11 @@ An expression pedal plugged into a MIDI controller sends a CC whose value follow
 
 ### Learn MIDI controller on a knob
 
-Right-click a knob and choose **Learn MIDI controller**. Cathode gives the knob a modifier from the first External the current preset does not use yet, over the knob's whole range, and asks you to move a pedal or knob on your controller. That CC is then mapped to the External, globally.
+Right-click a knob and choose **Learn MIDI controller**. Cathode gives the knob a modifier from the first free External, over the knob's whole range, and asks you to move a pedal or knob on your controller. That CC is then mapped to the External, globally.
 
-> **Warning:** Because Learn MIDI controller picks the first External that is free in the current preset, two presets can end up using the same External for different pedals, and both pedals then move it. If you use several pedals, plan your Externals (External 1 is pedal 1, External 2 is pedal 2…) and map them on the Global page instead.
+An External is free when no mapping or footswitch on the Global page drives it and the current preset does not use it. Mappings are global, so an External learned in another preset is taken: each pedal you learn gets an External of its own. When all eight are taken, Cathode says so and changes nothing.
+
+> **Tip:** To make a knob follow a pedal that is already mapped (your main expression pedal on External 1, say), don't learn it again: choose **Add modifier…** and pick that External as the source.
 
 ## Footswitch layouts
 

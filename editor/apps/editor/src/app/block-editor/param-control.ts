@@ -1,5 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
-import type { ParameterInfo, PresetBlock } from '@cathode/api-client';
+import type {
+  FootswitchOverride,
+  GlobalSettings,
+  ParameterInfo,
+  PresetBlock,
+  PresetModifier,
+  SwitchAction
+} from '@cathode/api-client';
 import { CthKnob, CthToggle } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import {
@@ -216,12 +223,21 @@ export class ParamControl {
 
   /**
    * MIDI learn for a knob, the Axe-Fx way: drive it from a free External controller over its whole range, and bind
-   * the next CC moved to that controller.
+   * the next CC moved to that controller. Free means no global mapping or footswitch drives it and no modifier of this
+   * preset uses it: mappings are global, so an External another preset learned may already follow another pedal.
    */
   protected async learn(): Promise<void> {
-    const used = new Set((this.live.preset()?.modifiers ?? []).map(m => m.source));
-    const n = [1, 2, 3, 4, 5, 6, 7, 8].find(i => !used.has(`ext${i}`)) ?? 1;
+    const preset = this.live.preset();
+    const n = freeExternal(this.globals.settings(), preset?.modifiers ?? [], preset?.footswitchOverrides ?? []);
     const p = this.param();
+    if (n === null) {
+      this.notify.error(
+        'All eight Externals are in use. Remove an External mapping on the Global page, ' +
+          'or give this knob a modifier from an External that is already mapped.'
+      );
+      return;
+    }
+
     const added = await this.live.putModifier(this.block().id, p.id, {
       block: this.block().id,
       param: p.id,
@@ -247,4 +263,25 @@ export class ParamControl {
     this.live.setParam(block.id, this.live.channelOf(block.id), this.param().id, value);
     this.edited.emit(value);
   }
+}
+
+/**
+ * The first External (1-8) nothing drives or uses yet, or null: not a global MIDI mapping or footswitch action
+ * (`external n`), not a footswitch action of the preset, and not a modifier source of the preset.
+ */
+export function freeExternal(
+  settings: Pick<GlobalSettings, 'midiMappings' | 'footswitches'> | null,
+  modifiers: readonly Pick<PresetModifier, 'source'>[],
+  overrides: readonly FootswitchOverride[]
+): number | null {
+  const actions: (SwitchAction | null | undefined)[] = [
+    ...(settings?.midiMappings ?? []),
+    ...(settings?.footswitches ?? []).flatMap(l => l.switches.flatMap(s => [s.tap, s.hold])),
+    ...overrides.flatMap(o => [o.tap, o.hold])
+  ];
+  const used = new Set([
+    ...modifiers.map(m => m.source),
+    ...actions.filter(a => a?.action === 'external').map(a => `ext${a!.value ?? 1}`)
+  ]);
+  return [1, 2, 3, 4, 5, 6, 7, 8].find(i => !used.has(`ext${i}`)) ?? null;
 }
