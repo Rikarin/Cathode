@@ -18,12 +18,11 @@ public static class RigControls {
     public const int Stereo = 0;
     public const int SumLeftRight = 1;
     public const int CopyLeftToRight = 2;
-    public const int DualMono = 3;
 
     public static readonly ImmutableArray<string> LfoShapes = Dsp.Modulation.Lfo.ShapeNames;
 
     /// <summary>Output Mode choices (<c>out1Mode</c>..<c>out4Mode</c>).</summary>
-    public static readonly ImmutableArray<string> OutputModes = ["Stereo", "Sum L+R", "Copy L>R", "Dual Mono"];
+    public static readonly ImmutableArray<string> OutputModes = ["Stereo", "Sum L+R", "Copy L>R"];
 
     /// <summary>Tempo divisions for synced controllers; "Off" uses the rate in Hz.</summary>
     public static readonly ImmutableArray<string> Divisions = TempoDivisions.Names;

@@ -100,7 +100,7 @@ public sealed class GlobalSettings {
 
 /// <summary>One of Outputs 1-4.</summary>
 public sealed class OutputSettings {
-    /// <summary><c>stereo</c>, <c>sum</c> (L+R on both), <c>copyLR</c> (left on the right too) or <c>dualMono</c>.</summary>
+    /// <summary><c>stereo</c>, <c>sum</c> (L+R on both) or <c>copyLR</c> (left on the right too).</summary>
     public string Mode { get; set; } = "stereo";
 
     /// <summary>Level trim after the EQ, −18 to +18 dB.</summary>

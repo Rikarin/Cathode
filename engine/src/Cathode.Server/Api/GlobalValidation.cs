@@ -10,7 +10,7 @@ static class GlobalValidation {
     static readonly string[] Messages = ["cc", "note", "pc"];
 
     /// <summary>The output modes, in the order of the engine's Output Mode choice.</summary>
-    public static readonly ImmutableArray<string> OutputModes = ["stereo", "sum", "copyLR", "dualMono"];
+    public static readonly ImmutableArray<string> OutputModes = ["stereo", "sum", "copyLR"];
 
     public static readonly ImmutableArray<string> Oversampling = ["minimum", "linear"];
 
@@ -44,7 +44,7 @@ static class GlobalValidation {
 
         foreach (var (output, n) in settings.Outputs.Select(static (o, i) => (o, i + 1))) {
             if (!OutputModes.Contains(output.Mode)) {
-                errors.Add($"Output {n}: mode '{output.Mode}' is not stereo, sum, copyLR or dualMono.");
+                errors.Add($"Output {n}: mode '{output.Mode}' is not stereo, sum or copyLR.");
             }
 
             if (output.BoostPad is < -18f or > 18f || !float.IsFinite(output.BoostPad)) {

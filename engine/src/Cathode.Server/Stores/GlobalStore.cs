@@ -44,11 +44,27 @@ public sealed class GlobalStore {
     GlobalSettings? Read() {
         try {
             return File.Exists(path)
-                ? JsonSerializer.Deserialize(File.ReadAllText(path), ContractsJsonContext.Default.GlobalSettings)
+                ? Upgrade(
+                    JsonSerializer.Deserialize(File.ReadAllText(path), ContractsJsonContext.Default.GlobalSettings)
+                )
                 : null;
         } catch (JsonException) {
             return null; // a damaged file falls back to defaults rather than stopping the Server
         }
+    }
+
+    /// <summary>
+    ///     Settings saved by an earlier Cathode, brought up to date: the output mode <c>dualMono</c> (up to
+    ///     1.0.0-rc.3) did what <c>copyLR</c> does and is now that.
+    /// </summary>
+    public static GlobalSettings? Upgrade(GlobalSettings? settings) {
+        foreach (var output in settings?.Outputs ?? []) {
+            if (output.Mode == "dualMono") {
+                output.Mode = "copyLR";
+            }
+        }
+
+        return settings;
     }
 
     static GlobalSettings Copy(GlobalSettings value) =>

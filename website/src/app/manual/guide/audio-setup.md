@@ -155,7 +155,7 @@ Watch the **OUT** meter in the navigation bar. If its label turns into **CLIP**,
 
 On the **Global** page, under **Outputs**, each of Outputs 1 to 4 has settings that apply to every preset:
 
-- **Mode:** **Stereo**; **Sum L+R** (both sides carry the mono sum, for a single speaker or a mono PA channel); **Copy L→R** (the left side on both); **Dual Mono** (in this version it does the same as Copy L→R).
+- **Mode:** **Stereo**; **Sum L+R** (both sides carry the mono sum, for a single speaker or a mono PA channel); **Copy L→R** (the left side on both; earlier versions also listed a Dual Mono that did the same, and settings that chose it now show Copy L→R).
 - **Boost/Pad:** −18 to +18 dB, to match the output to what it feeds.
 - **Global EQ:** a ten-band graphic EQ per output, to correct a room or a speaker without editing presets.
 - **Copy Output 1 to 2:** in presets without an Output 2 block, Output 2 plays Output 1's signal (taken before Output 1's EQ and Boost/Pad), so each can have its own EQ and level. Useful for a front-of-house feed and a stage monitor.

@@ -685,8 +685,7 @@ export class GlobalPage {
   protected readonly modeOptions: { label: string; value: (typeof OutputModes)[number] }[] = [
     { label: 'Stereo', value: 'stereo' },
     { label: 'Sum L+R', value: 'sum' },
-    { label: 'Copy L→R', value: 'copyLR' },
-    { label: 'Dual Mono', value: 'dualMono' }
+    { label: 'Copy L→R', value: 'copyLR' }
   ];
   protected readonly oversamplingOptions: { label: string; value: (typeof OversamplingModes)[number] }[] = [
     { label: 'Minimum phase', value: 'minimum' },

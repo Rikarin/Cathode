@@ -193,7 +193,7 @@ Ten overdrives from the guide's Drive list (pp. 37–38), appended after the ear
 |---|---|---|---|---|
 | IO1 | Output 2–4 blocks on the grid, each mapped to device output channels | ◐ | AudioIoTests.Outputs_2_to_4_play_on_their_mapped_pairs…; Without_a_bus_or_a_mapping_only_output_1_is_rendered; AudioIoApiTests.Output_2_is_a_grid_output… | tested through the offline renderer, never on a multi-output interface |
 | IO2 | Copy Output 1 → Output 2 setting; an Output block on the grid overrides it | ✅ | Copy_output_1_to_2_plays_output_1_unless_the_grid_has_an_output_2 |  |
-| IO3 | Per-output mode: Stereo / Sum L+R / Copy L→R / Dual Mono | ✅ | Output_modes_sum_or_copy_the_channels | Copy L→R and Dual Mono render the same (both left on both sides) |
+| IO3 | Per-output mode: Stereo / Sum L+R / Copy L→R | ✅ | Output_modes_sum_or_copy_the_channels | Dual Mono rendered as Copy L→R and was removed after 1.0.0-rc.3 (stored settings migrate to Copy L→R) |
 | IO4 | Per-output global EQ and level trim (Boost/Pad) | ✅ | Each_output_has_its_own_global_eq_and_boost_pad | `GlobalSettings.outputs[k].eq` replaces the top-level `eq` |
 | IO5 | Input calibration: full-scale volts or dBu per input, so amp gain doesn't depend on the interface gain | ✅ | Calibrating_the_input_keeps_the_amps_drive_when_the_interface_gain_changes (null below −60 dB) | Dynamic Distortion clips in full-scale units and is not scaled; per-source calibration for inputs 2–4 not yet |
 | IO6 | Input clip warning (within 0.5 dB of full scale) and a global Input 1 Gain trim for all presets | ✅ | Input_1_gain_feeds_the_grid…; clip spec | input clip shows as a CLIP badge in the meter caption |

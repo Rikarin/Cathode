@@ -132,7 +132,7 @@ export const BuiltInTypes = {
 export const OutputTypes: readonly string[] = ['output', 'output2', 'output3', 'output4'];
 
 /** Output modes, as the global settings store them (GlobalValidation.OutputModes on the Server). */
-export const OutputModes = ['stereo', 'sum', 'copyLR', 'dualMono'] as const;
+export const OutputModes = ['stereo', 'sum', 'copyLR'] as const;
 
 /** The global oversampling filters. */
 export const OversamplingModes = ['minimum', 'linear'] as const;

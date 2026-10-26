@@ -5072,7 +5072,7 @@
         "properties": {
           "mode": {
             "type": "string",
-            "description": "\u0060stereo\u0060, \u0060sum\u0060 (L\u002BR on both), \u0060copyLR\u0060 (left on the right too) or \u0060dualMono\u0060."
+            "description": "\u0060stereo\u0060, \u0060sum\u0060 (L\u002BR on both) or \u0060copyLR\u0060 (left on the right too)."
           },
           "boostPad": {
             "type": "number",

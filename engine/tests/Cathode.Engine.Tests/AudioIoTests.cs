@@ -64,7 +64,6 @@ public class AudioIoTests {
     [InlineData(RigControls.Stereo)]
     [InlineData(RigControls.SumLeftRight)]
     [InlineData(RigControls.CopyLeftToRight)]
-    [InlineData(RigControls.DualMono)]
     public void Output_modes_sum_or_copy_the_channels(int mode) {
         using var engine = Engine(Chain("volpan"));
         Set(engine, "out1Mode", mode);
@@ -75,7 +74,7 @@ public class AudioIoTests {
 
         var (expectLeft, expectRight) = mode switch {
             RigControls.SumLeftRight => (Sum(left, right), Sum(left, right)),
-            RigControls.CopyLeftToRight or RigControls.DualMono => (left, left),
+            RigControls.CopyLeftToRight => (left, left),
             _ => (left, right)
         };
         Assert.Equal(expectLeft, outLeft, new Near(1e-6f));

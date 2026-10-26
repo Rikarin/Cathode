@@ -2255,7 +2255,7 @@ export interface components {
     };
     /** @description One of Outputs 1-4. */
     OutputSettings: {
-      /** @description `stereo`, `sum` (L+R on both), `copyLR` (left on the right too) or `dualMono`. */
+      /** @description `stereo`, `sum` (L+R on both) or `copyLR` (left on the right too). */
       mode: string;
       /**
        * Format: float

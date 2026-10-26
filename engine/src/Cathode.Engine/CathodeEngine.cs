@@ -546,7 +546,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                 }
 
                 break;
-            case RigControls.CopyLeftToRight or RigControls.DualMono:
+            case RigControls.CopyLeftToRight:
                 left.CopyTo(right);
                 break;
         }
