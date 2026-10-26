@@ -30,7 +30,17 @@ import { CatalogStore } from '../state/catalog.store';
 import { GlobalStore } from '../state/global.store';
 import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
-import { addView, overrideOf, removeView, viewNames, withOverride } from './footswitches';
+import {
+  actionText,
+  addView,
+  overrideOf,
+  parseAction,
+  removeView,
+  shownValue,
+  storedValue,
+  viewNames,
+  withOverride
+} from './footswitches';
 
 const Messages = ['cc', 'note', 'pc'];
 
@@ -339,7 +349,7 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                 >
                 <xui-td>{{ mapping.action }}</xui-td>
                 <xui-td>{{ mapping.target ?? '' }}</xui-td>
-                <xui-td>{{ mapping.value ?? '' }}</xui-td>
+                <xui-td>{{ shownValue(mapping.action, mapping.value) ?? '' }}</xui-td>
                 <xui-td>
                   <button
                     xuiButton
@@ -522,7 +532,7 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                       xuiInput
                       size="sm"
                       class="w-full"
-                      placeholder="scene 2"
+                      placeholder="scene 1"
                       [attr.aria-label]="'Switch ' + fs.index + ' tap action'"
                       [value]="actionText(fs.tap)"
                       (change)="
@@ -594,11 +604,11 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
               </button>
             </div>
             <xui-callout minimal compact color="primary">
-              Actions are written as "action target value": scene 2, sceneNext, bypass delay1, channel amp1 1, looper
-              record, tap, tuner, metronome, mute, presetNext, viewNext, layout &lt;id&gt;. A switch with a hold action acts
-              on release; hold it for half a second for the hold action. A switch can also jump to another layout after
-              its action, and the loaded preset can give it an action of its own (In this preset), saved with the
-              preset.
+              Actions are written as "action target value": scene 1, sceneNext, bypass delay1, channel amp1 2 (channel
+              B), looper record, tap, tuner, metronome, mute, presetNext, viewNext, layout &lt;id&gt;. Scenes, channels,
+              Manuals, views and Externals count from 1. A switch with a hold action acts on release; hold it for half a
+              second for the hold action. A switch can also jump to another layout after its action, and the loaded
+              preset can give it an action of its own (In this preset), saved with the preset.
             </xui-callout>
           }
         </section>
@@ -615,6 +625,7 @@ export class GlobalPage {
 
   protected readonly settings = this.globals.settings;
   protected readonly addView = addView;
+  protected readonly shownValue = shownValue;
   /** The view of the active layout being edited. */
   protected readonly editingView = signal(0);
   protected readonly views = computed(() => {
@@ -725,7 +736,7 @@ export class GlobalPage {
         body: {
           action: this.learnAction(),
           target: this.learnTarget().trim() || null,
-          value: value === '' ? null : Number(value)
+          value: storedValue(this.learnAction(), value === '' ? null : Number(value))
         }
       });
       this.learning.set(true);
@@ -811,17 +822,10 @@ export class GlobalPage {
   }
 
   protected actionText(action: SwitchAction): string {
-    return [action.action, action.target, action.value].filter(p => p !== null && p !== undefined).join(' ');
+    return actionText(action);
   }
 
-  /** "bypass delay1" → { action: bypass, target: delay1 }; a trailing number is the value; empty → null. */
   protected parseAction(text: string): SwitchAction | null {
-    const parts = text.trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0 || !(MidiActions as readonly string[]).includes(parts[0])) {
-      return null;
-    }
-
-    const last = parts.length > 1 && /^\d+$/.test(parts[parts.length - 1]) ? Number(parts.pop()) : null;
-    return { action: parts[0], target: parts[1] ?? null, value: last };
+    return parseAction(text, MidiActions);
   }
 }

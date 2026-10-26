@@ -47,28 +47,28 @@ A new mapping replaces any old mapping of the same message on the same channel.
 
 ### Actions
 
-| Action                           | Target                                                                         | Value                            | What it does                                                                                                                       |
-| -------------------------------- | ------------------------------------------------------------------------------ | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `scene`                          |                                                                                | Scene, **0 to 7** (0 is Scene 1) | Selects the scene. Without a value, a CC's value picks the scene (0 to 7), and a value above 63 steps to the next scene.           |
-| `sceneNext`, `scenePrevious`     |                                                                                |                                  | Steps through the eight scenes, wrapping around.                                                                                   |
-| `presetSlot`                     | A bank id                                                                      |                                  | Mapped to a PC: any program change loads that slot of the bank. PC 0 is slot 1, PC 1 is slot 2, and so on.                         |
-| `presetNext`, `presetPrevious`   |                                                                                |                                  | Loads the next or previous preset, in alphabetical order of all presets.                                                           |
-| `bypass`                         | A block id                                                                     |                                  | Toggles the block on a press. From a CC, values of 64 and up engage it and lower values bypass it.                                 |
-| `channel`                        | A block id                                                                     | Channel, **0 to 3** (0 is A)     | Switches the block to that channel.                                                                                                |
-| `external`                       |                                                                                | External, **1 to 8**             | The CC's value drives External 1 to 8, a modifier source. See [Expression pedals](#expression-pedals).                             |
-| `manual`                         |                                                                                | Manual, **0 to 3** (0 is A)      | The CC's value sets Manual A to D.                                                                                                 |
-| `tap`                            |                                                                                |                                  | Taps the tempo.                                                                                                                    |
-| `tuner`                          |                                                                                |                                  | Turns the tuner on and off. From a CC, 64 and up is on.                                                                            |
-| `metronome`                      |                                                                                |                                  | Turns the metronome on and off. From a CC, 64 and up is on.                                                                        |
-| `mute`                           |                                                                                |                                  | Mutes or unmutes every output. From a CC, 64 and up mutes.                                                                         |
-| `looper`                         | `record`, `play`, `stop`, `overdub`, `undo`, `reverse`, `halfSpeed` or `clear` |                                  | Runs the looper.                                                                                                                   |
-| `sceneLevelUp`, `sceneLevelDown` |                                                                                |                                  | Raises or lowers the active scene's level by 1 dB and saves the preset.                                                            |
-| `save`                           |                                                                                |                                  | Saves the working copy.                                                                                                            |
-| `layout`                         | A footswitch layout id                                                         |                                  | Makes that footswitch layout active. The editor does not show layout ids; on a footswitch, use its **Then layout** column instead. |
-| `view`                           |                                                                                | View, **0** for the first        | Shows that view of the active layout.                                                                                              |
-| `viewNext`, `viewPrevious`       |                                                                                |                                  | Steps through the active layout's views.                                                                                           |
+| Action                           | Target                                                                         | Value                        | What it does                                                                                                                              |
+| -------------------------------- | ------------------------------------------------------------------------------ | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `scene`                          |                                                                                | Scene, **1 to 8**            | Selects the scene. Without a value, a CC's value picks the scene (0 to 7, so 0 is Scene 1), and a value above 63 steps to the next scene. |
+| `sceneNext`, `scenePrevious`     |                                                                                |                              | Steps through the eight scenes, wrapping around.                                                                                          |
+| `presetSlot`                     | A bank id                                                                      |                              | Mapped to a PC: any program change loads that slot of the bank. PC 0 is slot 1, PC 1 is slot 2, and so on.                                |
+| `presetNext`, `presetPrevious`   |                                                                                |                              | Loads the next or previous preset, in alphabetical order of all presets.                                                                  |
+| `bypass`                         | A block id                                                                     |                              | Toggles the block on a press. From a CC, values of 64 and up engage it and lower values bypass it.                                        |
+| `channel`                        | A block id                                                                     | Channel, **1 to 4** (1 is A) | Switches the block to that channel.                                                                                                       |
+| `external`                       |                                                                                | External, **1 to 8**         | The CC's value drives External 1 to 8, a modifier source. See [Expression pedals](#expression-pedals).                                    |
+| `manual`                         |                                                                                | Manual, **1 to 4** (1 is A)  | The CC's value sets Manual A to D.                                                                                                        |
+| `tap`                            |                                                                                |                              | Taps the tempo.                                                                                                                           |
+| `tuner`                          |                                                                                |                              | Turns the tuner on and off. From a CC, 64 and up is on.                                                                                   |
+| `metronome`                      |                                                                                |                              | Turns the metronome on and off. From a CC, 64 and up is on.                                                                               |
+| `mute`                           |                                                                                |                              | Mutes or unmutes every output. From a CC, 64 and up mutes.                                                                                |
+| `looper`                         | `record`, `play`, `stop`, `overdub`, `undo`, `reverse`, `halfSpeed` or `clear` |                              | Runs the looper.                                                                                                                          |
+| `sceneLevelUp`, `sceneLevelDown` |                                                                                |                              | Raises or lowers the active scene's level by 1 dB and saves the preset.                                                                   |
+| `save`                           |                                                                                |                              | Saves the working copy.                                                                                                                   |
+| `layout`                         | A footswitch layout id                                                         |                              | Makes that footswitch layout active. The editor does not show layout ids; on a footswitch, use its **Then layout** column instead.        |
+| `view`                           |                                                                                | View, **1** for the first    | Shows that view of the active layout.                                                                                                     |
+| `viewNext`, `viewPrevious`       |                                                                                |                              | Steps through the active layout's views.                                                                                                  |
 
-> **Note:** Scene, channel, manual and view numbers start at **0**, while External numbers start at **1**. "scene 0" is Scene 1, "channel amp1 1" is channel B.
+> **Note:** Scene, channel, manual, view and External numbers all start at **1**: "scene 1" is Scene 1, "channel amp1 2" is channel B. Only a CC's own value, when a `scene` mapping has no value of its own, counts from 0, as MIDI does. Earlier versions of the editor counted scenes, channels, manuals and views from 0: your switches and mappings still do what they did, and now read one higher.
 
 ### Finding a bank id
 
@@ -133,10 +133,10 @@ Actions are written as **action**, then the **target** if it needs one, then the
 
 | You write        | It does                      |
 | ---------------- | ---------------------------- |
-| `scene 0`        | Scene 1                      |
+| `scene 1`        | Scene 1                      |
 | `sceneNext`      | The next scene               |
 | `bypass delay1`  | Toggles the block `delay1`   |
-| `channel amp1 1` | Switches `amp1` to channel B |
+| `channel amp1 2` | Switches `amp1` to channel B |
 | `looper record`  | Looper: record               |
 | `tap`            | Tap tempo                    |
 | `tuner`          | Tuner on and off             |
@@ -149,7 +149,7 @@ A field that does not start with a known action is not accepted, and the switch 
 
 A switch **without** a hold action acts as soon as you press it. A switch **with** a hold action waits: release it within half a second for the tap action, or keep it down for half a second for the hold action (then nothing happens on release).
 
-Example: tap for `scene 0`, hold for `tuner`.
+Example: tap for `scene 1`, hold for `tuner`.
 
 ### LEDs
 
@@ -166,7 +166,7 @@ A layout can have several **views**, pages of switches for the same controller: 
 
 1. Click **View** (with the +) to add a view. Click a view's button to edit its switches.
 2. Click **Make active** to make the view you are editing the one in use.
-3. Give a switch the action `viewNext` (or `view 1`) to change views from the floor.
+3. Give a switch the action `viewNext` (or `view 2` for the second view) to change views from the floor.
 
 The view in use is marked **(active)**. Only the switches of the active view respond.
 

@@ -129,7 +129,7 @@ What you feel is the round trip: interface converters, two buffers, and any late
 
 ### A footswitch action field will not accept my text
 
-The field only accepts known action names, written as in [Writing actions](/manual/midi-and-footswitches#writing-actions). Remember that scene, channel and view numbers start at 0: `scene 0` is Scene 1.
+The field only accepts known action names, written as in [Writing actions](/manual/midi-and-footswitches#writing-actions). Scene, channel, manual and view numbers start at 1, as Externals do: `scene 1` is Scene 1. A number outside the range is clamped to it.
 
 ### Program changes load the wrong preset
 
