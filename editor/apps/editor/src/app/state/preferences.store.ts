@@ -45,7 +45,7 @@ export const PreferencesStorage = new InjectionToken<Pick<Storage, 'getItem' | '
 export function parsePreferences(text: string | null): Preferences {
   let stored: Partial<Record<keyof Preferences, unknown>> = {};
   try {
-    stored = text ? (JSON.parse(text) ?? {}) : {};
+    stored = text ? ((JSON.parse(text) as typeof stored | null) ?? {}) : {};
   } catch {
     stored = {};
   }

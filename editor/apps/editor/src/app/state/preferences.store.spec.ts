@@ -33,7 +33,7 @@ describe('preferences', () => {
     prefs.set('ampView', 'ideal');
     prefs.set('meterRate', 15);
 
-    expect(JSON.parse(saved.get('cathode.preferences')!)).toMatchObject({
+    expect(JSON.parse(saved.get('cathode.preferences') ?? 'null')).toMatchObject({
       ampView: 'ideal',
       meterRate: 15,
       wheel: 'reverse'

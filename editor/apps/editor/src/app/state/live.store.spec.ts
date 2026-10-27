@@ -10,9 +10,19 @@ import { LiveStore } from './live.store';
 interface Call {
   method: string;
   path: string;
-  init?: { headers?: Record<string, string>; body?: unknown };
+  init?: { headers?: Record<string, string>; body?: unknown } | undefined;
   resolve(state: LiveState): void;
-  reject(error: unknown): void;
+  reject(error: Error): void;
+}
+
+/** The first of the unanswered calls; fails the test when there is none. */
+function oldest(calls: readonly Call[]): Call {
+  const call = calls[0];
+  if (!call) {
+    throw new Error('No call is waiting for an answer');
+  }
+
+  return call;
 }
 
 function state(revision: number, name = 'Preset', preset: Record<string, unknown> = {}): LiveState {
@@ -87,12 +97,12 @@ describe('LiveStore.refresh', () => {
     events.events$.next({ type: 'paramChanged', revision: 7 });
     expect(open(live$)).toHaveLength(1); // coalesced while on the wire
 
-    open(live$)[0].resolve(state(5));
+    oldest(open(live$)).resolve(state(5));
     await settle();
     expect(live.state()?.revision).toBe(5);
     expect(open(live$)).toHaveLength(1); // one trailing read for 6 and 7
 
-    open(live$)[0].resolve(state(7));
+    oldest(open(live$)).resolve(state(7));
     await first;
     expect(live.state()?.revision).toBe(7);
     expect(open(live$)).toHaveLength(0);
@@ -102,7 +112,7 @@ describe('LiveStore.refresh', () => {
     const { live, events, open } = setup();
     const first = live.refresh();
     events.events$.next({ type: 'paramChanged', revision: 4 });
-    open(live$)[0].resolve(state(4));
+    oldest(open(live$)).resolve(state(4));
     await first;
 
     expect(open(live$)).toHaveLength(0);
@@ -113,11 +123,11 @@ describe('LiveStore.refresh', () => {
     void live.refresh();
     void live.refresh();
     const last = live.refresh();
-    open(live$)[0].resolve(state(1));
+    oldest(open(live$)).resolve(state(1));
     await settle();
     expect(open(live$)).toHaveLength(1);
 
-    open(live$)[0].resolve(state(2));
+    oldest(open(live$)).resolve(state(2));
     await last;
     expect(live.state()?.revision).toBe(2);
   });
@@ -125,7 +135,7 @@ describe('LiveStore.refresh', () => {
   it('ignores an event for a revision it already holds', async () => {
     const { live, events, open } = setup();
     const first = live.refresh();
-    open(live$)[0].resolve(state(3));
+    oldest(open(live$)).resolve(state(3));
     await first;
 
     events.events$.next({ type: 'paramChanged', revision: 3 });
@@ -141,7 +151,7 @@ describe('LiveStore after a reconnection', () => {
   async function holding(revision: number) {
     const store = setup();
     const first = store.live.refresh();
-    store.open(live$)[0].resolve(state(revision, 'Before'));
+    oldest(store.open(live$)).resolve(state(revision, 'Before'));
     await first;
     return store;
   }
@@ -150,7 +160,7 @@ describe('LiveStore after a reconnection', () => {
     const { live, events, open, settle } = await holding(500);
 
     events.connected$.next();
-    open(live$)[0].resolve(state(1, 'After'));
+    oldest(open(live$)).resolve(state(1, 'After'));
     await settle();
 
     expect(live.state()?.revision).toBe(1);
@@ -160,16 +170,16 @@ describe('LiveStore after a reconnection', () => {
   it('follows the new count afterwards: events refetch and mutation answers are adopted', async () => {
     const { live, events, open, settle } = await holding(500);
     events.connected$.next();
-    open(live$)[0].resolve(state(1));
+    oldest(open(live$)).resolve(state(1));
     await settle();
 
     events.events$.next({ type: 'paramChanged', revision: 2 });
-    open(live$)[0].resolve(state(2));
+    oldest(open(live$)).resolve(state(2));
     await settle();
     expect(live.state()?.revision).toBe(2);
 
     const done = live.undo();
-    open('/api/v1/live/undo')[0].resolve(state(3, 'Undone'));
+    oldest(open('/api/v1/live/undo')).resolve(state(3, 'Undone'));
     expect(await done).toBe(true);
     expect(live.preset()?.name).toBe('Undone');
   });
@@ -178,11 +188,11 @@ describe('LiveStore after a reconnection', () => {
     const { live, events, open, settle } = await holding(500);
     events.connected$.next();
     events.events$.next({ type: 'paramChanged', revision: 2 });
-    open(live$)[0].resolve(state(1));
+    oldest(open(live$)).resolve(state(1));
     await settle();
 
     expect(open(live$)).toHaveLength(1);
-    open(live$)[0].resolve(state(2));
+    oldest(open(live$)).resolve(state(2));
     await settle();
     expect(live.state()?.revision).toBe(2);
   });
@@ -190,7 +200,7 @@ describe('LiveStore after a reconnection', () => {
   it('still drops an older answer that overtakes a newer one outside a resync', async () => {
     const { live, open } = await holding(10);
     const done = live.undo();
-    open('/api/v1/live/undo')[0].resolve(state(9, 'Stale'));
+    oldest(open('/api/v1/live/undo')).resolve(state(9, 'Stale'));
     await done;
 
     expect(live.state()?.revision).toBe(10);
@@ -207,7 +217,7 @@ describe('LiveStore list replacements (optimistic concurrency)', () => {
   async function holding(revision: number, preset: Record<string, unknown> = {}) {
     const store = setup();
     const first = store.live.refresh();
-    store.open(live$)[0].resolve(state(revision, 'Preset', preset));
+    oldest(store.open(live$)).resolve(state(revision, 'Preset', preset));
     await first;
     return store;
   }
@@ -215,7 +225,7 @@ describe('LiveStore list replacements (optimistic concurrency)', () => {
   it('sends the revision the list was made from as If-Match', async () => {
     const { live, open } = await holding(5);
     const done = live.putModifier('amp1', 'gain', lfo as never);
-    const put = open(modifiers$)[0];
+    const put = oldest(open(modifiers$));
 
     expect(put.init?.headers).toEqual({ 'If-Match': '"5"' });
     expect(put.init?.body).toEqual([lfo]);
@@ -226,12 +236,12 @@ describe('LiveStore list replacements (optimistic concurrency)', () => {
   it('sends the change again on the new revision when something else changed but the list did not', async () => {
     const { live, open, settle, errors } = await holding(5);
     const done = live.putModifier('amp1', 'gain', lfo as never);
-    open(modifiers$)[0].reject(changed);
+    oldest(open(modifiers$)).reject(changed);
     await settle();
-    open(live$)[0].resolve(state(6)); // a knob moved elsewhere: modifiers as they were
+    oldest(open(live$)).resolve(state(6)); // a knob moved elsewhere: modifiers as they were
     await settle();
 
-    const again = open(modifiers$)[0];
+    const again = oldest(open(modifiers$));
     expect(again.init?.headers).toEqual({ 'If-Match': '"6"' });
     again.resolve(state(7, 'Preset', { modifiers: [lfo] }));
     expect(await done).toBe(true);
@@ -241,9 +251,9 @@ describe('LiveStore list replacements (optimistic concurrency)', () => {
   it('does not delete what another client added: the change is refused and the user told', async () => {
     const { live, open, settle, errors } = await holding(5);
     const done = live.putModifier('amp1', 'gain', lfo as never);
-    open(modifiers$)[0].reject(changed);
+    oldest(open(modifiers$)).reject(changed);
     await settle();
-    open(live$)[0].resolve(state(6, 'Preset', { modifiers: [other] })); // another editor added one
+    oldest(open(live$)).resolve(state(6, 'Preset', { modifiers: [other] })); // another editor added one
     await settle();
 
     expect(open(modifiers$)).toHaveLength(0);
@@ -257,8 +267,8 @@ describe('LiveStore list replacements (optimistic concurrency)', () => {
     void live.setPerform([]);
     void live.setFootswitchOverrides([]);
 
-    expect(open('/api/v1/live/perform')[0].init?.headers).toEqual({ 'If-Match': '"9"' });
-    expect(open('/api/v1/live/footswitch-overrides')[0].init?.headers).toEqual({ 'If-Match': '"9"' });
+    expect(oldest(open('/api/v1/live/perform')).init?.headers).toEqual({ 'If-Match': '"9"' });
+    expect(oldest(open('/api/v1/live/footswitch-overrides')).init?.headers).toEqual({ 'If-Match': '"9"' });
   });
 });
 
@@ -269,7 +279,7 @@ describe('LiveStore knob drags across a preset change', () => {
   it('drops values dragged on a preset that is no longer loaded instead of sending them to the new one', async () => {
     const { live, open, settle } = setup();
     const first = live.refresh();
-    open(live$)[0].resolve(state(1));
+    oldest(open(live$)).resolve(state(1));
     await first;
 
     live.setParam('amp1', 'A', 'gain', 3);
@@ -278,9 +288,9 @@ describe('LiveStore knob drags across a preset change', () => {
 
     // A program change loads another preset while the first PATCH is on the wire.
     void live.load('p2');
-    open('/api/v1/live/preset/{id}')[0].resolve(state(2, 'Other', { id: 'p2' }));
+    oldest(open('/api/v1/live/preset/{id}')).resolve(state(2, 'Other', { id: 'p2' }));
     await settle();
-    open(params$)[0].resolve(state(3, 'Other', { id: 'p2' }));
+    oldest(open(params$)).resolve(state(3, 'Other', { id: 'p2' }));
     await settle();
 
     expect(open(params$)).toHaveLength(0);
@@ -292,7 +302,7 @@ describe('LiveStore.tap', () => {
   it('reports a refused tap and resolves to false instead of rejecting', async () => {
     const { live, open, errors } = setup();
     const tapped = live.tap();
-    open('/api/v1/live/tap')[0].reject(new ApiError(503, 'The engine is not connected.'));
+    oldest(open('/api/v1/live/tap')).reject(new ApiError(503, 'The engine is not connected.'));
 
     await expect(tapped).resolves.toBe(false);
     expect(errors).toHaveLength(1);

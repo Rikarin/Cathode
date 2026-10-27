@@ -53,12 +53,14 @@ describe('Coalescer', () => {
   it('carries on after a failed request', async () => {
     const sent: number[] = [];
     let fail = true;
-    const coalescer = new Coalescer<number>(async (_key, value) => {
+    const coalescer = new Coalescer<number>((_key, value) => {
       sent.push(value);
       if (fail) {
         fail = false;
-        throw new Error('offline');
+        return Promise.reject(new Error('offline'));
       }
+
+      return Promise.resolve();
     });
 
     const first = coalescer.set('level', 1);

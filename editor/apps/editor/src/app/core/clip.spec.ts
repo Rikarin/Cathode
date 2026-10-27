@@ -9,7 +9,7 @@ const frame = (left: number, right: number, outputPeaks?: number[]): Telemetry =
   cpuP999: 0,
   overloads: 0,
   tempo: 120,
-  outputPeaks
+  ...(outputPeaks ? { outputPeaks } : {})
 });
 
 describe('clip warnings', () => {

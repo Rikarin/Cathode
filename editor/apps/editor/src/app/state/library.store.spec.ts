@@ -33,7 +33,7 @@ describe('LibraryStore.isStored', () => {
 
   it('rejects when the Server refuses for another reason, rather than calling the preset new', async () => {
     const library = store(() => Promise.reject(new ApiError(503, 'The engine is not connected.')));
-    await expect(library.isStored('p1')).rejects.toThrowError('The engine is not connected.');
+    await expect(library.isStored('p1')).rejects.toThrow('The engine is not connected.');
   });
 });
 

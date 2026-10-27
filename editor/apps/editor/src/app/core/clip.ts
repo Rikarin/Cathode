@@ -12,9 +12,11 @@ export function clippedOutputs(frame: Telemetry | null | undefined): number[] {
     return [];
   }
 
-  const peaks = frame.outputPeaks?.length
-    ? [Math.max(frame.outputPeakLeft, frame.outputPeakRight, frame.outputPeaks[0]), ...frame.outputPeaks.slice(1)]
-    : [Math.max(frame.outputPeakLeft, frame.outputPeakRight)];
+  const [first, ...rest] = frame.outputPeaks ?? [];
+  const peaks =
+    first === undefined
+      ? [Math.max(frame.outputPeakLeft, frame.outputPeakRight)]
+      : [Math.max(frame.outputPeakLeft, frame.outputPeakRight, first), ...rest];
   return peaks.flatMap((peak, i) => (peak >= OutputClipLevel ? [i + 1] : []));
 }
 

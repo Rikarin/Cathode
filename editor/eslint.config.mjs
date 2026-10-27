@@ -67,6 +67,8 @@ export default defineConfig(
       // expression in any other position (a ternary, a `return` in a block, an operand) is still an error.
       '@typescript-eslint/no-confusing-void-expression': ['error', { ignoreArrowShorthand: true }],
       // Numbers and booleans read fine in messages; objects, nullish values and `any` still do not.
+      // `name || 'Untitled'`: an empty string falls back too, on purpose (names, tokens, folders). `??` everywhere else.
+      '@typescript-eslint/prefer-nullish-coalescing': ['error', { ignorePrimitives: { string: true } }],
       '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true, allowBoolean: true }],
       '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports' }],
       '@typescript-eslint/no-unused-vars': [

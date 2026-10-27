@@ -10,12 +10,11 @@ describe('recent presets', () => {
       { id: 'a', name: 'A renamed' },
       { id: 'b', name: 'B' }
     ]);
-    const long = Array.from({ length: 12 }, (_, i) => ({ id: `p${i}`, name: `P${i}` })).reduce(
-      (all, p) => pushRecent(all, p),
-      [] as { id: string; name: string }[]
-    );
+    const long = Array.from({ length: 12 }, (_, i) => ({ id: `p${i}`, name: `P${i}` })).reduce<
+      { id: string; name: string }[]
+    >((all, p) => pushRecent(all, p), []);
     expect(long).toHaveLength(8);
-    expect(long[0].id).toBe('p11');
+    expect(long[0]?.id).toBe('p11');
   });
 });
 

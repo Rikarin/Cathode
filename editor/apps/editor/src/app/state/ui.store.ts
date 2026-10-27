@@ -25,7 +25,7 @@ export function isBuiltIn(type: string): boolean {
 /** The next channel of a block with `count` channels: A → B → … → A. */
 export function nextChannel(current: ChannelName, count: number): ChannelName {
   const index = ChannelNames.indexOf(current);
-  return ChannelNames[(index + 1) % Math.max(1, Math.min(count, ChannelNames.length))];
+  return ChannelNames[(index + 1) % Math.max(1, Math.min(count, ChannelNames.length))] ?? 'A';
 }
 
 /** The tabs of the Settings dialog. */
