@@ -59,3 +59,18 @@ describe('EventStream.modulation', () => {
     expect(stream.modulation()).toBeNull();
   });
 });
+
+describe('EventStream.receive', () => {
+  it('skips a message that is not JSON and goes on reading the stream', () => {
+    TestBed.configureTestingModule({ providers: [{ provide: ConnectionService, useValue: {} }] });
+    const stream = TestBed.inject(EventStream);
+    const receive = (data: string) => (stream as unknown as { receive(data: unknown): void }).receive(data);
+    const seen: string[] = [];
+    stream.events$.subscribe(e => seen.push(e.type));
+
+    expect(() => receive('{"type":"paramCh')).not.toThrow();
+    receive(JSON.stringify({ type: 'paramChanged', revision: 3 }));
+
+    expect(seen).toEqual(['paramChanged']);
+  });
+});

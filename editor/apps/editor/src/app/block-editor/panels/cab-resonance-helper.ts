@@ -146,10 +146,12 @@ export class CabResonanceHelper {
     if (this.playingFor) {
       const id = this.playingFor;
       this.playingFor = null;
-      await this.connection.client.PUT('/api/v1/live/blocks/{id}/test-tone', {
-        params: { path: { id } },
-        body: { enabled: false, frequency: this.frequency(), level: this.level() }
-      });
+      await this.notify.run(() =>
+        this.connection.client.PUT('/api/v1/live/blocks/{id}/test-tone', {
+          params: { path: { id } },
+          body: { enabled: false, frequency: this.frequency(), level: this.level() }
+        })
+      );
     }
   }
 

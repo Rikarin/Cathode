@@ -232,8 +232,13 @@ export class LiveStore {
     return this.setModifiers(modifier ? [...others, modifier] : others);
   }
 
-  async tap(): Promise<void> {
-    await this.connection.client.POST('/api/v1/live/tap');
+  /** Taps the tempo; a refusal (an engine that is not connected) is reported. Resolves to whether it worked. */
+  async tap(): Promise<boolean> {
+    const done = await this.notify.run(async () => {
+      await this.connection.client.POST('/api/v1/live/tap');
+      return true;
+    });
+    return done ?? false;
   }
 
   /** The working copy's name, author, tags and description (one undoable edit); a field left out stays as it is. */

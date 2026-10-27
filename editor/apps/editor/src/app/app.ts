@@ -489,10 +489,19 @@ export class App {
 
     if (preset.factory) {
       this.openSaveAs();
-    } else if (!preset.name.trim() || !(await this.library.isStored(preset.id))) {
-      this.openSaveAs(true);
-    } else {
+      return;
+    }
+
+    // Whether it was ever saved needs the Server: when it cannot answer, say so rather than doing nothing.
+    const stored = preset.name.trim() ? await this.notify.run(() => this.library.isStored(preset.id)) : false;
+    if (stored === undefined) {
+      return;
+    }
+
+    if (stored) {
       void this.live.save();
+    } else {
+      this.openSaveAs(true);
     }
   }
 
