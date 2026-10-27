@@ -2,5 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="../Cathode.Testing/Cathode.Testing.csproj"/>
     <ProjectReference Include="../../src/Cathode.Audio/Cathode.Audio.csproj"/>
+    <!-- Built, not referenced: SimdNullTests runs it as separate processes, with and without hardware intrinsics. -->
+    <ProjectReference Include="../../tools/Cathode.Render/Cathode.Render.csproj" ReferenceOutputAssembly="false" Private="false"/>
   </ItemGroup>
 </Project>
