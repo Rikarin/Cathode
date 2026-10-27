@@ -41,6 +41,7 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     readonly SvfState[] tone = new SvfState[ToneBands.Length];
     float inputGain = 1f;
     float outputGain = 1f;
+    bool prepared;
 
     public static BlockDescriptor Info { get; } = new(
         "nam",
@@ -67,13 +68,25 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     public CaptureAmpBlock()
         : this(AidaModel.Load) { }
 
-    /// <summary>Control thread, before <see cref="IDspBlock.Prepare" />.</summary>
+    /// <summary>
+    ///     Control thread, normally before <see cref="IDspBlock.Prepare" />; on a block that is already prepared the new
+    ///     model is reset for the current spec, so it never runs unprepared.
+    /// </summary>
     public void LoadAsset(string slot, string path) {
         if (slot != ModelSlot) {
             throw new ArgumentException($"Unknown asset slot '{slot}'.", nameof(slot));
         }
 
         var loaded = load(path);
+        if (prepared) {
+            try {
+                loaded.Reset(Spec.SampleRate, Spec.MaxBlockSize);
+            } catch {
+                loaded.Dispose();
+                throw;
+            }
+        }
+
         CaptureModel?.Dispose();
         CaptureModel = loaded;
     }
@@ -103,7 +116,10 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
         }
     }
 
-    protected override void OnPrepare(in ProcessSpec spec) => CaptureModel?.Reset(spec.SampleRate, spec.MaxBlockSize);
+    protected override void OnPrepare(in ProcessSpec spec) {
+        CaptureModel?.Reset(spec.SampleRate, spec.MaxBlockSize);
+        prepared = true;
+    }
 
     protected override void OnReset() {
         (inputGain, outputGain) = TargetGains();

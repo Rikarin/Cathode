@@ -131,6 +131,13 @@ int32_t cth_nam_set_size(cth_nam_model* model, double size)
 
 void cth_nam_process(cth_nam_model* model, const float* input, float* output, int32_t frames)
 {
+  if (!model || model->max_frames <= 0)
+  {
+    // Not reset yet (or no model): pass the input through rather than spin, since a zero block size never advances.
+    if (frames > 0 && input != output)
+      std::memmove(output, input, static_cast<size_t>(frames) * sizeof(float));
+    return;
+  }
   for (int32_t offset = 0; offset < frames; offset += model->max_frames)
   {
     const int32_t count = std::min(model->max_frames, frames - offset);

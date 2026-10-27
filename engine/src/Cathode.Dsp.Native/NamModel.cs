@@ -98,6 +98,12 @@ public sealed unsafe class NamModel : ICaptureModel {
 #pragma warning disable SK2142 // False positive: `fixed` pins the spans and reads them; it does not overwrite the parameters.
     public void Process(ReadOnlySpan<float> input, Span<float> output) {
 #pragma warning restore SK2142
+        if (handle == 0) {
+            // Disposed: pass through instead of handing the native side a null model on the audio thread.
+            input.CopyTo(output);
+            return;
+        }
+
         fixed (float* i = input) {
             fixed (float* o = output) {
                 NamNative.Process(handle, i, o, output.Length);
