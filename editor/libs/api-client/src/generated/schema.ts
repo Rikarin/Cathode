@@ -2308,10 +2308,18 @@ export interface components {
         [key: string]: number;
       };
     };
+    /** @description A condition on a block's parameter: it holds while `Param` is one of `Values`. */
+    ParameterCondition: {
+      param: string;
+      values: number[];
+    };
     /**
      * @description A block parameter. `TypeLabels`, where present, names the parameter per value of the block's `type`
      *     parameter (an amp model's own name for a generic control), empty where that type lacks the control: hide it
-     *     there.
+     *     there. `TypeDefaults`, where present, is the parameter's default per value of `type` (a model that
+     *     ships a control at another setting), in place of `Default`: a value a channel does not store is that
+     *     type's default. `VisibleWhen`, where present, shows the parameter only while another one of the block (a
+     *     choice or a switch) holds one of the listed values: hide it otherwise.
      */
     ParameterInfo: {
       id: string;
@@ -2328,6 +2336,8 @@ export interface components {
       options?: null | string[];
       typeLabels?: null | string[];
       page?: null | string;
+      typeDefaults?: null | number[];
+      visibleWhen: null | components['schemas']['ParameterCondition'];
     };
     /**
      * @description One control on a performance page: a parameter of a block, by the block's id (`amp1`) so a global page

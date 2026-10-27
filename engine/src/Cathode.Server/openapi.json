@@ -5087,6 +5087,26 @@
         },
         "description": "One of Outputs 1-4."
       },
+      "ParameterCondition": {
+        "required": [
+          "param",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "param": {
+            "type": "string"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "float"
+            }
+          }
+        },
+        "description": "A condition on a block\u0027s parameter: it holds while \u0060Param\u0060 is one of \u0060Values\u0060."
+      },
       "ParameterInfo": {
         "required": [
           "id",
@@ -5096,7 +5116,8 @@
           "max",
           "default",
           "unit",
-          "taper"
+          "taper",
+          "visibleWhen"
         ],
         "type": "object",
         "properties": {
@@ -5150,9 +5171,29 @@
               "null",
               "string"
             ]
+          },
+          "typeDefaults": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          "visibleWhen": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ParameterCondition"
+              }
+            ]
           }
         },
-        "description": "A block parameter. \u0060TypeLabels\u0060, where present, names the parameter per value of the block\u0027s \u0060type\u0060\nparameter (an amp model\u0027s own name for a generic control), empty where that type lacks the control: hide it\nthere."
+        "description": "A block parameter. \u0060TypeLabels\u0060, where present, names the parameter per value of the block\u0027s \u0060type\u0060\nparameter (an amp model\u0027s own name for a generic control), empty where that type lacks the control: hide it\nthere. \u0060TypeDefaults\u0060, where present, is the parameter\u0027s default per value of \u0060type\u0060 (a model that\nships a control at another setting), in place of \u0060Default\u0060: a value a channel does not store is that\ntype\u0027s default. \u0060VisibleWhen\u0060, where present, shows the parameter only while another one of the block (a\nchoice or a switch) holds one of the listed values: hide it otherwise."
       },
       "PerformControl": {
         "required": [

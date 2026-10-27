@@ -74,6 +74,103 @@ public sealed class BlockDescriptor {
         if (TypeResets.FirstOrDefault(r => r == "type" || !indexById.ContainsKey(r)) is { } bad) {
             throw new ArgumentException($"Block '{typeId}' cannot reset '{bad}' on a type change.", nameof(typeResets));
         }
+
+        TypeIndex = IndexOf("type");
+        CheckTypeDefaults(typeId, Params, TypeIndex);
+        CheckVisibility(typeId, Params);
+    }
+
+    /// <summary>
+    ///     Every <see cref="ParamDescriptor.VisibleWhen" /> names another parameter of the block, a choice or a switch
+    ///     but not the type, and values it can take.
+    /// </summary>
+    static void CheckVisibility(string typeId, IReadOnlyList<ParamDescriptor> parameters) {
+        foreach (var p in parameters) {
+            if (p.VisibleWhen is not { } when) {
+                continue;
+            }
+
+            var other = parameters.FirstOrDefault(o => o.Id == when.Param);
+            var valid = other is { Kind: ParamKind.Enum or ParamKind.Bool, Id: not "type" }
+                && other.Id != p.Id
+                && when.Values.Count > 0
+                && when.Values.All(v => other.Sanitize(v) == v);
+            if (!valid) {
+                throw new ArgumentException(
+                    $"Parameter '{p.Id}' of block '{typeId}' cannot be shown by '{when.Param}' = "
+                    + $"{string.Join(", ", when.Values)}.",
+                    nameof(parameters)
+                );
+            }
+        }
+    }
+
+    /// <summary>The index of the block's <c>type</c> parameter, or -1 for a block without one.</summary>
+    public int TypeIndex { get; }
+
+    /// <summary>
+    ///     Every <see cref="ParamDescriptor.TypeDefaults" /> needs a <c>type</c> choice to follow, one default per
+    ///     type, each a value the parameter can take.
+    /// </summary>
+    static void CheckTypeDefaults(string typeId, IReadOnlyList<ParamDescriptor> parameters, int typeIndex) {
+        foreach (var p in parameters.Where(static p => p.TypeDefaults is not null)) {
+            var types = typeIndex >= 0 && parameters[typeIndex].Kind == ParamKind.Enum
+                ? (int)parameters[typeIndex].Max + 1
+                : -1;
+            if (p.Id == "type" || p.TypeDefaults!.Count != types) {
+                throw new ArgumentException(
+                    $"Parameter '{p.Id}' of block '{typeId}' needs one default per value of its type choice.",
+                    nameof(parameters)
+                );
+            }
+
+            foreach (var value in p.TypeDefaults.Where(d => p.Sanitize(d) != d)) {
+                throw new ArgumentException(
+                    $"Parameter '{p.Id}' of block '{typeId}' cannot default to {value}.",
+                    nameof(parameters)
+                );
+            }
+        }
+    }
+
+    /// <summary>
+    ///     The block's type in <paramref name="values" />: its <c>type</c> value, or that parameter's default.
+    /// </summary>
+    public int TypeOf(IReadOnlyDictionary<string, float>? values) {
+        if (TypeIndex < 0) {
+            return 0;
+        }
+
+        var type = Params[TypeIndex];
+        return (int)type.Sanitize(values?.GetValueOrDefault(type.Id, type.Default) ?? type.Default);
+    }
+
+    /// <summary>
+    ///     The default of parameter <paramref name="index" /> for a block whose stored values are
+    ///     <paramref name="values" />: its default on the block's type (<see cref="ParamDescriptor.DefaultFor" />).
+    /// </summary>
+    public float DefaultOf(int index, IReadOnlyDictionary<string, float>? values) =>
+        Params[index].DefaultFor(TypeOf(values));
+
+    /// <summary>
+    ///     Parameter <paramref name="index" />'s value in the sparse <paramref name="values" /> a preset stores: the
+    ///     stored value, or the default on the block's type when it stores none.
+    /// </summary>
+    public float ValueOf(int index, IReadOnlyDictionary<string, float>? values) =>
+        values is not null && values.TryGetValue(Params[index].Id, out var value) ? value : DefaultOf(index, values);
+
+    /// <summary>
+    ///     A channel's <paramref name="values" /> as a preset stores them: each of the block's parameters sanitised
+    ///     (a value that is not a number taking the default on the values' type), ids the block lacks dropped.
+    /// </summary>
+    public Dictionary<string, float> Sanitized(IReadOnlyDictionary<string, float> values) {
+        var type = TypeOf(values);
+        return values.Where(v => IndexOf(v.Key) >= 0)
+            .ToDictionary(
+                static v => v.Key,
+                v => Params[IndexOf(v.Key)].Sanitize(v.Value, type),
+                StringComparer.Ordinal
+            );
     }
 
     /// <summary>

@@ -196,7 +196,8 @@ public sealed partial class CircuitAmpBlock {
         );
 
     /// <summary>
-    ///     The descriptor's parameters with each model's panel names (<see cref="ParamDescriptor.TypeLabels" />).
+    ///     The descriptor's parameters with each model's panel names (<see cref="ParamDescriptor.TypeLabels" />) and
+    ///     its own defaults (<see cref="ParamDescriptor.TypeDefaults" />, from <see cref="AmpPanel.Defaults" />).
     /// </summary>
     static IReadOnlyList<ParamDescriptor> Labelled(IReadOnlyList<ParamDescriptor> parameters) => [
         ..parameters.Select(static p => {
@@ -206,7 +207,11 @@ public sealed partial class CircuitAmpBlock {
                             : string.Empty
                     )
                 ];
-                return labels.All(l => l == p.Name) ? p : p with { TypeLabels = labels };
+                float[] defaults = [..AmpDesign.All.Select(a => a.Panel.Default(p.Id, p.Default))];
+                return p with {
+                    TypeLabels = labels.All(l => l == p.Name) ? null : labels,
+                    TypeDefaults = defaults.All(d => d == p.Default) ? null : defaults
+                };
             }
         )
     ];

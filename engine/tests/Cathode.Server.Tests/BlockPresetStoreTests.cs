@@ -35,4 +35,27 @@ public sealed class BlockPresetStoreTests : IDisposable {
         Assert.Equal(1, preset.Channels!["A"]["powertube"]);
         Assert.Equal(3, preset.Channels["B"]["powertube"]);
     }
+
+    [Fact]
+    public void A_quick_rod_block_preset_from_an_earlier_release_keeps_its_solo_boost() {
+        var presets = Directory.CreateDirectory(Path.Combine(folder, "block-presets")).FullName;
+        File.WriteAllText(
+            Path.Combine(presets, "b2.json"),
+            """
+            {"id":"b2","type":"circuitamp","name":"Rod","values":{"type":86,"gain":6},
+             "channels":{"A":{"type":86},"B":{"type":86,"control1":7},"C":{"type":1}}}
+            """
+        );
+
+        var store = new BlockPresetStore(
+            Options.Create(new ServerOptions { DataDirectory = folder }),
+            new(BlockRegistry.CreateDefault())
+        );
+        var preset = store.Get("b2")!;
+
+        Assert.Equal(5, preset.Values["control1"]); // the block's default up to 1.0.0-rc.3
+        Assert.Equal(5, preset.Channels!["A"]["control1"]);
+        Assert.Equal(7, preset.Channels["B"]["control1"]);
+        Assert.False(preset.Channels["C"].ContainsKey("control1"));
+    }
 }

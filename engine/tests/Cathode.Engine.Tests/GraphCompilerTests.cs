@@ -368,6 +368,29 @@ public class GraphCompilerTests {
         Assert.Contains(error.Errors, static e => e.Contains("no parameter 'nope'", StringComparison.Ordinal));
     }
 
+    /// <summary>
+    ///     A value the node does not store takes the default on the block's type: the Quick Rod's Solo Boost is off
+    ///     (its own default), another model's at the block's 5; a stored value wins either way.
+    /// </summary>
+    [Fact]
+    public void Unstored_parameters_take_their_types_default() {
+        var quickRod = Cathode.Dsp.Amp.AmpDesign.All.ToList().FindIndex(static a => a.Name == "Quick Rod");
+        var definition = Graph(
+            [
+                Node("in", NodeTypes.Input, 0, 0), Node("rod", "circuitamp", 0, 1, ("type", quickRod)),
+                Node("set", "circuitamp", 1, 1, ("control1", 7), ("type", quickRod)),
+                Node("other", "circuitamp", 2, 1, ("type", 1))
+            ]
+        );
+
+        using var graph = Compiler.Compile(definition, Spec);
+
+        float Boost(string id) =>
+            graph.Block(graph.SlotOf(id)).Params.GetTarget(Cathode.Dsp.Blocks.CircuitAmpBlock.Control1);
+
+        Assert.Equal((0f, 7f, 5f), (Boost("rod"), Boost("set"), Boost("other")));
+    }
+
     [Fact]
     public void Graph_json_round_trips() {
         var json = JsonSerializer.Serialize(

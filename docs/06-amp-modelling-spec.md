@@ -920,8 +920,9 @@ Splawn Nitro row stays waiting.
   the overdrive channel's holds V2A too (four triodes; `NetworkStage` gained a `TTTT` device set for it). Rails
   from the drawing's 420 V through two 10k droppers: 386 V and 371 V at the triodes' own 4.6 mA.
 - **Panel**: Switch 1 Clean, Bright OD2, Switch 2 and 3 the 2nd and 3rd gear switches (drawn as two independent
-  switches), Control 1 Solo Boost (0 is the boost off: the switch grounds the Master's foot where the pot at 0 does);
-  Gain, Bass and Treble the playing channel's, Master also the clean Volume, Middle the overdrive channel's.
+  switches), Control 1 Solo Boost (0 is the boost off: the switch grounds the Master's foot where the pot at 0 does;
+  the model's own default is 0, `AmpPanel.Defaults`, so a new Quick Rod plays with the boost off and Master 0 is
+  silent; presets saved before keep the 5 they played at, written in by the schema-2 migration); Gain, Bass and Treble the playing channel's, Master also the clean Volume, Middle the overdrive channel's.
 - **Guessed**: the power amp (the JCM800 2203's: four EL34, 470 V, 1.7k, 100k feedback with the 22k presence), the
   inverter on the 420 V node, the dropper to it, the switch positions (OD1 and 1st gear the grounded ones) and the tapers.
 - **Validation** (`Quick_rod_chains_match_the_reference`, each channel's chain as one circuit): clean −64 dB, overdrive

@@ -54,11 +54,13 @@ public sealed partial class LiveRig {
         List<ParamValue> sent
     ) {
         var recompile = false;
+        // A value that is not a number takes the default on the type the block has after the update.
+        var type = descriptor.TypeOf(values.ContainsKey("type") ? values : stored);
         foreach (var (param, raw) in values) {
-            var descriptorParam = descriptor.Params[descriptor.IndexOf(param)];
-            var value = descriptorParam.Sanitize(raw);
-            recompile |= descriptorParam.Recompile
-                && stored.GetValueOrDefault(param, descriptorParam.Default) != value;
+            var index = descriptor.IndexOf(param);
+            var descriptorParam = descriptor.Params[index];
+            var value = descriptorParam.Sanitize(raw, type);
+            recompile |= descriptorParam.Recompile && descriptor.ValueOf(index, stored) != value;
             stored[param] = value;
             sent.Add(new(id, param, value));
         }
@@ -67,8 +69,10 @@ public sealed partial class LiveRig {
     }
 
     /// <summary>
-    ///     Puts the parameters a model change resets (and the update did not set) back to their defaults, adding each
-    ///     to <paramref name="sent" />; true when one needs a recompile.
+    ///     Puts the parameters a model change resets (and the update did not set) back to their defaults on the new
+    ///     model, adding each to <paramref name="sent" />; true when one needs a recompile. A parameter whose default
+    ///     depends on the model (<see cref="ParamDescriptor.TypeDefaults" />) and that the channel does not store is
+    ///     the new model's default now, so the engine is sent it too.
     /// </summary>
     static bool ResetForNewType(
         string id,
@@ -79,11 +83,15 @@ public sealed partial class LiveRig {
     ) {
         var recompile = false;
         foreach (var param in descriptor.TypeResets.Where(r => !values.ContainsKey(r))) {
-            var value = descriptor.Params[descriptor.IndexOf(param)].Default;
-            recompile |= descriptor.Params[descriptor.IndexOf(param)].Recompile
-                && stored.GetValueOrDefault(param, value) != value;
+            var index = descriptor.IndexOf(param);
+            var value = descriptor.DefaultOf(index, stored);
+            recompile |= descriptor.Params[index].Recompile && stored.GetValueOrDefault(param, value) != value;
             stored[param] = value;
             sent.Add(new(id, param, value));
+        }
+
+        foreach (var p in descriptor.Params.Where(p => p.TypeDefaults is not null && !stored.ContainsKey(p.Id))) {
+            sent.Add(new(id, p.Id, descriptor.DefaultOf(descriptor.IndexOf(p.Id), stored)));
         }
 
         return recompile;

@@ -39,9 +39,7 @@ public sealed partial class LiveRig {
 
     /// <summary>A parameter of a block in the channel <paramref name="scene" /> gives it, or the default.</summary>
     static float ValueIn(Scene scene, PresetBlock of, BlockDescriptor descriptor, int index) {
-        var param = descriptor.Params[index];
-        var values = of.Channels.GetValueOrDefault(scene.StateOf(of.Id).Channel);
-        return values?.GetValueOrDefault(param.Id, param.Default) ?? param.Default;
+        return descriptor.ValueOf(index, of.Channels.GetValueOrDefault(scene.StateOf(of.Id).Channel));
     }
 
     /// <summary>

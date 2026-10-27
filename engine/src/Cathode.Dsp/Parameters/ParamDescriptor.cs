@@ -22,6 +22,12 @@ public enum ParamSmoothing {
 }
 
 /// <summary>
+///     A condition on another parameter of the same block: it holds while parameter <see cref="Param" /> is one of
+///     <see cref="Values" /> (<see cref="ParamDescriptor.VisibleWhen" />).
+/// </summary>
+public sealed record ParamCondition(string Param, IReadOnlyList<float> Values);
+
+/// <summary>
 ///     Describes one parameter of a block type. <see cref="Id" /> is a stable identifier used by presets and the API.
 /// </summary>
 /// <remarks>
@@ -38,6 +44,18 @@ public enum ParamSmoothing {
 ///         <see cref="Page" />: the editor page the parameter sits on (Basic, Tone, Advanced, ...), set by the block's
 ///         <see cref="BlockDescriptor" /> from its page list; null for a block with one page.
 ///     </para>
+///     <para>
+///         <see cref="TypeDefaults" />: the parameter's default per value of the block's <c>type</c> parameter, for a
+///         control a model ships at another setting than the rest (the Quick Rod's Solo Boost, off); null where the
+///         default is <see cref="Default" /> on every type. Every default the block uses honours it
+///         (<see cref="DefaultFor" />): a new block, a type change, a value the preset does not store.
+///     </para>
+///     <para>
+///         <see cref="VisibleWhen" />: the parameter means something only while another one (a choice or a switch of
+///         the same block, not its type: that is <see cref="TypeLabels" />) holds one of some values, as the
+///         Compressor's Threshold and Ratio with Controls on Threshold/Ratio; the editor hides it otherwise. Null for
+///         a parameter always shown. The block's descriptor checks the parameter it names.
+///     </para>
 /// </remarks>
 public sealed record ParamDescriptor(
     string Id,
@@ -53,8 +71,17 @@ public sealed record ParamDescriptor(
     IReadOnlyList<string>? Options = null,
     IReadOnlyList<string>? TypeLabels = null,
     bool Recompile = false,
-    string? Page = null
+    string? Page = null,
+    IReadOnlyList<float>? TypeDefaults = null,
+    ParamCondition? VisibleWhen = null
 ) {
+    /// <summary>
+    ///     This parameter, shown only while parameter <paramref name="param" /> holds one of
+    ///     <paramref name="values" /> (<see cref="VisibleWhen" />).
+    /// </summary>
+    public ParamDescriptor ShownWhen(string param, params float[] values) =>
+        this with { VisibleWhen = new(param, values) };
+
     public static ParamDescriptor Float(
         string id,
         string name,
@@ -82,10 +109,24 @@ public sealed record ParamDescriptor(
     public static ParamDescriptor Switch(string id, string name, bool defaultValue = false) =>
         new(id, name, ParamKind.Bool, 0, 1, defaultValue ? 1 : 0, Smoothing: ParamSmoothing.Step);
 
+    /// <summary>
+    ///     The default on type <paramref name="type" /> (the value of the block's <c>type</c> parameter):
+    ///     <see cref="TypeDefaults" />'s entry for it, or <see cref="Default" />.
+    /// </summary>
+    public float DefaultFor(int type) =>
+        TypeDefaults is { } defaults && (uint)type < (uint)defaults.Count ? defaults[type] : Default;
+
     /// <summary>Clamps to range, rounds discrete kinds, and replaces non-finite input with the default.</summary>
-    public float Sanitize(float value) {
+    public float Sanitize(float value) => Clean(value, Default);
+
+    /// <summary>
+    ///     As <see cref="Sanitize(float)" />, non-finite input taking type <paramref name="type" />'s default.
+    /// </summary>
+    public float Sanitize(float value, int type) => Clean(value, DefaultFor(type));
+
+    float Clean(float value, float fallback) {
         if (!float.IsFinite(value)) {
-            return Default;
+            return fallback;
         }
 
         var clamped = Math.Clamp(value, Min, Max);

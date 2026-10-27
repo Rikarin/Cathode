@@ -97,6 +97,18 @@ public sealed record AmpPanel {
 
     readonly bool? hasPreampTubes;
 
+    /// <summary>
+    ///     The model's own defaults for Circuit Amp parameters it ships at another setting than the block's default, by
+    ///     parameter id: the Quick Rod's Solo Boost at 0, the boost off
+    ///     (<see cref="Parameters.ParamDescriptor.TypeDefaults" />).
+    /// </summary>
+    public IReadOnlyDictionary<string, float> Defaults { get; init; } = new Dictionary<string, float>();
+
+    /// <summary>
+    ///     The default of Circuit Amp parameter <paramref name="id" /> on this model, or <paramref name="fallback" />.
+    /// </summary>
+    public float Default(string id, float fallback) => Defaults.GetValueOrDefault(id, fallback);
+
     /// <summary>Whether one of the model's own switches is called <paramref name="name" />.</summary>
     public bool HasSwitch(string name) => Switch1 == name || Switch2 == name || Switch3 == name;
 

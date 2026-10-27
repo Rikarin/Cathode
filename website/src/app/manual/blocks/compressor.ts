@@ -28,12 +28,12 @@ compressed layer under it.`,
 
     threshold: `The level above which the compressor starts working. Lower means more of your playing is compressed. As a guide,
 a threshold that takes 3 to 6 dB off your normal picking is gentle; 10 dB or more is obvious squash. Bypass the block now
-and then to hear how much it is doing. With **Controls** on Compression it is still shown but ignored.`,
+and then to hear how much it is doing. Hidden with **Controls** on Compression, which sets it from its one knob.`,
 
     ratio: `How much the level over the threshold is reduced. At 4:1, a note 8 dB over the threshold comes out only 2 dB
 over. 2:1 is gentle, 4:1 to 8:1 is a typical guitar compressor, and at the top of the range (100) it is ∞:1, a limiter.
-Hidden on the Dynamics type, which sets its own ratio from its Dynamics knob. With **Controls** on Compression it is
-still shown but ignored.`,
+Hidden on the Dynamics type, which sets its own ratio from its Dynamics knob, and with **Controls** on Compression,
+which sets it from its one knob.`,
 
     attack: `How fast the compressor reacts when the level rises. Short attacks (under 2 ms) clamp down on the pick attack,
 which softens and flattens it; longer attacks (10 to 30 ms) let the pick "click" through before the compression grabs,
@@ -109,9 +109,10 @@ unmapped one is silence. Use another source for ducking, for example a guitar si
 a transient arrives: no overshoot, even with slower attacks. It adds the chosen delay as latency (parallel rows are
 aligned automatically), and changing it rebuilds the signal path. **Off** adds no delay.`,
 
-    controls: `**Threshold/Ratio** uses the two knobs. **Compression** replaces both with the single Compression knob.`,
+    controls: `**Threshold/Ratio** uses the two knobs. **Compression** replaces both with the single Compression knob;
+the editor shows only the knobs the setting uses.`,
 
-    compression: `Used when Controls is Compression: one knob that lowers the threshold from −6 to −50 dB and raises the ratio
+    compression: `Shown when Controls is Compression: one knob that lowers the threshold from −6 to −50 dB and raises the ratio
 from 1:1 to 20:1 together. The ratio rises with the square of the setting, so the first half stays gentle. 30 to 50 % is
 a typical pedal setting.`,
 

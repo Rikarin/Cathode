@@ -43,7 +43,7 @@ import { PeqPanel } from './panels/peq-panel';
 import { PitchPanel } from './panels/pitch-panel';
 import { ToneMatchPanel } from './panels/tone-match-panel';
 import { ParamControl } from './param-control';
-import { labelledParams } from './type-labels';
+import { isShown, labelledParams } from './type-labels';
 
 const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
 
@@ -469,7 +469,8 @@ export class BlockEditor {
     max: 1,
     default: 1,
     unit: '',
-    taper: 'linear'
+    taper: 'linear',
+    visibleWhen: null
   };
   protected readonly editingEngage = signal(false);
   protected readonly blockPresets = inject(BlockPresetsStore);
@@ -545,18 +546,23 @@ export class BlockEditor {
     const type = this.typeParam();
     return block && type ? (this.live.valueOf(block, this.live.channelOf(block.id), 'type') ?? type.default) : 0;
   });
-  private readonly otherParams = computed(() =>
-    labelledParams(
-      this.info()?.params.filter(
+  /** The block's controls but the type: named and hidden by the type, and hidden by another control's setting. */
+  private readonly otherParams = computed(() => {
+    const block = this.block();
+    const params = this.info()?.params ?? [];
+    const valueOf = (id: string) => (block ? this.live.valueOf(block, this.live.channelOf(block.id), id) : undefined);
+    return labelledParams(
+      params.filter(
         p =>
           p.id !== 'type' &&
-          !(this.block()?.type === 'pitch' && isCustomTableParam(p.id)) &&
-          !(this.block()?.type === 'cab' && isCabSlotParam(p.id))
-      ) ?? [],
+          !(block?.type === 'pitch' && isCustomTableParam(p.id)) &&
+          !(block?.type === 'cab' && isCabSlotParam(p.id)) &&
+          isShown(params, p, valueOf)
+      ),
       this.typeValue(),
-      this.block()?.type === 'circuitamp' && this.ampView() === 'ideal'
-    )
-  );
+      block?.type === 'circuitamp' && this.ampView() === 'ideal'
+    );
+  });
   /** The block's own controls, and its output stage (level, mix, balance, pan) set apart on the right. */
   protected readonly mainParams = computed(() => this.otherParams().filter(p => !OutputParams.has(p.id)));
   protected readonly outputParams = computed(() => this.otherParams().filter(p => OutputParams.has(p.id)));

@@ -44,6 +44,7 @@ describe('Block Info', () => {
                 default: 0,
                 unit: '',
                 taper: 'linear',
+                visibleWhen: null,
                 options: ['Blackface', 'Plexi', 'AC30']
               }
             ]

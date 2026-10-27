@@ -110,7 +110,10 @@ public sealed record SpeakerResonanceInfo(double BaseHz, float Percent, double H
 /// <summary>
 ///     A block parameter. <c>TypeLabels</c>, where present, names the parameter per value of the block's <c>type</c>
 ///     parameter (an amp model's own name for a generic control), empty where that type lacks the control: hide it
-///     there.
+///     there. <c>TypeDefaults</c>, where present, is the parameter's default per value of <c>type</c> (a model that
+///     ships a control at another setting), in place of <c>Default</c>: a value a channel does not store is that
+///     type's default. <c>VisibleWhen</c>, where present, shows the parameter only while another one of the block (a
+///     choice or a switch) holds one of the listed values: hide it otherwise.
 /// </summary>
 public sealed record ParameterInfo(
     string Id,
@@ -123,8 +126,13 @@ public sealed record ParameterInfo(
     string Taper,
     IReadOnlyList<string>? Options,
     IReadOnlyList<string>? TypeLabels = null,
-    string? Page = null
+    string? Page = null,
+    IReadOnlyList<float>? TypeDefaults = null,
+    ParameterCondition? VisibleWhen = null
 );
+
+/// <summary>A condition on a block's parameter: it holds while <c>Param</c> is one of <c>Values</c>.</summary>
+public sealed record ParameterCondition(string Param, IReadOnlyList<float> Values);
 
 /// <summary>
 ///     A block type the editor can place. <c>CpuCost</c> is its measured cost in percent of one core at 48 kHz

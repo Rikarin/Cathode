@@ -58,12 +58,22 @@ public static class PresetMigrations {
     /// <summary>The top of the Amp's knobs (Cut, Presence): 10.</summary>
     const float KnobTop = 10;
 
+    /// <summary>The Amp's Quick Rod type (its index then and now).</summary>
+    public const float QuickRodType = 86;
+
+    /// <summary>
+    ///     The Quick Rod's Solo Boost (Control 1) in schema 1: the block's default, 5, as every model had; since, the
+    ///     Quick Rod defaults to 0, the boost off.
+    /// </summary>
+    static readonly (string Id, float Value) Schema1QuickRodBoost = ("control1", 5);
+
     /// <summary>
     ///     Schema 2 (after 1.0.0-rc.3) changes the Amp: the Power Tube choice 5881, the 6L6GC under another name, is
     ///     gone; so are Triode 1 Plate Freq and Master Cap, which did nothing on any model; a new Amp starts at
     ///     Master 5 with its speaker load following the Cab; and the Chieftain's, Hot Cat's and Tiny Terror's Cut,
-    ///     their Brilliance or Tone turned the other way, is that control on the Presence knob. Every Amp channel is
-    ///     brought over so it sounds the same (<see cref="UpgradeAmpBlock" />).
+    ///     their Brilliance or Tone turned the other way, is that control on the Presence knob; the Quick Rod's Solo
+    ///     Boost defaults to off rather than 5. Every Amp channel is brought over so it sounds the same
+    ///     (<see cref="UpgradeAmpBlock" />).
     /// </summary>
     static JsonObject ToSchema2(JsonObject preset) {
         foreach (var amp in Amps(preset["blocks"])) {
@@ -121,7 +131,8 @@ public static class PresetMigrations {
     ///     A schema-1 Amp channel's values brought to schema 2: a Power Tube of 5881 becomes the 6L6GC, the removed
     ///     parameters' values are dropped, the defaults that changed are written in at their old values, and on a
     ///     Chieftain, Hot Cat 30 or Tiny Terror the Cut (0 when absent) becomes the Presence knob's Tone or Brilliance
-    ///     at 10 - Cut. Run it once per schema-1 channel: a schema-2 channel without a Master means Master 5.
+    ///     at 10 - Cut; a Quick Rod without a Solo Boost gets the 5 it played at. Run it once per schema-1 channel: a
+    ///     schema-2 channel without a Master means Master 5.
     /// </summary>
     public static void UpgradeAmpChannel(JsonObject channel) {
         if (channel["powertube"] is JsonValue value
@@ -148,6 +159,15 @@ public static class PresetMigrations {
                 : Schema1CutDefault;
             channel["presence"] = KnobTop - Math.Clamp(cut, 0, KnobTop);
             channel.Remove("cut");
+        }
+
+        if (channel["type"] is JsonValue rod
+            && rod.TryGetValue<float>(out var rodModel)
+            && rodModel == QuickRodType) {
+            var (id, old) = Schema1QuickRodBoost;
+            if (!channel.ContainsKey(id)) {
+                channel[id] = old;
+            }
         }
     }
 

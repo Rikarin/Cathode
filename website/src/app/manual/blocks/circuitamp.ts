@@ -180,7 +180,8 @@ Jubilee, *Tone Shift* on the DSL100, *3rd Gear* on the Quick Rod.`,
 *Mic Vol* on the Tweed Deluxe, *Loudness 2*, *Volume II*), a lead drive (*Lead Drive* on the Mark IIC+ and IV,
 *Lead 1 Drive*, *Overdrive*, *Drive*), or a tone control (*Edge* on the Hot Cat, *Mid Freq* on the SVT, *Hi Treble*
 on the JC-120, *Mid Focused* on the Powerball, *Cut* on the Prometheus, a low cut before its gain stages). On jumped
-Plexi-style amps the two volumes blend the bright and normal channels.`,
+Plexi-style amps the two volumes blend the bright and normal channels. On the Quick Rod it is the *Solo Boost*, which
+starts at 0: the boost is off there, as on the amp until you press its footswitch; turn it up for the solo lift.`,
 
     control2: `A model's second extra knob, where it has one: *Lead Master* on the Mark IIC+ and IV, *Presence* on the
 Rectifiers (a preamp presence control there), *Lead Volume* on the Powerball and Savage, *OD Level* on the ODS,

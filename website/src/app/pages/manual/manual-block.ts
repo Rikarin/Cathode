@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   ampFamilies,
   blockById,
+  defaultOn,
   type Knob,
   knobPages,
   labelOn,
@@ -143,7 +144,7 @@ type ByType =
                         } @else if (knob.param.kind === 'switch') {
                           <span><span class="knob-label">Switch</span> Off / On</span>
                         }
-                        <span><span class="knob-label">Default</span> {{ knob.defaultText }}</span>
+                        <span><span class="knob-label">Default</span> {{ defaultText(knob) }}</span>
                       </p>
 
                       @if (descriptions().get(knob.id); as description) {
@@ -160,6 +161,10 @@ type ByType =
                         } @else {
                           <ng-container *ngTemplateOutlet="choiceList; context: { $implicit: knob, detailed }" />
                         }
+                      }
+
+                      @if (knob.shownWhen) {
+                        <p class="knob-types"><span class="knob-label">Shown when</span> {{ knob.shownWhen }}</p>
                       }
 
                       @if (picked() < 0) {
@@ -385,6 +390,11 @@ export class ManualBlock {
   /** The knob's name on the picked type, or '' when that type does not have it. */
   protected nameOf(knob: Knob): string {
     return this.picked() < 0 ? knob.name : labelOn(knob, this.picked());
+  }
+
+  /** The knob's default: on the picked type, or for every type at once. */
+  protected defaultText(knob: Knob): string {
+    return this.picked() < 0 ? knob.defaultText : defaultOn(knob, this.picked());
   }
 
   protected hasDetail(knob: Knob): boolean {

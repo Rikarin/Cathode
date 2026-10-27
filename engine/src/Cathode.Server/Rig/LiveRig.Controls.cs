@@ -259,12 +259,7 @@ public sealed partial class LiveRig {
                 CheckChannel(target, descriptor.Channels);
                 PushUndo(null);
                 var before = block.Channels.GetValueOrDefault(target) ?? [];
-                var values = source.Values
-                    .Where(v => descriptor.IndexOf(v.Key) >= 0)
-                    .ToDictionary(
-                        static v => v.Key,
-                        v => descriptor.Params[descriptor.IndexOf(v.Key)].Sanitize(v.Value)
-                    );
+                var values = descriptor.Sanitized(source.Values);
                 block.Channels[target] = values;
                 if (block.Global is { } link) {
                     ShareWithGlobal(link, target, values);

@@ -112,8 +112,7 @@ public sealed class BlockPresetStore(
         );
 
     static Dictionary<string, float> Sanitize(BlockDescriptor descriptor, Dictionary<string, float> values) =>
-        values.Where(v => descriptor.IndexOf(v.Key) >= 0)
-            .ToDictionary(static v => v.Key, v => descriptor.Params[descriptor.IndexOf(v.Key)].Sanitize(v.Value));
+        descriptor.Sanitized(values);
 
     public bool Delete(string id) =>
         FactoryBlockPresets.All.Any(p => p.Id == id)

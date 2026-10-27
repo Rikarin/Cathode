@@ -72,6 +72,8 @@ public sealed class BlockCatalog {
             p.Taper.ToString().ToLowerInvariant(),
             p.Options,
             p.TypeLabels,
-            p.Page
+            p.Page,
+            p.TypeDefaults,
+            p.VisibleWhen is { } when ? new(when.Param, when.Values) : null
         );
 }

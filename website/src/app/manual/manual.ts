@@ -135,6 +135,8 @@ export interface Knob {
   /** The default, or for a family whose members differ, each member's ("1: 0 dB, 2: −3 dB"). */
   readonly defaultText: string;
   readonly choices: readonly Choice[];
+  /** For a knob shown only with another knob at some settings (`visibleWhen`): "Controls is Compression". */
+  readonly shownWhen?: string;
 }
 
 export interface KnobPage {
@@ -236,6 +238,7 @@ function collapse(block: ManualBlock, params: readonly EngineParam[]): Knob[] {
       param.max,
       param.options,
       availability(param),
+      param.visibleWhen ?? null,
       describeParam(block.doc, param.id) ?? ''
     ]);
 
@@ -276,8 +279,9 @@ function single(block: ManualBlock, param: EngineParam): Knob {
     numbers: [],
     description: describeParam(block.doc, param.id),
     range: rangeOf(param),
-    defaultText: formatValue(param, param.default),
-    choices: choicesOf(block, param)
+    defaultText: defaultTextOf(block, param),
+    choices: choicesOf(block, param),
+    shownWhen: shownWhenOf(block, param)
   };
 }
 
@@ -296,8 +300,42 @@ function family(block: ManualBlock, members: readonly { param: EngineParam; n: n
     description: describeParam(block.doc, first.param.id),
     range: rangeOf(first.param),
     defaultText: same ? defaults[0] : members.map((member, i) => `${member.n}: ${defaults[i]}`).join(', '),
-    choices: choicesOf(block, first.param)
+    choices: choicesOf(block, first.param),
+    shownWhen: shownWhenOf(block, first.param)
   };
+}
+
+/** The setting of another knob the knob is shown with, as text ("Controls is Compression"), if it has one. */
+function shownWhenOf(block: ManualBlock, param: EngineParam): string | undefined {
+  const when = param.visibleWhen;
+  const other = when && block.params.find(p => p.id === when.param);
+
+  return when && other ? `${other.name} is ${when.values.map(v => formatValue(other, v)).join(' or ')}` : undefined;
+}
+
+/**
+ * The knob's default as text; where some types ship it at another setting (`typeDefaults`), those types with theirs:
+ * "5 (Quick Rod: 0)".
+ */
+function defaultTextOf(block: ManualBlock, param: EngineParam): string {
+  const text = formatValue(param, param.default);
+  const types = block.params.find(p => p.id === 'type')?.options ?? [];
+  const others = new Map<string, string[]>();
+
+  param.typeDefaults?.forEach((value, i) => {
+    if (value !== param.default) {
+      const other = formatValue(param, value);
+      others.set(other, [...(others.get(other) ?? []), types[i] ?? String(i)]);
+    }
+  });
+
+  return others.size ? `${text} (${[...others].map(([other, on]) => `${on.join(', ')}: ${other}`).join('; ')})` : text;
+}
+
+/** The knob's default on type `type` of its block, as text. */
+export function defaultOn(knob: Knob, type: number): string {
+  const value = knob.param.typeDefaults?.[type];
+  return value === undefined || knob.numbers.length > 0 ? knob.defaultText : formatValue(knob.param, value);
 }
 
 /** The knob's name on type `type` of its block ('' where that type hides it), or its own name when it has no labels. */

@@ -15,10 +15,10 @@ It has two modes: **Chorus**, which mixes the effect with your dry sound for the
 - Some **Spread** for a stereo vibe, where each side sweeps at a different point.`,
 
   params: {
-    mode: `**Chorus** blends the phase-shifted signal with the dry, cutting the Vibe's lopsided notches: the classic sound. **Vibrato** is the shifted signal alone, which you hear as pitch wobble; in Vibrato the Mix knob is ignored.`,
+    mode: `**Chorus** blends the phase-shifted signal with the dry, cutting the Vibe's lopsided notches: the classic sound. **Vibrato** is the shifted signal alone, which you hear as pitch wobble; in Vibrato the Mix knob is hidden.`,
     rate: `How fast the lamp pulses. Slow (0.5–2 Hz) is a deep, throbbing swirl; faster (4–8 Hz) a rapid shimmer. There is no tempo sync on this block.`,
     intensity: `How far the sweep moves: up to four octaves at 100 %. Low values are a subtle shimmer; high values the full, dramatic throb.`,
-    mix: `In Chorus mode: the balance between dry and effect. At 50 % dry and wet are equal and the notches are deepest. Ignored in Vibrato mode, which is always fully wet.`,
+    mix: `In Chorus mode: the balance between dry and effect. At 50 % dry and wet are equal and the notches are deepest. Hidden in Vibrato mode, which is always fully wet.`,
     spread: `Offsets the right channel's sweep from the left's. At 0° both sides move together (a mono vibe); at 90–180° they sweep at different points for a wide stereo effect.`,
     level: `The block's output volume.`,
     balance: `Turns the opposite side down to shift the block's output left or right.`
