@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import {
   type BlockPreset,
   type BlockPresetFile,
@@ -8,6 +8,7 @@ import {
   unwrap
 } from '@cathode/api-client';
 import { ConnectionService } from '../core/connection';
+import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
 import { LiveStore } from './live.store';
 
@@ -61,6 +62,14 @@ export class BlockPresetsStore {
   readonly presets = signal<readonly BlockPreset[]>([]);
   readonly user = computed(() => this.presets().filter(p => !p.factory));
   readonly folders = computed(() => libraryFolders(this.user()));
+  private loaded = false;
+
+  constructor() {
+    // Entries may have changed while the event stream was down (or the Server restarted): read them again, once the
+    // Library has been read at all.
+    const subscription = inject(EventStream).connected$.subscribe(() => this.loaded && void this.refresh());
+    inject(DestroyRef).onDestroy(() => subscription.unsubscribe());
+  }
 
   /** Presets for one block type, factory first. */
   forType(type: string): readonly BlockPreset[] {
@@ -68,6 +77,7 @@ export class BlockPresetsStore {
   }
 
   async refresh(): Promise<void> {
+    this.loaded = true;
     await this.notify.run(async () =>
       this.presets.set(unwrap(await this.connection.client.GET('/api/v1/block-presets')))
     );

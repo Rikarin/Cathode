@@ -1,10 +1,13 @@
 import { TestBed } from '@angular/core/testing';
-import { ApiError, type Bank, type Setlist } from '@cathode/api-client';
+import { ApiError, type Bank, type RigEvent, type Setlist } from '@cathode/api-client';
 import { Subject } from 'rxjs';
 import { ConnectionService } from '../core/connection';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
+import { BlockPresetsStore } from './block-presets.store';
+import { CatalogStore } from './catalog.store';
 import { LibraryStore, presetUses } from './library.store';
+import { LiveStore } from './live.store';
 
 describe('LibraryStore.isStored', () => {
   function store(get: () => Promise<unknown>): LibraryStore {
@@ -31,6 +34,86 @@ describe('LibraryStore.isStored', () => {
   it('rejects when the Server refuses for another reason, rather than calling the preset new', async () => {
     const library = store(() => Promise.reject(new ApiError(503, 'The engine is not connected.')));
     await expect(library.isStored('p1')).rejects.toThrowError('The engine is not connected.');
+  });
+});
+
+describe('stores resync after a reconnection', () => {
+  function setup() {
+    const reads: string[] = [];
+    const answers: Record<string, unknown> = {
+      '/api/v1/presets': [{ id: 'p2', name: 'New' }],
+      '/api/v1/assets': [{ ref: 'ir1', kind: 'ir' }],
+      '/api/v1/banks': [{ id: 'gig', name: 'Gig', slots: [] }],
+      '/api/v1/block-presets': [{ id: 'b1', type: 'delay', name: 'Echo', values: {} }],
+      '/api/v1/catalog/blocks': [{ typeId: 'delay', category: 'Delay' }],
+      '/api/v1/catalog/rig': { typeId: 'rig', params: [] }
+    };
+    const GET = (path: string) => {
+      reads.push(path);
+      return Promise.resolve({ data: answers[path], response: new Response('{}') });
+    };
+    const events = { events$: new Subject<RigEvent>(), connected$: new Subject<void>() };
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ConnectionService, useValue: { client: { GET } } },
+        { provide: EventStream, useValue: events },
+        { provide: Notify, useValue: { run: (action: () => Promise<unknown>) => action(), error: () => undefined } },
+        { provide: LiveStore, useValue: {} }
+      ]
+    });
+    const settle = () => new Promise(resolve => setTimeout(resolve));
+    return { reads, events, settle };
+  }
+
+  it('reads the presets, assets and banks again', async () => {
+    const { reads, events, settle } = setup();
+    const library = TestBed.inject(LibraryStore);
+
+    events.connected$.next();
+    await settle();
+
+    expect(reads.sort()).toEqual(['/api/v1/assets', '/api/v1/banks', '/api/v1/presets']);
+    expect(library.presets().map(p => p.id)).toEqual(['p2']);
+    expect(library.banks().map(b => b.id)).toEqual(['gig']);
+    expect(library.impulseResponses()).toHaveLength(1);
+  });
+
+  it('reads the preset list again when a preset is renamed or tagged, not only saved', async () => {
+    const { reads, events, settle } = setup();
+    TestBed.inject(LibraryStore);
+
+    events.events$.next({ type: 'presetMetadataChanged', revision: 4 });
+    events.events$.next({ type: 'presetSaved', revision: 5 });
+    events.events$.next({ type: 'paramChanged', revision: 6 });
+    await settle();
+
+    expect(reads).toEqual(['/api/v1/presets', '/api/v1/presets']);
+  });
+
+  it('reads the block catalogue again', async () => {
+    const { reads, events, settle } = setup();
+    const catalog = TestBed.inject(CatalogStore);
+
+    events.connected$.next();
+    await settle();
+
+    expect(reads.sort()).toEqual(['/api/v1/catalog/blocks', '/api/v1/catalog/rig']);
+    expect(catalog.info('delay')).toBeDefined();
+  });
+
+  it('reads the Block Library again once it has been read', async () => {
+    const { reads, events, settle } = setup();
+    const blockPresets = TestBed.inject(BlockPresetsStore);
+
+    events.connected$.next();
+    await settle();
+    expect(reads).toEqual([]); // never opened: nothing to keep fresh
+
+    await blockPresets.refresh();
+    events.connected$.next();
+    await settle();
+    expect(reads).toEqual(['/api/v1/block-presets', '/api/v1/block-presets']);
+    expect(blockPresets.forType('delay')).toHaveLength(1);
   });
 });
 

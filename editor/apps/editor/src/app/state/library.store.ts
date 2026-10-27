@@ -12,6 +12,9 @@ import { ConnectionService } from '../core/connection';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
 
+/** Rig events that change the stored presets' list (names, colours, favourites, a new one). */
+const LibraryEvents = new Set(['presetSaved', 'presetMetadataChanged']);
+
 /** How an IR file is processed on import, as the Server's upload takes it (all optional: as-is by default). */
 export interface IrImportOptions {
   processing?: 'asIs' | 'autoTrim' | 'minimumPhase';
@@ -62,12 +65,23 @@ export class LibraryStore {
 
   constructor() {
     const events = inject(EventStream);
-    const subscription = events.events$.subscribe(event => {
-      if (event.type === 'presetSaved') {
-        void this.refreshPresets();
-      }
-    });
-    inject(DestroyRef).onDestroy(() => subscription.unsubscribe());
+    const subscriptions = [
+      // Another editor, a footswitch or this one saved, renamed or tagged a preset.
+      events.events$.subscribe(event => LibraryEvents.has(event.type) && void this.refreshPresets()),
+      // Presets, assets and banks may have changed while the stream was down (or the Server restarted): resync.
+      events.connected$.subscribe(() => void this.resync())
+    ];
+    inject(DestroyRef).onDestroy(() => subscriptions.forEach(s => s.unsubscribe()));
+  }
+
+  /** Reads everything the library holds again; asset usage only if something has read it. */
+  async resync(): Promise<void> {
+    await Promise.all([
+      this.refreshPresets(),
+      this.refreshAssets(),
+      this.refreshBanks(),
+      this.usage().size > 0 ? this.refreshUsage() : undefined
+    ]);
   }
 
   async refresh(): Promise<void> {

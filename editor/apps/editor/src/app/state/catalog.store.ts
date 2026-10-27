@@ -1,6 +1,7 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { type BlockTypeInfo, unwrap } from '@cathode/api-client';
 import { ConnectionService } from '../core/connection';
+import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
 
 /** Block types the Server offers, from the same descriptors the engine runs. */
@@ -18,6 +19,12 @@ export class CatalogStore {
 
   /** What the block palette offers: every block type, Input and Output included, so a deleted one can come back. */
   readonly placeable = computed(() => this.types().filter(t => t.category !== 'System'));
+
+  constructor() {
+    // A reconnection can be to a restarted, possibly updated, Server: read its catalogue again.
+    const subscription = inject(EventStream).connected$.subscribe(() => void this.load());
+    inject(DestroyRef).onDestroy(() => subscription.unsubscribe());
+  }
 
   async load(): Promise<void> {
     await this.notify.run(async () => {
