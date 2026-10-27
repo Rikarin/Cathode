@@ -59,6 +59,15 @@ builder.Services.AddSingleton<PresetTools>();
 
 var app = builder.Build();
 StartupLog.Phase(app.Logger, "services built", startup.ElapsedMilliseconds);
+// An exception no endpoint mapped answers an RFC 9457 problem (no details beyond the status), not an empty 500; a
+// request Kestrel refused (a body over its limit) keeps its status.
+app.UseExceptionHandler(
+    new ExceptionHandlerOptions {
+        StatusCodeSelector = static e => e is BadHttpRequestException bad
+            ? bad.StatusCode
+            : StatusCodes.Status500InternalServerError
+    }
+);
 if (builder.Configuration["Cathode:EditorDirectory"] is { Length: > 0 } editor) {
     app.UseCathodeEditor(editor);
 }

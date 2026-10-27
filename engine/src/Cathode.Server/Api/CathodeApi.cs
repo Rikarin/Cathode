@@ -411,7 +411,7 @@ public static class CathodeApi {
         assets.MapGet(
                 "/{reference}/content",
                 Results<FileStreamHttpResult, NotFound>(string reference, AssetStore store) =>
-                    store.Get(reference) is { } info && store.PathOf(reference) is { } path
+                    store.Get(reference) is { } info && store.PathOf(reference) is { } path && File.Exists(path)
                         ? TypedResults.File(
                             File.OpenRead(path),
                             info.Kind switch {
@@ -690,6 +690,8 @@ public static class CathodeApi {
                         await engine.ExportLooperAsync(path);
                     } catch (IpcException e) {
                         throw new RigException(409, e.Message);
+                    } catch (IOException e) {
+                        throw new RigException(503, e.Message); // the engine is not connected
                     }
 
                     var file = new FileStream(
