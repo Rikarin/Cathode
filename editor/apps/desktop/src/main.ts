@@ -25,6 +25,15 @@ if (process.env['CATHODE_USER_DATA']) {
   app.setPath('userData', process.env['CATHODE_USER_DATA']); // tests run with throwaway settings
 }
 
+/**
+ * One Cathode at a time (per settings folder): a second would start a second engine on the same audio interface and a
+ * second Server on the same presets. Launching it again brings the running one to the front instead.
+ */
+const primary = app.requestSingleInstanceLock();
+if (!primary) {
+  app.quit();
+}
+
 /** The renderer comes from the built editor through this scheme; nothing else is served from disk. */
 const Scheme = 'app';
 /** The app icon (apps/desktop/assets/icon.png), copied next to main.js by the build. */
@@ -317,7 +326,22 @@ function buildMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
+app.on('second-instance', () => {
+  if (window) {
+    if (window.isMinimized()) {
+      window.restore();
+    }
+
+    window.show();
+    window.focus();
+  }
+});
+
 app.whenReady().then(() => {
+  if (!primary) {
+    return;
+  }
+
   // Unpackaged, macOS would show Electron's own icon in the Dock.
   if (existsSync(Icon)) {
     app.dock?.setIcon(Icon);

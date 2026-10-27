@@ -1,8 +1,8 @@
 import type { ElectronApplication, Page } from '@playwright/test';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { expect, test } from './fixtures';
 
 // The engine sidecars as processes: what other programs on the machine can see of them.
@@ -63,6 +63,27 @@ test('quitting stops the engine cleanly, on every platform', async ({ app, windo
   expect(servers(pid)).toEqual([]);
   // The host had time to release the device and remove its socket: it was asked to stop, not terminated.
   expect(socketExists(pid)).toBe(false);
+});
+
+test('launching it again brings the running app forward instead of starting a second engine', async ({
+  app,
+  window
+}) => {
+  await expect(window.getByRole('gridcell', { name: /^Input in1/ })).toBeVisible();
+  const userData = await app.evaluate(({ app }) => app.getPath('userData'));
+  const noticed = app.evaluate(
+    ({ app }) => new Promise<boolean>(done => app.once('second-instance', () => done(true)))
+  );
+
+  const second = spawn(require('electron') as string, [resolve(__dirname, '../../../dist/apps/desktop/main.js')], {
+    env: { ...process.env, CATHODE_USER_DATA: userData },
+    stdio: 'ignore'
+  });
+  const exitCode = await new Promise<number | null>(done => second.once('exit', code => done(code)));
+
+  expect(exitCode).toBe(0);
+  expect(await noticed).toBe(true);
+  expect(hosts(await mainPid(app))).toHaveLength(1);
 });
 
 interface Desktop {
