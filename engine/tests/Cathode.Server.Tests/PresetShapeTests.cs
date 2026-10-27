@@ -4,6 +4,7 @@ using Cathode.Server.Stores;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json.Nodes;
 
 namespace Cathode.Server.Tests;
 
@@ -31,6 +32,77 @@ public sealed class PresetShapeTests : IAsyncLifetime {
 
         Assert.Equal(400, refused.Status);
         Assert.False(File.Exists(Path.Combine(Presets, "bad1.json")));
+    }
+
+    [Fact]
+    public async Task A_grid_larger_than_six_by_fourteen_is_refused_and_the_rig_keeps_its_preset() {
+        var live = (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!;
+        var next = live.Preset;
+        next.Rows = 5000;
+        next.Columns = 5000;
+
+        using var response = await client.PutAsJsonAsync("/api/v1/live", next, Token);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains(
+            "1 to 6 rows and 1 to 14 columns",
+            await response.Content.ReadAsStringAsync(Token),
+            StringComparison.Ordinal
+        );
+        Assert.Equal(6, (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!.Preset.Rows);
+    }
+
+    [Fact]
+    public async Task Blocks_and_cables_that_do_not_fit_the_grid_are_refused_with_every_problem() {
+        var next = (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!.Preset;
+        next.Blocks.Add(new() { Id = "far", Type = "chorus", Row = 6, Column = 3 });
+        next.Blocks.Add(new() { Id = "twin", Type = "chorus", Row = Preset.DefaultRow, Column = 0 });
+        next.Blocks.Add(new() { Id = "in1", Type = "delay", Row = 0, Column = 5 });
+        next.Cables.Add(new() { From = "in1", To = "ghost" });
+        next.Cables.Add(new() { From = "out1", To = "far" });
+
+        using var response = await client.PutAsJsonAsync("/api/v1/live", next, Token);
+        var problem = await response.Content.ReadFromJsonAsync<JsonObject>(Token);
+        var errors = problem!["errors"]!.AsArray().Select(static e => e!.GetValue<string>()).ToList();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(
+            [
+                "Block 'far' at (6,3) is outside the 6x14 grid.",
+                "Block 'twin' shares cell (2,0) with 'in1'.",
+                "Two blocks have the id 'in1'.",
+                "Cable 'in1' -> 'ghost' refers to a block that does not exist.",
+                "Cable 'out1' -> 'far' does not run from one column to the next (shunts bridge gaps)."
+            ],
+            errors
+        );
+    }
+
+    [Fact]
+    public async Task More_modifiers_than_the_telemetry_reports_are_refused() {
+        var next = (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!.Preset;
+        next.Modifiers = [
+            ..Enumerable.Range(0, Preset.MaxModifiers + 1)
+                .Select(static i => new PresetModifier { Block = "out1", Param = $"p{i}", Source = "manualA" })
+        ];
+
+        using var response = await client.PutAsJsonAsync("/api/v1/live", next, Token);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("at most 256", await response.Content.ReadAsStringAsync(Token), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Storing_or_importing_a_grid_of_the_wrong_shape_is_refused() {
+        var store = server.Services.GetRequiredService<PresetStore>();
+        var preset = Preset.CreateDefault();
+        preset.Id = "tall";
+        preset.Rows = Preset.MaxRows + 1;
+
+        var refused = Assert.Throws<RigException>(() => store.Save(preset));
+
+        Assert.Equal(400, refused.Status);
+        Assert.False(File.Exists(Path.Combine(Presets, "tall.json")));
     }
 
     [Fact]

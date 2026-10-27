@@ -4,6 +4,7 @@ using Cathode.Dsp.Parameters;
 using Cathode.Dsp.Resampling;
 using Cathode.Dsp.Routing;
 using Cathode.Engine.Rig;
+using Cathode.Engine.Telemetry;
 
 namespace Cathode.Engine.Graph;
 
@@ -37,6 +38,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         var set = CreateBlocks(nodes, spec, oversampling, errors);
         var feedbackPairs = PairFeedback(nodes, set.SlotOfNode, set.Blocks, spec, errors);
         var modifiers = BindModifiers(definition.Modifiers, set, errors);
+        CheckTelemetryRoom(set.Blocks, modifiers.Count, errors);
         if (errors.Count > 0) {
             set.Blocks.ForEach(static b => b.Dispose());
             throw new GraphValidationException(errors);
@@ -65,6 +67,28 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             set.Analyzer,
             set.Port
         ) { LatencyPath = LatencyPath(nodes, timing, set), Tone = TestTone };
+    }
+
+    /// <summary>
+    ///     Refuses a graph whose meters or modifiers do not all fit the telemetry region
+    ///     (<see cref="TelemetryLayout.BlockMeters" />, <see cref="TelemetryLayout.Modifiers" />): the editor would
+    ///     show nothing for those past the end. A preset the server accepts (at most a 6 x 14 grid and 256 modifiers)
+    ///     always fits; this guards every other way a graph reaches the engine.
+    /// </summary>
+    static void CheckTelemetryRoom(List<IDspBlock> blocks, int modifiers, List<string> errors) {
+        var meters = 0;
+        foreach (var block in blocks) {
+            // Each slot's peak, then its own meters, as CompiledGraph lays them out.
+            meters += 1 + (block is IBlockMeters own ? own.MeterIds.Count : 0);
+        }
+
+        if (meters > TelemetryLayout.BlockMeters) {
+            errors.Add($"The graph has {meters} block meters; telemetry has room for {TelemetryLayout.BlockMeters}.");
+        }
+
+        if (modifiers > TelemetryLayout.Modifiers) {
+            errors.Add($"The graph has {modifiers} modifiers; telemetry has room for {TelemetryLayout.Modifiers}.");
+        }
     }
 
     static OversamplingPhase ParseOversampling(string name, List<string> errors) {

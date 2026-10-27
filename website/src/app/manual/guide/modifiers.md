@@ -12,7 +12,7 @@ A modifier connects one **source** (a controller) to one **parameter** (a knob).
 
 While the modifier runs, it decides the knob's value; the value you set by hand is kept for when the modifier is removed or does not apply. Set **Min** higher than **Max** to make the knob move the opposite way to the source: for example, a volume that falls as a pedal goes down.
 
-Modifiers work on continuous knobs. Switches and choices cannot take one, with one exception: a block's engage switch (see [below](#engaging-a-block-from-a-modifier)).
+Modifiers work on continuous knobs. Switches and choices cannot take one, with one exception: a block's engage switch (see [below](#engaging-a-block-from-a-modifier)). A knob takes one modifier, and a preset holds up to 256 of them.
 
 ## Adding a modifier
 
