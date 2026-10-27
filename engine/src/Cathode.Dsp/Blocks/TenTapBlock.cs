@@ -207,7 +207,7 @@ public sealed class TenTapBlock() : DspBlock(Info) {
         var useLearned = (int)Params.Current(Learn) != LearnOff && learnedCount > 0;
         var grid = TempoDivisions.Milliseconds((int)Params.Current(Quantize), tempo) * 0.001 * Spec.SampleRate;
         for (var k = 0; k < MaxTaps; k++) {
-            var position = useLearned ? k < learnedCount ? learned[k] : 1f : Params.Current(Tap1Time + k) / 100f;
+            var position = !useLearned ? Params.Current(Tap1Time + k) / 100f : k < learnedCount ? learned[k] : 1f;
             var samples = time * position;
             if (grid > 0 && !useLearned) {
                 samples = (float)(Math.Round(samples / grid) * grid);

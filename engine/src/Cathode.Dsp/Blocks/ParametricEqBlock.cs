@@ -146,7 +146,8 @@ public sealed class ParametricEqBlock : DspBlock {
                 }
 
                 var outer = b is 1 or Bands;
-                var kind = !outer ? Peak : (int)Params.Current(b == 1 ? LowType : HighType);
+                var typeParam = b == 1 ? LowType : HighType;
+                var kind = !outer ? Peak : (int)Params.Current(typeParam);
                 switch (kind) {
                     case Shelf2:
                         shelves[b == 1 ? 0 : 1].Process(chunk, b == 1, Spec.SampleRate, frequency, gain);

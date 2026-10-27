@@ -204,8 +204,9 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         SetCrossover(Params.Current(Crossover));
         var speed = (int)Params.Current(Speed);
         var fast = speed == Fast;
-        hornRate = speed == Brake ? 0 : Params.Current(fast ? HornFast : HornSlow);
-        drumRate = speed == Brake ? 0 : Params.Current(fast ? DrumFast : DrumSlow) * Params.Current(LowRateMultiplier);
+        var (hornParam, drumParam) = fast ? (HornFast, DrumFast) : (HornSlow, DrumSlow);
+        hornRate = speed == Brake ? 0 : Params.Current(hornParam);
+        drumRate = speed == Brake ? 0 : Params.Current(drumParam) * Params.Current(LowRateMultiplier);
         hornPhase = 0;
         drumPhase = DrumStartPhase;
         mix = Params.Current(Mix) / 100f;

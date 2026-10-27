@@ -1177,7 +1177,7 @@ public sealed class ToneStage {
         root.SetResistance(2, n.Load);
 
         // Low: L = Rs / ω, as the gyrator's Rs R C.
-        var low = n.LowHz > 0 ? lowHz > 0 ? lowHz : n.LowHz : 100;
+        var low = BandHz(n.LowHz, lowHz, 100);
         Pot(root, 3, n.Pot, n.LowHz > 0 ? bass : 0.5);
         root.SetResistance(5, GyratorResistance);
         root.SetResistance(6, rs);
@@ -1187,11 +1187,21 @@ public sealed class ToneStage {
         Mid(root, 7, 1, n.Pot, mid > 0 ? mid : 1_000, n.MidHz > 0 ? middle : 0.5, n.BandQ, rs, rate);
         Mid(root, 11, 3, n.Pot, n.Mid2Hz > 0 ? n.Mid2Hz : 1_000, n.Mid2Hz > 0 ? middle2 : 0.5, n.BandQ, rs, rate);
 
-        var high = n.HighHz > 0 ? highHz > 0 ? highHz : n.HighHz : 5_000;
+        var high = BandHz(n.HighHz, highHz, 5_000);
         Pot(root, 15, n.Pot, n.HighHz > 0 ? tone : 0.5);
         root.SetResistance(17, rs);
         root.Capacitor(5).Configure(1 / (2 * Math.PI * high * rs), rate);
         root.Propagate();
+
+        // A band's frequency: the override's when the network has the band and one is set, else the network's own;
+        // the placeholder when the network has no such band.
+        static double BandHz(double own, double overrideHz, double absent) {
+            if (own > 0) {
+                return overrideHz > 0 ? overrideHz : own;
+            }
+
+            return absent;
+        }
 
         static void Pot(CircuitRoot<ResistiveVoltageSource, NoDevice> root, int at, double pot, double boost) {
             root.SetResistance(at, pot * boost); // input side: the shunt there cuts
