@@ -3,7 +3,7 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Fender Vibrolux 6G11 (brownface, 30 W, 2 × 10): the Normal or Bright channel (<see cref="AmpPanel.Switch1" />),
+///     Fender Vibrolux 6G11 (brownface, 30 W, 1 × 12): the Normal or Bright channel (<see cref="AmpPanel.Switch1" />),
 ///     each
 ///     a 7025 stage (100k, 1.5k ‖ 25 µF) driving the 6G11's tone network from its plate, the 1M audio Volume (47 pF across
 ///     it on the Bright channel), a second 7025 stage and 220k into the mix with the idle channel's; a 12AX7 long-tail
@@ -30,8 +30,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Unverified: the 6L6 idle current (35 mA, as the Vibrolux Reverb AA964; the 6L6GC's Koren curves give 13 mA at
 ///         the drawing's −45 V with 364 V screens, colder than the 6L6s of an amp of this kind run), the pot tapers
 ///         (Treble linear, Bass and Volume audio as on the drawing's "A"), the output transformer 45217 (4k assumed, as
-///         the Vibrolux Reverb's 125A6A), the feedback tap (the two 8 Ω
-///         10s in parallel, 4 Ω), the supply's source resistance, the 2 × 10's impedance curve (the 4 × 10 preset).
+///         the Vibrolux Reverb's 125A6A), the supply's source resistance. The brownface Vibrolux is the 1 × 12 combo
+///         (the 2 × 10 is the blackface Vibrolux Reverb, AA964, modelled apart): one 8 Ω speaker, so the feedback comes
+///         off the 8 Ω winding, and the load is the open-back 1 × 12 preset.
 ///         Not modelled: the 100 pF between the inverter's plates.
 ///     </para>
 ///     <para>
@@ -98,10 +99,10 @@ public static class Vibrolux6G11 {
             1,
             0,
             new(1e6, PotTaper.Linear),
-            new(1 / Math.Sqrt(2), 56e3, 1.5e3, new(1e3, PotTaper.Linear), 1e-12),
+            new(1, 56e3, 1.5e3, new(1e3, PotTaper.Linear), 1e-12),
             true,
             new(4e3),
-            SpeakerDesign.OpenBack4x10,
+            SpeakerDesign.OpenBack1x12,
             new(100, 32e-6, 100, 16e-6, 10e3, 16e-6, 5.8e-3, RectifierModel.GZ34),
             InverterInput: new(0.005e-6, 1e6)
         ) { BiasTremolo = Tremolo },

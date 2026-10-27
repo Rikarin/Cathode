@@ -337,7 +337,7 @@ models. Against the catalogue above it adds these real amps:
 | Amp | Family | Status | Cathode type | Axe models | Typical cab |
 |---|---|---|---|---|---|
 | Fender Deluxe 6G3 (brownface) | Fender | ✅ Done (factory drawing `deluxe_6g3_schem.pdf`: Normal and Bright channels, Tone, the split-load second stage; the bias tremolo with Speed and Intensity) | Deluxe 6G3 | Deluxe 6G3 | 1x12 open |
-| Fender Vibrolux 6G11 (brownface, 1962/63) | Fender | ✅ Done (factory drawing `vibrolux_6g11_schem.pdf`: Normal and Bright channels; the drawing has a bias tremolo, not the harmonic vibrato: built, with Speed and Intensity; OT assumed) | Vibrolux 6G11 | Vibrato Lux 6G11 | 2x10 open |
+| Fender Vibrolux 6G11 (brownface, 1962/63) | Fender | ✅ Done (factory drawing `vibrolux_6g11_schem.pdf`: Normal and Bright channels; the drawing has a bias tremolo, not the harmonic vibrato: built, with Speed and Intensity; OT assumed; a 1 x 12 combo) | Vibrolux 6G11 | Vibrato Lux 6G11 | 1x12 open |
 | Supro 1695T Black Magick | US vintage | ⏸ Waiting (a 2016 reissue-era design by Absara; no schematic published: only specifications, 2 × 6973 cathode-biased, 25 W) | — | Supremo Black Magick | 1x12 open |
 | Supro 1964T | US vintage | ⏸ Waiting (no schematic for a "1964T" found; the 2014 reissues' S6420 / S6424 schematics may be related) | — | Supremo 1964T | 1x12 open |
 | Marshall SV20H (Studio Vintage, 20 W Plexi) | Marshall | 💤 Not planned (not searched yet) | — | Plexi Studio 20 | 2x12 / 4x12 closed |

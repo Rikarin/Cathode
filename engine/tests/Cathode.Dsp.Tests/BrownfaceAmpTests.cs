@@ -44,6 +44,14 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
         }
     }
 
+    [Fact]
+    public void The_brownface_vibrolux_is_a_one_by_twelve_with_its_feedback_from_the_8_ohm_winding() {
+        // One 8 Ω speaker (the 2 × 10 is the blackface Vibrolux Reverb): the feedback tap is the 8 Ω winding itself.
+        var power = Vibrolux6G11.Design.Power;
+        Assert.Same(SpeakerDesign.OpenBack1x12, power.Speaker);
+        Assert.Equal(1, power.Feedback.TapGain);
+    }
+
     /// <summary>Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.</summary>
     [Theory]
     [MemberData(nameof(Types))]
