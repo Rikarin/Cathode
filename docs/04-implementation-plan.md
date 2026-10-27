@@ -36,7 +36,7 @@ Each spike is a throwaway prototype with a written result in `docs/adr/`.
 ## Phase 1: engine core (4–6 weeks) — *in progress*
 
 - [x] Solution scaffold per [02 §3](02-architecture.md#3-repository-layout); CI on Windows, macOS and Linux (GitHub Actions); `Directory.Build.props` with analyzers and `TreatWarningsAsErrors`
-- [ ] Audio backends: **Offline** ✅, **Null** ✅, **Native** ✅ macOS CoreAudio, ✅ Windows WASAPI, ◐ Linux ALSA and JACK (no hardware run yet); ASIO still to do
+- [ ] Audio backends: **Offline** ✅, **Null** ✅, **Native** ✅ macOS CoreAudio, ✅ Windows WASAPI, ◐ Windows ASIO (tested against the SDK's sample driver only), ◐ Linux ALSA and JACK (no hardware run yet)
 - [x] `Cathode.Testing` analysis toolkit ([03 §2](03-testing-strategy.md#2-the-analysis-toolkit-build-this-first)) and the `cathode-render` CLI (the `Cathode.Analyze` CLI is still to do)
 - [x] `IDspBlock` contract, `ParamBank` + smoothers, `BlockDescriptor` + catalogue registry
 - [x] Grid model → DAG → **graph compiler**: topological sort, buffer colouring, implicit mixers, latency compensation

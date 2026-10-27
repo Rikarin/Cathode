@@ -9,6 +9,9 @@
  * classic shared stream after that. Setting CTH_WASAPI_SHARED=1 skips exclusive mode, so other applications keep
  * playing. One MMCSS "Pro Audio" thread waits on both endpoint events; capture goes through a small FIFO primed with
  * one period, and each render event pulls the planar callback in chunks of at most one period.
+ *
+ * Uids of the form "asio:<driver key>" go to the ASIO backend instead (cth_audio_asio.cpp); its drivers are listed
+ * after the WASAPI endpoints.
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #define COBJMACROS
@@ -25,7 +28,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "cth_asio_util.h"
 #include "cth_audio.h"
+#include "cth_audio_win.h"
 
 #define MAX_CHANNELS 64
 #define FIFO_FRAMES 16384 /* power of two; capture waiting for the render side */
@@ -69,6 +74,7 @@ typedef struct device_watch {
 } device_watch;
 
 struct cth_stream {
+    cth_asio_stream *asio; /* an "asio:" device: everything below is unused */
     endpoint out;
     endpoint in; /* in.client is NULL when no input was opened */
     cth_process_fn process;
@@ -103,6 +109,7 @@ struct cth_stream {
 };
 
 static __declspec(thread) char last_error[256];
+static volatile LONG backend_is_asio;
 
 static int32_t fail(const char *what, HRESULT status)
 {
@@ -110,8 +117,10 @@ static int32_t fail(const char *what, HRESULT status)
     return -1;
 }
 
+void cth_win_set_error(const char *message) { snprintf(last_error, sizeof last_error, "%s", message); }
+
 const char *cth_audio_last_error(void) { return last_error; }
-const char *cth_audio_backend(void) { return "wasapi"; }
+const char *cth_audio_backend(void) { return backend_is_asio ? "asio" : "wasapi"; }
 
 /* ---- COM scaffolding -------------------------------------------------------------------------------------------- */
 
@@ -283,7 +292,8 @@ static IMMDevice *paired_capture(IMMDeviceEnumerator *e, IMMDevice *render)
 
 /* ---- Enumeration ------------------------------------------------------------------------------------------------ */
 
-int32_t cth_audio_device_count(void)
+/* The active render endpoints; the ASIO drivers follow them in the device list. */
+static int32_t wasapi_device_count(void)
 {
     int com = com_enter();
     IMMDeviceEnumerator *e = enumerator();
@@ -296,6 +306,11 @@ int32_t cth_audio_device_count(void)
     return (int32_t)count;
 }
 
+int32_t cth_audio_device_count(void)
+{
+    return wasapi_device_count() + cth_asio_device_count();
+}
+
 int32_t cth_audio_device_info(int32_t index, cth_device_info *info)
 {
     if (!info || index < 0) return fail("device index out of range", 0);
@@ -306,7 +321,9 @@ int32_t cth_audio_device_info(int32_t index, cth_device_info *info)
     IMMDevice *render = NULL, *capture = NULL;
     UINT count = 0;
     if (renders) IMMDeviceCollection_GetCount(renders, &count);
-    if ((UINT)index >= count || FAILED(IMMDeviceCollection_Item(renders, (UINT)index, &render))) {
+    if ((UINT)index >= count) {
+        result = cth_asio_device_info(index - (int32_t)count, info);
+    } else if (FAILED(IMMDeviceCollection_Item(renders, (UINT)index, &render))) {
         result = fail("device index out of range", 0);
     } else {
         memset(info, 0, sizeof *info);
@@ -331,6 +348,8 @@ int32_t cth_audio_channel_name(int32_t device_index, int32_t is_input, int32_t c
 {
     if (!name || size <= 0) return fail("invalid arguments", 0);
     name[0] = 0;
+    int32_t endpoints = wasapi_device_count();
+    if (device_index >= endpoints) return cth_asio_channel_name(device_index - endpoints, is_input, channel, name, size);
     cth_device_info info;
     if (cth_audio_device_info(device_index, &info) != 0) return -1;
     if (channel < 0 || channel >= (is_input ? info.input_channels : info.output_channels))
@@ -897,6 +916,7 @@ static unsigned __stdcall audio_thread(void *arg)
 
 static void free_stream(cth_stream *s)
 {
+    if (s->asio) cth_asio_close(s->asio);
     if (s->notifier) {
         IMMDeviceEnumerator_UnregisterEndpointNotificationCallback(s->notifier, &s->watch.iface);
         RELEASE(s->notifier);
@@ -917,6 +937,15 @@ int32_t cth_audio_open(const char *device_uid, cth_stream_config *config, cth_pr
 
     cth_stream *s = (cth_stream *)calloc(1, sizeof *s);
     if (!s) return fail("out of memory", 0);
+    if (cth_asio_uid_key(device_uid)) {
+        if (cth_asio_open(device_uid, config, process, user, &s->asio) != 0) {
+            free(s);
+            return -1;
+        }
+        InterlockedExchange(&backend_is_asio, 1);
+        *stream = s;
+        return 0;
+    }
     int com = com_enter();
     int32_t result = 0;
     HRESULT hr;
@@ -990,8 +1019,12 @@ int32_t cth_audio_open(const char *device_uid, cth_stream_config *config, cth_pr
 
 done:
     RELEASE(e);
-    if (result != 0) free_stream(s);
-    else *stream = s;
+    if (result != 0) {
+        free_stream(s);
+    } else {
+        InterlockedExchange(&backend_is_asio, 0);
+        *stream = s;
+    }
     com_leave(com);
     return result;
 }
@@ -999,6 +1032,7 @@ done:
 int32_t cth_audio_start(cth_stream *s)
 {
     if (!s) return fail("no stream", 0);
+    if (s->asio) return cth_asio_start(s->asio);
     if (s->running) return 0;
     ResetEvent(s->stop_event);
     s->thread = (HANDLE)_beginthreadex(NULL, 0, audio_thread, s, 0, NULL);
@@ -1018,6 +1052,7 @@ int32_t cth_audio_start(cth_stream *s)
 
 int32_t cth_audio_stop(cth_stream *s)
 {
+    if (s && s->asio) return cth_asio_stop(s->asio);
     if (!s || !s->running) return 0;
     SetEvent(s->stop_event);
     WaitForSingleObject(s->thread, INFINITE);
@@ -1044,6 +1079,10 @@ void cth_audio_stats(const cth_stream *s, cth_stream_stats *stats)
     if (!stats) return;
     memset(stats, 0, sizeof *stats);
     if (!s) return;
+    if (s->asio) {
+        cth_asio_stats(s->asio, stats);
+        return;
+    }
     stats->callbacks = (uint64_t)InterlockedCompareExchange64((volatile LONG64 *)&s->callbacks, 0, 0);
     stats->overloads = (uint64_t)InterlockedCompareExchange64((volatile LONG64 *)&s->overloads, 0, 0);
     stats->input_latency_frames = s->input_latency;
@@ -1057,15 +1096,21 @@ void cth_audio_timing(const cth_stream *s, cth_stream_timing *timing)
         memset(timing, 0, sizeof *timing);
         return;
     }
+    if (s->asio) {
+        cth_asio_timing(s->asio, timing);
+        return;
+    }
     memcpy(timing, &s->timing, sizeof *timing); /* racy snapshot of counters; fine for statistics */
 }
 
 void cth_audio_reset_timing(cth_stream *s)
 {
-    if (s) InterlockedExchange(&s->reset_timing, 1);
+    if (s && s->asio) cth_asio_reset_timing(s->asio);
+    else if (s) InterlockedExchange(&s->reset_timing, 1);
 }
 
 int32_t cth_audio_status(const cth_stream *s)
 {
+    if (s && s->asio) return cth_asio_status(s->asio);
     return s ? (int32_t)InterlockedCompareExchange((volatile LONG *)&s->status, 0, 0) : CTH_STREAM_OK;
 }

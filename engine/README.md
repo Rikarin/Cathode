@@ -8,7 +8,7 @@ The .NET 10 audio engine. The design is described in [docs/02-architecture.md](.
 | `src/Cathode.Engine` | Grid model (JSON), graph compiler (pruning, ordering, buffer reuse, latency compensation), SPSC command ring, real-time loop with RCU graph swap, callback stats, shared-memory telemetry region |
 | `src/Cathode.Audio` | WAV I/O, offline renderer, null (device-less, real-time paced) backend, native device sessions, latency probe |
 | `src/Cathode.Dsp.Native` | Blocks backed by native code: `NamAmpBlock`, the capture amp with Neural Amp Modeler models ([ADR-0003](../docs/adr/0003-nam-hosting.md)) as well as AIDA-X ones |
-| `native/cth_audio` | C shim: CoreAudio HAL IOProc (macOS), WASAPI (Windows), ALSA `hw:` and JACK (Linux; needs `libasound2-dev` to build), with CoreMIDI, WinMM and ALSA sequencer MIDI, and an FTZ/DAZ helper |
+| `native/cth_audio` | C shim: CoreAudio HAL IOProc (macOS), WASAPI and ASIO (Windows; ASIO through Steinberg's SDK, fetched by the build), ALSA `hw:` and JACK (Linux; needs `libasound2-dev` to build), with CoreMIDI, WinMM and ALSA sequencer MIDI, and an FTZ/DAZ helper |
 | `native/cth_nam` | C ABI over NeuralAmpModelerCore v0.6.0 (pinned and fetched by CMake) |
 | `src/Cathode.Host` | NativeAOT engine executable: `--serve` for the Server, plus diagnostics (`--self-test`, `--audio-test`, …) |
 | `src/Cathode.Contracts` | Preset schema and API DTOs (no engine dependencies) |
@@ -24,6 +24,12 @@ NeuralAmpModelerCore and Eigen. Without them, the device and NAM tests skip and 
 
 ```bash
 native/build.sh
+```
+
+Unit tests of the shim's device-independent parts (ASIO sample conversion and driver-list parsing):
+
+```bash
+ctest --test-dir artifacts/obj/native -C Release --output-on-failure
 ```
 
 ```bash

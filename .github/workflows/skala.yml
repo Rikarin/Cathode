@@ -72,7 +72,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: engine/artifacts/deps
-          key: native-deps-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
+          key: native-deps-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt', 'engine/native/cth_audio/CMakeLists.txt') }}
       - name: Install ALSA headers
         run: sudo apt-get update -q && sudo apt-get install -y -q libasound2-dev
       - name: Build native shim

@@ -34,8 +34,8 @@ public static unsafe class NativeAudio {
     public static bool IsAvailable => IsLibraryPresent && Backend != "none";
 
     /// <summary>
-    ///     "coreaudio", "wasapi", "alsa" (or "jack" once a <c>jack:</c> device is open), or "none" on platforms whose
-    ///     backend isn't written yet.
+    ///     "coreaudio", "wasapi" (or "asio" once an <c>asio:</c> device is open), "alsa" (or "jack" once a
+    ///     <c>jack:</c> device is open), or "none" on platforms whose backend isn't written yet.
     /// </summary>
     public static string Backend => Marshal.PtrToStringUTF8((nint)Backend()) ?? "none";
 

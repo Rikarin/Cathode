@@ -80,7 +80,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: engine/artifacts/deps
-          key: native-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
+          key: native-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt', 'engine/native/cth_audio/CMakeLists.txt') }}
       - name: Linux audio headers
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
@@ -153,7 +153,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: engine/artifacts/deps
-          key: native-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
+          key: native-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt', 'engine/native/cth_audio/CMakeLists.txt') }}
       - name: Linux audio headers
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
