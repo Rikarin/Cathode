@@ -1,7 +1,6 @@
 using Cathode.Dsp;
 using Cathode.Engine;
 using Cathode.Engine.Graph;
-using System.Diagnostics;
 
 namespace Cathode.Host;
 
@@ -18,38 +17,8 @@ static class SelfTest {
         var engine = new CathodeEngine(spec);
         engine.Publish(graph);
 
-        var random = new Random(1);
-        var input = new float[(int)spec.SampleRate * seconds];
-        for (var i = 0; i < input.Length; i++) {
-            input[i] = (float)(random.NextDouble() * 2 - 1) * 0.5f;
-        }
-
-        var outLeft = new float[input.Length];
-        var outRight = new float[input.Length];
-        var callbacks = input.Length / spec.MaxBlockSize;
-
-        void RenderAll() {
-            for (var c = 0; c < callbacks; c++) {
-                var offset = c * spec.MaxBlockSize;
-                var block = input.AsSpan(offset, spec.MaxBlockSize);
-                engine.Process(
-                    new(
-                        block,
-                        block,
-                        outLeft.AsSpan(offset, spec.MaxBlockSize),
-                        outRight.AsSpan(offset, spec.MaxBlockSize)
-                    )
-                );
-            }
-        }
-
-        RenderAll(); // warm-up
-        engine.Stats.Reset();
-        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-        var started = Stopwatch.GetTimestamp();
-        RenderAll();
-        var elapsed = Stopwatch.GetElapsedTime(started);
-        var allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+        var input = OfflineRender.Noise((int)spec.SampleRate * seconds, 0.5f);
+        var (outLeft, callbacks, elapsed, allocated) = OfflineRender.Measure(engine, input, spec.MaxBlockSize);
 
         var realtime = seconds / elapsed.TotalSeconds;
         Console.WriteLine(

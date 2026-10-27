@@ -81,7 +81,7 @@ static class AudioCommands {
                         GraphJsonContext.Default.GraphDefinition
                     )!
                     : options.Text("nam") is { } model
-                        ? Graphs.Nam(Path.GetFullPath(model))
+                        ? GraphTemplates.Nam(Path.GetFullPath(model))
                         : GraphTemplates.Basic();
                 var assetRoot = graphPath is not null ? Path.GetDirectoryName(Path.GetFullPath(graphPath)) : null;
                 engine.Publish(
