@@ -148,17 +148,7 @@ public sealed partial class AssetStore {
         }
 
         original.Position = 0;
-        AudioData audio;
-        try {
-            audio = WavFile.Read(original);
-        } catch (Exception e) when (e is InvalidDataException or EndOfStreamException) {
-            throw new RigException(400, $"{name}: {e.Message}");
-        }
-
-        if (audio.Frames == 0) {
-            throw new RigException(400, $"{name} is empty.");
-        }
-
+        var audio = ReadImpulse(original, name);
         await using var processed = new MemoryStream();
         WavFile.Write(processed, IrImport.Process(audio, import));
         processed.Position = 0;
@@ -194,6 +184,17 @@ public sealed partial class AssetStore {
         if (size == 0) {
             File.Delete(temporary);
             throw new RigException(400, "The upload is empty.");
+        }
+
+        if (kind == "ir") {
+            // Stored as uploaded, but read later by the engine, the mixer and Tone Match: it must be a WAV they read.
+            try {
+                await using var stored = File.OpenRead(temporary);
+                Checked(name, () => WavFile.ReadHeader(stored).Frames);
+            } catch (RigException) {
+                File.Delete(temporary);
+                throw;
+            }
         }
 
         var reference = Prefix + Convert.ToHexStringLower(hash.GetHashAndReset());
@@ -239,6 +240,33 @@ public sealed partial class AssetStore {
             File.Delete(FilePath(reference, info.Kind));
             SaveIndex();
             return true;
+        }
+    }
+
+    /// <summary>An impulse response read from an upload; one that is not a WAV this reader decodes, or empty, is a 400.</summary>
+    static AudioData ReadImpulse(Stream content, string name) {
+        AudioData? audio = null;
+        Checked(
+            name,
+            () => {
+                audio = WavFile.Read(content);
+                return audio.Frames;
+            }
+        );
+        return audio!;
+    }
+
+    /// <summary>Runs a WAV read that returns the frames found; a damaged, unsupported or empty WAV is a 400.</summary>
+    static void Checked(string name, Func<long> read) {
+        long frames;
+        try {
+            frames = read();
+        } catch (Exception e) when (e is InvalidDataException or EndOfStreamException) {
+            throw new RigException(400, $"{name}: {e.Message}");
+        }
+
+        if (frames == 0) {
+            throw new RigException(400, $"{name} is empty.");
         }
     }
 
