@@ -38,6 +38,9 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
     const int SubBlock = 32;
     const double RmsWindowMs = 5;
 
+    /// <summary>The fade of a band Mute and of a Crossover Slope change, in milliseconds.</summary>
+    const double SwitchFadeMs = 10;
+
     static readonly string[] BandNames = ["low", "mid", "high"];
     static readonly float[] DefaultAttack = [20f, 10f, 5f];
     static readonly float[] DefaultRelease = [200f, 150f, 100f];
@@ -46,11 +49,13 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
     readonly float[] bandGain = new float[Bands];
     readonly double[] meanSquare = new double[Bands];
     readonly CrestFactor[] crest = new CrestFactor[Bands];
+    readonly float[] muteGain = new float[Bands];
     Channel left;
     Channel right;
     SecondOrderChannel gentleLeft;
     SecondOrderChannel gentleRight;
     float mix = 1f;
+    float gentleMix;
     OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
@@ -124,6 +129,11 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
     /// <summary>Current gain reduction of <paramref name="band" /> (0 = low) in dB, 0 or negative. For meters and tests.</summary>
     public float GainReductionDb(int band) => reduction[band];
 
+    float MuteTarget(int band) => Params.Current(Mute(band)) >= 0.5f ? 0f : 1f;
+
+    static float Toward(float value, float target, float step) =>
+        value < target ? Math.Min(target, value + step) : Math.Max(target, value - step);
+
     static float Coefficient(double milliseconds, double sampleRate) =>
         (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
 
@@ -140,7 +150,10 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
 
         for (var b = 0; b < Bands; b++) {
             bandGain[b] = Decibels.ToGain(Params.Current(BandLevel(b)));
+            muteGain[b] = MuteTarget(b);
         }
+
+        gentleMix = Params.Current(Slope) >= 0.5f ? 1f : 0f;
 
         mix = Params.Current(Mix) / 100f;
         output.Reset(Params.Current(Level), Params.Current(Balance));
@@ -159,26 +172,24 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
         Span<float> gainStep = stackalloc float[Bands];
         Span<float> reduction = stackalloc float[Bands];
         Span<double> band = stackalloc double[Bands * 2];
+        Span<double> gentleBand = stackalloc double[Bands * 2];
         Span<float> attackMs = stackalloc float[Bands];
         Span<float> releaseMs = stackalloc float[Bands];
         Span<float> mute = stackalloc float[Bands];
+        var fadeStep = (float)(1.0 / (SwitchFadeMs * 0.001 * rate));
         this.reduction.CopyTo(reduction);
         var rms = Params.Current(Detector) >= 0.5f;
-        var gentle = Params.Current(Slope) >= 0.5f;
+        var gentleTarget = Params.Current(Slope) >= 0.5f ? 1f : 0f;
         var auto = Params.Current(AutoTime) >= 0.5f;
         var rmsCoefficient = Coefficient(RmsWindowMs, rate);
         var crestCoefficient = CrestFactor.Coefficient(rate);
         for (var b = 0; b < Bands; b++) {
-            mute[b] = Params.Current(Mute(b)) >= 0.5f ? 0f : 1f;
+            mute[b] = MuteTarget(b);
         }
 
-        if (gentle) {
-            left.Reset(); // the other topology's state is stale when it comes back
-            right.Reset();
-        } else {
-            gentleLeft.Reset();
-            gentleRight.Reset();
-        }
+        // A Slope change crossfades the two crossovers; the one not heard keeps running only while a fade could need it
+        // and starts from rest, which the fade (from zero gain) hides.
+        var fadingSlope = gentleMix != gentleTarget;
 
         for (var start = 0; start < io.Length; start += SubBlock) {
             var length = Math.Min(SubBlock, io.Length - start);
@@ -203,12 +214,21 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
 
             for (var j = 0; j < length; j++) {
                 var i = start + j;
-                if (gentle) {
+                if (gentleMix == 1f && !fadingSlope) {
                     gentleLeft.Split(lowPole, highPole, io.Left[i], band[..Bands]);
                     gentleRight.Split(lowPole, highPole, io.Right[i], band[Bands..]);
+                } else if (gentleMix == 0f && !fadingSlope) {
+                    left.Split(lowSplit, highSplit, io.Left[i], band[..Bands]);
+                    right.Split(lowSplit, highSplit, io.Right[i], band[Bands..]);
                 } else {
                     left.Split(lowSplit, highSplit, io.Left[i], band[..Bands]);
                     right.Split(lowSplit, highSplit, io.Right[i], band[Bands..]);
+                    gentleLeft.Split(lowPole, highPole, io.Left[i], gentleBand[..Bands]);
+                    gentleRight.Split(lowPole, highPole, io.Right[i], gentleBand[Bands..]);
+                    gentleMix = Toward(gentleMix, gentleTarget, fadeStep);
+                    for (var k = 0; k < band.Length; k++) {
+                        band[k] += (gentleBand[k] - band[k]) * gentleMix;
+                    }
                 }
 
                 // The mix is per band, before the band's level and mute, so those apply to the dry band too.
@@ -238,7 +258,11 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
 
                     reduction[b] = target + (reduction[b] - target) * coefficient;
                     var compressed = 1f + (MathF.Pow(10f, reduction[b] / 20f) - 1f) * m;
-                    var gain = compressed * (fromGain[b] + gainStep[b] * (j + 1)) * mute[b];
+                    if (muteGain[b] != mute[b]) {
+                        muteGain[b] = Toward(muteGain[b], mute[b], fadeStep);
+                    }
+
+                    var gain = compressed * (fromGain[b] + gainStep[b] * (j + 1)) * muteGain[b];
                     outLeft += gain * l;
                     outRight += gain * r;
                 }
@@ -259,6 +283,17 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
             }
 
             this.reduction[b] = reduction[b] > -1e-6f ? 0 : reduction[b]; // no subnormals after a long recovery
+        }
+
+        if (fadingSlope && gentleMix == gentleTarget) {
+            // The crossover faded out rests until the next change.
+            if (gentleTarget == 1f) {
+                left.Reset();
+                right.Reset();
+            } else {
+                gentleLeft.Reset();
+                gentleRight.Reset();
+            }
         }
 
         this.mix = mix;
