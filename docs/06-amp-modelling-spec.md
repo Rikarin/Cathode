@@ -373,7 +373,9 @@ Shared changes: `Pot` takes an audio taper's midpoint (Fender marks it in the pa
 - PI: 0.022 µ in, 1M, 10k, 470Ω, 82k/100k, 47 pF, 0.022 µ out, about 220k leaks [src].
 - Presence 5k + 0.1 µ, 4.7k at the tail bottom; NFB "47K (100K)", tap *(unverified)*; AmpBooks gives 47k at 8Ω for the 1987 [src].
 - 4 × EL34 (6550 on US units), 5.6k stoppers, 1k screens; SS bridge, 100 µ stacked; c.1967 voltages 460 / 375 / 300 / 270 V [src]. OT not shown; the current Plexi model uses 3.4k.
-- Note: the existing Plexi model's values match this drawing except the treble cap and coupling; check them.
+- Note: the existing Plexi model's values match this drawing except the treble cap and coupling; check them. Its
+  inverter has the drawing's 470 Ω bias resistor (it had 820 Ω, no Marshall's); its 470 pF bright cap, switched by Bright,
+  is a deliberate generic choice (the drawing's 5 nF is fixed); it has no depth control.
 
 **JCM800 2203 / 2204** — 2203: https://el34world.com/charts/Schematics/files/Marshall/Marshall_jcm800_lead_mstvol_100w_2203.pdf; 2204: https://el34world.com/charts/Schematics/files/Marshall/Marshall_jcm800_lead_mstvol_50w_2204.pdf; https://robrobinette.com/How_the_Marshall_JCM800_Works.htm; https://ampbooks.com/mobile/classic-circuits/marshall-jcm800-2204-power-amp/
 

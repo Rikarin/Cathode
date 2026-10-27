@@ -305,6 +305,13 @@ public partial class AmpStageTests {
     public void Power_amp_variants_match_the_reference_in_the_time_domain(string name) {
         var stiff = new PowerSupplyDesign(1e-3, 1, 1e-3, 1, 1e3, 1, 0);
         var plexi = Plexi.Design.Power with { PowerSupply = stiff };
+        // The inverter-input cases keep the 820 Ω bias the generic Plexi had when they were written: at their 7 V of
+        // drive a Marshall's 470 Ω puts the idle grid into grid current as well, which the pair's table leaves out (see
+        // Long_tail_pair_table_matches_the_reference_dc_sweep), and these cases are about the input network.
+        var inputFixture = plexi with {
+            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 10e3, 820),
+            InverterInput = new(22e-9, 1e6)
+        };
         var sixV6 = AC30.Design.Power with {
             Name = "2 x 6V6",
             Tube = PentodeModel.SixV6GT,
@@ -337,9 +344,8 @@ public partial class AmpStageTests {
                 sixV6 with {
                     PhaseInverter = new CathodyneDesign(TriodeModel.Ecc83, 330, 56e3, 56e3, 1.5e3), CutCap = 0
                 }, 2.0, 0.0, false),
-            "inverter grid current" => (plexi with { InverterInput = new(22e-9, 1e6), HasFeedback = false }, 7.0, 30e3,
-                false),
-            _ => (plexi with { InverterInput = new(22e-9, 1e6) }, 7.0, 30e3, false)
+            "inverter grid current" => (inputFixture with { HasFeedback = false }, 7.0, 30e3, false),
+            _ => (inputFixture, 7.0, 30e3, false)
         };
         var power = new PowerAmp(design, Rate);
         power.SetSourceResistance(Math.Max(sourceResistance, 1));

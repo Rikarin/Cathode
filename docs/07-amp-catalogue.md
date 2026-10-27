@@ -53,7 +53,7 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Plexi 1959 Super Lead (50 W, generic) | ✅ Done | Plexi | T3K: 1959 Plexi | Jumpered and single-input captures, volume sweep | 4x12 closed, Greenback G12M |
+| Plexi 1959 Super Lead (50 W, generic) | ✅ Done (the Marshall inverter's 470 Ω bias; a switched 470 pF bright cap; no depth) | Plexi | T3K: 1959 Plexi | Jumpered and single-input captures, volume sweep | 4x12 closed, Greenback G12M |
 | Plexi 100 W / jumpered | ✅ Done | Plexi 100W | T3K: 1959 Plexi | | 4x12 closed, Greenback |
 | JTM45 | ✅ Done | JTM45 | — | Any JTM45 / reissue | 4x12 or 2x12 (Bluesbreaker), Greenback / Alnico |
 | JCM800 2203 | ✅ Done | JCM800 2203 | T3K: 2203 (modified) | Stock 2203, gain sweep | 4x12 closed, G12T-75 / Vintage 30 |

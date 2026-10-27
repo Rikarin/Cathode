@@ -9919,7 +9919,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         page: 'Basic',
         typeLabels: [
           'Depth',
-          'Depth',
+          '',
           '',
           '',
           '',
