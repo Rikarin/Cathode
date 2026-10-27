@@ -86,6 +86,39 @@ test('launching it again brings the running app forward instead of starting a se
   expect(hosts(await mainPid(app))).toHaveLength(1);
 });
 
+test('the editor shows when the engine host is down, and its log says why', async ({ app, window }) => {
+  const status = window.getByTestId('engine-status');
+  await expect(status).toContainText('Connected to the engine');
+  await window.keyboard.press('ControlOrMeta+Comma');
+  await window.getByRole('tab', { name: 'Audio setup' }).click();
+  const processes = window.getByTestId('engine-processes');
+  await expect(processes).toContainText('Engine host: running');
+  await expect(processes).toContainText('Server: running');
+  await window.getByRole('button', { name: 'Show engine log' }).click();
+  await expect(window.getByRole('log', { name: 'Engine log' })).toContainText(/cathode-host .* serving on/);
+
+  // The host crashes: the Server still answers, but the light no longer says all is well, until the host is back.
+  await window.evaluate(() => {
+    const seen: string[] = [];
+    (globalThis as unknown as { seen: string[] }).seen = seen;
+    const light = document.querySelector('[data-testid="engine-status"]')!;
+    new MutationObserver(() => seen.push(light.textContent!.trim())).observe(light, {
+      subtree: true,
+      characterData: true,
+      childList: true
+    });
+  });
+  const statuses = (await window.evaluate(() =>
+    (globalThis as unknown as { cathode: { sidecars(): Promise<unknown> } }).cathode.sidecars()
+  )) as { name: string; pid: number }[];
+  process.kill(statuses.find(s => s.name === 'host')!.pid, 'SIGKILL');
+
+  const seen = () => window.evaluate(() => (globalThis as unknown as { seen: string[] }).seen);
+  await expect.poll(async () => (await seen()).some(text => text.startsWith('The engine stopped'))).toBe(true);
+  await expect(status).toContainText('Connected to the engine', { timeout: 30_000 });
+  await expect(processes).toContainText('Engine host: running');
+});
+
 interface Desktop {
   audio: { settings(): Promise<unknown>; apply(settings: unknown): Promise<void> };
 }

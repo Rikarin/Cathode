@@ -26,6 +26,10 @@ contextBridge.exposeInMainWorld('cathode', {
   target: () => ipcRenderer.invoke('cathode:target'),
   setTarget: (target: unknown) => ipcRenderer.invoke('cathode:setTarget', target),
   sidecars: () => ipcRenderer.invoke('cathode:sidecars'),
+  onSidecars: (listener: (statuses: unknown) => void) => {
+    ipcRenderer.on('cathode:sidecars', (_event, statuses: unknown) => listener(statuses));
+  },
+  logs: () => ipcRenderer.invoke('cathode:sidecars:logs'),
   network: {
     status: () => ipcRenderer.invoke('cathode:network:status'),
     apply: (network: unknown) => ipcRenderer.invoke('cathode:network:apply', network)

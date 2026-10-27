@@ -65,6 +65,8 @@ export interface SidecarStatus {
   name: 'host' | 'server';
   state: 'starting' | 'running' | 'restarting' | 'stopped' | 'failed';
   detail: string | null;
+  /** The running process's id (absent from older desktop apps). */
+  pid?: number | null;
 }
 
 /**
@@ -89,6 +91,10 @@ export interface CathodeDesktop {
   /** Switches Server and reloads the window. */
   setTarget(target: ServerTarget): Promise<void>;
   sidecars(): Promise<SidecarStatus[]>;
+  /** Called whenever one of the local engine's processes changes state (restarting after a crash, say). */
+  onSidecars?(listener: (statuses: SidecarStatus[]) => void): void;
+  /** The last lines (up to 200) each local engine process printed. */
+  logs?(): Promise<Record<'host' | 'server', string[]>>;
   network?: {
     status(): Promise<NetworkStatus>;
     /** Saves the setting, restarts the local Server with it and reloads the window; `renewToken` signs others out. */

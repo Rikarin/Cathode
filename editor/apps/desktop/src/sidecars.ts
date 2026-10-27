@@ -12,6 +12,8 @@ export interface SidecarStatus {
   name: 'host' | 'server';
   state: 'starting' | 'running' | 'restarting' | 'stopped' | 'failed';
   detail: string | null;
+  /** The running process's id, or null. */
+  pid: number | null;
 }
 
 export interface IrCaptureOptions {
@@ -53,9 +55,11 @@ class Sidecar {
   constructor(
     readonly name: 'host' | 'server',
     private readonly commandLine: () => Command & { env?: NodeJS.ProcessEnv },
+    /** What the process prints once it serves: running (again, after a restart). */
+    private readonly ready: RegExp,
     private readonly onStatus: () => void
   ) {
-    this.status = { name, state: 'stopped', detail: null };
+    this.status = { name, state: 'stopped', detail: null, pid: null };
   }
 
   /** Starts the process unless it already runs (or is about to restart): never a second one beside the first. */
@@ -114,7 +118,6 @@ class Sidecar {
       return;
     }
 
-    this.set(this.failures === 0 ? 'starting' : 'restarting', null);
     const child = spawn(command.command, command.args, {
       env: { ...process.env, ...command.env },
       // Standard input is the child's lifeline (StdinWatch in the engine): the OS closes it however this app ends, a
@@ -123,10 +126,16 @@ class Sidecar {
       windowsHide: true
     });
     this.child = child;
+    this.set(this.failures === 0 ? 'starting' : 'restarting', null);
     child.stdin?.on('error', () => undefined); // a child that already exited: nothing to tell it
     const keep = (data: Buffer) => {
-      this.log.push(...data.toString().split('\n').filter(Boolean));
+      const lines = data.toString().split('\n').filter(Boolean);
+      this.log.push(...lines);
       this.log.splice(0, Math.max(0, this.log.length - 200));
+      const waiting = this.status.state === 'starting' || this.status.state === 'restarting';
+      if (this.child === child && waiting && lines.some(line => this.ready.test(line))) {
+        this.set('running', null);
+      }
     };
     child.stdout?.on('data', keep);
     child.stderr?.on('data', keep);
@@ -155,7 +164,7 @@ class Sidecar {
   }
 
   private set(state: SidecarStatus['state'], detail: string | null): void {
-    this.status = { name: this.name, state, detail };
+    this.status = { name: this.name, state, detail, pid: this.child?.pid ?? null };
     this.onStatus();
   }
 }
@@ -185,8 +194,8 @@ export class Sidecars {
     onStatus: (statuses: SidecarStatus[]) => void
   ) {
     const notify = () => onStatus(this.statuses());
-    this.host = new Sidecar('host', () => this.hostCommand(), notify);
-    this.server = new Sidecar('server', () => this.serverCommand(), notify);
+    this.host = new Sidecar('host', () => this.hostCommand(), / serving on /, notify);
+    this.server = new Sidecar('server', () => this.serverCommand(), /Now listening on/, notify);
   }
 
   statuses(): SidecarStatus[] {

@@ -242,6 +242,7 @@ function handleIpc(): void {
     window?.reload();
   });
   ipcMain.handle('cathode:sidecars', () => sidecars?.statuses() ?? []);
+  ipcMain.handle('cathode:sidecars:logs', () => sidecars?.logs() ?? { host: [], server: [] });
   ipcMain.handle('cathode:audio:devices', () => listDevices());
   ipcMain.handle('cathode:audio:settings', () => settings.audio);
   ipcMain.handle('cathode:audio:apply', async (_event, audio: AudioSettings) => {

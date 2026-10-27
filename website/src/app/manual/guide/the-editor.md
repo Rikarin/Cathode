@@ -39,7 +39,7 @@ From left to right:
 | **IN** and **OUT** meters | The input level and the output level. The caption turns into a red **CLIP** mark when the input comes within 0.5 dB of full scale, or an output reaches −1 dBFS. |
 | **CPU**                   | How much of each buffer's time the engine needs (the 99.9th percentile).                                                                                         |
 | **Est.**                  | An estimate of how heavy the current preset is, from its blocks' measured costs.                                                                                 |
-| Status light              | Green when the editor is connected to the engine; it shows when it is connecting or disconnected. Hover for the details.                                         |
+| Status light              | Green while the engine runs. Amber while connecting, while the engine restarts or when its meters stop; red when disconnected. Hover for the details.            |
 | Settings                  | Only when the editor runs in a web browser. In the desktop app, Settings is in the app menu instead.                                                             |
 
 ## The preset bar

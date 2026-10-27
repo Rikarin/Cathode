@@ -3,14 +3,16 @@ import { CthMeter, onAnimationFrame } from '@cathode/audio-ui';
 import { XuiStatusImports } from '@xui/status';
 import { XuiTooltipImports } from '@xui/tooltip';
 import { ClipHold, InputClipLevel, clippedOutputs } from '../core/clip';
+import { SidecarStatuses, StaleTelemetryMs, engineHealth } from '../core/engine-health';
 import { EventStream } from '../core/events';
 import { CatalogStore } from '../state/catalog.store';
 import { LiveStore } from '../state/live.store';
 
 /**
  * Input and output meters, CPU and the connection light, all fed straight from telemetry frames, plus the preset's
- * estimated DSP load from the catalog's measured block costs. A clip mark lights beside a meter (and holds for a moment)
- * when the input comes within 0.5 dB of full scale or an output reaches −1 dBFS.
+ * estimated DSP load from the catalog's measured block costs. The light is green only while the engine itself runs:
+ * the desktop app's host is up and telemetry keeps coming (engineHealth). A clip mark lights beside a meter (and holds
+ * for a moment) when the input comes within 0.5 dB of full scale or an output reaches −1 dBFS.
  */
 @Component({
   selector: 'cth-engine-meters',
@@ -51,9 +53,9 @@ import { LiveStore } from '../state/live.store';
     >
       Est. {{ estimate() }} %
     </span>
-    <span class="flex items-center gap-1.5 text-xs" [xuiTooltip]="statusText()">
-      <xui-status [presence]="presence()" size="sm" />
-      <span class="sr-only">{{ statusText() }}</span>
+    <span class="flex items-center gap-1.5 text-xs" data-testid="engine-status" [xuiTooltip]="health().text">
+      <xui-status [presence]="health().presence" size="sm" />
+      <span class="sr-only">{{ health().text }}</span>
     </span>
   `
 })
@@ -61,6 +63,9 @@ export class EngineMeters {
   private readonly events = inject(EventStream);
   private readonly live = inject(LiveStore);
   private readonly catalog = inject(CatalogStore);
+  private readonly sidecars = inject(SidecarStatuses);
+  /** No telemetry for a while although the socket is open. */
+  private readonly stale = signal(false);
 
   private readonly inputHold = new ClipHold();
   private readonly outputHold = new ClipHold();
@@ -95,16 +100,7 @@ export class EngineMeters {
     );
     return total < 10 ? total.toFixed(1) : Math.round(total).toString();
   });
-  protected readonly presence = computed(() =>
-    this.events.status() === 'open' ? 'online' : this.events.status() === 'connecting' ? 'idle' : 'dnd'
-  );
-  protected readonly statusText = computed(() =>
-    this.events.status() === 'open'
-      ? 'Connected to the engine'
-      : this.events.status() === 'connecting'
-        ? 'Connecting…'
-        : 'Disconnected: retrying'
-  );
+  protected readonly health = computed(() => engineHealth(this.events.status(), this.sidecars.host(), this.stale()));
 
   constructor() {
     onAnimationFrame(() => {
@@ -115,6 +111,11 @@ export class EngineMeters {
       }
 
       const now = performance.now();
+      const stale = now - Math.max(this.events.latestAt, this.events.connectedAt) > StaleTelemetryMs;
+      if (stale !== this.stale()) {
+        this.stale.set(stale);
+      }
+
       const input = this.inputHold.update((latest?.inputPeak ?? 0) >= InputClipLevel, now);
       if (input !== this.inputClip()) {
         this.inputClip.set(input);
