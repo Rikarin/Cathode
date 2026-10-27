@@ -109,6 +109,35 @@ public sealed class HostAllocationTests : IDisposable {
     }
 
     [Fact]
+    public void Midi_clock_and_active_sensing_allocate_nothing_on_the_midi_thread() {
+        Assert.SkipUnless(Cathode.Audio.Native.NativeAudio.IsLibraryPresent, "cth_audio not built");
+        using var midi = new MidiInput(service.Engine, static _ => { });
+        midi.SetFollowClock(true);
+        // One poll's worth at 120 BPM and then some: clock ticks 1 ms apart and an active-sensing byte.
+        var start = Cathode.Audio.Native.NativeMidi.NowNanoseconds();
+        var poll = new List<Cathode.Audio.Native.MidiMessage>(64);
+        for (var i = 0; i < 48; i++) {
+            poll.Add(new(start + (ulong)i * 1_000_000, 0xF8, 0, 0, 1));
+        }
+
+        poll.Add(new(start, 0xFE, 0, 0, 1));
+        Assert.Null(midi.Translate(poll)); // nothing for the Server, so no batch
+
+        Assert.Equal(0, AllocationProbe.Measure(() => {
+                    for (var i = 0; i < 1_000; i++) {
+                        midi.Translate(poll);
+                        _ = Cathode.Audio.Native.NativeMidi.PortCount(); // the port scan's check
+                    }
+                }
+            )
+        );
+
+        // A message the Server maps still gets through.
+        var batch = midi.Translate([new(start, 0xB0, 11, 64, 3)]);
+        Assert.Equal(0xB0, Assert.Single(batch!).Status);
+    }
+
+    [Fact]
     public void Reloading_a_preset_stays_small() {
         // The cab's IR is cached and the convolvers live in native memory; before that a load was about 160 KB. The Drive
         // block builds every component-level network its catalogue can switch to up front, for both channels, so that

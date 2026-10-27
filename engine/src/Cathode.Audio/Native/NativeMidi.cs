@@ -22,6 +22,9 @@ public static unsafe partial class NativeMidi {
 
     public static bool IsAvailable => NativeAudio.IsLibraryPresent && NativeAudio.Backend != "none";
 
+    /// <summary>How many MIDI endpoints the OS reports, without listing them (allocation-free; needs the library).</summary>
+    public static int PortCount() => PortCountNative();
+
     public static IReadOnlyList<MidiPort> Ports() {
         var ports = new List<MidiPort>();
         var count = PortCount();
@@ -86,7 +89,7 @@ public static unsafe partial class NativeMidi {
     }
 
     [LibraryImport(Library, EntryPoint = "cth_midi_port_count")]
-    internal static partial int PortCount();
+    internal static partial int PortCountNative();
 
     [LibraryImport(Library, EntryPoint = "cth_midi_port_info")]
     internal static partial int PortInfo(int index, PortNative* port);
