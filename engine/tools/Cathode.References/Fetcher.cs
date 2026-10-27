@@ -25,7 +25,11 @@ sealed class Fetcher(ReferenceCache cache, HttpClient http) {
         entry.Redistributable && Redistributable.Contains(entry.Licence);
 
     /// <summary>Fetches every missing (or, with <paramref name="force" />, every) redistributable reference.</summary>
-    public async Task<int> FetchAllAsync(IEnumerable<ReferenceEntry> entries, bool force) {
+    public async Task<int> FetchAllAsync(
+        IEnumerable<ReferenceEntry> entries,
+        bool force,
+        CancellationToken cancellationToken
+    ) {
         Directory.CreateDirectory(cache.Root);
         var failures = 0;
         foreach (var entry in entries.Where(MayFetch)) {
@@ -36,7 +40,7 @@ sealed class Fetcher(ReferenceCache cache, HttpClient http) {
             }
 
             try {
-                await FetchAsync(entry);
+                await FetchAsync(entry, cancellationToken);
                 Console.WriteLine($"  fetched  {entry.Id} ({entry.Licence}, {entry.Author})");
             } catch (Exception e) when (e is HttpRequestException
                                             or InvalidDataException
@@ -50,12 +54,12 @@ sealed class Fetcher(ReferenceCache cache, HttpClient http) {
         return failures;
     }
 
-    async Task FetchAsync(ReferenceEntry entry) {
+    async Task FetchAsync(ReferenceEntry entry, CancellationToken cancellationToken) {
         if (!MayFetch(entry)) {
             throw new InvalidOperationException($"{entry.Id} ({entry.Licence}) may not be downloaded by script.");
         }
 
-        var data = await http.GetByteArrayAsync(new Uri(entry.Url));
+        var data = await http.GetByteArrayAsync(new Uri(entry.Url), cancellationToken);
         var hash = ReferenceCache.Sha256Of(data);
         if (entry.Sha256 is not null && !string.Equals(hash, entry.Sha256, StringComparison.OrdinalIgnoreCase)) {
             throw new InvalidDataException(
@@ -65,7 +69,7 @@ sealed class Fetcher(ReferenceCache cache, HttpClient http) {
 
         var path = cache.PathOf(entry);
         var temporary = path + ".part";
-        await File.WriteAllBytesAsync(temporary, data);
+        await File.WriteAllBytesAsync(temporary, data, cancellationToken);
         File.Move(temporary, path, true);
     }
 }

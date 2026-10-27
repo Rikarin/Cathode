@@ -34,67 +34,81 @@ static class HtmlReport {
             """
         );
         foreach (var r in reports) {
-            html.Append(
-                CultureInfo.InvariantCulture,
-                $"<tr><td><a href=\"#{Encode(r.Id)}\">{Encode(r.Id)}</a></td><td class=\"text\">{Encode(r.Circuit)}</td>"
-                + $"<td>{r.InputDbu:0.0}{(r.InputDbuFitted ? " (fit)" : string.Empty)}</td><td>{r.Esr:0.000}</td>"
-                + $"<td>{r.EsrPreEmphasis:0.000}</td><td>{r.Mrstft:0.000}</td><td>{r.HarmonicDistanceDb:0.0}</td>"
-                + $"<td>{r.ResponseRmsDb:0.0}</td><td class=\"{(r.Pass == false ? "fail" : string.Empty)}\">{PassText(r)}</td></tr>"
-            );
+            AppendSummaryRow(html, r);
         }
 
         html.Append("</table>");
         foreach (var r in reports) {
-            html.Append(CultureInfo.InvariantCulture, $"<section id=\"{Encode(r.Id)}\"><h2>{Encode(r.Id)}</h2>");
-            html.Append(
-                CultureInfo.InvariantCulture,
-                $"<p>{Encode(r.Amp)} ({Encode(r.Licence)}, {Encode(r.Architecture)}) vs <b>{Encode(r.Circuit)}</b>. "
-                + $"Latency {r.LatencySamples} samples, output gain {r.OutputGainDb:0.0} dB"
-                + $"{(r.PolarityInverted ? ", polarity inverted" : string.Empty)}.</p>"
-            );
-            foreach (var warning in r.Warnings) {
-                html.Append(CultureInfo.InvariantCulture, $"<p class=\"fail\">{Encode(warning)}</p>");
-            }
-
-            html.Append("<h3>Small-signal response (dB, level-matched)</h3>");
-            var offset = r.ReferenceResponse.Zip(r.CircuitResponse, static (a, b) => a - b)
-                .Where((_, i) => r.ResponseCenters[i] is >= 80 and <= 8_000)
-                .Average();
-            html.Append(
-                Chart(
-                    [..r.ResponseCenters.Select(static f => Math.Log10(f))],
-                    [r.ReferenceResponse.ToArray(), r.CircuitResponse.Select(v => v + offset).ToArray()]
-                )
-            );
-            html.Append(
-                "<h3>Harmonics 2–9 (dB re fundamental) at each input level</h3><table><tr><th>Level</th><th>Model</th>"
-            );
-            for (var h = 1; h <= MatchMetrics.Harmonics; h++) {
-                html.Append(CultureInfo.InvariantCulture, $"<th>H{h}</th>");
-            }
-
-            html.Append("</tr>");
-            for (var l = 0; l < r.HarmonicLevels.Count; l++) {
-                foreach (var (name, profile) in new[] {
-                             ("reference", r.ReferenceHarmonics[l]), ("circuit", r.CircuitHarmonics[l])
-                         }) {
-                    html.Append(
-                        CultureInfo.InvariantCulture,
-                        $"<tr><td>{r.HarmonicLevels[l]:0.###} V</td><td class=\"text\">{name}</td>"
-                    );
-                    foreach (var value in profile) {
-                        html.Append(CultureInfo.InvariantCulture, $"<td>{value:0.0}</td>");
-                    }
-
-                    html.Append("</tr>");
-                }
-            }
-
-            html.Append("</table></section>");
+            AppendSection(html, r);
         }
 
         html.Append("</body></html>\n");
         return html.ToString();
+    }
+
+    static void AppendSummaryRow(StringBuilder html, MatchReport r) {
+        html.Append(
+            CultureInfo.InvariantCulture,
+            $"<tr><td><a href=\"#{Encode(r.Id)}\">{Encode(r.Id)}</a></td><td class=\"text\">{Encode(r.Circuit)}</td>"
+            + $"<td>{r.InputDbu:0.0}{(r.InputDbuFitted ? " (fit)" : string.Empty)}</td><td>{r.Esr:0.000}</td>"
+            + $"<td>{r.EsrPreEmphasis:0.000}</td><td>{r.Mrstft:0.000}</td><td>{r.HarmonicDistanceDb:0.0}</td>"
+            + $"<td>{r.ResponseRmsDb:0.0}</td>"
+            + $"<td class=\"{(r.Pass == false ? "fail" : string.Empty)}\">{PassText(r)}</td></tr>"
+        );
+    }
+
+    /// <summary>A reference's section: what was compared, warnings, the response chart, the harmonics.</summary>
+    static void AppendSection(StringBuilder html, MatchReport r) {
+        html.Append(CultureInfo.InvariantCulture, $"<section id=\"{Encode(r.Id)}\"><h2>{Encode(r.Id)}</h2>");
+        html.Append(
+            CultureInfo.InvariantCulture,
+            $"<p>{Encode(r.Amp)} ({Encode(r.Licence)}, {Encode(r.Architecture)}) vs <b>{Encode(r.Circuit)}</b>. "
+            + $"Latency {r.LatencySamples} samples, output gain {r.OutputGainDb:0.0} dB"
+            + $"{(r.PolarityInverted ? ", polarity inverted" : string.Empty)}.</p>"
+        );
+        foreach (var warning in r.Warnings) {
+            html.Append(CultureInfo.InvariantCulture, $"<p class=\"fail\">{Encode(warning)}</p>");
+        }
+
+        html.Append("<h3>Small-signal response (dB, level-matched)</h3>");
+        var offset = r.ReferenceResponse.Zip(r.CircuitResponse, static (a, b) => a - b)
+            .Where((_, i) => r.ResponseCenters[i] is >= 80 and <= 8_000)
+            .Average();
+        html.Append(
+            Chart(
+                [..r.ResponseCenters.Select(static f => Math.Log10(f))],
+                [r.ReferenceResponse.ToArray(), r.CircuitResponse.Select(v => v + offset).ToArray()]
+            )
+        );
+        AppendHarmonics(html, r);
+        html.Append("</table></section>");
+    }
+
+    /// <summary>The harmonics table: each input level's profile, reference then circuit.</summary>
+    static void AppendHarmonics(StringBuilder html, MatchReport r) {
+        html.Append(
+            "<h3>Harmonics 2–9 (dB re fundamental) at each input level</h3><table><tr><th>Level</th><th>Model</th>"
+        );
+        for (var h = 1; h <= MatchMetrics.Harmonics; h++) {
+            html.Append(CultureInfo.InvariantCulture, $"<th>H{h}</th>");
+        }
+
+        html.Append("</tr>");
+        for (var l = 0; l < r.HarmonicLevels.Count; l++) {
+            foreach (var (name, profile) in new[] {
+                         ("reference", r.ReferenceHarmonics[l]), ("circuit", r.CircuitHarmonics[l])
+                     }) {
+                html.Append(
+                    CultureInfo.InvariantCulture,
+                    $"<tr><td>{r.HarmonicLevels[l]:0.###} V</td><td class=\"text\">{name}</td>"
+                );
+                foreach (var value in profile) {
+                    html.Append(CultureInfo.InvariantCulture, $"<td>{value:0.0}</td>");
+                }
+
+                html.Append("</tr>");
+            }
+        }
     }
 
     static string PassText(MatchReport report) =>
