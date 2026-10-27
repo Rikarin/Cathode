@@ -172,3 +172,153 @@ describe('keyboard shortcuts', () => {
     expect(service.altHeld()).toBe(false);
   });
 });
+
+describe('ShortcutService.dispatch and the focused element', () => {
+  afterEach(() => document.body.replaceChildren());
+
+  /** Presses a key on an element, as the shell does: the event reaches the element, then the service sees it. */
+  function press(service: ShortcutService, target: Element, event: KeyboardEvent): boolean {
+    target.dispatchEvent(event);
+    return service.dispatch(event);
+  }
+
+  function element<K extends keyof HTMLElementTagNameMap>(
+    tag: K,
+    attributes: Record<string, string> = {}
+  ): HTMLElementTagNameMap[K] {
+    const created = document.createElement(tag);
+    for (const [name, value] of Object.entries(attributes)) {
+      created.setAttribute(name, value);
+    }
+
+    document.body.append(created);
+    return created;
+  }
+
+  function service() {
+    const ran: string[] = [];
+    const shortcuts = new ShortcutService();
+    const ids = ['presetPicker', 'bypass', 'save', 'undo', 'tuner', 'reload', 'help'];
+    shortcuts.register(Object.fromEntries(ids.map(id => [id, () => ran.push(id)])));
+    return { shortcuts, ran };
+  }
+
+  it('runs nothing, not even ⌘ shortcuts, while the user types in a field, so the field keeps its own keys', () => {
+    const { shortcuts, ran } = service();
+    const editable = element('div', { contenteditable: 'true' });
+    const inEditable = editable.appendChild(document.createElement('span'));
+    const fields = [
+      element('input'),
+      element('input', { type: 'number' }),
+      element('input', { type: 'search' }),
+      element('textarea'),
+      element('select'),
+      element('div', { contenteditable: '' }),
+      editable,
+      inEditable
+    ];
+
+    for (const field of fields) {
+      const presses = [key('p'), key(' ', { code: 'Space' }), key('s', { metaKey: true }), key('z', { ctrlKey: true })];
+      for (const event of presses) {
+        expect(press(shortcuts, field, event)).toBe(false);
+        expect(event.defaultPrevented).toBe(false);
+      }
+    }
+
+    expect(ran).toEqual([]);
+  });
+
+  it('leaves ⌘A to a text field, and keeps it from selecting the whole editor elsewhere', () => {
+    const { shortcuts } = service();
+    const inField = key('a', { metaKey: true });
+    press(shortcuts, element('input'), inField);
+    expect(inField.defaultPrevented).toBe(false);
+
+    const onPage = key('a', { metaKey: true });
+    expect(press(shortcuts, document.body, onPage)).toBe(false);
+    expect(onPage.defaultPrevented).toBe(true);
+  });
+
+  it('treats radio, range, button and submit inputs as controls: bare keys stay theirs, ⌘ and F keys work', () => {
+    const { shortcuts, ran } = service();
+    const types = ['radio', 'range', 'submit', 'button'];
+    for (const type of types) {
+      const input = element('input', { type });
+      expect(press(shortcuts, input, key(' ', { code: 'Space' }))).toBe(false);
+      expect(press(shortcuts, input, key('p'))).toBe(false);
+      expect(press(shortcuts, input, key('?', { shiftKey: true }))).toBe(false);
+      expect(press(shortcuts, input, key('s', { metaKey: true }))).toBe(true);
+      expect(press(shortcuts, input, key('F5'))).toBe(true);
+    }
+
+    expect(ran).toEqual(types.flatMap(() => ['save', 'reload']));
+  });
+
+  it('yields bare keys to links, menu items, tabs, options, comboboxes and disclosure summaries', () => {
+    const { shortcuts, ran } = service();
+    const controls = [
+      element('a', { href: '#' }),
+      element('summary'),
+      element('div', { role: 'menuitem', tabindex: '0' }),
+      element('div', { role: 'tab', tabindex: '0' }),
+      element('div', { role: 'option', tabindex: '0' }),
+      element('div', { role: 'combobox', tabindex: '0' })
+    ];
+
+    for (const control of controls) {
+      const space = key(' ', { code: 'Space' });
+      expect(press(shortcuts, control, space)).toBe(false);
+      expect(space.defaultPrevented).toBe(false);
+      expect(press(shortcuts, control, key('z', { metaKey: true }))).toBe(true);
+    }
+
+    expect(ran).toEqual(controls.map(() => 'undo'));
+  });
+
+  it('runs bare-key shortcuts from what is not a control: an anchor without href, a panel, its text, the page', () => {
+    const { shortcuts, ran } = service();
+    const panel = element('section', { tabindex: '-1' });
+    const text = panel.appendChild(document.createElement('p'));
+    const targets = [element('a'), panel, text, document.body];
+    for (const target of targets) {
+      expect(press(shortcuts, target, key('p'))).toBe(true);
+    }
+
+    expect(ran).toEqual(targets.map(() => 'presetPicker'));
+  });
+
+  it('runs nothing for a key a control has already handled', () => {
+    const { shortcuts, ran } = service();
+    const knob = element('div', { tabindex: '0' });
+    knob.addEventListener('keydown', event => event.preventDefault());
+
+    expect(press(shortcuts, knob, key('t', { metaKey: true }))).toBe(false);
+    expect(ran).toEqual([]);
+  });
+
+  it('consumes only the keys it has a handler for', () => {
+    const { shortcuts } = service();
+    const mute = key('m'); // a shortcut, but nothing on this page handles it
+    expect(press(shortcuts, document.body, mute)).toBe(false);
+    expect(mute.defaultPrevented).toBe(false);
+
+    const unbound = key('j');
+    expect(press(shortcuts, document.body, unbound)).toBe(false);
+    expect(unbound.defaultPrevented).toBe(false);
+  });
+
+  it('dispatches to the handler registered last; unregistering an older one leaves it in place', () => {
+    const shortcuts = new ShortcutService();
+    const ran: string[] = [];
+    const page = shortcuts.register({ tuner: () => ran.push('page') });
+    const dialog = shortcuts.register({ tuner: () => ran.push('dialog') });
+
+    shortcuts.dispatch(key('t', { metaKey: true }));
+    page();
+    shortcuts.dispatch(key('t', { metaKey: true }));
+    dialog();
+    expect(shortcuts.dispatch(key('t', { metaKey: true }))).toBe(false);
+    expect(ran).toEqual(['dialog', 'dialog']);
+  });
+});
