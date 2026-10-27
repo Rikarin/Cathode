@@ -45,6 +45,8 @@ To add a mapping, use **MIDI learn**:
 3. Click **MIDI learn**. The button changes to **Move a control…**.
 4. Press the switch or move the pedal. Cathode creates the mapping from the first message it receives and confirms with a message such as "Learned CC 20 = 127 (ch 1)".
 
+While MIDI learn waits, a notice stays in the corner of every page saying what the next control will map, and **Learning:** beside the button says it too. Click **Cancel** in the notice, or **Cancel learn** beside the button, to stop without mapping anything. The wait is kept by Cathode, not by the page: after a reload, or in another editor connected to the same Cathode, the notice is still there until something is learnt or it is cancelled. Clicking **MIDI learn** again replaces what was waiting.
+
 A new mapping replaces any old mapping of the same message on the same channel.
 
 > **Tip:** Block ids are shown in the left column of each block's page, under its tile (for example `delay1`, `amp1`), and in the tile's tooltip on the grid.
@@ -103,7 +105,7 @@ An expression pedal plugged into a MIDI controller sends a CC whose value follow
 
 ### Learn MIDI controller on a knob
 
-Right-click a knob and choose **Learn MIDI controller**. Cathode gives the knob a modifier from the first free External, over the knob's whole range, and asks you to move a pedal or knob on your controller. That CC is then mapped to the External, globally.
+Right-click a knob and choose **Learn MIDI controller**. Cathode picks the first free External and asks you to move a pedal or knob on your controller. That CC is then mapped to the External, globally, and the knob gets a modifier from that External over its whole range. Until you move something, the knob is left as it was: **Cancel** in the notice stops the learn and changes nothing.
 
 An External is free when no mapping or footswitch on the Global page drives it and the current preset does not use it. Mappings are global, so an External learned in another preset is taken: each pedal you learn gets an External of its own. When all eight are taken, Cathode says so and changes nothing.
 

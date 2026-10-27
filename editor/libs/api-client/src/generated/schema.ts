@@ -1395,10 +1395,12 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
+    /** The armed MIDI learn request; 204 when MIDI learn is not armed. */
     get: operations['GetMidiLearn'];
-    /** The next CC, note or program change received is mapped to this action ('midiLearned' event). */
+    /** The next CC, note or program change received is mapped to this action ('midiLearned' event); arming replaces a request already armed ('midiLearnChanged' event). */
     put: operations['StartMidiLearn'];
     post?: never;
+    /** Disarms MIDI learn; nothing is mapped ('midiLearnChanged' event). */
     delete: operations['CancelMidiLearn'];
     options?: never;
     head?: never;
@@ -2242,12 +2244,17 @@ export interface components {
        */
       load: number;
     };
-    /** @description Arms MIDI learn: the next CC, note or program change received is bound to this action. */
+    /**
+     * @description Arms MIDI learn: the next CC, note or program change received is bound to this action. With
+     *     `Modifier` (an `external` action only, its source that External), the Server also gives the loaded
+     *     preset that modifier once something is learnt, so a knob's learn leaves nothing behind when it is cancelled.
+     */
     MidiLearnRequest: {
       action: string;
       target?: null | string;
       /** Format: int32 */
       value?: null | number;
+      modifier: null | components['schemas']['PresetModifier'];
     };
     /**
      * @description A MIDI message bound to an action. `Message` is cc, note or pc; `Channel` 0 means any. Actions:
@@ -4928,6 +4935,13 @@ export interface operations {
         content: {
           'application/json': components['schemas']['MidiLearnRequest'];
         };
+      };
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

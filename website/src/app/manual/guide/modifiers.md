@@ -122,7 +122,7 @@ Put it on a filter for a rhythmic, synth-like pattern, or on a volume for a gate
 
 Values from your MIDI controller: an expression pedal, a knob or a fader sending CC messages. You connect a CC to an External number on the **Global** page, and from then on any modifier with that External as its source follows it. See [Expression pedals](/manual/midi-and-footswitches#expression-pedals).
 
-**Learn MIDI controller** in a knob's right-click menu does both steps at once: it gives the knob a modifier from a free External (one that no MIDI mapping or footswitch drives and this preset does not use) over its whole range, then asks you to move a pedal or knob on your MIDI controller to bind it.
+**Learn MIDI controller** in a knob's right-click menu does both steps at once: it picks a free External (one that no MIDI mapping or footswitch drives and this preset does not use), asks you to move a pedal or knob on your MIDI controller to bind it, and then gives the knob a modifier from that External over its whole range. Cancelled before anything is moved, it changes nothing.
 
 ## Tempo
 

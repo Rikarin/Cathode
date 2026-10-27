@@ -95,10 +95,16 @@ public sealed partial class MidiRouter : IDisposable {
         worker = Task.Run(WorkAsync);
     }
 
+    /// <summary>
+    ///     Arms MIDI learn, or cancels it (null), and tells every editor (<c>midiLearnChanged</c>). Nothing is changed
+    ///     until something is learnt: a request's modifier is added only then, so a cancelled learn leaves nothing.
+    /// </summary>
     public void Learn(MidiLearnRequest? request) {
         lock (gate) {
             learning = request;
         }
+
+        hub.Publish(new("midiLearnChanged", 0, 0, 0), ContractsJsonContext.Default.MidiActivity);
     }
 
     /// <summary>Handles one batch; public so tests (and the in-process engine) can feed it directly.</summary>
@@ -212,7 +218,23 @@ public sealed partial class MidiRouter : IDisposable {
             new("midiLearned", message.Status, message.Data1, message.Data2),
             ContractsJsonContext.Default.MidiActivity
         );
+        if (request.Modifier is { } modifier) {
+            actions.Writer.TryWrite(() => AddModifierAsync(modifier));
+        }
+
         return true;
+    }
+
+    /// <summary>
+    ///     A knob's learn, learnt: the loaded preset's parameter follows the External from now on (replacing any
+    ///     modifier it had). A preset without that block (another was loaded meanwhile) is refused and logged.
+    /// </summary>
+    async Task AddModifierAsync(PresetModifier modifier) {
+        var modifiers = (await rig.StateAsync()).Preset.Modifiers
+            .Where(m => !(m.Block == modifier.Block && m.Param == modifier.Param))
+            .Append(modifier)
+            .ToList();
+        await rig.SetModifiersAsync(modifiers, null);
     }
 
     void Footswitch(Footswitch footswitch, bool down, long sampleTime) {

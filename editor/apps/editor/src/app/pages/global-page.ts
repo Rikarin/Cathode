@@ -33,6 +33,7 @@ import { CatalogStore } from '../state/catalog.store';
 import { GlobalStore } from '../state/global.store';
 import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
+import { MidiLearnStore, learnText } from '../state/midi-learn.store';
 import {
   actionText,
   type OverrideChange,
@@ -449,6 +450,12 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
               <ng-icon xui name="matSettingsInputComponentRound" size="sm" />
               {{ learning() ? 'Move a control…' : 'MIDI learn' }}
             </button>
+            @if (midiLearn.armed(); as armed) {
+              <button xuiButton type="button" variant="outline" (click)="midiLearn.cancel()">Cancel learn</button>
+              <span class="text-foreground-muted self-center text-xs" data-testid="midi-learn-armed"
+                >Learning: {{ learnText(armed) }}</span
+              >
+            }
           </div>
 
           <!-- Not a live region: a stream of CCs would be read out without end. -->
@@ -788,7 +795,9 @@ export class GlobalPage {
   protected readonly learnAction = signal<string>('scene');
   protected readonly learnTarget = signal('');
   protected readonly learnValue = signal('');
-  protected readonly learning = signal(false);
+  protected readonly midiLearn = inject(MidiLearnStore);
+  protected readonly learning = computed(() => this.midiLearn.armed() !== null);
+  protected readonly learnText = learnText;
   protected readonly monitor = signal<string[]>([]);
   /** The engine host's MIDI outputs, for where scene MIDI and footswitch LEDs go. */
   protected readonly midiOutputs = signal<MidiOutputInfo[]>([]);
@@ -803,9 +812,8 @@ export class GlobalPage {
     void this.refreshMidiOutputs();
     const subscription = inject(EventStream).midi$.subscribe(message => {
       if (message.type === 'midiLearned') {
-        this.learning.set(false);
         this.notify.success(`Learned ${describeMidi(message)}.`);
-      } else {
+      } else if (message.type === 'midi') {
         this.monitor.update(lines => [describeMidi(message), ...lines].slice(0, 30));
       }
     });
@@ -849,15 +857,11 @@ export class GlobalPage {
 
   protected async learn(): Promise<void> {
     const value = this.learnValue().trim();
-    await this.notify.run(async () => {
-      await this.connection.client.PUT('/api/v1/midi/learn', {
-        body: {
-          action: this.learnAction(),
-          target: this.learnTarget().trim() || null,
-          value: storedValue(this.learnAction(), value === '' ? null : Number(value))
-        }
-      });
-      this.learning.set(true);
+    await this.midiLearn.arm({
+      action: this.learnAction(),
+      target: this.learnTarget().trim() || null,
+      value: storedValue(this.learnAction(), value === '' ? null : Number(value)),
+      modifier: null
     });
   }
 

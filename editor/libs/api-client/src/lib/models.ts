@@ -26,6 +26,7 @@ export type LatencyInfo = Schemas['LatencyInfo'];
 export type LatencyStepInfo = Schemas['LatencyStepInfo'];
 export type SpeakerResonanceInfo = Schemas['SpeakerResonanceInfo'];
 export type MidiMapping = Schemas['MidiMapping'];
+export type MidiLearnRequest = Schemas['MidiLearnRequest'];
 export type MidiOutputInfo = Schemas['MidiOutputInfo'];
 export type FootswitchLayout = Schemas['FootswitchLayout'];
 export type Footswitch = Schemas['Footswitch'];
@@ -111,9 +112,12 @@ export interface LooperInfo {
   halfSpeed: boolean;
 }
 
-/** Every MIDI message received (type midi), or the one MIDI learn just bound (type midiLearned). */
+/**
+ * Every MIDI message received (type midi), the one MIDI learn just bound (type midiLearned), or MIDI learn armed or
+ * cancelled (type midiLearnChanged, with zeros: read `GET /midi/learn`).
+ */
 export interface MidiActivity {
-  type: 'midi' | 'midiLearned';
+  type: 'midi' | 'midiLearned' | 'midiLearnChanged';
   status: number;
   data1: number;
   data2: number;

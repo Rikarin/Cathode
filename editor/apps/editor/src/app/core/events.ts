@@ -162,7 +162,7 @@ export class EventStream {
       this.connected$.next();
     } else if (message.type === 'resync') {
       this.connected$.next();
-    } else if (message.type === 'midi' || message.type === 'midiLearned') {
+    } else if (message.type === 'midi' || message.type === 'midiLearned' || message.type === 'midiLearnChanged') {
       this.midi$.next(message as MidiActivity);
     } else if (message.type === 'scope') {
       this.scope = message as ScopeFrame;

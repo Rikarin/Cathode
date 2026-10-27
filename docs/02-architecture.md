@@ -413,7 +413,7 @@ Still to come: RMS, per-block CPU, scene state, and binary frames.
 | Scenes | `PUT /live/scenes/active` (select), `PATCH /live/scenes/{scene}`, `PUT /live/scenes/{scene}/blocks/{id}` (Scene Manager), `PUT /live/blocks/{id}/all-scenes`, `POST /live/scenes/copy`, `POST /live/scenes/swap` |
 | Modifiers | `PUT /live/modifiers`, `PATCH /live/controllers`, `PUT /live/footswitch-overrides` |
 | Library | `GET /presets`, `GET/DELETE /presets/{id}` (presets are written by `/live/save` and imports only), `PATCH /presets/{id}/metadata`, `POST /presets/{id}/duplicate`, `POST /presets/import`, `GET /presets/{id}/export`, `GET /presets/list.txt`, `POST /presets/reset-amps`, `POST /presets/batch-set`; setlists (`/setlists`, `/setlists/{id}`), banks (`/banks`, `/banks/{id}`), block presets (`/block-presets`, `/block-presets/{id}`, `/block-presets/export`, `/block-presets/import`, `POST /live/block-presets`), snapshots (`/snapshots`, `POST /live/snapshots`, `POST /live/snapshots/{id}/load`) and templates (`/templates`, `POST /live/templates`, `POST /live/templates/{id}/new`) |
-| Global | `GET/PUT /global`: one document holding the global settings, the global blocks, the global EQ, the MIDI mappings and the footswitch layouts. `GET/PUT/DELETE /midi/learn` |
+| Global | `GET/PUT /global`: one document holding the global settings, the global blocks, the global EQ, the MIDI mappings and the footswitch layouts. `GET/PUT/DELETE /midi/learn` (what is armed, 204 when nothing is; arm, with an optional modifier the Server adds to the loaded preset once something is learnt; cancel) |
 | Assets | `GET/POST /assets` (IRs and NAM/AIDA-X models: upload, list), `GET/DELETE /assets/{reference}`, `GET /assets/{reference}/content`, `PATCH /assets/{reference}/metadata`, `GET /assets/usage`, `POST /assets/mix` |
 | Utilities | `PUT /tuner`, `PUT /scope`, `PUT /rta` (counted per client, below), `POST /looper/{action}` (transport, undo), `GET /looper/export` |
 | Stream | `GET /ws`: binary telemetry channels (meters, tuner, RTA, scope, CPU) plus JSON events (`paramChanged`, `sceneChanged`, `presetLoaded`, `xrun`), with subscriptions per channel |
@@ -426,6 +426,7 @@ Every mutation produces an **event** on `/ws`, whatever its source (REST, MIDI o
 
 Live state outside the preset has events of its own, which carry the current `revision` without raising it (the working copy did not change):
 - `globalChanged`: the global settings changed, from `PUT /global` or as a side effect: a footswitch's metronome, layout or view, a Manual A–D knob or pedal, MIDI learn, a linked global block's parameters. Clients fetch `GET /global` again.
+- `midiLearnChanged` (a MIDI activity message, with zeros): MIDI learn was armed or cancelled. Clients read `GET /midi/learn` again; `midiLearned` reports what was bound.
 - `tunerChanged` (`value` 1 or 0): the tuner went on or off, from `PUT /tuner`, a MIDI mapping or a footswitch. The rig owns the tuner state, so a footswitch LED follows the editor's tuner and the other way round, and a host that restarts gets the tuner back as part of the resync, with whether to follow MIDI clock.
 
 ---

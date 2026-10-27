@@ -191,18 +191,25 @@ static class ControlsApi {
                 "The MIDI outputs of the engine host's machine, for the MIDI output setting (empty while no engine is "
                 + "connected)."
             );
-        midi.MapGet("/learn", (MidiRouter router) => TypedResults.Ok(router.Learning)).WithName("GetMidiLearn");
+        midi.MapGet(
+                "/learn",
+                Results<Ok<MidiLearnRequest>, NoContent>(MidiRouter router) =>
+                    router.Learning is { } armed ? TypedResults.Ok(armed) : TypedResults.NoContent()
+            )
+            .WithName("GetMidiLearn")
+            .WithSummary("The armed MIDI learn request; 204 when MIDI learn is not armed.");
         midi.MapPut(
                 "/learn",
                 (MidiLearnRequest request, MidiRouter router) => {
-                    GlobalValidation.CheckAction(request.Action);
+                    GlobalValidation.CheckLearn(request);
                     router.Learn(request);
                     return TypedResults.NoContent();
                 }
             )
             .WithName("StartMidiLearn")
             .WithSummary(
-                "The next CC, note or program change received is mapped to this action ('midiLearned' event)."
+                "The next CC, note or program change received is mapped to this action ('midiLearned' event); "
+                + "arming replaces a request already armed ('midiLearnChanged' event)."
             );
         midi.MapDelete(
                 "/learn",
@@ -211,7 +218,8 @@ static class ControlsApi {
                     return TypedResults.NoContent();
                 }
             )
-            .WithName("CancelMidiLearn");
+            .WithName("CancelMidiLearn")
+            .WithSummary("Disarms MIDI learn; nothing is mapped ('midiLearnChanged' event).");
     }
 
     /// <summary>Answers with the global settings and their revision as the ETag (as <c>/live</c> does).</summary>

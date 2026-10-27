@@ -2997,6 +2997,7 @@
         "tags": [
           "MIDI"
         ],
+        "summary": "The armed MIDI learn request; 204 when MIDI learn is not armed.",
         "operationId": "GetMidiLearn",
         "responses": {
           "200": {
@@ -3008,6 +3009,9 @@
                 }
               }
             }
+          },
+          "204": {
+            "description": "No Content"
           }
         }
       },
@@ -3015,7 +3019,7 @@
         "tags": [
           "MIDI"
         ],
-        "summary": "The next CC, note or program change received is mapped to this action (\u0027midiLearned\u0027 event).",
+        "summary": "The next CC, note or program change received is mapped to this action (\u0027midiLearned\u0027 event); arming replaces a request already armed (\u0027midiLearnChanged\u0027 event).",
         "operationId": "StartMidiLearn",
         "requestBody": {
           "content": {
@@ -3037,6 +3041,7 @@
         "tags": [
           "MIDI"
         ],
+        "summary": "Disarms MIDI learn; nothing is mapped (\u0027midiLearnChanged\u0027 event).",
         "operationId": "CancelMidiLearn",
         "responses": {
           "204": {
@@ -4926,7 +4931,8 @@
       },
       "MidiLearnRequest": {
         "required": [
-          "action"
+          "action",
+          "modifier"
         ],
         "type": "object",
         "properties": {
@@ -4945,9 +4951,19 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "modifier": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PresetModifier"
+              }
+            ]
           }
         },
-        "description": "Arms MIDI learn: the next CC, note or program change received is bound to this action."
+        "description": "Arms MIDI learn: the next CC, note or program change received is bound to this action. With\n\u0060Modifier\u0060 (an \u0060external\u0060 action only, its source that External), the Server also gives the loaded\npreset that modifier once something is learnt, so a knob\u0027s learn leaves nothing behind when it is cancelled."
       },
       "MidiMapping": {
         "required": [

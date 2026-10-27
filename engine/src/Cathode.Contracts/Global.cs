@@ -204,7 +204,11 @@ public sealed class GlobalBlock {
     public Dictionary<string, string> Assets { get; set; } = [];
 }
 
-/// <summary>Pushed on the WebSocket for every MIDI message received, for the editor's monitor and MIDI learn.</summary>
+/// <summary>
+///     Pushed on the WebSocket for every MIDI message received (<c>midi</c>), for the editor's monitor, the one MIDI
+///     learn just bound (<c>midiLearned</c>), and MIDI learn armed or cancelled (<c>midiLearnChanged</c>, with zeros:
+///     read <c>GET /midi/learn</c>).
+/// </summary>
 public sealed record MidiActivity(string Type, int Status, int Data1, int Data2);
 
 /// <summary>The looper's transport, as the editor shows it.</summary>
@@ -235,5 +239,14 @@ public sealed record SceneIgnoreRequest(bool Enabled);
 /// <summary>Mutes or unmutes every output (<c>PUT /live/mute</c>).</summary>
 public sealed record MuteRequest(bool Muted);
 
-/// <summary>Arms MIDI learn: the next CC, note or program change received is bound to this action.</summary>
-public sealed record MidiLearnRequest(string Action, string? Target = null, int? Value = null);
+/// <summary>
+///     Arms MIDI learn: the next CC, note or program change received is bound to this action. With
+///     <c>Modifier</c> (an <c>external</c> action only, its source that External), the Server also gives the loaded
+///     preset that modifier once something is learnt, so a knob's learn leaves nothing behind when it is cancelled.
+/// </summary>
+public sealed record MidiLearnRequest(
+    string Action,
+    string? Target = null,
+    int? Value = null,
+    PresetModifier? Modifier = null
+);
