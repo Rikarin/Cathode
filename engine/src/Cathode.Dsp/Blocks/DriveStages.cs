@@ -425,13 +425,7 @@ public sealed class TransistorStage {
     }
 
     public static WdfNetlist Netlist() {
-        var net = new WdfNetlist();
-        var (input, baseNode, collector, emitter, output, supply) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Port(input, WdfNetlist.Ground);
-        net.Port(input, baseNode);
-        net.Port(emitter, WdfNetlist.Ground);
-        net.Port(collector, output);
+        var (net, input, baseNode, collector, emitter, output, supply) = GainStageNetlist.Create();
         net.Resistor(baseNode, supply, 470e3);
         net.Resistor(baseNode, WdfNetlist.Ground, 68e3);
         net.Resistor(emitter, WdfNetlist.Ground, 3.9e3);
@@ -695,13 +689,7 @@ public sealed class DriveTriodeStage {
     }
 
     public static WdfNetlist Netlist() {
-        var net = new WdfNetlist();
-        var (input, grid, plate, cathode, output, supply) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Port(input, WdfNetlist.Ground);
-        net.Port(input, grid);
-        net.Port(cathode, WdfNetlist.Ground);
-        net.Port(plate, output);
+        var (net, input, grid, plate, cathode, output, supply) = GainStageNetlist.Create();
         net.Resistor(grid, WdfNetlist.Ground, 1e6);
         net.Resistor(plate, supply, 100e3);
         net.Resistor(cathode, WdfNetlist.Ground, 1.5e3);

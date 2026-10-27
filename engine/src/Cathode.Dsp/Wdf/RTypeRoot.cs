@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using Cathode.Dsp.Blocks;
 
 namespace Cathode.Dsp.Wdf;
 
@@ -774,6 +775,7 @@ public struct RTypeRoot<TPorts, TDevice>
                 free[count++] = d;
             }
         }
+#pragma warning restore SK2003
 
         s.factored = false; // the system and pivot buffers are borrowed
         if (rebuild) {
@@ -782,22 +784,7 @@ public struct RTypeRoot<TPorts, TDevice>
 
         var a = s.system.AsSpan(0, count * count);
         var b = s.direction.AsSpan(0, count);
-        var full = s.systemCopy;
-        for (var i = 0; i < count; i++) {
-            var row = free[i];
-            var rhs = s.rhsCopy[row];
-            for (var d = 0; d < k; d++) {
-                if (proposed[d] != v[d] + unlimited[d]) {
-#pragma warning restore SK2003
-                    rhs -= full[row * k + d] * (proposed[d] - v[d]);
-                }
-            }
-
-            b[i] = rhs;
-            for (var j = 0; j < count; j++) {
-                a[i * count + j] = full[row * k + free[j]];
-            }
-        }
+        ConstrainedStep.Gather(s.systemCopy, s.rhsCopy, free, count, k, v, unlimited, proposed, a, b);
 
         if (!SolveSmall(a, count, b, s.pivots)) {
             return;

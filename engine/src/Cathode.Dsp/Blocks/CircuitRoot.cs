@@ -395,8 +395,6 @@ public sealed class CircuitRoot<TSource, TDevice>
         Span<double> way = newton.direction;
         Span<double> j = newton.jacobian;
         Span<double> a = newton.system;
-        Span<double> t = newton.trial;
-        Span<double> gc = newton.conductances;
         Span<double> r = newton.currents;
         Span<double> negative = newton.rhs;
         Span<int> order = newton.pivots;
@@ -433,14 +431,8 @@ public sealed class CircuitRoot<TSource, TDevice>
             }
 
             if (converged) {
-                // The currents at the new voltages, to second order in the step: r + (∂i/∂v - G_c) Δ.
                 for (var d = 0; d < k; d++) {
-                    var sum = t[d] - gc[d] * delta[d];
-                    for (var l = 0; l < k; l++) {
-                        sum += j[d * k + l] * delta[l];
-                    }
-
-                    r[d] = sum;
+                    r[d] = SteppedCurrent(d, k, delta);
                 }
 
                 Copy(next, v, k);
@@ -566,6 +558,7 @@ public sealed class CircuitRoot<TSource, TDevice>
                 free[count++] = d;
             }
         }
+#pragma warning restore SK2003
 
         if (count == k || count == 0) {
             return;
@@ -577,23 +570,7 @@ public sealed class CircuitRoot<TSource, TDevice>
         Linearise(newton.jacobian, full);
         Span<double> a = subsystem;
         Span<double> b = newton.direction;
-        ReadOnlySpan<double> negative = newton.rhs;
-        for (var i = 0; i < count; i++) {
-            var row = free[i];
-            var sum = negative[row];
-            for (var d = 0; d < k; d++) {
-                if (next[d] != v[d] + unlimited[d]) {
-#pragma warning restore SK2003
-                    sum -= full[row * k + d] * (next[d] - v[d]);
-                }
-            }
-
-            b[i] = sum;
-            for (var c = 0; c < count; c++) {
-                a[i * count + c] = full[row * k + free[c]];
-            }
-        }
-
+        ConstrainedStep.Gather(full, newton.rhs, free, count, k, v, unlimited, next, a, b);
         DevicePivots orderBuffer = default;
         DeviceVector reciprocalBuffer = default;
         Span<int> order = orderBuffer;
@@ -621,8 +598,6 @@ public sealed class CircuitRoot<TSource, TDevice>
         Span<double> delta = newton.step;
         Span<double> j = newton.jacobian;
         Span<double> a = newton.system;
-        Span<double> t = newton.trial;
-        Span<double> gc = newton.conductances;
         Span<double> next = newton.proposed;
         Span<int> order = newton.pivots;
         Span<double> reciprocals = newton.inverses;
@@ -637,11 +612,7 @@ public sealed class CircuitRoot<TSource, TDevice>
 
         Substitute(a, order, reciprocals, k, delta);
         for (var d = 0; d < k; d++) {
-            var sum = t[d] - gc[d] * delta[d];
-            for (var l = 0; l < k; l++) {
-                sum += j[d * k + l] * delta[l];
-            }
-
+            var sum = SteppedCurrent(d, k, delta);
             if (!double.IsFinite(sum) || !double.IsFinite(delta[d])) {
                 return;
             }
@@ -653,6 +624,24 @@ public sealed class CircuitRoot<TSource, TDevice>
             r[d] = next[d];
             v[d] += delta[d];
         }
+    }
+
+    /// <summary>
+    ///     Device port <paramref name="d" />'s residual current at the stepped voltages, to second order in the step
+    ///     <paramref name="delta" />: r + (∂i/∂v - G_c) Δ, from the trial currents and Jacobian the last
+    ///     <see cref="Residual" /> left.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    double SteppedCurrent(int d, int k, ReadOnlySpan<double> delta) {
+        ReadOnlySpan<double> t = newton.trial;
+        ReadOnlySpan<double> gc = newton.conductances;
+        ReadOnlySpan<double> j = newton.jacobian;
+        var sum = t[d] - gc[d] * delta[d];
+        for (var l = 0; l < k; l++) {
+            sum += j[d * k + l] * delta[l];
+        }
+
+        return sum;
     }
 
     /// <summary>
