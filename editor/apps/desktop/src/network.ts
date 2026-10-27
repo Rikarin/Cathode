@@ -39,9 +39,9 @@ export function portFree(port: number): Promise<boolean> {
  */
 export function networkUrls(port: number): string[] {
   const addresses = Object.values(networkInterfaces())
-    .flat()
-    .filter(a => a && a.family === 'IPv4' && !a.internal && !a.address.startsWith('169.254.'))
-    .map(a => a!.address);
+    .flatMap(list => list ?? [])
+    .filter(a => a.family === 'IPv4' && !a.internal && !a.address.startsWith('169.254.'))
+    .map(a => a.address);
   const name = bonjourName();
   return [...new Set([...addresses, ...(name ? [`${name}.local`] : [])])].map(host => `http://${host}:${port}`);
 }

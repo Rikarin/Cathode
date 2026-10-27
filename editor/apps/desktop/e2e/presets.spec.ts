@@ -42,7 +42,7 @@ test('New preset asks before discarding unsaved edits, as loading does', async (
   // Cancel: the edits stay.
   window.once('dialog', dialog => {
     asked.push(dialog.message());
-    void dialog.dismiss();
+    void dialog.dismiss().catch(() => undefined);
   });
   await window.getByRole('button', { name: 'New preset', exact: true }).click();
   await expect.poll(() => asked).toHaveLength(1);
@@ -50,7 +50,7 @@ test('New preset asks before discarding unsaved edits, as loading does', async (
   await expect(editor.block('Drive', 'drive1')).toBeVisible();
 
   // OK: an empty preset.
-  window.once('dialog', dialog => void dialog.accept());
+  window.once('dialog', dialog => void dialog.accept().catch(() => undefined));
   await window.getByRole('button', { name: 'New preset', exact: true }).click();
   await expect(editor.block('Drive', 'drive1')).toHaveCount(0);
 });
@@ -62,7 +62,7 @@ test('quitting asks before discarding unsaved edits', async ({ app, window, edit
   // Cancel: the app stays, edits and all.
   window.once('dialog', dialog => {
     asked.push(dialog.message());
-    void dialog.dismiss();
+    void dialog.dismiss().catch(() => undefined);
   });
   await app.evaluate(({ app }) => app.quit());
   await expect.poll(() => asked).toHaveLength(1);
@@ -73,9 +73,9 @@ test('quitting asks before discarding unsaved edits', async ({ app, window, edit
   if (process.platform !== 'darwin') {
     window.once('dialog', dialog => {
       asked.push(dialog.message());
-      void dialog.dismiss();
+      void dialog.dismiss().catch(() => undefined);
     });
-    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close());
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.close());
     await expect.poll(() => asked).toHaveLength(2);
     await expect(editor.block('Drive', 'drive1')).toBeVisible();
   }
@@ -155,10 +155,13 @@ test('a preset a bank holds is not deleted: the Library says which bank, then de
   await window.evaluate(async () => {
     const { baseUrl, token } = await (window as unknown as CathodeWindow).cathode.connection();
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-    const presets: { id: string; name: string }[] = await (
-      await fetch(`${baseUrl}/api/v1/presets`, { headers })
-    ).json();
-    const id = presets.find(p => p.name === 'Gig Rig')!.id;
+    const response = await fetch(`${baseUrl}/api/v1/presets`, { headers });
+    const presets = (await response.json()) as { id: string; name: string }[];
+    const id = presets.find(p => p.name === 'Gig Rig')?.id;
+    if (!id) {
+      throw new Error('Gig Rig was not saved');
+    }
+
     await fetch(`${baseUrl}/api/v1/banks/gig`, {
       method: 'PUT',
       headers,

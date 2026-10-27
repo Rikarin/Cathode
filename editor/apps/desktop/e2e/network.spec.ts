@@ -23,7 +23,7 @@ test('it is off by default and turns on from Audio setup', async ({ window }) =>
   await expect(window.getByRole('switch', { name: /Allow control/ })).toBeChecked();
   await expect(window.getByTestId('network-url').first()).toHaveText(new RegExp(`^http://.+:${port}$`));
   await expect(window.getByRole('img', { name: /^QR code for http:.*\?token=/ })).toBeVisible();
-  const token = (await window.getByTestId('network-token').textContent())!.trim();
+  const token = (await window.getByTestId('network-token').textContent())?.trim() ?? '';
   expect(token.length).toBeGreaterThanOrEqual(32);
   await window.getByRole('button', { name: 'Copy' }).click();
   await expect(window.getByText('Copied the access token.')).toBeVisible();
@@ -52,6 +52,7 @@ test.describe('when on', () => {
     port = await freePort();
   });
   test.use({
+    // eslint-disable-next-line no-empty-pattern -- Playwright reads a fixture's dependencies from its first parameter's destructuring; this one has none
     desktopSettings: async ({}, use) => use({ network: { enabled: true, port, token: Token } })
   });
 
