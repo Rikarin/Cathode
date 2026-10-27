@@ -81,7 +81,8 @@ public sealed partial class EngineConnection(
     public HostTelemetry? LastTelemetry { get; private set; }
 
     public EngineStatus Status() {
-        var t = LastTelemetry;
+        // Before the first telemetry every figure reads zero (a fresh telemetry's), and the device "ok".
+        var t = LastTelemetry ?? new HostTelemetry();
         var i = info;
         // Reported as connected once the host has the rig: a client that edits it the moment it sees "connected" must not
         // reach a host that still has no graph.
@@ -91,21 +92,21 @@ public sealed partial class EngineConnection(
             i?.Backend,
             i?.SampleRate ?? 0,
             i?.BufferFrames ?? 0,
-            t?.CpuP999 ?? 0,
-            t?.CpuMax ?? 0,
-            t?.Overloads ?? 0,
+            t.CpuP999,
+            t.CpuMax,
+            t.Overloads,
             lastError,
-            t?.DriverOverloads ?? 0,
-            t?.NativeP999 ?? 0,
-            t?.NativeMax ?? 0,
-            t?.Gen0 ?? 0,
-            t?.Gen1 ?? 0,
-            t?.Gen2 ?? 0,
-            t?.GcPauseMs ?? 0,
-            t?.AllocatedBytes ?? 0,
+            t.DriverOverloads,
+            t.NativeP999,
+            t.NativeMax,
+            t.Gen0,
+            t.Gen1,
+            t.Gen2,
+            t.GcPauseMs,
+            t.AllocatedBytes,
             InputNames(i?.InputSources ?? 1),
-            t?.CallbackExceptions ?? 0,
-            t?.DeviceStatus ?? "ok"
+            t.CallbackExceptions,
+            t.DeviceStatus ?? "ok"
         );
     }
 

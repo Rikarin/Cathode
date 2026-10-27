@@ -119,7 +119,40 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
             );
         }
 
-        // Verify every asset hashes to its name before anything enters the store.
+        var packaged = await VerifiedAssetsAsync(zip, cancellationToken);
+        var missing = preset.Blocks.SelectMany(static b => b.Assets.Values)
+            .Distinct(StringComparer.Ordinal)
+            .Where(r => !packaged.ContainsKey(r) && assets.Get(r) is null)
+            .ToList();
+        if (missing.Count > 0) {
+            throw new RigException(
+                400,
+                "The preset uses assets that are neither in the package nor in this library.",
+                missing
+            );
+        }
+
+        var added = await AddAssetsAsync(packaged, manifest, cancellationToken);
+        preset.Factory = null; // an exported factory preset comes back as the user's own
+        var renamed = !StoreIds.IsValid(preset.Id)
+            || FactoryPresets.IsFactoryId(preset.Id)
+            || presets.Exists(preset.Id);
+        if (renamed) {
+            preset.Id = Preset.NewId(); // never overwrite a preset already in the library
+        }
+
+        presets.Save(preset);
+        var summary = presets.List().Single(p => p.Id == preset.Id);
+        return new(summary, added, renamed);
+    }
+
+    /// <summary>
+    ///     The package's assets by reference, each verified to hash to its name before anything enters the store.
+    /// </summary>
+    static async Task<Dictionary<string, ZipArchiveEntry>> VerifiedAssetsAsync(
+        ZipArchive zip,
+        CancellationToken cancellationToken
+    ) {
         var packaged = new Dictionary<string, ZipArchiveEntry>(StringComparer.Ordinal);
         foreach (var entry in zip.Entries.Where(static e => e.FullName.StartsWith("assets/", StringComparison.Ordinal)
                  )) {
@@ -134,18 +167,15 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
             packaged[reference] = entry;
         }
 
-        var missing = preset.Blocks.SelectMany(static b => b.Assets.Values)
-            .Distinct(StringComparer.Ordinal)
-            .Where(r => !packaged.ContainsKey(r) && assets.Get(r) is null)
-            .ToList();
-        if (missing.Count > 0) {
-            throw new RigException(
-                400,
-                "The preset uses assets that are neither in the package nor in this library.",
-                missing
-            );
-        }
+        return packaged;
+    }
 
+    /// <summary>Adds the packaged assets the library lacks, under their original names; returns how many.</summary>
+    async Task<int> AddAssetsAsync(
+        Dictionary<string, ZipArchiveEntry> packaged,
+        PackageManifest manifest,
+        CancellationToken cancellationToken
+    ) {
         var added = 0;
         foreach (var (reference, entry) in packaged) {
             if (assets.Get(reference) is not null) {
@@ -160,17 +190,7 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
             added++;
         }
 
-        preset.Factory = null; // an exported factory preset comes back as the user's own
-        var renamed = !StoreIds.IsValid(preset.Id)
-            || FactoryPresets.IsFactoryId(preset.Id)
-            || presets.Exists(preset.Id);
-        if (renamed) {
-            preset.Id = Preset.NewId(); // never overwrite a preset already in the library
-        }
-
-        presets.Save(preset);
-        var summary = presets.List().Single(p => p.Id == preset.Id);
-        return new(summary, added, renamed);
+        return added;
     }
 
     static async Task WriteJsonAsync(ZipArchive zip, string name, byte[] json, CancellationToken cancellationToken) {

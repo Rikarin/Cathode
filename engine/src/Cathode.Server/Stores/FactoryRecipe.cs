@@ -155,26 +155,55 @@ public sealed class FactoryRecipe(string name, string description, params string
             Cables = [],
             Scenes = []
         };
-        var input = new PresetBlock { Id = InputId, Type = BuiltInTypes.Input, Row = MainRow, Column = 0 };
-        var gate = inputSettings.Length > 0 ? inputSettings
-            : tags.Any(DrivenTags.Contains) ? DrivenGate
-            : string.Empty;
-        if (gate.Length > 0) {
-            input.Channels["A"] = Settings(catalog, BuiltInTypes.Input, gate, Problem);
-        }
-
+        var input = InputBlock(catalog, Problem);
         var blocks = WithPeakCompressor();
         if (blocks.Count > MaxBlocks) {
             Problem($"{blocks.Count} blocks do not fit between Input and Output ({MaxBlocks} cells).");
         }
 
         preset.Blocks.Add(input);
+        var previous = AddChain(preset, blocks, catalog, level, Problem);
+        preset.Blocks.Add(new() { Id = OutputId, Type = BuiltInTypes.Output, Row = MainRow, Column = MaxBlocks + 1 });
+        preset.Cables.Add(new() { From = previous, To = OutputId });
+
+        // The scenes a recipe leaves out repeat its first, so an unplanned scene switch keeps the sound.
+        for (var s = 0; s < Preset.SceneCount; s++) {
+            preset.Scenes.Add(BuildScene(s, blocks, level, Problem));
+        }
+
+        return preset;
+    }
+
+    /// <summary>The Input block, with the recipe's gate settings (or the driven tags' default gate).</summary>
+    PresetBlock InputBlock(BlockCatalog catalog, Action<string> problem) {
+        var input = new PresetBlock { Id = InputId, Type = BuiltInTypes.Input, Row = MainRow, Column = 0 };
+        var gate = inputSettings.Length > 0 ? inputSettings
+            : tags.Any(DrivenTags.Contains) ? DrivenGate
+            : string.Empty;
+        if (gate.Length > 0) {
+            input.Channels["A"] = Settings(catalog, BuiltInTypes.Input, gate, problem);
+        }
+
+        return input;
+    }
+
+    /// <summary>
+    ///     The blocks in series on the main row after the Input, shunts filling the cells up to the Output, with
+    ///     their pedal modifiers; returns the id of the last, which feeds the Output.
+    /// </summary>
+    static string AddChain(
+        Preset preset,
+        List<Part> blocks,
+        BlockCatalog catalog,
+        FactoryLevels.Trim? level,
+        Action<string> problem
+    ) {
         var previous = InputId;
         for (var column = 1; column <= MaxBlocks; column++) {
             var part = column - 1 < blocks.Count ? blocks[column - 1] : null;
             var block = part is null
                 ? new PresetBlock { Id = $"shunt-r{MainRow}c{column}", Type = BuiltInTypes.Shunt }
-                : Block(catalog, part, level, Problem);
+                : Block(catalog, part, level, problem);
             block.Row = MainRow;
             block.Column = column;
             preset.Blocks.Add(block);
@@ -185,29 +214,26 @@ public sealed class FactoryRecipe(string name, string description, params string
             }
         }
 
-        preset.Blocks.Add(new() { Id = OutputId, Type = BuiltInTypes.Output, Row = MainRow, Column = MaxBlocks + 1 });
-        preset.Cables.Add(new() { From = previous, To = OutputId });
+        return previous;
+    }
 
-        // The scenes a recipe leaves out repeat its first, so an unplanned scene switch keeps the sound.
-        for (var s = 0; s < Preset.SceneCount; s++) {
-            var planned = Math.Min(s, scenes.Count - 1);
-            var spec = planned >= 0 ? scenes[planned] : null;
-            var scene = new Scene {
-                Name = s < scenes.Count ? spec!.Name : $"Scene {s + 1}",
-                Level = level?.Scenes is { } levels && planned >= 0 && planned < levels.Length ? levels[planned] : 0
-            };
-            foreach (var part in blocks) {
-                scene.Blocks[part.Id] = new(part.Bypassed);
-            }
-
-            foreach (var change in spec?.Changes.Split(' ', Split) ?? []) {
-                Apply(scene, change, Problem);
-            }
-
-            preset.Scenes.Add(scene);
+    /// <summary>Scene <paramref name="s" />: the recipe's scene of that number, or else its last.</summary>
+    Scene BuildScene(int s, List<Part> blocks, FactoryLevels.Trim? level, Action<string> problem) {
+        var planned = Math.Min(s, scenes.Count - 1);
+        var spec = planned >= 0 ? scenes[planned] : null;
+        var scene = new Scene {
+            Name = s < scenes.Count ? spec!.Name : $"Scene {s + 1}",
+            Level = level?.Scenes is { } levels && planned >= 0 && planned < levels.Length ? levels[planned] : 0
+        };
+        foreach (var part in blocks) {
+            scene.Blocks[part.Id] = new(part.Bypassed);
         }
 
-        return preset;
+        foreach (var change in spec?.Changes.Split(' ', Split) ?? []) {
+            Apply(scene, change, problem);
+        }
+
+        return scene;
     }
 
     /// <summary>The recipe's blocks, with <see cref="PeakCompressor" /> after the cab when a scene plays clean.</summary>
@@ -335,19 +361,34 @@ public sealed class FactoryRecipe(string name, string description, params string
             values[id] = param.Sanitize(value);
         }
 
-        // A control the chosen type does not have (an amp model's panel, a delay type's page) does nothing there.
-        if (descriptor?.IndexOf("type") is >= 0 and var typeIndex) {
-            var model = (int)values.GetValueOrDefault("type", descriptor.Params[typeIndex].Default);
-            foreach (var id in values.Keys) {
-                if (descriptor.Params[descriptor.IndexOf(id)].TypeLabels is { } labels
-                    && model < labels.Count
-                    && string.IsNullOrEmpty(labels[model])) {
-                    problem($"{type} type {descriptor.Params[typeIndex].Options?[model]} has no control '{id}'.");
-                }
-            }
+        if (descriptor is not null) {
+            CheckTypeControls(descriptor, type, values, problem);
         }
 
         return values;
+    }
+
+    /// <summary>
+    ///     A control the chosen type does not have (an amp model's panel, a delay type's page) does nothing there.
+    /// </summary>
+    static void CheckTypeControls(
+        BlockDescriptor descriptor,
+        string type,
+        Dictionary<string, float> values,
+        Action<string> problem
+    ) {
+        if (descriptor.IndexOf("type") is not (>= 0 and var typeIndex)) {
+            return;
+        }
+
+        var model = (int)values.GetValueOrDefault("type", descriptor.Params[typeIndex].Default);
+        foreach (var id in values.Keys) {
+            if (descriptor.Params[descriptor.IndexOf(id)].TypeLabels is { } labels
+                && model < labels.Count
+                && string.IsNullOrEmpty(labels[model])) {
+                problem($"{type} type {descriptor.Params[typeIndex].Options?[model]} has no control '{id}'.");
+            }
+        }
     }
 
     /// <summary>A number, or the option named exactly, or else the only option whose name has it.</summary>

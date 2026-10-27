@@ -225,7 +225,7 @@ public sealed partial class AssetStore {
 
             info = info with {
                 Name = change.Name?.Trim() ?? info.Name,
-                Color = change.Color is { } color ? color.Length == 0 ? null : color : info.Color,
+                Color = change.Color is { } color ? NullIfEmpty(color) : info.Color,
                 Favorite = change.Favorite ?? info.Favorite
             };
             index[reference] = info;
@@ -233,6 +233,9 @@ public sealed partial class AssetStore {
             return info;
         }
     }
+
+    /// <summary>A colour tag as stored: an empty one clears it.</summary>
+    static string? NullIfEmpty(string color) => color.Length == 0 ? null : color;
 
     public bool Delete(string reference) {
         lock (gate) {
