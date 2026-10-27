@@ -47,7 +47,9 @@ Get the latest build from the [Releases page](https://github.com/Rikarin/cathode
 | `Cathode-<version>-linux-x86_64.AppImage` | Linux desktops | Make it executable (`chmod +x`) and run it. |
 | `cathode-server-<version>-linux-<x64\|arm64>.tar.gz` | A small Linux computer in your rig, with no display | See [the headless rig](#a-headless-rig). |
 
-Each release lists `SHA256SUMS` to check the downloads against.
+Each release lists `SHA256SUMS` to check the downloads against. Every file and `SHA256SUMS` itself carry a signed
+build-provenance attestation: `gh attestation verify <file> --repo Rikarin/cathode` shows it was built by this
+repository's release workflow ([verifying a download](docs/10-releases.md#verifying-a-download)).
 
 ### Where it plays sound today
 

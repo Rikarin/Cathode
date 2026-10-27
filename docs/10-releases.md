@@ -21,8 +21,26 @@ prerelease. [`release.yml`](../.github/workflows/release.yml) then:
    the NativeAOT host's self-test) and [`editor.yml`](../.github/workflows/editor.yml) (the generated API client,
    type-check, lint, unit tests, Storybook and the desktop app's Playwright tests), called as reusable workflows, and
    checks that the tag points at a commit on master.
-4. Only when all of that passes, publishes a GitHub release with every file and a `SHA256SUMS`, with notes generated
-   from the commits.
+4. Only when all of that passes, publishes a GitHub release with every file, a `SHA256SUMS` and its attestation bundle
+   `SHA256SUMS.sigstore.json`, with notes generated from the commits.
+
+Each build job hashes its installers where it built them and attests their build provenance (SLSA, signed keyless
+through Sigstore with the job's GitHub identity, `actions/attest-build-provenance`). The release job checks every
+downloaded file against those build-time hashes, merges them into `SHA256SUMS`, refuses a file that has none, and
+attests `SHA256SUMS` itself.
+
+### Verifying a download
+
+With the GitHub CLI, either the installer itself or `SHA256SUMS` and then the installer against it:
+
+```sh
+gh attestation verify Cathode-1.2.3-mac-arm64.dmg --repo Rikarin/cathode
+gh attestation verify SHA256SUMS --repo Rikarin/cathode --bundle SHA256SUMS.sigstore.json
+sha256sum --check --ignore-missing SHA256SUMS
+```
+
+Either proves the file was built by this repository's `release.yml` from the tagged commit, not uploaded afterwards.
+(`--bundle` checks against the published bundle; without it `gh` fetches the attestation from GitHub.)
 
 Running the workflow by hand (Actions, release, Run workflow) builds everything as workflow artifacts without
 publishing. [`desktop.yml`](../.github/workflows/desktop.yml) still builds the desktop app on every push to master.
