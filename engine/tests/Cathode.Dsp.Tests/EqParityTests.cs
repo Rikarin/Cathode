@@ -255,6 +255,47 @@ public sealed class EqParityTests : IDisposable {
         Assert.Equal(1, block.IrSwaps);
     }
 
+    [Fact]
+    public void Ir_player_clearing_the_last_ir_while_running_fades_the_wet_out() {
+        // Half-level IR, so the wet signal is half the dry: a cut would step from 0.25 to 0.5 at once.
+        using var block = Create(("ir", Write("a.wav", Signals.Impulse(16, 0.5f))));
+        var dc = Enumerable.Repeat(0.5f, 4_800).ToArray();
+        var before = BlockRender.Mono(block, dc, 64);
+
+        block.UnloadAsset("ir");
+        block.Refresh();
+        var after = BlockRender.Mono(block, dc, 64);
+
+        Assert.Equal(0.25f, before[^1], 1e-6f);
+        Assert.Equal(1, block.IrSwaps);
+        Assert.Equal(0.5f, after[^1]); // passes through untouched once faded
+        var steps = after.Prepend(before[^1]).Zip(after, static (a, b) => Math.Abs(b - a)).Max();
+        Assert.True(steps < 0.25f / 900, $"largest step {steps}"); // spread over the 20 ms (960-sample) fade
+        Assert.Equal([1f], block.ImpulseResponse().Left);
+    }
+
+    [Fact]
+    public void Ir_player_with_no_ir_leaves_the_audio_untouched_whatever_its_cuts_and_input() {
+        using var block = Create(
+            (IrPlayerBlock.LowCut, 400f),
+            (IrPlayerBlock.HighCut, 2_000f),
+            (IrPlayerBlock.Input, IrPlayerBlock.InputLeft),
+            (IrPlayerBlock.Mode, IrPlayerBlock.Series)
+        );
+        var left = Signals.Noise(4_800, 30, 0.3f);
+        var right = Signals.Noise(4_800, 31, 0.3f);
+
+        var (outLeft, outRight) = BlockRender.Stereo(block, left, right, static _ => 64);
+        block.Params.SetTarget(IrPlayerBlock.Mode, IrPlayerBlock.Parallel); // rebuilds an empty pair
+        block.Refresh();
+        var (laterLeft, laterRight) = BlockRender.Stereo(block, left, right, static _ => 64);
+
+        Assert.Equal(left, outLeft);
+        Assert.Equal(right, outRight);
+        Assert.Equal(left, laterLeft);
+        Assert.Equal(right, laterRight);
+    }
+
     static IrPlayerBlock Create(params object[] settings) {
         var block = new IrPlayerBlock();
         foreach (var setting in settings) {

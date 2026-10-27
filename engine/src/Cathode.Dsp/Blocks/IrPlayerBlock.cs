@@ -82,7 +82,7 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
     readonly float[] built = new float[SlotBase + Slots * SlotStride];
     bool stale = true;
     bool ready;
-    volatile bool playing;
+    bool loaded;
     bool disposed;
     bool cabsOff;
     NativeBuffer mixLeft = NativeBuffer.Empty;
@@ -95,6 +95,7 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
     SeriesConvolution? series;
     CutState lowCutLeft, lowCutRight, highCutLeft, highCutRight;
     float mix;
+    float wet; // audio thread: 1 while the wet path plays, 0 once an empty block has faded out
     OutputStage output;
 
     /// <summary>Mode choices, in order.</summary>
@@ -169,6 +170,24 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
         }
     }
 
+    /// <summary>
+    ///     Control thread: empties <paramref name="slot" />. With audio running, the next <see cref="Refresh" />
+    ///     crossfades to what is left; clearing the last IR fades the wet signal out over the switcher's 20 ms, after
+    ///     which the block passes audio through untouched, as an empty IR Player always does.
+    /// </summary>
+    public void UnloadAsset(string slot) {
+        var index = Array.IndexOf(SlotAssets, slot);
+        if (index < 0) {
+            throw new ArgumentException($"Unknown asset slot '{slot}'.", nameof(slot));
+        }
+
+        lock (sync) {
+            files[index] = null;
+            prepared[index] = null;
+            stale = true;
+        }
+    }
+
     public void Refresh() {
         lock (sync) {
             if (!ready || disposed) {
@@ -198,7 +217,7 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
                 switcher.Publish(Build());
             }
 
-            return playing ? (Used(mixLeft.Span, mixRight.Span), Used(mixRight.Span, mixLeft.Span)) : ([1f], [1f]);
+            return loaded ? (Used(mixLeft.Span, mixRight.Span), Used(mixRight.Span, mixLeft.Span)) : ([1f], [1f]);
         }
     }
 
@@ -259,8 +278,8 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
         right.Clear();
         var first = prepared[0];
         var second = prepared[1];
-        playing = first is not null || second is not null;
-        if (!playing) {
+        loaded = first is not null || second is not null;
+        if (!loaded) {
             return new();
         }
 
@@ -364,6 +383,7 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
         highCutLeft.Reset();
         highCutRight.Reset();
         mix = Params.Current(Mix) / 100f;
+        wet = switcher.IsIdentity ? 0f : 1f;
         cabsOff = false;
         output.Reset(Params.Current(Level), Params.Current(Balance));
     }
@@ -401,7 +421,12 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
         var highCut = Params.Advance(HighCut, io.Length);
         var lowSlope = (int)Params.Current(LowSlope);
         var highSlope = (int)Params.Current(HighSlope);
-        if (playing) {
+
+        // With nothing loaded the block skips the wet path (no Input Select, no cuts), but only once the switcher has
+        // faded the last IR out to the identity; the dry/wet blend then fades the identity's own wet out over one
+        // callback, so the cuts and Input Select leave without a step too.
+        var target = switcher.IsIdentity ? 0f : 1f;
+        if (target > 0f || wet > 0f) {
             var left = wetLeft.Span[..io.Length];
             var right = wetRight.Span[..io.Length];
             switch ((int)Params.Current(Input)) {
@@ -438,8 +463,9 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
                 highCutRight.Process(c, right);
             }
 
-            Blend(io.Left, left, this.mix, mix);
-            Blend(io.Right, right, this.mix, mix);
+            Blend(io.Left, left, this.mix * wet, mix * target);
+            Blend(io.Right, right, this.mix * wet, mix * target);
+            wet = target;
         }
 
         this.mix = mix;
