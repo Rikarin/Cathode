@@ -7,5 +7,5 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "e2e/**/*.ts"]
+  "include": ["src/**/*.ts", "e2e/**/*.ts", "vite.config.mts"]
 }
