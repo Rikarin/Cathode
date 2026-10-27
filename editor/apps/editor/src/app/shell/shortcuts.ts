@@ -71,6 +71,8 @@ export const Shortcuts: readonly Shortcut[] = [
   { id: 'paste', group: 'Grid', label: 'Paste (onto a same-type block: its settings)', key: 'v', mod: true },
   { id: 'disconnect', group: 'Grid', label: 'Disconnect all cables', key: 'd', mod: true },
   { id: 'shunt', group: 'Grid', label: 'Insert a shunt', key: 'u', mod: true },
+  { id: 'cable', group: 'Grid', label: 'Cable from the block (then the arrows and ↵; Esc cancels)', key: 'k' },
+  { id: 'selectCable', group: 'Grid', label: 'Select the next cable of the block', key: 'k', shift: true },
   { id: 'remove', group: 'Grid', label: 'Remove the block or cable', key: 'Delete' },
   { id: 'removeBackspace', group: 'Grid', label: 'Remove (alias)', key: 'Backspace' },
   { id: 'undo', group: 'Edit', label: 'Undo', key: 'z', mod: true },

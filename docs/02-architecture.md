@@ -453,6 +453,7 @@ The editor's software-editor features, built in the ED stream. They follow Fract
   - Handlers register per page. The app owns the preset, scene, channel, block, edit and tuner commands. The grid owns the cell commands (Q, ⌘X/C/V/D/U, Delete), because it knows the focused cell; those that change the grid (⌘X/V/D/U, Delete) act only while the grid has the focus.
   - Nothing fires while focus is in a text field. Bare keys (Space, letters, Delete; not ⌘ shortcuts or F-keys) also leave a focused control alone (a button, switch, checkbox, radio, slider, menu item, tab), so Space presses it instead of bypassing the block.
   - ⌥ held, or F1, shows Block Info.
+  - The grid is an ARIA grid (cells in rows, the focused cell as the active descendant) and works without a pointer: K starts a cable from the focused block, the arrows pick a block it can reach and Enter lands it (Escape cancels); ⇧K selects the block's cables in turn, and Delete removes the selected one. A polite live region says only what those keys did.
   - A, B, C and D pick the channel; bypass is Space only.
   - A unit test checks that no two bindings collide and that none clashes with Electron's default menu, which is the only menu the desktop app has.
 - **Preferences** (`PreferencesStore`) are kept in local storage, per user and per machine: knob mode, wheel, tooltips, meter rate, and the default Circuit Amp view.

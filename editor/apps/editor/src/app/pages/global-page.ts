@@ -404,9 +404,14 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
             </button>
           </div>
 
-          <div aria-live="polite">
-            <span class="text-foreground-muted text-xs">Monitor</span>
-            <ul class="bg-surface-sunken mt-1 h-28 overflow-auto rounded-lg p-2 font-mono text-xs">
+          <!-- Not a live region: a stream of CCs would be read out without end. -->
+          <div>
+            <span id="midi-monitor-label" class="text-foreground-muted text-xs">Monitor</span>
+            <ul
+              class="bg-surface-sunken mt-1 h-28 overflow-auto rounded-lg p-2 font-mono text-xs"
+              tabindex="0"
+              aria-labelledby="midi-monitor-label"
+            >
               @for (line of monitor(); track $index) {
                 <li>{{ line }}</li>
               } @empty {

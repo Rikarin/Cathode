@@ -11,17 +11,21 @@ export interface TunerReading {
 
 /** Within this many cents a string reads as in tune. */
 const InTuneCents = 2;
+/** How long a note (and whether it is in tune) must hold before a screen reader is told it: about 30 readings. */
+export const AnnounceAfterMs = 1_000;
 
 /**
  * A needle tuner. `source` is polled on animation frames (telemetry bypasses change detection); the display only
- * updates when the rounded reading changes. The needle spans ±50 cents and turns green within ±2.
+ * updates when the rounded reading changes. The needle spans ±50 cents and turns green within ±2. A screen reader
+ * is not told every reading (up to 30 a second): a polite live region says the note, and whether it is in tune, once
+ * that has held for a second.
  */
 @Component({
   selector: 'cth-tuner',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex flex-col items-center gap-3' },
   template: `
-    <div class="flex items-baseline gap-1" aria-live="polite">
+    <div class="flex items-baseline gap-1" aria-hidden="true">
       <span class="text-6xl font-semibold tabular-nums" [class]="inTune() ? 'text-success' : 'text-foreground'">
         {{ reading()?.note ?? '–' }}
       </span>
@@ -57,6 +61,7 @@ const InTuneCents = 2;
         Play a string
       }
     </span>
+    <span class="sr-only" aria-live="polite" data-testid="tuner-announcement">{{ announcement() }}</span>
   `
 })
 export class CthTuner {
@@ -68,13 +73,17 @@ export class CthTuner {
     const r = this.reading();
     return r !== null && Math.abs(r.cents) <= InTuneCents;
   });
+  /** What the live region says: the note and whether it is in tune, once held for {@link AnnounceAfterMs}. */
+  protected readonly announcement = signal('');
+  private heard = { text: '', since: 0 };
+
   protected readonly description = computed(() => {
     const r = this.reading();
     return r ? `${r.note}${r.octave}, ${r.cents.toFixed(1)} cents` : 'No pitch detected';
   });
 
   constructor() {
-    onAnimationFrame(() => {
+    onAnimationFrame(time => {
       const next = this.source()() ?? null;
       const current = this.reading();
       if (
@@ -84,7 +93,20 @@ export class CthTuner {
       ) {
         this.reading.set(next ? { ...next } : null);
       }
+
+      this.announce(time);
     });
+  }
+
+  /** Updates the live region once the note (and whether it is in tune) has held long enough, and only on a change. */
+  protected announce(time: number): void {
+    const r = this.reading();
+    const text = r ? `${r.note}${r.octave}${this.inTune() ? ', in tune' : ''}` : '';
+    if (text !== this.heard.text) {
+      this.heard = { text, since: time };
+    } else if (text && text !== this.announcement() && time - this.heard.since >= AnnounceAfterMs) {
+      this.announcement.set(text);
+    }
   }
 
   protected clamp(cents: number): number {

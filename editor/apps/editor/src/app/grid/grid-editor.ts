@@ -120,7 +120,8 @@ export function dropAction(
  * The 6 x 14 grid (docs/02-architecture.md §7.3): CSS-positioned cells with an SVG cable layer. Keyboard: arrows move
  * the focus and Enter opens the block palette on an empty cell; the block commands (cut, copy, paste, delete,
  * disconnect, shunt, replace) are app-wide shortcuts that act on the focused cell (shell/shortcuts.ts), those that
- * change the grid only while the grid has the focus. Drag a block
+ * change the grid only while the grid has the focus. K cables from the focused block (the arrows pick the target, Enter
+ * lands it) and ⇧K selects its cables in turn, so the grid works without a pointer. Drag a block
  * to move it (⌥ copies), onto another to swap them (⌘ replaces); drag from a block's outlet to a block in the next
  * column to cable them. Library files dropped on a cell are imported and recalled there.
  */
@@ -164,96 +165,107 @@ export function dropAction(
       (pointerup)="endWire($event); touches.cancel()"
       (pointercancel)="touches.cancel()"
     >
-      @for (cell of cells(); track cell.key) {
-        <div
-          role="gridcell"
-          class="outline-focus data-[wire=candidate]:outline-primary data-[wire=target]:outline-primary absolute rounded-lg outline-offset-4 data-focused:group-focus-visible/grid:outline-2 data-[wire=candidate]:outline-2 data-[wire=candidate]:outline-dashed data-[wire=target]:outline-2"
-          [id]="'cell-' + cell.row + '-' + cell.column"
-          [attr.data-testid]="'cell-' + cell.row + '-' + cell.column"
-          [attr.aria-label]="describe(cell)"
-          [attr.aria-selected]="cell.block !== null && cell.block.id === live.selectedId()"
-          [attr.data-focused]="isFocused(cell) ? '' : null"
-          [attr.data-wire]="wireState(cell)"
-          [style.left.px]="cell.x"
-          [style.top.px]="cell.y"
-          [style.width.px]="width"
-          [style.height.px]="height"
-          [xuiContextMenuTriggerFor]="cell.block ? blockMenu : emptyMenu"
-          (pointerdown)="pick(cell); touches.down($event, $any($event.currentTarget))"
-          (dblclick)="openPalette()"
-          (dragover)="dragOver($event, cell)"
-          (drop)="drop($event, cell)"
-        >
-          @if (cell.block; as block) {
-            @if (block.type === 'shunt') {
-              <div
-                class="group border-border-muted hover:border-border flex size-full items-center rounded-lg border border-dashed"
-                draggable="true"
-                [attr.title]="'Shunt (' + block.id + ')'"
-                (dragstart)="dragStart($event, block)"
-              >
-                <div class="bg-foreground-muted h-0.5 w-full" [class.bg-primary]="block.id === live.selectedId()"></div>
-              </div>
-            } @else {
-              <cth-block-tile
-                class="outline-foreground size-full cursor-grab outline-offset-1"
-                draggable="true"
-                [class.outline-2]="block.id === live.selectedId()"
-                [attr.title]="title(block) + ' (' + block.id + ')'"
-                [name]="title(block)"
-                [category]="category(block)"
-                [typeId]="block.type"
-                [bypassed]="live.isBypassed(block.id)"
-                (dragstart)="dragStart($event, block)"
-              >
-                @if (ui.blockInfo()) {
-                  <span
-                    class="absolute inset-0 grid place-items-center bg-black/55 text-base font-bold tracking-wide"
-                    [attr.data-testid]="'info-' + block.id"
-                  >
-                    {{ abbreviation(block) }}
-                  </span>
-                  @if (block.global) {
-                    <span class="absolute bottom-1 left-1.5 rounded bg-white/85 px-1 text-[9px] font-bold text-black">
-                      GLOBAL
-                    </span>
-                  }
-                } @else if (instance(block); as n) {
-                  <span class="absolute top-1 left-1.5 text-[10px] font-semibold opacity-80">{{ n }}</span>
-                }
-                @if (hasChannels(block)) {
-                  <span
-                    class="absolute top-1 right-1 rounded px-1 text-[10px] font-semibold"
-                    [class]="ui.blockInfo() ? 'bg-white/85 text-black' : 'bg-black/35'"
-                  >
-                    {{ live.channelOf(block.id) }}
-                  </span>
-                }
-                <cth-meter
-                  class="pointer-events-none absolute right-1 bottom-0.5 left-1"
-                  orientation="horizontal"
-                  [attr.data-testid]="'meter-' + block.id"
-                  [label]="title(block) + ' output level'"
-                  [sources]="meterSources(block.id)"
-                />
-                @if (monoHint(block); as hint) {
-                  <span
-                    class="absolute right-1 bottom-3 rounded bg-amber-500/80 px-1 text-[9px] font-bold text-black"
-                    data-testid="mono-hint"
-                    role="img"
-                    [attr.title]="hint"
-                    [attr.aria-label]="hint"
-                    >MONO</span
-                  >
-                }
-              </cth-block-tile>
-            }
-          } @else {
+      <!-- Rows only group the cells for assistive technology: the cells are positioned against the surface. -->
+      @for (line of gridRows(); track line.row) {
+        <div role="row" [attr.aria-rowindex]="line.row + 1">
+          @for (cell of line.cells; track cell.key) {
             <div
-              class="border-border-muted hover:border-border text-foreground-subtle grid size-full place-items-center rounded-lg border border-dashed text-lg"
-              aria-hidden="true"
+              role="gridcell"
+              [attr.aria-colindex]="cell.column + 1"
+              class="outline-focus data-[wire=candidate]:outline-primary data-[wire=target]:outline-primary absolute rounded-lg outline-offset-4 data-focused:group-focus-visible/grid:outline-2 data-[wire=candidate]:outline-2 data-[wire=candidate]:outline-dashed data-[wire=target]:outline-2"
+              [id]="'cell-' + cell.row + '-' + cell.column"
+              [attr.data-testid]="'cell-' + cell.row + '-' + cell.column"
+              [attr.aria-label]="describe(cell)"
+              [attr.aria-selected]="cell.block !== null && cell.block.id === live.selectedId()"
+              [attr.data-focused]="isFocused(cell) ? '' : null"
+              [attr.data-wire]="wireState(cell)"
+              [style.left.px]="cell.x"
+              [style.top.px]="cell.y"
+              [style.width.px]="width"
+              [style.height.px]="height"
+              [xuiContextMenuTriggerFor]="cell.block ? blockMenu : emptyMenu"
+              (pointerdown)="pick(cell); touches.down($event, $any($event.currentTarget))"
+              (dblclick)="openPalette()"
+              (dragover)="dragOver($event, cell)"
+              (drop)="drop($event, cell)"
             >
-              +
+              @if (cell.block; as block) {
+                @if (block.type === 'shunt') {
+                  <div
+                    class="group border-border-muted hover:border-border flex size-full items-center rounded-lg border border-dashed"
+                    draggable="true"
+                    [attr.title]="'Shunt (' + block.id + ')'"
+                    (dragstart)="dragStart($event, block)"
+                  >
+                    <div
+                      class="bg-foreground-muted h-0.5 w-full"
+                      [class.bg-primary]="block.id === live.selectedId()"
+                    ></div>
+                  </div>
+                } @else {
+                  <cth-block-tile
+                    class="outline-foreground size-full cursor-grab outline-offset-1"
+                    draggable="true"
+                    [class.outline-2]="block.id === live.selectedId()"
+                    [attr.title]="title(block) + ' (' + block.id + ')'"
+                    [name]="title(block)"
+                    [category]="category(block)"
+                    [typeId]="block.type"
+                    [bypassed]="live.isBypassed(block.id)"
+                    (dragstart)="dragStart($event, block)"
+                  >
+                    @if (ui.blockInfo()) {
+                      <span
+                        class="absolute inset-0 grid place-items-center bg-black/55 text-base font-bold tracking-wide"
+                        [attr.data-testid]="'info-' + block.id"
+                      >
+                        {{ abbreviation(block) }}
+                      </span>
+                      @if (block.global) {
+                        <span
+                          class="absolute bottom-1 left-1.5 rounded bg-white/85 px-1 text-[9px] font-bold text-black"
+                        >
+                          GLOBAL
+                        </span>
+                      }
+                    } @else if (instance(block); as n) {
+                      <span class="absolute top-1 left-1.5 text-[10px] font-semibold opacity-80">{{ n }}</span>
+                    }
+                    @if (hasChannels(block)) {
+                      <span
+                        class="absolute top-1 right-1 rounded px-1 text-[10px] font-semibold"
+                        [class]="ui.blockInfo() ? 'bg-white/85 text-black' : 'bg-black/35'"
+                      >
+                        {{ live.channelOf(block.id) }}
+                      </span>
+                    }
+                    <cth-meter
+                      class="pointer-events-none absolute right-1 bottom-0.5 left-1"
+                      orientation="horizontal"
+                      [attr.data-testid]="'meter-' + block.id"
+                      [label]="title(block) + ' output level'"
+                      [sources]="meterSources(block.id)"
+                    />
+                    @if (monoHint(block); as hint) {
+                      <span
+                        class="absolute right-1 bottom-3 rounded bg-amber-500/80 px-1 text-[9px] font-bold text-black"
+                        data-testid="mono-hint"
+                        role="img"
+                        [attr.title]="hint"
+                        [attr.aria-label]="hint"
+                        >MONO</span
+                      >
+                    }
+                  </cth-block-tile>
+                }
+              } @else {
+                <div
+                  class="border-border-muted hover:border-border text-foreground-subtle grid size-full place-items-center rounded-lg border border-dashed text-lg"
+                  aria-hidden="true"
+                >
+                  +
+                </div>
+              }
             </div>
           }
         </div>
@@ -303,6 +315,7 @@ export function dropAction(
         }
       </svg>
     </div>
+    <p class="sr-only" aria-live="polite" data-testid="grid-status">{{ status() }}</p>
 
     <ng-template #blockMenu>
       <xui-menu>
@@ -358,6 +371,11 @@ export function dropAction(
           @if (!isIo(block)) {
             <button xuiMenuItem icon="matFindReplaceRound" (click)="openPalette(true)">
               Replace with…<span menuItemLabel>Q</span>
+            </button>
+          }
+          @if (hasOutlet(block)) {
+            <button xuiMenuItem icon="matCableRound" (click)="startCable()">
+              Cable to…<span menuItemLabel>K</span>
             </button>
           }
           <button xuiMenuItem icon="matLinkOffRound" (click)="live.disconnect(block.id)">
@@ -517,6 +535,8 @@ export class GridEditor {
     );
   });
   private readonly wireHover = signal<string | null>(null);
+  /** Whether the cable being made comes from the keyboard (K): the arrows pick its target and Enter lands it. */
+  private readonly keyboardWire = signal(false);
 
   protected readonly rows = computed(() => this.live.preset()?.rows ?? 6);
   protected readonly columns = computed(() => this.live.preset()?.columns ?? 14);
@@ -569,6 +589,32 @@ export class GridEditor {
   });
   protected readonly focusedBlock = computed(() => this.cellBlock(this.focus().row, this.focus().column));
 
+  /** The cells by row, for the grid's rows. */
+  protected readonly gridRows = computed(() => {
+    const columns = this.columns();
+    const cells = this.cells();
+    return Array.from({ length: this.rows() }, (_, row) => ({
+      row,
+      cells: cells.slice(row * columns, (row + 1) * columns)
+    }));
+  });
+
+  /**
+   * What the polite live region says: how to land a keyboard cable, or which cable is selected. It changes only on
+   * the user's own keys and clicks.
+   */
+  protected readonly status = computed(() => {
+    const wiring = this.wiring();
+    if (wiring && this.keyboardWire()) {
+      return `Cabling from ${this.name(wiring)}: move to a block in a later column and press Enter, or Escape to cancel.`;
+    }
+
+    const cable = this.drawnCables().find(c => c.key === this.selectedCable());
+    const from = cable && this.blocks().find(b => b.id === cable.cable.from);
+    const to = cable && this.blocks().find(b => b.id === cable.cable.to);
+    return from && to ? `Cable from ${this.name(from)} to ${this.name(to)} selected: Delete removes it.` : '';
+  });
+
   protected readonly atLimit = (type: BlockTypeInfo) =>
     this.blocks().filter(b => b.type === type.typeId).length >= type.maxInstances;
 
@@ -597,7 +643,9 @@ export class GridEditor {
       disconnect: onGrid(withBlock(block => void this.live.disconnect(block.id))),
       shunt: onGrid(() => this.addShunt()),
       remove: onGrid(() => this.remove()),
-      removeBackspace: onGrid(() => this.remove())
+      removeBackspace: onGrid(() => this.remove()),
+      cable: onGrid(() => this.startCable()),
+      selectCable: onGrid(() => this.selectNextCable())
     });
     inject(DestroyRef).onDestroy(() => {
       observer.disconnect();
@@ -675,7 +723,60 @@ export class GridEditor {
 
     const state = this.live.isBypassed(block.id) ? ', bypassed' : '';
     const channel = this.hasChannels(block) ? `, channel ${this.live.channelOf(block.id)}` : '';
-    return `${this.title(block)} ${block.id}${state}${channel}, ${place}`;
+    const reachable = this.keyboardWire() && this.wireTargets().has(block.id) ? ', can be cabled to' : '';
+    return `${this.title(block)} ${block.id}${state}${channel}${reachable}, ${place}`;
+  }
+
+  /** A block as the live region names it. */
+  private name(block: PresetBlock): string {
+    return block.type === BuiltInTypes.shunt ? `shunt ${block.id}` : `${this.title(block)} ${block.id}`;
+  }
+
+  protected hasOutlet(block: PresetBlock): boolean {
+    return this.outlets().some(b => b.id === block.id);
+  }
+
+  /** Starts a cable from the focused block, from the keyboard: the arrows pick a target, Enter lands it. */
+  protected startCable(): void {
+    const block = this.focusedBlock();
+    if (!block || !this.hasOutlet(block)) {
+      return;
+    }
+
+    this.selectedCable.set(null);
+    this.wiring.set(block);
+    this.keyboardWire.set(true);
+    this.aimKeyboardWire();
+    this.surface().nativeElement.focus();
+  }
+
+  /** Selects the focused block's next cable (in or out), so Delete removes that cable alone. */
+  protected selectNextCable(): void {
+    const block = this.focusedBlock();
+    const cables = block ? this.drawnCables().filter(c => c.cable.from === block.id || c.cable.to === block.id) : [];
+    if (cables.length === 0) {
+      this.selectedCable.set(null);
+      return;
+    }
+
+    const at = cables.findIndex(c => c.key === this.selectedCable());
+    this.selectedCable.set(cables[(at + 1) % cables.length].key);
+  }
+
+  /** Points the keyboard cable at the focused cell: drawn to it when it is a block the cable can reach. */
+  private aimKeyboardWire(): void {
+    const from = this.wiring();
+    const to = this.focusedBlock();
+    const reachable = from && to && this.wireTargets().has(to.id) ? to : null;
+    this.wireHover.set(reachable?.id ?? null);
+    this.wire.set(from && reachable ? cablePath(outlet(from), inlet(reachable)) : null);
+  }
+
+  private endKeyboardWire(): void {
+    this.keyboardWire.set(false);
+    this.wiring.set(null);
+    this.wire.set(null);
+    this.wireHover.set(null);
   }
 
   /** A double tap adds a block like a double click; a long press opens the cell's menu like a right click. */
@@ -686,6 +787,10 @@ export class GridEditor {
   );
 
   protected pick(cell: GridCell): void {
+    if (this.keyboardWire()) {
+      this.endKeyboardWire();
+    }
+
     this.focus.set({ row: cell.row, column: cell.column });
     this.selectedCable.set(null);
     this.live.selectedId.set(cell.block && cell.block.type !== BuiltInTypes.shunt ? cell.block.id : null);
@@ -777,8 +882,21 @@ export class GridEditor {
         column: Math.max(0, Math.min(this.columns() - 1, column + dc))
       };
       this.focus.set(next);
+      this.selectedCable.set(null);
       const at = this.cellBlock(next.row, next.column);
       this.live.selectedId.set(at && at.type !== BuiltInTypes.shunt ? at.id : null);
+      if (this.keyboardWire()) {
+        this.aimKeyboardWire();
+      }
+    } else if (this.keyboardWire() && event.key === 'Escape') {
+      this.endKeyboardWire();
+    } else if (this.keyboardWire() && event.key === 'Enter' && !command) {
+      const from = this.wiring();
+      const to = this.focusedBlock();
+      if (from && to && this.wireTargets().has(to.id)) {
+        this.endKeyboardWire();
+        void this.live.addCable(from.id, to.id);
+      }
     } else if (event.key === 'Enter' && !command) {
       this.openPalette();
     } else {
@@ -852,6 +970,7 @@ export class GridEditor {
   protected startWire(event: PointerEvent, block: PresetBlock): void {
     event.stopPropagation();
     event.preventDefault();
+    this.keyboardWire.set(false);
     this.wiring.set(block);
     this.surface().nativeElement.setPointerCapture(event.pointerId);
     this.moveWire(event);
