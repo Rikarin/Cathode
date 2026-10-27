@@ -1105,15 +1105,7 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
 
         Model(io);
         if (changing) {
-            var dryLeft = bypassLeft.Span[..io.Length];
-            var dryRight = bypassRight.Span[..io.Length];
-            var step = 1f / io.Length;
-            for (var i = 0; i < io.Length; i++) {
-                var wet = off ? 1f - (i + 1) * step : (i + 1) * step;
-                io.Left[i] = dryLeft[i] + (io.Left[i] - dryLeft[i]) * wet;
-                io.Right[i] = dryRight[i] + (io.Right[i] - dryRight[i]) * wet;
-            }
-
+            CabBypass.Crossfade(io, bypassLeft.Span[..io.Length], bypassRight.Span[..io.Length], off);
             cabsOff = off;
         }
     }

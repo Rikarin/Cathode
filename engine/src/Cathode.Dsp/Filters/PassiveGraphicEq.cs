@@ -244,7 +244,7 @@ public sealed class PassiveGraphicEq {
             stack.Set(0.5, 0.5, 0.5);
         }
 
-        stackMakeup = 1 / NoonGain(sampleRate);
+        stackMakeup = 1 / NoonGain(ToneStackDesign.Marshall, sampleRate);
         DesignPresence(0.5);
         Reset();
     }
@@ -347,9 +347,9 @@ public sealed class PassiveGraphicEq {
         presenceState[channel] = Math.Abs(state) < 1e-30 ? 0 : state;
     }
 
-    /// <summary>The Marshall stack's gain at 1 kHz with its pots at noon, from its impulse response.</summary>
-    static double NoonGain(double sampleRate) {
-        var stack = new ToneStackCircuit(ToneStackDesign.Marshall, sampleRate);
+    /// <summary>A tone stack's gain at 1 kHz with its pots at noon, from its impulse response.</summary>
+    internal static double NoonGain(ToneStackDesign design, double sampleRate) {
+        var stack = new ToneStackCircuit(design, sampleRate);
         var (re, im) = (0.0, 0.0);
         for (var n = 0; n < 16_384; n++) {
             var h = stack.Tick(n == 0 ? 1 : 0);

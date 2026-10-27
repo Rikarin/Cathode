@@ -492,9 +492,7 @@ public sealed class PlexBlock() : DspBlock(Info) {
         var reflection = 2f / count;
         var shifting = type is PlexDetune or PlexShifter or ShimmerVerb;
 
-        for (var i = 0; i < count; i++) {
-            lineStep[i] = (lineTarget[i] - lineDelay[i]) / n;
-        }
+        DelayFeed.Glide(lineStep, lineTarget, lineDelay, count, n);
 
         var select = (int)Params.Current(InputSelect);
         var mix = Params.Current(Mix) / 100f;
@@ -503,10 +501,7 @@ public sealed class PlexBlock() : DspBlock(Info) {
             mixGains.Advance();
             var dryLeft = io.Left[s];
             var dryRight = io.Right[s];
-            var x = Stereo.Select(select, dryLeft, dryRight) * inputGain;
-            if (envelope.Active) {
-                x *= envelope.Tick(Math.Max(MathF.Abs(dryLeft), MathF.Abs(dryRight)));
-            }
+            var x = DelayFeed.Input(ref envelope, select, dryLeft, dryRight, inputGain);
 
             preDelay.Write(x);
             if (preDelaySamples >= 1f) {

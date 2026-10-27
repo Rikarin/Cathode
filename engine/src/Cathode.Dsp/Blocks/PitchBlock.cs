@@ -302,9 +302,7 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
     readonly float[] stepsRight = new float[VoiceCount];
     readonly bool[] active = new bool[VoiceCount];
     readonly bool[] skipped = new bool[VoiceCount];
-    float[] sideLeft = [];
-    float[] sideRight = [];
-    int sideFrames;
+    readonly SideBuffer sideInput = new();
     OctaveDivider divider;
     OctaveDivider dividerRight;
     SvfCoefficients crystalsLowPass;
@@ -696,25 +694,6 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
         }
     }
 
-    /// <summary>
-    ///     Hardware input <paramref name="source" /> (<see cref="HardwareInputs" />) into the side buffer, as a chosen row
-    ///     would arrive there; silence without the graph's inputs.
-    /// </summary>
-    void LoadHardwareSource(int source, int frames) {
-        if (frames > sideLeft.Length) {
-            return;
-        }
-
-        if (Inputs is { } port) {
-            port.Read(source, sideLeft.AsSpan(0, frames), sideRight.AsSpan(0, frames));
-        } else {
-            Array.Clear(sideLeft, 0, frames);
-            Array.Clear(sideRight, 0, frames);
-        }
-
-        sideFrames = frames;
-    }
-
     /// <summary>Its cabled inputs by row (<see cref="MixInput" />), and the hardware inputs (<see cref="Inputs" />).</summary>
     public SideInputs SideInputs => SideInputs.Cables | SideInputs.Hardware;
 
@@ -722,28 +701,8 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
     public void SideInput(SideInputKind kind, int row, in StereoBuffer signal, in StereoBuffer destination) =>
         MixInput(row, signal, destination);
 
-    public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) {
-        var detectorRow = (int)Params.GetTarget(DetectorSource) - 1;
-        if (row != detectorRow || source.Length > sideLeft.Length) {
-            for (var i = 0; i < source.Length; i++) {
-                destination.Left[i] += source.Left[i];
-                destination.Right[i] += source.Right[i];
-            }
-
-            return;
-        }
-
-        if (sideFrames != source.Length) {
-            Array.Clear(sideLeft, 0, source.Length);
-            Array.Clear(sideRight, 0, source.Length);
-            sideFrames = source.Length;
-        }
-
-        for (var i = 0; i < source.Length; i++) {
-            sideLeft[i] += source.Left[i];
-            sideRight[i] += source.Right[i];
-        }
-    }
+    public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) =>
+        sideInput.Mix(row == (int)Params.GetTarget(DetectorSource) - 1, source, destination);
 
     static string Invariant(int value) => value.ToString(CultureInfo.InvariantCulture);
 
@@ -1102,8 +1061,7 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
         hopSeconds = tracker.HopSamples / rate;
         arpGateRate = (float)(1 - Math.Exp(-1 / (ArpGateSeconds * rate)));
         onsetRelease = (float)Math.Exp(-1 / (OnsetReleaseSeconds * rate));
-        sideLeft = new float[spec.MaxBlockSize];
-        sideRight = new float[spec.MaxBlockSize];
+        sideInput.Allocate(spec.MaxBlockSize);
     }
 
     protected override void OnReset() {
@@ -1117,7 +1075,7 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
         chordRoot = -1;
         chordTones = 0;
         learnedKey = -1;
-        sideFrames = 0;
+        sideInput.Reset();
         detuneLfo.Reset();
         cuts.Reset();
         Array.Clear(harmonies);
@@ -1306,11 +1264,12 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
 
         var sourceChoice = (int)Params.Current(DetectorSource);
         if (sourceChoice > SourceRows) {
-            LoadHardwareSource(sourceChoice - SourceRows - 1, frames);
+            sideInput.Load(Inputs, sourceChoice - SourceRows - 1, frames);
         }
 
         var fromRow = sourceChoice > 0;
-        var side = fromRow && sideFrames == frames;
+        var side = fromRow && sideInput.Holds(frames);
+        var (sideLeft, sideRight) = (sideInput.Left, sideInput.Right);
         var ratios = type == PitchType.Chromatic ? shifts : harmonies;
         var mixStep = (mix - this.mix) / frames;
         var inputSelect = (int)Params.Current(InputSelect);
@@ -1320,7 +1279,7 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
             var dryRight = io.Right[i];
             var mono = Stereo.Select(inputSelect, dryLeft, dryRight);
             if (tracking != TrackingOff) {
-                Track(fromRow ? side ? 0.5f * (sideLeft[i] + sideRight[i]) : 0f : mono, tracking == TrackingFast);
+                Track(!fromRow ? mono : side ? 0.5f * (sideLeft[i] + sideRight[i]) : 0f, tracking == TrackingFast);
             }
 
             var hold = tracking == TrackingFast ? fastHold : voicedHold;
@@ -1516,12 +1475,7 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
         crystalsLow.FlushDenormals();
         crystalsHigh.FlushDenormals();
         cuts.FlushDenormals();
-        if (side) {
-            Array.Clear(sideLeft, 0, frames);
-            Array.Clear(sideRight, 0, frames);
-        }
-
-        sideFrames = 0;
+        sideInput.Consume(side, frames);
         output.Apply(io, Params.Advance(Level, frames), Params.Advance(Balance, frames));
     }
 }

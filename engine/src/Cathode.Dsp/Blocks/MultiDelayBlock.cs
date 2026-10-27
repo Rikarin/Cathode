@@ -688,9 +688,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
         var modulated = anyChorus || depth1 > 0 || depth2 > 0 || tape;
         var offsetDepth = depth1 + depth2 + wowDepth + flutterDepth;
 
-        for (var k = 0; k < Voices; k++) {
-            tapStep[k] = (tapTarget[k] - tapDelay[k]) / n;
-        }
+        DelayFeed.Glide(tapStep, tapTarget, tapDelay, Voices, n);
 
         var inputGain = Params.Advance(InputGain, n) / 100f;
         var select = (int)Params.Current(InputSelect);
@@ -699,10 +697,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
             gains.Advance();
             var dryLeft = io.Left[i];
             var dryRight = io.Right[i];
-            var x = Stereo.Select(select, dryLeft, dryRight) * inputGain;
-            if (envelope.Active) {
-                x *= envelope.Tick(Math.Max(MathF.Abs(dryLeft), MathF.Abs(dryRight)));
-            }
+            var x = DelayFeed.Input(ref envelope, select, dryLeft, dryRight, inputGain);
 
             lfo1.Advance(rate1, sampleRate);
             lfo2.Advance(rate2, sampleRate);

@@ -449,6 +449,17 @@ public sealed class DelayBlock() : DspBlock(Info) {
         diffuser.Allocate(spec.SampleRate, MaxDiffusionMs);
     }
 
+    protected override void Dispose(bool disposing) {
+        if (disposing) {
+            left.Dispose();
+            right.Dispose();
+            postRight.Dispose();
+            diffuser.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
+
     protected override void OnReset() {
         left.Reset();
         right.Reset();
@@ -475,17 +486,6 @@ public sealed class DelayBlock() : DspBlock(Info) {
         rightSamples = TargetDelaySamples(TempoRight, Params.Current(TimeRight), 120);
         mix = Params.Current(Mix) / 100f;
         output.Reset(Params.Current(Level), Params.Current(Balance));
-    }
-
-    protected override void Dispose(bool disposing) {
-        if (disposing) {
-            left.Dispose();
-            right.Dispose();
-            postRight.Dispose();
-            diffuser.Dispose();
-        }
-
-        base.Dispose(disposing);
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {

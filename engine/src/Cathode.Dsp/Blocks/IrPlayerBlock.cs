@@ -388,13 +388,7 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
 
         Play(io);
         if (changing) {
-            var step = 1f / io.Length;
-            for (var i = 0; i < io.Length; i++) {
-                var wet = off ? 1f - (i + 1) * step : (i + 1) * step;
-                io.Left[i] = bypassLeft[i] + (io.Left[i] - bypassLeft[i]) * wet;
-                io.Right[i] = bypassRight[i] + (io.Right[i] - bypassRight[i]) * wet;
-            }
-
+            CabBypass.Crossfade(io, bypassLeft.Span, bypassRight.Span, off);
             cabsOff = off;
         }
     }

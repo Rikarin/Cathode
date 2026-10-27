@@ -1,4 +1,5 @@
 using Cathode.Dsp.Amp;
+using Cathode.Dsp.Filters;
 using Cathode.Dsp.Parameters;
 
 namespace Cathode.Dsp.Blocks;
@@ -23,7 +24,8 @@ public sealed class ToneStackBlock() : DspBlock(Info) {
     const double LoadResistance = 1e6;
 
     /// <summary>Each stack's gain at 1 kHz with the knobs at noon, made up at the output.</summary>
-    static readonly double[] Makeup = [..ToneStackDesign.All.Select(static d => 1 / NoonGain(d))];
+    static readonly double[] Makeup =
+        [..ToneStackDesign.All.Select(static d => 1 / PassiveGraphicEq.NoonGain(d, 48_000))];
 
     readonly ToneStackCircuit[] left = Stacks();
     readonly ToneStackCircuit[] right = Stacks();
@@ -53,20 +55,6 @@ public sealed class ToneStackBlock() : DspBlock(Info) {
 
     static ToneStackCircuit[] Stacks() => [..ToneStackDesign.All.Select(static d => new ToneStackCircuit(d, 48_000))];
 
-    /// <summary>|H(1 kHz)| at noon, from the impulse response.</summary>
-    static double NoonGain(ToneStackDesign design) {
-        const double Rate = 48_000;
-        var stack = new ToneStackCircuit(design, Rate);
-        var (re, im) = (0.0, 0.0);
-        for (var n = 0; n < 16_384; n++) {
-            var h = stack.Tick(n == 0 ? 1 : 0);
-            var phase = 2 * Math.PI * 1_000 * n / Rate;
-            re += h * Math.Cos(phase);
-            im -= h * Math.Sin(phase);
-        }
-
-        return Math.Sqrt(re * re + im * im);
-    }
 
     protected override void OnPrepare(in ProcessSpec spec) {
         for (var i = 0; i < left.Length; i++) {

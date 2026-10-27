@@ -96,9 +96,7 @@ public sealed class VocoderBlock() : DspBlock(Info), ISideInputBlock {
     readonly float[] gainLeft = new float[MaxBands];
     readonly float[] gainRight = new float[MaxBands];
     readonly double[] phase = new double[MaxVoices];
-    float[] sideLeft = [];
-    float[] sideRight = [];
-    int sideFrames;
+    readonly SideBuffer sideInput = new();
     SvfCoefficients highpass;
     SvfState highpassState;
     (int Count, float Min, float Max, float Q, float Shift, float Emphasis) design = (-1, 0, 0, 0, 0, 0);
@@ -187,25 +185,6 @@ public sealed class VocoderBlock() : DspBlock(Info), ISideInputBlock {
     /// <summary>The number of bands for option <paramref name="option" /> of the Bands parameter.</summary>
     public static int BandCount(int option) => BandCounts[Math.Clamp(option, 0, BandCounts.Length - 1)];
 
-    /// <summary>
-    ///     Hardware input <paramref name="source" /> (<see cref="HardwareInputs" />) into the side buffer, as a chosen row
-    ///     would arrive there; silence without the graph's inputs.
-    /// </summary>
-    void LoadHardwareSource(int source, int frames) {
-        if (frames > sideLeft.Length) {
-            return;
-        }
-
-        if (Inputs is { } port) {
-            port.Read(source, sideLeft.AsSpan(0, frames), sideRight.AsSpan(0, frames));
-        } else {
-            Array.Clear(sideLeft, 0, frames);
-            Array.Clear(sideRight, 0, frames);
-        }
-
-        sideFrames = frames;
-    }
-
     /// <summary>Its cabled inputs by row (<see cref="MixInput" />), and the hardware inputs (<see cref="Inputs" />).</summary>
     public SideInputs SideInputs => SideInputs.Cables | SideInputs.Hardware;
 
@@ -213,28 +192,8 @@ public sealed class VocoderBlock() : DspBlock(Info), ISideInputBlock {
     public void SideInput(SideInputKind kind, int row, in StereoBuffer signal, in StereoBuffer destination) =>
         MixInput(row, signal, destination);
 
-    public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) {
-        var analysisRow = (int)Params.GetTarget(AnalysisSource) - 1;
-        if (row != analysisRow || source.Length > sideLeft.Length) {
-            for (var i = 0; i < source.Length; i++) {
-                destination.Left[i] += source.Left[i];
-                destination.Right[i] += source.Right[i];
-            }
-
-            return;
-        }
-
-        if (sideFrames != source.Length) {
-            Array.Clear(sideLeft, 0, source.Length);
-            Array.Clear(sideRight, 0, source.Length);
-            sideFrames = source.Length;
-        }
-
-        for (var i = 0; i < source.Length; i++) {
-            sideLeft[i] += source.Left[i];
-            sideRight[i] += source.Right[i];
-        }
-    }
+    public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) =>
+        sideInput.Mix(row == (int)Params.GetTarget(AnalysisSource) - 1, source, destination);
 
     /// <summary>PolyBLEP residual that band-limits a unit step at phase 0 (Välimäki and Huovilainen).</summary>
     static double Blep(double t, double dt) {
@@ -328,8 +287,7 @@ public sealed class VocoderBlock() : DspBlock(Info), ISideInputBlock {
     }
 
     protected override void OnPrepare(in ProcessSpec spec) {
-        sideLeft = new float[spec.MaxBlockSize];
-        sideRight = new float[spec.MaxBlockSize];
+        sideInput.Allocate(spec.MaxBlockSize);
         design = (-1, 0, 0, 0, 0, 0);
     }
 
@@ -339,7 +297,7 @@ public sealed class VocoderBlock() : DspBlock(Info), ISideInputBlock {
         Array.Clear(envelope);
         Array.Clear(phase);
         highpassState.Reset();
-        sideFrames = 0;
+        sideInput.Reset();
         noise = NoiseSeed;
         design = (-1, 0, 0, 0, 0, 0);
         mix = Params.Current(Mix) / 100f;
@@ -370,7 +328,7 @@ public sealed class VocoderBlock() : DspBlock(Info), ISideInputBlock {
         var channel = (int)Params.Current(AnalysisChannel);
         var sourceChoice = (int)Params.Current(AnalysisSource);
         if (sourceChoice > SourceRows) {
-            LoadHardwareSource(sourceChoice - SourceRows - 1, n);
+            sideInput.Load(Inputs, sourceChoice - SourceRows - 1, n);
         }
 
         var fromRow = sourceChoice > 0;
@@ -378,7 +336,8 @@ public sealed class VocoderBlock() : DspBlock(Info), ISideInputBlock {
             channel = source == CarrierLeftInput ? 2 : 1; // the carrier has one side: analyse the other
         }
 
-        var side = fromRow && sideFrames == n;
+        var side = fromRow && sideInput.Holds(n);
+        var (sideLeft, sideRight) = (sideInput.Left, sideInput.Right);
 
         var mix = Params.Advance(Mix, n) / 100f;
         var gains = new MixRamp(MixLaw.DryUnity, this.mix, mix, n);
@@ -388,9 +347,11 @@ public sealed class VocoderBlock() : DspBlock(Info), ISideInputBlock {
         for (var i = 0; i < n; i++) {
             var left = io.Left[i];
             var right = io.Right[i];
-            var modulator = fromRow
-                ? side ? Stereo.Select(channel, sideLeft[i], sideRight[i]) : 0f
-                : Stereo.Select(channel, left, right);
+            var modulator = !fromRow
+                ? Stereo.Select(channel, left, right)
+                : side
+                    ? Stereo.Select(channel, sideLeft[i], sideRight[i])
+                    : 0f;
             modulator *= inputGain;
             var carrier = source switch {
                 CarrierLeftInput => left,
@@ -435,11 +396,7 @@ public sealed class VocoderBlock() : DspBlock(Info), ISideInputBlock {
         }
 
         highpassState.FlushDenormals();
-        sideFrames = 0;
-        if (side) {
-            Array.Clear(sideLeft, 0, n);
-            Array.Clear(sideRight, 0, n);
-        }
+        sideInput.Consume(side, n);
 
         this.mix = mix;
         output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
