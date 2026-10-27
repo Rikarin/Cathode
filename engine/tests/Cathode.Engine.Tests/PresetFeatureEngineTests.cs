@@ -6,6 +6,7 @@ using Cathode.Dsp.Looping;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.Engine.Telemetry;
+using Cathode.Ipc;
 using Cathode.Testing;
 
 namespace Cathode.Engine.Tests;

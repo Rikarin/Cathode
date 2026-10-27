@@ -131,6 +131,7 @@ static class ControlsApi {
                                 g.Manual = settings.Manual;
                                 g.MidiChannel = settings.MidiChannel;
                                 g.MidiMappings = settings.MidiMappings;
+                                g.MidiOutPort = NullIfBlank(settings.MidiOutPort);
                                 g.Footswitches = settings.Footswitches;
                                 g.ActiveLayout = settings.ActiveLayout;
                                 g.ActiveView = Math.Max(0, settings.ActiveView);
@@ -201,6 +202,12 @@ static class ControlsApi {
             .WithName("ExportLoop");
 
         var midi = api.MapGroup("/midi").WithTags("MIDI");
+        midi.MapGet("/outputs", async (EngineConnection engine) => TypedResults.Ok(await engine.MidiOutputsAsync()))
+            .WithName("GetMidiOutputs")
+            .WithSummary(
+                "The MIDI outputs of the engine host's machine, for the MIDI output setting (empty while no engine is "
+                + "connected)."
+            );
         midi.MapGet("/learn", (MidiRouter router) => TypedResults.Ok(router.Learning)).WithName("GetMidiLearn");
         midi.MapPut(
                 "/learn",
@@ -223,4 +230,6 @@ static class ControlsApi {
             )
             .WithName("CancelMidiLearn");
     }
+
+    static string? NullIfBlank(string? text) => string.IsNullOrWhiteSpace(text) ? null : text;
 }

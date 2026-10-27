@@ -1,4 +1,4 @@
-namespace Cathode.EngineHost;
+namespace Cathode.Ipc;
 
 /// <summary>
 ///     The launcher's lifeline. A process its launcher starts with standard input on a pipe (the desktop app, with

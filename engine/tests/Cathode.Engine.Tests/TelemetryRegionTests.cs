@@ -2,6 +2,7 @@ using Cathode.Audio;
 using Cathode.Dsp;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Telemetry;
+using Cathode.Ipc;
 using Cathode.Testing;
 using System.Diagnostics;
 

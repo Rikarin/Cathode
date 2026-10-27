@@ -4,6 +4,7 @@ using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Routing;
 using Cathode.Engine.Graph;
+using Cathode.Ipc;
 using Cathode.Testing;
 
 namespace Cathode.Engine.Tests;

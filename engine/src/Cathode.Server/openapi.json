@@ -2934,6 +2934,30 @@
         }
       }
     },
+    "/api/v1/midi/outputs": {
+      "get": {
+        "tags": [
+          "MIDI"
+        ],
+        "summary": "The MIDI outputs of the engine host\u0027s machine, for the MIDI output setting (empty while no engine is connected).",
+        "operationId": "GetMidiOutputs",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MidiOutputInfo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/midi/learn": {
       "get": {
         "tags": [
@@ -4533,6 +4557,13 @@
               "$ref": "#/components/schemas/MidiMapping"
             }
           },
+          "midiOutPort": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Where scene MIDI and footswitch LEDs go: a MIDI output\u0027s uid (string MidiOutputInfo.Uid, from\n\u0060GET /api/v1/midi/outputs\u0060), or null for every output. One port keeps them from looping back into a\ncontroller that echoes what it receives; while that port is not connected, nothing is sent."
+          },
           "footswitches": {
             "type": "array",
             "items": {
@@ -4920,6 +4951,22 @@
           }
         },
         "description": "A MIDI message bound to an action. \u0060Message\u0060 is cc, note or pc; \u0060Channel\u0060 0 means any. Actions:\nscene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank\nid, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,\nValue = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,\nmetronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), sceneLevelUp and\nsceneLevelDown (the active scene\u0027s level by \u00B11 dB, then save the preset), save (save the preset), layout\n(Target = layout id), view (Value = view index), viewNext, viewPrevious. A CC mapped to scene without a Value\nselects the scene its value names (0-7), and a value above 63 steps to the next scene."
+      },
+      "MidiOutputInfo": {
+        "required": [
+          "uid",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "uid": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "description": "A MIDI output of the engine host\u0027s machine. \u0060Uid\u0060 is stable across runs."
       },
       "MoveBlockRequest": {
         "required": [

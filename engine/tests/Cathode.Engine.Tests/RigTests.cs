@@ -4,6 +4,7 @@ using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Looping;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
+using Cathode.Ipc;
 using Cathode.Testing;
 
 namespace Cathode.Engine.Tests;

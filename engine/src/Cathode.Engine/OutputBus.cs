@@ -1,5 +1,5 @@
 using Cathode.Dsp;
-using Cathode.Engine.Graph;
+using Cathode.Ipc;
 using System.Globalization;
 
 namespace Cathode.Engine;

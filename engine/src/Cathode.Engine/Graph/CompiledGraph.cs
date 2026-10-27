@@ -3,6 +3,7 @@ using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Looping;
 using Cathode.Dsp.Routing;
 using Cathode.Engine.Rig;
+using Cathode.Ipc;
 
 namespace Cathode.Engine.Graph;
 

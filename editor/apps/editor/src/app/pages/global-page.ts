@@ -6,10 +6,12 @@ import {
   type GlobalSettings,
   MidiActions,
   type MidiActivity,
+  type MidiOutputInfo,
   type OutputModes,
   type OutputSettings,
   type OversamplingModes,
-  type SwitchAction
+  type SwitchAction,
+  unwrap
 } from '@cathode/api-client';
 import { CthKnob } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
@@ -61,6 +63,25 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
     default:
       return `0x${m.status.toString(16)} ${m.data1} ${m.data2}`;
   }
+}
+
+/** The MIDI output choice that sends to every output (xui-select takes an empty value for none). */
+export const AllMidiOutputs = 'all';
+
+/**
+ * The MIDI output choices: every output, then each output by uid, then the saved port when it is not connected now (so
+ * the setting shows, and stays, until another is chosen).
+ */
+export function midiOutputChoices(outputs: readonly MidiOutputInfo[], saved: string | null | undefined): string[] {
+  const uids = outputs.map(o => o.uid);
+  return [AllMidiOutputs, ...uids, ...(saved && !uids.includes(saved) ? [saved] : [])];
+}
+
+/** A MIDI output choice's label: the port's name, or its uid when it is not connected. */
+export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: string): string {
+  return choice === AllMidiOutputs
+    ? 'All outputs'
+    : (outputs.find(o => o.uid === choice)?.name ?? `${choice} (not connected)`);
 }
 
 /**
@@ -339,6 +360,19 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                 [items]="channelNames"
                 [value]="channelNames[s.midiChannel]"
                 (valueChange)="save(g => (g.midiChannel = Math.max(0, channelNames.indexOf($event ?? ''))))"
+              />
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-foreground-muted text-xs">Send to</span>
+              <xui-select
+                class="w-56"
+                aria-label="MIDI output"
+                data-testid="midi-output"
+                [filterable]="false"
+                [items]="midiOutputChoices()"
+                [itemText]="midiOutputName"
+                [value]="s.midiOutPort ?? allMidiOutputs"
+                (valueChange)="save(g => (g.midiOutPort = !$event || $event === allMidiOutputs ? null : $event))"
               />
             </label>
           </div>
@@ -756,9 +790,17 @@ export class GlobalPage {
   protected readonly learnValue = signal('');
   protected readonly learning = signal(false);
   protected readonly monitor = signal<string[]>([]);
+  /** The engine host's MIDI outputs, for where scene MIDI and footswitch LEDs go. */
+  protected readonly midiOutputs = signal<MidiOutputInfo[]>([]);
+  protected readonly allMidiOutputs = AllMidiOutputs;
+  protected readonly midiOutputChoices = computed(() =>
+    midiOutputChoices(this.midiOutputs(), this.settings()?.midiOutPort)
+  );
+  protected readonly midiOutputName = (choice: string) => midiOutputName(this.midiOutputs(), choice);
 
   constructor() {
     void this.library.refreshPresets();
+    void this.refreshMidiOutputs();
     const subscription = inject(EventStream).midi$.subscribe(message => {
       if (message.type === 'midiLearned') {
         this.learning.set(false);
@@ -768,6 +810,12 @@ export class GlobalPage {
       }
     });
     inject(DestroyRef).onDestroy(() => subscription.unsubscribe());
+  }
+
+  private async refreshMidiOutputs(): Promise<void> {
+    await this.notify.run(async () =>
+      this.midiOutputs.set(unwrap(await this.connection.client.GET('/api/v1/midi/outputs')))
+    );
   }
 
   protected save(change: (g: GlobalSettings) => void): void {

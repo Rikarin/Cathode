@@ -160,4 +160,36 @@ public sealed class IpcTests : IDisposable {
         await stop.CancelAsync();
         await server;
     }
+
+    [Fact]
+    public async Task Midi_ports_and_midi_out_destinations_cross_the_socket() {
+        var token = TestContext.Current.CancellationToken;
+        using var service = new EngineHostService(ProcessSpec.Default, "test");
+        string? destination = "unset";
+        service.NativeMidiSend = (port, _) => {
+            destination = port;
+            return true;
+        };
+        service.NativeMidiPorts = static () => [new("in-1", "Keys", true), new("out-1", "Pedalboard", false)];
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var server = new EngineHostServer(service, socketPath).RunAsync(stop.Token);
+        await using var client = new IpcEngineClient(socketPath);
+
+        await client.ConnectAsync(TimeSpan.FromSeconds(5), token);
+        var ports = await client.SendAsync(new() { Type = IpcTypes.MidiPorts }, token);
+        await client.SendAsync(
+            new() { Type = IpcTypes.MidiOut, Destination = "out-1", Bytes = [0xB0, 30, 127] },
+            token
+        );
+        var sentTo = destination;
+        await client.SendAsync(new() { Type = IpcTypes.MidiOut, Bytes = [0xC0, 3] }, token);
+
+        Assert.Equal([new("in-1", "Keys", true), new("out-1", "Pedalboard", false)], ports.MidiPorts!);
+        Assert.Equal("out-1", sentTo);
+        Assert.Null(destination); // no destination: every output
+        await Assert.ThrowsAsync<IpcException>(() => client.SendAsync(new() { Type = "status" }, token));
+
+        await stop.CancelAsync();
+        await server;
+    }
 }

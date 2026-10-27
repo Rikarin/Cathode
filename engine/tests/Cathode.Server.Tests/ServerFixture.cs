@@ -5,6 +5,7 @@ using Cathode.EngineHost;
 using Cathode.Server.Engine;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
@@ -101,7 +102,11 @@ public sealed class ServerFixture(string? socketPath = null, string? token = nul
 
     protected override void ConfigureWebHost(IWebHostBuilder builder) {
         builder.UseSetting("Cathode:DataDirectory", dataDirectory);
-        builder.UseSetting("Cathode:Engine:Mode", socketPath is null ? "inprocess" : "ipc");
+        if (socketPath is null) {
+            builder.ConfigureTestServices(static services => services.AddSingleton<IEngineLinks, InProcessEngineLinks>()
+            );
+        }
+
         if (token is not null) {
             builder.UseSetting("Cathode:Token", token);
         }

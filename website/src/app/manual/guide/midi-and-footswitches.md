@@ -22,11 +22,15 @@ Cathode treats a PC as a press. A CC or note counts as **pressed** at a value or
 2. That's all: Cathode listens to every MIDI input it finds, and picks up devices plugged in later within a couple of seconds.
 3. Open **Global** and look at the **Monitor** box in the **MIDI** section. Press a switch: a line such as `CC 20 = 127 (ch 1)` appears. If nothing appears, Cathode is not receiving anything (see [Troubleshooting](/manual/troubleshooting#midi-does-nothing)).
 
-Cathode sends MIDI (footswitch LEDs and scene messages) to every MIDI output it finds.
-
 ### Receive channel
 
 **Global ▸ MIDI ▸ Receive channel** is **All** by default. Set it to **Channel 1** to **Channel 16** to make Cathode ignore every message on other channels, mappings and footswitches alike. Set your controller to send on the same channel.
+
+### Send to
+
+Cathode sends MIDI of its own: footswitch LEDs and scene messages. **Global ▸ MIDI ▸ Send to** chooses where they go. **All outputs** (the default) sends them to every MIDI output Cathode finds. Choose one output to send them only there, for example when a controller echoes what it receives back to Cathode, or when the LEDs should not reach a synth on another port.
+
+If the chosen output is unplugged, Cathode sends nothing until it is back; the list shows it as **(not connected)**. The list is read when you open **Global**, so reopen the page after plugging in a new device.
 
 ## Mappings and MIDI learn
 
@@ -184,7 +188,7 @@ Each scene can send up to eight MIDI messages to other gear when it is selected,
 2. In **Scene N MIDI**, click **Add message**.
 3. Choose **Program** or **CC**, the **Channel** (1 to 16), the **Number**, and for a CC its **Value**.
 
-The messages go to every MIDI output Cathode finds, and they are saved with the preset.
+The messages go to the output chosen in **Global ▸ MIDI ▸ Send to** (every MIDI output Cathode finds, by default), and they are saved with the preset.
 
 ## MIDI clock
 

@@ -74,6 +74,12 @@ public sealed class EngineHostService : IDisposable {
     public Func<string?, byte[], bool> NativeMidiSend { get; set; } = static (destination, bytes) =>
         NativeMidi.Send(destination, bytes);
 
+    /// <summary>Lists the MIDI endpoints (for the MIDI output setting); replaced in tests.</summary>
+    public Func<IEnumerable<MidiPortInfo>> NativeMidiPorts { get; set; } = static () =>
+        NativeMidi.IsAvailable
+            ? NativeMidi.Ports().Select(static p => new MidiPortInfo(p.Uid, p.Name, p.IsInput))
+            : [];
+
     /// <summary>
     ///     The shared-memory telemetry the engine writes: a file named in <see cref="Info" /> when the host serves
     ///     another process, in memory otherwise.
@@ -123,12 +129,12 @@ public sealed class EngineHostService : IDisposable {
                 IpcTypes.SetBypass => SetBypass(request),
                 IpcTypes.SetModifier => SetModifier(request),
                 IpcTypes.SetTuner => SetTuner(request),
-                IpcTypes.Status => new() { Type = IpcTypes.Ok, Id = request.Id, Telemetry = CollectTelemetry(new()) },
                 IpcTypes.Tap => Tap(request),
                 IpcTypes.Looper => Looper(request),
                 IpcTypes.ExportLooper => ExportLooper(request),
                 IpcTypes.SetMidi => SetMidi(request),
                 IpcTypes.MidiOut => MidiOut(request),
+                IpcTypes.MidiPorts => MidiPorts(request),
                 IpcTypes.Latency => new() { Type = IpcTypes.Ok, Id = request.Id, Latency = Latency() },
                 IpcTypes.TestTone => TestTone(request),
                 _ => IpcMessage.Fail(request.Id, $"Unknown request type '{request.Type}'.")
@@ -395,6 +401,9 @@ public sealed class EngineHostService : IDisposable {
         tone.Start(latest!.Generation, slot, frequency, level);
         return IpcMessage.Ok(request.Id);
     }
+
+    IpcMessage MidiPorts(IpcMessage request) =>
+        new() { Type = IpcTypes.Ok, Id = request.Id, MidiPorts = [..NativeMidiPorts()] };
 
     IpcMessage MidiOut(IpcMessage request) {
         var bytes = (request.Bytes ?? []).Select(static b => (byte)b).ToArray();

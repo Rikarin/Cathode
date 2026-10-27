@@ -3,6 +3,7 @@ using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
+using Cathode.Ipc;
 using Cathode.Testing;
 
 namespace Cathode.Engine.Tests;

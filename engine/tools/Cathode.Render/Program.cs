@@ -4,6 +4,7 @@ using Cathode.Dsp.IO;
 using Cathode.Dsp.Native;
 using Cathode.Engine;
 using Cathode.Engine.Graph;
+using Cathode.Ipc;
 using System.Globalization;
 using System.Text.Json;
 

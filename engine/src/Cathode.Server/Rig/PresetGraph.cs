@@ -1,5 +1,5 @@
 using Cathode.Contracts;
-using Cathode.Engine.Graph;
+using Cathode.Ipc;
 using Cathode.Server.Stores;
 
 namespace Cathode.Server.Rig;

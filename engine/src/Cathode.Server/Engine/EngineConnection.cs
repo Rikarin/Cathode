@@ -1,13 +1,10 @@
 using Cathode.Contracts;
 using Cathode.Dsp.Routing;
-using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.Engine.Telemetry;
-using Cathode.EngineHost;
 using Cathode.Ipc;
 using Cathode.Server.Realtime;
 using Cathode.Server.Rig;
-using Microsoft.Extensions.Options;
 using System.Threading.Channels;
 
 namespace Cathode.Server.Engine;
@@ -22,7 +19,7 @@ namespace Cathode.Server.Engine;
 ///     back to IPC telemetry alone.
 /// </remarks>
 public sealed partial class EngineConnection(
-    IOptions<ServerOptions> options,
+    IEngineLinks links,
     EventHub hub,
     ILogger<EngineConnection> logger
 )
@@ -64,7 +61,7 @@ public sealed partial class EngineConnection(
     bool graphSent;
 
     /// <summary>
-    ///     The live link, for diagnostics and tests (an <see cref="InProcessEngineLink" /> in in-process mode).
+    ///     The live link, for diagnostics and tests (an <see cref="ILocalEngineLink" /> when the host is in process).
     /// </summary>
     public IEngineLink? Link { get; private set; }
 
@@ -95,7 +92,7 @@ public sealed partial class EngineConnection(
         // not reach a host that still has no graph.
         return new(
             IsSynced,
-            options.Value.Engine.Mode,
+            links.Mode,
             i?.Backend,
             i?.SampleRate ?? 0,
             i?.BufferFrames ?? 0,
@@ -263,6 +260,15 @@ public sealed partial class EngineConnection(
             new() { Type = IpcTypes.MidiOut, Destination = destination, Bytes = [..bytes.Select(static b => (int)b)] }
         );
 
+    /// <summary>The host's MIDI outputs (none while no engine is connected).</summary>
+    public async Task<MidiOutputInfo[]> MidiOutputsAsync() {
+        var reply = await RequestAsync(new() { Type = IpcTypes.MidiPorts });
+        return [
+            ..(reply?.MidiPorts ?? []).Where(static p => !p.IsInput)
+                .Select(static p => new MidiOutputInfo(p.Uid, p.Name))
+        ];
+    }
+
     public void SetTuner(bool enabled) {
         if (IsConnected) {
             queue.Writer.TryWrite(new(new() { Type = IpcTypes.SetTuner, Enabled = enabled }, null));
@@ -283,15 +289,7 @@ public sealed partial class EngineConnection(
     }
 
     async Task RunOnceAsync(CancellationToken stoppingToken) {
-        var engine = options.Value.Engine;
-        IEngineLink current;
-        if (string.Equals(engine.Mode, "inprocess", StringComparison.OrdinalIgnoreCase)) {
-            current = new InProcessEngineLink();
-        } else {
-            var client = new IpcEngineClient(engine.SocketPath);
-            await client.ConnectAsync(TimeSpan.FromDays(365), stoppingToken); // keeps retrying until the host is up
-            current = client;
-        }
+        var current = await links.ConnectAsync(stoppingToken);
 
         using var lost = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         current.Disconnected += () => lost.Cancel();
@@ -311,8 +309,8 @@ public sealed partial class EngineConnection(
             }
 
             // In process the region is the host service's own; across processes, map the file the host named.
-            var region = current is InProcessEngineLink local
-                ? local.Service.TelemetryRegion
+            var region = current is ILocalEngineLink local
+                ? local.TelemetryRegion
                 : mapped = OpenRegion(info?.TelemetryPath);
             if (region is not null) {
                 monitor = new(region);

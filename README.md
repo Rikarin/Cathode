@@ -137,10 +137,14 @@ The desktop app starts the engine host and the server itself:
 cd editor && pnpm exec nx serve desktop
 ```
 
-For quick UI work in a browser, run the server with the engine in-process (no audio) and the editor's dev server:
+For quick UI work in a browser, run the engine host without a device, the server, and the editor's dev server:
 
 ```bash
-cd engine && dotnet run -c Release --project src/Cathode.Server -- --Cathode:Engine:Mode=inprocess
+cd engine && dotnet run -c Release --project src/Cathode.Host -- --serve --null-audio --socket /tmp/cathode-host.sock
+```
+
+```bash
+cd engine && dotnet run -c Release --project src/Cathode.Server -- --Cathode:Engine:SocketPath=/tmp/cathode-host.sock
 ```
 
 ```bash

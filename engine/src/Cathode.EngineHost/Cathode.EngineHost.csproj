@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Host side of the engine link: the IPC message handler, the Unix-socket listener and an in-process link for tests.</Description>
+    <Description>Host side of the engine link: the IPC message handler and the Unix-socket listener, for cathode-host and the tests' in-process host.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Cathode.Ipc/Cathode.Ipc.csproj"/>

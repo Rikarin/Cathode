@@ -1,4 +1,3 @@
-using Cathode.Engine.Graph;
 using System.Text.Json.Serialization;
 
 namespace Cathode.Ipc;
@@ -10,12 +9,14 @@ public static class IpcTypes {
     public const string SetParams = "setParams";
     public const string SetBypass = "setBypass";
     public const string SetTuner = "setTuner";
-    public const string Status = "status";
     public const string Tap = "tap";
     public const string Looper = "looper";
     public const string ExportLooper = "exportLooper";
     public const string SetMidi = "setMidi";
     public const string MidiOut = "midiOut";
+
+    /// <summary>The host's MIDI endpoints (<see cref="IpcMessage.MidiPorts" />), for choosing a MIDI output.</summary>
+    public const string MidiPorts = "midiPorts";
 
     /// <summary>The device's and the graph's latency (<see cref="LatencyReport" />).</summary>
     public const string Latency = "latency";
@@ -124,8 +125,14 @@ public sealed class IpcMessage {
     /// <summary>midiOut: the message bytes; midi: the received messages.</summary>
     public List<int>? Bytes { get; set; }
 
-    /// <summary>midiOut: destination port uid, or null for every output.</summary>
+    /// <summary>
+    ///     midiOut: the destination port's uid (<see cref="MidiPortInfo.Uid" />), or null for every output. The Server
+    ///     sends the global MIDI output setting (Cathode.Contracts.GlobalSettings.MidiOutPort).
+    /// </summary>
     public string? Destination { get; set; }
+
+    /// <summary>The reply to midiPorts: every MIDI endpoint the OS reports, inputs and outputs.</summary>
+    public List<MidiPortInfo>? MidiPorts { get; set; }
 
     /// <summary>midi: messages received since the previous push.</summary>
     public List<MidiEventMessage>? Midi { get; set; }
@@ -146,6 +153,9 @@ public sealed class IpcMessage {
 }
 
 public sealed record ParamValue(string Block, string Param, float Value);
+
+/// <summary>A MIDI endpoint as the host's OS reports it; <c>Uid</c> is stable across runs.</summary>
+public sealed record MidiPortInfo(string Uid, string Name, bool IsInput);
 
 /// <summary>The block and parameter a modifier drives.</summary>
 public sealed record ModifierTarget(string Block, string Param);

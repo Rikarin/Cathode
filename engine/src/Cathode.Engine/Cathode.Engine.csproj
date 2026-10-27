@@ -4,5 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Cathode.Dsp/Cathode.Dsp.csproj"/>
+    <!-- The graph the compiler reads (GraphDefinition) is the wire type the Server sends. -->
+    <ProjectReference Include="../Cathode.Ipc/Cathode.Ipc.csproj"/>
   </ItemGroup>
 </Project>
