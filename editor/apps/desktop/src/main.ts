@@ -13,7 +13,14 @@ import { existsSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { networkStatus, newToken, portFree } from './network';
-import { type AudioSettings, type NetworkSettings, type ServerTarget, loadSettings, saveSettings } from './settings';
+import {
+  type AudioSettings,
+  type NetworkSettings,
+  type ServerTarget,
+  defaultSettings,
+  loadSettings,
+  saveSettings
+} from './settings';
 import { type Connection, type IrCaptureOptions, Sidecars, listDevices, waitForServer } from './sidecars';
 
 // Cathode desktop: the editor in a sandboxed window, and the engine (cathode-host + cathode-server) as supervised
@@ -52,7 +59,8 @@ protocol.registerSchemesAsPrivileged([
 /** How long to wait for a remote Server before the editor reports it unreachable. */
 const RemoteTimeoutMs = 10_000;
 
-let settings = loadSettings();
+/** Read once the app is ready (safeStorage decrypts the tokens only then); nothing uses them before. */
+let settings = defaultSettings();
 let sidecars: Sidecars | null = null;
 let window: BrowserWindow | null = null;
 let quitting = false;
@@ -235,7 +243,7 @@ function handleIpc(): void {
   ipcMain.handle('cathode:target', () => settings.target);
   ipcMain.handle('cathode:setTarget', async (_event, target: unknown) => {
     settings = { ...settings, target: validTarget(target) };
-    saveSettings(settings);
+    await saveSettings(settings);
     if (settings.target.mode === 'remote') {
       await sidecars?.stop();
       sidecars = null;
@@ -249,7 +257,7 @@ function handleIpc(): void {
   ipcMain.handle('cathode:audio:settings', () => settings.audio);
   ipcMain.handle('cathode:audio:apply', async (_event, audio: unknown) => {
     settings = { ...settings, audio: validAudio(audio) };
-    saveSettings(settings);
+    await saveSettings(settings);
     await sidecars?.applyAudio(settings.audio);
   });
   ipcMain.handle('cathode:audio:latencyTest', () =>
@@ -259,7 +267,7 @@ function handleIpc(): void {
   ipcMain.handle('cathode:network:apply', async (_event, network: unknown) => {
     const next = await validNetwork(network);
     settings = { ...settings, network: next };
-    saveSettings(settings);
+    await saveSettings(settings);
     // The Server restarts with the new listeners and token; the window reloads to take the token.
     if (sidecars && settings.target.mode === 'local') {
       await sidecars.applyNetwork(settings.network);
@@ -420,10 +428,12 @@ app.on('second-instance', () => {
 
 app
   .whenReady()
-  .then(() => {
+  .then(async () => {
     if (!primary) {
       return;
     }
+
+    settings = await loadSettings();
 
     // Unpackaged, macOS would show Electron's own icon in the Dock.
     if (existsSync(Icon)) {
