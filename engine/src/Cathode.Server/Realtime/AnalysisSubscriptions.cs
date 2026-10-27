@@ -1,5 +1,6 @@
 using Cathode.Contracts;
 using Cathode.Server.Engine;
+using Cathode.Server.Rig;
 
 namespace Cathode.Server.Realtime;
 
@@ -8,10 +9,12 @@ namespace Cathode.Server.Realtime;
 ///     editor closing its tuner (or starting up) does not switch it off for another. A client names itself with the
 ///     same <c>client</c> id on its requests and its <c>/ws</c> socket; when its last socket closes, whatever it left
 ///     on is released. A request without a client id acts as before clients were counted: on adds an anonymous client,
-///     off turns the analyser off for everyone.
+///     off turns the analyser off for everyone. The tuner's on or off is applied through <see cref="LiveRig.SetTunerAsync" />,
+///     which owns the tuner state (its event, the footswitch LED and the resync after a host restart), one change at a time.
 /// </summary>
-public sealed class AnalysisSubscriptions(IEngineSync sync, EngineConnection engine) {
+public sealed class AnalysisSubscriptions(LiveRig rig, EngineConnection engine) : IDisposable {
     readonly Lock gate = new();
+    readonly SemaphoreSlim tunerApply = new(1, 1);
     readonly HashSet<string> tuner = [];
     readonly HashSet<string> scope = [];
     readonly HashSet<string> rta = [];
@@ -26,10 +29,23 @@ public sealed class AnalysisSubscriptions(IEngineSync sync, EngineConnection eng
         }
     }
 
-    public void SetTuner(string? client, bool on) {
+    public Task SetTunerAsync(string? client, bool on) {
         lock (gate) {
             Set(tuner, client, on);
-            sync.SetTuner(tuner.Count > 0);
+        }
+
+        return ApplyTunerAsync();
+    }
+
+    /// <summary>Brings the rig's tuner to whether any client wants it, one change at a time so none lands out of order.</summary>
+    async Task ApplyTunerAsync() {
+        await tunerApply.WaitAsync();
+        try {
+            if (TunerOn != rig.TunerOn) {
+                await rig.SetTunerAsync(TunerOn);
+            }
+        } finally {
+            tunerApply.Release();
         }
     }
 
@@ -57,7 +73,8 @@ public sealed class AnalysisSubscriptions(IEngineSync sync, EngineConnection eng
     }
 
     /// <summary>A client's socket closed: with its last one, what it left on is released.</summary>
-    public void Leave(string client) {
+    public async Task LeaveAsync(string client) {
+        var releaseTuner = false;
         lock (gate) {
             var open = sockets.GetValueOrDefault(client) - 1;
             if (open > 0) {
@@ -66,9 +83,7 @@ public sealed class AnalysisSubscriptions(IEngineSync sync, EngineConnection eng
             }
 
             sockets.Remove(client);
-            if (tuner.Remove(client) && tuner.Count == 0) {
-                sync.SetTuner(false);
-            }
+            releaseTuner = tuner.Remove(client) && tuner.Count == 0;
 
             if (scope.Remove(client) && scope.Count == 0) {
                 engine.ScopeEnabled = false;
@@ -78,7 +93,13 @@ public sealed class AnalysisSubscriptions(IEngineSync sync, EngineConnection eng
                 engine.RtaEnabled = false;
             }
         }
+
+        if (releaseTuner) {
+            await ApplyTunerAsync();
+        }
     }
+
+    public void Dispose() => tunerApply.Dispose();
 
     static void Set(HashSet<string> clients, string? client, bool on) {
         if (string.IsNullOrEmpty(client)) {

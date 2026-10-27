@@ -448,8 +448,8 @@ public static class CathodeApi {
 
         api.MapPut(
                 "/tuner",
-                (BypassRequest request, AnalysisSubscriptions analysis, string? client) => {
-                    analysis.SetTuner(client, !request.Bypassed);
+                async (BypassRequest request, AnalysisSubscriptions analysis, string? client) => {
+                    await analysis.SetTunerAsync(client, !request.Bypassed);
                     return TypedResults.NoContent();
                 }
             )
@@ -501,7 +501,7 @@ public static class CathodeApi {
                         await hub.ServeAsync(socket, http.RequestAborted);
                     } finally {
                         if (client.Length > 0) {
-                            analysis.Leave(client);
+                            await analysis.LeaveAsync(client);
                         }
                     }
                 }
@@ -700,6 +700,8 @@ public static class CathodeApi {
                         await engine.ExportLooperAsync(path);
                     } catch (IpcException e) {
                         throw new RigException(409, e.Message);
+                    } catch (IOException e) {
+                        throw new RigException(503, e.Message);
                     }
 
                     var file = new FileStream(

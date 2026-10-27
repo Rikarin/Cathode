@@ -72,10 +72,15 @@ public sealed partial class LiveRig(
 
     public Task<LiveState> StateAsync() => Locked(() => Task.FromResult(State()));
 
-    /// <summary>Sends the whole rig to the engine again (after the host (re)connects).</summary>
+    /// <summary>
+    ///     Sends the whole rig to the engine again (after the host (re)connects): the graph and its parameters, mute, the
+    ///     tuner and whether to follow MIDI clock.
+    /// </summary>
     public Task ResyncAsync() =>
         Locked(async () => {
                 await SyncGraphAsync();
+                engine.SetMidi(globals.Get().TempoMode == "midiClock");
+                engine.SetTuner(TunerOn);
                 return State();
             }
         );
@@ -98,7 +103,8 @@ public sealed partial class LiveRig(
                 var loaded = presets.Get(id) ?? throw RigException.NotFound($"No preset '{id}'.");
                 if (loaded.SchemaVersion > Preset.CurrentSchemaVersion) {
                     throw RigException.Conflict(
-                        $"Preset '{loaded.Name}' was saved by a newer version of Cathode (schema {loaded.SchemaVersion})."
+                        $"Preset '{loaded.Name}' was saved by a newer version of Cathode "
+                        + $"(schema {loaded.SchemaVersion})."
                     );
                 }
 
@@ -127,40 +133,6 @@ public sealed partial class LiveRig(
                 }
 
                 return Task.FromResult(SaveWorkingCopy());
-            }
-        );
-
-    /// <summary>
-    ///     Replaces the working copy's content with <paramref name="next" />, keeping its identity, as one undoable
-    ///     edit. Editors use it to switch between A/B compare snapshots.
-    /// </summary>
-    public Task<LiveState> PutAsync(Preset next, long? expected) =>
-        Locked(async () => {
-                Check(expected);
-                if (next.SchemaVersion > Preset.CurrentSchemaVersion) {
-                    throw RigException.Conflict(
-                        $"Preset '{next.Name}' was saved by a newer version of Cathode (schema {next.SchemaVersion})."
-                    );
-                }
-
-                if (next.Scenes.Count != Preset.SceneCount) {
-                    throw new RigException(400, $"A preset has exactly {Preset.SceneCount} scenes.");
-                }
-
-                await StructuralAsync(p => {
-                        p.Name = next.Name;
-                        p.Author = next.Author;
-                        p.Description = next.Description;
-                        p.Tags = next.Tags;
-                        p.Tempo = next.Tempo;
-                        p.Rows = next.Rows;
-                        p.Columns = next.Columns;
-                        p.Blocks = next.Blocks;
-                        p.Cables = next.Cables;
-                        p.Scenes = next.Scenes;
-                    }
-                );
-                return Changed("presetReplaced");
             }
         );
 

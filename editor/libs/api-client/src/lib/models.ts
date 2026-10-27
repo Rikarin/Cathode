@@ -211,4 +211,9 @@ export interface RtaFrame {
   source: 'output' | 'block';
 }
 
-export type ServerMessage = { type: 'connected' } | Telemetry | ScopeFrame | RtaFrame | MidiActivity | RigEvent;
+/**
+ * `connected` opens every socket; `resync` replaces the events a client fell too far behind to receive: either way the
+ * client reads its state again.
+ */
+export type ServerMessage =
+  { type: 'connected' } | { type: 'resync' } | Telemetry | ScopeFrame | RtaFrame | MidiActivity | RigEvent;

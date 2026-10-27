@@ -400,7 +400,11 @@ Still to come: RMS, per-block CPU, scene state, and binary frames.
 
 > **Audio I/O:** `GET /system/latency` reports the device's input and output latency, the buffer, and the graph's latency along its longest path, block by block. `PUT /live/blocks/{id}/test-tone` (`{ enabled, frequency, level }`) plays the cab resonance helper's sine in place of a block's output, and `GET /live/blocks/{id}/speaker-resonance` gives a Circuit Amp's speaker load resonance at Load resonance 100 % (with Follow Cab, the followed Cab speaker's). The global settings gained `outputs` (mode, Boost/Pad and EQ per output), `copyOutput1To2`, `inputs` (full-scale volts and gain per input) and `oversampling`; the device channel mapping stays with the desktop app's audio settings (host arguments).
 
-Every mutation produces an **event** on `/ws`, whatever its source (REST, MIDI or footswitch). That keeps multiple editors in sync, and makes MIDI-driven changes visible in the UI as they are on Axe-Edit.
+Every mutation produces an **event** on `/ws`, whatever its source (REST, MIDI or footswitch). Events are never dropped silently: each client has its own outboxes, sent events first, then MIDI monitor activity (`midi`, the newest 64 kept for a slow client), then telemetry, scope and RTA frames (only the latest of each kind waits, so 30 Hz frames never push out an event). A client that falls 1,024 events behind gets `{"type":"resync"}` in their place and reads its state again, as after connecting. That keeps multiple editors in sync, and makes MIDI-driven changes visible in the UI as they are on Axe-Edit.
+
+Live state outside the preset has events of its own, which carry the current `revision` without raising it (the working copy did not change):
+- `globalChanged`: the global settings changed, from `PUT /global` or as a side effect: a footswitch's metronome, layout or view, a Manual A–D knob or pedal, MIDI learn, a linked global block's parameters. Clients fetch `GET /global` again.
+- `tunerChanged` (`value` 1 or 0): the tuner went on or off, from `PUT /tuner`, a MIDI mapping or a footswitch. The rig owns the tuner state, so a footswitch LED follows the editor's tuner and the other way round, and a host that restarts gets the tuner back as part of the resync, with whether to follow MIDI clock.
 
 ---
 

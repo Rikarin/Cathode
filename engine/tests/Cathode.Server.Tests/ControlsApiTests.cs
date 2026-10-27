@@ -5,10 +5,13 @@ using Cathode.Engine.Rig;
 using Cathode.Server.Engine;
 using Cathode.Server.Midi;
 using Cathode.Server.Realtime;
+using Cathode.Server.Rig;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 using System.Net.WebSockets;
+using System.Text;
+using System.Text.Json.Nodes;
 
 namespace Cathode.Server.Tests;
 
@@ -175,6 +178,135 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         await ServerFixture.Eventually(() => Sent(sent, [0xB0, 30, 0]));
         await Task.Delay(300, Token);
         Assert.Equal(4, (await Live()).ActiveScene); // a tap would have gone back to scene 2
+    }
+
+    [Fact]
+    public async Task A_repeated_down_is_one_press_with_one_hold() {
+        await PutGlobal(static g => {
+                g.Footswitches.Add(
+                    new(
+                        "board",
+                        "Board",
+                        [new(1, "Next", "cc", 1, 31, new("scene", Value: 6), new("sceneNext"))]
+                    )
+                );
+                g.ActiveLayout = "board";
+            }
+        );
+        var router = server.Services.GetRequiredService<MidiRouter>();
+
+        // A CC pedal held past 64 keeps sending "down": one hold action, not one per message.
+        for (var i = 0; i < 5; i++) {
+            router.OnMidi([new(0xB0, 31, 100 + i, 0)]);
+        }
+
+        await ServerFixture.Eventually(async () => (await Live()).ActiveScene == 1);
+        router.OnMidi([new(0xB0, 31, 127, 0)]); // still held, after the hold fired
+        await Task.Delay(MidiRouter.HoldTime * 3, Token);
+        Assert.Equal(1, (await Live()).ActiveScene);
+
+        router.OnMidi([new(0xB0, 31, 0, 0)]); // the release after a hold does nothing
+        router.OnMidi([new(0xB0, 31, 127, 0)]);
+        router.OnMidi([new(0xB0, 31, 0, 0)]); // and the next press is a fresh one: a tap
+        await ServerFixture.Eventually(async () => (await Live()).ActiveScene == 6);
+    }
+
+    [Fact]
+    public async Task Mute_actions_run_in_order() {
+        await PutGlobal(static g => g.MidiMappings.Add(new("m", "note", 0, 85, "mute")));
+        var router = server.Services.GetRequiredService<MidiRouter>();
+
+        // Three toggles: each must see the one before it, or two would read the same state.
+        router.OnMidi([new(0x90, 85, 127, 0), new(0x90, 85, 127, 0), new(0x90, 85, 127, 0)]);
+
+        await ServerFixture.Eventually(async () => (await Live()).Muted);
+        await Task.Delay(300, Token);
+        Assert.True((await Live()).Muted);
+    }
+
+    [Fact]
+    public async Task The_tuner_has_one_state_for_rest_midi_and_its_led() {
+        var sent = new List<byte[]>();
+        server.Host.NativeMidiSend = (_, bytes) => {
+            lock (sent) {
+                sent.Add(bytes);
+            }
+
+            return true;
+        };
+        await PutGlobal(static g => {
+                g.Footswitches.Add(new("pedalboard", "Pedalboard", [new(1, "Tuner", "cc", 1, 32, new("tuner"))]));
+                g.ActiveLayout = "pedalboard";
+            }
+        );
+        var rig = server.Services.GetRequiredService<LiveRig>();
+        var events = new List<RigEvent>();
+        rig.Changes += e => {
+            lock (events) {
+                events.Add(e);
+            }
+        };
+        var router = server.Services.GetRequiredService<MidiRouter>();
+
+        // The editor turns it on: the LED follows, and an event tells the other clients.
+        await Ok(client.PutAsJsonAsync("/api/v1/tuner", new BypassRequest(false), Token));
+        Assert.True(rig.TunerOn);
+        await ServerFixture.Eventually(() => Sent(sent, [0xB0, 32, 127]));
+        lock (events) {
+            Assert.Contains(events, static e => e is { Type: "tunerChanged", Value: 1 });
+        }
+
+        // The footswitch toggles what the editor set: off, not on again.
+        lock (sent) {
+            sent.Clear();
+        }
+
+        router.OnMidi([new(0xB0, 32, 127, 0)]);
+        await ServerFixture.Eventually(() => {
+                lock (events) {
+                    return events.Exists(static e => e is { Type: "tunerChanged", Value: 0 });
+                }
+            }
+        );
+        Assert.False(rig.TunerOn);
+        await ServerFixture.Eventually(() => Sent(sent, [0xB0, 32, 0]));
+    }
+
+    [Fact]
+    public async Task Global_settings_changed_from_midi_publish_an_event() {
+        await PutGlobal(static g => {
+                g.MidiMappings.Add(new("metro", "note", 0, 86, "metronome"));
+                g.MidiMappings.Add(new("manual", "cc", 0, 87, "manual", Value: 2));
+            }
+        );
+        using var socket = await server.Server.CreateWebSocketClient()
+            .ConnectAsync(new(server.Server.BaseAddress, "ws"), Token);
+        await NextEvent(socket, "connected"); // registered: from here on it sees every change
+        var router = server.Services.GetRequiredService<MidiRouter>();
+
+        router.OnMidi([new(0x90, 86, 127, 0)]); // the metronome, from a footswitch
+        await NextEvent(socket, "globalChanged");
+        router.OnMidi([new(0xB0, 87, 127, 0)]); // Manual C, from a pedal
+        await NextEvent(socket, "globalChanged");
+
+        var global = await Global();
+        Assert.True(global.Metronome);
+        Assert.Equal(1f, global.Manual[2]);
+        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", Token);
+    }
+
+    /// <summary>Reads WebSocket messages until one of type <paramref name="type" /> arrives.</summary>
+    static async Task NextEvent(WebSocket socket, string type) {
+        var buffer = new byte[256 * 1024];
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        deadline.CancelAfter(TimeSpan.FromSeconds(30)); // generous: a busy machine
+        while (true) {
+            var result = await socket.ReceiveAsync(buffer, deadline.Token);
+            var message = JsonNode.Parse(Encoding.UTF8.GetString(buffer, 0, result.Count));
+            if (message?["type"]?.GetValue<string>() == type) {
+                return;
+            }
+        }
     }
 
     [Fact]
@@ -400,6 +532,8 @@ public sealed class ControlsApiTests : IAsyncLifetime {
             return sent.Any(m => m.SequenceEqual(message));
         }
     }
+
+    async Task<GlobalSettings> Global() => (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;
 
     async Task PutGlobal(Action<GlobalSettings> change) {
         var global = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;

@@ -32,7 +32,12 @@ public sealed partial class EngineConnection(
     const int ScopeDecimation = 4;
     static readonly TimeSpan MeterInterval = TimeSpan.FromMilliseconds(33);
 
-    readonly Channel<Work> queue = Channel.CreateUnbounded<Work>(new() { SingleReader = true });
+    /// <summary>
+    ///     Work for the pump. Not single-reader: a request whose link dropped while it was being queued drains the
+    ///     queue itself (<see cref="Submit" />), as the pump may already have stopped.
+    /// </summary>
+    readonly Channel<Work> queue = Channel.CreateUnbounded<Work>();
+
     HostInfo? info;
     TelemetryMonitor? monitor;
 
@@ -107,9 +112,15 @@ public sealed partial class EngineConnection(
             return;
         }
 
-        var reply = new TaskCompletionSource<IpcMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
-        queue.Writer.TryWrite(new(new() { Type = IpcTypes.LoadGraph, Generation = generation, Graph = graph }, reply));
-        var answer = await reply.Task;
+        IpcMessage answer;
+        try {
+            answer = await Submit(new() { Type = IpcTypes.LoadGraph, Generation = generation, Graph = graph });
+        } catch (IOException) {
+            // The link dropped (or the host stalled) before the host answered: as if no engine were connected. The
+            // rig is the authority; the resync after the next connection sends it this graph.
+            return;
+        }
+
         if (answer.SlotIds is { } ids) {
             Volatile.Write(ref meterMap, MeterMap.Of(generation, ids, answer.MeterIds));
             Volatile.Write(ref modifierMap, new(generation, answer.ModifierTargets ?? []));
@@ -162,9 +173,7 @@ public sealed partial class EngineConnection(
             return Task.FromException(new IOException("The engine is not connected."));
         }
 
-        var reply = new TaskCompletionSource<IpcMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
-        queue.Writer.TryWrite(new(new() { Type = IpcTypes.ExportLooper, Path = path }, reply));
-        return reply.Task;
+        return Submit(new() { Type = IpcTypes.ExportLooper, Path = path });
     }
 
     /// <summary>The device's and the graph's latency (zeros while no engine is connected).</summary>
@@ -211,13 +220,30 @@ public sealed partial class EngineConnection(
             return null;
         }
 
-        var reply = new TaskCompletionSource<IpcMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
-        queue.Writer.TryWrite(new(message, reply));
         try {
-            return await reply.Task;
+            return await Submit(message);
         } catch (IpcException e) {
             throw new RigException(422, e.Message, e.Errors);
+        } catch (IOException) {
+            return null; // the link dropped before the host answered
         }
+    }
+
+    /// <summary>
+    ///     Queues a request and returns its reply. It always completes: with the host's answer, an
+    ///     <see cref="IpcException" /> when the host rejects it, or an <see cref="IOException" /> when the link drops
+    ///     (or the host stalls) before it answers.
+    /// </summary>
+    Task<IpcMessage> Submit(IpcMessage message) {
+        var reply = new TaskCompletionSource<IpcMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        queue.Writer.TryWrite(new(message, reply));
+        if (!IsConnected) {
+            // The link dropped between the caller's check and the write, and the pump may have gone with it: nothing
+            // else would answer this request until the host comes back.
+            DiscardQueued("The engine host disconnected.");
+        }
+
+        return reply.Task;
     }
 
     public void SetMidi(bool followClock) => Enqueue(new() { Type = IpcTypes.SetMidi, FollowClock = followClock });
@@ -310,6 +336,9 @@ public sealed partial class EngineConnection(
             info = null;
             Link = null;
             await current.DisposeAsync();
+            // Fail what the pump never sent, now rather than at the next connection: a caller waiting for a reply
+            // (a structural edit, holding the rig's lock) must not wait for a host that may never come back.
+            DiscardQueued("The engine host disconnected.");
         }
     }
 
@@ -337,7 +366,8 @@ public sealed partial class EngineConnection(
                     points[i] = window[i * ScopeDecimation];
                 }
 
-                hub.Publish(
+                hub.PublishFrame(
+                    "scope",
                     new("scope", source.Region.SampleRate / ScopeDecimation, points),
                     ContractsJsonContext.Default.ScopeFrame
                 );
@@ -348,7 +378,8 @@ public sealed partial class EngineConnection(
                 continue;
             }
 
-            hub.Publish(
+            hub.PublishFrame(
+                "telemetry",
                 new(
                     "telemetry",
                     reading.InputPeak,
@@ -468,6 +499,11 @@ public sealed partial class EngineConnection(
             }
 
             work.Reply?.TrySetException(e);
+        } catch (Exception e) {
+            // The link dropped (IOException, the lost token) or the host stalled past the client's timeout: the request
+            // fails, and the exception ends the pump so the link is dropped and reconnected.
+            work.Reply?.TrySetException(new IOException("The engine host did not answer: " + e.Message, e));
+            throw;
         }
     }
 
@@ -499,13 +535,30 @@ public sealed partial class EngineConnection(
         }
     }
 
-    void OnMidi(IReadOnlyList<MidiEventMessage> messages) => MidiReceived?.Invoke(messages);
+    /// <summary>
+    ///     Hands MIDI to every listener. A listener that fails (MIDI learn on an unwritable data folder) is logged; it
+    ///     must not reach the link's read loop, which would take the failure for a lost host.
+    /// </summary>
+    void OnMidi(IReadOnlyList<MidiEventMessage> messages) {
+        if (MidiReceived is not { } handlers) {
+            return;
+        }
+
+        foreach (var handler in handlers.GetInvocationList().Cast<Action<IReadOnlyList<MidiEventMessage>>>()) {
+            try {
+                handler(messages);
+            } catch (Exception e) when (e is not OutOfMemoryException) {
+                MidiHandlerFailed(logger, e.Message);
+            }
+        }
+    }
 
     void OnTelemetry(HostTelemetry t) {
         LastTelemetry = t;
         TelemetryUpdated?.Invoke(t);
         if (monitor is null) {
-            hub.Publish(
+            hub.PublishFrame(
+                "telemetry",
                 new(
                     "telemetry",
                     t.InputPeak,
@@ -531,6 +584,9 @@ public sealed partial class EngineConnection(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Shared telemetry '{Path}' unavailable, using IPC: {Message}")]
     static partial void TelemetryUnavailable(ILogger logger, string path, string message);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Handling MIDI failed: {Error}")]
+    static partial void MidiHandlerFailed(ILogger logger, string error);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Engine rejected {Type}: {Error}")]
     static partial void EngineRejected(ILogger logger, string type, string error);

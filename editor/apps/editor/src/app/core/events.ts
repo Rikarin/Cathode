@@ -44,7 +44,8 @@ export function modulatedValue(modulation: Modulation | null | undefined, block:
  * The Server's WebSocket: rig events (signalled to the stores) and telemetry. Telemetry deliberately bypasses
  * change detection: meters read {@link latest} from their own animation frames, about 30 updates a second.
  * Reconnects with backoff; every (re)connection emits on {@link connected$} so the stores resync rather than trust
- * that no event was missed.
+ * that no event was missed. So does a `resync` message: the Server sends it in place of events this client fell too
+ * far behind to receive.
  */
 @Injectable({ providedIn: 'root' })
 export class EventStream {
@@ -155,6 +156,8 @@ export class EventStream {
     if (message.type === 'connected') {
       this.attempts = 0;
       this.status.set('open');
+      this.connected$.next();
+    } else if (message.type === 'resync') {
       this.connected$.next();
     } else if (message.type === 'midi' || message.type === 'midiLearned') {
       this.midi$.next(message as MidiActivity);

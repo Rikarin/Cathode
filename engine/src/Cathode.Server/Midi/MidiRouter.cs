@@ -31,7 +31,10 @@ public sealed partial class MidiRouter : IDisposable {
     readonly EventHub hub;
     readonly ILogger<MidiRouter> logger;
     readonly Lock gate = new();
-    readonly Dictionary<int, CancellationTokenSource> held = [];
+
+    /// <summary>The switches with a hold action that are down, by index, from press to release.</summary>
+    readonly Dictionary<int, Hold> held = [];
+
     readonly Dictionary<int, int> leds = [];
     readonly Timer ledRefresh;
 
@@ -41,7 +44,6 @@ public sealed partial class MidiRouter : IDisposable {
 
     readonly Task worker;
     MidiLearnRequest? learning;
-    bool tunerOn;
     string? ledPage;
 
     /// <summary>The armed MIDI learn request, if any.</summary>
@@ -100,7 +102,7 @@ public sealed partial class MidiRouter : IDisposable {
     public void OnMidi(IReadOnlyList<MidiEventMessage> messages) {
         var settings = globals.Get();
         foreach (var message in messages) {
-            hub.Publish(
+            hub.PublishActivity(
                 new("midi", message.Status, message.Data1, message.Data2),
                 ContractsJsonContext.Default.MidiActivity
             );
@@ -154,8 +156,11 @@ public sealed partial class MidiRouter : IDisposable {
         actions.Writer.TryComplete();
         lock (gate) {
             foreach (var hold in held.Values) {
-                hold.Cancel();
+                hold.Timer.Cancel();
+                hold.Timer.Dispose();
             }
+
+            held.Clear();
         }
     }
 
@@ -179,11 +184,26 @@ public sealed partial class MidiRouter : IDisposable {
             request.Target,
             request.Value
         );
-        globals.Update(g => {
-                g.MidiMappings.RemoveAll(m => m.Message == kind && m.Number == mapping.Number && m.Channel == channel);
-                g.MidiMappings.Add(mapping);
+        try {
+            globals.Update(g => {
+                    g.MidiMappings.RemoveAll(m => m.Message == kind
+                        && m.Number == mapping.Number
+                        && m.Channel == channel
+                    );
+                    g.MidiMappings.Add(mapping);
+                }
+            );
+        } catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+            // The global settings could not be written (a full disk, a read-only data folder): the message is
+            // consumed, nothing is learnt, and learn stays armed for another try.
+            lock (gate) {
+                learning ??= request;
             }
-        );
+
+            ActionFailed(logger, "learn", e.Message);
+            return true;
+        }
+
         hub.Publish(
             new("midiLearned", message.Status, message.Data1, message.Data2),
             ContractsJsonContext.Default.MidiActivity
@@ -199,24 +219,38 @@ public sealed partial class MidiRouter : IDisposable {
                     return;
                 }
 
-                var timer = new CancellationTokenSource();
-                held[footswitch.Index] = timer;
-                _ = Task.Delay(HoldTime, timer.Token)
+                // Already down: a controller that repeats its "down" (a CC pedal held past 64, key repeat) is still one
+                // press, with one hold timer and at most one hold action.
+                if (held.ContainsKey(footswitch.Index)) {
+                    return;
+                }
+
+                var hold = new Hold(new());
+                held[footswitch.Index] = hold;
+                _ = Task.Delay(HoldTime, hold.Timer.Token)
                     .ContinueWith(
                         t => {
-                            if (!t.IsCanceled) {
-                                lock (gate) {
-                                    held.Remove(footswitch.Index);
+                            lock (gate) {
+                                // Released (or pressed again) meanwhile: that press is over.
+                                if (t.IsCanceled
+                                    || !held.TryGetValue(footswitch.Index, out var current)
+                                    || current != hold) {
+                                    return;
                                 }
 
-                                Run(footswitch.Hold, 127, false, true, sampleTime);
+                                hold.Fired = true; // stays held until released, which then does nothing
                             }
+
+                            Run(footswitch.Hold, 127, false, true, sampleTime);
                         },
                         TaskScheduler.Default
                     );
-            } else if (held.Remove(footswitch.Index, out var timer)) {
-                timer.Cancel(); // released before the hold time: a tap
-                Tap(footswitch, sampleTime);
+            } else if (held.Remove(footswitch.Index, out var hold)) {
+                hold.Timer.Cancel();
+                hold.Timer.Dispose();
+                if (!hold.Fired) {
+                    Tap(footswitch, sampleTime); // released before the hold time: a tap
+                }
             }
         }
     }
@@ -322,18 +356,13 @@ public sealed partial class MidiRouter : IDisposable {
                 rig.Tap(sampleTime);
                 break;
             case "tuner" when down || continuous:
-                lock (gate) {
-                    tunerOn = continuous ? data >= 64 : !tunerOn;
-                }
-
-                engine.SetTuner(tunerOn);
-                UpdateLeds();
+                await rig.SetTunerAsync(continuous ? data >= 64 : !rig.TunerOn);
                 break;
             case "metronome" when down || continuous:
                 globals.Update(g => g.Metronome = continuous ? data >= 64 : !g.Metronome);
                 break;
             case "mute" when down || continuous:
-                _ = rig.SetMutedAsync(continuous ? data >= 64 : !rig.Muted);
+                await rig.SetMutedAsync(continuous ? data >= 64 : !rig.Muted);
                 break;
             case "looper" when down && action.Target is { } looper:
                 engine.Looper(looper);
@@ -403,7 +432,7 @@ public sealed partial class MidiRouter : IDisposable {
             var on = footswitch.Tap.Action switch {
                 "scene" => rig.ActiveScene == footswitch.Tap.Value,
                 "bypass" when footswitch.Tap.Target is { } block => !rig.IsBypassed(block),
-                "tuner" => tunerOn,
+                "tuner" => rig.TunerOn,
                 "metronome" => settings.Metronome,
                 "mute" => rig.Muted,
                 "looper" => footswitch.Tap.Target switch {
@@ -436,6 +465,13 @@ public sealed partial class MidiRouter : IDisposable {
             0xC0 => "pc",
             _ => null
         };
+
+    /// <summary>A switch with a hold action, down: its hold timer, and whether the hold action has run.</summary>
+    sealed class Hold(CancellationTokenSource timer) {
+        public CancellationTokenSource Timer { get; } = timer;
+
+        public bool Fired { get; set; }
+    }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "MIDI action {Action} failed: {Error}")]
     static partial void ActionFailed(ILogger logger, string action, string error);

@@ -30,6 +30,27 @@ public sealed partial class LiveRig {
             }
         );
 
+    /// <summary>
+    ///     Whether the tuner is on: the one owner of that state, for the REST endpoint, MIDI and footswitch LEDs alike.
+    ///     Live only, like <see cref="Muted" />; resent to a host that (re)connects.
+    /// </summary>
+    public bool TunerOn => Volatile.Read(ref tunerOn);
+
+    bool tunerOn;
+
+    /// <summary>
+    ///     Turns the tuner on or off (from the editor, a footswitch or a MIDI message) and publishes
+    ///     <c>tunerChanged</c> (<c>value</c> 1 or 0). Not an edit of the rig: the revision stays.
+    /// </summary>
+    public Task<LiveState> SetTunerAsync(bool on) =>
+        Locked(() => {
+                Volatile.Write(ref tunerOn, on);
+                engine.SetTuner(on);
+                Publish(new("tunerChanged", revision, Value: on ? 1 : 0));
+                return Task.FromResult(State());
+            }
+        );
+
     /// <summary>A tap (from the editor or a MIDI switch); the engine averages taps, sample-accurately.</summary>
     public void Tap(long? sampleTime = null) {
         Volatile.Write(ref tapFollowUntil, DateTime.UtcNow.Add(TapFollowWindow).Ticks);
@@ -56,30 +77,7 @@ public sealed partial class LiveRig {
     public Task<LiveState> SetModifiersAsync(IReadOnlyList<PresetModifier> modifiers, long? expected) =>
         Locked(async () => {
                 Check(expected);
-                var errors = new List<string>();
-                foreach (var m in modifiers) {
-                    var block = preset.Blocks.Find(b => b.Id == m.Block);
-                    var descriptor = block is null ? null : catalog.Descriptor(block.Type);
-                    var engage = m.Param == ModNames.EngageParam
-                        && block is not null
-                        && !BuiltInTypes.IsBuiltIn(block.Type);
-                    if (descriptor is null || (!engage && descriptor.IndexOf(m.Param) < 0)) {
-                        errors.Add($"No parameter '{m.Param}' on block '{m.Block}'.");
-                    } else if (!ModNames.TryParseSource(m.Source, out _)) {
-                        errors.Add($"Unknown modifier source '{m.Source}'.");
-                    } else if (!ModNames.TryParseCurve(m.Curve, out _)) {
-                        errors.Add($"Unknown curve '{m.Curve}'.");
-                    } else if (m.Channel is { } scope
-                               && Preset.ChannelNames.IndexOf(scope) is var index
-                               && (index < 0 || index >= descriptor.Channels)) {
-                        errors.Add($"Block '{m.Block}' has no channel '{scope}'.");
-                    }
-                }
-
-                if (modifiers.GroupBy(static m => (m.Block, m.Param)).Any(static g => g.Count() > 1)) {
-                    errors.Add("A parameter can have only one modifier.");
-                }
-
+                var errors = ModifierErrors(preset, modifiers);
                 if (errors.Count > 0) {
                     throw new RigException(400, "Some modifiers are invalid.", errors);
                 }
@@ -89,19 +87,46 @@ public sealed partial class LiveRig {
             }
         );
 
+    /// <summary>Problems with <paramref name="modifiers" /> for the blocks of <paramref name="target" />.</summary>
+    List<string> ModifierErrors(Preset target, IReadOnlyList<PresetModifier> modifiers) {
+        var blocks = new Dictionary<string, PresetBlock>(StringComparer.Ordinal);
+        foreach (var b in target.Blocks) {
+            blocks.TryAdd(b.Id, b);
+        }
+
+        var errors = new List<string>();
+        foreach (var m in modifiers) {
+            var block = blocks.GetValueOrDefault(m.Block);
+            var descriptor = block is null ? null : catalog.Descriptor(block.Type);
+            var engage = m.Param == ModNames.EngageParam && block is not null && !BuiltInTypes.IsBuiltIn(block.Type);
+            if (descriptor is null || (!engage && descriptor.IndexOf(m.Param) < 0)) {
+                errors.Add($"No parameter '{m.Param}' on block '{m.Block}'.");
+            } else if (!ModNames.TryParseSource(m.Source, out _)) {
+                errors.Add($"Unknown modifier source '{m.Source}'.");
+            } else if (!ModNames.TryParseCurve(m.Curve, out _)) {
+                errors.Add($"Unknown curve '{m.Curve}'.");
+            } else if (m.Channel is { } scope
+                       && Preset.ChannelNames.IndexOf(scope) is var index
+                       && (index < 0 || index >= descriptor.Channels)) {
+                errors.Add($"Block '{m.Block}' has no channel '{scope}'.");
+            }
+        }
+
+        if (modifiers.GroupBy(static m => (m.Block, m.Param)).Any(static g => g.Count() > 1)) {
+            errors.Add("A parameter can have only one modifier.");
+        }
+
+        return errors;
+    }
+
     /// <summary>Controller settings (LFO, ADSR, envelope, sequencer, pitch range) stored with the preset.</summary>
     public Task<LiveState> SetControllersAsync(IReadOnlyDictionary<string, float> values, long? expected) =>
         Locked(() => {
                 Check(expected);
-                var unknown = values.Keys.Where(static k => !ControllerParams.Contains(k)).ToList();
-                if (unknown.Count > 0) {
-                    throw new RigException(400, $"Not controller settings: {string.Join(", ", unknown)}.", unknown);
-                }
-
+                var sanitized = SanitizeControllers(values);
                 PushUndo($"controllers:{string.Join(',', values.Keys.Order())}");
                 var sent = new List<ParamValue>();
-                foreach (var (id, raw) in values) {
-                    var value = RigControls.Descriptor.Params[RigControls.Descriptor.IndexOf(id)].Sanitize(raw);
+                foreach (var (id, value) in sanitized) {
                     preset.Controllers[id] = value;
                     sent.Add(new(IpcBlocks.Rig, id, value));
                 }
@@ -110,6 +135,23 @@ public sealed partial class LiveRig {
                 return Task.FromResult(Changed("controllersChanged"));
             }
         );
+
+    /// <summary>
+    ///     Controller settings clamped to their ranges; anything that is not a controller setting a preset stores is
+    ///     refused.
+    /// </summary>
+    static Dictionary<string, float> SanitizeControllers(IReadOnlyDictionary<string, float> values) {
+        var unknown = values.Keys.Where(static k => !ControllerParams.Contains(k)).ToList();
+        if (unknown.Count > 0) {
+            throw new RigException(400, $"Not controller settings: {string.Join(", ", unknown)}.", unknown);
+        }
+
+        return values.ToDictionary(
+            static v => v.Key,
+            static v => RigControls.Descriptor.Params[RigControls.Descriptor.IndexOf(v.Key)].Sanitize(v.Value),
+            StringComparer.Ordinal
+        );
+    }
 
     /// <summary>The tempo: the preset's, or the global one when the rig runs on a global tempo.</summary>
     public Task<LiveState> SetTempoAsync(double bpm, long? expected) =>
@@ -330,8 +372,16 @@ public sealed partial class LiveRig {
     public void SetExternal(int index, float value) =>
         engine.SetParams(generation, [new(IpcBlocks.Rig, $"ext{index + 1}", Math.Clamp(value, 0f, 1f))]);
 
-    /// <summary>Global settings changed (EQ, metronome, tempo mode): put them into the engine.</summary>
+    /// <summary>
+    ///     Global settings changed (EQ, metronome, tempo mode, Manual A-D, the footswitch layout or view), from the
+    ///     editor, MIDI or a footswitch: put them into the engine and tell clients with <c>globalChanged</c>, which
+    ///     carries the current revision without raising it (the working copy did not change).
+    /// </summary>
     public void ApplyGlobalSettings(GlobalSettings global) {
+        hub.Publish(
+            new RigEvent("globalChanged", Interlocked.Read(ref revision)),
+            ContractsJsonContext.Default.RigEvent
+        );
         var values = GlobalValues(global);
         if (global.TempoMode == "preset") {
             values.Add(new(IpcBlocks.Rig, "tempo", (float)preset.Tempo));

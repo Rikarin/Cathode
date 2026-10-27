@@ -540,6 +540,46 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         Assert.Equal(6, (await Live()).Preset.Blocks.Count(static b => b.Type == BuiltInTypes.Input));
     }
 
+    [Fact]
+    public async Task Ab_compare_keeps_each_versions_modifiers_controllers_perform_page_and_overrides() {
+        var a = (await Live()).Preset;
+        await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 0, 2));
+        await Put(
+            "/api/v1/live/modifiers",
+            new List<PresetModifier> { new() { Block = "delay1", Param = "time", Source = "lfo1" } }
+        );
+        await Patch("/api/v1/live/controllers", new Dictionary<string, float> { ["lfo1Rate"] = 3 });
+        await Put("/api/v1/live/perform", new List<PerformControl> { new("delay1", "time", "Time") });
+        await Put(
+            "/api/v1/live/footswitch-overrides",
+            new List<FootswitchOverride> { new("board", 1, new("bypass", "delay1")) }
+        );
+        var b = (await Live()).Preset;
+
+        var backToA = await Put("/api/v1/live", a);
+        Assert.Empty(backToA.Preset.Modifiers);
+        Assert.Empty(backToA.Preset.Controllers);
+        Assert.Empty(backToA.Preset.Perform);
+        Assert.Empty(backToA.Preset.FootswitchOverrides);
+
+        var backToB = await Put("/api/v1/live", b);
+        Assert.Equal(a.Id, backToB.Preset.Id);
+        Assert.Equal("time", Assert.Single(backToB.Preset.Modifiers).Param);
+        Assert.Equal(3, backToB.Preset.Controllers["lfo1Rate"]);
+        Assert.Equal("Time", Assert.Single(backToB.Preset.Perform).Label);
+        Assert.Equal("delay1", Assert.Single(backToB.Preset.FootswitchOverrides).Tap.Target);
+        await ServerFixture.Eventually(() => server.Graph?.Modifiers.Count == 1);
+
+        // Validated as their own endpoints validate them.
+        b.Modifiers.Add(new() { Block = "ghost", Param = "time" });
+        using var invalid = await client.PutAsJsonAsync("/api/v1/live", b, Token);
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+        b.Modifiers.RemoveAt(1);
+        b.Controllers["level"] = 1;
+        using var notController = await client.PutAsJsonAsync("/api/v1/live", b, Token);
+        Assert.Equal(HttpStatusCode.BadRequest, notController.StatusCode);
+    }
+
     async Task<LiveState> Delete(string url) => await Read(await client.DeleteAsync(url, Token));
 
     async Task<LiveState> Live() => (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!;
