@@ -378,22 +378,23 @@ Still to come: RMS, per-block CPU, scene state, and binary frames.
 - **OpenAPI is generated and committed.**
 - Resources carry a `revision` (ETag) for optimistic concurrency; `If-Match` is required on mutations.
 - Errors are RFC 9457 problem+json.
-- Long operations (IR or model import, Tone Match) return `202` plus `/jobs/{id}`.
+- There is no job queue: IR and model uploads and Tone Match are plain requests that answer when they finish.
 - **Auth:** the server binds to localhost by default. LAN access is opt-in, protected by a pairing token, so phones and tablets can act as remote editors.
 
 | Area | Endpoints (abridged) |
 |---|---|
-| System | `GET /system` (version, CPU, xruns), `GET/PUT /system/audio` (device, sample rate, buffer, channel routing), `GET /system/audio/devices`, `POST /system/audio/latency-test` |
-| Catalog | `GET /catalog/blocks`, `GET /catalog/blocks/{typeId}` (descriptors above), `GET /catalog/amps`, `GET /catalog/drives` … |
-| Live state | `GET /live` (the full working copy), `PUT /live/preset/{presetId}` (load), `POST /live/save`, `POST /live/undo`, `POST /live/redo` |
-| Grid | `GET/PUT /live/grid`, `POST /live/grid/cells/{r}/{c}` (place block), `DELETE …`, `POST /live/grid/cables` |
-| Blocks | `GET /live/blocks/{iid}`, `PATCH /live/blocks/{iid}/channels/{ch}/params` (batch), `PUT /live/blocks/{iid}/bypass`, `PUT /live/blocks/{iid}/channel`, `POST /live/blocks/{iid}/copy-channel` |
-| Scenes | `GET /live/scenes`, `PUT /live/scenes/active` (select), `PATCH /live/scenes/{n}`, `PUT /live/scenes/{n}/blocks/{iid}` (Scene Manager), `POST /live/scenes/copy`, `POST /live/scenes/swap`, `PUT /live/blocks/{iid}/channels/{ch}/scene-ignore`, `POST /live/blocks/{iid}/channels/swap`, `POST …/channels/{ch}/reset`, `POST /live/blocks/{iid}/reset` |
-| Modifiers | `GET/PUT /live/controllers`, `PUT /live/blocks/{iid}/params/{pid}/modifier` |
-| Library | `GET/POST /presets`, `GET/PUT/DELETE /presets/{id}`, `POST /presets/import`, `GET /presets/{id}/export`, `GET /presets/list.txt`, setlists, banks |
-| Global | `GET/PUT /global/settings`, `/global/blocks` (global blocks), `/global/eq`, `/global/midi-mappings`, `/global/footswitch-layouts` |
-| Assets | `/irs` (upload, list, tags, mix/export), `/models` (NAM/AIDA-X upload, metadata, loudness normalisation) |
-| Utilities | `/tuner` (settings), `/looper` (transport, undo, export), `/metronome`, `/tone-match` (jobs) |
+| System | `GET /system` (version, engine status), `GET /system/latency` (the device's input and output latency, the buffer and the graph's latency per block). There is no audio-setup route: the device, sample rate and buffer are chosen in the desktop app or through `cathode.env` |
+| Catalog | `GET /catalog/blocks`, `GET /catalog/blocks/{typeId}` (descriptors above), `GET /catalog/rig` |
+| Live state | `GET /live` (the full working copy), `PUT /live` (replace it), `POST /live/new`, `PUT /live/preset/{id}` (load), `PUT /live/setlists/{id}/entries/{index}`, `PUT /live/banks/{id}/slots/{slot}`, `POST /live/save`, `POST /live/undo`, `POST /live/redo`, `POST /live/revert`, `POST /live/clear`, `GET /live/export`, `PATCH /live/info` (name, tempo, notes), `PUT /live/mute`, `PUT /live/tempo`, `POST /live/tap`, `PUT /live/perform` |
+| Grid | `POST /live/blocks` (place a block), `DELETE /live/blocks/{id}`, `PUT /live/blocks/{id}/position`, `POST /live/blocks/{id}/drop`, `POST /live/grid/move`, `PUT /live/blocks/{id}/type`, `POST /live/cables`, `DELETE /live/cables?from=&to=`, `DELETE /live/blocks/{id}/cables` |
+| Blocks | `PATCH /live/blocks/{id}/params?channel=B` (batch), `PUT /live/blocks/{id}/bypass`, `PUT /live/blocks/{id}/bypass-mode`, `PUT /live/blocks/{id}/channel`, `PUT /live/blocks/{id}/settings`, `POST /live/blocks/{id}/preset`, `POST /live/blocks/{id}/reset`, `PUT /live/blocks/{id}/assets/{slot}`, `GET/POST /live/blocks/{id}/ir`, `GET /live/blocks/{id}/cab/align`, `GET /live/blocks/{id}/speaker-resonance`, `PUT /live/blocks/{id}/test-tone`, `POST /live/blocks/{id}/tonematch`, `POST /live/blocks/{id}/global`, `PUT/DELETE /live/blocks/{id}/global/{globalId}`, `DELETE /live/globals/{globalId}`, `PUT /live/manual/{index}`, `PUT /live/external/{index}` |
+| Channels | `POST /live/blocks/{id}/channels/copy`, `POST /live/blocks/{id}/channels/swap`, `POST /live/blocks/{id}/channels/{channel}/reset`, `PUT /live/blocks/{id}/channels/{channel}/scene-ignore` |
+| Scenes | `PUT /live/scenes/active` (select), `PATCH /live/scenes/{scene}`, `PUT /live/scenes/{scene}/blocks/{id}` (Scene Manager), `PUT /live/blocks/{id}/all-scenes`, `POST /live/scenes/copy`, `POST /live/scenes/swap` |
+| Modifiers | `PUT /live/modifiers`, `PATCH /live/controllers`, `PUT /live/footswitch-overrides` |
+| Library | `GET /presets`, `GET/PUT/DELETE /presets/{id}`, `PATCH /presets/{id}/metadata`, `POST /presets/{id}/duplicate`, `POST /presets/import`, `GET /presets/{id}/export`, `GET /presets/list.txt`, `POST /presets/reset-amps`, `POST /presets/batch-set`; setlists (`/setlists`, `/setlists/{id}`), banks (`/banks`, `/banks/{id}`), block presets (`/block-presets`, `/block-presets/{id}`, `/block-presets/export`, `/block-presets/import`, `POST /live/block-presets`), snapshots (`/snapshots`, `POST /live/snapshots`, `POST /live/snapshots/{id}/load`) and templates (`/templates`, `POST /live/templates`, `POST /live/templates/{id}/new`) |
+| Global | `GET/PUT /global`: one document holding the global settings, the global blocks, the global EQ, the MIDI mappings and the footswitch layouts. `GET/PUT/DELETE /midi/learn` |
+| Assets | `GET/POST /assets` (IRs and NAM/AIDA-X models: upload, list), `GET/DELETE /assets/{reference}`, `GET /assets/{reference}/content`, `PATCH /assets/{reference}/metadata`, `GET /assets/usage`, `POST /assets/mix` |
+| Utilities | `PUT /tuner`, `PUT /scope`, `PUT /rta` (counted per client, below), `POST /looper/{action}` (transport, undo), `GET /looper/export` |
 | Stream | `GET /ws`: binary telemetry channels (meters, tuner, RTA, scope, CPU) plus JSON events (`paramChanged`, `sceneChanged`, `presetLoaded`, `xrun`), with subscriptions per channel |
 
 > **As built (Phase 3):** the domain lives in the Server ([ADR-0004](adr/0004-state-ownership.md)). Some routes differ from the sketch above: `PUT /live/blocks/{id}/position` moves a block, `DELETE /live/cables?from=&to=` removes a cable, and parameters are `PATCH /live/blocks/{id}/params?channel=B` with a `{ paramId: value }` body. `/ws` sends JSON text, starting with `{"type":"connected"}`. A client waits for it before reading `GET /live`. The tuner, scope and RTA (`PUT /tuner`, `/scope`, `/rta`) are rig-wide but counted per client: an editor sends its own `?client=` id on those requests and on `/ws`, each runs while any client has it on, and what a client left on is released when its last socket closes (it turns it on again after a reconnect). The committed `engine/src/Cathode.Server/openapi.json` is the source of truth.
