@@ -32,7 +32,7 @@ public sealed class OutputBus : IDisposable {
     public OutputBus(IReadOnlyList<int>? pairs = null, IReadOnlyList<int>? di = null) {
         this.pairs = new int[NodeTypes.OutputCount];
         for (var k = 0; k < this.pairs.Length; k++) {
-            this.pairs[k] = pairs is null ? k == 0 ? 0 : -1 : k < pairs.Count ? pairs[k] : -1;
+            this.pairs[k] = FirstChannel(pairs, k);
         }
 
         for (var k = 1; k < NodeTypes.OutputCount; k++) {
@@ -47,6 +47,17 @@ public sealed class OutputBus : IDisposable {
     public int[] DiChannels { get; }
 
     public bool HasDi => DiChannels.Length > 0;
+
+    /// <summary>
+    ///     Output <paramref name="output" />'s first channel: the listed one, else 0 for Output 1 and none for others.
+    /// </summary>
+    static int FirstChannel(IReadOnlyList<int>? pairs, int output) {
+        if (pairs is null) {
+            return output == 0 ? 0 : -1;
+        }
+
+        return output < pairs.Count ? pairs[output] : -1;
+    }
 
     /// <summary>
     ///     Parses the audio settings' 1-based lists: <paramref name="outputs" /> gives the first channel of Outputs 1-4

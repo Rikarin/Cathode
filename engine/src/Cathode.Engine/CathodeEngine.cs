@@ -301,37 +301,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
 
         var pending = Interlocked.Exchange(ref this.pending, null);
         if (pending is not null) {
-            var previous = current;
-            Volatile.Write(ref current, pending);
-            // A grid loop moves on to the next preset when that has a Looper block too, and keeps playing; otherwise it
-            // belongs to its preset and stops (fading out in the spillover). A preset that brings its own looper stops
-            // the rig's, which no longer gets the transport.
-            var handedOver = previous?.LooperBlock is { } outgoing
-                && outgoing.Looper is { State: not LooperState.Empty }
-                && pending.LooperBlock is { } incoming
-                && incoming.TakeLoop(outgoing);
-            if (!handedOver) {
-                previous?.Looper?.Apply(LooperAction.Stop);
-            }
-
-            if (pending.Looper is not null) {
-                looper?.Apply(LooperAction.Stop);
-            }
-
-            if (previous is not null) {
-                previous.Inputs?.FadeOut(); // like the grid input below, the hardware inputs fade out of the old graph
-                // The old graph spills over under the new one. A graph still spilling from an earlier swap fades out
-                // over one swap fade rather than stopping dead; only a third change inside that fade retires it at
-                // once. With spillover off the old graph only fades out over the swap, a clean cut without tails.
-                if (tail.Graph is not null) {
-                    Retire(Interlocked.Exchange(ref evicted.Graph, null));
-                    (tail, evicted) = (evicted, tail);
-                    evicted.Cut = true;
-                }
-
-                tail.Start(previous, Rig.GetTarget(spilloverIndex) < 0.5f);
-                swapGain = 0f;
-            }
+            SwapIn(pending);
         }
 
         if (inputTapEnabled) {
@@ -357,98 +327,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
             var maxBlock = Spec.MaxBlockSize;
             for (var offset = 0; offset < io.Frames; offset += maxBlock) {
                 var length = Math.Min(maxBlock, io.Frames - offset);
-                var slice = Gained(io.Slice(offset, length));
-                HardwareLoop.Offset = offset;
-                Inputs.Offset = offset;
-                modulation.Advance(slice.InputLeft, sampleTime);
-                var context = new BlockContext(
-                    Spec.SampleRate,
-                    modulation.Tempo,
-                    sampleTime,
-                    HeldNotes,
-                    Rig.GetTarget(effectsMixIndex),
-                    Rig.GetTarget(gateOffsetIndex),
-                    Rig.GetTarget(cabsOffIndex) >= 0.5f,
-                    Rig.GetTarget(calibrationIndex)
-                );
-                FindActiveOutputs(graph, bus);
-                graphOutputs.Clear(length);
-                graph.ApplyModifiers(modulation, length);
-                if (offset == 0) {
-                    graph.ClearPeaks();
-                }
-
-                graph.Process(slice, context, graphOutputs);
-                if (graph.Analyzer is { } analyzer) {
-                    var tapped = analyzer.Take();
-                    if (!tapped.IsEmpty && Volatile.Read(ref telemetry) is { } analysis) {
-                        analysis.WriteAnalyzer(tapped);
-                    }
-                }
-
-                if (swapGain < 1f) {
-                    var from = swapGain;
-                    swapGain = Ramp(slice.OutputLeft, slice.OutputRight, from, 1f);
-                    for (var k = 1; k < Outputs; k++) {
-                        if (active[k]) {
-                            Ramp(graphOutputs.Left(k, length), graphOutputs.Right(k, length), from, 1f);
-                        }
-                    }
-                }
-
-                if (evicted.Graph is not null) {
-                    Spill(evicted, slice, context);
-                }
-
-                if (tail.Graph is not null) {
-                    Spill(tail, slice, context);
-                }
-
-                var level = levelGain;
-                levelGain = RampTo(slice.OutputLeft, slice.OutputRight, level, modulation.LevelGain);
-                for (var k = 1; k < Outputs; k++) {
-                    if (active[k]) {
-                        RampTo(graphOutputs.Left(k, length), graphOutputs.Right(k, length), level, levelGain);
-                    }
-                }
-
-                looper?.Process(slice.OutputLeft, slice.OutputRight);
-                if (active[1] && copyToSecond) {
-                    slice.OutputLeft.CopyTo(graphOutputs.Left(1, length));
-                    slice.OutputRight.CopyTo(graphOutputs.Right(1, length));
-                }
-
-                FinishOutput(0, slice.OutputLeft, slice.OutputRight, context);
-                loudness.Process(slice.OutputLeft, slice.OutputRight);
-                if (Rig.Current(metronomeIndex) >= 0.5f) {
-                    var click = MathF.Pow(10f, Rig.GetTarget(metroLevelIndex) / 20f);
-                    metronome.Process(slice.OutputLeft, slice.OutputRight, sampleTime, modulation.Tempo, click);
-                }
-
-                // Mute: every output fades out (and back in) as a graph swap does, metronome and looper included.
-                var muteFrom = muteGain;
-                var muteTo = Rig.GetTarget(muteIndex) >= 0.5f ? 0f : 1f;
-                var muting = muteFrom != 1f || muteTo != 1f;
-                if (muting) {
-                    muteGain = Ramp(slice.OutputLeft, slice.OutputRight, muteFrom, muteTo);
-                }
-
-                for (var k = 1; k < Outputs; k++) {
-                    if (active[k]) {
-                        var auxLeft = graphOutputs.Left(k, length);
-                        var auxRight = graphOutputs.Right(k, length);
-                        FinishOutput(k, auxLeft, auxRight, context);
-                        if (muting) {
-                            Ramp(auxLeft, auxRight, muteFrom, muteTo);
-                        }
-
-                        auxLeft.CopyTo(bus!.Left(k).Slice(offset, length));
-                        auxRight.CopyTo(bus.Right(k).Slice(offset, length));
-                        outputPeak[k] = Math.Max(outputPeak[k], Math.Max(Peak(auxLeft), Peak(auxRight)));
-                    }
-                }
-
-                Volatile.Write(ref sampleTime, sampleTime + length);
+                RenderSubBlock(graph, Gained(io.Slice(offset, length)), bus, offset, length);
             }
         }
 
@@ -464,21 +343,194 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         PublishOutputPeaks();
         var percent = Stats.Record(start, io.Frames, Spec.SampleRate);
         if (Volatile.Read(ref telemetry) is { } region) {
-            graph?.CaptureMeters();
-            region.WriteScope(io.OutputLeft);
-            region.RecordCallback(
-                io.Frames,
-                percent,
-                input,
-                left,
-                right,
-                graph is null ? default : graph.Meters,
-                graph is null ? default : graph.ModifierValues,
-                graph?.Generation ?? -1,
-                loudness.Momentary,
-                loudness.ShortTerm
-            );
+            WriteTelemetry(region, graph, io, percent, input, left, right);
         }
+    }
+
+    /// <summary>Audio thread: the published graph takes over from the running one, which spills over.</summary>
+    void SwapIn(CompiledGraph pending) {
+        var previous = current;
+        Volatile.Write(ref current, pending);
+        // A grid loop moves on to the next preset when that has a Looper block too, and keeps playing; otherwise it
+        // belongs to its preset and stops (fading out in the spillover). A preset that brings its own looper stops
+        // the rig's, which no longer gets the transport.
+        var handedOver = previous?.LooperBlock is { } outgoing
+            && outgoing.Looper is { State: not LooperState.Empty }
+            && pending.LooperBlock is { } incoming
+            && incoming.TakeLoop(outgoing);
+        if (!handedOver) {
+            previous?.Looper?.Apply(LooperAction.Stop);
+        }
+
+        if (pending.Looper is not null) {
+            looper?.Apply(LooperAction.Stop);
+        }
+
+        if (previous is not null) {
+            SpillOver(previous);
+        }
+    }
+
+    /// <summary>
+    ///     The old graph spills over under the new one. A graph still spilling from an earlier swap fades out over one
+    ///     swap fade rather than stopping dead; only a third change inside that fade retires it at once. With spillover
+    ///     off the old graph only fades out over the swap, a clean cut without tails.
+    /// </summary>
+    void SpillOver(CompiledGraph previous) {
+        previous.Inputs?.FadeOut(); // like the grid input, the hardware inputs fade out of the old graph
+        if (tail.Graph is not null) {
+            Retire(Interlocked.Exchange(ref evicted.Graph, null));
+            (tail, evicted) = (evicted, tail);
+            evicted.Cut = true;
+        }
+
+        tail.Start(previous, Rig.GetTarget(spilloverIndex) < 0.5f);
+        swapGain = 0f;
+    }
+
+    /// <summary>
+    ///     One sub-block (at most <see cref="ProcessSpec.MaxBlockSize" /> frames at <paramref name="offset" />): the
+    ///     graph, the spilling graphs, then the rig's level, looper, outputs and metronome.
+    /// </summary>
+    void RenderSubBlock(CompiledGraph graph, in AudioIO slice, OutputBus? bus, int offset, int length) {
+        HardwareLoop.Offset = offset;
+        Inputs.Offset = offset;
+        modulation.Advance(slice.InputLeft, sampleTime);
+        var context = new BlockContext(
+            Spec.SampleRate,
+            modulation.Tempo,
+            sampleTime,
+            HeldNotes,
+            Rig.GetTarget(effectsMixIndex),
+            Rig.GetTarget(gateOffsetIndex),
+            Rig.GetTarget(cabsOffIndex) >= 0.5f,
+            Rig.GetTarget(calibrationIndex)
+        );
+        FindActiveOutputs(graph, bus);
+        graphOutputs.Clear(length);
+        graph.ApplyModifiers(modulation, length);
+        if (offset == 0) {
+            graph.ClearPeaks();
+        }
+
+        graph.Process(slice, context, graphOutputs);
+        if (graph.Analyzer is { } analyzer) {
+            WriteAnalyzer(analyzer);
+        }
+
+        FadeInGraph(slice, length);
+        if (evicted.Graph is not null) {
+            Spill(evicted, slice, context);
+        }
+
+        if (tail.Graph is not null) {
+            Spill(tail, slice, context);
+        }
+
+        ApplyLevel(slice, length);
+        looper?.Process(slice.OutputLeft, slice.OutputRight);
+        if (active[1] && copyToSecond) {
+            slice.OutputLeft.CopyTo(graphOutputs.Left(1, length));
+            slice.OutputRight.CopyTo(graphOutputs.Right(1, length));
+        }
+
+        FinishOutput(0, slice.OutputLeft, slice.OutputRight, context);
+        loudness.Process(slice.OutputLeft, slice.OutputRight);
+        if (Rig.Current(metronomeIndex) >= 0.5f) {
+            var click = MathF.Pow(10f, Rig.GetTarget(metroLevelIndex) / 20f);
+            metronome.Process(slice.OutputLeft, slice.OutputRight, sampleTime, modulation.Tempo, click);
+        }
+
+        MuteAndFinishOutputs(slice, bus, offset, length, context);
+        Volatile.Write(ref sampleTime, sampleTime + length);
+    }
+
+    void WriteAnalyzer(AnalyzerTap analyzer) {
+        var tapped = analyzer.Take();
+        if (!tapped.IsEmpty && Volatile.Read(ref telemetry) is { } analysis) {
+            analysis.WriteAnalyzer(tapped);
+        }
+    }
+
+    /// <summary>After a swap, the new graph's outputs fade in.</summary>
+    void FadeInGraph(in AudioIO slice, int length) {
+        if (swapGain >= 1f) {
+            return;
+        }
+
+        var from = swapGain;
+        swapGain = Ramp(slice.OutputLeft, slice.OutputRight, from, 1f);
+        for (var k = 1; k < Outputs; k++) {
+            if (active[k]) {
+                Ramp(graphOutputs.Left(k, length), graphOutputs.Right(k, length), from, 1f);
+            }
+        }
+    }
+
+    /// <summary>The scene level, ramped, on every output.</summary>
+    void ApplyLevel(in AudioIO slice, int length) {
+        var level = levelGain;
+        levelGain = RampTo(slice.OutputLeft, slice.OutputRight, level, modulation.LevelGain);
+        for (var k = 1; k < Outputs; k++) {
+            if (active[k]) {
+                RampTo(graphOutputs.Left(k, length), graphOutputs.Right(k, length), level, levelGain);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Mute: every output fades out (and back in) as a graph swap does, metronome and looper included. Outputs 2-4
+    ///     are finished and copied to the device.
+    /// </summary>
+    void MuteAndFinishOutputs(in AudioIO slice, OutputBus? bus, int offset, int length, in BlockContext context) {
+        var muteFrom = muteGain;
+        var muteTo = Rig.GetTarget(muteIndex) >= 0.5f ? 0f : 1f;
+        var muting = muteFrom != 1f || muteTo != 1f;
+        if (muting) {
+            muteGain = Ramp(slice.OutputLeft, slice.OutputRight, muteFrom, muteTo);
+        }
+
+        for (var k = 1; k < Outputs; k++) {
+            if (!active[k]) {
+                continue;
+            }
+
+            var auxLeft = graphOutputs.Left(k, length);
+            var auxRight = graphOutputs.Right(k, length);
+            FinishOutput(k, auxLeft, auxRight, context);
+            if (muting) {
+                Ramp(auxLeft, auxRight, muteFrom, muteTo);
+            }
+
+            auxLeft.CopyTo(bus!.Left(k).Slice(offset, length));
+            auxRight.CopyTo(bus.Right(k).Slice(offset, length));
+            outputPeak[k] = Math.Max(outputPeak[k], Math.Max(Peak(auxLeft), Peak(auxRight)));
+        }
+    }
+
+    void WriteTelemetry(
+        TelemetryRegion region,
+        CompiledGraph? graph,
+        in AudioIO io,
+        double percent,
+        float input,
+        float left,
+        float right
+    ) {
+        graph?.CaptureMeters();
+        region.WriteScope(io.OutputLeft);
+        region.RecordCallback(
+            io.Frames,
+            percent,
+            input,
+            left,
+            right,
+            graph is null ? default : graph.Meters,
+            graph is null ? default : graph.ModifierValues,
+            graph?.Generation ?? -1,
+            loudness.Momentary,
+            loudness.ShortTerm
+        );
     }
 
     /// <summary>
@@ -597,34 +649,49 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         var outputs = spill.Outputs;
         outputs.Clear(length);
         graph.Process(new(inLeft, inRight, outLeft, outRight), context, outputs);
-        var cutFrom = spill.Output;
         if (spill.Cut) {
-            spill.Output = Ramp(outLeft, outRight, spill.Output, 0f);
-            for (var k = 1; k < Outputs; k++) {
-                if (active[k] && graph.HasOutput(k)) {
-                    Ramp(outputs.Left(k, length), outputs.Right(k, length), cutFrom, 0f);
-                }
-            }
+            CutSpill(spill, graph, outLeft, outRight, length);
         }
 
+        var peak = AddTail(io, outLeft, outRight);
+        AddAuxTails(graph, outputs, length);
+        spill.Age += length;
+        spill.QuietFor = spill.Input <= 0f && peak < TailSilence ? spill.QuietFor + length : 0;
+        if (spill.QuietFor >= tailQuiet || spill.Age >= tailCap || (spill.Cut && spill.Output <= 0f)) {
+            Retire(Interlocked.Exchange(ref spill.Graph, null));
+        }
+    }
+
+    /// <summary>A spilling graph that is being cut fades out on every output it feeds.</summary>
+    void CutSpill(Spillover spill, CompiledGraph graph, Span<float> outLeft, Span<float> outRight, int length) {
+        var cutFrom = spill.Output;
+        spill.Output = Ramp(outLeft, outRight, spill.Output, 0f);
+        for (var k = 1; k < Outputs; k++) {
+            if (active[k] && graph.HasOutput(k)) {
+                Ramp(spill.Outputs.Left(k, length), spill.Outputs.Right(k, length), cutFrom, 0f);
+            }
+        }
+    }
+
+    /// <summary>Adds a spilling graph's Output 1 to the main output; returns its peak.</summary>
+    static float AddTail(in AudioIO io, ReadOnlySpan<float> outLeft, ReadOnlySpan<float> outRight) {
         var peak = 0f;
-        for (var i = 0; i < length; i++) {
+        for (var i = 0; i < outLeft.Length; i++) {
             io.OutputLeft[i] += outLeft[i];
             io.OutputRight[i] += outRight[i];
             peak = Math.Max(peak, Math.Max(Math.Abs(outLeft[i]), Math.Abs(outRight[i])));
         }
 
+        return peak;
+    }
+
+    /// <summary>Adds a spilling graph's Outputs 2-4 to the running graph's.</summary>
+    void AddAuxTails(CompiledGraph graph, GraphOutputs outputs, int length) {
         for (var k = 1; k < Outputs; k++) {
             if (active[k] && graph.HasOutput(k)) {
                 Add(outputs.Left(k, length), graphOutputs.Left(k, length));
                 Add(outputs.Right(k, length), graphOutputs.Right(k, length));
             }
-        }
-
-        spill.Age += length;
-        spill.QuietFor = spill.Input <= 0f && peak < TailSilence ? spill.QuietFor + length : 0;
-        if (spill.QuietFor >= tailQuiet || spill.Age >= tailCap || (spill.Cut && spill.Output <= 0f)) {
-            Retire(Interlocked.Exchange(ref spill.Graph, null));
         }
     }
 
