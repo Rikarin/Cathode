@@ -52,7 +52,7 @@ public static class Marshall1987X {
             1.5e3,
             0,
             new(1e6, PotTaper.Linear),
-            new(Math.Sqrt(2), 100e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 80),
+            new(Math.Sqrt(2), 100e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 80) { PresenceIsShunt = true },
             true,
             new(3.4e3),
             SpeakerDesign.Closed4x12,

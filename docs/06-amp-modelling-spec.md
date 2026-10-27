@@ -313,6 +313,11 @@ Hobbyist circuit redraws (LiveSPICE `.schx`, readable as XML, not factory docume
   inverter's 1M grid resistor, as built (the V2B stage's load has no knob).
 - 2 × 5881, fixed bias −48 V; 220k grid leaks, 470Ω screens [src]. GZ34, 325-0-325 V; B+ 442 V unloaded, 411 V loaded; 4.7k to the preamp [src].
 - NFB 27k from the 2Ω tap; presence 5k-L, cap value not found [src]. OT about 4k : 2Ω [src].
+- Presence wiring (as built, `FeedbackDesign.PresenceIsShunt`): the 5k pot is the tail's shunt, track from the feedback
+  node to ground, the cap (0.1 µF assumed) from its wiper to ground: Z = (1 − p) R + p R / (1 + s p R C), flat at 0 and
+  shorting the whole shunt at 10 at high frequencies (the generic wiring, a pot and cap in series across a fixed shunt,
+  kept half the shunt's treble lift at presence 0). The same wiring, drawn so on their sheets, on the Tweed Twin 5F8-A,
+  JTM45, Bluesbreaker 1962, 1959SLP, 1987X, 1959T, Express and BE-100.
 
 **Tweed Deluxe 5E3** — https://robrobinette.com/How_The_5E3_Deluxe_Works.htm, https://ampbooks.com/mobile/classic-circuits/fender-deluxe-5e3/
 - V1 12AY7: 100k, shared 820Ω‖25µ; 1M volumes [src]. V2A 12AX7: 100k, 1.5k‖25µ [src]. Coupling 0.1 µ [src].

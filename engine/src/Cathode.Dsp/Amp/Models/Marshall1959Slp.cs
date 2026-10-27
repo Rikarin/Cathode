@@ -16,8 +16,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Against the 1968–70 Super Lead (<see cref="SuperLead100" />, drawing 70-6-11) the reissue drawing has 820 Ω
 ///         (not 2.7k) on the bright half's cathode, 3n3 (not 2n2) bright coupling, 4n7 across the volume, 470 pF on the
 ///         stack and the mixer, 1k5 stoppers and 47k of feedback into the presence pot alone (no 4k7 shunt): the pot is
-///         drawn from the tail's foot to ground with 100 nF from its top to its wiper; here it is the library's shunt of
-///         the pot's 5k with the pot and cap across it, the same ends (as the JTM45). The effects card on W3/W4 is taken
+///         drawn from the tail's foot to ground with 100 nF from its top to its wiper, as built
+///         (<see cref="FeedbackDesign.PresenceIsShunt" />: the cap across the part of the track the knob turns in, as
+///         the JTM45's). The effects card on W3/W4 is taken
 ///         as bypassed: the treble wiper drives the inverter's 22 nF and 1M. The 47 pF between the inverter's plates is
 ///         left out (a pole near 50 kHz), as on the other Marshalls, and so is the inverter's grid-current network
 ///         (<see cref="InverterInputDesign" />), for the CPU budget, as on <see cref="SuperLead100" />.
@@ -56,7 +57,7 @@ public static class Marshall1959Slp {
             1.5e3,
             0,
             new(1e6, PotTaper.Linear),
-            new(Math.Sqrt(2), 47e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 80),
+            new(Math.Sqrt(2), 47e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 80) { PresenceIsShunt = true },
             true,
             new(1.7e3),
             SpeakerDesign.Closed4x12,

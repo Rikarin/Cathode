@@ -40,14 +40,14 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | Twin Reverb AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Twin Reverb | GPL: Twin Normal Bright, Twin Vibrato Bright | Settings stated; Normal without Bright | 2x12 open, JBL D120 / Jensen C12N |
 | Super Reverb AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Super Reverb | T3K: '64 Super Reverb, 5 settings | More volume steps | 4x10 open, Jensen P10R/P10Q |
 | Princeton Reverb AA1164 | ✅ Done | Princeton Reverb | GPL: Princeton clean (year unknown); T3K: '68 Custom Princeton | Stock AA1164, volume sweep | 1x10 open, Jensen P10R |
-| Bassman 5F6-A | ✅ Done (the stack's treble wiper straight into the inverter: no master) | Bassman 5F6-A, Jumped | — | Any 5F6-A / reissue, jumpered and single channel | 4x10 open, Jensen P10Q |
+| Bassman 5F6-A | ✅ Done (the stack's treble wiper straight into the inverter: no master; presence pot as the tail's shunt) | Bassman 5F6-A, Jumped | — | Any 5F6-A / reissue, jumpered and single channel | 4x10 open, Jensen P10Q |
 | Tweed Deluxe 5E3 | ✅ Done (6V6s on the drawing's shared 250 Ω cathode resistor) | Tweed Deluxe 5E3, Jumped | T3K: 5E3 kit clone | Volume sweep, both inputs | 1x12 open, Jensen P12R/P12Q |
 | Hot Rod Deluxe (III, Fender drawing 0079604000 rev B) | ✅ Done | Hot Rod Deluxe | — | Any direct-out capture (Drive and Normal, More Drive) | 1x12 open, Celestion G12P-80 |
 | Champ 5F1 | ✅ Done | Champ 5F1 | — | Volume sweep, direct out | 1x8 open |
 | Vibroverb AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Vibroverb AB763 | — | Direct out, both channels | 1x15 open |
 | Vibrolux Reverb AA964 (there is no AB763 Vibrolux Reverb) | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Vibrolux Reverb AA964 | — | Direct out, both channels | 2x10 open |
 | Bandmaster AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Bandmaster AB763 | — | Direct out | 2x12 closed |
-| Tweed Twin 5F8-A / High Power Tweed Twin | ✅ Done | Tweed Twin 5F8-A, Jumped | — | Bright, Normal, jumped | 2x12 open |
+| Tweed Twin 5F8-A / High Power Tweed Twin | ✅ Done (presence pot as the tail's shunt) | Tweed Twin 5F8-A, Jumped | — | Bright, Normal, jumped | 2x12 open |
 
 ## Marshall and British
 
@@ -55,11 +55,11 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 |---|---|---|---|---|---|
 | Plexi 1959 Super Lead (50 W, generic) | ✅ Done (the Marshall inverter's 470 Ω bias; a switched 470 pF bright cap; no depth) | Plexi | T3K: 1959 Plexi | Jumpered and single-input captures, volume sweep | 4x12 closed, Greenback G12M |
 | Plexi 100 W / jumpered | ✅ Done | Plexi 100W | T3K: 1959 Plexi | | 4x12 closed, Greenback |
-| JTM45 | ✅ Done | JTM45 | — | Any JTM45 / reissue | 4x12 or 2x12 (Bluesbreaker), Greenback / Alnico |
+| JTM45 | ✅ Done (presence pot as the tail's shunt) | JTM45 | — | Any JTM45 / reissue | 4x12 or 2x12 (Bluesbreaker), Greenback / Alnico |
 | JCM800 2203 | ✅ Done | JCM800 2203 | T3K: 2203 (modified) | Stock 2203, gain sweep | 4x12 closed, G12T-75 / Vintage 30 |
 | JCM800 2204 | ✅ Done | JCM800 2204 | — | Stock 2204 | 4x12 closed, G12T-75 |
 | Silver Jubilee 2555 | ✅ Done (factory drawing 2555 STD iss 3; relay, shunt feedback and both clippers modelled) | Silver Jubilee | — | Rhythm clip and lead (Boost) modes | 4x12 closed, G12T-75 / Vintage 30 |
-| Friedman BE-100 | ✅ Done (rev 1.5 "BE-100 v2" trace, 2014; two-way Voice as traced, later amps have three) | BE-100, BE-100 HBE | — | BE and HBE channels, Fat/C45/Sat settings | 4x12 closed, Vintage 30 / Greenback |
+| Friedman BE-100 | ✅ Done (rev 1.5 "BE-100 v2" trace, 2014; two-way Voice as traced, later amps have three; presence pot as the tail's shunt) | BE-100, BE-100 HBE | — | BE and HBE channels, Fat/C45/Sat settings | 4x12 closed, Vintage 30 / Greenback |
 | JCM900 4100 / 4502 | ✅ Done (preamp: vector factory drawing JMP52-02 iss 11, el34world `Marshall_jcm900_dual_reverb_jmp52_02_preamp_iss11.pdf`; power amps: 4100-60-02 iss 11 (1k screens) and the 50 W CDD112 iss 10 for 2500–4502 (2k2 screens), el34world scans; both channels) | JCM900 4502, JCM900 4100 | GPL: JCM900 4502 channel A gain 4–10, channel B gain 8–20 (now on the JCM900 4502 type) | | 4x12 closed, G12T-75 / Vintage 30 |
 | Laney GH100L | ✅ Done | Laney GH100L | GPL: Laney GH100S ×3 | | 4x12 closed, G12H-100 |
 | Hiwatt DR103 | ✅ Done (Mark Huss's hiwatt.org redraws: mid-70s four-input preamp, 100 W output) | Hiwatt DR103 | — (T3K: DR103 1974, local only, not mapped) | Normal/Brilliant, jumpered | 4x12 closed, Fane |
@@ -71,7 +71,7 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | Marshall 18 W (1974X) | ✅ Done (PedalMonkey rev 5 drawing with voltages; the tremolo: V3B oscillating in the channel's netlist, Speed and Depth) | 18 W 1974X | — | Both channels, volume sweep | 2x10 / 1x12 open |
 | Marshall Major 1967 | ✅ Done (Unicord drawing 70-02-12, July 1970, DrTube `1967u.gif`; both channels, V2A and its tone stack inside the feedback loop via `LoopStageDesign`, cathodyne plus ECC82 push-pull driver via `CathodyneDriverDesign`, ultralinear KT88s; B+, idle, OT and UL tap guessed. No redistributable capture found: GuitarML ToneLibrary and pelennor2170/NAM_models have none) | Major 1967 | — | Any capture | 4x12 closed |
 | Marshall DSL / JCM2000 | ✅ Done, DSL100 both channels with Clean/Crunch and Lead 1/Lead 2, Tone Shift and Deep (DrTube JCM2-60-02 iss 9 main board and JCM2-61-00 iss 5 front panel, vector; the boards' wiring traced from the connector cross-references printed on both sheets, confirmed by JCM2-60-00 iss 1 of 1997; JCM2-68-02 was not needed) | DSL100 | GPL: pelennor "Tim R JCM2000 Clean / Crunch / L2 G6 / L2 G8" (DSL or TSL not stated; not added) | A DSL direct-out capture with stated settings | 4x12 closed |
-| Marshall Bluesbreaker 1962 | ✅ Done (reissue drawing "1962 STD" issues 3 and 4, DrTube `1962ri89.gif` and `1962ri93.gif`: both channels and the jumper; the tremolo channel with the tremolo at rest, its load modelled; the tremolo itself (a J174 FET on the Intensity wiper, its gate drive set by the RV2 preset, whose setting the drawing does not give) is not built) | Bluesbreaker 1962 | — | Any capture (no GPL one found) | 2x12 open |
+| Marshall Bluesbreaker 1962 | ✅ Done (reissue drawing "1962 STD" issues 3 and 4, DrTube `1962ri89.gif` and `1962ri93.gif`: both channels and the jumper; the tremolo channel with the tremolo at rest, its load modelled; the tremolo itself (a J174 FET on the Intensity wiper, its gate drive set by the RV2 preset, whose setting the drawing does not give) is not built; presence pot as the tail's shunt) | Bluesbreaker 1962 | — | Any capture (no GPL one found) | 2x12 open |
 | Hiwatt Custom 50 / DR504 | ✅ Done (the DR103's four-input preamp redraw with hiwatt.org's 50 W output and supply redraws; `DR504OL.gif` is a complete 1983 two-input DR504 with voltages, a later circuit with an extra gain stage, used only for the rails) | Hiwatt DR504 | — | Normal/Brilliant, jumpered | 4x12 closed, Fane |
 
 ## Vox, class A and boutique
@@ -90,7 +90,7 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | Matchless Chieftain | ✅ Done (factory drawing 1994 plus a measured trace) | Chieftain | — | Captures with settings | 2x12 open, G12H30 |
 | Divided by 13 | ⏸ Waiting (searched 2026-10: no schematic or trace for the JRT 9/15, CJ 11 or FTR 37) | — | — | Schematic | 1x12 / 2x12 |
 | Budda Superdrive | ⏸ Waiting (searched 2026-10: no schematic or trace) | — | — | Schematic | 2x12 |
-| Trainwreck Express | ✅ Done (redraw A1a of the schematicheaven collection, hearsay: medium confidence) | Express | — | Captures with settings; a measured trace | 2x12 / 4x12 |
+| Trainwreck Express | ✅ Done (redraw A1a of the schematicheaven collection, hearsay: medium confidence; presence pot as the tail's shunt) | Express | — | Captures with settings; a measured trace | 2x12 / 4x12 |
 | Supro (1960s) | ⏸ Waiting (1624T values read; needs a paraphase phase inverter in the library) | — | — | | 1x12 open |
 | Gibson GA-40 Les Paul | ⏸ Waiting (factory drawing read; needs a 5879 tube table and a paraphase inverter) | — | — | | 1x12 open |
 | Magnatone (Custom 280 / 15) | ⏸ Waiting (drawings read; the dry path runs through the varistor vibrato, and 6CZ5 curves are missing) | — | — | | 2x12 open |
@@ -261,9 +261,9 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 
 | Amp | Status | Cathode type | Axe models | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Marshall 1959SLP reissue | ✅ Done (factory drawing 1959-01-60-02 issue 2, DrTube) | 1959SLP | 1959SLP Jump / Normal / Treble | | 4x12 closed, Greenback |
-| Marshall 1987X reissue | ✅ Done (factory drawing 1987-01-60-02 iss 4, as drawn with the 33k slope; the "tone-stack mod" is not documented anywhere found) | 1987X | 1987X Jump / Normal / Treble | | 4x12 closed |
-| Marshall JMP 1959T Super Lead (Tremolo) | ✅ Done (Unicord drawing 70-11-11, July 1970, DrTube `1959tu.gif`; the tremolo at rest, its load on the normal volume modelled; the tremolo itself is not built: the switching transistor's type and its base network are illegible on the scan) | 1959T Tremolo | Brit Super | | 4x12 closed |
+| Marshall 1959SLP reissue | ✅ Done (factory drawing 1959-01-60-02 issue 2, DrTube; presence pot as the tail's shunt) | 1959SLP | 1959SLP Jump / Normal / Treble | | 4x12 closed, Greenback |
+| Marshall 1987X reissue | ✅ Done (factory drawing 1987-01-60-02 iss 4, as drawn with the 33k slope; the "tone-stack mod" is not documented anywhere found; presence pot as the tail's shunt) | 1987X | 1987X Jump / Normal / Treble | | 4x12 closed |
+| Marshall JMP 1959T Super Lead (Tremolo) | ✅ Done (Unicord drawing 70-11-11, July 1970, DrTube `1959tu.gif`; the tremolo at rest, its load on the normal volume modelled; the tremolo itself is not built: the switching transistor's type and its base network are illegible on the scan; presence pot as the tail's shunt) | 1959T Tremolo | Brit Super | | 4x12 closed |
 | Marshall JMP-1 preamp | ✅ Done, Clean I/II and OD I/II with Bass Shift and the active four-band tone circuit, into the JCM900 4100's documented 100 W EL34 power amp (DrTube `jmp1-61-04.pdf`, 6 sheets, iss 10, vector; the TC9176/TC9170 digital pots as 10k pots at the knob position, their value not drawn; the preamp on its own supply, so the power amp's sag never reaches its valves) | JMP-1 | Brit Pre, JMPRE-1 OD1 / OD2 (+ bass) | A JMP-1 capture with stated settings | 4x12 closed |
 | Marshall AFD100 (Slash) | ✅ Done, both modes (Switch 1 AFD, off = #34) and the Low input, from the main-board drawing AFD100-60-02 iss 1 (10-6-10, vector, `marshall_afd100_main_sch.pdf`: the whole preamp, inverter, four 6550 and supply). The modes are relays RL1/RL3 (#34 at rest: V6B in the chain; AFD: V6B skipped, V6A's cathode bypassed); which relay state the AFD LED means is inferred. B+, idle current, OT and feedback tap guessed (2203 values); the Power control (screen regulator) at full. Over the high-gain CPU budget by choice (accuracy first): #34 18.8 / 38.6 %, AFD 22.2 / 52.0 %, the AFD chain up to the send solved as one five-triode circuit | AFD100 | Brit AFS100 1 / 2 | Any capture with the mode stated | 4x12 closed |
 | Marshall JVM410HJS (Satriani) | ⏸ Waiting (DrTube jvm410hjs-60-02 iss 2, -61-02 iss 1, -62-02 iss 1, vector with text, fetched and read in part: the same channel networks and three-path cascade as the JVM410H but five main-board relays (RL101, RL103 B/C, RL104, RL105) where the JVM410H has three, an input buffer and the THAT4301 gate in the path, and mid-shift relays on the stacks. Which relays each of the nine gain structures sets is firmware; unlike the JVM410H's, the HJS handbook describes the modes' voicings ("Inspired by a Master Volume, JMP", "A lot of Gain") but not their gain stages, so they cannot be deduced) | — | JS410 Crunch / Lead | A measured relay table, or captures per mode | 4x12 closed, Vintage 30 |

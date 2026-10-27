@@ -22,8 +22,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         drawing (a guess).
 ///     </para>
 ///     <para>
-///         The presence pot is drawn as the tail's shunt to ground with 0.1 µF from its wiper: here the library's shunt of
-///         4k7 with the pot and cap across it. The inverter's 47 pF and its grid-current network are left out (as on the
+///         The presence pot is drawn as the tail's shunt to ground with 0.1 µF from its wiper, and built so
+///         (<see cref="FeedbackDesign.PresenceIsShunt" />). The inverter's 47 pF and its grid-current network are left out (as on the
 ///         JTM45, <see cref="JTM45" />). Not on the drawing (guesses): the rails (B+ 440 V, 330 V at the inverter, 300 V
 ///         at
 ///         V2 and 280 V at V1, as the JTM45 model), the 5881s' 35 mA and the output transformer's primary (784-389:
@@ -54,7 +54,7 @@ public static class Bluesbreaker {
             0,
             0,
             new(1e6, PotTaper.Linear),
-            new(Math.Sqrt(2), 27e3, 4.7e3, new(4.7e3, PotTaper.Linear), 0.1e-6, 80),
+            new(Math.Sqrt(2), 27e3, 4.7e3, new(4.7e3, PotTaper.Linear), 0.1e-6, 80) { PresenceIsShunt = true },
             true,
             new(3.4e3),
             SpeakerDesign.OpenBack2x12,

@@ -1634,7 +1634,8 @@ struct PushPullStage : INonlinearDevice {
     /// <summary>
     ///     The feedback filter: presence (0..1) shorting the shunt resistor at high frequencies, depth (0..1) cutting the
     ///     feedback below the design's depth frequency to a tenth, and <paramref name="amount" /> times the stock
-    ///     feedback; the presence and depth frequencies as multiples of stock.
+    ///     feedback; the presence and depth frequencies as multiples of stock. Either presence wiring is first order:
+    ///     β(s) = β (1 + s τ₁) / (1 + s τ₂), from Z / (R_f + Z) with the shunt's impedance Z.
     /// </summary>
     public void SetFeedback(
         FeedbackDesign design,
@@ -1646,11 +1647,7 @@ struct PushPullStage : INonlinearDevice {
         double presenceFrequency = 1,
         double depthFrequency = 1
     ) {
-        var rp = design.Presence.Ohms * (1 - design.Presence.Fraction(presence));
-        var c = design.PresenceCap / presenceFrequency;
-        var (rf, rx) = (design.FeedbackResistor, design.ShuntResistor);
-        var tau1 = rp * c;
-        var tau2 = c * (rf * (rx + rp) + rx * rp) / (rf + rx);
+        var (tau1, tau2) = design.PresenceTimes(presence, presenceFrequency);
         this.presence.Design(design.Beta, design.Beta * tau1, 1, tau2, rate);
         var omega = 2 * Math.PI * (design.DepthFrequency * depthFrequency);
         var floor = design.LowFeedback * (1 - 0.9 * Math.Clamp(depth, 0, 1));

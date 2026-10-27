@@ -300,6 +300,39 @@ public partial class AmpStageTests {
         Assert.True(inverter.OutputImpedance.Zaa > 5 * inverter.OutputImpedance.Zbb);
     }
 
+    /// <summary>
+    ///     The 5F6-A's presence (the 5k pot is the tail's shunt, the 0.1 µF on its wiper): the feedback filter's first-order
+    ///     β(s) equals Z / (R_f + Z) for Z = (1 - p) R + p R ∥ C at every setting; flat at 0 (the generic wiring, a pot and cap
+    ///     across a fixed 5k, cut 1 kHz's feedback by about 5 dB there), the two wirings equal at 10.
+    /// </summary>
+    [Fact]
+    public void Presence_pot_as_the_tail_shunt_matches_its_circuit() {
+        var design = Bassman.Design.Power.Feedback;
+        Assert.True(design.PresenceIsShunt);
+        var (rf, r, c) = (design.FeedbackResistor, design.ShuntResistor, design.PresenceCap);
+        foreach (var presence in new[] { 0.0, 0.25, 0.5, 0.75, 1.0 }) {
+            var p = design.Presence.Fraction(presence);
+            var (tau1, tau2) = design.PresenceTimes(presence);
+            foreach (var frequency in new[] { 100.0, 1_000, 3_000, 10_000 }) {
+                var s = new System.Numerics.Complex(0, 2 * Math.PI * frequency);
+                var z = (1 - p) * r + p * r / (1 + s * p * r * c);
+                var circuit = z / (rf + z);
+                var model = design.Beta * (1 + s * tau1) / (1 + s * tau2);
+                Assert.True(
+                    (circuit - model).Magnitude < 1e-9 * circuit.Magnitude,
+                    $"presence {presence}, {frequency} Hz: {model.Magnitude:0.0000} against {circuit.Magnitude:0.0000}"
+                );
+            }
+        }
+
+        Assert.Equal((0.0, 0.0), design.PresenceTimes(0));
+        var generic = design with { PresenceIsShunt = false };
+        var (shunt1, shunt2) = design.PresenceTimes(1);
+        var (generic1, generic2) = generic.PresenceTimes(1);
+        Assert.Equal(generic1, shunt1, 1e-15);
+        Assert.Equal(generic2, shunt2, 1e-15);
+    }
+
     [Theory]
     [MemberData(nameof(PowerVariants))]
     public void Power_amp_variants_match_the_reference_in_the_time_domain(string name) {

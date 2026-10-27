@@ -12,9 +12,8 @@ namespace Cathode.Dsp.Amp.Models;
 /// </summary>
 /// <remarks>
 ///     Not on the drawing (unverified): the KT66 (historical), B+ 440 V and the preamp nodes (330 V, 300 V), the output
-///     transformer's 3.4k. The presence is a 5k pot from the tail's foot to ground with 0.1 µF on its wiper; here it is
-///     the
-///     usual 5k shunt with the pot and cap across it, which has the same ends. The 47 pF between the inverter's plates is
+///     transformer's 3.4k. The presence is a 5k pot from the tail's foot to ground with 0.1 µF on its wiper, as drawn
+///     (<see cref="FeedbackDesign.PresenceIsShunt" />). The 47 pF between the inverter's plates is
 ///     left out (a pole near 50 kHz). The inverter's input is its 1M grid leak on the stack, without the grid-current
 ///     network (<see cref="InverterInputDesign" />): with it and the 0.1 µF output caps, the power amp's Newton solve
 ///     failed to converge on a few samples a second under full-scale square-wave drive at full gain, hot bias and full
@@ -50,7 +49,7 @@ public static class JTM45 {
             0,
             0,
             new(1e6, PotTaper.Linear),
-            new(Math.Sqrt(2), 27e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 80),
+            new(Math.Sqrt(2), 27e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 80) { PresenceIsShunt = true },
             true,
             new(3.4e3),
             SpeakerDesign.Closed4x12,

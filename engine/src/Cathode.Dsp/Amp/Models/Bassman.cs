@@ -10,7 +10,7 @@ namespace Cathode.Dsp.Amp.Models;
 ///     mid 25k), whose treble wiper drives the inverter's 1M grid resistor directly (the amp has no master), a 12AX7
 ///     long-tail pair (82k/100k, 470 Ω, 10k tail over the 5k presence pot), two 5881 (6L6 curves) in fixed bias at
 ///     430 V on a GZ34, a 4k : 2 Ω transformer and 27k feedback
-///     from the 2 Ω tap into the presence pot. Panel: Bright and Normal volumes, Bass, Middle, Treble, Presence;
+///     from the 2 Ω tap into the presence pot, which is the tail's shunt with the 0.1 µF on its wiper. Panel: Bright and Normal volumes, Bass, Middle, Treble, Presence;
 ///     <b>Normal Input</b> plays the Normal channel instead of the Bright one. <see cref="Jumped" /> is the same amp with
 ///     the classic jumper driving both channels.
 /// </summary>
@@ -104,7 +104,7 @@ public static class Bassman {
                 1,
                 0,
                 new(1e6, PotTaper.Linear),
-                new(0.5, 27e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6),
+                new(0.5, 27e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6) { PresenceIsShunt = true },
                 true,
                 new(4e3),
                 SpeakerDesign.OpenBack4x10,
