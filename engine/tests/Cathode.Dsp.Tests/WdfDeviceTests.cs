@@ -11,6 +11,33 @@ public class WdfDeviceTests(ITestOutputHelper output) {
     public static TheoryData<string> Devices =>
         ["diode", "diode-rs", "clipper", "npn", "pnp", "germanium", "triode", "pentode", "opamp", "pair"];
 
+    [Fact]
+    public void Junction_limiting_keeps_the_direction_and_limits_only_the_documented_steps() {
+        var model = DiodeModel.Silicon;
+        var vt = model.EmissionVoltage(1);
+        var critical = DeviceMath.CriticalVoltage(model.SaturationCurrent, vt);
+        for (var previous = -1.0; previous <= 1.2; previous += 0.01) {
+            for (var proposed = -2.0; proposed <= 3.0; proposed += 0.0037) {
+                var limited = DeviceMath.LimitJunction(previous, proposed, vt, critical);
+                var step = proposed - previous;
+                var at = $"previous {previous:0.000}, proposed {proposed:0.0000}: {limited:0.0000}";
+                Assert.True(double.IsFinite(limited), at);
+                if (step > 2 * vt && proposed > critical) {
+                    // Upwards, compressed: never past Newton's proposal, never backwards.
+                    Assert.True(limited <= proposed && limited >= Math.Min(previous, critical) - 1e-12, at);
+                } else if (step < -vt && previous > critical - 10 * vt) {
+                    // The tangent predicts no current: at least 10 n Vt down, or Newton's proposal if lower.
+                    Assert.Equal(Math.Min(proposed, previous - 10 * vt), limited);
+                } else {
+                    // Everything else, including downward steps of less than n Vt, is Newton's own step.
+                    Assert.Equal(proposed, limited);
+                }
+            }
+
+            Assert.Equal(previous, DeviceMath.LimitJunction(previous, previous, vt, critical));
+        }
+    }
+
     [Theory]
     [MemberData(nameof(Devices))]
     public void Jacobian_matches_finite_differences(string name) {
