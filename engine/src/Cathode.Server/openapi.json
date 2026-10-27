@@ -4267,7 +4267,8 @@
           "hostGen2",
           "hostGcPauseMs",
           "hostAllocatedBytes",
-          "callbackExceptions"
+          "callbackExceptions",
+          "deviceStatus"
         ],
         "type": "object",
         "properties": {
@@ -4362,9 +4363,13 @@
             "type": "integer",
             "format": "int64",
             "default": 0
+          },
+          "deviceStatus": {
+            "type": "string",
+            "default": "ok"
           }
         },
-        "description": "Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole\ndriver callback); overloads and the host\u0027s GC counts are cumulative since the host started. \u0060Inputs\u0060 names\nthe hardware input sources the device maps (Input 1\u20134, USB 5/6, USB 7/8); the others are silent.\n\u0060CallbackExceptions\u0060 counts exceptions the engine threw on the audio thread (each silenced one callback;\nthe host logs the first with its stack trace)."
+        "description": "Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole\ndriver callback); overloads and the host\u0027s GC counts are cumulative since the host started. \u0060Inputs\u0060 names\nthe hardware input sources the device maps (Input 1\u20134, USB 5/6, USB 7/8); the others are silent.\n\u0060CallbackExceptions\u0060 counts exceptions the engine threw on the audio thread (each silenced one callback;\nthe host logs the first with its stack trace). \u0060DeviceStatus\u0060 is \u0060ok\u0060, \u0060changed\u0060 (another\napplication changed the device\u0027s rate or buffer, or the default device changed) or \u0060lost\u0060 (unplugged,\ntaken away, or no longer calling back); on either of the last two the host exits so its supervisor restarts it\non the device as it now is."
       },
       "Footswitch": {
         "required": [

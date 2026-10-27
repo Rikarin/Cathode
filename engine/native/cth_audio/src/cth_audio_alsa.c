@@ -103,6 +103,13 @@ uint64_t cth_linux_now_ns(void)
     return (uint64_t)now.tv_sec * 1000000000u + (uint64_t)now.tv_nsec;
 }
 
+void cth_linux_raise_status(cth_common *c, int value)
+{
+    int old = atomic_load_explicit(&c->status, memory_order_relaxed);
+    while (old < value && !atomic_compare_exchange_weak(&c->status, &old, value)) {
+    }
+}
+
 void cth_linux_begin_cycle(cth_common *c)
 {
     if (atomic_exchange_explicit(&c->reset_timing, 0, memory_order_acquire)) memset(&c->timing, 0, sizeof c->timing);
@@ -753,9 +760,15 @@ static void *audio_thread(void *arg)
         atomic_fetch_add_explicit(&s->common.overloads, 1, memory_order_relaxed);
         if (err == -ENODEV) {
             fprintf(stderr, "cth_audio: the audio device was disconnected\n");
+            cth_linux_raise_status(&s->common, CTH_STREAM_LOST);
             break;
         }
         err = restart(s);
+        if (err == -ENODEV) { /* gone while restarting after an xrun */
+            fprintf(stderr, "cth_audio: the audio device was disconnected\n");
+            cth_linux_raise_status(&s->common, CTH_STREAM_LOST);
+            break;
+        }
         if (err < 0) {
             /* Not recoverable right now (for example mid-suspend): retry a few times a second until stopped. */
             struct pollfd wake = {.fd = s->wake[0], .events = POLLIN};
@@ -864,4 +877,9 @@ void cth_audio_timing(const cth_stream *s, cth_stream_timing *timing)
 void cth_audio_reset_timing(cth_stream *s)
 {
     if (s) atomic_store_explicit(&s->common.reset_timing, 1, memory_order_release);
+}
+
+int32_t cth_audio_status(const cth_stream *s)
+{
+    return s ? atomic_load_explicit(&((cth_stream *)s)->common.status, memory_order_relaxed) : CTH_STREAM_OK;
 }

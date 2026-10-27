@@ -150,6 +150,10 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     GCHandle self;
     nint stream;
     long exceptions;
+    readonly Lock watchdogLock = new();
+    bool running;
+    ulong lastCallbacks;
+    long lastCallbackAt; // Stopwatch timestamp when the callback count last moved (or the stream started)
     Exception? callbackException; // the first exception not yet taken by TakeCallbackException
 
     public double SampleRate { get; private set; }
@@ -162,6 +166,41 @@ public sealed unsafe class NativeAudioSession : IDisposable {
 
     /// <summary>Linear gain on the device output. 0 mutes it (the default for unattended tests).</summary>
     public float OutputGain { get; set; } = 1f;
+
+    /// <summary>A started stream whose callback has not run for this long is reported as lost.</summary>
+    public static readonly TimeSpan CallbackStall = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    ///     Control side, allocation-free: what the backend reports about the device (<c>cth_audio_status</c>), or
+    ///     <see cref="AudioDeviceStatus.Lost" /> when a started stream's callback has stalled for
+    ///     <see cref="CallbackStall" /> (the backstop for a backend that cannot tell).
+    /// </summary>
+    public AudioDeviceStatus DeviceStatus {
+        get {
+            var status = (AudioDeviceStatus)NativeMethods.Status(stream);
+            if (status != AudioDeviceStatus.Ok) {
+                return status;
+            }
+
+            lock (watchdogLock) {
+                if (!running) {
+                    return status;
+                }
+
+                NativeMethods.Stats(stream, out var s);
+                var now = System.Diagnostics.Stopwatch.GetTimestamp();
+                if (s.Callbacks != lastCallbacks) {
+                    lastCallbacks = s.Callbacks;
+                    lastCallbackAt = now;
+                    return status;
+                }
+
+                return System.Diagnostics.Stopwatch.GetElapsedTime(lastCallbackAt, now) >= CallbackStall
+                    ? AudioDeviceStatus.Lost
+                    : status;
+            }
+        }
+    }
 
     /// <summary>Driver overloads so far. Unlike <see cref="Stats" /> it does not allocate, so it can be polled often.</summary>
     public long Overloads {
@@ -242,9 +281,20 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         if (NativeMethods.Start(stream) != 0) {
             throw new InvalidOperationException($"Could not start audio device: {LastErrorMessage()}");
         }
+
+        lock (watchdogLock) {
+            NativeMethods.Stats(stream, out var s);
+            lastCallbacks = s.Callbacks;
+            lastCallbackAt = System.Diagnostics.Stopwatch.GetTimestamp();
+            running = true;
+        }
     }
 
     public void Stop() {
+        lock (watchdogLock) {
+            running = false;
+        }
+
         if (NativeMethods.Stop(stream) != 0) {
             throw new InvalidOperationException($"Could not stop audio device: {LastErrorMessage()}");
         }

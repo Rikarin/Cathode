@@ -99,7 +99,8 @@ public sealed partial class EngineConnection(
             t?.GcPauseMs ?? 0,
             t?.AllocatedBytes ?? 0,
             InputNames(i?.InputSources ?? 1),
-            t?.CallbackExceptions ?? 0
+            t?.CallbackExceptions ?? 0,
+            t?.DeviceStatus ?? "ok"
         );
     }
 

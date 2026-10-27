@@ -1,3 +1,4 @@
+using Cathode.Audio.Native;
 using Cathode.Dsp;
 using Cathode.EngineHost;
 using Cathode.Ipc;
@@ -32,9 +33,38 @@ public sealed class DeviceHealthTests {
         Assert.Single(log);
     }
 
+    [Fact]
+    public void A_lost_or_changed_device_is_published_in_telemetry_without_allocating() {
+        var device = new FakeDevice();
+        using var service = new EngineHostService(ProcessSpec.Default, "test", device: device);
+        var telemetry = new HostTelemetry();
+
+        service.Telemetry(telemetry);
+        Assert.Equal("ok", telemetry.DeviceStatus);
+        Assert.Equal(AudioDeviceStatus.Ok, service.DeviceStatus);
+
+        device.Status = AudioDeviceStatus.Changed;
+        service.Telemetry(telemetry);
+        Assert.Equal("changed", telemetry.DeviceStatus);
+
+        device.Status = AudioDeviceStatus.Lost;
+        Assert.Equal(0, Testing.AllocationProbe.Measure(() => service.Telemetry(telemetry)));
+        Assert.Equal("lost", telemetry.DeviceStatus);
+        Assert.Equal(AudioDeviceStatus.Lost, service.DeviceStatus);
+    }
+
+    [Fact]
+    public void Without_a_device_the_status_is_ok() {
+        using var service = new EngineHostService(ProcessSpec.Default, "null");
+        Assert.Equal(AudioDeviceStatus.Ok, service.DeviceStatus);
+        Assert.Equal("ok", service.Telemetry(new HostTelemetry()).DeviceStatus);
+    }
+
     sealed class FakeDevice : IDeviceMonitor {
         long exceptions;
         Exception? first;
+
+        public AudioDeviceStatus Status { get; set; }
 
         public long Overloads => 0;
 

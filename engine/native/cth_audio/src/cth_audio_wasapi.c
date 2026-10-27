@@ -40,6 +40,8 @@ DEFINE_GUID(CTH_IID_IAudioCaptureClient, 0xc8adbd64, 0xe71e, 0x48a0, 0xa4, 0xde,
 DEFINE_GUID(CTH_SUBTYPE_PCM, 0x00000001, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
 DEFINE_GUID(CTH_SUBTYPE_IEEE_FLOAT, 0x00000003, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
 DEFINE_PROPERTYKEY(CTH_PKEY_AudioEngine_DeviceFormat, 0xf19f064d, 0x82c, 0x4e27, 0xbc, 0x73, 0x68, 0x82, 0xa1, 0xbb, 0x8e, 0x4c, 0);
+DEFINE_GUID(CTH_IID_IUnknown, 0x00000000, 0x0000, 0x0000, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46);
+DEFINE_GUID(CTH_IID_IMMNotificationClient, 0x7991eec9, 0x7e89, 0x4d85, 0x83, 0x90, 0x6c, 0x70, 0x3c, 0xec, 0x60, 0xc0);
 
 typedef enum { SAMPLE_F32, SAMPLE_I32, SAMPLE_I24, SAMPLE_I16 } sample_kind;
 
@@ -57,7 +59,14 @@ typedef struct endpoint {
     int32_t latency;     /* stream latency, frames */
     double rate;
     int exclusive;
+    wchar_t *id;         /* endpoint id, for matching device notifications (CoTaskMemAlloc'd) */
 } endpoint;
+
+/* The stream's IMMNotificationClient: device removal, state and format changes raise the stream status. */
+typedef struct device_watch {
+    IMMNotificationClient iface; /* first, so the COM pointer is the struct */
+    struct cth_stream *stream;
+} device_watch;
 
 struct cth_stream {
     endpoint out;
@@ -72,6 +81,10 @@ struct cth_stream {
     volatile LONG64 callbacks;
     volatile LONG64 overloads;
     volatile LONG reset_timing; /* set by the control thread, applied by the audio thread */
+    volatile LONG status;       /* CTH_STREAM_*, raised by the audio thread and the device watch */
+    IMMDeviceEnumerator *notifier; /* holds the device watch's registration */
+    device_watch watch;
+    int follows_default;        /* opened with a NULL uid: a new default device invalidates the stream */
     int running;
     double sample_rate;
     double ticks_to_ns;
@@ -434,6 +447,8 @@ static void close_endpoint(endpoint *ep)
     RELEASE(ep->device);
     if (ep->event) CloseHandle(ep->event);
     ep->event = NULL;
+    CoTaskMemFree(ep->id);
+    ep->id = NULL;
 }
 
 static HRESULT activate(endpoint *ep)
@@ -603,6 +618,110 @@ static HRESULT open_endpoint(endpoint *ep, int is_capture, double rate, int32_t 
                       : IAudioClient_GetService(ep->client, &CTH_IID_IAudioRenderClient, (void **)&ep->render);
 }
 
+/* ---- Device health ---------------------------------------------------------------------------------------------- */
+
+/* Raises the stream status to at least value (it never goes back down). Any thread. */
+static void raise_status(cth_stream *s, LONG value)
+{
+    for (;;) {
+        LONG old = s->status;
+        if (old >= value || InterlockedCompareExchange(&s->status, value, old) == old) return;
+    }
+}
+
+/* Errors that mean the endpoint is gone (unplugged, disabled, or an exclusive stream taken over), not a glitch. */
+static int invalidated(HRESULT hr)
+{
+    return hr == AUDCLNT_E_DEVICE_INVALIDATED || hr == AUDCLNT_E_RESOURCES_INVALIDATED
+        || hr == AUDCLNT_E_SERVICE_NOT_RUNNING;
+}
+
+static void check(cth_stream *s, HRESULT hr)
+{
+    if (invalidated(hr)) raise_status(s, CTH_STREAM_LOST);
+}
+
+static cth_stream *watched(IMMNotificationClient *self) { return ((device_watch *)self)->stream; }
+
+static int is_ours(const cth_stream *s, LPCWSTR id)
+{
+    return id && ((s->out.id && wcscmp(id, s->out.id) == 0) || (s->in.id && wcscmp(id, s->in.id) == 0));
+}
+
+static HRESULT STDMETHODCALLTYPE watch_query(IMMNotificationClient *self, REFIID riid, void **object)
+{
+    if (!object) return E_POINTER;
+    if (IsEqualIID(riid, &CTH_IID_IUnknown) || IsEqualIID(riid, &CTH_IID_IMMNotificationClient)) {
+        *object = self;
+        return S_OK;
+    }
+    *object = NULL;
+    return E_NOINTERFACE;
+}
+
+/* The watch lives inside the stream, which unregisters it before it is freed, so counting references is moot. */
+static ULONG STDMETHODCALLTYPE watch_add_ref(IMMNotificationClient *self)
+{
+    (void)self;
+    return 1;
+}
+
+static ULONG STDMETHODCALLTYPE watch_release(IMMNotificationClient *self)
+{
+    (void)self;
+    return 1;
+}
+
+static HRESULT STDMETHODCALLTYPE watch_state(IMMNotificationClient *self, LPCWSTR id, DWORD state)
+{
+    cth_stream *s = watched(self);
+    if (state != DEVICE_STATE_ACTIVE && is_ours(s, id)) raise_status(s, CTH_STREAM_LOST);
+    return S_OK;
+}
+
+static HRESULT STDMETHODCALLTYPE watch_added(IMMNotificationClient *self, LPCWSTR id)
+{
+    (void)self;
+    (void)id;
+    return S_OK;
+}
+
+static HRESULT STDMETHODCALLTYPE watch_removed(IMMNotificationClient *self, LPCWSTR id)
+{
+    cth_stream *s = watched(self);
+    if (is_ours(s, id)) raise_status(s, CTH_STREAM_LOST);
+    return S_OK;
+}
+
+static HRESULT STDMETHODCALLTYPE watch_default(IMMNotificationClient *self, EDataFlow flow, ERole role, LPCWSTR id)
+{
+    cth_stream *s = watched(self);
+    /* Only a stream that follows the default device cares, and only about the role it opened (eConsole). */
+    if (!s->follows_default || role != eConsole) return S_OK;
+    if (flow == eRender || (flow == eCapture && s->in.client)) {
+        const wchar_t *current = flow == eRender ? s->out.id : s->in.id;
+        if (!id || !current || wcscmp(id, current) != 0) raise_status(s, CTH_STREAM_CHANGED);
+    }
+    return S_OK;
+}
+
+static HRESULT STDMETHODCALLTYPE watch_property(IMMNotificationClient *self, LPCWSTR id, const PROPERTYKEY key)
+{
+    cth_stream *s = watched(self);
+    /* A new shared-mode format (rate) set in the Sound control panel; an exclusive stream keeps the format it holds. */
+    if (id && key.pid == CTH_PKEY_AudioEngine_DeviceFormat.pid
+        && IsEqualGUID(&key.fmtid, &CTH_PKEY_AudioEngine_DeviceFormat.fmtid)) {
+        if ((s->out.id && wcscmp(id, s->out.id) == 0 && !s->out.exclusive)
+            || (s->in.id && wcscmp(id, s->in.id) == 0 && !s->in.exclusive))
+            raise_status(s, CTH_STREAM_CHANGED);
+    }
+    return S_OK;
+}
+
+static IMMNotificationClientVtbl watch_vtbl = {
+    watch_query, watch_add_ref, watch_release, watch_state, watch_added, watch_removed, watch_default, watch_property,
+};
+
 /* ---- The audio thread ------------------------------------------------------------------------------------------- */
 
 static uint32_t fifo_fill(const cth_stream *s) { return s->fifo_write - s->fifo_read; }
@@ -611,11 +730,13 @@ static uint32_t fifo_fill(const cth_stream *s) { return s->fifo_write - s->fifo_
 static void drain_capture(cth_stream *s)
 {
     UINT32 packet = 0;
-    while (SUCCEEDED(IAudioCaptureClient_GetNextPacketSize(s->in.capture, &packet)) && packet > 0) {
+    HRESULT hr;
+    while (SUCCEEDED(hr = IAudioCaptureClient_GetNextPacketSize(s->in.capture, &packet)) && packet > 0) {
         BYTE *data = NULL;
         UINT32 frames = 0;
         DWORD flags = 0;
-        if (FAILED(IAudioCaptureClient_GetBuffer(s->in.capture, &data, &frames, &flags, NULL, NULL))) return;
+        hr = IAudioCaptureClient_GetBuffer(s->in.capture, &data, &frames, &flags, NULL, NULL);
+        if (FAILED(hr)) break;
         if ((flags & AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY) && s->capture_primed)
             InterlockedIncrement64(&s->overloads); /* the first packet after Start always carries the flag */
         s->capture_primed = 1;
@@ -635,6 +756,7 @@ static void drain_capture(cth_stream *s)
         s->fifo_write += frames;
         IAudioCaptureClient_ReleaseBuffer(s->in.capture, frames);
     }
+    check(s, hr);
 }
 
 /* Fills the planar inputs for one chunk from the FIFO; an underrun is padded with silence, and counted once running
@@ -664,16 +786,25 @@ static void pull_inputs(cth_stream *s, int32_t frames, int started)
 static UINT32 render(cth_stream *s, int started)
 {
     UINT32 frames = s->out.buffer_size;
+    HRESULT hr;
     if (!s->out.exclusive) {
         UINT32 padding = 0;
-        if (FAILED(IAudioClient_GetCurrentPadding(s->out.client, &padding))) return 0;
+        hr = IAudioClient_GetCurrentPadding(s->out.client, &padding);
+        if (FAILED(hr)) {
+            check(s, hr);
+            return 0;
+        }
         if (padding == 0 && started) InterlockedIncrement64(&s->overloads); /* the engine ran dry */
         frames -= padding;
     }
     if (frames == 0) return 0;
 
     BYTE *data = NULL;
-    if (FAILED(IAudioRenderClient_GetBuffer(s->out.render, frames, &data))) return 0;
+    hr = IAudioRenderClient_GetBuffer(s->out.render, frames, &data);
+    if (FAILED(hr)) {
+        check(s, hr);
+        return 0;
+    }
     int bytes = bytes_of(s->out.kind);
     for (UINT32 offset = 0; offset < frames;) {
         int32_t chunk = (int32_t)(frames - offset);
@@ -738,7 +869,9 @@ static unsigned __stdcall audio_thread(void *arg)
         DWORD wait = WaitForMultipleObjects(count, events, FALSE, 2000);
         if (wait == WAIT_OBJECT_0) break;
         if (wait == WAIT_TIMEOUT) {
-            InterlockedIncrement64(&s->overloads); /* the device stopped calling (unplugged or taken away) */
+            /* An event-driven stream silent for 2 s: the device stopped calling (unplugged or taken away). */
+            InterlockedIncrement64(&s->overloads);
+            raise_status(s, CTH_STREAM_LOST);
             continue;
         }
         if (wait == WAIT_FAILED) break;
@@ -764,6 +897,10 @@ static unsigned __stdcall audio_thread(void *arg)
 
 static void free_stream(cth_stream *s)
 {
+    if (s->notifier) {
+        IMMDeviceEnumerator_UnregisterEndpointNotificationCallback(s->notifier, &s->watch.iface);
+        RELEASE(s->notifier);
+    }
     close_endpoint(&s->out);
     close_endpoint(&s->in);
     if (s->stop_event) CloseHandle(s->stop_event);
@@ -838,6 +975,18 @@ int32_t cth_audio_open(const char *device_uid, cth_stream_config *config, cth_pr
     config->buffer_frames = s->buffer_frames;
     config->input_channels = s->input_channels;
     config->output_channels = s->output_channels;
+
+    /* Watch for the endpoints going away or changing format. Without the watch the stream still works, and the
+     * audio thread's device-invalidated errors and 2 s timeout still report a lost device. */
+    IMMDevice_GetId(s->out.device, &s->out.id);
+    if (s->in.client) IMMDevice_GetId(s->in.device, &s->in.id);
+    s->follows_default = device_uid == NULL;
+    s->watch.iface.lpVtbl = &watch_vtbl;
+    s->watch.stream = s;
+    if (SUCCEEDED(IMMDeviceEnumerator_RegisterEndpointNotificationCallback(e, &s->watch.iface))) {
+        s->notifier = e;
+        e = NULL; /* the stream keeps the enumerator until it unregisters */
+    }
 
 done:
     RELEASE(e);
@@ -914,4 +1063,9 @@ void cth_audio_timing(const cth_stream *s, cth_stream_timing *timing)
 void cth_audio_reset_timing(cth_stream *s)
 {
     if (s) InterlockedExchange(&s->reset_timing, 1);
+}
+
+int32_t cth_audio_status(const cth_stream *s)
+{
+    return s ? (int32_t)InterlockedCompareExchange((volatile LONG *)&s->status, 0, 0) : CTH_STREAM_OK;
 }

@@ -50,6 +50,7 @@ int Usage() {
                                              default: Input 1 on channel 1)
                  --outputs 1,3,0,0  (first device channel of Outputs 1-4, 0 = unmapped; default 1)
                  --di-out 5,6  (device channels for the dry DI out, before Input 1 Gain)
+                 exits with code 3 when the audio device is lost or its rate or buffer changes; restart it to reopen
            --self-test                     offline real-time path check (no device)
            --devices [--json]              list audio devices
            --audio-test [options]          run the engine on a device and report timing and dropouts

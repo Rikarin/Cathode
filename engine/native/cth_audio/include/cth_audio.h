@@ -79,6 +79,18 @@ CTH_API void cth_audio_close(cth_stream *stream);
 CTH_API void cth_audio_stats(const cth_stream *stream, cth_stream_stats *stats);
 CTH_API void cth_audio_timing(const cth_stream *stream, cth_stream_timing *timing);
 CTH_API void cth_audio_reset_timing(cth_stream *stream);
+
+/* Device health, polled by the host (docs/adr/0002-native-audio-backend.md). The backend raises it when something
+ * outside the stream invalidates it; it never goes back down, and LOST outranks CHANGED. Either way the stream will
+ * not recover by itself: the host reopens it (it exits and its supervisor restarts it). */
+#define CTH_STREAM_OK 0
+/* Another application changed the device's sample rate, buffer size or format, or (for a stream opened with a NULL
+ * uid) the default device changed: the stream runs on, but at settings the engine was not prepared for. */
+#define CTH_STREAM_CHANGED 1
+/* The device was unplugged, disabled or taken away: the callback no longer runs. */
+#define CTH_STREAM_LOST 2
+CTH_API int32_t cth_audio_status(const cth_stream *stream);
+
 CTH_API const char *cth_audio_backend(void);
 CTH_API const char *cth_audio_last_error(void);
 

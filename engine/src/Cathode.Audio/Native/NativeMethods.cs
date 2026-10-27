@@ -43,6 +43,9 @@ static unsafe partial class NativeMethods {
     [LibraryImport(Library, EntryPoint = "cth_audio_reset_timing")]
     internal static partial void ResetTiming(nint stream);
 
+    [LibraryImport(Library, EntryPoint = "cth_audio_status")]
+    internal static partial int Status(nint stream);
+
     [LibraryImport(Library, EntryPoint = "cth_audio_backend")]
     internal static partial byte* Backend();
 

@@ -58,6 +58,12 @@ public sealed class EngineHostService : IDisposable {
     public HostInfo Info { get; }
 
     /// <summary>
+    ///     The audio device's status (<see cref="AudioDeviceStatus.Ok" /> without a device). Anything else means the
+    ///     host must reopen the device; the serve command exits so its supervisor restarts it.
+    /// </summary>
+    public AudioDeviceStatus DeviceStatus => device?.Status ?? AudioDeviceStatus.Ok;
+
+    /// <summary>
     ///     Where the host reports problems found while gathering telemetry (an exception on the audio thread); the serve
     ///     command points it at the console.
     /// </summary>
@@ -623,6 +629,7 @@ public sealed class EngineHostService : IDisposable {
 
         target.DriverOverloads = deviceWindow.Overloads;
         target.CallbackExceptions = exceptionsReported;
+        target.DeviceStatus = DeviceStatus.Name();
         target.NativeP999 = deviceWindow.P999;
         target.NativeMax = deviceWindow.Max;
         target.Gen0 = GC.CollectionCount(0);

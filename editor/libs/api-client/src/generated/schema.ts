@@ -1880,7 +1880,10 @@ export interface components {
      *     driver callback); overloads and the host's GC counts are cumulative since the host started. `Inputs` names
      *     the hardware input sources the device maps (Input 1–4, USB 5/6, USB 7/8); the others are silent.
      *     `CallbackExceptions` counts exceptions the engine threw on the audio thread (each silenced one callback;
-     *     the host logs the first with its stack trace).
+     *     the host logs the first with its stack trace). `DeviceStatus` is `ok`, `changed` (another
+     *     application changed the device's rate or buffer, or the default device changed) or `lost` (unplugged,
+     *     taken away, or no longer calling back); on either of the last two the host exits so its supervisor restarts it
+     *     on the device as it now is.
      */
     EngineStatus: {
       connected: boolean;
@@ -1943,6 +1946,8 @@ export interface components {
        * @default 0
        */
       callbackExceptions: number;
+      /** @default ok */
+      deviceStatus: string;
     };
     /**
      * @description One switch: the message it sends (a CC or note; value 64 or more is "down"), what a tap does, what holding it for

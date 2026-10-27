@@ -36,10 +36,13 @@ struct cth_stream {
     double sample_rate;
     double ticks_to_ns;
     _Atomic int reset_timing; /* set by the control thread, applied by the audio thread */
+    _Atomic int status;       /* CTH_STREAM_*, raised by the property listeners */
+    int follows_default;      /* opened with a NULL uid: a new default output invalidates the stream */
     cth_stream_timing timing;  /* written only by the audio thread */
     float *planar; /* (inputs + outputs) * CTH_MAX_FRAMES */
     dispatch_queue_t listeners;                   /* serial queue every property listener runs on */
-    AudioObjectPropertyListenerBlock on_overload; /* Block_copy'd, so close can remove the same block */
+    AudioObjectPropertyListenerBlock on_device;   /* Block_copy'd, so close can remove the same blocks */
+    AudioObjectPropertyListenerBlock on_system;
     const float *in_ptrs[MAX_CHANNELS];
     float *out_ptrs[MAX_CHANNELS];
 };
@@ -284,28 +287,91 @@ static OSStatus io_proc(AudioObjectID device, const AudioTimeStamp *now, const A
     return noErr;
 }
 
-static const AudioObjectPropertyAddress overload_address = {
-    kAudioDeviceProcessorOverload, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain};
+/* Device properties the stream listens to: overloads, and the device-global settings any other application (a DAW,
+ * Audio MIDI Setup) can change under it, or the device going away. */
+static const AudioObjectPropertyAddress device_properties[] = {
+    {kAudioDeviceProcessorOverload, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain},
+    {kAudioDevicePropertyNominalSampleRate, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain},
+    {kAudioDevicePropertyBufferFrameSize, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain},
+    {kAudioDevicePropertyDeviceIsAlive, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain},
+};
+#define DEVICE_PROPERTIES (sizeof device_properties / sizeof device_properties[0])
+
+static const AudioObjectPropertyAddress default_output_address = {
+    kAudioHardwarePropertyDefaultOutputDevice, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain};
+
+/* Raises the stream status to at least value (it never goes back down). */
+static void raise_status(cth_stream *s, int value)
+{
+    int old = atomic_load_explicit(&s->status, memory_order_relaxed);
+    while (old < value && !atomic_compare_exchange_weak(&s->status, &old, value)) {
+    }
+}
+
+/* Listener queue: what one notification about the stream's device means. */
+static void device_changed(cth_stream *s, AudioObjectPropertySelector selector)
+{
+    switch (selector) {
+    case kAudioDeviceProcessorOverload:
+        atomic_fetch_add_explicit(&s->overloads, 1, memory_order_relaxed);
+        break;
+    case kAudioDevicePropertyNominalSampleRate:
+        if (nominal_rate(s->device) != s->sample_rate) raise_status(s, CTH_STREAM_CHANGED);
+        break;
+    case kAudioDevicePropertyBufferFrameSize:
+        if ((int32_t)get_u32(s->device, kAudioDevicePropertyBufferFrameSize, kAudioObjectPropertyScopeGlobal)
+            != s->buffer_frames)
+            raise_status(s, CTH_STREAM_CHANGED);
+        break;
+    case kAudioDevicePropertyDeviceIsAlive:
+        if (!get_u32(s->device, kAudioDevicePropertyDeviceIsAlive, kAudioObjectPropertyScopeGlobal))
+            raise_status(s, CTH_STREAM_LOST);
+        break;
+    default:
+        break;
+    }
+}
+
+static AudioObjectID default_output(void)
+{
+    AudioObjectID device = kAudioObjectUnknown;
+    UInt32 size = sizeof device;
+    AudioObjectGetPropertyData(kAudioObjectSystemObject, &default_output_address, 0, NULL, &size, &device);
+    return device;
+}
 
 /* Registers the stream's property listeners on its serial queue. */
 static void add_listeners(cth_stream *s)
 {
     s->listeners = dispatch_queue_create("org.cathode.audio.listeners", DISPATCH_QUEUE_SERIAL);
-    s->on_overload = Block_copy(^(UInt32 count, const AudioObjectPropertyAddress *addresses) {
-        (void)count; (void)addresses;
-        atomic_fetch_add_explicit(&s->overloads, 1, memory_order_relaxed);
+    s->on_device = Block_copy(^(UInt32 count, const AudioObjectPropertyAddress *addresses) {
+        for (UInt32 i = 0; i < count; i++) device_changed(s, addresses[i].mSelector);
     });
-    AudioObjectAddPropertyListenerBlock(s->device, &overload_address, s->listeners, s->on_overload);
+    for (size_t i = 0; i < DEVICE_PROPERTIES; i++)
+        AudioObjectAddPropertyListenerBlock(s->device, &device_properties[i], s->listeners, s->on_device);
+    if (s->follows_default) {
+        s->on_system = Block_copy(^(UInt32 count, const AudioObjectPropertyAddress *addresses) {
+            (void)count; (void)addresses;
+            if (default_output() != s->device) raise_status(s, CTH_STREAM_CHANGED);
+        });
+        AudioObjectAddPropertyListenerBlock(kAudioObjectSystemObject, &default_output_address, s->listeners, s->on_system);
+    }
 }
 
 /* Removes the listeners, then waits for any notification already queued, so none can touch the stream once freed. */
 static void remove_listeners(cth_stream *s)
 {
     if (!s->listeners) return;
-    AudioObjectRemovePropertyListenerBlock(s->device, &overload_address, s->listeners, s->on_overload);
+    for (size_t i = 0; i < DEVICE_PROPERTIES; i++)
+        AudioObjectRemovePropertyListenerBlock(s->device, &device_properties[i], s->listeners, s->on_device);
+    if (s->on_system)
+        AudioObjectRemovePropertyListenerBlock(kAudioObjectSystemObject, &default_output_address, s->listeners, s->on_system);
     dispatch_sync(s->listeners, ^{
     });
-    Block_release(s->on_overload);
+    Block_release(s->on_device);
+    if (s->on_system) Block_release(s->on_system);
+    s->on_device = NULL;
+    s->on_system = NULL;
     dispatch_release(s->listeners);
     s->listeners = NULL;
 }
@@ -378,10 +444,11 @@ int32_t cth_audio_open(const char *device_uid, cth_stream_config *config, cth_pr
         return fail("could not create the IOProc", status);
     }
 
-    add_listeners(s);
-
     config->sample_rate = nominal_rate(device);
     s->sample_rate = config->sample_rate;
+    s->follows_default = !device_uid || !device_uid[0];
+    add_listeners(s);
+
     mach_timebase_info_data_t timebase;
     mach_timebase_info(&timebase);
     s->ticks_to_ns = (double)timebase.numer / (double)timebase.denom;
@@ -443,4 +510,9 @@ void cth_audio_timing(const cth_stream *s, cth_stream_timing *timing)
 void cth_audio_reset_timing(cth_stream *s)
 {
     if (s) atomic_store_explicit(&s->reset_timing, 1, memory_order_release);
+}
+
+int32_t cth_audio_status(const cth_stream *s)
+{
+    return s ? atomic_load_explicit(&((cth_stream *)s)->status, memory_order_relaxed) : CTH_STREAM_OK;
 }

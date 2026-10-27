@@ -43,7 +43,10 @@ public sealed record AssetInfo(
 ///     driver callback); overloads and the host's GC counts are cumulative since the host started. <c>Inputs</c> names
 ///     the hardware input sources the device maps (Input 1–4, USB 5/6, USB 7/8); the others are silent.
 ///     <c>CallbackExceptions</c> counts exceptions the engine threw on the audio thread (each silenced one callback;
-///     the host logs the first with its stack trace).
+///     the host logs the first with its stack trace). <c>DeviceStatus</c> is <c>ok</c>, <c>changed</c> (another
+///     application changed the device's rate or buffer, or the default device changed) or <c>lost</c> (unplugged,
+///     taken away, or no longer calling back); on either of the last two the host exits so its supervisor restarts it
+///     on the device as it now is.
 /// </summary>
 public sealed record EngineStatus(
     bool Connected,
@@ -64,7 +67,8 @@ public sealed record EngineStatus(
     double HostGcPauseMs = 0,
     long HostAllocatedBytes = 0,
     IReadOnlyList<string>? Inputs = null,
-    long CallbackExceptions = 0
+    long CallbackExceptions = 0,
+    string DeviceStatus = "ok"
 );
 
 public sealed record SystemInfo(string Version, EngineStatus Engine);
