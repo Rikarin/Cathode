@@ -42,12 +42,13 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Guesses, marked: the LDRs' ranges, which the drawing does not print (the controls are a microprocessor's
 ///         DACs driving LEDs on the LDRs), take the Mark IIC+'s pot values: treble 250k linear, bass 250k audio, middle
 ///         10k linear, gain 1M audio, master 250k audio as a shunt, Lead 2 drive 1M audio as a shunt; Lead 1 drive is
-///         printed 250k; the Dynamic Voice a 10k reverse-audio rheostat. The presence LDR (1 nF to ground behind 47k)
-///         is fixed at 47k (no free control: the panel's Presence is the power amp's). The bright cap printed "C75P"
-///         is taken as 75 pF. Left out: V3A's 3.3M feed from V2B in Lead 2 (a 3.3M ‖ 20 pF load here), the effects loop
-///         (bypassed: LDR1, 4.7k into V5A) and V5B, the record outputs; the output divider (100k into the 25k output
-///         level) at full level. The power amp is not the TriAxis's (it has none): the Dual Rectifier model's, documented
-///         there.
+///         printed 250k; the Dynamic Voice a 1M reverse-audio rheostat (an LDR's dark resistance is in the megohms, and
+///         Mesa's manual has the control at 0 do nothing: 10k there was still a ±5 dB "V"). The presence LDR (1 nF to
+///         ground behind 47k) is fixed at 47k (no free control: the panel's Presence is the power amp's). The bright
+///         cap printed "C75P" is taken as 75 pF. Left out: V3A's 3.3M feed from V2B in Lead 2 (a 3.3M ‖ 20 pF load
+///         here), the effects loop (bypassed: LDR1, 4.7k into V5A) and V5B, the record outputs; the output divider (100k
+///         into the 25k output level) at full level. The power amp is not the TriAxis's (it has none): the Dual
+///         Rectifier model's, documented there.
 ///     </para>
 /// </remarks>
 public static class TriAxis {
@@ -91,7 +92,7 @@ public static class TriAxis {
 
     public static AmpDesign Lead1 { get; } = Create(
         "TriAxis Lead 1",
-        -4,
+        4,
         [
             new NetworkStageDesign("V1A", LeadOneInput()),
             new NetworkStageDesign("V2A", StackStage(Mode.LeadOne)),
@@ -106,7 +107,7 @@ public static class TriAxis {
 
     public static AmpDesign Lead2 { get; } = Create(
         "TriAxis Lead 2",
-        -4,
+        0,
         [
             new NetworkStageDesign("V2A", StackStage(Mode.LeadTwo)),
             new NetworkStageDesign("V2B", SecondGain()),
@@ -402,8 +403,8 @@ public static class TriAxis {
     /// <summary>
     ///     The Dynamic Voice (IC3B, TL072 on ±16 V): 10k from the buffer to the non-inverting input P, 10k from P to the
     ///     inverting input N, 10k from the output to N; the LCR branches from N (and the 720 Hz one from P) to a common
-    ///     node, the Dynamic Voice LDR (Control 2, a 10k reverse-audio rheostat that takes resistance out as it turns up)
-    ///     beside 10 MΩ from it to ground.
+    ///     node, the Dynamic Voice LDR (Control 2, a 1M reverse-audio rheostat that takes resistance out as it turns up:
+    ///     about 1 MΩ, dark, at 0, 100k at 5, a few ohms lit at 10) beside 10 MΩ from it to ground.
     /// </summary>
     static StageNetlist DynamicVoice() {
         var net = new StageNetlist();
@@ -416,7 +417,7 @@ public static class TriAxis {
         Branch(net, n, common, 33e-3, 33e-9, 7.5e3);
         Branch(net, n, common, 68e-3, 0.15e-6, 7.5e3);
         Branch(net, p, common, 220e-3, 0.22e-6, 220);
-        net.Rheostat(common, StageNetlist.Ground, new(10e3, PotTaper.ReverseAudio), PotRole.Control2, true);
+        net.Rheostat(common, StageNetlist.Ground, new(1e6, PotTaper.ReverseAudio), PotRole.Control2, true);
         net.Resistor(common, StageNetlist.Ground, 10e6);
         net.OpAmp(p, n, output, OpAmpModel.TL072, 16);
         net.Output = output;

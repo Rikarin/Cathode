@@ -302,7 +302,7 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 
 | Amp | Status | Cathode type | Axe models | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Mesa/Boogie TriAxis preamp | ✅ Done (factory audio sheets rev 1.08 with the LDR mode table; LDR ranges taken from the Mark IIC+; presence LDR fixed) into a generic power amp (the Dual Rectifier model's 4 × 6L6) | TriAxis Rhythm (Switch 1 Yellow), TriAxis Lead 1, TriAxis Lead 2 (Switch 1 Yellow, Switch 2 Red; Control 1 lead drive, Control 2 Dynamic Voice) | — | Captures with settings | 4x12 closed |
+| Mesa/Boogie TriAxis preamp | ✅ Done (factory audio sheets rev 1.08 with the LDR mode table; LDR ranges taken from the Mark IIC+, the Dynamic Voice LDR 1M so that 0 is flat; presence LDR fixed) into a generic power amp (the Dual Rectifier model's 4 × 6L6) | TriAxis Rhythm (Switch 1 Yellow), TriAxis Lead 1, TriAxis Lead 2 (Switch 1 Yellow, Switch 2 Red; Control 1 lead drive, Control 2 Dynamic Voice) | — | Captures with settings | 4x12 closed |
 | Mesa/Boogie JP-2C | ⏸ Waiting (no drawing found; the Mark IIC+ model covers its channel 3 circuit) | — | USA JP IIC+ Green / Yellow / Red | | 4x12 closed |
 | Mesa/Boogie Triple Crown TC-100 | ⏸ Waiting (no drawing found) | — | Triple Crest 2 / 3 | | 4x12 closed |
 | Mesa/Boogie Subway Blues | ✅ Done, partly (factory drawings read; the potted "Toning Module" is not drawn and is left out) | Subway Blues (Switch 1 Fat) | — | The toning module's contents | 1x10 open |
