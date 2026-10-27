@@ -1,0 +1,40 @@
+# Skala (skala.jsonc, .github/workflows/skala.yml) reads its rule severities and thresholds from here, as Roslyn and the
+# IDE do; skala.jsonc holds only the gates. The policy is in skala.jsonc: a rule that fits this codebase is fixed to zero
+# findings, and one that does not is switched off or re-tuned below, with the reason, instead of being parked in
+# .skala/baseline.sarif.
+root = true
+
+[*.cs]
+# SK0002, a line over the width that the formatter cannot break: an audit hint, by the rule's own description. The
+# formatter already wraps everything it can at 120 columns; what is left is prose in XML documentation a few columns
+# over (most of the findings), long interpolated messages and report templates, which this codebase keeps whole on one
+# line so they read and grep as they print.
+dotnet_diagnostic.SK0002.severity = none
+
+# SK6034, a public constant is baked into every caller: the hazard needs an assembly that ships separately from its
+# callers. The engine's assemblies are one application, built and shipped together from this solution (nothing is
+# published as a library), so every caller is always rebuilt with the constant; the circuits' component values and the
+# blocks' parameter indices are constants on purpose (they appear in switch labels and attribute arguments).
+dotnet_diagnostic.SK6034.severity = none
+
+# Tests and test references: table-driven test methods, repeated file names and ids, and reference simulators written
+# as one routine per paper are the readable choice in a test (Skala's own duplication rule measures tests apart for the
+# same reason). The metrics and the repeated-literal rule stay on for the shipped code.
+[engine/tests/**.cs]
+dotnet_diagnostic.SK7001.severity = none
+dotnet_diagnostic.SK7002.severity = none
+dotnet_diagnostic.SK7003.severity = none
+dotnet_diagnostic.SK7005.severity = none
+dotnet_diagnostic.SK7082.severity = none
+dotnet_diagnostic.SK7083.severity = none
+
+# The DSP library: a per-sample kernel or a circuit solver is one routine per algorithm on purpose (the hot path stays
+# inline and allocation-free, and it reads against the circuit or the paper it implements), a circuit part's
+# constructor takes one parameter per component, and a circuit is one file. Splitting them buys nothing a reader of
+# the schematic wants, and every split is a re-verification against the bit-identical golden renders.
+[engine/src/Cathode.Dsp/**.cs]
+dotnet_diagnostic.SK7001.severity = none
+dotnet_diagnostic.SK7002.severity = none
+dotnet_diagnostic.SK7003.severity = none
+dotnet_diagnostic.SK7005.severity = none
+dotnet_diagnostic.SK7030.severity = none
