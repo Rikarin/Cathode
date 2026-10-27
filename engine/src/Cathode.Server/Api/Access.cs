@@ -39,8 +39,11 @@ public static class Access {
 
         var expected = Encoding.UTF8.GetBytes(token);
         app.Use(async (context, next) => {
+                var presented = Presented(context.Request);
+                // Out of the query once read, so nothing logged later (a request's URL in a log line) carries it.
+                StripQueryToken(context.Request);
                 if (HttpMethods.IsOptions(context.Request.Method)
-                    || (Presented(context.Request) is { } presented
+                    || (presented is not null
                         && CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(presented), expected))) {
                     await next(context);
                     return;
@@ -82,6 +85,17 @@ public static class Access {
         }
 
         return request.Path.StartsWithSegments("/ws") ? request.Query["access_token"].ToString() : null;
+    }
+
+    static void StripQueryToken(HttpRequest request) {
+        if (!request.Query.ContainsKey("access_token")) {
+            return;
+        }
+
+        request.QueryString = QueryString.Create(
+            request.Query.Where(static q => q.Key != "access_token")
+                .SelectMany(static q => q.Value.Select(v => KeyValuePair.Create(q.Key, v)))
+        );
     }
 
     static bool IsLoopbackOrigin(string origin) =>

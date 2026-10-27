@@ -3,6 +3,8 @@ using Cathode.Server.Api;
 using System.Net;
 using System.Net.Http.Json;
 using System.Net.WebSockets;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Cathode.Server.Tests;
 
@@ -73,6 +75,26 @@ public class AccessTests {
         Assert.Equal("app://cathode", preflight.Headers.GetValues("Access-Control-Allow-Origin").Single());
     }
 
+    [Fact]
+    public async Task The_websocket_token_never_reaches_the_log() {
+        var log = new System.Collections.Concurrent.ConcurrentQueue<string>();
+        await using var server = new ServerFixture(token: Token);
+        // Everything logged, at every level, as the console logger would see it with a verbose configuration.
+        await using var verbose = server.WithWebHostBuilder(b => b.ConfigureLogging(l => {
+                    l.SetMinimumLevel(LogLevel.Trace);
+                    l.AddProvider(new CapturingLoggerProvider(log.Enqueue));
+                }
+            )
+        );
+
+        using var socket = await verbose.Server.CreateWebSocketClient()
+            .ConnectAsync(new($"ws://localhost/ws?access_token={Token}"), Cancel);
+        socket.Abort();
+
+        Assert.NotEmpty(log);
+        Assert.DoesNotContain(log, static line => line.Contains(Token, StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("http://localhost:4200", true)]
     [InlineData("http://127.0.0.1:5173", true)]
@@ -135,5 +157,29 @@ public class AccessTests {
         request.Headers.Add("Access-Control-Request-Method", "PATCH");
         request.Headers.Add("Access-Control-Request-Headers", "authorization,if-match,content-type");
         return request;
+    }
+}
+
+/// <summary>Every log entry, formatted, with its category: what a console logger would print.</summary>
+sealed class CapturingLoggerProvider(Action<string> keep) : ILoggerProvider {
+    public ILogger CreateLogger(string categoryName) => new Logger(keep, categoryName);
+
+    public void Dispose() { }
+
+    sealed class Logger(Action<string> keep, string category) : ILogger {
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull =>
+            null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter
+        ) =>
+            keep($"{logLevel} {category}: {formatter(state, exception)} {exception}");
     }
 }

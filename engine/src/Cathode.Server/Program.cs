@@ -27,6 +27,10 @@ var urls = builder.Configuration["urls"] ?? "http://127.0.0.1:5180";
 var token = builder.Configuration["Cathode:Token"] is { Length: > 0 } configured ? configured : null;
 Access.RequireTokenBeyondLoopback(urls, token);
 builder.WebHost.UseUrls(urls);
+// The hosting log's "Request starting/finished" lines carry the query string, and the WebSocket presents the access
+// token there (?access_token=, Api/Access.cs): at Information every connect wrote it to the journal or the desktop's
+// sidecar log. Only its warnings are kept.
+builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
 builder.Services.Configure<ServerOptions>(builder.Configuration.GetSection("Cathode"));
 builder.Services.ConfigureHttpJsonOptions(static o => {
         o.SerializerOptions.TypeInfoResolverChain.Insert(0, ContractsJsonContext.Default);
