@@ -1,3 +1,4 @@
+using Cathode.Dsp.Resampling;
 using Cathode.Dsp.Tuning;
 using Cathode.Testing;
 
@@ -80,6 +81,38 @@ public class TunerTests(ITestOutputHelper output) {
 
         Assert.Equal("A", reading!.Value.Note);
         Assert.Equal(0, reading.Value.Cents, 0.5);
+    }
+
+    [Fact]
+    public void The_window_is_the_last_decimated_samples_after_any_number_of_wraps() {
+        // Reference: the shift-by-one window Push used to keep, fed by its own copy of the tuner's decimator.
+        var signal = Signals.Sine(196, Rate, 3 * 2 * Tuner.Window + 1_234, 0.3f);
+        var decimator = new HalfBandStage(HalfBand.Design(80, 0.1));
+        var expected = new float[Tuner.Window];
+        var pair = new float[2];
+        var one = new float[1];
+        for (var i = 0; i + 1 < signal.Length; i += 2) {
+            pair[0] = signal[i];
+            pair[1] = signal[i + 1];
+            decimator.Down(pair, one);
+            Array.Copy(expected, 1, expected, 0, Tuner.Window - 1);
+            expected[^1] = one[0];
+        }
+
+        var tuner = new Tuner(Rate);
+        var random = new Random(7);
+        for (var offset = 0; offset < signal.Length;) {
+            var count = Math.Min(random.Next(1, 300), signal.Length - offset);
+            tuner.Push(signal.AsSpan(offset, count));
+            offset += count;
+        }
+
+        var window = new float[Tuner.Window];
+        tuner.CopyWindow(window);
+        Assert.Equal(expected, window);
+        var reading = tuner.Detect();
+        Assert.NotNull(reading);
+        Assert.Equal("G", reading.Value.Note);
     }
 
     static TunerReading? Detect(float[] signal, double reference = 440) {

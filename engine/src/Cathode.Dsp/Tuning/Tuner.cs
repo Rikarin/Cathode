@@ -32,7 +32,7 @@ public sealed class Tuner {
 
     readonly HalfBandStage decimator = new(HalfBand.Design(80, 0.1));
     readonly Fft fft = new(FftSize);
-    readonly float[] window = new float[Window];
+    readonly float[] history = new float[2 * Window]; // every sample written twice, so the window is contiguous
     readonly float[] pending = new float[2];
     readonly float[] re = new float[FftSize];
     readonly float[] im = new float[FftSize];
@@ -40,6 +40,7 @@ public sealed class Tuner {
     readonly float[] decimated = new float[1];
     int pendingCount;
     int filled;
+    int write;
 
     /// <summary>Frequency of A4, normally 440 Hz (430..450 allowed).</summary>
     public double Reference { get; set; } = 440;
@@ -61,11 +62,17 @@ public sealed class Tuner {
 
             pendingCount = 0;
             decimator.Down(pending, decimated);
-            Array.Copy(window, 1, window, 0, Window - 1);
-            window[^1] = decimated[0];
+            history[write] = history[write + Window] = decimated[0];
+            write = write == Window - 1 ? 0 : write + 1;
             filled = Math.Min(Window, filled + 1);
         }
     }
+
+    /// <summary>The most recent <see cref="Window" /> decimated samples, oldest first.</summary>
+    ReadOnlySpan<float> Recent => history.AsSpan(write, Window);
+
+    /// <summary>Copies the window <see cref="Detect" /> analyses (decimated samples, oldest first).</summary>
+    public void CopyWindow(Span<float> destination) => Recent.CopyTo(destination);
 
     /// <summary>
     ///     Analyses the most recent window. Returns null for silence, noise or chords without a clear period.
@@ -134,7 +141,7 @@ public sealed class Tuner {
 
     double Rms() {
         double sum = 0;
-        foreach (var x in window) {
+        foreach (var x in Recent) {
             sum += (double)x * x;
         }
 
@@ -144,7 +151,8 @@ public sealed class Tuner {
     void ComputeNsdf() {
         Array.Clear(re);
         Array.Clear(im);
-        window.CopyTo(re, 0);
+        var window = Recent;
+        window.CopyTo(re);
         fft.Forward(re, im);
         for (var k = 0; k < FftSize; k++) {
             re[k] = re[k] * re[k] + im[k] * im[k];
