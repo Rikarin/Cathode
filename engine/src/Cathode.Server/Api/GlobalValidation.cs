@@ -22,6 +22,19 @@ static class GlobalValidation {
 
     public static void Check(GlobalSettings settings) {
         var errors = new List<string>();
+        CheckOffsets(settings, errors);
+        CheckOutputs(settings, errors);
+        CheckInputs(settings, errors);
+        CheckOptions(settings, errors);
+        CheckMidi(settings, errors);
+        CheckLayouts(settings, errors);
+        if (errors.Count > 0) {
+            throw new RigException(400, "The global settings are invalid.", errors);
+        }
+    }
+
+    /// <summary>The tempo mode, the MIDI channel and the effects mix and noise gate offsets.</summary>
+    static void CheckOffsets(GlobalSettings settings, List<string> errors) {
         if (!TempoModes.Contains(settings.TempoMode)) {
             errors.Add($"Tempo mode '{settings.TempoMode}' is not preset, global or midiClock.");
         }
@@ -37,7 +50,9 @@ static class GlobalValidation {
         if (settings.NoiseGateOffset is < -20f or > 20f || !float.IsFinite(settings.NoiseGateOffset)) {
             errors.Add("The noise gate offset is -20 to 20 dB.");
         }
+    }
 
+    static void CheckOutputs(GlobalSettings settings, List<string> errors) {
         if (settings.Outputs.Count != 4) {
             errors.Add("Outputs has four entries (Outputs 1-4).");
         }
@@ -51,7 +66,9 @@ static class GlobalValidation {
                 errors.Add($"Output {n}: Boost/Pad is -18 to 18 dB.");
             }
         }
+    }
 
+    static void CheckInputs(GlobalSettings settings, List<string> errors) {
         if (settings.Inputs.Count is < 1 or > 4) {
             errors.Add("Inputs has one to four entries.");
         }
@@ -65,7 +82,10 @@ static class GlobalValidation {
                 errors.Add($"Input {n}: gain is -20 to 20 dB.");
             }
         }
+    }
 
+    /// <summary>Oversampling, the default scene and the manual controllers.</summary>
+    static void CheckOptions(GlobalSettings settings, List<string> errors) {
         if (!Oversampling.Contains(settings.Oversampling)) {
             errors.Add($"Oversampling '{settings.Oversampling}' is not minimum or linear.");
         }
@@ -77,7 +97,10 @@ static class GlobalValidation {
         if (settings.Manual.Count != 4) {
             errors.Add("Manual has four values (A-D).");
         }
+    }
 
+    /// <summary>The MIDI mappings' and the footswitches' messages and actions.</summary>
+    static void CheckMidi(GlobalSettings settings, List<string> errors) {
         foreach (var mapping in settings.MidiMappings) {
             CheckMessage(mapping.Message, mapping.Channel, mapping.Number, errors);
             CheckAction(mapping.Action, errors);
@@ -90,28 +113,37 @@ static class GlobalValidation {
                 CheckAction(hold.Action, errors);
             }
         }
+    }
 
+    /// <summary>Each switch's view and linked layout, and the active layout.</summary>
+    static void CheckLayouts(GlobalSettings settings, List<string> errors) {
         foreach (var layout in settings.Footswitches) {
             var views = Math.Max(1, layout.Views?.Count ?? 0);
             foreach (var footswitch in layout.Switches) {
-                if (footswitch.View < 0 || footswitch.View >= views) {
-                    errors.Add(
-                        $"Switch {footswitch.Index} of '{layout.Name}' is on view {footswitch.View}; the layout has {views}."
-                    );
-                }
-
-                if (footswitch.Link is { } link && settings.Footswitches.TrueForAll(l => l.Id != link)) {
-                    errors.Add($"Switch {footswitch.Index} of '{layout.Name}' links to no layout '{link}'.");
-                }
+                CheckSwitch(settings, layout, footswitch, views, errors);
             }
         }
 
         if (settings.ActiveLayout is { } active && settings.Footswitches.TrueForAll(l => l.Id != active)) {
             errors.Add($"No footswitch layout '{active}'.");
         }
+    }
 
-        if (errors.Count > 0) {
-            throw new RigException(400, "The global settings are invalid.", errors);
+    static void CheckSwitch(
+        GlobalSettings settings,
+        FootswitchLayout layout,
+        Footswitch footswitch,
+        int views,
+        List<string> errors
+    ) {
+        if (footswitch.View < 0 || footswitch.View >= views) {
+            errors.Add(
+                $"Switch {footswitch.Index} of '{layout.Name}' is on view {footswitch.View}; the layout has {views}."
+            );
+        }
+
+        if (footswitch.Link is { } link && settings.Footswitches.TrueForAll(l => l.Id != link)) {
+            errors.Add($"Switch {footswitch.Index} of '{layout.Name}' links to no layout '{link}'.");
         }
     }
 
