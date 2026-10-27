@@ -383,7 +383,11 @@ public sealed class RTypeScattering {
     static double Difference(ReadOnlySpan<double> z, int columns, int column, int p, int m) =>
         (p > 0 ? z[(p - 1) * columns + column] : 0) - (m > 0 ? z[(m - 1) * columns + column] : 0);
 
-    static void Conductance(Span<double> a, int n, int p, int m, double g) {
+    /// <summary>
+    ///     The MNA stamp of conductance <paramref name="g" /> between nodes <paramref name="p" /> and
+    ///     <paramref name="m" /> (0 is ground) into the <paramref name="n" />-column matrix <paramref name="a" />.
+    /// </summary>
+    internal static void Conductance(Span<double> a, int n, int p, int m, double g) {
         if (p > 0) {
             a[(p - 1) * n + p - 1] += g;
         }

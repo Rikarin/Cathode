@@ -175,7 +175,7 @@ public struct OpAmp : INonlinearDevice {
 
     /// <summary>The smooth limiter L s(x / L), s(x) = x / (1 + x⁸)^(1/8), and its slope (1 + x⁸)^(-9/8).</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static double Limit(double x, double limit, out double slope) {
+    internal static double Limit(double x, double limit, out double slope) {
         var u = x / limit;
         if (!(Math.Abs(u) < 1e30)) {
             slope = 0;

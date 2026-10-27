@@ -187,7 +187,7 @@ public sealed class SolidStatePowerAmp {
         for (; n < MaxIterations; n++) {
             var error = drive - (fed0 + b0 * v);
             var internalOutput = hold * y + gain * (error + previousError);
-            var vd = centre + Limit(internalOutput - centre, half, out var limiterSlope);
+            var vd = centre + OpAmp.Limit(internalOutput - centre, half, out var limiterSlope);
             var dvd = -limiterSlope * gain * b0;
             port[0] = vd + bias - v;
             junction.Evaluate(port, current, slope, 1);
@@ -236,7 +236,7 @@ public sealed class SolidStatePowerAmp {
         // integrator's state is held a little beyond it, so that it comes off the rail at once (as in the op-amp).
         var e = drive - feedback.Process(v);
         var settled = hold * y + gain * (e + previousError);
-        var driven = centre + Limit(settled - centre, half, out _);
+        var driven = centre + OpAmp.Limit(settled - centre, half, out _);
         y = Math.Clamp(settled, centre - 1.25 * half, centre + 1.25 * half);
         previousError = e;
         previousOutput = output;
@@ -260,22 +260,5 @@ public sealed class SolidStatePowerAmp {
         feedback.FlushDenormals();
         y = Flush.Value(y);
         previousError = Flush.Value(previousError);
-    }
-
-    /// <summary>The smooth limiter L s(x / L), s(x) = x / (1 + x⁸)^(1/8), and its slope (as the op-amp macro-model's).</summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static double Limit(double x, double limit, out double slope) {
-        var u = x / limit;
-        if (!(Math.Abs(u) < 1e30)) {
-            slope = 0;
-            return double.IsNaN(u) ? u : Math.CopySign(limit, u);
-        }
-
-        var u2 = u * u;
-        var u4 = u2 * u2;
-        var p = 1 + u4 * u4;
-        var root = Math.Sqrt(Math.Sqrt(Math.Sqrt(p)));
-        slope = 1 / (root * p);
-        return x / root;
     }
 }

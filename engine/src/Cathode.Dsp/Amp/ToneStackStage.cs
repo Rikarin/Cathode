@@ -186,14 +186,10 @@ public sealed class ToneStackStage : AmpStage {
     }
 
     public override void SetSourceResistance(double ohms) {
-        var total = Math.Max(ohms + Design.InputResistance, 1);
-        if (total == sourceResistance) {
-            return;
+        if (TrySetSourceResistance(ref sourceResistance, ohms, Design.InputResistance)) {
+            root.Ports.A.Value = sourceResistance;
+            root.Propagate();
         }
-
-        sourceResistance = total;
-        root.Ports.A.Value = total;
-        root.Propagate();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

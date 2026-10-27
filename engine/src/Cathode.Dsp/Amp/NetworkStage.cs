@@ -604,14 +604,10 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     }
 
     public override void SetSourceResistance(double ohms) {
-        var total = Math.Max(ohms + Design.InputResistance, 1);
-        if (total == sourceResistance) {
-            return;
+        if (TrySetSourceResistance(ref sourceResistance, ohms, Design.InputResistance)) {
+            root.Ports.Source.Value = sourceResistance;
+            root.Propagate();
         }
-
-        sourceResistance = total;
-        root.Ports.Source.Value = total;
-        root.Propagate();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -727,7 +723,13 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         switch (e.Kind) {
             case ElementKind.Resistor: {
                 // A switched resistor's 0 is absent (an open contact) in either position, as documented.
-                var ohms = on ? e.Switch is null || e.Value > 0 ? e.Value : Open : e.OffValue > 0 ? e.OffValue : Open;
+                double ohms;
+                if (on) {
+                    ohms = e.Switch is null || e.Value > 0 ? e.Value : Open;
+                } else {
+                    ohms = e.OffValue > 0 ? e.OffValue : Open;
+                }
+
                 if (e.Part != PotPart.None) {
                     var fraction = e.Pot.Fraction(controls.Rotation(e.Role));
                     ohms = (e.Part == PotPart.Upper ? 1 - fraction : fraction) * e.Pot.Ohms;
@@ -825,7 +827,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         }
 
         var input0 = Design.Netlist.Input;
-        Conductance(a, input0, StageNetlist.Ground, 1 / sourceResistance);
+        RTypeScattering.Conductance(a, size, input0, StageNetlist.Ground, 1 / sourceResistance);
         if (dc) {
             b[input0 - 1] += input / sourceResistance;
         }
@@ -837,16 +839,16 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
             var e = elements[i];
             switch (e.Kind) {
                 case ElementKind.Resistor:
-                    Conductance(a, e.A, e.B, 1 / Math.Max(values[i], EndStop));
+                    RTypeScattering.Conductance(a, size, e.A, e.B, 1 / Math.Max(values[i], EndStop));
                     break;
                 case ElementKind.Capacitor:
                     if (!dc) {
-                        Conductance(a, e.A, e.B, Omega * values[i]);
+                        RTypeScattering.Conductance(a, size, e.A, e.B, Omega * values[i]);
                     }
 
                     break;
                 case ElementKind.Inductor:
-                    Conductance(a, e.A, e.B, dc ? Short : 1 / (Omega * values[i]));
+                    RTypeScattering.Conductance(a, size, e.A, e.B, dc ? Short : 1 / (Omega * values[i]));
                     break;
                 case ElementKind.Amplifier: {
                     // v(C) = A (v(A) - v(B)), its output current the row's unknown.
@@ -939,21 +941,6 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         }
 
         return Math.Max(b[output - 1], 1);
-    }
-
-    void Conductance(Span<double> a, int p, int m, double g) {
-        if (p > 0) {
-            a[(p - 1) * size + p - 1] += g;
-        }
-
-        if (m > 0) {
-            a[(m - 1) * size + m - 1] += g;
-        }
-
-        if (p > 0 && m > 0) {
-            a[(p - 1) * size + m - 1] -= g;
-            a[(m - 1) * size + p - 1] -= g;
-        }
     }
 
     void Stamp(Span<double> a, int row, int column, double g) {

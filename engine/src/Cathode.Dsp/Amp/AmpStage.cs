@@ -299,6 +299,21 @@ public abstract class AmpStage {
     public abstract double Tick(double input);
 
     public abstract void FlushDenormals();
+
+    /// <summary>
+    ///     For a stage whose input source is a resistive voltage source: the previous stage's <paramref name="ohms" />
+    ///     plus the stage's <paramref name="inputResistance" /> (at least 1 Ω) into
+    ///     <paramref name="sourceResistance" />. False when it has not changed, so the root needs no new propagation.
+    /// </summary>
+    protected static bool TrySetSourceResistance(ref double sourceResistance, double ohms, double inputResistance) {
+        var total = Math.Max(ohms + inputResistance, 1);
+        if (total == sourceResistance) {
+            return false;
+        }
+
+        sourceResistance = total;
+        return true;
+    }
 }
 
 /// <summary>DC operating points of tube stages, by bisection on the tube equations (control thread or reset).</summary>
