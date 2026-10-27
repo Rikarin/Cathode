@@ -714,7 +714,8 @@ public struct RTypeRoot<TPorts, TDevice>
         Device.Limit(v, proposed);
         var converged = true;
         for (var d = 0; d < k; d++) {
-#pragma warning disable SK2003 // Exact by design: the limiter leaves a free port's proposal bit for bit, so equality is "not limited".
+            // Exact by design: the limiter leaves a free port's proposal bit for bit, so equality is "not limited".
+#pragma warning disable SK2003
             converged &= proposed[d] == v[d] + step[d];
 #pragma warning restore SK2003
             step[d] = proposed[d] - v[d];
@@ -762,7 +763,8 @@ public struct RTypeRoot<TPorts, TDevice>
     ) {
         var s = Newton;
         var held = 0; // usually none: then there is nothing to re-solve
-#pragma warning disable SK2003 // Exact by design: the limiter leaves a free port's proposal bit for bit, so equality is "not limited".
+        // Exact by design: the limiter leaves a free port's proposal bit for bit, so equality is "not limited".
+#pragma warning disable SK2003
         for (var d = 0; d < k; d++) {
             held += proposed[d] == v[d] + unlimited[d] ? 0 : 1;
         }

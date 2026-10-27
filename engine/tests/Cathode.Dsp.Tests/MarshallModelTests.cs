@@ -208,7 +208,8 @@ public class MarshallModelTests(ITestOutputHelper output) {
             }
 
             output.WriteLine(
-                $"{model} {CircuitAmpBlock.Info.Params[knob].Id}: {string.Join(", ", levels.Select(static l => $"{l:0.0}"))} dB"
+                $"{model} {CircuitAmpBlock.Info.Params[knob].Id}: "
+                + $"{string.Join(", ", levels.Select(static l => $"{l:0.0}"))} dB"
             );
             for (var i = 1; i < levels.Count; i++) {
                 Assert.True(
@@ -242,7 +243,8 @@ public class MarshallModelTests(ITestOutputHelper output) {
             var switched = Render(type, chord, (index, 1f));
             var difference = Analysis.NullResidualDb(stock, switched) - Analysis.ToDb(Analysis.Rms(stock));
             output.WriteLine(
-                $"{model} {label}: {difference:0.0} dB from stock, peak {Analysis.ToDb(Analysis.Peak(switched)):0.0} dBFS"
+                $"{model} {label}: {difference:0.0} dB from stock, peak "
+                + $"{Analysis.ToDb(Analysis.Peak(switched)):0.0} dBFS"
             );
             Assert.True(Analysis.AllFinite(switched));
             Assert.True(difference > -30, $"{model} {label}: {difference:0.0} dB from stock");

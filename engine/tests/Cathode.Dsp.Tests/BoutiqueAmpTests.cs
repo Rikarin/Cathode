@@ -312,7 +312,8 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
                 )
                 .ToArray();
             output.WriteLine(
-                $"{type} ch{(channel ? 2 : 1)} knob {knob}: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB"
+                $"{type} ch{(channel ? 2 : 1)} knob {knob}: "
+                + $"{string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB"
             );
             for (var i = 1; i < levels.Length; i++) {
                 Assert.True(levels[i] > levels[i - 1] - 0.1, $"{type}: knob {knob} not monotonic at step {i}");
@@ -343,7 +344,8 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
         var treble = new[] { 0f, 5f, 10f }.Select(v => Tilt(CircuitAmpBlock.Treble, v, 4_000, 400)).ToArray();
         var bass = new[] { 0f, 5f, 10f }.Select(v => Tilt(CircuitAmpBlock.Bass, v, 80, 1_000)).ToArray();
         output.WriteLine(
-            $"{type} ch{(channel ? 2 : 1)}: 4 kHz over 400 Hz {string.Join(" ", treble.Select(static l => $"{l:0.0}"))}; "
+            $"{type} ch{(channel ? 2 : 1)}: 4 kHz over 400 Hz "
+            + $"{string.Join(" ", treble.Select(static l => $"{l:0.0}"))}; "
             + $"80 Hz over 1 kHz {string.Join(" ", bass.Select(static l => $"{l:0.0}"))}"
         );
         Assert.True(treble[1] > treble[0] - 0.1 && treble[2] > treble[1] - 0.1 && treble[2] - treble[0] > 3);

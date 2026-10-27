@@ -38,7 +38,8 @@ public sealed class DynaCabTests : IDisposable {
         for (var i = 1; i < boosts.Length; i++) {
             Assert.True(
                 boosts[i] > boosts[i - 1],
-                $"{CabCatalogue.Mics[mic].Name}: boost {boosts[i]:0.0} dB at {distances[i]} in, {boosts[i - 1]:0.0} dB at {distances[i - 1]} in"
+                $"{CabCatalogue.Mics[mic].Name}: boost {boosts[i]:0.0} dB at {distances[i]} in, {boosts[i - 1]:0.0} dB "
+                + $"at {distances[i - 1]} in"
             );
         }
 
@@ -468,7 +469,8 @@ public sealed class DynaCabTests : IDisposable {
 
         File.WriteAllText(
             Path.Combine(folder, "manifest.json"),
-            $$"""{ "format": "cathode-cabgrid", "version": 1, "name": "test", "irs": [{{string.Join(",", entries)}}] }"""
+            """{ "format": "cathode-cabgrid", "version": 1, "name": "test", "irs": ["""
+            + $$"""{{string.Join(",", entries)}}] }"""
         );
 
         using var block = new CabBlock();
@@ -512,7 +514,8 @@ public sealed class DynaCabTests : IDisposable {
         WavFile.Write(Path.Combine(folder, "a.wav"), new((int)Rate, [Signals.Impulse(64)]));
         File.WriteAllText(
             Path.Combine(folder, "manifest.json"),
-            """{ "irs": [ { "position": 0, "distance": 0, "file": "a.wav" }, { "position": 50, "distance": 1, "file": "a.wav" } ] }"""
+            """{ "irs": [ { "position": 0, "distance": 0, "file": "a.wav" },"""
+            + """ { "position": 50, "distance": 1, "file": "a.wav" } ] }"""
         );
 
         Assert.Throws<InvalidDataException>(() => CabGrid.Load(folder));

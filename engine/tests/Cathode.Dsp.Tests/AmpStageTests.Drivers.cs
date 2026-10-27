@@ -57,7 +57,8 @@ public partial class AmpStageTests {
         output.WriteLine(
             $"Major driver: cathodyne grid {driver.RestGrid:0.00} V, plate {driver.RestSplitter.Plate:0.0} V, junction "
             + $"{driver.RestSplitter.Junction:0.00} V; ECC82 cathode {driver.RestDriverCathode:0.00} V, plates "
-            + $"{driver.RestPlateA:0.0}/{driver.RestPlateB:0.0} V; output impedance {driver.OutputImpedance.Zaa / 1e3:0.0}k, "
+            + $"{driver.RestPlateA:0.0}/{driver.RestPlateB:0.0} V; output impedance "
+            + $"{driver.OutputImpedance.Zaa / 1e3:0.0}k, "
             + $"{driver.OutputImpedance.Zab / 1e3:0.0}k"
         );
         var worst = 0.0;
@@ -96,7 +97,8 @@ public partial class AmpStageTests {
             var cathodeNow = reference.Voltage(tail);
             output.WriteLine(
                 $"  vd {vd,5:0.0}: plates {driver.RestPlateA + ea:0.00}/{driver.RestPlateB + eb:0.00} V, reference "
-                + $"{reference.Voltage(pa):0.00}/{reference.Voltage(pb):0.00} V (driver grids {swingA:0.0}/{swingB:0.0} V, "
+                + $"{reference.Voltage(pa):0.00}/{reference.Voltage(pb):0.00} V (driver grids "
+                + $"{swingA:0.0}/{swingB:0.0} V, "
                 + $"cathode {cathodeNow:0.0} V)"
             );
 
@@ -213,7 +215,8 @@ public partial class AmpStageTests {
             controls
         );
         output.WriteLine(
-            $"{name}: B+ {power.Supply:0.0} V, grid bias {power.GridBias:0.00} V, idle {power.PlateCurrents.A * 1e3:0.0} mA "
+            $"{name}: B+ {power.Supply:0.0} V, grid bias {power.GridBias:0.00} V, idle "
+            + $"{power.PlateCurrents.A * 1e3:0.0} mA "
             + "per tube"
         );
         var errorDb = CompareInTime(name, power.Tick, power.Newton, circuit, speaker, amplitude, 8);

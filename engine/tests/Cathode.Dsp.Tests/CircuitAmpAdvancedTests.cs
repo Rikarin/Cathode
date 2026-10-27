@@ -61,7 +61,9 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
             var peak = Analysis.ToDb(Analysis.Peak(changed));
             var id = CircuitAmpBlock.Info.Params[index].Id;
             output.WriteLine(
-                $"{AmpDesign.All[type].Name,-24} {id,-11} {value,5}: {Analysis.NullResidualDb(stock, changed) - Analysis.ToDb(Analysis.Rms(stock)),7:0.0} dB, peak {peak:0.0}"
+                $"{AmpDesign.All[type].Name,-24} {id,-11} {value,5}: "
+                + $"{Analysis.NullResidualDb(stock, changed) - Analysis.ToDb(Analysis.Rms(stock)),7:0.0} dB, peak "
+                + $"{peak:0.0}"
             );
             Assert.True(Analysis.AllFinite(changed), $"{id} = {value}");
             Assert.True(peak < 6, $"{id} = {value}: peak {peak:0.0} dBFS");

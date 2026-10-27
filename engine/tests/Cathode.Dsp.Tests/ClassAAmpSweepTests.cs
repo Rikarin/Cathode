@@ -119,7 +119,8 @@ public class ClassAAmpSweepTests(ITestOutputHelper output) {
         );
         var rendered = BlockRender.Mono(block, stimulus, 64);
         var name =
-            $"circuitamp-{type.ToLowerInvariant().Replace("-", string.Empty, StringComparison.Ordinal)}-ch{(channel ? 2 : 1)}.wav";
+            $"circuitamp-{type.ToLowerInvariant().Replace("-", string.Empty, StringComparison.Ordinal)}-ch"
+            + $"{(channel ? 2 : 1)}.wav";
         var path = Path.Combine(GoldenFolder(), name);
         if (Environment.GetEnvironmentVariable("CATHODE_UPDATE_GOLDEN") == "1"
             || (!File.Exists(path) && Environment.GetEnvironmentVariable("CI") is null)) {

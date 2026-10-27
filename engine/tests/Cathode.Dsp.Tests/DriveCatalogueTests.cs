@@ -58,7 +58,8 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
         var low = Measure(0f);
         var full = Measure(10f);
         output.WriteLine(
-            $"{Name(type)}: {low.GainDb:0.0} dB / THD {low.Thd:P1} at drive 0, {full.GainDb:0.0} dB / THD {full.Thd:P1} at 10"
+            $"{Name(type)}: {low.GainDb:0.0} dB / THD {low.Thd:P1} at drive 0, {full.GainDb:0.0} dB / "
+            + $"THD {full.Thd:P1} at 10"
         );
         Assert.InRange(low.GainDb, -20, 20);
         Assert.InRange(full.GainDb, -12, 24);
@@ -126,7 +127,8 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
         var extreme = Measure(FundamentalBin, 0.5f, true);
         var (musicalFloor, extremeFloor) = AliasingFloors(circuit);
         output.WriteLine(
-            $"{Name(type)}: signal-to-aliasing {musical:0.0} dB at 770 Hz / 0.1 V; at 2.5 kHz / 0.5 V {exact:0.0} dB exact "
+            $"{Name(type)}: signal-to-aliasing {musical:0.0} dB at 770 Hz / 0.1 V; at 2.5 kHz / 0.5 V "
+            + $"{exact:0.0} dB exact "
             + $"solve, {extreme:0.0} dB antialiased (floors {musicalFloor} / {extremeFloor} dB)"
         );
         Assert.True(

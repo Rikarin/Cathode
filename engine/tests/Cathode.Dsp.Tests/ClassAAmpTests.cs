@@ -147,7 +147,8 @@ public partial class AmpStageTests {
         reference.OperatingPoint(40);
         output.WriteLine(
             $"{name}: rest output {stage.RestOutput:0.000} V (reference {reference.Voltage(node):0.000} V), source "
-            + $"{rest:0.00} V behind {sourceResistance / 1e3:0.0}k, output resistance {stage.OutputResistance / 1e3:0.0}k"
+            + $"{rest:0.00} V behind {sourceResistance / 1e3:0.0}k, output resistance "
+            + $"{stage.OutputResistance / 1e3:0.0}k"
         );
         Assert.Equal(reference.Voltage(node), stage.RestOutput, 0.002 * Math.Abs(reference.Voltage(node)) + 1e-6);
 
@@ -186,8 +187,10 @@ public partial class AmpStageTests {
             master: master
         );
         output.WriteLine(
-            $"{name}: B+ {power.Supply:0.0} V, cathode {power.CathodeVoltage:0.00} V across {power.CathodeResistor:0} Ω, "
-            + $"idle {power.PlateCurrents.A * 1e3:0.0} mA per tube, inverter grids {power.PhaseInverter.RestGrid:0.00} V"
+            $"{name}: B+ {power.Supply:0.0} V, cathode {power.CathodeVoltage:0.00} V across "
+            + $"{power.CathodeResistor:0} Ω, "
+            + $"idle {power.PlateCurrents.A * 1e3:0.0} mA per tube, inverter grids "
+            + $"{power.PhaseInverter.RestGrid:0.00} V"
         );
         var errorDb = CompareInTime(name, power.Tick, power.Newton, circuit, speaker, amplitude, 8);
         Assert.True(errorDb < -35, $"{name}: {errorDb:0.0} dB from the reference");

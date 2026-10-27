@@ -159,10 +159,10 @@ public sealed class HostAllocationTests : IDisposable {
     [Fact]
     public void Fast_path_applies_parameters_like_the_deserializing_path() {
         service.Handle(new() { Type = IpcTypes.LoadGraph, Generation = 4, Graph = GraphTemplates.Basic() });
-        var frame = """
-                    {"params":[{"value":-12.5,"param":"level","block":"volpan1"},{"block":"volpan1","param":"nope","value":1}],
-                     "generation":4,"id":9,"type":"setParams","graph":null}
-                    """u8;
+        var frame = """{"params":[{"value":-12.5,"param":"level","block":"volpan1"},"""u8
+            + """{"block":"volpan1","param":"nope","value":1}],"""u8
+            + "\n"u8
+            + """ "generation":4,"id":9,"type":"setParams","graph":null}"""u8;
 
         Assert.True(service.TryHandle(frame, out var reply));
         Assert.Equal(IpcTypes.Error, reply.Type);
@@ -189,7 +189,8 @@ public sealed class HostAllocationTests : IDisposable {
         Assert.Equal(90f, service.Engine.Rig.GetTarget(RigControls.Descriptor.IndexOf("tempo")));
         Assert.True(
             service.TryHandle(
-                """{"type":"setParams","generation":99,"params":[{"block":"rig","param":"tempo","value":80},{"block":"amp1","param":"x","value":1}]}"""u8,
+                """{"type":"setParams","generation":99,"params":[{"block":"rig","param":"tempo","value":80},"""u8
+                + """{"block":"amp1","param":"x","value":1}]}"""u8,
                 out reply
             )
         );

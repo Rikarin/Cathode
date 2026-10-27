@@ -134,7 +134,8 @@ public class WdfDeviceTests(ITestOutputHelper output) {
         var current = new double[3];
         new Pentode(model).Evaluate([vg1, vg2, vp], current, new double[9], 3);
         output.WriteLine(
-            $"{tube}: plate {current[2] * 1e3:0.0} mA, screen {current[1] * 1e3:0.0} mA (datasheet plate {amps * 1e3:0} mA)"
+            $"{tube}: plate {current[2] * 1e3:0.0} mA, screen {current[1] * 1e3:0.0} mA (datasheet "
+            + $"plate {amps * 1e3:0} mA)"
         );
         Assert.InRange(current[2], 0.75 * amps, 1.25 * amps);
     }

@@ -111,9 +111,14 @@ public class GuitarMlLstmModelTests {
     public void A_conditioned_model_insists_on_its_knob_values() {
         var json = """
                    {"model_data": {"unit_type": "LSTM", "input_size": 2, "hidden_size": 1, "num_layers": 1, "skip": 0},
-                    "state_dict": {"rec.weight_ih_l0": [[0, 0], [0, 0], [0, 0], [0, 0]], "rec.weight_hh_l0": [[0], [0], [0], [0]],
-                                   "rec.bias_ih_l0": [0, 0, 0, 0], "rec.bias_hh_l0": [0, 0, 0, 0], "lin.weight": [[1]], "lin.bias": [0]}}
-                   """;
+                    "state_dict": {"rec.weight_ih_l0": [[0, 0], [0, 0], [0, 0], [0, 0]],
+                   """
+            + """ "rec.weight_hh_l0": [[0], [0], [0], [0]],"""
+            + "\n"
+            + """
+                              "rec.bias_ih_l0": [0, 0, 0, 0], "rec.bias_hh_l0": [0, 0, 0, 0],
+              """
+            + """ "lin.weight": [[1]], "lin.bias": [0]}}""";
         using var model = GuitarMlLstmModel.Parse(JsonDocument.Parse(json).RootElement);
 
         Assert.Throws<ArgumentException>(() => model.SetConditioning([]));

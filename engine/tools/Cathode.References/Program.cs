@@ -148,7 +148,8 @@ static int Match(ReferenceManifest manifest, ReferenceCache cache, Options optio
     var overrides = options.Assignments("set");
     var reports = new List<MatchReport>();
     Console.WriteLine(
-        $"{"reference",-36} {"circuit",-28} {"dBu",6} {"ESR",7} {"ESRpre",7} {"MRSTFT",7} {"harm dB",8} {"resp dB",8} {"pass",5}"
+        $"{"reference",-36} {"circuit",-28} {"dBu",6} {"ESR",7} {"ESRpre",7} {"MRSTFT",7} {"harm dB",8} "
+        + $"{"resp dB",8} {"pass",5}"
     );
     foreach (var entry in entries) {
         var settings = Settings(entry, type, overrides);
@@ -173,8 +174,10 @@ static int Match(ReferenceManifest manifest, ReferenceCache cache, Options optio
         var report = ReferenceMatcher.Match(entry, reference, settings, options.Number("input-dbu"));
         reports.Add(report);
         Console.WriteLine(
-            $"{entry.Id,-36} {Truncate(report.Circuit, 28),-28} {report.InputDbu,5:0.0}{(report.InputDbuFitted ? "*" : " ")} "
-            + $"{report.Esr,7:0.000} {report.EsrPreEmphasis,7:0.000} {report.Mrstft,7:0.000} {report.HarmonicDistanceDb,8:0.0} "
+            $"{entry.Id,-36} {Truncate(report.Circuit, 28),-28} "
+            + $"{report.InputDbu,5:0.0}{(report.InputDbuFitted ? "*" : " ")} "
+            + $"{report.Esr,7:0.000} {report.EsrPreEmphasis,7:0.000} {report.Mrstft,7:0.000} "
+            + $"{report.HarmonicDistanceDb,8:0.0} "
             + $"{report.ResponseRmsDb,8:0.0} {report.Pass switch { true => "yes", false => "NO", null => "-" },5}"
             + $"  ({watch.Elapsed.TotalSeconds:0}s)"
         );
@@ -257,7 +260,8 @@ static void PrintFit(
     IReadOnlyDictionary<string, double>? truth
 ) {
     Console.WriteLine(
-        $"{"tolerance",-12} {"nominal",8} {"min",8} {"max",8} {"fitted",8}{(truth is null ? string.Empty : $" {"truth",8}")}"
+        $"{"tolerance",-12} {"nominal",8} {"min",8} {"max",8} "
+        + $"{"fitted",8}{(truth is null ? string.Empty : $" {"truth",8}")}"
     );
     foreach (var t in tolerances) {
         Console.WriteLine(

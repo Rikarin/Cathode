@@ -97,7 +97,8 @@ public sealed unsafe class NamModel : ICaptureModel {
     }
 
     /// <inheritdoc />
-#pragma warning disable SK2142 // False positive: `fixed` pins the spans and reads them; it does not overwrite the parameters.
+    // False positive: `fixed` pins the spans and reads them; it does not overwrite the parameters.
+#pragma warning disable SK2142
     public void Process(ReadOnlySpan<float> input, Span<float> output) {
 #pragma warning restore SK2142
         if (handle == 0) {

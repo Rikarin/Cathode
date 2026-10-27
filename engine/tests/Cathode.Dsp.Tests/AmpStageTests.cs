@@ -243,8 +243,10 @@ public partial class AmpStageTests(ITestOutputHelper output) {
         var design = (LongTailPairDesign)AmpDesign.All[index].Power.PhaseInverter;
         var pair = LongTailPair.For(design);
         output.WriteLine(
-            $"{AmpDesign.All[index].Name} inverter: grids {pair.RestGrid:0.00} V, cathode {pair.RestCathode:0.00} V, plates "
-            + $"{pair.RestPlateA:0.00}/{pair.RestPlateB:0.00} V, output impedance {pair.OutputImpedance.Zaa / 1e3:0.0}k, "
+            $"{AmpDesign.All[index].Name} inverter: grids {pair.RestGrid:0.00} V, cathode "
+            + $"{pair.RestCathode:0.00} V, plates "
+            + $"{pair.RestPlateA:0.00}/{pair.RestPlateB:0.00} V, output impedance "
+            + $"{pair.OutputImpedance.Zaa / 1e3:0.0}k, "
             + $"{pair.OutputImpedance.Zab / 1e3:0.0}k, "
             + $"{pair.OutputImpedance.Zba / 1e3:0.0}k, {pair.OutputImpedance.Zbb / 1e3:0.0}k"
         );
@@ -311,7 +313,8 @@ public partial class AmpStageTests(ITestOutputHelper output) {
             t => Drive(amplitude, t)
         );
         output.WriteLine(
-            $"{design.Name}: B+ {power.Supply:0.0} V, screen {power.ScreenSupply:0.0} V, grid bias {power.GridBias:0.00} V, "
+            $"{design.Name}: B+ {power.Supply:0.0} V, screen {power.ScreenSupply:0.0} V, grid bias "
+            + $"{power.GridBias:0.00} V, "
             + $"cathode {power.CathodeVoltage:0.00} V, idle {power.PlateCurrents.A * 1e3:0.0} mA per tube"
         );
         var errorDb = CompareInTime(design.Name, power.Tick, power.Newton, circuit, speaker, amplitude, 8);
@@ -371,7 +374,8 @@ public partial class AmpStageTests(ITestOutputHelper output) {
 
         var errorDb = 10 * Math.Log10(error / energy);
         output.WriteLine(
-            $"{name}: output {peak:0.000} V peak, error {errorDb:0.0} dB, Newton {newton?.MeanIterations:0.00} iterations "
+            $"{name}: output {peak:0.000} V peak, error {errorDb:0.0} dB, Newton "
+            + $"{newton?.MeanIterations:0.00} iterations "
             + $"per sample (unconverged {newton?.Unconverged}), reference failures {reference.NewtonFailures}"
         );
         Assert.Equal(0, reference.NewtonFailures);

@@ -262,7 +262,8 @@ public sealed partial class LiveRig(
                 if (BuiltInTypes.IsOutput(from.Type) || to.Type == BuiltInTypes.Input) {
                     throw new RigException(
                         400,
-                        "Cables run from an output side to an input side: nothing leaves an Output block or enters an Input block."
+                        "Cables run from an output side to an input side: nothing leaves an Output block or "
+                        + "enters an Input block."
                     );
                 }
 

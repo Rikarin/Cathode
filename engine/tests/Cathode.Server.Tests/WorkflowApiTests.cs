@@ -310,7 +310,8 @@ public sealed class WorkflowApiTests : IAsyncLifetime {
     static async Task Succeeded(HttpResponseMessage response) {
         if (!response.IsSuccessStatusCode) {
             Assert.Fail(
-                $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync(Token)}"
+                $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} "
+                + $"{await response.Content.ReadAsStringAsync(Token)}"
             );
         }
     }

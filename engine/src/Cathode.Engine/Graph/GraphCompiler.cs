@@ -381,7 +381,8 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             if (found is not null && !found.TryAdd(FeedbackPair(nodes[n].Id), n)) {
                 var kind = block is FeedbackSendBlock ? "Feedback Send" : "Feedback Return";
                 errors.Add(
-                    $"Node '{nodes[n].Id}': a preset has at most one {kind} per pair ({kind} {FeedbackPair(nodes[n].Id)} is '{nodes[found[FeedbackPair(nodes[n].Id)]].Id}')."
+                    $"Node '{nodes[n].Id}': a preset has at most one {kind} per pair ({kind} "
+                    + $"{FeedbackPair(nodes[n].Id)} is '{nodes[found[FeedbackPair(nodes[n].Id)]].Id}')."
                 );
             }
         }
@@ -446,11 +447,13 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
 
             if (node.Row < 0 || node.Row >= definition.Rows || node.Column < 0 || node.Column >= definition.Columns) {
                 errors.Add(
-                    $"Node '{node.Id}' at ({node.Row},{node.Column}) is outside the {definition.Rows}x{definition.Columns} grid."
+                    $"Node '{node.Id}' at ({node.Row},{node.Column}) is outside the "
+                    + $"{definition.Rows}x{definition.Columns} grid."
                 );
             } else if (!occupied.TryAdd((node.Row, node.Column), node.Id)) {
                 errors.Add(
-                    $"Node '{node.Id}' shares cell ({node.Row},{node.Column}) with '{occupied[(node.Row, node.Column)]}'."
+                    $"Node '{node.Id}' shares cell ({node.Row},{node.Column}) with "
+                    + $"'{occupied[(node.Row, node.Column)]}'."
                 );
             }
 

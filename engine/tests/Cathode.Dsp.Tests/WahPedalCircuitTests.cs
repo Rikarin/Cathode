@@ -84,7 +84,8 @@ public class WahPedalCircuitTests(ITestOutputHelper output) {
         var toe = CircuitPeak(voicing, 1);
         var lc = 1 / (2 * Math.PI * Math.Sqrt(voicing.Inductance * voicing.Tuning));
         output.WriteLine(
-            $"{voicing.Name}: heel {heel.Frequency:0} Hz Q {heel.Q:0.0}, toe {toe.Frequency:0} Hz Q {toe.Q:0.0}; LC {lc:0} Hz"
+            $"{voicing.Name}: heel {heel.Frequency:0} Hz Q {heel.Q:0.0}, toe {toe.Frequency:0} Hz Q "
+            + $"{toe.Q:0.0}; LC {lc:0} Hz"
         );
         Assert.InRange(toe.Frequency / lc, 0.9, 1.0);
         var predicted = toe.Frequency / heel.Frequency;

@@ -285,7 +285,8 @@ public partial class AmpStageTests {
             reference.OperatingPoint(40);
             var (ea, eb) = inverter.Evaluate(vd, out _, out _);
             output.WriteLine(
-                $"  vd {vd,5:0.0}: plate {inverter.RestPlateA + ea:0.00} V, junction {inverter.RestPlateB + eb:0.00} V, "
+                $"  vd {vd,5:0.0}: plate {inverter.RestPlateA + ea:0.00} V, junction "
+                + $"{inverter.RestPlateB + eb:0.00} V, "
                 + $"reference {reference.Voltage(a):0.00}/{reference.Voltage(b):0.00} V"
             );
 
@@ -403,7 +404,8 @@ public partial class AmpStageTests {
             triode
         );
         output.WriteLine(
-            $"{name}: B+ {power.Supply:0.0} V, grid bias {power.GridBias:0.00} V, cathode {power.CathodeVoltage:0.00} V, "
+            $"{name}: B+ {power.Supply:0.0} V, grid bias {power.GridBias:0.00} V, cathode "
+            + $"{power.CathodeVoltage:0.00} V, "
             + $"idle {power.PlateCurrents.A * 1e3:0.0} mA per tube"
         );
         var errorDb = CompareInTime(name, power.Tick, power.Newton, circuit, speaker, amplitude, 8);

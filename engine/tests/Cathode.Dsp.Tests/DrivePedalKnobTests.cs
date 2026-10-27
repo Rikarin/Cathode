@@ -86,7 +86,8 @@ public class DrivePedalKnobTests(ITestOutputHelper output) {
 
         var (odLevel, boostLevel) = (Level(0f), Level(2f));
         output.WriteLine(
-            $"300 mV at drive 5: THD OD {od:P1}, Distortion {distortion:P1}, Boost {boost:P1}; level OD {odLevel:0.0}, Boost {boostLevel:0.0} dB"
+            $"300 mV at drive 5: THD OD {od:P1}, Distortion {distortion:P1}, Boost {boost:P1}; level OD {odLevel:0.0}, "
+            + $"Boost {boostLevel:0.0} dB"
         );
         Assert.True(distortion > od, $"{distortion:P1} against {od:P1}");
         Assert.True(boost < od / 2, $"{boost:P1} against {od:P1}");
@@ -220,7 +221,8 @@ public class DrivePedalKnobTests(ITestOutputHelper output) {
         var bass = (Level(200, 0f, (DriveBlock.StackBass, 10f)), Level(200, 1f, (DriveBlock.StackBass, 10f)));
         var treble = (Level(3_000, 0f, (DriveBlock.Tone, 10f)), Level(3_000, 2f, (DriveBlock.Tone, 10f)));
         output.WriteLine(
-            $"200 Hz with Bass full: {bass.Item1:0.0} stock, {bass.Item2:0.0} Bass Up; 3 kHz with Treble full: {treble.Item1:0.0}, {treble.Item2:0.0} Treble Up"
+            $"200 Hz with Bass full: {bass.Item1:0.0} stock, {bass.Item2:0.0} Bass Up; 3 kHz with Treble full: "
+            + $"{treble.Item1:0.0}, {treble.Item2:0.0} Treble Up"
         );
         Assert.True(bass.Item2 > bass.Item1 + 3, $"{bass}");
         Assert.True(treble.Item2 < treble.Item1 - 3, $"{treble}");

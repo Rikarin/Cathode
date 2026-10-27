@@ -17,23 +17,37 @@ static class HtmlReport {
         html.Append(
             """
             <!doctype html>
-            <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>Cathode amp references</title>
-            <style>
-            :root { --bg: #fff; --fg: #1d1d1f; --muted: #6e6e73; --line: #d2d2d7; --ref: #1f6feb; --amp: #d1495b; }
-            @media (prefers-color-scheme: dark) { :root { --bg: #161618; --fg: #f5f5f7; --muted: #a1a1a6; --line: #3a3a3c; --ref: #58a6ff; --amp: #ff7b72; } }
-            body { background: var(--bg); color: var(--fg); font: 14px/1.45 system-ui, sans-serif; margin: 24px 16px; }
-            table { border-collapse: collapse; width: 100%; overflow-x: auto; display: block; }
-            th, td { border-bottom: 1px solid var(--line); padding: 4px 8px; text-align: right; white-space: nowrap; }
-            th:first-child, td:first-child, td.text { text-align: left; }
-            .muted { color: var(--muted); } .fail { color: var(--amp); } section { margin-top: 32px; }
-            svg { max-width: 100%; height: auto; } .ref { stroke: var(--ref); } .amp { stroke: var(--amp); }
-            </style></head><body>
-            <h1>Circuit amp vs references</h1>
-            <p class="muted">ESR pre-emphasised (1 − 0.95 z⁻¹); MRSTFT averaged over 256/1024/4096; response and harmonics level-matched.
-            <span style="color:var(--ref)">Reference</span> vs <span style="color:var(--amp)">circuit amp</span>.</p>
-            <table><tr><th>Reference</th><th>Circuit</th><th>Input dBu</th><th>ESR</th><th>ESR (pre)</th><th>MRSTFT</th><th>Harm. dB</th><th>Resp. dB</th><th>Pass</th></tr>
+            <html lang="en"><head><meta charset="utf-8">
             """
+            + """<meta name="viewport" content="width=device-width, initial-scale=1">"""
+            + "\n"
+            + """
+              <title>Cathode amp references</title>
+              <style>
+              :root { --bg: #fff; --fg: #1d1d1f; --muted: #6e6e73; --line: #d2d2d7; --ref: #1f6feb; --amp: #d1495b; }
+              @media (prefers-color-scheme: dark) { :root { --bg: #161618; --fg: #f5f5f7; --muted: #a1a1a6;
+              """
+            + " --line: #3a3a3c; --ref: #58a6ff; --amp: #ff7b72; } }\n"
+            + """
+              body { background: var(--bg); color: var(--fg); font: 14px/1.45 system-ui, sans-serif;
+              """
+            + " margin: 24px 16px; }\n"
+            + """
+              table { border-collapse: collapse; width: 100%; overflow-x: auto; display: block; }
+              th, td { border-bottom: 1px solid var(--line); padding: 4px 8px; text-align: right; white-space: nowrap; }
+              th:first-child, td:first-child, td.text { text-align: left; }
+              .muted { color: var(--muted); } .fail { color: var(--amp); } section { margin-top: 32px; }
+              svg { max-width: 100%; height: auto; } .ref { stroke: var(--ref); } .amp { stroke: var(--amp); }
+              </style></head><body>
+              <h1>Circuit amp vs references</h1>
+              <p class="muted">ESR pre-emphasised (1 − 0.95 z⁻¹); MRSTFT averaged over 256/1024/4096;
+              """
+            + " response and harmonics level-matched.\n"
+            + """
+              <span style="color:var(--ref)">Reference</span> vs <span style="color:var(--amp)">circuit amp</span>.</p>
+              <table><tr><th>Reference</th><th>Circuit</th><th>Input dBu</th><th>ESR</th><th>ESR (pre)</th>
+              """
+            + "<th>MRSTFT</th><th>Harm. dB</th><th>Resp. dB</th><th>Pass</th></tr>"
         );
         foreach (var r in reports) {
             AppendSummaryRow(html, r);
@@ -132,20 +146,24 @@ static class HtmlReport {
         var svg = new StringBuilder();
         svg.Append(
             CultureInfo.InvariantCulture,
-            $"<svg viewBox=\"0 0 {Width} {Height}\" role=\"img\" aria-label=\"Frequency response\" fill=\"none\" stroke-width=\"2\">"
+            $"<svg viewBox=\"0 0 {Width} {Height}\" role=\"img\" aria-label=\"Frequency response\" "
+            + $"fill=\"none\" stroke-width=\"2\">"
         );
         for (var db = bottom; db <= top; db += 6) {
             svg.Append(
                 CultureInfo.InvariantCulture,
-                $"<line x1=\"36\" x2=\"{Width - 4}\" y1=\"{Y(db):0.0}\" y2=\"{Y(db):0.0}\" stroke=\"currentColor\" stroke-opacity=\"0.12\" stroke-width=\"1\"/>"
-                + $"<text x=\"0\" y=\"{Y(db) + 4:0.0}\" font-size=\"10\" fill=\"currentColor\" stroke=\"none\">{db:0}</text>"
+                $"<line x1=\"36\" x2=\"{Width - 4}\" y1=\"{Y(db):0.0}\" y2=\"{Y(db):0.0}\" stroke=\"currentColor\" "
+                + $"stroke-opacity=\"0.12\" stroke-width=\"1\"/>"
+                + $"<text x=\"0\" y=\"{Y(db) + 4:0.0}\" font-size=\"10\" fill=\"currentColor\" "
+                + $"stroke=\"none\">{db:0}</text>"
             );
         }
 
         foreach (var f in new[] { 100.0, 1_000, 10_000 }) {
             svg.Append(
                 CultureInfo.InvariantCulture,
-                $"<text x=\"{X(Math.Log10(f)) - 10:0.0}\" y=\"{Height - 2}\" font-size=\"10\" fill=\"currentColor\" stroke=\"none\">{(f >= 1_000 ? $"{f / 1_000:0}k" : $"{f:0}")}</text>"
+                $"<text x=\"{X(Math.Log10(f)) - 10:0.0}\" y=\"{Height - 2}\" font-size=\"10\" fill=\"currentColor\" "
+                + $"stroke=\"none\">{(f >= 1_000 ? $"{f / 1_000:0}k" : $"{f:0}")}</text>"
             );
         }
 

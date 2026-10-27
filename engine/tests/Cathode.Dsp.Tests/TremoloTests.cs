@@ -96,7 +96,8 @@ public class TremoloTests(ITestOutputHelper output) {
         var vibrato = Optical(Design("Deluxe Reverb"));
         var bias = vibrato.DriverBias(0.5);
         output.WriteLine(
-            $"driver cathode {vibrato.DriverBias(0):0.0} / {bias:0.0} / {vibrato.DriverBias(1):0.0} V at Speed 0, 5, 10; "
+            $"driver cathode {vibrato.DriverBias(0):0.0} / {bias:0.0} / {vibrato.DriverBias(1):0.0} "
+            + "V at Speed 0, 5, 10; "
             + $"lamp peak {vibrato.PeakLampCurrent(0.5) * 1e3:0.00} mA, cell "
             + $"{vibrato.Cell.Resistance(vibrato.PeakLampCurrent(0.5)):0} ohm"
         );

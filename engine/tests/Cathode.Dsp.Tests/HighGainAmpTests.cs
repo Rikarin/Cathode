@@ -72,7 +72,8 @@ public partial class AmpStageTests {
         }
 
         var errorDb = CompareInTime(
-            $"{type}{(switched ? " (switched)" : string.Empty)} {string.Join(" > ", designs.Select(static d => d.Name))}",
+            $"{type}{(switched ? " (switched)" : string.Empty)} "
+            + $"{string.Join(" > ", designs.Select(static d => d.Name))}",
             x => {
                 foreach (var stage in stages) {
                     x = stage.Tick(x);

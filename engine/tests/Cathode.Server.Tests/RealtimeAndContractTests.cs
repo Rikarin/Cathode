@@ -111,7 +111,8 @@ public sealed class RealtimeAndContractTests : IAsyncLifetime {
         var committed = Normalise(await File.ReadAllTextAsync(OpenApiPath, Token));
         Assert.True(
             committed == current,
-            "The API changed. Review the difference, then update the committed document with CATHODE_UPDATE_OPENAPI=1 dotnet test."
+            "The API changed. Review the difference, then update the committed document with "
+            + "CATHODE_UPDATE_OPENAPI=1 dotnet test."
             + FirstDifference(committed, current)
         );
         Assert.Contains("\"/api/v1/live/blocks/{id}/params\"", current, StringComparison.Ordinal);

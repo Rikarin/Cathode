@@ -424,7 +424,8 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
             var (a, b) = (Bands(control, 0f), Bands(control, 10f));
             var change = Math.Max(Math.Abs(a[0] - b[0]), Math.Abs(a[1] - b[1]));
             output.WriteLine(
-                $"{type} [{setting}] control {control}: 110 Hz {b[0] - a[0]:+0.0;-0.0} dB, 2.5 kHz {b[1] - a[1]:+0.0;-0.0} dB"
+                $"{type} [{setting}] control {control}: 110 Hz {b[0] - a[0]:+0.0;-0.0} dB, 2.5 kHz "
+                + $"{b[1] - a[1]:+0.0;-0.0} dB"
             );
             Assert.True(
                 change > 0.2,

@@ -162,7 +162,8 @@ public sealed partial class AssetStore {
         var kind = KindOf(name)
             ?? throw new RigException(
                 415,
-                $"Unsupported asset '{name}': upload a .nam or .aidax model, a .wav impulse response or a .cabgrid IR pack."
+                $"Unsupported asset '{name}': upload a .nam or .aidax model, a .wav impulse response "
+                + "or a .cabgrid IR pack."
             );
 
         var temporary = Path.Combine(folder, $"upload-{Guid.NewGuid():n}.tmp");

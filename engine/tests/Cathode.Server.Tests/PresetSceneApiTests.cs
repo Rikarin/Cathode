@@ -515,7 +515,8 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         using var response = await call;
         if (!response.IsSuccessStatusCode) {
             Assert.Fail(
-                $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync(Token)}"
+                $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} "
+                + $"{await response.Content.ReadAsStringAsync(Token)}"
             );
         }
     }
@@ -524,7 +525,8 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         using (response) {
             if (!response.IsSuccessStatusCode) {
                 Assert.Fail(
-                    $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync(Token)}"
+                    $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} "
+                    + $"{await response.Content.ReadAsStringAsync(Token)}"
                 );
             }
 

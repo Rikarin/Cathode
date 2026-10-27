@@ -68,7 +68,9 @@ public class FenderAmpTests(ITestOutputHelper output) {
             .Select(g => Analysis.ToDb(Analysis.Rms(Render(model, 0.03f, (CircuitAmpBlock.Gain, g)).AsSpan(4_800))))
             .ToArray();
         output.WriteLine(
-            $"{model}: rms {string.Join(", ", rms.Select(static r => r.ToString("0.0", CultureInfo.InvariantCulture)))} dBFS at volume 1, 3, 5, 8"
+            $"{model}: rms "
+            + $"{string.Join(", ", rms.Select(static r => r.ToString("0.0", CultureInfo.InvariantCulture)))} dBFS "
+            + "at volume 1, 3, 5, 8"
         );
         for (var i = 1; i < rms.Length; i++) {
             Assert.True(rms[i] > rms[i - 1] + 0.5, $"volume {i}: {rms[i]:0.0} dB after {rms[i - 1]:0.0} dB");
@@ -101,7 +103,8 @@ public class FenderAmpTests(ITestOutputHelper output) {
             Render("Tweed Deluxe 5E3", 0.02f, (CircuitAmpBlock.Gain, 3f), (CircuitAmpBlock.Control1, 10f))
         );
         output.WriteLine(
-            $"Instrument channel: {Analysis.ToDb(down):0.0} dBFS with the Mic volume at 0, {Analysis.ToDb(up):0.0} at 10"
+            $"Instrument channel: {Analysis.ToDb(down):0.0} dBFS with the Mic volume at 0, "
+            + $"{Analysis.ToDb(up):0.0} at 10"
         );
         Assert.True(down > 1.5 * up);
     }

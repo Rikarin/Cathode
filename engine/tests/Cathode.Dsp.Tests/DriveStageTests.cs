@@ -122,7 +122,8 @@ public class DriveStageTests(ITestOutputHelper output) {
         var errorDb = Compare(stage.Tick, Input, reference, outputNode, StageRate, Oversampling, 3_840, out var peak);
         output.WriteLine(
             $"{name} fuzz {fuzz}, {amplitude * 1e3} mV: output {peak:0.000} V peak, error {errorDb:0.0} dB, "
-            + $"{stage.Root.MeanIterations:0.00} iterations per sample, {stage.Root.Unconverged} unconverged; reference "
+            + $"{stage.Root.MeanIterations:0.00} iterations per sample, {stage.Root.Unconverged} "
+            + "unconverged; reference "
             + $"{reference.NewtonFailures} Newton failures"
         );
         Assert.Equal(0, reference.NewtonFailures);

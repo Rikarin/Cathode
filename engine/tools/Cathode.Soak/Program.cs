@@ -111,7 +111,10 @@ async Task Sample() {
                 Console.WriteLine(
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"{minute,5:0.0} min  native p99.9 {engine.NativeP999,3:0}% max {engine.NativeMax,5:0.0}%  driver overloads {engine.DriverOverloads - first.DriverOverloads}  host GCs {engine.HostGen0 - first.HostGen0}/{engine.HostGen1 - first.HostGen1}/{engine.HostGen2 - first.HostGen2}  requests {api.Requests}  errors {api.Errors}"
+                        $"{minute,5:0.0} min  native p99.9 {engine.NativeP999,3:0}% max {engine.NativeMax,5:0.0}%  "
+                        + $"driver overloads {engine.DriverOverloads - first.DriverOverloads}  host GCs "
+                        + $"{engine.HostGen0 - first.HostGen0}/{engine.HostGen1 - first.HostGen1}/"
+                        + $"{engine.HostGen2 - first.HostGen2}  requests {api.Requests}  errors {api.Errors}"
                     )
                 );
             }

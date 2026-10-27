@@ -31,7 +31,8 @@ public class DriveRound4FuzzTests(ITestOutputHelper output) {
         var (lowGain, lowThd) = GainAndThd("Master Fuzz", 0f, quiet, LowBin);
         var (highGain, highThd) = GainAndThd("Master Fuzz", 10f, quiet, LowBin);
         output.WriteLine(
-            $"Master Fuzz at 30 mV: {lowGain:0.0} dB / THD {lowThd:P0} at attack 0, {highGain:0.0} dB / {highThd:P0} at 10"
+            $"Master Fuzz at 30 mV: {lowGain:0.0} dB / THD {lowThd:P0} at attack 0, {highGain:0.0} dB "
+            + $"/ {highThd:P0} at 10"
         );
         Assert.True(highThd > lowThd + 0.15, "attack does not bring up the fuzz");
 
@@ -80,7 +81,8 @@ public class DriveRound4FuzzTests(ITestOutputHelper output) {
         var edge = Spectrum("Hard Fuzz", 5f, 10f, quiet);
         var second = Analysis.ToDb(edge[2 * LowBin] / edge[LowBin]);
         output.WriteLine(
-            $"Hard Fuzz at 30 mV: THD {low:P0} at drive 0, {high:P0} at 10; H3 {third:0.0} dBc at 10, H2 {second:0.0} dBc at 5"
+            $"Hard Fuzz at 30 mV: THD {low:P0} at drive 0, {high:P0} at 10; H3 {third:0.0} dBc at 10, H2 "
+            + $"{second:0.0} dBc at 5"
         );
         Assert.True(high > low + 0.1, "drive does not clip harder");
         Assert.True(third > -12, $"H3 {third:0.0} dBc: not close to a square (-9.5 dBc)");

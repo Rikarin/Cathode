@@ -560,7 +560,8 @@ public sealed class CircuitRoot<TSource, TDevice>
         DevicePivots freeBuffer = default;
         Span<int> free = freeBuffer;
         var count = 0;
-#pragma warning disable SK2003 // Exact by design: the limiter leaves a free port's step bit for bit, so equality is "not limited".
+        // Exact by design: the limiter leaves a free port's step bit for bit, so equality is "not limited".
+#pragma warning disable SK2003
         for (var d = 0; d < k; d++) {
             if (next[d] == v[d] + unlimited[d]) {
                 free[count++] = d;

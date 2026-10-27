@@ -13,7 +13,8 @@ public static partial class DriveCircuits {
         FullDrive(),
         new(
             "OD-One Overdrive",
-            "Boss OD-1: op-amp with asymmetric 1 + 2 silicon diodes across its feedback, fixed output low-pass (no tone "
+            "Boss OD-1: op-amp with asymmetric 1 + 2 silicon diodes across its feedback, fixed "
+            + "output low-pass (no tone "
             + "knob; Tone 10 is the pedal)"
         ) {
             Stages = [
@@ -62,7 +63,8 @@ public static partial class DriveCircuits {
         },
         new(
             "Sonic Drive",
-            "Ibanez SD9M / Maxon SD-9: a TS gain stage driven into its rails, then silicon diodes to ground, TS tone stage"
+            "Ibanez SD9M / Maxon SD-9: a TS gain stage driven into its rails, then silicon diodes to "
+            + "ground, TS tone stage"
         ) {
             Stages = [
                 new(StageKind.OpAmp) {
@@ -81,7 +83,8 @@ public static partial class DriveCircuits {
         Eternity(),
         new(
             "Jam Ray",
-            "Vemuram Jan Ray: Timmy-style op-amp stage with silicon diodes across its feedback, full bass, active treble "
+            "Vemuram Jan Ray: Timmy-style op-amp stage with silicon diodes across its feedback, full "
+            + "bass, active treble "
             + "recovery stage"
         ) {
             Stages = [

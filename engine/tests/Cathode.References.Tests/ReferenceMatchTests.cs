@@ -29,13 +29,16 @@ public class ReferenceMatchTests(ITestOutputHelper output) {
         var report = ReferenceMatcher.Match(entry, reference, entry.Circuit!);
 
         output.WriteLine(
-            $"{id} vs {report.Circuit}: input {report.InputDbu:0.0} dBu{(report.InputDbuFitted ? " (fitted)" : string.Empty)}, "
-            + $"ESR {report.Esr:0.000}, ESR pre-emphasised {report.EsrPreEmphasis:0.000}, MRSTFT {report.Mrstft:0.000}, "
+            $"{id} vs {report.Circuit}: input {report.InputDbu:0.0} "
+            + $"dBu{(report.InputDbuFitted ? " (fitted)" : string.Empty)}, "
+            + $"ESR {report.Esr:0.000}, ESR pre-emphasised {report.EsrPreEmphasis:0.000}, MRSTFT "
+            + $"{report.Mrstft:0.000}, "
             + $"harmonics {report.HarmonicDistanceDb:0.0} dB, response {report.ResponseRmsDb:0.0} dB"
         );
         Assert.True(
             report.Pass,
-            $"{id}: ESR {report.EsrPreEmphasis:0.000} (target {entry.Targets!.Esr}), MRSTFT {report.Mrstft:0.000} (target {entry.Targets.Mrstft})"
+            $"{id}: ESR {report.EsrPreEmphasis:0.000} (target {entry.Targets!.Esr}), MRSTFT {report.Mrstft:0.000} "
+            + $"(target {entry.Targets.Mrstft})"
         );
     }
 }

@@ -55,11 +55,14 @@ public class CaptureAmpBlockTests : IDisposable {
         "dense output"
     )]
     [InlineData(
-        """{"in_shape":[null,null,1],"layers":[{"type":"conv1d","shape":[null,null,4],"weights":[]},{"type":"dense","shape":[null,null,1],"weights":[[[1]],[0]]}]}""",
+        """{"in_shape":[null,null,1],"layers":[{"type":"conv1d","shape":[null,null,4],"weights":[]},"""
+        + """{"type":"dense","shape":[null,null,1],"weights":[[[1]],[0]]}]}""",
         "conv1d"
     )]
     [InlineData(
-        """{"in_shape":[null,null,1],"layers":[{"type":"lstm","shape":[null,null,2],"weights":[[[1,2,3]],[[0],[0]],[0]]},{"type":"dense","shape":[null,null,1],"weights":[[[1],[1]],[0]]}]}""",
+        """{"in_shape":[null,null,1],"layers":[{"type":"lstm","shape":[null,null,2],"weights":"""
+        + """[[[1,2,3]],[[0],[0]],[0]]},"""
+        + """{"type":"dense","shape":[null,null,1],"weights":[[[1],[1]],[0]]}]}""",
         "weights per row"
     )]
     public void Malformed_models_are_rejected_with_a_reason(string json, string reason) {

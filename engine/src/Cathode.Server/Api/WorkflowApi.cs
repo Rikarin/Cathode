@@ -92,7 +92,8 @@ static class WorkflowApi {
             )
             .WithName("DropBlock")
             .WithSummary(
-                "Drops a block on another: swap exchanges their cells (the cables stay put), replace takes the target's cell and cables."
+                "Drops a block on another: swap exchanges their cells (the cables stay put), replace takes the "
+                + "target's cell and cables."
             );
         live.MapPost(
                 "/grid/move",

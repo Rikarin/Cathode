@@ -72,7 +72,8 @@ public static unsafe partial class NativeMidi {
     }
 
     /// <summary>Sends a short message to one destination (by uid) or to all of them (null).</summary>
-#pragma warning disable SK2142 // False positive: `fixed` pins the span and reads it; it does not overwrite the parameter.
+    // False positive: `fixed` pins the span and reads it; it does not overwrite the parameter.
+#pragma warning disable SK2142
     public static bool Send(string? destinationUid, ReadOnlySpan<byte> message) {
 #pragma warning restore SK2142
         fixed (byte* data = message) {

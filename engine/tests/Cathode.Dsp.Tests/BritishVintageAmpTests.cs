@@ -239,7 +239,8 @@ public class BritishVintageAmpTests(ITestOutputHelper output) {
                     : (Bands(control, low, channel), Bands(control, high, channel));
                 var change = Math.Max(Math.Abs(a[0] - b[0]), Math.Abs(a[1] - b[1]));
                 output.WriteLine(
-                    $"{type} channel {channel} control {control}: 110 Hz {b[0] - a[0]:+0.0;-0.0} dB, 2.5 kHz {b[1] - a[1]:+0.0;-0.0} dB"
+                    $"{type} channel {channel} control {control}: 110 Hz {b[0] - a[0]:+0.0;-0.0} dB, 2.5 kHz "
+                    + $"{b[1] - a[1]:+0.0;-0.0} dB"
                 );
                 Assert.True(change > 0.2, $"{type}: control {control} moves the sound by only {change:0.00} dB");
             }

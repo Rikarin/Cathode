@@ -135,13 +135,15 @@ static class ServeCommand {
     ) {
         if (Environment.GetEnvironmentVariable("DOTNET_GCgen0size") is null) {
             Console.Error.WriteLine(
-                $"warning: DOTNET_GCgen0size is not set; start the host with DOTNET_GCgen0size={Gen0Budget} so garbage collections cannot interrupt playing"
+                $"warning: DOTNET_GCgen0size is not set; start the host with DOTNET_GCgen0size={Gen0Budget} so garbage "
+                + "collections cannot interrupt playing"
             );
         }
 
         var info = service.Info;
         Console.WriteLine(
-            $"cathode-host {info.Version} serving on {socketPath} ({info.Backend}, {info.SampleRate / 1000:0.#} kHz, {info.BufferFrames} frames)"
+            $"cathode-host {info.Version} serving on {socketPath} ({info.Backend}, {info.SampleRate / 1000:0.#} kHz, "
+            + $"{info.BufferFrames} frames)"
         );
         await new EngineHostServer(
                 service,

@@ -53,13 +53,16 @@ static class NamBenchmark {
                 : DescribeModel(options, path, amp, fastTanh)
         );
         Console.WriteLine(
-            $"rendered:     {seconds} s at {spec.SampleRate / 1000:0.#} kHz / {spec.MaxBlockSize} frames in {elapsed.TotalMilliseconds:0.0} ms"
+            $"rendered:     {seconds} s at {spec.SampleRate / 1000:0.#} kHz / {spec.MaxBlockSize} frames in "
+            + $"{elapsed.TotalMilliseconds:0.0} ms"
         );
         Console.WriteLine(
-            $"cpu:          {elapsed.TotalSeconds / seconds * 100:0.00}% of one core  ({seconds / elapsed.TotalSeconds:0}x real time)"
+            $"cpu:          {elapsed.TotalSeconds / seconds * 100:0.00}% of one core  "
+            + $"({seconds / elapsed.TotalSeconds:0}x real time)"
         );
         Console.WriteLine(
-            $"callback:     p50 <= {engine.Stats.Percentile(0.5):0}%  p99.9 <= {engine.Stats.Percentile(0.999):0}%  max {engine.Stats.MaxPercent:0.0}% of budget"
+            $"callback:     p50 <= {engine.Stats.Percentile(0.5):0}%  p99.9 <= {engine.Stats.Percentile(0.999):0}%  "
+            + $"max {engine.Stats.MaxPercent:0.0}% of budget"
         );
         Console.WriteLine($"allocations:  {allocated} bytes across {callbacks} callbacks");
         Console.WriteLine($"output:       peak {outLeft.Max(Math.Abs):0.000}, finite {outLeft.All(float.IsFinite)}");

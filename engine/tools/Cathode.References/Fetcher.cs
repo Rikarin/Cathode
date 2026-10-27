@@ -65,7 +65,8 @@ sealed class Fetcher(ReferenceCache cache, HttpClient http) {
         var hash = ReferenceCache.Sha256Of(data);
         if (entry.Sha256 is not null && !string.Equals(hash, entry.Sha256, StringComparison.OrdinalIgnoreCase)) {
             throw new InvalidDataException(
-                $"SHA-256 mismatch: expected {entry.Sha256}, got {hash}. The upstream file changed; review it and update the manifest."
+                $"SHA-256 mismatch: expected {entry.Sha256}, got {hash}. The upstream file changed; review it and "
+                + "update the manifest."
             );
         }
 

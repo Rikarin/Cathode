@@ -156,9 +156,12 @@ sealed record RunResult(
     long RequestsInProcess
 ) {
     public string ToConsole() =>
-        $"{Label,-32} buf {Buffer,3}  gc {Gc}/{(Concurrent ? "conc" : "nonconc")}/{LatencyMode}  callbacks {Callbacks}  "
-        + $"p50 {P50:0}%  p99.9 {P999:0}%  p99.99 {P9999:0}%  max {Max:0.0}%  >=50% {Over50}  over budget {OverBudget}  "
-        + $"driver overloads {DriverOverloads}  GCs {Gen0}/{Gen1}/{Gen2}  pause {GcPauseMs:0.0} ms  alloc {AllocMBps:0.0} MB/s  in-proc requests {RequestsInProcess}";
+        $"{Label,-32} buf {Buffer,3}  gc {Gc}/{(Concurrent ? "conc" : "nonconc")}/{LatencyMode}  "
+        + $"callbacks {Callbacks}  "
+        + $"p50 {P50:0}%  p99.9 {P999:0}%  p99.99 {P9999:0}%  max {Max:0.0}%  >=50% {Over50}  over "
+        + $"budget {OverBudget}  "
+        + $"driver overloads {DriverOverloads}  GCs {Gen0}/{Gen1}/{Gen2}  pause {GcPauseMs:0.0} ms  alloc "
+        + $"{AllocMBps:0.0} MB/s  in-proc requests {RequestsInProcess}";
 }
 
 /// <summary>
@@ -392,7 +395,8 @@ static class LoadMode {
         await Task.WhenAll(workers);
         var elapsed = Stopwatch.GetElapsedTime(started).TotalSeconds;
         Console.WriteLine(
-            $"load: {ok} ok, {failed} failed, {ok / elapsed:0} req/s over {elapsed:0.0} s (concurrency {concurrency}, rate {(rate > 0 ? rate.ToString(CultureInfo.InvariantCulture) : "unthrottled")})"
+            $"load: {ok} ok, {failed} failed, {ok / elapsed:0} req/s over {elapsed:0.0} s (concurrency {concurrency}, "
+            + $"rate {(rate > 0 ? rate.ToString(CultureInfo.InvariantCulture) : "unthrottled")})"
         );
         return 0;
     }

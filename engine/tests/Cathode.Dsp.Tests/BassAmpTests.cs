@@ -236,7 +236,8 @@ public class BassAmpTests(ITestOutputHelper output) {
         var hi = At(8_000, (CircuitAmpBlock.Switch1, 1f)) - At(8_000);
         var cut = At(50, (CircuitAmpBlock.Switch3, 1f)) - At(50);
         output.WriteLine(
-            $"Ultra Lo: {notch:0.0} dB at 500 Hz, {lows:0.0} dB at 40 Hz; Ultra Hi {hi:0.0} dB at 8 kHz; Bass Cut {cut:0.0} dB at 50 Hz"
+            $"Ultra Lo: {notch:0.0} dB at 500 Hz, {lows:0.0} dB at 40 Hz; Ultra Hi {hi:0.0} dB at 8 kHz; Bass Cut "
+            + $"{cut:0.0} dB at 50 Hz"
         );
         Assert.InRange(notch, -20, -8);
         Assert.InRange(lows - notch, 8, 20);
@@ -311,7 +312,8 @@ public class BassAmpTests(ITestOutputHelper output) {
 
         var rms = squares.Select(static s => Math.Sqrt(s / Settled)).ToArray();
         output.WriteLine(
-            $"IC2b {rms[0] * 1e3:0} mV, IC2a {rms[1] * 1e3:0} mV, stack {rms[2] * 1e3:0.0} mV, IC3a {rms[3] * 1e3:0} mV, "
+            $"IC2b {rms[0] * 1e3:0} mV, IC2a {rms[1] * 1e3:0} mV, stack {rms[2] * 1e3:0.0} mV, IC3a "
+            + $"{rms[3] * 1e3:0} mV, "
             + $"IC3b {rms[5] * 1e3:0} mV, IC1a {rms[6] * 1e3:0} mV, speaker {rms[7]:0.00} V"
         );
         Assert.InRange(Db(rms[0] / 0.072), -1, 1);

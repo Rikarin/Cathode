@@ -188,7 +188,8 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         var difference = Analysis.NullResidualDb(stock, changed) - Analysis.ToDb(Analysis.Rms(stock));
         var peak = Analysis.ToDb(Analysis.Peak(changed));
         output.WriteLine(
-            $"{AmpDesign.All[type].Name} {CircuitAmpBlock.Info.Params[index].Id} = {value}: {difference:0.0} dB from stock, "
+            $"{AmpDesign.All[type].Name} {CircuitAmpBlock.Info.Params[index].Id} = {value}: "
+            + $"{difference:0.0} dB from stock, "
             + $"peak {peak:0.0} dBFS"
         );
         Assert.True(Analysis.AllFinite(changed));

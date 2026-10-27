@@ -268,7 +268,8 @@ public sealed class CabGrid : IDisposable {
         var distances = points.Select(static p => p.Distance).Distinct().Order().ToArray();
         if (points.Count == 0 || points.Count > MaxPoints || points.Count != positions.Length * distances.Length) {
             throw new InvalidDataException(
-                $"A cab grid needs every position at every distance (at most {MaxPoints} points); got {points.Count} points on {positions.Length} positions × {distances.Length} distances."
+                $"A cab grid needs every position at every distance (at most {MaxPoints} points); got {points.Count} "
+                + $"points on {positions.Length} positions × {distances.Length} distances."
             );
         }
 
