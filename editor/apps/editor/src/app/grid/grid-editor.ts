@@ -14,6 +14,7 @@ import {
   BuiltInTypes,
   type ChannelName,
   ChannelNames,
+  OutputTypes,
   type PresetBlock,
   type PresetCable
 } from '@cathode/api-client';
@@ -624,11 +625,14 @@ export class GridEditor {
     });
   });
 
-  /** Blocks offer an outlet to cable from; a shunt only while nothing leaves it, so a shunt row stays quiet. */
+  /**
+   * Blocks offer an outlet to cable from; a shunt only while nothing leaves it, so a shunt row stays quiet. No output
+   * (Output 2 to 4 neither) has one: nothing can be cabled from an output.
+   */
   protected readonly outlets = computed(() => {
     const cables = this.live.preset()?.cables ?? [];
     return this.blocks().filter(
-      b => b.type !== BuiltInTypes.output && (b.type !== BuiltInTypes.shunt || !cables.some(c => c.from === b.id))
+      b => !OutputTypes.includes(b.type) && (b.type !== BuiltInTypes.shunt || !cables.some(c => c.from === b.id))
     );
   });
   protected readonly focusedBlock = computed(() => this.cellBlock(this.focus().row, this.focus().column));
