@@ -339,6 +339,65 @@ public partial class AmpStageTests {
         Assert.Equal(generic2, shunt2, 1e-15);
     }
 
+    /// <summary>
+    ///     The Hiwatts' fixed 470 Ω with 10 nF across the 2k2 shunt, beside the presence pot and its 0.1 µF: the
+    ///     feedback filter's two sections equal Z / (R_f + Z) for Z = 2k2 ∥ (r_p + 1/sC) ∥ (470 + 1/sC_b) at every
+    ///     setting, written out here from the parts; the mid band's fraction is about the plain divider's (0.18), the
+    ///     top's tends to 2k2 ∥ 470 ∥ r_p against the 10k (0.037 with the pot's whole 100k: 13.7 dB less feedback), and
+    ///     the shelf is under way by 10 kHz. Without the branch the sections fall back to the presence's one.
+    /// </summary>
+    [Fact]
+    public void Hiwatt_fixed_feedback_branch_matches_its_circuit() {
+        var design = HiwattDR103.Design.Power.Feedback;
+        Assert.Equal(design, HiwattDR504.Design.Power.Feedback);
+        Assert.Equal(new ShuntBranch(470, 10e-9), design.Branch);
+        var (rf, rx, c, rb, cb) = (10e3, 2.2e3, 0.1e-6, 470.0, 10e-9);
+        Assert.Equal((rf, rx, c), (design.FeedbackResistor, design.ShuntResistor, design.PresenceCap));
+        foreach (var presence in new[] { 0.0, 0.25, 0.5, 0.9, 1.0 }) {
+            var rp = 100e3 * (1 - presence);
+            var (gain, zero1, pole1, zero2, pole2) = design.BranchTimes(presence);
+            foreach (var frequency in new[] { 20.0, 100, 1_000, 3_000, 10_000, 20_000, 100_000 }) {
+                var s = new System.Numerics.Complex(0, 2 * Math.PI * frequency);
+                var z = 1 / (1 / rx + s * c / (1 + s * rp * c) + s * cb / (1 + s * rb * cb));
+                var circuit = z / (rf + z);
+                var model = gain * (1 + s * zero1) * (1 + s * zero2) / ((1 + s * pole1) * (1 + s * pole2));
+                Assert.True(
+                    (circuit - model).Magnitude < 1e-9 * circuit.Magnitude,
+                    $"presence {presence}, {frequency} Hz: {model.Magnitude:0.0000} against {circuit.Magnitude:0.0000}"
+                );
+                Assert.True((design.Response(frequency, presence) - circuit).Magnitude < 1e-12);
+            }
+
+            // s → ∞: the caps are shorts, so the shunt is 2k2 ∥ 470 ∥ r_p.
+            var top = 1 / (1 / rx + 1 / rb + (rp > 0 ? 1 / rp : double.PositiveInfinity));
+            var limit = gain * zero1 * zero2 / (pole1 * pole2);
+            Assert.Equal(top / (rf + top), limit, 1e-9);
+        }
+
+        var mid = design.Response(1_000, 0).Magnitude;
+        var high = top0();
+        Assert.Equal(rx / (rf + rx), mid, 0.006);
+        Assert.Equal(0.0373, high, 0.0005);
+        Assert.InRange(20 * Math.Log10(mid / design.Response(10_000, 0).Magnitude), 4, 6.5);
+        var plain = design with { Branch = null };
+        Assert.True(20 * Math.Log10(plain.Response(10_000, 0).Magnitude / design.Response(10_000, 0).Magnitude) > 4);
+
+        // Without the branch: the presence's own section (zero and pole), the second a pass-through.
+        foreach (var presence in new[] { 0.0, 0.5, 1.0 }) {
+            var (tau1, tau2) = plain.PresenceTimes(presence);
+            var (gain, zero1, pole1, zero2, pole2) = plain.BranchTimes(presence);
+            Assert.Equal(plain.Beta, gain, 1e-15);
+            Assert.Equal(tau1, zero1, 1e-15);
+            Assert.Equal(tau2, pole1, 1e-15);
+            Assert.Equal((0.0, 0.0), (zero2, pole2));
+        }
+
+        double top0() {
+            var (gain, zero1, pole1, zero2, pole2) = design.BranchTimes(0);
+            return gain * zero1 * zero2 / (pole1 * pole2);
+        }
+    }
+
     [Theory]
     [MemberData(nameof(PowerVariants))]
     public void Power_amp_variants_match_the_reference_in_the_time_domain(string name) {

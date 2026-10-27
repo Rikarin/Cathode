@@ -174,7 +174,84 @@ public sealed record FeedbackDesign(
         var rp = Presence.Ohms * (1 - Presence.Fraction(presence));
         return (rp * c, c * (rf * (rx + rp) + rx * rp) / (rf + rx));
     }
+
+    /// <summary>
+    ///     A fixed series RC across the shunt beside the presence's (the Hiwatts' 470 Ω with 10 nF), which lowers the
+    ///     feedback at high frequencies whatever the knob: a treble shelf toward Z = R_x ∥ R_b; null for none (the
+    ///     feedback filter is then <see cref="PresenceTimes" />' single section). The presence frequency leaves it.
+    /// </summary>
+    public ShuntBranch? Branch { get; init; }
+
+    /// <summary>
+    ///     With <see cref="Branch" />: the feedback fraction as two first-order sections, β(s) = <c>Gain</c> (1 + s
+    ///     <c>Zero1</c>) (1 + s <c>Zero2</c>) / ((1 + s <c>Pole1</c>) (1 + s <c>Pole2</c>)), from 1 / (1 + R_f Y) with
+    ///     the shunt's admittance Y = Y_presence + 1 / (R_b + 1 / s C_b) (either presence wiring). The zeros are the
+    ///     presence part's and the branch's; the denominator is a real quadratic (an RC network's poles are real), and
+    ///     each zero is paired with the pole of the same rank, the slower with the slower.
+    /// </summary>
+    public (double Gain, double Zero1, double Pole1, double Zero2, double Pole2) BranchTimes(
+        double presence,
+        double frequency = 1
+    ) {
+        var branch = Branch ?? new ShuntBranch(0, 0);
+        var c = PresenceCap / frequency;
+        var (rf, rx) = (FeedbackResistor, ShuntResistor);
+
+        // The presence part's admittance n(s) / d(s), each first order: n0 + n1 s over d0 + d1 s.
+        double n0, n1, d0, d1;
+        if (PresenceIsShunt) {
+            var p = Presence.Fraction(presence);
+            var (a, b) = ((1 - p) * rx, p * rx);
+            (n0, n1, d0, d1) = (1, b * c, rx, a * b * c);
+        } else {
+            var rp = Presence.Ohms * (1 - Presence.Fraction(presence));
+            (n0, n1, d0, d1) = (1, (rp + rx) * c, rx, rx * rp * c);
+        }
+
+        // β = d (1 + s τ_b) / ((d + R_f n) (1 + s τ_b) + s R_f C_b d) = d (1 + s τ_b) / (c0 + c1 s + c2 s²).
+        var tb = branch.Resistor * branch.Cap;
+        var (p0, p1) = (d0 + rf * n0, d1 + rf * n1);
+        var c0 = p0;
+        var c1 = p1 + p0 * tb + rf * branch.Cap * d0;
+        var c2 = p1 * tb + rf * branch.Cap * d1;
+        var (sum, product) = (c1 / c0, c2 / c0);
+        var slow = 0.5 * (sum + Math.Sqrt(Math.Max(sum * sum - 4 * product, 0)));
+        var fast = slow > 0 ? product / slow : 0;
+        var zero = d1 / d0;
+        var (zero1, zero2) = zero >= tb ? (zero, tb) : (tb, zero);
+        return (d0 / c0, zero1, slow, zero2, fast);
+    }
+
+    /// <summary>
+    ///     The feedback fraction β(jω) at <paramref name="hz" /> straight from the network, Z / (R_f + Z) with the
+    ///     shunt, the presence (at rotation <paramref name="presence" />) and <see cref="Branch" /> in parallel
+    ///     (control thread; for tests and plots).
+    /// </summary>
+    public Complex Response(double hz, double presence, double frequency = 1) {
+        var s = new Complex(0, 2 * Math.PI * hz);
+        var c = PresenceCap / frequency;
+        var (rf, rx) = (FeedbackResistor, ShuntResistor);
+        Complex z;
+        if (PresenceIsShunt) {
+            var p = Presence.Fraction(presence);
+            z = (1 - p) * rx + p * rx / (1 + s * p * rx * c);
+        } else {
+            var rp = Presence.Ohms * (1 - Presence.Fraction(presence));
+            z = 1 / (1 / rx + s * c / (1 + s * rp * c));
+        }
+
+        if (Branch is { } branch) {
+            z = 1 / (1 / z + s * branch.Cap / (1 + s * branch.Resistor * branch.Cap));
+        }
+
+        return z / (rf + z);
+    }
 }
+
+/// <summary>A fixed series resistor and cap across the feedback shunt (<see cref="FeedbackDesign.Branch" />).</summary>
+/// <param name="Resistor">The branch's resistor.</param>
+/// <param name="Cap">The branch's cap.</param>
+public readonly record struct ShuntBranch(double Resistor, double Cap);
 
 /// <summary>
 ///     A rectifier: silicon (no drop to speak of) or a vacuum diode, whose drop follows Child's law,

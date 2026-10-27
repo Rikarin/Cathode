@@ -6,6 +6,12 @@ the format upgrades older presets as it reads them.
 
 ## Unreleased
 
+### Fixed
+
+- **Hiwatt DR103 and DR504:** the fixed 470 Ω and 10 nF across the feedback shunt are now modelled, so less
+  feedback above about 6 kHz gives these amps their stock treble shelf at any Presence setting (#44). The factory
+  presets on a Hiwatt are re-levelled.
+
 ### Internal
 
 - **Skala's baseline is burnt down** (#161): from 4,321 accepted findings to 134, all of them duplicated-block
