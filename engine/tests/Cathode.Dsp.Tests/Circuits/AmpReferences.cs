@@ -80,8 +80,25 @@ static class AmpReferences {
     ) {
         var c = new ReferenceCircuit();
         var source = c.Node();
-        var grid = c.Node();
         c.Source(source, 0, input);
+        var (wiper, driven) = AppendToneStack(c, d, controls, source, sourceResistance);
+        return (c, wiper, driven);
+    }
+
+    /// <summary>
+    ///     Appends a <see cref="ToneStackStage" /> to <paramref name="c" />, driven from node
+    ///     <paramref name="source" /> through <paramref name="sourceResistance" /> plus the design's input resistance
+    ///     (1 Ω for a direct join), as <see cref="Append" /> does a network stage; returns the output (load wiper) and
+    ///     the driven node.
+    /// </summary>
+    public static (int Output, int Driven) AppendToneStack(
+        ReferenceCircuit c,
+        ToneStackStageDesign d,
+        AmpControls controls,
+        int source,
+        double sourceResistance = 0
+    ) {
+        var grid = c.Node();
         c.Resistor(source, grid, Math.Max(sourceResistance + d.InputResistance, 1));
         if (d.GridLeak > 0) {
             c.Resistor(grid, 0, d.GridLeak);
@@ -113,7 +130,7 @@ static class AmpReferences {
         }
 
         c.Source(supply, 0, _ => d.Supply);
-        return (c, wiper, driven);
+        return (wiper, driven);
     }
 
     /// <summary>A tone stack fed from <paramref name="input" />; returns the treble wiper.</summary>

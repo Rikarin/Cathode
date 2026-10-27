@@ -570,7 +570,14 @@ drawing and marks its guesses (mostly the rails, idle currents and output transf
 - **Validation** (`BritishVintageAmpTests`): the preamps as whole chains against the reference simulator with no cuts:
   1959SLP −63 dB, 1959T −63 dB, Bluesbreaker −47 dB (2 mV and 50 mV), Tiny Terror −58 / −57 dB, Cornford Overdrive
   V1–V5 −48 dB, Clean V1, V4, V5 −53 dB. Knob sweeps at full drive converge with no non-finite samples and peak below +1 dBFS;
-  every panel control moves the sound; gain and master are monotonic.
+  every panel control moves the sound; gain and master are monotonic. Since #99 the same theory checks the Marshall and
+  Hiwatt preamps no other chain covered (2 mV / 50 mV): 1987X −70 / −47 dB, DR504 −62 / −63 dB, 18 W Normal −95 / −94 dB
+  and Tremolo (stopped) −86 dB, the Major's V1 −76 / −77 dB (its in-loop stage and stack are in its power amp's
+  comparison), Plexi −49 / −57 dB, JCM800 2203 and 2204 −54 / −41 dB, Laney GH100L to the master's wiper −40 dB (2 mV
+  and 10 mV) and through V3b −23 dB: V3b's 1.97 nF and 1M see the stack's reactive output impedance as the stages' cut's
+  resistance. At 50 mV the Laney's follower on its stack is −18 dB from the reference (the JCM800's −41 dB): its grid is
+  DC-coupled to V2b's plate on a 260 V rail and probably driven into grid current there, which the stage and the
+  reference may treat differently; not yet investigated, so no row tests that level.
 - **References**: no GPL direct-out capture of any of these amps was found (pelennor's list and GuitarML's ToneLibrary
   searched; ToneLibrary's "PlexiBreed" is a pedal); all ship schematic-only.
 - **CPU** (48 kHz, guitar / loud noise, Gain 7, Master 6, the minimum of three to four passes on a machine at a load
