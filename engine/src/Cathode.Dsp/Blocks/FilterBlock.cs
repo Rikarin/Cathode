@@ -131,8 +131,8 @@ public sealed class FilterBlock() : DspBlock(Info) {
             ParamDescriptor.Float("q", "Q", 0.1f, 18f, 0.7071f, string.Empty, ParamTaper.Log)
                 .ShownOn(TypeCount, [..Filters.Where(static t => t != Tilt)]),
             ParamDescriptor.Float("gain", "Gain", -24f, 24f, 0f, "dB").ShownOn(TypeCount, Boosts),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("order", "Order", ["2nd", "4th"]).ShownOn(TypeCount, Cascadable),
             WetCuts.LowCutParam("lowCut", "Low Cut"),
             WetCuts.HighCutParam("highCut", "High Cut"),

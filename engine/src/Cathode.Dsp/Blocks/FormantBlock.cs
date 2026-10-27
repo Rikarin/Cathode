@@ -54,9 +54,9 @@ public sealed class FormantBlock() : DspBlock(Info) {
             ParamDescriptor.Float("control", "Control", 0f, 100f, 0f, "%"),
             ParamDescriptor.Float("resonance", "Resonance", 1f, 30f, 8f, "Q", ParamTaper.Log),
             ParamDescriptor.Float("shift", "Shift", -12f, 12f, 0f, "st"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+            BlockParams.Mix(100f),
+            BlockParams.Level,
+            BlockParams.Balance
         ],
         maxInstances: 2
     );

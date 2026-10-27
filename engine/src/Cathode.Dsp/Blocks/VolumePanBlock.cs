@@ -45,8 +45,8 @@ public sealed class VolumePanBlock() : DspBlock(Info) {
         "Volume/Pan",
         "Utility",
         [
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Float("volume", "Volume", 0f, 100f, 100f, "%"),
             ParamDescriptor.Choice("taper", "Taper", Tapers),
             ParamDescriptor.Choice("type", "Type", ["Volume", "Auto-Swell"]),

@@ -39,8 +39,8 @@ public sealed class ToneStackBlock() : DspBlock(Info) {
             ParamDescriptor.Float("bass", "Bass", 0f, 10f, 5f),
             ParamDescriptor.Float("middle", "Middle", 0f, 10f, 5f),
             ParamDescriptor.Float("treble", "Treble", 0f, 10f, 5f),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+            BlockParams.Level,
+            BlockParams.Balance
         ],
         maxInstances: 4
     );

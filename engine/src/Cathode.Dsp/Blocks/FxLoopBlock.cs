@@ -35,10 +35,10 @@ public sealed class FxLoopBlock() : DspBlock(Info) {
         [
             ParamDescriptor.Float("send", "Send Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("return", "Return Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
+            BlockParams.Mix(100f),
             ParamDescriptor.Float("latency", "Loop Latency", 0f, MaxLatencyMs, 0f, "ms"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+            BlockParams.Level,
+            BlockParams.Balance
         ],
         maxInstances: 2
     );

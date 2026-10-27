@@ -262,10 +262,10 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
                     TypeNames.Length,
                     [..Enumerable.Range(0, TypeNames.Length).Where(static t => !HasToneKnob(t))]
                 ),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
+            BlockParams.Level,
+            BlockParams.Mix(100f),
             ParamDescriptor.Float("inputVol", "Input Vol", 0f, 10f, 10f),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Balance,
             WetCuts.LowCutParam("lowCut", "Low Cut"),
             WetCuts.HighCutParam("highCut", "High Cut"),
             ParamDescriptor.Float("bass", "Bass", -12f, 12f, 0f, "dB"),

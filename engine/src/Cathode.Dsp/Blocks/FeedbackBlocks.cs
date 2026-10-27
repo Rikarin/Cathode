@@ -61,7 +61,7 @@ public sealed class FeedbackReturnBlock() : DspBlock(Info) {
         [
             ParamDescriptor.Float("level", "Return Level", Decibels.SilenceDb, 6f, 0f, "dB"),
             ParamDescriptor.Float("outputLevel", "Output Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+            BlockParams.Balance
         ],
         maxInstances: 2,
         channels: 1

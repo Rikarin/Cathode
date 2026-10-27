@@ -230,9 +230,9 @@ public sealed class WahBlock() : DspBlock(Info) {
                 Smoothing: ParamSmoothing.Linear,
                 SmoothingMs: 10f
             ),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Mix(100f),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Float("resonance", "Resonance Q", 0.25f, 4f, 1f, "x", ParamTaper.Log),
             ParamDescriptor.Float("qTracking", "Q Tracking", 0f, 100f, 0f, "%"),
             ParamDescriptor.Choice("taper", "Control Taper", ["Linear", "Log", "Reverse Log"]),

@@ -78,8 +78,8 @@ public sealed class ParametricEqBlock : DspBlock {
                 "Band 5 Type",
                 ["High Shelf", "Peak", "Blocking", "Shelving 2", "Peaking 2"]
             ),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("lowslope", "Band 1 Slope", CutFilter.SteepSlopes, CutFilter.Slope12),
             ParamDescriptor.Choice("highslope", "Band 5 Slope", CutFilter.SteepSlopes, CutFilter.Slope12),
             ParamDescriptor.Choice("solo", "Solo", ["Off", "Band 1", "Band 2", "Band 3", "Band 4", "Band 5"])

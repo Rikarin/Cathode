@@ -12,6 +12,9 @@ public sealed partial class CircuitAmpBlock {
     ///     model and goes back to its default, so the new model starts as it ships
     ///     (<see cref="BlockDescriptor.TypeResets" />).
     /// </summary>
+    /// <summary>The choice that leaves a model's own part (tube, speaker, supply, ...) in place.</summary>
+    const string Stock = "Stock";
+
     static readonly string[] KeptOnTypeChange = ["type", "level", "balance", "inputsel"];
 
     public static BlockDescriptor Info { get; } = Describe(
@@ -30,7 +33,7 @@ public sealed partial class CircuitAmpBlock {
                 ParamDescriptor.Float("bias", "Bias", 0f, 100f, 50f, "%"),
                 ParamDescriptor.Float("feedback", "Feedback", 0f, 10f, 5f),
                 ParamDescriptor.Switch("bright", "Bright"),
-                ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+                BlockParams.Level,
                 ParamDescriptor.Switch("switch1", "Switch 1"),
                 ParamDescriptor.Switch("switch2", "Switch 2"),
                 ParamDescriptor.Switch("switch3", "Switch 3"),
@@ -44,40 +47,40 @@ public sealed partial class CircuitAmpBlock {
                 ParamDescriptor.Float("intrim", "Input Trim", -20f, 20f, 0f, "dB"),
                 ParamDescriptor.Choice("inputsel", "Input Select", ["Left", "Right", "Left + Right"]),
                 ParamDescriptor.Float("lowcut", "Low Cut", 0f, 500f, 0f, "Hz"),
-                ParamDescriptor.Choice("pretube", "Preamp Tube", ["Stock", "12AX7", "12AY7", "5751", "12AT7", "12AU7"]),
-                Expert(ParamDescriptor.Float("brightcap", "Bright Cap", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                ParamDescriptor.Choice("pretube", "Preamp Tube", [Stock, "12AX7", "12AY7", "5751", "12AT7", "12AU7"]),
+                Expert(Scale("brightcap", "Bright Cap")),
                 Expert(ParamDescriptor.Float("prebias", "Preamp Bias", -100f, 100f, 0f, "%")),
                 ParamDescriptor.Float("presag", "Preamp Sag", 0f, 200f, 100f, "%"),
-                Expert(ParamDescriptor.Float("stackfreq", "Stack Freq", 50f, 200f, 100f, "%", ParamTaper.Log)),
+                Expert(Scale("stackfreq", "Stack Freq", 50f, 200f)),
                 ParamDescriptor.Float("mvtrim", "Master Trim", 10f, 200f, 100f, "%"),
                 ParamDescriptor.Switch("poweramp", "Power Amp", true),
                 ParamDescriptor.Choice(
                     "powertube",
                     "Power Tube",
-                    ["Stock", "6L6GC", "EL34", "EL84", "6V6GT", "KT66", "KT88", "6550"]
+                    [Stock, "6L6GC", "EL34", "EL84", "6V6GT", "KT66", "KT88", "6550"]
                 ),
-                Expert(ParamDescriptor.Float("xfmrmatch", "Xfmr Match", 50f, 200f, 100f, "%", ParamTaper.Log)),
-                Expert(ParamDescriptor.Float("xfmrlf", "Xfmr Low Freq", 25f, 400f, 100f, "%", ParamTaper.Log)),
-                Expert(ParamDescriptor.Float("xfmrhf", "Xfmr High Freq", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(Scale("xfmrmatch", "Xfmr Match", 50f, 200f)),
+                Expert(Scale("xfmrlf", "Xfmr Low Freq")),
+                Expert(Scale("xfmrhf", "Xfmr High Freq")),
                 Expert(ParamDescriptor.Float("xfmrdrive", "Xfmr Drive", 0f, 10f, 0f)),
                 ParamDescriptor.Choice(
                     "speaker",
                     "Speaker load",
-                    ["Stock", "1x12 Open", "2x12 Open", "4x10 Open", "4x12 Closed", "8x10 Closed", "Follow Cab"],
+                    [Stock, "1x12 Open", "2x12 Open", "4x10 Open", "4x12 Closed", "8x10 Closed", "Follow Cab"],
                     SpeakerAuto
                 ),
-                Expert(ParamDescriptor.Float("spkres", "Load resonance", 25f, 400f, 100f, "%", ParamTaper.Log)),
-                Expert(ParamDescriptor.Float("spkq", "Load Q", 25f, 400f, 100f, "%", ParamTaper.Log)),
-                Expert(ParamDescriptor.Float("spkpeak", "Load peak", 25f, 400f, 100f, "%", ParamTaper.Log)),
-                Expert(ParamDescriptor.Float("spkhf", "Load HF", 25f, 400f, 100f, "%", ParamTaper.Log)),
-                Expert(ParamDescriptor.Float("spkimp", "Load impedance", 50f, 200f, 100f, "%", ParamTaper.Log)),
-                ParamDescriptor.Float("presfreq", "Presence Freq", 25f, 400f, 100f, "%", ParamTaper.Log),
-                ParamDescriptor.Float("depthfreq", "Depth Freq", 25f, 400f, 100f, "%", ParamTaper.Log),
+                Expert(Scale("spkres", "Load resonance")),
+                Expert(Scale("spkq", "Load Q")),
+                Expert(Scale("spkpeak", "Load peak")),
+                Expert(Scale("spkhf", "Load HF")),
+                Expert(Scale("spkimp", "Load impedance", 50f, 200f)),
+                Scale("presfreq", "Presence Freq"),
+                Scale("depthfreq", "Depth Freq"),
                 ParamDescriptor.Float("variac", "Variac", 50f, 130f, 100f, "%"),
-                Expert(ParamDescriptor.Float("btc", "B+ Time Const", 25f, 400f, 100f, "%", ParamTaper.Log)),
-                ParamDescriptor.Choice("supply", "Supply Type", ["Stock", "DC", "AC 60 Hz", "AC 50 Hz"]),
-                ParamDescriptor.Choice("rectifier", "Rectifier", ["Stock", "Silicon", "GZ34", "5U4", "5Y3", "EZ81"]),
-                Expert(ParamDescriptor.Float("katc", "Cathode Time Const", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(Scale("btc", "B+ Time Const")),
+                ParamDescriptor.Choice("supply", "Supply Type", [Stock, "DC", "AC 60 Hz", "AC 50 Hz"]),
+                ParamDescriptor.Choice("rectifier", "Rectifier", [Stock, "Silicon", "GZ34", "5U4", "5Y3", "EZ81"]),
+                Expert(Scale("katc", "Cathode Time Const")),
                 ParamDescriptor.Choice("boost", "Boost Type", AmpBoost.Types),
                 ParamDescriptor.Float("boostdrive", "Boost Drive", 0f, 10f, 3f),
                 ParamDescriptor.Float("boosttone", "Boost Tone", 0f, 10f, 5f),
@@ -105,7 +108,7 @@ public sealed partial class CircuitAmpBlock {
                 ParamDescriptor.Float("spkcomptc", "Speaker Comp Time", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
                 ParamDescriptor.Float("tremrate", "Bias Trem Rate", 0.5f, 15f, 4f, "Hz", ParamTaper.Log),
                 ParamDescriptor.Float("tremdepth", "Bias Trem Depth", 0f, 100f, 0f, "%"),
-                ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+                BlockParams.Balance,
                 Expert(ParamDescriptor.Float("pthard", "Power Tube Hardness", 0f, 10f, 5f)),
                 Expert(ParamDescriptor.Float("prehard", "Preamp Hardness", 0f, 10f, 5f)),
                 ParamDescriptor.Switch("presshift", "Presence Shift"),
@@ -114,20 +117,20 @@ public sealed partial class CircuitAmpBlock {
                 ParamDescriptor.Float("hitreble", "High Treble", 0f, 10f, 5f),
                 ParamDescriptor.Float("overdrive", "Overdrive", 0f, 10f, 0f),
                 ParamDescriptor.Choice("stacktype", "Tonestack Type", AmpStacks.Names),
-                ParamDescriptor.Choice("stackloc", "Tonestack Location", ["Stock", "Pre", "Mid", "Post"]),
-                Expert(ParamDescriptor.Float("t2plate", "Triode 2 Plate Freq", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                ParamDescriptor.Choice("stackloc", "Tonestack Location", [Stock, "Pre", "Mid", "Post"]),
+                Expert(Scale("t2plate", "Triode 2 Plate Freq")),
                 Expert(ParamDescriptor.Float("cfcomp", "CF Compression", 0f, 400f, 100f, "%")),
-                Expert(ParamDescriptor.Float("cfharm", "CF Harmonics", 50f, 200f, 100f, "%", ParamTaper.Log)),
+                Expert(Scale("cfharm", "CF Harmonics", 50f, 200f)),
                 Expert(ParamDescriptor.Float("prebiasx", "Preamp Bias Excursion", 0f, 400f, 100f, "%")),
                 Expert(ParamDescriptor.Float("pibiasx", "PI Bias Excursion", 0f, 400f, 100f, "%")),
                 Expert(ParamDescriptor.Float("ptbiasx", "Power Tube Bias Excursion", 0f, 400f, 100f, "%")),
-                Expert(ParamDescriptor.Float("ptbiastime", "Excursion Time", 25f, 400f, 100f, "%", ParamTaper.Log)),
-                Expert(ParamDescriptor.Float("ptrecovery", "Recovery Time", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(Scale("ptbiastime", "Excursion Time")),
+                Expert(Scale("ptrecovery", "Recovery Time")),
                 Expert(ParamDescriptor.Float("masterbiasx", "Master Bias Excursion", 0f, 200f, 100f, "%")),
                 ParamDescriptor.Switch("suppressor", "Plate Suppressor Diodes"),
-                ParamDescriptor.Choice("mvloc", "Master Location", ["Stock", "Post PI"]),
+                ParamDescriptor.Choice("mvloc", "Master Location", [Stock, "Post PI"]),
                 ParamDescriptor.Choice("outmode", "Output Mode", ["FRFR", "SS Power Amp + Cab"]),
-                Expert(ParamDescriptor.Float("screenfreq", "Screen Freq", 25f, 400f, 100f, "%", ParamTaper.Log)),
+                Expert(Scale("screenfreq", "Screen Freq")),
                 Expert(ParamDescriptor.Float("screenq", "Screen Q", 0f, 5f, 0f))
             ]
         )
@@ -205,6 +208,10 @@ public sealed partial class CircuitAmpBlock {
             }
         )
     ];
+
+    /// <summary>A component scale in percent of the model's value, 100 % as built, on a log taper.</summary>
+    static ParamDescriptor Scale(string id, string name, float min = 25f, float max = 400f) =>
+        ParamDescriptor.Float(id, name, min, max, 100f, "%", ParamTaper.Log);
 
     /// <summary>A component value: applied as a step (it may recompute a circuit), not ramped.</summary>
     static ParamDescriptor Expert(ParamDescriptor descriptor) => descriptor with { Smoothing = ParamSmoothing.Step };

@@ -237,13 +237,13 @@ public sealed class DelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("feedback", "Feedback", -100f, 100f, 30f, "%")
                 .RenamedOn(TypeCount, Dual, "Left Feedback")
                 .RenamedOn(TypeCount, MonoTape, "Head 1 Feedback"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 25f, "%"),
+            BlockParams.Mix(25f),
             ParamDescriptor.Float("lowcut", "Low Cut", LowCutOff, 2_000f, LowCutOff, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("highcut", "High Cut", 500f, HighCutOff, HighCutOff, "Hz", ParamTaper.Log),
             TimeLfo(ParamDescriptor.Float("lfo1Rate", "LFO 1 Rate", 0.05f, 10f, 0.5f, "Hz", ParamTaper.Log)),
             TimeLfo(ParamDescriptor.Float("lfo1Depth", "LFO 1 Depth", 0f, MaxDepthMs, 0f, "ms")),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
             ParamDescriptor.Float("ratio", "L/R Time Ratio", 1f, 100f, 100f, "%")
                 .HiddenOn(TypeCount, Dual, MonoTape, Reverse),
@@ -324,12 +324,8 @@ public sealed class DelayBlock() : DspBlock(Info) {
                 string.Empty,
                 ParamTaper.Log
             ),
-            ParamDescriptor.Float("eq1Frequency", "EQ 1 Freq", 50f, 10_000f, 400f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("eq1Q", "EQ 1 Q", 0.1f, 10f, 0.7071f, string.Empty, ParamTaper.Log),
-            ParamDescriptor.Float("eq1Gain", "EQ 1 Gain", -12f, 12f, 0f, "dB"),
-            ParamDescriptor.Float("eq2Frequency", "EQ 2 Freq", 50f, 10_000f, 2_000f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("eq2Q", "EQ 2 Q", 0.1f, 10f, 0.7071f, string.Empty, ParamTaper.Log),
-            ParamDescriptor.Float("eq2Gain", "EQ 2 Gain", -12f, 12f, 0f, "dB"),
+            ..BlockParams.PeakingBand("eq1", "EQ 1", 50f, 10_000f, 400f, 0.7071f),
+            ..BlockParams.PeakingBand("eq2", "EQ 2", 50f, 10_000f, 2_000f, 0.7071f),
             TimeLfo(ParamDescriptor.Choice("depthRange", "LFO Depth Range", ["Low (×0.1)", "Normal", "High (×10)"], 1)),
             TimeLfo(ParamDescriptor.Choice("lfo1Type", "LFO 1 Type", Lfo.ShapeNames)),
             TimeLfo(ParamDescriptor.Choice("lfo1Tempo", "LFO 1 Tempo", TempoDivisions.Names)),
@@ -346,10 +342,7 @@ public sealed class DelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("lfo3Rate", "LFO 3 Rate", 0.05f, 10f, 1f, "Hz", ParamTaper.Log),
             ParamDescriptor.Choice("lfo3Tempo", "LFO 3 Tempo", TempoDivisions.Names),
             ParamDescriptor.Float("lfo3Depth", "LFO 3 Depth", 0f, 100f, 0f, "%"),
-            ParamDescriptor.Float("diffusionMix", "Diffusion Mix", 0f, 100f, 0f, "%"),
-            ParamDescriptor.Float("diffusionTime", "Diffusion Time", 1f, MaxDiffusionMs, 30f, "ms", ParamTaper.Log),
-            ParamDescriptor.Float("diffusionRate", "Diffusion LFO Rate", 0.05f, 5f, 0.4f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("diffusionDepth", "Diffusion LFO Depth", 0f, 100f, 0f, "%"),
+            ..BlockParams.Diffusion(MaxDiffusionMs),
             EffectsMix.Param,
             MixLaws.KillDryParam
         ],

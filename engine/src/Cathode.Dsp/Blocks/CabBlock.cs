@@ -285,7 +285,7 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
             ParamDescriptor.Float("prebass", "Preamp Bass", -12f, 12f, 0f, "dB"),
             ParamDescriptor.Float("premid", "Preamp Mid", -12f, 12f, 0f, "dB"),
             ParamDescriptor.Float("pretreble", "Preamp Treble", -12f, 12f, 0f, "dB"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            BlockParams.Level,
             ParamDescriptor.Float("motor", "Motor Drive", 0f, 100f, 0f, "%"),
             IrParam(
                 ParamDescriptor.Float(

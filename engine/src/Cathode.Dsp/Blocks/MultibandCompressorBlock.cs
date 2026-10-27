@@ -95,9 +95,9 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
                     }
                 ),
             ParamDescriptor.Float("knee", "Knee", 0f, 24f, 6f, "dB"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Mix(100f),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("detector", "Detector", ["Peak", "RMS"]),
             ParamDescriptor.Choice("slope", "Crossover Slope", ["24 dB/oct", "12 dB/oct"]),
             ParamDescriptor.Switch("autoTime", "Auto Attack/Release"),

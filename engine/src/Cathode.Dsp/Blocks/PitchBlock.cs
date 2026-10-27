@@ -359,8 +359,8 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
                     "Custom Shifter"
                 ]
             ),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 50f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
+            BlockParams.Mix(50f),
+            BlockParams.Level,
             ParamDescriptor.Float("voice1Shift", "Voice 1 Shift", -24f, 24f, 12f, "st"),
             ParamDescriptor.Float("voice2Shift", "Voice 2 Shift", -24f, 24f, -12f, "st"),
             ParamDescriptor.Choice("voice1Harmony", "Voice 1 Harmony", HarmonyNames(), MaxHarmonySteps + 2),
@@ -409,7 +409,7 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
             VoiceDelay(4),
             ParamDescriptor.Choice("keySource", "Key Source", ["Fixed", "MIDI", "Auto"]),
             ..CustomTableParams(),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Balance,
             DetuneParam(2),
             DetuneParam(3),
             DetuneParam(4),

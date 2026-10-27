@@ -237,9 +237,9 @@ public sealed class PlexBlock() : DspBlock(Info) {
             ParamDescriptor.Float("duckThreshold", "Ducker Threshold", -60f, 0f, -30f, "dB"),
             ParamDescriptor.Float("duckRelease", "Ducker Release", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("spread", "Stereo Spread", -100f, 100f, 100f, "%"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 30f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Mix(30f),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
             ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
             MixLaws.KillDryParam

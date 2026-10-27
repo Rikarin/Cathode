@@ -40,8 +40,8 @@ public sealed class GraphicEqBlock : DspBlock {
                         TypeLabels = GraphicEqualizer.BandLabels(b)
                     }
                 ),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Float("masterQ", "Master Q", 0.25f, 4f, 1f, string.Empty, ParamTaper.Log),
             ParamDescriptor.Choice("qMode", "Q Mode", ["Constant Q", "Variable Q"]),
             ParamDescriptor.Choice("type", "Type", GraphicEqualizer.LayoutNames),

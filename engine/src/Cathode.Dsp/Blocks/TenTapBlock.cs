@@ -135,9 +135,9 @@ public sealed class TenTapBlock() : DspBlock(Info) {
                 ),
             ParamDescriptor.Choice("quantize", "Quantize", TempoDivisions.Names).ShownOn(TypeCount, RhythmTap),
             ParamDescriptor.Choice("learn", "Learn", ["Off", "Listen", "Hold"]).ShownOn(TypeCount, RhythmTap),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 25f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Mix(25f),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
             ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions)
         ],

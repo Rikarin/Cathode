@@ -87,8 +87,8 @@ public sealed class GateBlock() : DspBlock(Info), ISideInputBlock {
             WetCuts.LowCutParam("scLowCut", "Sidechain Low Cut"),
             WetCuts.HighCutParam("scHighCut", "Sidechain High Cut"),
             ParamDescriptor.Choice("detector", "Detector", ["Peak", "RMS"]),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("knee", "Knee", ["Hard", "Soft", "Softer"])
                 .ShownOn(TypeCount, Expander, ModernExpander),
             SidechainSource.Param()

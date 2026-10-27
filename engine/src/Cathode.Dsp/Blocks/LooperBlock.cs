@@ -72,8 +72,8 @@ public sealed class LooperBlock() : DspBlock(Info), ILooperBlock {
             ParamDescriptor.Choice("speed", "Speed", ["Normal", "Half", "Double"]),
             WetCuts.LowCutParam("lowCut", "Low Cut"),
             WetCuts.HighCutParam("highCut", "High Cut"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+            BlockParams.Level,
+            BlockParams.Balance
         ],
         maxInstances: 1,
         channels: 2,

@@ -108,10 +108,10 @@ public sealed class RotaryBlock() : DspBlock(Info) {
             ParamDescriptor.Float("hornFast", "Horn Fast", 2f, 10f, 6.7f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("drumSlow", "Drum Slow", 0.1f, 3f, 0.67f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("drumFast", "Drum Fast", 2f, 10f, 5.8f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("hornAccel", "Horn Accel", 0.05f, 10f, 0.8f, "s", ParamTaper.Log),
-            ParamDescriptor.Float("hornDecel", "Horn Decel", 0.05f, 10f, 1.2f, "s", ParamTaper.Log),
-            ParamDescriptor.Float("drumAccel", "Drum Accel", 0.05f, 10f, 4f, "s", ParamTaper.Log),
-            ParamDescriptor.Float("drumDecel", "Drum Decel", 0.05f, 10f, 5f, "s", ParamTaper.Log),
+            SpeedChange("hornAccel", "Horn Accel", 0.8f),
+            SpeedChange("hornDecel", "Horn Decel", 1.2f),
+            SpeedChange("drumAccel", "Drum Accel", 4f),
+            SpeedChange("drumDecel", "Drum Decel", 5f),
             ParamDescriptor.Float("crossover", "Crossover", 200f, 2_000f, 800f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("hornDepth", "Horn Doppler", 0f, 100f, 50f, "%"),
             ParamDescriptor.Float("drumDepth", "Drum Doppler", 0f, 100f, 50f, "%"),
@@ -120,9 +120,9 @@ public sealed class RotaryBlock() : DspBlock(Info) {
             ParamDescriptor.Float("hornLevel", "Horn Level", Decibels.SilenceDb, 12f, 0f, "dB"),
             ParamDescriptor.Float("drumLevel", "Drum Level", Decibels.SilenceDb, 12f, 0f, "dB"),
             ParamDescriptor.Float("drive", "Drive", 0f, 100f, 0f, "%"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Mix(100f),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
             ParamDescriptor.Float("rotorLength", "Rotor Length", 50f, 100f * MaxRotorLength, 100f, "%"),
             ParamDescriptor.Float("drumSpread", "LF Mic Spacing", 0f, 180f, 120f, "°"),
@@ -150,6 +150,10 @@ public sealed class RotaryBlock() : DspBlock(Info) {
             new("Advanced", ["rotorLength", "crossover", "micDistance", "stereoSpread", "inputSelect"])
         ]
     );
+
+    /// <summary>A rotor's time to change speed (a speed-up or a slow-down), 0.05 to 10 s.</summary>
+    static ParamDescriptor SpeedChange(string id, string name, float seconds) =>
+        ParamDescriptor.Float(id, name, 0.05f, 10f, seconds, "s", ParamTaper.Log);
 
     /// <summary>
     ///     The near-field path of a rotor to a mic <paramref name="k" /> radii from its axis, at

@@ -83,8 +83,8 @@ public sealed class TremoloBlock() : DspBlock(Info), IEngageAware {
                 TypeLabels = ["Depth", "Width", "Depth", "Depth", "Depth"]
             },
             ParamDescriptor.Choice("shape", "LFO Type", Lfo.ShapeNames),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
             ParamDescriptor.Float("duty", "LFO Duty", 0f, 100f, 50f, "%"),
             ParamDescriptor.Float("phase", "LFO Phase", 0f, 180f, 0f, "°"),

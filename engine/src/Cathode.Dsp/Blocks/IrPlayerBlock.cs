@@ -106,7 +106,7 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
         "IR Player",
         "Cab",
         [
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
+            BlockParams.Mix(100f),
             ParamDescriptor.Float(
                 "lowcut",
                 "Low Cut",
@@ -125,8 +125,8 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
                 "Hz",
                 ParamTaper.Log
             ),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("lowslope", "Low Cut Slope", CutFilter.Slopes, CutFilter.Slope12),
             ParamDescriptor.Choice("highslope", "High Cut Slope", CutFilter.Slopes, CutFilter.Slope12),
             ParamDescriptor.Choice("input", "Input Select", Inputs),

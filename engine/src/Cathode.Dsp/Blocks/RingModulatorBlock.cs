@@ -63,9 +63,9 @@ public sealed class RingModulatorBlock() : DspBlock(Info) {
             ParamDescriptor.Float("frequency", "Frequency", 10f, 5_000f, 440f, "Hz", ParamTaper.Log),
             ParamDescriptor.Choice("tempo", "Tempo", ["Off", "1/4", "1/8", "1/16", "1/32", "1/64"]),
             ParamDescriptor.Float("highCut", "High Cut", 200f, 20_000f, 20_000f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Mix(100f),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Float("multiplier", "Freq Multiplier", 0.25f, 4f, 1f, "x", ParamTaper.Log),
             ParamDescriptor.Choice("type", "Type", ["Classic", "Upper Sideband", "Lower Sideband"]),
             ParamDescriptor.Switch("tracking", "Pitch Tracking")

@@ -121,9 +121,9 @@ public sealed class VocoderBlock() : DspBlock(Info), ISideInputBlock {
             ParamDescriptor.Float("attack", "Attack", 0.5f, 50f, 4f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("release", "Decay", 5f, 500f, 40f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("emphasis", "HF Emphasis", 0f, 100f, 50f, "%"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Mix(100f),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("bands", "Bands", ["4", "8", "12", "16", "20", "24"], 4),
             ParamDescriptor.Float("minFreq", "Min Frequency", 50f, 1_000f, 100f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("maxFreq", "Max Frequency", 1_000f, 16_000f, 8_000f, "Hz", ParamTaper.Log),
@@ -167,24 +167,8 @@ public sealed class VocoderBlock() : DspBlock(Info), ISideInputBlock {
                     "analysisSource"
                 ]
             ),
-            new(
-                "Band Levels",
-                [
-                    "bandLevel1", "bandLevel2", "bandLevel3", "bandLevel4", "bandLevel5", "bandLevel6", "bandLevel7",
-                    "bandLevel8", "bandLevel9", "bandLevel10", "bandLevel11", "bandLevel12", "bandLevel13",
-                    "bandLevel14", "bandLevel15", "bandLevel16", "bandLevel17", "bandLevel18", "bandLevel19",
-                    "bandLevel20", "bandLevel21", "bandLevel22", "bandLevel23", "bandLevel24"
-                ]
-            ),
-            new(
-                "Band Pans",
-                [
-                    "bandPan1", "bandPan2", "bandPan3", "bandPan4", "bandPan5", "bandPan6", "bandPan7", "bandPan8",
-                    "bandPan9", "bandPan10", "bandPan11", "bandPan12", "bandPan13", "bandPan14", "bandPan15",
-                    "bandPan16", "bandPan17", "bandPan18", "bandPan19", "bandPan20", "bandPan21", "bandPan22",
-                    "bandPan23", "bandPan24"
-                ]
-            )
+            new("Band Levels", [..Enumerable.Range(1, MaxBands).Select(static b => $"bandLevel{b}")]),
+            new("Band Pans", [..Enumerable.Range(1, MaxBands).Select(static b => $"bandPan{b}")])
         ]
     );
 

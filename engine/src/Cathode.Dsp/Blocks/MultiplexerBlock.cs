@@ -41,8 +41,8 @@ public sealed class MultiplexerBlock() : DspBlock(Info), ISideInputBlock {
                 "Input",
                 ["Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", "All", ..HardwareInputs.Names]
             ),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+            BlockParams.Level,
+            BlockParams.Balance
         ],
         maxInstances: 4
     );

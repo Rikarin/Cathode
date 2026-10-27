@@ -100,10 +100,10 @@ public sealed class PhaserBlock() : DspBlock(Info), IEngageAware {
             ParamDescriptor.Float("center", "Manual", 100f, 4_000f, 800f, "Hz", ParamTaper.Log),
             ParamDescriptor.Choice("stages", "Order", ["2", "4", "6", "8", "10", "12"], 1),
             ParamDescriptor.Float("feedback", "Feedback", -95f, 95f, 0f, "%"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 50f, "%"),
+            BlockParams.Mix(50f),
             ParamDescriptor.Float("spread", "LFO Phase", 0f, 180f, 90f, "°"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
             ParamDescriptor.Choice("lfoType", "LFO Type", Lfo.ShapeNames) with { TypeLabels = ClassicOnly("LFO Type") },
             ParamDescriptor.Float("lfoDuty", "LFO Duty", 0f, 100f, 50f, "%") with {
