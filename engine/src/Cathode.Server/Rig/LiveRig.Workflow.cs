@@ -2,6 +2,7 @@ using Cathode.Contracts;
 using Cathode.Engine.Rig;
 using Cathode.Ipc;
 using Cathode.Server.Api;
+using Cathode.Server.Stores;
 
 namespace Cathode.Server.Rig;
 
@@ -505,7 +506,7 @@ public sealed partial class LiveRig {
             Restore(before);
             await SyncGraphAsync();
             throw new RigException(422, "The engine could not load the result: " + e.Message, e.Errors);
-        } catch (RigException) {
+        } catch (Exception) {
             Restore(before);
             throw;
         }
@@ -522,9 +523,7 @@ public sealed partial class LiveRig {
             );
         }
 
-        if (next.Scenes.Count != Preset.SceneCount) {
-            throw new RigException(400, $"A preset has exactly {Preset.SceneCount} scenes.");
-        }
+        PresetShape.Check(next);
     }
 
     /// <summary>Drops what the preset keeps about a block that is gone: its scene states and modifiers.</summary>

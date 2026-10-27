@@ -96,12 +96,7 @@ public sealed partial class LiveRig(
     public Task<LiveState> LoadAsync(string id, int? scene = null) =>
         Locked(async () => {
                 var loaded = presets.Get(id) ?? throw RigException.NotFound($"No preset '{id}'.");
-                if (loaded.SchemaVersion > Preset.CurrentSchemaVersion) {
-                    throw RigException.Conflict(
-                        $"Preset '{loaded.Name}' was saved by a newer version of Cathode (schema {loaded.SchemaVersion})."
-                    );
-                }
-
+                CheckShape(loaded); // a file stored before the store checked, or edited by hand
                 var start = scene
                     ?? (globals.Get().DefaultScene is var fixedScene and >= 0 and < Preset.SceneCount
                         ? fixedScene
@@ -137,16 +132,7 @@ public sealed partial class LiveRig(
     public Task<LiveState> PutAsync(Preset next, long? expected) =>
         Locked(async () => {
                 Check(expected);
-                if (next.SchemaVersion > Preset.CurrentSchemaVersion) {
-                    throw RigException.Conflict(
-                        $"Preset '{next.Name}' was saved by a newer version of Cathode (schema {next.SchemaVersion})."
-                    );
-                }
-
-                if (next.Scenes.Count != Preset.SceneCount) {
-                    throw new RigException(400, $"A preset has exactly {Preset.SceneCount} scenes.");
-                }
-
+                CheckShape(next);
                 await StructuralAsync(p => {
                         p.Name = next.Name;
                         p.Author = next.Author;
@@ -757,7 +743,8 @@ public sealed partial class LiveRig(
             Restore(before);
             await SyncGraphAsync(); // put the engine back on the previous graph
             throw new RigException(422, "The engine could not load the result: " + e.Message, e.Errors);
-        } catch (RigException) {
+        } catch (Exception) {
+            // A RigException, or anything else the edit's graph threw: the working copy goes back either way.
             Restore(before);
             throw;
         }
@@ -774,7 +761,8 @@ public sealed partial class LiveRig(
         held.Clear();
         try {
             await SyncGraphAsync();
-        } catch (Exception e) when (e is IpcException or RigException) {
+        } catch (Exception e) {
+            // Whatever failed, the rig stays on the preset it had rather than a working copy it cannot play.
             Restore(before);
             await SyncGraphAsync();
             throw e is IpcException ipc

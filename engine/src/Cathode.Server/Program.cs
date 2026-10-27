@@ -88,7 +88,10 @@ engine.TelemetryUpdated += t => _ = rig.FollowEngineTempoAsync(t.Tempo);
 app.Services.GetRequiredService<GlobalStore>().Changed += rig.ApplyGlobalSettings;
 app.Services.GetRequiredService<MidiRouter>(); // listens from the start
 StartupLog.Phase(app.Logger, "rig ready", startup.ElapsedMilliseconds);
-await rig.LoadStartupAsync();
+if (await rig.LoadStartupAsync() is { } problem) {
+    StartupLog.StartupPresetFailed(app.Logger, problem);
+}
+
 StartupLog.Phase(app.Logger, "start-up preset loaded", startup.ElapsedMilliseconds);
 
 app.Run();
