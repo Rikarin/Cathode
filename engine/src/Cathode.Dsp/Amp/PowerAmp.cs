@@ -1738,22 +1738,7 @@ struct PushPullStage : INonlinearDevice {
         var tap = feedback * v;
         var fed = depth.Peek(presence.Peek(tap));
         var fedSlope = feedback * presence.B0 * depth.B0;
-        double slopeA, slopeB;
-        var (ea, eb) = loop is null
-            ? phaseInverter.Evaluate(Input - fed, out slopeA, out slopeB)
-            : ThroughLoop(Input - fed, out slopeA, out slopeB);
-        slopeA *= -fedSlope;
-        slopeB *= -fedSlope;
-        if (hasCut) {
-            var common = 0.5 * (ea + eb);
-            var difference = cut.Peek(ea - eb);
-            var commonSlope = 0.5 * (slopeA + slopeB);
-            var differenceSlope = cut.B0 * (slopeA - slopeB);
-            (ea, eb) = (common + 0.5 * difference, common - 0.5 * difference);
-            (slopeA, slopeB) = (commonSlope + 0.5 * differenceSlope, commonSlope - 0.5 * differenceSlope);
-        }
-
-        (ea, eb, slopeA, slopeB) = (PostMaster * ea, PostMaster * eb, PostMaster * slopeA, PostMaster * slopeB);
+        var (ea, eb) = PushPullDrive(fed, fedSlope, out var slopeA, out var slopeB);
         var (vgA, vgB) = grids.Peek(
             ea - BiasSwing,
             eb - BiasSwing,
@@ -1939,6 +1924,31 @@ struct PushPullStage : INonlinearDevice {
     }
 
     /// <summary>
+    ///     The push-pull grid drive for the fed-back signal <paramref name="fed" /> (whose slope against the port
+    ///     voltage is <paramref name="fedSlope" />): the phase inverter (through the loop stage, if any), the cut and
+    ///     the post-master, with each side's slope against the port voltage.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    readonly (double A, double B) PushPullDrive(double fed, double fedSlope, out double slopeA, out double slopeB) {
+        var (ea, eb) = loop is null
+            ? phaseInverter.Evaluate(Input - fed, out slopeA, out slopeB)
+            : ThroughLoop(Input - fed, out slopeA, out slopeB);
+        slopeA *= -fedSlope;
+        slopeB *= -fedSlope;
+        if (hasCut) {
+            var common = 0.5 * (ea + eb);
+            var difference = cut.Peek(ea - eb);
+            var commonSlope = 0.5 * (slopeA + slopeB);
+            var differenceSlope = cut.B0 * (slopeA - slopeB);
+            (ea, eb) = (common + 0.5 * difference, common - 0.5 * difference);
+            (slopeA, slopeB) = (commonSlope + 0.5 * differenceSlope, commonSlope - 0.5 * differenceSlope);
+        }
+
+        (slopeA, slopeB) = (PostMaster * slopeA, PostMaster * slopeB);
+        return (PostMaster * ea, PostMaster * eb);
+    }
+
+    /// <summary>
     ///     The loop stage and the inverter for the loop stage's input <paramref name="vd" />: the inverter's outputs
     ///     and their slopes with respect to <paramref name="vd" />.
     /// </summary>
@@ -1963,21 +1973,7 @@ struct PushPullStage : INonlinearDevice {
         if (singleEnded) {
             (ea, eb, slopeA, slopeB) = (Input - fed, 0, -fedSlope, 0);
         } else {
-            (ea, eb) = loop is null
-                ? phaseInverter.Evaluate(Input - fed, out slopeA, out slopeB)
-                : ThroughLoop(Input - fed, out slopeA, out slopeB);
-            slopeA *= -fedSlope;
-            slopeB *= -fedSlope;
-            if (hasCut) {
-                var common = 0.5 * (ea + eb);
-                var difference = cut.Peek(ea - eb);
-                var commonSlope = 0.5 * (slopeA + slopeB);
-                var differenceSlope = cut.B0 * (slopeA - slopeB);
-                (ea, eb) = (common + 0.5 * difference, common - 0.5 * difference);
-                (slopeA, slopeB) = (commonSlope + 0.5 * differenceSlope, commonSlope - 0.5 * differenceSlope);
-            }
-
-            (ea, eb, slopeA, slopeB) = (PostMaster * ea, PostMaster * eb, PostMaster * slopeA, PostMaster * slopeB);
+            (ea, eb) = PushPullDrive(fed, fedSlope, out slopeA, out slopeB);
         }
 
         var (vgA, vgB) = grids.Peek(
