@@ -10,114 +10,219 @@ namespace Cathode.Dsp.Tests;
 ///     of the playing channel joined in one circuit, no Thévenin cut): the new combinations (switched Rock/Jazz and
 ///     Deep networks, plate-to-cathode caps, LDR-switched Mesa voicings, the op-amp Dynamic Voice) checked in one go.
 /// </summary>
+/// <remarks>
+///     Limits are the measured errors with a few dB of margin. The Mark IIC+ and IV agree to -35 dB through the lead
+///     stage; with the return stage after it they are at -14 dB at 2 and 50 mV: the lead stage's 270k plate with
+///     1 nF across it, cut by a resistive Thévenin source into the 220k ‖ 250 pF divider, the weak spot the cuts
+///     have behind every plate-bypassed stage (the TriAxis Lead 2, the same circuit, is -19 / -13 dB). The Lone
+///     Star's channels agree to -49 dB, the Prometheus to -15 dB (-12 dB at 50 mV) and its clean channel to -70 dB.
+///     The Lone Star's clean channel 2 is channel 1's netlist with Thick (off here) and is not repeated.
+/// </remarks>
 public partial class AmpStageTests {
-    public static TheoryData<string, bool, int, double, double> MesaBoutiqueChains =>
+    public static TheoryData<string, int, int, double, double> MesaBoutiqueChains =>
         new() {
             {
                 "Liverpool",
-                false,
+                0,
                 3,
                 0.002,
                 -30
             },
             {
                 "Liverpool",
-                false,
+                0,
                 3,
                 0.05,
                 -20
             },
             {
                 "ODS 70s",
-                false,
+                0,
                 2,
                 0.01,
                 -30
             },
             {
                 "ODS 70s",
-                true,
+                1,
                 4,
                 0.002,
                 -20
             },
             {
                 "Dual Rectifier",
-                false,
+                0,
                 4,
                 0.002,
                 -15
             },
             {
                 "Dual Rectifier 3-Ch",
-                false,
+                0,
                 4,
                 0.002,
                 -15
             },
             {
                 "Subway Blues",
-                false,
+                0,
                 3,
                 0.002,
                 -30
             },
             {
                 "Subway Blues",
-                false,
+                0,
                 3,
                 0.05,
                 -20
             },
             {
                 "TriAxis Rhythm",
-                false,
+                0,
                 3,
                 0.002,
                 -30
             },
             {
                 "TriAxis Lead 1",
-                false,
+                0,
                 4,
                 0.002,
                 -25
             },
             {
                 "TriAxis Lead 2",
-                false,
+                0,
                 5,
                 0.002,
                 -15
             },
             {
                 "TriAxis Lead 2",
-                false,
+                0,
                 5,
                 0.05,
                 -10
+            },
+            {
+                "Mark IIC+",
+                0,
+                4,
+                0.002,
+                -30
+            },
+            {
+                "Mark IIC+",
+                0,
+                5,
+                0.002,
+                -12
+            },
+            {
+                "Mark IIC+",
+                0,
+                5,
+                0.05,
+                -12
+            },
+            {
+                "Mark IV",
+                0,
+                4,
+                0.002,
+                -30
+            },
+            {
+                "Mark IV",
+                0,
+                5,
+                0.002,
+                -12
+            },
+            {
+                "Mark IV",
+                0,
+                5,
+                0.05,
+                -12
+            },
+            {
+                "Lone Star",
+                0,
+                3,
+                0.002,
+                -40
+            },
+            {
+                "Lone Star",
+                3,
+                4,
+                0.002,
+                -40
+            },
+            {
+                "Lone Star",
+                3,
+                4,
+                0.05,
+                -40
+            },
+            {
+                "Prometheus",
+                0,
+                5,
+                0.002,
+                -13
+            },
+            {
+                "Prometheus",
+                0,
+                5,
+                0.05,
+                -9
+            },
+            {
+                "Prometheus",
+                1,
+                5,
+                0.002,
+                -13
+            },
+            {
+                "Prometheus Clean",
+                0,
+                2,
+                0.01,
+                -60
             }
         };
 
     /// <summary>
-    ///     The first <paramref name="count" /> stages of the channel <paramref name="switched" /> selects (Switch 1 on:
-    ///     a channel switch's other channel).
+    ///     The first <paramref name="count" /> stages of the channel <paramref name="switches" /> selects (bit 0 Switch
+    ///     1, bit 1 Switch 2: a channel switch's other channel, nested ones too).
     /// </summary>
     [Theory]
     [MemberData(nameof(MesaBoutiqueChains))]
     public void Mesa_and_boutique_chains_match_the_reference(
         string type,
-        bool switched,
+        int switches,
         int count,
         double amplitude,
         double limitDb
     ) {
         var design = AmpDesign.All.Single(a => a.Name == type);
-        var designs = design.Preamp
-            .SelectMany(s => s is ChannelSwitchStageDesign c ? switched ? c.On : c.Off : [s])
-            .Take(count)
-            .ToArray();
-        var controls = new AmpControls(0.5, 0.5, 0.5, 0.5, 1, false, Switch1: switched);
+        var controls = new AmpControls(
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            1,
+            false,
+            Switch1: (switches & 1) != 0,
+            Switch2: (switches & 2) != 0
+        );
+        var designs = Playing(design.Preamp, controls).Take(count).ToArray();
 
         var stages = designs.Select(static d => d.Create(Rate)).ToArray();
         var (rest, resistance) = (0.0, 0.0);
@@ -132,16 +237,22 @@ public partial class AmpStageTests {
         var node = circuit.Node();
         circuit.Source(node, 0, t => Drive(amplitude, t));
         foreach (var d in designs) {
-            var network = d switch {
-                TriodeStageDesign triode => triode.ToNetwork(),
-                NetworkStageDesign net => net,
+            node = d switch {
+                TriodeStageDesign triode => AmpReferences.Append(
+                    circuit,
+                    triode.ToNetwork(),
+                    controls,
+                    PreampSettings.Stock,
+                    node
+                ),
+                NetworkStageDesign net => AmpReferences.Append(circuit, net, controls, PreampSettings.Stock, node),
+                ToneStackStageDesign stack => AmpReferences.AppendToneStack(circuit, stack, controls, node).Output,
                 _ => throw new InvalidOperationException(d.Name)
             };
-            node = AmpReferences.Append(circuit, network, controls, PreampSettings.Stock, node);
         }
 
         var errorDb = CompareInTime(
-            $"{type}{(switched ? " (switched)" : string.Empty)} "
+            $"{type}{(switches != 0 ? $" (switches {switches})" : string.Empty)} "
             + $"{string.Join(" > ", designs.Select(static d => d.Name))}",
             x => {
                 foreach (var stage in stages) {
