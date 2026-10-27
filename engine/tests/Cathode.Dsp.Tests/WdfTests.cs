@@ -129,6 +129,25 @@ public class WdfTests {
     }
 
     [Fact]
+    public void A_series_stack_of_mixed_junctions_adds_their_voltages_at_clipping_currents() {
+        var mosfet = DiodeModel.Mosfet;
+        var germanium = DiodeModel.Germanium;
+        var stack = mosfet.InSeries(germanium);
+
+        static double Volts(DiodeModel d, double current) =>
+            d.EmissionVoltage(1) * Math.Log(current / d.SaturationCurrent + 1);
+
+        foreach (var current in new[] { 1e-4, 1e-3, 1e-2 }) {
+            Assert.Equal(Volts(mosfet, current) + Volts(germanium, current), Volts(stack, current), 1e-4);
+        }
+
+        // Identical junctions: the same as a stack count.
+        var two = DiodeModel.Silicon.InSeries(DiodeModel.Silicon);
+        Assert.Equal(DiodeModel.Silicon.SaturationCurrent, two.SaturationCurrent, 1e-20);
+        Assert.Equal(DiodeModel.Silicon.EmissionVoltage(2), two.EmissionVoltage(1), 1e-12);
+    }
+
+    [Fact]
     public void Diode_clipper_matches_an_iterated_trapezoidal_solve_exactly() {
         // A WDF with bilinear capacitors and an exact root is the trapezoidal rule, so it must agree with a Newton
         // solve of the same discretisation iterated to convergence.

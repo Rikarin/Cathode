@@ -160,6 +160,15 @@ public sealed class CabIrSwitcher : IDisposable {
     public int Swaps { get; private set; }
 
     /// <summary>
+    ///     Audio thread: true when <see cref="Process" /> would leave the audio untouched: the active pair is the
+    ///     identity, nothing is fading, and no other pair is waiting.
+    /// </summary>
+    public bool IsIdentity =>
+        fading is null
+        && (active is null or { IsIdentity: true })
+        && (Volatile.Read(ref pending) is null or { IsIdentity: true });
+
+    /// <summary>
     ///     Control thread, audio stopped: sizes the fade buffers and starts on <paramref name="initial" />.
     /// </summary>
     public void Prepare(in ProcessSpec spec, StereoIr initial) {
