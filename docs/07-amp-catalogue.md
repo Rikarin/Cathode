@@ -173,7 +173,7 @@ built from the documented features and fitted to captures.
 | Ampeg B-15-N Portaflex (1968) | ✅ Done (channel one) | Portaflex B-15N | — | Direct-out captures, Ultra Lo / Hi | 1x15 closed |
 | Roland JC-120 (1984 board) | ✅ Done (effect channel, effects off; solid state) | JC-120 | — | Direct-out captures, volume sweep | 2x12 open |
 | Fender Bassman 100 / 135 (bass) | ✅ Done (the 135, from CBS drawing 014283 with the 100's drawing 010303 for the small print: Bass and Normal channels, Deep, Bright, Master, 12AT7 LTP, 4 × 6L6GC ultralinear; the OT and its screen taps assumed; the 100 is the same preamp with pentode screens) | Bassman 135 | — (no free capture found) | Direct-out captures with settings | 4x12 / 2x15 |
-| Marshall Valvestate 8080 / 8100 | ✅ Done (Marshall drawings PC0689 issue 5 and PC0689P issue 9, vector PDFs at schematicheaven `marshallamps/valvestate80_80w_8080_8100_8412.pdf`; both channels, solid-state power amp; its current feedback not modelled) | Valvestate 8080 | — | Captures | 1x12 / 4x12 closed |
+| Marshall Valvestate 8080 / 8100 | ✅ Done (Marshall drawings PC0689 issue 5 and PC0689P issue 9, vector PDFs at schematicheaven `marshallamps/valvestate80_80w_8080_8100_8412.pdf`; both channels, solid-state power amp; its current feedback not modelled; the preamp-tube parameters act on the boost channel's ECC83) | Valvestate 8080 | — | Captures | 1x12 / 4x12 closed |
 
 No free (GPL / CC) direct-out capture of any of these was found: GuitarML ToneLibrary and pelennor2170/NAM_models
 hold none (searched October 2026; ToneLibrary's Bassman files are the 5F6-A), so the four models are schematic-only. Sources, readings and guesses are in

@@ -43,7 +43,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         Panel: Gain is the playing channel's gain, Bass, Middle and Treble both channels' stacks, Control 1 the
 ///         Contour and Control 2 the boost Volume, Master the master; Switch 1 selects the Normal channel, Switch 2 the
-///         OD2 mode, Switch 3 the Normal channel's Crunch. A solid-state power amp: no tube parameters.
+///         OD2 mode, Switch 3 the Normal channel's Crunch. A solid-state power amp: no power-tube parameters; the
+///         preamp-tube ones (tube type, bias, hardness, grid current) stay, for the boost channel's ECC83 (its supply is
+///         taken as stiff, so no Preamp Sag).
 ///     </para>
 /// </remarks>
 public static class Valvestate8080 {
@@ -109,7 +111,8 @@ public static class Valvestate8080 {
             Switch1 = "Normal",
             Switch2 = "OD2",
             Switch3 = "Crunch",
-            HasTubes = false
+            HasTubes = false,
+            HasPreampTubes = true
         }
     };
 
@@ -164,7 +167,7 @@ public static class Valvestate8080 {
         net.Resistor(grid, StageNetlist.Ground, 1e6);
         net.Supply(rail, Valve);
         net.Resistor(rail, plate, 100e3);
-        net.Resistor(cathode, StageNetlist.Ground, 1e3);
+        net.CathodeResistor(cathode, StageNetlist.Ground, 1e3);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
         net.Triode(rail, plate, follower, TriodeModel.Ecc83);
         net.Resistor(follower, StageNetlist.Ground, 100e3);

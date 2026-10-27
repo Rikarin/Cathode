@@ -101,6 +101,45 @@ public class ModernMarshallTests(ITestOutputHelper output) {
         }
     }
 
+    /// <summary>
+    ///     The Valvestate's power amp is solid state but its boost channel runs an ECC83: the preamp-tube parameters
+    ///     (tube type, bias, hardness, grid current) stay on its panel (the JC-120, with no triode at all, has none) and
+    ///     each one changes the boost channel.
+    /// </summary>
+    [Fact]
+    public void Valvestate_keeps_and_answers_the_preamp_tube_parameters() {
+        (string Id, int Index, float Value)[] parameters = [
+            ("pretube", CircuitAmpBlock.PreampTube, 3f), ("prebias", CircuitAmpBlock.PreampBias, 60f),
+            ("prehard", CircuitAmpBlock.PreampHardness, 0f), ("prebiasx", CircuitAmpBlock.PreampExcursion, 400f)
+        ];
+        var chord = Signals.Sine(82.4, Rate, 24_000, 0.8f)
+            .Zip(Signals.Sine(123.5, Rate, 24_000, 0.8f), static (a, b) => a + b)
+            .ToArray();
+        float[] Render(params (int Index, float Value)[] settings) {
+            using var block = Create(
+                "Valvestate 8080",
+                [(CircuitAmpBlock.Gain, 8f), (CircuitAmpBlock.Master, 8f), ..settings]
+            );
+            return BlockRender.Mono(block, chord, 64);
+        }
+
+        var stock = Render();
+        foreach (var (id, index, value) in parameters) {
+            Assert.NotEmpty(Label(id, "Valvestate 8080"));
+            Assert.Empty(Label(id, "JC-120"));
+            var changed = Render((index, value));
+            var difference = changed.Zip(stock, static (a, b) => a - b).ToArray();
+            var db = Analysis.ToDb(Analysis.Rms(difference) / Analysis.Rms(stock));
+            output.WriteLine($"{id}: difference {db:0.0} dB");
+            Assert.True(db > -60, $"{id} does not reach the Valvestate's ECC83 ({db:0.0} dB)");
+        }
+
+        // Its preamp rails are regulated, as every solid-state model's: no Preamp Sag, and no power-tube parameters.
+        foreach (var id in new[] { "presag", "bias", "powertube" }) {
+            Assert.Empty(Label(id, "Valvestate 8080"));
+        }
+    }
+
     /// <summary>Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.</summary>
     [Theory]
     [MemberData(nameof(Types))]
