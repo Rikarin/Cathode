@@ -1,5 +1,6 @@
 import type { ElectronApplication, Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import { readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from './fixtures';
@@ -34,6 +35,24 @@ test('overlapping engine restarts leave one engine running', async ({ app, windo
   expect(counts).toEqual([1, 1, 1, 1, 1, 1, 1, 1]);
 });
 
+test('the engine stops on its own when the app is killed', async ({ app, window }) => {
+  const { baseUrl } = await connection(window);
+  const pid = await mainPid(app);
+  expect(hosts(pid)).toHaveLength(1);
+  expect(servers(pid)).toHaveLength(1);
+  expect(socketExists(pid)).toBe(true);
+
+  // A crash or a force quit: no before-quit, nobody stops the sidecars.
+  process.kill(pid, 'SIGKILL');
+  await expect.poll(() => hosts(pid).length + servers(pid).length, { timeout: 30_000 }).toBe(0);
+  await expect(fetch(`${baseUrl}/api/v1/system`)).rejects.toThrow();
+  // On macOS and Linux they saw their standard input close and stopped cleanly: the host removed its socket. Windows
+  // kills them outright with the app (Node starts children in a job object that ends with it), leaving the socket.
+  if (process.platform !== 'win32') {
+    expect(socketExists(pid)).toBe(false);
+  }
+});
+
 interface Desktop {
   audio: { settings(): Promise<unknown>; apply(settings: unknown): Promise<void> };
 }
@@ -48,11 +67,21 @@ function socket(pid: number): string {
   return join(tmpdir(), `cathode-${pid}.sock`);
 }
 
+/** Whether that socket is there: listed, as Windows cannot stat a Unix socket. */
+function socketExists(pid: number): boolean {
+  return readdirSync(tmpdir()).includes(`cathode-${pid}.sock`);
+}
+
 /** The engine hosts that app runs (on its socket), by command line. */
 function hosts(pid: number): string[] {
   return commandLines().filter(
     line => line.includes('cathode-host') && line.includes('--serve') && line.includes(socket(pid))
   );
+}
+
+/** The Servers that app runs (on its host's socket), by command line. */
+function servers(pid: number): string[] {
+  return commandLines().filter(line => line.includes('cathode-server') && line.includes(socket(pid)));
 }
 
 /** The connection the desktop app hands its editor: the local Server's address and token. */

@@ -9,7 +9,8 @@ namespace Cathode.Host;
 
 /// <summary>
 ///     The production mode: run the engine on a device (or the null backend) and serve the Server over a Unix domain
-///     socket until SIGINT or SIGTERM (docs/adr/0001-process-model.md, docs/adr/0004-state-ownership.md).
+///     socket until SIGINT or SIGTERM, or with <c>--watch-stdin</c> until standard input closes
+///     (docs/adr/0001-process-model.md, docs/adr/0004-state-ownership.md).
 /// </summary>
 static class ServeCommand {
     /// <summary>
@@ -37,6 +38,10 @@ static class ServeCommand {
                 stop.Cancel();
             }
         );
+
+        if (options.Flag("watch-stdin")) {
+            StdinWatch.Start(Console.OpenStandardInput(), stop.Cancel); // the launcher is gone: stop as on SIGTERM
+        }
 
         if (options.Flag("null-audio")) {
             var spec = new ProcessSpec(rate, buffer);

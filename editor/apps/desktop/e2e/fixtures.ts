@@ -91,7 +91,7 @@ export const test = base.extend<{
       }
     });
     await use(app);
-    await app.close();
+    await app.close().catch(() => undefined); // a test may have killed it
     rmSync(scratch, { recursive: true, force: true });
   },
   window: async ({ app }, use) => {

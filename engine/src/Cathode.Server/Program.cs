@@ -1,6 +1,7 @@
 using Cathode.Contracts;
 using Cathode.Dsp;
 using Cathode.Dsp.Native;
+using Cathode.EngineHost;
 using Cathode.Server;
 using Cathode.Server.Api;
 using Cathode.Server.Engine;
@@ -58,6 +59,11 @@ builder.Services.AddSingleton<TemplateStore>();
 builder.Services.AddSingleton<PresetTools>();
 
 var app = builder.Build();
+if (bool.TryParse(builder.Configuration["Cathode:WatchStdin"], out var watchStdin) && watchStdin) {
+    // Started by the desktop app: stop when it is gone, however it ended (Cathode.EngineHost.StdinWatch).
+    StdinWatch.Start(Console.OpenStandardInput(), app.Lifetime.StopApplication);
+}
+
 StartupLog.Phase(app.Logger, "services built", startup.ElapsedMilliseconds);
 if (builder.Configuration["Cathode:EditorDirectory"] is { Length: > 0 } editor) {
     app.UseCathodeEditor(editor);

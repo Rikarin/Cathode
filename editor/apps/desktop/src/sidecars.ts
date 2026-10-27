@@ -110,10 +110,13 @@ class Sidecar {
     this.set(this.failures === 0 ? 'starting' : 'restarting', null);
     const child = spawn(command.command, command.args, {
       env: { ...process.env, ...command.env },
-      stdio: ['ignore', 'pipe', 'pipe'],
+      // Standard input is the child's lifeline (StdinWatch in the engine): the OS closes it however this app ends, a
+      // crash or a force quit included, and the child then stops on its own instead of outliving the app.
+      stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true
     });
     this.child = child;
+    child.stdin?.on('error', () => undefined); // a child that already exited: nothing to tell it
     const keep = (data: Buffer) => {
       this.log.push(...data.toString().split('\n').filter(Boolean));
       this.log.splice(0, Math.max(0, this.log.length - 200));
@@ -375,6 +378,7 @@ export class Sidecars {
         '--serve',
         '--socket',
         this.socket,
+        '--watch-stdin',
         ...audio,
         ...(this.audio.device ? loop : []),
         '--rate',
@@ -398,6 +402,7 @@ export class Sidecars {
         ...server.args,
         `--urls=http://127.0.0.1:${this.port}${this.onNetwork() ? `;http://0.0.0.0:${this.network.port}` : ''}`,
         `--Cathode:Engine:SocketPath=${this.socket}`,
+        '--Cathode:WatchStdin=true',
         ...(this.onNetwork() ? [`--Cathode:EditorDirectory=${this.editorDirectory}`] : []),
         ...(this.dataDirectory ? [`--Cathode:DataDirectory=${this.dataDirectory}`] : [])
       ],

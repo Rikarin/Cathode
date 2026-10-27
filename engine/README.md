@@ -105,6 +105,8 @@ The host writes meters, the CPU histogram and xrun counts to a memory-mapped fil
 
 Set `Cathode:Token` (or the `CATHODE__TOKEN` environment variable) to require `Authorization: Bearer <token>` on every request, and `?access_token=` on `/ws`. The Server will not listen beyond localhost without a token. Without one, only loopback origins pass CORS. The desktop app (`editor/`) starts both processes itself, with a token per run.
 
+A launcher that wants its children to go when it goes starts them with standard input on a pipe and `--watch-stdin` (host) or `--Cathode:WatchStdin=true` (Server): each then stops cleanly when the pipe closes, which the OS does however the launcher ends, a crash or a force quit included. The desktop app does this.
+
 `src/Cathode.Server/cathode.http` walks through building a rig with channels and scenes. If an API change is intended, regenerate the committed OpenAPI document:
 
 ```bash
