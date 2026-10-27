@@ -10,14 +10,15 @@ namespace Cathode.Server.Stores;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Schema 1 is the format Cathode 1.0 shipped with; a preset without <c>schemaVersion</c> is schema 1. Parameter
-///         values are stored sparsely, so a new parameter, block type or amp model needs no new schema: only a change
-///         that would read an older file wrongly does (a parameter renamed, re-ranged or re-meaning, a field moved).
+///         Schema 1 is the format Cathode 1.0 shipped with; a preset without <c>schemaVersion</c> is schema 1.
+///         Parameter values are stored sparsely, so a new parameter, block type or amp model needs no new schema: only
+///         a change that would read an older file wrongly does (a parameter renamed, re-ranged or re-meaning, a field
+///         moved).
 ///     </para>
 ///     <para>
 ///         To make one: raise <see cref="Preset.CurrentSchemaVersion" />, append to <see cref="Steps" /> the step that
-///         takes the previous schema's JSON to the new one, and add a test with a file of the previous schema. Steps are
-///         never edited once released: each runs on presets that may be years old.
+///         takes the previous schema's JSON to the new one, and add a test with a file of the previous schema. Steps
+///         are never edited once released: each runs on presets that may be years old.
 ///     </para>
 ///     <para>
 ///         A preset from a newer Cathode (a schema above the current) is left as it is: loading or importing it is

@@ -58,7 +58,9 @@ public sealed class CompiledGraph : IDisposable {
     readonly IBlockMeters[] ownMeters;
     readonly int[] ownOffsets;
 
-    /// <summary>The standard meter every block has, first in its <see cref="MeterIds" />: its output peak (linear).</summary>
+    /// <summary>
+    ///     The standard meter every block has, first in its <see cref="MeterIds" />: its output peak (linear).
+    /// </summary>
     public const string PeakMeter = "peak";
 
     /// <summary>Identifies this graph; commands addressed to another generation are ignored.</summary>
@@ -75,17 +77,19 @@ public sealed class CompiledGraph : IDisposable {
 
     public IReadOnlyList<string> SlotIds => slotIds;
 
-    /// <summary>The looper of the graph's Looper block, or null: while it runs, the engine's looper transport drives it.</summary>
+    /// <summary>
+    ///     The looper of the graph's Looper block, or null: while it runs, the engine's looper transport drives it.
+    /// </summary>
     public Looper? Looper => looperBlock?.Looper;
 
     /// <summary>The graph's Looper block, for handing a running loop over to the next preset's.</summary>
     public ILooperBlock? LooperBlock => looperBlock;
 
     /// <summary>
-    ///     Audio thread: every block meter, slot by slot (<see cref="MeterOffset" />), each slot's <see cref="MeterIds" />
-    ///     in order. The first of each slot is <see cref="PeakMeter" />, its output peak since <see cref="ClearPeaks" />
-    ///     (0 for a block that did not run, such as a bypassed Thru block); the rest are the block's own
-    ///     (<see cref="IBlockMeters" />) as of the last <see cref="CaptureMeters" />.
+    ///     Audio thread: every block meter, slot by slot (<see cref="MeterOffset" />), each slot's
+    ///     <see cref="MeterIds" /> in order. The first of each slot is <see cref="PeakMeter" />, its output peak since
+    ///     <see cref="ClearPeaks" /> (0 for a block that did not run, such as a bypassed Thru block); the rest are the
+    ///     block's own (<see cref="IBlockMeters" />) as of the last <see cref="CaptureMeters" />.
     /// </summary>
     public ReadOnlySpan<float> Meters => meters;
 
@@ -111,8 +115,8 @@ public sealed class CompiledGraph : IDisposable {
     public TestTone? Tone { get; init; }
 
     /// <summary>
-    ///     The graph's view of the hardware inputs, when the compiler had them and a block reads one: the engine fades it
-    ///     out when the graph is replaced.
+    ///     The graph's view of the hardware inputs, when the compiler had them and a block reads one: the engine fades
+    ///     it out when the graph is replaced.
     /// </summary>
     public InputPort? Inputs { get; }
 
@@ -218,8 +222,8 @@ public sealed class CompiledGraph : IDisposable {
     }
 
     /// <summary>
-    ///     Audio thread, once per sub-block before <see cref="Process" />: drive every modified parameter from its source,
-    ///     ramping across the sub-block.
+    ///     Audio thread, once per sub-block before <see cref="Process" />: drive every modified parameter from its
+    ///     source, ramping across the sub-block.
     /// </summary>
     public void ApplyModifiers(Modulation modulation, int frames) {
         var seconds = frames / Spec.SampleRate;
@@ -262,16 +266,20 @@ public sealed class CompiledGraph : IDisposable {
 
     public IDspBlock Block(int slot) => blocks[slot];
 
-    /// <summary>Whether the grid has a live node for output <paramref name="output" /> (0 = Output 1, 1-3 = Outputs 2-4).</summary>
+    /// <summary>
+    ///     Whether the grid has a live node for output <paramref name="output" /> (0 = Output 1, 1-3 = Outputs 2-4).
+    /// </summary>
     public bool HasOutput(int output) => outputs[output];
 
     /// <summary>
-    ///     The id of each value in <see cref="Meters" />: slot by slot, <see cref="PeakMeter" /> and then the block's own,
-    ///     so each <see cref="PeakMeter" /> starts the next slot's meters. The host sends it with the slot ids.
+    ///     The id of each value in <see cref="Meters" />: slot by slot, <see cref="PeakMeter" /> and then the block's
+    ///     own, so each <see cref="PeakMeter" /> starts the next slot's meters. The host sends it with the slot ids.
     /// </summary>
     public string[] MeterLayout => meterLayout;
 
-    /// <summary>The ids of slot <paramref name="slot" />'s meters: <see cref="PeakMeter" />, then the block's own.</summary>
+    /// <summary>
+    ///     The ids of slot <paramref name="slot" />'s meters: <see cref="PeakMeter" />, then the block's own.
+    /// </summary>
     public ArraySegment<string> MeterIds(int slot) =>
         new(
             meterLayout,
@@ -283,8 +291,8 @@ public sealed class CompiledGraph : IDisposable {
     public int MeterOffset(int slot) => meterOffsets[slot];
 
     /// <summary>
-    ///     The index in <see cref="Meters" /> of block <paramref name="instanceId" />'s meter <paramref name="meter" />,
-    ///     or -1.
+    ///     The index in <see cref="Meters" /> of block <paramref name="instanceId" />'s meter
+    ///     <paramref name="meter" />, or -1.
     /// </summary>
     public int MeterIndex(string instanceId, string meter = PeakMeter) {
         var slot = SlotOf(instanceId);
@@ -317,8 +325,8 @@ public sealed class CompiledGraph : IDisposable {
     public BypassKind BypassModeOf(int slot) => bypass[slot].Mode;
 
     /// <summary>
-    ///     Audio thread: runs the plan for one block of at most <see cref="ProcessSpec.MaxBlockSize" /> frames. Output 1
-    ///     goes to <paramref name="io" />; Outputs 2-4 are added into <paramref name="outputs" /> (dropped without).
+    ///     Audio thread: runs the plan for one block of at most <see cref="ProcessSpec.MaxBlockSize" /> frames. Output
+    ///     1 goes to <paramref name="io" />; Outputs 2-4 are added into <paramref name="outputs" /> (dropped without).
     /// </summary>
     public void Process(in AudioIO io, in BlockContext context, GraphOutputs? outputs = null) {
         var frames = io.Frames;
@@ -394,8 +402,8 @@ public sealed class CompiledGraph : IDisposable {
     }
 
     /// <summary>
-    ///     A <see cref="GraphOpKind.SideInput" />: hands the block buffer <c>Source</c> (or the grid input), as a cabled
-    ///     input to add into <c>Buffer</c> or, without one, as a tap.
+    ///     A <see cref="GraphOpKind.SideInput" />: hands the block buffer <c>Source</c> (or the grid input), as a
+    ///     cabled input to add into <c>Buffer</c> or, without one, as a tap.
     /// </summary>
     void SideInput(in GraphOp op, in AudioIO io, int frames) {
         Span<float> signalLeft;
@@ -511,9 +519,9 @@ public sealed class CompiledGraph : IDisposable {
     }
 
     /// <summary>
-    ///     Mute Out and Mute FX Out: the block always runs on its full input, so it keeps listening while bypassed and its
-    ///     tails are already there when it is engaged; its output is faded by the bypass mix. Mute FX Out puts the dry
-    ///     signal in its place, Mute Out silence.
+    ///     Mute Out and Mute FX Out: the block always runs on its full input, so it keeps listening while bypassed and
+    ///     its tails are already there when it is engaged; its output is faded by the bypass mix. Mute FX Out puts the
+    ///     dry signal in its place, Mute Out silence.
     /// </summary>
     void RunWithFadedOutput(int slot, float target, in StereoBuffer io, in BlockContext context, bool latent) {
         ref var bypass = ref this.bypass[slot];
@@ -564,8 +572,8 @@ public sealed class CompiledGraph : IDisposable {
     }
 
     /// <summary>
-    ///     Audio thread only (<see cref="EngineCommandKind.SetModifier" />): a re-enabled modifier starts again from its
-    ///     source's value rather than from where it stopped; a disabled one leaves its parameter at
+    ///     Audio thread only (<see cref="EngineCommandKind.SetModifier" />): a re-enabled modifier starts again from
+    ///     its source's value rather than from where it stopped; a disabled one leaves its parameter at
     ///     <paramref name="baseValue" /> (an engage modifier leaves the bypass to the bypass commands).
     /// </summary>
     internal void SetModifierEnabled(int index, bool enabled, float baseValue) {
@@ -582,7 +590,9 @@ public sealed class CompiledGraph : IDisposable {
         }
     }
 
-    /// <summary>Audio thread only (the engine applies queued <see cref="EngineCommandKind.SetBypass" /> commands here).</summary>
+    /// <summary>
+    ///     Audio thread only (the engine applies queued <see cref="EngineCommandKind.SetBypass" /> commands here).
+    /// </summary>
     internal void SetBypass(int slot, bool bypassed) {
         if ((uint)slot >= (uint)bypass.Length) {
             return;
@@ -635,6 +645,8 @@ public struct ModifierBinding(
     /// <summary>The slewed value; NaN until the first sub-block, which then starts at its target.</summary>
     public float Value { get; set; } = float.NaN;
 
-    /// <summary>Whether it drives its parameter (false for a channel-scoped modifier while its block is elsewhere).</summary>
+    /// <summary>
+    ///     Whether it drives its parameter (false for a channel-scoped modifier while its block is elsewhere).
+    /// </summary>
     public bool Enabled { get; set; } = true;
 }

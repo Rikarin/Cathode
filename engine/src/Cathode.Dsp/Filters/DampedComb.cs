@@ -14,8 +14,8 @@ public sealed class DampedComb : IDisposable {
     float lowpass;
 
     /// <summary>
-    ///     Loop delay of the one-pole <c>lp = (1 - a) x + a lp</c> at <paramref name="frequency" />, in samples. Subtract it
-    ///     from the period so the comb's peaks stay in tune when damped.
+    ///     Loop delay of the one-pole <c>lp = (1 - a) x + a lp</c> at <paramref name="frequency" />, in samples.
+    ///     Subtract it from the period so the comb's peaks stay in tune when damped.
     /// </summary>
     public static double PhaseDelay(double damping, double frequency, double sampleRate) {
         var w = 2 * Math.PI * frequency / sampleRate;

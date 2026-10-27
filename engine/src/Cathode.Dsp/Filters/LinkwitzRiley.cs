@@ -4,8 +4,8 @@ namespace Cathode.Dsp.Filters;
 
 /// <summary>
 ///     Coefficients for a 4th-order Linkwitz–Riley crossover built from trapezoidal state-variable filters (see
-///     <see cref="SvfCoefficients" />): each band is a 2nd-order Butterworth section squared, so both bands are -6 dB at
-///     the crossover frequency and in phase, and their sum is the 2nd-order allpass
+///     <see cref="SvfCoefficients" />): each band is a 2nd-order Butterworth section squared, so both bands are -6 dB
+///     at the crossover frequency and in phase, and their sum is the 2nd-order allpass
 ///     <c>(s² - √2 s + 1) / (s² + √2 s + 1)</c>,
 ///     flat in magnitude. The bilinear transform preserves that identity exactly.
 /// </summary>
@@ -34,7 +34,9 @@ struct SvfSection {
         ic2 = 0;
     }
 
-    /// <summary>Returns the unnormalised band-pass <c>s / D</c> in <paramref name="band" /> and the low-pass <c>1 / D</c>.</summary>
+    /// <summary>
+    ///     Returns the unnormalised band-pass <c>s / D</c> in <paramref name="band" /> and the low-pass <c>1 / D</c>.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Tick(in LinkwitzRileyCoefficients c, double v0, out double band) {
         var v3 = v0 - ic2;
@@ -89,8 +91,8 @@ public struct LinkwitzRileySplit {
 }
 
 /// <summary>
-///     The allpass a <see cref="LinkwitzRileySplit" /> sums to. A band that skips a later split runs through this so all
-///     bands stay phase-aligned and a multi-way crossover still sums flat.
+///     The allpass a <see cref="LinkwitzRileySplit" /> sums to. A band that skips a later split runs through this so
+///     all bands stay phase-aligned and a multi-way crossover still sums flat.
 /// </summary>
 public struct LinkwitzRileyAllpass {
     SvfSection section;

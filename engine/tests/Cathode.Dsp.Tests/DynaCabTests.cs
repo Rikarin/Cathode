@@ -6,7 +6,9 @@ using System.IO.Compression;
 
 namespace Cathode.Dsp.Tests;
 
-/// <summary>The Cab block's DynaCab source: physical sanity of the model, level normalisation, the IR swap and user grids.</summary>
+/// <summary>
+///     The Cab block's DynaCab source: physical sanity of the model, level normalisation, the IR swap and user grids.
+/// </summary>
 public sealed class DynaCabTests : IDisposable {
     const double Rate = 48_000;
     const double Inch = 0.0254;
@@ -382,8 +384,8 @@ public sealed class DynaCabTests : IDisposable {
         }
 
         // As AllocationProbe does, the least of up to three runs: the runtime now and then does one-off work on the
-        // measuring thread (a tier-1 rejit, on-stack replacement, a cold type load), more often on a busy machine, where
-        // the background compiler runs late; an allocation in the swap or the fade shows up in every run.
+        // measuring thread (a tier-1 rejit, on-stack replacement, a cold type load), more often on a busy machine,
+        // where the background compiler runs late; an allocation in the swap or the fade shows up in every run.
         var (output, allocated) = Run();
         for (var retry = 0; retry < 2 && allocated > 0; retry++) {
             allocated = Math.Min(allocated, Run().Allocated);
@@ -598,7 +600,9 @@ public sealed class DynaCabTests : IDisposable {
         return pink;
     }
 
-    /// <summary>RMS through ITU-R BS.1770-4's K filter (its published 48 kHz coefficients), skipping the first 0.25 s.</summary>
+    /// <summary>
+    ///     RMS through ITU-R BS.1770-4's K filter (its published 48 kHz coefficients), skipping the first 0.25 s.
+    /// </summary>
     static double KWeightedDb(float[] signal) {
         var shelf = new BiquadCoefficients(
             1.53512485958697,

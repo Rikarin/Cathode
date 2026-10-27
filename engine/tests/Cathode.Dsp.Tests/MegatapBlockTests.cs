@@ -276,7 +276,9 @@ public class MegatapBlockTests {
         Assert.True(Analysis.Peak(output) < 2.5f, $"peak {Analysis.Peak(output)}");
     }
 
-    /// <summary>Every tap is heard near its position (Hermite spreads fractional ones over a few samples), nothing else is.</summary>
+    /// <summary>
+    ///     Every tap is heard near its position (Hermite spreads fractional ones over a few samples), nothing else is.
+    /// </summary>
     static void AssertHeardOnlyAt(float[] output, float[] positions, float amplitude) {
         var heard = new bool[output.Length];
         foreach (var position in positions) {

@@ -75,7 +75,8 @@ foreach (var descriptor in registry.Descriptors.Where(d => only is null || d.Typ
     Console.WriteLine($"{descriptor.TypeId,-12} {worst,6:0.00} %");
 }
 
-// The Cab's IR synthesis and mixing run on the control thread, so they are not part of its audio cost: report them apart.
+// The Cab's IR synthesis and mixing run on the control thread, so they are not part of its audio cost: report them
+// apart.
 using (var cab = new CabBlock()) {
     cab.Prepare(new(Rate, Frames));
     var position = CabBlock.SlotParam(0, CabBlock.Position);
@@ -183,9 +184,10 @@ static double Measure(
     return 100 * best / (Blocks * Frames / Rate);
 }
 
-// --amps [model ...] [--set index=value ...]: each Circuit Amp model (all of them without names) on a strummed chord and
-// on loud noise, as a percentage of one core, with the Plexi measured in the same passes as a yardstick. Each figure is
-// the best of five passes taken in turn, timed in process CPU time, so a loaded machine distorts it less than wall time.
+// --amps [model ...] [--set index=value ...]: each Circuit Amp model (all of them without names) on a strummed chord
+// and on loud noise, as a percentage of one core, with the Plexi measured in the same passes as a yardstick. Each
+// figure is the best of five passes taken in turn, timed in process CPU time, so a loaded machine distorts it less than
+// wall time.
 static int MeasureAmps(string[] args) {
     const int Passes = 5;
     const int AmpBlocks = 4_000; // about 5.3 s of audio per measurement

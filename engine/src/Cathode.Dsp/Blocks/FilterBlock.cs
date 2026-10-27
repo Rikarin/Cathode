@@ -11,7 +11,9 @@ namespace Cathode.Dsp.Blocks;
 ///         <item>Order 4th cascades two identical sections (pass, stop and all-pass types).</item>
 ///         <item>Tilt EQ: a low shelf cut and a high shelf boost of half the gain each, hinged at the frequency.</item>
 ///         <item>Null: no filter, for the level, pan and phase controls alone.</item>
-///         <item>All Pass can have feedback around it (one sample later), which turns its phase sweep into peaks.</item>
+///         <item>
+///             All Pass can have feedback around it (one sample later), which turns its phase sweep into peaks.
+///         </item>
 ///         <item>
 ///             Low and High Shelf 2: shelves whose Q may rise to <see cref="MaxShelf2Q" />, so they overshoot at the
 ///             corner
@@ -23,11 +25,11 @@ namespace Cathode.Dsp.Blocks;
 ///             earlier, giving notches or peaks at multiples of 1 / time.
 ///         </item>
 ///     </list>
-///     A built-in LFO, with duty and quantise, can sweep the frequency between Frequency and Mod Frequency (log-spaced).
-///     While anything that
-///     shapes the filter is moving, coefficients are recomputed every <see cref="SubBlock" /> samples on a grid
-///     counted from the start of the stream, so the result does not depend on the callback size. Then come a first-order
-///     (6 dB/oct) low and high cut, the pans of each input side, phase invert, and level and balance.
+///     A built-in LFO, with duty and quantise, can sweep the frequency between Frequency and Mod Frequency
+///     (log-spaced). While anything that shapes the filter is moving, coefficients are recomputed every
+///     <see cref="SubBlock" /> samples on a grid counted from the start of the stream, so the result does not depend on
+///     the callback size. Then come a first-order (6 dB/oct) low and high cut, the pans of each input side, phase
+///     invert, and level and balance.
 /// </summary>
 public sealed class FilterBlock() : DspBlock(Info) {
     public const int Type = 0;

@@ -7,8 +7,8 @@ namespace Cathode.Dsp.Tests;
 
 /// <summary>
 ///     The Mesa and US boutique stream's preamps against the reference MNA simulator as whole chains (the first stages
-///     of the playing channel joined in one circuit, no Thévenin cut): the new combinations (switched Rock/Jazz and Deep
-///     networks, plate-to-cathode caps, LDR-switched Mesa voicings, the op-amp Dynamic Voice) checked in one go.
+///     of the playing channel joined in one circuit, no Thévenin cut): the new combinations (switched Rock/Jazz and
+///     Deep networks, plate-to-cathode caps, LDR-switched Mesa voicings, the op-amp Dynamic Voice) checked in one go.
 /// </summary>
 public partial class AmpStageTests {
     public static TheoryData<string, bool, int, double, double> MesaBoutiqueChains =>
@@ -100,8 +100,8 @@ public partial class AmpStageTests {
         };
 
     /// <summary>
-    ///     The first <paramref name="count" /> stages of the channel <paramref name="switched" /> selects (Switch 1 on: a
-    ///     channel switch's other channel).
+    ///     The first <paramref name="count" /> stages of the channel <paramref name="switched" /> selects (Switch 1 on:
+    ///     a channel switch's other channel).
     /// </summary>
     [Theory]
     [MemberData(nameof(MesaBoutiqueChains))]
@@ -257,7 +257,9 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
         Assert.InRange(Level(0.5, 89), 0.2, 6);
     }
 
-    /// <summary>Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.</summary>
+    /// <summary>
+    ///     Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.
+    /// </summary>
     [Theory]
     [MemberData(nameof(Types))]
     public void Knob_sweeps_at_full_drive_stay_finite_and_converge(string type) {
@@ -294,8 +296,8 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     Every control on the panel changes the sound: at a moderate setting, a knob from 0 to 10 or a switch on moves
-    ///     the level or the spectrum of a three-tone signal by more than a fraction of a decibel somewhere.
+    ///     Every control on the panel changes the sound: at a moderate setting, a knob from 0 to 10 or a switch on
+    ///     moves the level or the spectrum of a three-tone signal by more than a fraction of a decibel somewhere.
     /// </summary>
     [Theory]
     [MemberData(nameof(Types))]
@@ -363,7 +365,9 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
         }
     }
 
-    /// <summary>The Rectifiers' Modern switch takes the global feedback out: the open-loop power amp is louder.</summary>
+    /// <summary>
+    ///     The Rectifiers' Modern switch takes the global feedback out: the open-loop power amp is louder.
+    /// </summary>
     [Theory]
     [InlineData("Dual Rectifier")]
     [InlineData("Dual Rectifier 3-Ch")]

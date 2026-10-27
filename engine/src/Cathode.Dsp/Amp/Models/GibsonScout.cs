@@ -3,33 +3,34 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Gibson GA-17RVT Scout (about 1964; 2 × 6AQ5, a 10 in speaker): V2A (½ 6EU7: 470k, 4.7k ‖ 20 µF) into 0.001 µF and a
-///     bridged-T notch (220k + 220k with 0.003 µF from their junction to ground and 500 pF across both), the 500k audio
-///     Volume, 470k into V2B (470k, 4.7k with only 0.1 µF across it), 0.005 µF into a 6EU7 cathodyne (100k plate,
-///     2.7k + 100k cathode, the grid's 470k returned between them), two 6AQ5 on a shared 270 Ω ‖ 20 µF cathode at 300 V on
-///     a 6CA4, and no global feedback. Panel: Volume. Source: Gibson's GA-17RVT schematic with DC voltages
-///     (schematicheaven.net/gibsonamps/ga17rvt.pdf, via Parts is Parts); the tubes are this repository's fits to the RCA
-///     6EU7 and GE 6AQ5 datasheets (<see cref="TriodeModel.SixEU7" />, <see cref="PentodeModel.SixAQ5" />).
+///     Gibson GA-17RVT Scout (about 1964; 2 × 6AQ5, a 10 in speaker): V2A (½ 6EU7: 470k, 4.7k ‖ 20 µF) into 0.001 µF
+///     and a bridged-T notch (220k + 220k with 0.003 µF from their junction to ground and 500 pF across both), the 500k
+///     audio Volume, 470k into V2B (470k, 4.7k with only 0.1 µF across it), 0.005 µF into a 6EU7 cathodyne (100k plate,
+///     2.7k + 100k cathode, the grid's 470k returned between them), two 6AQ5 on a shared 270 Ω ‖ 20 µF cathode at 300 V
+///     on a 6CA4, and no global feedback. Panel: Volume. Source: Gibson's GA-17RVT schematic with DC voltages
+///     (schematicheaven.net/gibsonamps/ga17rvt.pdf, via Parts is Parts); the tubes are this repository's fits to the
+///     RCA 6EU7 and GE 6AQ5 datasheets (<see cref="TriodeModel.SixEU7" />, <see cref="PentodeModel.SixAQ5" />).
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Read: the inputs (68k, 68k, 1M: taken as Fender's two-jack network, 34k into the grid), V2A (120 V plate from
-///         257 V, 1.2 V cathode), the bridged T, R8 (500k audio, on the parts list), R9 470k, V2B (130 V plate from
-///         263 V, 1.2 V cathode); at V2B's grid the reverb recovery's 0.005 µF from V1B's plate (100k from 257 V, 190 V)
-///         and R15 1M to the reverb footswitch; the reverb's 2M audio drive pot across the Volume's top; the cathodyne
-///         (211 V plate, 51 V cathode, 49.5 V at the junction, from 263 V); 0.01 µF and 220k into the 6AQ5 grids, the two
-///         grid leaks returned through 330k; the shared 270 Ω ‖ 20 µF cathode (17 V), plates and screens at 300 V
-///         (3.9k from the 305 V reservoir to the screens, 4.7k to 263 V), the 6CA4 (EZ81) on 255-0-255 V AC, 2 × 20 µF.
+///         Read: the inputs (68k, 68k, 1M: taken as Fender's two-jack network, 34k into the grid), V2A (120 V plate
+///         from 257 V, 1.2 V cathode), the bridged T, R8 (500k audio, on the parts list), R9 470k, V2B (130 V plate
+///         from 263 V, 1.2 V cathode); at V2B's grid the reverb recovery's 0.005 µF from V1B's plate (100k from 257 V,
+///         190 V) and R15 1M to the reverb footswitch; the reverb's 2M audio drive pot across the Volume's top; the
+///         cathodyne (211 V plate, 51 V cathode, 49.5 V at the junction, from 263 V); 0.01 µF and 220k into the 6AQ5
+///         grids, the two grid leaks returned through 330k; the shared 270 Ω ‖ 20 µF cathode (17 V), plates and screens
+///         at 300 V (3.9k from the 305 V reservoir to the screens, 4.7k to 263 V), the 6CA4 (EZ81) on 255-0-255 V AC, 2
+///         × 20 µF.
 ///     </para>
 ///     <para>
-///         As the tables give it the stages sit at 119 V (V2A) and 122 V (V2B) against 120 V and 130 V, and the 6AQ5s at
-///         16 V of cathode (the drawing: 17 V). Assumed: the reverb's footswitch closed (R15 to ground) and its drive at
-///         0 (the 2M pot's whole track across the Volume), the recovery plate as 100k ‖ r_p (about 37k); the output
-///         transformer TF 18-01
-///         at the 6AQ5 datasheet's 10k plate to plate for push-pull class AB1; the supply's source resistance; the 1 × 12
-///         open-back preset for the 1 × 10. The two 330k-returned grid leaks act as 220k for the push-pull signal. Not
-///         modelled: the reverb (at 0). The tremolo is a bias tremolo into the grid leaks' return (<see cref="Tremolo" />):
-///         Speed and Depth on the Circuit Amp's tremolo parameters, Depth 0 its footswitch off.
+///         As the tables give it the stages sit at 119 V (V2A) and 122 V (V2B) against 120 V and 130 V, and the 6AQ5s
+///         at 16 V of cathode (the drawing: 17 V). Assumed: the reverb's footswitch closed (R15 to ground) and its
+///         drive at 0 (the 2M pot's whole track across the Volume), the recovery plate as 100k ‖ r_p (about 37k); the
+///         output transformer TF 18-01 at the 6AQ5 datasheet's 10k plate to plate for push-pull class AB1; the supply's
+///         source resistance; the 1 × 12 open-back preset for the 1 × 10. The two 330k-returned grid leaks act as 220k
+///         for the push-pull signal. Not modelled: the reverb (at 0). The tremolo is a bias tremolo into the grid
+///         leaks' return (<see cref="Tremolo" />): Speed and Depth on the Circuit Amp's tremolo parameters, Depth 0 its
+///         footswitch off.
 ///     </para>
 /// </remarks>
 public static class GibsonScout {
@@ -37,12 +38,12 @@ public static class GibsonScout {
     const double GridPlate = 1.5e-12;
 
     /// <summary>
-    ///     The tremolo, from the drawing: a bias tremolo. V3B (½ 6EU7: R29 150k from the 263 V node, its cathode grounded,
-    ///     118 V at the plate, its grid at −0.6 V on R32 4.7M) with C14 0.022 µF from its plate to R30 330k, C15 0.022 µF to
-    ///     R31 150k and the Speed rheostat R33 (1.5M reverse audio; the tremolo footswitch closes it to ground, open it
-    ///     stops the oscillator), C16 0.01 µF to the grid; from the plate C13 0.047 µF and R34 1M into the 6AQ5 grid
-    ///     leaks' junction, which R25 330k returns to the cathode's 20 µF (an AC ground). There is no Intensity control:
-    ///     the depth scales the swing, 100 % the amp's own.
+    ///     The tremolo, from the drawing: a bias tremolo. V3B (½ 6EU7: R29 150k from the 263 V node, its cathode
+    ///     grounded, 118 V at the plate, its grid at −0.6 V on R32 4.7M) with C14 0.022 µF from its plate to R30 330k,
+    ///     C15 0.022 µF to R31 150k and the Speed rheostat R33 (1.5M reverse audio; the tremolo footswitch closes it to
+    ///     ground, open it stops the oscillator), C16 0.01 µF to the grid; from the plate C13 0.047 µF and R34 1M into
+    ///     the 6AQ5 grid leaks' junction, which R25 330k returns to the cathode's 20 µF (an AC ground). There is no
+    ///     Intensity control: the depth scales the swing, 100 % the amp's own.
     /// </summary>
     internal static BiasTremoloDesign Tremolo { get; } = new(
         new(
@@ -128,8 +129,8 @@ public static class GibsonScout {
     }
 
     /// <summary>
-    ///     The bridged T, the Volume (with the reverb drive pot's track beside it), 470k into V2B's grid (with the reverb
-    ///     recovery's coupling and R15), V2B: 470k from 263 V, 4.7k ‖ 0.1 µF; the output is its plate.
+    ///     The bridged T, the Volume (with the reverb drive pot's track beside it), 470k into V2B's grid (with the
+    ///     reverb recovery's coupling and R15), V2B: 470k from 263 V, 4.7k ‖ 0.1 µF; the output is its plate.
     /// </summary>
     static NetworkStageDesign SecondStage() {
         var net = new StageNetlist();

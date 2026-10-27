@@ -13,11 +13,12 @@ namespace Cathode.Dsp.Tests;
 /// <remarks>
 ///     What the limits record (measured, with a few dB of margin): in the linear range two stages agree to -29 dB where
 ///     the
-///     first is a <see cref="TriodeStage" />, whose Thévenin resistance treats a partly bypassed cathode (1.8k ‖ 1 µF) as
-///     grounded, and to -60 dB where it is a network stage, which uses the 1 kHz impedance. Driven hard, the cut's
+///     first is a <see cref="TriodeStage" />, whose Thévenin resistance treats a partly bypassed cathode (1.8k ‖ 1 µF)
+///     as grounded, and to -60 dB where it is a network stage, which uses the 1 kHz impedance. Driven hard, the cut's
 ///     linearised plate is the main error, worst behind a cold clipper with a plate bypass cap (SLO-100, 5150III) whose
 ///     next stage draws grid current: -17 and -9 dB there (-26 and -19 dB with the cap removed). The Rectifier's chain
-///     was -60 dB while it followed a redraw without the plate cap; the factory drawing has 1 nF there, and it is -8 dB.
+///     was -60 dB while it followed a redraw without the plate cap; the factory drawing has 1 nF there, and it is -8
+///     dB.
 /// </remarks>
 public partial class AmpStageTests {
     public static TheoryData<string, bool, double, double> ColdClipperChains =>

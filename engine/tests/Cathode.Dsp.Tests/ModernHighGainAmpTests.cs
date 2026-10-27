@@ -5,9 +5,9 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 /// <summary>
-///     The modern US high-gain stream on the Circuit Amp block: the Carvin Legacy VL100 (lead and clean channels) and the
-///     SLO-100's normal channel. Panels, knob sweeps at full drive on every channel, the knobs that must move the level
-///     monotonically, and each model-specific switch and control doing what the circuit says.
+///     The modern US high-gain stream on the Circuit Amp block: the Carvin Legacy VL100 (lead and clean channels) and
+///     the SLO-100's normal channel. Panels, knob sweeps at full drive on every channel, the knobs that must move the
+///     level monotonically, and each model-specific switch and control doing what the circuit says.
 /// </summary>
 public class ModernHighGainAmpTests(ITestOutputHelper output) {
     const double Rate = 48_000;
@@ -122,8 +122,8 @@ public class ModernHighGainAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The Legacy's clean Presence switch puts 330 pF across a 470k: the schematic notes 9 dB at 10 kHz; at 1 kHz it
-    ///     barely moves.
+    ///     The Legacy's clean Presence switch puts 330 pF across a 470k: the schematic notes 9 dB at 10 kHz; at 1 kHz
+    ///     it barely moves.
     /// </summary>
     [Fact]
     public void Legacy_clean_presence_switch_lifts_the_top() {
@@ -139,7 +139,9 @@ public class ModernHighGainAmpTests(ITestOutputHelper output) {
         Assert.InRange(middle, 0, 3);
     }
 
-    /// <summary>The Legacy's lead Presence (a rheostat into 2.2 nF on Volume 1's wiper) cuts less treble as it turns up.</summary>
+    /// <summary>
+    ///     The Legacy's lead Presence (a rheostat into 2.2 nF on Volume 1's wiper) cuts less treble as it turns up.
+    /// </summary>
     [Fact]
     public void Legacy_lead_presence_turns_the_treble_up() {
         var levels = new[] { 0f, 5f, 10f }

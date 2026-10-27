@@ -131,7 +131,9 @@ public sealed class RealtimeAndContractTests : IAsyncLifetime {
         return string.Empty;
     }
 
-    /// <summary>Canonical form; XML doc text carries the platform's line endings into descriptions, so unify them.</summary>
+    /// <summary>
+    ///     Canonical form; XML doc text carries the platform's line endings into descriptions, so unify them.
+    /// </summary>
     static string Normalise(string json) =>
         JsonNode.Parse(json)!.ToJsonString(new() { WriteIndented = true })
             .Replace("""\r\n""", """\n""", StringComparison.Ordinal)

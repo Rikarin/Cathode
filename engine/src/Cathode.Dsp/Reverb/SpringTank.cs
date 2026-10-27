@@ -5,16 +5,16 @@ namespace Cathode.Dsp.Reverb;
 /// <summary>
 ///     A tank of one to six springs after Välimäki, Parker and Abel, "Parametric spring reverberation effect" (JAES
 ///     2010): in each spring a cascade of stretched first-order allpasses, (a + z^-K) / (1 + a z^-K), disperses a click
-///     into the characteristic falling chirp, a low-pass keeps the band below the spring's cut-off, and a feedback delay
-///     makes the chirps repeat and decay.
+///     into the characteristic falling chirp, a low-pass keeps the band below the spring's cut-off, and a feedback
+///     delay makes the chirps repeat and decay.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         With a negative a, the group delay of each stage falls from K(1 - a)/(1 + a) samples at DC to K(1 + a)/(1 - a)
-///         at the cut-off fs/2K, so low frequencies arrive last. The springs differ in length and dispersion; the even
-///         ones feed the left output and the odd ones the right (one spring feeds both), each side normalised by the root
-///         of its spring count. The feedback gain comes from the decay time and the loop length, including the cascade's
-///         mean group delay. The paper's separate high-chirp branch is not modelled.
+///         With a negative a, the group delay of each stage falls from K(1 - a)/(1 + a) samples at DC to K(1 + a)/(1 -
+///         a) at the cut-off fs/2K, so low frequencies arrive last. The springs differ in length and dispersion; the
+///         even ones feed the left output and the odd ones the right (one spring feeds both), each side normalised by
+///         the root of its spring count. The feedback gain comes from the decay time and the loop length, including the
+///         cascade's mean group delay. The paper's separate high-chirp branch is not modelled.
 ///     </para>
 ///     <para>
 ///         Damping (the block's High Cut) is a one-pole low-pass in each spring's feedback, as in the other tanks: a
@@ -23,9 +23,9 @@ namespace Cathode.Dsp.Reverb;
 ///     </para>
 ///     <para>
 ///         Tone moves the springs' low-pass an octave either way of its natural 4.1 kHz. Drive saturates what enters
-///         the springs (tanh, unity for small signals). Boing makes the tank react to attacks as a kicked spring does: a
-///         fast peak envelope against a slow average detects transients and drives the springs up to 5× harder while they
-///         last, so picked notes "boing" and sustained ones do not.
+///         the springs (tanh, unity for small signals). Boing makes the tank react to attacks as a kicked spring does:
+///         a fast peak envelope against a slow average detects transients and drives the springs up to 5× harder while
+///         they last, so picked notes "boing" and sustained ones do not.
 ///     </para>
 /// </remarks>
 sealed class SpringTank : IDisposable {
@@ -92,8 +92,9 @@ sealed class SpringTank : IDisposable {
     }
 
     /// <summary>
-    ///     Once per block: <paramref name="springCount" /> springs (1..6), the low-pass at <paramref name="toneScale" />
-    ///     times its natural cut-off, input <paramref name="drive" /> (0 = clean) and <paramref name="boingAmount" /> (0..1).
+    ///     Once per block: <paramref name="springCount" /> springs (1..6), the low-pass at
+    ///     <paramref name="toneScale" /> times its natural cut-off, input <paramref name="drive" /> (0 = clean) and
+    ///     <paramref name="boingAmount" /> (0..1).
     /// </summary>
     public void Voice(int springCount, double toneScale, float drive, float boingAmount) {
         springCount = Math.Clamp(springCount, 1, MaxSprings);

@@ -87,7 +87,9 @@ public sealed unsafe class NamModel : ICaptureModel {
         }
     }
 
-    /// <summary>Control thread, slimmable models only: 0 = smallest (Lite), 1 = full size. Re-warms the model.</summary>
+    /// <summary>
+    ///     Control thread, slimmable models only: 0 = smallest (Lite), 1 = full size. Re-warms the model.
+    /// </summary>
     public void SetSize(double size) {
         if (NamNative.SetSize(Handle, size) != 0) {
             throw new InvalidOperationException($"NAM resize failed: {NamNative.LastErrorMessage()}");

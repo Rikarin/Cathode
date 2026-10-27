@@ -13,7 +13,9 @@ public struct WdfCircuit<TTree, TRoot>(TTree tree, TRoot root)
     public TTree Tree = tree;
     public TRoot Root = root;
 
-    /// <summary>Re-adapts the tree and the root after a component change. Cheap enough to call once per block.</summary>
+    /// <summary>
+    ///     Re-adapts the tree and the root after a component change. Cheap enough to call once per block.
+    /// </summary>
     public void Propagate() => Root.Adapt(Tree.Propagate());
 
     /// <summary>Evaluates one sample and returns the voltage across the root.</summary>

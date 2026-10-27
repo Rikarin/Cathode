@@ -45,9 +45,9 @@ public sealed partial record AmpDesign(
 
     /// <summary>
     ///     A solid-state power amp in place of the tube one (the Roland JC-120): the channel runs it instead of
-    ///     <see cref="Power" />, which such a model sets to <see cref="SolidStateTubePlaceholder" /> and never runs. Its
-    ///     tube expert parameters then do nothing (see <see cref="SolidStatePowerAmp" /> for those that apply). Null for a
-    ///     tube amp.
+    ///     <see cref="Power" />, which such a model sets to <see cref="SolidStateTubePlaceholder" /> and never runs.
+    ///     Its tube expert parameters then do nothing (see <see cref="SolidStatePowerAmp" /> for those that apply).
+    ///     Null for a tube amp.
     /// </summary>
     public SolidStatePowerDesign? SolidState { get; init; }
 

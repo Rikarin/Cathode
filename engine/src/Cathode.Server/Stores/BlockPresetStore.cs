@@ -24,7 +24,9 @@ public sealed class BlockPresetStore(
         logger
     );
 
-    /// <summary>Factory presets first, then the user's, each by name; only <paramref name="type" />'s when given.</summary>
+    /// <summary>
+    ///     Factory presets first, then the user's, each by name; only <paramref name="type" />'s when given.
+    /// </summary>
     public BlockPreset[] List(string? type = null) => [
         ..FactoryBlockPresets.All.Where(p => type is null || p.Type == type),
         ..files.All()
@@ -36,7 +38,9 @@ public sealed class BlockPresetStore(
     public BlockPreset? Get(string id) =>
         FactoryBlockPresets.All.FirstOrDefault(p => p.Id == id) ?? (StoreIds.IsValid(id) ? files.Get(id) : null);
 
-    /// <summary>Saves a user preset under <paramref name="id" />; values are sanitised against the block type.</summary>
+    /// <summary>
+    ///     Saves a user preset under <paramref name="id" />; values are sanitised against the block type.
+    /// </summary>
     public BlockPreset Save(string id, BlockPreset preset) {
         if (FactoryBlockPresets.All.Any(p => p.Id == id) || id.StartsWith("factory-", StringComparison.Ordinal)) {
             throw RigException.Conflict("Factory block presets cannot be changed; save it under another id.");
@@ -88,7 +92,9 @@ public sealed class BlockPresetStore(
         return saved;
     }
 
-    /// <summary>Adds every entry of an exported file as a new user entry (fresh ids); factory flags are dropped.</summary>
+    /// <summary>
+    ///     Adds every entry of an exported file as a new user entry (fresh ids); factory flags are dropped.
+    /// </summary>
     public BlockPreset[] Import(BlockPresetFile file) {
         if (file.Format != BlockPresetFile.FormatName) {
             throw new RigException(400, $"Not a Block Library file (format '{file.Format}').");

@@ -26,8 +26,8 @@ public sealed class Preset {
     public List<string> Tags { get; set; } = [];
 
     /// <summary>
-    ///     True for a preset of the factory bank, which ships with Cathode and cannot be overwritten, renamed or deleted
-    ///     (saving one stores a copy); null for the user's own.
+    ///     True for a preset of the factory bank, which ships with Cathode and cannot be overwritten, renamed or
+    ///     deleted (saving one stores a copy); null for the user's own.
     /// </summary>
     public bool? Factory { get; set; }
 
@@ -128,15 +128,19 @@ public sealed class PresetBlock {
 
     public int Column { get; set; }
 
-    /// <summary>Channel name (A-D) to parameter id to value. Only values that differ from the default need to be present.</summary>
+    /// <summary>
+    ///     Channel name (A-D) to parameter id to value. Only values that differ from the default need to be present.
+    /// </summary>
     public Dictionary<string, Dictionary<string, float>> Channels { get; set; } = [];
 
-    /// <summary>Asset slot to asset reference (<c>sha256:&lt;hex&gt;</c>), e.g. <c>"model"</c> or <c>"slot1"</c>.</summary>
+    /// <summary>
+    ///     Asset slot to asset reference (<c>sha256:&lt;hex&gt;</c>), e.g. <c>"model"</c> or <c>"slot1"</c>.
+    /// </summary>
     public Dictionary<string, string> Assets { get; set; } = [];
 
     /// <summary>
-    ///     What bypassing does: thru, mute, muteIn, muteFxIn, muteOut or muteFxOut (the "in" modes let tails spill over,
-    ///     the "out" modes keep the block listening while bypassed).
+    ///     What bypassing does: thru, mute, muteIn, muteFxIn, muteOut or muteFxOut (the "in" modes let tails spill
+    ///     over, the "out" modes keep the block listening while bypassed).
     /// </summary>
     public string BypassMode { get; set; } = "thru";
 
@@ -173,7 +177,9 @@ public sealed class PresetCable {
     public string To { get; set; } = string.Empty;
 }
 
-/// <summary>Which channel each block uses and whether it is bypassed. Blocks not listed use channel A, engaged.</summary>
+/// <summary>
+///     Which channel each block uses and whether it is bypassed. Blocks not listed use channel A, engaged.
+/// </summary>
 public sealed class Scene {
     public string Name { get; set; } = string.Empty;
 
@@ -186,8 +192,8 @@ public sealed class Scene {
     public List<float> Controllers { get; set; } = [0, 0, 0, 0];
 
     /// <summary>
-    ///     Up to <see cref="SceneMidiMessage.MaxPerScene" /> MIDI messages sent through the rig's MIDI output whenever this
-    ///     scene is selected, or its preset loads on it: program changes and CCs for other gear.
+    ///     Up to <see cref="SceneMidiMessage.MaxPerScene" /> MIDI messages sent through the rig's MIDI output whenever
+    ///     this scene is selected, or its preset loads on it: program changes and CCs for other gear.
     /// </summary>
     public List<SceneMidiMessage> Midi { get; set; } = [];
 
@@ -239,7 +245,9 @@ public sealed class Bank {
 
     public string Name { get; set; } = "New Bank";
 
-    /// <summary>True for the factory bank, which lists the factory presets and cannot be changed; null otherwise.</summary>
+    /// <summary>
+    ///     True for the factory bank, which lists the factory presets and cannot be changed; null otherwise.
+    /// </summary>
     public bool? Factory { get; set; }
 
     /// <summary>Preset id per slot; null or missing slots are empty.</summary>

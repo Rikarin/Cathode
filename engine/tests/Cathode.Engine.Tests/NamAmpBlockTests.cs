@@ -271,7 +271,9 @@ public class NamAmpBlockTests {
     }
 }
 
-/// <summary>Locates the NAM golden files (committed) and the upstream example models (fetched by the native build).</summary>
+/// <summary>
+///     Locates the NAM golden files (committed) and the upstream example models (fetched by the native build).
+/// </summary>
 static class NamAssets {
     static readonly string EngineRoot = FindEngineRoot();
 

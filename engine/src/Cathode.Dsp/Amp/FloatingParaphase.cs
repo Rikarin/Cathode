@@ -69,10 +69,11 @@ public sealed class FloatingParaphase : PhaseInverter {
         RestPlateA = pa;
         RestPlateB = pb;
 
-        // The output impedances, each plate's own: a draw from plate A also moves plate B a long way (by -36k per ampere
-        // on the B-15N, the divider feeding the second grid), but with that cross term the grid networks' piecewise
-        // solve under grid current and the feedback loop's Newton cycled without converging at hard drive. Left out,
-        // the loading of plate B by plate A's grid current is missing; the static, unloaded transfer is exact.
+        // The output impedances, each plate's own: a draw from plate A also moves plate B a long way (by -36k per
+        // ampere on the B-15N, the divider feeding the second grid), but with that cross term the grid networks'
+        // piecewise solve under grid current and the feedback loop's Newton cycled without converging at hard drive.
+        // Left out, the loading of plate B by plate A's grid current is missing; the static, unloaded transfer is
+        // exact.
         const double Probe = 1e-6;
         var (_, _, aa, _) = Solve(triode, design, 0, shared, junction, Probe, 0);
         var (_, _, _, bb) = Solve(triode, design, 0, shared, junction, 0, Probe);
@@ -95,9 +96,9 @@ public sealed class FloatingParaphase : PhaseInverter {
     ///     Both triodes for the driven grid at <paramref name="grid" /> volts with the shared cathode at
     ///     <paramref name="shared" />, and <paramref name="drawA" />, <paramref name="drawB" /> amperes drawn from the
     ///     plates: the currents and plate voltages, by Newton's method on the two currents. With a NaN
-    ///     <paramref name="junction" /> it is the DC solution (the second grid at rest, the divider unloaded); otherwise
-    ///     the divider's junction rests at <paramref name="junction" /> and its AC part drives the second grid, loaded by
-    ///     the grid leak.
+    ///     <paramref name="junction" /> it is the DC solution (the second grid at rest, the divider unloaded);
+    ///     otherwise the divider's junction rests at <paramref name="junction" /> and its AC part drives the second
+    ///     grid, loaded by the grid leak.
     /// </summary>
     static (double A, double B, double PlateA, double PlateB) Solve(
         Triode triode,
@@ -150,8 +151,8 @@ public sealed class FloatingParaphase : PhaseInverter {
     }
 
     /// <summary>
-    ///     The plate voltages for plate currents (draws included) <paramref name="ia" /> and <paramref name="ib" />, and
-    ///     the second grid's voltage: the plate resistors and the divider, a linear 2 × 2 solve.
+    ///     The plate voltages for plate currents (draws included) <paramref name="ia" /> and <paramref name="ib" />,
+    ///     and the second grid's voltage: the plate resistors and the divider, a linear 2 × 2 solve.
     /// </summary>
     static (double A, double B, double GridB) Plates(
         FloatingParaphaseDesign design,
@@ -170,7 +171,8 @@ public sealed class FloatingParaphase : PhaseInverter {
         }
 
         // AC: the junction is its rest voltage plus the AC divider loaded by the leak; for the DC currents the junction
-        // takes no current through the cap, so the divider's current is (A - m) / R_a = (m - B) / R_b + (m - m0) / R_leak.
+        // takes no current through the cap, so the divider's current is (A - m) / R_a = (m - B) / R_b + (m - m0) /
+        // R_leak.
         var gl = 1 / design.GridLeak;
         var sum = ga + gb + gl;
         // m = (ga A + gb B + gl m0) / sum

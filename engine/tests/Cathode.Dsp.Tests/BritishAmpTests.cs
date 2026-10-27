@@ -6,9 +6,9 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 /// <summary>
-///     The Marshall-and-British stream's preamps against the reference MNA simulator as whole chains (every preamp stage
-///     joined in one circuit, no Thévenin cut): the new stage combinations (split plate loads, switched voicing networks,
-///     a follower with a diode clamp on the stack, op-amp and diode front ends) checked in one go.
+///     The Marshall-and-British stream's preamps against the reference MNA simulator as whole chains (every preamp
+///     stage joined in one circuit, no Thévenin cut): the new stage combinations (split plate loads, switched voicing
+///     networks, a follower with a diode clamp on the stack, op-amp and diode front ends) checked in one go.
 /// </summary>
 public partial class AmpStageTests {
     public static TheoryData<string, int, double, double> BritishChains =>
@@ -93,7 +93,9 @@ public class BritishAmpTests(ITestOutputHelper output) {
         }
     }
 
-    /// <summary>Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.</summary>
+    /// <summary>
+    ///     Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.
+    /// </summary>
     [Theory]
     [MemberData(nameof(Types))]
     public void Knob_sweeps_at_full_drive_stay_finite_and_converge(string type) {
@@ -130,8 +132,8 @@ public class BritishAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     Every control on the panel changes the sound: at a moderate setting, a knob from 0 to 10 or a switch on moves
-    ///     the level or the spectrum of a two-tone signal by more than a fraction of a decibel somewhere.
+    ///     Every control on the panel changes the sound: at a moderate setting, a knob from 0 to 10 or a switch on
+    ///     moves the level or the spectrum of a two-tone signal by more than a fraction of a decibel somewhere.
     /// </summary>
     [Theory]
     [MemberData(nameof(Types))]

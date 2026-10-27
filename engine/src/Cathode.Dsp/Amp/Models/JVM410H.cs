@@ -11,48 +11,49 @@ namespace Cathode.Dsp.Amp.Models;
 ///     stack, 220 pF / 56k / 100 nF / 47 nF with 200k linear treble, 200k audio bass and 20k linear middle, the treble
 ///     wiper on the 1M audio Clean Gain with 220 pF from its top to its wiper). The network's output (connector pin 3)
 ///     always drives V6a's grid through 220k (4M7 to ground before it) and, by the mode relays, either V7a's grid (RL4
-///     on), V7b's grid (RL3 and RL4 off) or nothing more (RL3 on: V6a's output then drives V7b). V6a: 220k, 2k7 ‖ 680 nF;
-///     22 nF, 220k and 10M into V7b (470k leak; 82k + 22k plate load, the junction on 1 µF and 1M to ground, or on 1 µF
-///     to ground with RL2 on, 1 nF from the plate to the rail, 10k unbypassed); 22 nF, 100k and 10M into V7a (470k leak;
-///     220k, 820 Ω unbypassed), DC-coupled to the V8b follower (47k), 330 nF and 470k, then the channels' stacks: the OD
-///     channels' (470 pF, 33k or 47k slope, 22 nF, 22 nF; 200k linear treble, 1M audio bass, 20k linear middle on its
-///     wiper; 39k into the 1M linear Volume) with RL204 on, else the Crunch stack (as OD1's) and the Clean volume network
-///     (10k, then 4.7 nF and 220k onto the 1M linear Clean Volume, or 47k past it in the Green mode); each volume's 330k
-///     onto a bus that the idle channels' volumes, grounded by their relays, load with 330k each. 22 nF into the V8a
-///     follower (1k5 + 100k, its 1M grid leak bootstrapped), 330 nF, the send divider (15k + 4k7), 22k into the loop's
-///     mix node (the bypassed loop's 200k mix pot and 22k + 100k return to ground), 1M into V9b's shunt-feedback mixer
-///     (22 nF to the grid, 1M leak; 150k, 2k2 ‖ 22 µF; 4M7 from the plate back to the 1M's far end; the reverb driver's
-///     470k + 82k on the plate), 100k over 120k and 22 nF into the V9a follower (as V8a), 330 nF into the 200k linear
-///     Master, 4M7 and 10k into the inverter: 22 nF, 1M, 470 Ω and 10k + 4k7 tail, 82k / 100k with 47 pF across, 47 nF
-///     out, 220k leaks, 5k6 stoppers, four EL34 with 1k screens, 82k ‖ 120 pF of feedback into the 4k7.
+///     on), V7b's grid (RL3 and RL4 off) or nothing more (RL3 on: V6a's output then drives V7b). V6a: 220k, 2k7 ‖ 680
+///     nF; 22 nF, 220k and 10M into V7b (470k leak; 82k + 22k plate load, the junction on 1 µF and 1M to ground, or on
+///     1 µF to ground with RL2 on, 1 nF from the plate to the rail, 10k unbypassed); 22 nF, 100k and 10M into V7a (470k
+///     leak; 220k, 820 Ω unbypassed), DC-coupled to the V8b follower (47k), 330 nF and 470k, then the channels' stacks:
+///     the OD channels' (470 pF, 33k or 47k slope, 22 nF, 22 nF; 200k linear treble, 1M audio bass, 20k linear middle
+///     on its wiper; 39k into the 1M linear Volume) with RL204 on, else the Crunch stack (as OD1's) and the Clean
+///     volume network (10k, then 4.7 nF and 220k onto the 1M linear Clean Volume, or 47k past it in the Green mode);
+///     each volume's 330k onto a bus that the idle channels' volumes, grounded by their relays, load with 330k each. 22
+///     nF into the V8a follower (1k5 + 100k, its 1M grid leak bootstrapped), 330 nF, the send divider (15k + 4k7), 22k
+///     into the loop's mix node (the bypassed loop's 200k mix pot and 22k + 100k return to ground), 1M into V9b's
+///     shunt-feedback mixer (22 nF to the grid, 1M leak; 150k, 2k2 ‖ 22 µF; 4M7 from the plate back to the 1M's far
+///     end; the reverb driver's 470k + 82k on the plate), 100k over 120k and 22 nF into the V9a follower (as V8a), 330
+///     nF into the 200k linear Master, 4M7 and 10k into the inverter: 22 nF, 1M, 470 Ω and 10k + 4k7 tail, 82k / 100k
+///     with 47 pF across, 47 nF out, 220k leaks, 5k6 stoppers, four EL34 with 1k screens, 82k ‖ 120 pF of feedback into
+///     the 4k7.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Sources: Marshall drawings JVM410-60-02 issue 2 (main board, "Pre amp" and "Power amp / DI out", 2006),
-///         JVM410-61-02 issue 1 (front panels 1 and 2: the channel networks, tone stacks, volumes, masters, presence and
-///         resonance, the relay latches) and JVM410-67-02 issue 2 (the footswitch), vector PDFs on DrTube
-///         (drtube.com/schematics/marshall/jvm410-60-02-1-iss2.pdf and so on; el34world's Marshall_jvm410_sch.pdf
-///         holds the first two); every value above is read from them. The relays' rest and energised contacts are the
+///         JVM410-61-02 issue 1 (front panels 1 and 2: the channel networks, tone stacks, volumes, masters, presence
+///         and resonance, the relay latches) and JVM410-67-02 issue 2 (the footswitch), vector PDFs on DrTube
+///         (drtube.com/schematics/marshall/jvm410-60-02-1-iss2.pdf and so on; el34world's Marshall_jvm410_sch.pdf holds
+///         the first two); every value above is read from them. The relays' rest and energised contacts are the
 ///         drawings' ("+5V CONTACT" marks the energised one): RL3 at rest joins V7b's grid to the network's output, and
 ///         energised to V6a's output; RL4 at rest joins V7a's grid to V7b's output, and energised to the network's
-///         output; RL2 energised grounds V7b's 1 µF; RL203 picks OD2, RL204 the OD stacks, RL208 the OD networks,
-///         RL209 the Crunch network over the Clean one, RL205 the Clean Volume's 47k bypass; RL201, RL202, RL206 and
-///         RL207 at rest ground the idle volumes.
+///         output; RL2 energised grounds V7b's 1 µF; RL203 picks OD2, RL204 the OD stacks, RL208 the OD networks, RL209
+///         the Crunch network over the Clean one, RL205 the Clean Volume's 47k bypass; RL201, RL202, RL206 and RL207 at
+///         rest ground the idle volumes.
 ///     </para>
 ///     <para>
 ///         Which relays each mode energises is set by the ATmega8's firmware (main-board relays RL2, RL3 and RL4 on its
 ///         latch's A1, A2 and A3), which no drawing gives. It is deduced from the manual's description of each mode's
 ///         gain structure (JVM410H/C handbook, "Each of its 4 channels has 3 modes": Crunch Green "gain + gain + tone",
-///         Orange "gain + gain + gain + tone", Red "the topology of the Orange mode but with more gain"; OD1 Green "very
-///         similar to ... Crunch Red", Orange "adds another gain stage", Red "adds more gain"; Clean Green the Volume
-///         out of circuit and each further mode another gain stage after the tone stack) and the three paths the relays
-///         allow: two triodes (V6b, V7a: RL4 on), three (V6b, V7b, V7a: RL3 and RL4 off) or four (RL3 on), with V7b's
-///         gain cut by RL2 (about 2 against 9). The table: Clean 2 / 3 / 4 low, Crunch 2 / 3 low / 3, OD 3 / 4 low / 4
-///         (triodes / RL2 on). Inferred: "more gain" in the same topology is RL2 off; the Clean modes' RL2 (guesses:
-///         Orange off, as with it on the mode is no louder than Green at full Volume; Red on, as with it off it would be
-///         the OD Red's cascade); RL3 off in the two-stage modes (V7b's grid then also hangs on
-///         the network's output); RL205 off outside the Clean Green mode. No forum trace or measurement of the relay
-///         states was found (searched: Marshall Forum, Fractal Audio forum, the handbooks).
+///         Orange "gain + gain + gain + tone", Red "the topology of the Orange mode but with more gain"; OD1 Green
+///         "very similar to ... Crunch Red", Orange "adds another gain stage", Red "adds more gain"; Clean Green the
+///         Volume out of circuit and each further mode another gain stage after the tone stack) and the three paths the
+///         relays allow: two triodes (V6b, V7a: RL4 on), three (V6b, V7b, V7a: RL3 and RL4 off) or four (RL3 on), with
+///         V7b's gain cut by RL2 (about 2 against 9). The table: Clean 2 / 3 / 4 low, Crunch 2 / 3 low / 3, OD 3 / 4
+///         low / 4 (triodes / RL2 on). Inferred: "more gain" in the same topology is RL2 off; the Clean modes' RL2
+///         (guesses: Orange off, as with it on the mode is no louder than Green at full Volume; Red on, as with it off
+///         it would be the OD Red's cascade); RL3 off in the two-stage modes (V7b's grid then also hangs on the
+///         network's output); RL205 off outside the Clean Green mode. No forum trace or measurement of the relay states
+///         was found (searched: Marshall Forum, Fractal Audio forum, the handbooks).
 ///     </para>
 ///     <para>
 ///         Guessed: the rails (HT1 to HT5 are named on the drawings but their voltages are not: 420 V for the inverter,
@@ -176,8 +177,8 @@ public static class JVM410H {
     ];
 
     /// <summary>
-    ///     A channel's three modes as chains of stages from V6b to the bus: Switch 3 selects the Red mode, else Switch 2
-    ///     the Orange one, else the Green.
+    ///     A channel's three modes as chains of stages from V6b to the bus: Switch 3 selects the Red mode, else Switch
+    ///     2 the Orange one, else the Green.
     /// </summary>
     static ChannelSwitchStageDesign Modes(Mode[] modes, Action<StageNetlist, int, int> network, ChannelSet set) =>
         new(
@@ -211,11 +212,11 @@ public static class JVM410H {
     }
 
     /// <summary>
-    ///     After the jack's 1k: 47 nF, 100 pF and 1M to ground, 1k into V6b (150k, 1k5 ‖ 1 µF, 220 pF plate to cathode),
-    ///     100 nF and 2M2 to ground, the channel's <paramref name="network" /> onto the connector's pin 3, 4M7 to ground
-    ///     there and the grids <paramref name="mode" /> joins to it. Out at the first grid of the mode's cascade: V6a's
-    ///     (through 220k), V7b's or V7a's (directly), which draws nothing until it conducts, so the cut is exact in the
-    ///     linear range (one at the reactive wiper was 21 dB off).
+    ///     After the jack's 1k: 47 nF, 100 pF and 1M to ground, 1k into V6b (150k, 1k5 ‖ 1 µF, 220 pF plate to
+    ///     cathode), 100 nF and 2M2 to ground, the channel's <paramref name="network" /> onto the connector's pin 3,
+    ///     4M7 to ground there and the grids <paramref name="mode" /> joins to it. Out at the first grid of the mode's
+    ///     cascade: V6a's (through 220k), V7b's or V7a's (directly), which draws nothing until it conducts, so the cut
+    ///     is exact in the linear range (one at the reactive wiper was 21 dB off).
     /// </summary>
     static StageNetlist FirstStage(Mode mode, Action<StageNetlist, int, int> network) {
         var net = new StageNetlist();
@@ -262,8 +263,8 @@ public static class JVM410H {
     }
 
     /// <summary>
-    ///     One OD channel's gain network, from <paramref name="from" />: <paramref name="input" /> into 470k over the 1M
-    ///     audio Gain pot, with <paramref name="across" /> from the 470k's top to the wiper, which drives
+    ///     One OD channel's gain network, from <paramref name="from" />: <paramref name="input" /> into 470k over the
+    ///     1M audio Gain pot, with <paramref name="across" /> from the 470k's top to the wiper, which drives
     ///     <paramref name="output" />; in circuit while switch 1 is <paramref name="od2" />.
     /// </summary>
     static void GainNetwork(StageNetlist net, int from, int output, double input, double across, bool od2) {
@@ -276,7 +277,9 @@ public static class JVM410H {
         net.SwitchedResistor(wiper, output, od2 ? Open : Closed, od2 ? Closed : Open, SwitchRole.Switch1);
     }
 
-    /// <summary>The Crunch channel's network: 10 nF, 470k ‖ 470 pF onto the 1M audio Gain, 1 nF from its top to its wiper.</summary>
+    /// <summary>
+    ///     The Crunch channel's network: 10 nF, 470k ‖ 470 pF onto the 1M audio Gain, 1 nF from its top to its wiper.
+    /// </summary>
     static void CrunchNetwork(StageNetlist net, int from, int output) {
         var (a, top) = (net.Node(), net.Node());
         net.Capacitor(from, a, 10e-9);
@@ -289,8 +292,8 @@ public static class JVM410H {
 
     /// <summary>
     ///     The Clean channel's pre-gain stack: 220 pF to the 200k linear treble pot, 56k slope, 100 nF to the bass top,
-    ///     47 nF to the middle's top; the 200k audio bass and 20k linear middle as variable resistors; the treble wiper on
-    ///     the 1M audio Clean Gain, 220 pF from its top to its wiper.
+    ///     47 nF to the middle's top; the 200k audio bass and 20k linear middle as variable resistors; the treble wiper
+    ///     on the 1M audio Clean Gain, 220 pF from its top to its wiper.
     /// </summary>
     static void CleanNetwork(StageNetlist net, int from, int output) {
         var (trebleTop, slope, bassTop, middleTop) = (net.Node(), net.Node(), net.Node(), net.Node());
@@ -328,8 +331,8 @@ public static class JVM410H {
 
     /// <summary>
     ///     V7b, from its grid: 22k + 82k from the rail, the junction on 1 µF and 1M to ground (or, with RL2 on,
-    ///     <paramref name="lowGain" />, on 1 µF to ground), 1 nF from the plate to the rail, 10k unbypassed; 22 nF, 100k
-    ///     and 10M to ground. Out at V7a's grid (470k leak).
+    ///     <paramref name="lowGain" />, on 1 µF to ground), 1 nF from the plate to the rail, 10k unbypassed; 22 nF,
+    ///     100k and 10M to ground. Out at V7a's grid (470k leak).
     /// </summary>
     static StageNetlist ColdClipper(bool lowGain) {
         var net = new StageNetlist();
@@ -367,11 +370,11 @@ public static class JVM410H {
     }
 
     /// <summary>
-    ///     The V8b follower (47k), DC-coupled to V7a's plate, 330 nF and 470k, then the stacks RL204 puts on the line (4M7
-    ///     to ground on either side): for the OD channels both OD stacks, the idle one's volume grounded, and the idle
-    ///     Clean and Crunch volumes' 330k from the bus to ground; for the Clean and Crunch channels the Crunch stack and
-    ///     the Clean volume network, the idle one's output grounded, and the OD volumes' 330k from the bus to ground. Out
-    ///     at the bus.
+    ///     The V8b follower (47k), DC-coupled to V7a's plate, 330 nF and 470k, then the stacks RL204 puts on the line
+    ///     (4M7 to ground on either side): for the OD channels both OD stacks, the idle one's volume grounded, and the
+    ///     idle Clean and Crunch volumes' 330k from the bus to ground; for the Clean and Crunch channels the Crunch
+    ///     stack and the Clean volume network, the idle one's output grounded, and the OD volumes' 330k from the bus to
+    ///     ground. Out at the bus.
     /// </summary>
     static StageNetlist Stacks(ChannelSet set, bool volumeBypassed) {
         var net = new StageNetlist();
@@ -403,8 +406,8 @@ public static class JVM410H {
 
     /// <summary>
     ///     One OD-style stack (470 pF, <paramref name="slope" />, 22 nF, 22 nF; 200k linear treble, 1M audio bass, 20k
-    ///     linear middle with the middle cap on its wiper), 39k from the treble wiper into the 1M linear Volume, 330k from
-    ///     its wiper to the bus. Returns the volume's wiper, which a relay grounds while the channel is idle.
+    ///     linear middle with the middle cap on its wiper), 39k from the treble wiper into the 1M linear Volume, 330k
+    ///     from its wiper to the bus. Returns the volume's wiper, which a relay grounds while the channel is idle.
     /// </summary>
     static int OdStack(StageNetlist net, int line, int bus, double slope) {
         var (trebleTop, slopeNode, bassTop, middleTop, volumeTop) = (net.Node(), net.Node(), net.Node(), net.Node(),
@@ -423,9 +426,9 @@ public static class JVM410H {
     }
 
     /// <summary>
-    ///     The Clean channel's volume network from the line: 10k, then 4.7 nF and 220k onto the 1M linear Clean Volume and
-    ///     47k beside it; RL205 takes the volume's wiper, or in the Green mode (<paramref name="bypassed" />) the 47k, to
-    ///     the 330k into the bus; that node grounded by RL206 while the channel is <paramref name="idle" />.
+    ///     The Clean channel's volume network from the line: 10k, then 4.7 nF and 220k onto the 1M linear Clean Volume
+    ///     and 47k beside it; RL205 takes the volume's wiper, or in the Green mode (<paramref name="bypassed" />) the
+    ///     47k, to the 330k into the bus; that node grounded by RL206 while the channel is <paramref name="idle" />.
     /// </summary>
     static void CleanVolume(StageNetlist net, int line, int bus, bool idle, bool bypassed) {
         var (junction, a, top, common) = (net.Node(), net.Node(), net.Node(), net.Node());
@@ -465,8 +468,8 @@ public static class JVM410H {
 
     /// <summary>
     ///     From V8a's cathode: 330 nF, the send divider (15k + 4k7), 22k into the mix node (322k to ground through the
-    ///     bypassed loop's mix pot and return), 1M to V9b's input node, which 22 nF couples to its grid (1M leak) and 4M7
-    ///     ties to its plate (150k, 2k2 ‖ 22 µF; the reverb driver's 552k to ground). Out at V9b's plate.
+    ///     bypassed loop's mix pot and return), 1M to V9b's input node, which 22 nF couples to its grid (1M leak) and
+    ///     4M7 ties to its plate (150k, 2k2 ‖ 22 µF; the reverb driver's 552k to ground). Out at V9b's plate.
     /// </summary>
     static StageNetlist LoopMixer() {
         var net = new StageNetlist();
@@ -522,9 +525,9 @@ public static class JVM410H {
     }
 
     /// <summary>
-    ///     A mode's relay states: the <paramref name="Triodes" /> in the cascade (2: V6b and V7a, RL4 on; 3: V6b, V7b and
-    ///     V7a; 4: V6b, V6a, V7b and V7a, RL3 on), V7b's gain cut (<paramref name="LowGain" />, RL2 on) and the Clean
-    ///     Volume bypassed (<paramref name="VolumeBypassed" />, RL205 on).
+    ///     A mode's relay states: the <paramref name="Triodes" /> in the cascade (2: V6b and V7a, RL4 on; 3: V6b, V7b
+    ///     and V7a; 4: V6b, V6a, V7b and V7a, RL3 on), V7b's gain cut (<paramref name="LowGain" />, RL2 on) and the
+    ///     Clean Volume bypassed (<paramref name="VolumeBypassed" />, RL205 on).
     /// </summary>
     readonly record struct Mode(int Triodes, bool LowGain, bool VolumeBypassed);
 }

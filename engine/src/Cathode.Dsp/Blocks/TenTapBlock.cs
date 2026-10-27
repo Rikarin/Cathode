@@ -12,10 +12,10 @@ namespace Cathode.Dsp.Blocks;
 ///     <para>
 ///         Ten Tap: the taps evenly spaced across Time, with Shuffle (swing on the off-beat taps), a Decay taper and a
 ///         level per tap. Rhythm Tap: each tap at its own percentage of Time, optionally quantised to a tempo division,
-///         or learned from the playing: with Learn on Listen, the first note after a silence of Time starts a pattern and
-///         each further note within Time places the next tap there (up to ten); Hold keeps the last pattern learned. A
-///         learned pattern lives in the block (the tap time parameters are not rewritten), and Off returns to the
-///         parameters.
+///         or learned from the playing: with Learn on Listen, the first note after a silence of Time starts a pattern
+///         and each further note within Time places the next tap there (up to ten); Hold keeps the last pattern
+///         learned. A learned pattern lives in the block (the tap time parameters are not rewritten), and Off returns
+///         to the parameters.
 ///     </para>
 ///     <para>
 ///         Stereo places the taps by Pan Shape (alternating, left to right, right to left or centre), curved by Pan

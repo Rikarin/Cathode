@@ -4,11 +4,13 @@ namespace Cathode.References.Tests;
 
 /// <summary>
 ///     Local-only references (T3K and other non-redistributable licences) must never enter the repository, wherever a
-///     copy lands: no file anywhere in the source tree may carry a local-only reference's cache name, its source name, or
-///     (when the manifest records it) its exact size and SHA-256.
+///     copy lands: no file anywhere in the source tree may carry a local-only reference's cache name, its source name,
+///     or (when the manifest records it) its exact size and SHA-256.
 /// </summary>
 public class LocalOnlyReferenceTests {
-    /// <summary>Build output, dependencies and other git-ignored or foreign folders, which are never committed.</summary>
+    /// <summary>
+    ///     Build output, dependencies and other git-ignored or foreign folders, which are never committed.
+    /// </summary>
     static readonly HashSet<string> Skipped = new(StringComparer.Ordinal) {
         ".git",
         ".claude",

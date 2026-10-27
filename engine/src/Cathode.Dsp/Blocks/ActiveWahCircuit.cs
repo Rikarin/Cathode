@@ -16,9 +16,8 @@ public enum ActiveWahTopology {
 }
 
 /// <summary>
-///     Component values of an inductor-less wah (see <see cref="ActiveWahTopology" />). Resistances in ohms, capacitances
-///     in
-///     farads. Which fields a topology uses is noted on each.
+///     Component values of an inductor-less wah (see <see cref="ActiveWahTopology" />). Resistances in ohms,
+///     capacitances in farads. Which fields a topology uses is noted on each.
 /// </summary>
 public sealed record ActiveWahVoicing(string Name, string ModelledAfter, ActiveWahTopology Topology) {
     /// <summary>Supply; the op-amps run from a half-supply reference.</summary>
@@ -37,7 +36,8 @@ public sealed record ActiveWahVoicing(string Name, string ModelledAfter, ActiveW
     public double FeedbackResistor { get; init; } = 75e3;
 
     /// <summary>
-    ///     Optical: C1 and C2, the band-pass's two capacitors (equal). Dual gang: the two integrating capacitors (equal).
+    ///     Optical: C1 and C2, the band-pass's two capacitors (equal). Dual gang: the two integrating capacitors
+    ///     (equal).
     /// </summary>
     public double Capacitor { get; init; } = 10e-9;
 
@@ -56,7 +56,9 @@ public sealed record ActiveWahVoicing(string Name, string ModelledAfter, ActiveW
     /// <summary>Optical: the cell's time constant as the light rises (its resistance falls), seconds.</summary>
     public double CellAttack { get; init; } = 0.004;
 
-    /// <summary>Optical: the cell's time constant as the light falls (its resistance rises), seconds: CdS is slower so.</summary>
+    /// <summary>
+    ///     Optical: the cell's time constant as the light falls (its resistance rises), seconds: CdS is slower so.
+    /// </summary>
     public double CellRelease { get; init; } = 0.04;
 
     /// <summary>Dual gang: each gang's series resistor, the resistance left at the toe.</summary>
@@ -77,14 +79,16 @@ public sealed record ActiveWahVoicing(string Name, string ModelledAfter, ActiveW
     public double TaperMidpoint { get; init; } = 0.24;
 
     /// <summary>
-    ///     Dual gang: the damping network. The band-pass output feeds back through the divider of these two, so the Q is
-    ///     their ratio (constant over the sweep) and the peak gain the damping resistor over the input resistor.
+    ///     Dual gang: the damping network. The band-pass output feeds back through the divider of these two, so the Q
+    ///     is their ratio (constant over the sweep) and the peak gain the damping resistor over the input resistor.
     /// </summary>
     public double DampingResistor { get; init; } = 47e3;
 
     public double DampingDivider { get; init; } = 10e3;
 
-    /// <summary>The make-up stage after the filter: non-inverting, gain 1 + feedback / ground (0 feedback: none).</summary>
+    /// <summary>
+    ///     The make-up stage after the filter: non-inverting, gain 1 + feedback / ground (0 feedback: none).
+    /// </summary>
     public double OutputFeedback { get; init; }
 
     public double OutputGround { get; init; } = 10e3;
@@ -98,20 +102,24 @@ public sealed record ActiveWahVoicing(string Name, string ModelledAfter, ActiveW
     /// <summary>The make-up stage's gain.</summary>
     public double OutputGain => 1 + OutputFeedback / OutputGround;
 
-    /// <summary>Optical: the photocell's settled resistance at pedal position <paramref name="toe" /> (0 heel, 1 toe).</summary>
+    /// <summary>
+    ///     Optical: the photocell's settled resistance at pedal position <paramref name="toe" /> (0 heel, 1 toe).
+    /// </summary>
     public double Cell(double toe) {
         var opening = Math.Pow(Math.Clamp(toe, 0, 1), VaneLaw);
         return CellDark * Math.Pow(CellLit / CellDark, opening);
     }
 
-    /// <summary>Dual gang: each gang's resistance at pedal position <paramref name="toe" />, series resistor included.</summary>
+    /// <summary>
+    ///     Dual gang: each gang's resistance at pedal position <paramref name="toe" />, series resistor included.
+    /// </summary>
     public double Gang(double toe) =>
         SeriesResistor
         + Pot * (ToeWiper + (HeelWiper - ToeWiper) * WahCircuit.Taper(TaperMidpoint, 1 - Math.Clamp(toe, 0, 1)));
 
     /// <summary>
-    ///     The settled small-signal response at a pedal position, from the parts alone: centre frequency (Hz), Q and the
-    ///     gain at the peak (the make-up stage included). The analytic check for the simulation.
+    ///     The settled small-signal response at a pedal position, from the parts alone: centre frequency (Hz), Q and
+    ///     the gain at the peak (the make-up stage included). The analytic check for the simulation.
     /// </summary>
     public (double Frequency, double Q, double Gain) Response(double toe) {
         double omega, q, gain;
@@ -134,10 +142,10 @@ public sealed record ActiveWahVoicing(string Name, string ModelledAfter, ActiveW
 
 /// <summary>
 ///     One channel of an inductor-less wah (see <see cref="ActiveWahVoicing" />). Both topologies are a second-order
-///     band-pass made of op-amps, so the linear circuit is solved exactly as a trapezoidal (bilinear) two-integrator loop
-///     whose centre, Q and gain come from the parts; each op-amp output saturates softly at its rail, and that limited
-///     voltage is what charges the capacitors, so a hot input compresses the resonance as the real op-amps do. The
-///     optical type's photocell follows the lamp with its own lag, faster as the light rises than as it falls.
+///     band-pass made of op-amps, so the linear circuit is solved exactly as a trapezoidal (bilinear) two-integrator
+///     loop whose centre, Q and gain come from the parts; each op-amp output saturates softly at its rail, and that
+///     limited voltage is what charges the capacitors, so a hot input compresses the resonance as the real op-amps do.
+///     The optical type's photocell follows the lamp with its own lag, faster as the light rises than as it falls.
 /// </summary>
 /// <remarks>
 ///     The op-amps are otherwise ideal (no slew limit, no finite gain-bandwidth: at a few kilohertz a 4558-class part
@@ -217,10 +225,10 @@ public sealed class ActiveWahCircuit {
     }
 
     /// <summary>
-    ///     Scales the parts the way <see cref="WahCircuit.Trim" /> scales an inductor circuit's: the centre frequency by
-    ///     one over the root of <paramref name="inductanceScale" /> (both capacitors move, there being no inductor) and the
-    ///     Q by <paramref name="qScale" /> (the dual gang's damping resistor; the optical band-pass's R1 and R3 by its square
-    ///     and its capacitors by its inverse, which keeps the centre and the gain where they were).
+    ///     Scales the parts the way <see cref="WahCircuit.Trim" /> scales an inductor circuit's: the centre frequency
+    ///     by one over the root of <paramref name="inductanceScale" /> (both capacitors move, there being no inductor)
+    ///     and the Q by <paramref name="qScale" /> (the dual gang's damping resistor; the optical band-pass's R1 and R3
+    ///     by its square and its capacitors by its inverse, which keeps the centre and the gain where they were).
     /// </summary>
     public void Trim(double inductanceScale, double qScale) {
         var capacitance = Math.Sqrt(inductanceScale);
@@ -244,8 +252,8 @@ public sealed class ActiveWahCircuit {
     }
 
     /// <summary>
-    ///     One sample: the input in volts, returns the output in volts. Inverted, as the band-pass's op-amp inverts (the
-    ///     block flips it back, as it does the inductor circuits' collector).
+    ///     One sample: the input in volts, returns the output in volts. Inverted, as the band-pass's op-amp inverts
+    ///     (the block flips it back, as it does the inductor circuits' collector).
     /// </summary>
     public double Tick(double volts) {
         var hp = (volts - (k + g) * s1 - s2) * denominator;

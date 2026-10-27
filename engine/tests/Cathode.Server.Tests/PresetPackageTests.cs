@@ -232,7 +232,9 @@ public sealed class PresetPackageTests : IAsyncLifetime {
         return buffer.ToArray();
     }
 
-    /// <summary>Copies the package, handing entries matching <paramref name="which" /> to <paramref name="replace" />.</summary>
+    /// <summary>
+    ///     Copies the package, handing entries matching <paramref name="which" /> to <paramref name="replace" />.
+    /// </summary>
     static byte[] Transform(byte[] package, Func<string, bool> which, Action<ZipArchive, string> replace) {
         using var output = new MemoryStream();
         using (var original = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read)) {

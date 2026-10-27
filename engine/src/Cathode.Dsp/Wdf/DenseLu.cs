@@ -117,9 +117,9 @@ public static class DenseLu {
 
     /// <summary>
     ///     One elimination step on one row of an n-wide row-major matrix: its multiplier for column
-    ///     <paramref name="k" /> (the entry times <paramref name="inverse" />, the pivot's reciprocal) is stored in place
-    ///     of that entry, and the multiplier times the pivot row <paramref name="top" /> is subtracted from the row's
-    ///     entries right of it. A zero multiplier leaves the row as it is.
+    ///     <paramref name="k" /> (the entry times <paramref name="inverse" />, the pivot's reciprocal) is stored in
+    ///     place of that entry, and the multiplier times the pivot row <paramref name="top" /> is subtracted from the
+    ///     row's entries right of it. A zero multiplier leaves the row as it is.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void EliminateRow(ref double row, ref double top, double inverse, int k, int n) {
@@ -145,8 +145,8 @@ public static class DenseLu {
     static void MeasureLargest(ref double m, int n, ref double largest) => largest = Largest(ref m, n * n);
 
     /// <summary>
-    ///     Debug builds: the growth factor, the largest entry of U against the largest of the matrix it came from, stays
-    ///     below <see cref="MaxGrowth" />. Partial pivoting bounds it by 2^(n-1) in theory and keeps it near 1 in
+    ///     Debug builds: the growth factor, the largest entry of U against the largest of the matrix it came from,
+    ///     stays below <see cref="MaxGrowth" />. Partial pivoting bounds it by 2^(n-1) in theory and keeps it near 1 in
     ///     practice (nodal matrices are diagonally dominant); a large one means the factors, and every solve with them,
     ///     have lost that many digits however large the pivots are.
     /// </summary>
@@ -434,7 +434,9 @@ public static class DenseLu {
         return factor != 0 ? product : 0.0;
     }
 
-    /// <summary>Solves the n × n system A x = b in place for one right-hand side. Returns false if A is singular.</summary>
+    /// <summary>
+    ///     Solves the n × n system A x = b in place for one right-hand side. Returns false if A is singular.
+    /// </summary>
     public static bool SolveInPlace(Span<double> a, int n, Span<int> pivots, Span<double> b) {
         if (!Factor(a, n, pivots)) {
             return false;

@@ -21,7 +21,9 @@ public enum OversamplingPhase {
     Linear
 }
 
-/// <summary>A block whose oversamplers follow the global <see cref="OversamplingPhase" />; set before Prepare.</summary>
+/// <summary>
+///     A block whose oversamplers follow the global <see cref="OversamplingPhase" />; set before Prepare.
+/// </summary>
 public interface IOversampledBlock {
     OversamplingPhase OversamplingPhase { get; set; }
 }
@@ -54,11 +56,15 @@ public sealed class LinearPhaseKernel {
     /// <summary>The odd-indexed taps, oldest input first.</summary>
     internal float[] Odd { get; }
 
-    /// <summary>The kernel for <paramref name="attenuationDb" /> and <paramref name="transition" />, designed once.</summary>
+    /// <summary>
+    ///     The kernel for <paramref name="attenuationDb" /> and <paramref name="transition" />, designed once.
+    /// </summary>
     public static LinearPhaseKernel For(double attenuationDb, double transition) =>
         Cache.GetOrAdd((attenuationDb, transition), static key => new(Design(key.Item1, key.Item2)));
 
-    /// <summary>The magnitude of the half-band low-pass at <paramref name="frequency" /> (fraction of the high rate).</summary>
+    /// <summary>
+    ///     The magnitude of the half-band low-pass at <paramref name="frequency" /> (fraction of the high rate).
+    /// </summary>
     public double Magnitude(double frequency) {
         var centre = 2 * K;
         var sum = Taps[centre];
@@ -104,8 +110,8 @@ public sealed class LinearPhaseKernel {
 }
 
 /// <summary>
-///     One 2x up/down pair on a <see cref="LinearPhaseKernel" />, as polyphase filters at the low rate. Upsampling delays
-///     by k low-rate samples, downsampling by k more, so a round trip is a pure delay of 2k (in the pass band).
+///     One 2x up/down pair on a <see cref="LinearPhaseKernel" />, as polyphase filters at the low rate. Upsampling
+///     delays by k low-rate samples, downsampling by k more, so a round trip is a pure delay of 2k (in the pass band).
 /// </summary>
 sealed class LinearPhaseStage(LinearPhaseKernel kernel) {
     readonly float[] up = new float[4 * kernel.K]; // the last 2k inputs, written twice so a window is contiguous

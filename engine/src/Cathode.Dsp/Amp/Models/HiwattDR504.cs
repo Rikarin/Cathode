@@ -4,8 +4,8 @@ namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
 ///     Hiwatt DR504 (Custom 50), from Mark Huss's hiwatt.org redraws: the mid-70s four-input preamp it shares with the
-///     DR103 (<see cref="HiwattParts" />: "Mid-70s Four-Input Preamp" rev 1.4, with the 12AT7 long-tail pair biased from
-///     a cathode follower and 10k of feedback from the 16 Ω tap into 2k2 and the 100k presence with 0.1 µF), the
+///     DR103 (<see cref="HiwattParts" />: "Mid-70s Four-Input Preamp" rev 1.4, with the 12AT7 long-tail pair biased
+///     from a cathode follower and 10k of feedback from the 16 Ω tap into 2k2 and the 100k presence with 0.1 µF), the
 ///     "50 Watt Output Stage" v1.1 (https://hiwatt.org/Schematics/DR_50wOutput.pdf) and the "Power Supply for 50 Watt
 ///     Amp" v1.1 (https://hiwatt.org/Schematics/DR_50wPS.pdf): two EL34 with 22k grid stoppers, 100k grid leaks to the
 ///     −36 V bias and 1k5 5 W screen resistors on a Partridge TG6556; a voltage doubler on 350 V (two 220 µF in series)
@@ -19,8 +19,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         hiwatt.org also has a complete DR504 drawing with DC voltages, "HIWATT DR504OL" (date code 8313, so a 1983
 ///         amp: https://hiwatt.org/Schematics/DR504OL.gif). It is a later, two-input amp with an extra 220k gain stage
-///         ahead of the tone network, so it is not the amp modelled here; its rails (506 V at the plates, 433 V and 388 V
-///         at the preamp's two nodes, 496 V at the inverter, −40 V bias) are what the guesses below are scaled from.
+///         ahead of the tone network, so it is not the amp modelled here; its rails (506 V at the plates, 433 V and 388
+///         V at the preamp's two nodes, 496 V at the inverter, −40 V bias) are what the guesses below are scaled from.
 ///     </para>
 ///     <para>
 ///         Not on the four-input drawings (guesses): the rails below HT1 (450 V at the inverter from HT3; 395 V at V2A,

@@ -6,12 +6,12 @@ namespace Cathode.Dsp.Amp.Models;
 ///     Trainwreck Liverpool: the Express preamp with a smaller treble cap ahead of four EL84. V1a: 1M, 100k plate, 1.5k
 ///     with 22 µF; on its plate a Marshall-topology stack (50 pF to the 1M treble pot, 100k slope, 22 nF to the 250k
 ///     audio bass, 22 nF to the 25k middle wired as a rheostat), the treble wiper into the 1M volume with the three-way
-///     bright switch from its top to the wiper (100 pF, off, 500 pF); 2.2k into V1b (100k, 2.7k with 22 µF); C8 (2.2 nF)
-///     into R7 (68k) at V2 (100k, 10k unbypassed: a cold stage) straight into a 12AX7 long-tail pair (0.1 µF in, 1M
-///     leaks, 1k bias, 39k + 4.7k tail; 100k plates, 100 pF between them), 22 nF into 220k leaks and 1.5k stoppers, four
-///     EL84 with 1k screen resistors on a shared 50 Ω cathode resistor with 220 µF; feedback 100k from the 8 Ω tap into
-///     the 4.7k, with the presence pot (25k, 0.1 µF) across it; silicon rectifier, 80 µF, 1k to the screens (40 µF),
-///     18k, 9.1k and 9.1k to the inverter's, V2's and V1's nodes (20 µF each): 331 / 318 / 269 / 256 / 244 V.
+///     bright switch from its top to the wiper (100 pF, off, 500 pF); 2.2k into V1b (100k, 2.7k with 22 µF); C8 (2.2
+///     nF) into R7 (68k) at V2 (100k, 10k unbypassed: a cold stage) straight into a 12AX7 long-tail pair (0.1 µF in, 1M
+///     leaks, 1k bias, 39k + 4.7k tail; 100k plates, 100 pF between them), 22 nF into 220k leaks and 1.5k stoppers,
+///     four EL84 with 1k screen resistors on a shared 50 Ω cathode resistor with 220 µF; feedback 100k from the 8 Ω tap
+///     into the 4.7k, with the presence pot (25k, 0.1 µF) across it; silicon rectifier, 80 µF, 1k to the screens (40
+///     µF), 18k, 9.1k and 9.1k to the inverter's, V2's and V1's nodes (20 µF each): 331 / 318 / 269 / 256 / 244 V.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -20,16 +20,16 @@ namespace Cathode.Dsp.Amp.Models;
 ///         saw, with the node voltages he measured. A builder's drawing of two amps, not a factory document: Ken
 ///         Fischer tuned each amp, and Abbott says so for two parts. R7 and C8 "are where the response of the amp is
 ///         tuned": C8 from 1 nF to 10 nF and R7 from 33k up; he recommends 68k and 2 nF to 4.7 nF and saw 2 nF (1 nF
-///         ceramic beside 1 nF polypropylene) in both amps, so 68k and 2.2 nF here. Rgs (V1b's grid stopper) "varies from
-///         820 Ω to 2.2k" (2.2k in the amp he saw).
+///         ceramic beside 1 nF polypropylene) in both amps, so 68k and 2.2 nF here. Rgs (V1b's grid stopper) "varies
+///         from 820 Ω to 2.2k" (2.2k in the amp he saw).
 ///     </para>
 ///     <para>
-///         Guesses, marked: the presence pot ("possibly 25k" on the drawing) as a 25k linear pot; the output transformer
-///         (not drawn; 4k plate to plate, a typical value for four EL84 at this supply, the AC30's); the EL84s' idle
-///         current follows from the drawn 50 Ω (Abbott: "the stock Vox value"); the treble pot's taper (drawn as "1MΩ",
-///         audio as on the Express). The inverter's 39k is drawn between the tail's foot and the bias junction, the 1k
-///         between the junction and the cathodes: here a 1k bias resistor over a 43.7k tail, the feedback entering at
-///         the 4.7k as the block's feedback network has it.
+///         Guesses, marked: the presence pot ("possibly 25k" on the drawing) as a 25k linear pot; the output
+///         transformer (not drawn; 4k plate to plate, a typical value for four EL84 at this supply, the AC30's); the
+///         EL84s' idle current follows from the drawn 50 Ω (Abbott: "the stock Vox value"); the treble pot's taper
+///         (drawn as "1MΩ", audio as on the Express). The inverter's 39k is drawn between the tail's foot and the bias
+///         junction, the 1k between the junction and the cathodes: here a 1k bias resistor over a 43.7k tail, the
+///         feedback entering at the 4.7k as the block's feedback network has it.
 ///     </para>
 /// </remarks>
 public static class Liverpool {
@@ -91,8 +91,8 @@ public static class Liverpool {
     };
 
     /// <summary>
-    ///     The stack on V1a's plate, the volume with the bright caps, 2.2k into V1b (100k from 244 V, 2.7k with 22 µF, its
-    ///     grid-plate capacitance).
+    ///     The stack on V1a's plate, the volume with the bright caps, 2.2k into V1b (100k from 244 V, 2.7k with 22 µF,
+    ///     its grid-plate capacitance).
     /// </summary>
     static StageNetlist StackStage() {
         var net = new StageNetlist();

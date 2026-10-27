@@ -4,40 +4,41 @@ namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
 ///     Friedman BE-100, the BE channel (<see cref="Design" />) and the HBE channel (<see cref="Hbe" />), from the
-///     "BE-100 v2" trace (layout by Equinox, drawing by Patrice Frey, rev 1.5, 3 May 2014; a clean CAD drawing posted on
-///     music-electronics-forum.com, https://music-electronics-forum.com/filedata/fetch?id=853106&amp;d=1591761457):
-///     V2A (33k stopper, 10M leak; 220k plus 100k with 500 pF across the 100k, 2k7 with 0.68 µF) into 2.2 nF (plus
-///     22 nF with Fat) and the C45 switch's network into the V2B stopper (33k); V2B (100k, 2k7 with 0.68 µF), 2.2 nF
-///     into the 1M Gain pot, 470k with 500 pF and 470k to V3A (100k with 500 pF from the rail, 820 with 0.68 µF, and
-///     470 µF with Voice); the V3B cathode follower (100k) on a Marshall stack (500 pF, 33k, 22 nF, 22 nF;
-///     250k-B/1M-A/25k-B) with the Sat clamp at its input; 220k into 1M and the 1M master; a 12AX7 long-tail pair
-///     (22 nF in, 1M, 470, 10k, 82k/100k, 22 nF out to 220k), four EL34 (1k5 stoppers, 1k screens), 47k and
-///     220k with 4.7 nF of feedback into the 5k presence pot with 0.1 µF on its wiper.
+///     "BE-100 v2" trace (layout by Equinox, drawing by Patrice Frey, rev 1.5, 3 May 2014; a clean CAD drawing posted
+///     on music-electronics-forum.com, https://music-electronics-forum.com/filedata/fetch?id=853106&amp;d=1591761457):
+///     V2A (33k stopper, 10M leak; 220k plus 100k with 500 pF across the 100k, 2k7 with 0.68 µF) into 2.2 nF (plus 22
+///     nF with Fat) and the C45 switch's network into the V2B stopper (33k); V2B (100k, 2k7 with 0.68 µF), 2.2 nF into
+///     the 1M Gain pot, 470k with 500 pF and 470k to V3A (100k with 500 pF from the rail, 820 with 0.68 µF, and 470 µF
+///     with Voice); the V3B cathode follower (100k) on a Marshall stack (500 pF, 33k, 22 nF, 22 nF; 250k-B/1M-A/25k-B)
+///     with the Sat clamp at its input; 220k into 1M and the 1M master; a 12AX7 long-tail pair (22 nF in, 1M, 470, 10k,
+///     82k/100k, 22 nF out to 220k), four EL34 (1k5 stoppers, 1k screens), 47k and 220k with 4.7 nF of feedback into
+///     the 5k presence pot with 0.1 µF on its wiper.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         The channel switch (CLN-BE-HBE) drives two relays: one grounds the Gain pot's top on the clean channel, the
 ///         other feeds V2A's 33k either from the input jack (BE) or from V1A (HBE: 33k stopper; 220k plus 100k with
-///         500 pF, 2k7 with 0.68 µF) through 2.2 nF into a 1M/68k divider. The clean channel (V1A, a Fender-style stack,
-///         V1B) is not modelled.
+///         500 pF, 2k7 with 0.68 µF) through 2.2 nF into a 1M/68k divider. The clean channel (V1A, a Fender-style
+///         stack, V1B) is not modelled.
 ///     </para>
 ///     <para>
-///         Read from the trace: the "C45" switch (C45A/C45B) puts either 68k in series with 68k to ground (off here), or
-///         560k with 680 pF across it in series with 220k to ground (on) between V2A's coupling cap and V2B's stopper.
-///         Voice (SW3) grounds either a 470 µF across V3A's 820 (on) or a 500 pF at the stack's input (off). Sat (SW7, on
-///         the panel's Bright) hangs 100 nF and 10k from the follower's cathode onto 1M and two MPSA06 drawn as "Z1/Z2":
-///         their base-emitter junctions used as zeners. Here they are a symmetric clamp of four LED-model junctions each
-///         way (about 6.8 V at 1 mA, a forward drop plus an emitter-base breakdown); the trace's wiring of the pair would
-///         clamp one polarity only, which is not settled (guess). Through 10k against the follower's few hundred ohms the
-///         clamp compresses the stack's drive only a little, as the switch is said to.
+///         Read from the trace: the "C45" switch (C45A/C45B) puts either 68k in series with 68k to ground (off here),
+///         or 560k with 680 pF across it in series with 220k to ground (on) between V2A's coupling cap and V2B's
+///         stopper. Voice (SW3) grounds either a 470 µF across V3A's 820 (on) or a 500 pF at the stack's input (off).
+///         Sat (SW7, on the panel's Bright) hangs 100 nF and 10k from the follower's cathode onto 1M and two MPSA06
+///         drawn as "Z1/Z2": their base-emitter junctions used as zeners. Here they are a symmetric clamp of four
+///         LED-model junctions each way (about 6.8 V at 1 mA, a forward drop plus an emitter-base breakdown); the
+///         trace's wiring of the pair would clamp one polarity only, which is not settled (guess). Through 10k against
+///         the follower's few hundred ohms the clamp compresses the stack's drive only a little, as the switch is said
+///         to.
 ///     </para>
 ///     <para>
 ///         The effects loop (two LND150 followers, a 50k send level, 2M2 and 33k) is taken as transparent: the master's
 ///         wiper drives the inverter's 22 nF. The feedback's 220k with 4.7 nF in series with 47k is the feedback
 ///         design's fixed low shelf (47k in the mid band, 267k below 154 Hz). Not on the trace (guesses): B+ 470 V, the
 ///         preamp nodes (V1/V2 330 V, V3 370 V, inverter 425 V, from the 4k7 + 10k, 10k, 10k droppers), the EL34s'
-///         35 mA, the output transformer's 1.7k plate to plate, the feedback tap (4 Ω assumed; the trace takes it from a
-///         separate secondary pin), the reservoir (two 100 µF in series) and the choke's resistance.
+///         35 mA, the output transformer's 1.7k plate to plate, the feedback tap (4 Ω assumed; the trace takes it from
+///         a separate secondary pin), the reservoir (two 100 µF in series) and the choke's resistance.
 ///     </para>
 /// </remarks>
 public static class FriedmanBE100 {
@@ -104,8 +105,8 @@ public static class FriedmanBE100 {
         ) { Panel = Panel };
 
     /// <summary>
-    ///     A BE-100 gain stage's plate load: 220k from the rail to a junction, then 100k to the plate with 500 pF across
-    ///     it (V1A, V2A); returns the plate.
+    ///     A BE-100 gain stage's plate load: 220k from the rail to a junction, then 100k to the plate with 500 pF
+    ///     across it (V1A, V2A); returns the plate.
     /// </summary>
     static int SplitPlate(StageNetlist net, double supply) {
         var (rail, junction, plate) = (net.Node(), net.Node(), net.Node());
@@ -124,7 +125,9 @@ public static class FriedmanBE100 {
         net.Capacitor(cathode, StageNetlist.Ground, 0.68e-6);
     }
 
-    /// <summary>HBE: the input jack's 1M, the 33k stopper, V1A, and its 2.2 nF into the 1M/68k divider (the output).</summary>
+    /// <summary>
+    ///     HBE: the input jack's 1M, the 33k stopper, V1A, and its 2.2 nF into the 1M/68k divider (the output).
+    /// </summary>
     static NetworkStageDesign V1A() {
         var net = new StageNetlist();
         var (grid, divider, top) = (net.Node(), net.Node(), net.Node());
@@ -140,9 +143,9 @@ public static class FriedmanBE100 {
     }
 
     /// <summary>
-    ///     V2A from its 33k stopper (with the jack's 1M when the guitar plays into it) and 10M leak, to the C45 switch's
-    ///     output at V2B's stopper: 2.2 nF out, plus 22 nF with Fat; then 68k in series and 68k to ground, or (C45)
-    ///     560k with 680 pF in series and 220k to ground.
+    ///     V2A from its 33k stopper (with the jack's 1M when the guitar plays into it) and 10M leak, to the C45
+    ///     switch's output at V2B's stopper: 2.2 nF out, plus 22 nF with Fat; then 68k in series and 68k to ground, or
+    ///     (C45) 560k with 680 pF in series and 220k to ground.
     /// </summary>
     static NetworkStageDesign V2A(bool jack) {
         var net = new StageNetlist();

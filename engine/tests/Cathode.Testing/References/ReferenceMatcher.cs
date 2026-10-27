@@ -181,7 +181,9 @@ public static class ReferenceMatcher {
             .OrderBy(static p => p.Item1)
             .ToList();
 
-    /// <summary>A measured response interpolated (log frequency) onto <see cref="MatchMetrics.ResponseCenters" />.</summary>
+    /// <summary>
+    ///     A measured response interpolated (log frequency) onto <see cref="MatchMetrics.ResponseCenters" />.
+    /// </summary>
     public static double[] Resample(IReadOnlyList<(double Frequency, double Db)> points) {
         var result = new double[MatchMetrics.ResponseCenters.Length];
         for (var b = 0; b < result.Length; b++) {

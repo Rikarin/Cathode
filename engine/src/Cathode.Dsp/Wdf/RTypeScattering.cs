@@ -4,19 +4,19 @@ namespace Cathode.Dsp.Wdf;
 
 /// <summary>
 ///     The scattering matrix of an R-type adaptor, computed from the modified nodal analysis (MNA) of its
-///     <see cref="WdfNetlist" />, after Werner, Smith and Abel, "Wave digital filter adaptors for arbitrary topologies and
-///     multiport linear elements" (DAFx-15). Every buffer is allocated once (a small network solves in stack scratch),
-///     so <see cref="Recompute" /> can run on the audio thread whenever a component changes. The topology arrays are the
-///     netlist's own, shared by every adaptor built from it.
+///     <see cref="WdfNetlist" />, after Werner, Smith and Abel, "Wave digital filter adaptors for arbitrary topologies
+///     and multiport linear elements" (DAFx-15). Every buffer is allocated once (a small network solves in stack
+///     scratch), so <see cref="Recompute" /> can run on the audio thread whenever a component changes. The topology
+///     arrays are the netlist's own, shared by every adaptor built from it.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Each port k is replaced by its Thévenin equivalent: the wave a_k it sends into the adaptor (the child's
-///         reflected wave) behind the port resistance R_k, stamped as a conductance 1 / R_k and a current a_k / R_k. With
-///         v_k = a_k + R_k i_k for the current i_k into the child, the wave the adaptor sends back is
-///         b_k = a_k + 2 R_k i_k = 2 v_k - a_k, so the port resistances cancel out of everything but the MNA matrix. The
-///         inputs u are the port waves, then the internal sources; a root's nonlinear device ports add one column each
-///         for the current they draw. Solving the MNA system X x = B [u; r] once for every column gives the matrix
+///         reflected wave) behind the port resistance R_k, stamped as a conductance 1 / R_k and a current a_k / R_k.
+///         With v_k = a_k + R_k i_k for the current i_k into the child, the wave the adaptor sends back is b_k = a_k +
+///         2 R_k i_k = 2 v_k - a_k, so the port resistances cancel out of everything but the MNA matrix. The inputs u
+///         are the port waves, then the internal sources; a root's nonlinear device ports add one column each for the
+///         current they draw. Solving the MNA system X x = B [u; r] once for every column gives the matrix
 ///         <c>M</c> with one row per output:
 ///     </para>
 ///     <list type="bullet">
@@ -28,17 +28,17 @@ namespace Cathode.Dsp.Wdf;
 ///         <item>probe rows: the probed voltages.</item>
 ///     </list>
 ///     <para>
-///         An internal adaptor must be reflection-free at its parent port: its resistance is the Thévenin resistance the
-///         parent sees, R_up = dᵀ X₀⁻¹ d, where X₀ is the MNA matrix without the parent port and d selects its two nodes.
-///         Adding the parent port's conductance G = 1 / R_up is a rank-one update, so the Sherman-Morrison formula
-///         X⁻¹ = X₀⁻¹ - (X₀⁻¹ d)(dᵀ X₀⁻¹) G / (1 + G R_up) reuses the factors of X₀: one LU factorisation per recompute.
-///         The parent port's own reflection coefficient is then exactly zero, and is stored as such.
+///         An internal adaptor must be reflection-free at its parent port: its resistance is the Thévenin resistance
+///         the parent sees, R_up = dᵀ X₀⁻¹ d, where X₀ is the MNA matrix without the parent port and d selects its two
+///         nodes. Adding the parent port's conductance G = 1 / R_up is a rank-one update, so the Sherman-Morrison
+///         formula X⁻¹ = X₀⁻¹ - (X₀⁻¹ d)(dᵀ X₀⁻¹) G / (1 + G R_up) reuses the factors of X₀: one LU factorisation per
+///         recompute. The parent port's own reflection coefficient is then exactly zero, and is stored as such.
 ///     </para>
 ///     <para>
 ///         Each device port is stamped with a companion conductance G_c and draws only the residual current
 ///         r = i(v) - G_c v, which keeps X regular when a node hangs on a device alone (a transistor's base, a tube's
-///         grid). Newton's method is affine invariant, so G_c does not change the iterates, only the conditioning. A tiny
-///         conductance (1e-15 S) from every node to ground is the last safety net against a floating node.
+///         grid). Newton's method is affine invariant, so G_c does not change the iterates, only the conditioning. A
+///         tiny conductance (1e-15 S) from every node to ground is the last safety net against a floating node.
 ///     </para>
 /// </remarks>
 public sealed class RTypeScattering {
@@ -119,7 +119,9 @@ public sealed class RTypeScattering {
     /// <summary>Resistance of the parent port, adapted at the last <see cref="Recompute" />.</summary>
     public double UpResistance { get; private set; }
 
-    /// <summary>False when the last <see cref="Recompute" /> met a singular network (and kept the previous matrix).</summary>
+    /// <summary>
+    ///     False when the last <see cref="Recompute" /> met a singular network (and kept the previous matrix).
+    /// </summary>
     public bool IsValid { get; private set; }
 
     /// <summary>
@@ -187,18 +189,24 @@ public sealed class RTypeScattering {
         matrix = new double[Rows * Columns];
     }
 
-    /// <summary>Doubles of scratch a <see cref="Recompute" /> needs: the MNA matrix, its solution, the parent response.</summary>
+    /// <summary>
+    ///     Doubles of scratch a <see cref="Recompute" /> needs: the MNA matrix, its solution, the parent response.
+    /// </summary>
     int ScratchLength => size * size + size * Columns + size;
 
     /// <summary>One row of <see cref="Matrix" />.</summary>
     public ReadOnlySpan<double> Row(int row) => matrix.AsSpan(row * Columns, Columns);
 
-    /// <summary>Changes internal resistor <paramref name="index" />; takes effect at the next <see cref="Recompute" />.</summary>
+    /// <summary>
+    ///     Changes internal resistor <paramref name="index" />; takes effect at the next <see cref="Recompute" />.
+    /// </summary>
     public void SetResistance(int index, double ohms) => resistances[index] = Math.Max(ohms, MinimumResistance);
 
     public double GetResistance(int index) => resistances[index];
 
-    /// <summary>Changes the gain of VCVS <paramref name="index" />; takes effect at the next <see cref="Recompute" />.</summary>
+    /// <summary>
+    ///     Changes the gain of VCVS <paramref name="index" />; takes effect at the next <see cref="Recompute" />.
+    /// </summary>
     public void SetGain(int index, double gain) => gains[index] = gain;
 
     /// <summary>The companion conductance of device port <paramref name="port" /> (see the remarks).</summary>
@@ -412,7 +420,9 @@ public sealed class RTypeScattering {
         }
     }
 
-    /// <summary>The MNA stamp of a branch whose current is unknown <paramref name="row" /> and whose voltage it fixes.</summary>
+    /// <summary>
+    ///     The MNA stamp of a branch whose current is unknown <paramref name="row" /> and whose voltage it fixes.
+    /// </summary>
     static void Branch(Span<double> a, int n, int p, int m, int row) {
         if (p > 0) {
             a[(p - 1) * n + row] += 1;

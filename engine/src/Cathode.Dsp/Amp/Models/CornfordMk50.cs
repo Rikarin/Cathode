@@ -10,11 +10,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <list type="bullet">
 ///         <item>
 ///             V1 (both channels): 0.033 µF from the jack (1M to ground), 68k, 100 pF grid to plate; 180k plate load
-///             in series with 39k from the rail, 1k5 with 2.2 µF. The Clean channel takes its signal from the 39k / 180k
-///             junction into its own stack (330 pF, 68k, 0.1 µF, 0.033 µF to the middle pot's wiper; 250k-L treble,
-///             250k-A bass, 25k-L middle) and 0.33 µF into its 1M-A volume with 100 pF. The Overdrive channel: 4.7 nF
-///             and 100k from the plate onto 4k7 and the 250k-A Gain as a variable resistor (a 2N5462 shorts the pot on
-///             the Clean channel), into V2 (100k, 1k5 with 2.2 µF).
+///             in series with 39k from the rail, 1k5 with 2.2 µF. The Clean channel takes its signal from the 39k /
+///             180k junction into its own stack (330 pF, 68k, 0.1 µF, 0.033 µF to the middle pot's wiper; 250k-L
+///             treble, 250k-A bass, 25k-L middle) and 0.33 µF into its 1M-A volume with 100 pF. The Overdrive channel:
+///             4.7 nF and 100k from the plate onto 4k7 and the 250k-A Gain as a variable resistor (a 2N5462 shorts the
+///             pot on the Clean channel), into V2 (100k, 1k5 with 2.2 µF).
 ///         </item>
 ///         <item>
 ///             Overdrive: 22 nF and 680k with 470 pF onto the 1M-A Overdrive, V3 a cold clipper (100k, 15k
@@ -23,17 +23,15 @@ namespace Cathode.Dsp.Amp.Models;
 ///         <item>
 ///             Relay 1A puts either channel on V4 (220k, 1k5 unbypassed), DC-coupled to the V5 cathode follower
 ///             (100k), which drives the Overdrive's stack (220 pF in series with 100k to the 250k-L treble's top; 43k;
-///             0.1 µF to the treble's foot, which is the top of the 1M-A bass, a variable resistor with 1 nF from its top
-///             to
-///             ground; 0.033 µF to the 25k-L middle's wiper) with 470k into the 25k-L Volume, and the Clean channel's
-///             fixed 0.1 µF, 100k
-///             over 15k divider; relay 1B sends one of the two to the loop.
+///             0.1 µF to the treble's foot, which is the top of the 1M-A bass, a variable resistor with 1 nF from its
+///             top to ground; 0.033 µF to the 25k-L middle's wiper) with 470k into the 25k-L Volume, and the Clean
+///             channel's fixed 0.1 µF, 100k over 15k divider; relay 1B sends one of the two to the loop.
 ///         </item>
 ///         <item>
 ///             The loop's return: V6 (1M grid leak, 220k, 1k5 unbypassed), 33 nF and 220k into the 1M-A Master (one of
-///             the two, chosen by relay 3) as a variable resistor to ground; 22 nF into a 12AX7 long-tail pair (1M, 470,
-///             10k, 91k/100k, 100 pF, 33 nF out to 220k), two EL34 (10k stoppers, 1k 4 W screens), feedback from the
-///             8 Ω tap through 100 µF, the 1M-A Resonance with 4.7 nF across it and 47k into 4k7, with the 25k-L
+///             the two, chosen by relay 3) as a variable resistor to ground; 22 nF into a 12AX7 long-tail pair (1M,
+///             470, 10k, 91k/100k, 100 pF, 33 nF out to 220k), two EL34 (10k stoppers, 1k 4 W screens), feedback from
+///             the 8 Ω tap through 100 µF, the 1M-A Resonance with 4.7 nF across it and 47k into 4k7, with the 25k-L
 ///             Presence and 0.1 µF.
 ///         </item>
 ///     </list>
@@ -41,9 +39,9 @@ namespace Cathode.Dsp.Amp.Models;
 /// <remarks>
 ///     <para>
 ///         Panel names from Fractal's notes on its model of this amp ("Gain", "Overdrive", "Volume", two Masters,
-///         Presence and Resonance): the 250k Gain sets the sensitivity, the 1M Overdrive the distortion. The Volume knob
-///         is the playing channel's (the Clean channel's 1M or the Overdrive's 25k); the channels share Bass, Middle and
-///         Treble knobs; Master 2 is not modelled (relay 3 picks one of two identical pots).
+///         Presence and Resonance): the 250k Gain sets the sensitivity, the 1M Overdrive the distortion. The Volume
+///         knob is the playing channel's (the Clean channel's 1M or the Overdrive's 25k); the channels share Bass,
+///         Middle and Treble knobs; Master 2 is not modelled (relay 3 picks one of two identical pots).
 ///     </para>
 ///     <para>
 ///         The Resonance is the library's depth shelf (the feedback's low end cut to a tenth at full, against about a
@@ -118,9 +116,10 @@ public static class CornfordMk50 {
 
     /// <summary>
     ///     V1 with the Overdrive's input divider; the output is the Overdrive's Gain node (V2's grid) or, for the Clean
-    ///     channel (<paramref name="clean" />), the Clean volume's wiper, with the 2N5462 shorting the Gain pot. The Clean
-    ///     channel's stack hangs on the 39k / 180k junction while the Overdrive plays too, but in series with 180k it
-    ///     moves V1's plate load by about 6 % (half a decibel): the Overdrive's network leaves it out, for the CPU budget.
+    ///     channel (<paramref name="clean" />), the Clean volume's wiper, with the 2N5462 shorting the Gain pot. The
+    ///     Clean channel's stack hangs on the 39k / 180k junction while the Overdrive plays too, but in series with
+    ///     180k it moves V1's plate load by about 6 % (half a decibel): the Overdrive's network leaves it out, for the
+    ///     CPU budget.
     /// </summary>
     static NetworkStageDesign V1(bool clean) {
         var net = new StageNetlist();
@@ -191,7 +190,9 @@ public static class CornfordMk50 {
         return new("V3", net);
     }
 
-    /// <summary>V4 (220k, 1k5 unbypassed), its grid on whichever channel relay 1A selects; the output is the plate.</summary>
+    /// <summary>
+    ///     V4 (220k, 1k5 unbypassed), its grid on whichever channel relay 1A selects; the output is the plate.
+    /// </summary>
     static TriodeStageDesign V4() => new("V4", TriodeModel.Ecc83, V4Supply, 220e3, 1.5e3);
 
     /// <summary>
@@ -232,8 +233,8 @@ public static class CornfordMk50 {
     }
 
     /// <summary>
-    ///     The loop's return: V6 (1M grid leak, 220k, 1k5 unbypassed), 33 nF and 220k onto the 1M-A Master as a variable
-    ///     resistor to ground (the output).
+    ///     The loop's return: V6 (1M grid leak, 220k, 1k5 unbypassed), 33 nF and 220k onto the 1M-A Master as a
+    ///     variable resistor to ground (the output).
     /// </summary>
     static NetworkStageDesign Return() {
         var net = new StageNetlist();

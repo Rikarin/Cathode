@@ -12,8 +12,8 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
         [..Enumerable.Range(DriveBlock.CircuitTypes, DriveCircuits.All.Count)];
 
     /// <summary>
-    ///     Clean boosts and preamps, which a firmly picked note does not drive into their rails even at full gain (as on
-    ///     the real pedals): they are held to staying clean there instead, and to clipping when hit hard
+    ///     Clean boosts and preamps, which a firmly picked note does not drive into their rails even at full gain (as
+    ///     on the real pedals): they are held to staying clean there instead, and to clipping when hit hard
     ///     (<see cref="DriveRound4FuzzTests" />).
     /// </summary>
     static readonly string[] CleanTypes = ["Micro Boost", "Bosom Boost", "FAS Boost", "Integral Pre"];
@@ -82,8 +82,8 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
             foreach (var tone in new[] { 0f, 10f }) {
                 using var block = Create(type, drive, tone);
                 foreach (var stimulus in stimuli) {
-                    // A second of silence: a fuzz blocked by a hard burst (its input capacitor charged through the base) takes a
-                    // few hundred milliseconds to recover, as the real pedal does.
+                    // A second of silence: a fuzz blocked by a hard burst (its input capacitor charged through the
+                    // base) takes a few hundred milliseconds to recover, as the real pedal does.
                     var rendered = BlockRender.Mono(block, Signals.Concat(stimulus, new float[48_000]), 64);
                     Assert.True(Analysis.AllFinite(rendered), $"non-finite at drive {drive}, tone {tone}");
                     Assert.True(Analysis.ToDb(Analysis.Peak(rendered)) < 30, $"peak at drive {drive}, tone {tone}");
@@ -101,12 +101,13 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     Aliasing at full drive, for a firmly picked note (about 770 Hz at 0.1 V) and for the extreme case the original
-    ///     voicings are held to (2.5 kHz at 0.5 V). Diode clipping (in a feedback loop or to ground) has a closed-form
-    ///     antiderivative and keeps 60 dB in both. Clipping that only Newton can solve, or that the antiderivative cannot
-    ///     smooth into a band-limited shape, relies on oversampling alone: op-amp rails and the RAT's slewing op-amp, and
-    ///     above all transistors switching hard (a Fuzz Face turns a 2.5 kHz sine into a square, whose harmonics fold back
-    ///     from far above any affordable rate). Those have lower floors, recorded here so that they cannot slip further.
+    ///     Aliasing at full drive, for a firmly picked note (about 770 Hz at 0.1 V) and for the extreme case the
+    ///     original voicings are held to (2.5 kHz at 0.5 V). Diode clipping (in a feedback loop or to ground) has a
+    ///     closed-form antiderivative and keeps 60 dB in both. Clipping that only Newton can solve, or that the
+    ///     antiderivative cannot smooth into a band-limited shape, relies on oversampling alone: op-amp rails and the
+    ///     RAT's slewing op-amp, and above all transistors switching hard (a Fuzz Face turns a 2.5 kHz sine into a
+    ///     square, whose harmonics fold back from far above any affordable rate). Those have lower floors, recorded
+    ///     here so that they cannot slip further.
     /// </summary>
     [Theory]
     [MemberData(nameof(CircuitTypes))]
@@ -214,12 +215,12 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     A rough per-type report, fresh noise in every block as tools/Cathode.Bench feeds it (the bench's numbers, on a
-    ///     quiet machine, are the ones that count). The bound only catches a runaway: each type has to run in real time.
-    ///     Every 64-frame block is timed on its own and a type's cost is its median block: tests run in parallel here,
-    ///     and on a busy machine a pass of a whole second is pre-empted many times over, a single block of about a
-    ///     hundred microseconds rarely, so the median of three passes' blocks is the type's own cost, not the machine's
-    ///     load.
+    ///     A rough per-type report, fresh noise in every block as tools/Cathode.Bench feeds it (the bench's numbers, on
+    ///     a quiet machine, are the ones that count). The bound only catches a runaway: each type has to run in real
+    ///     time. Every 64-frame block is timed on its own and a type's cost is its median block: tests run in parallel
+    ///     here, and on a busy machine a pass of a whole second is pre-empted many times over, a single block of about
+    ///     a hundred microseconds rarely, so the median of three passes' blocks is the type's own cost, not the
+    ///     machine's load.
     /// </summary>
     [Fact]
     public void Cpu_per_type_is_reported() {
@@ -267,7 +268,9 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
 
     static string Name(int type) => DriveBlock.Info.Params[DriveBlock.Type].Options![type];
 
-    /// <summary>Signal-to-aliasing floors (770 Hz / 0.1 V, 2.5 kHz / 0.5 V) by the hardest clipping in the circuit.</summary>
+    /// <summary>
+    ///     Signal-to-aliasing floors (770 Hz / 0.1 V, 2.5 kHz / 0.5 V) by the hardest clipping in the circuit.
+    /// </summary>
     static (double Musical, double Extreme) AliasingFloors(DriveCircuit circuit) {
         static bool Railing(DriveStage s) =>
             s.Kind == StageKind.OpAmp && s.Diodes.ForwardCount + s.Diodes.ReverseCount == 0;

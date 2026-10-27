@@ -5,7 +5,9 @@ namespace Cathode.Dsp.Amp;
 
 /// <summary>What drives a <see cref="ToneStackStage" />'s tone stack.</summary>
 public enum StackDriver {
-    /// <summary>A cathode follower (Marshall, Vox top boost): plate at the supply, the stack hangs on the cathode.</summary>
+    /// <summary>
+    ///     A cathode follower (Marshall, Vox top boost): plate at the supply, the stack hangs on the cathode.
+    /// </summary>
     CathodeFollower,
 
     /// <summary>A common-cathode stage (Fender): the stack hangs on the plate.</summary>
@@ -83,7 +85,9 @@ public sealed class ToneStackStage : AmpStage {
 
     public ToneStackStageDesign Design { get; }
 
-    /// <summary>The wiper's Thévenin resistance, roughly: the pot's halves in parallel plus the stack's share.</summary>
+    /// <summary>
+    ///     The wiper's Thévenin resistance, roughly: the pot's halves in parallel plus the stack's share.
+    /// </summary>
     public override double OutputResistance {
         get {
             var a = load.Pot.Fraction(rotation);

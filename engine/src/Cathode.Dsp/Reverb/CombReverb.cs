@@ -12,10 +12,10 @@ namespace Cathode.Dsp.Reverb;
 ///     <para>
 ///         Six combs per side at Moorer's lengths (50 to 78 ms at size 50 %), the right side's 0.53 ms longer (the
 ///         spread Freeverb uses) so the sides decorrelate, then two allpasses per side at Schroeder's 5.0 and 1.7 ms.
-///         Each comb's gain is <c>10^(-3 d / (T60 fs))</c> for its own length d, so every comb, and so the sum, decays at
-///         the set T60; High Cut is the comb low-pass and the Low/High Freq Time splits sit in the same loop. The input
-///         passes a 10 kHz second-order low-pass first. Input Diffusion scales the allpass gains (0.7 at 100 %) and its
-///         Time their lengths.
+///         Each comb's gain is <c>10^(-3 d / (T60 fs))</c> for its own length d, so every comb, and so the sum, decays
+///         at the set T60; High Cut is the comb low-pass and the Low/High Freq Time splits sit in the same loop. The
+///         input passes a 10 kHz second-order low-pass first. Input Diffusion scales the allpass gains (0.7 at 100 %)
+///         and its Time their lengths.
 ///     </para>
 ///     <para>
 ///         This is the topology, not a model of one box: the EMT 250's own program is not published in enough detail to

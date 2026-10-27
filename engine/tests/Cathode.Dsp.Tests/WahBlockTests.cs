@@ -33,8 +33,9 @@ public class WahBlockTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The component-level types, at heel and toe, measured through the block: within the published sweeps (Cry Baby
-    ///     about 350 Hz to 2.2 kHz; this V846 from its component values, a little higher at the heel with a lower Q).
+    ///     The component-level types, at heel and toe, measured through the block: within the published sweeps (Cry
+    ///     Baby about 350 Hz to 2.2 kHz; this V846 from its component values, a little higher at the heel with a lower
+    ///     Q).
     /// </summary>
     [Theory]
     [InlineData(WahBlock.FirstCircuit, 0f, 360, 420, 12)]
@@ -74,7 +75,9 @@ public class WahBlockTests(ITestOutputHelper output) {
         Assert.True(q > minimumQ, $"Q {q:0.0}");
     }
 
-    /// <summary>The conformance properties (BlockConformanceTests, which runs the default type) for each circuit type.</summary>
+    /// <summary>
+    ///     The conformance properties (BlockConformanceTests, which runs the default type) for each circuit type.
+    /// </summary>
     [Theory]
     [InlineData(WahBlock.FirstCircuit)]
     [InlineData(WahBlock.FirstCircuit + 1)]

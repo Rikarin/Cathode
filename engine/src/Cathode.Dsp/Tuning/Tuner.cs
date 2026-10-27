@@ -12,10 +12,11 @@ namespace Cathode.Dsp.Tuning;
 public readonly record struct TunerReading(double Frequency, string Note, int Octave, double Cents, double Clarity);
 
 /// <summary>
-///     Guitar and bass tuner using the McLeod Pitch Method (McLeod and Wyvill, "A Smarter Way to Find Pitch", ICMC 2005).
-///     Input is decimated 2x, then the normalised square difference function (NSDF) of a 2048-sample window is computed
-///     from an FFT autocorrelation. The first "key maximum" above 93 % of the highest is the period, refined by parabolic
-///     interpolation. Runs on an analysis thread, never the audio thread: it is fed from <c>CathodeEngine.InputTap</c>.
+///     Guitar and bass tuner using the McLeod Pitch Method (McLeod and Wyvill, "A Smarter Way to Find Pitch", ICMC
+///     2005). Input is decimated 2x, then the normalised square difference function (NSDF) of a 2048-sample window is
+///     computed from an FFT autocorrelation. The first "key maximum" above 93 % of the highest is the period, refined
+///     by parabolic interpolation. Runs on an analysis thread, never the audio thread: it is fed from
+///     <c>CathodeEngine.InputTap</c>.
 /// </summary>
 public sealed class Tuner {
     public const int Window = 2_048;
@@ -66,7 +67,9 @@ public sealed class Tuner {
         }
     }
 
-    /// <summary>Analyses the most recent window. Returns null for silence, noise or chords without a clear period.</summary>
+    /// <summary>
+    ///     Analyses the most recent window. Returns null for silence, noise or chords without a clear period.
+    /// </summary>
     public TunerReading? Detect() {
         if (filled < Window || Rms() < MinRms) {
             return null;

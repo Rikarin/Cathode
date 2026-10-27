@@ -28,7 +28,8 @@ public class ModulationBlockTests {
 
     [Fact]
     public void Static_phaser_notches_where_the_chain_reaches_180_and_540_degrees() {
-        // Four identical first-order allpasses at fc: phase = -8 atan(f / fc), so notches at fc tan(pi/8) and fc tan(3pi/8).
+        // Four identical first-order allpasses at fc: phase = -8 atan(f / fc), so notches at fc tan(pi/8) and fc
+        // tan(3pi/8).
         using var phaser = Create<PhaserBlock>(
             (PhaserBlock.Depth, 0f),
             (PhaserBlock.Center, 1_000f),

@@ -3,20 +3,21 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Engl Savage 120 (E610), lead channel. V1B (100k, 1.5k ‖ 22 µF), 10 nF and 100k into the 1M audio gain; V2A (100k,
-///     1k ‖ 22 µF); 47 nF with 2.2M to ground, 100k into the 250k audio Lead pot (2.2M to ground before it), its wiper
-///     on V2B's grid (1 nF to ground with Lead Boost); V2B (330k, 3.3k, bypassed by 10 µF with Lead Boost); 47 nF into
-///     V3B's 1M grid leaks; V3B (100k, 1.5k ‖ 22 µF); 47 nF and 2.2M into the stack (470 pF, 220 pF more with Contour;
-///     47k slope; 47 nF, 22 nF; 250k linear treble, 1M audio bass, 20k linear middle); 100k, 100k into V3A's idle grid
-///     network (470k) and the 250k audio lead volume; the loop's send follower V5A (1k cathode) and return stage V5B
-///     (100k, 1k ‖ 22 µF), 100 nF and 47k into the 1M linear master; a long-tail pair (82k/100k, 470 Ω, 22k tail,
-///     100 nF to the second grid) and two 6550 (2.2k stoppers, 1k screens, 150k bias feeds).
+///     Engl Savage 120 (E610), lead channel. V1B (100k, 1.5k ‖ 22 µF), 10 nF and 100k into the 1M audio gain; V2A
+///     (100k, 1k ‖ 22 µF); 47 nF with 2.2M to ground, 100k into the 250k audio Lead pot (2.2M to ground before it), its
+///     wiper on V2B's grid (1 nF to ground with Lead Boost); V2B (330k, 3.3k, bypassed by 10 µF with Lead Boost); 47 nF
+///     into V3B's 1M grid leaks; V3B (100k, 1.5k ‖ 22 µF); 47 nF and 2.2M into the stack (470 pF, 220 pF more with
+///     Contour; 47k slope; 47 nF, 22 nF; 250k linear treble, 1M audio bass, 20k linear middle); 100k, 100k into V3A's
+///     idle grid network (470k) and the 250k audio lead volume; the loop's send follower V5A (1k cathode) and return
+///     stage V5B (100k, 1k ‖ 22 µF), 100 nF and 47k into the 1M linear master; a long-tail pair (82k/100k, 470 Ω, 22k
+///     tail, 100 nF to the second grid) and two 6550 (2.2k stoppers, 1k screens, 150k bias feeds).
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Source: the Engl factory drawing "Savage 120 type E610", drawing 610-2 (ENGL Gerätebau GmbH, two sheets: the
-///         whole amp, then the relay logic), https://el34world.com/charts/Schematics/files/Engl/Engl_savage_120_sch.pdf.
-///         Every value above is read from it. An earlier hand-drawn factory sheet
+///         whole amp, then the relay logic),
+///         https://el34world.com/charts/Schematics/files/Engl/Engl_savage_120_sch.pdf. Every value above is read from
+///         it. An earlier hand-drawn factory sheet
 ///         (https://el34world.com/charts/Schematics/files/Engl/Engl_savage_120.pdf) was not compared value by value.
 ///     </para>
 ///     <para>
@@ -31,16 +32,16 @@ namespace Cathode.Dsp.Amp.Models;
 ///         bypasses V3A (Rough puts V3A and its 100k/4.7k pad in the path), and the high-balance network is off; the
 ///         crunch-mode pad at V3B's grid (33k via relay RE4B) is out; the loop is empty, its follower driving V5B
 ///         through the 10k balance resistor. The feedback network is simplified: the presence pot sits in series with
-///         the feedback on the real amp (turning it down lowers the feedback); here 1.5k plus half the 50k presence from
-///         the 8 Ω tap into a 4.8k shunt (1.5k and 3.3k), the presence's 10 nF across it, and the Depth Boost switch
-///         (10 nF across the feedback path) as the depth control.
+///         the feedback on the real amp (turning it down lowers the feedback); here 1.5k plus half the 50k presence
+///         from the 8 Ω tap into a 4.8k shunt (1.5k and 3.3k), the presence's 10 nF across it, and the Depth Boost
+///         switch (10 nF across the feedback path) as the depth control.
 ///     </para>
 /// </remarks>
 public static class Savage120 {
-    // The rails at rest, from the drawn chain at the assumed draws (no voltages are printed): CE21, the inverter and V5,
-    // 556.9 V at CE20 less 4.4k × 6 mA; CE4 (V3) less 3.2k × 4 mA; CE9 (V2) less 2.2k × 2 mA; CE6 (V1) less
-    // 2.2k × 1 mA. They were once taken as 380 V for every stage and 400 V for the inverter, which the drawn droppers
-    // cannot give from a 560 V B+ at any plausible draw (380 V would need about 30k at 6 mA).
+    // The rails at rest, from the drawn chain at the assumed draws (no voltages are printed): CE21, the inverter and
+    // V5, 556.9 V at CE20 less 4.4k × 6 mA; CE4 (V3) less 3.2k × 4 mA; CE9 (V2) less 2.2k × 2 mA; CE6 (V1) less 2.2k ×
+    // 1 mA. They were once taken as 380 V for every stage and 400 V for the inverter, which the drawn droppers cannot
+    // give from a 560 V B+ at any plausible draw (380 V would need about 30k at 6 mA).
     const double InverterRail = 530;
     const double V3Rail = 518;
     const double V2Rail = 513;

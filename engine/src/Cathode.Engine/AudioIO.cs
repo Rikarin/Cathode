@@ -30,9 +30,9 @@ public readonly ref struct AudioIO {
     public OutputBus? Outputs { get; init; }
 
     /// <summary>
-    ///     Every hardware input source (<see cref="Dsp.Routing.HardwareInputs" />: Input 1–4, USB 5/6, USB 7/8), planar:
-    ///     source <c>s</c>'s left channel at <c>2s × Frames</c>, its right at <c>(2s + 1) × Frames</c>. Empty when the
-    ///     device maps only Input 1, which is then <see cref="InputLeft" /> and <see cref="InputRight" />.
+    ///     Every hardware input source (<see cref="Dsp.Routing.HardwareInputs" />: Input 1–4, USB 5/6, USB 7/8),
+    ///     planar: source <c>s</c>'s left channel at <c>2s × Frames</c>, its right at <c>(2s + 1) × Frames</c>. Empty
+    ///     when the device maps only Input 1, which is then <see cref="InputLeft" /> and <see cref="InputRight" />.
     /// </summary>
     public ReadOnlySpan<float> Sources { get; }
 
@@ -75,7 +75,9 @@ public readonly ref struct AudioIO {
         SendRight = sendRight;
     }
 
-    /// <summary>A callback with the hardware input sources (<see cref="Sources" />) and, optionally, the loop channels.</summary>
+    /// <summary>
+    ///     A callback with the hardware input sources (<see cref="Sources" />) and, optionally, the loop channels.
+    /// </summary>
     public AudioIO(
         ReadOnlySpan<float> inputLeft,
         ReadOnlySpan<float> inputRight,
@@ -97,7 +99,9 @@ public readonly ref struct AudioIO {
         SourceMask = sourceMask;
     }
 
-    /// <summary>The main channels only: blocks reach the loop channels through <see cref="Dsp.Routing.HardwareLoop" />.</summary>
+    /// <summary>
+    ///     The main channels only: blocks reach the loop channels through <see cref="Dsp.Routing.HardwareLoop" />.
+    /// </summary>
     public AudioIO Slice(int start, int length) =>
         new(
             InputLeft.Slice(start, length),

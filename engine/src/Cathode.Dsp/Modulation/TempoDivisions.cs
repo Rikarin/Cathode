@@ -19,13 +19,15 @@ public static class TempoDivisions {
         3, 4.0 / 3, 0.375, 1.0 / 6, 0.125, 0.1875, 1.0 / 12, 0.0625, 1.0 / 24, 8, 12, 16
     ];
 
-    /// <summary>Division <paramref name="index" /> in milliseconds at <paramref name="bpm" />, or 0 for "Off".</summary>
+    /// <summary>
+    ///     Division <paramref name="index" /> in milliseconds at <paramref name="bpm" />, or 0 for "Off".
+    /// </summary>
     public static double Milliseconds(int index, double bpm) =>
         index > 0 && index < Beats.Length && bpm > 0 ? 60_000.0 / bpm * Beats[index] : 0;
 
     /// <summary>
-    ///     The rate in Hz that repeats once per division at <paramref name="bpm" />, or <paramref name="freeRate" /> when
-    ///     the division is "Off".
+    ///     The rate in Hz that repeats once per division at <paramref name="bpm" />, or <paramref name="freeRate" />
+    ///     when the division is "Off".
     /// </summary>
     public static double Rate(int index, double bpm, double freeRate) =>
         index > 0 && index < Beats.Length && bpm > 0 ? bpm / 60.0 / Beats[index] : freeRate;

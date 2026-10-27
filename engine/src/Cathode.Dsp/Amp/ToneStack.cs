@@ -48,9 +48,9 @@ public sealed record ToneStackDesign(
     );
 
     /// <summary>
-    ///     A Vox AC30 top-boost-style stack in the same topology: 50 pF, 100k, 22 nF, 22 nF, 1M linear treble, 1M A bass.
-    ///     The original has a fixed 10k in place of the middle pot; here it is a 20k pot, so that middle at noon is
-    ///     stock.
+    ///     A Vox AC30 top-boost-style stack in the same topology: 50 pF, 100k, 22 nF, 22 nF, 1M linear treble, 1M A
+    ///     bass. The original has a fixed 10k in place of the middle pot; here it is a 20k pot, so that middle at noon
+    ///     is stock.
     /// </summary>
     public static ToneStackDesign Vox { get; } = new(
         "Vox",
@@ -106,7 +106,8 @@ public readonly record struct ToneStackNetwork(
 
     /// <summary>
     ///     The pot resistances (treble top, treble bottom, bass, middle) for knob rotations 0..1, in the order of
-    ///     <see cref="TrebleTop" />, <see cref="TrebleBottom" />, <see cref="BassResistor" />, <see cref="MiddleResistor" />.
+    ///     <see cref="TrebleTop" />, <see cref="TrebleBottom" />, <see cref="BassResistor" />,
+    ///     <see cref="MiddleResistor" />.
     /// </summary>
     public (double TrebleTop, double TrebleBottom, double Bass, double Middle) Resistances(
         double bass,
@@ -175,7 +176,9 @@ public sealed class ToneStackCircuit {
         root.Propagate();
     }
 
-    /// <summary>Knob rotations 0..1. Recomputes the scattering matrix only when one of them changed. Allocation-free.</summary>
+    /// <summary>
+    ///     Knob rotations 0..1. Recomputes the scattering matrix only when one of them changed. Allocation-free.
+    /// </summary>
     public void Set(double bass, double middle, double treble) {
         if (bass == this.bass && middle == this.middle && treble == this.treble) {
             return;

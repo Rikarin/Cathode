@@ -115,8 +115,8 @@ public class DriveRound4FuzzTests(ITestOutputHelper output) {
         const int Note = 171; // about 1 kHz
         var transparent = Sinad(Spectrum("Bit Crusher", 0f, 10f, Signals.CoherentSine(Note, Length, 0.1f)), Note);
         var crushed = Sinad(Spectrum("Bit Crusher", 10f, 10f, Signals.CoherentSine(Note, Length, 0.2f)), Note);
-        // At drive 7 (4.6 bits, held at 6.3 kHz): the quantisation error is fixed, so it is worse against a quieter note.
-        // A 100 Hz note measured up to 3 kHz keeps the hold's images out of the band.
+        // At drive 7 (4.6 bits, held at 6.3 kHz): the quantisation error is fixed, so it is worse against a quieter
+        // note. A 100 Hz note measured up to 3 kHz keeps the hold's images out of the band.
         const int Slow = 17;
         var loud = Sinad(Spectrum("Bit Crusher", 7f, 10f, Signals.CoherentSine(Slow, Length, 0.2f)), Slow, 512);
         var quiet = Sinad(Spectrum("Bit Crusher", 7f, 10f, Signals.CoherentSine(Slow, Length, 0.05f)), Slow, 512);
@@ -216,8 +216,8 @@ public class DriveRound4FuzzTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The clean types stay clean on a picked note (<see cref="DriveCatalogueTests" />) but clip on their rails when
-    ///     hit hard.
+    ///     The clean types stay clean on a picked note (<see cref="DriveCatalogueTests" />) but clip on their rails
+    ///     when hit hard.
     /// </summary>
     [Theory]
     [MemberData(nameof(CleanTypes))]

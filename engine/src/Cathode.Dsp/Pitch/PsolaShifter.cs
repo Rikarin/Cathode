@@ -23,15 +23,17 @@ namespace Cathode.Dsp.Pitch;
 ///     </para>
 ///     <para>
 ///         Formant shift: <see cref="Read(int, double, double, double)" /> resamples each grain by the formant ratio r
-///         (the grain's waveform played r times faster, over 2T / r samples), which moves the spectral envelope by r and
-///         leaves the pitch, set by the grains' spacing, alone (the classic PSOLA formant shift). The source still spans
-///         two periods, so the analysis delay does not change; the grains' overlap, and with it the gain, does.
+///         (the grain's waveform played r times faster, over 2T / r samples), which moves the spectral envelope by r
+///         and leaves the pitch, set by the grains' spacing, alone (the classic PSOLA formant shift). The source still
+///         spans two periods, so the analysis delay does not change; the grains' overlap, and with it the gain, does.
 ///     </para>
 /// </remarks>
 public sealed class PsolaShifter(int voiceCount) : IDisposable {
     const double FallbackPeriodSeconds = 0.005;
 
-    /// <summary>The lowest formant ratio <see cref="Read(int, double, double, double)" /> takes (an octave down).</summary>
+    /// <summary>
+    ///     The lowest formant ratio <see cref="Read(int, double, double, double)" /> takes (an octave down).
+    /// </summary>
     public const double MinFormantRatio = 0.5;
 
     /// <summary>The highest formant ratio (an octave up).</summary>
@@ -75,7 +77,10 @@ public sealed class PsolaShifter(int voiceCount) : IDisposable {
         }
     }
 
-    /// <summary>Silences voice <paramref name="index" /> and forgets its marks, for a voice that resumes after being skipped.</summary>
+    /// <summary>
+    ///     Silences voice <paramref name="index" /> and forgets its marks, for a voice that resumes after being
+    ///     skipped.
+    /// </summary>
     public void ResetVoice(int index) => voices[index].Reset();
 
     /// <summary>Writes the next input sample. Call once per sample, before reading the voices.</summary>
@@ -86,8 +91,8 @@ public sealed class PsolaShifter(int voiceCount) : IDisposable {
 
     /// <summary>
     ///     Returns voice <paramref name="index" />'s output for the sample just written, shifted by
-    ///     <paramref name="ratio" /> (2 = an octave up). <paramref name="period" /> is the input period in samples, or 0
-    ///     when unknown.
+    ///     <paramref name="ratio" /> (2 = an octave up). <paramref name="period" /> is the input period in samples, or
+    ///     0 when unknown.
     /// </summary>
     public float Read(int index, double ratio, double period) => Read(index, ratio, period, 1);
 

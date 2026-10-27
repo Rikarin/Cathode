@@ -3,9 +3,9 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Circuit parts the Mesa/Boogie drawings repeat from one amp to the next: the Mark series' plate-fed tone stack with
-///     its treble-shift cap (the Mark IIC+, IV and V, the Subway Blues, the TriAxis, the Bass 400), and the Mark lead
-///     cascade (the Mark IIC+, IV and V, and the TriAxis's Lead 2 overdrive).
+///     Circuit parts the Mesa/Boogie drawings repeat from one amp to the next: the Mark series' plate-fed tone stack
+///     with its treble-shift cap (the Mark IIC+, IV and V, the Subway Blues, the TriAxis, the Bass 400), and the Mark
+///     lead cascade (the Mark IIC+, IV and V, and the TriAxis's Lead 2 overdrive).
 /// </summary>
 /// <remarks>
 ///     The lead cascade is the same three steps, value for value, on every Mark lead circuit: the drive stage (47 nF
@@ -20,11 +20,11 @@ namespace Cathode.Dsp.Amp.Models;
 /// </remarks>
 static class MesaParts {
     /// <summary>
-    ///     The Mark stack driven straight from a plate (no cathode follower): <paramref name="treble" /> from the plate to
-    ///     the treble pot's top (<paramref name="shift" /> more while <paramref name="shiftRole" /> is on: Treble Shift,
-    ///     Fat), <paramref name="slope" /> to a node S, S through <paramref name="bassCap" /> to the treble pot's foot and
-    ///     the bass rheostat, S through <paramref name="middleCap" /> to the bass rheostat's foot and the middle
-    ///     rheostat to ground. Returns the treble wiper, S and the treble pot's top.
+    ///     The Mark stack driven straight from a plate (no cathode follower): <paramref name="treble" /> from the plate
+    ///     to the treble pot's top (<paramref name="shift" /> more while <paramref name="shiftRole" /> is on: Treble
+    ///     Shift, Fat), <paramref name="slope" /> to a node S, S through <paramref name="bassCap" /> to the treble
+    ///     pot's foot and the bass rheostat, S through <paramref name="middleCap" /> to the bass rheostat's foot and
+    ///     the middle rheostat to ground. Returns the treble wiper, S and the treble pot's top.
     /// </summary>
     public static (int Wiper, int Slope, int TrebleTop) Stack(
         StageNetlist net,

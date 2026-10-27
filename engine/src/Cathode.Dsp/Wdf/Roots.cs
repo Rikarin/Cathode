@@ -212,8 +212,8 @@ public struct DiodePair : IWdfRoot {
     readonly bool UsesForward(double a) => forwardIs > 0 && (a >= 0 || reverseIs == 0);
 
     /// <summary>
-    ///     Port voltage from the conducting stack's closed form. Both directions share one Wright omega call: the reverse
-    ///     stack is the forward formula with a, R Is and n Vt negated, which is exact in floating point.
+    ///     Port voltage from the conducting stack's closed form. Both directions share one Wright omega call: the
+    ///     reverse stack is the forward formula with a, R Is and n Vt negated, which is exact in floating point.
     /// </summary>
     readonly double Closed(double a) {
         var forward = UsesForward(a);

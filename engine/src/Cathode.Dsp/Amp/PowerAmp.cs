@@ -18,8 +18,8 @@ namespace Cathode.Dsp.Amp;
 /// <param name="TremoloDepth">The bias tremolo's Intensity rotation, 0..1 (0 stops it).</param>
 /// <param name="PostMaster">
 ///     The gain of a master moved after the phase inverter (the Circuit Amp's Master Location, Post PI): a dual-gang
-///     divider on both inverter outputs, ahead of the coupling caps; 1 for none. Last, so that positional callers of the
-///     earlier fields are unaffected.
+///     divider on both inverter outputs, ahead of the coupling caps; 1 for none. Last, so that positional callers of
+///     the earlier fields are unaffected.
 /// </param>
 public readonly record struct PowerControls(
     double Presence,
@@ -53,13 +53,17 @@ public enum SupplyMode {
 ///     The power amp's expert settings, as the Circuit Amp's expert parameters set them: multiples of the design's
 ///     values, 1 (or null, or false) for stock.
 /// </summary>
-/// <param name="Tube">A different output tube (same count, rebiased to the design's idle current); null for stock.</param>
+/// <param name="Tube">
+///     A different output tube (same count, rebiased to the design's idle current); null for stock.
+/// </param>
 /// <param name="Match">The transformer's primary impedance (its impedance ratio).</param>
 /// <param name="LowFrequency">The transformer's low corner: the magnetising inductance divided by it.</param>
-/// <param name="HighFrequency">The transformer's high corner: leakage inductance and primary capacitance divided by it.</param>
+/// <param name="HighFrequency">
+///     The transformer's high corner: leakage inductance and primary capacitance divided by it.
+/// </param>
 /// <param name="Drive">
-///     0 to 10: core saturation beyond stock, the knee's flux halving every 2 (on a linear-core design, from a core that
-///     only saturates far beyond full power at 40 Hz).
+///     0 to 10: core saturation beyond stock, the knee's flux halving every 2 (on a linear-core design, from a core
+///     that only saturates far beyond full power at 40 Hz).
 /// </param>
 /// <param name="Speaker">A speaker preset in place of the design's; null for stock.</param>
 /// <param name="Resonance">The speaker's resonance frequency.</param>
@@ -74,7 +78,9 @@ public enum SupplyMode {
 /// <param name="Supply">DC or rectified AC.</param>
 /// <param name="Rectifier">A rectifier in place of the design's; null for stock.</param>
 /// <param name="CathodeTimeConstant">A cathode-biased amp's bypass cap.</param>
-/// <param name="Triode">The output tubes strapped as triodes (the design's <see cref="PowerAmpDesign.TriodeSwitch" />).</param>
+/// <param name="Triode">
+///     The output tubes strapped as triodes (the design's <see cref="PowerAmpDesign.TriodeSwitch" />).
+/// </param>
 /// <param name="Hardness">The output tubes' knees (<see cref="PentodeModel.Hardened" />): 1 stock.</param>
 /// <param name="GridExcursion">
 ///     The power tubes' grid conduction as a multiple of stock (<see cref="GridPair" />): how far grid current charges
@@ -82,12 +88,14 @@ public enum SupplyMode {
 /// </param>
 /// <param name="ExcursionTime">The coupling caps into the power grids: both time constants of the bias shift.</param>
 /// <param name="RecoveryTime">The power grids' leaks: the recovery's time constant only.</param>
-/// <param name="InverterExcursion">The phase inverter's grid current as a multiple of stock (its own bias shift).</param>
+/// <param name="InverterExcursion">
+///     The phase inverter's grid current as a multiple of stock (its own bias shift).
+/// </param>
 /// <param name="Suppressor">Clamp diodes that keep each plate from swinging below its cathode (flyback).</param>
 /// <param name="ScreenFrequency">The screen node's corner: its cap divided by it.</param>
 /// <param name="ScreenQ">
-///     0 for the design's resistive feed to the screen node; above 0, the feed is a choke whose inductance gives the node
-///     this quality factor, (1 / R) √(L / C), at its LC resonance.
+///     0 for the design's resistive feed to the screen node; above 0, the feed is a choke whose inductance gives the
+///     node this quality factor, (1 / R) √(L / C), at its LC resonance.
 /// </param>
 public readonly record struct PowerSettings(
     PentodeModel? Tube = null,
@@ -214,7 +222,9 @@ public sealed class PowerAmp {
 
     public NewtonSolver Newton => root.Newton;
 
-    /// <summary>The preamp node as a fraction of its nominal voltage (the preamp's sag), after the last sample.</summary>
+    /// <summary>
+    ///     The preamp node as a fraction of its nominal voltage (the preamp's sag), after the last sample.
+    /// </summary>
     public double PreampSupply => PreampVoltage / nominalPreamp;
 
     /// <summary>
@@ -254,7 +264,9 @@ public sealed class PowerAmp {
     /// <summary>The output tube in use.</summary>
     public PentodeModel Tube => tube;
 
-    /// <summary>The phase inverter's driven grid (AC volts) at the last sample, with an <see cref="InverterInputDesign" />.</summary>
+    /// <summary>
+    ///     The phase inverter's driven grid (AC volts) at the last sample, with an <see cref="InverterInputDesign" />.
+    /// </summary>
     public double InverterGrid { get; private set; }
 
     /// <summary>The current through the inverter's coupling cap at the last sample (grid current and leak).</summary>
@@ -284,7 +296,9 @@ public sealed class PowerAmp {
     /// <summary>The core's flux linkage (volt-seconds) at the last sample.</summary>
     public double Flux => magnetising * root.Ports.A.Current;
 
-    /// <summary>Whether the tubes' wiring leaves the plain push-pull pentode case (see <see cref="PushPullStage" />).</summary>
+    /// <summary>
+    ///     Whether the tubes' wiring leaves the plain push-pull pentode case (see <see cref="PushPullStage" />).
+    /// </summary>
     bool IsGeneral =>
         Design.Topology == PowerTopology.SingleEnded
         || ScreenTap(settings.Triode) > 0
@@ -415,7 +429,9 @@ public sealed class PowerAmp {
     /// </summary>
     public void ConfigureLoop(in AmpControls controls) => root.Device.Loop?.Configure(controls);
 
-    /// <summary>The preamp supply (fraction of nominal) a stage inside the feedback loop runs on; nothing without one.</summary>
+    /// <summary>
+    ///     The preamp supply (fraction of nominal) a stage inside the feedback loop runs on; nothing without one.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetLoopSupply(double scale) => root.Device.Loop?.SetSupply(scale);
 
@@ -613,7 +629,9 @@ public sealed class PowerAmp {
         Prime(ref stage);
     }
 
-    /// <summary>One sample: <paramref name="input" /> volts at the phase inverter's grid; returns the 8 Ω speaker voltage.</summary>
+    /// <summary>
+    ///     One sample: <paramref name="input" /> volts at the phase inverter's grid; returns the 8 Ω speaker voltage.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Tick(double input) {
         ref var stage = ref root.Device;
@@ -783,8 +801,8 @@ public sealed class PowerAmp {
     }
 
     /// <summary>
-    ///     One step of the reservoir on the AC supply: charged from the rectified mains (<paramref name="source" />, the
-    ///     transformer's |sin| at this sample) through <paramref name="resistance" />, discharged by
+    ///     One step of the reservoir on the AC supply: charged from the rectified mains (<paramref name="source" />,
+    ///     the transformer's |sin| at this sample) through <paramref name="resistance" />, discharged by
     ///     <paramref name="load" /> amperes; <paramref name="step" /> is dt / C. Silicon's charging term is implicit
     ///     (exact for the linear RC and stable at any dt / RC: a stiff transformer charges a reservoir in a few samples
     ///     during each conduction window), the diode deciding between the two branches, whose solution is unique; a
@@ -845,7 +863,8 @@ public sealed class PowerAmp {
     ///     <paramref name="load" /> amperes, charged through the design's own source resistance and rectifier (Schade's
     ///     picture: the rectifier conducts only near the mains peaks, so the same mean needs a higher peak than the DC
     ///     supply's open-circuit voltage, and the source resistance, which Sag scales, keeps its meaning). By bisection
-    ///     on a simulation of the reservoir alone at 60 Hz with the runtime's step (control thread, a few milliseconds).
+    ///     on a simulation of the reservoir alone at 60 Hz with the runtime's step (control thread, a few
+    ///     milliseconds).
     /// </summary>
     double CalibrateAc(double load) {
         lock (AcPeaks) {
@@ -952,8 +971,8 @@ public sealed class PowerAmp {
 
     /// <summary>
     ///     The phase inverter's input network with grid current: the previous stage's open-circuit voltage
-    ///     <paramref name="input" /> behind its output resistance and the coupling cap, into the grid leak and the grid.
-    ///     One scalar Newton solve for the grid voltage; returns it (AC) and advances the cap.
+    ///     <paramref name="input" /> behind its output resistance and the coupling cap, into the grid leak and the
+    ///     grid. One scalar Newton solve for the grid voltage; returns it (AC) and advances the cap.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     double DriveInverter(double input) {
@@ -970,8 +989,9 @@ public sealed class PowerAmp {
 
     /// <summary>
     ///     The driven grid's AC voltage where the current from <paramref name="source" /> volts through
-    ///     <paramref name="conductance" /> balances the leak's and the grid current (Newton from <paramref name="start" />);
-    ///     with no conductance, its rest: the grid current at rest charges the coupling cap until the leak carries it.
+    ///     <paramref name="conductance" /> balances the leak's and the grid current (Newton from
+    ///     <paramref name="start" />); with no conductance, its rest: the grid current at rest charges the coupling cap
+    ///     until the leak carries it.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     double SolveInverterGrid(double source, double conductance, double fed, double start) {
@@ -1055,7 +1075,9 @@ public sealed class PowerAmp {
         }
     }
 
-    /// <summary>The main tubes' screen tap: 0 in pentode operation, the ultralinear tap, or 1 strapped as triodes.</summary>
+    /// <summary>
+    ///     The main tubes' screen tap: 0 in pentode operation, the ultralinear tap, or 1 strapped as triodes.
+    /// </summary>
     double ScreenTap(bool triode) => triode && Design.TriodeSwitch is not null ? 1 : Design.UltralinearTap;
 
     /// <summary>The stock bias for the tube in use: the grid voltage, or the cathode resistor.</summary>
@@ -1088,7 +1110,8 @@ public sealed class PowerAmp {
     }
 
     /// <summary>
-    ///     One side's idle currents at grid-cathode voltage <paramref name="vg" /> with the plate and the screen node at
+    ///     One side's idle currents at grid-cathode voltage <paramref name="vg" /> with the plate and the screen node
+    ///     at
     ///     <paramref name="plate" /> and <paramref name="screen" /> (relative to the cathode): from the reservoir and
     ///     from the screen node.
     /// </summary>
@@ -1110,8 +1133,8 @@ public sealed class PowerAmp {
 
     /// <summary>
     ///     One tube at idle: plate and screen current and (cathode bias) the cathode voltage, which solves
-    ///     V_k = R_k × (all plate and screen currents) by the secant method from the last cathode voltage, kept inside a
-    ///     shrinking bracket.
+    ///     V_k = R_k × (all plate and screen currents) by the secant method from the last cathode voltage, kept inside
+    ///     a shrinking bracket.
     /// </summary>
     (double Plate, double Screen, double Cathode) IdlePerTube(double plate, double screen) {
         var tapped = ScreenTap(settings.Triode) > 0;
@@ -1206,8 +1229,8 @@ public sealed class PowerAmp {
     }
 
     /// <summary>
-    ///     Cathode bias: the design's resistor (all tubes') where it gives one, else the resistor that gives the design's
-    ///     idle current at the design's supply.
+    ///     Cathode bias: the design's resistor (all tubes') where it gives one, else the resistor that gives the
+    ///     design's idle current at the design's supply.
     /// </summary>
     double StockCathodeResistor() {
         if (Design.CathodeResistor > 0) {
@@ -1233,7 +1256,9 @@ public sealed class PowerAmp {
     }
 }
 
-/// <summary>Koren's pentode equations (see <see cref="Pentode" />) for one tube, with the slopes the power stage needs.</summary>
+/// <summary>
+///     Koren's pentode equations (see <see cref="Pentode" />) for one tube, with the slopes the power stage needs.
+/// </summary>
 public static class KorenPentode {
     /// <summary>Plate current at (V_g1k, V_g2k, V_pk).</summary>
     public static double Plate(in PentodeModel m, double vg1, double vg2, double vp) =>
@@ -1287,7 +1312,9 @@ struct FirstOrder {
     /// <summary>The identity.</summary>
     public static FirstOrder Unity => new() { B0 = 1 };
 
-    /// <summary>Bilinear transform of (n0 + n1 s) / (d0 + d1 s) at <paramref name="rate" />, keeping the state.</summary>
+    /// <summary>
+    ///     Bilinear transform of (n0 + n1 s) / (d0 + d1 s) at <paramref name="rate" />, keeping the state.
+    /// </summary>
     public void Design(double n0, double n1, double d0, double d1, double rate) {
         var k = 2 * rate;
         var norm = 1 / (d0 + d1 * k);
@@ -1321,8 +1348,8 @@ struct FirstOrder {
 ///     charging the coupling caps is what shifts the bias under hard drive (blocking).
 /// </summary>
 /// <remarks>
-///     The straight-line grid law stands in for Dempwolf's (as in <see cref="Triode" />): within 15 % of it from 0.5 V to
-///     5 V of grid drive, where it matters.
+///     The straight-line grid law stands in for Dempwolf's (as in <see cref="Triode" />): within 15 % of it from 0.5 V
+///     to 5 V of grid drive, where it matters.
 /// </remarks>
 struct GridPair {
     /// <summary>Grid-cathode voltage where conduction starts.</summary>
@@ -1377,8 +1404,9 @@ struct GridPair {
 
     /// <summary>
     ///     The grid-cathode voltages for AC source voltages <paramref name="ea" />, <paramref name="eb" /> and each
-    ///     side's grid DC offset from its cathode (<paramref name="offsetA" />, <paramref name="offsetB" />), with their
-    ///     slopes (∂a/∂ea, ∂a/∂eb, ∂b/∂ea, ∂b/∂eb), and the grid-leak nodes and grid currents for <see cref="Commit" />.
+    ///     side's grid DC offset from its cathode (<paramref name="offsetA" />, <paramref name="offsetB" />), with
+    ///     their slopes (∂a/∂ea, ∂a/∂eb, ∂b/∂ea, ∂b/∂eb), and the grid-leak nodes and grid currents for
+    ///     <see cref="Commit" />.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly (double A, double B) Peek(
@@ -1443,7 +1471,9 @@ struct GridPair {
     }
 }
 
-/// <summary>A <see cref="GridPair" />'s linear system for one conduction state, and the inverse of its determinant.</summary>
+/// <summary>
+///     A <see cref="GridPair" />'s linear system for one conduction state, and the inverse of its determinant.
+/// </summary>
 readonly record struct GridSystem(double A00, double A01, double A10, double A11, double Inverse);
 
 /// <summary>A <see cref="GridSystem" /> for each of a <see cref="GridPair" />'s four conduction states.</summary>
@@ -1513,7 +1543,9 @@ struct PushPullStage : INonlinearDevice {
 
     public double CathodeCurrentB;
 
-    /// <summary>The general path only: all current drawn through the primary from B+, and from the screen node.</summary>
+    /// <summary>
+    ///     The general path only: all current drawn through the primary from B+, and from the screen node.
+    /// </summary>
     public double ReservoirCurrent;
 
     public double ScreenNodeCurrent;
@@ -1521,7 +1553,10 @@ struct PushPullStage : INonlinearDevice {
     /// <summary>The feedback voltage at the inverter's second grid at the last committed sample.</summary>
     public double Fed;
 
-    /// <summary>A master after the phase inverter: the gain on both of its outputs (<see cref="PowerControls.PostMaster" />).</summary>
+    /// <summary>
+    ///     A master after the phase inverter: the gain on both of its outputs
+    ///     (<see cref="PowerControls.PostMaster" />).
+    /// </summary>
     public double PostMaster;
 
     /// <summary>Clamp diodes from each plate to its cathode (<see cref="PowerSettings.Suppressor" />).</summary>
@@ -1607,7 +1642,9 @@ struct PushPullStage : INonlinearDevice {
         SetSampleRate(rate);
     }
 
-    /// <summary>The grid networks for <paramref name="rate" />; single-ended, driven from <paramref name="source" /> ohms.</summary>
+    /// <summary>
+    ///     The grid networks for <paramref name="rate" />; single-ended, driven from <paramref name="source" /> ohms.
+    /// </summary>
     public void SetSampleRate(double rate, double source = 30e3) {
         var z = singleEnded ? (source, 0, 0, 1) : phaseInverter.OutputImpedance;
         grids.Configure(z, coupling * couplingScale, gridLeak * leakScale, gridStopper, rate, conduction);
@@ -1645,8 +1682,8 @@ struct PushPullStage : INonlinearDevice {
     }
 
     /// <summary>
-    ///     The feedback filter: presence (0..1) shorting the shunt resistor at high frequencies, depth (0..1) cutting the
-    ///     feedback below the design's depth frequency to a tenth, and <paramref name="amount" /> times the stock
+    ///     The feedback filter: presence (0..1) shorting the shunt resistor at high frequencies, depth (0..1) cutting
+    ///     the feedback below the design's depth frequency to a tenth, and <paramref name="amount" /> times the stock
     ///     feedback; the presence and depth frequencies as multiples of stock. Either presence wiring is first order:
     ///     β(s) = β (1 + s τ₁) / (1 + s τ₂), from Z / (R_f + Z) with the shunt's impedance Z.
     /// </summary>
@@ -1666,15 +1703,15 @@ struct PushPullStage : INonlinearDevice {
         var floor = design.LowFeedback * (1 - 0.9 * Math.Clamp(depth, 0, 1));
         this.depth.Design(floor * omega, 1, omega, 1, rate);
         // Push-pull: the inverter's driven output is its inverted plate, so the primary voltage rises with the input.
-        // Single-ended the input drives the grid directly and the plate falls as it rises: the tap is taken the other way
-        // round (a real amp's secondary is wired for that), or the "feedback" would be positive.
-        // A loop stage inverts too (see LoopStage).
+        // Single-ended the input drives the grid directly and the plate falls as it rises: the tap is taken the other
+        // way round (a real amp's secondary is wired for that), or the "feedback" would be positive. A loop stage
+        // inverts too (see LoopStage).
         feedback = (singleEnded != loop is not null ? -1 : 1) * amount * design.TapGain / turns;
     }
 
     /// <summary>
-    ///     The cut control (0..1): its pot from the full track (least cut) down to nothing (most); and a master across the
-    ///     outputs (0..1, <see cref="PowerAmpDesign.ShuntMaster" />): its track from nothing to full. Both load the
+    ///     The cut control (0..1): its pot from the full track (least cut) down to nothing (most); and a master across
+    ///     the outputs (0..1, <see cref="PowerAmpDesign.ShuntMaster" />): its track from nothing to full. Both load the
     ///     inverter's differential output resistance R_d: with the cut's r + 1/sC beside the master's R, the difference
     ///     is scaled by Z / (Z + R_d), Z = R (1 + s r C) / (1 + s (R + r) C).
     /// </summary>

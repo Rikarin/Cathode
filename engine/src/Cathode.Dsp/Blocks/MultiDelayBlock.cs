@@ -7,31 +7,32 @@ namespace Cathode.Dsp.Blocks;
 
 /// <summary>
 ///     Multitap delay: four delay voices in one of five arrangements, sharing a master Time (tempo-syncable) and Master
-///     Feedback. Each voice has its own time (a percentage of the master time, or its own tempo), feedback, level (either
-///     polarity), pan, filter, chorus, comb and ring modulator; two LFOs move every voice's time, a third the filters.
-///     Reads use cubic Hermite interpolation, so integer delays are exact and time changes glide.
+///     Feedback. Each voice has its own time (a percentage of the master time, or its own tempo), feedback, level
+///     (either polarity), pan, filter, chorus, comb and ring modulator; two LFOs move every voice's time, a third the
+///     filters. Reads use cubic Hermite interpolation, so integer delays are exact and time changes glide.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Quad Tap: one line fed by the mono sum, read by four taps; each tap's processed signal can feed back into
 ///         the line. Quad Tape: the same with a tape transport (wow, flutter, saturation, a darker loop and a Motor
-///         Speed). Quad Parallel: four independent lines, each feeding back into itself and, by its cross feedback, into
-///         the next (1→2→3→4→1). Quad Series: the lines in a chain, each voice sending into the next at the Send
+///         Speed). Quad Parallel: four independent lines, each feeding back into itself and, by its cross feedback,
+///         into the next (1→2→3→4→1). Quad Series: the lines in a chain, each voice sending into the next at the Send
 ///         level; the last returns into the first by the Series Feedback, and the first three are heard at the Return
-///         level. Quad Diffusor: four long Schroeder allpasses in parallel, each voice's feedback its allpass gain, so the
-///         echoes smear into a diffuse wash with no colouration.
+///         level. Quad Diffusor: four long Schroeder allpasses in parallel, each voice's feedback its allpass gain, so
+///         the echoes smear into a diffuse wash with no colouration.
 ///     </para>
 ///     <para>
 ///         Each voice reads its line, then runs its filter (low-pass, high-pass, band-pass or peak, its frequency moved
-///         by the filter LFO in octaves), a normalised feedback comb (peaks at unity, so it never adds gain), and a ring
-///         modulator (a blend towards the signal times a sine). The processed voice is what feeds back, so its
+///         by the filter LFO in octaves), a normalised feedback comb (peaks at unity, so it never adds gain), and a
+///         ring modulator (a blend towards the signal times a sine). The processed voice is what feeds back, so its
 ///         filtering accumulates on every repeat. Every line write goes through the loop's low and high cut, the drive,
 ///         and the delay limiter, which is transparent below full scale and keeps resonant or over-unity loops bounded.
 ///         The master scalers multiply every voice's filter frequency and Q, chorus depth, comb feedback and ring mix,
 ///         and the LFOs' rate and depth.
 ///     </para>
 ///     <para>
-///         The Quad Tap "band" variants are Quad Tap with band-pass voice filters. The ten-tap and rhythm delays are the
+///         The Quad Tap "band" variants are Quad Tap with band-pass voice filters. The ten-tap and rhythm delays are
+///         the
 ///         <see cref="TenTapBlock" />, the plex delays the <see cref="PlexBlock" />, and the reverse, sweep and ducking
 ///         delays types of the <see cref="DelayBlock" />.
 ///     </para>
@@ -509,7 +510,9 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
         flutterPhase = 0;
     }
 
-    /// <summary>The voices' read delays in samples: a percentage of the master time, or the voice's own tempo.</summary>
+    /// <summary>
+    ///     The voices' read delays in samples: a percentage of the master time, or the voice's own tempo.
+    /// </summary>
     void ComputeTapTargets(int type, float masterTimeMs, double tempo, float motor) {
         var longest = capacity
             - 8
@@ -532,7 +535,8 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
     }
 
     protected override void OnPrepare(in ProcessSpec spec) {
-        // The longest voice plus the widest modulation (chorus and both LFOs at the master scalers' top, kept positive).
+        // The longest voice plus the widest modulation (chorus and both LFOs at the master scalers' top, kept
+        // positive).
         var margin = MaxScale * (MaxChorusMs + 2 * MaxLfoMs) * 2 + 20;
         capacity = (int)(spec.SampleRate * (MaxTimeMs + margin) / 1000) + 8;
         for (var i = 0; i < Voices; i++) {
@@ -773,7 +777,8 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
 
                     break;
                 case QuadDiffusor:
-                    // Each line is a Schroeder allpass: the voice heard is delayed - g · node, the node written is input + g · delayed.
+                    // Each line is a Schroeder allpass: the voice heard is delayed - g · node, the node written is
+                    // input + g · delayed.
                     for (var k = 0; k < Voices; k++) {
                         var previous = (k + Voices - 1) % Voices;
                         var gain = Math.Clamp(feedback[k], -MaxDiffusorGain, MaxDiffusorGain);

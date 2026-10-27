@@ -5,8 +5,8 @@ using Microsoft.Extensions.Options;
 namespace Cathode.Server.Stores;
 
 /// <summary>
-///     Snapshots of working copies (<c>&lt;data&gt;/snapshots</c>, one JSON file each), so the desktop app and a browser
-///     share them.
+///     Snapshots of working copies (<c>&lt;data&gt;/snapshots</c>, one JSON file each), so the desktop app and a
+///     browser share them.
 /// </summary>
 public sealed class SnapshotStore(IOptions<ServerOptions> options, ILogger<SnapshotStore>? logger = null) {
     readonly JsonFileStore<PresetSnapshot> files = new(
@@ -29,7 +29,9 @@ public sealed class SnapshotStore(IOptions<ServerOptions> options, ILogger<Snaps
 
     public PresetSnapshot? Get(string id) => StoreIds.IsValid(id) ? files.Get(id) : null;
 
-    /// <summary>Stores <paramref name="preset" /> as it is now, named after it and the time unless given a name.</summary>
+    /// <summary>
+    ///     Stores <paramref name="preset" /> as it is now, named after it and the time unless given a name.
+    /// </summary>
     public SnapshotSummary Add(Preset preset, string? name) {
         var created = DateTimeOffset.UtcNow;
         var snapshot = new PresetSnapshot {

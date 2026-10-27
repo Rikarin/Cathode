@@ -14,7 +14,9 @@ public enum BiquadType {
     AllPass
 }
 
-/// <summary>Normalised biquad coefficients (a0 = 1). Double precision keeps low-frequency, high-Q sections stable.</summary>
+/// <summary>
+///     Normalised biquad coefficients (a0 = 1). Double precision keeps low-frequency, high-Q sections stable.
+/// </summary>
 public readonly record struct BiquadCoefficients(double B0, double B1, double B2, double A1, double A2) {
     /// <summary>Shelves above this Q develop a large resonant bump at the corner, so their Q is limited.</summary>
     public const double MaxShelfQ = 1.0;

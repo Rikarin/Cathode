@@ -6,7 +6,9 @@ namespace Cathode.Dsp.Amp;
 ///     The channel's own expert settings (the rest are <see cref="PreampSettings" /> and <see cref="PowerSettings" />).
 /// </summary>
 /// <param name="LowCut">An input high-pass corner in hertz (first order, before the first stage); 0 for none.</param>
-/// <param name="PreampSag">How much of the power supply's sag reaches the preamp: 1 stock, 0 a stiff preamp supply.</param>
+/// <param name="PreampSag">
+///     How much of the power supply's sag reaches the preamp: 1 stock, 0 a stiff preamp supply.
+/// </param>
 /// <param name="PowerAmp">False to leave the power amp out: the output is then the phase inverter's input.</param>
 /// <param name="StackLocation">Where the tone stack's stage runs in the chain (<see cref="StackLocation" />).</param>
 /// <param name="Overdrive">
@@ -87,12 +89,14 @@ public sealed class AmpChannel {
     public SolidStatePowerAmp? SolidState { get; }
 
     /// <summary>
-    ///     Whether the model has a tremolo of its own (a bias tremolo in its power amp or one on a preamp stage), which the
-    ///     Circuit Amp's tremolo parameters then drive.
+    ///     Whether the model has a tremolo of its own (a bias tremolo in its power amp or one on a preamp stage), which
+    ///     the Circuit Amp's tremolo parameters then drive.
     /// </summary>
     public bool HasTremolo { get; }
 
-    /// <summary>Whether the power amp is modelled (the Power Amp Modeling switch); otherwise the output is the preamp's.</summary>
+    /// <summary>
+    ///     Whether the power amp is modelled (the Power Amp Modeling switch); otherwise the output is the preamp's.
+    /// </summary>
     public bool PowerAmpEnabled => channelSettings.PowerAmp;
 
     /// <summary>
@@ -190,12 +194,14 @@ public sealed class AmpChannel {
         return nodes;
     }
 
-    /// <summary>Whether the channel has a tone stack it can move (<see cref="ChannelSettings.StackLocation" />).</summary>
+    /// <summary>
+    ///     Whether the channel has a tone stack it can move (<see cref="ChannelSettings.StackLocation" />).
+    /// </summary>
     public bool HasMovableStack => stackStage >= 0;
 
     /// <summary>
-    ///     Whether a stage of <paramref name="design" /> is a tone stack: a stack stage, a network with stack caps, or a
-    ///     switch between two single passive such networks (no triode, pentode or op-amp: the JC-120's stack with and
+    ///     Whether a stage of <paramref name="design" /> is a tone stack: a stack stage, a network with stack caps, or
+    ///     a switch between two single passive such networks (no triode, pentode or op-amp: the JC-120's stack with and
     ///     without its distortion diodes; a switched channel whose network holds its gain stage stays put).
     /// </summary>
     public static bool IsStack(AmpStageDesign design) =>
@@ -332,7 +338,9 @@ public sealed class AmpChannel {
         }
     }
 
-    /// <summary>Every stage at its operating point, in signal order (each stage's rest output feeds the next).</summary>
+    /// <summary>
+    ///     Every stage at its operating point, in signal order (each stage's rest output feeds the next).
+    /// </summary>
     public void Reset() {
         Power.Reset();
         SolidState?.Reset();
@@ -341,7 +349,9 @@ public sealed class AmpChannel {
         lowCut.Reset();
     }
 
-    /// <summary>The running order for <paramref name="location" />: the stack's stage moved, the rest in their order.</summary>
+    /// <summary>
+    ///     The running order for <paramref name="location" />: the stack's stage moved, the rest in their order.
+    /// </summary>
     void Reorder(StackLocation location) {
         for (var i = 0; i < order.Length; i++) {
             order[i] = i;

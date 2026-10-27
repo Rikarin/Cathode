@@ -27,7 +27,8 @@ public static class CathodeApi {
 
     /// <summary>
     ///     Builds the package in a temporary file and streams that: ZipArchive writes some parts synchronously, which
-    ///     Kestrel forbids on a response, and a file keeps large models out of memory. The file deletes itself on close.
+    ///     Kestrel forbids on a response, and a file keeps large models out of memory. The file deletes itself on
+    ///     close.
     /// </summary>
     internal static async Task<IResult> Export(
         Preset preset,

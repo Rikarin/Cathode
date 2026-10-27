@@ -5,8 +5,8 @@ namespace Cathode.Dsp.Tests;
 
 /// <summary>
 ///     The Drive block's last per-pedal knobs (docs/08 §6.5, docs/09 stream DK): each is shown only on its own pedal,
-///     under the pedal's name for it, and moves the response the way the pedal's control does. That each is stock at its
-///     default is <see cref="AmpDefaultsTests" />' job.
+///     under the pedal's name for it, and moves the response the way the pedal's control does. That each is stock at
+///     its default is <see cref="AmpDefaultsTests" />' job.
 /// </summary>
 public class DrivePedalKnobTests(ITestOutputHelper output) {
     const double Rate = 48_000;
@@ -264,7 +264,9 @@ public class DrivePedalKnobTests(ITestOutputHelper output) {
         return Analysis.Thd(rendered.AsSpan(Length), 171);
     }
 
-    /// <summary>Energy from <paramref name="low" /> to <paramref name="high" /> Hz in the last 32k samples, in dB.</summary>
+    /// <summary>
+    ///     Energy from <paramref name="low" /> to <paramref name="high" /> Hz in the last 32k samples, in dB.
+    /// </summary>
     static double Band(float[] signal, double low, double high) {
         var magnitudes = Fft.Magnitudes(signal.AsSpan(signal.Length - 32_768));
         double energy = 0;

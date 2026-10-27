@@ -36,7 +36,9 @@ public sealed class AmpBoost {
         circuit = null;
     }
 
-    /// <summary>Per sub-block: the pedal for <paramref name="type" /> (0 = off), its Drive and Tone (0..10) and Level (dB).</summary>
+    /// <summary>
+    ///     Per sub-block: the pedal for <paramref name="type" /> (0 = off), its Drive and Tone (0..10) and Level (dB).
+    /// </summary>
     public void Configure(int type, float drive, float tone, float levelDb, double innerRate) {
         if (type <= 0 || type > Resolved.Length) {
             if (circuit is not null) {
@@ -77,10 +79,10 @@ public sealed class AmpBoost {
 }
 
 /// <summary>
-///     The amp's input filter (off, shelves, peak, high- or low-pass) and Definition, ahead of the first stage. Definition
-///     is a tilt around <see cref="DefinitionHz" />: positive values send more treble and less bass into the preamp (a
-///     tighter, more defined attack, as the preamp then clips on the treble), negative the reverse; ±100 % is ±4 dB at
-///     either end. There is no matching de-emphasis: the tilt is heard, as the guide's Definition is.
+///     The amp's input filter (off, shelves, peak, high- or low-pass) and Definition, ahead of the first stage.
+///     Definition is a tilt around <see cref="DefinitionHz" />: positive values send more treble and less bass into the
+///     preamp (a tighter, more defined attack, as the preamp then clips on the treble), negative the reverse; ±100 % is
+///     ±4 dB at either end. There is no matching de-emphasis: the tilt is heard, as the guide's Definition is.
 /// </summary>
 public struct AmpInputFilter {
     public const double DefinitionHz = 650;
@@ -149,9 +151,9 @@ public struct AmpInputFilter {
 }
 
 /// <summary>
-///     The amp's output EQ: a mono <see cref="GraphicEqualizer" /> layout (constant Q, passive layouts with their shelves)
-///     ticked sample by sample, so it can sit between the preamp and the power amp. Bands at 0 dB are skipped, so a flat
-///     EQ is bit-transparent.
+///     The amp's output EQ: a mono <see cref="GraphicEqualizer" /> layout (constant Q, passive layouts with their
+///     shelves) ticked sample by sample, so it can sit between the preamp and the power amp. Bands at 0 dB are skipped,
+///     so a flat EQ is bit-transparent.
 /// </summary>
 public sealed class AmpEqualizer {
     readonly SvfState[] states = new SvfState[GraphicEqualizer.MaxBands];
@@ -167,7 +169,9 @@ public sealed class AmpEqualizer {
         Array.Clear(states);
     }
 
-    /// <summary>Designs the bands of <paramref name="layoutIndex" /> for <paramref name="gains" /> (dB), -1 for off.</summary>
+    /// <summary>
+    ///     Designs the bands of <paramref name="layoutIndex" /> for <paramref name="gains" /> (dB), -1 for off.
+    /// </summary>
     public void Design(int layoutIndex, ReadOnlySpan<float> gains, double rate) {
         if (layoutIndex != layout) {
             layout = layoutIndex;
@@ -247,7 +251,9 @@ public struct AmpSaturation {
 
     public void Reset() => clipper.Reset();
 
-    /// <summary>One sample of preamp volts <paramref name="x" />; <paramref name="scale" /> is full scale per volt.</summary>
+    /// <summary>
+    ///     One sample of preamp volts <paramref name="x" />; <paramref name="scale" /> is full scale per volt.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Tick(double x, double scale, float drive) =>
         clipper.Process(ClipperShape.Soft, (float)(x * scale * drive)) / (drive * scale);
@@ -255,8 +261,8 @@ public struct AmpSaturation {
 
 /// <summary>
 ///     Input Dynamics: an envelope at the amp's input, around a reference of -20 dBV (a firmly picked note), turns the
-///     input up or down by <c>amount × (level − reference) / 2</c> dB, held within ±12 dB. Positive amounts expand (soft
-///     playing cleaner, hard playing hotter), negative compress. 0 is off.
+///     input up or down by <c>amount × (level − reference) / 2</c> dB, held within ±12 dB. Positive amounts expand
+///     (soft playing cleaner, hard playing hotter), negative compress. 0 is off.
 /// </summary>
 public struct AmpInputDynamics {
     const float ReferenceDb = -20f;
@@ -295,10 +301,10 @@ public struct AmpInputDynamics {
 
 /// <summary>
 ///     The amp's output compressor, in dBFS at the block's output: the soft-knee curve of
-///     <see cref="CompressorBlock.StaticCurve" /> (6 dB knee) on a peak detector, 5 ms attack, 150 ms release. Output type
-///     detects the amp's output (feed-forward); Feedback detects the compressed output (smoother, a lower effective
-///     ratio). Amount (0..10) sets the ratio from 1:1 to 10:1; Clarity (0..10) high-passes the detector from 20 to 500 Hz,
-///     so the low end compresses less.
+///     <see cref="CompressorBlock.StaticCurve" /> (6 dB knee) on a peak detector, 5 ms attack, 150 ms release. Output
+///     type detects the amp's output (feed-forward); Feedback detects the compressed output (smoother, a lower
+///     effective ratio). Amount (0..10) sets the ratio from 1:1 to 10:1; Clarity (0..10) high-passes the detector from
+///     20 to 500 Hz, so the low end compresses less.
 /// </summary>
 public struct AmpCompressor {
     public const int Off = 0;
@@ -365,18 +371,20 @@ public struct AmpCompressor {
 }
 
 /// <summary>
-///     What the speaker does beyond its impedance (which the power amp's load models), on the block's output in units of
-///     full scale:
+///     What the speaker does beyond its impedance (which the power amp's load models), on the block's output in units
+///     of full scale:
 ///     <list type="bullet">
 ///         <item>
-///             <b>Speaker Drive</b> (0..10): cone excursion. The band below 150 Hz, where the cone moves most, runs into a
-///             soft limit (tanh) whose drive rises to 24 dB; a loud low note flattens, the rest passes.
+///             <b>Speaker Drive</b> (0..10): cone excursion. The band below 150 Hz, where the cone moves most, runs
+///             into a soft limit (tanh) whose drive rises to 24 dB; a loud low note flattens, the rest passes.
 ///         </item>
-///         <item><b>Thump</b> (0..10, up to +12 dB): the cabinet's low resonance, a peak (Q 2) at <b>Cab Resonance</b>.</item>
+///         <item>
+///             <b>Thump</b> (0..10, up to +12 dB): the cabinet's low resonance, a peak (Q 2) at <b>Cab Resonance</b>.
+///         </item>
 ///         <item>
 ///             <b>Speaker Compression</b> (0..10): voice-coil heating. The signal's power, averaged over
-///             <b>Compression Time</b>, raises the coil's resistance and so turns the output down: a full-scale sine held
-///             long enough loses <c>0.6 × amount</c> dB.
+///             <b>Compression Time</b>, raises the coil's resistance and so turns the output down: a full-scale sine
+///             held long enough loses <c>0.6 × amount</c> dB.
 ///         </item>
 ///     </list>
 ///     Each part at 0 is skipped.

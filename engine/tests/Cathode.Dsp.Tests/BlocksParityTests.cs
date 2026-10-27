@@ -4,7 +4,9 @@ using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
 
-/// <summary>The parameters, types and helpers added for parity with the Blocks Guide (docs/08-blocks-parity.md).</summary>
+/// <summary>
+///     The parameters, types and helpers added for parity with the Blocks Guide (docs/08-blocks-parity.md).
+/// </summary>
 public class BlocksParityTests {
     const double Rate = 48_000;
 

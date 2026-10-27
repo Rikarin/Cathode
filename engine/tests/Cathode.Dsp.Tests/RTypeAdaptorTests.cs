@@ -112,7 +112,8 @@ public class RTypeAdaptorTests(ITestOutputHelper output) {
     public void Factor_rejects_a_nearly_singular_matrix_and_accepts_a_badly_scaled_regular_one() {
         Span<int> pivots = stackalloc int[2];
 
-        // Two nodes joined by g, each held to ground by 1 µS: the second pivot is what is left after cancelling g, 2 µS.
+        // Two nodes joined by g, each held to ground by 1 µS: the second pivot is what is left after cancelling g, 2
+        // µS.
         static double[] Joined(double g) => [g + 1e-6, -g, -g, g + 1e-6];
 
         // A 1 mΩ end stop (1000 S) leaves the pivot 2e-9 of its row: regular.
@@ -193,7 +194,8 @@ public class RTypeAdaptorTests(ITestOutputHelper output) {
         rType.Propagate();
         Assert.Equal(classic.Tree.Resistance, rType.Tree.Resistance, 1e-9 * classic.Tree.Resistance);
 
-        // The R-type's parent port runs top → ground, the series adaptor's source → top, so the voltages differ in sign.
+        // The R-type's parent port runs top → ground, the series adaptor's source → top, so the voltages differ in
+        // sign.
         var worst = 0.0;
         for (var n = 0; n < 4_800; n++) {
             var x = 3 * Math.Sin(2 * Math.PI * 700 * n / Fast);
@@ -292,7 +294,9 @@ public class RTypeAdaptorTests(ITestOutputHelper output) {
         Assert.True(worst <= 1e-11, $"relative error {worst:E2} near {x}");
     }
 
-    /// <summary>Worst |dB| difference between the impulse response's DTFT and the reference at the warped frequency.</summary>
+    /// <summary>
+    ///     Worst |dB| difference between the impulse response's DTFT and the reference at the warped frequency.
+    /// </summary>
     static double Compare(float[] impulse, ReferenceSimulator reference, int source, int probe) {
         var worst = 0.0;
         foreach (var f in Frequencies) {

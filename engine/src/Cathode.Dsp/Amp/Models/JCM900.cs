@@ -3,23 +3,22 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Marshall JCM900 Dual Reverb (4100 100 W, 4500 50 W head, 4502 2 × 12 combo), both channels. The input (10k, 100 pF,
-///     0.1 µF, 1M) feeds IC1, an M5201 switching dual op-amp whose two sections share one output, the channel selecting
-///     which drives it: channel A non-inverting 1 + 100k ‖ 22 pF over 15k + 0.1 µF, channel B 1 + 100k ‖ 470 pF over
-///     4k7 + 47 nF. Channel A: 47 nF, 22k to ground, 12k into IC4a, inverting, whose input arm is the upper part of the
-///     220k linear Preamp pot with 1 nF across it and whose feedback is the lower part with 47 pF and two red LEDs each
-///     way. Channel B: 0.22 µF and 10k into IC6b, inverting, the 1M audio Gain pot as a rheostat with 220 pF as its
-///     feedback; 0.22 µF and 4k7 onto a W005F bridge with a 1N4007 across its DC terminals (a symmetric clamp of three
-///     junctions each way to ground); the "Boost Pre-EQ" ladder (4.7 nF and 4k7 from the clamp, 10k, 10k, 100k, 4k7 with
-///     0.22 µF and 0.22 µF from the 4k7) into IC4b (1 + 10k ‖ 100 pF over 22k). Both: 2k2 and 68k into V1a (150k plate,
-///     1k5
-///     unbypassed, 22 pF grid to cathode) with 220k of shunt feedback from the tone stack's input, the V1b follower
-///     (100k) through 0.1 µF into a 470 pF / 33k / 22 nF / 22 nF stack (220k linear treble, 1M audio bass, 22k linear
-///     middle with the middle cap on its wiper), 470k into the 470k-loaded send buffer (IC5b); the loop's return op-amp
-///     (IC5a, inverting, 100k ‖ 47 pF) into V2a (100k, 2k2 with 470 Ω + 0.22 µF and the 10k linear Presence pot across
-///     it); 47 nF and 2M2 into V2b (100k, 1k2 unbypassed; 220k grid leak) with 470k of shunt feedback from its coupled
-///     plate; the master, an M5201 inverting stage (220k in, the 1M audio Master pot as a rheostat ‖ 22 pF as
-///     feedback), into the inverter.
+///     Marshall JCM900 Dual Reverb (4100 100 W, 4500 50 W head, 4502 2 × 12 combo), both channels. The input (10k, 100
+///     pF, 0.1 µF, 1M) feeds IC1, an M5201 switching dual op-amp whose two sections share one output, the channel
+///     selecting which drives it: channel A non-inverting 1 + 100k ‖ 22 pF over 15k + 0.1 µF, channel B 1 + 100k ‖ 470
+///     pF over 4k7 + 47 nF. Channel A: 47 nF, 22k to ground, 12k into IC4a, inverting, whose input arm is the upper
+///     part of the 220k linear Preamp pot with 1 nF across it and whose feedback is the lower part with 47 pF and two
+///     red LEDs each way. Channel B: 0.22 µF and 10k into IC6b, inverting, the 1M audio Gain pot as a rheostat with 220
+///     pF as its feedback; 0.22 µF and 4k7 onto a W005F bridge with a 1N4007 across its DC terminals (a symmetric clamp
+///     of three junctions each way to ground); the "Boost Pre-EQ" ladder (4.7 nF and 4k7 from the clamp, 10k, 10k,
+///     100k, 4k7 with 0.22 µF and 0.22 µF from the 4k7) into IC4b (1 + 10k ‖ 100 pF over 22k). Both: 2k2 and 68k into
+///     V1a (150k plate, 1k5 unbypassed, 22 pF grid to cathode) with 220k of shunt feedback from the tone stack's input,
+///     the V1b follower (100k) through 0.1 µF into a 470 pF / 33k / 22 nF / 22 nF stack (220k linear treble, 1M audio
+///     bass, 22k linear middle with the middle cap on its wiper), 470k into the 470k-loaded send buffer (IC5b); the
+///     loop's return op-amp (IC5a, inverting, 100k ‖ 47 pF) into V2a (100k, 2k2 with 470 Ω + 0.22 µF and the 10k linear
+///     Presence pot across it); 47 nF and 2M2 into V2b (100k, 1k2 unbypassed; 220k grid leak) with 470k of shunt
+///     feedback from its coupled plate; the master, an M5201 inverting stage (220k in, the 1M audio Master pot as a
+///     rheostat ‖ 22 pF as feedback), into the inverter.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -29,29 +28,29 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Marshall_jcm900_dualrev_100w_4100.pdf, sheet 3) and the Marshall "JCM900 Series 50w Power Amp Circuit
 ///         Diagram" CDD112 issue 10 for models 2500, 2501, 2502, 4500, 4501 and 4502 (el34world
 ///         Marshall_jcm900_dualrev_50w_4500.pdf, sheet 3), both scans: a long-tail pair with 82k ‖ 100 pF and 100k
-///         plates, 100 pF between them, 1k bias and 15k tail, 1M grid resistors, 150k grid leaks and 1k5 stoppers; 47 nF
-///         out on the 100 W, 22 nF on the 50 W; the 50 W's screens 2k2 5 W (the 100 W taken with 1k 5 W, Marshall's
-///         100 W EL34 value: 2203, 1959SLP, DSL, JVM); feedback "100k – DRs" with 100 pF across it
-///         into 4k7 at the tail, the presence cap there "not fitted" on the Dual Reverbs (their Presence is V2a's
-///         cathode network, a preamp control).
+///         plates, 100 pF between them, 1k bias and 15k tail, 1M grid resistors, 150k grid leaks and 1k5 stoppers; 47
+///         nF out on the 100 W, 22 nF on the 50 W; the 50 W's screens 2k2 5 W (the 100 W taken with 1k 5 W, Marshall's
+///         100 W EL34 value: 2203, 1959SLP, DSL, JVM); feedback "100k – DRs" with 100 pF across it into 4k7 at the
+///         tail, the presence cap there "not fitted" on the Dual Reverbs (their Presence is V2a's cathode network, a
+///         preamp control).
 ///     </para>
 ///     <para>
 ///         Guessed, as no drawing gives them: the rails (300 V for the preamp, 330 V for the inverter, 460 V B+; the
 ///         sheets have no DC voltages), the idle current (40 mA, the bias set to −40 to −42 V as the sheet says), the
 ///         output transformers (3.2k as AmpBooks' 2204 for the 50 W, 1.7k for the 100 W), the feedback tap (4 Ω, as the
 ///         JCM800's 100k; the 50 W sheet takes it from a wire whose tap is not legible), the effects return's input
-///         resistor (100k, for unity gain: it is on the jack board, which is not drawn), and IC6b's type (the M5201 as a
-///         JRC4558). Simplified: every op-amp but IC6b is a linear amplifier (<see cref="StageNetlist.Amplifier" />):
+///         resistor (100k, for unity gain: it is on the jack board, which is not drawn), and IC6b's type (the M5201 as
+///         a JRC4558). Simplified: every op-amp but IC6b is a linear amplifier (<see cref="StageNetlist.Amplifier" />):
 ///         IC4b and the return stay inside their rails, IC1 too but for channel B above about 0.6 V in (where the boost
-///         and the clamp follow anyway); IC4a's LEDs hold its output to about 3.5 V; the master's
-///         rail clipping (above about 13 V, at high Master settings) would only square a signal the inverter has
-///         clipped already. Channel B's IC6b clips at its rails as it does (gain up to 100), into the bridge clamp. The
-///         send buffer (IC5b, a unity follower of a few volts at most)
-///         is an ideal buffer, the loop is a wire, the reverb is off (its drive's 470k + 220k loads V2a's coupled plate
-///         and its return's 680k + 220k V2b's grid, as resistors to ground), the deselected master's 220k and pot hang
-///         from the master's input node to the output (the M5201's idle inputs taken as open), the 100 pF across the
-///         feedback resistor (a 16 kHz corner) is left out. Not modelled: the Output Power Select switch (screens on a
-///         lower supply) and the 100 W's US version (4 × 5881 with 56k ‖ 10 nF of feedback).
+///         and the clamp follow anyway); IC4a's LEDs hold its output to about 3.5 V; the master's rail clipping (above
+///         about 13 V, at high Master settings) would only square a signal the inverter has clipped already. Channel
+///         B's IC6b clips at its rails as it does (gain up to 100), into the bridge clamp. The send buffer (IC5b, a
+///         unity follower of a few volts at most) is an ideal buffer, the loop is a wire, the reverb is off (its
+///         drive's 470k + 220k loads V2a's coupled plate and its return's 680k + 220k V2b's grid, as resistors to
+///         ground), the deselected master's 220k and pot hang from the master's input node to the output (the M5201's
+///         idle inputs taken as open), the 100 pF across the feedback resistor (a 16 kHz corner) is left out. Not
+///         modelled: the Output Power Select switch (screens on a lower supply) and the 100 W's US version (4 × 5881
+///         with 56k ‖ 10 nF of feedback).
 ///     </para>
 ///     <para>
 ///         Panel: Switch 1 selects channel B (the footswitch's "channel"); Gain is the playing channel's gain pot
@@ -163,8 +162,8 @@ public static class JCM900 {
     }
 
     /// <summary>
-    ///     Channel A: 47 nF, 22k to ground, 12k into IC4a's input arm, the Preamp pot's upper part with 1 nF across it, to
-    ///     the inverting input at its wiper; the lower part, 47 pF and the LED pairs from there to the output, which
+    ///     Channel A: 47 nF, 22k to ground, 12k into IC4a's input arm, the Preamp pot's upper part with 1 nF across it,
+    ///     to the inverting input at its wiper; the lower part, 47 pF and the LED pairs from there to the output, which
     ///     carries 100k to ground.
     /// </summary>
     static StageNetlist NormalStage() {
@@ -183,7 +182,9 @@ public static class JCM900 {
         return net;
     }
 
-    /// <summary>Channel B's boost: 0.22 µF and 10k into IC6b, inverting, the Gain pot as a rheostat ‖ 220 pF as feedback.</summary>
+    /// <summary>
+    ///     Channel B's boost: 0.22 µF and 10k into IC6b, inverting, the Gain pot as a rheostat ‖ 220 pF as feedback.
+    /// </summary>
     static StageNetlist BoostStage() {
         var net = new StageNetlist();
         var (a, minus, output) = (net.Node(), net.Node(), net.Node());
@@ -278,8 +279,8 @@ public static class JCM900 {
     }
 
     /// <summary>
-    ///     V2a: 1M grid leak, 100k plate, 2k2 with 470 Ω + 0.22 µF and the Presence pot (a rheostat, none of it in circuit
-    ///     at 10) across it. Out at the plate.
+    ///     V2a: 1M grid leak, 100k plate, 2k2 with 470 Ω + 0.22 µF and the Presence pot (a rheostat, none of it in
+    ///     circuit at 10) across it. Out at the plate.
     /// </summary>
     static StageNetlist PresenceStage() {
         var net = new StageNetlist();
@@ -297,10 +298,10 @@ public static class JCM900 {
     }
 
     /// <summary>
-    ///     47 nF from V2a's plate (the reverb drive's 470k + 220k to ground), 2M2 into V2b's grid (220k leak, the reverb
-    ///     return's 680k + 220k), 100k plate, 1k2 unbypassed, 0.1 µF out with 470k back to the grid; the master stage,
-    ///     220k into IC8's inverting input with the Master pot ‖ 22 pF as feedback, and the idle section's 220k and pot from
-    ///     the same input node to the output.
+    ///     47 nF from V2a's plate (the reverb drive's 470k + 220k to ground), 2M2 into V2b's grid (220k leak, the
+    ///     reverb return's 680k + 220k), 100k plate, 1k2 unbypassed, 0.1 µF out with 470k back to the grid; the master
+    ///     stage, 220k into IC8's inverting input with the Master pot ‖ 22 pF as feedback, and the idle section's 220k
+    ///     and pot from the same input node to the output.
     /// </summary>
     static StageNetlist MasterStage() {
         var net = new StageNetlist();

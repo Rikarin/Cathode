@@ -3,51 +3,51 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Mesa/Boogie Bass 400 (1985): two inputs into V1A (100k) and V1B (150k), each with its 1M volume and Bright switch,
-///     mixed at V2A's grid; V2A (100k) with Bass Shift on its cathode, the Mark stack with Treble Shift, V2B as a cathode
-///     follower; the six-band graphic equaliser (Mesa's LC network on a discrete op-amp) into the 250k master; the driver,
-///     two differential stages in cascade (V3, a long-tail pair on a -68 V tail; V4, a pair on a shared 470 Ω), and six
-///     6550 in fixed bias on a 540 V silicon supply, without global feedback.
+///     Mesa/Boogie Bass 400 (1985): two inputs into V1A (100k) and V1B (150k), each with its 1M volume and Bright
+///     switch, mixed at V2A's grid; V2A (100k) with Bass Shift on its cathode, the Mark stack with Treble Shift, V2B as
+///     a cathode follower; the six-band graphic equaliser (Mesa's LC network on a discrete op-amp) into the 250k
+///     master; the driver, two differential stages in cascade (V3, a long-tail pair on a -68 V tail; V4, a pair on a
+///     shared 470 Ω), and six 6550 in fixed bias on a 540 V silicon supply, without global feedback.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Source: the Mesa/Boogie factory drawing "Mesa/Boogie Bass 400" (© 1985, two sheets: audio; supplies and the
-///         graphic equaliser), https://el34world.com/charts/Schematics/files/Mesa_boogie/Boogie_bass400.pdf, rendered with
-///         its page transforms at the scan's 149 dpi (the strips the PDF holds are stored mirrored; an earlier reading of
-///         them could not make out the volume return or V3's coupling) and read by eye at 2-4×. Read: the inputs' 47 nF
-///         and 1M, V1A 100k with 1.5k ‖ 15 µF, V1B 150k with 1.2k ‖ 15 µF, 47 nF into the 1M volumes with 120 pF Bright
-///         switches, 1.5M (volume 1) and 470k (volume 2) into the mix node with 470k to ground, the volumes' feet on the
-///         ground bus (the return docs/06 could not read); V2A 100k with 1000 Ω ‖ 0.15 µF and 15 µF through 33k that Bass
-///         Shift shorts; the stack 250 pF (+ 750 pF Treble Shift), 100k, 47 nF, 0.1 µF, 250k bass, 10k middle; 47 nF into
-///         V2B with 3.3M from the 370 V node, 33k cathode, 0.1 µF into 15k; the equaliser: a PNP follower (470k / 1M
-///         bias), the six 50k sliders between the op-amp's inputs, each wiper through 470 Ω (680 Ω on the top band), an
-///         inductor and a cap to ground (1 H / 22 µF, 1 H / 2.2 µF, 0.35 H / 1 µF, 0.22 H / 0.22 µF, 0.068 H / 0.15 µF,
-///         0.033 H / 47 nF: 34, 107, 269, 723, 1,570 and 4,040 Hz), 3.3k on the output, 0.1 µF into 3.3k; the 250k
-///         master; V3: 33k plates from the 370 V node, the cathodes joined into 33k to -68 V, V3B's grid on ground; each
-///         plate through 47 nF onto 62k to ground and through 470k onto V4's grid with 220k to ground (V3B's 62k sits on
-///         the ground line beside its grid); V4's cathodes joined into 470 Ω; 0.1 µF into 100k feeds from the -63 V bias,
-///         2.2k stoppers, 2.7k screens from the 535 V node; supplies 540 V (A), 535 V (B, after the choke), 370 V (C,
-///         after 10k), -68 V and -63 V. The marked voltages give the preamp's draw (16.5 mA through the 10k).
+///         graphic equaliser), https://el34world.com/charts/Schematics/files/Mesa_boogie/Boogie_bass400.pdf, rendered
+///         with its page transforms at the scan's 149 dpi (the strips the PDF holds are stored mirrored; an earlier
+///         reading of them could not make out the volume return or V3's coupling) and read by eye at 2-4×. Read: the
+///         inputs' 47 nF and 1M, V1A 100k with 1.5k ‖ 15 µF, V1B 150k with 1.2k ‖ 15 µF, 47 nF into the 1M volumes with
+///         120 pF Bright switches, 1.5M (volume 1) and 470k (volume 2) into the mix node with 470k to ground, the
+///         volumes' feet on the ground bus (the return docs/06 could not read); V2A 100k with 1000 Ω ‖ 0.15 µF and 15
+///         µF through 33k that Bass Shift shorts; the stack 250 pF (+ 750 pF Treble Shift), 100k, 47 nF, 0.1 µF, 250k
+///         bass, 10k middle; 47 nF into V2B with 3.3M from the 370 V node, 33k cathode, 0.1 µF into 15k; the equaliser:
+///         a PNP follower (470k / 1M bias), the six 50k sliders between the op-amp's inputs, each wiper through 470 Ω
+///         (680 Ω on the top band), an inductor and a cap to ground (1 H / 22 µF, 1 H / 2.2 µF, 0.35 H / 1 µF, 0.22 H /
+///         0.22 µF, 0.068 H / 0.15 µF, 0.033 H / 47 nF: 34, 107, 269, 723, 1,570 and 4,040 Hz), 3.3k on the output, 0.1
+///         µF into 3.3k; the 250k master; V3: 33k plates from the 370 V node, the cathodes joined into 33k to -68 V,
+///         V3B's grid on ground; each plate through 47 nF onto 62k to ground and through 470k onto V4's grid with 220k
+///         to ground (V3B's 62k sits on the ground line beside its grid); V4's cathodes joined into 470 Ω; 0.1 µF into
+///         100k feeds from the -63 V bias, 2.2k stoppers, 2.7k screens from the 535 V node; supplies 540 V (A), 535 V
+///         (B, after the choke), 370 V (C, after 10k), -68 V and -63 V. The marked voltages give the preamp's draw
+///         (16.5 mA through the 10k).
 ///     </para>
 ///     <para>
-///         Guessed (not printed): V4's plate resistors (no value on the sheet: 47k, which with 12AX7s puts the plates at
-///         279 V and the cathodes at 1.8 V against the marked 276 V and 2 V; 100k gave 221 V), the 6550s' idle current
-///         (45 mA, inside the tube's dissipation; the library's 6550 then wants -67 V of bias where the sheet marks -63 V,
-///         and 65 mA would match the mark at 35 W a tube), the equaliser's input and feedback resistors (10k each, as in
-///         the TriAxis Dynamic
-///         Voice; unlabelled), the tapers (volumes and master audio, sliders and treble linear; treble 250k), the
-///         reservoir (ten 220 µF in series pairs: 550 µF), the output transformer (1.2k plate to plate, about 400 W at
-///         540 V), the supply's source resistance, the choke's resistance and the rated power. Simplified: the
-///         equaliser's discrete op-amp is linear (it swings about ±10 V around its -20.7 V bias; the levels here stay
-///         below that except with the volumes and the sliders all up), its PNP follower an ideal buffer; the first grid
-///         leaks taken to the grids (drawn on the jacks' side of the 47 nF); the effects loop and its blend a wire, the
-///         equaliser's in/out switch in; the coupling caps inside the driver shorts (the driver's table). With the read
-///         values V3's plates rest at 335 V, where the sheet marks 350 V.
+///         Guessed (not printed): V4's plate resistors (no value on the sheet: 47k, which with 12AX7s puts the plates
+///         at 279 V and the cathodes at 1.8 V against the marked 276 V and 2 V; 100k gave 221 V), the 6550s' idle
+///         current (45 mA, inside the tube's dissipation; the library's 6550 then wants -67 V of bias where the sheet
+///         marks -63 V, and 65 mA would match the mark at 35 W a tube), the equaliser's input and feedback resistors
+///         (10k each, as in the TriAxis Dynamic Voice; unlabelled), the tapers (volumes and master audio, sliders and
+///         treble linear; treble 250k), the reservoir (ten 220 µF in series pairs: 550 µF), the output transformer
+///         (1.2k plate to plate, about 400 W at 540 V), the supply's source resistance, the choke's resistance and the
+///         rated power. Simplified: the equaliser's discrete op-amp is linear (it swings about ±10 V around its -20.7 V
+///         bias; the levels here stay below that except with the volumes and the sliders all up), its PNP follower an
+///         ideal buffer; the first grid leaks taken to the grids (drawn on the jacks' side of the 47 nF); the effects
+///         loop and its blend a wire, the equaliser's in/out switch in; the coupling caps inside the driver shorts (the
+///         driver's table). With the read values V3's plates rest at 335 V, where the sheet marks 350 V.
 ///     </para>
 ///     <para>
-///         Panel: Volume 1 on Gain, Volume 2 on Control 1, Input 2 (Switch 1: the guitar in input 2 instead), Bass Shift
-///         (Switch 2), Treble Shift (Switch 3), Bright on both channels; the sliders on the five EQ bands (34 Hz to
-///         1.6 kHz) and the 4 kHz slider on Control 2.
+///         Panel: Volume 1 on Gain, Volume 2 on Control 1, Input 2 (Switch 1: the guitar in input 2 instead), Bass
+///         Shift (Switch 2), Treble Shift (Switch 3), Bright on both channels; the sliders on the five EQ bands (34 Hz
+///         to 1.6 kHz) and the 4 kHz slider on Control 2.
 ///     </para>
 /// </remarks>
 public static class MesaBass400 {
@@ -114,9 +114,9 @@ public static class MesaBass400 {
     };
 
     /// <summary>
-    ///     V1A and V1B with their volumes: the guitar in input 1 (or input 2 with Switch 1), each through 47 nF onto 1M;
-    ///     47 nF into each 1M volume (120 pF Bright from top to wiper), the wipers through 1.5M and 470k into the mix node
-    ///     with 470k to ground. Out at the mix node, V2A's grid.
+    ///     V1A and V1B with their volumes: the guitar in input 1 (or input 2 with Switch 1), each through 47 nF onto
+    ///     1M; 47 nF into each 1M volume (120 pF Bright from top to wiper), the wipers through 1.5M and 470k into the
+    ///     mix node with 470k to ground. Out at the mix node, V2A's grid.
     /// </summary>
     static StageNetlist InputStage() {
         var net = new StageNetlist();
@@ -157,11 +157,12 @@ public static class MesaBass400 {
     }
 
     /// <summary>
-    ///     V2A and V2B in one stage (V2B's grid conducts and loads the stack, which a Thévenin cut would miss): V2A's 100k
-    ///     plate, 1000 Ω ‖ 0.15 µF on its cathode and 15 µF through 33k that Bass Shift (Switch 2) shorts; the Mark stack off
-    ///     the plate (250 pF, 750 pF more with Treble Shift on Switch 3, 100k, 47 nF, 0.1 µF; 250k treble, 250k bass, 10k
-    ///     middle); 47 nF from the treble wiper into V2B, a follower with 3.3M from the rail to its grid (the only DC path
-    ///     drawn: the grid biases itself by its grid current) and 33k on its cathode; 0.1 µF into 15k. Out at the 15k.
+    ///     V2A and V2B in one stage (V2B's grid conducts and loads the stack, which a Thévenin cut would miss): V2A's
+    ///     100k plate, 1000 Ω ‖ 0.15 µF on its cathode and 15 µF through 33k that Bass Shift (Switch 2) shorts; the
+    ///     Mark stack off the plate (250 pF, 750 pF more with Treble Shift on Switch 3, 100k, 47 nF, 0.1 µF; 250k
+    ///     treble, 250k bass, 10k middle); 47 nF from the treble wiper into V2B, a follower with 3.3M from the rail to
+    ///     its grid (the only DC path drawn: the grid biases itself by its grid current) and 33k on its cathode; 0.1 µF
+    ///     into 15k. Out at the 15k.
     /// </summary>
     static StageNetlist SecondStage() {
         var net = new StageNetlist();

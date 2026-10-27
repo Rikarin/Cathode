@@ -193,8 +193,8 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
 
     /// <summary>
     ///     The AFD100's modes and inputs, below clipping: #34 (V6B in the chain, V6A unbypassed) has more gain than AFD
-    ///     (V6B skipped, V6A's cathode bypassed above 160 Hz, 150k on the Gain's wiper), and AFD's partial bypass tilts it
-    ///     toward the treble (1 kHz against 110 Hz); the Low input is about 6 dB down in both.
+    ///     (V6B skipped, V6A's cathode bypassed above 160 Hz, 150k on the Gain's wiper), and AFD's partial bypass tilts
+    ///     it toward the treble (1 kHz against 110 Hz); the Low input is about 6 dB down in both.
     /// </summary>
     [Fact]
     public void Afd100_modes_and_inputs_set_the_gain() {
@@ -221,8 +221,8 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The JMP-1's switches: OD has more gain than Clean, Clean II than Clean I, OD II's voicing moves the level, and
-    ///     Bass Shift moves the low end on both channels (110 Hz against 1 kHz).
+    ///     The JMP-1's switches: OD has more gain than Clean, Clean II than Clean I, OD II's voicing moves the level,
+    ///     and Bass Shift moves the low end on both channels (110 Hz against 1 kHz).
     /// </summary>
     [Fact]
     public void Jmp1_switches_change_the_gain_and_the_bass() {
@@ -294,8 +294,8 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The DSL100's mode switches raise the gain below clipping (Classic Clean to Crunch, Lead 1 to Lead 2), and the
-    ///     Ultra Gain channel has more than the Classic Gain one; Tone Shift scoops the middle (750 Hz) against the
+    ///     The DSL100's mode switches raise the gain below clipping (Classic Clean to Crunch, Lead 1 to Lead 2), and
+    ///     the Ultra Gain channel has more than the Classic Gain one; Tone Shift scoops the middle (750 Hz) against the
     ///     treble (3 kHz).
     /// </summary>
     [Fact]
@@ -322,8 +322,8 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     Each mode steps up the gain, as the handbook says: below clipping, with the Volume full up (the Clean Green mode
-    ///     has none), Orange is louder than Green and Red than Orange.
+    ///     Each mode steps up the gain, as the handbook says: below clipping, with the Volume full up (the Clean Green
+    ///     mode has none), Orange is louder than Green and Red than Orange.
     /// </summary>
     [Theory]
     [InlineData("JVM410H OD", 0)]
@@ -355,7 +355,9 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
         Assert.True(levels[2] > levels[1] + 1, "red louder than orange below clipping");
     }
 
-    /// <summary>Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.</summary>
+    /// <summary>
+    ///     Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.
+    /// </summary>
     [Theory]
     [MemberData(nameof(Settings))]
     public void Knob_sweeps_at_full_drive_stay_finite_and_converge(string type, int setting) {
@@ -390,9 +392,9 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     Every control on the panel changes the sound in the given channel and mode: a knob from 0 to 10 or a switch on
-    ///     moves the level or the spectrum of a two-tone signal by more than a fraction of a decibel somewhere. The Clean
-    ///     Green mode's Volume is out of circuit, as on the amp, and is skipped there.
+    ///     Every control on the panel changes the sound in the given channel and mode: a knob from 0 to 10 or a switch
+    ///     on moves the level or the spectrum of a two-tone signal by more than a fraction of a decibel somewhere. The
+    ///     Clean Green mode's Volume is out of circuit, as on the amp, and is skipped there.
     /// </summary>
     [Theory]
     [MemberData(nameof(Settings))]
@@ -431,7 +433,9 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
         }
     }
 
-    /// <summary>Below clipping, the gain and master knobs raise the level monotonically, in every channel and mode.</summary>
+    /// <summary>
+    ///     Below clipping, the gain and master knobs raise the level monotonically, in every channel and mode.
+    /// </summary>
     [Theory]
     [MemberData(nameof(Settings))]
     public void Gain_and_master_raise_the_level_monotonically(string type, int setting) {

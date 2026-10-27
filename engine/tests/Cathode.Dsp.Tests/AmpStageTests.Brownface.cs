@@ -5,9 +5,10 @@ namespace Cathode.Dsp.Tests;
 
 /// <summary>
 ///     Stream C's new stage combinations against the reference MNA simulator: the brownface tone network and split
-///     plate loads, the harmonic vibrato's crossover and mixer pair (at rest: the dry path), the 6G3's tone and mix, the
-///     6G11's tapped treble network, the Bassman 135's stacks with Deep and its shared-cathode mix, the Scout's 6EU7
-///     stages with the bridged T. Each preamp is also run as a whole chain, joined in one circuit with no Thévenin cut.
+///     plate loads, the harmonic vibrato's crossover and mixer pair (at rest: the dry path), the 6G3's tone and mix,
+///     the 6G11's tapped treble network, the Bassman 135's stacks with Deep and its shared-cathode mix, the Scout's
+///     6EU7 stages with the bridged T. Each preamp is also run as a whole chain, joined in one circuit with no Thévenin
+///     cut.
 /// </summary>
 public partial class AmpStageTests {
     public static TheoryData<string, string, double> StreamCNetworks =>
@@ -85,8 +86,8 @@ public partial class AmpStageTests {
         );
         Assert.Equal(reference.Voltage(node), wdf.RestOutput, 0.002 * Math.Abs(reference.Voltage(node)) + 1e-6);
 
-        // The vibrato runs as two bands (see HarmonicVibratoStage), the reference as the whole circuit: driven hard, the
-        // grid lines' grid current and the shared cathode are where they part.
+        // The vibrato runs as two bands (see HarmonicVibratoStage), the reference as the whole circuit: driven hard,
+        // the grid lines' grid current and the shared cathode are where they part.
         var limit = parts[0] == "Vibrato" && amplitude > 1 ? -28 : -35;
         var errorDb = CompareInTime($"{model} {stage}", x => wdf.Tick(rest + x), wdf.Newton, circuit, node, amplitude);
         Assert.True(errorDb < limit, $"{model} {stage}: {errorDb:0.0} dB from the reference");
@@ -153,7 +154,9 @@ public partial class AmpStageTests {
         ];
     }
 
-    /// <summary>A stage as the netlist the reference simulator runs (the vibrato's network with its sources at rest).</summary>
+    /// <summary>
+    ///     A stage as the netlist the reference simulator runs (the vibrato's network with its sources at rest).
+    /// </summary>
     static NetworkStageDesign AsNetwork(AmpStageDesign stage) =>
         stage switch {
             NetworkStageDesign network => network,

@@ -498,7 +498,9 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         return (inputs, consumers);
     }
 
-    /// <summary>The first live Cab block downstream of node <paramref name="start" />, breadth first; null for none.</summary>
+    /// <summary>
+    ///     The first live Cab block downstream of node <paramref name="start" />, breadth first; null for none.
+    /// </summary>
     static CabBlock? DownstreamCab(
         int start,
         List<int>[] consumers,
@@ -833,8 +835,9 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         public void Emit(GraphOp op) => Ops.Add(op);
 
         /// <summary>
-        ///     A <see cref="GraphOpKind.SideInput" />: buffer <paramref name="source" /> (−1: the grid input), the signal on
-        ///     grid row <paramref name="row" />, to block slot <paramref name="slot" />; a cabled input is added into
+        ///     A <see cref="GraphOpKind.SideInput" />: buffer <paramref name="source" /> (−1: the grid input), the
+        ///     signal on grid row <paramref name="row" />, to block slot <paramref name="slot" />; a cabled input is
+        ///     added into
         ///     <paramref name="destination" />, a tap (<paramref name="destination" /> −1) only offered.
         /// </summary>
         public void EmitSideInput(int slot, int row, int source, int destination) =>

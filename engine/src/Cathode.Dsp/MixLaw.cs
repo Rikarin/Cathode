@@ -10,28 +10,35 @@ public enum MixLaw {
     /// <summary>A plain crossfade: dry 1 − mix, wet mix (both −6 dB at 50 %).</summary>
     Linear,
 
-    /// <summary>Constant power: dry cos, wet sin of mix · 90° (both −3 dB at 50 %), so the sum keeps its loudness.</summary>
+    /// <summary>
+    ///     Constant power: dry cos, wet sin of mix · 90° (both −3 dB at 50 %), so the sum keeps its loudness.
+    /// </summary>
     ConstantPower,
 
     /// <summary>
-    ///     The delay law: the dry stays at 0 dB up to 50 % and then falls to nothing at 100 %; the wet rises on a squared
-    ///     taper, reaching 0 dB at 50 % (−12 dB at 25 %), so most of the knob's travel sits at quiet echo levels.
+    ///     The delay law: the dry stays at 0 dB up to 50 % and then falls to nothing at 100 %; the wet rises on a
+    ///     squared taper, reaching 0 dB at 50 % (−12 dB at 25 %), so most of the knob's travel sits at quiet echo
+    ///     levels.
     /// </summary>
     Sweetened,
 
-    /// <summary>Both at 0 dB at 50 %: each side is at full level up to the middle, then the other fades it out.</summary>
+    /// <summary>
+    ///     Both at 0 dB at 50 %: each side is at full level up to the middle, then the other fades it out.
+    /// </summary>
     DryUnity
 }
 
 /// <summary>The gains of a <see cref="MixLaw" />, and a per-sample ramp between two mix settings.</summary>
 public static class MixLaws {
     /// <summary>
-    ///     Kill Dry: mutes a block's dry signal, so Mix sets only the wet level (for a parallel path that already carries
-    ///     the dry). The Global Mix offset still moves that Mix.
+    ///     Kill Dry: mutes a block's dry signal, so Mix sets only the wet level (for a parallel path that already
+    ///     carries the dry). The Global Mix offset still moves that Mix.
     /// </summary>
     public static ParamDescriptor KillDryParam { get; } = ParamDescriptor.Switch("killDry", "Kill Dry");
 
-    /// <summary>Dry and wet gains for <paramref name="mix" /> (0..1). <paramref name="killDry" /> mutes the dry.</summary>
+    /// <summary>
+    ///     Dry and wet gains for <paramref name="mix" /> (0..1). <paramref name="killDry" /> mutes the dry.
+    /// </summary>
     public static (float Dry, float Wet) Gains(MixLaw law, float mix, bool killDry = false) {
         var (dry, wet) = mix <= 0f ? (1f, 0f)
         : mix >= 1f ? (0f, 1f)
@@ -74,8 +81,8 @@ public struct MixRamp {
     }
 
     /// <summary>
-    ///     <c>dry · Dry + wet · Wet</c> into <paramref name="wet" /> for a whole buffer, ramping as it goes: the span form
-    ///     of a block's last step.
+    ///     <c>dry · Dry + wet · Wet</c> into <paramref name="wet" /> for a whole buffer, ramping as it goes: the span
+    ///     form of a block's last step.
     /// </summary>
     public static void Blend(
         ReadOnlySpan<float> dry,

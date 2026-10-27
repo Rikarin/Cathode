@@ -3,27 +3,25 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Roland JC-120 Jazz Chorus (1984 board, 2 × 60 W, solid state), the amp path of its effect channel with the effects
-///     off: the High input's 33k into IC2b (non-inverting, 100k / 39k, 3.6×), IC2a (47k over 1k + 10 µF + the
+///     Roland JC-120 Jazz Chorus (1984 board, 2 × 60 W, solid state), the amp path of its effect channel with the
+///     effects off: the High input's 33k into IC2b (non-inverting, 100k / 39k, 3.6×), IC2a (47k over 1k + 10 µF + the
 ///     Distortion pot's 50k, 1.9× with the distortion off), with the distortion on (<see cref="SwitchRole.Switch1" />)
 ///     the Distortion pot (<see cref="PotRole.Control2" />, to 48×) and the antiparallel diodes after the two 3.9k, a
-///     Fender-type tone stack (150 pF, 100k slope, 82 nF bass, 47 nF mid; treble
-///     250k linear, bass 250k audio, middle 10k linear, with a 1k between the bass and middle pots), 100k into the 1M
-///     linear volume with the Hi-Treble pot (1M linear in series with 470 pF from the treble wiper to the volume wiper),
-///     IC3a (270k / 22k, 13×), the 33k / 270k pad and the IC3b follower (an ideal buffer here), the IC1a mixer (47k
-///     against the silent reverb
-///     return's 100k, then 100k / 33k), and one channel of the discrete power amp: a differential pair and voltage
-///     amplifier with 27k / 1k feedback (28×, 1k through 10 µF), Darlington outputs with 0.33 Ω emitter resistors on
-///     ±40 V rails.
+///     Fender-type tone stack (150 pF, 100k slope, 82 nF bass, 47 nF mid; treble 250k linear, bass 250k audio, middle
+///     10k linear, with a 1k between the bass and middle pots), 100k into the 1M linear volume with the Hi-Treble pot
+///     (1M linear in series with 470 pF from the treble wiper to the volume wiper), IC3a (270k / 22k, 13×), the 33k /
+///     270k pad and the IC3b follower (an ideal buffer here), the IC1a mixer (47k against the silent reverb return's
+///     100k, then 100k / 33k), and one channel of the discrete power amp: a differential pair and voltage amplifier
+///     with 27k / 1k feedback (28×, 1k through 10 µF), Darlington outputs with 0.33 Ω emitter resistors on ±40 V rails.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Source: Roland's JC-120 / JC-160 circuit diagram dated December 1984 (preamp board PM 70126811, power amp
 ///         70126840 / 850), schematicheaven.net/newamps/roland_jazz_chorus.pdf, read at full resolution: every value
 ///         above, the M5218 op-amps (4558 type) on ±15 V, the rails (+40.0 V / −40.0 V idle, 33.5 V loaded), the
-///         3300 µF reservoirs, and its signal-voltage annotations (21 mV in, 72 mV after IC2b, 130 mV after IC2a, 710 mV
-///         after IC3a with every tone control full up, 290 mV after IC3b, 800 mV into the power amp, 22 V out), which the
-///         stage gains reproduce.
+///         3300 µF reservoirs, and its signal-voltage annotations (21 mV in, 72 mV after IC2b, 130 mV after IC2a, 710
+///         mV after IC3a with every tone control full up, 290 mV after IC3b, 800 mV into the power amp, 22 V out),
+///         which the stage gains reproduce.
 ///     </para>
 ///     <para>
 ///         The distortion: off (the default, and how the factory voltages are measured), the pot's whole 50k sits in
@@ -97,8 +95,8 @@ public static class JazzChorus120 {
     };
 
     /// <summary>
-    ///     The High input's 33k, 0.082 µF and 1k into IC2b's non-inverting input (1M to ground, 100 pF), its 100k ‖ 47 pF
-    ///     feedback over 39k.
+    ///     The High input's 33k, 0.082 µF and 1k into IC2b's non-inverting input (1M to ground, 100 pF), its 100k ‖ 47
+    ///     pF feedback over 39k.
     /// </summary>
     static NetworkStageDesign InputStage() {
         var net = new StageNetlist();
@@ -116,8 +114,8 @@ public static class JazzChorus120 {
     }
 
     /// <summary>
-    ///     0.082 µF and 1M into IC2a, its 47k ‖ 100 pF feedback over 1k, 10 µF and the distortion pot's 50k: all of it in
-    ///     circuit with the distortion off (1.9×), and with it on (<paramref name="distortion" />) a rheostat on
+    ///     0.082 µF and 1M into IC2a, its 47k ‖ 100 pF feedback over 1k, 10 µF and the distortion pot's 50k: all of it
+    ///     in circuit with the distortion off (1.9×), and with it on (<paramref name="distortion" />) a rheostat on
     ///     <see cref="PotRole.Control2" /> that turning up takes out, to 48× at 10.
     /// </summary>
     static NetworkStageDesign DriveStage(bool distortion) {

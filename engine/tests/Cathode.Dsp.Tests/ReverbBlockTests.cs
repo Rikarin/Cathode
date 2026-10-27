@@ -430,7 +430,9 @@ public class ReverbBlockTests {
         return band;
     }
 
-    /// <summary>When the response's energy in a narrow band around <paramref name="frequency" /> peaks, in ms.</summary>
+    /// <summary>
+    ///     When the response's energy in a narrow band around <paramref name="frequency" /> peaks, in ms.
+    /// </summary>
     static double ArrivalMs(float[] response, double frequency) {
         var band = response.ToArray();
         var c = SvfCoefficients.Design(BiquadType.BandPass, 48_000, frequency, 4);
@@ -456,7 +458,9 @@ public class ReverbBlockTests {
         return reverb;
     }
 
-    /// <summary>T60 from the Schroeder backward-integrated energy decay, fitted between -5 and -25 dB (T20 x 3).</summary>
+    /// <summary>
+    ///     T60 from the Schroeder backward-integrated energy decay, fitted between -5 and -25 dB (T20 x 3).
+    /// </summary>
     static double SchroederT60(float[] response, double sampleRate) {
         var energy = new double[response.Length];
         double running = 0;

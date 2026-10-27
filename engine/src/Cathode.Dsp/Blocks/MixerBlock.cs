@@ -4,10 +4,10 @@ namespace Cathode.Dsp.Blocks;
 
 /// <summary>
 ///     Mixes up to six stereo inputs, one per grid row, each with its own gain (0-100 %) and balance, into a stereo or
-///     summed-mono output with a master level and balance. Like the Multiplexer, the graph compiler hands it each cabled
-///     input through <see cref="RowMixerBlock.MixInput" /> instead of summing them; inputs from rows below the sixth
-///     use the sixth row's controls. Row gains glide to new settings at a fixed rate (full scale in 20 ms), so scene
-///     changes never click.
+///     summed-mono output with a master level and balance. Like the Multiplexer, the graph compiler hands it each
+///     cabled input through <see cref="RowMixerBlock.MixInput" /> instead of summing them; inputs from rows below the
+///     sixth use the sixth row's controls. Row gains glide to new settings at a fixed rate (full scale in 20 ms), so
+///     scene changes never click.
 /// </summary>
 public sealed class MixerBlock() : RowMixerBlock(Info, Rows) {
     public const int Rows = 6;

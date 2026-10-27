@@ -3,44 +3,43 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Fender Deluxe 6G3 (brownface, 20 W, 1 × 12): the Normal or Bright channel (<see cref="AmpPanel.Switch1" />), each
-///     half of a 7025 (220k, the two on one 1.5k cathode) into 0.02 µF, the 1M audio Volume and the Tone pot, then 220k
-///     into the mix with the idle channel's 220k; a 12AX7 stage with a split load (100k over 15k, the signal from the
-///     junction); a 12AX7 long-tail pair; two 6V6GT in fixed bias at 375 V on a GZ34; the 125A1A transformer (6.6k : 8 Ω);
-///     and 56k of feedback from the speaker into 1.5k. Panel: Volume, Tone (the Treble knob), the channel. Source: the
-///     Fender drawing and layout "Deluxe 6G3" (I-FA; schematicheaven.net/fenderamps/deluxe_6g3_schem.pdf).
+///     Fender Deluxe 6G3 (brownface, 20 W, 1 × 12): the Normal or Bright channel (<see cref="AmpPanel.Switch1" />),
+///     each half of a 7025 (220k, the two on one 1.5k cathode) into 0.02 µF, the 1M audio Volume and the Tone pot, then
+///     220k into the mix with the idle channel's 220k; a 12AX7 stage with a split load (100k over 15k, the signal from
+///     the junction); a 12AX7 long-tail pair; two 6V6GT in fixed bias at 375 V on a GZ34; the 125A1A transformer (6.6k
+///     : 8 Ω); and 56k of feedback from the speaker into 1.5k. Panel: Volume, Tone (the Treble knob), the channel.
+///     Source: the Fender drawing and layout "Deluxe 6G3" (I-FA; schematicheaven.net/fenderamps/deluxe_6g3_schem.pdf).
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Read: the inputs (68k / 68k, 1M); V1's 220k plates (165 V) from the 270 V node and its shared 1500 Ω with
-///         25 + 25 µF (1.5 V), the 0.003 µF across the Normal channel's plate resistor; the tone circuit on each channel
-///         (the 1M audio Tone pot's wiper on the Volume's top, one end through 0.01 µF (Normal) or 0.02 µF (Bright) to
-///         ground, the other through 500 pF to the Volume's wiper); the 220k mixing resistors into V2A's grid; V2A
-///         (100k + 15k, 1500 Ω with 25 + 25 µF, 165 V at the plate) and 0.01 µF into the inverter (82k / 100k, 6.8k tail,
-///         820 Ω, 1M grids, the second grid on 0.1 µF to the tail's bottom, 1.5k there to ground); 0.1 µF and 220k into
-///         the
-///         6V6s, −26 V; the supply (GZ34, 16 µF, 1k 2 W to the 365 V screens, 10k to the inverter's 325 V, 27k to 270 V);
-///         the 125A1A, whose 6.6k : 8 Ω docs/06 §3.1 sources for the AB763 Deluxe.
+///         25 + 25 µF (1.5 V), the 0.003 µF across the Normal channel's plate resistor; the tone circuit on each
+///         channel (the 1M audio Tone pot's wiper on the Volume's top, one end through 0.01 µF (Normal) or 0.02 µF
+///         (Bright) to ground, the other through 500 pF to the Volume's wiper); the 220k mixing resistors into V2A's
+///         grid; V2A (100k + 15k, 1500 Ω with 25 + 25 µF, 165 V at the plate) and 0.01 µF into the inverter (82k /
+///         100k, 6.8k tail, 820 Ω, 1M grids, the second grid on 0.1 µF to the tail's bottom, 1.5k there to ground); 0.1
+///         µF and 220k into the 6V6s, −26 V; the supply (GZ34, 16 µF, 1k 2 W to the 365 V screens, 10k to the
+///         inverter's 325 V, 27k to 270 V); the 125A1A, whose 6.6k : 8 Ω docs/06 §3.1 sources for the AB763 Deluxe.
 ///     </para>
 ///     <para>
 ///         Unverified: the 6V6 idle current (30 mA, about 11 W; the 6V6GT's Koren curves give about 43 mA, 16 W, at
-///         the drawing's −26 V with 365 V screens, past the tube's 14 W rating), the supply's source resistance. Inferred:
-///         which end of the Tone pot is "up" (the 500 pF end: brighter turned up). The idle channel loads the mix through
-///         its 220k and its Volume (at the same setting), its coupling cap and its plate (220k ‖ r_p, about 48k). Not
-///         modelled: the 100 pF between the inverter's plates. The bias tremolo is <see cref="Tremolo" />, on the Circuit
-///         Amp's tremolo parameters (Speed, Intensity).
+///         the drawing's −26 V with 365 V screens, past the tube's 14 W rating), the supply's source resistance.
+///         Inferred: which end of the Tone pot is "up" (the 500 pF end: brighter turned up). The idle channel loads the
+///         mix through its 220k and its Volume (at the same setting), its coupling cap and its plate (220k ‖ r_p, about
+///         48k). Not modelled: the 100 pF between the inverter's plates. The bias tremolo is <see cref="Tremolo" />, on
+///         the Circuit Amp's tremolo parameters (Speed, Intensity).
 ///     </para>
 /// </remarks>
 public static class Deluxe6G3 {
     const double Preamp = 270;
 
     /// <summary>
-    ///     The bias tremolo, from the drawing: the 12AX7's other half (820k from the 375 V node, 2700 Ω with 25 µF) with
-    ///     0.02 µF from its plate to the Speed rheostat (3.5M reverse audio, 100k in series), 0.01 µF to a node with 1M to
-    ///     the cathode (the pedal's jack on it), 0.01 µF to the grid with 1M to ground; the plate through 220k and 0.1 µF
-    ///     to the 250k linear Intensity pot, whose far end is the −26 V bias supply (25 µF and 22k), its wiper on the
-    ///     6V6 grid leaks' return with 0.05 µF to ground. The plate's load from that network at the rate is taken as
-    ///     600k (220k, the 0.1 µF's reactance and the pot).
+    ///     The bias tremolo, from the drawing: the 12AX7's other half (820k from the 375 V node, 2700 Ω with 25 µF)
+    ///     with 0.02 µF from its plate to the Speed rheostat (3.5M reverse audio, 100k in series), 0.01 µF to a node
+    ///     with 1M to the cathode (the pedal's jack on it), 0.01 µF to the grid with 1M to ground; the plate through
+    ///     220k and 0.1 µF to the 250k linear Intensity pot, whose far end is the −26 V bias supply (25 µF and 22k),
+    ///     its wiper on the 6V6 grid leaks' return with 0.05 µF to ground. The plate's load from that network at the
+    ///     rate is taken as 600k (220k, the 0.1 µF's reactance and the pot).
     /// </summary>
     internal static BiasTremoloDesign Tremolo { get; } = new(
         new(
@@ -117,8 +116,8 @@ public static class Deluxe6G3 {
 
     /// <summary>
     ///     One channel's V1 half (220k; the two halves' shared 1.5k ‖ 50 µF, twice the resistor each), its tone circuit
-    ///     and Volume, and the mix: its 220k and the idle channel's 220k from that channel's Volume wiper. The output is
-    ///     the mix (V2A's grid).
+    ///     and Volume, and the mix: its 220k and the idle channel's 220k from that channel's Volume wiper. The output
+    ///     is the mix (V2A's grid).
     /// </summary>
     static NetworkStageDesign FirstStage(string name, bool normal) {
         var net = new StageNetlist();
@@ -134,8 +133,8 @@ public static class Deluxe6G3 {
         net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
         net.Capacitor(net.Input, plate, Ab763.GridPlate);
 
-        // The Tone pot: its wiper is the Volume's top; one end through the shunt cap to ground, the other through 500 pF
-        // to the Volume's wiper; turned up, the wiper goes to the 500 pF end.
+        // The Tone pot: its wiper is the Volume's top; one end through the shunt cap to ground, the other through 500
+        // pF to the Volume's wiper; turned up, the wiper goes to the 500 pF end.
         var (shunt, bright, mix) = (net.Node(), net.Node(), net.Node());
         var top = net.Pot(bright, shunt, new(1e6, PotTaper.Audio), PotRole.Treble);
         net.Capacitor(plate, top, 0.02e-6);

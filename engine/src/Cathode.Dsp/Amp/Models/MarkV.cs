@@ -4,15 +4,15 @@ namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
 ///     Mesa/Boogie Mark V (90 W), channel 3 with its three modes (Mark IIC+, Mark IV, Extreme). V1A (150k, 1.5k ‖
-///     0.47 µF) drives the channel's stack (1000 pF treble cap, 100k slope, 0.1 µF, 47 nF; 200k audio treble, 250k audio
-///     bass, 10k audio middle) and a fixed divider on the treble wiper (330k and 56k into 470k + 100k, 180 pF from the
-///     treble pot's top); V1B (100k, 1.5k ‖ 0.47 µF); 47 nF and 100k to ground, 680k into the 1M audio gain, its wiper
-///     on V5A's grid with 475k to ground and 120 pF to the cathode (82k, 1.5k ‖ 2.2 µF); 20 nF and 270k into 68k ‖ 1 nF
-///     at V4B (120 pF grid to cathode, 270k, 3.3k with 0.22 µF by the Bright switch); 47 nF, 220k ‖ 250 pF into 680k ‖
-///     100k ‖ 547 pF at V3A (100k, 1.5k with the mode's bypass); 47 nF, 47k into 47k, 150k and 3.3k into V6A's grid with
-///     47k to ground (4.7k more in Mark IV mode) and 120 pF to the cathode (120k, 1k with 4.4 µF in IIC+ mode, else
-///     15 µF); the channel master (100k audio, a shunt); the five-band graphic EQ; the output control; a long-tail pair
-///     and Simul-Class power (two 6L6GC in pentode beside two triode-strapped 6L6GC).
+///     0.47 µF) drives the channel's stack (1000 pF treble cap, 100k slope, 0.1 µF, 47 nF; 200k audio treble, 250k
+///     audio bass, 10k audio middle) and a fixed divider on the treble wiper (330k and 56k into 470k + 100k, 180 pF
+///     from the treble pot's top); V1B (100k, 1.5k ‖ 0.47 µF); 47 nF and 100k to ground, 680k into the 1M audio gain,
+///     its wiper on V5A's grid with 475k to ground and 120 pF to the cathode (82k, 1.5k ‖ 2.2 µF); 20 nF and 270k into
+///     68k ‖ 1 nF at V4B (120 pF grid to cathode, 270k, 3.3k with 0.22 µF by the Bright switch); 47 nF, 220k ‖ 250 pF
+///     into 680k ‖ 100k ‖ 547 pF at V3A (100k, 1.5k with the mode's bypass); 47 nF, 47k into 47k, 150k and 3.3k into
+///     V6A's grid with 47k to ground (4.7k more in Mark IV mode) and 120 pF to the cathode (120k, 1k with 4.4 µF in
+///     IIC+ mode, else 15 µF); the channel master (100k audio, a shunt); the five-band graphic EQ; the output control;
+///     a long-tail pair and Simul-Class power (two 6L6GC in pentode beside two triode-strapped 6L6GC).
 /// </summary>
 /// <remarks>
 ///     <para>

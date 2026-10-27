@@ -6,11 +6,11 @@ namespace Cathode.Dsp.Blocks;
 
 /// <summary>
 ///     Dynamic distortion: a clipper whose drive follows the playing dynamics. A peak envelope follower (linked across
-///     channels, with its own attack and release) measures how far the input is above <b>Threshold</b>; each dB above it
-///     adds <b>Dynamics</b> % of a dB of drive (or removes it, for negative values, down to no drive), over at most
+///     channels, with its own attack and release) measures how far the input is above <b>Threshold</b>; each dB above
+///     it adds <b>Dynamics</b> % of a dB of drive (or removes it, for negative values, down to no drive), over at most
 ///     40 dB of envelope. Positive dynamics saturate harder as you dig in and stay clean when you play softly; negative
-///     dynamics clean up hard picking.
-///     The clipper is antiderivative anti-aliased and runs at 4x through the same half-band oversampling as
+///     dynamics clean up hard picking. The clipper is antiderivative anti-aliased and runs at 4x through the same
+///     half-band oversampling as
 ///     <see cref="DriveBlock" />, with the drive gain interpolated across the oversampled samples. A 10 Hz DC blocker
 ///     removes the asymmetric shape's offset (and the Bias's). At partial mix the dry signal takes the same up/down
 ///     filtering.
@@ -118,7 +118,9 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info), IOversampledBlock
     static float Coefficient(double milliseconds, double sampleRate) =>
         (float)Math.Exp(-1.0 / Math.Max(1e-6, milliseconds * 0.001 * sampleRate));
 
-    /// <summary>Fills <see cref="gains" /> with the drive gain for each input frame, from the linked envelope.</summary>
+    /// <summary>
+    ///     Fills <see cref="gains" /> with the drive gain for each input frame, from the linked envelope.
+    /// </summary>
     void ComputeGains(in StereoBuffer io, Span<float> gains) {
         var rate = Spec.SampleRate;
         var driveDb = DriveDb(Params.Advance(Drive, io.Length));
@@ -266,8 +268,8 @@ public sealed class DynamicDistortionBlock() : DspBlock(Info), IOversampledBlock
         }
 
         /// <summary>
-        ///     Clips <paramref name="samples" /> at 4x, the drive moving linearly from one frame's gain to the next across
-        ///     the oversampled samples between them, the bias from <paramref name="fromBias" /> to
+        ///     Clips <paramref name="samples" /> at 4x, the drive moving linearly from one frame's gain to the next
+        ///     across the oversampled samples between them, the bias from <paramref name="fromBias" /> to
         ///     <paramref name="toBias" /> across the block.
         /// </summary>
         public void Process(

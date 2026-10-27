@@ -7,24 +7,25 @@ namespace Cathode.Dsp.Amp.Models;
 ///     2k7 with 680 nF, 47 pF plate to cathode) from the High input (68k, 1M) or the Low input's 220k/220k divider
 ///     (switch 1); two 4n7 in series and 220k into the 1M-A Drive pot (1M to ground before it); V1b (100k, 2k7 with
 ///     680 nF) through 68k; 22 nF into the 1M-A Gain pot and 68k to the V2a cold clipper (100k, 10k unbypassed); 22 nF
-///     into 470k with 22 nF over 470k to V2b (100k, 820 unbypassed); the V3a cathode follower (100k) on a Marshall-style
-///     stack (470 pF, 33k, 22 nF, 22 nF; 220k-B/1M-A/22k-B) and the 1M log master; the effects loop's op-amps and the V3b
-///     recovery stage (100k, 1k unbypassed, 300 V); a 12AX7 long-tail pair (22 nF in, 1M, 470, 10k, 82k/100k, 22 nF
-///     out to 220k), four EL34 (5k6 stoppers, 1k5 screens) at 460 V, 100k feedback with 4k7 and the 22k-B presence
-///     with 100 nF.
+///     into 470k with 22 nF over 470k to V2b (100k, 820 unbypassed); the V3a cathode follower (100k) on a
+///     Marshall-style stack (470 pF, 33k, 22 nF, 22 nF; 220k-B/1M-A/22k-B) and the 1M log master; the effects loop's
+///     op-amps and the V3b recovery stage (100k, 1k unbypassed, 300 V); a 12AX7 long-tail pair (22 nF in, 1M, 470, 10k,
+///     82k/100k, 22 nF out to 220k), four EL34 (5k6 stoppers, 1k5 screens) at 460 V, 100k feedback with 4k7 and the
+///     22k-B presence with 100 nF.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Nodes from the drawing: 460 V plates, 457 V screens, 310 V inverter, 260 V, 250 V and 235 V preamp; the
-///         inverter's plates at 205 V and the EL34 grids at -35 V. The drawing's stack has 220 nF for the bass cap (other
-///         drawings 22 nF, docs/06): here 22 nF. The 22 nF across V2b's 470k is as drawn (the JCM800 has 470 pF there).
+///         inverter's plates at 205 V and the EL34 grids at -35 V. The drawing's stack has 220 nF for the bass cap
+///         (other drawings 22 nF, docs/06): here 22 nF. The 22 nF across V2b's 470k is as drawn (the JCM800 has 470 pF
+///         there).
 ///     </para>
 ///     <para>
 ///         The effects loop (bypassed) is two inverting TL072 stages, -33k/1M then -22k/22k, into a 22 nF to 1k and
 ///         100k at V3b's grid: a gain of 0.033 with a 79 Hz high-pass and a 1M load on the master. It is a passive
-///         divider here with the same ratio, corner and load (1.97 nF, 1M over 34k), whose higher source resistance only
-///         matters if V3b's grid conducts. The clean channel (the relay that skips V1b) and the Resonance switch (a
-///         second 100k of feedback) are not modelled. Unverified: the feedback tap (4 Ω assumed) and the output
+///         divider here with the same ratio, corner and load (1.97 nF, 1M over 34k), whose higher source resistance
+///         only matters if V3b's grid conducts. The clean channel (the relay that skips V1b) and the Resonance switch
+///         (a second 100k of feedback) are not modelled. Unverified: the feedback tap (4 Ω assumed) and the output
 ///         transformer's 1.7k (Laney part 6011).
 ///     </para>
 /// </remarks>

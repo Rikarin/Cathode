@@ -1,9 +1,9 @@
 namespace Cathode.Dsp.Resampling;
 
 /// <summary>
-///     2x oversampling with one half-band stage (the steep first stage of <see cref="Oversampler4x" />, 100 dB stopband,
-///     transition from about 20 kHz at 48 kHz). Process a block with <see cref="Up" />, run the nonlinearity on the
-///     returned span, then <see cref="Down" />. Allocation-free after construction.
+///     2x oversampling with one half-band stage (the steep first stage of <see cref="Oversampler4x" />, 100 dB
+///     stopband, transition from about 20 kHz at 48 kHz). Process a block with <see cref="Up" />, run the nonlinearity
+///     on the returned span, then <see cref="Down" />. Allocation-free after construction.
 /// </summary>
 public sealed class Oversampler2x {
     static readonly (float[], float[]) Branches =
@@ -25,7 +25,9 @@ public sealed class Oversampler2x {
     /// <summary>Control thread: choose the filters (clears their state).</summary>
     public void SetPhase(OversamplingPhase phase) => stage.SetPhase(phase, Oversampler4x.FirstTransition);
 
-    /// <summary>Makes room for blocks of <paramref name="maxBlockSize" />, keeping the filters. Control thread only.</summary>
+    /// <summary>
+    ///     Makes room for blocks of <paramref name="maxBlockSize" />, keeping the filters. Control thread only.
+    /// </summary>
     public void Resize(int maxBlockSize) {
         if (twice.Length != maxBlockSize * 2) {
             twice = new float[maxBlockSize * 2];

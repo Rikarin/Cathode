@@ -3,18 +3,18 @@ using System.Runtime.CompilerServices;
 namespace Cathode.Dsp.Wdf;
 
 /// <summary>
-///     A nonlinear multiport in the Kirchhoff domain, for the root of an <see cref="RTypeRoot{TPorts,TDevice}" />: given
-///     its K port voltages it returns the K port currents (each flowing in at the port's plus node) and their Jacobian.
-///     Implemented by structs and combined with <see cref="Devices{TA,TB}" />, so the root's Newton solver calls them
-///     without virtual dispatch.
+///     A nonlinear multiport in the Kirchhoff domain, for the root of an <see cref="RTypeRoot{TPorts,TDevice}" />:
+///     given its K port voltages it returns the K port currents (each flowing in at the port's plus node) and their
+///     Jacobian. Implemented by structs and combined with <see cref="Devices{TA,TB}" />, so the root's Newton solver
+///     calls them without virtual dispatch.
 /// </summary>
 public interface INonlinearDevice {
     /// <summary>Number of ports K; the netlist declares them in the same order.</summary>
     int Ports { get; }
 
     /// <summary>
-    ///     A conductance typical of port <paramref name="port" />, stamped into the R-type adaptor so that the linear network
-    ///     stays regular (see <see cref="RTypeScattering" />). It does not change the solution.
+    ///     A conductance typical of port <paramref name="port" />, stamped into the R-type adaptor so that the linear
+    ///     network stays regular (see <see cref="RTypeScattering" />). It does not change the solution.
     /// </summary>
     double Conductance(int port);
 
@@ -25,8 +25,8 @@ public interface INonlinearDevice {
     void Evaluate(ReadOnlySpan<double> voltages, Span<double> currents, Span<double> jacobian, int stride);
 
     /// <summary>
-    ///     Damps a Newton step from <paramref name="previous" /> to <paramref name="proposed" /> in place, the way SPICE
-    ///     limits junction voltages (pnjlim): exponential ports may not jump so far that their current explodes.
+    ///     Damps a Newton step from <paramref name="previous" /> to <paramref name="proposed" /> in place, the way
+    ///     SPICE limits junction voltages (pnjlim): exponential ports may not jump so far that their current explodes.
     /// </summary>
     void Limit(ReadOnlySpan<double> previous, Span<double> proposed);
 
@@ -67,8 +67,8 @@ public struct NoDevice : INonlinearDevice {
 
 /// <summary>
 ///     Two devices side by side: ports of <see cref="A" /> first, then <see cref="B" />. Nest it for more
-///     (<c>Devices&lt;OpAmp, Devices&lt;DiodeClipper, Bjt&gt;&gt;</c>). The Jacobian is block diagonal: the devices only
-///     interact through the network.
+///     (<c>Devices&lt;OpAmp, Devices&lt;DiodeClipper, Bjt&gt;&gt;</c>). The Jacobian is block diagonal: the devices
+///     only interact through the network.
 /// </summary>
 public struct Devices<TA, TB>(TA a, TB b) : INonlinearDevice
     where TA : struct, INonlinearDevice
@@ -120,8 +120,9 @@ public static class DeviceMath {
     public const double MaxExponent = 40;
 
     /// <summary>
-    ///     e^x, continued by its tangent above <see cref="MaxExponent" />: C¹, convex and monotonic like the exponential,
-    ///     so Newton's method still converges, but never overflows. Returns the value and writes the derivative.
+    ///     e^x, continued by its tangent above <see cref="MaxExponent" />: C¹, convex and monotonic like the
+    ///     exponential, so Newton's method still converges, but never overflows. Returns the value and writes the
+    ///     derivative.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double LimitedExp(double x, out double derivative) {
@@ -137,8 +138,8 @@ public static class DeviceMath {
     }
 
     /// <summary>
-    ///     Junction step limiting for Newton's method, after SPICE's pnjlim (Nagel, "SPICE2", 1975), for a junction with
-    ///     emission voltage <paramref name="vt" /> (n Vt) and critical voltage <paramref name="critical" />.
+    ///     Junction step limiting for Newton's method, after SPICE's pnjlim (Nagel, "SPICE2", 1975), for a junction
+    ///     with emission voltage <paramref name="vt" /> (n Vt) and critical voltage <paramref name="critical" />.
     /// </summary>
     /// <remarks>
     ///     <para>
@@ -174,7 +175,9 @@ public static class DeviceMath {
         return proposed;
     }
 
-    /// <summary>The critical voltage of pnjlim: where the junction's curvature is largest, n Vt ln(n Vt / (√2 Is)).</summary>
+    /// <summary>
+    ///     The critical voltage of pnjlim: where the junction's curvature is largest, n Vt ln(n Vt / (√2 Is)).
+    /// </summary>
     public static double CriticalVoltage(double saturationCurrent, double vt) =>
         vt * Math.Log(vt / (Math.Sqrt(2) * saturationCurrent));
 

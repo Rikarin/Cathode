@@ -5,9 +5,9 @@ namespace Cathode.Dsp.Amp.Models;
 /// <summary>
 ///     Fender Twin Reverb AB763 (85 W): the Normal or Vibrato channel (<see cref="AmpPanel.Switch1" />), each V1A into
 ///     the Fender stack with a mid pot on both channels and the 1M volume with its 120 pF bright switch, V1B, the AB763
-///     mixing network (V4B and the reverb mix divider on the Vibrato channel), a 12AT7 long-tail pair, four 6L6GC in fixed
-///     bias at 460 V on a silicon rectifier, the 125A29A transformer (2k : 4 Ω), and 820 Ω / 100 Ω feedback from the
-///     4 Ω tap. No master or presence. Sources: see <see cref="Ab763" />; docs/06 §3.1.
+///     mixing network (V4B and the reverb mix divider on the Vibrato channel), a 12AT7 long-tail pair, four 6L6GC in
+///     fixed bias at 460 V on a silicon rectifier, the 125A29A transformer (2k : 4 Ω), and 820 Ω / 100 Ω feedback from
+///     the 4 Ω tap. No master or presence. Sources: see <see cref="Ab763" />; docs/06 §3.1.
 /// </summary>
 /// <remarks>
 ///     Preamp node 270 V, plates 460 V (Robinette's model differences). The mid pot is taken as 10k audio

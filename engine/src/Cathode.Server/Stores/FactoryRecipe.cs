@@ -236,7 +236,9 @@ public sealed class FactoryRecipe(string name, string description, params string
         return scene;
     }
 
-    /// <summary>The recipe's blocks, with <see cref="PeakCompressor" /> after the cab when a scene plays clean.</summary>
+    /// <summary>
+    ///     The recipe's blocks, with <see cref="PeakCompressor" /> after the cab when a scene plays clean.
+    /// </summary>
     List<Part> WithPeakCompressor() {
         var clean = tags.Contains("Clean")
             || tags.Contains("Ambient")

@@ -15,7 +15,8 @@ public sealed record RtaFrame(string Type, float[] Frequencies, float[] Levels, 
 public sealed record RtaRequest(bool Enabled, int BandsPerOctave = 6, float DecayMs = 0, string Window = "hann");
 
 /// <summary>
-///     Learn a Tone Match: the Server listens to the rig's output for <c>Seconds</c> while you play, compares it with the
+///     Learn a Tone Match: the Server listens to the rig's output for <c>Seconds</c> while you play, compares it with
+///     the
 ///     <c>Reference</c> recording (a .wav asset) and stores the correction as the block's <c>match</c> asset.
 /// </summary>
 /// <param name="Reference">An asset reference (<c>sha256:…</c>) of a .wav file of the tone to match.</param>
@@ -68,8 +69,8 @@ public sealed record CabAlignment(double SampleRate, IReadOnlyList<CabSlotAlignm
 
 /// <summary>
 ///     One slot: whether it has something to play and is heard, its onset within its own IR (the first sample within
-///     20 dB of the peak), the delay Auto Delay gives it and its own Delay, in ms, and the first 10 ms of its IR as mixed
-///     (cut and normalised, before level, pan and delay). It is heard at <c>OnsetMs + AutoDelayMs + DelayMs</c>.
+///     20 dB of the peak), the delay Auto Delay gives it and its own Delay, in ms, and the first 10 ms of its IR as
+///     mixed (cut and normalised, before level, pan and delay). It is heard at <c>OnsetMs + AutoDelayMs + DelayMs</c>.
 /// </summary>
 public sealed record CabSlotAlignmentInfo(
     int Slot,

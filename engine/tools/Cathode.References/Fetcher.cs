@@ -9,7 +9,9 @@ namespace Cathode.References;
 ///     scripted downloads).
 /// </summary>
 sealed class Fetcher(ReferenceCache cache, HttpClient http) {
-    /// <summary>Licences whose files may be downloaded by script and could be committed to a GPL-3.0 repository.</summary>
+    /// <summary>
+    ///     Licences whose files may be downloaded by script and could be committed to a GPL-3.0 repository.
+    /// </summary>
     static readonly HashSet<string> Redistributable = new(StringComparer.OrdinalIgnoreCase) {
         "GPL-3.0",
         "GPL-3.0-only",

@@ -8,9 +8,9 @@ namespace Cathode.Dsp.Tests;
 /// <summary>
 ///     The drive catalogue's component-level stages against the reference simulator, built here independently from the
 ///     same component values: every tone network's frequency response across its pot, the Tube Screamer clipping amp
-///     against the full op-amp device (which also checks that its linear op-amp model loses nothing), and a Fuzz Face in
-///     the time domain from its operating point. Then the block-level properties the conformance suite checks only for
-///     the default type, for every circuit type.
+///     against the full op-amp device (which also checks that its linear op-amp model loses nothing), and a Fuzz Face
+///     in the time domain from its operating point. Then the block-level properties the conformance suite checks only
+///     for the default type, for every circuit type.
 /// </summary>
 public class DriveStageTests(ITestOutputHelper output) {
     const double Rate = 48_000;
@@ -72,7 +72,8 @@ public class DriveStageTests(ITestOutputHelper output) {
     [InlineData("TS Mod OD", 0.7, 0.3)]
     public void Screamer_stage_matches_the_reference_with_the_full_op_amp(string name, double drive, double amplitude) {
         // The WDF's op-amp is linear (its gain-bandwidth from the model); the reference's is the full device with its
-        // slew rate and rails. With diodes across the feedback neither matters, which is the reason for the linear model.
+        // slew rate and rails. With diodes across the feedback neither matters, which is the reason for the linear
+        // model.
         const double StageRate = 192_000;
         const int Oversampling = 16;
         var values = Circuit(name).Stages[0];
@@ -345,7 +346,9 @@ public class DriveStageTests(ITestOutputHelper output) {
         return (c, output);
     }
 
-    /// <summary>The Fuzz Face pair driven through 8k, with its junctions as (plus, minus) node pairs in device order.</summary>
+    /// <summary>
+    ///     The Fuzz Face pair driven through 8k, with its junctions as (plus, minus) node pairs in device order.
+    /// </summary>
     static (ReferenceCircuit Circuit, int Output, (int Plus, int Minus)[] Junctions) FaceReference(
         DriveStage s,
         double fuzz,

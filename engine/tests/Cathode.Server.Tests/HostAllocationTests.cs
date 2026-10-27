@@ -15,11 +15,11 @@ namespace Cathode.Server.Tests;
 /// </summary>
 /// <remarks>
 ///     Allocation is counted per thread, so the measured code runs synchronously on the test's thread: the framing's
-///     awaits on a <see cref="MemoryStream" /> complete at once, and <see cref="Run(ValueTask)" /> fails the test if one
-///     ever did not (a continuation on another thread would hide its allocations, or count someone else's). Each
-///     steady-rate figure is the least of up to three measurements (<see cref="AllocationProbe" />): the runtime now and
-///     then does one-off work on the measuring thread (a tier-1 rejit, on-stack replacement, a cold type load), which
-///     shows up in one measurement, while an allocation in the code under test shows up in all three.
+///     awaits on a <see cref="MemoryStream" /> complete at once, and <see cref="Run(ValueTask)" /> fails the test if
+///     one ever did not (a continuation on another thread would hide its allocations, or count someone else's). Each
+///     steady-rate figure is the least of up to three measurements (<see cref="AllocationProbe" />): the runtime now
+///     and then does one-off work on the measuring thread (a tier-1 rejit, on-stack replacement, a cold type load),
+///     which shows up in one measurement, while an allocation in the code under test shows up in all three.
 /// </remarks>
 public sealed class HostAllocationTests : IDisposable {
     static readonly string EngineRoot = FindEngineRoot();
@@ -141,14 +141,14 @@ public sealed class HostAllocationTests : IDisposable {
 
     [Fact]
     public void Reloading_a_preset_stays_small() {
-        // The cab's IR is cached and the convolvers live in native memory; before that a load was about 160 KB. The Drive
-        // block builds every component-level network its catalogue can switch to up front, for both channels, so that
-        // switching its type on the audio thread never allocates; as the catalogue grew to 61 circuits and the other
-        // parity passes added parameters, a load crept to 169,480 bytes. Most of the Drive's networks were overhead, now
-        // gone: an adaptor reads its netlist's topology from arrays the netlist builds once and shares (the catalogue's
-        // netlists are static), a small adaptor solves its MNA in stack scratch instead of holding the buffers, and a
-        // linear root (the tone networks) carries no Newton solver state. That took the Drive from about 130 KB to 74 KB
-        // and a load to 112,664 bytes, under a limit that leaves about 2 KB.
+        // The cab's IR is cached and the convolvers live in native memory; before that a load was about 160 KB. The
+        // Drive block builds every component-level network its catalogue can switch to up front, for both channels, so
+        // that switching its type on the audio thread never allocates; as the catalogue grew to 61 circuits and the
+        // other parity passes added parameters, a load crept to 169,480 bytes. Most of the Drive's networks were
+        // overhead, now gone: an adaptor reads its netlist's topology from arrays the netlist builds once and shares
+        // (the catalogue's netlists are static), a small adaptor solves its MNA in stack scratch instead of holding the
+        // buffers, and a linear root (the tone networks) carries no Newton solver state. That took the Drive from about
+        // 130 KB to 74 KB and a load to 112,664 bytes, under a limit that leaves about 2 KB.
         var load = new IpcMessage { Type = IpcTypes.LoadGraph, Generation = 1, Graph = Rig() };
 
         var allocated = RoundTrip(load, 3);

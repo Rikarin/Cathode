@@ -2,8 +2,8 @@ namespace Cathode.Dsp.Filters;
 
 /// <summary>
 ///     A 90° phase-difference network: two chains of four second-order allpasses in z⁻² whose outputs stay a quarter
-///     cycle apart (within about a degree) from roughly 15 Hz to 20 kHz at 44.1 kHz and above. The coefficients are Olli
-///     Niemitalo's published design; <c>y[n] = a²(x[n] + y[n−2]) − x[n−2]</c> per section, with the in-phase chain
+///     cycle apart (within about a degree) from roughly 15 Hz to 20 kHz at 44.1 kHz and above. The coefficients are
+///     Olli Niemitalo's published design; <c>y[n] = a²(x[n] + y[n−2]) − x[n−2]</c> per section, with the in-phase chain
 ///     one sample later. Together the outputs are the analytic signal (in-phase, quadrature) of the input, as
 ///     single-sideband modulation and frequency shifting need. Both chains are allpasses, so each output keeps the
 ///     input's level.

@@ -4,9 +4,9 @@ namespace Cathode.Dsp.Routing;
 
 /// <summary>
 ///     Carries a Feedback Send's signal to its Feedback Return, <see cref="Delay" /> samples later. The delay is one
-///     maximum block, so whichever of the pair runs first in a sub-block, the return only reads what the send has already
-///     written, and the result does not depend on how the callback is split. The return consumes what it reads: when the
-///     send stops running (bypassed), the return falls silent instead of repeating stale audio.
+///     maximum block, so whichever of the pair runs first in a sub-block, the return only reads what the send has
+///     already written, and the result does not depend on how the callback is split. The return consumes what it reads:
+///     when the send stops running (bypassed), the return falls silent instead of repeating stale audio.
 /// </summary>
 public sealed class FeedbackBus : IDisposable {
     readonly NativeBuffer left;
@@ -44,7 +44,9 @@ public sealed class FeedbackBus : IDisposable {
         }
     }
 
-    /// <summary>Audio thread: the return takes the next block, <see cref="Delay" /> samples behind the send's clock.</summary>
+    /// <summary>
+    ///     Audio thread: the return takes the next block, <see cref="Delay" /> samples behind the send's clock.
+    /// </summary>
     public void Read(Span<float> left, Span<float> right) {
         var l = this.left.Span;
         var r = this.right.Span;

@@ -3,10 +3,11 @@ using System.Runtime.CompilerServices;
 namespace Cathode.Dsp.Filters;
 
 /// <summary>
-///     The filters a delay puts in its feedback path, designed once per block and shared by every line: a low and a high
-///     cut of 6, 12, 18 or 24 dB/oct (the slopes of <see cref="CutFilter.Slopes" />) with a resonance on the last section,
-///     and two peaking bands. A cut at its "off" end (<see cref="WetCuts.LowOff" />, <see cref="WetCuts.HighOff" />) and
-///     a band at 0 dB are skipped, so the default path is exactly the 12 dB/oct Butterworth cuts the delays always had.
+///     The filters a delay puts in its feedback path, designed once per block and shared by every line: a low and a
+///     high cut of 6, 12, 18 or 24 dB/oct (the slopes of <see cref="CutFilter.Slopes" />) with a resonance on the last
+///     section, and two peaking bands. A cut at its "off" end (<see cref="WetCuts.LowOff" />,
+///     <see cref="WetCuts.HighOff" />) and a band at 0 dB are skipped, so the default path is exactly the 12 dB/oct
+///     Butterworth cuts the delays always had.
 /// </summary>
 public readonly record struct LoopFilter(
     LoopFilter.Cut Low,
@@ -22,7 +23,8 @@ public readonly record struct LoopFilter(
 
     /// <summary>
     ///     An upper bound of the gain at any frequency: the product of each section's peak (a resonant cut section's
-    ///     resonance peak, a boosting band's gain). A loop whose feedback times this exceeds one can grow without limit.
+    ///     resonance peak, a boosting band's gain). A loop whose feedback times this exceeds one can grow without
+    ///     limit.
     /// </summary>
     public double MaxGain { get; init; } = 1;
 
@@ -72,8 +74,8 @@ public readonly record struct LoopFilter(
         SvfCoefficients Second
     ) {
         /// <summary>
-        ///     The largest gain of a cut of <paramref name="slope" /> and resonance <paramref name="q" />: the peak of its
-        ///     resonant section, <c>Q / √(1 - 1/(4Q²))</c> above a Q of 1/√2, else unity.
+        ///     The largest gain of a cut of <paramref name="slope" /> and resonance <paramref name="q" />: the peak of
+        ///     its resonant section, <c>Q / √(1 - 1/(4Q²))</c> above a Q of 1/√2, else unity.
         /// </summary>
         public static double PeakGain(int slope, double q) {
             var resonance = q / ButterworthQ;

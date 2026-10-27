@@ -79,7 +79,9 @@ public sealed class EngineHostServer(EngineHostService service, string socketPat
         }
     }
 
-    /// <summary>Forwards MIDI as soon as it arrives: a footswitch should not wait for the next telemetry tick.</summary>
+    /// <summary>
+    ///     Forwards MIDI as soon as it arrives: a footswitch should not wait for the next telemetry tick.
+    /// </summary>
     async Task PushMidiAsync(
         Stream stream,
         IpcFrameWriter writer,

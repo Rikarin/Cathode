@@ -7,9 +7,9 @@ using Cathode.Testing;
 namespace Cathode.Engine.Tests;
 
 /// <summary>
-///     Audio I/O (docs/08-blocks-parity.md §2), offline with an <see cref="OutputBus" /> standing in for a multi-channel
-///     device: Outputs 2-4, Copy Output 1 to Output 2, output modes, per-output EQ and Boost/Pad, Input 1 Gain, the DI
-///     out, output peaks, the test tone, input calibration and latency alignment.
+///     Audio I/O (docs/08-blocks-parity.md §2), offline with an <see cref="OutputBus" /> standing in for a
+///     multi-channel device: Outputs 2-4, Copy Output 1 to Output 2, output modes, per-output EQ and Boost/Pad, Input 1
+///     Gain, the DI out, output peaks, the test tone, input calibration and latency alignment.
 /// </summary>
 public class AudioIoTests {
     const int Length = 9_600;
@@ -251,7 +251,9 @@ public class AudioIoTests {
             Cables = [new() { From = "in", To = "block" }, new() { From = "block", To = "out" }]
         };
 
-    /// <summary>Input → Volume → Output 1 on row 1, and Input → Volume (<paramref name="secondDb" />) → Output 2 on row 2.</summary>
+    /// <summary>
+    ///     Input → Volume → Output 1 on row 1, and Input → Volume (<paramref name="secondDb" />) → Output 2 on row 2.
+    /// </summary>
     static GraphDefinition TwoOutputs(float secondDb) =>
         new() {
             Nodes = [

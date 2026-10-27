@@ -317,7 +317,9 @@ public sealed class FactoryPresetTests : IAsyncLifetime {
     static float[] Sine(double peak) =>
         [..Enumerable.Range(0, (int)Rate).Select(i => (float)(peak * Math.Sin(2 * Math.PI * Hz * i / Rate)))];
 
-    /// <summary>THD in % of a steady sine's second half: everything but the fundamental and DC, over the fundamental.</summary>
+    /// <summary>
+    ///     THD in % of a steady sine's second half: everything but the fundamental and DC, over the fundamental.
+    /// </summary>
     static double Thd(float[] y) {
         var start = y.Length / 2;
         var count = y.Length - start;

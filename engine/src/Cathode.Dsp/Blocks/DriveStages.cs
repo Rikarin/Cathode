@@ -23,8 +23,8 @@ public enum OpAmpSolve {
     FeedbackDiodes,
 
     /// <summary>
-    ///     No feedback diodes: a linear single-pole op-amp whose output saturates on its rails, an exponential clamp from
-    ///     its pole node to ground in closed form at the adaptor's parent port. No slew limit.
+    ///     No feedback diodes: a linear single-pole op-amp whose output saturates on its rails, an exponential clamp
+    ///     from its pole node to ground in closed form at the adaptor's parent port. No slew limit.
     /// </summary>
     Rails,
 
@@ -34,35 +34,34 @@ public enum OpAmpSolve {
 
 /// <summary>
 ///     A pedal's op-amp gain stage (<see cref="StageKind.OpAmp" />) for one channel: a non-inverting amplifier whose
-///     feedback holds a resistor, the Drive pot, a capacitor and optional clipping diodes, with up to two series RC legs
-///     from the inverting input to ground.
+///     feedback holds a resistor, the Drive pot, a capacitor and optional clipping diodes, with up to two series RC
+///     legs from the inverting input to ground.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         With diodes across the feedback (the Tube Screamer family) the output never gets further than a diode drop
 ///         from the input: far from the rails, and far below the slew rate (1 V at 20 kHz is 0.13 V/µs against the
-///         JRC4558's 1 V/µs). There the op-amp is its linear single-pole model from its <see cref="OpAmpModel" />, exact
-///         in
-///         gain-bandwidth: a VCVS of the open-loop gain into an RC at the dominant pole, buffered through the output
-///         resistance, all inside an R-type adaptor. The diodes are then the only nonlinearity, and the adaptor is adapted
-///         towards them: a <see cref="DiodePair" /> root solves them in closed form, with antiderivative antialiasing
-///         (<see cref="OpAmpSolve.FeedbackDiodes" />).
+///         JRC4558's 1 V/µs). There the op-amp is its linear single-pole model from its <see cref="OpAmpModel" />,
+///         exact in gain-bandwidth: a VCVS of the open-loop gain into an RC at the dominant pole, buffered through the
+///         output resistance, all inside an R-type adaptor. The diodes are then the only nonlinearity, and the adaptor
+///         is adapted towards them: a <see cref="DiodePair" /> root solves them in closed form, with antiderivative
+///         antialiasing (<see cref="OpAmpSolve.FeedbackDiodes" />).
 ///     </para>
 ///     <para>
-///         Without feedback diodes the op-amp clips on its rails. The same linear op-amp then saturates where a real one
-///         does, at its internal (pole) node: an exponential clamp to ground there, at the rails less the model's
-///         headroom, is again a closed-form root (<see cref="OpAmpSolve.Rails" />). Where the slew rate is the character
-///         (the RAT's LM308, <see cref="DriveStage.SlewLimited" />), the full <see cref="OpAmp" /> device sits at a
-///         <see cref="CircuitRoot{TSource,TDevice}" /> instead (K = 2, <see cref="OpAmpSolve.Device" />), at the cost of a
-///         Newton solve.
+///         Without feedback diodes the op-amp clips on its rails. The same linear op-amp then saturates where a real
+///         one does, at its internal (pole) node: an exponential clamp to ground there, at the rails less the model's
+///         headroom, is again a closed-form root (<see cref="OpAmpSolve.Rails" />). Where the slew rate is the
+///         character (the RAT's LM308, <see cref="DriveStage.SlewLimited" />), the full <see cref="OpAmp" /> device
+///         sits at a
+///         <see cref="CircuitRoot{TSource,TDevice}" /> instead (K = 2, <see cref="OpAmpSolve.Device" />), at the cost
+///         of a Newton solve.
 ///     </para>
 ///     <para>
 ///         Nodes: non-inverting input, inverting input, output, first leg, second leg (then, for the linear model, the
-///         open-loop output, the pole and the buffer). Ports: the input source (the guitar or the previous stage, behind
-///         its resistance); for the device root the feedback capacitor and the two leg capacitors; for the linear model
-///         the
-///         load (a resistor port, whose voltage is the output), the feedback capacitor, the two leg capacitors and the
-///         pole capacitor, with the diodes or the rail clamp at the parent port.
+///         open-loop output, the pole and the buffer). Ports: the input source (the guitar or the previous stage,
+///         behind its resistance); for the device root the feedback capacitor and the two leg capacitors; for the
+///         linear model the load (a resistor port, whose voltage is the output), the feedback capacitor, the two leg
+///         capacitors and the pole capacitor, with the diodes or the rail clamp at the parent port.
 ///     </para>
 /// </remarks>
 public sealed class OpAmpStage {
@@ -170,8 +169,8 @@ public sealed class OpAmpStage {
     /// <param name="antialias">Whether the diode and rail roots anti-alias.</param>
     /// <param name="slewRate">
     ///     The op-amp's slew rate in V/s in place of the model's (the Drive block's Slew Rate); 0 for the model's. The
-    ///     full device (<see cref="OpAmpSolve.Device" />) takes it as its own; the linear solves, which model none, limit
-    ///     the stage's output to it.
+    ///     full device (<see cref="OpAmpSolve.Device" />) takes it as its own; the linear solves, which model none,
+    ///     limit the stage's output to it.
     /// </param>
     /// <param name="voice">Ohms added in series with the first ground leg (<see cref="DriveStage.VoicePot" />).</param>
     /// <param name="bass">
@@ -321,12 +320,13 @@ public sealed class OpAmpStage {
     }
 
     /// <summary>
-    ///     A ground leg of <paramref name="resistance" /> in series with <paramref name="capacitance" /> shunted by a Bass
-    ///     pot at <paramref name="bass" /> (0..1, more bass as it rises: the pot's resistance is the leg's times
+    ///     A ground leg of <paramref name="resistance" /> in series with <paramref name="capacitance" /> shunted by a
+    ///     Bass pot at <paramref name="bass" /> (0..1, more bass as it rises: the pot's resistance is the leg's times
     ///     (1 - bass) / bass, open at 0 and a short at 1), as the two series RC legs the netlist has. The shunted leg's
-    ///     admittance is first order, so it is fixed by its DC and high-frequency conductances and its pole: an RC leg of
-    ///     R (R + Rb) / Rb and C Rb² / (R + Rb)² beside a resistor leg of R + Rb (behind a capacitor large enough to pass
-    ///     DC) has all three. The RC leg stays first, so it carries the capacitor's charge on from the leg as listed.
+    ///     admittance is first order, so it is fixed by its DC and high-frequency conductances and its pole: an RC leg
+    ///     of R (R + Rb) / Rb and C Rb² / (R + Rb)² beside a resistor leg of R + Rb (behind a capacitor large enough to
+    ///     pass DC) has all three. The RC leg stays first, so it carries the capacitor's charge on from the leg as
+    ///     listed.
     /// </summary>
     static (double Leg, double Capacitance, double Second, double SecondCapacitance) Shunted(
         double resistance,
@@ -382,8 +382,8 @@ public sealed class OpAmpStage {
 ///     Rangemaster treble booster, or the first stage of a Tone Bender. Base bias from a divider and/or from the
 ///     collector,
 ///     emitter resistor with its bypass capacitor, collector load, coupling capacitors in and out. The source is a
-///     <see cref="StageSource" />: the guitar (pickup resistance and inductance, volume pot) for a first stage. It starts
-///     at its DC operating point, computed once per stage (<see cref="OperatingPoint" />).
+///     <see cref="StageSource" />: the guitar (pickup resistance and inductance, volume pot) for a first stage. It
+///     starts at its DC operating point, computed once per stage (<see cref="OperatingPoint" />).
 /// </summary>
 /// <remarks>
 ///     Nodes: input, base, collector, emitter, output, supply. Ports: the source (its resistance in series with its
@@ -419,7 +419,8 @@ public sealed class TransistorStage {
             new(BjtModel.AC128)
         ) {
             // The start carried along the last Jacobian is close enough that a 1 mV step still converges quadratically
-            // to within microvolts; the reference tests match to -94 dB either way, and a confirming iteration is saved.
+            // to within microvolts; the reference tests match to -94 dB either way, and a confirming iteration is
+            // saved.
             AbsoluteTolerance = 1e-3, RelativeTolerance = 1e-5
         };
     }
@@ -450,8 +451,9 @@ public sealed class TransistorStage {
     }
 
     /// <summary>
-    ///     Sets the component values with an input capacitor of <paramref name="inputCapacitance" /> (a treble booster's
-    ///     range) and the <paramref name="source" />. A new stage or rate starts at the operating point stored in
+    ///     Sets the component values with an input capacitor of <paramref name="inputCapacitance" /> (a treble
+    ///     booster's range) and the <paramref name="source" />. A new stage or rate starts at the operating point
+    ///     stored in
     ///     <see cref="DriveCircuits" />.
     /// </summary>
     public void Configure(DriveStage stage, double inputCapacitance, StageSource source, double rate) {
@@ -506,17 +508,17 @@ public sealed class TransistorStage {
 /// <summary>
 ///     The Fuzz Face pair (<see cref="StageKind.FuzzPair" />) for one channel: two direct-coupled common-emitter
 ///     transistors, the second one's emitter feeding DC (and, with the Fuzz pot below full, signal) back to the first
-///     base through 100k; the Fuzz pot from the second emitter to ground with its wiper bypassed (Drive moves the wiper).
-///     Both transistors are solved together at one root (K = 4). The first stage's low input impedance loads the
-///     guitar's pickup and volume pot (<see cref="StageSource" />), which is what makes rolling the volume back clean it
-///     up. It starts at its DC operating point, computed once per stage (<see cref="OperatingPoint" />).
+///     base through 100k; the Fuzz pot from the second emitter to ground with its wiper bypassed (Drive moves the
+///     wiper). Both transistors are solved together at one root (K = 4). The first stage's low input impedance loads
+///     the guitar's pickup and volume pot (<see cref="StageSource" />), which is what makes rolling the volume back
+///     clean it up. It starts at its DC operating point, computed once per stage (<see cref="OperatingPoint" />).
 /// </summary>
 /// <remarks>
 ///     Nodes: input, first base, first collector (the second base), second emitter, second collector, the collector
 ///     resistors' junction, the Fuzz pot's wiper, output, supply. Ports: the source (its resistance in series with its
 ///     inductance), the input capacitor, the wiper's bypass capacitor, the output capacitor. Resistors, in index order:
-///     first collector load, second collector, junction to supply, feedback, emitter to wiper, wiper to ground, load, the
-///     source's shunt.
+///     first collector load, second collector, junction to supply, feedback, emitter to wiper, wiper to ground, load,
+///     the source's shunt.
 /// </remarks>
 public sealed class FuzzPairStage {
     const double Absent = 1e12;
@@ -547,7 +549,8 @@ public sealed class FuzzPairStage {
             new(new(BjtModel.AC128), new(BjtModel.AC128))
         ) {
             // The start carried along the last Jacobian is close enough that a 1 mV step still converges quadratically
-            // to within microvolts; the reference tests match to -94 dB either way, and a confirming iteration is saved.
+            // to within microvolts; the reference tests match to -94 dB either way, and a confirming iteration is
+            // saved.
             AbsoluteTolerance = 1e-3, RelativeTolerance = 1e-5
         };
     }
@@ -651,15 +654,15 @@ public sealed class FuzzPairStage {
 
 /// <summary>
 ///     One triode in common cathode (<see cref="StageKind.Triode" />) for one channel: a Tube Driver's 12AX7 on its low
-///     plate supply. Input coupling capacitor into the grid with its grid leak, plate load to the supply, cathode resistor
-///     with its bypass capacitor, output coupling capacitor into the next stage. The grid draws current when driven
-///     positive (<see cref="Triode" />), so the input capacitor charges and the stage bias-shifts as a real one does. It
-///     starts at its DC operating point, computed once per stage (<see cref="OperatingPoint" />).
+///     plate supply. Input coupling capacitor into the grid with its grid leak, plate load to the supply, cathode
+///     resistor with its bypass capacitor, output coupling capacitor into the next stage. The grid draws current when
+///     driven positive (<see cref="Triode" />), so the input capacitor charges and the stage bias-shifts as a real one
+///     does. It starts at its DC operating point, computed once per stage (<see cref="OperatingPoint" />).
 /// </summary>
 /// <remarks>
-///     Nodes: input, grid, plate, cathode, output, supply. Ports: the source (the previous stage behind its resistance),
-///     the input capacitor (input to grid), the cathode bypass, the output capacitor (plate to output). Resistors, in
-///     index order: grid leak, plate load, cathode, load.
+///     Nodes: input, grid, plate, cathode, output, supply. Ports: the source (the previous stage behind its
+///     resistance), the input capacitor (input to grid), the cathode bypass, the output capacitor (plate to output).
+///     Resistors, in index order: grid leak, plate load, cathode, load.
 /// </remarks>
 public sealed class DriveTriodeStage {
     const int GridLeak = 0;
@@ -700,14 +703,18 @@ public sealed class DriveTriodeStage {
         return net;
     }
 
-    /// <summary>The DC operating point of <paramref name="stage" />; see <see cref="TransistorStage.OperatingPoint" />.</summary>
+    /// <summary>
+    ///     The DC operating point of <paramref name="stage" />; see <see cref="TransistorStage.OperatingPoint" />.
+    /// </summary>
     public static double[] OperatingPoint(DriveStage stage) {
         var settling = new DriveTriodeStage();
         settling.Configure(stage, stage.SourceResistance, 48_000);
         return settling.Settle();
     }
 
-    /// <summary>Sets the components and the source resistance; a new stage or rate starts at its operating point.</summary>
+    /// <summary>
+    ///     Sets the components and the source resistance; a new stage or rate starts at its operating point.
+    /// </summary>
     public void Configure(DriveStage stage, double sourceResistance, double rate) {
         var fresh = !ReferenceEquals(stage, this.stage) || rate != this.rate;
         if (!fresh && sourceResistance == source) {
@@ -762,11 +769,13 @@ public sealed class DriveTriodeStage {
 /// <summary>The DC operating point of a transistor stage's root.</summary>
 static class OperatingPoints {
     /// <summary>
-    ///     Settles <paramref name="root" /> with zero input and every capacitor open, and writes the operating point into
-    ///     <paramref name="start" />. A capacitor is opened by giving it a huge port resistance (a femtofarad) and, after
-    ///     every sample, recharging it to the voltage across its port: with no current through it, that is the open-circuit
-    ///     voltage the network puts there. (Left to itself, a capacitor that small rings at Nyquist for ever: the bilinear
-    ///     transform maps its vanishing time constant to a pole at -1.) Newton walks the junctions in from zero meanwhile.
+    ///     Settles <paramref name="root" /> with zero input and every capacitor open, and writes the operating point
+    ///     into
+    ///     <paramref name="start" />. A capacitor is opened by giving it a huge port resistance (a femtofarad) and,
+    ///     after every sample, recharging it to the voltage across its port: with no current through it, that is the
+    ///     open-circuit voltage the network puts there. (Left to itself, a capacitor that small rings at Nyquist for
+    ///     ever: the bilinear transform maps its vanishing time constant to a pole at -1.) Newton walks the junctions
+    ///     in from zero meanwhile.
     /// </summary>
     public static double[] Settle<TSource, TDevice>(
         CircuitRoot<TSource, TDevice> root,
@@ -799,9 +808,9 @@ static class OperatingPoints {
 }
 
 /// <summary>
-///     What drives a transistor stage: a resistance in series with an inductance (the guitar's pickup and the top of its
-///     volume pot, or an earlier stage's output resistance with no inductance), with a shunt to ground at the stage input
-///     (the bottom of the volume pot; absent between stages).
+///     What drives a transistor stage: a resistance in series with an inductance (the guitar's pickup and the top of
+///     its volume pot, or an earlier stage's output resistance with no inductance), with a shunt to ground at the stage
+///     input (the bottom of the volume pot; absent between stages).
 /// </summary>
 public readonly record struct StageSource(double Resistance, double Inductance, double Shunt) {
     /// <summary>A stage driven by an earlier one through <paramref name="resistance" />.</summary>
@@ -1006,8 +1015,12 @@ public sealed class ToneStage {
     /// <param name="bass">A stack's bass pot (<see cref="ToneKind.Stack" />), 0..1; noon is the pedal as built.</param>
     /// <param name="middle">A stack's middle pot.</param>
     /// <param name="midHz">An active EQ's Middle Freq where its mid sweeps (0 = the network's own).</param>
-    /// <param name="middle2">An active EQ's second mid band's pot (<see cref="ToneNetwork.Mid2Hz" />), 0..1; noon as built.</param>
-    /// <param name="lowHz">An active EQ's low band corner in place of the network's (0 = its own): a DIP switch.</param>
+    /// <param name="middle2">
+    ///     An active EQ's second mid band's pot (<see cref="ToneNetwork.Mid2Hz" />), 0..1; noon as built.
+    /// </param>
+    /// <param name="lowHz">
+    ///     An active EQ's low band corner in place of the network's (0 = its own): a DIP switch.
+    /// </param>
     /// <param name="highHz">An active EQ's treble corner in place of the network's (0 = its own).</param>
     public void Configure(
         ToneNetwork network,
@@ -1074,8 +1087,8 @@ public sealed class ToneStage {
     public void FlushDenormals() => root?.FlushDenormals();
 
     /// <summary>
-    ///     Sets the components of <paramref name="network" /> with its pot at <paramref name="tone" />, in netlist resistor
-    ///     order, and recomputes the matrix.
+    ///     Sets the components of <paramref name="network" /> with its pot at <paramref name="tone" />, in netlist
+    ///     resistor order, and recomputes the matrix.
     /// </summary>
     static void Set(
         CircuitRoot<ResistiveVoltageSource, NoDevice> root,
@@ -1155,8 +1168,8 @@ public sealed class ToneStage {
     ///     The active EQ's components (see <see cref="ToneKind.ActiveEq" />), in netlist order. Each band's shunt is
     ///     designed from its frequency: the low band's inductance meets the series resistance at its corner, a mid band
     ///     resonates at its centre with <see cref="ToneNetwork.BandQ" /> (both its reactances scale, as a dual-gang
-    ///     frequency pot does, so the Q holds across the sweep), the treble capacitor meets the series resistance at its
-    ///     corner. An absent band sits at noon, where it does nothing.
+    ///     frequency pot does, so the Q holds across the sweep), the treble capacitor meets the series resistance at
+    ///     its corner. An absent band sits at noon, where it does nothing.
     /// </summary>
     static void SetActiveEq(
         CircuitRoot<ResistiveVoltageSource, NoDevice> root,

@@ -93,7 +93,9 @@ public sealed record LatencyInfo(
     double TotalMs
 );
 
-/// <summary>The cab resonance helper's sine, in place of a block's output: on or off, its pitch and level (dBFS).</summary>
+/// <summary>
+///     The cab resonance helper's sine, in place of a block's output: on or off, its pitch and level (dBFS).
+/// </summary>
 public sealed record TestToneRequest(bool Enabled, double Frequency = 100, float Level = -20);
 
 /// <summary>
@@ -104,7 +106,8 @@ public sealed record SpeakerResonanceInfo(double BaseHz, float Percent, double H
 
 /// <summary>
 ///     A block parameter. <c>TypeLabels</c>, where present, names the parameter per value of the block's <c>type</c>
-///     parameter (an amp model's own name for a generic control), empty where that type lacks the control: hide it there.
+///     parameter (an amp model's own name for a generic control), empty where that type lacks the control: hide it
+///     there.
 /// </summary>
 public sealed record ParameterInfo(
     string Id,
@@ -170,7 +173,9 @@ public sealed record PresetInfoRequest(
 
 public sealed record SaveRequest(string? Name = null, bool AsNew = false);
 
-/// <summary>Pushed over the WebSocket after every change, whatever its source (REST, MIDI later, another editor).</summary>
+/// <summary>
+///     Pushed over the WebSocket after every change, whatever its source (REST, MIDI later, another editor).
+/// </summary>
 public sealed record RigEvent(
     string Type,
     long Revision,
@@ -183,13 +188,13 @@ public sealed record RigEvent(
 
 /// <summary>
 ///     Pushed over the WebSocket about 30 times a second. <c>Blocks</c> holds every block meter since the last frame,
-///     by block id and then meter id: each grid block's <c>peak</c> (its output peak, linear) and the meters some blocks
-///     keep of their own, in dB: the Cab's <c>preampIn</c> (the level into the mic preamp, 0 at the onset of clipping)
-///     and <c>motorReduction</c> (Motor Drive's gain reduction). Each is the highest value since the previous frame. The
-///     loudness is the output's ITU-R BS.1770 momentary (400 ms) and short-term (3 s) level in LUFS. Both come from the
-///     shared-memory telemetry and are absent without it. <c>Modulation</c> is the current value of every parameter a
-///     modifier drives, in the parameter's units, by block id and then parameter id, as of the frame (not a peak); it
-///     is absent when no modifier is driving a parameter.
+///     by block id and then meter id: each grid block's <c>peak</c> (its output peak, linear) and the meters some
+///     blocks keep of their own, in dB: the Cab's <c>preampIn</c> (the level into the mic preamp, 0 at the onset of
+///     clipping) and <c>motorReduction</c> (Motor Drive's gain reduction). Each is the highest value since the previous
+///     frame. The loudness is the output's ITU-R BS.1770 momentary (400 ms) and short-term (3 s) level in LUFS. Both
+///     come from the shared-memory telemetry and are absent without it. <c>Modulation</c> is the current value of every
+///     parameter a modifier drives, in the parameter's units, by block id and then parameter id, as of the frame (not a
+///     peak); it is absent when no modifier is driving a parameter.
 /// </summary>
 public sealed record Telemetry(
     string Type,

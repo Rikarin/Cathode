@@ -47,7 +47,9 @@ public sealed partial class LiveRig(
     /// <summary>The working copy as last loaded or saved, for Scene Revert.</summary>
     string savedJson = JsonSerializer.Serialize(Preset.CreateDefault(), ContractsJsonContext.Default.Preset);
 
-    /// <summary>Controller settings a preset may store; the rest of the rig bank is scene, global or live state.</summary>
+    /// <summary>
+    ///     Controller settings a preset may store; the rest of the rig bank is scene, global or live state.
+    /// </summary>
     static readonly HashSet<string> ControllerParams = [
         ..RigControls.Descriptor.Params.Select(static p => p.Id)
             .Where(static id => id.StartsWith("lfo", StringComparison.Ordinal)
@@ -73,8 +75,8 @@ public sealed partial class LiveRig(
     public Task<LiveState> StateAsync() => Locked(() => Task.FromResult(State()));
 
     /// <summary>
-    ///     Sends the whole rig to the engine again (after the host (re)connects): the graph and its parameters, mute, the
-    ///     tuner and whether to follow MIDI clock.
+    ///     Sends the whole rig to the engine again (after the host (re)connects): the graph and its parameters, mute,
+    ///     the tuner and whether to follow MIDI clock.
     /// </summary>
     public Task ResyncAsync() =>
         Locked(async () => {
@@ -194,7 +196,8 @@ public sealed partial class LiveRig(
                         held.TryRemove(id, out _);
 
                         // A block in a signal path leaves a shunt that keeps its cables, so the path stays whole: the
-                        // reverse of dropping a block onto a shunt. A shunt, or a block at the end of a branch, just goes.
+                        // reverse of dropping a block onto a shunt. A shunt, or a block at the end of a branch, just
+                        // goes.
                         if (!LeaveShunt(p, block, block.Row, block.Column)) {
                             p.Cables.RemoveAll(c => c.From == id || c.To == id);
                         }
@@ -494,7 +497,9 @@ public sealed partial class LiveRig(
         }
     }
 
-    /// <summary>Turns the block's channel-scoped modifiers on for <paramref name="channel" /> and off for the rest.</summary>
+    /// <summary>
+    ///     Turns the block's channel-scoped modifiers on for <paramref name="channel" /> and off for the rest.
+    /// </summary>
     void SyncModifiers(PresetBlock block, string channel) {
         var descriptor = catalog.Descriptor(block.Type);
         foreach (var modifier in preset.Modifiers.Where(m => m.Block == block.Id && m.Channel is not null)) {
@@ -752,7 +757,9 @@ public sealed partial class LiveRig(
         );
     }
 
-    /// <summary>The rig bank as this preset and scene set it: controllers, tempo, scene level and controllers.</summary>
+    /// <summary>
+    ///     The rig bank as this preset and scene set it: controllers, tempo, scene level and controllers.
+    /// </summary>
     List<ParamValue> RigValues() {
         var values = new List<ParamValue>(SceneValues());
         foreach (var id in ControllerParams) {
@@ -800,7 +807,9 @@ public sealed partial class LiveRig(
         Changes?.Invoke(change);
     }
 
-    /// <summary>Records an undo point unless this edit continues the previous one (e.g. a knob being dragged).</summary>
+    /// <summary>
+    ///     Records an undo point unless this edit continues the previous one (e.g. a knob being dragged).
+    /// </summary>
     void PushUndo(string? key) {
         if (key is null || key != coalesceKey) {
             Remember(undo, Capture());
@@ -923,7 +932,9 @@ public sealed partial class LiveRig(
         }
     }
 
-    /// <summary>Raised (inside the rig's lock) for every change, like the WebSocket events: for in-process listeners.</summary>
+    /// <summary>
+    ///     Raised (inside the rig's lock) for every change, like the WebSocket events: for in-process listeners.
+    /// </summary>
     public event Action<RigEvent>? Changes;
 
     sealed record Snapshot(string Json, int ActiveScene);

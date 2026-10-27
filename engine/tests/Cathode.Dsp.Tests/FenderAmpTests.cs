@@ -6,9 +6,9 @@ using System.Globalization;
 namespace Cathode.Dsp.Tests;
 
 /// <summary>
-///     The Fender family (docs/06 §3.1): knob sweeps on each model through the block: every knob and switch on its panel
-///     audible, the volume raising the level, treble and
-///     bass doing what they say, the 5E3's channel interaction, levels bounded, no allocation on the audio thread.
+///     The Fender family (docs/06 §3.1): knob sweeps on each model through the block: every knob and switch on its
+///     panel audible, the volume raising the level, treble and bass doing what they say, the 5E3's channel interaction,
+///     levels bounded, no allocation on the audio thread.
 /// </summary>
 public class FenderAmpTests(ITestOutputHelper output) {
     const double Rate = 48_000;
@@ -185,7 +185,9 @@ public class FenderAmpTests(ITestOutputHelper output) {
         return BlockRender.Mono(block, CircuitAmpBlockTests.Chord(14_400, peak), 64);
     }
 
-    /// <summary>The level of a quiet sine at <paramref name="high" /> hertz over one at <paramref name="low" />, in dB.</summary>
+    /// <summary>
+    ///     The level of a quiet sine at <paramref name="high" /> hertz over one at <paramref name="low" />, in dB.
+    /// </summary>
     static double Tilt(string model, double high, double low, (int Index, float Value) knob) {
         return Analysis.ToDb(Level(high) / Level(low));
 

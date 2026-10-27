@@ -44,9 +44,9 @@ public sealed class IrSmoother : IDisposable {
     }
 
     /// <summary>
-    ///     Smooths the first <paramref name="used" /> samples of <paramref name="ir" /> over <paramref name="octaves" />
-    ///     (0 leaves it untouched) and returns the new used length: the correction rings on past the original end, by
-    ///     at least <see cref="MinTail" /> samples where <paramref name="ir" /> has room.
+    ///     Smooths the first <paramref name="used" /> samples of <paramref name="ir" /> over
+    ///     <paramref name="octaves" /> (0 leaves it untouched) and returns the new used length: the correction rings on
+    ///     past the original end, by at least <see cref="MinTail" /> samples where <paramref name="ir" /> has room.
     /// </summary>
     public int Smooth(Span<float> ir, int used, double octaves) {
         used = Math.Min(used, Math.Min(ir.Length, MaxLength));
@@ -133,8 +133,8 @@ public sealed class IrSmoother : IDisposable {
     }
 
     /// <summary>
-    ///     <c>cepstrumRe[0..N/2]</c> holds a natural-log magnitude; leaves the minimum-phase spectrum with that magnitude
-    ///     in <c>cepstrumRe</c>/<c>cepstrumIm</c>, bins 0 … N/2.
+    ///     <c>cepstrumRe[0..N/2]</c> holds a natural-log magnitude; leaves the minimum-phase spectrum with that
+    ///     magnitude in <c>cepstrumRe</c>/<c>cepstrumIm</c>, bins 0 … N/2.
     /// </summary>
     void MinimumPhase() => fft.MinimumPhase(cepstrumRe.Span, cepstrumIm.Span);
 }

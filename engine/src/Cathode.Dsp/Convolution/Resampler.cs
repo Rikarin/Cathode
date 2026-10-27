@@ -6,7 +6,9 @@ namespace Cathode.Dsp.Convolution;
 public static class Resampler {
     const int HalfWidth = 32; // zero crossings each side at the narrowest cutoff
 
-    /// <summary>Resamples <paramref name="input" /> from <paramref name="fromRate" /> to <paramref name="toRate" />.</summary>
+    /// <summary>
+    ///     Resamples <paramref name="input" /> from <paramref name="fromRate" /> to <paramref name="toRate" />.
+    /// </summary>
     public static float[] Resample(ReadOnlySpan<float> input, double fromRate, double toRate) {
         if (fromRate <= 0 || toRate <= 0) {
             throw new ArgumentOutOfRangeException(nameof(fromRate), "Sample rates must be positive.");

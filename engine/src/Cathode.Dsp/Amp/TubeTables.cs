@@ -161,9 +161,9 @@ public sealed class TriodeTables {
 
     /// <summary>
     ///     <see cref="PlateCurrent(double, double, out double, out double)" /> for the model with its cut-off knee K_p
-    ///     replaced by <paramref name="kp" />, where <paramref name="plateScale" /> is (K_p / <paramref name="kp" />)^Ex:
-    ///     G(u) does not depend on K_p, and P(v) only scales with it, so the same tables serve every hardness
-    ///     (<see cref="TriodeModel.Hardened" />).
+    ///     replaced by <paramref name="kp" />, where <paramref name="plateScale" /> is (K_p /
+    ///     <paramref name="kp" />)^Ex: G(u) does not depend on K_p, and P(v) only scales with it, so the same tables
+    ///     serve every hardness (<see cref="TriodeModel.Hardened" />).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double PlateCurrent(
@@ -240,7 +240,9 @@ public sealed class TriodeTables {
 /// <param name="hardness">
 ///     The cut-off knee's sharpness as a multiple of stock (<see cref="TriodeModel.Hardened" />); 1 is the model.
 /// </param>
-/// <param name="gridCurrent">The grid current as a multiple of Dempwolf's law (the stage's bias excursion); 1 is stock.</param>
+/// <param name="gridCurrent">
+///     The grid current as a multiple of Dempwolf's law (the stage's bias excursion); 1 is stock.
+/// </param>
 public readonly struct FastTriode(TriodeModel model, double hardness = 1, double gridCurrent = 1) : INonlinearDevice {
     readonly TriodeTables tables = TriodeTables.For(model);
     readonly double kp = model.Kp * hardness;
@@ -293,8 +295,8 @@ public static class TubeLimit {
 /// <summary>
 ///     Koren's pentode law in tabulated pieces, for the power stage: with u = K_p (1/μ + V_g1k / V_g2k),
 ///     I_p = (2 / K_g1) (V_g2k / K_p)^Ex G(u) atan(V_pk / K_vb), where the screen factor changes slowly (it is computed
-///     once per sample, <see cref="ScreenFactor(double)" />) and G and the arctangent knee are tables. The screen current
-///     (V_g2k / μ + V_g1k)^Ex / K_g2 is a table of its one argument.
+///     once per sample, <see cref="ScreenFactor(double)" />) and G and the arctangent knee are tables. The screen
+///     current (V_g2k / μ + V_g1k)^Ex / K_g2 is a table of its one argument.
 /// </summary>
 public sealed class PentodeTables {
     const double LowestU = -40;
@@ -362,7 +364,9 @@ public sealed class PentodeTables {
     /// <summary>(2 / K_g1) (V_g2k / K_p)^Ex, the plate current's dependence on the screen voltage.</summary>
     public double ScreenFactor(double vg2) => ScreenFactor(vg2, Model.Kp);
 
-    /// <summary><see cref="ScreenFactor(double)" /> with the cut-off knee K_p replaced by <paramref name="kp" />.</summary>
+    /// <summary>
+    ///     <see cref="ScreenFactor(double)" /> with the cut-off knee K_p replaced by <paramref name="kp" />.
+    /// </summary>
     public double ScreenFactor(double vg2, double kp) =>
         vg2 > 1e-3 ? 2 * Math.Pow(vg2 / kp, Model.Exponent) / Model.Kg1 : 0;
 
@@ -384,8 +388,8 @@ public sealed class PentodeTables {
     /// <summary>
     ///     <see cref="PlateCurrent(double, double, double, double, out double, out double)" /> for the model with its
     ///     cut-off knee K_p replaced by <paramref name="kp" /> and its plate knee K_vb divided by
-    ///     <paramref name="kneeScale" /> (G(u) does not depend on K_p, and atan(V_pk / K_vb) is read at the scaled plate
-    ///     voltage), so the same tables serve every hardness (<see cref="PentodeModel.Hardened" />).
+    ///     <paramref name="kneeScale" /> (G(u) does not depend on K_p, and atan(V_pk / K_vb) is read at the scaled
+    ///     plate voltage), so the same tables serve every hardness (<see cref="PentodeModel.Hardened" />).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double PlateCurrent(
@@ -484,7 +488,8 @@ public sealed class PentodeTables {
 
     /// <summary>
     ///     <see cref="PlateCurrent(double, double, double, out double, out double, out double)" /> with the knees
-    ///     scaled as in <see cref="PlateCurrent(double, double, double, double, double, double, out double, out double)" />.
+    ///     scaled as in
+    ///     <see cref="PlateCurrent(double, double, double, double, double, double, out double, out double)" />.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double PlateCurrent(

@@ -19,10 +19,10 @@ namespace Cathode.Dsp.Pitch;
 ///     <para>
 ///         Formant correction (<see cref="Process(float, double, double)" />): each frame's all-pole envelope
 ///         (<see cref="SpectralEnvelope" />, order 24 at 48 kHz) is fitted to its power spectrum, and every bin that
-///         moves from k to j is scaled by the envelope at j (or at j / r for a formant shift of ratio r) over the envelope
-///         at k, at most 52 dB either way: the partials take the input's formants at their new frequencies. Two more
-///         FFTs per hop; the envelope cannot raise what the input lacks, so shifting down an octave leaves the top of
-///         the output as thin as the input's top octave was.
+///         moves from k to j is scaled by the envelope at j (or at j / r for a formant shift of ratio r) over the
+///         envelope at k, at most 52 dB either way: the partials take the input's formants at their new frequencies.
+///         Two more FFTs per hop; the envelope cannot raise what the input lacks, so shifting down an octave leaves the
+///         top of the output as thin as the input's top octave was.
 ///     </para>
 ///     <para>
 ///         The output lags the input by one frame (the wet path delay). Transients smear by up to a frame, and with
@@ -34,7 +34,9 @@ namespace Cathode.Dsp.Pitch;
 public sealed class PhaseVocoderShifter : IDisposable {
     const int Overlap = 4;
 
-    /// <summary>Peaks below this, relative to the frame size (a full-scale sine is a quarter of it), are noise floor.</summary>
+    /// <summary>
+    ///     Peaks below this, relative to the frame size (a full-scale sine is a quarter of it), are noise floor.
+    /// </summary>
     const float PeakFloor = 1e-7f;
 
     /// <summary>The most a formant correction raises or cuts a bin, in nepers (about 52 dB).</summary>
@@ -70,7 +72,10 @@ public sealed class PhaseVocoderShifter : IDisposable {
     /// <summary>The analysis frame length in samples, and the wet path delay.</summary>
     public int FrameSize { get; private set; }
 
-    /// <summary>Control thread: sizes the frames for <paramref name="sampleRate" /> (2048 samples up to 50 kHz, then doubled).</summary>
+    /// <summary>
+    ///     Control thread: sizes the frames for <paramref name="sampleRate" /> (2048 samples up to 50 kHz, then
+    ///     doubled).
+    /// </summary>
     public void Prepare(double sampleRate) {
         Dispose();
         FrameSize = sampleRate > 100_000 ? 8_192 : sampleRate > 50_000 ? 4_096 : 2_048;
@@ -176,7 +181,8 @@ public sealed class PhaseVocoderShifter : IDisposable {
 
     /// <summary>
     ///     Analyses the last frame, moves its partials by <paramref name="ratio" /> and overlap-adds the result; with a
-    ///     <paramref name="formantRatio" /> above 0 every moved bin takes the level of the (shifted) envelope where it lands.
+    ///     <paramref name="formantRatio" /> above 0 every moved bin takes the level of the (shifted) envelope where it
+    ///     lands.
     /// </summary>
     void Frame(double ratio, double formantRatio) {
         var n = FrameSize;
@@ -267,8 +273,9 @@ public sealed class PhaseVocoderShifter : IDisposable {
     }
 
     /// <summary>
-    ///     The frame's spectral envelope (<see cref="SpectralEnvelope" />): the autocorrelation from the power spectrum,
-    ///     the all-pole fit, and its log magnitude 0.5 ln(E / |A|²) at every bin from one more FFT of the polynomial.
+    ///     The frame's spectral envelope (<see cref="SpectralEnvelope" />): the autocorrelation from the power
+    ///     spectrum, the all-pole fit, and its log magnitude 0.5 ln(E / |A|²) at every bin from one more FFT of the
+    ///     polynomial.
     /// </summary>
     void Envelope() {
         var n = FrameSize;
@@ -310,8 +317,8 @@ public sealed class PhaseVocoderShifter : IDisposable {
     }
 
     /// <summary>
-    ///     The gain that gives bin <paramref name="from" />, moved to <paramref name="to" />, the envelope there (shifted
-    ///     by <paramref name="formantRatio" />).
+    ///     The gain that gives bin <paramref name="from" />, moved to <paramref name="to" />, the envelope there
+    ///     (shifted by <paramref name="formantRatio" />).
     /// </summary>
     float Correction(int from, int to, double formantRatio, int bins) {
         var source = Math.Min(to / formantRatio, bins - 1);

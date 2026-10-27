@@ -176,8 +176,8 @@ public static class DualRectifier {
     }
 
     /// <summary>
-    ///     The cold clipper V2B: 20 nF, <paramref name="series" /> into the grid with 1M to ground; 100k plate with 1 nF
-    ///     from plate to supply; 39k unbypassed.
+    ///     The cold clipper V2B: 20 nF, <paramref name="series" /> into the grid with 1M to ground; 100k plate with 1
+    ///     nF from plate to supply; 39k unbypassed.
     /// </summary>
     internal static StageNetlist ColdClipper(double series, double supply) {
         var net = new StageNetlist();
@@ -210,10 +210,11 @@ public static class DualRectifier {
     }
 
     /// <summary>
-    ///     The cathode follower V3B (DC-coupled to V3A's plate, 100k to ground) driving the stack: <paramref name="treble" />
-    ///     to the 250k linear treble pot (<paramref name="modern" /> more while Switch 1 is on), 47k slope, 20 nF to the 1M
-    ///     audio bass rheostat, 20 nF from the slope to the 25k linear middle pot's wiper; on the treble wiper the presence
-    ///     shunt (22k, 3 nF and <paramref name="presence" /> as a rheostat, Control 2) and the 1M audio master.
+    ///     The cathode follower V3B (DC-coupled to V3A's plate, 100k to ground) driving the stack:
+    ///     <paramref name="treble" /> to the 250k linear treble pot (<paramref name="modern" /> more while Switch 1 is
+    ///     on), 47k slope, 20 nF to the 1M audio bass rheostat, 20 nF from the slope to the 25k linear middle pot's
+    ///     wiper; on the treble wiper the presence shunt (22k, 3 nF and <paramref name="presence" /> as a rheostat,
+    ///     Control 2) and the 1M audio master.
     /// </summary>
     internal static StageNetlist FollowerAndStack(double supply, double treble, double? modern, Pot presence) {
         var net = new StageNetlist();

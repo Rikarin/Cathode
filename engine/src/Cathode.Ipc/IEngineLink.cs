@@ -7,7 +7,9 @@ namespace Cathode.Ipc;
 public interface IEngineLink : IAsyncDisposable {
     bool IsConnected { get; }
 
-    /// <summary>Sends a request and waits for its reply. Throws <see cref="IpcException" /> on an error reply.</summary>
+    /// <summary>
+    ///     Sends a request and waits for its reply. Throws <see cref="IpcException" /> on an error reply.
+    /// </summary>
     Task<IpcMessage> SendAsync(IpcMessage request, CancellationToken cancellationToken = default);
 
     event Action<HostTelemetry>? TelemetryReceived;

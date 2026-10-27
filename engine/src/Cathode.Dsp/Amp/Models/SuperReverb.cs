@@ -4,16 +4,17 @@ namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
 ///     Fender Super Reverb AB763 (40 W): the Normal or Vibrato channel (<see cref="AmpPanel.Switch1" />), each V1A into
-///     the Fender stack (0.022 µF mid cap) and the 1M volume with its 120 pF bright switch, V1B, the AB763 mixing network,
-///     a 12AT7 long-tail pair, two 6L6GC in fixed bias at 460 V on a GZ34, the 125A9A transformer (4.2k : 2 Ω), and
-///     820 Ω / 100 Ω feedback from the 2 Ω tap (about 41 % less feedback voltage than from a 4 Ω tap). Only the Vibrato
-///     channel has a middle pot; the Normal channel has the fixed 6.8k. Sources: see <see cref="Ab763" />; docs/06 §3.1.
+///     the Fender stack (0.022 µF mid cap) and the 1M volume with its 120 pF bright switch, V1B, the AB763 mixing
+///     network, a 12AT7 long-tail pair, two 6L6GC in fixed bias at 460 V on a GZ34, the 125A9A transformer (4.2k : 2
+///     Ω), and 820 Ω / 100 Ω feedback from the 2 Ω tap (about 41 % less feedback voltage than from a 4 Ω tap). Only the
+///     Vibrato channel has a middle pot; the Normal channel has the fixed 6.8k. Sources: see <see cref="Ab763" />;
+///     docs/06 §3.1.
 /// </summary>
 /// <remarks>
 ///     The first stage is a network stage, so that the channel switch can swap the fixed mid resistor for the mid pot.
-///     The mid pot (10k audio) and the Normal channel's mid cap (taken as the Vibrato channel's 0.022 µF) are unverified;
-///     the idle current (35 mA) and the supply's source resistance are typical values. The existing "Blackface" type is a
-///     Super-style channel without the mixing stage; this is the whole amp.
+///     The mid pot (10k audio) and the Normal channel's mid cap (taken as the Vibrato channel's 0.022 µF) are
+///     unverified; the idle current (35 mA) and the supply's source resistance are typical values. The existing
+///     "Blackface" type is a Super-style channel without the mixing stage; this is the whole amp.
 /// </remarks>
 public static class SuperReverb {
     public static AmpDesign Design { get; } = new(
@@ -61,10 +62,10 @@ public static class SuperReverb {
     };
 
     /// <summary>
-    ///     V1A (V2A on the Vibrato channel): 34k stopper, 100k plate, 1.5k ‖ 25 µF, the Fender stack on its plate (250 pF,
-    ///     100k slope, 0.1 µF bass, 0.022 µF mid; treble and bass 250k audio) and the 1M audio volume on the treble wiper,
-    ///     with the 120 pF bright cap across its upper part. The mid leg is the fixed 6.8k on the Normal channel and the
-    ///     10k mid pot on the Vibrato channel.
+    ///     V1A (V2A on the Vibrato channel): 34k stopper, 100k plate, 1.5k ‖ 25 µF, the Fender stack on its plate (250
+    ///     pF, 100k slope, 0.1 µF bass, 0.022 µF mid; treble and bass 250k audio) and the 1M audio volume on the treble
+    ///     wiper, with the 120 pF bright cap across its upper part. The mid leg is the fixed 6.8k on the Normal channel
+    ///     and the 10k mid pot on the Vibrato channel.
     /// </summary>
     static NetworkStageDesign FirstStage() {
         var net = new StageNetlist();

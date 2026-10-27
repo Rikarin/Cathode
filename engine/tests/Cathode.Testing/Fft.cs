@@ -38,7 +38,9 @@ public static class Fft {
         }
     }
 
-    /// <summary>Single-sided magnitude spectrum (bins 0..N/2) of a real signal, scaled so a full-scale sine reads 1.0.</summary>
+    /// <summary>
+    ///     Single-sided magnitude spectrum (bins 0..N/2) of a real signal, scaled so a full-scale sine reads 1.0.
+    /// </summary>
     public static double[] Magnitudes(ReadOnlySpan<float> signal) {
         var data = new Complex[signal.Length];
         for (var i = 0; i < signal.Length; i++) {

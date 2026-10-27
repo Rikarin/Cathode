@@ -16,17 +16,17 @@ namespace Cathode.Engine;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Graph hand-over is RCU-style: <see cref="Publish" /> stores a pending graph and the audio thread swaps it in at
-///         the next callback boundary. Nothing is disposed on the audio thread: replaced graphs go to an unbounded,
+///         Graph hand-over is RCU-style: <see cref="Publish" /> stores a pending graph and the audio thread swaps it in
+///         at the next callback boundary. Nothing is disposed on the audio thread: replaced graphs go to an unbounded,
 ///         allocation-free list (linked through the graphs themselves) that <see cref="CollectRetired" /> drains.
 ///     </para>
 ///     <para>
 ///         Swaps are gapless with <b>spillover</b> (docs/02-architecture.md §5.5): the new graph fades in over
-///         <see cref="SwapFadeMs" /> while the old one keeps running on a fading input, so its delay and reverb tails ring
-///         out underneath. The old graph retires once its output has stayed below -90 dB for 4.1 s (longer than any delay
-///         repeat), or after <see cref="TailCapSeconds" />. A change that arrives while an older graph is still spilling
-///         fades that one out over <see cref="SwapFadeMs" /> instead of cutting its tail dead, so for one fade three
-///         graphs run.
+///         <see cref="SwapFadeMs" /> while the old one keeps running on a fading input, so its delay and reverb tails
+///         ring out underneath. The old graph retires once its output has stayed below -90 dB for 4.1 s (longer than
+///         any delay repeat), or after <see cref="TailCapSeconds" />. A change that arrives while an older graph is
+///         still spilling fades that one out over <see cref="SwapFadeMs" /> instead of cutting its tail dead, so for
+///         one fade three graphs run.
 ///     </para>
 ///     <para>
 ///         Around the graph sits the rig (Cathode.Engine.Rig), which outlives preset changes: per sub-block the
@@ -114,8 +114,8 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     public CallbackStats Stats { get; } = new();
 
     /// <summary>
-    ///     The rig parameters (<see cref="RigControls" />): scene level, tempo, controller settings and sources. Targets
-    ///     are writable from any thread, as for block parameters.
+    ///     The rig parameters (<see cref="RigControls" />): scene level, tempo, controller settings and sources.
+    ///     Targets are writable from any thread, as for block parameters.
     /// </summary>
     public ParamBank Rig { get; }
 
@@ -143,7 +143,9 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         set => Rig.SetTarget(tempoIndex, (float)value);
     }
 
-    /// <summary>The graph the audio thread is currently running (may lag a just-published graph by one callback).</summary>
+    /// <summary>
+    ///     The graph the audio thread is currently running (may lag a just-published graph by one callback).
+    /// </summary>
     public CompiledGraph? Current => Volatile.Read(ref current);
 
     public long SampleTime => Volatile.Read(ref sampleTime);
@@ -155,18 +157,18 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     public HeldNotes HeldNotes { get; private set; }
 
     /// <summary>
-    ///     Input samples (left channel) for analysis on another thread, e.g. the tuner. Written by the audio thread only
-    ///     while <see cref="InputTapEnabled" /> is set.
+    ///     Input samples (left channel) for analysis on another thread, e.g. the tuner. Written by the audio thread
+    ///     only while <see cref="InputTapEnabled" /> is set.
     /// </summary>
     /// <summary>
-    ///     The device's effects-loop channels. Pass it to the <see cref="Graph.GraphCompiler" /> so FX Loop blocks reach
-    ///     them.
+    ///     The device's effects-loop channels. Pass it to the <see cref="Graph.GraphCompiler" /> so FX Loop blocks
+    ///     reach them.
     /// </summary>
     public HardwareLoop HardwareLoop { get; } = new();
 
     /// <summary>
-    ///     The device's input sources (Input 1–4, USB 5/6 and 7/8). Pass it to the <see cref="Graph.GraphCompiler" /> so
-    ///     blocks with a hardware input choice reach them.
+    ///     The device's input sources (Input 1–4, USB 5/6 and 7/8). Pass it to the <see cref="Graph.GraphCompiler" />
+    ///     so blocks with a hardware input choice reach them.
     /// </summary>
     public HardwareInputs Inputs { get; } = new();
 
@@ -218,7 +220,10 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         gainedRight = new(spec.MaxBlockSize);
     }
 
-    /// <summary>Output <paramref name="output" />'s global EQ (0 = Output 1, block id <c>global</c>; 1-3 = <c>global2</c>..).</summary>
+    /// <summary>
+    ///     Output <paramref name="output" />'s global EQ (0 = Output 1, block id <c>global</c>; 1-3 =
+    ///     <c>global2</c>..).
+    /// </summary>
     public GraphicEqBlock OutputEq(int output) => outputEqs[output];
 
     /// <summary>
@@ -238,8 +243,8 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     }
 
     /// <summary>
-    ///     Control side: take ownership of one graph the audio thread has finished with, or null. Call it until it returns
-    ///     null; the caller disposes what it gets.
+    ///     Control side: take ownership of one graph the audio thread has finished with, or null. Call it until it
+    ///     returns null; the caller disposes what it gets.
     /// </summary>
     public CompiledGraph? CollectRetired() {
         lock (collectLock) {
@@ -254,7 +259,9 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         }
     }
 
-    /// <summary>Control side, after the audio has stopped: frees the engine's buffers and any graphs it still holds.</summary>
+    /// <summary>
+    ///     Control side, after the audio has stopped: frees the engine's buffers and any graphs it still holds.
+    /// </summary>
     public void Dispose() {
         while (CollectRetired() is { } graph) {
             graph.Dispose();
@@ -545,7 +552,9 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         Volatile.Write(ref outputPeakReset, 1);
     }
 
-    /// <summary>The DI out (the input as the converter gave it) and silence on Outputs 2-4 until they are rendered.</summary>
+    /// <summary>
+    ///     The DI out (the input as the converter gave it) and silence on Outputs 2-4 until they are rendered.
+    /// </summary>
     static void BeginOutputs(in AudioIO io, OutputBus bus) {
         var frames = io.Frames;
         if (bus.HasDi) {
@@ -561,7 +570,9 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         }
     }
 
-    /// <summary>The sub-block with Input 1 Gain applied to its input (the DI out and the input meter are before it).</summary>
+    /// <summary>
+    ///     The sub-block with Input 1 Gain applied to its input (the DI out and the input meter are before it).
+    /// </summary>
     AudioIO Gained(in AudioIO slice) {
         var length = slice.Frames;
         var left = gainedLeft.Span[..length];

@@ -42,18 +42,18 @@ namespace Cathode.Dsp.Amp.Models;
 ///         master 5, with room to spare.
 ///     </para>
 ///     <para>
-///         Guesses and simplifications, marked: the preamp rails carry no voltages on the drawing (here 400 V for V5 and
-///         V6, 410 V for V7, 420 V for the inverter, from the chain above); Hi mode is
-///         taken as the energised position of the "Gain" relays RE3 and RE4 (the hotter divider and the Hi Lead volume;
-///         one Lead Volume knob here for both); the low/high lead bright switches S3/S4 (330k + 680k from the bass pot's
-///         top into the volume) are off; the parallel loop is empty with its balance fully dry (the 10k series only).
-///         Left out: the lead channel's noise gate (IC4, an LM324 full-wave detector on V6B's output through 1M and
-///         82k, a comparator against the 20k threshold trimmer P20, and the J175 T8 shunting the lead volume's wiper
-///         to ground through 4.7k below the threshold), whose setting the drawing does not give, and the J175 soft
-///         mute T1 on the same node, which acts only while switching channels. Relay RE1B (once read here as switching
-///         V6B's cathode) grounds V6A's output in channel 1 and lights channel 2's LDR. The feedback network is
-///         simplified to 22k + 1.5k from the speaker into the 4.7k shunt with the 50k presence and 100 nF across it,
-///         the depth punch (1M with 10 nF) as the depth control; the tap and primary (1.9k) are typical values.
+///         Guesses and simplifications, marked: the preamp rails carry no voltages on the drawing (here 400 V for V5
+///         and V6, 410 V for V7, 420 V for the inverter, from the chain above); Hi mode is taken as the energised
+///         position of the "Gain" relays RE3 and RE4 (the hotter divider and the Hi Lead volume; one Lead Volume knob
+///         here for both); the low/high lead bright switches S3/S4 (330k + 680k from the bass pot's top into the
+///         volume) are off; the parallel loop is empty with its balance fully dry (the 10k series only). Left out: the
+///         lead channel's noise gate (IC4, an LM324 full-wave detector on V6B's output through 1M and 82k, a comparator
+///         against the 20k threshold trimmer P20, and the J175 T8 shunting the lead volume's wiper to ground through
+///         4.7k below the threshold), whose setting the drawing does not give, and the J175 soft mute T1 on the same
+///         node, which acts only while switching channels. Relay RE1B (once read here as switching V6B's cathode)
+///         grounds V6A's output in channel 1 and lights channel 2's LDR. The feedback network is simplified to 22k +
+///         1.5k from the speaker into the 4.7k shunt with the 50k presence and 100 nF across it, the depth punch (1M
+///         with 10 nF) as the depth control; the tap and primary (1.9k) are typical values.
 ///     </para>
 /// </remarks>
 public static class Powerball {
@@ -144,8 +144,8 @@ public static class Powerball {
     }
 
     /// <summary>
-    ///     V6A: 47 nF; 2.2M, channel 1's 1M + 220k and 680k + 330k to ground; the Lo divider (220k into 470k) or, in Hi,
-    ///     the Hi divider (100k into 470k), both always loading; 330k plate; 3.3k ‖ 1 µF.
+    ///     V6A: 47 nF; 2.2M, channel 1's 1M + 220k and 680k + 330k to ground; the Lo divider (220k into 470k) or, in
+    ///     Hi, the Hi divider (100k into 470k), both always loading; 330k plate; 3.3k ‖ 1 µF.
     /// </summary>
     static StageNetlist ThirdStage() {
         var net = new StageNetlist();

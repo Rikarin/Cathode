@@ -21,8 +21,8 @@ namespace Cathode.Dsp.Pitch;
 ///     <para>
 ///         With a formant shift of ratio r the envelope comes instead from the same power spectrum stretched in
 ///         frequency by r, P(f / r) (one inverse FFT carries both autocorrelations, the plain one in the real part and
-///         the stretched one in the imaginary), with a gain that keeps the total power. The envelope put back is the one
-///         of the input as it is now, while the shifted signal lags it by the shifter's delay (5-15 ms on average):
+///         the stretched one in the imaginary), with a gain that keeps the total power. The envelope put back is the
+///         one of the input as it is now, while the shifted signal lags it by the shifter's delay (5-15 ms on average):
 ///         slow next to how a vowel or a guitar's tone changes, but at a sudden change of spectrum (a pick attack after
 ///         silence, a held note into noise) the old residual meets the new envelope. A level guard keeps the output
 ///         within 6 dB of the input's recent peak for those moments. The analysis frame does not delay the audio.
@@ -106,8 +106,8 @@ public sealed class FormantCorrector : IDisposable {
     }
 
     /// <summary>
-    ///     Audio thread: the formant shift as a frequency ratio (1 = keep the formants, 2 = an octave up), from the next
-    ///     hop.
+    ///     Audio thread: the formant shift as a frequency ratio (1 = keep the formants, 2 = an octave up), from the
+    ///     next hop.
     /// </summary>
     public void SetShift(double ratio) => shift = Math.Clamp(ratio, 0.25, 4);
 
@@ -158,8 +158,8 @@ public sealed class FormantCorrector : IDisposable {
     }
 
     /// <summary>
-    ///     The shifter's output through the envelope (the all-pole lattice), with the formant shift's gain and the level
-    ///     guard.
+    ///     The shifter's output through the envelope (the all-pole lattice), with the formant shift's gain and the
+    ///     level guard.
     /// </summary>
     public float Color(float sample) {
         var forward = sample * gain;
@@ -208,7 +208,9 @@ public sealed class FormantCorrector : IDisposable {
         input = window = re = im = power = NativeBuffer.Empty;
     }
 
-    /// <summary>The envelope of the last frame: the whitening filter's and the (shifted) envelope's next coefficients.</summary>
+    /// <summary>
+    ///     The envelope of the last frame: the whitening filter's and the (shifted) envelope's next coefficients.
+    /// </summary>
     void Analyse() {
         var n = size;
         var bins = n / 2 + 1;
@@ -224,7 +226,8 @@ public sealed class FormantCorrector : IDisposable {
             power[k] = reals[k] * reals[k] + imaginaries[k] * imaginaries[k];
         }
 
-        // Both power spectra (real, even) in one inverse: the plain one gives the real part, the stretched the imaginary.
+        // Both power spectra (real, even) in one inverse: the plain one gives the real part, the stretched the
+        // imaginary.
         var stretch = shift != 1;
         for (var k = 0; k < bins; k++) {
             reals[k] = power[k];
@@ -262,7 +265,9 @@ public sealed class FormantCorrector : IDisposable {
         gainStep = (float)((target - gain) / hop);
     }
 
-    /// <summary>The power spectrum at fractional bin <paramref name="bin" />, by linear interpolation; nothing past Nyquist.</summary>
+    /// <summary>
+    ///     The power spectrum at fractional bin <paramref name="bin" />, by linear interpolation; nothing past Nyquist.
+    /// </summary>
     float PowerAt(double bin, int bins) {
         var index = (int)bin;
         if (index >= bins - 1) {

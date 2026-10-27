@@ -8,18 +8,18 @@ namespace Cathode.Dsp.Blocks;
 /// <summary>
 ///     Megatap: up to 128 taps on one line fed by the mono sum, spread across Time (tempo-syncable) after a pre-delay.
 ///     Time Alpha bends the tap spacing and Time Randomize jitters it; Level Shape, Amplitude Alpha and Randomize set
-///     the tap amplitudes; Pan Shape, Pan Alpha and Spread place them in the stereo field. One tap can feed back into the
-///     line. Low and high cut filter what enters the line (so every repeat through the feedback is darker), an envelope
-///     can swell the input into the taps, a diffuser smears the wet, and the Axe-Fx mix law and Level are shared with the
-///     other delays.
+///     the tap amplitudes; Pan Shape, Pan Alpha and Spread place them in the stereo field. One tap can feed back into
+///     the line. Low and high cut filter what enters the line (so every repeat through the feedback is darker), an
+///     envelope can swell the input into the taps, a diffuser smears the wet, and the Axe-Fx mix law and Level are
+///     shared with the other delays.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Tap k of N (k = 1..N) sits at <c>Time · f(k / N)</c>, where <c>f(x) = (e^(a·x) - 1) / (e^a - 1)</c> with
 ///         <c>a = 4 · alpha</c>: zero alpha spaces the taps evenly, positive alpha starts them close together and
 ///         spreads them out (a slowing bounce), negative alpha does the reverse. The last tap always lands on Time.
-///         Time Randomize moves each tap by up to half a tap spacing either way, by a fixed pseudo-random amount per tap,
-///         so the pattern is repeatable.
+///         Time Randomize moves each tap by up to half a tap spacing either way, by a fixed pseudo-random amount per
+///         tap, so the pattern is repeatable.
 ///     </para>
 ///     <para>
 ///         Amplitude Alpha raises each shape's amplitudes to the power <c>2^(2·alpha)</c> (a steeper or gentler fade;
@@ -182,14 +182,18 @@ public sealed class MegatapBlock() : DspBlock(Info) {
         ]
     );
 
-    /// <summary>The fraction of Time at which tap <paramref name="k" /> (0-based) of <paramref name="taps" /> sits.</summary>
+    /// <summary>
+    ///     The fraction of Time at which tap <paramref name="k" /> (0-based) of <paramref name="taps" /> sits.
+    /// </summary>
     public static float TapPosition(int k, int taps, float alpha) {
         var x = (k + 1f) / taps;
         var a = 4f * alpha;
         return MathF.Abs(a) < 1e-4f ? x : (MathF.Exp(a * x) - 1f) / (MathF.Exp(a) - 1f);
     }
 
-    /// <summary>The un-normalised amplitude of tap <paramref name="k" /> (0-based) of <paramref name="taps" />.</summary>
+    /// <summary>
+    ///     The un-normalised amplitude of tap <paramref name="k" /> (0-based) of <paramref name="taps" />.
+    /// </summary>
     public static float TapAmplitude(int k, int taps, int shape) {
         var u = taps > 1 ? k / (taps - 1f) : 0f;
         return shape switch {
@@ -201,7 +205,10 @@ public sealed class MegatapBlock() : DspBlock(Info) {
         };
     }
 
-    /// <summary>A repeatable pseudo-random value in [0, 1) for tap <paramref name="k" /> and stream <paramref name="salt" />.</summary>
+    /// <summary>
+    ///     A repeatable pseudo-random value in [0, 1) for tap <paramref name="k" /> and stream
+    ///     <paramref name="salt" />.
+    /// </summary>
     public static float Jitter(int k, uint salt) {
         var x = ((uint)k * 0x9E3779B9u) ^ (salt * 0x85EBCA6Bu);
         x ^= x >> 16;

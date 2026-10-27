@@ -24,11 +24,11 @@ namespace Cathode.Dsp.Cabinets;
 ///     </para>
 ///     <para>
 ///         Interpolation is bilinear in log magnitude, with the onset delay interpolated separately and the phase
-///         rebuilt as minimum phase (<see cref="CabIrSynthesizer" />). Crossfading the IRs themselves would comb-filter:
-///         neighbouring positions differ in arrival time and in phase above a few kHz, so their sum notches where they
-///         disagree and a sweep between points would flange. Log-magnitude interpolation moves peaks and the treble
-///         smoothly, and a close-miked cab is nearly minimum phase apart from its delay, so little is lost; what is lost
-///         is excess phase such as a captured room reflection's exact timing.
+///         rebuilt as minimum phase (<see cref="CabIrSynthesizer" />). Crossfading the IRs themselves would
+///         comb-filter: neighbouring positions differ in arrival time and in phase above a few kHz, so their sum
+///         notches where they disagree and a sweep between points would flange. Log-magnitude interpolation moves peaks
+///         and the treble smoothly, and a close-miked cab is nearly minimum phase apart from its delay, so little is
+///         lost; what is lost is excess phase such as a captured room reflection's exact timing.
 ///     </para>
 /// </remarks>
 public sealed class CabGrid : IDisposable {
@@ -122,8 +122,8 @@ public sealed class CabGrid : IDisposable {
     public static CabGrid Single(string name, AudioData ir) => new(name, [0], [0], new[,] { { ir } });
 
     /// <summary>
-    ///     Natural-log magnitude at <paramref name="position" /> (0 … 1) and <paramref name="distance" /> (inches) on the
-    ///     bins of an FFT at <paramref name="sampleRate" /> with <c>destination.Length</c> = N/2 + 1. Returns the
+    ///     Natural-log magnitude at <paramref name="position" /> (0 … 1) and <paramref name="distance" /> (inches) on
+    ///     the bins of an FFT at <paramref name="sampleRate" /> with <c>destination.Length</c> = N/2 + 1. Returns the
     ///     interpolated onset delay in seconds.
     /// </summary>
     public double LogMagnitude(double position, double distance, double sampleRate, Span<float> destination) {

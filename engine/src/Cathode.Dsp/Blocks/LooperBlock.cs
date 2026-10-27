@@ -5,16 +5,17 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     The looper as a grid block, so it can sit anywhere in the chain (before the delays and reverbs, say) and take the
-///     bypass modes. Its transport is the engine's looper commands (REST, MIDI, footswitches), which go to this block
-///     while its preset is running instead of the rig looper.
+///     The looper as a grid block, so it can sit anywhere in the chain (before the delays and reverbs, say) and take
+///     the bypass modes. Its transport is the engine's looper commands (REST, MIDI, footswitches), which go to this
+///     block while its preset is running instead of the rig looper.
 /// </summary>
 /// <remarks>
-///     The Config page: Max Loop Time (up to 300 s; the memory is committed only as it is recorded), Once, Trim Start and
-///     End, threshold recording, Playback and Dry Level, Overdub Level (each pass scales what the loop held), the seam
-///     Crossfade, Loop Quantize (the length rounded to whole beats of the tempo), what a second Record press does, Speed,
-///     and Low and High Cut on the playback. A preset change to another preset with a Looper block hands the loop over
-///     (<see cref="TakeLoop" />), so it keeps playing; to a preset without one, the loop stops and is dropped.
+///     The Config page: Max Loop Time (up to 300 s; the memory is committed only as it is recorded), Once, Trim Start
+///     and End, threshold recording, Playback and Dry Level, Overdub Level (each pass scales what the loop held), the
+///     seam Crossfade, Loop Quantize (the length rounded to whole beats of the tempo), what a second Record press does,
+///     Speed, and Low and High Cut on the playback. A preset change to another preset with a Looper block hands the
+///     loop over (<see cref="TakeLoop" />), so it keeps playing; to a preset without one, the loop stops and is
+///     dropped.
 /// </remarks>
 public sealed class LooperBlock() : DspBlock(Info), ILooperBlock {
     public const int MaxTime = 0;

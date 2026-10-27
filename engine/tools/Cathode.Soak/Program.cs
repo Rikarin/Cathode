@@ -9,7 +9,8 @@ using System.Text.Json;
 // and a gig would: knob drags, scene switches, preset loads that recompile the graph, uploads, library reads and a
 // WebSocket telemetry client. Samples /system every 5 s. Passes with zero driver overloads and zero API errors.
 //
-//   cathode-soak --server http://127.0.0.1:5180 --minutes 60 --nam <model.nam> --ir <cab.wav> --out soak.jsonl [--max-host-gcs 0]
+//   cathode-soak --server http://127.0.0.1:5180 --minutes 60 --nam <model.nam> --ir <cab.wav> --out soak.jsonl
+//   [--max-host-gcs 0]
 
 var options = Options.Parse(args);
 var server = new Uri(options.Text("server", "http://127.0.0.1:5180"));

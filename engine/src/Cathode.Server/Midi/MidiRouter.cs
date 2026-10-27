@@ -9,9 +9,10 @@ using System.Threading.Channels;
 namespace Cathode.Server.Midi;
 
 /// <summary>
-///     Turns MIDI into rig actions (docs/02-architecture.md §5.10). The host forwards every message with the engine sample
-///     time it arrived at; the router applies MIDI learn, the global mappings and the active footswitch layout, and
-///     drives footswitch LEDs. All state changes still go through <see cref="LiveRig" />, so the editor sees them too.
+///     Turns MIDI into rig actions (docs/02-architecture.md §5.10). The host forwards every message with the engine
+///     sample time it arrived at; the router applies MIDI learn, the global mappings and the active footswitch layout,
+///     and drives footswitch LEDs. All state changes still go through <see cref="LiveRig" />, so the editor sees them
+///     too.
 /// </summary>
 /// <remarks>
 ///     Footswitches: a switch without a hold action acts on press. One with a hold action acts on release (a tap), or
@@ -38,7 +39,9 @@ public sealed partial class MidiRouter : IDisposable {
     readonly Dictionary<int, int> leds = [];
     readonly Timer ledRefresh;
 
-    /// <summary>Actions run one at a time, in the order the MIDI arrived: a scene change then a bypass must not swap.</summary>
+    /// <summary>
+    ///     Actions run one at a time, in the order the MIDI arrived: a scene change then a bypass must not swap.
+    /// </summary>
     readonly Channel<Func<Task>> actions =
         Channel.CreateUnbounded<Func<Task>>(new() { SingleReader = true });
 
@@ -281,7 +284,9 @@ public sealed partial class MidiRouter : IDisposable {
         }
     }
 
-    /// <summary>Queues an action behind the ones before it; failures are logged, as there is nobody to answer.</summary>
+    /// <summary>
+    ///     Queues an action behind the ones before it; failures are logged, as there is nobody to answer.
+    /// </summary>
     void Run(SwitchAction action, int data, bool continuous, bool down, long sampleTime) =>
         actions.Writer.TryWrite(() => ExecuteAsync(action, data, continuous, down, sampleTime));
 
@@ -440,7 +445,9 @@ public sealed partial class MidiRouter : IDisposable {
         );
     }
 
-    /// <summary>Scene MIDI: the messages a scene sends to other gear when it is selected or its preset loads on it.</summary>
+    /// <summary>
+    ///     Scene MIDI: the messages a scene sends to other gear when it is selected or its preset loads on it.
+    /// </summary>
     void SendSceneMidi(int scene) {
         if (!engine.IsConnected) {
             return;

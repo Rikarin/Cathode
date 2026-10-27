@@ -64,8 +64,8 @@ public sealed class EngineHostService : IDisposable {
     public AudioDeviceStatus DeviceStatus => device?.Status ?? AudioDeviceStatus.Ok;
 
     /// <summary>
-    ///     Where the host reports problems found while gathering telemetry (an exception on the audio thread); the serve
-    ///     command points it at the console.
+    ///     Where the host reports problems found while gathering telemetry (an exception on the audio thread); the
+    ///     serve command points it at the console.
     /// </summary>
     public Action<string>? Log { get; set; }
 
@@ -136,8 +136,8 @@ public sealed class EngineHostService : IDisposable {
     }
 
     /// <summary>
-    ///     Handles <c>setParams</c> and <c>setBypass</c> straight from a frame's UTF-8 JSON, without deserializing it: a
-    ///     knob drag sends one per UI frame, and deserializing them was most of the host's steady allocation
+    ///     Handles <c>setParams</c> and <c>setBypass</c> straight from a frame's UTF-8 JSON, without deserializing it:
+    ///     a knob drag sends one per UI frame, and deserializing them was most of the host's steady allocation
     ///     (docs/adr/0001-process-model.md). Returns false for every other request, and for any frame it cannot read,
     ///     so the caller deserializes it and calls <see cref="Handle" />. A success reply is one reused message, valid
     ///     until the next call; failures allocate.
@@ -251,7 +251,9 @@ public sealed class EngineHostService : IDisposable {
             : IpcMessage.Fail(id, "The engine command queue is full.");
     }
 
-    /// <summary>Meters, CPU, overloads and the latest tuner reading; also disposes graphs the audio thread retired.</summary>
+    /// <summary>
+    ///     Meters, CPU, overloads and the latest tuner reading; also disposes graphs the audio thread retired.
+    /// </summary>
     public HostTelemetry Telemetry() => Telemetry(new());
 
     /// <summary>
@@ -477,7 +479,9 @@ public sealed class EngineHostService : IDisposable {
         return empty;
     }
 
-    /// <summary>Whether the string token under <paramref name="reader" /> is a rig or global EQ id (without allocating).</summary>
+    /// <summary>
+    ///     Whether the string token under <paramref name="reader" /> is a rig or global EQ id (without allocating).
+    /// </summary>
     static bool IsEngineWide(ref Utf8JsonReader reader) {
         Span<char> id = stackalloc char[MaxIdLength];
         var length = ReadId(ref reader, id);
@@ -527,7 +531,9 @@ public sealed class EngineHostService : IDisposable {
     static string NoParameter(ReadOnlySpan<char> param, ReadOnlySpan<char> block) =>
         $"No parameter '{param}' on block '{block}'.";
 
-    /// <summary>Copies a string token into <paramref name="destination" />; -1 if it is not a string or too long.</summary>
+    /// <summary>
+    ///     Copies a string token into <paramref name="destination" />; -1 if it is not a string or too long.
+    /// </summary>
     static int ReadId(ref Utf8JsonReader reader, scoped Span<char> destination) =>
         reader.TokenType == JsonTokenType.String
         && !reader.HasValueSequence

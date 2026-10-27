@@ -8,7 +8,9 @@ using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 
-/// <summary>Audio I/O through the API (docs/08-blocks-parity.md §2): outputs, inputs, oversampling, latency, test tone.</summary>
+/// <summary>
+///     Audio I/O through the API (docs/08-blocks-parity.md §2): outputs, inputs, oversampling, latency, test tone.
+/// </summary>
 public sealed class AudioIoApiTests : IAsyncLifetime {
     readonly ServerFixture server = new();
     HttpClient client = null!;

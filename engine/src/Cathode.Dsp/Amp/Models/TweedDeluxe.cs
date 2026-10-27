@@ -4,13 +4,13 @@ namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
 ///     Fender Tweed Deluxe 5E3 (about 15 W): the Instrument and Microphone channels' V1 halves (12AY7, 100k plates, a
-///     shared 820 Ω ‖ 25 µF cathode, 34k stoppers), each plate's 0.1 µF into its 1M volume's wiper, the volumes' tops tied
-///     at V2A's grid (wired "backwards": the volumes are V2A's grid leak, and the channel not played loads the one played,
-///     about 1M with its volume at 0 down to its V1 plate with it at 10), the 500 pF bright cap across the Instrument
-///     volume, the tone control, V2A (12AX7, 100k, 1.5k ‖ 25 µF), 0.1 µF into a cathodyne on V2B (56k plate, 56k cathode,
-///     1.5k bias), two 6V6GT cathode-biased on a shared 250 Ω with no screen resistors, an 8k : 8 Ω transformer, a 5Y3,
-///     and
-///     no feedback. Panel: Instrument and Mic volumes, Tone; <b>Mic Input</b> plays the Microphone channel.
+///     shared 820 Ω ‖ 25 µF cathode, 34k stoppers), each plate's 0.1 µF into its 1M volume's wiper, the volumes' tops
+///     tied at V2A's grid (wired "backwards": the volumes are V2A's grid leak, and the channel not played loads the one
+///     played, about 1M with its volume at 0 down to its V1 plate with it at 10), the 500 pF bright cap across the
+///     Instrument volume, the tone control, V2A (12AX7, 100k, 1.5k ‖ 25 µF), 0.1 µF into a cathodyne on V2B (56k plate,
+///     56k cathode, 1.5k bias), two 6V6GT cathode-biased on a shared 250 Ω with no screen resistors, an 8k : 8 Ω
+///     transformer, a 5Y3, and no feedback. Panel: Instrument and Mic volumes, Tone; <b>Mic Input</b> plays the
+///     Microphone channel.
 ///     <see cref="Jumped" /> is the same amp with the channels jumpered.
 /// </summary>
 /// <remarks>
@@ -23,11 +23,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///         interaction (volumes wired input-to-wiper, output from the track's top).
 ///     </para>
 ///     <para>
-///         With one input played, the other V1 half is linear (its grid at rest): its plate is about 21k from its own DC
-///         voltage, through its coupling cap into its volume's wiper, which is how the volume not played loads the one
-///         played. The played half gets the shared cathode's per-tube equivalent (1.64k ‖ 12.5 µF, as AmpBooks gives it),
-///         which leaves out the idle half's grounded-grid pull on the cathode below about 30 Hz. Jumped, the stage holds
-///         both triodes exactly, at about 5 % more CPU.
+///         With one input played, the other V1 half is linear (its grid at rest): its plate is about 21k from its own
+///         DC voltage, through its coupling cap into its volume's wiper, which is how the volume not played loads the
+///         one played. The played half gets the shared cathode's per-tube equivalent (1.64k ‖ 12.5 µF, as AmpBooks
+///         gives it), which leaves out the idle half's grounded-grid pull on the cathode below about 30 Hz. Jumped, the
+///         stage holds both triodes exactly, at about 5 % more CPU.
 ///     </para>
 ///     <para>
 ///         Unverified, reconstructed from those descriptions: the tone control's wiring, taken as a 1M audio pot from
@@ -50,7 +50,10 @@ public static class TweedDeluxe {
 
     public static AmpDesign Design { get; } = Build("Tweed Deluxe 5E3", InputStage(), "Mic Input");
 
-    /// <summary>The 5E3 with its channels jumpered: the guitar into the Instrument channel, a cable on to the Microphone one.</summary>
+    /// <summary>
+    ///     The 5E3 with its channels jumpered: the guitar into the Instrument channel, a cable on to the Microphone
+    ///     one.
+    /// </summary>
     public static AmpDesign Jumped { get; } = Build("Tweed Deluxe 5E3 Jumped", JumpedStage(), null);
 
     static AmpDesign Build(string name, NetworkStageDesign input, string? channelSwitch) =>
@@ -101,9 +104,9 @@ public static class TweedDeluxe {
         };
 
     /// <summary>
-    ///     The played half of V1 (Instrument, or Microphone with <see cref="SwitchRole.Switch1" />) into its volume's wiper,
-    ///     the idle half's plate as <see cref="IdlePlate" />; the volumes' tops at V2A's grid (the output), the bright cap
-    ///     and the tone control.
+    ///     The played half of V1 (Instrument, or Microphone with <see cref="SwitchRole.Switch1" />) into its volume's
+    ///     wiper, the idle half's plate as <see cref="IdlePlate" />; the volumes' tops at V2A's grid (the output), the
+    ///     bright cap and the tone control.
     /// </summary>
     static NetworkStageDesign InputStage() {
         var net = new StageNetlist();
@@ -124,7 +127,9 @@ public static class TweedDeluxe {
         return new("V1", net, 34e3);
     }
 
-    /// <summary>Both V1 halves on their shared cathode, both grids driven (68k each); the rest as <see cref="InputStage" />.</summary>
+    /// <summary>
+    ///     Both V1 halves on their shared cathode, both grids driven (68k each); the rest as <see cref="InputStage" />.
+    /// </summary>
     static NetworkStageDesign JumpedStage() {
         var net = new StageNetlist();
         var (instrumentGrid, micGrid) = (net.Node(), net.Node());
@@ -164,8 +169,8 @@ public static class TweedDeluxe {
     }
 
     /// <summary>
-    ///     V2A (100k, 1.5k ‖ 25 µF) and its 0.1 µF into the cathodyne's grid. Its grid-plate capacitance's Miller multiple
-    ///     against the volume network's high impedance is part of the 5E3's top end.
+    ///     V2A (100k, 1.5k ‖ 25 µF) and its 0.1 µF into the cathodyne's grid. Its grid-plate capacitance's Miller
+    ///     multiple against the volume network's high impedance is part of the 5E3's top end.
     /// </summary>
     static NetworkStageDesign SecondStage() {
         var net = new StageNetlist();

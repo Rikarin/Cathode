@@ -195,8 +195,9 @@ public class CathodeEngineTests {
 
     [Fact]
     public void Every_graph_retired_between_two_sweeps_is_handed_back() {
-        // Before the fix the hand-back had four slots and dropped the fifth graph to the GC, which never ran its blocks'
-        // Dispose. Spillover off: each replaced graph fades out over 20 ms and retires, so every swap retires one.
+        // Before the fix the hand-back had four slots and dropped the fifth graph to the GC, which never ran its
+        // blocks' Dispose. Spillover off: each replaced graph fades out over 20 ms and retires, so every swap retires
+        // one.
         var engine = new CathodeEngine(Spec);
         engine.Rig.SetTarget(RigControls.Descriptor.IndexOf("spillover"), 0f);
         var graphs = new List<CompiledGraph>();

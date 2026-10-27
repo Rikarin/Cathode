@@ -3,18 +3,19 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Carvin Legacy VL100 (Steve Vai, 100 W), lead and clean channels. V1B (220k, 910 Ω ‖ 1 µF) feeds both. Lead: 2.2 nF
-///     into the 500k audio Drive (560 pF from its wiper to ground) and V1A (220k with 560 pF across it, 1.5k ‖ 1 µF);
-///     2.2 nF, 1M, 470k ‖ 560 pF and 4.7 nF into V2B (68k grid leak; 150k with 1.12 nF across it, 3.3k unbypassed);
-///     470k ‖ (220k + 560 pF) and 2.2 nF into V2A (470k leak; 220k with 560 pF across it, 2.2k ‖ 47 µF); 10 nF into a
-///     James (Baxandall-type) tone stack: 100k into the 1M bass pot with 10 nF across its upper and 11.1 nF across its
-///     lower half above the 25k Mid rheostat, 100k from its wiper to the treble wiper, 250 pF into the 1M treble pot
-///     over 2.2 nF; 33 nF and 47k into Volume 1 (1M linear) with the Presence rheostat (500k audio, 2.2 nF) on its
-///     wiper. Clean: 100k into a James stack with its own values (4.7 nF and 22 nF on the bass pot, 250 pF and 2.2 nF
-///     on the treble), 10 nF and 470k (330 pF across it with the Presence switch) over 220k, Volume 2 (1M) into V3B
-///     (220k, 1.5k unbypassed). Both channels: a 180k/33k pad into the loop's transistor buffer, the return stage V3A
-///     (100k, 910 Ω ‖ 10 µF), 100k into the inverter's grid, where the feedback (360k from the 8 Ω tap, 12 dB) sums; a
-///     long-tail pair (100k plates, 560 Ω and 44k tail) into four EL34 (4.7k grid stoppers, 350 Ω screens) at 455 V.
+///     Carvin Legacy VL100 (Steve Vai, 100 W), lead and clean channels. V1B (220k, 910 Ω ‖ 1 µF) feeds both. Lead: 2.2
+///     nF into the 500k audio Drive (560 pF from its wiper to ground) and V1A (220k with 560 pF across it, 1.5k ‖ 1
+///     µF); 2.2 nF, 1M, 470k ‖ 560 pF and 4.7 nF into V2B (68k grid leak; 150k with 1.12 nF across it, 3.3k
+///     unbypassed); 470k ‖ (220k + 560 pF) and 2.2 nF into V2A (470k leak; 220k with 560 pF across it, 2.2k ‖ 47 µF);
+///     10 nF into a James (Baxandall-type) tone stack: 100k into the 1M bass pot with 10 nF across its upper and 11.1
+///     nF across its lower half above the 25k Mid rheostat, 100k from its wiper to the treble wiper, 250 pF into the 1M
+///     treble pot over 2.2 nF; 33 nF and 47k into Volume 1 (1M linear) with the Presence rheostat (500k audio, 2.2 nF)
+///     on its wiper. Clean: 100k into a James stack with its own values (4.7 nF and 22 nF on the bass pot, 250 pF and
+///     2.2 nF on the treble), 10 nF and 470k (330 pF across it with the Presence switch) over 220k, Volume 2 (1M) into
+///     V3B (220k, 1.5k unbypassed). Both channels: a 180k/33k pad into the loop's transistor buffer, the return stage
+///     V3A (100k, 910 Ω ‖ 10 µF), 100k into the inverter's grid, where the feedback (360k from the 8 Ω tap, 12 dB)
+///     sums; a long-tail pair (100k plates, 560 Ω and 44k tail) into four EL34 (4.7k grid stoppers, 350 Ω screens) at
+///     455 V.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -158,8 +159,8 @@ public static class CarvinLegacy {
     }
 
     /// <summary>
-    ///     The clean channel's stack seen from V1B's coupling cap on the lead channel, its pots at noon (bass and treble
-    ///     linear halves, the 25k audio middle at about 3k) and the presence switch out.
+    ///     The clean channel's stack seen from V1B's coupling cap on the lead channel, its pots at noon (bass and
+    ///     treble linear halves, the 25k audio middle at about 3k) and the presence switch out.
     /// </summary>
     static void CleanStackLoad(StageNetlist net, int node) {
         var (bassTop, bassWiper, bassBottom, trebleTop, trebleWiper, trebleBottom, coupled, volume) = (

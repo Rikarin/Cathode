@@ -5,7 +5,9 @@ using Cathode.Ipc;
 
 namespace Cathode.Server.Rig;
 
-/// <summary>Phase 5 operations: bypass modes, modifiers, controllers, tempo, channels, Manual/External, global blocks.</summary>
+/// <summary>
+///     Phase 5 operations: bypass modes, modifiers, controllers, tempo, channels, Manual/External, global blocks.
+/// </summary>
 public sealed partial class LiveRig {
     /// <summary>How long after a tap the engine's tempo is taken back into the preset.</summary>
     static readonly TimeSpan TapFollowWindow = TimeSpan.FromSeconds(3);

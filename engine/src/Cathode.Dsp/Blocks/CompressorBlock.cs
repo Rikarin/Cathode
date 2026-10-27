@@ -6,8 +6,8 @@ namespace Cathode.Dsp.Blocks;
 
 /// <summary>
 ///     Feed-forward compressor after Giannoulis, Massberg and Reiss, "Digital Dynamic Range Compressor Design"
-///     (JAES 2012): a soft-knee gain computer in dB followed by a smooth, decoupled attack/release detector on the gain.
-///     Detection is linked across channels.
+///     (JAES 2012): a soft-knee gain computer in dB followed by a smooth, decoupled attack/release detector on the
+///     gain. Detection is linked across channels.
 ///     <list type="bullet">
 ///         <item><b>Pedal</b>: instantaneous peak level (VCA style, punchy).</item>
 ///         <item><b>Studio</b>: RMS level over about 5 ms (smoother, program-like).</item>
@@ -17,8 +17,8 @@ namespace Cathode.Dsp.Blocks;
 ///             shallower law) or a Slow vactrol (twice the attack, a steeper law).
 ///         </item>
 ///         <item>
-///             <b>Sustainer</b>: upward compression on the Studio detector. Below the threshold, quiet signals are raised
-///             by (1 - 1 / ratio) dB per dB, at most <see cref="MaxSustainDb" />, so notes sustain as they fade.
+///             <b>Sustainer</b>: upward compression on the Studio detector. Below the threshold, quiet signals are
+///             raised by (1 - 1 / ratio) dB per dB, at most <see cref="MaxSustainDb" />, so notes sustain as they fade.
 ///         </item>
 ///         <item>
 ///             <b>Dynamics</b>: a dynamics processor. Above the threshold the slope is 1 - <b>Dynamics</b>: positive
@@ -26,8 +26,8 @@ namespace Cathode.Dsp.Blocks;
 ///             <see cref="MaxSustainDb" /> of boost.
 ///         </item>
 ///         <item>
-///             <b>Feedback</b>: the classic feedback topology. The detector hears the compressed output (the input times
-///             the last gain), so the effective ratio is softer and the release follows the program.
+///             <b>Feedback</b>: the classic feedback topology. The detector hears the compressed output (the input
+///             times the last gain), so the effective ratio is softer and the release follows the program.
 ///         </item>
 ///         <item>
 ///             <b>JFET</b>, after the 1176: a feedback peak detector driving a JFET gain cell. The JFET is a voltage
@@ -44,8 +44,8 @@ namespace Cathode.Dsp.Blocks;
 ///         <item>
 ///             <b>Compander</b>: a compressor and a downward expander in one. Above Threshold it compresses by Ratio;
 ///             below <b>Expander Threshold</b> it expands downward by <b>Expander Ratio</b> (at most 80 dB), the
-///             expander closing with the release and opening with the attack, so the noise between notes drops while the
-///             notes are levelled.
+///             expander closing with the release and opening with the attack, so the noise between notes drops while
+///             the notes are levelled.
 ///         </item>
 ///     </list>
 ///     <b>Controls</b> Compression replaces Threshold and Ratio by one knob, as the guide's pedal and optical types
@@ -54,17 +54,17 @@ namespace Cathode.Dsp.Blocks;
 ///     <b>Detector</b> overrides the type's level detector (peak, RMS, or the mean of the two in dB). <b>Ratio</b> at
 ///     <see cref="InfiniteRatio" /> is ∞:1, a limiter. <b>Auto Attack/Release</b> scales both times by the crest factor
 ///     (<see cref="CrestFactor" />). The detector can be fed through a sidechain low and high cut, an <b>Emphasis</b>
-///     high shelf (so the bass pumps less) and a sidechain EQ band; <b>Input Level</b> Line takes 12 dB off the detector
-///     for line-level sources. Auto Makeup adds back half the gain reduction a 0 dBFS signal would get, none on the
-///     types that do not reduce a loud signal (<see cref="AutoMakeupDb" />). The mix follows the Axe-Fx law (50 % =
-///     -6 dB each) for parallel compression.
+///     high shelf (so the bass pumps less) and a sidechain EQ band; <b>Input Level</b> Line takes 12 dB off the
+///     detector for line-level sources. Auto Makeup adds back half the gain reduction a 0 dBFS signal would get, none
+///     on the types that do not reduce a loud signal (<see cref="AutoMakeupDb" />). The mix follows the Axe-Fx law (50
+///     % = -6 dB each) for parallel compression.
 ///     <para>
 ///         Sidechain picks what the detector hears: the block's input, the grid input, another grid row
-///         (a tap, <see cref="SideInputs.Taps" />) or one of the interface's inputs (<see cref="HardwareInputs" />); the
-///         sidechain cuts, emphasis and EQ then filter that signal. Look Ahead
-///         delays the audio (wet and dry alike) while the detector hears it undelayed, so the gain is already down when
-///         a transient arrives; the block reports the delay as latency, so the compiler aligns parallel rows, and
-///         changing it rebuilds the graph (<see cref="ParamDescriptor.Recompile" />).
+///         (a tap, <see cref="SideInputs.Taps" />) or one of the interface's inputs (<see cref="HardwareInputs" />);
+///         the sidechain cuts, emphasis and EQ then filter that signal. Look Ahead delays the audio (wet and dry alike)
+///         while the detector hears it undelayed, so the gain is already down when a transient arrives; the block
+///         reports the delay as latency, so the compiler aligns parallel rows, and changing it rebuilds the graph
+///         (<see cref="ParamDescriptor.Recompile" />).
 ///     </para>
 /// </summary>
 public sealed class CompressorBlock() : DspBlock(Info), ISideInputBlock {
@@ -234,7 +234,9 @@ public sealed class CompressorBlock() : DspBlock(Info), ISideInputBlock {
     /// <summary>The look-ahead delay, fixed when the block is prepared (the graph compiler reads it then).</summary>
     public override int LatencySamples => ahead;
 
-    /// <summary>Current gain reduction in dB (0 or negative; positive for upward types). For meters and tests.</summary>
+    /// <summary>
+    ///     Current gain reduction in dB (0 or negative; positive for upward types). For meters and tests.
+    /// </summary>
     public float GainReductionDb { get; private set; }
 
     /// <summary>
@@ -260,8 +262,8 @@ public sealed class CompressorBlock() : DspBlock(Info), ISideInputBlock {
     }
 
     /// <summary>
-    ///     The Dynamics type's ratio for <paramref name="dynamics" /> (-100..100 %): the slope over the threshold is 1 -
-    ///     it.
+    ///     The Dynamics type's ratio for <paramref name="dynamics" /> (-100..100 %): the slope over the threshold is 1
+    ///     - it.
     /// </summary>
     public static float DynamicsRatio(float dynamics) {
         var slope = 1f - dynamics / 100f;
@@ -299,7 +301,9 @@ public sealed class CompressorBlock() : DspBlock(Info), ISideInputBlock {
     /// </summary>
     public static float JfetColour(float v, float pinch) => (1f - pinch) * v + pinch * MathF.Tanh(v);
 
-    /// <summary>The grid input and the row taps for the sidechain, and the hardware inputs (<see cref="Inputs" />).</summary>
+    /// <summary>
+    ///     The grid input and the row taps for the sidechain, and the hardware inputs (<see cref="Inputs" />).
+    /// </summary>
     public SideInputs SideInputs => SideInputs.Taps | SideInputs.Hardware;
 
     /// <summary>Audio thread: keeps the tap the Sidechain parameter selects (<see cref="SidechainSource" />).</summary>

@@ -30,9 +30,9 @@ public sealed class PresetTools(PresetStore presets, BlockCatalog catalog) {
     }
 
     /// <summary>
-    ///     Reset Amp blocks: every Circuit Amp parameter of the presets goes back to its default, except the controls on
-    ///     the model's front panel (the knobs and switches its <see cref="AmpPanel" /> names) and the ones a type change
-    ///     keeps (type, level, balance, input select). The expert settings, in short, start over.
+    ///     Reset Amp blocks: every Circuit Amp parameter of the presets goes back to its default, except the controls
+    ///     on the model's front panel (the knobs and switches its <see cref="AmpPanel" /> names) and the ones a type
+    ///     change keeps (type, level, balance, input select). The expert settings, in short, start over.
     /// </summary>
     public BatchResult ResetAmps(IEnumerable<string> ids) {
         var descriptor = catalog.Descriptor(CircuitAmp)

@@ -14,8 +14,8 @@ namespace Cathode.Host;
 /// </summary>
 static class ServeCommand {
     /// <summary>
-    ///     The GC budget that keeps the host collection-free for hours (docs/adr/0001-process-model.md). NativeAOT reads
-    ///     it from the environment only, as bare hex, so whoever launches the host must set it.
+    ///     The GC budget that keeps the host collection-free for hours (docs/adr/0001-process-model.md). NativeAOT
+    ///     reads it from the environment only, as bare hex, so whoever launches the host must set it.
     /// </summary>
     public const string Gen0Budget = "10000000"; // 256 MB
 

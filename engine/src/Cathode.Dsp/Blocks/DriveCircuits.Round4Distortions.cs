@@ -7,9 +7,9 @@ public static partial class DriveCircuits {
     // order of initialisers across the parts of a partial class is not defined. Everything below is built in methods.
 
     /// <summary>
-    ///     Drive round 4, group D2: distortions and amp-in-a-box pedals (docs/08 §6.5, docs/09 stream D2), appended after
-    ///     group D1's overdrives. Values are from each pedal's published schematic where one exists; the docs list what was
-    ///     guessed.
+    ///     Drive round 4, group D2: distortions and amp-in-a-box pedals (docs/08 §6.5, docs/09 stream D2), appended
+    ///     after group D1's overdrives. Values are from each pedal's published schematic where one exists; the docs
+    ///     list what was guessed.
     /// </summary>
     static DriveCircuit[] Round4Distortions() => [
         new(
@@ -298,7 +298,9 @@ public static partial class DriveCircuits {
             FeedbackCapacitance = 100e-12
         };
 
-    /// <summary>One voicing of the Suhr Riot: its gain stage into the voicing switch's diodes, passive treble cut.</summary>
+    /// <summary>
+    ///     One voicing of the Suhr Riot: its gain stage into the voicing switch's diodes, passive treble cut.
+    /// </summary>
     static DriveCircuit RiotCircuit(string name, string diodes, DiodeStacks stacks, double outputDb) =>
         new(name, $"Suhr Riot: TL072 gain stage into {diodes} to ground (the voicing switch), passive treble cut") {
             Stages = [RiotStage(), new(StageKind.Clipper) { Series = 2.2e3, Shunt = 4.7e-9, Diodes = stacks }],

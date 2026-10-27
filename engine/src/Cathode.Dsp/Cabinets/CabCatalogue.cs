@@ -8,8 +8,8 @@ public readonly record struct Resonance(double Hz, double Db, double Q);
 /// <summary>
 ///     A guitar loudspeaker as compact parametric data. The low end comes from the Thiele-Small values (the enclosure
 ///     turns them into the system resonance), the piston band and cone breakup from <see cref="Breakup" />, the top end
-///     from the high cut. Geometry sets how the response changes with mic position. <see cref="Electrical" /> is the same
-///     speaker as an electrical load: what a Circuit Amp following this cab drives (<c>AutoSpeaker</c>).
+///     from the high cut. Geometry sets how the response changes with mic position. <see cref="Electrical" /> is the
+///     same speaker as an electrical load: what a Circuit Amp following this cab drives (<c>AutoSpeaker</c>).
 /// </summary>
 /// <param name="Name">Display name.</param>
 /// <param name="ConeRadius">Effective radiating radius in metres (from Sd where published: a = sqrt(Sd / pi)).</param>
@@ -22,7 +22,9 @@ public readonly record struct Resonance(double Hz, double Db, double Q);
 /// </param>
 /// <param name="HighCutHz">Where the datasheet chart falls away at the top.</param>
 /// <param name="HighCutOrder">Slope of that fall, in 6 dB/octave steps.</param>
-/// <param name="Breakup">Cone breakup peaks and dips, lowest first: the n-th is weighted by the n-th radial mode.</param>
+/// <param name="Breakup">
+///     Cone breakup peaks and dips, lowest first: the n-th is weighted by the n-th radial mode.
+/// </param>
 /// <param name="Electrical">The voice coil and the motional Qs: the speaker's impedance curve.</param>
 public sealed record SpeakerModel(
     string Name,
@@ -36,10 +38,14 @@ public sealed record SpeakerModel(
     Resonance[] Breakup,
     SpeakerElectrical Electrical
 ) {
-    /// <summary>Total Q at Fs (<see cref="SpeakerElectrical.Qts" />): the acoustic low end and the load share it.</summary>
+    /// <summary>
+    ///     Total Q at Fs (<see cref="SpeakerElectrical.Qts" />): the acoustic low end and the load share it.
+    /// </summary>
     public double Qts => Electrical.Qts;
 
-    /// <summary>The free-air impedance in ohms at <paramref name="hz" /> (<see cref="SpeakerElectrical.Impedance" />).</summary>
+    /// <summary>
+    ///     The free-air impedance in ohms at <paramref name="hz" /> (<see cref="SpeakerElectrical.Impedance" />).
+    /// </summary>
     public Complex Impedance(double hz) => Electrical.Impedance(hz, Fs, 1);
 }
 
@@ -75,10 +81,14 @@ public sealed record SpeakerElectrical(
     /// <summary>The second frequency the lumped voice coil (<see cref="LossyCoil" />) is fitted at, Hz.</summary>
     public const double FitFrequency = 5_000;
 
-    /// <summary>Typical Qms of a ceramic paper-cone guitar speaker (Jensen's C12N: 6.6-7.5), where none is published.</summary>
+    /// <summary>
+    ///     Typical Qms of a ceramic paper-cone guitar speaker (Jensen's C12N: 6.6-7.5), where none is published.
+    /// </summary>
     public const double TypicalCeramicQms = 7;
 
-    /// <summary>Typical Qms of an alnico paper-cone guitar speaker (Jensen's P10R: 15-24), where none is published.</summary>
+    /// <summary>
+    ///     Typical Qms of an alnico paper-cone guitar speaker (Jensen's P10R: 15-24), where none is published.
+    /// </summary>
     public const double TypicalAlnicoQms = 10;
 
     /// <summary>
@@ -173,7 +183,8 @@ public sealed record SpeakerElectrical(
 
 /// <summary>
 ///     A microphone as compact parametric data: its far-field on-axis response (as on the datasheet chart, which is
-///     measured at about 1 m) and its first-order polar pattern <c>A + (1 - A) cos θ</c>, which sets the proximity effect.
+///     measured at about 1 m) and its first-order polar pattern <c>A + (1 - A) cos θ</c>, which sets the proximity
+///     effect.
 /// </summary>
 /// <param name="Name">Display name.</param>
 /// <param name="Omni">
@@ -205,7 +216,9 @@ public sealed record MicModel(
 /// <param name="DipolePath">Open back: extra path from the back of the cone round to the front, in metres.</param>
 /// <param name="BackWave">Open back: level of the back wave at low frequencies (the baffle shades it above).</param>
 /// <param name="Height">Height of the miked speaker's centre above the floor, in metres.</param>
-/// <param name="Recess">Grille cloth to the cone's acoustic centre, in metres: the mic's distance starts at the cloth.</param>
+/// <param name="Recess">
+///     Grille cloth to the cone's acoustic centre, in metres: the mic's distance starts at the cloth.
+/// </param>
 /// <param name="Others">The other speakers' centres relative to the miked one (x right, y up), in metres.</param>
 /// <param name="Modes">Box resonances (standing waves between the panels; panel resonance on open cabs).</param>
 /// <param name="Series">
@@ -231,7 +244,9 @@ public sealed record EnclosureModel(
     /// <summary>The number of parallel strings.</summary>
     public int Parallel => Math.Max(1, Count / Math.Max(1, Series));
 
-    /// <summary>The wiring's impedance scale, series over parallel: one speaker's impedance times this is the cabinet's.</summary>
+    /// <summary>
+    ///     The wiring's impedance scale, series over parallel: one speaker's impedance times this is the cabinet's.
+    /// </summary>
     public double WiringFactor => (double)Math.Max(1, Series) / Parallel;
 
     /// <summary>
@@ -263,7 +278,9 @@ public sealed record EnclosureModel(
 ///     1 W / 1 m on-axis frequency-response chart, to about ±2 dB. Change a speaker by editing its line.
 /// </summary>
 public static class CabCatalogue {
-    /// <summary>Radial mode constants: the zeros of J0, so mode n of a clamped disc has n - 1 nodal circles inside.</summary>
+    /// <summary>
+    ///     Radial mode constants: the zeros of J0, so mode n of a clamped disc has n - 1 nodal circles inside.
+    /// </summary>
     public static ReadOnlySpan<double> RadialModes => [2.4048, 5.5201, 8.6537, 11.7915, 14.9309, 18.0711];
 
     // Electrical data (SpeakerElectrical), 8 Ω versions. Celestion publishes only Fs and Re for its guitar speakers

@@ -2,14 +2,16 @@ using Cathode.Dsp.Amp;
 
 namespace Cathode.Dsp.Filters;
 
-/// <summary>One series L-C-R resonator of an <see cref="LcrGraphicEq" />: henries, farads and its series ohms.</summary>
+/// <summary>
+///     One series L-C-R resonator of an <see cref="LcrGraphicEq" />: henries, farads and its series ohms.
+/// </summary>
 public readonly record struct LcrBranch(double Inductance, double Capacitance, double Resistance) {
     /// <summary>Its resonance, Hz.</summary>
     public double Frequency => 1 / (2 * Math.PI * Math.Sqrt(Inductance * Capacitance));
 
     /// <summary>
-    ///     A branch resonating at <paramref name="hz" /> on <paramref name="capacitance" />, with the series resistance that
-    ///     gives the resonator alone a Q of <paramref name="q" /> (the characteristic impedance divided by Q).
+    ///     A branch resonating at <paramref name="hz" /> on <paramref name="capacitance" />, with the series resistance
+    ///     that gives the resonator alone a Q of <paramref name="q" /> (the characteristic impedance divided by Q).
     /// </summary>
     public static LcrBranch At(double hz, double capacitance, double q = 1) {
         var inductance = 1 / (Square(2 * Math.PI * hz) * capacitance);
@@ -30,8 +32,8 @@ public readonly record struct LcrBranch(double Inductance, double Capacitance, d
 ///     the others do.
 /// </summary>
 /// <remarks>
-///     The circuit is simulated, not approximated: an ideal op-amp holds both inputs at one voltage, every reactance is a
-///     trapezoidal companion model (the bilinear transform of the circuit at every setting), and each branch's two
+///     The circuit is simulated, not approximated: an ideal op-amp holds both inputs at one voltage, every reactance is
+///     a trapezoidal companion model (the bilinear transform of the circuit at every setting), and each branch's two
 ///     nodes are eliminated in closed form, so a sample costs a few operations per band. Slider positions are set per
 ///     sub-block; moving one recomputes five 2 × 2 eliminations. Per-channel state; allocation-free after construction.
 /// </remarks>
@@ -55,7 +57,9 @@ public sealed class LcrGraphicEq {
 
     public int Count => branches.Length;
 
-    /// <summary>A network of <paramref name="branches" />, with sliders of <paramref name="potOhms" /> (linear).</summary>
+    /// <summary>
+    ///     A network of <paramref name="branches" />, with sliders of <paramref name="potOhms" /> (linear).
+    /// </summary>
     public LcrGraphicEq(IReadOnlyList<LcrBranch> branches, double inputOhms, double potOhms) {
         this.branches = [..branches];
         this.inputOhms = inputOhms;
@@ -90,7 +94,9 @@ public sealed class LcrGraphicEq {
         Reset();
     }
 
-    /// <summary>The slider positions, 0 (the input end: full cut) … 0.5 (flat) … 1 (full boost). Allocation-free.</summary>
+    /// <summary>
+    ///     The slider positions, 0 (the input end: full cut) … 0.5 (flat) … 1 (full boost). Allocation-free.
+    /// </summary>
     public void Set(ReadOnlySpan<double> positions) {
         for (var k = 0; k < branches.Length; k++) {
             var x = Math.Clamp(k < positions.Length ? positions[k] : 0.5, 0, 1);
@@ -181,11 +187,11 @@ public enum PassiveNetwork {
 
 /// <summary>
 ///     The component-level networks behind the Graphic EQ's passive types (docs/08-blocks-parity.md §6.12), stereo:
-///     the Mark and 5-band inductor graphics and the console on an <see cref="LcrGraphicEq" />, the 3-band on a Marshall
-///     bass-middle-treble stack (<see cref="ToneStackCircuit" />) and the 4-band (after the Marshall JMP-1) on that stack
-///     followed by a presence network. The band gains (±12 dB) are slider or pot positions here: 0 dB is a centred
-///     slider (flat on the inductor graphics) or a pot at noon (the stack's own voicing, made up to unity at 1 kHz), so
-///     the bands interact and overshoot as the circuits do and are not exact dB.
+///     the Mark and 5-band inductor graphics and the console on an <see cref="LcrGraphicEq" />, the 3-band on a
+///     Marshall bass-middle-treble stack (<see cref="ToneStackCircuit" />) and the 4-band (after the Marshall JMP-1) on
+///     that stack followed by a presence network. The band gains (±12 dB) are slider or pot positions here: 0 dB is a
+///     centred slider (flat on the inductor graphics) or a pot at noon (the stack's own voicing, made up to unity at 1
+///     kHz), so the bands interact and overshoot as the circuits do and are not exact dB.
 /// </summary>
 public sealed class PassiveGraphicEq {
     /// <summary>The inductor graphics' input and feedback resistors, ohms (assumed: Mesa's are not printed).</summary>
@@ -212,7 +218,9 @@ public sealed class PassiveGraphicEq {
         Branch(0.033, 0.033e-6)
     ];
 
-    /// <summary>A five-band inductor graphic at 100, 400, 1 000, 3 000 and 8 000 Hz on stock capacitor values.</summary>
+    /// <summary>
+    ///     A five-band inductor graphic at 100, 400, 1 000, 3 000 and 8 000 Hz on stock capacitor values.
+    /// </summary>
     public static IReadOnlyList<LcrBranch> FiveBand { get; } = [
         LcrBranch.At(100, 2.2e-6), LcrBranch.At(400, 0.47e-6), LcrBranch.At(1_000, 0.22e-6),
         LcrBranch.At(3_000, 0.1e-6), LcrBranch.At(8_000, 0.033e-6)
@@ -310,9 +318,13 @@ public sealed class PassiveGraphicEq {
     }
 
     /// <summary>
-    ///     The presence network: <c>H(s) = R<sub>sh</sub> / (R<sub>sh</sub> + R<sub>s</sub> ∥ (R<sub>pot</sub> + 1/sC))</c>,
-    ///     a first-order treble lift that grows as the pot (log taper) turns towards zero, made up to unity in the bass,
-    ///     by the bilinear transform. Allocation-free.
+    ///     The presence network:
+    ///     <c>
+    ///         H(s) = R<sub>sh</sub> / (R<sub>sh</sub> + R<sub>s</sub> ∥ (R<sub>pot</sub> +
+    ///         1/sC))
+    ///     </c>
+    ///     , a first-order treble lift that grows as the pot (log taper) turns towards zero, made up to unity
+    ///     in the bass, by the bilinear transform. Allocation-free.
     /// </summary>
     void DesignPresence(double position) {
         // The pot's resistance in the arm: a log taper from 1M (no lift) at 0 to nothing at full.

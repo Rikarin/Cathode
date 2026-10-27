@@ -16,7 +16,9 @@ public struct Decimator {
     float holdLeft;
     float holdRight;
 
-    /// <summary>True when <paramref name="bitReduce" /> and <paramref name="rateHz" /> leave the signal alone.</summary>
+    /// <summary>
+    ///     True when <paramref name="bitReduce" /> and <paramref name="rateHz" /> leave the signal alone.
+    /// </summary>
     public static bool IsOff(int bitReduce, float rateHz) => bitReduce <= 0 && rateHz >= RateOff;
 
     public void Reset() {
@@ -47,6 +49,8 @@ public struct Decimator {
         }
     }
 
-    /// <summary><paramref name="x" /> rounded to the nearest of <paramref name="levels" /> steps per unit (0 = untouched).</summary>
+    /// <summary>
+    ///     <paramref name="x" /> rounded to the nearest of <paramref name="levels" /> steps per unit (0 = untouched).
+    /// </summary>
     public static float Quantise(float x, float levels) => levels > 0 ? MathF.Round(x * levels) / levels : x;
 }

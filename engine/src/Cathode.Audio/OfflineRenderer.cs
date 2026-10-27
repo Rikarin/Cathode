@@ -8,7 +8,10 @@ namespace Cathode.Audio;
 ///     and of the <c>cathode-render</c> tool.
 /// </summary>
 public static class OfflineRenderer {
-    /// <summary>Renders stereo input through <paramref name="processor" /> in blocks of <paramref name="blockSize" /> frames.</summary>
+    /// <summary>
+    ///     Renders stereo input through <paramref name="processor" /> in blocks of <paramref name="blockSize" />
+    ///     frames.
+    /// </summary>
     public static (float[] Left, float[] Right) Render(
         IAudioProcessor processor,
         float[] left,
@@ -51,8 +54,8 @@ public static class OfflineRenderer {
     }
 
     /// <summary>
-    ///     Renders through every output <paramref name="outputs" /> maps: Output 1's left and right, then Outputs 2-4's,
-    ///     then the DI out's two channels (ten channels; an unmapped output stays silent).
+    ///     Renders through every output <paramref name="outputs" /> maps: Output 1's left and right, then Outputs
+    ///     2-4's, then the DI out's two channels (ten channels; an unmapped output stays silent).
     /// </summary>
     public static float[][] RenderOutputs(
         IAudioProcessor processor,

@@ -14,7 +14,8 @@ namespace Cathode.Server.Tests;
 
 /// <summary>
 ///     Preset and scene features through the API (docs/08-blocks-parity.md, presets and scenes): Scene Ignore, scene
-///     recall settings, scene and channel tools, MIDI actions, modifier scope, spillover, telemetry and the list export.
+///     recall settings, scene and channel tools, MIDI actions, modifier scope, spillover, telemetry and the list
+///     export.
 /// </summary>
 public sealed class PresetSceneApiTests : IAsyncLifetime {
     readonly ServerFixture server = new();

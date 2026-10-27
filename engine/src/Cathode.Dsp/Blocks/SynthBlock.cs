@@ -76,7 +76,9 @@ public sealed class SynthBlock() : DspBlock(Info) {
     static readonly string[] ShapeNames =
         ["Sine", "Triangle", "Saw", "Square", "Random", "White Noise", "Pink Noise", "Off"];
 
-    /// <summary>Default shape, shift and level of each voice: a saw, a square an octave down and a sine a fifth up.</summary>
+    /// <summary>
+    ///     Default shape, shift and level of each voice: a saw, a square an octave down and a sine a fifth up.
+    /// </summary>
     static readonly (int Shape, float Shift, float Level)[] Defaults =
         [(Saw, 0f, 0f), (Square, -12f, Decibels.SilenceDb), (Sine, 7f, Decibels.SilenceDb)];
 

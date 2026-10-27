@@ -4,7 +4,9 @@ using System.Globalization;
 
 namespace Cathode.Dsp.Tests;
 
-/// <summary>The nonlinear device models: Jacobians, presets against datasheet operating points, op-amp dynamics.</summary>
+/// <summary>
+///     The nonlinear device models: Jacobians, presets against datasheet operating points, op-amp dynamics.
+/// </summary>
 public class WdfDeviceTests(ITestOutputHelper output) {
     const double Rate = 192_000;
 
@@ -250,7 +252,9 @@ public class WdfDeviceTests(ITestOutputHelper output) {
             _ => new Devices<Diode, Triode>(new(DiodeModel.Schottky), new(TriodeModel.Ecc82))
         };
 
-    /// <summary>Port voltages in each device's working range, avoiding the kinks (cut-off, zero plate voltage).</summary>
+    /// <summary>
+    ///     Port voltages in each device's working range, avoiding the kinks (cut-off, zero plate voltage).
+    /// </summary>
     static double Sample(string name, int port, Random random) {
         return name switch {
             "diode" or "clipper" => Uniform(-0.8, 0.8),

@@ -414,8 +414,8 @@ public class DelayBlockTests {
 
         var output = BlockRender.Mono(delay, input, 64);
 
-        // Reverse plays each chunk backwards, so a repeat ends at the end of its chunk instead of starting at its start;
-        // a time-reversed response has the same magnitude.
+        // Reverse plays each chunk backwards, so a repeat ends at the end of its chunk instead of starting at its
+        // start; a time-reversed response has the same magnitude.
         var start = type == DelayBlock.Reverse ? 4_900 : 4_700;
         var first = output.AsSpan(start, 4_700).ToArray();
         var second = output.AsSpan(start + 4_800, 4_700).ToArray();
@@ -443,7 +443,8 @@ public class DelayBlockTests {
 
         var left = Render(DelayBlock.TargetLeft, 1, out var right);
 
-        // The right line is an exact 50 ms echo plus the fixed offset that keeps the swing positive (1 ms = 48 samples).
+        // The right line is an exact 50 ms echo plus the fixed offset that keeps the swing positive (1 ms = 48
+        // samples).
         Assert.True(Analysis.NullResidualDb(right.AsSpan(10_000, 30_000), dry.AsSpan(10_000 - 2_448, 30_000)) < -100);
         Assert.True(Analysis.NullResidualDb(left.AsSpan(10_000, 30_000), dry.AsSpan(10_000 - 2_448, 30_000)) > -40);
 

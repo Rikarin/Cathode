@@ -3,10 +3,10 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Marshall Major 1967 (200 W, four KT88): V1 (ECC83) as two channels, the Treble channel (2.2 nF out, 2.7k ‖ 0.68 µF)
-///     and the Normal channel (22 nF out, 820 ‖ 250 µF), mixed at V2A's grid; V2A (ECC83, 100k) with the global feedback
-///     at its cathode, the tone stack straight off its plate, V2B (ECC83) as a cathodyne (100k / 2.7k / 100k), an ECC82
-///     push-pull voltage amplifier (47k plates, a shared 1.5k cathode, 270k grid leaks) and the four KT88 in
+///     Marshall Major 1967 (200 W, four KT88): V1 (ECC83) as two channels, the Treble channel (2.2 nF out, 2.7k ‖ 0.68
+///     µF) and the Normal channel (22 nF out, 820 ‖ 250 µF), mixed at V2A's grid; V2A (ECC83, 100k) with the global
+///     feedback at its cathode, the tone stack straight off its plate, V2B (ECC83) as a cathodyne (100k / 2.7k / 100k),
+///     an ECC82 push-pull voltage amplifier (47k plates, a shared 1.5k cathode, 270k grid leaks) and the four KT88 in
 ///     ultralinear fixed bias. The tone stack is inside the feedback loop, as in the amp.
 /// </summary>
 /// <remarks>
@@ -21,19 +21,19 @@ namespace Cathode.Dsp.Amp.Models;
 ///         V2A's 100k plate, 470 ‖ 25 µF above the feedback node, 470 Ω from it to ground, 47k from the 16 Ω
 ///         terminal, the 5k presence pot with 0.68 µF; the stack (500 pF, 33k slope, 22 nF to the bass, 22 nF to the
 ///         middle pot's wiper, 250k treble, a 1M bass rheostat, a 25k middle pot); 22 nF into V2B, its 1M leak to the
-///         junction, 100k plate, 2.7k and 100k; 47 nF into each ECC82 grid, the 270 Ω printed at the leaks (read as 270k:
-///         270 Ω would short the drive), the shared 1.5k, 47k plates; 47 nF into 68k bias feeds and 5.6k stoppers; the
-///         KT88 screens on the transformer's taps through 250 Ω (ultralinear); a silicon bridge into 2 × 375 µF in
-///         series, 1.8k into 2 × 200 µF, 25k to V2 and 10k to V1. The middle cap enters the middle pot's wiper, not its
-///         top as in the Plexi's stack.
+///         junction, 100k plate, 2.7k and 100k; 47 nF into each ECC82 grid, the 270 Ω printed at the leaks (read as
+///         270k: 270 Ω would short the drive), the shared 1.5k, 47k plates; 47 nF into 68k bias feeds and 5.6k
+///         stoppers; the KT88 screens on the transformer's taps through 250 Ω (ultralinear); a silicon bridge into 2 ×
+///         375 µF in series, 1.8k into 2 × 200 µF, 25k to V2 and 10k to V1. The middle cap enters the middle pot's
+///         wiper, not its top as in the Plexi's stack.
 ///     </para>
 ///     <para>
 ///         Guessed (the sheet prints no voltages, tapers or transformer data): B+ 600 V, the V2 and V2B node 350 V, the
-///         ECC82's node 550 V, 40 mA a KT88 at idle, the ultralinear tap at 43 %, a 2.5k plate-to-plate primary (200 W at
-///         600 V), the volumes' audio taper and the treble pot's linear one, and the 250 Ω screen resistors left out.
-///         Simplified: the coupling caps between V2B and the ECC82 are shorts (the driver's table); V2A's 25 µF bypass is
-///         a short for the signal; the presence branch acts on the feedback, not on V2A's own degeneration; V2A draws
-///         no grid current; one high input per channel (34k), as in the Plexi model.
+///         ECC82's node 550 V, 40 mA a KT88 at idle, the ultralinear tap at 43 %, a 2.5k plate-to-plate primary (200 W
+///         at 600 V), the volumes' audio taper and the treble pot's linear one, and the 250 Ω screen resistors left
+///         out. Simplified: the coupling caps between V2B and the ECC82 are shorts (the driver's table); V2A's 25 µF
+///         bypass is a short for the signal; the presence branch acts on the feedback, not on V2A's own degeneration;
+///         V2A draws no grid current; one high input per channel (34k), as in the Plexi model.
 ///     </para>
 /// </remarks>
 public static class MarshallMajor {
@@ -95,8 +95,8 @@ public static class MarshallMajor {
     };
 
     /// <summary>
-    ///     V1 and the volumes: the guitar in the Treble channel's high input (34k, 1M), or the Normal channel's (Switch 2),
-    ///     or both (Switch 1, jumpered); out at the mix node, V2A's grid.
+    ///     V1 and the volumes: the guitar in the Treble channel's high input (34k, 1M), or the Normal channel's (Switch
+    ///     2), or both (Switch 1, jumpered); out at the mix node, V2A's grid.
     /// </summary>
     static StageNetlist InputStage() {
         var net = new StageNetlist();
@@ -150,8 +150,9 @@ public static class MarshallMajor {
 
     /// <summary>
     ///     The tone stack off V2A's plate (inside the feedback loop): 500 pF to the 250k treble pot, 33k to a node S, S
-    ///     through 22 nF to the treble pot's foot and the 1M bass rheostat, the 25k middle pot below it to ground, S through
-    ///     22 nF to the middle pot's wiper. Out at the treble wiper (V2B's 22 nF and bootstrapped 1M leak: an open load).
+    ///     through 22 nF to the treble pot's foot and the 1M bass rheostat, the 25k middle pot below it to ground, S
+    ///     through 22 nF to the middle pot's wiper. Out at the treble wiper (V2B's 22 nF and bootstrapped 1M leak: an
+    ///     open load).
     /// </summary>
     static StageNetlist Stack() {
         var net = new StageNetlist();

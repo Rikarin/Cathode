@@ -1,6 +1,8 @@
 namespace Cathode.Server.Rig;
 
-/// <summary>A request the rig cannot carry out, mapped to an RFC 9457 problem response with <see cref="Status" />.</summary>
+/// <summary>
+///     A request the rig cannot carry out, mapped to an RFC 9457 problem response with <see cref="Status" />.
+/// </summary>
 public sealed class RigException : Exception {
     public int Status { get; }
 

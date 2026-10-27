@@ -14,7 +14,9 @@ namespace Cathode.Dsp.Blocks;
 ///         <item>Plex Detune: each line detuned by a few cents in the loop, so the wash beats and spreads.</item>
 ///         <item>Plex Shifter: each line shifted by its interval, so the repeats climb or fall in pitch.</item>
 ///         <item>Plex Verb: short lines scaled by Size, dense diffusion: a reverb built from the same network.</item>
-///         <item>Shimmer Verb: Plex Verb with an octave-up shifter in every loop, blended in by Shimmer Intensity.</item>
+///         <item>
+///             Shimmer Verb: Plex Verb with an octave-up shifter in every loop, blended in by Shimmer Intensity.
+///         </item>
 ///     </list>
 /// </summary>
 /// <remarks>
@@ -27,11 +29,11 @@ namespace Cathode.Dsp.Blocks;
 ///     </para>
 ///     <para>
 ///         The loop also holds the low and high cut and a filter (low-pass, high-pass, band-pass or peak) whose
-///         frequency an LFO moves by Mod Frequency octaves. The input passes an envelope swell, a pre-delay and an input
-///         diffuser (four allpasses) before it enters every line at 1/√N. The shifters are granular
-///         (<see cref="GrainShifter" />): Granule sets their grain, Crossfade how much of each grain fades, and Direction
-///         Reverse plays the grains backwards. Hold loops the network at unity with the input closed, Stack with it open;
-///         the delay limiter keeps every loop bounded.
+///         frequency an LFO moves by Mod Frequency octaves. The input passes an envelope swell, a pre-delay and an
+///         input diffuser (four allpasses) before it enters every line at 1/√N. The shifters are granular
+///         (<see cref="GrainShifter" />): Granule sets their grain, Crossfade how much of each grain fades, and
+///         Direction Reverse plays the grains backwards. Hold loops the network at unity with the input closed, Stack
+///         with it open; the delay limiter keeps every loop bounded.
 ///     </para>
 /// </remarks>
 public sealed class PlexBlock() : DspBlock(Info) {
@@ -329,8 +331,8 @@ public sealed class PlexBlock() : DspBlock(Info) {
     }
 
     /// <summary>
-    ///     Line read delays in samples: each line's time (or tempo) scaled by Master Time, or for the verbs the verb lengths
-    ///     scaled by Size; less the loop allpass, so the loop is exactly that long.
+    ///     Line read delays in samples: each line's time (or tempo) scaled by Master Time, or for the verbs the verb
+    ///     lengths scaled by Size; less the loop allpass, so the loop is exactly that long.
     /// </summary>
     void ComputeLineTargets(int type, double tempo) {
         var rate = (float)Spec.SampleRate;

@@ -10,8 +10,8 @@ namespace Cathode.Engine.Tests;
 
 /// <summary>
 ///     Multi-channel input (docs/08-blocks-parity.md §2): the device's sources reach the Input cell's Source, the
-///     Multiplexer, sidechains and the Vocoder's and Pitch detector's analysis sources. Rendered offline with the sources
-///     a multi-input interface would deliver.
+///     Multiplexer, sidechains and the Vocoder's and Pitch detector's analysis sources. Rendered offline with the
+///     sources a multi-input interface would deliver.
 /// </summary>
 public class HardwareInputTests {
     const int Frames = 9_600;

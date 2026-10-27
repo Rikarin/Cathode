@@ -3,11 +3,10 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Mesa/Boogie TriAxis preamp (1992, rev. 1.08), as three types: the Rhythm modes (Green, or Yellow on Switch 1), Lead
-///     1 and Lead 2 (Green, Yellow on Switch 1, Red on Switch 2), each into a generic power amp (the Dual Rectifier
-///     model's
-///     four 6L6GC). The modes are the drawing's light-dependent
-///     resistors (LDRs) as switches, set per mode as its LDR table says.
+///     Mesa/Boogie TriAxis preamp (1992, rev. 1.08), as three types: the Rhythm modes (Green, or Yellow on Switch 1),
+///     Lead 1 and Lead 2 (Green, Yellow on Switch 1, Red on Switch 2), each into a generic power amp (the Dual
+///     Rectifier model's four 6L6GC). The modes are the drawing's light-dependent resistors (LDRs) as switches, set per
+///     mode as its LDR table says.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -21,22 +20,22 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         The modes: Rhythm takes the input to V2A (LDR17) with the plate's tone pad (82k and 0.15 µF, LDR13) and a
 ///         100k load after V2B (LDRK1); Green fully bypasses V2A's and V3A's cathodes (LDR12, LDR11). Lead 1 adds V1A
-///         (LDR16, LDR15) through 4.7 nF and 270k onto the Lead 1 drive (LDR20, 250k), keeps both bypasses, and pads the
-///         output (LDR8 4.7k, LDRK2 16k and 4.7k). Lead 2 runs V2B's output through the Lead 2 overdrive (LDR10, LDR6:
-///         1M into the Lead 2 drive with 470k and 120 pF from grid to cathode at V4A, 82k, 1.5k ‖ 2.2 µF; 22 nF, 270k
-///         into 68k ‖ 1 nF at V4B, 270k, 3.3k ‖ 0.22 µF; 47 nF, 220k ‖ 250 pF into 100k ‖ 500 pF), into V3A, whose
-///         15 µF bypass Green shorts in (LDR9). Yellow and Red add the treble shift (750 pF, LDR14) and the gain's bright
-///         cap (LDR18), and in Lead 1 the bass shift (82k beside the 100k slope, LDR34); Red adds the "shred" 120 pF
-///         across V3A's output network (LDR7). This Lead 2 overdrive is the Mark IIC+ / IV lead circuit with the same
-///         values (82k / 120 pF / 270k / 68k ‖ 1 nF / 3.3k ‖ 0.22 µF / 220k ‖ 250 pF / 500 pF).
+///         (LDR16, LDR15) through 4.7 nF and 270k onto the Lead 1 drive (LDR20, 250k), keeps both bypasses, and pads
+///         the output (LDR8 4.7k, LDRK2 16k and 4.7k). Lead 2 runs V2B's output through the Lead 2 overdrive (LDR10,
+///         LDR6: 1M into the Lead 2 drive with 470k and 120 pF from grid to cathode at V4A, 82k, 1.5k ‖ 2.2 µF; 22 nF,
+///         270k into 68k ‖ 1 nF at V4B, 270k, 3.3k ‖ 0.22 µF; 47 nF, 220k ‖ 250 pF into 100k ‖ 500 pF), into V3A, whose
+///         15 µF bypass Green shorts in (LDR9). Yellow and Red add the treble shift (750 pF, LDR14) and the gain's
+///         bright cap (LDR18), and in Lead 1 the bass shift (82k beside the 100k slope, LDR34); Red adds the "shred"
+///         120 pF across V3A's output network (LDR7). This Lead 2 overdrive is the Mark IIC+ / IV lead circuit with the
+///         same values (82k / 120 pF / 270k / 68k ‖ 1 nF / 3.3k ‖ 0.22 µF / 220k ‖ 250 pF / 500 pF).
 ///     </para>
 ///     <para>
 ///         The Dynamic Voice is the Mesa graphic equaliser with its sliders fixed: an op-amp (TL072) with 10k in, 10k
 ///         from the non-inverting to the inverting input and 10k of feedback; four series LCR branches (68 mH, 47 µF,
 ///         1.6k; 68 mH, 3.3 µF, 2.2k; 33 mH, 33 nF, 7.5k; 68 mH, 0.15 µF, 7.5k: 89 / 335 / 4,820 / 1,570 Hz) from the
-///         inverting input and one (220 mH, 0.22 µF, 220 Ω: 720 Hz) from the non-inverting input to a common node, which
-///         the Dynamic Voice LDR takes to ground: at zero the response is flat, turned up the lows and highs rise and
-///         720 Hz is cut, the "V".
+///         inverting input and one (220 mH, 0.22 µF, 220 Ω: 720 Hz) from the non-inverting input to a common node,
+///         which the Dynamic Voice LDR takes to ground: at zero the response is flat, turned up the lows and highs rise
+///         and 720 Hz is cut, the "V".
 ///     </para>
 ///     <para>
 ///         Guesses, marked: the LDRs' ranges, which the drawing does not print (the controls are a microprocessor's
@@ -46,16 +45,17 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Mesa's manual has the control at 0 do nothing: 10k there was still a ±5 dB "V"). The presence LDR (1 nF to
 ///         ground behind 47k) is fixed at 47k (no free control: the panel's Presence is the power amp's). The bright
 ///         cap printed "C75P" is taken as 75 pF. Left out: V3A's 3.3M feed from V2B in Lead 2 (a 3.3M ‖ 20 pF load
-///         here), the effects loop (bypassed: LDR1, 4.7k into V5A) and V5B, the record outputs; the output divider (100k
-///         into the 25k output level) at full level. The power amp is not the TriAxis's (it has none): the Dual
+///         here), the effects loop (bypassed: LDR1, 4.7k into V5A) and V5B, the record outputs; the output divider
+///         (100k into the 25k output level) at full level. The power amp is not the TriAxis's (it has none): the Dual
 ///         Rectifier model's, documented there.
 ///     </para>
 /// </remarks>
 public static class TriAxis {
     /// <summary>
-    ///     The generic power amp the TriAxis feeds here: the Dual Rectifier model's (four 6L6GC at 460 V, a long-tail pair,
-    ///     the factory drawing's values) with its feedback on and without its panel switches, as a Mesa 2:Ninety-style
-    ///     stage would be (Mesa's own TriAxis power amps are Simul-Class; the plain pentode quad costs less).
+    ///     The generic power amp the TriAxis feeds here: the Dual Rectifier model's (four 6L6GC at 460 V, a long-tail
+    ///     pair, the factory drawing's values) with its feedback on and without its panel switches, as a Mesa
+    ///     2:Ninety-style stage would be (Mesa's own TriAxis power amps are Simul-Class; the plain pentode quad costs
+    ///     less).
     /// </summary>
     static readonly PowerAmpDesign PowerAmp = DualRectifier.Design.Power with {
         Name = "4 x 6L6GC (Dual Rectifier power amp)", SupplySwitches = null, FeedbackOffSwitch = null
@@ -140,7 +140,8 @@ public static class TriAxis {
         new(name, preamp, PowerAmp, trim) { Panel = panel, PreampSupply = PreampSupplyDesign.OwnSupply };
 
     /// <summary>
-    ///     An LDR contact between <paramref name="a" /> and <paramref name="b" />: lit in every voicing of the mode when
+    ///     An LDR contact between <paramref name="a" /> and <paramref name="b" />: lit in every voicing of the mode
+    ///     when
     ///     <paramref name="always" />, else in the Yellow and Red voicings (Switch 1 or Switch 2; Red implies Yellow's
     ///     LDRs).
     /// </summary>
@@ -155,9 +156,9 @@ public static class TriAxis {
     }
 
     /// <summary>
-    ///     A capacitor from <paramref name="a" /> to <paramref name="b" /> through an LDR contact (<see cref="Contact" />),
-    ///     with the drawing's 10M bleeder from the capacitor's other side to <paramref name="b" /> (a plain capacitor when
-    ///     always lit).
+    ///     A capacitor from <paramref name="a" /> to <paramref name="b" /> through an LDR contact
+    ///     (<see cref="Contact" />), with the drawing's 10M bleeder from the capacitor's other side to
+    ///     <paramref name="b" /> (a plain capacitor when always lit).
     /// </summary>
     static void SwitchedCap(StageNetlist net, int a, int b, double farads, bool always, CapacitorRole role) {
         if (always) {
@@ -193,10 +194,10 @@ public static class TriAxis {
 
     /// <summary>
     ///     V2A and the stack: 1M grid leak; 150k plate, 1.5k ‖ 0.47 µF and 15 µF through 22k (shorted by LDR12 in
-    ///     Rhythm Green and Lead 1); the Mark stack on the plate (250 pF, 750 pF treble shift; 100k slope; 0.1 µF, 47 nF),
-    ///     82k from the plate to a node X, X to the slope node in Lead 1's Yellow and Red (bass shift, LDR34) or through
-    ///     0.15 µF to ground in Rhythm (tone pad, LDR13); the gain on the treble wiper with 120 pF across its upper part
-    ///     and 75 pF more in Yellow and Red (LDR18; Lead 2 always).
+    ///     Rhythm Green and Lead 1); the Mark stack on the plate (250 pF, 750 pF treble shift; 100k slope; 0.1 µF, 47
+    ///     nF), 82k from the plate to a node X, X to the slope node in Lead 1's Yellow and Red (bass shift, LDR34) or
+    ///     through 0.15 µF to ground in Rhythm (tone pad, LDR13); the gain on the treble wiper with 120 pF across its
+    ///     upper part and 75 pF more in Yellow and Red (LDR18; Lead 2 always).
     /// </summary>
     static StageNetlist StackStage(Mode mode) {
         var net = new StageNetlist();
@@ -310,11 +311,11 @@ public static class TriAxis {
 
     /// <summary>
     ///     V3A and its output network. In: Rhythm and Lead 1, 47 nF from V2B (100k to ground in Rhythm), 3.3M ‖ 20 pF;
-    ///     Lead 2, 47 nF from V4B, 220k ‖ 250 pF into 100k ‖ 500 pF (and the 3.3M ‖ 20 pF to V2B's side as a load); 680k
-    ///     at the grid. V3A: 100k plate, 1.5k with 2.2 µF through 22k (shorted in Rhythm Green and Lead 1, LDR11) and
-    ///     15 µF through 22k (shorted in Lead 2 Green, LDR9). Out: 47 nF, 47k into the presence (1 nF and the LDR, 47k),
-    ///     150k (120 pF across both in Red, LDR7), 4.7k to ground in the leads (LDR8), 47k into the master (250k audio
-    ///     shunt), 10k into the Dynamic Voice's input (16k to ground in the leads, LDRK2A; 1M).
+    ///     Lead 2, 47 nF from V4B, 220k ‖ 250 pF into 100k ‖ 500 pF (and the 3.3M ‖ 20 pF to V2B's side as a load);
+    ///     680k at the grid. V3A: 100k plate, 1.5k with 2.2 µF through 22k (shorted in Rhythm Green and Lead 1, LDR11)
+    ///     and 15 µF through 22k (shorted in Lead 2 Green, LDR9). Out: 47 nF, 47k into the presence (1 nF and the LDR,
+    ///     47k), 150k (120 pF across both in Red, LDR7), 4.7k to ground in the leads (LDR8), 47k into the master (250k
+    ///     audio shunt), 10k into the Dynamic Voice's input (16k to ground in the leads, LDRK2A; 1M).
     /// </summary>
     static StageNetlist Recovery(Mode mode) {
         var net = new StageNetlist();
@@ -388,10 +389,10 @@ public static class TriAxis {
     }
 
     /// <summary>
-    ///     The Dynamic Voice (IC3B, TL072 on ±16 V): 10k from the buffer to the non-inverting input P, 10k from P to the
-    ///     inverting input N, 10k from the output to N; the LCR branches from N (and the 720 Hz one from P) to a common
-    ///     node, the Dynamic Voice LDR (Control 2, a 1M reverse-audio rheostat that takes resistance out as it turns
-    ///     up: about 1 MΩ, dark, at 0, 100k at 5, a few ohms lit at 10) beside 10 MΩ from it to ground.
+    ///     The Dynamic Voice (IC3B, TL072 on ±16 V): 10k from the buffer to the non-inverting input P, 10k from P to
+    ///     the inverting input N, 10k from the output to N; the LCR branches from N (and the 720 Hz one from P) to a
+    ///     common node, the Dynamic Voice LDR (Control 2, a 1M reverse-audio rheostat that takes resistance out as it
+    ///     turns up: about 1 MΩ, dark, at 0, 100k at 5, a few ohms lit at 10) beside 10 MΩ from it to ground.
     /// </summary>
     static StageNetlist DynamicVoice() {
         var net = new StageNetlist();

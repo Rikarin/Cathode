@@ -6,26 +6,25 @@ namespace Cathode.Dsp.Amp.Models;
 ///     Fender Blues Junior III (15 W, 1 × 12): V1B (10k and 1M at the jack; 100k, 1.5k ‖ 47 µF), 0.0022 µF into the 1M
 ///     volume with 100 pF across its upper part and 130k from its wiper to ground; 10k into V1A (100k, 1.5k with 22 µF
 ///     over
-///     100k, which the <b>Fat</b> switch's J111 grounds) with the Fender stack on its plate (250 pF, 100k slope, 0.022 µF
-///     bass and mid caps, the mid cap on the mid pot's wiper; treble 250k linear, bass 250k audio, mid 25k linear); 10k
-///     into
-///     V2B (100k, 1.5k unbypassed), 0.0022 µF and 430k into the 50k master (1500 pF and the reverb's 100k beside it), 220k
-///     and 0.0077 µF into a 12AX7 long-tail pair (91k / 100k, 820 Ω, a 33k + 4.7k tail), two EL84 in fixed bias at 329 V
-///     with 100 Ω screen resistors, 75k feedback from the 8 Ω tap into the tail's 4.7k with a fixed 7.5k and 0.1 µF across
-///     it. Panel: Volume, Treble, Bass, Middle, Master, Fat.
+///     100k, which the <b>Fat</b> switch's J111 grounds) with the Fender stack on its plate (250 pF, 100k slope, 0.022
+///     µF bass and mid caps, the mid cap on the mid pot's wiper; treble 250k linear, bass 250k audio, mid 25k linear);
+///     10k into V2B (100k, 1.5k unbypassed), 0.0022 µF and 430k into the 50k master (1500 pF and the reverb's 100k
+///     beside it), 220k and 0.0077 µF into a 12AX7 long-tail pair (91k / 100k, 820 Ω, a 33k + 4.7k tail), two EL84 in
+///     fixed bias at 329 V with 100 Ω screen resistors, 75k feedback from the 8 Ω tap into the tail's 4.7k with a fixed
+///     7.5k and 0.1 µF across it. Panel: Volume, Treble, Bass, Middle, Master, Fat.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Source: Fender drawing 0057275000 rev D (24 March 2010; assemblies 0057277000 and 0079641000)
 ///         (thetubestore.com/lib/thetubestore/schematics/Fender/Fender-Blues-Junior-III-Schematic-Rev-D.pdf), with the
-///         original drawing 049301 rev D (1998) agreeing on the dry path: every value above, the supply (329 V on 47 µF,
-///         2.2k to 307 V for the screens, 10k to 265 V for the inverter, 10k to 238 V for the preamp), the −10.7 V bias,
-///         the 1.5k grid stoppers and 220k grid leaks, 0.022 µF coupling caps, 47 pF across the inverter's plates (left
-///         out), the AC test points at 1 kHz with 10 mV in and the knobs at noon (512 mV at V1B's plate, 42 mV after the
-///         volume, 800 mV at V1A's plate, 162 mV at the treble wiper, 4.24 V at V2B's plate, 114 mV after the master),
-///         which <c>FenderUsAmpTests</c> checks the gain staging against. The mid pot's wiring (the mid cap on its wiper,
-///         the bass pot on its top) is read zoomed on both drawings. The reverb (at 0, its pot's wiper grounds the 100k
-///         return on the master's top, which is kept) is not modelled.
+///         original drawing 049301 rev D (1998) agreeing on the dry path: every value above, the supply (329 V on 47
+///         µF, 2.2k to 307 V for the screens, 10k to 265 V for the inverter, 10k to 238 V for the preamp), the −10.7 V
+///         bias, the 1.5k grid stoppers and 220k grid leaks, 0.022 µF coupling caps, 47 pF across the inverter's plates
+///         (left out), the AC test points at 1 kHz with 10 mV in and the knobs at noon (512 mV at V1B's plate, 42 mV
+///         after the volume, 800 mV at V1A's plate, 162 mV at the treble wiper, 4.24 V at V2B's plate, 114 mV after the
+///         master), which <c>FenderUsAmpTests</c> checks the gain staging against. The mid pot's wiring (the mid cap on
+///         its wiper, the bass pot on its top) is read zoomed on both drawings. The reverb (at 0, its pot's wiper
+///         grounds the 100k return on the master's top, which is kept) is not modelled.
 ///     </para>
 ///     <para>
 ///         Simplified: the driven inverter triode's load is 91k + 9.1k with the output taken between them; here a 91k
@@ -89,8 +88,8 @@ public static class BluesJunior {
     };
 
     /// <summary>
-    ///     V1B (1M grid leak behind the jack's 10k; 100k, 1.5k ‖ 47 µF), 0.0022 µF into the volume (100 pF across its upper
-    ///     part, 130k from the wiper to ground); the output is the wiper.
+    ///     V1B (1M grid leak behind the jack's 10k; 100k, 1.5k ‖ 47 µF), 0.0022 µF into the volume (100 pF across its
+    ///     upper part, 130k from the wiper to ground); the output is the wiper.
     /// </summary>
     static NetworkStageDesign InputStage() {
         var net = new StageNetlist();
@@ -109,7 +108,10 @@ public static class BluesJunior {
         return new("V1B", net, 10e3);
     }
 
-    /// <summary>V1A behind its 10k (the Fat switch on its cathode) and the stack on its plate; the output is the treble wiper.</summary>
+    /// <summary>
+    ///     V1A behind its 10k (the Fat switch on its cathode) and the stack on its plate; the output is the treble
+    ///     wiper.
+    /// </summary>
     static NetworkStageDesign StackStage() {
         var net = new StageNetlist();
         var (plate, cathode, rail, fat) = (net.Node(), net.Node(), net.Node(), net.Node());
@@ -135,8 +137,8 @@ public static class BluesJunior {
     }
 
     /// <summary>
-    ///     V2B behind its 10k (100k, 1.5k unbypassed), 0.0022 µF and 430k into the master (1500 pF and the reverb return's
-    ///     100k beside it), its wiper's 220k: the output.
+    ///     V2B behind its 10k (100k, 1.5k unbypassed), 0.0022 µF and 430k into the master (1500 pF and the reverb
+    ///     return's 100k beside it), its wiper's 220k: the output.
     /// </summary>
     static NetworkStageDesign ThirdStage() {
         var net = new StageNetlist();

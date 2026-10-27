@@ -8,10 +8,11 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 /// <summary>
-///     The Circuit Amp's advanced page (docs/08 §4, stream PB): tube hardness, the generic switches, tone-stack type and
-///     location, plate frequencies, cathode-follower and bias-excursion controls, suppressor diodes, master location
-///     and cap, output mode, the Auto speaker load and the screen supply. Every one is stock at its default (the
-///     all-model check is <see cref="AmpDefaultsTests" />); here each does what it says, analytically where it can.
+///     The Circuit Amp's advanced page (docs/08 §4, stream PB): tube hardness, the generic switches, tone-stack type
+///     and location, plate frequencies, cathode-follower and bias-excursion controls, suppressor diodes, master
+///     location and cap, output mode, the Auto speaker load and the screen supply. Every one is stock at its default
+///     (the all-model check is <see cref="AmpDefaultsTests" />); here each does what it says, analytically where it
+///     can.
 /// </summary>
 public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
     const double Rate = 48_000;

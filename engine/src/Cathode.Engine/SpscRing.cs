@@ -15,7 +15,9 @@ public sealed class SpscRing<T>
 
     public int Capacity => items.Length;
 
-    /// <summary>Approximate number of queued items (exact when called from either endpoint while the other is idle).</summary>
+    /// <summary>
+    ///     Approximate number of queued items (exact when called from either endpoint while the other is idle).
+    /// </summary>
     public int Count => (int)(Volatile.Read(ref tail.Value) - Volatile.Read(ref head.Value));
 
     public SpscRing(int capacity) {

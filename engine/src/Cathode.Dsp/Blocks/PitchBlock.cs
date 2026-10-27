@@ -20,7 +20,9 @@ public enum PitchType {
     CustomShifter
 }
 
-/// <summary>Where the harmony types take their key from, in the order of <see cref="PitchBlock" />'s Key Source parameter.</summary>
+/// <summary>
+///     Where the harmony types take their key from, in the order of <see cref="PitchBlock" />'s Key Source parameter.
+/// </summary>
 public enum PitchKeySource {
     /// <summary>The Key and Scale parameters.</summary>
     Fixed,
@@ -39,15 +41,15 @@ public enum PitchKeySource {
 /// <remarks>
 ///     <para>
 ///         Detune: up to four voices, each detuned by its own amount through a <see cref="SpliceShifter" />, with an
-///         optional LFO that sways the detune (the voices a quarter or half cycle apart). Chromatic, Diatonic and Custom
-///         Shifter: up to four PSOLA voices (<see cref="PsolaShifter" />), at fixed semitone shifts, at diatonic intervals
-///         in a key and scale chosen from the tracked note, or at the shift a per-voice table gives each of the twelve
-///         notes of the key (the Axe-Fx Custom Shifter: any mapping, diatonic or not); each voice has level, pan, delay
-///         (or a tempo division) and feedback, and a voice at silence costs nothing. Whammy: one shifted voice between a
-///         start and an end shift, positioned by the Pedal parameter (0-100 %, the one to drive with a modifier); its
-///         Tracking is Mono (period-synchronous splices), Off (free splices) or Poly, a phase vocoder
-///         (<see cref="PhaseVocoderShifter" />) that shifts chords cleanly at the cost of a 43 ms delay. Octave Divider:
-///         the OC-2 style analog divider (<see cref="OctaveDivider" />). Crystals: pitch-shifted grains
+///         optional LFO that sways the detune (the voices a quarter or half cycle apart). Chromatic, Diatonic and
+///         Custom Shifter: up to four PSOLA voices (<see cref="PsolaShifter" />), at fixed semitone shifts, at diatonic
+///         intervals in a key and scale chosen from the tracked note, or at the shift a per-voice table gives each of
+///         the twelve notes of the key (the Axe-Fx Custom Shifter: any mapping, diatonic or not); each voice has level,
+///         pan, delay (or a tempo division) and feedback, and a voice at silence costs nothing. Whammy: one shifted
+///         voice between a start and an end shift, positioned by the Pedal parameter (0-100 %, the one to drive with a
+///         modifier); its Tracking is Mono (period-synchronous splices), Off (free splices) or Poly, a phase vocoder
+///         (<see cref="PhaseVocoderShifter" />) that shifts chords cleanly at the cost of a 43 ms delay. Octave
+///         Divider: the OC-2 style analog divider (<see cref="OctaveDivider" />). Crystals: pitch-shifted grains
 ///         (<see cref="GrainShifter" />, reversed or forward, of a set splice length or tempo) on the output of a
 ///         feedback delay, whose repeats either climb again (shifted feedback) or each sound one shift up (unshifted),
 ///         with a diffuser in the loop. Arpeggiator: a tempo-synced sequence of up to sixteen semitone steps, each with
@@ -55,32 +57,31 @@ public enum PitchKeySource {
 ///         Virtual Capo: a single shifted voice of up to +/- 12 semitones plus a fine detune.
 ///     </para>
 ///     <para>
-///         Key Source sets where Diatonic and Custom Shifter take their key. Fixed: Key and Scale. MIDI: the chord held on
-///         the rig's MIDI input (<see cref="BlockContext.Notes" />, any channel); its lowest note is the root, the scale
-///         is
-///         Scale when that holds every chord tone and otherwise the first scale that does
+///         Key Source sets where Diatonic and Custom Shifter take their key. Fixed: Key and Scale. MIDI: the chord held
+///         on the rig's MIDI input (<see cref="BlockContext.Notes" />, any channel); its lowest note is the root, the
+///         scale is Scale when that holds every chord tone and otherwise the first scale that does
 ///         (<see cref="Scales.ChordScale" />: Am gives Minor, G7 Mixolydian), and diatonic voices snap to the nearest
 ///         chord tone (<see cref="Scales.HarmonySemitones(int, int, int, int, int)" />). Releasing the keys keeps the
-///         last chord. Auto: the key estimated from the notes played (<see cref="KeyEstimator" />, Krumhansl-Schmuckler),
-///         with Scale when it is major or minor like the estimate, else Major or Minor. Until they have a key, both use
-///         Key and Scale. Temperament Just tunes their intervals to five-limit just ratios on the key
-///         (<see cref="Scales.JustRatio" />), and Glide slides a voice to a new interval instead of jumping.
+///         last chord. Auto: the key estimated from the notes played (<see cref="KeyEstimator" />,
+///         Krumhansl-Schmuckler), with Scale when it is major or minor like the estimate, else Major or Minor. Until
+///         they have a key, both use Key and Scale. Temperament Just tunes their intervals to five-limit just ratios on
+///         the key (<see cref="Scales.JustRatio" />), and Glide slides a voice to a new interval instead of jumping.
 ///     </para>
 ///     <para>
 ///         The detector: Pitch Tracking Smooth (the default) changes note only past a 0.15-semitone hysteresis, Fast
 ///         past 0.05 and with a shorter hold, and Off stops tracking (the splices run free and the harmony stays put).
-///         Splice Length sets the shifters' minimum splice. Detector Source can take the tracked signal from another grid
-///         row instead of the block input; the block then takes its inputs by row (<see cref="SideInputs.Cables" />), the
-///         chosen row feeding only the detector. It can also be one of the interface's inputs
-///         (<see cref="HardwareInputs" />), say a second guitar or a keyboard on Input 2.
+///         Splice Length sets the shifters' minimum splice. Detector Source can take the tracked signal from another
+///         grid row instead of the block input; the block then takes its inputs by row
+///         (<see cref="SideInputs.Cables" />), the chosen row feeding only the detector. It can also be one of the
+///         interface's inputs (<see cref="HardwareInputs" />), say a second guitar or a keyboard on Input 2.
 ///     </para>
 ///     <para>
-///         Feedback per voice: Delay mode repeats the voice through its own delay line (echoes at the same pitch), Shifter
-///         mode feeds it back into the shifter's input, so every repeat is shifted again. Master Level, Pan, Feedback,
-///         Pitch and Delay scale every voice's level, pan, feedback, shift (Detune and Chromatic) and delay. Input Mode
-///         Stereo shifts the left input in voices 1 and 3 and the right in voices 2 and 4 (and keeps the sides apart
-///         for the single-voice types); the detector always hears both. Input Gain sets the level into the shifters,
-///         and a low and high cut shape the wet signal.
+///         Feedback per voice: Delay mode repeats the voice through its own delay line (echoes at the same pitch),
+///         Shifter mode feeds it back into the shifter's input, so every repeat is shifted again. Master Level, Pan,
+///         Feedback, Pitch and Delay scale every voice's level, pan, feedback, shift (Detune and Chromatic) and delay.
+///         Input Mode Stereo shifts the left input in voices 1 and 3 and the right in voices 2 and 4 (and keeps the
+///         sides apart for the single-voice types); the detector always hears both. Input Gain sets the level into the
+///         shifters, and a low and high cut shape the wet signal.
 ///     </para>
 ///     <para>
 ///         Whammy and Virtual Capo are always 100 % wet (the shifter's few milliseconds of delay would comb against the
@@ -96,13 +97,13 @@ public enum PitchKeySource {
 ///     </para>
 ///     <para>
 ///         Formant Correction (off by default; every type then renders exactly as without it) keeps the input's
-///         spectral envelope while the pitch moves, and Formant Shift (per voice, +/- 12 semitones) moves that envelope.
-///         Whammy (Mono and Off), Arpeggiator and Virtual Capo whiten their input by linear prediction before the splice
-///         shifter and put the envelope back after it (<see cref="FormantCorrector" />, about 0.5 % of a core per
-///         channel at 48 kHz); the polyphonic Whammy rescales each moved bin of its phase vocoder to the envelope at
-///         its new frequency (<see cref="PhaseVocoderShifter" />). PSOLA keeps the formants of itself, so on Chromatic,
-///         Diatonic and Custom Shifter the control adds the shift alone: each voice's grains are resampled by its
-///         formant ratio. Hidden on Detune, Octave Divider and Crystals.
+///         spectral envelope while the pitch moves, and Formant Shift (per voice, +/- 12 semitones) moves that
+///         envelope. Whammy (Mono and Off), Arpeggiator and Virtual Capo whiten their input by linear prediction before
+///         the splice shifter and put the envelope back after it (<see cref="FormantCorrector" />, about 0.5 % of a
+///         core per channel at 48 kHz); the polyphonic Whammy rescales each moved bin of its phase vocoder to the
+///         envelope at its new frequency (<see cref="PhaseVocoderShifter" />). PSOLA keeps the formants of itself, so
+///         on Chromatic, Diatonic and Custom Shifter the control adds the shift alone: each voice's grains are
+///         resampled by its formant ratio. Hidden on Detune, Octave Divider and Crystals.
 ///     </para>
 ///     <para>Kill Dry mutes the dry signal, so Mix sets the wet level alone.</para>
 /// </remarks>
@@ -150,7 +151,9 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
     public const int Voice4Delay = Voice3Delay + 1;
     public const int KeySource = Voice4Delay + 1;
 
-    /// <summary>The Custom Shifter tables: voice v's (0-3) shift for note n of the key is at CustomTable + 12 v + n.</summary>
+    /// <summary>
+    ///     The Custom Shifter tables: voice v's (0-3) shift for note n of the key is at CustomTable + 12 v + n.
+    /// </summary>
     public const int CustomTable = KeySource + 1;
 
     public const int Balance = CustomTable + 12 * 4;
@@ -211,7 +214,9 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
     /// <summary>Formant correction on or off (off by default: every type sounds as it did without it).</summary>
     public const int FormantCorrection = KillDry + 1;
 
-    /// <summary>Voice 1's formant shift in semitones (the single-voice types' only one); voices 2 to 4 follow.</summary>
+    /// <summary>
+    ///     Voice 1's formant shift in semitones (the single-voice types' only one); voices 2 to 4 follow.
+    /// </summary>
     public const int FormantShift1 = FormantCorrection + 1;
 
     /// <summary>The formant shift's range either way, in semitones.</summary>
@@ -258,7 +263,9 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
 
     static readonly float[] DefaultArpSteps = [0, 7, 12, 7, 0, 5, 12, 5, 0, 7, 12, 19, 12, 7, 5, 7];
 
-    /// <summary>The Custom Shifter's default tables, in steps of the major scale: a third, a fifth, an octave up and down.</summary>
+    /// <summary>
+    ///     The Custom Shifter's default tables, in steps of the major scale: a third, a fifth, an octave up and down.
+    /// </summary>
     static readonly int[] DefaultCustomSteps = [2, 4, 7, -7];
 
     /// <summary>Each Detune voice's default detune and its LFO offset (in cycles), so the voices sway apart.</summary>
@@ -632,7 +639,9 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
 
     public InputPort? Inputs { get; set; }
 
-    /// <summary>The key (pitch class, 0 = C) the harmony voices currently use: Key, or the one from the Key Source.</summary>
+    /// <summary>
+    ///     The key (pitch class, 0 = C) the harmony voices currently use: Key, or the one from the Key Source.
+    /// </summary>
     public int HarmonyKey { get; private set; }
 
     /// <summary>The scale (index into <see cref="Scales.Names" />) the harmony voices currently use.</summary>
@@ -643,9 +652,9 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
         [PitchType.Detune, PitchType.Chromatic, PitchType.Diatonic, PitchType.CustomShifter];
 
     /// <summary>
-    ///     The types formant correction applies to: the harmonisers (PSOLA, which keeps the formants of itself, so there
-    ///     the control adds the shift) and the single-voice shifters. Not Detune (cents move no formant), the Octave
-    ///     Divider (no shifter) or Crystals (grains of the delay, an effect rather than a voice).
+    ///     The types formant correction applies to: the harmonisers (PSOLA, which keeps the formants of itself, so
+    ///     there the control adds the shift) and the single-voice shifters. Not Detune (cents move no formant), the
+    ///     Octave Divider (no shifter) or Crystals (grains of the delay, an effect rather than a voice).
     /// </summary>
     static PitchType[] FormantTypes => [..Enum.GetValues<PitchType>().Where(HasFormant)];
 
@@ -694,7 +703,9 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
         }
     }
 
-    /// <summary>Its cabled inputs by row (<see cref="MixInput" />), and the hardware inputs (<see cref="Inputs" />).</summary>
+    /// <summary>
+    ///     Its cabled inputs by row (<see cref="MixInput" />), and the hardware inputs (<see cref="Inputs" />).
+    /// </summary>
     public SideInputs SideInputs => SideInputs.Cables | SideInputs.Hardware;
 
     /// <summary>Audio thread: a cabled input, through <see cref="MixInput" />.</summary>
@@ -706,7 +717,9 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
 
     static string Invariant(int value) => value.ToString(CultureInfo.InvariantCulture);
 
-    /// <summary>Type labels that show a parameter as <paramref name="name" /> on <paramref name="types" /> only.</summary>
+    /// <summary>
+    ///     Type labels that show a parameter as <paramref name="name" /> on <paramref name="types" /> only.
+    /// </summary>
     static string[] For(string name, params PitchType[] types) =>
         [..Enum.GetValues<PitchType>().Select(t => types.Contains(t) ? name : string.Empty)];
 
@@ -816,14 +829,18 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
     static float MixFor(PitchType type, float mix) =>
         type is PitchType.Whammy or PitchType.VirtualCapo ? 1f : mix / 100f;
 
-    /// <summary>The voice's delay line, read before it is written (a delay of N is N samples), with its own feedback.</summary>
+    /// <summary>
+    ///     The voice's delay line, read before it is written (a delay of N is N samples), with its own feedback.
+    /// </summary>
     static float Delayed(FractionalDelayLine line, float input, float delay, float feedback) {
         var output = line.Read(delay);
         line.Write(input + feedback * output);
         return output;
     }
 
-    /// <summary>Restarts the arpeggiator on each new note: the playing rising through −40 dBFS after falling 6 dB below.</summary>
+    /// <summary>
+    ///     Restarts the arpeggiator on each new note: the playing rising through −40 dBFS after falling 6 dB below.
+    /// </summary>
     void Onset(float mono) {
         var magnitude = MathF.Abs(mono);
         onsetEnvelope = magnitude > onsetEnvelope ? magnitude : onsetEnvelope * onsetRelease;
@@ -870,7 +887,8 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
     }
 
     /// <summary>
-    ///     Picks the key and scale from the Key Source (or Learn), then each harmony voice's ratio for the tracked note.
+    ///     Picks the key and scale from the Key Source (or Learn), then each harmony voice's ratio for the tracked
+    ///     note.
     /// </summary>
     void UpdateHarmony() {
         var key = (int)Params.Current(Key);
@@ -978,8 +996,8 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
     float CrystalsDelaySamples() => Params.Current(CrystalsTime) * 0.001f * (float)Spec.SampleRate;
 
     /// <summary>
-    ///     Sets each voice's target gains: four voices for the harmony and detune types, or one centred voice, all at the
-    ///     master level and with their pans scaled by the master pan.
+    ///     Sets each voice's target gains: four voices for the harmony and detune types, or one centred voice, all at
+    ///     the master level and with their pans scaled by the master pan.
     /// </summary>
     void VoiceGains(PitchType type) {
         var master = Decibels.ToGain(Params.Current(MasterLevel));

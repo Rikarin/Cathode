@@ -7,8 +7,9 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 /// <summary>
-///     The Circuit Amp block as a whole: levels, operating points of the output stages, Newton's health under abuse, and
-///     the expert controls doing what they say. The stages themselves are validated in <see cref="AmpStageTests" />.
+///     The Circuit Amp block as a whole: levels, operating points of the output stages, Newton's health under abuse,
+///     and the expert controls doing what they say. The stages themselves are validated in
+///     <see cref="AmpStageTests" />.
 /// </summary>
 public class CircuitAmpBlockTests(ITestOutputHelper output) {
     const double Rate = 48_000;
@@ -26,8 +27,8 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
             var rms = Analysis.ToDb(Analysis.Rms(rendered));
             output.WriteLine($"{AmpDesign.All[type].Name} gain {gain}: peak {peak:0.0} dBFS, rms {rms:0.0} dBFS");
             // The Princeton AA964 has two stages, the second inside the feedback loop: at 5 it is still clean and
-            // quiet (13 dB under the Princeton Reverb, which has a third), and its trim is held down by full drive. So is
-            // the Gibson Scout's (two stages after an audio-taper volume, no feedback, a class-A pair).
+            // quiet (13 dB under the Princeton Reverb, which has a third), and its trim is held down by full drive. So
+            // is the Gibson Scout's (two stages after an audio-taper volume, no feedback, a class-A pair).
             var quiet = AmpDesign.All[type] == PrincetonAA964.Design
                 || AmpDesign.All[type] == GibsonScout.Design;
             var floor = gain == 3f ? -30 : quiet && gain == 5f ? -18 : -12;

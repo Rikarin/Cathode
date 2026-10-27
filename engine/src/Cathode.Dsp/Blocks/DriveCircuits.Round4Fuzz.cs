@@ -5,15 +5,15 @@ namespace Cathode.Dsp.Blocks;
 
 public static partial class DriveCircuits {
     /// <summary>
-    ///     RCA's CA3130 (the MXR Micro Amp's): a CMOS-output op-amp that swings close to its rails (0.2 V here, loaded);
-    ///     110 dB, 15 MHz, 10 V/µs, typical datasheet values.
+    ///     RCA's CA3130 (the MXR Micro Amp's): a CMOS-output op-amp that swings close to its rails (0.2 V here,
+    ///     loaded); 110 dB, 15 MHz, 10 V/µs, typical datasheet values.
     /// </summary>
     static OpAmpModel CA3130 => new(320e3, 15e6, 10e6, 1.5e12, 200, 0.2);
 
     /// <summary>
-    ///     Round 4, group D3: fuzzes, boosts, preamps and the two digital/tape types, after the Blocks Guide's Drive type
-    ///     list (pp. 37–39). Values come from the published schematics where there is one; docs/09 (stream D3) lists what
-    ///     was guessed for each.
+    ///     Round 4, group D3: fuzzes, boosts, preamps and the two digital/tape types, after the Blocks Guide's Drive
+    ///     type list (pp. 37–39). Values come from the published schematics where there is one; docs/09 (stream D3)
+    ///     lists what was guessed for each.
     /// </summary>
     static DriveCircuit[] Round4Fuzz() => [
         new(
@@ -256,10 +256,10 @@ public static partial class DriveCircuits {
     ];
 
     /// <summary>
-    ///     The Super-Fuzz: a silicon gain stage, a phase splitter and two diodes rectifying (octave up), a clipped output
-    ///     stage. Its tone switch: Scoop (the passive low-pass/high-pass network at noon: the mid scoop) or Flat (the
-    ///     filter switched out: the output stage straight into the 100k Balance pot, a little stray capacitance). The
-    ///     networks' values are guessed (39k + 10 nF, 3.9 nF + 22k; 100 pF).
+    ///     The Super-Fuzz: a silicon gain stage, a phase splitter and two diodes rectifying (octave up), a clipped
+    ///     output stage. Its tone switch: Scoop (the passive low-pass/high-pass network at noon: the mid scoop) or Flat
+    ///     (the filter switched out: the output stage straight into the 100k Balance pot, a little stray capacitance).
+    ///     The networks' values are guessed (39k + 10 nF, 3.9 nF + 22k; 100 pF).
     /// </summary>
     static DriveCircuit SuperFuzz() {
         var scoop = new DriveCircuit(

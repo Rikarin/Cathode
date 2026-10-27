@@ -6,13 +6,14 @@ namespace Cathode.Dsp.Amp.Models;
 ///     Vox AC30/6 with the JMI top-boost unit (drawings OS/065, the AC30/6 "Normal" amplifier, 1960-64, and OS/010, the
 ///     top-boost unit, 1961-65; https://www.voxac30.org.uk/vox_ac30_circuit_diagrams.html): the Brilliant channel
 ///     through the top boost, or (Switch 1) the Normal channel. Both channels start in V1, a 12AX7 whose halves share a
-///     1.5k cathode with 25 µF (220k plates at 170 V); the Brilliant half couples through 500 pF into its 500k log volume,
-///     which feeds the top boost's gain stage (100k plate, 1.5k with 25 µF, a 100 pF bright cap across the volume), its
-///     DC-coupled cathode follower (56k) and the treble/bass network; the Normal half couples through 47 nF into its
-///     500k log volume. The channels mix through 220k each (the idle channel's volume at zero) into the inverter's grid
-///     (47 nF, 1M bootstrapped leak): a 12AX7 long-tail pair (100k plates, 1.2k shared bias, 47k tail), 0.1 µF into
-///     220k leaks and 1.5k stoppers, the cut (250k log and 4.7 nF across the grids), four EL84 on a shared 50 Ω with
-///     250 µF (10 V at idle), 100 Ω screen resistors, a 4k plate-to-plate transformer, no feedback, GZ34 and a choke.
+///     1.5k cathode with 25 µF (220k plates at 170 V); the Brilliant half couples through 500 pF into its 500k log
+///     volume, which feeds the top boost's gain stage (100k plate, 1.5k with 25 µF, a 100 pF bright cap across the
+///     volume), its DC-coupled cathode follower (56k) and the treble/bass network; the Normal half couples through 47
+///     nF into its 500k log volume. The channels mix through 220k each (the idle channel's volume at zero) into the
+///     inverter's grid (47 nF, 1M bootstrapped leak): a 12AX7 long-tail pair (100k plates, 1.2k shared bias, 47k tail),
+///     0.1 µF into 220k leaks and 1.5k stoppers, the cut (250k log and 4.7 nF across the grids), four EL84 on a shared
+///     50 Ω with 250 µF (10 V at idle), 100 Ω screen resistors, a 4k plate-to-plate transformer, no feedback, GZ34 and
+///     a choke.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -83,8 +84,9 @@ public static class AC30 {
     };
 
     /// <summary>
-    ///     The top boost's gain stage: the Brilliant half's 500 pF into its 500k log volume (Gain) with the unit's 100 pF
-    ///     across the volume's upper part, the wiper to the grid; 100k plate from the unit's 290 V node, 1.5k with 25 µF.
+    ///     The top boost's gain stage: the Brilliant half's 500 pF into its 500k log volume (Gain) with the unit's 100
+    ///     pF across the volume's upper part, the wiper to the grid; 100k plate from the unit's 290 V node, 1.5k with
+    ///     25 µF.
     /// </summary>
     static NetworkStageDesign TopBoostGain() {
         var net = new StageNetlist();
@@ -102,9 +104,9 @@ public static class AC30 {
     }
 
     /// <summary>
-    ///     The top boost's cathode follower (56k, grid DC-coupled to the gain stage's plate) and its treble/bass network
-    ///     (see the remarks), the treble wiper through the 220k mixing resistor to the node with the Normal channel's
-    ///     220k to ground. The output is the node.
+    ///     The top boost's cathode follower (56k, grid DC-coupled to the gain stage's plate) and its treble/bass
+    ///     network (see the remarks), the treble wiper through the 220k mixing resistor to the node with the Normal
+    ///     channel's 220k to ground. The output is the node.
     /// </summary>
     static NetworkStageDesign TopBoostStack() {
         var net = new StageNetlist();

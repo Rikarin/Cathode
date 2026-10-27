@@ -4,10 +4,10 @@ namespace Cathode.Dsp.Amp;
 
 /// <summary>
 ///     A cathodyne driving a push-pull voltage amplifier straight into the output tubes, with no cathode followers (the
-///     Marshall Major): the cathodyne's plate and junction (the top of <paramref name="CathodeResistor" />, where its grid
-///     leak returns) each AC-coupled into one grid of a triode pair sharing an unbypassed cathode resistor
-///     <paramref name="DriverCathode" /> to ground, the pair's grids on <paramref name="DriverGridLeak" /> to ground. The
-///     outputs are the pair's plates, RC-coupled to the output tubes' grid networks as a long-tail pair's are.
+///     Marshall Major): the cathodyne's plate and junction (the top of <paramref name="CathodeResistor" />, where its
+///     grid leak returns) each AC-coupled into one grid of a triode pair sharing an unbypassed cathode resistor
+///     <paramref name="DriverCathode" /> to ground, the pair's grids on <paramref name="DriverGridLeak" /> to ground.
+///     The outputs are the pair's plates, RC-coupled to the output tubes' grid networks as a long-tail pair's are.
 /// </summary>
 /// <param name="Tube">The cathodyne's triode.</param>
 /// <param name="Supply">The cathodyne's plate supply.</param>
@@ -18,7 +18,9 @@ namespace Cathode.Dsp.Amp;
 /// <param name="DriverSupply">The pair's plate supply.</param>
 /// <param name="DriverPlate">The pair's plate resistors.</param>
 /// <param name="DriverCathode">The pair's shared cathode resistor to ground, unbypassed.</param>
-/// <param name="DriverGridLeak">The pair's grid leaks to ground: the AC load on each of the cathodyne's outputs.</param>
+/// <param name="DriverGridLeak">
+///     The pair's grid leaks to ground: the AC load on each of the cathodyne's outputs.
+/// </param>
 public sealed record CathodyneDriverDesign(
     TriodeModel Tube,
     double Supply,
@@ -34,15 +36,18 @@ public sealed record CathodyneDriverDesign(
 
 /// <summary>
 ///     Two differential stages in cascade (the Mesa/Boogie Bass 400): a long-tail pair whose tail returns to a negative
-///     supply (<paramref name="TailReturn" />), its first grid driven and its second at ground, both grids' DC at ground;
-///     each plate AC-coupled onto <paramref name="CouplingLoad" /> to ground and, through the divider
-///     <paramref name="DividerSeries" /> / <paramref name="DividerShunt" />, into one grid of a second pair that shares an
-///     unbypassed cathode resistor <paramref name="DriverCathode" /> to ground. The outputs are the second pair's plates.
+///     supply (<paramref name="TailReturn" />), its first grid driven and its second at ground, both grids' DC at
+///     ground; each plate AC-coupled onto <paramref name="CouplingLoad" /> to ground and, through the divider
+///     <paramref name="DividerSeries" /> / <paramref name="DividerShunt" />, into one grid of a second pair that shares
+///     an unbypassed cathode resistor <paramref name="DriverCathode" /> to ground. The outputs are the second pair's
+///     plates.
 /// </summary>
 /// <param name="Tube">The first pair's triode.</param>
 /// <param name="Supply">The first pair's plate supply.</param>
 /// <param name="PlateResistor">The first pair's plate resistors.</param>
-/// <param name="TailResistor">The first pair's tail, from the joined cathodes to <paramref name="TailReturn" />.</param>
+/// <param name="TailResistor">
+///     The first pair's tail, from the joined cathodes to <paramref name="TailReturn" />.
+/// </param>
 /// <param name="TailReturn">The (negative) supply the tail returns to.</param>
 /// <param name="CouplingLoad">From each coupling cap's far side to ground.</param>
 /// <param name="DividerSeries">From the coupling cap's far side to the second pair's grid.</param>
@@ -70,14 +75,15 @@ public sealed record DifferentialDriverDesign(
 
 /// <summary>
 ///     A <see cref="CathodyneDriverDesign" />'s table: the pair's plates (AC, open circuit) as functions of the
-///     cathodyne's grid voltage (AC), from the exact DC solution of the cathodyne (each output loaded by the pair's grid
-///     leak) and then of the pair.
+///     cathodyne's grid voltage (AC), from the exact DC solution of the cathodyne (each output loaded by the pair's
+///     grid leak) and then of the pair.
 /// </summary>
 /// <remarks>
-///     As in <see cref="DriverChain" />, the coupling caps between the cathodyne and the pair are shorts for the signal,
-///     so the chain is a memoryless map; what that leaves out is their low-frequency roll-off and the pair's grid current,
-///     which flows once a grid rises above the pair's shared cathode (deep overdrive) and would charge them. Output A is
-///     the plate driven from the junction, so that it falls as the input rises, as every inverter's does.
+///     As in <see cref="DriverChain" />, the coupling caps between the cathodyne and the pair are shorts for the
+///     signal, so the chain is a memoryless map; what that leaves out is their low-frequency roll-off and the pair's
+///     grid current, which flows once a grid rises above the pair's shared cathode (deep overdrive) and would charge
+///     them. Output A is the plate driven from the junction, so that it falls as the input rises, as every inverter's
+///     does.
 /// </remarks>
 public sealed class CathodyneDriver : PhaseInverter {
     public CathodyneDriverDesign Design { get; }
@@ -147,8 +153,8 @@ public sealed class CathodyneDriver : PhaseInverter {
         new(design.DriverTube, design.DriverSupply, design.DriverPlate, design.DriverPlate, design.DriverCathode, 0);
 
     /// <summary>
-    ///     The cathodyne's current with its grid at <paramref name="grid" /> volts, its plate on a Thévenin source and its
-    ///     junction on another (both outputs loaded): bisection on the current.
+    ///     The cathodyne's current with its grid at <paramref name="grid" /> volts, its plate on a Thévenin source and
+    ///     its junction on another (both outputs loaded): bisection on the current.
     /// </summary>
     static double Split(
         Triode triode,
@@ -176,8 +182,8 @@ public sealed class CathodyneDriver : PhaseInverter {
     }
 
     /// <summary>
-    ///     A pair's output impedance matrix with its grids at <paramref name="gridA" /> / <paramref name="gridB" />: a small
-    ///     current drawn from each plate in turn.
+    ///     A pair's output impedance matrix with its grids at <paramref name="gridA" /> / <paramref name="gridB" />: a
+    ///     small current drawn from each plate in turn.
     /// </summary>
     internal static (double, double, double, double) PairImpedance(
         Triode triode,
@@ -200,15 +206,15 @@ public sealed class CathodyneDriver : PhaseInverter {
 }
 
 /// <summary>
-///     A <see cref="DifferentialDriverDesign" />'s table: the second pair's plates (AC, open circuit) as functions of the
-///     first pair's driven grid (AC), from the exact DC solution of the first pair (each plate loaded by its coupling
-///     load and divider) and then of the second.
+///     A <see cref="DifferentialDriverDesign" />'s table: the second pair's plates (AC, open circuit) as functions of
+///     the first pair's driven grid (AC), from the exact DC solution of the first pair (each plate loaded by its
+///     coupling load and divider) and then of the second.
 /// </summary>
 /// <remarks>
 ///     The coupling caps are shorts for the signal, as in the other driver chains; the second pair's grids sit on
-///     dividers (a third of the first pair's swing reaches them), so they draw grid current only in deep overdrive, which
-///     the table leaves out. Output A is the plate driven from the first pair's undriven side, so that it falls as the
-///     input rises.
+///     dividers (a third of the first pair's swing reaches them), so they draw grid current only in deep overdrive,
+///     which the table leaves out. Output A is the plate driven from the first pair's undriven side, so that it falls
+///     as the input rises.
 /// </remarks>
 public sealed class DifferentialDriver : PhaseInverter {
     public DifferentialDriverDesign Design { get; }
@@ -335,10 +341,11 @@ public sealed class DifferentialDriver : PhaseInverter {
     }
 
     /// <summary>
-    ///     A pair with its cathodes joined and returned through <paramref name="tail" /> to <paramref name="tailReturn" />,
-    ///     each plate on a Thévenin source (<paramref name="supplyA" /> behind <paramref name="plateA" />, and so on), its
-    ///     grids at <paramref name="gridA" /> and <paramref name="gridB" /> (no grid current): the plate currents and the
-    ///     cathode, by bisection on the cathode with each triode's current from its own load line.
+    ///     A pair with its cathodes joined and returned through <paramref name="tail" /> to
+    ///     <paramref name="tailReturn" />, each plate on a Thévenin source (<paramref name="supplyA" /> behind
+    ///     <paramref name="plateA" />, and so on), its grids at <paramref name="gridA" /> and <paramref name="gridB" />
+    ///     (no grid current): the plate currents and the cathode, by bisection on the cathode with each triode's
+    ///     current from its own load line.
     /// </summary>
     public static (double A, double B, double Cathode) SolvePair(
         Triode triode,

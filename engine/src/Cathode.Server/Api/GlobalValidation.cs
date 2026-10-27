@@ -4,7 +4,9 @@ using System.Collections.Immutable;
 
 namespace Cathode.Server.Api;
 
-/// <summary>Checks a global settings document before it is stored: modes, MIDI messages, channels and actions.</summary>
+/// <summary>
+///     Checks a global settings document before it is stored: modes, MIDI messages, channels and actions.
+/// </summary>
 static class GlobalValidation {
     static readonly string[] TempoModes = ["preset", "global", "midiClock"];
     static readonly string[] Messages = ["cc", "note", "pc"];

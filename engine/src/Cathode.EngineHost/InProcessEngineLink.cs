@@ -33,7 +33,9 @@ public sealed class InProcessEngineLink : IEngineLink {
         );
     }
 
-    /// <summary>Tests and development: deliver MIDI as if a device had sent it (there is no device in process).</summary>
+    /// <summary>
+    ///     Tests and development: deliver MIDI as if a device had sent it (there is no device in process).
+    /// </summary>
     public void InjectMidi(IReadOnlyList<MidiEventMessage> messages) => MidiReceived?.Invoke(messages);
 
     public Task<IpcMessage> SendAsync(IpcMessage request, CancellationToken cancellationToken = default) {

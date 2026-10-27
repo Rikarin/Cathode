@@ -24,7 +24,9 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
     const int MaxEntries = 64;
     const int MaxPresetBytes = 4 * 1024 * 1024;
 
-    /// <summary>Writes <paramref name="preset" /> and every asset it references to <paramref name="output" />.</summary>
+    /// <summary>
+    ///     Writes <paramref name="preset" /> and every asset it references to <paramref name="output" />.
+    /// </summary>
     public async Task ExportAsync(Preset preset, Stream output, CancellationToken cancellationToken) {
         var references = preset.Blocks.SelectMany(static b => b.Assets.Values)
             .Distinct(StringComparer.Ordinal)
@@ -225,7 +227,9 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
         }
     }
 
-    /// <summary>Copies at most <paramref name="limit" /> bytes, counting what is actually read (headers can lie).</summary>
+    /// <summary>
+    ///     Copies at most <paramref name="limit" /> bytes, counting what is actually read (headers can lie).
+    /// </summary>
     static async Task CopyLimitedAsync(
         Stream source,
         Stream target,

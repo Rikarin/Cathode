@@ -139,7 +139,9 @@ public class BassAmpTests(ITestOutputHelper output) {
         }
     }
 
-    /// <summary>Every knob swept end to end while a loud chord plays: finite, bounded, and every solver converging.</summary>
+    /// <summary>
+    ///     Every knob swept end to end while a loud chord plays: finite, bounded, and every solver converging.
+    /// </summary>
     [Theory]
     [MemberData(nameof(Types))]
     public void Knob_sweeps_at_full_drive_stay_finite_and_converge(string type) {
@@ -219,9 +221,10 @@ public class BassAmpTests(ITestOutputHelper output) {
 
     /// <summary>
     ///     Ampeg's manual: Ultra Lo about +2 dB at 40 Hz and −10 dB at 500 Hz, Ultra Hi +9 dB at 8 kHz; Bass Cut a
-    ///     high-pass. Read with the volume at 3 (the Ultra Hi cap's lift depends on it). The model's twin-T (150k / 2 nF
-    ///     / 68k, the 820k shorted) notches deeper than the manual's 10 dB, about 18 dB, and its 40 Hz falls 2 dB where
-    ///     the manual has it rise: the switch's wiring is the redraw's least certain part (see <see cref="Amp.Models.Svt" />).
+    ///     high-pass. Read with the volume at 3 (the Ultra Hi cap's lift depends on it). The model's twin-T (150k / 2
+    ///     nF / 68k, the 820k shorted) notches deeper than the manual's 10 dB, about 18 dB, and its 40 Hz falls 2 dB
+    ///     where the manual has it rise: the switch's wiring is the redraw's least certain part (see
+    ///     <see cref="Amp.Models.Svt" />).
     /// </summary>
     [Fact]
     public void Svt_ultra_switches_shape_as_the_manual_says() {
@@ -241,7 +244,9 @@ public class BassAmpTests(ITestOutputHelper output) {
         Assert.True(cut < -6, $"Bass Cut {cut:0.0} dB");
     }
 
-    /// <summary>The Mid-Range pot boosts and cuts around the Mid Freq selector's frequency, and little elsewhere.</summary>
+    /// <summary>
+    ///     The Mid-Range pot boosts and cuts around the Mid Freq selector's frequency, and little elsewhere.
+    /// </summary>
     [Fact]
     public void Svt_midrange_boosts_and_cuts_at_the_selected_frequency() {
         foreach (var (position, frequency) in new[] { (0f, 220.0), (5f, 800.0), (10f, 3_000.0) }) {
@@ -280,11 +285,11 @@ public class BassAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     Roland's annotations on the circuit diagram (1 kHz, every tone control and the volume full up): 21 mV into the
-    ///     High input, 72 mV after IC2b, 130 mV after IC2a, 710 mV after IC3a, 290 mV after IC3b, 800 mV into the power
-    ///     amp, 22 V at the speaker. The stage gains reproduce them, all but the tone stack's: the drawn Fender-type stack
-    ///     (its 10k middle pot against the 100k slope resistor) loses about 15 dB at 1 kHz with everything up, where the
-    ///     annotations imply 7 dB; so the stages after it are checked by their own gains.
+    ///     Roland's annotations on the circuit diagram (1 kHz, every tone control and the volume full up): 21 mV into
+    ///     the High input, 72 mV after IC2b, 130 mV after IC2a, 710 mV after IC3a, 290 mV after IC3b, 800 mV into the
+    ///     power amp, 22 V at the speaker. The stage gains reproduce them, all but the tone stack's: the drawn
+    ///     Fender-type stack (its 10k middle pot against the 100k slope resistor) loses about 15 dB at 1 kHz with
+    ///     everything up, where the annotations imply 7 dB; so the stages after it are checked by their own gains.
     /// </summary>
     [Fact]
     public void Jc120_stage_gains_match_the_factory_signal_voltages() {

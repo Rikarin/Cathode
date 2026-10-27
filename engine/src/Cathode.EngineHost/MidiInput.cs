@@ -8,8 +8,8 @@ namespace Cathode.EngineHost;
 ///     Reads MIDI input on its own thread (docs/02-architecture.md §5.10): every message gets the engine sample time
 ///     it arrived at (from the OS timestamp), and batches go to the Server, which owns the mappings. MIDI clock is
 ///     handled here, when following it is on: the tempo comes from the average tick interval, sample-accurately. Notes
-///     are also posted to the engine, which keeps the held chord for the blocks (<see cref="CathodeEngine.HeldNotes" />).
-///     Devices plugged in later are picked up within a couple of seconds.
+///     are also posted to the engine, which keeps the held chord for the blocks
+///     (<see cref="CathodeEngine.HeldNotes" />). Devices plugged in later are picked up within a couple of seconds.
 /// </summary>
 public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage>> forward) : IDisposable {
     const int TicksPerBeat = 24;

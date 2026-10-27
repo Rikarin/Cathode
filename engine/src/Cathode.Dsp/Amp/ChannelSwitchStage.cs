@@ -7,9 +7,9 @@ namespace Cathode.Dsp.Amp;
 ///     Two preamp paths and a front-panel switch choosing between them: an amp's channels, of which the guitar is
 ///     plugged into one (the Vox AC30's Brilliant and Normal channels, the Matchless DC-30's top-boost and EF86
 ///     channels). <paramref name="Off" /> plays while <paramref name="Switch" /> is off (the stock channel),
-///     <paramref name="On" /> while it is on. Each path is a chain of stages like a whole preamp, fed by the same source;
-///     the idle channel's tubes do not run, and what of it loads the shared circuit (the other channel's mixing resistor,
-///     its volume pot) belongs in the playing path's own netlist.
+///     <paramref name="On" /> while it is on. Each path is a chain of stages like a whole preamp, fed by the same
+///     source; the idle channel's tubes do not run, and what of it loads the shared circuit (the other channel's mixing
+///     resistor, its volume pot) belongs in the playing path's own netlist.
 /// </summary>
 /// <param name="Name">A label, e.g. "Channel".</param>
 /// <param name="Switch">The switch that selects <paramref name="On" />.</param>
@@ -207,7 +207,9 @@ public sealed class ChannelSwitchStage : AmpStage {
         }
     }
 
-    /// <summary>A chain at its operating point, in signal order, as <see cref="AmpChannel.Reset" /> does the preamp.</summary>
+    /// <summary>
+    ///     A chain at its operating point, in signal order, as <see cref="AmpChannel.Reset" /> does the preamp.
+    /// </summary>
     void Settle(AmpStage[] chain) {
         var rest = restInput;
         var resistance = sourceResistance;

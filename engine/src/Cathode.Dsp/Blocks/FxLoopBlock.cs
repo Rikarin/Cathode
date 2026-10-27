@@ -4,11 +4,11 @@ using Cathode.Dsp.Routing;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     An external effects loop through the audio interface's spare channels: the input goes out of the send channels to
-///     a pedal and comes back on the return channels (<see cref="HardwareLoop" />). The round trip delays the return, so
-///     the dry signal is delayed by the same <c>latency</c> and the graph compiler compensates parallel paths by it.
-///     Measure the latency with the loopback test (send cabled to return) and enter it here; changes to it take effect
-///     on the next preset load. With no return channels configured, the return is silent.
+///     An external effects loop through the audio interface's spare channels: the input goes out of the send channels
+///     to a pedal and comes back on the return channels (<see cref="HardwareLoop" />). The round trip delays the
+///     return, so the dry signal is delayed by the same <c>latency</c> and the graph compiler compensates parallel
+///     paths by it. Measure the latency with the loopback test (send cabled to return) and enter it here; changes to it
+///     take effect on the next preset load. With no return channels configured, the return is silent.
 /// </summary>
 public sealed class FxLoopBlock() : DspBlock(Info) {
     public const int Send = 0;

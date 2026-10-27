@@ -20,8 +20,8 @@ public static class Signals {
     }
 
     /// <summary>
-    ///     A sine with exactly <paramref name="cycles" /> periods in <paramref name="length" /> samples, so its FFT needs
-    ///     no window and every harmonic lands exactly on a bin.
+    ///     A sine with exactly <paramref name="cycles" /> periods in <paramref name="length" /> samples, so its FFT
+    ///     needs no window and every harmonic lands exactly on a bin.
     /// </summary>
     public static float[] CoherentSine(int cycles, int length, float amplitude = 1f) =>
         Sine(cycles, length, length, amplitude);
@@ -37,7 +37,9 @@ public static class Signals {
         return signal;
     }
 
-    /// <summary>Exponential (Farina) sine sweep from <paramref name="startHz" /> to <paramref name="endHz" />.</summary>
+    /// <summary>
+    ///     Exponential (Farina) sine sweep from <paramref name="startHz" /> to <paramref name="endHz" />.
+    /// </summary>
     public static float[] ExponentialSweep(
         double startHz,
         double endHz,

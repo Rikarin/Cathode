@@ -7,10 +7,10 @@ namespace Cathode.Dsp.Blocks;
 /// <summary>
 ///     Rotary speaker (Leslie 122/147 style). The mono input (Input Select) goes through an optional tube-style drive,
 ///     then a Linkwitz–Riley crossover splits it between the treble horn and the bass drum. Each rotor is a rotating
-///     source heard by two microphones, placed HF or LF Mic Spacing degrees apart: the changing path length to each mic is
-///     a modulated delay (Doppler), and the rotor's directivity is an amplitude modulation. The speed switch moves each
-///     rotor towards its new speed with its own acceleration and deceleration inertia, as the real motors and belts do;
-///     Brake stops (parks) both rotors.
+///     source heard by two microphones, placed HF or LF Mic Spacing degrees apart: the changing path length to each mic
+///     is a modulated delay (Doppler), and the rotor's directivity is an amplitude modulation. The speed switch moves
+///     each rotor towards its new speed with its own acceleration and deceleration inertia, as the real motors and
+///     belts do; Brake stops (parks) both rotors.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -157,8 +157,8 @@ public sealed class RotaryBlock() : DspBlock(Info) {
 
     /// <summary>
     ///     The near-field path of a rotor to a mic <paramref name="k" /> radii from its axis, at
-    ///     <paramref name="cosAngle" />: the change in path length in radii (−1 facing, +1 away) and the inverse-distance
-    ///     level relative to facing it.
+    ///     <paramref name="cosAngle" />: the change in path length in radii (−1 facing, +1 away) and the
+    ///     inverse-distance level relative to facing it.
     /// </summary>
     public static (float Path, float Level) NearField(float k, float cosAngle) {
         var distance = MathF.Sqrt(k * k + 1 - 2 * k * cosAngle);
@@ -171,7 +171,9 @@ public sealed class RotaryBlock() : DspBlock(Info) {
     /// <summary>Rotor gain towards a mic: 1 facing it, 1 - <paramref name="depth" /> facing away.</summary>
     static float Directivity(float depth, float cosAngle) => 1 - depth * 0.5f * (1 - cosAngle);
 
-    /// <summary>The mic's distance in rotor radii for Mic Distance below 100 % (0 % is 1.2 radii, 99 % about 10).</summary>
+    /// <summary>
+    ///     The mic's distance in rotor radii for Mic Distance below 100 % (0 % is 1.2 radii, 99 % about 10).
+    /// </summary>
     static float Radii(float distance) => 1.2f + 8.8f * distance;
 
     /// <summary>One rotor heard by one mic in the near field.</summary>

@@ -7,6 +7,8 @@ namespace Cathode.Dsp;
 ///     lock-free.
 /// </summary>
 public interface IControlRefresh {
-    /// <summary>Control thread (any, serialised by the block): brings derived state up to date with the targets.</summary>
+    /// <summary>
+    ///     Control thread (any, serialised by the block): brings derived state up to date with the targets.
+    /// </summary>
     void Refresh();
 }

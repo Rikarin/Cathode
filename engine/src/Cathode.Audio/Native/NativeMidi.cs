@@ -5,7 +5,9 @@ namespace Cathode.Audio.Native;
 /// <summary>A MIDI endpoint as the OS reports it. <see cref="Uid" /> is stable across runs.</summary>
 public sealed record MidiPort(string Uid, string Name, bool IsInput);
 
-/// <summary>A short MIDI message with its OS timestamp (nanoseconds on <see cref="NativeMidi.NowNanoseconds" />).</summary>
+/// <summary>
+///     A short MIDI message with its OS timestamp (nanoseconds on <see cref="NativeMidi.NowNanoseconds" />).
+/// </summary>
 public readonly record struct MidiMessage(ulong TimeNs, byte Status, byte Data1, byte Data2, byte Length) {
     public int Channel => Status < 0xF0 ? (Status & 0x0F) + 1 : 0;
 

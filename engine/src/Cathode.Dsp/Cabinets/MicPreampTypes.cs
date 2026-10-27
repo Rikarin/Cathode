@@ -19,8 +19,8 @@ namespace Cathode.Dsp.Cabinets;
 ///         <item>
 ///             <b>Tape 70 / 50 / 35 µs</b>: a tape stage. The record amplifier pre-emphasises the treble with the
 ///             equalisation's time constant (a shelf <c>(1 + sτ) / (1 + sτ / 10)</c>, corner 2.27, 3.18 or 4.55 kHz),
-///             the tape saturates softly, and playback de-emphasises by the exact inverse, so small signals come out flat
-///             while loud treble compresses first, as on tape.
+///             the tape saturates softly, and playback de-emphasises by the exact inverse, so small signals come out
+///             flat while loud treble compresses first, as on tape.
 ///         </item>
 ///         <item>
 ///             <b>Vintage</b>: a transformer-coupled triode preamp. A transformer core saturates on flux, the integral

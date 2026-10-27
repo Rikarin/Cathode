@@ -7,16 +7,17 @@ namespace Cathode.Dsp.Tests;
 
 /// <summary>
 ///     Stream M2's driver variants against the reference MNA simulator: the cathodyne-plus-push-pull driver and the
-///     cascaded differential driver as DC sweeps of their exact circuits (the coupling caps' far sides held at their rest
-///     voltages, as the tables assume), and the whole power amps in the time domain, the Major's with its preamp stage and
-///     tone stack inside the feedback loop.
+///     cascaded differential driver as DC sweeps of their exact circuits (the coupling caps' far sides held at their
+///     rest voltages, as the tables assume), and the whole power amps in the time domain, the Major's with its preamp
+///     stage and tone stack inside the feedback loop.
 /// </summary>
 public partial class AmpStageTests {
     public static TheoryData<string> DriverPowerAmps => ["Major 1967", "Major 1967 open loop", "Bass 400"];
 
     /// <summary>
-    ///     The bias tremolo hook (<see cref="PowerAmpDesign.BiasTremolo" />) acts after the inverter, on the grid networks,
-    ///     so it applies to the new drivers too: borrowed from the Vibrolux 6G11, it modulates both power amps' output.
+    ///     The bias tremolo hook (<see cref="PowerAmpDesign.BiasTremolo" />) acts after the inverter, on the grid
+    ///     networks, so it applies to the new drivers too: borrowed from the Vibrolux 6G11, it modulates both power
+    ///     amps' output.
     /// </summary>
     [Theory]
     [InlineData("Major 1967")]
@@ -70,8 +71,8 @@ public partial class AmpStageTests {
             c.Resistor(junction, 0, design.CathodeResistor);
             c.Device(new Triode(design.Tube), (grid, cathode), (plate, cathode));
 
-            // The coupling caps hold their rest voltages: each leak returns to the output's rest voltage, and each driver
-            // grid follows its output's swing.
+            // The coupling caps hold their rest voltages: each leak returns to the output's rest voltage, and each
+            // driver grid follows its output's swing.
             var (plateRest, junctionRest, ga, gb, pa, pb, tail, driverSupply) = (c.Node(), c.Node(), c.Node(),
                 c.Node(), c.Node(), c.Node(), c.Node(), c.Node());
             c.Source(plateRest, 0, _ => driver.RestSplitter.Plate);
@@ -177,8 +178,8 @@ public partial class AmpStageTests {
     }
 
     /// <summary>
-    ///     The power amps whole against the reference, with a stiff supply: the Major's V2A, tone stack, cathodyne, ECC82
-    ///     pair and ultralinear KT88s with the feedback into V2A's cathode (and without it); the Bass 400's two
+    ///     The power amps whole against the reference, with a stiff supply: the Major's V2A, tone stack, cathodyne,
+    ///     ECC82 pair and ultralinear KT88s with the feedback into V2A's cathode (and without it); the Bass 400's two
     ///     differential stages and six 6550.
     /// </summary>
     [Theory]

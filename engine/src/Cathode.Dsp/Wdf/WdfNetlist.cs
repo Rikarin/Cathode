@@ -14,7 +14,9 @@ public enum NetlistElementKind {
     /// <summary>An ideal voltage source inside the adaptor, set every sample (a supply rail, say).</summary>
     VoltageSource,
 
-    /// <summary>An ideal current source inside the adaptor, set every sample, pushing current into its plus node.</summary>
+    /// <summary>
+    ///     An ideal current source inside the adaptor, set every sample, pushing current into its plus node.
+    /// </summary>
     CurrentSource,
 
     /// <summary>
@@ -41,10 +43,10 @@ public readonly record struct NetlistElement(
 );
 
 /// <summary>
-///     The circuit embedded in an R-type adaptor, described like a SPICE netlist: nodes, and what joins them. Build it on
-///     the control thread, then hand it to <see cref="RTypeAdaptor{TPorts}" /> or <see cref="RTypeRoot{TPorts,TDevice}" />
-///     ,
-///     which compute their scattering matrix from its modified nodal analysis.
+///     The circuit embedded in an R-type adaptor, described like a SPICE netlist: nodes, and what joins them. Build it
+///     on the control thread, then hand it to <see cref="RTypeAdaptor{TPorts}" /> or
+///     <see cref="RTypeRoot{TPorts,TDevice}" /> , which compute their scattering matrix from its modified nodal
+///     analysis.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -54,9 +56,8 @@ public readonly record struct NetlistElement(
 ///         can live inside the adaptor instead, which saves ports; changing one recomputes the matrix, which is cheap
 ///         enough to do every audio block. Ideal sources (supply rails, bias voltages) and controlled sources also live
 ///         inside. Nonlinear devices are declared with <see cref="Device" /> or the helpers (<see cref="Diode" />,
-///         <see cref="Transistor" />, <see cref="Triode" />, <see cref="Pentode" />, <see cref="OpAmp" />), in the order
-///         of
-///         the device's ports.
+///         <see cref="Transistor" />, <see cref="Triode" />, <see cref="Pentode" />, <see cref="OpAmp" />), in the
+///         order of the device's ports.
 ///     </para>
 ///     <para>
 ///         Every method returns an index: a node, or the element's position among elements of its kind (the k-th
@@ -104,12 +105,14 @@ public sealed class WdfNetlist {
     /// <summary>An ideal voltage source, v(plus) - v(minus) = V set per sample. Returns its source index.</summary>
     public int VoltageSource(int plus, int minus) => Add(new(NetlistElementKind.VoltageSource, plus, minus));
 
-    /// <summary>An ideal current source pushing I (set per sample) into <paramref name="plus" />. Returns its index.</summary>
+    /// <summary>
+    ///     An ideal current source pushing I (set per sample) into <paramref name="plus" />. Returns its index.
+    /// </summary>
     public int CurrentSource(int plus, int minus) => Add(new(NetlistElementKind.CurrentSource, plus, minus));
 
     /// <summary>
-    ///     A voltage-controlled voltage source, v(plus, minus) = <paramref name="gain" /> × v(controlPlus, controlMinus).
-    ///     Returns its index, for changing the gain later.
+    ///     A voltage-controlled voltage source, v(plus, minus) = <paramref name="gain" /> × v(controlPlus,
+    ///     controlMinus). Returns its index, for changing the gain later.
     /// </summary>
     public int Vcvs(int plus, int minus, int controlPlus, int controlMinus, double gain) =>
         Add(new(NetlistElementKind.Vcvs, plus, minus, gain, controlPlus, controlMinus));
@@ -123,14 +126,18 @@ public sealed class WdfNetlist {
     /// <summary>A two-terminal device (a diode, or an antiparallel pair): anode, cathode.</summary>
     public int Diode(int anode, int cathode) => Device(anode, cathode);
 
-    /// <summary>The two ports of a <see cref="Bjt" />: (base, emitter) then (base, collector). Returns the first.</summary>
+    /// <summary>
+    ///     The two ports of a <see cref="Bjt" />: (base, emitter) then (base, collector). Returns the first.
+    /// </summary>
     public int Transistor(int collector, int baseNode, int emitter) {
         var first = Device(baseNode, emitter);
         Device(baseNode, collector);
         return first;
     }
 
-    /// <summary>The two ports of a <see cref="Triode" />: (grid, cathode) then (plate, cathode). Returns the first.</summary>
+    /// <summary>
+    ///     The two ports of a <see cref="Triode" />: (grid, cathode) then (plate, cathode). Returns the first.
+    /// </summary>
     public int Triode(int plate, int grid, int cathode) {
         var first = Device(grid, cathode);
         Device(plate, cathode);
@@ -158,13 +165,15 @@ public sealed class WdfNetlist {
         return first;
     }
 
-    /// <summary>An output, v(plus) - v(minus), read with <c>Probe(index)</c> after each sample. Returns its index.</summary>
+    /// <summary>
+    ///     An output, v(plus) - v(minus), read with <c>Probe(index)</c> after each sample. Returns its index.
+    /// </summary>
     public int Probe(int plus, int minus = Ground) => Add(new(NetlistElementKind.Probe, plus, minus));
 
     /// <summary>
     ///     The elements' kinds, nodes and per-kind indices as arrays, built once and shared by every adaptor made from
-    ///     this netlist (the catalogue's netlists are static, so their adaptors need no copy of their own). Rebuilt when
-    ///     elements were added since; never mutated, so publishing it without a lock is safe.
+    ///     this netlist (the catalogue's netlists are static, so their adaptors need no copy of their own). Rebuilt
+    ///     when elements were added since; never mutated, so publishing it without a lock is safe.
     /// </summary>
     internal NetlistTopology Topology {
         get {

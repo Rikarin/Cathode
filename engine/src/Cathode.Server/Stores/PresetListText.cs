@@ -4,7 +4,9 @@ using System.Text;
 
 namespace Cathode.Server.Stores;
 
-/// <summary>The preset list as plain text, for printing or a set list: name, author, tags and the scene names.</summary>
+/// <summary>
+///     The preset list as plain text, for printing or a set list: name, author, tags and the scene names.
+/// </summary>
 public static class PresetListText {
     public static string Build(PresetStore store) => Build(store.User().Select(s => store.Get(s.Id)).OfType<Preset>());
 

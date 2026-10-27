@@ -145,7 +145,9 @@ public sealed class FlangerBlock() : DspBlock(Info), IEngageAware {
         return exponential && low > 0 ? low * MathF.Pow((low + span) / low, position) : low + span * position;
     }
 
-    /// <summary>LFO Bypass Reset: engaging the block restarts the sweep from the top, so every engage sounds alike.</summary>
+    /// <summary>
+    ///     LFO Bypass Reset: engaging the block restarts the sweep from the top, so every engage sounds alike.
+    /// </summary>
     public void Engage() {
         if (Params.GetTarget(LfoReset) >= 0.5f) {
             lfo.Reset();

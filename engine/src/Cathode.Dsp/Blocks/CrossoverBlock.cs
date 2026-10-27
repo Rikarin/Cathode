@@ -9,11 +9,13 @@ namespace Cathode.Dsp.Blocks;
 ///     three ways.
 ///     <list type="bullet">
 ///         <item>
-///             <b>Stereo</b>: each channel is split; each of the four bands (the left and right input's low and high) has
-///             its own level, and its own pan with the balance law (the far side is turned down). The pans default to hard
-///             left for the left input's bands and hard right for the right's, which leaves the image as it is.
+///             <b>Stereo</b>: each channel is split; each of the four bands (the left and right input's low and high)
+///             has its own level, and its own pan with the balance law (the far side is turned down). The pans default
+///             to hard left for the left input's bands and hard right for the right's, which leaves the image as it is.
 ///         </item>
-///         <item><b>Low Left / High Right</b>: the mono sum is split, the low band goes left and the high band right.</item>
+///         <item>
+///             <b>Low Left / High Right</b>: the mono sum is split, the low band goes left and the high band right.
+///         </item>
 ///     </list>
 /// </summary>
 public sealed class CrossoverBlock() : DspBlock(Info) {

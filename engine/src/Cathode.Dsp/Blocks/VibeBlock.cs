@@ -68,14 +68,18 @@ public sealed class VibeBlock() : DspBlock(Info) {
     /// </summary>
     public static ReadOnlySpan<float> StageRatios => [1f, 15f / 220f, 15f / 0.47f, 15f / 4.7f];
 
-    /// <summary>The asymmetric lamp: incandescent power rises with the square of the drive, then lags the light.</summary>
+    /// <summary>
+    ///     The asymmetric lamp: incandescent power rises with the square of the drive, then lags the light.
+    /// </summary>
     static float Lamp(float light, float lfo, float attack, float decay) {
         var u = 0.5f * (1 + lfo);
         var drive = u * u;
         return light + (drive - light) * (drive > light ? attack : decay);
     }
 
-    /// <summary>The four TPT first-order allpasses (allpass = 2 * lowpass - input), all set by the same photocell.</summary>
+    /// <summary>
+    ///     The four TPT first-order allpasses (allpass = 2 * lowpass - input), all set by the same photocell.
+    /// </summary>
     static float Chain(float[] state, float x, float firstStage, float nyquistGuard, double sampleRate) {
         var ratios = StageRatios;
         for (var s = 0; s < StageCount; s++) {

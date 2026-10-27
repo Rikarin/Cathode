@@ -51,7 +51,9 @@ public sealed record BatchResult(IReadOnlyList<string> Changed, IReadOnlyList<st
 
 // Request bodies.
 
-/// <summary>Drops block <c>{id}</c> on <c>Target</c>: <c>swap</c> exchanges their cells, <c>replace</c> takes its place.</summary>
+/// <summary>
+///     Drops block <c>{id}</c> on <c>Target</c>: <c>swap</c> exchanges their cells, <c>replace</c> takes its place.
+/// </summary>
 public sealed record DropBlockRequest(string Target, string Mode = "swap");
 
 /// <summary>Replaces a block with a new one of <c>Type</c> in the same cell, keeping its cables.</summary>
@@ -83,7 +85,9 @@ public sealed record AssetUsage(string Ref, List<string> Presets);
 
 public sealed record AssetMetadataRequest(string? Name = null, string? Color = null, bool? Favorite = null);
 
-/// <summary>Copies a stored preset under <c>Id</c> (a new one when null) and <c>Name</c> (the original's plus "copy").</summary>
+/// <summary>
+///     Copies a stored preset under <c>Id</c> (a new one when null) and <c>Name</c> (the original's plus "copy").
+/// </summary>
 public sealed record DuplicatePresetRequest(string? Id = null, string? Name = null);
 
 public sealed record PresetBatchRequest(List<string> Presets);

@@ -13,13 +13,13 @@ namespace Cathode.Dsp.Blocks;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The analysis signal is the block's input (Analysis Channel: both sides, left or right; with a carrier from one
-///         side of the input, both sides means the other side) or, with Analysis
-///         Source set to a row, whatever is cabled in from that grid row. The block then takes its inputs by row
-///         (<see cref="SideInputs.Cables" />): the chosen row feeds the analysis alone and every other row is summed into
-///         the block input as usual, which is where an input carrier comes from. With the row not cabled the analysis
-///         is silent. Analysis Source can also name one of the interface's inputs (<see cref="HardwareInputs" />): a
-///         microphone on Input 2 talking through the guitar, the classic vocoder rig.
+///         The analysis signal is the block's input (Analysis Channel: both sides, left or right; with a carrier from
+///         one side of the input, both sides means the other side) or, with Analysis Source set to a row, whatever is
+///         cabled in from that grid row. The block then takes its inputs by row (<see cref="SideInputs.Cables" />): the
+///         chosen row feeds the analysis alone and every other row is summed into the block input as usual, which is
+///         where an input carrier comes from. With the row not cabled the analysis is silent. Analysis Source can also
+///         name one of the interface's inputs (<see cref="HardwareInputs" />): a microphone on Input 2 talking through
+///         the guitar, the classic vocoder rig.
 ///     </para>
 ///     <para>
 ///         Bands: 4 to 24 filters spaced logarithmically from Min to Max Frequency, each two cascaded constant-peak
@@ -179,13 +179,17 @@ public sealed class VocoderBlock() : DspBlock(Info), ISideInputBlock {
     public static double BandFrequency(int band, int count, double min, double max) =>
         min * Math.Pow(max / min, band / (double)(count - 1));
 
-    /// <summary>Centre frequency of band <paramref name="band" /> of the default layout (20 bands, 100 Hz to 8 kHz).</summary>
+    /// <summary>
+    ///     Centre frequency of band <paramref name="band" /> of the default layout (20 bands, 100 Hz to 8 kHz).
+    /// </summary>
     public static double BandFrequency(int band) => BandFrequency(band, 20, 100, 8_000);
 
     /// <summary>The number of bands for option <paramref name="option" /> of the Bands parameter.</summary>
     public static int BandCount(int option) => BandCounts[Math.Clamp(option, 0, BandCounts.Length - 1)];
 
-    /// <summary>Its cabled inputs by row (<see cref="MixInput" />), and the hardware inputs (<see cref="Inputs" />).</summary>
+    /// <summary>
+    ///     Its cabled inputs by row (<see cref="MixInput" />), and the hardware inputs (<see cref="Inputs" />).
+    /// </summary>
     public SideInputs SideInputs => SideInputs.Cables | SideInputs.Hardware;
 
     /// <summary>Audio thread: a cabled input, through <see cref="MixInput" />.</summary>
@@ -269,7 +273,9 @@ public sealed class VocoderBlock() : DspBlock(Info), ISideInputBlock {
         highpass = SvfCoefficients.Design(BiquadType.HighPass, rate, top, 0.7071);
     }
 
-    /// <summary>Each band's left and right gains: its level, placed by its pan (scaled by Master Pan) at constant power.</summary>
+    /// <summary>
+    ///     Each band's left and right gains: its level, placed by its pan (scaled by Master Pan) at constant power.
+    /// </summary>
     void BandGains(int frames) {
         var masterPan = Params.Advance(MasterPan, frames) / 100f;
         for (var k = 0; k < MaxBands; k++) {

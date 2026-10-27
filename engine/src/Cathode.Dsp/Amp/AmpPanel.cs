@@ -4,15 +4,15 @@ namespace Cathode.Dsp.Amp;
 ///     An amp model's front panel: what each of the Circuit Amp block's generic controls is called on this model, or
 ///     null where the model has no such control (the editor hides it, and the circuit ignores it). The standard knobs
 ///     default to their usual names; the model-specific controls (<see cref="Switch1" /> to <see cref="Switch3" />,
-///     <see cref="Control1" />, <see cref="Control2" /> and the <see cref="Equalizer" /> bands) default to absent, and a
-///     model that wires one into its circuit (a <see cref="PotRole" /> or <see cref="SwitchRole" /> on a stage) names it
-///     here: "Fat", "Lead Drive", "Jumper", "Bright Input" and so on.
+///     <see cref="Control1" />, <see cref="Control2" /> and the <see cref="Equalizer" /> bands) default to absent, and
+///     a model that wires one into its circuit (a <see cref="PotRole" /> or <see cref="SwitchRole" /> on a stage) names
+///     it here: "Fat", "Lead Drive", "Jumper", "Bright Input" and so on.
 /// </summary>
 public sealed record AmpPanel {
     /// <summary>
-    ///     The Circuit Amp parameters that only mean something on a tube amp: its power tubes, transformer, speaker load
-    ///     (which a solid-state amp's feedback holds flat), bias and bias tremolo, feedback knob, rectifier, preamp tubes and
-    ///     bright caps.
+    ///     The Circuit Amp parameters that only mean something on a tube amp: its power tubes, transformer, speaker
+    ///     load (which a solid-state amp's feedback holds flat), bias and bias tremolo, feedback knob, rectifier,
+    ///     preamp tubes and bright caps.
     /// </summary>
     static readonly string[] TubeOnly = [
         "bias", "feedback", "brightcap", "presag", "powertube", "xfmrmatch", "xfmrlf", "xfmrhf", "xfmrdrive", "speaker",
@@ -66,14 +66,16 @@ public sealed record AmpPanel {
 
     public string? Switch3 { get; init; }
 
-    /// <summary>A model-specific pot (<see cref="PotRole.Control1" />), e.g. a lead drive or a second channel's volume.</summary>
+    /// <summary>
+    ///     A model-specific pot (<see cref="PotRole.Control1" />), e.g. a lead drive or a second channel's volume.
+    /// </summary>
     public string? Control1 { get; init; }
 
     public string? Control2 { get; init; }
 
     /// <summary>
-    ///     The band labels of a graphic equaliser the model places in its circuit (<see cref="EqualizerStageDesign" />),
-    ///     up to five; null for none.
+    ///     The band labels of a graphic equaliser the model places in its circuit
+    ///     (<see cref="EqualizerStageDesign" />), up to five; null for none.
     /// </summary>
     public IReadOnlyList<string>? Equalizer { get; init; }
 

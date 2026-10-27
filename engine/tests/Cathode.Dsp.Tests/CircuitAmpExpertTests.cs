@@ -15,7 +15,9 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     const double Rate = 48_000;
     const double InnerRate = 96_000;
 
-    /// <summary>Each expert parameter, away from its default, on each model: what to set, and whether it must be audible.</summary>
+    /// <summary>
+    ///     Each expert parameter, away from its default, on each model: what to set, and whether it must be audible.
+    /// </summary>
     public static TheoryData<int, int, float, bool> ExpertSettings {
         get {
             (int Index, float Value)[] settings = [
@@ -65,17 +67,18 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                     // Known no-ops: the cathode time constant of a fixed-bias amp, a 6L6GC or EL34
                     // or EL84 in place of itself, the presence and depth frequencies of an amp without feedback; the
                     // master trim of an amp without a master, the preamp tube and stack frequency of a (stock) channel
-                    // without a 12AX7 or a tone stack (the AC15's EF86 channel), the speaker preset or rectifier the amp
-                    // has anyway; and where the panel says the amp lacks the control, the bright cap (no bright switch:
-                    // a bright cap a channel switch engages, or none at all) and the presence frequency (no presence).
+                    // without a 12AX7 or a tone stack (the AC15's EF86 channel), the speaker preset or rectifier the
+                    // amp has anyway; and where the panel says the amp lacks the control, the bright cap (no bright
+                    // switch: a bright cap a channel switch engages, or none at all) and the presence frequency (no
+                    // presence).
                     var tube = new[] { null, "6L6GC", "EL34", "EL84", "6V6GT", "KT66", "KT88", "6550" }[
                         index == CircuitAmpBlock.PowerTube ? (int)value : 0];
                     // And the bright cap of an amp without one (the Laney's drive channel).
                     var audible = !(index == CircuitAmpBlock.CathodeTime && !design.Power.CathodeBias)
                         && !(index == CircuitAmpBlock.BrightCap && design == LaneyGH100L.Design)
                         // And the supply's time constants on an amp still clean at gain 7 (the Princeton AA964's two
-                        // stages, the second inside the feedback loop; the Scout's two, with no feedback, into a class-A
-                        // pair on one cathode): its output tubes draw too little extra current to sag.
+                        // stages, the second inside the feedback loop; the Scout's two, with no feedback, into a
+                        // class-A pair on one cathode): its output tubes draw too little extra current to sag.
                         && !(index is CircuitAmpBlock.PreampSag or CircuitAmpBlock.SupplyTime
                             && (design == PrincetonAA964.Design || design == GibsonScout.Design))
                         && !(index == CircuitAmpBlock.PowerTube
@@ -191,9 +194,9 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         Assert.True(Analysis.AllFinite(changed));
         Assert.True(peak < 6, $"peak {peak:0.0} dBFS");
         if (audible) {
-            // A class-A amp (cathode bias, EL84) draws nearly the same current loud or quiet: its preamp sees little sag.
-            // Behind a slow preamp node (0.3 s or more) and the decoupling chain below it, little of the sag reaches the
-            // stages within the render.
+            // A class-A amp (cathode bias, EL84) draws nearly the same current loud or quiet: its preamp sees little
+            // sag. Behind a slow preamp node (0.3 s or more) and the decoupling chain below it, little of the sag
+            // reaches the stages within the render.
             var supply = AmpDesign.All[type].Power.PowerSupply;
             var limit = index != CircuitAmpBlock.PreampSag ? -60
                 : AmpDesign.All[type].Power.CathodeBias ? -80
@@ -421,8 +424,9 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     Whether an expert parameter reaches a solid-state amp: not where its panel hides it (the tube parameters); the
-    ///     supply's (Variac, B+ Time Const) only once the rails are loaded hard, which this test's chord does not do.
+    ///     Whether an expert parameter reaches a solid-state amp: not where its panel hides it (the tube parameters);
+    ///     the supply's (Variac, B+ Time Const) only once the rails are loaded hard, which this test's chord does not
+    ///     do.
     /// </summary>
     static bool SolidStateAudible(AmpDesign design, int index) =>
         design.Panel.Label(CircuitAmpBlock.Info.Params[index].Id, "-") is not null
@@ -483,7 +487,9 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         Assert.True(largestStep < 1.5 * peak, $"{largestStep:0.000} V step against the signal's {peak:0.000} V");
     }
 
-    /// <summary>Whether a model has a bright cap for the Bright Cap setting to scale (the Mark IV's lead channel has none).</summary>
+    /// <summary>
+    ///     Whether a model has a bright cap for the Bright Cap setting to scale (the Mark IV's lead channel has none).
+    /// </summary>
     static bool HasBrightCap(AmpDesign design) =>
         design.Preamp.Any(static s => s switch {
                 TriodeStageDesign t => t.BrightCap > 0,

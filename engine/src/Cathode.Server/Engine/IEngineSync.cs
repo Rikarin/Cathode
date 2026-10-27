@@ -28,7 +28,9 @@ public interface IEngineSync {
 
     void SetTuner(bool enabled);
 
-    /// <summary>A tap; <paramref name="sampleTime" /> places it exactly (from a MIDI timestamp), null means now.</summary>
+    /// <summary>
+    ///     A tap; <paramref name="sampleTime" /> places it exactly (from a MIDI timestamp), null means now.
+    /// </summary>
     void Tap(long? sampleTime = null);
 
     void Looper(string action);

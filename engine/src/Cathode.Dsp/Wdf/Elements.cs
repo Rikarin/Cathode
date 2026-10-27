@@ -40,12 +40,16 @@ public struct Capacitor(double capacitance, double sampleRate) : IWdfPort {
 
     public double Reflected { get; private set; }
 
-    /// <summary>The port voltage this sample, (a + b) / 2: b is the wave the capacitor reflected before its incident one.</summary>
+    /// <summary>
+    ///     The port voltage this sample, (a + b) / 2: b is the wave the capacitor reflected before its incident one.
+    /// </summary>
     public readonly double Voltage => 0.5 * (a + b);
 
     public readonly double Current => 0.5 * (a - b) / Resistance;
 
-    /// <summary>Changes the capacitance or sample rate, keeping the stored wave. <see cref="IWdfPort.Propagate" /> after.</summary>
+    /// <summary>
+    ///     Changes the capacitance or sample rate, keeping the stored wave. <see cref="IWdfPort.Propagate" /> after.
+    /// </summary>
     public void Configure(double capacitance, double sampleRate) => Resistance = 0.5 / (capacitance * sampleRate);
 
     /// <summary>
@@ -87,12 +91,16 @@ public struct Inductor(double inductance, double sampleRate) : IWdfPort {
 
     public readonly double Reflected => -state;
 
-    /// <summary>The port voltage this sample, (a + b) / 2: b is the wave the inductor reflected before its incident one.</summary>
+    /// <summary>
+    ///     The port voltage this sample, (a + b) / 2: b is the wave the inductor reflected before its incident one.
+    /// </summary>
     public readonly double Voltage => 0.5 * (a + b);
 
     public readonly double Current => 0.5 * (a - b) / Resistance;
 
-    /// <summary>Changes the inductance or sample rate, keeping the stored wave. <see cref="IWdfPort.Propagate" /> after.</summary>
+    /// <summary>
+    ///     Changes the inductance or sample rate, keeping the stored wave. <see cref="IWdfPort.Propagate" /> after.
+    /// </summary>
     public void Configure(double inductance, double sampleRate) => Resistance = 2 * inductance * sampleRate;
 
     /// <summary>

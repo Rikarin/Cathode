@@ -4,10 +4,10 @@ using Cathode.Dsp.Routing;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     The real-time analyser as a grid block (docs/08-blocks-parity.md §6.24): it passes its input through untouched and
-///     hands the selected channel (or the sum) to the analyser, so the RTA can look at any point of the grid instead of
-///     only the output. While a preset has one, the RTA view shows it. Decay, band resolution and window are the
-///     analyser's own settings (<c>PUT /api/v1/rta</c>).
+///     The real-time analyser as a grid block (docs/08-blocks-parity.md §6.24): it passes its input through untouched
+///     and hands the selected channel (or the sum) to the analyser, so the RTA can look at any point of the grid
+///     instead of only the output. While a preset has one, the RTA view shows it. Decay, band resolution and window are
+///     the analyser's own settings (<c>PUT /api/v1/rta</c>).
 /// </summary>
 public sealed class RtaBlock() : DspBlock(Info) {
     public const int InputSelect = 0;

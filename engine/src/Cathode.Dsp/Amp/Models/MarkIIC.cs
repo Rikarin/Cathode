@@ -20,11 +20,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Forum thread on the 120 pF grid-to-cathode cap. Values from a redraw, not the factory scan.
 ///     </para>
 ///     <para>
-///         Guesses, marked: the redraw draws V3A's 2.2 µF cathode cap unconnected; it is connected here (a cascade stage
-///         this hot is bypassed on every Mark lead circuit described in text). The rhythm path's 3.3M feed into V2B's
-///         grid, live in the lead mode too, is left out (about -33 dB under the lead signal). The graphic EQ is the
-///         behavioural constant-Q slot (<see cref="EqualizerStageDesign" />), not the LC network, whose topology the
-///         redraws disagree on. The power amp is not on the redraw: inverter 82.5k/90.9k (docs/06), 475 Ω and 10k
+///         Guesses, marked: the redraw draws V3A's 2.2 µF cathode cap unconnected; it is connected here (a cascade
+///         stage this hot is bypassed on every Mark lead circuit described in text). The rhythm path's 3.3M feed into
+///         V2B's grid, live in the lead mode too, is left out (about -33 dB under the lead signal). The graphic EQ is
+///         the behavioural constant-Q slot (<see cref="EqualizerStageDesign" />), not the LC network, whose topology
+///         the redraws disagree on. The power amp is not on the redraw: inverter 82.5k/90.9k (docs/06), 475 Ω and 10k
 ///         tail, a 4.7k feedback shunt, 100k feedback from the 8 Ω tap, a 25k presence pot with 0.1 µF (the Mesa
 ///         redraws' values), B+ 465 V, 40 mA idle, a 2.5k primary: typical values, not readings.
 ///     </para>

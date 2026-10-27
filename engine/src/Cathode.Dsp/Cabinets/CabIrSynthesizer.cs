@@ -3,8 +3,8 @@ using System.Numerics;
 namespace Cathode.Dsp.Cabinets;
 
 /// <summary>
-///     Turns a <see cref="MicPlacement" /> (or a point inside a user <see cref="CabGrid" />) into an impulse response at
-///     the engine rate: the magnitude part is made minimum phase by the real cepstrum (Oppenheim and Schafer,
+///     Turns a <see cref="MicPlacement" /> (or a point inside a user <see cref="CabGrid" />) into an impulse response
+///     at the engine rate: the magnitude part is made minimum phase by the real cepstrum (Oppenheim and Schafer,
 ///     Discrete-Time Signal Processing, §12), multiplied by the physically phased paths, normalised for loudness and
 ///     taken back to time. All scratch memory is native and allocated once; synthesis allocates nothing managed, so it
 ///     can run in <see cref="IDspBlock.Prepare" /> and on the background refresher. Not thread-safe.
@@ -52,8 +52,8 @@ public sealed class CabIrSynthesizer : IDisposable {
     }
 
     /// <summary>
-    ///     Loudness weight per Hz for a guitar-like (pink) input heard through ITU-R BS.1770's K filter: its RLB high-pass
-    ///     (38 Hz) and +4 dB shelf above about 1.5 kHz, divided by f for the pink spectrum.
+    ///     Loudness weight per Hz for a guitar-like (pink) input heard through ITU-R BS.1770's K filter: its RLB
+    ///     high-pass (38 Hz) and +4 dB shelf above about 1.5 kHz, divided by f for the pink spectrum.
     /// </summary>
     public static double LoudnessWeight(double hz) {
         var highPass = Math.Pow(hz / 38, 4) / (1 + Math.Pow(hz / 38, 4));
@@ -91,7 +91,8 @@ public sealed class CabIrSynthesizer : IDisposable {
     }
 
     /// <summary>
-    ///     Writes the IR interpolated from <paramref name="grid" /> at <paramref name="position" /> (0 cap … 1 edge) and
+    ///     Writes the IR interpolated from <paramref name="grid" /> at <paramref name="position" /> (0 cap … 1 edge)
+    ///     and
     ///     <paramref name="distance" /> (inches), loudness-normalised. Returns its onset delay in seconds.
     /// </summary>
     public double Synthesize(CabGrid grid, double position, double distance, Span<float> ir) {

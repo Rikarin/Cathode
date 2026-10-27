@@ -9,10 +9,10 @@ using System.Text.Json;
 namespace Cathode.Server.Stores;
 
 /// <summary>
-///     Content-addressed store for impulse responses (.wav), multi-position cab IR packs (.cabgrid: a zip with a manifest)
-///     and amp captures (NAM .nam, AIDA-X .aidax/.json) in <c>&lt;data&gt;/assets</c>.
-///     Presets reference assets as <c>sha256:&lt;hex&gt;</c>, so the same file uploaded twice is stored once and a
-///     preset always gets exactly the file it was made with.
+///     Content-addressed store for impulse responses (.wav), multi-position cab IR packs (.cabgrid: a zip with a
+///     manifest) and amp captures (NAM .nam, AIDA-X .aidax/.json) in <c>&lt;data&gt;/assets</c>. Presets reference
+///     assets as <c>sha256:&lt;hex&gt;</c>, so the same file uploaded twice is stored once and a preset always gets
+///     exactly the file it was made with.
 /// </summary>
 public sealed partial class AssetStore {
     public const long MaxBytes = 64 * 1024 * 1024;
@@ -124,8 +124,8 @@ public sealed partial class AssetStore {
 
     /// <summary>
     ///     Adds an impulse response processed on import (<see cref="IrImport" />: trimmed or made minimum phase, its
-    ///     polarity corrected, a channel chosen, cut to a length); the processed file is what is stored and hashed. Other
-    ///     assets, and default settings, are stored as uploaded.
+    ///     polarity corrected, a channel chosen, cut to a length); the processed file is what is stored and hashed.
+    ///     Other assets, and default settings, are stored as uploaded.
     /// </summary>
     public async Task<AssetInfo> AddAsync(
         Stream content,

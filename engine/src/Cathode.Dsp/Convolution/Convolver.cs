@@ -10,12 +10,12 @@ namespace Cathode.Dsp.Convolution;
 ///     <para>
 ///         The first <see cref="PartitionSize" /> taps run as a direct-form FIR. The remaining taps run as uniform
 ///         partitioned overlap-save convolution (Wefers 2014), whose inherent one-partition delay lines up exactly with
-///         those later taps (the two-stage idea from Gardner, JAES 1995). The result is exact, adds no latency, and does
-///         not depend on how the input is split into callbacks.
+///         those later taps (the two-stage idea from Gardner, JAES 1995). The result is exact, adds no latency, and
+///         does not depend on how the input is split into callbacks.
 ///     </para>
 ///     <para>
-///         All state, including the impulse response's spectra, lives in native memory (<see cref="NativeBuffer" />), so
-///         loading a cab during a preset change leaves next to nothing for the GC. Dispose it with its block.
+///         All state, including the impulse response's spectra, lives in native memory (<see cref="NativeBuffer" />),
+///         so loading a cab during a preset change leaves next to nothing for the GC. Dispose it with its block.
 ///         <see cref="Process" /> and <see cref="Reset" /> do not allocate.
 ///     </para>
 /// </remarks>
@@ -184,8 +184,8 @@ public sealed class Convolver : IDisposable {
 
     /// <summary>
     ///     <c>acc += x · h</c> over complex bins, a vector of bins at a time. Each bin's arithmetic is the scalar one
-    ///     (no fused multiply-add), so the result is bit-identical to a scalar loop; long IRs spend nearly all their time
-    ///     here.
+    ///     (no fused multiply-add), so the result is bit-identical to a scalar loop; long IRs spend nearly all their
+    ///     time here.
     /// </summary>
     static void MultiplyAccumulate(
         ReadOnlySpan<float> xr,

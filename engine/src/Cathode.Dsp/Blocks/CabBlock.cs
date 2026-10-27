@@ -7,9 +7,9 @@ using Cathode.Dsp.Resampling;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     Cabinet simulation, as the Axe-Fx III Cab block: four slots mixed with level, pan, delay, polarity, mute and solo.
-///     Each slot plays one <see cref="Sources" /> entry: an impulse response file (<c>IR</c>), a modelled speaker in a
-///     cabinet miked at a continuous position (cap to edge), distance and angle (<c>DynaCab</c>:
+///     Cabinet simulation, as the Axe-Fx III Cab block: four slots mixed with level, pan, delay, polarity, mute and
+///     solo. Each slot plays one <see cref="Sources" /> entry: an impulse response file (<c>IR</c>), a modelled speaker
+///     in a cabinet miked at a continuous position (cap to edge), distance and angle (<c>DynaCab</c>:
 ///     <see cref="CabAcoustics" />, <see cref="CabCatalogue" />), or a user's multi-position IR pack interpolated at
 ///     the slot's position and distance (<c>IR Pack</c>: <see cref="CabGrid" />). A slot's file goes into its asset
 ///     slot, <c>slot1</c> … <c>slot4</c>: a <c>.wav</c> (an IR, or a one-point pack) or a <c>.cabgrid</c>.
@@ -58,8 +58,8 @@ namespace Cathode.Dsp.Blocks;
 ///         <see cref="Refresh" />, which the host calls after setting parameters. The new pair is crossfaded in over
 ///         20 ms by <see cref="CabIrSwitcher" />; the audio thread neither allocates nor waits. Zero latency: the
 ///         convolver runs its first 64 taps directly and the rest as uniformly partitioned FFT convolution. The new
-///         pair starts with empty history, so for a long (FullRes) IR the old pair's tail is cut at the end of the fade:
-///         the switch is click-free but not gapless for reverberant IRs.
+///         pair starts with empty history, so for a long (FullRes) IR the old pair's tail is cut at the end of the
+///         fade: the switch is click-free but not gapless for reverberant IRs.
 ///     </para>
 /// </remarks>
 public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh, IBlockMeters {
@@ -175,7 +175,9 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     /// <summary>Smoothing at 100 %, octaves.</summary>
     const double FullSmoothing = 1;
 
-    /// <summary>Diffusion at 100 %: a wall reflection's arrival spread by 0.2 ms, coherent only below about 1 kHz.</summary>
+    /// <summary>
+    ///     Diffusion at 100 %: a wall reflection's arrival spread by 0.2 ms, coherent only below about 1 kHz.
+    /// </summary>
     const double FullDiffusion = 0.2e-3;
 
     /// <summary>The preamp tone controls' bands: a bass shelf, a broad mid peak and a treble shelf.</summary>
@@ -345,7 +347,9 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     /// <summary>Length of a modelled slot's IR at the prepared rate, before slot delays.</summary>
     public int Taps => synthesizer?.Taps ?? 0;
 
-    /// <summary>Control thread: true when the last build found nothing to play, so the block passes audio through.</summary>
+    /// <summary>
+    ///     Control thread: true when the last build found nothing to play, so the block passes audio through.
+    /// </summary>
     public bool IsPassThrough { get; private set; }
 
     /// <summary>Parameter index of <paramref name="offset" /> in slot <paramref name="slot" /> (0-based).</summary>
@@ -370,9 +374,9 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     }
 
     /// <summary>
-    ///     Control thread: loads <paramref name="path" /> into <c>slot1</c> … <c>slot4</c>. A <c>.wav</c> serves both an
-    ///     IR slot and an IR Pack slot (as a one-point pack); a <c>.cabgrid</c> (or a pack's folder or manifest) only
-    ///     an IR Pack slot.
+    ///     Control thread: loads <paramref name="path" /> into <c>slot1</c> … <c>slot4</c>. A <c>.wav</c> serves both
+    ///     an IR slot and an IR Pack slot (as a one-point pack); a <c>.cabgrid</c> (or a pack's folder or manifest)
+    ///     only an IR Pack slot.
     /// </summary>
     public void LoadAsset(string slot, string path) {
         var index = Array.IndexOf(SlotAssets, slot);
@@ -412,7 +416,9 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     public float[]? PreparedImpulseResponse(int slot, int channel = 0) =>
         prepared[slot] is { } channels ? channels[Math.Min(channel, channels.Length - 1)] : null;
 
-    /// <summary>The longest IR file kept at <paramref name="sampleRate" />: <see cref="MaxIrLength" /> at 48 kHz.</summary>
+    /// <summary>
+    ///     The longest IR file kept at <paramref name="sampleRate" />: <see cref="MaxIrLength" /> at 48 kHz.
+    /// </summary>
     public static int IrCapacity(double sampleRate) =>
         (int)Math.Ceiling(MaxIrLength * sampleRate / CabIrSynthesizer.ReferenceRate);
 
@@ -506,9 +512,9 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
     }
 
     /// <summary>
-    ///     Control thread: each slot as the Align page shows it (docs/08-blocks-parity.md §5): the head of its IR as it is
-    ///     mixed (resampled, shaped, normalised, before its level, pan and delay) and where its onset falls, the first
-    ///     sample within 20 dB of its peak. Building first if the targets changed. Prepare first.
+    ///     Control thread: each slot as the Align page shows it (docs/08-blocks-parity.md §5): the head of its IR as it
+    ///     is mixed (resampled, shaped, normalised, before its level, pan and delay) and where its onset falls, the
+    ///     first sample within 20 dB of its peak. Building first if the targets changed. Prepare first.
     /// </summary>
     public IReadOnlyList<CabSlotAlignment> Alignment(double headMs = 10) {
         lock (sync) {
@@ -664,15 +670,17 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         }
     }
 
-    /// <summary>The most a slot's IR can be shifted: its delay plus the longest distance delay (12 in plus recess).</summary>
+    /// <summary>
+    ///     The most a slot's IR can be shifted: its delay plus the longest distance delay (12 in plus recess).
+    /// </summary>
     static double MaxShiftSeconds() =>
         MaxDelayMs / 1_000.0 + (MaxDistance * MetresPerInch + 0.1) / CabAcoustics.SpeedOfSound;
 
     static float Sinc(double x) => x == 0 ? 1f : (float)(Math.Sin(Math.PI * x) / (Math.PI * x));
 
     /// <summary>
-    ///     Adds <paramref name="ir" /> × <paramref name="gain" /> into <paramref name="mix" />, <paramref name="shift" />
-    ///     samples late.
+    ///     Adds <paramref name="ir" /> × <paramref name="gain" /> into <paramref name="mix" />,
+    ///     <paramref name="shift" /> samples late.
     /// </summary>
     static void AddShifted(ReadOnlySpan<float> ir, Span<float> mix, double shift, float gain) {
         var whole = (int)Math.Floor(shift);
@@ -1128,7 +1136,9 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         base.Dispose(disposing);
     }
 
-    /// <summary>Clears every filter, convolver and meter: <see cref="OnReset" />, and turning cab modelling back on.</summary>
+    /// <summary>
+    ///     Clears every filter, convolver and meter: <see cref="OnReset" />, and turning cab modelling back on.
+    /// </summary>
     void ClearState() {
         switcher.Reset();
         lowCutLeft.Reset();
@@ -1150,7 +1160,9 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         motorMeter = 0f;
     }
 
-    /// <summary>The cab itself: input routing, voice coil, convolution with air, mic preamp, master cuts and level.</summary>
+    /// <summary>
+    ///     The cab itself: input routing, voice coil, convolution with air, mic preamp, master cuts and level.
+    /// </summary>
     void Model(in StereoBuffer io) {
         var input = (int)Params.Advance(Input, io.Length);
         if (input == InputLeft) {
@@ -1273,8 +1285,9 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
 }
 
 /// <summary>
-///     One Cab slot on the Align page (<see cref="CabBlock.Alignment" />): whether it has something to play and is heard,
-///     its onset in its own IR, the delay Auto-Align off adds and the slot's own Delay (both in ms), and its IR's head.
+///     One Cab slot on the Align page (<see cref="CabBlock.Alignment" />): whether it has something to play and is
+///     heard, its onset in its own IR, the delay Auto-Align off adds and the slot's own Delay (both in ms), and its
+///     IR's head.
 /// </summary>
 public sealed record CabSlotAlignment(
     int Slot,

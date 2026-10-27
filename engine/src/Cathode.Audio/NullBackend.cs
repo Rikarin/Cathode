@@ -23,13 +23,17 @@ public sealed class NullBackend : IDisposable {
     Thread? thread;
     volatile bool running;
 
-    /// <summary>How far behind the thread may fall (catching up in a burst) before it gives up and resynchronises.</summary>
+    /// <summary>
+    ///     How far behind the thread may fall (catching up in a burst) before it gives up and resynchronises.
+    /// </summary>
     static readonly long MaxLag = Stopwatch.Frequency / 10;
 
     /// <summary>Times the thread fell more than 100 ms behind (and skipped ahead).</summary>
     public long LateCallbacks { get; private set; }
 
-    /// <summary>A backend at <paramref name="sampleRate" /> calling back every <paramref name="blockSize" /> frames.</summary>
+    /// <summary>
+    ///     A backend at <paramref name="sampleRate" /> calling back every <paramref name="blockSize" /> frames.
+    /// </summary>
     /// <param name="sampleRate">Frames per second.</param>
     /// <param name="blockSize">Frames per callback.</param>
     /// <param name="outputs">Outputs 2-4 and the DI out to render (and discard), as a device with them would.</param>

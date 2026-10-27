@@ -5,12 +5,11 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     A passive amp tone stack on its own (the same exact networks as the Circuit Amp's: <see cref="ToneStackCircuit" />
-///     ),
-///     driven from a cathode follower's 1 kΩ into a 1 MΩ grid, for shaping a capture or a clean amp. Linear, so it runs
-///     at the sample rate (the bilinear transform's warping moves the treble corners by a few percent at most), in
-///     stereo. The stack's insertion loss with every knob at noon is made up, so that Level 0 dB is about unity at
-///     1 kHz.
+///     A passive amp tone stack on its own (the same exact networks as the Circuit Amp's:
+///     <see cref="ToneStackCircuit" /> ), driven from a cathode follower's 1 kΩ into a 1 MΩ grid, for shaping a capture
+///     or a clean amp. Linear, so it runs at the sample rate (the bilinear transform's warping moves the treble corners
+///     by a few percent at most), in stereo. The stack's insertion loss with every knob at noon is made up, so that
+///     Level 0 dB is about unity at 1 kHz.
 /// </summary>
 public sealed class ToneStackBlock() : DspBlock(Info) {
     public const int Type = 0;

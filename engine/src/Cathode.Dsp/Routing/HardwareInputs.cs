@@ -97,9 +97,10 @@ public sealed class HardwareInputs : IDisposable {
 
 /// <summary>
 ///     One graph's view of the <see cref="HardwareInputs" />: blocks that read a hardware input
-///     (<see cref="ISideInputBlock" /> with <see cref="SideInputs.Hardware" />) get it from the graph compiler. When the
-///     graph is replaced and spills over under the next one, the engine fades its port out (<see cref="FadeOut" />), as
-///     it fades the grid input, so the old preset stops hearing the player and its tails can ring out.
+///     (<see cref="ISideInputBlock" /> with <see cref="SideInputs.Hardware" />) get it from the graph compiler. When
+///     the graph is replaced and spills over under the next one, the engine fades its port out
+///     (<see cref="FadeOut" />), as it fades the grid input, so the old preset stops hearing the player and its tails
+///     can ring out.
 /// </summary>
 public sealed class InputPort(HardwareInputs inputs, double sampleRate) {
     /// <summary>How long the fade-out of a replaced graph's inputs takes (the engine's swap fade).</summary>
@@ -142,14 +143,18 @@ public sealed class InputPort(HardwareInputs inputs, double sampleRate) {
         }
     }
 
-    /// <summary>Audio thread: copies source <paramref name="source" /> into the buffers (silence when out of range).</summary>
+    /// <summary>
+    ///     Audio thread: copies source <paramref name="source" /> into the buffers (silence when out of range).
+    /// </summary>
     public void Read(int source, Span<float> left, Span<float> right) {
         left.Clear();
         right.Clear();
         Add(source, left, right);
     }
 
-    /// <summary>Audio thread: from the next sub-block on, every read fades to silence over <see cref="FadeMs" />.</summary>
+    /// <summary>
+    ///     Audio thread: from the next sub-block on, every read fades to silence over <see cref="FadeMs" />.
+    /// </summary>
     public void FadeOut() => fading = true;
 
     /// <summary>Audio thread, after each sub-block of the graph: advances the fade.</summary>

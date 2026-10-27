@@ -4,13 +4,14 @@ using System.Text.Json;
 namespace Cathode.Dsp.Capture;
 
 /// <summary>
-///     An AIDA-X model (the RTNeural Keras JSON format): one or more LSTM or GRU layers and a dense head with one output,
-///     evaluated in managed code.
+///     An AIDA-X model (the RTNeural Keras JSON format): one or more LSTM or GRU layers and a dense head with one
+///     output, evaluated in managed code.
 /// </summary>
 /// <remarks>
 ///     The layout follows Keras, as RTNeural and NeuralAudio read it: a recurrent layer's <c>weights</c> are the kernel
-///     <c>[in][G·H]</c>, the recurrent kernel <c>[H][G·H]</c> and the bias, with gates in the order i, f, c, o (LSTM) or
-///     z, r, h (GRU, <c>reset_after</c>, so its bias is <c>[2][3·H]</c>). <c>in_skip</c> adds the input to the output,
+///     <c>[in][G·H]</c>, the recurrent kernel <c>[H][G·H]</c> and the bias, with gates in the order i, f, c, o (LSTM)
+///     or z, r, h (GRU, <c>reset_after</c>, so its bias is <c>[2][3·H]</c>). <c>in_skip</c> adds the input to the
+///     output,
 ///     <c>in_gain</c> is the model's input level and <c>out_gain</c> its output gain in dB (loudness = -18 - out_gain).
 ///     Weights live in native memory, so loading even a large model leaves nothing on the large object heap.
 /// </remarks>

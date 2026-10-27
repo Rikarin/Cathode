@@ -7,9 +7,9 @@ namespace Cathode.Dsp.Tests;
 
 /// <summary>
 ///     The class-A family's stages (stream F3: AC30, AC15, DC-30) against the reference simulator: the top boost's gain
-///     stage and its cathode follower with the treble/bass network, the EF86 channels with the brilliance switch and the
-///     six-way tone rotary, a pair of paralleled triodes, the power amps with the cut and a master across the inverter's
-///     outputs; and the operating points against the voltages on the schematics.
+///     stage and its cathode follower with the treble/bass network, the EF86 channels with the brilliance switch and
+///     the six-way tone rotary, a pair of paralleled triodes, the power amps with the cut and a master across the
+///     inverter's outputs; and the operating points against the voltages on the schematics.
 /// </summary>
 public partial class AmpStageTests {
     public static TheoryData<string, int, double, double, double> ClassAStages =>
@@ -194,9 +194,9 @@ public partial class AmpStageTests {
     }
 
     /// <summary>
-    ///     Operating points against the schematics' voltages: Vox OS/010 and OS/065 (AC30), AmpBooks' AC15 and Matchless
-    ///     EF86 pages. The 12AX7's Koren model runs about 15 % less current than Vox's tubes did, so their plates sit
-    ///     up to 10 % high; the EF86 is fitted to the AC15's stage, so it lands within 2 %.
+    ///     Operating points against the schematics' voltages: Vox OS/010 and OS/065 (AC30), AmpBooks' AC15 and
+    ///     Matchless EF86 pages. The 12AX7's Koren model runs about 15 % less current than Vox's tubes did, so their
+    ///     plates sit up to 10 % high; the EF86 is fitted to the AC15's stage, so it lands within 2 %.
     /// </summary>
     [Fact]
     public void Class_a_operating_points_match_the_schematics() {
@@ -284,7 +284,9 @@ public partial class AmpStageTests {
         }
     }
 
-    /// <summary>The stages of a model's channel: <paramref name="on" /> picks a channel switch's other channel.</summary>
+    /// <summary>
+    ///     The stages of a model's channel: <paramref name="on" /> picks a channel switch's other channel.
+    /// </summary>
     static IReadOnlyList<AmpStageDesign> Chain(AmpDesign design, bool on) =>
         [..design.Preamp.SelectMany(s => s is ChannelSwitchStageDesign c ? on ? c.On : c.Off : [s])];
 }

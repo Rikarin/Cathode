@@ -70,9 +70,10 @@ public sealed class ServerFixture(string? socketPath = null, string? token = nul
 
     /// <summary>
     ///     Engine commands are asynchronous; waits up to <paramref name="seconds" /> for <paramref name="condition" />.
-    ///     An exception counts as "not yet" (the graph may not have swapped in) until the deadline, then it is reported.
-    ///     The default deadline is generous: it costs nothing when the condition is met (polled every 20 ms), and a
-    ///     machine running several test projects at once can take seconds to compile a graph or run a MIDI action.
+    ///     An exception counts as "not yet" (the graph may not have swapped in) until the deadline, then it is
+    ///     reported. The default deadline is generous: it costs nothing when the condition is met (polled every 20 ms),
+    ///     and a machine running several test projects at once can take seconds to compile a graph or run a MIDI
+    ///     action.
     /// </summary>
     public static async Task Eventually(Func<Task<bool>> condition, int seconds = 30, Func<string>? describe = null) {
         var deadline = DateTime.UtcNow.AddSeconds(seconds);

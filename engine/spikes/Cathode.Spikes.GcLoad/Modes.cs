@@ -161,7 +161,9 @@ sealed record RunResult(
         + $"driver overloads {DriverOverloads}  GCs {Gen0}/{Gen1}/{Gen2}  pause {GcPauseMs:0.0} ms  alloc {AllocMBps:0.0} MB/s  in-proc requests {RequestsInProcess}";
 }
 
-/// <summary>A realistic slice of the planned REST API (docs/02-architecture.md §6), allocation profile included.</summary>
+/// <summary>
+///     A realistic slice of the planned REST API (docs/02-architecture.md §6), allocation profile included.
+/// </summary>
 static class Api {
     static long requestCount;
 
@@ -212,7 +214,9 @@ static class Api {
 }
 
 static class Preset {
-    /// <summary>About 20 blocks x 4 channels x 30 parameters plus 8 scenes, roughly the size of a full Axe-Fx-style preset.</summary>
+    /// <summary>
+    ///     About 20 blocks x 4 channels x 30 parameters plus 8 scenes, roughly the size of a full Axe-Fx-style preset.
+    /// </summary>
     public static object Create() {
         var random = new Random(1);
         var blocks = Enumerable.Range(0, 20)

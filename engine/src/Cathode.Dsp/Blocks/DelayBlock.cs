@@ -31,8 +31,8 @@ namespace Cathode.Dsp.Blocks;
 ///     Reverse: a new chunk starts every Time (or on a new note with Trigger Restart); the head reading
 ///     <c>2p + 3</c> samples back at <c>p</c> samples into the chunk plays the previous Time backwards. When a chunk
 ///     starts, the outgoing head keeps playing for Crossfade × Time while the new one fades in, so the gains always sum
-///     to one. The repeats are fed back forward at Time, so each repeat is reversed too. The chunk is limited to a third
-///     of the line (the outgoing head reads up to three chunks back).
+///     to one. The repeats are fed back forward at Time, so each repeat is reversed too. The chunk is limited to a
+///     third of the line (the outgoing head reads up to three chunks back).
 /// </remarks>
 public sealed class DelayBlock() : DspBlock(Info) {
     public const int Type = 0;
@@ -400,8 +400,8 @@ public sealed class DelayBlock() : DspBlock(Info) {
     static ParamDescriptor TimeLfo(ParamDescriptor p) => p.HiddenOn(TypeCount, Reverse);
 
     /// <summary>
-    ///     The loop limiter: transparent up to full scale, then a tanh knee that never passes 2, so feedback above unity
-    ///     (Master Feedback past 100 %, Stack) saturates instead of running away.
+    ///     The loop limiter: transparent up to full scale, then a tanh knee that never passes 2, so feedback above
+    ///     unity (Master Feedback past 100 %, Stack) saturates instead of running away.
     /// </summary>
     public static float Limit(float x) {
         var magnitude = MathF.Abs(x);
@@ -430,7 +430,9 @@ public sealed class DelayBlock() : DspBlock(Info) {
         return incoming + (line.Read(2f * reverseOutgoing + 3f, loop) - incoming) * outgoing;
     }
 
-    /// <summary>The band-pass at the LFO's position, swept logarithmically from start (LFO -1) to stop (LFO +1).</summary>
+    /// <summary>
+    ///     The band-pass at the LFO's position, swept logarithmically from start (LFO -1) to stop (LFO +1).
+    /// </summary>
     SvfCoefficients SweepCoefficients(LfoShape shape, float start, float stop, float q, float phase, float sampleRate) {
         var position = 0.5f * (sweepLfo.Value(shape, phase) + 1f);
         var frequency = start * MathF.Pow(stop / start, position);
@@ -580,8 +582,8 @@ public sealed class DelayBlock() : DspBlock(Info) {
             type is Analog or Tape or MonoTape && !hold,
             hold ? 0f : drive,
             Quantum(type == VintageDigital ? VintageBits : 24 - bits),
-            // A boosting band or a resonant cut adds gain in the loop: with Hold's unity feedback or a high feedback the
-            // repeats would then grow without bound, so the limiter takes over whenever the loop could pass unity.
+            // A boosting band or a resonant cut adds gain in the loop: with Hold's unity feedback or a high feedback
+            // the repeats would then grow without bound, so the limiter takes over whenever the loop could pass unity.
             stack || loopGain * filter.MaxGain > 1
         );
 
@@ -750,7 +752,8 @@ public sealed class DelayBlock() : DspBlock(Info) {
                     }
 
                     if (type == Sweep) {
-                        // Coefficients move on a fixed internal hop, so the output does not depend on the host block size.
+                        // Coefficients move on a fixed internal hop, so the output does not depend on the host block
+                        // size.
                         if (sweepCounter == 0) {
                             sweepLeftCoefficients = SweepCoefficients(
                                 sweepShape,

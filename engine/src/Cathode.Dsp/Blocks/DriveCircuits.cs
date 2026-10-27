@@ -8,9 +8,9 @@ namespace Cathode.Dsp.Blocks;
 public enum StageKind {
     /// <summary>
     ///     A simplified gain stage: the stage input drives two series RC legs to ground (or to a virtual ground when
-    ///     inverting), and their current flows through a feedback network of a resistor, a capacitor and optional clipping
-    ///     diodes. Non-inverting output is the input plus the feedback voltage. Used where the pedal's gain stage is a
-    ///     transistor amplifier this catalogue does not model at component level (the Big Muff's).
+    ///     inverting), and their current flows through a feedback network of a resistor, a capacitor and optional
+    ///     clipping diodes. Non-inverting output is the input plus the feedback voltage. Used where the pedal's gain
+    ///     stage is a transistor amplifier this catalogue does not model at component level (the Big Muff's).
     /// </summary>
     Gain,
 
@@ -34,14 +34,14 @@ public enum StageKind {
 
     /// <summary>
     ///     A tape machine: the record amplifier's treble pre-emphasis (<see cref="DriveStage.TapeType" />), the tape's
-    ///     soft saturation <c>r tanh(x / r)</c> at <see cref="DriveStage.Rail" /> volts (antiderivative antialiased), and
-    ///     playback de-emphasis, the exact inverse of the record curve.
+    ///     soft saturation <c>r tanh(x / r)</c> at <see cref="DriveStage.Rail" /> volts (antiderivative antialiased),
+    ///     and playback de-emphasis, the exact inverse of the record curve.
     /// </summary>
     Tape,
 
     /// <summary>
-    ///     A digital bit crusher: sample-and-hold at a reduced rate, then quantisation to a reduced word length, both swept
-    ///     by Drive from transparent (16 bits, every sample) to <see cref="DriveStage.Bits" /> bits held at
+    ///     A digital bit crusher: sample-and-hold at a reduced rate, then quantisation to a reduced word length, both
+    ///     swept by Drive from transparent (16 bits, every sample) to <see cref="DriveStage.Bits" /> bits held at
     ///     <see cref="DriveStage.HoldRate" /> Hz.
     /// </summary>
     Crusher
@@ -58,16 +58,17 @@ public enum ToneKind {
     /// <summary>
     ///     Low-pass and high-pass side by side with the Tone pot across their outputs, its wiper the output (Big Muff,
     ///     DS-1): <see cref="ToneNetwork.Resistor1" /> into <see cref="ToneNetwork.Capacitor1" /> to ground, and
-    ///     <see cref="ToneNetwork.Capacitor2" /> into <see cref="ToneNetwork.Resistor2" /> to ground. Mid scoop at noon.
+    ///     <see cref="ToneNetwork.Capacitor2" /> into <see cref="ToneNetwork.Resistor2" /> to ground. Mid scoop at
+    ///     noon.
     /// </summary>
     Blend,
 
     /// <summary>
     ///     The Tube Screamer's active tone stage: <see cref="ToneNetwork.Resistor1" /> into the op-amp's non-inverting
-    ///     input with <see cref="ToneNetwork.Capacitor1" /> to ground; the Tone pot from there to the inverting input, its
-    ///     wiper through <see cref="ToneNetwork.Resistor2" /> and <see cref="ToneNetwork.Capacitor2" /> to ground;
-    ///     <see cref="ToneNetwork.Resistor3" /> from the output back to the inverting input. The shunt cuts treble on the
-    ///     input side of the pot and boosts it on the feedback side.
+    ///     input with <see cref="ToneNetwork.Capacitor1" /> to ground; the Tone pot from there to the inverting input,
+    ///     its wiper through <see cref="ToneNetwork.Resistor2" /> and <see cref="ToneNetwork.Capacitor2" /> to ground;
+    ///     <see cref="ToneNetwork.Resistor3" /> from the output back to the inverting input. The shunt cuts treble on
+    ///     the input side of the pot and boosts it on the feedback side.
     /// </summary>
     Screamer,
 
@@ -80,37 +81,38 @@ public enum ToneKind {
     Treble,
 
     /// <summary>
-    ///     The passive treble/bass/middle stack of a Marshall: <see cref="ToneNetwork.Capacitor1" /> from the source to the
-    ///     treble pot (the Tone pot, its wiper the output), the slope resistor <see cref="ToneNetwork.Resistor1" /> to the
-    ///     junction of <see cref="ToneNetwork.Capacitor2" /> (to the treble pot's bottom and the bass pot
+    ///     The passive treble/bass/middle stack of a Marshall: <see cref="ToneNetwork.Capacitor1" /> from the source to
+    ///     the treble pot (the Tone pot, its wiper the output), the slope resistor <see cref="ToneNetwork.Resistor1" />
+    ///     to the junction of <see cref="ToneNetwork.Capacitor2" /> (to the treble pot's bottom and the bass pot
     ///     <see cref="ToneNetwork.Resistor2" />) and <see cref="ToneNetwork.Capacitor3" /> (to the middle pot
     ///     <see cref="ToneNetwork.Resistor3" />). Bass and middle stay at noon.
     /// </summary>
     Stack,
 
     /// <summary>
-    ///     No network: Tone sweeps the first stage's input capacitor from <see cref="ToneNetwork.Capacitor1" /> (Tone 0,
-    ///     full range) to <see cref="ToneNetwork.Capacitor2" /> (Tone 10), logarithmically: a treble booster's range.
+    ///     No network: Tone sweeps the first stage's input capacitor from <see cref="ToneNetwork.Capacitor1" /> (Tone
+    ///     0, full range) to <see cref="ToneNetwork.Capacitor2" /> (Tone 10), logarithmically: a treble booster's
+    ///     range.
     /// </summary>
     Range,
 
     /// <summary>
-    ///     An active band EQ around one non-inverting op-amp (the graphic-EQ topology of the Metal Zone, the B7K and the
-    ///     Xotic boosters): <see cref="ToneNetwork.Resistor1" /> from the source into the non-inverting input and the same
-    ///     from the output back to the inverting input; per band a pot (<see cref="ToneNetwork.Pot" />) between the two
-    ///     inputs, its wiper through the band's shunt to ground, which cuts on the input side and boosts on the feedback
-    ///     side. The shunts are series RL (low shelf, a gyrator inductor), series RLC (the mid bands) and series RC (the
-    ///     treble), each with <see cref="ToneNetwork.BandResistance" /> setting the range. Tone works the treble band, the
-    ///     Bass Pot the low band, the Middle Pot the first mid band (at the Middle Freq where it sweeps); a band at 0 Hz
-    ///     is absent. See <see cref="ToneStage.Netlist" />.
+    ///     An active band EQ around one non-inverting op-amp (the graphic-EQ topology of the Metal Zone, the B7K and
+    ///     the Xotic boosters): <see cref="ToneNetwork.Resistor1" /> from the source into the non-inverting input and
+    ///     the same from the output back to the inverting input; per band a pot (<see cref="ToneNetwork.Pot" />)
+    ///     between the two inputs, its wiper through the band's shunt to ground, which cuts on the input side and
+    ///     boosts on the feedback side. The shunts are series RL (low shelf, a gyrator inductor), series RLC (the mid
+    ///     bands) and series RC (the treble), each with <see cref="ToneNetwork.BandResistance" /> setting the range.
+    ///     Tone works the treble band, the Bass Pot the low band, the Middle Pot the first mid band (at the Middle Freq
+    ///     where it sweeps); a band at 0 Hz is absent. See <see cref="ToneStage.Netlist" />.
     /// </summary>
     ActiveEq
 }
 
 /// <summary>
-///     A pedal's tone network, solved as a linear R-type wave digital filter (<see cref="ToneStage" />) at the base rate
-///     with the Tone pot inside the adaptor. Resistances in ohms, capacitances in farads; what each component does depends
-///     on <see cref="ToneKind" />.
+///     A pedal's tone network, solved as a linear R-type wave digital filter (<see cref="ToneStage" />) at the base
+///     rate with the Tone pot inside the adaptor. Resistances in ohms, capacitances in farads; what each component does
+///     depends on <see cref="ToneKind" />.
 /// </summary>
 public sealed record ToneNetwork(ToneKind Kind) {
     /// <summary>Resistance of whatever drives the network (the previous stage's output).</summary>
@@ -140,11 +142,14 @@ public sealed record ToneNetwork(ToneKind Kind) {
     /// <summary>ActiveEq: the low band's corner, in hertz (0 = no low band).</summary>
     public double LowHz { get; init; }
 
-    /// <summary>ActiveEq: the first mid band's centre (0 = none); the Middle Freq control replaces it where it sweeps.</summary>
+    /// <summary>
+    ///     ActiveEq: the first mid band's centre (0 = none); the Middle Freq control replaces it where it sweeps.
+    /// </summary>
     public double MidHz { get; init; }
 
     /// <summary>
-    ///     ActiveEq: the second mid band's centre (0 = none), worked by the Hi Mids pot (<see cref="DriveBlock.HiMid" />).
+    ///     ActiveEq: the second mid band's centre (0 = none), worked by the Hi Mids pot
+    ///     (<see cref="DriveBlock.HiMid" />).
     /// </summary>
     public double Mid2Hz { get; init; }
 
@@ -189,7 +194,9 @@ public sealed record DriveStage(StageKind Kind) {
     /// </summary>
     public double Feedback { get; init; } = 10e3;
 
-    /// <summary>Gain, OpAmp: the drive pot in series with <see cref="Feedback" /> (audio taper; 0 = fixed gain).</summary>
+    /// <summary>
+    ///     Gain, OpAmp: the drive pot in series with <see cref="Feedback" /> (audio taper; 0 = fixed gain).
+    /// </summary>
     public double FeedbackPot { get; init; }
 
     public double FeedbackCapacitance { get; init; } = 100e-12;
@@ -239,15 +246,17 @@ public sealed record DriveStage(StageKind Kind) {
     /// <summary>OpAmp: resistance from the non-inverting input to the bias reference.</summary>
     public double InputBias { get; init; } = 1e6;
 
-    /// <summary>OpAmp: a pot in series with the first ground leg, turned down as Drive rises (audio taper; 0 = none).</summary>
+    /// <summary>
+    ///     OpAmp: a pot in series with the first ground leg, turned down as Drive rises (audio taper; 0 = none).
+    /// </summary>
     public double GroundPot { get; init; }
 
     /// <summary>OpAmp, Transistor, FuzzPair: what the stage's output drives.</summary>
     public double Load { get; init; } = 10e3;
 
     /// <summary>
-    ///     OpAmp, Transistor, FuzzPair: the resistance driving the stage when an earlier stage does (the first stage sees
-    ///     the guitar instead, see <see cref="DriveCircuits.Guitar" />).
+    ///     OpAmp, Transistor, FuzzPair: the resistance driving the stage when an earlier stage does (the first stage
+    ///     sees the guitar instead, see <see cref="DriveCircuits.Guitar" />).
     /// </summary>
     public double SourceResistance { get; init; } = 1e3;
 
@@ -269,8 +278,8 @@ public sealed record DriveStage(StageKind Kind) {
     public double CollectorSupply { get; init; } = 8.2e3;
 
     /// <summary>
-    ///     Transistor: the emitter resistor. FuzzPair: the Fuzz pot from the second emitter to ground, whose wiper Drive
-    ///     moves; <see cref="EmitterCapacitance" /> bypasses the wiper.
+    ///     Transistor: the emitter resistor. FuzzPair: the Fuzz pot from the second emitter to ground, whose wiper
+    ///     Drive moves; <see cref="EmitterCapacitance" /> bypasses the wiper.
     /// </summary>
     public double Emitter { get; init; } = 1e3;
 
@@ -294,16 +303,16 @@ public sealed record DriveStage(StageKind Kind) {
     public double BaseToGround { get; init; }
 
     /// <summary>
-    ///     OpAmp: a pot in series with the first ground leg that the Drive block's Voice knob turns down (linear; 0 = none):
-    ///     the Zendrive's Voice. Voice at 10 is the pot at zero (the stage as listed); turning it down raises the leg's
-    ///     resistance, so the stage has less gain and its bass corner falls.
+    ///     OpAmp: a pot in series with the first ground leg that the Drive block's Voice knob turns down (linear; 0 =
+    ///     none): the Zendrive's Voice. Voice at 10 is the pot at zero (the stage as listed); turning it down raises
+    ///     the leg's resistance, so the stage has less gain and its bass corner falls.
     /// </summary>
     public double VoicePot { get; init; }
 
     /// <summary>
-    ///     OpAmp: the Drive block's Bass knob works a pot across the first ground leg's capacitor (the Timmy's Bass). At
-    ///     0 the pot is out (the stage as listed, its bass cut below the leg's corner); turning it up lets the leg pass
-    ///     DC, so the low end is amplified (and clipped) as much as the mids. The stage must not use a second leg.
+    ///     OpAmp: the Drive block's Bass knob works a pot across the first ground leg's capacitor (the Timmy's Bass).
+    ///     At 0 the pot is out (the stage as listed, its bass cut below the leg's corner); turning it up lets the leg
+    ///     pass DC, so the low end is amplified (and clipped) as much as the mids. The stage must not use a second leg.
     /// </summary>
     public bool BassShunt { get; init; }
 
@@ -313,11 +322,14 @@ public sealed record DriveStage(StageKind Kind) {
     /// </summary>
     public double HighPeak { get; init; }
 
-    /// <summary>Tape: the record/playback equalisation, a tape type of <see cref="Cathode.Dsp.Cabinets.MicPreampTypes" />.</summary>
+    /// <summary>
+    ///     Tape: the record/playback equalisation, a tape type of <see cref="Cathode.Dsp.Cabinets.MicPreampTypes" />.
+    /// </summary>
     public int TapeType { get; init; } = Cabinets.MicPreampTypes.Tape50;
 
     /// <summary>
-    ///     Crusher: the word length at full Drive (16 bits at zero, swept geometrically), in bits; one volt is full scale.
+    ///     Crusher: the word length at full Drive (16 bits at zero, swept geometrically), in bits; one volt is full
+    ///     scale.
     /// </summary>
     public double Bits { get; init; } = 4;
 
@@ -334,19 +346,23 @@ public sealed record DriveStage(StageKind Kind) {
 
 /// <summary>
 ///     One drive circuit: input coupling, a gain set by Drive, an operating-point bias, up to
-///     <see cref="DriveCircuits.MaxStages" /> stages at the oversampled rate, an optional clean blend, a DC blocker, then
-///     the tone network and output trim at the base rate.
+///     <see cref="DriveCircuits.MaxStages" /> stages at the oversampled rate, an optional clean blend, a DC blocker,
+///     then the tone network and output trim at the base rate.
 /// </summary>
 public sealed record DriveCircuit(string Name, string ModelledAfter) {
     /// <summary>Input coupling capacitor corner (0 = none: the first stage's netlist has its own).</summary>
     public double InputHighPassHz { get; init; } = 20;
 
-    /// <summary>Gain ahead of the first stage, swept by Drive (for circuits whose drive is not a feedback pot).</summary>
+    /// <summary>
+    ///     Gain ahead of the first stage, swept by Drive (for circuits whose drive is not a feedback pot).
+    /// </summary>
     public double MinGainDb { get; init; }
 
     public double MaxGainDb { get; init; }
 
-    /// <summary>DC offset added ahead of the first stage, in volts: shifts the operating point of asymmetric clippers.</summary>
+    /// <summary>
+    ///     DC offset added ahead of the first stage, in volts: shifts the operating point of asymmetric clippers.
+    /// </summary>
     public double Bias { get; init; }
 
     /// <summary>
@@ -357,19 +373,23 @@ public sealed record DriveCircuit(string Name, string ModelledAfter) {
 
     public IReadOnlyList<DriveStage> Stages { get; init; } = [];
 
-    /// <summary>Level of the clean path summed after the stages at zero drive; it falls to a quarter at full drive.</summary>
+    /// <summary>
+    ///     Level of the clean path summed after the stages at zero drive; it falls to a quarter at full drive.
+    /// </summary>
     public double CleanMix { get; init; }
 
     public ToneNetwork Tone { get; init; } = new(ToneKind.HighCut);
 
     public double OutputDb { get; init; }
 
-    /// <summary>Inverts the output: the circuit has an odd number of inverting stages, and the pedal keeps polarity.</summary>
+    /// <summary>
+    ///     Inverts the output: the circuit has an odd number of inverting stages, and the pedal keeps polarity.
+    /// </summary>
     public bool InvertOutput { get; init; }
 
     /// <summary>
-    ///     Oversampling factor of the stages (2 or 4): the circuits that need a Newton solve run at 2x, the ones solved in
-    ///     closed form at 4x.
+    ///     Oversampling factor of the stages (2 or 4): the circuits that need a Newton solve run at 2x, the ones solved
+    ///     in closed form at 4x.
     /// </summary>
     public int Oversampling { get; init; } = 4;
 
@@ -377,8 +397,8 @@ public sealed record DriveCircuit(string Name, string ModelledAfter) {
     public bool GruntAndAttack { get; init; }
 
     /// <summary>
-    ///     The pedal switch that changes this circuit's network (<see cref="PedalSwitch.None" /> for none); the circuit is
-    ///     its first position and <see cref="Modes" /> the others, all built when the catalogue loads.
+    ///     The pedal switch that changes this circuit's network (<see cref="PedalSwitch.None" /> for none); the circuit
+    ///     is its first position and <see cref="Modes" /> the others, all built when the catalogue loads.
     /// </summary>
     public PedalSwitch Switch { get; init; }
 
@@ -392,13 +412,14 @@ public sealed record DriveCircuit(string Name, string ModelledAfter) {
     public bool BlendKnob { get; init; }
 
     /// <summary>
-    ///     The Full-Drive 2's Boost footswitch and knob (<see cref="DriveBlock.BoostLevel" />): a clean boost of up to this
-    ///     many dB ahead of the clipping amp (0 = none).
+    ///     The Full-Drive 2's Boost footswitch and knob (<see cref="DriveBlock.BoostLevel" />): a clean boost of up to
+    ///     this many dB ahead of the clipping amp (0 = none).
     /// </summary>
     public double BoostDb { get; init; }
 
     /// <summary>
-    ///     The Precision Drive's Attack knob (<see cref="DriveBlock.PedalAttack" />): it sweeps the input coupling corner
+    ///     The Precision Drive's Attack knob (<see cref="DriveBlock.PedalAttack" />): it sweeps the input coupling
+    ///     corner
     ///     <see cref="AttackSpan" /> times either way of <see cref="InputHighPassHz" /> (noon).
     /// </summary>
     public bool AttackKnob { get; init; }
@@ -429,12 +450,14 @@ public sealed record DriveCircuit(string Name, string ModelledAfter) {
     public double DipHighHz { get; init; }
 
     /// <summary>
-    ///     False where the pedal has no tone knob but a switch (the Super-Fuzz): Tone is hidden and its network stays at
-    ///     noon.
+    ///     False where the pedal has no tone knob but a switch (the Super-Fuzz): Tone is hidden and its network stays
+    ///     at noon.
     /// </summary>
     public bool ToneKnob { get; init; } = true;
 
-    /// <summary>True when the transfer curve is odd-symmetric, so the circuit makes (almost) only odd harmonics.</summary>
+    /// <summary>
+    ///     True when the transfer curve is odd-symmetric, so the circuit makes (almost) only odd harmonics.
+    /// </summary>
     public bool IsSymmetric => Bias == 0 && Stages.All(static s => s.IsSymmetric);
 }
 
@@ -445,10 +468,14 @@ public sealed record DriveCircuit(string Name, string ModelledAfter) {
 public enum PedalSwitch {
     None,
 
-    /// <summary>The King of Tone's mode DIP switches: OD, Distortion, Boost (<see cref="DriveBlock.KingMode" />).</summary>
+    /// <summary>
+    ///     The King of Tone's mode DIP switches: OD, Distortion, Boost (<see cref="DriveBlock.KingMode" />).
+    /// </summary>
     KingMode,
 
-    /// <summary>The Full-Drive 2's mode switch: Flat-Mids, Comp-Cut, Vintage (<see cref="DriveBlock.FullMode" />).</summary>
+    /// <summary>
+    ///     The Full-Drive 2's mode switch: Flat-Mids, Comp-Cut, Vintage (<see cref="DriveBlock.FullMode" />).
+    /// </summary>
     FullDriveMode,
 
     /// <summary>The Eternity's Glow switch (<see cref="DriveBlock.Glow" />).</summary>
@@ -459,7 +486,9 @@ public enum PedalSwitch {
 }
 
 /// <summary>The guitar as a source for its volume knob; see <see cref="DriveCircuits.Guitar" />.</summary>
-/// <param name="Series">The pickup's resistance plus the top of the volume pot, in series with the pickup's inductance.</param>
+/// <param name="Series">
+///     The pickup's resistance plus the top of the volume pot, in series with the pickup's inductance.
+/// </param>
 /// <param name="Shunt">The bottom of the volume pot, across the output.</param>
 /// <param name="Resistance">The resistive Thévenin equivalent of the two, ignoring the inductance.</param>
 /// <param name="Level">The open-circuit output level relative to full volume.</param>
@@ -489,15 +518,17 @@ public static partial class DriveCircuits {
     ];
 
     /// <summary>
-    ///     Every circuit with every diode override, built once when the catalogue loads so that choosing one on the audio
-    ///     thread only looks it up: <c>[circuit][type * DiodeCounts.Count + count]</c>. A choice that changes nothing (a
-    ///     circuit without clipping diodes, or both Stock) is the circuit itself.
+    ///     Every circuit with every diode override, built once when the catalogue loads so that choosing one on the
+    ///     audio thread only looks it up: <c>[circuit][type * DiodeCounts.Count + count]</c>. A choice that changes
+    ///     nothing (a circuit without clipping diodes, or both Stock) is the circuit itself.
     /// </summary>
     static readonly DriveCircuit[][] DiodeVariants;
 
     public static IReadOnlyList<DriveCircuit> All { get; } = Catalogue();
 
-    /// <summary>The Drive block's Diode Type choices: the circuit's own, then a model for every clipping diode.</summary>
+    /// <summary>
+    ///     The Drive block's Diode Type choices: the circuit's own, then a model for every clipping diode.
+    /// </summary>
     public static IReadOnlyList<string> DiodeTypes { get; } =
         ["Stock", "Silicon", "Germanium", "Schottky", "LED", "MOSFET"];
 
@@ -510,7 +541,9 @@ public static partial class DriveCircuits {
         DiodeVariants = [..All.Select(BuildVariants)];
     }
 
-    /// <summary>The TS808 tone stage: 1k into 220 nF, 20k Tone pot, 220 Ω + 220 nF from its wiper, 1k feedback.</summary>
+    /// <summary>
+    ///     The TS808 tone stage: 1k into 220 nF, 20k Tone pot, 220 Ω + 220 nF from its wiper, 1k feedback.
+    /// </summary>
     static ToneNetwork ScreamerTone =>
         new(ToneKind.Screamer) {
             Source = 75,
@@ -523,7 +556,9 @@ public static partial class DriveCircuits {
             Load = 10e3
         };
 
-    /// <summary>A Baxandall treble control (Klon-style): 10k in and out, 10 nF to a 10k pot, 1.8k from its wiper.</summary>
+    /// <summary>
+    ///     A Baxandall treble control (Klon-style): 10k in and out, 10 nF to a 10k pot, 1.8k from its wiper.
+    /// </summary>
     static ToneNetwork TrebleTone =>
         new(ToneKind.Treble) {
             Source = 100,
@@ -536,7 +571,9 @@ public static partial class DriveCircuits {
             Load = 100e3
         };
 
-    /// <summary>The RAT's filter: 1.5k and the 100k Filter pot into 3.3 nF (Tone 10 is the Filter knob fully down).</summary>
+    /// <summary>
+    ///     The RAT's filter: 1.5k and the 100k Filter pot into 3.3 nF (Tone 10 is the Filter knob fully down).
+    /// </summary>
     static ToneNetwork RatFilter =>
         new(ToneKind.HighCut) {
             Source = 1e3,
@@ -556,7 +593,9 @@ public static partial class DriveCircuits {
             Capacitor1 = 1e-9
         };
 
-    /// <summary>True when <paramref name="circuit" /> has clipping diodes the Diode Type and Count can replace.</summary>
+    /// <summary>
+    ///     True when <paramref name="circuit" /> has clipping diodes the Diode Type and Count can replace.
+    /// </summary>
     public static bool HasDiodes(DriveCircuit circuit) => circuit.Stages.Any(HasDiodes);
 
     /// <summary>
@@ -578,10 +617,11 @@ public static partial class DriveCircuits {
         OperatingPoints.TryGetValue(stage, out point!);
 
     /// <summary>
-    ///     The guitar as a source, for its volume knob at <paramref name="volume" /> (0..10): the pickup (its resistance and
-    ///     inductance) in series with the top of an audio-taper volume pot, the bottom of the pot across the output. Rolling
-    ///     the volume back raises the source resistance, so a low-impedance input (a Fuzz Face) loses gain much faster than
-    ///     the level alone would say, and cleans up; the inductance makes such an input darker, as on the real pedal.
+    ///     The guitar as a source, for its volume knob at <paramref name="volume" /> (0..10): the pickup (its
+    ///     resistance and inductance) in series with the top of an audio-taper volume pot, the bottom of the pot across
+    ///     the output. Rolling the volume back raises the source resistance, so a low-impedance input (a Fuzz Face)
+    ///     loses gain much faster than the level alone would say, and cleans up; the inductance makes such an input
+    ///     darker, as on the real pedal.
     /// </summary>
     public static GuitarSource Guitar(double volume) {
         var bottom = VolumePot * AudioTaper(Math.Clamp(volume / 10, 0, 1));
@@ -1083,7 +1123,9 @@ public static partial class DriveCircuits {
             Diodes = diodes
         };
 
-    /// <summary>The RAT gain stage: LM308, Distortion pot in feedback with 100p, 47 Ω + 2.2 µF and 560 Ω + 4.7 µF legs.</summary>
+    /// <summary>
+    ///     The RAT gain stage: LM308, Distortion pot in feedback with 100p, 47 Ω + 2.2 µF and 560 Ω + 4.7 µF legs.
+    /// </summary>
     static DriveStage RatStage() =>
         new(StageKind.OpAmp) {
             Amplifier = OpAmpModel.LM308,
@@ -1099,8 +1141,8 @@ public static partial class DriveCircuits {
         };
 
     /// <summary>
-    ///     The Fuzz Face: 2.2 µF in, 33k first collector, 470 Ω + 8.2k second collector, 100k feedback, 1k Fuzz pot with
-    ///     20 µF from its wiper, 10 nF out into the 500k volume pot.
+    ///     The Fuzz Face: 2.2 µF in, 33k first collector, 470 Ω + 8.2k second collector, 100k feedback, 1k Fuzz pot
+    ///     with 20 µF from its wiper, 10 nF out into the 500k volume pot.
     /// </summary>
     static DriveStage FaceStage(BjtModel transistor) =>
         new(StageKind.FuzzPair) {
@@ -1116,7 +1158,9 @@ public static partial class DriveCircuits {
             Load = 500e3
         };
 
-    /// <summary>A Big Muff clipping stage: inverting transistor amp with 100k and 470p in feedback across 1N914s.</summary>
+    /// <summary>
+    ///     A Big Muff clipping stage: inverting transistor amp with 100k and 470p in feedback across 1N914s.
+    /// </summary>
     static DriveStage MuffStage() =>
         new(StageKind.Gain) {
             GroundResistance = 10e3,
@@ -1217,7 +1261,8 @@ struct CircuitStage {
                 break;
 
             case StageKind.Tape: {
-                // The analog shelf (b1 s + b0) / (a1 s + a0) through the bilinear transform; de-emphasis is its inverse.
+                // The analog shelf (b1 s + b0) / (a1 s + a0) through the bilinear transform; de-emphasis is its
+                // inverse.
                 Cabinets.MicPreampTypes.Emphasis(stage.TapeType, out var b1, out var b0, out var a1, out var a0);
                 var k = 2 * sampleRate;
                 var norm = a1 * k + a0;
@@ -1425,19 +1470,25 @@ struct NoiseGate {
 ///     first-order high-pass at 10 Hz times it instead.
 /// </param>
 /// <param name="Bias">Volts added to the circuit's own bias ahead of the first stage.</param>
-/// <param name="DryLevel">Clean signal summed after the stages, on top of the circuit's own clean blend (linear).</param>
+/// <param name="DryLevel">
+///     Clean signal summed after the stages, on top of the circuit's own clean blend (linear).
+/// </param>
 /// <param name="Slew">
 ///     Largest change per oversampled sample, in volts (0 = no limit): an op-amp circuit's op-amp slews at it (each
 ///     op-amp stage, <see cref="OpAmpStage" />), any other circuit is limited after its stages.
 /// </param>
 /// <param name="StackBass">A tone stack's bass pot (<see cref="ToneKind.Stack" />), 0..1; noon as built.</param>
 /// <param name="StackMiddle">A tone stack's middle pot.</param>
-/// <param name="PedalBass">The Bass knob of a stage with <see cref="DriveStage.BassShunt" />, 0..1 (0 = as listed).</param>
-/// <param name="VoiceCut">
-///     How far the Voice knob is turned down from 10, 0..1, on a stage with a <see cref="DriveStage.VoicePot" /> (0 = as
-///     listed).
+/// <param name="PedalBass">
+///     The Bass knob of a stage with <see cref="DriveStage.BassShunt" />, 0..1 (0 = as listed).
 /// </param>
-/// <param name="HighPeak">The HP/LP switch in its HP position, on a clipper with <see cref="DriveStage.HighPeak" />.</param>
+/// <param name="VoiceCut">
+///     How far the Voice knob is turned down from 10, 0..1, on a stage with a <see cref="DriveStage.VoicePot" /> (0 =
+///     as listed).
+/// </param>
+/// <param name="HighPeak">
+///     The HP/LP switch in its HP position, on a clipper with <see cref="DriveStage.HighPeak" />.
+/// </param>
 /// <param name="MidHz">An active EQ's Middle Freq, where its mid sweeps (0 = the network's own).</param>
 /// <param name="Grunt">
 ///     The B7K's Grunt switch: 0 as built, 1 Fat (four times the bass into the clipping), 2 Raw (a quarter); it scales
@@ -1451,12 +1502,16 @@ struct NoiseGate {
 ///     The B7K's Hi Mids pot from noon, −0.5..0.5 (0 = as built): an active EQ's second mid band
 ///     (<see cref="ToneNetwork.Mid2Hz" />).
 /// </param>
-/// <param name="Blend">The B7K's Blend from noon, −0.5..0.5 (0 = as built); see <see cref="DriveCircuit.BlendKnob" />.</param>
+/// <param name="Blend">
+///     The B7K's Blend from noon, −0.5..0.5 (0 = as built); see <see cref="DriveCircuit.BlendKnob" />.
+/// </param>
 /// <param name="BoostDb">The Full-Drive 2's boost, in dB, when its footswitch is on (0 = off).</param>
 /// <param name="AttackTurn">The Precision Drive's Attack from noon, −1..1 (0 = as built).</param>
 /// <param name="Gate">The Precision Drive's Gate knob, 0..10 (0 = off).</param>
 /// <param name="Tight">The Buxom Boost's Tight switch on.</param>
-/// <param name="Dip">The Bass RC Booster's DIP switches: bit 0 the bass switch, bit 1 the treble switch (0 = stock).</param>
+/// <param name="Dip">
+///     The Bass RC Booster's DIP switches: bit 0 the bass switch, bit 1 the treble switch (0 = stock).
+/// </param>
 readonly record struct CircuitTweaks(
     double BassScale = 1,
     double Bias = 0,
@@ -1481,7 +1536,9 @@ readonly record struct CircuitTweaks(
     public static CircuitTweaks Stock => new(1);
 }
 
-/// <summary>Per-channel state of the circuit voicings: everything except the oversampler, which the block shares.</summary>
+/// <summary>
+///     Per-channel state of the circuit voicings: everything except the oversampler, which the block shares.
+/// </summary>
 sealed class CircuitChannel {
     /// <summary>The corner of the B7K's Attack shelf.</summary>
     public const double AttackHz = 1_500;
@@ -1590,9 +1647,9 @@ sealed class CircuitChannel {
             }
         }
 
-        // A transistor stage takes the pickup's own voltage behind the whole guitar network; an op-amp stage the guitar's
-        // Thévenin equivalent (its input is too high to care for the inductance); anything else that equivalent's level,
-        // loaded by a nominal input resistance.
+        // A transistor stage takes the pickup's own voltage behind the whole guitar network; an op-amp stage the
+        // guitar's Thévenin equivalent (its input is too high to care for the inductance); anything else that
+        // equivalent's level, loaded by a nominal input resistance.
         level = circuit.Stages[0].Kind switch {
             StageKind.Transistor or StageKind.FuzzPair => guitar.Emf,
             StageKind.OpAmp => guitar.Level,
@@ -1661,8 +1718,8 @@ sealed class CircuitChannel {
 
     /// <summary>
     ///     The bass shelf of a circuit with <see cref="DriveCircuit.BassShelfHz" />, for its Bass Pot at
-    ///     <paramref name="bass" /> (0..1): a boost of g below the corner is x + (g − 1) LP(x); the mirror cut, of 1 / g,
-    ///     is x − (1 − 1 / g) LP(x) with the low-pass at g times the corner, so the two are each other's inverse.
+    ///     <paramref name="bass" /> (0..1): a boost of g below the corner is x + (g − 1) LP(x); the mirror cut, of 1 /
+    ///     g, is x − (1 − 1 / g) LP(x) with the low-pass at g times the corner, so the two are each other's inverse.
     /// </summary>
     void ConfigureShelf(DriveCircuit circuit, double bass, double rate) {
         var was = shelf;
@@ -1720,7 +1777,8 @@ sealed class CircuitChannel {
 
     /// <summary>
     ///     <see
-    ///         cref="ProcessInner(CircuitChannel, CircuitChannel, Span{float}, Span{float}, float, float, in SvfCoefficients)" />
+    ///         cref="ProcessInner(CircuitChannel, CircuitChannel, Span{float}, Span{float}, float, float, in
+    ///         SvfCoefficients)" />
     ///     for one channel: the Circuit Amp's input boost, a mono pedal ahead of a mono amp.
     /// </summary>
     public void ProcessInner(Span<float> samples, float fromGain, float toGain, in SvfCoefficients dcBlock) {

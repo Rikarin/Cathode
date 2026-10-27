@@ -75,8 +75,8 @@ public partial class AmpStageTests {
 }
 
 /// <summary>
-///     The modern-Marshall models on the Circuit Amp block: their panels, knob sweeps at full drive without instability,
-///     every control audible, gain and master monotonic, levels below +6 dBFS.
+///     The modern-Marshall models on the Circuit Amp block: their panels, knob sweeps at full drive without
+///     instability, every control audible, gain and master monotonic, levels below +6 dBFS.
 /// </summary>
 public class ModernMarshallTests(ITestOutputHelper output) {
     const double Rate = 48_000;
@@ -103,8 +103,8 @@ public class ModernMarshallTests(ITestOutputHelper output) {
 
     /// <summary>
     ///     The Valvestate's power amp is solid state but its boost channel runs an ECC83: the preamp-tube parameters
-    ///     (tube type, bias, hardness, grid current) stay on its panel (the JC-120, with no triode at all, has none) and
-    ///     each one changes the boost channel.
+    ///     (tube type, bias, hardness, grid current) stay on its panel (the JC-120, with no triode at all, has none)
+    ///     and each one changes the boost channel.
     /// </summary>
     [Fact]
     public void Valvestate_keeps_and_answers_the_preamp_tube_parameters() {
@@ -141,7 +141,9 @@ public class ModernMarshallTests(ITestOutputHelper output) {
         }
     }
 
-    /// <summary>Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.</summary>
+    /// <summary>
+    ///     Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.
+    /// </summary>
     [Theory]
     [MemberData(nameof(Types))]
     public void Knob_sweeps_at_full_drive_stay_finite_and_converge(string type) {

@@ -4,9 +4,9 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     Vowel formant filter ("talk box" without the tube): three parallel resonant band-passes placed on the first three
-///     formants of a vowel (adult male averages after Peterson and Barney, JASA 1952). <b>Control</b> morphs from the
-///     start vowel (0 %) through the mid vowel (50 %) to the end vowel (100 %), interpolating formant frequencies
+///     Vowel formant filter ("talk box" without the tube): three parallel resonant band-passes placed on the first
+///     three formants of a vowel (adult male averages after Peterson and Barney, JASA 1952). <b>Control</b> morphs from
+///     the start vowel (0 %) through the mid vowel (50 %) to the end vowel (100 %), interpolating formant frequencies
 ///     geometrically, so a modifier or expression pedal can make the guitar "talk". <b>Shift</b> scales every formant
 ///     (smaller or larger "throat"). The band-passes are state-variable filters, so fast sweeps stay smooth.
 /// </summary>
@@ -34,7 +34,9 @@ public sealed class FormantBlock() : DspBlock(Info) {
         [300f, 870f, 2_240f]
     ];
 
-    /// <summary>Relative level of each formant: a gentle tilt, so the vowel reads without the guitar losing its top.</summary>
+    /// <summary>
+    ///     Relative level of each formant: a gentle tilt, so the vowel reads without the guitar losing its top.
+    /// </summary>
     static readonly float[] FormantGains = [1f, 0.63f, 0.4f];
 
     readonly SvfState[] left = new SvfState[Formants];
@@ -64,9 +66,9 @@ public sealed class FormantBlock() : DspBlock(Info) {
     static IReadOnlyList<string> Vowels => ["A", "E", "I", "O", "U"];
 
     /// <summary>
-    ///     Formant <paramref name="formant" /> (0-based) in Hz for a morph position <paramref name="control" /> in [0, 1]
-    ///     between the vowels at indices <paramref name="start" />, <paramref name="mid" /> and <paramref name="end" />,
-    ///     before <see cref="Shift" />.
+    ///     Formant <paramref name="formant" /> (0-based) in Hz for a morph position <paramref name="control" /> in [0,
+    ///     1] between the vowels at indices <paramref name="start" />, <paramref name="mid" /> and
+    ///     <paramref name="end" />, before <see cref="Shift" />.
     /// </summary>
     public static float FormantFrequency(int formant, int start, int mid, int end, float control) {
         var (from, to, t) = control < 0.5f ? (start, mid, 2 * control) : (mid, end, 2 * control - 1);

@@ -34,7 +34,9 @@ public sealed partial class LiveRig {
             }
         );
 
-    /// <summary>Empties the grid (Input to Output through shunts) and the name, keeping the preset's identity.</summary>
+    /// <summary>
+    ///     Empties the grid (Input to Output through shunts) and the name, keeping the preset's identity.
+    /// </summary>
     public Task<LiveState> ClearAsync(long? expected) =>
         Locked(async () => {
                 Check(expected);
@@ -162,9 +164,9 @@ public sealed partial class LiveRig {
     }
 
     /// <summary>
-    ///     Moves a whole row or column to another index, shifting those between. Rows keep every cable. Cables only join
-    ///     adjacent columns, so a column move rewires as it goes (<see cref="RewireColumnMove" />): the signal paths stay
-    ///     whole, closing behind the moved column and running through it where it lands.
+    ///     Moves a whole row or column to another index, shifting those between. Rows keep every cable. Cables only
+    ///     join adjacent columns, so a column move rewires as it goes (<see cref="RewireColumnMove" />): the signal
+    ///     paths stay whole, closing behind the moved column and running through it where it lands.
     /// </summary>
     public Task<LiveState> MoveLineAsync(MoveLineRequest request, long? expected) =>
         Locked(async () => {
@@ -437,7 +439,9 @@ public sealed partial class LiveRig {
             }
         );
 
-    /// <summary>The preset's performance page; every control must name a block of the preset and its parameter.</summary>
+    /// <summary>
+    ///     The preset's performance page; every control must name a block of the preset and its parameter.
+    /// </summary>
     public Task<LiveState> SetPerformAsync(IReadOnlyList<PerformControl> controls, long? expected) =>
         Locked(() => {
                 Check(expected);
@@ -543,8 +547,8 @@ public sealed partial class LiveRig {
     static string? NullIfEmpty(string text) => text.Length == 0 ? null : text;
 
     /// <summary>
-    ///     A linked block's settings belong to its global block: keep that in step, and the preset's other blocks linked
-    ///     to it (rebuilt, as the change may be an asset).
+    ///     A linked block's settings belong to its global block: keep that in step, and the preset's other blocks
+    ///     linked to it (rebuilt, as the change may be an asset).
     /// </summary>
     async Task ShareWithLinkedAsync(PresetBlock block) {
         if (block.Global is not { } link) {
@@ -572,8 +576,8 @@ public sealed partial class LiveRig {
         block.Global is { } link ? [..preset.Blocks.Where(b => b.Global == link && b.Id != block.Id)] : [];
 
     /// <summary>
-    ///     Gives the preset's other blocks linked to <paramref name="block" />'s global block its settings (linked blocks
-    ///     are one block in several places), and returns them.
+    ///     Gives the preset's other blocks linked to <paramref name="block" />'s global block its settings (linked
+    ///     blocks are one block in several places), and returns them.
     /// </summary>
     List<PresetBlock> MirrorLinked(PresetBlock block) {
         var linked = Linked(block);
@@ -588,7 +592,9 @@ public sealed partial class LiveRig {
         return linked;
     }
 
-    /// <summary>Replaces the working copy's content with <paramref name="next" /> as one undoable edit, keeping its id.</summary>
+    /// <summary>
+    ///     Replaces the working copy's content with <paramref name="next" /> as one undoable edit, keeping its id.
+    /// </summary>
     async Task ReplaceUndoableAsync(Preset next) {
         var before = Capture();
         next.Id = preset.Id;
@@ -633,8 +639,8 @@ public sealed partial class LiveRig {
     static string Swapped(string end, string a, string b) => end == a ? b : end == b ? a : end;
 
     /// <summary>
-    ///     Moves column <paramref name="from" /> to <paramref name="to" /> and keeps the signal paths whole, since cables
-    ///     only join adjacent columns. The move is a lift and an insert:
+    ///     Moves column <paramref name="from" /> to <paramref name="to" /> and keeps the signal paths whole, since
+    ///     cables only join adjacent columns. The move is a lift and an insert:
     ///     <list type="number">
     ///         <item>
     ///             Lift: each block of the moved column that sat in a path hands its inputs straight to its outputs
@@ -853,7 +859,9 @@ public sealed partial class LiveRig {
         p.Cables.Add(new() { From = from, To = to });
     }
 
-    /// <summary>Where index <paramref name="at" /> goes when <paramref name="from" /> moves to <paramref name="to" />.</summary>
+    /// <summary>
+    ///     Where index <paramref name="at" /> goes when <paramref name="from" /> moves to <paramref name="to" />.
+    /// </summary>
     static int Shifted(int at, int from, int to) =>
         at == from ? to
         : from < to && at > from && at <= to ? at - 1

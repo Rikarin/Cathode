@@ -4,8 +4,8 @@ using System.Runtime.InteropServices;
 namespace Cathode.Engine.Telemetry;
 
 /// <summary>
-///     Shared-memory telemetry (docs/02-architecture.md, telemetry plane): a fixed-layout region the audio thread writes
-///     once per callback and any number of readers poll, in this process or another, without a lock and without
+///     Shared-memory telemetry (docs/02-architecture.md, telemetry plane): a fixed-layout region the audio thread
+///     writes once per callback and any number of readers poll, in this process or another, without a lock and without
 ///     resetting anything. It holds the callback count, a frame clock, the CPU histogram (cumulative, so readers diff
 ///     two snapshots for a window), engine overruns, driver overloads, per-slot meter peaks, every block meter and each
 ///     modifier's current value.
@@ -16,14 +16,14 @@ namespace Cathode.Engine.Telemetry;
 ///         it even; a reader copies the region and retries if the sequence was odd or changed. The writer never waits.
 ///     </para>
 ///     <para>
-///         Meters live in <see cref="TelemetryLayout.MeterSlots" /> slots of <see cref="TelemetryLayout.FramesPerSlot" />
-///         frames each, tagged with their absolute slot number (frame / FramesPerSlot). A reader takes the maximum over
-///         the slots since its previous read, so every peak is seen once by every reader, at any polling rate up to
-///         the history length (64 x 256 frames, 340 ms at 48 kHz).
+///         Meters live in <see cref="TelemetryLayout.MeterSlots" /> slots of
+///         <see cref="TelemetryLayout.FramesPerSlot" /> frames each, tagged with their absolute slot number (frame /
+///         FramesPerSlot). A reader takes the maximum over the slots since its previous read, so every peak is seen
+///         once by every reader, at any polling rate up to the history length (64 x 256 frames, 340 ms at 48 kHz).
 ///     </para>
 ///     <para>
-///         A scope ring holds the last <see cref="TelemetryLayout.ScopeLength" /> output samples (left) for the editor's
-///         oscilloscope and the RTA / Tone Match analysers.
+///         A scope ring holds the last <see cref="TelemetryLayout.ScopeLength" /> output samples (left) for the
+///         editor's oscilloscope and the RTA / Tone Match analysers.
 ///     </para>
 ///     <para>
 ///         Across processes the region is a memory-mapped file: the host creates it next to its IPC socket and names
@@ -90,7 +90,9 @@ public sealed unsafe class TelemetryRegion : IDisposable {
         return new(memory, path, file, view, true);
     }
 
-    /// <summary>Maps an existing region read-only. Throws <see cref="InvalidDataException" /> if it is not one.</summary>
+    /// <summary>
+    ///     Maps an existing region read-only. Throws <see cref="InvalidDataException" /> if it is not one.
+    /// </summary>
     public static TelemetryRegion OpenFile(string path) {
         var size = sizeof(TelemetryLayout);
         var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
@@ -122,8 +124,8 @@ public sealed unsafe class TelemetryRegion : IDisposable {
     }
 
     /// <summary>
-    ///     Audio thread: account one callback of <paramref name="frames" /> that took <paramref name="percent" /> of its
-    ///     budget, with the peaks it saw. Lock-free and allocation-free.
+    ///     Audio thread: account one callback of <paramref name="frames" /> that took <paramref name="percent" /> of
+    ///     its budget, with the peaks it saw. Lock-free and allocation-free.
     /// </summary>
     public void RecordCallback(int frames, double percent, float input, float outputLeft, float outputRight) =>
         RecordCallback(frames, percent, input, outputLeft, outputRight, default, default, -1, 0f, 0f);
@@ -132,9 +134,9 @@ public sealed unsafe class TelemetryRegion : IDisposable {
     ///     As above, plus the block meters of graph <paramref name="generation" /> (<c>CompiledGraph.Meters</c>: each
     ///     slot's output peak and its own meters; at most <see cref="TelemetryLayout.BlockMeters" />) and the output
     ///     loudness in LUFS. Each meter slot keeps the highest value of every block meter.
-    ///     <paramref name="modifiers" /> is each modifier's value as of this callback (<c>CompiledGraph.ModifierValues</c>,
-    ///     NaN where it drives
-    ///     nothing; at most <see cref="TelemetryLayout.Modifiers" />): the latest, not a peak.
+    ///     <paramref name="modifiers" /> is each modifier's value as of this callback
+    ///     (<c>CompiledGraph.ModifierValues</c>, NaN where it drives nothing; at most
+    ///     <see cref="TelemetryLayout.Modifiers" />): the latest, not a peak.
     /// </summary>
     public void RecordCallback(
         int frames,
@@ -210,12 +212,14 @@ public sealed unsafe class TelemetryRegion : IDisposable {
     }
 
     /// <summary>
-    ///     Audio thread: append output samples to the scope ring. The ring is outside the seqlock: the reader copies the
-    ///     samples behind the published write count and drops any the writer overwrote meanwhile.
+    ///     Audio thread: append output samples to the scope ring. The ring is outside the seqlock: the reader copies
+    ///     the samples behind the published write count and drops any the writer overwrote meanwhile.
     /// </summary>
     public void WriteScope(ReadOnlySpan<float> samples) => Write(ref layout->ScopeWritten, layout->Scope, samples);
 
-    /// <summary>Audio thread: append an RTA block's samples to the analyser ring (like <see cref="WriteScope" />).</summary>
+    /// <summary>
+    ///     Audio thread: append an RTA block's samples to the analyser ring (like <see cref="WriteScope" />).
+    /// </summary>
     public void WriteAnalyzer(ReadOnlySpan<float> samples) =>
         Write(ref layout->AnalyzerWritten, layout->Analyzer, samples);
 

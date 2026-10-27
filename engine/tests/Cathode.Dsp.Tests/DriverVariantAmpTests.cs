@@ -5,7 +5,9 @@ using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
 
-/// <summary>Stream M2's preamps against the reference MNA simulator as whole chains, every stage in one circuit.</summary>
+/// <summary>
+///     Stream M2's preamps against the reference MNA simulator as whole chains, every stage in one circuit.
+/// </summary>
 public partial class AmpStageTests {
     public static TheoryData<string, double> DriverVariantChains =>
         new() { { "Major 1967", 0.01 }, { "Bass 400", 0.01 } };
@@ -214,8 +216,8 @@ public class DriverVariantAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The Major's tone stack sits inside the feedback loop, so the loop flattens it: the bass and treble knobs move
-    ///     the output less with the feedback in than with it out (the feedback knob at 0).
+    ///     The Major's tone stack sits inside the feedback loop, so the loop flattens it: the bass and treble knobs
+    ///     move the output less with the feedback in than with it out (the feedback knob at 0).
     /// </summary>
     [Fact]
     public void Major_feedback_flattens_its_tone_stack() {
@@ -230,8 +232,8 @@ public class DriverVariantAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The Bass 400's graphic equaliser: flat with the sliders centred against the extremes, each slider boosting and
-    ///     cutting around its own band.
+    ///     The Bass 400's graphic equaliser: flat with the sliders centred against the extremes, each slider boosting
+    ///     and cutting around its own band.
     /// </summary>
     [Fact]
     public void Bass_400_sliders_boost_and_cut_their_bands() {

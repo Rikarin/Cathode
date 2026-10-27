@@ -7,11 +7,11 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 /// <summary>
-///     Stream C (Fender brownface, the Bassman 135 and the Gibson Scout) on the Circuit Amp block: panels, knob sweeps at
-///     full drive (finite, bounded, Newton converging), every control audible, volume and master monotonic; the harmonic
-///     vibrato (its rate from the oscillator's ladder, its depth from the Intensity knob, the two bands alternating, the
-///     pedal stopping it); the Bassman 135's gain staging against the AC test points on CBS's drawing; the 6EU7 and 6AQ5
-///     fits against their datasheets and the Scout's operating points against Gibson's drawing.
+///     Stream C (Fender brownface, the Bassman 135 and the Gibson Scout) on the Circuit Amp block: panels, knob sweeps
+///     at full drive (finite, bounded, Newton converging), every control audible, volume and master monotonic; the
+///     harmonic vibrato (its rate from the oscillator's ladder, its depth from the Intensity knob, the two bands
+///     alternating, the pedal stopping it); the Bassman 135's gain staging against the AC test points on CBS's drawing;
+///     the 6EU7 and 6AQ5 fits against their datasheets and the Scout's operating points against Gibson's drawing.
 /// </summary>
 public class BrownfaceAmpTests(ITestOutputHelper output) {
     const double Rate = 48_000;
@@ -58,7 +58,9 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
         Assert.Equal(1, power.Feedback.TapGain);
     }
 
-    /// <summary>Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.</summary>
+    /// <summary>
+    ///     Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.
+    /// </summary>
     [Theory]
     [MemberData(nameof(Types))]
     public void Knob_sweeps_at_full_drive_stay_finite_and_converge(string type) {
@@ -96,8 +98,8 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     Every control on the panel changes the sound: a knob from 0 to 10 or a switch on moves the level or the spectrum
-    ///     of a two-tone signal somewhere, or (the vibrato's knobs) the depth or rate of its modulation.
+    ///     Every control on the panel changes the sound: a knob from 0 to 10 or a switch on moves the level or the
+    ///     spectrum of a two-tone signal somewhere, or (the vibrato's knobs) the depth or rate of its modulation.
     /// </summary>
     [Theory]
     [MemberData(nameof(Types))]
@@ -173,9 +175,9 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The oscillator's rate comes from its phase-shift ladder: 2.6 Hz at the slowest to 9.4 Hz at the fastest, rising
-    ///     with the Speed knob; the Intensity knob's depth rises from nothing, and falls a little at faster rates (the
-    ///     network's caps).
+    ///     The oscillator's rate comes from its phase-shift ladder: 2.6 Hz at the slowest to 9.4 Hz at the fastest,
+    ///     rising with the Speed knob; the Intensity knob's depth rises from nothing, and falls a little at faster
+    ///     rates (the network's caps).
     /// </summary>
     [Fact]
     public void The_vibrato_rate_follows_the_ladder_and_its_depth_the_intensity() {
@@ -203,9 +205,9 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     On the Concert's Vibrato channel the bass and treble swell in turn at the oscillator's rate: a low and a high tone
-    ///     are modulated, in antiphase, by several decibels at full intensity; with the pedal off neither moves (Speed and
-    ///     Intensity are the tremolo controls, so no bias tremolo runs beside the vibrato).
+    ///     On the Concert's Vibrato channel the bass and treble swell in turn at the oscillator's rate: a low and a
+    ///     high tone are modulated, in antiphase, by several decibels at full intensity; with the pedal off neither
+    ///     moves (Speed and Intensity are the tremolo controls, so no bias tremolo runs beside the vibrato).
     /// </summary>
     [Theory]
     [InlineData("Concert 6G12")]
@@ -262,9 +264,9 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     CBS's Bassman 135 drawing lists the AC signal at test points for a 100 Hz sine at the input with every control at
-    ///     maximum (6 mV in; 10 W out): V1B's grid 80 mV, its plate 4 V, the mix 1.8 V. Here the Bass channel's stages
-    ///     are run alone and the signal read at the matching nodes.
+    ///     CBS's Bassman 135 drawing lists the AC signal at test points for a 100 Hz sine at the input with every
+    ///     control at maximum (6 mV in; 10 W out): V1B's grid 80 mV, its plate 4 V, the mix 1.8 V. Here the Bass
+    ///     channel's stages are run alone and the signal read at the matching nodes.
     /// </summary>
     [Fact]
     public void The_bassman_follows_the_test_points_on_the_drawing() {
@@ -433,8 +435,8 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
             or CircuitAmpBlock.Switch3;
 
     /// <summary>
-    ///     The channel a control belongs to: the vibrato's controls play on the brownface Vibrato channel with the pedal
-    ///     on, the Bassman 135's Bright on its Normal channel; everything else on the default channel.
+    ///     The channel a control belongs to: the vibrato's controls play on the brownface Vibrato channel with the
+    ///     pedal on, the Bassman 135's Bright on its Normal channel; everything else on the default channel.
     /// </summary>
     static (int Index, float Value)[] ChannelFor(string type, int control) =>
         (type, control) switch {

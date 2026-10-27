@@ -1,10 +1,10 @@
 namespace Cathode.Dsp;
 
 /// <summary>
-///     An ITU-R BS.1770 loudness meter for a stereo signal: K-weighting (the stage 1 high shelf, about +4 dB above 2 kHz,
-///     and the stage 2 high-pass at 38 Hz), then the mean square of each channel summed with unit weights, in 100 ms
-///     bins. Momentary loudness is the last 400 ms, short-term the last 3 s, both in LUFS
-///     (−0.691 + 10 log10 of the mean square). Allocation-free after construction; values update once per bin.
+///     An ITU-R BS.1770 loudness meter for a stereo signal: K-weighting (the stage 1 high shelf, about +4 dB above 2
+///     kHz, and the stage 2 high-pass at 38 Hz), then the mean square of each channel summed with unit weights, in 100
+///     ms bins. Momentary loudness is the last 400 ms, short-term the last 3 s, both in LUFS (−0.691 + 10 log10 of the
+///     mean square). Allocation-free after construction; values update once per bin.
 /// </summary>
 public sealed class LoudnessMeter {
     /// <summary>What silence reads, instead of minus infinity.</summary>
@@ -39,7 +39,9 @@ public sealed class LoudnessMeter {
     /// <summary>Loudness of the last 3 s, in LUFS.</summary>
     public float ShortTerm { get; private set; }
 
-    /// <summary>Mean square of the last 400 ms (the energy behind <see cref="Momentary" />), for gated averaging.</summary>
+    /// <summary>
+    ///     Mean square of the last 400 ms (the energy behind <see cref="Momentary" />), for gated averaging.
+    /// </summary>
     public double MomentaryPower { get; private set; }
 
     public void Reset() {

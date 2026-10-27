@@ -5,7 +5,8 @@ namespace Cathode.Server.Rig;
 
 /// <summary>
 ///     Input blocks and hardware sources: each source feeds at most one Input block, as on the Axe-Fx III (one block
-///     per input). An Input's Source is a setting of the block, written to every channel at once, so channel A tells it.
+///     per input). An Input's Source is a setting of the block, written to every channel at once, so channel A tells
+///     it.
 /// </summary>
 public sealed partial class LiveRig {
     const string SourceParam = "source";

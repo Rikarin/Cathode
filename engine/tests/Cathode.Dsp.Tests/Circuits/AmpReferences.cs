@@ -69,7 +69,9 @@ static class AmpReferences {
         return (c, plate, grid, cathode);
     }
 
-    /// <summary>A <see cref="ToneStackStage" />; returns the circuit, the output (load wiper) and the driven node.</summary>
+    /// <summary>
+    ///     A <see cref="ToneStackStage" />; returns the circuit, the output (load wiper) and the driven node.
+    /// </summary>
     public static (ReferenceCircuit Circuit, int Output, int Driven) ToneStackStage(
         ToneStackStageDesign d,
         AmpControls controls,
@@ -176,9 +178,9 @@ static class AmpReferences {
     }
 
     /// <summary>
-    ///     A <see cref="NetworkStageDesign" />'s netlist as a reference circuit, at the given knobs and settings, driven
-    ///     through <paramref name="sourceResistance" /> (plus the design's input resistance). The netlist's nodes keep
-    ///     their numbers; returns the circuit and the output node.
+    ///     A <see cref="NetworkStageDesign" />'s netlist as a reference circuit, at the given knobs and settings,
+    ///     driven through <paramref name="sourceResistance" /> (plus the design's input resistance). The netlist's
+    ///     nodes keep their numbers; returns the circuit and the output node.
     /// </summary>
     public static (ReferenceCircuit Circuit, int Output) Network(
         NetworkStageDesign d,
@@ -201,9 +203,10 @@ static class AmpReferences {
     }
 
     /// <summary>
-    ///     Appends <paramref name="d" />'s netlist to <paramref name="c" />, driven from node <paramref name="source" />
-    ///     through the design's input resistance (directly where it has none): the whole circuit of a chain of stages,
-    ///     with no Thévenin cut between them. Returns the stage's output node in <paramref name="c" />.
+    ///     Appends <paramref name="d" />'s netlist to <paramref name="c" />, driven from node
+    ///     <paramref name="source" /> through the design's input resistance (directly where it has none): the whole
+    ///     circuit of a chain of stages, with no Thévenin cut between them. Returns the stage's output node in
+    ///     <paramref name="c" />.
     /// </summary>
     public static int Append(
         ReferenceCircuit c,
@@ -230,13 +233,14 @@ static class AmpReferences {
     ///     cathodyne; or, single-ended, none), its input network (with an <see cref="InverterInputDesign" />: the
     ///     source behind <paramref name="sourceResistance" /> and the coupling cap, else a large cap), coupling caps,
     ///     grid leaks to the bias supply, grid stoppers, exact pentodes (with Dempwolf grid current) with screen
-    ///     resistors from the screen supply, or on ultralinear taps of the primary, or strapped as triodes (the design's
-    ///     triode-strapped tubes besides), an ideal transformer (centre-tapped, or a single primary from B+) with the
-    ///     magnetising inductance, primary capacitance and core loss across the primary and the leakage inductance and
-    ///     copper on the secondary, the speaker, and the feedback network from a tap (a VCVS of the speaker voltage)
-    ///     with the presence control, and the cut control across the inverter's outputs. Supplies are stiff at the
-    ///     given voltages; a cathode-biased amp's cathode resistor (all tubes') is <paramref name="cathodeResistor" />,
-    ///     per side twice that with separate cathodes. Returns the circuit and the speaker node.
+    ///     resistors from the screen supply, or on ultralinear taps of the primary, or strapped as triodes (the
+    ///     design's triode-strapped tubes besides), an ideal transformer (centre-tapped, or a single primary from B+)
+    ///     with the magnetising inductance, primary capacitance and core loss across the primary and the leakage
+    ///     inductance and copper on the secondary, the speaker, and the feedback network from a tap (a VCVS of the
+    ///     speaker voltage) with the presence control, and the cut control across the inverter's outputs. Supplies are
+    ///     stiff at the given voltages; a cathode-biased amp's cathode resistor (all tubes') is
+    ///     <paramref name="cathodeResistor" />, per side twice that with separate cathodes. Returns the circuit and the
+    ///     speaker node.
     /// </summary>
     public static (ReferenceCircuit Circuit, int Speaker, int Grid) PowerAmp(
         PowerAmpDesign d,

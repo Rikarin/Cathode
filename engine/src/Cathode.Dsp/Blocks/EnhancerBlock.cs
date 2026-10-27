@@ -14,7 +14,9 @@ namespace Cathode.Dsp.Blocks;
 ///             <b>Classic</b>: the side is the mid delayed by <b>Time</b>, giving complementary comb filters on the two
 ///             sides.
 ///         </item>
-///         <item><b>Haas</b>: the right channel is delayed by <b>Time</b> (precedence effect). Not mono compatible.</item>
+///         <item>
+///             <b>Haas</b>: the right channel is delayed by <b>Time</b> (precedence effect). Not mono compatible.
+///         </item>
 ///         <item>
 ///             <b>Stereoizer</b>: as Modern, through a high-order chain of <see cref="StereoizerStages" /> allpasses at
 ///             third-octave spacing, so the phase turns many times across the spectrum and narrow bands alternate left
@@ -98,7 +100,9 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
     /// </summary>
     public static double AllpassQFor(float depth) => depth == 0.5f ? AllpassQ : AllpassQ * Math.Pow(4, 2 * depth - 1);
 
-    /// <summary>Designs the allpass chain for <paramref name="type" /> and <paramref name="depth" /> when they change.</summary>
+    /// <summary>
+    ///     Designs the allpass chain for <paramref name="type" /> and <paramref name="depth" /> when they change.
+    /// </summary>
     int DesignAllpasses(int type, float depth) {
         var frequencies = type == Stereoizer ? StereoizerFrequencies : AllpassFrequencies;
         if (type == designedType && depth == designedDepth) {

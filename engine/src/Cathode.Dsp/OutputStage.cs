@@ -9,7 +9,9 @@ public struct OutputStage {
     float left;
     float right;
 
-    /// <summary>Jumps to the gains for <paramref name="levelDb" /> and <paramref name="balance" /> (−100..100 %).</summary>
+    /// <summary>
+    ///     Jumps to the gains for <paramref name="levelDb" /> and <paramref name="balance" /> (−100..100 %).
+    /// </summary>
     public void Reset(float levelDb, float balance) => (left, right) = Gains(levelDb, balance);
 
     /// <summary>Applies the gains, ramping from the previous block's to these across <paramref name="io" />.</summary>

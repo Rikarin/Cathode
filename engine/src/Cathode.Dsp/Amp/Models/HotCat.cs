@@ -6,29 +6,29 @@ namespace Cathode.Dsp.Amp.Models;
 ///     Bad Cat Hot Cat 30, from the CAD redraw with measured DC voltages "Bad Cat Hot Cat 30" (02/11/06, "DC voltage
 ///     readings measured with tube rectifier"; schematicheaven <c>newamps/badcat_hotcat_30.pdf</c>, vector, values read
 ///     as text): the Gain input, or (Switch 1) the Clean input. Gain channel: 5.1M across the jack, 100 nF and 68k into
-///     V1a, a 12AX7 half with its cathode grounded (zero bias; 220k plate, 99 V), 1.5 nF into the 250k log gain pot with
-///     470k across it, 1.5 nF from the wiper to ground and 470k to V2b (220k, 1.5k with 100 nF: a treble boost; 145 V);
-///     22 nF to the Edge control (10 nF and a 1M log rheostat to ground) and through 470k to V2a's grid (150k and
-///     360 pF to ground; 100k, 1.5k with 1 µF; 225 V); 10 nF into the Level pot's wiper (1M linear, its top through
+///     V1a, a 12AX7 half with its cathode grounded (zero bias; 220k plate, 99 V), 1.5 nF into the 250k log gain pot
+///     with 470k across it, 1.5 nF from the wiper to ground and 470k to V2b (220k, 1.5k with 100 nF: a treble boost;
+///     145 V); 22 nF to the Edge control (10 nF and a 1M log rheostat to ground) and through 470k to V2a's grid (150k
+///     and 360 pF to ground; 100k, 1.5k with 1 µF; 225 V); 10 nF into the Level pot's wiper (1M linear, its top through
 ///     470k to V3b's grid with 270k to ground; 100k, 1k unbypassed; 193 V), DC-coupled to the cathode follower V3a
 ///     (56k, 194 V) driving the AC30 top-boost network (50 pF, 1M log treble, 100k, 22 nF, 22 nF, the 1M5 log bass with
 ///     10k from its wiper), the treble wiper to the inverter with the master (220k into a 100k linear rheostat) across
 ///     it. Clean channel: 68k, 1M, V1b (220k, 1.5k with 22 µF; 150 V), 1.5 nF into a 1M log volume with 180 pF across
 ///     its upper part, the wiper to the inverter's other grid. A 12AX7 long-tail pair (10 nF in, 1M leaks, 1.2k bias,
-///     47k tail, 100k plates from 341 V; 264 / 269 V), 33 nF into 220k leaks and 10k stoppers, the Brilliance (4.7 nF and
-///     a 1M log pot across the grids), two EL34 each on its own 270 Ω with 220 µF (24 V), 1k screen resistors from the
-///     rectifier's node, 376 V plates, no feedback; GZ34 or (a panel switch) silicon, 382 V, a 36 H / 450 Ω choke
+///     47k tail, 100k plates from 341 V; 264 / 269 V), 33 nF into 220k leaks and 10k stoppers, the Brilliance (4.7 nF
+///     and a 1M log pot across the grids), two EL34 each on its own 270 Ω with 220 µF (24 V), 1k screen resistors from
+///     the rectifier's node, 376 V plates, no feedback; GZ34 or (a panel switch) silicon, 382 V, a 36 H / 450 Ω choke
 ///     to 373 V and a 22k / 22k / 10k / 22k dropper to each preamp node (317 / 345 / 325 / 341 V).
 /// </summary>
 /// <remarks>
 ///     A redraw by a third party, not a factory drawing; the model's plates sit within 3-8 % of its DC voltages, except
-///     the zero-bias V1a (88 V against 99 V: it rests on the triode's contact potential). Assumed, not drawn: the output
-///     transformer's primary (4k plate to plate; the drawing names
-///     "TDS 1163" only), the Edge rheostat's direction (more resistance, less treble bled away, as the knob turns up),
-///     the preamp nodes taken as fixed rails behind one 22k dropper for the sag. Not modelled: the Mid-range switch
-///     on the panel (not on the drawing). The panel's Brilliance is the block's Cut, which runs the other way (Fractal
-///     notes the real one is wired backwards too: clockwise is brighter): Cut 0 is Brilliance 10. In the Clean channel
-///     the Gain knob turns the clean Volume, and the Gain channel's Edge, Level, tone and master are out of the path.
+///     the zero-bias V1a (88 V against 99 V: it rests on the triode's contact potential). Assumed, not drawn: the
+///     output transformer's primary (4k plate to plate; the drawing names "TDS 1163" only), the Edge rheostat's
+///     direction (more resistance, less treble bled away, as the knob turns up), the preamp nodes taken as fixed rails
+///     behind one 22k dropper for the sag. Not modelled: the Mid-range switch on the panel (not on the drawing). The
+///     panel's Brilliance is the block's Cut, which runs the other way (Fractal notes the real one is wired backwards
+///     too: clockwise is brighter): Cut 0 is Brilliance 10. In the Clean channel the Gain knob turns the clean Volume,
+///     and the Gain channel's Edge, Level, tone and master are out of the path.
 /// </remarks>
 public static class HotCat {
     /// <summary>The 12AX7's grid-plate capacitance.</summary>
@@ -177,10 +177,10 @@ public static class HotCat {
     }
 
     /// <summary>
-    ///     The cathode follower V3a (56k, its grid on V3b's plate) and the top-boost network: 50 pF to the 1M log treble
-    ///     pot, 100k to a node M, the treble pot's far end through 22 nF to M, M through 22 nF to the 1M5 log bass pot's
-    ///     wiper with 10k to ground, the bass pot from the treble pot's far end to ground; the treble wiper is the output,
-    ///     with the master (220k into a 100k linear rheostat) to ground.
+    ///     The cathode follower V3a (56k, its grid on V3b's plate) and the top-boost network: 50 pF to the 1M log
+    ///     treble pot, 100k to a node M, the treble pot's far end through 22 nF to M, M through 22 nF to the 1M5 log
+    ///     bass pot's wiper with 10k to ground, the bass pot from the treble pot's far end to ground; the treble wiper
+    ///     is the output, with the master (220k into a 100k linear rheostat) to ground.
     /// </summary>
     static StageNetlist TopBoost() {
         var net = new StageNetlist();

@@ -21,8 +21,8 @@ public class PlexBlockTests {
 
         var (left, right) = BlockRender.Stereo(plex, impulse, impulse, static _ => 64);
 
-        // Four lines (143, 197, 263, 331 ms) after a 10 ms pre-delay, each carrying 1/√4 of the input; line 1 is hard left,
-        // line 2 hard right, line 3 at -75 % (right side 0.25), line 4 at +75 %.
+        // Four lines (143, 197, 263, 331 ms) after a 10 ms pre-delay, each carrying 1/√4 of the input; line 1 is hard
+        // left, line 2 hard right, line 3 at -75 % (right side 0.25), line 4 at +75 %.
         Assert.Equal(0.5f, left[(int)(0.153 * Rate)], 1e-5f);
         Assert.Equal(0f, right[(int)(0.153 * Rate)], 1e-6f);
         Assert.Equal(0.5f, right[(int)(0.207 * Rate)], 1e-5f);
@@ -157,8 +157,8 @@ public class PlexBlockTests {
     }
 
     /// <summary>
-    ///     The frequency of the strongest partial, from the spectral peak refined by a parabola through the log magnitudes
-    ///     (zero crossings miscount where a granular shifter's two grains cancel).
+    ///     The frequency of the strongest partial, from the spectral peak refined by a parabola through the log
+    ///     magnitudes (zero crossings miscount where a granular shifter's two grains cancel).
     /// </summary>
     static double Frequency(ReadOnlySpan<float> signal) {
         var windowed = new float[signal.Length];

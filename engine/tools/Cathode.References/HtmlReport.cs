@@ -5,7 +5,9 @@ using System.Text;
 
 namespace Cathode.References;
 
-/// <summary>A self-contained HTML page of match reports: a summary table, then per reference its response and harmonics.</summary>
+/// <summary>
+///     A self-contained HTML page of match reports: a summary table, then per reference its response and harmonics.
+/// </summary>
 static class HtmlReport {
     const int Width = 560;
     const int Height = 200;

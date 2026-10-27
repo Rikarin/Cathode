@@ -11,8 +11,8 @@ namespace Cathode.Dsp.Blocks;
 ///     library in <see cref="Cathode.Dsp.Amp" />: triode stages and cathode followers as wave digital filters with
 ///     nonlinear R-type roots, exact passive tone stacks and general passive networks, a long-tail-pair or cathodyne
 ///     phase inverter, push-pull (or single-ended) pentodes into an output transformer and speaker load with global
-///     negative feedback, and the power supply's sag. Mono in (left, right or both), the 8 Ω speaker voltage out on both
-///     channels; no cabinet (follow it with a Cab block). The models are <see cref="AmpDesign.All" />.
+///     negative feedback, and the power supply's sag. Mono in (left, right or both), the 8 Ω speaker voltage out on
+///     both channels; no cabinet (follow it with a Cab block). The models are <see cref="AmpDesign.All" />.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -27,15 +27,16 @@ namespace Cathode.Dsp.Blocks;
 ///         so a power amp driven into clipping peaks a few decibels under full scale.
 ///     </para>
 ///     <para>
-///         A solid-state model (<see cref="AmpDesign.SolidState" />, the JC-120) runs a <see cref="SolidStatePowerAmp" />
-///         instead: full scale is its rails less their headroom, and its panel hides the tube-only parameters.
+///         A solid-state model (<see cref="AmpDesign.SolidState" />, the JC-120) runs a
+///         <see cref="SolidStatePowerAmp" /> instead: full scale is its rails less their headroom, and its panel hides
+///         the tube-only parameters.
 ///     </para>
 ///     <para>
 ///         Front panel: Gain, Bass, Middle, Treble, Presence, Depth, Cut, Master and Bright, and the model-specific
 ///         <b>Switch 1-3</b> and <b>Control 1-2</b> and <b>EQ 1-5</b>, which each model names in its
-///         <see cref="AmpPanel" /> (a Fat switch, a lead drive, the bands of a Mark-style EQ); the descriptor carries the
-///         names per type (<see cref="ParamDescriptor.TypeLabels" />), and a control a model lacks is hidden and does
-///         nothing.
+///         <see cref="AmpPanel" /> (a Fat switch, a lead drive, the bands of a Mark-style EQ); the descriptor carries
+///         the names per type (<see cref="ParamDescriptor.TypeLabels" />), and a control a model lacks is hidden and
+///         does nothing.
 ///     </para>
 ///     <para>
 ///         Expert parameters, each "stock" at its default, so a preset made before they existed sounds the same:
@@ -61,17 +62,21 @@ namespace Cathode.Dsp.Blocks;
 ///             <b>Preamp Bias</b> (0 %): the last gain stage's cathode resistor, from twice (-100 %, colder) to half
 ///             (+100 %, hotter) of stock: its operating point and so its even harmonics.
 ///         </item>
-///         <item><b>Preamp Sag</b> (100 %): how much of the supply's sag reaches the preamp (0 % a stiff preamp supply).</item>
+///         <item>
+///             <b>Preamp Sag</b> (100 %): how much of the supply's sag reaches the preamp (0 % a stiff preamp supply).
+///         </item>
 ///         <item><b>Stack Freq</b> (100 %): the tone stack's frequencies (its caps divided by it).</item>
-///         <item><b>Master Trim</b> (100 %): scales the master's rotation, so the master reaches full earlier or never.</item>
+///         <item>
+///             <b>Master Trim</b> (100 %): scales the master's rotation, so the master reaches full earlier or never.
+///         </item>
 ///         <item>
 ///             <b>Power Amp</b> (on): off leaves the power amp out, for a real tube power amp; the output is then the
 ///             phase inverter's input (1.0 is 50 V, less the model's trim).
 ///         </item>
 ///         <item>
 ///             <b>Power Tube</b> (Stock): 6L6GC, EL34, EL84, 6V6GT, KT66, KT88 or 6550 in place of the stock tubes,
-///             rebiased to the design's idle current. A 5881 is a 6L6 electrically (it differs only in its ratings, which
-///             the model does not limit), so it is the 6L6GC; up to 1.0.0-rc.3 it was a choice of its own.
+///             rebiased to the design's idle current. A 5881 is a 6L6 electrically (it differs only in its ratings,
+///             which the model does not limit), so it is the 6L6GC; up to 1.0.0-rc.3 it was a choice of its own.
 ///         </item>
 ///         <item><b>Xfmr Match</b> (100 %): the output transformer's primary impedance (its impedance ratio).</item>
 ///         <item>
@@ -83,14 +88,14 @@ namespace Cathode.Dsp.Blocks;
 ///             power saturate the core.
 ///         </item>
 ///         <item>
-///             <b>Speaker load</b> (Follow Cab; Stock up to 1.0.0-rc.3): the speaker as the electrical load on the power
-///             amp, not its sound. A
-///             speaker's impedance peaks at the cone's resonance and rises with the voice coil's inductance, and a tube
-///             power amp's output (most of all with little feedback) follows it: more thump and more treble, and
-///             different clipping and sag. That happens inside the amp; the cone's breakup, the cabinet's acoustics and
-///             the mic are the Cab block's. Stock is the model's own load; then an impedance curve preset (open-back
-///             1x12, 2x12 or 4x10, closed 4x12, closed 8x10), or <b>Follow Cab</b>: the load of the speaker and cabinet
-///             the next Cab block synthesises, from that speaker's own Thiele-Small data (<see cref="AutoSpeaker" />).
+///             <b>Speaker load</b> (Follow Cab; Stock up to 1.0.0-rc.3): the speaker as the electrical load on the
+///             power amp, not its sound. A speaker's impedance peaks at the cone's resonance and rises with the voice
+///             coil's inductance, and a tube power amp's output (most of all with little feedback) follows it: more
+///             thump and more treble, and different clipping and sag. That happens inside the amp; the cone's breakup,
+///             the cabinet's acoustics and the mic are the Cab block's. Stock is the model's own load; then an
+///             impedance curve preset (open-back 1x12, 2x12 or 4x10, closed 4x12, closed 8x10), or <b>Follow Cab</b>:
+///             the load of the speaker and cabinet the next Cab block synthesises, from that speaker's own Thiele-Small
+///             data (<see cref="AutoSpeaker" />).
 ///         </item>
 ///         <item>
 ///             <b>Load resonance</b>, <b>Load Q</b>, <b>Load peak</b> (100 %): the load's resonance frequency,
@@ -98,7 +103,9 @@ namespace Cathode.Dsp.Blocks;
 ///             (100 %) the whole load against the tap (50 % is a 4 Ω cab on the 8 Ω tap). All scale the chosen curve.
 ///         </item>
 ///         <item><b>Presence Freq</b>, <b>Depth Freq</b> (100 %): the presence and depth controls' frequencies.</item>
-///         <item><b>Variac</b> (100 %): the mains voltage: every supply node, and a fixed bias with them ("brown sound").</item>
+///         <item>
+///             <b>Variac</b> (100 %): the mains voltage: every supply node, and a fixed bias with them ("brown sound").
+///         </item>
 ///         <item><b>B+ Time Const</b> (100 %): the reservoir cap: how fast the supply sags and recovers.</item>
 ///         <item><b>Supply Type</b> (Stock): an ideal DC source, or rectified 60 Hz or 50 Hz mains with ripple.</item>
 ///         <item>
@@ -129,8 +136,8 @@ namespace Cathode.Dsp.Blocks;
 ///             <b>Definition</b> (0 %), a treble-versus-bass tilt into the preamp (<see cref="AmpInputFilter" />).
 ///         </item>
 ///         <item>
-///             <b>Saturation</b> (off) and <b>Saturation Drive</b>: a diode-style soft clipper between the preamp and the
-///             power amp (<see cref="AmpSaturation" />).
+///             <b>Saturation</b> (off) and <b>Saturation Drive</b>: a diode-style soft clipper between the preamp and
+///             the power amp (<see cref="AmpSaturation" />).
 ///         </item>
 ///         <item>
 ///             <b>Output EQ</b> (Off, or a <see cref="GraphicEqualizer" /> layout) with ten band gains, at the
@@ -141,8 +148,8 @@ namespace Cathode.Dsp.Blocks;
 ///             time (all 0 = off; <see cref="SpeakerStage" />).
 ///         </item>
 ///         <item>
-///             <b>Output Comp</b> (Off, Output, Feedback) with amount, threshold and clarity (<see cref="AmpCompressor" />
-///             ).
+///             <b>Output Comp</b> (Off, Output, Feedback) with amount, threshold and clarity
+///             (<see cref="AmpCompressor" /> ).
 ///         </item>
 ///         <item>
 ///             <b>Bias Trem Rate</b>, <b>Bias Trem Depth</b> (0 %): on a model with a tremolo of its own
@@ -351,8 +358,8 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
     ];
 
     /// <summary>
-    ///     Per model, which generic advanced controls act on it (<see cref="AmpFeatures" />), looked up here once so that
-    ///     the audio thread only reads a flag (the lookups enumerate the model's stages).
+    ///     Per model, which generic advanced controls act on it (<see cref="AmpFeatures" />), looked up here once so
+    ///     that the audio thread only reads a flag (the lookups enumerate the model's stages).
     /// </summary>
     static readonly AdvancedFeatures[] Features = [..AmpDesign.All.Select(AdvancedFeatures.Of)];
 
@@ -421,7 +428,9 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
     /// <summary>The active amp's channel (for tests and diagnostics).</summary>
     public AmpChannel Channel { get; private set; }
 
-    /// <summary>The Cab block the Auto speaker load follows, as the graph compiler linked it (<see cref="ICabFollower" />).</summary>
+    /// <summary>
+    ///     The Cab block the Auto speaker load follows, as the graph compiler linked it (<see cref="ICabFollower" />).
+    /// </summary>
     public CabBlock? FollowedCab => cab;
 
     /// <summary>The internal processing rate as a multiple of the sample rate.</summary>
@@ -618,13 +627,13 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
         var design = Channel.Design;
         var power = design.Power;
         var trim = Decibels.ToGain(design.OutputTrimDb);
-        // Full scale: the largest swing the output stage can make (a tube amp's primary, about twice B+ plate to plate in
-        // push-pull and B+ single-ended, referred to the secondary; a solid-state amp's rails less its headroom).
+        // Full scale: the largest swing the output stage can make (a tube amp's primary, about twice B+ plate to plate
+        // in push-pull and B+ single-ended, referred to the secondary; a solid-state amp's rails less its headroom).
         outputScale = design.SolidState is { } solid
             ? trim / solid.Swing
             : trim * power.Transformer.TurnsRatio / (power.Sides * power.Supply);
-        // With the power amp off, full scale is its input's: 50 V at a tube amp's inverter, a solid-state amp's swing over
-        // its gain.
+        // With the power amp off, full scale is its input's: 50 V at a tube amp's inverter, a solid-state amp's swing
+        // over its gain.
         preampScale = design.SolidState is { } input ? trim * input.Gain / input.Swing : trim / PreampFullScale;
         Configure(0);
         Channel.Reset();
@@ -865,7 +874,9 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
     }
 }
 
-/// <summary>Which of the Circuit Amp's generic advanced controls a model takes (<see cref="AmpFeatures.Has" />).</summary>
+/// <summary>
+///     Which of the Circuit Amp's generic advanced controls a model takes (<see cref="AmpFeatures.Has" />).
+/// </summary>
 readonly record struct AdvancedFeatures(
     bool PostMaster,
     bool Fat,

@@ -3,7 +3,9 @@ using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
 
-/// <summary>The classic digital reverb types: the 224-style ring (hall, plate), Schroeder–Moorer combs and Gardner's room.</summary>
+/// <summary>
+///     The classic digital reverb types: the 224-style ring (hall, plate), Schroeder–Moorer combs and Gardner's room.
+/// </summary>
 public class ClassicReverbTests {
     public static TheoryData<int> ClassicTypes =>
         [ReverbBlock.ClassicHall, ReverbBlock.ClassicPlate, ReverbBlock.VintageDigital, ReverbBlock.ClassicRoom];
@@ -258,7 +260,9 @@ public class ClassicReverbTests {
         return reverb;
     }
 
-    /// <summary>T60 from the Schroeder backward-integrated energy decay, fitted between -5 and -25 dB (T20 x 3).</summary>
+    /// <summary>
+    ///     T60 from the Schroeder backward-integrated energy decay, fitted between -5 and -25 dB (T20 x 3).
+    /// </summary>
     static double SchroederT60(float[] response, double sampleRate) {
         var energy = new double[response.Length];
         double running = 0;

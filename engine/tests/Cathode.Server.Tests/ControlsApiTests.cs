@@ -15,7 +15,9 @@ using System.Text.Json.Nodes;
 
 namespace Cathode.Server.Tests;
 
-/// <summary>Phase 5 through the API: bypass modes, modifiers, controllers, tempo, scenes, globals, looper, MIDI.</summary>
+/// <summary>
+///     Phase 5 through the API: bypass modes, modifiers, controllers, tempo, scenes, globals, looper, MIDI.
+/// </summary>
 public sealed class ControlsApiTests : IAsyncLifetime {
     readonly ServerFixture server = new();
     HttpClient client = null!;

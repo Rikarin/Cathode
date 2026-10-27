@@ -5,11 +5,11 @@ using Cathode.Dsp.Pitch;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     Ring modulator: the input multiplied by a sine carrier, which replaces every input partial at f with the sidebands
-///     f + fc and |f - fc| and leaves neither the input nor the carrier in the wet signal. The carrier runs from a
-///     double-precision phase accumulator, so the sidebands stay clean. With <b>Tempo</b> set, the carrier follows the
-///     song tempo instead (a note value per carrier cycle), which turns the effect into a polarity-flipping tremolo.
-///     A high-cut tames the upper sideband before the mix.
+///     Ring modulator: the input multiplied by a sine carrier, which replaces every input partial at f with the
+///     sidebands f + fc and |f - fc| and leaves neither the input nor the carrier in the wet signal. The carrier runs
+///     from a double-precision phase accumulator, so the sidebands stay clean. With <b>Tempo</b> set, the carrier
+///     follows the song tempo instead (a note value per carrier cycle), which turns the effect into a polarity-flipping
+///     tremolo. A high-cut tames the upper sideband before the mix.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -20,7 +20,8 @@ namespace Cathode.Dsp.Blocks;
 ///     </para>
 ///     <para>
 ///         Pitch Tracking sets the carrier to the note being played (a <see cref="PitchTracker" />) times the
-///         multiplier, gliding in 10 ms; the carrier holds its last note between notes. It overrides Frequency and Tempo.
+///         multiplier, gliding in 10 ms; the carrier holds its last note between notes. It overrides Frequency and
+///         Tempo.
 ///     </para>
 /// </remarks>
 public sealed class RingModulatorBlock() : DspBlock(Info) {

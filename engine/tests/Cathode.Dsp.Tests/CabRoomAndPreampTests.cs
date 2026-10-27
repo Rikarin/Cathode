@@ -4,7 +4,9 @@ using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
 
-/// <summary>The Cab block's stereo room mics (Room Mic Spacing) and its Preamp Mode (docs/08-blocks-parity.md §5).</summary>
+/// <summary>
+///     The Cab block's stereo room mics (Room Mic Spacing) and its Preamp Mode (docs/08-blocks-parity.md §5).
+/// </summary>
 public sealed class CabRoomAndPreampTests {
     const double Rate = 48_000;
     static readonly ProcessSpec Spec = new(Rate, 64);

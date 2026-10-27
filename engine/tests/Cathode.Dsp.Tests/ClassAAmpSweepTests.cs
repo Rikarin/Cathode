@@ -8,7 +8,8 @@ namespace Cathode.Dsp.Tests;
 /// <summary>
 ///     Knob sweeps of the class-A family through the Circuit Amp block (docs/06 §5.4 step 3): each knob moves the
 ///     sound the way the circuit does, monotonically, on both channels; the channel switch and full drive stay finite;
-///     and each model and channel renders as committed (golden renders, regenerated with <c>CATHODE_UPDATE_GOLDEN=1</c>).
+///     and each model and channel renders as committed (golden renders, regenerated with
+///     <c>CATHODE_UPDATE_GOLDEN=1</c>).
 /// </summary>
 public class ClassAAmpSweepTests(ITestOutputHelper output) {
     const double Rate = 48_000;

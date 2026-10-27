@@ -15,19 +15,19 @@ namespace Cathode.Dsp.Wdf;
 /// <remarks>
 ///     <para>
 ///         The subtrees' waves a and the source values form the input u. The adaptor's MNA (see
-///         <see cref="RTypeScattering" />) gives the device port voltages as v = E u + F r, where r are the currents the
-///         devices draw (less their companion conductance, r = i(v) - G_c v) and F is the K × K impedance the network
-///         presents to them. Each sample solves the K equations g(v) = v - E u - F r(v) = 0 by Newton's method with
-///         J = I - F (∂i/∂v - G_c): the delay-free loop is confined to K unknowns instead of the whole network, so an
-///         iteration costs one device evaluation and a K × K solve (closed form up to K = 2). Then b = S u + N r goes
-///         back down the tree.
+///         <see cref="RTypeScattering" />) gives the device port voltages as v = E u + F r, where r are the currents
+///         the devices draw (less their companion conductance, r = i(v) - G_c v) and F is the K × K impedance the
+///         network presents to them. Each sample solves the K equations g(v) = v - E u - F r(v) = 0 by Newton's method
+///         with J = I - F (∂i/∂v - G_c): the delay-free loop is confined to K unknowns instead of the whole network, so
+///         an iteration costs one device evaluation and a K × K solve (closed form up to K = 2). Then b = S u + N r
+///         goes back down the tree.
 ///     </para>
 ///     <para>
 ///         Newton starts from the last two solutions extrapolated linearly, which on oversampled audio leaves about two
 ///         iterations per sample (the second only confirms the first). Each step is limited by the devices
 ///         (<see cref="INonlinearDevice.Limit" />: SPICE-style junction limiting, tube plates that may only halve, an
-///         op-amp that may not jump across its linear window), and when some ports were limited the others are re-solved
-///         with those held, so the step stays consistent. Samples still struggling after
+///         op-amp that may not jump across its linear window), and when some ports were limited the others are
+///         re-solved with those held, so the step stays consistent. Samples still struggling after
 ///         <see cref="NewtonSolver.LineSearchAfter" /> iterations must also reduce |g| (a backtracking line search). On
 ///         convergence the currents come from the last linearisation, r + J Δ, exact to second order in the final step,
 ///         which saves a device evaluation.
@@ -37,9 +37,10 @@ namespace Cathode.Dsp.Wdf;
 ///         iterates bracket the root, the bracket is bisected to the tolerance (Newton can cycle across a kink).
 ///         Otherwise the sample is counted in <see cref="NewtonSolver.Unconverged" />: a nearly converged best iterate
 ///         is linearised once more and used;
-///         otherwise the previous sample's currents are held (bounded, where a wild iterate's might not be) and the next
-///         sample starts from the best point. If the devices return a non-finite value, the previous solution is repeated
-///         and the sample counted in <see cref="NewtonSolver.NonFinite" />. Either way the output stays finite.
+///         otherwise the previous sample's currents are held (bounded, where a wild iterate's might not be) and the
+///         next sample starts from the best point. If the devices return a non-finite value, the previous solution is
+///         repeated and the sample counted in <see cref="NewtonSolver.NonFinite" />. Either way the output stays
+///         finite.
 ///     </para>
 /// </remarks>
 public struct RTypeRoot<TPorts, TDevice>
@@ -146,7 +147,9 @@ public struct RTypeRoot<TPorts, TDevice>
     /// <summary>Sets ideal current source <paramref name="index" /> (in amperes) for the coming samples.</summary>
     public readonly void SetCurrent(int index, double amps) => inputs[Scattering.CurrentSourceColumn + index] = amps;
 
-    /// <summary>Changes internal resistor <paramref name="index" />; call <see cref="Propagate" /> afterwards.</summary>
+    /// <summary>
+    ///     Changes internal resistor <paramref name="index" />; call <see cref="Propagate" /> afterwards.
+    /// </summary>
     public readonly void SetResistance(int index, double ohms) => Scattering.SetResistance(index, ohms);
 
     /// <summary>Changes the gain of VCVS <paramref name="index" />; call <see cref="Propagate" /> afterwards.</summary>
@@ -527,8 +530,8 @@ public struct RTypeRoot<TPorts, TDevice>
     }
 
     /// <summary>
-    ///     Damped Newton on g(v) = v - p - F r(v), from the previous solution extrapolated linearly; leaves the solution in
-    ///     the voltages and its residual currents r. See the remarks on the type.
+    ///     Damped Newton on g(v) = v - p - F r(v), from the previous solution extrapolated linearly; leaves the
+    ///     solution in the voltages and its residual currents r. See the remarks on the type.
     /// </summary>
     void Solve(int k) {
         const double ShortestStep = 1.0 / 16;
@@ -690,9 +693,9 @@ public struct RTypeRoot<TPorts, TDevice>
 
     /// <summary>
     ///     A chord step (<see cref="NewtonSolver.ReuseFactors" />): the factored system of a recent Jacobian solved for
-    ///     this iterate's residual, which saves building and factoring one. Taken only when it converges unlimited, with
-    ///     the currents linearised on this iterate's own Jacobian; otherwise the step buffer gets -g back and a full
-    ///     Newton step follows.
+    ///     this iterate's residual, which saves building and factoring one. Taken only when it converges unlimited,
+    ///     with the currents linearised on this iterate's own Jacobian; otherwise the step buffer gets -g back and a
+    ///     full Newton step follows.
     /// </summary>
     bool Chord(int k) {
         var s = Newton;
@@ -738,9 +741,9 @@ public struct RTypeRoot<TPorts, TDevice>
 
     /// <summary>
     ///     When the devices limited some ports' steps, re-solves the linearised system for the other ports with the
-    ///     limited ones held at their limited values, so the step stays a Newton step of the constrained problem. Without
-    ///     this, a limited junction leaves its neighbours stepping as if it had moved all the way, which sends a
-    ///     transistor's other junction, or an op-amp's output, far off.
+    ///     limited ones held at their limited values, so the step stays a Newton step of the constrained problem.
+    ///     Without this, a limited junction leaves its neighbours stepping as if it had moved all the way, which sends
+    ///     a transistor's other junction, or an op-amp's output, far off.
     /// </summary>
     /// <param name="k">The ports.</param>
     /// <param name="v">The iterate.</param>
@@ -798,8 +801,8 @@ public struct RTypeRoot<TPorts, TDevice>
     }
 
     /// <summary>
-    ///     Remembers, for one port, the last point <paramref name="v" /> where g (as <see cref="Residual" /> left it, -g in
-    ///     the step buffer) was negative and where it was positive.
+    ///     Remembers, for one port, the last point <paramref name="v" /> where g (as <see cref="Residual" /> left it,
+    ///     -g in the step buffer) was negative and where it was positive.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     readonly void Bracket(int k, ReadOnlySpan<double> v, ref double below, ref double above) {
@@ -898,9 +901,9 @@ public struct RTypeRoot<TPorts, TDevice>
     }
 
     /// <summary>
-    ///     The Newton system J = I - F (∂i/∂v - G_c) at the last evaluation, into <paramref name="target" /> (the system
-    ///     buffer by default). ∂i/∂v is block diagonal (<see cref="INonlinearDevice.BlockStart" />): each column sums
-    ///     over its own block only, in the same order as a full sum, so the result is the same to the bit.
+    ///     The Newton system J = I - F (∂i/∂v - G_c) at the last evaluation, into <paramref name="target" /> (the
+    ///     system buffer by default). ∂i/∂v is block diagonal (<see cref="INonlinearDevice.BlockStart" />): each column
+    ///     sums over its own block only, in the same order as a full sum, so the result is the same to the bit.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     readonly void BuildSystem(int k, double[]? target = null) {
@@ -963,8 +966,8 @@ public struct RTypeRoot<TPorts, TDevice>
     }
 
     /// <summary>
-    ///     Evaluates the devices at <paramref name="v" />: currents, Jacobian, residual currents r = i - G_c v, and -g into
-    ///     the step buffer. Returns |g|² scaled by the tolerances, and remembers the best point seen.
+    ///     Evaluates the devices at <paramref name="v" />: currents, Jacobian, residual currents r = i - G_c v, and -g
+    ///     into the step buffer. Returns |g|² scaled by the tolerances, and remembers the best point seen.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     double Residual(int k, ReadOnlySpan<double> v, ref double bestNorm) {
@@ -1110,8 +1113,8 @@ public sealed class NewtonSolver {
 
     /// <summary>Convergence: every Newton step below this many volts plus <see cref="RelativeTolerance" />.</summary>
     /// <remarks>
-    ///     The error left after a converged step Δ is second order, about Δ² times the devices' curvature (1 / 2 n Vt for
-    ///     a junction), so the microvolt default leaves errors around 1e-11 V.
+    ///     The error left after a converged step Δ is second order, about Δ² times the devices' curvature (1 / 2 n Vt
+    ///     for a junction), so the microvolt default leaves errors around 1e-11 V.
     /// </remarks>
     public double AbsoluteTolerance { get; set; } = 1e-6;
 
@@ -1125,24 +1128,24 @@ public sealed class NewtonSolver {
 
     /// <summary>
     ///     Start Newton from the last solution moved by the linearised circuit's response to this sample's change of
-    ///     inputs (one Newton step on the last Jacobian, without a device evaluation) instead of extrapolating: on rough
-    ///     signals (a cranked preamp, noise) it saves one or two iterations a sample, where extrapolating from the last two
-    ///     samples guesses wrong. It takes precedence over <see cref="Extrapolate" />.
+    ///     inputs (one Newton step on the last Jacobian, without a device evaluation) instead of extrapolating: on
+    ///     rough signals (a cranked preamp, noise) it saves one or two iterations a sample, where extrapolating from
+    ///     the last two samples guesses wrong. It takes precedence over <see cref="Extrapolate" />.
     /// </summary>
     public bool Linearise { get; set; }
 
     /// <summary>
-    ///     Three or more ports: keep the last factored Newton system across iterations and samples and first try a chord
-    ///     step on it (taken only when it converges unlimited), building and factoring a new one only when that fails.
-    ///     The solution moves within the tolerances, so this is off by default (bit-for-bit renders); on a smooth signal
-    ///     it saves most factorisations.
+    ///     Three or more ports: keep the last factored Newton system across iterations and samples and first try a
+    ///     chord step on it (taken only when it converges unlimited), building and factoring a new one only when that
+    ///     fails. The solution moves within the tolerances, so this is off by default (bit-for-bit renders); on a
+    ///     smooth signal it saves most factorisations.
     /// </summary>
     public bool ReuseFactors { get; set; }
 
     /// <summary>
-    ///     Iterations of plain (limited) Newton before a step must also reduce |g| (a backtracking line search). Junctions
-    ///     climbing a steep exponential legitimately raise |g| for a while, so the line search only steps in for samples
-    ///     that are struggling, e.g. an op-amp bouncing between its rails.
+    ///     Iterations of plain (limited) Newton before a step must also reduce |g| (a backtracking line search).
+    ///     Junctions climbing a steep exponential legitimately raise |g| for a while, so the line search only steps in
+    ///     for samples that are struggling, e.g. an op-amp bouncing between its rails.
     /// </summary>
     public int LineSearchAfter { get; set; } = 16;
 
@@ -1165,7 +1168,9 @@ public sealed class NewtonSolver {
 
     public int MostIterations { get; private set; }
 
-    /// <summary>Samples that hit <see cref="MaxIterations" /> (or a singular Jacobian) and kept the best iterate.</summary>
+    /// <summary>
+    ///     Samples that hit <see cref="MaxIterations" /> (or a singular Jacobian) and kept the best iterate.
+    /// </summary>
     public long Unconverged { get; private set; }
 
     /// <summary>Samples where a device returned a non-finite value and the previous solution was repeated.</summary>

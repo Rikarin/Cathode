@@ -9,17 +9,18 @@ namespace Cathode.Dsp.Blocks;
 ///         <item><b>Shelf</b>: a second-order low (band 1) or high (band 5) shelf, its Q limited to 1.</item>
 ///         <item><b>Peak</b>: a peaking band.</item>
 ///         <item>
-///             <b>Blocking</b>: a high-pass (band 1) or low-pass (band 5) that ignores its gain. At 12 dB/oct its Q sets
-///             the resonance; the other slopes (6 to 36 dB/oct) are Butterworth.
+///             <b>Blocking</b>: a high-pass (band 1) or low-pass (band 5) that ignores its gain. At 12 dB/oct its Q
+///             sets the resonance; the other slopes (6 to 36 dB/oct) are Butterworth.
 ///         </item>
 ///         <item><b>Shelving 2</b>: a gentle first-order shelf, centred on the band's frequency; Q does nothing.</item>
 ///         <item>
-///             <b>Peaking 2</b>: a proportional-Q peak, broad at small gains and narrowing to the band's Q at ±12 dB, as
-///             on an analogue console.
+///             <b>Peaking 2</b>: a proportional-Q peak, broad at small gains and narrowing to the band's Q at ±12 dB,
+///             as on an analogue console.
 ///         </item>
 ///     </list>
 ///     <b>Solo</b> listens to one band's region alone: a peak's band-pass at its frequency and Q, band 1's low-pass or
-///     band 5's high-pass at its frequency. Coefficients follow smoothed parameters every <see cref="SubBlock" /> samples.
+///     band 5's high-pass at its frequency. Coefficients follow smoothed parameters every <see cref="SubBlock" />
+///     samples.
 /// </summary>
 public sealed class ParametricEqBlock : DspBlock {
     public const int Bands = 5;

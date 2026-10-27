@@ -3,23 +3,22 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Marshall Valvestate 8080 (80 W, 1 × 12) and 8100 (100 W head), both channels. The input (10 nF, 1M) feeds two TL072
-///     sections. Boost: IC1a (1 + 100k ‖ 100 pF over 4k7 + 47 nF), 220 nF into IC3b (an M5201 switching op-amp,
+///     Marshall Valvestate 8080 (80 W, 1 × 12) and 8100 (100 W head), both channels. The input (10 nF, 1M) feeds two
+///     TL072 sections. Boost: IC1a (1 + 100k ‖ 100 pF over 4k7 + 47 nF), 220 nF into IC3b (an M5201 switching op-amp,
 ///     inverting: 100k in, or 100k ‖ 10k in OD2, with 22k from its input to ground in OD1; the 1M log Gain pot as a
-///     rheostat ‖ 47 pF as feedback), 220 nF and 2k7 onto two red LEDs to ground, 22k into the ECC83's first triode
-///     (1M leak; 100k plate, 1k unbypassed) whose DC-coupled follower (100k) returns 220k + 100 nF to the grid and drives
-///     a tone stack (470 pF, 33k, 22 nF, 22 nF, 5 nF from the bass pot's top to ground; 220k linear treble, 1M log bass,
+///     rheostat ‖ 47 pF as feedback), 220 nF and 2k7 onto two red LEDs to ground, 22k into the ECC83's first triode (1M
+///     leak; 100k plate, 1k unbypassed) whose DC-coupled follower (100k) returns 220k + 100 nF to the grid and drives a
+///     tone stack (470 pF, 33k, 22 nF, 22 nF, 5 nF from the bass pot's top to ground; 220k linear treble, 1M log bass,
 ///     22k linear middle with the middle cap on its wiper), 47k into a follower's 470k (IC4), then 4k7 and 220 nF into
-///     the Contour network (1 nF, 33k + 47k, 47 nF and 10 nF, the 100k linear Contour pot's wiper grounded between them,
-///     22 nF), the 100k log Volume and IC5b (1 + 47k / 4k7). Normal (Switch 1): IC1b (1 + 100k ‖ 47 pF over 22k + 47 nF;
-///     Crunch adds 4.7 nF + 4k7 from the 47 nF's foot to ground), 47 nF and 10k into IC2, whose input arm and feedback are
-///     the 220k linear Gain
-///     pot's two parts with 1 nF and 100 pF (Crunch adds two LEDs each way with 1 nF), 220 Ω into a 4.7 nF / 3k3 /
-///     220 nF / 220 nF stack (22k linear treble, 100k log bass, 4k7 linear middle on the wiper, 22 nF from the slope to
-///     ground) and IC5a (×2). Both: 10 µF, the effects loop (21k to ground, the send tapped at 1k, the return's IC6a
-///     at ×18), IC6b summing the dry and the return (22k, 22k, the mix pot's halves to ground, 22k; 220k), IC8a (220k in,
-///     100k), 10 µF into the 10k linear Master, and the power amp: a TL072 driving a class-AB stage of BDV65/BDV64
-///     Darlingtons (0.33 Ω emitter resistors) with 33k of voltage feedback over 1k.
+///     the Contour network (1 nF, 33k + 47k, 47 nF and 10 nF, the 100k linear Contour pot's wiper grounded between
+///     them, 22 nF), the 100k log Volume and IC5b (1 + 47k / 4k7). Normal (Switch 1): IC1b (1 + 100k ‖ 47 pF over 22k +
+///     47 nF; Crunch adds 4.7 nF + 4k7 from the 47 nF's foot to ground), 47 nF and 10k into IC2, whose input arm and
+///     feedback are the 220k linear Gain pot's two parts with 1 nF and 100 pF (Crunch adds two LEDs each way with 1
+///     nF), 220 Ω into a 4.7 nF / 3k3 / 220 nF / 220 nF stack (22k linear treble, 100k log bass, 4k7 linear middle on
+///     the wiper, 22 nF from the slope to ground) and IC5a (×2). Both: 10 µF, the effects loop (21k to ground, the send
+///     tapped at 1k, the return's IC6a at ×18), IC6b summing the dry and the return (22k, 22k, the mix pot's halves to
+///     ground, 22k; 220k), IC8a (220k in, 100k), 10 µF into the 10k linear Master, and the power amp: a TL072 driving a
+///     class-AB stage of BDV65/BDV64 Darlingtons (0.33 Ω emitter resistors) with 33k of voltage feedback over 1k.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -37,8 +36,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         The loop is wired with nothing plugged in (the send normalled to the return) and its level switch at −10;
 ///         the mix pot sits at noon; the reverb is off; IC4 is an ideal follower. IC1, IC3b, IC5a, IC6a and IC8a
 ///         are linear amplifiers (<see cref="StageNetlist.Amplifier" />): IC3b's rail clipping (gain up to 110) would
-///         only square a signal its LEDs clamp at 1.8 V just after it (the LEDs' current, and so their voltage, a little
-///         higher); the others stay inside their rails. IC2, IC5b and IC6b clip at their rails.
+///         only square a signal its LEDs clamp at 1.8 V just after it (the LEDs' current, and so their voltage, a
+///         little higher); the others stay inside their rails. IC2, IC5b and IC6b clip at their rails.
 ///     </para>
 ///     <para>
 ///         Panel: Gain is the playing channel's gain, Bass, Middle and Treble both channels' stacks, Control 1 the
@@ -243,8 +242,8 @@ public static class Valvestate8080 {
     }
 
     /// <summary>
-    ///     47 nF and 10k into IC2's input arm, the Gain pot's upper part with 1 nF across it, to the inverting input at its
-    ///     wiper; the lower part and 100 pF to the output, and with Crunch the LED pairs and 1 nF.
+    ///     47 nF and 10k into IC2's input arm, the Gain pot's upper part with 1 nF across it, to the inverting input at
+    ///     its wiper; the lower part and 100 pF to the output, and with Crunch the LED pairs and 1 nF.
     /// </summary>
     static StageNetlist NormalGain() {
         var net = new StageNetlist();
@@ -320,8 +319,8 @@ public static class Valvestate8080 {
     }
 
     /// <summary>
-    ///     220 nF and 220k into IC8a, inverting, 100k feedback (the reverb's 100k from its pot, at zero, to ground; 22k at
-    ///     the non-inverting input), 10 µF into the Master pot. Out at its wiper.
+    ///     220 nF and 220k into IC8a, inverting, 100k feedback (the reverb's 100k from its pot, at zero, to ground; 22k
+    ///     at the non-inverting input), 10 µF into the Master pot. Out at its wiper.
     /// </summary>
     static StageNetlist MasterStage() {
         var net = new StageNetlist();

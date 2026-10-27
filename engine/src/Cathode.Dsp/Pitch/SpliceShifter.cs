@@ -11,10 +11,11 @@ namespace Cathode.Dsp.Pitch;
 ///     <para>
 ///         With a period hint from <see cref="PitchTracker" /> the splice length is a whole number of input periods
 ///         (at least 8 ms), so the two taps read the same point of the waveform and the splice is phase-coherent: no
-///         comb filtering or warble on a single note. Without a hint (chords, noise) it falls back to a 25 ms splice and
-///         a longer crossfade, the classic dual-tap shifter. The tap stays between a few samples and two splice lengths
-///         behind the input: shifting up it sweeps one splice (8-25 ms), shifting down up to two, so the wet path delay
-///         averages 5-15 ms and peaks near 50 ms for unvoiced downward shifts. At unison it holds still at ~13 ms.
+///         comb filtering or warble on a single note. Without a hint (chords, noise) it falls back to a 25 ms splice
+///         and a longer crossfade, the classic dual-tap shifter. The tap stays between a few samples and two splice
+///         lengths behind the input: shifting up it sweeps one splice (8-25 ms), shifting down up to two, so the wet
+///         path delay averages 5-15 ms and peaks near 50 ms for unvoiced downward shifts. At unison it holds still at
+///         ~13 ms.
 ///     </para>
 ///     <para>
 ///         <see cref="SetSplice" /> lengthens the minimum splice (the Pitch block's splice length): longer splices
@@ -70,7 +71,9 @@ public sealed class SpliceShifter : IDisposable {
         Reset();
     }
 
-    /// <summary>Audio thread: the minimum splice, from <see cref="MinSpliceSeconds" /> to <see cref="MaxSpliceSeconds" />.</summary>
+    /// <summary>
+    ///     Audio thread: the minimum splice, from <see cref="MinSpliceSeconds" /> to <see cref="MaxSpliceSeconds" />.
+    /// </summary>
     public void SetSplice(double seconds) {
         var splice = Math.Clamp(seconds, MinSpliceSeconds, MaxSpliceSeconds) * sampleRate;
         minSplice = splice;

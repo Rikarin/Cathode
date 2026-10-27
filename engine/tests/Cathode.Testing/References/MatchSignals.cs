@@ -3,9 +3,9 @@ using System.Collections.Immutable;
 namespace Cathode.Testing.References;
 
 /// <summary>
-///     Deterministic stimuli for matching, in volts at the guitar jack: a guitar-like performance (Karplus–Strong plucks
-///     and chords at three dynamics), steady sines for the harmonic profile, and a quiet sweep for the small-signal
-///     frequency response.
+///     Deterministic stimuli for matching, in volts at the guitar jack: a guitar-like performance (Karplus–Strong
+///     plucks and chords at three dynamics), steady sines for the harmonic profile, and a quiet sweep for the
+///     small-signal frequency response.
 /// </summary>
 public static class MatchSignals {
     /// <summary>Peak volts of the small-signal sweep.</summary>
@@ -19,7 +19,9 @@ public static class MatchSignals {
 
     const double HarmonicSeconds = 0.4;
 
-    /// <summary>Peak volts of the three dynamics in <see cref="Performance" />: soft single-coil to hard humbucker.</summary>
+    /// <summary>
+    ///     Peak volts of the three dynamics in <see cref="Performance" />: soft single-coil to hard humbucker.
+    /// </summary>
     public static readonly ImmutableArray<double> PerformancePeaks = [0.05, 0.2, 0.6];
 
     /// <summary>Peak volts of the sines in the harmonic profile.</summary>
@@ -94,7 +96,9 @@ public static class MatchSignals {
         return signal;
     }
 
-    /// <summary>A 2 s exponential sweep, 20 Hz to 20 kHz, at <see cref="SweepVolts" />, after a short lead-in.</summary>
+    /// <summary>
+    ///     A 2 s exponential sweep, 20 Hz to 20 kHz, at <see cref="SweepVolts" />, after a short lead-in.
+    /// </summary>
     public static float[] Sweep(double sampleRate) =>
         Signals.Concat(
             new float[(int)(LeadInSeconds * sampleRate)],

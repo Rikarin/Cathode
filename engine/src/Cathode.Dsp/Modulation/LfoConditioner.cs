@@ -41,8 +41,8 @@ public struct LfoConditioner {
 
     /// <summary>
     ///     The depth scale for Auto Depth <paramref name="mode" /> at <paramref name="rateHz" />: 1 up to 1 Hz, then
-    ///     falling as one over the square root of the rate (Low) or one over the rate (High), so the pitch wobble a swept
-    ///     delay makes, which grows with depth times rate, stops growing as the rate rises.
+    ///     falling as one over the square root of the rate (Low) or one over the rate (High), so the pitch wobble a
+    ///     swept delay makes, which grows with depth times rate, stops growing as the rate rises.
     /// </summary>
     public static float AutoDepth(int mode, double rateHz) =>
         mode switch {

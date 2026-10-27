@@ -13,8 +13,8 @@ public static class Calibration {
     public const double DbuVolts = 0.774_596_669;
 
     /// <summary>
-    ///     Calibration assumed for display when a capture's is unknown and not fitted; typical of audio interfaces' line
-    ///     inputs.
+    ///     Calibration assumed for display when a capture's is unknown and not fitted; typical of audio interfaces'
+    ///     line inputs.
     /// </summary>
     public const double TypicalInputDbu = 12;
 

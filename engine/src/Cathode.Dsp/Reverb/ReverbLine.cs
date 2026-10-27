@@ -44,7 +44,9 @@ sealed class ReverbLine : IDisposable {
         }
     }
 
-    /// <summary>A plain delay of <paramref name="delay" /> samples: returns the old value, then writes the new one.</summary>
+    /// <summary>
+    ///     A plain delay of <paramref name="delay" /> samples: returns the old value, then writes the new one.
+    /// </summary>
     public float Delay(float value, int delay) {
         var output = Tap(delay);
         Write(value);

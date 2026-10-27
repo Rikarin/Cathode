@@ -73,7 +73,9 @@ sealed class Api(HttpClient http) {
         return (await response.Content.ReadFromJsonAsync<AssetInfo>(cancellationToken))!;
     }
 
-    /// <summary>Builds a one-row rig through the API: blocks on the shunts, the model and IR, three distinct scenes.</summary>
+    /// <summary>
+    ///     Builds a one-row rig through the API: blocks on the shunts, the model and IR, three distinct scenes.
+    /// </summary>
     public async Task<string> BuildRigAsync(
         string name,
         string model,
@@ -124,8 +126,8 @@ sealed class Api(HttpClient http) {
     public Task GetAsync(string url) => Send(() => http.GetAsync(url), CancellationToken.None);
 
     /// <summary>
-    ///     Runs <paramref name="action" /> every <paramref name="interval" /> until cancelled; failures are counted, not
-    ///     thrown.
+    ///     Runs <paramref name="action" /> every <paramref name="interval" /> until cancelled; failures are counted,
+    ///     not thrown.
     /// </summary>
     public async Task Every(TimeSpan interval, Func<long, Task> action, CancellationToken cancellationToken) {
         using var timer = new PeriodicTimer(interval);

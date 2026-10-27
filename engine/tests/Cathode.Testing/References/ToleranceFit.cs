@@ -4,7 +4,9 @@ namespace Cathode.Testing.References;
 ///     A physical quantity allowed to vary within its real-world tolerance while matching (docs/06 §5.4): a resistor
 ///     ±10 %, B+ ±5 %, tube gain spread, a pot's taper offset. Never an EQ band: a fit only moves component values.
 /// </summary>
-/// <param name="Name">For the circuit amp, a parameter id (e.g. <c>bias</c>); otherwise any name the render reads.</param>
+/// <param name="Name">
+///     For the circuit amp, a parameter id (e.g. <c>bias</c>); otherwise any name the render reads.
+/// </param>
 /// <param name="Nominal">The schematic value.</param>
 /// <param name="Min">Lower bound.</param>
 /// <param name="Max">Upper bound.</param>

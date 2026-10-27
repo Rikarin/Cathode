@@ -15,7 +15,9 @@ public static class HiwattParts {
     const double Closed = 10;
     const double Open = 1e12;
 
-    /// <summary>The panel of a four-input Hiwatt: Brilliant and Normal volumes, the jumper and the normal input.</summary>
+    /// <summary>
+    ///     The panel of a four-input Hiwatt: Brilliant and Normal volumes, the jumper and the normal input.
+    /// </summary>
     public static AmpPanel Panel { get; } = AmpPanel.Standard with {
         Gain = "Brilliant Vol",
         Control1 = "Normal Vol",
@@ -28,9 +30,9 @@ public static class HiwattParts {
     };
 
     /// <summary>
-    ///     V1: the guitar into the Brilliant channel's high input (34k: both 68k in parallel, 1M at the jack), into both
-    ///     with the Jumper (switch 1), into the Normal channel alone with switch 2; two triodes on 220k plates and a
-    ///     shared 1k1 with 47 nF; each plate through its coupling cap (Brilliant 1 nF, Normal 22 nF) to its 470k-A
+    ///     V1: the guitar into the Brilliant channel's high input (34k: both 68k in parallel, 1M at the jack), into
+    ///     both with the Jumper (switch 1), into the Normal channel alone with switch 2; two triodes on 220k plates and
+    ///     a shared 1k1 with 47 nF; each plate through its coupling cap (Brilliant 1 nF, Normal 22 nF) to its 470k-A
     ///     volume and through 470k from the wiper to the mixing node, V2A's grid (the output). An idle channel's grid
     ///     rests on its jack's 1M.
     /// </summary>
@@ -67,9 +69,9 @@ public static class HiwattParts {
     /// <summary>
     ///     V2A from the mixing node (100k, 1k with 47 nF, its grid-plate capacitance behind the mixers) on the tone
     ///     network: 1 nF from the plate to a node A, which reaches the 220k Treble's top through 220 pF and its foot
-    ///     through 220k; the Treble's foot through 22k to the 100k Middle (a rheostat with 1 nF across it) and on to the
-    ///     470k-A Bass (a rheostat to ground); the plate also feeds 100k to a node with 47 nF to ground and 47 nF to the
-    ///     Bass's top. The Treble's wiper goes through 22k to the 220k-A master, whose wiper is the output.
+    ///     through 220k; the Treble's foot through 22k to the 100k Middle (a rheostat with 1 nF across it) and on to
+    ///     the 470k-A Bass (a rheostat to ground); the plate also feeds 100k to a node with 47 nF to ground and 47 nF
+    ///     to the Bass's top. The Treble's wiper goes through 22k to the 220k-A master, whose wiper is the output.
     /// </summary>
     public static NetworkStageDesign V2A(double supply) {
         var net = new StageNetlist();

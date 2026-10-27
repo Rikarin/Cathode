@@ -6,10 +6,10 @@ namespace Cathode.Dsp.Blocks;
 /// <summary>
 ///     Picks one of the rows cabled into it (or all of them), with a 10 ms crossfade, so a scene or a footswitch can
 ///     switch between parallel paths: two amps, a clean and a dirty chain. The graph compiler routes each input through
-///     <see cref="MixInput" /> instead of summing it; <see cref="DspBlock.Process" /> then applies the level. The choice
-///     can also be one of the interface's inputs (<see cref="HardwareInputs" />: Input 1–4, USB 5/6 and 7/8), heard
-///     instead of the rows, so a second instrument or a DAW return can be switched in; the block still needs a cable from
-///     the grid input to be part of the graph.
+///     <see cref="MixInput" /> instead of summing it; <see cref="DspBlock.Process" /> then applies the level. The
+///     choice can also be one of the interface's inputs (<see cref="HardwareInputs" />: Input 1–4, USB 5/6 and 7/8),
+///     heard instead of the rows, so a second instrument or a DAW return can be switched in; the block still needs a
+///     cable from the grid input to be part of the graph.
 /// </summary>
 public sealed class MultiplexerBlock() : DspBlock(Info), ISideInputBlock {
     public const int Input = 0;
@@ -19,7 +19,9 @@ public sealed class MultiplexerBlock() : DspBlock(Info), ISideInputBlock {
     /// <summary>Rows the input choice can name; inputs from other rows are only heard with "All".</summary>
     public const int Rows = 6;
 
-    /// <summary>The first hardware input choice (Input 1); the others follow in <see cref="HardwareInputs" /> order.</summary>
+    /// <summary>
+    ///     The first hardware input choice (Input 1); the others follow in <see cref="HardwareInputs" /> order.
+    /// </summary>
     public const int FirstInput = Rows + 1;
 
     const int All = Rows;
@@ -49,7 +51,9 @@ public sealed class MultiplexerBlock() : DspBlock(Info), ISideInputBlock {
 
     public InputPort? Inputs { get; set; }
 
-    /// <summary>Its cabled inputs by row (<see cref="MixInput" />), and the hardware inputs (<see cref="Inputs" />).</summary>
+    /// <summary>
+    ///     Its cabled inputs by row (<see cref="MixInput" />), and the hardware inputs (<see cref="Inputs" />).
+    /// </summary>
     public SideInputs SideInputs => SideInputs.Cables | SideInputs.Hardware;
 
     /// <summary>Audio thread: a cabled input, through <see cref="MixInput" />.</summary>
@@ -58,8 +62,8 @@ public sealed class MultiplexerBlock() : DspBlock(Info), ISideInputBlock {
 
     /// <summary>
     ///     Audio thread, once per sub-block for each cabled input, before <see cref="DspBlock.Process" />: adds
-    ///     <paramref name="source" /> (from grid row <paramref name="row" />) into <paramref name="destination" />, faded
-    ///     in or out as the selection changes.
+    ///     <paramref name="source" /> (from grid row <paramref name="row" />) into <paramref name="destination" />,
+    ///     faded in or out as the selection changes.
     /// </summary>
     public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) {
         var slot = Math.Clamp(row, 0, Rows);

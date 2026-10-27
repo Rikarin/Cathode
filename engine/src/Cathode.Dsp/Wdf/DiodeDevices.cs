@@ -23,7 +23,9 @@ public struct Diode : INonlinearDevice {
 
     /// <param name="model">The junction.</param>
     /// <param name="count">Identical diodes in series.</param>
-    /// <param name="seriesResistance">Bulk resistance Rs in ohms (0 for none; a 1N4148 has about 0.6 Ω, an LED 5-20 Ω).</param>
+    /// <param name="seriesResistance">
+    ///     Bulk resistance Rs in ohms (0 for none; a 1N4148 has about 0.6 Ω, an LED 5-20 Ω).
+    /// </param>
     public Diode(DiodeModel model, int count = 1, double seriesResistance = 0) {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
         saturationCurrent = model.SaturationCurrent;

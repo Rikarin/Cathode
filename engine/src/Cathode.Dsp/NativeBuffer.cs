@@ -9,7 +9,9 @@ namespace Cathode.Dsp;
 ///     collections that stall the audio thread (docs/adr/0001-process-model.md, soak follow-up). Freed by
 ///     <see cref="Dispose" /> when a retired graph is disposed; the finalizer only catches leaks.
 /// </summary>
-/// <remarks>The indexer is unchecked in release builds: callers keep indices in range, as DSP inner loops must.</remarks>
+/// <remarks>
+///     The indexer is unchecked in release builds: callers keep indices in range, as DSP inner loops must.
+/// </remarks>
 public sealed unsafe class NativeBuffer : IDisposable {
     const nuint Alignment = 64;
 

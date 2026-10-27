@@ -3,17 +3,17 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp;
 
 /// <summary>
-///     A driver chain in place of a single phase inverter (the Ampeg SVT): an input stage that takes the global feedback
-///     at its cathode, a cathodyne splitting its output, a voltage amplifier on each side, and a cathode follower on each
-///     side DC-coupled to the output tubes' grids. The outputs are the followers' cathodes.
+///     A driver chain in place of a single phase inverter (the Ampeg SVT): an input stage that takes the global
+///     feedback at its cathode, a cathodyne splitting its output, a voltage amplifier on each side, and a cathode
+///     follower on each side DC-coupled to the output tubes' grids. The outputs are the followers' cathodes.
 /// </summary>
 /// <param name="Tube">The input stage's triode.</param>
 /// <param name="Supply">The input stage's plate supply.</param>
 /// <param name="InputPlate">The input stage's plate resistor.</param>
 /// <param name="InputCathode">Its cathode resistor, unbypassed (the feedback shunt included).</param>
 /// <param name="Splitter">
-///     The cathodyne. Its outputs are its plate and its cathode (the top of <see cref="CathodyneDesign.BiasResistor" />,
-///     not the grid leak's junction as in a <see cref="Cathodyne" />).
+///     The cathodyne. Its outputs are its plate and its cathode (the top of
+///     <see cref="CathodyneDesign.BiasResistor" />, not the grid leak's junction as in a <see cref="Cathodyne" />).
 /// </param>
 /// <param name="DriverTube">The voltage amplifiers' triode (and the followers').</param>
 /// <param name="DriverSupply">The voltage amplifiers' plate supply.</param>
@@ -42,17 +42,16 @@ public sealed record DriverChainDesign(
 ) : PhaseInverterDesign(Tube, Supply);
 
 /// <summary>
-///     A <see cref="DriverChainDesign" />'s table: the followers' cathode voltages (AC) as functions of the input stage's
-///     grid voltage (AC, the feedback subtracted), from the exact DC solution of each triode in turn.
+///     A <see cref="DriverChainDesign" />'s table: the followers' cathode voltages (AC) as functions of the input
+///     stage's grid voltage (AC, the feedback subtracted), from the exact DC solution of each triode in turn.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         The coupling caps between the stages are taken as shorts for the signal (each stage's grid at its own rest
-///         voltage plus the previous stage's AC output), so the chain is a memoryless map like the other inverters; what
-///         that leaves out is their low-frequency roll-off and the voltage amplifiers' grid current, which charges them
-///         under hard drive (blocking). The loads between the stages (the cathodyne's grid leak, the amplifiers' 470k
-///         leaks,
-///         the followers' grids) are small beside the plate resistors driving them and are left out too.
+///         voltage plus the previous stage's AC output), so the chain is a memoryless map like the other inverters;
+///         what that leaves out is their low-frequency roll-off and the voltage amplifiers' grid current, which charges
+///         them under hard drive (blocking). The loads between the stages (the cathodyne's grid leak, the amplifiers'
+///         470k leaks, the followers' grids) are small beside the plate resistors driving them and are left out too.
 ///     </para>
 ///     <para>
 ///         The followers' output impedance is their cathode's small-signal resistance, a few hundred ohms: the grid
@@ -116,7 +115,9 @@ public sealed class DriverChain : PhaseInverter {
     static double InputCathodeVoltage(Triode triode, DriverChainDesign design, double grid) =>
         Current(triode, grid, design.Supply, design.InputPlate, design.InputCathode) * design.InputCathode;
 
-    /// <summary>A voltage amplifier's plate for its grid at <paramref name="grid" /> volts (its leak returns to ground).</summary>
+    /// <summary>
+    ///     A voltage amplifier's plate for its grid at <paramref name="grid" /> volts (its leak returns to ground).
+    /// </summary>
     static double DriverPlate(Triode triode, DriverChainDesign design, double grid) =>
         design.DriverSupply
         - Current(triode, grid, design.DriverSupply, design.DriverPlate, design.DriverCathode) * design.DriverPlate;

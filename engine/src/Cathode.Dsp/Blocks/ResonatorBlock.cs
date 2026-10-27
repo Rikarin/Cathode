@@ -16,10 +16,10 @@ namespace Cathode.Dsp.Blocks;
 ///         <c>sqrt((1 + g) / (1 - g))</c>. The loop is stable at any setting (see <see cref="DampedComb" />).
 ///     </para>
 ///     <para>
-///         Each voice's Feedback scales its loop gain (100 % is the gain the decay asks for), and Master Feedback scales
-///         them all. A voice can have a band-pass at its own frequency before its comb (so only the input near its pitch
-///         excites it) or after it (so it rings with its fundamental alone); Filter Q times Master Q sets its width.
-///         Master Level and Master Pan scale every voice's level and pan.
+///         Each voice's Feedback scales its loop gain (100 % is the gain the decay asks for), and Master Feedback
+///         scales them all. A voice can have a band-pass at its own frequency before its comb (so only the input near
+///         its pitch excites it) or after it (so it rings with its fundamental alone); Filter Q times Master Q sets its
+///         width. Master Level and Master Pan scale every voice's level and pan.
 ///     </para>
 ///     <para>
 ///         Input Mode Mono feeds every comb the sum of the inputs and places it with its pan (constant power). Stereo
@@ -219,7 +219,8 @@ public sealed class ResonatorBlock() : DspBlock(Info) {
                 band[v] = SvfCoefficients.Design(BiquadType.BandPass, rate, frequency, q);
             }
 
-            // Constant-power pan (a balance in stereo); four voices summed at half gain keep a broadband input near unity.
+            // Constant-power pan (a balance in stereo); four voices summed at half gain keep a broadband input near
+            // unity.
             var gain = 0.5f * Decibels.ToGain(Params.Advance(Level1 + v, frames)) * masterLevel;
             var pan = Params.Advance(Pan1 + v, frames) / 100f * masterPan;
             if (stereo) {

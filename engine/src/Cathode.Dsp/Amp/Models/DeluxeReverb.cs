@@ -5,8 +5,8 @@ namespace Cathode.Dsp.Amp.Models;
 /// <summary>
 ///     Fender Deluxe Reverb AB763 (22 W): the Normal or Vibrato channel (<see cref="AmpPanel.Switch1" />), each V1A
 ///     (100k, 1.5k ‖ 25 µF, 34k stopper) into the Fender stack with its fixed 6.8k mid, the 1M volume (the Vibrato
-///     channel's with its fixed 47 pF bright cap), V1B, then the AB763 mixing network (V4B and the reverb mix divider on
-///     the Vibrato channel) into a 12AT7 long-tail pair, two 6V6GT in fixed bias at 415 V on a GZ34, the 125A1A
+///     channel's with its fixed 47 pF bright cap), V1B, then the AB763 mixing network (V4B and the reverb mix divider
+///     on the Vibrato channel) into a 12AT7 long-tail pair, two 6V6GT in fixed bias at 415 V on a GZ34, the 125A1A
 ///     transformer (6.6k : 8 Ω), and 820 Ω / 47 Ω feedback from the 8 Ω tap. No master, presence, bright switch or
 ///     middle control. Sources: see <see cref="Ab763" />; docs/06 §3.1.
 /// </summary>
@@ -17,7 +17,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///     factory figure; the supply's source resistance and the preamp node's dropping resistor are estimates.
 /// </remarks>
 public static class DeluxeReverb {
-    /// <summary>The AB763 Deluxe's stack: the mid pot replaced by a fixed 6.8k (here a 13.6k pot left at noon).</summary>
+    /// <summary>
+    ///     The AB763 Deluxe's stack: the mid pot replaced by a fixed 6.8k (here a 13.6k pot left at noon).
+    /// </summary>
     static readonly ToneStackDesign Stack = new(
         "Fender AB763 fixed mid",
         250e-12,

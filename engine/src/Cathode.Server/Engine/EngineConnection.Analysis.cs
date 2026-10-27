@@ -32,7 +32,9 @@ public sealed partial class EngineConnection {
         set => rtaEnabled = value;
     }
 
-    /// <summary>Applies an RTA request: on or off, and its resolution, decay and window. Throws on invalid settings.</summary>
+    /// <summary>
+    ///     Applies an RTA request: on or off, and its resolution, decay and window. Throws on invalid settings.
+    /// </summary>
     public void SetRta(RtaRequest request) {
         var window = RtaWindows.IndexOf(request.Window);
         if (!RtaResolutions.Contains(request.BandsPerOctave) || window < 0 || request.DecayMs is < 0 or > 10_000) {

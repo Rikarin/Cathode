@@ -42,7 +42,9 @@ public static class IpcFraming {
             ?? throw new InvalidDataException("Empty IPC message.");
     }
 
-    /// <summary>Fills the first <paramref name="count" /> bytes; false if the stream ended before the first byte.</summary>
+    /// <summary>
+    ///     Fills the first <paramref name="count" /> bytes; false if the stream ended before the first byte.
+    /// </summary>
     [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
     internal static async ValueTask<bool> ReadExactlyOrEndAsync(
         Stream stream,

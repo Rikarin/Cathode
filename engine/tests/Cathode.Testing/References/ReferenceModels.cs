@@ -12,7 +12,9 @@ public interface IReferenceModel : IDisposable {
     float[] Render(ReadOnlySpan<float> input);
 }
 
-/// <summary>A NAM capture run by the reference C++ core through <c>cth_nam</c> (needs <c>native/build.sh</c>).</summary>
+/// <summary>
+///     A NAM capture run by the reference C++ core through <c>cth_nam</c> (needs <c>native/build.sh</c>).
+/// </summary>
 public sealed class NamReferenceModel(NamModel model, double sampleRate) : IReferenceModel {
     const int Block = 4_096;
 

@@ -17,8 +17,9 @@ namespace Cathode.Server.Engine;
 ///     <see cref="Connected" /> so the rig can resync, and forwards telemetry to WebSocket clients.
 /// </summary>
 /// <remarks>
-///     Meters and CPU go to clients at about 30 Hz from the host's shared-memory region (<see cref="TelemetryRegion" />),
-///     with the tuner from the slower IPC telemetry. A host without a region falls back to IPC telemetry alone.
+///     Meters and CPU go to clients at about 30 Hz from the host's shared-memory region
+///     (<see cref="TelemetryRegion" />), with the tuner from the slower IPC telemetry. A host without a region falls
+///     back to IPC telemetry alone.
 /// </remarks>
 public sealed partial class EngineConnection(
     IOptions<ServerOptions> options,
@@ -50,17 +51,21 @@ public sealed partial class EngineConnection(
     string? lastError;
     volatile bool scopeEnabled;
 
-    /// <summary>True once the <see cref="Connected" /> handlers (the rig's resync) have run on the current link.</summary>
+    /// <summary>
+    ///     True once the <see cref="Connected" /> handlers (the rig's resync) have run on the current link.
+    /// </summary>
     volatile bool synced;
 
     /// <summary>
-    ///     Whether the current link's host has been sent a graph. Until it has, graph-scoped commands are dropped: a fresh
-    ///     host would reject them as stale, and the resync that follows carries the rig's whole state anyway. Read and
-    ///     written only by the pump.
+    ///     Whether the current link's host has been sent a graph. Until it has, graph-scoped commands are dropped: a
+    ///     fresh host would reject them as stale, and the resync that follows carries the rig's whole state anyway.
+    ///     Read and written only by the pump.
     /// </summary>
     bool graphSent;
 
-    /// <summary>The live link, for diagnostics and tests (an <see cref="InProcessEngineLink" /> in in-process mode).</summary>
+    /// <summary>
+    ///     The live link, for diagnostics and tests (an <see cref="InProcessEngineLink" /> in in-process mode).
+    /// </summary>
     public IEngineLink? Link { get; private set; }
 
     public bool IsConnected => info is not null && Link?.IsConnected == true;
@@ -68,7 +73,9 @@ public sealed partial class EngineConnection(
     /// <summary>Connected, and the rig has been resent to the host since it (re)connected.</summary>
     public bool IsSynced => synced && IsConnected;
 
-    /// <summary>Whether WebSocket clients get scope frames. Off by default: they are the largest messages by far.</summary>
+    /// <summary>
+    ///     Whether WebSocket clients get scope frames. Off by default: they are the largest messages by far.
+    /// </summary>
     public bool ScopeEnabled {
         get => scopeEnabled;
         set => scopeEnabled = value;
@@ -84,8 +91,8 @@ public sealed partial class EngineConnection(
         // Before the first telemetry every figure reads zero (a fresh telemetry's), and the device "ok".
         var t = LastTelemetry ?? new HostTelemetry();
         var i = info;
-        // Reported as connected once the host has the rig: a client that edits it the moment it sees "connected" must not
-        // reach a host that still has no graph.
+        // Reported as connected once the host has the rig: a client that edits it the moment it sees "connected" must
+        // not reach a host that still has no graph.
         return new(
             IsSynced,
             options.Value.Engine.Mode,
@@ -511,8 +518,8 @@ public sealed partial class EngineConnection(
     }
 
     /// <summary>
-    ///     <paramref name="message" /> without what needs a graph: null for a bypass or modifier, the engine-wide values of
-    ///     a parameter update (null when none), the message itself for anything else.
+    ///     <paramref name="message" /> without what needs a graph: null for a bypass or modifier, the engine-wide
+    ///     values of a parameter update (null when none), the message itself for anything else.
     /// </summary>
     static IpcMessage? WithoutGraph(IpcMessage message) {
         switch (message.Type) {
@@ -607,8 +614,8 @@ public sealed partial class EngineConnection(
             } catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) {
                 break;
             } catch (Exception e) {
-                // Whatever went wrong with this link (a timeout, a protocol error, a host that died mid-request), drop it
-                // and reconnect. An exception escaping here would stop the background service and, with the default
+                // Whatever went wrong with this link (a timeout, a protocol error, a host that died mid-request), drop
+                // it and reconnect. An exception escaping here would stop the background service and, with the default
                 // host options, the whole server.
                 lastError = e.Message;
                 LinkLost(logger, e.Message);

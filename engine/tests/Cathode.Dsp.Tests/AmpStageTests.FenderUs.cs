@@ -5,9 +5,10 @@ namespace Cathode.Dsp.Tests;
 
 /// <summary>
 ///     The Fender and US vintage stream's new stage combinations against the reference MNA simulator: the Hot Rod
-///     Deluxe's relay-switched input networks, its stack with the 220k, V2A's switched cathode bypasses and V2B with the
-///     master and the zener clamp; the tweed Twin's follower with the mid cap on the wiper; the 5F2-A's tone network; the
-///     Vibro-King's input follower, Fat stage and stack; the Blues Junior's stages; the non-reverb AB763 mixer.
+///     Deluxe's relay-switched input networks, its stack with the 220k, V2A's switched cathode bypasses and V2B with
+///     the master and the zener clamp; the tweed Twin's follower with the mid cap on the wiper; the 5F2-A's tone
+///     network; the Vibro-King's input follower, Fat stage and stack; the Blues Junior's stages; the non-reverb AB763
+///     mixer.
 /// </summary>
 public partial class AmpStageTests {
     public static TheoryData<string, string, double> FenderUsNetworks =>

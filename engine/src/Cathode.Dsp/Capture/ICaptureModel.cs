@@ -21,7 +21,9 @@ public interface ICaptureModel : IDisposable {
     /// <summary>Output loudness in dB, when the file records it; used to normalise models to a common level.</summary>
     double? Loudness { get; }
 
-    /// <summary>Control thread: allocate for blocks of up to <paramref name="maxFrames" />, clear the state and pre-warm.</summary>
+    /// <summary>
+    ///     Control thread: allocate for blocks of up to <paramref name="maxFrames" />, clear the state and pre-warm.
+    /// </summary>
     void Reset(double sampleRate, int maxFrames);
 
     /// <summary>Audio thread. <paramref name="input" /> and <paramref name="output" /> may be the same span.</summary>

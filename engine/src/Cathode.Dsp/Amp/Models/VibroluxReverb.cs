@@ -8,8 +8,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     volume with its 120 pF bright switch, V1B, the AB763 mixing network with V4B and the reverb mix divider on the
 ///     Vibrato channel, a 12AT7 long-tail pair, two 6L6GC in fixed bias at 410 V on a GZ34, the 125A6A transformer
 ///     (4k : 4 Ω), and 820 Ω / 100 Ω feedback from the 4 Ω tap. Sources: the Fender drawing "Vibrolux Reverb AA964"
-///     (schematicheaven.net/fenderamps/vibroluxreverb_aa964_schem.pdf: the preamp, reverb mixer and inverter values, the
-///     820 Ω / 100 Ω feedback, the supply nodes 410 / 408 / 310 / 260 V, the 125A6A); Rob Robinette, "AB763 model
+///     (schematicheaven.net/fenderamps/vibroluxreverb_aa964_schem.pdf: the preamp, reverb mixer and inverter values,
+///     the 820 Ω / 100 Ω feedback, the supply nodes 410 / 408 / 310 / 260 V, the 125A6A); Rob Robinette, "AB763 model
 ///     differences" (the 125A6A's 4k : 4 Ω); <see cref="Ab763" />.
 /// </summary>
 /// <remarks>

@@ -7,7 +7,8 @@ namespace Cathode.Dsp.Tests;
 
 /// <summary>
 ///     The Drive and Dynamic Distortion parity items of stream PB (docs/08 §6.5–6.6): the remaining clip types, a tone
-///     stack's own bass and middle pots, and Slew Rate on each op-amp. Defaults are stock (<see cref="AmpDefaultsTests" />).
+///     stack's own bass and middle pots, and Slew Rate on each op-amp. Defaults are stock
+///     (<see cref="AmpDefaultsTests" />).
 /// </summary>
 public class DriveRound3Tests {
     const double Rate = 48_000;

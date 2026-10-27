@@ -150,8 +150,9 @@ static class AudioCommands {
     }
 
     /// <summary>
-    ///     Measures an impulse response (a cab and mic, a room, an amp's power section into a load): plays an exponential
-    ///     sweep on outputs 1 and 2, records input 1 and writes the trimmed IR as a WAV (docs/04 Phase 6 item 8).
+    ///     Measures an impulse response (a cab and mic, a room, an amp's power section into a load): plays an
+    ///     exponential sweep on outputs 1 and 2, records input 1 and writes the trimmed IR as a WAV (docs/04 Phase 6
+    ///     item 8).
     /// </summary>
     public static int IrCapture(CommandLine options) {
         var path = options.Text("out") ?? throw new InvalidOperationException("--out <file.wav> is required.");
@@ -237,7 +238,9 @@ static class AudioCommands {
         }
     }
 
-    /// <summary>Audio thread: plays the sweep then silence for the tail, recording input 1 into a preallocated buffer.</summary>
+    /// <summary>
+    ///     Audio thread: plays the sweep then silence for the tail, recording input 1 into a preallocated buffer.
+    /// </summary>
     sealed class SweepRecorder(SweepMeasurement measurement, float level, double tailSeconds) : IAudioProcessor {
         readonly float[] sweep = measurement.Sweep;
         int position;
