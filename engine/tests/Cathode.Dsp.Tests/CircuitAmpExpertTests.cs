@@ -278,6 +278,51 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         Assert.InRange(swing, 0.1, 20);
     }
 
+    /// <summary>
+    ///     A stiff silicon supply on AC (the JCM900 4100's 25 Ω into 100 µF: R C = 2.5 ms, under the 4.2 ms at which
+    ///     a source-resistance calibration still reaches the design's B+) charges its reservoir smoothly in each
+    ///     conduction window, even at Sag 0 with B+ Time Const 25 % (dt / R C about 1.6 at the inner rate), instead of a
+    ///     sawtooth at the inner Nyquist rate; its mean is the design's B+; and Sag, which scales the source
+    ///     resistance, still moves it.
+    /// </summary>
+    [Fact]
+    public void Ac_supply_on_a_stiff_silicon_supply_charges_smoothly_and_follows_sag() {
+        var design = JCM900.Head100.Power;
+        (double Mean, double Kink) Run(double sag, double timeConstant) {
+            var power = new PowerAmp(design, InnerRate);
+            power.Configure(new(0.5, 0, 0, sag, 0.5, 0.5));
+            power.Apply(PowerSettings.Stock with { Supply = SupplyMode.Ac60, TimeConstant = timeConstant });
+            power.Reset();
+            var (mean, kink, previous, before) = (0.0, 0.0, 0.0, 0.0);
+            const int Settle = 48_000;
+            const int Length = 19_200; // 0.2 s: twelve cycles
+            for (var i = 0; i < Settle + Length; i++) {
+                power.Tick(0);
+                var v = power.Supply;
+                if (i >= Settle) {
+                    mean += v / Length;
+                    kink = Math.Max(kink, Math.Abs(v - 2 * previous + before)); // a sawtooth's second difference
+                }
+
+                (before, previous) = (previous, v);
+            }
+
+            return (mean, kink);
+        }
+
+        var stock = Run(0.5, 1);
+        var hard = Run(0, 0.25);
+        var stiff = Run(0, 1);
+        var soft = Run(1, 1);
+        output.WriteLine(
+            $"mean B+ {stock.Mean:0.0} V (design {design.Supply:0.0} V), Sag 0 {stiff.Mean:0.0} V, Sag 10 {soft.Mean:0.0} V; "
+            + $"largest second difference {stock.Kink:0.000} V stock, {hard.Kink:0.000} V at Sag 0 and 25 %"
+        );
+        Assert.InRange(stock.Mean, 0.985 * design.Supply, 1.015 * design.Supply);
+        Assert.True(stock.Kink < 0.5 && hard.Kink < 0.5, "B+ jumps from sample to sample");
+        Assert.True(stiff.Mean > soft.Mean + 5, "Sag does not move the AC supply");
+    }
+
     [Fact]
     public void Variac_and_rectifiers_set_the_supply() {
         static double Settled(PowerSettings settings, bool loud) {

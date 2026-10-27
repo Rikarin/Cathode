@@ -86,7 +86,7 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 | Supply Sag | 0–10 | model | Supply source impedance, i.e. B+ droop | **✓** Sag |
 | B+ Time Constant | ms | model | Reservoir RC speed | **E** (scale reservoir C; already in `PowerSupplyDesign`) |
 | Supply Type | AC / DC | model | Rectified AC with ripple, or ideal DC | **E** with rectifier ripple (not modelled yet) |
-| AC Line Frequency | 50 / 60 Hz | 60 *(unverified)* | Ripple frequency | **✓** Supply Type AC 60 Hz / AC 50 Hz |
+| AC Line Frequency | 50 / 60 Hz | 60 *(unverified)* | Ripple frequency | **✓** Supply Type AC 60 Hz / AC 50 Hz (the transformer's peak calibrated so the reservoir averages the design's B+ through its own source resistance, which Sag scales; silicon's charging step implicit) |
 | Variac | % of line (about 50–150 *unverified*) | 100 % | Mains voltage; level-compensated | **E** cheap: scales every supply node; the "brown sound" |
 | Screen Frequency / Screen Q | Hz / Q | model | Resonance of the screen supply's filter | **M** (falls out of the supply network) |
 
