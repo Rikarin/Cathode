@@ -38,6 +38,8 @@ The page has five parts.
 | Driver overloads    | How often the audio driver reported a dropout.                                                                              |
 | Inputs              | The interface inputs mapped to Cathode's input sources.                                                                     |
 
+In the desktop app, a line under the figures shows the state of the app's two engine processes, the engine host and the Server (running, restarting after a crash, failed), and **Show engine log** shows the last lines each printed, which usually say why one stopped.
+
 Below it, **Latency** breaks the delay down: **Device input** and **Device output** as the driver reports them (each including one buffer), **Buffer**, **Preset** (the longest path through the grid; blocks that add latency are named underneath), and the **Total**.
 
 **Input 1** shows a warning when the input clips, and the calibration (see [below](#input-level-and-calibration)).

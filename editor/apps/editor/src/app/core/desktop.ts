@@ -65,6 +65,8 @@ export interface SidecarStatus {
   name: 'host' | 'server';
   state: 'starting' | 'running' | 'restarting' | 'stopped' | 'failed';
   detail: string | null;
+  /** The running process's id (absent from older desktop apps). */
+  pid?: number | null;
 }
 
 /**
@@ -78,12 +80,21 @@ export interface CathodeDesktop {
   onFullScreen(listener: (fullScreen: boolean) => void): void;
   /** Called when the app menu's Settings… (⌘,) is chosen. */
   onOpenSettings?(listener: () => void): void;
+  /**
+   * Asked before the app quits (or its window closes) while it runs its own engine, whose Server holds the working
+   * copy: false keeps the app open.
+   */
+  onQuit?(mayQuit: () => boolean | Promise<boolean>): void;
   /** The Server to use; in local mode it resolves once the sidecars answer. */
   connection(): Promise<Connection>;
   target(): Promise<ServerTarget>;
   /** Switches Server and reloads the window. */
   setTarget(target: ServerTarget): Promise<void>;
   sidecars(): Promise<SidecarStatus[]>;
+  /** Called whenever one of the local engine's processes changes state (restarting after a crash, say). */
+  onSidecars?(listener: (statuses: SidecarStatus[]) => void): void;
+  /** The last lines (up to 200) each local engine process printed. */
+  logs?(): Promise<Record<'host' | 'server', string[]>>;
   network?: {
     status(): Promise<NetworkStatus>;
     /** Saves the setting, restarts the local Server with it and reloads the window; `renewToken` signs others out. */

@@ -10,6 +10,7 @@ import { XuiTextImports } from '@xui/text';
 import { InputClipLevel } from '../core/clip';
 import { ConnectionService } from '../core/connection';
 import type { AudioDevice, AudioSettings, LatencyResult } from '../core/desktop';
+import { SidecarStatuses } from '../core/engine-health';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
 import { NetworkAccess } from '../shell/network-access';
@@ -59,6 +60,26 @@ const BufferSizes = [32, 64, 128, 256, 512];
           </div>
           @if (s.engine.lastError) {
             <xui-callout color="error" title="Last engine error">{{ s.engine.lastError }}</xui-callout>
+          }
+        }
+        @if (desktop && !remote() && sidecars.statuses().length > 0) {
+          <div class="flex flex-wrap items-center gap-x-6 gap-y-2" data-testid="engine-processes">
+            @for (process of sidecars.statuses(); track process.name) {
+              <span class="text-sm">
+                <span class="text-foreground-muted">{{ process.name === 'host' ? 'Engine host' : 'Server' }}:</span>
+                {{ process.state }}{{ process.detail ? ' (' + process.detail + ')' : '' }}
+              </span>
+            }
+            <button xuiButton type="button" variant="outline" size="sm" (click)="toggleLog()">
+              {{ engineLog() === null ? 'Show engine log' : 'Hide engine log' }}
+            </button>
+          </div>
+          @if (engineLog(); as log) {
+            <pre
+              class="border-border max-h-80 overflow-auto rounded-md border p-3 text-xs whitespace-pre-wrap"
+              role="log"
+              aria-label="Engine log"
+              >{{ log }}</pre>
           }
         }
         @if (latencyReport(); as l) {
@@ -305,6 +326,9 @@ export class SetupPage {
   private readonly globals = inject(GlobalStore);
   private readonly events = inject(EventStream);
   protected readonly desktop = this.connection.desktop;
+  /** The desktop app's engine processes, and what they last printed while the log is shown. */
+  protected readonly sidecars = inject(SidecarStatuses);
+  protected readonly engineLog = signal<string | null>(null);
 
   protected readonly system = signal<SystemInfo | null>(null);
   protected readonly devices = signal<readonly AudioDevice[]>([]);
@@ -474,6 +498,19 @@ export class SetupPage {
       this.notify.success('Engine restarted with the new audio settings.');
     });
     this.applying.set(false);
+  }
+
+  protected async toggleLog(): Promise<void> {
+    if (this.engineLog() !== null) {
+      this.engineLog.set(null);
+      return;
+    }
+
+    const logs = await this.sidecars.logs();
+    const section = (title: string, lines: string[]) => [title, ...(lines.length ? lines : ['(nothing yet)'])];
+    this.engineLog.set(
+      [...section('cathode-host', logs.host), '', ...section('cathode-server', logs.server)].join('\n')
+    );
   }
 
   protected async latencyTest(): Promise<void> {

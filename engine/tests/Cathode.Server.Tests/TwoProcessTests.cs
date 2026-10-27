@@ -1,7 +1,9 @@
 using Cathode.Contracts;
+using Cathode.EngineHost;
 using Cathode.Server.Engine;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
+using System.IO.Pipes;
 using System.Net.Http.Json;
 using System.Text;
 
@@ -74,7 +76,47 @@ public sealed class TwoProcessTests : IAsyncDisposable {
         Assert.True(connection.HasSharedTelemetry, "the restarted host's region is mapped too");
     }
 
-    void StartHost() {
+    [Fact]
+    public async Task Host_watching_its_stdin_stops_cleanly_when_the_launcher_goes() {
+        StartHost(["--watch-stdin"]);
+        await ServerFixture.Eventually(
+            () => Task.FromResult(Output().Contains("serving on", StringComparison.Ordinal))
+        );
+
+        // The launcher crashed or was killed: the OS closes its end of the pipe.
+        host!.StandardInput.Close();
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        timeout.CancelAfter(TimeSpan.FromSeconds(30));
+        await host.WaitForExitAsync(timeout.Token);
+
+        Assert.Equal(0, host.ExitCode);
+        Assert.Contains("cathode-host stopped", Output(), StringComparison.Ordinal);
+        Assert.Empty(Directory.EnumerateFiles(Path.GetTempPath(), Path.GetFileName(socketPath)));
+    }
+
+    [Fact]
+    public void Stdin_watch_calls_back_once_its_stream_ends() {
+        using var pipe = new AnonymousPipeServerStream(PipeDirection.Out);
+        using var input = new AnonymousPipeClientStream(
+            PipeDirection.In,
+            pipe.ClientSafePipeHandle
+        );
+        using var closed = new ManualResetEventSlim();
+        StdinWatch.Start(input, closed.Set);
+
+        pipe.Write("anything"u8); // what arrives is ignored
+        Assert.False(closed.Wait(200, Token));
+        pipe.Dispose();
+        Assert.True(closed.Wait(TimeSpan.FromSeconds(10), Token));
+    }
+
+    string Output() {
+        lock (hostOutput) {
+            return hostOutput.ToString();
+        }
+    }
+
+    void StartHost(string[]? extra = null) {
         var dll = Path.Combine(
             AppContext.BaseDirectory.Replace(
                 Path.Combine("tests", "Cathode.Server.Tests"),
@@ -85,8 +127,8 @@ public sealed class TwoProcessTests : IAsyncDisposable {
         );
         Assert.True(File.Exists(dll), $"cathode-host not built at {dll}");
         host = new() {
-            StartInfo = new("dotnet", ["exec", dll, "--serve", "--null-audio", "--socket", socketPath]) {
-                RedirectStandardOutput = true, RedirectStandardError = true
+            StartInfo = new("dotnet", ["exec", dll, "--serve", "--null-audio", "--socket", socketPath, ..extra ?? []]) {
+                RedirectStandardOutput = true, RedirectStandardError = true, RedirectStandardInput = true
             }
         };
         host.OutputDataReceived += (_, e) => Capture(e.Data);

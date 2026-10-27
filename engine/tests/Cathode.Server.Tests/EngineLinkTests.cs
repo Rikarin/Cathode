@@ -101,9 +101,13 @@ public sealed class EngineLinkTests : IAsyncDisposable {
             && (await client.GetFromJsonAsync<SystemInfo>("/api/v1/system", Token))!.Engine.Connected
         );
 
-        var resync = host.Received.Skip(before).ToList();
-        Assert.Contains(resync, static m => m is { Type: IpcTypes.SetMidi, FollowClock: true });
-        Assert.Contains(resync, static m => m is { Type: IpcTypes.SetTuner, Enabled: true });
+        // The resync queues its commands; Connected only says the handlers ran, not that the host has read them yet.
+        List<IpcMessage> Resync() => host.Received.Skip(before).ToList();
+        await ServerFixture.Eventually(
+            () => Resync().Exists(static m => m is { Type: IpcTypes.SetMidi, FollowClock: true })
+                && Resync().Exists(static m => m is { Type: IpcTypes.SetTuner, Enabled: true }),
+            () => $"the host received {string.Join(", ", Resync().Select(static m => m.Type))}"
+        );
     }
 
     static async Task Ok(Task<HttpResponseMessage> request) {

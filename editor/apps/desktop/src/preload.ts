@@ -9,10 +9,27 @@ contextBridge.exposeInMainWorld('cathode', {
   onOpenSettings: (listener: () => void) => {
     ipcRenderer.on('cathode:openSettings', () => listener());
   },
+  onQuit: (mayQuit: () => boolean | Promise<boolean>) => {
+    ipcRenderer.on('cathode:mayQuit', async (_event, id: number) => {
+      let ok = true;
+      try {
+        ok = (await mayQuit()) !== false;
+      } catch {
+        // an editor that cannot answer does not keep the app open
+      }
+
+      ipcRenderer.send('cathode:mayQuit:reply', id, ok);
+    });
+    ipcRenderer.send('cathode:mayQuit:ready');
+  },
   connection: () => ipcRenderer.invoke('cathode:connection'),
   target: () => ipcRenderer.invoke('cathode:target'),
   setTarget: (target: unknown) => ipcRenderer.invoke('cathode:setTarget', target),
   sidecars: () => ipcRenderer.invoke('cathode:sidecars'),
+  onSidecars: (listener: (statuses: unknown) => void) => {
+    ipcRenderer.on('cathode:sidecars', (_event, statuses: unknown) => listener(statuses));
+  },
+  logs: () => ipcRenderer.invoke('cathode:sidecars:logs'),
   network: {
     status: () => ipcRenderer.invoke('cathode:network:status'),
     apply: (network: unknown) => ipcRenderer.invoke('cathode:network:apply', network)

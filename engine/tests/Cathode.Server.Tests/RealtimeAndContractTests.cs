@@ -1,4 +1,6 @@
 using Cathode.Contracts;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using System.Net.Http.Json;
 using System.Net.WebSockets;
 using System.Text;
@@ -23,6 +25,24 @@ public sealed class RealtimeAndContractTests : IAsyncLifetime {
     public async ValueTask DisposeAsync() {
         client.Dispose();
         await server.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task Stopping_the_server_closes_its_websockets_with_a_close_frame() {
+        using var socket = await server.Server.CreateWebSocketClient()
+            .ConnectAsync(new(server.Server.BaseAddress, "ws"), Token);
+        var buffer = new byte[64 * 1024];
+
+        // A launcher's stop (SIGTERM, or the desktop app closing standard input) must not wait on open sockets.
+        server.Services.GetRequiredService<IHostApplicationLifetime>().StopApplication();
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        deadline.CancelAfter(TimeSpan.FromSeconds(10));
+        WebSocketReceiveResult result;
+        do {
+            result = await socket.ReceiveAsync(buffer, deadline.Token);
+        } while (result.MessageType != WebSocketMessageType.Close);
+
+        Assert.Equal(WebSocketCloseStatus.NormalClosure, result.CloseStatus);
     }
 
     [Fact]

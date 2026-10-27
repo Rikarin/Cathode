@@ -91,7 +91,12 @@ export const test = base.extend<{
       }
     });
     await use(app);
-    await app.close();
+    // Quitting asks about unsaved edits, and Playwright would dismiss the question, keeping the app open: discard them.
+    for (const page of app.windows()) {
+      page.on('dialog', dialog => void dialog.accept().catch(() => undefined));
+    }
+
+    await app.close().catch(() => undefined); // a test may have killed it
     rmSync(scratch, { recursive: true, force: true });
   },
   window: async ({ app }, use) => {

@@ -55,6 +55,38 @@ test('New preset asks before discarding unsaved edits, as loading does', async (
   await expect(editor.block('Drive', 'drive1')).toHaveCount(0);
 });
 
+test('quitting asks before discarding unsaved edits', async ({ app, window, editor }) => {
+  await editor.addBlock(2, 2, 'Drive');
+  const asked: string[] = [];
+
+  // Cancel: the app stays, edits and all.
+  window.once('dialog', dialog => {
+    asked.push(dialog.message());
+    void dialog.dismiss();
+  });
+  await app.evaluate(({ app }) => app.quit());
+  await expect.poll(() => asked).toHaveLength(1);
+  expect(asked[0]).toMatch(/has unsaved changes\. Discard them and quit\?$/);
+  await expect(editor.block('Drive', 'drive1')).toBeVisible();
+
+  // Closing the window quits too, except on macOS: it asks the same.
+  if (process.platform !== 'darwin') {
+    window.once('dialog', dialog => {
+      asked.push(dialog.message());
+      void dialog.dismiss();
+    });
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close());
+    await expect.poll(() => asked).toHaveLength(2);
+    await expect(editor.block('Drive', 'drive1')).toBeVisible();
+  }
+
+  // OK: it quits.
+  window.once('dialog', dialog => void dialog.accept());
+  const closed = app.waitForEvent('close');
+  await app.evaluate(({ app }) => app.quit());
+  await closed;
+});
+
 test('⌘S on a new preset asks for its name, then saves it in place', async ({ window, editor }) => {
   await editor.addBlock(2, 2, 'Drive');
   await editor.grid.press('ControlOrMeta+s');

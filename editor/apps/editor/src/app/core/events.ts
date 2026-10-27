@@ -69,7 +69,9 @@ export class EventStream {
 
   /** The most recent telemetry frame (null until the first arrives). Not a signal, on purpose. */
   latest: Telemetry | null = null;
+  /** When {@link latest} arrived (`performance.now()`), and when the socket last connected: telemetry is late after. */
   latestAt = 0;
+  connectedAt = 0;
 
   /**
    * Block `block`'s meter `meter` from the latest telemetry frame (`peak`, its output peak, linear; or one of the
@@ -155,6 +157,7 @@ export class EventStream {
 
     if (message.type === 'connected') {
       this.attempts = 0;
+      this.connectedAt = performance.now();
       this.status.set('open');
       this.connected$.next();
     } else if (message.type === 'resync') {

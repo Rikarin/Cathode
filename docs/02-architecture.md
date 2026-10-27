@@ -413,6 +413,7 @@ Live state outside the preset has events of its own, which carry the current `re
 ### 7.1 Shell
 - **Electron main:**
   - spawns and supervises `cathode-host` and `cathode-server` (sidecars bundled per OS), with health checks and restart
+  - gives each sidecar its standard input as a pipe, its lifeline: the OS closes it however the app ends, and the sidecar then stops cleanly (`--watch-stdin`, `Cathode:WatchStdin`), so none outlives a crash or a force quit
   - can instead connect to a remote server (headless rig) by URL and token
   - provides native file dialogs, auto-update and crash reporting
   - has contextIsolation on and nodeIntegration off; a minimal preload exposes `window.cathode.{pickFile, revealPath, version}`
