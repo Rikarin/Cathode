@@ -226,6 +226,64 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task A_pasted_block_is_placed_with_its_channels_and_assets_as_one_undo_step() {
+        var ir = new MemoryStream();
+        WavFile.Write(
+            ir,
+            new(48_000, [Signals.Noise(256, 1).Select(static (v, i) => v * MathF.Exp(-i / 40f)).ToArray()])
+        );
+        var irAsset = await Upload("cab.wav", ir.ToArray());
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 2, 1));
+        var before = await Live();
+
+        var placed = await Post(
+            "/api/v1/live/blocks",
+            new AddBlockRequest(
+                "cab",
+                2,
+                4,
+                Channels: new() { ["A"] = new() { ["m2mute"] = 0 }, ["B"] = new() { ["m2mute"] = 1 } },
+                Assets: new() { ["slot1"] = irAsset.Ref, ["slot2"] = "sha256:gone", ["nope"] = irAsset.Ref }
+            )
+        );
+        await ServerFixture.Eventually(() => server.Graph?.SlotOf("cab1") >= 0);
+        var undone = await Post("/api/v1/live/undo");
+
+        var cab = placed.Preset.Blocks.Single(static b => b.Id == "cab1");
+        Assert.Equal(0, cab.Channels["A"]["m2mute"]);
+        Assert.Equal(1, cab.Channels["B"]["m2mute"]);
+        // An asset that is gone, or a slot the block does not have, is left out rather than failing the paste.
+        Assert.Equal(new Dictionary<string, string> { ["slot1"] = irAsset.Ref }, cab.Assets);
+        // One undo takes the whole paste back, and nothing before it.
+        Assert.Equal(before.Preset.Blocks.Select(static b => b.Id), undone.Preset.Blocks.Select(static b => b.Id));
+        Assert.True(undone.CanUndo);
+
+        using var badParam = await client.PostAsJsonAsync(
+            "/api/v1/live/blocks",
+            new AddBlockRequest("cab", 2, 4, Channels: new() { ["A"] = new() { ["nope"] = 1 } }),
+            Token
+        );
+        Assert.Equal(HttpStatusCode.BadRequest, badParam.StatusCode);
+        Assert.DoesNotContain((await Live()).Preset.Blocks, static b => b.Id == "cab1");
+    }
+
+    [Fact]
+    public async Task A_copied_input_reads_a_free_hardware_input_rather_than_its_originals() {
+        var original = (await Live()).Preset.Blocks.First(static b => b.Type == BuiltInTypes.Input);
+        var settings = original.Channels.Count > 0
+            ? original.Channels
+            : new() { ["A"] = new() { ["source"] = 0 } };
+
+        var placed = await Post(
+            "/api/v1/live/blocks",
+            new AddBlockRequest(BuiltInTypes.Input, 3, 0, Channels: settings)
+        );
+
+        var copy = placed.Preset.Blocks.Single(b => b.Type == BuiltInTypes.Input && b.Id != original.Id);
+        Assert.All(copy.Channels.Values, static c => Assert.True(c.GetValueOrDefault("source") > 0));
+    }
+
+    [Fact]
     public async Task A_cab_grid_pack_uploads_into_a_cab_slot_and_plays_as_its_ir_pack() {
         var ir = new MemoryStream();
         WavFile.Write(

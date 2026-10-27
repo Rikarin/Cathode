@@ -271,7 +271,7 @@ describe('GridEditor drop, paste and wire', () => {
       channelOf: () => 'A',
       valueOf: () => undefined,
       /** Places a block like the Server: the answer holds it, numbered after its type, replacing a shunt there. */
-      addBlock: (type: string, row: number, column: number) => {
+      addBlock: (type: string, row: number, column: number, settings?: { channels: unknown; assets: unknown }) => {
         const n = (counts.get(type) ?? 8) + 1;
         counts.set(type, n);
         preset.update(p => ({
@@ -281,25 +281,16 @@ describe('GridEditor drop, paste and wire', () => {
             block(`${type}${n}`, type, row, column)
           ]
         }));
-        return record(`add ${type} ${row}:${column}`);
+        const placed = settings ? ` ${JSON.stringify(settings.channels)} ${JSON.stringify(settings.assets)}` : '';
+        return record(`add ${type} ${row}:${column}${placed}`);
       },
       moveBlock: (id: string, row: number, column: number) => record(`move ${id} ${row}:${column}`),
       dropBlock: (id: string, target: string, mode: string) => record(`${mode} ${id} ${target}`),
       removeBlock: (id: string) => record(`remove ${id}`),
       addCable: (from: string, to: string) => record(`cable ${from}>${to}`),
       removeCable: (from: string, to: string) => record(`uncable ${from}>${to}`),
-      setAsset: (id: string, slot: string, asset: string) => record(`asset ${id} ${slot}=${asset}`),
       pasteSettings: (id: string, type: string, channels: unknown, assets: unknown) =>
-        record(`settings ${id} ${type} ${JSON.stringify(channels)} ${JSON.stringify(assets)}`),
-      mutate: (call: (client: unknown) => Promise<unknown>) => {
-        const client = {
-          PATCH: (
-            path: string,
-            init: { params: { path: { id: string }; query: { channel: string } }; body: unknown }
-          ) => record(`params ${init.params.path.id} ${init.params.query.channel} ${JSON.stringify(init.body)}`)
-        };
-        return call(client).then(() => true);
-      }
+        record(`settings ${id} ${type} ${JSON.stringify(channels)} ${JSON.stringify(assets)}`)
     };
     const imported: { id: string; type: string }[] = [];
     const blockPresets = {
@@ -400,12 +391,12 @@ describe('GridEditor drop, paste and wire', () => {
       expect(calls).toEqual(['move drive1 0:2']);
     });
 
-    it('copies it with ⌥: a new block of its type with its parameters on every channel and its assets', async () => {
+    it('copies it with ⌥: one call places a block of its type with its parameters and its assets', async () => {
       const { cell, settle, calls, live } = render();
       dropBlock(cell(0, 3), 'cab1', { altKey: true });
       await settle();
 
-      expect(calls).toEqual(['add cab 0:3', 'params cab9 A {"mic":2}', 'asset cab9 ir=ir-42']);
+      expect(calls).toEqual(['add cab 0:3 {"A":{"mic":2}} {"ir":"ir-42"}']);
       expect(live.selectedId()).toBe('cab9');
     });
 
@@ -414,7 +405,7 @@ describe('GridEditor drop, paste and wire', () => {
       dropBlock(cell(0, 3), 'drive1', { altKey: true });
       await settle();
 
-      expect(calls).toEqual(['add drive 0:3', 'params drive9 A {"gain":7,"tone":4}', 'params drive9 B {"gain":3}']);
+      expect(calls).toEqual(['add drive 0:3 {"A":{"gain":7,"tone":4},"B":{"gain":3}} {}']);
     });
 
     it('swaps it with the block it is dropped on, and replaces that block with ⌘ or Ctrl', async () => {
@@ -530,7 +521,7 @@ describe('GridEditor drop, paste and wire', () => {
       press('v', { metaKey: true });
       await settle();
 
-      expect(calls).toEqual(['add cab 0:3', 'params cab9 A {"mic":2}', 'asset cab9 ir=ir-42']);
+      expect(calls).toEqual(['add cab 0:3 {"A":{"mic":2}} {"ir":"ir-42"}']);
       expect(live.selectedId()).toBe('cab9');
     });
 
@@ -543,7 +534,7 @@ describe('GridEditor drop, paste and wire', () => {
       press('v', { metaKey: true });
       await settle();
 
-      expect(calls[0]).toBe('add drive 0:2');
+      expect(calls).toEqual(['add drive 0:2 {"A":{"gain":7,"tone":4},"B":{"gain":3}} {}']);
     });
 
     it('pastes the settings, every channel, onto a block of the same type', async () => {
@@ -579,7 +570,7 @@ describe('GridEditor drop, paste and wire', () => {
       press('v', { metaKey: true });
       await settle();
 
-      expect(calls.slice(0, 2)).toEqual(['remove drive1', 'add drive 0:3']);
+      expect(calls).toEqual(['remove drive1', 'add drive 0:3 {"A":{"gain":7,"tone":4},"B":{"gain":3}} {}']);
     });
 
     it('copies neither the grid Input nor a shunt', async () => {

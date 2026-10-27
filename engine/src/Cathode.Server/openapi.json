@@ -3659,8 +3659,31 @@
               "null",
               "string"
             ]
+          },
+          "channels": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "number",
+                "format": "float"
+              }
+            }
+          },
+          "assets": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
           }
-        }
+        },
+        "description": "A new block of \u0060Type\u0060 in a cell. \u0060Channels\u0060 and \u0060Assets\u0060, a pasted or copied block\u0027s settings,\nare set as it is placed: one edit and one undo step. An Input keeps the free hardware input it is given."
       },
       "AllScenesRequest": {
         "type": "object",

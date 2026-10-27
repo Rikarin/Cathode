@@ -1653,6 +1653,10 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /**
+     * @description A new block of `Type` in a cell. `Channels` and `Assets`, a pasted or copied block's settings,
+     *     are set as it is placed: one edit and one undo step. An Input keeps the free hardware input it is given.
+     */
     AddBlockRequest: {
       type: string;
       /** Format: int32 */
@@ -1660,6 +1664,14 @@ export interface components {
       /** Format: int32 */
       column: number;
       id?: null | string;
+      channels?: null | {
+        [key: string]: {
+          [key: string]: number;
+        };
+      };
+      assets?: null | {
+        [key: string]: string;
+      };
     };
     /** @description Sets a block's bypass and/or channel in every scene; null leaves that part alone. */
     AllScenesRequest: {

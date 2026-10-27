@@ -147,30 +147,61 @@ public sealed partial class LiveRig(
                     throw RigException.Conflict($"Block id '{id}' is taken.");
                 }
 
+                var added = new PresetBlock {
+                    Id = id,
+                    Type = request.Type,
+                    Row = request.Row,
+                    Column = request.Column,
+                    Channels = request.Channels is { } channels ? NewBlockChannels(request.Type, channels) : [],
+                    Assets = request.Assets is { } wanted ? FittingAssets(request.Type, wanted) : []
+                };
+
                 // A new Input takes the first hardware input no other Input reads.
                 var source = request.Type == BuiltInTypes.Input ? FreeSource(preset) : 0;
 
-                await StructuralAsync(p => PlaceNewBlock(p, request, id, source, info.Channels));
+                await StructuralAsync(p => PlaceNewBlock(p, added, source, info.Channels));
                 return Changed("blockAdded", id);
             }
         );
 
     /// <summary>
+    ///     Settings for a new block, sanitized; an Input's source is left out, since it reads the free input it is
+    ///     given rather than the one its original reads.
+    /// </summary>
+    Dictionary<string, Dictionary<string, float>> NewBlockChannels(
+        string type,
+        Dictionary<string, Dictionary<string, float>> requested
+    ) {
+        if (requested.Count == 0) {
+            return [];
+        }
+
+        var descriptor = catalog.Descriptor(type) ?? throw new RigException(400, $"A {type} has no parameters.");
+        var channels = SanitizeChannels(descriptor, requested);
+        if (type == BuiltInTypes.Input) {
+            foreach (var values in channels.Values) {
+                values.Remove(SourceParam);
+            }
+        }
+
+        return channels;
+    }
+
+    /// <summary>
     ///     Adds a new block in its cell, reading hardware input <paramref name="source" /> when above 0. Dropping a
     ///     block onto a shunt replaces it and keeps its cables, as on the Axe-Fx.
     /// </summary>
-    static void PlaceNewBlock(Preset p, AddBlockRequest request, string id, int source, int channels) {
-        var occupant = p.Blocks.Find(b => b.Row == request.Row && b.Column == request.Column);
+    static void PlaceNewBlock(Preset p, PresetBlock added, int source, int channels) {
+        var occupant = p.Blocks.Find(b => b.Row == added.Row && b.Column == added.Column);
         if (occupant is not null && occupant.Type != BuiltInTypes.Shunt) {
-            throw RigException.Conflict($"Cell ({request.Row},{request.Column}) holds '{occupant.Id}'.");
+            throw RigException.Conflict($"Cell ({added.Row},{added.Column}) holds '{occupant.Id}'.");
         }
 
         if (occupant is not null) {
             p.Blocks.Remove(occupant);
-            Repoint(p, occupant.Id, id);
+            Repoint(p, occupant.Id, added.Id);
         }
 
-        var added = new PresetBlock { Id = id, Type = request.Type, Row = request.Row, Column = request.Column };
         if (source > 0) {
             SetSource(added, source, channels);
         }
