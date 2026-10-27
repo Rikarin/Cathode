@@ -15,10 +15,10 @@ interface Call {
   reject(error: unknown): void;
 }
 
-function state(revision: number, name = 'Preset'): LiveState {
+function state(revision: number, name = 'Preset', preset: Record<string, unknown> = {}): LiveState {
   return {
     revision,
-    preset: { id: 'p1', name, blocks: [], modifiers: [], scenes: [] },
+    preset: { id: 'p1', name, blocks: [], modifiers: [], scenes: [], perform: [], footswitchOverrides: [], ...preset },
     activeScene: 0
   } as unknown as LiveState;
 }
@@ -194,6 +194,97 @@ describe('LiveStore after a reconnection', () => {
     await done;
 
     expect(live.state()?.revision).toBe(10);
+  });
+});
+
+describe('LiveStore list replacements (optimistic concurrency)', () => {
+  const live$ = '/api/v1/live';
+  const modifiers$ = '/api/v1/live/modifiers';
+  const lfo = { block: 'amp1', param: 'gain', source: 'lfo1' };
+  const other = { block: 'delay1', param: 'mix', source: 'exp1' };
+  const changed = new ApiError(412, 'The rig changed (revision 6, expected 5). Reload and try again.');
+
+  async function holding(revision: number, preset: Record<string, unknown> = {}) {
+    const store = setup();
+    const first = store.live.refresh();
+    store.open(live$)[0].resolve(state(revision, 'Preset', preset));
+    await first;
+    return store;
+  }
+
+  it('sends the revision the list was made from as If-Match', async () => {
+    const { live, open } = await holding(5);
+    const done = live.putModifier('amp1', 'gain', lfo as never);
+    const put = open(modifiers$)[0];
+
+    expect(put.init?.headers).toEqual({ 'If-Match': '"5"' });
+    expect(put.init?.body).toEqual([lfo]);
+    put.resolve(state(6, 'Preset', { modifiers: [lfo] }));
+    expect(await done).toBe(true);
+  });
+
+  it('sends the change again on the new revision when something else changed but the list did not', async () => {
+    const { live, open, settle, errors } = await holding(5);
+    const done = live.putModifier('amp1', 'gain', lfo as never);
+    open(modifiers$)[0].reject(changed);
+    await settle();
+    open(live$)[0].resolve(state(6)); // a knob moved elsewhere: modifiers as they were
+    await settle();
+
+    const again = open(modifiers$)[0];
+    expect(again.init?.headers).toEqual({ 'If-Match': '"6"' });
+    again.resolve(state(7, 'Preset', { modifiers: [lfo] }));
+    expect(await done).toBe(true);
+    expect(errors).toEqual([]);
+  });
+
+  it('does not delete what another client added: the change is refused and the user told', async () => {
+    const { live, open, settle, errors } = await holding(5);
+    const done = live.putModifier('amp1', 'gain', lfo as never);
+    open(modifiers$)[0].reject(changed);
+    await settle();
+    open(live$)[0].resolve(state(6, 'Preset', { modifiers: [other] })); // another editor added one
+    await settle();
+
+    expect(open(modifiers$)).toHaveLength(0);
+    expect(await done).toBe(false);
+    expect(errors).toHaveLength(1);
+    expect(live.preset()?.modifiers).toEqual([other]);
+  });
+
+  it('guards the perform page and the footswitch overrides the same way', async () => {
+    const { live, open } = await holding(9);
+    void live.setPerform([]);
+    void live.setFootswitchOverrides([]);
+
+    expect(open('/api/v1/live/perform')[0].init?.headers).toEqual({ 'If-Match': '"9"' });
+    expect(open('/api/v1/live/footswitch-overrides')[0].init?.headers).toEqual({ 'If-Match': '"9"' });
+  });
+});
+
+describe('LiveStore knob drags across a preset change', () => {
+  const live$ = '/api/v1/live';
+  const params$ = '/api/v1/live/blocks/{id}/params';
+
+  it('drops values dragged on a preset that is no longer loaded instead of sending them to the new one', async () => {
+    const { live, open, settle } = setup();
+    const first = live.refresh();
+    open(live$)[0].resolve(state(1));
+    await first;
+
+    live.setParam('amp1', 'A', 'gain', 3);
+    live.setParam('amp1', 'A', 'gain', 4); // queued behind the PATCH in flight
+    expect(open(params$)).toHaveLength(1);
+
+    // A program change loads another preset while the first PATCH is on the wire.
+    void live.load('p2');
+    open('/api/v1/live/preset/{id}')[0].resolve(state(2, 'Other', { id: 'p2' }));
+    await settle();
+    open(params$)[0].resolve(state(3, 'Other', { id: 'p2' }));
+    await settle();
+
+    expect(open(params$)).toHaveLength(0);
+    expect(live.overrides().size).toBe(0);
   });
 });
 
