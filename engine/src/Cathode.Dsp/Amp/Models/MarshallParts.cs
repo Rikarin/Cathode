@@ -195,21 +195,23 @@ public static class MarshallParts {
     ///     mixing node). The guitar plays into the bright channel's high input (34k: both 68k stoppers in parallel, 1M
     ///     at the jack); switch 1 jumpers it into the normal channel as well, switch 2 moves it to the normal channel
     ///     alone. An idle channel's grid rests on its jack's 1M, and its volume still loads the mixing node, as in the
-    ///     amp.
+    ///     amp. A tremolo amp (1959T) loads the normal channel's volume wiper with its shunt network,
+    ///     <paramref name="loadCap" /> in series with <paramref name="loadResistor" /> to ground (none where either is
+    ///     0).
     /// </summary>
-    public static NetworkStageDesign TwoChannelInput(double supply, ChannelDesign bright, ChannelDesign normal) {
+    public static NetworkStageDesign TwoChannelInput(
+        double supply,
+        ChannelDesign bright,
+        ChannelDesign normal,
+        double loadCap = 0,
+        double loadResistor = 0
+    ) {
         var net = new StageNetlist();
         var (rail, mix) = (net.Node(), net.Node());
         net.Supply(rail, supply);
 
-        // The bright channel's input is closed unless switch 2 alone is on; the normal channel's when either is.
-        var brightJack = net.Node();
-        net.SwitchedResistor(net.Input, brightJack, Closed, Open, SwitchRole.Switch2);
-        net.SwitchedResistor(net.Input, brightJack, 0, Closed, SwitchRole.Switch1);
-        var normalJack = net.Node();
-        net.SwitchedResistor(net.Input, normalJack, 0, Closed, SwitchRole.Switch1);
-        net.SwitchedResistor(net.Input, normalJack, 0, Closed, SwitchRole.Switch2);
-        foreach (var (channel, jack) in new[] { (bright, brightJack), (normal, normalJack) }) {
+        var (brightJack, normalJack) = ChannelJacks(net);
+        foreach (var (channel, jack, loaded) in new[] { (bright, brightJack, false), (normal, normalJack, true) }) {
             var (grid, plate, cathode) = (net.Node(), net.Node(), net.Node());
             net.Resistor(jack, StageNetlist.Ground, 1e6);
             net.Resistor(jack, grid, 34e3);
@@ -217,11 +219,32 @@ public static class MarshallParts {
             net.Resistor(cathode, StageNetlist.Ground, channel.CathodeResistor);
             net.Capacitor(cathode, StageNetlist.Ground, channel.CathodeBypass);
             net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-            Volume(net, plate, mix, channel);
+            var wiper = Volume(net, plate, mix, channel);
+            if (loaded && loadCap > 0 && loadResistor > 0) {
+                var foot = net.Node();
+                net.Capacitor(wiper, foot, loadCap);
+                net.Resistor(foot, StageNetlist.Ground, loadResistor);
+            }
         }
 
         net.Output = mix;
         return new("V1", net);
+    }
+
+    /// <summary>
+    ///     The two channels' high inputs of a four-input amp (a two-channel Marshall, a Hiwatt), as nodes the guitar
+    ///     reaches through a closed contact: the first channel's unless switch 2 alone is on, the second's while
+    ///     either switch is (switch 1 jumpers the channels, switch 2 plays the second alone). Returns the first
+    ///     channel's jack, then the second's.
+    /// </summary>
+    public static (int First, int Second) ChannelJacks(StageNetlist net) {
+        var first = net.Node();
+        net.SwitchedResistor(net.Input, first, Closed, Open, SwitchRole.Switch2);
+        net.SwitchedResistor(net.Input, first, 0, Closed, SwitchRole.Switch1);
+        var second = net.Node();
+        net.SwitchedResistor(net.Input, second, 0, Closed, SwitchRole.Switch1);
+        net.SwitchedResistor(net.Input, second, 0, Closed, SwitchRole.Switch2);
+        return (first, second);
     }
 
     /// <summary>
@@ -280,9 +303,10 @@ public static class MarshallParts {
     }
 
     /// <summary>
-    ///     A channel's coupling cap, volume (with its bright cap) and mixing resistor (with its bypass), plate to mix.
+    ///     A channel's coupling cap, volume (with its bright cap) and mixing resistor (with its bypass), plate to mix;
+    ///     returns the volume's wiper.
     /// </summary>
-    static void Volume(StageNetlist net, int plate, int mix, ChannelDesign channel) {
+    static int Volume(StageNetlist net, int plate, int mix, ChannelDesign channel) {
         var top = net.Node();
         net.Capacitor(plate, top, channel.CouplingCap);
         var wiper = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), channel.Volume);
@@ -294,6 +318,8 @@ public static class MarshallParts {
         if (channel.MixingBypass > 0) {
             net.Capacitor(wiper, mix, channel.MixingBypass);
         }
+
+        return wiper;
     }
 
     /// <summary>
