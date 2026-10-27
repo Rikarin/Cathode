@@ -326,9 +326,9 @@
       },
       "targets": {
         "esr": 0.9,
-        "mrstft": 1.55
+        "mrstft": 1.6
       },
-      "notes": "Clone (stream F3). The ODS 97's clean channel (a traced 1997 ODS 100; the clone's circuit is not stated). Knobs not stated: gain, treble, bass and master fitted (ToleranceFit, 61 renders; treble and master end at their bounds). ESR (pre-emphasised) 1.110 and MRSTFT 1.756 at noon, 0.840 and 1.446 fitted."
+      "notes": "Clone (stream F3). The ODS 97's clean channel (a traced 1997 ODS 100; the clone's circuit is not stated). Knobs not stated: gain, treble, bass and master fitted (ToleranceFit, 61 renders; treble and master end at their bounds). ESR (pre-emphasised) 1.110 and MRSTFT 1.756 at noon, 0.840 and 1.446 fitted. MRSTFT target 1.55 to 1.60 after the datasheet tube refits (#86): 1.590 at the fitted knobs; a refit reaches only 1.565."
     },
     {
       "id": "tl-dumble-clone-medium",
@@ -904,9 +904,9 @@
       },
       "targets": {
         "esr": 0.55,
-        "mrstft": 1.15
+        "mrstft": 1.17
       },
-      "notes": "Laney GH100L drive channel (stream F2); knobs not stated, so gain, drive (control1) and master were fitted with `fit` at +8 dBu; Lo is the Low input (switch1) (docs/06 §3.2 as built)."
+      "notes": "Laney GH100L drive channel (stream F2); knobs not stated, so gain, drive (control1) and master were fitted with `fit` at +8 dBu; Lo is the Low input (switch1) (docs/06 §3.2 as built). MRSTFT target 1.15 to 1.17 after the datasheet tube refits (#86): 1.157 at the fitted knobs, and a refit does not improve it (ESR rises to 0.623)."
     },
     {
       "id": "pel-laney-lo-crunch",
@@ -931,9 +931,9 @@
       "circuit": {
         "type": "Laney GH100L",
         "params": {
-          "gain": 7.5,
-          "control1": 2,
-          "master": 4.1,
+          "gain": 5.05,
+          "control1": 2.96,
+          "master": 5.83,
           "switch1": 1
         }
       },
@@ -941,7 +941,7 @@
         "esr": 1.15,
         "mrstft": 1.45
       },
-      "notes": "Laney GH100L drive channel (stream F2); knobs not stated, so gain, drive (control1) and master were fitted with `fit` at +8 dBu; Lo is the Low input (switch1) (docs/06 §3.2 as built)."
+      "notes": "Laney GH100L drive channel (stream F2); knobs not stated, so gain, drive (control1) and master were fitted with `fit` at +8 dBu; Lo is the Low input (switch1) (docs/06 §3.2 as built). Refitted after the 12AX7/12AT7/EL34 datasheet refits (#86) moved the voicing: gain 7.5, drive 2, master 4.1 gave ESR (pre-emphasised) 1.181 against the target 1.15; refitted 1.012 and MRSTFT 1.302."
     },
     {
       "id": "pel-laney-hi-mid",
