@@ -610,9 +610,7 @@ public sealed partial class LiveRig {
             throw;
         }
 
-        coalesceKey = null;
-        Remember(undo, before);
-        redo.Clear();
+        history.Push(before);
     }
 
     static void CheckShape(Preset next) {

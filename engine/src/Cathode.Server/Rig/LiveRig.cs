@@ -25,17 +25,13 @@ public sealed partial class LiveRig(
     EventHub hub,
     GlobalStore globals
 ) : IDisposable {
-    const int UndoLimit = 100;
-
     readonly SemaphoreSlim gate = new(1, 1);
-    readonly List<Snapshot> undo = [];
-    readonly List<Snapshot> redo = [];
+    readonly UndoHistory history = new(TimeProvider.System);
     Preset preset = Preset.CreateDefault();
     int activeScene;
     long revision;
     bool dirty;
     int generation;
-    string? coalesceKey;
     string compiledOversampling = "minimum";
 
     /// <summary>
@@ -132,9 +128,9 @@ public sealed partial class LiveRig(
             }
         );
 
-    public Task<LiveState> UndoAsync() => Locked(() => StepAsync(undo, redo, "undo"));
+    public Task<LiveState> UndoAsync() => Locked(() => StepAsync(history.Undo, "undo"));
 
-    public Task<LiveState> RedoAsync() => Locked(() => StepAsync(redo, undo, "redo"));
+    public Task<LiveState> RedoAsync() => Locked(() => StepAsync(history.Redo, "redo"));
 
     public Task<LiveState> AddBlockAsync(AddBlockRequest request, long? expected) =>
         Locked(async () => {
@@ -708,9 +704,7 @@ public sealed partial class LiveRig(
             throw;
         }
 
-        coalesceKey = null;
-        Remember(undo, before);
-        redo.Clear();
+        history.Push(before);
     }
 
     async Task ReplaceAsync(Preset next, int scene = 0) {
@@ -729,21 +723,16 @@ public sealed partial class LiveRig(
                 : e;
         }
 
-        undo.Clear();
-        redo.Clear();
-        coalesceKey = null;
+        history.Clear();
         dirty = false;
     }
 
-    async Task<LiveState> StepAsync(List<Snapshot> from, List<Snapshot> to, string eventType) {
-        if (from.Count == 0) {
+    async Task<LiveState> StepAsync(Func<Func<UndoSnapshot>, UndoSnapshot?> step, string eventType) {
+        if (step(Capture) is not { } target) {
             throw RigException.Conflict($"Nothing to {eventType}.");
         }
 
-        Remember(to, Capture());
-        Restore(from[^1]);
-        from.RemoveAt(from.Count - 1);
-        coalesceKey = null;
+        Restore(target);
         await SyncGraphAsync();
         return Changed(eventType);
     }
@@ -810,27 +799,15 @@ public sealed partial class LiveRig(
     }
 
     /// <summary>
-    ///     Records an undo point unless this edit continues the previous one (e.g. a knob being dragged).
+    ///     Records an undo point unless this edit continues the previous one (e.g. a knob being dragged); the preset
+    ///     is serialised only when a point is recorded.
     /// </summary>
-    void PushUndo(string? key) {
-        if (key is null || key != coalesceKey) {
-            Remember(undo, Capture());
-            redo.Clear();
-        }
+    void PushUndo(string? key) => history.Record(key, Capture);
 
-        coalesceKey = key;
-    }
+    UndoSnapshot Capture() =>
+        new(JsonSerializer.SerializeToUtf8Bytes(preset, ContractsJsonContext.Default.Preset), activeScene);
 
-    static void Remember(List<Snapshot> stack, Snapshot snapshot) {
-        stack.Add(snapshot);
-        if (stack.Count > UndoLimit) {
-            stack.RemoveAt(0);
-        }
-    }
-
-    Snapshot Capture() => new(JsonSerializer.Serialize(preset, ContractsJsonContext.Default.Preset), activeScene);
-
-    void Restore(Snapshot snapshot) {
+    void Restore(UndoSnapshot snapshot) {
         preset = JsonSerializer.Deserialize(snapshot.Json, ContractsJsonContext.Default.Preset)!;
         activeScene = snapshot.ActiveScene;
         foreach (var id in held.Keys.Where(id => preset.Blocks.TrueForAll(b => b.Id != id))) {
@@ -853,7 +830,7 @@ public sealed partial class LiveRig(
 
     LiveState State() {
         var copy = JsonSerializer.Deserialize(
-            JsonSerializer.Serialize(preset, ContractsJsonContext.Default.Preset),
+            JsonSerializer.SerializeToUtf8Bytes(preset, ContractsJsonContext.Default.Preset),
             ContractsJsonContext.Default.Preset
         )!;
         return new(
@@ -861,8 +838,8 @@ public sealed partial class LiveRig(
             activeScene,
             revision,
             dirty,
-            undo.Count > 0,
-            redo.Count > 0,
+            history.CanUndo,
+            history.CanRedo,
             held.IsEmpty ? null : new(held, StringComparer.Ordinal),
             Muted
         );
@@ -938,6 +915,4 @@ public sealed partial class LiveRig(
     ///     Raised (inside the rig's lock) for every change, like the WebSocket events: for in-process listeners.
     /// </summary>
     public event Action<RigEvent>? Changes;
-
-    sealed record Snapshot(string Json, int ActiveScene);
 }
