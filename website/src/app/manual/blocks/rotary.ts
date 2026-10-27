@@ -32,7 +32,7 @@ Cathode builds that physically: the signal is split by a crossover into horn and
     mix: `The balance between dry and rotary sound, at constant power. A real rotary speaker is 100 % wet; lower values blend in the unmoving dry signal for a subtler effect.`,
     level: `The block's output volume.`,
     balance: `Turns the opposite side down to shift the block's output left or right.`,
-    tempo: `Locks the horn's speed to the preset's tempo: one rotation per note value you pick. The drum keeps the speed ratio it has to the horn at the selected speed. When set, it replaces both the Slow and the Fast horn speed, so switching between Slow and Fast no longer changes the horn (only the drum's ratio); Brake still stops both rotors.`,
+    tempo: `Locks the rotors to the preset's tempo: at Fast the horn turns once per note value you pick. Slow stays slower by the ratio of Horn Slow to Horn Fast, and the drum keeps the speed ratio it has to the horn at the selected speed, so the Speed switch works as without Tempo. Brake still stops both rotors.`,
     rotorLength: `Scales the horn's radius. A longer horn travels further on each turn, so it gives more Doppler pitch wobble; a shorter one gives less.`,
     drumSpread: `The angle between the two bass-drum microphones. 0° makes the drum mono; wider angles spread it.`,
     micDistance: `How far the mics are from the rotors. At 100 % they are far away and the movement is smooth and even. Closer, the geometry of a near mic takes over: the pass right in front of the mic is louder and the pitch sweep turns lopsided, a more aggressive, close-miked sound.`,

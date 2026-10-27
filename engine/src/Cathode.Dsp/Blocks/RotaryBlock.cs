@@ -16,6 +16,7 @@ namespace Cathode.Dsp.Blocks;
 ///     <para>
 ///         Rotor speed approaches its target exponentially; the acceleration and deceleration times are the time to
 ///         come within 5 % of the new speed (three time constants). With Tempo set, the horn turns once per division
+///         at Fast, and every other speed keeps its ratio to Horn Fast: Slow stays as much slower as Horn Slow is,
 ///         and the drum keeps the ratio its own rates have at that speed. Low Rate Multiplier scales the drum against
 ///         the horn: every drum rate (its Slow, Fast and tempo-locked speeds) is multiplied by it, 1 keeping the rates
 ///         as set.
@@ -238,9 +239,12 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         Params.Advance(fast ? DrumSlow : DrumFast, n);
         var tempo = (int)Params.Current(Tempo);
         if (tempo > 0 && context.Tempo > 0) {
-            var horn = TempoDivisions.Rate(tempo, context.Tempo, hornTarget);
-            drumTarget *= horn / hornTarget;
-            hornTarget = horn;
+            // The fast horn turns once per division; every other rate keeps its ratio to Horn Fast, so Slow and Fast
+            // still switch.
+            var hornFast = (double)Params.Current(HornFast);
+            var locked = TempoDivisions.Rate(tempo, context.Tempo, hornFast) / hornFast;
+            hornTarget *= locked;
+            drumTarget *= locked;
         }
 
         if (speed == Brake) {

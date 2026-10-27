@@ -42,6 +42,30 @@ public class RotaryBlockTests {
         Assert.All(settled, static r => Assert.Equal(6, r.Rate, 0.12));
     }
 
+    [Theory]
+    [InlineData(1f, 4.0)]
+    [InlineData(0f, 4.0 / 6)]
+    public void With_tempo_the_fast_horn_turns_once_per_division_and_slow_keeps_its_ratio(float speed, double expected) {
+        // 1/8 at the renderer's 120 bpm is 4 Hz for Horn Fast (6 Hz); Horn Slow (1 Hz) keeps its sixth of it.
+        using var rotary = Create(
+            (RotaryBlock.Speed, speed),
+            (RotaryBlock.Tempo, 6f),
+            (RotaryBlock.HornSlow, 1f),
+            (RotaryBlock.HornFast, 6f),
+            (RotaryBlock.HornDepth, 0f),
+            (RotaryBlock.AmDepth, 100f),
+            (RotaryBlock.DrumLevel, -80f),
+            (RotaryBlock.Crossover, 200f),
+            (RotaryBlock.Spread, 0f)
+        );
+
+        var output = BlockRender.Mono(rotary, Signals.Sine(Tone, Rate, 8 * 48_000, 0.5f), 64);
+
+        var settled = Revolutions(output).Where(static r => r.Time > 2).ToArray();
+        Assert.NotEmpty(settled);
+        Assert.All(settled, r => Assert.Equal(expected, r.Rate, expected * 0.05));
+    }
+
     [Fact]
     public void Doppler_puts_bessel_sidebands_at_the_rotor_rate() {
         // Horn delay = c - e cos(2 pi fr t): phase modulation with index beta = 2 pi f e, so the sidebands sit at
