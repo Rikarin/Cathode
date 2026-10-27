@@ -460,11 +460,12 @@ sealed class BiasTremolo(BiasTremoloDesign design, PowerAmpDesign power, double 
         var position = table.Position(rate);
         frequency = OscillatorTable.At(table.Rates, position);
         var amplitude = OscillatorTable.At(table.Amplitudes, position);
+
+        // With an Intensity pot the depth turns it; without, the fixed return is scaled by the depth.
+        var (intensity, scale) = Design.Intensity is null ? (1.0, depth) : (depth, 1.0);
         for (var k = 1; k <= target.Length; k++) {
             target[k - 1] = depth > 0 && amplitude > 0
-                ? table.PlateAt(k, position)
-                * Design.Return(k * frequency, Design.Intensity is null ? 1 : depth, power)
-                * (Design.Intensity is null ? depth : 1)
+                ? table.PlateAt(k, position) * Design.Return(k * frequency, intensity, power) * scale
                 : Complex.Zero;
         }
 

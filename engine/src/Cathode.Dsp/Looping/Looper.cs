@@ -296,7 +296,13 @@ public sealed unsafe class Looper : IDisposable {
                 seamLength = 0;
             }
         } else {
-            var next = IsReversed ? index - 1 < start ? end - 1 : index - 1 : index + 1 >= end ? start : index + 1;
+            int next;
+            if (IsReversed) {
+                next = index - 1 < start ? end - 1 : index - 1;
+            } else {
+                next = index + 1 >= end ? start : index + 1;
+            }
+
             var frac = IsReversed ? 0f : (float)(Position - index);
             playLeft = Sample(baseLeft, layerLeft, index, next, frac);
             playRight = Sample(baseRight, layerRight, index, next, frac);

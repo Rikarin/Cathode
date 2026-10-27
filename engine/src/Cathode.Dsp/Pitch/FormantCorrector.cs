@@ -248,7 +248,6 @@ public sealed class FormantCorrector : IDisposable {
         if (plain[0] < SpectralEnvelope.SilencePower || stretched[0] < SpectralEnvelope.SilencePower) {
             Array.Clear(targetK); // silence: no filtering
             Ramp(analysisK, analysisStep);
-            Ramp(synthesisK, synthesisStep);
         } else {
             var error = SpectralEnvelope.Levinson(plain, poly, scratch, targetK);
             Ramp(analysisK, analysisStep);
@@ -256,9 +255,9 @@ public sealed class FormantCorrector : IDisposable {
                 var stretchedError = SpectralEnvelope.Levinson(stretched, poly, scratch, targetK);
                 target = Math.Sqrt(stretchedError / error * (plain[0] / stretched[0]));
             }
-
-            Ramp(synthesisK, synthesisStep);
         }
+
+        Ramp(synthesisK, synthesisStep);
 
         gainStep = (float)((target - gain) / hop);
     }

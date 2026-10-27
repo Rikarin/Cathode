@@ -102,30 +102,33 @@ public sealed record AmpPanel {
     ///     The label of the Circuit Amp parameter <paramref name="id" /> on this panel: its name, null where absent, or
     ///     <paramref name="fallback" /> for a parameter the panel does not cover (the expert parameters).
     /// </summary>
-    public string? Label(string id, string fallback) =>
-        (!HasTubes && TubeOnly.Contains(id)) || (!HasPreampTubes && PreampTubeOnly.Contains(id))
-            ? null
-            : id switch {
-                "gain" => Gain,
-                "bass" => Bass,
-                "middle" => Middle,
-                "treble" => Treble,
-                "presence" => Presence,
-                "depth" => Depth,
-                "cut" => Cut,
-                "master" => Master,
-                "bright" => Bright,
-                "switch1" => Switch1,
-                "switch2" => Switch2,
-                "switch3" => Switch3,
-                "control1" => Control1,
-                "control2" => Control2,
-                "tremrate" => TremoloRate ?? fallback,
-                "tremdepth" => TremoloDepth ?? fallback,
-                ['e', 'q', var band] when band is >= '1' and <= '5' => Equalizer is { } bands
-                    && band - '1' < bands.Count
-                        ? bands[band - '1']
-                        : null,
-                _ => fallback
-            };
+    public string? Label(string id, string fallback) {
+        if ((!HasTubes && TubeOnly.Contains(id)) || (!HasPreampTubes && PreampTubeOnly.Contains(id))) {
+            return null;
+        }
+
+        return id switch {
+            "gain" => Gain,
+            "bass" => Bass,
+            "middle" => Middle,
+            "treble" => Treble,
+            "presence" => Presence,
+            "depth" => Depth,
+            "cut" => Cut,
+            "master" => Master,
+            "bright" => Bright,
+            "switch1" => Switch1,
+            "switch2" => Switch2,
+            "switch3" => Switch3,
+            "control1" => Control1,
+            "control2" => Control2,
+            "tremrate" => TremoloRate ?? fallback,
+            "tremdepth" => TremoloDepth ?? fallback,
+            ['e', 'q', var band] when band is >= '1' and <= '5' => Equalizer is { } bands
+                && band - '1' < bands.Count
+                    ? bands[band - '1']
+                    : null,
+            _ => fallback
+        };
+    }
 }

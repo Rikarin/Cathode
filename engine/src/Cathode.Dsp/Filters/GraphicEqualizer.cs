@@ -190,7 +190,7 @@ public sealed class GraphicEqualizer(bool networks = false) {
                 BiquadType.HighShelf => l.Centers[b] / 1.4142f,
                 _ => l.Centers[b]
             };
-            var bandQ = type == BiquadType.Peak ? proportional ? VariableQ(q, gain) : q : 0.7071f;
+            var bandQ = type != BiquadType.Peak ? 0.7071f : proportional ? VariableQ(q, gain) : q;
             bands[b].Process(io, type, sampleRate, frequency, bandQ, gain, moving[b]);
         }
     }

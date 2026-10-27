@@ -202,7 +202,7 @@ public sealed class LoopStage {
         foreach (var e in elements) {
             if (e.Kind == ElementKind.Resistor) {
                 var on = e.Switch is not { } role || controls.IsOn(role);
-                var ohms = on ? e.Switch is null || e.Value > 0 ? e.Value : 0 : e.OffValue;
+                var ohms = !on ? e.OffValue : e.Switch is null || e.Value > 0 ? e.Value : 0;
                 if (e.Part != PotPart.None) {
                     var fraction = e.Pot.Fraction(controls.Rotation(e.Role));
                     ohms = (e.Part == PotPart.Upper ? 1 - fraction : fraction) * e.Pot.Ohms;

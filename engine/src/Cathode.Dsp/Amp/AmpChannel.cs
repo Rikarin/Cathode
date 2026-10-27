@@ -353,11 +353,10 @@ public sealed class AmpChannel {
         }
 
         var firstGain = Array.FindIndex(stages, static s => s.IsGainStage);
+        var past = firstGain < stackStage ? 1 : 0; // the stack's stage leaves a gap before it
         var target = location switch {
             StackLocation.Pre => 0,
-            StackLocation.Mid => firstGain < 0 || firstGain == stackStage
-                ? 0
-                : firstGain + (firstGain < stackStage ? 1 : 0),
+            StackLocation.Mid => firstGain < 0 || firstGain == stackStage ? 0 : firstGain + past,
             _ => order.Length - 1
         };
         // Remove the stack's stage and insert it at the target position.

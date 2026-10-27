@@ -202,7 +202,7 @@ public sealed class AmpEqualizer {
                 BiquadType.HighShelf => l.Centers[b] / 1.4142f,
                 _ => l.Centers[b]
             };
-            var q = type == BiquadType.Peak ? l.Passive ? GraphicEqualizer.VariableQ(l.Q, gain) : l.Q : 0.7071f;
+            var q = type != BiquadType.Peak ? 0.7071f : l.Passive ? GraphicEqualizer.VariableQ(l.Q, gain) : l.Q;
             coefficients[b] = SvfCoefficients.Design(type, rate, frequency, q, gain);
         }
     }

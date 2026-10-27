@@ -80,7 +80,8 @@ public sealed class ImpulseResponseFile(string path, long length, DateTime writt
                 .Select(c => Truncate(Resampler.Resample(c, Source.SampleRate, sampleRate), shape.MaxLength))
                 .ToArray();
             if (shape.UnitEnergy) {
-                var norm = 1f / MathF.Sqrt(channels.Average(static c => c.Sum(static v => v * v)));
+                var energy = channels.Average(static float (float[] c) => c.Sum(static float (float v) => v * v));
+                var norm = 1f / MathF.Sqrt(energy);
                 foreach (var channel in channels) {
                     for (var i = 0; i < channel.Length; i++) {
                         channel[i] *= norm;
