@@ -17,7 +17,12 @@ prerelease. [`release.yml`](../.github/workflows/release.yml) then:
 2. Builds the headless package on Linux x64 and Linux ARM64 runners (`packaging/headless/build.sh`), installs it on the
    runner with `install.sh` and checks it: the host passes `--self-test`, the services start, the server reports the
    engine connected, the web editor loads and the API refuses a request without the token. Then it uninstalls it.
-3. Publishes a GitHub release with every file and a `SHA256SUMS`, with notes generated from the commits.
+3. Runs the tagged commit's tests: [`engine.yml`](../.github/workflows/engine.yml) (the engine tests on three OSes and
+   the NativeAOT host's self-test) and [`editor.yml`](../.github/workflows/editor.yml) (the generated API client,
+   type-check, lint, unit tests, Storybook and the desktop app's Playwright tests), called as reusable workflows, and
+   checks that the tag points at a commit on master.
+4. Only when all of that passes, publishes a GitHub release with every file and a `SHA256SUMS`, with notes generated
+   from the commits.
 
 Running the workflow by hand (Actions, release, Run workflow) builds everything as workflow artifacts without
 publishing. [`desktop.yml`](../.github/workflows/desktop.yml) still builds the desktop app on every push to master.

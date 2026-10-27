@@ -11,6 +11,11 @@ name: release
 # Every installer builds on its own OS and CPU, since NativeAOT cannot cross-compile. Running the workflow by hand
 # builds them all as workflow artifacts without publishing a release.
 #
+# Nothing is published unless the tagged commit passes the same checks as master: engine.yml (the engine tests on
+# three OSes and the NativeAOT host's self-test on four targets) and editor.yml (the generated API client, type-check,
+# lint, unit tests, Storybook and the Playwright tests of the desktop app) run here as reusable workflows, and the
+# tag must point at a commit on master.
+#
 # Signing is optional. Without secrets, macOS builds are signed ad hoc (Gatekeeper asks users to allow them) and Windows
 # builds are unsigned. Set CSC_LINK (base64 .p12) and CSC_KEY_PASSWORD to sign, and on macOS APPLE_ID,
 # APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID to notarise.
@@ -28,6 +33,30 @@ env:
   CATHODE_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
 
 jobs:
+  # The test gate: the tagged commit's own test workflows. They run beside the builds, and the release waits for both.
+  engine:
+    uses: ./.github/workflows/engine.yml
+
+  editor:
+    uses: ./.github/workflows/editor.yml
+
+  # A release comes from master: a tag on an unmerged branch (or on a commit master has since dropped) is refused.
+  tag:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # origin/master and the history to check ancestry against
+      - name: The tagged commit is on master
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "::error::$TAG points at $GITHUB_SHA, which is not on master; tag a commit on master"
+            exit 1
+          fi
+
   desktop:
     strategy:
       fail-fast: false
@@ -148,7 +177,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [desktop, headless]
+    needs: [engine, editor, tag, desktop, headless]
     runs-on: ubuntu-latest
     permissions:
       contents: write

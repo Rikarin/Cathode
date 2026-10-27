@@ -5,6 +5,9 @@ on:
     branches: [master]
   pull_request:
     paths: ["editor/**", "engine/src/Cathode.Server/openapi.json", ".github/workflows/editor.yml"]
+  # release.yml runs these jobs on the tagged commit and publishes only when they pass. It passes no secrets, so
+  # Chromatic is skipped there.
+  workflow_call:
 
 permissions:
   contents: read

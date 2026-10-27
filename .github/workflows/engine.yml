@@ -5,6 +5,8 @@ on:
     branches: [master]
   pull_request:
     paths: ["engine/**", ".github/workflows/engine.yml"]
+  # release.yml runs these jobs on the tagged commit and publishes only when they pass.
+  workflow_call:
 
 permissions:
   contents: read
