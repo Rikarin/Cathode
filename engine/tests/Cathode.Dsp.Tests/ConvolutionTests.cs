@@ -91,6 +91,7 @@ public class ConvolutionTests {
     }
 
     [Fact]
+    [Trait("Category", "Property")]
     public void Linearity_holds_for_random_signals() =>
         Gen.Float[-1f, 1f]
             .Array[300]

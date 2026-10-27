@@ -5,6 +5,12 @@ on:
     branches: [master]
   pull_request:
     paths: ["editor/**", "engine/src/Cathode.Server/openapi.json", ".github/workflows/editor.yml"]
+  # release.yml runs these jobs on the tagged commit and publishes only when they pass. It passes no secrets, so
+  # Chromatic is skipped there.
+  workflow_call:
+
+permissions:
+  contents: read
 
 defaults:
   run:
@@ -14,11 +20,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           package_json_file: editor/package.json
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
@@ -48,15 +54,15 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-dotnet
       - name: Build the engine
         working-directory: engine
         run: dotnet build Cathode.slnx -c Release
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           package_json_file: editor/package.json
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
@@ -68,7 +74,7 @@ jobs:
       - name: Playwright (Electron)
         run: xvfb-run --auto-servernum pnpm exec playwright test --config apps/desktop/e2e/playwright.config.ts
       - if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-results
           path: editor/dist/e2e-*

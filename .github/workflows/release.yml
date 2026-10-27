@@ -11,6 +11,11 @@ name: release
 # Every installer builds on its own OS and CPU, since NativeAOT cannot cross-compile. Running the workflow by hand
 # builds them all as workflow artifacts without publishing a release.
 #
+# Nothing is published unless the tagged commit passes the same checks as master: engine.yml (the engine tests on
+# three OSes and the NativeAOT host's self-test on four targets) and editor.yml (the generated API client, type-check,
+# lint, unit tests, Storybook and the Playwright tests of the desktop app) run here as reusable workflows, and the
+# tag must point at a commit on master.
+#
 # Signing is optional. Without secrets, macOS builds are signed ad hoc (Gatekeeper asks users to allow them) and Windows
 # builds are unsigned. Set CSC_LINK (base64 .p12) and CSC_KEY_PASSWORD to sign, and on macOS APPLE_ID,
 # APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID to notarise.
@@ -20,10 +25,38 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+# Read-only by default; only the release job may write (it creates the release).
+permissions:
+  contents: read
+
 env:
   CATHODE_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
 
 jobs:
+  # The test gate: the tagged commit's own test workflows. They run beside the builds, and the release waits for both.
+  engine:
+    uses: ./.github/workflows/engine.yml
+
+  editor:
+    uses: ./.github/workflows/editor.yml
+
+  # A release comes from master: a tag on an unmerged branch (or on a commit master has since dropped) is refused.
+  tag:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # origin/master and the history to check ancestry against
+      - name: The tagged commit is on master
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "::error::$TAG points at $GITHUB_SHA, which is not on master; tag a commit on master"
+            exit 1
+          fi
+
   desktop:
     strategy:
       fail-fast: false
@@ -33,24 +66,28 @@ jobs:
           - { os: windows-latest, name: windows-x64 }
           - { os: ubuntu-latest, name: linux-x64 }
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write # the Sigstore certificate that signs the provenance attestation
+      attestations: write
     defaults:
       run:
         working-directory: editor
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-dotnet
       - name: Cache native dependencies
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: engine/artifacts/deps
           key: native-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
       - name: Linux audio headers
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           package_json_file: editor/package.json
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
@@ -67,7 +104,26 @@ jobs:
           # Without a certificate, do not let electron-builder pick one up from the runner's keychain.
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
         run: pnpm dist
-      - uses: actions/upload-artifact@v7
+      # Hashed here, where they were built: the release job checks what it downloads against these and publishes
+      # them as SHA256SUMS. "<sha256>  <name>" per line (Git Bash marks binary mode with "*"; that is dropped).
+      - name: Checksums
+        shell: bash
+        working-directory: editor/dist/release
+        env:
+          SUMS: SHA256SUMS.desktop-${{ matrix.name }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(*.dmg *.zip *.exe *.AppImage)
+          if [ "${#files[@]}" = 0 ]; then echo "::error::no installers in editor/dist/release"; exit 1; fi
+          if command -v sha256sum > /dev/null; then hash=(sha256sum); else hash=(shasum -a 256); fi
+          "${hash[@]}" -- "${files[@]}" | sed -E 's/^([0-9a-f]{64}) [ *]/\1  /' > "$SUMS"
+          cat "$SUMS"
+      - name: Provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: editor/dist/release/SHA256SUMS.desktop-${{ matrix.name }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: desktop-${{ matrix.name }}
           path: |
@@ -75,6 +131,7 @@ jobs:
             editor/dist/release/*.zip
             editor/dist/release/*.exe
             editor/dist/release/*.AppImage
+            editor/dist/release/SHA256SUMS.desktop-${{ matrix.name }}
           if-no-files-found: error
 
   headless:
@@ -85,20 +142,24 @@ jobs:
           - { os: ubuntu-24.04, name: linux-x64 }
           - { os: ubuntu-24.04-arm, name: linux-arm64 }
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write # the Sigstore certificate that signs the provenance attestation
+      attestations: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-dotnet
       - name: Cache native dependencies
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: engine/artifacts/deps
           key: native-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
       - name: Linux audio headers
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           package_json_file: editor/package.json
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
@@ -136,31 +197,79 @@ jobs:
         run: |
           sudo systemctl status cathode-host cathode-server --no-pager || true
           sudo journalctl -u cathode-host -u cathode-server --no-pager | tail -150
-      - uses: actions/upload-artifact@v7
+      - name: Checksums
+        working-directory: dist/headless
+        env:
+          SUMS: SHA256SUMS.headless-${{ matrix.name }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(*.tar.gz)
+          if [ "${#files[@]}" = 0 ]; then echo "::error::no package in dist/headless"; exit 1; fi
+          sha256sum -- "${files[@]}" > "$SUMS"
+          cat "$SUMS"
+      - name: Provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: dist/headless/SHA256SUMS.headless-${{ matrix.name }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: headless-${{ matrix.name }}
-          path: dist/headless/*.tar.gz
+          path: |
+            dist/headless/*.tar.gz
+            dist/headless/SHA256SUMS.headless-${{ matrix.name }}
           if-no-files-found: error
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [desktop, headless]
+    needs: [engine, editor, tag, desktop, headless]
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # creates the release
+      id-token: write # the Sigstore certificate that signs the attestation of SHA256SUMS
+      attestations: write
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: release
           merge-multiple: true
+      # SHA256SUMS is the build jobs' own checksums, merged, after checking that every downloaded file still has the
+      # hash it had where it was built, and that nothing without one would be published.
       - name: Checksums
         working-directory: release
-        run: sha256sum -- * > SHA256SUMS
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          parts=(SHA256SUMS.*)
+          if [ "${#parts[@]}" = 0 ]; then echo "::error::the build jobs left no checksums"; exit 1; fi
+          sha256sum --strict --check -- "${parts[@]}"
+          cat -- "${parts[@]}" > SHA256SUMS
+          rm -- "${parts[@]}"
+          listed=$(cut -c67- SHA256SUMS)
+          for file in *; do
+            if [ "$file" != SHA256SUMS ] && ! grep -Fxq -- "$file" <<< "$listed"; then
+              echo "::error::$file has no checksum from the job that built it"
+              exit 1
+            fi
+          done
+          cat SHA256SUMS
+      # Signed (keyless, Sigstore) provenance for SHA256SUMS too, which vouches for every line in it. The bundle is
+      # published beside it for verifying without the attestations API (docs/10-releases.md, "Verifying a download").
+      - name: Provenance of SHA256SUMS
+        id: attest
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: release/SHA256SUMS
+      - name: Keep the attestation bundle beside SHA256SUMS
+        env:
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: cp -- "$BUNDLE" release/SHA256SUMS.sigstore.json
       - name: Publish the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
         run: |
           flags=(--generate-notes)
           if [[ "$TAG" == *-* ]]; then flags+=(--prerelease); fi
-          gh release create "$TAG" release/* --repo "${{ github.repository }}" "${flags[@]}"
+          gh release create "$TAG" release/* --repo "$REPO" "${flags[@]}"

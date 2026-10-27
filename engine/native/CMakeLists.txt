@@ -12,7 +12,11 @@ set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(CTH_ARTIFACTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../artifacts/native)
+set(CTH_ARTIFACTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../artifacts/native CACHE PATH
+  "Where the libraries go (the .NET build takes them from the default)")
+
+# A checking build, not for shipping: see rtsan/cth_rtsan_check.cpp. Give it its own CTH_ARTIFACTS_DIR.
+option(CTH_RTSAN "Also build cth_rtsan_check: the real-time paths under RealtimeSanitizer (Linux, Clang 20+)" OFF)
 
 function(cth_output_to_artifacts target)
   foreach(kind LIBRARY RUNTIME)
@@ -26,3 +30,6 @@ endfunction()
 
 add_subdirectory(cth_audio)
 add_subdirectory(cth_nam)
+if(CTH_RTSAN)
+  add_subdirectory(rtsan)
+endif()

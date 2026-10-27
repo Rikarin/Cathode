@@ -728,6 +728,7 @@ static int cycle(cth_stream *s)
 
     cth_linux_begin_cycle(c);
     uint64_t started = cth_linux_now_ns();
+    CTH_REALTIME_ENTER();
     for (snd_pcm_uframes_t offset = 0; offset < s->period; offset += CTH_MAX_FRAMES) {
         snd_pcm_uframes_t frames = s->period - offset < CTH_MAX_FRAMES ? s->period - offset : CTH_MAX_FRAMES;
         size_t stride;
@@ -742,6 +743,7 @@ static int cycle(cth_stream *s)
             from_float(c->out_ptrs[ch], dst, stride, frames, s->out.kind);
         }
     }
+    CTH_REALTIME_EXIT();
     cth_linux_end_cycle(c, started, (int32_t)s->period);
 
     return transfer(s, &s->out, 0, NULL);

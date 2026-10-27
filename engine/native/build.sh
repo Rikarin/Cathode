@@ -23,6 +23,10 @@ if [ ! -f "$nam/.complete" ]; then
   [ -f "$nam/.complete" ] || { echo "could not fetch NeuralAmpModelerCore" >&2; exit 1; }
 fi
 
-cmake -S "$here" -B "$here/../artifacts/obj/native" -DCMAKE_BUILD_TYPE=Release \
-  -DFETCHCONTENT_SOURCE_DIR_NAM_CORE="$nam"
-cmake --build "$here/../artifacts/obj/native" --config Release --parallel
+# Extra arguments go to CMake's configure step, and CTH_NATIVE_BUILD_DIR moves the build tree: the RealtimeSanitizer
+# check (.github/workflows/nightly.yml) builds with
+#   CTH_NATIVE_BUILD_DIR=... ./native/build.sh -DCTH_RTSAN=ON -DCTH_ARTIFACTS_DIR=...
+build="${CTH_NATIVE_BUILD_DIR:-$here/../artifacts/obj/native}"
+cmake -S "$here" -B "$build" -DCMAKE_BUILD_TYPE=Release \
+  -DFETCHCONTENT_SOURCE_DIR_NAM_CORE="$nam" "$@"
+cmake --build "$build" --config Release --parallel

@@ -49,7 +49,12 @@ public class BlockConformanceTests {
             $"{typeId} has no measured cost: run dotnet run -c Release --project tools/Cathode.Bench -- --write"
         );
 
+    /// <summary>
+    ///     The parameter fuzz (docs/03 §3): 200 random cases per block here; the nightly workflow runs every
+    ///     <c>Category=Property</c> test for a fixed time each instead (CsCheck_Time, which overrides iter).
+    /// </summary>
     [Theory]
+    [Trait("Category", "Property")]
     [MemberData(nameof(BlockTypes))]
     public void Output_is_finite_and_bounded_for_any_parameters_and_stimulus(string typeId) {
         var descriptor = Registry.GetDescriptor(typeId);
@@ -79,7 +84,7 @@ public class BlockConformanceTests {
                     }
                 },
                 iter: 200
-            ); // nightly runs raise this via CsCheck_Iter
+            );
     }
 
     [Theory]

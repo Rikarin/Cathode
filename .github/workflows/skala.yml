@@ -22,7 +22,7 @@ jobs:
   skala:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # `--since` needs the merge base with origin/master
       - uses: ./.github/actions/setup-dotnet
@@ -69,7 +69,7 @@ jobs:
             exit 1
           fi
       - name: Cache native dependencies
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: engine/artifacts/deps
           key: native-deps-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
@@ -85,11 +85,13 @@ jobs:
 
       - name: Check (pull request)
         if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: >
           dotnet skala check engine
           --load=binlog --binlog engine/artifacts/skala.binlog --require-fresh-binlog
           --gate=pr
-          --since origin/${{ github.base_ref }}
+          --since "origin/$BASE_REF"
           --no-new-suppressions
           --duplication
           --format=github
@@ -111,14 +113,14 @@ jobs:
       # got far enough to write its report: an empty upload would tell code scanning "nothing found".
       - name: Upload SARIF to code scanning
         if: always() && hashFiles('.skala/code-scanning.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: .skala/code-scanning.sarif
           category: skala
 
       - name: Keep the report
         if: always() && hashFiles('.skala/report.sarif') != ''
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: skala-report
           path: .skala/report.sarif
@@ -138,7 +140,7 @@ jobs:
 
       - name: Keep the rendered report
         if: always() && hashFiles('skala-report.md') != ''
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: skala-report-markdown
           path: skala-report.md

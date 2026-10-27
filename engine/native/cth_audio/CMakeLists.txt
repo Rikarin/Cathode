@@ -35,4 +35,9 @@ else()
   target_compile_options(cth_audio PRIVATE -Wall -Wextra -Werror -O2)
 endif()
 
+if(CTH_RTSAN)
+  # The real-time part of each cycle enters RealtimeSanitizer's real-time context (src/cth_audio_linux.h).
+  target_compile_definitions(cth_audio PRIVATE CTH_RTSAN)
+endif()
+
 cth_output_to_artifacts(cth_audio)
