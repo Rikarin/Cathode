@@ -8,7 +8,7 @@ import {
   signal,
   viewChild
 } from '@angular/core';
-import { onAnimationFrame, themeColor } from './animation';
+import { onAnimationFrame, themeColors } from './animation';
 import { CTH_METER_PREFERENCES, frameDue } from './preferences';
 import { toDecibels } from './values';
 
@@ -76,6 +76,13 @@ export class CthMeter {
   private states: ChannelState[] = [];
   private last = 0;
   private readonly preferences = inject(CTH_METER_PREFERENCES, { optional: true });
+  /** The zone colours, resolved once per theme change rather than on every frame. */
+  private readonly colors = themeColors({
+    ok: '--color-success',
+    hot: '--color-warning',
+    clip: '--color-error',
+    mark: '--color-foreground-muted'
+  });
 
   readonly sources = input.required<readonly (() => number)[]>();
   readonly label = input('Level');
@@ -147,12 +154,7 @@ export class CthMeter {
 
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
     context.clearRect(0, 0, width, height);
-    const colors = {
-      ok: themeColor(canvas, '--color-success'),
-      hot: themeColor(canvas, '--color-warning'),
-      clip: themeColor(canvas, '--color-error'),
-      mark: themeColor(canvas, '--color-foreground-muted')
-    };
+    const colors = this.colors(canvas);
     const zone = (db: number) => (db >= 0 ? colors.clip : db >= HotDb ? colors.hot : colors.ok);
     const dbAt = (position: number) => FloorDb + (position / length) * (CeilingDb - FloorDb);
     /** Paints a stretch of the scale (`at` from the floor end) across one channel's bar. */
