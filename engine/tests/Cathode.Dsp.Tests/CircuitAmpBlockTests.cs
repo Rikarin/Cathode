@@ -110,6 +110,30 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         Assert.True(Analysis.ToDb(Analysis.Peak(rendered)) < 6, $"{Analysis.ToDb(Analysis.Peak(rendered)):0.0} dBFS");
     }
 
+    /// <summary>
+    ///     A channel built at one rate and moved to another (its stages' <c>SetSampleRate</c>: every capacitor and
+    ///     inductor reconfigured, keeping its stored wave, then the block's reset) plays as one built at the new rate.
+    ///     At 48 kHz the channel runs at 96 kHz; at 44.1 kHz, at 88.2 kHz.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Types))]
+    public void A_channel_moved_to_a_new_rate_plays_as_one_built_there(int type) {
+        var chord = Chord(9_600, 0.25f);
+        using var moved = Create(type);
+        BlockRender.Mono(moved, chord, 64);
+        moved.Prepare(new(44_100, 64));
+
+        using var fresh = new CircuitAmpBlock();
+        fresh.Params.SetTarget(CircuitAmpBlock.Type, type);
+        fresh.Params.SetTarget(CircuitAmpBlock.Master, 10);
+        fresh.Prepare(new(44_100, 64));
+
+        var expected = BlockRender.Mono(fresh, chord, 64);
+        var actual = BlockRender.Mono(moved, chord, 64);
+        var residual = Analysis.NullResidualDb(expected, actual);
+        Assert.True(residual < -140, $"{AmpDesign.All[type].Name}: {residual:0.0} dB from a channel built at 44.1 kHz");
+    }
+
     [Fact]
     public void Negative_feedback_lowers_the_gain_and_presence_lifts_the_treble() {
         // The Plexi below clipping: master low, a quiet 1 kHz and 6 kHz.
