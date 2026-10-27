@@ -1,3 +1,4 @@
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { ChangeDetectionStrategy, Component, Injectable, computed, inject, signal } from '@angular/core';
 import type { AssetInfo } from '@cathode/api-client';
 import { provideIcons } from '@ng-icons/core';
@@ -31,6 +32,14 @@ export type AssetKind = 'amps' | 'cabs';
 const AmpFiles = ['.nam', '.aidax', '.json'];
 const CabFiles = ['.wav', '.cabgrid'];
 const KindNames: Record<string, string> = { nam: 'NAM', aidax: 'AIDA-X', ir: 'IR', cabgrid: 'IR pack' };
+/** The height of an asset row, which the virtual scroll lays the list out by. */
+export const AssetRowHeight = 48;
+
+/** The stored presets that use an asset, with the names joined once for the row's tooltip. */
+export interface AssetUse {
+  readonly presets: readonly string[];
+  readonly names: string;
+}
 
 /**
  * The state the Library's NAM amps and IR cabs views share between their header tools and their list: which kind is
@@ -64,6 +73,18 @@ export class AssetLibrary {
     return selected.length === 1 ? selected[0] : undefined;
   });
   readonly accept = computed(() => (this.kind() === 'amps' ? AmpFiles : CabFiles).join(','));
+  /**
+   * The presets that use each asset, by asset ref (only the assets some preset uses): worked out once when the usage
+   * changes, so the rows read it rather than look it up and join the names on every change-detection pass.
+   */
+  readonly uses = computed<ReadonlyMap<string, AssetUse>>(
+    () =>
+      new Map(
+        [...this.library.usage()]
+          .filter(([, presets]) => presets.length > 0)
+          .map(([ref, presets]) => [ref, { presets, names: presets.join(', ') }])
+      )
+  );
 
   refresh(): void {
     void this.library.refreshAssets();
@@ -77,7 +98,7 @@ export class AssetLibrary {
   }
 
   usedBy(asset: AssetInfo): readonly string[] {
-    return this.library.usage().get(asset.ref) ?? [];
+    return this.uses().get(asset.ref)?.presets ?? [];
   }
 
   select(index: number, event: MouseEvent): void {
@@ -224,6 +245,7 @@ export class AssetToolbar {
   selector: 'cth-asset-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ScrollingModule,
     XuiAlertDialogImports,
     XuiButtonImports,
     XuiDialogImports,
@@ -254,14 +276,16 @@ export class AssetToolbar {
         "
       />
     } @else {
-      <div class="min-h-0 flex-1 overflow-auto px-6 pt-4">
+      <!-- Only the rows in view are rendered: IR packs run to hundreds of files. -->
+      <div cdkVirtualScrollingElement class="min-h-0 flex-1 overflow-auto px-6 pt-4">
         <xui-table
           interactive
           class="w-full"
           data-testid="asset-list"
           [attr.aria-label]="assets.kind() === 'amps' ? 'Amp captures' : 'Cab IRs'"
+          [attr.aria-rowcount]="(assets.rows().length || 1) + 1"
         >
-          <xui-tr class="bg-background sticky top-0 z-10">
+          <xui-tr class="bg-background sticky top-0 z-10" aria-rowindex="1">
             <xui-th class="w-10" aria-label="Favourite" />
             <xui-th class="min-w-0 flex-1">Name</xui-th>
             <xui-th class="w-24">Type</xui-th>
@@ -269,13 +293,19 @@ export class AssetToolbar {
             <xui-th class="w-24 justify-end">Size</xui-th>
             <xui-th class="w-32 justify-end">Added</xui-th>
           </xui-tr>
-          @for (asset of assets.rows(); track asset.ref; let i = $index) {
+          <cdk-virtual-scroll-viewport
+            class="[&_.cdk-virtual-scroll-content-wrapper]:w-full"
+            data-testid="asset-viewport"
+            [itemSize]="rowHeight"
+          >
             <xui-tr
+              *cdkVirtualFor="let asset of assets.rows(); trackBy: byRef; let i = index"
               tabindex="0"
-              class="cursor-default"
+              class="h-12 cursor-default"
               [class.cth-selected-row]="assets.selected().has(asset.ref)"
               [attr.data-state]="assets.selected().has(asset.ref) ? 'selected' : null"
               [attr.aria-selected]="assets.selected().has(asset.ref)"
+              [attr.aria-rowindex]="i + 2"
               [attr.data-testid]="'asset-row-' + asset.ref"
               (click)="assets.select(i, $event)"
               (dblclick)="openRename(asset)"
@@ -308,9 +338,9 @@ export class AssetToolbar {
               </xui-td>
               <xui-td class="text-foreground-muted w-24">{{ kind(asset) }}</xui-td>
               <xui-td class="text-foreground-muted w-40">
-                @if (assets.usedBy(asset).length; as count) {
-                  <span [xuiTooltip]="assets.usedBy(asset).join(', ')"
-                    >{{ count }} {{ count === 1 ? 'preset' : 'presets' }}</span
+                @if (assets.uses().get(asset.ref); as use) {
+                  <span [xuiTooltip]="use.names"
+                    >{{ use.presets.length }} {{ use.presets.length === 1 ? 'preset' : 'presets' }}</span
                   >
                 } @else {
                   —
@@ -319,8 +349,9 @@ export class AssetToolbar {
               <xui-td class="text-foreground-muted w-24 justify-end tabular-nums">{{ size(asset) }}</xui-td>
               <xui-td class="text-foreground-muted w-32 justify-end tabular-nums">{{ added(asset) }}</xui-td>
             </xui-tr>
-          } @empty {
-            <xui-tr>
+          </cdk-virtual-scroll-viewport>
+          @if (assets.rows().length === 0) {
+            <xui-tr aria-rowindex="2">
               <xui-td class="text-foreground-muted flex-1 justify-center py-8">
                 @if (assets.query()) {
                   Nothing matches “{{ assets.query() }}”.
@@ -428,6 +459,8 @@ export class AssetList {
   protected readonly newName = signal('');
   protected readonly confirmDelete = signal(false);
   protected readonly kind = kindName;
+  protected readonly rowHeight = AssetRowHeight;
+  protected readonly byRef = (_: number, asset: AssetInfo) => asset.ref;
   protected readonly count = computed(() => {
     const n = this.assets.rows().length;
     return this.assets.kind() === 'amps' ? `${n} capture${n === 1 ? '' : 's'}` : `${n} IR${n === 1 ? '' : 's'}`;

@@ -6,6 +6,12 @@ the format upgrades older presets as it reads them.
 
 ## Unreleased
 
+### Changed
+
+- **Long lists stay quick** (#157): the Library's preset, NAM amp and IR cab tables and Manage presets' Library list
+  render only the rows in view, so searching and selecting in a library of hundreds of IRs no longer slows down. A
+  preset's tags now sit on its name's line.
+
 ### Internal
 
 - **Skala's baseline is burnt down** (#161): from 4,321 accepted findings to 134, all of them duplicated-block
