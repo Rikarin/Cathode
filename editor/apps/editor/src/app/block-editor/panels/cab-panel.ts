@@ -46,6 +46,11 @@ const Frequencies = logFrequencies(160);
 
 /** Decoded responses are cached per asset: an IR never changes under its hash. */
 const responses = new Map<string, Promise<number[]>>();
+/** The responses that have finished decoding, so a plot of them needs no loading state. */
+const decoded = new Map<string, number[]>();
+
+const sameReferences = (a: readonly string[], b: readonly string[]): boolean =>
+  a.length === b.length && a.every((reference, i) => reference === b[i]);
 
 /**
  * The Cab's four slots, as the Axe-Fx III mixes Legacy IRs and DynaCabs: pick Mic 1-4, then its Source (an IR file, a
@@ -244,6 +249,7 @@ export class CabPanel {
   ];
   protected readonly loading = signal(false);
   private readonly measured = signal<Partial<Record<string, number[]>>>({});
+  private measuring = 0;
 
   protected readonly asset = computed(() => slotAsset(this.selected()));
   protected readonly color = computed(() => MicColors[this.selected() % MicColors.length]);
@@ -313,6 +319,18 @@ export class CabPanel {
     );
   });
 
+  /**
+   * The files to measure. Knob moves and state answers produce new values (and a new block object) but rarely new
+   * files, so this only changes when the list of references does, and the measuring effect follows it alone.
+   */
+  private readonly irReferences = computed(
+    () => {
+      const assets = this.block().assets;
+      return this.irSlots().map(slot => assets[slotAsset(slot)]!);
+    },
+    { equal: sameReferences }
+  );
+
   protected readonly plotted = computed(() => this.irSlots().length > 0);
 
   protected readonly option = computed<EChartsOption>(() => {
@@ -358,10 +376,7 @@ export class CabPanel {
   });
 
   constructor() {
-    effect(() => {
-      const assets = this.block().assets;
-      void this.measure(this.irSlots().map(slot => assets[slotAsset(slot)]!));
-    });
+    effect(() => void this.measure(this.irReferences()));
     onAnimationFrame(() => {
       const reduction = Math.round(this.meter('motorReduction', 0) * 10) / 10;
       if (reduction !== this.reduction()) {
@@ -452,14 +467,26 @@ export class CabPanel {
     return (this.assetInfo(slot)?.name ?? 'IR pack').replace(/\.(cabgrid|wav)$/i, '');
   }
 
-  private async measure(references: string[]): Promise<void> {
+  private async measure(references: readonly string[]): Promise<void> {
+    const run = ++this.measuring;
+    if (references.every(ref => decoded.has(ref))) {
+      this.measured.set(Object.fromEntries(references.map(ref => [ref, decoded.get(ref)])));
+      this.loading.set(false);
+      return;
+    }
+
     this.loading.set(true);
+    let measured: Partial<Record<string, number[]>>;
     try {
       const curves = await Promise.all(references.map(ref => this.response(ref)));
-      this.measured.set(Object.fromEntries(references.map((ref, i) => [ref, curves[i]])));
+      measured = Object.fromEntries(references.map((ref, i) => [ref, curves[i]]));
     } catch {
-      this.measured.set({}); // an unreadable IR plots nothing; the engine reports real load failures
-    } finally {
+      measured = {}; // an unreadable IR plots nothing; the engine reports real load failures
+    }
+
+    if (run === this.measuring) {
+      // A later measure (other files picked meanwhile) wins over this one.
+      this.measured.set(measured);
       this.loading.set(false);
     }
   }
@@ -479,6 +506,10 @@ export class CabPanel {
         );
       });
       responses.set(reference, curve);
+      curve.then(
+        db => decoded.set(reference, db),
+        () => responses.delete(reference) // not cached, so the file is read again next time
+      );
     }
 
     return curve;
