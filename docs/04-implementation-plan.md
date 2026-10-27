@@ -70,7 +70,7 @@ Ordered by value to a guitarist:
      - Its weights live in native memory, and processing allocates nothing.
      - Cost: LSTM-16 1.8 %, LSTM-40 7.6 % of one core (JIT, M-series).
 
-   *Not supported:* conditioned (multi-input) AIDA-X models, and resampling models trained at another rate.
+   *Not supported:* conditioned (multi-input) AIDA-X models. A model trained at another rate than the engine's runs at its own rate behind a resampler (`CaptureResampler`).
 2. [x] **Cab**: zero-latency two-stage convolution (direct head + uniform partitioned tail, written in C#), 2 IR slots with levels, low/high cut, WAV IRs at any rate (resampled), stereo IRs, unit-energy normalisation. *Still to do:* IR alignment, min-phase trim
 3. [x] **Gate/Expander** block (dB-domain smoothing, hold, linked detector). *Still to do:* the gate built into the Input block, sidechain filters
 4. [x] **Drive**: Overdrive / Distortion / Fuzz voicings, ADAA clippers inside 4× IIR half-band oversampling (signal-to-aliasing 63–73 dB at full drive, 2.5 kHz). *Still to do:* WDF circuit models (TS, Rat, Klon)

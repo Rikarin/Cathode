@@ -11,7 +11,10 @@ public interface ICaptureModel : IDisposable {
     /// <summary>The network, e.g. <c>WaveNet</c> or <c>LSTM-16</c>.</summary>
     string Architecture { get; }
 
-    /// <summary>The rate the model was trained at; it is run at the engine rate regardless.</summary>
+    /// <summary>
+    ///     The rate the model was trained at (0 or less when the file does not say; 48 kHz is assumed then). The amp
+    ///     runs the model at this rate, resampling around it when the engine runs at another (<see cref="CaptureResampler" />).
+    /// </summary>
     double ExpectedSampleRate { get; }
 
     /// <summary>Output loudness in dB, when the file records it; used to normalise models to a common level.</summary>
