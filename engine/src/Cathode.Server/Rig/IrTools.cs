@@ -203,7 +203,7 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
 
         try {
             return WavFile.Read(assets.PathOf(reference)!);
-        } catch (InvalidDataException e) {
+        } catch (Exception e) when (e is InvalidDataException or EndOfStreamException) {
             throw new RigException(400, $"{info.Name}: {e.Message}");
         }
     }

@@ -27,6 +27,10 @@ var urls = builder.Configuration["urls"] ?? "http://127.0.0.1:5180";
 var token = builder.Configuration["Cathode:Token"] is { Length: > 0 } configured ? configured : null;
 Access.RequireTokenBeyondLoopback(urls, token);
 builder.WebHost.UseUrls(urls);
+// The hosting log's "Request starting/finished" lines carry the query string, and the WebSocket presents the access
+// token there (?access_token=, Api/Access.cs): at Information every connect wrote it to the journal or the desktop's
+// sidecar log. Only its warnings are kept.
+builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
 builder.Services.Configure<ServerOptions>(builder.Configuration.GetSection("Cathode"));
 builder.Services.ConfigureHttpJsonOptions(static o => {
         o.SerializerOptions.TypeInfoResolverChain.Insert(0, ContractsJsonContext.Default);
@@ -60,6 +64,15 @@ builder.Services.AddSingleton<PresetTools>();
 
 var app = builder.Build();
 StartupLog.Phase(app.Logger, "services built", startup.ElapsedMilliseconds);
+// An exception no endpoint mapped answers an RFC 9457 problem (no details beyond the status), not an empty 500; a
+// request Kestrel refused (a body over its limit) keeps its status.
+app.UseExceptionHandler(
+    new ExceptionHandlerOptions {
+        StatusCodeSelector = static e => e is BadHttpRequestException bad
+            ? bad.StatusCode
+            : StatusCodes.Status500InternalServerError
+    }
+);
 if (builder.Configuration["Cathode:EditorDirectory"] is { Length: > 0 } editor) {
     app.UseCathodeEditor(editor);
 }
@@ -76,7 +89,10 @@ engine.TelemetryUpdated += t => _ = rig.FollowEngineTempoAsync(t.Tempo);
 app.Services.GetRequiredService<GlobalStore>().Changed += rig.ApplyGlobalSettings;
 app.Services.GetRequiredService<MidiRouter>(); // listens from the start
 StartupLog.Phase(app.Logger, "rig ready", startup.ElapsedMilliseconds);
-await rig.LoadStartupAsync();
+if (await rig.LoadStartupAsync() is { } problem) {
+    StartupLog.StartupPresetFailed(app.Logger, problem);
+}
+
 StartupLog.Phase(app.Logger, "start-up preset loaded", startup.ElapsedMilliseconds);
 
 app.Run();

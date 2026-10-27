@@ -375,17 +375,22 @@ public static class CathodeApi {
                     bool? polarity,
                     string? channels,
                     double? maxLengthMs
-                ) =>
-                    TypedResults.Ok(
-                        await store.AddAsync(
-                            request.Body,
-                            name,
-                            AssetStore.ImportSettings(processing, polarity, channels, maxLengthMs),
-                            cancellationToken
-                        )
-                    )
+                ) => {
+                    var import = AssetStore.ImportSettings(processing, polarity, channels, maxLengthMs);
+                    if (request.ContentLength > AssetStore.MaxBytes) {
+                        throw AssetStore.TooLarge();
+                    }
+
+                    try {
+                        return TypedResults.Ok(await store.AddAsync(request.Body, name, import, cancellationToken));
+                    } catch (BadHttpRequestException e) when (e.StatusCode == StatusCodes.Status413PayloadTooLarge) {
+                        throw AssetStore.TooLarge(); // a chunked body past the request limit
+                    }
+                }
             )
             .Accepts<Stream>("application/octet-stream")
+            // The store's own limit, not Kestrel's default of 30,000,000 bytes.
+            .WithMetadata(new RequestSizeLimitAttribute(AssetStore.MaxBytes))
             .WithName("UploadAsset")
             .WithSummary(
                 "Uploads an asset. A .wav IR can be processed on import: processing (asIs, autoTrim, minimumPhase), polarity (make the main peak positive), channels (both, left, right, sum) and maxLengthMs."
@@ -406,7 +411,7 @@ public static class CathodeApi {
         assets.MapGet(
                 "/{reference}/content",
                 Results<FileStreamHttpResult, NotFound>(string reference, AssetStore store) =>
-                    store.Get(reference) is { } info && store.PathOf(reference) is { } path
+                    store.Get(reference) is { } info && store.PathOf(reference) is { } path && File.Exists(path)
                         ? TypedResults.File(
                             File.OpenRead(path),
                             info.Kind switch {
@@ -658,6 +663,7 @@ public static class CathodeApi {
                                 g.Perform = settings.Perform;
                                 g.EffectsMix = settings.EffectsMix;
                                 g.NoiseGateOffset = settings.NoiseGateOffset;
+                                g.CabModelingOff = settings.CabModelingOff;
                                 g.SceneRevert = settings.SceneRevert;
                                 g.DefaultScene = settings.DefaultScene;
                                 g.StartupPreset = string.IsNullOrWhiteSpace(settings.StartupPreset)
@@ -701,7 +707,7 @@ public static class CathodeApi {
                     } catch (IpcException e) {
                         throw new RigException(409, e.Message);
                     } catch (IOException e) {
-                        throw new RigException(503, e.Message);
+                        throw new RigException(503, e.Message); // the engine is not connected
                     }
 
                     var file = new FileStream(

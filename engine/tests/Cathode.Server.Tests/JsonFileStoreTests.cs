@@ -41,6 +41,55 @@ public sealed class JsonFileStoreTests : IDisposable {
         Assert.Equal(200 % 12, store.Get(preset.Id)!.Scenes[0].Level);
     }
 
+    [Theory]
+    [InlineData("""{ "id": "bad", "schemaVersion": 2.5 }""")]
+    [InlineData("""{ "id": "bad", "schemaVersion": 1e30 }""")]
+    [InlineData("""{ "id": "bad", "blocks": {} }""")]
+    [InlineData("""{ "id": "bad", "blocks": [ { "id": "a", "type": 5 } ] }""")]
+    [InlineData("""{ "id": "bad", "blocks": [{ "type": "circuitamp", "channels": { "A": { "powertube": "x" } } }] }""")]
+    [InlineData("""[ 1, 2 ]""")]
+    [InlineData("")]
+    public void A_file_of_the_wrong_shape_is_skipped_and_the_rest_still_list(string json) {
+        var presets = new JsonFileStore<Preset>(
+            folder,
+            "preset",
+            ContractsJsonContext.Default.Preset,
+            static p => p.Id,
+            PresetMigrations.Upgrade
+        );
+        var good = Preset.CreateDefault();
+        presets.Save(good);
+        File.WriteAllText(Path.Combine(folder, "bad.json"), json);
+
+        Assert.Equal([good.Id], presets.All().Select(static e => e.Item.Id));
+        Assert.Null(presets.Get("bad"));
+    }
+
+    [Fact]
+    public async Task Writers_of_one_id_never_rename_each_others_half_written_file() {
+        var preset = Preset.CreateDefault();
+        store.Save(preset);
+
+        // Each writer saves its own copy: a temporary file they shared would be truncated under another's rename.
+        await Task.WhenAll(
+            Enumerable.Range(0, 4)
+                .Select(writer => Task.Run(
+                        () => {
+                            var copy = store.Get(preset.Id)!;
+                            copy.Name = new((char)('a' + writer), 1_000);
+                            for (var i = 0; i < 300; i++) {
+                                store.Save(copy);
+                            }
+                        },
+                        TestContext.Current.CancellationToken
+                    )
+                )
+        );
+
+        Assert.Matches(@"^([a-d])\1{999}$", store.Get(preset.Id)!.Name);
+        Assert.Equal([preset.Id + ".json"], Directory.EnumerateFiles(folder).Select(Path.GetFileName));
+    }
+
     [Fact]
     public void A_save_replaces_a_file_a_reader_holds_open_and_the_reader_keeps_the_old_content() {
         var preset = Preset.CreateDefault();

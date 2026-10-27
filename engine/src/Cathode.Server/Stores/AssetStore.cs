@@ -14,7 +14,7 @@ namespace Cathode.Server.Stores;
 ///     Presets reference assets as <c>sha256:&lt;hex&gt;</c>, so the same file uploaded twice is stored once and a
 ///     preset always gets exactly the file it was made with.
 /// </summary>
-public sealed class AssetStore {
+public sealed partial class AssetStore {
     public const long MaxBytes = 64 * 1024 * 1024;
     const string Prefix = "sha256:";
 
@@ -23,15 +23,48 @@ public sealed class AssetStore {
     readonly Lock gate = new();
     readonly Dictionary<string, AssetInfo> index;
 
-    public AssetStore(IOptions<ServerOptions> options) {
+    public AssetStore(IOptions<ServerOptions> options, ILogger<AssetStore> logger) {
         folder = Path.Combine(options.Value.DataDirectory, "assets");
         Directory.CreateDirectory(folder);
         indexPath = Path.Combine(folder, "index.json");
-        index = File.Exists(indexPath)
-            ? (JsonSerializer.Deserialize(File.ReadAllText(indexPath), ContractsJsonContext.Default.AssetInfoArray)
-                ?? [])
-            .ToDictionary(static a => a.Ref, StringComparer.Ordinal)
-            : new(StringComparer.Ordinal);
+        index = new(StringComparer.Ordinal);
+        if (!File.Exists(indexPath)) {
+            return;
+        }
+
+        try {
+            var entries = JsonSerializer.Deserialize(
+                    File.ReadAllText(indexPath),
+                    ContractsJsonContext.Default.AssetInfoArray
+                )
+                ?? [];
+            foreach (var entry in entries) {
+                if (entry is { Ref: not null, Name: not null, Kind: not null }) {
+                    index[entry.Ref] = entry;
+                }
+            }
+        } catch (JsonException e) {
+            // Rather than stop the Server: every asset is still there under its reference, only names, colours and
+            // favourites are lost. The damaged index is kept beside the new one.
+            IndexDamaged(logger, indexPath, e.Message);
+            File.Copy(indexPath, indexPath + ".damaged", true);
+            Rebuild();
+            SaveIndex();
+        }
+    }
+
+    /// <summary>The index from the asset files present: each file's name is its reference, its extension its kind.</summary>
+    void Rebuild() {
+        index.Clear();
+        foreach (var file in new DirectoryInfo(folder).EnumerateFiles()) {
+            var hash = Path.GetFileNameWithoutExtension(file.Name);
+            if (KindOf(file.Name) is { } kind
+                && Extension(kind) == file.Extension
+                && hash.Length == 64
+                && hash.All(static c => char.IsAsciiHexDigitLower(c))) {
+                index[Prefix + hash] = new(Prefix + hash, file.Name, kind, file.Length, file.CreationTimeUtc);
+            }
+        }
     }
 
     public IReadOnlyList<AssetInfo> List() {
@@ -108,24 +141,14 @@ public sealed class AssetStore {
         int read;
         while ((read = await content.ReadAsync(buffer, cancellationToken)) > 0) {
             if (original.Length + read > MaxBytes) {
-                throw new RigException(413, $"Assets are limited to {MaxBytes / (1024 * 1024)} MB.");
+                throw TooLarge();
             }
 
             original.Write(buffer, 0, read);
         }
 
         original.Position = 0;
-        AudioData audio;
-        try {
-            audio = WavFile.Read(original);
-        } catch (Exception e) when (e is InvalidDataException or EndOfStreamException) {
-            throw new RigException(400, $"{name}: {e.Message}");
-        }
-
-        if (audio.Frames == 0) {
-            throw new RigException(400, $"{name} is empty.");
-        }
-
+        var audio = ReadImpulse(original, name);
         await using var processed = new MemoryStream();
         WavFile.Write(processed, IrImport.Process(audio, import));
         processed.Position = 0;
@@ -133,16 +156,11 @@ public sealed class AssetStore {
     }
 
     public async Task<AssetInfo> AddAsync(Stream content, string name, CancellationToken cancellationToken) {
-        var kind = Path.GetExtension(name).ToLowerInvariant() switch {
-            ".nam" => "nam",
-            ".aidax" or ".json" => "aidax",
-            ".wav" => "ir",
-            ".cabgrid" => "cabgrid",
-            _ => throw new RigException(
+        var kind = KindOf(name)
+            ?? throw new RigException(
                 415,
                 $"Unsupported asset '{name}': upload a .nam or .aidax model, a .wav impulse response or a .cabgrid IR pack."
-            )
-        };
+            );
 
         var temporary = Path.Combine(folder, $"upload-{Guid.NewGuid():n}.tmp");
         long size = 0;
@@ -155,7 +173,7 @@ public sealed class AssetStore {
                 if (size > MaxBytes) {
                     file.Close();
                     File.Delete(temporary);
-                    throw new RigException(413, $"Assets are limited to {MaxBytes / (1024 * 1024)} MB.");
+                    throw TooLarge();
                 }
 
                 hash.AppendData(buffer, 0, read);
@@ -166,6 +184,17 @@ public sealed class AssetStore {
         if (size == 0) {
             File.Delete(temporary);
             throw new RigException(400, "The upload is empty.");
+        }
+
+        if (kind == "ir") {
+            // Stored as uploaded, but read later by the engine, the mixer and Tone Match: it must be a WAV they read.
+            try {
+                await using var stored = File.OpenRead(temporary);
+                Checked(name, () => WavFile.ReadHeader(stored).Frames);
+            } catch (RigException) {
+                File.Delete(temporary);
+                throw;
+            }
         }
 
         var reference = Prefix + Convert.ToHexStringLower(hash.GetHashAndReset());
@@ -214,6 +243,36 @@ public sealed class AssetStore {
         }
     }
 
+    /// <summary>An impulse response read from an upload; one that is not a WAV this reader decodes, or empty, is a 400.</summary>
+    static AudioData ReadImpulse(Stream content, string name) {
+        AudioData? audio = null;
+        Checked(
+            name,
+            () => {
+                audio = WavFile.Read(content);
+                return audio.Frames;
+            }
+        );
+        return audio!;
+    }
+
+    /// <summary>Runs a WAV read that returns the frames found; a damaged, unsupported or empty WAV is a 400.</summary>
+    static void Checked(string name, Func<long> read) {
+        long frames;
+        try {
+            frames = read();
+        } catch (Exception e) when (e is InvalidDataException or EndOfStreamException) {
+            throw new RigException(400, $"{name}: {e.Message}");
+        }
+
+        if (frames == 0) {
+            throw new RigException(400, $"{name} is empty.");
+        }
+    }
+
+    /// <summary>The 413 for an asset over <see cref="MaxBytes" />.</summary>
+    public static RigException TooLarge() => new(413, $"Assets are limited to {MaxBytes / (1024 * 1024)} MB.");
+
     /// <summary>True for asset kinds that go into an amp's model slot.</summary>
     public static bool IsModel(string kind) => kind is "nam" or "aidax";
 
@@ -229,6 +288,16 @@ public sealed class AssetStore {
                 ? kind is "ir" or "cabgrid"
                 : kind == "ir";
 
+    /// <summary>The kind of asset a file named <paramref name="name" /> is, by its extension; null if none.</summary>
+    public static string? KindOf(string name) =>
+        Path.GetExtension(name).ToLowerInvariant() switch {
+            ".nam" => "nam",
+            ".aidax" or ".json" => "aidax",
+            ".wav" => "ir",
+            ".cabgrid" => "cabgrid",
+            _ => null
+        };
+
     /// <summary>
     ///     The extension a stored asset of <paramref name="kind" /> gets. The amp picks the model runtime by extension.
     /// </summary>
@@ -243,8 +312,15 @@ public sealed class AssetStore {
     string FilePath(string reference, string kind) =>
         Path.Combine(folder, reference[Prefix.Length..] + Extension(kind));
 
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "The asset index {Path} is damaged ({Error}); rebuilt from the files in the folder"
+    )]
+    static partial void IndexDamaged(ILogger logger, string path, string error);
+
+    /// <summary>Written atomically (<see cref="AtomicRename.Write" />): rewritten on every upload, rename and delete.</summary>
     void SaveIndex() =>
-        File.WriteAllText(
+        AtomicRename.Write(
             indexPath,
             JsonSerializer.Serialize([..index.Values], ContractsJsonContext.Default.AssetInfoArray)
         );

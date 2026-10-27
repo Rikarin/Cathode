@@ -44,6 +44,37 @@ public sealed class PresetPackageTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task A_preset_with_an_ir_pack_moves_to_another_library() {
+        await using var pack = new MemoryStream();
+        await using (var zip = new ZipArchive(pack, ZipArchiveMode.Create, true)) {
+            await using (var wav = await zip.CreateEntry("a.wav").OpenAsync(Token)) {
+                WavFile.Write(wav, new(48_000, [Signals.Noise(256, 5)]));
+            }
+
+            await using var manifest = new StreamWriter(await zip.CreateEntry("manifest.json").OpenAsync(Token));
+            await manifest.WriteAsync("""{ "irs": [{ "position": 0, "distance": 1, "file": "a.wav" }] }""");
+        }
+
+        using var upload = await from.PostAsync(
+            "/api/v1/assets?name=my-412.cabgrid",
+            new ByteArrayContent(pack.ToArray()),
+            Token
+        );
+        var asset = (await upload.Content.ReadFromJsonAsync<AssetInfo>(Token))!;
+        await Ensure(from.PostAsJsonAsync("/api/v1/live/new", new { }, Token));
+        await Ensure(from.PostAsJsonAsync("/api/v1/live/blocks", new AddBlockRequest("cab", 0, 2), Token));
+        await Ensure(from.PutAsJsonAsync("/api/v1/live/blocks/cab1/assets/slot2", new AssetRequest(asset.Ref), Token));
+        using var saved = await from.PostAsJsonAsync("/api/v1/live/save", new SaveRequest("Pack Rig", true), Token);
+        var id = (await saved.Content.ReadFromJsonAsync<LiveState>(Token))!.Preset.Id;
+
+        var imported = await Import(to, await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token));
+
+        Assert.Equal(1, imported.AssetsAdded);
+        var stored = Assert.Single((await to.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!);
+        Assert.Equal((asset.Ref, "cabgrid"), (stored.Ref, stored.Kind));
+    }
+
+    [Fact]
     public async Task Importing_into_the_same_library_never_overwrites() {
         var id = await SaveRigWithCab(from, "Original");
         var package = await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token);
@@ -76,6 +107,8 @@ public sealed class PresetPackageTests : IAsyncLifetime {
     [InlineData("assets/../preset.json")]
     [InlineData("assets/NOT-A-HASH.wav")]
     [InlineData("readme.txt")]
+    [InlineData("assets/0000000000000000000000000000000000000000000000000000000000000000.json")]
+    [InlineData("assets/0000000000000000000000000000000000000000000000000000000000000000.exe")]
     public async Task Unexpected_entry_names_are_rejected(string name) {
         var id = await SaveRigWithCab(from, "Sneaky");
         var package = AddEntry(
@@ -88,6 +121,24 @@ public sealed class PresetPackageTests : IAsyncLifetime {
 
         Assert.Equal(HttpStatusCode.BadRequest, status);
         Assert.Contains("unexpected files", body, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("""{ "name": "x", "schemaVersion": 1.5 }""")]
+    [InlineData("""{ "name": "x", "blocks": [ { "id": "a", "type": 5 } ] }""")]
+    [InlineData("""{ "name": "x", "blocks": {} }""")]
+    public async Task A_preset_of_the_wrong_shape_is_refused_as_invalid(string json) {
+        var id = await SaveRigWithCab(from, "Odd");
+        var package = Rewrite(
+            await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token),
+            static e => e == "preset.json",
+            System.Text.Encoding.UTF8.GetBytes(json)
+        );
+
+        var (status, body) = await TryImport(to, package);
+
+        Assert.Equal(HttpStatusCode.BadRequest, status);
+        Assert.Contains("preset.json is not valid", body, StringComparison.Ordinal);
     }
 
     [Fact]

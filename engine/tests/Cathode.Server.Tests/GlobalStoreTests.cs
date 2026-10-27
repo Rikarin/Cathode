@@ -10,6 +10,34 @@ public sealed class GlobalStoreTests : IDisposable {
     public void Dispose() => Directory.Delete(folder, true);
 
     [Fact]
+    public void An_update_replaces_the_file_while_a_reader_holds_it() {
+        var store = new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder }));
+        store.Update(static g => g.Tempo = 100);
+        var path = Path.Combine(folder, "global.json");
+        using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) {
+            store.Update(static g => g.Tempo = 120); // a plain File.Move is refused on Windows while it is open
+        }
+
+        Assert.Equal(120, new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder })).Get().Tempo);
+        Assert.Equal(["global.json"], Directory.EnumerateFiles(folder).Select(Path.GetFileName));
+    }
+
+    [Theory]
+    [InlineData("""{ "schemaVersion": 2.5 }""")]
+    [InlineData("""{ "blocks": {} }""")]
+    [InlineData("""{ "blocks": [ { "type": 5 } ] }""")]
+    [InlineData("""{ "tempo": "fast" }""")]
+    [InlineData("not json")]
+    public void A_damaged_file_falls_back_to_the_defaults_and_is_kept(string json) {
+        File.WriteAllText(Path.Combine(folder, "global.json"), json);
+
+        var settings = new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder })).Get();
+
+        Assert.Equal(120, settings.Tempo);
+        Assert.Equal(json, File.ReadAllText(Path.Combine(folder, "global.json.damaged")));
+    }
+
+    [Fact]
     public void Dual_mono_from_an_earlier_release_reads_as_copy_left_to_right() {
         File.WriteAllText(
             Path.Combine(folder, "global.json"),

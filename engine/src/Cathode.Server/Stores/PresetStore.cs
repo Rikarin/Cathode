@@ -9,20 +9,26 @@ namespace Cathode.Server.Stores;
 ///     file each in <c>&lt;data&gt;/presets</c>. A factory preset cannot be saved over or deleted; its colour tag and
 ///     favourite flag, the user's, are kept in <c>&lt;data&gt;/factory-marks</c>.
 /// </summary>
-public sealed class PresetStore(IOptions<ServerOptions> options, FactoryPresets factory) {
+public sealed class PresetStore(
+    IOptions<ServerOptions> options,
+    FactoryPresets factory,
+    ILogger<PresetStore>? logger = null
+) {
     readonly JsonFileStore<Preset> files = new(
         Path.Combine(options.Value.DataDirectory, "presets"),
         "preset",
         ContractsJsonContext.Default.Preset,
         static p => p.Id,
-        PresetMigrations.Upgrade
+        PresetMigrations.Upgrade,
+        logger
     );
 
     readonly JsonFileStore<FactoryPresetMark> marks = new(
         Path.Combine(options.Value.DataDirectory, "factory-marks"),
         "factory preset mark",
         ContractsJsonContext.Default.FactoryPresetMark,
-        static m => m.Id
+        static m => m.Id,
+        logger: logger
     );
 
     public FactoryPresets Factory => factory;
@@ -94,6 +100,7 @@ public sealed class PresetStore(IOptions<ServerOptions> options, FactoryPresets 
             throw RigException.Conflict("Factory presets cannot be changed; save the preset as a new one.");
         }
 
+        PresetShape.Check(preset); // PUT /presets/{id} and imports take a client's document as it is
         preset.Factory = null;
         files.Save(preset);
     }

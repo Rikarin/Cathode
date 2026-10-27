@@ -11,7 +11,8 @@ namespace Cathode.Server.Stores;
 
 /// <summary>
 ///     The <c>.cthpreset</c> package: a zip of <c>manifest.json</c>, <c>preset.json</c> and the IRs and models the
-///     preset uses as <c>assets/&lt;sha256&gt;.&lt;wav|nam&gt;</c>. Import treats the file as hostile: only those
+///     preset uses as <c>assets/&lt;sha256&gt;.&lt;wav|cabgrid|nam|aidax&gt;</c>. Import treats the file as hostile: only
+///     those
 ///     exact names are accepted (nothing is ever extracted to a path taken from the zip), sizes are enforced while
 ///     reading rather than trusted from headers, and every asset must hash to its name before it enters the store.
 /// </summary>
@@ -88,7 +89,7 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
             throw new RigException(400, $"A package holds at most {MaxEntries} files.");
         }
 
-        var unexpected = zip.Entries.Where(static e => !AllowedName().IsMatch(e.FullName))
+        var unexpected = zip.Entries.Where(static e => !IsAllowed(e.FullName))
             .Select(static e => e.FullName)
             .ToList();
         if (unexpected.Count > 0) {
@@ -195,7 +196,11 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
                     ? JsonSerializer.Deserialize(json, typeInfo)
                     : upgrade(JsonNode.Parse(json))?.Deserialize(typeInfo))
                 ?? throw new RigException(400, $"{name} is empty.");
-        } catch (JsonException e) {
+        } catch (Exception e) when (e is JsonException
+                                        or InvalidOperationException
+                                        or FormatException
+                                        or OverflowException) {
+            // Not JSON, or JSON of the wrong shape for the serializer's or a migration's type checks.
             throw new RigException(400, $"{name} is not valid: {e.Message}");
         }
     }
@@ -221,7 +226,16 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
         }
     }
 
-    [GeneratedRegex("""^(manifest\.json|preset\.json|assets/[0-9a-f]{64}\.(wav|nam|aidax))$""")]
+    /// <summary>
+    ///     The manifest, the preset, and assets named by their hash with the extension the store gives their kind
+    ///     (<see cref="AssetStore.Extension" />), so whatever export writes, import takes.
+    /// </summary>
+    static bool IsAllowed(string name) =>
+        AllowedName().IsMatch(name)
+        && (!name.StartsWith("assets/", StringComparison.Ordinal)
+            || (AssetStore.KindOf(name) is { } kind && AssetStore.Extension(kind) == Path.GetExtension(name)));
+
+    [GeneratedRegex("""^(manifest\.json|preset\.json|assets/[0-9a-f]{64}\.[a-z]+)$""")]
     private static partial Regex AllowedName();
 
     /// <summary>A write-only stream that feeds a hash, so an asset can be verified without storing it.</summary>

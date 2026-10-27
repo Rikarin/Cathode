@@ -51,6 +51,32 @@ public sealed class AudioIoApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Cab_modeling_off_is_stored_and_reaches_the_engine() {
+        await PutGlobal(static g => g.CabModelingOff = true);
+
+        Assert.True((await Global()).CabModelingOff);
+        await ServerFixture.Eventually(() => Rig("cabsOff") == 1f);
+
+        await PutGlobal(static g => g.CabModelingOff = false);
+
+        Assert.False((await Global()).CabModelingOff);
+        await ServerFixture.Eventually(() => Rig("cabsOff") == 0f);
+    }
+
+    [Fact]
+    public async Task Every_switch_in_the_global_settings_survives_a_put() {
+        // Each bool flipped from what the server holds: a field the PUT handler forgets to copy springs back.
+        var switches = typeof(GlobalSettings).GetProperties()
+            .Where(static p => p.PropertyType == typeof(bool))
+            .ToList();
+        var before = await Global();
+        await PutGlobal(g => switches.ForEach(p => p.SetValue(g, !(bool)p.GetValue(before)!)));
+
+        var after = await Global();
+        Assert.All(switches, p => Assert.Equal(!(bool)p.GetValue(before)!, (bool)p.GetValue(after)!));
+    }
+
+    [Fact]
     public async Task Linear_phase_oversampling_recompiles_and_the_latency_report_names_the_drive() {
         await PutGlobal(static g => g.Oversampling = "linear");
 

@@ -7,8 +7,9 @@ using System.Text.RegularExpressions;
 namespace Cathode.Server.Stores;
 
 /// <summary>
-///     One JSON file per item in a folder, written atomically (temp file then rename), so a crash never leaves a
-///     half-written file. Ids become file names and are restricted to safe characters. An <c>upgrade</c> rewrites a
+///     One JSON file per item in a folder, written atomically (a temporary file of each save's own, flushed to the disk,
+///     then renamed: <see cref="AtomicRename.Write" />), so a crash or a power cut never leaves a half-written file. Ids
+///     become file names and are restricted to safe characters. An <c>upgrade</c> rewrites a
 ///     file's JSON before it is read (a stored format's migrations, <see cref="PresetMigrations" />).
 /// </summary>
 /// <remarks>
@@ -23,23 +24,26 @@ public sealed class JsonFileStore<T>
     readonly JsonTypeInfo<T> typeInfo;
     readonly Func<T, string> idOf;
     readonly Func<JsonNode?, JsonNode?>? upgrade;
+    readonly ILogger? logger;
 
     public JsonFileStore(
         string folder,
         string kind,
         JsonTypeInfo<T> typeInfo,
         Func<T, string> idOf,
-        Func<JsonNode?, JsonNode?>? upgrade = null
+        Func<JsonNode?, JsonNode?>? upgrade = null,
+        ILogger? logger = null
     ) {
         this.folder = folder;
         this.kind = kind;
         this.typeInfo = typeInfo;
         this.idOf = idOf;
         this.upgrade = upgrade;
+        this.logger = logger;
         Directory.CreateDirectory(folder);
     }
 
-    /// <summary>Every readable item with its last-modified time. Unreadable files are skipped.</summary>
+    /// <summary>Every readable item with its last-modified time. Unreadable files are skipped (and logged).</summary>
     public IEnumerable<(T Item, DateTimeOffset Modified)> All() =>
         Directory.EnumerateFiles(folder, "*.json")
             .Select(path => (Item: TryRead(path), Modified: (DateTimeOffset)File.GetLastWriteTimeUtc(path)))
@@ -51,14 +55,7 @@ public sealed class JsonFileStore<T>
     public bool Exists(string id) => StoreIds.IsValid(id) && File.Exists(PathOf(id));
 
     public void Save(T item) {
-        var path = PathOf(idOf(item));
-        var temporary = path + ".tmp";
-        var json = JsonSerializer.Serialize(item, typeInfo);
-        Retrying(() => {
-                File.WriteAllText(temporary, json);
-                AtomicRename.Replace(temporary, path);
-            }
-        );
+        AtomicRename.Write(PathOf(idOf(item)), JsonSerializer.Serialize(item, typeInfo));
     }
 
     public bool Delete(string id) {
@@ -78,7 +75,7 @@ public sealed class JsonFileStore<T>
 
     T? TryRead(string path) {
         try {
-            return Retrying(() => {
+            return AtomicRename.Retrying(() => {
                     using var stream = new FileStream(
                         path,
                         FileMode.Open,
@@ -90,32 +87,33 @@ public sealed class JsonFileStore<T>
                         : upgrade(JsonNode.Parse(stream))?.Deserialize(typeInfo);
                 }
             );
-        } catch (JsonException) {
+        } catch (Exception e) when (StoreLog.IsDamage(e)) {
+            // One damaged, hand-edited or half-synced file is skipped rather than failing every listing.
+            if (logger is not null) {
+                StoreLog.Unreadable(logger, kind, path, e.Message);
+            }
+
             return null;
         }
     }
+}
 
-    /// <summary>Runs a file operation, retrying a sharing violation or a denied access for up to about a second.</summary>
-    static TResult Retrying<TResult>(Func<TResult> operation) {
-        for (var attempt = 1;; attempt++) {
-            try {
-                return operation();
-            } catch (Exception e) when (e is IOException
-                                            and not FileNotFoundException
-                                            and not DirectoryNotFoundException
-                                            or UnauthorizedAccessException
-                                        && attempt < 20) {
-                Thread.Sleep(5 * attempt);
-            }
-        }
-    }
+static partial class StoreLog {
+    /// <summary>
+    ///     What reading a stored file throws when the file, not the Server, is at fault: not JSON, JSON of the wrong
+    ///     shape (a migration's or the serializer's type checks), gone or held by another program past the retries.
+    /// </summary>
+    public static bool IsDamage(Exception e) =>
+        e is JsonException
+            or InvalidOperationException
+            or FormatException
+            or OverflowException
+            or NotSupportedException
+            or IOException
+            or UnauthorizedAccessException;
 
-    static void Retrying(Action operation) =>
-        Retrying(() => {
-                operation();
-                return true;
-            }
-        );
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Skipped the unreadable {Kind} file {Path}: {Error}")]
+    public static partial void Unreadable(ILogger logger, string kind, string path, string error);
 }
 
 public static partial class StoreIds {
