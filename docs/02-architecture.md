@@ -254,7 +254,7 @@ Other optional interfaces a block may add:
 | Change | Mechanism | Audible result |
 |---|---|---|
 | Knob | Smoothed target | None |
-| Block bypass | 5–20 ms crossfade. All six bypass modes: THRU, MUTE, MUTE IN, MUTE OUT, MUTE FX IN, MUTE FX OUT (the "IN" modes give per-block spillover) | Click-free |
+| Block bypass | 5–20 ms crossfade. All six bypass modes: THRU, MUTE, MUTE IN, MUTE OUT, MUTE FX IN, MUTE FX OUT (the "IN" modes give per-block spillover). A block with latency keeps it while bypassed (its dry signal runs through a delay of the same length), so the compiler's alignment of parallel paths and outputs holds | Click-free |
 | Channel | Crossfade between two param sets on the same instance. For amp/cab, double-buffer the state where needed | Gapless |
 | Scene | Batch of bypass, channel and level changes applied atomically in one audio block | Gapless; delays and reverbs spill over naturally |
 | Preset | New `CompiledGraph` is built and pre-rolled off-thread, then **RCU swap** via `Interlocked.Exchange`, then a 10–30 ms crossfade. The old graph's delay and reverb tails keep running muted at their input until they drop below −90 dB or hit a time cap (**spillover**). Retired graphs return through a ring to the control thread for disposal | Gapless, with tails |
