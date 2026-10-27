@@ -157,7 +157,10 @@ Each switches the real components on the model's schematic. Some worth knowing:
   treble cap.
 - **Mark V, *IIC+ Mode*:** with *Mark IV Mode* (Switch 2), selects the channel-3 mode; both off is Extreme.
 - **TriAxis, *Yellow*:** with *Red* (Switch 2), the preamp's mode switches.
-- **AFD100, *AFD*:** off is the #34 mode, on is AFD.`,
+- **AFD100, *AFD*:** off is the #34 mode, on is AFD.
+- **JC-120, *Distortion*:** the effect channel's distortion (the footswitch on the real amp): the *Distortion* knob
+  (Control 2) and the diode clipper ahead of the tone stack come in. Off, as the amp is usually played, the knob does
+  nothing.`,
 
     switch2: `A model's second switch, where it has one: for example *Tube Rectifier* on the Rectifiers (5U4 tube
 rectifiers instead of silicon: more sag), *Crunch* on the SLO-100's normal channel, *Deep* on the Mark IIC+
@@ -178,7 +181,8 @@ Plexi-style amps the two volumes blend the bright and normal channels.`,
 
     control2: `A model's second extra knob, where it has one: *Lead Master* on the Mark IIC+ and IV, *Presence* on the
 Rectifiers (a preamp presence control there), *Lead Volume* on the Powerball and Savage, *OD Level* on the ODS,
-*Dynamic Voice* on the TriAxis, the 4 kHz band of the Bass 400's EQ.`,
+*Dynamic Voice* on the TriAxis, the 4 kHz band of the Bass 400's EQ, *Distortion* on the JC-120 (the gain ahead of its
+diode clipper, from about 2× to 48×; it acts only with its *Distortion* switch on).`,
 
     eq1: `The first band of a graphic EQ that is part of the model's own circuit (the Mesa Mark IIC+, IV and V's 80 Hz
 slider, the Bass 400's 34 Hz). ±12 dB maps onto the slider's travel; 0 is the slider centred. Hidden on models without
@@ -519,7 +523,8 @@ at its resonance, as on choke-filtered supplies: the screen voltage can bounce a
       'Savage 120': 'Engl Savage 120 lead channel: aggressive, mid-forward high gain.',
       SVT: 'Ampeg SVT: the classic tube bass amp, with Ultra Hi, Ultra Lo and Bass Cut.',
       'Portaflex B-15N': 'Ampeg B-15N Portaflex: warm, round vintage bass.',
-      'JC-120': 'Roland JC-120 Jazz Chorus (effects off): a solid-state clean, very flat and bright.',
+      'JC-120':
+        'Roland JC-120 Jazz Chorus (chorus and reverb off): a solid-state clean, very flat and bright, with its diode Distortion on Switch 1.',
       'Hot Rod Deluxe': 'Fender Hot Rod Deluxe, Normal and Drive channels with More Drive.',
       'Champ 5F1': 'Fender tweed Champ 5F1: single-ended, one knob, breaks up almost at once.',
       'Vibroverb AB763': 'Fender Vibroverb AB763 with its optical vibrato.',
