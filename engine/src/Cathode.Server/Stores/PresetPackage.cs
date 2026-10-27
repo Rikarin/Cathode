@@ -196,7 +196,11 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
                     ? JsonSerializer.Deserialize(json, typeInfo)
                     : upgrade(JsonNode.Parse(json))?.Deserialize(typeInfo))
                 ?? throw new RigException(400, $"{name} is empty.");
-        } catch (JsonException e) {
+        } catch (Exception e) when (e is JsonException
+                                        or InvalidOperationException
+                                        or FormatException
+                                        or OverflowException) {
+            // Not JSON, or JSON of the wrong shape for the serializer's or a migration's type checks.
             throw new RigException(400, $"{name} is not valid: {e.Message}");
         }
     }

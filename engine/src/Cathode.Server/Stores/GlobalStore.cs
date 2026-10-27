@@ -14,10 +14,10 @@ public sealed class GlobalStore {
     readonly Lock gate = new();
     GlobalSettings settings;
 
-    public GlobalStore(IOptions<ServerOptions> options) {
+    public GlobalStore(IOptions<ServerOptions> options, ILogger<GlobalStore>? logger = null) {
         Directory.CreateDirectory(options.Value.DataDirectory);
         path = Path.Combine(options.Value.DataDirectory, "global.json");
-        settings = Read() ?? new();
+        settings = Read(logger) ?? new();
     }
 
     public GlobalSettings Get() {
@@ -40,16 +40,29 @@ public sealed class GlobalStore {
         return result;
     }
 
-    GlobalSettings? Read() {
+    GlobalSettings? Read(ILogger? logger) {
+        if (!File.Exists(path)) {
+            return null;
+        }
+
         try {
-            return File.Exists(path)
-                ? Upgrade(
-                    UpgradeJson(JsonNode.Parse(File.ReadAllText(path)))
-                        ?.Deserialize(ContractsJsonContext.Default.GlobalSettings)
-                )
-                : null;
-        } catch (JsonException) {
-            return null; // a damaged file falls back to defaults rather than stopping the Server
+            return Upgrade(
+                UpgradeJson(JsonNode.Parse(File.ReadAllText(path)))
+                    ?.Deserialize(ContractsJsonContext.Default.GlobalSettings)
+            );
+        } catch (Exception e) when (StoreLog.IsDamage(e)) {
+            // A damaged file falls back to defaults rather than stopping the Server; it is kept beside them.
+            if (logger is not null) {
+                StoreLog.Unreadable(logger, "global settings", path, e.Message);
+            }
+
+            try {
+                File.Copy(path, path + ".damaged", true);
+            } catch (Exception copy) when (copy is IOException or UnauthorizedAccessException) {
+                // the defaults still apply
+            }
+
+            return null;
         }
     }
 
@@ -60,15 +73,13 @@ public sealed class GlobalStore {
     /// </summary>
     public static JsonNode? UpgradeJson(JsonNode? node) {
         if (node is not JsonObject settings
-            || (settings["schemaVersion"]?.GetValueKind() == JsonValueKind.Number
-                && settings["schemaVersion"]!.GetValue<int>() >= GlobalSettings.CurrentSchemaVersion)) {
+            || PresetMigrations.VersionOf(settings) is not { } version
+            || version >= GlobalSettings.CurrentSchemaVersion) {
             return node;
         }
 
-        foreach (var block in settings["blocks"]?.AsArray() ?? []) {
-            if (block is JsonObject amp && amp["type"]?.GetValue<string>() == "circuitamp") {
-                PresetMigrations.UpgradeAmpBlock(amp);
-            }
+        foreach (var amp in PresetMigrations.Amps(settings["blocks"])) {
+            PresetMigrations.UpgradeAmpBlock(amp);
         }
 
         settings["schemaVersion"] = GlobalSettings.CurrentSchemaVersion;

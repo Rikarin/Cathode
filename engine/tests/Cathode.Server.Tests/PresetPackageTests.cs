@@ -123,6 +123,24 @@ public sealed class PresetPackageTests : IAsyncLifetime {
         Assert.Contains("unexpected files", body, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("""{ "name": "x", "schemaVersion": 1.5 }""")]
+    [InlineData("""{ "name": "x", "blocks": [ { "id": "a", "type": 5 } ] }""")]
+    [InlineData("""{ "name": "x", "blocks": {} }""")]
+    public async Task A_preset_of_the_wrong_shape_is_refused_as_invalid(string json) {
+        var id = await SaveRigWithCab(from, "Odd");
+        var package = Rewrite(
+            await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token),
+            static e => e == "preset.json",
+            System.Text.Encoding.UTF8.GetBytes(json)
+        );
+
+        var (status, body) = await TryImport(to, package);
+
+        Assert.Equal(HttpStatusCode.BadRequest, status);
+        Assert.Contains("preset.json is not valid", body, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task Oversized_entries_are_stopped_while_reading() {
         var id = await SaveRigWithCab(from, "Bomb");

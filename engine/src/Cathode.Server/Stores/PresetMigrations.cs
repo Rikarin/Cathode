@@ -52,13 +52,37 @@ public static class PresetMigrations {
     ///     (<see cref="UpgradeAmpBlock" />).
     /// </summary>
     static JsonObject ToSchema2(JsonObject preset) {
-        foreach (var block in preset["blocks"]?.AsArray() ?? []) {
-            if (block is JsonObject amp && amp["type"]?.GetValue<string>() == "circuitamp") {
-                UpgradeAmpBlock(amp);
-            }
+        foreach (var amp in Amps(preset["blocks"])) {
+            UpgradeAmpBlock(amp);
         }
 
         return preset;
+    }
+
+    /// <summary>
+    ///     The Amp blocks in a stored <c>blocks</c> array. Nothing else is touched, and a document of the wrong shape
+    ///     (no array, a block that is not an object, a type that is not a string) is not an error here: the reader
+    ///     refuses it afterwards, as damaged.
+    /// </summary>
+    public static IEnumerable<JsonObject> Amps(JsonNode? blocks) =>
+        (blocks as JsonArray)?.OfType<JsonObject>()
+        .Where(static b => b["type"] is JsonValue type
+            && type.TryGetValue<string>(out var name)
+            && name == "circuitamp"
+        )
+        ?? [];
+
+    /// <summary>
+    ///     The schema version a stored document declares: 1 without a number; null for a number that is not a whole
+    ///     one, which no step can take (the reader refuses the document as damaged).
+    /// </summary>
+    public static int? VersionOf(JsonObject document) {
+        if (document[VersionField] is not JsonValue value
+            || value.GetValueKind() != System.Text.Json.JsonValueKind.Number) {
+            return 1;
+        }
+
+        return value.TryGetValue<int>(out var version) ? version : null;
     }
 
     /// <summary>
@@ -85,7 +109,9 @@ public static class PresetMigrations {
     ///     once per schema-1 channel: a schema-2 channel without a Master means Master 5.
     /// </summary>
     public static void UpgradeAmpChannel(JsonObject channel) {
-        if (channel["powertube"] is JsonValue value && value.GetValue<float>() == Schema1FiveEightEightOne) {
+        if (channel["powertube"] is JsonValue value
+            && value.TryGetValue<float>(out var tube)
+            && tube == Schema1FiveEightEightOne) {
             channel["powertube"] = SixL6GC;
         }
 
@@ -112,10 +138,7 @@ public static class PresetMigrations {
             return node;
         }
 
-        var version = preset[VersionField]?.GetValueKind() == System.Text.Json.JsonValueKind.Number
-            ? preset[VersionField]!.GetValue<int>()
-            : 1;
-        if (version >= current || version < 1) {
+        if (VersionOf(preset) is not { } version || version >= current || version < 1) {
             return preset;
         }
 

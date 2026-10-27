@@ -41,6 +41,30 @@ public sealed class JsonFileStoreTests : IDisposable {
         Assert.Equal(200 % 12, store.Get(preset.Id)!.Scenes[0].Level);
     }
 
+    [Theory]
+    [InlineData("""{ "id": "bad", "schemaVersion": 2.5 }""")]
+    [InlineData("""{ "id": "bad", "schemaVersion": 1e30 }""")]
+    [InlineData("""{ "id": "bad", "blocks": {} }""")]
+    [InlineData("""{ "id": "bad", "blocks": [ { "id": "a", "type": 5 } ] }""")]
+    [InlineData("""{ "id": "bad", "blocks": [{ "type": "circuitamp", "channels": { "A": { "powertube": "x" } } }] }""")]
+    [InlineData("""[ 1, 2 ]""")]
+    [InlineData("")]
+    public void A_file_of_the_wrong_shape_is_skipped_and_the_rest_still_list(string json) {
+        var presets = new JsonFileStore<Preset>(
+            folder,
+            "preset",
+            ContractsJsonContext.Default.Preset,
+            static p => p.Id,
+            PresetMigrations.Upgrade
+        );
+        var good = Preset.CreateDefault();
+        presets.Save(good);
+        File.WriteAllText(Path.Combine(folder, "bad.json"), json);
+
+        Assert.Equal([good.Id], presets.All().Select(static e => e.Item.Id));
+        Assert.Null(presets.Get("bad"));
+    }
+
     [Fact]
     public async Task Writers_of_one_id_never_rename_each_others_half_written_file() {
         var preset = Preset.CreateDefault();

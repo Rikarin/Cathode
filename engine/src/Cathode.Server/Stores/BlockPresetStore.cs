@@ -11,13 +11,18 @@ namespace Cathode.Server.Stores;
 ///     The Block Library: the factory block presets (<see cref="FactoryBlockPresets" />, read-only) and the user's, one
 ///     JSON file each in <c>&lt;data&gt;/block-presets</c>. Saved presets are checked against the block catalogue.
 /// </summary>
-public sealed class BlockPresetStore(IOptions<ServerOptions> options, BlockCatalog catalog) {
+public sealed class BlockPresetStore(
+    IOptions<ServerOptions> options,
+    BlockCatalog catalog,
+    ILogger<BlockPresetStore>? logger = null
+) {
     readonly JsonFileStore<BlockPreset> files = new(
         Path.Combine(options.Value.DataDirectory, "block-presets"),
         "block preset",
         ContractsJsonContext.Default.BlockPreset,
         static p => p.Id,
-        Upgrade
+        Upgrade,
+        logger
     );
 
     /// <summary>Factory presets first, then the user's, each by name; only <paramref name="type" />'s when given.</summary>
@@ -117,12 +122,12 @@ public sealed class BlockPresetStore(IOptions<ServerOptions> options, BlockCatal
     /// </summary>
     static JsonNode? Upgrade(JsonNode? node) {
         if (node is not JsonObject preset
-            || (preset["schemaVersion"]?.GetValueKind() == JsonValueKind.Number
-                && preset["schemaVersion"]!.GetValue<int>() >= BlockPreset.CurrentSchemaVersion)) {
+            || PresetMigrations.VersionOf(preset) is not { } version
+            || version >= BlockPreset.CurrentSchemaVersion) {
             return node;
         }
 
-        if (preset["type"]?.GetValue<string>() == "circuitamp") {
+        if (preset["type"] is JsonValue type && type.TryGetValue<string>(out var name) && name == "circuitamp") {
             if (preset["values"] is not JsonObject values) {
                 preset["values"] = values = [];
             }

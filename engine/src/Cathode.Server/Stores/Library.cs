@@ -9,21 +9,23 @@ namespace Cathode.Server.Stores;
 ///     at presets that exist, and a preset cannot be deleted while something still uses it. The factory bank
 ///     (<see cref="FactoryPresets.Bank" />) comes first and is read-only.
 /// </summary>
-public sealed class Library(IOptions<ServerOptions> options, PresetStore presets) {
+public sealed class Library(IOptions<ServerOptions> options, PresetStore presets, ILogger<Library>? logger = null) {
     readonly Lock gate = new();
 
     readonly JsonFileStore<Setlist> setlists = new(
         Path.Combine(options.Value.DataDirectory, "setlists"),
         "setlist",
         ContractsJsonContext.Default.Setlist,
-        static s => s.Id
+        static s => s.Id,
+        logger: logger
     );
 
     readonly JsonFileStore<Bank> banks = new(
         Path.Combine(options.Value.DataDirectory, "banks"),
         "bank",
         ContractsJsonContext.Default.Bank,
-        static b => b.Id
+        static b => b.Id,
+        logger: logger
     );
 
     public Setlist[] Setlists() =>
