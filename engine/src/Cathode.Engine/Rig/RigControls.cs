@@ -19,10 +19,21 @@ public static class RigControls {
     public const int SumLeftRight = 1;
     public const int CopyLeftToRight = 2;
 
+    // Values of the Tuner Output choice.
+    public const int TunerMute = 0;
+    public const int TunerBypass = 1;
+    public const int TunerPassThrough = 2;
+
     public static readonly ImmutableArray<string> LfoShapes = Dsp.Modulation.Lfo.ShapeNames;
 
     /// <summary>Output Mode choices (<c>out1Mode</c>..<c>out4Mode</c>).</summary>
     public static readonly ImmutableArray<string> OutputModes = ["Stereo", "Sum L+R", "Copy L>R"];
+
+    /// <summary>
+    ///     Tuner Output choices (<c>tunerOut</c>): what every output plays while the tuner is on. Mute fades them out,
+    ///     Bypass plays the input dry (no blocks), Pass Through keeps the preset sounding.
+    /// </summary>
+    public static readonly ImmutableArray<string> TunerOutputs = ["Mute", "Bypass", "Pass Through"];
 
     /// <summary>Tempo divisions for synced controllers; "Off" uses the rate in Hz.</summary>
     public static readonly ImmutableArray<string> Divisions = TempoDivisions.Names;
@@ -79,7 +90,11 @@ public static class RigControls {
             // Global: Cab and IR Player blocks pass audio through (BlockContext.CabsOff), for a real cab.
             ParamDescriptor.Switch("cabsOff", "Cab Modeling Off"),
             // Live only (never saved): silences every output, after the metronome and the looper.
-            ParamDescriptor.Switch("mute", "Mute")
+            ParamDescriptor.Switch("mute", "Mute"),
+            // Global: what the outputs play while the tuner is on (TunerOutputs).
+            ParamDescriptor.Choice("tunerOut", "Tuner Output", TunerOutputs),
+            // Live only, set by the host while its tuner runs: applies Tuner Output.
+            ParamDescriptor.Switch("tuner", "Tuner")
         ],
         maxInstances: 1,
         channels: 1

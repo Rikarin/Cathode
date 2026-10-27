@@ -193,6 +193,82 @@ public class RigTests {
     }
 
     [Fact]
+    public void The_tuner_mutes_every_output_by_default_with_a_fade_and_unmutes_when_it_closes() {
+        var engine = Engine();
+        var input = Signals.Sine(220, 48_000, 48_000, 0.5f);
+
+        Set(engine, "tuner", 1f);
+        var (tuning, _) = OfflineRenderer.Render(engine, input, input, 64);
+        Set(engine, "tuner", 0f);
+        var (closed, _) = OfflineRenderer.Render(engine, input, input, 64);
+
+        Assert.Equal(RigControls.TunerMute, (int)engine.Rig.GetTarget(RigControls.Descriptor.IndexOf("tunerOut")));
+        Assert.True(Analysis.Peak(tuning.AsSpan(4_800)) < 1e-6, "silent while tuning");
+        Assert.True(Analysis.Peak(tuning.AsSpan(0, 32)) > 0, "fades rather than cuts");
+        Assert.True(Analysis.Peak(closed.AsSpan(4_800, 4_800)) > 0.4, "back when the tuner closes");
+    }
+
+    [Fact]
+    public void The_tuner_in_bypass_plays_the_dry_input_without_the_blocks() {
+        // The Volume block at a steady -20 dB makes the processed signal tell from the dry one.
+        var engine = Engine(Modifier("manualA", -20f, -20f));
+        Set(engine, "tunerOut", RigControls.TunerBypass);
+        var input = Signals.Sine(220, 48_000, 48_000, 0.5f);
+        OfflineRenderer.Render(engine, input, input, 64); // the level settles at -20 dB
+
+        Set(engine, "tuner", 1f);
+        var (left, right) = OfflineRenderer.Render(engine, input, input, 64);
+        Set(engine, "tuner", 0f);
+        var (closed, _) = OfflineRenderer.Render(engine, input, input, 64);
+
+        for (var i = 4_800; i < input.Length; i++) {
+            Assert.Equal(input[i], left[i]);
+            Assert.Equal(input[i], right[i]);
+        }
+
+        Assert.InRange(Analysis.Peak(closed.AsSpan(4_800)), 0.045, 0.055); // the preset again, at -20 dB
+        // Over the first 32 samples the dry share has only begun to rise: still nearer the -20 dB preset than the dry.
+        var start = Analysis.Peak(left.AsSpan(0, 32));
+        Assert.True(start < 0.5 * Analysis.Peak(input.AsSpan(0, 32)), "crossfades rather than jumps");
+    }
+
+    [Fact]
+    public void The_tuner_in_pass_through_leaves_the_output_as_it_was() {
+        var input = Signals.Sine(220, 48_000, 24_000, 0.5f);
+        var reference = Engine(Modifier("manualA", -20f, -20f));
+        var (expected, _) = OfflineRenderer.Render(reference, input, input, 64);
+        var engine = Engine(Modifier("manualA", -20f, -20f));
+        Set(engine, "tunerOut", RigControls.TunerPassThrough);
+        Set(engine, "tuner", 1f);
+
+        var (left, _) = OfflineRenderer.Render(engine, input, input, 64);
+
+        Assert.Equal(expected, left);
+    }
+
+    [Theory]
+    [InlineData(RigControls.TunerMute)]
+    [InlineData(RigControls.TunerBypass)]
+    public void The_tuner_output_runs_without_allocating(int mode) {
+        var engine = Engine();
+        Set(engine, "tunerOut", mode);
+        var input = Signals.Noise(64, 1);
+        var left = new float[64];
+        var right = new float[64];
+        engine.Process(new(input, input, left, right));
+
+        var allocated = AllocationProbe.Measure(() => {
+                for (var i = 0; i < 2_000; i++) {
+                    Set(engine, "tuner", i % 500 < 250 ? 1f : 0f);
+                    engine.Process(new(input, input, left, right));
+                }
+            }
+        );
+
+        Assert.Equal(0, allocated);
+    }
+
+    [Fact]
     public void Modifiers_with_unknown_sources_or_parameters_are_rejected() {
         var definition = Graph();
         definition.Modifiers.Add(new() { Block = "vol", Param = "nope", Source = "lfo1" });

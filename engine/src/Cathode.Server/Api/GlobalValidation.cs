@@ -16,6 +16,9 @@ static class GlobalValidation {
 
     public static readonly ImmutableArray<string> Oversampling = ["minimum", "linear"];
 
+    /// <summary>The tuner output modes, in the order of the engine's Tuner Output choice.</summary>
+    public static readonly ImmutableArray<string> TunerOutputs = ["mute", "bypass", "passThrough"];
+
     static readonly string[] Actions = [
         "scene", "sceneNext", "scenePrevious", "presetSlot", "presetNext", "presetPrevious", "bypass", "channel",
         "external", "manual", "tap", "tuner", "metronome", "mute", "looper", "sceneLevelUp", "sceneLevelDown", "save",
@@ -86,10 +89,14 @@ static class GlobalValidation {
         }
     }
 
-    /// <summary>Oversampling, the default scene and the manual controllers.</summary>
+    /// <summary>Oversampling, the tuner output, the default scene and the manual controllers.</summary>
     static void CheckOptions(GlobalSettings settings, List<string> errors) {
         if (!Oversampling.Contains(settings.Oversampling)) {
             errors.Add($"Oversampling '{settings.Oversampling}' is not minimum or linear.");
+        }
+
+        if (!TunerOutputs.Contains(settings.TunerOutput)) {
+            errors.Add($"Tuner output '{settings.TunerOutput}' is not mute, bypass or passThrough.");
         }
 
         if (settings.DefaultScene is < -1 or >= Preset.SceneCount) {

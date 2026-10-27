@@ -52,6 +52,7 @@ public sealed class EngineHostService : IDisposable {
     static readonly int PitchIndex = RigControls.Descriptor.IndexOf("pitch");
     static readonly int PitchLow = RigControls.Descriptor.IndexOf("pitchLow");
     static readonly int PitchHigh = RigControls.Descriptor.IndexOf("pitchHigh");
+    static readonly int TunerIndex = RigControls.Descriptor.IndexOf("tuner");
 
     public CathodeEngine Engine { get; }
 
@@ -600,6 +601,8 @@ public sealed class EngineHostService : IDisposable {
     IpcMessage SetTuner(IpcMessage request) {
         tunerOn = request.Enabled == true;
         Engine.InputTapEnabled = tunerOn || latest?.UsesPitch == true;
+        // The engine applies the global Tuner Output (mute, bypass or pass through) while this is on.
+        Engine.Rig.SetTarget(TunerIndex, tunerOn ? 1f : 0f);
         if (!tunerOn) {
             reading = null;
         }

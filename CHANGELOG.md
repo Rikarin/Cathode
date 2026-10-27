@@ -6,6 +6,12 @@ the format upgrades older presets as it reads them.
 
 ## Unreleased
 
+### Changed
+
+- **Opening the tuner mutes the output** (#26), with a short fade, as players expect. A global setting below the
+  tuner's needle, **Output while tuning**, chooses Mute (the default), Bypass (the guitar dry, no blocks) or Pass
+  through (the preset keeps sounding, as before). It applies however the tuner is opened: editor, footswitch or MIDI.
+
 ### Internal
 
 - **Skala's baseline is burnt down** (#161): from 4,321 accepted findings to 134, all of them duplicated-block

@@ -1357,7 +1357,7 @@ export interface paths {
       cookie?: never;
     };
     get: operations['GetGlobal'];
-    /** Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover. */
+    /** Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, the tuner output, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover. */
     put: operations['PutGlobal'];
     post?: never;
     delete?: never;
@@ -2096,6 +2096,11 @@ export interface components {
        *     it stops with the swap fade (a clean cut).
        */
       presetSpillover: boolean;
+      /**
+       * @description What the outputs play while the tuner is on: `mute` (silence, faded, the default), `bypass` (the
+       *     input dry, no blocks) or `passThrough` (the preset keeps sounding).
+       */
+      tunerOutput: string;
       /** @description Whether editors ask before changing presets while the working copy has unsaved edits. */
       confirmPresetChange: boolean;
     };

@@ -99,6 +99,12 @@ public sealed class GlobalSettings {
     /// </summary>
     public bool PresetSpillover { get; set; } = true;
 
+    /// <summary>
+    ///     What the outputs play while the tuner is on: <c>mute</c> (silence, faded, the default), <c>bypass</c> (the
+    ///     input dry, no blocks) or <c>passThrough</c> (the preset keeps sounding).
+    /// </summary>
+    public string TunerOutput { get; set; } = "mute";
+
     /// <summary>Whether editors ask before changing presets while the working copy has unsaved edits.</summary>
     public bool ConfirmPresetChange { get; set; } = true;
 }

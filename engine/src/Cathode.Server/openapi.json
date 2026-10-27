@@ -3025,7 +3025,7 @@
         "tags": [
           "Global"
         ],
-        "summary": "Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover.",
+        "summary": "Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, the tuner output, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover.",
         "operationId": "PutGlobal",
         "requestBody": {
           "content": {
@@ -4594,6 +4594,7 @@
           "defaultScene",
           "ignoreRedundantPc",
           "presetSpillover",
+          "tunerOutput",
           "confirmPresetChange"
         ],
         "type": "object",
@@ -4727,6 +4728,10 @@
           "presetSpillover": {
             "type": "boolean",
             "description": "Preset-change spillover: on, the outgoing preset\u0027s delay and reverb tails ring out under the new one; off,\nit stops with the swap fade (a clean cut)."
+          },
+          "tunerOutput": {
+            "type": "string",
+            "description": "What the outputs play while the tuner is on: \u0060mute\u0060 (silence, faded, the default), \u0060bypass\u0060 (the\ninput dry, no blocks) or \u0060passThrough\u0060 (the preset keeps sounding)."
           },
           "confirmPresetChange": {
             "type": "boolean",

@@ -70,6 +70,8 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     readonly int calibrationIndex = RigControls.Descriptor.IndexOf("in1Cal");
     readonly int copyIndex = RigControls.Descriptor.IndexOf("copyOut2");
     readonly int muteIndex = RigControls.Descriptor.IndexOf("mute");
+    readonly int tunerIndex = RigControls.Descriptor.IndexOf("tuner");
+    readonly int tunerOutIndex = RigControls.Descriptor.IndexOf("tunerOut");
 
     readonly int[] modeIndex =
         [..Enumerable.Range(1, Outputs).Select(static k => RigControls.Descriptor.IndexOf($"out{k}Mode"))];
@@ -94,6 +96,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     int tapCount;
     float levelGain = 1f;
     float muteGain = 1f; // the mute's fade, 0 when muted
+    float dryMix; // the tuner's Bypass crossfade, 1 when the outputs play the dry input
     Looper? looper;
     Spillover tail; // the graph replaced by the latest swap, ringing out
     Spillover evicted; // the graph that was spilling when another swap came, fading out over one swap fade
@@ -486,12 +489,23 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     }
 
     /// <summary>
-    ///     Mute: every output fades out (and back in) as a graph swap does, metronome and looper included. Outputs 2-4
-    ///     are finished and copied to the device.
+    ///     Mute: every output fades out (and back in) as a graph swap does, metronome and looper included. While the
+    ///     tuner is on, its Tuner Output mutes the same way (Mute), crossfades every output to the dry input (Bypass)
+    ///     or leaves them alone (Pass Through). Outputs 2-4 are finished and copied to the device.
     /// </summary>
     void MuteAndFinishOutputs(in AudioIO slice, OutputBus? bus, int offset, int length, in BlockContext context) {
+        var tunerOut = Rig.GetTarget(tunerIndex) >= 0.5f
+            ? (int)Rig.GetTarget(tunerOutIndex)
+            : RigControls.TunerPassThrough;
+        var dryFrom = dryMix;
+        var dryTo = tunerOut == RigControls.TunerBypass ? 1f : 0f;
+        var bypassing = dryFrom != 0f || dryTo != 0f;
+        if (bypassing) {
+            dryMix = Crossfade(slice.InputLeft, slice.InputRight, slice.OutputLeft, slice.OutputRight, dryFrom, dryTo);
+        }
+
         var muteFrom = muteGain;
-        var muteTo = Rig.GetTarget(muteIndex) >= 0.5f ? 0f : 1f;
+        var muteTo = Rig.GetTarget(muteIndex) >= 0.5f || tunerOut == RigControls.TunerMute ? 0f : 1f;
         var muting = muteFrom != 1f || muteTo != 1f;
         if (muting) {
             muteGain = Ramp(slice.OutputLeft, slice.OutputRight, muteFrom, muteTo);
@@ -505,6 +519,10 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
             var auxLeft = graphOutputs.Left(k, length);
             var auxRight = graphOutputs.Right(k, length);
             FinishOutput(k, auxLeft, auxRight, context);
+            if (bypassing) {
+                Crossfade(slice.InputLeft, slice.InputRight, auxLeft, auxRight, dryFrom, dryTo);
+            }
+
             if (muting) {
                 Ramp(auxLeft, auxRight, muteFrom, muteTo);
             }
@@ -721,6 +739,28 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         }
 
         return gain;
+    }
+
+    /// <summary>
+    ///     Crossfades <paramref name="left" /> and <paramref name="right" /> towards the dry input, the dry share
+    ///     moving from <paramref name="mix" /> towards <paramref name="target" /> at the swap fade's rate.
+    /// </summary>
+    float Crossfade(
+        ReadOnlySpan<float> dryLeft,
+        ReadOnlySpan<float> dryRight,
+        Span<float> left,
+        Span<float> right,
+        float mix,
+        float target
+    ) {
+        for (var i = 0; i < left.Length; i++) {
+            mix = target > mix ? Math.Min(target, mix + swapStep) : Math.Max(target, mix - swapStep);
+            // As two gains, so the ends are exact: the processed signal alone at 0, the dry input alone at 1.
+            left[i] = left[i] * (1f - mix) + dryLeft[i] * mix;
+            right[i] = right[i] * (1f - mix) + dryRight[i] * mix;
+        }
+
+        return mix;
     }
 
     /// <summary>

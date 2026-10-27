@@ -127,6 +127,7 @@ static class ControlsApi {
                                 g.CopyOutput1To2 = settings.CopyOutput1To2;
                                 g.Inputs = settings.Inputs;
                                 g.Oversampling = settings.Oversampling;
+                                g.TunerOutput = settings.TunerOutput;
                                 g.Manual = settings.Manual;
                                 g.MidiChannel = settings.MidiChannel;
                                 g.MidiMappings = settings.MidiMappings;
@@ -154,7 +155,7 @@ static class ControlsApi {
             .WithName("PutGlobal")
             .WithSummary(
                 "Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs "
-                + "(calibration, gain), oversampling, Manual A-D, MIDI, footswitches, global blocks, "
+                + "(calibration, gain), oversampling, the tuner output, Manual A-D, MIDI, footswitches, global blocks, "
                 + "scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover."
             );
 
