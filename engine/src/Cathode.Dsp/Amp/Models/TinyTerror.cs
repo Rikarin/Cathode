@@ -10,8 +10,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///     0.047 µF onto 220k and the Gain's second half, whose wiper drives a 12AX7 long-tail pair (0.047 µF, 1M grid
 ///     leaks, 1.2k bias, 47k tail, 100k plates, the second grid on 0.047 µF to ground); 0.1 µF out to the dual 500k-A
 ///     Volume, whose wipers feed the EL84s' grids (1.5k stoppers, 220k leaks) with the Tone (2.2 nF and the 500k-L pot)
-///     across them; two EL84 on a shared 120 Ω with 220 µF, 470 Ω screen resistors, no feedback; a silicon bridge with
-///     100 µF, 150 Ω 5 W to the screens (47 µF), 10k (47 µF) to the inverter and 15k (22 µF) to the preamp.
+///     across them (clockwise brighter); two EL84 on a shared 120 Ω with 220 µF, 470 Ω screen resistors, no
+///     feedback; a silicon bridge with 100 µF, 150 Ω 5 W to the screens (47 µF), 10k (47 µF) to the inverter and 15k
+///     (22 µF) to the preamp.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -19,8 +20,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///         grids (a post-inverter master); here it is the library's master across the inverter's outputs
 ///         (<see cref="PowerAmpDesign.ShuntMaster" />, the dual's two 500k tracks in series), which also runs from
 ///         silence to nearly full level but with a different law. The Tone sits across the grids after the Volume; here
-///         it is the library's cut across the inverter's plates, which turns the other way: the panel's Cut knob turned
-///         up takes the pot's resistance out (darker), where the amp's Tone turned up puts it in (brighter).
+///         it is the library's cut across the inverter's plates, wired as the amp's Tone
+///         (<see cref="PowerAmpDesign.Brilliance" />, on the block's Presence knob, named Tone): turning it up puts the
+///         linear 500k's resistance in series with the 2.2 nF (brighter), 0 is the cap straight across (darkest).
 ///     </para>
 ///     <para>
 ///         Not on the drawing (guesses): every DC voltage (330 V at the reservoir, 320 V screens, 300 V inverter, 270 V
@@ -58,7 +60,8 @@ public static class TinyTerror {
             new(30, 100e-6, 150, 47e-6, 25e3, 22e-6, 2.5e-3),
             InverterInput: new(0.047e-6, 1e6),
             ShuntMaster: new(1e6, PotTaper.Audio),
-            CathodeResistor: 120
+            CathodeResistor: 120,
+            Brilliance: true
         ),
         -4
     ) {
@@ -67,7 +70,8 @@ public static class TinyTerror {
             Bass = null,
             Middle = null,
             Treble = null,
-            Presence = null,
+            Presence = "Tone",
+            Cut = null,
             Depth = null,
             Bright = null
         }

@@ -349,6 +349,7 @@ public partial class AmpStageTests(ITestOutputHelper output) {
     ) {
         var reference = new ReferenceSimulator(circuit);
         reference.OperatingPoint(40);
+        var (unconverged, nonFinite) = (newton?.Unconverged ?? 0, newton?.NonFinite ?? 0);
         const int Samples = 1_920; // 20 ms
         var wdf = new double[Samples];
         var expected = new double[Samples];
@@ -379,6 +380,10 @@ public partial class AmpStageTests(ITestOutputHelper output) {
             + $"per sample (unconverged {newton?.Unconverged}), reference failures {reference.NewtonFailures}"
         );
         Assert.Equal(0, reference.NewtonFailures);
+        // The stage's own Newton converges on every sample of a drive the reference follows: a fallback sample would
+        // hide behind the error energy.
+        Assert.Equal(unconverged, newton?.Unconverged ?? 0);
+        Assert.Equal(nonFinite, newton?.NonFinite ?? 0);
         return errorDb;
     }
 }

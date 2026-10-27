@@ -4,7 +4,9 @@ namespace Cathode.References.Tests;
 
 /// <summary>
 ///     Matches every reference that has circuit settings against the circuit amp, and holds it to the manifest's
-///     targets. References not in the local cache are skipped, never failed: CI has no cache, and tests never download.
+///     targets. References not in the local cache are skipped, since tests never download. The nightly workflow fetches
+///     the redistributable ones and sets <c>CATHODE_REFERENCES_REQUIRED=1</c>: then a redistributable reference that is
+///     missing (or a NAM one without <c>cth_nam</c>) fails instead of skipping; only the local-only (T3K) ones skip.
 /// </summary>
 public class ReferenceMatchTests(ITestOutputHelper output) {
     public static TheoryData<string> Comparable =>
@@ -17,11 +19,15 @@ public class ReferenceMatchTests(ITestOutputHelper output) {
     public void Circuit_amp_meets_its_target_against_the_reference(string id) {
         var entry = Manifest.Find(id);
         var cache = ReferenceCache.Default;
-        Assert.SkipWhen(
-            cache.StateOf(entry) == ReferenceState.Missing,
-            $"{id} is not in the reference cache ({cache.Root})"
-        );
-        Assert.SkipWhen(ReferenceModels.Unsupported(entry) is not null, $"{id}: {ReferenceModels.Unsupported(entry)}");
+        var missing = cache.StateOf(entry) == ReferenceState.Missing;
+        var unsupported = ReferenceModels.Unsupported(entry);
+        if (ReferenceCache.Required && entry.Redistributable) {
+            Assert.False(missing, $"{id} is redistributable but not in the reference cache ({cache.Root})");
+            Assert.True(unsupported is null, $"{id} is redistributable but cannot run here: {unsupported}");
+        }
+
+        Assert.SkipWhen(missing, $"{id} is not in the reference cache ({cache.Root})");
+        Assert.SkipWhen(unsupported is not null, $"{id}: {unsupported}");
         var path = cache.TryLocate(entry);
         Assert.True(path is not null, $"{id} in the cache does not match its SHA-256");
 

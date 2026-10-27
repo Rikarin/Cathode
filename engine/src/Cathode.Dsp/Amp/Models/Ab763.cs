@@ -40,8 +40,9 @@ static class Ab763 {
     const double Absent = 1e-15;
 
     /// <summary>
-    ///     The AB763 stack with the mid pot replaced by a fixed 6.8k (Deluxe, Vibroverb, Vibrolux, Bandmaster,
-    ///     Tremolux): here a 13.6k pot left at noon.
+    ///     The AB763 stack with the mid pot replaced by a fixed 6.8k (Deluxe, Princeton Reverb and AA964, Vibroverb,
+    ///     Vibrolux, Bandmaster, Tremolux): here a 13.6k pot left at noon. The models share this one, so a correction
+    ///     reaches them all.
     /// </summary>
     public static ToneStackDesign FixedMidStack { get; } = new(
         "Fender AB763 fixed mid",

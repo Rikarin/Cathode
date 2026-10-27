@@ -465,6 +465,12 @@ public enum PowerTopology {
 ///     stack, with the feedback at V2A's cathode): the power amp's input is then that stage's grid, and the feedback
 ///     subtracts there. Null for none (the feedback at the inverter). Push-pull only.
 /// </param>
+/// <param name="Brilliance">
+///     The cut is the amp's treble control turned the other way (the Tiny Terror's Tone, the Chieftain's and Hot Cat's
+///     Brilliance): <paramref name="CutPot" />'s resistance rises with the knob by its taper, so turning it up is
+///     brighter, and the Circuit Amp's Presence knob (which these panels name after the control) turns it, from noon
+///     by default. The Cut knob and the feedback's presence then do nothing (the presence stays at noon).
+/// </param>
 public sealed record PowerAmpDesign(
     string Name,
     PentodeModel Tube,
@@ -498,7 +504,8 @@ public sealed record PowerAmpDesign(
     IReadOnlyList<SupplySwitchDesign>? SupplySwitches = null,
     double ScreenSupply = 0,
     SwitchRole? FeedbackOffSwitch = null,
-    LoopStageDesign? Loop = null
+    LoopStageDesign? Loop = null,
+    bool Brilliance = false
 ) {
     /// <summary>1 when single-ended, else 2.</summary>
     public int Sides => Topology == PowerTopology.SingleEnded ? 1 : 2;

@@ -65,12 +65,16 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     [Fact]
     public async Task A_dragged_scene_level_or_scene_controller_is_one_undo_step() {
         await Patch("/api/v1/live/scenes/0", new SceneUpdateRequest("Verse"));
+        // Each drag names its gesture: one step however slowly the test machine sends it (no 2 s window applies).
         for (var level = -1f; level >= -10f; level -= 1f) {
-            await Patch("/api/v1/live/scenes/0", new SceneUpdateRequest(Level: level));
+            await Patch("/api/v1/live/scenes/0?gesture=level", new SceneUpdateRequest(Level: level));
         }
 
         for (var value = 0.1f; value <= 0.5f; value += 0.1f) {
-            await Patch("/api/v1/live/scenes/0", new SceneUpdateRequest(Controllers: [value, 0, 0, 0]));
+            await Patch(
+                "/api/v1/live/scenes/0?gesture=controllers",
+                new SceneUpdateRequest(Controllers: [value, 0, 0, 0])
+            );
         }
 
         var controllersUndone = await Read(await client.PostAsync("/api/v1/live/undo", null, Token));

@@ -25,9 +25,10 @@ function oldest(calls: readonly Call[]): Call {
   return call;
 }
 
-function state(revision: number, name = 'Preset', preset: Record<string, unknown> = {}): LiveState {
+function state(revision: number, name = 'Preset', preset: Record<string, unknown> = {}, load = 1): LiveState {
   return {
     revision,
+    load,
     preset: { id: 'p1', name, blocks: [], modifiers: [], scenes: [], perform: [], footswitchOverrides: [], ...preset },
     activeScene: 0
   } as unknown as LiveState;
@@ -288,13 +289,32 @@ describe('LiveStore knob drags across a preset change', () => {
 
     // A program change loads another preset while the first PATCH is on the wire.
     void live.load('p2');
-    oldest(open('/api/v1/live/preset/{id}')).resolve(state(2, 'Other', { id: 'p2' }));
+    oldest(open('/api/v1/live/preset/{id}')).resolve(state(2, 'Other', { id: 'p2' }, 2));
     await settle();
-    oldest(open(params$)).resolve(state(3, 'Other', { id: 'p2' }));
+    oldest(open(params$)).resolve(state(3, 'Other', { id: 'p2' }, 2));
     await settle();
 
     expect(open(params$)).toHaveLength(0);
     expect(live.overrides().size).toBe(0);
+  });
+
+  it('names the preset load it dragged on, and drops a value the Server refused for a newer load silently', async () => {
+    const { live, open, settle, errors } = setup();
+    const first = live.refresh();
+    oldest(open(live$)).resolve(state(1, 'Preset', {}, 4));
+    await first;
+
+    live.setParam('amp1', 'A', 'gain', 3);
+    const patch = oldest(open(params$));
+    expect(patch.init).toMatchObject({ params: { query: { channel: 'A', load: 4 } } });
+
+    // Another preset was loaded on the rig (a program change) before the PATCH arrived: the Server refuses it.
+    patch.reject(new ApiError(412, 'Another preset was loaded'));
+    await settle();
+
+    expect(errors).toHaveLength(0);
+    expect(live.overrides().size).toBe(0);
+    expect(open(live$)).toHaveLength(1); // the new preset is read
   });
 });
 
@@ -364,6 +384,30 @@ describe('LiveStore knob drags (the optimistic path)', () => {
     expect(open(params$)).toHaveLength(0);
     expect(live.overrides().size).toBe(0);
     expect(shown(live)).toBe(3);
+  });
+
+  it('names the gesture of each value and never merges two gestures into one request', async () => {
+    const { live, open, settle } = await holding();
+    const query = (call: Call) => (call.init as { params?: { query?: unknown } } | undefined)?.params?.query;
+    live.setParam('amp1', 'A', 'gain', 2, 'g1');
+    live.setParam('amp1', 'A', 'gain', 3, 'g1'); // queued behind the PATCH in flight
+    live.setParam('amp1', 'A', 'gain', 4, 'g1');
+    live.setParam('amp1', 'A', 'gain', 5, 'g2'); // the knob was released and grabbed again
+    live.setParam('amp1', 'A', 'gain', 6, 'g2');
+    expect(query(oldest(open(params$)))).toEqual({ channel: 'A', load: 1, gesture: 'g1' });
+
+    oldest(open(params$)).resolve(state(2, 'Preset', { blocks: [amp] }));
+    await settle();
+    const first = oldest(open(params$));
+    expect(first.init?.body).toEqual({ gain: 4 }); // the end of the first drag, in its own step
+    expect(query(first)).toMatchObject({ gesture: 'g1' });
+
+    first.resolve(state(3, 'Preset', { blocks: [amp] }));
+    await settle();
+    const second = oldest(open(params$));
+    expect(second.init?.body).toEqual({ gain: 6 });
+    expect(query(second)).toMatchObject({ gesture: 'g2' });
+    expect(shown(live)).toBe(6);
   });
 
   it('sends drags on different blocks or channels side by side', async () => {

@@ -92,7 +92,9 @@ brownface Deluxe) it appears as *Tone*.`,
 the presence pot and cap reduce the feedback at high frequencies, so the power amp's gain rises there. Turn it up for
 bite and cut, down to soften harsh tops. Because it acts in the feedback loop, its effect also depends on *Feedback*:
 with no feedback it has nothing to work on. A few models wire their presence elsewhere (the Rectifiers' is a preamp
-control, shown as Control 2); the ODS 70s calls it *Accent*.`,
+control, shown as Control 2); the ODS 70s calls it *Accent*. On the Chieftain and Hot Cat 30 this knob is the amp's
+*Brilliance*, on the Tiny Terror its *Tone*: a pot and cap across the power tubes' grids, like a Vox cut but wired the
+other way, so turning it **up** puts more resistance in front of the cap and brings the treble back (0 is darkest).`,
 
     depth: `Lifts the low end in the power amp, around the speaker's resonance. It reduces the global negative feedback
 below its corner frequency (at 10, down to a tenth of the stock amount), so the power amp's gain and its
@@ -100,9 +102,10 @@ interaction with the speaker load rise in the bass: more thump and chest. It is 
 resonance or depth control (*Resonance* on the 5150s, Cornford and JVM, *Depth Punch* on the Powerball, *Depth Boost*
 on the Savage, *Deep* on the DSL100). At 0 the feedback is stock.`,
 
-    cut: `The Vox-style cut control (AC30, AC15, DC-30, Chieftain, Hot Cat 30, Tiny Terror): a pot and cap across the
-phase inverter's outputs that shunt treble away before the power tubes. Turning it **up** removes more treble (it
-works backwards to a treble knob). Use it to tame the top end of a bright class-A amp.`,
+    cut: `The Vox-style cut control (AC30, AC15, DC-30): a pot and cap across the phase inverter's outputs that shunt
+treble away before the power tubes. Turning it **up** removes more treble (it works backwards to a treble knob). Use it
+to tame the top end of a bright class-A amp. The Chieftain, Hot Cat 30 and Tiny Terror have the same circuit wired the
+other way, as their *Brilliance* or *Tone* (see *Presence*).`,
 
     master: `The master volume, on models that have one, at its real place in the circuit (on most amps between the
 preamp and the phase inverter). It sets how hard the phase inverter and the power tubes are driven. At high settings

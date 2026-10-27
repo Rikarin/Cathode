@@ -113,7 +113,7 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
 
     /// <summary>
     ///     Signal to in-band (under 20 kHz) aliases of a 2 kHz, 0.3 V sine at gain 8 on the models that alias most
-    ///     (docs/06 Â§3.4): Standard oversampling may not fall below today's floor, and High (4 x) buys at least 6 dB
+    ///     (docs/06 §3.4): Standard oversampling may not fall below today's floor, and High (4 x) buys at least 6 dB
     ///     more. Measured 23.6 / 34.7 (SLO-100), 19.7 / 26.5 (5150), 25.8 / 36.3 (Dual Rectifier), 21.0 / 28.1 dB
     ///     (5150III).
     /// </summary>
@@ -176,6 +176,30 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         var rendered = BlockRender.Mono(high, Chord(48_000, 0.25f), 64);
         Assert.True(Analysis.AllFinite(rendered));
         Assert.True(Analysis.Rms(rendered.AsSpan(24_000)) > 1e-3);
+    }
+
+    /// <summary>
+    ///     A channel built at one rate and moved to another (its stages' <c>SetSampleRate</c>: every capacitor and
+    ///     inductor reconfigured, keeping its stored wave, then the block's reset) plays as one built at the new rate.
+    ///     At 48 kHz the channel runs at 96 kHz; at 44.1 kHz, at 88.2 kHz.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Types))]
+    public void A_channel_moved_to_a_new_rate_plays_as_one_built_there(int type) {
+        var chord = Chord(9_600, 0.25f);
+        using var moved = Create(type);
+        BlockRender.Mono(moved, chord, 64);
+        moved.Prepare(new(44_100, 64));
+
+        using var fresh = new CircuitAmpBlock();
+        fresh.Params.SetTarget(CircuitAmpBlock.Type, type);
+        fresh.Params.SetTarget(CircuitAmpBlock.Master, 10);
+        fresh.Prepare(new(44_100, 64));
+
+        var expected = BlockRender.Mono(fresh, chord, 64);
+        var actual = BlockRender.Mono(moved, chord, 64);
+        var residual = Analysis.NullResidualDb(expected, actual);
+        Assert.True(residual < -140, $"{AmpDesign.All[type].Name}: {residual:0.0} dB from a channel built at 44.1 kHz");
     }
 
     [Fact]

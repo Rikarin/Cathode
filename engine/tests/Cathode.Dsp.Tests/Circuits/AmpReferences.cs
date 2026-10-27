@@ -80,8 +80,24 @@ static class AmpReferences {
     ) {
         var c = new ReferenceCircuit();
         var source = c.Node();
-        var grid = c.Node();
         c.Source(source, 0, input);
+        var (output, driven) = AppendToneStack(c, d, controls, source, sourceResistance);
+        return (c, output, driven);
+    }
+
+    /// <summary>
+    ///     Appends a <see cref="ToneStackStage" /> to <paramref name="c" />, driven from node
+    ///     <paramref name="source" /> through <paramref name="sourceResistance" /> and the design's input resistance
+    ///     (as <see cref="Append" /> does a network stage); returns the output (load wiper) and the driven node.
+    /// </summary>
+    public static (int Output, int Driven) AppendToneStack(
+        ReferenceCircuit c,
+        ToneStackStageDesign d,
+        AmpControls controls,
+        int source,
+        double sourceResistance = 0
+    ) {
+        var grid = c.Node();
         c.Resistor(source, grid, Math.Max(sourceResistance + d.InputResistance, 1));
         if (d.GridLeak > 0) {
             c.Resistor(grid, 0, d.GridLeak);
@@ -113,7 +129,7 @@ static class AmpReferences {
         }
 
         c.Source(supply, 0, _ => d.Supply);
-        return (c, wiper, driven);
+        return (wiper, driven);
     }
 
     /// <summary>A tone stack fed from <paramref name="input" />; returns the treble wiper.</summary>
@@ -379,10 +395,11 @@ static class AmpReferences {
             (a, b) = (piA, piB);
         }
 
-        // The cut control: a pot and a cap between the outputs.
+        // The cut control: a pot and a cap between the outputs (a brilliance's resistance rises with the knob).
         if (d.CutCap > 0 && !singleEnded) {
             var middle = c.Node();
-            c.Resistor(a, middle, Math.Max(d.CutPot.Ohms * (1 - d.CutPot.Fraction(cut)), Floor));
+            var track = d.Brilliance ? d.CutPot.Fraction(cut) : 1 - d.CutPot.Fraction(cut);
+            c.Resistor(a, middle, Math.Max(d.CutPot.Ohms * track, Floor));
             c.Capacitor(middle, b, d.CutCap);
         }
 

@@ -8,7 +8,11 @@ namespace Cathode.Dsp.Tests;
 /// <summary>
 ///     The British vintage and boutique stream's preamps against the reference MNA simulator as whole chains (no
 ///     Thévenin cut): the tremolo-loaded and the shared-cathode, unequal-plate first stages, the Tiny Terror's dual
-///     gain pot and the Cornford's channels (a channel switch's chain is checked through its stages).
+///     gain pot and the Cornford's channels (a channel switch's chain is checked through its stages). Also the
+///     Marshall and Hiwatt preamps the other chain tests leave out (#99): the 1987X and DR504 netlists, both channels
+///     of the 18 W (the Tremolo channel with its oscillator stopped; <c>TremoloTests</c> swing it), the Major's first
+///     stage (its in-loop stage and stack are in its power amp's comparison, <c>DriverPowerAmps</c>), the Plexi, the
+///     JCM800 2203 and 2204 and the Laney, whose cathode followers on their stacks are joined into the chain.
 /// </summary>
 public partial class AmpStageTests {
     public static TheoryData<string, bool, int, double, double> BritishVintageChains =>
@@ -68,6 +72,134 @@ public partial class AmpStageTests {
                 3,
                 0.002,
                 -30
+            },
+            {
+                "1987X",
+                false,
+                3,
+                0.002,
+                -30
+            },
+            {
+                "1987X",
+                false,
+                3,
+                0.05,
+                -20
+            },
+            {
+                "Hiwatt DR504",
+                false,
+                3,
+                0.002,
+                -25
+            },
+            {
+                "Hiwatt DR504",
+                false,
+                3,
+                0.05,
+                -15
+            },
+            {
+                "18 W 1974X",
+                false,
+                1,
+                0.002,
+                -30
+            },
+            {
+                "18 W 1974X",
+                false,
+                1,
+                0.05,
+                -20
+            },
+            {
+                "18 W 1974X",
+                true,
+                1,
+                0.002,
+                -30
+            },
+            {
+                "18 W 1974X",
+                true,
+                1,
+                0.05,
+                -20
+            },
+            {
+                "Major 1967",
+                false,
+                1,
+                0.002,
+                -30
+            },
+            {
+                "Major 1967",
+                false,
+                1,
+                0.05,
+                -20
+            },
+            {
+                "Plexi",
+                false,
+                3,
+                0.002,
+                -30
+            },
+            {
+                "Plexi",
+                false,
+                3,
+                0.05,
+                -20
+            },
+            {
+                "JCM800 2203",
+                false,
+                4,
+                0.002,
+                -30
+            },
+            {
+                "JCM800 2203",
+                false,
+                4,
+                0.05,
+                -20
+            },
+            {
+                "JCM800 2204",
+                false,
+                4,
+                0.002,
+                -30
+            },
+            {
+                "Laney GH100L",
+                false,
+                5,
+                0.002,
+                -30
+            },
+            {
+                "Laney GH100L",
+                false,
+                5,
+                0.01,
+                -30
+            },
+            // V3b's 1.97 nF and 1M after the master: the stack's reactive output impedance meets the stages' resistive
+            // cut there (about -23 dB, against -40 dB to the master's wiper).
+            {
+                "Laney GH100L",
+                false,
+                6,
+                0.002,
+                -20
             }
         };
 
@@ -98,12 +230,18 @@ public partial class AmpStageTests {
         var node = circuit.Node();
         circuit.Source(node, 0, t => Drive(amplitude, t));
         foreach (var d in designs) {
-            var network = d switch {
-                TriodeStageDesign triode => triode.ToNetwork(),
-                NetworkStageDesign net => net,
+            node = d switch {
+                TriodeStageDesign triode => AmpReferences.Append(
+                    circuit,
+                    triode.ToNetwork(),
+                    controls,
+                    PreampSettings.Stock,
+                    node
+                ),
+                NetworkStageDesign net => AmpReferences.Append(circuit, net, controls, PreampSettings.Stock, node),
+                ToneStackStageDesign stack => AmpReferences.AppendToneStack(circuit, stack, controls, node).Output,
                 _ => throw new InvalidOperationException(d.Name)
             };
-            node = AmpReferences.Append(circuit, network, controls, PreampSettings.Stock, node);
         }
 
         var errorDb = CompareInTime(
@@ -149,6 +287,8 @@ public class BritishVintageAmpTests(ITestOutputHelper output) {
         Assert.Equal("Clean Ch", Label("switch1", "Cornford MK50H II"));
         Assert.Equal("Volume", Label("master", "Tiny Terror"));
         Assert.Empty(Label("treble", "Tiny Terror"));
+        Assert.Equal("Tone", Label("presence", "Tiny Terror"));
+        Assert.Empty(Label("cut", "Tiny Terror"));
         foreach (var type in Models.Where(static m => m != "Tiny Terror")) {
             Assert.Empty(Label("cut", type));
             Assert.NotEmpty(Label("treble", type));

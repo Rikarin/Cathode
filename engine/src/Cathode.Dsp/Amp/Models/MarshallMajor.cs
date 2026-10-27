@@ -37,8 +37,6 @@ namespace Cathode.Dsp.Amp.Models;
 ///     </para>
 /// </remarks>
 public static class MarshallMajor {
-    const double Closed = 10; // a closed jack contact
-    const double Open = 1e12;
     const double FirstSupply = 330; // V1, after the 10k (guessed)
     const double SecondSupply = 350; // V2A and V2B, after the 25k (guessed)
 
@@ -102,12 +100,7 @@ public static class MarshallMajor {
         var net = new StageNetlist();
         var (rail, mix) = (net.Node(), net.Node());
         net.Supply(rail, FirstSupply);
-        var trebleJack = net.Node();
-        net.SwitchedResistor(net.Input, trebleJack, Closed, Open, SwitchRole.Switch2);
-        net.SwitchedResistor(net.Input, trebleJack, 0, Closed, SwitchRole.Switch1);
-        var normalJack = net.Node();
-        net.SwitchedResistor(net.Input, normalJack, 0, Closed, SwitchRole.Switch1);
-        net.SwitchedResistor(net.Input, normalJack, 0, Closed, SwitchRole.Switch2);
+        var (trebleJack, normalJack) = MarshallParts.ChannelJacks(net);
 
         var (trebleOut, normalOut) = (net.Node(), net.Node());
         Channel(net, rail, trebleJack, 2.7e3, 0.68e-6, 2.2e-9, trebleOut);

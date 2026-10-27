@@ -103,6 +103,31 @@ public class BlockConformanceTests {
         Assert.Equal(a, c);
     }
 
+    /// <summary>
+    ///     A host may prepare a block again at another rate. Configure keeps a reactance's stored wave, whose meaning
+    ///     depends on the port resistance it was stored under, so whatever ran before the new rate must not leak into
+    ///     it: the block behaves as one prepared at that rate from the start.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(BlockTypes))]
+    public void Preparing_at_a_new_rate_matches_a_block_prepared_there_from_the_start(string typeId) {
+        var input = Signals.Noise(9_600, 13);
+        foreach (var rate in new[] { 96_000.0, 44_100.0 }) {
+            using var moved = Create(typeId, null);
+            BlockRender.Mono(moved, Signals.Noise(4_800, 17), MaxBlock);
+            moved.Prepare(new(rate, MaxBlock));
+            using var fresh = Registry.Create(typeId);
+            fresh.Prepare(new(rate, MaxBlock));
+
+            var expected = BlockRender.Mono(fresh, input, MaxBlock);
+            var actual = BlockRender.Mono(moved, input, MaxBlock);
+            Assert.True(
+                Analysis.NullResidualDb(expected, actual) < -140,
+                $"{typeId} at {rate} Hz: {Analysis.NullResidualDb(expected, actual):0.0} dB from a fresh block"
+            );
+        }
+    }
+
     [Theory]
     [MemberData(nameof(BlockTypes))]
     public void Output_does_not_depend_on_block_size(string typeId) {

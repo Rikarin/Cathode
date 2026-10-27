@@ -10,6 +10,13 @@ name: nightly
 #   through cth_nam_process, and a stream runs on ALSA's "null" PCM with a model in its callback, all in RTSan's
 #   real-time context, which aborts on any allocation, lock or blocking call there. Two canaries first prove the check
 #   is armed. Pull requests that touch the native code run this job too.
+# - Capture matches (docs/06 §4.3): `cathode-references fetch` downloads the redistributable (GPL) amp captures named
+#   in engine/tests/assets/references/manifest.json into a cache kept between runs (keyed on the manifest, which holds
+#   every URL and SHA-256), and Cathode.References.Tests holds each circuit amp to the manifest's ESR / MRSTFT targets.
+#   CATHODE_REFERENCES_REQUIRED=1 makes a missing redistributable capture fail instead of skip; the local-only (T3K)
+#   captures cannot be fetched by script and still skip, and the job summary counts them. Too slow for every push
+#   (each case renders the circuit amp for several seconds of audio); pull requests that touch the native code (NAM
+#   runs through cth_nam) run it too.
 
 on:
   schedule:
@@ -54,6 +61,59 @@ jobs:
         env:
           CsCheck_Time: ${{ inputs.seconds || '60' }}
         run: dotnet test --project tests/Cathode.Dsp.Tests -c Release --no-build --filter-trait "Category=Property"
+
+  references:
+    name: capture matches (references)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CATHODE_REFERENCES_REQUIRED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-dotnet
+      - name: Cache native dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: engine/artifacts/deps
+          key: native-deps-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt', 'engine/native/cth_audio/CMakeLists.txt') }}
+      - name: Cache the reference captures
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/cathode/references # the harness's default cache ($CATHODE_REFERENCES unset)
+          key: references-${{ hashFiles('engine/tests/assets/references/manifest.json') }}
+          restore-keys: references-
+      - name: Install ALSA headers
+        run: sudo apt-get update -q && sudo apt-get install -y -q libasound2-dev
+      # NAM captures run through cth_nam; without it they would fail (CATHODE_REFERENCES_REQUIRED).
+      - name: Build native shim
+        run: ./native/build.sh
+      - run: dotnet build tools/Cathode.References -c Release
+      - run: dotnet build tests/Cathode.References.Tests -c Release
+      # Verifies what the cache restored against the manifest's SHA-256 and downloads anything missing or changed.
+      - name: Fetch the redistributable captures
+        run: dotnet run --project tools/Cathode.References -c Release --no-build -- fetch
+      - name: Capture-match tests
+        run: |
+          set -o pipefail
+          dotnet test --project tests/Cathode.References.Tests -c Release --no-build 2>&1 | tee "$RUNNER_TEMP/references.log"
+      - name: Summary
+        if: always()
+        run: |
+          log="$RUNNER_TEMP/references.log"
+          status=$(dotnet run --project tools/Cathode.References -c Release --no-build -- status 2>/dev/null || true)
+          verified=$(grep -cE ' Verified$' <<< "$status" || true)
+          missing=$(grep -cE ' Missing$' <<< "$status" || true)
+          skipped=$(grep -c '^skipped Cathode.References.Tests.ReferenceMatchTests' "$log" 2>/dev/null || true)
+          {
+            echo "### Capture matches"
+            echo
+            echo "- References in the cache: $verified verified, $missing missing (local-only T3K captures are fetched by hand and never in CI)"
+            echo "- Capture-match cases skipped: $skipped (each a local-only capture; a missing redistributable one fails)"
+            echo
+            echo '```'
+            grep -E '^\s*(total|failed|succeeded|skipped):' "$log" 2>/dev/null || echo "the tests did not run"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   rtsan:
     name: RealtimeSanitizer (native)

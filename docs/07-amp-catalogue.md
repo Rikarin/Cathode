@@ -84,10 +84,10 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | Matchless DC-30 | ✅ Done | DC-30 | GPL: Matchless SC30 channel 1 | DC-30 both channels | 2x12 open, G12H30 / Vintage 30 |
 | Dumble Overdrive Special | ✅ Done (a 1997 ODS 100, traced: clean and overdrive) | ODS 97 | GPL: Dumble kit low/high, Dumble clone clean/medium/high (all mapped, knobs fitted) | Real ODS captures with settings; the 1970s ODS (Rock/Jazz, Deep) and HRM circuits | 1x12 / 2x12 open, EV12L |
 | Two-Rock (Dumble-style) | ⏸ Waiting (no schematic published; the ODS work does not carry over without one) | — | (Dumble captures above) | Schematic or trace | 1x12 / 2x12 open |
-| Bad Cat Hot Cat / Black Cat | ✅ Done (Hot Cat 30, both inputs; Black Cat ⏸: no schematic, Bad Cat never published one) | Hot Cat 30 | — | Hot Cat 30 captures, Gain and Clean inputs | 2x12 open |
+| Bad Cat Hot Cat / Black Cat | ✅ Done (Hot Cat 30, both inputs; its Brilliance on the Presence knob, clockwise brighter; the master read as a divider, the drawing having it as a dead rheostat; Black Cat ⏸: no schematic, Bad Cat never published one) | Hot Cat 30 | — | Hot Cat 30 captures, Gain and Clean inputs | 2x12 open |
 | Dr Z Maz 18 | ⏸ Waiting (searched 2026-10: no schematic or trace; specs only: 2 x EL84 cathode bias, 5AR4) | — | — | Schematic | 1x12 / 2x12 open |
 | Morgan AC20 / SW | ⏸ Waiting (searched 2026-10: no schematic; specs only: EF86 or 12AX7 channel, 2 x EL84, GZ34) | — | — | Schematic | 1x12 open |
-| Matchless Chieftain | ✅ Done (factory drawing 1994 plus a measured trace) | Chieftain | — | Captures with settings | 2x12 open, G12H30 |
+| Matchless Chieftain | ✅ Done (factory drawing 1994 plus a measured trace; its Brilliance on the Presence knob, clockwise brighter) | Chieftain | — | Captures with settings | 2x12 open, G12H30 |
 | Divided by 13 | ⏸ Waiting (searched 2026-10: no schematic or trace for the JRT 9/15, CJ 11 or FTR 37) | — | — | Schematic | 1x12 / 2x12 |
 | Budda Superdrive | ⏸ Waiting (searched 2026-10: no schematic or trace) | — | — | Schematic | 2x12 |
 | Trainwreck Express | ✅ Done (redraw A1a of the schematicheaven collection, hearsay: medium confidence; presence pot as the tail's shunt) | Express | — | Captures with settings; a measured trace | 2x12 / 4x12 |
@@ -270,7 +270,7 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 | Friedman Small Box | ⏸ Waiting (nothing found; GuitarML's `FriedmanSmallBox_GainKnob` may be the pedal and is undocumented) | — | Friedman Small Box | | 2x12 / 4x12 closed |
 | Cornford MK50H II | ✅ Done (Martin Kidd's own drawing, 2011, 5 sheets: both channels, one of the two masters; no voltages on it) | Cornford MK50H II | Corncob M50 | Overdrive channel | 4x12 closed |
 | Orange A30 / AD30 | ⏸ Waiting (factory sheet cd0115 issue 5, 2000, is the main board only: V1's two stages, the inverter, four EL84 and the supply, with test-point voltages; the gain, tone and channel circuits are on the front-panel board, reached through the GAIN and EQ connectors, and its sheet is not in the file. el34world, schematicheaven and thetubestore have nothing else; their AD15 file is a different amp) | — | Citrus A30 Clean / Dirty | Front-panel board sheet | 2x12 closed |
-| Orange Tiny Terror | ✅ Done (vector redraw, not a factory sheet: el34world `Orange/Orange_tiny_terror.pdf`; 15 W) | Tiny Terror | Citrus Terrier | | 1x12 / 2x12 closed |
+| Orange Tiny Terror | ✅ Done (vector redraw, not a factory sheet: el34world `Orange/Orange_tiny_terror.pdf`; 15 W; its Tone on the Presence knob, clockwise brighter) | Tiny Terror | Citrus Terrier | | 1x12 / 2x12 closed |
 | Orange AD200B (bass) | ⏸ Waiting (no schematic found: searched schematicheaven, el34world, MEF and retailer pages; the MkIII is 2 × ECC83, 1 × ECC81, 4 × 6550, Gain/Bass/Middle/Treble/Volume) | — | Citrus Bass 200 | Any schematic or trace | 4x10 / 8x10 closed |
 | Blankenship Leeds 21 | ⏸ Waiting (nothing found) | — | Blanknshp Leeds | | 1x12 / 2x12 |
 | Vox AC30HW (hand-wired) | ⏸ Waiting (no service schematic found, only the owner's manual; the AC30 (2) is the JMI circuit it reissues) | — | Class-A 30w, 30W Bright, 30w Hot | Service schematic | 2x12 open, Alnico Blue |

@@ -36,6 +36,22 @@ public sealed class UndoHistoryTests {
     }
 
     [Fact]
+    public void A_gesture_is_one_step_however_long_it_lasts_and_the_next_gesture_is_another_at_once() {
+        var clock = new ManualClock();
+        var history = new UndoHistory(clock);
+
+        // One drag held still for ten seconds in the middle: one step.
+        Assert.True(history.Record("gesture:drive1:A:g1", static () => Snapshot(10, 1), gesture: true));
+        clock.Advance(TimeSpan.FromSeconds(10));
+        Assert.False(history.Record("gesture:drive1:A:g1", static () => Snapshot(10, 2), gesture: true));
+
+        // Released, and the same knob grabbed again 100 ms later: a new step.
+        clock.Advance(TimeSpan.FromMilliseconds(100));
+        Assert.True(history.Record("gesture:drive1:A:g2", static () => Snapshot(10, 3), gesture: true));
+        Assert.Equal((2, 0), history.Steps);
+    }
+
+    [Fact]
     public void Undo_and_redo_break_a_drag_and_a_new_edit_clears_redo() {
         var clock = new ManualClock();
         var history = new UndoHistory(clock);

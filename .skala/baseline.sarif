@@ -11407,7 +11407,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 135 tokens (16 lines), also at engine/src/Cathode.Dsp/Amp/Models/HiwattDR103.cs:123-137"
+            "text": "duplicated block of 116 tokens (7 lines), also at engine/src/Cathode.Dsp/Amp/Models/HiwattParts.cs:83-89"
           },
           "locations": [
             {
@@ -11416,19 +11416,19 @@
                   "uri": "engine/src/Cathode.Dsp/Amp/Models/FriedmanBE100.cs"
                 },
                 "region": {
-                  "startLine": 193,
+                  "startLine": 202,
                   "startColumn": 1,
                   "endLine": 208,
                   "endColumn": 1,
-                  "charOffset": 9723,
-                  "charLength": 834
+                  "charOffset": 10211,
+                  "charLength": 346
                 }
               }
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "8caf81a87e309e2b9f2a0eb4e7151490",
-            "skala/v3": "ed7412c29f4744d2a5fc7c350abd3d3d"
+            "skala/v1": "47547c9e09a43084b15b52ddc2956c0e",
+            "skala/v3": "f11d0fd55468768eb24ce77b30f10282"
           },
           "properties": {
             "skalaSeverity": "warning"
@@ -11500,90 +11500,28 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 347 tokens (29 lines), also at engine/src/Cathode.Dsp/Amp/Models/HiwattParts.cs:39-67"
+            "text": "duplicated block of 101 tokens (9 lines), also at engine/src/Cathode.Dsp/Amp/Models/Marshall18W.cs:120-127"
           },
           "locations": [
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "engine/src/Cathode.Dsp/Amp/Models/HiwattDR103.cs"
+                  "uri": "engine/src/Cathode.Dsp/Amp/Models/HiwattParts.cs"
                 },
                 "region": {
-                  "startLine": 97,
+                  "startLine": 91,
                   "startColumn": 1,
-                  "endLine": 125,
+                  "endLine": 99,
                   "endColumn": 1,
-                  "charOffset": 5148,
-                  "charLength": 1425
+                  "charOffset": 4798,
+                  "charLength": 439
                 }
               }
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "63a6bc95c64b11a34b6657a483d2d255",
-            "skala/v3": "cf3364392360ff3c8b441a939cebb538"
-          },
-          "properties": {
-            "skalaSeverity": "warning"
-          }
-        },
-        {
-          "ruleId": "SK7020",
-          "level": "warning",
-          "message": {
-            "text": "duplicated block of 168 tokens (13 lines), also at engine/src/Cathode.Dsp/Amp/Models/HiwattParts.cs:39-51, engine/src/Cathode.Dsp/Amp/Models/MarshallVintageParts.cs:100-112"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "engine/src/Cathode.Dsp/Amp/Models/HiwattDR103.cs"
-                },
-                "region": {
-                  "startLine": 97,
-                  "startColumn": 1,
-                  "endLine": 109,
-                  "endColumn": 1,
-                  "charOffset": 5148,
-                  "charLength": 699
-                }
-              }
-            }
-          ],
-          "partialFingerprints": {
-            "skala/v1": "3c803db57fe1dc399e9318158fd22888",
-            "skala/v3": "84a1f3976488c2905791031a79c1d942"
-          },
-          "properties": {
-            "skalaSeverity": "warning"
-          }
-        },
-        {
-          "ruleId": "SK7020",
-          "level": "warning",
-          "message": {
-            "text": "duplicated block of 412 tokens (29 lines), also at engine/src/Cathode.Dsp/Amp/Models/HiwattParts.cs:76-104"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "engine/src/Cathode.Dsp/Amp/Models/HiwattDR103.cs"
-                },
-                "region": {
-                  "startLine": 131,
-                  "startColumn": 1,
-                  "endLine": 159,
-                  "endColumn": 1,
-                  "charOffset": 6882,
-                  "charLength": 1591
-                }
-              }
-            }
-          ],
-          "partialFingerprints": {
-            "skala/v1": "9ac67f1fd3fc03c5526e7fe8db645163",
-            "skala/v3": "83a12fe7ffe197e4b74e4f2622862131"
+            "skala/v1": "5f777c3f5e0283cf61ad4c9da9272fc0",
+            "skala/v3": "53092787c040add73296363accf169ae"
           },
           "properties": {
             "skalaSeverity": "warning"
@@ -12275,7 +12213,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 119 tokens (38 lines), also at engine/src/Cathode.Dsp/Amp/Models/MarshallVintageParts.cs:9-49"
+            "text": "duplicated block of 102 tokens (36 lines), also at engine/src/Cathode.Dsp/Amp/ToneStack.cs:34-67"
           },
           "locations": [
             {
@@ -12284,81 +12222,19 @@
                   "uri": "engine/src/Cathode.Dsp/Amp/Models/MarshallParts.cs"
                 },
                 "region": {
-                  "startLine": 9,
+                  "startLine": 11,
                   "startColumn": 1,
                   "endLine": 46,
                   "endColumn": 1,
-                  "charOffset": 252,
-                  "charLength": 1237
+                  "charOffset": 381,
+                  "charLength": 1097
                 }
               }
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "799389a463149b079617025e2e985a8d",
-            "skala/v3": "fdd022d46c2562d304bad24c73b99a34"
-          },
-          "properties": {
-            "skalaSeverity": "warning"
-          }
-        },
-        {
-          "ruleId": "SK7020",
-          "level": "warning",
-          "message": {
-            "text": "duplicated block of 142 tokens (13 lines), also at engine/src/Cathode.Dsp/Amp/Models/MarshallVintageParts.cs:54-66"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "engine/src/Cathode.Dsp/Amp/Models/MarshallParts.cs"
-                },
-                "region": {
-                  "startLine": 200,
-                  "startColumn": 1,
-                  "endLine": 212,
-                  "endColumn": 1,
-                  "charOffset": 8449,
-                  "charLength": 697
-                }
-              }
-            }
-          ],
-          "partialFingerprints": {
-            "skala/v1": "570289289126c318686416e0d8262207",
-            "skala/v3": "593eebbc179eed34eeda55376c6557f4"
-          },
-          "properties": {
-            "skalaSeverity": "warning"
-          }
-        },
-        {
-          "ruleId": "SK7020",
-          "level": "warning",
-          "message": {
-            "text": "duplicated block of 114 tokens (9 lines), also at engine/src/Cathode.Dsp/Amp/Models/MarshallVintageParts.cs:66-74"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "engine/src/Cathode.Dsp/Amp/Models/MarshallParts.cs"
-                },
-                "region": {
-                  "startLine": 212,
-                  "startColumn": 1,
-                  "endLine": 220,
-                  "endColumn": 1,
-                  "charOffset": 9200,
-                  "charLength": 478
-                }
-              }
-            }
-          ],
-          "partialFingerprints": {
-            "skala/v1": "2ad6db8d50c2ebb611af242eb889527e",
-            "skala/v3": "64027e54e036f65c30742cc096645968"
+            "skala/v1": "d4e09a2a97ed9ddf326816d225e7f894",
+            "skala/v3": "78e2fceb9e597f42991c4edbb577fee3"
           },
           "properties": {
             "skalaSeverity": "warning"

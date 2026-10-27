@@ -7,7 +7,9 @@ public sealed record UndoSnapshot(byte[] Json, int ActiveScene);
 ///     The live rig's undo and redo stacks. Each stack is bounded by steps and by bytes, dropping its oldest steps
 ///     first (a <c>PUT /live</c> body may be megabytes, and a hundred of them must not pin gigabytes). Knob changes
 ///     coalesce: an edit with the same key as the previous one, within <see cref="CoalesceWindow" /> of it, continues
-///     that step (one drag, one undo) without taking a snapshot at all; a pause starts a new step.
+///     that step (one drag, one undo) without taking a snapshot at all; a pause starts a new step. An edit that names
+///     its gesture (an editor's drag, from the first move to the release) continues the previous one exactly when it
+///     names the same gesture, however long the gesture lasts, and starts a new step for the next gesture at once.
 /// </summary>
 public sealed class UndoHistory(
     TimeProvider clock,
@@ -39,14 +41,15 @@ public sealed class UndoHistory(
 
     /// <summary>
     ///     Before an edit: records an undo step from <paramref name="capture" /> unless the edit continues the previous
-    ///     one (same non-null <paramref name="key" />, within the window). <paramref name="capture" /> runs only when a
-    ///     step is recorded. Returns whether one was.
+    ///     one (same non-null <paramref name="key" />, within the window; with <paramref name="gesture" />, the key
+    ///     names a gesture and the window does not apply). <paramref name="capture" /> runs only when a step is
+    ///     recorded. Returns whether one was.
     /// </summary>
-    public bool Record(string? key, Func<UndoSnapshot> capture) {
+    public bool Record(string? key, Func<UndoSnapshot> capture, bool gesture = false) {
         var now = clock.GetTimestamp();
         var continues = key is not null
             && key == coalesceKey
-            && clock.GetElapsedTime(lastEdit, now) <= CoalesceWindow;
+            && (gesture || clock.GetElapsedTime(lastEdit, now) <= CoalesceWindow);
         coalesceKey = key;
         lastEdit = now;
         if (continues) {
