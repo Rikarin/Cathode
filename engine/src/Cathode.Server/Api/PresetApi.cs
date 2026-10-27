@@ -31,15 +31,6 @@ static class PresetApi {
                     store.Get(id) is { } preset ? TypedResults.Ok(preset) : TypedResults.NotFound()
             )
             .WithName("GetPreset");
-        library.MapPut(
-                ById,
-                (string id, Preset preset, PresetStore store) => {
-                    preset.Id = id;
-                    store.Save(preset);
-                    return TypedResults.NoContent();
-                }
-            )
-            .WithName("PutPreset");
         library.MapDelete(
                 ById,
                 Results<NoContent, NotFound>(string id, Library books) =>
@@ -69,12 +60,6 @@ static class PresetApi {
         blockPresets.MapGet("/", (string? type, BlockPresetStore store) => TypedResults.Ok(store.List(type)))
             .WithName("ListBlockPresets")
             .WithSummary("The factory and user block presets, of one block type when ?type= is given.");
-        blockPresets.MapGet(
-                ById,
-                Results<Ok<BlockPreset>, NotFound>(string id, BlockPresetStore store) =>
-                    store.Get(id) is { } found ? TypedResults.Ok(found) : TypedResults.NotFound()
-            )
-            .WithName("GetBlockPreset");
         blockPresets.MapPut(
                 ById,
                 (string id, BlockPreset blockPreset, BlockPresetStore store) => TypedResults.Ok(

@@ -22,7 +22,7 @@ static class LibraryApi {
             api.MapGroup("/banks").WithTags("Banks"),
             "Bank",
             static books => books.Banks(),
-            static (books, id) => books.Bank(id),
+            null, // a client lists the banks; nothing reads one alone
             static (books, id, bank) => {
                 bank.Id = id;
                 books.Save(bank);
@@ -32,25 +32,29 @@ static class LibraryApi {
     }
 
     /// <summary>
-    ///     <c>GET /</c> (named <c>List</c> + <paramref name="name" /> + s), and <c>GET</c>, <c>PUT</c> and
-    ///     <c>DELETE /{id}</c> (<c>Get</c>, <c>Put</c> and <c>Delete</c> + <paramref name="name" />) for one kind of
-    ///     library entry. A put stores the entry under the id of its route and answers with it.
+    ///     <c>GET /</c> (named <c>List</c> + <paramref name="name" /> + s), and <c>GET</c> (when
+    ///     <paramref name="get" /> is given), <c>PUT</c> and <c>DELETE /{id}</c> (<c>Get</c>, <c>Put</c> and
+    ///     <c>Delete</c> + <paramref name="name" />) for one kind of library entry. A put stores the entry under the id
+    ///     of its route and answers with it.
     /// </summary>
     static void MapEntries<T>(
         RouteGroupBuilder group,
         string name,
         Func<Library, T[]> list,
-        Func<Library, string, T?> get,
+        Func<Library, string, T?>? get,
         Action<Library, string, T> save,
         Func<Library, string, bool> delete
     ) where T : class {
         group.MapGet("/", (Library books) => TypedResults.Ok(list(books))).WithName("List" + name + "s");
-        group.MapGet(
-                ById,
-                Results<Ok<T>, NotFound>(string id, Library books) =>
-                    get(books, id) is { } entry ? TypedResults.Ok(entry) : TypedResults.NotFound()
-            )
-            .WithName("Get" + name);
+        if (get is not null) {
+            group.MapGet(
+                    ById,
+                    Results<Ok<T>, NotFound>(string id, Library books) =>
+                        get(books, id) is { } entry ? TypedResults.Ok(entry) : TypedResults.NotFound()
+                )
+                .WithName("Get" + name);
+        }
+
         group.MapPut(
                 ById,
                 (string id, T entry, Library books) => {

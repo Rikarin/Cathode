@@ -100,7 +100,7 @@ public sealed class PresetStore(
             throw RigException.Conflict("Factory presets cannot be changed; save the preset as a new one.");
         }
 
-        PresetShape.Check(preset); // PUT /presets/{id} and imports take a client's document as it is
+        PresetShape.Check(preset); // an import takes a client's document as it is
         preset.Factory = null;
         files.Save(preset);
     }

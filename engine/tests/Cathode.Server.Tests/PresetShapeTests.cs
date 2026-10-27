@@ -1,5 +1,6 @@
 using Cathode.Contracts;
 using Cathode.Server.Rig;
+using Cathode.Server.Stores;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
@@ -23,14 +24,12 @@ public sealed class PresetShapeTests : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task Storing_a_preset_without_its_eight_scenes_is_refused() {
-        using var response = await client.PutAsync(
-            "/api/v1/presets/bad1",
-            new StringContent("""{ "name": "x", "scenes": [] }""", System.Text.Encoding.UTF8, "application/json"),
-            Token
-        );
+    public void Storing_a_preset_without_its_eight_scenes_is_refused() {
+        var store = server.Services.GetRequiredService<PresetStore>();
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var refused = Assert.Throws<RigException>(() => store.Save(new() { Id = "bad1", Scenes = [] }));
+
+        Assert.Equal(400, refused.Status);
         Assert.False(File.Exists(Path.Combine(Presets, "bad1.json")));
     }
 

@@ -18,7 +18,7 @@ public sealed class ErrorResponseTests {
         Directory.Delete(presets, true);
         await File.WriteAllTextAsync(presets, "not a folder", Token);
 
-        using var response = await client.PutAsJsonAsync("/api/v1/presets/p1", Preset.CreateDefault(), Token);
+        using var response = await client.PostAsJsonAsync("/api/v1/live/save", new SaveRequest("P1", true), Token);
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);

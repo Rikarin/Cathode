@@ -39,19 +39,14 @@ static class LiveApi {
                 }
             )
             .WithName("LoadSetlistEntry");
-        live.MapPut(
-                "/banks/{id}/slots/{slot:int}",
-                async (string id, int slot, Library books, LiveRig rig, HttpContext http) =>
-                    Respond(http, await rig.LoadAsync(books.Slot(id, slot)))
-            )
-            .WithName("LoadBankSlot");
         live.MapGet(
                 "/export",
                 async (LiveRig rig, PresetPackage package, CancellationToken cancellationToken) =>
                     await Export((await rig.StateAsync()).Preset, package, cancellationToken)
             )
             .Produces(200, contentType: "application/zip")
-            .WithName("ExportLive");
+            .WithName("ExportLive")
+            .WithSummary("The working copy as a preset package, saved or not (stored presets: /presets/{id}/export).");
         live.MapPost(
                 "/save",
                 async (SaveRequest request, LiveRig rig, HttpContext http) =>

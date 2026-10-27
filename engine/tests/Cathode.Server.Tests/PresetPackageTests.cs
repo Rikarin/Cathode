@@ -75,6 +75,21 @@ public sealed class PresetPackageTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task The_working_copy_exports_with_its_unsaved_edits() {
+        var id = await SaveRigWithCab(from, "Working Copy");
+        await Ensure(from.PostAsJsonAsync("/api/v1/live/blocks", new AddBlockRequest("chorus", 1, 3), Token));
+
+        var imported = await Import(to, await from.GetByteArrayAsync("/api/v1/live/export", Token));
+
+        var loaded = await to.PutAsJsonAsync($"/api/v1/live/preset/{imported.Preset.Id}", new { }, Token);
+        var live = (await loaded.Content.ReadFromJsonAsync<LiveState>(Token))!;
+
+        Assert.Equal(id, imported.Preset.Id);
+        Assert.Equal(1, imported.AssetsAdded);
+        Assert.Contains(live.Preset.Blocks, static b => b.Type == "chorus"); // not in the stored preset
+    }
+
+    [Fact]
     public async Task Importing_into_the_same_library_never_overwrites() {
         var id = await SaveRigWithCab(from, "Original");
         var package = await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token);

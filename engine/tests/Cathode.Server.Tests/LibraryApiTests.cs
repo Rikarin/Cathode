@@ -1,4 +1,8 @@
 using Cathode.Contracts;
+using Cathode.Server.Midi;
+using Cathode.Server.Rig;
+using Cathode.Server.Stores;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -40,11 +44,20 @@ public sealed class LibraryApiTests : IAsyncLifetime {
         var bank = new Bank { Name = "Gig", Slots = [verse, null, chorus] };
         await Ok(client.PutAsJsonAsync($"/api/v1/banks/{bank.Id}", bank, Token));
 
-        var state = await Read(client.PutAsJsonAsync($"/api/v1/live/banks/{bank.Id}/slots/2", new { }, Token));
-        using var empty = await client.PutAsJsonAsync($"/api/v1/live/banks/{bank.Id}/slots/1", new { }, Token);
+        var global = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;
+        global.MidiMappings.Add(new("pc", "pc", 0, 0, "presetSlot", bank.Id));
+        await Ok(client.PutAsJsonAsync("/api/v1/global", global, Token));
+        var router = server.Services.GetRequiredService<MidiRouter>();
+        var library = server.Services.GetRequiredService<Library>();
 
-        Assert.Equal(chorus, state.Preset.Id);
-        Assert.Equal(HttpStatusCode.NotFound, empty.StatusCode);
+        router.OnMidi([new(0xC0, 2, 0, 0)]);
+        await ServerFixture.Eventually(async () =>
+            (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!.Preset.Id == chorus
+        );
+        var empty = Assert.Throws<RigException>(() => library.Slot(bank.Id, 1));
+
+        Assert.Equal(verse, library.Slot(bank.Id, 0));
+        Assert.Equal(404, empty.Status);
     }
 
     [Fact]

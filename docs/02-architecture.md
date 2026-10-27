@@ -384,13 +384,13 @@ Still to come: RMS, per-block CPU, scene state, and binary frames.
 | Area | Endpoints (abridged) |
 |---|---|
 | System | `GET /system` (version, CPU, xruns), `GET/PUT /system/audio` (device, sample rate, buffer, channel routing), `GET /system/audio/devices`, `POST /system/audio/latency-test` |
-| Catalog | `GET /catalog/blocks`, `GET /catalog/blocks/{typeId}` (descriptors above), `GET /catalog/amps`, `GET /catalog/drives` … |
-| Live state | `GET /live` (the full working copy), `PUT /live/preset/{presetId}` (load), `POST /live/save`, `POST /live/undo`, `POST /live/redo` |
+| Catalog | `GET /catalog/blocks` (every descriptor above, read once), `GET /catalog/amps`, `GET /catalog/drives` … |
+| Live state | `GET /live` (the full working copy), `PUT /live/preset/{presetId}` (load), `POST /live/save`, `GET /live/export` (the working copy as a package, saved or not), `POST /live/undo`, `POST /live/redo` |
 | Grid | `GET/PUT /live/grid`, `POST /live/grid/cells/{r}/{c}` (place block), `DELETE …`, `POST /live/grid/cables` |
 | Blocks | `GET /live/blocks/{iid}`, `PATCH /live/blocks/{iid}/channels/{ch}/params` (batch), `PUT /live/blocks/{iid}/bypass`, `PUT /live/blocks/{iid}/channel`, `POST /live/blocks/{iid}/copy-channel` |
 | Scenes | `GET /live/scenes`, `PUT /live/scenes/active` (select), `PATCH /live/scenes/{n}`, `PUT /live/scenes/{n}/blocks/{iid}` (Scene Manager), `POST /live/scenes/copy`, `POST /live/scenes/swap`, `PUT /live/blocks/{iid}/channels/{ch}/scene-ignore`, `POST /live/blocks/{iid}/channels/swap`, `POST …/channels/{ch}/reset`, `POST /live/blocks/{iid}/reset` |
 | Modifiers | `GET/PUT /live/controllers`, `PUT /live/blocks/{iid}/params/{pid}/modifier` |
-| Library | `GET/POST /presets`, `GET/PUT/DELETE /presets/{id}`, `POST /presets/import`, `GET /presets/{id}/export`, `GET /presets/list.txt`, setlists, banks |
+| Library | `GET/POST /presets`, `GET/DELETE /presets/{id}` (presets are written by `/live/save` and imports only), `POST /presets/import`, `GET /presets/{id}/export`, `GET /presets/list.txt`, setlists, banks |
 | Global | `GET/PUT /global/settings`, `/global/blocks` (global blocks), `/global/eq`, `/global/midi-mappings`, `/global/footswitch-layouts` |
 | Assets | `/irs` (upload, list, tags, mix/export), `/models` (NAM/AIDA-X upload, metadata, loudness normalisation) |
 | Utilities | `/tuner` (settings), `/looper` (transport, undo, export), `/metronome`, `/tone-match` (jobs) |

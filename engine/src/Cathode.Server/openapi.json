@@ -238,39 +238,6 @@
         }
       }
     },
-    "/api/v1/catalog/blocks/{typeId}": {
-      "get": {
-        "tags": [
-          "Catalog"
-        ],
-        "operationId": "GetBlockType",
-        "parameters": [
-          {
-            "name": "typeId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BlockTypeInfo"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
     "/api/v1/catalog/rig": {
       "get": {
         "tags": [
@@ -430,50 +397,12 @@
         }
       }
     },
-    "/api/v1/live/banks/{id}/slots/{slot}": {
-      "put": {
-        "tags": [
-          "Live"
-        ],
-        "operationId": "LoadBankSlot",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "slot",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LiveState"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/live/export": {
       "get": {
         "tags": [
           "Live"
         ],
+        "summary": "The working copy as a preset package, saved or not (stored presets: /presets/{id}/export).",
         "operationId": "ExportLive",
         "responses": {
           "200": {
@@ -2528,37 +2457,6 @@
           }
         }
       },
-      "put": {
-        "tags": [
-          "Presets"
-        ],
-        "operationId": "PutPreset",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Preset"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": "No Content"
-          }
-        }
-      },
       "delete": {
         "tags": [
           "Presets"
@@ -2671,37 +2569,6 @@
       }
     },
     "/api/v1/block-presets/{id}": {
-      "get": {
-        "tags": [
-          "Block Library"
-        ],
-        "operationId": "GetBlockPreset",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BlockPreset"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
       "put": {
         "tags": [
           "Block Library"
@@ -2908,37 +2775,6 @@
       }
     },
     "/api/v1/banks/{id}": {
-      "get": {
-        "tags": [
-          "Banks"
-        ],
-        "operationId": "GetBank",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Bank"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
       "put": {
         "tags": [
           "Banks"
