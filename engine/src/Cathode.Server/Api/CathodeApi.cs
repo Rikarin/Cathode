@@ -642,6 +642,7 @@ public static class CathodeApi {
                                 g.Perform = settings.Perform;
                                 g.EffectsMix = settings.EffectsMix;
                                 g.NoiseGateOffset = settings.NoiseGateOffset;
+                                g.CabModelingOff = settings.CabModelingOff;
                                 g.SceneRevert = settings.SceneRevert;
                                 g.DefaultScene = settings.DefaultScene;
                                 g.StartupPreset = string.IsNullOrWhiteSpace(settings.StartupPreset)
