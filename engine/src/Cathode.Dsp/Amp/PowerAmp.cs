@@ -1578,6 +1578,8 @@ struct PushPullStage : INonlinearDevice {
     readonly double differentialResistance;
     PentodeTables tube;
     FirstOrder presence;
+    FirstOrder branch; // the shunt's fixed RC branch, the feedback's second section (FeedbackDesign.Branch)
+    bool hasBranch;
     FirstOrder depth;
     FirstOrder cut;
     GridPair grids;
@@ -1637,6 +1639,7 @@ struct PushPullStage : INonlinearDevice {
         var rd = z.Zaa + z.Zbb - z.Zab - z.Zba;
         differentialResistance = rd * 2 * gridLeak / (rd + 2 * gridLeak);
         presence = FirstOrder.Unity;
+        branch = FirstOrder.Unity;
         depth = FirstOrder.Unity;
         cut = FirstOrder.Unity;
         SetSampleRate(rate);
@@ -1685,7 +1688,9 @@ struct PushPullStage : INonlinearDevice {
     ///     The feedback filter: presence (0..1) shorting the shunt resistor at high frequencies, depth (0..1) cutting
     ///     the feedback below the design's depth frequency to a tenth, and <paramref name="amount" /> times the stock
     ///     feedback; the presence and depth frequencies as multiples of stock. Either presence wiring is first order:
-    ///     β(s) = β (1 + s τ₁) / (1 + s τ₂), from Z / (R_f + Z) with the shunt's impedance Z.
+    ///     β(s) = β (1 + s τ₁) / (1 + s τ₂), from Z / (R_f + Z) with the shunt's impedance Z; a fixed branch across the
+    ///     shunt (<see cref="FeedbackDesign.Branch" />) makes it second order, two sections in series
+    ///     (<see cref="FeedbackDesign.BranchTimes" />).
     /// </summary>
     public void SetFeedback(
         FeedbackDesign design,
@@ -1697,8 +1702,16 @@ struct PushPullStage : INonlinearDevice {
         double presenceFrequency = 1,
         double depthFrequency = 1
     ) {
-        var (tau1, tau2) = design.PresenceTimes(presence, presenceFrequency);
-        this.presence.Design(design.Beta, design.Beta * tau1, 1, tau2, rate);
+        hasBranch = design.Branch is not null;
+        if (hasBranch) {
+            var (gain, zero1, pole1, zero2, pole2) = design.BranchTimes(presence, presenceFrequency);
+            this.presence.Design(gain, gain * zero1, 1, pole1, rate);
+            branch.Design(1, zero2, 1, pole2, rate);
+        } else {
+            var (tau1, tau2) = design.PresenceTimes(presence, presenceFrequency);
+            this.presence.Design(design.Beta, design.Beta * tau1, 1, tau2, rate);
+        }
+
         var omega = 2 * Math.PI * (design.DepthFrequency * depthFrequency);
         var floor = design.LowFeedback * (1 - 0.9 * Math.Clamp(depth, 0, 1));
         this.depth.Design(floor * omega, 1, omega, 1, rate);
@@ -1773,8 +1786,13 @@ struct PushPullStage : INonlinearDevice {
 
         // Feedback, phase inverter and cut: the grid drive as a function of v.
         var tap = feedback * v;
-        var fed = depth.Peek(presence.Peek(tap));
+        var presenced = presence.Peek(tap);
+        var fed = depth.Peek(hasBranch ? branch.Peek(presenced) : presenced);
         var fedSlope = feedback * presence.B0 * depth.B0;
+        if (hasBranch) {
+            fedSlope *= branch.B0;
+        }
+
         var (ea, eb) = PushPullDrive(fed, fedSlope, out var slopeA, out var slopeB);
         var (vgA, vgB) = grids.Peek(
             ea - BiasSwing,
@@ -1869,7 +1887,8 @@ struct PushPullStage : INonlinearDevice {
     /// <summary>Advances every state for the converged primary voltage, and records the currents.</summary>
     public void Commit(ReadOnlySpan<double> voltages) {
         var v = voltages[0];
-        var fed = depth.Process(presence.Process(feedback * v));
+        var presenced = presence.Process(feedback * v);
+        var fed = depth.Process(hasBranch ? branch.Process(presenced) : presenced);
         Fed = fed;
         double ea, eb;
         if (singleEnded) {
@@ -1943,6 +1962,7 @@ struct PushPullStage : INonlinearDevice {
     public void Reset() {
         loop?.Reset();
         presence.Reset();
+        branch.Reset();
         depth.Reset();
         cut.Reset();
         grids.Reset();
@@ -1955,6 +1975,7 @@ struct PushPullStage : INonlinearDevice {
     public void FlushDenormals() {
         loop?.FlushDenormals();
         presence.FlushDenormals();
+        branch.FlushDenormals();
         depth.FlushDenormals();
         cut.FlushDenormals();
         grids.FlushDenormals();
@@ -2004,8 +2025,13 @@ struct PushPullStage : INonlinearDevice {
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     readonly void EvaluateGeneral(double v, out double current, out double slope) {
-        var fed = depth.Peek(presence.Peek(feedback * v));
+        var presenced = presence.Peek(feedback * v);
+        var fed = depth.Peek(hasBranch ? branch.Peek(presenced) : presenced);
         var fedSlope = feedback * presence.B0 * depth.B0;
+        if (hasBranch) {
+            fedSlope *= branch.B0;
+        }
+
         double ea, eb, slopeA, slopeB;
         if (singleEnded) {
             (ea, eb, slopeA, slopeB) = (Input - fed, 0, -fedSlope, 0);

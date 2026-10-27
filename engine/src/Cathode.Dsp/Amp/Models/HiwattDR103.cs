@@ -9,8 +9,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     with 47 nF) into the Brilliant (1 nF) and Normal (22 nF) 470k-A volumes and their 470k mixing resistors; V2A
 ///     (100k, 1k with 47 nF) driving the Hiwatt tone network from its plate (no follower), 22k into the 220k-A master;
 ///     V2B (100k, 1k5); 22 nF into a 12AT7 long-tail pair (82k/91k) biased from a cathode follower; four EL34 (22k
-///     stoppers, 100k leaks, 100 Ω screens) on a Partridge transformer; 10k of feedback from the 16 Ω tap into 2k2 and
-///     the 100k presence with 0.1 µF.
+///     stoppers, 100k leaks, 100 Ω screens) on a Partridge transformer; 10k of feedback from the 16 Ω tap into 2k2, the
+///     100k presence with 0.1 µF and the fixed 470 Ω with 10 nF.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -30,8 +30,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///         wiper through 100 Ω to ground: its feedback half is the library's presence (pot and cap across the shunt),
 ///         which acts only near the top of the knob (100k across 2k2), and its plate-side half is in V2B's stage (1 nF
 ///         into the pot's lower part and 100 Ω: <see cref="HiwattParts.PresencePlateSide" />), the treble cut that does
-///         the work through the rest of the travel. The fixed 470 Ω with 10 nF across the shunt is left out (the
-///         library's feedback network has no fixed branch beside the presence's).
+///         the work through the rest of the travel. The fixed 470 Ω with 10 nF across the shunt is the feedback's
+///         fixed branch (<see cref="HiwattParts.FeedbackBranch" />): above about 6 kHz it takes the shunt toward 2k2
+///         ∥ 470 Ω, less feedback and so a treble shelf whatever the knob.
 ///     </para>
 ///     <para>
 ///         Not on the drawings (guesses): the rails (B+ 496 V at the plates, as AmpBooks gives; 450 V at the inverter
@@ -47,45 +48,47 @@ public static class HiwattDR103 {
     const double V1Supply = 285;
     const double V2ASupply = 320;
 
-    public static AmpDesign Design { get; } = new(
-        "Hiwatt DR103",
-        [Input(), V2A(), V2B()],
+    public static AmpDesign Design { get; } = HiwattParts.WithFeedbackBranch(
         new(
-            "4 x EL34",
-            PentodeModel.EL34,
-            2,
-            496,
-            100,
-            0.030,
-            false,
-            0,
-            100,
-            new LongTailPairDesign(TriodeModel.Ecc81, 450, 82e3, 91e3, 22.6e3, 1.6e3),
-            47e-9,
-            100e3,
-            22e3,
-            0,
-            new(1e6, PotTaper.Linear),
-            new(Math.Sqrt(2), 10e3, 2.2e3, new(100e3, PotTaper.Linear), 0.1e-6),
-            true,
-            new(1.7e3),
-            SpeakerDesign.Closed4x12,
-            new(25, 100e-6, 100, 50e-6, 32e3, 16e-6, 6e-3),
-            InverterInput: null
-        ),
-        -6
-    ) {
-        Panel = AmpPanel.Standard with {
-            Gain = "Brilliant Vol",
-            Control1 = "Normal Vol",
-            Master = "Master Vol",
-            Cut = null,
-            Depth = null,
-            Bright = null,
-            Switch1 = "Jumper",
-            Switch2 = "Normal Input"
+            "Hiwatt DR103",
+            [Input(), V2A(), V2B()],
+            new(
+                "4 x EL34",
+                PentodeModel.EL34,
+                2,
+                496,
+                100,
+                0.030,
+                false,
+                0,
+                100,
+                new LongTailPairDesign(TriodeModel.Ecc81, 450, 82e3, 91e3, 22.6e3, 1.6e3),
+                47e-9,
+                100e3,
+                22e3,
+                0,
+                new(1e6, PotTaper.Linear),
+                new(Math.Sqrt(2), 10e3, 2.2e3, new(100e3, PotTaper.Linear), 0.1e-6),
+                true,
+                new(1.7e3),
+                SpeakerDesign.Closed4x12,
+                new(25, 100e-6, 100, 50e-6, 32e3, 16e-6, 6e-3),
+                InverterInput: null
+            ),
+            -6
+        ) {
+            Panel = AmpPanel.Standard with {
+                Gain = "Brilliant Vol",
+                Control1 = "Normal Vol",
+                Master = "Master Vol",
+                Cut = null,
+                Depth = null,
+                Bright = null,
+                Switch1 = "Jumper",
+                Switch2 = "Normal Input"
+            }
         }
-    };
+    );
 
     /// <summary>
     ///     V1: the guitar into the Brilliant channel's high input (34k: both 68k in parallel, 1M at the jack), into

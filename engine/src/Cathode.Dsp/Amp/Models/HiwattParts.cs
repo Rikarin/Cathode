@@ -30,6 +30,21 @@ public static class HiwattParts {
     };
 
     /// <summary>
+    ///     The fixed 470 Ω with 10 nF across the feedback's 2k2 shunt, beside the presence pot's feedback half (100k
+    ///     linear with 0.1 µF, 10k from the 16 Ω tap): it takes the shunt from 2k2 toward 2k2 ∥ 470 Ω between about 6
+    ///     kHz and 34 kHz, so whatever the knob the feedback fraction falls from there (about 5 dB at 10 kHz, toward
+    ///     13.7 dB), a treble shelf in the closed-loop response.
+    /// </summary>
+    public static ShuntBranch FeedbackBranch { get; } = new(470, 10e-9);
+
+    /// <summary>
+    ///     <paramref name="design" /> with <see cref="FeedbackBranch" /> in its feedback network
+    ///     (<see cref="FeedbackDesign.Branch" />).
+    /// </summary>
+    public static AmpDesign WithFeedbackBranch(AmpDesign design) =>
+        design with { Power = design.Power with { Feedback = design.Power.Feedback with { Branch = FeedbackBranch } } };
+
+    /// <summary>
     ///     V1: the guitar into the Brilliant channel's high input (34k: both 68k in parallel, 1M at the jack), into
     ///     both with the Jumper (switch 1), into the Normal channel alone with switch 2; two triodes on 220k plates and
     ///     a shared 1k1 with 47 nF; each plate through its coupling cap (Brilliant 1 nF, Normal 22 nF) to its 470k-A

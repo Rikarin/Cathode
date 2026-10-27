@@ -5,7 +5,8 @@ namespace Cathode.Dsp.Amp.Models;
 /// <summary>
 ///     Hiwatt DR504 (Custom 50), from Mark Huss's hiwatt.org redraws: the mid-70s four-input preamp it shares with the
 ///     DR103 (<see cref="HiwattParts" />: "Mid-70s Four-Input Preamp" rev 1.4, with the 12AT7 long-tail pair biased
-///     from a cathode follower and 10k of feedback from the 16 Ω tap into 2k2 and the 100k presence with 0.1 µF), the
+///     from a cathode follower and 10k of feedback from the 16 Ω tap into 2k2, the 100k presence with 0.1 µF and the
+///     fixed 470 Ω with 10 nF: <see cref="HiwattParts.FeedbackBranch" />), the
 ///     "50 Watt Output Stage" v1.1 (https://hiwatt.org/Schematics/DR_50wOutput.pdf) and the "Power Supply for 50 Watt
 ///     Amp" v1.1 (https://hiwatt.org/Schematics/DR_50wPS.pdf): two EL34 with 22k grid stoppers, 100k grid leaks to the
 ///     −36 V bias and 1k5 5 W screen resistors on a Partridge TG6556; a voltage doubler on 350 V (two 220 µF in series)
@@ -33,32 +34,34 @@ public static class HiwattDR504 {
     const double V1Supply = 355;
     const double V2ASupply = 395;
 
-    public static AmpDesign Design { get; } = new(
-        "Hiwatt DR504",
-        [HiwattParts.Input(V1Supply), HiwattParts.V2A(V2ASupply), HiwattParts.V2B(V1Supply)],
+    public static AmpDesign Design { get; } = HiwattParts.WithFeedbackBranch(
         new(
-            "2 x EL34",
-            PentodeModel.EL34,
-            1,
-            460,
-            1.5e3,
-            0.035,
-            false,
-            0,
-            50,
-            new LongTailPairDesign(TriodeModel.Ecc81, 450, 82e3, 91e3, 22.6e3, 1.6e3),
-            47e-9,
-            100e3,
-            22e3,
-            0,
-            new(1e6, PotTaper.Linear),
-            new(Math.Sqrt(2), 10e3, 2.2e3, new(100e3, PotTaper.Linear), 0.1e-6),
-            true,
-            new(3.4e3),
-            SpeakerDesign.Closed4x12,
-            new(40, 110e-6, 100, 70e-6, 32e3, 16e-6, 6e-3),
-            InverterInput: null
-        ),
-        -6
-    ) { Panel = HiwattParts.Panel };
+            "Hiwatt DR504",
+            [HiwattParts.Input(V1Supply), HiwattParts.V2A(V2ASupply), HiwattParts.V2B(V1Supply)],
+            new(
+                "2 x EL34",
+                PentodeModel.EL34,
+                1,
+                460,
+                1.5e3,
+                0.035,
+                false,
+                0,
+                50,
+                new LongTailPairDesign(TriodeModel.Ecc81, 450, 82e3, 91e3, 22.6e3, 1.6e3),
+                47e-9,
+                100e3,
+                22e3,
+                0,
+                new(1e6, PotTaper.Linear),
+                new(Math.Sqrt(2), 10e3, 2.2e3, new(100e3, PotTaper.Linear), 0.1e-6),
+                true,
+                new(3.4e3),
+                SpeakerDesign.Closed4x12,
+                new(40, 110e-6, 100, 70e-6, 32e3, 16e-6, 6e-3),
+                InverterInput: null
+            ),
+            -6
+        ) { Panel = HiwattParts.Panel }
+    );
 }

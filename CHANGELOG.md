@@ -15,7 +15,25 @@ the format upgrades older presets as it reads them.
   render only the rows in view, so searching and selecting in a library of hundreds of IRs no longer slows down. A
   preset's tags now sit on its name's line.
 
+### Fixed
+
+- **Hiwatt DR103 and DR504:** the fixed 470 Ω and 10 nF across the feedback shunt are now modelled, so less
+  feedback above about 6 kHz gives these amps their stock treble shelf at any Presence setting (#44). The factory
+  presets on a Hiwatt are re-levelled.
+- **Savage 120:** the power section is four 6550, two a side into 1.7k, as Engl specifies it, instead of two (#49).
+- **Rotary:** with Tempo set, Slow and Fast still switch the horn: the fast horn turns once per division and Slow
+  keeps its ratio to it (#9).
+- **Synth:** a drone voice's (Track Off) filter follows the playing envelope instead of staying fully opened by Env
+  Amount (#12).
+- **Pitch:** the Tonic knob, which changed nothing, is hidden; the custom scale is built on, and named in, Key (#6).
+- **Editor:** the leveling dialog and the Perform page no longer do telemetry-rate work while idle (#155).
+
 ### Internal
+
+- **The website is checked in CI** (#160): formatting, the generated catalogue and manual against the engine, every
+  knob described, and the prerendered build.
+- **The editor's stateful core has unit tests** (#159): LiveStore, EventStream, shortcut dispatch and the grid's
+  drop, paste and wire.
 
 - **Skala's baseline is burnt down** (#161): from 4,321 accepted findings to 134, all of them duplicated-block
   groups between data (amp schematics, presets, catalogues) or code kept apart on purpose, each kind named in

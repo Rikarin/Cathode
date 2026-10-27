@@ -465,7 +465,11 @@ none of the drawings give):
   acts only near the top of the knob), the plate-side half is in V2B's stage (1 nF from the plate into the pot's lower
   part and 100 Ω to ground, `PotRole.Presence`), the treble cut that works through the rest of the travel: about +4 dB
   at 8 kHz from 0 to 7.5, where the feedback half alone gave a few tenths. The DR504 shares it (`HiwattParts`). The fixed
-  470 Ω with 10 nF across the shunt is still left out: `FeedbackDesign` has no fixed branch beside the presence's.
+  470 Ω with 10 nF across the shunt is `FeedbackDesign.Branch` (`HiwattParts.FeedbackBranch`, both Hiwatts): the shunt is 2k2
+  ‖ (presence pot + 0.1 µF) ‖ (470 Ω + 10 nF), so the feedback fraction is second order, two first-order sections in
+  series (`FeedbackDesign.BranchTimes`, the denominator's real roots); it falls from about 6 kHz (about 5 dB less at 10
+  kHz) toward 2k2 ‖ 470 against the 10k (0.037 against 0.18, 13.7 dB), a treble shelf whatever the knob. A design
+  without a branch keeps the single presence section, so every other model renders bit-identically.
 - **JCM900 4100/4500**: not built. The vector reissue of drawing JMP52-02 (issue 11, 1997) is fully legible and was
   read: input 10k, 100 pF, 0.1 µF, 1M; IC1 (M5201, a dual op-amp whose sections the channel switch mutes) channel A
   non-inverting 1 + 100k ‖ 22 pF over 15k + 0.1 µF, channel B 1 + 100k ‖ 470 pF over 4k7 + 47 nF; channel A: 47 nF, 22k
