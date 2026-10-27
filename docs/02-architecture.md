@@ -57,7 +57,7 @@ A .NET GC **suspends every thread that is running managed code**, including the 
 
 - **Cathode.Host** is a minimal NativeAOT process. In steady state it allocates nothing: DSP memory is native or pinned, commands are unmanaged structs, and telemetry goes to shared memory. GC settings: workstation, non-concurrent, `SustainedLowLatency`, and a large gen0 budget (`GCgen0size`) so the rare allocations at preset load almost never trigger a collection.
 - **Cathode.Server** may allocate freely. Its GCs cannot touch the audio thread.
-- Both processes implement the same `IEngineControl` interface. Functional tests can use **in-process mode** (`InProcEngineControl`), and production uses **out-of-process mode** (`IpcEngineControl`).
+- The Server reaches the host through one interface, `IEngineLink` (Cathode.Ipc): in production an `IpcEngineClient` on the socket. Functional tests swap in an engine host in the test process (`InProcessEngineLink`, in the Server's test project), which the Server itself does not reference.
 - **Confirmed by spike S2 ([ADR-0001](adr/0001-process-model.md)):**
   - In-process, even 100 req/s caused dropouts, and a 50 MB/s allocation storm with no HTTP caused 7 in 20 s.
   - Out-of-process, the audio callback stayed at baseline at 14,000 req/s.
@@ -80,8 +80,9 @@ cathode/
 │  │  ├─ Cathode.Engine/                   # graph model + compiler, scheduler, params, modifiers,
 │  │  │                                     #   scenes/channels runtime, spillover, telemetry writer
 │  │  ├─ Cathode.Audio/                    # IAudioBackend + Offline/Null/Native backends
-│  │  ├─ Cathode.Contracts/                # preset schema, DTOs, block catalog metadata, migrations
-│  │  ├─ Cathode.Ipc/                      # Host<->Server protocol, shared-memory telemetry
+│  │  ├─ Cathode.Contracts/                # preset schema, REST DTOs, migrations (no references)
+│  │  ├─ Cathode.Ipc/                      # Host<->Server protocol: messages, the graph as sent (no references)
+│  │  ├─ Cathode.EngineHost/               # the host's IPC handler and socket server
 │  │  ├─ Cathode.Host/                     # engine executable (NativeAOT)
 │  │  └─ Cathode.Server/                   # ASP.NET Core REST + WS gateway
 │  ├─ native/
@@ -102,6 +103,24 @@ cathode/
 ├─ assets/                                  # factory presets, factory IRs (own captures), test DI corpus
 └─ docs/
 ```
+
+### Project dependencies
+
+```
+Cathode.Contracts      (none)                          REST and preset shapes
+Cathode.Ipc            (none)                          the wire: IpcMessage, GraphDefinition, StdinWatch
+Cathode.Dsp            (none)                          blocks, descriptors, registry
+Cathode.Dsp.Native     → Dsp                           NAM (cth_nam)
+Cathode.Engine         → Dsp, Ipc                      compiler, real-time loop, rig, telemetry region
+Cathode.Audio          → Engine                        backends, cth_audio, MIDI
+Cathode.EngineHost     → Ipc, Audio, Dsp.Native        the host's request handler and socket server
+Cathode.Host           → EngineHost, Audio, Dsp.Native NativeAOT executable
+Cathode.Server         → Contracts, Ipc, Dsp, Engine   no EngineHost, Audio or Dsp.Native
+```
+
+- **The wire contract has no dependencies.** `GraphDefinition` (with its nodes, cables and modifiers) and `LatencyStep` are plain DTOs in Cathode.Ipc, and the engine's compiler reads them from there, so the protocol changes only when Cathode.Ipc does, not with the engine. Cathode.Contracts (REST) and Cathode.Ipc each keep their own shapes; the Server translates a preset into a graph (`PresetGraph.Build`).
+- **The Server loads no native code and runs no audio.** It references the managed engine for what it reads but never runs in real time: block descriptors and the block registry from Cathode.Dsp (validation, the catalog, factory presets, the IR tools and analysis), the rig parameters and modifier names (`Cathode.Engine.Rig`), and the shared-memory telemetry layout (`Cathode.Engine.Telemetry`). Native blocks change a block's code, never its descriptor, so the Server's catalog is the host's without `AddNativeBlocks` (a test checks). The native shims are not copied next to it (`CathodeNativeShims=false`); the desktop app and the headless package publish both executables into one folder, where the host's shims sit.
+- **The in-process host is test-only.** `Cathode.Server.Tests` references Cathode.EngineHost and gives the Server an `InProcessEngineLinks` through its `IEngineLinks` service. The Server rejects `Cathode:Engine:Mode` other than `ipc`; for development without a device, run `cathode-host --serve --null-audio`.
 
 ---
 

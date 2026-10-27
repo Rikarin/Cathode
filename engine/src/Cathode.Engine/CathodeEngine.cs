@@ -6,6 +6,7 @@ using Cathode.Dsp.Routing;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.Engine.Telemetry;
+using Cathode.Ipc;
 using System.Diagnostics;
 
 namespace Cathode.Engine;

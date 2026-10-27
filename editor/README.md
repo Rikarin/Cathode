@@ -15,10 +15,14 @@ The desktop editor (docs/02-architecture.md §7): an Angular 22 renderer styled 
 pnpm install
 ```
 
-Run the editor in a browser against a development Server, with an in-process engine and no audio:
+Run the editor in a browser against a development Server, with the engine host on no device:
 
 ```bash
-dotnet run -c Release --project ../engine/src/Cathode.Server -- --Cathode:Engine:Mode=inprocess
+dotnet run -c Release --project ../engine/src/Cathode.Host -- --serve --null-audio --socket /tmp/cathode-host.sock
+```
+
+```bash
+dotnet run -c Release --project ../engine/src/Cathode.Server -- --Cathode:Engine:SocketPath=/tmp/cathode-host.sock
 ```
 
 ```bash

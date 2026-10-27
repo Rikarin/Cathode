@@ -1,3 +1,5 @@
+using Cathode.Ipc;
+
 namespace Cathode.Engine.Graph;
 
 /// <summary>Ready-made graphs for smoke tests and new presets.</summary>

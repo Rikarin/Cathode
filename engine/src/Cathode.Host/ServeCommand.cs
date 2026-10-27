@@ -3,6 +3,7 @@ using Cathode.Audio.Native;
 using Cathode.Dsp;
 using Cathode.Engine;
 using Cathode.EngineHost;
+using Cathode.Ipc;
 using System.Runtime.InteropServices;
 
 namespace Cathode.Host;

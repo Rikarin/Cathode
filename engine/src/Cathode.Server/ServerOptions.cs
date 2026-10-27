@@ -21,12 +21,11 @@ public sealed class ServerOptions {
     public EngineOptions Engine { get; set; } = new();
 }
 
+/// <summary>
+///     The engine host is always a separate cathode-host process (run it with <c>--null-audio</c> for no device); an
+///     engine in the Server's process exists only in the tests (Engine/EngineLinks.cs).
+/// </summary>
 public sealed class EngineOptions {
-    /// <summary>
-    ///     <c>ipc</c> (production: a separate cathode-host process) or <c>inprocess</c> (tests, no audio).
-    /// </summary>
-    public string Mode { get; set; } = "ipc";
-
-    /// <summary>The host's Unix domain socket, when <see cref="Mode" /> is <c>ipc</c>.</summary>
+    /// <summary>The host's Unix domain socket.</summary>
     public string SocketPath { get; set; } = Path.Combine(Path.GetTempPath(), "cathode-host.sock");
 }

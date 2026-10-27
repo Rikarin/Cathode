@@ -1,6 +1,7 @@
 using Cathode.Audio;
 using Cathode.Dsp;
 using Cathode.Engine.Graph;
+using Cathode.Ipc;
 using Cathode.Testing;
 using System.Text.Json;
 

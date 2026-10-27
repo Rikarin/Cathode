@@ -5,16 +5,16 @@ The .NET 10 audio engine. The design is described in [docs/02-architecture.md](.
 | Project | Role |
 |---|---|
 | `src/Cathode.Dsp` | Pure DSP: block contract, parameter bank and smoothing, biquad and TPT state-variable filters, built-in blocks, AIDA-X capture models (managed LSTM/GRU), block registry |
-| `src/Cathode.Engine` | Grid model (JSON), graph compiler (pruning, ordering, buffer reuse, latency compensation), SPSC command ring, real-time loop with RCU graph swap, callback stats, shared-memory telemetry region |
+| `src/Cathode.Engine` | Graph compiler (pruning, ordering, buffer reuse, latency compensation), SPSC command ring, real-time loop with RCU graph swap, callback stats, shared-memory telemetry region |
 | `src/Cathode.Audio` | WAV I/O, offline renderer, null (device-less, real-time paced) backend, native device sessions, latency probe |
 | `src/Cathode.Dsp.Native` | Blocks backed by native code: `NamAmpBlock`, the capture amp with Neural Amp Modeler models ([ADR-0003](../docs/adr/0003-nam-hosting.md)) as well as AIDA-X ones |
 | `native/cth_audio` | C shim: CoreAudio HAL IOProc (macOS), WASAPI (Windows), ALSA `hw:` and JACK (Linux; needs `libasound2-dev` to build), with CoreMIDI, WinMM and ALSA sequencer MIDI, and an FTZ/DAZ helper |
 | `native/cth_nam` | C ABI over NeuralAmpModelerCore v0.6.0 (pinned and fetched by CMake) |
 | `src/Cathode.Host` | NativeAOT engine executable: `--serve` for the Server, plus diagnostics (`--self-test`, `--audio-test`, …) |
-| `src/Cathode.Contracts` | Preset schema and API DTOs (no engine dependencies) |
-| `src/Cathode.Ipc` | Server↔Host protocol: length-prefixed JSON over a Unix domain socket |
-| `src/Cathode.EngineHost` | Host-side request handler, socket server, in-process link for tests |
-| `src/Cathode.Server` | ASP.NET Core REST + WebSocket API: presets, scenes, channels, undo, assets ([ADR-0004](../docs/adr/0004-state-ownership.md)) |
+| `src/Cathode.Contracts` | Preset schema and API DTOs (no dependencies) |
+| `src/Cathode.Ipc` | Server↔Host protocol: the messages and the grid as sent to the host (JSON), length-prefixed over a Unix domain socket (no dependencies) |
+| `src/Cathode.EngineHost` | Host-side request handler and socket server |
+| `src/Cathode.Server` | ASP.NET Core REST + WebSocket API: presets, scenes, channels, undo, assets ([ADR-0004](../docs/adr/0004-state-ownership.md)). References Contracts, Ipc, Dsp and Engine only: no host, audio or native code ([docs/02 §3](../docs/02-architecture.md#project-dependencies)) |
 | `tools/Cathode.Render` | `cathode-render --graph g.json --in di.wav --out out.wav` |
 | `tests/Cathode.Testing` | Stimuli and analysers: FFT, DTFT magnitude, THD, null residual, ESR, allocation probe |
 | `tests/*.Tests` | xUnit v3 + CsCheck suites, including the per-block conformance suite |

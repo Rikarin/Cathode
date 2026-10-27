@@ -1,4 +1,5 @@
 using Cathode.Dsp;
+using Cathode.Ipc;
 
 namespace Cathode.Engine.Graph;
 
@@ -31,9 +32,6 @@ public sealed class GraphOutputs(int maxBlockSize) : IDisposable {
         }
     }
 }
-
-/// <summary>One block on the graph's longest input-to-output path and the latency it adds.</summary>
-public sealed record LatencyStep(string Block, string Type, int Samples);
 
 /// <summary>
 ///     A sine that replaces one block's output while it is on (docs/08-blocks-parity.md §2 I/O, the cab resonance

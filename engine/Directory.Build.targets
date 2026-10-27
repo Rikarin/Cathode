@@ -1,12 +1,13 @@
 <Project>
     <!--
       Copies the native shim built by native/build.sh (artifacts/native) next to every executable and test
-      project. When it hasn't been built, managed code reports the backend as unavailable instead of failing.
+      project. When it hasn't been built, managed code reports the backend as unavailable instead of failing. A
+      project that loads no native code opts out with CathodeNativeShims=false (cathode-server).
     -->
     <PropertyGroup>
         <CathodeNativeDir>$(MSBuildThisFileDirectory)artifacts/native/</CathodeNativeDir>
     </PropertyGroup>
-    <ItemGroup Condition="'$(OutputType)' == 'Exe'">
+    <ItemGroup Condition="'$(OutputType)' == 'Exe' And '$(CathodeNativeShims)' != 'false'">
         <None Include="$(CathodeNativeDir)*cth_*.*"
               Exclude="$(CathodeNativeDir)*.exp;$(CathodeNativeDir)*.lib;$(CathodeNativeDir)*.pdb"
               Visible="false"

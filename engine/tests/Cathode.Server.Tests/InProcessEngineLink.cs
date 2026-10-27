@@ -1,21 +1,26 @@
 using Cathode.Audio;
 using Cathode.Dsp;
+using Cathode.Engine.Telemetry;
+using Cathode.EngineHost;
 using Cathode.Ipc;
+using Cathode.Server.Engine;
 
-namespace Cathode.EngineHost;
+namespace Cathode.Server.Tests;
 
 /// <summary>
 ///     The engine host in the same process, driven by a <see cref="NullBackend" /> (real-time paced, no device). For
-///     functional tests and development without audio. Never use it for timing or soak measurements: an in-process
-///     engine shares the Server's GC (docs/adr/0001-process-model.md).
+///     functional tests only, which is why it lives here and not in the Server: never use it for timing or soak
+///     measurements, as an in-process engine shares the Server's GC (docs/adr/0001-process-model.md).
 /// </summary>
-public sealed class InProcessEngineLink : IEngineLink {
+public sealed class InProcessEngineLink : ILocalEngineLink {
     readonly NullBackend backend;
     readonly Timer telemetry;
 
     public bool IsConnected => true;
 
     public EngineHostService Service { get; }
+
+    public TelemetryRegion TelemetryRegion => Service.TelemetryRegion;
 
     public InProcessEngineLink(ProcessSpec? spec = null, BlockRegistry? registry = null) {
         var processSpec = spec ?? ProcessSpec.Default;
@@ -33,9 +38,7 @@ public sealed class InProcessEngineLink : IEngineLink {
         );
     }
 
-    /// <summary>
-    ///     Tests and development: deliver MIDI as if a device had sent it (there is no device in process).
-    /// </summary>
+    /// <summary>Delivers MIDI as if a device had sent it (there is no device in process).</summary>
     public void InjectMidi(IReadOnlyList<MidiEventMessage> messages) => MidiReceived?.Invoke(messages);
 
     public Task<IpcMessage> SendAsync(IpcMessage request, CancellationToken cancellationToken = default) {
@@ -57,4 +60,12 @@ public sealed class InProcessEngineLink : IEngineLink {
     public event Action<IReadOnlyList<MidiEventMessage>>? MidiReceived;
 
     public event Action? Disconnected;
+}
+
+/// <summary>Gives the Server a fresh <see cref="InProcessEngineLink" /> on every (re)connection.</summary>
+public sealed class InProcessEngineLinks : IEngineLinks {
+    public string Mode => "inprocess";
+
+    public Task<IEngineLink> ConnectAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IEngineLink>(new InProcessEngineLink());
 }

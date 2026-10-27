@@ -1,8 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Server-to-Host protocol: message envelope, length-prefixed JSON framing over a Unix domain socket, and the client.</Description>
+    <Description>Server-to-Host protocol: message envelope, the graph as sent to the host, length-prefixed JSON framing over a Unix domain socket, and the client. Plain types only: no engine, DSP or native dependencies, so the wire contract changes only when it is changed here.</Description>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="../Cathode.Engine/Cathode.Engine.csproj"/>
-  </ItemGroup>
 </Project>

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Cathode.Engine.Graph;
+namespace Cathode.Ipc;
 
 /// <summary>Well-known node types handled by the graph compiler itself rather than by a DSP block.</summary>
 public static class NodeTypes {
@@ -65,7 +65,8 @@ public static class BypassModes {
 
 /// <summary>
 ///     The editable grid: blocks placed in cells plus cables between adjacent columns, as on the Axe-Fx III.
-///     This is the serialised form; <see cref="GraphCompiler" /> turns it into a <see cref="CompiledGraph" />.
+///     This is the serialised form the Server sends in <c>loadGraph</c>; the engine's GraphCompiler
+///     (Cathode.Engine.Graph) turns it into a CompiledGraph. A plain wire type: no engine or DSP dependencies.
 /// </summary>
 public sealed class GraphDefinition {
     public int SchemaVersion { get; set; } = 1;
@@ -117,7 +118,7 @@ public sealed class ModifierDefinition {
 
     /// <summary>
     ///     Whether the modifier starts out driving its parameter. A modifier scoped to one channel is compiled
-    ///     disabled while its block is on another, and switched by <c>EngineCommandKind.SetModifier</c>.
+    ///     disabled while its block is on another, and switched by <c>setModifier</c>.
     /// </summary>
     public bool Enabled { get; set; } = true;
 }
@@ -161,3 +162,6 @@ public sealed class CableDefinition {
 )]
 [JsonSerializable(typeof(GraphDefinition))]
 public sealed partial class GraphJsonContext : JsonSerializerContext;
+
+/// <summary>One block on the graph's longest input-to-output path and the latency it adds.</summary>
+public sealed record LatencyStep(string Block, string Type, int Samples);

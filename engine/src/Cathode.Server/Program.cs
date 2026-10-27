@@ -1,7 +1,6 @@
 using Cathode.Contracts;
 using Cathode.Dsp;
-using Cathode.Dsp.Native;
-using Cathode.EngineHost;
+using Cathode.Ipc;
 using Cathode.Server;
 using Cathode.Server.Api;
 using Cathode.Server.Engine;
@@ -24,6 +23,15 @@ var builder = WebApplication.CreateSlimBuilder(
         Args = [..args, "--hostBuilder:reloadConfigOnChange=false"], ContentRootPath = AppContext.BaseDirectory
     }
 );
+if (builder.Configuration["Cathode:Engine:Mode"] is { } mode
+    && !mode.Equals("ipc", StringComparison.OrdinalIgnoreCase)) {
+    // The in-process engine was a development mode before 1.0; it now lives in the tests only.
+    throw new InvalidOperationException(
+        $"Cathode:Engine:Mode '{mode}' is not supported: start cathode-host (--serve --null-audio for no device) and "
+        + "point Cathode:Engine:SocketPath at its socket."
+    );
+}
+
 var urls = builder.Configuration["urls"] ?? "http://127.0.0.1:5180";
 var token = builder.Configuration["Cathode:Token"] is { Length: > 0 } configured ? configured : null;
 Access.RequireTokenBeyondLoopback(urls, token);
@@ -43,7 +51,8 @@ builder.Services.ConfigureHttpJsonOptions(static o => {
 builder.Services.AddProblemDetails();
 builder.Services.AddCathodeCors();
 builder.Services.AddOpenApi(static o => o.MarkNonNullablePropertiesRequired());
-builder.Services.AddSingleton(new BlockCatalog(BlockRegistry.CreateDefault().AddNativeBlocks()));
+// The descriptors only: the Server validates and describes blocks, the host runs them (with their native code).
+builder.Services.AddSingleton(new BlockCatalog(BlockRegistry.CreateDefault()));
 builder.Services.AddSingleton<FactoryPresets>();
 builder.Services.AddSingleton<PresetStore>();
 builder.Services.AddSingleton<BlockPresetStore>();
@@ -51,6 +60,7 @@ builder.Services.AddSingleton<Library>();
 builder.Services.AddSingleton<PresetPackage>();
 builder.Services.AddSingleton<AssetStore>();
 builder.Services.AddSingleton<EventHub>();
+builder.Services.AddSingleton<IEngineLinks, IpcEngineLinks>();
 builder.Services.AddSingleton<EngineConnection>();
 builder.Services.AddSingleton<IEngineSync>(static s => s.GetRequiredService<EngineConnection>());
 builder.Services.AddHostedService(static s => s.GetRequiredService<EngineConnection>());
@@ -65,7 +75,7 @@ builder.Services.AddSingleton<PresetTools>();
 
 var app = builder.Build();
 if (bool.TryParse(builder.Configuration["Cathode:WatchStdin"], out var watchStdin) && watchStdin) {
-    // Started by the desktop app: stop when it is gone, however it ended (Cathode.EngineHost.StdinWatch).
+    // Started by the desktop app: stop when it is gone, however it ended (Cathode.Ipc.StdinWatch).
     StdinWatch.Start(Console.OpenStandardInput(), app.Lifetime.StopApplication);
 }
 

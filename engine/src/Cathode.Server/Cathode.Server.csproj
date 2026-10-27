@@ -5,12 +5,19 @@
     <RootNamespace>Cathode.Server</RootNamespace>
     <InvariantGlobalization>true</InvariantGlobalization>
     <IsAotCompatible>false</IsAotCompatible>
+    <!-- The native shims belong to cathode-host, which is published beside it (Directory.Build.targets). -->
+    <CathodeNativeShims>false</CathodeNativeShims>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi"/>
   </ItemGroup>
+  <!-- No engine host, audio or native code: the Server talks to cathode-host over IPC (docs/02-architecture.md §3).
+       Cathode.Engine (managed, over Cathode.Dsp) is here for the rig parameters, the modifier names and the
+       shared-memory telemetry layout it reads; Cathode.Dsp for the block descriptors, IR tools and analysis. -->
   <ItemGroup>
     <ProjectReference Include="../Cathode.Contracts/Cathode.Contracts.csproj"/>
-    <ProjectReference Include="../Cathode.EngineHost/Cathode.EngineHost.csproj"/>
+    <ProjectReference Include="../Cathode.Ipc/Cathode.Ipc.csproj"/>
+    <ProjectReference Include="../Cathode.Dsp/Cathode.Dsp.csproj"/>
+    <ProjectReference Include="../Cathode.Engine/Cathode.Engine.csproj"/>
   </ItemGroup>
 </Project>

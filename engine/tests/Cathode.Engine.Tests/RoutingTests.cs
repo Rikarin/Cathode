@@ -2,6 +2,7 @@ using Cathode.Audio;
 using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
 using Cathode.Engine.Graph;
+using Cathode.Ipc;
 using Cathode.Testing;
 
 namespace Cathode.Engine.Tests;

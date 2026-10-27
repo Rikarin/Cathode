@@ -1,5 +1,5 @@
 using Cathode.Contracts;
-using Cathode.EngineHost;
+using Cathode.Ipc;
 using Cathode.Server.Engine;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;

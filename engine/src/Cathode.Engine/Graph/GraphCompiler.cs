@@ -4,6 +4,7 @@ using Cathode.Dsp.Parameters;
 using Cathode.Dsp.Resampling;
 using Cathode.Dsp.Routing;
 using Cathode.Engine.Rig;
+using Cathode.Ipc;
 
 namespace Cathode.Engine.Graph;
 
