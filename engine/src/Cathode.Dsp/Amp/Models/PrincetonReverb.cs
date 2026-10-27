@@ -34,17 +34,6 @@ public static class PrincetonReverb {
     /// </summary>
     const double MixerGain = 55;
 
-    static readonly ToneStackDesign Stack = new(
-        "Fender AB763 fixed mid",
-        250e-12,
-        100e3,
-        100e-9,
-        47e-9,
-        new(250e3, PotTaper.Audio),
-        new(250e3, PotTaper.Audio),
-        new(13.6e3, PotTaper.Linear)
-    );
-
     /// <summary>
     ///     The bias tremolo, from the Fender drawing "Princeton Reverb-Amp AA1164" (045427,
     ///     schematicheaven.net/fenderamps/princeton_reverb_aa1164_schem.pdf; the Princeton AA964's circuit): a 12AX7
@@ -54,43 +43,44 @@ public static class PrincetonReverb {
     ///     the 250k linear Intensity pot, whose far end is the bias supply (25 µF and 27k), its wiper on the 6V6 grid
     ///     leaks' return. The plate's load from that network at the rate is about 1.2M.
     /// </summary>
-    internal static BiasTremoloDesign Tremolo { get; } = new(
+    internal static BiasTremoloDesign Tremolo { get; } = TremoloAt(410);
+
+    /// <summary>
+    ///     V1A: the AB763 first stage with the fixed-mid stack (<see cref="Ab763.FirstStage" />), without the bright
+    ///     cap: the Princetons have one channel and no bright switch.
+    /// </summary>
+    internal static ToneStackStageDesign FirstStage(double supply) => Ab763.FirstStage(supply) with { BrightCap = 0 };
+
+    /// <summary>
+    ///     The Princeton's bias tremolo (<see cref="Tremolo" />) with its 12AX7 on <paramref name="supply" /> volts:
+    ///     the AA964 shares the circuit.
+    /// </summary>
+    internal static BiasTremoloDesign TremoloAt(double supply) =>
         new(
-            TriodeModel.Ecc83,
-            410,
-            220e3,
-            3.3e3,
-            0.02e-6,
-            0.01e-6,
-            0.01e-6,
-            100e3,
+            new(
+                TriodeModel.Ecc83,
+                supply,
+                220e3,
+                3.3e3,
+                0.02e-6,
+                0.01e-6,
+                0.01e-6,
+                100e3,
+                1e6,
+                1e6,
+                new(3e6, PotTaper.ReverseAudio),
+                PlateLoad: 1.2e6
+            ),
             1e6,
-            1e6,
-            new(3e6, PotTaper.ReverseAudio),
-            PlateLoad: 1.2e6
-        ),
-        1e6,
-        0.1e-6,
-        new Pot(250e3, PotTaper.Linear),
-        0.02e-6
-    );
+            0.1e-6,
+            new Pot(250e3, PotTaper.Linear),
+            0.02e-6
+        );
 
     public static AmpDesign Design { get; } = new(
         "Princeton Reverb",
         [
-            new ToneStackStageDesign(
-                "V1A",
-                TriodeModel.Ecc83,
-                StackDriver.CommonCathode,
-                250,
-                1.5e3,
-                Stack,
-                new(1e6, PotTaper.Audio),
-                PotRole.Gain,
-                100e3,
-                25e-6,
-                34e3
-            ),
+            FirstStage(250),
             SecondStage(),
             Mixer()
         ],
