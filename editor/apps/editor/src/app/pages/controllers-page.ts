@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { type SceneMidiMessage } from '@cathode/api-client';
-import { CthKnob } from '@cathode/audio-ui';
+import { CthKnob, CthStepBars } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import { matAddRound, matDeleteRound } from '@ng-icons/material-icons/round';
 import { XuiButtonImports } from '@xui/button';
@@ -8,7 +8,6 @@ import { XuiCardImports } from '@xui/card';
 import { XuiIconImports } from '@xui/icon';
 import { XuiInputImports } from '@xui/input';
 import { XuiSelectImports } from '@xui/select';
-import { XuiSliderImports } from '@xui/slider';
 import { XuiTableImports } from '@xui/table';
 import { XuiTextImports } from '@xui/text';
 import { RigControl } from '../controls/rig-knob';
@@ -38,13 +37,13 @@ export function scopeName(channel: string | null | undefined): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CthKnob,
+    CthStepBars,
     RigControl,
     XuiButtonImports,
     XuiCardImports,
     XuiIconImports,
     XuiInputImports,
     XuiSelectImports,
-    XuiSliderImports,
     XuiTableImports,
     XuiTextImports
   ],
@@ -251,21 +250,11 @@ export function scopeName(channel: string | null | undefined): string {
             (changed)="set('seqTempo', $event)"
           />
         </div>
-        <div class="flex h-36 items-end gap-2" role="group" aria-label="Sequencer stages">
-          @for (stage of stages(); track stage) {
-            <xui-slider
-              orientation="vertical"
-              class="h-32"
-              [min]="0"
-              [max]="1"
-              [stepSize]="0.01"
-              [labelStepSize]="1"
-              [attr.aria-label]="'Stage ' + stage"
-              [value]="stored('seq' + stage) ?? (stage % 2 === 0 ? 0 : 1)"
-              (valueChange)="set('seq' + stage, $event)"
-            />
-          }
-        </div>
+        <cth-step-bars
+          label="Sequencer stages"
+          [values]="stageValues()"
+          (changed)="set('seq' + ($event.index + 1), $event.value)"
+        />
       </section>
 
       <section xuiCard class="flex flex-col gap-3 p-4" aria-labelledby="modifiers-heading">
@@ -361,8 +350,12 @@ export class ControllersPage {
   protected readonly externals = computed(() =>
     this.externalsSent().map((value, i) => (this.sending.pending(`external:${i}`) as number | undefined) ?? value)
   );
-  protected readonly stages = computed(() =>
-    Array.from({ length: Math.round(this.stored('seqStages') ?? 8) }, (_, i) => i + 1)
+  /** The sequencer's stages in use, each at its value (odd stages default to 1, even to 0, as the engine's do). */
+  protected readonly stageValues = computed(() =>
+    Array.from(
+      { length: Math.round(this.stored('seqStages') ?? 8) },
+      (_, i) => this.stored(`seq${i + 1}`) ?? (i % 2 === 0 ? 1 : 0)
+    )
   );
 
   protected stored(id: string): number | undefined {
