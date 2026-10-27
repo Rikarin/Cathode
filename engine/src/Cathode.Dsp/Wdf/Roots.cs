@@ -72,6 +72,22 @@ public readonly record struct DiodeModel(double SaturationCurrent, double Ideali
 
     /// <summary>The emission voltage n Vt of <paramref name="count" /> identical diodes in series.</summary>
     public double EmissionVoltage(int count) => Ideality * ThermalVoltage * count;
+
+    /// <summary>
+    ///     This junction in series with <paramref name="other" /> as one equivalent junction: the same current flows
+    ///     through both, so once it is well above either saturation current the voltages add as
+    ///     v = n1 Vt ln(i / Is1) + n2 Vt ln(i / Is2), a junction with ideality n1 + n2 and a saturation current at the
+    ///     ideality-weighted geometric mean, ln Is = (n1 ln Is1 + n2 ln Is2) / (n1 + n2). Within 0.1 mV from about
+    ///     500 times the larger saturation current (0.1 mA with a germanium diode); below that, where the stack barely
+    ///     conducts, the real one leaks a little less. Identical junctions come out as <see cref="EmissionVoltage" />
+    ///     has a stack of them: the same Is, n times the count.
+    /// </summary>
+    public DiodeModel InSeries(DiodeModel other) {
+        var ideality = Ideality + other.Ideality;
+        var logIs = (Ideality * Math.Log(SaturationCurrent) + other.Ideality * Math.Log(other.SaturationCurrent))
+            / ideality;
+        return new(Math.Exp(logIs), ideality);
+    }
 }
 
 /// <summary>

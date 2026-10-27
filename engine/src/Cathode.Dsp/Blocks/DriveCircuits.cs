@@ -169,7 +169,10 @@ public sealed record ToneNetwork(ToneKind Kind) {
     public bool MidSweep { get; init; }
 }
 
-/// <summary>Two antiparallel diode stacks; see <see cref="DiodePair" />.</summary>
+/// <summary>
+///     Two antiparallel diode stacks; see <see cref="DiodePair" />. A stack of mixed parts (the OCD's MOSFET with a
+///     germanium diode in series) is one model made with <see cref="DiodeModel.InSeries" />.
+/// </summary>
 public readonly record struct DiodeStacks(DiodeModel Forward, int ForwardCount, DiodeModel Reverse, int ReverseCount) {
     public bool IsSymmetric => ForwardCount == ReverseCount && (ForwardCount == 0 || Forward == Reverse);
 
@@ -511,6 +514,10 @@ public static partial class DriveCircuits {
 
     static readonly DiodeModel Si = DiodeModel.Silicon;
     static readonly DiodeModel Ge = DiodeModel.Germanium;
+
+    /// <summary>A 2N7000 wired as a diode with a 1N34A in series (the Fulltone OCD's asymmetric side).</summary>
+    static readonly DiodeModel MosfetGe = DiodeModel.Mosfet.InSeries(DiodeModel.Germanium);
+
     static readonly Dictionary<DriveStage, double[]> OperatingPoints = new(ReferenceEqualityComparer.Instance);
 
     static readonly DiodeModel[] DiodeModels = [
@@ -823,7 +830,8 @@ public static partial class DriveCircuits {
             },
             new(
                 "Obsessive OD",
-                "Fulltone OCD: hot op-amp stage into its rails, then asymmetric germanium/silicon to ground"
+                "Fulltone OCD: hot op-amp stage into its rails, then two MOSFETs to ground, a germanium diode in "
+                + "series with one"
             ) {
                 Stages = [
                     new(StageKind.OpAmp) {
@@ -834,7 +842,7 @@ public static partial class DriveCircuits {
                         FeedbackCapacitance = 100e-12
                     },
                     new(StageKind.Clipper) {
-                        Series = 10e3, Shunt = 4.7e-9, Diodes = new(Ge, 1, Si, 1), HighPeak = 3.3e3
+                        Series = 10e3, Shunt = 4.7e-9, Diodes = new(DiodeModel.Mosfet, 1, MosfetGe, 1), HighPeak = 3.3e3
                     }
                 ],
                 Tone = new(ToneKind.HighCut) {
@@ -844,7 +852,7 @@ public static partial class DriveCircuits {
                     AudioTaper = true,
                     Capacitor1 = 4.7e-9
                 },
-                OutputDb = -4.3
+                OutputDb = -16.5
             },
             new("Rodent Dist", "ProCo RAT: slew-limited LM308 gain stage, silicon pair to ground, RC filter") {
                 Oversampling = 2,

@@ -247,8 +247,9 @@ passive treble cut (its Tone is labelled Treble), plus its Bass knob. Low-gain, 
 passive treble cut. Low gain, warm, amp-like, with plenty of low end.`,
       'Governor Dist': `Based on the Marshall Guv'nor: op-amp gain into silicon diodes to ground, then a Marshall-style
 treble/bass/middle stack (Tone, Bass Pot, Middle Pot). Amp-in-a-box crunch.`,
-      'Obsessive OD': `Based on the Fulltone OCD: a hot op-amp stage running into its rails, then asymmetric germanium and
-silicon diodes to ground, plus the HP/LP switch. Amp-like, wide gain range, from crunch to near distortion.`,
+      'Obsessive OD': `Based on the Fulltone OCD: a hot op-amp stage running into its rails, then two MOSFETs to ground,
+one with a germanium diode in series, for a soft, slightly asymmetric clip, plus the HP/LP switch. Amp-like, wide gain
+range, from crunch to near distortion.`,
       'Rodent Dist': `Based on the ProCo RAT: a slew-limited LM308 gain stage, a silicon pair to ground and the RAT's
 filter (Tone works like its Filter knob, reversed so 10 is brightest). Gritty, aggressive, very versatile.`,
       'Rodent LED': `Based on the Turbo RAT: the RAT gain stage into red LEDs. Louder and more open than the RAT, with less

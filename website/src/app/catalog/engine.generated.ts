@@ -549,7 +549,8 @@ export const ENGINE = {
     },
     {
       name: 'Obsessive OD',
-      modelledAfter: 'Fulltone OCD: hot op-amp stage into its rails, then asymmetric germanium/silicon to ground'
+      modelledAfter:
+        'Fulltone OCD: hot op-amp stage into its rails, then two MOSFETs to ground, a germanium diode in series with one'
     },
     {
       name: 'Rodent Dist',
