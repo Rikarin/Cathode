@@ -309,7 +309,8 @@ Hobbyist circuit redraws (LiveSPICE `.schx`, readable as XML, not factory docume
 - V1 **12AY7**: 100k plates, shared 820Ω‖250µ; bright channel 100 pF bright cap; coupling 0.02–0.022 µ [src].
 - 270k mixing resistors [src]. V2A 12AX7: 100k, 820Ω **unbypassed** [src]. V2B CF DC-coupled, 100k cathode [src].
 - Stack (Bassman TMB) after the CF: treble 250k, bass 1M, mid 25k, treble cap 250 pF, slope 56k, caps 0.02 µ on the schematic; Rob says production used 100k slope and 0.1 µ bass cap [src]. Pick one and record it.
-- PI 12AX7 LTP: 82k/100k, 470Ω, 10k tail (later 6.8k), 0.02 µ outputs [src].
+- PI 12AX7 LTP: 82k/100k, 470Ω, 10k tail (later 6.8k), 0.02 µ outputs [src]. No master: the treble wiper drives the
+  inverter's 1M grid resistor, as built (the V2B stage's load has no knob).
 - 2 × 5881, fixed bias −48 V; 220k grid leaks, 470Ω screens [src]. GZ34, 325-0-325 V; B+ 442 V unloaded, 411 V loaded; 4.7k to the preamp [src].
 - NFB 27k from the 2Ω tap; presence 5k-L, cap value not found [src]. OT about 4k : 2Ω [src].
 

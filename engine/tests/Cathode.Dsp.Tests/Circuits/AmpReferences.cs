@@ -103,7 +103,7 @@ static class AmpReferences {
 
         var output = Stack(c, driven, d.Stack, controls.Bass, controls.Middle, controls.Treble);
         var wiper = c.Node();
-        var fraction = d.Load.Fraction(controls.Rotation(d.LoadRole));
+        var fraction = d.Load.Fraction(d.LoadRole is { } role ? controls.Rotation(role) : 1);
         c.Resistor(output, wiper, Math.Max((1 - fraction) * d.Load.Ohms, Floor));
         c.Resistor(wiper, 0, Math.Max(fraction * d.Load.Ohms, Floor));
         if (controls.Bright && d.BrightCap > 0) {

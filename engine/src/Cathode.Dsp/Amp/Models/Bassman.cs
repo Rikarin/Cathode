@@ -7,8 +7,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///     820 Ω ‖ 250 µF cathode), the channels' 0.02 µF caps and 1M volumes (the Bright channel's with a fixed 100 pF), the
 ///     270k mixing resistors into V2A (12AX7, 100k, 820 Ω unbypassed), the V2B cathode follower DC-coupled to it (100k)
 ///     driving the Bassman stack (Yeh and Smith's values: 250 pF, 56k slope, 0.02 µF bass and mid; treble 250k, bass 1M,
-///     mid 25k) into the inverter's 1M grid resistor, a 12AX7 long-tail pair (82k/100k, 470 Ω, 10k tail over the 5k
-///     presence pot), two 5881 (6L6 curves) in fixed bias at 430 V on a GZ34, a 4k : 2 Ω transformer and 27k feedback
+///     mid 25k), whose treble wiper drives the inverter's 1M grid resistor directly (the amp has no master), a 12AX7
+///     long-tail pair (82k/100k, 470 Ω, 10k tail over the 5k presence pot), two 5881 (6L6 curves) in fixed bias at
+///     430 V on a GZ34, a 4k : 2 Ω transformer and 27k feedback
 ///     from the 2 Ω tap into the presence pot. Panel: Bright and Normal volumes, Bass, Middle, Treble, Presence;
 ///     <b>Normal Input</b> plays the Normal channel instead of the Bright one. <see cref="Jumped" /> is the same amp with
 ///     the classic jumper driving both channels.
@@ -37,6 +38,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///         grid stoppers, the inverter's supply (330 V), and the supply's source resistance and reservoir. Jumpered, each
 ///         grid
 ///         sees about 68k (the two input jacks' resistors in series).
+///     </para>
+///     <para>
+///         The stack's output is the treble wiper, loaded by the inverter's 1M grid resistor: the amp has no master. (The
+///         model first had that 1M as a pot on the Master role, which the hidden panel knob left at its default of 5,
+///         halving the drive into the inverter, with Master Location and Master Trim acting on an amp without a master.)
 ///     </para>
 /// </remarks>
 public static class Bassman {
@@ -78,8 +84,8 @@ public static class Bassman {
                     325,
                     100e3,
                     Stack,
-                    new(1e6, PotTaper.Linear),
-                    PotRole.Master
+                    new(1e6, PotTaper.Linear), // the inverter's grid resistor: no knob, no master
+                    null
                 )
             ],
             new(

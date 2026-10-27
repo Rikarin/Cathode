@@ -106,6 +106,20 @@ public class FenderAmpTests(ITestOutputHelper output) {
         Assert.True(down > 1.5 * up);
     }
 
+    [Theory]
+    [InlineData("Bassman 5F6-A")]
+    [InlineData("Bassman 5F6-A Jumped")]
+    public void Bassman_has_no_master_so_the_hidden_master_knob_does_nothing(string model) {
+        // The treble wiper drives the inverter directly: no pot left at a hidden Master's default between them.
+        var design = AmpDesign.All.Single(a => a.Name == model);
+        Assert.Null(design.Panel.Master);
+        Assert.False(AmpFeatures.Has(design, "mvloc"));
+        Assert.Equal(
+            Render(model, 0.05f, (CircuitAmpBlock.Gain, 6f), (CircuitAmpBlock.Master, 2f)),
+            Render(model, 0.05f, (CircuitAmpBlock.Gain, 6f), (CircuitAmpBlock.Master, 10f))
+        );
+    }
+
     [Fact]
     public void Tweed_deluxe_power_tubes_idle_on_the_drawings_250_ohm_cathode_resistor() {
         // The 5E3's two 6V6s share 250 Ω (Robinette: about 38 mA a tube); the resistor sets the idle current, not a

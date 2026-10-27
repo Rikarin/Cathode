@@ -26,7 +26,10 @@ public enum StackDriver {
 /// <param name="PlateResistor">Common cathode only.</param>
 /// <param name="CathodeBypass">Common cathode only; 0 for none.</param>
 /// <param name="Load">The pot after the stack, its top on the treble wiper.</param>
-/// <param name="LoadRole">The knob that turns <paramref name="Load" />.</param>
+/// <param name="LoadRole">
+///     The knob that turns <paramref name="Load" />; null for none: the whole track loads the stack and the output is the
+///     treble wiper itself (the next grid's resistor on an amp without a master, the 5F6-A's).
+/// </param>
 /// <param name="BrightCap">Across the upper half of <paramref name="Load" /> while the bright switch is on.</param>
 /// <param name="BrightSwitch">The switch that engages <paramref name="BrightCap" />.</param>
 public sealed record ToneStackStageDesign(
@@ -37,7 +40,7 @@ public sealed record ToneStackStageDesign(
     double CathodeResistor,
     ToneStackDesign Stack,
     Pot Load,
-    PotRole LoadRole,
+    PotRole? LoadRole,
     double PlateResistor = 0,
     double CathodeBypass = 0,
     double InputResistance = 0,
@@ -200,7 +203,7 @@ public sealed class ToneStackStage : AmpStage {
     }
 
     public override void Update(in AmpControls controls) {
-        var turn = controls.Rotation(Design.LoadRole);
+        var turn = Design.LoadRole is { } role ? controls.Rotation(role) : 1;
         var brightOn = controls.IsOn(Design.BrightSwitch) && Design.BrightCap > 0;
         if (controls.Bass == bass
             && controls.Middle == middle
