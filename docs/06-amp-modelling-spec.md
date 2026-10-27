@@ -530,8 +530,8 @@ drawing and marks its guesses (mostly the rails, idle currents and output transf
   through 470k and through 100k plus 470k, the tremolo's 0.22 µF and 320k (FET off, a guess) hanging on the junction;
   V2a 100k with 1k unbypassed, the follower on 220 pF / 56k / 22 nF / 22 nF (B220K, A1M, B22K), 0.1 µF into 220k leaks,
   two 5881 (6L6 curves) with 470 Ω screens and no stoppers, a GZ34, 27k of feedback into the 4k7 presence pot.
-- **Hiwatt DR504** (Custom 50): the DR103's four-input preamp, copied with its rails as parameters into
-  `HiwattParts` (the DR103's file is unchanged), with hiwatt.org's 50 W output and supply redraws: two EL34 with 22k
+- **Hiwatt DR504** (Custom 50): the DR103's four-input preamp, with its rails as parameters in `HiwattParts`
+  (which the DR103 builds from as well since #98; it first kept its own copy), with hiwatt.org's 50 W output and supply redraws: two EL34 with 22k
   stoppers, 100k leaks and 1k5 screens, 460 V from a doubler. `DR504OL.gif` on hiwatt.org is a complete two-input DR504
   of 1983 with DC voltages and an extra 220k gain stage before the tone network: a later circuit, used only to scale the
   guessed rails (355 / 395 / 450 V).
@@ -559,9 +559,10 @@ drawing and marks its guesses (mostly the rails, idle currents and output transf
   feedback returns to V2A's cathode with the tone stack inside the loop: it needs a driver-chain variant and feedback
   into a preamp stage); the **Orange AD30** (the cd0115 sheet is the main board only: the gain, tone and channel
   circuits on the front-panel board are not in it).
-- **Library**: no shared code changed. New model-side parts files: `MarshallVintageParts` (the two stacks, a two-channel
-  input with a load on the normal volume's wiper, the Bluesbreaker's input) and `HiwattParts` (a copy of the DR103's
-  preamp stages).
+- **Library**: no shared code changed. New model-side parts files: `MarshallVintageParts` (the two stacks and the
+  Bluesbreaker's input) and `HiwattParts` (the four-input preamp's stages). Since #98 the 1959T's load on the normal
+  volume's wiper is an optional part of `MarshallParts.TwoChannelInput` and the DR103 builds from `HiwattParts`, where
+  both first had copies.
 - **Validation** (`BritishVintageAmpTests`): the preamps as whole chains against the reference simulator with no cuts:
   1959SLP −63 dB, 1959T −63 dB, Bluesbreaker −47 dB (2 mV and 50 mV), Tiny Terror −58 / −57 dB, Cornford Overdrive
   V1–V5 −48 dB, Clean V1, V4, V5 −53 dB. Knob sweeps at full drive converge with no non-finite samples and peak below +1 dBFS;

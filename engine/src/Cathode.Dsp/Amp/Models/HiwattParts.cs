@@ -8,13 +8,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///     panel of an amp built on it.
 /// </summary>
 /// <remarks>
-///     A copy of the stages in <see cref="HiwattDR103" />, which keeps its own (its file is owned by another stream):
-///     the same circuits with the rails as parameters. See that model for the reading of the tone network.
+///     The stages take the rails as parameters, which the two amps' supplies set; see <see cref="HiwattDR103" /> for
+///     the reading of the tone network and the inverter.
 /// </remarks>
 public static class HiwattParts {
-    const double Closed = 10;
-    const double Open = 1e12;
-
     /// <summary>
     ///     The panel of a four-input Hiwatt: Brilliant and Normal volumes, the jumper and the normal input.
     /// </summary>
@@ -58,12 +55,7 @@ public static class HiwattParts {
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.1e3);
         net.Capacitor(cathode, StageNetlist.Ground, 47e-9);
 
-        var brilliantJack = net.Node();
-        net.SwitchedResistor(net.Input, brilliantJack, Closed, Open, SwitchRole.Switch2);
-        net.SwitchedResistor(net.Input, brilliantJack, 0, Closed, SwitchRole.Switch1);
-        var normalJack = net.Node();
-        net.SwitchedResistor(net.Input, normalJack, 0, Closed, SwitchRole.Switch1);
-        net.SwitchedResistor(net.Input, normalJack, 0, Closed, SwitchRole.Switch2);
+        var (brilliantJack, normalJack) = MarshallParts.ChannelJacks(net);
         foreach (var (jack, coupling, volume) in new[] {
                      (brilliantJack, 1e-9, PotRole.Gain), (normalJack, 22e-9, PotRole.Control1)
                  }) {

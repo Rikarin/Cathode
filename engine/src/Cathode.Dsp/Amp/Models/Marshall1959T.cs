@@ -36,7 +36,7 @@ public static class Marshall1959T {
     public static AmpDesign Design { get; } = new(
         "1959T Tremolo",
         [
-            MarshallVintageParts.TwoChannelInput(
+            MarshallParts.TwoChannelInput(
                 270,
                 new(2.7e3, 0.68e-6, 2.2e-9, PotRole.Gain, 5e-9, 470e3, 500e-12),
                 new(820, 250e-6, 22e-9, PotRole.Control1, 0, 470e3, 0),
