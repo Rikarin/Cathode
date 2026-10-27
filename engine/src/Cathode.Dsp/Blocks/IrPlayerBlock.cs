@@ -7,7 +7,7 @@ namespace Cathode.Dsp.Blocks;
 
 /// <summary>
 ///     Plays impulse responses that are not a cabinet: an acoustic body, a room, a microphone or speaker correction, or
-///     an effect captured as an IR. Longer IRs than the Cab block (up to <see cref="MaxIrLength" />), kept at the
+///     an effect captured as an IR. IRs up to <see cref="MaxIrLength" /> samples (the Cab block's limit), kept at the
 ///     files' own gain, with a dry/wet mix and low and high cut (6 to 24 dB/oct) on the wet signal. Zero latency.
 /// </summary>
 /// <remarks>

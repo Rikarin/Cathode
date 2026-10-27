@@ -1422,7 +1422,7 @@ struct CircuitStage {
 /// <summary>
 ///     The Precision Drive's noise gate, for one channel at the base rate: a peak detector on the pedal's input and a
 ///     downward expander (1:3 below the threshold) whose gain opens in about a millisecond and closes over about 60 ms.
-///     The Gate knob sets the threshold from −75 dBV (just above 0) to −30 dBV (10). Its curve and times are a design:
+///     The Gate knob sets the threshold from −80 dBV (0) to −30 dBV (10). Its curve and times are a design:
 ///     Horizon Devices publish none.
 /// </summary>
 struct NoiseGate {
