@@ -1584,7 +1584,7 @@ struct PushPullStage : INonlinearDevice {
     readonly double differentialResistance;
     PentodeTables tube;
     FirstOrder presence;
-    FirstOrder branch; // the shunt's fixed RC branch, the feedback's second section (FeedbackDesign.Branch)
+    FirstOrder branch; // the feedback's second section (FeedbackDesign.Branch or FeedbackDesign.Series)
     bool hasBranch;
     FirstOrder depth;
     FirstOrder cut;
@@ -1697,7 +1697,8 @@ struct PushPullStage : INonlinearDevice {
     ///     feedback; the presence and depth frequencies as multiples of stock. Either presence wiring is first order:
     ///     β(s) = β (1 + s τ₁) / (1 + s τ₂), from Z / (R_f + Z) with the shunt's impedance Z; a fixed branch across the
     ///     shunt (<see cref="FeedbackDesign.Branch" />) makes it second order, two sections in series
-    ///     (<see cref="FeedbackDesign.BranchTimes" />).
+    ///     (<see cref="FeedbackDesign.BranchTimes" />), and so does a presence in series with the feedback
+    ///     (<see cref="FeedbackDesign.Series" />, <see cref="FeedbackDesign.SeriesTimes" />).
     /// </summary>
     public void SetFeedback(
         FeedbackDesign design,
@@ -1709,9 +1710,11 @@ struct PushPullStage : INonlinearDevice {
         double presenceFrequency = 1,
         double depthFrequency = 1
     ) {
-        hasBranch = design.Branch is not null;
+        hasBranch = design.Branch is not null || design.Series is not null;
         if (hasBranch) {
-            var (gain, zero1, pole1, zero2, pole2) = design.BranchTimes(presence, presenceFrequency);
+            var (gain, zero1, pole1, zero2, pole2) = design.Series is not null
+                ? design.SeriesTimes(presence, presenceFrequency)
+                : design.BranchTimes(presence, presenceFrequency);
             this.presence.Design(gain, gain * zero1, 1, pole1, rate);
             branch.Design(1, zero2, 1, pole2, rate);
         } else {

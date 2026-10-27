@@ -516,6 +516,53 @@ public partial class AmpStageTests {
         }
     }
 
+    /// <summary>
+    ///     The Mesa Marks' presence, a 250k rheostat in series with the feedback (8 Ω tap, the rheostat, 3.3k and 56k ∥
+    ///     C into the tail's foot; 1.5k and 3.3k ∥ 47 nF to ground; C = 4.7 nF on the IIC+, 5 nF on the IV): the
+    ///     feedback filter's two sections equal the divider written out from the parts at every setting and frequency;
+    ///     DC is 4.8k against r_p + 64.1k, the top 1.5k against r_p + 4.8k (0.31 with the rheostat at 0). Turning it up
+    ///     lowers the feedback everywhere and the treble's most: 10 kHz against 500 Hz moves by more than 12 dB.
+    /// </summary>
+    [Theory]
+    [InlineData("Mark IIC+", 4.7e-9)]
+    [InlineData("Mark IV", 5e-9)]
+    public void Mark_series_presence_matches_its_circuit(string type, double legCap) {
+        var design = AmpDesign.All.Single(a => a.Name == type).Power.Feedback;
+        Assert.Equal(new SeriesPresence(56e3, 3.3e3, 47e-9), design.Series);
+        var (rf, rx, rl, rm, cm) = (3.3e3, 1.5e3, 56e3, 3.3e3, 47e-9);
+        Assert.Equal((rf, rx, legCap), (design.FeedbackResistor, design.ShuntResistor, design.PresenceCap));
+        foreach (var presence in new[] { 0.0, 0.1, 0.25, 0.5, 0.75, 1.0 }) {
+            var rp = 250e3 * presence;
+            var (gain, zero1, pole1, zero2, pole2) = design.SeriesTimes(presence);
+            foreach (var frequency in new[] { 20.0, 100, 500, 1_000, 3_000, 10_000, 20_000, 100_000 }) {
+                var s = new System.Numerics.Complex(0, 2 * Math.PI * frequency);
+                var arm = rp + rf + rl / (1 + s * rl * legCap);
+                var foot = rx + rm / (1 + s * rm * cm);
+                var circuit = foot / (arm + foot);
+                var model = gain * (1 + s * zero1) * (1 + s * zero2) / ((1 + s * pole1) * (1 + s * pole2));
+                Assert.True(
+                    (circuit - model).Magnitude < 1e-9 * circuit.Magnitude,
+                    $"presence {presence}, {frequency} Hz: {model.Magnitude:0.0000} against {circuit.Magnitude:0.0000}"
+                );
+                Assert.True((design.Response(frequency, presence) - circuit).Magnitude < 1e-12);
+            }
+
+            Assert.Equal((rx + rm) / (rp + rf + rl + rx + rm), gain, 1e-12);
+            Assert.Equal(rx / (rp + rf + rx), gain * zero1 * zero2 / (pole1 * pole2), 1e-9);
+        }
+
+        Assert.Equal(0.3125, design.Response(10e6, 0).Magnitude, 1e-3);
+
+        double Tilt(double presence) =>
+            20 * Math.Log10(design.Response(10_000, presence).Magnitude / design.Response(500, presence).Magnitude);
+
+        Assert.True(Tilt(0) - Tilt(1) > 12, $"the treble's feedback moves by {Tilt(0) - Tilt(1):0.0} dB");
+        foreach (var frequency in new[] { 100.0, 1_000, 10_000 }) {
+            Assert.True(design.Response(frequency, 1).Magnitude < design.Response(frequency, 0.5).Magnitude);
+            Assert.True(design.Response(frequency, 0.5).Magnitude < design.Response(frequency, 0).Magnitude);
+        }
+    }
+
     [Theory]
     [MemberData(nameof(PowerVariants))]
     public void Power_amp_variants_match_the_reference_in_the_time_domain(string name) {

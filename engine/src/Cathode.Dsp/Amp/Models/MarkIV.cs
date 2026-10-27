@@ -18,14 +18,19 @@ namespace Cathode.Dsp.Amp.Models;
 ///         and the factory power-amp sheet (el34world <c>Boogie_mkiv.pdf</c>, "Mark IV Power Amp", 8/92) for the power
 ///         section: an 82k/91k inverter with 470 Ω bias and a 22k tail, 0.1 µF into 220k grid leaks, 2.2k grid
 ///         stoppers and 470 Ω (2 W) screens on all four 6L6 (#102). The preamp is a redraw, not the factory scan.
+///         The presence, from the same sheet, is as on the IIC+ a 250k rheostat in series with the feedback
+///         (<see cref="FeedbackDesign.Series" />), one per channel picked by LDRs: 0.1 µF from the 8 Ω tap, the
+///         lead channel's rheostat, 3.3k ‖ 600 pF and 56k ‖ 5 nF into the tail's foot, and 3.3k ‖ 47 nF over 1.5k to
+///         ground (the 0.1 µF beside them is the second inverter grid's return to the foot). Left out: the 0.1 µF
+///         from the tap (a corner near 25 Hz at 0, lower turned up) and the 600 pF (a corner at 80 kHz), which keeps
+///         the network second order. The lead and R2 rheostats each have a cap in series
+///         (1 nF, 680 pF) with a switch across it, a pull shift by the look of it, whose stock position the sheet
+///         does not say: the model has it shorted (no shift), the panel having no switch left for it.
 ///     </para>
 ///     <para>
-///         Guesses, marked: the presence is, as on the IIC+, a 250k rheostat in series with the feedback (here each
-///         channel's own, with a cap across the lead one, then 3.3k ‖ 600 pF and 56k ‖ 5 nF into a 1.5k and
-///         3.3k ‖ 47 nF shunt), which <see cref="FeedbackDesign" /> cannot express: the IIC+ model's stand-in (25k with
-///         0.1 µF across the 4.7k shunt from 100k), its 465 V and 40 mA, a 2.2k primary. The 2.7k that straps the
-///         outer pair's screens to their plates in triode is left out. The rhythm path's 3.3M feed into V3A is left
-///         out; the EQ is the behavioural slot (<see cref="EqualizerStageDesign" />).
+///         Guesses, marked: the rheostat's taper (linear), the IIC+ model's 465 V and 40 mA, a 2.2k primary. The 2.7k
+///         that straps the outer pair's screens to their plates in triode is left out. The rhythm path's 3.3M feed into
+///         V3A is left out; the EQ is the behavioural slot (<see cref="EqualizerStageDesign" />).
 ///     </para>
 /// </remarks>
 public static class MarkIV {
@@ -45,6 +50,7 @@ public static class MarkIV {
             Name = "4 x 6L6GC (Simul-Class)",
             RatedPower = 85,
             PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 427, 82e3, 91e3, 22e3, 470),
+            Feedback = new(1, 3.3e3, 1.5e3, new(250e3, PotTaper.Linear), 5e-9) { Series = new(56e3, 3.3e3, 47e-9) },
             Transformer = new(2.2e3),
             Strapped = PentodeModel.SixL6GC
         },

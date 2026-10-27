@@ -91,8 +91,10 @@ brownface Deluxe) it appears as *Tone*.`,
     presence: `Lifts the upper treble in the power amp. On most models it works through the global negative feedback:
 the presence pot and cap reduce the feedback at high frequencies, so the power amp's gain rises there. Turn it up for
 bite and cut, down to soften harsh tops. Because it acts in the feedback loop, its effect also depends on *Feedback*:
-with no feedback it has nothing to work on. A few models wire their presence elsewhere (the Rectifiers' is a preamp
-control, shown as Control 2); the ODS 70s calls it *Accent*. On the Chieftain and Hot Cat 30 this knob is the amp's
+with no feedback it has nothing to work on. On the Mark IIC+ and Mark IV the presence is a rheostat in series with the
+feedback, as on the amps: turning it up lowers the feedback at every frequency and the treble's most, so the amp also
+gets a little louder and looser; at 0 it is at its darkest and tightest. A few models wire their presence elsewhere
+(the Rectifiers' is a preamp control, shown as Control 2); the ODS 70s calls it *Accent*. On the Chieftain and Hot Cat 30 this knob is the amp's
 *Brilliance*, on the Tiny Terror its *Tone*: a pot and cap across the power tubes' grids, like a Vox cut but wired the
 other way, so turning it **up** puts more resistance in front of the cap and brings the treble back (0 is darkest).`,
 

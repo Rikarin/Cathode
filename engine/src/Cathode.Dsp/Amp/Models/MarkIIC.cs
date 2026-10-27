@@ -29,10 +29,14 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         Power amp, read from the factory scan's power page (el34world <c>Boogie_mkiic_plus.pdf</c>, sheet 2) and
 ///         the boogieforum redraw's (#102): inverter 82.5k/90.9k with 470 Ω bias and a 22k tail, 0.1 µF into 220k
-///         grid leaks, 2.2k grid stoppers, 470 Ω (2 W) screens. Not modelled as drawn: the presence is a 250k
-///         rheostat in series with the feedback (8 Ω tap, the 250k, 1.5k and 56k ‖ 4.7 nF into the tail's foot,
-///         shunted by 1.5k and 3.3k ‖ (47 nF + 0.1 µF)), a wiring <see cref="FeedbackDesign" /> cannot express (its
-///         presence pot sits across the shunt); the stand-in is the shunt-wired 25k with 0.1 µF into 4.7k from 100k.
+///         grid leaks, 2.2k grid stoppers, 470 Ω (2 W) screens. The presence is a 250k rheostat in series with the
+///         feedback (<see cref="FeedbackDesign.Series" />): 8 Ω tap, the rheostat, 3.3k and 56k ‖ 4.7 nF into the
+///         tail's foot, and 3.3k ‖ 47 nF over 1.5k to ground. The factory page reads 3.3k after the rheostat, as the
+///         Mark IV's sheet prints it; the redraw has 1.5k there. The redraw draws the 0.1 µF beside the 47 nF; on the
+///         factory page, as on the Mark IV's sheet, it is the second inverter grid's return to the tail's foot,
+///         outside the divider. With the rheostat at 0 the network feeds back 31 % of the treble (7.5 % of the lows);
+///         more presence is more resistance, less feedback everywhere and less of the 4.7 nF's treble feedback, so the
+///         knob is brighter turned up. Guessed: the rheostat's taper (linear; the drawings do not say).
 ///         On the Simul-Class the triode-strapped EL34 pair is fed through about 220k with its own grid leak (less
 ///         drive than the pentodes); here both pairs share the pentodes' grid network. Guessed: B+ 465 V, 40 mA
 ///         idle, the 2.5k primary.
@@ -72,7 +76,7 @@ public static class MarkIIC {
             2.2e3,
             0,
             new(1e6, PotTaper.Linear),
-            new(1, 100e3, 4.7e3, new(25e3, PotTaper.Linear), 0.1e-6),
+            new(1, 3.3e3, 1.5e3, new(250e3, PotTaper.Linear), 4.7e-9) { Series = new(56e3, 3.3e3, 47e-9) },
             true,
             new(2.5e3),
             new(Inductance: 1.4e-3, EddyResistance: 22, Resonance: 95, PeakImpedance: 30, Q: 2.2),
