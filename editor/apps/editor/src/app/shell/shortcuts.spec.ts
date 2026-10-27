@@ -1,4 +1,4 @@
-import { ShortcutService, Shortcuts, findShortcut, isTyping, shortcutKeys } from './shortcuts';
+import { ShortcutService, Shortcuts, findShortcut, isOnControl, isTyping, shortcutKeys } from './shortcuts';
 
 function key(key: string, options: Partial<KeyboardEventInit> & { code?: string } = {}): KeyboardEvent {
   return new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...options });
@@ -97,6 +97,66 @@ describe('keyboard shortcuts', () => {
     expect(service.dispatch(press)).toBe(false);
     expect(ran).toBe(0);
     input.remove();
+  });
+
+  it('leaves bare keys to a focused button, switch, checkbox or slider', () => {
+    const service = new ShortcutService();
+    const ran: string[] = [];
+    service.register({
+      bypass: () => ran.push('bypass'),
+      remove: () => ran.push('remove'),
+      channelB: () => ran.push('channelB'),
+      tuner: () => ran.push('tuner'),
+      blockInfo: () => ran.push('blockInfo')
+    });
+    const button = document.createElement('button');
+    button.append(document.createElement('span'));
+    const toggle = Object.assign(document.createElement('div'), { tabIndex: 0 });
+    toggle.setAttribute('role', 'switch');
+    const box = Object.assign(document.createElement('input'), { type: 'checkbox' });
+    const knob = document.createElement('div');
+    knob.setAttribute('role', 'slider');
+    document.body.append(button, toggle, box, knob);
+
+    for (const target of [button, button.firstElementChild!, toggle, box, knob]) {
+      for (const press of [key(' ', { code: 'Space' }), key('Delete'), key('b')]) {
+        target.dispatchEvent(press);
+        expect(service.dispatch(press)).toBe(false);
+        expect(press.defaultPrevented).toBe(false);
+      }
+    }
+
+    // ⌘ shortcuts and the function keys still work from a control.
+    const tuner = key('t', { metaKey: true });
+    button.dispatchEvent(tuner);
+    expect(service.dispatch(tuner)).toBe(true);
+    const info = key('F1');
+    knob.dispatchEvent(info);
+    expect(service.dispatch(info)).toBe(true);
+    expect(ran).toEqual(['tuner', 'blockInfo']);
+    button.remove();
+    toggle.remove();
+    box.remove();
+    knob.remove();
+  });
+
+  it('bypasses with Space from the grid and the page itself', () => {
+    const service = new ShortcutService();
+    let ran = 0;
+    service.register({ bypass: () => ran++ });
+    const grid = Object.assign(document.createElement('div'), { tabIndex: 0 });
+    grid.setAttribute('role', 'grid');
+    document.body.append(grid);
+
+    for (const target of [grid, document.body]) {
+      const press = key(' ', { code: 'Space' });
+      target.dispatchEvent(press);
+      expect(service.dispatch(press)).toBe(true);
+    }
+
+    expect(ran).toBe(2);
+    expect(isOnControl(grid)).toBe(false);
+    grid.remove();
   });
 
   it('shows Block Info while ⌥ is held', () => {

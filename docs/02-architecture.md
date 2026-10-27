@@ -451,7 +451,7 @@ The editor's software-editor features, built in the ED stream. They follow Fract
 
 - **Shortcuts.** One table in `shell/shortcuts.ts` drives two things: dispatch (`ShortcutService`, through a document `keydown`) and the `?` help overlay.
   - Handlers register per page. The app owns the preset, scene, channel, block, edit and tuner commands. The grid owns the cell commands (Q, ⌘X/C/V/D/U, Delete), because it knows the focused cell.
-  - Nothing fires while focus is in a text field.
+  - Nothing fires while focus is in a text field. Bare keys (Space, letters, Delete; not ⌘ shortcuts or F-keys) also leave a focused control alone (a button, switch, checkbox, radio, slider, menu item, tab), so Space presses it instead of bypassing the block.
   - ⌥ held, or F1, shows Block Info.
   - A, B, C and D pick the channel; bypass is Space only.
   - A unit test checks that no two bindings collide and that none clashes with Electron's default menu, which is the only menu the desktop app has.

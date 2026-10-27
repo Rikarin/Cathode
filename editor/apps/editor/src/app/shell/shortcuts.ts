@@ -124,6 +124,44 @@ export function isTyping(target: EventTarget | null): boolean {
   return input !== null && !['checkbox', 'radio', 'button', 'range', 'submit'].includes(input.type);
 }
 
+/** Controls that act on keys themselves: Space presses a button, toggles a switch or a checkbox, picks a radio. */
+const Controls = [
+  'button',
+  'a[href]',
+  'summary',
+  'input',
+  'select',
+  '[role=button]',
+  '[role=switch]',
+  '[role=checkbox]',
+  '[role=radio]',
+  '[role=slider]',
+  '[role=spinbutton]',
+  '[role=option]',
+  '[role=menuitem]',
+  '[role=menuitemcheckbox]',
+  '[role=menuitemradio]',
+  '[role=tab]',
+  '[role=combobox]',
+  '[role=listbox]',
+  '[role=treeitem]'
+].join(', ');
+
+/** Whether an event comes from a focused control (or something inside one), which takes bare keys itself. */
+export function isOnControl(target: EventTarget | null): boolean {
+  const element = target as HTMLElement | null;
+  return !!element?.closest && element.closest(Controls) !== null;
+}
+
+/**
+ * Whether a shortcut is a bare key (Space, a letter, Delete; with or without ⇧) that a focused control would lose:
+ * those stay out of the way on buttons, switches, checkboxes, sliders and the like. ⌘ shortcuts and the function keys
+ * work everywhere, and so does everything on the grid, which is not such a control.
+ */
+export function yieldsToControl(shortcut: Shortcut): boolean {
+  return !shortcut.mod && !/^F\d+$/.test(shortcut.key ?? '');
+}
+
 /** The shortcut an event presses, if any: modifiers must match exactly (⌥ is ignored, it shows Block Info). */
 export function findShortcut(
   event: Pick<KeyboardEvent, 'key' | 'code' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'>,
@@ -183,6 +221,10 @@ export class ShortcutService {
     }
 
     const shortcut = findShortcut(event);
+    if (shortcut && yieldsToControl(shortcut) && isOnControl(event.target)) {
+      return false; // Space on a focused button presses it; it does not bypass the selected block
+    }
+
     const handler = shortcut && this.handlers.get(shortcut.id);
     if (!handler) {
       if (event.metaKey && event.key.toLowerCase() === 'a') {
