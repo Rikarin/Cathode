@@ -25,8 +25,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///         V4), R55 2.2k to CE9 10 µF (V2), R54 2.2k to CE6 10 µF (V1).
 ///     </para>
 ///     <para>
-///         Guesses and simplifications, marked: the drawing prints no rail voltages (preamp 380 V, B+ 560 V, idle 50 mA
-///         a tube and a 3.4k primary are typical values for two 6550 at 120 W); Rough/Smooth is at Smooth, which
+///         Guesses and simplifications, marked: the drawing prints no rail voltages (B+ 560 V, idle 50 mA a tube and a
+///         3.4k primary are typical values for two 6550 at 120 W; the preamp's rails, 530 V at CE21 down to 511 V at
+///         CE6, are the drawn chain's drops at the assumed draws); Rough/Smooth is at Smooth, which
 ///         bypasses V3A (Rough puts V3A and its 100k/4.7k pad in the path), and the high-balance network is off; the
 ///         crunch-mode pad at V3B's grid (33k via relay RE4B) is out; the loop is empty, its follower driving V5B
 ///         through the 10k balance resistor. The feedback network is simplified: the presence pot sits in series with
@@ -36,13 +37,22 @@ namespace Cathode.Dsp.Amp.Models;
 ///     </para>
 /// </remarks>
 public static class Savage120 {
+    // The rails at rest, from the drawn chain at the assumed draws (no voltages are printed): CE21, the inverter and V5,
+    // 556.9 V at CE20 less 4.4k × 6 mA; CE4 (V3) less 3.2k × 4 mA; CE9 (V2) less 2.2k × 2 mA; CE6 (V1) less
+    // 2.2k × 1 mA. They were once taken as 380 V for every stage and 400 V for the inverter, which the drawn droppers
+    // cannot give from a 560 V B+ at any plausible draw (380 V would need about 30k at 6 mA).
+    const double InverterRail = 530;
+    const double V3Rail = 518;
+    const double V2Rail = 513;
+    const double V1Rail = 511;
+
     public static AmpDesign Design { get; } = new(
         "Savage 120",
         [
             new NetworkStageDesign("V1B", InputAndGain()) { SupplyNode = 3 },
             new NetworkStageDesign("V2A", SecondStage()) { SupplyNode = 2 },
             new NetworkStageDesign("V2B", ThirdStage()) { SupplyNode = 2 },
-            new TriodeStageDesign("V3B", TriodeModel.Ecc83, 380, 100e3, 1.5e3, 22e-6) { SupplyNode = 1 },
+            new TriodeStageDesign("V3B", TriodeModel.Ecc83, V3Rail, 100e3, 1.5e3, 22e-6) { SupplyNode = 1 },
             new NetworkStageDesign("Stack", LeadStack()) { SupplyNode = 1 },
             new NetworkStageDesign("V5A", Follower()),
             new NetworkStageDesign("V5B", ReturnAndMaster())
@@ -57,7 +67,7 @@ public static class Savage120 {
             false,
             0,
             120,
-            new LongTailPairDesign(TriodeModel.Ecc83, 400, 82e3, 100e3, 22e3, 470),
+            new LongTailPairDesign(TriodeModel.Ecc83, InverterRail, 82e3, 100e3, 22e3, 470),
             47e-9,
             150e3,
             2.2e3,
@@ -99,7 +109,7 @@ public static class Savage120 {
         var net = new StageNetlist();
         var (supply, plate, cathode, coupled, top) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Resistor(net.Input, StageNetlist.Ground, 1e6);
-        net.Supply(supply, 380);
+        net.Supply(supply, V1Rail);
         net.Resistor(supply, plate, 100e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
         net.Capacitor(cathode, StageNetlist.Ground, 22e-6);
@@ -117,7 +127,7 @@ public static class Savage120 {
     static StageNetlist SecondStage() {
         var net = new StageNetlist();
         var (supply, plate, cathode, coupled, top) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(supply, 380);
+        net.Supply(supply, V2Rail);
         net.Resistor(supply, plate, 100e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1e3);
         net.Capacitor(cathode, StageNetlist.Ground, 22e-6);
@@ -138,7 +148,7 @@ public static class Savage120 {
         var net = new StageNetlist();
         var (supply, plate, cathode, output) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.SwitchedCapacitor(net.Input, StageNetlist.Ground, 1e-9, SwitchRole.Switch2);
-        net.Supply(supply, 380);
+        net.Supply(supply, V2Rail);
         net.Resistor(supply, plate, 330e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 3.3e3);
         net.SwitchedCapacitor(cathode, StageNetlist.Ground, 10e-6, SwitchRole.Switch2);
@@ -186,7 +196,7 @@ public static class Savage120 {
             (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Resistor(net.Input, grid, 1);
         net.Resistor(grid, StageNetlist.Ground, 100e3);
-        net.Supply(supply, 380);
+        net.Supply(supply, InverterRail);
         net.Resistor(supply, plate, 100e3);
         net.Capacitor(supply, plate, 47e-9);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1e3);
@@ -202,7 +212,7 @@ public static class Savage120 {
     static StageNetlist ReturnAndMaster() {
         var net = new StageNetlist();
         var (supply, plate, cathode, coupled, top) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(supply, 380);
+        net.Supply(supply, InverterRail);
         net.Resistor(supply, plate, 100e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1e3);
         net.Capacitor(cathode, StageNetlist.Ground, 22e-6);

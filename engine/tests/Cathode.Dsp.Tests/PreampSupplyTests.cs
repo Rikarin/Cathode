@@ -157,6 +157,7 @@ public class PreampSupplyTests {
     /// </summary>
     [Theory]
     [InlineData("5150")]
+    [InlineData("Savage 120")]
     public void Assumed_rails_are_the_chains_rest_voltages(string type) {
         var design = AmpDesign.All.Single(a => a.Name == type);
         var channel = new AmpChannel(design, 2 * Rate);
@@ -170,6 +171,18 @@ public class PreampSupplyTests {
         for (var k = 1; k <= chain.Count; k++) {
             Assert.True(chain.Voltage(k) < chain.Voltage(k - 1));
         }
+    }
+
+    /// <summary>
+    ///     The Lone Star's preamp node rests at the drawing's C, 395 V: B's 455 V less the 15.9k dropper at the
+    ///     drawing's 3.8 mA, where the inverter the drawing puts there is built.
+    /// </summary>
+    [Fact]
+    public void Lone_star_preamp_node_rests_at_the_drawings_voltage() {
+        var channel = new AmpChannel(LoneStar.Design, 2 * Rate);
+        channel.Reset();
+        Assert.InRange(channel.Power.PreampVoltage, 392, 398);
+        Assert.InRange(LoneStar.Design.Power.PhaseInverter.Supply - channel.Power.PreampVoltage, -3, 3);
     }
 
     /// <summary>
