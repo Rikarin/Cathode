@@ -212,7 +212,42 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
+    /** Loads a setlist entry on its scene; preset next/previous then step through the setlist. */
     put: operations['LoadSetlistEntry'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/banks/{id}/slots/{slot}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Loads the preset in a bank slot (0-127); preset next/previous then go on from that slot. */
+    put: operations['LoadBankSlot'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/live/neighbour': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** What preset next (step 1) or previous (-1) would load, in bank order or through the active setlist; load it with its bank slot or setlist entry (or by id, for a preset in no bank). 204 with no presets. */
+    get: operations['GetPresetNeighbour'];
+    put?: never;
     post?: never;
     delete?: never;
     options?: never;
@@ -1395,10 +1430,12 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
+    /** The armed MIDI learn request; 204 when MIDI learn is not armed. */
     get: operations['GetMidiLearn'];
-    /** The next CC, note or program change received is mapped to this action ('midiLearned' event). */
+    /** The next CC, note or program change received is mapped to this action ('midiLearned' event); arming replaces a request already armed ('midiLearnChanged' event). */
     put: operations['StartMidiLearn'];
     post?: never;
+    /** Disarms MIDI learn; nothing is mapped ('midiLearnChanged' event). */
     delete: operations['CancelMidiLearn'];
     options?: never;
     head?: never;
@@ -2220,7 +2257,9 @@ export interface components {
      *     `Held` lists the blocks whose bypass and channel differ from the active scene's because Scene Ignore kept
      *     them as they were: what they are running now. `Load` counts the presets loaded into the working copy (a new
      *     one, a library preset, the same one again): an edit made against one load can name it and is refused once
-     *     another has replaced the working copy.
+     *     another has replaced the working copy. `Position` is the bank slot or setlist entry the preset was loaded
+     *     from, while the working copy is still that preset (null when it was loaded by name, or is another now): preset
+     *     next/previous step on from there.
      */
     LiveState: {
       preset: components['schemas']['Preset'];
@@ -2241,13 +2280,19 @@ export interface components {
        * @default 0
        */
       load: number;
+      position: null | components['schemas']['PresetPosition'];
     };
-    /** @description Arms MIDI learn: the next CC, note or program change received is bound to this action. */
+    /**
+     * @description Arms MIDI learn: the next CC, note or program change received is bound to this action. With
+     *     `Modifier` (an `external` action only, its source that External), the Server also gives the loaded
+     *     preset that modifier once something is learnt, so a knob's learn leaves nothing behind when it is cancelled.
+     */
     MidiLearnRequest: {
       action: string;
       target?: null | string;
       /** Format: int32 */
       value?: null | number;
+      modifier: null | components['schemas']['PresetModifier'];
     };
     /**
      * @description A MIDI message bound to an action. `Message` is cc, note or pc; `Channel` 0 means any. Actions:
@@ -2474,6 +2519,28 @@ export interface components {
        *     parameter keeps that channel's own value.
        */
       channel?: null | string;
+    };
+    /**
+     * @description A place in the preset order: a bank slot (`Bank`, `Slot` 0-127) or a setlist entry (`Setlist`,
+     *     `Entry` from 0).
+     */
+    PresetPosition: {
+      bank?: null | string;
+      /** Format: int32 */
+      slot?: null | number;
+      setlist?: null | string;
+      /** Format: int32 */
+      entry?: null | number;
+    };
+    /**
+     * @description What preset next/previous would load: the preset, the scene to start on (a setlist entry's), and its place (null
+     *     for a preset in no bank).
+     */
+    PresetStep: {
+      presetId: string;
+      /** Format: int32 */
+      scene?: null | number;
+      position: null | components['schemas']['PresetPosition'];
     };
     PresetSummary: {
       id: string;
@@ -3009,6 +3076,58 @@ export interface operations {
         content: {
           'application/json': components['schemas']['LiveState'];
         };
+      };
+    };
+  };
+  LoadBankSlot: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+        slot: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LiveState'];
+        };
+      };
+    };
+  };
+  GetPresetNeighbour: {
+    parameters: {
+      query: {
+        step: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PresetStep'];
+        };
+      };
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -4938,6 +5057,13 @@ export interface operations {
         content: {
           'application/json': components['schemas']['MidiLearnRequest'];
         };
+      };
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

@@ -8,10 +8,12 @@ import {
   untracked,
   viewChild
 } from '@angular/core';
+import { unwrap } from '@cathode/api-client';
 import { provideIcons } from '@ng-icons/core';
 import { matLibraryMusicRound } from '@ng-icons/material-icons/round';
 import { XuiDialogImports } from '@xui/dialog';
 import { XuiSelectImports } from '@xui/select';
+import { ConnectionService } from '../core/connection';
 import { Notify } from '../core/notify';
 import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
@@ -79,6 +81,7 @@ export class PresetPicker {
   protected readonly library = inject(LibraryStore);
   private readonly switcher = inject(PresetSwitcher);
   private readonly notify = inject(Notify);
+  private readonly connection = inject(ConnectionService);
   private readonly list = viewChild(PickerList);
 
   protected readonly query = signal('');
@@ -141,25 +144,23 @@ export class PresetPicker {
     }
 
     const name = this.library.presets().find(p => p.id === id)?.name ?? id;
-    if (await this.switcher.load(id, name)) {
+    if (await this.switcher.load(id, name, false, { presetId: id, scene: null, position: { bank: bank.id, slot } })) {
       this.ui.presetPicker.set(false);
     }
   }
 
-  /** Steps through the library by name, as a footswitch's preset next/previous does. */
+  /**
+   * Steps to the next or previous preset as a footswitch's preset next/previous does: in bank order (on into the next
+   * bank), or through the setlist the preset was loaded from. The Server says which; this asks about unsaved edits.
+   */
   async step(direction: 1 | -1): Promise<void> {
-    await this.library.refreshPresets();
-    const all = this.library.ordered();
-    if (all.length === 0) {
-      return;
-    }
-
-    const current = all.findIndex(p => p.id === this.live.preset()?.id);
-    // From a preset not in the library, next is the first and previous the last.
-    const next =
-      current < 0 ? all[direction === 1 ? 0 : all.length - 1] : all[(current + direction + all.length) % all.length];
+    const next = await this.notify.run(async () =>
+      unwrap(await this.connection.client.GET('/api/v1/live/neighbour', { params: { query: { step: direction } } }))
+    );
     if (next) {
-      await this.switcher.load(next.id, next.name);
+      await this.library.refreshPresets();
+      const name = this.library.presets().find(p => p.id === next.presetId)?.name ?? next.presetId;
+      await this.switcher.load(next.presetId, name, false, next);
     }
   }
 

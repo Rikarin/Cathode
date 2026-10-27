@@ -441,6 +441,67 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Armed_midi_learn_can_be_read_back_and_cancelled() {
+        await Ok(client.PutAsJsonAsync("/api/v1/midi/learn", new MidiLearnRequest("bypass", "delay1"), Token));
+        var armed = await client.GetFromJsonAsync<MidiLearnRequest?>("/api/v1/midi/learn", Token);
+        await Ok(client.DeleteAsync("/api/v1/midi/learn", Token));
+        using var cancelled = await client.GetAsync("/api/v1/midi/learn", Token);
+        server.Services.GetRequiredService<MidiRouter>().OnMidi([new(0xB0, 20, 127, 0)]);
+
+        Assert.Equal(new MidiLearnRequest("bypass", "delay1"), armed);
+        Assert.Equal(HttpStatusCode.NoContent, cancelled.StatusCode);
+        var global = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;
+        Assert.DoesNotContain(global.MidiMappings, static m => m.Number == 20);
+    }
+
+    [Fact]
+    public async Task A_knob_learn_adds_its_modifier_only_once_something_is_learnt() {
+        var modifier = new PresetModifier {
+            Block = "delay1",
+            Param = "mix",
+            Source = "ext2",
+            Min = 0,
+            Max = 100
+        };
+        var request = new MidiLearnRequest("external", Value: 2, Modifier: modifier);
+        await Ok(client.PutAsJsonAsync("/api/v1/midi/learn", request, Token));
+        await Ok(client.DeleteAsync("/api/v1/midi/learn", Token));
+        var afterCancel = await Read(await client.GetAsync("/api/v1/live", Token));
+
+        await Ok(client.PutAsJsonAsync("/api/v1/midi/learn", request, Token));
+        var whileArmed = await Read(await client.GetAsync("/api/v1/live", Token));
+        server.Services.GetRequiredService<MidiRouter>().OnMidi([new(0xB0, 7, 90, 0)]);
+
+        Assert.Empty(afterCancel.Preset.Modifiers);
+        Assert.Empty(whileArmed.Preset.Modifiers);
+        await ServerFixture.Eventually(async () =>
+            (await Read(await client.GetAsync("/api/v1/live", Token))).Preset.Modifiers
+            .Any(static m => m is { Block: "delay1", Param: "mix", Source: "ext2" })
+        );
+        var global = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;
+        Assert.Contains(global.MidiMappings, static m => m is { Number: 7, Action: "external", Value: 2 });
+    }
+
+    [Fact]
+    public async Task A_learn_modifier_must_belong_to_the_external_it_learns() {
+        var modifier = new PresetModifier { Block = "delay1", Param = "mix", Source = "ext3" };
+        using var wrongSource = await client.PutAsJsonAsync(
+            "/api/v1/midi/learn",
+            new MidiLearnRequest("external", Value: 2, Modifier: modifier),
+            Token
+        );
+        using var wrongAction = await client.PutAsJsonAsync(
+            "/api/v1/midi/learn",
+            new MidiLearnRequest("tuner", Modifier: modifier),
+            Token
+        );
+
+        Assert.Equal(HttpStatusCode.BadRequest, wrongSource.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, wrongAction.StatusCode);
+        Assert.Null(server.Services.GetRequiredService<MidiRouter>().Learning);
+    }
+
+    [Fact]
     public async Task Global_settings_drive_the_output_eq_metronome_and_manual_and_are_validated() {
         await PutGlobal(static g => {
                 g.Outputs[0].Eq["g1k"] = 6;

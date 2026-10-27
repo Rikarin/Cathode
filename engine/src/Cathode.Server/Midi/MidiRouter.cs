@@ -27,7 +27,7 @@ public sealed partial class MidiRouter : IDisposable {
     readonly EngineConnection engine;
     readonly LiveRig rig;
     readonly GlobalStore globals;
-    readonly PresetStore presets;
+    readonly PresetNavigator navigator;
     readonly Library library;
     readonly EventHub hub;
     readonly ILogger<MidiRouter> logger;
@@ -62,7 +62,7 @@ public sealed partial class MidiRouter : IDisposable {
         EngineConnection engine,
         LiveRig rig,
         GlobalStore globals,
-        PresetStore presets,
+        PresetNavigator navigator,
         Library library,
         EventHub hub,
         ILogger<MidiRouter> logger
@@ -70,7 +70,7 @@ public sealed partial class MidiRouter : IDisposable {
         this.engine = engine;
         this.rig = rig;
         this.globals = globals;
-        this.presets = presets;
+        this.navigator = navigator;
         this.library = library;
         this.hub = hub;
         this.logger = logger;
@@ -95,10 +95,16 @@ public sealed partial class MidiRouter : IDisposable {
         worker = Task.Run(WorkAsync);
     }
 
+    /// <summary>
+    ///     Arms MIDI learn, or cancels it (null), and tells every editor (<c>midiLearnChanged</c>). Nothing is changed
+    ///     until something is learnt: a request's modifier is added only then, so a cancelled learn leaves nothing.
+    /// </summary>
     public void Learn(MidiLearnRequest? request) {
         lock (gate) {
             learning = request;
         }
+
+        hub.Publish(new("midiLearnChanged", 0, 0, 0), ContractsJsonContext.Default.MidiActivity);
     }
 
     /// <summary>Handles one batch; public so tests (and the in-process engine) can feed it directly.</summary>
@@ -212,7 +218,23 @@ public sealed partial class MidiRouter : IDisposable {
             new("midiLearned", message.Status, message.Data1, message.Data2),
             ContractsJsonContext.Default.MidiActivity
         );
+        if (request.Modifier is { } modifier) {
+            actions.Writer.TryWrite(() => AddModifierAsync(modifier));
+        }
+
         return true;
+    }
+
+    /// <summary>
+    ///     A knob's learn, learnt: the loaded preset's parameter follows the External from now on (replacing any
+    ///     modifier it had). A preset without that block (another was loaded meanwhile) is refused and logged.
+    /// </summary>
+    async Task AddModifierAsync(PresetModifier modifier) {
+        var modifiers = (await rig.StateAsync()).Preset.Modifiers
+            .Where(m => !(m.Block == modifier.Block && m.Param == modifier.Param))
+            .Append(modifier)
+            .ToList();
+        await rig.SetModifiersAsync(modifiers, null);
     }
 
     void Footswitch(Footswitch footswitch, bool down, long sampleTime) {
@@ -355,24 +377,15 @@ public sealed partial class MidiRouter : IDisposable {
                 await rig.SaveAsync(new(), null);
                 break;
             case "presetSlot" when action.Target is { } bank:
-                var slot = library.Slot(bank, action.Value ?? data);
-                if (!(globals.Get().IgnoreRedundantPc && slot == rig.PresetId)) {
-                    await rig.LoadAsync(slot);
+                var slot = action.Value ?? data;
+                if (!(globals.Get().IgnoreRedundantPc && library.Slot(bank, slot) == rig.PresetId)) {
+                    await navigator.LoadSlotAsync(bank, slot);
                 }
 
                 break;
-            case "presetNext" or "presetPrevious":
-                await StepPresetAsync(action.Action == "presetNext" ? 1 : -1);
+            case "presetNext" or "presetPrevious": // in bank order, or through the active setlist
+                await navigator.StepAsync(action.Action == "presetNext" ? 1 : -1);
                 break;
-        }
-    }
-
-    /// <summary>Loads the next or previous preset by name, wrapping around.</summary>
-    async Task StepPresetAsync(int step) {
-        var all = presets.List().OrderBy(static p => p.Name, StringComparer.OrdinalIgnoreCase).ToList();
-        if (all.Count > 0) {
-            var current = all.FindIndex(p => p.Id == rig.PresetId);
-            await rig.LoadAsync(all[(Math.Max(current, 0) + step + all.Count) % all.Count].Id);
         }
     }
 

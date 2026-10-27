@@ -164,6 +164,18 @@ static class GlobalValidation {
         }
     }
 
+    /// <summary>A MIDI learn request: a known action, and a modifier only for the External it learns.</summary>
+    public static void CheckLearn(MidiLearnRequest request) {
+        CheckAction(request.Action);
+        if (request.Modifier is { } modifier
+            && (request.Action != "external" || modifier.Source != $"ext{request.Value ?? 1}")) {
+            throw new RigException(
+                400,
+                "A MIDI learn modifier goes with an external action, and its source is that External."
+            );
+        }
+    }
+
     static void CheckAction(string action, List<string> errors) {
         if (!Actions.Contains(action)) {
             errors.Add($"Unknown action '{action}'.");

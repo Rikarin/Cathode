@@ -35,6 +35,7 @@ public sealed partial class LiveRig(
     long load;
 
     bool dirty;
+
     int generation;
     string compiledOversampling = "minimum";
 
@@ -101,9 +102,11 @@ public sealed partial class LiveRig(
 
     /// <summary>
     ///     Loads a preset from the library and starts on <paramref name="scene" /> (a setlist entry's scene), or by
-    ///     default on the global Default Scene: the scene it was saved on, or a fixed one.
+    ///     default on the global Default Scene: the scene it was saved on, or a fixed one. <paramref name="from" /> is
+    ///     the bank slot or setlist entry it came from, if any, for preset next/previous
+    ///     (<see cref="PresetNavigator" />).
     /// </summary>
-    public Task<LiveState> LoadAsync(string id, int? scene = null) =>
+    public Task<LiveState> LoadAsync(string id, int? scene = null, PresetPosition? from = null) =>
         Locked(async () => {
                 var loaded = presets.Get(id) ?? throw RigException.NotFound($"No preset '{id}'.");
                 CheckShape(loaded); // a file stored before the store checked, or edited by hand
@@ -115,6 +118,7 @@ public sealed partial class LiveRig(
                 ApplyGlobals(loaded);
                 await ReplaceAsync(loaded, start);
                 Remember();
+                position = from is null ? null : (from, loaded.Id);
                 // Just loaded, so it matches what is saved.
                 return Changed("presetLoaded", scene: start, markDirty: false);
             }
@@ -906,7 +910,8 @@ public sealed partial class LiveRig(
             history.CanRedo,
             held.IsEmpty ? null : new(held, StringComparer.Ordinal),
             Muted,
-            load
+            load,
+            position is (var at, var id) && id == preset.Id ? at : null
         );
     }
 

@@ -9,6 +9,7 @@ import {
   signal,
   viewChild
 } from '@angular/core';
+import type { PresetPosition } from '@cathode/api-client';
 import { provideIcons } from '@ng-icons/core';
 import { matKeyboardArrowDownRound, matKeyboardArrowUpRound } from '@ng-icons/material-icons/round';
 import { XuiIconImports } from '@xui/icon';
@@ -17,10 +18,39 @@ import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { UiStore } from '../state/ui.store';
 
+/** Where the loaded preset stands in the preset order, for the readout: its number, and what the number counts. */
+export interface PresetPlace {
+  number: string;
+  where: string;
+}
+
+/**
+ * The bank slot or setlist entry the preset was loaded from (`position`), or else its first slot in bank order; numbered
+ * from 1, as a foot controller shows them. A preset in no bank has no number.
+ */
+export function presetPlace(
+  position: PresetPosition | null | undefined,
+  id: string | undefined,
+  banks: readonly { id: string; name: string; slots: readonly (string | null)[] }[]
+): PresetPlace {
+  const number = (n: number) => String(n + 1).padStart(3, '0');
+  if (position?.setlist != null && position.entry != null) {
+    return { number: number(position.entry), where: `Setlist entry ${position.entry + 1}` };
+  }
+
+  const at =
+    position?.bank != null && position.slot != null
+      ? { bank: banks.find(b => b.id === position.bank), slot: position.slot }
+      : banks.map(bank => ({ bank, slot: id ? bank.slots.indexOf(id) : -1 })).find(b => b.slot >= 0);
+  return at
+    ? { number: number(at.slot), where: `${at.bank?.name ?? 'Bank'}, slot ${at.slot + 1}` }
+    : { number: '---', where: 'In no bank' };
+}
+
 /**
  * The preset and scene readout, as Axe-Edit has it: two lines, each with up/down steppers, a number and a name. The
- * preset line steps through the library in its next/previous order (its number is the place in that order) and opens
- * the preset picker on a click; the scene line steps through the eight scenes, wrapping, and renames the scene on a
+ * preset line steps through the presets in bank order, or through the setlist the preset was loaded from (its number
+ * is the bank slot or setlist entry), and opens the preset picker on a click; the scene line steps through the eight scenes, wrapping, and renames the scene on a
  * click.
  */
 @Component({
@@ -57,11 +87,11 @@ import { UiStore } from '../state/ui.store';
         type="button"
         class="bg-surface-inset border-border hover:border-border-strong flex min-w-0 flex-1 items-center gap-3 rounded border px-2 text-start text-sm"
         data-testid="preset-picker-open"
-        [xuiTooltip]="'Presets (P)'"
+        [xuiTooltip]="'Presets (P) · ' + place().where"
         (click)="ui.presetPicker.set(true)"
       >
         <span class="text-primary w-8 shrink-0 font-semibold tabular-nums" aria-hidden="true">{{
-          presetNumber()
+          place().number
         }}</span>
         <span class="truncate font-medium" data-testid="preset-name">
           {{ live.preset()?.name || '(untitled)' }}
@@ -114,16 +144,15 @@ export class PresetSceneDisplay {
   protected readonly ui = inject(UiStore);
   private readonly library = inject(LibraryStore);
 
-  /** Next (1) or previous (-1) preset; the shell steps through the library as ⌘PgDn/⌘PgUp do. */
+  /** Next (1) or previous (-1) preset; the shell steps in bank order as ⌘PgDn/⌘PgUp do. */
   readonly stepPreset = output<1 | -1>();
 
   protected readonly renaming = signal(false);
   private readonly nameInput = viewChild<ElementRef<HTMLInputElement>>('name');
-  /** The preset's place in the library's next/previous order, or dashes for a preset not saved yet. */
-  protected readonly presetNumber = computed(() => {
-    const index = this.library.ordered().findIndex(p => p.id === this.live.preset()?.id);
-    return index < 0 ? '---' : String(index + 1).padStart(3, '0');
-  });
+  /** The preset's bank slot or setlist entry, or dashes for a preset in no bank. */
+  protected readonly place = computed(() =>
+    presetPlace(this.live.state()?.position, this.live.preset()?.id, this.library.banks())
+  );
   protected readonly sceneNumber = computed(() => `S${String(this.live.activeScene() + 1).padStart(2, '0')}`);
   protected readonly sceneName = computed(() => this.live.preset()?.scenes[this.live.activeScene()]?.name ?? '');
 

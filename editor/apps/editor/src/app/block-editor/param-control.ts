@@ -21,13 +21,13 @@ import { XuiMenuImports } from '@xui/menu';
 import { XuiSelectImports } from '@xui/select';
 import { XuiTooltipImports } from '@xui/tooltip';
 import { ModifierDialog } from '../controls/modifier-dialog';
-import { ConnectionService } from '../core/connection';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
 import { withControl } from '../pages/perform';
 import { GlobalStore } from '../state/global.store';
 import { KnobGesture } from '../state/knob-gesture';
 import { LiveStore } from '../state/live.store';
+import { MidiLearnStore } from '../state/midi-learn.store';
 import { UiStore } from '../state/ui.store';
 
 /**
@@ -174,7 +174,7 @@ import { UiStore } from '../state/ui.store';
 })
 export class ParamControl {
   private readonly live = inject(LiveStore);
-  private readonly connection = inject(ConnectionService);
+  private readonly midiLearn = inject(MidiLearnStore);
   private readonly notify = inject(Notify);
   private readonly ui = inject(UiStore);
   private readonly globals = inject(GlobalStore);
@@ -246,24 +246,23 @@ export class ParamControl {
       return;
     }
 
-    const added = await this.live.putModifier(this.block().id, p.id, {
-      block: this.block().id,
-      param: p.id,
-      source: `ext${n}`,
-      min: p.min,
-      max: p.max,
-      curve: 'linear',
-      attackMs: 0,
-      releaseMs: 0
+    // The Server gives the knob its modifier once a controller is learnt, so a cancelled learn leaves it as it was.
+    // The learn's toast says what to do and offers Cancel (MidiLearnStore).
+    await this.midiLearn.arm({
+      action: 'external',
+      target: null,
+      value: n,
+      modifier: {
+        block: this.block().id,
+        param: p.id,
+        source: `ext${n}`,
+        min: p.min,
+        max: p.max,
+        curve: 'linear',
+        attackMs: 0,
+        releaseMs: 0
+      }
     });
-    if (added) {
-      await this.notify.run(async () => {
-        await this.connection.client.PUT('/api/v1/midi/learn', {
-          body: { action: 'external', target: null, value: n }
-        });
-        this.notify.success(`Move a pedal or knob on your MIDI controller to control ${p.name} (External ${n}).`);
-      });
-    }
   }
 
   protected set(value: number, gesture?: string): void {

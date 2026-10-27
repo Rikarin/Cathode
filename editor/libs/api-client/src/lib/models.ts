@@ -10,6 +10,8 @@ export type SceneBlockState = Schemas['SceneBlockState'];
 export type SceneMidiMessage = Schemas['SceneMidiMessage'];
 export type BlockPreset = Schemas['BlockPreset'];
 export type LiveState = Schemas['LiveState'];
+export type PresetPosition = Schemas['PresetPosition'];
+export type PresetStep = Schemas['PresetStep'];
 export type PresetSummary = Schemas['PresetSummary'];
 export type AssetInfo = Schemas['AssetInfo'];
 export type AssetUsage = Schemas['AssetUsage'];
@@ -26,6 +28,7 @@ export type LatencyInfo = Schemas['LatencyInfo'];
 export type LatencyStepInfo = Schemas['LatencyStepInfo'];
 export type SpeakerResonanceInfo = Schemas['SpeakerResonanceInfo'];
 export type MidiMapping = Schemas['MidiMapping'];
+export type MidiLearnRequest = Schemas['MidiLearnRequest'];
 export type MidiOutputInfo = Schemas['MidiOutputInfo'];
 export type FootswitchLayout = Schemas['FootswitchLayout'];
 export type Footswitch = Schemas['Footswitch'];
@@ -111,9 +114,12 @@ export interface LooperInfo {
   halfSpeed: boolean;
 }
 
-/** Every MIDI message received (type midi), or the one MIDI learn just bound (type midiLearned). */
+/**
+ * Every MIDI message received (type midi), the one MIDI learn just bound (type midiLearned), or MIDI learn armed or
+ * cancelled (type midiLearnChanged, with zeros: read `GET /midi/learn`).
+ */
 export interface MidiActivity {
-  type: 'midi' | 'midiLearned';
+  type: 'midi' | 'midiLearned' | 'midiLearnChanged';
   status: number;
   data1: number;
   data2: number;

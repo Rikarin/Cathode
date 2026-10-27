@@ -4,7 +4,6 @@ import {
   type FootswitchLayout,
   type FootswitchOverride,
   type GlobalSettings,
-  MidiActions,
   type MidiActivity,
   type MidiOutputInfo,
   type OutputModes,
@@ -33,15 +32,14 @@ import { CatalogStore } from '../state/catalog.store';
 import { GlobalStore } from '../state/global.store';
 import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
+import { MidiLearnStore, learnText } from '../state/midi-learn.store';
+import { ActionPicker, injectActionContext, targetLabel } from './action-picker';
 import {
-  actionText,
   type OverrideChange,
   addView,
   overrideOf,
-  parseAction,
   removeView,
   shownValue,
-  storedValue,
   viewNames,
   withOverride
 } from './footswitches';
@@ -93,6 +91,7 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
   selector: 'cth-global-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ActionPicker,
     CthKnob,
     XuiButtonImports,
     XuiCalloutImports,
@@ -392,7 +391,7 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
                   {{ mapping.channel === 0 ? 'any channel' : 'ch ' + mapping.channel }}</xui-td
                 >
                 <xui-td>{{ mapping.action }}</xui-td>
-                <xui-td>{{ mapping.target ?? '' }}</xui-td>
+                <xui-td>{{ targetLabel(mapping.action, mapping.target, actionContext()) }}</xui-td>
                 <xui-td>{{ shownValue(mapping.action, mapping.value) ?? '' }}</xui-td>
                 <xui-td>
                   <button
@@ -414,41 +413,25 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
           </xui-table>
 
           <div class="flex flex-wrap items-end gap-3">
-            <label class="flex flex-col gap-1">
-              <span class="text-foreground-muted text-xs">Action</span>
-              <xui-select
-                class="w-44"
-                aria-label="Action to learn"
-                [items]="actions"
-                [value]="learnAction()"
-                (valueChange)="learnAction.set($event ?? 'scene')"
+            <div class="flex w-full max-w-xl flex-col gap-1">
+              <span class="text-foreground-muted text-xs">Action to learn (and its target and value)</span>
+              <cth-action-picker
+                label="Learn"
+                [fromMessage]="true"
+                [action]="learnAction()"
+                (actionChange)="$event && learnAction.set($event)"
               />
-            </label>
-            <label class="flex flex-col gap-1">
-              <span class="text-foreground-muted text-xs">Target (block, bank or looper action)</span>
-              <input
-                #learnTargetField
-                xuiInput
-                class="w-48"
-                [value]="learnTarget()"
-                (input)="learnTarget.set(learnTargetField.value)"
-              />
-            </label>
-            <label class="flex flex-col gap-1">
-              <span class="text-foreground-muted text-xs">Value (optional)</span>
-              <input
-                #learnValueField
-                xuiInput
-                type="number"
-                class="w-24"
-                [value]="learnValue()"
-                (input)="learnValue.set(learnValueField.value)"
-              />
-            </label>
+            </div>
             <button xuiButton type="button" [loading]="learning()" (click)="learn()">
               <ng-icon xui name="matSettingsInputComponentRound" size="sm" />
               {{ learning() ? 'Move a control…' : 'MIDI learn' }}
             </button>
+            @if (midiLearn.armed(); as armed) {
+              <button xuiButton type="button" variant="outline" (click)="midiLearn.cancel()">Cancel learn</button>
+              <span class="text-foreground-muted self-center text-xs" data-testid="midi-learn-armed"
+                >Learning: {{ learnText(armed) }}</span
+              >
+            }
           </div>
 
           <!-- Not a live region: a stream of CCs would be read out without end. -->
@@ -533,7 +516,7 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
             <div role="table" aria-label="Footswitches on this view" class="flex flex-col gap-1">
               <div
                 role="row"
-                class="text-foreground-muted grid grid-cols-[7rem_13.5rem_minmax(8rem,1fr)_minmax(8rem,1fr)_2.5rem_minmax(7rem,9rem)_minmax(8rem,1fr)_2rem] items-center gap-2 px-1 text-xs font-medium"
+                class="text-foreground-muted grid grid-cols-[7rem_13.5rem_minmax(11rem,1.5fr)_minmax(11rem,1.5fr)_2.5rem_minmax(7rem,9rem)_minmax(11rem,1.5fr)_2rem] items-center gap-2 px-1 text-xs font-medium"
               >
                 <span role="columnheader">Switch</span>
                 <span role="columnheader">Sends</span>
@@ -547,7 +530,7 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
               @for (fs of switchesOnView(layout); track fs.index) {
                 <div
                   role="row"
-                  class="bg-surface-raised grid grid-cols-[7rem_13.5rem_minmax(8rem,1fr)_minmax(8rem,1fr)_2.5rem_minmax(7rem,9rem)_minmax(8rem,1fr)_2rem] items-center gap-2 rounded-md px-1 py-1.5"
+                  class="bg-surface-raised grid grid-cols-[7rem_13.5rem_minmax(11rem,1.5fr)_minmax(11rem,1.5fr)_2.5rem_minmax(7rem,9rem)_minmax(11rem,1.5fr)_2rem] items-center gap-2 rounded-md px-1 py-1.5"
                 >
                   <div role="cell" class="min-w-0">
                     <input
@@ -591,31 +574,20 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
                     />
                   </div>
                   <div role="cell" class="min-w-0">
-                    <input
-                      #tapField
-                      xuiInput
-                      size="sm"
-                      class="w-full"
-                      placeholder="scene 1"
-                      [attr.aria-label]="'Switch ' + fs.index + ' tap action'"
-                      [value]="actionText(fs.tap)"
-                      (change)="
-                        editSwitch(layout, fs, {
-                          tap: parseAction(tapField.value) ?? fs.tap
-                        })
-                      "
+                    <cth-action-picker
+                      [label]="'Switch ' + fs.index + ' tap'"
+                      [layout]="layout.id"
+                      [action]="fs.tap"
+                      (actionChange)="$event && editSwitch(layout, fs, { tap: $event })"
                     />
                   </div>
                   <div role="cell" class="min-w-0">
-                    <input
-                      #holdField
-                      xuiInput
-                      size="sm"
-                      class="w-full"
-                      placeholder="(none)"
-                      [attr.aria-label]="'Switch ' + fs.index + ' hold action'"
-                      [value]="fs.hold ? actionText(fs.hold) : ''"
-                      (change)="editSwitch(layout, fs, { hold: parseAction(holdField.value) })"
+                    <cth-action-picker
+                      [label]="'Switch ' + fs.index + ' hold'"
+                      [optional]="true"
+                      [layout]="layout.id"
+                      [action]="fs.hold"
+                      (actionChange)="editSwitch(layout, fs, { hold: $event })"
                     />
                   </div>
                   <div role="cell" class="min-w-0">
@@ -638,26 +610,20 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
                     />
                   </div>
                   <div role="cell" class="flex min-w-0 flex-col gap-1">
-                    <input
-                      #overrideField
-                      xuiInput
-                      size="sm"
-                      class="w-full"
-                      placeholder="(layout's)"
-                      [attr.aria-label]="'Switch ' + fs.index + ' action in this preset'"
-                      [value]="presetOverride(layout.id, fs.index)"
-                      (change)="setOverride(layout.id, fs.index, { tap: parseAction(overrideField.value) })"
+                    <cth-action-picker
+                      [label]="'Switch ' + fs.index + ' in this preset'"
+                      [optional]="true"
+                      [layout]="layout.id"
+                      [action]="overrideOf(layout.id, fs.index)?.tap ?? null"
+                      (actionChange)="setOverride(layout.id, fs.index, { tap: $event })"
                     />
                     @if (overrideOf(layout.id, fs.index); as own) {
-                      <input
-                        #overrideHoldField
-                        xuiInput
-                        size="sm"
-                        class="w-full"
-                        placeholder="hold: (none)"
-                        [attr.aria-label]="'In this preset, hold action of switch ' + fs.index"
-                        [value]="own.hold ? actionText(own.hold) : ''"
-                        (change)="setOverride(layout.id, fs.index, { hold: parseAction(overrideHoldField.value) })"
+                      <cth-action-picker
+                        [label]="'Switch ' + fs.index + ' hold in this preset'"
+                        [optional]="true"
+                        [layout]="layout.id"
+                        [action]="own.hold"
+                        (actionChange)="setOverride(layout.id, fs.index, { hold: $event })"
                       />
                       <input
                         #overrideLabelField
@@ -693,12 +659,11 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
               </button>
             </div>
             <xui-callout minimal compact color="primary">
-              Actions are written as "action target value": scene 1, sceneNext, bypass delay1, channel amp1 2 (channel
-              B), looper record, tap, tuner, metronome, mute, presetNext, viewNext, layout &lt;id&gt;. Scenes, channels,
-              Manuals, views and Externals count from 1. A switch with a hold action acts on release; hold it for half a
-              second for the hold action. A switch can also jump to another layout after its action, and the loaded
-              preset can give it an action of its own (In this preset), saved with the preset; once it has one, the
-              preset can also give it a hold action (empty for none) and a label of its own.
+              Pick each action from the list, then what it acts on: a block of the loaded preset, a bank and its slot, a
+              looper command, a layout, a scene, channel, Manual, External or view. A switch with a hold action acts on
+              release; hold it for half a second for the hold action. A switch can also jump to another layout after its
+              action, and the loaded preset can give it an action of its own (In this preset), saved with the preset;
+              once it has one, the preset can also give it a hold action ((none) for none) and a label of its own.
             </xui-callout>
           }
         </section>
@@ -730,7 +695,6 @@ export class GlobalPage {
   // Labels as items: xui-select treats a falsy value (channel 0) as empty.
   protected readonly channelNames = Array.from({ length: 17 }, (_, i) => (i === 0 ? 'All' : `Channel ${i}`));
   protected readonly Math = Math;
-  protected readonly actions = [...MidiActions];
   protected readonly defaultScenes = ['-1', '0', '1', '2', '3', '4', '5', '6', '7'];
   protected readonly String = String;
   protected readonly defaultSceneName = (scene: string) => (+scene < 0 ? 'As saved' : `Scene ${+scene + 1}`);
@@ -785,10 +749,14 @@ export class GlobalPage {
     const s = this.settings();
     return s?.footswitches.find(l => l.id === s.activeLayout) ?? null;
   });
-  protected readonly learnAction = signal<string>('scene');
-  protected readonly learnTarget = signal('');
-  protected readonly learnValue = signal('');
-  protected readonly learning = signal(false);
+  /** What MIDI learn will map: a scene, its number from the message (a CC's value picks the scene). */
+  protected readonly learnAction = signal<SwitchAction>({ action: 'scene', target: null, value: null });
+  /** Names targets in the mappings table: blocks, banks and layouts by name. */
+  protected readonly actionContext = injectActionContext();
+  protected readonly targetLabel = targetLabel;
+  protected readonly midiLearn = inject(MidiLearnStore);
+  protected readonly learning = computed(() => this.midiLearn.armed() !== null);
+  protected readonly learnText = learnText;
   protected readonly monitor = signal<string[]>([]);
   /** The engine host's MIDI outputs, for where scene MIDI and footswitch LEDs go. */
   protected readonly midiOutputs = signal<MidiOutputInfo[]>([]);
@@ -803,9 +771,8 @@ export class GlobalPage {
     void this.refreshMidiOutputs();
     const subscription = inject(EventStream).midi$.subscribe(message => {
       if (message.type === 'midiLearned') {
-        this.learning.set(false);
         this.notify.success(`Learned ${describeMidi(message)}.`);
-      } else {
+      } else if (message.type === 'midi') {
         this.monitor.update(lines => [describeMidi(message), ...lines].slice(0, 30));
       }
     });
@@ -848,17 +815,8 @@ export class GlobalPage {
   }
 
   protected async learn(): Promise<void> {
-    const value = this.learnValue().trim();
-    await this.notify.run(async () => {
-      await this.connection.client.PUT('/api/v1/midi/learn', {
-        body: {
-          action: this.learnAction(),
-          target: this.learnTarget().trim() || null,
-          value: storedValue(this.learnAction(), value === '' ? null : Number(value))
-        }
-      });
-      this.learning.set(true);
-    });
+    const { action, target, value } = this.learnAction();
+    await this.midiLearn.arm({ action, target: target ?? null, value: value ?? null, modifier: null });
   }
 
   protected addLayout(): void {
@@ -924,12 +882,6 @@ export class GlobalPage {
     });
   }
 
-  /** The loaded preset's own action for a switch, as text. */
-  protected presetOverride(layout: string, index: number): string {
-    const own = this.overrideOf(layout, index);
-    return own ? this.actionText(own.tap) : '';
-  }
-
   /** The loaded preset's override for a switch: its hold action and label are edited once it has a tap. */
   protected overrideOf(layout: string, index: number): FootswitchOverride | undefined {
     return overrideOf(this.live.preset()?.footswitchOverrides ?? [], layout, index);
@@ -947,13 +899,5 @@ export class GlobalPage {
         l.switches = l.switches.filter(s => s.index !== fs.index);
       }
     });
-  }
-
-  protected actionText(action: SwitchAction): string {
-    return actionText(action);
-  }
-
-  protected parseAction(text: string): SwitchAction | null {
-    return parseAction(text, MidiActions);
   }
 }

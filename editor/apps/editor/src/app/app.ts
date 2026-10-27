@@ -46,6 +46,7 @@ import { CompareStore } from './state/compare.store';
 import { LibraryStore } from './state/library.store';
 import { LiveStore } from './state/live.store';
 import { PresetSwitcher } from './state/preset-switcher';
+import { MidiLearnStore } from './state/midi-learn.store';
 import { UiStore } from './state/ui.store';
 
 @Component({
@@ -469,6 +470,8 @@ export class App {
     // Quitting the desktop app takes its Server, and the unsaved edits with it: ask first, as loading a preset does.
     window.cathode?.onQuit?.(() => this.switcher.mayDiscard('quit'));
     void this.startup.start();
+    // Started with the shell, so an armed MIDI learn shows (with Cancel) on any page, after a reload too.
+    inject(MidiLearnStore);
     inject(DestroyRef).onDestroy(this.registerShortcuts());
   }
 
