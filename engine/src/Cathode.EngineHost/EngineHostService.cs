@@ -150,68 +150,105 @@ public sealed class EngineHostService : IDisposable {
                 return false;
             }
 
-            string? type = null;
-            long id = 0;
-            var generation = 0;
-            var bypassed = false;
+            var header = new FrameHeader { BlockLength = -1 };
             Span<char> block = stackalloc char[MaxIdLength];
-            var blockLength = -1;
             var parameters = default(Utf8JsonReader);
-            while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName) {
-                if (reader.ValueTextEquals("type"u8)) {
-                    reader.Read();
-                    type = reader.ValueTextEquals(IpcTypes.SetParams) ? IpcTypes.SetParams
-                        : reader.ValueTextEquals(IpcTypes.SetBypass) ? IpcTypes.SetBypass
-                        : null;
-                    if (type is null) {
-                        return false;
-                    }
-                } else if (reader.ValueTextEquals("id"u8)) {
-                    reader.Read();
-                    id = reader.GetInt64();
-                } else if (reader.ValueTextEquals("generation"u8)) {
-                    reader.Read();
-                    generation = reader.GetInt32();
-                } else if (reader.ValueTextEquals("block"u8)) {
-                    reader.Read();
-                    blockLength = ReadId(ref reader, block);
-                    if (blockLength < 0 && reader.TokenType != JsonTokenType.Null) {
-                        return false;
-                    }
-                } else if (reader.ValueTextEquals("bypassed"u8)) {
-                    reader.Read();
-                    bypassed = reader.TokenType == JsonTokenType.True;
-                } else if (reader.ValueTextEquals("params"u8)) {
-                    parameters = reader; // a checkpoint: the array is applied once the whole frame has been read
-                    reader.Read();
-                    reader.Skip();
-                } else {
-                    reader.Read();
-                    reader.Skip();
-                }
-            }
-
-            if (type is null) {
+            if (!ReadHeader(ref reader, block, ref header, ref parameters)) {
                 return false;
             }
 
             lock (gate) {
-                if (type == IpcTypes.SetParams) {
-                    reply = SetParams(id, generation, ref parameters);
-                } else if (latest is null || generation != latest.Generation) {
-                    reply = IpcMessage.Fail(id, $"Stale graph generation {generation}.");
-                } else {
-                    var slot = blockLength < 0 ? -1 : latest.SlotOf(block[..blockLength]);
-                    reply = slot < 0 ? IpcMessage.Fail(id, $"No block '{block[..Math.Max(blockLength, 0)]}'.")
-                        : Engine.Post(EngineCommand.SetBypass(latest.Generation, slot, bypassed)) ? Ok(id)
-                        : IpcMessage.Fail(id, "The engine command queue is full.");
-                }
+                reply = header.Type == IpcTypes.SetParams
+                    ? SetParams(header.Id, header.Generation, ref parameters)
+                    : SetBypass(header, block);
             }
 
             return true;
         } catch (Exception e) when (e is JsonException or InvalidOperationException or FormatException) {
             return false;
         }
+    }
+
+    /// <summary>What <see cref="TryHandle" /> reads from a frame besides the block id and the params.</summary>
+    struct FrameHeader {
+        public string? Type;
+        public long Id;
+        public int Generation;
+        public bool Bypassed;
+        public int BlockLength;
+    }
+
+    /// <summary>
+    ///     Reads a frame's properties (reader inside its object). False when it is not a request
+    ///     <see cref="TryHandle" /> answers.
+    /// </summary>
+    static bool ReadHeader(
+        ref Utf8JsonReader reader,
+        scoped Span<char> block,
+        ref FrameHeader header,
+        ref Utf8JsonReader parameters
+    ) {
+        while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName) {
+            if (!ReadProperty(ref reader, block, ref header, ref parameters)) {
+                return false;
+            }
+        }
+
+        return header.Type is not null;
+    }
+
+    /// <summary>Reads one property of a frame (reader on its name); false when the frame is not handled here.</summary>
+    static bool ReadProperty(
+        ref Utf8JsonReader reader,
+        scoped Span<char> block,
+        ref FrameHeader header,
+        ref Utf8JsonReader parameters
+    ) {
+        if (reader.ValueTextEquals("type"u8)) {
+            reader.Read();
+            header.Type = reader.ValueTextEquals(IpcTypes.SetParams) ? IpcTypes.SetParams
+                : reader.ValueTextEquals(IpcTypes.SetBypass) ? IpcTypes.SetBypass
+                : null;
+            return header.Type is not null;
+        }
+
+        if (reader.ValueTextEquals("id"u8)) {
+            reader.Read();
+            header.Id = reader.GetInt64();
+        } else if (reader.ValueTextEquals("generation"u8)) {
+            reader.Read();
+            header.Generation = reader.GetInt32();
+        } else if (reader.ValueTextEquals("block"u8)) {
+            reader.Read();
+            header.BlockLength = ReadId(ref reader, block);
+            return header.BlockLength >= 0 || reader.TokenType == JsonTokenType.Null;
+        } else if (reader.ValueTextEquals("bypassed"u8)) {
+            reader.Read();
+            header.Bypassed = reader.TokenType == JsonTokenType.True;
+        } else if (reader.ValueTextEquals("params"u8)) {
+            parameters = reader; // a checkpoint: the array is applied once the whole frame has been read
+            reader.Read();
+            reader.Skip();
+        } else {
+            reader.Read();
+            reader.Skip();
+        }
+
+        return true;
+    }
+
+    /// <summary>A <c>setBypass</c> frame; <paramref name="block" /> holds the block id when it had one.</summary>
+    IpcMessage SetBypass(in FrameHeader header, ReadOnlySpan<char> block) {
+        var id = header.Id;
+        var blockLength = header.BlockLength;
+        if (latest is null || header.Generation != latest.Generation) {
+            return IpcMessage.Fail(id, $"Stale graph generation {header.Generation}.");
+        }
+
+        var slot = blockLength < 0 ? -1 : latest.SlotOf(block[..blockLength]);
+        return slot < 0 ? IpcMessage.Fail(id, $"No block '{block[..Math.Max(blockLength, 0)]}'.")
+            : Engine.Post(EngineCommand.SetBypass(latest.Generation, slot, header.Bypassed)) ? Ok(id)
+            : IpcMessage.Fail(id, "The engine command queue is full.");
     }
 
     /// <summary>Meters, CPU, overloads and the latest tuner reading; also disposes graphs the audio thread retired.</summary>
@@ -301,11 +338,13 @@ public sealed class EngineHostService : IDisposable {
             return IpcMessage.Fail(request.Id, "This engine has no looper.");
         }
 
-        return Enum.TryParse<LooperAction>(request.Action, true, out var action)
-            ? Engine.Post(EngineCommand.Looper(action))
-                ? IpcMessage.Ok(request.Id)
-                : IpcMessage.Fail(request.Id, "The engine command queue is full.")
-            : IpcMessage.Fail(request.Id, $"Unknown looper action '{request.Action}'.");
+        if (!Enum.TryParse<LooperAction>(request.Action, true, out var action)) {
+            return IpcMessage.Fail(request.Id, $"Unknown looper action '{request.Action}'.");
+        }
+
+        return Engine.Post(EngineCommand.Looper(action))
+            ? IpcMessage.Ok(request.Id)
+            : IpcMessage.Fail(request.Id, "The engine command queue is full.");
     }
 
     IpcMessage ExportLooper(IpcMessage request) {
@@ -376,37 +415,45 @@ public sealed class EngineHostService : IDisposable {
         Span<char> param = stackalloc char[MaxIdLength];
         if (reader.Read() && reader.TokenType == JsonTokenType.StartArray) {
             while (reader.Read() && reader.TokenType == JsonTokenType.StartObject) {
-                var blockLength = -1;
-                var paramLength = -1;
-                var value = 0f;
-                while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName) {
-                    if (reader.ValueTextEquals("block"u8)) {
-                        reader.Read();
-                        blockLength = ReadId(ref reader, block);
-                    } else if (reader.ValueTextEquals("param"u8)) {
-                        reader.Read();
-                        paramLength = ReadId(ref reader, param);
-                    } else if (reader.ValueTextEquals("value"u8)) {
-                        reader.Read();
-                        value = reader.GetSingle();
-                    } else {
-                        reader.Read();
-                        reader.Skip();
-                    }
-                }
-
-                if (blockLength < 0
-                    || paramLength < 0
-                    || !SetParameter(block[..blockLength], param[..paramLength], value)) {
-                    (errors ??= []).Add(
-                        NoParameter(param[..Math.Max(paramLength, 0)], block[..Math.Max(blockLength, 0)])
-                    );
+                if (SetParameter(ref reader, block, param) is { } error) {
+                    (errors ??= []).Add(error);
                 }
             }
         }
 
         RefreshBlocks();
         return errors is null ? Ok(id) : IpcMessage.Fail(id, "Some parameters were not set.", errors);
+    }
+
+    /// <summary>
+    ///     Reads and applies one <c>{block, param, value}</c> object of a <c>params</c> array (reader on its start),
+    ///     with <paramref name="block" /> and <paramref name="param" /> as scratch; null when set, else the error.
+    /// </summary>
+    string? SetParameter(ref Utf8JsonReader reader, scoped Span<char> block, scoped Span<char> param) {
+        var blockLength = -1;
+        var paramLength = -1;
+        var value = 0f;
+        while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName) {
+            if (reader.ValueTextEquals("block"u8)) {
+                reader.Read();
+                blockLength = ReadId(ref reader, block);
+            } else if (reader.ValueTextEquals("param"u8)) {
+                reader.Read();
+                paramLength = ReadId(ref reader, param);
+            } else if (reader.ValueTextEquals("value"u8)) {
+                reader.Read();
+                value = reader.GetSingle();
+            } else {
+                reader.Read();
+                reader.Skip();
+            }
+        }
+
+        if (blockLength < 0 || paramLength < 0 || !SetParameter(block[..blockLength], param[..paramLength], value)) {
+            return NoParameter(param[..Math.Max(paramLength, 0)], block[..Math.Max(blockLength, 0)]);
+        }
+
+        return null;
     }
 
     /// <summary>Whether a <c>params</c> array (reader on its property name) is empty or names a graph block.</summary>
@@ -518,13 +565,7 @@ public sealed class EngineHostService : IDisposable {
         var param = request.Param == ModNames.EngageParam ? ModifierBinding.Engage
             : block is null || request.Param is null ? -1
             : block.Descriptor.IndexOf(request.Param);
-        var index = -1;
-        for (var i = 0; i < latest.Modifiers.Count && param != -1; i++) {
-            if (latest.Modifiers[i].Slot == slot && latest.Modifiers[i].ParamIndex == param) {
-                index = i;
-            }
-        }
-
+        var index = ModifierIndex(latest, slot, param);
         if (index < 0) {
             return IpcMessage.Fail(request.Id, $"No modifier on '{request.Block}.{request.Param}'.");
         }
@@ -533,6 +574,21 @@ public sealed class EngineHostService : IDisposable {
         return Engine.Post(EngineCommand.SetModifier(latest.Generation, index, request.Enabled == true, baseValue))
             ? IpcMessage.Ok(request.Id)
             : IpcMessage.Fail(request.Id, "The engine command queue is full.");
+    }
+
+    /// <summary>
+    ///     The last of the graph's modifiers on parameter <paramref name="param" /> of slot <paramref name="slot" />,
+    ///     or -1.
+    /// </summary>
+    static int ModifierIndex(CompiledGraph graph, int slot, int param) {
+        var index = -1;
+        for (var i = 0; i < graph.Modifiers.Count && param != -1; i++) {
+            if (graph.Modifiers[i].Slot == slot && graph.Modifiers[i].ParamIndex == param) {
+                index = i;
+            }
+        }
+
+        return index;
     }
 
     IpcMessage SetTuner(IpcMessage request) {
@@ -594,19 +650,7 @@ public sealed class EngineHostService : IDisposable {
         var followPitch = latest?.UsesPitch == true;
         Engine.InputTapEnabled = tunerOn || followPitch;
         if (Engine.InputTapEnabled) {
-            int read;
-            while ((read = Engine.InputTap.Read(tap)) > 0) {
-                tuner.Push(tap.AsSpan(0, read));
-            }
-
-            var detected = tuner.Detect();
-            reading = tunerOn ? detected : null;
-            if (followPitch && detected is { } pitch) {
-                var low = Engine.Rig.GetTarget(PitchLow);
-                var high = Engine.Rig.GetTarget(PitchHigh);
-                var normal = Math.Log(pitch.Frequency / low) / Math.Log(high / low);
-                Engine.Rig.SetTarget(PitchIndex, (float)Math.Clamp(normal, 0, 1));
-            }
+            ReadPitch(followPitch);
         }
 
         var (input, left, right) = Engine.ReadMeters();
@@ -620,16 +664,7 @@ public sealed class EngineHostService : IDisposable {
         target.CpuP999 = stats.Percentile(0.999);
         target.CpuMax = stats.MaxPercent;
         target.Overloads = overloads;
-        if (reading is { } r) {
-            var tunerReading = target.Tuner ??= new();
-            tunerReading.Frequency = r.Frequency;
-            tunerReading.Note = r.Note;
-            tunerReading.Octave = r.Octave;
-            tunerReading.Cents = r.Cents;
-        } else {
-            target.Tuner = null;
-        }
-
+        WriteTuner(target);
         target.DriverOverloads = deviceWindow.Overloads;
         target.CallbackExceptions = exceptionsReported;
         target.DeviceStatus = DeviceStatus.Name();
@@ -641,6 +676,50 @@ public sealed class EngineHostService : IDisposable {
         target.GcPauseMs = GC.GetTotalPauseDuration().TotalMilliseconds;
         target.AllocatedBytes = GC.GetTotalAllocatedBytes();
         target.Tempo = Engine.Tempo;
+        WriteLooper(target);
+        if (Stopwatch.GetElapsedTime(windowStarted) >= StatsWindow) {
+            stats.RequestReset();
+            overrunsSeen = 0;
+            windowStarted = Stopwatch.GetTimestamp();
+            if (device is not null) {
+                // Read the device once per window: its histogram snapshot allocates, and this process must stay quiet.
+                deviceWindow = device.CloseWindow();
+            }
+        }
+
+        return target;
+    }
+
+    /// <summary>Feeds the input tap to the tuner; the pitch follower's rig parameter tracks what it detects.</summary>
+    void ReadPitch(bool followPitch) {
+        int read;
+        while ((read = Engine.InputTap.Read(tap)) > 0) {
+            tuner.Push(tap.AsSpan(0, read));
+        }
+
+        var detected = tuner.Detect();
+        reading = tunerOn ? detected : null;
+        if (followPitch && detected is { } pitch) {
+            var low = Engine.Rig.GetTarget(PitchLow);
+            var high = Engine.Rig.GetTarget(PitchHigh);
+            var normal = Math.Log(pitch.Frequency / low) / Math.Log(high / low);
+            Engine.Rig.SetTarget(PitchIndex, (float)Math.Clamp(normal, 0, 1));
+        }
+    }
+
+    void WriteTuner(HostTelemetry target) {
+        if (reading is { } r) {
+            var tunerReading = target.Tuner ??= new();
+            tunerReading.Frequency = r.Frequency;
+            tunerReading.Note = r.Note;
+            tunerReading.Octave = r.Octave;
+            tunerReading.Cents = r.Cents;
+        } else {
+            target.Tuner = null;
+        }
+    }
+
+    void WriteLooper(HostTelemetry target) {
         if (Engine.Looper is { } looper) {
             var status = target.Looper ??= new();
             status.State = looper.State switch {
@@ -658,17 +737,5 @@ public sealed class EngineHostService : IDisposable {
         } else {
             target.Looper = null;
         }
-
-        if (Stopwatch.GetElapsedTime(windowStarted) >= StatsWindow) {
-            stats.RequestReset();
-            overrunsSeen = 0;
-            windowStarted = Stopwatch.GetTimestamp();
-            if (device is not null) {
-                // Read the device once per window: its histogram snapshot allocates, and this process must stay quiet.
-                deviceWindow = device.CloseWindow();
-            }
-        }
-
-        return target;
     }
 }

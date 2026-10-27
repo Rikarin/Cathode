@@ -404,6 +404,11 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         var gain = OutputGain;
         Scale(left, gain);
         Scale(right, gain);
+        WriteBus(outputs, outputChannels, frames, gain);
+    }
+
+    /// <summary>Outputs 2-4 and the DI out, from the output bus to their device channels.</summary>
+    void WriteBus(float** outputs, int outputChannels, int frames, float gain) {
         for (var k = 1; k < OutputBus.Count; k++) {
             var pair = this.outputs.Pair(k);
             if (pair >= 0) {
