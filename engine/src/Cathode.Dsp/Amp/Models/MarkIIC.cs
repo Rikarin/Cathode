@@ -24,9 +24,18 @@ namespace Cathode.Dsp.Amp.Models;
 ///         stage this hot is bypassed on every Mark lead circuit described in text). The rhythm path's 3.3M feed into
 ///         V2B's grid, live in the lead mode too, is left out (about -33 dB under the lead signal). The graphic EQ is
 ///         the behavioural constant-Q slot (<see cref="EqualizerStageDesign" />), not the LC network, whose topology
-///         the redraws disagree on. The power amp is not on the redraw: inverter 82.5k/90.9k (docs/06), 475 Ω and 10k
-///         tail, a 4.7k feedback shunt, 100k feedback from the 8 Ω tap, a 25k presence pot with 0.1 µF (the Mesa
-///         redraws' values), B+ 465 V, 40 mA idle, a 2.5k primary: typical values, not readings.
+///         the redraws disagree on.
+///     </para>
+///     <para>
+///         Power amp, read from the factory scan's power page (el34world <c>Boogie_mkiic_plus.pdf</c>, sheet 2) and
+///         the boogieforum redraw's (#102): inverter 82.5k/90.9k with 470 Ω bias and a 22k tail, 0.1 µF into 220k
+///         grid leaks, 2.2k grid stoppers, 470 Ω (2 W) screens. Not modelled as drawn: the presence is a 250k
+///         rheostat in series with the feedback (8 Ω tap, the 250k, 1.5k and 56k ‖ 4.7 nF into the tail's foot,
+///         shunted by 1.5k and 3.3k ‖ (47 nF + 0.1 µF)), a wiring <see cref="FeedbackDesign" /> cannot express (its
+///         presence pot sits across the shunt); the stand-in is the shunt-wired 25k with 0.1 µF into 4.7k from 100k.
+///         On the Simul-Class the triode-strapped EL34 pair is fed through about 220k with its own grid leak (less
+///         drive than the pentodes); here both pairs share the pentodes' grid network. Guessed: B+ 465 V, 40 mA
+///         idle, the 2.5k primary.
 ///     </para>
 ///     <para>
 ///         Panel: the real amp's two Shift pulls (Treble, on the treble pot: the 750 pF; Bass, on the bass pot: V1A's
@@ -52,15 +61,15 @@ public static class MarkIIC {
             PentodeModel.SixL6GC,
             1,
             465,
-            1e3,
+            470,
             0.04,
             false,
             0,
             75,
-            new LongTailPairDesign(TriodeModel.Ecc83, 427, 82.5e3, 90.9e3, 10e3, 475),
-            47e-9,
+            new LongTailPairDesign(TriodeModel.Ecc83, 427, 82.5e3, 90.9e3, 22e3, 470),
+            0.1e-6,
             220e3,
-            1.5e3,
+            2.2e3,
             0,
             new(1e6, PotTaper.Linear),
             new(1, 100e3, 4.7e3, new(25e3, PotTaper.Linear), 0.1e-6),

@@ -15,12 +15,17 @@ namespace Cathode.Dsp.Amp.Models;
 /// <remarks>
 ///     <para>
 ///         Source: the Yahiake LiveSPICE redraw "Mark IV Lead Channel Preamp_GEQ" (every preamp value and the wiring),
-///         docs/06 §3.4 for the power section. A redraw, not the factory scan.
+///         and the factory power-amp sheet (el34world <c>Boogie_mkiv.pdf</c>, "Mark IV Power Amp", 8/92) for the power
+///         section: an 82k/91k inverter with 470 Ω bias and a 22k tail, 0.1 µF into 220k grid leaks, 2.2k grid
+///         stoppers and 470 Ω (2 W) screens on all four 6L6 (#102). The preamp is a redraw, not the factory scan.
 ///     </para>
 ///     <para>
-///         Guesses, marked: the power amp is the IIC+ model's (82.5k/90.9k inverter, 100k feedback into 4.7k, 25k
-///         presence with 0.1 µF, 465 V, 40 mA) with 6L6GC in both pairs and a 2.2k primary; the rhythm path's 3.3M feed
-///         into V3A is left out; the EQ is the behavioural slot (<see cref="EqualizerStageDesign" />).
+///         Guesses, marked: the presence is, as on the IIC+, a 250k rheostat in series with the feedback (here each
+///         channel's own, with a cap across the lead one, then 3.3k ‖ 600 pF and 56k ‖ 5 nF into a 1.5k and
+///         3.3k ‖ 47 nF shunt), which <see cref="FeedbackDesign" /> cannot express: the IIC+ model's stand-in (25k with
+///         0.1 µF across the 4.7k shunt from 100k), its 465 V and 40 mA, a 2.2k primary. The 2.7k that straps the
+///         outer pair's screens to their plates in triode is left out. The rhythm path's 3.3M feed into V3A is left
+///         out; the EQ is the behavioural slot (<see cref="EqualizerStageDesign" />).
 ///     </para>
 /// </remarks>
 public static class MarkIV {
@@ -37,7 +42,11 @@ public static class MarkIV {
             new EqualizerStageDesign("GEQ", EqualizerStageDesign.MarkBands)
         ],
         MarkIIC.Design.Power with {
-            Name = "4 x 6L6GC (Simul-Class)", RatedPower = 85, Transformer = new(2.2e3), Strapped = PentodeModel.SixL6GC
+            Name = "4 x 6L6GC (Simul-Class)",
+            RatedPower = 85,
+            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 427, 82e3, 91e3, 22e3, 470),
+            Transformer = new(2.2e3),
+            Strapped = PentodeModel.SixL6GC
         },
         -7
     ) {
