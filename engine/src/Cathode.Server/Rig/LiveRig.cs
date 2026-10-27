@@ -30,6 +30,10 @@ public sealed partial class LiveRig(
     Preset preset = Preset.CreateDefault();
     int activeScene;
     long revision;
+
+    /// <summary>Counts the presets loaded into the working copy (<see cref="LiveState.Load" />).</summary>
+    long load;
+
     bool dirty;
     int generation;
     string compiledOversampling = "minimum";
@@ -367,15 +371,22 @@ public sealed partial class LiveRig(
             }
         );
 
-    /// <summary>Sets parameters on <paramref name="channel" /> (default: the channel the active scene uses).</summary>
+    /// <summary>
+    ///     Sets parameters on <paramref name="channel" /> (default: the channel the active scene uses). With
+    ///     <paramref name="loaded" />, the values were set on that load of a preset (<see cref="LiveState.Load" />) and
+    ///     are refused (412) once another preset has replaced it: a knob's last PATCH still on the wire when a program
+    ///     change loads another preset must not land on the new preset's block with the same id.
+    /// </summary>
     public Task<LiveState> SetParamsAsync(
         string id,
         string? channel,
         IReadOnlyDictionary<string, float> values,
-        long? expected
+        long? expected,
+        long? loaded = null
     ) =>
         Locked(async () => {
                 Check(expected);
+                CheckLoad(loaded);
                 var block = Find(id);
                 var descriptor = catalog.Descriptor(block.Type)
                     ?? throw new RigException(400, $"'{id}' has no parameters.");
@@ -756,6 +767,7 @@ public sealed partial class LiveRig(
 
         history.Clear();
         dirty = false;
+        load++;
     }
 
     async Task<LiveState> StepAsync(Func<Func<UndoSnapshot>, UndoSnapshot?> step, string eventType) {
@@ -872,7 +884,8 @@ public sealed partial class LiveRig(
             history.CanUndo,
             history.CanRedo,
             held.IsEmpty ? null : new(held, StringComparer.Ordinal),
-            Muted
+            Muted,
+            load
         );
     }
 

@@ -78,10 +78,20 @@ static class LiveApi {
             .WithName("MoveBlock");
         live.MapPatch(
                 "/blocks/{id}/params",
-                async (string id, string? channel, Dictionary<string, float> values, LiveRig rig, HttpContext http) =>
-                    Respond(http, await rig.SetParamsAsync(id, channel, values, Expected(http)))
+                async (
+                    string id,
+                    string? channel,
+                    long? load,
+                    Dictionary<string, float> values,
+                    LiveRig rig,
+                    HttpContext http
+                ) => Respond(http, await rig.SetParamsAsync(id, channel, values, Expected(http), load))
             )
-            .WithName("SetParams");
+            .WithName("SetParams")
+            .WithSummary(
+                "Sets parameters (undoable; a run of changes to the same knob is one step). With load, the change was "
+                + "made on that load of a preset (LiveState.load) and is refused with 412 once another is loaded."
+            );
         live.MapPut(
                 "/blocks/{id}/bypass",
                 async (string id, BypassRequest request, LiveRig rig, HttpContext http) =>

@@ -3,7 +3,9 @@ namespace Cathode.Contracts;
 /// <summary>
 ///     The rig as it is running: the working copy, which scene is active, and whether it differs from the library.
 ///     <c>Held</c> lists the blocks whose bypass and channel differ from the active scene's because Scene Ignore kept
-///     them as they were: what they are running now.
+///     them as they were: what they are running now. <c>Load</c> counts the presets loaded into the working copy (a new
+///     one, a library preset, the same one again): an edit made against one load can name it and is refused once
+///     another has replaced the working copy.
 /// </summary>
 public sealed record LiveState(
     Preset Preset,
@@ -13,7 +15,8 @@ public sealed record LiveState(
     bool CanUndo,
     bool CanRedo,
     Dictionary<string, SceneBlockState>? Held = null,
-    bool Muted = false
+    bool Muted = false,
+    long Load = 0
 );
 
 public sealed record PresetSummary(

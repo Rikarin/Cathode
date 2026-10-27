@@ -5,6 +5,7 @@ using Cathode.Server.Midi;
 using Cathode.Server.Rig;
 using Cathode.Server.Stores;
 using Microsoft.AspNetCore.Http.HttpResults;
+using System.Globalization;
 using static Cathode.Server.Api.CathodeApi;
 
 namespace Cathode.Server.Api;
@@ -112,52 +113,34 @@ static class ControlsApi {
             .WithSummary("External 1-8 (index 0-7), 0..1: what a pedal or CC would set.");
 
         var global = api.MapGroup("/global").WithTags("Global");
-        global.MapGet("/", (GlobalStore store) => TypedResults.Ok(store.Get())).WithName("GetGlobal");
+        global.MapGet(
+                "/",
+                (GlobalStore store, HttpContext http) => {
+                    var (settings, revision) = store.Versioned();
+                    return RespondGlobal(http, settings, revision);
+                }
+            )
+            .WithName("GetGlobal")
+            .WithSummary("The global settings, with their revision as the ETag (send it back as If-Match on a PUT).");
         global.MapPut(
                 "/",
-                (GlobalSettings settings, GlobalStore store) => {
+                (GlobalSettings settings, GlobalStore store, HttpContext http) => {
                     GlobalValidation.Check(settings);
-                    return TypedResults.Ok(
-                        store.Update(g => {
-                                g.TempoMode = settings.TempoMode;
-                                g.Tempo = Math.Clamp(settings.Tempo, 30, 300);
-                                g.Metronome = settings.Metronome;
-                                g.MetronomeLevel = Math.Clamp(settings.MetronomeLevel, -60, 0);
-                                g.Outputs = settings.Outputs;
-                                g.CopyOutput1To2 = settings.CopyOutput1To2;
-                                g.Inputs = settings.Inputs;
-                                g.Oversampling = settings.Oversampling;
-                                g.TunerOutput = settings.TunerOutput;
-                                g.Manual = settings.Manual;
-                                g.MidiChannel = settings.MidiChannel;
-                                g.MidiMappings = settings.MidiMappings;
-                                g.MidiOutPort = NullIfBlank(settings.MidiOutPort);
-                                g.Footswitches = settings.Footswitches;
-                                g.ActiveLayout = settings.ActiveLayout;
-                                g.ActiveView = Math.Max(0, settings.ActiveView);
-                                g.Blocks = settings.Blocks;
-                                g.Perform = settings.Perform;
-                                g.EffectsMix = settings.EffectsMix;
-                                g.NoiseGateOffset = settings.NoiseGateOffset;
-                                g.CabModelingOff = settings.CabModelingOff;
-                                g.SceneRevert = settings.SceneRevert;
-                                g.DefaultScene = settings.DefaultScene;
-                                g.StartupPreset = string.IsNullOrWhiteSpace(settings.StartupPreset)
-                                    ? null
-                                    : settings.StartupPreset;
-                                g.IgnoreRedundantPc = settings.IgnoreRedundantPc;
-                                g.PresetSpillover = settings.PresetSpillover;
-                                g.ConfirmPresetChange = settings.ConfirmPresetChange;
-                            }
-                        )
-                    );
+                    var (saved, revision) = store.UpdateIf(Expected(http), g => Replace(g, settings))
+                        ?? throw new RigException(
+                            412,
+                            "The global settings changed (another editor or the rig). Reload and try again."
+                        );
+                    return RespondGlobal(http, saved, revision);
                 }
             )
             .WithName("PutGlobal")
             .WithSummary(
                 "Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs "
                 + "(calibration, gain), oversampling, the tuner output, Manual A-D, MIDI, footswitches, global blocks, "
-                + "scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover."
+                + "scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover. "
+                + "With If-Match (the revision a GET or PUT answered with as the ETag), refused with 412 when another "
+                + "change came first."
             );
 
         var looper = api.MapGroup("/looper").WithTags("Looper");
@@ -229,6 +212,43 @@ static class ControlsApi {
                 }
             )
             .WithName("CancelMidiLearn");
+    }
+
+    /// <summary>Answers with the global settings and their revision as the ETag (as <c>/live</c> does).</summary>
+    static Ok<GlobalSettings> RespondGlobal(HttpContext http, GlobalSettings settings, long revision) {
+        http.Response.Headers.ETag = $"\"{revision.ToString(CultureInfo.InvariantCulture)}\"";
+        return TypedResults.Ok(settings);
+    }
+
+    /// <summary>What a <c>PUT /global</c> stores: the settings sent, clamped.</summary>
+    static void Replace(GlobalSettings g, GlobalSettings settings) {
+        g.TempoMode = settings.TempoMode;
+        g.Tempo = Math.Clamp(settings.Tempo, 30, 300);
+        g.Metronome = settings.Metronome;
+        g.MetronomeLevel = Math.Clamp(settings.MetronomeLevel, -60, 0);
+        g.Outputs = settings.Outputs;
+        g.CopyOutput1To2 = settings.CopyOutput1To2;
+        g.Inputs = settings.Inputs;
+        g.Oversampling = settings.Oversampling;
+        g.TunerOutput = settings.TunerOutput;
+        g.Manual = settings.Manual;
+        g.MidiChannel = settings.MidiChannel;
+        g.MidiMappings = settings.MidiMappings;
+        g.MidiOutPort = NullIfBlank(settings.MidiOutPort);
+        g.Footswitches = settings.Footswitches;
+        g.ActiveLayout = settings.ActiveLayout;
+        g.ActiveView = Math.Max(0, settings.ActiveView);
+        g.Blocks = settings.Blocks;
+        g.Perform = settings.Perform;
+        g.EffectsMix = settings.EffectsMix;
+        g.NoiseGateOffset = settings.NoiseGateOffset;
+        g.CabModelingOff = settings.CabModelingOff;
+        g.SceneRevert = settings.SceneRevert;
+        g.DefaultScene = settings.DefaultScene;
+        g.StartupPreset = NullIfBlank(settings.StartupPreset);
+        g.IgnoreRedundantPc = settings.IgnoreRedundantPc;
+        g.PresetSpillover = settings.PresetSpillover;
+        g.ConfirmPresetChange = settings.ConfirmPresetChange;
     }
 
     static string? NullIfBlank(string? text) => string.IsNullOrWhiteSpace(text) ? null : text;

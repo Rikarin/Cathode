@@ -586,6 +586,7 @@
         "tags": [
           "Live"
         ],
+        "summary": "Sets parameters (undoable; a run of changes to the same knob is one step). With load, the change was made on that load of a preset (LiveState.load) and is refused with 412 once another is loaded.",
         "operationId": "SetParams",
         "parameters": [
           {
@@ -601,6 +602,14 @@
             "in": "query",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "load",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
             }
           }
         ],
@@ -2843,6 +2852,7 @@
         "tags": [
           "Global"
         ],
+        "summary": "The global settings, with their revision as the ETag (send it back as If-Match on a PUT).",
         "operationId": "GetGlobal",
         "responses": {
           "200": {
@@ -2861,7 +2871,7 @@
         "tags": [
           "Global"
         ],
-        "summary": "Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, the tuner output, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover.",
+        "summary": "Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, the tuner output, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover. With If-Match (the revision a GET or PUT answered with as the ETag), refused with 412 when another change came first.",
         "operationId": "PutGlobal",
         "requestBody": {
           "content": {
@@ -4844,7 +4854,8 @@
           "dirty",
           "canUndo",
           "canRedo",
-          "muted"
+          "muted",
+          "load"
         ],
         "type": "object",
         "properties": {
@@ -4880,9 +4891,14 @@
           "muted": {
             "type": "boolean",
             "default": false
+          },
+          "load": {
+            "type": "integer",
+            "format": "int64",
+            "default": 0
           }
         },
-        "description": "The rig as it is running: the working copy, which scene is active, and whether it differs from the library.\n\u0060Held\u0060 lists the blocks whose bypass and channel differ from the active scene\u0027s because Scene Ignore kept\nthem as they were: what they are running now."
+        "description": "The rig as it is running: the working copy, which scene is active, and whether it differs from the library.\n\u0060Held\u0060 lists the blocks whose bypass and channel differ from the active scene\u0027s because Scene Ignore kept\nthem as they were: what they are running now. \u0060Load\u0060 counts the presets loaded into the working copy (a new\none, a library preset, the same one again): an edit made against one load can name it and is refused once\nanother has replaced the working copy."
       },
       "MidiLearnRequest": {
         "required": [

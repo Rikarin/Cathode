@@ -20,8 +20,11 @@ import { Notify } from '../core/notify';
 interface PendingParams {
   channel: ChannelName;
   values: Record<string, number>;
-  /** The preset the values were dragged on: if another is loaded before they are sent, they are dropped. */
-  presetId: string | undefined;
+  /**
+   * The load of a preset the values were dragged on ({@link LiveState.load}): if another is loaded before they are
+   * sent, they are dropped, and the Server refuses them (412) if that happens while they are on the wire.
+   */
+  load: number | undefined;
 }
 
 type MutationResult = Promise<{ data?: LiveState; error?: unknown; response: Response }>;
@@ -112,9 +115,9 @@ export class LiveStore {
   setParam(blockId: string, channel: ChannelName, param: string, value: number): void {
     this.overrides.update(map => new Map(map).set(`${blockId}/${channel}/${param}`, value));
     const key = `${blockId}/${channel}`;
-    const presetId = this.preset()?.id;
+    const load = this.state()?.load;
     const queued = this.pending.get(key);
-    const pending = queued && queued.presetId === presetId ? queued : { channel, values: {}, presetId };
+    const pending = queued && queued.load === load ? queued : { channel, values: {}, load };
     pending.values[param] = value;
     this.pending.set(key, pending);
     void this.flush(blockId, key);
@@ -415,7 +418,7 @@ export class LiveStore {
     }
 
     this.pending.delete(key);
-    if (batch.presetId !== this.preset()?.id) {
+    if (batch.load !== this.state()?.load) {
       // Another preset was loaded (a program change, another editor) before these were sent: they belong to the old
       // one, and its block ids may name different blocks in the new one.
       this.overrides.update(map => new Map([...map].filter(([name]) => !name.startsWith(`${key}/`))));
@@ -424,12 +427,23 @@ export class LiveStore {
 
     this.inFlight.add(key);
     try {
-      await this.mutate(c =>
-        c.PATCH('/api/v1/live/blocks/{id}/params', {
-          params: { path: { id: blockId }, query: { channel: batch.channel } },
-          body: batch.values
-        })
+      const query = batch.load === undefined ? { channel: batch.channel } : { channel: batch.channel, load: batch.load };
+      this.apply(
+        unwrap(
+          await this.connection.client.PATCH('/api/v1/live/blocks/{id}/params', {
+            params: { path: { id: blockId }, query },
+            body: batch.values
+          })
+        )
       );
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 412) {
+        // Another preset was loaded while these were on the wire, and the Server refused them: the stale edit is
+        // dropped without a word, and the new preset is read.
+        void this.refresh();
+      } else {
+        this.notify.error(error);
+      }
     } finally {
       this.inFlight.delete(key);
     }
