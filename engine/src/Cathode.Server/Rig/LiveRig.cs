@@ -617,7 +617,8 @@ public sealed partial class LiveRig(
             new(IpcBlocks.Rig, "effectsMix", global.EffectsMix),
             new(IpcBlocks.Rig, "gateOffset", global.NoiseGateOffset),
             new(IpcBlocks.Rig, "cabsOff", global.CabModelingOff ? 1 : 0),
-            new(IpcBlocks.Rig, "spillover", global.PresetSpillover ? 1 : 0)
+            new(IpcBlocks.Rig, "spillover", global.PresetSpillover ? 1 : 0),
+            new(IpcBlocks.Rig, "tunerOut", Math.Max(Api.GlobalValidation.TunerOutputs.IndexOf(global.TunerOutput), 0))
         };
         if (global.TempoMode == "global") {
             values.Add(new(IpcBlocks.Rig, "tempo", (float)global.Tempo));

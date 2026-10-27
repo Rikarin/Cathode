@@ -137,6 +137,9 @@ export const OutputModes = ['stereo', 'sum', 'copyLR'] as const;
 /** The global oversampling filters. */
 export const OversamplingModes = ['minimum', 'linear'] as const;
 
+/** What the outputs play while the tuner is on (GlobalValidation.TunerOutputs on the Server). */
+export const TunerOutputs = ['mute', 'bypass', 'passThrough'] as const;
+
 export const ChannelNames = ['A', 'B', 'C', 'D'] as const;
 export type ChannelName = (typeof ChannelNames)[number];
 

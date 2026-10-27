@@ -66,6 +66,29 @@ public sealed class AudioIoApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task The_tuner_output_is_stored_validated_and_applied_while_the_tuner_is_on() {
+        Assert.Equal("mute", (await Global()).TunerOutput);
+        await PutGlobal(static g => g.TunerOutput = "bypass");
+
+        Assert.Equal("bypass", (await Global()).TunerOutput);
+        await ServerFixture.Eventually(() => Rig("tunerOut") == RigControls.TunerBypass);
+        var bad = await Global();
+        bad.TunerOutput = "loud";
+        using var rejected = await client.PutAsJsonAsync("/api/v1/global", bad, Token);
+        Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+        Assert.Equal("bypass", (await Global()).TunerOutput);
+
+        // The engine applies the mode only while the tuner is on.
+        Assert.Equal(0f, Rig("tuner"));
+        await Ok(client.PutAsJsonAsync("/api/v1/tuner", new BypassRequest(false), Token));
+        await ServerFixture.Eventually(() => Rig("tuner") == 1f);
+        await PutGlobal(static g => g.TunerOutput = "passThrough");
+        await ServerFixture.Eventually(() => Rig("tunerOut") == RigControls.TunerPassThrough);
+        await Ok(client.PutAsJsonAsync("/api/v1/tuner", new BypassRequest(true), Token));
+        await ServerFixture.Eventually(() => Rig("tuner") == 0f);
+    }
+
+    [Fact]
     public async Task Every_switch_in_the_global_settings_survives_a_put() {
         // Each bool flipped from what the server holds: a field the PUT handler forgets to copy springs back.
         var switches = typeof(GlobalSettings).GetProperties()

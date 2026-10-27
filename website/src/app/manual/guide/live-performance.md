@@ -42,7 +42,15 @@ Open the tuner with **⌘T**, the tuner button in the navigation bar, or a foots
 
 The tuner listens to the input, before any effects, so a wah or a pitch shifter does not confuse it.
 
-> **Warning:** Opening the tuner does **not** mute Cathode. To tune silently, mute first (**M**, or the mute button), or pull back an expression pedal that drives a Volume/Pan block (the tuner listens before it, so it still hears you).
+While the tuner is open, **Output while tuning** (below the needle) sets what every output plays. It is a global setting, kept for every preset:
+
+| Option       | While tuning                                                                                       |
+| ------------ | -------------------------------------------------------------------------------------------------- |
+| Mute         | Silence, with a short fade out and back in. The default, so you can tune on stage without a sound. |
+| Bypass       | Your guitar dry, straight from the input with no blocks, as a tuner pedal's true bypass would.     |
+| Pass through | The preset keeps sounding, as if the tuner were not open.                                          |
+
+The setting applies however the tuner was opened, from the editor, a footswitch or a MIDI message.
 
 ## Global mute
 
