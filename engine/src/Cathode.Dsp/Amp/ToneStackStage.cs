@@ -80,18 +80,27 @@ public sealed class ToneStackStage : AmpStage {
     double treble = double.NaN;
     double rotation = double.NaN;
     bool bright;
+    bool stale;
     double sampleRate;
     double supplyScale = 1;
+    double outputResistance = double.NaN; // NaN: to be recomputed
+    double restGrid;
+    double restPlate;
 
     public ToneStackStageDesign Design { get; }
 
     /// <summary>
-    ///     The wiper's Thévenin resistance, roughly: the pot's halves in parallel plus the stack's share.
+    ///     The wiper's Thévenin resistance: the whole stage (driver, stack, load pot, bright cap) linearised at the
+    ///     operating point with its caps at their 1 kHz reactances, as <see cref="NetworkStage{TDevice}" /> computes
+    ///     its own. Recomputed when a knob, a setting or the operating point moves (allocation-free).
     /// </summary>
     public override double OutputResistance {
         get {
-            var a = load.Pot.Fraction(rotation);
-            return a * (1 - a) * load.Pot.Ohms + a * a * stack.Design.SlopeResistor;
+            if (double.IsNaN(outputResistance)) {
+                outputResistance = SmallSignalOutputResistance();
+            }
+
+            return outputResistance;
         }
     }
 
@@ -205,7 +214,8 @@ public sealed class ToneStackStage : AmpStage {
     public override void Update(in AmpControls controls) {
         var turn = Design.LoadRole is { } role ? controls.Rotation(role) : 1;
         var brightOn = controls.IsOn(Design.BrightSwitch) && Design.BrightCap > 0;
-        if (controls.Bass == bass
+        if (!stale
+            && controls.Bass == bass
             && controls.Middle == middle
             && controls.Treble == treble
             && turn == rotation
@@ -219,6 +229,7 @@ public sealed class ToneStackStage : AmpStage {
         }
 
         (bass, middle, treble, rotation) = (controls.Bass, controls.Middle, controls.Treble, turn);
+        stale = false;
         var (top, bottom, b, m) = stack.Resistances(bass, middle, treble);
         root.SetResistance(stack.TrebleTop, top);
         root.SetResistance(stack.TrebleBottom, bottom);
@@ -228,6 +239,7 @@ public sealed class ToneStackStage : AmpStage {
         root.SetResistance(load.Top, upper);
         root.SetResistance(load.Bottom, lower);
         root.Propagate();
+        outputResistance = double.NaN;
     }
 
     public override void Apply(in PreampSettings settings) {
@@ -245,7 +257,8 @@ public sealed class ToneStackStage : AmpStage {
         if (substituted) {
             stack = stack with { Design = design };
             root.SetResistance(stack.SlopeResistor, design.SlopeResistor);
-            bass = double.NaN; // the pots are the new stack's: recompute them on the next update
+            stale = true; // the pots are the new stack's: recompute them on the next update
+            outputResistance = double.NaN;
         }
 
         var rk = Design.CathodeResistor * settings.CathodeResistor * (follower ? settings.FollowerBias : 1);
@@ -262,6 +275,7 @@ public sealed class ToneStackStage : AmpStage {
         cathodeResistor = rk;
         root.SetResistance(cathodeIndex, rk);
         SetSampleRate(sampleRate);
+        outputResistance = double.NaN;
     }
 
     public override void Retune(double restInput) => SolveRest(restInput);
@@ -307,7 +321,90 @@ public sealed class ToneStackStage : AmpStage {
 
         RestDriven = driven;
         RestCathode = cathode;
+        (restGrid, restPlate) = (grid, plate);
+        outputResistance = double.NaN;
         return (grid, plate, cathode, driven);
+    }
+
+    /// <summary>
+    ///     The load wiper's resistance to ground with the sources off: the triode linearised at the operating point (the
+    ///     device's own Jacobian, grid current included: a cathode follower's grid sits near its cathode), the stack's
+    ///     and the bright cap's caps at their 1 kHz reactances and a bypassed cathode's cap across its resistor, solved
+    ///     by nodal analysis like <see cref="NetworkStage{TDevice}" />'s. So the source the next stage sees includes the
+    ///     treble pot's halves, the caps and the driver's own impedance (a cathode follower's few hundred ohms, a
+    ///     plate's tens of kΩ), not only the load pot and the slope resistor.
+    /// </summary>
+    double SmallSignalOutputResistance() {
+        const double Omega = 2 * Math.PI * 1_000;
+        const double Gmin = 1e-12;
+        const double EndStop = RTypeScattering.EndStop;
+        const int Grid = 1, Cathode = 2, Top = 3, Slope = 4, Bottom = 5, Middle = 6, Output = 7, Wiper = 8, Plate = 9;
+        var follower = Design.Driver == StackDriver.CathodeFollower;
+        var n = follower ? 8 : 9;
+        var plate = follower ? 0 : Plate; // a follower's plate sits on the supply: signal ground
+        var driven = follower ? Cathode : Plate;
+        Span<double> a = stackalloc double[n * n];
+        Span<double> b = stackalloc double[n];
+        Span<int> pivots = stackalloc int[n];
+        a.Clear();
+        b.Clear();
+        for (var j = 0; j < n; j++) {
+            a[j * n + j] = Gmin;
+        }
+
+        // The triode's ports (grid-cathode, plate-cathode), each current's slope to each port voltage stamped between
+        // the port's nodes.
+        Span<double> v = [restGrid - RestCathode, restPlate - RestCathode];
+        Span<double> i = stackalloc double[2];
+        Span<double> jacobian = stackalloc double[4];
+        root.Device.Evaluate(v, i, jacobian, 2);
+        Span<int> plus = [Grid, plate];
+        for (var p = 0; p < 2; p++) {
+            for (var l = 0; l < 2; l++) {
+                var g = jacobian[p * 2 + l];
+                Stamp(a, n, plus[p], plus[l], g);
+                Stamp(a, n, plus[p], Cathode, -g);
+                Stamp(a, n, Cathode, plus[l], -g);
+                Stamp(a, n, Cathode, Cathode, g);
+            }
+        }
+
+        RTypeScattering.Conductance(a, n, Grid, 0, 1 / sourceResistance);
+        if (Design.GridLeak > 0) {
+            RTypeScattering.Conductance(a, n, Grid, 0, 1 / Design.GridLeak);
+        }
+
+        var bypass = !follower && Design.CathodeBypass > 0 ? Omega * Design.CathodeBypass : 0;
+        RTypeScattering.Conductance(a, n, Cathode, 0, 1 / cathodeResistor + bypass);
+        if (plate > 0) {
+            RTypeScattering.Conductance(a, n, plate, 0, 1 / Design.PlateResistor);
+        }
+
+        var design = stack.Design;
+        var (trebleTop, trebleBottom, bassPot, middlePot) = stack.Resistances(bass, middle, treble);
+        var (upper, lower) = load.Resistances(rotation);
+        RTypeScattering.Conductance(a, n, driven, Top, Omega * design.TrebleCap / stackScale);
+        RTypeScattering.Conductance(a, n, driven, Slope, 1 / design.SlopeResistor);
+        RTypeScattering.Conductance(a, n, Slope, Bottom, Omega * design.BassCap / stackScale);
+        RTypeScattering.Conductance(a, n, Slope, Middle, Omega * design.MiddleCap / stackScale);
+        RTypeScattering.Conductance(a, n, Top, Output, 1 / Math.Max(trebleTop, EndStop));
+        RTypeScattering.Conductance(a, n, Output, Bottom, 1 / Math.Max(trebleBottom, EndStop));
+        RTypeScattering.Conductance(a, n, Bottom, Middle, 1 / Math.Max(bassPot, EndStop));
+        RTypeScattering.Conductance(a, n, Middle, 0, 1 / Math.Max(middlePot, EndStop));
+        RTypeScattering.Conductance(a, n, Output, Wiper, 1 / Math.Max(upper, EndStop));
+        RTypeScattering.Conductance(a, n, Wiper, 0, 1 / Math.Max(lower, EndStop));
+        if (bright) {
+            RTypeScattering.Conductance(a, n, Output, Wiper, Omega * Design.BrightCap * brightScale);
+        }
+
+        b[Wiper - 1] = 1;
+        return DenseLu.SolveInPlace(a, n, pivots, b) ? Math.Max(b[Wiper - 1], 1) : 1;
+    }
+
+    static void Stamp(Span<double> a, int n, int row, int column, double g) {
+        if (row > 0 && column > 0) {
+            a[(row - 1) * n + column - 1] += g;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
