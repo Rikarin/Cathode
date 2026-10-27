@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -810,9 +811,31 @@ static int start_thread(cth_stream *s)
     return err;
 }
 
+/* Locks the process's memory once, as pages are touched (MCL_ONFAULT), so a page the audio path has used is never
+ * paged out and a major fault cannot stall the real-time thread. On fault only: the looper's large buffers stay lazily
+ * committed. CTH_MLOCK=0 turns it off. Without permission (no LimitMEMLOCK / memlock limit) it warns and goes on. */
+static void lock_memory(void)
+{
+    static atomic_flag done = ATOMIC_FLAG_INIT;
+    if (atomic_flag_test_and_set(&done)) return;
+    const char *env = getenv("CTH_MLOCK");
+    if (env && strcmp(env, "0") == 0) return;
+#ifdef MCL_ONFAULT
+    if (mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT) == 0) return;
+#else
+    errno = EINVAL; /* only locking everything up front is available, which would commit the looper's buffers */
+#endif
+    fprintf(stderr,
+            "cth_audio: memory could not be locked (%s), so the audio thread may stall on a page fault under memory "
+            "pressure. Allow it with LimitMEMLOCK=infinity in the systemd unit or a memlock limit in "
+            "/etc/security/limits.d.\n",
+            strerror(errno));
+}
+
 int32_t cth_audio_start(cth_stream *s)
 {
     if (!s) return cth_linux_fail("no stream");
+    lock_memory();
     if (s->jack) return cth_jack_start(s->jack);
     if (atomic_load(&s->running)) return 0;
 
