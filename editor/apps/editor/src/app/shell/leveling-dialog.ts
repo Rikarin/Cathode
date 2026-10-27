@@ -125,8 +125,9 @@ export class LevelingDialog {
 
   constructor() {
     onAnimationFrame(() => {
+      // Closed and not measuring, the readouts are not seen: no telemetry-rate work.
       const frame = this.events.latest;
-      if (!frame || frame === this.lastFrame) {
+      if ((!this.open() && !this.measuring()) || !frame || frame === this.lastFrame) {
         return;
       }
 
