@@ -26,6 +26,7 @@ export type LatencyInfo = Schemas['LatencyInfo'];
 export type LatencyStepInfo = Schemas['LatencyStepInfo'];
 export type SpeakerResonanceInfo = Schemas['SpeakerResonanceInfo'];
 export type MidiMapping = Schemas['MidiMapping'];
+export type MidiOutputInfo = Schemas['MidiOutputInfo'];
 export type FootswitchLayout = Schemas['FootswitchLayout'];
 export type Footswitch = Schemas['Footswitch'];
 export type SwitchAction = Schemas['SwitchAction'];

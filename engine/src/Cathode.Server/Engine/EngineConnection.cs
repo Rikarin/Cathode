@@ -263,6 +263,15 @@ public sealed partial class EngineConnection(
             new() { Type = IpcTypes.MidiOut, Destination = destination, Bytes = [..bytes.Select(static b => (int)b)] }
         );
 
+    /// <summary>The host's MIDI outputs (none while no engine is connected).</summary>
+    public async Task<MidiOutputInfo[]> MidiOutputsAsync() {
+        var reply = await RequestAsync(new() { Type = IpcTypes.MidiPorts });
+        return [
+            ..(reply?.MidiPorts ?? []).Where(static p => !p.IsInput)
+                .Select(static p => new MidiOutputInfo(p.Uid, p.Name))
+        ];
+    }
+
     public void SetTuner(bool enabled) {
         if (IsConnected) {
             queue.Writer.TryWrite(new(new() { Type = IpcTypes.SetTuner, Enabled = enabled }, null));

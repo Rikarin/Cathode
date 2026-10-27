@@ -1399,6 +1399,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/midi/outputs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The MIDI outputs of the engine host's machine, for the MIDI output setting (empty while no engine is connected). */
+    get: operations['GetMidiOutputs'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/midi/learn': {
     parameters: {
       query?: never;
@@ -2066,6 +2083,12 @@ export interface components {
        */
       midiChannel: number;
       midiMappings: components['schemas']['MidiMapping'][];
+      /**
+       * @description Where scene MIDI and footswitch LEDs go: a MIDI output's uid (string MidiOutputInfo.Uid, from
+       *     `GET /api/v1/midi/outputs`), or null for every output. One port keeps them from looping back into a
+       *     controller that echoes what it receives; while that port is not connected, nothing is sent.
+       */
+      midiOutPort?: null | string;
       footswitches: components['schemas']['FootswitchLayout'][];
       /** @description The layout in use, by id. */
       activeLayout?: null | string;
@@ -2256,6 +2279,11 @@ export interface components {
       target?: null | string;
       /** Format: int32 */
       value?: null | number;
+    };
+    /** @description A MIDI output of the engine host's machine. `Uid` is stable across runs. */
+    MidiOutputInfo: {
+      uid: string;
+      name: string;
     };
     MoveBlockRequest: {
       /** Format: int32 */
@@ -4997,6 +5025,26 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  GetMidiOutputs: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MidiOutputInfo'][];
+        };
       };
     };
   };

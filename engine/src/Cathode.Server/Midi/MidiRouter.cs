@@ -453,9 +453,10 @@ public sealed partial class MidiRouter : IDisposable {
             return;
         }
 
+        var port = globals.Get().MidiOutPort;
         foreach (var message in rig.SceneMidi(scene)) {
             if (message.Problem() is null) {
-                engine.MidiOut(null, message.Bytes());
+                engine.MidiOut(port, message.Bytes());
             }
         }
     }
@@ -474,8 +475,9 @@ public sealed partial class MidiRouter : IDisposable {
 
         var looper = engine.LastTelemetry?.Looper?.State;
         lock (gate) {
-            // Another layout or view puts other switches under the same indexes: send every LED again.
-            var page = $"{layout.Id}/{settings.ActiveView}";
+            // Another layout or view puts other switches under the same indexes, and another MIDI output has none of
+            // them lit: send every LED again.
+            var page = $"{layout.Id}/{settings.ActiveView}/{settings.MidiOutPort}";
             if (page != ledPage) {
                 ledPage = page;
                 leds.Clear();
@@ -490,7 +492,10 @@ public sealed partial class MidiRouter : IDisposable {
 
             var channel = Math.Clamp(footswitch.Channel == 0 ? 1 : footswitch.Channel, 1, 16) - 1;
             var status = footswitch.Message == "note" ? 0x90 : 0xB0;
-            engine.MidiOut(null, [(byte)(status | channel), (byte)footswitch.Number, (byte)value]);
+            engine.MidiOut(
+                settings.MidiOutPort,
+                [(byte)(status | channel), (byte)footswitch.Number, (byte)value]
+            );
         }
     }
 

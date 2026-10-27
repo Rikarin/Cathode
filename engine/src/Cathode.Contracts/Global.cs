@@ -63,6 +63,13 @@ public sealed class GlobalSettings {
 
     public List<MidiMapping> MidiMappings { get; set; } = [];
 
+    /// <summary>
+    ///     Where scene MIDI and footswitch LEDs go: a MIDI output's uid (<see cref="MidiOutputInfo.Uid" />, from
+    ///     <c>GET /api/v1/midi/outputs</c>), or null for every output. One port keeps them from looping back into a
+    ///     controller that echoes what it receives; while that port is not connected, nothing is sent.
+    /// </summary>
+    public string? MidiOutPort { get; set; }
+
     public List<FootswitchLayout> Footswitches { get; set; } = [];
 
     /// <summary>The layout in use, by id.</summary>
@@ -177,6 +184,9 @@ public sealed record Footswitch(
     int View = 0,
     string? Link = null
 );
+
+/// <summary>A MIDI output of the engine host's machine. <c>Uid</c> is stable across runs.</summary>
+public sealed record MidiOutputInfo(string Uid, string Name);
 
 /// <summary>An action, with the same vocabulary as <see cref="MidiMapping" />.</summary>
 public sealed record SwitchAction(string Action, string? Target = null, int? Value = null);
