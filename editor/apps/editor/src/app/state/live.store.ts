@@ -39,6 +39,11 @@ export class LiveStore {
   private again = false;
   /** The newest revision an event has announced. */
   private heard = 0;
+  /**
+   * The event stream (re)connected: the Server may have restarted, and its revision with it (an in-memory counter
+   * that starts at 0). The next state read is taken whatever its revision, as the start of a new count.
+   */
+  private resync = false;
   private readonly inFlight = new Set<string>();
   private readonly pending = new Map<string, PendingParams>();
 
@@ -53,7 +58,7 @@ export class LiveStore {
 
   constructor() {
     const subscriptions = [
-      this.events.connected$.subscribe(() => void this.refresh()),
+      this.events.connected$.subscribe(() => this.reconnected()),
       this.events.events$.subscribe(event => this.onEvent(event))
     ];
     inject(DestroyRef).onDestroy(() => subscriptions.forEach(s => s.unsubscribe()));
@@ -275,9 +280,12 @@ export class LiveStore {
     }
   }
 
-  private apply(state: LiveState): void {
+  /** Adopts a state unless it is older than the one held; `resync`: the first read after a reconnection. */
+  private apply(state: LiveState, resync = false): void {
     const current = this.state();
-    if (current && state.revision < current.revision) {
+    if (resync) {
+      this.resync = false;
+    } else if (current && state.revision < current.revision) {
       return; // an older answer that overtook a newer one
     }
 
@@ -287,11 +295,18 @@ export class LiveStore {
     }
   }
 
+  private reconnected(): void {
+    this.resync = true;
+    this.heard = 0; // revisions announced before the reconnection may belong to a Server that is gone
+    void this.refresh();
+  }
+
   private async catchUp(): Promise<void> {
     while (this.again || this.behind()) {
       this.again = false;
+      const resync = this.resync;
       try {
-        this.apply(unwrap(await this.connection.client.GET('/api/v1/live')));
+        this.apply(unwrap(await this.connection.client.GET('/api/v1/live')), resync);
       } catch (error) {
         this.notify.error(error);
         return;
@@ -308,7 +323,7 @@ export class LiveStore {
   private onEvent(event: RigEvent): void {
     this.heard = Math.max(this.heard, event.revision);
     // While a read is on the wire, catchUp looks at `heard` when it returns.
-    if (!this.refreshing && this.behind()) {
+    if (!this.refreshing && (this.resync || this.behind())) {
       void this.refresh();
     }
   }

@@ -135,6 +135,68 @@ describe('LiveStore.refresh', () => {
   });
 });
 
+describe('LiveStore after a reconnection', () => {
+  const live$ = '/api/v1/live';
+
+  async function holding(revision: number) {
+    const store = setup();
+    const first = store.live.refresh();
+    store.open(live$)[0].resolve(state(revision, 'Before'));
+    await first;
+    return store;
+  }
+
+  it('takes the restarted Server state although its revision counter began again', async () => {
+    const { live, events, open, settle } = await holding(500);
+
+    events.connected$.next();
+    open(live$)[0].resolve(state(1, 'After'));
+    await settle();
+
+    expect(live.state()?.revision).toBe(1);
+    expect(live.preset()?.name).toBe('After');
+  });
+
+  it('follows the new count afterwards: events refetch and mutation answers are adopted', async () => {
+    const { live, events, open, settle } = await holding(500);
+    events.connected$.next();
+    open(live$)[0].resolve(state(1));
+    await settle();
+
+    events.events$.next({ type: 'paramChanged', revision: 2 });
+    open(live$)[0].resolve(state(2));
+    await settle();
+    expect(live.state()?.revision).toBe(2);
+
+    const done = live.undo();
+    open('/api/v1/live/undo')[0].resolve(state(3, 'Undone'));
+    expect(await done).toBe(true);
+    expect(live.preset()?.name).toBe('Undone');
+  });
+
+  it('reads again for an event of the new count that arrived during the resync read', async () => {
+    const { live, events, open, settle } = await holding(500);
+    events.connected$.next();
+    events.events$.next({ type: 'paramChanged', revision: 2 });
+    open(live$)[0].resolve(state(1));
+    await settle();
+
+    expect(open(live$)).toHaveLength(1);
+    open(live$)[0].resolve(state(2));
+    await settle();
+    expect(live.state()?.revision).toBe(2);
+  });
+
+  it('still drops an older answer that overtakes a newer one outside a resync', async () => {
+    const { live, open } = await holding(10);
+    const done = live.undo();
+    open('/api/v1/live/undo')[0].resolve(state(9, 'Stale'));
+    await done;
+
+    expect(live.state()?.revision).toBe(10);
+  });
+});
+
 describe('LiveStore.tap', () => {
   it('reports a refused tap and resolves to false instead of rejecting', async () => {
     const { live, open, errors } = setup();
