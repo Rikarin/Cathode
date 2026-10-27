@@ -286,6 +286,71 @@ public class HighGainAmpTests(ITestOutputHelper output) {
         Assert.InRange(Math.Abs(off), 0, 2);
     }
 
+    /// <summary>
+    ///     The Marks' presence is a 250k rheostat in series with the feedback
+    ///     (<see cref="FeedbackDesign.Series" />): at 0 the network feeds back nearly a third of the tap's treble, the
+    ///     most of any model. Flat out (every gain and
+    ///     master at 10) at both ends of the knob, and at 0 with the Feedback expert parameter at 10 (twice the stock
+    ///     feedback, 62 % of the treble), a loud chord renders finite and within 12 dB of the knob at noon, and two
+    ///     seconds after it stops the amp is silent: the loop does not oscillate, small-signal or driven (what is left
+    ///     half a second after the stop, -60 to -70 dB, is the preamp's slow recovery, falling alike at every setting).
+    ///     Small-signal, turning the knob up is brighter, as on the amp: more series resistance is less feedback, and
+    ///     less of the 4.7 nF's treble feedback.
+    /// </summary>
+    [Theory]
+    [InlineData("Mark IIC+")]
+    [InlineData("Mark IV")]
+    public void Mark_series_presence_is_stable_at_its_extremes_and_brighter_turned_up(string type) {
+        var chord = new float[(int)(2.5 * Rate)];
+        for (var n = 0; n < (int)(0.5 * Rate); n++) {
+            var t = n / Rate;
+            chord[n] = (float)(0.4
+                * (Math.Sin(2 * Math.PI * 82.4 * t)
+                    + Math.Sin(2 * Math.PI * 123.5 * t)
+                    + Math.Sin(2 * Math.PI * 164.8 * t))
+                / 3);
+        }
+
+        (float Presence, float Feedback)[] cases = [(5, 5), (0, 5), (10, 5), (0, 10)];
+        var peaks = new double[cases.Length];
+        for (var i = 0; i < cases.Length; i++) {
+            var (presence, feedback) = cases[i];
+            using var block = Create(
+                type,
+                (CircuitAmpBlock.Gain, 10f),
+                (CircuitAmpBlock.Control1, 10f),
+                (CircuitAmpBlock.Control2, 10f),
+                (CircuitAmpBlock.Master, 10f),
+                (CircuitAmpBlock.Presence, presence),
+                (CircuitAmpBlock.Feedback, feedback)
+            );
+            var rendered = BlockRender.Mono(block, chord, 64);
+            Assert.True(Analysis.AllFinite(rendered), $"{type} at presence {presence}: not finite");
+            peaks[i] = Analysis.Peak(rendered);
+            var tail = Analysis.ToDb(Analysis.Rms(rendered.AsSpan(rendered.Length - (int)(0.1 * Rate))));
+            output.WriteLine($"presence {presence}, feedback {feedback}: peak {peaks[i]:0.000}, tail {tail:0.0} dB");
+            Assert.True(tail < -100, $"{type} at presence {presence}: {tail:0.0} dB two seconds after the chord");
+            Assert.InRange(Analysis.ToDb(peaks[i] / peaks[0]), -12, 12);
+        }
+
+        var dark = Level(type, 0, 5_000) - Level(type, 0, 500);
+        var bright = Level(type, 10, 5_000) - Level(type, 10, 500);
+        output.WriteLine($"5 kHz against 500 Hz: {dark:0.0} dB at presence 0, {bright:0.0} dB at 10");
+        Assert.True(bright - dark > 6, $"{type}: presence 10 is only {bright - dark:0.0} dB brighter than 0");
+
+        static double Level(string type, float presence, double frequency) {
+            using var block = Create(
+                type,
+                (CircuitAmpBlock.Gain, 1f),
+                (CircuitAmpBlock.Control1, 1f),
+                (CircuitAmpBlock.Master, 2f),
+                (CircuitAmpBlock.Presence, presence)
+            );
+            var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 24_000, 1e-4f), 64);
+            return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)));
+        }
+    }
+
     static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);
 
     static CircuitAmpBlock Create(string type, params (int Index, float Value)[] settings) {

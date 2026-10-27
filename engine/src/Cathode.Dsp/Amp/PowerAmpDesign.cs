@@ -122,7 +122,8 @@ public sealed record SpeakerDesign(
 ///     into a shunt resistor, with the presence control (a pot in series with a cap) across the shunt, which lowers the
 ///     feedback, and so lifts the response, at high frequencies; or, with <see cref="PresenceIsShunt" />, the presence
 ///     pot's track is the shunt itself and the cap goes from its wiper to ground (the 5F6-A and the amps that copied
-///     it). Depth lowers it below <paramref name="DepthFrequency" />, lifting the speaker resonance.
+///     it); or, with <see cref="Series" />, the presence is a rheostat in series with the feedback resistor (the Mesa
+///     Marks). Depth lowers it below <paramref name="DepthFrequency" />, lifting the speaker resonance.
 /// </summary>
 /// <param name="FeedbackResistor">From the tap to the shunt resistor.</param>
 /// <param name="ShuntResistor">From the bottom of the phase inverter tail to ground.</param>
@@ -214,23 +215,78 @@ public sealed record FeedbackDesign(
         var c0 = p0;
         var c1 = p1 + p0 * tb + rf * branch.Cap * d0;
         var c2 = p1 * tb + rf * branch.Cap * d1;
+        return Sections(d0, d1 / d0, tb, (c0, c1, c2));
+    }
+
+    /// <summary>
+    ///     β(s) = n0 (1 + s z_a) (1 + s z_b) / (c0 + c1 s + c2 s²) as two first-order sections: the denominator's real
+    ///     roots (an RC network's), each zero paired with the pole of the same rank, the slower with the slower.
+    /// </summary>
+    static (double Gain, double Zero1, double Pole1, double Zero2, double Pole2) Sections(
+        double n0,
+        double zeroA,
+        double zeroB,
+        (double C0, double C1, double C2) denominator
+    ) {
+        var (c0, c1, c2) = denominator;
         var (sum, product) = (c1 / c0, c2 / c0);
         var slow = 0.5 * (sum + Math.Sqrt(Math.Max(sum * sum - 4 * product, 0)));
         var fast = slow > 0 ? product / slow : 0;
-        var zero = d1 / d0;
-        var (zero1, zero2) = zero >= tb ? (zero, tb) : (tb, zero);
-        return (d0 / c0, zero1, slow, zero2, fast);
+        var (zero1, zero2) = zeroA >= zeroB ? (zeroA, zeroB) : (zeroB, zeroA);
+        return (n0 / c0, zero1, slow, zero2, fast);
+    }
+
+    /// <summary>
+    ///     The Mesa Marks' wiring, in place of the presence across the shunt (and of <see cref="Branch" />): from the
+    ///     tap, <see cref="Presence" /> as a rheostat (its resistance rises with the knob),
+    ///     <see cref="FeedbackResistor" /> and the leg's resistor with <see cref="PresenceCap" /> across it, in series,
+    ///     into the tail's foot; from there to ground <see cref="ShuntResistor" /> and the shunt leg's resistor and cap
+    ///     in parallel, in series. More presence is less feedback, and less of the cap's treble feedback. Null for the
+    ///     other wirings.
+    /// </summary>
+    public SeriesPresence? Series { get; init; }
+
+    /// <summary>
+    ///     With <see cref="Series" />: the feedback fraction as two first-order sections, as
+    ///     <see cref="BranchTimes" /> gives them, from Z_s / (Z_r + Z_s) with the series arm Z_r = r_p + R_f + R_l /
+    ///     (1 + s R_l C) and the shunt Z_s = R_x + R_m / (1 + s R_m C_m). The zeros are the series leg's (R_l C) and
+    ///     the shunt's (R_x R_m C_m / (R_x + R_m)); the poles are a real quadratic's roots, paired by rank.
+    /// </summary>
+    public (double Gain, double Zero1, double Pole1, double Zero2, double Pole2) SeriesTimes(
+        double presence,
+        double frequency = 1
+    ) {
+        var series = Series ?? default;
+        var arm = Presence.Ohms * Presence.Fraction(presence) + FeedbackResistor;
+        var leg = series.LegResistor * PresenceCap / frequency;
+        var shunt = series.ShuntLegResistor * series.ShuntLegCap;
+
+        // Z_r = (r0 + r1 s) / (1 + s τ_l), Z_s = (h0 + h1 s) / (1 + s τ_m);
+        // β = (h0 + h1 s) (1 + s τ_l) / ((r0 + r1 s) (1 + s τ_m) + (h0 + h1 s) (1 + s τ_l)).
+        var (r0, r1) = (arm + series.LegResistor, arm * leg);
+        var (h0, h1) = (ShuntResistor + series.ShuntLegResistor, ShuntResistor * shunt);
+        var c0 = r0 + h0;
+        var c1 = r1 + r0 * shunt + h1 + h0 * leg;
+        var c2 = r1 * shunt + h1 * leg;
+        return Sections(h0, h1 / h0, leg, (c0, c1, c2));
     }
 
     /// <summary>
     ///     The feedback fraction β(jω) at <paramref name="hz" /> straight from the network, Z / (R_f + Z) with the
-    ///     shunt, the presence (at rotation <paramref name="presence" />) and <see cref="Branch" /> in parallel
-    ///     (control thread; for tests and plots).
+    ///     shunt, the presence (at rotation <paramref name="presence" />) and <see cref="Branch" /> in parallel, or the
+    ///     <see cref="Series" /> wiring's divider (control thread; for tests and plots).
     /// </summary>
     public Complex Response(double hz, double presence, double frequency = 1) {
         var s = new Complex(0, 2 * Math.PI * hz);
         var c = PresenceCap / frequency;
         var (rf, rx) = (FeedbackResistor, ShuntResistor);
+        if (Series is { } series) {
+            var leg = series.LegResistor / (1 + s * series.LegResistor * c);
+            var arm = Presence.Ohms * Presence.Fraction(presence) + rf + leg;
+            var foot = rx + series.ShuntLegResistor / (1 + s * series.ShuntLegResistor * series.ShuntLegCap);
+            return foot / (arm + foot);
+        }
+
         Complex z;
         if (PresenceIsShunt) {
             var p = Presence.Fraction(presence);
@@ -252,6 +308,15 @@ public sealed record FeedbackDesign(
 /// <param name="Resistor">The branch's resistor.</param>
 /// <param name="Cap">The branch's cap.</param>
 public readonly record struct ShuntBranch(double Resistor, double Cap);
+
+/// <summary>
+///     The legs of a series presence (<see cref="FeedbackDesign.Series" />): the series arm's resistor (with the
+///     design's presence cap across it) and the shunt's resistor and cap in parallel.
+/// </summary>
+/// <param name="LegResistor">In the series arm, with <see cref="FeedbackDesign.PresenceCap" /> across it.</param>
+/// <param name="ShuntLegResistor">In the shunt, under <see cref="FeedbackDesign.ShuntResistor" />.</param>
+/// <param name="ShuntLegCap">Across <paramref name="ShuntLegResistor" />.</param>
+public readonly record struct SeriesPresence(double LegResistor, double ShuntLegResistor, double ShuntLegCap);
 
 /// <summary>
 ///     A rectifier: silicon (no drop to speak of) or a vacuum diode, whose drop follows Child's law,
