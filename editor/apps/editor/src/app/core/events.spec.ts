@@ -40,6 +40,22 @@ describe('modulatedValue', () => {
   });
 });
 
+describe('EventStream resync', () => {
+  it('asks the stores to read their state again, as a (re)connection does, instead of passing it on as an event', () => {
+    TestBed.configureTestingModule({ providers: [{ provide: ConnectionService, useValue: {} }] });
+    const stream = TestBed.inject(EventStream);
+    let resyncs = 0;
+    const events: string[] = [];
+    stream.connected$.subscribe(() => resyncs++);
+    stream.events$.subscribe(e => events.push(e.type));
+
+    (stream as unknown as { receive(data: unknown): void }).receive(JSON.stringify({ type: 'resync' }));
+
+    expect(resyncs).toBe(1);
+    expect(events).toEqual([]);
+  });
+});
+
 describe('EventStream.modulation', () => {
   function receive(stream: EventStream, message: object): void {
     (stream as unknown as { receive(data: unknown): void }).receive(JSON.stringify(message));

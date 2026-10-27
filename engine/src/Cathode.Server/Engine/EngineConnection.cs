@@ -366,7 +366,8 @@ public sealed partial class EngineConnection(
                     points[i] = window[i * ScopeDecimation];
                 }
 
-                hub.Publish(
+                hub.PublishFrame(
+                    "scope",
                     new("scope", source.Region.SampleRate / ScopeDecimation, points),
                     ContractsJsonContext.Default.ScopeFrame
                 );
@@ -377,7 +378,8 @@ public sealed partial class EngineConnection(
                 continue;
             }
 
-            hub.Publish(
+            hub.PublishFrame(
+                "telemetry",
                 new(
                     "telemetry",
                     reading.InputPeak,
@@ -555,7 +557,8 @@ public sealed partial class EngineConnection(
         LastTelemetry = t;
         TelemetryUpdated?.Invoke(t);
         if (monitor is null) {
-            hub.Publish(
+            hub.PublishFrame(
+                "telemetry",
                 new(
                     "telemetry",
                     t.InputPeak,

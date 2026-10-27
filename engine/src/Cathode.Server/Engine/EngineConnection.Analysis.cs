@@ -114,7 +114,8 @@ public sealed partial class EngineConnection {
         }
 
         rtaLevels = levels;
-        hub.Publish(
+        hub.PublishFrame(
+            "rta",
             new("rta", settings.Frequencies, levels, fromBlock ? "block" : "output"),
             ContractsJsonContext.Default.RtaFrame
         );

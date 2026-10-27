@@ -102,7 +102,7 @@ public sealed partial class MidiRouter : IDisposable {
     public void OnMidi(IReadOnlyList<MidiEventMessage> messages) {
         var settings = globals.Get();
         foreach (var message in messages) {
-            hub.Publish(
+            hub.PublishActivity(
                 new("midi", message.Status, message.Data1, message.Data2),
                 ContractsJsonContext.Default.MidiActivity
             );
