@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signa
 import {
   type Footswitch,
   type FootswitchLayout,
+  type FootswitchOverride,
   type GlobalSettings,
   MidiActions,
   type MidiActivity,
@@ -32,6 +33,7 @@ import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import {
   actionText,
+  type OverrideChange,
   addView,
   overrideOf,
   parseAction,
@@ -601,7 +603,7 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                       (valueChange)="editSwitch(layout, fs, { link: $event?.id ?? null })"
                     />
                   </div>
-                  <div role="cell" class="min-w-0">
+                  <div role="cell" class="flex min-w-0 flex-col gap-1">
                     <input
                       #overrideField
                       xuiInput
@@ -610,8 +612,30 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                       placeholder="(layout's)"
                       [attr.aria-label]="'Switch ' + fs.index + ' action in this preset'"
                       [value]="presetOverride(layout.id, fs.index)"
-                      (change)="setOverride(layout.id, fs.index, overrideField.value)"
+                      (change)="setOverride(layout.id, fs.index, { tap: parseAction(overrideField.value) })"
                     />
+                    @if (overrideOf(layout.id, fs.index); as own) {
+                      <input
+                        #overrideHoldField
+                        xuiInput
+                        size="sm"
+                        class="w-full"
+                        placeholder="hold: (none)"
+                        [attr.aria-label]="'In this preset, hold action of switch ' + fs.index"
+                        [value]="own.hold ? actionText(own.hold) : ''"
+                        (change)="setOverride(layout.id, fs.index, { hold: parseAction(overrideHoldField.value) })"
+                      />
+                      <input
+                        #overrideLabelField
+                        xuiInput
+                        size="sm"
+                        class="w-full"
+                        [placeholder]="'label: ' + (fs.label || 'none')"
+                        [attr.aria-label]="'In this preset, label of switch ' + fs.index"
+                        [value]="own.label ?? ''"
+                        (change)="setOverride(layout.id, fs.index, { label: overrideLabelField.value })"
+                      />
+                    }
                   </div>
                   <div role="cell" class="min-w-0">
                     <button
@@ -639,7 +663,8 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
               B), looper record, tap, tuner, metronome, mute, presetNext, viewNext, layout &lt;id&gt;. Scenes, channels,
               Manuals, views and Externals count from 1. A switch with a hold action acts on release; hold it for half a
               second for the hold action. A switch can also jump to another layout after its action, and the loaded
-              preset can give it an action of its own (In this preset), saved with the preset.
+              preset can give it an action of its own (In this preset), saved with the preset; once it has one, the
+              preset can also give it a hold action (empty for none) and a label of its own.
             </xui-callout>
           }
         </section>
@@ -853,13 +878,18 @@ export class GlobalPage {
 
   /** The loaded preset's own action for a switch, as text. */
   protected presetOverride(layout: string, index: number): string {
-    const own = overrideOf(this.live.preset()?.footswitchOverrides ?? [], layout, index);
+    const own = this.overrideOf(layout, index);
     return own ? this.actionText(own.tap) : '';
   }
 
-  protected setOverride(layout: string, index: number, text: string): void {
+  /** The loaded preset's override for a switch: its hold action and label are edited once it has a tap. */
+  protected overrideOf(layout: string, index: number): FootswitchOverride | undefined {
+    return overrideOf(this.live.preset()?.footswitchOverrides ?? [], layout, index);
+  }
+
+  protected setOverride(layout: string, index: number, change: OverrideChange): void {
     const overrides = this.live.preset()?.footswitchOverrides ?? [];
-    void this.live.setFootswitchOverrides(withOverride(overrides, layout, index, this.parseAction(text)));
+    void this.live.setFootswitchOverrides(withOverride(overrides, layout, index, change));
   }
 
   protected removeSwitch(layout: FootswitchLayout, fs: Footswitch): void {

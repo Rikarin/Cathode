@@ -4,7 +4,7 @@ import { parseSlot } from '../shell/preset-picker';
 import { libraryFolders, wholeBlock } from '../state/block-presets.store';
 import { nextChannel } from '../state/ui.store';
 import { actionText, addView, overrideOf, parseAction, removeView, viewNames, withOverride } from './footswitches';
-import { resolveControls, withControl, withoutControl } from './perform';
+import { movedControl, resolveControls, withControl, withLabel, withoutControl } from './perform';
 
 describe('footswitch views and overrides', () => {
   const layout: FootswitchLayout = {
@@ -60,11 +60,35 @@ describe('footswitch views and overrides', () => {
   });
 
   it('keeps one override per switch in the preset', () => {
-    let overrides = withOverride([], 'main', 1, { action: 'scene', value: 3 });
-    overrides = withOverride(overrides, 'main', 1, { action: 'scene', value: 4 });
+    let overrides = withOverride([], 'main', 1, { tap: { action: 'scene', value: 3 } });
+    overrides = withOverride(overrides, 'main', 1, { tap: { action: 'scene', value: 4 } });
     expect(overrides).toHaveLength(1);
     expect(overrideOf(overrides, 'main', 1)?.tap.value).toBe(4);
-    expect(withOverride(overrides, 'main', 1, null)).toEqual([]);
+    expect(withOverride(overrides, 'main', 1, { tap: null })).toEqual([]);
+  });
+
+  it('give an overridden switch a hold action and a label of its own, kept when the tap changes', () => {
+    const tap = { action: 'scene', value: 0 };
+    let overrides = withOverride([], 'main', 2, { tap });
+    overrides = withOverride(overrides, 'main', 2, { hold: { action: 'tuner' } });
+    overrides = withOverride(overrides, 'main', 2, { label: '  Verse  ' });
+    overrides = withOverride(overrides, 'main', 2, { tap: { action: 'scene', value: 1 } });
+    expect(overrides).toEqual([
+      { layout: 'main', index: 2, tap: { action: 'scene', value: 1 }, hold: { action: 'tuner' }, label: 'Verse' }
+    ]);
+
+    // Blank text goes back to the layout's label; a null hold means none in this preset.
+    overrides = withOverride(overrides, 'main', 2, { label: ' ', hold: null });
+    expect(overrideOf(overrides, 'main', 2)).toMatchObject({ hold: null, label: null });
+  });
+
+  it('need a tap before a hold or label, and keep an override in its place', () => {
+    expect(withOverride([], 'main', 1, { label: 'Solo' })).toEqual([]);
+    const overrides = [
+      { layout: 'main', index: 1, tap: { action: 'tap' }, hold: null, label: null },
+      { layout: 'main', index: 2, tap: { action: 'tuner' }, hold: null, label: null }
+    ];
+    expect(withOverride(overrides, 'main', 1, { label: 'Tap' }).map(o => o.label)).toEqual(['Tap', null]);
   });
 
   it('show and take scene, channel, Manual and view numbers from 1, as Externals are, storing them from 0', () => {
@@ -96,6 +120,27 @@ describe('performance pages', () => {
     const page = withControl(withControl([], { block: 'amp1', param: 'gain' }), { block: 'amp1', param: 'gain' });
     expect(page).toHaveLength(1);
     expect(withoutControl(page, { block: 'amp1', param: 'gain' })).toEqual([]);
+  });
+
+  it('give a control a caption of its own, blank going back to the parameter name', () => {
+    const page = [
+      { block: 'amp1', param: 'gain', label: null },
+      { block: 'delay1', param: 'mix', label: null }
+    ];
+    const named = withLabel(page, page[0] as never, '  Crunch ');
+    expect(named.map(c => c.label)).toEqual(['Crunch', null]);
+    expect(withLabel(named, page[0] as never, '   ')[0]?.label).toBeNull();
+    const info = () => ({ name: 'Amp', params: [{ id: 'gain', name: 'Gain' }] }) as never;
+    const preset = { blocks: [{ id: 'amp1', type: 'amp' }] } as never;
+    expect(resolveControls(named, preset, info)[0]).toMatchObject({ label: 'Crunch', name: 'Amp Gain' });
+  });
+
+  it('move a control to another place, the others keeping their order', () => {
+    const page = ['a', 'b', 'c', 'd'].map(block => ({ block, param: 'p' }));
+    expect(movedControl(page, 0, 2).map(c => c.block)).toEqual(['b', 'c', 'a', 'd']);
+    expect(movedControl(page, 3, 0).map(c => c.block)).toEqual(['d', 'a', 'b', 'c']);
+    expect(movedControl(page, 1, 99).map(c => c.block)).toEqual(['a', 'c', 'd', 'b']);
+    expect(movedControl(page, 7, 0)).toEqual(page);
   });
 
   it('show a global control as missing in a preset without its block', () => {

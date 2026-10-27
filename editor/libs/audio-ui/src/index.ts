@@ -1,4 +1,4 @@
-export { onAnimationFrame, themeColor } from './lib/animation';
+export { onAnimationFrame, themeColor, themeColors } from './lib/animation';
 export * from './lib/block-icons';
 export * from './lib/block-tile';
 export * from './lib/knob';

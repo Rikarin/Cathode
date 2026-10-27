@@ -13,7 +13,13 @@ The **Perform** page shows the handful of controls you need while playing, large
 
 **This preset** and **Global** at the top of the Perform page switch between the two. A global control whose block the loaded preset does not have shows as "not in this preset".
 
-Each control works like the original: drag, scroll or type a value. A control driven by a modifier turns with it. The **×** in a control's corner removes it from the page (the block itself is not touched).
+Each control works like the original: drag, scroll or type a value. A control driven by a modifier turns with it. The bar along the top of each control arranges the page:
+
+- **Rename** (the pencil) gives the control a caption of its own, such as "Crunch" instead of "Amp Gain". Press Enter to keep it, Escape to cancel; clear the text to go back to the block and parameter name.
+- **Move earlier** and **Move later** (the arrows) swap it with its neighbour. You can also drag a control by its grip (the dotted handle on the left) and drop it on another control's place.
+- **×** removes it from the page (the block itself is not touched).
+
+Captions and order are saved with the page: with the preset for **This preset**, in the global settings for **Global**.
 
 > **Tip:** Put the same controls on the global Perform page with blocks of the same ids in all your presets (`amp1` for the main amp, `delay1` for the main delay), and the page works the same in every song.
 

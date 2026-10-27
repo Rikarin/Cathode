@@ -7,9 +7,31 @@ import { LibraryStore } from '../../state/library.store';
 import { LiveStore } from '../../state/live.store';
 import { AssetPicker } from './asset-picker';
 
+/** The learn-time amounts the panel offers, in %. */
+export const toneMatchAmounts = [25, 50, 75, 100];
+/** The smoothing widths the panel offers, in octaves. */
+export const toneMatchSmoothings = [1 / 6, 1 / 4, 1 / 3, 1 / 2, 1];
+
+/** Names a smoothing width as a fraction of an octave: "1/3 octave", "1 octave". */
+export function smoothingName(octaves: number): string {
+  return octaves >= 1 ? '1 octave' : `1/${Math.round(1 / octaves)} octave`;
+}
+
+/** The body of a learn request, clamped to the ranges the Server accepts. */
+export function toneMatchRequest(reference: string, seconds: number, amount: number, smoothing: number) {
+  const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+  return {
+    reference,
+    seconds: clamp(seconds, 3, 60),
+    amount: clamp(amount, 0, 100),
+    smoothing: clamp(smoothing, 0.1, 1)
+  };
+}
+
 /**
  * Learning a Tone Match: pick a recording of the tone to match, press Learn and play for a while. The Server listens
- * to the rig's output, compares the two long-term spectra and stores the correction as the block's match.
+ * to the rig's output, compares the two long-term spectra and stores the correction as the block's match. Amount and
+ * Smoothing shape that correction as it is learnt.
  */
 @Component({
   selector: 'cth-tone-match-panel',
@@ -37,6 +59,32 @@ import { AssetPicker } from './asset-picker';
             (valueChange)="$event && duration.set($event)"
           />
         </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-foreground-muted text-xs">Amount</span>
+          <xui-select
+            class="w-28"
+            aria-label="Amount"
+            data-testid="tone-match-amount"
+            [filterable]="false"
+            [items]="amounts"
+            [itemText]="percent"
+            [value]="amount()"
+            (valueChange)="$event && amount.set($event)"
+          />
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-foreground-muted text-xs">Smoothing</span>
+          <xui-select
+            class="w-32"
+            aria-label="Smoothing"
+            data-testid="tone-match-smoothing"
+            [filterable]="false"
+            [items]="smoothings"
+            [itemText]="octaves"
+            [value]="smoothing()"
+            (valueChange)="$event && smoothing.set($event)"
+          />
+        </label>
         <button
           type="button"
           xuiButton
@@ -50,7 +98,8 @@ import { AssetPicker } from './asset-picker';
       </div>
       <xui-callout class="max-w-xl" minimal compact color="primary">
         Play the same kind of part as the reference, at playing level, until Tone Match stops listening. Learning again
-        replaces the match rather than adding to it.
+        replaces the match rather than adding to it. Finer smoothing follows the reference more closely; wider smoothing
+        keeps only its broad shape.
       </xui-callout>
     </div>
   `
@@ -65,6 +114,14 @@ export class ToneMatchPanel {
   protected readonly seconds = (s: number) => `${s} seconds`;
   protected readonly reference = signal<AssetInfo | null>(null);
   protected readonly duration = signal(10);
+  /** How much of the learnt correction goes into the match (the block's Amount knob scales it again afterwards). */
+  protected readonly amounts = toneMatchAmounts;
+  protected readonly percent = (a: number) => `${a} %`;
+  protected readonly amount = signal(100);
+  /** The smoothing width, in octaves, within the 0.1 to 1 octave the Server accepts. */
+  protected readonly smoothings = toneMatchSmoothings;
+  protected readonly octaves = smoothingName;
+  protected readonly smoothing = signal(1 / 3);
   protected readonly listening = signal(false);
   protected readonly matchName = computed(() => {
     const match = this.block().assets['match'];
@@ -85,7 +142,7 @@ export class ToneMatchPanel {
       await this.live.mutate(c =>
         c.POST('/api/v1/live/blocks/{id}/tonematch', {
           params: { path: { id } },
-          body: { reference: reference.ref, seconds: this.duration(), amount: 100, smoothing: 1 / 3 }
+          body: toneMatchRequest(reference.ref, this.duration(), this.amount(), this.smoothing())
         })
       );
       await this.library.refreshAssets();

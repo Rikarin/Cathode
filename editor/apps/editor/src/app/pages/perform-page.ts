@@ -4,13 +4,14 @@ import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import { CatalogStore } from '../state/catalog.store';
 import { GlobalStore } from '../state/global.store';
 import { LiveStore } from '../state/live.store';
-import { type ResolvedControl, resolveControls, withoutControl } from './perform';
-import { PerformControl } from './perform-control';
+import type { PerformControl as Control } from '@cathode/api-client';
+import { type ResolvedControl, movedControl, resolveControls, withLabel, withoutControl } from './perform';
+import { PerformControl, PerformDragType } from './perform-control';
 
 /**
  * Perform: big controls for playing live. The preset's page travels with the preset; the global page shows in every
  * preset that has its blocks. Add a control from any knob's context menu. A control a modifier drives follows its
- * live value.
+ * live value. Controls can be renamed, and reordered by their move buttons or by dragging their grip onto another.
  */
 @Component({
   selector: 'cth-perform-page',
@@ -36,8 +37,22 @@ import { PerformControl } from './perform-control';
       />
     } @else {
       <div class="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-6" data-testid="perform-grid">
-        @for (c of controls(); track c.control.block + '/' + c.control.param) {
-          <cth-perform-control [control]="c" (remove)="remove(c)" />
+        @for (c of controls(); track c.control.block + '/' + c.control.param; let i = $index, first = $first, last = $last) {
+          <cth-perform-control
+            [control]="c"
+            [first]="first"
+            [last]="last"
+            [class.ring-2]="dropTarget() === i && dragging() !== i"
+            [class.ring-primary]="dropTarget() === i && dragging() !== i"
+            (remove)="remove(c)"
+            (rename)="rename(c, $event)"
+            (move)="move(i, i + $event)"
+            (dragstart)="dragging.set(i)"
+            (dragend)="dragging.set(null); dropTarget.set(null)"
+            (dragover)="dragOver($event, i)"
+            (dragleave)="dropTarget() === i && dropTarget.set(null)"
+            (drop)="drop($event, i)"
+          />
         }
       </div>
     }
@@ -61,11 +76,48 @@ export class PerformPage {
     )
   );
 
+  /** The index of the control being dragged by its grip, and of the one it is over. */
+  protected readonly dragging = signal<number | null>(null);
+  protected readonly dropTarget = signal<number | null>(null);
+
   protected remove(c: ResolvedControl): void {
+    this.change(page => withoutControl(page, c.control));
+  }
+
+  protected rename(c: ResolvedControl, label: string | null): void {
+    this.change(page => withLabel(page, c.control, label));
+  }
+
+  protected move(from: number, to: number): void {
+    if (to >= 0 && to < this.controls().length && from !== to) {
+      this.change(page => movedControl(page, from, to));
+    }
+  }
+
+  protected dragOver(event: DragEvent, index: number): void {
+    if (this.dragging() !== null && event.dataTransfer?.types.includes(PerformDragType)) {
+      event.preventDefault(); // a drop target
+      event.dataTransfer.dropEffect = 'move';
+      this.dropTarget.set(index);
+    }
+  }
+
+  protected drop(event: DragEvent, index: number): void {
+    const from = this.dragging();
+    this.dragging.set(null);
+    this.dropTarget.set(null);
+    if (from !== null) {
+      event.preventDefault();
+      this.move(from, index);
+    }
+  }
+
+  /** Saves the page shown, through the preset or the global settings. */
+  private change(edit: (page: readonly Control[]) => Control[]): void {
     if (this.page() === 'preset') {
-      void this.live.setPerform(withoutControl(this.live.preset()?.perform ?? [], c.control));
+      void this.live.setPerform(edit(this.live.preset()?.perform ?? []));
     } else {
-      void this.globals.update(g => (g.perform = withoutControl(g.perform, c.control)));
+      void this.globals.update(g => (g.perform = edit(g.perform)));
     }
   }
 }

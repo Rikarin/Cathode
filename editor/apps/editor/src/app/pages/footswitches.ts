@@ -36,15 +36,40 @@ export function overrideOf(
   return overrides.find(o => o.layout === layout && o.index === index);
 }
 
-/** The overrides with the switch's set to `tap` (null removes it). */
+/** A change to a switch's override: the fields left out keep their value. */
+export interface OverrideChange {
+  /** The preset's tap action; null removes the override (the contract needs a tap). */
+  tap?: SwitchAction | null;
+  /** The preset's hold action; null means none while the preset is loaded, whatever the layout holds. */
+  hold?: SwitchAction | null;
+  /** The switch's caption while the preset is loaded; blank goes back to the layout's. */
+  label?: string | null;
+}
+
+/**
+ * The overrides with the switch's changed. A new override needs a tap: a hold or label for a switch the preset does
+ * not override yet changes nothing. An override keeps its place in the list.
+ */
 export function withOverride(
   overrides: readonly FootswitchOverride[],
   layout: string,
   index: number,
-  tap: SwitchAction | null
+  change: OverrideChange
 ): FootswitchOverride[] {
-  const others = overrides.filter(o => !(o.layout === layout && o.index === index));
-  return tap ? [...others, { layout, index, tap, hold: null, label: null }] : others;
+  const own = overrideOf(overrides, layout, index);
+  const tap = change.tap === undefined ? own?.tap : change.tap;
+  if (!tap) {
+    return overrides.filter(o => o !== own);
+  }
+
+  const next: FootswitchOverride = {
+    layout,
+    index,
+    tap,
+    hold: change.hold === undefined ? (own?.hold ?? null) : change.hold,
+    label: change.label === undefined ? (own?.label ?? null) : change.label?.trim() || null
+  };
+  return own ? overrides.map(o => (o === own ? next : o)) : [...overrides, next];
 }
 
 /**

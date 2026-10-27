@@ -16,11 +16,16 @@ first, then let Tone Match close the gap in EQ.`,
 3. In the block's panel, pick the reference recording and how long to listen for, press *Learn*, and play the same
    kind of part as the reference, at playing level, until it stops listening.
 
+**Amount** and **Smoothing** beside *Listen for* shape the correction as it is learnt. Amount (25 to 100 %) is how
+much of the difference goes into the match; the block's own Amount knob scales it again afterwards. Smoothing (1/6 of
+an octave to a whole octave, a third by default) is how closely the correction follows the reference: finer smoothing
+copies more detail, wider smoothing keeps only the broad shape.
+
 It listens to the rig's output. Learning again replaces the old match rather than stacking a new one on top. Until you
 learn a match, the block passes the signal through unchanged.
 
-**What the filter does.** The correction is smoothed to a third of an octave (so it follows the overall shape, not
-single notes), limited to ±18 dB, held flat below 40 Hz and above 16 kHz, and set so the level between 100 Hz and
+**What the filter does.** The correction is smoothed to the chosen width, a third of an octave by default (so it
+follows the overall shape, not single notes), limited to ±18 dB, held flat below 40 Hz and above 16 kHz, and set so the level between 100 Hz and
 5 kHz stays about the same. It is a minimum-phase filter with no latency.`,
 
   params: {

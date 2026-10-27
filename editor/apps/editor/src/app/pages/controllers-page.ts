@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { type SceneMidiMessage } from '@cathode/api-client';
 import { CthKnob } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
@@ -18,6 +18,9 @@ import { Notify } from '../core/notify';
 import { GlobalStore } from '../state/global.store';
 import { LiveStore } from '../state/live.store';
 
+/** External 1-8: the modifier sources a pedal or CC drives. */
+const externalCount = 8;
+
 /** How the Controllers page names a modifier's scope: all channels, or one. */
 export function scopeName(channel: string | null | undefined): string {
   return !channel || channel === 'all' ? 'All channels' : `Channel ${channel} only`;
@@ -26,7 +29,8 @@ export function scopeName(channel: string | null | undefined): string {
 /**
  * The controllers modifiers draw on (docs/02-architecture.md §5.4): two LFOs, two ADSRs, the envelope and pitch
  * followers and the sequencer (stored with the preset), the active scene's level and controllers, and Manual A-D
- * (global). Assign them to a knob by right-clicking it on the block page.
+ * (global), and External 1-8, which a pedal or CC normally drives and which can be set here too (live only). Assign
+ * them to a knob by right-clicking it on the block page.
  */
 @Component({
   selector: 'cth-controllers-page',
@@ -188,6 +192,26 @@ export function scopeName(channel: string | null | undefined): string {
         </div>
       </section>
 
+      <section xuiCard class="flex flex-col gap-3 p-4" aria-labelledby="external-heading">
+        <h2 xuiHeading id="external-heading" class="text-sm">External (live)</h2>
+        <p xuiText class="text-foreground-muted text-xs">
+          What an expression pedal or a MIDI CC mapped to an External would set: move one here to try a wah, a whammy or
+          a modifier without a pedal. Live values only, not saved; a pedal moved later takes over.
+        </p>
+        <div class="flex flex-wrap gap-6" data-testid="external-controls">
+          @for (value of externals(); track $index) {
+            <cth-knob
+              [label]="'External ' + ($index + 1)"
+              unit="%"
+              [min]="0"
+              [max]="100"
+              [value]="value * 100"
+              (valueChange)="setExternal($index, $event / 100)"
+            />
+          }
+        </div>
+      </section>
+
       <!-- Pairs side by side: LFO 1 and 2, ADSR 1 and 2, then the envelope and pitch followers. -->
       <div class="grid gap-6 lg:grid-cols-2">
         @for (group of groups; track group.title) {
@@ -325,6 +349,11 @@ export class ControllersPage {
       (value, i) => (this.sending.pending(`manual:${i}`) as number | undefined) ?? value
     )
   );
+  /** External 1-8 as last set from this page: the Server keeps them live only and does not report them back. */
+  private readonly externalsSent = signal<readonly number[]>(Array.from({ length: externalCount }, () => 0));
+  protected readonly externals = computed(() =>
+    this.externalsSent().map((value, i) => (this.sending.pending(`external:${i}`) as number | undefined) ?? value)
+  );
   protected readonly stages = computed(() =>
     Array.from({ length: Math.round(this.stored('seqStages') ?? 8) }, (_, i) => i + 1)
   );
@@ -371,7 +400,14 @@ export class ControllersPage {
     return this.sending.set(`manual:${index}`, value);
   }
 
-  /** Sends one coalesced value: `controller:<id>`, `scene:<n>:level`, `scene:<n>:controllers` or `manual:<n>`. */
+  protected setExternal(index: number, value: number): Promise<void> {
+    return this.sending.set(`external:${index}`, Math.min(1, Math.max(0, value)));
+  }
+
+  /**
+   * Sends one coalesced value: `controller:<id>`, `scene:<n>:level`, `scene:<n>:controllers`, `manual:<n>` or
+   * `external:<n>`.
+   */
   private async send(key: string, value: number | number[]): Promise<void> {
     const [kind, id = '', field] = key.split(':');
     if (kind === 'controller') {
@@ -381,6 +417,15 @@ export class ControllersPage {
         Number(id),
         field === 'level' ? { level: value as number } : { controllers: value as number[] }
       );
+    } else if (kind === 'external') {
+      const index = Number(id);
+      await this.notify.run(async () => {
+        await this.connection.client.PUT('/api/v1/live/external/{index}', {
+          params: { path: { index } },
+          body: { value: value as number }
+        });
+        this.externalsSent.update(values => values.map((v, i) => (i === index ? (value as number) : v)));
+      });
     } else {
       const index = Number(id);
       await this.notify.run(async () => {
