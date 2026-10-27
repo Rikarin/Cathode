@@ -14,7 +14,7 @@ namespace Cathode.Server.Stores;
 ///     Presets reference assets as <c>sha256:&lt;hex&gt;</c>, so the same file uploaded twice is stored once and a
 ///     preset always gets exactly the file it was made with.
 /// </summary>
-public sealed class AssetStore {
+public sealed partial class AssetStore {
     public const long MaxBytes = 64 * 1024 * 1024;
     const string Prefix = "sha256:";
 
@@ -23,15 +23,48 @@ public sealed class AssetStore {
     readonly Lock gate = new();
     readonly Dictionary<string, AssetInfo> index;
 
-    public AssetStore(IOptions<ServerOptions> options) {
+    public AssetStore(IOptions<ServerOptions> options, ILogger<AssetStore> logger) {
         folder = Path.Combine(options.Value.DataDirectory, "assets");
         Directory.CreateDirectory(folder);
         indexPath = Path.Combine(folder, "index.json");
-        index = File.Exists(indexPath)
-            ? (JsonSerializer.Deserialize(File.ReadAllText(indexPath), ContractsJsonContext.Default.AssetInfoArray)
-                ?? [])
-            .ToDictionary(static a => a.Ref, StringComparer.Ordinal)
-            : new(StringComparer.Ordinal);
+        index = new(StringComparer.Ordinal);
+        if (!File.Exists(indexPath)) {
+            return;
+        }
+
+        try {
+            var entries = JsonSerializer.Deserialize(
+                    File.ReadAllText(indexPath),
+                    ContractsJsonContext.Default.AssetInfoArray
+                )
+                ?? [];
+            foreach (var entry in entries) {
+                if (entry is { Ref: not null, Name: not null, Kind: not null }) {
+                    index[entry.Ref] = entry;
+                }
+            }
+        } catch (JsonException e) {
+            // Rather than stop the Server: every asset is still there under its reference, only names, colours and
+            // favourites are lost. The damaged index is kept beside the new one.
+            IndexDamaged(logger, indexPath, e.Message);
+            File.Copy(indexPath, indexPath + ".damaged", true);
+            Rebuild();
+            SaveIndex();
+        }
+    }
+
+    /// <summary>The index from the asset files present: each file's name is its reference, its extension its kind.</summary>
+    void Rebuild() {
+        index.Clear();
+        foreach (var file in new DirectoryInfo(folder).EnumerateFiles()) {
+            var hash = Path.GetFileNameWithoutExtension(file.Name);
+            if (KindOf(file.Name) is { } kind
+                && Extension(kind) == file.Extension
+                && hash.Length == 64
+                && hash.All(static c => char.IsAsciiHexDigitLower(c))) {
+                index[Prefix + hash] = new(Prefix + hash, file.Name, kind, file.Length, file.CreationTimeUtc);
+            }
+        }
     }
 
     public IReadOnlyList<AssetInfo> List() {
@@ -251,8 +284,15 @@ public sealed class AssetStore {
     string FilePath(string reference, string kind) =>
         Path.Combine(folder, reference[Prefix.Length..] + Extension(kind));
 
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "The asset index {Path} is damaged ({Error}); rebuilt from the files in the folder"
+    )]
+    static partial void IndexDamaged(ILogger logger, string path, string error);
+
+    /// <summary>Written atomically (<see cref="AtomicRename.Write" />): rewritten on every upload, rename and delete.</summary>
     void SaveIndex() =>
-        File.WriteAllText(
+        AtomicRename.Write(
             indexPath,
             JsonSerializer.Serialize([..index.Values], ContractsJsonContext.Default.AssetInfoArray)
         );

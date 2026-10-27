@@ -1,6 +1,9 @@
+using Cathode.Contracts;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace Cathode.Server.Tests;
 
@@ -16,6 +19,34 @@ public sealed class AssetUploadTests : IAsyncLifetime {
     public async ValueTask DisposeAsync() {
         client.Dispose();
         await server.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task A_damaged_asset_index_is_rebuilt_from_the_files_rather_than_stopping_the_server() {
+        await using var damaged = new ServerFixture();
+        var folder = Directory.CreateDirectory(Path.Combine(damaged.DataDirectory, "assets")).FullName;
+        byte[] content = [1, 2, 3, 4];
+        var hash = Convert.ToHexStringLower(SHA256.HashData(content));
+        await File.WriteAllBytesAsync(Path.Combine(folder, hash + ".nam"), content, Token);
+        await File.WriteAllTextAsync(Path.Combine(folder, "index.json"), """[{ "ref": "sha256:""", Token);
+
+        using var http = await damaged.ConnectedClientAsync();
+        var listed = (await http.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!;
+        using var upload = await http.PostAsync("/api/v1/assets?name=more.nam", new ByteArrayContent([5, 6]), Token);
+
+        var asset = Assert.Single(listed);
+        Assert.Equal(("sha256:" + hash, "nam", 4L), (asset.Ref, asset.Kind, asset.Size));
+        Assert.Equal(HttpStatusCode.OK, upload.StatusCode);
+        Assert.Equal(2, (await http.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!.Length);
+        Assert.True(File.Exists(Path.Combine(folder, "index.json.damaged")));
+        Assert.Equal(
+            2,
+            JsonSerializer.Deserialize<AssetInfo[]>(
+                await File.ReadAllTextAsync(Path.Combine(folder, "index.json"), Token),
+                JsonSerializerOptions.Web
+            )!
+                .Length
+        );
     }
 
     [Fact]

@@ -21,6 +21,9 @@ public sealed class ServerFixture(string? socketPath = null, string? token = nul
     : WebApplicationFactory<Program> {
     readonly string dataDirectory = Directory.CreateTempSubdirectory("cathode-server-").FullName;
 
+    /// <summary>The server's data folder, to lay out files before it starts.</summary>
+    public string DataDirectory => dataDirectory;
+
     /// <summary>The test that made this server: its warnings and errors go to that test's output.</summary>
     readonly ITestOutputHelper? output = TestContext.Current.TestOutputHelper;
 
