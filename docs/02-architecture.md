@@ -402,6 +402,9 @@ Still to come: RMS, per-block CPU, scene state, and binary frames.
 
 Every mutation produces an **event** on `/ws`, whatever its source (REST, MIDI or footswitch). That keeps multiple editors in sync, and makes MIDI-driven changes visible in the UI as they are on Axe-Edit.
 
+Live state outside the preset has events of its own, which carry the current `revision` without raising it (the working copy did not change):
+- `tunerChanged` (`value` 1 or 0): the tuner went on or off, from `PUT /tuner`, a MIDI mapping or a footswitch. The rig owns the tuner state, so a footswitch LED follows the editor's tuner and the other way round, and a host that restarts gets the tuner back as part of the resync, with whether to follow MIDI clock.
+
 ---
 
 ## 7. Editor (Electron + Angular 22 + Tailwind 4 + xUI)

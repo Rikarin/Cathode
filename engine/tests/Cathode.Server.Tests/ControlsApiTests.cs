@@ -4,6 +4,7 @@ using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.Server.Engine;
 using Cathode.Server.Midi;
+using Cathode.Server.Rig;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
@@ -197,6 +198,54 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         await ServerFixture.Eventually(async () => (await Live()).Muted);
         await Task.Delay(300, Token);
         Assert.True((await Live()).Muted);
+    }
+
+    [Fact]
+    public async Task The_tuner_has_one_state_for_rest_midi_and_its_led() {
+        var sent = new List<byte[]>();
+        server.Host.NativeMidiSend = (_, bytes) => {
+            lock (sent) {
+                sent.Add(bytes);
+            }
+
+            return true;
+        };
+        await PutGlobal(static g => {
+                g.Footswitches.Add(new("pedalboard", "Pedalboard", [new(1, "Tuner", "cc", 1, 32, new("tuner"))]));
+                g.ActiveLayout = "pedalboard";
+            }
+        );
+        var rig = server.Services.GetRequiredService<LiveRig>();
+        var events = new List<RigEvent>();
+        rig.Changes += e => {
+            lock (events) {
+                events.Add(e);
+            }
+        };
+        var router = server.Services.GetRequiredService<MidiRouter>();
+
+        // The editor turns it on: the LED follows, and an event tells the other clients.
+        await Ok(client.PutAsJsonAsync("/api/v1/tuner", new BypassRequest(false), Token));
+        Assert.True(rig.TunerOn);
+        await ServerFixture.Eventually(() => Sent(sent, [0xB0, 32, 127]));
+        lock (events) {
+            Assert.Contains(events, static e => e is { Type: "tunerChanged", Value: 1 });
+        }
+
+        // The footswitch toggles what the editor set: off, not on again.
+        lock (sent) {
+            sent.Clear();
+        }
+
+        router.OnMidi([new(0xB0, 32, 127, 0)]);
+        await ServerFixture.Eventually(() => {
+                lock (events) {
+                    return events.Exists(static e => e is { Type: "tunerChanged", Value: 0 });
+                }
+            }
+        );
+        Assert.False(rig.TunerOn);
+        await ServerFixture.Eventually(() => Sent(sent, [0xB0, 32, 0]));
     }
 
     [Fact]

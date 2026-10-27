@@ -86,6 +86,26 @@ public sealed class EngineLinkTests : IAsyncDisposable {
         Assert.True(client.IsConnected);
     }
 
+    [Fact]
+    public async Task The_tuner_and_midi_clock_are_resent_after_the_host_restarts() {
+        await using var server = new ServerFixture(host.SocketPath);
+        using var client = await server.ConnectedClientAsync();
+        var global = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;
+        global.TempoMode = "midiClock";
+        await Ok(client.PutAsJsonAsync("/api/v1/global", global, Token));
+        await Ok(client.PutAsJsonAsync("/api/v1/tuner", new BypassRequest(false), Token));
+
+        var before = host.Received.Count;
+        host.Disconnect(); // the desktop restarts cathode-host on every audio-settings change
+        await ServerFixture.Eventually(async () => host.Connections >= 2
+            && (await client.GetFromJsonAsync<SystemInfo>("/api/v1/system", Token))!.Engine.Connected
+        );
+
+        var resync = host.Received.Skip(before).ToList();
+        Assert.Contains(resync, static m => m is { Type: IpcTypes.SetMidi, FollowClock: true });
+        Assert.Contains(resync, static m => m is { Type: IpcTypes.SetTuner, Enabled: true });
+    }
+
     static async Task Ok(Task<HttpResponseMessage> request) {
         using var response = await request;
         Assert.True(

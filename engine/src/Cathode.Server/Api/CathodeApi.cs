@@ -448,8 +448,8 @@ public static class CathodeApi {
 
         api.MapPut(
                 "/tuner",
-                (BypassRequest request, IEngineSync engine) => {
-                    engine.SetTuner(!request.Bypassed);
+                async (BypassRequest request, LiveRig rig) => {
+                    await rig.SetTunerAsync(!request.Bypassed);
                     return TypedResults.NoContent();
                 }
             )

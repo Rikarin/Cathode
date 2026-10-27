@@ -44,7 +44,6 @@ public sealed partial class MidiRouter : IDisposable {
 
     readonly Task worker;
     MidiLearnRequest? learning;
-    bool tunerOn;
     string? ledPage;
 
     /// <summary>The armed MIDI learn request, if any.</summary>
@@ -357,12 +356,7 @@ public sealed partial class MidiRouter : IDisposable {
                 rig.Tap(sampleTime);
                 break;
             case "tuner" when down || continuous:
-                lock (gate) {
-                    tunerOn = continuous ? data >= 64 : !tunerOn;
-                }
-
-                engine.SetTuner(tunerOn);
-                UpdateLeds();
+                await rig.SetTunerAsync(continuous ? data >= 64 : !rig.TunerOn);
                 break;
             case "metronome" when down || continuous:
                 globals.Update(g => g.Metronome = continuous ? data >= 64 : !g.Metronome);
@@ -438,7 +432,7 @@ public sealed partial class MidiRouter : IDisposable {
             var on = footswitch.Tap.Action switch {
                 "scene" => rig.ActiveScene == footswitch.Tap.Value,
                 "bypass" when footswitch.Tap.Target is { } block => !rig.IsBypassed(block),
-                "tuner" => tunerOn,
+                "tuner" => rig.TunerOn,
                 "metronome" => settings.Metronome,
                 "mute" => rig.Muted,
                 "looper" => footswitch.Tap.Target switch {

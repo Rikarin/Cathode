@@ -72,10 +72,15 @@ public sealed partial class LiveRig(
 
     public Task<LiveState> StateAsync() => Locked(() => Task.FromResult(State()));
 
-    /// <summary>Sends the whole rig to the engine again (after the host (re)connects).</summary>
+    /// <summary>
+    ///     Sends the whole rig to the engine again (after the host (re)connects): the graph and its parameters, mute, the
+    ///     tuner and whether to follow MIDI clock.
+    /// </summary>
     public Task ResyncAsync() =>
         Locked(async () => {
                 await SyncGraphAsync();
+                engine.SetMidi(globals.Get().TempoMode == "midiClock");
+                engine.SetTuner(TunerOn);
                 return State();
             }
         );
@@ -98,7 +103,8 @@ public sealed partial class LiveRig(
                 var loaded = presets.Get(id) ?? throw RigException.NotFound($"No preset '{id}'.");
                 if (loaded.SchemaVersion > Preset.CurrentSchemaVersion) {
                     throw RigException.Conflict(
-                        $"Preset '{loaded.Name}' was saved by a newer version of Cathode (schema {loaded.SchemaVersion})."
+                        $"Preset '{loaded.Name}' was saved by a newer version of Cathode "
+                        + $"(schema {loaded.SchemaVersion})."
                     );
                 }
 

@@ -30,6 +30,27 @@ public sealed partial class LiveRig {
             }
         );
 
+    /// <summary>
+    ///     Whether the tuner is on: the one owner of that state, for the REST endpoint, MIDI and footswitch LEDs alike.
+    ///     Live only, like <see cref="Muted" />; resent to a host that (re)connects.
+    /// </summary>
+    public bool TunerOn => Volatile.Read(ref tunerOn);
+
+    bool tunerOn;
+
+    /// <summary>
+    ///     Turns the tuner on or off (from the editor, a footswitch or a MIDI message) and publishes
+    ///     <c>tunerChanged</c> (<c>value</c> 1 or 0). Not an edit of the rig: the revision stays.
+    /// </summary>
+    public Task<LiveState> SetTunerAsync(bool on) =>
+        Locked(() => {
+                Volatile.Write(ref tunerOn, on);
+                engine.SetTuner(on);
+                Publish(new("tunerChanged", revision, Value: on ? 1 : 0));
+                return Task.FromResult(State());
+            }
+        );
+
     /// <summary>A tap (from the editor or a MIDI switch); the engine averages taps, sample-accurately.</summary>
     public void Tap(long? sampleTime = null) {
         Volatile.Write(ref tapFollowUntil, DateTime.UtcNow.Add(TapFollowWindow).Ticks);
