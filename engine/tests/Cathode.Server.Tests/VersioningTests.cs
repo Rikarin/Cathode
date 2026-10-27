@@ -46,7 +46,8 @@ public sealed class VersioningTests {
             JsonNode.Parse(
                 """
                 {"schemaVersion":1,"blocks":[
-                  {"id":"amp1","type":"circuitamp","channels":{"A":{"powertube":8,"gain":6,"t1plate":200,"mvcap":50},"B":{"powertube":7},"C":{}}},
+                  {"id":"amp1","type":"circuitamp","channels":{
+                    "A":{"powertube":8,"gain":6,"t1plate":200,"mvcap":50},"B":{"powertube":7},"C":{}}},
                   {"id":"drive1","type":"drive","channels":{"A":{"powertube":8}}}
                 ]}
                 """

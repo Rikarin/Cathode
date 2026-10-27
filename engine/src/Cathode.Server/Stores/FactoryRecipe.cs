@@ -228,6 +228,27 @@ public sealed class FactoryRecipe(string name, string description, params string
         ];
     }
 
+    /// <summary>
+    ///     An Amp channel as the recipes were voiced: the speaker load following the Cab on a model that has one (a
+    ///     solid-state amp has none, and keeps Stock), Master 10 unless the recipe sets it (the default up to
+    ///     1.0.0-rc.3), and the level trimmed by <paramref name="trimDb" /> when given (<see cref="FactoryLevels" />).
+    /// </summary>
+    static void Voice(BlockDescriptor descriptor, Dictionary<string, float> values, float? trimDb) {
+        var speaker = descriptor.Params[descriptor.IndexOf("speaker")];
+        var model = (int)values.GetValueOrDefault("type");
+        if (!values.ContainsKey("speaker")) {
+            values["speaker"] = speaker.TypeLabels?[model] is { Length: > 0 }
+                ? Value(speaker, "Follow_Cab") ?? speaker.Default
+                : 0;
+        }
+
+        values.TryAdd("master", 10);
+        if (trimDb is { } trim) {
+            var output = descriptor.Params[descriptor.IndexOf("level")];
+            values["level"] = output.Sanitize(values.GetValueOrDefault("level", output.Default) + trim);
+        }
+    }
+
     static PresetBlock Block(BlockCatalog catalog, Part part, FactoryLevels.Trim? level, Action<string> problem) {
         var block = new PresetBlock { Id = part.Id, Type = part.Type };
         if (catalog.Descriptor(part.Type) is not { } descriptor) {
@@ -242,23 +263,7 @@ public sealed class FactoryRecipe(string name, string description, params string
         for (var c = 0; c < Math.Min(part.Channels.Length, descriptor.Channels); c++) {
             var values = Settings(catalog, part.Type, $"{part.Common} {part.Channels[c]}", problem);
             if (part.Type == "circuitamp") {
-                // The speaker load follows the Cab, on a model that has one (a solid-state amp has none, and keeps
-                // Stock). The recipes were voiced at Master 10, the default up to 1.0.0-rc.3: one that does not set it
-                // keeps it.
-                var speaker = descriptor.Params[descriptor.IndexOf("speaker")];
-                var model = (int)values.GetValueOrDefault("type");
-                if (!values.ContainsKey("speaker")) {
-                    values["speaker"] = speaker.TypeLabels?[model] is { Length: > 0 }
-                        ? Value(speaker, "Follow_Cab") ?? speaker.Default
-                        : 0;
-                }
-
-                values.TryAdd("master", 10);
-
-                if (level is not null && c < level.Amp.Length) {
-                    var output = descriptor.Params[descriptor.IndexOf("level")];
-                    values["level"] = output.Sanitize(values.GetValueOrDefault("level", output.Default) + level.Amp[c]);
-                }
+                Voice(descriptor, values, level is not null && c < level.Amp.Length ? level.Amp[c] : null);
             }
 
             block.Channels[Preset.ChannelNames[c]] = values;

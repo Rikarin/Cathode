@@ -57,8 +57,8 @@ public sealed class GlobalStore {
 
     /// <summary>
     ///     The settings file's JSON taken to <see cref="GlobalSettings.CurrentSchemaVersion" />. Schema 2 (after
-    ///     1.0.0-rc.3): a global Amp block as a preset's (<see cref="PresetMigrations.UpgradeAmpBlock" />). A file without
-    ///     a version is schema 1.
+    ///     1.0.0-rc.3): a global Amp block as a preset's (<see cref="PresetMigrations.UpgradeAmpBlock" />). A file
+    ///     without a version is schema 1.
     /// </summary>
     public static JsonNode? UpgradeJson(JsonNode? node) {
         if (node is not JsonObject settings

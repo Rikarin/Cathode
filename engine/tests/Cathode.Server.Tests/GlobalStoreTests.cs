@@ -27,7 +27,8 @@ public sealed class GlobalStoreTests : IDisposable {
             Path.Combine(folder, "global.json"),
             """
             { "blocks": [
-              { "id": "g1", "type": "circuitamp", "channels": { "A": { "powertube": 8, "gain": 6, "mvcap": 50 }, "B": { "powertube": 2 } } },
+              { "id": "g1", "type": "circuitamp",
+                "channels": { "A": { "powertube": 8, "gain": 6, "mvcap": 50 }, "B": { "powertube": 2 } } },
               { "id": "g2", "type": "drive", "channels": { "A": { "powertube": 8 } } }
             ] }
             """
@@ -49,7 +50,10 @@ public sealed class GlobalStoreTests : IDisposable {
     public void A_schema_2_global_amp_keeps_the_new_defaults() {
         File.WriteAllText(
             Path.Combine(folder, "global.json"),
-            """{ "schemaVersion": 2, "blocks": [ { "id": "g1", "type": "circuitamp", "channels": { "A": { "gain": 6 } } } ] }"""
+            """
+            { "schemaVersion": 2,
+              "blocks": [ { "id": "g1", "type": "circuitamp", "channels": { "A": { "gain": 6 } } } ] }
+            """
         );
 
         var settings = new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder })).Get();

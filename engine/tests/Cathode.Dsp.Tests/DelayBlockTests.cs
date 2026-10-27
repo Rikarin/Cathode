@@ -513,8 +513,8 @@ public class DelayBlockTests {
 
     [Fact]
     public void Conformance_case_13QvSe6CE2ha_stays_finite() {
-        // The parameters (start, then a jump mid-stream) of the CsCheck case that overflowed: Vintage Digital jumping to
-        // Hold with a +12 dB band and a Q 3 high cut in the loop.
+        // The parameters (start, then a jump mid-stream) of the CsCheck case that overflowed: Vintage Digital jumping
+        // to Hold with a +12 dB band and a Q 3 high cut in the loop.
         float[] start = [
             2.1818182f, 11515.689f, 21f, 100f, 100f, 1125.1163f, 9402.439f, 0.05f, 6.6252065f, -71.2763f, -31.64711f,
             17.045454f, 1f, 6.737446f, 8.339896f, 100f, 24.444445f, -60f, 2000f, 0.23252869f, 1.6764705f, 113.74173f,

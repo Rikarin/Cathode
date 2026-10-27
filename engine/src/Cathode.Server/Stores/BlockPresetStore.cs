@@ -112,8 +112,8 @@ public sealed class BlockPresetStore(IOptions<ServerOptions> options, BlockCatal
 
     /// <summary>
     ///     A stored block preset taken to <see cref="BlockPreset.CurrentSchemaVersion" />. Schema 2 (after 1.0.0-rc.3):
-    ///     an Amp's values and channels as a preset's (<see cref="PresetMigrations.UpgradeAmpChannel" />). A file without
-    ///     a version is schema 1.
+    ///     an Amp's values and channels as a preset's (<see cref="PresetMigrations.UpgradeAmpChannel" />). A file
+    ///     without a version is schema 1.
     /// </summary>
     static JsonNode? Upgrade(JsonNode? node) {
         if (node is not JsonObject preset

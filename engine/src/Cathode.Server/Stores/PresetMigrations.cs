@@ -62,8 +62,8 @@ public static class PresetMigrations {
     }
 
     /// <summary>
-    ///     A schema-1 Amp block's JSON (a preset's or a global block, or a whole-block entry in the Block Library) brought
-    ///     to schema 2: every channel, the ones it leaves at their defaults too, as <see cref="UpgradeAmpChannel" />.
+    ///     A schema-1 Amp block's JSON (a preset's, a global block, or a Block Library whole-block entry) brought
+    ///     to schema 2: every channel, those at their defaults too, as <see cref="UpgradeAmpChannel" />.
     /// </summary>
     public static void UpgradeAmpBlock(JsonObject block) {
         if (block["channels"] is not JsonObject channels) {
@@ -81,8 +81,8 @@ public static class PresetMigrations {
 
     /// <summary>
     ///     A schema-1 Amp channel's values brought to schema 2: a Power Tube of 5881 becomes the 6L6GC, the removed
-    ///     parameters' values are dropped, and the defaults that changed are written in at their old values. Run it once
-    ///     per schema-1 channel: a schema-2 channel without a Master means Master 5.
+    ///     parameters' values are dropped, and the defaults that changed are written in at their old values. Run it
+    ///     once per schema-1 channel: a schema-2 channel without a Master means Master 5.
     /// </summary>
     public static void UpgradeAmpChannel(JsonObject channel) {
         if (channel["powertube"] is JsonValue value && value.GetValue<float>() == Schema1FiveEightEightOne) {

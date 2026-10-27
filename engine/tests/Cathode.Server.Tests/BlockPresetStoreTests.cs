@@ -1,5 +1,4 @@
 using Cathode.Dsp;
-using Cathode.Server.Rig;
 using Cathode.Server.Stores;
 using Microsoft.Extensions.Options;
 
@@ -24,7 +23,7 @@ public sealed class BlockPresetStoreTests : IDisposable {
 
         var store = new BlockPresetStore(
             Options.Create(new ServerOptions { DataDirectory = folder }),
-            new BlockCatalog(BlockRegistry.CreateDefault())
+            new(BlockRegistry.CreateDefault())
         );
         var preset = store.Get("b1")!;
 
