@@ -1,0 +1,49 @@
+name: website
+
+# The website publishes a block catalogue and a manual generated from the engine's block registry. This keeps them
+# from drifting: the generated files must match what `pnpm catalog` and `pnpm manual` write from the engine as it is,
+# every knob must be described (`manual:check --strict`), the sources must be formatted, and the prerendered build
+# must succeed, so a broken page is found here and not at deploy time.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths:
+      - "website/**"
+      - "engine/src/Cathode.Dsp/**"
+      - "engine/src/Cathode.Dsp.Native/**"
+      - "engine/global.json"
+      - ".github/workflows/website.yml"
+
+defaults:
+  run:
+    working-directory: website
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-dotnet
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: website/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: website/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Formatted
+        run: pnpm format:check
+      - name: Generated catalogue and manual parameters match the engine
+        run: |
+          pnpm catalog
+          pnpm manual
+          git diff --exit-code -- src/app/catalog/engine.generated.ts src/app/manual/engine-params.generated.ts \
+            || { echo "::error::run pnpm catalog and pnpm manual in website/ and commit the result"; exit 1; }
+      - name: Every block has a manual page and every knob a description
+        run: pnpm manual:check --strict
+      - name: Prerendered build
+        run: pnpm build

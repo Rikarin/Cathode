@@ -55,6 +55,8 @@ every route it prerendered (`tools/postbuild.mjs`), so a new prerendered page is
   and each of its knobs do (`types.ts` is the shape of both). Everything else about a knob (its name, range, default,
   unit, page, choices, and its name on each Amp model) is read from the engine into `engine-params.generated.ts` by
   `pnpm manual` (needs the .NET 10 SDK); run it when a block gains or changes a parameter, and commit the result.
+  The `website` workflow fails when either generated file differs from what the engine writes, when a knob has no
+  description (`manual:check --strict`), when a file is not formatted, or when the prerendered build fails.
   `pnpm build` and `pnpm start` first write `content.generated.ts` (not committed), an import of every chapter and
   block page that exists, so one that is not written yet only leaves a gap; after adding a file while `pnpm start` is
   running, run `node tools/manual-index.mjs`. `pnpm manual:check` lists what is missing (blocks with no page, knobs with
