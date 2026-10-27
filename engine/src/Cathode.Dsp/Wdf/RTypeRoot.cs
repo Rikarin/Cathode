@@ -107,13 +107,26 @@ public struct RTypeRoot<TPorts, TDevice>
 
         inputs = new double[Scattering.Inputs];
         outputs = new double[Scattering.PortCount];
-        Propagate();
+        if (!Propagate()) {
+            throw new ArgumentException(
+                "The network is singular at its initial component values (a floating node or a source loop).",
+                nameof(netlist)
+            );
+        }
     }
 
-    /// <summary>Recomputes the port resistances and the scattering matrix after a component change. Allocation-free.</summary>
-    public void Propagate() {
+    /// <summary>
+    ///     Recomputes the port resistances and the scattering matrix after a component change. Allocation-free. Returns
+    ///     false when the network has become singular: the previous matrix stays in use and the failure is counted in
+    ///     <see cref="NewtonSolver.FailedRecomputes" />.
+    /// </summary>
+    public bool Propagate() {
         Ports.Propagate(Scattering.PortResistances);
-        Scattering.Recompute();
+        if (!Scattering.Recompute()) {
+            Newton.RecordFailedRecompute();
+            return false;
+        }
+
         // F, the impedance the network presents to the devices, for the Newton solver.
         var k = Device.Ports;
         var matrix = Scattering.Matrix;
@@ -123,6 +136,7 @@ public struct RTypeRoot<TPorts, TDevice>
         }
 
         Newton.factored = false;
+        return true;
     }
 
     /// <summary>Sets ideal voltage source <paramref name="index" /> (in volts) for the coming samples.</summary>
@@ -1170,6 +1184,12 @@ public sealed class NewtonSolver {
     /// <summary>Samples where a device returned a non-finite value and the previous solution was repeated.</summary>
     public long NonFinite { get; private set; }
 
+    /// <summary>
+    ///     Component changes after which the network was singular, so the root kept its previous matrix
+    ///     (<see cref="RTypeScattering.Failures" />).
+    /// </summary>
+    public long FailedRecomputes { get; private set; }
+
     public double MeanIterations => Samples == 0 ? 0 : (double)Iterations / Samples;
 
     internal NewtonSolver(int ports) {
@@ -1205,7 +1225,10 @@ public sealed class NewtonSolver {
         MostIterations = 0;
         Unconverged = 0;
         NonFinite = 0;
+        FailedRecomputes = 0;
     }
+
+    internal void RecordFailedRecompute() => FailedRecomputes++;
 
     internal void Record(int count, bool converged, bool finite) {
         primed = finite;

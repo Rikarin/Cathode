@@ -111,6 +111,18 @@ public sealed class RTypeScattering {
     /// <summary>False when the last <see cref="Recompute" /> met a singular network (and kept the previous matrix).</summary>
     public bool IsValid { get; private set; }
 
+    /// <summary>
+    ///     Whether some <see cref="Recompute" /> has succeeded, so <see cref="Matrix" /> (and <see cref="UpResistance" />)
+    ///     hold a real network rather than the zeros of construction.
+    /// </summary>
+    public bool HasMatrix { get; private set; }
+
+    /// <summary>
+    ///     <see cref="Recompute" /> calls that met a singular network or a non-positive parent resistance and kept the
+    ///     previous matrix: a setting that breaks the network shows here instead of silently.
+    /// </summary>
+    public long Failures { get; private set; }
+
     /// <summary>Row-major <see cref="Rows" /> × <see cref="Columns" /> output matrix; see the remarks.</summary>
     public ReadOnlySpan<double> Matrix => matrix;
 
@@ -260,20 +272,25 @@ public sealed class RTypeScattering {
         }
 
         if (!DenseLu.Factor(a, n, pivots)) {
-            IsValid = false;
-            return false;
+            return Fail();
         }
 
         DenseLu.Solve(a, n, pivots, rhs, columns);
 
         if (HasUp && !AdaptUp(rhs, columns, upResponse)) {
-            IsValid = false;
-            return false;
+            return Fail();
         }
 
         Extract(rhs, columns);
         IsValid = true;
+        HasMatrix = true;
         return true;
+    }
+
+    bool Fail() {
+        IsValid = false;
+        Failures++;
+        return false;
     }
 
     /// <summary>

@@ -74,9 +74,21 @@ public struct RTypeAdaptor<TPorts> : IWdfPort
     /// <summary>Changes the gain of VCVS <paramref name="index" />. Propagate the tree afterwards.</summary>
     public readonly void SetGain(int index, double gain) => Scattering.SetGain(index, gain);
 
+    /// <summary>
+    ///     Recomputes the children's resistances and the matrix, and returns the adapted parent resistance. A network that
+    ///     has become singular keeps its previous matrix (counted in <see cref="RTypeScattering.Failures" />); one that has
+    ///     never had a valid matrix throws, since its parent would otherwise divide by a zero resistance. The first
+    ///     propagation is the root's, at construction, so that throw never reaches the audio thread.
+    /// </summary>
     public double Propagate() {
         Ports.Propagate(Scattering.PortResistances);
-        Scattering.Recompute();
+        if (!Scattering.Recompute() && !Scattering.HasMatrix) {
+            throw new InvalidOperationException(
+                "The R-type adaptor's network is singular at its initial component values (a floating node, a source "
+                + "loop, or no path to its Up port)."
+            );
+        }
+
         return Scattering.UpResistance;
     }
 

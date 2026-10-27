@@ -178,7 +178,12 @@ public sealed class CircuitRoot<TSource, TDevice>
             Scattering.SetDeviceConductance(d, g);
         }
 
-        Propagate();
+        if (!Propagate()) {
+            throw new ArgumentException(
+                "The network is singular at its initial component values (a floating node or a source loop).",
+                nameof(netlist)
+            );
+        }
     }
 
     /// <summary>Capacitor <paramref name="index" /> (netlist port <paramref name="index" /> + 1).</summary>
