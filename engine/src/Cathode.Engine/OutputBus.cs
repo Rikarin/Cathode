@@ -53,21 +53,37 @@ public sealed class OutputBus : IDisposable {
     ///     in order (<c>1,3</c> plays Output 1 on 1-2 and Output 2 on 3-4; 0 leaves one unmapped); null or empty keeps
     ///     the default, Output 1 on channels 1-2. <paramref name="di" /> lists one or two channels for the DI out.
     /// </summary>
+    /// <remarks>
+    ///     A negative output channel, or a DI channel below 1, is a <see cref="FormatException" />: it would index before
+    ///     the driver's channel-pointer array on the audio thread.
+    /// </remarks>
     public static OutputBus Parse(string? outputs, string? di) {
-        var pairs = List(outputs);
+        var pairs = List(outputs, "--outputs", 0);
         return new(
             pairs.Length == 0 ? null : [..pairs.Select(static c => c - 1)],
-            [..List(di).Select(static c => c - 1)]
+            [..List(di, "--di-out", 1).Select(static c => c - 1)]
         );
     }
 
-    static int[] List(string? text) =>
+    static int[] List(string? text, string option, int lowest) =>
         string.IsNullOrWhiteSpace(text)
             ? []
             : [
                 ..text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .Select(static c => int.Parse(c, CultureInfo.InvariantCulture))
+                    .Select(c => Channel(c, option, lowest))
             ];
+
+    static int Channel(string text, string option, int lowest) {
+        var channel = int.Parse(text, CultureInfo.InvariantCulture);
+        if (channel >= lowest) {
+            return channel;
+        }
+
+        var unmapped = lowest == 0 ? " (0 leaves an output unmapped)" : string.Empty;
+        throw new FormatException(
+            $"{option}: device channels are numbered from 1{unmapped}, so '{text}' is not a channel."
+        );
+    }
 
     /// <summary>The first device channel (0-based) of output <paramref name="output" /> (0-3), or −1.</summary>
     public int Pair(int output) => pairs[output];

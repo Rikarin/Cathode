@@ -58,4 +58,27 @@ public sealed class HostCommandLineTests {
         Assert.Equal(0, (await RunHostAsync()).Exit);
         Assert.Equal(0, (await RunHostAsync("--help")).Exit);
     }
+
+    [Fact]
+    public async Task Serve_rejects_a_device_channel_below_one_before_it_starts() {
+        var directory = Directory.CreateTempSubdirectory("cth-cli-");
+        try {
+            var socket = Path.Combine(directory.FullName, "h.sock");
+            var (exit, output) = await RunHostAsync(
+                "--serve",
+                "--null-audio",
+                "--socket",
+                socket,
+                "--telemetry",
+                Path.Combine(directory.FullName, "t"),
+                "--di-out",
+                "0"
+            );
+            Assert.Equal(1, exit);
+            Assert.Contains("--di-out", output, StringComparison.Ordinal);
+            Assert.DoesNotContain("serving on", output, StringComparison.Ordinal);
+        } finally {
+            directory.Delete(true);
+        }
+    }
 }

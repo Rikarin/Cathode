@@ -39,9 +39,9 @@ static class ServeCommand {
         );
 
         if (options.Flag("null-audio")) {
+            using var nullOutputs = OutputBus.Parse(options.Text("outputs"), options.Text("di-out"));
             var spec = new ProcessSpec(rate, buffer);
             using var service = new EngineHostService(spec, "null", telemetryPath: telemetry);
-            using var nullOutputs = OutputBus.Parse(options.Text("outputs"), options.Text("di-out"));
             using var backend = new NullBackend((int)rate, buffer, nullOutputs);
             backend.Start(service.Engine);
             return await ServeAsync(service, socketPath, stop.Token).ConfigureAwait(false);
