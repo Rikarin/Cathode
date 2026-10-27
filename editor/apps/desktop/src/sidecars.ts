@@ -57,15 +57,26 @@ class Sidecar {
     this.status = { name, state: 'stopped', detail: null };
   }
 
+  /** Starts the process unless it already runs (or is about to restart): never a second one beside the first. */
   start(): void {
     this.wanted = true;
+    if (this.child || this.restartTimer) {
+      return;
+    }
+
     this.launch();
+  }
+
+  /** Whether the process runs now. */
+  get running(): boolean {
+    return this.child !== null;
   }
 
   async stop(): Promise<void> {
     this.wanted = false;
     if (this.restartTimer) {
       clearTimeout(this.restartTimer);
+      this.restartTimer = null;
     }
 
     const child = this.child;
@@ -87,6 +98,7 @@ class Sidecar {
   }
 
   private launch(): void {
+    this.restartTimer = null;
     let command: ReturnType<typeof this.commandLine>;
     try {
       command = this.commandLine();
@@ -108,8 +120,7 @@ class Sidecar {
     };
     child.stdout?.on('data', keep);
     child.stderr?.on('data', keep);
-    child.once('error', error => this.log.push(`spawn failed: ${error.message}`));
-    child.once('exit', (code, signal) => {
+    const ended = (code: number | string | null) => {
       if (this.child !== child) {
         return;
       }
@@ -120,8 +131,16 @@ class Sidecar {
       }
 
       const delay = Math.min(MaxBackoffMs, 500 * 2 ** this.failures++);
-      this.set('restarting', `exited (${signal ?? code}); restarting in ${Math.round(delay / 1000)} s`);
+      this.set('restarting', `exited (${code}); restarting in ${Math.round(delay / 1000)} s`);
       this.restartTimer = setTimeout(() => this.launch(), delay);
+    };
+    child.once('exit', (code, signal) => ended(signal ?? code));
+    // A process that never started emits no exit: it ends here, so it is retried like one that crashed.
+    child.once('error', error => {
+      this.log.push(`spawn failed: ${error.message}`);
+      if (child.pid === undefined) {
+        ended(error.message);
+      }
     });
   }
 
@@ -141,6 +160,8 @@ export class Sidecars {
   private readonly runToken = randomBytes(32).toString('base64url');
   private port = 0;
   private ready: Promise<Connection> | null = null;
+  /** The host's exclusive jobs (restart, latency test, IR capture), one at a time: each stops and restarts it. */
+  private hostJobs: Promise<unknown> = Promise.resolve();
   private readonly host: Sidecar;
   private readonly server: Sidecar;
   /** Why the Server is not on the network although the setting asks for it, or null. */
@@ -169,7 +190,11 @@ export class Sidecars {
   /** Starts both processes; resolves with the connection once the Server answers. */
   start(): Promise<Connection> {
     this.ready ??= (async () => {
-      this.port = await freePort();
+      // A retry after a slow first start finds the Server still starting: it keeps its port and is not started twice.
+      if (this.port === 0 || !this.server.running) {
+        this.port = await freePort();
+      }
+
       this.host.start();
       const connection = await this.serve();
       this.host.healthy();
@@ -226,15 +251,28 @@ export class Sidecars {
   }
 
   /** Restarts only the engine host with new audio settings; the Server reconnects and resends the rig. */
-  async applyAudio(audio: AudioSettings): Promise<void> {
-    this.audio = audio;
-    await this.host.stop();
-    this.host.start();
-    this.host.healthy();
+  applyAudio(audio: AudioSettings): Promise<void> {
+    return this.exclusive(async () => {
+      this.audio = audio;
+      await this.host.stop();
+      this.host.start();
+      this.host.healthy();
+    });
+  }
+
+  /** Runs `job` after the host's other jobs: two of them overlapping would each restart the host, starting two. */
+  private exclusive<T>(job: () => Promise<T>): Promise<T> {
+    const run = this.hostJobs.then(job, job);
+    this.hostJobs = run.catch(() => undefined);
+    return run;
   }
 
   /** Runs the host's loopback latency test with the engine stopped (the device cannot be shared), then restarts it. */
-  async latencyTest(): Promise<{ ok: boolean; output: string; roundTripMs: number | null }> {
+  latencyTest(): Promise<{ ok: boolean; output: string; roundTripMs: number | null }> {
+    return this.exclusive(() => this.runLatencyTest());
+  }
+
+  private async runLatencyTest(): Promise<{ ok: boolean; output: string; roundTripMs: number | null }> {
     if (!this.audio.device) {
       return {
         ok: false,
@@ -275,7 +313,11 @@ export class Sidecars {
    * Measures an IR with the engine stopped (the device cannot be shared): a sweep out of outputs 1-2, recorded on
    * input 1, then restarts the engine.
    */
-  async irCapture(options: IrCaptureOptions): Promise<IrCaptureResult> {
+  irCapture(options: IrCaptureOptions): Promise<IrCaptureResult> {
+    return this.exclusive(() => this.runIrCapture(options));
+  }
+
+  private async runIrCapture(options: IrCaptureOptions): Promise<IrCaptureResult> {
     if (!this.audio.device) {
       return { ok: false, output: 'Pick an audio interface first: capturing needs a real device.', wav: null };
     }
