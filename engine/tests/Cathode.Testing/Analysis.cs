@@ -132,6 +132,47 @@ public static class Analysis {
         return false;
     }
 
+    /// <summary>
+    ///     The mean-square level, in dB, of <paramref name="signal" /> in each octave band centred on
+    ///     <paramref name="centres" /> (edges at centre / √2 and centre × √2): a Hann-windowed, zero-padded FFT scaled
+    ///     by Parseval, so the reading depends on neither the sample rate nor the length. A full-scale sine in a band
+    ///     reads -3 dB there, and the same sound sampled at two rates reads the same at both.
+    /// </summary>
+    public static double[] OctaveBandLevelsDb(
+        ReadOnlySpan<float> signal,
+        double sampleRate,
+        IReadOnlyList<double> centres
+    ) {
+        var size = 1;
+        while (size < signal.Length) {
+            size <<= 1;
+        }
+
+        var data = new Complex[size];
+        double windowEnergy = 0;
+        for (var i = 0; i < signal.Length; i++) {
+            var w = 0.5 - 0.5 * Math.Cos(2 * Math.PI * i / signal.Length);
+            windowEnergy += w * w;
+            data[i] = signal[i] * w;
+        }
+
+        Fft.Forward(data);
+        var levels = new double[centres.Count];
+        for (var b = 0; b < centres.Count; b++) {
+            var low = Math.Max((int)Math.Ceiling(centres[b] / Math.Sqrt(2) * size / sampleRate), 1);
+            var high = Math.Min((int)Math.Floor(centres[b] * Math.Sqrt(2) * size / sampleRate), size / 2 - 1);
+            double sum = 0;
+            for (var k = low; k <= high; k++) {
+                sum += data[k].Real * data[k].Real + data[k].Imaginary * data[k].Imaginary;
+            }
+
+            // Both halves of the spectrum: twice the positive bins.
+            levels[b] = 10 * Math.Log10(Math.Max(2 * sum / (size * windowEnergy), 1e-30));
+        }
+
+        return levels;
+    }
+
     /// <summary>Index of the largest absolute sample.</summary>
     public static int PeakIndex(ReadOnlySpan<float> signal) {
         var index = 0;

@@ -6,6 +6,7 @@ using Cathode.Engine;
 using Cathode.Engine.Graph;
 using Cathode.Ipc;
 using System.Globalization;
+using System.Numerics;
 using System.Text.Json;
 
 // cathode-render --graph graph.json --in di.wav --out out.wav [--block 64] [--format float32|pcm24|pcm16]
@@ -42,7 +43,11 @@ try {
     );
     var output = OfflineRenderer.Render(engine, input, blockSize);
     WavFile.Write(outputPath, output, format);
-    Console.WriteLine($"Rendered {input.Frames} frames at {input.SampleRate} Hz -> {outputPath}");
+    // Which arithmetic ran: DOTNET_EnableHWIntrinsic=0 takes the scalar paths (SimdNullTests compares the two).
+    Console.WriteLine(
+        $"Rendered {input.Frames} frames at {input.SampleRate} Hz -> {outputPath} "
+        + $"(simd: {(Vector.IsHardwareAccelerated ? "on" : "off")}, {Vector<float>.Count} floats a vector)"
+    );
     return 0;
 } catch (Exception e) when (e is GraphValidationException
                                 or InvalidDataException

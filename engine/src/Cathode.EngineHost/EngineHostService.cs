@@ -105,7 +105,7 @@ public sealed class EngineHostService : IDisposable {
         }
 
         compiler = new(registry ?? BlockRegistry.CreateDefault().AddNativeBlocks()) {
-            HardwareLoop = Engine.HardwareLoop, HardwareInputs = Engine.Inputs
+            HardwareLoop = Engine.HardwareLoop, HardwareInputs = Engine.Inputs, TestTone = Engine.TestTone
         };
         tuner = new(spec.SampleRate);
         var version = typeof(EngineHostService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()

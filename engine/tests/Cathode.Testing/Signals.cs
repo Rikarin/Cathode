@@ -59,5 +59,40 @@ public static class Signals {
         return signal;
     }
 
+    /// <summary>
+    ///     The same sound at any rate: <paramref name="tonesPerOctave" /> sines per octave from
+    ///     <paramref name="lowHz" /> up to <paramref name="highHz" />, with seeded phases, together at
+    ///     <paramref name="rmsDb" /> dBFS RMS, sampled at <paramref name="sampleRate" />. For comparing a block's
+    ///     response at different sample rates.
+    /// </summary>
+    public static float[] MultiTone(
+        double sampleRate,
+        double seconds,
+        double lowHz = 50,
+        double highHz = 12_000,
+        int tonesPerOctave = 3,
+        double rmsDb = -20,
+        int seed = 1
+    ) {
+        var count = (int)Math.Floor(Math.Log2(highHz / lowHz) * tonesPerOctave) + 1;
+        var random = new Random(seed);
+        var phases = new double[count];
+        for (var t = 0; t < count; t++) {
+            phases[t] = random.NextDouble() * 2 * Math.PI;
+        }
+
+        // Equal sines, each with a mean square of a² / 2.
+        var amplitude = Math.Pow(10, rmsDb / 20) * Math.Sqrt(2.0 / count);
+        var signal = new float[(int)Math.Round(seconds * sampleRate)];
+        for (var t = 0; t < count; t++) {
+            var w = 2 * Math.PI * lowHz * Math.Pow(2, (double)t / tonesPerOctave) / sampleRate;
+            for (var i = 0; i < signal.Length; i++) {
+                signal[i] += (float)(amplitude * Math.Sin(w * i + phases[t]));
+            }
+        }
+
+        return signal;
+    }
+
     public static float[] Concat(params float[][] parts) => [..parts.SelectMany(static p => p)];
 }

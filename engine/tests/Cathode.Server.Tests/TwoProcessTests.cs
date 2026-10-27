@@ -5,7 +5,9 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 using System.IO.Pipes;
 using System.Net.Http.Json;
+using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json.Nodes;
 
 namespace Cathode.Server.Tests;
 
@@ -74,6 +76,51 @@ public sealed class TwoProcessTests : IAsyncDisposable {
         await Task.Delay(300, Token);
         Assert.Null((await System(client)).Engine.LastError);
         Assert.True(connection.HasSharedTelemetry, "the restarted host's region is mapped too");
+    }
+
+    /// <summary>
+    ///     End to end over the socket: a factory preset loaded and edited through the Server's API plays in the
+    ///     separate host, whose meters reach a WebSocket client through the shared-memory region; after the host is
+    ///     killed and started again, the same preset, with the edit, is playing and metered again.
+    /// </summary>
+    [Fact]
+    public async Task A_preset_loaded_through_the_server_plays_in_the_host_and_survives_its_restart() {
+        StartHost();
+        await using var server = new ServerFixture(socketPath);
+        using var client = await server.ConnectedClientAsync();
+
+        var factory = (await client.GetFromJsonAsync<PresetSummary[]>("/api/v1/presets", Token))!
+            .First(static p => p.Factory == true);
+        await Ok(client.PutAsync($"/api/v1/live/preset/{factory.Id}", null, Token));
+        var amp = (await Live(client)).Preset.Blocks.First(static b => b.Type == "circuitamp").Id;
+        await Ok(
+            client.PatchAsJsonAsync(
+                $"/api/v1/live/blocks/{amp}/params",
+                new Dictionary<string, float> { ["master"] = 3.5f },
+                Token
+            )
+        );
+        await ServerFixture.Eventually(async () => (await System(client)).Engine.LastError is null);
+
+        using var socket = await server.Server.CreateWebSocketClient()
+            .ConnectAsync(new(server.Server.BaseAddress, "ws"), Token);
+        await ExpectMetered(client, socket, amp);
+
+        await StopHostAsync();
+        await ServerFixture.Eventually(async () => !(await System(client)).Engine.Connected);
+        StartHost();
+        await ServerFixture.Eventually(async () => (await System(client)).Engine.Connected, 90);
+
+        var live = await Live(client);
+        Assert.Equal(factory.Id, live.Preset.Id);
+        Assert.Contains(
+            live.Preset.Blocks.First(b => b.Id == amp).Channels.Values,
+            static c => c.TryGetValue("master", out var master) && master == 3.5f
+        );
+        // The new host plays the resent rig: a block of the preset takes a test tone and meters it.
+        await ExpectMetered(client, socket, amp);
+        Assert.Null((await System(client)).Engine.LastError);
+        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", Token);
     }
 
     [Fact]
@@ -154,6 +201,50 @@ public sealed class TwoProcessTests : IAsyncDisposable {
         host?.Dispose();
         host = null;
     }
+
+    /// <summary>
+    ///     Turns on a test tone in place of <paramref name="block" />'s output, waits for telemetry that carries the
+    ///     block's meter and the tone at the output (the preset is silent without it: null audio has no input), all
+    ///     rendered by the host and read from its shared memory, then turns it off.
+    /// </summary>
+    async Task ExpectMetered(HttpClient client, WebSocket socket, string block) {
+        await Ok(
+            client.PutAsJsonAsync(
+                $"/api/v1/live/blocks/{block}/test-tone",
+                new TestToneRequest(true, 220, -20),
+                Token
+            )
+        );
+        var buffer = new byte[256 * 1024];
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        deadline.CancelAfter(TimeSpan.FromSeconds(30)); // generous: a busy machine; frames come every 33 ms
+        JsonNode? last = null;
+        while (true) {
+            WebSocketReceiveResult result;
+            try {
+                result = await socket.ReceiveAsync(buffer, deadline.Token);
+            } catch (OperationCanceledException) when (!Token.IsCancellationRequested) {
+                Assert.Fail($"No telemetry metering {block}'s test tone within 30 s. Last frame: {last}");
+                throw;
+            }
+
+            var frame = JsonNode.Parse(Encoding.UTF8.GetString(buffer, 0, result.Count))!;
+            if (frame["type"]!.GetValue<string>() != "telemetry") {
+                continue;
+            }
+
+            last = frame;
+            // The block's own meter reads what it rendered, before the tone replaces it; downstream, the tone shows.
+            if (frame["blocks"]?[block]?["peak"] is not null
+                && frame["outputPeakLeft"]!.GetValue<float>() > 0.01f) { // the tone is -20 dBFS (0.1)
+                break;
+            }
+        }
+
+        await Ok(client.PutAsJsonAsync($"/api/v1/live/blocks/{block}/test-tone", new TestToneRequest(false), Token));
+    }
+
+    async Task<LiveState> Live(HttpClient client) => (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!;
 
     async Task<SystemInfo> System(HttpClient client) =>
         (await client.GetFromJsonAsync<SystemInfo>("/api/v1/system", Token))!;

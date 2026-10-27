@@ -10,6 +10,8 @@ name: nightly
 #   through cth_nam_process, and a stream runs on ALSA's "null" PCM with a model in its callback, all in RTSan's
 #   real-time context, which aborts on any allocation, lock or blocking call there. Two canaries first prove the check
 #   is armed. Pull requests that touch the native code run this job too.
+# - Multi-rate (§3): every Circuit Amp model at 88.2, 96 and 192 kHz against its own sound at 48 kHz (level and octave
+#   bands; CATHODE_MULTIRATE_FULL=1). Every build already runs every block at every rate and the models at 44.1 kHz.
 # - Capture matches (docs/06 §4.3): `cathode-references fetch` downloads the redistributable (GPL) amp captures named
 #   in engine/tests/assets/references/manifest.json into a cache kept between runs (keyed on the manifest, which holds
 #   every URL and SHA-256), and Cathode.References.Tests holds each circuit amp to the manifest's ESR / MRSTFT targets.
@@ -61,6 +63,24 @@ jobs:
         env:
           CsCheck_Time: ${{ inputs.seconds || '60' }}
         run: dotnet test --project tests/Cathode.Dsp.Tests -c Release --no-build --filter-trait "Category=Property"
+
+  multirate:
+    name: amp models at every sample rate
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-dotnet
+      - run: dotnet build tests/Cathode.Dsp.Tests -c Release
+      # Every build checks every block at every rate and the amp models at 44.1 kHz; this adds the models at 88.2, 96
+      # and 192 kHz, which take a few minutes.
+      - name: Multi-rate tests, amp models included
+        env:
+          CATHODE_MULTIRATE_FULL: "1"
+        run: >-
+          dotnet test --project tests/Cathode.Dsp.Tests -c Release --no-build
+          --filter-class Cathode.Dsp.Tests.MultiRateTests
 
   references:
     name: capture matches (references)

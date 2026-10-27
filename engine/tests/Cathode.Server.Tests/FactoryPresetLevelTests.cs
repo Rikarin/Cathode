@@ -92,6 +92,22 @@ public sealed class FactoryPresetLevelTests {
     }
 
     static (float Loudness, float Peak, bool Finite) Render(Preset preset, int scene, float[] input) {
+        var (left, right) = RenderOutput(preset, scene, input);
+        var finite = true;
+        var peak = 0f;
+        for (var i = 0; i < left.Length; i++) {
+            finite &= float.IsFinite(left[i]) && float.IsFinite(right[i]);
+            peak = Math.Max(peak, Math.Max(Math.Abs(left[i]), Math.Abs(right[i])));
+        }
+
+        return (finite ? Loudness(left, right) : float.NaN, 20 * MathF.Log10(Math.Max(peak, 1e-9f)), finite);
+    }
+
+    /// <summary>
+    ///     A scene of a preset that uses no assets, rendered through the engine at the scene's level and the preset's
+    ///     tempo, with every expression pedal half way.
+    /// </summary>
+    internal static (float[] Left, float[] Right) RenderOutput(Preset preset, int scene, float[] input) {
         // Factory presets use no assets, so the asset store is never asked.
         var definition = PresetGraph.Build(preset, scene, null!);
         using var graph = new GraphCompiler(BlockRegistry.CreateDefault()).Compile(definition, Spec, 1);
@@ -107,16 +123,7 @@ public sealed class FactoryPresetLevelTests {
 
         engine.Rig.SnapToTargets();
         engine.Publish(graph);
-        var (left, right) = OfflineRenderer.Render(engine, input, input, 64);
-
-        var finite = true;
-        var peak = 0f;
-        for (var i = 0; i < left.Length; i++) {
-            finite &= float.IsFinite(left[i]) && float.IsFinite(right[i]);
-            peak = Math.Max(peak, Math.Max(Math.Abs(left[i]), Math.Abs(right[i])));
-        }
-
-        return (finite ? Loudness(left, right) : float.NaN, 20 * MathF.Log10(Math.Max(peak, 1e-9f)), finite);
+        return OfflineRenderer.Render(engine, input, input, 64);
     }
 
     /// <summary>
@@ -124,7 +131,7 @@ public sealed class FactoryPresetLevelTests {
     ///     below -70 LUFS dropped, then those more than 10 LU under the average of the rest, and the rest averaged as
     ///     power.
     /// </summary>
-    static float Loudness(float[] left, float[] right) {
+    internal static float Loudness(float[] left, float[] right) {
         var meter = new LoudnessMeter(Rate);
         var readings = new List<double>();
         const int frame = Rate / 30;

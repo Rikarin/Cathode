@@ -38,7 +38,10 @@ Everything goes through **one** implementation, so tests, benchmarks and the mod
 
 ## 3. DSP unit testing (per block)
 
-Every `IDspBlock` gets a parametrised suite generated from its descriptor. Run it at **44.1k, 48k and 96k**, and with block sizes **1, 7, 64, 4096 and random-variable** to catch block-boundary bugs.
+Every `IDspBlock` gets a parametrised suite generated from its descriptor (`BlockConformanceTests`). It runs at 48 kHz with 64-frame blocks, and checks that random block sizes from 1 to 64 render the same as fixed ones, to catch block-boundary bugs. Two suites cover the other sample rates:
+
+- **Rate change:** a block prepared again at 44.1 or 96 kHz after running at 48 kHz renders exactly as one prepared at that rate from the start (`BlockConformanceTests`, and per amp model in `CircuitAmpBlockTests`).
+- **Multi-rate** (`MultiRateTests`): every block at its defaults, prepared at **44.1, 88.2, 96 and 192 kHz** and fed the same multitone (50 Hz to 12 kHz, −20 dBFS RMS), must render finite and below +20 dBFS. Its level and octave bands from 63 Hz to 8 kHz must match its own at 48 kHz: within 0.5 dB and 1 dB for linear and time-based blocks, and 1.5 dB and 3 dB for nonlinear and analysis-driven ones (drives, compressors, vocoder, pitch). A block that is silent at 48 kHz must stay silent. Every Circuit Amp model must match within 0.5 dB and 2 dB at 44.1 kHz on every build. The nightly run adds 88.2, 96 and 192 kHz (`CATHODE_MULTIRATE_FULL=1`).
 
 1. **Analytic response:** linear blocks (EQ, filters, crossover, tone stack) compare FFT(impulse response) against closed-form H(e^jω).
    - Tolerance: ±0.05 dB in the passband, looser near Nyquist.
@@ -49,11 +52,11 @@ Every `IDspBlock` gets a parametrised suite generated from its descriptor. Run i
 5. **Null tests:**
    - bypass and dry must be bit-identical
    - mix 0 % against dry, including latency compensation
-   - SIMD against a scalar reference within 1e‑6
+   - SIMD against scalar (`SimdNullTests`): the code with vector paths has scalar fallbacks. These are the convolver (Cab, IR Player), the AIDA-X model (Amp NAM), the pitch tracker and the circuit solvers' paired LU rows. The JIT folds the switch to a constant, so `cathode-render` renders one graph per block in two child processes, one as the machine runs it and one with `DOTNET_EnableHWIntrinsic=0`. The scalar render must null at least 100 dB below the signal. On x64 the convolver, model and tracker reach about 130 to 145 dB, and the solvers null exactly
    - channel A with the same parameters as channel B must null
 6. **Latency contract:** the measured impulse delay must equal `LatencySamples`.
 7. **Determinism:**
-   - the same render twice, and in two processes, must be bit-equal
+   - the same render twice must be bit-equal, and so must a render in another process (`SimdNullTests` compares the test process's render with `cathode-render`'s)
    - `Reset()` then a render must equal a fresh instance then a render
 8. **Denormals:** a loud burst followed by 10 s of silence must leave no subnormal value in the output or the state, and per-block time must not jump.
 
@@ -140,7 +143,10 @@ Reference measurements must be **ours**, made on amps we have access to.
 ## 8. API and contract testing
 
 - **ASP.NET Core integration tests** with `WebApplicationFactory<Program>`. The audio backend is replaced by `OfflineBackend` or `NullBackend` via `ConfigureTestServices`, using an in-process engine.
-- **Out-of-process IPC tests:** start the real Host binary with the NullBackend and run the same suite through `IpcEngineControl`. The suite is shared, the transport differs.
+- **Out-of-process IPC tests:** the API suite runs against an in-process engine host (a test-only link, since production always splits the processes). The production layout is tested separately:
+  - `IpcTests` test the framing, and a client and server talking over a Unix socket
+  - `EngineLinkTests` use a fake host that drops the connection mid-request
+  - `TwoProcessTests` start the real `cathode-host --serve --null-audio` as a second process and point a Server at its socket. Through the Server's API they add blocks, load a factory preset, change parameters, and play a test tone that must reach a WebSocket client's telemetry from the host's shared-memory meters. Then they kill the host, start a new one, and check that the Server resends the rig: the same preset with the edit plays and is metered again. A host watching its stdin also stops cleanly when its launcher goes.
 - **OpenAPI drift:**
   - the build regenerates `openapi.json`, and a test diffs it against the committed copy
   - **oasdiff** fails PRs on breaking changes unless the API version is bumped
@@ -154,13 +160,16 @@ Reference measurements must be **ours**, made on amps we have access to.
 ## 9. Preset compatibility
 
 - Every preset has a `schemaVersion`. Migrations are pure `vN → vN+1` functions, each with its own unit test.
-- **Legacy corpus:** `tests/presets/legacy/` holds presets from every released version, including user-contributed ones. CI migrates each one to the current version and then:
-  1. checks it deserialises with no unknown fields
-  2. approval-tests the migrated JSON
-  3. **renders it and nulls the result against the stored golden render**, so a migration cannot change the sound
-- Idempotence: migrating a current-version preset changes nothing.
-- A **newer-version preset** loaded into an older build fails with a clear error and never crashes.
-- A test fails if any `(typeId, paramId)` disappears from the catalog without a migration entry.
+- **Legacy corpus** (`LegacyCorpusTests`): `engine/tests/assets/legacy/<version>/` holds a data folder for every release, 1.0.0-rc.1 to rc.3 (all schema 1). Each was written by that release's own Server through its API:
+  - two factory presets duplicated into the library
+  - a user's edit saved as a new preset: a Tiny Terror with its Cut on channel A, a 5881 on channel B, and the amp made a global block
+  - a user block preset of a Hot Cat
+  - a `global.json` with a setting changed
+
+  On every build a Server starts on each folder. Every file must load upgraded to the current schema, every stored value must still name a parameter of its block type, and schema 2's Amp changes must come through: Cut becomes the Presence knob, the 5881 becomes the 6L6GC, and the old defaults are written in. The Server must skip no file as damaged, and the edited preset must load and play. Every distinct scene of every preset is rendered through the engine with the factory leveling's guitar phrase. It must be finite and bit-identical when rendered again, and within 0.5 LU of the loudness recorded in `levels.json`. A deliberate change of sound, such as an amp model refit, moves those levels: rewrite them with `CATHODE_UPDATE_LEGACY_LEVELS=1` and say why in the commit. The levels are a loudness, not a null against a stored render, because sample-exact renders differ between operating systems (§4). User-contributed presets are not in the corpus yet.
+- Idempotence: migrating a current-version preset changes nothing (`VersioningTests`).
+- A **newer-version preset** is left as it is by the migrations, and loading or importing it is refused with a message that says so.
+- A stored parameter that disappears from the catalog without a migration fails the legacy corpus test, for the parameters the corpus uses. There is no check over the whole catalog.
 
 ---
 
