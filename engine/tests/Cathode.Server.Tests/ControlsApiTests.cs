@@ -156,6 +156,50 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task A_repeated_down_is_one_press_with_one_hold() {
+        await PutGlobal(static g => {
+                g.Footswitches.Add(
+                    new(
+                        "board",
+                        "Board",
+                        [new(1, "Next", "cc", 1, 31, new("scene", Value: 6), new("sceneNext"))]
+                    )
+                );
+                g.ActiveLayout = "board";
+            }
+        );
+        var router = server.Services.GetRequiredService<MidiRouter>();
+
+        // A CC pedal held past 64 keeps sending "down": one hold action, not one per message.
+        for (var i = 0; i < 5; i++) {
+            router.OnMidi([new(0xB0, 31, 100 + i, 0)]);
+        }
+
+        await ServerFixture.Eventually(async () => (await Live()).ActiveScene == 1);
+        router.OnMidi([new(0xB0, 31, 127, 0)]); // still held, after the hold fired
+        await Task.Delay(MidiRouter.HoldTime * 3, Token);
+        Assert.Equal(1, (await Live()).ActiveScene);
+
+        router.OnMidi([new(0xB0, 31, 0, 0)]); // the release after a hold does nothing
+        router.OnMidi([new(0xB0, 31, 127, 0)]);
+        router.OnMidi([new(0xB0, 31, 0, 0)]); // and the next press is a fresh one: a tap
+        await ServerFixture.Eventually(async () => (await Live()).ActiveScene == 6);
+    }
+
+    [Fact]
+    public async Task Mute_actions_run_in_order() {
+        await PutGlobal(static g => g.MidiMappings.Add(new("m", "note", 0, 85, "mute")));
+        var router = server.Services.GetRequiredService<MidiRouter>();
+
+        // Three toggles: each must see the one before it, or two would read the same state.
+        router.OnMidi([new(0x90, 85, 127, 0), new(0x90, 85, 127, 0), new(0x90, 85, 127, 0)]);
+
+        await ServerFixture.Eventually(async () => (await Live()).Muted);
+        await Task.Delay(300, Token);
+        Assert.True((await Live()).Muted);
+    }
+
+    [Fact]
     public async Task Selecting_a_scene_sends_its_midi_messages() {
         var sent = new List<byte[]>();
         server.Host.NativeMidiSend = (_, bytes) => {
