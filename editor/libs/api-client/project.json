@@ -5,6 +5,16 @@
   "sourceRoot": "libs/api-client/src",
   "tags": ["type:data"],
   "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "tsc -p libs/api-client/tsconfig.lib.json --noEmit",
+          "tsc -p libs/api-client/tsconfig.spec.json --noEmit"
+        ],
+        "parallel": false
+      }
+    },
     "generate": {
       "executor": "nx:run-commands",
       "inputs": ["{workspaceRoot}/../engine/src/Cathode.Server/openapi.json"],

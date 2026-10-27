@@ -37,6 +37,16 @@ pnpm exec nx serve desktop
 pnpm exec nx run-many -t test
 ```
 
+Lint and type-check every project. ESLint is type-aware (`eslint.config.mjs`: typescript-eslint's strict and stylistic type-checked sets, angular-eslint with template accessibility), any warning fails, and CI runs both:
+
+```bash
+pnpm exec nx run-many -t lint
+```
+
+```bash
+pnpm exec nx run-many -t typecheck
+```
+
 ```bash
 pnpm exec nx e2e desktop
 ```

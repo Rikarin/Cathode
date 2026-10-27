@@ -19,6 +19,10 @@
         "parallel": false
       }
     },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": { "command": "tsc -p apps/desktop/tsconfig.json --noEmit" }
+    },
     "engine": {
       "executor": "nx:run-commands",
       "outputs": ["{workspaceRoot}/dist/engine"],

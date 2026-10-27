@@ -7,6 +7,17 @@
   "projectType": "library",
   "// targets": "to see all targets run: nx show project audio-ui --web",
   "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "ngc -p libs/audio-ui/tsconfig.lib.json --noEmit",
+          "ngc -p libs/audio-ui/tsconfig.spec.json --noEmit",
+          "ngc -p libs/audio-ui/.storybook/tsconfig.json --noEmit"
+        ],
+        "parallel": false
+      }
+    },
     "storybook": {
       "executor": "@storybook/angular-vite:start-storybook",
       "options": {
