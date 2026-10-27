@@ -10,8 +10,8 @@ namespace Cathode.Dsp.Blocks;
 ///     Time Alpha bends the tap spacing and Time Randomize jitters it; Level Shape, Amplitude Alpha and Randomize set
 ///     the tap amplitudes; Pan Shape, Pan Alpha and Spread place them in the stereo field. One tap can feed back into
 ///     the line. Low and high cut filter what enters the line (so every repeat through the feedback is darker), an
-///     envelope can swell the input into the taps, a diffuser smears the wet, and the Axe-Fx mix law and Level are
-///     shared with the other delays.
+///     envelope can swell the input into the taps, a diffuser smears the wet, and the mix (a linear
+///     crossfade, unlike the other delays' constant-power law) and Level finish the block.
 /// </summary>
 /// <remarks>
 ///     <para>

@@ -6,7 +6,7 @@ namespace Cathode.Dsp.Blocks;
 
 /// <summary>
 ///     Ten-Tap delay: up to ten taps on one line fed by the mono sum, with a feedback that re-enters at Time (so the
-///     pattern repeats), feedback-path low and high cut, the Axe-Fx mix law and Level.
+///     pattern repeats), feedback-path low and high cut, a constant-power mix and Level.
 /// </summary>
 /// <remarks>
 ///     <para>

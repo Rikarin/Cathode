@@ -19,7 +19,7 @@ Cathode is free and open source (GPL-3.0-or-later).
 - **Cabinets:** a Cab block that builds the response from 10 speakers, 11 microphones and 7 cabinets, with mic
   position, distance and angle. Load your own impulse responses (`.wav`, `.cabgrid`) too, mix them, trim them, or
   capture one with a sine sweep.
-- **49 block types:** drives, delays (including multi-tap, ten-tap and plex delays), reverbs, chorus, flanger, phaser,
+- **48 block types:** drives, delays (including multi-tap, ten-tap and plex delays), reverbs, chorus, flanger, phaser,
   rotary, tremolo, wah, pitch and harmonisers, synth, vocoder, compressors and gates, EQs, filters, a looper, a
   tuner, mixers and FX loops.
 - **A grid like the hardware's:** six rows of fourteen cells, parallel paths, mixers and feedback loops.
