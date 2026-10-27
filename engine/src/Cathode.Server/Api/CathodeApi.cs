@@ -480,14 +480,19 @@ public static class CathodeApi {
 
         app.Map(
                 "/ws",
-                async (HttpContext http, EventHub hub) => {
+                async (HttpContext http, EventHub hub, IHostApplicationLifetime lifetime) => {
                     if (!http.WebSockets.IsWebSocketRequest) {
                         http.Response.StatusCode = StatusCodes.Status400BadRequest;
                         return;
                     }
 
                     using var socket = await http.WebSockets.AcceptWebSocketAsync();
-                    await hub.ServeAsync(socket, http.RequestAborted);
+                    // Closed (with a close frame) when the Server stops, too: shutdown does not wait out the timeout.
+                    using var served = CancellationTokenSource.CreateLinkedTokenSource(
+                        http.RequestAborted,
+                        lifetime.ApplicationStopping
+                    );
+                    await hub.ServeAsync(socket, served.Token);
                 }
             )
             .ExcludeFromDescription();

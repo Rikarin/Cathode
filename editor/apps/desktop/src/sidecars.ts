@@ -39,7 +39,8 @@ const Gen0Budget = '10000000';
 
 /**
  * One supervised child process: started with a command line computed at each (re)start, restarted with backoff
- * when it exits on its own, stopped politely (SIGTERM, then SIGKILL after 3 s) on request.
+ * when it exits on its own, stopped politely on request (its standard input closed, and SIGTERM where there are
+ * signals), and killed if it is still running 3 s later.
  */
 class Sidecar {
   private child: ChildProcess | null = null;
@@ -82,7 +83,13 @@ class Sidecar {
     const child = this.child;
     if (child && child.exitCode === null) {
       const exited = new Promise<void>(done => child.once('exit', () => done()));
-      child.kill('SIGTERM');
+      // Closing its lifeline asks it to stop, and it then stops cleanly: the host releases the device and removes its
+      // socket. On Windows that is the only polite way: Node has no signals there, and kill() terminates outright.
+      child.stdin?.end();
+      if (process.platform !== 'win32') {
+        child.kill('SIGTERM');
+      }
+
       const killer = setTimeout(() => child.kill('SIGKILL'), 3_000);
       await exited;
       clearTimeout(killer);

@@ -53,6 +53,18 @@ test('the engine stops on its own when the app is killed', async ({ app, window 
   }
 });
 
+test('quitting stops the engine cleanly, on every platform', async ({ app, window }) => {
+  await expect(window.getByRole('gridcell', { name: /^Input in1/ })).toBeVisible();
+  const pid = await mainPid(app);
+  expect(socketExists(pid)).toBe(true);
+
+  await app.close();
+  expect(hosts(pid)).toEqual([]);
+  expect(servers(pid)).toEqual([]);
+  // The host had time to release the device and remove its socket: it was asked to stop, not terminated.
+  expect(socketExists(pid)).toBe(false);
+});
+
 interface Desktop {
   audio: { settings(): Promise<unknown>; apply(settings: unknown): Promise<void> };
 }
