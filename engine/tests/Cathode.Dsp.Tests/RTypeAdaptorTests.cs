@@ -84,6 +84,53 @@ public class RTypeAdaptorTests(ITestOutputHelper output) {
         Assert.True(worst < ToleranceDb, $"{worst:0.000} dB from the reference");
     }
 
+    [Theory]
+    [InlineData(0.5, 0.5, 0.5)]
+    [InlineData(1.0, 0.0, 0.0)]
+    [InlineData(0.0, 0.0, 0.0)]
+    [InlineData(1.0, 1.0, 1.0)]
+    [InlineData(0.0, 1.0, 0.0)]
+    public void Fender_tone_stack_scattering_at_its_end_stops_matches_an_exact_solve(
+        double treble,
+        double bass,
+        double middle
+    ) {
+        // A pot at an end stop keeps RTypeScattering.EndStop of its track. At 1 µΩ that put 1e6 S beside the 1 MΩ grid
+        // leak: cond∞ 7e10 to 2.1e11 at these end stops, and scattering coefficients up to 2.7e-6 from the exact solve
+        // (five digits lost). At 1 mΩ both are a thousand times smaller (cond∞ 7e7 to 2.1e8, error at most 3.2e-9); at
+        // noon (cond∞ 1e3, error 1e-15) nothing changes.
+        var stack = new FenderToneStack(Rate);
+        stack.Set(0.5, 0.5, 0.5);
+        stack.Set(treble, bass, middle);
+        var (error, condition) = ExactScattering.Compare(stack.Netlist, stack.Scattering);
+        output.WriteLine($"t {treble} b {bass} m {middle}: cond∞ {condition:E2}, scattering error {error:E2}");
+        Assert.True(condition < 1e9, $"cond∞ {condition:E2}");
+        Assert.True(error < 1e-8, $"scattering error {error:E2}");
+    }
+
+    [Fact]
+    public void Factor_rejects_a_nearly_singular_matrix_and_accepts_a_badly_scaled_regular_one() {
+        Span<int> pivots = stackalloc int[2];
+        // Two nodes joined by g, each held to ground by 1 µS: the second pivot is what is left after cancelling g, 2 µS.
+        static double[] Joined(double g) => [g + 1e-6, -g, -g, g + 1e-6];
+
+        // A 1 mΩ end stop (1000 S) leaves the pivot 2e-9 of its row: regular.
+        Assert.True(DenseLu.Factor(Joined(1e3), 2, pivots));
+        // A nanohm (1e9 S) leaves 2e-15: rounding noise, which the old 1e-300 threshold let through.
+        Assert.False(DenseLu.Factor(Joined(1e9), 2, pivots));
+        Assert.True(DenseLu.Factor(Joined(1e9), 2, pivots, 1e-300));
+        // The same in its plainest form: rows that differ in the sixteenth digit.
+        Assert.False(DenseLu.Factor([1, 1, 1, 1 + 1e-15], 2, pivots));
+
+        // A node held only by the 1e-15 S safety conductance beside a 1000 S branch is many decades below the largest
+        // entry, but its row does not cancel: regular, as before.
+        Span<int> three = stackalloc int[3];
+        Assert.True(DenseLu.Factor([1e3 + 1e-6, -1e3, 0, -1e3, 1e3 + 1e-6, 0, 0, 0, 1e-15], 3, three));
+        // Not finite, or a row of zeros: singular.
+        Assert.False(DenseLu.Factor([1, 0, 0, double.NaN], 2, pivots));
+        Assert.False(DenseLu.Factor([1, 2, 0, 0], 2, pivots));
+    }
+
     [Fact]
     public void Recomputing_the_tone_stack_is_allocation_free_and_cheap() {
         var stack = new FenderToneStack(Rate);
@@ -311,6 +358,10 @@ sealed class FenderToneStack {
 
     public int Columns { get; }
 
+    public WdfNetlist Netlist { get; }
+
+    public RTypeScattering Scattering => root.Scattering;
+
     public FenderToneStack(double rate) {
         var net = new WdfNetlist();
         var input = net.Node();
@@ -331,6 +382,7 @@ sealed class FenderToneStack {
         net.Resistor(wiper, WdfNetlist.Ground, Load);
         net.Probe(wiper);
         root = new(net, new(new(100), new(250e-12, rate), new(20e-9, rate), new(20e-9, rate)), default);
+        Netlist = net;
         Size = net.Nodes;
         Columns = root.Scattering.Columns;
     }
@@ -354,7 +406,7 @@ sealed class FenderToneStack {
         double bass,
         double middle
     ) {
-        const double Floor = 1e-6; // the adaptor's minimum resistance for a pot at its end stop
+        const double Floor = RTypeScattering.EndStop; // the adaptor's minimum resistance for a pot at its end stop
         var c = new ReferenceCircuit();
         var source = c.Node();
         var input = c.Node();

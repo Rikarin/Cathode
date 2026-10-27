@@ -9,7 +9,7 @@ namespace Cathode.Dsp.Tests.Circuits;
 ///     compare; source 0 is the input.
 /// </summary>
 static class AmpReferences {
-    const double Floor = 1e-6; // RTypeScattering's smallest resistance: a pot at its end stop
+    const double Floor = RTypeScattering.EndStop; // RTypeScattering's smallest resistance: a pot at its end stop
 
     /// <summary>
     ///     A <see cref="TriodeStage" /> driven through <paramref name="sourceResistance" /> (plus its own input
