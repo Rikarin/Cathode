@@ -235,6 +235,23 @@ public class MegatapBlockTests {
         Assert.Equal(1f, output[48_000], 1e-6f);
     }
 
+    [Fact]
+    public void Feedback_at_unity_is_limited_and_stays_bounded() {
+        // A steady input at 100 % feedback used to add its level on every pass: 0.5 x 100 passes in 2 s.
+        using var megatap = Create(
+            (MegatapBlock.Time, 20f),
+            (MegatapBlock.Taps, 1f),
+            (MegatapBlock.Feedback, 100f),
+            (MegatapBlock.PanShape, MegatapBlock.Center),
+            (MegatapBlock.Mix, 100f)
+        );
+
+        var output = BlockRender.Mono(megatap, Signals.Step(48_000 * 2, 0.5f), 64);
+
+        Assert.True(Analysis.AllFinite(output));
+        Assert.True(Analysis.Peak(output) < 2.5f, $"peak {Analysis.Peak(output)}");
+    }
+
     /// <summary>Every tap is heard near its position (Hermite spreads fractional ones over a few samples), nothing else is.</summary>
     static void AssertHeardOnlyAt(float[] output, float[] positions, float amplitude) {
         var heard = new bool[output.Length];

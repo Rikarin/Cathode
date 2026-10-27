@@ -384,7 +384,9 @@ public sealed class MegatapBlock() : DspBlock(Info) {
                 x = (float)highCut.Tick(highCutCoefficients, x);
             }
 
-            line.Write(x);
+            // Feedback reaches unity (100 %) and the input keeps adding to the loop: limit it as every other
+            // recirculating block does, so it saturates instead of growing without bound.
+            line.Write(DelayBlock.Limit(x));
             diffuser.Tick(ref wetLeft, ref wetRight);
             io.Left[i] = dryLeft * (1f - currentMix) + wetLeft * currentMix;
             io.Right[i] = dryRight * (1f - currentMix) + wetRight * currentMix;
