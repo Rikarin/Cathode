@@ -115,15 +115,15 @@ Mappings work for a few switches. For a whole foot controller, use **footswitch 
 2. Click **Add switch** for each switch on your controller.
 3. For each switch, fill in its row:
 
-| Column             | What it is                                                                                                                                                            |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Switch**         | A label for the switch.                                                                                                                                               |
-| **Sends**          | The message the switch sends: **cc**, **note** or **pc**, its number, and its MIDI channel (0 means any channel). Use the Monitor to find out what your switch sends. |
-| **Tap**            | The action for a press, written as text (see below).                                                                                                                  |
-| **Hold**           | Optional: the action for holding the switch for half a second.                                                                                                        |
-| **LED**            | Whether Cathode lights the switch's LED.                                                                                                                              |
-| **Then layout**    | Optional: a layout to switch to after the tap action.                                                                                                                 |
-| **In this preset** | Optional: a different tap action for this switch while the loaded preset is active. It is saved with the preset.                                                      |
+| Column             | What it is                                                                                                                                                                                                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Switch**         | A label for the switch.                                                                                                                                                                                                                                                         |
+| **Sends**          | The message the switch sends: **cc**, **note** or **pc**, its number, and its MIDI channel (0 means any channel). Use the Monitor to find out what your switch sends.                                                                                                           |
+| **Tap**            | The action for a press, written as text (see below).                                                                                                                                                                                                                            |
+| **Hold**           | Optional: the action for holding the switch for half a second.                                                                                                                                                                                                                  |
+| **LED**            | Whether Cathode lights the switch's LED.                                                                                                                                                                                                                                        |
+| **Then layout**    | Optional: a layout to switch to after the tap action.                                                                                                                                                                                                                           |
+| **In this preset** | Optional: a different tap action for this switch while the loaded preset is active. It is saved with the preset. Once it has one, two more fields give it a hold action of its own (empty for none, whatever the layout holds) and a label of its own (empty for the layout's). |
 
 The bin at the end of a row removes the switch. A new switch starts as CC 20 upwards on channel 1, selecting the scene of its number.
 
