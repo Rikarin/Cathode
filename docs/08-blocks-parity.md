@@ -1007,7 +1007,7 @@ Not a block, so not in the Blocks Guide: the preset and scene behaviour around t
 | Modifier scope | 🆕 ✅ | `PresetModifier.channel`: null for every channel of the block, or one channel; on the others the parameter keeps that channel's value. The engine switches the modifier as the channel changes (`setModifier`, no recompile). Editable in the modifier dialog and on the Controllers page |
 | Preset-change spillover on/off | 🆕 ✅ | Global `presetSpillover` (the rig's `spillover`): off, the outgoing preset fades out over the 20 ms swap instead of ringing out |
 | Looper across presets | 🆕 ✅ | A grid loop (recorded, playing or stopped) moves to the next preset's Looper block; without one it stops as before |
-| Confirm before discarding edits | 🆕 ✅ | Global `confirmPresetChange` (on by default): the editor asks before loading another preset over unsaved edits |
+| Confirm before discarding edits | 🆕 ✅ | Global `confirmPresetChange` (on by default): the editor asks before loading another preset over unsaved edits, and the desktop app before quitting with them |
 | Preset list as text | 🆕 ✅ | `GET /presets/list.txt` (alphabetical, author, tags and scene names); "Export list…" on the Library page |
 | Recent presets | 🆕 ✅ | A menu in the editor's navbar, per editor (local storage) |
 

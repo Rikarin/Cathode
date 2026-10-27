@@ -78,6 +78,11 @@ export interface CathodeDesktop {
   onFullScreen(listener: (fullScreen: boolean) => void): void;
   /** Called when the app menu's Settings… (⌘,) is chosen. */
   onOpenSettings?(listener: () => void): void;
+  /**
+   * Asked before the app quits (or its window closes) while it runs its own engine, whose Server holds the working
+   * copy: false keeps the app open.
+   */
+  onQuit?(mayQuit: () => boolean | Promise<boolean>): void;
   /** The Server to use; in local mode it resolves once the sidecars answer. */
   connection(): Promise<Connection>;
   target(): Promise<ServerTarget>;

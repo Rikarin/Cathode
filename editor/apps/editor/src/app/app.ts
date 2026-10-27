@@ -453,6 +453,8 @@ export class App {
   constructor() {
     window.cathode?.onFullScreen?.(fullScreen => this.fullScreen.set(fullScreen));
     window.cathode?.onOpenSettings?.(() => this.ui.settings.set('preferences'));
+    // Quitting the desktop app takes its Server, and the unsaved edits with it: ask first, as loading a preset does.
+    window.cathode?.onQuit?.(() => this.switcher.mayDiscard('quit'));
     void this.startup.start();
     inject(DestroyRef).onDestroy(this.registerShortcuts());
   }

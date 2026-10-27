@@ -56,6 +56,40 @@ let settings = loadSettings();
 let sidecars: Sidecars | null = null;
 let window: BrowserWindow | null = null;
 let quitting = false;
+/** Whether the window's editor answers "may the app quit?" (it says so once loaded; a reload starts over). */
+let quitGuard = false;
+/** The pending question, so a second ⌘Q or close while the editor asks does not ask twice. */
+let askingToQuit: Promise<boolean> | null = null;
+let quitQuestions = 0;
+const quitAnswers = new Map<number, (ok: boolean) => void>();
+
+/**
+ * Asks the editor whether the app may quit: with unsaved edits it asks the person, as loading a preset does, since the
+ * working copy lives in the local Server and goes with it. A remote Server keeps it, so then nobody is asked; nor when
+ * there is no editor to ask.
+ */
+function mayQuit(): Promise<boolean> {
+  const contents = window?.webContents;
+  if (!sidecars || !contents || contents.isDestroyed() || !quitGuard) {
+    return Promise.resolve(true);
+  }
+
+  askingToQuit ??= new Promise<boolean>(done => {
+    const id = ++quitQuestions;
+    const gone = () => answer(true);
+    const answer = (ok: boolean) => {
+      quitAnswers.delete(id);
+      contents.off('render-process-gone', gone);
+      contents.off('destroyed', gone);
+      done(ok);
+    };
+    quitAnswers.set(id, answer);
+    contents.once('render-process-gone', gone);
+    contents.once('destroyed', gone);
+    contents.send('cathode:mayQuit', id);
+  }).finally(() => (askingToQuit = null));
+  return askingToQuit;
+}
 
 function connection(): Promise<Connection> {
   const target = settings.target;
@@ -148,6 +182,22 @@ function createWindow(): void {
   });
 
   window.once('ready-to-show', () => window?.show());
+  // Closing the window quits on Windows and Linux: ask first, as quitting does (macOS keeps the app and its engine).
+  let mayClose = false;
+  window.on('close', event => {
+    if (quitting || mayClose || process.platform === 'darwin' || !sidecars) {
+      return;
+    }
+
+    event.preventDefault();
+    void mayQuit().then(ok => {
+      if (ok) {
+        mayClose = true;
+        window?.close();
+      }
+    });
+  });
+  window.webContents.on('did-navigate', () => (quitGuard = false));
   // Full screen hides the traffic lights, so the navbar can give their space back.
   window.on('enter-full-screen', () => window?.webContents.send('cathode:fullScreen', true));
   window.on('leave-full-screen', () => window?.webContents.send('cathode:fullScreen', false));
@@ -169,6 +219,16 @@ function createWindow(): void {
 }
 
 function handleIpc(): void {
+  ipcMain.on('cathode:mayQuit:ready', event => {
+    if (event.sender === window?.webContents) {
+      quitGuard = true;
+    }
+  });
+  ipcMain.on('cathode:mayQuit:reply', (_event, id: unknown, ok: unknown) => {
+    if (typeof id === 'number') {
+      quitAnswers.get(id)?.(ok === true);
+    }
+  });
   ipcMain.handle('cathode:connection', () => connection());
   ipcMain.handle('cathode:target', () => settings.target);
   ipcMain.handle('cathode:setTarget', async (_event, target: ServerTarget) => {
@@ -374,8 +434,15 @@ app.on('before-quit', event => {
     return;
   }
 
-  // Stop the engine cleanly (the host releases the audio device and deletes its socket), then really quit.
+  // Ask about unsaved edits; then stop the engine cleanly (the host releases the audio device and deletes its socket)
+  // and really quit.
   event.preventDefault();
-  quitting = true;
-  void sidecars.stop().finally(() => app.quit());
+  void mayQuit().then(ok => {
+    if (!ok || quitting) {
+      return;
+    }
+
+    quitting = true;
+    void (sidecars?.stop() ?? Promise.resolve()).finally(() => app.quit());
+  });
 });
