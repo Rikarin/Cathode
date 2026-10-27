@@ -264,6 +264,7 @@ public sealed class ReverbBlock : DspBlock {
     float dcPole = 1f;
     float mix;
     Ducker ducker;
+    SampleGlide preDelayGlide;
     OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
@@ -806,6 +807,7 @@ public sealed class ReverbBlock : DspBlock {
         pitchRunning = false;
         pitched = 0;
         preDelayOut = 0;
+        preDelayGlide.Reset();
         plate.Clear();
         spring.Clear();
         ring.Clear();
@@ -883,7 +885,7 @@ public sealed class ReverbBlock : DspBlock {
             preDelayMs = Math.Min(MaxPreDelayMs, (float)division);
         }
 
-        var preDelay = Math.Max(1f, preDelayMs * 0.001f * rate);
+        preDelayGlide.Begin(Math.Max(1f, preDelayMs * 0.001f * rate), n); // glides across the block, never steps
         var preFeedback = Params.Advance(PreDelayFeedback, n) / 100f;
         var preMix = Params.Advance(PreDelayMix, n) / 100f;
         var mix = EffectsMix.Apply(Params.Advance(Mix, n), Params.Current(GlobalMix), context) / 100f;
@@ -995,6 +997,7 @@ public sealed class ReverbBlock : DspBlock {
                 input += (pitched - input) * pitchMix;
             }
 
+            var preDelay = preDelayGlide.At(i);
             float x;
             if (preFeedback > 0) {
                 x = this.preDelay.ReadWrite(input + preFeedback * preDelayOut, preDelay);

@@ -1,6 +1,7 @@
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Tests.Circuits;
 using Cathode.Dsp.Wdf;
+using Cathode.Testing;
 using System.Numerics;
 
 namespace Cathode.Dsp.Tests;
@@ -24,6 +25,24 @@ public class WahCircuitTests(ITestOutputHelper output) {
             }
 
             return data;
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(Voicings))]
+    public void A_circuit_loaded_from_a_found_bias_matches_one_that_solved_it(int voicing) {
+        var solved = new WahCircuit(WahBlock.Circuits[voicing], Rate);
+        var loaded = new WahCircuit(WahBlock.Circuits[(voicing + 1) % WahBlock.Circuits.Count], Rate);
+        var solves = loaded.OperatingPointSolves;
+
+        loaded.Configure(solved.Bias());
+
+        Assert.Equal(solves, loaded.OperatingPointSolves);
+        Assert.Equal(solved.OperatingPoint.ToArray(), loaded.OperatingPoint.ToArray());
+        solved.SetPosition(0.3);
+        loaded.SetPosition(0.3);
+        foreach (var x in Signals.Noise(4_800, voicing, 0.5f)) {
+            Assert.Equal(solved.Tick(x), loaded.Tick(x));
         }
     }
 

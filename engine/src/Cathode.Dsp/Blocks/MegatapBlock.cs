@@ -72,6 +72,9 @@ public sealed class MegatapBlock() : DspBlock(Info) {
 
     public const float MaxTimeMs = 4_000f;
     public const float MaxPreDelayMs = 1_000f;
+
+    /// <summary>The furthest a tap reaches as a fraction of Time: the last tap (1) plus Time Randomize's half spacing.</summary>
+    const float MaxTapReach = 1.5f;
     public const float MaxDiffusionMs = 100f;
     public const int MaxTaps = 128;
     public const float LowCutOff = 20f;
@@ -274,7 +277,9 @@ public sealed class MegatapBlock() : DspBlock(Info) {
     }
 
     protected override void OnPrepare(in ProcessSpec spec) {
-        line.Allocate((int)(spec.SampleRate * (MaxTimeMs + MaxPreDelayMs) / 1000) + 8);
+        // Time Randomize moves a tap by up to half a spacing, so the last tap of a single-tap pattern can sit at
+        // 1.5 x Time: room for that, so no read wraps onto the newest samples.
+        line.Allocate((int)(spec.SampleRate * (MaxTimeMs * MaxTapReach + MaxPreDelayMs) / 1000) + 8);
         diffuser.Allocate(spec.SampleRate, MaxDiffusionMs);
     }
 
@@ -384,7 +389,9 @@ public sealed class MegatapBlock() : DspBlock(Info) {
                 x = (float)highCut.Tick(highCutCoefficients, x);
             }
 
-            line.Write(x);
+            // Feedback reaches unity (100 %) and the input keeps adding to the loop: limit it as every other
+            // recirculating block does, so it saturates instead of growing without bound.
+            line.Write(DelayBlock.Limit(x));
             diffuser.Tick(ref wetLeft, ref wetRight);
             io.Left[i] = dryLeft * (1f - currentMix) + wetLeft * currentMix;
             io.Right[i] = dryRight * (1f - currentMix) + wetRight * currentMix;

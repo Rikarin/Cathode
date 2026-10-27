@@ -67,6 +67,7 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
     SvfState lowCut;
     SvfState highCut;
     float width;
+    SampleGlide timeGlide;
     OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
@@ -131,6 +132,7 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
         delay.Reset();
         lowCut.Reset();
         highCut.Reset();
+        timeGlide.Reset();
         width = Params.Current(Width) / 100f;
         output.Reset(Params.Current(Level), Params.Current(Balance));
     }
@@ -140,7 +142,7 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
         var type = (int)Params.Current(Type);
         var width = Params.Advance(Width, io.Length) / 100f;
         var widthStep = (width - this.width) / io.Length;
-        var time = (float)(Params.Advance(Time, io.Length) * 0.001 * rate);
+        timeGlide.Begin((float)(Params.Advance(Time, io.Length) * 0.001 * rate), io.Length); // glides, never steps
         var lowCutHz = Params.Advance(LowCut, io.Length);
         var highCutHz = Params.Advance(HighCut, io.Length);
         var lowCutCoefficients = SvfCoefficients.Design(BiquadType.HighPass, rate, lowCutHz, 0.7071);
@@ -149,6 +151,7 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
 
         for (var i = 0; i < io.Length; i++) {
             var w = this.width + widthStep * (i + 1);
+            var time = timeGlide.At(i);
             var l = io.Left[i];
             var r = io.Right[i];
             if (type == Haas) {

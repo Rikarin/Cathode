@@ -126,6 +126,30 @@ public class DelayBlockTests {
     }
 
     [Fact]
+    public void Slow_tape_at_the_longest_time_and_widest_modulation_never_reads_past_the_line() {
+        // Both LFOs at 10 ms on the High range, in phase with the wow (0.55 Hz x 25 %), all peaking at 1.8 s: the
+        // modulated read then reaches its furthest. Every echo is 16 s late, so the first 2 s must be silent; a read
+        // past the line wraps onto the newest samples and is heard at once.
+        const float wowRate = 0.55f * 0.25f;
+        using var delay = Create(
+            (DelayBlock.Type, DelayBlock.Tape),
+            (DelayBlock.MotorSpeed, 25f),
+            (DelayBlock.Time, DelayBlock.MaxTimeMs),
+            (DelayBlock.Feedback, 0f),
+            (DelayBlock.Mix, 100f),
+            (DelayBlock.DepthRange, 2f),
+            (DelayBlock.ModDepth, 10f),
+            (DelayBlock.ModRate, wowRate),
+            (DelayBlock.Lfo2Depth, 10f),
+            (DelayBlock.Lfo2Rate, wowRate)
+        );
+
+        var output = BlockRender.Mono(delay, Signals.Noise(48_000 * 2, 5, 0.5f), 64);
+
+        Assert.True(Analysis.Peak(output) < 1e-6f, $"peak {Analysis.Peak(output)} at {Analysis.PeakIndex(output)}");
+    }
+
+    [Fact]
     public void Echo_pan_and_right_post_delay_place_the_repeats() {
         using var panned = Create(
             (DelayBlock.Time, 10f),

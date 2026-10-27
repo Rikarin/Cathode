@@ -188,10 +188,16 @@ public sealed class TenTapBlock() : DspBlock(Info) {
     void ComputeTapTargets(float time, double tempo) {
         if ((int)Params.Current(Type) == TenTap) {
             // Shuffle delays the off-beat taps (1, 3, 5, ... counting the dry note as beat 0) by up to half a step.
+            // The pattern ends at Time, where the feedback re-enters: with an odd tap count the last tap is an off-beat
+            // and stays on Time rather than swinging past it (and, at the longest Time, past the line).
             var taps = Math.Clamp((int)MathF.Round(Params.Current(Taps)), 1, MaxTaps);
             var swing = Params.Current(Shuffle) / 100f * 0.5f;
             for (var k = 0; k < MaxTaps; k++) {
-                tapTarget[k] = time * (k + 1 + (k % 2 == 0 ? swing : 0f)) / taps;
+                tapTarget[k] = Math.Clamp(
+                    time * (k + 1 + (k % 2 == 0 ? swing : 0f)) / taps,
+                    FractionalDelayLine.MinDelay,
+                    time
+                );
             }
 
             return;

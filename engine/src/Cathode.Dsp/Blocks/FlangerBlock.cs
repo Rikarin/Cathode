@@ -74,6 +74,9 @@ public sealed class FlangerBlock() : DspBlock(Info), IEngageAware {
     FirstOrderCuts focus;
     int thruZeroActive;
     float mix;
+    SampleGlide lowGlide;
+    SampleGlide sweepGlide;
+    SampleGlide dryGlide;
     OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
@@ -166,6 +169,9 @@ public sealed class FlangerBlock() : DspBlock(Info), IEngageAware {
         conditioner.Reset();
         cuts.Reset();
         focus.Reset();
+        lowGlide.Reset();
+        sweepGlide.Reset();
+        dryGlide.Reset();
         thruZeroActive = (int)Params.Current(ThruZero);
         mix = Params.Current(Mix) / 100f;
         output.Reset(Params.Current(Level), Params.Current(Balance));
@@ -229,7 +235,15 @@ public sealed class FlangerBlock() : DspBlock(Info), IEngageAware {
         var gains = new MixRamp(MixLaw.ConstantPower, this.mix, mix, n);
         var conditioned = !conditioner.IsOff;
 
+        // Manual, the sweep range and the Dry Delay glide across the block, so a pedal on Manual sweeps the notch
+        // smoothly instead of stepping the read once per callback.
+        lowGlide.Begin(low, n);
+        sweepGlide.Begin(sweep, n);
+        dryGlide.Begin(dryDelay, n);
+
         for (var i = 0; i < n; i++) {
+            low = lowGlide.At(i);
+            sweep = sweepGlide.At(i);
             var lfoLeft = lfo.Value(shape);
             var lfoRight = lfo.Value(shape, spread);
             if (conditioned) {
@@ -261,6 +275,7 @@ public sealed class FlangerBlock() : DspBlock(Info), IEngageAware {
             Stereo.Spread(ref wetLeft, ref wetRight, stereoSpread);
 
             if (thruZero != ThruZeroOff) {
+                dryDelay = dryGlide.At(i);
                 var delayedLeft = dryLeft.Read(dryDelay);
                 var delayedRight = dryRight.Read(dryDelay);
                 dryLeft.Write(inLeft);

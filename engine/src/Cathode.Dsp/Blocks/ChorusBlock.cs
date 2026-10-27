@@ -70,6 +70,8 @@ public sealed class ChorusBlock() : DspBlock(Info) {
     Lfo lfo2;
     WetCuts cuts;
     float mix;
+    SampleGlide leftDelay;
+    SampleGlide rightDelayGlide;
     OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
@@ -132,6 +134,8 @@ public sealed class ChorusBlock() : DspBlock(Info) {
         lfoRight.Reset();
         lfo2.Reset();
         cuts.Reset();
+        leftDelay.Reset();
+        rightDelayGlide.Reset();
         mix = Params.Current(Mix) / 100f;
         output.Reset(Params.Current(Level), Params.Current(Balance));
     }
@@ -159,9 +163,12 @@ public sealed class ChorusBlock() : DspBlock(Info) {
             * samplesPerMs
             * LfoConditioner.AutoDepth((int)Params.Current(AutoDepth), lfoRate);
         var depthRight = depth * Params.Advance(RightDepth, n) / 100f;
-        var baseDelay = Params.Advance(Delay, n) * samplesPerMs;
-        var rightDelay = baseDelay * Params.Advance(RightTime, n);
-        rightDelay += (WidthTargetMs * samplesPerMs - rightDelay) * Params.Advance(Width, n) / 100f;
+        // The delay times glide across the block (the LFO rides on them), so moving Delay never steps the read.
+        var blockDelay = Params.Advance(Delay, n) * samplesPerMs;
+        var blockRight = blockDelay * Params.Advance(RightTime, n);
+        blockRight += (WidthTargetMs * samplesPerMs - blockRight) * Params.Advance(Width, n) / 100f;
+        leftDelay.Begin(blockDelay, n);
+        rightDelayGlide.Begin(blockRight, n);
         var spread = Params.Advance(Spread, n) / 360.0;
         var stereoSpread = Params.Advance(StereoSpread, n) / 100f;
         var drive = Params.Advance(Drive, n) / 100f;
@@ -175,6 +182,8 @@ public sealed class ChorusBlock() : DspBlock(Info) {
         var gains = new MixRamp(MixLaw.ConstantPower, this.mix, mix, n);
 
         for (var i = 0; i < n; i++) {
+            var baseDelay = leftDelay.At(i);
+            var rightDelay = rightDelayGlide.At(i);
             float wetLeft;
             float wetRight;
             if (cross > 0) {

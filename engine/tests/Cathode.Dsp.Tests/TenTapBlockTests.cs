@@ -39,6 +39,28 @@ public class TenTapBlockTests {
         AssertTaps(right, [..Enumerable.Range(1, 5).Select(static i => (1_920 * i, 1f))]);
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    public void Shuffle_with_an_odd_tap_count_keeps_the_last_tap_on_time_at_the_longest_time(int taps) {
+        // The last tap of an odd count is an off-beat; swung, it sat at up to 1.5 x Time, past the line.
+        using var delay = Create(
+            (TenTapBlock.Time, TenTapBlock.MaxTimeMs),
+            (TenTapBlock.Taps, taps),
+            (TenTapBlock.Mode, TenTapBlock.Mono),
+            (TenTapBlock.Mix, 100f),
+            (TenTapBlock.Decay, 0f),
+            (TenTapBlock.Shuffle, 100f)
+        );
+        const int time = 192_000;
+
+        var output = BlockRender.Mono(delay, Signals.Impulse(time + 64), 64);
+
+        var swung = Enumerable.Range(0, taps - 1)
+            .Select(k => (time * (k + 1) / taps + (k % 2 == 0 ? time / taps / 2 : 0), 1f));
+        AssertTaps(output, [..swung, (time, 1f)]);
+    }
+
     [Fact]
     public void Number_of_taps_tap_levels_and_mono_mode() {
         using var delay = Create(

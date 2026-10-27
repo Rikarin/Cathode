@@ -161,7 +161,18 @@ public sealed class DelayBlock() : DspBlock(Info) {
     const float MaxDepthMs = 10f;
     const float RunFadeMs = 5f;
 
+    /// <summary>The tape transport's wow and flutter depths in milliseconds.</summary>
+    const float WowMs = 0.6f;
+
+    const float FlutterMs = 0.12f;
+
     static readonly float[] DepthScale = [0.1f, 1f, 10f];
+
+    /// <summary>
+    ///     The furthest the modulation moves the read past the delay time, in milliseconds: each LFO swings its depth
+    ///     both ways around an equal offset, and so does the tape's wow and flutter.
+    /// </summary>
+    static readonly float MaxModulationMs = 2 * (2 * MaxDepthMs * DepthScale[^1] + WowMs + FlutterMs);
 
     readonly Line left = new();
     readonly Line right = new();
@@ -505,7 +516,8 @@ public sealed class DelayBlock() : DspBlock(Info) {
         var targetRight = TargetDelaySamples(TempoRight, Params.Advance(TimeRight, n), tempo);
         if (motor != 1f) {
             // A slower tape takes longer between the heads.
-            var longest = capacity - 8 - 4 * MaxDepthMs * DepthScale[^1] * 0.001f * sampleRate;
+            // The longest time that leaves room for the widest modulation, the tape's wow and flutter included.
+            var longest = capacity - 8 - MaxModulationMs * 0.001f * sampleRate;
             targetDelay = Math.Min(longest, targetDelay / motor);
         }
 
@@ -635,8 +647,8 @@ public sealed class DelayBlock() : DspBlock(Info) {
 
         // Tape transport: slow wow plus faster flutter, a few tenths of a millisecond deep, faster on a faster tape.
         var tape = type is Tape or MonoTape;
-        var wowDepth = tape ? 0.0006f * sampleRate : 0f;
-        var flutterDepth = tape ? 0.00012f * sampleRate : 0f;
+        var wowDepth = tape ? 0.0006f * sampleRate : 0f; // WowMs
+        var flutterDepth = tape ? 0.00012f * sampleRate : 0f; // FlutterMs
         var wowStep = 2 * Math.PI * 0.55 * motor / sampleRate;
         var flutterStep = 2 * Math.PI * 6.3 * motor / sampleRate;
 

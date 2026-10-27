@@ -94,4 +94,30 @@ public class MultibandCompressorBlockTests {
         Assert.True(wet < dry - 6, $"compressed {wet:0.0} dB");
         Assert.InRange(half, wet, dry);
     }
+
+    [Theory]
+    [InlineData(MultibandCompressorBlock.LowMute, 1f, 50.0)]
+    [InlineData(MultibandCompressorBlock.Slope, MultibandCompressorBlock.Slope12, 600.0)]
+    [InlineData(MultibandCompressorBlock.Slope, MultibandCompressorBlock.Slope12, 4_000.0)]
+    public void Mute_and_slope_changes_fade_instead_of_clicking(int parameter, float value, double frequency) {
+        // Below threshold (no compression), so the output is the tone through the crossover; a hard switch steps it.
+        using var block = TestBlocks.Create<MultibandCompressorBlock>(
+            (MultibandCompressorBlock.Threshold(0), 0f),
+            (MultibandCompressorBlock.Threshold(1), 0f),
+            (MultibandCompressorBlock.Threshold(2), 0f)
+        );
+        var tone = Signals.Sine(frequency, 48_000, 9_600, 0.5f);
+        var maxStep = 2 * Math.PI * frequency / 48_000 * 0.5;
+
+        var before = BlockRender.Mono(block, tone[..4_800], 64);
+        block.Params.SetTarget(parameter, value);
+        var after = BlockRender.Mono(block, tone[4_800..], 64);
+        var output = before.Concat(after).ToArray();
+
+        var largest = output.Zip(output.Skip(1), static (a, b) => Math.Abs(b - a)).Skip(2_400).Max();
+        Assert.True(largest < 1.5 * maxStep, $"step {largest:0.0000} against the tone's {maxStep:0.0000}");
+        if (parameter == MultibandCompressorBlock.LowMute) {
+            Assert.True(Analysis.Peak(after.AsSpan(2_400)) < 0.01, "the muted band should be gone after the fade");
+        }
+    }
 }

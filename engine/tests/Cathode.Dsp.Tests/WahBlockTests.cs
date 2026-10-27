@@ -141,6 +141,23 @@ public class WahBlockTests(ITestOutputHelper output) {
         Assert.Equal(0, allocated);
     }
 
+    [Fact]
+    public void A_type_change_does_not_solve_an_operating_point_on_the_audio_thread() {
+        // Each inductor voicing is solved once, at Prepare; the audio thread then only loads what was found.
+        using var wah = Create(WahBlock.FirstCircuit, 50f);
+        var solved = wah.OperatingPointSolves;
+        var left = Signals.Noise(64, 1);
+        var right = Signals.Noise(64, 2);
+
+        for (var i = 0; i < 2 * WahBlock.TypeCount; i++) {
+            wah.Params.SetTarget(WahBlock.Type, i % WahBlock.TypeCount);
+            wah.Process(new(left, right), default);
+        }
+
+        Assert.Equal(WahBlock.Circuits.Count + 2, solved); // every voicing, plus each channel's constructor
+        Assert.Equal(solved, wah.OperatingPointSolves);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(WahBlock.FirstCircuit)]
