@@ -27,20 +27,22 @@ import { UiStore } from '../state/ui.store';
       <xui-dialog-body class="flex flex-col gap-4">
         <xui-form-field label="Name">
           <input
+            #nameField
             xuiInput
             data-testid="block-preset-name"
             [value]="name()"
-            (input)="name.set($any($event.target).value)"
+            (input)="name.set(nameField.value)"
             (keydown.enter)="save()"
           />
         </xui-form-field>
         <xui-form-field label="Folder">
           <input
+            #folderField
             xuiInput
             list="library-folders"
             placeholder="(none)"
             [value]="folder()"
-            (input)="folder.set($any($event.target).value)"
+            (input)="folder.set(folderField.value)"
           />
           <datalist id="library-folders">
             @for (f of presets.folders(); track f.name) {
@@ -95,7 +97,7 @@ export class SaveBlockDialog {
       if (this.ui.saveBlockOpen()) {
         untracked(() => {
           const block = this.ui.block();
-          this.name.set(block ? `${this.catalog.info(block.type)?.name ?? block.type}` : '');
+          this.name.set(block ? (this.catalog.info(block.type)?.name ?? block.type) : '');
           this.scope.set('channel');
           void this.presets.refresh();
         });

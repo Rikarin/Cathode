@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { type LooperInfo, LooperActions } from '@cathode/api-client';
+import { type LooperActions, type LooperInfo } from '@cathode/api-client';
 import { onAnimationFrame } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import {
@@ -60,18 +60,20 @@ const LooperColors: Record<string, 'error' | 'warning' | 'success' | 'none'> = {
   template: `
     @if (editing()) {
       <input
+        #tempoField
         xuiInput
         size="sm"
         type="number"
         class="w-20"
         aria-label="Tempo in BPM"
         [value]="tempo()"
-        (keydown.enter)="setTempo($any($event.target).value)"
+        (keydown.enter)="setTempo(tempoField.value)"
         (keydown.escape)="editing.set(false)"
-        (blur)="setTempo($any($event.target).value)"
+        (blur)="setTempo(tempoField.value)"
       />
     } @else {
       <button
+        type="button"
         xuiButton
         variant="ghost"
         size="sm"
@@ -83,10 +85,19 @@ const LooperColors: Record<string, 'error' | 'warning' | 'success' | 'none'> = {
         {{ tempo() }} BPM
       </button>
     }
-    <button xuiButton variant="outline" size="sm" data-testid="tap" [xuiTooltip]="'Tap tempo'" (click)="live.tap()">
+    <button
+      type="button"
+      xuiButton
+      variant="outline"
+      size="sm"
+      data-testid="tap"
+      [xuiTooltip]="'Tap tempo'"
+      (click)="live.tap()"
+    >
       TAP
     </button>
     <button
+      type="button"
       xuiButton
       variant="ghost"
       size="sm"
@@ -98,6 +109,7 @@ const LooperColors: Record<string, 'error' | 'warning' | 'success' | 'none'> = {
       <ng-icon xui name="matTimerRound" size="sm" />
     </button>
     <button
+      type="button"
       xuiButton
       variant="ghost"
       size="sm"
@@ -178,7 +190,7 @@ export class Transport {
         return;
       }
 
-      const tempo = Math.round((t.tempo ?? 120) * 10) / 10;
+      const tempo = Math.round(t.tempo * 10) / 10;
       if (tempo !== this.tempo()) {
         this.tempo.set(tempo);
       }

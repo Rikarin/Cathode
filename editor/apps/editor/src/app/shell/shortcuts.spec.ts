@@ -50,15 +50,15 @@ describe('keyboard shortcuts', () => {
   });
 
   it('reads as the platform writes it', () => {
-    const saveAs = Shortcuts.find(s => s.id === 'saveAs')!;
+    const saveAs = Shortcuts.find(s => s.id === 'saveAs');
+    const scene8 = Shortcuts.find(s => s.id === 'scene8');
+    if (!saveAs || !scene8) {
+      throw new Error('No saveAs or scene8 shortcut');
+    }
+
     expect(shortcutKeys(saveAs, true)).toEqual(['⌘', '⇧', 'S']);
     expect(shortcutKeys(saveAs, false)).toEqual(['Ctrl', '⇧', 'S']);
-    expect(
-      shortcutKeys(
-        Shortcuts.find(s => s.id === 'scene8')!,
-        true
-      )
-    ).toEqual(['⌘', '8']);
+    expect(shortcutKeys(scene8, true)).toEqual(['⌘', '8']);
   });
 
   it('stays out of text fields but not checkboxes', () => {
@@ -118,7 +118,12 @@ describe('keyboard shortcuts', () => {
     knob.setAttribute('role', 'slider');
     document.body.append(button, toggle, box, knob);
 
-    for (const target of [button, button.firstElementChild!, toggle, box, knob]) {
+    const icon = button.firstElementChild;
+    if (!icon) {
+      throw new Error('The button has no child');
+    }
+
+    for (const target of [button, icon, toggle, box, knob]) {
       for (const press of [key(' ', { code: 'Space' }), key('Delete'), key('b')]) {
         target.dispatchEvent(press);
         expect(service.dispatch(press)).toBe(false);

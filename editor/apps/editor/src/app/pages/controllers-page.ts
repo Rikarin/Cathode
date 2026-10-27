@@ -103,6 +103,7 @@ export function scopeName(channel: string | null | undefined): string {
               </xui-td>
               <xui-td>
                 <input
+                  #channelField
                   xuiInput
                   type="number"
                   class="w-20"
@@ -110,11 +111,12 @@ export function scopeName(channel: string | null | undefined): string {
                   max="16"
                   [attr.aria-label]="'Message ' + (i + 1) + ' channel'"
                   [value]="message.channel"
-                  (change)="setSceneMidi(i, { channel: clamp($any($event.target).value, 1, 16) })"
+                  (change)="setSceneMidi(i, { channel: clamp(channelField.value, 1, 16) })"
                 />
               </xui-td>
               <xui-td>
                 <input
+                  #numberField
                   xuiInput
                   type="number"
                   class="w-20"
@@ -122,12 +124,13 @@ export function scopeName(channel: string | null | undefined): string {
                   max="127"
                   [attr.aria-label]="'Message ' + (i + 1) + (message.type === 'cc' ? ' controller' : ' program')"
                   [value]="message.number"
-                  (change)="setSceneMidi(i, { number: clamp($any($event.target).value, 0, 127) })"
+                  (change)="setSceneMidi(i, { number: clamp(numberField.value, 0, 127) })"
                 />
               </xui-td>
               <xui-td>
                 @if (message.type === 'cc') {
                   <input
+                    #valueField
                     xuiInput
                     type="number"
                     class="w-20"
@@ -135,12 +138,13 @@ export function scopeName(channel: string | null | undefined): string {
                     max="127"
                     [attr.aria-label]="'Message ' + (i + 1) + ' value'"
                     [value]="message.value"
-                    (change)="setSceneMidi(i, { value: clamp($any($event.target).value, 0, 127) })"
+                    (change)="setSceneMidi(i, { value: clamp(valueField.value, 0, 127) })"
                   />
                 }
               </xui-td>
               <xui-td>
                 <button
+                  type="button"
                   xuiButton
                   variant="ghost"
                   size="sm"
@@ -369,7 +373,7 @@ export class ControllersPage {
 
   /** Sends one coalesced value: `controller:<id>`, `scene:<n>:level`, `scene:<n>:controllers` or `manual:<n>`. */
   private async send(key: string, value: number | number[]): Promise<void> {
-    const [kind, id, field] = key.split(':');
+    const [kind, id = '', field] = key.split(':');
     if (kind === 'controller') {
       await this.live.setControllers({ [id]: value as number });
     } else if (kind === 'scene') {

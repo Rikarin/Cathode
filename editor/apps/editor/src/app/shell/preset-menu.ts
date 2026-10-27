@@ -61,34 +61,34 @@ import { PresetSwitcher } from '../state/preset-switcher';
   ],
   host: { class: 'contents' },
   template: `
-    <button xuiButton variant="ghost" size="sm" data-testid="preset-menu" [xuiMenuTriggerFor]="menu">
+    <button type="button" xuiButton variant="ghost" size="sm" data-testid="preset-menu" [xuiMenuTriggerFor]="menu">
       Preset <ng-icon xui name="matExpandMoreRound" size="sm" />
     </button>
     <ng-template #menu>
       <xui-menu>
-        <button xuiMenuItem icon="matInfoRound" data-testid="preset-info" (click)="openInfo()">
+        <button type="button" xuiMenuItem icon="matInfoRound" data-testid="preset-info" (click)="openInfo()">
           Name, author, tags and notes…
         </button>
-        <button xuiMenuItem icon="matSaveAsRound" (click)="saveAs.emit()">
+        <button type="button" xuiMenuItem icon="matSaveAsRound" (click)="saveAs.emit()">
           Save as…<span menuItemLabel>⇧⌘S</span>
         </button>
         <xui-menu-divider />
-        <button xuiMenuItem icon="matViewQuiltRound" (click)="openTemplates()">New from template…</button>
-        <button xuiMenuItem icon="matAddRound" (click)="openSaveTemplate()">Save as template…</button>
+        <button type="button" xuiMenuItem icon="matViewQuiltRound" (click)="openTemplates()">New from template…</button>
+        <button type="button" xuiMenuItem icon="matAddRound" (click)="openSaveTemplate()">Save as template…</button>
         <xui-menu-divider />
-        <button xuiMenuItem icon="matCameraAltRound" data-testid="take-snapshot" (click)="snapshot()">
+        <button type="button" xuiMenuItem icon="matCameraAltRound" data-testid="take-snapshot" (click)="snapshot()">
           Take a snapshot
         </button>
-        <button xuiMenuItem icon="matHistoryRound" (click)="openSnapshots()">Snapshots…</button>
+        <button type="button" xuiMenuItem icon="matHistoryRound" (click)="openSnapshots()">Snapshots…</button>
         <xui-menu-divider />
-        <button xuiMenuItem icon="matRestoreRound" [disabled]="!live.state()?.dirty" (click)="revert()">
+        <button type="button" xuiMenuItem icon="matRestoreRound" [disabled]="!live.state()?.dirty" (click)="revert()">
           Revert to saved
         </button>
-        <button xuiMenuItem icon="matDeleteSweepRound" color="error" (click)="confirmClear.set(true)">
+        <button type="button" xuiMenuItem icon="matDeleteSweepRound" color="error" (click)="confirmClear.set(true)">
           Clear preset…
         </button>
         <xui-menu-divider />
-        <button xuiMenuItem (click)="router.navigateByUrl('/manage')">Manage presets…</button>
+        <button type="button" xuiMenuItem (click)="router.navigateByUrl('/manage')">Manage presets…</button>
       </xui-menu>
     </ng-template>
 
@@ -117,10 +117,11 @@ import { PresetSwitcher } from '../state/preset-switcher';
                 <xui-tr>
                   <xui-td class="w-full">{{ s.name }}</xui-td>
                   <xui-td>
-                    <button xuiButton size="sm" variant="outline" (click)="loadSnapshot(s)">Load</button>
+                    <button type="button" xuiButton size="sm" variant="outline" (click)="loadSnapshot(s)">Load</button>
                   </xui-td>
                   <xui-td>
                     <button
+                      type="button"
                       xuiButton
                       size="sm"
                       variant="ghost"
@@ -159,9 +160,10 @@ import { PresetSwitcher } from '../state/preset-switcher';
               @for (t of templates(); track t.id) {
                 <xui-tr>
                   <xui-td class="w-full">{{ t.name }}</xui-td>
-                  <xui-td><button xuiButton size="sm" (click)="fromTemplate(t)">New</button></xui-td>
+                  <xui-td><button type="button" xuiButton size="sm" (click)="fromTemplate(t)">New</button></xui-td>
                   <xui-td>
                     <button
+                      type="button"
                       xuiButton
                       size="sm"
                       variant="ghost"
@@ -190,41 +192,45 @@ import { PresetSwitcher } from '../state/preset-switcher';
         <xui-dialog-body class="flex flex-col gap-3">
           <xui-form-field label="Name">
             <input
+              #infoNameField
               xuiInput
               class="w-full"
               data-testid="preset-info-name"
               [value]="infoName()"
-              (input)="infoName.set($any($event.target).value)"
+              (input)="infoName.set(infoNameField.value)"
               (keydown.enter)="saveInfo()"
             />
           </xui-form-field>
           <xui-form-field label="Author">
             <input
+              #infoAuthorField
               xuiInput
               class="w-full"
               data-testid="preset-info-author"
               [value]="infoAuthor()"
-              (input)="infoAuthor.set($any($event.target).value)"
+              (input)="infoAuthor.set(infoAuthorField.value)"
               (keydown.enter)="saveInfo()"
             />
           </xui-form-field>
           <xui-form-field label="Tags" helperText="Separated by commas">
             <input
+              #infoTagsField
               xuiInput
               class="w-full"
               data-testid="preset-info-tags"
               [value]="infoTags()"
-              (input)="infoTags.set($any($event.target).value)"
+              (input)="infoTags.set(infoTagsField.value)"
               (keydown.enter)="saveInfo()"
             />
           </xui-form-field>
           <xui-form-field label="Description">
             <textarea
+              #infoDescriptionField
               xuiInput
               class="min-h-20 w-full"
               data-testid="preset-info-description"
               [value]="infoDescription()"
-              (input)="infoDescription.set($any($event.target).value)"
+              (input)="infoDescription.set(infoDescriptionField.value)"
             ></textarea>
           </xui-form-field>
         </xui-dialog-body>
@@ -239,9 +245,10 @@ import { PresetSwitcher } from '../state/preset-switcher';
       <xui-dialog-body>
         <xui-form-field label="Template name">
           <input
+            #templateNameField
             xuiInput
             [value]="templateName()"
-            (input)="templateName.set($any($event.target).value)"
+            (input)="templateName.set(templateNameField.value)"
             (keydown.enter)="saveTemplate()"
           />
         </xui-form-field>
@@ -255,7 +262,7 @@ import { PresetSwitcher } from '../state/preset-switcher';
 })
 export class PresetMenu {
   /** Save as… lives in this menu; the shell owns its dialog. */
-  readonly saveAs = output<void>();
+  readonly saveAs = output();
 
   protected readonly live = inject(LiveStore);
   protected readonly router = inject(Router);
@@ -379,7 +386,11 @@ export class PresetMenu {
     const preset = this.live.preset()?.id;
     await this.notify.run(async () =>
       this.snapshots.set(
-        unwrap(await this.connection.client.GET('/api/v1/snapshots', { params: { query: { preset } } }))
+        unwrap(
+          await this.connection.client.GET('/api/v1/snapshots', {
+            params: { query: preset === undefined ? {} : { preset } }
+          })
+        )
       )
     );
   }

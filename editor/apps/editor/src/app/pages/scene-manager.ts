@@ -24,14 +24,17 @@ export function sceneRows(
   info: (type: string) => { name: string; channels: number } | undefined
 ): SceneRow[] {
   return preset.blocks
-    .filter(b => b.type !== BuiltInTypes.shunt && info(b.type))
-    .sort((a, b) => a.row - b.row || a.column - b.column)
-    .map(b => ({
+    .flatMap(b => {
+      const type = b.type === BuiltInTypes.shunt ? undefined : info(b.type);
+      return type ? [{ b, type }] : [];
+    })
+    .sort((x, y) => x.b.row - y.b.row || x.b.column - y.b.column)
+    .map(({ b, type }) => ({
       id: b.id,
-      name: `${info(b.type)!.name} (${b.id})`,
-      channels: ChannelNames.slice(0, Math.max(1, info(b.type)!.channels)) as ChannelName[],
+      name: `${type.name} (${b.id})`,
+      channels: ChannelNames.slice(0, Math.max(1, type.channels)),
       bypassable: b.type !== BuiltInTypes.input && b.type !== BuiltInTypes.output,
-      ignores: (b.sceneIgnore ?? []) as ChannelName[],
+      ignores: b.sceneIgnore as ChannelName[],
       states: preset.scenes.map(s => s.blocks[b.id] ?? { bypassed: false, channel: 'A' })
     }));
 }
@@ -69,6 +72,7 @@ export function sceneRows(
         (valueChange)="$event !== null && to.set(+$event)"
       />
       <button
+        type="button"
         xuiButton
         variant="outline"
         size="sm"
@@ -79,6 +83,7 @@ export function sceneRows(
         Copy first onto second
       </button>
       <button
+        type="button"
         xuiButton
         variant="outline"
         size="sm"

@@ -78,13 +78,14 @@ import { GlobalBlocks } from './global-blocks';
             class="text-foreground-muted pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2"
           />
           <input
+            #queryField
             xuiInput
             type="search"
             class="w-72 pl-8"
             placeholder="Search name, author or tag"
             aria-label="Search presets"
             [value]="query()"
-            (input)="query.set($any($event.target).value)"
+            (input)="query.set(queryField.value)"
           />
         </div>
         <button xuiButton type="button" variant="outline" size="sm" (click)="importFile.click()">Import…</button>
@@ -284,6 +285,7 @@ import { GlobalBlocks } from './global-blocks';
                   </xui-td>
                   <xui-td class="w-32 justify-end whitespace-nowrap">
                     <button
+                      type="button"
                       xuiButton
                       variant="ghost"
                       size="sm"
@@ -293,6 +295,7 @@ import { GlobalBlocks } from './global-blocks';
                       Move…
                     </button>
                     <button
+                      type="button"
                       xuiButton
                       variant="ghost"
                       size="sm"
@@ -318,10 +321,11 @@ import { GlobalBlocks } from './global-blocks';
     <xui-dialog title="New folder" [open]="folderFor() !== null" (openChange)="!$event && folderFor.set(null)">
       <xui-dialog-body>
         <input
+          #folderNameField
           xuiInput
           aria-label="Folder name"
           [value]="folderName()"
-          (input)="folderName.set($any($event.target).value)"
+          (input)="folderName.set(folderNameField.value)"
           (keydown.enter)="moveToNewFolder()"
         />
       </xui-dialog-body>
@@ -333,13 +337,13 @@ import { GlobalBlocks } from './global-blocks';
 
     <ng-template #folders let-preset="preset">
       <xui-menu>
-        <button xuiMenuItem (click)="blockPresets.moveTo(preset, '')">Unfiled</button>
+        <button type="button" xuiMenuItem (click)="blockPresets.moveTo(preset, '')">Unfiled</button>
         @for (f of blockPresets.folders(); track f.name) {
           @if (f.name) {
-            <button xuiMenuItem (click)="blockPresets.moveTo(preset, f.name)">{{ f.name }}</button>
+            <button type="button" xuiMenuItem (click)="blockPresets.moveTo(preset, f.name)">{{ f.name }}</button>
           }
         }
-        <button xuiMenuItem (click)="newFolder(preset)">New folder…</button>
+        <button type="button" xuiMenuItem (click)="newFolder(preset)">New folder…</button>
       </xui-menu>
     </ng-template>
 
@@ -435,9 +439,9 @@ export class LibraryPage {
       .filter(p => source === 'all' || (source === 'factory') === (p.factory ?? false))
       .sort(
         (a, b) =>
-          Number(b.favorite ?? false) - Number(a.favorite ?? false) ||
+          Number(b.favorite) - Number(a.favorite) ||
           Number(a.factory ?? false) - Number(b.factory ?? false) ||
-          (a.factory ? order.get(a.id)! - order.get(b.id)! : a.name.localeCompare(b.name))
+          (a.factory ? (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0) : a.name.localeCompare(b.name))
       );
     return query
       ? all.filter(p =>
@@ -476,8 +480,11 @@ export class LibraryPage {
   protected async loadPreset(preset: PresetSummary): Promise<void> {
     this.selected.set(preset);
     if (this.switcher.mayReplace(preset.name)) {
-      await this.router.navigateByUrl('/');
-      await this.switcher.load(preset.id, preset.name, true);
+      // notify.run reports a navigation that fails (a route that cannot load) instead of rejecting.
+      const navigated = await this.notify.run(() => this.router.navigateByUrl('/'));
+      if (navigated !== undefined) {
+        await this.switcher.load(preset.id, preset.name, true);
+      }
     }
   }
 
@@ -517,7 +524,7 @@ export class LibraryPage {
 
   protected manage(): void {
     this.inUse.set(false);
-    void this.router.navigateByUrl('/manage');
+    void this.notify.run(() => this.router.navigateByUrl('/manage'));
   }
 
   protected toggleChosen(id: string): void {

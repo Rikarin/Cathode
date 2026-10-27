@@ -235,25 +235,27 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                 (valueChange)="output.set($event ?? 0)"
               />
             </div>
-            <div class="flex flex-col gap-1">
-              <span class="text-foreground-muted text-xs">Mode</span>
-              <xui-segmented-control
-                size="sm"
-                aria-label="Output mode"
-                [options]="modeOptions"
-                [value]="s.outputs[output()].mode"
-                (valueChange)="saveOutput(o => (o.mode = $event ?? 'stereo'))"
+            @if (s.outputs[output()]; as out) {
+              <div class="flex flex-col gap-1">
+                <span class="text-foreground-muted text-xs">Mode</span>
+                <xui-segmented-control
+                  size="sm"
+                  aria-label="Output mode"
+                  [options]="modeOptions"
+                  [value]="out.mode"
+                  (valueChange)="saveOutput(o => (o.mode = $event ?? 'stereo'))"
+                />
+              </div>
+              <cth-knob
+                label="Boost/Pad"
+                unit="dB"
+                [min]="-18"
+                [max]="18"
+                [defaultValue]="0"
+                [value]="out.boostPad"
+                (committed)="saveOutput(o => (o.boostPad = $event))"
               />
-            </div>
-            <cth-knob
-              label="Boost/Pad"
-              unit="dB"
-              [min]="-18"
-              [max]="18"
-              [defaultValue]="0"
-              [value]="s.outputs[output()].boostPad"
-              (committed)="saveOutput(o => (o.boostPad = $event))"
-            />
+            }
             <label class="flex flex-col items-center gap-2">
               <span class="text-foreground-muted text-xs">Copy Output 1 to 2</span>
               <xui-switch
@@ -265,17 +267,19 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
           </div>
           <span class="text-foreground-muted text-xs">Output {{ output() + 1 }} global EQ</span>
           <div class="flex flex-wrap gap-4">
-            @for (param of eqParams(); track param.id) {
-              <cth-knob
-                size="sm"
-                [label]="param.name"
-                [unit]="param.unit"
-                [min]="param.min"
-                [max]="param.max"
-                [defaultValue]="param.default"
-                [value]="s.outputs[output()].eq[param.id] ?? param.default"
-                (committed)="saveOutput(o => (o.eq[param.id] = $event))"
-              />
+            @if (s.outputs[output()]; as out) {
+              @for (param of eqParams(); track param.id) {
+                <cth-knob
+                  size="sm"
+                  [label]="param.name"
+                  [unit]="param.unit"
+                  [min]="param.min"
+                  [max]="param.max"
+                  [defaultValue]="param.default"
+                  [value]="out.eq[param.id] ?? param.default"
+                  (committed)="saveOutput(o => (o.eq[param.id] = $event))"
+                />
+              }
             }
           </div>
           @if (s.copyOutput1To2) {
@@ -288,15 +292,17 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
         <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="input-heading">
           <h2 xuiHeading id="input-heading" class="text-sm">Input and oversampling</h2>
           <div class="flex flex-wrap items-end gap-6">
-            <cth-knob
-              label="Input 1 Gain"
-              unit="dB"
-              [min]="-20"
-              [max]="20"
-              [defaultValue]="0"
-              [value]="s.inputs[0].gain"
-              (committed)="save(g => (g.inputs[0].gain = $event))"
-            />
+            @if (s.inputs[0]; as input1) {
+              <cth-knob
+                label="Input 1 Gain"
+                unit="dB"
+                [min]="-20"
+                [max]="20"
+                [defaultValue]="0"
+                [value]="input1.gain"
+                (committed)="saveInput1(i => (i.gain = $event))"
+              />
+            }
             <div class="flex flex-col gap-1">
               <span class="text-foreground-muted text-xs">Oversampling (Amp, Drive, Dynamic Distortion)</span>
               <xui-segmented-control
@@ -307,9 +313,11 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                 (valueChange)="save(g => (g.oversampling = $event ?? 'minimum'))"
               />
             </div>
-            <span class="text-foreground-muted text-xs">
-              Input 1 full scale: {{ s.inputs[0].fullScaleVolts.toFixed(2) }} V (calibrate in Setup)
-            </span>
+            @if (s.inputs[0]; as input1) {
+              <span class="text-foreground-muted text-xs">
+                Input 1 full scale: {{ input1.fullScaleVolts.toFixed(2) }} V (calibrate in Setup)
+              </span>
+            }
           </div>
           <p xuiText class="text-foreground-muted text-xs">
             Input 1 Gain trims what every preset gets, after the DI out. Minimum phase adds no latency; linear phase
@@ -352,6 +360,7 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                 <xui-td>{{ shownValue(mapping.action, mapping.value) ?? '' }}</xui-td>
                 <xui-td>
                   <button
+                    type="button"
                     xuiButton
                     variant="ghost"
                     size="sm"
@@ -382,20 +391,22 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
             <label class="flex flex-col gap-1">
               <span class="text-foreground-muted text-xs">Target (block, bank or looper action)</span>
               <input
+                #learnTargetField
                 xuiInput
                 class="w-48"
                 [value]="learnTarget()"
-                (input)="learnTarget.set($any($event.target).value)"
+                (input)="learnTarget.set(learnTargetField.value)"
               />
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-foreground-muted text-xs">Value (optional)</span>
               <input
+                #learnValueField
                 xuiInput
                 type="number"
                 class="w-24"
                 [value]="learnValue()"
-                (input)="learnValue.set($any($event.target).value)"
+                (input)="learnValue.set(learnValueField.value)"
               />
             </label>
             <button xuiButton type="button" [loading]="learning()" (click)="learn()">
@@ -445,6 +456,7 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
               @for (view of views(); track $index; let i = $index) {
                 <span class="flex items-center gap-0.5">
                   <button
+                    type="button"
                     xuiButton
                     size="sm"
                     [variant]="i === editingView() ? 'default' : 'outline'"
@@ -454,6 +466,7 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                   </button>
                   @if (views().length > 1 && i === editingView()) {
                     <button
+                      type="button"
                       xuiButton
                       size="sm"
                       variant="ghost"
@@ -466,11 +479,17 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                   }
                 </span>
               }
-              <button xuiButton size="sm" variant="ghost" (click)="saveLayout(addView(layout))">
+              <button type="button" xuiButton size="sm" variant="ghost" (click)="saveLayout(addView(layout))">
                 <ng-icon xui name="matAddRound" size="sm" /> View
               </button>
               @if (editingView() !== s.activeView) {
-                <button xuiButton size="sm" variant="ghost" (click)="save(g => (g.activeView = editingView()))">
+                <button
+                  type="button"
+                  xuiButton
+                  size="sm"
+                  variant="ghost"
+                  (click)="save(g => (g.activeView = editingView()))"
+                >
                   Make active
                 </button>
               }
@@ -496,12 +515,13 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                 >
                   <div role="cell" class="min-w-0">
                     <input
+                      #labelField
                       xuiInput
                       size="sm"
                       class="w-full"
                       [attr.aria-label]="'Switch ' + fs.index + ' label'"
                       [value]="fs.label"
-                      (change)="editSwitch(layout, fs, { label: $any($event.target).value })"
+                      (change)="editSwitch(layout, fs, { label: labelField.value })"
                     />
                   </div>
                   <div role="cell" class="flex items-center gap-1">
@@ -514,26 +534,29 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                       (valueChange)="editSwitch(layout, fs, { message: $event ?? 'cc' })"
                     />
                     <input
+                      #numberField
                       xuiInput
                       size="sm"
                       type="number"
                       class="w-16"
                       [attr.aria-label]="'Switch ' + fs.index + ' number'"
                       [value]="fs.number"
-                      (change)="editSwitch(layout, fs, { number: +$any($event.target).value })"
+                      (change)="editSwitch(layout, fs, { number: +numberField.value })"
                     />
                     <input
+                      #channelField
                       xuiInput
                       size="sm"
                       type="number"
                       class="w-14"
                       [attr.aria-label]="'Switch ' + fs.index + ' channel'"
                       [value]="fs.channel"
-                      (change)="editSwitch(layout, fs, { channel: +$any($event.target).value })"
+                      (change)="editSwitch(layout, fs, { channel: +channelField.value })"
                     />
                   </div>
                   <div role="cell" class="min-w-0">
                     <input
+                      #tapField
                       xuiInput
                       size="sm"
                       class="w-full"
@@ -542,20 +565,21 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                       [value]="actionText(fs.tap)"
                       (change)="
                         editSwitch(layout, fs, {
-                          tap: parseAction($any($event.target).value) ?? fs.tap
+                          tap: parseAction(tapField.value) ?? fs.tap
                         })
                       "
                     />
                   </div>
                   <div role="cell" class="min-w-0">
                     <input
+                      #holdField
                       xuiInput
                       size="sm"
                       class="w-full"
                       placeholder="(none)"
                       [attr.aria-label]="'Switch ' + fs.index + ' hold action'"
                       [value]="fs.hold ? actionText(fs.hold) : ''"
-                      (change)="editSwitch(layout, fs, { hold: parseAction($any($event.target).value) })"
+                      (change)="editSwitch(layout, fs, { hold: parseAction(holdField.value) })"
                     />
                   </div>
                   <div role="cell" class="min-w-0">
@@ -579,17 +603,19 @@ export function describeMidi(m: Pick<MidiActivity, 'status' | 'data1' | 'data2'>
                   </div>
                   <div role="cell" class="min-w-0">
                     <input
+                      #overrideField
                       xuiInput
                       size="sm"
                       class="w-full"
                       placeholder="(layout's)"
                       [attr.aria-label]="'Switch ' + fs.index + ' action in this preset'"
                       [value]="presetOverride(layout.id, fs.index)"
-                      (change)="setOverride(layout.id, fs.index, $any($event.target).value)"
+                      (change)="setOverride(layout.id, fs.index, overrideField.value)"
                     />
                   </div>
                   <div role="cell" class="min-w-0">
                     <button
+                      type="button"
                       xuiButton
                       variant="ghost"
                       size="sm"
@@ -726,7 +752,22 @@ export class GlobalPage {
   /** Changes the output being edited. */
   protected saveOutput(change: (o: OutputSettings) => void): void {
     const k = this.output();
-    this.save(g => change(g.outputs[k]));
+    this.save(g => {
+      const output = g.outputs[k];
+      if (output) {
+        change(output);
+      }
+    });
+  }
+
+  /** Changes Input 1's settings. */
+  protected saveInput1(change: (input: GlobalSettings['inputs'][number]) => void): void {
+    this.save(g => {
+      const input = g.inputs[0];
+      if (input) {
+        change(input);
+      }
+    });
   }
 
   protected removeMapping(id: string): void {
@@ -759,8 +800,8 @@ export class GlobalPage {
     const index = Math.max(0, ...layout.switches.map(s => s.index)) + 1;
     this.save(g => {
       g.footswitches
-        .find(l => l.id === layout.id)!
-        .switches.push({
+        .find(l => l.id === layout.id)
+        ?.switches.push({
           index,
           label: `Switch ${index}`,
           message: 'cc',
@@ -777,9 +818,12 @@ export class GlobalPage {
 
   protected editSwitch(layout: FootswitchLayout, fs: Footswitch, change: Partial<Footswitch>): void {
     this.save(g => {
-      const switches = g.footswitches.find(l => l.id === layout.id)!.switches;
+      const switches = g.footswitches.find(l => l.id === layout.id)?.switches ?? [];
       const i = switches.findIndex(s => s.index === fs.index);
-      switches[i] = { ...switches[i], ...change };
+      const current = switches[i];
+      if (current) {
+        switches[i] = { ...current, ...change };
+      }
     });
   }
 
@@ -820,8 +864,10 @@ export class GlobalPage {
 
   protected removeSwitch(layout: FootswitchLayout, fs: Footswitch): void {
     this.save(g => {
-      const l = g.footswitches.find(x => x.id === layout.id)!;
-      l.switches = l.switches.filter(s => s.index !== fs.index);
+      const l = g.footswitches.find(x => x.id === layout.id);
+      if (l) {
+        l.switches = l.switches.filter(s => s.index !== fs.index);
+      }
     });
   }
 

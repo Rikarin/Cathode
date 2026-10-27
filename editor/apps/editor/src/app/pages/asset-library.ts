@@ -58,6 +58,11 @@ export class AssetLibrary {
       .sort((a, b) => Number(b.favorite) - Number(a.favorite) || a.name.localeCompare(b.name));
   });
   readonly selectedAssets = computed(() => this.rows().filter(a => this.selected().has(a.ref)));
+  /** The selected file when exactly one is selected. */
+  readonly onlySelected = computed(() => {
+    const selected = this.selectedAssets();
+    return selected.length === 1 ? selected[0] : undefined;
+  });
   readonly accept = computed(() => (this.kind() === 'amps' ? AmpFiles : CabFiles).join(','));
 
   refresh(): void {
@@ -82,7 +87,7 @@ export class AssetLibrary {
       shift: event.shiftKey,
       toggle: event.metaKey || event.ctrlKey
     });
-    this.selected.set(new Set([...next.selected].map(i => rows[i].ref)));
+    this.selected.set(new Set([...next.selected].flatMap(i => rows[i]?.ref ?? [])));
     this.anchor = next.anchor;
   }
 
@@ -102,8 +107,8 @@ export class AssetLibrary {
       }
     }
 
-    if (added.length > 0) {
-      const last = added[added.length - 1];
+    const last = added.at(-1);
+    if (last) {
       this.show(last.kind === 'nam' || last.kind === 'aidax' ? 'amps' : 'cabs');
       const inView = new Set(this.all().map(a => a.ref));
       this.selected.set(new Set(added.map(a => a.ref).filter(ref => inView.has(ref))));
@@ -140,13 +145,14 @@ function kindName(asset: AssetInfo): string {
         class="text-foreground-muted pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2"
       />
       <input
+        #queryField
         xuiInput
         type="search"
         class="w-72 pl-8"
         [placeholder]="assets.kind() === 'amps' ? 'Search amps' : 'Search cabs'"
         aria-label="Search the library"
         [value]="assets.query()"
-        (input)="assets.query.set($any($event.target).value)"
+        (input)="assets.query.set(queryField.value)"
       />
     </div>
     <button
@@ -179,10 +185,12 @@ function kindName(asset: AssetInfo): string {
 
     <ng-template #irTools>
       <xui-menu>
-        <button xuiMenuItem (click)="importOpen.set(true)">Import settings…</button>
-        <button xuiMenuItem data-testid="open-ir-mixer" (click)="mixerOpen.set(true)">Mix IRs…</button>
+        <button type="button" xuiMenuItem (click)="importOpen.set(true)">Import settings…</button>
+        <button type="button" xuiMenuItem data-testid="open-ir-mixer" (click)="mixerOpen.set(true)">Mix IRs…</button>
         @if (desktop) {
-          <button xuiMenuItem data-testid="open-ir-capture" (click)="captureOpen.set(true)">Capture an IR…</button>
+          <button type="button" xuiMenuItem data-testid="open-ir-capture" (click)="captureOpen.set(true)">
+            Capture an IR…
+          </button>
         }
       </xui-menu>
     </ng-template>
@@ -326,21 +334,15 @@ export class AssetToolbar {
       </div>
       <footer class="border-border bg-surface flex items-center gap-2 border-t px-6 py-3">
         <span class="text-foreground-muted mr-auto text-sm">
-          @if (assets.selectedAssets().length === 1) {
-            <span class="text-foreground font-medium">{{ assets.selectedAssets()[0].name }}</span>
+          @if (assets.onlySelected(); as only) {
+            <span class="text-foreground font-medium">{{ only.name }}</span>
           } @else if (assets.selectedAssets().length > 1) {
             {{ assets.selectedAssets().length }} selected
           } @else {
             {{ count() }} · drop files here to upload
           }
         </span>
-        <button
-          xuiButton
-          type="button"
-          variant="ghost"
-          [disabled]="assets.selectedAssets().length !== 1"
-          (click)="openRename(assets.selectedAssets()[0])"
-        >
+        <button xuiButton type="button" variant="ghost" [disabled]="!assets.onlySelected()" (click)="renameSelected()">
           Rename…
         </button>
         <button
@@ -376,9 +378,9 @@ export class AssetToolbar {
 
     <ng-template #colors>
       <xui-menu>
-        <button xuiMenuItem (click)="color('')">No colour</button>
+        <button type="button" xuiMenuItem (click)="color('')">No colour</button>
         @for (c of tagColors; track c) {
-          <button xuiMenuItem (click)="color(c)">
+          <button type="button" xuiMenuItem (click)="color(c)">
             <span class="me-2 inline-block size-3 rounded-full" [style.background]="c"></span>{{ tagColorName(c) }}
           </button>
         }
@@ -390,11 +392,12 @@ export class AssetToolbar {
         <xui-dialog-body>
           <xui-form-field label="Name">
             <input
+              #newNameField
               xuiInput
               class="w-full"
               data-testid="asset-name"
               [value]="newName()"
-              (input)="newName.set($any($event.target).value)"
+              (input)="newName.set(newNameField.value)"
               (keydown.enter)="rename(asset)"
             />
           </xui-form-field>
@@ -408,11 +411,7 @@ export class AssetToolbar {
 
     <xui-alert-dialog
       destructive
-      [title]="
-        assets.selectedAssets().length === 1
-          ? 'Delete “' + assets.selectedAssets()[0].name + '”?'
-          : 'Delete ' + assets.selectedAssets().length + ' files?'
-      "
+      [title]="deleteTitle()"
       [description]="deleteWarning()"
       confirmText="Delete"
       [(open)]="confirmDelete"
@@ -434,6 +433,10 @@ export class AssetList {
     return this.assets.kind() === 'amps' ? `${n} capture${n === 1 ? '' : 's'}` : `${n} IR${n === 1 ? '' : 's'}`;
   });
 
+  protected readonly deleteTitle = computed(() => {
+    const only = this.assets.onlySelected();
+    return only ? `Delete “${only.name}”?` : `Delete ${this.assets.selectedAssets().length} files?`;
+  });
   protected readonly deleteWarning = computed(() => {
     const chosen = this.assets.selectedAssets();
     const presets = [...new Set(chosen.flatMap(a => this.assets.usedBy(a)))];
@@ -452,6 +455,13 @@ export class AssetList {
 
   protected added(asset: AssetInfo): string {
     return new Date(asset.added).toLocaleDateString(undefined, { dateStyle: 'medium' });
+  }
+
+  protected renameSelected(): void {
+    const only = this.assets.onlySelected();
+    if (only) {
+      this.openRename(only);
+    }
   }
 
   protected openRename(asset: AssetInfo): void {

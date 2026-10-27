@@ -85,10 +85,12 @@ export function actionText(action: SwitchAction): string {
  */
 export function parseAction(text: string, actions: readonly string[]): SwitchAction | null {
   const parts = text.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0 || !actions.includes(parts[0])) {
+  const [action] = parts;
+  if (action === undefined || !actions.includes(action)) {
     return null;
   }
 
-  const last = parts.length > 1 && /^\d+$/.test(parts[parts.length - 1]) ? Number(parts.pop()) : null;
-  return { action: parts[0], target: parts[1] ?? null, value: storedValue(parts[0], last) };
+  const final = parts.at(-1);
+  const last = parts.length > 1 && final !== undefined && /^\d+$/.test(final) ? Number(parts.pop()) : null;
+  return { action, target: parts[1] ?? null, value: storedValue(action, last) };
 }

@@ -29,11 +29,11 @@ describe('sceneRows', () => {
     const rows = sceneRows(preset, info);
 
     expect(rows.map(r => r.id)).toEqual(['in1', 'delay1', 'out1']);
-    expect(rows[0].bypassable).toBe(false);
-    expect(rows[1].bypassable).toBe(true);
-    expect(rows[1].ignores).toEqual(['A']);
-    expect(rows[1].channels).toEqual(['A', 'B', 'C', 'D']);
-    expect(rows[1].states[2]).toEqual({ bypassed: true, channel: 'B' });
-    expect(rows[1].states[0]).toEqual({ bypassed: false, channel: 'A' });
+    expect(rows[0]?.bypassable).toBe(false);
+    expect(rows[1]?.bypassable).toBe(true);
+    expect(rows[1]?.ignores).toEqual(['A']);
+    expect(rows[1]?.channels).toEqual(['A', 'B', 'C', 'D']);
+    expect(rows[1]?.states[2]).toEqual({ bypassed: true, channel: 'B' });
+    expect(rows[1]?.states[0]).toEqual({ bypassed: false, channel: 'A' });
   });
 });
