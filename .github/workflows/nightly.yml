@@ -1,0 +1,94 @@
+name: nightly
+
+# The checks too slow or too specialised for every push (docs/03-testing-strategy.md):
+#
+# - Parameter fuzzing (§3): every property-based test (CsCheck, trait Category=Property) runs for a fixed time per
+#   case instead of its fixed number of cases: for every registered block, random parameter vectors, an instant jump
+#   of all of them mid-stream and four stimuli, with no NaN, no infinity and no blow-up allowed; and the convolver's
+#   linearity. A failure prints the CsCheck seed that reproduces it (CsCheck_Seed).
+# - RealtimeSanitizer (§6): engine/native built with Clang 20 and cth_rtsan_check run on it. Every .nam model goes
+#   through cth_nam_process, and a stream runs on ALSA's "null" PCM with a model in its callback, all in RTSan's
+#   real-time context, which aborts on any allocation, lock or blocking call there. Two canaries first prove the check
+#   is armed. Pull requests that touch the native code run this job too.
+
+on:
+  schedule:
+    - cron: "41 3 * * *" # nightly, 03:41 UTC (after the soak)
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: Seconds each property-based test case runs (CsCheck_Time)
+        default: "60"
+        required: true
+  pull_request:
+    paths: ["engine/native/**", ".github/workflows/nightly.yml"]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: engine
+
+jobs:
+  fuzz:
+    name: parameter fuzzing
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120 # about 50 cases at 60 s each
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-dotnet
+      - name: Cache native dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: engine/artifacts/deps
+          key: native-deps-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
+      - name: Install ALSA headers
+        run: sudo apt-get update -q && sudo apt-get install -y -q libasound2-dev
+      - name: Build native shim
+        run: ./native/build.sh
+      - run: dotnet build tests/Cathode.Dsp.Tests -c Release
+      # CsCheck_Time overrides each test's iteration count: the sample runs that many seconds on every core.
+      - name: Property-based tests, run for a fixed time each
+        env:
+          CsCheck_Time: ${{ inputs.seconds || '60' }}
+        run: dotnet test --project tests/Cathode.Dsp.Tests -c Release --no-build --filter-trait "Category=Property"
+
+  rtsan:
+    name: RealtimeSanitizer (native)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CC: clang-20
+      CXX: clang++-20
+      RTSAN_OPTIONS: halt_on_error=true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Cache native dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: engine/artifacts/deps
+          key: native-deps-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
+      - name: Install Clang 20 (RealtimeSanitizer's first release) and ALSA headers
+        run: sudo apt-get update -q && sudo apt-get install -y -q clang-20 libclang-rt-20-dev libasound2-dev
+      # Its own build tree and output folder: these libraries are for this check only.
+      - name: Build with RealtimeSanitizer
+        env:
+          CTH_NATIVE_BUILD_DIR: ${{ github.workspace }}/engine/artifacts/obj/native-rtsan
+        run: ./native/build.sh -DCTH_RTSAN=ON "-DCTH_ARTIFACTS_DIR=$GITHUB_WORKSPACE/engine/artifacts/native-rtsan"
+      - name: The canaries are caught (the check is armed)
+        run: |
+          set -uo pipefail
+          for canary in canary-direct canary-shim; do
+            status=0
+            artifacts/native-rtsan/cth_rtsan_check artifacts/native-rtsan/nam-models "$canary" \
+              > "$RUNNER_TEMP/$canary.log" 2>&1 || status=$?
+            cat "$RUNNER_TEMP/$canary.log"
+            if [ "$status" = 0 ] || ! grep -q RealtimeSanitizer "$RUNNER_TEMP/$canary.log"; then
+              echo "::error::$canary was not caught by RealtimeSanitizer (exit $status): the check is not armed"
+              exit 1
+            fi
+          done
+      - name: The real-time paths of cth_nam and cth_audio are clean
+        run: artifacts/native-rtsan/cth_rtsan_check artifacts/native-rtsan/nam-models

@@ -30,6 +30,21 @@ typedef struct cth_common {
     float *out_ptrs[CTH_MAX_CHANNELS];
 } cth_common;
 
+/* RealtimeSanitizer (docs/03 §6). In a -DCTH_RTSAN=ON build the part of each cycle that must not allocate, lock or
+ * block (conversion and the process call) runs in RTSan's real-time context, as the body of a [[clang::nonblocking]]
+ * function would; RTSan then aborts on any allocation, lock or blocking call made there, the process callback's
+ * included. The runtime lives in the checking executable (engine/native/rtsan), so the hooks are weak: loaded
+ * anywhere else they do nothing. Other builds compile them out. */
+#ifdef CTH_RTSAN
+void __rtsan_realtime_enter(void) __attribute__((weak));
+void __rtsan_realtime_exit(void) __attribute__((weak));
+#define CTH_REALTIME_ENTER() (__rtsan_realtime_enter ? __rtsan_realtime_enter() : (void)0)
+#define CTH_REALTIME_EXIT() (__rtsan_realtime_exit ? __rtsan_realtime_exit() : (void)0)
+#else
+#define CTH_REALTIME_ENTER() ((void)0)
+#define CTH_REALTIME_EXIT() ((void)0)
+#endif
+
 /* CLOCK_MONOTONIC in nanoseconds (vDSO: no system call on the audio thread). */
 uint64_t cth_linux_now_ns(void);
 

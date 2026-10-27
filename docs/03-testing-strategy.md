@@ -68,7 +68,13 @@ For **every** block, with any in-range parameter vector and any bounded input (n
 
 ### Parameter fuzzing (nightly)
 
-Random automation every block, including extreme values, scene, channel and bypass storms, and preset swaps every N ms. This is the same idea as pluginval's high-strictness levels. It must produce no exceptions, no NaN and no unbounded output.
+The property-based tests carry the trait `Category=Property`. On every push they run a fixed number of cases (200 per block). [`nightly.yml`](../.github/workflows/nightly.yml) runs them again every night with `CsCheck_Time` set (60 s per test case by default, an input when run by hand), so each one samples for that long on every core instead. What they cover:
+- every registered block, from a random parameter vector, with every parameter jumping at once mid-stream (as a preset or scene change does), under noise, DC, a full-scale square or silence: no exception, no NaN or ∞, nothing above the blow-up ceiling
+- the convolver's linearity on random signals
+
+A failure prints the CsCheck seed, and `CsCheck_Seed` replays it.
+
+Not covered yet: storms of scene, channel and bypass changes, and preset swaps every N ms, inside one graph, which is the idea behind pluginval's high-strictness levels. The nightly soak (`soak.yml`) drives scene changes and preset loads through the API for an hour. It fails on any API error or overload, but it does not look at the audio.
 
 ---
 
@@ -110,7 +116,11 @@ Reference measurements must be **ours**, made on amps we have access to.
    - a Roslyn analyzer such as ClrHeapAllocationAnalyzer *(verify maintenance)*, or our own
    - it applies to `Cathode.Dsp` and to methods marked `[RealtimeSafe]`
    - it bans `lock`, `Monitor`, `async`/`Task`, LINQ, closures, boxing, `params`, string formatting and logging
-4. **Native code:** build `cth_audio` and `cth_nam` with Clang **RealtimeSanitizer** (`-fsanitize=realtime`, `[[clang::nonblocking]]`) in a CI job.
+4. **Native code (Clang RealtimeSanitizer):** the `rtsan` job in [`nightly.yml`](../.github/workflows/nightly.yml) runs every night and on pull requests that touch `engine/native`. It builds the shim with Clang 20 and `-DCTH_RTSAN=ON`, then runs `cth_rtsan_check` (`engine/native/rtsan`), which is linked with `-fsanitize=realtime`. Code in RTSan's real-time context aborts with a report on any allocation, free, lock or blocking system call. Two paths are checked:
+   - every upstream example `.nam` model through `cth_nam_process` at block sizes from 1 to one past the reset size, called from a `[[clang::nonblocking]]` function
+   - the ALSA backend's real cycle on ALSA's `null` PCM: conversion, the process call and a NAM model in the callback. Here the context is entered by `CTH_REALTIME_ENTER`/`EXIT` in `cth_audio_alsa.c`, which compile to nothing outside that build
+
+   Two canaries run first, an allocation in a nonblocking function and one in an unmarked stream callback, and the job fails unless RTSan catches both, so a build where the sanitizer does nothing cannot pass. Not covered: the CoreAudio, WASAPI and JACK backends, and the managed audio path. Checking it would mean preloading RTSan into the .NET process, whose runtime does its own locking and allocation outside our control, so items 1 to 3 cover that path instead. There is no ASan or UBSan build yet.
 5. **GC soak (T3):**
    - run the engine for 1 h with an **aggressive REST and WebSocket load generator** hammering the server: knob storms, preset loads and IR uploads
    - assert **zero gen0 or gen2 collections in the Host process during steady state**, zero xruns on the NullBackend, and a callback p99.9 below 50 % of budget
