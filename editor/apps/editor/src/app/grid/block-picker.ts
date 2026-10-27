@@ -185,9 +185,10 @@ export class BlockPicker {
   });
 
   constructor() {
-    // A fresh search every time it opens.
+    // A fresh search every time it opens, cleared as it closes: clearing on open ran after the dialog rendered, so a
+    // query typed at once was wiped while the field still showed it, and Enter added whatever was highlighted.
     effect(() => {
-      if (this.open()) {
+      if (!this.open()) {
         untracked(() => this.search(''));
       }
     });
