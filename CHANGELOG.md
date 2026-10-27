@@ -6,6 +6,16 @@ the format upgrades older presets as it reads them.
 
 ## Unreleased
 
+### Added
+
+- **ASIO on Windows.** Installed ASIO drivers are listed as devices beside the WASAPI endpoints (`asio:` uids), with
+  their channel names, buffer sizes and latencies. Only one ASIO driver can be open at a time.
+- **MIDI output destination** (#111): Global ▸ MIDI ▸ Send to picks the port scene MIDI and footswitch LEDs go to.
+- **External 1–8 from the editor** (#108): the Controllers page moves them, as a pedal over MIDI does.
+- **Perform page and footswitch overrides** (#107): controls are renamed and reordered, and a preset's switch
+  override has its own hold action and label.
+- **Tone Match amount and smoothing** (#109) are chosen in its panel.
+
 ### Changed
 
 - **Opening the tuner mutes the output** (#26), with a short fade, as players expect. A global setting below the
@@ -14,6 +24,17 @@ the format upgrades older presets as it reads them.
 - **Long lists stay quick** (#157): the Library's preset, NAM amp and IR cab tables and Manage presets' Library list
   render only the rows in view, so searching and selecting in a library of hundreds of IRs no longer slows down. A
   preset's tags now sit on its name's line.
+- **Undo** (#123) keeps at most 100 steps and 32 MB per stack, and repeated changes to one knob are one step only
+  while they come within 2 s of each other.
+- **Pasting or ⌥-copying a block** (#154) is one change and one undo step, its settings and assets placed with it.
+- **Obsessive OD** (#142) clips with two MOSFETs and a germanium diode in series with one, as the Fulltone OCD does,
+  and is re-levelled.
+- **The Server rejects malformed grids** (#116) with a reason (size, positions, overlapping blocks, cables), and a
+  preset holds at most 256 modifiers, so telemetry never drops a meter or a modifier.
+- **Removed API routes** (#110) that no client used and that duplicated others: `GET /catalog/blocks/{typeId}`,
+  `GET /block-presets/{id}`, `GET /banks/{id}`, `PUT /presets/{id}` and `PUT /live/banks/{id}/slots/{slot}`.
+- **Desktop settings** (#131) are written atomically, owner-only, with the network and remote tokens encrypted at
+  rest where the system offers it.
 
 ### Fixed
 
@@ -27,6 +48,9 @@ the format upgrades older presets as it reads them.
   Amount (#12).
 - **Pitch:** the Tonic knob, which changed nothing, is hidden; the custom scale is built on, and named in, Key (#6).
 - **Editor:** the leveling dialog and the Perform page no longer do telemetry-rate work while idle (#155).
+- **IR Player:** clearing its last IR fades the wet signal out instead of cutting it (#144).
+- **Tuner:** detection keeps its window in a ring buffer instead of shifting it for every sample (#145).
+- **Meters** resolve their theme colours once per theme change, not on every frame (#150).
 
 ### Internal
 
@@ -34,7 +58,13 @@ the format upgrades older presets as it reads them.
   knob described, and the prerendered build.
 - **The editor's stateful core has unit tests** (#159): LiveStore, EventStream, shortcut dispatch and the grid's
   drop, paste and wire.
-
+- **CI** (#132–#135): workflows run with read-only tokens and pinned actions; a release waits for the engine and
+  editor tests and carries build provenance and an attested `SHA256SUMS`; a nightly workflow fuzzes block
+  parameters and runs the native audio path under RealtimeSanitizer.
+- **Layering** (#117): the IPC contract depends on nothing, and the Server links no engine host, audio or native
+  code. The in-process engine mode is gone: run `cathode-host --serve --null-audio` and point the Server at it.
+- **Docs:** the architecture's audio backends (#130) and API table (#112), and the Formant block's five vowels
+  (#147), describe what is built.
 - **Skala's baseline is burnt down** (#161): from 4,321 accepted findings to 134, all of them duplicated-block
   groups between data (amp schematics, presets, catalogues) or code kept apart on purpose, each kind named in
   `skala.jsonc`. The rest were fixed, or their rule was switched off in `.editorconfig` with the reason it does not
