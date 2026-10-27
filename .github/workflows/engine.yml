@@ -40,6 +40,12 @@ jobs:
         run: ctest --test-dir artifacts/obj/native -C Release --output-on-failure
       - run: dotnet build Cathode.slnx -c Release
       - run: dotnet test --solution Cathode.slnx -c Release --no-build
+      - name: Where the capture matches run
+        if: runner.os == 'Linux'
+        run: |
+          message="ReferenceMatchTests skip here (no reference cache): the capture matches run in nightly.yml's references job, which fetches the captures and fails on a missing one."
+          echo "::notice title=Capture matches skipped::$message"
+          echo "$message" >> "$GITHUB_STEP_SUMMARY"
 
   host-aot:
     needs: test

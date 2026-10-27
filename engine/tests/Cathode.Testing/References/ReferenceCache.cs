@@ -25,10 +25,23 @@ public enum ReferenceState {
 public sealed class ReferenceCache(string root) {
     public const string EnvironmentVariable = "CATHODE_REFERENCES";
 
+    /// <summary>
+    ///     Set to <c>1</c> where the redistributable references must be present (CI after
+    ///     <c>
+    ///         cathode-references
+    ///         fetch
+    ///     </c>
+    ///     ), so a missing one fails its test instead of skipping it.
+    /// </summary>
+    public const string RequiredVariable = "CATHODE_REFERENCES_REQUIRED";
+
     public string Root { get; } = root;
 
     /// <summary>The cache configured by the environment, or the default location.</summary>
     public static ReferenceCache Default { get; } = new(DefaultRoot());
+
+    /// <summary>True when <see cref="RequiredVariable" /> is set to <c>1</c>.</summary>
+    public static bool Required => Environment.GetEnvironmentVariable(RequiredVariable) == "1";
 
     public bool Exists => Directory.Exists(Root);
 
