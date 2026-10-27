@@ -1,5 +1,6 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import {
+  ApiError,
   type AssetInfo,
   type AssetUsage,
   type Bank,
@@ -10,6 +11,9 @@ import {
 import { ConnectionService } from '../core/connection';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
+
+/** Rig events that change the stored presets' list (names, colours, favourites, a new one). */
+const LibraryEvents = new Set(['presetSaved', 'presetMetadataChanged']);
 
 /** How an IR file is processed on import, as the Server's upload takes it (all optional: as-is by default). */
 export interface IrImportOptions {
@@ -61,12 +65,23 @@ export class LibraryStore {
 
   constructor() {
     const events = inject(EventStream);
-    const subscription = events.events$.subscribe(event => {
-      if (event.type === 'presetSaved') {
-        void this.refreshPresets();
-      }
-    });
-    inject(DestroyRef).onDestroy(() => subscription.unsubscribe());
+    const subscriptions = [
+      // Another editor, a footswitch or this one saved, renamed or tagged a preset.
+      events.events$.subscribe(event => LibraryEvents.has(event.type) && void this.refreshPresets()),
+      // Presets, assets and banks may have changed while the stream was down (or the Server restarted): resync.
+      events.connected$.subscribe(() => void this.resync())
+    ];
+    inject(DestroyRef).onDestroy(() => subscriptions.forEach(s => s.unsubscribe()));
+  }
+
+  /** Reads everything the library holds again; asset usage only if something has read it. */
+  async resync(): Promise<void> {
+    await Promise.all([
+      this.refreshPresets(),
+      this.refreshAssets(),
+      this.refreshBanks(),
+      this.usage().size > 0 ? this.refreshUsage() : undefined
+    ]);
   }
 
   async refresh(): Promise<void> {
@@ -139,8 +154,16 @@ export class LibraryStore {
 
   /** Whether the library holds a preset with this id: false for a new one that has never been saved. */
   async isStored(id: string): Promise<boolean> {
-    const { response } = await this.connection.client.GET('/api/v1/presets/{id}', { params: { path: { id } } });
-    return response.status !== 404;
+    try {
+      await this.connection.client.GET('/api/v1/presets/{id}', { params: { path: { id } } });
+      return true;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        return false;
+      }
+
+      throw error;
+    }
   }
 
   /** Where a stored preset is used (see {@link presetUses}), read fresh from the Server; undefined if that failed. */

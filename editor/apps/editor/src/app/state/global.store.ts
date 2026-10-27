@@ -13,6 +13,8 @@ export class GlobalStore {
   private readonly notify = inject(Notify);
 
   readonly settings = signal<GlobalSettings | null>(null);
+  /** The update in progress; the next waits for it (see {@link update}). */
+  private updating: Promise<unknown> = Promise.resolve();
 
   constructor() {
     const events = inject(EventStream);
@@ -31,8 +33,18 @@ export class GlobalStore {
     await this.notify.run(async () => this.settings.set(unwrap(await this.connection.client.GET('/api/v1/global'))));
   }
 
-  /** Applies a change to a copy and saves it; the Server validates and answers with what it stored. */
-  async update(change: (settings: GlobalSettings) => void): Promise<boolean> {
+  /**
+   * Applies a change to a copy and saves it; the Server validates and answers with what it stored. The whole document
+   * is sent, so updates run one at a time, each on the answer to the one before: two quick changes both land, where
+   * the second, made on the state before the first was answered, used to put the first back.
+   */
+  update(change: (settings: GlobalSettings) => void): Promise<boolean> {
+    const result = this.updating.then(() => this.put(change));
+    this.updating = result.catch(() => undefined);
+    return result;
+  }
+
+  private async put(change: (settings: GlobalSettings) => void): Promise<boolean> {
     const current = this.settings();
     if (!current) {
       return false;

@@ -126,7 +126,13 @@ export class EventStream {
       return;
     }
 
-    const message = JSON.parse(data) as ServerMessage;
+    let message: ServerMessage;
+    try {
+      message = JSON.parse(data) as ServerMessage;
+    } catch {
+      return; // not a message this editor can read: skip it rather than stop reading the stream
+    }
+
     if (message.type === 'connected') {
       this.attempts = 0;
       this.status.set('open');

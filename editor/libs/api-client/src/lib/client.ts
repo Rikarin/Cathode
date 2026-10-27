@@ -21,11 +21,24 @@ export class ApiError extends Error {
   }
 }
 
-/** A typed client for REST API v1, generated from the Server's committed OpenAPI document. */
+/**
+ * A typed client for REST API v1, generated from the Server's committed OpenAPI document. A reply that is not 2xx
+ * rejects with an {@link ApiError} carrying the Server's reason, so a call cannot report success for a refused request
+ * because its caller forgot to look ({@link unwrap} only narrows the type of a successful one).
+ */
 export function createCathodeClient(connection: Connection, fetchImpl: typeof fetch = globalThis.fetch) {
   const client = createClient<paths>({
     baseUrl: connection.baseUrl,
     fetch: (request: Request) => fetchImpl(request)
+  });
+  client.use({
+    async onResponse({ response }) {
+      if (!response.ok) {
+        throw await problemError(response);
+      }
+
+      return undefined;
+    }
   });
   if (connection.token) {
     const token = connection.token;
@@ -54,11 +67,33 @@ export function unwrap<T>(result: Result<T>): T {
     return result.data as T;
   }
 
-  const problem = (result.error ?? {}) as { detail?: string; title?: string; errors?: unknown };
+  throw toApiError(result.response, result.error);
+}
+
+/** The {@link ApiError} for a reply that is not 2xx, with its ProblemDetails when the body is one. */
+export async function problemError(response: Response): Promise<ApiError> {
+  let body: unknown;
+  try {
+    const text = await response.clone().text();
+    body = text ? JSON.parse(text) : undefined;
+  } catch {
+    body = undefined; // not JSON: the status says it
+  }
+
+  return toApiError(response, body);
+}
+
+function toApiError(response: Response, error: unknown): ApiError {
+  const problem = (error !== null && typeof error === 'object' ? error : {}) as {
+    detail?: string;
+    title?: string;
+    errors?: unknown;
+  };
   const errors = Array.isArray(problem.errors) ? problem.errors.map(String) : [];
-  throw new ApiError(
-    result.response.status,
-    problem.detail ?? problem.title ?? `${result.response.status} ${result.response.statusText}`,
+  const text = typeof error === 'string' && error.trim() ? error : undefined; // a plain BadRequest<string>
+  return new ApiError(
+    response.status,
+    problem.detail ?? problem.title ?? text ?? `${response.status} ${response.statusText}`.trim(),
     errors
   );
 }
