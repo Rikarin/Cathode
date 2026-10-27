@@ -10,7 +10,7 @@ namespace Cathode.Dsp.Amp.Models;
 ///     Contour; 47k slope; 47 nF, 22 nF; 250k linear treble, 1M audio bass, 20k linear middle); 100k, 100k into V3A's
 ///     idle grid network (470k) and the 250k audio lead volume; the loop's send follower V5A (1k cathode) and return
 ///     stage V5B (100k, 1k ‖ 22 µF), 100 nF and 47k into the 1M linear master; a long-tail pair (82k/100k, 470 Ω, 22k
-///     tail, 100 nF to the second grid) and two 6550 (2.2k stoppers, 1k screens, 150k bias feeds).
+///     tail, 100 nF to the second grid) and four 6550, two a side (2.2k stoppers, 1k screens, 150k bias feeds).
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -21,20 +21,26 @@ namespace Cathode.Dsp.Amp.Models;
 ///         (https://el34world.com/charts/Schematics/files/Engl/Engl_savage_120.pdf) was not compared value by value.
 ///     </para>
 ///     <para>
+///         The output stage is four 6550 in parallel pairs, from Engl's E610 specification (power amp: 4 × 6550, KT88
+///         optional); the two-6550 amp of the family is the Savage 60 (E630). It was once modelled as one 6550 a side
+///         into 3.4k, half the real stage (issue #49); the full stage peaks 1.4 dB hotter, so the output trim is -9 dB
+///         (was -7.5).
+///     </para>
+///     <para>
 ///         The supply's decoupling as drawn: R108 470 Ω 5 W to the screens' CE20 100 µF, R106 and R105 (2.2k each) to
 ///         CE21 22 µF (the inverter), R107 1k to V5 (no cap of its own: here on CE21), R56 2.2k 1 W to CE4 10 µF (V3,
 ///         V4), R55 2.2k to CE9 10 µF (V2), R54 2.2k to CE6 10 µF (V1).
 ///     </para>
 ///     <para>
-///         Guesses and simplifications, marked: the drawing prints no rail voltages (B+ 560 V, idle 50 mA a tube and a
-///         3.4k primary are typical values for two 6550 at 120 W; the preamp's rails, 530 V at CE21 down to 511 V at
-///         CE6, are the drawn chain's drops at the assumed draws); Rough/Smooth is at Smooth, which
-///         bypasses V3A (Rough puts V3A and its 100k/4.7k pad in the path), and the high-balance network is off; the
-///         crunch-mode pad at V3B's grid (33k via relay RE4B) is out; the loop is empty, its follower driving V5B
-///         through the 10k balance resistor. The feedback network is simplified: the presence pot sits in series with
-///         the feedback on the real amp (turning it down lowers the feedback); here 1.5k plus half the 50k presence
-///         from the 8 Ω tap into a 4.8k shunt (1.5k and 3.3k), the presence's 10 nF across it, and the Depth Boost
-///         switch (10 nF across the feedback path) as the depth control.
+///         Guesses and simplifications, marked: the drawing prints no rail voltages (B+ 560 V, idle 50 mA a tube, a
+///         1.7k plate-to-plate primary and the 100 W class's 25 Ω supply are typical values for four 6550 at 120 W; the
+///         preamp's rails, 530 V at CE21 down to 511 V at CE6, are the drawn chain's drops at the assumed draws);
+///         Rough/Smooth is at Smooth, which bypasses V3A (Rough puts V3A and its 100k/4.7k pad in the path), and the
+///         high-balance network is off; the crunch-mode pad at V3B's grid (33k via relay RE4B) is out; the loop is
+///         empty, its follower driving V5B through the 10k balance resistor. The feedback network is simplified: the
+///         presence pot sits in series with the feedback on the real amp (turning it down lowers the feedback); here
+///         1.5k plus half the 50k presence from the 8 Ω tap into a 4.8k shunt (1.5k and 3.3k), the presence's 10 nF
+///         across it, and the Depth Boost switch (10 nF across the feedback path) as the depth control.
 ///     </para>
 /// </remarks>
 public static class Savage120 {
@@ -59,9 +65,9 @@ public static class Savage120 {
             new NetworkStageDesign("V5B", ReturnAndMaster())
         ],
         new(
-            "2 x 6550",
+            "4 x 6550",
             PentodeModel.SixtyFiveFifty,
-            1,
+            2,
             560,
             1e3,
             0.05,
@@ -76,13 +82,13 @@ public static class Savage120 {
             new(1e6, PotTaper.Linear),
             new(1, 26.5e3, 4.8e3, new(50e3, PotTaper.Linear), 10e-9),
             true,
-            new(3.4e3),
+            new(1.7e3),
             SpeakerDesign.Closed4x12,
             // R108 470 Ω 5 W to the screens' CE20 100 µF, R106 + R105 (2.2k each) to CE21 22 µF.
-            new(35, 220e-6, 470, 100e-6, 4.4e3, 22e-6, 6e-3, RectifierModel.Silicon),
+            new(25, 220e-6, 470, 100e-6, 4.4e3, 22e-6, 6e-3, RectifierModel.Silicon),
             InverterInput: new(100e-9, 100e3)
         ),
-        -7.5
+        -9
     ) {
         Panel = AmpPanel.Standard with {
             Depth = "Depth Boost",
