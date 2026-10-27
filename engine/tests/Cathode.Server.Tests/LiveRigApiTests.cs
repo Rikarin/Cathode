@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Dsp.Amp;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.IO;
 using Cathode.Testing;
@@ -422,6 +423,33 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         );
         state = await Patch("/api/v1/live/blocks/circuitamp1/params", new Dictionary<string, float> { ["type"] = 3 });
         Assert.Equal(8, state.Preset.Blocks.Single(static b => b.Id == "circuitamp1").Channels["A"]["gain"]);
+    }
+
+    /// <summary>
+    ///     A model's own default (the Quick Rod's Solo Boost, off) is in the catalogue and is what a new Quick Rod
+    ///     gets: stored on the type change, and sent to the engine; back on another model the block's default returns.
+    /// </summary>
+    [Fact]
+    public async Task A_new_quick_rod_starts_with_its_solo_boost_off() {
+        var quickRod = AmpDesign.All.ToList().FindIndex(static a => a.Name == "Quick Rod");
+        var blocks = await client.GetFromJsonAsync<BlockTypeInfo[]>("/api/v1/catalog/blocks", Token);
+        var control1 = blocks!.Single(static b => b.TypeId == "circuitamp")
+            .Params.Single(static p => p.Id == "control1");
+        Assert.Equal(5, control1.Default);
+        Assert.Equal(0, control1.TypeDefaults![quickRod]);
+        Assert.Equal(5, control1.TypeDefaults[0]);
+
+        await Post("/api/v1/live/blocks", new AddBlockRequest("circuitamp", 2, 4));
+        var state = await Patch(
+            "/api/v1/live/blocks/circuitamp1/params",
+            new Dictionary<string, float> { ["type"] = quickRod }
+        );
+        Assert.Equal(0, state.Preset.Blocks.Single(static b => b.Id == "circuitamp1").Channels["A"]["control1"]);
+        await ServerFixture.Eventually(() => server.Target("circuitamp1", "control1") == 0);
+
+        state = await Patch("/api/v1/live/blocks/circuitamp1/params", new Dictionary<string, float> { ["type"] = 1 });
+        Assert.Equal(5, state.Preset.Blocks.Single(static b => b.Id == "circuitamp1").Channels["A"]["control1"]);
+        await ServerFixture.Eventually(() => server.Target("circuitamp1", "control1") == 5);
     }
 
     [Fact]

@@ -2311,7 +2311,9 @@ export interface components {
     /**
      * @description A block parameter. `TypeLabels`, where present, names the parameter per value of the block's `type`
      *     parameter (an amp model's own name for a generic control), empty where that type lacks the control: hide it
-     *     there.
+     *     there. `TypeDefaults`, where present, is the parameter's default per value of `type` (a model that
+     *     ships a control at another setting), in place of `Default`: a value a channel does not store is that
+     *     type's default.
      */
     ParameterInfo: {
       id: string;
@@ -2328,6 +2330,7 @@ export interface components {
       options?: null | string[];
       typeLabels?: null | string[];
       page?: null | string;
+      typeDefaults?: null | number[];
     };
     /**
      * @description One control on a performance page: a parameter of a block, by the block's id (`amp1`) so a global page

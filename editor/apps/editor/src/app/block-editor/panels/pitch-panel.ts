@@ -3,6 +3,7 @@ import type { PresetBlock } from '@cathode/api-client';
 import { XuiInputImports } from '@xui/input';
 import { CatalogStore } from '../../state/catalog.store';
 import { LiveStore } from '../../state/live.store';
+import { blockDefault } from '../type-labels';
 import {
   CustomScale,
   CustomShifterType,
@@ -120,10 +121,12 @@ export class PitchPanel {
     }
   }
 
-  /** A parameter's value on the active channel, or its default. */
+  /** A parameter's value on the active channel, or its default on the block's type. */
   private value(id: string): number {
     const block = this.block();
-    const stored = this.live.valueOf(block, this.live.channelOf(block.id), id);
-    return stored ?? this.catalog.info(block.type)?.params.find(p => p.id === id)?.default ?? 0;
+    const valueOf = (param: string) => this.live.valueOf(block, this.live.channelOf(block.id), param);
+    const params = this.catalog.info(block.type)?.params ?? [];
+    const param = params.find(p => p.id === id);
+    return valueOf(id) ?? (param ? blockDefault(params, param, valueOf) : 0);
   }
 }

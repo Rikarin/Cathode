@@ -24,6 +24,11 @@ export interface EngineParam {
    * block's `type` parameter, by index; an empty name means that model has no such control.
    */
   readonly typeLabels?: readonly string[];
+  /**
+   * Where a model ships the knob at another setting than the rest (the Quick Rod's Solo Boost, off): its default on each
+   * value of the block's `type` parameter, by index, in place of `default`.
+   */
+  readonly typeDefaults?: readonly number[];
 }
 
 /** One block type, as the engine registers it. */

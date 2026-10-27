@@ -153,6 +153,38 @@ public class QuickRodTests(ITestOutputHelper output) {
         Assert.True(levels[2] > levels[1] + 2);
     }
 
+    /// <summary>
+    ///     A new Quick Rod starts with the Solo Boost at 0, the boost off (its own default: the block's is 5, which put
+    ///     100k under the Master's foot), so the Master's zero stop is silent again; with the boost at 5 it was not.
+    /// </summary>
+    [Fact]
+    public void A_new_quick_rod_has_the_boost_off_and_master_0_is_silent() {
+        var tone = Signals.Sine(440, Rate, 24_000, 0.01f);
+        Assert.Equal(0, CircuitAmpBlock.Info.Params[CircuitAmpBlock.Control1].DefaultFor(Type));
+        Assert.Equal(5, CircuitAmpBlock.Info.Params[CircuitAmpBlock.Control1].DefaultFor(0));
+
+        double Level(float? solo) {
+            using var block = new CircuitAmpBlock();
+            block.Params.SetTarget(CircuitAmpBlock.Type, Type);
+            block.Params.ResetToDefaults(); // as the graph compiler does for a new block
+            if (solo is { } boost) {
+                block.Params.SetTarget(CircuitAmpBlock.Control1, boost);
+            }
+
+            Assert.Equal(solo ?? 0, block.Params.GetTarget(CircuitAmpBlock.Control1));
+            block.Params.SetTarget(CircuitAmpBlock.Master, 0);
+            block.Prepare(new(Rate, 64));
+            block.Reset();
+            var rendered = BlockRender.Mono(block, tone, 64);
+            return Analysis.ToDb(Analysis.MagnitudeAt(rendered.AsSpan(12_000).ToArray(), 440, Rate));
+        }
+
+        var (off, boosted) = (Level(null), Level(5));
+        output.WriteLine($"Master 0: boost off {off:0.0} dB, boost 5 {boosted:0.0} dB");
+        // The boost at 5 lifts the Master's foot to −21 dB of its top; with the boost off its zero stop is silence.
+        Assert.True(boosted - off > 100, $"Master 0 with the boost off only {boosted - off:0.0} dB under boost 5");
+    }
+
     /// <summary>Every knob swept end to end while a loud chord plays: finite, bounded, converging.</summary>
     [Theory]
     [MemberData(nameof(Settings))]

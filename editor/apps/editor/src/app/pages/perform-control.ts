@@ -23,6 +23,7 @@ import { XuiButtonImports } from '@xui/button';
 import { XuiIconImports } from '@xui/icon';
 import { XuiInputImports } from '@xui/input';
 import { XuiSelectImports } from '@xui/select';
+import { blockDefault } from '../block-editor/type-labels';
 import { EventStream } from '../core/events';
 import { CatalogStore } from '../state/catalog.store';
 import { KnobGesture } from '../state/knob-gesture';
@@ -149,7 +150,7 @@ export const PerformDragType = 'application/x-cathode-perform';
             [unit]="param.unit"
             [min]="param.min"
             [max]="param.max"
-            [defaultValue]="param.default"
+            [defaultValue]="defaultValue()"
             [taper]="param.taper === 'log' ? 'log' : 'linear'"
             [color]="accent()"
             [value]="value()"
@@ -186,9 +187,22 @@ export class PerformControl {
 
   protected readonly Math = Math;
 
+  /** The parameter's default on the block's type (a model's own, where it has one). */
+  protected readonly defaultValue = computed(() => {
+    const { block, param } = this.control();
+    if (!block || !param) {
+      return 0;
+    }
+
+    const params = this.catalog.info(block.type)?.params ?? [];
+    return blockDefault(params, param, id => this.live.valueOf(block, this.live.channelOf(block.id), id));
+  });
+
   protected readonly value = computed(() => {
     const { block, param } = this.control();
-    return block && param ? (this.live.valueOf(block, this.live.channelOf(block.id), param.id) ?? param.default) : 0;
+    return block && param
+      ? (this.live.valueOf(block, this.live.channelOf(block.id), param.id) ?? this.defaultValue())
+      : 0;
   });
 
   /** The live value while a modifier drives the control's parameter, else undefined. */

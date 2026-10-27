@@ -1,5 +1,5 @@
 import type { ParameterInfo } from '@cathode/api-client';
-import { labelledParams } from './type-labels';
+import { blockDefault, defaultOn, labelledParams } from './type-labels';
 
 function param(id: string, name: string, typeLabels?: string[]): ParameterInfo {
   return {
@@ -40,5 +40,27 @@ describe('labelledParams', () => {
   it('shows every control in the Ideal view: the model’s names where it has them, generic ones elsewhere', () => {
     expect(labelledParams(params, 0, true).map(p => p.name)).toEqual(['Gain', 'Cut', 'Switch 1', 'Lead Drive']);
     expect(labelledParams(params, 1, true).map(p => p.name)).toEqual(['Gain', 'Cut', 'Jumper', 'Control 1']);
+  });
+});
+
+describe('per-type defaults', () => {
+  const type: ParameterInfo = { ...param('type', 'Type'), kind: 'enum', max: 2, default: 0 };
+  const boost: ParameterInfo = { ...param('control1', 'Solo Boost'), typeDefaults: [5, 0, 5] };
+
+  it('gives each type its own default', () => {
+    expect(defaultOn(boost, 1)).toBe(0);
+    expect(defaultOn(boost, 2)).toBe(5);
+    expect(defaultOn(param('gain', 'Gain'), 1)).toBe(5);
+  });
+
+  it('carries the type’s default on the labelled parameters, so the knob resets there', () => {
+    expect(labelledParams([boost], 1)[0]?.default).toBe(0);
+    expect(labelledParams([boost], 0)[0]?.default).toBe(5);
+  });
+
+  it('reads an unset value as the default on the block’s type', () => {
+    const values: Record<string, number> = { type: 1 };
+    expect(blockDefault([type, boost], boost, id => values[id])).toBe(0);
+    expect(blockDefault([type, boost], boost, () => undefined)).toBe(5);
   });
 });

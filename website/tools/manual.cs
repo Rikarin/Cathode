@@ -3,8 +3,8 @@
 #:property PublishAot=false
 
 // Writes src/app/manual/engine-params.generated.ts: every block the engine registers with every parameter it has (id,
-// name, kind, range, default, unit, taper, editor page, choices, and the Circuit Amp's name for a control on each
-// model), so the manual's block reference lists exactly the knobs the app shows. Only what a knob does is written by
+// name, kind, range, default, unit, taper, editor page, choices, and the Circuit Amp's name and default for a control
+// on each model), so the manual's block reference lists exactly the knobs the app shows. Only what a knob does is written by
 // hand, in src/app/manual/blocks/. Run from website/: `pnpm manual`.
 
 using System.Text.Encodings.Web;
@@ -42,7 +42,8 @@ var blocks = registry.Descriptors.Select(static d => new {
         taper = p.Taper == ParamTaper.Log ? "log" : null,
         page = p.Page,
         options = p.Options,
-        typeLabels = p.TypeLabels
+        typeLabels = p.TypeLabels,
+        typeDefaults = p.TypeDefaults
     })
 });
 

@@ -110,7 +110,9 @@ public sealed record SpeakerResonanceInfo(double BaseHz, float Percent, double H
 /// <summary>
 ///     A block parameter. <c>TypeLabels</c>, where present, names the parameter per value of the block's <c>type</c>
 ///     parameter (an amp model's own name for a generic control), empty where that type lacks the control: hide it
-///     there.
+///     there. <c>TypeDefaults</c>, where present, is the parameter's default per value of <c>type</c> (a model that
+///     ships a control at another setting), in place of <c>Default</c>: a value a channel does not store is that
+///     type's default.
 /// </summary>
 public sealed record ParameterInfo(
     string Id,
@@ -123,7 +125,8 @@ public sealed record ParameterInfo(
     string Taper,
     IReadOnlyList<string>? Options,
     IReadOnlyList<string>? TypeLabels = null,
-    string? Page = null
+    string? Page = null,
+    IReadOnlyList<float>? TypeDefaults = null
 );
 
 /// <summary>

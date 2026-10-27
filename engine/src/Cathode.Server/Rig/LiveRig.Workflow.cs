@@ -264,10 +264,7 @@ public sealed partial class LiveRig {
         foreach (var (channel, values) in requested) {
             CheckChannel(channel, descriptor.Channels);
             CheckParamNames(descriptor, values);
-            channels[channel] = values.ToDictionary(
-                static v => v.Key,
-                v => descriptor.Params[descriptor.IndexOf(v.Key)].Sanitize(v.Value)
-            );
+            channels[channel] = descriptor.Sanitized(values);
         }
 
         return channels;
@@ -337,12 +334,7 @@ public sealed partial class LiveRig {
                     );
                 }
 
-                Dictionary<string, float> Clean(Dictionary<string, float> values) =>
-                    values.Where(v => descriptor.IndexOf(v.Key) >= 0)
-                        .ToDictionary(
-                            static v => v.Key,
-                            v => descriptor.Params[descriptor.IndexOf(v.Key)].Sanitize(v.Value)
-                        );
+                Dictionary<string, float> Clean(Dictionary<string, float> values) => descriptor.Sanitized(values);
 
                 var channels = Preset.ChannelNames[..descriptor.Channels]
                     .ToDictionary(

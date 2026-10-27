@@ -146,7 +146,18 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         return set;
     }
 
+    /// <summary>
+    ///     Sets the node's stored values on its new block: the type first, then every other parameter to its default on
+    ///     that type (<see cref="ParamBank.ResetToDefaults" />), then the stored values over them. Presets store values
+    ///     sparsely, so a parameter they leave out takes the type's default.
+    /// </summary>
     static void ApplyParameters(NodeDefinition node, IDspBlock block, List<string> errors) {
+        if (block.Descriptor.TypeIndex is var typeIndex and >= 0
+            && node.Parameters.TryGetValue(block.Descriptor.Params[typeIndex].Id, out var type)) {
+            block.Params.SetTarget(typeIndex, type);
+            block.Params.ResetToDefaults();
+        }
+
         foreach (var (paramId, value) in node.Parameters) {
             var index = block.Descriptor.IndexOf(paramId);
             if (index < 0) {

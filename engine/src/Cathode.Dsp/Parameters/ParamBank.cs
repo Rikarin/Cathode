@@ -17,6 +17,9 @@ public sealed class ParamBank {
     readonly int[] remaining;
     readonly int[] rampSamples;
 
+    /// <summary>The block's <c>type</c> parameter, whose value picks the per-type defaults; -1 for none.</summary>
+    readonly int typeIndex;
+
     public int Count => descriptors.Count;
 
     public ParamBank(IReadOnlyList<ParamDescriptor> descriptors) {
@@ -28,18 +31,46 @@ public sealed class ParamBank {
         step = new float[count];
         remaining = new int[count];
         rampSamples = new int[count];
+        typeIndex = -1;
         for (var i = 0; i < count; i++) {
+            if (descriptors[i].Id == "type") {
+                typeIndex = i;
+            }
+
             target[i] = descriptors[i].Default;
+        }
+
+        ResetToDefaults();
+    }
+
+    public ParamDescriptor Descriptor(int index) => descriptors[index];
+
+    /// <summary>
+    ///     Control side: every target back to its default on the type the block's <c>type</c> target holds
+    ///     (<see cref="ParamDescriptor.DefaultFor" />), the type itself kept, and the smoothers jumped there. The graph
+    ///     compiler calls it once a new block has its type, so the values a preset does not store take that type's
+    ///     defaults.
+    /// </summary>
+    public void ResetToDefaults() {
+        var type = Type;
+        for (var i = 0; i < target.Length; i++) {
+            if (i != typeIndex) {
+                Volatile.Write(ref target[i], descriptors[i].DefaultFor(type));
+            }
         }
 
         SnapToTargets();
     }
 
-    public ParamDescriptor Descriptor(int index) => descriptors[index];
+    /// <summary>The value of the block's <c>type</c> target (0 for a block without one).</summary>
+    int Type => typeIndex < 0 ? 0 : (int)Volatile.Read(ref target[typeIndex]);
 
-    /// <summary>Control side, any thread. The value is sanitised against the descriptor.</summary>
+    /// <summary>
+    ///     Control side, any thread. The value is sanitised against the descriptor (non-finite input takes the default
+    ///     on the block's current type).
+    /// </summary>
     public void SetTarget(int index, float value) =>
-        Volatile.Write(ref target[index], descriptors[index].Sanitize(value));
+        Volatile.Write(ref target[index], descriptors[index].Sanitize(value, Type));
 
     public float GetTarget(int index) => Volatile.Read(ref target[index]);
 
@@ -96,7 +127,7 @@ public sealed class ParamBank {
     ///     <c>(int)</c>.
     /// </summary>
     public void Modulate(int index, float value, int frames) {
-        value = descriptors[index].Sanitize(value);
+        value = descriptors[index].Sanitize(value, Type);
         Volatile.Write(ref target[index], value);
         seenTarget[index] = value;
         if (frames <= 0 || rampSamples[index] == 0) {

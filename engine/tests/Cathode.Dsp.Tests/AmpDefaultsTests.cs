@@ -47,6 +47,7 @@ public class AmpDefaultsTests {
                 foreach (var gain in Gains) {
                     using var block = registry.Create(typeId);
                     block.Params.SetTarget(0, t);
+                    block.Params.ResetToDefaults(); // the type's own defaults (the Quick Rod's Solo Boost off)
                     block.Params.SetTarget(1, gain);
                     block.Prepare(new(48_000, 64));
                     var input = Signals.Concat(

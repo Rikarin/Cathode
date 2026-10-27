@@ -100,6 +100,31 @@ public sealed class VersioningTests {
         );
     }
 
+    /// <summary>
+    ///     The Quick Rod's Solo Boost defaulted to 5 up to 1.0.0-rc.3 and to 0 (off) since, so a schema-1 Quick Rod
+    ///     channel that does not store it gets the 5 it played at; one that stores it, and other models, keep theirs.
+    /// </summary>
+    [Fact]
+    public void Schema_2_keeps_an_old_quick_rods_solo_boost() {
+        var upgraded = PresetMigrations.Upgrade(
+            JsonNode.Parse(
+                """
+                {"schemaVersion":1,"blocks":[
+                  {"id":"amp1","type":"circuitamp","channels":{
+                    "A":{"type":86},"B":{"type":86,"control1":2},"C":{"type":2}}}
+                ]}
+                """
+            )
+        )!;
+        var amp = upgraded.Deserialize(ContractsJsonContext.Default.Preset)!.Blocks[0].Channels;
+
+        Assert.Equal("Quick Rod", Cathode.Dsp.Amp.AmpDesign.All[(int)PresetMigrations.QuickRodType].Name);
+        Assert.Equal(5, amp["A"]["control1"]);
+        Assert.Equal(2, amp["B"]["control1"]);
+        Assert.False(amp["C"].ContainsKey("control1"));
+        Assert.False(amp["D"].ContainsKey("control1")); // no type stored: the first model
+    }
+
     [Fact]
     public void A_schema_2_amp_keeps_the_new_defaults() {
         var json = """{"schemaVersion":2,"blocks":[{"id":"amp1","type":"circuitamp","channels":{"A":{"gain":6}}}]}""";

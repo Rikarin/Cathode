@@ -36,6 +36,7 @@ import {
 } from '@ng-icons/material-icons/round';
 import { XuiContextMenuImports } from '@xui/context-menu';
 import { XuiMenuImports } from '@xui/menu';
+import { blockDefault } from '../block-editor/type-labels';
 import { EventStream } from '../core/events';
 import { ShortcutService } from '../shell/shortcuts';
 import { BlockFileExtension, BlockPresetsStore } from '../state/block-presets.store';
@@ -709,10 +710,12 @@ export class GridEditor {
     monoHints(
       this.blocks(),
       this.live.preset()?.cables ?? [],
-      (block, param) =>
-        this.live.valueOf(block, this.live.channelOf(block.id), param) ??
-        this.catalog.info(block.type)?.params.find(p => p.id === param)?.default ??
-        0,
+      (block, param) => {
+        const valueOf = (id: string) => this.live.valueOf(block, this.live.channelOf(block.id), id);
+        const params = this.catalog.info(block.type)?.params ?? [];
+        const info = params.find(p => p.id === param);
+        return valueOf(param) ?? (info ? blockDefault(params, info, valueOf) : 0);
+      },
       block => this.live.isBypassed(block.id)
     )
   );

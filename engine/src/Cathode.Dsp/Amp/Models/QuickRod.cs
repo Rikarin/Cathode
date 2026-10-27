@@ -53,7 +53,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         Panel: Switch 1 selects the clean channel; Bright is OD2, Switch 2 and Switch 3 the "2nd gear" and "3rd
 ///         gear" switches (both off: 1st gear); Control 1 the Solo Boost pot, which at 0 is the boost switched off (the
-///         switch grounds the Master's foot, where the pot at 0 puts its wiper). Gain, Treble and Bass are the playing
+///         switch grounds the Master's foot, where the pot at 0 puts its wiper), and which defaults to 0 on this model
+///         (<see cref="AmpPanel.Defaults" />): the real amp's boost is off until its footswitch is pressed, and at the
+///         block's default of 5 it put 100k under the Master's foot, +5 dB at Master 5 and −21 dB rather than silence
+///         at Master 0 (issue #48). Gain, Treble and Bass are the playing
 ///         channel's; Master is the overdrive channel's Master and the clean channel's Volume; Middle is the overdrive
 ///         channel's only.
 ///     </para>
@@ -119,7 +122,8 @@ public static class QuickRod {
             Switch1 = "Clean",
             Switch2 = "2nd Gear",
             Switch3 = "3rd Gear",
-            Control1 = "Solo Boost"
+            Control1 = "Solo Boost",
+            Defaults = new Dictionary<string, float> { ["control1"] = 0 }
         }
     };
 

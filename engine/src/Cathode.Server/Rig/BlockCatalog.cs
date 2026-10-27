@@ -72,6 +72,7 @@ public sealed class BlockCatalog {
             p.Taper.ToString().ToLowerInvariant(),
             p.Options,
             p.TypeLabels,
-            p.Page
+            p.Page,
+            p.TypeDefaults
         );
 }

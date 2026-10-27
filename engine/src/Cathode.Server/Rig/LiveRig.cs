@@ -557,11 +557,7 @@ public sealed partial class LiveRig(
         var descriptor = catalog.Descriptor(block.Type);
         foreach (var modifier in preset.Modifiers.Where(m => m.Block == block.Id && m.Channel is not null)) {
             var index = descriptor?.IndexOf(modifier.Param) ?? -1;
-            var value = index < 0
-                ? 0f
-                : block.Channels.GetValueOrDefault(channel)
-                    ?.GetValueOrDefault(modifier.Param, descriptor!.Params[index].Default)
-                ?? descriptor!.Params[index].Default;
+            var value = index < 0 ? 0f : descriptor!.ValueOf(index, block.Channels.GetValueOrDefault(channel));
             engine.SetModifier(generation, block.Id, modifier.Param, modifier.Channel == channel, value);
         }
     }
@@ -735,23 +731,16 @@ public sealed partial class LiveRig(
         IReadOnlyDictionary<string, float>? a,
         IReadOnlyDictionary<string, float>? b
     ) =>
-        descriptor.Params.Any(p => p.Recompile
-            && (a?.GetValueOrDefault(p.Id, p.Default) ?? p.Default)
-            != (b?.GetValueOrDefault(p.Id, p.Default) ?? p.Default)
-        );
+        Enumerable.Range(0, descriptor.Params.Count)
+            .Any(i => descriptor.Params[i].Recompile && descriptor.ValueOf(i, a) != descriptor.ValueOf(i, b));
 
-    /// <summary>Every parameter of the block type with <paramref name="channel" />'s value or the default.</summary>
+    /// <summary>
+    ///     Every parameter of the block type with <paramref name="channel" />'s value or the default on its type.
+    /// </summary>
     List<ParamValue> ChannelValues(PresetBlock block, string channel) {
         var descriptor = catalog.Descriptor(block.Type)!;
         var stored = block.Channels.GetValueOrDefault(channel);
-        return [
-            ..descriptor.Params.Select(p => new ParamValue(
-                    block.Id,
-                    p.Id,
-                    stored?.GetValueOrDefault(p.Id, p.Default) ?? p.Default
-                )
-            )
-        ];
+        return [..descriptor.Params.Select((p, i) => new ParamValue(block.Id, p.Id, descriptor.ValueOf(i, stored)))];
     }
 
     async Task StructuralAsync(Action<Preset> edit) {
