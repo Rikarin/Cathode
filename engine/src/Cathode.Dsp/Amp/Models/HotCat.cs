@@ -26,9 +26,12 @@ namespace Cathode.Dsp.Amp.Models;
 ///     output transformer's primary (4k plate to plate; the drawing names "TDS 1163" only), the Edge rheostat's
 ///     direction (more resistance, less treble bled away, as the knob turns up), the preamp nodes taken as fixed rails
 ///     behind one 22k dropper for the sag. Not modelled: the Mid-range switch on the panel (not on the drawing). The
-///     panel's Brilliance is the block's Cut, which runs the other way (Fractal notes the real one is wired backwards
-///     too: clockwise is brighter): Cut 0 is Brilliance 10. In the Clean channel the Gain knob turns the clean Volume,
-///     and the Gain channel's Edge, Level, tone and master are out of the path.
+///     Brilliance (the panel's name for it) is a Vox cut wired the other way (Fractal notes it too: clockwise is
+///     brighter): the 1M log pot's resistance in series with the 4.7 nF grows by its audio law as the knob turns up
+///     (<see cref="PowerAmpDesign.Brilliance" />, on the block's Presence knob), 0 the cap straight across the grids.
+///     Up to 1.0.0-rc.3 it was the block's Cut, running the other way (Cut 0 was Brilliance 10); a schema-1 preset is
+///     carried over (Brilliance = 10 - Cut, <c>PresetMigrations</c>). In the Clean channel the Gain knob turns the
+///     clean Volume, and the Gain channel's Edge, Level, tone and master are out of the path.
 /// </remarks>
 public static class HotCat {
     /// <summary>The 12AX7's grid-plate capacitance.</summary>
@@ -65,7 +68,7 @@ public static class HotCat {
             220e3,
             10e3,
             4.7e-9,
-            new(1e6, PotTaper.ReverseAudio),
+            new(1e6, PotTaper.Audio),
             new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6),
             false,
             new(4e3),
@@ -75,13 +78,15 @@ public static class HotCat {
             SeparateCathodes: true,
             InverterInput: new(10e-9, 1e6),
             CathodeResistor: 135, // 270 Ω per tube: half of each side's, as the power amp counts it
-            SupplySwitches: [new(SwitchRole.Switch2, RectifierModel.Silicon)]
+            SupplySwitches: [new(SwitchRole.Switch2, RectifierModel.Silicon)],
+            Brilliance: true
         ),
         -8
     ) {
         Panel = AmpPanel.Standard with {
             Middle = null,
-            Presence = null,
+            Presence = "Brilliance",
+            Cut = null,
             Depth = null,
             Bright = null,
             Switch1 = "Clean Input",

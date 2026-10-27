@@ -49,7 +49,7 @@ Hiwatts are loud, clean and firm, with huge headroom and a tight low end: big ch
 
 **AC30**, **AC15**, **DC-30**, **Chieftain**, **Hot Cat 30**, **Express**, **Liverpool**.
 
-Chime and jangle: a bright, complex top, little or no negative feedback, and power sections that break up sweetly. These amps have a **Cut** control instead of a presence: it works the other way round, so more Cut means less treble. The AC30's **Normal Ch** switch picks its plainer channel. The DC-30, Chieftain and Hot Cat are boutique amps in this spirit; the Express and Liverpool are the Trainwreck circuits.
+Chime and jangle: a bright, complex top, little or no negative feedback, and power sections that break up sweetly. The Vox-style amps have a **Cut** control instead of a presence: it works the other way round, so more Cut means less treble. The Chieftain and Hot Cat call theirs **Brilliance** (and the Tiny Terror its **Tone**) and wire it the other way: up is brighter. The AC30's **Normal Ch** switch picks its plainer channel. The DC-30, Chieftain and Hot Cat are boutique amps in this spirit; the Express and Liverpool are the Trainwreck circuits.
 
 ### Dumble-style
 
