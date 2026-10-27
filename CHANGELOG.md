@@ -17,6 +17,13 @@ the format upgrades older presets as it reads them.
 - **Tone Match amount and smoothing** (#109) are chosen in its panel.
 - **Amp Oversampling** (#88): a Circuit Amp's Advanced page can run the whole circuit at 4x (High) for 7–11 dB less
   aliasing on the high-gain models, at about twice the CPU. Standard stays the default and sounds as before.
+- **Per-model defaults** (#48): a Circuit Amp model can ship its own knob defaults; a new Quick Rod starts with its
+  Solo Boost off, so Master 0 is silent. Saved Quick Rods keep the boost they had.
+- **Knobs shown by another knob's setting** (#30): the Compressor shows Threshold and Ratio, or Compression, by its
+  Controls choice, and the Vibe shows Mix only in Chorus mode.
+- **MIDI learn you can see and cancel** (#51), after a reload and from any editor; a knob's learn adds its External
+  modifier only once something is learnt.
+- **Footswitch and MIDI actions are picked by name** (#18): blocks, banks, slots, scenes and layouts from lists.
 
 ### Changed
 
@@ -47,6 +54,10 @@ the format upgrades older presets as it reads them.
 - **Undo** follows knob gestures (#72): one drag is one step however long it lasts, and the next drag is another.
 - **Concurrent editors** (#75): `/global` carries a revision, and a knob change made before another preset loaded
   is dropped instead of landing on the new preset.
+- **Next and previous preset** (#25) follow the banks' slot order (and the setlist a preset was loaded from), not
+  the alphabet; the number before the preset's name is its slot.
+- **Mark IIC+ and Mark IV presence** (#102) is the 250k rheostat in series with the feedback, as Mesa drew it:
+  clockwise is brighter, and the loop stays stable at both ends.
 
 ### Fixed
 
@@ -66,6 +77,9 @@ the format upgrades older presets as it reads them.
 - **Hot Cat 30:** its Master turns the drive channel down to silence instead of by about 1 dB (#94).
 - **Mark IIC+ and Mark IV:** the power stage has Mesa's 470 Ω screens, 2.2k stoppers, 0.1 µF coupling caps and the
   inverter's 470 Ω / 22k tail (#102).
+- **The engine host** plays the test tone again in the two-process app: it never handed it to its graph compiler
+  (found by #53's two-process test).
+- **The block picker** clears its search as it closes, so a query typed at once is never wiped before Enter.
 
 ### Internal
 
@@ -86,6 +100,9 @@ the format upgrades older presets as it reads them.
   two-channel input and the AB763 fixed-mid stack are shared instead of copied (#98, #91).
 - **Capture matches run nightly** (#81) against the fetched GPL references; a missing one fails.
 - **The headless systemd units run sandboxed** (#137).
+- **More test suites** (#53): every block at 44.1–192 kHz against its 48 kHz render, SIMD against scalar in two
+  processes, a legacy corpus of rc.1–rc.3 libraries that must load and play, and a real two-process Server and host
+  run with a host restart. Stale comments and docs/07's amp index (#16) are corrected.
 - **Skala's baseline is burnt down** (#161): from 4,321 accepted findings to 134, all of them duplicated-block
   groups between data (amp schematics, presets, catalogues) or code kept apart on purpose, each kind named in
   `skala.jsonc`. The rest were fixed, or their rule was switched off in `.editorconfig` with the reason it does not
