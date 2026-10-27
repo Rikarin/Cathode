@@ -17,7 +17,7 @@ It is monophonic: play single notes. A chord has no single pitch, so the trackin
 
   params: {
     'voice#Shape': `The waveform of this voice. Saw is bright and buzzy, Square hollow and reedy (its width set by **Duty**), Triangle and Sine soft and pure. Random, White Noise and Pink Noise are for effects and textures. Off silences the voice.`,
-    'voice#Track': `What plays this voice. **Pitch + Env** follows the note you play and your picking dynamics. **Envelope** plays the voice's own fixed **Frequency**, but still swells and fades with your picking. **Off** is a constant drone at its Frequency, at a fixed level (half of full scale, about −6 dB) whatever you play.`,
+    'voice#Track': `What plays this voice. **Pitch + Env** follows the note you play and your picking dynamics. **Envelope** plays the voice's own fixed **Frequency**, but still swells and fades with your picking. **Off** is a constant drone at its Frequency, at a fixed level (half of full scale, about −6 dB) whatever you play; only its filter opens with your picking.`,
     'voice#Freq': `The voice's own pitch, used when Track is Envelope or Off. Ignored when the voice follows your playing.`,
     'voice#Shift': `Transposes the voice in semitones: −12 is an octave down, +7 a fifth up, +12 an octave up. Applies to the tracked pitch and to Frequency alike.`,
     'voice#Tune': `Fine-tunes the voice in cents (hundredths of a semitone). Detune two voices by a few cents against each other for a thicker, chorused synth sound.`,
@@ -27,7 +27,7 @@ It is monophonic: play single notes. A chord has no single pitch, so the trackin
     'voice#FilterType': `The voice's filter: Low Pass keeps the lows (warm, the classic synth sound), Band Pass a band around the cutoff (nasal, vocal), High Pass the highs (thin, airy).`,
     'voice#Cutoff': `The filter's base frequency, where it sits when you are not playing hard. **Env Amount** opens it upwards from here as you play.`,
     'voice#Resonance': `Emphasis at the cutoff frequency. Low values are smooth; high values add a whistling peak that makes filter sweeps sound squelchy.`,
-    envAmount: `How far your picking opens every voice's filter: up to five octaves above Cutoff at 100 % when you play hard. At 0 % the filters stay at their Cutoff. The harder you pick, the brighter it gets, the classic envelope-filter quack. A drone voice (Track Off) doesn't follow your playing: its filter stays opened by the full Env Amount all the time, so turn its Cutoff down to compensate.`,
+    envAmount: `How far your picking opens every voice's filter: up to five octaves above Cutoff at 100 % when you play hard. At 0 % the filters stay at their Cutoff. The harder you pick, the brighter it gets, the classic envelope-filter quack. A drone voice (Track Off) keeps its level whatever you play, but its filter still opens with your picking and rests at Cutoff when you stop.`,
     attack: `How fast the synth's volume (and filter) rises to follow your picking. Short is a sharp, plucky start; long (200 ms and more) gives slow, violin-like swells.`,
     release: `How fast the synth fades once your note stops or falls below the Threshold. Short is tight and staccato; long lets notes hang on.`,
     glide: `How long the pitch takes to slide to a new note (portamento). 0 jumps straight to each note. A note that starts from silence always starts on pitch; glide only acts between notes you play legato.`,

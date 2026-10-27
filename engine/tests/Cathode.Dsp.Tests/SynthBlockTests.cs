@@ -83,6 +83,32 @@ public class SynthBlockTests {
     }
 
     [Fact]
+    public void A_drone_filter_rests_at_its_cutoff_in_silence_and_opens_as_you_play() {
+        SynthBlock Drone() => Create(
+            (SynthBlock.VoiceParam(0, SynthBlock.Shape), 2f), // saw
+            (SynthBlock.VoiceParam(0, SynthBlock.Track), SynthBlock.TrackOff),
+            (SynthBlock.VoiceParam(0, SynthBlock.Frequency), 220f),
+            (SynthBlock.VoiceParam(0, SynthBlock.Cutoff), 200f),
+            (SynthBlock.VoiceParam(0, SynthBlock.Resonance), 0f),
+            (SynthBlock.VoiceParam(1, SynthBlock.VoiceLevel), Decibels.SilenceDb),
+            (SynthBlock.VoiceParam(2, SynthBlock.VoiceLevel), Decibels.SilenceDb),
+            (SynthBlock.EnvAmount, 100f)
+        );
+        using var silent = Drone();
+        using var played = Drone();
+
+        var resting = BlockRender.Mono(silent, new float[48_000], 64)[12_000..];
+        var opened = BlockRender.Mono(played, Signals.Sine(110, Rate, 48_000, 0.5f), 64)[12_000..];
+
+        // The eighth harmonic, three octaves over the 200 Hz cutoff, comes up once the playing envelope opens it.
+        Assert.True(Level(resting, 220) > 0.1, "the drone sounds in silence");
+        Assert.True(
+            Level(opened, 1_760) > 10 * Level(resting, 1_760),
+            $"opened {Level(opened, 1_760):0.0000}, resting {Level(resting, 1_760):0.0000}"
+        );
+    }
+
+    [Fact]
     public void Mix_blends_the_dry_signal_back_in() {
         using var synth = Create((SynthBlock.Mix, 0f));
         var input = PitchTrackerTests.HarmonicTone(147, 9_600);

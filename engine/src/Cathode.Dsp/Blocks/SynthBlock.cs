@@ -14,7 +14,8 @@ namespace Cathode.Dsp.Blocks;
 ///     <para>
 ///         Each voice's Track mode sets what drives it. Pitch + Envelope: the tracked note (plus the shift) and the
 ///         gated input envelope. Envelope: the voice's own Frequency (plus the shift), still played by the envelope.
-///         Off: a drone at its Frequency at a fixed −6 dB, independent of the input.
+///         Off: a drone at its Frequency at a fixed −6 dB, independent of the input; only its filter follows the
+///         playing envelope.
 ///     </para>
 ///     <para>
 ///         The tracked VCA's gate opens only while the tracker has recently heard a clear pitch and the input is above
@@ -289,7 +290,10 @@ public sealed class SynthBlock() : DspBlock(Info) {
                     _ => DroneAmplitude
                 };
                 if (refresh) {
-                    var opened = cutoffs[v] * Math.Pow(2, envAmount * Math.Min(1, 2 * vca));
+                    // A drone's VCA is fixed, so its filter follows the playing envelope instead: it opens as you play
+                    // and rests at Cutoff in silence.
+                    var played = tracks[v] == TrackOff ? envelopeAmplitude : vca;
+                    var opened = cutoffs[v] * Math.Pow(2, envAmount * Math.Min(1, 2 * played));
                     var type = filterTypes[v] switch {
                         0 => BiquadType.LowPass,
                         1 => BiquadType.BandPass,
