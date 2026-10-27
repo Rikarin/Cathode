@@ -103,7 +103,7 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
 | Soldano SLO-100 | ✅ Done | SLO-100: OD channel; Switch 1 the normal channel (Crunch, Bright) | GPL: Soldano crunch and high (model not stated); T3K: SLO-100 pack | Normal channel clean and crunch captures; OD gain sweep | 4x12 closed, Vintage 30 / G12T-75 |
-| Mesa/Boogie Mark IIC+ | ✅ Done | Mark IIC+, lead | GPL: IIC+ Drive-knob model, IIC+ Drive 8; T3K: IIC+ pack | EQ in and out, Lead Drive sweep | 1x12 / 4x12 closed, EVM12L / Vintage 30 |
+| Mesa/Boogie Mark IIC+ | ✅ Done | Mark IIC+, lead (Switch 1 Treble Shift, Switch 2 Deep, Switch 3 Bass Shift; Bright is Volume 1's and the Lead Master's pull together) | GPL: IIC+ Drive-knob model, IIC+ Drive 8; T3K: IIC+ pack | EQ in and out, Lead Drive sweep | 1x12 / 4x12 closed, EVM12L / Vintage 30 |
 | Peavey 5150 / 6505 | ✅ Done (lead); rhythm ⏸ | 5150, lead | GPL: 5150 block letter, 6505+ red (two sources) | Rhythm channel: its network is on the factory "Initial Preamp Stage" page, but the relay states (K1, K2, K4) per channel and crunch setting are on a page the excerpts lack; a full factory set or a trace of the switching logic | 4x12 closed, Sheffield / Vintage 30 |
 | EVH 5150III | ✅ Done | 5150III, red | T3K: 5150III OB1 v2 | Blue and red channels | 4x12 closed, G12EVH / Vintage 30 |
 | Mesa/Boogie Dual Rectifier | ✅ Done (factory two-channel drawing, 1993, red channel; Modern takes the feedback out) | Dual Rectifier, red | GPL: Mini Rectifier (not the same amp) | Dual/Triple Rec, modern and vintage modes, tube vs SS rectifier | 4x12 closed, Vintage 30 |

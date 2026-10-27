@@ -138,7 +138,8 @@ Rectifiers, the *Modern* switch takes the feedback out as on the real amp.`,
     bright: `On the models that have it, the bright switch: a small cap across the volume or gain pot that lets treble
 bypass the pot. The boost is biggest with the pot turned down and fades as you turn it up. Some models give it their
 own name and meaning: *Brilliance* (AC15), *Brilliant* (Prometheus Clean), *Thick* (Lone Star), *Raw* (Rectifiers),
-*Bright Input* (SVT, Portaflex), *Sat* (BE-100), *OD2* (Quick Rod). The value of the cap is on the Advanced page as
+*Bright Input* (SVT, Portaflex), *Sat* (BE-100), *OD2* (Quick Rod). On the Mark IIC+ it pulls both brights, Volume 1's
+and the Lead Master's. The value of the cap is on the Advanced page as
 *Bright Cap*.`,
 
     level: `The block's output level in dB, after everything else. A clean digital volume: it does not change the amp's
@@ -147,7 +148,7 @@ drive or tone. Use it to balance this amp against other presets or the other amp
 
     switch1: `A model's own switch, shown only on the models that have one and named after it: a channel select
 (*Normal Ch*, *Vibrato Ch*, *Clean Ch*, *Channel 2*), an input select (*Low Input*, *Normal Input*, *Mic Input*), the
-Plexi-style *Jumper* that links both channels, or a voicing switch (*Fat*, *Modern*, *Clarity*, *Contour*, *Shift*).
+Plexi-style *Jumper* that links both channels, or a voicing switch (*Fat*, *Modern*, *Clarity*, *Contour*, *Treble Shift*).
 Each switches the real components on the model's schematic. Some worth knowing:
 
 - **Dual and Triple Rectifiers, *Modern*:** the Modern voicing, which also takes the global feedback out, as on the
@@ -165,7 +166,7 @@ the Mark V, *C45* on the BE-100, *Rhythm Clip* on the Silver Jubilee, *Ultra Lo*
 same parts the real switch does.`,
 
     switch3: `A model's third switch, where it has one: *Spongy* on the Rectifiers (a lower supply voltage, modelled as
-90 % mains, for a softer, saggier feel), *Lead Bright* on the Mark IIC+, *Bite Down* on the Prometheus, *Mid Boost*
+90 % mains, for a softer, saggier feel), *Bass Shift* on the Mark IIC+, *Bite Down* on the Prometheus, *Mid Boost*
 on the Mark IV, *Bright* on the Mark V, *Bass Cut* on the SVT, *Voice* on the BE-100, *Low Power* on the Silver
 Jubilee, *Tone Shift* on the DSL100, *3rd Gear* on the Quick Rod.`,
 
