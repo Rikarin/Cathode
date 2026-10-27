@@ -235,6 +235,30 @@ public class MegatapBlockTests {
         Assert.Equal(1f, output[48_000], 1e-6f);
     }
 
+    [Theory]
+    [InlineData(2)] // last tap at 1.24 x Time
+    [InlineData(3)]
+    [InlineData(128)]
+    public void Time_randomize_at_full_time_and_pre_delay_keeps_every_tap_inside_the_line(int taps) {
+        using var megatap = Create(
+            (MegatapBlock.Time, MegatapBlock.MaxTimeMs),
+            (MegatapBlock.PreDelay, MegatapBlock.MaxPreDelayMs),
+            (MegatapBlock.Taps, taps),
+            (MegatapBlock.TimeRandom, 100f),
+            (MegatapBlock.LevelShape, MegatapBlock.Flat),
+            (MegatapBlock.PanShape, MegatapBlock.Center),
+            (MegatapBlock.Mix, 100f)
+        );
+        var positions = Enumerable.Range(0, taps)
+            .Select(k => 48_000f + 192_000f * Math.Max(0f, (k + 1f) / taps + (MegatapBlock.Jitter(k, 1) - 0.5f) / taps))
+            .ToArray();
+
+        var output = BlockRender.Mono(megatap, Signals.Impulse((int)positions.Max() + 64), 64);
+
+        // A read past the line wraps onto the newest samples: an un-delayed copy of the impulse at the start.
+        AssertHeardOnlyAt(output, positions, 1f / MathF.Sqrt(taps));
+    }
+
     [Fact]
     public void Feedback_at_unity_is_limited_and_stays_bounded() {
         // A steady input at 100 % feedback used to add its level on every pass: 0.5 x 100 passes in 2 s.
