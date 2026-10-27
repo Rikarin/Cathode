@@ -4,7 +4,7 @@ Cathode follows [semantic versioning](https://semver.org). From 1.0 on, a preset
 in every later one: the preset format carries a schema version (`schemaVersion`, now 2), and a release that changes
 the format upgrades older presets as it reads them.
 
-## Unreleased
+## 1.0.0-rc.4 — 2026-10-27
 
 ### Added
 
