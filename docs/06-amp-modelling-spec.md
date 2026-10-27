@@ -566,7 +566,7 @@ transformers and the feedback taps):
   whose sections share one output; the two masters are the same circuit, so one Master knob turns the playing one;
   Presence is V2a's cathode network (470 Ω + 0.22 µF and the 10k pot across 2k2), a preamp control on Control 1; the
   return op-amp's input resistor (not drawn) is taken as 100k. Power amps from the scans 4100-60-02 issue 11 (4 × EL34,
-  47 nF out) and CDD112 issue 10 for the 50 W models (2 × EL34, 2k2 screens, 22 nF out): 82k ‖ 100 pF / 100k, 1k bias,
+  1k screens, 47 nF out; the JMP-1 borrows it) and CDD112 issue 10 for the 50 W models (2 × EL34, 2k2 screens, 22 nF out): 82k ‖ 100 pF / 100k, 1k bias,
   15k tail, 150k leaks, 1k5 stoppers, 100k of feedback into 4k7 (the Dual Reverbs' presence cap is "not fitted").
 - **Valvestate 8080** (`Valvestate8080.cs`), both channels, from PC0689 issue 5 and PC0689P issue 9 (vector,
   schematicheaven): boost IC1a ×22, IC3b (Gain as a feedback rheostat, OD1/OD2 on Switch 2) onto two LEDs, the ECC83 as

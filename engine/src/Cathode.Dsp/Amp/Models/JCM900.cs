@@ -30,7 +30,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Diagram" CDD112 issue 10 for models 2500, 2501, 2502, 4500, 4501 and 4502 (el34world
 ///         Marshall_jcm900_dualrev_50w_4500.pdf, sheet 3), both scans: a long-tail pair with 82k ‖ 100 pF and 100k
 ///         plates, 100 pF between them, 1k bias and 15k tail, 1M grid resistors, 150k grid leaks and 1k5 stoppers; 47 nF
-///         out on the 100 W, 22 nF on the 50 W; the 50 W's screens 2k2 5 W; feedback "100k – DRs" with 100 pF across it
+///         out on the 100 W, 22 nF on the 50 W; the 50 W's screens 2k2 5 W (the 100 W taken with 1k 5 W, Marshall's
+///         100 W EL34 value: 2203, 1959SLP, DSL, JVM); feedback "100k – DRs" with 100 pF across it
 ///         into 4k7 at the tail, the presence cap there "not fitted" on the Dual Reverbs (their Presence is V2a's
 ///         cathode network, a preamp control).
 ///     </para>
@@ -103,6 +104,7 @@ public static class JCM900 {
             TubesPerSide = 2,
             RatedPower = 100,
             CouplingCap = 47e-9,
+            ScreenResistor = 1e3, // the 50 W's 2k2 is the 50 W's alone
             Transformer = new(1.7e3),
             PowerSupply = new(25, 100e-6, 100, 50e-6, 22e3, 50e-6)
         },
