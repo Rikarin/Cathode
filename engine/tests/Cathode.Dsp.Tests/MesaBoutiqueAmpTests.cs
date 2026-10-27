@@ -188,6 +188,44 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
+    ///     The Mark lead cascade, built once in <c>MesaParts</c>, carries its documented parts in all four models: the
+    ///     drive stage's 82k plate, 1.5k ‖ 2.2 µF and 120 pF grid-to-cathode cap; the lead stage's 270k feed and plate,
+    ///     68k ‖ 1 nF, 3.3k and 0.22 µF.
+    /// </summary>
+    [Theory]
+    [InlineData("Mark IIC+", "V3A", "V3B")]
+    [InlineData("Mark IV", "V2A", "V2B")]
+    [InlineData("Mark V", "V5A", "V4B")]
+    [InlineData("TriAxis Lead 2", "V4A", "V4B")]
+    public void Mark_lead_cascade_has_the_documented_parts(string type, string drive, string lead) {
+        var design = AmpDesign.All.Single(a => a.Name == type);
+
+        IReadOnlyList<StageElement> Elements(string stage) =>
+            ((NetworkStageDesign)design.Preamp.Single(s => s.Name == stage)).Netlist.Elements;
+
+        void Has(IReadOnlyList<StageElement> elements, ElementKind kind, double value, int count = 1) =>
+            Assert.True(
+                elements.Count(e => e.Kind == kind && e.Value == value) >= count,
+                $"{type}: {kind} {value} missing"
+            );
+
+        var driveParts = Elements(drive);
+        Has(driveParts, ElementKind.Resistor, 82e3);
+        Has(driveParts, ElementKind.Resistor, 1.5e3);
+        Assert.Contains(driveParts, static e => e.Cathode && e.Value == 1.5e3);
+        Has(driveParts, ElementKind.Capacitor, 2.2e-6);
+        Has(driveParts, ElementKind.Capacitor, 120e-12);
+        Assert.Single(driveParts, static e => e.Kind == ElementKind.Triode);
+
+        var leadParts = Elements(lead);
+        Has(leadParts, ElementKind.Resistor, 270e3, 2);
+        Has(leadParts, ElementKind.Resistor, 68e3);
+        Has(leadParts, ElementKind.Capacitor, 1e-9);
+        Assert.Contains(leadParts, static e => e.Cathode && e.Value == 3.3e3);
+        Has(leadParts, ElementKind.Capacitor, 0.22e-6);
+    }
+
+    /// <summary>
     ///     The TriAxis Dynamic Voice alone: at 0 (the LDR dark) flat, as Mesa's manual says, within 0.5 dB at its
     ///     89 Hz and 720 Hz branches; at the default 5 a mild "V"; at 10 the full "V" (the lows up, 720 Hz cut).
     /// </summary>

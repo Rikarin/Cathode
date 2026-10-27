@@ -106,13 +106,23 @@ public static class MarkV {
         net.Capacitor(cathode, StageNetlist.Ground, 0.47e-6);
         net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
 
-        net.Capacitor(plate, trebleTop, 1000e-12, CapacitorRole.Stack);
-        net.Resistor(plate, slope, 100e3);
-        var treble = net.Pot(trebleTop, trebleBottom, new(200e3, PotTaper.Audio), PotRole.Treble);
-        net.Capacitor(slope, trebleBottom, 0.1e-6, CapacitorRole.Stack);
-        net.Rheostat(trebleBottom, middle, new(250e3, PotTaper.Audio), PotRole.Bass);
-        net.Capacitor(slope, middle, 47e-9, CapacitorRole.Stack);
-        net.Rheostat(middle, StageNetlist.Ground, new(10e3, PotTaper.Audio), PotRole.Middle);
+        var treble = MesaParts.Stack(
+            net,
+            plate,
+            trebleTop,
+            trebleBottom,
+            slope,
+            middle,
+            1000e-12,
+            0,
+            null,
+            100e3,
+            0.1e-6,
+            47e-9,
+            new(200e3, PotTaper.Audio),
+            new(250e3, PotTaper.Audio),
+            new(10e3, PotTaper.Audio)
+        );
 
         net.Resistor(treble, divider, 330e3);
         net.Resistor(divider, output, 56e3);
@@ -123,45 +133,38 @@ public static class MarkV {
     }
 
     /// <summary>
-    ///     The gain into V5A: 47 nF and 100k to ground, 680k into the 1M audio gain, its wiper on the grid with 475k to
-    ///     ground and 120 pF to the cathode; 82k plate, 1.5k ‖ 2.2 µF.
+    ///     The gain into V5A (<see cref="MesaParts.LeadDrive" />): 680k (no coupling cap) into the 1M audio gain, its
+    ///     wiper on the grid with 475k to ground and 120 pF to the cathode.
     /// </summary>
     static StageNetlist GainStage() {
         var net = new StageNetlist();
-        var (coupled, top, supply, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Capacitor(net.Input, coupled, 47e-9);
-        net.Resistor(coupled, StageNetlist.Ground, 100e3);
-        net.Resistor(coupled, top, 680e3);
-        var grid = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
-        net.Resistor(grid, StageNetlist.Ground, 475e3);
-        net.Capacitor(grid, cathode, 120e-12);
-        net.Supply(supply, 410);
-        net.Resistor(supply, plate, 82e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 2.2e-6);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Output = plate;
+        net.Output = MesaParts.LeadDrive(
+            net,
+            net.Input,
+            680e3,
+            new(1e6, PotTaper.Audio),
+            PotRole.Gain,
+            410,
+            gridLeak: 475e3
+        );
         return net;
     }
 
     /// <summary>
-    ///     V4B: 20 nF, 270k into 68k ‖ 1 nF at the grid, 120 pF to the cathode; 270k plate; 3.3k with 0.22 µF while the
-    ///     Bright switch is on.
+    ///     V4B (<see cref="MesaParts.LeadStage" />): 20 nF, 270k into 68k ‖ 1 nF at the grid, 120 pF to the cathode;
+    ///     270k plate (no cap across it); 3.3k with 0.22 µF while the Bright switch is on.
     /// </summary>
     static StageNetlist LeadStage() {
         var net = new StageNetlist();
-        var (coupled, grid, supply, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Capacitor(net.Input, coupled, 20e-9);
-        net.Resistor(coupled, grid, 270e3);
-        net.Resistor(grid, StageNetlist.Ground, 68e3);
-        net.Capacitor(grid, StageNetlist.Ground, 1e-9);
-        net.Capacitor(grid, cathode, 120e-12);
-        net.Supply(supply, 410);
-        net.Resistor(supply, plate, 270e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 3.3e3);
-        net.SwitchedCapacitor(cathode, StageNetlist.Ground, 0.22e-6, SwitchRole.Switch3);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Output = plate;
+        net.Output = MesaParts.LeadStage(
+            net,
+            net.Input,
+            410,
+            SwitchRole.Switch3,
+            0,
+            20e-9,
+            gridCathode: 120e-12
+        );
         return net;
     }
 
@@ -173,11 +176,7 @@ public static class MarkV {
         var net = new StageNetlist();
         var (coupled, grid, supply, plate, cathode, extreme, notIv) =
             (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Capacitor(net.Input, coupled, 47e-9);
-        net.Resistor(coupled, grid, 220e3);
-        net.Capacitor(coupled, grid, 250e-12);
-        net.Resistor(grid, StageNetlist.Ground, 680e3 * 100e3 / (680e3 + 100e3));
-        net.Capacitor(grid, StageNetlist.Ground, 547e-12);
+        MesaParts.LeadDivider(net, net.Input, coupled, grid, 680e3 * 100e3 / (680e3 + 100e3), 547e-12);
         net.Supply(supply, 410);
         net.Resistor(supply, plate, 100e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);

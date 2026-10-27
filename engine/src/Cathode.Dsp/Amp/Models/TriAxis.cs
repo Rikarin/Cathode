@@ -280,41 +280,28 @@ public static class TriAxis {
     }
 
     /// <summary>
-    ///     Lead 2's V4A: 47 nF from V2B with 100k to ground (LDRK1), 1M into the Lead 2 drive (1M audio rheostat to
-    ///     ground, Control 1) beside 470k, 120 pF from grid to cathode; 82k plate, 1.5k ‖ 2.2 µF.
+    ///     Lead 2's V4A (<see cref="MesaParts.LeadDrive" />): 47 nF from V2B with 100k to ground (LDRK1), 1M into the
+    ///     Lead 2 drive (1M audio rheostat to ground, Control 1) beside 470k, 120 pF from grid to cathode; 82k plate,
+    ///     1.5k ‖ 2.2 µF.
     /// </summary>
     static StageNetlist LeadTwoDrive() {
         var net = new StageNetlist();
-        var (coupled, grid, rail, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Capacitor(net.Input, coupled, 47e-9);
-        net.Resistor(coupled, StageNetlist.Ground, 100e3);
-        net.Resistor(coupled, grid, 1e6);
-        net.Rheostat(grid, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Control1);
-        net.Resistor(grid, StageNetlist.Ground, 470e3);
-        net.Capacitor(grid, cathode, 120e-12);
-        net.Supply(rail, BackSupply);
-        net.Resistor(rail, plate, 82e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 2.2e-6);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Output = plate;
+        net.Output = MesaParts.LeadDrive(
+            net,
+            net.Input,
+            1e6,
+            new(1e6, PotTaper.Audio),
+            PotRole.Control1,
+            BackSupply,
+            shunt: true
+        );
         return net;
     }
 
-    /// <summary>V4B: 22 nF, 270k into 68k ‖ 1 nF; 270k plate, 3.3k ‖ 0.22 µF.</summary>
+    /// <summary>V4B (<see cref="MesaParts.LeadStage" />): 22 nF, 270k into 68k ‖ 1 nF; 270k plate, 3.3k ‖ 0.22 µF.</summary>
     static StageNetlist LeadTwoStage() {
         var net = new StageNetlist();
-        var (coupled, grid, rail, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Capacitor(net.Input, coupled, 22e-9);
-        net.Resistor(coupled, grid, 270e3);
-        net.Resistor(grid, StageNetlist.Ground, 68e3);
-        net.Capacitor(grid, StageNetlist.Ground, 1e-9);
-        net.Supply(rail, BackSupply);
-        net.Resistor(rail, plate, 270e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 3.3e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 0.22e-6);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Output = plate;
+        net.Output = MesaParts.LeadStage(net, net.Input, BackSupply, null, 0);
         return net;
     }
 
@@ -330,17 +317,14 @@ public static class TriAxis {
         var net = new StageNetlist();
         var (coupled, grid, rail, plate, cathode, bass, mid) =
             (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Capacitor(net.Input, coupled, 47e-9);
         if (mode == Mode.LeadTwo) {
             var load = net.Node();
-            net.Resistor(coupled, grid, 220e3);
-            net.Capacitor(coupled, grid, 250e-12);
-            net.Resistor(grid, StageNetlist.Ground, 100e3);
-            net.Capacitor(grid, StageNetlist.Ground, 500e-12);
+            MesaParts.LeadDivider(net, net.Input, coupled, grid, 100e3, 500e-12);
             net.Resistor(grid, load, 3.3e6);
             net.Capacitor(grid, load, 20e-12);
             net.Resistor(load, StageNetlist.Ground, 100e3);
         } else {
+            net.Capacitor(net.Input, coupled, 47e-9);
             if (mode == Mode.Rhythm) {
                 net.Resistor(coupled, StageNetlist.Ground, 100e3);
             }
