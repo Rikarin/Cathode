@@ -61,6 +61,8 @@ export default defineConfig(
       '@typescript-eslint/no-floating-promises': ['error', { ignoreVoid: true }],
       '@typescript-eslint/no-misused-promises': 'error',
       '@typescript-eslint/no-non-null-assertion': 'error',
+      // The stylistic set asks for `x!` over `x as T` when T only drops null; `!` is forbidden just above.
+      '@typescript-eslint/non-nullable-type-assertion-style': 'off',
       // `() => this.close()` (Prettier's arrow style) is how handlers and callbacks are written throughout; a void
       // expression in any other position (a ternary, a `return` in a block, an operand) is still an error.
       '@typescript-eslint/no-confusing-void-expression': ['error', { ignoreArrowShorthand: true }],

@@ -2,7 +2,7 @@ import { signal } from '@angular/core';
 import type { Meta, StoryObj } from '@storybook/angular-vite';
 import { type ConeMic, type ConeMove, CthSpeakerCone } from './speaker-cone';
 
-const Mics: ConeMic[] = [
+const Mics: [ConeMic, ConeMic, ConeMic, ConeMic] = [
   { slot: 0, name: 'SM57', position: 25, distance: 1, angle: 0, muted: false },
   { slot: 1, name: 'R-121', position: 55, distance: 4, angle: 0, muted: false },
   { slot: 2, name: 'MD 421', position: 35, distance: 2, angle: 30, muted: true },
@@ -18,7 +18,7 @@ const meta: Meta<CthSpeakerCone> = {
   title: 'Audio UI/Speaker Cone',
   component: CthSpeakerCone,
   render: args => {
-    const mics = signal(args.mics ?? Mics);
+    const mics = signal(args.mics); // meta.args gives every story the four mics unless it sets its own
     const selected = signal<number | null>(args.selected ?? 0);
     return {
       props: {

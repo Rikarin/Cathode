@@ -10,10 +10,10 @@ describe('CthTuner', () => {
       reading: { set(value: TunerReading | null): void };
       announce(time: number): void;
     };
-    const region = fixture.nativeElement.querySelector('[aria-live]') as HTMLElement;
+    const region = (fixture.nativeElement as HTMLElement).querySelector('[aria-live]') as HTMLElement;
     const said = () => {
       fixture.detectChanges();
-      return region.textContent?.trim();
+      return region.textContent.trim();
     };
     return { fixture, tuner, region, said };
   }
@@ -22,7 +22,7 @@ describe('CthTuner', () => {
 
   it('has one live region, and the fast-changing reading is not in it', () => {
     const { fixture, region } = render();
-    expect(fixture.nativeElement.querySelectorAll('[aria-live]')).toHaveLength(1);
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('[aria-live]')).toHaveLength(1);
     expect(region.classList).toContain('sr-only');
   });
 

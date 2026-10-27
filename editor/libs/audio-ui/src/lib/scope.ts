@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, input, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, type ElementRef, input, viewChild } from '@angular/core';
 import { onAnimationFrame, themeColor } from './animation';
 
 /** A window of samples at a known rate, oldest first (ScopeFrame in Cathode.Contracts). */
@@ -77,7 +77,7 @@ export class CthScope {
     context.lineWidth = 1.5;
     context.beginPath();
     for (let i = 0; i < shown; i++) {
-      const value = Math.max(-1, Math.min(1, samples[start + i]));
+      const value = Math.max(-1, Math.min(1, samples[start + i] ?? 0));
       const x = i * step;
       const y = height / 2 - (value * height) / 2;
       if (i === 0) {
@@ -94,7 +94,7 @@ export class CthScope {
 /** Index of the first rising zero crossing at or before `latest`, or `latest` (free-running) if there is none. */
 export function trigger(samples: ArrayLike<number>, latest: number): number {
   for (let i = 1; i <= latest; i++) {
-    if (samples[i - 1] < 0 && samples[i] >= 0) {
+    if ((samples[i - 1] ?? 0) < 0 && (samples[i] ?? 0) >= 0) {
       return i;
     }
   }

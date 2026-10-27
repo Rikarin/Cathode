@@ -2,7 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
-  ElementRef,
+  type ElementRef,
   booleanAttribute,
   computed,
   inject,
@@ -304,8 +304,9 @@ export class CthKnob {
       PageUp: 0.1,
       PageDown: -0.1
     };
-    if (event.key in steps) {
-      this.setNormal(this.normal() + steps[event.key]);
+    const step = steps[event.key];
+    if (step !== undefined) {
+      this.setNormal(this.normal() + step);
     } else if (event.key === 'Home' || event.key === 'End') {
       this.setNormal(event.key === 'Home' ? 0 : 1);
     } else if (event.key === 'Enter') {

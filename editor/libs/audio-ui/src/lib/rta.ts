@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, input, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, type ElementRef, input, viewChild } from '@angular/core';
 import { onAnimationFrame, themeColor } from './animation';
 
 /** Band levels in dB at their centre frequencies (RtaFrame in Cathode.Contracts). */
@@ -79,17 +79,25 @@ export class CthRta {
 
     const barWidth = Math.max(1, width / count - 1);
     context.fillStyle = themeColor(canvas, '--color-primary');
+    const peaks: { x: number; peak: number }[] = [];
     for (let i = 0; i < count; i++) {
-      const x = frequencyToX(spectrum.frequencies[i], width) - barWidth / 2;
-      const y = levelToY(spectrum.levels[i], height);
+      const frequency = spectrum.frequencies[i];
+      const level = spectrum.levels[i] ?? RtaFloorDb;
+      if (frequency === undefined) {
+        continue; // a frame with fewer frequencies than levels: those bands have no place on the axis
+      }
+
+      const x = frequencyToX(frequency, width) - barWidth / 2;
+      const y = levelToY(level, height);
       context.fillRect(x, y, barWidth, height - y);
-      this.peaks[i] = Math.max(spectrum.levels[i], this.peaks[i] - this.peakFall() * elapsed);
+      const peak = Math.max(level, (this.peaks[i] ?? RtaFloorDb) - this.peakFall() * elapsed);
+      this.peaks[i] = peak;
+      peaks.push({ x, peak });
     }
 
     context.fillStyle = themeColor(canvas, '--color-warning');
-    for (let i = 0; i < count; i++) {
-      const x = frequencyToX(spectrum.frequencies[i], width) - barWidth / 2;
-      context.fillRect(x, levelToY(this.peaks[i], height) - 1, barWidth, 2);
+    for (const { x, peak } of peaks) {
+      context.fillRect(x, levelToY(peak, height) - 1, barWidth, 2);
     }
   }
 }

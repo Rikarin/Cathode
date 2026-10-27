@@ -303,6 +303,7 @@ export class CthSpeakerCone {
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- jsdom (the unit tests) has no pointer capture
     (event.currentTarget as Element).setPointerCapture?.(event.pointerId);
     this.dragging = slot;
     this.selectedChange.emit(slot);
@@ -322,6 +323,7 @@ export class CthSpeakerCone {
 
   protected release(event: PointerEvent): void {
     if (this.dragging !== null) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- jsdom (the unit tests) has no pointer capture
       (event.target as Element).releasePointerCapture?.(event.pointerId);
       this.dragging = null;
     }

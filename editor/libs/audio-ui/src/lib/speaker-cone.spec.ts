@@ -61,12 +61,12 @@ describe('CthSpeakerCone', () => {
   it('draws each mic as a labelled slider that moves with the keys', () => {
     const fixture = TestBed.createComponent(Host);
     fixture.detectChanges();
-    const handles = [...fixture.nativeElement.querySelectorAll('[role=slider]')] as SVGGElement[];
+    const handles = [...(fixture.nativeElement as HTMLElement).querySelectorAll('[role=slider]')] as SVGGElement[];
 
     expect(handles.length).toBe(2);
-    const first = handles.find(h => h.getAttribute('aria-label') === 'Mic 1 placement')!;
-    expect(first.getAttribute('aria-valuetext')).toContain('SM57');
-    first.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+    const first = handles.find(h => h.getAttribute('aria-label') === 'Mic 1 placement');
+    expect(first?.getAttribute('aria-valuetext')).toContain('SM57');
+    first?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
     expect(fixture.componentInstance.moves).toEqual([{ slot: 0, position: 26, distance: 1 }]);
   });
 });
