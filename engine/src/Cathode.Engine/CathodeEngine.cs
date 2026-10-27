@@ -24,7 +24,9 @@ namespace Cathode.Engine;
 ///         Swaps are gapless with <b>spillover</b> (docs/02-architecture.md §5.5): the new graph fades in over
 ///         <see cref="SwapFadeMs" /> while the old one keeps running on a fading input, so its delay and reverb tails ring
 ///         out underneath. The old graph retires once its output has stayed below -90 dB for 4.1 s (longer than any delay
-///         repeat), or after <see cref="TailCapSeconds" />.
+///         repeat), or after <see cref="TailCapSeconds" />. A change that arrives while an older graph is still spilling
+///         fades that one out over <see cref="SwapFadeMs" /> instead of cutting its tail dead, so for one fade three
+///         graphs run.
 ///     </para>
 ///     <para>
 ///         Around the graph sits the rig (Cathode.Engine.Rig), which outlives preset changes: per sub-block the
@@ -51,10 +53,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
 
     readonly SpscRing<EngineCommand> commands;
     readonly CompiledGraph?[] retiredGraphs = new CompiledGraph?[RetiredSlots];
-    readonly NativeBuffer tailInLeft;
-    readonly NativeBuffer tailInRight;
-    readonly NativeBuffer tailOutLeft;
-    readonly NativeBuffer tailOutRight;
+    readonly Spillover[] spills;
     readonly float swapStep;
     readonly long tailCap;
     readonly long tailQuiet;
@@ -83,7 +82,6 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     readonly float[] outputPeak = new float[Outputs];
     readonly float[] publishedPeak = new float[Outputs];
     readonly GraphOutputs graphOutputs;
-    readonly GraphOutputs tailOutputs;
     readonly NativeBuffer gainedLeft;
     readonly NativeBuffer gainedRight;
     float inputGain = 1f;
@@ -96,13 +94,9 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     float levelGain = 1f;
     float muteGain = 1f; // the mute's fade, 0 when muted
     Looper? looper;
-    CompiledGraph? tail;
-    float tailInput; // gain into the spilling graph: 1 at the swap, falling to 0
+    Spillover tail; // the graph replaced by the latest swap, ringing out
+    Spillover evicted; // the graph that was spilling when another swap came, fading out over one swap fade
     float swapGain = 1f; // gain on the new graph: 0 at the swap, rising to 1
-    float tailOutput = 1f; // gain on the spilling graph's output: 1, or fading to 0 with spillover off
-    bool tailCut; // spillover off: the old graph fades out with the swap instead of ringing out
-    long tailAge;
-    long tailQuietFor;
     readonly Lock postLock = new();
     CompiledGraph? pending;
     CompiledGraph? current;
@@ -196,15 +190,15 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     public LoudnessMeter Loudness => loudness;
 
     /// <summary>True while a replaced graph is still ringing out under the current one.</summary>
-    public bool IsSpilling => Volatile.Read(ref tail) is not null;
+    public bool IsSpilling =>
+        Volatile.Read(ref spills[0].Graph) is not null || Volatile.Read(ref spills[1].Graph) is not null;
 
     public CathodeEngine(ProcessSpec spec, int commandCapacity = 1024) {
         Spec = spec;
         commands = new(commandCapacity);
-        tailInLeft = new(spec.MaxBlockSize);
-        tailInRight = new(spec.MaxBlockSize);
-        tailOutLeft = new(spec.MaxBlockSize);
-        tailOutRight = new(spec.MaxBlockSize);
+        spills = [new(spec.MaxBlockSize), new(spec.MaxBlockSize)];
+        tail = spills[0];
+        evicted = spills[1];
         swapStep = (float)(1.0 / Math.Max(1.0, SwapFadeMs * 0.001 * spec.SampleRate));
         tailCap = (long)(TailCapSeconds * spec.SampleRate);
         tailQuiet = (long)(TailQuietMs * 0.001 * spec.SampleRate);
@@ -219,7 +213,6 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
 
         loudness = new(spec.SampleRate);
         graphOutputs = new(spec.MaxBlockSize);
-        tailOutputs = new(spec.MaxBlockSize);
         gainedLeft = new(spec.MaxBlockSize);
         gainedRight = new(spec.MaxBlockSize);
     }
@@ -263,22 +256,20 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
             graph.Dispose();
         }
 
-        Interlocked.Exchange(ref tail, null)?.Dispose();
+        foreach (var spill in spills) {
+            Interlocked.Exchange(ref spill.Graph, null)?.Dispose();
+            spill.Dispose();
+        }
         looper?.Dispose();
         foreach (var eq in outputEqs) {
             eq.Dispose();
         }
 
         graphOutputs.Dispose();
-        tailOutputs.Dispose();
         gainedLeft.Dispose();
         gainedRight.Dispose();
         HardwareLoop.Dispose();
         Inputs.Dispose();
-        tailInLeft.Dispose();
-        tailInRight.Dispose();
-        tailOutLeft.Dispose();
-        tailOutRight.Dispose();
     }
 
     /// <summary>Control side, any thread: queue a discrete event. Returns false when the queue is full.</summary>
@@ -324,14 +315,16 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
 
             if (previous is not null) {
                 previous.Inputs?.FadeOut(); // like the grid input below, the hardware inputs fade out of the old graph
-                // The old graph spills over under the new one; a graph still spilling from an earlier swap retires now.
-                // With spillover off it only fades out over the swap, a clean cut without tails.
-                Retire(Interlocked.Exchange(ref tail, previous));
-                tailInput = 1f;
-                tailOutput = 1f;
-                tailCut = Rig.GetTarget(spilloverIndex) < 0.5f;
-                tailAge = 0;
-                tailQuietFor = 0;
+                // The old graph spills over under the new one. A graph still spilling from an earlier swap fades out over
+                // one swap fade rather than stopping dead; only a third change inside that fade retires it at once.
+                // With spillover off the old graph only fades out over the swap, a clean cut without tails.
+                if (tail.Graph is not null) {
+                    Retire(Interlocked.Exchange(ref evicted.Graph, null));
+                    (tail, evicted) = (evicted, tail);
+                    evicted.Cut = true;
+                }
+
+                tail.Start(previous, Rig.GetTarget(spilloverIndex) < 0.5f);
                 swapGain = 0f;
             }
         }
@@ -398,8 +391,12 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
                     }
                 }
 
-                if (tail is not null) {
-                    Spill(slice, context);
+                if (evicted.Graph is not null) {
+                    Spill(evicted, slice, context);
+                }
+
+                if (tail.Graph is not null) {
+                    Spill(tail, slice, context);
                 }
 
                 var level = levelGain;
@@ -526,12 +523,16 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     ///     feeds, and Output 2 when it copies Output 1 (unless the grid has an Output 2 of its own).
     /// </summary>
     void FindActiveOutputs(CompiledGraph graph, OutputBus? bus) {
-        var spilling = tail;
+        var spilling = tail.Graph;
+        var fading = evicted.Graph;
         copyToSecond = Rig.GetTarget(copyIndex) >= 0.5f && !graph.HasOutput(1);
         for (var k = 1; k < Outputs; k++) {
             active[k] = bus is not null
                 && bus.IsMapped(k)
-                && (graph.HasOutput(k) || spilling?.HasOutput(k) == true || (k == 1 && copyToSecond));
+                && (graph.HasOutput(k)
+                    || spilling?.HasOutput(k) == true
+                    || fading?.HasOutput(k) == true
+                    || (k == 1 && copyToSecond));
         }
     }
 
@@ -571,30 +572,32 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         Array.Clear(outputPeak);
     }
 
-    /// <summary>Runs the replaced graph on a fading copy of the input and adds its outputs (the tails).</summary>
-    void Spill(in AudioIO io, in BlockContext context) {
+    /// <summary>Runs a replaced graph on a fading copy of the input and adds its outputs (the tails).</summary>
+    void Spill(Spillover spill, in AudioIO io, in BlockContext context) {
         var length = io.Frames;
-        var inLeft = tailInLeft.Span[..length];
-        var inRight = tailInRight.Span[..length];
-        var outLeft = tailOutLeft.Span[..length];
-        var outRight = tailOutRight.Span[..length];
-        if (tailInput > 0f) {
+        var inLeft = spill.InLeft.Span[..length];
+        var inRight = spill.InRight.Span[..length];
+        var outLeft = spill.OutLeft.Span[..length];
+        var outRight = spill.OutRight.Span[..length];
+        if (spill.Input > 0f) {
             io.InputLeft.CopyTo(inLeft);
             io.InputRight.CopyTo(inRight);
-            tailInput = Ramp(inLeft, inRight, tailInput, 0f);
+            spill.Input = Ramp(inLeft, inRight, spill.Input, 0f);
         } else {
             inLeft.Clear();
             inRight.Clear();
         }
 
-        tailOutputs.Clear(length);
-        tail!.Process(new(inLeft, inRight, outLeft, outRight), context, tailOutputs);
-        var cutFrom = tailOutput;
-        if (tailCut) {
-            tailOutput = Ramp(outLeft, outRight, tailOutput, 0f);
+        var graph = spill.Graph!;
+        var outputs = spill.Outputs;
+        outputs.Clear(length);
+        graph.Process(new(inLeft, inRight, outLeft, outRight), context, outputs);
+        var cutFrom = spill.Output;
+        if (spill.Cut) {
+            spill.Output = Ramp(outLeft, outRight, spill.Output, 0f);
             for (var k = 1; k < Outputs; k++) {
-                if (active[k] && tail.HasOutput(k)) {
-                    Ramp(tailOutputs.Left(k, length), tailOutputs.Right(k, length), cutFrom, 0f);
+                if (active[k] && graph.HasOutput(k)) {
+                    Ramp(outputs.Left(k, length), outputs.Right(k, length), cutFrom, 0f);
                 }
             }
         }
@@ -607,16 +610,16 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         }
 
         for (var k = 1; k < Outputs; k++) {
-            if (active[k] && tail.HasOutput(k)) {
-                Add(tailOutputs.Left(k, length), graphOutputs.Left(k, length));
-                Add(tailOutputs.Right(k, length), graphOutputs.Right(k, length));
+            if (active[k] && graph.HasOutput(k)) {
+                Add(outputs.Left(k, length), graphOutputs.Left(k, length));
+                Add(outputs.Right(k, length), graphOutputs.Right(k, length));
             }
         }
 
-        tailAge += length;
-        tailQuietFor = tailInput <= 0f && peak < TailSilence ? tailQuietFor + length : 0;
-        if (tailQuietFor >= tailQuiet || tailAge >= tailCap || (tailCut && tailOutput <= 0f)) {
-            Retire(Interlocked.Exchange(ref tail, null));
+        spill.Age += length;
+        spill.QuietFor = spill.Input <= 0f && peak < TailSilence ? spill.QuietFor + length : 0;
+        if (spill.QuietFor >= tailQuiet || spill.Age >= tailCap || (spill.Cut && spill.Output <= 0f)) {
+            Retire(Interlocked.Exchange(ref spill.Graph, null));
         }
     }
 
@@ -734,4 +737,38 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
 
         return to;
     }
+
+    /// <summary>A replaced graph ringing out under the current one, with its own buffers and fades.</summary>
+    sealed class Spillover(int maxBlockSize) : IDisposable {
+        public readonly NativeBuffer InLeft = new(maxBlockSize);
+        public readonly NativeBuffer InRight = new(maxBlockSize);
+        public readonly NativeBuffer OutLeft = new(maxBlockSize);
+        public readonly NativeBuffer OutRight = new(maxBlockSize);
+        public readonly GraphOutputs Outputs = new(maxBlockSize);
+        public CompiledGraph? Graph;
+        public float Input; // gain into the graph: 1 at the swap, falling to 0
+        public float Output = 1f; // gain on its output: 1, or fading to 0 when cut
+        public bool Cut; // fading out over one swap fade instead of ringing out
+        public long Age;
+        public long QuietFor;
+
+        /// <summary>Audio thread: take over <paramref name="graph" /> as it is replaced.</summary>
+        public void Start(CompiledGraph graph, bool cut) {
+            Input = 1f;
+            Output = 1f;
+            Cut = cut;
+            Age = 0;
+            QuietFor = 0;
+            Volatile.Write(ref Graph, graph);
+        }
+
+        public void Dispose() {
+            InLeft.Dispose();
+            InRight.Dispose();
+            OutLeft.Dispose();
+            OutRight.Dispose();
+            Outputs.Dispose();
+        }
+    }
+
 }

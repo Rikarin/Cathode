@@ -259,7 +259,7 @@ Other optional interfaces a block may add:
 | Scene | Batch of bypass, channel and level changes applied atomically in one audio block | Gapless; delays and reverbs spill over naturally |
 | Preset | New `CompiledGraph` is built and pre-rolled off-thread, then **RCU swap** via `Interlocked.Exchange`, then a 10–30 ms crossfade. The old graph's delay and reverb tails keep running muted at their input until they drop below −90 dB or hit a time cap (**spillover**). Retired graphs return through a ring to the control thread for disposal | Gapless, with tails |
 
-Budget for **two graphs alive at once** during a preset change.
+Budget for **two graphs alive at once** during a preset change, and three for one 20 ms fade when presets change faster than tails decay (the graph still spilling from the change before fades out instead of being cut).
 
 **As built (Phase 5).**
 - **The rig layer** (`Cathode.Engine.Rig`) wraps the compiled graph and outlives preset changes. Per sub-block it runs, in order:
