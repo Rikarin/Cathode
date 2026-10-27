@@ -38,3 +38,9 @@ export const Sizes: Story = {
 };
 
 export const Disabled: Story = { args: { disabled: true } };
+
+/**
+ * While a modifier drives the parameter, the pointer, arc and readout follow its live value (7.5 here), and a dot on
+ * the track marks the value set (3), which the modifier works from.
+ */
+export const Modulated: Story = { args: { label: 'Mix', value: 3, defaultValue: 5, modulated: 7.5 } };
