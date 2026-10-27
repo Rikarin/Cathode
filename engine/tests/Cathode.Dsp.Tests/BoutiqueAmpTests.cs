@@ -322,8 +322,7 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
                 Assert.True(levels[i] > levels[i - 1] - 0.1, $"{type}: knob {knob} not monotonic at step {i}");
             }
 
-            // The Hot Cat's master, as drawn, is a 100k rheostat behind 220k across the treble pot's wiper: about 1 dB.
-            var span = type == "Hot Cat 30" && knob == CircuitAmpBlock.Master ? 0.5 : 10;
+            var span = 10;
             Assert.True(
                 levels[^1] - levels[0] > span,
                 $"{type}: knob {knob} spans only {levels[^1] - levels[0]:0.0} dB"

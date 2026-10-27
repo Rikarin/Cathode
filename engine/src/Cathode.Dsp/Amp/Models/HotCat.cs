@@ -12,13 +12,14 @@ namespace Cathode.Dsp.Amp.Models;
 ///     and 360 pF to ground; 100k, 1.5k with 1 µF; 225 V); 10 nF into the Level pot's wiper (1M linear, its top through
 ///     470k to V3b's grid with 270k to ground; 100k, 1k unbypassed; 193 V), DC-coupled to the cathode follower V3a
 ///     (56k, 194 V) driving the AC30 top-boost network (50 pF, 1M log treble, 100k, 22 nF, 22 nF, the 1M5 log bass with
-///     10k from its wiper), the treble wiper to the inverter with the master (220k into a 100k linear rheostat) across
-///     it. Clean channel: 68k, 1M, V1b (220k, 1.5k with 22 µF; 150 V), 1.5 nF into a 1M log volume with 180 pF across
-///     its upper part, the wiper to the inverter's other grid. A 12AX7 long-tail pair (10 nF in, 1M leaks, 1.2k bias,
-///     47k tail, 100k plates from 341 V; 264 / 269 V), 33 nF into 220k leaks and 10k stoppers, the Brilliance (4.7 nF
-///     and a 1M log pot across the grids), two EL34 each on its own 270 Ω with 220 µF (24 V), 1k screen resistors from
-///     the rectifier's node, 376 V plates, no feedback; GZ34 or (a panel switch) silicon, 382 V, a 36 H / 450 Ω choke
-///     to 373 V and a 22k / 22k / 10k / 22k dropper to each preamp node (317 / 345 / 325 / 341 V).
+///     10k from its wiper), the treble wiper on the 100k linear master, its wiper through 220k to the inverter (the
+///     master's wiring is a reading: see the remarks). Clean channel: 68k, 1M, V1b (220k, 1.5k with 22 µF; 150 V),
+///     1.5 nF into a 1M log volume with 180 pF across its upper part, the wiper to the inverter's other grid. A 12AX7
+///     long-tail pair (10 nF in, 1M leaks, 1.2k bias, 47k tail, 100k plates from 341 V; 264 / 269 V), 33 nF into 220k
+///     leaks and 10k stoppers, the Brilliance (4.7 nF and a 1M log pot across the grids), two EL34 each on its own
+///     270 Ω with 220 µF (24 V), 1k screen resistors from the rectifier's node, 376 V plates, no feedback; GZ34 or (a
+///     panel switch) silicon, 382 V, a 36 H / 450 Ω choke to 373 V and a 22k / 22k / 10k / 22k dropper to each preamp
+///     node (317 / 345 / 325 / 341 V).
 /// </summary>
 /// <remarks>
 ///     A redraw by a third party, not a factory drawing; the model's plates sit within 3-8 % of its DC voltages, except
@@ -32,6 +33,20 @@ namespace Cathode.Dsp.Amp.Models;
 ///     Up to 1.0.0-rc.3 it was the block's Cut, running the other way (Cut 0 was Brilliance 10); a schema-1 preset is
 ///     carried over (Brilliance = 10 - Cut, <c>PresetMigrations</c>). In the Clean channel the Gain knob turns the
 ///     clean Volume, and the Gain channel's Edge, Level, tone and master are out of the path.
+///     <para>
+///         The master is a reading, not the drawing (issue #94). The drawing joins the treble wiper to point F ("to
+///         Phase-Inverter") and through 220k to the 100k linear pot's wiper, one end of the pot to ground and the other
+///         to nothing: a 220k-320k load on the wiper, which moves the level by 1-2 dB and cannot turn it down, though
+///         the amp has a working Master (the panel's eighth knob; Vintage Guitar's review turned it up for a very loud
+///         30 W). A builder of this drawing on the Music Electronics Forum (thread "Bad Cat Hot Cat build") met the
+///         same knob: a technician there found the drawn wiring unclear, unable to shut the signal off and worth about
+///         2 dB, posted a rewiring (an attachment no longer readable) and spoke of "the 220K at point F", i.e. the
+///         220k at the inverter's input. Taken here as the drafter joining the 220k to the wrong lug: the treble wiper
+///         on the pot's free end (its top), the wiper through the 220k to the inverter (F). Master 0 is silence and 10
+///         the treble wiper behind the 220k, the 100k loading the treble pot; the values are the drawing's. No factory
+///         drawing or photo of the board was found to confirm it. Up to 1.0.0-rc.3 the master was the drawing's
+///         rheostat, so a stored Hot Cat below Master 10 now drives its power amp less than it did.
+///     </para>
 /// </remarks>
 public static class HotCat {
     /// <summary>The 12AX7's grid-plate capacitance.</summary>
@@ -185,25 +200,25 @@ public static class HotCat {
     ///     The cathode follower V3a (56k, its grid on V3b's plate) and the top-boost network: 50 pF to the 1M log
     ///     treble pot, 100k to a node M, the treble pot's far end through 22 nF to M, M through 22 nF to the 1M5 log
     ///     bass pot's wiper with 10k to ground, the bass pot from the treble pot's far end to ground; the treble wiper
-    ///     is the output, with the master (220k into a 100k linear rheostat) to ground.
+    ///     on the 100k linear master to ground, whose wiper feeds the inverter through 220k (the output, after it).
     /// </summary>
     static StageNetlist TopBoost() {
         var net = new StageNetlist();
-        var (supply, cathode, trebleTop, trebleBottom, slope, master) =
+        var (supply, cathode, trebleTop, trebleBottom, slope, inverter) =
             (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Supply(supply, 325);
         net.Resistor(cathode, StageNetlist.Ground, 56e3);
         net.Triode(supply, net.Input, cathode, TriodeModel.Ecc83);
         net.Capacitor(cathode, trebleTop, 50e-12, CapacitorRole.Stack);
-        var output = net.Pot(trebleTop, trebleBottom, new(1e6, PotTaper.Audio), PotRole.Treble);
+        var treble = net.Pot(trebleTop, trebleBottom, new(1e6, PotTaper.Audio), PotRole.Treble);
         net.Resistor(cathode, slope, 100e3);
         net.Capacitor(trebleBottom, slope, 22e-9, CapacitorRole.Stack);
         var bassWiper = net.Pot(StageNetlist.Ground, trebleBottom, new(1.5e6, PotTaper.Audio), PotRole.Bass);
         net.Capacitor(slope, bassWiper, 22e-9, CapacitorRole.Stack);
         net.Resistor(bassWiper, StageNetlist.Ground, 10e3);
-        net.Resistor(output, master, 220e3);
-        net.Rheostat(master, StageNetlist.Ground, new(100e3, PotTaper.Linear), PotRole.Master);
-        net.Output = output;
+        var master = net.Pot(treble, StageNetlist.Ground, new(100e3, PotTaper.Linear), PotRole.Master);
+        net.Resistor(master, inverter, 220e3);
+        net.Output = inverter;
         return net;
     }
 
