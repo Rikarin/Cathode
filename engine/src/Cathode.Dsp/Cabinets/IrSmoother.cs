@@ -136,29 +136,5 @@ public sealed class IrSmoother : IDisposable {
     ///     <c>cepstrumRe[0..N/2]</c> holds a natural-log magnitude; leaves the minimum-phase spectrum with that magnitude
     ///     in <c>cepstrumRe</c>/<c>cepstrumIm</c>, bins 0 … N/2.
     /// </summary>
-    void MinimumPhase() {
-        var n = fft.Size;
-        var half = n / 2;
-        var re = cepstrumRe.Span;
-        var im = cepstrumIm.Span;
-        for (var k = 1; k < half; k++) {
-            re[n - k] = re[k];
-        }
-
-        im.Clear();
-        fft.Inverse(re, im);
-        for (var i = 1; i < half; i++) {
-            re[i] *= 2f;
-            re[n - i] = 0f;
-        }
-
-        im.Clear();
-        fft.Forward(re, im);
-        for (var k = 0; k <= half; k++) {
-            var magnitude = MathF.Exp(re[k]);
-            var phase = im[k];
-            re[k] = magnitude * MathF.Cos(phase);
-            im[k] = magnitude * MathF.Sin(phase);
-        }
-    }
+    void MinimumPhase() => fft.MinimumPhase(cepstrumRe.Span, cepstrumIm.Span);
 }

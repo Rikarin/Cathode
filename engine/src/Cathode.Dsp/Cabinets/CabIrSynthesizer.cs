@@ -113,33 +113,7 @@ public sealed class CabIrSynthesizer : IDisposable {
     ///     <c>re[0..N/2]</c> holds a natural-log magnitude; leaves the minimum-phase spectrum with that magnitude in
     ///     <c>re</c>/<c>im</c>, bins 0 … N/2.
     /// </summary>
-    void MinimumPhase() {
-        var n = FftSize;
-        var half = n / 2;
-        var re = this.re.Span;
-        var im = this.im.Span;
-        for (var k = 1; k < half; k++) {
-            re[n - k] = re[k];
-        }
-
-        im.Clear();
-        fft.Inverse(re, im);
-
-        // Fold the anticausal half of the real cepstrum onto the causal half.
-        for (var i = 1; i < half; i++) {
-            re[i] *= 2f;
-            re[n - i] = 0f;
-        }
-
-        im.Clear();
-        fft.Forward(re, im);
-        for (var k = 0; k <= half; k++) {
-            var magnitude = MathF.Exp(re[k]);
-            var phase = im[k];
-            re[k] = magnitude * MathF.Cos(phase);
-            im[k] = magnitude * MathF.Sin(phase);
-        }
-    }
+    void MinimumPhase() => fft.MinimumPhase(re.Span, im.Span);
 
     /// <summary>Normalises bins 0 … N/2 to unit loudness, fills the mirror half, and takes the first taps.</summary>
     void Finish(Span<float> ir) {
