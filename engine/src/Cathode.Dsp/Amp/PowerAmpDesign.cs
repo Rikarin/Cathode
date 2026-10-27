@@ -117,8 +117,9 @@ public sealed record SpeakerDesign(
 /// <summary>
 ///     Global negative feedback from a speaker tap to the bottom of the phase inverter's tail: the feedback resistor into
 ///     a shunt resistor, with the presence control (a pot in series with a cap) across the shunt, which lowers the
-///     feedback, and so lifts the response, at high frequencies. Depth lowers it below
-///     <paramref name="DepthFrequency" />, lifting the speaker resonance.
+///     feedback, and so lifts the response, at high frequencies; or, with <see cref="PresenceIsShunt" />, the presence
+///     pot's track is the shunt itself and the cap goes from its wiper to ground (the 5F6-A and the amps that copied it).
+///     Depth lowers it below <paramref name="DepthFrequency" />, lifting the speaker resonance.
 /// </summary>
 /// <param name="FeedbackResistor">From the tap to the shunt resistor.</param>
 /// <param name="ShuntResistor">From the bottom of the phase inverter tail to ground.</param>
@@ -143,6 +144,33 @@ public sealed record FeedbackDesign(
 ) {
     /// <summary>The feedback fraction at mid frequencies, with presence off.</summary>
     public double Beta => ShuntResistor / (FeedbackResistor + ShuntResistor);
+
+    /// <summary>
+    ///     The 5F6-A's wiring: the presence pot (<see cref="ShuntResistor" />, its track) runs from the tail's foot to
+    ///     ground and <see cref="PresenceCap" /> shunts the part of the track the knob turns in (at 0 the cap sits between
+    ///     ground and ground and the feedback is flat; at 10 it shorts the whole shunt at high frequencies), so
+    ///     Z = (1 - p) R + p R / (1 + s p R C). False: a fixed shunt with the pot in series with the cap across it.
+    /// </summary>
+    public bool PresenceIsShunt { get; init; }
+
+    /// <summary>
+    ///     The feedback fraction's zero and pole time constants at Presence rotation <paramref name="presence" /> (0..1),
+    ///     the cap divided by <paramref name="frequency" />: β(s) = <see cref="Beta" /> (1 + s τ₁) / (1 + s τ₂), from
+    ///     Z / (R_f + Z) with the shunt's impedance Z (first order in either wiring).
+    /// </summary>
+    public (double Tau1, double Tau2) PresenceTimes(double presence, double frequency = 1) {
+        var c = PresenceCap / frequency;
+        var (rf, rx) = (FeedbackResistor, ShuntResistor);
+        if (PresenceIsShunt) {
+            // Z = a + b / (1 + s b C) with the track's parts a = (1 - p) R above the wiper and b = p R under the cap.
+            var p = Presence.Fraction(presence);
+            var (a, b) = ((1 - p) * rx, p * rx);
+            return (a * b * c / rx, b * c * (rf + a) / (rf + rx));
+        }
+
+        var rp = Presence.Ohms * (1 - Presence.Fraction(presence));
+        return (rp * c, c * (rf * (rx + rp) + rx * rp) / (rf + rx));
+    }
 }
 
 /// <summary>

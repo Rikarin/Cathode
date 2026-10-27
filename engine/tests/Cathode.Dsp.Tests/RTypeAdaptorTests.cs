@@ -158,6 +158,64 @@ public class RTypeAdaptorTests(ITestOutputHelper output) {
         Assert.True(worst < 1e-9, $"{worst:E2} V apart");
     }
 
+    [Fact]
+    public void A_root_whose_network_is_singular_from_the_start_fails_at_construction() {
+        // Two ideal sources in parallel: no unique solution, so the root used to run on an all-zero matrix.
+        var net = new WdfNetlist();
+        var node = net.Node();
+        net.Port(node, WdfNetlist.Ground);
+        net.VoltageSource(node, WdfNetlist.Ground);
+        net.VoltageSource(node, WdfNetlist.Ground);
+        net.Probe(node);
+        Assert.Throws<ArgumentException>(() =>
+            new RTypeRoot<Ports<ResistiveVoltageSource>, NoDevice>(net, new(new(600)), default)
+        );
+    }
+
+    [Fact]
+    public void An_adaptor_with_no_valid_parent_resistance_fails_instead_of_handing_its_parent_zero_ohms() {
+        // The Up port sits across an ideal source: R_up = 0, which a parent adaptor would turn into 1/0.
+        var net = new WdfNetlist();
+        var node = net.Node();
+        net.Port(node, WdfNetlist.Ground);
+        net.VoltageSource(node, WdfNetlist.Ground);
+        net.Up(node, WdfNetlist.Ground);
+        var circuit = new WdfCircuit<RTypeAdaptor<Ports<ResistiveVoltageSource>>, OpenCircuit>(
+            new(net, new(new(600))),
+            default
+        );
+        Assert.Throws<InvalidOperationException>(() => circuit.Propagate());
+    }
+
+    [Fact]
+    public void A_setting_that_makes_the_network_singular_keeps_the_last_matrix_and_is_counted() {
+        // A VCVS from y to x driven by its own output: gain 0 is a wire, gain 1 leaves its branch row empty.
+        var net = new WdfNetlist();
+        var (input, x, y) = (net.Node(), net.Node(), net.Node());
+        net.Port(input, WdfNetlist.Ground);
+        net.Resistor(input, x, 1e3);
+        net.Resistor(x, WdfNetlist.Ground, 1e3);
+        net.Vcvs(y, x, y, x, 0);
+        net.Resistor(y, WdfNetlist.Ground, 1e3);
+        net.Probe(y);
+        var root = new RTypeRoot<Ports<ResistiveVoltageSource>, NoDevice>(net, new(new(1e3)), default);
+        root.Ports.A.Volts = 1;
+        var before = root.Tick();
+        Assert.True(before > 0.1, $"{before} V");
+
+        root.SetGain(0, 1);
+        Assert.False(root.Propagate());
+        Assert.False(root.Scattering.IsValid);
+        Assert.Equal(1, root.Newton.FailedRecomputes);
+        Assert.Equal(1, root.Scattering.Failures);
+        Assert.Equal(before, root.Tick());
+
+        root.SetGain(0, 0);
+        Assert.True(root.Propagate());
+        Assert.True(root.Scattering.IsValid);
+        Assert.Equal(1, root.Newton.FailedRecomputes);
+    }
+
     [Theory]
     [InlineData(-700.0)]
     [InlineData(-24.0001)]

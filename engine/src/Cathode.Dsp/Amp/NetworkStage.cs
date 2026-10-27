@@ -638,6 +638,13 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         Refresh();
     }
 
+    public override void Retune(double restInput) {
+        SolveOperatingPoint(restInput);
+        restOutput = Rest(Design.Netlist.Output);
+        outputResistance = SmallSignalOutputResistance();
+        solved = true;
+    }
+
     public override void Reset(double restInput) {
         SolveOperatingPoint(restInput);
         root.Reset();

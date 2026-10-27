@@ -283,6 +283,51 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         Assert.InRange(swing, 0.1, 20);
     }
 
+    /// <summary>
+    ///     A stiff silicon supply on AC (the JCM900 4100's 25 Ω into 100 µF: R C = 2.5 ms, under the 4.2 ms at which
+    ///     a source-resistance calibration still reaches the design's B+) charges its reservoir smoothly in each
+    ///     conduction window, even at Sag 0 with B+ Time Const 25 % (dt / R C about 1.6 at the inner rate), instead of a
+    ///     sawtooth at the inner Nyquist rate; its mean is the design's B+; and Sag, which scales the source
+    ///     resistance, still moves it.
+    /// </summary>
+    [Fact]
+    public void Ac_supply_on_a_stiff_silicon_supply_charges_smoothly_and_follows_sag() {
+        var design = JCM900.Head100.Power;
+        (double Mean, double Kink) Run(double sag, double timeConstant) {
+            var power = new PowerAmp(design, InnerRate);
+            power.Configure(new(0.5, 0, 0, sag, 0.5, 0.5));
+            power.Apply(PowerSettings.Stock with { Supply = SupplyMode.Ac60, TimeConstant = timeConstant });
+            power.Reset();
+            var (mean, kink, previous, before) = (0.0, 0.0, 0.0, 0.0);
+            const int Settle = 48_000;
+            const int Length = 19_200; // 0.2 s: twelve cycles
+            for (var i = 0; i < Settle + Length; i++) {
+                power.Tick(0);
+                var v = power.Supply;
+                if (i >= Settle) {
+                    mean += v / Length;
+                    kink = Math.Max(kink, Math.Abs(v - 2 * previous + before)); // a sawtooth's second difference
+                }
+
+                (before, previous) = (previous, v);
+            }
+
+            return (mean, kink);
+        }
+
+        var stock = Run(0.5, 1);
+        var hard = Run(0, 0.25);
+        var stiff = Run(0, 1);
+        var soft = Run(1, 1);
+        output.WriteLine(
+            $"mean B+ {stock.Mean:0.0} V (design {design.Supply:0.0} V), Sag 0 {stiff.Mean:0.0} V, Sag 10 {soft.Mean:0.0} V; "
+            + $"largest second difference {stock.Kink:0.000} V stock, {hard.Kink:0.000} V at Sag 0 and 25 %"
+        );
+        Assert.InRange(stock.Mean, 0.985 * design.Supply, 1.015 * design.Supply);
+        Assert.True(stock.Kink < 0.5 && hard.Kink < 0.5, "B+ jumps from sample to sample");
+        Assert.True(stiff.Mean > soft.Mean + 5, "Sag does not move the AC supply");
+    }
+
     [Fact]
     public void Variac_and_rectifiers_set_the_supply() {
         static double Settled(PowerSettings settings, bool loud) {
@@ -380,6 +425,57 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     static bool SolidStateAudible(AmpDesign design, int index) =>
         design.Panel.Label(CircuitAmpBlock.Info.Params[index].Id, "-") is not null
         && index is not (CircuitAmpBlock.Variac or CircuitAmpBlock.SupplyTime);
+
+    /// <summary>
+    ///     Preamp Bias, Preamp and Power Tube Hardness and CF Harmonics are continuous knobs: swept a little every block,
+    ///     the channel retunes and slews instead of resetting to its rest (which cut the signal to DC at every step).
+    /// </summary>
+    [Theory]
+    [InlineData("bias")]
+    [InlineData("hardness")]
+    [InlineData("follower")]
+    [InlineData("power hardness")]
+    public void Sweeping_a_continuous_operating_point_setting_does_not_cut_the_signal(string setting) {
+        var controls = new AmpControls(0.6, 0.5, 0.5, 0.5, 0.6, false);
+        var power = new PowerControls(0.5, 0.5, 0.5, 0.5, 0.5, 0.5);
+        var channel = new AmpChannel(JCM2203.Design, InnerRate);
+        channel.Configure(controls, power);
+        channel.Reset();
+        var (largestStep, peak, previous) = (0.0, 0.0, 0.0);
+        var steps = 0;
+        for (var n = 0; n < 48_000; n++) {
+            if (n >= 24_000 && n % 64 == 0) {
+                // Up to 10 % away over the second half, in blocks of 64 samples as the Circuit Amp applies it.
+                var amount = 1 + 0.1 * (n - 24_000) / 24_000;
+                var preamp = setting switch {
+                    "bias" => PreampSettings.Stock with { CathodeResistor = amount },
+                    "hardness" => PreampSettings.Stock with { Hardness = amount },
+                    "follower" => PreampSettings.Stock with { FollowerBias = amount },
+                    _ => PreampSettings.Stock
+                };
+                var settings = setting == "power hardness" ? PowerSettings.Stock with { Hardness = amount }
+                    : PowerSettings.Stock;
+                channel.Apply(preamp, settings, ChannelSettings.Stock);
+                channel.Configure(controls, power);
+                steps++;
+            }
+
+            var y = channel.Tick(0.3 * Math.Sin(2 * Math.PI * 220 * n / InnerRate));
+            if (n >= 12_000) {
+                var step = Math.Abs(y - previous);
+                if (n < 24_000) {
+                    peak = Math.Max(peak, step); // the signal's own steepest sample-to-sample step
+                } else {
+                    largestStep = Math.Max(largestStep, step);
+                }
+            }
+
+            previous = y;
+        }
+
+        output.WriteLine($"{setting}: {steps} steps, steepest {largestStep:0.000} V against the signal's {peak:0.000} V");
+        Assert.True(largestStep < 1.5 * peak, $"{largestStep:0.000} V step against the signal's {peak:0.000} V");
+    }
 
     /// <summary>Whether a model has a bright cap for the Bright Cap setting to scale (the Mark IV's lead channel has none).</summary>
     static bool HasBrightCap(AmpDesign design) =>

@@ -141,6 +141,12 @@ public sealed class ChannelSwitchStage : AmpStage {
         Settle(on);
     }
 
+    public override void Retune(double restInput) {
+        this.restInput = restInput;
+        Retune(off);
+        Retune(on);
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override double Tick(double input) {
         var x = input;
@@ -182,6 +188,19 @@ public sealed class ChannelSwitchStage : AmpStage {
     static void Apply(AmpStage[] chain, int gainStage, in PreampSettings settings) {
         for (var i = 0; i < chain.Length; i++) {
             chain[i].Apply(i == gainStage ? settings : settings with { CathodeResistor = 1 });
+        }
+    }
+
+    /// <summary>A chain's operating point recomputed in signal order, its state left alone (<see cref="AmpStage.Retune" />).</summary>
+    void Retune(AmpStage[] chain) {
+        var rest = restInput;
+        var resistance = sourceResistance;
+        foreach (var stage in chain) {
+            stage.SetSourceResistance(resistance);
+            Supply(stage);
+            stage.Retune(rest);
+            rest = stage.RestOutput;
+            resistance = stage.OutputResistance;
         }
     }
 

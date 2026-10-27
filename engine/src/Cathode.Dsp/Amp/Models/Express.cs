@@ -26,8 +26,7 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         Assumed, not drawn: the node voltages below B+ (only "~410 V" is given; the others follow from the droppers
 ///         at plausible currents: 395 / 300 / 270 / 250 V), the EL34s' idle current (35 mA), the presence pot's
-///         topology (the block's feedback network puts the pot and cap across a fixed shunt; here the shunt is the 5k
-///         pot itself, taken as 5k). The bright switch is two panel switches: Bright the 500 pF position, Switch 1 the
+///         track (5k: the shunt is the pot itself, its wiper's 0.1 µF to ground, <see cref="FeedbackDesign.PresenceIsShunt" />). The bright switch is two panel switches: Bright the 500 pF position, Switch 1 the
 ///         100 pF ("Clarity"); with both on, both caps are in (the real switch takes one).
 ///     </para>
 /// </remarks>
@@ -69,7 +68,7 @@ public static class Express {
             1.5e3,
             0,
             new(1e6, PotTaper.Linear),
-            new(1, 100e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6),
+            new(1, 100e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6) { PresenceIsShunt = true },
             true,
             new(6.6e3),
             SpeakerDesign.Closed4x12,

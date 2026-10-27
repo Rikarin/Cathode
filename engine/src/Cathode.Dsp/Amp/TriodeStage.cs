@@ -302,7 +302,21 @@ public sealed class TriodeStage : AmpStage {
         }
     }
 
+    public override void Retune(double restInput) => SolveRest(restInput);
+
     public override void Reset(double restInput) {
+        var (top, wiper, grid, plate, cathode) = SolveRest(restInput);
+        root.Reset();
+        root.SetVoltage(0, Design.Supply * supplyScale);
+        root.Ports.B.Precharge(Design.CouplingCap > 0 ? restInput : 0);
+        root.Ports.C.Precharge(top - wiper);
+        root.Ports.D.Precharge(wiper - grid);
+        root.Ports.E.Precharge(cathode);
+        root.SetInitialVoltages([grid - cathode, plate - cathode]);
+    }
+
+    /// <summary>The operating point (rest values and output resistance) and the input chain's DC nodes.</summary>
+    (double Top, double Wiper, double Grid, double Plate, double Cathode) SolveRest(double restInput) {
         // DC: the input chain is a ladder (source, pot, series resistor, grid leak) unless a coupling cap blocks it.
         var source = Design.CouplingCap > 0 ? 0 : restInput;
         var sourceDrop = 0.0;
@@ -333,14 +347,7 @@ public sealed class TriodeStage : AmpStage {
         var (rp, mu) = OperatingPoint.SmallSignal(tube, grid - cathode, plate - cathode);
         var cathodeImpedance = Design.CathodeBypass > 0 ? 0 : cathodeResistor;
         outputResistance = Parallel(Design.PlateResistor, rp + (mu + 1) * cathodeImpedance);
-
-        root.Reset();
-        root.SetVoltage(0, Design.Supply * supplyScale);
-        root.Ports.B.Precharge(Design.CouplingCap > 0 ? restInput : 0);
-        root.Ports.C.Precharge(top - wiper);
-        root.Ports.D.Precharge(wiper - grid);
-        root.Ports.E.Precharge(cathode);
-        root.SetInitialVoltages([grid - cathode, plate - cathode]);
+        return (top, wiper, grid, plate, cathode);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

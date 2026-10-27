@@ -235,7 +235,7 @@ public class PreampSupplyTests {
 
     /// <summary>
     ///     Preamp Sag scales what reaches every node (0: a stiff preamp supply), the Variac moves every node, and a
-    ///     rack preamp's own supply (the TriAxis) never moves.
+    ///     rack preamp's own supply (the TriAxis, the JMP-1) never moves.
     /// </summary>
     [Fact]
     public void Preamp_sag_and_variac_act_on_every_node() {
@@ -272,6 +272,7 @@ public class PreampSupplyTests {
         Assert.True(full[0] < full[2], "the preamp node sags more than V1A's, two RCs further down");
         Assert.All(Run(DualRectifier.Design, 1, 0.9), static s => Assert.InRange(s, 0.85, 0.92));
         Assert.All(Run(TriAxis.Rhythm, 1, 0.9), static s => Assert.Equal(1, s));
+        Assert.All(Run(Jmp1.Design, 1, 0.9), static s => Assert.Equal(1, s)); // a rack preamp too
     }
 
     static readonly PowerControls Power = new(0.5, 0, 0, 0.5, 0.5, 0.5);

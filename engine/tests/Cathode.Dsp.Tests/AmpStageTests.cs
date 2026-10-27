@@ -260,13 +260,14 @@ public partial class AmpStageTests(ITestOutputHelper output) {
                 $"  vd {vd,5:0.0}: plates {pair.RestPlateA + ea:0.00}/{pair.RestPlateB + eb:0.00} V, reference "
                 + $"{reference.Voltage(a):0.00}/{reference.Voltage(b):0.00} V"
             );
-            if (vd >= -6) {
+            if (vd >= Math.Max(-6, -2 * (pair.RestCathode - pair.RestGrid))) {
                 worst = Math.Max(worst, Math.Max(Math.Abs(errorA), Math.Abs(errorB)));
             }
         }
 
         // The table leaves out grid current: it flows into the first grid beyond vd ≈ +2 V, and into the second when
-        // the first side is cut off hard (vd ≈ -20 V with the 12AT7's high tail current).
+        // the first side is cut off hard (vd ≈ -20 V with the 12AT7's high tail current; with a Marshall's 470 Ω bias,
+        // whose idle grid sits only about a volt under its cathode, once the swing passes twice that).
         Assert.True(worst < 0.05, $"{worst:0.000} V from the reference");
 
         // The interpolation against the exact solution, between table points.

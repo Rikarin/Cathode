@@ -74,6 +74,8 @@ public sealed class EqualizerStage : AmpStage {
         }
     }
 
+    public override void Retune(double restInput) => this.restInput = restInput;
+
     public override void Reset(double restInput) {
         this.restInput = restInput;
         for (var n = 0; n < bands; n++) {

@@ -141,13 +141,19 @@ public static class DeviceMath {
     ///     emission voltage <paramref name="vt" /> (n Vt) and critical voltage <paramref name="critical" />.
     /// </summary>
     /// <remarks>
-    ///     Upwards, above the critical voltage, a step is compressed to n Vt ln(1 + Δ / n Vt): the voltage at which the
-    ///     exponential reaches the current the tangent predicted, so the current cannot explode. Downwards, from a
-    ///     conducting junction, the same formula expands the step instead: the tangent at a high current only ever
-    ///     predicts a drop of about n Vt, so plain Newton would need one iteration per factor e of current to switch a
-    ///     junction off. When the tangent predicts no current at all, the junction steps at least 10 n Vt down (a
-    ///     factor of 20 000 in current), or to Newton's own proposal if that is lower. Only the path changes, never the
-    ///     solution.
+    ///     <para>
+    ///         Upwards, above the critical voltage, a step is compressed to n Vt ln(1 + Δ / n Vt): the voltage at which the
+    ///         exponential reaches the current the tangent predicted, so the current cannot explode.
+    ///     </para>
+    ///     <para>
+    ///         Downwards, from a conducting junction, a step of more than n Vt means the tangent predicts no current at
+    ///         all: the junction then steps at least 10 n Vt down (a factor of 20 000 in current), or to Newton's own
+    ///         proposal if that is lower. Smaller downward steps are Newton's own. Expanding them as well (to
+    ///         n Vt ln(1 + Δ / n Vt), exact for a lone junction) saves an iteration or two on a one-port clipper, but in a
+    ///         coupled circuit, where the tangent's Δ is not the junction's alone, it overshoots: a BJT stage or an op-amp
+    ///         with feedback diodes under hard drive then leaves hundreds of samples unconverged instead of a handful
+    ///         (the hard-drive stages of <c>NonlinearRootTests</c>). Only the path changes, never the solution.
+    ///     </para>
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double LimitJunction(double previous, double proposed, double vt, double critical) {
@@ -162,8 +168,7 @@ public static class DeviceMath {
         }
 
         if (step < -vt && previous > critical - 10 * vt) {
-            var argument = 1 + step / vt;
-            return argument > 4.5e-5 ? previous + vt * Math.Log(argument) : Math.Min(proposed, previous - 10 * vt);
+            return Math.Min(proposed, previous - 10 * vt);
         }
 
         return proposed;

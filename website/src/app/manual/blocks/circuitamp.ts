@@ -178,8 +178,7 @@ Plexi-style amps the two volumes blend the bright and normal channels.`,
 
     control2: `A model's second extra knob, where it has one: *Lead Master* on the Mark IIC+ and IV, *Presence* on the
 Rectifiers (a preamp presence control there), *Lead Volume* on the Powerball and Savage, *OD Level* on the ODS,
-*Dynamic Voice* on the TriAxis, *Intensity* on the brownface Concert and Super's vibrato, the 4 kHz band of the
-Bass 400's EQ.`,
+*Dynamic Voice* on the TriAxis, the 4 kHz band of the Bass 400's EQ.`,
 
     eq1: `The first band of a graphic EQ that is part of the model's own circuit (the Mesa Mark IIC+, IV and V's 80 Hz
 slider, the Bass 400's 34 Hz). ±12 dB maps onto the slider's travel; 0 is the slider centred. Hidden on models without
@@ -400,10 +399,9 @@ have been playing over the last second or two.`,
 
     tremrate: `The tremolo's speed in Hz. On the models with a tremolo or vibrato circuit of their own (the blackface
 Fenders' vibrato: Deluxe, Twin, Super and Princeton Reverb, Vibroverb, Vibrolux Reverb, Bandmaster, Tremolux and
-Princeton AA964; the Vibro-King, the brownface Deluxe and Vibrolux, the 18 W and the Scout) it is that circuit's
-*Speed*, held to the original knob's range. The brownface Concert and Super have their vibrato's Speed and Intensity
-on Control 1 and 2 instead. On every other model it is a sine that swings the power tubes'
-bias.`,
+Princeton AA964; the Vibro-King, the brownface Deluxe and Vibrolux, the brownface Concert and Super's harmonic
+vibrato, the 18 W and the Scout) it is that circuit's *Speed*, held to the original knob's range. On every other model
+it is a sine that swings the power tubes' bias.`,
 
     tremdepth: `The tremolo's depth; 0 is off. On models with their own tremolo it is that circuit's *Intensity* (or
 *Depth*) knob. Elsewhere it swings the power tubes' bias around the *Bias* setting, 100 % taking it all the way from

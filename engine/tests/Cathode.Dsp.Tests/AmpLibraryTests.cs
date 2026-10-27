@@ -300,11 +300,51 @@ public partial class AmpStageTests {
         Assert.True(inverter.OutputImpedance.Zaa > 5 * inverter.OutputImpedance.Zbb);
     }
 
+    /// <summary>
+    ///     The 5F6-A's presence (the 5k pot is the tail's shunt, the 0.1 µF on its wiper): the feedback filter's first-order
+    ///     β(s) equals Z / (R_f + Z) for Z = (1 - p) R + p R ∥ C at every setting; flat at 0 (the generic wiring, a pot and cap
+    ///     across a fixed 5k, cut 1 kHz's feedback by about 5 dB there), the two wirings equal at 10.
+    /// </summary>
+    [Fact]
+    public void Presence_pot_as_the_tail_shunt_matches_its_circuit() {
+        var design = Bassman.Design.Power.Feedback;
+        Assert.True(design.PresenceIsShunt);
+        var (rf, r, c) = (design.FeedbackResistor, design.ShuntResistor, design.PresenceCap);
+        foreach (var presence in new[] { 0.0, 0.25, 0.5, 0.75, 1.0 }) {
+            var p = design.Presence.Fraction(presence);
+            var (tau1, tau2) = design.PresenceTimes(presence);
+            foreach (var frequency in new[] { 100.0, 1_000, 3_000, 10_000 }) {
+                var s = new System.Numerics.Complex(0, 2 * Math.PI * frequency);
+                var z = (1 - p) * r + p * r / (1 + s * p * r * c);
+                var circuit = z / (rf + z);
+                var model = design.Beta * (1 + s * tau1) / (1 + s * tau2);
+                Assert.True(
+                    (circuit - model).Magnitude < 1e-9 * circuit.Magnitude,
+                    $"presence {presence}, {frequency} Hz: {model.Magnitude:0.0000} against {circuit.Magnitude:0.0000}"
+                );
+            }
+        }
+
+        Assert.Equal((0.0, 0.0), design.PresenceTimes(0));
+        var generic = design with { PresenceIsShunt = false };
+        var (shunt1, shunt2) = design.PresenceTimes(1);
+        var (generic1, generic2) = generic.PresenceTimes(1);
+        Assert.Equal(generic1, shunt1, 1e-15);
+        Assert.Equal(generic2, shunt2, 1e-15);
+    }
+
     [Theory]
     [MemberData(nameof(PowerVariants))]
     public void Power_amp_variants_match_the_reference_in_the_time_domain(string name) {
         var stiff = new PowerSupplyDesign(1e-3, 1, 1e-3, 1, 1e3, 1, 0);
         var plexi = Plexi.Design.Power with { PowerSupply = stiff };
+        // The inverter-input cases keep the 820 Ω bias the generic Plexi had when they were written: at their 7 V of
+        // drive a Marshall's 470 Ω puts the idle grid into grid current as well, which the pair's table leaves out (see
+        // Long_tail_pair_table_matches_the_reference_dc_sweep), and these cases are about the input network.
+        var inputFixture = plexi with {
+            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 10e3, 820),
+            InverterInput = new(22e-9, 1e6)
+        };
         var sixV6 = AC30.Design.Power with {
             Name = "2 x 6V6",
             Tube = PentodeModel.SixV6GT,
@@ -337,9 +377,8 @@ public partial class AmpStageTests {
                 sixV6 with {
                     PhaseInverter = new CathodyneDesign(TriodeModel.Ecc83, 330, 56e3, 56e3, 1.5e3), CutCap = 0
                 }, 2.0, 0.0, false),
-            "inverter grid current" => (plexi with { InverterInput = new(22e-9, 1e6), HasFeedback = false }, 7.0, 30e3,
-                false),
-            _ => (plexi with { InverterInput = new(22e-9, 1e6) }, 7.0, 30e3, false)
+            "inverter grid current" => (inputFixture with { HasFeedback = false }, 7.0, 30e3, false),
+            _ => (inputFixture, 7.0, 30e3, false)
         };
         var power = new PowerAmp(design, Rate);
         power.SetSourceResistance(Math.Max(sourceResistance, 1));

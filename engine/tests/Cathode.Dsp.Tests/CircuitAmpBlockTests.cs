@@ -203,6 +203,28 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         Assert.Same(MarshallAfd100.Design, block.Channel.Design);
     }
 
+    [Fact]
+    public void An_expert_setting_finds_cached_tube_tables_while_another_model_is_being_built() {
+        // The control thread builds a new channel's tables under the caches' build lock; an expert setting on the
+        // audio thread (a new Preamp or Power Tube) looks up a cached model meanwhile and must not wait for it.
+        var eq = TriodeModel.Ecc83;
+        var el34 = PentodeModel.EL34;
+        var cached = (TriodeTables.For(eq), PentodeTables.For(el34));
+        static object BuildLock(Type type) =>
+            type.GetField("BuildLock", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                .GetValue(null)!;
+
+        lock (BuildLock(typeof(TriodeTables))) {
+            lock (BuildLock(typeof(PentodeTables))) {
+                (TriodeTables, PentodeTables)? found = null;
+                var lookup = new Thread(() => found = (TriodeTables.For(eq), PentodeTables.For(el34)));
+                lookup.Start();
+                Assert.True(lookup.Join(TimeSpan.FromSeconds(10)), "the lookup waited for the build lock");
+                Assert.Equal(cached, found);
+            }
+        }
+    }
+
     /// <summary>
     ///     A strummed E major chord (decaying harmonic tones), restruck every half second, peaking at
     ///     <paramref name="peak" />.

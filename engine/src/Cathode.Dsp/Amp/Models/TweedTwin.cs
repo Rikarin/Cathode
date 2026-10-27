@@ -9,7 +9,7 @@ namespace Cathode.Dsp.Amp.Models;
 ///     DC-coupled to it (100k) driving the tweed stack (250 pF, 56k slope, 0.02 µF bass and mid caps; treble 250k linear,
 ///     bass 1M audio, mid 25k linear with its cap on the wiper), 0.02 µF into a 12AX7 long-tail pair (82k/100k, 470 Ω,
 ///     10k tail, 47 pF across the plates left out), four 5881 (6L6 curves) in fixed bias at 397 V on a GZ34, a 2.1k : 4 Ω
-///     transformer, and 56k feedback from the speaker into the 5k presence pot. Panel as the Bassman's: Bright and Normal
+///     transformer, and 56k feedback from the speaker into the 5k presence pot (the tail's shunt, 0.1 µF on its wiper). Panel as the Bassman's: Bright and Normal
 ///     volumes, Bass, Middle, Treble, Presence; <b>Normal Input</b> plays the Normal channel. <see cref="Jumped" /> is the
 ///     same amp with the channels jumpered.
 /// </summary>
@@ -65,7 +65,7 @@ public static class TweedTwin {
                 1.5e3,
                 0,
                 new(1e6, PotTaper.Linear),
-                new(1 / Math.Sqrt(2), 56e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6),
+                new(1 / Math.Sqrt(2), 56e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6) { PresenceIsShunt = true },
                 true,
                 new(2.1e3, 10, 5e-3, 75, 2e-9, 100e3),
                 SpeakerDesign.OpenBack2x12,

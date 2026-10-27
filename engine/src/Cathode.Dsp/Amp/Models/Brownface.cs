@@ -62,8 +62,8 @@ static class Brownface {
         Bright = null,
         Switch1 = "Vibrato Ch",
         Switch2 = "Vibrato",
-        Control1 = "Speed",
-        Control2 = "Intensity"
+        TremoloRate = "Speed",
+        TremoloDepth = "Intensity"
     };
 
     /// <summary>

@@ -219,13 +219,17 @@ public sealed class AmpChannel {
     }
 
     /// <summary>
-    ///     Applies the expert settings (per block; allocation-free). A change that moves an operating point (a tube, the
-    ///     preamp bias, the output tubes' wiring) resets the channel, as a type change does.
+    ///     Applies the expert settings (per block; allocation-free). A discrete change that moves an operating point (a
+    ///     preamp or power tube, the output tubes' wiring, the stack's location) resets the channel, as a type change
+    ///     does; a continuous one (the preamp bias, a tube's hardness, a follower's bias) only retunes it
+    ///     (<see cref="Retune" />), so sweeping or automating it does not cut the signal at every block.
     /// </summary>
     public void Apply(in PreampSettings preamp, in PowerSettings power, in ChannelSettings channel) {
         var reset = false;
+        var retune = false;
         if (preamp != preampSettings || channel.Plate != channelSettings.Plate) {
-            reset = preamp.MovesOperatingPoint(preampSettings);
+            reset = preamp.SwapsTube(preampSettings);
+            retune = preamp.MovesOperatingPoint(preampSettings);
             preampSettings = preamp;
             for (var i = 0; i < stages.Length; i++) {
                 stages[i]
@@ -256,6 +260,45 @@ public sealed class AmpChannel {
 
         if (reset) {
             Reset();
+        } else if (retune) {
+            Retune();
+        }
+    }
+
+    /// <summary>
+    ///     Every stage's operating point recomputed in signal order (<see cref="AmpStage.Retune" />) for a continuous
+    ///     setting, the state left to slew: the rest levels the reordering and the overdrive work about follow, and the
+    ///     next <see cref="Configure" /> hands on the new output resistances.
+    /// </summary>
+    void Retune() {
+        var rest = 0.0;
+        var resistance = 0.0;
+        foreach (var stage in stages) {
+            stage.SetSourceResistance(resistance);
+            stage.SetSupplies(supplies);
+            stage.Retune(rest);
+            rest = stage.RestOutput;
+            resistance = stage.OutputResistance;
+        }
+
+        for (var i = 0; i < stages.Length; i++) {
+            restInputs[i] = i == 0 ? 0 : stages[i - 1].RestOutput;
+        }
+
+        if (reordered) {
+            for (var k = 0; k < order.Length; k++) {
+                var arriving = k == 0 ? 0 : stages[order[k - 1]].RestOutput;
+                offsets[k] = restInputs[order[k]] - arriving;
+                if (k > 0) {
+                    stages[order[k]].SetSourceResistance(stages[order[k - 1]].OutputResistance);
+                }
+            }
+
+            resistance = stages[order[^1]].OutputResistance;
+        }
+
+        if (stages.Length > 0) {
+            Power.SetSourceResistance(resistance);
         }
     }
 

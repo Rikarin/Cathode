@@ -167,11 +167,11 @@ public sealed class PowerAmp {
         double.NaN
     );
 
-    static readonly Dictionary<PowerAmpDesign, double> AcResistances = [];
+    static readonly Dictionary<PowerAmpDesign, double> AcPeaks = [];
 
     readonly TriodeTables inverterTube;
     readonly PhaseInverter inverterGridTables; // the inverter with its plates loaded, for its grid current
-    readonly double acResistance; // the AC supply's charging resistance, as a multiple of the source resistance
+    readonly double acPeak; // the AC supply's transformer peak at stock mains (CalibrateAc)
     RTypeRoot<Ports<Inductor, Capacitor, Inductor, Inductor, Inductor, Capacitor>, PushPullStage> root;
     double sampleRate;
     double turns;
@@ -350,7 +350,7 @@ public sealed class PowerAmp {
 
         var draw = total.Plates + total.Screens + supply.PreampCurrent;
         unloadedSupply = design.Supply + supply.SourceResistance * draw + (rectifier?.Drop(draw) ?? 0);
-        acResistance = CalibrateAc(draw);
+        acPeak = CalibrateAc(draw);
         preampDraw = supply.PreampCurrent;
         Reset();
         nominalPreamp = PreampVoltage;
@@ -489,11 +489,12 @@ public sealed class PowerAmp {
         var reset = false;
         var model = settings.Tube ?? Design.Tube;
         if (model != tube || settings.Triode != previous.Triode || settings.Hardness != previous.Hardness) {
+            // A new tube or wiring resets the channel; the hardness is a continuous knob: rebiased, the stage slews.
+            reset = model != tube || settings.Triode != previous.Triode;
             tube = model;
             law = model.Hardened(settings.Hardness);
             root.Device.SetTube(PentodeTables.For(model), ScreenTap(settings.Triode), settings.Hardness);
             Rebias();
-            reset = true;
         }
 
         if (settings.GridExcursion != previous.GridExcursion
@@ -640,7 +641,6 @@ public sealed class PowerAmp {
             return root.Probe(0) / turns; // never let a bad sample into the supply's state
         }
 
-        var fromRectifier = Rectify(supply);
         var toScreen = (Supply - ScreenSupply) / supply.ChokeResistance;
         if (chokeInductance > 0) {
             // The choke's current relaxes towards the resistive one with its L / R time constant (exactly, so that any
@@ -651,7 +651,25 @@ public sealed class PowerAmp {
 
         var toPreamp = (ScreenSupply - PreampVoltage) / supply.PreampResistance;
         var toChain = chain.Tick(PreampVoltage, dt);
-        Supply += dt / reservoirCap * (Math.Max(fromRectifier, 0) - plates - toScreen);
+        if (lineFrequency > 0) {
+            phase += 2 * Math.PI * lineFrequency / sampleRate;
+            if (phase > 2 * Math.PI) {
+                phase -= 2 * Math.PI;
+            }
+
+            Supply = Charge(
+                Supply,
+                acPeak * variac * Math.Abs(Math.Sin(phase)),
+                supply.SourceResistance * sagScale,
+                rectifier,
+                plates + toScreen,
+                dt / reservoirCap,
+                ref rectifierRoot
+            );
+        } else {
+            Supply += dt / reservoirCap * (Math.Max(Rectify(supply), 0) - plates - toScreen);
+        }
+
         ScreenSupply += dt / screenCap * (toScreen - screens - toPreamp);
         PreampVoltage += dt / supply.PreampCap * (toPreamp - preampDraw - toChain);
         chain.Supplies[0] = PreampVoltage / nominalPreamp;
@@ -715,36 +733,33 @@ public sealed class PowerAmp {
     }
 
     /// <summary>
-    ///     The current from the rectifier into the reservoir this sample: through the source resistance (sag) from the
-    ///     open-circuit voltage, or from the peaks of the rectified mains, less a tube rectifier's drop.
+    ///     The current from the rectifier into the reservoir this sample, on the DC supply: through the source
+    ///     resistance (sag) from the open-circuit voltage, less a tube rectifier's drop.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    double Rectify(PowerSupplyDesign supply) {
-        var resistance = supply.SourceResistance * sagScale;
-        var source = unloadedSupply * variac;
-        if (lineFrequency > 0) {
-            phase += 2 * Math.PI * lineFrequency / sampleRate;
-            if (phase > 2 * Math.PI) {
-                phase -= 2 * Math.PI;
-            }
+    double Rectify(PowerSupplyDesign supply) =>
+        RectifierCurrent(unloadedSupply * variac - Supply, supply.SourceResistance * sagScale, rectifier, ref rectifierRoot);
 
-            source *= Math.Abs(Math.Sin(phase));
-            resistance *= acResistance;
-        }
-
-        var headroom = source - Supply;
+    /// <summary>
+    ///     The rectifier's current at <paramref name="headroom" /> volts between the source and the reservoir, through
+    ///     <paramref name="resistance" />: Ohm's law for silicon (negative when the reservoir is above the source; the
+    ///     caller clamps it), and for a tube R I + (I / k)^(2/3) = headroom, solved by Newton from
+    ///     <paramref name="root" />, (I / k)^(1/3) at the last sample.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static double RectifierCurrent(double headroom, double resistance, RectifierModel? rectifier, ref double root) {
         if (rectifier is not { Perveance: > 0 } r) {
             return headroom / resistance;
         }
 
         if (!(headroom > 0)) {
-            rectifierRoot = 0;
+            root = 0;
             return 0;
         }
 
         // R I + (I / k)^(2/3) = headroom with I = k y³: R k y³ + y² = headroom, Newton from the right (convex).
         var rk = resistance * r.Perveance;
-        var y = rectifierRoot > 0 ? Math.Max(rectifierRoot, 0) : Math.Sqrt(headroom);
+        var y = root > 0 ? Math.Max(root, 0) : Math.Sqrt(headroom);
         if (rk * y * y * y + y * y < headroom) {
             y = Math.Sqrt(headroom);
         }
@@ -758,8 +773,34 @@ public sealed class PowerAmp {
             }
         }
 
-        rectifierRoot = y;
+        root = y;
         return r.Perveance * y * y * y;
+    }
+
+    /// <summary>
+    ///     One step of the reservoir on the AC supply: charged from the rectified mains (<paramref name="source" />, the
+    ///     transformer's |sin| at this sample) through <paramref name="resistance" />, discharged by
+    ///     <paramref name="load" /> amperes; <paramref name="step" /> is dt / C. Silicon's charging term is implicit
+    ///     (exact for the linear RC and stable at any dt / RC: a stiff transformer charges a reservoir in a few samples
+    ///     during each conduction window), the diode deciding between the two branches, whose solution is unique; a
+    ///     tube's 3/2-power law limits its conductance, so its current stays explicit.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static double Charge(
+        double v,
+        double source,
+        double resistance,
+        RectifierModel? rectifier,
+        double load,
+        double step,
+        ref double root
+    ) {
+        if (rectifier is { Perveance: > 0 }) {
+            return v + step * (RectifierCurrent(source - v, resistance, rectifier, ref root) - load);
+        }
+
+        var charged = (v + step * (source / resistance - load)) / (1 + step / resistance);
+        return charged <= source ? charged : v - step * load;
     }
 
     /// <summary>
@@ -795,51 +836,60 @@ public sealed class PowerAmp {
     }
 
     /// <summary>
-    ///     The AC supply's charging resistance as a multiple of the DC source resistance, such that the reservoir
-    ///     settles at the same mean voltage under <paramref name="load" /> amperes: the rectifier conducts only near
-    ///     the mains peaks, so the same mean needs a smaller resistance. By bisection on a quick simulation of the
-    ///     reservoir alone at 60 Hz (control thread, about a millisecond).
+    ///     The AC supply's transformer peak, such that the reservoir settles at the design's B+ on average under
+    ///     <paramref name="load" /> amperes, charged through the design's own source resistance and rectifier (Schade's
+    ///     picture: the rectifier conducts only near the mains peaks, so the same mean needs a higher peak than the DC
+    ///     supply's open-circuit voltage, and the source resistance, which Sag scales, keeps its meaning). By bisection
+    ///     on a simulation of the reservoir alone at 60 Hz with the runtime's step (control thread, a few milliseconds).
     /// </summary>
     double CalibrateAc(double load) {
-        lock (AcResistances) {
-            if (!AcResistances.TryGetValue(Design, out var factor)) {
-                factor = CalibrateAc(Design, unloadedSupply, load);
-                AcResistances[Design] = factor;
+        lock (AcPeaks) {
+            if (!AcPeaks.TryGetValue(Design, out var peak)) {
+                peak = CalibrateAc(Design, unloadedSupply, load);
+                AcPeaks[Design] = peak;
             }
 
-            return factor;
+            return peak;
         }
     }
 
     static double CalibrateAc(PowerAmpDesign design, double unloadedSupply, double load) {
         var supply = design.PowerSupply;
         var target = design.Supply;
-        var (low, high) = (1e-3, 1.0);
-        const double Rate = 24_000;
-        for (var n = 0; n < 24; n++) {
-            var factor = Math.Sqrt(low * high);
-            var resistance = supply.SourceResistance * factor;
+
+        double Mean(double peak) {
+            const double Rate = 48_000;
+            const int Settle = 24_000;
+            const int Average = 4_800; // six cycles of 120 Hz ripple
             var v = target;
+            var root = 0.0;
             var mean = 0.0;
-            const int Settle = 6_000;
-            const int Average = 4_800;
             for (var i = 0; i < Settle + Average; i++) {
-                var source = unloadedSupply * Math.Abs(Math.Sin(2 * Math.PI * 60 * i / Rate));
-                var charge = Math.Max(0, (source - v) / resistance);
-                v += (charge - load) / (supply.Reservoir * Rate);
+                var source = peak * Math.Abs(Math.Sin(2 * Math.PI * 60 * i / Rate));
+                v = Charge(v, source, supply.SourceResistance, supply.Rectifier, load, 1 / (supply.Reservoir * Rate), ref root);
                 if (i >= Settle) {
                     mean += v / Average;
                 }
             }
 
-            if (mean > target) {
-                low = factor;
+            return mean;
+        }
+
+        var (low, high) = (target, Math.Max(unloadedSupply, target));
+        for (var i = 0; i < 40 && Mean(high) < target; i++) {
+            (low, high) = (high, 1.25 * high);
+        }
+
+        for (var n = 0; n < 40; n++) {
+            var middle = 0.5 * (low + high);
+            if (Mean(middle) > target) {
+                high = middle;
             } else {
-                high = factor;
+                low = middle;
             }
         }
 
-        return Math.Sqrt(low * high);
+        return 0.5 * (low + high);
     }
 
     /// <summary>The core: the knee's flux for transformer drive <paramref name="drive" /> (0..10).</summary>
@@ -1584,7 +1634,8 @@ struct PushPullStage : INonlinearDevice {
     /// <summary>
     ///     The feedback filter: presence (0..1) shorting the shunt resistor at high frequencies, depth (0..1) cutting the
     ///     feedback below the design's depth frequency to a tenth, and <paramref name="amount" /> times the stock
-    ///     feedback; the presence and depth frequencies as multiples of stock.
+    ///     feedback; the presence and depth frequencies as multiples of stock. Either presence wiring is first order:
+    ///     β(s) = β (1 + s τ₁) / (1 + s τ₂), from Z / (R_f + Z) with the shunt's impedance Z.
     /// </summary>
     public void SetFeedback(
         FeedbackDesign design,
@@ -1596,11 +1647,7 @@ struct PushPullStage : INonlinearDevice {
         double presenceFrequency = 1,
         double depthFrequency = 1
     ) {
-        var rp = design.Presence.Ohms * (1 - design.Presence.Fraction(presence));
-        var c = design.PresenceCap / presenceFrequency;
-        var (rf, rx) = (design.FeedbackResistor, design.ShuntResistor);
-        var tau1 = rp * c;
-        var tau2 = c * (rf * (rx + rp) + rx * rp) / (rf + rx);
+        var (tau1, tau2) = design.PresenceTimes(presence, presenceFrequency);
         this.presence.Design(design.Beta, design.Beta * tau1, 1, tau2, rate);
         var omega = 2 * Math.PI * (design.DepthFrequency * depthFrequency);
         var floor = design.LowFeedback * (1 - 0.9 * Math.Clamp(depth, 0, 1));

@@ -81,7 +81,10 @@ public sealed class TriodeTables {
     const double HighestPlate = 1_024;
     const double HighestGrid = 10;
 
-    static readonly Dictionary<TriodeModel, TriodeTables> Cache = [];
+    // Copy-on-write: a published dictionary is never written again, so the audio thread's lookups (a device rebuilt
+    // by an expert setting) read it without a lock, while a miss builds under BuildLock on the control thread.
+    static readonly object BuildLock = new();
+    static volatile Dictionary<TriodeModel, TriodeTables> cache = [];
 
     readonly HermiteTable g;
     readonly HermiteTable p;
@@ -119,12 +122,19 @@ public sealed class TriodeTables {
         );
     }
 
-    /// <summary>The (cached) tables for <paramref name="model" />. Builds them on first use: control thread.</summary>
+    /// <summary>
+    ///     The (cached) tables for <paramref name="model" />. Builds them on first use, on the control thread; a cached
+    ///     model is found without taking a lock, so the audio thread never waits for another model's build.
+    /// </summary>
     public static TriodeTables For(TriodeModel model) {
-        lock (Cache) {
-            if (!Cache.TryGetValue(model, out var tables)) {
+        if (cache.TryGetValue(model, out var tables)) {
+            return tables;
+        }
+
+        lock (BuildLock) {
+            if (!cache.TryGetValue(model, out tables)) {
                 tables = new(model);
-                Cache[model] = tables;
+                cache = new(cache) { [model] = tables };
             }
 
             return tables;
@@ -293,7 +303,10 @@ public sealed class PentodeTables {
     const double LowestScreenArgument = 4; // like the triode's plate law, exact below
     const double HighestScreenArgument = 256;
 
-    static readonly Dictionary<PentodeModel, PentodeTables> Cache = [];
+    // Copy-on-write: a published dictionary is never written again, so the audio thread's lookups (a device rebuilt
+    // by an expert setting) read it without a lock, while a miss builds under BuildLock on the control thread.
+    static readonly object BuildLock = new();
+    static volatile Dictionary<PentodeModel, PentodeTables> cache = [];
 
     readonly HermiteTable g;
     readonly HermiteTable knee;
@@ -327,12 +340,19 @@ public sealed class PentodeTables {
         );
     }
 
-    /// <summary>The (cached) tables for <paramref name="model" />. Builds them on first use: control thread.</summary>
+    /// <summary>
+    ///     The (cached) tables for <paramref name="model" />. Builds them on first use, on the control thread; a cached
+    ///     model is found without taking a lock, so the audio thread never waits for another model's build.
+    /// </summary>
     public static PentodeTables For(PentodeModel model) {
-        lock (Cache) {
-            if (!Cache.TryGetValue(model, out var tables)) {
+        if (cache.TryGetValue(model, out var tables)) {
+            return tables;
+        }
+
+        lock (BuildLock) {
+            if (!cache.TryGetValue(model, out tables)) {
                 tables = new(model);
-                Cache[model] = tables;
+                cache = new(cache) { [model] = tables };
             }
 
             return tables;
