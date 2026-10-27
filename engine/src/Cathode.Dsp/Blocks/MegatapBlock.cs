@@ -73,7 +73,10 @@ public sealed class MegatapBlock() : DspBlock(Info) {
     public const float MaxTimeMs = 4_000f;
     public const float MaxPreDelayMs = 1_000f;
 
-    /// <summary>The furthest a tap reaches as a fraction of Time: the last tap (1) plus Time Randomize's half spacing.</summary>
+    /// <summary>
+    ///     The furthest a tap reaches as a fraction of Time: the last tap (1) plus Time Randomize's half
+    ///     spacing.
+    /// </summary>
     const float MaxTapReach = 1.5f;
 
     public const float MaxDiffusionMs = 100f;

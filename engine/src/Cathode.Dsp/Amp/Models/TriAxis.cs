@@ -298,7 +298,10 @@ public static class TriAxis {
         return net;
     }
 
-    /// <summary>V4B (<see cref="MesaParts.LeadStage" />): 22 nF, 270k into 68k ‖ 1 nF; 270k plate, 3.3k ‖ 0.22 µF.</summary>
+    /// <summary>
+    ///     V4B (<see cref="MesaParts.LeadStage" />): 22 nF, 270k into 68k ‖ 1 nF; 270k plate, 3.3k ‖ 0.22
+    ///     µF.
+    /// </summary>
     static StageNetlist LeadTwoStage() {
         var net = new StageNetlist();
         net.Output = MesaParts.LeadStage(net, net.Input, BackSupply, null, 0);
@@ -387,8 +390,8 @@ public static class TriAxis {
     /// <summary>
     ///     The Dynamic Voice (IC3B, TL072 on ±16 V): 10k from the buffer to the non-inverting input P, 10k from P to the
     ///     inverting input N, 10k from the output to N; the LCR branches from N (and the 720 Hz one from P) to a common
-    ///     node, the Dynamic Voice LDR (Control 2, a 1M reverse-audio rheostat that takes resistance out as it turns up:
-    ///     about 1 MΩ, dark, at 0, 100k at 5, a few ohms lit at 10) beside 10 MΩ from it to ground.
+    ///     node, the Dynamic Voice LDR (Control 2, a 1M reverse-audio rheostat that takes resistance out as it turns
+    ///     up: about 1 MΩ, dark, at 0, 100k at 5, a few ohms lit at 10) beside 10 MΩ from it to ground.
     /// </summary>
     static StageNetlist DynamicVoice() {
         var net = new StageNetlist();
@@ -416,8 +419,8 @@ public static class TriAxis {
     }
 
     /// <summary>
-    ///     The effects-return stage V5A: 1 µF, 10k (4.7k to ground in the leads, LDRK2B), 4.7k into the grid with 47k to
-    ///     ground; 120k plate, 1k ‖ 15 µF; 47 nF, 100k into the 25k output level (at full).
+    ///     The effects-return stage V5A: 1 µF, 10k (4.7k to ground in the leads, LDRK2B), 4.7k into the grid with 47k
+    ///     to ground; 120k plate, 1k ‖ 15 µF; 47 nF, 100k into the 25k output level (at full).
     /// </summary>
     static StageNetlist ReturnStage(Mode mode) {
         var net = new StageNetlist();

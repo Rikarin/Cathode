@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Globalization;
 
 namespace Cathode.Host;
@@ -7,10 +8,13 @@ namespace Cathode.Host;
 ///     options.
 /// </summary>
 sealed class CommandLine {
-    /// <summary>Every command <c>Program.cs</c> dispatches on; a name missing here is parsed as an option instead.</summary>
-    public static readonly HashSet<string> Commands = [
+    /// <summary>
+    ///     Every command <c>Program.cs</c> dispatches on; a name missing here is parsed as an option
+    ///     instead.
+    /// </summary>
+    public static readonly FrozenSet<string> Commands = new[] {
         "version", "self-test", "devices", "audio-test", "latency-test", "ir-capture", "bench-nam", "serve", "help"
-    ];
+    }.ToFrozenSet(StringComparer.Ordinal);
 
     readonly Dictionary<string, string?> options = new(StringComparer.Ordinal);
 

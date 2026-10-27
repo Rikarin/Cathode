@@ -253,7 +253,7 @@ public class HardwareInputTests {
 
         Assert.StartsWith(
             "--outputs",
-            Assert.Throws<FormatException>(() => OutputBus.Parse("1,-3", null)).Message,
+            Assert.Throws<FormatException>(static () => OutputBus.Parse("1,-3", null)).Message,
             StringComparison.Ordinal
         );
     }

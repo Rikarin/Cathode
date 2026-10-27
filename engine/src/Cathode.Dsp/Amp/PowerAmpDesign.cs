@@ -274,8 +274,8 @@ public sealed record PreampSupplyDesign(IReadOnlyList<DecouplingNode> Nodes) {
 ///     grid current (Dempwolf's law, at the grid-cathode voltage of the inverter's tables, which include the plates' load
 ///     through the power tubes' grid leaks and the cathode's rise from the grid current itself) through the previous
 ///     stage's output resistance and charges the cap: the inverter's own blocking under hard drive. The feedback's share
-///     of the cathode's movement enters a sample late. Without it (the first models) the inverter's input is the previous
-///     stage's voltage, unloaded.
+///     of the cathode's movement enters a sample late. Without it (the first models) the inverter's input is the
+///     previous stage's voltage, unloaded.
 /// </summary>
 public sealed record InverterInputDesign(double CouplingCap, double GridLeak);
 
@@ -313,7 +313,10 @@ public enum PowerTopology {
 /// <param name="ScreenResistor">Per tube, from the screen node.</param>
 /// <param name="IdleCurrent">Plate current per tube at idle with the bias knob at noon, in amperes.</param>
 /// <param name="CathodeBias">Cathode-biased (a bypassed cathode resistor) rather than fixed bias.</param>
-/// <param name="CathodeBypass">The cathode resistor's bypass cap (cathode bias; per side with separate cathodes).</param>
+/// <param name="CathodeBypass">
+///     The cathode resistor's bypass cap (cathode bias; per side with separate
+///     cathodes).
+/// </param>
 /// <param name="RatedPower">Output power at the onset of clipping, in watts (scales the block's output level).</param>
 /// <param name="PhaseInverter">The phase inverter driving the output tubes (ignored when single-ended).</param>
 /// <param name="CouplingCap">Phase inverter plates to the power-tube grids.</param>
@@ -348,7 +351,10 @@ public enum PowerTopology {
 ///     Cathode bias with a resistor and bypass cap per side (per tube, with the tubes of a side in parallel) instead of
 ///     one shared by all.
 /// </param>
-/// <param name="InverterInput">The phase inverter's input network with grid current; null for none (see the type).</param>
+/// <param name="InverterInput">
+///     The phase inverter's input network with grid current; null for none (see the
+///     type).
+/// </param>
 /// <param name="ShuntMaster">
 ///     A master volume wired as a rheostat across the phase inverter's outputs (Matchless DC-30), turned by the Master
 ///     knob: its full track at 10, a short at 0; beside the cut control if there is one. Null for none.

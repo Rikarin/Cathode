@@ -634,7 +634,8 @@ public sealed partial class LiveRig(
     /// </summary>
     static string? SceneUndoKey(int scene, SceneUpdateRequest request) =>
         request is { Name: null, Midi: null } && (request.Level is not null || request.Controllers is not null)
-            ? $"scene:{scene}:{(request.Level is null ? "" : "level")},{(request.Controllers is null ? "" : "controllers")}"
+            ? $"scene:{scene}:{(request.Level is null ? "" : "level")},"
+            + $"{(request.Controllers is null ? "" : "controllers")}"
             : null;
 
     /// <summary>
@@ -939,47 +940,6 @@ public sealed partial class LiveRig(
             if (preset.Blocks.TrueForAll(b => b.Id != id)) {
                 return id;
             }
-        }
-    }
-
-    void Check(long? expected) {
-        if (expected is { } value && value != revision) {
-            throw new RigException(
-                412,
-                $"The rig changed (revision {revision}, expected {value}). Reload and try again."
-            );
-        }
-    }
-
-    void CheckCell(int row, int column) {
-        if (row < 0 || row >= preset.Rows || column < 0 || column >= preset.Columns) {
-            throw new RigException(400, $"Cell ({row},{column}) is outside the {preset.Rows}x{preset.Columns} grid.");
-        }
-    }
-
-    static void CheckChannel(string channel, int channels) {
-        var index = Preset.ChannelNames.IndexOf(channel);
-        if (index < 0 || index >= channels) {
-            throw new RigException(
-                400,
-                $"Channel '{channel}' does not exist; this block has {string.Join(", ", Preset.ChannelNames[..channels])}."
-            );
-        }
-    }
-
-    static void CheckSceneMidi(List<SceneMidiMessage> messages) {
-        if (messages.Count > SceneMidiMessage.MaxPerScene) {
-            throw new RigException(400, $"A scene sends at most {SceneMidiMessage.MaxPerScene} MIDI messages.");
-        }
-
-        if (messages.Select(static m => m.Problem()).FirstOrDefault(static p => p is not null) is { } problem) {
-            throw new RigException(400, problem);
-        }
-    }
-
-    static void CheckScene(int scene) {
-        if (scene is < 0 or >= Preset.SceneCount) {
-            throw new RigException(400, $"Scenes are numbered 0 to {Preset.SceneCount - 1}.");
         }
     }
 

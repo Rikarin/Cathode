@@ -4,9 +4,9 @@ using System.Numerics;
 namespace Cathode.Dsp.Tests.Circuits;
 
 /// <summary>
-///     The scattering matrix of a passive <see cref="WdfNetlist" /> (ports, resistors and probes) solved in exact rational
-///     arithmetic from the same component values <see cref="RTypeScattering" /> holds, as the high-precision reference
-///     for its double-precision LU solve; and the ∞-norm condition number of its nodal matrix.
+///     The scattering matrix of a passive <see cref="WdfNetlist" /> (ports, resistors and probes) solved in exact
+///     rational arithmetic from the same component values <see cref="RTypeScattering" /> holds, as the high-precision
+///     reference for its double-precision LU solve; and the ∞-norm condition number of its nodal matrix.
 /// </summary>
 static class ExactScattering {
     /// <summary>

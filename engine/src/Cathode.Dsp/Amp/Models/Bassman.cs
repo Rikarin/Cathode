@@ -23,7 +23,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         GZ34); Rob Robinette's 5F6-A page (100 pF bright cap, 270k mixers, 100k cathode follower, 2 × 5881 at −48 V,
 ///         220k grid leaks, B+ 442 V unloaded and 411 V loaded, 4.7k to the preamp, 27k feedback from the 2 Ω tap, a 5k
 ///         presence pot); Yeh and Smith, DAFx-06, for the stack (the schematic's 56k slope and 0.02 µF bass cap; Robinette
-///         says production used 100k and 0.1 µF: this model takes the schematic, which is also the published reference).
+///         says production used 100k and 0.1 µF: this model takes the schematic, which is also the published
+///         reference).
 ///     </para>
 ///     <para>
 ///         With one input played, the other half of V1 has its grid at rest, and with its cathode bypassed (250 µF, a
@@ -41,9 +42,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///         sees about 68k (the two input jacks' resistors in series).
 ///     </para>
 ///     <para>
-///         The stack's output is the treble wiper, loaded by the inverter's 1M grid resistor: the amp has no master. (The
-///         model first had that 1M as a pot on the Master role, which the hidden panel knob left at its default of 5,
-///         halving the drive into the inverter, with Master Location and Master Trim acting on an amp without a master.)
+///         The stack's output is the treble wiper, loaded by the inverter's 1M grid resistor: the amp has no master.
+///         (The model first had that 1M as a pot on the Master role, which the hidden panel knob left at its default of
+///         5, halving the drive into the inverter, with Master Location and Master Trim acting on an amp without a
+///         master.)
 ///     </para>
 /// </remarks>
 public static class Bassman {

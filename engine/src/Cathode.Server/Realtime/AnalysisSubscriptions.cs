@@ -39,9 +39,14 @@ public sealed class AnalysisSubscriptions(LiveRig rig, EngineConnection engine) 
         return ApplyTunerAsync();
     }
 
-    /// <summary>Brings the rig's tuner to whether any client wants it, one change at a time so none lands out of order.</summary>
+    /// <summary>
+    ///     Brings the rig's tuner to whether any client wants it, one change at a time so none lands out of
+    ///     order.
+    /// </summary>
     async Task ApplyTunerAsync() {
-        await tunerApply.WaitAsync();
+        // Not cancellable on purpose: a change that has started is carried through, or the rig and the clients
+        // would disagree about whether the tuner is on.
+        await tunerApply.WaitAsync(CancellationToken.None);
         try {
             if (TunerOn != rig.TunerOn) {
                 await rig.SetTunerAsync(TunerOn);
@@ -58,7 +63,10 @@ public sealed class AnalysisSubscriptions(LiveRig rig, EngineConnection engine) 
         }
     }
 
-    /// <summary>Applies the RTA's settings (whoever sends them) and the client's on or off. Throws on invalid settings.</summary>
+    /// <summary>
+    ///     Applies the RTA's settings (whoever sends them) and the client's on or off. Throws on invalid
+    ///     settings.
+    /// </summary>
     public void SetRta(string? client, RtaRequest request) {
         lock (gate) {
             engine.SetRta(request with { Enabled = engine.RtaEnabled }); // validates before anything changes

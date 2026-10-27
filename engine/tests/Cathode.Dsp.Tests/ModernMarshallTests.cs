@@ -240,7 +240,8 @@ public class ModernMarshallTests(ITestOutputHelper output) {
             foreach (var knob in new[] { CircuitAmpBlock.Gain, CircuitAmpBlock.Master }) {
                 var levels = new[] { 0f, 2.5f, 5f, 7.5f, 10f }.Select(v => Level(knob, v)).ToArray();
                 output.WriteLine(
-                    $"{type} channel {channel} knob {knob}: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB"
+                    $"{type} channel {channel} knob {knob}: "
+                    + $"{string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB"
                 );
                 for (var i = 1; i < levels.Length; i++) {
                     if (levels[i - 1] > -100) {

@@ -23,8 +23,8 @@ static class MesaParts {
     ///     The Mark stack driven straight from a plate (no cathode follower): <paramref name="treble" /> from the plate to
     ///     the treble pot's top (<paramref name="shift" /> more while <paramref name="shiftRole" /> is on: Treble Shift,
     ///     Fat), <paramref name="slope" /> to a node S, S through <paramref name="bassCap" /> to the treble pot's foot and
-    ///     the bass rheostat, S through <paramref name="middleCap" /> to the bass rheostat's foot and the middle rheostat
-    ///     to ground. Returns the treble wiper, S and the treble pot's top.
+    ///     the bass rheostat, S through <paramref name="middleCap" /> to the bass rheostat's foot and the middle
+    ///     rheostat to ground. Returns the treble wiper, S and the treble pot's top.
     /// </summary>
     public static (int Wiper, int Slope, int TrebleTop) Stack(
         StageNetlist net,
@@ -61,9 +61,9 @@ static class MesaParts {
     }
 
     /// <summary>
-    ///     <see cref="Stack(StageNetlist, int, double, double, SwitchRole?, double, double, double, Pot, Pot, Pot)" /> on
-    ///     nodes the caller has made (the Mark IIC+, IV and V number theirs in their own order): the treble pot's top and
-    ///     foot, the slope node S and the bass rheostat's foot. Returns the treble wiper.
+    ///     <see cref="Stack(StageNetlist, int, double, double, SwitchRole?, double, double, double, Pot, Pot, Pot)" />
+    ///     on nodes the caller has made (the Mark IIC+, IV and V number theirs in their own order): the treble pot's
+    ///     top and foot, the slope node S and the bass rheostat's foot. Returns the treble wiper.
     /// </summary>
     public static int Stack(
         StageNetlist net,
@@ -101,8 +101,8 @@ static class MesaParts {
     ///     load), <paramref name="feedCap" /> (0: none; the IIC+ and IV's 20 nF) and <paramref name="feed" /> into the
     ///     drive (<paramref name="drivePot" /> on <paramref name="driveRole" />): a pot to ground with the grid on its
     ///     wiper, or, with <paramref name="shunt" />, a rheostat to ground at the feed resistor's foot (the TriAxis's
-    ///     Lead 2 drive LDR); <paramref name="gridLeak" /> from there to ground, <paramref name="gridStopper" /> (0: none)
-    ///     to the grid, <paramref name="gridCathode" /> from there to the cathode; an ECC83 with 82k from a
+    ///     Lead 2 drive LDR); <paramref name="gridLeak" /> from there to ground, <paramref name="gridStopper" /> (0:
+    ///     none) to the grid, <paramref name="gridCathode" /> from there to the cathode; an ECC83 with 82k from a
     ///     <paramref name="supply" />-volt rail, 1.5k ‖ 2.2 µF. Returns the plate.
     /// </summary>
     public static int LeadDrive(
@@ -155,12 +155,13 @@ static class MesaParts {
     }
 
     /// <summary>
-    ///     The Mark lead stage after the drive: <paramref name="couplingCap" /> from <paramref name="input" />, 270k into
-    ///     68k ‖ 1 nF, <paramref name="gridStopper" /> (0: none) to the grid, <paramref name="gridCathode" /> (0: none)
-    ///     from the grid to the cathode; an ECC83 with 270k from a <paramref name="supply" />-volt rail,
+    ///     The Mark lead stage after the drive: <paramref name="couplingCap" /> from <paramref name="input" />, 270k
+    ///     into 68k ‖ 1 nF, <paramref name="gridStopper" /> (0: none) to the grid, <paramref name="gridCathode" /> (0:
+    ///     none) from the grid to the cathode; an ECC83 with 270k from a <paramref name="supply" />-volt rail,
     ///     <paramref name="plateCap" /> (0: none) across it; 3.3k with 0.22 µF: fixed without a
-    ///     <paramref name="bypassSwitch" />, through <paramref name="seriesResistor" /> to ground that the switch shorts
-    ///     with one, or, with a switch and no series resistor, connected only while the switch is on. Returns the plate.
+    ///     <paramref name="bypassSwitch" />, through <paramref name="seriesResistor" /> to ground that the switch
+    ///     shorts with one, or, with a switch and no series resistor, connected only while the switch is on. Returns
+    ///     the plate.
     /// </summary>
     public static int LeadStage(
         StageNetlist net,

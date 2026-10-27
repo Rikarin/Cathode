@@ -363,8 +363,8 @@ public sealed class EngineHostService : IDisposable {
 
     /// <summary>
     ///     Applies the <c>params</c> array of a frame, positioned on its property name. Like
-    ///     <see cref="SetParams(IpcMessage)" />, a stale generation rejects the whole update unless every value is a rig
-    ///     or global parameter.
+    ///     <see cref="SetParams(IpcMessage)" />, a stale generation rejects the whole update unless every value is a
+    ///     rig or global parameter.
     /// </summary>
     IpcMessage SetParams(long id, int generation, ref Utf8JsonReader reader) {
         if ((latest is null || generation != latest.Generation) && TargetsGraph(reader)) {
@@ -565,7 +565,8 @@ public sealed class EngineHostService : IDisposable {
             exceptionReportedAt = now;
         } else if (Stopwatch.GetElapsedTime(exceptionReportedAt, now) >= TimeSpan.FromSeconds(10)) {
             Log?.Invoke(
-                $"error: {count} exceptions on the audio thread so far (latest: {exception?.GetType().Name ?? "unknown"}: {exception?.Message})"
+                $"error: {count} exceptions on the audio thread so far "
+                + $"(latest: {exception?.GetType().Name ?? "unknown"}: {exception?.Message})"
             );
             exceptionReportedAt = now;
         }

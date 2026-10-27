@@ -320,9 +320,9 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
 
             if (previous is not null) {
                 previous.Inputs?.FadeOut(); // like the grid input below, the hardware inputs fade out of the old graph
-                // The old graph spills over under the new one. A graph still spilling from an earlier swap fades out over
-                // one swap fade rather than stopping dead; only a third change inside that fade retires it at once.
-                // With spillover off the old graph only fades out over the swap, a clean cut without tails.
+                // The old graph spills over under the new one. A graph still spilling from an earlier swap fades out
+                // over one swap fade rather than stopping dead; only a third change inside that fade retires it at
+                // once. With spillover off the old graph only fades out over the swap, a clean cut without tails.
                 if (tail.Graph is not null) {
                     Retire(Interlocked.Exchange(ref evicted.Graph, null));
                     (tail, evicted) = (evicted, tail);
@@ -646,8 +646,9 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     }
 
     /// <summary>
-    ///     Audio thread: hand a graph to the control side. A lock-free push onto a list linked through the graphs, so it
-    ///     never allocates and never drops one however many swaps come between two <see cref="CollectRetired" /> sweeps.
+    ///     Audio thread: hand a graph to the control side. A lock-free push onto a list linked through the graphs, so
+    ///     it never allocates and never drops one however many swaps come between two <see cref="CollectRetired" />
+    ///     sweeps.
     /// </summary>
     void Retire(CompiledGraph? graph) {
         if (graph is null) {

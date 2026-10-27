@@ -132,8 +132,8 @@ public sealed record InputMap(int[][] Sources) {
 
 /// <summary>
 ///     A running device stream that calls an <see cref="IAudioProcessor" /> on the driver's real-time thread.
-///     The <see cref="InputMap" />'s Input 1 is the engine's main input (by default channel 1 on both sides: a guitar DI
-///     is mono), and its other sources travel in <see cref="AudioIO.Sources" />. An <see cref="OutputBus" /> maps
+///     The <see cref="InputMap" />'s Input 1 is the engine's main input (by default channel 1 on both sides: a guitar
+///     DI is mono), and its other sources travel in <see cref="AudioIO.Sources" />. An <see cref="OutputBus" /> maps
 ///     Output 1 (by default to channels 1 and 2), Outputs 2-4 and the DI out to device channels; an output mapped past
 ///     the device's last channel is dropped. Optional <see cref="LoopChannels" /> carry an external effects loop.
 /// </summary>
@@ -224,8 +224,8 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     }
 
     /// <summary>
-    ///     Exceptions the processor threw on the audio thread so far. Each one leaves that callback's output silent (the
-    ///     backends clear it before the call), so a persistent one sounds like a dead interface.
+    ///     Exceptions the processor threw on the audio thread so far. Each one leaves that callback's output silent
+    ///     (the backends clear it before the call), so a persistent one sounds like a dead interface.
     /// </summary>
     public long CallbackExceptions => Interlocked.Read(ref exceptions);
 

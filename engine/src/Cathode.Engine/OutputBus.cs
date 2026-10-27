@@ -54,8 +54,8 @@ public sealed class OutputBus : IDisposable {
     ///     the default, Output 1 on channels 1-2. <paramref name="di" /> lists one or two channels for the DI out.
     /// </summary>
     /// <remarks>
-    ///     A negative output channel, or a DI channel below 1, is a <see cref="FormatException" />: it would index before
-    ///     the driver's channel-pointer array on the audio thread.
+    ///     A negative output channel, or a DI channel below 1, is a <see cref="FormatException" />: it would index
+    ///     before the driver's channel-pointer array on the audio thread.
     /// </remarks>
     public static OutputBus Parse(string? outputs, string? di) {
         var pairs = List(outputs, "--outputs", 0);

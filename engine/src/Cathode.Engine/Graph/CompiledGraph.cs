@@ -188,7 +188,23 @@ public sealed class CompiledGraph : IDisposable {
         meterLayout = new string[meterCount];
         ownMeters = new IBlockMeters[metered];
         ownOffsets = new int[metered];
-        metered = 0;
+        LayOutMeters();
+        bypass = new BypassState[blocks.Length];
+        for (var i = 0; i < blocks.Length; i++) {
+            bypass[i] = new(bypassed[i], bypassModes[i]);
+            if (blocks[i].LatencySamples > 0) {
+                dryDelays ??= new DelayLine?[blocks.Length];
+                dryDelays[i] = new(blocks[i].LatencySamples);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Names the meters (each block's peak meter, then the block's own meters after it) and records the blocks that
+    ///     have their own, in the arrays the constructor sized.
+    /// </summary>
+    void LayOutMeters() {
+        var metered = 0;
         for (var i = 0; i < blocks.Length; i++) {
             meterLayout[meterOffsets[i]] = PeakMeter;
             if (blocks[i] is IBlockMeters own) {
@@ -197,15 +213,6 @@ public sealed class CompiledGraph : IDisposable {
                 for (var m = 0; m < own.MeterIds.Count; m++) {
                     meterLayout[meterOffsets[i] + 1 + m] = own.MeterIds[m];
                 }
-            }
-        }
-
-        bypass = new BypassState[blocks.Length];
-        for (var i = 0; i < blocks.Length; i++) {
-            bypass[i] = new(bypassed[i], bypassModes[i]);
-            if (blocks[i].LatencySamples > 0) {
-                dryDelays ??= new DelayLine?[blocks.Length];
-                dryDelays[i] = new(blocks[i].LatencySamples);
             }
         }
     }
@@ -466,27 +473,7 @@ public sealed class CompiledGraph : IDisposable {
         }
 
         // Thru or Mute, mid-fade: crossfade between the processed signal and dry (Thru) or silence (Mute).
-        var dryLeft = this.dryLeft.Span[..io.Length];
-        var dryRight = this.dryRight.Span[..io.Length];
-        if (bypass.Mode == BypassKind.Thru) {
-            if (!latent) {
-                io.Left.CopyTo(dryLeft);
-                io.Right.CopyTo(dryRight);
-            }
-        } else {
-            dryLeft.Clear();
-            dryRight.Clear();
-        }
-
-        blocks[slot].Process(io, context);
-        var mix = bypass.Mix;
-        for (var i = 0; i < io.Length; i++) {
-            mix = Step(mix, target);
-            io.Left[i] = dryLeft[i] + (io.Left[i] - dryLeft[i]) * mix;
-            io.Right[i] = dryRight[i] + (io.Right[i] - dryRight[i]) * mix;
-        }
-
-        bypass.Mix = mix;
+        RunCrossfaded(slot, target, io, context, latent, bypass.Mode == BypassKind.Thru);
     }
 
     /// <summary>
@@ -535,9 +522,18 @@ public sealed class CompiledGraph : IDisposable {
             return;
         }
 
+        RunCrossfaded(slot, target, io, context, latent, bypass.Mode == BypassKind.MuteFxOut);
+    }
+
+    /// <summary>
+    ///     Runs the block and crossfades its output, by the bypass mix stepping towards <paramref name="target" />,
+    ///     against its dry input (when <paramref name="dry" /> is set) or against silence.
+    /// </summary>
+    void RunCrossfaded(int slot, float target, in StereoBuffer io, in BlockContext context, bool latent, bool dry) {
+        ref var bypass = ref this.bypass[slot];
         var dryLeft = this.dryLeft.Span[..io.Length];
         var dryRight = this.dryRight.Span[..io.Length];
-        if (bypass.Mode == BypassKind.MuteFxOut) {
+        if (dry) {
             if (!latent) { // a latent block's dry signal is already there, delayed to line up with its output
                 io.Left.CopyTo(dryLeft);
                 io.Right.CopyTo(dryRight);

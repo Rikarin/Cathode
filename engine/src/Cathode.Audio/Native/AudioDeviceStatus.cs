@@ -13,12 +13,18 @@ public enum AudioDeviceStatus {
     /// </summary>
     Changed = 1,
 
-    /// <summary>The device was unplugged, disabled or taken away, or stopped calling back: the output is silent.</summary>
+    /// <summary>
+    ///     The device was unplugged, disabled or taken away, or stopped calling back: the output is
+    ///     silent.
+    /// </summary>
     Lost = 2
 }
 
 public static class AudioDeviceStatusNames {
-    /// <summary>The status as the API reports it: <c>ok</c>, <c>changed</c> or <c>lost</c> (constant strings).</summary>
+    /// <summary>
+    ///     The status as the API reports it: <c>ok</c>, <c>changed</c> or <c>lost</c> (constant
+    ///     strings).
+    /// </summary>
     public static string Name(this AudioDeviceStatus status) =>
         status switch {
             AudioDeviceStatus.Changed => "changed",

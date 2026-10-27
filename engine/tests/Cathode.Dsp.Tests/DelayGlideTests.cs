@@ -12,16 +12,16 @@ public class DelayGlideTests {
 
     [Fact]
     public void Chorus_delay_glides() =>
-        AssertGlides(() => TestBlocks.Create<ChorusBlock>((ChorusBlock.Mix, 100f)), ChorusBlock.Delay, 30f);
+        AssertGlides(static () => TestBlocks.Create<ChorusBlock>((ChorusBlock.Mix, 100f)), ChorusBlock.Delay, 30f);
 
     [Fact]
     public void Flanger_manual_glides() =>
-        AssertGlides(() => TestBlocks.Create<FlangerBlock>((FlangerBlock.Mix, 100f)), FlangerBlock.Delay, 10f);
+        AssertGlides(static () => TestBlocks.Create<FlangerBlock>((FlangerBlock.Mix, 100f)), FlangerBlock.Delay, 10f);
 
     [Fact]
     public void Flanger_thru_zero_dry_delay_glides() =>
         AssertGlides(
-            () => TestBlocks.Create<FlangerBlock>((FlangerBlock.ThruZero, FlangerBlock.ThruZeroManual)),
+            static () => TestBlocks.Create<FlangerBlock>((FlangerBlock.ThruZero, FlangerBlock.ThruZeroManual)),
             FlangerBlock.DryDelay,
             10f
         );
@@ -34,7 +34,7 @@ public class DelayGlideTests {
 
     [Fact]
     public void Reverb_pre_delay_glides() =>
-        AssertGlides(() => TestBlocks.Create<ReverbBlock>((ReverbBlock.Mix, 100f)), ReverbBlock.PreDelay, 40f);
+        AssertGlides(static () => TestBlocks.Create<ReverbBlock>((ReverbBlock.Mix, 100f)), ReverbBlock.PreDelay, 40f);
 
     static void AssertGlides(Func<IDspBlock> create, int parameter, float to) {
         var tone = Signals.Sine(110, 48_000, 2 * Half, 0.5f);

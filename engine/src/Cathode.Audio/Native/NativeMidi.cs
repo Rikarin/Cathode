@@ -22,7 +22,10 @@ public static unsafe partial class NativeMidi {
 
     public static bool IsAvailable => NativeAudio.IsLibraryPresent && NativeAudio.Backend != "none";
 
-    /// <summary>How many MIDI endpoints the OS reports, without listing them (allocation-free; needs the library).</summary>
+    /// <summary>
+    ///     How many MIDI endpoints the OS reports, without listing them (allocation-free; needs the
+    ///     library).
+    /// </summary>
     public static int PortCount() => PortCountNative();
 
     public static IReadOnlyList<MidiPort> Ports() {

@@ -159,8 +159,8 @@ public static class HiwattDR103 {
     }
 
     /// <summary>
-    ///     V2B (100k, 1k5 unbypassed), 22 nF into the inverter's 100k grid resistor (the output); from its plate, 1 nF into
-    ///     the presence pot's plate-side half (<see cref="HiwattParts.PresencePlateSide" />).
+    ///     V2B (100k, 1k5 unbypassed), 22 nF into the inverter's 100k grid resistor (the output); from its plate, 1 nF
+    ///     into the presence pot's plate-side half (<see cref="HiwattParts.PresencePlateSide" />).
     /// </summary>
     static NetworkStageDesign V2B() {
         var net = new StageNetlist();

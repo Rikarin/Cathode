@@ -250,7 +250,8 @@ public class HighGainAmpTests(ITestOutputHelper output) {
         var bass = Levels(0, 1);
         var both = Levels(1, 1);
         output.WriteLine(
-            $"60 Hz / 700 Hz against off: Treble Shift {treble.Low - off.Low:+0.0;-0.0} / {treble.Mid - off.Mid:+0.0;-0.0}"
+            "60 Hz / 700 Hz against off: "
+            + $"Treble Shift {treble.Low - off.Low:+0.0;-0.0} / {treble.Mid - off.Mid:+0.0;-0.0}"
             + $" dB, Bass Shift {bass.Low - off.Low:+0.0;-0.0} / {bass.Mid - off.Mid:+0.0;-0.0}"
             + $" dB, both {both.Low - off.Low:+0.0;-0.0} / {both.Mid - off.Mid:+0.0;-0.0} dB"
         );

@@ -11,10 +11,10 @@ namespace Cathode.Server.Stores;
 
 /// <summary>
 ///     The <c>.cthpreset</c> package: a zip of <c>manifest.json</c>, <c>preset.json</c> and the IRs and models the
-///     preset uses as <c>assets/&lt;sha256&gt;.&lt;wav|cabgrid|nam|aidax&gt;</c>. Import treats the file as hostile: only
-///     those
-///     exact names are accepted (nothing is ever extracted to a path taken from the zip), sizes are enforced while
-///     reading rather than trusted from headers, and every asset must hash to its name before it enters the store.
+///     preset uses as <c>assets/&lt;sha256&gt;.&lt;wav|cabgrid|nam|aidax&gt;</c>. Import treats the file as hostile:
+///     only those exact names are accepted (nothing is ever extracted to a path taken from the zip), sizes are enforced
+///     while reading rather than trusted from headers, and every asset must hash to its name before it enters the
+///     store.
 /// </summary>
 public sealed partial class PresetPackage(PresetStore presets, AssetStore assets) {
     public const string Extension = ".cthpreset";

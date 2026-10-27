@@ -102,8 +102,8 @@ public static class HiwattParts {
     }
 
     /// <summary>
-    ///     V2B (100k, 1k5 unbypassed), 22 nF into the inverter's 100k grid resistor (the output); from its plate, 1 nF into
-    ///     the presence pot's plate-side half (<see cref="PresencePlateSide" />).
+    ///     V2B (100k, 1k5 unbypassed), 22 nF into the inverter's 100k grid resistor (the output); from its plate, 1 nF
+    ///     into the presence pot's plate-side half (<see cref="PresencePlateSide" />).
     /// </summary>
     public static NetworkStageDesign V2B(double supply) {
         var net = new StageNetlist();
@@ -122,9 +122,9 @@ public static class HiwattParts {
     /// <summary>
     ///     The presence pot's plate-side half: the 100k linear pot sits between 1 nF from V2B's plate and 0.1 µF to the
     ///     feedback node, its wiper through 100 Ω to ground. Turned down, the plate side is short and the 1 nF shunts
-    ///     V2B's treble to ground (from about 2 kHz); turned up, the plate side's 100k leaves it, while the feedback side
-    ///     (the power amp's presence network, the same pot) shorts out and lifts the treble in the feedback. The 100 Ω the
-    ///     two halves share is taken as each one's own.
+    ///     V2B's treble to ground (from about 2 kHz); turned up, the plate side's 100k leaves it, while the feedback
+    ///     side (the power amp's presence network, the same pot) shorts out and lifts the treble in the feedback. The
+    ///     100 Ω the two halves share is taken as each one's own.
     /// </summary>
     public static void PresencePlateSide(StageNetlist net, int plate) {
         var (coupled, wiper) = (net.Node(), net.Node());

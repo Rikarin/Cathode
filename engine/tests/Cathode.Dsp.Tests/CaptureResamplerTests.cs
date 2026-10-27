@@ -34,8 +34,8 @@ public class CaptureResamplerTests {
 
     [Fact]
     public void The_tone_does_not_depend_on_the_engine_rate() {
-        // A model whose filter is defined in samples, as a neural capture's are: a one-pole low-pass at 2 kHz at 48 kHz.
-        // Run at 96 kHz without resampling its corner would move up an octave.
+        // A model whose filter is defined in samples, as a neural capture's are: a one-pole low-pass at 2 kHz at 48
+        // kHz. Run at 96 kHz without resampling its corner would move up an octave.
         static double GainAt(int engineRate, double frequency) {
             using var block = Amp(new FakeModel(48_000, identity: false), engineRate, 64);
             var input = Signals.Sine(frequency, engineRate, engineRate, 0.25f);

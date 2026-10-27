@@ -44,8 +44,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Panel: Gain is the playing channel's gain, Bass, Middle and Treble both channels' stacks, Control 1 the
 ///         Contour and Control 2 the boost Volume, Master the master; Switch 1 selects the Normal channel, Switch 2 the
 ///         OD2 mode, Switch 3 the Normal channel's Crunch. A solid-state power amp: no power-tube parameters; the
-///         preamp-tube ones (tube type, bias, hardness, grid current) stay, for the boost channel's ECC83 (its supply is
-///         taken as stiff, so no Preamp Sag).
+///         preamp-tube ones (tube type, bias, hardness, grid current) stay, for the boost channel's ECC83 (its supply
+///         is taken as stiff, so no Preamp Sag).
 ///     </para>
 /// </remarks>
 public static class Valvestate8080 {

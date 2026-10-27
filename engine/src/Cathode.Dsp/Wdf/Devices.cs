@@ -142,17 +142,17 @@ public static class DeviceMath {
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///         Upwards, above the critical voltage, a step is compressed to n Vt ln(1 + Δ / n Vt): the voltage at which the
-    ///         exponential reaches the current the tangent predicted, so the current cannot explode.
+    ///         Upwards, above the critical voltage, a step is compressed to n Vt ln(1 + Δ / n Vt): the voltage at which
+    ///         the exponential reaches the current the tangent predicted, so the current cannot explode.
     ///     </para>
     ///     <para>
     ///         Downwards, from a conducting junction, a step of more than n Vt means the tangent predicts no current at
     ///         all: the junction then steps at least 10 n Vt down (a factor of 20 000 in current), or to Newton's own
     ///         proposal if that is lower. Smaller downward steps are Newton's own. Expanding them as well (to
-    ///         n Vt ln(1 + Δ / n Vt), exact for a lone junction) saves an iteration or two on a one-port clipper, but in a
-    ///         coupled circuit, where the tangent's Δ is not the junction's alone, it overshoots: a BJT stage or an op-amp
-    ///         with feedback diodes under hard drive then leaves hundreds of samples unconverged instead of a handful
-    ///         (the hard-drive stages of <c>NonlinearRootTests</c>). Only the path changes, never the solution.
+    ///         n Vt ln(1 + Δ / n Vt), exact for a lone junction) saves an iteration or two on a one-port clipper, but
+    ///         in a coupled circuit, where the tangent's Δ is not the junction's alone, it overshoots: a BJT stage or
+    ///         an op-amp with feedback diodes under hard drive then leaves hundreds of samples unconverged instead of a
+    ///         handful (the hard-drive stages of <c>NonlinearRootTests</c>). Only the path changes, never the solution.
     ///     </para>
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

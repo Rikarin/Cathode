@@ -141,8 +141,8 @@ public static class Savage120 {
     }
 
     /// <summary>
-    ///     V2B: 1 nF from the grid to ground with Lead Boost; 330k plate; 3.3k, bypassed by 10 µF with Lead Boost; 47 nF
-    ///     into V3B's grid leaks (1M and 1M).
+    ///     V2B: 1 nF from the grid to ground with Lead Boost; 330k plate; 3.3k, bypassed by 10 µF with Lead Boost; 47
+    ///     nF into V3B's grid leaks (1M and 1M).
     /// </summary>
     static StageNetlist ThirdStage() {
         var net = new StageNetlist();

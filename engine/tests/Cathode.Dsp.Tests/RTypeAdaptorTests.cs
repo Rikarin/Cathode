@@ -339,8 +339,8 @@ public class RTypeAdaptorTests(ITestOutputHelper output) {
 /// <summary>
 ///     The Fender Bassman 5F6-A tone stack (Yeh and Smith, "Discretization of the '59 Fender Bassman tone stack",
 ///     DAFx-06): 250 pF to the treble pot, 56k slope resistor, 20 nF to the bass pot, 20 nF to the mid pot, pots 250k
-///     treble, 1M bass, 25k mid, into a 1M grid; driven from a 100 Ω cathode follower. The pots are resistors inside the
-///     R-type root, so turning one recomputes the scattering matrix.
+///     treble, 1M bass, 25k mid, into a 1M grid; driven from a 100 Ω cathode follower. The pots are resistors inside
+///     the R-type root, so turning one recomputes the scattering matrix.
 /// </summary>
 sealed class FenderToneStack {
     const double SlopeResistor = 56e3;

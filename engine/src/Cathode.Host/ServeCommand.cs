@@ -113,8 +113,10 @@ static class ServeCommand {
 
                 Console.Error.WriteLine(
                     status == AudioDeviceStatus.Lost
-                        ? $"{DateTime.Now:HH:mm:ss.fff} error: the audio device was lost (unplugged, taken away or no longer calling back); exiting so the host is restarted"
-                        : $"{DateTime.Now:HH:mm:ss.fff} error: the audio device's sample rate, buffer size or default changed under the host; exiting so it is restarted with the new settings"
+                        ? $"{DateTime.Now:HH:mm:ss.fff} error: the audio device was lost (unplugged, taken away or no "
+                        + "longer calling back); exiting so the host is restarted"
+                        : $"{DateTime.Now:HH:mm:ss.fff} error: the audio device's sample rate, buffer size or default "
+                        + "changed under the host; exiting so it is restarted with the new settings"
                 );
                 // Long enough for a telemetry push (every 100 ms) to tell the Server why before the connection drops.
                 await Task.Delay(300, CancellationToken.None).ConfigureAwait(false);

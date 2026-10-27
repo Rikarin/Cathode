@@ -83,7 +83,7 @@ public sealed class TriodeTables {
 
     // Copy-on-write: a published dictionary is never written again, so the audio thread's lookups (a device rebuilt
     // by an expert setting) read it without a lock, while a miss builds under BuildLock on the control thread.
-    static readonly object BuildLock = new();
+    static readonly Lock BuildLock = new();
     static volatile Dictionary<TriodeModel, TriodeTables> cache = [];
 
     readonly HermiteTable g;
@@ -305,7 +305,7 @@ public sealed class PentodeTables {
 
     // Copy-on-write: a published dictionary is never written again, so the audio thread's lookups (a device rebuilt
     // by an expert setting) read it without a lock, while a miss builds under BuildLock on the control thread.
-    static readonly object BuildLock = new();
+    static readonly Lock BuildLock = new();
     static volatile Dictionary<PentodeModel, PentodeTables> cache = [];
 
     readonly HermiteTable g;

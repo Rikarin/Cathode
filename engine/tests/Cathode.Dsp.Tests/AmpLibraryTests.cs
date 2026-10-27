@@ -301,10 +301,10 @@ public partial class AmpStageTests {
     }
 
     /// <summary>
-    ///     The 5F6-A's presence (the 5k pot is the tail's shunt, the 0.1 µF on its wiper): the feedback filter's first-order
-    ///     β(s) equals Z / (R_f + Z) for Z = (1 - p) R + p R ∥ C at every setting; flat at 0 (the generic wiring, a pot and
-    ///     cap
-    ///     across a fixed 5k, cut 1 kHz's feedback by about 5 dB there), the two wirings equal at 10.
+    ///     The 5F6-A's presence (the 5k pot is the tail's shunt, the 0.1 µF on its wiper): the feedback filter's
+    ///     first-order β(s) equals Z / (R_f + Z) for Z = (1 - p) R + p R ∥ C at every setting; flat at 0 (the generic
+    ///     wiring, a pot and cap across a fixed 5k, cut 1 kHz's feedback by about 5 dB there), the two wirings equal at
+    ///     10.
     /// </summary>
     [Fact]
     public void Presence_pot_as_the_tail_shunt_matches_its_circuit() {
@@ -409,7 +409,8 @@ public partial class AmpStageTests {
         }
 
         // Driven well into the inverter's grid current the power tubes block hard too, and the output's error says more about
-        // that than about the inverter; its grid shows the input network: coupling cap, bootstrapped leak, grid conduction.
+        // that than about the inverter; its grid shows the input network: coupling cap, bootstrapped leak, grid
+        // conduction.
         var rest = power.PhaseInverter.RestGrid;
         var fresh = new PowerAmp(design, Rate);
         fresh.SetSourceResistance(sourceResistance);

@@ -46,7 +46,10 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     bool prepared;
     CaptureResampler? resampler;
 
-    /// <summary>The rate a model is assumed to be trained at when its file does not say (as the NAM plugin assumes).</summary>
+    /// <summary>
+    ///     The rate a model is assumed to be trained at when its file does not say (as the NAM plugin
+    ///     assumes).
+    /// </summary>
     public const double DefaultModelRate = 48_000;
 
     public static BlockDescriptor Info { get; } = new(
@@ -80,8 +83,8 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
         : this(AidaModel.Load) { }
 
     /// <summary>
-    ///     Control thread, normally before <see cref="IDspBlock.Prepare" />; on a block that is already prepared the new
-    ///     model is reset for the current spec, so it never runs unprepared.
+    ///     Control thread, normally before <see cref="IDspBlock.Prepare" />; on a block that is already prepared the
+    ///     new model is reset for the current spec, so it never runs unprepared.
     /// </summary>
     public void LoadAsset(string slot, string path) {
         if (slot != ModelSlot) {

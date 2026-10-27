@@ -286,8 +286,8 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     /// <summary>
     ///     A stiff silicon supply on AC (the JCM900 4100's 25 Ω into 100 µF: R C = 2.5 ms, under the 4.2 ms at which
     ///     a source-resistance calibration still reaches the design's B+) charges its reservoir smoothly in each
-    ///     conduction window, even at Sag 0 with B+ Time Const 25 % (dt / R C about 1.6 at the inner rate), instead of a
-    ///     sawtooth at the inner Nyquist rate; its mean is the design's B+; and Sag, which scales the source
+    ///     conduction window, even at Sag 0 with B+ Time Const 25 % (dt / R C about 1.6 at the inner rate), instead of
+    ///     a sawtooth at the inner Nyquist rate; its mean is the design's B+; and Sag, which scales the source
     ///     resistance, still moves it.
     /// </summary>
     [Fact]
@@ -321,7 +321,8 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         var stiff = Run(0, 1);
         var soft = Run(1, 1);
         output.WriteLine(
-            $"mean B+ {stock.Mean:0.0} V (design {design.Supply:0.0} V), Sag 0 {stiff.Mean:0.0} V, Sag 10 {soft.Mean:0.0} V; "
+            $"mean B+ {stock.Mean:0.0} V (design {design.Supply:0.0} V), "
+            + $"Sag 0 {stiff.Mean:0.0} V, Sag 10 {soft.Mean:0.0} V; "
             + $"largest second difference {stock.Kink:0.000} V stock, {hard.Kink:0.000} V at Sag 0 and 25 %"
         );
         Assert.InRange(stock.Mean, 0.985 * design.Supply, 1.015 * design.Supply);
@@ -428,8 +429,9 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         && index is not (CircuitAmpBlock.Variac or CircuitAmpBlock.SupplyTime);
 
     /// <summary>
-    ///     Preamp Bias, Preamp and Power Tube Hardness and CF Harmonics are continuous knobs: swept a little every block,
-    ///     the channel retunes and slews instead of resetting to its rest (which cut the signal to DC at every step).
+    ///     Preamp Bias, Preamp and Power Tube Hardness and CF Harmonics are continuous knobs: swept a little every
+    ///     block, the channel retunes and slews instead of resetting to its rest (which cut the signal to DC at every
+    ///     step).
     /// </summary>
     [Theory]
     [InlineData("bias")]

@@ -25,10 +25,11 @@ static partial class AtomicRename {
     const int ErrorNotSupported = 50;
 
     /// <summary>
-    ///     Replaces <paramref name="path" /> with <paramref name="contents" /> (UTF-8): written to a temporary file of its
-    ///     own beside it (two writers of one file never share one), flushed to the disk, renamed over the file, and on
-    ///     Linux and macOS the folder flushed too, so after a power cut the file is the old one or the new one, whole.
-    ///     A sharing violation or denied access (an indexer or a scanner holding a file a moment) is retried briefly.
+    ///     Replaces <paramref name="path" /> with <paramref name="contents" /> (UTF-8): written to a temporary file of
+    ///     its own beside it (two writers of one file never share one), flushed to the disk, renamed over the file, and
+    ///     on Linux and macOS the folder flushed too, so after a power cut the file is the old one or the new one,
+    ///     whole. A sharing violation or denied access (an indexer or a scanner holding a file a moment) is retried
+    ///     briefly.
     /// </summary>
     public static void Write(string path, string contents) {
         var bytes = Encoding.UTF8.GetBytes(contents);
@@ -57,7 +58,10 @@ static partial class AtomicRename {
         );
     }
 
-    /// <summary>Runs a file operation, retrying a sharing violation or a denied access for up to about a second.</summary>
+    /// <summary>
+    ///     Runs a file operation, retrying a sharing violation or a denied access for up to about a
+    ///     second.
+    /// </summary>
     public static TResult Retrying<TResult>(Func<TResult> operation) {
         for (var attempt = 1;; attempt++) {
             try {

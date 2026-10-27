@@ -275,17 +275,17 @@ public abstract class AmpStage {
     /// <summary>
     ///     Applies the expert settings (component values; allocation-free). A new tube moves the operating point, so
     ///     the channel resets afterwards (<see cref="Reset" />); a continuous setting that moves it (the cathode
-    ///     resistor, the hardness, a follower's bias) only retunes it (<see cref="Retune" />), so the knob can be swept or
-    ///     automated without cutting the signal.
+    ///     resistor, the hardness, a follower's bias) only retunes it (<see cref="Retune" />), so the knob can be swept
+    ///     or automated without cutting the signal.
     /// </summary>
     public virtual void Apply(in PreampSettings settings) { }
 
     /// <summary>
     ///     Recomputes <see cref="RestOutput" /> and <see cref="OutputResistance" /> for the current settings and a
-    ///     source resting at <paramref name="restInput" /> volts, leaving the circuit's state alone: the caps and Newton
-    ///     carry on from where they are and the circuit slews to its new operating point by itself (a cathode bypass
-    ///     cap recharging through the new resistor). Allocation-free. A stage whose operating point no setting moves
-    ///     keeps the default, which does nothing.
+    ///     source resting at <paramref name="restInput" /> volts, leaving the circuit's state alone: the caps and
+    ///     Newton carry on from where they are and the circuit slews to its new operating point by itself (a cathode
+    ///     bypass cap recharging through the new resistor). Allocation-free. A stage whose operating point no setting
+    ///     moves keeps the default, which does nothing.
     /// </summary>
     public virtual void Retune(double restInput) { }
 

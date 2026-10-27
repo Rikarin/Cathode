@@ -320,10 +320,10 @@ public class BassAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The JC-120's distortion, read after the tone stage (IC3a's input), a 108 Hz sine into the High input: off, the
-    ///     Distortion knob does nothing; on, it raises IC2a's gain (from 1.9× to 48×), and the diodes after the two 3.9k
-    ///     clip: the output's peak barely follows the drive and its third harmonic rises, where the same IC2a output with
-    ///     the distortion off (more input instead) stays clean.
+    ///     The JC-120's distortion, read after the tone stage (IC3a's input), a 108 Hz sine into the High input: off,
+    ///     the Distortion knob does nothing; on, it raises IC2a's gain (from 1.9× to 48×), and the diodes after the two
+    ///     3.9k clip: the output's peak barely follows the drive and its third harmonic rises, where the same IC2a
+    ///     output with the distortion off (more input instead) stays clean.
     /// </summary>
     [Fact]
     public void Jc120_distortion_knob_adds_gain_and_its_diodes_clip_only_when_on() {
@@ -347,7 +347,8 @@ public class BassAmpTests(ITestOutputHelper output) {
         var clean = ThroughStack(0.05 * 48 / 1.92, false, 0);
         output.WriteLine(
             $"On at 10: H3 {Db(clipped.Third / clipped.Fundamental):0.0} dB, peak {clipped.Peak:0.000} V; at 7: H3 "
-            + $"{Db(moderate.Third / moderate.Fundamental):0.0} dB, peak {moderate.Peak:0.000} V; off, same IC2a output: "
+            + $"{Db(moderate.Third / moderate.Fundamental):0.0} dB, peak {moderate.Peak:0.000} V; "
+            + "off, same IC2a output: "
             + $"H3 {Db(clean.Third / clean.Fundamental):0.0} dB, peak {clean.Peak:0.000} V"
         );
         Assert.True(Db(clipped.Third / clipped.Fundamental) > -20, "the diodes clip");
@@ -401,8 +402,8 @@ public class BassAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The solid-state power amp: its output impedance is so low that the speaker settings change nothing; its rails
-    ///     sag under a loud note (more with Sag up), and the output clips just under them.
+    ///     The solid-state power amp: its output impedance is so low that the speaker settings change nothing; its
+    ///     rails sag under a loud note (more with Sag up), and the output clips just under them.
     /// </summary>
     [Fact]
     public void Solid_state_power_amp_holds_the_load_and_sags_on_its_rails() {

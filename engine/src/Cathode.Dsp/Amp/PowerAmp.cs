@@ -1454,10 +1454,10 @@ struct GridSystems {
 
 /// <summary>
 ///     The output tubes of a push-pull stage as a nonlinear one-port across the whole transformer primary, with
-///     everything that drives their grids folded in (see <see cref="PowerAmp" />). Port voltage v is plate A minus plate
-///     B; with an ideal centre-tapped primary the plates sit at B+ ± v/2 and the port current is (I_a - I_b) / 2 per tube
-///     pair (equal power on both sides of the transformer). Single-ended, v is the plate less B+ and the port current
-///     the side's current.
+///     everything that drives their grids folded in (see <see cref="PowerAmp" />). Port voltage v is plate A minus
+///     plate B; with an ideal centre-tapped primary the plates sit at B+ ± v/2 and the port current is (I_a - I_b) / 2
+///     per tube pair (equal power on both sides of the transformer). Single-ended, v is the plate less B+ and the port
+///     current the side's current.
 /// </summary>
 /// <remarks>
 ///     The plain case (push-pull pentodes, screens on the screen node) has its own fast path. The general path adds
@@ -1939,8 +1939,8 @@ struct PushPullStage : INonlinearDevice {
     }
 
     /// <summary>
-    ///     The loop stage and the inverter for the loop stage's input <paramref name="vd" />: the inverter's outputs and
-    ///     their slopes with respect to <paramref name="vd" />.
+    ///     The loop stage and the inverter for the loop stage's input <paramref name="vd" />: the inverter's outputs
+    ///     and their slopes with respect to <paramref name="vd" />.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     readonly (double A, double B) ThroughLoop(double vd, out double slopeA, out double slopeB) {

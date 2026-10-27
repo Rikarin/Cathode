@@ -123,8 +123,8 @@ public sealed class RTypeScattering {
     public bool IsValid { get; private set; }
 
     /// <summary>
-    ///     Whether some <see cref="Recompute" /> has succeeded, so <see cref="Matrix" /> (and <see cref="UpResistance" />)
-    ///     hold a real network rather than the zeros of construction.
+    ///     Whether some <see cref="Recompute" /> has succeeded, so <see cref="Matrix" /> (and
+    ///     <see cref="UpResistance" />) hold a real network rather than the zeros of construction.
     /// </summary>
     public bool HasMatrix { get; private set; }
 

@@ -2,7 +2,6 @@ using Cathode.Contracts;
 using Cathode.Dsp.Parameters;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.Options;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Cathode.Server.Stores;

@@ -297,8 +297,8 @@ public sealed class WahCircuit {
 
     /// <summary>
     ///     Loads <paramref name="bias" />'s voicing at the operating point found for it and resets the circuit there, as
-    ///     <see cref="Configure(WahVoicing)" /> would but without the DC solve: one refactoring of the adaptor, as a pedal
-    ///     move costs. Allocation-free, for a type change on the audio thread.
+    ///     <see cref="Configure(WahVoicing)" /> would but without the DC solve: one refactoring of the adaptor, as a
+    ///     pedal move costs. Allocation-free, for a type change on the audio thread.
     /// </summary>
     public void Configure(WahBias bias) {
         Load(bias.Voicing);
@@ -309,10 +309,16 @@ public sealed class WahCircuit {
         Reset();
     }
 
-    /// <summary>Control thread: the DC operating point of the voicing last configured, for <see cref="Configure(WahBias)" />.</summary>
+    /// <summary>
+    ///     Control thread: the DC operating point of the voicing last configured, for
+    ///     <see cref="Configure(WahBias)" />.
+    /// </summary>
     public WahBias Bias() => new(Voicing, [..operatingPoint], inductorCurrent, [..initialVoltages]);
 
-    /// <summary>Loads the audio circuit's component values for <paramref name="voicing" />, the pot at its middle.</summary>
+    /// <summary>
+    ///     Loads the audio circuit's component values for <paramref name="voicing" />, the pot at its
+    ///     middle.
+    /// </summary>
     void Load(WahVoicing voicing) {
         if (voicing.Transistor.Polarity != BjtPolarity.Npn) {
             throw new ArgumentException("The wah circuit is built with NPN transistors.", nameof(voicing));
@@ -357,7 +363,10 @@ public sealed class WahCircuit {
         SetPot(0.5, false);
     }
 
-    /// <summary>Moves the pot to pedal position <paramref name="toe" /> (0 heel, 1 toe) and refactors the adaptor.</summary>
+    /// <summary>
+    ///     Moves the pot to pedal position <paramref name="toe" /> (0 heel, 1 toe) and refactors the
+    ///     adaptor.
+    /// </summary>
     public void SetPosition(double toe) => SetPot(WiperFraction(Voicing, toe), true);
 
     /// <summary>
@@ -509,9 +518,10 @@ public sealed class WahCircuit {
     }
 
     /// <summary>
-    ///     Newton on the two base-emitter voltages with both base-collector junctions off (see the remarks on the type),
-    ///     from the last two solutions extrapolated and junction-limited like the generic solver. Leaves the four port
-    ///     voltages and residual currents; false when it did not converge or a base-collector junction turned on.
+    ///     Newton on the two base-emitter voltages with both base-collector junctions off (see the remarks on the
+    ///     type), from the last two solutions extrapolated and junction-limited like the generic solver. Leaves the
+    ///     four port voltages and residual currents; false when it did not converge or a base-collector junction turned
+    ///     on.
     /// </summary>
     bool SolveForwardActive(ReadOnlySpan<double> u) {
         var e = reducedInputs.AsSpan();

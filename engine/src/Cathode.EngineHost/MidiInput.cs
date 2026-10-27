@@ -71,9 +71,9 @@ public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage
     }
 
     /// <summary>
-    ///     MIDI thread: handles clock ticks and notes here and returns what the Server should get, or null when nothing is
-    ///     left. The batch is allocated only for such messages, so a running MIDI clock (about 50 ticks a second, nearly
-    ///     every poll) or active sensing allocates nothing (docs/adr/0001-process-model.md).
+    ///     MIDI thread: handles clock ticks and notes here and returns what the Server should get, or null when nothing
+    ///     is left. The batch is allocated only for such messages, so a running MIDI clock (about 50 ticks a second,
+    ///     nearly every poll) or active sensing allocates nothing (docs/adr/0001-process-model.md).
     /// </summary>
     public List<MidiEventMessage>? Translate(List<MidiMessage> messages) {
         var now = NativeMidi.NowNanoseconds();

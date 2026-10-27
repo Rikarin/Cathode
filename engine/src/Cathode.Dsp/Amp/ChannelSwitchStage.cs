@@ -191,7 +191,10 @@ public sealed class ChannelSwitchStage : AmpStage {
         }
     }
 
-    /// <summary>A chain's operating point recomputed in signal order, its state left alone (<see cref="AmpStage.Retune" />).</summary>
+    /// <summary>
+    ///     A chain's operating point recomputed in signal order, its state left alone
+    ///     (<see cref="AmpStage.Retune" />).
+    /// </summary>
     void Retune(AmpStage[] chain) {
         var rest = restInput;
         var resistance = sourceResistance;

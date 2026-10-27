@@ -37,9 +37,9 @@ public static class WavFile {
     }
 
     /// <summary>
-    ///     Reads a seekable WAVE stream. The file is treated as untrusted: a chunk's declared size is never trusted beyond
-    ///     what the stream holds, and a format this reader does not decode is an <see cref="InvalidDataException" />
-    ///     (as is a truncated header, an <see cref="EndOfStreamException" />).
+    ///     Reads a seekable WAVE stream. The file is treated as untrusted: a chunk's declared size is never trusted
+    ///     beyond what the stream holds, and a format this reader does not decode is an
+    ///     <see cref="InvalidDataException" /> (as is a truncated header, an <see cref="EndOfStreamException" />).
     /// </summary>
     public static AudioData Read(Stream stream) {
         var header = ReadHeader(stream);
@@ -71,7 +71,8 @@ public static class WavFile {
             if (tag == "fmt ") {
                 format = ReadFormat(reader, size);
             } else if (tag == "data") {
-                // The declared size may lie (0xFFFFFFFF from a streaming writer, or hostile): only what is there counts.
+                // The declared size may lie (0xFFFFFFFF from a streaming writer, or hostile): only what is there
+                // counts.
                 var length = Math.Min(Math.Min(size, stream.Length - stream.Position), Array.MaxLength);
                 return (format ?? throw new InvalidDataException("'data' chunk before 'fmt ' chunk.")) with {
                     DataBytes = length

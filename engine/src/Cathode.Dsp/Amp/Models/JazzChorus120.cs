@@ -196,9 +196,9 @@ public static class JazzChorus120 {
     }
 
     /// <summary>
-    ///     1 µF and 270k, the 33k / 270k pad, 1 µF and 27k into IC3b. Out at IC3b's input, which draws nothing: IC3b is a
-    ///     unity follower (22k ‖ 47 pF in its feedback) that its input, a few volts at most, cannot clip, so it runs as an
-    ///     ideal buffer (<see cref="BufferStageDesign" />).
+    ///     1 µF and 270k, the 33k / 270k pad, 1 µF and 27k into IC3b. Out at IC3b's input, which draws nothing: IC3b is
+    ///     a unity follower (22k ‖ 47 pF in its feedback) that its input, a few volts at most, cannot clip, so it runs
+    ///     as an ideal buffer (<see cref="BufferStageDesign" />).
     /// </summary>
     static NetworkStageDesign PadStage() {
         var net = new StageNetlist();

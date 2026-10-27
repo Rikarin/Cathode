@@ -11,7 +11,8 @@ public sealed class DeviceHealthTests {
     public void Callback_exceptions_are_published_and_the_first_is_logged_with_its_stack_trace() {
         var device = new FakeDevice();
         var log = new List<string>();
-        using var service = new EngineHostService(ProcessSpec.Default, "test", device: device) { Log = log.Add };
+        using var service = new EngineHostService(ProcessSpec.Default, "test", device: device);
+        service.Log = log.Add;
         var telemetry = new HostTelemetry();
 
         service.Telemetry(telemetry);

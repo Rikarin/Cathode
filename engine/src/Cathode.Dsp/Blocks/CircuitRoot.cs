@@ -758,16 +758,7 @@ public sealed class CircuitRoot<TSource, TDevice>
             reciprocals[c] = inverse;
             ref var pivotRow = ref Unsafe.Add(ref a0, c * k);
             for (var row = c + 1; row < k; row++) {
-                ref var target = ref Unsafe.Add(ref a0, row * k);
-                var factor = Unsafe.Add(ref target, c) * inverse;
-                Unsafe.Add(ref target, c) = factor;
-                if (factor == 0) {
-                    continue;
-                }
-
-                for (var l = c + 1; l < k; l++) {
-                    Unsafe.Add(ref target, l) -= factor * Unsafe.Add(ref pivotRow, l);
-                }
+                DenseLu.EliminateRow(ref Unsafe.Add(ref a0, row * k), ref pivotRow, inverse, c, k);
             }
         }
 

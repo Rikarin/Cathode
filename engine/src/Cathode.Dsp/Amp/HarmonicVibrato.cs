@@ -466,8 +466,8 @@ public sealed class HarmonicVibratoStage : AmpStage {
     }
 
     /// <summary>
-    ///     The rate (<paramref name="speed" /> hertz, held to the ladder's range) and the depth (the Intensity's rotation)
-    ///     for the knobs, recomputed only when one moved.
+    ///     The rate (<paramref name="speed" /> hertz, held to the ladder's range) and the depth (the Intensity's
+    ///     rotation) for the knobs, recomputed only when one moved.
     /// </summary>
     void Configure(double speed, double intensity, bool running) {
         if (speed == this.speed && intensity == this.intensity && running == this.running) {

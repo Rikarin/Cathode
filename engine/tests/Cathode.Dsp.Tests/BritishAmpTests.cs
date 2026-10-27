@@ -167,9 +167,10 @@ public class BritishAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The Hiwatts' Presence works through its whole travel, as the real pot does with its two halves: below clipping,
-    ///     8 kHz rises at every step from 0 to 10, by more than 2 dB from 0 to 7.5 (the plate-side treble cut letting go;
-    ///     the feedback half, 100k across the 2k2 shunt, acts only near the top), while 200 Hz barely moves.
+    ///     The Hiwatts' Presence works through its whole travel, as the real pot does with its two halves: below
+    ///     clipping, 8 kHz rises at every step from 0 to 10, by more than 2 dB from 0 to 7.5 (the plate-side treble cut
+    ///     letting go; the feedback half, 100k across the 2k2 shunt, acts only near the top), while 200 Hz barely
+    ///     moves.
     /// </summary>
     [Theory]
     [InlineData("Hiwatt DR103")]

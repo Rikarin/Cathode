@@ -13,7 +13,8 @@ public interface ICaptureModel : IDisposable {
 
     /// <summary>
     ///     The rate the model was trained at (0 or less when the file does not say; 48 kHz is assumed then). The amp
-    ///     runs the model at this rate, resampling around it when the engine runs at another (<see cref="CaptureResampler" />).
+    ///     runs the model at this rate, resampling around it when the engine runs at another
+    ///     (<see cref="CaptureResampler" />).
     /// </summary>
     double ExpectedSampleRate { get; }
 

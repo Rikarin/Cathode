@@ -455,9 +455,9 @@ public sealed class WahBlock() : DspBlock(Info) {
     }
 
     /// <summary>
-    ///     How far Min and Max Frequency move a circuit's resonance at pedal position <paramref name="toe" /> (0 … 1): Min
-    ///     at the heel, Max at the toe, geometrically between. The circuit takes it as its inductor, scaled by one over
-    ///     its square (the resonance goes as one over root L).
+    ///     How far Min and Max Frequency move a circuit's resonance at pedal position <paramref name="toe" /> (0 … 1):
+    ///     Min at the heel, Max at the toe, geometrically between. The circuit takes it as its inductor, scaled by one
+    ///     over its square (the resonance goes as one over root L).
     /// </summary>
     public static double SweepScale(double minScale, double maxScale, double toe) =>
         minScale == maxScale ? minScale : Math.Pow(minScale, 1 - toe) * Math.Pow(maxScale, toe);

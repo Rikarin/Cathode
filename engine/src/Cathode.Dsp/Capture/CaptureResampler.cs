@@ -44,8 +44,8 @@ public sealed class CaptureResampler {
         var cutoff = Bandwidth * 0.5 * Math.Min(this.engineRate, this.modelRate); // Hz
         toModel = new(2 * cutoff / this.engineRate);
         toEngine = new(2 * cutoff / this.modelRate);
-        // Output sample k needs model samples up to floor(k * fm / fe) + toEngine.Reach, and model sample j needs engine
-        // samples up to floor(j * fe / fm) + toModel.Reach; this delay keeps both available (see Process).
+        // Output sample k needs model samples up to floor(k * fm / fe) + toEngine.Reach, and model sample j needs
+        // engine samples up to floor(j * fe / fm) + toModel.Reach; this delay keeps both available (see Process).
         Latency = toModel.Reach + (int)Math.Ceiling((toEngine.Reach + 1.0) * this.engineRate / this.modelRate) + 1;
         MaxModelFrames = (int)Math.Ceiling(maxBlockSize * (double)this.modelRate / this.engineRate) + 2;
         input = new float[RingSize(maxBlockSize + 2 * toModel.Reach + 8)];
@@ -69,7 +69,10 @@ public sealed class CaptureResampler {
     /// <summary>The fixed delay from input to output, in engine samples.</summary>
     public int Latency { get; }
 
-    /// <summary>True when a model trained at <paramref name="modelRate" /> needs resampling at <paramref name="engineRate" />.</summary>
+    /// <summary>
+    ///     True when a model trained at <paramref name="modelRate" /> needs resampling at
+    ///     <paramref name="engineRate" />.
+    /// </summary>
     public static bool IsNeeded(double engineRate, double modelRate) => Math.Abs(engineRate - modelRate) >= 0.5;
 
     /// <summary>Clears the histories (the model is reset separately).</summary>
@@ -81,8 +84,8 @@ public sealed class CaptureResampler {
     }
 
     /// <summary>
-    ///     Audio thread: <paramref name="samples" /> (engine rate) through <paramref name="model" /> at its own rate, in
-    ///     place, delayed by <see cref="Latency" />.
+    ///     Audio thread: <paramref name="samples" /> (engine rate) through <paramref name="model" /> at its own rate,
+    ///     in place, delayed by <see cref="Latency" />.
     /// </summary>
     public void Process(Span<float> samples, ICaptureModel model) {
         var n = samples.Length;
@@ -169,7 +172,10 @@ public sealed class CaptureResampler {
         /// <summary>How many input samples either side of a point the kernel reaches.</summary>
         public int Reach { get; }
 
-        /// <summary>The signal in <paramref name="ring" /> at input time <paramref name="whole" /> + <paramref name="fraction" />.</summary>
+        /// <summary>
+        ///     The signal in <paramref name="ring" /> at input time <paramref name="whole" /> +
+        ///     <paramref name="fraction" />.
+        /// </summary>
         public float Interpolate(float[] ring, long mask, long whole, double fraction) {
             var sum = 0f;
             for (var d = -Reach; d <= Reach; d++) {

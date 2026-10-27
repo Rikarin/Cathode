@@ -25,7 +25,8 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {
         Assert.Equal(["Vibrato Ch", "Vibrato", string.Empty], Switches("Concert 6G12"));
-        // The harmonic vibrato is the amp's one tremolo: on the tremolo controls, with no generic bias tremolo beside it.
+        // The harmonic vibrato is the amp's one tremolo: on the tremolo controls, with no generic bias tremolo beside
+        // it.
         Assert.Equal("Speed", Label("tremrate", "Super 6G4"));
         Assert.Equal("Intensity", Label("tremdepth", "Concert 6G12"));
         Assert.Empty(Label("control1", "Super 6G4"));
@@ -262,8 +263,8 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
 
     /// <summary>
     ///     CBS's Bassman 135 drawing lists the AC signal at test points for a 100 Hz sine at the input with every control at
-    ///     maximum (6 mV in; 10 W out): V1B's grid 80 mV, its plate 4 V, the mix 1.8 V. Here the Bass channel's stages are
-    ///     run alone and the signal read at the matching nodes.
+    ///     maximum (6 mV in; 10 W out): V1B's grid 80 mV, its plate 4 V, the mix 1.8 V. Here the Bass channel's stages
+    ///     are run alone and the signal read at the matching nodes.
     /// </summary>
     [Fact]
     public void The_bassman_follows_the_test_points_on_the_drawing() {

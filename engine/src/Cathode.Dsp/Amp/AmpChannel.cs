@@ -286,49 +286,26 @@ public sealed class AmpChannel {
     ///     setting, the state left to slew: the rest levels the reordering and the overdrive work about follow, and the
     ///     next <see cref="Configure" /> hands on the new output resistances.
     /// </summary>
-    void Retune() {
+    void Retune() => Settle(false);
+
+    /// <summary>
+    ///     Every stage brought to its operating point in signal order, by <see cref="AmpStage.Reset" /> when
+    ///     <paramref name="reset" /> is set and by <see cref="AmpStage.Retune" /> otherwise: each stage's rest output
+    ///     feeds the next, a reordered channel's stages keep the operating points they have in the circuit's order, and
+    ///     the power amp sees the last stage's output resistance.
+    /// </summary>
+    void Settle(bool reset) {
         var rest = 0.0;
         var resistance = 0.0;
         foreach (var stage in stages) {
             stage.SetSourceResistance(resistance);
             stage.SetSupplies(supplies);
-            stage.Retune(rest);
-            rest = stage.RestOutput;
-            resistance = stage.OutputResistance;
-        }
-
-        for (var i = 0; i < stages.Length; i++) {
-            restInputs[i] = i == 0 ? 0 : stages[i - 1].RestOutput;
-        }
-
-        if (reordered) {
-            for (var k = 0; k < order.Length; k++) {
-                var arriving = k == 0 ? 0 : stages[order[k - 1]].RestOutput;
-                offsets[k] = restInputs[order[k]] - arriving;
-                if (k > 0) {
-                    stages[order[k]].SetSourceResistance(stages[order[k - 1]].OutputResistance);
-                }
+            if (reset) {
+                stage.Reset(rest);
+            } else {
+                stage.Retune(rest);
             }
 
-            resistance = stages[order[^1]].OutputResistance;
-        }
-
-        if (stages.Length > 0) {
-            Power.SetSourceResistance(resistance);
-        }
-    }
-
-    /// <summary>Every stage at its operating point, in signal order (each stage's rest output feeds the next).</summary>
-    public void Reset() {
-        Power.Reset();
-        SolidState?.Reset();
-        var rest = 0.0;
-        var resistance = 0.0;
-        UpdateSupplies();
-        foreach (var stage in stages) {
-            stage.SetSourceResistance(resistance);
-            stage.SetSupplies(supplies);
-            stage.Reset(rest);
             rest = stage.RestOutput;
             resistance = stage.OutputResistance;
         }
@@ -353,7 +330,14 @@ public sealed class AmpChannel {
         if (stages.Length > 0) {
             Power.SetSourceResistance(resistance);
         }
+    }
 
+    /// <summary>Every stage at its operating point, in signal order (each stage's rest output feeds the next).</summary>
+    public void Reset() {
+        Power.Reset();
+        SolidState?.Reset();
+        UpdateSupplies();
+        Settle(true);
         lowCut.Reset();
     }
 

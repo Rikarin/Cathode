@@ -88,8 +88,8 @@ public static class MarkIIC {
 
     /// <summary>
     ///     V1A with the stack on its plate and Volume 1 on the treble wiper: 1M grid leak; 150k plate; 1.5k ‖ 0.47 µF,
-    ///     and 15 µF through 15k (shorted by Bass Shift); the stack (750 pF more with Treble Shift); Volume 1 with 180 pF
-    ///     across its upper half (Bright).
+    ///     and 15 µF through 15k (shorted by Bass Shift); the stack (750 pF more with Treble Shift); Volume 1 with 180
+    ///     pF across its upper half (Bright).
     /// </summary>
     static StageNetlist InputAndStack() {
         var net = new StageNetlist();

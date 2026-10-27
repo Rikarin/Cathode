@@ -460,7 +460,8 @@ public static class CathodeApi {
             )
             .WithName("SetTuner")
             .WithSummary(
-                "Turns the tuner on (bypassed = false) or off for a client (the id it also opens /ws?client= with): it runs while any client has it on. Without a client, off turns it off for everyone."
+                "Turns the tuner on (bypassed = false) or off for a client (the id it also opens /ws?client= with): "
+                + "it runs while any client has it on. Without a client, off turns it off for everyone."
             );
 
         api.MapPut(
@@ -472,7 +473,9 @@ public static class CathodeApi {
             )
             .WithName("SetScope")
             .WithSummary(
-                "Starts or stops scope frames (the engine's output waveform) on the WebSocket for a client (the id it also opens /ws?client= with): they flow while any client has the scope on. Without a client, off stops them for everyone."
+                "Starts or stops scope frames (the engine's output waveform) on the WebSocket for a client (the id "
+                + "it also opens /ws?client= with): they flow while any client has the scope on. Without a client, "
+                + "off stops them for everyone."
             );
 
         api.MapPut(
@@ -484,7 +487,10 @@ public static class CathodeApi {
             )
             .WithName("SetRta")
             .WithSummary(
-                "Starts or stops RTA frames on the WebSocket (the output's spectrum, or the RTA block's while a preset has one) for a client (the id it also opens /ws?client= with), and sets the bands, decay and window. They flow while any client has the RTA on; without a client, off stops them for everyone."
+                "Starts or stops RTA frames on the WebSocket (the output's spectrum, or the RTA block's while a "
+                + "preset has one) for a client (the id it also opens /ws?client= with), and sets the bands, decay "
+                + "and window. They flow while any client has the RTA on; without a client, off stops them for "
+                + "everyone."
             );
 
         app.Map(

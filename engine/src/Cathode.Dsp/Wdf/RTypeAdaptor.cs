@@ -75,10 +75,10 @@ public struct RTypeAdaptor<TPorts> : IWdfPort
     public readonly void SetGain(int index, double gain) => Scattering.SetGain(index, gain);
 
     /// <summary>
-    ///     Recomputes the children's resistances and the matrix, and returns the adapted parent resistance. A network that
-    ///     has become singular keeps its previous matrix (counted in <see cref="RTypeScattering.Failures" />); one that has
-    ///     never had a valid matrix throws, since its parent would otherwise divide by a zero resistance. The first
-    ///     propagation is the root's, at construction, so that throw never reaches the audio thread.
+    ///     Recomputes the children's resistances and the matrix, and returns the adapted parent resistance. A network
+    ///     that has become singular keeps its previous matrix (counted in <see cref="RTypeScattering.Failures" />); one
+    ///     that has never had a valid matrix throws, since its parent would otherwise divide by a zero resistance. The
+    ///     first propagation is the root's, at construction, so that throw never reaches the audio thread.
     /// </summary>
     public double Propagate() {
         Ports.Propagate(Scattering.PortResistances);

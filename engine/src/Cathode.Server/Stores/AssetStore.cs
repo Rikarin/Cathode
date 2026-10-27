@@ -53,7 +53,10 @@ public sealed partial class AssetStore {
         }
     }
 
-    /// <summary>The index from the asset files present: each file's name is its reference, its extension its kind.</summary>
+    /// <summary>
+    ///     The index from the asset files present: each file's name is its reference, its extension its
+    ///     kind.
+    /// </summary>
     void Rebuild() {
         index.Clear();
         foreach (var file in new DirectoryInfo(folder).EnumerateFiles()) {
@@ -243,7 +246,10 @@ public sealed partial class AssetStore {
         }
     }
 
-    /// <summary>An impulse response read from an upload; one that is not a WAV this reader decodes, or empty, is a 400.</summary>
+    /// <summary>
+    ///     An impulse response read from an upload; one that is not a WAV this reader decodes, or empty, is a
+    ///     400.
+    /// </summary>
     static AudioData ReadImpulse(Stream content, string name) {
         AudioData? audio = null;
         Checked(
@@ -318,7 +324,10 @@ public sealed partial class AssetStore {
     )]
     static partial void IndexDamaged(ILogger logger, string path, string error);
 
-    /// <summary>Written atomically (<see cref="AtomicRename.Write" />): rewritten on every upload, rename and delete.</summary>
+    /// <summary>
+    ///     Written atomically (<see cref="AtomicRename.Write" />): rewritten on every upload, rename and
+    ///     delete.
+    /// </summary>
     void SaveIndex() =>
         AtomicRename.Write(
             indexPath,
