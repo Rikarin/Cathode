@@ -174,8 +174,11 @@ public sealed record VibratoOscillatorDesign(
 ///     </para>
 ///     <para>
 ///         The oscillator runs while <paramref name="Pedal" /> is on (the footswitch; off stops it, as the pedal does by
-///         grounding the ladder), at the rate the <paramref name="Speed" /> knob sets, with the depth the
-///         <paramref name="Intensity" /> knob sets (<see cref="VibratoOscillatorDesign" />). The depth follows the knobs
+///         grounding the ladder), with the depth the Intensity knob sets (<see cref="VibratoOscillatorDesign" />). The
+///         Speed and Intensity knobs are the Circuit Amp's tremolo controls, as on every model with a tremolo of its own
+///         (<see cref="AmpControls.TremoloRate" /> in hertz, held to the range the Speed rheostat gives the ladder;
+///         <see cref="AmpControls.TremoloDepth" /> the Intensity's rotation), so the stage counts as the amp's tremolo
+///         (<see cref="HasTremolo" />) and no generic bias tremolo is added. The depth follows the knobs
 ///         and the pedal through a 30 ms smoother (as the oscillator starts and stops over a few cycles).
 ///     </para>
 /// </remarks>
@@ -183,8 +186,6 @@ public sealed record HarmonicVibratoStageDesign(
     string Name,
     double Supply,
     VibratoOscillatorDesign? Oscillator = null,
-    PotRole Speed = PotRole.Control1,
-    PotRole Intensity = PotRole.Control2,
     SwitchRole Pedal = SwitchRole.Switch2,
     double InputCap = 0.05e-6,
     double LowResistor = 470e3,
@@ -206,6 +207,9 @@ public sealed record HarmonicVibratoStageDesign(
 
     /// <summary>The oscillator (the 6G12's by default).</summary>
     public VibratoOscillatorDesign Lfo => Oscillator ?? new();
+
+    /// <summary>The amp's one tremolo: the Circuit Amp's tremolo controls drive it (see the remarks).</summary>
+    public override bool HasTremolo => true;
 
     /// <summary>
     ///     The whole circuit as one netlist, with the LFO sources at rest (0 V): the reference for the stage, which runs
@@ -334,6 +338,8 @@ public sealed class HarmonicVibratoStage : AmpStage {
     double cosine = 1;
     double stepSine;
     double stepCosine = 1;
+    readonly double slowest; // the ladder's rate at Speed 0 and 10, in hertz
+    readonly double fastest;
     double speed = -1;
     double intensity = -1;
     bool running;
@@ -341,7 +347,7 @@ public sealed class HarmonicVibratoStage : AmpStage {
 
     public HarmonicVibratoStageDesign Design { get; }
 
-    /// <summary>The oscillator's rate for the current Speed knob, in hertz.</summary>
+    /// <summary>The oscillator's rate for the current Speed, in hertz (within the ladder's range).</summary>
     public double Frequency { get; private set; }
 
     /// <summary>The LFO's depth, the smoothed peak volts at the Intensity wiper (each grid line swings about half of it).</summary>
@@ -371,7 +377,8 @@ public sealed class HarmonicVibratoStage : AmpStage {
         bassRails = (IRailModulation)bass;
         trebleRails = (IRailModulation)treble;
         this.sampleRate = sampleRate;
-        Configure(0.5, 0.5, false);
+        (slowest, fastest) = (lfo.Rate(0), lfo.Rate(1));
+        Configure(lfo.Rate(0.5), 0.5, false);
         Mix();
     }
 
@@ -396,7 +403,7 @@ public sealed class HarmonicVibratoStage : AmpStage {
     public override void Update(in AmpControls controls) {
         bass.Update(controls);
         treble.Update(controls);
-        Configure(controls.Rotation(Design.Speed), controls.Rotation(Design.Intensity), controls.IsOn(Design.Pedal));
+        Configure(controls.TremoloRate, controls.TremoloDepth, controls.IsOn(Design.Pedal));
     }
 
     public override void Apply(in PreampSettings settings) {
@@ -458,14 +465,17 @@ public sealed class HarmonicVibratoStage : AmpStage {
         restMix = bassWeight * bass.RestOutput + trebleWeight * treble.RestOutput;
     }
 
-    /// <summary>The rate and depth for the knobs (recomputed only when one moved).</summary>
+    /// <summary>
+    ///     The rate (<paramref name="speed" /> hertz, held to the ladder's range) and the depth (the Intensity's rotation)
+    ///     for the knobs, recomputed only when one moved.
+    /// </summary>
     void Configure(double speed, double intensity, bool running) {
         if (speed == this.speed && intensity == this.intensity && running == this.running) {
             return;
         }
 
         if (speed != this.speed) {
-            Frequency = lfo.Rate(speed);
+            Frequency = Math.Clamp(speed, slowest, fastest);
         }
 
         (this.speed, this.intensity, this.running) = (speed, intensity, running);

@@ -25,8 +25,13 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {
         Assert.Equal(["Vibrato Ch", "Vibrato", string.Empty], Switches("Concert 6G12"));
-        Assert.Equal("Speed", Label("control1", "Super 6G4"));
-        Assert.Equal("Intensity", Label("control2", "Concert 6G12"));
+        // The harmonic vibrato is the amp's one tremolo: on the tremolo controls, with no generic bias tremolo beside it.
+        Assert.Equal("Speed", Label("tremrate", "Super 6G4"));
+        Assert.Equal("Intensity", Label("tremdepth", "Concert 6G12"));
+        Assert.Empty(Label("control1", "Super 6G4"));
+        Assert.Empty(Label("control2", "Concert 6G12"));
+        Assert.True(new AmpChannel(Concert6G12.Design, 96_000).HasTremolo);
+        Assert.True(new AmpChannel(Super6G4.Design, 96_000).HasTremolo);
         Assert.Equal("Presence", Label("presence", "Concert 6G12"));
         Assert.Equal("Tone", Label("treble", "Deluxe 6G3"));
         Assert.Empty(Label("bass", "Deluxe 6G3"));
@@ -198,7 +203,8 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
 
     /// <summary>
     ///     On the Concert's Vibrato channel the bass and treble swell in turn at the oscillator's rate: a low and a high tone
-    ///     are modulated, in antiphase, by several decibels at full intensity; with the pedal off neither moves.
+    ///     are modulated, in antiphase, by several decibels at full intensity; with the pedal off neither moves (Speed and
+    ///     Intensity are the tremolo controls, so no bias tremolo runs beside the vibrato).
     /// </summary>
     [Theory]
     [InlineData("Concert 6G12")]
@@ -215,8 +221,8 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
                 (CircuitAmpBlock.Gain, 3f),
                 (CircuitAmpBlock.Switch1, 1f),
                 (CircuitAmpBlock.Switch2, pedal ? 1f : 0f),
-                (CircuitAmpBlock.Control1, 5f),
-                (CircuitAmpBlock.Control2, 10f)
+                (CircuitAmpBlock.TremoloRate, 5f),
+                (CircuitAmpBlock.TremoloDepth, 100f)
             );
             var rendered = BlockRender.Mono(block, both, 64);
 
@@ -365,11 +371,12 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
                 block.Params.SetTarget(CircuitAmpBlock.Type, type);
                 block.Params.SetTarget(CircuitAmpBlock.Switch1, 1);
                 block.Params.SetTarget(CircuitAmpBlock.Switch2, 1);
-                block.Params.SetTarget(CircuitAmpBlock.Control1, 3);
+                block.Params.SetTarget(CircuitAmpBlock.TremoloRate, 3);
+                block.Params.SetTarget(CircuitAmpBlock.TremoloDepth, 70);
                 block.Params.SetTarget(CircuitAmpBlock.Gain, 5);
                 Play(8);
                 block.Params.SetTarget(CircuitAmpBlock.Gain, 8);
-                block.Params.SetTarget(CircuitAmpBlock.Control1, 7);
+                block.Params.SetTarget(CircuitAmpBlock.TremoloRate, 7);
                 block.Params.SetTarget(CircuitAmpBlock.Switch1, 0);
                 block.Params.SetTarget(CircuitAmpBlock.Switch2, 0);
                 Play(8);
@@ -430,10 +437,8 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
     /// </summary>
     static (int Index, float Value)[] ChannelFor(string type, int control) =>
         (type, control) switch {
-            ("Concert 6G12" or "Super 6G4", CircuitAmpBlock.Control1 or CircuitAmpBlock.Control2) =>
-                [(CircuitAmpBlock.Switch1, 1), (CircuitAmpBlock.Switch2, 1)],
             ("Concert 6G12" or "Super 6G4", CircuitAmpBlock.Switch2) => [
-                (CircuitAmpBlock.Switch1, 1), (CircuitAmpBlock.Control2, 10)
+                (CircuitAmpBlock.Switch1, 1), (CircuitAmpBlock.TremoloDepth, 100)
             ],
             ("Bassman 135", CircuitAmpBlock.Bright) => [(CircuitAmpBlock.Switch1, 1)],
             _ => []
