@@ -1,9 +1,14 @@
 /*
  * CoreAudio backend: a HAL IOProc on one device. This is the lowest-latency path on macOS; the IOProc
  * thread is already real-time, so no workgroup join is needed for the callback itself.
+ *
+ * Property listeners are blocks on the stream's own serial dispatch queue: removing a listener does not wait for a
+ * notification the HAL has already dispatched, so close drains that queue before it frees the stream.
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
+#include <Block.h>
 #include <CoreAudio/CoreAudio.h>
+#include <dispatch/dispatch.h>
 #include <mach/mach_time.h>
 #include <stdatomic.h>
 #include <stdio.h>
@@ -33,6 +38,8 @@ struct cth_stream {
     _Atomic int reset_timing; /* set by the control thread, applied by the audio thread */
     cth_stream_timing timing;  /* written only by the audio thread */
     float *planar; /* (inputs + outputs) * CTH_MAX_FRAMES */
+    dispatch_queue_t listeners;                   /* serial queue every property listener runs on */
+    AudioObjectPropertyListenerBlock on_overload; /* Block_copy'd, so close can remove the same block */
     const float *in_ptrs[MAX_CHANNELS];
     float *out_ptrs[MAX_CHANNELS];
 };
@@ -277,11 +284,30 @@ static OSStatus io_proc(AudioObjectID device, const AudioTimeStamp *now, const A
     return noErr;
 }
 
-static OSStatus overload_listener(AudioObjectID object, UInt32 count, const AudioObjectPropertyAddress *addresses, void *client)
+static const AudioObjectPropertyAddress overload_address = {
+    kAudioDeviceProcessorOverload, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain};
+
+/* Registers the stream's property listeners on its serial queue. */
+static void add_listeners(cth_stream *s)
 {
-    (void)object; (void)count; (void)addresses;
-    atomic_fetch_add_explicit(&((cth_stream *)client)->overloads, 1, memory_order_relaxed);
-    return noErr;
+    s->listeners = dispatch_queue_create("org.cathode.audio.listeners", DISPATCH_QUEUE_SERIAL);
+    s->on_overload = Block_copy(^(UInt32 count, const AudioObjectPropertyAddress *addresses) {
+        (void)count; (void)addresses;
+        atomic_fetch_add_explicit(&s->overloads, 1, memory_order_relaxed);
+    });
+    AudioObjectAddPropertyListenerBlock(s->device, &overload_address, s->listeners, s->on_overload);
+}
+
+/* Removes the listeners, then waits for any notification already queued, so none can touch the stream once freed. */
+static void remove_listeners(cth_stream *s)
+{
+    if (!s->listeners) return;
+    AudioObjectRemovePropertyListenerBlock(s->device, &overload_address, s->listeners, s->on_overload);
+    dispatch_sync(s->listeners, ^{
+    });
+    Block_release(s->on_overload);
+    dispatch_release(s->listeners);
+    s->listeners = NULL;
 }
 
 static OSStatus set_rate(AudioObjectID device, double rate)
@@ -352,8 +378,7 @@ int32_t cth_audio_open(const char *device_uid, cth_stream_config *config, cth_pr
         return fail("could not create the IOProc", status);
     }
 
-    AudioObjectPropertyAddress overload = address(kAudioDeviceProcessorOverload, kAudioObjectPropertyScopeGlobal);
-    AudioObjectAddPropertyListener(device, &overload, overload_listener, s);
+    add_listeners(s);
 
     config->sample_rate = nominal_rate(device);
     s->sample_rate = config->sample_rate;
@@ -388,8 +413,7 @@ void cth_audio_close(cth_stream *s)
 {
     if (!s) return;
     cth_audio_stop(s);
-    AudioObjectPropertyAddress overload = address(kAudioDeviceProcessorOverload, kAudioObjectPropertyScopeGlobal);
-    AudioObjectRemovePropertyListener(s->device, &overload, overload_listener, s);
+    remove_listeners(s);
     AudioDeviceDestroyIOProcID(s->device, s->proc_id);
     free(s->planar);
     free(s);
