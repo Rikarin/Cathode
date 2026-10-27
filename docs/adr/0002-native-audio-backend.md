@@ -10,6 +10,7 @@ Audio I/O goes through `engine/native/cth_audio`, a small C library with one C A
 - The OS driver owns the real-time thread (CoreAudio, JACK), or the shim owns one (ALSA). There is no intermediate queue.
 - The shim deinterleaves device buffers into planar float channels, enables flush-to-zero on the callback thread, and calls a managed `[UnmanagedCallersOnly]` function pointer. Output channels arrive zeroed, and callbacks larger than 4096 frames are split.
 - On macOS the backend is a **HAL IOProc** on a single device (`AudioDeviceCreateIOProcID`) rather than AUHAL. It is the lowest layer, gives direct buffer-size control, and runs on CoreAudio's real-time thread.
+- macOS often splits one machine into an output device and an input device (built-in speakers and microphone, many USB interfaces, BlackHole and other virtual drivers). As on Windows, a uid `"<output uid>|<input uid>"` pairs two devices and `"<output uid>|"` opens no input. A pair runs on a **private aggregate device** the shim creates (`AudioHardwareCreateAggregateDevice`, visible to this process only): the output device is the clock, the input device is drift-compensated, and its input channels are the output device's own inputs (if any) followed by the input device's. Close destroys it. A NULL uid opens the default output and, when that has no inputs, pairs it with the default input the same way, so a Mac without an interface hears its built-in microphone. A device with no outputs cannot be opened alone.
 - Dropouts are counted from `kAudioDeviceProcessorOverload`.
 - Reported latency is device latency + safety offset + stream latency + buffer, per direction.
 
@@ -85,4 +86,4 @@ A device can go away under a running stream (unplugged, disabled, an exclusive s
 - **S2:** callback timing under REST and GC load. This is the process-split decision, ADR-0001.
 - Windows: exclusive mode, duplex and a loopback latency measurement on a local interface; **ASIO** (needs the Steinberg SDK, under GPLv3).
 - Linux on real hardware: a loopback round trip and a 30 min soak on a USB interface (Pi 5 and x64), with `SCHED_FIFO` granted. Check that 2 or 3 periods hold at 64 frames, and the MIDI path with a USB foot controller.
-- Aggregate devices (separate input and output devices) on macOS. Reopening in process after a device change, instead of the restart above, if the restart proves too slow.
+- macOS pairs (aggregate devices) need a run on a Mac: built-in speakers with the built-in microphone, and a USB pair. The editor's device picker does not offer pairs yet; they are set with `--device` / `CATHODE_DEVICE`. Reopening in process after a device change, instead of the restart above, if the restart proves too slow.
