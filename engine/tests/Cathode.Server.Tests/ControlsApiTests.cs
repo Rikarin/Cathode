@@ -56,6 +56,26 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task A_dragged_scene_level_or_scene_controller_is_one_undo_step() {
+        await Patch("/api/v1/live/scenes/0", new SceneUpdateRequest("Verse"));
+        for (var level = -1f; level >= -10f; level -= 1f) {
+            await Patch("/api/v1/live/scenes/0", new SceneUpdateRequest(Level: level));
+        }
+
+        for (var value = 0.1f; value <= 0.5f; value += 0.1f) {
+            await Patch("/api/v1/live/scenes/0", new SceneUpdateRequest(Controllers: [value, 0, 0, 0]));
+        }
+
+        var controllersUndone = await Read(await client.PostAsync("/api/v1/live/undo", null, Token));
+        var levelUndone = await Read(await client.PostAsync("/api/v1/live/undo", null, Token));
+
+        Assert.Equal(-10f, controllersUndone.Preset.Scenes[0].Level);
+        Assert.Equal(0f, controllersUndone.Preset.Scenes[0].Controllers[0]);
+        Assert.Equal(0f, levelUndone.Preset.Scenes[0].Level);
+        Assert.Equal("Verse", levelUndone.Preset.Scenes[0].Name); // the rename is a step of its own
+    }
+
+    [Fact]
     public async Task Controllers_scene_level_and_scene_controllers_reach_the_rig() {
         await Patch("/api/v1/live/controllers", new Dictionary<string, float> { ["lfo1Rate"] = 3.5f });
         await Patch("/api/v1/live/scenes/2", new SceneUpdateRequest(Level: -6, Controllers: [0.25f, 0, 0, 1]));
