@@ -77,6 +77,64 @@ function setup() {
   return { live, calls, events, errors, open, settle };
 }
 
+describe('LiveStore.refresh', () => {
+  const live$ = '/api/v1/live';
+
+  it('reads again when an event announces a revision newer than the read on the wire brings back', async () => {
+    const { live, events, open, settle } = setup();
+    const first = live.refresh();
+    events.events$.next({ type: 'paramChanged', revision: 6 });
+    events.events$.next({ type: 'paramChanged', revision: 7 });
+    expect(open(live$)).toHaveLength(1); // coalesced while on the wire
+
+    open(live$)[0].resolve(state(5));
+    await settle();
+    expect(live.state()?.revision).toBe(5);
+    expect(open(live$)).toHaveLength(1); // one trailing read for 6 and 7
+
+    open(live$)[0].resolve(state(7));
+    await first;
+    expect(live.state()?.revision).toBe(7);
+    expect(open(live$)).toHaveLength(0);
+  });
+
+  it('does not read again when the answer already covers the events heard meanwhile', async () => {
+    const { live, events, open } = setup();
+    const first = live.refresh();
+    events.events$.next({ type: 'paramChanged', revision: 4 });
+    open(live$)[0].resolve(state(4));
+    await first;
+
+    expect(open(live$)).toHaveLength(0);
+  });
+
+  it('queues one more read for refreshes asked while one is on the wire, however many', async () => {
+    const { live, open, settle } = setup();
+    void live.refresh();
+    void live.refresh();
+    const last = live.refresh();
+    open(live$)[0].resolve(state(1));
+    await settle();
+    expect(open(live$)).toHaveLength(1);
+
+    open(live$)[0].resolve(state(2));
+    await last;
+    expect(live.state()?.revision).toBe(2);
+  });
+
+  it('ignores an event for a revision it already holds', async () => {
+    const { live, events, open } = setup();
+    const first = live.refresh();
+    open(live$)[0].resolve(state(3));
+    await first;
+
+    events.events$.next({ type: 'paramChanged', revision: 3 });
+    expect(open(live$)).toHaveLength(0);
+    events.events$.next({ type: 'paramChanged', revision: 4 });
+    expect(open(live$)).toHaveLength(1);
+  });
+});
+
 describe('LiveStore.tap', () => {
   it('reports a refused tap and resolves to false instead of rejecting', async () => {
     const { live, open, errors } = setup();

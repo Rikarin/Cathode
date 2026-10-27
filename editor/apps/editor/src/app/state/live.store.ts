@@ -35,6 +35,10 @@ export class LiveStore {
   private readonly events = inject(EventStream);
   private readonly notify = inject(Notify);
   private refreshing: Promise<void> | null = null;
+  /** A refresh was asked for while one was on the wire: read once more when it returns. */
+  private again = false;
+  /** The newest revision an event has announced. */
+  private heard = 0;
   private readonly inFlight = new Set<string>();
   private readonly pending = new Map<string, PendingParams>();
 
@@ -81,17 +85,14 @@ export class LiveStore {
     return this.overrides().get(`${block.id}/${channel}/${param}`) ?? block.channels[channel]?.[param];
   }
 
-  async refresh(): Promise<void> {
-    // Coalesce: a burst of events needs one refetch, not one each.
-    this.refreshing ??= (async () => {
-      try {
-        this.apply(unwrap(await this.connection.client.GET('/api/v1/live')));
-      } catch (error) {
-        this.notify.error(error);
-      } finally {
-        this.refreshing = null;
-      }
-    })();
+  /**
+   * Reads the live state. Coalesced: a burst of events needs one refetch, not one each. A call while a read is on the
+   * wire queues one more read after it (however many calls come), and so does an event for a revision newer than the
+   * read brings back, so the store never settles on a state older than the last change it heard of.
+   */
+  refresh(): Promise<void> {
+    this.again = true;
+    this.refreshing ??= this.catchUp().finally(() => (this.refreshing = null));
     return this.refreshing;
   }
 
@@ -286,9 +287,28 @@ export class LiveStore {
     }
   }
 
-  private onEvent(event: RigEvent): void {
+  private async catchUp(): Promise<void> {
+    while (this.again || this.behind()) {
+      this.again = false;
+      try {
+        this.apply(unwrap(await this.connection.client.GET('/api/v1/live')));
+      } catch (error) {
+        this.notify.error(error);
+        return;
+      }
+    }
+  }
+
+  /** Whether an event has announced a revision newer than the state held. */
+  private behind(): boolean {
     const current = this.state();
-    if (!current || event.revision > current.revision) {
+    return !current || current.revision < this.heard;
+  }
+
+  private onEvent(event: RigEvent): void {
+    this.heard = Math.max(this.heard, event.revision);
+    // While a read is on the wire, catchUp looks at `heard` when it returns.
+    if (!this.refreshing && this.behind()) {
       void this.refresh();
     }
   }
