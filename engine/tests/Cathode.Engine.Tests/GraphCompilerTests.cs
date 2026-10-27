@@ -1,6 +1,7 @@
 using Cathode.Audio;
 using Cathode.Dsp;
 using Cathode.Engine.Graph;
+using Cathode.Engine.Telemetry;
 using Cathode.Testing;
 using System.Text.Json;
 
@@ -304,6 +305,34 @@ public class GraphCompilerTests {
         Assert.Equal(1, graph.Ops.Count(op => op.Kind == GraphOpKind.Process && op.Index == graph.SlotOf("used")));
         Assert.True(graph.SlotOf("dangling") >= 0);
         Assert.DoesNotContain(graph.Ops, op => op.Kind == GraphOpKind.Process && op.Index == graph.SlotOf("dangling"));
+    }
+
+    [Fact]
+    public void A_graph_whose_meters_or_modifiers_overflow_the_telemetry_is_refused() {
+        var count = TelemetryLayout.Modifiers + 1;
+        var definition = new GraphDefinition { Rows = count / 14 + 1, Columns = 14 };
+        for (var i = 0; i < count; i++) {
+            definition.Nodes.Add(Node($"v{i}", "volpan", i / 14, i % 14));
+            definition.Modifiers.Add(new() { Block = $"v{i}", Param = "level", Source = "manualA" });
+        }
+
+        var error = Assert.Throws<GraphValidationException>(() => Compiler.Compile(definition, Spec));
+
+        Assert.Contains(error.Errors, e => e.Contains($"{count} block meters", StringComparison.Ordinal));
+        Assert.Contains(error.Errors, e => e.Contains($"{count} modifiers", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_full_grid_of_any_block_fits_the_telemetry() {
+        // The server accepts at most a 6 x 14 grid: every block's peak and own meters must then fit.
+        var registry = TestRegistry.Create();
+        var most = 0;
+        foreach (var descriptor in registry.Descriptors) {
+            using var block = registry.Create(descriptor.TypeId);
+            most = Math.Max(most, block is IBlockMeters own ? own.MeterIds.Count : 0);
+        }
+
+        Assert.True(6 * 14 * (1 + most) <= TelemetryLayout.BlockMeters, $"{most} own meters per block");
     }
 
     [Fact]

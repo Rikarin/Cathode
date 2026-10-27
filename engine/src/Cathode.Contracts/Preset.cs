@@ -10,6 +10,18 @@ public sealed class Preset {
     public const int CurrentSchemaVersion = 2;
     public const int SceneCount = 8;
 
+    /// <summary>The most rows a grid has: the editor's grid and the Mixer's and Output's six row inputs.</summary>
+    public const int MaxRows = 6;
+
+    /// <summary>The most columns a grid has, as on the Axe-Fx III.</summary>
+    public const int MaxColumns = 14;
+
+    /// <summary>
+    ///     The most modifiers a preset holds: the engine reports each one's value to the editor, and its telemetry has
+    ///     room for this many (<c>TelemetryLayout.Modifiers</c>).
+    /// </summary>
+    public const int MaxModifiers = 256;
+
     public static readonly ImmutableArray<string> ChannelNames = ["A", "B", "C", "D"];
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
@@ -33,9 +45,9 @@ public sealed class Preset {
 
     public double Tempo { get; set; } = 120;
 
-    public int Rows { get; set; } = 6;
+    public int Rows { get; set; } = MaxRows;
 
-    public int Columns { get; set; } = 14;
+    public int Columns { get; set; } = MaxColumns;
 
     public List<PresetBlock> Blocks { get; set; } = [];
 

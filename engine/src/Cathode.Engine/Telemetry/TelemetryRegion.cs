@@ -370,12 +370,15 @@ public unsafe struct TelemetryLayout {
     public const int FramesPerSlot = 256;
     public const int ScopeLength = 16_384; // a 4096-point RTA window fits with room for the writer
 
-    public const int BlockMeters =
-        256; // block meter values: a peak per graph slot (a 6 x 14 grid and its shunts) plus own meters
+    /// <summary>
+    ///     Block meter values: a peak per graph slot (a 6 x 14 grid at most) plus each block's own meters. The
+    ///     compiler refuses a graph with more (<c>GraphCompiler</c>), so none is ever cut off.
+    /// </summary>
+    public const int BlockMeters = 256;
 
     /// <summary>
-    ///     Modifier values: presets set no limit (one per parameter), and a rich one has a few dozen; any beyond this
-    ///     run but are not shown.
+    ///     Modifier values: a preset holds at most this many (the server's <c>Preset.MaxModifiers</c>; a rich one has
+    ///     a few dozen), and the compiler refuses a graph with more, so none is ever cut off.
     /// </summary>
     public const int Modifiers = 256;
 

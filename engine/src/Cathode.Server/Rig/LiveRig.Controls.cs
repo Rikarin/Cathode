@@ -114,11 +114,19 @@ public sealed partial class LiveRig {
             }
         }
 
+        errors.AddRange(CountErrors(modifiers));
+        return errors;
+    }
+
+    /// <summary>Problems with the number of modifiers: two on one parameter, or more than a preset holds.</summary>
+    static IEnumerable<string> CountErrors(IReadOnlyList<PresetModifier> modifiers) {
         if (modifiers.GroupBy(static m => (m.Block, m.Param)).Any(static g => g.Count() > 1)) {
-            errors.Add("A parameter can have only one modifier.");
+            yield return "A parameter can have only one modifier.";
         }
 
-        return errors;
+        if (modifiers.Count > Preset.MaxModifiers) {
+            yield return $"{modifiers.Count} modifiers: a preset holds at most {Preset.MaxModifiers}.";
+        }
     }
 
     /// <summary>Controller settings (LFO, ADSR, envelope, sequencer, pitch range) stored with the preset.</summary>

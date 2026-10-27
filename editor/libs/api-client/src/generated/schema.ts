@@ -138,22 +138,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/catalog/blocks/{typeId}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: operations['GetBlockType'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/catalog/rig': {
     parameters: {
       query?: never;
@@ -236,22 +220,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/live/banks/{id}/slots/{slot}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put: operations['LoadBankSlot'];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/live/export': {
     parameters: {
       query?: never;
@@ -259,6 +227,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
+    /** The working copy as a preset package, saved or not (stored presets: /presets/{id}/export). */
     get: operations['ExportLive'];
     put?: never;
     post?: never;
@@ -1211,7 +1180,7 @@ export interface paths {
       cookie?: never;
     };
     get: operations['GetPreset'];
-    put: operations['PutPreset'];
+    put?: never;
     post?: never;
     delete: operations['DeletePreset'];
     options?: never;
@@ -1275,7 +1244,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get: operations['GetBlockPreset'];
+    get?: never;
     /** Saves a user block preset (factory ones cannot be changed). */
     put: operations['PutBlockPreset'];
     post?: never;
@@ -1340,7 +1309,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get: operations['GetBank'];
+    get?: never;
     put: operations['PutBank'];
     post?: never;
     delete: operations['DeleteBank'];
@@ -2866,35 +2835,6 @@ export interface operations {
       };
     };
   };
-  GetBlockType: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        typeId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['BlockTypeInfo'];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
   GetRigControls: {
     parameters: {
       query?: never;
@@ -3008,29 +2948,6 @@ export interface operations {
       path: {
         id: string;
         index: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['LiveState'];
-        };
-      };
-    };
-  };
-  LoadBankSlot: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-        slot: number;
       };
       cookie?: never;
     };
@@ -4518,30 +4435,6 @@ export interface operations {
       };
     };
   };
-  PutPreset: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Preset'];
-      };
-    };
-    responses: {
-      /** @description No Content */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
   DeletePreset: {
     parameters: {
       query?: never;
@@ -4632,35 +4525,6 @@ export interface operations {
         content: {
           'application/json': components['schemas']['BlockPreset'][];
         };
-      };
-    };
-  };
-  GetBlockPreset: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['BlockPreset'];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
       };
     };
   };
@@ -4836,35 +4700,6 @@ export interface operations {
         content: {
           'application/json': components['schemas']['Bank'][];
         };
-      };
-    };
-  };
-  GetBank: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Bank'];
-        };
-      };
-      /** @description Not Found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
       };
     };
   };

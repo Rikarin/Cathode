@@ -5,6 +5,7 @@ using Cathode.Engine.Graph;
 using Cathode.Server.Rig;
 using Cathode.Server.Stores;
 using Cathode.Testing.References;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -194,10 +195,8 @@ public sealed class FactoryPresetTests : IAsyncLifetime {
         Assert.Equal(FactoryPresets.BankId, banks[0].Id);
         Assert.True(banks[0].Factory);
         Assert.Equal(factory.Select(static p => p.Id), banks[0].Slots);
-        Assert.Equal(
-            HttpStatusCode.Conflict,
-            await Status(client.PutAsJsonAsync($"/api/v1/presets/{id}", preset, Token))
-        );
+        var store = server.Services.GetRequiredService<PresetStore>();
+        Assert.Equal(409, Assert.Throws<RigException>(() => store.Save(preset)).Status);
         Assert.Equal(HttpStatusCode.Conflict, await Status(client.DeleteAsync($"/api/v1/presets/{id}", Token)));
         Assert.Equal(
             HttpStatusCode.Conflict,
@@ -213,10 +212,8 @@ public sealed class FactoryPresetTests : IAsyncLifetime {
             HttpStatusCode.Conflict,
             await Status(client.DeleteAsync($"/api/v1/banks/{FactoryPresets.BankId}", Token))
         );
-        Assert.Equal(
-            HttpStatusCode.Conflict,
-            await Status(client.PutAsJsonAsync($"/api/v1/presets/{FactoryPresets.IdPrefix}mine", preset, Token))
-        );
+        preset.Id = FactoryPresets.IdPrefix + "mine";
+        Assert.Equal(409, Assert.Throws<RigException>(() => store.Save(preset)).Status);
     }
 
     [Fact]
@@ -232,9 +229,8 @@ public sealed class FactoryPresetTests : IAsyncLifetime {
         );
         var bank = new Bank { Name = "Gig", Slots = [null, id] };
         await Ok(client.PutAsJsonAsync($"/api/v1/banks/{bank.Id}", bank, Token));
-        var state = await Json<LiveState>(
-            client.PutAsJsonAsync($"/api/v1/live/banks/{bank.Id}/slots/1", new { }, Token)
-        );
+        var slot = server.Services.GetRequiredService<Library>().Slot(bank.Id, 1);
+        var state = await Json<LiveState>(client.PutAsJsonAsync($"/api/v1/live/preset/{slot}", new { }, Token));
         var listed = (await Json<PresetSummary[]>(client.GetAsync("/api/v1/presets", Token))).Single(p => p.Id == id);
 
         Assert.Equal(id, state.Preset.Id);
