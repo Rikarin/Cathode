@@ -46,7 +46,7 @@ This document turns the feature audit ([01](01-axe-fx-iii-audit.md)) and the DSP
 │ Audio thread (owned by OS driver):                                    │
 │   drain commands → evaluate modifiers → run compiled graph → meters   │
 │ Analysis thread: tuner (YIN/MPM), RTA FFT, looper disk I/O            │
-│ Native shim (C/C++): ASIO · CoreAudio(AUHAL) · JACK/PipeWire · WASAPI │
+│ Native shim (C/C++): CoreAudio HAL · WASAPI · ASIO · ALSA · JACK      │
 │                      NAM core · RTNeural · FTZ/DAZ · RT thread prio   │
 └──────────────────────────────────────────────────────────────────────┘
 ```
@@ -85,7 +85,7 @@ cathode/
 │  │  ├─ Cathode.Host/                     # engine executable (NativeAOT)
 │  │  └─ Cathode.Server/                   # ASP.NET Core REST + WS gateway
 │  ├─ native/
-│  │  ├─ cth_audio/                          # C ABI shim over ASIO / CoreAudio / JACK / WASAPI
+│  │  ├─ cth_audio/                          # C ABI shim over CoreAudio / WASAPI / ASIO / ALSA / JACK
 │  │  └─ cth_nam/                            # extern "C" wrapper of NeuralAmpModelerCore + RTNeural
 │  ├─ tests/                                # see 03-testing-strategy.md
 │  ├─ bench/                                # BenchmarkDotNet + callback-timing soak harness
@@ -169,7 +169,7 @@ Types switch to sensible defaults for that type, as Fractal's "Type" knob does. 
 
 | Thread | Owner | May allocate? | May block? | Work |
 |---|---|---|---|---|
-| Audio | OS driver (ASIO/CoreAudio/JACK), RT priority | **No** | **No** | Drain command ring, modifiers, graph, meters |
+| Audio | OS driver (CoreAudio, ASIO, JACK) or the shim (WASAPI, ALSA), RT priority | **No** | **No** | Drain command ring, modifiers, graph, meters |
 | Control | Host | Yes (pooled) | Yes | IPC, validation, graph compile, model/IR load, MIDI |
 | Analysis | Host, normal priority | Preallocated | Yes | Tuner, RTA, scope decimation, looper disk streaming |
 | Parallel DSP workers (Phase 6+) | Host, joined to macOS audio workgroup / MMCSS "Pro Audio" | No | Spin/wait only | Run independent grid rows concurrently |
@@ -278,16 +278,18 @@ Budget for **two graphs alive at once** during a preset change, and three for on
 
 ### 5.6 Audio I/O ⚠
 
-`IAudioBackend` delivers `float**` planar buffers in a callback that the native driver thread owns. There is no intermediate queue, because a queue would add a buffer of latency.
+The audio thread hands the engine (`IAudioProcessor`) planar `float` buffers straight from the device callback. There is no intermediate queue, because a queue would add a buffer of latency.
 
-| Platform | Primary backend | Fallback |
-|---|---|---|
-| Windows | **ASIO**. The SDK is dual-licensed proprietary/GPLv3 since Oct 2025, so a closed-source product signs Steinberg's free proprietary agreement | WASAPI exclusive |
-| macOS | **CoreAudio AUHAL** with audio-workgroup join | — |
-| Linux | **JACK / PipeWire-JACK** (sample-accurate MIDI too) | ALSA |
-| CI/tests | **OfflineBackend** (render as fast as possible from WAV) and **NullBackend** (real-time-paced timer) | — |
+All device access goes through one C ABI shim, `native/cth_audio` (`include/cth_audio.h`), with a backend per platform written directly against the OS API; there is no RtAudio or other portability layer. Managed code sees one `delegate* unmanaged` callback (`NativeAudioSession`). The device uid picks the backend where a platform has more than one. The rationale, measurements and per-backend details are in [ADR-0002](adr/0002-native-audio-backend.md).
 
-These sit in one C ABI shim (`native/cth_audio`). It can be built on RtAudio, which covers all of the above, plus custom CoreAudio code for workgroups. Managed code sees one `delegate* unmanaged` callback.
+| Platform | Backend | Callback thread | Other backends |
+|---|---|---|---|
+| macOS | **CoreAudio HAL IOProc** on one device (`AudioDeviceCreateIOProcID`), not AUHAL; an output and an input device pair through a private aggregate device | CoreAudio's own real-time IO thread. The shim joins no audio workgroup: that thread needs none for its own callback | — |
+| Windows | **WASAPI**, exclusive event-driven when the device allows it, else shared (IAudioClient3's small periods, then the classic stream) | The shim's own MMCSS "Pro Audio" thread | **ASIO** for `asio:` uids: drivers from `HKLM\SOFTWARE\ASIO`, one per process, Steinberg's SDK under GPLv3; the driver's thread calls back |
+| Linux | **ALSA**, `hw:` PCMs directly, no sound server | The shim's own `SCHED_FIFO` thread | **JACK** (jackd or PipeWire's JACK) for `jack:` uids, libjack loaded with `dlopen` only when one is opened; JACK's process thread calls back |
+| CI/tests | **OfflineRenderer** (renders from WAV as fast as possible) and **NullBackend** (a real-time-paced timer), both managed | Their own thread | — |
+
+On every backend the shim enables flush-to-zero on the callback thread, splits callbacks larger than 4096 frames, counts the driver's overloads, reports per-direction latency and raises a device-health status (`CTH_STREAM_CHANGED`, `CTH_STREAM_LOST`) that makes the host restart and reopen the device.
 
 **As built (audio I/O, [08 §2.1](08-blocks-parity.md#21-audio-io-wiki-audio-io-and-amplification)).**
 - The shim opens every output channel of the device. The backend owns an `OutputBus` (Cathode.Engine): which device pair each of Outputs 1–4 plays on (the host's `--outputs 1,3,5,7`, first channel of each pair, 0 for none; the default is Output 1 on 1–2) and the DI out's channels (`--di-out`). It hands the bus to the engine in `AudioIO.Outputs`, then copies Outputs 2–4 and the DI out from it to their channels. The `NullBackend` and the offline renderer (`OfflineRenderer.RenderOutputs`) take a bus too, so the multi-output path is tested without a device.
@@ -513,7 +515,7 @@ The editor's software-editor features, built in the ED stream. They follow Fract
   - amp and drive model naming follows the industry practice of descriptive names plus a disclaimer
   - factory IRs and captures must be **our own recordings**, or properly licensed
 - Licences:
-  - **ASIO**: Steinberg's proprietary agreement, or GPLv3 if the whole product is GPL
+  - **ASIO SDK**: used under its GPLv3 option ([THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md)); a closed-source fork would need Steinberg's proprietary agreement
   - **NAM core**: MIT
   - **RTNeural**: BSD-3
   - **JUCE**: not used, to avoid GPL or commercial licensing
