@@ -110,7 +110,8 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         var (table, render) = (Table(design.Power.PhaseInverter), Render(design.Power));
         var line = $"{{ \"{name}\", (0x{table:X16}, 0x{render:X16}) }},";
         output.WriteLine(line);
-        // CATHODE_UPDATE_INVERTERS=<file> collects every model's entry there instead of checking it, for the table above.
+        // CATHODE_UPDATE_INVERTERS=<file> collects every model's entry there instead of checking it, for the table
+        // above.
         if (Environment.GetEnvironmentVariable("CATHODE_UPDATE_INVERTERS") is { Length: > 0 } updates) {
             lock (UpdateLock) {
                 File.AppendAllLines(updates, [line]);

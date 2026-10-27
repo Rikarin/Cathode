@@ -117,11 +117,13 @@ public sealed class AssetUploadTests : IAsyncLifetime {
 
     [Fact]
     public async Task Uploads_up_to_64_mb_are_taken_and_larger_ones_are_refused_with_a_reason() {
-        // Kestrel's own request limit is 30,000,000 bytes; the endpoint raises it to the store's 64 MB. A real Kestrel is
-        // not used here: refusing a body while the client still writes it is a broken pipe on some platforms and a 413 on
-        // others, so the test checks the limit the endpoint carries and the store's answer past it.
+        // Kestrel's own request limit is 30,000,000 bytes; the endpoint raises it to the store's 64 MB. A real
+        // Kestrel is not used here: refusing a body while the client still writes it is a broken pipe on some
+        // platforms and a 413 on others, so the test checks the limit the endpoint carries and the store's answer
+        // past it.
         var upload = server.Services.GetRequiredService<EndpointDataSource>()
-            .Endpoints.Single(static e => e.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName == "UploadAsset");
+            .Endpoints.Single(static e => e.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName == "UploadAsset"
+            );
         Assert.Equal(AssetStore.MaxBytes, upload.Metadata.GetMetadata<IRequestSizeLimitMetadata>()?.MaxRequestBodySize);
 
         using var large = await client.PostAsync(
