@@ -110,6 +110,7 @@ public sealed class WahBlock() : DspBlock(Info) {
     WetCuts lowCut;
     WahCircuit? circuitLeft, circuitRight;
     ActiveWahCircuit? activeLeft, activeRight;
+    WahBias[] biases = [];
     int configured = -1;
     int countdown;
     float mix = 1f;
@@ -268,6 +269,12 @@ public sealed class WahBlock() : DspBlock(Info) {
 
     /// <summary>The number of types.</summary>
     public static int TypeCount => Types.Length;
+
+    /// <summary>
+    ///     DC operating points the inductor circuits have solved since Prepare (for tests and diagnostics): each voicing's
+    ///     once, at Prepare, and none on a type change.
+    /// </summary>
+    public long OperatingPointSolves => (circuitLeft?.OperatingPointSolves ?? 0) + (circuitRight?.OperatingPointSolves ?? 0);
 
     /// <summary>Whether <paramref name="type" /> is modelled at component level (an inductor or inductor-less circuit).</summary>
     public static bool IsCircuit(int type) => Types[type].Kind != Kind.Filter;
@@ -465,8 +472,9 @@ public sealed class WahBlock() : DspBlock(Info) {
             activeLeft.SetPosition(toe);
             activeRight.SetPosition(toe);
         } else {
-            circuitLeft!.Configure(Circuits[index]);
-            circuitRight!.Configure(Circuits[index]);
+            // The operating point found at Prepare: a type change on the audio thread does not solve it.
+            circuitLeft!.Configure(biases[index]);
+            circuitRight!.Configure(biases[index]);
             circuitLeft.SetPosition(toe);
             circuitRight.SetPosition(toe);
         }
@@ -478,6 +486,14 @@ public sealed class WahBlock() : DspBlock(Info) {
     protected override void OnPrepare(in ProcessSpec spec) {
         circuitLeft = new(Circuits[0], spec.SampleRate);
         circuitRight = new(Circuits[0], spec.SampleRate);
+        var found = new WahBias[Circuits.Count];
+        for (var i = 0; i < found.Length; i++) {
+            circuitLeft.Configure(Circuits[i]);
+            found[i] = circuitLeft.Bias();
+        }
+
+        biases = found;
+        circuitLeft.Configure(found[0]);
         activeLeft = new(ActiveCircuits[0], spec.SampleRate, SubBlock);
         activeRight = new(ActiveCircuits[0], spec.SampleRate, SubBlock);
         configured = FirstCircuit;

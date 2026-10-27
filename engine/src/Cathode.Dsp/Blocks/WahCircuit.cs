@@ -90,12 +90,34 @@ public sealed record WahVoicing(string Name, string ModelledAfter) {
 }
 
 /// <summary>
+///     A voicing's DC operating point as <see cref="WahCircuit.Bias" /> found it: what
+///     <see cref="WahCircuit.Configure(WahBias)" /> loads instead of solving it again. Immutable.
+/// </summary>
+public sealed class WahBias {
+    internal WahBias(WahVoicing voicing, double[] nodes, double inductorCurrent, double[] deviceVoltages) {
+        Voicing = voicing;
+        Nodes = nodes;
+        InductorCurrent = inductorCurrent;
+        DeviceVoltages = deviceVoltages;
+    }
+
+    public WahVoicing Voicing { get; }
+
+    internal double[] Nodes { get; }
+
+    internal double InductorCurrent { get; }
+
+    internal double[] DeviceVoltages { get; }
+}
+
+/// <summary>
 ///     One channel of a component-level inductor wah (see <see cref="WahVoicing" />): a wave digital filter whose root is
 ///     an R-type adaptor holding both transistors (Ebers-Moll, four device ports) and every resistor, with the
 ///     capacitors, the inductor and the input source as its seven ports. The pot is a pair of internal resistors, so
 ///     moving it refactors the adaptor's matrix (<see cref="SetPosition" />, allocation-free) instead of rebuilding
 ///     anything. The circuit starts, and resets, at its DC operating point, which a second, resistive-only copy of the
-///     circuit finds once per <see cref="Configure" />.
+///     circuit finds once per <see cref="Configure(WahVoicing)" />; <see cref="Configure(WahBias)" /> loads one found
+///     before, so a type change on the audio thread does not solve it.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -169,7 +191,7 @@ public sealed class WahCircuit {
     double critical;
     readonly double companion;
 
-    /// <summary>The voicing set by the last <see cref="Configure" />.</summary>
+    /// <summary>The voicing set by the last Configure.</summary>
     public WahVoicing Voicing { get; private set; }
 
     /// <summary>Node voltages at the DC operating point (index node - 1).</summary>
@@ -178,8 +200,11 @@ public sealed class WahCircuit {
     /// <summary>Statistics of the generic solver, which only sees the samples the specialised one hands over.</summary>
     public NewtonSolver Newton => root.Newton;
 
-    /// <summary>Samples solved by the generic four-port solver since the last <see cref="Configure" />.</summary>
+    /// <summary>Samples solved by the generic four-port solver since the last Configure.</summary>
     public long Fallbacks { get; private set; }
+
+    /// <summary>DC operating points solved since construction (for tests and diagnostics).</summary>
+    public long OperatingPointSolves { get; private set; }
 
     /// <summary>Wiper-to-ground fraction of the pot, as of the last <see cref="SetPosition" />.</summary>
     public double Wiper { get; private set; } = double.NaN;
@@ -242,10 +267,53 @@ public sealed class WahCircuit {
     }
 
     /// <summary>
-    ///     Loads <paramref name="voicing" />'s component values, finds its DC operating point and resets the circuit there.
-    ///     Allocation-free, so a type change can call it on the audio thread.
+    ///     Loads <paramref name="voicing" />'s component values, finds its DC operating point (up to a hundred Newton solves
+    ///     of the resistive copy) and resets the circuit there. Control thread: the audio thread loads a
+    ///     <see cref="Bias" /> found beforehand with <see cref="Configure(WahBias)" />.
     /// </summary>
     public void Configure(WahVoicing voicing) {
+        Load(voicing);
+        var v = voicing;
+        dc.SetResistance(0, v.Collector1);
+        dc.SetResistance(1, v.Emitter1);
+        dc.SetResistance(2, v.BiasFeedback);
+        dc.SetResistance(3, v.Base2);
+        dc.SetResistance(4, v.Feedback);
+        dc.SetResistance(5, v.QResistor);
+        dc.SetResistance(6, v.BiasGround);
+        dc.SetResistance(7, v.Emitter2);
+        dc.SetResistance(8, v.Collector2);
+        dc.SetResistance(9, v.InductorResistance);
+        dc.Ports.A.Value = v.InputResistor;
+        dc.Device = new(new(v.Transistor), new(v.Transistor));
+        dc.SetVoltage(0, v.Supply);
+        dc.SetResistance(PotUpper, 0.5 * v.Pot);
+        dc.SetResistance(PotLower, 0.5 * v.Pot);
+        dc.Propagate();
+        Propagate();
+        SolveOperatingPoint();
+        Reset();
+    }
+
+    /// <summary>
+    ///     Loads <paramref name="bias" />'s voicing at the operating point found for it and resets the circuit there, as
+    ///     <see cref="Configure(WahVoicing)" /> would but without the DC solve: one refactoring of the adaptor, as a pedal
+    ///     move costs. Allocation-free, for a type change on the audio thread.
+    /// </summary>
+    public void Configure(WahBias bias) {
+        Load(bias.Voicing);
+        bias.Nodes.CopyTo(operatingPoint, 0);
+        inductorCurrent = bias.InductorCurrent;
+        bias.DeviceVoltages.CopyTo(initialVoltages, 0);
+        Propagate();
+        Reset();
+    }
+
+    /// <summary>Control thread: the DC operating point of the voicing last configured, for <see cref="Configure(WahBias)" />.</summary>
+    public WahBias Bias() => new(Voicing, [..operatingPoint], inductorCurrent, [..initialVoltages]);
+
+    /// <summary>Loads the audio circuit's component values for <paramref name="voicing" />, the pot at its middle.</summary>
+    void Load(WahVoicing voicing) {
         if (voicing.Transistor.Polarity != BjtPolarity.Npn) {
             throw new ArgumentException("The wah circuit is built with NPN transistors.", nameof(voicing));
         }
@@ -273,11 +341,9 @@ public sealed class WahCircuit {
         resistors[9] = v.InductorResistance;
         for (var i = 0; i < resistors.Length; i++) {
             root.SetResistance(i, resistors[i]);
-            dc.SetResistance(i, resistors[i]);
         }
 
         root.Ports.A.Value = v.InputResistor;
-        dc.Ports.A.Value = v.InputResistor;
         root.Ports.B.Configure(v.InputCapacitor, sampleRate);
         root.Ports.C.Configure(v.Bypass, sampleRate);
         root.Ports.D.Configure(v.Tuning, sampleRate);
@@ -285,18 +351,10 @@ public sealed class WahCircuit {
         root.Ports.F.Configure(v.Coupling, sampleRate);
         root.Ports.G.Configure(v.Inductance, sampleRate);
         root.Device = new(new(v.Transistor), new(v.Transistor));
-        dc.Device = new(new(v.Transistor), new(v.Transistor));
         root.SetVoltage(0, v.Supply);
-        dc.SetVoltage(0, v.Supply);
         inputs[^1] = v.Supply;
         Wiper = double.NaN;
         SetPot(0.5, false);
-        dc.SetResistance(PotUpper, 0.5 * v.Pot);
-        dc.SetResistance(PotLower, 0.5 * v.Pot);
-        dc.Propagate();
-        Propagate();
-        SolveOperatingPoint();
-        Reset();
     }
 
     /// <summary>Moves the pot to pedal position <paramref name="toe" /> (0 heel, 1 toe) and refactors the adaptor.</summary>
@@ -305,7 +363,7 @@ public sealed class WahCircuit {
     /// <summary>
     ///     Scales the inductance and R7 (which sets the resonator's Q) against the voicing's values, refactoring the
     ///     adaptor when either changes. Neither moves the DC operating point (the inductor is a short at DC). Allocation
-    ///     free; <see cref="Configure" /> returns both to 1.
+    ///     free; Configure returns both to 1.
     /// </summary>
     public void Trim(double inductanceScale, double qScale) {
         if (inductanceScale == this.inductanceScale && qScale == this.qScale) {
@@ -606,6 +664,7 @@ public sealed class WahCircuit {
     ///     voltages stop moving, then stores the node voltages, the inductor's bias current and the start for Newton.
     /// </summary>
     void SolveOperatingPoint() {
+        OperatingPointSolves++;
         dc.Reset();
         dc.Ports.A.Volts = 0;
         Span<double> last = stackalloc double[4];
