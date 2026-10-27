@@ -70,6 +70,10 @@ Use a scene controller as a modifier source when a knob should sit at a differen
 
 Four global knobs (0 to 100 %) on the Controllers page, the same in every preset. A MIDI controller or footswitch can set them too (the **manual** action). Use them for anything you want to control by hand the same way everywhere.
 
+### External 1 to 8
+
+The sources an expression pedal or a MIDI CC drives (see [Expression pedals](/manual/midi-and-footswitches#expression-pedals)). **External (live)** on the Controllers page has a knob for each, so you can move a wah, a whammy or any External modifier without a pedal. These are live values only: they are not saved, the knobs show what you last set here, and a pedal moved afterwards takes over.
+
 ### LFO 1 and LFO 2
 
 Low-frequency oscillators: sources that cycle up and down on their own.

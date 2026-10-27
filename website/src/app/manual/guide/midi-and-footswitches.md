@@ -95,7 +95,7 @@ An expression pedal plugged into a MIDI controller sends a CC whose value follow
 
 **Then use it in any preset:** right-click a knob, choose **Add modifier…**, and pick **External 1** as the source. See [Controllers and modifiers](/manual/modifiers).
 
-> **Tip:** Use External 1 for your main expression pedal. The factory presets' wahs and whammies expect it there, and rest at the heel until it is mapped.
+> **Tip:** Use External 1 for your main expression pedal. The factory presets' wahs and whammies expect it there, and rest at the heel until it is mapped. Without a pedal, move **External 1** under **Controllers ▸ External (live)** instead.
 
 ### Learn MIDI controller on a knob
 
